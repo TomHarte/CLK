@@ -522,7 +522,6 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
-					case ScreenMode::YamahaGraphics3:
 						character_fetcher.fetch_tile_name(Storage<personality>::next_event_->id);
 					break;
 
@@ -541,7 +540,6 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
-					case ScreenMode::YamahaGraphics3:
 						character_fetcher.fetch_tile_colour(Storage<personality>::next_event_->id);
 					break;
 
@@ -571,7 +569,15 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
+						character_fetcher.fetch_tile_pattern(Storage<personality>::next_event_->id);
+					break;
+
 					case ScreenMode::YamahaGraphics3:
+						// As per comment elsewhere; my _guess_ is that G3 is slotted as if it were
+						// a bitmap mode, with the three bytes that describe each column fitting into
+						// the relevant windows.
+						character_fetcher.fetch_tile_name(Storage<personality>::next_event_->id);
+						character_fetcher.fetch_tile_colour(Storage<personality>::next_event_->id);
 						character_fetcher.fetch_tile_pattern(Storage<personality>::next_event_->id);
 					break;
 

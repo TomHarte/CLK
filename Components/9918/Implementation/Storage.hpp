@@ -110,10 +110,11 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			case ScreenMode::MultiColour:
 			case ScreenMode::YamahaGraphics1:
 			case ScreenMode::YamahaGraphics2:
-			case ScreenMode::YamahaGraphics3:				// TODO: possibly? Does this give enough bandwidth for sprites?
 				next_event_ = character_events.data();
 			break;
 
+			case ScreenMode::YamahaGraphics3:				// TODO: verify; my guess is that G3 is timed like a bitmap mode
+															// in order to fit the pattern for sprite mode 2. Just a guess.
 			default:
 				next_event_ = sprites_enabled_ ? sprites_events.data() : no_sprites_events.data();
 			break;
