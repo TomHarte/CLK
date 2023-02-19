@@ -81,7 +81,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	// State that tracks fetching position within a line.
 	const Event *next_event_ = nullptr;
-	int data_block_ = 0;
 
 	// Text blink colours.
 	uint8_t blink_text_colour_ = 0;
@@ -97,8 +96,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {
-		data_block_ = 0;
-
 		if(is_refresh) {
 			next_event_ = refresh_events.data();
 			return;
@@ -383,9 +380,9 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 					const int sub_block = offset % 48;
 					switch(sub_block) {
 						default: break;
-						case 0:		return Event::Type::Name;
-						case 18:	return (block & 1) ? Event::Type::External : Event::Type::Colour;
-						case 24:	return Event::Type::Pattern;
+						case 0:		return Event(Event::Type::Name, uint8_t(block));
+						case 18:	return (block & 1) ? Event::Type::External : Event(Event::Type::Colour, uint8_t(block >> 1));
+						case 24:	return Event(Event::Type::Pattern, uint8_t(block));
 					}
 				}
 

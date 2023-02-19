@@ -503,13 +503,14 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 			case Type::Name:
 				switch(mode) {
 					case ScreenMode::Text: {
-						const auto column = AddressT(Storage<personality>::data_block_);
+						const auto column = AddressT(Storage<personality>::next_event_->id << 1);
+
 						text_fetcher.fetch_name(column, 0);
 						text_fetcher.fetch_name(column + 1, 1);
 					} break;
 
 					case ScreenMode::YamahaText80: {
-						const auto column = AddressT(Storage<personality>::data_block_);
+						const auto column = AddressT(Storage<personality>::next_event_->id << 2);
 						const auto start = pattern_name_address_ & bits<12>(AddressT((y >> 3) * 80));
 
 						name_[0] = ram_[start + column + 0];
@@ -532,7 +533,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 			case Type::Colour:
 				switch(mode) {
 					case ScreenMode::YamahaText80: {
-						const auto column = AddressT(Storage<personality>::data_block_ >> 3);
+						const auto column = AddressT(Storage<personality>::next_event_->id);
 						const auto address = colour_table_address_ & bits<9>(AddressT((y >> 3) * 10));
 						line_buffer.characters.flags[column] = ram_[address + column];
 					} break;
@@ -551,18 +552,16 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 			case Type::Pattern:
 				switch(mode) {
 					case ScreenMode::Text: {
-						const auto column = AddressT(Storage<personality>::data_block_);
-						Storage<personality>::data_block_ += 2;
+						const auto column = AddressT(Storage<personality>::next_event_->id << 1);
 
 						text_fetcher.fetch_pattern(column, 0);
 						text_fetcher.fetch_pattern(column + 1, 1);
 					} break;
 
 					case ScreenMode::YamahaText80: {
-						const auto column = AddressT(Storage<personality>::data_block_);
-						Storage<personality>::data_block_ += 4;
-
+						const auto column = Storage<personality>::next_event_->id << 2;
 						const auto start = pattern_generator_table_address_ & bits<11>(AddressT(y & 7));
+
 						line_buffer.characters.shapes[column + 0] = ram_[start + AddressT(name_[0] << 3)];
 						line_buffer.characters.shapes[column + 1] = ram_[start + AddressT(name_[1] << 3)];
 						line_buffer.characters.shapes[column + 2] = ram_[start + AddressT(name_[2] << 3)];
