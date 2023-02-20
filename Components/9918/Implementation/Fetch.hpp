@@ -243,34 +243,31 @@ class SpriteFetcher {
 
 		uint8_t name(int slot) {
 			return base->ram_[
-					base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 2))
-				] & (base->sprites_16x16_ ? ~3 : ~0);
+				base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 2))
+			] & (base->sprites_16x16_ ? ~3 : ~0);
 		}
 
 		void fetch_image(int slot, uint8_t name) {
-			const AddressT graphic_offset = bits<11>(AddressT((name << 3) | tile_buffer.active_sprites[slot].row));
-
 			uint8_t colour = 0;
 			switch(mode) {
 				case SpriteMode::Mode1:
 					// Fetch colour from the attribute table, per this sprite's slot.
-					colour =
-						base->ram_[
-							base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 3))
-						];
+					colour = base->ram_[
+						base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 3))
+					];
 				break;
 
 				case SpriteMode::Mode2: {
-					// Fetch colour from the colour table, per this sprite's name and row.
+					// Fetch colour from the colour table, per this sprite's slot and row.
 					colour = base->ram_[
-						base->sprite_attribute_table_address_ & AddressT(~512) & graphic_offset
+						base->sprite_attribute_table_address_ & AddressT(~512) & AddressT((slot << 4) | tile_buffer.active_sprites[slot].row)
 					];
 				} break;
 			}
 			tile_buffer.active_sprites[slot].image[2] = colour;
 			tile_buffer.active_sprites[slot].x -= (colour & 0x80) >> 2;
 
-			const AddressT graphic_location = base->sprite_generator_table_address_ & graphic_offset;
+			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | tile_buffer.active_sprites[slot].row));
 			tile_buffer.active_sprites[slot].image[0] = base->ram_[graphic_location];
 			tile_buffer.active_sprites[slot].image[1] = base->ram_[graphic_location+16];
 		}
