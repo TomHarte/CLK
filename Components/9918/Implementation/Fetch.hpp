@@ -195,50 +195,87 @@ constexpr SpriteMode sprite_mode(ScreenMode screen_mode) {
 }
 
 template <Personality personality, SpriteMode mode>
-struct SpriteFetcher {
-	using AddressT = typename Base<personality>::AddressT;
+class SpriteFetcher {
+	public:
+		using AddressT = typename Base<personality>::AddressT;
 
-	SpriteFetcher(Base<personality> *base, LineBuffer &buffer, LineBuffer &sprite_selection_buffer, int y) :
-		base(base),
-		tile_buffer(buffer),
-		sprite_selection_buffer(sprite_selection_buffer),
-		y(y) {}
+		SpriteFetcher(Base<personality> *base, LineBuffer &buffer, LineBuffer &sprite_selection_buffer, int y) :
+			base(base),
+			tile_buffer(buffer),
+			sprite_selection_buffer(sprite_selection_buffer),
+			y(y) {}
 
-	void fetch_location(int slot, [[maybe_unused]] int name_slot = 0) {
-		tile_buffer.active_sprites[slot].x =
-			base->ram_[
-				base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 1))
-			];
+		void fetch_location(int slot, [[maybe_unused]] int name_slot = 0) {
+			fetch_xy(slot);
 
-		if constexpr (mode == SpriteMode::Mode2) {
-			base->name_[name_slot] = base->ram_[
+			if constexpr (mode == SpriteMode::Mode2) {
+				fetch_xy(slot + 1);
+
+				base->name_[0] = name(slot);
+				base->name_[1] = name(slot + 1);
+			}
+		}
+
+		void fetch_pattern(int slot) {
+			switch(mode) {
+				case SpriteMode::Mode1:
+					fetch_image(slot, name(slot));
+				break;
+
+				case SpriteMode::Mode2:
+					fetch_image(slot, base->name_[0]);
+					fetch_image(slot + 1, base->name_[1]);
+				break;
+			}
+		}
+
+		void fetch_y(int sprite) {
+			base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & bits<7>(AddressT(sprite << 2))], y);
+		}
+
+	private:
+		void fetch_xy(int slot) {
+			tile_buffer.active_sprites[slot].x =
+				base->ram_[
+					base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 1))
+				];
+		}
+
+		uint8_t name(int slot) {
+			return base->ram_[
 					base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 2))
 				] & (base->sprites_16x16_ ? ~3 : ~0);
 		}
-	}
 
-	void fetch_pattern(int slot) {
-		const uint8_t name = base->ram_[
-				base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 2))
-			] & (base->sprites_16x16_ ? ~3 : ~0);
-		tile_buffer.active_sprites[slot].image[2] = base->ram_[
-				base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 3))
-			];
-		tile_buffer.active_sprites[slot].x -= (tile_buffer.active_sprites[slot].image[2] & 0x80) >> 2;
+		void fetch_image(int slot, uint8_t name) {
+			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | tile_buffer.active_sprites[slot].row));
 
-		const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | tile_buffer.active_sprites[slot].row));
-		tile_buffer.active_sprites[slot].image[0] = base->ram_[graphic_location];
-		tile_buffer.active_sprites[slot].image[1] = base->ram_[graphic_location+16];
-	}
+			uint8_t colour = 0;
+			switch(mode) {
+				case SpriteMode::Mode1:
+					// Fetch colour from the attribute table, per this sprite's slot.
+					colour =
+						base->ram_[
+							base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 3))
+						];
+				break;
 
-	void fetch_y(int sprite) {
-		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & bits<7>(AddressT(sprite << 2))], y);
-	}
+				case SpriteMode::Mode2: {
+					// Fetch colour from the colour table, per this sprite's name and row.
+					colour = base->ram_[graphic_location & ~512];
+				} break;
+			}
+			tile_buffer.active_sprites[slot].image[2] = colour;
+			tile_buffer.active_sprites[slot].x -= (colour & 0x80) >> 2;
 
-	Base<personality> *const base;
-	LineBuffer &tile_buffer;
-	LineBuffer &sprite_selection_buffer;
-	const int y;
+			tile_buffer.active_sprites[slot].image[0] = base->ram_[graphic_location];
+			tile_buffer.active_sprites[slot].image[1] = base->ram_[graphic_location+16];
+		}
+
+		Base<personality> *const base;
+		LineBuffer &tile_buffer;
+		LineBuffer &sprite_selection_buffer;
+		const int y;
 };
 
 template <Personality personality>
@@ -681,16 +718,8 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						// Ensure the compiler can discard character_fetcher in these modes.
 					break;
 
-					case ScreenMode::Graphics:
-					case ScreenMode::MultiColour:
-					case ScreenMode::ColouredText:
-						sprite_fetcher.fetch_location(Storage<personality>::next_event_->id);
-					break;
-
 					default:
-						// TODO: should responsibility for two fetches be in the sprite fetcher?
-						sprite_fetcher.fetch_location(Storage<personality>::next_event_->id, 0);
-						sprite_fetcher.fetch_location(Storage<personality>::next_event_->id + 1, 1);
+						sprite_fetcher.fetch_location(Storage<personality>::next_event_->id);
 					break;
 				}
 			break;
@@ -703,13 +732,9 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						// Ensure the compiler can discard character_fetcher in these modes.
 					break;
 
-					case ScreenMode::Graphics:
-					case ScreenMode::MultiColour:
-					case ScreenMode::ColouredText:
+					default:
 						sprite_fetcher.fetch_pattern(Storage<personality>::next_event_->id);
 					break;
-
-					default: break;
 				}
 			break;
 
