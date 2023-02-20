@@ -335,7 +335,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 							if(include_sprites) {
 								// Don't include the sprite post-amble (i.e. a spurious read with no side effects).
 								if(block < 32) {
-									return Event::Type::SpriteY;
+									return Event(Event::Type::SpriteY, uint8_t(block));
 								}
 							} else {
 								return Event::Type::External;
