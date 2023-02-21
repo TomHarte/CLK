@@ -32,6 +32,8 @@ template <> struct Storage<Personality::TMS9918A> {
 template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
 	using AddressT = uint32_t;
 
+	std::array<uint8_t, 65536> expansion_ram_;
+
 	int selected_status_ = 0;
 
 	int indirect_register_ = 0;

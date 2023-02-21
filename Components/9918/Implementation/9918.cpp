@@ -885,9 +885,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 45:
 				Storage<personality>::command_context_.arguments = value;
-				// b6: 0 = video RAM; 1 = expansion RAM.
-				// b5: MXD (???)
-				// b4: MXS
+				// b6: MXC, i.e. destination for INed/OUTed video data; 0 = video RAM; 1 = expansion RAM.
+				// b5: MXD, destination for command engine.
+				// b4: MXS, source for command engine.
 				// b3: DIY
 				// b2: DIX
 				// b1: EQ

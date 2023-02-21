@@ -437,8 +437,13 @@ template <Personality personality> struct Base: public Storage<personality> {
 			return;
 		}
 
+		// Copy and mutate the RAM pointer.
 		AddressT address = ram_pointer_;
 		++ram_pointer_;
+
+		// Determine the relevant RAM and its mask.
+		uint8_t *ram = ram_.data();
+		AddressT mask = memory_mask(personality);
 
 		if constexpr (is_yamaha_vdp(personality)) {
 			// The Yamaha increments only 14 bits of the address in TMS-compatible modes.
@@ -451,6 +456,12 @@ template <Personality personality> struct Base: public Storage<personality> {
 				// the underlying banks of memory alternately but presents
 				// them as if linear.
 				address = (address >> 1) | (address << 16);
+			}
+
+			// Also check whether expansion RAM is the true target here.
+			if(Storage<personality>::command_context_.arguments & 0x40) {
+				ram = Storage<personality>::expansion_ram_.data();
+				mask = AddressT(Storage<personality>::expansion_ram_.size() - 1);
 			}
 		}
 
@@ -490,10 +501,10 @@ template <Personality personality> struct Base: public Storage<personality> {
 						break;
 					}
 				}
-				ram_[address & memory_mask(personality)] = read_ahead_buffer_;
+				ram[address & mask] = read_ahead_buffer_;
 			break;
 			case MemoryAccess::Read:
-				read_ahead_buffer_ = ram_[address & memory_mask(personality)];
+				read_ahead_buffer_ = ram[address & mask];
 			break;
 		}
 		queued_access_ = MemoryAccess::None;
