@@ -1106,7 +1106,9 @@ uint8_t Base<personality>::read_register() {
 	// Gets the status register.
 	const uint8_t result = status_;
 	status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
-	line_interrupt_pending_ = false;
+	if constexpr (is_sega_vdp(personality)) {
+		line_interrupt_pending_ = false;
+	}
 	return result;
 }
 
