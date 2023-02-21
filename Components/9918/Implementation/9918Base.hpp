@@ -352,6 +352,9 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// has yet to pass.
 		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
 			if constexpr (is_yamaha_vdp(personality)) {
+				const uint8_t *const source = (Storage<personality>::command_context_.arguments & 0x10) ? Storage<personality>::expansion_ram_.data() : ram_.data();
+				uint8_t *const destination = (Storage<personality>::command_context_.arguments & 0x20) ? Storage<personality>::expansion_ram_.data() : ram_.data();
+
 				using CommandStep = typename Storage<personality>::CommandStep;
 
 				if(
@@ -368,14 +371,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 					break;
 
 					case CommandStep::ReadSourcePixel:
-						context.latched_colour.set(extract_colour(ram_[command_address(context.source)], context.source));
+						context.latched_colour.set(extract_colour(source[command_address(context.source)], context.source));
 
 						Storage<personality>::minimum_command_column_ = access_column + 32;
 						Storage<personality>::next_command_step_ = CommandStep::ReadDestinationPixel;
 					break;
 
 					case CommandStep::ReadDestinationPixel:
-						Storage<personality>::command_latch_ = ram_[command_address(context.destination)];
+						Storage<personality>::command_latch_ = source[command_address(context.destination)];
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WritePixel;
@@ -411,21 +414,21 @@ template <Personality personality> struct Base: public Storage<personality> {
 							}
 						}
 
-						ram_[address] = Storage<personality>::command_latch_;
+						destination[address] = Storage<personality>::command_latch_;
 
 						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 						Storage<personality>::update_command_step(access_column);
 					} break;
 
 					case CommandStep::ReadSourceByte:
-						context.latched_colour.set(ram_[command_address(context.source)]);
+						context.latched_colour.set(source[command_address(context.source)]);
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WriteByte;
 					break;
 
 					case CommandStep::WriteByte:
-						ram_[command_address(context.destination)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
+						destination[command_address(context.destination)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
 						context.latched_colour.reset();
 
 						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
