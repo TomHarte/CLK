@@ -260,7 +260,7 @@ class SpriteFetcher {
 				case SpriteMode::Mode2: {
 					// Fetch colour from the colour table, per this sprite's slot and row.
 					colour = base->ram_[
-						base->sprite_attribute_table_address_ & AddressT(~512) & AddressT((tile_buffer.active_sprites[slot].index << 4) | tile_buffer.active_sprites[slot].row)
+						base->sprite_attribute_table_address_ & AddressT(~512) & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 4) | tile_buffer.active_sprites[slot].row))
 					];
 				} break;
 			}
