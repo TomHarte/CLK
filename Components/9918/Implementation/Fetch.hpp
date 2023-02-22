@@ -173,12 +173,6 @@ struct CharacterFetcher {
 	int colour_name_shift;
 };
 
-enum class SpriteMode {
-	Mode1,
-	Mode2,
-//	MasterSystem,
-};
-
 constexpr SpriteMode sprite_mode(ScreenMode screen_mode) {
 	switch(screen_mode) {
 		default:
@@ -189,11 +183,12 @@ constexpr SpriteMode sprite_mode(ScreenMode screen_mode) {
 		case ScreenMode::Graphics:
 			return SpriteMode::Mode1;
 
-//		case ScreenMode::SMSMode4:
-//			return SpriteMode::MasterSystem;
+		case ScreenMode::SMSMode4:
+			return SpriteMode::MasterSystem;
 	}
 }
 
+// TODO: should this be extended to include Master System sprites?
 template <Personality personality, SpriteMode mode>
 class SpriteFetcher {
 	public:

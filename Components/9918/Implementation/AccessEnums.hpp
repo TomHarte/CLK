@@ -79,6 +79,12 @@ enum class VerticalState {
 	Pixels,
 };
 
+enum class SpriteMode {
+	Mode1,
+	Mode2,
+	MasterSystem,
+};
+
 }
 }
 
