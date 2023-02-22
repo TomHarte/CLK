@@ -199,6 +199,16 @@ class SpriteFetcher {
 	public:
 		using AddressT = typename Base<personality>::AddressT;
 
+		// The Yamaha VDP adds an additional table when in Sprite Mode 2, the sprite colour
+		// table, which is intended to fill the 512 bytes before the programmer-located sprite
+		// attribute table.
+		//
+		// It partially enforces this proximity by forcing bits 7 and 8 to 0 in the address of
+		// the attribute table, and forcing them to 1 but masking out bit 9 for the colour table.
+		//
+		// AttributeAddressMask is used to enable or disable that behaviour.
+		static constexpr AddressT AttributeAddressMask = (mode  == SpriteMode::Mode2) ? AddressT(~0x180) : AddressT(~0x000);
+
 		SpriteFetcher(Base<personality> *base, LineBuffer &buffer, LineBuffer &sprite_selection_buffer, int y) :
 			base(base),
 			tile_buffer(buffer),
@@ -230,46 +240,57 @@ class SpriteFetcher {
 		}
 
 		void fetch_y(int sprite) {
-			base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & bits<7>(AddressT(sprite << 2))], y);
+			const AddressT address = base->sprite_attribute_table_address_ & AttributeAddressMask & bits<7>(AddressT(sprite << 2));
+			const uint8_t sprite_y = base->ram_[address];
+			base->posit_sprite(sprite_selection_buffer, sprite, sprite_y, y);
 		}
 
 	private:
 		void fetch_xy(int slot) {
 			tile_buffer.active_sprites[slot].x =
 				base->ram_[
-					base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 1))
+					base->sprite_attribute_table_address_ & AttributeAddressMask & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 1))
 				];
 		}
 
 		uint8_t name(int slot) {
-			return base->ram_[
-				base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 2))
-			] & (base->sprites_16x16_ ? ~3 : ~0);
+			const AddressT address =
+				base->sprite_attribute_table_address_ &
+				AttributeAddressMask &
+				bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 2));
+			const uint8_t name = base->ram_[address] & (base->sprites_16x16_ ? ~3 : ~0);
+			return name;
 		}
 
 		void fetch_image(int slot, uint8_t name) {
 			uint8_t colour = 0;
+			auto &sprite = tile_buffer.active_sprites[slot];
 			switch(mode) {
 				case SpriteMode::Mode1:
 					// Fetch colour from the attribute table, per this sprite's slot.
 					colour = base->ram_[
-						base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 2) | 3))
+						base->sprite_attribute_table_address_ & bits<7>(AddressT((sprite.index << 2) | 3))
 					];
 				break;
 
 				case SpriteMode::Mode2: {
 					// Fetch colour from the colour table, per this sprite's slot and row.
+					const AddressT colour_table_address = (base->sprite_attribute_table_address_ | ~AttributeAddressMask) & AddressT(~0x200);
 					colour = base->ram_[
-						base->sprite_attribute_table_address_ & AddressT(~512) & bits<7>(AddressT((tile_buffer.active_sprites[slot].index << 4) | tile_buffer.active_sprites[slot].row))
+						colour_table_address &
+						bits<9>(
+							AddressT(sprite.index << 4) |
+							AddressT(sprite.row)
+						)
 					];
 				} break;
 			}
-			tile_buffer.active_sprites[slot].image[2] = colour;
-			tile_buffer.active_sprites[slot].x -= (colour & 0x80) >> 2;
+			sprite.image[2] = colour;
+			sprite.x -= (colour & 0x80) >> 2;
 
-			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | tile_buffer.active_sprites[slot].row));
-			tile_buffer.active_sprites[slot].image[0] = base->ram_[graphic_location];
-			tile_buffer.active_sprites[slot].image[1] = base->ram_[graphic_location+16];
+			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
+			sprite.image[0] = base->ram_[graphic_location];
+			sprite.image[1] = base->ram_[graphic_location+16];
 		}
 
 		Base<personality> *const base;
