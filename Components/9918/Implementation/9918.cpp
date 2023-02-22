@@ -1059,11 +1059,11 @@ uint8_t Base<personality>::read_register() {
 				// b7 = light pen; set when light is detected, reset on read;
 				//		or: mouse button 2 currently down.
 				// b6 = light pen button or mouse button 1.
-				// b5–b1 = VDP identification (1 = 9938; 2 = 9958)
+				// b5–b1 = VDP identification (0 = 9938; 2 = 9958)
 				// b0 = set when the VDP reaches the line provided in the line interrupt register.
 				//		Reset upon read.
 				const uint8_t result =
-					(personality == Personality::V9938 ? 0x2 : 0x4) |
+					(personality == Personality::V9938 ? 0x0 : 0x4) |
 					(line_interrupt_pending_ ? 0x01 : 0x00);
 
 				line_interrupt_pending_ = false;
