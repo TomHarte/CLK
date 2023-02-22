@@ -109,6 +109,19 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 	}
 }
 
+// Mode 2 logic, as I currently understand it, as a note for my future self:
+//
+//	If a sprite is marked as 'CC' then it doesn't collide, but its colour value is
+//	ORd with those of all lower-numbered sprites down to the next one that is visible on
+//	that line and not marked CC.
+//
+//	If no previous sprite meets that criteria, no pixels are displayed. But if one does
+//	then pixels are displayed even where they don't overlap with the earlier sprites.
+//
+//	... so in terms of my loop above, I guess I need temporary storage to accumulate
+//	an OR mask up until I hit a non-CC sprite, at which point I composite everything out?
+//	I'm not immediately sure whether I can appropriately reuse sprite_buffer, but possibly?
+
 // MARK: - TMS9918
 
 template <Personality personality>
@@ -331,7 +344,7 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 	draw_sprites<
 		SpriteMode::Mode2,
 		mode == ScreenMode::YamahaGraphics5 || mode == ScreenMode::YamahaGraphics6
-	>(buffer, start, end);
+	>(buffer, start >> 2, end >> 2);
 }
 
 template <Personality personality>
