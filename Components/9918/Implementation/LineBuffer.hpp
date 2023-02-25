@@ -93,8 +93,10 @@ struct LineBuffer {
 		bool opaque() const {
 			return !(image[2] & 0x40);
 		}
-		bool noncollideable() const {
-			return image[2] & 0x20;
+
+		/// @returns @c 0x20 if this sprite should generate collisions; @c 0x00 otherwise.
+		int collision_bit() const {
+			return ((image[2] & 0x20) | ((image[2] & 0x40) >> 1)) ^ 0x20;
 		}
 
 		// Yamaha and TMS helpers.

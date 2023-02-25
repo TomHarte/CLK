@@ -111,8 +111,12 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 					LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
 					for(int c = 0; c < 32; c+= 2) {
 						const int shift = (c >> 1) ^ 7;
-						Storage<personality>::sprite_cache_[index][c] = Storage<personality>::sprite_cache_[index][c + 1] =
-							sprite.image[2] & 0xf & sprite_colour_selection_masks[1 & (sprite.image[shift >> 3] >> (shift & 7))];
+						const int bit = 1 & (sprite.image[shift >> 3] >> (shift & 7));
+
+						Storage<personality>::sprite_cache_[index][c] =
+						Storage<personality>::sprite_cache_[index][c + 1] =
+							(sprite.image[2] & 0xf & sprite_colour_selection_masks[bit]) |
+							uint8_t((bit << StatusSpriteCollisionShift) & sprite.collision_bit());
 					}
 				}
 			} else {
@@ -120,8 +124,11 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 					LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
 					for(int c = 0; c < 16; c++) {
 						const int shift = c ^ 7;
+						const int bit = 1 & (sprite.image[shift >> 3] >> (shift & 7));
+
 						Storage<personality>::sprite_cache_[index][c] =
-							sprite.image[2] & 0xf & sprite_colour_selection_masks[1 & (sprite.image[shift >> 3] >> (shift & 7))];
+							(sprite.image[2] & 0xf & sprite_colour_selection_masks[bit]) |
+							uint8_t((bit << StatusSpriteCollisionShift) & sprite.collision_bit());
 					}
 				}
 			}
@@ -163,12 +170,21 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 
 			for(int x = x1; x < x2; x++) {
 				const uint8_t colour = Storage<personality>::sprite_cache_[index][x];
+
+				// Plot colour, if visible.
 				if(colour) {
-					pixel_origin_[sprite.x + x] = palette()[colour];
+					pixel_origin_[sprite.x + x] = palette()[colour & 0xf];
 				}
+
+				// Accumulate collisions.
+				sprite_collision |= sprite_buffer[sprite.x + x];
+				sprite_buffer[sprite.x + x] |= colour;
+
+				// TODO: capture (x, y) if a collision has been spotted.
 			}
 
-			// TODO: collisions.
+			// Update collision bit.
+			status_ |= sprite_collision & StatusSpriteCollision;
 		}
 
 		return;
