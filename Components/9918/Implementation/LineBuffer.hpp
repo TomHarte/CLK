@@ -88,6 +88,19 @@ struct LineBuffer {
 								//	Master System mode: the four bytes of this 8x8 sprite;
 								//	TMS and Yamaha: [0] = the left half of this sprite; [1] = the right side (if 16x16 sprites enabled); [2] = colour, early-clock bit, etc.
 		int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
+
+		// Yamaha helpers.
+		bool opaque() const {
+			return !(image[2] & 0x40);
+		}
+		bool noncollideable() const {
+			return image[2] & 0x20;
+		}
+
+		// Yamaha and TMS helpers.
+		int early_clock() const {
+			return (image[2] & 0x80) >> 2;
+		}
 	} active_sprites[8];
 
 	int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.

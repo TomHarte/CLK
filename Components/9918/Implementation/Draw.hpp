@@ -96,7 +96,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 		// Determine the lowest visible sprite; exit early if that leaves no sprites visible.
 		for(; min_sprite < buffer.active_sprite_slot; min_sprite++) {
 			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[min_sprite];
-			if(!(sprite.image[2]&0x40)) {
+			if(sprite.opaque()) {
 				break;
 			}
 		}
@@ -129,7 +129,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 			// Go backwards compositing any sprites that are set as OR masks onto their parents.
 			for(int index = buffer.active_sprite_slot - 1; index >= min_sprite + 1; --index) {
 				LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
-				if(!(sprite.image[2] & 0x40)) {
+				if(sprite.opaque()) {
 					continue;
 				}
 
@@ -148,7 +148,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 					}
 
 					// If a previous opaque sprite has been found, stop.
-					if(previous.image[2] & 0x40) {
+					if(previous.opaque()) {
 						break;
 					}
 				}
@@ -191,11 +191,11 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 				sprite_buffer[c] |= sprite_colour;
 
 				// ... but a sprite with the transparent colour won't actually be visible.
-				sprite_colour &= colour_masks[sprite.image[2]&15];
+				sprite_colour &= colour_masks[sprite.image[2] & 0xf];
 
 				pixel_origin_[c] =
 					(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) |
-					(palette()[sprite.image[2]&15] & sprite_colour_selection_masks[sprite_colour]);
+					(palette()[sprite.image[2] & 0xf] & sprite_colour_selection_masks[sprite_colour]);
 
 				sprite.shift_position += shift_advance;
 			}

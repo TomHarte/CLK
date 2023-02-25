@@ -281,7 +281,7 @@ class SpriteFetcher {
 				} break;
 			}
 			sprite.image[2] = colour;
-			sprite.x -= (colour & 0x80) >> 2;
+			sprite.x -= sprite.early_clock();
 
 			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
 			sprite.image[0] = base->ram_[graphic_location];
