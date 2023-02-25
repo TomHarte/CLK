@@ -36,26 +36,28 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 		// Draw all sprites into the sprite buffer.
 		for(int index = buffer.active_sprite_slot - 1; index >= 0; --index) {
 			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
-			if(sprite.shift_position < 16) {
-				const int pixel_start = std::max(start, sprite.x);
+			if(sprite.shift_position >= 16) {
+				continue;
+			}
 
-				// TODO: it feels like the work below should be simplifiable;
-				// the double shift in particular, and hopefully the variable shift.
-				for(int c = pixel_start; c < end && sprite.shift_position < 16; ++c) {
-					const int shift = (sprite.shift_position >> 1);
-					const int sprite_colour =
-						(((sprite.image[3] << shift) & 0x80) >> 4) |
-						(((sprite.image[2] << shift) & 0x80) >> 5) |
-						(((sprite.image[1] << shift) & 0x80) >> 6) |
-						(((sprite.image[0] << shift) & 0x80) >> 7);
+			const int pixel_start = std::max(start, sprite.x);
 
-					if(sprite_colour) {
-						sprite_collision |= sprite_buffer[c];
-						sprite_buffer[c] = sprite_colour | 0x10;
-					}
+			// TODO: it feels like the work below should be simplifiable;
+			// the double shift in particular, and hopefully the variable shift.
+			for(int c = pixel_start; c < end && sprite.shift_position < 16; ++c) {
+				const int shift = (sprite.shift_position >> 1);
+				const int sprite_colour =
+					(((sprite.image[3] << shift) & 0x80) >> 4) |
+					(((sprite.image[2] << shift) & 0x80) >> 5) |
+					(((sprite.image[1] << shift) & 0x80) >> 6) |
+					(((sprite.image[0] << shift) & 0x80) >> 7);
 
-					sprite.shift_position += shift_advance;
+				if(sprite_colour) {
+					sprite_collision |= sprite_buffer[c];
+					sprite_buffer[c] = sprite_colour | 0x10;
 				}
+
+				sprite.shift_position += shift_advance;
 			}
 		}
 
@@ -76,31 +78,125 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 
 	constexpr uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
 	constexpr int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+	const int sprite_width = sprites_16x16_ ? 16 : 8;
+	const int shifter_target = sprite_width << 1;
+	const int pixel_width = sprites_magnified_ ? sprite_width << 1 : sprite_width;
+	int min_sprite = 0;
 
-	// TODO: real Mode 2 logic.
-	if constexpr (mode == SpriteMode::Mode1 || mode == SpriteMode::Mode2) {
-		// Draw all sprites into the sprite buffer.
-		const int shifter_target = sprites_16x16_ ? 32 : 16;
-		for(int index = buffer.active_sprite_slot - 1; index >= 0; --index) {
-			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
-			if(sprite.shift_position < shifter_target) {
-				const int pixel_start = std::max(start, sprite.x);
-				for(int c = pixel_start; c < end && sprite.shift_position < shifter_target; ++c) {
-					const int shift = (sprite.shift_position >> 1) ^ 7;
-					int sprite_colour = (sprite.image[shift >> 3] >> (shift & 7)) & 1;
+	//
+	// Approach taken for Mode 2 sprites:
+	//
+	//	(1)	precompute full sprite images, at up to 32 pixels wide;
+	//	(2) for each sprite that is marked as CC, walk backwards until the
+	//		first sprite that is not marked CC, ORing it into the precomputed
+	//		image at each step;
+	//	(3)	subsequently, just draw each sprite image independently.
+	//
+	if constexpr (mode == SpriteMode::Mode2) {
+		// Determine the lowest visible sprite; exit early if that leaves no sprites visible.
+		for(; min_sprite < buffer.active_sprite_slot; min_sprite++) {
+			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[min_sprite];
+			if(!(sprite.image[2]&0x40)) {
+				break;
+			}
+		}
+		if(min_sprite == buffer.active_sprite_slot) {
+			return;
+		}
 
-					// A colision is detected regardless of sprite colour ...
-					sprite_collision |= sprite_buffer[c] & sprite_colour;
-					sprite_buffer[c] |= sprite_colour;
-
-					// ... but a sprite with the transparent colour won't actually be visible.
-					sprite_colour &= colour_masks[sprite.image[2]&15];
-					pixel_origin_[c] =
-						(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) |
-						(palette()[sprite.image[2]&15] & sprite_colour_selection_masks[sprite_colour]);
-
-					sprite.shift_position += shift_advance;
+		if(!start) {
+			// Pre-rasterise the sprites one-by-one.
+			if(sprites_magnified_) {
+				for(int index = min_sprite; index < buffer.active_sprite_slot; index++) {
+					LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+					for(int c = 0; c < 32; c+= 2) {
+						const int shift = (c >> 1) ^ 7;
+						Storage<personality>::sprite_cache_[index][c] = Storage<personality>::sprite_cache_[index][c + 1] =
+							sprite.image[2] & 0xf & sprite_colour_selection_masks[1 & (sprite.image[shift >> 3] >> (shift & 7))];
+					}
 				}
+			} else {
+				for(int index = min_sprite; index < buffer.active_sprite_slot; index++) {
+					LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+					for(int c = 0; c < 16; c++) {
+						const int shift = c ^ 7;
+						Storage<personality>::sprite_cache_[index][c] =
+							sprite.image[2] & 0xf & sprite_colour_selection_masks[1 & (sprite.image[shift >> 3] >> (shift & 7))];
+					}
+				}
+			}
+
+			// Go backwards compositing any sprites that are set as OR masks onto their parents.
+			for(int index = buffer.active_sprite_slot - 1; index >= min_sprite + 1; --index) {
+				LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+				if(!(sprite.image[2] & 0x40)) {
+					continue;
+				}
+
+				// Sprite may affect all previous up to and cindlugin the next one that is opaque.
+				for(int previous_index = index - 1; previous_index >= min_sprite; --previous_index) {
+					// Determine region of overlap (if any).
+					LineBuffer::ActiveSprite &previous = buffer.active_sprites[previous_index];
+					const int origin = previous.x - sprite.x;
+					const int x1 = std::max(0, 0 - origin);
+					const int x2 = std::min(pixel_width - origin, pixel_width);
+
+					// Composite sprites.
+					for(int x = x1; x < x2; x++) {
+						Storage<personality>::sprite_cache_[previous_index][x + origin] |= Storage<personality>::sprite_cache_[index][x];
+					}
+
+					// If a previous opaque sprite has been found, stop.
+					if(previous.image[2] & 0x40) {
+						break;
+					}
+				}
+			}
+		}
+
+		// Draw.
+		for(int index = buffer.active_sprite_slot - 1; index >= min_sprite; --index) {
+			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+			const int x1 = std::max(0, start - sprite.x);
+			const int x2 = std::min(end - sprite.x, pixel_width);
+
+			for(int x = x1; x < x2; x++) {
+				const uint8_t colour = Storage<personality>::sprite_cache_[index][x];
+				if(colour) {
+					pixel_origin_[sprite.x + x] = palette()[colour];
+				}
+			}
+
+			// TODO: collisions.
+		}
+
+		return;
+	}
+
+	if constexpr (mode == SpriteMode::Mode1) {
+		for(int index = buffer.active_sprite_slot - 1; index >= min_sprite; --index) {
+			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+			if(sprite.shift_position >= shifter_target) {
+				continue;
+			}
+
+			const int pixel_start = std::max(start, sprite.x);
+			for(int c = pixel_start; c < end && sprite.shift_position < shifter_target; ++c) {
+				const int shift = (sprite.shift_position >> 1) ^ 7;
+				int sprite_colour = (sprite.image[shift >> 3] >> (shift & 7)) & 1;
+
+				// A colision is detected regardless of sprite colour ...
+				sprite_collision |= sprite_buffer[c] & sprite_colour;
+				sprite_buffer[c] |= sprite_colour;
+
+				// ... but a sprite with the transparent colour won't actually be visible.
+				sprite_colour &= colour_masks[sprite.image[2]&15];
+
+				pixel_origin_[c] =
+					(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) |
+					(palette()[sprite.image[2]&15] & sprite_colour_selection_masks[sprite_colour]);
+
+				sprite.shift_position += shift_advance;
 			}
 		}
 

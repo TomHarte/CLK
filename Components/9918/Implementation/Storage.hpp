@@ -47,6 +47,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	uint8_t mode_ = 0;
 
 	uint8_t vertical_offset_ = 0;
+	uint8_t sprite_cache_[8][32]{};
 
 	/// Describes an _observable_ memory access event. i.e. anything that it is safe
 	/// (and convenient) to treat as atomic in between external slots.
