@@ -137,13 +137,14 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 				for(int previous_index = index - 1; previous_index >= min_sprite; --previous_index) {
 					// Determine region of overlap (if any).
 					LineBuffer::ActiveSprite &previous = buffer.active_sprites[previous_index];
-					const int origin = previous.x - sprite.x;
-					const int x1 = std::max(0, 0 - origin);
+					const int origin = sprite.x - previous.x;
+					const int x1 = std::max(0, -origin);
 					const int x2 = std::min(pixel_width - origin, pixel_width);
 
 					// Composite sprites.
 					for(int x = x1; x < x2; x++) {
-						Storage<personality>::sprite_cache_[previous_index][x + origin] |= Storage<personality>::sprite_cache_[index][x];
+						Storage<personality>::sprite_cache_[previous_index][x + origin]
+							|= Storage<personality>::sprite_cache_[index][x];
 					}
 
 					// If a previous opaque sprite has been found, stop.
