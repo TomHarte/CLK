@@ -441,9 +441,11 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 	// TODO: Many other graphics modes.
 	// TODO: much smarter loops. Duff plus a tail?
 
+	const auto active_palette = palette();
+
 	if constexpr (mode == ScreenMode::YamahaGraphics4) {
 		for(int c = start >> 2; c < end >> 2; c++) {
-			pixel_target_[c] = Storage<personality>::palette_[
+			pixel_target_[c] = active_palette[
 				buffer.bitmap[c >> 1] >> ((((c & 1) ^ 1) << 2)) & 0xf
 			];
 		}
@@ -451,7 +453,7 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 
 	if constexpr (mode == ScreenMode::YamahaGraphics5) {
 		for(int c = start >> 1; c < end >> 1; c++) {
-			pixel_target_[c] = Storage<personality>::palette_[
+			pixel_target_[c] = active_palette[
 				buffer.bitmap[c >> 2] >> ((((c & 3) ^ 3) << 1)) & 3
 			];
 		}
