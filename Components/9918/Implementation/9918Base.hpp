@@ -75,7 +75,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	};
 	const std::array<uint32_t, 16> &palette() {
 		if constexpr (is_yamaha_vdp(personality)) {
-			return Storage<personality>::palette_;
+			return Storage<personality>::solid_background_ ? Storage<personality>::palette_ : Storage<personality>::background_palette_;
 		}
 		return default_palette;
 	}

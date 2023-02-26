@@ -40,6 +40,9 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	bool increment_indirect_register_ = false;
 
 	std::array<uint32_t, 16> palette_{};
+	std::array<uint32_t, 16> background_palette_{};
+	bool solid_background_ = true;
+
 	uint8_t new_colour_ = 0;
 	uint8_t palette_entry_ = 0;
 	bool palette_write_phase_ = false;

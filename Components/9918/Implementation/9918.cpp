@@ -773,9 +773,14 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				LOG("Screen mode: " << int(current_screen_mode<true>()));
 			break;
 
+			case 7:
+				Storage<personality>::background_palette_[0] = Storage<personality>::palette_[background_colour_];
+			break;
+
 			case 8:
 				LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +value);
 				Storage<personality>::sprites_enabled_ = !(value & 0x02);
+				Storage<personality>::solid_background_ = value & 0x20;
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
 				// b6: 1 = enable light pen
 				// b5: sets the colour of code 0 to the colour of the palette (???)
@@ -1013,6 +1018,9 @@ void Base<personality>::write_palette(uint8_t value) {
 		const uint8_t b = (Storage<personality>::new_colour_ & 7) * 255 / 7;
 
 		Storage<personality>::palette_[Storage<personality>::palette_entry_ & 0xf] = palette_pack(r, g, b);
+		Storage<personality>::background_palette_[Storage<personality>::palette_entry_ & 0xf] = palette_pack(r, g, b);
+		Storage<personality>::background_palette_[0] = Storage<personality>::palette_[background_colour_];
+
 		++Storage<personality>::palette_entry_;
 	}
 }
