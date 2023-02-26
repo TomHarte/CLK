@@ -905,12 +905,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 #define Begin(x)	Storage<personality>::command_ = std::make_unique<Commands::x>(Storage<personality>::command_context_);
 				switch(value >> 4) {
-					// All codes not listed below are invalid; just abandon
-					// whatever's going on, if anything.
-					//
-					// There's also no need to list STOP below as it was
-					// handled above.
-					default:		break;
+					// All codes not listed below are invalid; treat them as STOP.
+					default:
+					case 0b0000: 	Storage<personality>::command_ = nullptr;	break;	// STOP.
 
 					case 0b0100:	break;	// TODO: point.	[read a pixel colour]
 					case 0b0101:	Begin(PointSet);			break;	// PSET [plot a pixel].
@@ -934,13 +931,12 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 				// Kill the command immediately if it's done in zero operations
 				// (e.g. a line of length 0).
-				if(!Storage<personality>::command_) {
+				if(!Storage<personality>::command_ && (value >> 4)) {
 					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
 				}
 
 				// Seed timing information if a command was found.
 				Storage<personality>::update_command_step(fetch_pointer_.column);
-
 			break;
 		}
 	}
