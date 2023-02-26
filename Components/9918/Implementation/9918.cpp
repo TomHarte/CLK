@@ -754,13 +754,10 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				);
 				enable_line_interrupts_ = value & 0x10;
 
-				LOG("TODO: Yamaha additional mode selection; " << PADHEX(2) << +value);
 				// b1–b3: M3–M5
 				// b4: enable horizontal retrace interrupt
 				// b5: enable light pen interrupts
 				// b6: set colour bus to input or output mode
-
-				LOG("Screen mode: " << int(current_screen_mode<true>()));
 			break;
 
 			case 1:
@@ -769,8 +766,6 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					((value & 0x10) >> 4) |
 					((value & 0x08) >> 2)
 				);
-
-				LOG("Screen mode: " << int(current_screen_mode<true>()));
 			break;
 
 			case 7:
