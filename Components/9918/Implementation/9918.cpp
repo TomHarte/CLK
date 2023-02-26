@@ -1253,7 +1253,8 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
-	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + (next_line_interrupt_row - line_of_next_interrupt_threshold) * Timing<personality>::CyclesPerLine;
+	const int lines_until_interrupt = (next_line_interrupt_row - line_of_next_interrupt_threshold + this->mode_timing_.total_lines) % this->mode_timing_.total_lines;
+	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + lines_until_interrupt * Timing<personality>::CyclesPerLine;
 	if(!this->generate_interrupts_) return this->clock_converter_.half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
