@@ -189,6 +189,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	uint8_t line_interrupt_counter_ = 0;
 	bool enable_line_interrupts_ = false;
 	bool line_interrupt_pending_ = false;
+	bool vertical_active_ = false;
 
 	ScreenMode screen_mode_, underlying_mode_;
 	LineBuffer line_buffers_[313];

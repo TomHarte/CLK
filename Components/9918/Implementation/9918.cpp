@@ -297,6 +297,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->fetch_pointer_.column = 0;
 				this->fetch_pointer_.row = (this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines;
 
+				this->vertical_active_ |= !this->fetch_pointer_.row;
+				this->vertical_active_ &= this->fetch_pointer_.row != this->mode_timing_.pixel_lines;
+
 				// Reset sprite collection, which will be for the line after the new one.
 				LineBuffer &next_sprite_buffer = this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines];
 				next_sprite_buffer.reset_sprite_collection();
@@ -786,6 +789,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 9:
+				mode_timing_.pixel_lines = (value & 0x80) ? 212 : 192;
 				LOG("TODO: Yamaha line count, interlace, etc; " << PADHEX(2) << +value);
 				// b7: 1 = 212 lines of pixels; 0 = 192
 				// b5 & b4: select simultaneous mode (seems to relate to line length and in-phase colour?)
@@ -1155,10 +1159,8 @@ int Base<personality>::fetch_line() const {
 
 template <Personality personality>
 VerticalState Base<personality>::vertical_state() const {
-	// TODO: the Yamaha uses an internal flag for visible region which toggles at contextually-appropriate moments.
-	// This test won't work properly there.
-	if(fetch_pointer_.row == mode_timing_.total_lines - 1) return VerticalState::Prefetch;
-	return fetch_pointer_.row >= mode_timing_.pixel_lines ? VerticalState::Blank : VerticalState::Pixels;
+	if(vertical_active_) return VerticalState::Pixels;
+	return fetch_pointer_.row == mode_timing_.total_lines - 1 ? VerticalState::Prefetch : VerticalState::Blank;
 }
 
 template <Personality personality>
