@@ -435,35 +435,82 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 
 // MARK: - Yamaha
 
+template <int start> struct YamahaPlotter {
+	static void draw_4bpp(LineBuffer &buffer, int column, uint32_t *target, const std::array<uint32_t, 16> &palette) {
+		switch(start) {
+			case 0:	target[0] = palette[buffer.bitmap[column] >> 4];	[[fallthrough]];
+			case 1:	target[1] = palette[buffer.bitmap[column] & 0xf];	[[fallthrough]];
+		}
+	}
+
+	static void draw_2bpp(LineBuffer &buffer, int column, uint32_t *target, const std::array<uint32_t, 16> &palette) {
+		switch(start) {
+			case 0:	target[0] = palette[buffer.bitmap[column] >> 6];		[[fallthrough]];
+			case 1:	target[1] = palette[(buffer.bitmap[column] >> 4) & 3];	[[fallthrough]];
+			case 2:	target[2] = palette[(buffer.bitmap[column] >> 2) & 3];	[[fallthrough]];
+			case 3:	target[3] = palette[buffer.bitmap[column] & 3];			[[fallthrough]];
+		}
+	}
+};
+
 template <Personality personality>
 template <ScreenMode mode>
 void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
-	// TODO: Many other graphics modes.
-	// TODO: much smarter loops. Duff plus a tail?
-
 	const auto active_palette = palette();
+	const int sprite_start = start >> 2;
+	const int sprite_end = end >> 2;
 
-	if constexpr (mode == ScreenMode::YamahaGraphics4) {
-		for(int c = start >> 2; c < end >> 2; c++) {
-			pixel_target_[c] = active_palette[
-				buffer.bitmap[c >> 1] >> ((((c & 1) ^ 1) << 2)) & 0xf
-			];
+	if constexpr (mode == ScreenMode::YamahaGraphics4 || mode == ScreenMode::YamahaGraphics6) {
+		start >>= (mode == ScreenMode::YamahaGraphics4) ? 2 : 1;
+		end >>= (mode == ScreenMode::YamahaGraphics4) ? 2 : 1;
+
+		switch(start & 1) {
+			default: break;
+			case 1:	YamahaPlotter<1>::draw_4bpp(buffer, start >> 1, &pixel_target_[start], active_palette);	++start;	break;
+		}
+		while(start < end) {
+			YamahaPlotter<0>::draw_4bpp(buffer, start >> 1, &pixel_target_[start], active_palette);
+			start += 2;
 		}
 	}
 
 	if constexpr (mode == ScreenMode::YamahaGraphics5) {
-		for(int c = start >> 1; c < end >> 1; c++) {
-			pixel_target_[c] = active_palette[
-				buffer.bitmap[c >> 2] >> ((((c & 3) ^ 3) << 1)) & 3
-			];
+		start >>= 1;
+		end >>= 1;
+
+		switch(start & 3) {
+			default: break;
+			case 1:	YamahaPlotter<1>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);	start += 3;	break;
+			case 2:	YamahaPlotter<2>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);	start += 2;	break;
+			case 3:	YamahaPlotter<3>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);	start += 1;	break;
+		}
+		while(start < end) {
+			YamahaPlotter<0>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);
+			start += 4;
+		}
+	}
+
+	if constexpr (mode == ScreenMode::YamahaGraphics7) {
+		start >>= 2;
+		end >>= 2;
+
+		while(start < end) {
+			pixel_target_[start] =
+				palette_pack(
+					uint8_t((buffer.bitmap[start] & 0xe0) + ((buffer.bitmap[start] & 0xe0) >> 3) + ((buffer.bitmap[start] & 0xe0) >> 6)),
+					uint8_t((buffer.bitmap[start] & 0x1c) + ((buffer.bitmap[start] & 0x1c) << 3) + ((buffer.bitmap[start] & 0x1c) >> 3)),
+					uint8_t((buffer.bitmap[start] & 0x03) + ((buffer.bitmap[start] & 0x03) << 2) + ((buffer.bitmap[start] & 0x03) << 4) + ((buffer.bitmap[start] & 0x03) << 6))
+				);
+			++start;
 		}
 	}
 
 	// TODO: in Graphics7, indicate fixed sprite colours.
+	// Possibly TODO: is the data-sheet trying to allege some sort of colour mixing for sprites in Mode 6?
 	draw_sprites<
 		SpriteMode::Mode2,
 		mode == ScreenMode::YamahaGraphics5 || mode == ScreenMode::YamahaGraphics6
-	>(buffer, start >> 2, end >> 2);
+	>(buffer, sprite_start, sprite_end);
 }
 
 template <Personality personality>
