@@ -435,24 +435,6 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 
 // MARK: - Yamaha
 
-template <int start> struct YamahaPlotter {
-	static void draw_4bpp(LineBuffer &buffer, int column, uint32_t *target, const std::array<uint32_t, 16> &palette) {
-		switch(start) {
-			case 0:	target[0] = palette[buffer.bitmap[column] >> 4];	[[fallthrough]];
-			case 1:	target[1] = palette[buffer.bitmap[column] & 0xf];	[[fallthrough]];
-		}
-	}
-
-	static void draw_2bpp(LineBuffer &buffer, int column, uint32_t *target, const std::array<uint32_t, 16> &palette) {
-		switch(start) {
-			case 0:	target[0] = palette[buffer.bitmap[column] >> 6];		[[fallthrough]];
-			case 1:	target[1] = palette[(buffer.bitmap[column] >> 4) & 3];	[[fallthrough]];
-			case 2:	target[2] = palette[(buffer.bitmap[column] >> 2) & 3];	[[fallthrough]];
-			case 3:	target[3] = palette[buffer.bitmap[column] & 3];			[[fallthrough]];
-		}
-	}
-};
-
 template <Personality personality>
 template <ScreenMode mode>
 void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
@@ -460,17 +442,27 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 	const int sprite_start = start >> 2;
 	const int sprite_end = end >> 2;
 
+	// Observation justifying Duff's device below: it's acceptable to paint too many pixels — to paint
+	// beyond `end` — provided that the overpainting is within normal bitmap bounds, because any
+	// mispainted pixels will be replaced before becoming visible to the user.
+
 	if constexpr (mode == ScreenMode::YamahaGraphics4 || mode == ScreenMode::YamahaGraphics6) {
 		start >>= (mode == ScreenMode::YamahaGraphics4) ? 2 : 1;
 		end >>= (mode == ScreenMode::YamahaGraphics4) ? 2 : 1;
 
-		switch(start & 1) {
-			default: break;
-			case 1:	YamahaPlotter<1>::draw_4bpp(buffer, start >> 1, &pixel_target_[start], active_palette);	++start;	break;
-		}
-		while(start < end) {
-			YamahaPlotter<0>::draw_4bpp(buffer, start >> 1, &pixel_target_[start], active_palette);
-			start += 2;
+		int column = start & ~1;
+		const int offset = start & 1;
+		start >>= 1;
+		end = (end + 1) >> 1;
+
+		switch(offset) {
+			case 0:
+				do {
+						pixel_target_[column+0] = active_palette[buffer.bitmap[start] >> 4];
+			case 1:		pixel_target_[column+1] = active_palette[buffer.bitmap[start] & 0xf];
+						++start;
+						column += 2;
+				} while(start < end);
 		}
 	}
 
@@ -478,15 +470,21 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 		start >>= 1;
 		end >>= 1;
 
-		switch(start & 3) {
-			default: break;
-			case 1:	YamahaPlotter<1>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);	start += 3;	break;
-			case 2:	YamahaPlotter<2>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);	start += 2;	break;
-			case 3:	YamahaPlotter<3>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);	start += 1;	break;
-		}
-		while(start < end) {
-			YamahaPlotter<0>::draw_2bpp(buffer, start >> 2, &pixel_target_[start], active_palette);
-			start += 4;
+		int column = start & ~3;
+		const int offset = start & 3;
+		start >>= 2;
+		end = (end + 3) >> 2;
+
+		switch(offset) {
+			case 0:
+				do {
+					pixel_target_[column+0] = active_palette[buffer.bitmap[start] >> 6];
+			case 1:	pixel_target_[column+1] = active_palette[(buffer.bitmap[start] >> 4) & 3];
+			case 2:	pixel_target_[column+2] = active_palette[(buffer.bitmap[start] >> 2) & 3];
+			case 3:	pixel_target_[column+3] = active_palette[buffer.bitmap[start] & 3];
+					++start;
+					column += 4;
+				} while(start < end);
 		}
 	}
 
