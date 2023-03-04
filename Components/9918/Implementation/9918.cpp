@@ -921,12 +921,12 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					case 0b1000:	Begin(LogicalFill);			break;	// LMMV [logical move, VDP to VRAM, i.e. solid-colour fill].
 					case 0b1001:	Begin(LogicalMove);			break;	// LMMM [logical move, VRAM to VRAM].
 					case 0b1010:	break;	// TODO: lmcm.	[logical move, VRAM to CPU]
-					case 0b1011:	Begin(LogicalMoveFromCPU);	break;	// LMMC	[logical move, CPU to VRAM]
+					case 0b1011:	Begin(MoveFromCPU<true>);	break;	// LMMC	[logical move, CPU to VRAM].
 
 					case 0b1100:	Begin(HighSpeedFill);		break;	// HMMV [high-speed move, VDP to VRAM, i.e. single-byte fill].
 					case 0b1101:	Begin(HighSpeedMove);		break;	// HMMM [high-speed move, VRAM to VRAM].
 					case 0b1110:	break;	// TODO: ymmm.	[high-speed move, y only, VRAM to VRAM]
-					case 0b1111:	break;	// TODO: hmmc.	[high-speed move, CPU to VRAM]
+					case 0b1111:	Begin(MoveFromCPU<false>);	break;	// HMMC	[high-speed move, CPU to VRAM].
 				}
 #undef Begin
 

@@ -295,29 +295,30 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 
 // MARK: - Rectangular moves to/from CPU.
 
-struct LogicalMoveFromCPU: public Rectangle<true, false> {
-	LogicalMoveFromCPU(CommandContext &context) : Rectangle(context) {
-		is_cpu_transfer = true;
+template <bool logical> struct MoveFromCPU: public Rectangle<logical, false> {
+	MoveFromCPU(CommandContext &context) : Rectangle<logical, false>(context) {
+		Command::is_cpu_transfer = true;
 
 		// This command is started with the first colour ready to transfer.
-		cycles = 32;
-		access = AccessType::PlotPoint;
+		Command::cycles = 32;
+		Command::access = logical ? Command::AccessType::PlotPoint : Command::AccessType::WriteByte;
 	}
 
-	void advance(int) final {
-		switch(access) {
+	void advance(int pixels_per_byte) final {
+		switch(Command::access) {
 			default: break;
 
-			case AccessType::WaitForColourReceipt:
-				cycles = 32;
-				access = AccessType::PlotPoint;
+			case Command::AccessType::WaitForColourReceipt:
+				Command::cycles = 32;
+				Command::access = logical ? Command::AccessType::PlotPoint : Command::AccessType::WriteByte;
 			break;
 
-			case AccessType::PlotPoint:
-				cycles = 0;
-				access = AccessType::WaitForColourReceipt;
-				if(advance_pixel()) {
-					cycles = 64;
+			case Command::AccessType::WriteByte:
+			case Command::AccessType::PlotPoint:
+				Command::cycles = 0;
+				Command::access = Command::AccessType::WaitForColourReceipt;
+				if(Rectangle<logical, false>::advance_pixel(pixels_per_byte)) {
+					Command::cycles = 64;
 					// TODO: I'm not sure this will be honoured per the outer wrapping.
 				}
 			break;
