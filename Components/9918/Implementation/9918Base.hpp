@@ -266,6 +266,10 @@ template <Personality personality> struct Base: public Storage<personality> {
 		return ScreenMode::Blank;
 	}
 
+	static AddressT rotate(AddressT address) {
+		return AddressT((address >> 1) | (address << 16)) & memory_mask(personality);
+	}
+
 	AddressT command_address(Vector location) const {
 		if constexpr (is_yamaha_vdp(personality)) {
 			switch(this->screen_mode_) {
@@ -283,16 +287,16 @@ template <Personality personality> struct Base: public Storage<personality> {
 					);
 
 				case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
-					return AddressT(
+					return rotate(AddressT(
 						(location.v[0] >> 1) +
 						(location.v[1] << 8)
-					);
+					));
 
 				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
-					return AddressT(
+					return rotate(AddressT(
 						(location.v[0] >> 0) +
 						(location.v[1] << 8)
-					);
+					));
 			}
 		} else {
 			return 0;
@@ -459,7 +463,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 				// Rotate address one to the right as the hardware accesses
 				// the underlying banks of memory alternately but presents
 				// them as if linear.
-				address = (address >> 1) | (address << 16);
+				address = rotate(address);
 			}
 
 			// Also check whether expansion RAM is the true target here.
