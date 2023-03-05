@@ -586,8 +586,6 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 
 template <Personality personality>
 template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int end) {
-	const AddressT rotated_name_ = pattern_name_address_ >> 1;
-
 	CharacterFetcher character_fetcher(this, line_buffer, next_line_buffer, y);
 	TextFetcher text_fetcher(this, line_buffer, y);
 	SpriteFetcher<personality, sprite_mode(mode)> sprite_fetcher(this, line_buffer, next_line_buffer, y);
@@ -698,14 +696,14 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const auto start = bits<15>((y << 7) | (column >> 1));
 
 						// Fetch from alternate banks.
-						line_buffer.bitmap[column + 0] = ram_[rotated_name_ & AddressT(start + 0)];
-						line_buffer.bitmap[column + 1] = ram2[rotated_name_ & AddressT(start + 0)];
-						line_buffer.bitmap[column + 2] = ram_[rotated_name_ & AddressT(start + 1)];
-						line_buffer.bitmap[column + 3] = ram2[rotated_name_ & AddressT(start + 1)];
-						line_buffer.bitmap[column + 4] = ram_[rotated_name_ & AddressT(start + 2)];
-						line_buffer.bitmap[column + 5] = ram2[rotated_name_ & AddressT(start + 2)];
-						line_buffer.bitmap[column + 6] = ram_[rotated_name_ & AddressT(start + 3)];
-						line_buffer.bitmap[column + 7] = ram2[rotated_name_ & AddressT(start + 3)];
+						line_buffer.bitmap[column + 0] = ram_[pattern_name_address_ & AddressT(start + 0) & 0xffff];
+						line_buffer.bitmap[column + 1] = ram2[pattern_name_address_ & AddressT(start + 0) & 0xffff];
+						line_buffer.bitmap[column + 2] = ram_[pattern_name_address_ & AddressT(start + 1) & 0xffff];
+						line_buffer.bitmap[column + 3] = ram2[pattern_name_address_ & AddressT(start + 1) & 0xffff];
+						line_buffer.bitmap[column + 4] = ram_[pattern_name_address_ & AddressT(start + 2) & 0xffff];
+						line_buffer.bitmap[column + 5] = ram2[pattern_name_address_ & AddressT(start + 2) & 0xffff];
+						line_buffer.bitmap[column + 6] = ram_[pattern_name_address_ & AddressT(start + 3) & 0xffff];
+						line_buffer.bitmap[column + 7] = ram2[pattern_name_address_ & AddressT(start + 3) & 0xffff];
 					} break;
 
 					default: break;

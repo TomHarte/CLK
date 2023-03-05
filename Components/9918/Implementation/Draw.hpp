@@ -495,8 +495,8 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 		while(start < end) {
 			pixel_target_[start] =
 				palette_pack(
-					uint8_t((buffer.bitmap[start] & 0xe0) + ((buffer.bitmap[start] & 0xe0) >> 3) + ((buffer.bitmap[start] & 0xe0) >> 6)),
 					uint8_t((buffer.bitmap[start] & 0x1c) + ((buffer.bitmap[start] & 0x1c) << 3) + ((buffer.bitmap[start] & 0x1c) >> 3)),
+					uint8_t((buffer.bitmap[start] & 0xe0) + ((buffer.bitmap[start] & 0xe0) >> 3) + ((buffer.bitmap[start] & 0xe0) >> 6)),
 					uint8_t((buffer.bitmap[start] & 0x03) + ((buffer.bitmap[start] & 0x03) << 2) + ((buffer.bitmap[start] & 0x03) << 4) + ((buffer.bitmap[start] & 0x03) << 6))
 				);
 			++start;
