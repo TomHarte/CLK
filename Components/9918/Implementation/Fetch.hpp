@@ -587,7 +587,6 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 template <Personality personality>
 template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int end) {
 	const AddressT rotated_name_ = pattern_name_address_ >> 1;
-	const uint8_t *const ram2 = &ram_[65536];
 
 	CharacterFetcher character_fetcher(this, line_buffer, next_line_buffer, y);
 	TextFetcher text_fetcher(this, line_buffer, y);
@@ -694,8 +693,9 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 					case ScreenMode::YamahaGraphics6:
 					case ScreenMode::YamahaGraphics7: {
+						const uint8_t *const ram2 = &ram_[65536];
 						const int column = Storage<personality>::next_event_->id << 3;
-						const auto start = bits<15>((y << 7) | column);
+						const auto start = bits<15>((y << 7) | (column >> 1));
 
 						// Fetch from alternate banks.
 						line_buffer.bitmap[column + 0] = ram_[rotated_name_ & AddressT(start + 0)];
