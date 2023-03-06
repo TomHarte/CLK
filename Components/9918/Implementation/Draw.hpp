@@ -235,9 +235,6 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, con
 //	an OR mask up until I hit a non-CC sprite, at which point I composite everything out?
 //	I'm not immediately sure whether I can appropriately reuse sprite_buffer, but possibly?
 
-// TODO: on the Yamaha, record sprite collision location.
-// TODO: also, on the Yamaha bit 5 of register 8 affects sprite transparency. Check it out.
-
 // MARK: - TMS9918
 
 template <Personality personality>
