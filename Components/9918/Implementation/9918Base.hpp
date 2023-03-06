@@ -552,7 +552,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template<ScreenMode mode> void draw_yamaha(LineBuffer &, int start, int end);
 	void draw_yamaha(int start, int end);
 
-	template <SpriteMode mode, bool double_width> void draw_sprites(LineBuffer &, int start, int end, int *colour_buffer = nullptr);
+	template <SpriteMode mode, bool double_width> void draw_sprites(LineBuffer &, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer = nullptr);
 };
 
 #include "Fetch.hpp"

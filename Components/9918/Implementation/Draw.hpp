@@ -13,7 +13,7 @@
 
 template <Personality personality>
 template <SpriteMode mode, bool double_width>
-void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int *colour_buffer) {
+void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
 	if(!buffer.active_sprite_slot) {
 		return;
 	}
@@ -173,7 +173,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 
 				// Plot colour, if visible.
 				if(colour) {
-					pixel_origin_[sprite.x + x] = palette()[colour & 0xf];
+					pixel_origin_[sprite.x + x] = palette[colour & 0xf];
 				}
 
 				// Accumulate collisions.
@@ -211,7 +211,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, int
 
 				pixel_origin_[c] =
 					(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) |
-					(palette()[sprite.image[2] & 0xf] & sprite_colour_selection_masks[sprite_colour]);
+					(palette[sprite.image[2] & 0xf] & sprite_colour_selection_masks[sprite_colour]);
 
 				sprite.shift_position += shift_advance;
 			}
@@ -286,7 +286,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 		}
 	}
 
-	draw_sprites<sprite_mode, false>(line_buffer, start, end);
+	draw_sprites<sprite_mode, false>(line_buffer, start, end, palette());
 }
 
 template <Personality personality>
@@ -413,7 +413,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 		/*
 			Apply sprites (if any).
 		*/
-		draw_sprites<SpriteMode::MasterSystem, false>(line_buffer, start, end, colour_buffer);
+		draw_sprites<SpriteMode::MasterSystem, false>(line_buffer, start, end, palette(), colour_buffer);
 
 		// Map from the 32-colour buffer to real output pixels, applying the specific CRAM dot if any.
 		pixel_target_[start] = Storage<personality>::colour_ram_[colour_buffer[start] & 0x1f] | cram_dot;
@@ -503,12 +503,23 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 		}
 	}
 
-	// TODO: in Graphics7, indicate fixed sprite colours.
+	constexpr std::array<uint32_t, 16> graphics7_sprite_palette = {
+		palette_pack(0b00000000, 0b00000000, 0b00000000),	palette_pack(0b00000000, 0b00000000, 0b01001001),
+		palette_pack(0b00000000, 0b01101101, 0b00000000),	palette_pack(0b00000000, 0b01101101, 0b01001001),
+		palette_pack(0b01101101, 0b00000000, 0b00000000),	palette_pack(0b01101101, 0b00000000, 0b01001001),
+		palette_pack(0b01101101, 0b01101101, 0b00000000),	palette_pack(0b01101101, 0b01101101, 0b01001001),
+
+		palette_pack(0b10010010, 0b11111111, 0b01001001),	palette_pack(0b00000000, 0b00000000, 0b11111111),
+		palette_pack(0b00000000, 0b11111111, 0b00000000),	palette_pack(0b00000000, 0b11111111, 0b11111111),
+		palette_pack(0b11111111, 0b00000000, 0b00000000),	palette_pack(0b11111111, 0b00000000, 0b11111111),
+		palette_pack(0b11111111, 0b11111111, 0b00000000),	palette_pack(0b11111111, 0b11111111, 0b11111111),
+	};
+
 	// Possibly TODO: is the data-sheet trying to allege some sort of colour mixing for sprites in Mode 6?
 	draw_sprites<
 		SpriteMode::Mode2,
 		mode == ScreenMode::YamahaGraphics5 || mode == ScreenMode::YamahaGraphics6
-	>(buffer, sprite_start, sprite_end);
+	>(buffer, sprite_start, sprite_end, mode == ScreenMode::YamahaGraphics7 ? graphics7_sprite_palette : palette());
 }
 
 template <Personality personality>
