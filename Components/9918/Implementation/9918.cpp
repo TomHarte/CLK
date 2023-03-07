@@ -267,7 +267,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				if constexpr (is_yamaha_vdp(personality)) {
-					if(this->fetch_pointer_.row == this->line_interrupt_target_) {
+					if(
+						this->vertical_active_ &&
+						this->fetch_pointer_.row == ((this->line_interrupt_target_ + Storage<personality>::vertical_offset_) & 0xff)
+					) {
 						this->line_interrupt_pending_ = true;
 					}
 				}
@@ -1238,7 +1241,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	}
 
 	if constexpr (is_yamaha_vdp(personality)) {
-		next_line_interrupt_row = this->line_interrupt_target_;
+		next_line_interrupt_row = (this->line_interrupt_target_ + Storage<personality>::vertical_offset_) & 0xff;
 	}
 
 	// If there's actually no interrupt upcoming, despite being enabled, either return
