@@ -274,9 +274,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						this->line_interrupt_pending_ = true;
 					}
 				}
-
-				// TODO: the V9938 provides line interrupts from direct specification of the target line.
-				// So life is easy.
 			}
 
 			if(
