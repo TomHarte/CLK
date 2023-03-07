@@ -182,7 +182,17 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// Enables or disabled the recognition of the sprite
 		// list terminator, and sets the terminator value.
 		bool allow_sprite_terminator = true;
-		uint8_t sprite_terminator = 0xd0;
+		uint8_t sprite_terminator(ScreenMode mode) {
+			switch(mode) {
+				default:	return 0xd0;
+				case ScreenMode::YamahaGraphics3:
+				case ScreenMode::YamahaGraphics4:
+				case ScreenMode::YamahaGraphics5:
+				case ScreenMode::YamahaGraphics6:
+				case ScreenMode::YamahaGraphics7:
+					return 0xd8;
+			}
+		}
 	} mode_timing_;
 
 	uint8_t line_interrupt_target_ = 0xff;
@@ -357,9 +367,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// has yet to pass.
 		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
 			if constexpr (is_yamaha_vdp(personality)) {
-				const uint8_t *const source = (Storage<personality>::command_context_.arguments & 0x10) ? Storage<personality>::expansion_ram_.data() : ram_.data();
-				uint8_t *const destination = (Storage<personality>::command_context_.arguments & 0x20) ? Storage<personality>::expansion_ram_.data() : ram_.data();
-
 				using CommandStep = typename Storage<personality>::CommandStep;
 
 				if(
@@ -370,6 +377,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 				}
 
 				auto &context = Storage<personality>::command_context_;
+				const uint8_t *const source = (context.arguments & 0x10) ? Storage<personality>::expansion_ram_.data() : ram_.data();
+				uint8_t *const destination = (context.arguments & 0x20) ? Storage<personality>::expansion_ram_.data() : ram_.data();
 				switch(Storage<personality>::next_command_step_) {
 					// Duplicative, but keeps the compiler happy.
 					case CommandStep::None:

@@ -55,7 +55,12 @@ Base<personality>::Base() :
 template <Personality personality>
 TMS9918<personality>::TMS9918() {
 	this->crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-	this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
+
+	if constexpr (is_yamaha_vdp(personality)) {
+		this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.065f, 0.875f, 0.875f));
+	} else {
+		this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
+	}
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
 	// intended to produce the correct relationship between the hard edges between pixels and
@@ -122,7 +127,7 @@ void Base<personality>::posit_sprite(LineBuffer &buffer, int sprite_number, int 
 	if(buffer.sprites_stopped) return;
 
 	// A sprite Y of 208 means "don't scan the list any further".
-	if(mode_timing_.allow_sprite_terminator && sprite_position == mode_timing_.sprite_terminator) {
+	if(mode_timing_.allow_sprite_terminator && sprite_position == mode_timing_.sprite_terminator(buffer.screen_mode)) {
 		buffer.sprites_stopped = true;
 		return;
 	}
@@ -220,13 +225,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 		function<true>(																				\
 			this->line_buffers_[this->fetch_pointer_.row],											\
 			this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines],	\
-			this->fetch_pointer_.row + offset,														\
+			(this->fetch_pointer_.row + offset) & 0xff,												\
 			first_window, final_window);															\
 	} else {																						\
 		function<false>(																			\
 			this->line_buffers_[this->fetch_pointer_.row],											\
 			this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines],	\
-			this->fetch_pointer_.row + offset,														\
+			(this->fetch_pointer_.row + offset) & 0xff,												\
 			first_window, final_window);															\
 	}																								\
 }
@@ -937,6 +942,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// (e.g. a line of length 0).
 				if(!Storage<personality>::command_ && (value >> 4)) {
 					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
+				} else {
+					LOG("Performing Yamaha command " << PADHEX(2) << +value);
 				}
 
 				// Seed timing information if a command was found.
