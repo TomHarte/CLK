@@ -795,6 +795,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 9:
 				mode_timing_.pixel_lines = (value & 0x80) ? 212 : 192;
+				mode_timing_.end_of_frame_interrupt_position.row = mode_timing_.pixel_lines+1;
+				// TODO: on the Yamaha, at least, tie this interrupt overtly to vertical state.
+
 				LOG("TODO: Yamaha line count, interlace, etc; " << PADHEX(2) << +value);
 				// b7: 1 = 212 lines of pixels; 0 = 192
 				// b5 & b4: select simultaneous mode (seems to relate to line length and in-phase colour?)
