@@ -280,9 +280,9 @@ template <Personality personality> struct Base: public Storage<personality> {
 		return AddressT((address >> 1) | (address << 16)) & memory_mask(personality);
 	}
 
-	AddressT command_address(Vector location) const {
+	AddressT command_address(Vector location, bool expansion) const {
 		if constexpr (is_yamaha_vdp(personality)) {
-			switch(this->screen_mode_) {
+			switch(this->underlying_mode_) {
 				default:
 				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
 					return AddressT(
@@ -296,17 +296,23 @@ template <Personality personality> struct Base: public Storage<personality> {
 						(location.v[1] << 7)
 					);
 
-				case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
-					return rotate(AddressT(
-						(location.v[0] >> 1) +
-						(location.v[1] << 8)
-					));
+				case ScreenMode::YamahaGraphics6: {	// 512 pixels @ 4bpp
+					const auto linear_address =
+						AddressT(
+							(location.v[0] >> 1) +
+							(location.v[1] << 8)
+						);
+					return expansion ? linear_address : rotate(linear_address);
+				}
 
-				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
-					return rotate(AddressT(
-						(location.v[0] >> 0) +
-						(location.v[1] << 8)
-					));
+				case ScreenMode::YamahaGraphics7: {	// 256 pixels @ 8bpp
+					const auto linear_address =
+						AddressT(
+							(location.v[0] >> 0) +
+							(location.v[1] << 8)
+						);
+					return expansion ? linear_address : rotate(linear_address);
+				}
 			}
 		} else {
 			return 0;
@@ -385,14 +391,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 					break;
 
 					case CommandStep::ReadSourcePixel:
-						context.latched_colour.set(extract_colour(source[command_address(context.source)], context.source));
+						context.latched_colour.set(extract_colour(source[command_address(context.source, context.arguments & 0x10)], context.source));
 
 						Storage<personality>::minimum_command_column_ = access_column + 32;
 						Storage<personality>::next_command_step_ = CommandStep::ReadDestinationPixel;
 					break;
 
 					case CommandStep::ReadDestinationPixel:
-						Storage<personality>::command_latch_ = source[command_address(context.destination)];
+						Storage<personality>::command_latch_ = source[command_address(context.destination, context.arguments & 0x20)];
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WritePixel;
@@ -400,7 +406,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 					case CommandStep::WritePixel: {
 						const auto [mask, unmasked_colour] = command_colour_mask(context.destination);
-						const auto address = command_address(context.destination);
+						const auto address = command_address(context.destination, context.arguments & 0x20);
 						const uint8_t colour = unmasked_colour & mask;
 						context.latched_colour.reset();
 
@@ -435,14 +441,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 					} break;
 
 					case CommandStep::ReadSourceByte:
-						context.latched_colour.set(source[command_address(context.source)]);
+						context.latched_colour.set(source[command_address(context.source, context.arguments & 0x10)]);
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WriteByte;
 					break;
 
 					case CommandStep::WriteByte:
-						destination[command_address(context.destination)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
+						destination[command_address(context.destination, context.arguments & 0x20)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
 						context.latched_colour.reset();
 
 						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
