@@ -236,17 +236,17 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	}																								\
 }
 
-			switch(line_buffer.fetch_mode) {
-				case FetchMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow, 0);		break;
-				case FetchMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow, 0);	break;
-				case FetchMode::SMS:			fetch(this->template fetch_sms, Clock::TMSMemoryWindow, 0);				break;
-				case FetchMode::Refresh:		fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow, 0);		break;
+			if constexpr (is_yamaha_vdp(personality)) {
+				fetch(this->template fetch_yamaha, Clock::Internal, Storage<personality>::vertical_offset_);
+			} else {
+				switch(line_buffer.fetch_mode) {
+					case FetchMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow, 0);		break;
+					case FetchMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow, 0);	break;
+					case FetchMode::SMS:			fetch(this->template fetch_sms, Clock::TMSMemoryWindow, 0);				break;
+					case FetchMode::Refresh:		fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow, 0);		break;
 
-				case FetchMode::Yamaha:
-					if constexpr (is_yamaha_vdp(personality)) {
-						fetch(this->template fetch_yamaha, Clock::Internal, Storage<personality>::vertical_offset_);
-					}
-				break;
+					default: break;
+				}
 			}
 
 #undef fetch
