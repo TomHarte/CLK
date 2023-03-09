@@ -328,30 +328,26 @@ template <bool logical> struct MoveFromCPU: public Rectangle<logical, false> {
 
 // MARK: - Rectangular moves within VRAM.
 
-struct HighSpeedMove: public Rectangle<false, true> {
-	HighSpeedMove(CommandContext &context) : Rectangle(context) {
-		access = AccessType::CopyByte;
-		cycles = 64;
-	}
-
-	void advance(int pixels_per_byte) final {
-		cycles = 64;
-		if(advance_pixel(pixels_per_byte)) {
-			cycles += 64;
-		}
-	}
+enum class MoveType {
+	Logical,
+	HighSpeed,
+	YOnly,
 };
 
-struct LogicalMove: public Rectangle<true, true> {
-	LogicalMove(CommandContext &context) : Rectangle(context) {
-		access = AccessType::CopyPoint;
-		cycles = 64;
+template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical, true> {
+	static constexpr bool is_logical = type == MoveType::Logical;
+	static constexpr bool is_y_only = type == MoveType::YOnly;
+	using Rectangle = Rectangle<is_logical, true>;
+
+	Move(CommandContext &context) : Rectangle(context) {
+		Command::access = is_logical ? Command::AccessType::CopyPoint : Command::AccessType::CopyByte;
+		Command::cycles = is_y_only ? 0 : 64;
 	}
 
 	void advance(int pixels_per_byte) final {
-		cycles = 64;
-		if(advance_pixel(pixels_per_byte)) {
-			cycles += 64;
+		Command::cycles = is_y_only ? 40 : 64;
+		if(Rectangle::advance_pixel(pixels_per_byte)) {
+			Command::cycles += is_y_only ? 0 : 64;
 		}
 	}
 };
