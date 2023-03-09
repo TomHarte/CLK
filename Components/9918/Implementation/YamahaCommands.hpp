@@ -118,6 +118,7 @@ struct Command {
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
 	bool is_cpu_transfer = false;
+	bool y_only = false;
 
 	/// Current command parameters.
 	CommandContext &context;
@@ -342,6 +343,7 @@ template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical
 	Move(CommandContext &context) : Rectangle(context) {
 		Command::access = is_logical ? Command::AccessType::CopyPoint : Command::AccessType::CopyByte;
 		Command::cycles = is_y_only ? 0 : 64;
+		Command::y_only = is_y_only;
 	}
 
 	void advance(int pixels_per_byte) final {

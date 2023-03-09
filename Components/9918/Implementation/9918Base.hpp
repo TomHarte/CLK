@@ -440,12 +440,16 @@ template <Personality personality> struct Base: public Storage<personality> {
 						Storage<personality>::update_command_step(access_column);
 					} break;
 
-					case CommandStep::ReadSourceByte:
-						context.latched_colour.set(source[command_address(context.source, context.arguments & 0x10)]);
+					case CommandStep::ReadSourceByte: {
+						Vector source_vector = context.source;
+						if(Storage<personality>::command_->y_only) {
+							source_vector.v[0] = context.destination.v[0];
+						}
+						context.latched_colour.set(source[command_address(source_vector, context.arguments & 0x10)]);
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WriteByte;
-					break;
+					} break;
 
 					case CommandStep::WriteByte:
 						destination[command_address(context.destination, context.arguments & 0x20)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
