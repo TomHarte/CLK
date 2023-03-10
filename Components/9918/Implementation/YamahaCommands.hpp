@@ -338,9 +338,9 @@ enum class MoveType {
 template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical, true> {
 	static constexpr bool is_logical = type == MoveType::Logical;
 	static constexpr bool is_y_only = type == MoveType::YOnly;
-	using Rectangle = Rectangle<is_logical, true>;
+	using RectangleBase = Rectangle<is_logical, true>;
 
-	Move(CommandContext &context) : Rectangle(context) {
+	Move(CommandContext &context) : RectangleBase(context) {
 		Command::access = is_logical ? Command::AccessType::CopyPoint : Command::AccessType::CopyByte;
 		Command::cycles = is_y_only ? 0 : 64;
 		Command::y_only = is_y_only;
@@ -348,7 +348,7 @@ template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical
 
 	void advance(int pixels_per_byte) final {
 		Command::cycles = is_y_only ? 40 : 64;
-		if(Rectangle::advance_pixel(pixels_per_byte)) {
+		if(RectangleBase::advance_pixel(pixels_per_byte)) {
 			Command::cycles += is_y_only ? 0 : 64;
 		}
 	}
