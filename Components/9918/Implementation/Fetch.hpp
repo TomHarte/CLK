@@ -318,7 +318,7 @@ struct SMSFetcher {
 		// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 		// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
 		const int scrolled_row = (y + storage->latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
-		scrolled_row_info.pattern_address_base = pattern_name_address & bits<11>(AddressT((scrolled_row & ~7) << 3)) - pattern_name_offset;
+		scrolled_row_info.pattern_address_base = (pattern_name_address & bits<11>(AddressT((scrolled_row & ~7) << 3))) - pattern_name_offset;
 		scrolled_row_info.sub_row[0] = AddressT((scrolled_row & 7) << 2);
 		scrolled_row_info.sub_row[1] = AddressT(28 ^ ((scrolled_row & 7) << 2));
 		if(storage->vertical_scroll_lock_) {
