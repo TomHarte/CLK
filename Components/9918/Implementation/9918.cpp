@@ -261,10 +261,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// It is otherwise decremented.
 				if constexpr (is_sega_vdp(personality)) {
 					if(this->fetch_pointer_.row >= 0 && this->fetch_pointer_.row <= this->mode_timing_.pixel_lines) {
-						--this->line_interrupt_counter_;
-						if(this->line_interrupt_counter_ == 0xff) {
+						if(!this->line_interrupt_counter_) {
 							this->line_interrupt_pending_ = true;
 							this->line_interrupt_counter_ = this->line_interrupt_target_;
+						} else {
+							--this->line_interrupt_counter_;
 						}
 					} else {
 						this->line_interrupt_counter_ = this->line_interrupt_target_;
