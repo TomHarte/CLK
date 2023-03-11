@@ -70,8 +70,9 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, con
 			) colour_buffer[c] = sprite_buffer[c];
 		}
 
-		if(sprite_collision)
+		if(sprite_collision) {
 			status_ |= StatusSpriteCollision;
+		}
 
 		return;
 	}
