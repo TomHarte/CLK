@@ -48,8 +48,9 @@ Base<personality>::Base() :
 	// Start at a random position.
 	output_pointer_.row = rand() % 262;
 	output_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
-	fetch_pointer_.row = fetch_pointer_.row;
-	fetch_pointer_.column = output_pointer_.column + output_lag;
+
+	fetch_pointer_ = output_pointer_;
+	fetch_pointer_.column += output_lag;
 }
 
 template <Personality personality>
