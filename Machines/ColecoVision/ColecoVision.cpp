@@ -175,19 +175,19 @@ class ConcreteMachine:
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			vdp_->set_scan_target(scan_target);
+			vdp_.last_valid()->set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-			return vdp_->get_scaled_scan_status();
+			return vdp_.last_valid()->get_scaled_scan_status();
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
-			vdp_->set_display_type(display_type);
+			vdp_.last_valid()->set_display_type(display_type);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const final {
-			return vdp_->get_display_type();
+			return vdp_.last_valid()->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
