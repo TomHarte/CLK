@@ -475,7 +475,7 @@ struct CharacterSequencer {
 				break;
 				case 3:
 					character_fetcher.fetch_pattern(block);
-					character_fetcher.fetch_pattern(block);
+					character_fetcher.fetch_colour(block);
 				break;
 				default: break;
 			}
