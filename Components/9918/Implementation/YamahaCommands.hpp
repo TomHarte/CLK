@@ -210,9 +210,9 @@ struct Line: public Command {
 
 // MARK: - Single pixel manipulation.
 
-/// Implements the PSET command, which plots a single pixel.
+/// Implements the PSET command, which plots a single pixel and POINT, which reads one.
 ///
-/// No timings are documented, so this'll output as quickly as possible.
+/// No timings are documented, so this'll output or input as quickly as possible.
 template <bool is_read> struct Point: public Command {
 	public:
 		Point(CommandContext &context) : Command(context) {
