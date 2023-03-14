@@ -924,20 +924,20 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					default:
 					case 0b0000: 	Storage<personality>::command_ = nullptr;	break;	// STOP.
 
-					case 0b0100:	break;	// TODO: point.	[read a pixel colour]
-					case 0b0101:	Begin(PointSet);					break;	// PSET [plot a pixel].
+					case 0b0100:	Begin(Point<true>);							break;	// POINT [read a pixel colour].
+					case 0b0101:	Begin(Point<false>);						break;	// PSET [plot a pixel].
 					case 0b0110:	break;	// TODO: srch.	[search horizontally for a colour]
-					case 0b0111:	Begin(Line);						break;	// LINE [draw a Bresenham line].
+					case 0b0111:	Begin(Line);								break;	// LINE [draw a Bresenham line].
 
-					case 0b1000:	Begin(LogicalFill);					break;	// LMMV [logical move, VDP to VRAM, i.e. solid-colour fill].
-					case 0b1001:	Begin(Move<MoveType::Logical>);		break;	// LMMM [logical move, VRAM to VRAM].
+					case 0b1000:	Begin(LogicalFill);							break;	// LMMV [logical move, VDP to VRAM, i.e. solid-colour fill].
+					case 0b1001:	Begin(Move<MoveType::Logical>);				break;	// LMMM [logical move, VRAM to VRAM].
 					case 0b1010:	break;	// TODO: lmcm.	[logical move, VRAM to CPU]
-					case 0b1011:	Begin(MoveFromCPU<true>);			break;	// LMMC [logical move, CPU to VRAM].
+					case 0b1011:	Begin(MoveFromCPU<true>);					break;	// LMMC [logical move, CPU to VRAM].
 
-					case 0b1100:	Begin(HighSpeedFill);				break;	// HMMV [high-speed move, VDP to VRAM, i.e. single-byte fill].
-					case 0b1101:	Begin(Move<MoveType::HighSpeed>);	break;	// HMMM [high-speed move, VRAM to VRAM].
-					case 0b1110:	Begin(Move<MoveType::YOnly>);		break;	// YMMM [high-speed move, y only, VRAM to VRAM].
-					case 0b1111:	Begin(MoveFromCPU<false>);			break;	// HMMC [high-speed move, CPU to VRAM].
+					case 0b1100:	Begin(HighSpeedFill);						break;	// HMMV [high-speed move, VDP to VRAM, i.e. single-byte fill].
+					case 0b1101:	Begin(Move<MoveType::HighSpeed>);			break;	// HMMM [high-speed move, VRAM to VRAM].
+					case 0b1110:	Begin(Move<MoveType::YOnly>);				break;	// YMMM [high-speed move, y only, VRAM to VRAM].
+					case 0b1111:	Begin(MoveFromCPU<false>);					break;	// HMMC [high-speed move, CPU to VRAM].
 				}
 #undef Begin
 
@@ -1113,7 +1113,9 @@ uint8_t Base<personality>::read_register() {
 			case 4:	LOG("TODO: Yamaha status 4");	break;
 			case 5:	LOG("TODO: Yamaha status 5");	break;
 			case 6:	LOG("TODO: Yamaha status 6");	break;
-			case 7:	LOG("TODO: Yamaha status 7");	break;
+
+			case 7:	return Storage<personality>::colour_status_;
+
 			case 8:	LOG("TODO: Yamaha status 8");	break;
 			case 9:	LOG("TODO: Yamaha status 9");	break;
 		}

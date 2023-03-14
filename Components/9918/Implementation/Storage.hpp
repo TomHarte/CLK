@@ -100,6 +100,9 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	// Sprite collection state.
 	bool sprites_enabled_ = true;
 
+	// Additional status.
+	uint8_t colour_status_ = 0;
+
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {
 		if(is_refresh) {
@@ -134,6 +137,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	enum class CommandStep {
 		None,
 
+		CopySourcePixelToStatus,
+
 		ReadSourcePixel,
 		ReadDestinationPixel,
 		WritePixel,
@@ -158,6 +163,10 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 		minimum_command_column_ = current_column + command_->cycles;
 		switch(command_->access) {
+			case Command::AccessType::ReadPoint:
+				next_command_step_ = CommandStep::CopySourcePixelToStatus;
+			break;
+
 			case Command::AccessType::CopyPoint:
 				next_command_step_ = CommandStep::ReadSourcePixel;
 			break;

@@ -390,6 +390,13 @@ template <Personality personality> struct Base: public Storage<personality> {
 					case CommandStep::None:
 					break;
 
+					case CommandStep::CopySourcePixelToStatus:
+						Storage<personality>::colour_status_ = extract_colour(source[command_address(context.source, context.arguments & 0x10)], context.source);
+
+						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
+						Storage<personality>::update_command_step(access_column);
+					break;
+
 					case CommandStep::ReadSourcePixel:
 						context.latched_colour.set(extract_colour(source[command_address(context.source, context.arguments & 0x10)], context.source));
 
