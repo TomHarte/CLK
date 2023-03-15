@@ -111,7 +111,9 @@ struct Command {
 		/// being a read, a 24-cycle gap, then a write.
 		CopyByte,
 
-//		ReadPoint,
+		/// Copies a single pixel from @c source to the colour status register.
+		ReadPoint,
+
 //		ReadByte,
 //		WaitForColourSend,
 	};
@@ -208,14 +210,14 @@ struct Line: public Command {
 
 // MARK: - Single pixel manipulation.
 
-/// Implements the PSET command, which plots a single pixel.
+/// Implements the PSET command, which plots a single pixel and POINT, which reads one.
 ///
-/// No timings are documented, so this'll output as quickly as possible.
-struct PointSet: public Command {
+/// No timings are documented, so this'll output or input as quickly as possible.
+template <bool is_read> struct Point: public Command {
 	public:
-		PointSet(CommandContext &context) : Command(context) {
+		Point(CommandContext &context) : Command(context) {
 			cycles = 0;	// TODO.
-			access = AccessType::PlotPoint;
+			access = is_read ? AccessType::ReadPoint : AccessType::PlotPoint;
 		}
 
 		bool done() final {
@@ -229,8 +231,6 @@ struct PointSet: public Command {
 	private:
 		bool done_ = false;
 };
-
-// TODO: point.
 
 // MARK: - Rectangular base.
 
