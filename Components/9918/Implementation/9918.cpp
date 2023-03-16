@@ -1112,15 +1112,15 @@ uint8_t Base<personality>::read_register() {
 
 			} break;
 
-			case 3:	LOG("TODO: Yamaha status 3");	break;
-			case 4:	LOG("TODO: Yamaha status 4");	break;
-			case 5:	LOG("TODO: Yamaha status 5");	break;
-			case 6:	LOG("TODO: Yamaha status 6");	break;
+			case 3:	return uint8_t(Storage<personality>::collision_location_[0]);
+			case 4:	return uint8_t((Storage<personality>::collision_location_[0] >> 8) | 0xfe);
+			case 5:	return uint8_t(Storage<personality>::collision_location_[1]);
+			case 6:	return uint8_t((Storage<personality>::collision_location_[1] >> 8) | 0xfc);
 
 			case 7:	return Storage<personality>::colour_status_;
 
-			case 8:	LOG("TODO: Yamaha status 8");	break;
-			case 9:	LOG("TODO: Yamaha status 9");	break;
+			case 8:	return uint8_t(Storage<personality>::colour_location_);
+			case 9:	return uint8_t((Storage<personality>::colour_location_ >> 8) | 0xfe);
 		}
 	}
 

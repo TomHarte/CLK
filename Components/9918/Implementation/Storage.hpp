@@ -102,6 +102,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	// Additional status.
 	uint8_t colour_status_ = 0;
+	uint16_t colour_location_ = 0;
+	uint16_t collision_location_[2]{};
 
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {

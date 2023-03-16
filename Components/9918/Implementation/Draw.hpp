@@ -13,7 +13,7 @@
 
 template <Personality personality>
 template <SpriteMode mode, bool double_width>
-void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
+void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
 	if(!buffer.active_sprite_slot) {
 		return;
 	}
@@ -177,15 +177,20 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, int start, int end, con
 					pixel_origin_[sprite.x + x] = palette[colour & 0xf];
 				}
 
-				// Accumulate collisions.
-				sprite_collision |= sprite_buffer[sprite.x + x];
-				sprite_buffer[sprite.x + x] |= colour;
+				// TODO: is collision location recorded in mode 1?
 
-				// TODO: capture (x, y) if a collision has been spotted.
+				// Check for a new collision.
+				if(!(status_ & StatusSpriteCollision)) {
+					sprite_collision |= sprite_buffer[sprite.x + x];
+					sprite_buffer[sprite.x + x] |= colour;
+					status_ |= sprite_collision & StatusSpriteCollision;
+
+					if(status_ & StatusSpriteCollision) {
+						Storage<personality>::collision_location_[0] = uint16_t(x);
+						Storage<personality>::collision_location_[1] = uint16_t(y);
+					}
+				}
 			}
-
-			// Update collision bit.
-			status_ |= sprite_collision & StatusSpriteCollision;
 		}
 
 		return;
@@ -284,7 +289,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 		}
 	}
 
-	draw_sprites<sprite_mode, false>(line_buffer, start, end, palette());
+	draw_sprites<sprite_mode, false>(line_buffer, output_pointer_.row, start, end, palette());
 }
 
 template <Personality personality>
@@ -411,7 +416,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 		/*
 			Apply sprites (if any).
 		*/
-		draw_sprites<SpriteMode::MasterSystem, false>(line_buffer, start, end, palette(), colour_buffer);
+		draw_sprites<SpriteMode::MasterSystem, false>(line_buffer, output_pointer_.row, start, end, palette(), colour_buffer);
 
 		// Map from the 32-colour buffer to real output pixels, applying the specific CRAM dot if any.
 		pixel_target_[start] = Storage<personality>::colour_ram_[colour_buffer[start] & 0x1f] | cram_dot;
@@ -435,7 +440,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 
 template <Personality personality>
 template <ScreenMode mode>
-void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
+void Base<personality>::draw_yamaha(LineBuffer &buffer, int y, int start, int end) {
 	const auto active_palette = palette();
 	const int sprite_start = start >> 2;
 	const int sprite_end = end >> 2;
@@ -517,7 +522,7 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 	draw_sprites<
 		SpriteMode::Mode2,
 		mode == ScreenMode::YamahaGraphics5 || mode == ScreenMode::YamahaGraphics6
-	>(buffer, sprite_start, sprite_end, mode == ScreenMode::YamahaGraphics7 ? graphics7_sprite_palette : palette());
+	>(buffer, y, sprite_start, sprite_end, mode == ScreenMode::YamahaGraphics7 ? graphics7_sprite_palette : palette());
 }
 
 template <Personality personality>
@@ -537,7 +542,7 @@ void Base<personality>::draw_yamaha(int start, int end) {
 				draw_tms_character<SpriteMode::Mode2>(start >> 2, end >> 2);
 			break;
 
-#define Dispatch(x)	case ScreenMode::x:	draw_yamaha<ScreenMode::x>(line_buffer, start, end);	break;
+#define Dispatch(x)	case ScreenMode::x:	draw_yamaha<ScreenMode::x>(line_buffer, output_pointer_.row, start, end);	break;
 			Dispatch(YamahaGraphics4);
 			Dispatch(YamahaGraphics5);
 			Dispatch(YamahaGraphics6);
