@@ -133,6 +133,9 @@ void Base<personality>::posit_sprite(LineBuffer &buffer, int sprite_number, int 
 		return;
 	}
 
+	// TODO: the following isn't correct when fetching on the final line before pixels on the Yamaha
+	// VDPs when vertical offset is non-zero owing to the placement of the modulo. Will reconsider after
+	// dealing with total frame timing, which might affect the LineBuffer pipeline.
 	const int sprite_row = (((screen_row + 1) % mode_timing_.total_lines) - ((sprite_position + 1) & 255)) & 255;
 	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
 
@@ -1174,8 +1177,13 @@ int Base<personality>::fetch_line() const {
 
 template <Personality personality>
 VerticalState Base<personality>::vertical_state() const {
-	if(vertical_active_) return VerticalState::Pixels;
-	return fetch_pointer_.row == mode_timing_.total_lines - 1 ? VerticalState::Prefetch : VerticalState::Blank;
+	if(vertical_active_) {
+		return VerticalState::Pixels;
+	} else if(fetch_pointer_.row == mode_timing_.total_lines - 1) {
+		return VerticalState::Prefetch;
+	} else {
+		return VerticalState::Blank;
+	}
 }
 
 template <Personality personality>
