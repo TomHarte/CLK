@@ -546,15 +546,16 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 
 						if(this->pixel_target_) {
-							// TODO: this dispatch, and the fetch, should be factored into a templatised place, probably.
-							// ... and should use graphics mode, not fetch mode.
-							switch(line_buffer.fetch_mode) {
-								case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
-								case FetchMode::Character:		draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
-								case FetchMode::Text:			draw(template draw_tms_text<false>(relative_start, relative_end), Clock::TMSPixel);			break;
-								case FetchMode::Yamaha:			draw(draw_yamaha(relative_start, relative_end), Clock::Internal);			break;
+							if constexpr (is_yamaha_vdp(personality)) {
+								draw(draw_yamaha(relative_start, relative_end), Clock::Internal);
+							} else {
+								switch(line_buffer.fetch_mode) {
+									case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);			break;
+									case FetchMode::Character:		draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);			break;
+									case FetchMode::Text:			draw(template draw_tms_text<false>(relative_start, relative_end), Clock::TMSPixel);		break;
 
-								case FetchMode::Refresh:		break;	/* Dealt with elsewhere. */
+									default:		break;	/* Dealt with elsewhere. */
+								}
 							}
 						}
 
@@ -786,9 +787,11 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 8:
-				LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +value);
-				Storage<personality>::sprites_enabled_ = !(value & 0x02);
 				Storage<personality>::solid_background_ = value & 0x20;
+				Storage<personality>::sprites_enabled_ = !(value & 0x02);
+				if(value & 0x01) {
+					LOG("TODO: Yamaha greyscale");
+				}
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
 				// b6: 1 = enable light pen
 				// b5: sets the colour of code 0 to the colour of the palette (???)
@@ -803,7 +806,10 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				mode_timing_.end_of_frame_interrupt_position.row = mode_timing_.pixel_lines+1;
 				// TODO: on the Yamaha, at least, tie this interrupt overtly to vertical state.
 
-				LOG("TODO: Yamaha line count, interlace, etc; " << PADHEX(2) << +value);
+				if(value & 0x08) {
+					LOG("TODO: Yamaha interlace mode");
+				}
+
 				// b7: 1 = 212 lines of pixels; 0 = 192
 				// b5 & b4: select simultaneous mode (seems to relate to line length and in-phase colour?)
 				// b3: 1 = interlace on
@@ -851,7 +857,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 18:
-				LOG("TODO: Yamaha position adjustment; " << PADHEX(2) << +value);
+				if(value) {
+					LOG("TODO: Yamaha position adjustment; " << PADHEX(2) << +value);
+				}
 				// b0-b3: horizontal adjustment
 				// b4-b7: vertical adjustment
 			break;
@@ -864,7 +872,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			case 20:
 			case 21:
 			case 22:
-				LOG("TODO: Yamaha colour burst selection; " << PADHEX(2) << +value);
+//				LOG("TODO: Yamaha colour burst selection; " << PADHEX(2) << +value);
 				// Documentation is "fill with 0s for no colour burst; magic pattern for colour burst"
 			break;
 
@@ -951,8 +959,6 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// (e.g. a line of length 0).
 				if(!Storage<personality>::command_ && (value >> 4)) {
 					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
-				} else {
-					LOG("Performing Yamaha command " << PADHEX(2) << +value);
 				}
 
 				// Seed timing information if a command was found.
@@ -1134,18 +1140,6 @@ uint8_t Base<personality>::read_register() {
 }
 
 template <Personality personality>
-uint8_t Base<personality>::read_palette() {
-	LOG("Palette read TODO");
-	return 0xff;
-}
-
-template <Personality personality>
-uint8_t Base<personality>::read_register_indirect() {
-	LOG("Register indirect read TODO");
-	return 0xff;
-}
-
-template <Personality personality>
 uint8_t TMS9918<personality>::read(int address) {
 	const int target = this->masked_address(address);
 
@@ -1157,8 +1151,6 @@ uint8_t TMS9918<personality>::read(int address) {
 		default: return 0xff;
 		case 0:	return this->read_vram();
 		case 1:	return this->read_register();
-		case 2:	return this->read_palette();
-		case 3: return this->read_register_indirect();
 	}
 }
 

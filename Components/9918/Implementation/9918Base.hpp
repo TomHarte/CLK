@@ -225,8 +225,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 	void write_register_indirect(uint8_t);
 	uint8_t read_vram();
 	uint8_t read_register();
-	uint8_t read_palette();
-	uint8_t read_register_indirect();
 
 	void commit_register(int reg, uint8_t value);
 
