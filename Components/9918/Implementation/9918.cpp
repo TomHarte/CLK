@@ -928,7 +928,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					break;
 				}
 
-#define Begin(x)	Storage<personality>::command_ = std::make_unique<Commands::x>(Storage<personality>::command_context_);
+#define Begin(x)	Storage<personality>::command_ = std::make_unique<Commands::x>(Storage<personality>::command_context_, Storage<personality>::mode_description_);
 				using MoveType = Commands::MoveType;
 				switch(value >> 4) {
 					// All codes not listed below are invalid; treat them as STOP.

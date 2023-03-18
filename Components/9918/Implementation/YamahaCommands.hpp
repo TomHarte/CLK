@@ -86,6 +86,12 @@ struct CommandContext {
 	bool test_source;
 };
 
+struct ModeDescription {
+	int width = 256;
+	int pixels_per_byte = 4;
+	bool rotate_address = false;
+};
+
 struct Command {
 	// In net:
 	//
@@ -124,7 +130,8 @@ struct Command {
 
 	/// Current command parameters.
 	CommandContext &context;
-	Command(CommandContext &context) : context(context) {}
+	ModeDescription &mode_description;
+	Command(CommandContext &context, ModeDescription &mode_description) : context(context), mode_description(mode_description) {}
 	virtual ~Command() {}
 
 	/// @returns @c true if all output from this command is done; @c false otherwise.
@@ -155,7 +162,7 @@ namespace Commands {
 ///	* plus an additional 32 cycles if a step along the minor axis is taken.
 struct Line: public Command {
 	public:
-		Line(CommandContext &context) : Command(context) {
+		Line(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
 			// context.destination = start position;
 			// context.size.v[0] = long side dots;
 			// context.size.v[1] = short side dots;
@@ -215,7 +222,7 @@ struct Line: public Command {
 /// No timings are documented, so this'll output or input as quickly as possible.
 template <bool is_read> struct Point: public Command {
 	public:
-		Point(CommandContext &context) : Command(context) {
+		Point(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
 			cycles = 0;	// TODO.
 			access = is_read ? AccessType::ReadPoint : AccessType::PlotPoint;
 		}
@@ -237,7 +244,7 @@ template <bool is_read> struct Point: public Command {
 /// Useful base class for anything that does logical work in a rectangle.
 template <bool logical, bool include_source> struct Rectangle: public Command {
 	public:
-		Rectangle(CommandContext &context) : Command(context) {
+		Rectangle(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
 			if constexpr (include_source) {
 				start_x_[0] = context.source.v[0];
 			}
@@ -297,7 +304,7 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 // MARK: - Rectangular moves to/from CPU.
 
 template <bool logical> struct MoveFromCPU: public Rectangle<logical, false> {
-	MoveFromCPU(CommandContext &context) : Rectangle<logical, false>(context) {
+	MoveFromCPU(CommandContext &context, ModeDescription &mode_description) : Rectangle<logical, false>(context, mode_description) {
 		Command::is_cpu_transfer = true;
 
 		// This command is started with the first colour ready to transfer.
@@ -340,7 +347,7 @@ template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical
 	static constexpr bool is_y_only = type == MoveType::YOnly;
 	using RectangleBase = Rectangle<is_logical, true>;
 
-	Move(CommandContext &context) : RectangleBase(context) {
+	Move(CommandContext &context, ModeDescription &mode_description) : RectangleBase(context, mode_description) {
 		Command::access = is_logical ? Command::AccessType::CopyPoint : Command::AccessType::CopyByte;
 		Command::cycles = is_y_only ? 0 : 64;
 		Command::y_only = is_y_only;
@@ -357,7 +364,7 @@ template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical
 // MARK: - Rectangular fills.
 
 struct HighSpeedFill: public Rectangle<false, false> {
-	HighSpeedFill(CommandContext &context) : Rectangle(context) {
+	HighSpeedFill(CommandContext &context, ModeDescription &mode_description) : Rectangle(context, mode_description) {
 		cycles = 56;
 		access = AccessType::WriteByte;
 	}
@@ -371,7 +378,7 @@ struct HighSpeedFill: public Rectangle<false, false> {
 };
 
 struct LogicalFill: public Rectangle<false, false> {
-	LogicalFill(CommandContext &context) : Rectangle(context) {
+	LogicalFill(CommandContext &context, ModeDescription &mode_description) : Rectangle(context, mode_description) {
 		cycles = 64;
 		access = AccessType::PlotPoint;
 	}

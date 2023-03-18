@@ -134,6 +134,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	// Command engine state.
 	CommandContext command_context_;
+	ModeDescription mode_description_;
 	std::unique_ptr<Command> command_ = nullptr;
 
 	enum class CommandStep {
