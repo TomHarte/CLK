@@ -1016,6 +1016,7 @@
 		4BDA00E022E644AF00AC3CD0 /* CSROMReceiverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */; };
 		4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA00E222E663B900AC3CD0 /* NSData+CRC32.m */; };
 		4BDA00E622E699B000AC3CD0 /* CSMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53961D117D36003C6002 /* CSMachine.mm */; };
+		4BDA7F8329C4EA28007A10A5 /* 6809OperationMapperTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA7F8229C4EA28007A10A5 /* 6809OperationMapperTests.mm */; };
 		4BDA8235261E8E000021AA19 /* Z80ContentionTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */; };
 		4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */; };
 		4BDACBED22FFA5D20045EF7E /* ncr5380.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */; };
@@ -2150,6 +2151,9 @@
 		4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSROMReceiverView.m; sourceTree = "<group>"; };
 		4BDA00E222E663B900AC3CD0 /* NSData+CRC32.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+CRC32.m"; sourceTree = "<group>"; };
 		4BDA00E322E663B900AC3CD0 /* NSData+CRC32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+CRC32.h"; sourceTree = "<group>"; };
+		4BDA7F8029C4C179007A10A5 /* OperationMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OperationMapper.hpp; sourceTree = "<group>"; };
+		4BDA7F8129C4C223007A10A5 /* Dispatcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Dispatcher.hpp; sourceTree = "<group>"; };
+		4BDA7F8229C4EA28007A10A5 /* 6809OperationMapperTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 6809OperationMapperTests.mm; sourceTree = "<group>"; };
 		4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Z80ContentionTests.mm; sourceTree = "<group>"; };
 		4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ncr5380.cpp; sourceTree = "<group>"; };
 		4BDACBEB22FFA5D20045EF7E /* ncr5380.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ncr5380.hpp; sourceTree = "<group>"; };
@@ -2785,6 +2789,7 @@
 				4B3AF7D02413470E00873C0B /* Enum.hpp */,
 				4B3AF7D12413472200873C0B /* Struct.hpp */,
 				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
+				4BDA7F8129C4C223007A10A5 /* Dispatcher.hpp */,
 			);
 			name = Reflection;
 			path = ../../Reflection;
@@ -4267,8 +4272,11 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4BC62FF028A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.h */,
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
+				4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */,
+				4BDA7F8229C4EA28007A10A5 /* 6809OperationMapperTests.mm */,
 				4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */,
 				4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */,
 				4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */,
@@ -4328,8 +4336,6 @@
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
-				4BC62FF028A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.h */,
-				4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -4829,6 +4835,14 @@
 			path = ROMRequester;
 			sourceTree = "<group>";
 		};
+		4BDA7F7F29C4C179007A10A5 /* 6809 */ = {
+			isa = PBXGroup;
+			children = (
+				4BDA7F8029C4C179007A10A5 /* OperationMapper.hpp */,
+			);
+			path = 6809;
+			sourceTree = "<group>";
+		};
 		4BDACBE922FFA5B50045EF7E /* 5380 */ = {
 			isa = PBXGroup;
 			children = (
@@ -4897,6 +4911,7 @@
 				4BEDA45425B5ECAB000C2DBD /* CachingExecutor.hpp */,
 				4BE8EB5425C0E9D40040BC40 /* Disassembler.hpp */,
 				4BEDA3B625B25563000C2DBD /* README.md */,
+				4BDA7F7F29C4C179007A10A5 /* 6809 */,
 				4B79629B2819681F008130F9 /* M68k */,
 				4BEDA40925B2844B000C2DBD /* M50740 */,
 				4BEDA3B325B25563000C2DBD /* PowerPC */,
@@ -6248,6 +6263,7 @@
 				4B778F1623A5ECA00000D260 /* Z80AllRAM.cpp in Sources */,
 				4BEDA40D25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B778EF723A5EB670000D260 /* SSD.cpp in Sources */,
+				4BDA7F8329C4EA28007A10A5 /* 6809OperationMapperTests.mm in Sources */,
 				4B778F5723A5F2BB0000D260 /* ZX8081.cpp in Sources */,
 				4B778F2F23A5F0B10000D260 /* ScanTarget.cpp in Sources */,
 				4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */,
