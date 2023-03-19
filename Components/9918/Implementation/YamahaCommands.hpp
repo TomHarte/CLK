@@ -252,10 +252,11 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 			width_ = context.size.v[0];
 
 			if(!width_) {
-				// TODO: this should mean 'maximal' width.
+				// Width = 0 => maximal width for this mode.
 				// (aside: it's still unclear to me whether commands are
 				// automatically clipped to the display; I think so but
 				// don't want to spend any time on it until I'm certain)
+//				width_ = mode_description.width;
 			}
 		}
 
