@@ -346,6 +346,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->screen_mode_ = this->template current_screen_mode<true>();
 				this->underlying_mode_ = this->template current_screen_mode<false>();
 
+				if constexpr (is_yamaha_vdp(personality)) {
+					auto &desc = Storage<personality>::mode_description_;
+					desc.pixels_per_byte = pixels_per_byte(this->underlying_mode_);
+					desc.width = width(this->underlying_mode_);
+					desc.rotate_address = interleaves_banks(this->underlying_mode_);
+				}
+
 				// Based on the output mode, pick a line mode.
 				next_line_buffer.first_pixel_output_column = Timing<personality>::FirstPixelCycle;
 				next_line_buffer.next_border_column = Timing<personality>::CyclesPerLine;
@@ -903,7 +910,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					Storage<personality>::command_ &&
 					Storage<personality>::command_->access == Command::AccessType::WaitForColourReceipt
 				) {
-					Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
+					Storage<personality>::command_->advance();
 					Storage<personality>::update_command_step(fetch_pointer_.column);
 				}
 			break;

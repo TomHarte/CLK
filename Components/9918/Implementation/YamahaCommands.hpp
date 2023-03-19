@@ -139,7 +139,7 @@ struct Command {
 
 	/// Repopulates the fields above with the next action to take, being provided with the
 	/// number of pixels per byte in the current screen mode.
-	virtual void advance(int pixels_per_byte) = 0;
+	virtual void advance() = 0;
 
 	protected:
 		template <int axis, bool include_source> void advance_axis(int offset = 1) {
@@ -180,7 +180,7 @@ struct Line: public Command {
 			return !context.size.v[0];
 		}
 
-		void advance(int) final {
+		void advance() final {
 			--context.size.v[0];
 			cycles = 88;
 
@@ -231,7 +231,7 @@ template <bool is_read> struct Point: public Command {
 			return done_;
 		}
 
-		void advance(int) final {
+		void advance() final {
 			done_ = true;
 		}
 
@@ -261,10 +261,7 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 
 		/// Advances the current destination and, if @c include_source is @c true also the source;
 		/// @returns @c true if a new row was started; @c false otherwise.
-		///
-		/// @c pixels_per_byte is used for 'fast' (i.e. not logical) rectangles only, setting pace at
-		/// which the source and destination proceed left-to-right.
-		bool advance_pixel(int pixels_per_byte = 0) {
+		bool advance_pixel() {
 			if constexpr (logical) {
 				advance_axis<0, include_source>();
 				--context.size.v[0];
@@ -273,10 +270,10 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 					return false;
 				}
 			} else {
-				advance_axis<0, include_source>(pixels_per_byte);
-				context.size.v[0] -= pixels_per_byte;
+				advance_axis<0, include_source>(mode_description.pixels_per_byte);
+				context.size.v[0] -= mode_description.pixels_per_byte;
 
-				if(context.size.v[0] & ~(pixels_per_byte - 1)) {
+				if(context.size.v[0] & ~(mode_description.pixels_per_byte - 1)) {
 					return false;
 				}
 			}
@@ -312,7 +309,7 @@ template <bool logical> struct MoveFromCPU: public Rectangle<logical, false> {
 		Command::access = logical ? Command::AccessType::PlotPoint : Command::AccessType::WriteByte;
 	}
 
-	void advance(int pixels_per_byte) final {
+	void advance() final {
 		switch(Command::access) {
 			default: break;
 
@@ -325,7 +322,7 @@ template <bool logical> struct MoveFromCPU: public Rectangle<logical, false> {
 			case Command::AccessType::PlotPoint:
 				Command::cycles = 0;
 				Command::access = Command::AccessType::WaitForColourReceipt;
-				if(Rectangle<logical, false>::advance_pixel(pixels_per_byte)) {
+				if(Rectangle<logical, false>::advance_pixel()) {
 					Command::cycles = 64;
 					// TODO: I'm not sure this will be honoured per the outer wrapping.
 				}
@@ -353,9 +350,9 @@ template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical
 		Command::y_only = is_y_only;
 	}
 
-	void advance(int pixels_per_byte) final {
+	void advance() final {
 		Command::cycles = is_y_only ? 40 : 64;
-		if(RectangleBase::advance_pixel(pixels_per_byte)) {
+		if(RectangleBase::advance_pixel()) {
 			Command::cycles += is_y_only ? 0 : 64;
 		}
 	}
@@ -369,9 +366,9 @@ struct HighSpeedFill: public Rectangle<false, false> {
 		access = AccessType::WriteByte;
 	}
 
-	void advance(int pixels_per_byte) final {
+	void advance() final {
 		cycles = 48;
-		if(advance_pixel(pixels_per_byte)) {
+		if(advance_pixel()) {
 			cycles += 56;
 		}
 	}
@@ -383,7 +380,7 @@ struct LogicalFill: public Rectangle<false, false> {
 		access = AccessType::PlotPoint;
 	}
 
-	void advance(int) final {
+	void advance() final {
 		cycles = 72;
 		if(advance_pixel()) {
 			cycles += 64;

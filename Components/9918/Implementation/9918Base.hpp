@@ -391,7 +391,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 					case CommandStep::CopySourcePixelToStatus:
 						Storage<personality>::colour_status_ = extract_colour(source[command_address(context.source, context.arguments & 0x10)], context.source);
 
-						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
+						Storage<personality>::command_->advance();
 						Storage<personality>::update_command_step(access_column);
 					break;
 
@@ -441,7 +441,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 						destination[address] = Storage<personality>::command_latch_;
 
-						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
+						Storage<personality>::command_->advance();
 						Storage<personality>::update_command_step(access_column);
 					} break;
 
@@ -460,7 +460,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 						destination[command_address(context.destination, context.arguments & 0x20)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
 						context.latched_colour.reset();
 
-						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
+						Storage<personality>::command_->advance();
 						Storage<personality>::update_command_step(access_column);
 					break;
 				}

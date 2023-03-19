@@ -57,6 +57,29 @@ constexpr int pixels_per_byte(ScreenMode mode) {
 	}
 }
 
+constexpr int width(ScreenMode mode) {
+	switch(mode) {
+		default:
+		case ScreenMode::Blank:				return 0;
+		case ScreenMode::Text:				return 240;
+		case ScreenMode::MultiColour:		return 256;
+		case ScreenMode::ColouredText:		return 256;
+		case ScreenMode::Graphics:			return 256;
+		case ScreenMode::SMSMode4:			return 256;
+		case ScreenMode::YamahaText80:		return 480;
+		case ScreenMode::YamahaGraphics3:	return 256;
+		case ScreenMode::YamahaGraphics4:	return 256;
+		case ScreenMode::YamahaGraphics5:	return 512;
+		case ScreenMode::YamahaGraphics6:	return 512;
+		case ScreenMode::YamahaGraphics7:	return 256;
+	}
+}
+
+constexpr bool interleaves_banks(ScreenMode mode) {
+	return mode == ScreenMode::YamahaGraphics6 || mode == ScreenMode::YamahaGraphics7;
+}
+
+
 enum class FetchMode {
 	Text,
 	Character,
