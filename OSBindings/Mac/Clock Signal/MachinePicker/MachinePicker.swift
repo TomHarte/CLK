@@ -54,6 +54,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var macintoshModelTypeButton: NSPopUpButton!
 
 	// MARK: - MSX properties
+	@IBOutlet var msxModelButton: NSPopUpButton!
 	@IBOutlet var msxRegionButton: NSPopUpButton!
 	@IBOutlet var msxHasDiskDriveButton: NSButton!
 
@@ -134,6 +135,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		macintoshModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.macintoshModel"))
 
 		// MSX settings
+		msxModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxModel"))
 		msxRegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxRegion"))
 		msxHasDiskDriveButton.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
 
@@ -198,6 +200,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		standardUserDefaults.set(macintoshModelTypeButton.selectedTag(), forKey: "new.macintoshModel")
 
 		// MSX settings
+		standardUserDefaults.set(msxModelButton.selectedTag(), forKey: "new.msxModel")
 		standardUserDefaults.set(msxRegionButton.selectedTag(), forKey: "new.msxRegion")
 		standardUserDefaults.set(msxHasDiskDriveButton.state == .on, forKey: "new.msxDiskDrive")
 
@@ -355,15 +358,20 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 			case "msx":
 				let hasDiskDrive = msxHasDiskDriveButton.state == .on
+				var region: CSMachineMSXRegion
 				switch msxRegionButton.selectedTag() {
-					case 2:
-						return CSStaticAnalyser(msxRegion: .japanese, hasDiskDrive: hasDiskDrive)
-					case 1:
-						return CSStaticAnalyser(msxRegion: .american, hasDiskDrive: hasDiskDrive)
-					case 0: fallthrough
-					default:
-						return CSStaticAnalyser(msxRegion: .european, hasDiskDrive: hasDiskDrive)
+					case 2:		region = .japanese
+					case 1:		region = .american
+					case 0:		fallthrough
+					default:	region = .european
 				}
+				var model: CSMachineMSXModel
+				switch msxModelButton.selectedTag() {
+					case 2:		model = .MSX2
+					case 1:		fallthrough
+					default:	model = .MSX1
+				}
+				return CSStaticAnalyser(msxModel: model, region: region, hasDiskDrive: hasDiskDrive)
 
 			case "oric":
 				var diskInterface: CSMachineOricDiskInterface = .none
