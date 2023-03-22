@@ -382,9 +382,9 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 				auto &context = Storage<personality>::command_context_;
 				const uint8_t *const source = (context.arguments & 0x10) ? Storage<personality>::expansion_ram_.data() : ram_.data();
-				const AddressT source_mask = (context.arguments & 0x10) ? 0x1fff : 0xffff;
+				const AddressT source_mask = (context.arguments & 0x10) ? 0xfff : 0x1ffff;
 				uint8_t *const destination = (context.arguments & 0x20) ? Storage<personality>::expansion_ram_.data() : ram_.data();
-				const AddressT destination_mask = (context.arguments & 0x20) ? 0x1fff : 0xffff;
+				const AddressT destination_mask = (context.arguments & 0x20) ? 0xfff : 0x1ffff;
 				switch(Storage<personality>::next_command_step_) {
 					// Duplicative, but keeps the compiler happy.
 					case CommandStep::None:

@@ -361,30 +361,18 @@ template <MoveType type> struct Move: public Rectangle<type == MoveType::Logical
 
 // MARK: - Rectangular fills.
 
-struct HighSpeedFill: public Rectangle<false, false> {
-	HighSpeedFill(CommandContext &context, ModeDescription &mode_description) : Rectangle(context, mode_description) {
-		cycles = 56;
-		access = AccessType::WriteByte;
+template <bool logical> struct Fill: public Rectangle<logical, false> {
+	using RectangleBase = Rectangle<logical, false>;
+
+	Fill(CommandContext &context, ModeDescription &mode_description) : RectangleBase(context, mode_description) {
+		Command::cycles = logical ? 64 : 56;
+		Command::access = logical ? Command::AccessType::PlotPoint : Command::AccessType::WriteByte;
 	}
 
 	void advance() final {
-		cycles = 48;
-		if(advance_pixel()) {
-			cycles += 56;
-		}
-	}
-};
-
-struct LogicalFill: public Rectangle<false, false> {
-	LogicalFill(CommandContext &context, ModeDescription &mode_description) : Rectangle(context, mode_description) {
-		cycles = 64;
-		access = AccessType::PlotPoint;
-	}
-
-	void advance() final {
-		cycles = 72;
-		if(advance_pixel()) {
-			cycles += 64;
+		Command::cycles = logical ? 72 : 48;
+		if(RectangleBase::advance_pixel()) {
+			Command::cycles += logical ? 64 : 56;
 		}
 	}
 };
