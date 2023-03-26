@@ -11,8 +11,7 @@
 
 #include "AccessEnums.hpp"
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 // MARK: - Generics.
 
@@ -256,7 +255,7 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 				// (aside: it's still unclear to me whether commands are
 				// automatically clipped to the display; I think so but
 				// don't want to spend any time on it until I'm certain)
-//				width_ = mode_description.width;
+//				context.size.v[0] = width_ = mode_description.width;
 			}
 		}
 
@@ -377,7 +376,6 @@ template <bool logical> struct Fill: public Rectangle<logical, false> {
 	}
 };
 
-}
 }
 }
 
