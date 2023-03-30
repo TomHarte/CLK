@@ -11,8 +11,7 @@
 
 #include "AccessEnums.hpp"
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
 struct LineBuffer {
@@ -73,7 +72,9 @@ struct LineBuffer {
 	int first_pixel_output_column = 94;
 	int next_border_column = 334;
 	int pixel_count = 256;
+};
 
+struct SpriteBuffer {
 	// An active sprite is one that has been selected for composition onto
 	// _this_ line.
 	struct ActiveSprite {
@@ -108,6 +109,7 @@ struct LineBuffer {
 	int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
 	bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
 									// being evaluated for display. This flag determines whether the sentinel has yet been reached.
+	uint8_t sprite_terminator = 0;
 
 	void reset_sprite_collection();
 };
@@ -116,7 +118,6 @@ struct LineBufferPointer {
 	int row = 0, column = 0;
 };
 
-}
 }
 
 #endif /* LineBuffer_hpp */

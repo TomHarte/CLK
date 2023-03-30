@@ -46,11 +46,17 @@ Base<personality>::Base() :
 	// i.e. the fetch pointer is currently _ahead_ of the output pointer.
 	//
 	// Start at a random position.
-	output_pointer_.row = rand() % 262;
-	output_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
+	output_pointer_.row = output_pointer_.column = 0;
+//	output_pointer_.row = rand() % 262;
+//	output_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
 
 	fetch_pointer_ = output_pointer_;
 	fetch_pointer_.column += output_lag;
+
+	fetch_line_buffer_ = line_buffers_.begin();
+	draw_line_buffer_ = line_buffers_.begin();
+	fetch_sprite_buffer_ = sprite_buffers_.begin();
+	draw_sprite_buffer_ = sprite_buffers_.begin();
 }
 
 template <Personality personality>
@@ -111,7 +117,7 @@ Outputs::Display::DisplayType TMS9918<personality>::get_display_type() const {
 	return this->crt_.get_display_type();
 }
 
-void LineBuffer::reset_sprite_collection() {
+void SpriteBuffer::reset_sprite_collection() {
 	sprites_stopped = false;
 	active_sprite_slot = 0;
 
@@ -121,33 +127,37 @@ void LineBuffer::reset_sprite_collection() {
 }
 
 template <Personality personality>
-void Base<personality>::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_position, int screen_row) {
+void Base<personality>::posit_sprite(int sprite_number, int sprite_position, uint8_t screen_row) {
+	// Evaluation of visibility of sprite 0 is always the first step in
+	// populating a sprite buffer; so use it to uncork a new one.
+	if(!sprite_number) {
+		advance(fetch_sprite_buffer_);
+		fetch_sprite_buffer_->reset_sprite_collection();
+	}
+
 	if(!(status_ & StatusSpriteOverflow)) {
 		status_ = uint8_t((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
-	if(buffer.sprites_stopped) return;
+	if(fetch_sprite_buffer_->sprites_stopped) return;
 
 	// A sprite Y of 208 means "don't scan the list any further".
-	if(mode_timing_.allow_sprite_terminator && sprite_position == mode_timing_.sprite_terminator(buffer.screen_mode)) {
-		buffer.sprites_stopped = true;
+	if(mode_timing_.allow_sprite_terminator && sprite_position == fetch_sprite_buffer_->sprite_terminator) {
+		fetch_sprite_buffer_->sprites_stopped = true;
 		return;
 	}
 
-	// TODO: the following isn't correct when fetching on the final line before pixels on the Yamaha
-	// VDPs when vertical offset is non-zero owing to the placement of the modulo. Will reconsider after
-	// dealing with total frame timing, which might affect the LineBuffer pipeline.
-	const int sprite_row = (((screen_row + 1) % mode_timing_.total_lines) - ((sprite_position + 1) & 255)) & 255;
+	const auto sprite_row = uint8_t(screen_row - sprite_position);
 	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
 
-	if(buffer.active_sprite_slot == mode_timing_.maximum_visible_sprites) {
+	if(fetch_sprite_buffer_->active_sprite_slot == mode_timing_.maximum_visible_sprites) {
 		status_ |= StatusSpriteOverflow;
 		return;
 	}
 
-	LineBuffer::ActiveSprite &sprite = buffer.active_sprites[buffer.active_sprite_slot];
+	auto &sprite = fetch_sprite_buffer_->active_sprites[fetch_sprite_buffer_->active_sprite_slot];
 	sprite.index = sprite_number;
 	sprite.row = sprite_row >> (sprites_magnified_ ? 1 : 0);
-	++buffer.active_sprite_slot;
+	++fetch_sprite_buffer_->active_sprite_slot;
 }
 
 template <Personality personality>
@@ -181,7 +191,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				fetch_cycles_pool
 			);
 			const int end_column = this->fetch_pointer_.column + fetch_cycles;
-			LineBuffer &line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
 			// ... and to any pending Yamaha commands.
 			if constexpr (is_yamaha_vdp(personality)) {
@@ -212,7 +221,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							this->mode_timing_.end_of_frame_interrupt_position.row = this->mode_timing_.pixel_lines + 1;
 						}
 					}
-					line_buffer.latched_horizontal_scroll = Storage<personality>::horizontal_scroll_;
+					this->fetch_line_buffer_->latched_horizontal_scroll = Storage<personality>::horizontal_scroll_;
 				}
 			}
 
@@ -227,14 +236,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	if(first_window == final_window) break;															\
 	if(final_window != clock_rate<personality, clock>()) {											\
 		function<true>(																				\
-			this->line_buffers_[this->fetch_pointer_.row],											\
-			this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines],	\
 			(this->fetch_pointer_.row + offset) & 0xff,												\
 			first_window, final_window);															\
 	} else {																						\
 		function<false>(																			\
-			this->line_buffers_[this->fetch_pointer_.row],											\
-			this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines],	\
 			(this->fetch_pointer_.row + offset) & 0xff,												\
 			first_window, final_window);															\
 	}																								\
@@ -243,7 +248,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			if constexpr (is_yamaha_vdp(personality)) {
 				fetch(this->template fetch_yamaha, Clock::Internal, Storage<personality>::vertical_offset_);
 			} else {
-				switch(line_buffer.fetch_mode) {
+				switch(this->fetch_line_buffer_->fetch_mode) {
 					case FetchMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow, 0);		break;
 					case FetchMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow, 0);	break;
 					case FetchMode::SMS:			fetch(this->template fetch_sms, Clock::TMSMemoryWindow, 0);				break;
@@ -310,10 +315,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->vertical_active_ |= !this->fetch_pointer_.row;
 				this->vertical_active_ &= this->fetch_pointer_.row != this->mode_timing_.pixel_lines;
 
-				// Reset sprite collection, which will be for the line after the new one.
-				LineBuffer &next_sprite_buffer = this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines];
-				next_sprite_buffer.reset_sprite_collection();
-
 				// Yamaha: handle blinking.
 				if constexpr (is_yamaha_vdp(personality)) {
 					if(!this->fetch_pointer_.row && Storage<personality>::blink_periods_) {
@@ -324,8 +325,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 					}
 				}
-
-				LineBuffer &next_line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
 				// Progress towards any delayed events.
 				this->minimum_access_column_ =
@@ -341,6 +340,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						);
 				}
 
+				this->advance(this->fetch_line_buffer_);
+
 				// Establish the current screen output mode, which will be captured as a
 				// line mode momentarily.
 				this->screen_mode_ = this->template current_screen_mode<true>();
@@ -354,61 +355,62 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				// Based on the output mode, pick a line mode.
-				next_line_buffer.first_pixel_output_column = Timing<personality>::FirstPixelCycle;
-				next_line_buffer.next_border_column = Timing<personality>::CyclesPerLine;
-				next_line_buffer.pixel_count = 256;
-				next_line_buffer.screen_mode = this->screen_mode_;
+				this->fetch_line_buffer_->first_pixel_output_column = Timing<personality>::FirstPixelCycle;
+				this->fetch_line_buffer_->next_border_column = Timing<personality>::CyclesPerLine;
+				this->fetch_line_buffer_->pixel_count = 256;
+				this->fetch_line_buffer_->screen_mode = this->screen_mode_;
+//				mode_timing_.sprite_terminator(buffer.screen_mode);
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
 						if constexpr (is_yamaha_vdp(personality)) {
-							next_line_buffer.fetch_mode = FetchMode::Yamaha;
+							this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
 						} else {
-							next_line_buffer.fetch_mode = FetchMode::Text;
+							this->fetch_line_buffer_->fetch_mode = FetchMode::Text;
 						}
-						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
-						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
-						next_line_buffer.pixel_count = 240;
+						this->fetch_line_buffer_->first_pixel_output_column = Timing<personality>::FirstTextCycle;
+						this->fetch_line_buffer_->next_border_column = Timing<personality>::LastTextCycle;
+						this->fetch_line_buffer_->pixel_count = 240;
 					break;
 					case ScreenMode::YamahaText80:
-						next_line_buffer.fetch_mode = FetchMode::Yamaha;
-						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
-						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
-						next_line_buffer.pixel_count = 480;
+						this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
+						this->fetch_line_buffer_->first_pixel_output_column = Timing<personality>::FirstTextCycle;
+						this->fetch_line_buffer_->next_border_column = Timing<personality>::LastTextCycle;
+						this->fetch_line_buffer_->pixel_count = 480;
 					break;
 
 					case ScreenMode::SMSMode4:
-						next_line_buffer.fetch_mode = FetchMode::SMS;
+						this->fetch_line_buffer_->fetch_mode = FetchMode::SMS;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 
 					case ScreenMode::YamahaGraphics3:
 					case ScreenMode::YamahaGraphics4:
 					case ScreenMode::YamahaGraphics7:
-						next_line_buffer.fetch_mode = FetchMode::Yamaha;
+						this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					case ScreenMode::YamahaGraphics5:
 					case ScreenMode::YamahaGraphics6:
-						next_line_buffer.pixel_count = 512;
-						next_line_buffer.fetch_mode = FetchMode::Yamaha;
+						this->fetch_line_buffer_->pixel_count = 512;
+						this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					default:
 						// This covers both MultiColour and Graphics modes.
 						if constexpr (is_yamaha_vdp(personality)) {
-							next_line_buffer.fetch_mode = FetchMode::Yamaha;
+							this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
 						} else {
-							next_line_buffer.fetch_mode = FetchMode::Character;
+							this->fetch_line_buffer_->fetch_mode = FetchMode::Character;
 						}
 					break;
 				}
 
-				next_line_buffer.vertical_state =
+				this->fetch_line_buffer_->vertical_state =
 					this->screen_mode_ == ScreenMode::Blank ?
 						VerticalState::Blank :
 						this->vertical_state();
-				const bool is_refresh = next_line_buffer.vertical_state == VerticalState::Blank;
+				const bool is_refresh = this->fetch_line_buffer_->vertical_state == VerticalState::Blank;
 
 				Storage<personality>::begin_line(this->screen_mode_, is_refresh);
 
@@ -416,9 +418,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// The Yamaha handles refresh lines via its own microprogram; other VDPs
 					// can fall back on the regular refresh mechanic.
 					if constexpr (is_yamaha_vdp(personality)) {
-						next_line_buffer.fetch_mode = FetchMode::Yamaha;
+						this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
 					} else {
-						next_line_buffer.fetch_mode = FetchMode::Refresh;
+						this->fetch_line_buffer_->fetch_mode = FetchMode::Refresh;
 					}
 				}
 			}
@@ -463,7 +465,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				output_cycles_performed += output_cycles;
 
 				const int end_column = this->output_pointer_.column + output_cycles;
-				LineBuffer &line_buffer = this->line_buffers_[this->output_pointer_.row];
 
 
 				// --------------------
@@ -485,7 +486,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
-				if(line_buffer.vertical_state != VerticalState::Pixels) {
+				if(this->draw_line_buffer_->vertical_state != VerticalState::Pixels) {
 					if(
 						this->output_pointer_.row >= this->mode_timing_.first_vsync_line &&
 						this->output_pointer_.row < this->mode_timing_.first_vsync_line + 4
@@ -532,43 +533,43 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					}
 
 					// Left border.
-					border(Timing<personality>::StartOfLeftBorder, line_buffer.first_pixel_output_column);
+					border(Timing<personality>::StartOfLeftBorder, this->draw_line_buffer_->first_pixel_output_column);
 
-#define draw(function, clock) {																						\
-	const int relative_start = from_internal<personality, clock>(start - line_buffer.first_pixel_output_column);	\
-	const int relative_end = from_internal<personality, clock>(end - line_buffer.first_pixel_output_column);		\
-	if(relative_start == relative_end) break;																		\
+#define draw(function, clock) {																									\
+	const int relative_start = from_internal<personality, clock>(start - this->draw_line_buffer_->first_pixel_output_column);	\
+	const int relative_end = from_internal<personality, clock>(end - this->draw_line_buffer_->first_pixel_output_column);		\
+	if(relative_start == relative_end) break;																					\
 	this->function; }
 
 					// Pixel region.
 					intersect(
-						line_buffer.first_pixel_output_column,
-						line_buffer.next_border_column,
+						this->draw_line_buffer_->first_pixel_output_column,
+						this->draw_line_buffer_->next_border_column,
 						if(!this->asked_for_write_area_) {
 							this->asked_for_write_area_ = true;
 
 							this->pixel_origin_ = this->pixel_target_ = reinterpret_cast<uint32_t *>(
-								this->crt_.begin_data(size_t(line_buffer.pixel_count))
+								this->crt_.begin_data(size_t(this->draw_line_buffer_->pixel_count))
 							);
 						}
 
 						if(this->pixel_target_) {
 							if constexpr (is_yamaha_vdp(personality)) {
-								draw(draw_yamaha(relative_start, relative_end), Clock::Internal);
+								draw(draw_yamaha(0, relative_start, relative_end), Clock::Internal);	// TODO: what is  the correct 'y'?
 							} else {
-								switch(line_buffer.fetch_mode) {
+								switch(this->draw_line_buffer_->fetch_mode) {
 									case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);			break;
 									case FetchMode::Character:		draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);			break;
-									case FetchMode::Text:			draw(template draw_tms_text<false>(relative_start, relative_end), Clock::TMSPixel);		break;
+									case FetchMode::Text:			draw(template draw_tms_text<false>(relative_start, relative_end), Clock::TMSPixel);	break;
 
 									default:		break;	/* Dealt with elsewhere. */
 								}
 							}
 						}
 
-						if(end == line_buffer.next_border_column) {
-							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
-							this->crt_.output_data(from_internal<personality, Clock::CRT>(length), size_t(line_buffer.pixel_count));
+						if(end == this->draw_line_buffer_->next_border_column) {
+							const int length = this->draw_line_buffer_->next_border_column - this->draw_line_buffer_->first_pixel_output_column;
+							this->crt_.output_data(from_internal<personality, Clock::CRT>(length), size_t(this->draw_line_buffer_->pixel_count));
 							this->pixel_origin_ = this->pixel_target_ = nullptr;
 							this->asked_for_write_area_ = false;
 						}
@@ -577,8 +578,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 #undef draw
 
 					// Additional right border, if called for.
-					if(line_buffer.next_border_column != Timing<personality>::CyclesPerLine) {
-						border(line_buffer.next_border_column, Timing<personality>::CyclesPerLine);
+					if(this->draw_line_buffer_->next_border_column != Timing<personality>::CyclesPerLine) {
+						border(this->draw_line_buffer_->next_border_column, Timing<personality>::CyclesPerLine);
 					}
 				}
 
@@ -596,6 +597,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// Advance time.
 				// -------------
 				this->output_pointer_.column = end_column;
+				if(end_column == Timing<personality>::CyclesPerLine) {
+					this->advance(this->draw_line_buffer_);
+					this->advance(this->draw_sprite_buffer_);
+				}
 			}
 
 			output_cycles_pool -= target_output_cycles;

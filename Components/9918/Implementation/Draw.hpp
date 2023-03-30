@@ -13,7 +13,8 @@
 
 template <Personality personality>
 template <SpriteMode mode, bool double_width>
-void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
+void Base<personality>::draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
+	auto &buffer = *draw_sprite_buffer_;
 	if(!buffer.active_sprite_slot) {
 		return;
 	}
@@ -23,7 +24,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 	// If this is the start of the line clip any part of any sprites that is off to the left.
 	if(!start) {
 		for(int index = 0; index < buffer.active_sprite_slot; ++index) {
-			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+			auto &sprite = buffer.active_sprites[index];
 			if(sprite.x < 0) sprite.shift_position -= shift_advance * sprite.x;
 		}
 	}
@@ -35,7 +36,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 	if constexpr (mode == SpriteMode::MasterSystem) {
 		// Draw all sprites into the sprite buffer.
 		for(int index = buffer.active_sprite_slot - 1; index >= 0; --index) {
-			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+			auto &sprite = buffer.active_sprites[index];
 			if(sprite.shift_position >= 16) {
 				continue;
 			}
@@ -96,7 +97,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 	if constexpr (mode == SpriteMode::Mode2) {
 		// Determine the lowest visible sprite; exit early if that leaves no sprites visible.
 		for(; min_sprite < buffer.active_sprite_slot; min_sprite++) {
-			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[min_sprite];
+			auto &sprite = buffer.active_sprites[min_sprite];
 			if(sprite.opaque()) {
 				break;
 			}
@@ -109,7 +110,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 			// Pre-rasterise the sprites one-by-one.
 			if(sprites_magnified_) {
 				for(int index = min_sprite; index < buffer.active_sprite_slot; index++) {
-					LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+					auto &sprite = buffer.active_sprites[index];
 					for(int c = 0; c < 32; c+= 2) {
 						const int shift = (c >> 1) ^ 7;
 						const int bit = 1 & (sprite.image[shift >> 3] >> (shift & 7));
@@ -122,7 +123,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 				}
 			} else {
 				for(int index = min_sprite; index < buffer.active_sprite_slot; index++) {
-					LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+					auto &sprite = buffer.active_sprites[index];
 					for(int c = 0; c < 16; c++) {
 						const int shift = c ^ 7;
 						const int bit = 1 & (sprite.image[shift >> 3] >> (shift & 7));
@@ -136,7 +137,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 
 			// Go backwards compositing any sprites that are set as OR masks onto their parents.
 			for(int index = buffer.active_sprite_slot - 1; index >= min_sprite + 1; --index) {
-				LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+				auto &sprite = buffer.active_sprites[index];
 				if(sprite.opaque()) {
 					continue;
 				}
@@ -144,7 +145,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 				// Sprite may affect all previous up to and cindlugin the next one that is opaque.
 				for(int previous_index = index - 1; previous_index >= min_sprite; --previous_index) {
 					// Determine region of overlap (if any).
-					LineBuffer::ActiveSprite &previous = buffer.active_sprites[previous_index];
+					auto &previous = buffer.active_sprites[previous_index];
 					const int origin = sprite.x - previous.x;
 					const int x1 = std::max(0, -origin);
 					const int x2 = std::min(pixel_width - origin, pixel_width);
@@ -165,7 +166,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 
 		// Draw.
 		for(int index = buffer.active_sprite_slot - 1; index >= min_sprite; --index) {
-			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+			auto &sprite = buffer.active_sprites[index];
 			const int x1 = std::max(0, start - sprite.x);
 			const int x2 = std::min(end - sprite.x, pixel_width);
 
@@ -198,7 +199,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 
 	if constexpr (mode == SpriteMode::Mode1) {
 		for(int index = buffer.active_sprite_slot - 1; index >= min_sprite; --index) {
-			LineBuffer::ActiveSprite &sprite = buffer.active_sprites[index];
+			auto &sprite = buffer.active_sprites[index];
 			if(sprite.shift_position >= shifter_target) {
 				continue;
 			}
@@ -246,7 +247,7 @@ void Base<personality>::draw_sprites(LineBuffer &buffer, [[maybe_unused]] int y,
 template <Personality personality>
 template <SpriteMode sprite_mode>
 void Base<personality>::draw_tms_character(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
+	auto &line_buffer = *draw_line_buffer_;
 
 	// Paint the background tiles.
 	const int pixels_left = end - start;
@@ -289,14 +290,13 @@ void Base<personality>::draw_tms_character(int start, int end) {
 		}
 	}
 
-	draw_sprites<sprite_mode, false>(line_buffer, output_pointer_.row, start, end, palette());
+	draw_sprites<sprite_mode, false>(0, start, end, palette());	// TODO: propagate a real 'y' into here.
 }
 
 template <Personality personality>
 template <bool apply_blink>
 void Base<personality>::draw_tms_text(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
-
+	auto &line_buffer = *draw_line_buffer_;
 	uint32_t colours[2][2] = {
 		{palette()[background_colour_], palette()[text_colour_]},
 		{0, 0}
@@ -338,8 +338,8 @@ void Base<personality>::draw_tms_text(int start, int end) {
 template <Personality personality>
 void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 	if constexpr (is_sega_vdp(personality)) {
-		LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
 		int colour_buffer[256];
+		auto &line_buffer = *draw_line_buffer_;
 
 		/*
 			Add extra border for any pixels that fall before the fine scroll.
@@ -416,7 +416,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 		/*
 			Apply sprites (if any).
 		*/
-		draw_sprites<SpriteMode::MasterSystem, false>(line_buffer, output_pointer_.row, start, end, palette(), colour_buffer);
+		draw_sprites<SpriteMode::MasterSystem, false>(0, start, end, palette(), colour_buffer);	// TODO provide good y, as per elsewhere.
 
 		// Map from the 32-colour buffer to real output pixels, applying the specific CRAM dot if any.
 		pixel_target_[start] = Storage<personality>::colour_ram_[colour_buffer[start] & 0x1f] | cram_dot;
@@ -440,10 +440,11 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 
 template <Personality personality>
 template <ScreenMode mode>
-void Base<personality>::draw_yamaha(LineBuffer &buffer, int y, int start, int end) {
+void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
 	const auto active_palette = palette();
 	const int sprite_start = start >> 2;
 	const int sprite_end = end >> 2;
+	auto &line_buffer = *draw_line_buffer_;
 
 	// Observation justifying Duff's device below: it's acceptable to paint too many pixels — to paint
 	// beyond `end` — provided that the overpainting is within normal bitmap bounds, because any
@@ -461,8 +462,8 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int y, int start, int en
 		switch(offset) {
 			case 0:
 				do {
-						pixel_target_[column+0] = active_palette[buffer.bitmap[start] >> 4];
-			case 1:		pixel_target_[column+1] = active_palette[buffer.bitmap[start] & 0xf];
+						pixel_target_[column+0] = active_palette[line_buffer.bitmap[start] >> 4];
+			case 1:		pixel_target_[column+1] = active_palette[line_buffer.bitmap[start] & 0xf];
 						++start;
 						column += 2;
 				} while(start < end);
@@ -481,10 +482,10 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int y, int start, int en
 		switch(offset) {
 			case 0:
 				do {
-					pixel_target_[column+0] = active_palette[buffer.bitmap[start] >> 6];
-			case 1:	pixel_target_[column+1] = active_palette[(buffer.bitmap[start] >> 4) & 3];
-			case 2:	pixel_target_[column+2] = active_palette[(buffer.bitmap[start] >> 2) & 3];
-			case 3:	pixel_target_[column+3] = active_palette[buffer.bitmap[start] & 3];
+					pixel_target_[column+0] = active_palette[line_buffer.bitmap[start] >> 6];
+			case 1:	pixel_target_[column+1] = active_palette[(line_buffer.bitmap[start] >> 4) & 3];
+			case 2:	pixel_target_[column+2] = active_palette[(line_buffer.bitmap[start] >> 2) & 3];
+			case 3:	pixel_target_[column+3] = active_palette[line_buffer.bitmap[start] & 3];
 					++start;
 					column += 4;
 				} while(start < end);
@@ -498,9 +499,9 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int y, int start, int en
 		while(start < end) {
 			pixel_target_[start] =
 				palette_pack(
-					uint8_t((buffer.bitmap[start] & 0x1c) + ((buffer.bitmap[start] & 0x1c) << 3) + ((buffer.bitmap[start] & 0x1c) >> 3)),
-					uint8_t((buffer.bitmap[start] & 0xe0) + ((buffer.bitmap[start] & 0xe0) >> 3) + ((buffer.bitmap[start] & 0xe0) >> 6)),
-					uint8_t((buffer.bitmap[start] & 0x03) + ((buffer.bitmap[start] & 0x03) << 2) + ((buffer.bitmap[start] & 0x03) << 4) + ((buffer.bitmap[start] & 0x03) << 6))
+					uint8_t((line_buffer.bitmap[start] & 0x1c) + ((line_buffer.bitmap[start] & 0x1c) << 3) + ((line_buffer.bitmap[start] & 0x1c) >> 3)),
+					uint8_t((line_buffer.bitmap[start] & 0xe0) + ((line_buffer.bitmap[start] & 0xe0) >> 3) + ((line_buffer.bitmap[start] & 0xe0) >> 6)),
+					uint8_t((line_buffer.bitmap[start] & 0x03) + ((line_buffer.bitmap[start] & 0x03) << 2) + ((line_buffer.bitmap[start] & 0x03) << 4) + ((line_buffer.bitmap[start] & 0x03) << 6))
 				);
 			++start;
 		}
@@ -522,15 +523,13 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int y, int start, int en
 	draw_sprites<
 		SpriteMode::Mode2,
 		mode == ScreenMode::YamahaGraphics5 || mode == ScreenMode::YamahaGraphics6
-	>(buffer, y, sprite_start, sprite_end, mode == ScreenMode::YamahaGraphics7 ? graphics7_sprite_palette : palette());
+	>(y, sprite_start, sprite_end, mode == ScreenMode::YamahaGraphics7 ? graphics7_sprite_palette : palette());
 }
 
 template <Personality personality>
-void Base<personality>::draw_yamaha(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
-
+void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
 	if constexpr (is_yamaha_vdp(personality)) {
-		switch(line_buffer.screen_mode) {
+		switch(draw_line_buffer_->screen_mode) {
 			// Modes that are the same (or close enough) to those on the TMS.
 			case ScreenMode::Text:			draw_tms_text<false>(start >> 2, end >> 2);	break;
 			case ScreenMode::YamahaText80:	draw_tms_text<true>(start >> 1, end >> 1);	break;
@@ -542,7 +541,7 @@ void Base<personality>::draw_yamaha(int start, int end) {
 				draw_tms_character<SpriteMode::Mode2>(start >> 2, end >> 2);
 			break;
 
-#define Dispatch(x)	case ScreenMode::x:	draw_yamaha<ScreenMode::x>(line_buffer, output_pointer_.row, start, end);	break;
+#define Dispatch(x)	case ScreenMode::x:	draw_yamaha<ScreenMode::x>(y, start, end);	break;
 			Dispatch(YamahaGraphics4);
 			Dispatch(YamahaGraphics5);
 			Dispatch(YamahaGraphics6);

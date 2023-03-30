@@ -124,7 +124,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	bool sprites_16x16_ = false;
 	bool sprites_magnified_ = false;
 	bool generate_interrupts_ = false;
-	int sprite_height_ = 8;
+	uint8_t sprite_height_ = 8;
 
 	// Programmer-specified addresses.
 	//
@@ -202,10 +202,32 @@ template <Personality personality> struct Base: public Storage<personality> {
 	bool vertical_active_ = false;
 
 	ScreenMode screen_mode_, underlying_mode_;
-	LineBuffer line_buffers_[313];
+
+	using LineBufferArray = std::array<LineBuffer, 313>;
+	LineBufferArray line_buffers_;
+	LineBufferArray::iterator fetch_line_buffer_;
+	LineBufferArray::iterator draw_line_buffer_;
+	void advance(LineBufferArray::iterator &iterator) {
+		++iterator;
+		if(iterator == line_buffers_.end()) {
+			iterator = line_buffers_.begin();
+		}
+	}
+
+	using SpriteBufferArray = std::array<SpriteBuffer, 313>;
+	SpriteBufferArray sprite_buffers_;
+	SpriteBufferArray::iterator fetch_sprite_buffer_;
+	SpriteBufferArray::iterator draw_sprite_buffer_;
+	void advance(SpriteBufferArray::iterator &iterator) {
+		++iterator;
+		if(iterator == sprite_buffers_.end()) {
+			iterator = sprite_buffers_.begin();
+		}
+	}
+
 	AddressT tile_offset_ = 0;
 	uint8_t name_[4]{};
-	void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
+	void posit_sprite(int sprite_number, int sprite_y, uint8_t screen_row);
 
 	// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
 	// is observeable because reading time affects availability of memory accesses and therefore time in which
@@ -563,14 +585,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template<bool use_end, typename Fetcher> void dispatch(Fetcher &fetcher, int start, int end);
 
 	// Various fetchers.
-	template<bool use_end> void fetch_tms_refresh(LineBuffer &, LineBuffer &, int y, int start, int end);
-	template<bool use_end> void fetch_tms_text(LineBuffer &, LineBuffer &, int y, int start, int end);
-	template<bool use_end> void fetch_tms_character(LineBuffer &, LineBuffer &, int y, int start, int end);
+	template<bool use_end> void fetch_tms_refresh(uint8_t y, int start, int end);
+	template<bool use_end> void fetch_tms_text(uint8_t y, int start, int end);
+	template<bool use_end> void fetch_tms_character(uint8_t y, int start, int end);
 
-	template<bool use_end> void fetch_yamaha(LineBuffer &, LineBuffer &, int y, int start, int end);
-	template<ScreenMode> void fetch_yamaha(LineBuffer &, LineBuffer &, int y, int end);
+	template<bool use_end> void fetch_yamaha(uint8_t y, int start, int end);
+	template<ScreenMode> void fetch_yamaha(uint8_t y, int end);
 
-	template<bool use_end> void fetch_sms(LineBuffer &, LineBuffer &, int y, int start, int end);
+	template<bool use_end> void fetch_sms(uint8_t y, int start, int end);
 
 	// A helper function to output the current border colour for
 	// the number of cycles supplied.
@@ -585,10 +607,10 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template <bool apply_blink> void draw_tms_text(int start, int end);
 	void draw_sms(int start, int end, uint32_t cram_dot);
 
-	template<ScreenMode mode> void draw_yamaha(LineBuffer &, int y, int start, int end);
-	void draw_yamaha(int start, int end);
+	template<ScreenMode mode> void draw_yamaha(uint8_t y, int start, int end);
+	void draw_yamaha(uint8_t y, int start, int end);
 
-	template <SpriteMode mode, bool double_width> void draw_sprites(LineBuffer &, int y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer = nullptr);
+	template <SpriteMode mode, bool double_width> void draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer = nullptr);
 };
 
 #include "Fetch.hpp"
