@@ -22,6 +22,7 @@ struct LineBuffer {
 	FetchMode fetch_mode = FetchMode::Text;
 	ScreenMode screen_mode = ScreenMode::Text;
 	VerticalState vertical_state = VerticalState::Blank;
+	bool fetched_sprites = false;
 
 	// Holds the horizontal scroll position to apply to this line;
 	// of those VDPs currently implemented, affects the Master System only.
