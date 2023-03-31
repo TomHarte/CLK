@@ -237,16 +237,17 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);		\
 	const int final_window = from_internal<personality, clock>(end_column);							\
 	if(first_window == final_window) break;															\
+	const auto y = uint8_t(																			\
+		this->fetch_line_buffer_->vertical_state == VerticalState::Prefetch ?						\
+			offset - 1 : (this->fetch_pointer_.row + offset));										\
 	if(final_window != clock_rate<personality, clock>()) {											\
-		function<true>(																				\
-			(this->fetch_pointer_.row + offset) & 0xff,												\
-			first_window, final_window);															\
+		function<true>(y, first_window, final_window);												\
 	} else {																						\
-		function<false>(																			\
-			(this->fetch_pointer_.row + offset) & 0xff,												\
-			first_window, final_window);															\
+		function<false>(y, first_window, final_window);												\
 	}																								\
 }
+
+
 
 			if constexpr (is_yamaha_vdp(personality)) {
 				fetch(this->template fetch_yamaha, Clock::Internal, Storage<personality>::vertical_offset_);
