@@ -602,9 +602,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// -------------
 				this->output_pointer_.column = end_column;
 				if(end_column == Timing<personality>::CyclesPerLine) {
+					// Clear all sprites from this sprite buffer.
+					this->draw_sprite_buffer_->active_sprite_slot = 0;
+					// Advance to the next sprite buffer only if this one was populated by this line.
 					if(this->draw_line_buffer_->fetched_sprites) {
 						this->advance(this->draw_sprite_buffer_);
 					}
+					// Advance line buffer.
 					this->advance(this->draw_line_buffer_);
 				}
 			}
