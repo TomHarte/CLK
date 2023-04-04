@@ -281,6 +281,12 @@ class SpriteFetcher {
 			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
 			sprite.image[0] = base->ram_[graphic_location];
 			sprite.image[1] = base->ram_[graphic_location+16];
+
+#ifndef NDEBUG
+			if(slot == ((mode == SpriteMode::Mode2) ? 7 : 3)) {
+				base->fetch_sprite_buffer_->is_filling = false;
+			}
+#endif
 		}
 
 		Base<personality> *const base;

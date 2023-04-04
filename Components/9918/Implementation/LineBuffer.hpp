@@ -112,6 +112,10 @@ struct SpriteBuffer {
 									// being evaluated for display. This flag determines whether the sentinel has yet been reached.
 	uint8_t sprite_terminator = 0;
 
+#ifndef NDEBUG
+	bool is_filling = false;
+#endif
+
 	void reset_sprite_collection();
 };
 
