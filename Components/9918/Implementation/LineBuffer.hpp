@@ -113,7 +113,10 @@ struct SpriteBuffer {
 	uint8_t sprite_terminator = 0;
 
 #ifndef NDEBUG
+	static constexpr bool test_is_filling = true;
 	bool is_filling = false;
+#else
+	static constexpr bool test_is_filling = false;
 #endif
 
 	void reset_sprite_collection();

@@ -137,9 +137,9 @@ void Base<personality>::posit_sprite(int sprite_number, int sprite_position, uin
 		fetch_sprite_buffer_->reset_sprite_collection();
 		fetch_sprite_buffer_->sprite_terminator = mode_timing_.sprite_terminator(fetch_line_buffer_->screen_mode);
 
-#ifndef NDEBUG
-		fetch_sprite_buffer_->is_filling = true;
-#endif
+		if constexpr (SpriteBuffer::test_is_filling) {
+			fetch_sprite_buffer_->is_filling = true;
+		}
 	}
 
 	if(!(status_ & StatusSpriteOverflow)) {

@@ -282,11 +282,11 @@ class SpriteFetcher {
 			sprite.image[0] = base->ram_[graphic_location];
 			sprite.image[1] = base->ram_[graphic_location+16];
 
-#ifndef NDEBUG
-			if(slot == ((mode == SpriteMode::Mode2) ? 7 : 3)) {
-				base->fetch_sprite_buffer_->is_filling = false;
+			if constexpr (SpriteBuffer::test_is_filling) {
+				if(slot == ((mode == SpriteMode::Mode2) ? 7 : 3)) {
+					base->fetch_sprite_buffer_->is_filling = false;
+				}
 			}
-#endif
 		}
 
 		Base<personality> *const base;

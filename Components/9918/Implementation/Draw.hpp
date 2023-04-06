@@ -78,7 +78,9 @@ void Base<personality>::draw_sprites(uint8_t y, int start, int end, const std::a
 		return;
 	}
 
-	assert(!buffer.is_filling);
+	if constexpr (SpriteBuffer::test_is_filling) {
+		assert(!buffer.is_filling);
+	}
 
 	constexpr uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
 	constexpr int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
