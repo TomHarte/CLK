@@ -114,10 +114,10 @@ struct SpriteBuffer {
 
 #ifndef NDEBUG
 	static constexpr bool test_is_filling = true;
-	bool is_filling = false;
 #else
 	static constexpr bool test_is_filling = false;
 #endif
+	bool is_filling = false;
 
 	void reset_sprite_collection();
 };
