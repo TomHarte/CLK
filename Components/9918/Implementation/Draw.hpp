@@ -14,7 +14,11 @@
 template <Personality personality>
 template <SpriteMode mode, bool double_width>
 void Base<personality>::draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
-	auto &buffer = *draw_sprite_buffer_;
+	if(!draw_line_buffer_->sprites) {
+		return;
+	}
+
+	auto &buffer = *draw_line_buffer_->sprites;
 	if(!buffer.active_sprite_slot) {
 		return;
 	}

@@ -56,7 +56,6 @@ Base<personality>::Base() :
 	fetch_line_buffer_ = line_buffers_.begin();
 	draw_line_buffer_ = line_buffers_.begin();
 	fetch_sprite_buffer_ = sprite_buffers_.begin();
-	draw_sprite_buffer_ = sprite_buffers_.begin();
 }
 
 template <Personality personality>
@@ -131,9 +130,8 @@ void Base<personality>::posit_sprite(int sprite_number, int sprite_position, uin
 	// Evaluation of visibility of sprite 0 is always the first step in
 	// populating a sprite buffer; so use it to uncork a new one.
 	if(!sprite_number) {
-		fetch_line_buffer_->fetched_sprites = true;
-
 		advance(fetch_sprite_buffer_);
+		fetched_sprites_ = &*fetch_sprite_buffer_;
 		fetch_sprite_buffer_->reset_sprite_collection();
 		fetch_sprite_buffer_->sprite_terminator = mode_timing_.sprite_terminator(fetch_line_buffer_->screen_mode);
 
@@ -349,6 +347,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				this->advance(this->fetch_line_buffer_);
+				if(this->fetched_sprites_->active_sprite_slot) {
+					this->fetch_line_buffer_->sprites = this->fetched_sprites_;
+					this->fetched_sprites_ = nullptr;
+				} else {
+					this->fetch_line_buffer_->sprites = nullptr;
+					this->regress(this->fetch_sprite_buffer_);
+				}
 
 				// Establish the current screen output mode, which will be captured as a
 				// line mode momentarily.
@@ -367,7 +372,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->fetch_line_buffer_->next_border_column = Timing<personality>::CyclesPerLine;
 				this->fetch_line_buffer_->pixel_count = 256;
 				this->fetch_line_buffer_->screen_mode = this->screen_mode_;
-				this->fetch_line_buffer_->fetched_sprites = false;
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
@@ -606,12 +610,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// -------------
 				this->output_pointer_.column = end_column;
 				if(end_column == Timing<personality>::CyclesPerLine) {
-					// Clear all sprites from this sprite buffer.
-					this->draw_sprite_buffer_->active_sprite_slot = 0;
-					// Advance to the next sprite buffer only if this one was populated by this line.
-					if(this->draw_line_buffer_->fetched_sprites) {
-						this->advance(this->draw_sprite_buffer_);
-					}
 					// Advance line buffer.
 					this->advance(this->draw_line_buffer_);
 				}

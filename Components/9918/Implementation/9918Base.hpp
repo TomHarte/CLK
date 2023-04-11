@@ -217,12 +217,18 @@ template <Personality personality> struct Base: public Storage<personality> {
 	using SpriteBufferArray = std::array<SpriteBuffer, 313>;
 	SpriteBufferArray sprite_buffers_;
 	SpriteBufferArray::iterator fetch_sprite_buffer_;
-	SpriteBufferArray::iterator draw_sprite_buffer_;
+	SpriteBuffer *fetched_sprites_ = nullptr;
 	void advance(SpriteBufferArray::iterator &iterator) {
 		++iterator;
 		if(iterator == sprite_buffers_.end()) {
 			iterator = sprite_buffers_.begin();
 		}
+	}
+	void regress(SpriteBufferArray::iterator &iterator) {
+		if(iterator == sprite_buffers_.begin()) {
+			iterator = sprite_buffers_.end();
+		}
+		--iterator;
 	}
 
 	AddressT tile_offset_ = 0;

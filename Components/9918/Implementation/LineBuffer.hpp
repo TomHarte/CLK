@@ -14,6 +14,54 @@
 namespace TI::TMS {
 
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
+
+struct SpriteBuffer {
+	// An active sprite is one that has been selected for composition onto
+	// _this_ line.
+	struct ActiveSprite {
+		int index = 0;		// The original in-table index of this sprite.
+		int row = 0;		// The row of the sprite that should be drawn.
+		int x = 0;			// The sprite's x position on screen.
+
+		uint8_t image[4];		// Up to four bytes of image information.
+								//
+								// In practice:
+								//
+								//	Master System mode: the four bytes of this 8x8 sprite;
+								//	TMS and Yamaha: [0] = the left half of this sprite; [1] = the right side (if 16x16 sprites enabled); [2] = colour, early-clock bit, etc.
+		int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
+
+		// Yamaha helpers.
+		bool opaque() const {
+			return !(image[2] & 0x40);
+		}
+
+		/// @returns @c 0x20 if this sprite should generate collisions; @c 0x00 otherwise.
+		int collision_bit() const {
+			return ((image[2] & 0x20) | ((image[2] & 0x40) >> 1)) ^ 0x20;
+		}
+
+		// Yamaha and TMS helpers.
+		int early_clock() const {
+			return (image[2] & 0x80) >> 2;
+		}
+	} active_sprites[8];
+
+	int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
+	bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
+									// being evaluated for display. This flag determines whether the sentinel has yet been reached.
+	uint8_t sprite_terminator = 0;
+
+#ifndef NDEBUG
+	static constexpr bool test_is_filling = true;
+#else
+	static constexpr bool test_is_filling = false;
+#endif
+	bool is_filling = false;
+
+	void reset_sprite_collection();
+};
+
 struct LineBuffer {
 	LineBuffer() {}
 
@@ -22,7 +70,7 @@ struct LineBuffer {
 	FetchMode fetch_mode = FetchMode::Text;
 	ScreenMode screen_mode = ScreenMode::Text;
 	VerticalState vertical_state = VerticalState::Blank;
-	bool fetched_sprites = false;
+	SpriteBuffer *sprites = nullptr;
 
 	// Holds the horizontal scroll position to apply to this line;
 	// of those VDPs currently implemented, affects the Master System only.
@@ -73,53 +121,6 @@ struct LineBuffer {
 	int first_pixel_output_column = 94;
 	int next_border_column = 334;
 	int pixel_count = 256;
-};
-
-struct SpriteBuffer {
-	// An active sprite is one that has been selected for composition onto
-	// _this_ line.
-	struct ActiveSprite {
-		int index = 0;		// The original in-table index of this sprite.
-		int row = 0;		// The row of the sprite that should be drawn.
-		int x = 0;			// The sprite's x position on screen.
-
-		uint8_t image[4];		// Up to four bytes of image information.
-								//
-								// In practice:
-								//
-								//	Master System mode: the four bytes of this 8x8 sprite;
-								//	TMS and Yamaha: [0] = the left half of this sprite; [1] = the right side (if 16x16 sprites enabled); [2] = colour, early-clock bit, etc.
-		int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
-
-		// Yamaha helpers.
-		bool opaque() const {
-			return !(image[2] & 0x40);
-		}
-
-		/// @returns @c 0x20 if this sprite should generate collisions; @c 0x00 otherwise.
-		int collision_bit() const {
-			return ((image[2] & 0x20) | ((image[2] & 0x40) >> 1)) ^ 0x20;
-		}
-
-		// Yamaha and TMS helpers.
-		int early_clock() const {
-			return (image[2] & 0x80) >> 2;
-		}
-	} active_sprites[8];
-
-	int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
-	bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
-									// being evaluated for display. This flag determines whether the sentinel has yet been reached.
-	uint8_t sprite_terminator = 0;
-
-#ifndef NDEBUG
-	static constexpr bool test_is_filling = true;
-#else
-	static constexpr bool test_is_filling = false;
-#endif
-	bool is_filling = false;
-
-	void reset_sprite_collection();
 };
 
 struct LineBufferPointer {
