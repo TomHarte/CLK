@@ -347,7 +347,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				this->advance(this->fetch_line_buffer_);
-				if(this->fetched_sprites_->active_sprite_slot) {
+				if(this->fetched_sprites_ && this->fetched_sprites_->active_sprite_slot) {
 					this->fetch_line_buffer_->sprites = this->fetched_sprites_;
 					this->fetched_sprites_ = nullptr;
 				} else {
