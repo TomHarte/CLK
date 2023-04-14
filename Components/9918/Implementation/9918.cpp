@@ -352,7 +352,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					this->fetched_sprites_ = nullptr;
 				} else {
 					this->fetch_line_buffer_->sprites = nullptr;
-					this->regress(this->fetch_sprite_buffer_);
 				}
 
 				// Establish the current screen output mode, which will be captured as a
