@@ -421,7 +421,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructStackRelative:
-					data_address_ = (registers_.s.full + instruction_buffer_.value) & 0xffff;
+					data_address_ = (stack_address() + instruction_buffer_.value) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
 				continue;
 
