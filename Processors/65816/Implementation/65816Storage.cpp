@@ -600,9 +600,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void relative(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);		// Offset.
 
-		target(OperationPerform);			// The branch instructions will all skip one or three
+		target(OperationPerform);			// The branch instructions will skip zero, one or three
 											// of the next cycles, depending on the effect of
-											// the jump. It'll also calculate the correct target
+											// the jump. They'll also calculate the correct target
 											// address, placing it into the data buffer.
 
 		target(CycleFetchPreviousPCThrowaway);	// IO.
