@@ -856,7 +856,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 																							\
 		if(																					\
 			!registers_.emulation_flag ||													\
-			(registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)				\
+			(registers_.pc & 0xff00) == (data_buffer_.value & 0xff00)						\
 		) {																					\
 			++next_op_;																		\
 		}																					\
