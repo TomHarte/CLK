@@ -195,7 +195,7 @@ template <Personality personality, typename Enable = void> struct LineLayout;
 //		* horizontal adjust on the Yamaha VDPs is applied to EndOfLeftBorder and EndOfPixels; and
 //		* the Sega VDPs may programatically extend the left border.
 
-template <Personality personality> struct LineLayout<personality, std::enable_if_t<personality == Personality::TMS9918A || (is_sega_vdp(personality) && personality != Personality::MDVDP)>> {
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 	constexpr static int EndOfSync			= 26;
 	constexpr static int StartOfColourBurst	= 29;
 	constexpr static int EndOfColourBurst	= 43;
