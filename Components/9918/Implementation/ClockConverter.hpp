@@ -174,7 +174,47 @@ template <Personality personality> class ClockConverter {
 		int cycles_error_ = 0;
 };
 
-}
+
+//
+//
+//
+template <Personality personality, typename Enable = void> struct LineLayout;
+
+//	Line layout is:
+//
+//	[0, EndOfSync]							sync
+//	(EndOfSync, StartOfColourBurst]			blank
+//	(StartOfColourBurst, EndOfColourBurst]	colour burst
+//	(EndOfColourBurst, EndOfLeftErase]		blank
+//	(EndOfLeftErase, EndOfLeftBorder]		border colour
+//	(EndOfLeftBorder, EndOfPixels]			pixel content
+//	(EndOfPixels, EndOfRightBorder]			border colour
+//	[EndOfRightBorder, <end of line>]		blank
+//
+//	... with minor caveats:
+//		* horizontal adjust on the Yamaha VDPs is applied to EndOfLeftBorder and EndOfPixels; and
+//		* the Sega VDPs may programatically extend the left border.
+
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<personality == Personality::TMS9918A || (is_sega_vdp(personality) && personality != Personality::MDVDP)>> {
+	constexpr static int EndOfSync			= 26;
+//	constexpr static int StartOfColourBurst	= 30;
+//	constexpr static int EndOfColourBurst	= 30;
+	constexpr static int EndOfLeftErase		= 50;
+	constexpr static int EndOfLeftBorder	= 63;
+	constexpr static int EndOfPixels		= 319;
+	constexpr static int EndOfRightBorder	= 334;
+};
+
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	constexpr static int EndOfSync			= 100;
+//	constexpr static int StartOfColourBurst	= 30;
+//	constexpr static int EndOfColourBurst	= 30;
+	constexpr static int EndOfLeftErase		= 202;
+	constexpr static int EndOfLeftBorder	= 258;
+	constexpr static int EndOfPixels		= 1282;
+	constexpr static int EndOfRightBorder	= 1341;
+};
+
 }
 
 #endif /* ClockConverter_hpp */
