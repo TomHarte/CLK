@@ -216,5 +216,6 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 };
 
 }
+}
 
 #endif /* ClockConverter_hpp */
