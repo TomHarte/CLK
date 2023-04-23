@@ -9,8 +9,7 @@
 #ifndef PersonalityTraits_hpp
 #define PersonalityTraits_hpp
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 // Genus determinants for the various personalityes.
 constexpr bool is_sega_vdp(Personality p) {
@@ -47,7 +46,5 @@ constexpr size_t memory_mask(Personality p) {
 }
 
 }
-}
-
 
 #endif /* PersonalityTraits_hpp */

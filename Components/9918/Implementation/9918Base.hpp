@@ -28,8 +28,7 @@
 #include <memory>
 #include <vector>
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 constexpr uint8_t StatusInterrupt = 0x80;
 constexpr uint8_t StatusSpriteOverflow = 0x40;
@@ -622,7 +621,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 #include "Fetch.hpp"
 #include "Draw.hpp"
 
-}
 }
 
 #endif /* TMS9918Base_hpp */

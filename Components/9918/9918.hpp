@@ -14,8 +14,7 @@
 
 #include <cstdint>
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 enum Personality {
 	TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
@@ -37,12 +36,10 @@ enum class TVStandard {
 };
 
 }
-}
 
 #include "Implementation/9918Base.hpp"
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 /*!
 	Provides emulation of the TMS9918a, TMS9928 and TMS9929. Likely in the future to be the
@@ -127,7 +124,6 @@ template <Personality personality> class TMS9918: private Base<personality> {
 		bool get_interrupt_line() const;
 };
 
-}
 }
 
 #endif /* TMS9918_hpp */

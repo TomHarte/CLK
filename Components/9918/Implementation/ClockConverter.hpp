@@ -12,8 +12,7 @@
 #include "../9918.hpp"
 #include "PersonalityTraits.hpp"
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 enum class Clock {
 	Internal,
@@ -215,7 +214,6 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfRightBorder	= 1341;
 };
 
-}
 }
 
 #endif /* ClockConverter_hpp */

@@ -10,8 +10,7 @@
 #define AccessEnums_hpp
 
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 // The screen mode is a necessary predecessor to picking the line mode,
 // which is the thing latched per line.
@@ -108,7 +107,6 @@ enum class SpriteMode {
 	MasterSystem,
 };
 
-}
 }
 
 #endif /* AccessEnums_hpp */

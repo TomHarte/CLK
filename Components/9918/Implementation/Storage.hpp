@@ -15,8 +15,7 @@
 
 #include <optional>
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 /// A container for personality-specific storage; see specific instances below.
 template <Personality personality, typename Enable = void> struct Storage {
@@ -493,7 +492,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	void begin_line(ScreenMode, bool) {}
 };
 
-}
 }
 
 #endif /* Storage_h */
