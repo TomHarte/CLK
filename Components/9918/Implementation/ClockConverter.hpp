@@ -197,8 +197,8 @@ template <Personality personality, typename Enable = void> struct LineLayout;
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<personality == Personality::TMS9918A || (is_sega_vdp(personality) && personality != Personality::MDVDP)>> {
 	constexpr static int EndOfSync			= 26;
-//	constexpr static int StartOfColourBurst	= 30;
-//	constexpr static int EndOfColourBurst	= 30;
+	constexpr static int StartOfColourBurst	= 29;
+	constexpr static int EndOfColourBurst	= 43;
 	constexpr static int EndOfLeftErase		= 50;
 	constexpr static int EndOfLeftBorder	= 63;
 	constexpr static int EndOfPixels		= 319;
@@ -207,8 +207,8 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
 	constexpr static int EndOfSync			= 100;
-//	constexpr static int StartOfColourBurst	= 30;
-//	constexpr static int EndOfColourBurst	= 30;
+	constexpr static int StartOfColourBurst	= 113;
+	constexpr static int EndOfColourBurst	= 167;
 	constexpr static int EndOfLeftErase		= 202;
 	constexpr static int EndOfLeftBorder	= 258;
 	constexpr static int EndOfPixels		= 1282;
