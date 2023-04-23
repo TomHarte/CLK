@@ -70,25 +70,6 @@ template <Personality personality> struct StandardTiming {
 
 	/// The final internal cycle at which pixels will be output text mode.
 	constexpr static int LastTextCycle = 334 * CyclesPerLine / 342;
-
-	// For the below, the fixed portion of line layout is:
-	//
-	//	[0, EndOfRightBorder):					right border colour
-	//	[EndOfRightBorder, StartOfSync):		blank
-	//	[StartOfSync, EndOfSync):				sync
-	//	[EndOfSync, StartOfColourBurst):		blank
-	//	[StartOfColourBurst, EndOfColourBurst):	the colour burst
-	//	[EndOfColourBurst, StartOfLeftBorder):	blank
-	//
-	// The region from StartOfLeftBorder until the end is then filled with
-	// some combination of pixels and more border, depending on the vertical
-	// position of this line and the current screen mode.
-	constexpr static int EndOfRightBorder	= 15 * CyclesPerLine / 342;
-	constexpr static int StartOfSync		= 23 * CyclesPerLine / 342;
-	constexpr static int EndOfSync			= 49 * CyclesPerLine / 342;
-	constexpr static int StartOfColourBurst	= 51 * CyclesPerLine / 342;
-	constexpr static int EndOfColourBurst	= 65 * CyclesPerLine / 342;
-	constexpr static int StartOfLeftBorder	= 73 * CyclesPerLine / 342;
 };
 
 /// Provides concrete, specific timing for the nominated personality.

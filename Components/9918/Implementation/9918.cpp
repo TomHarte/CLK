@@ -31,6 +31,8 @@ Base<personality>::Base() :
 	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
 	if constexpr (is_sega_vdp(personality)) {
+		// TODO: all these relate to the old line timing; resource and review.
+
 		mode_timing_.line_interrupt_position = 64;
 
 		mode_timing_.end_of_frame_interrupt_position.column = 63;
@@ -39,13 +41,13 @@ Base<personality>::Base() :
 
 	if constexpr (is_yamaha_vdp(personality)) {
 		// TODO: start of sync, or end of sync?
-		mode_timing_.line_interrupt_position = Timing<personality>::StartOfSync;
+		mode_timing_.line_interrupt_position = 0;//Timing<personality>::StartOfSync;
 	}
 
 	// Establish that output is delayed after reading by `output_lag` cycles,
 	// i.e. the fetch pointer is currently _ahead_ of the output pointer.
 	//
-	// Start at a random position.
+	// TODO: Start at a random position.
 	output_pointer_.row = output_pointer_.column = 0;
 //	output_pointer_.row = rand() % 262;
 //	output_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
@@ -508,43 +510,40 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							output_sync(Timing<personality>::CyclesPerLine);
 						}
 					} else {
-						// Right border.
-						border(0, Timing<personality>::EndOfRightBorder);
-
 						// Blanking region: output the entire sequence when the cursor
 						// crosses the start-of-border point.
 						if(
-							this->output_pointer_.column < Timing<personality>::StartOfLeftBorder &&
-							end_column >= Timing<personality>::StartOfLeftBorder
+							this->output_pointer_.column < LineLayout<personality>::EndOfLeftErase &&
+							end_column >= LineLayout<personality>::EndOfLeftErase
 						) {
-							output_blank(Timing<personality>::StartOfSync - Timing<personality>::EndOfRightBorder);
-							output_sync(Timing<personality>::EndOfSync - Timing<personality>::StartOfSync);
-							output_blank(Timing<personality>::StartOfColourBurst - Timing<personality>::EndOfSync);
-							output_default_colour_burst(Timing<personality>::EndOfColourBurst - Timing<personality>::StartOfColourBurst);
-							output_blank(Timing<personality>::StartOfLeftBorder - Timing<personality>::EndOfColourBurst);
+							output_sync(LineLayout<personality>::EndOfSync);
+							output_blank(LineLayout<personality>::StartOfColourBurst - LineLayout<personality>::EndOfSync);
+							output_default_colour_burst(LineLayout<personality>::EndOfColourBurst - LineLayout<personality>::StartOfColourBurst);
+							output_blank(LineLayout<personality>::EndOfLeftErase - LineLayout<personality>::EndOfColourBurst);
 						}
 
-						// Border colour for the rest of the line.
-						border(Timing<personality>::StartOfLeftBorder, Timing<personality>::CyclesPerLine);
+						// Border colour until beginning of right erase.
+						border(LineLayout<personality>::EndOfLeftErase, LineLayout<personality>::EndOfRightBorder);
+
+						// Right erase.
+						if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
+							output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
+						}
 					}
 				} else {
-					// Right border.
-					border(0, Timing<personality>::EndOfRightBorder);
-
 					// Blanking region.
 					if(
-						this->output_pointer_.column < Timing<personality>::StartOfLeftBorder &&
-						end_column >= Timing<personality>::StartOfLeftBorder
+						this->output_pointer_.column < LineLayout<personality>::EndOfLeftErase &&
+						end_column >= LineLayout<personality>::EndOfLeftErase
 					) {
-						output_blank(Timing<personality>::StartOfSync - Timing<personality>::EndOfRightBorder);
-						output_sync(Timing<personality>::EndOfSync - Timing<personality>::StartOfSync);
-						output_blank(Timing<personality>::StartOfColourBurst - Timing<personality>::EndOfSync);
-						output_default_colour_burst(Timing<personality>::EndOfColourBurst - Timing<personality>::StartOfColourBurst);
-						output_blank(Timing<personality>::StartOfLeftBorder - Timing<personality>::EndOfColourBurst);
+						output_sync(LineLayout<personality>::EndOfSync);
+						output_blank(LineLayout<personality>::StartOfColourBurst - LineLayout<personality>::EndOfSync);
+						output_default_colour_burst(LineLayout<personality>::EndOfColourBurst - LineLayout<personality>::StartOfColourBurst);
+						output_blank(LineLayout<personality>::EndOfLeftErase - LineLayout<personality>::EndOfColourBurst);
 					}
 
 					// Left border.
-					border(Timing<personality>::StartOfLeftBorder, this->draw_line_buffer_->first_pixel_output_column);
+					border(LineLayout<personality>::EndOfLeftErase, this->draw_line_buffer_->first_pixel_output_column);
 
 #define draw(function, clock) {																									\
 	const int relative_start = from_internal<personality, clock>(start - this->draw_line_buffer_->first_pixel_output_column);	\
@@ -588,9 +587,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #undef draw
 
-					// Additional right border, if called for.
-					if(this->draw_line_buffer_->next_border_column != Timing<personality>::CyclesPerLine) {
-						border(this->draw_line_buffer_->next_border_column, Timing<personality>::CyclesPerLine);
+					// Right border.
+					border(this->draw_line_buffer_->next_border_column, LineLayout<personality>::EndOfRightBorder);
+
+					// Right erase.
+					if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
+						output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
 					}
 				}
 
