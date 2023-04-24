@@ -499,6 +499,20 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
+				const auto left_blank = [&]() {
+					// Blanking region: output the entire sequence when the cursor
+					// crosses the start-of-border point.
+					if(
+						this->output_pointer_.column < LineLayout<personality>::EndOfLeftErase &&
+						end_column >= LineLayout<personality>::EndOfLeftErase
+					) {
+						output_sync(LineLayout<personality>::EndOfSync);
+						output_blank(LineLayout<personality>::StartOfColourBurst - LineLayout<personality>::EndOfSync);
+						output_default_colour_burst(LineLayout<personality>::EndOfColourBurst - LineLayout<personality>::StartOfColourBurst);
+						output_blank(LineLayout<personality>::EndOfLeftErase - LineLayout<personality>::EndOfColourBurst);
+					}
+				};
+
 				if(this->draw_line_buffer_->vertical_state != VerticalState::Pixels) {
 					if(
 						this->output_pointer_.row >= this->mode_timing_.first_vsync_line &&
@@ -510,17 +524,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							output_sync(Timing<personality>::CyclesPerLine);
 						}
 					} else {
-						// Blanking region: output the entire sequence when the cursor
-						// crosses the start-of-border point.
-						if(
-							this->output_pointer_.column < LineLayout<personality>::EndOfLeftErase &&
-							end_column >= LineLayout<personality>::EndOfLeftErase
-						) {
-							output_sync(LineLayout<personality>::EndOfSync);
-							output_blank(LineLayout<personality>::StartOfColourBurst - LineLayout<personality>::EndOfSync);
-							output_default_colour_burst(LineLayout<personality>::EndOfColourBurst - LineLayout<personality>::StartOfColourBurst);
-							output_blank(LineLayout<personality>::EndOfLeftErase - LineLayout<personality>::EndOfColourBurst);
-						}
+						left_blank();
 
 						// Border colour until beginning of right erase.
 						border(LineLayout<personality>::EndOfLeftErase, LineLayout<personality>::EndOfRightBorder);
@@ -531,16 +535,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 					}
 				} else {
-					// Blanking region.
-					if(
-						this->output_pointer_.column < LineLayout<personality>::EndOfLeftErase &&
-						end_column >= LineLayout<personality>::EndOfLeftErase
-					) {
-						output_sync(LineLayout<personality>::EndOfSync);
-						output_blank(LineLayout<personality>::StartOfColourBurst - LineLayout<personality>::EndOfSync);
-						output_default_colour_burst(LineLayout<personality>::EndOfColourBurst - LineLayout<personality>::StartOfColourBurst);
-						output_blank(LineLayout<personality>::EndOfLeftErase - LineLayout<personality>::EndOfColourBurst);
-					}
+					left_blank();
 
 					// Left border.
 					border(LineLayout<personality>::EndOfLeftErase, this->draw_line_buffer_->first_pixel_output_column);
