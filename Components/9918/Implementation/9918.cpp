@@ -369,8 +369,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				// Based on the output mode, pick a line mode.
-				this->fetch_line_buffer_->first_pixel_output_column = Timing<personality>::FirstPixelCycle;
-				this->fetch_line_buffer_->next_border_column = Timing<personality>::CyclesPerLine;
+				this->fetch_line_buffer_->first_pixel_output_column = LineLayout<personality>::EndOfLeftBorder;
+				this->fetch_line_buffer_->next_border_column = LineLayout<personality>::EndOfPixels;
 				this->fetch_line_buffer_->pixel_count = 256;
 				this->fetch_line_buffer_->screen_mode = this->screen_mode_;
 				this->mode_timing_.maximum_visible_sprites = 4;
@@ -381,14 +381,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						} else {
 							this->fetch_line_buffer_->fetch_mode = FetchMode::Text;
 						}
-						this->fetch_line_buffer_->first_pixel_output_column = Timing<personality>::FirstTextCycle;
-						this->fetch_line_buffer_->next_border_column = Timing<personality>::LastTextCycle;
+						this->fetch_line_buffer_->first_pixel_output_column = LineLayout<personality>::TextModeEndOfLeftBorder;
+						this->fetch_line_buffer_->next_border_column = LineLayout<personality>::TextModeEndOfPixels;
 						this->fetch_line_buffer_->pixel_count = 240;
 					break;
 					case ScreenMode::YamahaText80:
 						this->fetch_line_buffer_->fetch_mode = FetchMode::Yamaha;
-						this->fetch_line_buffer_->first_pixel_output_column = Timing<personality>::FirstTextCycle;
-						this->fetch_line_buffer_->next_border_column = Timing<personality>::LastTextCycle;
+						this->fetch_line_buffer_->first_pixel_output_column = LineLayout<personality>::TextModeEndOfLeftBorder;
+						this->fetch_line_buffer_->next_border_column = LineLayout<personality>::TextModeEndOfPixels;
 						this->fetch_line_buffer_->pixel_count = 480;
 					break;
 
@@ -1200,7 +1200,7 @@ VerticalState Base<personality>::vertical_state() const {
 
 template <Personality personality>
 bool Base<personality>::is_horizontal_blank() const {
-	return fetch_pointer_.column < StandardTiming<personality>::FirstPixelCycle;
+	return fetch_pointer_.column < LineLayout<personality>::EndOfLeftErase || fetch_pointer_.column >= LineLayout<personality>::EndOfRightBorder;
 }
 
 template <Personality personality>

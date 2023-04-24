@@ -60,16 +60,6 @@ template <Personality personality> struct StandardTiming {
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
-
-	/// The first internal cycle at which pixels will be output in any mode other than text.
-	/// Pixels implicitly run from here to the end of the line.
-	constexpr static int FirstPixelCycle = 86 * CyclesPerLine / 342;
-
-	/// The first internal cycle at which pixels will be output text mode.
-	constexpr static int FirstTextCycle = 94 * CyclesPerLine / 342;
-
-	/// The final internal cycle at which pixels will be output text mode.
-	constexpr static int LastTextCycle = 334 * CyclesPerLine / 342;
 };
 
 /// Provides concrete, specific timing for the nominated personality.
@@ -183,6 +173,9 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfLeftBorder	= 63;
 	constexpr static int EndOfPixels		= 319;
 	constexpr static int EndOfRightBorder	= 334;
+
+	constexpr static int TextModeEndOfLeftBorder	= 69;
+	constexpr static int TextModeEndOfPixels		= 309;
 };
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
@@ -193,6 +186,9 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfLeftBorder	= 258;
 	constexpr static int EndOfPixels		= 1282;
 	constexpr static int EndOfRightBorder	= 1341;
+
+	constexpr static int TextModeEndOfLeftBorder	= 294;
+	constexpr static int TextModeEndOfPixels		= 1254;
 };
 
 }
