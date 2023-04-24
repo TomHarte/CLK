@@ -513,6 +513,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					}
 				};
 
+				const auto right_blank = [&]() {
+					if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
+						output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
+					}
+				};
+
 				if(this->draw_line_buffer_->vertical_state != VerticalState::Pixels) {
 					if(
 						this->output_pointer_.row >= this->mode_timing_.first_vsync_line &&
@@ -525,14 +531,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 					} else {
 						left_blank();
-
-						// Border colour until beginning of right erase.
 						border(LineLayout<personality>::EndOfLeftErase, LineLayout<personality>::EndOfRightBorder);
-
-						// Right erase.
-						if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
-							output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
-						}
+						right_blank();
 					}
 				} else {
 					left_blank();
@@ -585,10 +585,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// Right border.
 					border(this->draw_line_buffer_->next_border_column, LineLayout<personality>::EndOfRightBorder);
 
-					// Right erase.
-					if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
-						output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
-					}
+					right_blank();
 				}
 
 #undef border
