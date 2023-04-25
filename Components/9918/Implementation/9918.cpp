@@ -514,7 +514,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				};
 
 				const auto right_blank = [&]() {
-					if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
+					if(end_column == Timing<personality>::CyclesPerLine) {
 						output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
 					}
 				};
