@@ -38,6 +38,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	int indirect_register_ = 0;
 	bool increment_indirect_register_ = false;
 
+	int adjustment_[2]{};
+
 	std::array<uint32_t, 16> palette_{};
 	std::array<uint32_t, 16> background_palette_{};
 	bool solid_background_ = true;
@@ -216,20 +218,10 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	}
 
 	private:
-		// This emulator treats position 0 as being immediately after the standard pixel area.
-		// i.e. offset 1282 on Grauw's http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.png
-		static constexpr int ZeroAsGrauwIndex = 1282;
-		constexpr static int grauw_to_internal(int offset) {
-			return (offset + 1368 - ZeroAsGrauwIndex) % 1368;
-		}
-		constexpr static int internal_to_grauw(int offset) {
-			return (offset + ZeroAsGrauwIndex) % 1368;
-		}
-
 		template <typename GeneratorT> static constexpr size_t events_size() {
 			size_t size = 0;
 			for(int c = 0; c < 1368; c++) {
-				const auto event_type = GeneratorT::event(internal_to_grauw(c));
+				const auto event_type = GeneratorT::event(c);
 				size += event_type.has_value();
 			}
 			return size + 1;
@@ -240,7 +232,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			std::array<Event, size> result{};
 			size_t index = 0;
 			for(int c = 0; c < 1368; c++) {
-				const auto event = GeneratorT::event(internal_to_grauw(c));
+				const auto event = GeneratorT::event(c);
 				if(!event) {
 					continue;
 				}

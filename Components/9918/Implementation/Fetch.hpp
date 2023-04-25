@@ -71,8 +71,7 @@ template<bool use_end, typename SequencerT> void Base<personality>::dispatch(Seq
 #define index(n)						\
 	if(use_end && end == n) return;		\
 	[[fallthrough]];					\
-	case n: fetcher.template fetch<(n + 171 - 16) % 171>(n);
-	// `template fetch` call includes an in-place internal -> sync-aligned conversion for now, during transition.
+	case n: fetcher.template fetch<n>(n);
 
 	switch(start) {
 		default: assert(false);
