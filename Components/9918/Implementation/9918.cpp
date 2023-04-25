@@ -419,6 +419,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					break;
 				}
 
+				if constexpr (is_yamaha_vdp(personality)) {
+					this->fetch_line_buffer_->first_pixel_output_column += Storage<personality>::adjustment_[0];
+					this->fetch_line_buffer_->next_border_column += Storage<personality>::adjustment_[0];
+				}
+
 				this->fetch_line_buffer_->vertical_state =
 					this->screen_mode_ == ScreenMode::Blank ?
 						VerticalState::Blank :
@@ -874,9 +879,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 18:
-				if(value) {
-					LOG("TODO: Yamaha position adjustment; " << PADHEX(2) << +value);
-				}
+				Storage<personality>::adjustment_[0] = (8 - ((value & 15) ^ 8)) * 4;
+				Storage<personality>::adjustment_[1] = 8 - ((value >> 4) ^ 8);
 				// b0-b3: horizontal adjustment
 				// b4-b7: vertical adjustment
 			break;
