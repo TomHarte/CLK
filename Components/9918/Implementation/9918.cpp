@@ -31,11 +31,15 @@ Base<personality>::Base() :
 	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
 	if constexpr (is_sega_vdp(personality)) {
-		// TODO: all these relate to the old line timing; resource and review.
+		// Cf. https://www.smspower.org/forums/8161-SMSDisplayTiming
 
-		mode_timing_.line_interrupt_position = 64;
+		// "For a line interrupt, /INT is pulled low 608 mclks into the appropriate scanline relative to pixel 0.
+		// This is 3 mclks before the rising edge of /HSYNC which starts the next scanline."
+		mode_timing_.line_interrupt_position = (LineLayout<personality>::EndOfLeftBorder + 304) % Timing<personality>::CyclesPerLine;
 
-		mode_timing_.end_of_frame_interrupt_position.column = 63;
+		// For a frame interrupt, /INT is pulled low 607 mclks into scanline 192 (of scanlines 0 through 261) relative to pixel 0.
+		// This is 4 mclks before the rising edge of /HSYNC which starts the next scanline.
+		mode_timing_.end_of_frame_interrupt_position.column = mode_timing_.line_interrupt_position - 1;
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
 
@@ -46,11 +50,7 @@ Base<personality>::Base() :
 
 	// Establish that output is delayed after reading by `output_lag` cycles,
 	// i.e. the fetch pointer is currently _ahead_ of the output pointer.
-	//
-	// TODO: Start at a random position.
 	output_pointer_.row = output_pointer_.column = 0;
-//	output_pointer_.row = rand() % 262;
-//	output_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
 
 	fetch_pointer_ = output_pointer_;
 	fetch_pointer_.column += output_lag;
@@ -1180,7 +1180,7 @@ uint8_t TMS9918<personality>::read(int address) {
 template <Personality personality>
 int Base<personality>::fetch_line() const {
 	// This is the proper Master System value; TODO: what's correct for Yamaha, etc?
-	constexpr int row_change_position = 63;
+	constexpr int row_change_position = 31;
 
 	return
 		(this->fetch_pointer_.column < row_change_position)
@@ -1320,7 +1320,7 @@ bool TMS9918<personality>::get_interrupt_line() const {
 		(this->enable_line_interrupts_ && this->line_interrupt_pending_);
 }
 
-// TODO: [potentially] remove Master System timing assumptions in latch and get_latched below.
+// TODO: [potentially] remove Master System timing assumptions in latch and get_latched below, if any other VDP uses these calls.
 template <Personality personality>uint8_t TMS9918<personality>::get_latched_horizontal_counter() const {
 	// Translate from internal numbering, which puts pixel output
 	// in the final 256 pixels of 342, to the public numbering,
@@ -1329,6 +1329,8 @@ template <Personality personality>uint8_t TMS9918<personality>::get_latched_hori
 	int public_counter = this->latched_column_ - (342 - 256);
 	if(public_counter < -46) public_counter += 342;
 	return uint8_t(public_counter >> 1);
+
+	// TODO: above is no longer correct.
 }
 
 template <Personality personality>

@@ -173,8 +173,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// Set the position, in cycles, of the two interrupts,
 		// within a line.
 		struct {
-			int column = 4;
-			int row = 193;
+			int column = 313;
+			int row = 192;
 		} end_of_frame_interrupt_position;
 		int line_interrupt_position = -1;
 
