@@ -172,6 +172,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 		// Set the position, in cycles, of the two interrupts,
 		// within a line.
+		//
+		// TODO: redetermine where this number came from.
 		struct {
 			int column = 313;
 			int row = 192;
