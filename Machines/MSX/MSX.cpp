@@ -319,11 +319,11 @@ class ConcreteMachine:
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
-			vdp_->set_display_type(display_type);
+			vdp_.last_valid()->set_display_type(display_type);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const final {
-			return vdp_->get_display_type();
+			return vdp_.last_valid()->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -568,6 +568,11 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xff) {
+							case 0x9a:	case 0x9b:
+								if constexpr (vdp_model() == TI::TMS::TMS9918A) {
+									break;
+								}
+								[[fallthrough]];
 							case 0x98:	case 0x99:
 								*cycle.value = vdp_->read(address);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
@@ -591,7 +596,7 @@ class ConcreteMachine:
 							break;
 
 							default:
-								printf("Unhandled read %02x\n", address & 0xff);
+//								printf("Unhandled read %02x\n", address & 0xff);
 								*cycle.value = 0xff;
 							break;
 						}
@@ -600,6 +605,11 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output: {
 						const int port = address & 0xff;
 						switch(port) {
+							case 0x9a:	case 0x9b:
+								if constexpr (vdp_model() == TI::TMS::TMS9918A) {
+									break;
+								}
+								[[fallthrough]];
 							case 0x98:	case 0x99:
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());

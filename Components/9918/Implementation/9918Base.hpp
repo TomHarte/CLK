@@ -15,7 +15,11 @@
 #include "../../../Numeric/BitReverse.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
+#include "AccessEnums.hpp"
+#include "LineBuffer.hpp"
 #include "PersonalityTraits.hpp"
+#include "Storage.hpp"
+#include "YamahaCommands.hpp"
 
 #include <array>
 #include <cassert>
@@ -24,93 +28,7 @@
 #include <memory>
 #include <vector>
 
-namespace TI {
-namespace TMS {
-
-// The screen mode is a necessary predecessor to picking the line mode,
-// which is the thing latched per line.
-enum class ScreenMode {
-	Blank,
-	Text,
-	MultiColour,
-	ColouredText,
-	Graphics,
-	SMSMode4
-};
-
-enum class LineMode {
-	Text,
-	Character,
-	Refresh,
-	SMS
-};
-
-enum class MemoryAccess {
-	Read, Write, None
-};
-
-// Temporary buffers collect a representation of each line prior to pixel serialisation.
-struct LineBuffer {
-	// The line mode describes the proper timing diagram for this line.
-	LineMode line_mode = LineMode::Text;
-
-	// Holds the horizontal scroll position to apply to this line;
-	// of those VDPs currently implemented, affects the Master System only.
-	uint8_t latched_horizontal_scroll = 0;
-
-	// The names array holds pattern names, as an offset into memory, and
-	// potentially flags also.
-	struct {
-		size_t offset = 0;
-		uint8_t flags = 0;
-	} names[40];
-
-	// The patterns array holds tile patterns, corresponding 1:1 with names.
-	// Four bytes per pattern is the maximum required by any
-	// currently-implemented VDP.
-	uint8_t patterns[40][4];
-
-	/*
-		Horizontal layout (on a 342-cycle clock):
-
-			15 cycles right border
-			58 cycles blanking & sync
-			13 cycles left border
-
-			... i.e. to cycle 86, then:
-
-			border up to first_pixel_output_column;
-			pixels up to next_border_column;
-			border up to the end.
-
-		e.g. standard 256-pixel modes will want to set
-		first_pixel_output_column = 86, next_border_column = 342.
-	*/
-	int first_pixel_output_column = 94;
-	int next_border_column = 334;
-	size_t pixel_count = 256;
-
-	// An active sprite is one that has been selected for composition onto
-	// this line.
-	struct ActiveSprite {
-		int index = 0;		// The original in-table index of this sprite.
-		int row = 0;		// The row of the sprite that should be drawn.
-		int x = 0;			// The sprite's x position on screen.
-
-		uint8_t image[4];		// Up to four bytes of image information.
-		int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
-	} active_sprites[8];
-
-	int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
-	bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
-									// being evaluated for display. This flag determines whether the sentinel has yet been reached.
-
-	void reset_sprite_collection();
-};
-
-struct LineBufferPointer {
-	int row, column;
-};
+namespace TI::TMS {
 
 constexpr uint8_t StatusInterrupt = 0x80;
 constexpr uint8_t StatusSpriteOverflow = 0x40;
@@ -118,7 +36,7 @@ constexpr uint8_t StatusSpriteOverflow = 0x40;
 constexpr int StatusSpriteCollisionShift = 5;
 constexpr uint8_t StatusSpriteCollision = 0x20;
 
-template <Personality personality> struct Base {
+template <Personality personality> struct Base: public Storage<personality> {
 	Base();
 
 	static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles
@@ -133,7 +51,7 @@ template <Personality personality> struct Base {
 	}
 
 	// The default TMS palette.
-	static constexpr std::array<uint32_t, 16> palette {
+	static constexpr std::array<uint32_t, 16> default_palette {
 		palette_pack(0, 0, 0),
 		palette_pack(0, 0, 0),
 		palette_pack(33, 200, 66),
@@ -154,9 +72,29 @@ template <Personality personality> struct Base {
 		palette_pack(204, 204, 204),
 		palette_pack(255, 255, 255)
 	};
+	const std::array<uint32_t, 16> &palette() {
+		if constexpr (is_yamaha_vdp(personality)) {
+			return Storage<personality>::solid_background_ ? Storage<personality>::palette_ : Storage<personality>::background_palette_;
+		}
+		return default_palette;
+	}
 
 	Outputs::CRT::CRT crt_;
 	TVStandard tv_standard_ = TVStandard::NTSC;
+	using AddressT = typename Storage<personality>::AddressT;
+
+	/// Mutates @c target such that @c source replaces the @c length bits that currently start
+	/// at bit @c shift . Subsequently ensures @c target is constrained by the
+	/// applicable @c memory_mask.
+	template <int shift, int length = 8> void install_field(AddressT &target, uint8_t source) {
+		static_assert(length > 0 && length <= 8);
+		constexpr auto source_mask = (1 << length) - 1;
+		constexpr auto mask = AddressT(~(source_mask << shift));
+		target = (
+			(target & mask) |
+			AddressT((source & source_mask) << shift)
+		) & memory_mask(personality);
+	}
 
 	// Personality-specific metrics and converters.
 	ClockConverter<personality> clock_converter_;
@@ -165,10 +103,9 @@ template <Personality personality> struct Base {
 	std::array<uint8_t, memory_size(personality)> ram_;
 
 	// State of the DRAM/CRAM-access mechanism.
-	uint16_t ram_pointer_ = 0;
+	AddressT ram_pointer_ = 0;
 	uint8_t read_ahead_buffer_ = 0;
 	MemoryAccess queued_access_ = MemoryAccess::None;
-	int cycles_until_access_ = 0;
 	int minimum_access_column_ = 0;
 
 	// The main status register.
@@ -186,14 +123,25 @@ template <Personality personality> struct Base {
 	bool sprites_16x16_ = false;
 	bool sprites_magnified_ = false;
 	bool generate_interrupts_ = false;
-	int sprite_height_ = 8;
+	uint8_t sprite_height_ = 8;
 
 	// Programmer-specified addresses.
-	size_t pattern_name_address_ = 0;				// i.e. address of the tile map.
-	size_t colour_table_address_ = 0;				// address of the colour map (if applicable).
-	size_t pattern_generator_table_address_ = 0;	// address of the tile contents.
-	size_t sprite_attribute_table_address_ = 0;		// address of the sprite list.
-	size_t sprite_generator_table_address_ = 0;		// address of the sprite contents.
+	//
+	// The TMS and descendants combine various parts of the address with AND operations,
+	// e.g. the fourth byte in the pattern name table will be at `pattern_name_address_ & 4`;
+	// ordinarily the difference between that and plain substitution is invisible because
+	// the programmer mostly can't set low-enough-order bits. That's not universally true
+	// though, so this implementation uses AND throughout.
+	//
+	// ... therefore, all programmer-specified addresses are seeded as all '1's. As and when
+	// actual addresses are specified, the relevant bits will be substituted in.
+	//
+	// Cf. install_field.
+	AddressT pattern_name_address_ = memory_mask(personality);				// Address of the tile map.
+	AddressT colour_table_address_ = memory_mask(personality);				// Address of the colour map (if applicable).
+	AddressT pattern_generator_table_address_ = memory_mask(personality);	// Address of the tile contents.
+	AddressT sprite_attribute_table_address_ = memory_mask(personality);	// Address of the sprite list.
+	AddressT sprite_generator_table_address_ = memory_mask(personality);	// Address of the sprite contents.
 
 	// Default colours.
 	uint8_t text_colour_ = 0;
@@ -224,76 +172,114 @@ template <Personality personality> struct Base {
 
 		// Set the position, in cycles, of the two interrupts,
 		// within a line.
+		//
+		// TODO: redetermine where this number came from.
 		struct {
-			int column = 4;
-			int row = 193;
+			int column = 313;
+			int row = 192;
 		} end_of_frame_interrupt_position;
 		int line_interrupt_position = -1;
 
 		// Enables or disabled the recognition of the sprite
 		// list terminator, and sets the terminator value.
 		bool allow_sprite_terminator = true;
-		uint8_t sprite_terminator = 0xd0;
+		uint8_t sprite_terminator(ScreenMode mode) {
+			switch(mode) {
+				default:	return 0xd0;
+				case ScreenMode::YamahaGraphics3:
+				case ScreenMode::YamahaGraphics4:
+				case ScreenMode::YamahaGraphics5:
+				case ScreenMode::YamahaGraphics6:
+				case ScreenMode::YamahaGraphics7:
+					return 0xd8;
+			}
+		}
 	} mode_timing_;
 
-	uint8_t line_interrupt_target = 0xff;
-	uint8_t line_interrupt_counter = 0;
+	uint8_t line_interrupt_target_ = 0xff;
+	uint8_t line_interrupt_counter_ = 0;
 	bool enable_line_interrupts_ = false;
 	bool line_interrupt_pending_ = false;
+	bool vertical_active_ = false;
 
-	ScreenMode screen_mode_;
-	LineBuffer line_buffers_[313];
-	void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
+	ScreenMode screen_mode_, underlying_mode_;
+
+	using LineBufferArray = std::array<LineBuffer, 313>;
+	LineBufferArray line_buffers_;
+	LineBufferArray::iterator fetch_line_buffer_;
+	LineBufferArray::iterator draw_line_buffer_;
+	void advance(LineBufferArray::iterator &iterator) {
+		++iterator;
+		if(iterator == line_buffers_.end()) {
+			iterator = line_buffers_.begin();
+		}
+	}
+
+	using SpriteBufferArray = std::array<SpriteBuffer, 313>;
+	SpriteBufferArray sprite_buffers_;
+	SpriteBufferArray::iterator fetch_sprite_buffer_;
+	SpriteBuffer *fetched_sprites_ = nullptr;
+	void advance(SpriteBufferArray::iterator &iterator) {
+		++iterator;
+		if(iterator == sprite_buffers_.end()) {
+			iterator = sprite_buffers_.begin();
+		}
+	}
+	void regress(SpriteBufferArray::iterator &iterator) {
+		if(iterator == sprite_buffers_.begin()) {
+			iterator = sprite_buffers_.end();
+		}
+		--iterator;
+	}
+
+	AddressT tile_offset_ = 0;
+	uint8_t name_[4]{};
+	void posit_sprite(int sprite_number, int sprite_y, uint8_t screen_row);
 
 	// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
 	// is observeable because reading time affects availability of memory accesses and therefore time in which
 	// to update sprites and tiles, but writing time affects when the palette is used and when the collision flag
 	// may end up being set. So the two processes are slightly decoupled. The end of reading one line may overlap
 	// with the beginning of writing the next, hence the two separate line buffers.
-	LineBufferPointer read_pointer_, write_pointer_;
+	LineBufferPointer output_pointer_, fetch_pointer_;
 
-	// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
-	// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
-	// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
-	// track of pending collisions, for visual reproduction.
-	struct CRAMDot {
-		LineBufferPointer location;
-		uint32_t value;
-	};
-	std::vector<CRAMDot> upcoming_cram_dots_;
+	int fetch_line() const;
+	bool is_horizontal_blank() const;
+	VerticalState vertical_state() const;
 
-	// Extra information that affects the Master System output mode.
-	struct {
-		// Programmer-set flags.
-		bool vertical_scroll_lock = false;
-		bool horizontal_scroll_lock = false;
-		bool hide_left_column = false;
-		bool shift_sprites_8px_left = false;
-		bool mode4_enable = false;
-		uint8_t horizontal_scroll = 0;
-		uint8_t vertical_scroll = 0;
+	int masked_address(int address) const;
+	void write_vram(uint8_t);
+	void write_register(uint8_t);
+	void write_palette(uint8_t);
+	void write_register_indirect(uint8_t);
+	uint8_t read_vram();
+	uint8_t read_register();
 
-		// The Master System's additional colour RAM.
-		uint32_t colour_ram[32];
-		bool cram_is_selected = false;
+	void commit_register(int reg, uint8_t value);
 
-		// Holds the vertical scroll position for this frame; this is latched
-		// once and cannot dynamically be changed until the next frame.
-		uint8_t latched_vertical_scroll = 0;
-
-		size_t pattern_name_address;
-		size_t sprite_attribute_table_address;
-		size_t sprite_generator_table_address;
-	} master_system_;
-
-	ScreenMode current_screen_mode() const {
-		if(blank_display_) {
+	template <bool check_blank> ScreenMode current_screen_mode() const {
+		if(check_blank && blank_display_) {
 			return ScreenMode::Blank;
 		}
 
 		if constexpr (is_sega_vdp(personality)) {
-			if(master_system_.mode4_enable) {
+			if(Storage<personality>::mode4_enable_) {
 				return ScreenMode::SMSMode4;
+			}
+		}
+
+		if constexpr (is_yamaha_vdp(personality)) {
+			switch(Storage<personality>::mode_) {
+				case 0b00001:	return ScreenMode::Text;
+				case 0b01001:	return ScreenMode::YamahaText80;
+				case 0b00010:	return ScreenMode::MultiColour;
+				case 0b00000:	return ScreenMode::YamahaGraphics1;
+				case 0b00100:	return ScreenMode::YamahaGraphics2;
+				case 0b01000:	return ScreenMode::YamahaGraphics3;
+				case 0b01100:	return ScreenMode::YamahaGraphics4;
+				case 0b10000:	return ScreenMode::YamahaGraphics5;
+				case 0b10100:	return ScreenMode::YamahaGraphics6;
+				case 0b11100:	return ScreenMode::YamahaGraphics7;
 			}
 		}
 
@@ -317,24 +303,252 @@ template <Personality personality> struct Base {
 		return ScreenMode::Blank;
 	}
 
+	static AddressT rotate(AddressT address) {
+		return AddressT((address >> 1) | (address << 16)) & memory_mask(personality);
+	}
+
+	AddressT command_address(Vector location, bool expansion) const {
+		if constexpr (is_yamaha_vdp(personality)) {
+			switch(this->underlying_mode_) {
+				default:
+				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+					return AddressT(
+						((location.v[0] >> 1) & 127) +
+						(location.v[1] << 7)
+					);
+
+				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+					return AddressT(
+						((location.v[0] >> 2) & 127) +
+						(location.v[1] << 7)
+					);
+
+				case ScreenMode::YamahaGraphics6: {	// 512 pixels @ 4bpp
+					const auto linear_address =
+						AddressT(
+							((location.v[0] >> 1) & 255) +
+							(location.v[1] << 8)
+						);
+					return expansion ? linear_address : rotate(linear_address);
+				}
+
+				case ScreenMode::YamahaGraphics7: {	// 256 pixels @ 8bpp
+					const auto linear_address =
+						AddressT(
+							((location.v[0] >> 0) & 255) +
+							(location.v[1] << 8)
+						);
+					return expansion ? linear_address : rotate(linear_address);
+				}
+			}
+		} else {
+			return 0;
+		}
+	}
+
+	uint8_t extract_colour(uint8_t byte, Vector location) const {
+		switch(this->screen_mode_) {
+			default:
+			case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+			case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
+				return (byte >> (((location.v[0] & 1) ^ 1) << 2)) & 0xf;
+
+			case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+				return (byte >> (((location.v[0] & 3) ^ 3) << 1)) & 0x3;
+
+			case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
+				return byte;
+		}
+	}
+
+	std::pair<uint8_t, uint8_t> command_colour_mask(Vector location) const {
+		if constexpr (is_yamaha_vdp(personality)) {
+			auto &context = Storage<personality>::command_context_;
+			auto colour = context.latched_colour.has_value() ? context.latched_colour : context.colour;
+
+			switch(this->screen_mode_) {
+				default:
+				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+				case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
+					return
+						std::make_pair(
+							0xf0 >> ((location.v[0] & 1) << 2),
+							colour.colour4bpp
+						);
+
+				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+					return
+						std::make_pair(
+							0xc0 >> ((location.v[0] & 3) << 1),
+							colour.colour2bpp
+						);
+
+				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
+					return
+						std::make_pair(
+							0xff,
+							colour.colour
+						);
+			}
+		} else {
+			return std::make_pair(0, 0);
+		}
+	}
+
 	void do_external_slot(int access_column) {
 		// Don't do anything if the required time for the access to become executable
 		// has yet to pass.
-		if(access_column < minimum_access_column_) {
+		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
+			if constexpr (is_yamaha_vdp(personality)) {
+				using CommandStep = typename Storage<personality>::CommandStep;
+
+				if(
+					Storage<personality>::next_command_step_ == CommandStep::None ||
+					access_column < Storage<personality>::minimum_command_column_
+				) {
+					return;
+				}
+
+				auto &context = Storage<personality>::command_context_;
+				const uint8_t *const source = (context.arguments & 0x10) ? Storage<personality>::expansion_ram_.data() : ram_.data();
+				const AddressT source_mask = (context.arguments & 0x10) ? 0xfff : 0x1ffff;
+				uint8_t *const destination = (context.arguments & 0x20) ? Storage<personality>::expansion_ram_.data() : ram_.data();
+				const AddressT destination_mask = (context.arguments & 0x20) ? 0xfff : 0x1ffff;
+				switch(Storage<personality>::next_command_step_) {
+					// Duplicative, but keeps the compiler happy.
+					case CommandStep::None:
+					break;
+
+					case CommandStep::CopySourcePixelToStatus:
+						Storage<personality>::colour_status_ =
+							extract_colour(
+								source[command_address(context.source, context.arguments & 0x10) & source_mask],
+								context.source
+							);
+
+						Storage<personality>::command_->advance();
+						Storage<personality>::update_command_step(access_column);
+					break;
+
+					case CommandStep::ReadSourcePixel:
+						context.latched_colour.set(
+							extract_colour(
+								source[command_address(context.source, context.arguments & 0x10)] & source_mask,
+								context.source)
+							);
+
+						Storage<personality>::minimum_command_column_ = access_column + 32;
+						Storage<personality>::next_command_step_ = CommandStep::ReadDestinationPixel;
+					break;
+
+					case CommandStep::ReadDestinationPixel:
+						Storage<personality>::command_latch_ =
+							source[command_address(context.destination, context.arguments & 0x20) & source_mask];
+
+						Storage<personality>::minimum_command_column_ = access_column + 24;
+						Storage<personality>::next_command_step_ = CommandStep::WritePixel;
+					break;
+
+					case CommandStep::WritePixel: {
+						const auto [mask, unmasked_colour] = command_colour_mask(context.destination);
+						const auto address = command_address(context.destination, context.arguments & 0x20) & destination_mask;
+						const uint8_t colour = unmasked_colour & mask;
+						context.latched_colour.reset();
+
+						using LogicalOperation = CommandContext::LogicalOperation;
+						if(!context.test_source || colour) {
+							switch(context.pixel_operation) {
+								default:
+								case LogicalOperation::Copy:
+									Storage<personality>::command_latch_ &= ~mask;
+									Storage<personality>::command_latch_ |= colour;
+								break;
+								case LogicalOperation::And:
+									Storage<personality>::command_latch_ &= ~mask | colour;
+								break;
+								case LogicalOperation::Or:
+									Storage<personality>::command_latch_ |= colour;
+								break;
+								case LogicalOperation::Xor:
+									Storage<personality>::command_latch_ ^= colour;
+								break;
+								case LogicalOperation::Not:
+									Storage<personality>::command_latch_ &= ~mask;
+									Storage<personality>::command_latch_ |= colour ^ mask;
+								break;
+							}
+						}
+
+						destination[address] = Storage<personality>::command_latch_;
+
+						Storage<personality>::command_->advance();
+						Storage<personality>::update_command_step(access_column);
+					} break;
+
+					case CommandStep::ReadSourceByte: {
+						Vector source_vector = context.source;
+						if(Storage<personality>::command_->y_only) {
+							source_vector.v[0] = context.destination.v[0];
+						}
+						context.latched_colour.set(source[command_address(source_vector, context.arguments & 0x10) & source_mask]);
+
+						Storage<personality>::minimum_command_column_ = access_column + 24;
+						Storage<personality>::next_command_step_ = CommandStep::WriteByte;
+					} break;
+
+					case CommandStep::WriteByte:
+						destination[command_address(context.destination, context.arguments & 0x20) & destination_mask]
+							= context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
+						context.latched_colour.reset();
+
+						Storage<personality>::command_->advance();
+						Storage<personality>::update_command_step(access_column);
+					break;
+				}
+			}
+
 			return;
 		}
 
+		// Copy and mutate the RAM pointer.
+		AddressT address = ram_pointer_;
+		++ram_pointer_;
+
+		// Determine the relevant RAM and its mask.
+		uint8_t *ram = ram_.data();
+		AddressT mask = memory_mask(personality);
+
+		if constexpr (is_yamaha_vdp(personality)) {
+			// The Yamaha increments only 14 bits of the address in TMS-compatible modes.
+			if(this->underlying_mode_ < ScreenMode::YamahaText80) {
+				ram_pointer_ = (ram_pointer_ & 0x3fff) | (address & AddressT(~0x3fff));
+			}
+
+			if(this->underlying_mode_ == ScreenMode::YamahaGraphics6 || this->underlying_mode_ == ScreenMode::YamahaGraphics7) {
+				// Rotate address one to the right as the hardware accesses
+				// the underlying banks of memory alternately but presents
+				// them as if linear.
+				address = rotate(address);
+			}
+
+			// Also check whether expansion RAM is the true target here.
+			if(Storage<personality>::command_context_.arguments & 0x40) {
+				ram = Storage<personality>::expansion_ram_.data();
+				mask = AddressT(Storage<personality>::expansion_ram_.size() - 1);
+			}
+		}
+
 		switch(queued_access_) {
-			default: return;
+			default: break;
 
 			case MemoryAccess::Write:
 				if constexpr (is_sega_vdp(personality)) {
-					if(master_system_.cram_is_selected) {
+					if(Storage<personality>::cram_is_selected_) {
 						// Adjust the palette. In a Master System blue has a slightly different
 						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
 						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
 						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
-						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
+						Storage<personality>::colour_ram_[address & 0x1f] = palette_pack(
 							rg_scale[(read_ahead_buffer_ >> 0) & 3],
 							rg_scale[(read_ahead_buffer_ >> 2) & 3],
 							b_scale[(read_ahead_buffer_ >> 4) & 3]
@@ -343,9 +557,9 @@ template <Personality personality> struct Base {
 						// Schedule a CRAM dot; this is scheduled for wherever it should appear
 						// on screen. So it's wherever the output stream would be now. Which
 						// is output_lag cycles ago from the point of view of the input stream.
-						CRAMDot &dot = upcoming_cram_dots_.emplace_back();
-						dot.location.column = write_pointer_.column - output_lag;
-						dot.location.row = write_pointer_.row;
+						auto &dot = Storage<personality>::upcoming_cram_dots_.emplace_back();
+						dot.location.column = fetch_pointer_.column - output_lag;
+						dot.location.row = fetch_pointer_.row;
 
 						// Handle before this row conditionally; then handle after (or, more realistically,
 						// exactly at the end of) naturally.
@@ -356,30 +570,36 @@ template <Personality personality> struct Base {
 						dot.location.row += dot.location.column / 342;
 						dot.location.column %= 342;
 
-						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
+						dot.value = Storage<personality>::colour_ram_[address & 0x1f];
 						break;
 					}
 				}
-				ram_[ram_pointer_ & memory_mask(personality)] = read_ahead_buffer_;
+				ram[address & mask] = read_ahead_buffer_;
 			break;
 			case MemoryAccess::Read:
-				read_ahead_buffer_ = ram_[ram_pointer_ & memory_mask(personality)];
+				read_ahead_buffer_ = ram[address & mask];
 			break;
 		}
-		++ram_pointer_;
 		queued_access_ = MemoryAccess::None;
 	}
 
+	/// Helper for TMS dispatches; contains a switch statement with cases 0 to 170, each of the form:
+	///
+	/// 	if constexpr (use_end && end == n) return; [[fallthrough]]; case n: fetcher.fetch<n>();
+	///
+	/// i.e. it provides standard glue to enter a fetch sequence at any point, while the fetches themselves are templated on the cycle
+	/// at which they appear for neater expression.
+	template<bool use_end, typename Fetcher> void dispatch(Fetcher &fetcher, int start, int end);
+
 	// Various fetchers.
-	template<bool use_end> void fetch_tms_refresh(int start, int end);
-	template<bool use_end> void fetch_tms_text(int start, int end);
-	template<bool use_end> void fetch_tms_character(int start, int end);
+	template<bool use_end> void fetch_tms_refresh(uint8_t y, int start, int end);
+	template<bool use_end> void fetch_tms_text(uint8_t y, int start, int end);
+	template<bool use_end> void fetch_tms_character(uint8_t y, int start, int end);
 
-	template<bool use_end> void fetch_yamaha_refresh(int start, int end);
-	template<bool use_end> void fetch_yamaha_no_sprites(int start, int end);
-	template<bool use_end> void fetch_yamaha_sprites(int start, int end);
+	template<bool use_end> void fetch_yamaha(uint8_t y, int start, int end);
+	template<ScreenMode> void fetch_yamaha(uint8_t y, int end);
 
-	template<bool use_end> void fetch_sms(int start, int end);
+	template<bool use_end> void fetch_sms(uint8_t y, int start, int end);
 
 	// A helper function to output the current border colour for
 	// the number of cycles supplied.
@@ -390,15 +610,19 @@ template <Personality personality> struct Base {
 	bool asked_for_write_area_ = false;
 
 	// Output serialisers.
-	void draw_tms_character(int start, int end);
-	void draw_tms_text(int start, int end);
+	template <SpriteMode mode = SpriteMode::Mode1> void draw_tms_character(int start, int end);
+	template <bool apply_blink> void draw_tms_text(int start, int end);
 	void draw_sms(int start, int end, uint32_t cram_dot);
+
+	template<ScreenMode mode> void draw_yamaha(uint8_t y, int start, int end);
+	void draw_yamaha(uint8_t y, int start, int end);
+
+	template <SpriteMode mode, bool double_width> void draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer = nullptr);
 };
 
 #include "Fetch.hpp"
 #include "Draw.hpp"
 
-}
 }
 
 #endif /* TMS9918Base_hpp */

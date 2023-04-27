@@ -37,6 +37,11 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	auto target = std::make_unique<Analyser::Static::MSX::Target>();
 	target->confidence = confidence;
 
+	// Observation: all ROMs of 48kb or less are from the MSX 1 era.
+	if(segment.data.size() < 48*1024) {
+		target->model = Analyser::Static::MSX::Target::Model::MSX1;
+	}
+
 	if(type == Analyser::Static::MSX::Cartridge::Type::None) {
 		target->media.cartridges.emplace_back(new Storage::Cartridge::Cartridge(output_segments));
 	} else {
@@ -100,6 +105,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		// TODO: check for a rational init address?
 
 		// If this ROM is less than 48kb in size then it's an ordinary ROM. Just emplace it and move on.
+		// Bonus observation: all such ROMs are from the MSX 1 era.
 		if(data_size <= 0xc000) {
 			targets.emplace_back(CartridgeTarget(segment, start_address, Analyser::Static::MSX::Cartridge::Type::None, 1.0));
 			continue;

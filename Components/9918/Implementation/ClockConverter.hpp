@@ -12,8 +12,7 @@
 #include "../9918.hpp"
 #include "PersonalityTraits.hpp"
 
-namespace TI {
-namespace TMS {
+namespace TI::TMS {
 
 enum class Clock {
 	Internal,
@@ -61,35 +60,6 @@ template <Personality personality> struct StandardTiming {
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
-
-	/// The first internal cycle at which pixels will be output in any mode other than text.
-	/// Pixels implicitly run from here to the end of the line.
-	constexpr static int FirstPixelCycle = 86 * CyclesPerLine / 342;
-
-	/// The first internal cycle at which pixels will be output text mode.
-	constexpr static int FirstTextCycle = 94 * CyclesPerLine / 342;
-
-	/// The final internal cycle at which pixels will be output text mode.
-	constexpr static int LastTextCycle = 334 * CyclesPerLine / 342;
-
-	// For the below, the fixed portion of line layout is:
-	//
-	//	[0, EndOfRightBorder):					right border colour
-	//	[EndOfRightBorder, StartOfSync):		blank
-	//	[StartOfSync, EndOfSync):				sync
-	//	[EndOfSync, StartOfColourBurst):		blank
-	//	[StartOfColourBurst, EndOfColourBurst):	the colour burst
-	//	[EndOfColourBurst, StartOfLeftBorder):	blank
-	//
-	// The region from StartOfLeftBorder until the end is then filled with
-	// some combination of pixels and more border, depending on the vertical
-	// position of this line and the current screen mode.
-	constexpr static int EndOfRightBorder	= 15 * CyclesPerLine / 342;
-	constexpr static int StartOfSync		= 23 * CyclesPerLine / 342;
-	constexpr static int EndOfSync			= 49 * CyclesPerLine / 342;
-	constexpr static int StartOfColourBurst	= 51 * CyclesPerLine / 342;
-	constexpr static int EndOfColourBurst	= 65 * CyclesPerLine / 342;
-	constexpr static int StartOfLeftBorder	= 73 * CyclesPerLine / 342;
 };
 
 /// Provides concrete, specific timing for the nominated personality.
@@ -174,7 +144,54 @@ template <Personality personality> class ClockConverter {
 		int cycles_error_ = 0;
 };
 
-}
+
+//
+//
+//
+template <Personality personality, typename Enable = void> struct LineLayout;
+
+//	Line layout is:
+//
+//	[0, EndOfSync]							sync
+//	(EndOfSync, StartOfColourBurst]			blank
+//	(StartOfColourBurst, EndOfColourBurst]	colour burst
+//	(EndOfColourBurst, EndOfLeftErase]		blank
+//	(EndOfLeftErase, EndOfLeftBorder]		border colour
+//	(EndOfLeftBorder, EndOfPixels]			pixel content
+//	(EndOfPixels, EndOfRightBorder]			border colour
+//	[EndOfRightBorder, <end of line>]		blank
+//
+//	... with minor caveats:
+//		* horizontal adjust on the Yamaha VDPs is applied to EndOfLeftBorder and EndOfPixels;
+//		* the Sega VDPs may programatically extend the left border; and
+//		* text mode on all VDPs adjusts border width.
+
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
+	constexpr static int EndOfSync			= 26;
+	constexpr static int StartOfColourBurst	= 29;
+	constexpr static int EndOfColourBurst	= 43;
+	constexpr static int EndOfLeftErase		= 50;
+	constexpr static int EndOfLeftBorder	= 63;
+	constexpr static int EndOfPixels		= 319;
+	constexpr static int EndOfRightBorder	= 334;
+
+	constexpr static int TextModeEndOfLeftBorder	= 69;
+	constexpr static int TextModeEndOfPixels		= 309;
+};
+
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	constexpr static int EndOfSync			= 100;
+	constexpr static int StartOfColourBurst	= 113;
+	constexpr static int EndOfColourBurst	= 167;
+	constexpr static int EndOfLeftErase		= 202;
+	constexpr static int EndOfLeftBorder	= 258;
+	constexpr static int EndOfPixels		= 1282;
+	constexpr static int EndOfRightBorder	= 1341;
+
+	constexpr static int TextModeEndOfLeftBorder	= 294;
+	constexpr static int TextModeEndOfPixels		= 1254;
+};
+
 }
 
 #endif /* ClockConverter_hpp */

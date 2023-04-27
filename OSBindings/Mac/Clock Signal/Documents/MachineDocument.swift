@@ -63,11 +63,6 @@ class MachineDocument:
 		return "MachineDocument"
 	}
 
-	convenience init(type typeName: String) throws {
-		self.init()
-		self.fileType = typeName
-	}
-
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
