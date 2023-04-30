@@ -10,7 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <codecvt>
+#include <cstdlib>
 #include <iomanip>
 #include <locale>
 #include <sstream>
@@ -248,7 +248,7 @@ std::string Description::description(int flags) const {
 	std::stringstream output;
 
 	// If there are no CRCs, don't output them.
-	if(crc32s.empty()) flags &= ~ DescriptionFlag::CRC;
+	if(crc32s.empty()) flags &= ~DescriptionFlag::CRC;
 
 	// Print the file name(s) and the descriptive name.
 	if(flags & DescriptionFlag::Filename) {
@@ -316,10 +316,9 @@ std::string Description::description(int flags) const {
 
 std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 	std::wstringstream output;
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_converter;
 
 	visit(
-		[&output, description_flags, bullet_point, &wstring_converter] (ROM::Request::LineItem item, ROM::Request::ListType type, int indentation_level, const ROM::Description *description, bool is_optional, size_t remaining) {
+		[&output, description_flags, bullet_point] (ROM::Request::LineItem item, ROM::Request::ListType type, int indentation_level, const ROM::Description *description, bool is_optional, size_t remaining) {
 			if(indentation_level) {
 				output << std::endl;
 				for(int c = 0; c < indentation_level; c++) output << '\t';
@@ -346,10 +345,13 @@ std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 					}
 				break;
 
-				case ROM::Request::LineItem::Description:
+				case ROM::Request::LineItem::Description: {
 					if(is_optional) output << "optionally, ";
 
-					output << wstring_converter.from_bytes(description->description(description_flags));
+					const auto text = description->description(description_flags);
+					std::wstring wide_text(text.size(), L' ');
+					std::mbstowcs(wide_text.data(), text.data(), text.size());
+					output << wide_text;
 
 					if(remaining) {
 						output << ";";
@@ -359,7 +361,7 @@ std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 					} else {
 						output << ".";
 					}
-				break;
+				} break;
 			}
 		}
 	);
