@@ -544,7 +544,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle >= 25 && cycle < 153) {
-			constexpr int offset = cycle - 39;
+			constexpr int offset = cycle - 25;
 			constexpr int block = offset >> 2;
 			constexpr int sub_block = offset & 3;
 
