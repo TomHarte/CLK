@@ -595,6 +595,13 @@ class ConcreteMachine:
 								*cycle.value = clock_.read(next_clock_register_);
 							break;
 
+							case 0xfc: case 0xfd: case 0xfe: case 0xff:
+								if constexpr (model != Target::Model::MSX1) {
+									*cycle.value = ram_mapper_[(address & 0xff) - 0xfc];
+									break;
+								}
+								[[fallthrough]];
+
 							default:
 //								printf("Unhandled read %02x\n", address & 0xff);
 								*cycle.value = 0xff;
@@ -642,6 +649,8 @@ class ConcreteMachine:
 								if constexpr (model == Target::Model::MSX1) {
 									break;
 								}
+
+								ram_mapper_[port - 0xfc] = *cycle.value;
 
 								// Apply to RAM.
 								//
@@ -877,6 +886,7 @@ class ConcreteMachine:
 		// 8kb resolution is used by some cartride titles.
 		const uint8_t *read_pointers_[8];
 		uint8_t *write_pointers_[8];
+		uint8_t ram_mapper_[4]{};
 
 		/// Optionally attaches non-default logic to any of the four things selectable
 		/// via the primary slot register.
