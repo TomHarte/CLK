@@ -71,7 +71,7 @@ template<bool use_end, typename SequencerT> void Base<personality>::dispatch(Seq
 #define index(n)						\
 	if(use_end && end == n) return;		\
 	[[fallthrough]];					\
-	case n: fetcher.template fetch<n>(n);
+	case n: fetcher.template fetch<n>();
 
 	switch(start) {
 		default: assert(false);
@@ -388,9 +388,9 @@ template <Personality personality>
 struct RefreshSequencer {
 	RefreshSequencer(Base<personality> *base) : base(base) {}
 
-	template <int cycle> void fetch(int c) {
+	template <int cycle> void fetch() {
 		if(cycle < 26 || (cycle & 1) || cycle >= 154) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 	}
 
@@ -401,10 +401,10 @@ template <Personality personality>
 struct TextSequencer {
 	template <typename... Args> TextSequencer(Args&&... args) : fetcher(std::forward<Args>(args)...) {}
 
-	template <int cycle> void fetch(int c) {
+	template <int cycle> void fetch() {
 		// The first 30 and the final 4 slots are external.
 		if constexpr (cycle < 30 || cycle >= 150) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 			return;
 		} else {
 			// For the 120 slots in between follow a three-step pattern of:
@@ -412,7 +412,7 @@ struct TextSequencer {
 			constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
 				case 0:	fetcher.fetch_name(column);																break;	// (1) fetch tile name.
-				case 1:	fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));	break;	// (2) external slot.
+				case 1:	fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));	break;	// (2) external slot.
 				case 2:	fetcher.fetch_pattern(column);															break;	// (3) fetch tile pattern.
 			}
 		}
@@ -428,9 +428,9 @@ struct CharacterSequencer {
 		character_fetcher(std::forward<Args>(args)...),
 		sprite_fetcher(std::forward<Args>(args)...) {}
 
-	template <int cycle> void fetch(int c) {
+	template <int cycle> void fetch() {
 		if(cycle < 5) {
-			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 
 		if(cycle == 5) {
@@ -441,7 +441,7 @@ struct CharacterSequencer {
 		}
 
 		if(cycle > 14 && cycle < 19) {
-			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 
 		// Fetch 8 new sprite Y coordinates, to begin selecting sprites for next line.
@@ -459,7 +459,7 @@ struct CharacterSequencer {
 				case 0:	character_fetcher.fetch_name(block);	break;
 				case 1:
 					if(!(block & 3)) {
-						character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+						character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 					} else {
 						constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
 						sprite_fetcher.fetch_y(sprite);
@@ -474,7 +474,7 @@ struct CharacterSequencer {
 		}
 
 		if(cycle >= 155 && cycle < 157) {
-			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 
 		if(cycle == 157) {
@@ -520,9 +520,9 @@ struct SMSSequencer {
 
 	// Cf. https://www.smspower.org/forums/16485-GenesisMode4VRAMTiming with this implementation pegging
 	// window 0 to HSYNC low.
-	template <int cycle> void fetch(int c) {
+	template <int cycle> void fetch() {
 		if(cycle < 3) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 
 		if(cycle == 3) {
@@ -533,7 +533,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle == 15 || cycle == 16) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 
 		if(cycle == 17) {
@@ -554,7 +554,7 @@ struct SMSSequencer {
 				case 0:	fetcher.fetch_tile_name(block);		break;
 				case 1:
 					if(!(block & 3)) {
-						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 					} else {
 						constexpr int sprite = (8 + ((block >> 2) * 3) + ((block & 3) - 1)) << 1;
 						fetcher.posit_sprite(sprite);
@@ -566,7 +566,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle >= 153 && cycle < 157) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 
 		if(cycle == 157) {
@@ -577,7 +577,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle >= 169) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(c));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
 	}
 
