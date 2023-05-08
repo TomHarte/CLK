@@ -44,8 +44,11 @@ Base<personality>::Base() :
 	}
 
 	if constexpr (is_yamaha_vdp(personality)) {
-		// TODO: start of sync, or end of sync?
-		mode_timing_.line_interrupt_position = 0;//Timing<personality>::StartOfSync;
+		// TODO: start of sync, or end of sync? Or elsewhere.
+		// Note that there's a bug elsewhere if the proper value of this is zero in the
+		// "if started before but reached this count" logic — that is boxed into considering
+		// a single line only so never sees starts before 0.
+		mode_timing_.line_interrupt_position = LineLayout<personality>::EndOfSync;
 	}
 
 	// Establish that output is delayed after reading by `output_lag` cycles,
