@@ -19,7 +19,7 @@ It currently contains emulations of the:
 * Commodore Vic-20 (and Commodore 1540/1);
 * Enterprise 64/128;
 * Macintosh 512ke and Plus;
-* MSX 1;
+* MSX 1 and 2;
 * Oric 1/Atmos;
 * Sega Master System;
 * Sinclair ZX80/81; and
@@ -89,7 +89,7 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 |![Amiga James Pond II](READMEImages/AmigaJamesPondII.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
 |![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
 |![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
-|![Enterprise HERO](READMEImages/EnterpriseHERO.png) | ![Enterprise Startup](READMEImages/EnterpriseStartup.png)
+|![Enterprise HERO](READMEImages/EnterpriseHERO.png) | ![Space Manbow](READMEImages/SpaceManbow.png)
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
