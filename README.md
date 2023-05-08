@@ -84,12 +84,12 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 |![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png) | ![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
 |![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png) | ![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png) 
 |![Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png) | ![Space Manbow](READMEImages/SpaceManbow.png)
-|![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png) | ![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png)
 |![Amiga James Pond II](READMEImages/AmigaJamesPondII.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
-|![Enterprise HERO](READMEImages/EnterpriseHERO.png) | ![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)
+|![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png) | ![Enterprise HERO](READMEImages/EnterpriseHERO.png)
+|![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png) | ![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)
 |![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
-|![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
-|![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
+|![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/
+|![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)ZXSpectrumChromatronsAttack.png)
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
