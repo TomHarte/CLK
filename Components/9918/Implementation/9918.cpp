@@ -1110,7 +1110,7 @@ uint8_t Base<personality>::read_register() {
 				//		Reset upon read.
 				const uint8_t result =
 					(personality == Personality::V9938 ? 0x0 : 0x4) |
-					(line_interrupt_pending_ ? 0x01 : 0x00);
+					((line_interrupt_pending_ && enable_line_interrupts_) ? 0x01 : 0x00);
 
 				line_interrupt_pending_ = false;
 				return result;
