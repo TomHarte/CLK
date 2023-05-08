@@ -79,7 +79,7 @@ Accuracy affects usability; the more accurate an emulator, the more likely that 
 This emulator attempts cycle-accurate emulation of all supported machines. In some cases it succeeds.
 
 ## Additional Screenshots
-| | |
+| <div style="width:50%">&nbsp;</div> | <div style="width:50%">&nbsp;</div> |
 |---|---|
 |![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png) | ![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
 |![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png) | ![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
