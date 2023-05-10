@@ -420,7 +420,7 @@ class ProcessorBase: public ProcessorStorage {
 		/*!
 			Sets the value of a register.
 
-			@see get_value_of_register
+			@see value_of
 
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
