@@ -470,7 +470,7 @@ void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
 		switch(offset) {
 			case 0:
 				do {
-						pixel_target_[column+0] = active_palette[line_buffer.bitmap[start] >> 4];
+						pixel_target_[column+0] = active_palette[line_buffer.bitmap[start] >> 4];	[[fallthrough]];
 			case 1:		pixel_target_[column+1] = active_palette[line_buffer.bitmap[start] & 0xf];
 						++start;
 						column += 2;
@@ -490,9 +490,9 @@ void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
 		switch(offset) {
 			case 0:
 				do {
-					pixel_target_[column+0] = active_palette[line_buffer.bitmap[start] >> 6];
-			case 1:	pixel_target_[column+1] = active_palette[(line_buffer.bitmap[start] >> 4) & 3];
-			case 2:	pixel_target_[column+2] = active_palette[(line_buffer.bitmap[start] >> 2) & 3];
+					pixel_target_[column+0] = active_palette[line_buffer.bitmap[start] >> 6];			[[fallthrough]];
+			case 1:	pixel_target_[column+1] = active_palette[(line_buffer.bitmap[start] >> 4) & 3];		[[fallthrough]];
+			case 2:	pixel_target_[column+2] = active_palette[(line_buffer.bitmap[start] >> 2) & 3];		[[fallthrough]];
 			case 3:	pixel_target_[column+3] = active_palette[line_buffer.bitmap[start] & 3];
 					++start;
 					column += 4;
