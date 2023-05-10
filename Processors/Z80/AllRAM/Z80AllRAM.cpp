@@ -82,11 +82,11 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 			}
 		}
 
-		uint16_t get_value_of_register(Register r) final {
+		uint16_t value_of(Register r) final {
 			return z80_.value_of(r);
 		}
 
-		void set_value_of_register(Register r, uint16_t value) final {
+		void set_value_of(Register r, uint16_t value) final {
 			z80_.set_value_of(r, value);
 		}
 
