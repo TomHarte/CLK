@@ -395,13 +395,13 @@ class ConcreteMachine:
 //
 //				printf("%06x a:%04x x:%04x y:%04x s:%04x d:%04x b:%04x\n",
 //					address,
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-////					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank)
+//					m65816_.value_of(CPU::WDC65816::Register::A),
+//					m65816_.value_of(CPU::WDC65816::Register::X),
+//					m65816_.value_of(CPU::WDC65816::Register::Y),
+////					m65816_.value_of(CPU::WDC65816::Register::Flags),
+//					m65816_.value_of(CPU::WDC65816::Register::StackPointer),
+//					m65816_.value_of(CPU::WDC65816::Register::Direct),
+//					m65816_.value_of(CPU::WDC65816::Register::DataBank)
 //				);
 //			}
 
@@ -1009,15 +1009,15 @@ class ConcreteMachine:
 				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x [tot:%llu]\n",
-						m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
+						m65816_.value_of(CPU::WDC65816::Register::A),
+						m65816_.value_of(CPU::WDC65816::Register::X),
+						m65816_.value_of(CPU::WDC65816::Register::Y),
+						m65816_.value_of(CPU::WDC65816::Register::StackPointer),
+						m65816_.value_of(CPU::WDC65816::Register::EmulationFlag),
+						m65816_.value_of(CPU::WDC65816::Register::Flags),
+						m65816_.value_of(CPU::WDC65816::Register::DataBank),
+						m65816_.value_of(CPU::WDC65816::Register::ProgramBank),
+						m65816_.value_of(CPU::WDC65816::Register::Direct),
 						static_cast<unsigned long long>(total)
 					);
 				} else printf("\n");

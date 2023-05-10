@@ -60,8 +60,8 @@ class ProcessorBase: protected ProcessorStorage {
 		*/
 		inline void restart_operation_fetch();
 
-		void set_value_of_register(Register r, uint16_t value);
-		uint16_t get_value_of_register(Register r) const;
+		void set_value_of(Register r, uint16_t value);
+		uint16_t value_of(Register r) const;
 };
 
 template <typename BusHandler, bool uses_ready_line> class Processor: public ProcessorBase {

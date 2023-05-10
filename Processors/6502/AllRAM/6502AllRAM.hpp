@@ -25,8 +25,8 @@ class AllRAMProcessor:
 		virtual bool is_jammed() = 0;
 		virtual void set_irq_line(bool value) = 0;
 		virtual void set_nmi_line(bool value) = 0;
-		virtual uint16_t get_value_of_register(Register r) = 0;
-		virtual void set_value_of_register(Register r, uint16_t value) = 0;
+		virtual uint16_t value_of(Register r) = 0;
+		virtual void set_value_of(Register r, uint16_t value) = 0;
 
 		
 

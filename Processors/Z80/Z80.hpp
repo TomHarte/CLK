@@ -20,7 +20,7 @@
 namespace CPU::Z80 {
 
 /*
-	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
+	The list of registers that can be accessed via @c value_of(Register) and @c set_value_of(Register).
 */
 enum class Register {
 	ProgramCounter,
