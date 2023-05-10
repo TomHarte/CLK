@@ -39,7 +39,6 @@
 		4B055A921FAE85B50060FFFF /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
 		4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */; };
-		4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
 		4B055A961FAE85BB0060FFFF /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
 		4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
 		4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
@@ -159,7 +158,6 @@
 		4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1414611B58888700E04248 /* KlausDormannTests.swift */; };
 		4B1497881EE4A1DA00CE2596 /* ZX80O81P.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1497861EE4A1DA00CE2596 /* ZX80O81P.cpp */; };
 		4B1497981EE4B97F00CE2596 /* ZX8081Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B1497961EE4B97F00CE2596 /* ZX8081Options.xib */; };
-		4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
 		4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */; };
 		4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */; };
 		4B17B58B20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */; };
@@ -402,7 +400,6 @@
 		4B778F2723A5EEF60000D260 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B778F2823A5EEF80000D260 /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
 		4B778F2923A5EF030000D260 /* CommodoreROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */; };
-		4B778F2A23A5EF0F0000D260 /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
 		4B778F2B23A5EF0F0000D260 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F51DCFF6C9003085B1 /* Commodore.cpp */; };
 		4B778F2C23A5EF0F0000D260 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
 		4B778F2D23A5EF190000D260 /* MFMDiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187C1F75E91900926311 /* MFMDiskController.cpp */; };
@@ -1213,8 +1210,6 @@
 		4B14978D1EE4B4D200CE2596 /* CSZX8081.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSZX8081.h; sourceTree = "<group>"; };
 		4B14978E1EE4B4D200CE2596 /* CSZX8081.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSZX8081.mm; sourceTree = "<group>"; };
 		4B1497971EE4B97F00CE2596 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ZX8081Options.xib"; sourceTree = SOURCE_ROOT; };
-		4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BitReverse.cpp; sourceTree = "<group>"; };
-		4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BitReverse.hpp; sourceTree = "<group>"; };
 		4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = AppleII/StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B15A9FB208249BB005E6C8D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = AppleII/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4B1667F61FFF1E2400A16032 /* Konami.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Konami.hpp; sourceTree = "<group>"; };
@@ -3403,10 +3398,8 @@
 		4B8805F81DCFF6CD003085B1 /* Data */ = {
 			isa = PBXGroup;
 			children = (
-				4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */,
 				4B8805F51DCFF6C9003085B1 /* Commodore.cpp */,
 				4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */,
-				4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */,
 				4B8805F61DCFF6C9003085B1 /* Commodore.hpp */,
 				4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */,
 			);
@@ -5690,7 +5683,6 @@
 				4B1EC717255398B000A1F44B /* Sound.cpp in Sources */,
 				4BB8616F24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */,
 				4B0ACC2923775819008902D0 /* DMAController.cpp in Sources */,
-				4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */,
 				4B055ACE1FAE9B030060FFFF /* Plus3.cpp in Sources */,
 				4BAD13441FF709C700FD114A /* MSX.cpp in Sources */,
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
@@ -5803,7 +5795,6 @@
 				4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4B5D5C9725F56FC7001B4623 /* Spectrum.cpp in Sources */,
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
-				4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */,
 				4BCE0052227CE8CA000CA200 /* DiskIICard.cpp in Sources */,
 				4BF0BC68297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */,
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
@@ -6064,7 +6055,6 @@
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
 				4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */,
 				4B7962A12819681F008130F9 /* Decoder.cpp in Sources */,
-				4B778F2A23A5EF0F0000D260 /* BitReverse.cpp in Sources */,
 				4B7752BB28217F1A0073E2C5 /* Copper.cpp in Sources */,
 				4B778F1D23A5ED470000D260 /* DiskController.cpp in Sources */,
 				4B778F0023A5EB990000D260 /* G64.cpp in Sources */,
