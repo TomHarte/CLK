@@ -16,7 +16,7 @@
 
 #include <zlib.h>
 
-#include "68000.hpp"
+#include "68000Mk2.hpp"
 #include "Comparative68000.hpp"
 #include "CSROMFetcher.hpp"
 
