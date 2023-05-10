@@ -235,10 +235,10 @@ template<bool is_zx81> class ConcreteMachine:
 						const uint64_t prior_offset = tape_player_.get_tape()->get_offset();
 						const int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 						if(next_byte != -1) {
-							const uint16_t hl = z80_.get_value_of_register(CPU::Z80::Register::HL);
+							const uint16_t hl = z80_.value_of(CPU::Z80::Register::HL);
 							ram_[hl & ram_mask_] = uint8_t(next_byte);
 							*cycle.value = 0x00;
-							z80_.set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
+							z80_.set_value_of(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 
 							// Assume that having read one byte quickly, we're probably going to be asked to read
 							// another shortly. Therefore, temporarily disable the tape motor for 1000 cycles in order

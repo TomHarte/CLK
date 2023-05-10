@@ -39,34 +39,34 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 		// Set the flags so that if this is a conditional operation, it'll succeed.
 		if((*code.begin())&0x8) {
-			z80_.set_value_of_register(CPU::Z80::Register::Flags, 0xff);
+			z80_.set_value_of(CPU::Z80::Register::Flags, 0xff);
 		} else {
-			z80_.set_value_of_register(CPU::Z80::Register::Flags, 0x00);
+			z80_.set_value_of(CPU::Z80::Register::Flags, 0x00);
 		}
 
 		// Set the refresh address to the EE page and set A to 0x80.
-		z80_.set_value_of_register(CPU::Z80::Register::I, 0xe0);
-		z80_.set_value_of_register(CPU::Z80::Register::A, 0x80);
+		z80_.set_value_of(CPU::Z80::Register::I, 0xe0);
+		z80_.set_value_of(CPU::Z80::Register::A, 0x80);
 
 		// Set BC, DE and HL.
-		z80_.set_value_of_register(CPU::Z80::Register::BC, initial_bc_de_hl);
-		z80_.set_value_of_register(CPU::Z80::Register::DE, initial_bc_de_hl);
-		z80_.set_value_of_register(CPU::Z80::Register::HL, initial_bc_de_hl);
+		z80_.set_value_of(CPU::Z80::Register::BC, initial_bc_de_hl);
+		z80_.set_value_of(CPU::Z80::Register::DE, initial_bc_de_hl);
+		z80_.set_value_of(CPU::Z80::Register::HL, initial_bc_de_hl);
 
 		// Set IX and IY.
-		z80_.set_value_of_register(CPU::Z80::Register::IX, initial_ix_iy);
-		z80_.set_value_of_register(CPU::Z80::Register::IY, initial_ix_iy);
+		z80_.set_value_of(CPU::Z80::Register::IX, initial_ix_iy);
+		z80_.set_value_of(CPU::Z80::Register::IY, initial_ix_iy);
 
 		// Set SP.
-		z80_.set_value_of_register(CPU::Z80::Register::StackPointer, initial_sp);
+		z80_.set_value_of(CPU::Z80::Register::StackPointer, initial_sp);
 	}
 
 	void set_de(uint16_t value) {
-		z80_.set_value_of_register(CPU::Z80::Register::DE, value);
+		z80_.set_value_of(CPU::Z80::Register::DE, value);
 	}
 
 	void set_bc(uint16_t value) {
-		z80_.set_value_of_register(CPU::Z80::Register::BC, value);
+		z80_.set_value_of(CPU::Z80::Register::BC, value);
 	}
 
 	void run_for(int cycles) {
