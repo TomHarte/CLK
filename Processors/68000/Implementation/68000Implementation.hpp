@@ -1,20 +1,20 @@
 //
-//  68000Mk2Implementation.hpp
+//  68000Implementation.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 16/05/2022.
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef _8000Mk2Implementation_h
-#define _8000Mk2Implementation_h
+#ifndef MC68000Implementation_h
+#define MC68000Implementation_h
 
 #include <cassert>
 #include <cstdio>
 
 #include "../../../InstructionSets/M68k/ExceptionVectors.hpp"
 
-namespace CPU::MC68000Mk2 {
+namespace CPU::MC68000 {
 
 #define AddressingDispatch(x)	\
 		x,	x##__end = x + InstructionSet::M68k::AddressingModeCount
@@ -3020,8 +3020,8 @@ inline void ProcessorBase::move_from_usp(uint32_t &address) {
 // MARK: - External state.
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
-CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::get_state() {
-	CPU::MC68000Mk2::State state;
+CPU::MC68000::State Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::get_state() {
+	CPU::MC68000::State state;
 
 	// This isn't true, but will ensure that both stack_pointers_ have their proper values.
 	did_update_status();
@@ -3044,7 +3044,7 @@ CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, 
 }
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
-void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::set_state(const CPU::MC68000Mk2::State &state) {
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::set_state(const CPU::MC68000::State &state) {
 	// Copy registers and the program counter.
 	for(int c = 0; c < 7; c++) {
 		registers_[c].l = state.registers.data[c];
@@ -3072,7 +3072,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::decode_from_state(const InstructionSet::M68k::RegisterSet &registers) {
 	// Populate registers.
-	CPU::MC68000Mk2::State state;
+	CPU::MC68000::State state;
 	state.registers = registers;
 	set_state(state);
 
@@ -3105,4 +3105,4 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 }
 
-#endif /* _8000Mk2Implementation_h */
+#endif /* MC68000Implementation_h */

@@ -9,7 +9,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "68000Mk2.hpp"
+#include "68000.hpp"
 
 #include <array>
 #include <unordered_map>

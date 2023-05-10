@@ -16,7 +16,7 @@
 
 #include <zlib.h>
 
-#include "68000Mk2.hpp"
+#include "68000.hpp"
 #include "Comparative68000.hpp"
 #include "CSROMFetcher.hpp"
 
@@ -35,11 +35,11 @@ class QL: public ComparativeBusHandler {
 			m68000_.run_for(cycles);
 		}
 
-		CPU::MC68000Mk2::State get_state() final {
+		CPU::MC68000::State get_state() final {
 			return m68000_.get_state();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
@@ -56,7 +56,7 @@ class QL: public ComparativeBusHandler {
 				word_address %= ram_.size();
 			}
 
-			using Microcycle = CPU::MC68000Mk2::Microcycle;
+			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
 				uint16_t peripheral_result = 0xffff;
 
@@ -84,7 +84,7 @@ class QL: public ComparativeBusHandler {
 		}
 
 	private:
-		CPU::MC68000Mk2::Processor<QL, true, false, true> m68000_;
+		CPU::MC68000::Processor<QL, true, false, true> m68000_;
 
 		std::vector<uint16_t> rom_;
 		std::array<uint16_t, 64*1024> ram_;

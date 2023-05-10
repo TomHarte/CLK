@@ -13,7 +13,7 @@
 #include <functional>
 #include <vector>
 
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 using namespace InstructionSet::M68k;
 
@@ -22,7 +22,7 @@ using namespace InstructionSet::M68k;
 	/RESET will put the supervisor stack pointer at 0xFFFF and
 	begin execution at 0x0400.
 */
-class RAM68000: public CPU::MC68000Mk2::BusHandler {
+class RAM68000: public CPU::MC68000::BusHandler {
 	public:
 		RAM68000() : m68000_(*this) {}
 
@@ -78,11 +78,11 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 			return &ram_[(address >> 1) % ram_.size()];
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
 			const uint32_t word_address = cycle.word_address();
 			duration_ += cycle.length;
 
-			using Microcycle = CPU::MC68000Mk2::Microcycle;
+			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
 				if(cycle.operation & Microcycle::InterruptAcknowledge) {
 					cycle.value->b = 10;
@@ -112,7 +112,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 			return HalfCycles(0);
 		}
 
-		CPU::MC68000Mk2::State get_processor_state() {
+		CPU::MC68000::State get_processor_state() {
 			return m68000_.get_state();
 		}
 
@@ -131,7 +131,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 	private:
 		struct StopException {};
 
-		CPU::MC68000Mk2::Processor<RAM68000, true, true, true> m68000_;
+		CPU::MC68000::Processor<RAM68000, true, true, true> m68000_;
 		std::array<uint16_t, 256*1024> ram_{};
 		int instructions_remaining_;
 		HalfCycles duration_;

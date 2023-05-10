@@ -13,7 +13,7 @@
 
 //#define LOG_TRACE
 //bool should_log = false;
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Components/AY38910/AY38910.hpp"
 #include "../../../Components/68901/MFP68901.hpp"
@@ -45,7 +45,7 @@ constexpr int CLOCK_RATE = 8021247;
 using Target = Analyser::Static::AtariST::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
@@ -492,7 +492,7 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide_cycles(Cycles(4)));
 		}
 
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 		HalfCycles bus_phase_;
 
 		JustInTimeActor<Video> video_;

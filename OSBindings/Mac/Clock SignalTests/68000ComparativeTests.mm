@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 #include "../../../InstructionSets/M68k/Executor.hpp"
 #include "../../../InstructionSets/M68k/Decoder.hpp"
 
@@ -84,9 +84,9 @@ struct TestExecutor {
 };
 
 /// Binds a bus-accurate 68000 to 16mb of RAM.
-struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
+struct TestProcessor: public CPU::MC68000::BusHandler {
 	uint8_t *const ram;
-	CPU::MC68000Mk2::Processor<TestProcessor, true, true, true> processor;
+	CPU::MC68000::Processor<TestProcessor, true, true, true> processor;
 	std::function<void(void)> comparitor;
 
 	TestProcessor(uint8_t *ram) : ram(ram), processor(*this) {}
@@ -96,8 +96,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		if(!instructions_remaining_) comparitor();
 	}
 
-	HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
-		using Microcycle = CPU::MC68000Mk2::Microcycle;
+	HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
+		using Microcycle = CPU::MC68000::Microcycle;
 		if(cycle.data_select_active()) {
 			cycle.apply(&ram[cycle.host_endian_byte_address()]);
 		}

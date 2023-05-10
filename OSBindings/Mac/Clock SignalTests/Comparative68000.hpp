@@ -11,9 +11,9 @@
 
 #include <zlib.h>
 
-#include "68000Mk2.hpp"
+#include "68000.hpp"
 
-class ComparativeBusHandler: public CPU::MC68000Mk2::BusHandler {
+class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 	public:
 		ComparativeBusHandler(const char *trace_name) {
 			trace = gzopen(trace_name, "rt");
@@ -49,7 +49,7 @@ class ComparativeBusHandler: public CPU::MC68000Mk2::BusHandler {
 			}
 		}
 
-		virtual CPU::MC68000Mk2::State get_state() = 0;
+		virtual CPU::MC68000::State get_state() = 0;
 
 	private:
 		int line_count = 0;

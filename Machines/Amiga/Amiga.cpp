@@ -11,7 +11,7 @@
 #include "../../Activity/Source.hpp"
 #include "../MachineTypes.hpp"
 
-#include "../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../Processors/68000/68000.hpp"
 
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
@@ -41,7 +41,7 @@ namespace Amiga {
 
 class ConcreteMachine:
 	public Activity::Source,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
@@ -177,7 +177,7 @@ class ConcreteMachine:
 		}
 
 	private:
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 
 		// MARK: - Memory map.
 

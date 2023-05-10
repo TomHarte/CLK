@@ -1,13 +1,13 @@
 //
-//  68000Mk2Storage.hpp
+//  68000Storage.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 16/05/2022.
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef _8000Mk2Storage_h
-#define _8000Mk2Storage_h
+#ifndef MC68000Storage_h
+#define MC68000Storage_h
 
 #include "../../../InstructionSets/M68k/Decoder.hpp"
 #include "../../../InstructionSets/M68k/Perform.hpp"
@@ -15,7 +15,7 @@
 
 #include <limits>
 
-namespace CPU::MC68000Mk2 {
+namespace CPU::MC68000 {
 
 struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	ProcessorBase() {
@@ -223,4 +223,4 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 }
 
-#endif /* _8000Mk2Storage_h */
+#endif /* MC68000Storage_h */

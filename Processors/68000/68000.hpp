@@ -1,19 +1,19 @@
 //
-//  68000Mk2.hpp
+//  68000.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 16/05/2022.
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef _8000Mk2_h
-#define _8000Mk2_h
+#ifndef MC68000_h
+#define MC68000_h
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../InstructionSets/M68k/RegisterSet.hpp"
 
-namespace CPU::MC68000Mk2 {
+namespace CPU::MC68000 {
 
 /*!
 	A microcycle is an atomic unit of 68000 bus activity — it is a single item large enough
@@ -359,9 +359,9 @@ struct State {
 
 }
 
-#include "Implementation/68000Mk2Storage.hpp"
+#include "Implementation/68000Storage.hpp"
 
-namespace CPU::MC68000Mk2 {
+namespace CPU::MC68000 {
 
 /*!
 	Provides an emulation of the 68000 with accurate bus logic via the @c BusHandler, subject to the following template parameters:
@@ -395,10 +395,10 @@ class Processor: private ProcessorBase {
 		void run_for(HalfCycles duration);
 
 		/// @returns The current processor state.
-		CPU::MC68000Mk2::State get_state();
+		CPU::MC68000::State get_state();
 
 		/// Sets the current processor state.
-		void set_state(const CPU::MC68000Mk2::State &);
+		void set_state(const CPU::MC68000::State &);
 
 		/// Sets all registers to the values provided, fills the prefetch queue and ensures the
 		/// next action the processor will take is to decode whatever is in the queue.
@@ -446,6 +446,6 @@ class Processor: private ProcessorBase {
 
 }
 
-#include "Implementation/68000Mk2Implementation.hpp"
+#include "Implementation/68000Implementation.hpp"
 
-#endif /* _8000Mk2_h */
+#endif /* MC68000_h */
