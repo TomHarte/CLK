@@ -14,6 +14,7 @@
 #include "YamahaCommands.hpp"
 
 #include <optional>
+#include <vector>
 
 namespace TI::TMS {
 
