@@ -13,14 +13,10 @@
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace AmstradCPC {
+namespace Analyser::Static::AmstradCPC {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
-}
-}
 }
 
 #endif /* Analyser_Static_AmstradCPC_StaticAnalyser_hpp */

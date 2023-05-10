@@ -13,9 +13,7 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Sega {
+namespace Analyser::Static::Sega {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	enum class Model {
@@ -52,8 +50,6 @@ constexpr bool is_master_system(Analyser::Static::Sega::Target::Model model) {
 	return model >= Analyser::Static::Sega::Target::Model::MasterSystem;
 }
 
-}
-}
 }
 
 #endif /* Analyser_Static_Sega_Target_h */

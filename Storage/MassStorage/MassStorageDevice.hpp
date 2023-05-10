@@ -13,8 +13,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	A mass storage device is usually:
@@ -55,7 +54,6 @@ class MassStorageDevice {
 		virtual void set_block([[maybe_unused]] size_t address, const std::vector<uint8_t> &) {}
 };
 
-}
 }
 
 #endif /* MassStorageDevice_hpp */

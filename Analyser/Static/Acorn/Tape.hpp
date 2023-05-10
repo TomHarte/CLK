@@ -14,14 +14,10 @@
 #include "File.hpp"
 #include "../../../Storage/Tape/Tape.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-}
-}
 }
 
 #endif /* Tape_hpp */

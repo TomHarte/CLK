@@ -12,8 +12,7 @@
 #include "../../Storage.hpp"
 #include <cstdint>
 
-namespace Storage {
-namespace Encodings {
+namespace Storage::Encodings {
 
 namespace CommodoreGCR {
 	/*!
@@ -48,7 +47,6 @@ namespace CommodoreGCR {
 	unsigned int decoding_from_dectet(unsigned int dectet);
 }
 
-}
 }
 
 #endif /* CommodoreGCR_hpp */

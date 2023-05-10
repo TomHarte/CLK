@@ -12,9 +12,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Storage {
-namespace Data {
-namespace BitReverse {
+namespace Storage::Data::BitReverse {
 
 /*!
 	Reverses the order of the bits in every byte of the vector:
@@ -23,8 +21,8 @@ namespace BitReverse {
 */
 void reverse(std::vector<uint8_t> &vector);
 
-}
-}
+// TODO: is this substantially different from Numeric/BitReverse.hpp?
+
 }
 
 #endif /* BitReverse_hpp */

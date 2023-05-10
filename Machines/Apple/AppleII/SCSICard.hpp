@@ -21,8 +21,7 @@
 #include <array>
 #include <memory>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class SCSICard: public Card {
 	public:
@@ -51,7 +50,6 @@ class SCSICard: public Card {
 		SCSI::Target::Target<SCSI::DirectAccessDevice> storage_;
 };
 
-}
 }
 
 #endif /* SCSICard_hpp */

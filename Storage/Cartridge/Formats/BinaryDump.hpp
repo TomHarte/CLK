@@ -13,8 +13,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Cartridge {
+namespace Storage::Cartridge {
 
 class BinaryDump : public Cartridge {
 	public:
@@ -25,7 +24,6 @@ class BinaryDump : public Cartridge {
 		};
 };
 
-}
 }
 
 #endif /* AcornROM_hpp */

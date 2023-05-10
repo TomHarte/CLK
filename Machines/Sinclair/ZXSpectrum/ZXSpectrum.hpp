@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Sinclair {
-namespace ZXSpectrum {
+namespace Sinclair::ZXSpectrum {
 
 class Machine {
 	public:
@@ -47,8 +46,6 @@ class Machine {
 		};
 };
 
-
-}
 }
 
 #endif /* ZXSpectrum_hpp */

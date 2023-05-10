@@ -18,8 +18,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 /*!
 	Defines the keycodes that could be passed directly via set_key_pressed; these
@@ -119,7 +118,6 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
-}
 }
 
 #endif /* Keyboard_hpp */

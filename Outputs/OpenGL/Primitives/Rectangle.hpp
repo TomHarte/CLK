@@ -13,9 +13,7 @@
 #include "Shader.hpp"
 #include <memory>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	Provides a wrapper for drawing a solid, single-colour rectangle.
@@ -38,8 +36,6 @@ class Rectangle {
 		GLint colour_uniform_;
 };
 
-}
-}
 }
 
 #endif /* Rectangle_hpp */

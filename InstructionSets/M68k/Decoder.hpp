@@ -13,8 +13,7 @@
 #include "Model.hpp"
 #include "../../Numeric/Sizes.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /*!
 	A stateless decoder that can map from instruction words to preinstructions
@@ -115,7 +114,6 @@ template <Model model> class Predecoder {
 		static constexpr Operation operation(OpT op);
 };
 
-}
 }
 
 #endif /* InstructionSets_M68k_Decoder_hpp */

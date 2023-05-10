@@ -15,8 +15,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the configurable interface to multiple machines.
@@ -36,7 +35,6 @@ class MultiConfigurable: public Configurable::Device {
 		std::vector<Configurable::Device *> devices_;
 };
 
-}
 }
 
 #endif /* MultiConfigurable_hpp */

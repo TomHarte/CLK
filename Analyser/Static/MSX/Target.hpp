@@ -14,9 +14,7 @@
 #include "../StaticAnalyser.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace MSX {
+namespace Analyser::Static::MSX {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_disk_drive = false;
@@ -46,8 +44,6 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	}
 };
 
-}
-}
 }
 
 #endif /* Analyser_Static_MSX_Target_h */

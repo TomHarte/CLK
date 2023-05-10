@@ -14,8 +14,7 @@
 
 #include "../../../InstructionSets/M68k/ExceptionVectors.hpp"
 
-namespace CPU {
-namespace MC68000Mk2 {
+namespace CPU::MC68000Mk2 {
 
 #define AddressingDispatch(x)	\
 		x,	x##__end = x + InstructionSet::M68k::AddressingModeCount
@@ -3104,7 +3103,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #pragma GCC diagnostic pop
 #endif
 
-}
 }
 
 #endif /* _8000Mk2Implementation_h */

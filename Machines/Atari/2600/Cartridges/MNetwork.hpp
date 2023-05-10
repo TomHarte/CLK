@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class MNetwork: public BusExtender {
 	public:
@@ -63,7 +62,6 @@ class MNetwork: public BusExtender {
 		uint8_t low_ram_[1024], high_ram_[1024];
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeMNetwork_hpp */

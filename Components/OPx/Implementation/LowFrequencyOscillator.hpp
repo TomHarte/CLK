@@ -11,8 +11,7 @@
 
 #include "../../../Numeric/LFSR.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*!
 	Models the output of the OPL low-frequency oscillator, which provides a couple of optional fixed-frequency
@@ -62,7 +61,6 @@ class LowFrequencyOscillator {
 		Numeric::LFSR<int, 0x800302> noise_source_;
 };
 
-}
 }
 
 #endif /* LowFrequencyOscillator_hpp */

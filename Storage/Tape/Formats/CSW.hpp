@@ -15,8 +15,7 @@
 #include <vector>
 #include <zlib.h>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a CSW tape image, which is a compressed 1-bit sampling.
@@ -62,7 +61,6 @@ class CSW: public Tape {
 		std::size_t source_data_pointer_;
 };
 
-}
 }
 
 #endif /* CSW_hpp */

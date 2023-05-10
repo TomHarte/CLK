@@ -15,10 +15,7 @@
 
 #include "ApplePartitionMap.hpp"
 
-namespace Storage {
-namespace MassStorage {
-namespace Encodings {
-namespace Macintosh {
+namespace Storage::MassStorage::Encodings::Macintosh {
 
 using DriveType = Storage::MassStorage::Encodings::Apple::DriveType;
 
@@ -56,9 +53,6 @@ struct VolumeProvider {
 */
 using Mapper = Storage::MassStorage::Encodings::Apple::PartitionMap<VolumeProvider>;
 
-}
-}
-}
 }
 
 #endif /* MacintoshVolume_hpp */

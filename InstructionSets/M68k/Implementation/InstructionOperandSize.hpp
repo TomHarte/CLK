@@ -9,8 +9,7 @@
 #ifndef InstructionSets_68k_InstructionOperandSize_hpp
 #define InstructionSets_68k_InstructionOperandSize_hpp
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 template <Operation t_operation>
 constexpr DataSize operand_size(Operation r_operation) {
@@ -128,7 +127,6 @@ constexpr DataSize operand_size(Operation r_operation) {
 	}
 }
 
-}
 }
 
 #endif /* InstructionSets_68k_InstructionOperandSize_hpp */

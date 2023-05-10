@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace InstructionSet {
-namespace PowerPC {
+namespace InstructionSet::PowerPC {
 
 enum class CacheLine: uint32_t {
 	Instruction = 0b01100,
@@ -1530,7 +1529,6 @@ struct Instruction {
 // Sanity check on Instruction size.
 static_assert(sizeof(Instruction) <= 8);
 
-}
 }
 
 #endif /* InstructionSets_PowerPC_Instruction_h */

@@ -13,9 +13,7 @@
 #include "../../Track/PCMSegment.hpp"
 #include <map>
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 /*!
 	Scans @c segment for all included sectors, returning a set that maps from location within
@@ -24,8 +22,6 @@ namespace MFM {
 */
 std::map<std::size_t, Sector> sectors_from_segment(const Disk::PCMSegment &&segment, bool is_double_density);
 
-}
-}
 }
 
 #endif /* SegmentParser_hpp */

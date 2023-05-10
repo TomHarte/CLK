@@ -12,8 +12,7 @@
 //
 //	PB6 count-down mode for timer 2.
 
-namespace MOS {
-namespace MOS6522 {
+namespace MOS::MOS6522 {
 
 template <typename T> void MOS6522<T>::access(int address) {
 	switch(address) {
@@ -493,5 +492,4 @@ template <typename T> void MOS6522<T>::shift_out() {
 	}
 }
 
-}
 }

@@ -21,8 +21,7 @@
 
 #include "../C1540.hpp"
 
-namespace Commodore {
-namespace C1540 {
+namespace Commodore::C1540 {
 
 /*!
 	An implementation of the serial-port VIA in a Commodore 1540: the VIA that facilitates all
@@ -160,7 +159,6 @@ class MachineBase:
 		virtual void process_index_hole();
 };
 
-}
 }
 
 #endif /* C1540Base_hpp */

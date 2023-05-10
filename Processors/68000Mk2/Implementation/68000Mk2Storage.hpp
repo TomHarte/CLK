@@ -15,8 +15,7 @@
 
 #include <limits>
 
-namespace CPU {
-namespace MC68000Mk2 {
+namespace CPU::MC68000Mk2 {
 
 struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	ProcessorBase() {
@@ -222,7 +221,6 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	Microcycle awaiting_dtack;
 };
 
-}
 }
 
 #endif /* _8000Mk2Storage_h */

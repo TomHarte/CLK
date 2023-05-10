@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Unpaged: public BusExtender {
 	public:
@@ -25,7 +24,6 @@ class Unpaged: public BusExtender {
 		}
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeUnpaged_hpp */

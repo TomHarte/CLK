@@ -16,8 +16,7 @@
 #include <cstring>
 #include <functional>
 
-namespace SCSI {
-namespace Target {
+namespace SCSI::Target {
 
 /*!
 	Encapsulates the arguments supplied for a target SCSI command during
@@ -396,7 +395,6 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 
 #include "TargetImplementation.hpp"
 
-}
 }
 
 #endif /* SCSI_Target_hpp */

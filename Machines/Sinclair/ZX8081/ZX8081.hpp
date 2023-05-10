@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Sinclair {
-namespace ZX8081 {
+namespace Sinclair::ZX8081 {
 
 /// The ZX80/81 machine.
 class Machine {
@@ -47,7 +46,6 @@ class Machine {
 		};
 };
 
-}
 }
 
 #endif /* ZX8081_hpp */

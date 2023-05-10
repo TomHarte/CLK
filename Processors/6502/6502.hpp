@@ -18,8 +18,7 @@
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
-namespace CPU {
-namespace MOS6502 {
+namespace CPU::MOS6502 {
 
 // Adopt a bunch of things from MOS6502Esque.
 using BusOperation = CPU::MOS6502Esque::BusOperation;
@@ -162,7 +161,6 @@ template <Personality personality, typename BusHandler, bool uses_ready_line> cl
 
 #include "Implementation/6502Implementation.hpp"
 
-}
 }
 
 #endif /* MOS6502_cpp */

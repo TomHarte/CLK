@@ -13,8 +13,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Cartridge {
+namespace Storage::Cartridge {
 
 class PRG : public Cartridge {
 	public:
@@ -25,7 +24,6 @@ class PRG : public Cartridge {
 		};
 };
 
-}
 }
 
 #endif /* PRG_hpp */

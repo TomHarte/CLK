@@ -18,8 +18,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 class Executor;
 using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
@@ -174,7 +173,6 @@ class Executor: public CachingExecutor {
 		inline void subtract_duration(int duration);
 };
 
-}
 }
 
 #endif /* Executor_h */

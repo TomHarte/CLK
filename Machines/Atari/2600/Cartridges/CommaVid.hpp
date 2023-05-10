@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class CommaVid: public BusExtender {
 	public:
@@ -39,7 +38,6 @@ class CommaVid: public BusExtender {
 		uint8_t ram_[1024];
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeCommaVid_hpp */

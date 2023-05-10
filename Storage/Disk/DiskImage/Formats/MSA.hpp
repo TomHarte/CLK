@@ -14,8 +14,7 @@
 
 #include <vector>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage describing an Atari ST MSA disk image:
@@ -41,8 +40,6 @@ class MSA final: public DiskImage {
 		std::vector<std::vector<uint8_t>> uncompressed_tracks_;
 };
 
-
-}
 }
 
 #endif /* MSA_hpp */

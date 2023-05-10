@@ -16,8 +16,7 @@
 #include "../AppleII/LanguageCardSwitches.hpp"
 #include "../AppleII/AuxiliaryMemorySwitches.hpp"
 
-namespace Apple {
-namespace IIgs {
+namespace Apple::IIgs {
 
 class MemoryMap {
 	private:
@@ -687,7 +686,6 @@ class MemoryMap {
 //
 // With a further twist: the modulo and pointer are indexed on ::IsShadowed to eliminate a branch even on that.
 
-}
 }
 
 #endif /* MemoryMap_h */

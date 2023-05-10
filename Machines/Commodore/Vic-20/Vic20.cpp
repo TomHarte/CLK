@@ -36,8 +36,7 @@
 #include <array>
 #include <cstdint>
 
-namespace Commodore {
-namespace Vic20 {
+namespace Commodore::Vic20 {
 
 enum ROMSlot {
 	Kernel = 0,
@@ -755,7 +754,6 @@ class ConcreteMachine:
 		std::shared_ptr<::Commodore::C1540::Machine> c1540_;
 };
 
-}
 }
 
 using namespace Commodore::Vic20;

@@ -11,9 +11,7 @@
 
 #include "../../../Storage/Cartridge/Cartridge.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace MSX {
+namespace Analyser::Static::MSX {
 
 /*!
 	Extends the base cartridge class by adding a (guess at) the banking scheme.
@@ -33,8 +31,6 @@ struct Cartridge: public ::Storage::Cartridge::Cartridge {
 		Storage::Cartridge::Cartridge(segments), type(type) {}
 };
 
-}
-}
 }
 
 #endif /* Cartridge_hpp */

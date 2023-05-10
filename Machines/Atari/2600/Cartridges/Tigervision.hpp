@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Tigervision: public BusExtender {
 	public:
@@ -36,7 +35,6 @@ class Tigervision: public BusExtender {
 		uint8_t *rom_ptr_[2];
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeTigervision_hpp */

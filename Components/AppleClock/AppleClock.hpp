@@ -11,8 +11,7 @@
 
 #include <array>
 
-namespace Apple {
-namespace Clock {
+namespace Apple::Clock {
 
 /*!
 	Models Apple's real-time clocks, as contained in the Macintosh and IIgs.
@@ -293,7 +292,6 @@ class ParallelClock: public ClockStorage {
 		uint8_t control_;
 };
 
-}
 }
 
 #endif /* Apple_RealTimeClock_hpp */

@@ -2372,16 +2372,16 @@
 		4B0ACC0E23775819008902D0 /* 2600 */ = {
 			isa = PBXGroup;
 			children = (
-				4B0ACC0F23775819008902D0 /* Cartridges */,
+				4B0ACC2223775819008902D0 /* Atari2600.cpp */,
 				4B0ACC1D23775819008902D0 /* TIA.cpp */,
-				4B0ACC1E23775819008902D0 /* TIASound.hpp */,
+				4B0ACC2123775819008902D0 /* TIASound.cpp */,
 				4B0ACC1F23775819008902D0 /* Atari2600Inputs.h */,
 				4B0ACC2023775819008902D0 /* Atari2600.hpp */,
-				4B0ACC2123775819008902D0 /* TIASound.cpp */,
-				4B0ACC2223775819008902D0 /* Atari2600.cpp */,
 				4B0ACC2323775819008902D0 /* Bus.hpp */,
 				4B0ACC2423775819008902D0 /* PIA.hpp */,
 				4B0ACC2523775819008902D0 /* TIA.hpp */,
+				4B0ACC1E23775819008902D0 /* TIASound.hpp */,
+				4B0ACC0F23775819008902D0 /* Cartridges */,
 			);
 			path = 2600;
 			sourceTree = "<group>";
@@ -2702,13 +2702,13 @@
 		4B302181208A550100773308 /* DiskII */ = {
 			isa = PBXGroup;
 			children = (
-				4B80CD6D2568A82600176FCC /* DiskIIDrive.cpp */,
-				4B80CD6E2568A82900176FCC /* DiskIIDrive.hpp */,
-				4B302182208A550100773308 /* DiskII.hpp */,
 				4B302183208A550100773308 /* DiskII.cpp */,
+				4B80CD6D2568A82600176FCC /* DiskIIDrive.cpp */,
 				4BEE1498227FC0EA00133682 /* IWM.cpp */,
-				4BEE1499227FC0EA00133682 /* IWM.hpp */,
 				4BCD634722D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp */,
+				4B302182208A550100773308 /* DiskII.hpp */,
+				4B80CD6E2568A82900176FCC /* DiskIIDrive.hpp */,
+				4BEE1499227FC0EA00133682 /* IWM.hpp */,
 				4BCD634822D6756400F567F1 /* MacintoshDoubleDensityDrive.hpp */,
 			);
 			path = DiskII;
@@ -3558,11 +3558,11 @@
 		4B8DD3832634D37E00B3C866 /* State */ = {
 			isa = PBXGroup;
 			children = (
-				4B2B946326377C0200E7097C /* SZX.cpp */,
-				4B2B946426377C0200E7097C /* SZX.hpp */,
 				4B8DD3842634D37E00B3C866 /* SNA.cpp */,
-				4B8DD3852634D37E00B3C866 /* SNA.hpp */,
+				4B2B946326377C0200E7097C /* SZX.cpp */,
 				4B8DD39526360DDF00B3C866 /* Z80.cpp */,
+				4B8DD3852634D37E00B3C866 /* SNA.hpp */,
+				4B2B946426377C0200E7097C /* SZX.hpp */,
 				4B8DD39626360DDF00B3C866 /* Z80.hpp */,
 			);
 			path = State;
@@ -4543,9 +4543,9 @@
 		4BC23A212467600E001A6030 /* OPx */ = {
 			isa = PBXGroup;
 			children = (
+				4BC23A2B2467600E001A6030 /* OPLL.cpp */,
 				4BC23A222467600E001A6030 /* OPLL.hpp */,
 				4BC23A232467600E001A6030 /* Implementation */,
-				4BC23A2B2467600E001A6030 /* OPLL.cpp */,
 			);
 			path = OPx;
 			sourceTree = "<group>";
@@ -4553,13 +4553,13 @@
 		4BC23A232467600E001A6030 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
-				4BC23A242467600E001A6030 /* PhaseGenerator.hpp */,
+				4BC23A2A2467600E001A6030 /* EnvelopeGenerator.hpp */,
 				4BC23A252467600E001A6030 /* KeyLevelScaler.hpp */,
 				4BC23A262467600E001A6030 /* LowFrequencyOscillator.hpp */,
-				4BC23A272467600E001A6030 /* WaveformGenerator.hpp */,
-				4BC23A282467600E001A6030 /* Tables.hpp */,
 				4BC23A292467600E001A6030 /* OPLBase.hpp */,
-				4BC23A2A2467600E001A6030 /* EnvelopeGenerator.hpp */,
+				4BC23A242467600E001A6030 /* PhaseGenerator.hpp */,
+				4BC23A282467600E001A6030 /* Tables.hpp */,
+				4BC23A272467600E001A6030 /* WaveformGenerator.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";

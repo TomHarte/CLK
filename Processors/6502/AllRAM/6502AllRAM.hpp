@@ -12,8 +12,7 @@
 #include "../../6502Esque/6502Selector.hpp"
 #include "../../AllRAMProcessor.hpp"
 
-namespace CPU {
-namespace MOS6502 {
+namespace CPU::MOS6502 {
 
 class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
@@ -35,7 +34,6 @@ class AllRAMProcessor:
 		AllRAMProcessor(size_t memory_size) : ::CPU::AllRAMProcessor(memory_size) {}
 };
 
-}
 }
 
 #endif /* MOS6502AllRAM_cpp */

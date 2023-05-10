@@ -12,8 +12,7 @@
 #include "Audio.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 struct DeferredAudio {
 	Concurrency::AsyncTaskQueue<false> queue;
@@ -28,7 +27,6 @@ struct DeferredAudio {
 	}
 };
 
-}
 }
 
 #endif /* DeferredAudio_h */

@@ -12,8 +12,7 @@
 #include "../Z80.hpp"
 #include "../../AllRAMProcessor.hpp"
 
-namespace CPU {
-namespace Z80 {
+namespace CPU::Z80 {
 
 class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
@@ -52,7 +51,6 @@ class AllRAMProcessor:
 		AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
 };
 
-}
 }
 
 #endif /* Z80AllRAM_hpp */

@@ -16,8 +16,7 @@
 #include <array>
 #include <atomic>
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 /*!
 	Implements the Macintosh's audio output hardware.
@@ -83,7 +82,6 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		void set_volume_multiplier();
 };
 
-}
 }
 
 #endif /* Audio_hpp */

@@ -15,8 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
@@ -49,7 +48,6 @@ class CommodoreTAP: public Tape {
 		bool is_at_end_ = false;
 };
 
-}
 }
 
 #endif /* CommodoreTAP_hpp */

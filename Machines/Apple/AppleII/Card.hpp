@@ -13,8 +13,7 @@
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../Activity/Observer.hpp"
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 /*!
 	This provides a small subset of the interface offered to cards installed in
@@ -112,7 +111,6 @@ class Card {
 		}
 };
 
-}
 }
 
 #endif /* Card_h */

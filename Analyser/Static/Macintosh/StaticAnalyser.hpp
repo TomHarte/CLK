@@ -13,15 +13,10 @@
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Macintosh {
+namespace Analyser::Static::Macintosh {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-}
-}
-
 
 #endif /* Analyser_Static_Macintosh_StaticAnalyser_hpp */

@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an HFE: a bit stream representation of a floppy.
@@ -48,7 +47,5 @@ class HFE: public DiskImage {
 };
 
 }
-}
-
 
 #endif /* HFE_hpp */

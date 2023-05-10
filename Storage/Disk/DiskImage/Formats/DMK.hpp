@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing a DMK disk image: mostly a decoded byte stream, but with
@@ -49,7 +48,6 @@ class DMK: public DiskImage {
 		bool is_purely_single_density_;
 };
 
-}
 }
 
 #endif /* DMK_hpp */

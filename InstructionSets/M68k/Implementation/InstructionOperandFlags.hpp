@@ -9,8 +9,7 @@
 #ifndef InstructionSets_68k_InstructionOperandFlags_hpp
 #define InstructionSets_68k_InstructionOperandFlags_hpp
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Operation r_operation) {
 	switch((t_operation != Operation::Undefined) ? t_operation : r_operation) {
@@ -168,7 +167,6 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 	}
 }
 
-}
 }
 
 #endif /* InstructionSets_68k_InstructionOperandFlags_hpp */

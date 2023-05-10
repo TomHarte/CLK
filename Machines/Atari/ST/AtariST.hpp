@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Atari {
-namespace ST {
+namespace Atari::ST {
 
 class Machine {
 	public:
@@ -39,5 +38,5 @@ class Machine {
 };
 
 }
-}
+
 #endif /* AtariST_hpp */

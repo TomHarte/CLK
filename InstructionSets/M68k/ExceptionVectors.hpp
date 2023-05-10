@@ -9,8 +9,7 @@
 #ifndef InstructionSets_M68k_ExceptionVectors_hpp
 #define InstructionSets_M68k_ExceptionVectors_hpp
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 enum Exception {
 	InitialStackPointer					= 0,
@@ -44,7 +43,6 @@ enum Exception {
 	MMUAccessLevelViolationError		= 58,
 };
 
-}
 }
 
 #endif /* InstructionSets_M68k_ExceptionVectors_hpp */

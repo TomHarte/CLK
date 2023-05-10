@@ -13,8 +13,7 @@
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../InstructionSets/M68k/RegisterSet.hpp"
 
-namespace CPU {
-namespace MC68000Mk2 {
+namespace CPU::MC68000Mk2 {
 
 /*!
 	A microcycle is an atomic unit of 68000 bus activity — it is a single item large enough
@@ -359,12 +358,10 @@ struct State {
 };
 
 }
-}
 
 #include "Implementation/68000Mk2Storage.hpp"
 
-namespace CPU {
-namespace MC68000Mk2 {
+namespace CPU::MC68000Mk2 {
 
 /*!
 	Provides an emulation of the 68000 with accurate bus logic via the @c BusHandler, subject to the following template parameters:
@@ -447,7 +444,6 @@ class Processor: private ProcessorBase {
 		BusHandler &bus_handler_;
 };
 
-}
 }
 
 #include "Implementation/68000Mk2Implementation.hpp"

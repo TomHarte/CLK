@@ -14,8 +14,7 @@
 #include "Status.hpp"
 #include "../../Numeric/RegisterSizes.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 struct NullFlowController {
 	//
@@ -167,7 +166,6 @@ template <
 	Operation operation = Operation::Undefined
 > void perform(Preinstruction instruction, CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
 
-}
 }
 
 #include "Implementation/PerformImplementation.hpp"

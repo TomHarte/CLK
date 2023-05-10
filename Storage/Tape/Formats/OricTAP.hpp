@@ -15,8 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing an Oric-format tape image, which is a byte stream capture.
@@ -54,7 +53,6 @@ class OricTAP: public Tape {
 		uint16_t data_end_address_, data_start_address_;
 };
 
-}
 }
 
 #endif /* OricTAP_hpp */

@@ -13,8 +13,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an ADF disk image: a decoded sector dump of an Acorn ADFS disk.
@@ -37,7 +36,6 @@ class AcornADF: public MFMSectorDump {
 		int head_count_ = 1;
 };
 
-}
 }
 
 #endif /* AcornADF_hpp */

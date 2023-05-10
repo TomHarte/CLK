@@ -16,8 +16,7 @@
 #include <vector>
 #include <map>
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing an HFV image, which is a sector dump of
@@ -48,7 +47,6 @@ class HFV: public MassStorageDevice, public Encodings::Macintosh::Volume {
 		std::map<size_t, std::vector<uint8_t>> writes_;
 };
 
-}
 }
 
 #endif /* HFV_hpp */

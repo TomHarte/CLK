@@ -15,9 +15,7 @@
 #include "Video.hpp"
 #include "../../../Components/AY38910/AY38910.hpp"
 
-namespace Sinclair {
-namespace ZXSpectrum {
-
+namespace Sinclair::ZXSpectrum {
 
 struct State: public Reflection::StructImpl<State> {
 	CPU::Z80::State z80;
@@ -47,7 +45,6 @@ struct State: public Reflection::StructImpl<State> {
 	}
 };
 
-}
 }
 
 #endif /* State_h */

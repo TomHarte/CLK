@@ -13,8 +13,7 @@
 #include "Decoder.hpp"
 #include "../AccessType.hpp"
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 template<typename Target, bool include_entries_and_accesses> struct Parser {
 	void parse(Target &target, const uint8_t *storage, uint16_t start, uint16_t closing_bound) {
@@ -119,7 +118,6 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 	}
 };
 
-}
 }
 
 #endif /* InstructionSets_M50740_Parser_hpp */

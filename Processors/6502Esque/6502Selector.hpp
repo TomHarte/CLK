@@ -12,8 +12,7 @@
 #include "../6502/6502.hpp"
 #include "../65816/65816.hpp"
 
-namespace CPU {
-namespace MOS6502Esque {
+namespace CPU::MOS6502Esque {
 
 enum class Type {
 	TNES6502,			// the NES's 6502, which is like a 6502 but lacks decimal mode (though it retains the decimal flag)
@@ -46,7 +45,6 @@ template <typename BusHandler, bool uses_ready_line> class Processor<Type::TWDC6
 template <Type processor_type> class BusHandlerT: public BusHandler<uint16_t> {};
 template <> class BusHandlerT<Type::TWDC65816>: public BusHandler<uint32_t> {};
 
-}
 }
 
 #endif /* _502Selector_h */

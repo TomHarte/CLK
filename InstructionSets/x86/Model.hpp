@@ -9,8 +9,7 @@
 #ifndef Model_h
 #define Model_h
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 enum class Model {
 	i8086,
@@ -21,7 +20,6 @@ enum class Model {
 
 static constexpr bool is_32bit(Model model) { return model >= Model::i80386; }
 
-}
 }
 
 #endif /* Model_h */

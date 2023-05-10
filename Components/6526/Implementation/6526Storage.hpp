@@ -13,8 +13,7 @@
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
-namespace MOS {
-namespace MOS6526 {
+namespace MOS::MOS6526 {
 
 class TODBase {
 	public:
@@ -333,7 +332,6 @@ struct MOS6526Storage {
 	int pending_ = 0;
 };
 
-}
 }
 
 #endif /* _526Storage_h */

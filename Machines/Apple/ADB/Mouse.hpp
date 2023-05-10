@@ -12,8 +12,7 @@
 #include "ReactiveDevice.hpp"
 #include "../../../Inputs/Mouse.hpp"
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 class Mouse: public ReactiveDevice, public Inputs::Mouse {
 	public:
@@ -32,7 +31,6 @@ class Mouse: public ReactiveDevice, public Inputs::Mouse {
 		uint16_t last_posted_reg0_ = 0;
 };
 
-}
 }
 
 #endif /* Mouse_hpp */

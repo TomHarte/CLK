@@ -13,8 +13,7 @@
 #include "LowFrequencyOscillator.hpp"
 #include "Tables.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*!
 	Models an OPL-style phase generator of templated precision; having been told its period ('f-num'), octave ('block') and
@@ -119,7 +118,6 @@ template <int precision> class PhaseGenerator {
 		int enable_vibrato_ = 0;
 };
 
-}
 }
 
 #endif /* PhaseGenerator_h */

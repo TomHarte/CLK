@@ -14,9 +14,7 @@
 #include "../StaticAnalyser.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace AmstradCPC {
+namespace Analyser::Static::AmstradCPC {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, CPC464, CPC664, CPC6128);
@@ -32,8 +30,5 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 };
 
 }
-}
-}
-
 
 #endif /* Analyser_Static_AmstradCPC_Target_h */

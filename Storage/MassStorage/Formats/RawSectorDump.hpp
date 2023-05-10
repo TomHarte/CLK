@@ -14,8 +14,7 @@
 
 #include <cassert>
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 template <long sector_size> class RawSectorDump: public MassStorageDevice {
 	public:
@@ -53,7 +52,6 @@ template <long sector_size> class RawSectorDump: public MassStorageDevice {
 		const long file_size_, file_start_;
 };
 
-}
 }
 
 #endif /* RawSectorDump_h */

@@ -15,9 +15,7 @@
 #include <optional>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
-namespace ZXSpectrum {
+namespace Storage::Tape::ZXSpectrum {
 
 enum class WaveType {
 	// All references to 't-states' below are cycles relative to the
@@ -131,8 +129,6 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		void set_cpc_one_zero_boundary(float);
 };
 
-}
-}
 }
 
 #endif /* Spectrum_hpp */

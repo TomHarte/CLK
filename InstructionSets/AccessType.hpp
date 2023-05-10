@@ -20,5 +20,4 @@ enum class AccessType {
 
 }
 
-
 #endif /* AccessType_h */

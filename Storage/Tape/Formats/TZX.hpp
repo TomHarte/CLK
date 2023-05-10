@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a CSW tape image, which is a compressed 1-bit sampling.
@@ -100,5 +99,5 @@ class TZX: public PulseQueuedTape {
 };
 
 }
-}
+
 #endif /* TZX_hpp */

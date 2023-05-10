@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class MegaBoy: public BusExtender {
 	public:
@@ -41,7 +40,6 @@ class MegaBoy: public BusExtender {
 		uint8_t current_page_;
 };
 
-}
 }
 
 #endif /* CartridgeMegaBoy_h */

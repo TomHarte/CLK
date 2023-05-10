@@ -21,8 +21,7 @@
 
 	So: this is _very_ provisional stuff.
 */
-namespace CPU {
-namespace MOS6502Esque {
+namespace CPU::MOS6502Esque {
 
 /*
 	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
@@ -143,7 +142,6 @@ template <typename addr_t> class BusHandler {
 		}
 };
 
-}
 }
 
 #endif /* m6502Esque_h */

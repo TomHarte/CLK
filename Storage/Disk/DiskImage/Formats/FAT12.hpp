@@ -13,8 +13,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage holding an MSDOS-style FAT12 disk image:
@@ -35,7 +34,6 @@ class FAT12: public MFMSectorDump {
 		int sector_size_;
 };
 
-}
 }
 
 #endif /* MSXDSK_hpp */

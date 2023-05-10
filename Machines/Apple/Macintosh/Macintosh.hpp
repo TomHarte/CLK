@@ -14,8 +14,7 @@
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../ROMMachine.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 class Machine {
 	public:
@@ -36,8 +35,6 @@ class Machine {
 		};
 };
 
-
-}
 }
 
 #endif /* Macintosh_hpp */

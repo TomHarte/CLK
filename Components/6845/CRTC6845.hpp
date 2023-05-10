@@ -14,8 +14,7 @@
 #include <cstdint>
 #include <cstdio>
 
-namespace Motorola {
-namespace CRTC {
+namespace Motorola::CRTC {
 
 struct BusState {
 	bool display_enable = false;
@@ -269,7 +268,6 @@ template <class T> class CRTC6845 {
 		unsigned int character_is_visible_shifter_ = 0;
 };
 
-}
 }
 
 #endif /* CRTC6845_hpp */

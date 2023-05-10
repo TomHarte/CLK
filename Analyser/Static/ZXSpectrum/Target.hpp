@@ -13,9 +13,7 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace ZXSpectrum {
+namespace Analyser::Static::ZXSpectrum {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model,
@@ -38,8 +36,6 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	}
 };
 
-}
-}
 }
 
 #endif /* Target_h */

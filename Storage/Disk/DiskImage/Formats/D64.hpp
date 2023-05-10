@@ -12,8 +12,7 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing a D64 disk image: a decoded sector dump of a C1540-format disk.
@@ -39,7 +38,6 @@ class D64: public DiskImage {
 		uint16_t disk_id_;
 };
 
-}
 }
 
 #endif /* D64_hpp */

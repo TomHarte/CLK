@@ -15,8 +15,7 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
-namespace MOS {
-namespace MOS6560 {
+namespace MOS::MOS6560 {
 
 // audio state
 class AudioGenerator: public ::Outputs::Speaker::SampleSource {
@@ -520,7 +519,6 @@ template <class BusHandler> class MOS6560 {
 		OutputMode output_mode_ = OutputMode::NTSC;
 };
 
-}
 }
 
 #endif /* _560_hpp */

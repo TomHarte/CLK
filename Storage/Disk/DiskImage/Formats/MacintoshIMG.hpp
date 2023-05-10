@@ -12,8 +12,7 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing either:
@@ -73,7 +72,6 @@ class MacintoshIMG: public DiskImage {
 		long raw_offset_ = 0;
 };
 
-}
 }
 
 #endif /* DiskCopy42_hpp */

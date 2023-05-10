@@ -11,8 +11,7 @@
 
 #include "IWM.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 class DoubleDensityDrive: public IWMDrive {
 	public:
@@ -47,7 +46,6 @@ class DoubleDensityDrive: public IWMDrive {
 		int step_direction_ = 1;
 };
 
-}
 }
 
 #endif /* MacintoshDoubleDensityDrive_hpp */

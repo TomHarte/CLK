@@ -9,8 +9,7 @@
 #ifndef KeyLevelScaler_h
 #define KeyLevelScaler_h
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 template <int frequency_precision> class KeyLevelScaler {
 	public:
@@ -51,8 +50,6 @@ template <int frequency_precision> class KeyLevelScaler {
 		int shift_ = 0;
 };
 
-
-}
 }
 
 #endif /* KeyLevelScaler_h */
