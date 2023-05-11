@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace Zilog {
-namespace SCC {
+namespace Zilog::SCC {
 
 /*!
 	Models the Zilog 8530 SCC, a serial adaptor.
@@ -110,7 +109,5 @@ class z8530 {
 };
 
 }
-}
-
 
 #endif /* z8530_hpp */

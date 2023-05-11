@@ -18,9 +18,7 @@
 #include <array>
 #include <vector>
 
-namespace Apple {
-namespace II {
-namespace Video {
+namespace Apple::II::Video {
 
 class BusHandler {
 	public:
@@ -439,8 +437,6 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		BusHandler &bus_handler_;
 };
 
-}
-}
 }
 
 #endif /* Apple_II_Video_hpp */

@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Commodore {
-namespace Vic20 {
+namespace Commodore::Vic20 {
 
 /// @returns The options available for a Vic-20.
 std::unique_ptr<Reflection::Struct> get_options();
@@ -45,7 +44,6 @@ class Machine {
 		};
 };
 
-}
 }
 
 #endif /* Vic20_hpp */

@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Apple {
-namespace IIgs {
+namespace Apple::IIgs {
 
 class Machine {
 	public:
@@ -27,7 +26,6 @@ class Machine {
 		static Machine *AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
-}
 }
 
 #endif /* Machines_Apple_AppleIIgs_hpp */

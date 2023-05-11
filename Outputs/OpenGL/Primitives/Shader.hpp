@@ -16,9 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	A @c Shader compiles and holds a shader object, based on a single
@@ -130,8 +128,6 @@ protected:
 	void enqueue_function(std::function<void(void)> function);
 };
 
-}
-}
 }
 
 #endif /* Shader_hpp */

@@ -9,9 +9,7 @@
 #ifndef Kernel_hpp
 #define Kernel_hpp
 
-namespace Analyser {
-namespace Static {
-namespace Disassembly {
+namespace Analyser::Static::Disassembly {
 
 template <typename D, typename S> struct PartialDisassembly {
 	D disassembly;
@@ -45,8 +43,6 @@ template <typename D, typename S, typename Disassembler> D Disassemble(
 	return partial_disassembly.disassembly;
 }
 
-}
-}
 }
 
 #endif /* Kernel_hpp */

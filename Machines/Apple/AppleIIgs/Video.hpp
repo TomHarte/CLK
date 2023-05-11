@@ -13,9 +13,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
-namespace Apple {
-namespace IIgs {
-namespace Video {
+namespace Apple::IIgs::Video {
 
 /*!
 	Provides IIgs video output; assumed clocking here is seven times the usual Apple II clock.
@@ -205,8 +203,6 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		int megaii_frame_counter_ = 0;	// To count up to quarter-second interrupts.
 };
 
-}
-}
 }
 
 #endif /* Video_hpp */

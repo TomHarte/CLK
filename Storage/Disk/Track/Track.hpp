@@ -12,8 +12,7 @@
 #include "../../Storage.hpp"
 #include <tuple>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Contains a head position, with some degree of sub-integral precision.
@@ -126,7 +125,6 @@ class Track {
 		virtual Track *clone() const = 0;
 };
 
-}
 }
 
 #endif /* Track_h */

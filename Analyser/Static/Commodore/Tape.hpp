@@ -12,14 +12,10 @@
 #include "../../../Storage/Tape/Tape.hpp"
 #include "File.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Commodore {
+namespace Analyser::Static::Commodore {
 
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-}
-}
 }
 
 #endif /* Tape_hpp */

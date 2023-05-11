@@ -14,8 +14,7 @@
 // Subject to corrections:
 //
 //	* CWAI and the pushes and pulls at 0x3x are immediate, not inherent.
-namespace InstructionSet {
-namespace M6809 {
+namespace InstructionSet::M6809 {
 
 enum class AddressingMode {
 	Illegal,
@@ -239,7 +238,6 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page2>::dispatc
 	}
 }
 
-}
 }
 
 #endif /* InstructionSets_M6809_OperationMapper_hpp */

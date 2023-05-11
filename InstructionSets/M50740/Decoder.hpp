@@ -14,8 +14,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 class Decoder {
 	public:
@@ -33,7 +32,6 @@ class Decoder {
 		Instruction instr_;
 };
 
-}
 }
 
 #endif /* InstructionSets_M50740_Decoder_hpp */

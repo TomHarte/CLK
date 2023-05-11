@@ -13,9 +13,7 @@
 #include "../../../Numeric/CRC.hpp"
 #include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
-namespace Storage {
-namespace Tape {
-namespace Acorn {
+namespace Storage::Tape::Acorn {
 
 class Shifter {
 	public:
@@ -66,8 +64,6 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 		Shifter shifter_;
 };
 
-}
-}
 }
 
 #endif /* Acorn_hpp */

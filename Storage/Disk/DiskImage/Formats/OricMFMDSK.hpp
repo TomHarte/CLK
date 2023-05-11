@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an Oric MFM-stype disk image: a stream of the MFM data bits with clocks omitted.
@@ -46,7 +45,6 @@ class OricMFMDSK: public DiskImage {
 		uint32_t geometry_type_;
 };
 
-}
 }
 
 #endif /* OricMFMDSK_hpp */

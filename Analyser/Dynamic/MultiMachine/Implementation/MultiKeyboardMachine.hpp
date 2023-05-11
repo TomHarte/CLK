@@ -15,8 +15,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the keyboard machine interface to multiple machines.
@@ -55,7 +54,6 @@ class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 		Inputs::Keyboard &get_keyboard() final;
 };
 
-}
 }
 
 #endif /* MultiKeyboardMachine_hpp */

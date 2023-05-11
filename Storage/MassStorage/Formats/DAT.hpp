@@ -11,8 +11,7 @@
 
 #include "RawSectorDump.hpp"
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing an Acorn ADFS image, which is just a
@@ -24,7 +23,6 @@ class DAT: public RawSectorDump<256> {
 		DAT(const std::string &file_name);
 };
 
-}
 }
 
 #endif /* MassStorage_DAT_hpp */

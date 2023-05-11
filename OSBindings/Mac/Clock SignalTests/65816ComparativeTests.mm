@@ -93,8 +93,8 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 
 		using Register = CPU::MOS6502Esque::Register;
 		const uint32_t pc =
-			processor.get_value_of_register(Register::ProgramCounter) |
-			(processor.get_value_of_register(Register::ProgramBank) << 16);
+			processor.value_of(Register::ProgramCounter) |
+			(processor.value_of(Register::ProgramBank) << 16);
 		inventions[pc] = ram[pc] = opcode;
 	}
 
@@ -120,16 +120,16 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 
 template <typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset) {
 	using Register = CPU::MOS6502Esque::Register;
-	fprintf(file, "\"pc\": %d, ", (processor.get_value_of_register(Register::ProgramCounter) + pc_offset) & 65535);
-	fprintf(file, "\"s\": %d, ", processor.get_value_of_register(Register::StackPointer));
-	fprintf(file, "\"p\": %d, ", processor.get_value_of_register(Register::Flags));
-	fprintf(file, "\"a\": %d, ", processor.get_value_of_register(Register::A));
-	fprintf(file, "\"x\": %d, ", processor.get_value_of_register(Register::X));
-	fprintf(file, "\"y\": %d, ", processor.get_value_of_register(Register::Y));
-	fprintf(file, "\"dbr\": %d, ", processor.get_value_of_register(Register::DataBank));
-	fprintf(file, "\"d\": %d, ", processor.get_value_of_register(Register::Direct));
-	fprintf(file, "\"pbr\": %d, ", processor.get_value_of_register(Register::ProgramBank));
-	fprintf(file, "\"e\": %d, ", processor.get_value_of_register(Register::EmulationFlag));
+	fprintf(file, "\"pc\": %d, ", (processor.value_of(Register::ProgramCounter) + pc_offset) & 65535);
+	fprintf(file, "\"s\": %d, ", processor.value_of(Register::StackPointer));
+	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
+	fprintf(file, "\"a\": %d, ", processor.value_of(Register::A));
+	fprintf(file, "\"x\": %d, ", processor.value_of(Register::X));
+	fprintf(file, "\"y\": %d, ", processor.value_of(Register::Y));
+	fprintf(file, "\"dbr\": %d, ", processor.value_of(Register::DataBank));
+	fprintf(file, "\"d\": %d, ", processor.value_of(Register::Direct));
+	fprintf(file, "\"pbr\": %d, ", processor.value_of(Register::ProgramBank));
+	fprintf(file, "\"e\": %d, ", processor.value_of(Register::EmulationFlag));
 }
 
 void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
@@ -180,19 +180,19 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 
 			// Randomise most of the processor state...
 			using Register = CPU::MOS6502Esque::Register;
-			handler.processor.set_value_of_register(Register::A, rand() >> 8);
-			handler.processor.set_value_of_register(Register::Flags, rand() >> 8);
-			handler.processor.set_value_of_register(Register::X, rand() >> 8);
-			handler.processor.set_value_of_register(Register::Y, rand() >> 8);
-			handler.processor.set_value_of_register(Register::ProgramCounter, rand() >> 8);
-			handler.processor.set_value_of_register(Register::StackPointer, rand() >> 8);
-			handler.processor.set_value_of_register(Register::DataBank, rand() >> 8);
-			handler.processor.set_value_of_register(Register::ProgramBank, rand() >> 8);
-			handler.processor.set_value_of_register(Register::Direct, rand() >> 8);
+			handler.processor.set_value_of(Register::A, rand() >> 8);
+			handler.processor.set_value_of(Register::Flags, rand() >> 8);
+			handler.processor.set_value_of(Register::X, rand() >> 8);
+			handler.processor.set_value_of(Register::Y, rand() >> 8);
+			handler.processor.set_value_of(Register::ProgramCounter, rand() >> 8);
+			handler.processor.set_value_of(Register::StackPointer, rand() >> 8);
+			handler.processor.set_value_of(Register::DataBank, rand() >> 8);
+			handler.processor.set_value_of(Register::ProgramBank, rand() >> 8);
+			handler.processor.set_value_of(Register::Direct, rand() >> 8);
 
 			// ... except for emulation mode, which is a given.
 			// And is set last to ensure proper internal state is applied.
-			handler.processor.set_value_of_register(Register::EmulationFlag, is_emulated);
+			handler.processor.set_value_of(Register::EmulationFlag, is_emulated);
 
 			// Establish the opcode.
 			handler.setup(opcode);

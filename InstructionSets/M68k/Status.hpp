@@ -11,8 +11,7 @@
 
 #include "Instruction.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 namespace ConditionCode {
 
@@ -159,7 +158,6 @@ struct Status {
 	}
 };
 
-}
 }
 
 #endif /* InstructionSets_M68k_Status_h */

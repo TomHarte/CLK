@@ -14,8 +14,7 @@
 #include "../../Storage/MassStorage/SCSI/SCSI.hpp"
 
 
-namespace NCR {
-namespace NCR5380 {
+namespace NCR::NCR5380 {
 
 /*!
 	Models the NCR 5380, a SCSI interface chip.
@@ -86,7 +85,6 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		bool phase_matches() const;
 };
 
-}
 }
 
 #endif /* ncr5380_hpp */

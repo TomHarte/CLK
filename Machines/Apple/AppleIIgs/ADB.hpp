@@ -17,9 +17,7 @@
 #include "../ADB/Mouse.hpp"
 #include "../ADB/Keyboard.hpp"
 
-namespace Apple {
-namespace IIgs {
-namespace ADB {
+namespace Apple::IIgs::ADB {
 
 class GLU: public InstructionSet::M50740::PortHandler {
 	public:
@@ -85,8 +83,6 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		Apple::ADB::Keyboard keyboard_;
 };
 
-}
-}
 }
 
 #endif /* Apple_IIgs_ADB_hpp */

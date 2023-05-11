@@ -16,9 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Disk {
-namespace FAT {
+namespace Storage::Disk::FAT {
 
 struct File {
 	std::string name;
@@ -72,8 +70,6 @@ std::optional<Volume> GetVolume(const std::shared_ptr<Storage::Disk::Disk> &disk
 std::optional<std::vector<uint8_t>> GetFile(const std::shared_ptr<Storage::Disk::Disk> &disk, const Volume &volume, const File &file);
 std::optional<Directory> GetDirectory(const std::shared_ptr<Storage::Disk::Disk> &disk, const Volume &volume, const File &file);
 
-}
-}
 }
 
 #endif /* FAT_hpp */

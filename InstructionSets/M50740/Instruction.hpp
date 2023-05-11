@@ -15,8 +15,7 @@
 #include <sstream>
 #include "../AccessType.hpp"
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 enum class AddressingMode {
 	Implied,				Accumulator,			Immediate,
@@ -236,7 +235,5 @@ inline std::ostream &operator <<(std::ostream &stream, const Instruction &instru
 }
 
 }
-}
-
 
 #endif /* InstructionSets_M50740_Instruction_h */

@@ -21,8 +21,7 @@
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
+namespace Analyser::Static {
 
 struct State;
 
@@ -79,7 +78,6 @@ TargetList GetTargets(const std::string &file_name);
 */
 Media GetMedia(const std::string &file_name);
 
-}
 }
 
 #endif /* StaticAnalyser_hpp */

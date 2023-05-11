@@ -79,11 +79,11 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 }
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachine6502Register)reg {
-	_processor->set_value_of_register(registerForRegister(reg), value);
+	_processor->set_value_of(registerForRegister(reg), value);
 }
 
 - (uint16_t)valueForRegister:(CSTestMachine6502Register)reg {
-	return _processor->get_value_of_register(registerForRegister(reg));
+	return _processor->value_of(registerForRegister(reg));
 }
 
 - (void)setData:(NSData *)data atAddress:(uint32_t)startAddress {

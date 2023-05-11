@@ -18,8 +18,7 @@
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
-namespace CPU {
-namespace MOS6502 {
+namespace CPU::MOS6502 {
 
 // Adopt a bunch of things from MOS6502Esque.
 using BusOperation = CPU::MOS6502Esque::BusOperation;
@@ -60,22 +59,22 @@ class ProcessorBase: public ProcessorStorage {
 		/*!
 			Gets the value of a register.
 
-			@see set_value_of_register
+			@see set_value_of
 
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		inline uint16_t get_value_of_register(Register r) const;
+		inline uint16_t value_of(Register r) const;
 
 		/*!
 			Sets the value of a register.
 
-			@see get_value_of_register
+			@see value_of
 
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
 		*/
-		inline void set_value_of_register(Register r, uint16_t value);
+		inline void set_value_of(Register r, uint16_t value);
 
 		/*!
 			Sets the current level of the RST line.
@@ -162,7 +161,6 @@ template <Personality personality, typename BusHandler, bool uses_ready_line> cl
 
 #include "Implementation/6502Implementation.hpp"
 
-}
 }
 
 #endif /* MOS6502_cpp */

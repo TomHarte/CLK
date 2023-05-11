@@ -19,8 +19,7 @@
 #include "../6502Esque/6502Esque.hpp"
 #include "../6502Esque/Implementation/LazyFlags.hpp"
 
-namespace CPU {
-namespace WDC65816 {
+namespace CPU::WDC65816 {
 
 using BusOperation = CPU::MOS6502Esque::BusOperation;
 using Register = CPU::MOS6502Esque::Register;
@@ -61,8 +60,8 @@ class ProcessorBase: protected ProcessorStorage {
 		*/
 		inline void restart_operation_fetch();
 
-		void set_value_of_register(Register r, uint16_t value);
-		uint16_t get_value_of_register(Register r) const;
+		void set_value_of(Register r, uint16_t value);
+		uint16_t value_of(Register r) const;
 };
 
 template <typename BusHandler, bool uses_ready_line> class Processor: public ProcessorBase {
@@ -92,7 +91,6 @@ template <typename BusHandler, bool uses_ready_line> class Processor: public Pro
 
 #include "Implementation/65816Implementation.hpp"
 
-}
 }
 
 #endif /* WDC65816_hpp */

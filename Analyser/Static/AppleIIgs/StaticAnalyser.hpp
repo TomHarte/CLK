@@ -13,14 +13,10 @@
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace AppleIIgs {
+namespace Analyser::Static::AppleIIgs {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
-}
-}
 }
 
 #endif /* Analyser_Static_AppleIIgs_StaticAnalyser_hpp */

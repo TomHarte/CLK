@@ -15,8 +15,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 class ReactiveDevice: public Bus::Device {
 	protected:
@@ -60,7 +59,6 @@ class ReactiveDevice: public Bus::Device {
 		void reset();
 };
 
-}
 }
 
 #endif /* ReactiveDevice_hpp */

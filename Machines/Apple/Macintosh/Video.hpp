@@ -14,8 +14,7 @@
 #include "DeferredAudio.hpp"
 #include "DriveSpeedAccumulator.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 constexpr HalfCycles line_length(704);
 constexpr int number_of_lines = 370;
@@ -102,7 +101,6 @@ class Video {
 		bool use_alternate_audio_buffer_ = false;
 };
 
-}
 }
 
 #endif /* Video_hpp */

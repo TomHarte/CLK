@@ -13,9 +13,7 @@
 #include "../StaticAnalyser.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_acorn_adfs = false;
@@ -37,8 +35,6 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	}
 };
 
-}
-}
 }
 
 #endif /* Analyser_Static_Acorn_Target_h */

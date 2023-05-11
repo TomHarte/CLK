@@ -11,9 +11,7 @@
 
 #include "TapeParser.hpp"
 
-namespace Storage {
-namespace Tape {
-namespace Oric {
+namespace Storage::Tape::Oric {
 
 enum class WaveType {
 	Short,	// i.e. 416 microseconds
@@ -52,9 +50,6 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		std::size_t pattern_matching_depth(const std::vector<WaveType> &waves, const Pattern *pattern);
 };
 
-
-}
-}
 }
 
 #endif /* Oric_hpp */

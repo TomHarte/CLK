@@ -11,8 +11,7 @@
 
 #include "IWM.hpp"
 
-namespace Apple {
-namespace Disk {
+namespace Apple::Disk {
 
 class DiskIIDrive: public IWMDrive {
 	public:
@@ -27,7 +26,6 @@ class DiskIIDrive: public IWMDrive {
 		int stepper_position_ = 0;
 };
 
-}
 }
 
 #endif /* DiskIIDrive_hpp */

@@ -21,8 +21,7 @@
 #include <memory>
 #include <vector>
 
-namespace Atari {
-namespace ST {
+namespace Atari::ST {
 
 enum class Key: uint16_t {
 	Escape = 1,
@@ -196,7 +195,6 @@ class IntelligentKeyboard:
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
-}
 }
 
 #endif /* IntelligentKeyboard_hpp */

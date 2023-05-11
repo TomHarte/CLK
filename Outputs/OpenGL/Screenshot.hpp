@@ -11,9 +11,7 @@
 
 #include "OpenGL.hpp"
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	Upon construction, Screenshot will capture the centre portion of the currently-bound framebuffer,
@@ -54,8 +52,6 @@ struct Screenshot {
 	int width, height;
 };
 
-}
-}
 }
 
 #endif /* Screenshot_h */

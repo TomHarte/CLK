@@ -16,8 +16,7 @@
 #include "../Track/Track.hpp"
 #include "../../TargetPlatforms.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 enum class Error {
 	InvalidFormat = -2,
@@ -119,7 +118,6 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase, public 
 
 #include "DiskImageImplementation.hpp"
 
-}
 }
 
 #endif /* DiskImage_hpp */

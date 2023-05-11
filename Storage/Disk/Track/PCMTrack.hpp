@@ -15,8 +15,7 @@
 
 #include <vector>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	A subclass of @c Track that provides its @c Events by querying a pulse-code modulated record of original
@@ -89,7 +88,6 @@ class PCMTrack: public Track {
 		bool is_resampled_clone_ = false;
 };
 
-}
 }
 
 #endif /* PCMTrack_hpp */

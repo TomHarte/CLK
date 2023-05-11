@@ -9,8 +9,7 @@
 #ifndef MemorySwitches_h
 #define MemorySwitches_h
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 enum PagingType: int {
 	Main = 1 << 0,
@@ -19,7 +18,6 @@ enum PagingType: int {
 	LanguageCard = 1 << 3,
 };
 
-}
 }
 
 #endif /* MemorySwitches_h */

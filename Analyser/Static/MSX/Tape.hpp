@@ -14,9 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace MSX {
+namespace Analyser::Static::MSX {
 
 struct File {
 	std::string name;
@@ -37,8 +35,6 @@ struct File {
 
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-}
-}
 }
 
 #endif /* StaticAnalyser_MSX_Tape_hpp */

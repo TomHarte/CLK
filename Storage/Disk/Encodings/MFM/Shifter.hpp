@@ -13,9 +13,7 @@
 #include <memory>
 #include "../../../../Numeric/CRC.hpp"
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 /*!
 	The MFM shifter parses a stream of bits as input in order to produce
@@ -80,8 +78,6 @@ class Shifter {
 		CRC::CCITT *crc_generator_;
 };
 
-}
-}
 }
 
 #endif /* Shifter_hpp */

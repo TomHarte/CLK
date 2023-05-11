@@ -16,8 +16,7 @@
 #include <limits>
 #include <vector>
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing an HDV image, which is a sector dump of
@@ -50,7 +49,6 @@ class HDV: public MassStorageDevice {
 		void set_block(size_t address, const std::vector<uint8_t> &) final;
 };
 
-}
 }
 
 #endif /* HDV_hpp */

@@ -16,8 +16,7 @@
 #include "RegisterSet.hpp"
 #include "Status.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /// Maps the 68k function codes such that bits 0, 1 and 2 represent
 /// FC0, FC1 and FC2 respectively.
@@ -163,7 +162,6 @@ template <Model model, typename BusHandler> class Executor {
 		} state_;
 };
 
-}
 }
 
 #include "Implementation/ExecutorImplementation.hpp"

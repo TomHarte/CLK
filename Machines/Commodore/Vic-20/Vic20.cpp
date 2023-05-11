@@ -36,8 +36,7 @@
 #include <array>
 #include <cstdint>
 
-namespace Commodore {
-namespace Vic20 {
+namespace Commodore::Vic20 {
 
 enum ROMSlot {
 	Kernel = 0,
@@ -545,7 +544,7 @@ class ConcreteMachine:
 
 						*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 					} else if(address == 0xf90b) {
-						uint8_t x = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+						uint8_t x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
 							const uint64_t tape_position = tape_->get_tape()->get_offset();
@@ -568,13 +567,13 @@ class ConcreteMachine:
 
 								// set tape status, carry and flag
 								ram_[0x90] |= 0x40;
-								uint8_t	flags = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
+								uint8_t	flags = uint8_t(m6502_.value_of(CPU::MOS6502::Register::Flags));
 								flags &= ~uint8_t((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
-								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
+								m6502_.set_value_of(CPU::MOS6502::Register::Flags, flags);
 
 								// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
 								// ensure that the PC leaps to 0xfccf
-								m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
+								m6502_.set_value_of(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 								*value = 0xea;	// i.e. NOP implied
 								hold_tape_ = true;
 								LOG("Vic-20: Found data");
@@ -755,7 +754,6 @@ class ConcreteMachine:
 		std::shared_ptr<::Commodore::C1540::Machine> c1540_;
 };
 
-}
 }
 
 using namespace Commodore::Vic20;

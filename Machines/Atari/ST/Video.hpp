@@ -18,8 +18,7 @@
 // Testing hook; not for any other user.
 class VideoTester;
 
-namespace Atari {
-namespace ST {
+namespace Atari::ST {
 
 struct LineLength {
 	int length = 1024;
@@ -249,7 +248,6 @@ class Video {
 		friend class ::VideoTester;
 };
 
-}
 }
 
 #endif /* Atari_ST_Video_hpp */

@@ -704,7 +704,7 @@ bool ProcessorBase::is_jammed() const {
 	return is_jammed_;
 }
 
-uint16_t ProcessorBase::get_value_of_register(Register r) const {
+uint16_t ProcessorBase::value_of(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return pc_.full;
 		case Register::LastOperationAddress:	return last_operation_pc_.full;
@@ -717,7 +717,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	}
 }
 
-void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	pc_.full = value;			break;
 		case Register::StackPointer:	s_ = uint8_t(value);		break;

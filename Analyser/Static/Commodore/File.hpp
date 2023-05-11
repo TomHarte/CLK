@@ -12,9 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Commodore {
+namespace Analyser::Static::Commodore {
 
 struct File {
 	std::wstring name;
@@ -35,8 +33,6 @@ struct File {
 	bool is_basic();
 };
 
-}
-}
 }
 
 #endif /* File_hpp */

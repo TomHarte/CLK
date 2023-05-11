@@ -15,8 +15,7 @@
 
 #include <cassert>
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 #define An(x)	state_.registers[8 + x]
 #define Dn(x)	state_.registers[x]
@@ -749,7 +748,6 @@ void Executor<model, BusHandler>::State::movem_toR(Preinstruction instruction, u
 #undef An
 #undef AccessException
 
-}
 }
 
 #endif /* InstructionSets_M68k_ExecutorImplementation_hpp */

@@ -11,8 +11,7 @@
 
 #include "Track.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	A subclass of @c Track with no contents. Just an index hole.
@@ -24,7 +23,6 @@ class UnformattedTrack: public Track {
 		Track *clone() const final;
 };
 
-}
 }
 
 #endif /* UnformattedTrack_hpp */

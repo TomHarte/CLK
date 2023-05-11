@@ -16,8 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a CAS tape image, which is an MSX byte stream.
@@ -67,7 +66,6 @@ class CAS: public Tape {
 		std::size_t distance_into_bit_ = 0;
 };
 
-}
 }
 
 #endif /* CAS_hpp */

@@ -15,9 +15,7 @@
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
-namespace Apple {
-namespace IIgs {
-namespace Sound {
+namespace Apple::IIgs::Sound {
 
 class GLU: public Outputs::Speaker::SampleSource {
 	public:
@@ -104,8 +102,6 @@ class GLU: public Outputs::Speaker::SampleSource {
 		int16_t output_range_ = 0;
 };
 
-}
-}
 }
 
 #endif /* SoundGLU_hpp */

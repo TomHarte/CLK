@@ -22,8 +22,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides the same interface as to a single machine, while multiplexing all
@@ -80,7 +79,6 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiTimedMachine::
 		bool has_picked_ = false;
 };
 
-}
 }
 
 #endif /* MultiMachine_hpp */

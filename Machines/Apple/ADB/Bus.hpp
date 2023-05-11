@@ -16,8 +16,7 @@
 #include <ostream>
 #include <vector>
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 struct Command {
 	enum class Type {
@@ -166,7 +165,6 @@ class Bus {
 		} phase_ = Phase::AttentionCapture;
 };
 
-}
 }
 
 #endif /* Bus_hpp */

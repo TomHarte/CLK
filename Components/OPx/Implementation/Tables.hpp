@@ -9,8 +9,7 @@
 #ifndef Tables_hpp
 #define Tables_hpp
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*
 	These are the OPL's built-in log-sin and exponentiation tables, as recovered by
@@ -221,7 +220,6 @@ inline int LogSign::level(int fractional) const {
 	return power_two(*this, fractional);
 }
 
-}
 }
 
 #endif /* Tables_hpp */

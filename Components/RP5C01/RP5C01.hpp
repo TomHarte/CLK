@@ -14,8 +14,7 @@
 #include <array>
 #include <cstdint>
 
-namespace Ricoh {
-namespace RP5C01 {
+namespace Ricoh::RP5C01 {
 
 class RP5C01 {
 	public:
@@ -56,8 +55,5 @@ class RP5C01 {
 };
 
 }
-}
-
-#include <stdio.h>
 
 #endif /* RP5C01_hpp */

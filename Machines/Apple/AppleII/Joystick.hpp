@@ -14,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class JoystickPair {
 	public:
@@ -106,7 +105,6 @@ class JoystickPair {
 		}
 };
 
-}
 }
 
 #endif /* AppleII_Joystick_hpp */

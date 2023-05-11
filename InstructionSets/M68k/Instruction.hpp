@@ -15,8 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 enum class Operation: uint8_t {
 	Undefined,
@@ -494,7 +493,6 @@ class Preinstruction {
 		const char *operation_string() const;
 };
 
-}
 }
 
 #include "Implementation/InstructionOperandSize.hpp"

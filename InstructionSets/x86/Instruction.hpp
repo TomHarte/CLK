@@ -13,8 +13,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 /*
 	Operations are documented below to establish expectations as to which
@@ -796,7 +795,6 @@ template<bool is_32bit> class Instruction {
 static_assert(sizeof(Instruction<true>) <= 16);
 static_assert(sizeof(Instruction<false>) <= 10);
 
-}
 }
 
 #endif /* InstructionSets_x86_Instruction_h */

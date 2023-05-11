@@ -12,8 +12,7 @@
 #include "Tape.hpp"
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape with a queue of upcoming pulses and an is-at-end flag.
@@ -48,7 +47,6 @@ class PulseQueuedTape: public Tape {
 		bool is_at_end_;
 };
 
-}
 }
 
 #endif /* PulseQueuedTape_hpp */

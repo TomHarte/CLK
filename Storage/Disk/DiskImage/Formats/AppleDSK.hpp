@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an Apple DSK disk image: a representation of sector contents,
@@ -47,7 +46,5 @@ class AppleDSK: public DiskImage {
 };
 
 }
-}
-
 
 #endif /* AppleDSK_hpp */

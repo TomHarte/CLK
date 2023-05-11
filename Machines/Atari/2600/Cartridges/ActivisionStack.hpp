@@ -9,8 +9,7 @@
 #ifndef Atari2600_ActivisionStack_hpp
 #define Atari2600_ActivisionStack_hpp
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class ActivisionStack: public BusExtender {
 	public:
@@ -45,7 +44,6 @@ class ActivisionStack: public BusExtender {
 		uint8_t last_opcode_;
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeActivisionStack_hpp */

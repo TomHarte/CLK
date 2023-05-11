@@ -18,8 +18,7 @@
 
 #include <atomic>
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 class OPLL: public OPLBase<OPLL> {
 	public:
@@ -125,7 +124,6 @@ class OPLL: public OPLBase<OPLL> {
 		const uint8_t *instrument_definition(int instrument, int channel);
 };
 
-}
 }
 
 #endif /* OPLL_hpp */

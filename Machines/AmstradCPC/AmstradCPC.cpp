@@ -905,7 +905,7 @@ template <bool has_fdc> class ConcreteMachine:
 						// first bit of this byte.
 						parser.process_pulse(tape_player_.get_current_pulse());
 						const auto byte = parser.get_byte(tape_player_.get_tape());
-						auto flags = z80_.get_value_of_register(CPU::Z80::Register::Flags);
+						auto flags = z80_.value_of(CPU::Z80::Register::Flags);
 
 						if(byte) {
 							// In A ROM-esque fashion, begin the first pulse after the final one
@@ -927,14 +927,14 @@ template <bool has_fdc> class ConcreteMachine:
 							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] = uint8_t(crc_value >> 8);
 
 							// Indicate successful byte read.
-							z80_.set_value_of_register(CPU::Z80::Register::A, *byte);
+							z80_.set_value_of(CPU::Z80::Register::A, *byte);
 							flags |= CPU::Z80::Flag::Carry;
 						} else {
 							// TODO: return tape player to previous state and decline to serve.
-							z80_.set_value_of_register(CPU::Z80::Register::A, 0);
+							z80_.set_value_of(CPU::Z80::Register::A, 0);
 							flags &= ~CPU::Z80::Flag::Carry;
 						}
-						z80_.set_value_of_register(CPU::Z80::Register::Flags, flags);
+						z80_.set_value_of(CPU::Z80::Register::Flags, flags);
 
 						// RET.
 						*cycle.value = 0xc9;

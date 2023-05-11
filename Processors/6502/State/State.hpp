@@ -13,8 +13,7 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../6502.hpp"
 
-namespace CPU {
-namespace MOS6502 {
+namespace CPU::MOS6502 {
 
 /*!
 	Provides a means for capturing or restoring complete 6502 state.
@@ -89,8 +88,6 @@ struct State: public Reflection::StructImpl<State> {
 	void apply(ProcessorBase &target);
 };
 
-
-}
 }
 
 #endif /* MOS6502_State_hpp */

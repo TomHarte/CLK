@@ -11,8 +11,7 @@
 
 #include "ConfidenceSource.hpp"
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a confidence source that calculates its probability by virtual of a history of events.
@@ -41,7 +40,6 @@ class ConfidenceCounter: public ConfidenceSource {
 		int misses_ = 1;
 };
 
-}
 }
 
 #endif /* ConfidenceCounter_hpp */

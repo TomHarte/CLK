@@ -14,8 +14,7 @@
 
 #include <cstdint>
 
-namespace Motorola {
-namespace MFP68901 {
+namespace Motorola::MFP68901 {
 
 class PortHandler {
 	public:
@@ -182,7 +181,6 @@ class MFP68901: public ClockingHint::Source {
 		}
 };
 
-}
 }
 
 #endif /* MFP68901_hpp */

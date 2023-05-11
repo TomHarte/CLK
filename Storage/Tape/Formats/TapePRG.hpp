@@ -15,8 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
@@ -70,7 +69,6 @@ class PRG: public Tape {
 		uint8_t copy_mask_ = 0x80;
 };
 
-}
 }
 
 #endif /* T64_hpp */

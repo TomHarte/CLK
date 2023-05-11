@@ -13,8 +13,7 @@
 #include <memory>
 #include <vector>
 
-namespace Commodore {
-namespace Serial {
+namespace Commodore::Serial {
 
 	enum Line {
 		ServiceRequest = 0,
@@ -127,7 +126,6 @@ namespace Serial {
 			LineLevel input_levels_[5];
 	};
 
-}
 }
 
 #endif /* SerialPort_hpp */

@@ -12,8 +12,7 @@
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource {
 	public:
@@ -34,7 +33,6 @@ template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource
 		uint8_t selected_register_ = 0;
 };
 
-}
 }
 
 #endif /* OPLBase_h */

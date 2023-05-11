@@ -17,9 +17,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace Storage {
-namespace Tape {
-namespace ZX8081 {
+namespace Storage::Tape::ZX8081 {
 
 enum class WaveType {
 	Pulse, Gap, LongGap, Unrecognised
@@ -57,8 +55,6 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		std::shared_ptr<std::vector<uint8_t>> get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape);
 };
 
-}
-}
 }
 
 #endif /* ZX8081_hpp */

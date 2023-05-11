@@ -10,7 +10,7 @@
 
 using namespace CPU::WDC65816;
 
-uint16_t ProcessorBase::get_value_of_register(Register r) const {
+uint16_t ProcessorBase::value_of(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return registers_.pc;
 		case Register::LastOperationAddress:	return last_operation_pc_;
@@ -30,7 +30,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	}
 }
 
-void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	registers_.pc = value;									break;
 		case Register::StackPointer:	registers_.s.full = value;								break;

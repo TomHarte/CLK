@@ -15,8 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing an Spectrum-format tape image, which contains a series of
@@ -55,8 +54,6 @@ class ZXSpectrumTAP: public Tape {
 		Pulse virtual_get_next_pulse() override;
 };
 
-
-}
 }
 
 #endif /* SpectrumTAP_hpp */

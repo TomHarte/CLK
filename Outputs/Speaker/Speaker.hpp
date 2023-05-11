@@ -13,8 +13,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Outputs {
-namespace Speaker {
+namespace Outputs::Speaker {
 
 /*!
 	Provides a communication point for sound; machines that have a speaker provide an
@@ -145,7 +144,6 @@ class Speaker {
 		std::vector<int16_t> mix_buffer_;
 };
 
-}
 }
 
 #endif /* Speaker_hpp */

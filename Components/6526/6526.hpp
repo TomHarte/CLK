@@ -14,8 +14,7 @@
 #include "Implementation/6526Storage.hpp"
 #include "../Serial/Line.hpp"
 
-namespace MOS {
-namespace MOS6526 {
+namespace MOS::MOS6526 {
 
 enum Port {
 	A = 0,
@@ -86,7 +85,6 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		bool serial_line_did_produce_bit(Serial::Line<true> *line, int bit) final;
 };
 
-}
 }
 
 #include "Implementation/6526Implementation.hpp"

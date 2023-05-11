@@ -17,8 +17,7 @@
 #include <string>
 #include <map>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an IPF, which is a mixed stream of raw flux windows and
@@ -85,7 +84,6 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 		void add_raw_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
 };
 
-}
 }
 
 #endif /* IPF_hpp */

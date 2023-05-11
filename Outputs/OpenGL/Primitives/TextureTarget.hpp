@@ -13,9 +13,7 @@
 #include "Shader.hpp"
 #include <memory>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	A @c TextureTarget is a framebuffer that can be bound as a texture. So this class
@@ -88,8 +86,6 @@ class TextureTarget {
 		mutable GLint threshold_uniform_;
 };
 
-}
-}
 }
 
 #endif /* TextureTarget_hpp */

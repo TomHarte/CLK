@@ -16,8 +16,7 @@
 
 #include <variant>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	2MG is slightly special because it's just a container format; there's a brief header and then
@@ -34,7 +33,6 @@ class Disk2MG {
 		static DiskOrMassStorageDevice open(const std::string &file_name);
 };
 
-}
 }
 
 #endif /* _MG_hpp */

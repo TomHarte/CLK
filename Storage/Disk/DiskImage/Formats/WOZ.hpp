@@ -15,8 +15,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing a WOZ: a bit stream representation of a floppy.
@@ -56,7 +55,6 @@ class WOZ: public DiskImage {
 		constexpr static long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
 };
 
-}
 }
 
 #endif /* WOZ_hpp */

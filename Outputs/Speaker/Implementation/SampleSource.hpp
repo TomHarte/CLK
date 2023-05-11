@@ -12,8 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Outputs {
-namespace Speaker {
+namespace Outputs::Speaker {
 
 /*!
 	A sample source is something that can provide a stream of audio.
@@ -71,7 +70,6 @@ class SampleSource {
 		double get_average_output_peak() const { return 1.0; }
 };
 
-}
 }
 
 #endif /* SampleSource_hpp */

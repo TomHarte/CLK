@@ -13,9 +13,7 @@
 #include "../../Track/PCMSegment.hpp"
 #include <map>
 
-namespace Storage {
-namespace Encodings {
-namespace AppleGCR {
+namespace Storage::Encodings::AppleGCR {
 
 /*!
 	Scans @c segment for all included sectors, returning a set that maps from location within
@@ -23,8 +21,6 @@ namespace AppleGCR {
 */
 std::map<std::size_t, Sector> sectors_from_segment(const Disk::PCMSegment &segment);
 
-}
-}
 }
 
 #endif /* TrackParser_hpp */

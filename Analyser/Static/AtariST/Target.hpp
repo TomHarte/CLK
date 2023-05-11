@@ -12,9 +12,7 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace AtariST {
+namespace Analyser::Static::AtariST {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(MemorySize,
@@ -31,8 +29,6 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	}
 };
 
-}
-}
 }
 
 #endif /* Analyser_Static_AtariST_Target_h */

@@ -13,14 +13,10 @@
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Coleco {
+namespace Analyser::Static::Coleco {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
-}
-}
 }
 
 #endif /* StaticAnalyser_hpp */

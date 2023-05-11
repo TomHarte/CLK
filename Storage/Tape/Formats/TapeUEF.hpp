@@ -17,8 +17,7 @@
 #include <string>
 #include <zlib.h>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a UEF tape image, a slightly-convoluted description of pulses.
@@ -73,7 +72,6 @@ class UEF : public PulseQueuedTape, public TargetPlatform::TypeDistinguisher {
 		void queue_implicit_byte(uint8_t byte);
 };
 
-}
 }
 
 #endif /* TapeUEF_hpp */

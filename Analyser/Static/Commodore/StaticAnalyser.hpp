@@ -13,14 +13,10 @@
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Commodore {
+namespace Analyser::Static::Commodore {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
-}
-}
 }
 
 #endif /* CommodoreAnalyser_hpp */

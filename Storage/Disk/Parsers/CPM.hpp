@@ -16,9 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Disk {
-namespace CPM {
+namespace Storage::Disk::CPM {
 
 struct ParameterBlock {
 	int sectors_per_track;
@@ -44,8 +42,6 @@ struct Catalogue {
 
 std::unique_ptr<Catalogue> GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters);
 
-}
-}
 }
 
 #endif /* Storage_Disk_Parsers_CPM_hpp */

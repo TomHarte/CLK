@@ -15,8 +15,7 @@
 #include <cassert>
 #include <cmath>
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /// Sign-extend @c x to 32 bits and return as an unsigned 32-bit int.
 inline uint32_t u_extend16(uint16_t x)	{	return uint32_t(int16_t(x));	}
@@ -1030,7 +1029,6 @@ template <
 
 }
 
-}
 }
 
 #endif /* InstructionSets_M68k_PerformImplementation_h */

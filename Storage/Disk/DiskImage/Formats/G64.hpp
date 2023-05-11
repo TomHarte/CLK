@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing a G64 disk image: a raw but perfectly-clocked GCR stream.
@@ -42,7 +41,6 @@ class G64: public DiskImage {
 		uint16_t maximum_track_size_;
 };
 
-}
 }
 
 #endif /* G64_hpp */

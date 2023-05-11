@@ -18,8 +18,7 @@
 #include "Track/Track.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Models a flopy disk.
@@ -69,7 +68,6 @@ class Disk {
 		virtual bool tracks_differ(Track::Address, Track::Address) = 0;
 };
 
-}
 }
 
 #endif /* Disk_hpp */

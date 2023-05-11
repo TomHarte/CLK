@@ -34,9 +34,8 @@
 #include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
-#include "../../../Processors/68000/68000.hpp"
 
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
 #include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
@@ -74,7 +73,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
 	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
 	public Configurable::Device,
@@ -192,7 +191,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_.run_for(cycles);
 		}
 
-		using Microcycle = CPU::MC68000Mk2::Microcycle;
+		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
@@ -748,7 +747,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::QuadratureMouse &mouse_;
 		};
 
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
 		IWMActor iwm_;

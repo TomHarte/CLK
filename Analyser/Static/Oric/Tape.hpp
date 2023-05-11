@@ -14,9 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Oric {
+namespace Analyser::Static::Oric {
 
 struct File {
 	std::string name;
@@ -33,8 +31,6 @@ struct File {
 
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-}
-}
 }
 
 #endif /* Tape_hpp */

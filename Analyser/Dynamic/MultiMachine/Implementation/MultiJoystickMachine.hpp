@@ -14,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the joystick machine interface to multiple machines.
@@ -34,7 +33,6 @@ class MultiJoystickMachine: public MachineTypes::JoystickMachine {
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
-}
 }
 
 #endif /* MultiJoystickMachine_hpp */

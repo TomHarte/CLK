@@ -19,8 +19,7 @@
 
 #include <memory>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
@@ -296,8 +295,6 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		float random_interval_;
 };
 
-
-}
 }
 
 #endif /* Drive_hpp */

@@ -15,7 +15,7 @@ void ProcessorBase::reset_power_on() {
 	last_request_status_ &= ~Interrupt::PowerOn;
 }
 
-uint16_t ProcessorBase::get_value_of_register(Register r) const {
+uint16_t ProcessorBase::value_of(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return pc_.full;
 		case Register::StackPointer:			return sp_.full;
@@ -67,7 +67,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	}
 }
 
-void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	pc_.full = value;				break;
 		case Register::StackPointer:	sp_.full = value;				break;

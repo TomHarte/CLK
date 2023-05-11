@@ -12,8 +12,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
-namespace Sinclair {
-namespace ZX8081 {
+namespace Sinclair::ZX8081 {
 
 /*!
 	Packages a ZX80/81-style video feed into a CRT-compatible waveform.
@@ -58,7 +57,6 @@ class Video {
 		void flush(bool next_sync);
 };
 
-}
 }
 
 #endif /* Video_hpp */
