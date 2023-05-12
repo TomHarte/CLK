@@ -293,81 +293,7 @@ struct YamahaFetcher {
 		};
 };
 
-// Yamaha-specific storage.
-template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public YamahaFetcher {
-	using AddressT = uint32_t;
-
-	std::array<uint8_t, 65536> expansion_ram_;
-
-	// Register indirections.
-	int selected_status_ = 0;
-	int indirect_register_ = 0;
-	bool increment_indirect_register_ = false;
-
-	// Output horizontal and vertical adjustment, plus the selected vertical offset (i.e. hardware scroll).
-	int adjustment_[2]{};
-	uint8_t vertical_offset_ = 0;
-
-	// The palette, plus a shadow copy in which colour 0 is not the current palette colour 0,
-	// but is rather the current global background colour. This simplifies flow when colour 0
-	// is set as transparent.
-	std::array<uint32_t, 16> palette_{};
-	std::array<uint32_t, 16> background_palette_{};
-	bool solid_background_ = true;
-
-	// Transient state for palette setting.
-	uint8_t new_colour_ = 0;
-	uint8_t palette_entry_ = 0;
-	bool palette_write_phase_ = false;
-
-	// Recepticle for all five bits of the current screen mode.
-	uint8_t mode_ = 0;
-
-	// Used ephemerally during drawing to compound sprites with the 'CC'
-	// (compound colour?) bit set.
-	uint8_t sprite_cache_[8][32]{};
-
-	// Text blink colours.
-	uint8_t blink_text_colour_ = 0;
-	uint8_t blink_background_colour_ = 0;
-
-	// Blink state (which is also affects even/odd page display in applicable modes).
-	int in_blink_ = 1;
-	uint8_t blink_periods_ = 0;
-	uint8_t blink_counter_ = 0;
-
-	// Additional status.
-	uint8_t colour_status_ = 0;
-	uint16_t colour_location_ = 0;
-	uint16_t collision_location_[2]{};
-
-	/// Resets line-ephemeral state for a new line.
-	void begin_line(ScreenMode mode, bool is_refresh) {
-		if(is_refresh) {
-			next_event_ = refresh_events.data();
-			return;
-		}
-
-		switch(mode) {
-			case ScreenMode::YamahaText80:
-			case ScreenMode::Text:
-				next_event_ = text_events.data();
-			break;
-
-			case ScreenMode::MultiColour:
-			case ScreenMode::YamahaGraphics1:
-			case ScreenMode::YamahaGraphics2:
-				next_event_ = character_events.data();
-			break;
-
-			case ScreenMode::YamahaGraphics3:				// TODO: verify; my guess is that G3 is timed like a bitmap mode
-															// in order to fit the pattern for sprite mode 2. Just a guess.
-			default:
-				next_event_ = sprites_enabled_ ? sprites_events.data() : no_sprites_events.data();
-			break;
-		}
-	}
-
+struct YamahaCommandState {
 	// Command engine state.
 	CommandContext command_context_;
 	ModeDescription mode_description_;
@@ -426,30 +352,86 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			break;
 		}
 	}
+};
+
+// Yamaha-specific storage.
+template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public YamahaFetcher, public YamahaCommandState {
+	using AddressT = uint32_t;
+
+	std::array<uint8_t, 65536> expansion_ram_;
+
+	// Register indirections.
+	int selected_status_ = 0;
+	int indirect_register_ = 0;
+	bool increment_indirect_register_ = false;
+
+	// Output horizontal and vertical adjustment, plus the selected vertical offset (i.e. hardware scroll).
+	int adjustment_[2]{};
+	uint8_t vertical_offset_ = 0;
+
+	// The palette, plus a shadow copy in which colour 0 is not the current palette colour 0,
+	// but is rather the current global background colour. This simplifies flow when colour 0
+	// is set as transparent.
+	std::array<uint32_t, 16> palette_{};
+	std::array<uint32_t, 16> background_palette_{};
+	bool solid_background_ = true;
+
+	// Transient state for palette setting.
+	uint8_t new_colour_ = 0;
+	uint8_t palette_entry_ = 0;
+	bool palette_write_phase_ = false;
+
+	// Recepticle for all five bits of the current screen mode.
+	uint8_t mode_ = 0;
+
+	// Used ephemerally during drawing to compound sprites with the 'CC'
+	// (compound colour?) bit set.
+	uint8_t sprite_cache_[8][32]{};
+
+	// Text blink colours.
+	uint8_t blink_text_colour_ = 0;
+	uint8_t blink_background_colour_ = 0;
+
+	// Blink state (which is also affects even/odd page display in applicable modes).
+	int in_blink_ = 1;
+	uint8_t blink_periods_ = 0;
+	uint8_t blink_counter_ = 0;
+
+	// Additional things exposed by status registers.
+	uint8_t colour_status_ = 0;
+	uint16_t colour_location_ = 0;
+	uint16_t collision_location_[2]{};
 
 	Storage() noexcept {
-		// Perform sanity checks on the event lists.
-#ifndef NDEBUG
-		const Event *lists[] = { no_sprites_events.data(), sprites_events.data(), text_events.data(), character_events.data(), refresh_events.data(), nullptr };
-		const Event **list = lists;
-		while(*list) {
-			const Event *cursor = *list;
-			++list;
-
-			while(cursor[1].offset != 1368) {
-				assert(cursor[1].offset > cursor[0].offset);
-				++cursor;
-			}
-		}
-#endif
-
-		// Seed to _something_ meaningful.
-		//
-		// TODO: this is a workaround [/hack], in effect, for the main TMS' habit of starting
-		// in a randomised position, which means that start-of-line isn't announced.
-		//
-		// Do I really want that behaviour?
+		// Seed to something valid.
 		next_event_ = refresh_events.data();
+	}
+
+	/// Resets line-ephemeral state for a new line.
+	void begin_line(ScreenMode mode, bool is_refresh) {
+		if(is_refresh) {
+			next_event_ = refresh_events.data();
+			return;
+		}
+
+		switch(mode) {
+			case ScreenMode::YamahaText80:
+			case ScreenMode::Text:
+				next_event_ = text_events.data();
+			break;
+
+			case ScreenMode::MultiColour:
+			case ScreenMode::YamahaGraphics1:
+			case ScreenMode::YamahaGraphics2:
+				next_event_ = character_events.data();
+			break;
+
+			case ScreenMode::YamahaGraphics3:				// TODO: verify; my guess is that G3 is timed like a bitmap mode
+															// in order to fit the pattern for sprite mode 2. Just a guess.
+			default:
+				next_event_ = sprites_enabled_ ? sprites_events.data() : no_sprites_events.data();
+			break;
+		}
 	}
 
 	private:
