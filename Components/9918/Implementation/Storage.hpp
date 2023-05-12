@@ -218,7 +218,7 @@ struct YamahaFetcher {
 				return std::nullopt;
 			}
 		};
-		
+
 		struct TextGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {
 				// Capture various one-in-eight zones.
@@ -254,7 +254,7 @@ struct YamahaFetcher {
 				return std::nullopt;
 			}
 		};
-		
+
 		struct CharacterGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {
 				// Grab sprite events.

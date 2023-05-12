@@ -53,7 +53,7 @@ class LowFrequencyOscillator {
 
 		/// Updartes the LFSR output. Should be called at the input clock rate.
 		void update_lfsr() {
-			lfsr = noise_source_.next();		
+			lfsr = noise_source_.next();
 		}
 
 	private:

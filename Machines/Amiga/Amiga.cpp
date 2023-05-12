@@ -186,7 +186,7 @@ class ConcreteMachine:
 		// MARK: - Chipset.
 
 		Chipset chipset_;
-		
+
 		// MARK: - Activity Source
 
 		void set_activity_observer(Activity::Observer *observer) final {

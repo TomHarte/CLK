@@ -160,12 +160,12 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfLeftBorder	= 63;
 	constexpr static int EndOfPixels		= 319;
 	constexpr static int EndOfRightBorder	= 334;
-	
+
 	constexpr static int CyclesPerLine		= 342;
-	
+
 	constexpr static int TextModeEndOfLeftBorder	= 69;
 	constexpr static int TextModeEndOfPixels		= 309;
-	
+
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
@@ -179,12 +179,12 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfLeftBorder	= 258;
 	constexpr static int EndOfPixels		= 1282;
 	constexpr static int EndOfRightBorder	= 1341;
-	
+
 	constexpr static int CyclesPerLine		= 1368;
-	
+
 	constexpr static int TextModeEndOfLeftBorder	= 294;
 	constexpr static int TextModeEndOfPixels		= 1254;
-	
+
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 16;

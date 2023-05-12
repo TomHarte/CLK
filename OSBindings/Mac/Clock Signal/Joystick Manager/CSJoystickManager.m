@@ -469,7 +469,7 @@ static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDev
 
 - (void)controllerDidConnect:(NSNotification *)note {
 	GCController *controller = note.object;
-	
+
 	// Double check this joystick isn't already known.
 	for(CSGCJoystick *joystick in _joysticks) {
 		if (![joystick isKindOfClass:[CSGCJoystick class]]) {
@@ -491,23 +491,23 @@ static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDev
 		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonB index:2]];
 		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonX index:3]];
 		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonY index:4]];
-		
+
 		[hats addObject:[[CSGCJoystickHat alloc] initWithDirectionPad:gp.dpad]];
-		
+
 		[axes addObject:[[CSGCJoystickAxis alloc] initWithAxis:gp.leftThumbstick.xAxis type:CSJoystickAxisTypeX]];
 		[axes addObject:[[CSGCJoystickAxis alloc] initWithAxis:gp.leftThumbstick.yAxis type:CSJoystickAxisTypeY]];
 		[axes addObject:[[CSGCJoystickAxis alloc] initWithAxis:gp.rightThumbstick.xAxis type:CSJoystickAxisTypeZ]];
 	} else {
 		return;
 	}
-	
+
 	// Add this joystick to the list.
 	[_joysticks addObject:[[CSGCJoystick alloc] initWithButtons:buttons axes:axes hats:hats device:controller]];
 }
 
 - (void)controllerDidDisconnect:(NSNotification *)note {
 	GCController *controller = note.object;
-	
+
 	// If this joystick was recorded, remove it.
 	for(CSGCJoystick *joystick in [_joysticks copy]) {
 		if (![joystick isKindOfClass:[CSGCJoystick class]]) {

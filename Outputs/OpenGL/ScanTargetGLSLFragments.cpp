@@ -316,7 +316,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"out float compositeAngle;"
 			"out float compositeAmplitude;"
 			"out float oneOverCompositeAmplitude;"
-		
+
 			"uniform float angleOffsets[4];";
 		fragment_shader +=
 			"in float compositeAngle;"
