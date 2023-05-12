@@ -34,25 +34,50 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	std::array<uint8_t, 65536> expansion_ram_;
 
+	// Register indirections.
 	int selected_status_ = 0;
-
 	int indirect_register_ = 0;
 	bool increment_indirect_register_ = false;
 
+	// Output horizontal and vertical adjustment, plus the selected vertical offset (i.e. hardware scroll).
 	int adjustment_[2]{};
+	uint8_t vertical_offset_ = 0;
 
+	// The palette, plus a shadow copy in which colour 0 is not the current palette colour 0,
+	// but is rather the current global background colour. This simplifies flow when colour 0
+	// is set as transparent.
 	std::array<uint32_t, 16> palette_{};
 	std::array<uint32_t, 16> background_palette_{};
 	bool solid_background_ = true;
 
+	// Transient state for palette setting.
 	uint8_t new_colour_ = 0;
 	uint8_t palette_entry_ = 0;
 	bool palette_write_phase_ = false;
 
+	// Recepticle for all five bits of the current screen mode.
 	uint8_t mode_ = 0;
 
-	uint8_t vertical_offset_ = 0;
+	// Used ephemerally during drawing to compound sprites with the 'CC'
+	// (compound colour?) bit set.
 	uint8_t sprite_cache_[8][32]{};
+
+	// Text blink colours.
+	uint8_t blink_text_colour_ = 0;
+	uint8_t blink_background_colour_ = 0;
+
+	// Blink state (which is also affects even/odd page display in applicable modes).
+	int in_blink_ = 1;
+	uint8_t blink_periods_ = 0;
+	uint8_t blink_counter_ = 0;
+
+	// Sprite collection state.
+	bool sprites_enabled_ = true;
+
+	// Additional status.
+	uint8_t colour_status_ = 0;
+	uint16_t colour_location_ = 0;
+	uint16_t collision_location_[2]{};
 
 	/// Describes an _observable_ memory access event. i.e. anything that it is safe
 	/// (and convenient) to treat as atomic in between external slots.
@@ -89,23 +114,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	// State that tracks fetching position within a line.
 	const Event *next_event_ = nullptr;
-
-	// Text blink colours.
-	uint8_t blink_text_colour_ = 0;
-	uint8_t blink_background_colour_ = 0;
-
-	// Blink state (which is also affects even/odd page display in applicable modes).
-	int in_blink_ = 1;
-	uint8_t blink_periods_ = 0;
-	uint8_t blink_counter_ = 0;
-
-	// Sprite collection state.
-	bool sprites_enabled_ = true;
-
-	// Additional status.
-	uint8_t colour_status_ = 0;
-	uint16_t colour_location_ = 0;
-	uint16_t collision_location_[2]{};
 
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {
