@@ -294,7 +294,7 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 		/// Constructs a new AsyncJustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> AsyncJustInTimeActor(TargetTimeScale threshold, Args&&... args) :
 			object_(std::forward<Args>(args)...),
-		 	threshold_(threshold) {}
+			threshold_(threshold) {}
 
 		/// Adds time to the actor.
 		inline void operator += (const LocalTimeScale &rhs) {

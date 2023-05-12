@@ -21,7 +21,7 @@ namespace InstructionSet::M68k {
 /// Maps the 68k function codes such that bits 0, 1 and 2 represent
 /// FC0, FC1 and FC2 respectively.
 enum class FunctionCode {
-	UserData 				= 0b001,
+	UserData				= 0b001,
 	UserProgram				= 0b010,
 	SupervisorData			= 0b101,
 	SupervisorProgram		= 0b110,

@@ -66,7 +66,7 @@ uint8_t WD1770::read(int address) {
 
 			// Per Jean Louis-Guérin's documentation:
 			//
-			//	* 	the write-protect bit is locked into place by a type 2 or type 3 command, but is
+			//	*	the write-protect bit is locked into place by a type 2 or type 3 command, but is
 			//		read live after a type 1.
 			//	*	the track 0 bit is captured during a type 1 instruction and lost upon any other type,
 			//		it is not live sampled.

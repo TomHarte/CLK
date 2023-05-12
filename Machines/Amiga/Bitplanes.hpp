@@ -78,9 +78,9 @@ class BitplaneShifter {
 		/// The value is arranges so that MSB = first pixel to output, LSB = last.
 		///
 		/// Each byte is swizzled to provide easier playfield separation, being in the form:
-		/// 	b6, b7 = 0;
-		/// 	b3–b5: planes 1, 3 and 5;
-		/// 	b0–b2: planes 0, 2 and 4.
+		///		b6, b7 = 0;
+		///		b3–b5: planes 1, 3 and 5;
+		///		b0–b2: planes 0, 2 and 4.
 		uint32_t get(bool high_res) {
 			if(high_res) {
 				return uint32_t(data_[1] >> 32);

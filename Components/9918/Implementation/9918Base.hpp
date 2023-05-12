@@ -585,7 +585,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 	/// Helper for TMS dispatches; contains a switch statement with cases 0 to 170, each of the form:
 	///
-	/// 	if constexpr (use_end && end == n) return; [[fallthrough]]; case n: fetcher.fetch<n>();
+	///		if constexpr (use_end && end == n) return; [[fallthrough]]; case n: fetcher.fetch<n>();
 	///
 	/// i.e. it provides standard glue to enter a fetch sequence at any point, while the fetches themselves are templated on the cycle
 	/// at which they appear for neater expression.

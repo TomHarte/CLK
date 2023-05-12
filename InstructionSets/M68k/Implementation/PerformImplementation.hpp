@@ -465,7 +465,7 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 		// When shift is zero, extend is unaffected but is copied to carry.
 		status.carry_flag = status.extend_flag;
 	} else {
- 		switch(operation) {
+		switch(operation) {
 			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
 				status.carry_flag = Status::FlagT((destination >> (size - shift)) & 1);
 

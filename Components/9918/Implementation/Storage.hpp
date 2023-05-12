@@ -167,7 +167,7 @@ struct YamahaFetcher {
 						case 1338:	return Event(Event::Type::SpritePattern, 2);
 						case 34:	return Event(Event::Type::SpritePattern, 4);
 						case 98:	return Event(Event::Type::SpritePattern, 6);
-						case 1264:	case 1330:	case 28: 	case 92:
+						case 1264:	case 1330:	case 28:	case 92:
 							return Event::Type::External;
 					}
 				}
@@ -281,8 +281,8 @@ struct YamahaFetcher {
 					const int sub_block = offset & 31;
 					switch(sub_block) {
 						case 0:		if(block > 0) return Event(Event::Type::Name, uint8_t(block - 1));
-						case 6: 	if((sub_block & 3) != 3) return Event::Type::External;
-						case 12: 	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));
+						case 6:		if((sub_block & 3) != 3) return Event::Type::External;
+						case 12:	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));
 						case 18:	if(block > 0) return Event(Event::Type::Pattern, uint8_t(block - 1));
 						case 24:	if(block > 0) return Event(Event::Type::Colour, uint8_t(block - 1));
 					}

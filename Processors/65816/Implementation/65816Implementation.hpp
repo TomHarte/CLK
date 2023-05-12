@@ -504,7 +504,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				// Performance.
 				//
 
-#define LDA(src) 		registers_.a.full = (registers_.a.full & registers_.m_masks[0]) | (src & registers_.m_masks[1])
+#define LDA(src)		registers_.a.full = (registers_.a.full & registers_.m_masks[0]) | (src & registers_.m_masks[1])
 #define LDXY(dest, src)	dest = (src) & registers_.x_mask
 
 				case OperationPerform:

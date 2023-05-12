@@ -161,7 +161,7 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfPixels		= 319;
 	constexpr static int EndOfRightBorder	= 334;
 	
-	constexpr static int CyclesPerLine 		= 342;
+	constexpr static int CyclesPerLine		= 342;
 	
 	constexpr static int TextModeEndOfLeftBorder	= 69;
 	constexpr static int TextModeEndOfPixels		= 309;
@@ -180,7 +180,7 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfPixels		= 1282;
 	constexpr static int EndOfRightBorder	= 1341;
 	
-	constexpr static int CyclesPerLine 		= 1368;
+	constexpr static int CyclesPerLine		= 1368;
 	
 	constexpr static int TextModeEndOfLeftBorder	= 294;
 	constexpr static int TextModeEndOfPixels		= 1254;

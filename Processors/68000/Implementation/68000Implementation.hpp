@@ -482,7 +482,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// So the below is a cross-your-fingers guess based on the constraints
 			// that the information writen, from lowest address to highest is:
 			//
-			// 	R/W, I/N, function code word;		[at -14]
+			//	R/W, I/N, function code word;		[at -14]
 			//	access address;						[-12]
 			//	instruction register;				[-8]
 			//	status register;					[-6]
@@ -716,9 +716,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		static_assert(	\
 			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>() ==		\
 			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&		\
-			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 											\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() ==												\
 			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>() &&												\
-			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::x) == 	\
+			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::x) ==	\
 			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::y)		\
 		);																															\
 		[[fallthrough]];
@@ -751,10 +751,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				})
 
 				Duplicate(CLRb, NEGXb)	Duplicate(NEGb, NEGXb)	Duplicate(NOTb, NEGXb)
-				StdCASE(NEGXb, 		perform_state_ = Perform_np);
+				StdCASE(NEGXb,		perform_state_ = Perform_np);
 
 				Duplicate(CLRw, NEGXw)	Duplicate(NEGw, NEGXw)	Duplicate(NOTw, NEGXw)
-				StdCASE(NEGXw, 		perform_state_ = Perform_np);
+				StdCASE(NEGXw,		perform_state_ = Perform_np);
 
 				Duplicate(CLRl, NEGXl)	Duplicate(NEGl, NEGXl)	Duplicate(NOTl, NEGXl)
 				StdCASE(NEGXl,
@@ -765,11 +765,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				);
 
-				StdCASE(SWAP, 		perform_state_ = Perform_np);
-				StdCASE(EXG, 		perform_state_ = Perform_np_n);
+				StdCASE(SWAP,		perform_state_ = Perform_np);
+				StdCASE(EXG,		perform_state_ = Perform_np_n);
 
-				StdCASE(EXTbtow, 	perform_state_ = Perform_np);
-				StdCASE(EXTwtol, 	perform_state_ = Perform_np);
+				StdCASE(EXTbtow,	perform_state_ = Perform_np);
+				StdCASE(EXTwtol,	perform_state_ = Perform_np);
 
 				StdCASE(MOVEb,		perform_state_ = MOVE_b);
 				Duplicate(MOVEAw, MOVEw)
@@ -987,10 +987,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				});
 
 				Duplicate(ORItoCCR, EORItoCCR);	Duplicate(ANDItoCCR, EORItoCCR);
-				StdCASE(EORItoCCR, 	perform_state_ = LogicalToSR);
+				StdCASE(EORItoCCR,	perform_state_ = LogicalToSR);
 
 				Duplicate(ORItoSR, EORItoSR);	Duplicate(ANDItoSR, EORItoSR);
-				StdCASE(EORItoSR, 	perform_state_ = LogicalToSR);
+				StdCASE(EORItoSR,	perform_state_ = LogicalToSR);
 
 				StdCASE(MOVEMtoRl,	perform_state_ = MOVEMtoR);
 				StdCASE(MOVEMtoRw,	perform_state_ = MOVEMtoR);
@@ -1032,8 +1032,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				});
 
-				StdCASE(MOVEtoCCR, 	perform_state_ = MOVEtoCCRSR);
-				StdCASE(MOVEtoSR, 	perform_state_ = MOVEtoCCRSR);
+				StdCASE(MOVEtoCCR,	perform_state_ = MOVEtoCCRSR);
+				StdCASE(MOVEtoSR,	perform_state_ = MOVEtoCCRSR);
 				StdCASE(MOVEfromSR, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;

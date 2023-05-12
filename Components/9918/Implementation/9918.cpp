@@ -957,7 +957,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				switch(value >> 4) {
 					// All codes not listed below are invalid; treat them as STOP.
 					default:
-					case 0b0000: 	Storage<personality>::command_ = nullptr;	break;	// STOP.
+					case 0b0000:	Storage<personality>::command_ = nullptr;	break;	// STOP.
 
 					case 0b0100:	Begin(Point<true>);							break;	// POINT [read a pixel colour].
 					case 0b0101:	Begin(Point<false>);						break;	// PSET [plot a pixel].

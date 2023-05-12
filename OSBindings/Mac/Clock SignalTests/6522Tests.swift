@@ -200,7 +200,7 @@ class MOS6522Tests: XCTestCase {
 		// Conclusions:
 		//
 		//	after inital ACR and port B value:	[original data if not in PB7 output mode, otherwise 1]
-		//	after starting timer 1: 			[original data if not in PB7 output mode, otherwise 0]
+		//	after starting timer 1:				[original data if not in PB7 output mode, otherwise 0]
 		//	after final ACR value:				[original data if not in PB7 output mode, 1 if has transitioned to PB7 mode, 0 if was already in PB7 mode]
 		//	after timer 1 expiry:				[original data if not in PB7 mode, 1 if timer has expired while in PB7 mode]
 		//

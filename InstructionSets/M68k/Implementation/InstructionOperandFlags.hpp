@@ -113,7 +113,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//
 		//	Two-operand; read source, write dest.
 		//
-		case Operation::MOVEb: 	case Operation::MOVEw: 	case Operation::MOVEl:
+		case Operation::MOVEb:	case Operation::MOVEw:	case Operation::MOVEl:
 		case Operation::MOVEAw:	case Operation::MOVEAl:
 		case Operation::PACK:	case Operation::UNPK:
 			return FetchOp1 | StoreOp2;
@@ -122,12 +122,12 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//	Two-operand; read both, write dest.
 		//
 		case Operation::ABCD:	case Operation::SBCD:
-		case Operation::ADDb: 	case Operation::ADDw: 	case Operation::ADDl:
+		case Operation::ADDb:	case Operation::ADDw:	case Operation::ADDl:
 		case Operation::ADDAw:	case Operation::ADDAl:
-		case Operation::ADDXb: 	case Operation::ADDXw: 	case Operation::ADDXl:
-		case Operation::SUBb: 	case Operation::SUBw: 	case Operation::SUBl:
+		case Operation::ADDXb:	case Operation::ADDXw:	case Operation::ADDXl:
+		case Operation::SUBb:	case Operation::SUBw:	case Operation::SUBl:
 		case Operation::SUBAw:	case Operation::SUBAl:
-		case Operation::SUBXb: 	case Operation::SUBXw: 	case Operation::SUBXl:
+		case Operation::SUBXb:	case Operation::SUBXw:	case Operation::SUBXl:
 		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:

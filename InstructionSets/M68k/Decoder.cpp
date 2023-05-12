@@ -26,7 +26,7 @@ constexpr AddressingMode extended_modes[] = {
 };
 
 /// @returns The @c AddressingMode given the specified mode and reg, subject to potential
-/// 	aliasing on the '020+ as described above the @c AddressingMode enum.
+///		aliasing on the '020+ as described above the @c AddressingMode enum.
 constexpr AddressingMode combined_mode(int mode, int reg) {
 	assert(mode >= 0 && mode < 8);
 	assert(reg >= 0 && reg < 8);
@@ -162,13 +162,13 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 	//
 	// All modes: the complete set (other than Quick).
 	//
-	static constexpr auto AllModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | Imm | d16PC | d8PCXn;
-	static constexpr auto AllModesNoAn 	= AllModes & ~An;
+	static constexpr auto AllModes		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | Imm | d16PC | d8PCXn;
+	static constexpr auto AllModesNoAn	= AllModes & ~An;
 
 	//
 	// Alterable addressing modes (with and without AddressRegisterDirect).
 	//
-	static constexpr auto AlterableAddressingModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
+	static constexpr auto AlterableAddressingModes		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
 	static constexpr auto AlterableAddressingModesNoAn	= AlterableAddressingModes & ~An;
 
 	//
@@ -224,7 +224,7 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 			>::value;
 
 		case OpT(Operation::ADDAw):		case OpT(Operation::ADDAl):
-		case OpT(Operation::CMPAw):	 	case OpT(Operation::CMPAl):
+		case OpT(Operation::CMPAw):		case OpT(Operation::CMPAl):
 		case OpT(Operation::SUBAw):		case OpT(Operation::SUBAl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
 			return ~TwoOperandMask<
@@ -728,7 +728,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		// Implicitly:		source is an immediate value;
 		// b0–b2 and b3–b5:	destination effective address.
 		//
-		case EORIb: 	case EORIl:		case EORIw:
+		case EORIb:		case EORIl:		case EORIw:
 		case ORIb:		case ORIl:		case ORIw:
 		case ANDIb:		case ANDIl:		case ANDIw:
 		case SUBIb:		case SUBIl:		case SUBIw:

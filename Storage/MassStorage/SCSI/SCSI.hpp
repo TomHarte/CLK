@@ -34,9 +34,9 @@ constexpr BusState DefaultBusState = 0;
 */
 enum Line: BusState {
 	/// Provides the value currently on the data lines.
-	Data 			= 0xff,
+	Data			= 0xff,
 	/// Parity of the data lines.
-	Parity		 	= 1 << 8,
+	Parity			= 1 << 8,
 	/// Set if the SEL line is currently selecting a target.
 	/// Reset if it is selecting an initiator.
 	SelectTarget	= 1 << 9,
