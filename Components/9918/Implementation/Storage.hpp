@@ -28,8 +28,49 @@ template <> struct Storage<Personality::TMS9918A> {
 	void begin_line(ScreenMode, bool) {}
 };
 
+struct YamahaFetcher {
+	/// Describes an _observable_ memory access event. i.e. anything that it is safe
+	/// (and convenient) to treat as atomic in between external slots.
+	struct Event {
+		/// Offset of the _beginning_ of the event. Not completely arbitrarily: this is when
+		/// external data must be ready by in order to take part in those slots.
+		uint16_t offset = 1368;
+		enum class Type: uint8_t {
+			/// A slot for reading or writing data on behalf of the CPU or the command engine.
+			External,
+
+			//
+			// Sprites.
+			//
+			SpriteY,
+			SpriteLocation,
+			SpritePattern,
+
+			//
+			// Backgrounds.
+			//
+			Name,
+			Colour,
+			Pattern,
+		} type = Type::External;
+		uint8_t id = 0;
+
+		constexpr Event(Type type, uint8_t id = 0) noexcept :
+			type(type),
+			id(id) {}
+
+		constexpr Event() noexcept {}
+	};
+
+	// State that tracks fetching position within a line.
+	const Event *next_event_ = nullptr;
+
+	// Sprite collection state.
+	bool sprites_enabled_ = true;
+};
+
 // Yamaha-specific storage.
-template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public YamahaFetcher {
 	using AddressT = uint32_t;
 
 	std::array<uint8_t, 65536> expansion_ram_;
@@ -71,49 +112,10 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	uint8_t blink_periods_ = 0;
 	uint8_t blink_counter_ = 0;
 
-	// Sprite collection state.
-	bool sprites_enabled_ = true;
-
 	// Additional status.
 	uint8_t colour_status_ = 0;
 	uint16_t colour_location_ = 0;
 	uint16_t collision_location_[2]{};
-
-	/// Describes an _observable_ memory access event. i.e. anything that it is safe
-	/// (and convenient) to treat as atomic in between external slots.
-	struct Event {
-		/// Offset of the _beginning_ of the event. Not completely arbitrarily: this is when
-		/// external data must be ready by in order to take part in those slots.
-		uint16_t offset = 1368;
-		enum class Type: uint8_t {
-			/// A slot for reading or writing data on behalf of the CPU or the command engine.
-			External,
-
-			//
-			// Sprites.
-			//
-			SpriteY,
-			SpriteLocation,
-			SpritePattern,
-
-			//
-			// Backgrounds.
-			//
-			Name,
-			Colour,
-			Pattern,
-		} type = Type::External;
-		uint8_t id = 0;
-
-		constexpr Event(Type type, uint8_t id = 0) noexcept :
-			type(type),
-			id(id) {}
-
-		constexpr Event() noexcept {}
-	};
-
-	// State that tracks fetching position within a line.
-	const Event *next_event_ = nullptr;
 
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {
