@@ -19,7 +19,7 @@ template <typename IntT> constexpr IntT bit_reverse(IntT source);
 
 // The single-byte specialisation uses a lookup table.
 template<> constexpr uint8_t bit_reverse<uint8_t>(uint8_t source) {
-    struct ReverseTable {
+	struct ReverseTable {
 		static constexpr std::array<uint8_t, 256> reverse_table() {
 			std::array<uint8_t, 256> map{};
 			for(std::size_t c = 0; c < 256; ++c) {
@@ -36,7 +36,7 @@ template<> constexpr uint8_t bit_reverse<uint8_t>(uint8_t source) {
 			}
 			return map;
 		}
-    };
+	};
 
 	const std::array<uint8_t, 256> map = ReverseTable::reverse_table();
 	return map[source];

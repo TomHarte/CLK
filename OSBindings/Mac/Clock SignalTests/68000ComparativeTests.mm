@@ -177,7 +177,7 @@ struct TestProcessor: public CPU::MC68000::BusHandler {
 //		NSLog(@"Testing %@", url);
 		[self testJSONAtURL:url];
 	}
- 
+
 	XCTAssert(_failures.count == 0);
 
 	// Output a summary of failures, if any.

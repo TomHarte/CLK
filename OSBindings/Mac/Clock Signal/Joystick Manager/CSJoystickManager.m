@@ -326,7 +326,7 @@ API_AVAILABLE(macos(11.0))
 
 @end
 
-@implementation CSGCJoystickButton 
+@implementation CSGCJoystickButton
 
 - (instancetype)initWithButton:(GCDeviceButtonInput*)element index:(NSInteger)index {
 	self = [super initWithIndex:index];
