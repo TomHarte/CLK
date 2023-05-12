@@ -35,7 +35,7 @@ Base<personality>::Base() :
 
 		// "For a line interrupt, /INT is pulled low 608 mclks into the appropriate scanline relative to pixel 0.
 		// This is 3 mclks before the rising edge of /HSYNC which starts the next scanline."
-		mode_timing_.line_interrupt_position = (LineLayout<personality>::EndOfLeftBorder + 304) % Timing<personality>::CyclesPerLine;
+		mode_timing_.line_interrupt_position = (LineLayout<personality>::EndOfLeftBorder + 304) % LineLayout<personality>::CyclesPerLine;
 
 		// For a frame interrupt, /INT is pulled low 607 mclks into scanline 192 (of scanlines 0 through 261) relative to pixel 0.
 		// This is 4 mclks before the rising edge of /HSYNC which starts the next scanline.
@@ -197,7 +197,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 		if(fetch_cycles_pool) {
 			// Determine how much writing to do; at the absolute most go to the end of this line.
 			const int fetch_cycles = std::min(
-				Timing<personality>::CyclesPerLine - this->fetch_pointer_.column,
+				LineLayout<personality>::CyclesPerLine - this->fetch_pointer_.column,
 				fetch_cycles_pool
 			);
 			const int end_column = this->fetch_pointer_.column + fetch_cycles;
@@ -319,7 +319,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			fetch_cycles_pool -= fetch_cycles;
 
 			// Check for end of line.
-			if(this->fetch_pointer_.column == Timing<personality>::CyclesPerLine) {
+			if(this->fetch_pointer_.column == LineLayout<personality>::CyclesPerLine) {
 				this->fetch_pointer_.column = 0;
 				this->fetch_pointer_.row = (this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines;
 
@@ -341,13 +341,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->minimum_access_column_ =
 					std::max(
 						0,
-						this->minimum_access_column_ - Timing<personality>::CyclesPerLine
+						this->minimum_access_column_ - LineLayout<personality>::CyclesPerLine
 					);
 				if constexpr (is_yamaha_vdp(personality)) {
 					Storage<personality>::minimum_command_column_ =
 						std::max(
 							0,
-							Storage<personality>::minimum_command_column_ - Timing<personality>::CyclesPerLine
+							Storage<personality>::minimum_command_column_ - LineLayout<personality>::CyclesPerLine
 						);
 				}
 
@@ -457,7 +457,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 		if(output_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
 			const int target_output_cycles = std::min(
-				Timing<personality>::CyclesPerLine - this->output_pointer_.column,
+				LineLayout<personality>::CyclesPerLine - this->output_pointer_.column,
 				output_cycles_pool
 			);
 			int output_cycles_performed = 0;
@@ -522,8 +522,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				};
 
 				const auto right_blank = [&]() {
-					if(end_column == Timing<personality>::CyclesPerLine) {
-						output_blank(Timing<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
+					if(end_column == LineLayout<personality>::CyclesPerLine) {
+						output_blank(LineLayout<personality>::CyclesPerLine - LineLayout<personality>::EndOfRightBorder);
 					}
 				};
 
@@ -534,8 +534,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					) {
 						// Vertical sync.
 						// TODO: the Yamaha and Mega Drive both support interlaced video.
-						if(end_column == Timing<personality>::CyclesPerLine) {
-							output_sync(Timing<personality>::CyclesPerLine);
+						if(end_column == LineLayout<personality>::CyclesPerLine) {
+							output_sync(LineLayout<personality>::CyclesPerLine);
 						}
 					} else {
 						left_blank();
@@ -610,14 +610,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// Advance time.
 				// -------------
 				this->output_pointer_.column = end_column;
-				if(end_column == Timing<personality>::CyclesPerLine) {
+				if(end_column == LineLayout<personality>::CyclesPerLine) {
 					// Advance line buffer.
 					this->advance(this->draw_line_buffer_);
 				}
 			}
 
 			output_cycles_pool -= target_output_cycles;
-			if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
+			if(this->output_pointer_.column == LineLayout<personality>::CyclesPerLine) {
 				this->output_pointer_.column = 0;
 				this->output_pointer_.row = (this->output_pointer_.row + 1) % this->mode_timing_.total_lines;
 			}
@@ -685,7 +685,7 @@ void Base<personality>::write_vram(uint8_t value) {
 	// Enqueue the write to occur at the next available slot.
 	read_ahead_buffer_ = value;
 	queued_access_ = MemoryAccess::Write;
-	minimum_access_column_ = fetch_pointer_.column + Timing<personality>::VRAMAccessDelay;
+	minimum_access_column_ = fetch_pointer_.column + LineLayout<personality>::VRAMAccessDelay;
 }
 
 template <Personality personality>
@@ -1034,7 +1034,7 @@ void Base<personality>::write_register(uint8_t value) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
 			queued_access_ = MemoryAccess::Read;
-			minimum_access_column_ = fetch_pointer_.column + Timing<personality>::VRAMAccessDelay;
+			minimum_access_column_ = fetch_pointer_.column + LineLayout<personality>::VRAMAccessDelay;
 		}
 
 		if constexpr (is_sega_vdp(personality)) {
@@ -1242,11 +1242,11 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	if(get_interrupt_line()) return HalfCycles::max();
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
-	const int frame_length = Timing<personality>::CyclesPerLine * this->mode_timing_.total_lines;
+	const int frame_length = LineLayout<personality>::CyclesPerLine * this->mode_timing_.total_lines;
 	int time_until_frame_interrupt =
 		(
-			((this->mode_timing_.end_of_frame_interrupt_position.row * Timing<personality>::CyclesPerLine) + this->mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
-			((this->fetch_pointer_.row * Timing<personality>::CyclesPerLine) + this->fetch_pointer_.column)
+			((this->mode_timing_.end_of_frame_interrupt_position.row * LineLayout<personality>::CyclesPerLine) + this->mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
+			((this->fetch_pointer_.row * LineLayout<personality>::CyclesPerLine) + this->fetch_pointer_.column)
 		) % frame_length;
 	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
@@ -1260,7 +1260,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->fetch_pointer_.column;
 	int line_of_next_interrupt_threshold = this->fetch_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
-		cycles_to_next_interrupt_threshold += Timing<personality>::CyclesPerLine;
+		cycles_to_next_interrupt_threshold += LineLayout<personality>::CyclesPerLine;
 		++line_of_next_interrupt_threshold;
 	}
 
@@ -1291,7 +1291,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
 	const int lines_until_interrupt = (next_line_interrupt_row - line_of_next_interrupt_threshold + this->mode_timing_.total_lines) % this->mode_timing_.total_lines;
-	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + lines_until_interrupt * Timing<personality>::CyclesPerLine;
+	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + lines_until_interrupt * LineLayout<personality>::CyclesPerLine;
 	if(!this->generate_interrupts_) return this->clock_converter_.half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
@@ -1305,7 +1305,7 @@ HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->fetch_pointer_.column;
 	int line_of_next_interrupt_threshold = this->fetch_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
-		cycles_to_next_interrupt_threshold += Timing<personality>::CyclesPerLine;
+		cycles_to_next_interrupt_threshold += LineLayout<personality>::CyclesPerLine;
 		++line_of_next_interrupt_threshold;
 	}
 
@@ -1313,7 +1313,7 @@ HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 		line += this->mode_timing_.total_lines;
 	}
 
-	return this->clock_converter_.half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*Timing<personality>::CyclesPerLine);
+	return this->clock_converter_.half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*LineLayout<personality>::CyclesPerLine);
 }
 
 template <Personality personality>
@@ -1329,7 +1329,7 @@ template <Personality personality>uint8_t TMS9918<personality>::get_latched_hori
 	// which counts the 256 pixels as items 0–255, starts
 	// counting at -48, and returns only the top 8 bits of the number.
 	int public_counter = this->latched_column_ - LineLayout<personality>::EndOfLeftBorder;
-	if(public_counter < -46) public_counter += Timing<personality>::CyclesPerLine;
+	if(public_counter < -46) public_counter += LineLayout<personality>::CyclesPerLine;
 	return uint8_t(public_counter >> 1);
 }
 

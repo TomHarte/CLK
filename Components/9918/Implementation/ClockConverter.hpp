@@ -51,20 +51,6 @@ template <Personality personality, Clock clock> constexpr int from_internal(int 
 	return length * clock_rate<personality, clock>() / clock_rate<personality, Clock::Internal>();
 }
 
-/// Provides default timing measurements that duplicate the layout of a TMS9928's line,
-/// scaled to the clock rate specified.
-template <Personality personality> struct StandardTiming {
-	/// The total number of internal cycles per line of output.
-	constexpr static int CyclesPerLine = clock_rate<personality, Clock::Internal>();
-
-	/// The number of internal cycles that must elapse between a request to read or write and
-	/// it becoming a candidate for action.
-	constexpr static int VRAMAccessDelay = 6;
-};
-
-/// Provides concrete, specific timing for the nominated personality.
-template <Personality personality> struct Timing: public StandardTiming<personality> {};
-
 /*!
 	Provides a [potentially-]stateful conversion between the external and internal clocks.
 	Unlike the other clock conversions, this one may be non-integral, requiring that
@@ -174,9 +160,15 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfLeftBorder	= 63;
 	constexpr static int EndOfPixels		= 319;
 	constexpr static int EndOfRightBorder	= 334;
-
+	
+	constexpr static int CyclesPerLine 		= 342;
+	
 	constexpr static int TextModeEndOfLeftBorder	= 69;
 	constexpr static int TextModeEndOfPixels		= 309;
+	
+	/// The number of internal cycles that must elapse between a request to read or write and
+	/// it becoming a candidate for action.
+	constexpr static int VRAMAccessDelay = 6;
 };
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
@@ -187,9 +179,15 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int EndOfLeftBorder	= 258;
 	constexpr static int EndOfPixels		= 1282;
 	constexpr static int EndOfRightBorder	= 1341;
-
+	
+	constexpr static int CyclesPerLine 		= 1368;
+	
 	constexpr static int TextModeEndOfLeftBorder	= 294;
 	constexpr static int TextModeEndOfPixels		= 1254;
+	
+	/// The number of internal cycles that must elapse between a request to read or write and
+	/// it becoming a candidate for action.
+	constexpr static int VRAMAccessDelay = 16;
 };
 
 }
