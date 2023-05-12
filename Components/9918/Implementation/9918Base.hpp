@@ -620,9 +620,9 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template <SpriteMode mode, bool double_width> void draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer = nullptr);
 };
 
+}
+
 #include "Fetch.hpp"
 #include "Draw.hpp"
-
-}
 
 #endif /* TMS9918Base_hpp */

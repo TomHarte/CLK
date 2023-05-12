@@ -9,6 +9,8 @@
 #ifndef Draw_hpp
 #define Draw_hpp
 
+namespace TI::TMS {
+
 // MARK: - Sprites, as generalised.
 
 template <Personality personality>
@@ -564,5 +566,7 @@ void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
 // MARK: - Mega Drive
 
 // TODO.
+
+}
 
 #endif /* Draw_hpp */
