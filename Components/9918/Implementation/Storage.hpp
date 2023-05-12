@@ -294,7 +294,6 @@ struct YamahaFetcher {
 };
 
 struct YamahaCommandState {
-	// Command engine state.
 	CommandContext command_context_;
 	ModeDescription mode_description_;
 	std::unique_ptr<Command> command_ = nullptr;
@@ -358,6 +357,8 @@ struct YamahaCommandState {
 template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public YamahaFetcher, public YamahaCommandState {
 	using AddressT = uint32_t;
 
+	// The Yamaha's (optional in real hardware) additional 64kb of expansion RAM.
+	// This is a valid target and source for the command engine, but can't be used as a source for current video data.
 	std::array<uint8_t, 65536> expansion_ram_;
 
 	// Register indirections.
