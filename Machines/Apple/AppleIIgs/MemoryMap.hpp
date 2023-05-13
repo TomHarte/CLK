@@ -642,7 +642,7 @@ class MemoryMap {
 // TODO: branching below on region.read/write is predicated on the idea that extra scratch space
 // would be less efficient. Verify that?
 
-#define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
+#define MemoryMapRegion(map, address)			map.regions[map.region_map[address >> 8]]
 #define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
 
 // The below encapsulates the fact that I've yet to determine whether Apple intends to

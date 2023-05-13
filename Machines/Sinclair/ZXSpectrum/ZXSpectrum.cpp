@@ -119,7 +119,7 @@ using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
 
 template<Model model> class ConcreteMachine:
 	public Activity::Source,
- 	public ClockingHint::Observer,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
 	public Machine,
@@ -153,7 +153,7 @@ template<Model model> class ConcreteMachine:
 				case Model::OneTwoEightK:	rom_name = ROM::Name::Spectrum128k;		break;
 				case Model::Plus2:			rom_name = ROM::Name::SpecrumPlus2;		break;
 				case Model::Plus2a:
-				case Model::Plus3: 			rom_name = ROM::Name::SpectrumPlus3;	break;
+				case Model::Plus3:			rom_name = ROM::Name::SpectrumPlus3;	break;
 				// TODO: possibly accept the +3 ROM in multiple parts?
 			}
 			const auto request = ROM::Request(rom_name);

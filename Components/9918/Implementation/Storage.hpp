@@ -28,197 +28,49 @@ template <> struct Storage<Personality::TMS9918A> {
 	void begin_line(ScreenMode, bool) {}
 };
 
-// Yamaha-specific storage.
-template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
-	using AddressT = uint32_t;
+struct YamahaFetcher {
+	public:
+		/// Describes an _observable_ memory access event. i.e. anything that it is safe
+		/// (and convenient) to treat as atomic in between external slots.
+		struct Event {
+			/// Offset of the _beginning_ of the event. Not completely arbitrarily: this is when
+			/// external data must be ready by in order to take part in those slots.
+			uint16_t offset = 1368;
+			enum class Type: uint8_t {
+				/// A slot for reading or writing data on behalf of the CPU or the command engine.
+				External,
 
-	std::array<uint8_t, 65536> expansion_ram_;
+				//
+				// Sprites.
+				//
+				SpriteY,
+				SpriteLocation,
+				SpritePattern,
 
-	int selected_status_ = 0;
+				//
+				// Backgrounds.
+				//
+				Name,
+				Colour,
+				Pattern,
+			} type = Type::External;
+			uint8_t id = 0;
 
-	int indirect_register_ = 0;
-	bool increment_indirect_register_ = false;
+			constexpr Event(Type type, uint8_t id = 0) noexcept :
+				type(type),
+				id(id) {}
 
-	int adjustment_[2]{};
+			constexpr Event() noexcept {}
+		};
 
-	std::array<uint32_t, 16> palette_{};
-	std::array<uint32_t, 16> background_palette_{};
-	bool solid_background_ = true;
+		// State that tracks fetching position within a line.
+		const Event *next_event_ = nullptr;
 
-	uint8_t new_colour_ = 0;
-	uint8_t palette_entry_ = 0;
-	bool palette_write_phase_ = false;
+		// Sprite collection state.
+		bool sprites_enabled_ = true;
 
-	uint8_t mode_ = 0;
-
-	uint8_t vertical_offset_ = 0;
-	uint8_t sprite_cache_[8][32]{};
-
-	/// Describes an _observable_ memory access event. i.e. anything that it is safe
-	/// (and convenient) to treat as atomic in between external slots.
-	struct Event {
-		/// Offset of the _beginning_ of the event. Not completely arbitrarily: this is when
-		/// external data must be ready by in order to take part in those slots.
-		uint16_t offset = 1368;
-		enum class Type: uint8_t {
-			/// A slot for reading or writing data on behalf of the CPU or the command engine.
-			External,
-
-			//
-			// Sprites.
-			//
-			SpriteY,
-			SpriteLocation,
-			SpritePattern,
-
-			//
-			// Backgrounds.
-			//
-			Name,
-			Colour,
-			Pattern,
-		} type = Type::External;
-		uint8_t id = 0;
-
-		constexpr Event(Type type, uint8_t id = 0) noexcept :
-			type(type),
-			id(id) {}
-
-		constexpr Event() noexcept {}
-	};
-
-	// State that tracks fetching position within a line.
-	const Event *next_event_ = nullptr;
-
-	// Text blink colours.
-	uint8_t blink_text_colour_ = 0;
-	uint8_t blink_background_colour_ = 0;
-
-	// Blink state (which is also affects even/odd page display in applicable modes).
-	int in_blink_ = 1;
-	uint8_t blink_periods_ = 0;
-	uint8_t blink_counter_ = 0;
-
-	// Sprite collection state.
-	bool sprites_enabled_ = true;
-
-	// Additional status.
-	uint8_t colour_status_ = 0;
-	uint16_t colour_location_ = 0;
-	uint16_t collision_location_[2]{};
-
-	/// Resets line-ephemeral state for a new line.
-	void begin_line(ScreenMode mode, bool is_refresh) {
-		if(is_refresh) {
-			next_event_ = refresh_events.data();
-			return;
-		}
-
-		switch(mode) {
-			case ScreenMode::YamahaText80:
-			case ScreenMode::Text:
-				next_event_ = text_events.data();
-			break;
-
-			case ScreenMode::MultiColour:
-			case ScreenMode::YamahaGraphics1:
-			case ScreenMode::YamahaGraphics2:
-				next_event_ = character_events.data();
-			break;
-
-			case ScreenMode::YamahaGraphics3:				// TODO: verify; my guess is that G3 is timed like a bitmap mode
-															// in order to fit the pattern for sprite mode 2. Just a guess.
-			default:
-				next_event_ = sprites_enabled_ ? sprites_events.data() : no_sprites_events.data();
-			break;
-		}
-	}
-
-	// Command engine state.
-	CommandContext command_context_;
-	ModeDescription mode_description_;
-	std::unique_ptr<Command> command_ = nullptr;
-
-	enum class CommandStep {
-		None,
-
-		CopySourcePixelToStatus,
-
-		ReadSourcePixel,
-		ReadDestinationPixel,
-		WritePixel,
-
-		ReadSourceByte,
-		WriteByte,
-	};
-	CommandStep next_command_step_ = CommandStep::None;
-	int minimum_command_column_ = 0;
-	uint8_t command_latch_ = 0;
-
-	void update_command_step(int current_column) {
-		if(!command_) {
-			next_command_step_ = CommandStep::None;
-			return;
-		}
-		if(command_->done()) {
-			command_ = nullptr;
-			next_command_step_ = CommandStep::None;
-			return;
-		}
-
-		minimum_command_column_ = current_column + command_->cycles;
-		switch(command_->access) {
-			case Command::AccessType::ReadPoint:
-				next_command_step_ = CommandStep::CopySourcePixelToStatus;
-			break;
-
-			case Command::AccessType::CopyPoint:
-				next_command_step_ = CommandStep::ReadSourcePixel;
-			break;
-			case Command::AccessType::PlotPoint:
-				next_command_step_ = CommandStep::ReadDestinationPixel;
-			break;
-
-			case Command::AccessType::WaitForColourReceipt:
-				// i.e. nothing to do until a colour is received.
-				next_command_step_ = CommandStep::None;
-			break;
-
-			case Command::AccessType::CopyByte:
-				next_command_step_ = CommandStep::ReadSourceByte;
-			break;
-			case Command::AccessType::WriteByte:
-				next_command_step_ = CommandStep::WriteByte;
-			break;
-		}
-	}
-
-	Storage() noexcept {
-		// Perform sanity checks on the event lists.
-#ifndef NDEBUG
-		const Event *lists[] = { no_sprites_events.data(), sprites_events.data(), text_events.data(), character_events.data(), refresh_events.data(), nullptr };
-		const Event **list = lists;
-		while(*list) {
-			const Event *cursor = *list;
-			++list;
-
-			while(cursor[1].offset != 1368) {
-				assert(cursor[1].offset > cursor[0].offset);
-				++cursor;
-			}
-		}
-#endif
-
-		// Seed to _something_ meaningful.
-		//
-		// TODO: this is a workaround [/hack], in effect, for the main TMS' habit of starting
-		// in a randomised position, which means that start-of-line isn't announced.
-		//
-		// Do I really want that behaviour?
-		next_event_ = refresh_events.data();
-	}
-
-	private:
+	protected:
+		/// @return 1 + the number of times within a line that @c GeneratorT produces an event.
 		template <typename GeneratorT> static constexpr size_t events_size() {
 			size_t size = 0;
 			for(int c = 0; c < 1368; c++) {
@@ -228,6 +80,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			return size + 1;
 		}
 
+		/// @return An array of all events generated by @c GeneratorT in line order.
 		template <typename GeneratorT, size_t size = events_size<GeneratorT>()>
 		static constexpr std::array<Event, size> events() {
 			std::array<Event, size> result{};
@@ -287,7 +140,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 				return std::nullopt;
 			}
 		};
-		static constexpr auto refresh_events = events<RefreshGenerator>();
 
 		template <bool include_sprites> struct BitmapGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {
@@ -315,7 +167,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 						case 1338:	return Event(Event::Type::SpritePattern, 2);
 						case 34:	return Event(Event::Type::SpritePattern, 4);
 						case 98:	return Event(Event::Type::SpritePattern, 6);
-						case 1264:	case 1330:	case 28: 	case 92:
+						case 1264:	case 1330:	case 28:	case 92:
 							return Event::Type::External;
 					}
 				}
@@ -366,8 +218,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 				return std::nullopt;
 			}
 		};
-		static constexpr auto no_sprites_events = events<BitmapGenerator<false>>();
-		static constexpr auto sprites_events = events<BitmapGenerator<true>>();
 
 		struct TextGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {
@@ -404,7 +254,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 				return std::nullopt;
 			}
 		};
-		static constexpr auto text_events = events<TextGenerator>();
 
 		struct CharacterGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {
@@ -432,8 +281,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 					const int sub_block = offset & 31;
 					switch(sub_block) {
 						case 0:		if(block > 0) return Event(Event::Type::Name, uint8_t(block - 1));
-						case 6: 	if((sub_block & 3) != 3) return Event::Type::External;
-						case 12: 	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));
+						case 6:		if((sub_block & 3) != 3) return Event::Type::External;
+						case 12:	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));
 						case 18:	if(block > 0) return Event(Event::Type::Pattern, uint8_t(block - 1));
 						case 24:	if(block > 0) return Event(Event::Type::Colour, uint8_t(block - 1));
 					}
@@ -442,6 +291,155 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 				return std::nullopt;
 			}
 		};
+};
+
+struct YamahaCommandState {
+	CommandContext command_context_;
+	ModeDescription mode_description_;
+	std::unique_ptr<Command> command_ = nullptr;
+
+	enum class CommandStep {
+		None,
+
+		CopySourcePixelToStatus,
+
+		ReadSourcePixel,
+		ReadDestinationPixel,
+		WritePixel,
+
+		ReadSourceByte,
+		WriteByte,
+	};
+	CommandStep next_command_step_ = CommandStep::None;
+	int minimum_command_column_ = 0;
+	uint8_t command_latch_ = 0;
+
+	void update_command_step(int current_column) {
+		if(!command_) {
+			next_command_step_ = CommandStep::None;
+			return;
+		}
+		if(command_->done()) {
+			command_ = nullptr;
+			next_command_step_ = CommandStep::None;
+			return;
+		}
+
+		minimum_command_column_ = current_column + command_->cycles;
+		switch(command_->access) {
+			case Command::AccessType::ReadPoint:
+				next_command_step_ = CommandStep::CopySourcePixelToStatus;
+			break;
+
+			case Command::AccessType::CopyPoint:
+				next_command_step_ = CommandStep::ReadSourcePixel;
+			break;
+			case Command::AccessType::PlotPoint:
+				next_command_step_ = CommandStep::ReadDestinationPixel;
+			break;
+
+			case Command::AccessType::WaitForColourReceipt:
+				// i.e. nothing to do until a colour is received.
+				next_command_step_ = CommandStep::None;
+			break;
+
+			case Command::AccessType::CopyByte:
+				next_command_step_ = CommandStep::ReadSourceByte;
+			break;
+			case Command::AccessType::WriteByte:
+				next_command_step_ = CommandStep::WriteByte;
+			break;
+		}
+	}
+};
+
+// Yamaha-specific storage.
+template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public YamahaFetcher, public YamahaCommandState {
+	using AddressT = uint32_t;
+
+	// The Yamaha's (optional in real hardware) additional 64kb of expansion RAM.
+	// This is a valid target and source for the command engine, but can't be used as a source for current video data.
+	std::array<uint8_t, 65536> expansion_ram_;
+
+	// Register indirections.
+	int selected_status_ = 0;
+	int indirect_register_ = 0;
+	bool increment_indirect_register_ = false;
+
+	// Output horizontal and vertical adjustment, plus the selected vertical offset (i.e. hardware scroll).
+	int adjustment_[2]{};
+	uint8_t vertical_offset_ = 0;
+
+	// The palette, plus a shadow copy in which colour 0 is not the current palette colour 0,
+	// but is rather the current global background colour. This simplifies flow when colour 0
+	// is set as transparent.
+	std::array<uint32_t, 16> palette_{};
+	std::array<uint32_t, 16> background_palette_{};
+	bool solid_background_ = true;
+
+	// Transient state for palette setting.
+	uint8_t new_colour_ = 0;
+	uint8_t palette_entry_ = 0;
+	bool palette_write_phase_ = false;
+
+	// Recepticle for all five bits of the current screen mode.
+	uint8_t mode_ = 0;
+
+	// Used ephemerally during drawing to compound sprites with the 'CC'
+	// (compound colour?) bit set.
+	uint8_t sprite_cache_[8][32]{};
+
+	// Text blink colours.
+	uint8_t blink_text_colour_ = 0;
+	uint8_t blink_background_colour_ = 0;
+
+	// Blink state (which is also affects even/odd page display in applicable modes).
+	int in_blink_ = 1;
+	uint8_t blink_periods_ = 0;
+	uint8_t blink_counter_ = 0;
+
+	// Additional things exposed by status registers.
+	uint8_t colour_status_ = 0;
+	uint16_t colour_location_ = 0;
+	uint16_t collision_location_[2]{};
+
+	Storage() noexcept {
+		// Seed to something valid.
+		next_event_ = refresh_events.data();
+	}
+
+	/// Resets line-ephemeral state for a new line.
+	void begin_line(ScreenMode mode, bool is_refresh) {
+		if(is_refresh) {
+			next_event_ = refresh_events.data();
+			return;
+		}
+
+		switch(mode) {
+			case ScreenMode::YamahaText80:
+			case ScreenMode::Text:
+				next_event_ = text_events.data();
+			break;
+
+			case ScreenMode::MultiColour:
+			case ScreenMode::YamahaGraphics1:
+			case ScreenMode::YamahaGraphics2:
+				next_event_ = character_events.data();
+			break;
+
+			case ScreenMode::YamahaGraphics3:				// TODO: verify; my guess is that G3 is timed like a bitmap mode
+															// in order to fit the pattern for sprite mode 2. Just a guess.
+			default:
+				next_event_ = sprites_enabled_ ? sprites_events.data() : no_sprites_events.data();
+			break;
+		}
+	}
+
+	private:
+		static constexpr auto refresh_events = events<RefreshGenerator>();
+		static constexpr auto no_sprites_events = events<BitmapGenerator<false>>();
+		static constexpr auto sprites_events = events<BitmapGenerator<true>>();
+		static constexpr auto text_events = events<TextGenerator>();
 		static constexpr auto character_events = events<CharacterGenerator>();
 };
 

@@ -83,7 +83,7 @@ enum class Operation: uint8_t {
 
 	ANDb,	ANDw,	ANDl,
 	EORb,	EORw,	EORl,
-	NOTb, 	NOTw, 	NOTl,
+	NOTb,	NOTw,	NOTl,
 	ORb,	ORw,	ORl,
 
 	MULUw,	MULSw,

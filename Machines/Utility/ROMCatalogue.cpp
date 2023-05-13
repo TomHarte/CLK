@@ -523,16 +523,16 @@ Description::Description(Name name) {
 
 		case Name::Spectrum48k:		*this = Description(name, "ZXSpectrum", "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531fu);		break;
 		case Name::Spectrum128k:	*this = Description(name, "ZXSpectrum", "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995u);	break;
-		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu); 	break;
+		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu);		break;
 		case Name::SpectrumPlus3: {
 			const std::initializer_list<uint32_t> crcs = { 0x96e3c17a, 0xbe0d9ec4 };
 			*this = Description(name, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crcs);
 		} break;
 
-		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781u); 			break;
-		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993u); 	break;
+		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781u);				break;
+		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993u);	break;
 		case Name::PRESADFSSlot2:	*this = Description(name, "Electron", "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0eu); break;
-		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6u); 					break;
+		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6u);					break;
 		case Name::Acorn1770DFS:	*this = Description(name, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5u);			break;
 		case Name::PRESAdvancedPlus6:
 			*this = Description(name, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfcu);
@@ -542,7 +542,7 @@ Description::Description(Name name) {
 		break;
 
 		case Name::MasterSystemJapaneseBIOS:	*this = Description(name, "MasterSystem", "the Japanese Master System BIOS", "japanese-bios.sms", 8*1024, 0x48d44a13u); break;
-		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8*1024, 0x0072ed54u); 		break;
+		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8*1024, 0x0072ed54u);		break;
 
 		case Name::Commodore1540:	*this = Description(name, "Commodore1540", "the 1540 ROM", "1540.bin", 16*1024, 0x718d42b1u);	break;
 		case Name::Commodore1541:	*this = Description(name, "Commodore1540", "the 1541 ROM", "1541.bin", 16*1024, 0xfb760019);	break;

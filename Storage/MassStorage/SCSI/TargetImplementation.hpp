@@ -139,7 +139,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						bus_state_ &= ~0xff;
 
 						switch(phase_) {
-							case Phase::SendingData: 	bus_state_ |= data_[data_pointer_];	break;
+							case Phase::SendingData:	bus_state_ |= data_[data_pointer_];	break;
 							case Phase::SendingStatus:	bus_state_ |= BusState(status_);	break;
 							default:
 							case Phase::SendingMessage:	bus_state_ |= BusState(message_);	break;

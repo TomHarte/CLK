@@ -9,6 +9,8 @@
 #ifndef Fetch_hpp
 #define Fetch_hpp
 
+namespace TI::TMS {
+
 /*
 	Fetching routines follow below; they obey the following rules:
 
@@ -801,5 +803,7 @@ template<bool use_end> void Base<personality>::fetch_yamaha(uint8_t y, int, int 
 // MARK: - Mega Drive
 
 // TODO.
+
+}
 
 #endif /* Fetch_hpp */

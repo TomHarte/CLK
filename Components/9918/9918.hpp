@@ -18,6 +18,8 @@ namespace TI::TMS {
 
 enum Personality {
 	TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
+
+	// Yamaha extensions.
 	V9938,
 	V9958,
 

@@ -173,7 +173,7 @@ void Video::run_for(HalfCycles duration) {
 		if(horizontal_timings.reset_blank > x_)		next_event = std::min(next_event, horizontal_timings.reset_blank);
 		if(horizontal_timings.set_blank > x_)		next_event = std::min(next_event, horizontal_timings.set_blank);
 		if(horizontal_timings.reset_enable > x_)	next_event = std::min(next_event, horizontal_timings.reset_enable);
-		if(horizontal_timings.set_enable > x_) 		next_event = std::min(next_event, horizontal_timings.set_enable);
+		if(horizontal_timings.set_enable > x_)		next_event = std::min(next_event, horizontal_timings.set_enable);
 
 		// Check for events that are relative to existing latched state.
 		if(line_length_.hsync_start > x_)			next_event = std::min(next_event, line_length_.hsync_start);
@@ -301,7 +301,7 @@ void Video::run_for(HalfCycles duration) {
 		if(horizontal_timings.reset_blank == x_)		horizontal_.blank = false;
 		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
 		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
-		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
+		else if(horizontal_timings.set_enable == x_)	horizontal_.enable = true;
 		else if(line_length_.hsync_start == x_)			{ horizontal_.sync = true; horizontal_.enable = false; }
 		else if(line_length_.hsync_end == x_)			horizontal_.sync = false;
 
@@ -746,7 +746,7 @@ void Video::VideoStream::output_pixels(int duration) {
 	if(pixels) {
 		int leftover_duration = pixels;
 		switch(bpp_) {
-			default: 				leftover_duration >>= 1;	break;
+			default:				leftover_duration >>= 1;	break;
 			case OutputBpp::Two:								break;
 			case OutputBpp::Four:	leftover_duration <<= 1;	break;
 		}
@@ -759,7 +759,7 @@ void Video::VideoStream::flush_pixels() {
 	// Flush only if there's something to flush.
 	if(pixel_pointer_) {
 		switch(bpp_) {
-			case OutputBpp::One:	crt_.output_data(pixel_pointer_); 								break;
+			case OutputBpp::One:	crt_.output_data(pixel_pointer_);								break;
 			default:				crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_));	break;
 			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 2, size_t(pixel_pointer_));	break;
 		}

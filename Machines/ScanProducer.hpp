@@ -82,8 +82,8 @@ class ScanProducer {
 			switch(get_display_type()) {
 				default:
 				case Outputs::Display::DisplayType::RGB:					return Configurable::Display::RGB;
-				case Outputs::Display::DisplayType::SVideo: 				return Configurable::Display::SVideo;
-				case Outputs::Display::DisplayType::CompositeColour: 		return Configurable::Display::CompositeColour;
+				case Outputs::Display::DisplayType::SVideo:					return Configurable::Display::SVideo;
+				case Outputs::Display::DisplayType::CompositeColour:		return Configurable::Display::CompositeColour;
 				case Outputs::Display::DisplayType::CompositeMonochrome:	return Configurable::Display::CompositeMonochrome;
 			}
 		}

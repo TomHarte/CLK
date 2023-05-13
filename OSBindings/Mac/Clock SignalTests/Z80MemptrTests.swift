@@ -141,7 +141,7 @@ class Z80MemptrTester: XCTestCase {
 			0xb1,		// CPIR
 			0xb2,		// INIR
 			0xb3,		// OUIR
-			0xb8, 		// LDDR
+			0xb8,		// LDDR
 			0xb9,		// CPDR
 			0xba,		// INDR
 			0xbb,		// OTDR

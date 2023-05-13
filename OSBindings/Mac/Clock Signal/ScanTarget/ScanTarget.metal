@@ -380,12 +380,12 @@ half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture)
 	}	\
 	\
 	fragment half4 directCompositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const half level = composite##name(vert, texture, uniforms, quadrature(vert.colourPhase)); 	\
+		const half level = composite##name(vert, texture, uniforms, quadrature(vert.colourPhase));	\
 		return half4(half3(level), uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 directCompositeSample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const half level = pow(composite##name(vert, texture, uniforms, quadrature(vert.colourPhase)), uniforms.outputGamma); 	\
+		const half level = pow(composite##name(vert, texture, uniforms, quadrature(vert.colourPhase)), uniforms.outputGamma);	\
 		return half4(half3(level), uniforms.outputAlpha);	\
 	}
 

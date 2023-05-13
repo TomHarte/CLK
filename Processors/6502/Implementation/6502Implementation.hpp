@@ -421,12 +421,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationINC: operand_++; flags_.set_nz(operand_);		continue;
 					case OperationDEC: operand_--; flags_.set_nz(operand_);		continue;
-					case OperationINA: a_++; flags_.set_nz(a_); 				continue;
-					case OperationDEA: a_--; flags_.set_nz(a_); 				continue;
-					case OperationINX: x_++; flags_.set_nz(x_); 				continue;
-					case OperationDEX: x_--; flags_.set_nz(x_); 				continue;
-					case OperationINY: y_++; flags_.set_nz(y_); 				continue;
-					case OperationDEY: y_--; flags_.set_nz(y_); 				continue;
+					case OperationINA: a_++; flags_.set_nz(a_);					continue;
+					case OperationDEA: a_--; flags_.set_nz(a_);					continue;
+					case OperationINX: x_++; flags_.set_nz(x_);					continue;
+					case OperationDEX: x_--; flags_.set_nz(x_);					continue;
+					case OperationINY: y_++; flags_.set_nz(y_);					continue;
+					case OperationDEY: y_--; flags_.set_nz(y_);					continue;
 
 					case OperationANE:
 						a_ = (a_ | 0xee) & operand_ & x_;

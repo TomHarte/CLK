@@ -114,7 +114,7 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 			switch(m) {
 				case GraphicsMode::Text:				return PixelBufferFormat::Text;
 				case GraphicsMode::DoubleText:			return PixelBufferFormat::DoubleText;
-				default: 								return PixelBufferFormat::NTSC;
+				default:								return PixelBufferFormat::NTSC;
 				case GraphicsMode::DoubleHighResMono:	return PixelBufferFormat::NTSCMono;
 				case GraphicsMode::SuperHighRes:		return PixelBufferFormat::SuperHighRes;
 			}

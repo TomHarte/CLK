@@ -47,7 +47,7 @@ inline std::ostream &operator <<(std::ostream &stream, Command::Type type) {
 		case Command::Type::Flush:	stream << "flush";		break;
 		case Command::Type::Listen:	stream << "listen";		break;
 		case Command::Type::Talk:	stream << "talk";		break;
-		default: 					stream << "reserved";	break;
+		default:					stream << "reserved";	break;
 	}
 	return stream;
 }

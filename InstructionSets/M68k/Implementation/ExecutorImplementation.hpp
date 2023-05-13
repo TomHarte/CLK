@@ -238,7 +238,7 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t bas
 	// Fetch base displacement.
 	uint32_t base_displacement = 0;
 	switch((extension >> 4) & 3) {
-		default: 	break;
+		default:	break;
 		case 2:		base_displacement = read_pc<uint16_t>();	break;
 		case 3:		base_displacement = read_pc<uint32_t>();	break;
 	}

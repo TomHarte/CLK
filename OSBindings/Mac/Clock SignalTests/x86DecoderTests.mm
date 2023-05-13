@@ -180,8 +180,8 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	test(instructions[11], DataSize::Word, Operation::XCHG, Source::eAX, Source::eSP);
 
 	// ODA has:
-	// 	c4		(bad)
-	// 	d4 93	aam		$0x93
+	//	c4		(bad)
+	//	d4 93	aam		$0x93
 	//
 	// That assumes that upon discovering that the d4 doesn't make a valid LES,
 	// it can become an instruction byte. I'm not persuaded. So I'm taking:

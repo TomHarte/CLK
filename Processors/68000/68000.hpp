@@ -53,7 +53,7 @@ struct Microcycle {
 	static constexpr OperationT SelectWord				= 1 << 1;
 
 	/// If set, indicates a read. Otherwise, a write.
-	static constexpr OperationT Read 					= 1 << 2;
+	static constexpr OperationT Read					= 1 << 2;
 
 	// Two-bit gap deliberately left here for PermitRead/Write below.
 
@@ -69,10 +69,10 @@ struct Microcycle {
 	static constexpr OperationT Reset					= 1 << 7;
 
 	/// Contains the value of line FC0 if it is not implicit via InterruptAcknowledge.
-	static constexpr OperationT IsData 					= 1 << 8;
+	static constexpr OperationT IsData					= 1 << 8;
 
 	/// Contains the value of line FC1 if it is not implicit via InterruptAcknowledge.
-	static constexpr OperationT IsProgram 				= 1 << 9;
+	static constexpr OperationT IsProgram				= 1 << 9;
 
 	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
 	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
@@ -80,7 +80,7 @@ struct Microcycle {
 
 	/// Represents the state of the 68000's valid memory address line — indicating whether this microcycle
 	/// is synchronised with the E clock to satisfy a valid peripheral address request.
-	static constexpr OperationT IsPeripheral 			= 1 << 11;
+	static constexpr OperationT IsPeripheral			= 1 << 11;
 
 	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
 	static constexpr OperationT BusGrant				= 1 << 12;
@@ -292,7 +292,7 @@ struct Microcycle {
 	// PermitRead and PermitWrite are used as part of the read/write mask
 	// supplied to @c apply; they are picked to be small enough values that
 	// a byte can be used for storage.
-	static constexpr OperationT PermitRead 	= 1 << 3;
+	static constexpr OperationT PermitRead	= 1 << 3;
 	static constexpr OperationT PermitWrite	= 1 << 4;
 
 	/*!

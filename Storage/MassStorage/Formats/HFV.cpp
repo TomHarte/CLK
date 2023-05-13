@@ -51,7 +51,7 @@ void HFV::set_block(size_t address, const std::vector<uint8_t> &contents) {
 		file_.write(contents);
 	} else {
 		writes_[address] = contents;
- 	}
+	}
 }
 
 void HFV::set_drive_type(Encodings::Macintosh::DriveType drive_type) {

@@ -65,7 +65,7 @@ enum class Operation: uint8_t {
 	INX,	INY,	DEX,	DEY,
 	FST,	SLW,
 	NOP,
-	PHA, 	PHP, 	PLA,	PLP,
+	PHA,	PHP,	PLA,	PLP,
 	STP,
 	TAX,	TAY,	TSX,	TXA,
 	TXS,	TYA,
@@ -120,7 +120,7 @@ inline constexpr const char *operation_name(Operation operation) {
 		MAP(BCC);	MAP(BCS);	MAP(BEQ);	MAP(BMI);	MAP(BNE);	MAP(BPL);	MAP(BVC);	MAP(BVS);
 		MAP(BRA);	MAP(BRK);	MAP(JMP);	MAP(JSR);	MAP(RTI);	MAP(RTS);	MAP(CLC);	MAP(CLD);
 		MAP(CLI);	MAP(CLT);	MAP(CLV);	MAP(SEC);	MAP(SED);	MAP(SEI);	MAP(SET);	MAP(INX);
-		MAP(INY);	MAP(DEX);	MAP(DEY);	MAP(FST);	MAP(SLW);	MAP(NOP);	MAP(PHA); 	MAP(PHP);
+		MAP(INY);	MAP(DEX);	MAP(DEY);	MAP(FST);	MAP(SLW);	MAP(NOP);	MAP(PHA);	MAP(PHP);
 		MAP(PLA);	MAP(PLP);	MAP(STP);	MAP(TAX);	MAP(TAY);	MAP(TSX);	MAP(TXA);	MAP(TXS);
 		MAP(TYA);	MAP(ADC);	MAP(SBC);	MAP(AND);	MAP(ORA);	MAP(EOR);	MAP(BIT);	MAP(CMP);
 		MAP(CPX);	MAP(CPY);	MAP(LDA);	MAP(LDX);	MAP(LDY);	MAP(TST);	MAP(ASL);	MAP(LSR);
@@ -185,7 +185,7 @@ inline std::string address(AddressingMode addressing_mode, const uint8_t *operat
 #define NUM(x) std::setfill('0') << std::setw(2) << int(x)
 #define NUM4(x) std::setfill('0') << std::setw(4) << int(x)
 	switch(addressing_mode) {
-		default: 									return "???";
+		default:									return "???";
 		case AddressingMode::Implied:				return "";
 		case AddressingMode::Accumulator:			return "A ";
 		case AddressingMode::Immediate:				output << "#$" << NUM(operation[1]);									break;

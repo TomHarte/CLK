@@ -23,7 +23,7 @@ namespace {
 }
 
 TIA::TIA():
- 	crt_(cycles_per_line * 2 - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8) {
+	crt_(cycles_per_line * 2 - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8) {
 
 	set_output_mode(OutputMode::NTSC);
 

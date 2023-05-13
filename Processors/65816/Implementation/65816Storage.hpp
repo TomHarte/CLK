@@ -80,8 +80,8 @@ enum MicroOp: uint8_t {
 	OperationConstructAbsoluteLongX,
 
 	/// Calculates an a, x address; if:
-	/// 	there was no carry into the top byte of the address; and
-	/// 	the process or in emulation or 8-bit index mode;
+	///		there was no carry into the top byte of the address; and
+	///		the process or in emulation or 8-bit index mode;
 	/// then it also skips the next micro-op.
 	OperationConstructAbsoluteXRead,
 

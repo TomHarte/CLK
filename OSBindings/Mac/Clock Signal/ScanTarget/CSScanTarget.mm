@@ -693,9 +693,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	};
 	const FragmentSamplerDictionary samplerDictionary[8] = {
 		// Composite formats.
-		{@"compositeSampleLuminance1", 				nil,	@"sampleLuminance1",				@"sampleLuminance1",						@"sampleLuminance1",				@"sampleLuminance1"},
-		{@"compositeSampleLuminance8", 				nil,	@"sampleLuminance8", 				@"sampleLuminance8WithGamma",				@"sampleLuminance8", 				@"sampleLuminance8WithGamma"},
-		{@"compositeSamplePhaseLinkedLuminance8", 	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma",	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
+		{@"compositeSampleLuminance1",				nil,	@"sampleLuminance1",				@"sampleLuminance1",						@"sampleLuminance1",				@"sampleLuminance1"},
+		{@"compositeSampleLuminance8",				nil,	@"sampleLuminance8",				@"sampleLuminance8WithGamma",				@"sampleLuminance8",				@"sampleLuminance8WithGamma"},
+		{@"compositeSamplePhaseLinkedLuminance8",	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma",	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
 
 		// S-Video formats.
 		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma"},
@@ -808,7 +808,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	if(_pipeline != Pipeline::DirectToDisplay) {
 		// Create the composition render pass.
- 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
+		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
 		pipelineDescriptor.fragmentFunction =
 			[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];

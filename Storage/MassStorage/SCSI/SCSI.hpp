@@ -20,7 +20,7 @@
 namespace SCSI {
 
 /// Provides the current state of the SCSI bus, being comprised of a bitwise combination
-/// of zero or more of the @c BusState flags defined below.	
+/// of zero or more of the @c BusState flags defined below.
 typedef int BusState;
 
 constexpr BusState DefaultBusState = 0;
@@ -34,9 +34,9 @@ constexpr BusState DefaultBusState = 0;
 */
 enum Line: BusState {
 	/// Provides the value currently on the data lines.
-	Data 			= 0xff,
+	Data			= 0xff,
 	/// Parity of the data lines.
-	Parity		 	= 1 << 8,
+	Parity			= 1 << 8,
 	/// Set if the SEL line is currently selecting a target.
 	/// Reset if it is selecting an initiator.
 	SelectTarget	= 1 << 9,

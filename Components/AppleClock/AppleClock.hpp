@@ -195,7 +195,7 @@ class SerialClock: public ClockStorage {
 			Sets the current clock and data inputs to the clock.
 		*/
 		void set_input(bool clock, bool data) {
-			// 	The data line is valid when the clock transitions to level 0.
+			// The data line is valid when the clock transitions to level 0.
 			if(clock && !previous_clock_) {
 				// Shift into the command_ register, no matter what.
 				command_ = uint16_t((command_ << 1) | (data ? 1 : 0));
