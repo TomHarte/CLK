@@ -174,7 +174,7 @@ class ConcreteMachine:
 			tape_player_.set_clocking_hint_observer(this);
 
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
-			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f, has_opll ? 0.4f : 0.0f});
+			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f, has_opll ? 0.5f : 0.0f});
 
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
@@ -230,11 +230,12 @@ class ConcreteMachine:
 
 			// Fetch the necessary ROMs; try the region-specific ROM first,
 			// but failing that fall back on patching the main one.
-			ROM::Request request;
+			ROM::Request request = bios_request;
 			if(target.has_disk_drive) {
-				request = ROM::Request(ROM::Name::MSXDOS) && bios_request;
-			} else {
-				request = bios_request;
+				request = request && ROM::Request(ROM::Name::MSXDOS);
+			}
+			if(target.has_msx_music) {
+				request = request && ROM::Request(ROM::Name::MSXMusic);
 			}
 
 			auto roms = rom_fetcher(request);
@@ -293,6 +294,14 @@ class ConcreteMachine:
 
 				disk_slot().map(0, 0x4000, 0x2000);
 				disk_slot().map_handler(0x6000, 0x2000);
+			}
+
+			// Grab the MSX-MUSIC ROM if applicable.
+			if(target.has_msx_music) {
+				std::vector<uint8_t> &msx_music = roms.find(ROM::Name::MSXMusic)->second;
+				msx_music.resize(65536);
+				msx_music_slot().set_source(msx_music);
+				msx_music_slot().map(0, 0, 0x10000);
 			}
 
 			// Insert the media.
@@ -950,7 +959,7 @@ class ConcreteMachine:
 		//
 		//	Slot 3-1 holds the BIOS extension ROM.
 		//
-		//	[Slot 3-2 will likely hold MSX-MUSIC, but that's TODO]
+		//	Slot 3-2 holds the MSX-MUSIC.
 		//
 		MemorySlot &bios_slot() {
 			return memory_slots_[0].subslot(0);
@@ -960,6 +969,9 @@ class ConcreteMachine:
 		}
 		MemorySlot &extension_rom_slot() {
 			return memory_slots_[3].subslot(1);
+		}
+		MemorySlot &msx_music_slot() {
+			return memory_slots_[3].subslot(2);
 		}
 
 		MemorySlot &cartridge_slot() {
@@ -981,7 +993,8 @@ class ConcreteMachine:
 		}
 		DiskROM *disk_handler() {
 			return dynamic_cast<DiskROM *>(disk_primary().handler.get());
-		}};
+		}
+};
 
 }
 
