@@ -148,7 +148,6 @@ class ConcreteMachine:
 	private:
 		// Provide 512kb of memory for an MSX 2; 64kb for an MSX 1. 'Slightly' arbitrary.
 		static constexpr size_t RAMSize = model == Target::Model::MSX2 ? 512 * 1024 : 64 * 1024;
-
 		static constexpr int ClockRate = 3579545;
 
 	public:
@@ -742,8 +741,8 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			int mask = 1 << (key & 7);
-			int line = key >> 4;
+			const int mask = 1 << (key & 7);
+			const int line = key >> 4;
 			if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
 		}
 
@@ -774,7 +773,7 @@ class ConcreteMachine:
 
 		// MARK: - Activity::Source
 		void set_activity_observer(Activity::Observer *observer) final {
-			DiskROM *handler = disk_handler();
+			DiskROM *const handler = disk_handler();
 			if(handler) {
 				handler->set_activity_observer(observer);
 			}
