@@ -18,6 +18,7 @@ namespace Analyser::Static::MSX {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_disk_drive = false;
+	bool has_msx_music = false;
 	std::string loading_command;
 
 	ReflectableEnum(Model,
@@ -36,6 +37,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	Target(): Analyser::Static::Target(Machine::MSX) {
 		if(needs_declare()) {
 			DeclareField(has_disk_drive);
+			DeclareField(has_msx_music);
 			DeclareField(region);
 			AnnounceEnum(Region);
 			DeclareField(model);
