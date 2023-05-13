@@ -27,8 +27,9 @@
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
-#include "../../Components/RP5C01/RP5C01.hpp"
 #include "../../Components/KonamiSCC/KonamiSCC.hpp"
+#include "../../Components/OPx/OPLL.hpp"
+#include "../../Components/RP5C01/RP5C01.hpp"
 
 #include "../../Storage/Tape/Parsers/MSX.hpp"
 #include "../../Storage/Tape/Tape.hpp"
@@ -154,10 +155,11 @@ class ConcreteMachine:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
 			i8255_(i8255_port_handler_),
+			opll_(audio_queue_, 1),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			audio_toggle_(audio_queue_),
 			scc_(audio_queue_),
-			mixer_(ay_, audio_toggle_, scc_),
+			mixer_(ay_, audio_toggle_, scc_, opll_),
 			speaker_(mixer_),
 			tape_player_(3579545 * 2),
 			i8255_port_handler_(*this, audio_toggle_, tape_player_),
@@ -172,7 +174,7 @@ class ConcreteMachine:
 			tape_player_.set_clocking_hint_observer(this);
 
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
-			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
+			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f, has_opll ? 0.4f : 0.0f});
 
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
@@ -667,6 +669,13 @@ class ConcreteMachine:
 								update_paging();
 							} break;
 
+							case 0x7c:	case 0x7d:
+								if constexpr (has_opll) {
+									opll_.write(address, *cycle.value);
+									break;
+								}
+								[[fallthrough]];
+
 							default:
 								printf("Unhandled write %02x of %02x\n", address & 0xff, *cycle.value);
 							break;
@@ -855,11 +864,14 @@ class ConcreteMachine:
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
+		Yamaha::OPL::OPLL opll_;
 		GI::AY38910::AY38910<false> ay_;
 		Audio::Toggle audio_toggle_;
 		Konami::SCC scc_;
-		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC> mixer_;
-		Outputs::Speaker::PullLowpass<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC>> speaker_;
+
+		using CompundSource = Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC, Yamaha::OPL::OPLL>;
+		CompundSource mixer_;
+		Outputs::Speaker::PullLowpass<CompundSource> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_player_is_sleeping_ = false;
