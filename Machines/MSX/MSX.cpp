@@ -130,7 +130,6 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 		};
 };
 
-
 template <bool has_opll> struct Speaker;
 
 template <> struct Speaker<false> {
