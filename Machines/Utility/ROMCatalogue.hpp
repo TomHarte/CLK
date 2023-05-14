@@ -119,6 +119,7 @@ enum Name {
 
 	MSX2GenericBIOS,
 	MSX2Extension,
+	MSXMusic,
 
 	// Oric.
 	OricColourROM,
