@@ -130,6 +130,47 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 		};
 };
 
+
+template <bool has_opll> struct Speaker;
+
+template <> struct Speaker<false> {
+	Speaker() :
+		ay(GI::AY38910::Personality::AY38910, audio_queue),
+		audio_toggle(audio_queue),
+		scc(audio_queue),
+		mixer(ay, audio_toggle, scc),
+		speaker(mixer) {}
+
+	Concurrency::AsyncTaskQueue<false> audio_queue;
+	GI::AY38910::AY38910<false> ay;
+	Audio::Toggle audio_toggle;
+	Konami::SCC scc;
+
+	using CompundSource = Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC>;
+	CompundSource mixer;
+	Outputs::Speaker::PullLowpass<CompundSource> speaker;
+};
+
+template <> struct Speaker<true> {
+	Speaker() :
+		opll(audio_queue, 1),
+		ay(GI::AY38910::Personality::AY38910, audio_queue),
+		audio_toggle(audio_queue),
+		scc(audio_queue),
+		mixer(ay, audio_toggle, scc, opll),
+		speaker(mixer) {}
+
+	Concurrency::AsyncTaskQueue<false> audio_queue;
+	Yamaha::OPL::OPLL opll;
+	GI::AY38910::AY38910<false> ay;
+	Audio::Toggle audio_toggle;
+	Konami::SCC scc;
+
+	using CompundSource = Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC, Yamaha::OPL::OPLL>;
+	CompundSource mixer;
+	Outputs::Speaker::PullLowpass<CompundSource> speaker;
+};
+
 using Target = Analyser::Static::MSX::Target;
 
 template <Target::Model model, bool has_opll>
@@ -155,26 +196,20 @@ class ConcreteMachine:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
 			i8255_(i8255_port_handler_),
-			opll_(audio_queue_, 1),
-			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
-			audio_toggle_(audio_queue_),
-			scc_(audio_queue_),
-			mixer_(ay_, audio_toggle_, scc_, opll_),
-			speaker_(mixer_),
 			tape_player_(3579545 * 2),
-			i8255_port_handler_(*this, audio_toggle_, tape_player_),
+			i8255_port_handler_(*this, speaker_.audio_toggle, tape_player_),
 			ay_port_handler_(tape_player_),
 			memory_slots_{{*this}, {*this}, {*this}, {*this}},
 			clock_(ClockRate) {
 			set_clock_rate(ClockRate);
 			clear_all_keys();
 
-			ay_.set_port_handler(&ay_port_handler_);
-			speaker_.set_input_rate(3579545.0f / 2.0f);
+			speaker_.ay.set_port_handler(&ay_port_handler_);
+			speaker_.speaker.set_input_rate(3579545.0f / 2.0f);
 			tape_player_.set_clocking_hint_observer(this);
 
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
-			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f, has_opll ? 0.5f : 0.0f});
+			speaker_.mixer.set_relative_volumes({0.5f, 0.1f, 0.4f, has_opll ? 0.5f : 0.0f});
 
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
@@ -317,7 +352,7 @@ class ConcreteMachine:
 		}
 
 		~ConcreteMachine() {
-			audio_queue_.flush();
+			speaker_.audio_queue.flush();
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
@@ -337,7 +372,7 @@ class ConcreteMachine:
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
-			return &speaker_;
+			return &speaker_.speaker;
 		}
 
 		void run_for(const Cycles cycles) final {
@@ -375,7 +410,7 @@ class ConcreteMachine:
 							cartridge_primary().handler = std::make_unique<Cartridge::KonamiROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::KonamiWithSCC:
-							cartridge_primary().handler = std::make_unique<Cartridge::KonamiWithSCCROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot), scc_);
+							cartridge_primary().handler = std::make_unique<Cartridge::KonamiWithSCCROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot), speaker_.scc);
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII8kb:
 							cartridge_primary().handler = std::make_unique<Cartridge::ASCII8kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
@@ -590,7 +625,7 @@ class ConcreteMachine:
 
 							case 0xa2:
 								update_audio();
-								*cycle.value = GI::AY38910::Utility::read(ay_);
+								*cycle.value = GI::AY38910::Utility::read(speaker_.ay);
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -634,7 +669,7 @@ class ConcreteMachine:
 
 							case 0xa0:	case 0xa1:
 								update_audio();
-								GI::AY38910::Utility::write(ay_, port == 0xa1, *cycle.value);
+								GI::AY38910::Utility::write(speaker_.ay, port == 0xa1, *cycle.value);
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -680,7 +715,7 @@ class ConcreteMachine:
 
 							case 0x7c:	case 0x7d:
 								if constexpr (has_opll) {
-									opll_.write(address, *cycle.value);
+									speaker_.opll.write(address, *cycle.value);
 									break;
 								}
 								[[fallthrough]];
@@ -742,7 +777,7 @@ class ConcreteMachine:
 			}
 			if(outputs & Output::Audio) {
 				update_audio();
-				audio_queue_.perform();
+				speaker_.audio_queue.perform();
 			}
 		}
 
@@ -805,7 +840,7 @@ class ConcreteMachine:
 
 	private:
 		void update_audio() {
-			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+			speaker_.speaker.run_for(speaker_.audio_queue, time_since_ay_update_.divide_cycles(Cycles(2)));
 		}
 
 		class i8255PortHandler: public Intel::i8255::PortHandler {
@@ -872,16 +907,6 @@ class ConcreteMachine:
 		JustInTimeActor<TI::TMS::TMS9918<vdp_model()>> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
-		Concurrency::AsyncTaskQueue<false> audio_queue_;
-		Yamaha::OPL::OPLL opll_;
-		GI::AY38910::AY38910<false> ay_;
-		Audio::Toggle audio_toggle_;
-		Konami::SCC scc_;
-
-		using CompundSource = Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC, Yamaha::OPL::OPLL>;
-		CompundSource mixer_;
-		Outputs::Speaker::PullLowpass<CompundSource> speaker_;
-
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_player_is_sleeping_ = false;
 		bool allow_fast_tape_ = false;
@@ -896,6 +921,7 @@ class ConcreteMachine:
 		}
 
 		i8255PortHandler i8255_port_handler_;
+		Speaker<has_opll> speaker_;
 		AYPortHandler ay_port_handler_;
 
 		/// The current primary and secondary slot selections; the former retains whatever was written
