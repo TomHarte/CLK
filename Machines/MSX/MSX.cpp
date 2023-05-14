@@ -208,7 +208,12 @@ class ConcreteMachine:
 			tape_player_.set_clocking_hint_observer(this);
 
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
-			speaker_.mixer.set_relative_volumes({0.5f, 0.1f, 0.4f, has_opll ? 0.5f : 0.0f});
+			// If there is an OPLL, give it equal volume to the AY and expect some clipping.
+			if constexpr (has_opll) {
+				speaker_.mixer.set_relative_volumes({0.5f, 0.1f, 0.4f, 0.5f});
+			} else {
+				speaker_.mixer.set_relative_volumes({0.5f, 0.1f, 0.4f});
+			}
 
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
