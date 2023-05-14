@@ -18,7 +18,7 @@ namespace Analyser::Static::MSX {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_disk_drive = false;
-	bool has_msx_music = false;
+	bool has_msx_music = true;
 	std::string loading_command;
 
 	ReflectableEnum(Model,
