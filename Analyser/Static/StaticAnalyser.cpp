@@ -185,6 +185,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::IPF>,
 			TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum)		// IPF
 	Format("msa", result.disks, Disk::DiskImageHolder<Storage::Disk::MSA>, TargetPlatform::AtariST)				// MSA
+	Format("mx2", result.cartridges, Cartridge::BinaryDump, TargetPlatform::MSX)								// MX2
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
