@@ -727,20 +727,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			switch(instruction_.operation) {
 				case InstructionSet::M68k::Operation::Undefined:
-					if(instruction_.operation == InstructionSet::M68k::Operation::Undefined) {
-						switch(opcode_ & 0xf000) {
-							default:
-								exception_vector_ = InstructionSet::M68k::Exception::IllegalInstruction;
-							break;
-							case 0xa000:
-								exception_vector_ = InstructionSet::M68k::Exception::Line1010;
-							break;
-							case 0xf000:
-								exception_vector_ = InstructionSet::M68k::Exception::Line1111;
-							break;
-						}
-						MoveToStateSpecific(StandardException);
+					switch(opcode_ & 0xf000) {
+						default:
+							exception_vector_ = InstructionSet::M68k::Exception::IllegalInstruction;
+						break;
+						case 0xa000:
+							exception_vector_ = InstructionSet::M68k::Exception::Line1010;
+						break;
+						case 0xf000:
+							exception_vector_ = InstructionSet::M68k::Exception::Line1111;
+						break;
 					}
+					MoveToStateSpecific(StandardException);
 
 				StdCASE(NBCD, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {

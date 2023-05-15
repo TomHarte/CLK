@@ -228,7 +228,7 @@ class ConcreteMachine:
 			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
 			uint8_t date_format = 1;			/* 0 = Y/M/D, 1 = M/D/Y, 2 = D/M/Y */
 			uint8_t keyboard = 1;				/* 0 = Japan, 1 = USA, 2 = France, 3 = UK, 4 = Germany, 5 = USSR, 6 = Spain */
-			ROM::Name regional_bios_name;
+			[[maybe_unused]] ROM::Name regional_bios_name;
 
 			switch(target.region) {
 				default:

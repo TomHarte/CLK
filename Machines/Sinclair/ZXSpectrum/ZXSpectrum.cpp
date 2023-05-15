@@ -523,7 +523,7 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::Input: {
-					bool did_match = false;
+					[[maybe_unused]] bool did_match = false;
 					*cycle.value = 0xff;
 
 					if(!(address&32)) {
