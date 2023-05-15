@@ -1145,6 +1145,10 @@ void MainWindow::start_msx() {
 	using Target = Analyser::Static::MSX::Target;
 	auto target = std::make_unique<Target>();
 
+	switch(ui->msxModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::MSX1;		break;
+		case 1:		target->model = Target::Model::MSX2;		break;
+	}
 	switch(ui->msxRegionComboBox->currentIndex()) {
 		default:	target->region = Target::Region::Europe;	break;
 		case 1:		target->region = Target::Region::USA;		break;
@@ -1152,6 +1156,7 @@ void MainWindow::start_msx() {
 	}
 
 	target->has_disk_drive = ui->msxDiskDriveCheckBox->isChecked();
+	target->has_msx_music = ui->msxMSXMUSICCheckBox->isChecked();
 
 	launchTarget(std::move(target));
 }
