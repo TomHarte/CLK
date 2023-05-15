@@ -15,7 +15,7 @@ namespace TI::TMS {
 
 template <Personality personality>
 template <SpriteMode mode, bool double_width>
-void Base<personality>::draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
+void Base<personality>::draw_sprites([[maybe_unused]] uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer) {
 	if(!draw_line_buffer_->sprites) {
 		return;
 	}
@@ -346,7 +346,7 @@ void Base<personality>::draw_tms_text(int start, int end) {
 // MARK: - Master System
 
 template <Personality personality>
-void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
+void Base<personality>::draw_sms([[maybe_unused]] int start, [[maybe_unused]] int end, [[maybe_unused]] uint32_t cram_dot) {
 	if constexpr (is_sega_vdp(personality)) {
 		int colour_buffer[256];
 		auto &line_buffer = *draw_line_buffer_;
@@ -451,7 +451,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 template <Personality personality>
 template <ScreenMode mode>
 void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
-	const auto active_palette = palette();
+	[[maybe_unused]] const auto active_palette = palette();
 	const int sprite_start = start >> 2;
 	const int sprite_end = end >> 2;
 	auto &line_buffer = *draw_line_buffer_;

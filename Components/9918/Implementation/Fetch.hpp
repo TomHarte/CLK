@@ -588,7 +588,7 @@ struct SMSSequencer {
 };
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_sms(uint8_t y, int start, int end) {
+template<bool use_end> void Base<personality>::fetch_sms([[maybe_unused]] uint8_t y, [[maybe_unused]] int start, [[maybe_unused]] int end) {
 	if constexpr (is_sega_vdp(personality)) {
 		SMSSequencer<personality> sequencer(this, y);
 		dispatch<use_end>(sequencer, start, end);

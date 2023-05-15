@@ -139,6 +139,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 						ROM::Request(ROM::Name::EnterpriseBASIC11) ||
 						ROM::Request(ROM::Name::EnterpriseBASIC11Suffixed)
 					);
+				break;
 				case Target::BASICVersion::v21:
 					request = request && ROM::Request(ROM::Name::EnterpriseBASIC21);
 				break;
@@ -724,7 +725,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 		EXDos exdos_;
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) final {
+		void set_activity_observer([[maybe_unused]] Activity::Observer *observer) final {
 			if constexpr (has_disk_controller) {
 				exdos_.set_activity_observer(observer);
 			}
