@@ -1278,7 +1278,6 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 
 	// Calculate when the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
-	int line_interrupt_position = this->mode_timing_.line_interrupt_position;
 
 	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->fetch_pointer_.column;
 	int line_of_next_interrupt_threshold = this->fetch_pointer_.row;
