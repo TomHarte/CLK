@@ -89,6 +89,8 @@ struct ModeDescription {
 	int width = 256;
 	int pixels_per_byte = 4;
 	bool rotate_address = false;
+	int start_cycle = 0;
+	int end_cycle = 0;
 };
 
 struct Command {
