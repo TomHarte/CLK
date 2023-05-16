@@ -377,7 +377,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[super mouseUp:event];
 }
 
-- (void)rightMouseUp:(NSEvent *)event  {
+- (void)rightMouseUp:(NSEvent *)event {
 	[self applyButtonUp:event];
 	[super rightMouseUp:event];
 }

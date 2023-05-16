@@ -243,8 +243,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 				page(0xc1, 0xc4, state.region_C1_C3 ? &rom_[0xc100 - 0xc100] : nullptr, nullptr);
 				read_pages_[0xc3] = state.region_C3 ? &rom_[0xc300 - 0xc100] : nullptr;
-				page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100]  : nullptr, nullptr);
-				page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100]  : nullptr, nullptr);
+				page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100] : nullptr, nullptr);
+				page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100] : nullptr, nullptr);
 			}
 
 			if constexpr (bool(type & PagingType::Main)) {

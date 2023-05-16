@@ -402,6 +402,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	uint8_t colour_status_ = 0;
 	uint16_t colour_location_ = 0;
 	uint16_t collision_location_[2]{};
+	bool line_matches_ = false;
 
 	Storage() noexcept {
 		// Seed to something valid.

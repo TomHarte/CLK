@@ -1150,7 +1150,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[commandBuffer commit];
 }
 
--  (Outputs::Display::ScanTarget *)scanTarget {
+- (Outputs::Display::ScanTarget *)scanTarget {
 	return &_scanTarget;
 }
 

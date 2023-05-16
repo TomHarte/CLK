@@ -16,7 +16,7 @@ class AllSuiteATests: XCTestCase {
 				let machine = CSTestMachine6502(processor: .processor6502)
 
 				machine.setData(allSuiteA, atAddress: 0x4000)
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0x45c0);  // end
+				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0x45c0); // end
 
 				machine.setValue(0x4000, for: CSTestMachine6502Register.programCounter)
 				while !machine.isJammed {

@@ -422,11 +422,11 @@ API_AVAILABLE(macos(11.0))
 @end
 
 static void DeviceMatched(void *context, IOReturn result, void *sender, IOHIDDeviceRef device) {
-	[(__bridge  CSJoystickManager *)context deviceMatched:device result:result sender:sender];
+	[(__bridge CSJoystickManager *)context deviceMatched:device result:result sender:sender];
 }
 
 static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDeviceRef device) {
-	[(__bridge  CSJoystickManager *)context deviceRemoved:device result:result sender:sender];
+	[(__bridge CSJoystickManager *)context deviceRemoved:device result:result sender:sender];
 }
 
 @implementation CSJoystickManager {

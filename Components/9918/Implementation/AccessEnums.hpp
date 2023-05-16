@@ -78,6 +78,10 @@ constexpr bool interleaves_banks(ScreenMode mode) {
 	return mode == ScreenMode::YamahaGraphics6 || mode == ScreenMode::YamahaGraphics7;
 }
 
+constexpr bool is_text(ScreenMode mode) {
+	return mode == ScreenMode::Text || mode == ScreenMode::YamahaText80;
+}
+
 enum class FetchMode {
 	Text,
 	Character,

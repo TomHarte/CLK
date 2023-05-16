@@ -51,7 +51,7 @@ struct LogSign {
 	@returns Negative log sin of x, assuming a 1024-unit circle.
 */
 constexpr LogSign negative_log_sin(int x) {
-	/// Defines the first quadrant of 1024-unit negative log to the base two of  sine (that conveniently misses sin(0)).
+	/// Defines the first quadrant of 1024-unit negative log to the base two of sine (that conveniently misses sin(0)).
 	///
 	/// Expected branchless usage for a full 1024 unit output:
 	///

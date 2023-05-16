@@ -44,11 +44,10 @@ Base<personality>::Base() :
 	}
 
 	if constexpr (is_yamaha_vdp(personality)) {
-		// TODO: start of sync, or end of sync? Or elsewhere.
-		// Note that there's a bug elsewhere if the proper value of this is zero in the
-		// "if started before but reached this count" logic — that is boxed into considering
-		// a single line only so never sees starts before 0.
-		mode_timing_.line_interrupt_position = LineLayout<personality>::EndOfSync;
+		// TODO: this is used for interrupt _prediction_ but won't handle text modes correctly, and indeed
+		// can't be just a single value where the programmer has changed into or out of text modes during the
+		// middle of a line, since screen mode is latched (so it'll be one value for that line, another from then onwards).a
+		mode_timing_.line_interrupt_position = LineLayout<personality>::EndOfPixels;
 	}
 
 	// Establish that output is delayed after reading by `output_lag` cycles,
@@ -275,11 +274,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// -------------------------------
 			// Check for interrupt conditions.
 			// -------------------------------
-			if(this->fetch_pointer_.column < this->mode_timing_.line_interrupt_position && end_column >= this->mode_timing_.line_interrupt_position) {
+			if constexpr (is_sega_vdp(personality)) {
 				// The Sega VDP offers a decrementing counter for triggering line interrupts;
 				// it is reloaded either when it overflows or upon every non-pixel line after the first.
 				// It is otherwise decremented.
-				if constexpr (is_sega_vdp(personality)) {
+				if(
+					this->fetch_pointer_.column < this->mode_timing_.line_interrupt_position &&
+					end_column >= this->mode_timing_.line_interrupt_position
+				) {
 					if(this->fetch_pointer_.row >= 0 && this->fetch_pointer_.row <= this->mode_timing_.pixel_lines) {
 						if(!this->line_interrupt_counter_) {
 							this->line_interrupt_pending_ = true;
@@ -291,14 +293,27 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						this->line_interrupt_counter_ = this->line_interrupt_target_;
 					}
 				}
+			}
 
-				if constexpr (is_yamaha_vdp(personality)) {
-					if(
-						this->vertical_active_ &&
-						this->fetch_pointer_.row == ((this->line_interrupt_target_ - Storage<personality>::vertical_offset_) & 0xff)
-					) {
-						this->line_interrupt_pending_ = true;
-					}
+			if constexpr (is_yamaha_vdp(personality)) {
+				// The Yamaha VDPs allow the user to specify which line an interrupt should occur on,
+				// which is relative to the current vertical base. Such an interrupt will occur immediately
+				// after pixels have ended.
+				if(
+					this->vertical_active_ &&
+					this->fetch_pointer_.column < Storage<personality>::mode_description_.end_cycle &&
+					end_column >= Storage<personality>::mode_description_.end_cycle &&
+					this->fetch_pointer_.row == ((this->line_interrupt_target_ - Storage<personality>::vertical_offset_) & 0xff)
+				) {
+					this->line_interrupt_pending_ = true;
+					Storage<personality>::line_matches_ = true;
+				}
+
+				if(
+					this->fetch_pointer_.column < Storage<personality>::mode_description_.start_cycle &&
+					end_column >= Storage<personality>::mode_description_.start_cycle
+				) {
+					Storage<personality>::line_matches_ = false;
 				}
 			}
 
@@ -369,6 +384,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					desc.pixels_per_byte = pixels_per_byte(this->underlying_mode_);
 					desc.width = width(this->underlying_mode_);
 					desc.rotate_address = interleaves_banks(this->underlying_mode_);
+					if(is_text(this->underlying_mode_)) {
+						desc.start_cycle = LineLayout<personality>::TextModeEndOfLeftBorder;
+						desc.end_cycle = LineLayout<personality>::TextModeEndOfPixels;
+					} else {
+						desc.start_cycle = LineLayout<personality>::EndOfLeftBorder;
+						desc.end_cycle = LineLayout<personality>::EndOfPixels;
+					}
 				}
 
 				// Based on the output mode, pick a line mode.
@@ -568,7 +590,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(this->pixel_target_) {
 							if constexpr (is_yamaha_vdp(personality)) {
-								draw(draw_yamaha(0, relative_start, relative_end), Clock::Internal);	// TODO: what is  the correct 'y'?
+								draw(draw_yamaha(0, relative_start, relative_end), Clock::Internal);	// TODO: what is the correct 'y'?
 							} else {
 								switch(this->draw_line_buffer_->fetch_mode) {
 									case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);			break;

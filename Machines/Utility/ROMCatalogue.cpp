@@ -254,7 +254,7 @@ std::string Description::description(int flags) const {
 	if(flags & DescriptionFlag::Filename) {
 		flags &= ~DescriptionFlag::Filename;
 
-		output << machine_name <<  '/';
+		output << machine_name << '/';
 		if(file_names.size() == 1) {
 			output << file_names[0];
 		} else {

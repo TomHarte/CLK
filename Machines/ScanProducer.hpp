@@ -75,7 +75,7 @@ class ScanProducer {
 		}
 
 		/*!
-			Maps back from Outputs::Display::VideoSignal  to Configurable::Display,
+			Maps back from Outputs::Display::VideoSignal to Configurable::Display,
 			calling @c get_display_type for the input.
 		*/
 		Configurable::Display get_video_signal_configurable() const {

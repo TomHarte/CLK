@@ -12,7 +12,7 @@
 //
 //
 // Before
-// the transmission starts, both KCLK and KDAT are high.  The keyboard starts
+// the transmission starts, both KCLK and KDAT are high. The keyboard starts
 // the transmission by putting out the first data bit (on KDAT), followed by
 // a pulse on KCLK (low then high); then it puts out the second data bit and
 // pulses KCLK until all eight data bits have been sent.
@@ -20,23 +20,23 @@
 // When the computer has received the eighth bit, it must pulse KDAT low for
 // at least 1 (one) microsecond, as a handshake signal to the keyboard. The
 // keyboard must be able to detect pulses greater than or equal
-// to 1 microsecond.  Software MUST pulse the line low for 85 microseconds to
+// to 1 microsecond. Software MUST pulse the line low for 85 microseconds to
 // ensure compatibility with all keyboard models.
 //
 //
 // If the handshake pulse does not arrive within
 // 143 ms of the last clock of the transmission, the keyboard will assume
 // that the computer is still waiting for the rest of the transmission and is
-// therefore out of sync.  The keyboard will then attempt to restore sync by
-// going into "resync mode."  In this mode, the keyboard clocks out a 1 and
+// therefore out of sync. The keyboard will then attempt to restore sync by
+// going into "resync mode." In this mode, the keyboard clocks out a 1 and
 // waits for a handshake pulse. If none arrives within 143 ms, it clocks out
 // another 1 and waits again.
 //
 // The keyboard Hard Resets the Amiga by pulling KCLK low and starting a 500
-// millisecond timer.   When one or more of the keys is released and 500
+// millisecond timer. When one or more of the keys is released and 500
 // milliseconds have passed, the keyboard will release KCLK.
 //
-// The usual sequence of events will therefore be:  power-up; synchronize;
+// The usual sequence of events will therefore be: power-up; synchronize;
 // transmit "initiate power-up key stream" ($FD); transmit "terminate key
 // stream" ($FE).
 
@@ -52,8 +52,8 @@ Keyboard::Keyboard(Serial::Line<true> &output) : output_(output) {
 	switch(shift_state_) {
 		case ShiftState::Shifting:
 			// The keyboard processor sets the KDAT line about 20 microseconds before it
-			// pulls KCLK low.  KCLK stays low for about 20 microseconds, then goes high
-			// again.  The processor waits another 20 microseconds before changing KDAT.
+			// pulls KCLK low. KCLK stays low for about 20 microseconds, then goes high
+			// again. The processor waits another 20 microseconds before changing KDAT.
 			switch(bit_phase_) {
 				default: break;
 				case 0:		lines_ = Lines::Clock | (shift_sequence_ & 1);	break;

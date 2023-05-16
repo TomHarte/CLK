@@ -82,7 +82,7 @@
 	// as "close enough". Sadly the raw data isn't given, so
 	// that's the best as I can do. Fingers crossed!
 
-	NSURL *const url = [[NSBundle bundleForClass:[self class]] URLForResource:@"fm"  withExtension:@"json"];
+	NSURL *const url = [[NSBundle bundleForClass:[self class]] URLForResource:@"fm" withExtension:@"json"];
 	NSArray *const parent = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:url] options:0 error:nil];
 
 	for(int c = 0; c < 64; ++c) {

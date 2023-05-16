@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-typedef enum  {
+typedef enum {
 	Atari2600DigitalInputJoy1Up,
 	Atari2600DigitalInputJoy1Down,
 	Atari2600DigitalInputJoy1Left,
@@ -27,7 +27,7 @@ typedef enum  {
 	Atari2600DigitalInputJoy2Fire,
 } Atari2600DigitalInput;
 
-typedef enum  {
+typedef enum {
 	Atari2600SwitchReset,
 	Atari2600SwitchSelect,
 	Atari2600SwitchColour,

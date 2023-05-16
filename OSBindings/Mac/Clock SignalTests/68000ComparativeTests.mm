@@ -260,7 +260,7 @@ struct TestProcessor: public CPU::MC68000::BusHandler {
 	}
 }
 
-- (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
+- (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name {
 	struct TerminateMarker {};
 
 	auto uniqueTest68000 = std::make_unique<TestProcessor>(reinterpret_cast<uint8_t *>(_ram.data()));

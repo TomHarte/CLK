@@ -14,7 +14,7 @@
 
 using namespace Storage::Disk;
 
-namespace  {
+namespace {
 
 std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(Storage::Disk::PCMSegment &segment, bool is_double_density) {
 	std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder;

@@ -116,7 +116,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				const uint8_t flags = file.get8();
 				state->z80.execution_state.is_halted = flags & 2;
 				// TODO: bit 0 indicates that the last instruction was an EI, or an invalid
-				// DD or FD.  I assume I'm supposed to use that to conclude an interrupt
+				// DD or FD. I assume I'm supposed to use that to conclude an interrupt
 				// verdict but I'm unclear what the effect of an invalid DD or FD is so
 				// have not yet implemented this.
 

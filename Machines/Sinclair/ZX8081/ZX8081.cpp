@@ -39,8 +39,8 @@ namespace {
 
 // TODO:
 //	Quiksilva sound support:
-//  7FFFh.W   PSG index
-//  7FFEh.R/W PSG data
+// 	7FFFh.W		PSG index
+//	7FFEh.R/W	PSG data
 
 namespace Sinclair {
 namespace ZX8081 {

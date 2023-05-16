@@ -46,7 +46,7 @@ class Bitplanes: public DMADevice<6, 2> {
 		BitplaneData next;
 };
 
-template <typename SourceT>  constexpr SourceT bitplane_swizzle(SourceT value) {
+template <typename SourceT> constexpr SourceT bitplane_swizzle(SourceT value) {
 	return
 		(value&0x21) |
 		((value&0x02) << 2) |

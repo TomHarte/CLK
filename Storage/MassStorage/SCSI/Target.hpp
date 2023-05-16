@@ -323,7 +323,7 @@ struct Executor {
 		return true;
 	}
 
-	/*  Group 5 commands. */
+	/* Group 5 commands. */
 	bool set_block_limits(const CommandState &, Responder &)	{	return false;	}
 };
 

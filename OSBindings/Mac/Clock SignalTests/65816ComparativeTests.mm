@@ -18,7 +18,7 @@ namespace {
 
 struct StopException {};
 
-struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
+struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t> {
 	// Use a map to store RAM contents, in order to preserve initialised state.
 	std::unordered_map<uint32_t, uint8_t> ram;
 	std::unordered_map<uint32_t, uint8_t> inventions;

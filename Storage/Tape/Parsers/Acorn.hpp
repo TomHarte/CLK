@@ -44,7 +44,7 @@ enum class SymbolType {
 	One, Zero
 };
 
-class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate  {
+class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate {
 	public:
 		Parser();
 

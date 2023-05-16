@@ -523,7 +523,7 @@ template <	class T,
 	uint8_t result = a_ - temp8_;	\
 	const uint8_t halfResult = (a_&0xf) - (temp8_&0xf);	\
 	\
-	parity_overflow_result_ =  bc_.full ? Flag::Parity : 0;	\
+	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;	\
 	half_carry_result_ = halfResult;	\
 	subtract_flag_ = Flag::Subtract;	\
 	sign_result_ = zero_result_ = result;	\

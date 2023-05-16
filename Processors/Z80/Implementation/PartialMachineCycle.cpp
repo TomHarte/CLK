@@ -18,7 +18,7 @@ PartialMachineCycle::PartialMachineCycle(const PartialMachineCycle &rhs) noexcep
 	was_requested(rhs.was_requested) {}
 
 PartialMachineCycle::PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) noexcept :
-	operation(operation), length(length), address(address), value(value), was_requested(was_requested)  {}
+	operation(operation), length(length), address(address), value(value), was_requested(was_requested) {}
 
 PartialMachineCycle::PartialMachineCycle() noexcept :
 	operation(Internal), length(0), address(nullptr), value(nullptr), was_requested(false) {}
