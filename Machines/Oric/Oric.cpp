@@ -202,7 +202,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			Reponds to changes in the 6522's port output. On an Oric port B sets the tape motor control
 			and the keyboard's active row. Port A is connected to the AY's data bus.
 		*/
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t)  {
+		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 			if(port) {
 				keyboard_.set_active_row(value);
 				tape_player_.set_motor_control(value & 0x40);

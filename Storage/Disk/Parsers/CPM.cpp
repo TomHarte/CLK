@@ -138,7 +138,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 				track = first_sector / parameters.sectors_per_track;
 
 				for(int s = 0; s < sectors_per_block && record < number_of_records; s++) {
-					Storage::Encodings::MFM::Sector *sector_contents = parser.get_sector(0, uint8_t(track), uint8_t(parameters.first_sector +  sector));
+					Storage::Encodings::MFM::Sector *sector_contents = parser.get_sector(0, uint8_t(track), uint8_t(parameters.first_sector + sector));
 					if(!sector_contents || sector_contents->samples.empty()) break;
 					sector++;
 					if(sector == parameters.sectors_per_track) {

@@ -693,7 +693,7 @@ template<Model model> class ConcreteMachine:
 				if(c == 4) break;
 			}
 
-			return !media.tapes.empty()  || (!media.disks.empty() && model == Model::Plus3);
+			return !media.tapes.empty() || (!media.disks.empty() && model == Model::Plus3);
 		}
 
 		// MARK: - ClockingHint::Observer.

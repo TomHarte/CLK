@@ -129,7 +129,7 @@ fileprivate func ==(lhs: RegisterState, rhs: RegisterState) -> Bool {
 			lhs.bc == rhs.bc &&
 			lhs.de == rhs.de &&
 			lhs.hl == rhs.hl &&
-			(lhs.afDash  & ~0x0028) == (rhs.afDash & ~0x0028) &&
+			(lhs.afDash & ~0x0028) == (rhs.afDash & ~0x0028) &&
 			lhs.bcDash == rhs.bcDash &&
 			lhs.deDash == rhs.deDash &&
 			lhs.hlDash == rhs.hlDash &&

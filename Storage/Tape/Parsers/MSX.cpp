@@ -120,8 +120,8 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 	/*
 		"Each of the eight data bits is then read by counting the number of transitions within
 		a fixed period of time (1B03H). If zero or one transitions are found it is a 0 bit, if two
-		or three are found it is a 1 bit.  If more than three transitions are found the routine
-		terminates with Flag C as this is presumed to be a hardware error of some sort. "
+		or three are found it is a 1 bit. If more than three transitions are found the routine
+		terminates with Flag C as this is presumed to be a hardware error of some sort."
 	*/
 	int result = 0;
 	const int cycles_per_window = int(

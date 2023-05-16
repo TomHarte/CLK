@@ -28,7 +28,7 @@ class Machine {
 			friend Configurable::DisplayOption<Options>;
 			public:
 				Options(Configurable::OptionsType type) : Configurable::DisplayOption<Options>(
-					type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour)  {
+					type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour) {
 					if(needs_declare()) {
 						declare_display_option();
 						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);

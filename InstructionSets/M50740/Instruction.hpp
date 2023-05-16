@@ -201,10 +201,10 @@ inline std::string address(AddressingMode addressing_mode, const uint8_t *operat
 		case AddressingMode::AbsoluteIndirect:		output << "($" << NUM(operation[2]) << NUM(operation[1]) << ") ";		break;
 		case AddressingMode::ZeroPageIndirect:		output << "($" << NUM(operation[1]) << ")";								break;
 		case AddressingMode::SpecialPage:			output << "$1f" << NUM(operation[1]);									break;
-		case AddressingMode::ImmediateZeroPage:		output << "#$" << NUM(operation[1]) << ", $"  << NUM(operation[2]);		break;
-		case AddressingMode::AccumulatorRelative:	output << "A, $"  << NUM4(2 + program_counter + int8_t(operation[1]));	break;
+		case AddressingMode::ImmediateZeroPage:		output << "#$" << NUM(operation[1]) << ", $" << NUM(operation[2]);		break;
+		case AddressingMode::AccumulatorRelative:	output << "A, $" << NUM4(2 + program_counter + int8_t(operation[1]));	break;
 		case AddressingMode::ZeroPageRelative:
-			output << "$" << NUM(operation[1]) << ", $"  << NUM4(3 + program_counter + int8_t(operation[2]));
+			output << "$" << NUM(operation[1]) << ", $" << NUM4(3 + program_counter + int8_t(operation[2]));
 		break;
 	}
 #undef NUM4

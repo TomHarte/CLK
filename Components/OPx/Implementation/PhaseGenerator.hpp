@@ -108,7 +108,7 @@ template <int precision> class PhaseGenerator {
 		}
 
 	private:
-		static constexpr int precision_shift =  1 + precision;
+		static constexpr int precision_shift = 1 + precision;
 
 		int phase_ = 0;
 

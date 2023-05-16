@@ -18,7 +18,7 @@ HFV::HFV(const std::string &file_name) : file_(file_name) {
 	// Is this an HFS volume?
 	// TODO: check filing system for MFS or HFS+.
 	const auto prefix = file_.read(2);
-	if(prefix[0] != 'L' || prefix[1] != 'K')  throw std::exception();
+	if(prefix[0] != 'L' || prefix[1] != 'K') throw std::exception();
 }
 
 size_t HFV::get_block_size() {

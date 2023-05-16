@@ -97,7 +97,7 @@
 @end
 
 /*!
-	Although I'm still on the fence about this as a design decision, CSScanTargetView  is itself responsible
+	Although I'm still on the fence about this as a design decision, CSScanTargetView is itself responsible
 	for creating and destroying a CVDisplayLink. There's a practical reason for this: you'll get real synchronisation
 	only if a link is explicitly tied to a particular display, and the CSScanTargetView therefore owns the knowledge
 	necessary to decide when to create and modify them. It doesn't currently just propagate "did change screen"-type

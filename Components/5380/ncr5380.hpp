@@ -23,7 +23,7 @@ class NCR5380 final: public SCSI::Bus::Observer {
 	public:
 		NCR5380(SCSI::Bus &bus, int clock_rate);
 
-		/*! Writes @c value to @c address.  */
+		/*! Writes @c value to @c address. */
 		void write(int address, uint8_t value, bool dma_acknowledge = false);
 
 		/*! Reads from @c address. */

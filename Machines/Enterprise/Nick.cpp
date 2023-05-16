@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-namespace  {
+namespace {
 
 uint16_t mapped_colour(uint8_t source) {
 	// On the Enterprise, red and green are 3-bit quantities; blue is a 2-bit quantity.

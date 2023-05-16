@@ -41,7 +41,7 @@ enum Key: uint16_t {
 	KeyF6		= 0xfff4,
 	KeyF8		= 0xfff5,
 
-	//  Physical keys not within the usual matrix.
+	// Physical keys not within the usual matrix.
 	KeyRestore	= 0xfffd,
 #undef key
 };

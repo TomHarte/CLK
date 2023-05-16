@@ -410,7 +410,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Perform the RESET exception, which seeds the stack pointer and program
 		// counter, populates the prefetch queue, and then moves to instruction dispatch.
 		BeginState(Reset):
-			IdleBus(7);			// (n-)*5   nn
+			IdleBus(7);			// (n-)*5 nn
 
 			// Establish general reset state.
 			status_.begin_exception(7);
@@ -493,7 +493,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//
 			// And the documented bus pattern is:
 			//
-			// nn ns ns nS ns ns ns nS nV nv np  n np
+			// nn ns ns nS ns ns ns nS nV nv np n np
 			//
 			// So, based on the hoopy ordering of a standard exception, maybe:
 			//

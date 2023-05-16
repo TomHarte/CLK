@@ -31,7 +31,7 @@ TZX::TZX(const std::string &file_name) :
 	uint8_t minor_version = file_.get8();
 
 	// Reject if an incompatible version
-	if(major_version != 1 || minor_version > 21)  throw ErrorNotTZX;
+	if(major_version != 1 || minor_version > 21) throw ErrorNotTZX;
 
 	virtual_reset();
 }
@@ -213,7 +213,7 @@ void TZX::get_standard_speed_data_block() {
 	if(!data_block.data.data_length) return;
 
 	uint8_t first_byte = file_.get8();
-	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063  : 3223;
+	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063 : 3223;
 	file_.seek(-1, SEEK_CUR);
 
 	get_data_block(data_block);

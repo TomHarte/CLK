@@ -705,9 +705,9 @@ class ConcreteMachine:
 		}
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
-		std::vector<uint8_t>  character_rom_;
-		std::vector<uint8_t>  basic_rom_;
-		std::vector<uint8_t>  kernel_rom_;
+		std::vector<uint8_t> character_rom_;
+		std::vector<uint8_t> basic_rom_;
+		std::vector<uint8_t> kernel_rom_;
 
 		std::vector<uint8_t> rom_;
 		uint16_t rom_address_, rom_length_;

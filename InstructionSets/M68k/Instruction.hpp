@@ -289,7 +289,7 @@ enum class Condition {
 /// Those entries starting 0b00 or 0b01 are mapped as per the 68000's native encoding;
 /// those starting 0b00 are those which are indicated directly by a mode field and those starting
 /// 0b01 are those which are indicated by a register field given a mode of 0b111. The only minor
-/// exception is AddressRegisterDirect, which exists on a 68000  but isn't specifiable by a
+/// exception is AddressRegisterDirect, which exists on a 68000 but isn't specifiable by a
 /// mode and register, it's contextual based on the instruction.
 ///
 /// Those modes starting in 0b10 are the various extended addressing modes introduced as

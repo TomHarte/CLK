@@ -143,7 +143,7 @@ enum class Operation: uint8_t {
 	MOV,
 	/// Negatives; source and destination point to the same thing, to negative.
 	NEG,
-	/// Logical NOT;  source and destination point to the same thing, to negative.
+	/// Logical NOT; source and destination point to the same thing, to negative.
 	NOT,
 	/// Logical AND; source, destination, operand and displacement will be populated appropriately.
 	AND,
@@ -223,7 +223,7 @@ enum class Operation: uint8_t {
 	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
 	/// current EFLAGS DF flag.
 	INS,
-	/// Outputs a byte, word or double word from ES:[e]DI  to the port specified by DX,
+	/// Outputs a byte, word or double word from ES:[e]DI to the port specified by DX,
 	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.]
 	OUTS,
 

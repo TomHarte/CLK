@@ -206,7 +206,7 @@ class SpriteFetcher {
 		// the attribute table, and forcing them to 1 but masking out bit 9 for the colour table.
 		//
 		// AttributeAddressMask is used to enable or disable that behaviour.
-		static constexpr AddressT AttributeAddressMask = (mode  == SpriteMode::Mode2) ? AddressT(~0x180) : AddressT(~0x000);
+		static constexpr AddressT AttributeAddressMask = (mode == SpriteMode::Mode2) ? AddressT(~0x180) : AddressT(~0x000);
 
 		SpriteFetcher(Base<personality> *base, uint8_t y) :
 			base(base),
