@@ -166,6 +166,10 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int TextModeEndOfLeftBorder	= 69;
 	constexpr static int TextModeEndOfPixels		= 309;
 
+	constexpr static int ModeLatchCycle		= 36;	// Just a guess; correlates with the known 144 for the Yamaha VDPs,
+													// and falls into the collection gap between the final sprite
+													// graphics and the initial tiles or pixels.
+
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
@@ -184,6 +188,8 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 
 	constexpr static int TextModeEndOfLeftBorder	= 294;
 	constexpr static int TextModeEndOfPixels		= 1254;
+
+	constexpr static int ModeLatchCycle		= 144;
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
