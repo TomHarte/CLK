@@ -590,7 +590,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(this->pixel_target_) {
 							if constexpr (is_yamaha_vdp(personality)) {
-								draw(draw_yamaha(0, relative_start, relative_end), Clock::Internal);	// TODO: what is  the correct 'y'?
+								draw(draw_yamaha(0, relative_start, relative_end), Clock::Internal);	// TODO: what is the correct 'y'?
 							} else {
 								switch(this->draw_line_buffer_->fetch_mode) {
 									case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);			break;
