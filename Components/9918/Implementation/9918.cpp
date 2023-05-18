@@ -219,11 +219,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// ---------------------------------------
 			// Latch scrolling position, if necessary.
 			// ---------------------------------------
-			// TODO: shouldn't this happen one per frame?
 			if constexpr (is_sega_vdp(personality)) {
-				constexpr auto latch_time = to_internal<personality, Clock::Grauw>(61);	// TODO: where did this magic constant come from? Is it the same for the Game Gear, etc?
-				if(this->fetch_pointer_.column < latch_time && end_column >= latch_time) {
-					if(!this->fetch_pointer_.row) {
+				if(!this->fetch_pointer_.row) {
+					// TODO: where did this magic constant come from? https://www.smspower.org/forums/17970-RoadRashHow#111000 mentioned in passing
+					// that "the vertical scroll register is latched at the start of the active display" and this is two clocks before that, so it's
+					// not uncompelling. I can just no longer find my source.
+					constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
+					static_assert(latch_time > 0);
+					if(this->fetch_pointer_.column < latch_time && end_column >= latch_time) {
 						Storage<personality>::latched_vertical_scroll_ = Storage<personality>::vertical_scroll_;
 
 						if(Storage<personality>::mode4_enable_) {
@@ -240,7 +243,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					this->fetch_line_buffer_->latched_horizontal_scroll = Storage<personality>::horizontal_scroll_;
 				}
 			}
-
 
 
 			// ------------------------
