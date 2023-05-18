@@ -16,38 +16,19 @@ namespace TI::TMS {
 
 		1)	input is a start position and an end position; they should perform the proper
 			operations for the period: start <= time < end.
-		2)	times are measured relative to a 172-cycles-per-line clock (so: they directly
-			count access windows on the TMS and Master System).
-		3)	within each sequencer, time 0 is the access window that straddles the beginning of
-			horizontal sync. Which, conveniently, is the place to which Grauw's timing diagrams
-			are aligned.
+		2)	times are measured relative to the an appropriate clock — they directly
+			count access windows on the TMS and Master System, and cycles on a Yamaha.
+		3)	within each sequencer, cycle are numbered as per Grauw's timing diagrams. The difference
+			between those and internal timing, if there is one, is handled by the dispatcher.
 		4)	all of these functions are templated with a `use_end` parameter. That will be true if
-			end is < 172, false otherwise. So functions can use it to eliminate should-exit-not checks,
-			for the more usual path of execution.
-
-	[Historically:
-			position 0 was the beginning of the access window immediately after the last pattern/data
-			block fetch that would contribute to this line, in a normal 32-column mode. So:
-
-				* it's cycle 309 on Mattias' TMS diagram;
-				* it's cycle 1238 on his V9938 diagram;
-				* it's after the last background render block in Mask of Destiny's Master System timing diagram.
-
-			That division point was selected, albeit arbitrarily, because it puts all the tile
-			fetches for a single line into the same [0, 171] period.
-
-	I'm moving away from this per the desire not to have V9938 output straddle two lines if horizontally-adjusted,
-	amongst other concerns.]
+			end is < [cycles per line], false otherwise. So functions can use it to eliminate
+			should-exit-now checks (which is likely to be the more usual path of execution).
 
 	Provided for the benefit of the methods below:
 
 		*	the function external_slot(), which will perform any pending VRAM read/write.
-		*	the macros slot(n) and external_slot(n) which can be used to schedule those things inside a
-			switch(start)-based implementation.
 
-	All functions should just spool data to intermediary storage. This is because for most VDPs there is
-	a decoupling between fetch pattern and output pattern, and it's neater to keep the same division
-	for the exceptions.
+	All functions should just spool data to intermediary storage. Fetching and drawing are decoupled.
 */
 
 // MARK: - Address mask helpers.
