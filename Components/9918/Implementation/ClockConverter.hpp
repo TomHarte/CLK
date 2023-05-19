@@ -24,8 +24,9 @@ enum class Clock {
 	TMSMemoryWindow,
 	/// A fixed 1368-cycle/line clock that is used to count output to the CRT.
 	CRT,
-	/// Provides the same clock rate as ::Internal but is relocated so that 0 is where Grauw put 0 (i.e. at the start of horizontal sync).
-	Grauw,
+	/// Provides the same clock rate as ::Internal but is relocated so that 0 is the start of horizontal sync — very not coincidentally,
+	/// where Grauw puts 0 on his detailed TMS and Yamaha timing diagrams.
+	FromStartOfSync,
 };
 
 template <Personality personality, Clock clk> constexpr int clock_rate() {
@@ -40,7 +41,7 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 		case Clock::TMSMemoryWindow:	return 171;
 		case Clock::CRT:				return 1368;
 		case Clock::Internal:
-		case Clock::Grauw:
+		case Clock::FromStartOfSync:
 			if constexpr (is_classic_vdp(personality)) {
 				return 342;
 			} else if constexpr (is_yamaha_vdp(personality)) {
@@ -53,8 +54,8 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 
 /// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
 template <Personality personality, Clock head, Clock... tail> constexpr int to_internal(int length) {
-	if constexpr (head == Clock::Grauw) {
-		length = (length + LineLayout<personality>::LocationOfGrauwZero) % LineLayout<personality>::CyclesPerLine;
+	if constexpr (head == Clock::FromStartOfSync) {
+		length = (length + LineLayout<personality>::StartOfSync) % LineLayout<personality>::CyclesPerLine;
 	} else {
 		length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
 	}
@@ -68,8 +69,10 @@ template <Personality personality, Clock head, Clock... tail> constexpr int to_i
 
 /// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
 template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
-	if constexpr (head == Clock::Grauw) {
-		length = (length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::LocationOfGrauwZero) % LineLayout<personality>::CyclesPerLine;
+	if constexpr (head == Clock::FromStartOfSync) {
+		length =
+			(length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::StartOfSync)
+				% LineLayout<personality>::CyclesPerLine;
 	} else {
 		length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
 	}

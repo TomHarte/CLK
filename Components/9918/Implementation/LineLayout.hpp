@@ -30,6 +30,7 @@ template <Personality personality, typename Enable = void> struct LineLayout;
 //		* text mode on all VDPs adjusts border width.
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
+	constexpr static int StartOfSync		= 0;
 	constexpr static int EndOfSync			= 26;
 	constexpr static int StartOfColourBurst	= 29;
 	constexpr static int EndOfColourBurst	= 43;
@@ -47,14 +48,13 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 													// and falls into the collection gap between the final sprite
 													// graphics and the initial tiles or pixels.
 
-	constexpr static int LocationOfGrauwZero	= 0;
-
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
 };
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	constexpr static int StartOfSync		= 0;
 	constexpr static int EndOfSync			= 100;
 	constexpr static int StartOfColourBurst	= 113;
 	constexpr static int EndOfColourBurst	= 167;
@@ -69,8 +69,6 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int TextModeEndOfPixels		= 1254;
 
 	constexpr static int ModeLatchCycle		= 144;
-
-	constexpr static int LocationOfGrauwZero	= 0;
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
