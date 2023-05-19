@@ -85,8 +85,9 @@ struct YamahaFetcher {
 		static constexpr std::array<Event, size> events() {
 			std::array<Event, size> result{};
 			size_t index = 0;
-			for(int c = 0; c < 1368; c++) {
-				const auto event = GeneratorT::event(c);
+			for(int c = 0; c < 1368; c++) { 
+				// Specific personality doesn't matter here; both Yamahas use the same internal timing.
+				const auto event = GeneratorT::event(from_internal<Personality::V9938, Clock::FromStartOfSync>(c));
 				if(!event) {
 					continue;
 				}

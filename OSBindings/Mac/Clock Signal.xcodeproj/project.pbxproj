@@ -1100,6 +1100,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
@@ -4738,6 +4739,7 @@
 				4B43983F2967459B006B0BFC /* Draw.hpp */,
 				4B43983E29628538006B0BFC /* Fetch.hpp */,
 				4B2A3B5B29995FF6007CE366 /* LineBuffer.hpp */,
+				428168372A16C25C008ECD27 /* LineLayout.hpp */,
 				4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */,
 				4B2A3B5A29993DFA007CE366 /* Storage.hpp */,
 				4BF0BC732982E54700CCA2B5 /* YamahaCommands.hpp */,

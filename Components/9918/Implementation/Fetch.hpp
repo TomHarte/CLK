@@ -16,38 +16,19 @@ namespace TI::TMS {
 
 		1)	input is a start position and an end position; they should perform the proper
 			operations for the period: start <= time < end.
-		2)	times are measured relative to a 172-cycles-per-line clock (so: they directly
-			count access windows on the TMS and Master System).
-		3)	within each sequencer, time 0 is the access window that straddles the beginning of
-			horizontal sync. Which, conveniently, is the place to which Grauw's timing diagrams
-			are aligned.
+		2)	times are measured relative to the an appropriate clock — they directly
+			count access windows on the TMS and Master System, and cycles on a Yamaha.
+		3)	within each sequencer, cycle are numbered as per Grauw's timing diagrams. The difference
+			between those and internal timing, if there is one, is handled by the dispatcher.
 		4)	all of these functions are templated with a `use_end` parameter. That will be true if
-			end is < 172, false otherwise. So functions can use it to eliminate should-exit-not checks,
-			for the more usual path of execution.
-
-	[Historically:
-			position 0 was the beginning of the access window immediately after the last pattern/data
-			block fetch that would contribute to this line, in a normal 32-column mode. So:
-
-				* it's cycle 309 on Mattias' TMS diagram;
-				* it's cycle 1238 on his V9938 diagram;
-				* it's after the last background render block in Mask of Destiny's Master System timing diagram.
-
-			That division point was selected, albeit arbitrarily, because it puts all the tile
-			fetches for a single line into the same [0, 171] period.
-
-	I'm moving away from this per the desire not to have V9938 output straddle two lines if horizontally-adjusted,
-	amongst other concerns.]
+			end is < [cycles per line], false otherwise. So functions can use it to eliminate
+			should-exit-now checks (which is likely to be the more usual path of execution).
 
 	Provided for the benefit of the methods below:
 
 		*	the function external_slot(), which will perform any pending VRAM read/write.
-		*	the macros slot(n) and external_slot(n) which can be used to schedule those things inside a
-			switch(start)-based implementation.
 
-	All functions should just spool data to intermediary storage. This is because for most VDPs there is
-	a decoupling between fetch pattern and output pattern, and it's neater to keep the same division
-	for the exceptions.
+	All functions should just spool data to intermediary storage. Fetching and drawing are decoupled.
 */
 
 // MARK: - Address mask helpers.
@@ -73,7 +54,7 @@ template<bool use_end, typename SequencerT> void Base<personality>::dispatch(Seq
 #define index(n)						\
 	if(use_end && end == n) return;		\
 	[[fallthrough]];					\
-	case n: fetcher.template fetch<n>();
+	case n: fetcher.template fetch<from_internal<personality, Clock::FromStartOfSync>(n)>();
 
 	switch(start) {
 		default: assert(false);
@@ -392,7 +373,7 @@ struct RefreshSequencer {
 
 	template <int cycle> void fetch() {
 		if(cycle < 26 || (cycle & 1) || cycle >= 154) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 	}
 
@@ -406,16 +387,22 @@ struct TextSequencer {
 	template <int cycle> void fetch() {
 		// The first 30 and the final 4 slots are external.
 		if constexpr (cycle < 30 || cycle >= 150) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 			return;
 		} else {
 			// For the 120 slots in between follow a three-step pattern of:
 			constexpr int offset = cycle - 30;
 			constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
-				case 0:	fetcher.fetch_name(column);																break;	// (1) fetch tile name.
-				case 1:	fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));	break;	// (2) external slot.
-				case 2:	fetcher.fetch_pattern(column);															break;	// (3) fetch tile pattern.
+				case 0:		// (1) fetch tile name.
+					fetcher.fetch_name(column);
+				break;
+				case 1:		// (2) external slot.
+					fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
+				break;
+				case 2:		// (3) fetch tile pattern.
+					fetcher.fetch_pattern(column);
+				break;
 			}
 		}
 	}
@@ -432,7 +419,7 @@ struct CharacterSequencer {
 
 	template <int cycle> void fetch() {
 		if(cycle < 5) {
-			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 
 		if(cycle == 5) {
@@ -443,7 +430,7 @@ struct CharacterSequencer {
 		}
 
 		if(cycle > 14 && cycle < 19) {
-			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 
 		// Fetch 8 new sprite Y coordinates, to begin selecting sprites for next line.
@@ -461,7 +448,7 @@ struct CharacterSequencer {
 				case 0:	character_fetcher.fetch_name(block);	break;
 				case 1:
 					if(!(block & 3)) {
-						character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+						character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 					} else {
 						constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
 						sprite_fetcher.fetch_y(sprite);
@@ -476,7 +463,7 @@ struct CharacterSequencer {
 		}
 
 		if(cycle >= 155 && cycle < 157) {
-			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 
 		if(cycle == 157) {
@@ -524,7 +511,7 @@ struct SMSSequencer {
 	// window 0 to HSYNC low.
 	template <int cycle> void fetch() {
 		if(cycle < 3) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 
 		if(cycle == 3) {
@@ -535,7 +522,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle == 15 || cycle == 16) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 
 		if(cycle == 17) {
@@ -556,7 +543,7 @@ struct SMSSequencer {
 				case 0:	fetcher.fetch_tile_name(block);		break;
 				case 1:
 					if(!(block & 3)) {
-						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 					} else {
 						constexpr int sprite = (8 + ((block >> 2) * 3) + ((block & 3) - 1)) << 1;
 						fetcher.posit_sprite(sprite);
@@ -568,7 +555,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle >= 153 && cycle < 157) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 
 		if(cycle == 157) {
@@ -579,7 +566,7 @@ struct SMSSequencer {
 		}
 
 		if(cycle >= 169) {
-			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 		}
 	}
 

@@ -11,14 +11,22 @@
 
 #include "../9918.hpp"
 #include "PersonalityTraits.hpp"
+#include "LineLayout.hpp"
 
 namespace TI::TMS {
 
 enum class Clock {
+	/// Whatever rate this VDP runs at, with location 0 being "the start" of the line per internal preference.
 	Internal,
+	/// A 342-cycle/line clock with the same start position as ::Internal.
 	TMSPixel,
+	/// A 171-cycle/line clock that begins at the memory window which starts straight after ::Internal = 0.
 	TMSMemoryWindow,
-	CRT
+	/// A fixed 1368-cycle/line clock that is used to count output to the CRT.
+	CRT,
+	/// Provides the same clock rate as ::Internal but is relocated so that 0 is the start of horizontal sync — very not coincidentally,
+	/// where Grauw puts 0 on his detailed TMS and Yamaha timing diagrams.
+	FromStartOfSync,
 };
 
 template <Personality personality, Clock clk> constexpr int clock_rate() {
@@ -33,6 +41,7 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 		case Clock::TMSMemoryWindow:	return 171;
 		case Clock::CRT:				return 1368;
 		case Clock::Internal:
+		case Clock::FromStartOfSync:
 			if constexpr (is_classic_vdp(personality)) {
 				return 342;
 			} else if constexpr (is_yamaha_vdp(personality)) {
@@ -43,17 +52,41 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 	}
 }
 
-template <Personality personality, Clock clock> constexpr int to_internal(int length) {
-	return length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, clock>();
+/// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
+template <Personality personality, Clock head, Clock... tail> constexpr int to_internal(int length) {
+	if constexpr (head == Clock::FromStartOfSync) {
+		length = (length + LineLayout<personality>::StartOfSync) % LineLayout<personality>::CyclesPerLine;
+	} else {
+		length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
+	}
+
+	if constexpr (!sizeof...(tail)) {
+		return length;
+	} else {
+		return to_internal<personality, tail...>(length);
+	}
 }
 
-template <Personality personality, Clock clock> constexpr int from_internal(int length) {
-	return length * clock_rate<personality, clock>() / clock_rate<personality, Clock::Internal>();
+/// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
+template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
+	if constexpr (head == Clock::FromStartOfSync) {
+		length =
+			(length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::StartOfSync)
+				% LineLayout<personality>::CyclesPerLine;
+	} else {
+		length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
+	}
+
+	if constexpr (!sizeof...(tail)) {
+		return length;
+	} else {
+		return to_internal<personality, tail...>(length);
+	}
 }
 
 /*!
 	Provides a [potentially-]stateful conversion between the external and internal clocks.
-	Unlike the other clock conversions, this one may be non-integral, requiring that
+	Unlike the other clock conversions, this may be non-integral, requiring that
 	an error term be tracked.
 */
 template <Personality personality> class ClockConverter {
@@ -128,72 +161,6 @@ template <Personality personality> class ClockConverter {
 		// Holds current residue in conversion from the external to
 		// internal clock.
 		int cycles_error_ = 0;
-};
-
-
-//
-//
-//
-template <Personality personality, typename Enable = void> struct LineLayout;
-
-//	Line layout is:
-//
-//	[0, EndOfSync]							sync
-//	(EndOfSync, StartOfColourBurst]			blank
-//	(StartOfColourBurst, EndOfColourBurst]	colour burst
-//	(EndOfColourBurst, EndOfLeftErase]		blank
-//	(EndOfLeftErase, EndOfLeftBorder]		border colour
-//	(EndOfLeftBorder, EndOfPixels]			pixel content
-//	(EndOfPixels, EndOfRightBorder]			border colour
-//	[EndOfRightBorder, <end of line>]		blank
-//
-//	... with minor caveats:
-//		* horizontal adjust on the Yamaha VDPs is applied to EndOfLeftBorder and EndOfPixels;
-//		* the Sega VDPs may programatically extend the left border; and
-//		* text mode on all VDPs adjusts border width.
-
-template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
-	constexpr static int EndOfSync			= 26;
-	constexpr static int StartOfColourBurst	= 29;
-	constexpr static int EndOfColourBurst	= 43;
-	constexpr static int EndOfLeftErase		= 50;
-	constexpr static int EndOfLeftBorder	= 63;
-	constexpr static int EndOfPixels		= 319;
-	constexpr static int EndOfRightBorder	= 334;
-
-	constexpr static int CyclesPerLine		= 342;
-
-	constexpr static int TextModeEndOfLeftBorder	= 69;
-	constexpr static int TextModeEndOfPixels		= 309;
-
-	constexpr static int ModeLatchCycle		= 36;	// Just a guess; correlates with the known 144 for the Yamaha VDPs,
-													// and falls into the collection gap between the final sprite
-													// graphics and the initial tiles or pixels.
-
-	/// The number of internal cycles that must elapse between a request to read or write and
-	/// it becoming a candidate for action.
-	constexpr static int VRAMAccessDelay = 6;
-};
-
-template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
-	constexpr static int EndOfSync			= 100;
-	constexpr static int StartOfColourBurst	= 113;
-	constexpr static int EndOfColourBurst	= 167;
-	constexpr static int EndOfLeftErase		= 202;
-	constexpr static int EndOfLeftBorder	= 258;
-	constexpr static int EndOfPixels		= 1282;
-	constexpr static int EndOfRightBorder	= 1341;
-
-	constexpr static int CyclesPerLine		= 1368;
-
-	constexpr static int TextModeEndOfLeftBorder	= 294;
-	constexpr static int TextModeEndOfPixels		= 1254;
-
-	constexpr static int ModeLatchCycle		= 144;
-
-	/// The number of internal cycles that must elapse between a request to read or write and
-	/// it becoming a candidate for action.
-	constexpr static int VRAMAccessDelay = 16;
 };
 
 }
