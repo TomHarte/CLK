@@ -51,20 +51,34 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 	}
 }
 
-/// Statelessly converts @c length in @c clock to the internal clock used by VDPs of @c personality throwing away any remainder.
-template <Personality personality, Clock clock> constexpr int to_internal(int length) {
-	if constexpr (clock == Clock::Grauw) {
-		return (length + LineLayout<personality>::LocationOfGrauwZero) % LineLayout<personality>::CyclesPerLine;
+/// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
+template <Personality personality, Clock head, Clock... tail> constexpr int to_internal(int length) {
+	if constexpr (head == Clock::Grauw) {
+		length = (length + LineLayout<personality>::LocationOfGrauwZero) % LineLayout<personality>::CyclesPerLine;
+	} else {
+		length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
 	}
-	return length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, clock>();
+
+	if constexpr (!sizeof...(tail)) {
+		return length;
+	} else {
+		return to_internal<personality, tail...>(length);
+	}
 }
 
 /// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
-template <Personality personality, Clock clock> constexpr int from_internal(int length) {
-	if constexpr (clock == Clock::Grauw) {
-		return (length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::LocationOfGrauwZero) % LineLayout<personality>::CyclesPerLine;
+template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
+	if constexpr (head == Clock::Grauw) {
+		length = (length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::LocationOfGrauwZero) % LineLayout<personality>::CyclesPerLine;
+	} else {
+		length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
 	}
-	return length * clock_rate<personality, clock>() / clock_rate<personality, Clock::Internal>();
+
+	if constexpr (!sizeof...(tail)) {
+		return length;
+	} else {
+		return to_internal<personality, tail...>(length);
+	}
 }
 
 /*!
