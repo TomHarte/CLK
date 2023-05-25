@@ -9,6 +9,7 @@
 #ifndef StringSerialiser_hpp
 #define StringSerialiser_hpp
 
+#include <cstdint>
 #include <string>
 
 namespace Utility {
