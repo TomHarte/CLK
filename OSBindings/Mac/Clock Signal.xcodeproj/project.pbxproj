@@ -1101,6 +1101,7 @@
 
 /* Begin PBXFileReference section */
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
+		428168382A254FBE008ECD27 /* Dispatcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Dispatcher.hpp; sourceTree = "<group>"; };
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
@@ -4967,12 +4968,13 @@
 				4BB146C61F49D7D700253439 /* ClockingHintSource.hpp */,
 				4BF6606A1F281573002CB053 /* ClockReceiver.hpp */,
 				4B8A7E85212F988200F2BBC6 /* DeferredQueue.hpp */,
+				4B99EBD026BF2D9F00CA924D /* DeferredValue.hpp */,
 				4BB06B211F316A3F00600C7A /* ForceInline.hpp */,
 				4B80214322EE7C3E00068002 /* JustInTime.hpp */,
 				4B644ED023F0FB55006C0CC5 /* ScanSynchroniser.hpp */,
+				428168382A254FBE008ECD27 /* Dispatcher.hpp */,
 				4B449C942063389900A095C8 /* TimeTypes.hpp */,
 				4B996B2D2496DAC2001660EF /* VSyncPredictor.hpp */,
-				4B99EBD026BF2D9F00CA924D /* DeferredValue.hpp */,
 			);
 			name = ClockReceiver;
 			path = ../../ClockReceiver;
