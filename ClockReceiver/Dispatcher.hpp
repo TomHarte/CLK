@@ -21,8 +21,8 @@ struct UnitConverter {
 template <int max, typename SequencerT, typename ConverterT = UnitConverter>
 struct Dispatcher {
 
-	/// Perform @c target.perform<n>() for the input range [start, end]; @c ConverterT()(n) will be applied to
-	/// each individual step before it becomes the relevant template argument.
+	/// Perform @c target.perform<n>() for the input range `start <= n < end`;
+	/// @c ConverterT()(n) will be applied to each individual step before it becomes the relevant template argument.
 	void dispatch(SequencerT &target, int start, int end) {
 
 		// Minor optimisation: do a comparison with end once outside the loop and if it implies so
@@ -45,11 +45,16 @@ private:
 		//
 		// Sensible choices by the optimiser are assumed.
 
-#define index(n)							\
-	if constexpr (n == max) return;			\
-	if(use_end && end == n) return;			\
-	[[fallthrough]];						\
-	case n: target.template perform<ConverterT()(n)>();
+#define index(n)										\
+	case n:												\
+		if constexpr (n <= max) {						\
+			if constexpr (n == max) return;				\
+			if constexpr (n < max) {					\
+				if(use_end && end == n) return;			\
+			}											\
+			target.template perform<ConverterT()(n)>();	\
+		}												\
+	[[fallthrough]];
 
 #define index2(n)		index(n);		index(n+1);
 #define index4(n)		index2(n);		index2(n+2);
