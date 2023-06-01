@@ -10,6 +10,7 @@
 #define ROMCatalogue_hpp
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <optional>

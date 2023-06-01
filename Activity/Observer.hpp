@@ -9,6 +9,7 @@
 #ifndef ActivityObserver_h
 #define ActivityObserver_h
 
+#include <cstdint>
 #include <string>
 
 namespace Activity {
