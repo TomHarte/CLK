@@ -93,3 +93,46 @@ private:
 }
 
 #endif /* Dispatcher_hpp */
+
+/*
+template <typename ClassifierT, int x> constexpr int lower_bound() {
+	if constexpr (!x || ClassifierT::template type<x>() != ClassifierT::template type<x-1>()) {
+		return x;
+	} else {
+		return lower_bound<ClassifierT, x - 1>();
+	}
+}
+
+template <typename ClassifierT, typename TargetT>
+void range_dispatch(TargetT &destination, int start, int end) {
+#define case(x)	case x: \
+	if constexpr (x+1 == ClassifierT::max || ClassifierT::template type<x+1>() != ClassifierT::template type<x>()) {	\
+		const auto range_begin = std::max(start, lower_bound<ClassifierT, x>());	\
+		const auto range_end = std::min(end, x + 1);	\
+		\
+		if(range_begin == lower_bound<ClassifierT, x>()) {\
+			destination.template begin<ClassifierT::template type<x>()>(range_begin);	\
+		}\
+		destination.template perform<ClassifierT::template type<x>()>(range_begin, range_end);	\
+		if(range_end == x+1) {\
+			destination.template end<ClassifierT::template type<x>()>(range_begin);	\
+		}\
+		if(x+1 >= end) {	\
+			break;	\
+		}	\
+	}	\
+	[[fallthrough]];
+
+	switch(start) {
+		case(0)
+		case(1)
+		case(2)
+		case(3)
+		case(4)
+		case(5)
+	}
+
+#undef case
+}
+
+ */
