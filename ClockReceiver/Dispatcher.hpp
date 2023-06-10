@@ -23,20 +23,21 @@ struct Dispatcher {
 
 	/// Perform @c target.perform<n>() for the input range `start <= n < end`;
 	/// @c ConverterT()(n) will be applied to each individual step before it becomes the relevant template argument.
-	void dispatch(SequencerT &target, int start, int end) {
+	template <typename... Args>
+	void dispatch(SequencerT &target, int start, int end, Args&&... args) {
 
 		// Minor optimisation: do a comparison with end once outside the loop and if it implies so
 		// then do no further comparisons within the loop. This is somewhat targetted at expected
 		// use cases.
 		if(end < max) {
-			dispatch<true>(target, start, end);
+			dispatch<true>(target, start, end, args...);
 		} else {
-			dispatch<false>(target, start, end);
+			dispatch<false>(target, start, end, args...);
 		}
 	}
 
 private:
-	template <bool use_end> void dispatch(SequencerT &target, int start, int end) {
+	template <bool use_end, typename... Args> void dispatch(SequencerT &target, int start, int end, Args&&... args) {
 		static_assert(max < 2048);
 
 		// Yes, macros, yuck. But I want an actual switch statement for the dispatch to start
@@ -45,15 +46,15 @@ private:
 		//
 		// Sensible choices by the optimiser are assumed.
 
-#define index(n)										\
-	case n:												\
-		if constexpr (n <= max) {						\
-			if constexpr (n == max) return;				\
-			if constexpr (n < max) {					\
-				if(use_end && end == n) return;			\
-			}											\
-			target.template perform<ConverterT()(n)>();	\
-		}												\
+#define index(n)												\
+	case n:														\
+		if constexpr (n <= max) {								\
+			if constexpr (n == max) return;						\
+			if constexpr (n < max) {							\
+				if(use_end && end == n) return;					\
+			}													\
+			target.template perform<ConverterT()(n)>(args...);	\
+		}														\
 	[[fallthrough]];
 
 #define index2(n)		index(n);		index(n+1);
