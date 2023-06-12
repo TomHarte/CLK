@@ -1,15 +1,17 @@
 //
-//  Serialiser.hpp
+//  RangeDispatcher.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 29/05/2023.
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Dispatcher_hpp
-#define Dispatcherr_hpp
+#ifndef RangeDispatcher_hpp
+#define RangeDispatcher_hpp
 
-namespace Dispatcher {
+#include <algorithm>
+
+namespace Reflection {
 
 /// Provides glue for a run of calls like:
 ///
@@ -20,11 +22,11 @@ namespace Dispatcher {
 ///
 /// Allowing the caller to execute any subrange of the calls.
 template <typename SequencerT>
-struct Dispatcher {
+struct RangeDispatcher {
 
 	/// Perform @c target.perform<n>() for the input range `start <= n < end`.
 	template <typename... Args>
-	void dispatch(SequencerT &target, int start, int end, Args&&... args) {
+	static void dispatch(SequencerT &target, int start, int end, Args&&... args) {
 
 		// Minor optimisation: do a comparison with end once outside the loop and if it implies so
 		// then do no further comparisons within the loop. This is somewhat targetted at expected
@@ -37,7 +39,7 @@ struct Dispatcher {
 	}
 
 private:
-	template <bool use_end, typename... Args> void dispatch(SequencerT &target, int start, int end, Args&&... args) {
+	template <bool use_end, typename... Args> static void dispatch(SequencerT &target, int start, int end, Args&&... args) {
 		static_assert(SequencerT::max < 2048);
 
 		// Yes, macros, yuck. But I want an actual switch statement for the dispatch to start
@@ -90,16 +92,16 @@ private:
 
 };
 
-/// An optional target for a Dispatcher which uses a classifier to divide the input region into typed ranges, issuing calls to the target
+/// An optional target for a RangeDispatcher which uses a classifier to divide the input region into typed ranges, issuing calls to the target
 /// only to begin and end each subrange, and for the number of cycles spent within.
-template <typename ClassifierT, TargetT>
-struct RangeDispatcher {
+template <typename ClassifierT, typename TargetT>
+struct SubrangeDispatcher {
 	static constexpr int max = ClassifierT::max;
 
-	template <int n, typename... Args>
-	void perform(int begin, int end, Arg&&... args) {
+	template <int n>
+	void perform(int begin, int end) {
 		constexpr auto region = ClassifierT::region(n);
-		const auto clipped_start = std::max(start, find_begin(n));
+		const auto clipped_start = std::max(begin, find_begin(n));
 		const auto clipped_end = std::min(end, find_end(n));
 
 		if constexpr (n == find_begin(n)) {
@@ -125,8 +127,10 @@ struct RangeDispatcher {
 		while(n < ClassifierT::max && ClassifierT::region(n) == type) ++n;
 		return n;
 	}
+
+	TargetT &target;
 };
 
 }
 
-#endif /* Dispatcher_hpp */
+#endif /* RangeDispatcher_hpp */
