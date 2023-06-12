@@ -11,6 +11,14 @@
 
 namespace Dispatcher {
 
+/// Provides glue for a run of calls like:
+///
+/// 	SequencerT.perform<0>(...)
+/// 	SequencerT.perform<1>(...)
+/// 	SequencerT.perform<2>(...)
+/// 	...etc...
+///
+/// Allowing the caller to execute any subrange of the calls.
 template <typename SequencerT>
 struct Dispatcher {
 
@@ -38,15 +46,15 @@ private:
 		//
 		// Sensible choices by the optimiser are assumed.
 
-#define index(n)										\
-	case n:												\
-		if constexpr (n <= SequencerT::max) {			\
-			if constexpr (n == SequencerT::max) return;	\
-			if constexpr (n < SequencerT::max) {		\
-				if(use_end && end == n) return;			\
-			}											\
-			target.template perform<n>(args...);		\
-		}												\
+#define index(n)												\
+	case n:														\
+		if constexpr (n <= SequencerT::max) {					\
+			if constexpr (n == SequencerT::max) return;			\
+			if constexpr (n < SequencerT::max) {				\
+				if(use_end && end == n) return;					\
+			}													\
+			target.template perform<n>(start, end, args...);	\
+		}														\
 	[[fallthrough]];
 
 #define index2(n)		index(n);		index(n+1);
@@ -82,49 +90,43 @@ private:
 
 };
 
+/// An optional target for a Dispatcher which uses a classifier to divide the input region into typed ranges, issuing calls to the target
+/// only to begin and end each subrange, and for the number of cycles spent within.
+template <typename ClassifierT, TargetT>
+struct RangeDispatcher {
+	static constexpr int max = ClassifierT::max;
+
+	template <int n, typename... Args>
+	void perform(int begin, int end, Arg&&... args) {
+		constexpr auto region = ClassifierT::region(n);
+		const auto clipped_start = std::max(start, find_begin(n));
+		const auto clipped_end = std::min(end, find_end(n));
+
+		if constexpr (n == find_begin(n)) {
+			target.begin<region>(clipped_start);
+		}
+
+		target.advance<region>(clipped_end - clipped_start);
+
+		if constexpr (n + 1 == find_end(n)) {
+			target.end<region>(clipped_end);
+		}
+	}
+
+	private:
+	constexpr int find_begin(int n) {
+		const auto type = ClassifierT::region(n);
+		while(n && ClassifierT::region(n - 1) == type) --n;
+		return n;
+	}
+
+	constexpr int find_end(int n) {
+		const auto type = ClassifierT::region(n);
+		while(n < ClassifierT::max && ClassifierT::region(n) == type) ++n;
+		return n;
+	}
+};
+
 }
 
 #endif /* Dispatcher_hpp */
-
-/*
-template <typename ClassifierT, int x> constexpr int lower_bound() {
-	if constexpr (!x || ClassifierT::template type<x>() != ClassifierT::template type<x-1>()) {
-		return x;
-	} else {
-		return lower_bound<ClassifierT, x - 1>();
-	}
-}
-
-template <typename ClassifierT, typename TargetT>
-void range_dispatch(TargetT &destination, int start, int end) {
-#define case(x)	case x: \
-	if constexpr (x+1 == ClassifierT::max || ClassifierT::template type<x+1>() != ClassifierT::template type<x>()) {	\
-		const auto range_begin = std::max(start, lower_bound<ClassifierT, x>());	\
-		const auto range_end = std::min(end, x + 1);	\
-		\
-		if(range_begin == lower_bound<ClassifierT, x>()) {\
-			destination.template begin<ClassifierT::template type<x>()>(range_begin);	\
-		}\
-		destination.template perform<ClassifierT::template type<x>()>(range_begin, range_end);	\
-		if(range_end == x+1) {\
-			destination.template end<ClassifierT::template type<x>()>(range_begin);	\
-		}\
-		if(x+1 >= end) {	\
-			break;	\
-		}	\
-	}	\
-	[[fallthrough]];
-
-	switch(start) {
-		case(0)
-		case(1)
-		case(2)
-		case(3)
-		case(4)
-		case(5)
-	}
-
-#undef case
-}
-
- */
