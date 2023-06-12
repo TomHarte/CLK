@@ -11,18 +11,10 @@
 
 namespace Dispatcher {
 
-/// The unity function; converts n directly to n.
-struct UnitConverter {
-	constexpr int operator ()(int n) {
-		return n;
-	}
-};
-
-template <int max, typename SequencerT, typename ConverterT = UnitConverter>
+template <int max, typename SequencerT>
 struct Dispatcher {
 
-	/// Perform @c target.perform<n>() for the input range `start <= n < end`;
-	/// @c ConverterT()(n) will be applied to each individual step before it becomes the relevant template argument.
+	/// Perform @c target.perform<n>() for the input range `start <= n < end`.
 	template <typename... Args>
 	void dispatch(SequencerT &target, int start, int end, Args&&... args) {
 
@@ -46,15 +38,15 @@ private:
 		//
 		// Sensible choices by the optimiser are assumed.
 
-#define index(n)												\
-	case n:														\
-		if constexpr (n <= max) {								\
-			if constexpr (n == max) return;						\
-			if constexpr (n < max) {							\
-				if(use_end && end == n) return;					\
-			}													\
-			target.template perform<ConverterT()(n)>(args...);	\
-		}														\
+#define index(n)									\
+	case n:											\
+		if constexpr (n <= max) {					\
+			if constexpr (n == max) return;			\
+			if constexpr (n < max) {				\
+				if(use_end && end == n) return;		\
+			}										\
+			target.template perform<n>(args...);	\
+		}											\
 	[[fallthrough]];
 
 #define index2(n)		index(n);		index(n+1);
