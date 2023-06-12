@@ -9,6 +9,7 @@
 #ifndef File_hpp
 #define File_hpp
 
+#include <cstdint>
 #include <string>
 #include <vector>
 

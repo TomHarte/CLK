@@ -9,6 +9,7 @@
 #ifndef Storage_Data_Commodore_hpp
 #define Storage_Data_Commodore_hpp
 
+#include <cstdint>
 #include <string>
 
 namespace Storage::Data::Commodore {
