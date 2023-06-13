@@ -10,8 +10,30 @@
 #define RangeDispatcher_hpp
 
 #include <algorithm>
+#include <cstdint>
 
 namespace Reflection {
+
+/*!
+	Calls @c t.dispatch<c>(args...) as efficiently as possible.
+*/
+template <typename TargetT, typename... Args> void dispatch(TargetT &t, uint8_t c, Args &&... args) {
+#define Opt(x)		case x: t.template dispatch<x>(std::forward<Args>(args)...);	break
+#define Opt4(x)		Opt(x + 0x00);		Opt(x + 0x01);		Opt(x + 0x02);		Opt(x + 0x03)
+#define Opt16(x)	Opt4(x + 0x00);		Opt4(x + 0x04);		Opt4(x + 0x08);		Opt4(x + 0x0c)
+#define Opt64(x)	Opt16(x + 0x00);	Opt16(x + 0x10);	Opt16(x + 0x20);	Opt16(x + 0x30)
+#define Opt256(x)	Opt64(x + 0x00);	Opt64(x + 0x40);	Opt64(x + 0x80);	Opt64(x + 0xc0)
+
+	switch(c) {
+		Opt256(0);
+	}
+
+#undef Opt256
+#undef Opt64
+#undef Opt16
+#undef Opt4
+#undef Opt
+}
 
 // Yes, macros, yuck. But I want an actual switch statement for the dispatch to start
 // and to allow a simple [[fallthrough]] through all subsequent steps up until end.
@@ -30,6 +52,9 @@ namespace Reflection {
 #define index1024(n)	index512(n);	index512(n+512);
 #define index2048(n)	index1024(n);	index1024(n+1024);
 
+#define switch_indices(x)	switch(x) { default: assert(false); index2048(0); }
+static constexpr int switch_max = 2048;
+
 /// Provides glue for a run of calls like:
 ///
 /// 	SequencerT.perform<0>(...)
@@ -40,7 +65,7 @@ namespace Reflection {
 /// Allowing the caller to execute any subrange of the calls.
 template <typename SequencerT>
 struct RangeDispatcher {
-	static_assert(SequencerT::max < 2048);
+	static_assert(SequencerT::max < switch_max);
 
 	/// Perform @c target.perform<n>() for the input range `begin <= n < end`.
 	template <typename... Args>
@@ -69,23 +94,26 @@ struct RangeDispatcher {
 		}													\
 	[[fallthrough]];
 
-			switch(begin) {
-				default: 	assert(false);
-				index2048(0);
-			}
+			switch_indices(begin);
 
 #undef index
 		}
 
 };
 
-/// An optional target for a RangeDispatcher which uses a classifier to divide the input region into typed ranges, issuing calls to the target
-/// only to begin and end each subrange, and for the number of cycles spent within.
+/// Uses a classifier to divide a range into typed subranges and issues calls to a target of the form:
+///
+/// * begin<type>(location) upon entering a new region;
+/// * end<type>(location) upon entering a region; and
+/// * advance<type>(distance) in as many chunks as required to populate the inside of the region.
+///
+/// @c begin and @c end have iterator-style semantics: begin's location will be the first location in the relevant subrange and
+/// end's will be the first location not in the relevant subrange.
 template <typename ClassifierT, typename TargetT>
 struct SubrangeDispatcher {
-	static_assert(ClassifierT::max < 2048);
+	static_assert(ClassifierT::max < switch_max);
 
-	template <typename... Args> static void dispatch(TargetT &target, int begin, int end, Args&&... args) {
+	static void dispatch(TargetT &target, int begin, int end) {
 #define index(n)																\
 	case n:																		\
 		if constexpr (n <= ClassifierT::max) {									\
@@ -108,10 +136,7 @@ struct SubrangeDispatcher {
 		}																		\
 	[[fallthrough]];
 
-			switch(begin) {
-				default: 	assert(false);
-				index2048(0);
-			}
+			switch_indices(begin);
 
 #undef index
 	}
@@ -129,6 +154,8 @@ struct SubrangeDispatcher {
 			return n;
 		}
 };
+
+#undef switch_indices
 
 #undef index2
 #undef index4

@@ -9,7 +9,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "Dispatcher.hpp"
+#include "RangeDispatcher.hpp"
 #include "../../../InstructionSets/6809/OperationMapper.hpp"
 
 using namespace InstructionSet::M6809;
