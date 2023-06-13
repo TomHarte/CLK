@@ -28,7 +28,7 @@
 
 struct DoStep {
 	static constexpr int max = 100;
-	template <int n> void perform(int, int) {
+	template <int n> void perform() {
 		assert(n < max);
 		performed[n] = true;
 	}
@@ -54,7 +54,7 @@ enum class RangeType {
 };
 
 struct RangeClassifier {
-	static constexpr int max = 50;
+	static constexpr int max = 200;
 
 	static constexpr RangeType region(int x) {
 		return x >= 10 && x < 20 ? RangeType::Sync : RangeType::Border;
@@ -70,16 +70,21 @@ struct RangeTarget {
 		RangeType range_type;
 		int length = 0;
 
-		Event(Type event_type, RangeType range_type) : event_type(event_type), range_type(range_type) {}
 		Event(Type event_type, RangeType range_type, int length) : event_type(event_type), range_type(range_type), length(length) {}
+
+		bool operator ==(const Event &rhs) const {
+			if(rhs.event_type != event_type) return false;
+			if(rhs.range_type != range_type) return false;
+			return rhs.length == length;
+		}
 	};
 	std::vector<Event> events;
 
-	template <RangeType type> void begin(int) {
-		events.emplace_back(Event::Type::Begin, type);
+	template <RangeType type> void begin(int position) {
+		events.emplace_back(Event::Type::Begin, type, position);
 	}
-	template <RangeType type> void end(int) {
-		events.emplace_back(Event::Type::End, type);
+	template <RangeType type> void end(int position) {
+		events.emplace_back(Event::Type::End, type, position);
 	}
 	template <RangeType type> void advance(int length) {
 		events.emplace_back(Event::Type::Advance, type, length);
@@ -87,11 +92,29 @@ struct RangeTarget {
 };
 
 - (void)testRanges {
+	RangeTarget target;
 	using Dispatcher = Reflection::SubrangeDispatcher<RangeClassifier, RangeTarget>;
-	Dispatcher dispatcher;
-	Reflection::RangeDispatcher<Dispatcher>::dispatch(dispatcher, 0, 10);
+	Dispatcher::dispatch(target, 0, 11);
 
-	printf("");
+	XCTAssertEqual(target.events.size(), 5);
+	XCTAssert(target.events[0] == RangeTarget::Event(RangeTarget::Event::Type::Begin, RangeType::Border, 0));
+	XCTAssert(target.events[1] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 10));
+	XCTAssert(target.events[2] == RangeTarget::Event(RangeTarget::Event::Type::End, RangeType::Border, 10));
+	XCTAssert(target.events[3] == RangeTarget::Event(RangeTarget::Event::Type::Begin, RangeType::Sync, 10));
+	XCTAssert(target.events[4] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Sync, 1));
+
+	Dispatcher::dispatch(target, 11, 75);
+	Dispatcher::dispatch(target, 75, 100);
+	Dispatcher::dispatch(target, 100, 200);
+
+	XCTAssertEqual(target.events.size(), 12);
+	XCTAssert(target.events[5] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Sync, 9));
+	XCTAssert(target.events[6] == RangeTarget::Event(RangeTarget::Event::Type::End, RangeType::Sync, 20));
+	XCTAssert(target.events[7] == RangeTarget::Event(RangeTarget::Event::Type::Begin, RangeType::Border, 20));
+	XCTAssert(target.events[8] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 55));
+	XCTAssert(target.events[9] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 25));
+	XCTAssert(target.events[10] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 100));
+	XCTAssert(target.events[11] == RangeTarget::Event(RangeTarget::Event::Type::End, RangeType::Border, 200));
 }
 
 @end
