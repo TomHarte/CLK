@@ -1102,7 +1102,6 @@
 
 /* Begin PBXFileReference section */
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
-		428168382A254FBE008ECD27 /* RangeDispatcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RangeDispatcher.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
@@ -2783,10 +2782,10 @@
 		4B3AF7CF2413470E00873C0B /* Reflection */ = {
 			isa = PBXGroup;
 			children = (
-				4B3AF7D02413470E00873C0B /* Enum.hpp */,
-				4B3AF7D12413472200873C0B /* Struct.hpp */,
-				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
 				4BDA7F8129C4C223007A10A5 /* Dispatcher.hpp */,
+				4B3AF7D02413470E00873C0B /* Enum.hpp */,
+				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
+				4B3AF7D12413472200873C0B /* Struct.hpp */,
 			);
 			name = Reflection;
 			path = ../../Reflection;
@@ -4975,7 +4974,6 @@
 				4BB06B211F316A3F00600C7A /* ForceInline.hpp */,
 				4B80214322EE7C3E00068002 /* JustInTime.hpp */,
 				4B644ED023F0FB55006C0CC5 /* ScanSynchroniser.hpp */,
-				428168382A254FBE008ECD27 /* RangeDispatcher.hpp */,
 				4B449C942063389900A095C8 /* TimeTypes.hpp */,
 				4B996B2D2496DAC2001660EF /* VSyncPredictor.hpp */,
 			);

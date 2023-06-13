@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "RangeDispatcher.hpp"
+#include "Dispatcher.hpp"
 
 #include <array>
 #include <cassert>
@@ -17,14 +17,7 @@
 @interface DispatcherTests : XCTestCase
 @end
 
-@implementation DispatcherTests {
-}
-
-- (void)setUp {
-}
-
-- (void)tearDown {
-}
+@implementation DispatcherTests
 
 struct DoStep {
 	static constexpr int max = 100;
