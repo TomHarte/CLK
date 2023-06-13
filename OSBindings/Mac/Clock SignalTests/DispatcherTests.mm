@@ -105,16 +105,19 @@ struct RangeTarget {
 
 	Dispatcher::dispatch(target, 11, 75);
 	Dispatcher::dispatch(target, 75, 100);
-	Dispatcher::dispatch(target, 100, 200);
+	Dispatcher::dispatch(target, 100, 199);
+	Dispatcher::dispatch(target, 199, 200);
+	Dispatcher::dispatch(target, 200, 400);	// Out of range.
 
-	XCTAssertEqual(target.events.size(), 12);
+	XCTAssertEqual(target.events.size(), 13);
 	XCTAssert(target.events[5] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Sync, 9));
 	XCTAssert(target.events[6] == RangeTarget::Event(RangeTarget::Event::Type::End, RangeType::Sync, 20));
 	XCTAssert(target.events[7] == RangeTarget::Event(RangeTarget::Event::Type::Begin, RangeType::Border, 20));
 	XCTAssert(target.events[8] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 55));
 	XCTAssert(target.events[9] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 25));
-	XCTAssert(target.events[10] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 100));
-	XCTAssert(target.events[11] == RangeTarget::Event(RangeTarget::Event::Type::End, RangeType::Border, 200));
+	XCTAssert(target.events[10] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 99));
+	XCTAssert(target.events[11] == RangeTarget::Event(RangeTarget::Event::Type::Advance, RangeType::Border, 1));
+	XCTAssert(target.events[12] == RangeTarget::Event(RangeTarget::Event::Type::End, RangeType::Border, 200));
 }
 
 @end
