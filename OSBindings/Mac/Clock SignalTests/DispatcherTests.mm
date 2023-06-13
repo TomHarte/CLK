@@ -12,6 +12,7 @@
 
 #include <array>
 #include <cassert>
+#include <vector>
 
 @interface DispatcherTests : XCTestCase
 @end
@@ -48,7 +49,49 @@ struct DoStep {
 	}
 }
 
+enum class RangeType {
+	Sync, Border
+};
+
+struct RangeClassifier {
+	static constexpr int max = 50;
+
+	static constexpr RangeType region(int x) {
+		return x >= 10 && x < 20 ? RangeType::Sync : RangeType::Border;
+	}
+};
+
+struct RangeTarget {
+	struct Event {
+		enum class Type {
+			Begin, End, Advance
+		};
+		Type event_type;
+		RangeType range_type;
+		int length = 0;
+
+		Event(Type event_type, RangeType range_type) : event_type(event_type), range_type(range_type) {}
+		Event(Type event_type, RangeType range_type, int length) : event_type(event_type), range_type(range_type), length(length) {}
+	};
+	std::vector<Event> events;
+
+	template <RangeType type> void begin(int) {
+		events.emplace_back(Event::Type::Begin, type);
+	}
+	template <RangeType type> void end(int) {
+		events.emplace_back(Event::Type::End, type);
+	}
+	template <RangeType type> void advance(int length) {
+		events.emplace_back(Event::Type::Advance, type, length);
+	}
+};
+
 - (void)testRanges {
+	using Dispatcher = Reflection::SubrangeDispatcher<RangeClassifier, RangeTarget>;
+	Dispatcher dispatcher;
+	Reflection::RangeDispatcher<Dispatcher>::dispatch(dispatcher, 0, 10);
+
+	printf("");
 }
 
 @end

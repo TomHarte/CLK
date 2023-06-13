@@ -98,6 +98,9 @@ template <typename ClassifierT, typename TargetT>
 struct SubrangeDispatcher {
 	static constexpr int max = ClassifierT::max;
 
+	template <typename... Args> SubrangeDispatcher(Args&&... args) :
+		target(std::forward<Args>(args)...) {}
+
 	template <int n>
 	void perform(int begin, int end) {
 		constexpr auto region = ClassifierT::region(n);
@@ -105,30 +108,30 @@ struct SubrangeDispatcher {
 		const auto clipped_end = std::min(end, find_end(n));
 
 		if constexpr (n == find_begin(n)) {
-			target.begin<region>(clipped_start);
+			target.template begin<region>(clipped_start);
 		}
 
-		target.advance<region>(clipped_end - clipped_start);
+		target.template advance<region>(clipped_end - clipped_start);
 
 		if constexpr (n + 1 == find_end(n)) {
-			target.end<region>(clipped_end);
+			target.template end<region>(clipped_end);
 		}
 	}
 
 	private:
-	constexpr int find_begin(int n) {
+	static constexpr int find_begin(int n) {
 		const auto type = ClassifierT::region(n);
 		while(n && ClassifierT::region(n - 1) == type) --n;
 		return n;
 	}
 
-	constexpr int find_end(int n) {
+	static constexpr int find_end(int n) {
 		const auto type = ClassifierT::region(n);
 		while(n < ClassifierT::max && ClassifierT::region(n) == type) ++n;
 		return n;
 	}
 
-	TargetT &target;
+	TargetT target;
 };
 
 }
