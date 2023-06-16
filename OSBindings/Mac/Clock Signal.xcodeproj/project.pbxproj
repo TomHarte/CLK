@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4281683A2A37AFB4008ECD27 /* DispatcherTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 428168392A37AFB4008ECD27 /* DispatcherTests.mm */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -1101,6 +1102,7 @@
 
 /* Begin PBXFileReference section */
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
+		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
@@ -2780,10 +2782,10 @@
 		4B3AF7CF2413470E00873C0B /* Reflection */ = {
 			isa = PBXGroup;
 			children = (
-				4B3AF7D02413470E00873C0B /* Enum.hpp */,
-				4B3AF7D12413472200873C0B /* Struct.hpp */,
-				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
 				4BDA7F8129C4C223007A10A5 /* Dispatcher.hpp */,
+				4B3AF7D02413470E00873C0B /* Enum.hpp */,
+				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
+				4B3AF7D12413472200873C0B /* Struct.hpp */,
 			);
 			name = Reflection;
 			path = ../../Reflection;
@@ -4286,6 +4288,7 @@
 				4BE34437238389E10058E78F /* AtariSTVideoTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
 				4BB0CAA627E51B6300672A88 /* DingusdevPowerPCTests.mm */,
+				428168392A37AFB4008ECD27 /* DispatcherTests.mm */,
 				4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */,
 				4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */,
 				4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */,
@@ -4967,12 +4970,12 @@
 				4BB146C61F49D7D700253439 /* ClockingHintSource.hpp */,
 				4BF6606A1F281573002CB053 /* ClockReceiver.hpp */,
 				4B8A7E85212F988200F2BBC6 /* DeferredQueue.hpp */,
+				4B99EBD026BF2D9F00CA924D /* DeferredValue.hpp */,
 				4BB06B211F316A3F00600C7A /* ForceInline.hpp */,
 				4B80214322EE7C3E00068002 /* JustInTime.hpp */,
 				4B644ED023F0FB55006C0CC5 /* ScanSynchroniser.hpp */,
 				4B449C942063389900A095C8 /* TimeTypes.hpp */,
 				4B996B2D2496DAC2001660EF /* VSyncPredictor.hpp */,
-				4B99EBD026BF2D9F00CA924D /* DeferredValue.hpp */,
 			);
 			name = ClockReceiver;
 			path = ../../ClockReceiver;
@@ -6153,6 +6156,7 @@
 				4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */,
 				4B778F3823A5F11C0000D260 /* SegmentParser.cpp in Sources */,
 				4B778F0723A5EC150000D260 /* CommodoreTAP.cpp in Sources */,
+				4281683A2A37AFB4008ECD27 /* DispatcherTests.mm in Sources */,
 				4B778F4123A5F19A0000D260 /* MemoryPacker.cpp in Sources */,
 				4B778F4423A5F1BE0000D260 /* CommodoreGCR.cpp in Sources */,
 				4B778EF923A5EB740000D260 /* MSA.cpp in Sources */,
