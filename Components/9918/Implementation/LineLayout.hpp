@@ -28,6 +28,9 @@ template <Personality personality, typename Enable = void> struct LineLayout;
 //		* horizontal adjust on the Yamaha VDPs is applied to EndOfLeftBorder and EndOfPixels;
 //		* the Sega VDPs may programatically extend the left border; and
 //		* text mode on all VDPs adjusts border width.
+//
+//	ModeLaytchCycle is the cycle at which the video mode, blank disable/enable and
+//	sprite enable/disable are latched for the line.
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 	constexpr static int StartOfSync		= 0;
