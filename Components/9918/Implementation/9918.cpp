@@ -61,6 +61,11 @@ Base<personality>::Base() :
 	fetch_pointer_ = output_pointer_;
 	fetch_pointer_.column += output_lag;
 
+	// The fetch pointer is interpreted such that its zero is at the mode-latch cycle.
+	// Conversely the output pointer has zero be at start of sync. So the following
+	// is a change-of-base rather than a measurement of lag (or similar).
+	output_pointer_.row += LineLayout<personality>::ModeLatchCycle;
+
 	fetch_line_buffer_ = line_buffers_.begin();
 	draw_line_buffer_ = line_buffers_.begin();
 	fetch_sprite_buffer_ = sprite_buffers_.begin();

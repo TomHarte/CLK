@@ -55,7 +55,10 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 /// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
 template <Personality personality, Clock head, Clock... tail> constexpr int to_internal(int length) {
 	if constexpr (head == Clock::FromStartOfSync) {
-		length = (length + LineLayout<personality>::StartOfSync) % LineLayout<personality>::CyclesPerLine;
+		length = (
+			length +
+			(LineLayout<personality>::ModeLatchCycle - LineLayout<personality>::StartOfSync)
+		) % LineLayout<personality>::CyclesPerLine;
 	} else {
 		length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
 	}
@@ -70,9 +73,10 @@ template <Personality personality, Clock head, Clock... tail> constexpr int to_i
 /// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
 template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
 	if constexpr (head == Clock::FromStartOfSync) {
-		length =
-			(length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::StartOfSync)
-				% LineLayout<personality>::CyclesPerLine;
+		length = (
+			length + LineLayout<personality>::CyclesPerLine -
+			 (LineLayout<personality>::ModeLatchCycle - LineLayout<personality>::StartOfSync)
+		) % LineLayout<personality>::CyclesPerLine;
 	} else {
 		length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
 	}

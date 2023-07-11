@@ -87,7 +87,8 @@ struct YamahaFetcher {
 			size_t index = 0;
 			for(int c = 0; c < 1368; c++) { 
 				// Specific personality doesn't matter here; both Yamahas use the same internal timing.
-				const auto event = GeneratorT::event(from_internal<Personality::V9938, Clock::FromStartOfSync>(c));
+				const int mapped_location = from_internal<Personality::V9938, Clock::FromStartOfSync>(c);
+				const auto event = GeneratorT::event(mapped_location);
 				if(!event) {
 					continue;
 				}
