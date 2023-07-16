@@ -24,9 +24,15 @@ enum class Clock {
 	TMSMemoryWindow,
 	/// A fixed 1368-cycle/line clock that is used to count output to the CRT.
 	CRT,
+};
+
+enum class Origin {
+	///
+	ModeLatch,
+
 	/// Provides the same clock rate as ::Internal but is relocated so that 0 is the start of horizontal sync — very not coincidentally,
 	/// where Grauw puts 0 on his detailed TMS and Yamaha timing diagrams.
-	FromStartOfSync,
+	StartOfSync,
 };
 
 template <Personality personality, Clock clk> constexpr int clock_rate() {
@@ -41,7 +47,6 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 		case Clock::TMSMemoryWindow:	return 171;
 		case Clock::CRT:				return 1368;
 		case Clock::Internal:
-		case Clock::FromStartOfSync:
 			if constexpr (is_classic_vdp(personality)) {
 				return 342;
 			} else if constexpr (is_yamaha_vdp(personality)) {
@@ -52,16 +57,8 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 	}
 }
 
-/// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
 template <Personality personality, Clock head, Clock... tail> constexpr int to_internal(int length) {
-	if constexpr (head == Clock::FromStartOfSync) {
-		length = (
-			length +
-			(LineLayout<personality>::ModeLatchCycle - LineLayout<personality>::StartOfSync)
-		) % LineLayout<personality>::CyclesPerLine;
-	} else {
-		length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
-	}
+	length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
 
 	if constexpr (!sizeof...(tail)) {
 		return length;
@@ -70,22 +67,44 @@ template <Personality personality, Clock head, Clock... tail> constexpr int to_i
 	}
 }
 
-/// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
-template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
-	if constexpr (head == Clock::FromStartOfSync) {
-		length = (
-			length + LineLayout<personality>::CyclesPerLine -
-			 (LineLayout<personality>::ModeLatchCycle - LineLayout<personality>::StartOfSync)
+template <Personality personality, Origin origin> constexpr int to_internal(int length) {
+	if constexpr (origin == Origin::ModeLatch) {
+		return (
+			length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::ModeLatchCycle
 		) % LineLayout<personality>::CyclesPerLine;
-	} else {
-		length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
 	}
+	return length;
+}
+
+/// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
+template <Personality personality, Origin origin, Clock head, Clock... tail> constexpr int to_internal(int length) {
+	length = to_internal<personality, head, tail...>(length);
+	return to_internal<personality, origin>(length);
+}
+
+template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
+	length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
 
 	if constexpr (!sizeof...(tail)) {
 		return length;
 	} else {
 		return to_internal<personality, tail...>(length);
 	}
+}
+
+template <Personality personality, Origin origin> constexpr int from_internal(int length) {
+	if constexpr (origin == Origin::ModeLatch) {
+		return (
+			length + LineLayout<personality>::ModeLatchCycle
+		) % LineLayout<personality>::CyclesPerLine;
+	}
+	return length;
+}
+
+/// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
+template <Personality personality, Origin origin, Clock head, Clock... tail> constexpr int from_internal(int length) {
+	length = from_internal<personality, origin>(length);
+	return from_internal<personality, head, tail...>(length);
 }
 
 /*!
