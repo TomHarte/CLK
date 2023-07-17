@@ -57,14 +57,8 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 	}
 }
 
-template <Personality personality, Clock head, Clock... tail> constexpr int to_internal(int length) {
-	length = length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, head>();
-
-	if constexpr (!sizeof...(tail)) {
-		return length;
-	} else {
-		return to_internal<personality, tail...>(length);
-	}
+template <Personality personality, Clock clock> constexpr int to_internal(int length) {
+	return length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, clock>();
 }
 
 template <Personality personality, Origin origin> constexpr int to_internal(int length) {
@@ -76,20 +70,13 @@ template <Personality personality, Origin origin> constexpr int to_internal(int 
 	return length;
 }
 
-/// Statelessly converts @c length to the internal clock for @c personality; applies conversions per the list of clocks in left-to-right order.
-template <Personality personality, Origin origin, Clock head, Clock... tail> constexpr int to_internal(int length) {
-	length = to_internal<personality, head, tail...>(length);
+template <Personality personality, Origin origin, Clock clock> constexpr int to_internal(int length) {
+	length = to_internal<personality, clock>(length);
 	return to_internal<personality, origin>(length);
 }
 
-template <Personality personality, Clock head, Clock... tail> constexpr int from_internal(int length) {
-	length = length * clock_rate<personality, head>() / clock_rate<personality, Clock::Internal>();
-
-	if constexpr (!sizeof...(tail)) {
-		return length;
-	} else {
-		return to_internal<personality, tail...>(length);
-	}
+template <Personality personality, Clock clock> constexpr int from_internal(int length) {
+	return length * clock_rate<personality, clock>() / clock_rate<personality, Clock::Internal>();
 }
 
 template <Personality personality, Origin origin> constexpr int from_internal(int length) {
@@ -101,10 +88,9 @@ template <Personality personality, Origin origin> constexpr int from_internal(in
 	return length;
 }
 
-/// Statelessly converts @c length to @c clock from the the internal clock used by VDPs of @c personality throwing away any remainder.
-template <Personality personality, Origin origin, Clock head, Clock... tail> constexpr int from_internal(int length) {
+template <Personality personality, Origin origin, Clock clock> constexpr int from_internal(int length) {
 	length = from_internal<personality, origin>(length);
-	return from_internal<personality, head, tail...>(length);
+	return from_internal<personality, clock>(length);
 }
 
 /*!
