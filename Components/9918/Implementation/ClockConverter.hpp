@@ -57,28 +57,36 @@ template <Personality personality, Clock clk> constexpr int clock_rate() {
 	}
 }
 
+/// Scales @c length from @c clock to the internal clock rate.
 template <Personality personality, Clock clock> constexpr int to_internal(int length) {
 	return length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, clock>();
 }
 
-template <Personality personality, Origin origin> constexpr int to_internal(int length) {
+/// Moves @c position that is relative to @c Origin::StartOfSync so that it is relative to @c origin ;
+/// i.e. can be thought of as "to [internal with origin as specified]".
+template <Personality personality, Origin origin> constexpr int to_internal(int position) {
 	if constexpr (origin == Origin::ModeLatch) {
 		return (
-			length + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::ModeLatchCycle
+			position + LineLayout<personality>::CyclesPerLine - LineLayout<personality>::ModeLatchCycle
 		) % LineLayout<personality>::CyclesPerLine;
 	}
-	return length;
+	return position;
 }
 
-template <Personality personality, Origin origin, Clock clock> constexpr int to_internal(int length) {
-	length = to_internal<personality, clock>(length);
-	return to_internal<personality, origin>(length);
+/// Converts @c position from one that is measured at the rate implied by @c clock and relative to @c Origin::StartOfSync
+/// to one that is at the internal clock rate and relative to @c origin.
+template <Personality personality, Origin origin, Clock clock> constexpr int to_internal(int position) {
+	position = to_internal<personality, clock>(position);
+	return to_internal<personality, origin>(position);
 }
 
+/// Scales @c length from the internal clock rate to @c clock.
 template <Personality personality, Clock clock> constexpr int from_internal(int length) {
 	return length * clock_rate<personality, clock>() / clock_rate<personality, Clock::Internal>();
 }
 
+/// Moves @c position that is relative to @c origin so that it is relative to @c Origin::StartOfSync ;
+/// i.e. can be thought of as "from [internal with origin as specified]".
 template <Personality personality, Origin origin> constexpr int from_internal(int length) {
 	if constexpr (origin == Origin::ModeLatch) {
 		return (
@@ -88,9 +96,11 @@ template <Personality personality, Origin origin> constexpr int from_internal(in
 	return length;
 }
 
-template <Personality personality, Origin origin, Clock clock> constexpr int from_internal(int length) {
-	length = from_internal<personality, origin>(length);
-	return from_internal<personality, clock>(length);
+/// Converts @c position from one that is measured at the internal clock rate and relative to @c origin
+/// to one that is at the rate implied by @c clock and relative to @c Origin::StartOfSync 
+template <Personality personality, Origin origin, Clock clock> constexpr int from_internal(int position) {
+	position = from_internal<personality, origin>(position);
+	return from_internal<personality, clock>(position);
 }
 
 /*!
