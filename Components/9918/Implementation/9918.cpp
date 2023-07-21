@@ -30,6 +30,10 @@ Base<personality>::Base() :
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
+	// TODO: values in mode_timing_ should be relative to the ModeLatch since the fetch pointer is used pervasively
+	// as the authoritative current position. But also it's not clear to me that my current approach of treating them
+	// as runtime constant is really working. Some more thought required.
+
 	if constexpr (is_sega_vdp(personality)) {
 		// Cf. https://www.smspower.org/forums/8161-SMSDisplayTiming
 
@@ -50,7 +54,7 @@ Base<personality>::Base() :
 	if constexpr (is_yamaha_vdp(personality)) {
 		// TODO: this is used for interrupt _prediction_ but won't handle text modes correctly, and indeed
 		// can't be just a single value where the programmer has changed into or out of text modes during the
-		// middle of a line, since screen mode is latched (so it'll be one value for that line, another from then onwards).a
+		// middle of a line, since screen mode is latched (so it'll be one value for that line, another from then onwards).
 		mode_timing_.line_interrupt_position = LineLayout<personality>::EndOfPixels;
 	}
 
@@ -64,7 +68,8 @@ Base<personality>::Base() :
 	// The fetch pointer is interpreted such that its zero is at the mode-latch cycle.
 	// Conversely the output pointer has zero be at start of sync. So the following
 	// is a mere change-of-origin.
-	output_pointer_.row = to_internal<personality, Origin::ModeLatch>(output_pointer_.row);
+	fetch_pointer_.column = to_internal<personality, Origin::ModeLatch>(output_pointer_.column);
+	++output_pointer_.row;
 
 	fetch_line_buffer_ = line_buffers_.begin();
 	draw_line_buffer_ = line_buffers_.begin();
@@ -229,7 +234,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// TODO: where did this magic constant come from? https://www.smspower.org/forums/17970-RoadRashHow#111000 mentioned in passing
 					// that "the vertical scroll register is latched at the start of the active display" and this is two clocks before that, so it's
 					// not uncompelling. I can just no longer find my source.
-					constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
+					constexpr auto latch_time = to_internal<personality, Origin::ModeLatch>(LineLayout<personality>::EndOfLeftBorder - 2);
 					static_assert(latch_time > 0);
 					if(this->fetch_pointer_.column < latch_time && end_column >= latch_time) {
 						Storage<personality>::latched_vertical_scroll_ = Storage<personality>::vertical_scroll_;
