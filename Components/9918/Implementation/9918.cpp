@@ -68,8 +68,18 @@ Base<personality>::Base() :
 	// The fetch pointer is interpreted such that its zero is at the mode-latch cycle.
 	// Conversely the output pointer has zero be at start of sync. So the following
 	// is a mere change-of-origin.
+	//
+	// Logically, any mode latch time greater than 0 — i.e. beyond the start of sync — will
+	// cause fetch_pointer_ to **regress**. It will be set to the value it was at the start
+	// of sync, ready to overflow to 0 upon mode latch. When it overflows, the fetch row
+	// will be incremented.
+	//
+	// Therefore the nominal output row at instantiation needs to be one greater than the
+	// fetch row, as that's the first row that'll actually be fetched.
 	fetch_pointer_.column = to_internal<personality, Origin::ModeLatch>(output_pointer_.column);
-	++output_pointer_.row;
+	if(LineLayout<personality>::ModeLatchCycle) {
+		++output_pointer_.row;
+	}
 
 	fetch_line_buffer_ = line_buffers_.begin();
 	draw_line_buffer_ = line_buffers_.begin();
