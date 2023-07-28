@@ -155,14 +155,14 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 - (void)generate {
 	BusHandler handler;
 
-	// Make tests repeatable, at least for any given instance of
-	// the runtime.
-	srand(65816);
-
 	NSString *const tempDir = NSTemporaryDirectory();
 	NSLog(@"Outputting to %@", tempDir);
 
 	for(int operation = 0; operation < 512; operation++) {
+		// Make tests repeatable, at least for any given instance of
+		// the runtime.
+		srand(65816 + operation);
+
 		const bool is_emulated = operation & 256;
 		const uint8_t opcode = operation & 255;
 
