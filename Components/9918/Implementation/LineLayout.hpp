@@ -32,7 +32,7 @@ template <Personality personality, typename Enable = void> struct LineLayout;
 //	ModeLaytchCycle is the cycle at which the video mode, blank disable/enable and
 //	sprite enable/disable are latched for the line.
 
-template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality) && !is_sega_vdp(personality)>> {
 	constexpr static int StartOfSync		= 0;
 	constexpr static int EndOfSync			= 26;
 	constexpr static int StartOfColourBurst	= 29;
@@ -51,9 +51,32 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 													// and falls into the collection gap between the final sprite
 													// graphics and the initial tiles or pixels.
 
+	constexpr static bool HasDynamicLineInterrupt = false;
+	constexpr static bool HasFixedLineInterrupt = false;
+	constexpr static int EndOfFrameInterrupt = 313;
+
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
+};
+
+template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_sega_vdp(personality)>> :
+	public LineLayout<Personality::TMS9918A> {
+
+	// Cf. https://www.smspower.org/forums/8161-SMSDisplayTiming
+
+	// "For a line interrupt, /INT is pulled low 608 mclks into the appropriate scanline relative to pixel 0.
+	// This is 3 mclks before the rising edge of /HSYNC which starts the next scanline."
+	//
+	// i.e. it's 304 internal clocks after the end of the left border.
+	constexpr static bool HasFixedLineInterrupt = false;
+	constexpr static int FixedLineInterrupt = (EndOfLeftBorder + 304) % CyclesPerLine;
+
+	// For a frame interrupt, /INT is pulled low 607 mclks into scanline 192 (of scanlines 0 through 261) relative to pixel 0.
+	// This is 4 mclks before the rising edge of /HSYNC which starts the next scanline.
+	//
+	// i.e. it's 1/2 cycle before the line interrupt position, which I have rounded. Ugh.
+	constexpr static int EndOfFrameInterrupt = 313;
 };
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
@@ -72,6 +95,10 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 	constexpr static int TextModeEndOfPixels		= 1254;
 
 	constexpr static int ModeLatchCycle		= 144;
+
+	constexpr static bool HasDynamicLineInterrupt = true;
+	constexpr static bool HasFixedLineInterrupt = false;
+	constexpr static int EndOfFrameInterrupt = 313;
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
