@@ -441,7 +441,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					if(registers_.emulation_flag) {
 						if(exception_is_interrupt_) data_buffer_.value &= ~uint32_t(Flag::Break);
 						data_buffer_.size = 3;
-						registers_.data_bank = 0;
+						if(pending_exceptions_ & (Reset | PowerOn)) {
+							registers_.data_bank = 0;
+						}
 						++next_op_;
 					} else {
 						data_buffer_.value |= registers_.program_bank << 8;	// The PBR is always held such that
