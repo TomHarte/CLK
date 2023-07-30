@@ -319,7 +319,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);			// New PCH.
 
 		target(OperationCopyPBRToData);			// Copy PBR to the data register.
-		target(CyclePush);						// PBR.
+		target(CyclePushNotEmulation);			// PBR.
 		target(CycleFetchPreviousThrowaway);	// IO.
 
 		target(CycleFetchPC);					// New PBR.
@@ -327,8 +327,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JSL]
 
-		target(CyclePush);						// PCH.
-		target(CyclePush);						// PCL.
+		target(CyclePushNotEmulation);			// PCH.
+		target(CyclePushNotEmulation);			// PCL.
 	}
 
 	// 5. Absolute long, X;	al, x.
