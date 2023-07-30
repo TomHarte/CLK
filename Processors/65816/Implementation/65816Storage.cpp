@@ -667,7 +667,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationPerform);
 	}
 
-	// 22b(ii). Stack; s, PLx, ignoring emulation mode. E.g. PLD.
+	// 22b(ii). Stack; s, PLx, ignoring emulation mode. I.e. PLD.
 	static void stack_pull_no_emulation(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
@@ -678,7 +678,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationPerform);
 	}
 
-	// 22c. Stack; s, PHx.
+	// 22c(i). Stack; s, PHx, respecting emulation mode. E.g. PHP.
 	static void stack_push(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 
@@ -686,6 +686,16 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		if(!is8bit) target(CyclePush);	// REG high.
 		target(CyclePush);				// REG [low].
+	}
+
+	// 22c(i). Stack; s, PHx, ignoring emulation mode. I.e. PHD.
+	static void stack_push_no_emulation(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPCThrowaway);	// IO.
+
+		target(OperationPerform);
+
+		if(!is8bit) target(CyclePushNotEmulation);	// REG high.
+		target(CyclePushNotEmulation);				// REG [low].
 	}
 
 	// 22d. Stack; s, PEA.
@@ -829,7 +839,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x08 PHP s */			op(stack_push, PHP, AccessMode::Always8Bit);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always16Bit);
+	/* 0x0b PHD s */			op(stack_push_no_emulation, PHD, AccessMode::Always16Bit);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
