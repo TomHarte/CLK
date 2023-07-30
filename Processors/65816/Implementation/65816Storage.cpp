@@ -730,8 +730,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationConstructPER);
 
-		target(CyclePush);						// AAH.
-		target(CyclePush);						// AAL.
+		target(CyclePushNotEmulation);			// AAH.
+		target(CyclePushNotEmulation);			// AAL.
 	}
 
 	// 22g. Stack; s, RTI.
