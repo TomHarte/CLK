@@ -754,9 +754,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
 
-		target(CyclePull);				// New PCL.
-		target(CyclePull);				// New PCH.
-		target(CyclePull);				// New PBR.
+		target(CyclePullNotEmulation);	// New PCL.
+		target(CyclePullNotEmulation);	// New PCH.
+		target(CyclePullNotEmulation);	// New PBR.
 
 		target(OperationPerform);		// [RTL]
 	}
