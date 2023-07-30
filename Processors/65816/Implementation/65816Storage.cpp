@@ -656,13 +656,24 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		stack_exception_impl(type, is8bit, target, CycleAccessStack);
 	}
 
-	// 22b. Stack; s, PLx.
+	// 22b(i). Stack; s, PLx, respecting emulation mode. E.g. PLP.
 	static void stack_pull(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
 
 		if(!is8bit) target(CyclePull);	// REG low.
 		target(CyclePull);				// REG [high].
+
+		target(OperationPerform);
+	}
+
+	// 22b(ii). Stack; s, PLx, ignoring emulation mode. E.g. PLD.
+	static void stack_pull_no_emulation(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPCThrowaway);	// IO.
+
+		if(!is8bit) target(CyclePullNotEmulation);	// REG low.
+		target(CyclePullNotEmulation);				// REG [high].
 
 		target(OperationPerform);
 	}
@@ -852,7 +863,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x28 PLP s */			op(stack_pull, PLP, AccessMode::Always8Bit);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always16Bit);
+	/* 0x2b PLD s */			op(stack_pull_no_emulation, PLD, AccessMode::Always16Bit);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
