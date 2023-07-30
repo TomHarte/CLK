@@ -668,12 +668,12 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22b(ii). Stack; s, PLx, ignoring emulation mode. I.e. PLD.
-	static void stack_pull_no_emulation(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+	static void stack_pld(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
 
-		if(!is8bit) target(CyclePullNotEmulation);	// REG low.
-		target(CyclePullNotEmulation);				// REG [high].
+		target(CyclePullNotEmulation);	// REG low.
+		target(CyclePullNotEmulation);	// REG [high].
 
 		target(OperationPerform);
 	}
@@ -689,13 +689,13 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22c(i). Stack; s, PHx, ignoring emulation mode. I.e. PHD.
-	static void stack_push_no_emulation(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+	static void stack_phd(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 
 		target(OperationPerform);
 
-		if(!is8bit) target(CyclePushNotEmulation);	// REG high.
-		target(CyclePushNotEmulation);				// REG [low].
+		target(CyclePushNotEmulation);	// REG high.
+		target(CyclePushNotEmulation);	// REG [low].
 	}
 
 	// 22d. Stack; s, PEA.
@@ -839,7 +839,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x08 PHP s */			op(stack_push, PHP, AccessMode::Always8Bit);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */			op(stack_push_no_emulation, PHD, AccessMode::Always16Bit);
+	/* 0x0b PHD s */			op(stack_phd, PHD);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
@@ -873,7 +873,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x28 PLP s */			op(stack_pull, PLP, AccessMode::Always8Bit);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pull_no_emulation, PLD, AccessMode::Always16Bit);
+	/* 0x2b PLD s */			op(stack_pld, PLD);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
