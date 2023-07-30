@@ -718,8 +718,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(CycleFetchIncrementData);		// AAL.
 		target(CycleFetchData);					// AAH.
-		target(CyclePush);						// AAH.
-		target(CyclePush);						// AAL.
+		target(CyclePushNotEmulation);			// AAH.
+		target(CyclePushNotEmulation);			// AAL.
 	}
 
 	// 22f. Stack; s, PER.
