@@ -224,7 +224,7 @@ enum class Operation: uint8_t {
 	/// current EFLAGS DF flag.
 	INS,
 	/// Outputs a byte, word or double word from ES:[e]DI to the port specified by DX,
-	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.]
+	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.
 	OUTS,
 
 	/// Pushes all general purpose registers to the stack, in the order:

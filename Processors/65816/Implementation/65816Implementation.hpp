@@ -191,6 +191,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					--registers_.s.full;
 				break;
 
+				case CyclePushNotEmulation:
+					bus_address_ = registers_.s.full;
+					bus_value_ = data_buffer_.next_output_descending();
+					bus_operation_ = MOS6502Esque::Write;
+					--registers_.s.full;
+				break;
+
 				case CyclePullIfNotEmulation:
 					if(registers_.emulation_flag) {
 						continue;
@@ -200,6 +207,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case CyclePull:
 					++registers_.s.full;
 					stack_access(data_buffer_.next_input(), MOS6502Esque::Read);
+				break;
+
+				case CyclePullNotEmulation:
+					++registers_.s.full;
+					bus_address_ = registers_.s.full;
+					bus_value_ = data_buffer_.next_input();
+					bus_operation_ = MOS6502Esque::Read;
 				break;
 
 				case CycleAccessStack:
@@ -359,15 +373,20 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructDirectIndexedIndirect:
-					data_address_ = (
-						((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
-						(registers_.direct & registers_.e_masks[0])
-					) & 0xffff;
-					data_address_increment_mask_ = 0x00'ff'ff;
-
+					// Emulation mode plus DL = 0 is required for 6502-style functionality where
+					// only the low byte is the result of the indirect calculation.
 					if(!(registers_.direct&0xff)) {
+						data_address_ = (
+							((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
+							(registers_.direct & registers_.e_masks[0])
+						) & 0xffff;
 						++next_op_;
+					} else {
+						data_address_ = (
+							registers_.direct + registers_.x.full + instruction_buffer_.value
+						) & 0xffff;
 					}
+					data_address_increment_mask_ = 0x00'ff'ff;
 				continue;
 
 				case OperationConstructDirectIndirectIndexedLong:
@@ -441,7 +460,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					if(registers_.emulation_flag) {
 						if(exception_is_interrupt_) data_buffer_.value &= ~uint32_t(Flag::Break);
 						data_buffer_.size = 3;
-						registers_.data_bank = 0;
+						if(pending_exceptions_ & (Reset | PowerOn)) {
+							registers_.data_bank = 0;
+						}
 						++next_op_;
 					} else {
 						data_buffer_.value |= registers_.program_bank << 8;	// The PBR is always held such that
