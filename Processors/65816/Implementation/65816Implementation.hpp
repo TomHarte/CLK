@@ -191,6 +191,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					--registers_.s.full;
 				break;
 
+				case CyclePushNotEmulation:
+					bus_address_ = registers_.s.full;
+					bus_value_ = data_buffer_.next_output_descending();
+					bus_operation_ = MOS6502Esque::Write;
+					--registers_.s.full;
+				break;
+
 				case CyclePullIfNotEmulation:
 					if(registers_.emulation_flag) {
 						continue;
@@ -200,6 +207,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case CyclePull:
 					++registers_.s.full;
 					stack_access(data_buffer_.next_input(), MOS6502Esque::Read);
+				break;
+
+				case CyclePullNotEmulation:
+					++registers_.s.full;
+					bus_address_ = registers_.s.full;
+					bus_value_ = data_buffer_.next_input();
+					bus_operation_ = MOS6502Esque::Read;
 				break;
 
 				case CycleAccessStack:
