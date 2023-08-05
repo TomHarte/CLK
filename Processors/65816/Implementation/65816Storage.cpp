@@ -1131,11 +1131,10 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 		set_m_x_flags(true, true);
 		registers_.e_masks[0] = 0xff00;
 		registers_.e_masks[1] = 0x00ff;
+		registers_.s.halves.high = 1;
 	} else {
 		registers_.e_masks[0] = 0x0000;
 		registers_.e_masks[1] = 0xffff;
-		registers_.s.halves.high = 1;	// To pretend it was 1 all along; this implementation actually ignores
-										// the top byte while in emulation mode.
 	}
 }
 

@@ -67,6 +67,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					last_operation_pc_ = registers_.pc;
 					last_operation_program_bank_ = uint8_t(registers_.program_bank >> 16);
 					memory_lock_ = false;
+
+					// Reenforce the top byte of S if applicable.
+					registers_.s.halves.high = stack_address();
 				} continue;
 
 				case OperationDecode: {
