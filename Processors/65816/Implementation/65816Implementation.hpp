@@ -69,7 +69,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					memory_lock_ = false;
 
 					// Reenforce the top byte of S if applicable.
-					registers_.s.halves.high = stack_address();
+					registers_.s.full = stack_address();
 				} continue;
 
 				case OperationDecode: {
@@ -622,7 +622,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						// (and make reasonable guesses as to the N flag).
 
 						case TXS:
-							registers_.s = registers_.x.full;
+							registers_.s = registers_.x;
 						break;
 
 						case TSX:
@@ -671,10 +671,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						break;
 
 						case TCS:
-							registers_.s.full = registers_.a.full;
-							// No need to worry about byte masking here;
-							// for the stack it's handled as the emulation runs.
-							// Cf. the stack_address() macro.
+							registers_.s = registers_.a;
+							registers_.s.full = stack_address();
 						break;
 
 						case TSC:
