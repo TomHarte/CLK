@@ -68,6 +68,10 @@ constexpr bool has(Type processor_type, Register r) {
 	}
 }
 
+constexpr bool has_extended_bus_output(Type processor_type) {
+	return processor_type == Type::TWDC65816;
+}
+
 }
 
 #endif /* _502Selector_h */

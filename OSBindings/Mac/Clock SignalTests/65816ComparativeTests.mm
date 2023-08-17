@@ -32,7 +32,9 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		// Record the basics of the operation.
 		auto &cycle = cycles.emplace_back();
 		cycle.operation = operation;
-		cycle.extended_bus = processor.get_extended_bus_output();
+		if constexpr (has_extended_bus_output(type)) {
+			cycle.extended_bus = processor.get_extended_bus_output();
+		}
 
 		// Perform the operation, and fill in the cycle's value.
 		using BusOperation = CPU::MOS6502Esque::BusOperation;
@@ -113,7 +115,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		CPU::MOS6502Esque::BusOperation operation;
 		std::optional<AddressType> address;
 		std::optional<uint8_t> value;
-		int extended_bus;
+		int extended_bus = 0;
 	};
 	std::vector<Cycle> cycles;
 
@@ -263,12 +265,6 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 						assert(false);
 				}
 
-				using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
-				const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
-				const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
-				const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
-				const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
-
 				fprintf(target, "[");
 				if(cycle.address) {
 					fprintf(target, "%d, ", *cycle.address);
@@ -280,16 +276,31 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 				} else {
 					fprintf(target, "null, ");
 				}
-				fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
-					vda ? 'd' : '-',
-					vpa ? 'p' : '-',
-					vpb ? 'v' : '-',
-					wait ? '-' : (read ? 'r' : 'w'),
-					wait ? '-' : (emulation ? 'e' : '-'),
-					wait ? '-' : (memory_size ? 'm' : '-'),
-					wait ? '-' : (index_size ? 'x' : '-'),
-					wait ? '-' : (memory_lock ? 'l' : '-')
-				);
+
+				if(has_emulation) {
+					using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
+					const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
+					const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
+					const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
+					const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
+
+					fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
+						vda ? 'd' : '-',
+						vpa ? 'p' : '-',
+						vpb ? 'v' : '-',
+						wait ? '-' : (read ? 'r' : 'w'),
+						wait ? '-' : (emulation ? 'e' : '-'),
+						wait ? '-' : (memory_size ? 'm' : '-'),
+						wait ? '-' : (index_size ? 'x' : '-'),
+						wait ? '-' : (memory_lock ? 'l' : '-')
+					);
+				} else {
+					if(read) {
+						fprintf(target, "\"read\"]");
+					} else {
+						fprintf(target, "\"write\"]");
+					}
+				}
 			}
 
 			// Terminate object.
