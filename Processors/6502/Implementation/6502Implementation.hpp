@@ -731,4 +731,5 @@ void ProcessorBase::set_value_of(Register r, uint16_t value) {
 
 void ProcessorBase::restart_operation_fetch() {
 	scheduled_program_counter_ = nullptr;
+	next_bus_operation_ = BusOperation::None;
 }
