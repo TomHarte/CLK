@@ -69,7 +69,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					memory_lock_ = false;
 
 					// Reenforce the top byte of S if applicable.
-					registers_.s.halves.high = stack_address();
+					registers_.s.full = stack_address();
 				} continue;
 
 				case OperationDecode: {
