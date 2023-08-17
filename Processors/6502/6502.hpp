@@ -124,6 +124,12 @@ class ProcessorBase: public ProcessorStorage {
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
 		inline bool is_jammed() const;
+
+		/*!
+			FOR TESTING PURPOSES ONLY: forces the processor into a state where
+			the next thing it intends to do is fetch a new opcode.
+		*/
+		inline void restart_operation_fetch();
 };
 
 /*!

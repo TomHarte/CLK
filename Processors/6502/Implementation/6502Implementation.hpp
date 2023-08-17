@@ -728,3 +728,7 @@ void ProcessorBase::set_value_of(Register r, uint16_t value) {
 		default: break;
 	}
 }
+
+void ProcessorBase::restart_operation_fetch() {
+	scheduled_program_counter_ = nullptr;
+}
