@@ -14,16 +14,21 @@
 #include <vector>
 #include <unordered_map>
 
+#include "6502Selector.hpp"
+
 namespace {
 
 struct StopException {};
 
-struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t> {
-	// Use a map to store RAM contents, in order to preserve initialised state.
-	std::unordered_map<uint32_t, uint8_t> ram;
-	std::unordered_map<uint32_t, uint8_t> inventions;
+template <CPU::MOS6502Esque::Type type>
+struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
+	using AddressType = typename CPU::MOS6502Esque::BusHandlerT<type>::AddressType;
 
-	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, uint32_t address, uint8_t *value) {
+	// Use a map to store RAM contents, in order to preserve initialised state.
+	std::unordered_map<AddressType, uint8_t> ram;
+	std::unordered_map<AddressType, uint8_t> inventions;
+
+	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, AddressType address, uint8_t *value) {
 		// Record the basics of the operation.
 		auto &cycle = cycles.emplace_back();
 		cycle.operation = operation;
@@ -92,25 +97,27 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t> {
 		allow_pc_repetition = opcode == 0x54 || opcode == 0x44;
 
 		using Register = CPU::MOS6502Esque::Register;
-		const uint32_t pc =
-			processor.value_of(Register::ProgramCounter) |
-			(processor.value_of(Register::ProgramBank) << 16);
+		const auto pc =
+			AddressT(
+				processor.value_of(Register::ProgramCounter) |
+				(processor.value_of(Register::ProgramBank) << 16)
+			);
 		inventions[pc] = ram[pc] = opcode;
 	}
 
 	int pc_overshoot = 0;
-	std::optional<uint32_t> initial_pc;
+	std::optional<AddressType> initial_pc;
 	bool allow_pc_repetition = false;
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
-		std::optional<uint32_t> address;
+		std::optional<AddressType> address;
 		std::optional<uint8_t> value;
 		int extended_bus;
 	};
 	std::vector<Cycle> cycles;
 
-	CPU::WDC65816::Processor<BusHandler, false> processor;
+	CPU::MOS6502Esque::Processor<type, BusHandler<type>, false> processor;
 
 	BusHandler() : processor(*this) {
 		// Never run the official reset procedure.
@@ -132,7 +139,8 @@ template <typename Processor> void print_registers(FILE *file, const Processor &
 	fprintf(file, "\"e\": %d, ", processor.value_of(Register::EmulationFlag));
 }
 
-void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
+template <typename IntT>
+void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data) {
 	fprintf(file, "\"ram\": [");
 	bool is_first = true;
 	for(const auto &pair: data) {
@@ -153,7 +161,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 @implementation TestGenerator
 
 - (void)generate {
-	BusHandler handler;
+	BusHandler<CPU::MOS6502Esque::Type::TWDC65816> handler;
 
 	NSString *const tempDir = NSTemporaryDirectory();
 	NSLog(@"Outputting to %@", tempDir);
