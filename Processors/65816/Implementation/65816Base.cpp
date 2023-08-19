@@ -30,7 +30,10 @@ uint16_t ProcessorBase::value_of(Register r) const {
 void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	registers_.pc = value;									break;
-		case Register::StackPointer:	registers_.s.full = value;								break;
+		case Register::StackPointer:
+			registers_.s.full = value;
+			if(registers_.emulation_flag) registers_.s.halves.high = 1;
+		break;
 		case Register::Flags:			set_flags(uint8_t(value));								break;
 		case Register::A:				registers_.a.full = value;								break;
 		case Register::X:				registers_.x.full = value & registers_.x_mask;			break;

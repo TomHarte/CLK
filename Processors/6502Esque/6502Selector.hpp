@@ -9,6 +9,7 @@
 #ifndef _502Selector_h
 #define _502Selector_h
 
+#include "6502Esque.hpp"
 #include "../6502/6502.hpp"
 #include "../65816/65816.hpp"
 
@@ -44,6 +45,32 @@ template <typename BusHandler, bool uses_ready_line> class Processor<Type::TWDC6
 */
 template <Type processor_type> class BusHandlerT: public BusHandler<uint16_t> {};
 template <> class BusHandlerT<Type::TWDC65816>: public BusHandler<uint32_t> {};
+
+/*
+	Query for implemented registers.
+*/
+constexpr bool has(Type processor_type, Register r) {
+	switch(r) {
+		case Register::LastOperationAddress:
+		case Register::ProgramCounter:
+		case Register::StackPointer:
+		case Register::Flags:
+		case Register::A:
+		case Register::X:
+		case Register::Y:
+			return true;
+
+		case Register::EmulationFlag:
+		case Register::DataBank:
+		case Register::ProgramBank:
+		case Register::Direct:
+			return processor_type == Type::TWDC65816;
+	}
+}
+
+constexpr bool has_extended_bus_output(Type processor_type) {
+	return processor_type == Type::TWDC65816;
+}
 
 }
 

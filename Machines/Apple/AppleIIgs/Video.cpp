@@ -285,7 +285,7 @@ void Video::output_row(int row, int start, int end) {
 
 				// Post an interrupt if requested.
 				if(line_control_ & 0x40) {
-					set_interrupts(0x20);
+					interrupts_.add(0x20);
 				}
 
 				// Set up appropriately for fill mode (or not).
@@ -498,19 +498,19 @@ uint8_t Video::get_new_video() {
 }
 
 void Video::clear_interrupts(uint8_t mask) {
-	set_interrupts(interrupts_ & ~(mask & 0x60));
+	interrupts_.clear(mask);
 }
 
 void Video::set_interrupt_register(uint8_t mask) {
-	set_interrupts(interrupts_ | (mask & 0x6));
+	interrupts_.set_control(mask);
 }
 
 uint8_t Video::get_interrupt_register() {
-	return interrupts_;
+	return interrupts_.status();
 }
 
 bool Video::get_interrupt_line() {
-	return (interrupts_&0x80) || (megaii_interrupt_mask_&megaii_interrupt_state_);
+	return interrupts_.active() || (megaii_interrupt_mask_ & megaii_interrupt_state_);
 }
 
 void Video::set_megaii_interrupts_enabled(uint8_t mask) {
@@ -526,13 +526,7 @@ void Video::clear_megaii_interrupts() {
 }
 
 void Video::notify_clock_tick() {
-	set_interrupts(interrupts_ | 0x40);
-}
-
-void Video::set_interrupts(uint8_t new_value) {
-	interrupts_ = new_value & 0x7f;
-	if((interrupts_ >> 4) & interrupts_ & 0x6)
-		interrupts_ |= 0x80;
+	interrupts_.add(0x40);
 }
 
 void Video::set_border_colour(uint8_t colour) {
