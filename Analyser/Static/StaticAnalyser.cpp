@@ -59,6 +59,7 @@
 // Mass Storage Devices (i.e. usually, hard disks)
 #include "../../Storage/MassStorage/Formats/DAT.hpp"
 #include "../../Storage/MassStorage/Formats/DSK.hpp"
+#include "../../Storage/MassStorage/Formats/HDV.hpp"
 #include "../../Storage/MassStorage/Formats/HFV.hpp"
 
 // State Snapshots
@@ -170,6 +171,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::MSX)				// DSK (MSX)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)			// DSK (Oric)
 	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)			// G64
+	Format("hdv", result.mass_storage_devices, MassStorage::HDV, TargetPlatform::AppleII)						// HDV (Apple II, hard disk, single volume image)
 	Format(	"hfe",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
@@ -183,6 +185,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::IPF>,
 			TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum)		// IPF
 	Format("msa", result.disks, Disk::DiskImageHolder<Storage::Disk::MSA>, TargetPlatform::AtariST)				// MSA
+	Format("mx2", result.cartridges, Cartridge::BinaryDump, TargetPlatform::MSX)								// MX2
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
@@ -242,7 +245,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	const std::string extension = get_extension(file_name);
 
 	// Check whether the file directly identifies a target; if so then just return that.
-#define Format(ext, class) 											\
+#define Format(ext, class)											\
 	if(extension == ext)	{										\
 		try {														\
 			auto target = Storage::State::class::load(file_name);	\

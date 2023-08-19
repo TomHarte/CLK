@@ -15,8 +15,7 @@
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../Serial/Line.hpp"
 
-namespace Motorola {
-namespace ACIA {
+namespace Motorola::ACIA {
 
 class ACIA: public ClockingHint::Source, private Serial::Line<false>::ReadDelegate {
 	public:
@@ -126,7 +125,6 @@ class ACIA: public ClockingHint::Source, private Serial::Line<false>::ReadDelega
 		uint8_t get_status();
 };
 
-}
 }
 
 #endif /* Motorola_ACIA_6850_hpp */

@@ -17,8 +17,7 @@
 #include "../../../Components/1770/1770.hpp"
 #include "../../../Activity/Source.hpp"
 
-namespace Atari {
-namespace ST {
+namespace Atari::ST {
 
 class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, public ClockingHint::Observer {
 	public:
@@ -110,7 +109,6 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 		int byte_count_ = 0;
 };
 
-}
 }
 
 #endif /* DMAController_hpp */

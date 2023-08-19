@@ -34,9 +34,8 @@
 #include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
-#include "../../../Processors/68000/68000.hpp"
 
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
 #include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
@@ -74,7 +73,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
 	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
 	public Configurable::Device,
@@ -89,17 +88,17 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::Keyboard::Key::LeftOption, Inputs::Keyboard::Key::RightOption,
 				Inputs::Keyboard::Key::LeftMeta, Inputs::Keyboard::Key::RightMeta,
 			}),
-		 	mc68000_(*this),
-		 	iwm_(CLOCK_RATE),
-		 	video_(audio_, drive_speed_accumulator_),
-		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
-		 	scsi_bus_(CLOCK_RATE * 2),
-		 	scsi_(scsi_bus_, CLOCK_RATE * 2),
-		 	hard_drive_(scsi_bus_, 6 /* SCSI ID */),
-		 	drives_{
-		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
-		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
+			mc68000_(*this),
+			iwm_(CLOCK_RATE),
+			video_(audio_, drive_speed_accumulator_),
+			via_(via_port_handler_),
+			via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
+			scsi_bus_(CLOCK_RATE * 2),
+			scsi_(scsi_bus_, CLOCK_RATE * 2),
+			hard_drive_(scsi_bus_, 6 /* SCSI ID */),
+			drives_{
+				{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
+				{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
 			},
 			mouse_(1) {
 
@@ -192,7 +191,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_.run_for(cycles);
 		}
 
-		using Microcycle = CPU::MC68000Mk2::Microcycle;
+		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
@@ -748,7 +747,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::QuadratureMouse &mouse_;
 		};
 
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
 		IWMActor iwm_;
@@ -760,20 +759,20 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		Keyboard keyboard_;
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
- 		VIAPortHandler via_port_handler_;
+		VIAPortHandler via_port_handler_;
 
- 		Zilog::SCC::z8530 scc_;
+		Zilog::SCC::z8530 scc_;
 		SCSI::Bus scsi_bus_;
- 		NCR::NCR5380::NCR5380 scsi_;
+		NCR::NCR5380::NCR5380 scsi_;
 		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
- 		bool scsi_bus_is_clocked_ = false;
+		bool scsi_bus_is_clocked_ = false;
 
- 		HalfCycles via_clock_;
- 		HalfCycles real_time_clock_;
- 		HalfCycles keyboard_clock_;
- 		HalfCycles time_since_video_update_;
- 		HalfCycles time_until_video_event_;
- 		HalfCycles time_since_mouse_update_;
+		HalfCycles via_clock_;
+		HalfCycles real_time_clock_;
+		HalfCycles keyboard_clock_;
+		HalfCycles time_since_video_update_;
+		HalfCycles time_until_video_event_;
+		HalfCycles time_since_mouse_update_;
 
 		bool ROM_is_overlay_ = true;
 		int phase_ = 1;

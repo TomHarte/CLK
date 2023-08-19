@@ -651,6 +651,48 @@
             <item row="0" column="0">
              <widget class="QLabel">
               <property name="text">
+               <string>Model</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="msxModelComboBox">
+              <item>
+               <property name="text">
+                <string>MSX 1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>MSX 2</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout">
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel">
+              <property name="text">
                <string>Region</string>
               </property>
              </widget>
@@ -695,6 +737,13 @@
          <widget class="QCheckBox" name="msxDiskDriveCheckBox">
           <property name="text">
            <string>Attach disk drive</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="msxMSXMUSICCheckBox">
+          <property name="text">
+           <string>Attach MSX-MUSIC</string>
           </property>
          </widget>
         </item>

@@ -18,8 +18,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 class Executor;
 using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
@@ -152,7 +151,7 @@ class Executor: public CachingExecutor {
 		Timer timers_[3], prescalers_[2];
 		inline int update_timer(Timer &timer, int count);
 
-		// Interrupt and timer  control.
+		// Interrupt and timer control.
 		uint8_t interrupt_control_ = 0, timer_control_ = 0;
 		bool interrupt_line_ = false;
 
@@ -174,7 +173,6 @@ class Executor: public CachingExecutor {
 		inline void subtract_duration(int duration);
 };
 
-}
 }
 
 #endif /* Executor_h */

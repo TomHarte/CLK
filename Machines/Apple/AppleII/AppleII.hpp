@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class Machine {
 	public:
@@ -42,7 +41,6 @@ class Machine {
 		};
 };
 
-}
 }
 
 #endif /* AppleII_hpp */

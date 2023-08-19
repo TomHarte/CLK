@@ -16,9 +16,7 @@
 
 #include <algorithm>
 
-namespace Sinclair {
-namespace ZXSpectrum {
-namespace Video {
+namespace Sinclair::ZXSpectrum::Video {
 
 enum class Timing {
 	FortyEightK,
@@ -492,8 +490,6 @@ struct State: public Reflection::StructImpl<State> {
 	}
 };
 
-}
-}
 }
 
 #endif /* Video_hpp */

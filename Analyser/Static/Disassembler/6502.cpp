@@ -11,7 +11,7 @@
 #include "Kernel.hpp"
 
 using namespace Analyser::Static::MOS6502;
-namespace  {
+namespace {
 
 using PartialDisassembly = Analyser::Static::Disassembly::PartialDisassembly<Disassembly, uint16_t>;
 

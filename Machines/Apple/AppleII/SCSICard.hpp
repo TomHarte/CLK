@@ -21,8 +21,7 @@
 #include <array>
 #include <memory>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class SCSICard: public Card {
 	public:
@@ -37,6 +36,8 @@ class SCSICard: public Card {
 			scsi_bus_.run_for(cycles);
 		}
 
+		void set_activity_observer(Activity::Observer *observer) final;
+
 	private:
 		uint8_t *ram_pointer_ = nullptr;
 		uint8_t *rom_pointer_ = nullptr;
@@ -49,7 +50,6 @@ class SCSICard: public Card {
 		SCSI::Target::Target<SCSI::DirectAccessDevice> storage_;
 };
 
-}
 }
 
 #endif /* SCSICard_hpp */

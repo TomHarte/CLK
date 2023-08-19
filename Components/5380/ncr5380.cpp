@@ -156,7 +156,7 @@ uint8_t NCR5380::read(int address, bool) {
 		return uint8_t(bus_.get_state());
 
 		case 1:
-			LOG("[1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') <<  (lost_arbitration_ ? 'l' : '-'));
+			LOG("[1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') << (lost_arbitration_ ? 'l' : '-'));
 		return
 			// Bits repeated as they were set.
 			(initiator_command_ & ~0x60) |

@@ -326,7 +326,7 @@ Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 
 		Bind(Six(0b001010), cmpli);		Bind(Six(0b001011), cmpi);
 	}
-	
+
 	// Second pass: all those with a top six bits and a bottom nine or ten.
 	switch(opcode & SixTen(0b111111, 0b1111111111)) {
 		default: break;

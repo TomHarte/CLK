@@ -15,8 +15,7 @@
 #include <memory>
 #include <vector>
 
-namespace Intel {
-namespace i8272 {
+namespace Intel::i8272 {
 
 class BusHandler {
 	public:
@@ -130,7 +129,6 @@ class i8272 : public Storage::Disk::MFMController {
 		bool is_sleeping_ = false;
 };
 
-}
 }
 
 #endif /* i8272_hpp */

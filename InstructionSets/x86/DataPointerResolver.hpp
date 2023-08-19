@@ -14,8 +14,7 @@
 
 #include <cassert>
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 /// Unlike source, describes only registers, and breaks
 /// them down by conventional name — so AL, AH, AX and EAX are all
@@ -203,12 +202,12 @@ template <typename DataT> void DataPointerResolver<model, RegistersT, MemoryT>::
 		}																		\
 	break;
 
-#define ALLREGS(v, i)	rw(v, eAX, i); 		rw(v, eCX, i); 		\
-						rw(v, eDX, i);		rw(v, eBX, i); 		\
+#define ALLREGS(v, i)	rw(v, eAX, i);		rw(v, eCX, i);		\
+						rw(v, eDX, i);		rw(v, eBX, i);		\
 						rw(v, eSPorAH, i);	rw(v, eBPorCH, i);	\
 						rw(v, eSIorDH, i);	rw(v, eDIorBH, i);	\
-						rw(v, ES, i);		rw(v, CS, i); 		\
-						rw(v, SS, i);		rw(v, DS, i); 		\
+						rw(v, ES, i);		rw(v, CS, i);		\
+						rw(v, SS, i);		rw(v, DS, i);		\
 						rw(v, FS, i);		rw(v, GS, i);
 
 template <Model model, typename RegistersT, typename MemoryT>
@@ -314,7 +313,6 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 #undef ALLREGS
 #undef rw
 
-}
 }
 
 #endif /* DataPointerResolver_hpp */

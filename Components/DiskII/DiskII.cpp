@@ -13,7 +13,7 @@
 
 using namespace Apple;
 
-namespace  {
+namespace {
 	const uint8_t input_command = 0x4;	// i.e. Q6
 	const uint8_t input_mode = 0x8;		// i.e. Q7
 	const uint8_t input_flux = 0x1;
@@ -144,7 +144,7 @@ void DiskII::decide_clocking_preference() {
 	//	none, given that drives are not running, the shift register has already emptied or stopped and there's no flux about to be received.
 	if(!(inputs_ & ~input_flux)) {
 		const bool is_stuck_at_nop =
-			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6)] == state_  && (state_ &0xf) == 0x8;
+			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6)] == state_ && (state_ &0xf) == 0x8;
 
 		clocking_preference_ =
 			(drive_is_sleeping_[0] && drive_is_sleeping_[1] && (!shift_register_ || is_stuck_at_nop) && (inputs_&input_flux))

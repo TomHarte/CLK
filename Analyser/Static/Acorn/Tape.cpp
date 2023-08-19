@@ -20,7 +20,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 	int shift_register = 0;
 
 // TODO: move this into the parser
-#define shift()	shift_register = (shift_register >> 1) |  (parser.get_next_bit(tape) << 9)
+#define shift()	shift_register = (shift_register >> 1) | (parser.get_next_bit(tape) << 9)
 
 	// find next area of high tone
 	while(!tape->is_at_end() && (shift_register != 0x3ff)) {

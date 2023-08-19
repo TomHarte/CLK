@@ -16,8 +16,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes calls to and from Outputs::Speaker::Speaker in order
@@ -55,7 +54,6 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 		bool stereo_output_ = false;
 };
 
-}
 }
 
 #endif /* MultiSpeaker_hpp */

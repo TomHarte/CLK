@@ -14,9 +14,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace Storage {
-namespace Tape {
-namespace MSX {
+namespace Storage::Tape::MSX {
 
 class Parser {
 	public:
@@ -49,8 +47,6 @@ class Parser {
 		static int get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &tape_player);
 };
 
-}
-}
 }
 
 #endif /* Storage_Tape_Parsers_MSX_hpp */

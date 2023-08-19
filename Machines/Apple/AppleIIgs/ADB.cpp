@@ -71,7 +71,7 @@ uint8_t GLU::get_any_key_down() {
 uint8_t GLU::get_mouse_data() {
 	// Alternates between returning x and y values.
 	//
-	// b7: 		1 = button is up; 0 = button is down.
+	// b7:		1 = button is up; 0 = button is down.
 	// b6:		delta sign bit; 1 = negative.
 	// b5–b0:	mouse delta.
 

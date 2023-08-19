@@ -67,6 +67,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					last_operation_pc_ = registers_.pc;
 					last_operation_program_bank_ = uint8_t(registers_.program_bank >> 16);
 					memory_lock_ = false;
+
+					// Reenforce the top byte of S if applicable.
+					registers_.s.full = stack_address();
 				} continue;
 
 				case OperationDecode: {
@@ -191,6 +194,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					--registers_.s.full;
 				break;
 
+				case CyclePushNotEmulation:
+					bus_address_ = registers_.s.full;
+					bus_value_ = data_buffer_.next_output_descending();
+					bus_operation_ = MOS6502Esque::Write;
+					--registers_.s.full;
+				break;
+
 				case CyclePullIfNotEmulation:
 					if(registers_.emulation_flag) {
 						continue;
@@ -200,6 +210,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case CyclePull:
 					++registers_.s.full;
 					stack_access(data_buffer_.next_input(), MOS6502Esque::Read);
+				break;
+
+				case CyclePullNotEmulation:
+					++registers_.s.full;
+					bus_address_ = registers_.s.full;
+					bus_value_ = data_buffer_.next_input();
+					bus_operation_ = MOS6502Esque::Read;
 				break;
 
 				case CycleAccessStack:
@@ -359,15 +376,20 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructDirectIndexedIndirect:
-					data_address_ = (
-						((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
-						(registers_.direct & registers_.e_masks[0])
-					) & 0xffff;
-					data_address_increment_mask_ = 0x00'ff'ff;
-
+					// Emulation mode plus DL = 0 is required for 6502-style functionality where
+					// only the low byte is the result of the indirect calculation.
 					if(!(registers_.direct&0xff)) {
+						data_address_ = (
+							((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
+							(registers_.direct & registers_.e_masks[0])
+						) & 0xffff;
 						++next_op_;
+					} else {
+						data_address_ = (
+							registers_.direct + registers_.x.full + instruction_buffer_.value
+						) & 0xffff;
 					}
+					data_address_increment_mask_ = 0x00'ff'ff;
 				continue;
 
 				case OperationConstructDirectIndirectIndexedLong:
@@ -421,7 +443,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructStackRelative:
-					data_address_ = (registers_.s.full + instruction_buffer_.value) & 0xffff;
+					data_address_ = (stack_address() + instruction_buffer_.value) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
 				continue;
 
@@ -441,7 +463,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					if(registers_.emulation_flag) {
 						if(exception_is_interrupt_) data_buffer_.value &= ~uint32_t(Flag::Break);
 						data_buffer_.size = 3;
-						registers_.data_bank = 0;
+						if(pending_exceptions_ & (Reset | PowerOn)) {
+							registers_.data_bank = 0;
+						}
 						++next_op_;
 					} else {
 						data_buffer_.value |= registers_.program_bank << 8;	// The PBR is always held such that
@@ -504,7 +528,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				// Performance.
 				//
 
-#define LDA(src) 		registers_.a.full = (registers_.a.full & registers_.m_masks[0]) | (src & registers_.m_masks[1])
+#define LDA(src)		registers_.a.full = (registers_.a.full & registers_.m_masks[0]) | (src & registers_.m_masks[1])
 #define LDXY(dest, src)	dest = (src) & registers_.x_mask
 
 				case OperationPerform:
@@ -598,7 +622,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						// (and make reasonable guesses as to the N flag).
 
 						case TXS:
-							registers_.s = registers_.x.full;
+							registers_.s = registers_.x;
 						break;
 
 						case TSX:
@@ -647,10 +671,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						break;
 
 						case TCS:
-							registers_.s.full = registers_.a.full;
-							// No need to worry about byte masking here;
-							// for the stack it's handled as the emulation runs.
-							// Cf. the stack_address() macro.
+							registers_.s = registers_.a;
+							registers_.s.full = stack_address();
 						break;
 
 						case TSC:
@@ -856,7 +878,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 																							\
 		if(																					\
 			!registers_.emulation_flag ||													\
-			(registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)				\
+			(registers_.pc & 0xff00) == (data_buffer_.value & 0xff00)						\
 		) {																					\
 			++next_op_;																		\
 		}																					\

@@ -10,14 +10,11 @@
 
 using namespace CPU::WDC65816;
 
-uint16_t ProcessorBase::get_value_of_register(Register r) const {
+uint16_t ProcessorBase::value_of(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return registers_.pc;
 		case Register::LastOperationAddress:	return last_operation_pc_;
-		case Register::StackPointer:
-			return
-				(registers_.s.full & (registers_.emulation_flag ? 0xff : 0xffff)) |
-				(registers_.emulation_flag ? 0x100 : 0x000);
+		case Register::StackPointer:			return registers_.s.full;
 		case Register::Flags:					return get_flags();
 		case Register::A:						return registers_.a.full;
 		case Register::X:						return registers_.x.full;
@@ -30,10 +27,13 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	}
 }
 
-void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	registers_.pc = value;									break;
-		case Register::StackPointer:	registers_.s.full = value;								break;
+		case Register::StackPointer:
+			registers_.s.full = value;
+			if(registers_.emulation_flag) registers_.s.halves.high = 1;
+		break;
 		case Register::Flags:			set_flags(uint8_t(value));								break;
 		case Register::A:				registers_.a.full = value;								break;
 		case Register::X:				registers_.x.full = value & registers_.x_mask;			break;

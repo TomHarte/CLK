@@ -4,15 +4,15 @@ Code in here provides the means to disassemble, and to execute code for certain 
 
 It **does not seek to emulate specific processors** other than in terms of implementing their instruction sets. So:
 * it doesn't involve itself in the actual bus signalling of real processors; and
-* instruction-level timing (e.g. total cycle counts) may be unimplemented, and is likely to be incomplete. 
+* instruction-level timing (e.g. total cycle counts) may be unimplemented, and is likely to be incomplete.
 
 This part of CLK is intended primarily to provide disassembly services for static analysis, and processing for machines where timing is not part of the specification — i.e. anything that's an instruction set and a HAL.
 
 ## Decoders
 
-A decoder extracts fully-decoded instructions from a data stream for its associated architecture. 
+A decoder extracts fully-decoded instructions from a data stream for its associated architecture.
 
-The meaning of 'fully-decoded' is flexible but it means that a caller can easily discern at least:  
+The meaning of 'fully-decoded' is flexible but it means that a caller can easily discern at least:
 * the operation in use;
 * its addressing mode; and
 * relevant registers.
@@ -23,7 +23,7 @@ In deciding what to expose, what to store ahead of time and what to obtain just-
 1. disassemblers; and
 2. instruction executors.
 
-It may also be reasonable to make allowances for bus-centric CPU emulators, but those will be tightly coupled to specific decoders so no general rules need apply. 
+It may also be reasonable to make allowances for bus-centric CPU emulators, but those will be tightly coupled to specific decoders so no general rules need apply.
 
 Disassemblers are likely to decode an instruction, output it, and then immediately forget about it.
 
@@ -31,7 +31,7 @@ Instruction executors may opt to cache decoded instructions to reduce recurrent 
 
 ### Likely Interfaces
 
-These examples assume that the processor itself doesn't hold any state that affects instruction parsing. Whether processors with such state offer more than one decoder or take state as an argument will be a question of measure and effect.  
+These examples assume that the processor itself doesn't hold any state that affects instruction parsing. Whether processors with such state offer more than one decoder or take state as an argument will be a question of measure and effect.
 
 #### Fixed-size instruction words
 
@@ -53,7 +53,7 @@ In this sample the returned pair provides an `int` size that is one of:
 * a positive number, indicating a completed decoding that consumed that many `word_type`s; or
 * a negative number, indicating the [negatived] minimum number of `word_type`s that the caller should try to get hold of before calling `decode` again.
 
-A caller is permitted to react in any way it prefers to negative numbers; they're a hint potentially to reduce calling overhead only. A size of `0` would be taken to have the same meaning as a size of `-1`.  
+A caller is permitted to react in any way it prefers to negative numbers; they're a hint potentially to reduce calling overhead only. A size of `0` would be taken to have the same meaning as a size of `-1`.
 
 ## Parsers
 
@@ -81,6 +81,6 @@ An executor is assumed to bundle all the things that go into instruction set exe
 
 ## Caching Executor
 
-The caching executor is a generic class templated on a specific executor. It will use an executor to cache the results of parsing. 
+The caching executor is a generic class templated on a specific executor. It will use an executor to cache the results of parsing.
 
-Idiomatically, the objects that perform instructions will expect to receive an appropriate executor as an argument. If they require other information, such as a copy of the decoded instruction, it should be built into the classes. 
+Idiomatically, the objects that perform instructions will expect to receive an appropriate executor as an argument. If they require other information, such as a copy of the decoded instruction, it should be built into the classes.

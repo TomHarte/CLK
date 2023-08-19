@@ -24,7 +24,7 @@
 #include <iomanip>
 
 #define PADHEX(n) std::hex << std::setfill('0') << std::setw(n)
-#define PADDEC(n) std::dec << std::setfill('0') << std::setw(n) 
+#define PADDEC(n) std::dec << std::setfill('0') << std::setw(n)
 
 #ifdef LOG_PREFIX
 

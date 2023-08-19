@@ -16,8 +16,7 @@
 #include <ostream>
 #include <vector>
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 struct Command {
 	enum class Type {
@@ -48,7 +47,7 @@ inline std::ostream &operator <<(std::ostream &stream, Command::Type type) {
 		case Command::Type::Flush:	stream << "flush";		break;
 		case Command::Type::Listen:	stream << "listen";		break;
 		case Command::Type::Talk:	stream << "talk";		break;
-		default: 					stream << "reserved";	break;
+		default:					stream << "reserved";	break;
 	}
 	return stream;
 }
@@ -166,7 +165,6 @@ class Bus {
 		} phase_ = Phase::AttentionCapture;
 };
 
-}
 }
 
 #endif /* Bus_hpp */

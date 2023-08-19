@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace InstructionSet {
-namespace PowerPC {
+namespace InstructionSet::PowerPC {
 
 enum class CacheLine: uint32_t {
 	Instruction = 0b01100,
@@ -47,13 +46,13 @@ enum class BranchOption: uint32_t {
 	//	condition ending Set or Clear => test the condition bit.
 	Dec_NotZeroAndClear	= 0b0000,
 	Dec_ZeroAndClear	= 0b0001,
-	Clear 				= 0b0010,
+	Clear				= 0b0010,
 	Dec_NotZeroAndSet	= 0b0100,
-	Dec_ZeroAndSet 		= 0b0101,
-	Set 				= 0b0110,
-	Dec_NotZero 		= 0b1000,
+	Dec_ZeroAndSet		= 0b0101,
+	Set					= 0b0110,
+	Dec_NotZero			= 0b1000,
 	Dec_Zero			= 0b1001,
-	Always 				= 0b1010,
+	Always				= 0b1010,
 };
 
 
@@ -1390,30 +1389,30 @@ struct Instruction {
 	int32_t imm() const		{	return (opcode >> 12) & 0xf;		}
 
 	/// Specifies the conditions on which to trap.
-	int32_t to() const	 	{	return (opcode >> 21) & 0x1f;		}
+	int32_t to() const		{	return (opcode >> 21) & 0x1f;		}
 
 	/// Register source A or destination.
-	uint32_t rA() const 	{	return (opcode >> 16) & 0x1f;		}
+	uint32_t rA() const		{	return (opcode >> 16) & 0x1f;		}
 	/// Register source B.
-	uint32_t rB() const 	{	return (opcode >> 11) & 0x1f;		}
+	uint32_t rB() const		{	return (opcode >> 11) & 0x1f;		}
 	/// Register destination.
-	uint32_t rD() const 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t rD() const		{	return (opcode >> 21) & 0x1f;		}
 	/// Register source.
-	uint32_t rS() const 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t rS() const		{	return (opcode >> 21) & 0x1f;		}
 
 	/// Floating point register source A.
-	uint32_t frA() const 	{	return (opcode >> 16) & 0x1f;		}
+	uint32_t frA() const	{	return (opcode >> 16) & 0x1f;		}
 	/// Floating point register source B.
-	uint32_t frB() const 	{	return (opcode >> 11) & 0x1f;		}
+	uint32_t frB() const	{	return (opcode >> 11) & 0x1f;		}
 	/// Floating point register source C.
-	uint32_t frC() const 	{	return (opcode >> 6) & 0x1f;		}
+	uint32_t frC() const	{	return (opcode >> 6) & 0x1f;		}
 	/// Floating point register source.
-	uint32_t frS() const 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t frS() const	{	return (opcode >> 21) & 0x1f;		}
 	/// Floating point register destination.
-	uint32_t frD() const 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t frD() const	{	return (opcode >> 21) & 0x1f;		}
 
 	/// Branch conditional options as per PowerPC spec, i.e. options + branch-prediction flag.
-	uint32_t bo() const 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t bo() const		{	return (opcode >> 21) & 0x1f;		}
 	/// Just the branch options, with the branch prediction flag severed.
 	BranchOption branch_options() const {
 		return BranchOption((opcode >> 22) & 0xf);
@@ -1423,7 +1422,7 @@ struct Instruction {
 		return opcode & 0x200000;
 	}
 	/// Source condition register bit for branch conditionals.
-	uint32_t bi() const 	{	return (opcode >> 16) & 0x1f;		}
+	uint32_t bi() const		{	return (opcode >> 16) & 0x1f;		}
 	/// Branch displacement; provided as already sign extended.
 	int16_t bd() const		{	return int16_t(opcode & 0xfffc);	}
 
@@ -1448,9 +1447,9 @@ struct Instruction {
 	/// Provides the mask described by 32-bit rotate operations.
 	///
 	/// Per IBM's rules:
-	/// 	mb < me+1 	=> set [mb, me]
-	/// 	mb == me+1	=> set all bits
-	/// 	mb > me+1	=> complement of set [me+1, mb-1]
+	///		mb < me+1	=> set [mb, me]
+	///		mb == me+1	=> set all bits
+	///		mb > me+1	=> complement of set [me+1, mb-1]
 	template <typename IntT> IntT rotate_mask() const {
 		const auto mb_bit = mb();
 		const auto me_bit = me();
@@ -1522,15 +1521,14 @@ struct Instruction {
 
 
 	/// Identifies a special purpose register.
-	uint32_t spr() const 	{	return (opcode >> 11) & 0x3ff;		}
+	uint32_t spr() const	{	return (opcode >> 11) & 0x3ff;		}
 	/// Identifies a time base register.
-	uint32_t tbr() const 	{	return (opcode >> 11) & 0x3ff;		}
+	uint32_t tbr() const	{	return (opcode >> 11) & 0x3ff;		}
 };
 
 // Sanity check on Instruction size.
 static_assert(sizeof(Instruction) <= 8);
 
-}
 }
 
 #endif /* InstructionSets_PowerPC_Instruction_h */

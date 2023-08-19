@@ -13,8 +13,7 @@
 #include "PCMSegment.hpp"
 #include "Track.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Instantiates a PLL with a target bit length of @c length_of_a_bit and provides a complete
@@ -32,7 +31,6 @@ namespace Disk {
 */
 PCMSegment track_serialisation(const Track &track, Time length_of_a_bit);
 
-}
 }
 
 #endif /* TrackSerialiser_h */

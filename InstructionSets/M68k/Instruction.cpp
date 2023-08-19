@@ -45,6 +45,7 @@ std::string Preinstruction::operand_description(int index, int opcode) const {
 		case AddressingMode::AbsoluteLong:
 			return "(xxx).l";
 
+		case AddressingMode::ExtensionWord:
 		case AddressingMode::ImmediateData:
 			return "#";
 
@@ -95,14 +96,21 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::MOVEAw:			return "MOVEA.w";
 		case Operation::MOVEAl:			return "MOVEA.l";
 
+		case Operation::MOVESb:			return "MOVES.b";
+		case Operation::MOVESw:			return "MOVES.w";
+		case Operation::MOVESl:			return "MOVES.l";
+
 		case Operation::LEA:			return "LEA";
 		case Operation::PEA:			return "PEA";
 
 		case Operation::MOVEtoSR:		return "MOVEtoSR";
 		case Operation::MOVEfromSR:		return "MOVEfromSR";
 		case Operation::MOVEtoCCR:		return "MOVEtoCCR";
+		case Operation::MOVEfromCCR:	return "MOVEfromCCR";
 		case Operation::MOVEtoUSP:		return "MOVEtoUSP";
 		case Operation::MOVEfromUSP:	return "MOVEfromUSP";
+		case Operation::MOVEtoC:		return "MOVEtoC";
+		case Operation::MOVEfromC:		return "MOVEfromC";
 
 		case Operation::ORItoSR:		return "ORItoSR";
 		case Operation::ORItoCCR:		return "ORItoCCR";
@@ -130,8 +138,12 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::JMP:			return "JMP";
 		case Operation::JSR:			return "JSR";
 		case Operation::RTS:			return "RTS";
+		case Operation::RTD:			return "RTD";
+		case Operation::RTM:			return "RTM";
+
 		case Operation::DBcc:			return "DBcc";
 		case Operation::Scc:			return "Scc";
+		case Operation::TRAPcc:			return "TRAPcc";
 
 		case Operation::Bccb:
 		case Operation::Bccl:
@@ -140,6 +152,13 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::BSRb:
 		case Operation::BSRl:
 		case Operation::BSRw:			return "BSR";
+
+		case Operation::CASb:			return "CAS.b";
+		case Operation::CASw:			return "CAS.w";
+		case Operation::CASl:			return "CAS.l";
+
+		case Operation::CAS2w:			return "CAS2.w";
+		case Operation::CAS2l:			return "CAS2.l";
 
 		case Operation::CLRb:			return "CLR.b";
 		case Operation::CLRw:			return "CLR.w";
@@ -217,17 +236,26 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::ORw:			return "OR.w";
 		case Operation::ORl:			return "OR.l";
 
-		case Operation::MULU:			return "MULU";
-		case Operation::MULS:			return "MULS";
-		case Operation::DIVU:			return "DIVU";
-		case Operation::DIVS:			return "DIVS";
+		case Operation::MULUw:			return "MULU";
+		case Operation::MULSw:			return "MULS";
+		case Operation::MULSorMULUl:	return "[MULS/MULU]{L}.l";
+
+		case Operation::DIVUw:			return "DIVU";
+		case Operation::DIVSw:			return "DIVS";
+		case Operation::DIVSorDIVUl:	return "[DIVS/DIVU]{L}.l";
 
 		case Operation::RTE:			return "RTE";
 		case Operation::RTR:			return "RTR";
 
 		case Operation::TRAP:			return "TRAP";
 		case Operation::TRAPV:			return "TRAPV";
-		case Operation::CHK:			return "CHK";
+
+		case Operation::CHKw:			return "CHK";
+		case Operation::CHKl:			return "CHK.l";
+
+		case Operation::CHKorCMP2b:		return "[CHK/CMP]2.b";
+		case Operation::CHKorCMP2w:		return "[CHK/CMP]2.w";
+		case Operation::CHKorCMP2l:		return "[CHK/CMP]2.l";
 
 		case Operation::EXG:			return "EXG";
 		case Operation::SWAP:			return "SWAP";
@@ -236,12 +264,28 @@ const char *_to_string(Operation operation, bool is_quick) {
 
 		case Operation::EXTbtow:		return "EXT.w";
 		case Operation::EXTwtol:		return "EXT.l";
+		case Operation::EXTbtol:		return "EXTB.l";
 
 		case Operation::LINKw:			return "LINK";
+		case Operation::LINKl:			return "LINK.l";
 		case Operation::UNLINK:			return "UNLINK";
 
 		case Operation::STOP:			return "STOP";
 		case Operation::RESET:			return "RESET";
+
+		case Operation::BKPT:			return "BKPT";
+
+		case Operation::BFCHG:			return "BFCHG";
+		case Operation::BFCLR:			return "BFCLR";
+		case Operation::BFEXTS:			return "BFEXTS";
+		case Operation::BFEXTU:			return "BFEXTU";
+		case Operation::BFFFO:			return "BFFFO";
+		case Operation::BFINS:			return "BFINS";
+		case Operation::BFSET:			return "BFSET";
+		case Operation::BFTST:			return "BFTST";
+
+		case Operation::PACK:			return "PACK";
+		case Operation::UNPK:			return "UNPK";
 
 		default:
 			assert(false);
@@ -267,6 +311,9 @@ std::string Preinstruction::to_string(int opcode) const {
 	std::string result = instruction;
 	if(!operand1.empty()) result += std::string(" ") + operand1;
 	if(!operand2.empty()) result += std::string(", ") + operand2;
+
+	const int extension_words = additional_extension_words();
+	if(extension_words) result += std::string(" [+") + std::to_string(extension_words) + "]";
 
 	return result;
 }

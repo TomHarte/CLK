@@ -9,8 +9,7 @@
 #ifndef Atari2600_CartridgePitfall2_hpp
 #define Atari2600_CartridgePitfall2_hpp
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Pitfall2: public BusExtender {
 	public:
@@ -123,7 +122,6 @@ class Pitfall2: public BusExtender {
 		Cycles cycles_since_audio_update_ = 0;
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgePitfall2_hpp */

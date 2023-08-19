@@ -50,7 +50,7 @@ using namespace Storage::Tape;
 		everything to the next 0x1f as padding.
 */
 
-namespace  {
+namespace {
 	const uint8_t header_signature[8] = {0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74};
 
 	#define TenX(x) {x, x, x, x, x, x, x, x, x, x}

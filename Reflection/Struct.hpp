@@ -13,6 +13,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <typeindex>
 #include <typeinfo>

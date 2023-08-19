@@ -36,9 +36,9 @@ constexpr uint64_t PixelMask = 0x0102040810204080;
 Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
 	audio_(audio),
 	drive_speed_accumulator_(drive_speed_accumulator),
- 	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
+	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
 
- 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 
 	// UGLY HACK. UGLY, UGLY HACK. UGLY!
 	// The OpenGL scan target fails properly to place visible areas which are not 4:3.

@@ -17,8 +17,7 @@
 #include "../ScanTarget.hpp"
 #include "Internals/Flywheel.hpp"
 
-namespace Outputs {
-namespace CRT {
+namespace Outputs::CRT {
 
 class CRT;
 
@@ -354,7 +353,6 @@ template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::C
 		size_t frame_record_pointer_ = 0;
 };
 
-}
 }
 
 #endif /* CRT_cpp */

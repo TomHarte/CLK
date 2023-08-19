@@ -11,14 +11,12 @@
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 
-namespace Storage {
-namespace State {
+namespace Storage::State {
 
 struct Z80 {
 	static std::unique_ptr<Analyser::Static::Target> load(const std::string &file_name);
 };
 
-}
 }
 
 #endif /* Storage_State_Z80_hpp */

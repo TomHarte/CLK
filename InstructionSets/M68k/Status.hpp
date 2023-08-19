@@ -11,8 +11,7 @@
 
 #include "Instruction.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 namespace ConditionCode {
 
@@ -69,7 +68,7 @@ struct Status {
 	/// Gets the current condition codes.
 	constexpr uint16_t ccr() const {
 		return
-			(carry_flag 	? ConditionCode::Carry 		: 0) |
+			(carry_flag		? ConditionCode::Carry		: 0) |
 			(overflow_flag	? ConditionCode::Overflow	: 0) |
 			(!zero_result	? ConditionCode::Zero		: 0) |
 			(negative_flag	? ConditionCode::Negative	: 0) |
@@ -159,7 +158,6 @@ struct Status {
 	}
 };
 
-}
 }
 
 #endif /* InstructionSets_M68k_Status_h */

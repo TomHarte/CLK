@@ -64,7 +64,7 @@ SOURCES += \
 	$$SRC/Components/68901/*.cpp \
 	$$SRC/Components/8272/*.cpp \
 	$$SRC/Components/8530/*.cpp \
-	$$SRC/Components/9918/*.cpp \
+	$$SRC/Components/9918/Implementation/*.cpp \
 	$$SRC/Components/AudioToggle/*.cpp \
 	$$SRC/Components/AY38910/*.cpp \
 	$$SRC/Components/DiskII/*.cpp \
@@ -72,6 +72,7 @@ SOURCES += \
 	$$SRC/Components/OPx/*.cpp \
 	$$SRC/Components/SN76489/*.cpp \
 	$$SRC/Components/Serial/*.cpp \
+	$$SRC/Components/RP5C01/*.cpp \
 \
 	$$SRC/Inputs/*.cpp \
 \
@@ -112,8 +113,6 @@ SOURCES += \
 	$$SRC/Processors/6502/Implementation/*.cpp \
 	$$SRC/Processors/6502/State/*.cpp \
 	$$SRC/Processors/65816/Implementation/*.cpp \
-	$$SRC/Processors/68000/Implementation/*.cpp \
-	$$SRC/Processors/68000/State/*.cpp \
 	$$SRC/Processors/Z80/Implementation/*.cpp \
 	$$SRC/Processors/Z80/State/*.cpp \
 \
@@ -201,6 +200,7 @@ HEADERS += \
 	$$SRC/Components/OPx/Implementation/*.hpp \
 	$$SRC/Components/Serial/*.hpp \
 	$$SRC/Components/SN76489/*.hpp \
+	$$SRC/Components/RP5C01/*.hpp \
 \
 	$$SRC/Concurrency/*.hpp \
 \
@@ -257,7 +257,6 @@ HEADERS += \
 	$$SRC/Processors/65816/Implementation/*.hpp \
 	$$SRC/Processors/68000/*.hpp \
 	$$SRC/Processors/68000/Implementation/*.hpp \
-	$$SRC/Processors/68000/State/*.hpp \
 	$$SRC/Processors/Z80/*.hpp \
 	$$SRC/Processors/Z80/Implementation/*.hpp \
 	$$SRC/Processors/Z80/State/*.hpp \

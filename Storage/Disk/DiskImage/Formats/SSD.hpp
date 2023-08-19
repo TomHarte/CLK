@@ -11,8 +11,7 @@
 
 #include "MFMSectorDump.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing a DSD or SSD disk image: a decoded sector dump of an Acorn DFS disk.
@@ -37,7 +36,6 @@ class SSD: public MFMSectorDump {
 		int track_count_;
 };
 
-}
 }
 
 #endif /* SSD_hpp */

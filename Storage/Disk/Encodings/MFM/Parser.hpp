@@ -13,9 +13,7 @@
 #include "../../Track/Track.hpp"
 #include "../../Drive.hpp"
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 /*!
 	Provides a mechanism for collecting sectors from a disk.
@@ -40,8 +38,6 @@ class Parser {
 		std::map<Storage::Disk::Track::Address, std::map<int, Storage::Encodings::MFM::Sector>> sectors_by_address_by_track_;
 };
 
-}
-}
 }
 
 #endif /* Parser_hpp */

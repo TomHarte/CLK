@@ -18,8 +18,7 @@
 
 #include "../../Activity/Source.hpp"
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
@@ -164,7 +163,6 @@ class BinaryTapePlayer : public TapePlayer {
 		Activity::Observer *observer_ = nullptr;
 };
 
-}
 }
 
 #endif /* Tape_hpp */

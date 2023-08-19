@@ -9,8 +9,7 @@
 #ifndef Tables_hpp
 #define Tables_hpp
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*
 	These are the OPL's built-in log-sin and exponentiation tables, as recovered by
@@ -52,7 +51,7 @@ struct LogSign {
 	@returns Negative log sin of x, assuming a 1024-unit circle.
 */
 constexpr LogSign negative_log_sin(int x) {
-	/// Defines the first quadrant of 1024-unit negative log to the base two of  sine (that conveniently misses sin(0)).
+	/// Defines the first quadrant of 1024-unit negative log to the base two of sine (that conveniently misses sin(0)).
 	///
 	/// Expected branchless usage for a full 1024 unit output:
 	///
@@ -221,7 +220,6 @@ inline int LogSign::level(int fractional) const {
 	return power_two(*this, fractional);
 }
 
-}
 }
 
 #endif /* Tables_hpp */

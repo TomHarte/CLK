@@ -13,8 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 class DriveSpeedAccumulator {
 	public:
@@ -40,7 +39,6 @@ class DriveSpeedAccumulator {
 		Delegate *delegate_ = nullptr;
 };
 
-}
 }
 
 #endif /* DriveSpeedAccumulator_hpp */

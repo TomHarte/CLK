@@ -13,8 +13,7 @@
 #include <cstdlib>
 #include <cstdint>
 
-namespace Outputs {
-namespace CRT {
+namespace Outputs::CRT {
 
 /*!
 	Provides timing for a two-phase signal consisting of a retrace phase followed by a scan phase,
@@ -259,7 +258,6 @@ struct Flywheel {
 		*/
 };
 
-}
 }
 
 #endif /* Flywheel_hpp */

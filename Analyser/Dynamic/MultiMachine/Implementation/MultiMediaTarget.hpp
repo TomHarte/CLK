@@ -15,8 +15,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the media target interface to multiple machines.
@@ -35,7 +34,6 @@ struct MultiMediaTarget: public MachineTypes::MediaTarget {
 		std::vector<MachineTypes::MediaTarget *> targets_;
 };
 
-}
 }
 
 #endif /* MultiMediaTarget_hpp */

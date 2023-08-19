@@ -28,9 +28,7 @@
 #include <string>
 #include <vector>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 
 /*!
@@ -156,8 +154,6 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use pr
 		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
 };
 
-}
-}
 }
 
 #endif /* ScanTarget_hpp */

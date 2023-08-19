@@ -375,7 +375,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 		let bundle = Bundle(for: type(of: self))
 		let mainBundle = Bundle.main
-		if 	let testFilename = bundle.url(forResource: name, withExtension: nil),
+		if	let testFilename = bundle.url(forResource: name, withExtension: nil),
 			let kernelFilename = mainBundle.url(forResource: "kernal.901227-02", withExtension: "bin", subdirectory: "ROMImages/Commodore64") {
 			if let testData = try? Data(contentsOf: testFilename), let kernelData = try? Data(contentsOf: kernelFilename) {
 

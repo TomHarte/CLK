@@ -15,8 +15,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 constexpr uint16_t KeypadMask = 0x100;
 
@@ -294,7 +293,6 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
-}
 }
 
 #endif /* Apple_Macintosh_Keyboard_hpp */

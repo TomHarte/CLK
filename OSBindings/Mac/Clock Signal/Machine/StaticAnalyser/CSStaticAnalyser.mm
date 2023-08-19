@@ -229,16 +229,21 @@
 	return self;
 }
 
-- (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive {
+- (instancetype)initWithMSXModel:(CSMachineMSXModel)model region:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive hasMSXMUSIC:(BOOL)hasMSXMUSIC {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::MSX::Target;
 		auto target = std::make_unique<Target>();
-		target->has_disk_drive = !!hasDiskDrive;
+		target->has_disk_drive = hasDiskDrive;
+		target->has_msx_music = hasMSXMUSIC;
 		switch(region) {
 			case CSMachineMSXRegionAmerican:	target->region = Target::Region::USA;		break;
 			case CSMachineMSXRegionEuropean:	target->region = Target::Region::Europe;	break;
 			case CSMachineMSXRegionJapanese:	target->region = Target::Region::Japan;		break;
+		}
+		switch(model) {
+			case CSMachineMSXModelMSX1:			target->model = Target::Model::MSX1;		break;
+			case CSMachineMSXModelMSX2:			target->model = Target::Model::MSX2;		break;
 		}
 		_targets.push_back(std::move(target));
 	}

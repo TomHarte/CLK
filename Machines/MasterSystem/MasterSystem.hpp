@@ -16,8 +16,7 @@
 
 #include <memory>
 
-namespace Sega {
-namespace MasterSystem {
+namespace Sega::MasterSystem {
 
 class Machine {
 	public:
@@ -36,7 +35,6 @@ class Machine {
 		};
 };
 
-}
 }
 
 #endif /* MasterSystem_hpp */

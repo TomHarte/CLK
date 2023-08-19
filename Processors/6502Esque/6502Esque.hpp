@@ -21,11 +21,10 @@
 
 	So: this is _very_ provisional stuff.
 */
-namespace CPU {
-namespace MOS6502Esque {
+namespace CPU::MOS6502Esque {
 
 /*
-	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
+	The list of registers that can be accessed via @c value_of(Register) and @c set_value_of(Register, value).
 */
 enum Register {
 	LastOperationAddress,
@@ -44,7 +43,7 @@ enum Register {
 };
 
 /*
-	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
+	Flags as defined on the 6502; can be used to decode the result of @c value_of(Flags) or to form a value for
 	the corresponding set.
 */
 enum Flag: uint8_t {
@@ -143,7 +142,6 @@ template <typename addr_t> class BusHandler {
 		}
 };
 
-}
 }
 
 #endif /* m6502Esque_h */

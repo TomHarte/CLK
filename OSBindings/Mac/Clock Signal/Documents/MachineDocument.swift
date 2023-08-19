@@ -63,11 +63,6 @@ class MachineDocument:
 		return "MachineDocument"
 	}
 
-	convenience init(type typeName: String) throws {
-		self.init()
-		self.fileType = typeName
-	}
-
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
@@ -255,7 +250,7 @@ class MachineDocument:
 		// but may be triggered on an arbitrary thread by a running machine, and that
 		// running machine may not be able to stop running until it has been called
 		// (e.g. if it is currently trying to run_until an audio event). Break the
-		// deadlock with an async dispatch. 
+		// deadlock with an async dispatch.
 		DispatchQueue.main.async {
 			self.setupAudioQueueClockRate()
 		}

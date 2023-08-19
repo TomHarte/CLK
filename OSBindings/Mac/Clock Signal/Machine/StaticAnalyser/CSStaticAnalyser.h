@@ -112,6 +112,11 @@ typedef NS_ENUM(NSInteger, CSMachineVic20Region) {
 	CSMachineVic20RegionJapanese,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineMSXModel) {
+	CSMachineMSXModelMSX1,
+	CSMachineMSXModelMSX2,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineMSXRegion) {
 	CSMachineMSXRegionAmerican,
 	CSMachineMSXRegionEuropean,
@@ -132,7 +137,7 @@ typedef int Kilobytes;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
 - (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
-- (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
+- (instancetype)initWithMSXModel:(CSMachineMSXModel)model region:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive hasMSXMUSIC:(BOOL)hasMSXMUSIC;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540;

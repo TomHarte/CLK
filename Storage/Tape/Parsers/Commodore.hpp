@@ -13,9 +13,7 @@
 #include <memory>
 #include <string>
 
-namespace Storage {
-namespace Tape {
-namespace Commodore {
+namespace Storage::Tape::Commodore {
 
 enum class WaveType {
 	Short, Medium, Long, Unrecognised
@@ -131,8 +129,6 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		void inspect_waves(const std::vector<WaveType> &waves) override;
 };
 
-}
-}
 }
 
 #endif /* Commodore_hpp */

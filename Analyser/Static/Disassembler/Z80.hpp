@@ -15,9 +15,7 @@
 #include <set>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Z80 {
+namespace Analyser::Static::Z80 {
 
 struct Instruction {
 	/*! The address this instruction starts at. This is a mapped address. */
@@ -83,8 +81,6 @@ Disassembly Disassemble(
 	const std::function<std::size_t(uint16_t)> &address_mapper,
 	std::vector<uint16_t> entry_points);
 
-}
-}
 }
 
 #endif /* StaticAnalyser_Disassembler_Z80_hpp */

@@ -13,9 +13,7 @@
 #include "../../../Numeric/CRC.hpp"
 #include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
-namespace Storage {
-namespace Tape {
-namespace Acorn {
+namespace Storage::Tape::Acorn {
 
 class Shifter {
 	public:
@@ -46,7 +44,7 @@ enum class SymbolType {
 	One, Zero
 };
 
-class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate  {
+class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate {
 	public:
 		Parser();
 
@@ -66,8 +64,6 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 		Shifter shifter_;
 };
 
-}
-}
 }
 
 #endif /* Acorn_hpp */

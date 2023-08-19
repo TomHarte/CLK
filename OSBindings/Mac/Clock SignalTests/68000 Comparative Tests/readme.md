@@ -38,7 +38,7 @@ Every generated opcode is followed by three words of mostly-random data; this da
 
 All initial register contents are random except that the lowest bit is never set, to avoid accidental address errors.
 
-So the output is very scattergun approach, with a lot of redundancy. 
+So the output is very scattergun approach, with a lot of redundancy.
 
 ## Known Issues
 

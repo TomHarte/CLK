@@ -691,13 +691,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0: 	operation_ = Operation::TEST;	break;
-					case 2: 	operation_ = Operation::NOT;	break;
-					case 3: 	operation_ = Operation::NEG;	break;
-					case 4: 	operation_ = Operation::MUL;	break;
-					case 5: 	operation_ = Operation::IMUL_1;	break;
-					case 6: 	operation_ = Operation::DIV;	break;
-					case 7: 	operation_ = Operation::IDIV;	break;
+					case 0:		operation_ = Operation::TEST;	break;
+					case 2:		operation_ = Operation::NOT;	break;
+					case 3:		operation_ = Operation::NEG;	break;
+					case 4:		operation_ = Operation::MUL;	break;
+					case 5:		operation_ = Operation::IMUL_1;	break;
+					case 6:		operation_ = Operation::DIV;	break;
+					case 7:		operation_ = Operation::IDIV;	break;
 				}
 			break;
 
@@ -729,15 +729,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				destination_ = memreg;
 
 				switch(reg) {
-					default: 	undefined();
+					default:	undefined();
 
-					case 0: 	operation_ = Operation::ROL;	break;
-					case 1: 	operation_ = Operation::ROR;	break;
-					case 2: 	operation_ = Operation::RCL;	break;
-					case 3: 	operation_ = Operation::RCR;	break;
-					case 4: 	operation_ = Operation::SAL;	break;
-					case 5: 	operation_ = Operation::SHR;	break;
-					case 7: 	operation_ = Operation::SAR;	break;
+					case 0:		operation_ = Operation::ROL;	break;
+					case 1:		operation_ = Operation::ROR;	break;
+					case 2:		operation_ = Operation::RCL;	break;
+					case 3:		operation_ = Operation::RCR;	break;
+					case 4:		operation_ = Operation::SAL;	break;
+					case 5:		operation_ = Operation::SHR;	break;
+					case 7:		operation_ = Operation::SAR;	break;
 				}
 			break;
 
@@ -745,7 +745,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default: 	undefined();
+					default:	undefined();
 
 					case 0:		operation_ = Operation::INC;	break;
 					case 1:		operation_ = Operation::DEC;	break;
@@ -756,7 +756,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default: 	undefined();
+					default:	undefined();
 
 					case 0:	operation_ = Operation::INC;		break;
 					case 1:	operation_ = Operation::DEC;		break;
@@ -807,12 +807,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0: 	operation_ = Operation::SLDT;	break;
-					case 1: 	operation_ = Operation::STR;	break;
-					case 2: 	operation_ = Operation::LLDT;	break;
-					case 3: 	operation_ = Operation::LTR;	break;
-					case 4: 	operation_ = Operation::VERR;	break;
-					case 5: 	operation_ = Operation::VERW;	break;
+					case 0:		operation_ = Operation::SLDT;	break;
+					case 1:		operation_ = Operation::STR;	break;
+					case 2:		operation_ = Operation::LLDT;	break;
+					case 3:		operation_ = Operation::LTR;	break;
+					case 4:		operation_ = Operation::VERR;	break;
+					case 5:		operation_ = Operation::VERW;	break;
 				}
 			break;
 
@@ -822,12 +822,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0: 	operation_ = Operation::SGDT;	break;
-					case 1: 	operation_ = Operation::SIDT;	break;
-					case 2: 	operation_ = Operation::LGDT;	break;
-					case 3: 	operation_ = Operation::LIDT;	break;
-					case 4: 	operation_ = Operation::SMSW;	break;
-					case 6: 	operation_ = Operation::LMSW;	break;
+					case 0:		operation_ = Operation::SGDT;	break;
+					case 1:		operation_ = Operation::SIDT;	break;
+					case 2:		operation_ = Operation::LGDT;	break;
+					case 3:		operation_ = Operation::LIDT;	break;
+					case 4:		operation_ = Operation::SMSW;	break;
+					case 6:		operation_ = Operation::LMSW;	break;
 				}
 			break;
 

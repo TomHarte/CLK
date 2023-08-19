@@ -15,8 +15,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 /*!
 	Implements Intel x86 instruction decoding.
@@ -227,7 +226,6 @@ template <Model model> class Decoder {
 		}
 };
 
-}
 }
 
 #endif /* InstructionSets_x86_Decoder_hpp */

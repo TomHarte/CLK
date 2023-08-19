@@ -421,7 +421,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									const auto service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									const auto service_call = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -441,8 +441,8 @@ template <bool has_scsi_bus> class ConcreteMachine:
 											interrupt_status_ |= tape_.get_interrupt_status();
 
 											fast_load_is_in_data_ = true;
-											m6502_.set_value_of_register(CPU::MOS6502::Register::A, 0);
-											m6502_.set_value_of_register(CPU::MOS6502::Register::Y, tape_.get_data_register());
+											m6502_.set_value_of(CPU::MOS6502::Register::A, 0);
+											m6502_.set_value_of(CPU::MOS6502::Register::Y, tape_.get_data_register());
 											*value = 0x60; // 0x60 is RTS
 										}
 										else *value = os_[address & 16383];

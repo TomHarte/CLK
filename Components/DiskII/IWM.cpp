@@ -17,7 +17,7 @@
 
 using namespace Apple;
 
-namespace  {
+namespace {
 	constexpr int CA0		= 1 << 0;
 	constexpr int CA1		= 1 << 1;
 	constexpr int CA2		= 1 << 2;
@@ -220,7 +220,7 @@ void IWM::set_select(bool enabled) {
 }
 
 void IWM::push_drive_state() {
-	if(drives_[active_drive_])  {
+	if(drives_[active_drive_]) {
 		const uint8_t drive_control_lines =
 			((state_ & CA0) ? IWMDrive::CA0 : 0) |
 			((state_ & CA1) ? IWMDrive::CA1 : 0) |

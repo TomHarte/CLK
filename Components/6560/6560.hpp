@@ -15,8 +15,7 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
-namespace MOS {
-namespace MOS6560 {
+namespace MOS::MOS6560 {
 
 // audio state
 class AudioGenerator: public ::Outputs::Speaker::SampleSource {
@@ -84,11 +83,11 @@ template <class BusHandler> class MOS6560 {
 			speaker_.set_input_rate(float(clock_rate / 4.0));
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target); 			}
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target);			}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const			{ return crt_.get_scaled_scan_status() / 4.0f;	}
-		void set_display_type(Outputs::Display::DisplayType display_type)	{ crt_.set_display_type(display_type); 			}
-		Outputs::Display::DisplayType get_display_type() const				{ return crt_.get_display_type(); 				}
-		Outputs::Speaker::Speaker *get_speaker()	 						{ return &speaker_; 							}
+		void set_display_type(Outputs::Display::DisplayType display_type)	{ crt_.set_display_type(display_type);			}
+		Outputs::Display::DisplayType get_display_type() const				{ return crt_.get_display_type();				}
+		Outputs::Speaker::Speaker *get_speaker()							{ return &speaker_;								}
 
 		void set_high_frequency_cutoff(float cutoff) {
 			speaker_.set_high_frequency_cutoff(cutoff);
@@ -520,7 +519,6 @@ template <class BusHandler> class MOS6560 {
 		OutputMode output_mode_ = OutputMode::NTSC;
 };
 
-}
 }
 
 #endif /* _560_hpp */

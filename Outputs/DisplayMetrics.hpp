@@ -15,8 +15,7 @@
 #include <atomic>
 #include <chrono>
 
-namespace Outputs {
-namespace Display {
+namespace Outputs::Display {
 
 /*!
 	A class to derive various metrics about the input to a ScanTarget,
@@ -56,7 +55,6 @@ class Metrics {
 		std::atomic<int> frames_missed_ = 0;
 };
 
-}
 }
 
 #endif /* DisplayMetrics_hpp */

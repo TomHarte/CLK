@@ -9,12 +9,12 @@
 #ifndef MFP68901_hpp
 #define MFP68901_hpp
 
-#include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 
-namespace Motorola {
-namespace MFP68901 {
+#include <cstdint>
+
+namespace Motorola::MFP68901 {
 
 class PortHandler {
 	public:
@@ -181,7 +181,6 @@ class MFP68901: public ClockingHint::Source {
 		}
 };
 
-}
 }
 
 #endif /* MFP68901_hpp */

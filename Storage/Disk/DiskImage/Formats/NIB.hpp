@@ -12,8 +12,7 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage describing an Apple NIB disk image:
@@ -36,7 +35,6 @@ class NIB: public DiskImage {
 		long file_offset(Track::Address address);
 };
 
-}
 }
 
 #endif /* NIB_hpp */

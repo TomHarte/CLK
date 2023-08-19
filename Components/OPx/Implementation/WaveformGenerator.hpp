@@ -12,8 +12,7 @@
 #include "Tables.hpp"
 #include "LowFrequencyOscillator.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 enum class Waveform {
 	Sine, HalfSine, AbsSine, PulseSine
@@ -86,7 +85,6 @@ template <int phase_precision> class WaveformGenerator {
 		}
 };
 
-}
 }
 
 #endif /* WaveformGenerator_h */

@@ -20,8 +20,7 @@
 #include <memory>
 #include <vector>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class DiskIICard: public Card, public ClockingHint::Observer {
 	public:
@@ -43,7 +42,6 @@ class DiskIICard: public Card, public ClockingHint::Observer {
 		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
 };
 
-}
 }
 
 #endif /* DiskIICard_hpp */

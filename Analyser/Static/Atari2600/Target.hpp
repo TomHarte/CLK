@@ -11,9 +11,7 @@
 
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Atari2600 {
+namespace Analyser::Static::Atari2600 {
 
 struct Target: public ::Analyser::Static::Target {
 	enum class PagingModel {
@@ -38,8 +36,6 @@ struct Target: public ::Analyser::Static::Target {
 	Target() : Analyser::Static::Target(Machine::Atari2600) {}
 };
 
-}
-}
 }
 
 #endif /* Analyser_Static_Atari_Target_h */

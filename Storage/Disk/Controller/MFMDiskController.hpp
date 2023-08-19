@@ -14,8 +14,7 @@
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../Encodings/MFM/Shifter.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Extends Controller with a built-in shift register and FM/MFM decoding logic,
@@ -166,7 +165,6 @@ class MFMController: public Controller {
 		CRC::CCITT crc_generator_;
 };
 
-}
 }
 
 #endif /* MFMDiskController_hpp */

@@ -393,9 +393,9 @@ template <int cycle> void Chipset::output() {
 	constexpr int end_of_pixels	= 15;
 	constexpr int blank1		= 3 + end_of_pixels;
 	constexpr int sync			= 17 + blank1;
-	constexpr int blank2 		= 3 + sync;
-	constexpr int burst 		= 9 + blank2;
-	constexpr int blank3 		= 6 + burst;
+	constexpr int blank2		= 3 + sync;
+	constexpr int burst			= 9 + blank2;
+	constexpr int blank3		= 6 + burst;
 	static_assert(blank3 == 53);
 
 #define LINK(location, action, length)	\
@@ -674,8 +674,8 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 	}
 	assert(last_slot > first_slot);
 
-#define C(x) 										\
-	case x: 										\
+#define C(x)										\
+	case x:											\
 		output<x>();								\
 													\
 		if constexpr (stop_on_cpu) {				\
@@ -683,8 +683,8 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 				return 1 + x - first_slot;			\
 			}										\
 		} else {									\
-			perform_cycle<x, stop_on_cpu>(); 		\
-		} 											\
+			perform_cycle<x, stop_on_cpu>();		\
+		}											\
 													\
 		if((x + 1) == last_slot) break;				\
 		[[fallthrough]]
@@ -841,8 +841,8 @@ void Chipset::update_interrupts() {
 	}
 }
 
-void Chipset::perform(const CPU::MC68000Mk2::Microcycle &cycle) {
-	using Microcycle = CPU::MC68000Mk2::Microcycle;
+void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
+	using Microcycle = CPU::MC68000::Microcycle;
 
 	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
 	if(cycle.operation & Microcycle::Read) {

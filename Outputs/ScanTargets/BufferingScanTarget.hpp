@@ -18,8 +18,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Outputs {
-namespace Display {
+namespace Outputs::Display {
 
 /*!
 	Provides basic thread-safe (hopefully) circular queues for any scan target that:
@@ -273,8 +272,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 #endif
 };
 
-
-}
 }
 
 #endif /* BufferingScanTarget_hpp */

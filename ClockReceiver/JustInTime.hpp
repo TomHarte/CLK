@@ -14,6 +14,8 @@
 #include "ClockingHintSource.hpp"
 #include "ForceInline.hpp"
 
+#include <atomic>
+
 /*!
 	A JustInTimeActor holds (i) an embedded object with a run_for method; and (ii) an amount
 	of time since run_for was last called.
@@ -121,7 +123,13 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// If this object provides sequence points, checks for changes to the next
 		/// sequence point upon deletion of the pointer.
 		[[nodiscard]] forceinline auto operator->() {
+#ifndef NDEBUG
+			assert(!flush_concurrency_check_.test_and_set());
+#endif
 			flush();
+#ifndef NDEBUG
+			flush_concurrency_check_.clear();
+#endif
 			return std::unique_ptr<T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(this));
 		}
 
@@ -130,7 +138,13 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// Despite being const, this will flush the object and, if relevant, update the next sequence point.
 		[[nodiscard]] forceinline auto operator -> () const {
 			auto non_const_this = const_cast<JustInTimeActor<T, LocalTimeScale, multiplier, divider> *>(this);
+#ifndef NDEBUG
+			assert(!non_const_this->flush_concurrency_check_.test_and_set());
+#endif
 			non_const_this->flush();
+#ifndef NDEBUG
+			non_const_this->flush_concurrency_check_.clear();
+#endif
 			return std::unique_ptr<const T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(non_const_this));
 		}
 
@@ -264,6 +278,10 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) {
 			clocking_preference_ = clocking;
 		}
+
+#ifndef NDEBUG
+		std::atomic_flag flush_concurrency_check_{};
+#endif
 };
 
 /*!
@@ -276,7 +294,7 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 		/// Constructs a new AsyncJustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> AsyncJustInTimeActor(TargetTimeScale threshold, Args&&... args) :
 			object_(std::forward<Args>(args)...),
-		 	threshold_(threshold) {}
+			threshold_(threshold) {}
 
 		/// Adds time to the actor.
 		inline void operator += (const LocalTimeScale &rhs) {

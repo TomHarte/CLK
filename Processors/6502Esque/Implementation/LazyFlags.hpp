@@ -11,8 +11,7 @@
 
 #include "../6502Esque.hpp"
 
-namespace CPU {
-namespace MOS6502Esque {
+namespace CPU::MOS6502Esque {
 
 struct LazyFlags {
 	/// Bit 7 is set if the negative flag is set; otherwise it is clear.
@@ -76,8 +75,6 @@ struct LazyFlags {
 	}
 };
 
-
-}
 }
 
 #endif /* LazyFlags_h */

@@ -12,9 +12,7 @@
 #include "../../KeyboardMachine.hpp"
 #include "../../Utility/Typer.hpp"
 
-namespace Sinclair {
-namespace ZX {
-namespace Keyboard {
+namespace Sinclair::ZX::Keyboard {
 
 enum class Machine {
 	ZX80, ZX81, ZXSpectrum
@@ -74,8 +72,6 @@ class CharacterMapper: public ::Utility::CharacterMapper {
 		const Machine machine_;
 };
 
-}
-}
 }
 
 #endif /* KeyboardMapper_hpp */

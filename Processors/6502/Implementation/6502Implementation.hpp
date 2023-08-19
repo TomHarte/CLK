@@ -172,7 +172,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);				break;
 					case OperationSetFlagsFromOperand:	set_flags(operand_);								continue;
 					case OperationSetOperandFromFlagsWithBRKSet: operand_ = flags_.get();					continue;
-					case OperationSetOperandFromFlags:  operand_ = flags_.get() & ~Flag::Break;				continue;
+					case OperationSetOperandFromFlags:	operand_ = flags_.get() & ~Flag::Break;				continue;
 					case OperationSetFlagsFromA:		flags_.set_nz(a_);									continue;
 					case OperationSetFlagsFromX:		flags_.set_nz(x_);									continue;
 					case OperationSetFlagsFromY:		flags_.set_nz(y_);									continue;
@@ -421,12 +421,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationINC: operand_++; flags_.set_nz(operand_);		continue;
 					case OperationDEC: operand_--; flags_.set_nz(operand_);		continue;
-					case OperationINA: a_++; flags_.set_nz(a_); 				continue;
-					case OperationDEA: a_--; flags_.set_nz(a_); 				continue;
-					case OperationINX: x_++; flags_.set_nz(x_); 				continue;
-					case OperationDEX: x_--; flags_.set_nz(x_); 				continue;
-					case OperationINY: y_++; flags_.set_nz(y_); 				continue;
-					case OperationDEY: y_--; flags_.set_nz(y_); 				continue;
+					case OperationINA: a_++; flags_.set_nz(a_);					continue;
+					case OperationDEA: a_--; flags_.set_nz(a_);					continue;
+					case OperationINX: x_++; flags_.set_nz(x_);					continue;
+					case OperationDEX: x_--; flags_.set_nz(x_);					continue;
+					case OperationINY: y_++; flags_.set_nz(y_);					continue;
+					case OperationDEY: y_--; flags_.set_nz(y_);					continue;
 
 					case OperationANE:
 						a_ = (a_ | 0xee) & operand_ & x_;
@@ -704,7 +704,7 @@ bool ProcessorBase::is_jammed() const {
 	return is_jammed_;
 }
 
-uint16_t ProcessorBase::get_value_of_register(Register r) const {
+uint16_t ProcessorBase::value_of(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return pc_.full;
 		case Register::LastOperationAddress:	return last_operation_pc_.full;
@@ -717,7 +717,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	}
 }
 
-void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	pc_.full = value;			break;
 		case Register::StackPointer:	s_ = uint8_t(value);		break;
@@ -727,4 +727,9 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::Y:				y_ = uint8_t(value);		break;
 		default: break;
 	}
+}
+
+void ProcessorBase::restart_operation_fetch() {
+	scheduled_program_counter_ = nullptr;
+	next_bus_operation_ = BusOperation::None;
 }

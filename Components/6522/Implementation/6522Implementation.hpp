@@ -12,8 +12,7 @@
 //
 //	PB6 count-down mode for timer 2.
 
-namespace MOS {
-namespace MOS6522 {
+namespace MOS::MOS6522 {
 
 template <typename T> void MOS6522<T>::access(int address) {
 	switch(address) {
@@ -272,7 +271,7 @@ template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line li
 				// TODO: and at least one full clock since the shift register was written?
 				if(port == Port::B) {
 					switch(shift_mode()) {
-						default: 													break;
+						default:													break;
 						case ShiftMode::InUnderCB1:		if(value)	shift_in();		break;	// Shifts in are captured on a low-to-high transition.
 						case ShiftMode::OutUnderCB1:	if(!value)	shift_out();	break;	// Shifts out are updated on a high-to-low transition.
 					}
@@ -330,7 +329,7 @@ template <typename T> void MOS6522<T>::do_phase2() {
 
 	// If the shift register is shifting according to the input clock, do a shift.
 	switch(shift_mode()) {
-		default: 											break;
+		default:											break;
 		case ShiftMode::InUnderPhase2:		shift_in();		break;
 		case ShiftMode::OutUnderPhase2:		shift_out();	break;
 	}
@@ -346,9 +345,9 @@ template <typename T> void MOS6522<T>::do_phase1() {
 		// If the shift register is shifting according to this timer, do a shift.
 		// TODO: "shift register is driven by only the low order 8 bits of timer 2"?
 		switch(shift_mode()) {
-			default: 												break;
+			default:												break;
 			case ShiftMode::InUnderT2:				shift_in();		break;
-			case ShiftMode::OutUnderT2FreeRunning: 	shift_out();	break;
+			case ShiftMode::OutUnderT2FreeRunning:	shift_out();	break;
 			case ShiftMode::OutUnderT2:				shift_out();	break;	// TODO: present a clock on CB1.
 		}
 
@@ -493,5 +492,4 @@ template <typename T> void MOS6522<T>::shift_out() {
 	}
 }
 
-}
 }

@@ -11,9 +11,7 @@
 
 #include "../../../Storage.hpp"
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 const uint8_t IndexAddressByte			= 0xfc;
 const uint8_t IDAddressByte				= 0xfe;
@@ -35,8 +33,6 @@ const uint8_t MFMSyncByteValue			= 0xa1;
 const Time MFMBitLength					= Time(1, 100000);
 const Time FMBitLength					= Time(1, 50000);
 
-}
-}
 }
 
 #endif /* Constants_h */

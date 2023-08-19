@@ -49,6 +49,18 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 	private:
 		template <typename Class> Class *get() {
 			return dynamic_cast<Class *>(machine_.get());
+
+			// Note to self: the below is not [currently] used
+			// because in practice TypedDynamicMachine is instantiated
+			// with an abstract parent of the actual class.
+			//
+			// TODO: rethink type hiding here. I think I've boxed myself
+			// into an uncomfortable corner.
+//			if constexpr (std::is_base_of_v<Class, T>) {
+//				return static_cast<Class *>(machine_.get());
+//			} else {
+//				return nullptr;
+//			}
 		}
 		std::unique_ptr<T> machine_;
 };

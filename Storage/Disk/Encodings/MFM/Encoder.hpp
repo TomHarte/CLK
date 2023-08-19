@@ -17,9 +17,7 @@
 #include "../../Track/Track.hpp"
 #include "../../../../Numeric/CRC.hpp"
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 extern const std::size_t DefaultSectorGapLength;
 /*!
@@ -80,8 +78,6 @@ class Encoder {
 std::unique_ptr<Encoder> GetMFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
 std::unique_ptr<Encoder> GetFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
 
-}
-}
 }
 
 #endif /* MFM_hpp */

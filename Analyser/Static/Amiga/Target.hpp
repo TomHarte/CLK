@@ -12,9 +12,7 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Amiga {
+namespace Analyser::Static::Amiga {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(ChipRAM,
@@ -41,8 +39,6 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	}
 };
 
-}
-}
 }
 
 #endif /* Analyser_Static_Amiga_Target_h */

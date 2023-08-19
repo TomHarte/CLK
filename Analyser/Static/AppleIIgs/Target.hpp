@@ -13,9 +13,7 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace AppleIIgs {
+namespace Analyser::Static::AppleIIgs {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model,
@@ -42,8 +40,6 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	}
 };
 
-}
-}
 }
 
 #endif /* Analyser_Static_AppleIIgs_Target_h */

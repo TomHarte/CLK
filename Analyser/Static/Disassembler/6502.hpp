@@ -16,9 +16,7 @@
 #include <set>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace MOS6502 {
+namespace Analyser::Static::MOS6502 {
 
 /*!
 	Describes a 6502 instruciton: its address, the operation it performs, its addressing mode
@@ -94,8 +92,6 @@ Disassembly Disassemble(
 	const std::function<std::size_t(uint16_t)> &address_mapper,
 	std::vector<uint16_t> entry_points);
 
-}
-}
 }
 
 #endif /* Disassembler6502_hpp */

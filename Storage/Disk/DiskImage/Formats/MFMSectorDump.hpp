@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides the base for writeable [M]FM disk images that just contain contiguous sector content dumps.
@@ -41,7 +40,6 @@ class MFMSectorDump: public DiskImage {
 		uint8_t first_sector_ = 0;
 };
 
-}
 }
 
 #endif /* SectorDump_hpp */

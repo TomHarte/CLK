@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace Intel {
-namespace i8255 {
+namespace Intel::i8255 {
 
 class PortHandler {
 	public:
@@ -88,7 +87,6 @@ template <class T> class i8255 {
 		T &port_handler_;
 };
 
-}
 }
 
 #endif /* i8255_hpp */

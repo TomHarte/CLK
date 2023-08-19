@@ -12,9 +12,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Storage {
-namespace Encodings {
-namespace AppleGCR {
+namespace Storage::Encodings::AppleGCR {
 
 struct Sector {
 	/*!
@@ -76,8 +74,6 @@ struct Sector {
 		encoding(rhs.encoding) {}
 };
 
-}
-}
 }
 
 #endif /* Sector_h */

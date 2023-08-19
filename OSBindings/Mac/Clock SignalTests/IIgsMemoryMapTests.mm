@@ -154,7 +154,7 @@ namespace {
 		[self write:value address:c];
 		XCTAssertEqual(_ram[c], value);
 	}
-	
+
 	// Reset.
 	memset(_ram.data(), 0, 128*1024);
 

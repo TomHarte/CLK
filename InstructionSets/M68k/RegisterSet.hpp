@@ -9,8 +9,7 @@
 #ifndef InstructionSets_M68k_RegisterSet_h
 #define InstructionSets_M68k_RegisterSet_h
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 struct RegisterSet {
 	uint32_t data[8], address[7];
@@ -25,7 +24,6 @@ struct RegisterSet {
 	}
 };
 
-}
 }
 
 #endif /* InstructionSets_M68k_RegisterSet_h */

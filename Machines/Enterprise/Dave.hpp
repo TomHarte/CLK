@@ -16,8 +16,7 @@
 #include "../../Numeric/LFSR.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
-namespace Enterprise {
-namespace Dave {
+namespace Enterprise::Dave {
 
 enum class Interrupt: uint8_t {
 	VariableFrequency = 0x02,
@@ -182,7 +181,6 @@ class TimedInterruptSource {
 		void update_channel(int c, bool is_linked, int decrement);
 };
 
-}
 }
 
 #endif /* Dave_hpp */

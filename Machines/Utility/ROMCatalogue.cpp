@@ -10,7 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <codecvt>
+#include <cstdlib>
 #include <iomanip>
 #include <locale>
 #include <sstream>
@@ -248,13 +248,13 @@ std::string Description::description(int flags) const {
 	std::stringstream output;
 
 	// If there are no CRCs, don't output them.
-	if(crc32s.empty()) flags &= ~ DescriptionFlag::CRC;
+	if(crc32s.empty()) flags &= ~DescriptionFlag::CRC;
 
 	// Print the file name(s) and the descriptive name.
 	if(flags & DescriptionFlag::Filename) {
 		flags &= ~DescriptionFlag::Filename;
 
-		output << machine_name <<  '/';
+		output << machine_name << '/';
 		if(file_names.size() == 1) {
 			output << file_names[0];
 		} else {
@@ -316,10 +316,9 @@ std::string Description::description(int flags) const {
 
 std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 	std::wstringstream output;
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_converter;
 
 	visit(
-		[&output, description_flags, bullet_point, &wstring_converter] (ROM::Request::LineItem item, ROM::Request::ListType type, int indentation_level, const ROM::Description *description, bool is_optional, size_t remaining) {
+		[&output, description_flags, bullet_point] (ROM::Request::LineItem item, ROM::Request::ListType type, int indentation_level, const ROM::Description *description, bool is_optional, size_t remaining) {
 			if(indentation_level) {
 				output << std::endl;
 				for(int c = 0; c < indentation_level; c++) output << '\t';
@@ -346,10 +345,13 @@ std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 					}
 				break;
 
-				case ROM::Request::LineItem::Description:
+				case ROM::Request::LineItem::Description: {
 					if(is_optional) output << "optionally, ";
 
-					output << wstring_converter.from_bytes(description->description(description_flags));
+					const auto text = description->description(description_flags);
+					std::wstring wide_text(text.size(), L' ');
+					std::mbstowcs(wide_text.data(), text.data(), text.size());
+					output << wide_text;
 
 					if(remaining) {
 						output << ";";
@@ -359,7 +361,7 @@ std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 					} else {
 						output << ".";
 					}
-				break;
+				} break;
 			}
 		}
 	);
@@ -521,16 +523,16 @@ Description::Description(Name name) {
 
 		case Name::Spectrum48k:		*this = Description(name, "ZXSpectrum", "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531fu);		break;
 		case Name::Spectrum128k:	*this = Description(name, "ZXSpectrum", "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995u);	break;
-		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu); 	break;
+		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu);		break;
 		case Name::SpectrumPlus3: {
 			const std::initializer_list<uint32_t> crcs = { 0x96e3c17a, 0xbe0d9ec4 };
 			*this = Description(name, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crcs);
 		} break;
 
-		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781u); 			break;
-		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993u); 	break;
+		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781u);				break;
+		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993u);	break;
 		case Name::PRESADFSSlot2:	*this = Description(name, "Electron", "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0eu); break;
-		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6u); 					break;
+		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6u);					break;
 		case Name::Acorn1770DFS:	*this = Description(name, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5u);			break;
 		case Name::PRESAdvancedPlus6:
 			*this = Description(name, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfcu);
@@ -540,7 +542,7 @@ Description::Description(Name name) {
 		break;
 
 		case Name::MasterSystemJapaneseBIOS:	*this = Description(name, "MasterSystem", "the Japanese Master System BIOS", "japanese-bios.sms", 8*1024, 0x48d44a13u); break;
-		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8*1024, 0x0072ed54u); 		break;
+		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8*1024, 0x0072ed54u);		break;
 
 		case Name::Commodore1540:	*this = Description(name, "Commodore1540", "the 1540 ROM", "1540.bin", 16*1024, 0x718d42b1u);	break;
 		case Name::Commodore1541:	*this = Description(name, "Commodore1540", "the 1541 ROM", "1541.bin", 16*1024, 0xfb760019);	break;
@@ -565,11 +567,16 @@ Description::Description(Name name) {
 		case Name::OricMicrodisc:		*this = Description(name, "Oric", "the Oric Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9cu);	break;
 		case Name::Oric8DOSBoot:		*this = Description(name, "Oric", "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u);				break;
 
-		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);					break;
+		// TODO: CRCs below are incomplete, at best.
+		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
 		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);	break;
 		case Name::MSXAmericanBIOS:	*this = Description(name, "MSX", "an American MSX BIOS", "msx-american.rom", 32*1024, 0u);			break;
 		case Name::MSXEuropeanBIOS:	*this = Description(name, "MSX", "a European MSX BIOS", "msx-european.rom", 32*1024, 0u);			break;
 		case Name::MSXDOS:			*this = Description(name, "MSX", "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61dfu);				break;
+
+		case Name::MSX2GenericBIOS:	*this = Description(name, "MSX", "a generic MSX2 BIOS", "msx2.rom", 32*1024, 0x6cdaf3a5u);			break;
+		case Name::MSX2Extension:	*this = Description(name, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16*1024, 0x66237ecfu);	break;
+		case Name::MSXMusic:		*this = Description(name, "MSX", "the MSX-MUSIC / FM-PAC ROM", "fmpac.rom", 64*1024, 0x0e84505du);	break;
 
 		case Name::SinclairQLJS:
 			*this = Description(name, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48*1024, 0x0f95aab5u);

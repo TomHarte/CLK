@@ -16,8 +16,7 @@
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../ClockReceiver/ClockingHintSource.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides the shell for emulating a disk controller: something that is connected to a disk drive and uses a
@@ -163,7 +162,6 @@ class Controller:
 		void digital_phase_locked_loop_output_bit(int value);
 };
 
-}
 }
 
 #endif /* DiskDrive_hpp */

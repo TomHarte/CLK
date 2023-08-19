@@ -15,8 +15,7 @@
 #include <cassert>
 #include <cmath>
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /// Sign-extend @c x to 32 bits and return as an unsigned 32-bit int.
 inline uint32_t u_extend16(uint16_t x)	{	return uint32_t(int16_t(x));	}
@@ -466,7 +465,7 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 		// When shift is zero, extend is unaffected but is copied to carry.
 		status.carry_flag = status.extend_flag;
 	} else {
- 		switch(operation) {
+		switch(operation) {
 			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
 				status.carry_flag = Status::FlagT((destination >> (size - shift)) & 1);
 
@@ -742,15 +741,15 @@ template <
 			Multiplications.
 		*/
 
-		case Operation::MULU:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::MULS:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULUw:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULSw:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
 
 		/*
 			Divisions.
 		*/
 
-		case Operation::DIVU:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::DIVS:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
+		case Operation::DIVUw:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::DIVSw:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
@@ -763,7 +762,7 @@ template <
 			}
 		} break;
 
-		case Operation::CHK: {
+		case Operation::CHKw: {
 			const bool is_under = s_extend16(dest.w) < 0;
 			const bool is_over = s_extend16(dest.w) > s_extend16(src.w);
 
@@ -1030,7 +1029,6 @@ template <
 
 }
 
-}
 }
 
 #endif /* InstructionSets_M68k_PerformImplementation_h */

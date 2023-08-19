@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class ParkerBros: public BusExtender {
 	public:
@@ -42,7 +41,6 @@ class ParkerBros: public BusExtender {
 		uint8_t *rom_ptr_[4];
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeParkerBros_hpp */

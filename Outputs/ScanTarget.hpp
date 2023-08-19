@@ -14,8 +14,7 @@
 #include <cstdint>
 #include "../ClockReceiver/TimeTypes.hpp"
 
-namespace Outputs {
-namespace Display {
+namespace Outputs::Display {
 
 enum class Type {
 	PAL50,
@@ -447,7 +446,6 @@ struct NullScanTarget: public ScanTarget {
 	static NullScanTarget singleton;
 };
 
-}
 }
 
 #endif /* Outputs_Display_ScanTarget_h */

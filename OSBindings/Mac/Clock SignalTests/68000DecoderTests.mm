@@ -15,20 +15,37 @@ using namespace InstructionSet::M68k;
 @interface M68000DecoderTests : XCTestCase
 @end
 
-@implementation M68000DecoderTests
+namespace {
 
-- (void)testInstructionSpecs {
+template <Model model> void generate() {
+	printf("{\n");
+	Predecoder<model> decoder;
+	for(int instr = 0; instr < 65536; instr++) {
+		printf("\t\"%04x\": \"", instr);
+
+		const auto found = decoder.decode(uint16_t(instr));
+		printf("%s\"", found.to_string(instr).c_str());
+
+		if(instr != 0xffff) printf(",");
+		printf("\n");
+	}
+	printf("}\n");
+}
+
+template <Model model> void test(NSString *filename, Class cls) {
 	NSData *const testData =
 		[NSData dataWithContentsOfURL:
-			[[NSBundle bundleForClass:[self class]]
-				URLForResource:@"68000ops"
+			[[NSBundle bundleForClass:cls]
+				URLForResource:filename
 				withExtension:@"json"
 				subdirectory:@"68000 Decoding"]];
 
 	NSDictionary<NSString *, NSString *> *const decodings = [NSJSONSerialization JSONObjectWithData:testData options:0 error:nil];
 	XCTAssertNotNil(decodings);
 
-	Predecoder<Model::M68000> decoder;
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+
+	Predecoder<model> decoder;
 	for(int instr = 0; instr < 65536; instr++) {
 		NSString *const instrName = [NSString stringWithFormat:@"%04x", instr];
 		NSString *const expected = decodings[instrName];
@@ -36,9 +53,38 @@ using namespace InstructionSet::M68k;
 
 		const auto found = decoder.decode(uint16_t(instr));
 
+		// Test that all appropriate table entries are present for this operation.
+		if(found.operation != Operation::Undefined) {
+			operand_flags<model>(found.operation);
+			operand_size(found.operation);
+		}
+
 		NSString *const instruction = [NSString stringWithUTF8String:found.to_string(instr).c_str()];
-		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
+		if(![instruction isEqualToString:expected]) {
+			[failures addObject:[NSString stringWithFormat:@"%@ should decode as %@; got %@", instrName, expected, instruction]];
+		}
 	}
+
+	XCTAssertEqual([failures count], 0);
+	if([failures count]) {
+		NSLog(@"%@", failures);
+	}
+}
+
+}
+
+@implementation M68000DecoderTests
+
+- (void)test68000 {
+	test<Model::M68000>(@"68000ops", [self class]);
+}
+
+- (void)test68010 {
+	test<Model::M68010>(@"68010ops", [self class]);
+}
+
+- (void)test68020 {
+	test<Model::M68020>(@"68020ops", [self class]);
 }
 
 @end

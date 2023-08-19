@@ -11,8 +11,7 @@
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Atari16k: public BusExtender {
 	public:
@@ -60,7 +59,6 @@ class Atari16kSuperChip: public BusExtender {
 		uint8_t ram_[128];
 };
 
-}
 }
 
 #endif /* Atari2600_CartridgeAtari16k_hpp */

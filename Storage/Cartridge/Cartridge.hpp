@@ -12,8 +12,7 @@
 #include <vector>
 #include <memory>
 
-namespace Storage {
-namespace Cartridge {
+namespace Storage::Cartridge {
 
 /*!
 	Provides a base class for cartridges; the bus provided to cartridges and therefore
@@ -81,7 +80,6 @@ class Cartridge {
 		std::vector<Segment> segments_;
 };
 
-}
 }
 
 #endif /* ROM_hpp */

@@ -13,8 +13,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 /*
 	Operations are documented below to establish expectations as to which
@@ -144,7 +143,7 @@ enum class Operation: uint8_t {
 	MOV,
 	/// Negatives; source and destination point to the same thing, to negative.
 	NEG,
-	/// Logical NOT;  source and destination point to the same thing, to negative.
+	/// Logical NOT; source and destination point to the same thing, to negative.
 	NOT,
 	/// Logical AND; source, destination, operand and displacement will be populated appropriately.
 	AND,
@@ -224,8 +223,8 @@ enum class Operation: uint8_t {
 	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
 	/// current EFLAGS DF flag.
 	INS,
-	/// Outputs a byte, word or double word from ES:[e]DI  to the port specified by DX,
-	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.]
+	/// Outputs a byte, word or double word from ES:[e]DI to the port specified by DX,
+	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.
 	OUTS,
 
 	/// Pushes all general purpose registers to the stack, in the order:
@@ -796,7 +795,6 @@ template<bool is_32bit> class Instruction {
 static_assert(sizeof(Instruction<true>) <= 16);
 static_assert(sizeof(Instruction<false>) <= 10);
 
-}
 }
 
 #endif /* InstructionSets_x86_Instruction_h */

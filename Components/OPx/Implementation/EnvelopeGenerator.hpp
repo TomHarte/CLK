@@ -13,8 +13,7 @@
 #include <functional>
 #include "LowFrequencyOscillator.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*!
 	Models an OPL-style envelope generator.
@@ -258,7 +257,6 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 		}
 };
 
-}
 }
 
 #endif /* EnvelopeGenerator_h */

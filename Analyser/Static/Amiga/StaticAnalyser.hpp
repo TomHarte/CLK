@@ -13,15 +13,10 @@
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Amiga {
+namespace Analyser::Static::Amiga {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-}
-}
-
 
 #endif /* Analyser_Static_Amiga_StaticAnalyser_hpp */

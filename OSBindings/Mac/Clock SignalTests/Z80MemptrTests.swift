@@ -141,7 +141,7 @@ class Z80MemptrTester: XCTestCase {
 			0xb1,		// CPIR
 			0xb2,		// INIR
 			0xb3,		// OUIR
-			0xb8, 		// LDDR
+			0xb8,		// LDDR
 			0xb9,		// CPDR
 			0xba,		// INDR
 			0xbb,		// OTDR
@@ -174,8 +174,8 @@ class Z80MemptrTester: XCTestCase {
 
 	// LD (bc/de),A, and LD (nn),A
 	func testLDrpA() {
-		// MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = A
-		// Note for *BM1: MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = 0
+		// MEMPTR_low = (addr + 1) & #FF, MEMPTR_hi = A
+		// Note for *BM1: MEMPTR_low = (addr + 1) & #FF, MEMPTR_hi = 0
 		let bcProgram: [UInt8] = [
 			0x02
 		]
@@ -534,8 +534,8 @@ class Z80MemptrTester: XCTestCase {
 
 	/* TODO:
 		OUT (port),A
-			MEMPTR_low = (port + 1) & #FF,  MEMPTR_hi = A
-			Note for *BM1: MEMPTR_low = (port + 1) & #FF,  MEMPTR_hi = 0
+			MEMPTR_low = (port + 1) & #FF, MEMPTR_hi = A
+			Note for *BM1: MEMPTR_low = (port + 1) & #FF, MEMPTR_hi = 0
 	*/
 
 	/* TODO:
@@ -586,7 +586,7 @@ class Z80MemptrTester: XCTestCase {
 			when BC=1 or A=(HL): exactly as CPI
 			In other cases MEMPTR = PC + 1 on each step, where PC = instruction address.
 			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 + 1
-			  (if there were not interrupts during the execution)
+				(if there were not interrupts during the execution)
 	*/
 
 	/* TODO:
@@ -594,7 +594,7 @@ class Z80MemptrTester: XCTestCase {
 			when BC=1 or A=(HL): exactly as CPD
 			In other cases MEMPTR = PC + 1 on each step, where PC = instruction address.
 			Note* since at the last execution BC=1 or A=(HL), resulting MEMPTR = PC + 1 - 1
-			  (if there were not interrupts during the execution)
+				(if there were not interrupts during the execution)
 	*/
 
 	/* TODO:

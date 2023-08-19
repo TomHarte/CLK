@@ -119,7 +119,7 @@ using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
 
 template<Model model> class ConcreteMachine:
 	public Activity::Source,
- 	public ClockingHint::Observer,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
 	public Machine,
@@ -153,7 +153,7 @@ template<Model model> class ConcreteMachine:
 				case Model::OneTwoEightK:	rom_name = ROM::Name::Spectrum128k;		break;
 				case Model::Plus2:			rom_name = ROM::Name::SpecrumPlus2;		break;
 				case Model::Plus2a:
-				case Model::Plus3: 			rom_name = ROM::Name::SpectrumPlus3;	break;
+				case Model::Plus3:			rom_name = ROM::Name::SpectrumPlus3;	break;
 				// TODO: possibly accept the +3 ROM in multiple parts?
 			}
 			const auto request = ROM::Request(rom_name);
@@ -523,7 +523,7 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::Input: {
-					bool did_match = false;
+					[[maybe_unused]] bool did_match = false;
 					*cycle.value = 0xff;
 
 					if(!(address&32)) {
@@ -693,7 +693,7 @@ template<Model model> class ConcreteMachine:
 				if(c == 4) break;
 			}
 
-			return !media.tapes.empty()  || (!media.disks.empty() && model == Model::Plus3);
+			return !media.tapes.empty() || (!media.disks.empty() && model == Model::Plus3);
 		}
 
 		// MARK: - ClockingHint::Observer.
@@ -914,15 +914,15 @@ template<Model model> class ConcreteMachine:
 			Parser parser(Parser::MachineType::ZXSpectrum);
 
 			using Register = CPU::Z80::Register;
-			uint8_t flags = uint8_t(z80_.get_value_of_register(Register::FlagsDash));
+			uint8_t flags = uint8_t(z80_.value_of(Register::FlagsDash));
 			if(!(flags & 1)) return false;
 
-			const uint8_t block_type = uint8_t(z80_.get_value_of_register(Register::ADash));
+			const uint8_t block_type = uint8_t(z80_.value_of(Register::ADash));
 			const auto block = parser.find_block(tape_player_.get_tape());
 			if(!block || block_type != (*block).type) return false;
 
-			uint16_t length = z80_.get_value_of_register(Register::DE);
-			uint16_t target = z80_.get_value_of_register(Register::IX);
+			uint16_t length = z80_.value_of(Register::DE);
+			uint16_t target = z80_.value_of(Register::IX);
 
 			flags = 0x93;
 			uint8_t parity = 0x00;
@@ -942,16 +942,16 @@ template<Model model> class ConcreteMachine:
 			if(!stored_parity) {
 				flags &= ~1;
 			} else {
-				z80_.set_value_of_register(Register::L, *stored_parity);
+				z80_.set_value_of(Register::L, *stored_parity);
 			}
 
-			z80_.set_value_of_register(Register::Flags, flags);
-			z80_.set_value_of_register(Register::DE, length);
-			z80_.set_value_of_register(Register::IX, target);
+			z80_.set_value_of(Register::Flags, flags);
+			z80_.set_value_of(Register::DE, length);
+			z80_.set_value_of(Register::IX, target);
 
 			const uint8_t h = (flags & 1) ? 0x00 : 0xff;
-			z80_.set_value_of_register(Register::H, h);
-			z80_.set_value_of_register(Register::A, h);
+			z80_.set_value_of(Register::H, h);
+			z80_.set_value_of(Register::A, h);
 
 			return true;
 		}

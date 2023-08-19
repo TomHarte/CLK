@@ -18,8 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a ZX80-format .O tape image, which is a byte stream capture.
@@ -59,7 +58,6 @@ class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
 		std::size_t data_pointer_;
 };
 
-}
 }
 
 #endif /* ZX80O_hpp */

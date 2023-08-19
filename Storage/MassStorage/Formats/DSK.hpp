@@ -11,8 +11,7 @@
 
 #include "RawSectorDump.hpp"
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing a Macintosh DSK image, which is just a
@@ -24,7 +23,6 @@ class DSK: public RawSectorDump<512> {
 		DSK(const std::string &file_name);
 };
 
-}
 }
 
 #endif /* MassStorage_DSK_hpp */

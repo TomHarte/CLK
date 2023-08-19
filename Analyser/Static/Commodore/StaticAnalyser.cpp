@@ -93,7 +93,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
 			default:
-				LOG("Unrecognised loading address for Commodore program: " << PADHEX(4) <<  files.front().starting_address);
+				LOG("Unrecognised loading address for Commodore program: " << PADHEX(4) << files.front().starting_address);
 				[[fallthrough]];
 			case 0x1001:
 				memory_model = Target::MemoryModel::Unexpanded;
@@ -188,8 +188,8 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 
 				// Unhandled:
 				//
-				//	M6: 	this is a C64 file.
-				//	MV: 	this is a Vic-20 file.
+				//	M6:		this is a C64 file.
+				//	MV:		this is a Vic-20 file.
 				//	J1/J2:	this C64 file should have the primary joystick in slot 1/2.
 				//	RO:		this disk image should be treated as read-only.
 			}

@@ -14,14 +14,10 @@
 
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Commodore {
+namespace Analyser::Static::Commodore {
 
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk);
 
-}
-}
 }
 
 #endif /* Disk_hpp */

@@ -14,8 +14,7 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
-namespace Coleco {
-namespace Vision {
+namespace Coleco::Vision {
 
 class Machine {
 	public:
@@ -35,7 +34,6 @@ class Machine {
 		};
 };
 
-}
 }
 
 #endif /* ColecoVision_hpp */

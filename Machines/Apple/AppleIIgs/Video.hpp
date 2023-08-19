@@ -13,9 +13,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
-namespace Apple {
-namespace IIgs {
-namespace Video {
+namespace Apple::IIgs::Video {
 
 /*!
 	Provides IIgs video output; assumed clocking here is seven times the usual Apple II clock.
@@ -116,7 +114,7 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 			switch(m) {
 				case GraphicsMode::Text:				return PixelBufferFormat::Text;
 				case GraphicsMode::DoubleText:			return PixelBufferFormat::DoubleText;
-				default: 								return PixelBufferFormat::NTSC;
+				default:								return PixelBufferFormat::NTSC;
 				case GraphicsMode::DoubleHighResMono:	return PixelBufferFormat::NTSCMono;
 				case GraphicsMode::SuperHighRes:		return PixelBufferFormat::SuperHighRes;
 			}
@@ -125,8 +123,56 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		void advance(Cycles);
 
 		uint8_t new_video_ = 0x01;
-		uint8_t interrupts_ = 0x00;
-		void set_interrupts(uint8_t);
+
+		class Interrupts {
+			public:
+				void add(uint8_t value) {
+					// Taken literally, status accumulates regardless of being enabled,
+					// potentially to be polled, it simply doesn't trigger an interrupt.
+					value_ |= value;
+					test();
+				}
+
+				void clear(uint8_t value) {
+					// Zeroes in bits 5 or 6 clear the respective interrupts.
+					value_ &= value | ~0x60;
+					test();
+				}
+
+				void set_control(uint8_t value) {
+					// Ones in bits 1 or 2 enable the respective interrupts.
+					value_ = (value_ & ~0x6) | (value & 0x6);
+					test();
+				}
+
+				uint8_t status() const {
+					return value_;
+				}
+
+				bool active() const {
+					return value_ & 0x80;
+				}
+
+			private:
+				void test() {
+					value_ &= 0x7f;
+					if((value_ >> 4) & value_ & 0x6) {
+						value_ |= 0x80;
+					}
+				}
+
+				// Overall meaning of value is as per the VGC interrupt register, i.e.
+				//
+				//	b7: interrupt status;
+				//	b6: 1-second interrupt status;
+				//	b5: scan-line interrupt status;
+				//	b4: reserved;
+				//	b3: reserved;
+				//	b2: 1-second interrupt enable;
+				//	b1: scan-line interrupt enable;
+				//	b0: reserved.
+				uint8_t value_ = 0x00;
+		} interrupts_;
 
 		int cycles_into_frame_ = 0;
 		const uint8_t *ram_ = nullptr;
@@ -205,8 +251,6 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		int megaii_frame_counter_ = 0;	// To count up to quarter-second interrupts.
 };
 
-}
-}
 }
 
 #endif /* Video_hpp */

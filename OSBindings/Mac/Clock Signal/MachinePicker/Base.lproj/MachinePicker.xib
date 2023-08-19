@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21701"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="590" height="353"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1800" height="1131"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="590" height="353"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -313,13 +313,13 @@ Gw
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="QD0-qk-qCa">
                                             <rect key="frame" x="79" y="178" width="80" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="512 kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="512" imageScaling="axesIndependently" inset="2" selectedItem="LVX-CI-lo9" id="dSS-yv-CDV">
+                                            <popUpButtonCell key="cell" type="push" title="512 kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="512" imageScaling="axesIndependently" inset="2" selectedItem="LVX-CI-lo9" id="dSS-yv-CDV">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="jsD-9U-bwN">
                                                     <items>
-                                                        <menuItem title="512 kb" tag="512" id="LVX-CI-lo9"/>
-                                                        <menuItem title="1 mb" state="on" tag="1024" id="jMF-5n-E33"/>
+                                                        <menuItem title="512 kb" state="on" tag="512" id="LVX-CI-lo9"/>
+                                                        <menuItem title="1 mb" tag="1024" id="jMF-5n-E33"/>
                                                         <menuItem title="4 mb" tag="4096" id="Z77-x8-Hzh"/>
                                                     </items>
                                                 </menu>
@@ -575,18 +575,18 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="7" width="400" height="223"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
-                                            <rect key="frame" x="18" y="158" width="128" height="18"/>
+                                            <rect key="frame" x="18" y="127" width="128" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach disk drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="CB3-nA-VTM">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LG6-mP-SeG">
-                                            <rect key="frame" x="71" y="179" width="146" height="25"/>
+                                            <rect key="frame" x="71" y="148" width="146" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="European (PAL)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="xAh-Ch-tby" id="yR4-yv-Lvu">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -600,22 +600,58 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZaD-7v-rMS">
-                                            <rect key="frame" x="18" y="185" width="50" height="16"/>
+                                            <rect key="frame" x="18" y="154" width="50" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region:" id="x4m-eh-Nif">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFV-RB-7dB">
+                                            <rect key="frame" x="18" y="184" width="46" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="r7C-zE-gyj">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="44m-4z-PVv">
+                                            <rect key="frame" x="67" y="178" width="79" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="MSX 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="G9U-vd-Cjk" id="2TO-f6-Gmp">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="v3T-Jv-VLK">
+                                                    <items>
+                                                        <menuItem title="MSX 1" state="on" tag="1" id="G9U-vd-Cjk"/>
+                                                        <menuItem title="MSX 2" tag="2" id="8fG-eg-UOc"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V0e-KX-Wqn">
+                                            <rect key="frame" x="18" y="105" width="145" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Attach MSX-MUSIC" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="DjG-qd-BYh">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="LG6-mP-SeG" secondAttribute="trailing" constant="20" symbolic="YES" id="0Oc-n7-gaM"/>
+                                        <constraint firstItem="LG6-mP-SeG" firstAttribute="top" secondItem="44m-4z-PVv" secondAttribute="bottom" constant="10" symbolic="YES" id="6vI-gy-nYE"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="44m-4z-PVv" secondAttribute="trailing" constant="20" symbolic="YES" id="D4D-Z0-Vit"/>
+                                        <constraint firstItem="44m-4z-PVv" firstAttribute="leading" secondItem="gFV-RB-7dB" secondAttribute="trailing" constant="8" symbolic="YES" id="JG1-Kp-dYk"/>
                                         <constraint firstItem="8xT-Pr-8SE" firstAttribute="top" secondItem="LG6-mP-SeG" secondAttribute="bottom" constant="8" symbolic="YES" id="LBt-4m-GDc"/>
-                                        <constraint firstItem="LG6-mP-SeG" firstAttribute="top" secondItem="mWD-An-tR7" secondAttribute="top" constant="20" symbolic="YES" id="bcb-ZZ-VpQ"/>
+                                        <constraint firstItem="gFV-RB-7dB" firstAttribute="centerY" secondItem="44m-4z-PVv" secondAttribute="centerY" id="Rf8-1i-ttI"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="V0e-KX-Wqn" secondAttribute="bottom" constant="20" symbolic="YES" id="YIT-tx-yob"/>
+                                        <constraint firstItem="gFV-RB-7dB" firstAttribute="leading" secondItem="mWD-An-tR7" secondAttribute="leading" constant="20" symbolic="YES" id="aaL-4g-iW8"/>
+                                        <constraint firstItem="V0e-KX-Wqn" firstAttribute="top" secondItem="8xT-Pr-8SE" secondAttribute="bottom" constant="6" symbolic="YES" id="fjr-Qf-WzP"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="8xT-Pr-8SE" secondAttribute="trailing" constant="20" symbolic="YES" id="l8P-UW-8ig"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="8xT-Pr-8SE" secondAttribute="bottom" constant="20" symbolic="YES" id="mga-YX-Bek"/>
+                                        <constraint firstItem="V0e-KX-Wqn" firstAttribute="leading" secondItem="mWD-An-tR7" secondAttribute="leading" constant="20" symbolic="YES" id="q1J-kN-Gwi"/>
                                         <constraint firstItem="8xT-Pr-8SE" firstAttribute="leading" secondItem="mWD-An-tR7" secondAttribute="leading" constant="20" symbolic="YES" id="q8Q-kh-Opj"/>
                                         <constraint firstItem="LG6-mP-SeG" firstAttribute="leading" secondItem="ZaD-7v-rMS" secondAttribute="trailing" constant="8" symbolic="YES" id="svb-nH-GlP"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="V0e-KX-Wqn" secondAttribute="trailing" constant="20" symbolic="YES" id="w85-NH-WOz"/>
+                                        <constraint firstItem="44m-4z-PVv" firstAttribute="top" secondItem="mWD-An-tR7" secondAttribute="top" constant="20" symbolic="YES" id="zJk-w1-PWX"/>
                                         <constraint firstItem="ZaD-7v-rMS" firstAttribute="leading" secondItem="mWD-An-tR7" secondAttribute="leading" constant="20" symbolic="YES" id="zgh-a5-FNF"/>
                                         <constraint firstItem="ZaD-7v-rMS" firstAttribute="centerY" secondItem="LG6-mP-SeG" secondAttribute="centerY" id="zkw-kD-lRV"/>
                                     </constraints>
@@ -966,7 +1002,7 @@ Gw
                     <constraint firstAttribute="bottom" secondItem="hKn-1l-OSN" secondAttribute="bottom" constant="20" symbolic="YES" id="rG2-Ea-klR"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="-320" y="103"/>
+            <point key="canvasLocation" x="-320" y="102.5"/>
         </window>
         <customObject id="192-Eb-Rpg" customClass="MachinePicker" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
@@ -991,6 +1027,8 @@ Gw
                 <outlet property="machineSelector" destination="VUb-QG-x7c" id="crR-hB-jGd"/>
                 <outlet property="macintoshModelTypeButton" destination="xa6-NA-JY5" id="2jX-PY-v2z"/>
                 <outlet property="msxHasDiskDriveButton" destination="8xT-Pr-8SE" id="zGH-GA-9QF"/>
+                <outlet property="msxHasMSXMUSICButton" destination="V0e-KX-Wqn" id="L68-4u-P6r"/>
+                <outlet property="msxModelButton" destination="44m-4z-PVv" id="qRk-Hf-aBL"/>
                 <outlet property="msxRegionButton" destination="LG6-mP-SeG" id="3a9-VG-6Wf"/>
                 <outlet property="oricDiskInterfaceButton" destination="fYL-p6-wyn" id="aAt-wM-hRZ"/>
                 <outlet property="oricModelTypeButton" destination="ENP-hI-BVZ" id="n9i-Ym-miE"/>

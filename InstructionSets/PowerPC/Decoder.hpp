@@ -11,8 +11,7 @@
 
 #include "Instruction.hpp"
 
-namespace InstructionSet {
-namespace PowerPC {
+namespace InstructionSet::PowerPC {
 
 enum class Model {
 	/// i.e. 32-bit, with POWER carry-over instructions.
@@ -50,7 +49,6 @@ template <Model model, bool validate_reserved_bits = false> struct Decoder {
 	Instruction decode(uint32_t opcode);
 };
 
-}
 }
 
 #endif /* InstructionSets_PowerPC_Decoder_hpp */

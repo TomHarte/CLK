@@ -13,9 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 struct File {
 	std::string name;
@@ -60,8 +58,6 @@ struct File {
 	std::vector<Chunk> chunks;
 };
 
-}
-}
 }
 
 #endif /* File_hpp */

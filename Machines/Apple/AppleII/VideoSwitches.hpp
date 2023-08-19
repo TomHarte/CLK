@@ -13,8 +13,7 @@
 #include "../../../ClockReceiver/DeferredQueue.hpp"
 #include "../../ROMMachine.hpp"
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 // Enumerates all Apple II and IIe display modes.
 enum class GraphicsMode {
@@ -341,7 +340,6 @@ template <typename TimeUnit> class VideoSwitches {
 		std::vector<uint8_t> character_rom_;
 };
 
-}
 }
 
 #endif /* VideoSwitches_h */

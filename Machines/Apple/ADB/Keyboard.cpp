@@ -161,7 +161,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	switch(key) {
 		default: return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
-#define Bind(x, y) 		case Key::x: return uint16_t(ADBKey::y)
+#define Bind(x, y)		case Key::x: return uint16_t(ADBKey::y)
 #define BindDirect(x)	Bind(x, x)
 
 		BindDirect(BackTick);

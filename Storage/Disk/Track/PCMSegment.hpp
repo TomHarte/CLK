@@ -17,8 +17,7 @@
 #include "../../../Numeric/LFSR.hpp"
 #include "Track.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	A segment of PCM-sampled data.
@@ -203,7 +202,6 @@ class PCMSegmentEventSource {
 		Numeric::LFSR<uint64_t> lfsr_;
 };
 
-}
 }
 
 #endif /* PCMSegment_hpp */

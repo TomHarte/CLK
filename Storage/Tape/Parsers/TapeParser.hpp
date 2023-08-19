@@ -15,8 +15,7 @@
 #include <memory>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 template <typename SymbolType> class Parser {
 	public:
@@ -156,7 +155,6 @@ template <typename WaveType, typename SymbolType> class PulseClassificationParse
 		std::vector<WaveType> wave_queue_;
 };
 
-}
 }
 
 #endif /* TapeParser_hpp */

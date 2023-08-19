@@ -16,8 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an Amstrad CPC-type disk image: some arrangement of sectors with status bits.
@@ -72,7 +71,5 @@ class CPCDSK: public DiskImage {
 };
 
 }
-}
-
 
 #endif /* CPCDSK_hpp */

@@ -12,9 +12,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 /*!
 	Represents a single [M]FM sector, identified by its track, side and sector records, a blob of data
@@ -54,8 +52,6 @@ struct Sector {
 		is_deleted(rhs.is_deleted ){}
 };
 
-}
-}
 }
 
 #endif /* Sector_h */
