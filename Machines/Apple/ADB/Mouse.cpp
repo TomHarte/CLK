@@ -41,6 +41,7 @@ void Mouse::perform_command(const Command &command) {
 }
 
 void Mouse::move(int x, int y) {
+	// TODO: cap movement speed, feeding changes in slowly.
 	delta_x_ += int16_t(x);
 	delta_y_ += int16_t(y);
 	post_service_request();
