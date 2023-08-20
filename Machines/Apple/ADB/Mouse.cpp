@@ -15,6 +15,8 @@ using namespace Apple::ADB;
 Mouse::Mouse(Bus &bus) : ReactiveDevice(bus, 3) {}
 
 void Mouse::perform_command(const Command &command) {
+	// This was picked empirically based on experimentation with the IIgs.
+	// Possible TODO: consider whether this is appropriate for other machines.
 	static constexpr int16_t max_delta = 30;
 
 	if(command.type == Command::Type::Talk && command.reg == 0) {
