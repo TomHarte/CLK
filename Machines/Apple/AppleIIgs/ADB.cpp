@@ -227,7 +227,6 @@ void GLU::set_port_output(int port, uint8_t value) {
 							case 3:
 								status_ |= uint8_t(CPUFlags::MouseDataFull);
 								visible_mouse_register_ = 2;
-								printf("Mouse: %d <- %02x\n", register_address_, register_latch_);
 							break;
 							case 7:		status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
 						}
