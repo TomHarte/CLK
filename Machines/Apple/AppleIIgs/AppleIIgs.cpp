@@ -752,7 +752,7 @@ class ConcreteMachine:
 						is_1Mhz = true;
 					break;
 					case Read(0xc045):
-						// MMDELTAX byte.
+						// MMDELTAY byte.
 						*value = 0;
 						is_1Mhz = true;
 					break;
