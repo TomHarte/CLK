@@ -224,6 +224,9 @@ template<bool is_brk> inline void Executor::perform_interrupt(uint16_t vector) {
 }
 
 void Executor::set_interrupt_request(uint8_t &reg, uint8_t value, uint16_t vector) {
+	// TODO: this allows interrupts through only if fully enabled at the time they
+	// signal. Which isn't quite correct, albeit that it seems sufficient for the
+	// IIgs ADB controller.
 	reg |= value;
 	if(!interrupt_disable_ && (reg & (value >> 1))) {
 		perform_interrupt<false>(vector);
