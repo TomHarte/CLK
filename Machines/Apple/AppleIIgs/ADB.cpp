@@ -289,5 +289,6 @@ void GLU::run_ports_for(Cycles cycles) {
 }
 
 void GLU::set_vertical_blank(bool is_blank) {
+	vertical_blank_ = is_blank;
 	executor_.set_interrupt_line(is_blank);
 }

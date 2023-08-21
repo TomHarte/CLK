@@ -165,6 +165,8 @@ class Executor: public CachingExecutor {
 		template<bool is_brk> inline void perform_interrupt(uint16_t vector);
 		inline void set_port_output(int port);
 
+		void set_interrupt_request(uint8_t &reg, uint8_t value, uint16_t vector);
+
 		// MARK: - Execution time
 
 		Cycles cycles_;
