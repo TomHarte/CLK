@@ -629,21 +629,21 @@ uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start,
 			ram_[row_address + c],
 		};
 
-		target[0] = colours[(source[1] >> 0) & 0x1];
-		target[1] = colours[(source[1] >> 1) & 0x1];
-		target[2] = colours[(source[1] >> 2) & 0x1];
-		target[3] = colours[(source[1] >> 3) & 0x1];
-		target[4] = colours[(source[1] >> 4) & 0x1];
-		target[5] = colours[(source[1] >> 5) & 0x1];
-		target[6] = colours[(source[1] >> 6) & 0x1];
+		target[0] = colours[(source[0] >> 0) & 0x1];
+		target[1] = colours[(source[0] >> 1) & 0x1];
+		target[2] = colours[(source[0] >> 2) & 0x1];
+		target[3] = colours[(source[0] >> 3) & 0x1];
+		target[4] = colours[(source[0] >> 4) & 0x1];
+		target[5] = colours[(source[0] >> 5) & 0x1];
+		target[6] = colours[(source[0] >> 6) & 0x1];
 
-		target[7] = colours[(source[0] >> 0) & 0x1];
-		target[8] = colours[(source[0] >> 1) & 0x1];
-		target[9] = colours[(source[0] >> 2) & 0x1];
-		target[10] = colours[(source[0] >> 3) & 0x1];
-		target[11] = colours[(source[0] >> 4) & 0x1];
-		target[12] = colours[(source[0] >> 5) & 0x1];
-		target[13] = colours[(source[0] >> 6) & 0x1];
+		target[7] = colours[(source[1] >> 0) & 0x1];
+		target[8] = colours[(source[1] >> 1) & 0x1];
+		target[9] = colours[(source[1] >> 2) & 0x1];
+		target[10] = colours[(source[1] >> 3) & 0x1];
+		target[11] = colours[(source[1] >> 4) & 0x1];
+		target[12] = colours[(source[1] >> 5) & 0x1];
+		target[13] = colours[(source[1] >> 6) & 0x1];
 
 		target += 14;
 	}
