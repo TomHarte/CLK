@@ -68,11 +68,9 @@ void Executor::set_interrupt_line(bool line) {
 	// is active, amongst other things.
 	if(interrupt_line_ != line) {
 		interrupt_line_ = line;
-
-		// TODO: verify interrupt connection. Externally, but stubbed off here.
-//		if(!interrupt_disable_ && line) {
-//			perform_interrupt<false>(0x1ff4);
-//		}
+		if(line) {
+			set_interrupt_request(interrupt_control_, 0x02, 0x1ff4);
+		}
 	}
 }
 
@@ -223,6 +221,16 @@ template<bool is_brk> inline void Executor::perform_interrupt(uint16_t vector) {
 	push(uint8_t(program_counter_ & 0xff));
 	push(flags() | (is_brk ? 0x10 : 0x00));
 	set_program_counter(uint16_t(memory_[vector] | (memory_[vector+1] << 8)));
+}
+
+void Executor::set_interrupt_request(uint8_t &reg, uint8_t value, uint16_t vector) {
+	// TODO: this allows interrupts through only if fully enabled at the time they
+	// signal. Which isn't quite correct, albeit that it seems sufficient for the
+	// IIgs ADB controller.
+	reg |= value;
+	if(!interrupt_disable_ && (reg & (value >> 1))) {
+		perform_interrupt<false>(vector);
+	}
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
@@ -789,12 +797,17 @@ inline void Executor::subtract_duration(int duration) {
 										// this additional divide by 4 produces the correct net divide by 16.
 
 	timer_divider_ += duration;
-	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
+	const int clock_ticks = timer_divider_ / t12_divider;
 	timer_divider_ &= (t12_divider-1);
 
-	// Update timers 1 and 2. TODO: interrupts (elsewhere?).
-	if(update_timer(timers_[0], t12_ticks)) interrupt_control_ |= 0x20;
-	if(update_timer(timers_[1], t12_ticks)) interrupt_control_ |= 0x08;
+	// Update timers 1 and 2.
+	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
+	if(update_timer(timers_[0], t12_ticks)) {
+		set_interrupt_request(interrupt_control_, 0x20, 0x1ff8);
+	}
+	if(update_timer(timers_[1], t12_ticks)) {
+		set_interrupt_request(interrupt_control_, 0x08, 0x1ff6);
+	}
 
 	// If timer X is disabled, stop.
 	if(timer_control_&0x20) {
@@ -804,9 +817,10 @@ inline void Executor::subtract_duration(int duration) {
 	// Update timer X prescaler.
 	switch(timer_control_ & 0x0c) {
 		default: {
-			const int tx_ticks = update_timer(prescalers_[1], t12_ticks);	// TODO: don't hard code this. And is this even right?
-			if(update_timer(timers_[2], tx_ticks))
-				timer_control_ |= 0x80;	// TODO: interrupt result of this.
+			const int tx_ticks = update_timer(prescalers_[1], clock_ticks);
+			if(update_timer(timers_[2], tx_ticks)) {
+				set_interrupt_request(timer_control_, 0x80, 0x1ffa);
+			}
 		} break;
 		case 0x04:
 			LOG("TODO: Timer X; Pulse output mode");
