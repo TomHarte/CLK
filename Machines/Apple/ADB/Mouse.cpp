@@ -15,9 +15,9 @@ using namespace Apple::ADB;
 Mouse::Mouse(Bus &bus) : ReactiveDevice(bus, 3) {}
 
 void Mouse::perform_command(const Command &command) {
-	// This was picked empirically based on experimentation with the IIgs.
-	// Possible TODO: consider whether this is appropriate for other machines.
-	static constexpr int16_t max_delta = 30;
+	// Mouse deltas are confined to a seven-bit signed field; this implementation keeps things symmetrical by
+	// limiting them to a maximum absolute value of 63 in any direction.
+	static constexpr int16_t max_delta = 63;
 
 	if(command.type == Command::Type::Talk && command.reg == 0) {
 		// Read and clamp current deltas and buttons.
