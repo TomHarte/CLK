@@ -106,7 +106,7 @@ class Keyboard: public ReactiveDevice {
 		void did_receive_data(const Command &, const std::vector<uint8_t> &) override;
 
 		std::mutex keys_mutex_;
-		std::array<bool, 128> pressed_keys_;
+		std::array<bool, 128> pressed_keys_{};
 		std::vector<uint8_t> pending_events_;
 		uint16_t modifiers_ = 0xffff;
 };
