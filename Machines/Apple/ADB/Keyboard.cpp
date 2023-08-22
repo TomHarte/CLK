@@ -72,8 +72,13 @@ void Keyboard::did_receive_data(const Command &, const std::vector<uint8_t> &dat
 
 
 bool Keyboard::set_key_pressed(Key key, bool is_pressed) {
-	// ADB keyboard events: low 7 bits are a key code; bit 7 is either 0 for pressed or 1 for released.
 	std::lock_guard lock_guard(keys_mutex_);
+	if(pressed_keys_[size_t(key)] == is_pressed) {
+		return true;
+	}
+
+	// ADB keyboard events: low 7 bits are a key code;
+	// bit 7 is either 0 for pressed or 1 for released.
 	pending_events_.push_back(uint8_t(key) | (is_pressed ? 0x00 : 0x80));
 	pressed_keys_[size_t(key)] = is_pressed;
 
