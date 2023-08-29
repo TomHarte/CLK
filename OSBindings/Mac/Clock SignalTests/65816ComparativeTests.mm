@@ -131,10 +131,10 @@ template <bool has_emulation, typename Processor> void print_registers(FILE *fil
 	using Register = CPU::MOS6502Esque::Register;
 	fprintf(file, "\"pc\": %d, ", (processor.value_of(Register::ProgramCounter) + pc_offset) & 65535);
 	fprintf(file, "\"s\": %d, ", processor.value_of(Register::StackPointer));
-	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
 	fprintf(file, "\"a\": %d, ", processor.value_of(Register::A));
 	fprintf(file, "\"x\": %d, ", processor.value_of(Register::X));
 	fprintf(file, "\"y\": %d, ", processor.value_of(Register::Y));
+	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
 	if constexpr (has_emulation) {
 		fprintf(file, "\"dbr\": %d, ", processor.value_of(Register::DataBank));
 		fprintf(file, "\"d\": %d, ", processor.value_of(Register::Direct));
@@ -169,7 +169,8 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 	for(int operation = 0; operation < (has_emulation ? 512 : 256); operation++) {
 		// Make tests repeatable, at least for any given instance of
 		// the runtime.
-		srand(65816 + operation);
+		constexpr auto type_offset = int(CPU::MOS6502Esque::Type::TWDC65816) - int(type);
+		srand(65816 + operation + type_offset);
 
 		const bool is_emulated = operation & 256;
 		const uint8_t opcode = operation & 255;
