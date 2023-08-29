@@ -53,8 +53,10 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		let machine6502 = testMachine as! CSTestMachine6502
 
 		// Only OSWRCH is trapped, so...
-		let character = machine6502.value(for: .A)
-		output.append(Character(UnicodeScalar(character)!))
+		let character = Character(UnicodeScalar(machine6502.value(for: .A))!)
+		if character != "\r" {		// The test internally uses \r\n; keep only one of those.
+			output.append(character)
+		}
 	}
 
 }
