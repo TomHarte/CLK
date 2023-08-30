@@ -68,10 +68,13 @@ using namespace CPU::MOS6502;
 
 #define ZeroNop()							Program(Zero, CycleFetchOperandFromAddress)
 #define ZeroXNop()							Program(ZeroX, CycleFetchOperandFromAddress)
-#define AbsoluteNop()						Program(Absolute)
-#define AbsoluteXNop()						Program(AbsoluteX)
+#define AbsoluteNop()						Program(Absolute, CycleFetchOperandFromAddress)
+#define AbsoluteXNop()						Program(AbsoluteX, CycleFetchOperandFromAddress)
 #define ImpliedNop()						{OperationMoveToNextProgram}
 #define ImmediateNop()						Program(OperationIncrementPC)
+
+#define AbsoluteNopNoFetch()				Program(Absolute)
+#define AbsoluteXNopNoFetch()				Program(AbsoluteX)
 
 #define JAM									{CycleFetchOperand, OperationScheduleJam}
 
@@ -425,10 +428,10 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 			}
 		} else {
 			for(int location = 0x0f; location <= 0xef; location += 0x20) {
-				Install(location, AbsoluteNop());
+				Install(location, AbsoluteNopNoFetch());
 			}
 			for(int location = 0x1f; location <= 0xff; location += 0x20) {
-				Install(location, AbsoluteXNop());
+				Install(location, AbsoluteXNopNoFetch());
 			}
 			for(int c = 0x07; c <= 0xe7; c += 0x20) {
 				Install(c, ZeroNop());
