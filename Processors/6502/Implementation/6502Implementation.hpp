@@ -347,6 +347,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							a_ = result;
 
 							if(is_65c02(personality)) {
+								// 65C02 fix: N and Z are set correctly based on the final BCD result, at the cost of
+								// an extra cycle.
 								flags_.set_nz(a_);
 								read_mem(operand_, address_.full);
 								break;
