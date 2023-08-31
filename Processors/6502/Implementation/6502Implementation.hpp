@@ -286,25 +286,30 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						[[fallthrough]];
 					case OperationSBC:
 						if(flags_.decimal && has_decimal_mode(personality)) {
-							const uint16_t notCarry = flags_.carry ^ 0x1;
-							const uint16_t decimalResult = uint16_t(a_) - uint16_t(operand_) - notCarry;
-							uint16_t temp16;
+							operand_ ^= 0xff;
+							uint8_t result = a_ + operand_ + flags_.carry;
 
-							temp16 = (a_&0xf) - (operand_&0xf) - notCarry;
-							if(temp16 > 0xf) temp16 -= 0x6;
-							temp16 = (temp16&0x0f) | ((temp16 > 0x0f) ? 0xfff0 : 0x00);
-							temp16 += (a_&0xf0) - (operand_&0xf0);
+							// All flags are set based only on the decimal result.
+							flags_.zero_result = result;
+							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
+							flags_.negative_result = result;
+							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
-							flags_.overflow = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
-							flags_.negative_result = uint8_t(temp16);
-							flags_.zero_result = uint8_t(decimalResult);
+							// The bottom nibble is adjusted if there was carry into the top nibble;
+							// this doesn't cause additional carry.
+							if(!Numeric::carried_in<4>(a_, operand_, result)) {
+								result = (result & 0xf0) | ((result + 0x0a) & 0xf);
+							}
 
-							if(temp16 > 0xff) temp16 -= 0x60;
+							// The top nibble is adjusted only if there wasn't carry out of the whole byte.
+							if(!flags_.carry) {
+								result += 0xa0;
+							}
 
-							flags_.carry = (temp16 > 0xff) ? 0 : Flag::Carry;
-							a_ = uint8_t(temp16);
+							a_ = result;
 
 							if(is_65c02(personality)) {
+								// 65C02 fix: set the N and Z flags based on the final, decimal result.
 								flags_.set_nz(a_);
 								read_mem(operand_, address_.full);
 								break;
