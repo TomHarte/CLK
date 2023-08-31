@@ -337,7 +337,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							flags_.negative_result = uint8_t(result);
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
-							if(Numeric::carried_out<7>(a_, operand_, result)) {
+							if(flags_.carry) {
 								result += 0x60;
 							} else if (result >= 0xa0) {
 								flags_.carry = 1;	// There'll now definitely be carry.
