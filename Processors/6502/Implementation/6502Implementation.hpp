@@ -337,10 +337,10 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							flags_.negative_result = uint8_t(result);
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
+							// i.e. if there was carry out of bit 7 already, or if the top nibble is too large (in which
+							// case there will be carry after the fix-up).
+							flags_.carry |= result >= 0xa0;
 							if(flags_.carry) {
-								result += 0x60;
-							} else if (result >= 0xa0) {
-								flags_.carry = 1;	// There'll now definitely be carry.
 								result += 0x60;
 							}
 
