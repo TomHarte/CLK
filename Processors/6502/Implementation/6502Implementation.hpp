@@ -317,18 +317,34 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationADC:
 						if(flags_.decimal && has_decimal_mode(personality)) {
-							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(flags_.carry);
+							uint8_t result = a_ + operand_ + flags_.carry;
+							flags_.zero_result = result;
+							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
 
-							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + flags_.carry;
-							if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
-							uint16_t result = uint16_t(a_ & 0xf0) + uint16_t(operand_ & 0xf0) + uint16_t(low_nibble);
+							// The following effects the rule that only a single bit of carry can flow from the
+							// bottom nibble to the top: if that carry already happened, fix up the bottom without
+							// permitting another; otherwise if a fix up is required anyway due to the low digit nibble
+							// being out of range, permit the carry to happen (and check whether carry then left bit 7).
+							if(Numeric::carried_in<4>(a_, operand_, result)) {
+								result = (result & 0xf0) | ((result + 0x06) & 0x0f);
+							} else if((result & 0xf) > 0x9) {
+								flags_.carry |= result >= 0x100 - 0x6;
+								result += 0x06;
+							}
+
+							// 6502 quirk: N and V are set before the full result is computed but after the low nibble
+							// has been corrected.
 							flags_.negative_result = uint8_t(result);
-							flags_.overflow = (( (result^a_)&(result^operand_) )&0x80) >> 1;
-							if(result >= 0xa0) result += 0x60;
+							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
-							flags_.carry = (result >> 8) ? 1 : 0;
-							a_ = uint8_t(result);
-							flags_.zero_result = uint8_t(decimalResult);
+							if(Numeric::carried_out<7>(a_, operand_, result)) {
+								result += 0x60;
+							} else if (result >= 0xa0) {
+								flags_.carry = 1;	// There'll now definitely be carry.
+								result += 0x60;
+							}
+
+							a_ = result;
 
 							if(is_65c02(personality)) {
 								flags_.set_nz(a_);
