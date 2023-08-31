@@ -298,6 +298,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							// The bottom nibble is adjusted if there was carry into the top nibble;
 							// this doesn't cause additional carry.
 							if(!Numeric::carried_in<4>(a_, operand_, result)) {
+								// 65C02 difference: carry from the calculation below is applied as
+								// borrow to the nibble above.
+								if constexpr (is_65c02(personality)) {
+									if((result & 0xf) < 0x6) {
+										result -= 0x10;
+									}
+								}
 								result = (result & 0xf0) | ((result + 0x0a) & 0xf);
 							}
 
@@ -308,7 +315,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 							a_ = result;
 
-							if(is_65c02(personality)) {
+							if constexpr (is_65c02(personality)) {
 								// 65C02 fix: set the N and Z flags based on the final, decimal result.
 								flags_.set_nz(a_);
 								read_mem(operand_, address_.full);
@@ -351,7 +358,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 							a_ = result;
 
-							if(is_65c02(personality)) {
+							if constexpr (is_65c02(personality)) {
 								// 65C02 fix: N and Z are set correctly based on the final BCD result, at the cost of
 								// an extra cycle.
 								flags_.set_nz(a_);

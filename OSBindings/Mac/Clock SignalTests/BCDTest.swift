@@ -48,10 +48,6 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		testBCD(processor: .processor65C02)
 	}
 
-//	func test6816BCD() {
-//		testBCD(processor: .processor65816)
-//	}
-
 	private var output: String = ""
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		let machine6502 = testMachine as! CSTestMachine6502
