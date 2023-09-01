@@ -282,11 +282,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 // MARK: - ADC/SBC (and INS)
 
 					case OperationINS:
-						operand_++;
+						++operand_;
 						[[fallthrough]];
 					case OperationSBC:
+						operand_ = ~operand_;
+
 						if(flags_.decimal && has_decimal_mode(personality)) {
-							operand_ ^= 0xff;
 							uint8_t result = a_ + operand_ + flags_.carry;
 
 							// All flags are set based only on the decimal result.
@@ -295,35 +296,44 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							flags_.negative_result = result;
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
-							// The bottom nibble is adjusted if there was carry into the top nibble;
-							// this doesn't cause additional carry.
+							// General SBC logic:
+							//
+							// Because the range of valid numbers starts at 0, any subtraction that should have
+							// caused decimal carry and which requires a digit fix up will definitely have caused
+							// binary carry: the subtraction will have crossed zero and gone into negative numbers.
+							//
+							// So just test for carry (well, actually borrow, which is !carry).
+
+							// The bottom nibble is adjusted if there was borrow into the top nibble;
+							// on a 6502 this doesn't cause additional carry but on a 65C02 it does.
+							// This difference affects invalid BCD numbers only.
 							if(!Numeric::carried_in<4>(a_, operand_, result)) {
-								// 65C02 difference: carry from the calculation below is applied as
-								// borrow to the nibble above.
 								if constexpr (is_65c02(personality)) {
-									if((result & 0xf) < 0x6) {
-										result -= 0x10;
-									}
+									result += 0xfa;
+								} else {
+									result = (result & 0xf0) | ((result + 0xfa) & 0xf);
 								}
-								result = (result & 0xf0) | ((result + 0x0a) & 0xf);
 							}
 
-							// The top nibble is adjusted only if there wasn't carry out of the whole byte.
+							// The top nibble is adjusted only if there was borrow out of the whole byte.
 							if(!flags_.carry) {
 								result += 0xa0;
 							}
 
 							a_ = result;
 
+							// fix up in case this was INS.
+							if(cycle == OperationINS) operand_ = ~operand_;
+
 							if constexpr (is_65c02(personality)) {
 								// 65C02 fix: set the N and Z flags based on the final, decimal result.
+								// Read into `operation_` for the sake of reading somewhere; the value isn't
+								// used and INS will write `operand_` back to memory.
 								flags_.set_nz(a_);
-								read_mem(operand_, address_.full);
+								read_mem(operation_, address_.full);
 								break;
 							}
 							continue;
-						} else {
-							operand_ = ~operand_;
 						}
 						[[fallthrough]];
 
@@ -333,10 +343,17 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							flags_.zero_result = result;
 							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
 
-							// The following effects the rule that only a single bit of carry can flow from the
-							// bottom nibble to the top: if that carry already happened, fix up the bottom without
-							// permitting another; otherwise if a fix up is required anyway due to the low digit nibble
-							// being out of range, permit the carry to happen (and check whether carry then left bit 7).
+							// General ADC logic:
+							//
+							// Detecting decimal carry means finding occasions when two digits added together totalled
+							// more than 9. Within each four-bit window that means testing the digit itself and also
+							// testing for carry — e.g. 5 + 5 = 0xA, which is detectable only by the value of the final
+							// digit, but 9 + 9 = 0x18, which is detectable only by spotting the carry.
+
+							// Only a single bit of carry can flow from the bottom nibble to the top.
+							//
+							// So if that carry already happened, fix up the bottom without permitting another;
+							// otherwise permit the carry to happen (and check whether carry then rippled out of bit 7).
 							if(Numeric::carried_in<4>(a_, operand_, result)) {
 								result = (result & 0xf0) | ((result + 0x06) & 0x0f);
 							} else if((result & 0xf) > 0x9) {
@@ -344,13 +361,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 								result += 0x06;
 							}
 
-							// 6502 quirk: N and V are set before the full result is computed but after the low nibble
-							// has been corrected.
-							flags_.negative_result = uint8_t(result);
+							// 6502 quirk: N and V are set before the full result is computed but
+							// after the low nibble has been corrected.
+							flags_.negative_result = result;
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
-							// i.e. if there was carry out of bit 7 already, or if the top nibble is too large (in which
-							// case there will be carry after the fix-up).
+							// i.e. fix high nibble if there was carry out of bit 7 already, or if the
+							// top nibble is too large (in which case there will be carry after the fix-up).
 							flags_.carry |= result >= 0xa0;
 							if(flags_.carry) {
 								result += 0x60;
@@ -372,7 +389,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							flags_.carry = (result >> 8)&1;
 						}
 
-						// fix up in case this was INS
+						// fix up in case this was INS.
 						if(cycle == OperationINS) operand_ = ~operand_;
 					continue;
 
