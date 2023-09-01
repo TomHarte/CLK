@@ -17,15 +17,15 @@ using namespace CPU::MOS6502;
 #define Absolute							CycleLoadAddressAbsolute
 #define AbsoluteXr							CycleLoadAddressAbsolute,					CycleAddXToAddressLow,					OperationCorrectAddressHigh
 #define AbsoluteYr							CycleLoadAddressAbsolute,					CycleAddYToAddressLow,					OperationCorrectAddressHigh
-#define AbsoluteX							CycleLoadAddressAbsolute,					CycleAddXToAddressLowRead,				OperationCorrectAddressHigh
-#define AbsoluteY							CycleLoadAddressAbsolute,					CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
+#define AbsoluteXw							CycleLoadAddressAbsolute,					CycleAddXToAddressLowRead,				OperationCorrectAddressHigh
+#define AbsoluteYw							CycleLoadAddressAbsolute,					CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 #define Zero								OperationLoadAddressZeroPage
 #define ZeroX								CycleLoadAddessZeroX
 #define ZeroY								CycleLoadAddessZeroY
 #define ZeroIndirect						OperationLoadAddressZeroPage,				CycleFetchAddressLowFromOperand,		CycleIncrementOperandFetchAddressHigh
 #define IndexedIndirect						CycleIncrementPCFetchAddressLowFromOperand, CycleAddXToOperandFetchAddressLow,		CycleIncrementOperandFetchAddressHigh
 #define IndirectIndexedr					CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
-#define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
+#define IndirectIndexedw					CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 
 #define Read(...)							CycleFetchOperandFromAddress,	__VA_ARGS__
 #define Write(...)							__VA_ARGS__,					CycleWriteOperandToAddress
@@ -42,23 +42,23 @@ using namespace CPU::MOS6502;
 #define IndirectIndexedRead(op)				Program(IndirectIndexedr,	Read(op))
 
 #define AbsoluteWrite(op)					Program(Absolute,			Write(op))
-#define AbsoluteXWrite(op)					Program(AbsoluteX,			Write(op))
-#define AbsoluteYWrite(op)					Program(AbsoluteY,			Write(op))
+#define AbsoluteXWrite(op)					Program(AbsoluteXw,			Write(op))
+#define AbsoluteYWrite(op)					Program(AbsoluteYw,			Write(op))
 #define ZeroWrite(op)						Program(Zero,				Write(op))
 #define ZeroXWrite(op)						Program(ZeroX,				Write(op))
 #define ZeroYWrite(op)						Program(ZeroY,				Write(op))
 #define ZeroIndirectWrite(op)				Program(ZeroIndirect,		Write(op))
 #define IndexedIndirectWrite(op)			Program(IndexedIndirect,	Write(op))
-#define IndirectIndexedWrite(op)			Program(IndirectIndexed,	Write(op))
+#define IndirectIndexedWrite(op)			Program(IndirectIndexedw,	Write(op))
 
 #define AbsoluteReadModifyWrite(...)		Program(Absolute,			ReadModifyWrite(__VA_ARGS__))
-#define AbsoluteXReadModifyWrite(...)		Program(AbsoluteX,			ReadModifyWrite(__VA_ARGS__))
-#define AbsoluteYReadModifyWrite(...)		Program(AbsoluteY,			ReadModifyWrite(__VA_ARGS__))
+#define AbsoluteXReadModifyWrite(...)		Program(AbsoluteXw,			ReadModifyWrite(__VA_ARGS__))
+#define AbsoluteYReadModifyWrite(...)		Program(AbsoluteYw,			ReadModifyWrite(__VA_ARGS__))
 #define ZeroReadModifyWrite(...)			Program(Zero,				ReadModifyWrite(__VA_ARGS__))
 #define ZeroXReadModifyWrite(...)			Program(ZeroX,				ReadModifyWrite(__VA_ARGS__))
 #define ZeroYReadModifyWrite(...)			Program(ZeroY,				ReadModifyWrite(__VA_ARGS__))
 #define IndexedIndirectReadModifyWrite(...)	Program(IndexedIndirect,	ReadModifyWrite(__VA_ARGS__))
-#define IndirectIndexedReadModifyWrite(...)	Program(IndirectIndexed,	ReadModifyWrite(__VA_ARGS__))
+#define IndirectIndexedReadModifyWrite(...)	Program(IndirectIndexedw,	ReadModifyWrite(__VA_ARGS__))
 
 #define FastAbsoluteXReadModifyWrite(...)		Program(AbsoluteXr,			ReadModifyWrite(__VA_ARGS__))
 #define FastAbsoluteYReadModifyWrite(...)		Program(AbsoluteYr,			ReadModifyWrite(__VA_ARGS__))
@@ -69,12 +69,9 @@ using namespace CPU::MOS6502;
 #define ZeroNop()							Program(Zero, CycleFetchOperandFromAddress)
 #define ZeroXNop()							Program(ZeroX, CycleFetchOperandFromAddress)
 #define AbsoluteNop()						Program(Absolute, CycleFetchOperandFromAddress)
-#define AbsoluteXNop()						Program(AbsoluteX, CycleFetchOperandFromAddress)
+#define AbsoluteXNop()						Program(AbsoluteXr, CycleFetchOperandFromAddress)
 #define ImpliedNop()						{OperationMoveToNextProgram}
 #define ImmediateNop()						Program(OperationIncrementPC)
-
-#define AbsoluteNopNoFetch()				Program(Absolute)
-#define AbsoluteXNopNoFetch()				Program(AbsoluteX)
 
 #define JAM									{CycleFetchOperand, OperationScheduleJam}
 
@@ -428,10 +425,10 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 			}
 		} else {
 			for(int location = 0x0f; location <= 0xef; location += 0x20) {
-				Install(location, AbsoluteNopNoFetch());
+				Install(location, AbsoluteNop());
 			}
 			for(int location = 0x1f; location <= 0xff; location += 0x20) {
-				Install(location, AbsoluteXNopNoFetch());
+				Install(location, AbsoluteXNop());
 			}
 			for(int c = 0x07; c <= 0xe7; c += 0x20) {
 				Install(c, ZeroNop());
