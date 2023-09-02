@@ -305,8 +305,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							// So just test for carry (well, actually borrow, which is !carry).
 
 							// The bottom nibble is adjusted if there was borrow into the top nibble;
-							// on a 6502 this doesn't cause additional carry but on a 65C02 it does.
-							// This difference affects invalid BCD numbers only.
+							// on a 6502 additional borrow isn't propagated but on a 65C02 it is.
+							// This difference affects invalid BCD numbers only — valid numbers will
+							// never be less than -9 so adding 10 will always generate carry.
 							if(!Numeric::carried_in<4>(a_, operand_, result)) {
 								if constexpr (is_65c02(personality)) {
 									result += 0xfa;
