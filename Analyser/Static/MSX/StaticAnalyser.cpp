@@ -119,7 +119,8 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 			Analyser::Static::Z80::Disassemble(
 				first_8k,
 				Analyser::Static::Disassembler::OffsetMapper(start_address),
-				{ init_address }
+				{ init_address },
+				Analyser::Static::Z80::Approach::Exhaustive
 			);
 
 //		// Look for a indirect store followed by an unconditional JP or CALL into another

@@ -76,10 +76,19 @@ struct Disassembly {
 	std::set<uint16_t> internal_stores, internal_loads, internal_modifies;
 };
 
+enum class Approach {
+	/// Disassemble from the supplied entry points until an indeterminate branch or return only, adding other fully-static
+	/// entry points as they are observed.
+	Recursive,
+	/// Disassemble all supplied bytes, regardless of what nonsense may be encountered by accidental parsing of data areas.
+	Exhaustive,
+};
+
 Disassembly Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
-	std::vector<uint16_t> entry_points);
+	std::vector<uint16_t> entry_points,
+	Approach approach);
 
 }
 
