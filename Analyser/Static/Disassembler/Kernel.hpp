@@ -14,23 +14,23 @@ namespace Analyser::Static::Disassembly {
 template <typename D, typename S> struct PartialDisassembly {
 	D disassembly;
 	std::vector<S> remaining_entry_points;
-	std::vector<bool> touched;
+	std::map<S, S> touched;	// Maps from start of range to end.
 };
 
 template <typename D, typename S, typename Disassembler> D Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(S)> &address_mapper,
 	std::vector<S> entry_points,
-	bool exhaustive) {
+	bool exhaustive)
+{
 	PartialDisassembly<D, S> partial_disassembly;
 	partial_disassembly.remaining_entry_points = entry_points;
-	partial_disassembly.touched.resize(memory.size());
 
-	while(true) {
+	while(!partial_disassembly.remaining_entry_points.empty()) {
 		// Do a recursive-style disassembly for all current entry points.
 		while(!partial_disassembly.remaining_entry_points.empty()) {
 			// Pull the next entry point from the back of the vector.
-			S next_entry_point = partial_disassembly.remaining_entry_points.back();
+			const S next_entry_point = partial_disassembly.remaining_entry_points.back();
 			partial_disassembly.remaining_entry_points.pop_back();
 
 			// If that address has already been visited, forget about it.
@@ -50,14 +50,18 @@ template <typename D, typename S, typename Disassembler> D Disassemble(
 			break;
 		}
 
-		// Otherwise, find the first address that isn't yet disassembled and chuck it onto the list.
-		auto first_untouched = std::find(partial_disassembly.touched.begin(), partial_disassembly.touched.end(), false);
-		if(first_untouched == partial_disassembly.touched.end()) {
-			break;
+		// Otherwise, find the first area between or just beyond a disassembled range
+		// that isn't yet disassembled and chuck it onto the list.
+		for(const auto &pair: partial_disassembly.touched) {
+			const auto end = pair.second;
+			if(partial_disassembly.touched.find(end) == partial_disassembly.touched.end()) {
+				if(address_mapper(end) < memory.size()) {
+					partial_disassembly.remaining_entry_points.push_back(end);
+				}
+
+				break;
+			}
 		}
-		partial_disassembly.remaining_entry_points.push_back(
-			static_cast<S>(first_untouched - partial_disassembly.touched.begin())
-		);
 	}
 
 	return partial_disassembly.disassembly;

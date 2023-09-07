@@ -546,6 +546,9 @@ struct Z80Disassembler {
 		disassembly.disassembly.internal_calls.insert(entry_point);
 		Accessor accessor(memory, address_mapper, entry_point);
 
+		auto &touched = disassembly.touched[entry_point];
+		touched = entry_point;
+
 		while(!accessor.at_end()) {
 			Instruction instruction;
 			instruction.address = accessor.address();
@@ -559,10 +562,7 @@ struct Z80Disassembler {
 			disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
 			// Apply all touches.
-			std::fill(
-				disassembly.touched.begin() + instruction.address,
-				disassembly.touched.begin() + accessor.address(),
-				true);
+			touched = accessor.address();
 
 			// Update access tables.
 			int access_type =
