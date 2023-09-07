@@ -115,7 +115,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		// be at play; disassemble to try to figure it out.
 		std::vector<uint8_t> first_8k;
 		first_8k.insert(first_8k.begin(), segment.data.begin(), segment.data.begin() + 8192);
-		Analyser::Static::Z80::Disassembly disassembly =
+		const Analyser::Static::Z80::Disassembly disassembly =
 			Analyser::Static::Z80::Disassemble(
 				first_8k,
 				Analyser::Static::Disassembler::OffsetMapper(start_address),

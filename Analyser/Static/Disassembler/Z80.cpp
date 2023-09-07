@@ -546,8 +546,17 @@ struct Z80Disassembler {
 		disassembly.disassembly.internal_calls.insert(entry_point);
 		Accessor accessor(memory, address_mapper, entry_point);
 
-		auto &touched = disassembly.touched[entry_point];
-		touched = entry_point;
+		uint16_t *touched = nullptr;
+		auto lower_bound = disassembly.touched.lower_bound(entry_point);
+		if(lower_bound != disassembly.touched.begin()) {
+			--lower_bound;
+			if(lower_bound->second == entry_point) {
+				touched = &lower_bound->second;
+			}
+		} else {
+			touched = &disassembly.touched[entry_point];
+			*touched = entry_point;
+		}
 
 		while(!accessor.at_end()) {
 			Instruction instruction;
@@ -562,7 +571,7 @@ struct Z80Disassembler {
 			disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
 			// Apply all touches.
-			touched = accessor.address();
+			*touched = accessor.address();
 
 			// Update access tables.
 			int access_type =
