@@ -316,5 +316,5 @@ Disassembly Analyser::Static::MOS6502::Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
 	std::vector<uint16_t> entry_points) {
-	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(memory, address_mapper, entry_points);
+	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(memory, address_mapper, entry_points, false);
 }

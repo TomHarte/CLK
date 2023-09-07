@@ -546,6 +546,9 @@ struct Z80Disassembler {
 		disassembly.disassembly.internal_calls.insert(entry_point);
 		Accessor accessor(memory, address_mapper, entry_point);
 
+		auto &touched = disassembly.touched[entry_point];
+		touched = entry_point;
+
 		while(!accessor.at_end()) {
 			Instruction instruction;
 			instruction.address = accessor.address();
@@ -557,6 +560,9 @@ struct Z80Disassembler {
 
 			// Store the instruction away.
 			disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
+
+			// Apply all touches.
+			touched = accessor.address();
 
 			// Update access tables.
 			int access_type =
@@ -611,9 +617,18 @@ struct Z80Disassembler {
 
 }	// end of anonymous namespace
 
+
+
 Disassembly Analyser::Static::Z80::Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
-	std::vector<uint16_t> entry_points) {
-	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, Z80Disassembler>(memory, address_mapper, entry_points);
+	std::vector<uint16_t> entry_points,
+	Approach approach)
+{
+	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, Z80Disassembler>(
+		memory,
+		address_mapper,
+		entry_points,
+		approach == Approach::Exhaustive
+	);
 }
