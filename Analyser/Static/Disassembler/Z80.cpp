@@ -546,9 +546,6 @@ struct Z80Disassembler {
 		disassembly.disassembly.internal_calls.insert(entry_point);
 		Accessor accessor(memory, address_mapper, entry_point);
 
-		auto &touched = disassembly.touched[entry_point];
-		touched = entry_point;
-
 		while(!accessor.at_end()) {
 			Instruction instruction;
 			instruction.address = accessor.address();
@@ -560,9 +557,6 @@ struct Z80Disassembler {
 
 			// Store the instruction away.
 			disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
-
-			// Apply all touches.
-			touched = accessor.address();
 
 			// Update access tables.
 			int access_type =
@@ -595,7 +589,7 @@ struct Z80Disassembler {
 				break;
 			}
 
-			// Add any (potentially) newly discovered entry point.
+			// Add any (potentially) newly-discovered entry point.
 			if(	instruction.operation == Instruction::Operation::JP ||
 				instruction.operation == Instruction::Operation::JR ||
 				instruction.operation == Instruction::Operation::CALL ||
@@ -604,13 +598,19 @@ struct Z80Disassembler {
 			}
 
 			// This is it if: an unconditional RET, RETI, RETN, JP or JR is found.
-			if(instruction.condition != Instruction::Condition::None)	continue;
+			switch(instruction.operation) {
+				default: break;
 
-			if(instruction.operation == Instruction::Operation::RET)	return;
-			if(instruction.operation == Instruction::Operation::RETI)	return;
-			if(instruction.operation == Instruction::Operation::RETN)	return;
-			if(instruction.operation == Instruction::Operation::JP)		return;
-			if(instruction.operation == Instruction::Operation::JR)		return;
+				case Instruction::Operation::RET:
+				case Instruction::Operation::RETI:
+				case Instruction::Operation::RETN:
+				case Instruction::Operation::JP:
+				case Instruction::Operation::JR:
+					if(instruction.condition == Instruction::Condition::None) {
+						disassembly.implicit_entry_points.push_back(accessor.address());
+						return;
+					}
+			}
 		}
 	}
 };
