@@ -218,7 +218,7 @@ uint8_t GLU::get_address_high() {
 
 // MARK: - Update logic.
 
-Cycles GLU::get_next_sequence_point() const {
+Cycles GLU::next_sequence_point() const {
 	uint32_t result = std::numeric_limits<decltype(result)>::max();
 
 	for(int c = 0; c < local_.oscillator_count; c++) {

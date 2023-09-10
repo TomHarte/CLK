@@ -1171,7 +1171,7 @@ class ConcreteMachine:
 					machine_->update_audio();
 				}
 				~AudioUpdater() {
-					machine_->cycles_until_audio_event_ = machine_->sound_glu_.get_next_sequence_point();
+					machine_->cycles_until_audio_event_ = machine_->sound_glu_.next_sequence_point();
 				}
 			private:
 				ConcreteMachine *machine_;

@@ -1268,7 +1268,7 @@ uint8_t TMS9918<personality>::get_current_line() const {
 	return uint8_t(source_row);
 }
 template <Personality personality>
-HalfCycles TMS9918<personality>::get_next_sequence_point() const {
+HalfCycles TMS9918<personality>::next_sequence_point() const {
 	if(!this->generate_interrupts_ && !this->enable_line_interrupts_) return HalfCycles::max();
 	if(get_interrupt_line()) return HalfCycles::max();
 

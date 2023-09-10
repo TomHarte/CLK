@@ -315,7 +315,7 @@ template <Timing timing> class Video {
 		/*!
 			@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
 		*/
-		HalfCycles get_next_sequence_point() {
+		HalfCycles next_sequence_point() {
 			constexpr auto timings = get_timings();
 
 			// Is the frame still ahead of this interrupt?

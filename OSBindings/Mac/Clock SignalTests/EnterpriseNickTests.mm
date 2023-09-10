@@ -46,7 +46,7 @@
 
 - (void)testInterruptPrediction {
 	// Run for the number of cycles implied by the number of lines.
-	int next_sequence_point = _nick->get_next_sequence_point().as<int>();
+	int next_sequence_point = _nick->next_sequence_point().as<int>();
 	bool last_interrupt_line = _nick->get_interrupt_line();
 
 	for(int c = 0; c < _totalLines*912; c++) {
@@ -61,9 +61,9 @@
 		last_interrupt_line = interrupt_line;
 
 		if(!next_sequence_point) {
-			next_sequence_point = _nick->get_next_sequence_point().as<int>();
+			next_sequence_point = _nick->next_sequence_point().as<int>();
 		} else {
-			const int expected_next_sequence_point = _nick->get_next_sequence_point().as<int>();
+			const int expected_next_sequence_point = _nick->next_sequence_point().as<int>();
 			XCTAssertEqual(next_sequence_point, expected_next_sequence_point);
 		}
 	}

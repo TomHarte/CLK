@@ -144,7 +144,7 @@ class TimedInterruptSource {
 
 		/// @returns The amount of time from now until the earliest that
 		/// @c get_new_interrupts() _might_ have new interrupts to report.
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 
 	private:
 		static constexpr Cycles clock_rate{250000};

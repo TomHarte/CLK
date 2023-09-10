@@ -26,7 +26,7 @@
 	Machines that accumulate HalfCycle time but supply to a Cycle-counted device may supply a
 	separate @c TargetTimeScale at template declaration.
 
-	If the held object implements get_next_sequence_point() then it'll be used to flush implicitly
+	If the held object implements @c next_sequence_point() then it'll be used to flush implicitly
 	as and when sequence points are hit. Callers can use will_flush() to predict these.
 
 	If the held object is a subclass of ClockingHint::Source, this template will register as an
@@ -40,7 +40,7 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 	private:
 		/*!
 			A std::unique_ptr deleter which causes an update_sequence_point to occur on the actor supplied
-			to it at construction if it implements get_next_sequence_point(). Otherwise destruction is a no-op.
+			to it at construction if it implements @c next_sequence_point(). Otherwise destruction is a no-op.
 
 			**Does not delete the object.**
 
@@ -247,9 +247,9 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 				// going to be applied then do a direct max -> max translation rather than
 				// allowing the arithmetic to overflow.
 				if constexpr (divider == 1 && std::is_same_v<LocalTimeScale, TargetTimeScale>) {
-					time_until_event_ = object_.get_next_sequence_point();
+					time_until_event_ = object_.next_sequence_point();
 				} else {
-					const auto time = object_.get_next_sequence_point();
+					const auto time = object_.next_sequence_point();
 					if(time == TargetTimeScale::max()) {
 						time_until_event_ = LocalTimeScale::max();
 					} else {
@@ -272,7 +272,7 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		bool did_flush_ = false;
 
 		template <typename S, typename = void> struct has_sequence_points : std::false_type {};
-		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().get_next_sequence_point()))> : std::true_type {};
+		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().next_sequence_point()))> : std::true_type {};
 
 		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::JustInTime;
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) {

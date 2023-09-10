@@ -395,7 +395,7 @@ bool Video::display_enabled() {
 	return public_state_.display_enable;
 }
 
-HalfCycles Video::get_next_sequence_point() {
+HalfCycles Video::next_sequence_point() {
 	// The next sequence point will be whenever display_enabled, vsync or hsync next changes.
 
 	// Sequence of events within a standard line:

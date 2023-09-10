@@ -575,7 +575,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 					video_.run_for(time_until_video_event_);
 					time_since_video_update_ -= time_until_video_event_;
-					time_until_video_event_ = video_.get_next_sequence_point();
+					time_until_video_event_ = video_.next_sequence_point();
 
 					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 				}
@@ -626,7 +626,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		forceinline void update_video() {
 			video_.run_for(time_since_video_update_.flush<HalfCycles>());
-			time_until_video_event_ = video_.get_next_sequence_point();
+			time_until_video_event_ = video_.next_sequence_point();
 		}
 
 		Inputs::Mouse &get_mouse() final {

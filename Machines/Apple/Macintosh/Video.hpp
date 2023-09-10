@@ -80,7 +80,7 @@ class Video {
 			@returns the amount of time until there is next a transition on the
 				vsync signal.
 		*/
-		HalfCycles get_next_sequence_point();
+		HalfCycles next_sequence_point();
 
 	private:
 		DeferredAudio &audio_;

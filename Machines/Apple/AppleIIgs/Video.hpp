@@ -60,7 +60,7 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		Outputs::Display::DisplayType get_display_type() const;
 
 		/// Determines the period until video might autonomously update its interrupt lines.
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 
 		/// Sets the Mega II interrupt enable state — 1/4-second and VBL interrupts are
 		/// generated here.

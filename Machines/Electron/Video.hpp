@@ -61,7 +61,7 @@ class VideoOutput {
 
 			This result may be mutated by calls to @c write.
 		*/
-		Cycles get_next_sequence_point();
+		Cycles next_sequence_point();
 
 		/*!
 			@returns a bit mask of all interrupts that have been triggered since the last call to get_interrupt().

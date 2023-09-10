@@ -191,7 +191,7 @@ void Video::advance(Cycles cycles) {
 	}
 }
 
-Cycles Video::get_next_sequence_point() const {
+Cycles Video::next_sequence_point() const {
 	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
 	const int row = cycles_into_frame_ / CyclesPerLine;
 

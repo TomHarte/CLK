@@ -38,7 +38,7 @@ class Nick {
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/// @returns The amount of time until the next potential change in interrupt output.
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 
 		/*!
 			@returns The current state of the interrupt line — @c true for active;

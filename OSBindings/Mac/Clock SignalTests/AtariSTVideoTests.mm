@@ -124,7 +124,7 @@ struct VideoTester {
 			display_enable = _video->display_enabled();
 			vsync = _video->vsync();
 			hsync = _video->hsync();
-			next_event = _video->get_next_sequence_point();
+			next_event = _video->next_sequence_point();
 		} else {
 			NSAssert(display_enable == _video->display_enabled(), @"Unannounced change in display enabled at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
 			NSAssert(vsync == _video->vsync(), @"Unannounced change in vsync at cycle %zu [%d before next sequence point]", c, next_event.as<int>());

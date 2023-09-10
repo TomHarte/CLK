@@ -315,7 +315,7 @@ void TimedInterruptSource::run_for(Cycles duration) {
 	update_channel(1, rate_ == InterruptRate::ToneGenerator1, cycles.as<int>());
 }
 
-Cycles TimedInterruptSource::get_next_sequence_point() const {
+Cycles TimedInterruptSource::next_sequence_point() const {
 	// Since both the 1kHz and 50Hz timers are integer dividers of the 1Hz timer, there's no need
 	// to factor that one in when determining the next sequence point for either of those.
 	switch(rate_) {

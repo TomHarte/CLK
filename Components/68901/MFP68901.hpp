@@ -40,7 +40,7 @@ class MFP68901: public ClockingHint::Source {
 		/// so that mechanism can also be used to reduce the quantity of calls into this class.
 		///
 		/// @discussion TODO, alas.
-		HalfCycles get_next_sequence_point();
+		HalfCycles next_sequence_point();
 
 		/// Sets the current level of either of the timer event inputs — TAI and TBI in datasheet terms.
 		void set_timer_event_input(int channel, bool value);
