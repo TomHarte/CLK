@@ -31,7 +31,7 @@ class GLU: public Outputs::Speaker::SampleSource {
 		uint8_t get_address_high();
 
 		void run_for(Cycles);
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 		bool get_interrupt_line();
 
 		// SampleSource.

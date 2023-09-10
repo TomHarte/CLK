@@ -68,7 +68,7 @@ class Video {
 			@returns the number of cycles until there is next a change in the hsync,
 			vsync or display_enable outputs.
 		*/
-		HalfCycles get_next_sequence_point();
+		HalfCycles next_sequence_point();
 
 		/*!
 			@returns @c true if the horizontal sync output is currently active; @c false otherwise.

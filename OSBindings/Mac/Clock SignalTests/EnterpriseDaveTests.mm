@@ -38,7 +38,7 @@
 	int toggles = 0;
 	int interrupts = 0;
 	uint8_t dividerState = _interruptSource->get_divider_state() & 1;
-	int nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
+	int nextSequencePoint = _interruptSource->next_sequence_point().as<int>();
 
 	for(int c = 0; c < 250000 * 5; c++) {
 		// Advance one cycle. Clock is 500,000 Hz.
@@ -55,7 +55,7 @@
 		const uint8_t newInterrupts = _interruptSource->get_new_interrupts();
 		if(newInterrupts) {
 			XCTAssertEqual(nextSequencePoint, 0);
-			nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
+			nextSequencePoint = _interruptSource->next_sequence_point().as<int>();
 
 			if(newInterrupts & 0x02) {
 				++interrupts;
@@ -66,7 +66,7 @@
 			}
 		}
 
-		XCTAssertEqual(nextSequencePoint, _interruptSource->get_next_sequence_point().as<int>(), @"At cycle %d", c);
+		XCTAssertEqual(nextSequencePoint, _interruptSource->next_sequence_point().as<int>(), @"At cycle %d", c);
 	}
 
 	XCTAssertEqual(toggles, int(expectedInterruptsPerSecond * 5.0));

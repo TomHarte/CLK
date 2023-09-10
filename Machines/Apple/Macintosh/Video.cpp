@@ -170,7 +170,7 @@ bool Video::vsync() {
 	return line >= 353 && line < 356;
 }
 
-HalfCycles Video::get_next_sequence_point() {
+HalfCycles Video::next_sequence_point() {
 	const auto line = (frame_position_ / line_length).as_integral();
 	if(line >= 353 && line < 356) {
 		// Currently in vsync, so get time until start of line 357,

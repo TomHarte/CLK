@@ -207,7 +207,7 @@ void MFP68901::run_for(HalfCycles time) {
 	}
 }
 
-HalfCycles MFP68901::get_next_sequence_point() {
+HalfCycles MFP68901::next_sequence_point() {
 	return HalfCycles::max();
 }
 

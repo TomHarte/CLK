@@ -108,7 +108,7 @@ template <Personality personality> class TMS9918: private Base<personality> {
 			If get_interrupt_line is true now of if get_interrupt_line would
 			never return true, returns HalfCycles::max().
 		*/
-		HalfCycles get_next_sequence_point() const;
+		HalfCycles next_sequence_point() const;
 
 		/*!
 			Returns the amount of time until the nominated line interrupt position is
