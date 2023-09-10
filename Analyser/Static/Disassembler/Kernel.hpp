@@ -14,7 +14,7 @@ namespace Analyser::Static::Disassembly {
 template <typename D, typename S> struct PartialDisassembly {
 	D disassembly;
 	std::vector<S> remaining_entry_points;
-	std::map<S, S> touched;	// Maps from start of range to end.
+	std::vector<S> implicit_entry_points;
 };
 
 template <typename D, typename S, typename Disassembler> D Disassemble(
@@ -50,18 +50,15 @@ template <typename D, typename S, typename Disassembler> D Disassemble(
 			break;
 		}
 
-		// Otherwise, find the first area between or just beyond a disassembled range
-		// that isn't yet disassembled and chuck it onto the list.
-		for(const auto &pair: partial_disassembly.touched) {
-			const auto end = pair.second;
-			if(partial_disassembly.touched.find(end) == partial_disassembly.touched.end()) {
-				if(address_mapper(end) < memory.size()) {
-					partial_disassembly.remaining_entry_points.push_back(end);
-				}
-
-				break;
-			}
-		}
+		// Otherwise, copy in the new 'implicit entry points' (i.e. all locations that are one after
+		// a disassembled region). There's a test above that'll ignore any which have already been
+		// disassembled from.
+		std::move(
+			partial_disassembly.implicit_entry_points.begin(),
+			partial_disassembly.implicit_entry_points.end(),
+			std::back_inserter(partial_disassembly.remaining_entry_points)
+		);
+		partial_disassembly.implicit_entry_points.clear();
 	}
 
 	return partial_disassembly.disassembly;
