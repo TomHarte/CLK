@@ -81,11 +81,16 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	for(NSString *file in [self testFiles]) {
 		NSData *data = [NSData dataWithContentsOfGZippedFile:file];
 		NSArray<NSDictionary *> *testsInFile = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+		NSUInteger successes = 0;
 		for(NSDictionary *test in testsInFile) {
 			// A single failure per instruction is fine.
 			if(![self applyDecodingTest:test]) {
 				break;
 			}
+			++successes;
+		}
+		if(successes != [testsInFile count]) {
+			NSLog(@"Failed after %ld successes", successes);
 		}
 	}
 }
