@@ -47,7 +47,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return fullPaths;
 }
 
-- (void)applyDecodingTest:(NSDictionary *)test {
+- (bool)applyDecodingTest:(NSDictionary *)test {
 	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 	Decoder decoder;
 
@@ -61,7 +61,20 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		}
 	}
 
-	NSLog(@"");
+	XCTAssert(
+		stage.first == [encoding count],
+		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu",
+			test[@"name"],
+			stage.first,
+			(unsigned long)[encoding count]
+	);
+
+	if(stage.first != [encoding count]) {
+		return false;
+	}
+	// TODO: form string version, compare.
+
+	return true;
 }
 
 - (void)testDecoding {
@@ -69,7 +82,10 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		NSData *data = [NSData dataWithContentsOfGZippedFile:file];
 		NSArray<NSDictionary *> *testsInFile = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 		for(NSDictionary *test in testsInFile) {
-			[self applyDecodingTest:test];
+			// A single failure per instruction is fine.
+			if(![self applyDecodingTest:test]) {
+				break;
+			}
 		}
 	}
 }
