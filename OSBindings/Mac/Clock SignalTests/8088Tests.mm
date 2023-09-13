@@ -16,6 +16,8 @@
 
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
+#include "../../../InstructionSets/x86/Decoder.hpp"
+
 namespace {
 
 // The tests themselves are not duplicated in this repository;
@@ -45,12 +47,30 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return fullPaths;
 }
 
+- (void)applyDecodingTest:(NSDictionary *)test {
+	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
+	Decoder decoder;
+
+	NSArray<NSNumber *> *encoding = test[@"bytes"];
+	std::pair<int, Decoder::InstructionT> stage;
+	for(NSNumber *number in encoding) {
+		const uint8_t next = [number intValue];
+		stage = decoder.decode(&next, 1);
+		if(stage.first > 0) {
+			break;
+		}
+	}
+
+	NSLog(@"");
+}
+
 - (void)testDecoding {
 	for(NSString *file in [self testFiles]) {
 		NSData *data = [NSData dataWithContentsOfGZippedFile:file];
-		NSArray<NSDictionary *> *array = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-		NSLog(@"%@", array);
-		break;
+		NSArray<NSDictionary *> *testsInFile = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+		for(NSDictionary *test in testsInFile) {
+			[self applyDecodingTest:test];
+		}
 	}
 }
 
