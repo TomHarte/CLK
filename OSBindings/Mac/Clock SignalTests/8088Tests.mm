@@ -51,16 +51,15 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 	Decoder decoder;
 
+	// Build a vector of the instruction; this makes manual step debugging easier.
 	NSArray<NSNumber *> *encoding = test[@"bytes"];
-	std::pair<int, Decoder::InstructionT> stage;
+	std::vector<uint8_t> data;
+	data.reserve(encoding.count);
 	for(NSNumber *number in encoding) {
-		const uint8_t next = [number intValue];
-		stage = decoder.decode(&next, 1);
-		if(stage.first > 0) {
-			break;
-		}
+		data.push_back([number intValue]);
 	}
 
+	const auto stage = decoder.decode(data.data(), data.size());
 	XCTAssert(
 		stage.first == [encoding count],
 		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu",
@@ -70,6 +69,9 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	);
 
 	if(stage.first != [encoding count]) {
+		// Repeat the decoding, for ease of debugging.
+		Decoder straw_man;
+		straw_man.decode(data.data(), data.size());
 		return false;
 	}
 	// TODO: form string version, compare.
