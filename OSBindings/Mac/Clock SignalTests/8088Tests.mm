@@ -80,13 +80,17 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 }
 
 - (void)testDecoding {
-	for(NSString *file in [self testFiles]) {
+	NSMutableSet<NSString *> *failures = [[NSMutableSet alloc] init];
+	NSArray<NSString *> *testFiles = [self testFiles];
+
+	for(NSString *file in testFiles) {
 		NSData *data = [NSData dataWithContentsOfGZippedFile:file];
 		NSArray<NSDictionary *> *testsInFile = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 		NSUInteger successes = 0;
 		for(NSDictionary *test in testsInFile) {
 			// A single failure per instruction is fine.
 			if(![self applyDecodingTest:test]) {
+				[failures addObject:file];
 				break;
 			}
 			++successes;
@@ -95,6 +99,8 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 			NSLog(@"Failed after %ld successes", successes);
 		}
 	}
+
+	NSLog(@"%ld failures out of %ld tests: %@", failures.count, testFiles.count, failures);
 }
 
 @end
