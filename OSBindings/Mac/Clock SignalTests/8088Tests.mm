@@ -69,11 +69,18 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	);
 
 	if(stage.first != [encoding count]) {
+		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
+		for(uint8_t byte: data) {
+			[hexInstruction appendFormat:@"%02x ", byte];
+		}
+		NSLog(@"Instruction was %@", hexInstruction);
+
 		// Repeat the decoding, for ease of debugging.
 		Decoder straw_man;
 		straw_man.decode(data.data(), data.size());
 		return false;
 	}
+
 	// TODO: form string version, compare.
 
 	return true;
