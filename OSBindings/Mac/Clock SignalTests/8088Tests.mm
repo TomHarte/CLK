@@ -100,7 +100,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		}
 	}
 
-	NSLog(@"%ld failures out of %ld tests: %@", failures.count, testFiles.count, failures);
+	NSLog(@"%ld failures out of %ld tests: %@", failures.count, testFiles.count, [[failures allObjects] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
 }
 
 @end
