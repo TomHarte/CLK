@@ -670,6 +670,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				};
 
 				sib_ = rm_table[rm];
+
+				// BP always gets a displacement.
+				if(rm == 6 && displacement_size_ == DataSize::None) {
+					displacement_size_ = DataSize::Word;
+				}
 			}
 		}
 
