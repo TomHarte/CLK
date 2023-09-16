@@ -66,16 +66,16 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		data.push_back([number intValue]);
 	}
 
-	const auto stage = decoder.decode(data.data(), data.size());
+	const auto decoded = decoder.decode(data.data(), data.size());
 	XCTAssert(
-		stage.first == [encoding count],
+		decoded.first == [encoding count],
 		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu",
 			test[@"name"],
-			stage.first,
+			decoded.first,
 			(unsigned long)[encoding count]
 	);
 
-	if(stage.first != [encoding count]) {
+	if(decoded.first != [encoding count]) {
 		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
 		for(uint8_t byte: data) {
 			[hexInstruction appendFormat:@"%02x ", byte];
@@ -88,7 +88,41 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		return false;
 	}
 
-	// TODO: form string version, compare.
+	// Form string version, compare.
+	std::string operation;
+
+	using Operation = InstructionSet::x86::Operation;
+	int operands = 0;
+	switch(decoded.second.operation) {
+		case Operation::SUB:	operation += "sub";	operands = 2;	break;
+		default: break;
+	}
+
+	auto to_string = [] (InstructionSet::x86::DataPointer pointer) {
+		std::string operand;
+
+		using Source = InstructionSet::x86::Source;
+		switch(pointer.source()) {
+		}
+		switch(pointer.index()) {
+			default: break;
+			case Source::eAX:	operand += "ax";	break;
+		}
+
+		return operand;
+	};
+
+	if(operands > 1) {
+		operation += " ";
+		operation += to_string(decoded.second.destination());
+		operation += ",";
+	}
+	if(operands > 0) {
+		operation += " ";
+		operation += to_string(decoded.second.source());
+	}
+
+	XCTAssertEqual([NSString stringWithUTF8String:operation.c_str()], test[@"name"]);
 
 	return true;
 }
