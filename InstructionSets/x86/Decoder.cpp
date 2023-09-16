@@ -640,6 +640,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				operation_ == Operation::LFS) {
 				undefined();
 			}
+		} else if(rm == 6 && mod == 0) {
+			// There's no BP direct; BP with ostensibly no offset means 'direct address' mode.
+			displacement_size_ = data_size(address_size_);
+			memreg = Source::DirectAddress;
 		} else {
 			const DataSize sizes[] = {
 				DataSize::None,
@@ -670,11 +674,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				};
 
 				sib_ = rm_table[rm];
-
-				// BP always gets a displacement.
-				if(rm == 6 && displacement_size_ == DataSize::None) {
-					displacement_size_ = DataSize::Word;
-				}
 			}
 		}
 
