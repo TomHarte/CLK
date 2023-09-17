@@ -76,12 +76,16 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 			(unsigned long)[encoding count]
 	);
 
-	if(decoded.first != [encoding count]) {
+	auto log_hex = [&] {
 		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
 		for(uint8_t byte: data) {
 			[hexInstruction appendFormat:@"%02x ", byte];
 		}
 		NSLog(@"Instruction was %@", hexInstruction);
+	};
+
+	if(decoded.first != [encoding count]) {
+		log_hex();
 
 		// Repeat the decoding, for ease of debugging.
 		Decoder straw_man;
@@ -154,6 +158,9 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 	XCTAssertEqualObjects(objcOperation, test[@"name"]);
 
 	if(![objcOperation isEqualToString:test[@"name"]]) {
+		log_hex();
+
+		// Repeat operand conversions, for debugging.
 		to_string(decoded.second.destination(), decoded.second);
 		to_string(decoded.second.source(), decoded.second);
 		return false;
