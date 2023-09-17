@@ -299,6 +299,9 @@
 		4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */; };
 		4B680CE423A555CA00451D43 /* 68000 Comparative Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B680CE323A555CA00451D43 /* 68000 Comparative Tests */; };
 		4B683B012727BE700043E541 /* Amiga Blitter Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B683B002727BE6F0043E541 /* Amiga Blitter Tests */; };
+		4B69DEB62AB79E4F0055B217 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69DEB52AB79E4F0055B217 /* Instruction.cpp */; };
+		4B69DEB72AB79E4F0055B217 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69DEB52AB79E4F0055B217 /* Instruction.cpp */; };
+		4B69DEB82AB79E4F0055B217 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69DEB52AB79E4F0055B217 /* Instruction.cpp */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
@@ -1441,6 +1444,7 @@
 		4B680CE323A555CA00451D43 /* 68000 Comparative Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Comparative Tests"; sourceTree = "<group>"; };
 		4B683B002727BE6F0043E541 /* Amiga Blitter Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Amiga Blitter Tests"; sourceTree = "<group>"; };
 		4B698D1A1FE768A100696C91 /* SampleSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SampleSource.hpp; sourceTree = "<group>"; };
+		4B69DEB52AB79E4F0055B217 /* Instruction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Instruction.cpp; sourceTree = "<group>"; };
 		4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tape.cpp; sourceTree = "<group>"; };
 		4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Tape.hpp; sourceTree = "<group>"; };
 		4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapeUEF.cpp; sourceTree = "<group>"; };
@@ -4917,9 +4921,10 @@
 			isa = PBXGroup;
 			children = (
 				4BEDA3B925B25563000C2DBD /* Decoder.cpp */,
+				4B69DEB52AB79E4F0055B217 /* Instruction.cpp */,
+				4BE3C69327C793EF000EAD28 /* DataPointerResolver.hpp */,
 				4BEDA3B825B25563000C2DBD /* Decoder.hpp */,
 				4BEDA3DB25B2588F000C2DBD /* Instruction.hpp */,
-				4BE3C69327C793EF000EAD28 /* DataPointerResolver.hpp */,
 				4BE3C69527CBC540000EAD28 /* Model.hpp */,
 			);
 			path = x86;
@@ -5762,6 +5767,7 @@
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
 				4B89452D201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AD61FAE9B130060FFFF /* MemoryFuzzer.cpp in Sources */,
+				4B69DEB82AB79E4F0055B217 /* Instruction.cpp in Sources */,
 				4B055AC21FAE9AE30060FFFF /* KeyboardMachine.cpp in Sources */,
 				4B89453B201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B055AEB1FAE9BA20060FFFF /* PartialMachineCycle.cpp in Sources */,
@@ -5880,6 +5886,7 @@
 				4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */,
 				4B9EC0EA26B384080060A31F /* Keyboard.cpp in Sources */,
 				4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */,
+				4B69DEB62AB79E4F0055B217 /* Instruction.cpp in Sources */,
 				4B7962A02819681F008130F9 /* Decoder.cpp in Sources */,
 				4BC57CD92436A62900FBC404 /* State.cpp in Sources */,
 				4BDA00E622E699B000AC3CD0 /* CSMachine.mm in Sources */,
@@ -6223,6 +6230,7 @@
 				4BDA7F8329C4EA28007A10A5 /* 6809OperationMapperTests.mm in Sources */,
 				4B778F5723A5F2BB0000D260 /* ZX8081.cpp in Sources */,
 				4B778F2F23A5F0B10000D260 /* ScanTarget.cpp in Sources */,
+				4B69DEB72AB79E4F0055B217 /* Instruction.cpp in Sources */,
 				4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */,
 				4B4F478A25367EDC004245B8 /* 65816AddressingTests.swift in Sources */,
 				4B778F0B23A5EC150000D260 /* TapeUEF.cpp in Sources */,

@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <type_traits>
 
 namespace InstructionSet::x86 {
@@ -428,6 +429,7 @@ enum class Source: uint8_t {
 	/// getter is used).
 	IndirectNoBase = Indirect - 1,
 };
+std::string to_string(Source, DataSize);
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE

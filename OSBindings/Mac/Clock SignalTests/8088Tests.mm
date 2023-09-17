@@ -115,31 +115,22 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 		std::string operand;
 
 		using Source = InstructionSet::x86::Source;
-		switch(pointer.source()) {
-			case Source::eAX:		return is_byte_operation ? "al" : "ax";
-			case Source::eCX:		return is_byte_operation ? "cl" : "cx";
-			case Source::eDX:		return is_byte_operation ? "dl" : "dx";
-			case Source::eBX:		return is_byte_operation ? "bl" : "bx";
-			case Source::eSPorAH:	return is_byte_operation ? "ah" : "sp";
-			case Source::eBPorCH:	return is_byte_operation ? "ch" : "bp";
-			case Source::eSIorDH:	return is_byte_operation ? "dh" : "si";
-			case Source::eDIorBH:	return is_byte_operation ? "bh" : "di";
-
-			case Source::ES:	return "es";
-			case Source::CS:	return "cs";
-			case Source::SS:	return "ss";
-			case Source::DS:	return "ds";
-			case Source::FS:	return "fd";
-			case Source::GS:	return "gs";
+		const Source source = pointer.source();
+		switch(source) {
+			// to_string handles all direct register names correctly.
+			default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
 
 			case Source::Immediate:
-				return (std::stringstream() <<  std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.operand() << 'h').str();
+				return (std::stringstream() << std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.operand() << 'h').str();
 
-			default: break;
-		}
-		switch(pointer.index()) {
-			default: break;
-			case Source::eAX:	operand += "ax";	break;
+			case Source::Indirect:
+				return (std::stringstream() <<
+					'[' <<
+						InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size())) << '+' <<
+						InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size())) << '+' <<
+						std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h' <<
+					']'
+				).str();
 		}
 
 		return operand;
@@ -163,6 +154,8 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 	XCTAssertEqualObjects(objcOperation, test[@"name"]);
 
 	if(![objcOperation isEqualToString:test[@"name"]]) {
+		to_string(decoded.second.destination(), decoded.second);
+		to_string(decoded.second.source(), decoded.second);
 		return false;
 	}
 
