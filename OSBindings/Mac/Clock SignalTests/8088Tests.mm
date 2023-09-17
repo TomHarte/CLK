@@ -12,6 +12,7 @@
 #include <cassert>
 
 #include <iostream>
+#include <sstream>
 #include <fstream>
 
 #include "NSData+dataWithContentsOfGZippedFile.h"
@@ -22,7 +23,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
 
 }
 
@@ -98,11 +99,32 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		default: break;
 	}
 
-	auto to_string = [] (InstructionSet::x86::DataPointer pointer) {
+	auto to_string = [] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
 		std::string operand;
 
 		using Source = InstructionSet::x86::Source;
+		const bool is_byte_operation = instruction.operation_size() == InstructionSet::x86::DataSize::Byte;
 		switch(pointer.source()) {
+			case Source::eAX:		return is_byte_operation ? "al" : "ax";
+			case Source::eCX:		return is_byte_operation ? "cl" : "cx";
+			case Source::eDX:		return is_byte_operation ? "dl" : "dx";
+			case Source::eBX:		return is_byte_operation ? "bl" : "bx";
+			case Source::eSPorAH:	return is_byte_operation ? "ah" : "sp";
+			case Source::eBPorCH:	return is_byte_operation ? "ch" : "bp";
+			case Source::eSIorDH:	return is_byte_operation ? "dh" : "si";
+			case Source::eDIorBH:	return is_byte_operation ? "bh" : "di";
+
+			case Source::ES:	return "es";
+			case Source::CS:	return "cs";
+			case Source::SS:	return "ss";
+			case Source::DS:	return "ds";
+			case Source::FS:	return "fd";
+			case Source::GS:	return "gs";
+
+			case Source::Immediate:
+				return (std::stringstream() <<  std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.operand() << 'h').str();
+
+			default: break;
 		}
 		switch(pointer.index()) {
 			default: break;
@@ -114,15 +136,15 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 
 	if(operands > 1) {
 		operation += " ";
-		operation += to_string(decoded.second.destination());
+		operation += to_string(decoded.second.destination(), decoded.second);
 		operation += ",";
 	}
 	if(operands > 0) {
 		operation += " ";
-		operation += to_string(decoded.second.source());
+		operation += to_string(decoded.second.source(), decoded.second);
 	}
 
-	XCTAssertEqual([NSString stringWithUTF8String:operation.c_str()], test[@"name"]);
+	XCTAssertEqualObjects([NSString stringWithUTF8String:operation.c_str()], test[@"name"]);
 
 	return true;
 }
