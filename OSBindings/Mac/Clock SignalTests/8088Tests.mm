@@ -91,19 +91,30 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 
 	// Form string version, compare.
 	std::string operation;
+	const bool is_byte_operation = decoded.second.operation_size() == InstructionSet::x86::DataSize::Byte;
 
-	using Operation = InstructionSet::x86::Operation;
+	using Repetition = InstructionSet::x86::Repetition;
+	switch(decoded.second.repetition()) {
+		case Repetition::None: break;
+		case Repetition::RepE: operation += "repe ";	break;
+		case Repetition::RepNE: operation += "repne ";	break;
+	}
+
 	int operands = 0;
+	using Operation = InstructionSet::x86::Operation;
 	switch(decoded.second.operation) {
 		case Operation::SUB:	operation += "sub";	operands = 2;	break;
+		case Operation::CMP:	operation += "cmp";	operands = 2;	break;
+		case Operation::CMPS:
+			operation += is_byte_operation? "cmpsb" : "cmpsw";
+		break;
 		default: break;
 	}
 
-	auto to_string = [] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
+	auto to_string = [is_byte_operation] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
 		std::string operand;
 
 		using Source = InstructionSet::x86::Source;
-		const bool is_byte_operation = instruction.operation_size() == InstructionSet::x86::DataSize::Byte;
 		switch(pointer.source()) {
 			case Source::eAX:		return is_byte_operation ? "al" : "ax";
 			case Source::eCX:		return is_byte_operation ? "cl" : "cx";
@@ -143,8 +154,17 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 		operation += " ";
 		operation += to_string(decoded.second.source(), decoded.second);
 	}
+	if(!operands) {
+		// These tests always leave a space after the operation.
+		operation += " ";
+	}
 
-	XCTAssertEqualObjects([NSString stringWithUTF8String:operation.c_str()], test[@"name"]);
+	const NSString *objcOperation = [NSString stringWithUTF8String:operation.c_str()];
+	XCTAssertEqualObjects(objcOperation, test[@"name"]);
+
+	if(![objcOperation isEqualToString:test[@"name"]]) {
+		return false;
+	}
 
 	return true;
 }
