@@ -113,8 +113,17 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 			// to_string handles all direct register names correctly.
 			default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
 
-			case Source::Immediate:
-				return (std::stringstream() << std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.operand() << 'h').str();
+			case Source::Immediate: {
+				auto stream = std::stringstream();
+				stream << std::setfill('0') << std::uppercase << std::hex;
+				if(instruction.operation_size() == InstructionSet::x86::DataSize::Byte) {
+					stream << std::setw(2) << uint8_t(instruction.operand());
+				} else {
+					stream << std::setw(4) << instruction.operand();
+				}
+				stream << 'h';
+				return stream.str();
+			}
 
 			case Source::Indirect:
 				return (std::stringstream() <<
@@ -151,8 +160,10 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		log_hex();
 
 		// Repeat operand conversions, for debugging.
-		to_string(decoded.second.destination(), decoded.second);
-		to_string(decoded.second.source(), decoded.second);
+		const auto destination = decoded.second.destination();
+		to_string(destination, decoded.second);
+		const auto source = decoded.second.source();
+		to_string(source, decoded.second);
 		return false;
 	}
 
