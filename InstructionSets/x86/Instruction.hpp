@@ -90,12 +90,12 @@ enum class Operation: uint8_t {
 	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
 
-	/// Far call; see the segment() and offset() fields.
-	CALLfar,
-	/// Relative call; see displacement().
-	CALLrel,
 	/// Near call.
 	CALLabs,
+	/// Relative call; see displacement().
+	CALLrel,
+	/// Far call; see the segment() and offset() fields.
+	CALLfar,
 	/// Return from interrupt.
 	IRET,
 	/// Near return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.

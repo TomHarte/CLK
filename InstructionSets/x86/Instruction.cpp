@@ -58,11 +58,18 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 		case Operation::JLE:	return "jle";
 		case Operation::JNLE:	return "jnle";
 
-		case Operation::IRET:	return "iret";
-		case Operation::JMPabs:	return "jmp word";
-		case Operation::JPCX:	return "jpcx";
-		case Operation::INT:	return "int";
-		case Operation::INTO:	return "into";
+		case Operation::CALLabs:	return "call word";
+		case Operation::CALLrel:	return "call";
+		case Operation::CALLfar:	return "callf word";
+		case Operation::IRET:		return "iret";
+		case Operation::RETfar:		return "retf";
+		case Operation::RETnear:	return "retn";
+		case Operation::JMPabs:		return "jmp word";
+		case Operation::JMPrel:		return "jmp";
+		case Operation::JMPfar:		return "jmpf word";
+		case Operation::JPCX:		return "jpcx";
+		case Operation::INT:		return "int";
+		case Operation::INTO:		return "into";
 
 		case Operation::LAHF:	return "lahf";
 		case Operation::SAHF:	return "sahf";
@@ -115,6 +122,8 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 
 		case Operation::XCHG:	return "xchg";
 		case Operation::XLAT:	return "xlat";
+
+		case Operation::Invalid:	return "invalid";
 
 		default:
 			assert(false);
