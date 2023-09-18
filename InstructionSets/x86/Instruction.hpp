@@ -340,6 +340,12 @@ enum class Operation: uint8_t {
 	MOVtoTr, MOVfromTr,
 };
 
+constexpr int num_operands(Operation operation) {
+	switch(operation) {
+		default:	return 2;
+	}
+}
+
 enum class DataSize: uint8_t {
 	Byte = 0,
 	Word = 1,
@@ -354,6 +360,7 @@ constexpr int byte_size(DataSize size) {
 constexpr int bit_size(DataSize size) {
 	return (8 << int(size)) & 0x3f;
 }
+std::string to_string(Operation, DataSize);
 
 enum class AddressSize: uint8_t {
 	b16 = 0,

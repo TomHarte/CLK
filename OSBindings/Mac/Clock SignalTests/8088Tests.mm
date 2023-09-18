@@ -23,7 +23,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
 }
 
@@ -37,7 +37,7 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 	NSSet *allowList = nil;
 //		[[NSSet alloc] initWithArray:@[
 //			@"00.json.gz",
-//		]];
+//		]];∂
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
 	files = [files filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *) {
@@ -88,14 +88,12 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 		log_hex();
 
 		// Repeat the decoding, for ease of debugging.
-		Decoder straw_man;
-		straw_man.decode(data.data(), data.size());
+		Decoder().decode(data.data(), data.size());
 		return false;
 	}
 
 	// Form string version, compare.
 	std::string operation;
-	const bool is_byte_operation = decoded.second.operation_size() == InstructionSet::x86::DataSize::Byte;
 
 	using Repetition = InstructionSet::x86::Repetition;
 	switch(decoded.second.repetition()) {
@@ -104,18 +102,9 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 		case Repetition::RepNE: operation += "repne ";	break;
 	}
 
-	int operands = 0;
-	using Operation = InstructionSet::x86::Operation;
-	switch(decoded.second.operation) {
-		case Operation::SUB:	operation += "sub";	operands = 2;	break;
-		case Operation::CMP:	operation += "cmp";	operands = 2;	break;
-		case Operation::CMPS:
-			operation += is_byte_operation? "cmpsb" : "cmpsw";
-		break;
-		default: break;
-	}
+	operation += to_string(decoded.second.operation, decoded.second.operation_size());
 
-	auto to_string = [is_byte_operation] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
+	auto to_string = [] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
 		std::string operand;
 
 		using Source = InstructionSet::x86::Source;
@@ -140,6 +129,7 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/808
 		return operand;
 	};
 
+	const int operands = num_operands(decoded.second.operation);
 	if(operands > 1) {
 		operation += " ";
 		operation += to_string(decoded.second.destination(), decoded.second);

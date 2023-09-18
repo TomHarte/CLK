@@ -10,6 +10,117 @@
 
 using namespace InstructionSet::x86;
 
+std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
+	switch(operation) {
+		case Operation::AAA:	return "aaa";
+		case Operation::AAD:	return "aad";
+		case Operation::AAM:	return "aam";
+		case Operation::AAS:	return "aas";
+		case Operation::DAA:	return "daa";
+		case Operation::DAS:	return "das";
+
+		case Operation::CBW:	return "cbw";
+		case Operation::CWD:	return "cwd";
+		case Operation::ESC:	return "esc";
+
+		case Operation::HLT:	return "hlt";
+		case Operation::WAIT:	return "wait";
+
+		case Operation::ADC:	return "adc";
+		case Operation::ADD:	return "add";
+		case Operation::SBB:	return "sbb";
+		case Operation::SUB:	return "sub";
+		case Operation::MUL:	return "mul";
+		case Operation::IMUL_1:	return "imul";
+		case Operation::DIV:	return "div";
+		case Operation::IDIV:	return "idiv";
+
+		case Operation::INC:	return "inc";
+		case Operation::DEC:	return "dec";
+
+		case Operation::IN:		return "in";
+		case Operation::OUT:	return "out";
+
+		case Operation::JO:		return "jo";
+		case Operation::JNO:	return "jno";
+		case Operation::JB:		return "jb";
+		case Operation::JNB:	return "jnb";
+		case Operation::JE:		return "jo";
+		case Operation::JNE:	return "jne";
+		case Operation::JBE:	return "jbe";
+		case Operation::JNBE:	return "jnbe";
+		case Operation::JS:		return "js";
+		case Operation::JNS:	return "jns";
+		case Operation::JP:		return "jp";
+		case Operation::JNP:	return "jnp";
+		case Operation::JL:		return "jl";
+		case Operation::JNL:	return "jnl";
+		case Operation::JLE:	return "jle";
+		case Operation::JNLE:	return "jnle";
+
+		case Operation::IRET:	return "iret";
+		case Operation::JMPabs:	return "jmp word";
+		case Operation::JPCX:	return "jpcx";
+		case Operation::INT:	return "int";
+		case Operation::INTO:	return "into";
+
+		case Operation::LAHF:	return "lahf";
+		case Operation::SAHF:	return "sahf";
+		case Operation::LDS:	return "lds";
+		case Operation::LES:	return "les";
+		case Operation::LEA:	return "lea";
+
+		case Operation::CMPS: {
+			constexpr char sizes[][6] = { "cmpsb", "cmpsw", "cmpsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::LODS:	return "lods";
+		case Operation::MOVS:	return "movs";
+		case Operation::SCAS:	return "scas";
+		case Operation::STOS:	return "stos";
+
+		case Operation::LOOP:	return "loop";
+		case Operation::LOOPE:	return "loope";
+		case Operation::LOOPNE:	return "loopne";
+
+		case Operation::MOV:	return "mov";
+		case Operation::NEG:	return "neg";
+		case Operation::NOT:	return "not";
+		case Operation::AND:	return "and";
+		case Operation::OR:		return "or";
+		case Operation::XOR:	return "xor";
+		case Operation::NOP:	return "nop";
+		case Operation::POP:	return "pop";
+		case Operation::POPF:	return "popf";
+		case Operation::PUSH:	return "push";
+		case Operation::PUSHF:	return "pushf";
+		case Operation::RCL:	return "rcl";
+		case Operation::RCR:	return "rcr";
+		case Operation::ROL:	return "rol";
+		case Operation::ROR:	return "ror";
+		case Operation::SAL:	return "sal";
+		case Operation::SAR:	return "sar";
+		case Operation::SHR:	return "shr";
+
+		case Operation::CLC:	return "clc";
+		case Operation::CLD:	return "cld";
+		case Operation::CLI:	return "cli";
+		case Operation::STC:	return "stc";
+		case Operation::STD:	return "std";
+		case Operation::STI:	return "sti";
+		case Operation::CMC:	return "cmc";
+
+		case Operation::CMP:	return "cmp";
+		case Operation::TEST:	return "test";
+
+		case Operation::XCHG:	return "xchg";
+		case Operation::XLAT:	return "xlat";
+
+		default:
+			assert(false);
+	}
+}
+
 std::string InstructionSet::x86::to_string(Source source, DataSize size) {
 	switch(source) {
 		case Source::eAX: {
