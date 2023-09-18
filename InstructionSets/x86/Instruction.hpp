@@ -343,6 +343,34 @@ enum class Operation: uint8_t {
 constexpr int num_operands(Operation operation) {
 	switch(operation) {
 		default:	return 2;
+
+		case Operation::JO:		case Operation::JNO:
+		case Operation::JB:		case Operation::JNB:
+		case Operation::JE:		case Operation::JNE:
+		case Operation::JBE:	case Operation::JNBE:
+		case Operation::JS:		case Operation::JNS:
+		case Operation::JP:		case Operation::JNP:
+		case Operation::JL:		case Operation::JNL:
+		case Operation::JLE:	case Operation::JNLE:
+		case Operation::INC:	case Operation::DEC:
+		case Operation::POP:	case Operation::PUSH:
+		case Operation::MUL:
+		case Operation::IDIV:
+		case Operation::RETfar:
+		case Operation::ESC:
+			return 1;
+
+		case Operation::CMPS:	case Operation::LODS:
+		case Operation::MOVS:	case Operation::SCAS:
+		case Operation::STOS:
+		case Operation::CLC:	case Operation::CLD:
+		case Operation::CLI:
+		case Operation::STC:	case Operation::STD:
+		case Operation::STI:
+		case Operation::CMC:
+		case Operation::LAHF:	case Operation::SAHF:
+		case Operation::Invalid:
+			return 0;
 	}
 }
 
