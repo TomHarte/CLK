@@ -104,7 +104,19 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 
 	operation += to_string(decoded.second.operation, decoded.second.operation_size());
 
-	auto to_string = [] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
+	auto to_hex = [] (int value, int digits) -> std::string {
+		auto stream = std::stringstream();
+		stream << std::setfill('0') << std::uppercase << std::hex << std::setw(digits);
+		switch(digits) {
+			case 2: stream << +uint8_t(value);	break;
+			case 4: stream << +uint16_t(value);	break;
+			default: stream << value;	break;
+		}
+		stream << 'h';
+		return stream.str();
+	};
+
+	auto to_string = [&to_hex] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
 		std::string operand;
 
 		using Source = InstructionSet::x86::Source;
@@ -113,17 +125,11 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 			// to_string handles all direct register names correctly.
 			default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
 
-			case Source::Immediate: {
-				auto stream = std::stringstream();
-				stream << std::setfill('0') << std::uppercase << std::hex;
-				if(instruction.operation_size() == InstructionSet::x86::DataSize::Byte) {
-					stream << std::setw(2) << uint8_t(instruction.operand());
-				} else {
-					stream << std::setw(4) << instruction.operand();
-				}
-				stream << 'h';
-				return stream.str();
-			}
+			case Source::Immediate:
+				return to_hex(
+					instruction.operand(),
+					instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4
+				);
 
 			case Source::Indirect:
 				return (std::stringstream() <<
@@ -139,18 +145,17 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	};
 
 	const int operands = num_operands(decoded.second.operation);
+	const bool displacement = has_displacement(decoded.second.operation);
+	operation += " ";
 	if(operands > 1) {
-		operation += " ";
 		operation += to_string(decoded.second.destination(), decoded.second);
-		operation += ",";
+		operation += ", ";
 	}
 	if(operands > 0) {
-		operation += " ";
 		operation += to_string(decoded.second.source(), decoded.second);
 	}
-	if(!operands) {
-		// These tests always leave a space after the operation.
-		operation += " ";
+	if(displacement) {
+		operation += to_hex(decoded.second.displacement(), 2);
 	}
 
 	const NSString *objcOperation = [NSString stringWithUTF8String:operation.c_str()];

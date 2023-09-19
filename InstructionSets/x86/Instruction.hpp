@@ -87,7 +87,7 @@ enum class Operation: uint8_t {
 	OUT,
 
 	// Various jumps; see the displacement to calculate targets.
-	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
+	JO,	JNO,	JB, JNB,	JZ, JNZ,	JBE, JNBE,
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
 
 	/// Near call.
@@ -340,18 +340,26 @@ enum class Operation: uint8_t {
 	MOVtoTr, MOVfromTr,
 };
 
-constexpr int num_operands(Operation operation) {
+constexpr bool has_displacement(Operation operation) {
 	switch(operation) {
-		default:	return 2;
+		default: return false;
 
 		case Operation::JO:		case Operation::JNO:
 		case Operation::JB:		case Operation::JNB:
-		case Operation::JE:		case Operation::JNE:
+		case Operation::JZ:		case Operation::JNZ:
 		case Operation::JBE:	case Operation::JNBE:
 		case Operation::JS:		case Operation::JNS:
 		case Operation::JP:		case Operation::JNP:
 		case Operation::JL:		case Operation::JNL:
 		case Operation::JLE:	case Operation::JNLE:
+			return true;
+	}
+}
+
+constexpr int num_operands(Operation operation) {
+	switch(operation) {
+		default:	return 2;
+
 		case Operation::INC:	case Operation::DEC:
 		case Operation::POP:	case Operation::PUSH:
 		case Operation::MUL:
@@ -360,6 +368,16 @@ constexpr int num_operands(Operation operation) {
 		case Operation::ESC:
 			return 1;
 
+		// Pedantically, these have an displacement rather than an operand.
+		case Operation::JO:		case Operation::JNO:
+		case Operation::JB:		case Operation::JNB:
+		case Operation::JZ:		case Operation::JNZ:
+		case Operation::JBE:	case Operation::JNBE:
+		case Operation::JS:		case Operation::JNS:
+		case Operation::JP:		case Operation::JNP:
+		case Operation::JL:		case Operation::JNL:
+		case Operation::JLE:	case Operation::JNLE:
+		// Genuine zero-operand instructions:
 		case Operation::CMPS:	case Operation::LODS:
 		case Operation::MOVS:	case Operation::SCAS:
 		case Operation::STOS:

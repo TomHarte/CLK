@@ -45,8 +45,8 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 		case Operation::JNO:	return "jno";
 		case Operation::JB:		return "jb";
 		case Operation::JNB:	return "jnb";
-		case Operation::JE:		return "jo";
-		case Operation::JNE:	return "jne";
+		case Operation::JZ:		return "jz";
+		case Operation::JNZ:	return "jnz";
 		case Operation::JBE:	return "jbe";
 		case Operation::JNBE:	return "jnbe";
 		case Operation::JS:		return "js";

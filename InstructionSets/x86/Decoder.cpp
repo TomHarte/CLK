@@ -261,8 +261,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x71: Displacement(JNO, DataSize::Byte);	break;
 			case 0x72: Displacement(JB, DataSize::Byte);	break;
 			case 0x73: Displacement(JNB, DataSize::Byte);	break;
-			case 0x74: Displacement(JE, DataSize::Byte);	break;
-			case 0x75: Displacement(JNE, DataSize::Byte);	break;
+			case 0x74: Displacement(JZ, DataSize::Byte);	break;
+			case 0x75: Displacement(JNZ, DataSize::Byte);	break;
 			case 0x76: Displacement(JBE, DataSize::Byte);	break;
 			case 0x77: Displacement(JNBE, DataSize::Byte);	break;
 			case 0x78: Displacement(JS, DataSize::Byte);	break;
@@ -497,8 +497,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x71: RequiresMin(i80386);	Displacement(JNO, data_size_);	break;
 			case 0x72: RequiresMin(i80386);	Displacement(JB, data_size_);	break;
 			case 0x73: RequiresMin(i80386);	Displacement(JNB, data_size_);	break;
-			case 0x74: RequiresMin(i80386);	Displacement(JE, data_size_);	break;
-			case 0x75: RequiresMin(i80386);	Displacement(JNE, data_size_);	break;
+			case 0x74: RequiresMin(i80386);	Displacement(JZ, data_size_);	break;
+			case 0x75: RequiresMin(i80386);	Displacement(JNZ, data_size_);	break;
 			case 0x76: RequiresMin(i80386);	Displacement(JBE, data_size_);	break;
 			case 0x77: RequiresMin(i80386);	Displacement(JNBE, data_size_);	break;
 			case 0x78: RequiresMin(i80386);	Displacement(JS, data_size_);	break;
