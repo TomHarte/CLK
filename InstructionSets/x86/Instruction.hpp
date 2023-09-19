@@ -344,14 +344,17 @@ constexpr bool has_displacement(Operation operation) {
 	switch(operation) {
 		default: return false;
 
-		case Operation::JO:		case Operation::JNO:
-		case Operation::JB:		case Operation::JNB:
-		case Operation::JZ:		case Operation::JNZ:
-		case Operation::JBE:	case Operation::JNBE:
-		case Operation::JS:		case Operation::JNS:
-		case Operation::JP:		case Operation::JNP:
-		case Operation::JL:		case Operation::JNL:
-		case Operation::JLE:	case Operation::JNLE:
+		case Operation::JO:			case Operation::JNO:
+		case Operation::JB:			case Operation::JNB:
+		case Operation::JZ:			case Operation::JNZ:
+		case Operation::JBE:		case Operation::JNBE:
+		case Operation::JS:			case Operation::JNS:
+		case Operation::JP:			case Operation::JNP:
+		case Operation::JL:			case Operation::JNL:
+		case Operation::JLE:		case Operation::JNLE:
+		case Operation::LOOPNE:		case Operation::LOOPE:
+		case Operation::LOOP:		case Operation::JPCX:
+		case Operation::CALLrel:	case Operation::JMPrel:
 			return true;
 	}
 }
@@ -379,6 +382,9 @@ constexpr int num_operands(Operation operation) {
 		case Operation::JP:		case Operation::JNP:
 		case Operation::JL:		case Operation::JNL:
 		case Operation::JLE:	case Operation::JNLE:
+		case Operation::LOOPNE:		case Operation::LOOPE:
+		case Operation::LOOP:		case Operation::JPCX:
+		case Operation::CALLrel:	case Operation::JMPrel:
 		// Genuine zero-operand instructions:
 		case Operation::CMPS:	case Operation::LODS:
 		case Operation::MOVS:	case Operation::SCAS:

@@ -98,7 +98,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	using Repetition = InstructionSet::x86::Repetition;
 	switch(decoded.second.repetition()) {
 		case Repetition::None: break;
-		case Repetition::RepE: operation += "repe ";	break;
+		case Repetition::RepE: operation += "rep ";	break;
 		case Repetition::RepNE: operation += "repne ";	break;
 	}
 
