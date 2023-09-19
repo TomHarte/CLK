@@ -406,7 +406,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xe0: Displacement(LOOPNE, DataSize::Byte);	break;
 			case 0xe1: Displacement(LOOPE, DataSize::Byte);		break;
 			case 0xe2: Displacement(LOOP, DataSize::Byte);		break;
-			case 0xe3: Displacement(JPCX, DataSize::Byte);		break;
+			case 0xe3: Displacement(JCXZ, DataSize::Byte);		break;
 
 			case 0xe4: RegAddr(IN, eAX, DataSize::Byte, DataSize::Byte);	break;
 			case 0xe5: RegAddr(IN, eAX, data_size_, DataSize::Byte);		break;
