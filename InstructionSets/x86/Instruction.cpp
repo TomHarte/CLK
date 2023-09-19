@@ -67,7 +67,7 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 		case Operation::JMPabs:		return "jmp word";
 		case Operation::JMPrel:		return "jmp";
 		case Operation::JMPfar:		return "jmpf word";
-		case Operation::JPCX:		return "jpcx";
+		case Operation::JCXZ:		return "jcxz";
 		case Operation::INT:		return "int";
 		case Operation::INTO:		return "into";
 

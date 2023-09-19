@@ -109,7 +109,7 @@ enum class Operation: uint8_t {
 	/// Far jump to the indicated segment and offset.
 	JMPfar,
 	/// Relative jump performed only if CX = 0; see the displacement.
-	JPCX,
+	JCXZ,
 	/// Generates a software interrupt of the level stated in the operand.
 	INT,
 	/// Generates a software interrupt of level 4 if overflow is set.
@@ -353,7 +353,7 @@ constexpr bool has_displacement(Operation operation) {
 		case Operation::JL:			case Operation::JNL:
 		case Operation::JLE:		case Operation::JNLE:
 		case Operation::LOOPNE:		case Operation::LOOPE:
-		case Operation::LOOP:		case Operation::JPCX:
+		case Operation::LOOP:		case Operation::JCXZ:
 		case Operation::CALLrel:	case Operation::JMPrel:
 			return true;
 	}
@@ -383,7 +383,7 @@ constexpr int num_operands(Operation operation) {
 		case Operation::JL:		case Operation::JNL:
 		case Operation::JLE:	case Operation::JNLE:
 		case Operation::LOOPNE:		case Operation::LOOPE:
-		case Operation::LOOP:		case Operation::JPCX:
+		case Operation::LOOP:		case Operation::JCXZ:
 		case Operation::CALLrel:	case Operation::JMPrel:
 		// Genuine zero-operand instructions:
 		case Operation::CMPS:	case Operation::LODS:
