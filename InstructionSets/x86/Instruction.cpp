@@ -81,10 +81,22 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 			constexpr char sizes[][6] = { "cmpsb", "cmpsw", "cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
-		case Operation::LODS:	return "lods";
-		case Operation::MOVS:	return "movs";
-		case Operation::SCAS:	return "scas";
-		case Operation::STOS:	return "stos";
+		case Operation::LODS: {
+			constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::MOVS: {
+			constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::SCAS: {
+			constexpr char sizes[][6] = { "scasb", "scasw", "scasd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::STOS: {
+			constexpr char sizes[][6] = { "stosb", "stosw", "stosd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
 
 		case Operation::LOOP:	return "loop";
 		case Operation::LOOPE:	return "loope";

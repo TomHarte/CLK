@@ -366,6 +366,8 @@ constexpr int num_operands(Operation operation) {
 		case Operation::IDIV:
 		case Operation::RETfar:
 		case Operation::ESC:
+		case Operation::AAM:	case Operation::AAD:
+		case Operation::INT:
 			return 1;
 
 		// Pedantically, these have an displacement rather than an operand.
@@ -387,6 +389,10 @@ constexpr int num_operands(Operation operation) {
 		case Operation::STI:
 		case Operation::CMC:
 		case Operation::LAHF:	case Operation::SAHF:
+		case Operation::AAA:	case Operation::AAS:
+		case Operation::DAA:	case Operation::DAS:
+		case Operation::CBW:	case Operation::CWD:
+		case Operation::INTO:
 		case Operation::Invalid:
 			return 0;
 	}
