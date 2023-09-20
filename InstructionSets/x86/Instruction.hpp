@@ -760,12 +760,12 @@ template<bool is_32bit> class Instruction {
 			return AddressSize(mem_exts_source_ >> 7);
 		}
 
-		/// @returns @c Source::DS if no segment override was found; the overridden segment otherwise.
+		/// @returns @c Source::None if no segment override was found; the overridden segment otherwise.
 		/// On x86 a segment override cannot modify the segment used as a destination in string instructions,
 		/// or that used by stack instructions, but this function does not spend the time necessary to provide
 		/// the correct default for those.
 		Source data_segment() const {
-			if(!has_length_extension()) return Source::DS;
+			if(!has_length_extension()) return Source::None;
 			return Source(
 				int(Source::ES) +
 				((length_extension() >> 1) & 7)

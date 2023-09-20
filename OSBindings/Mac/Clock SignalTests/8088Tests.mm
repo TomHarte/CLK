@@ -172,6 +172,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		log_hex();
 
 		// Repeat operand conversions, for debugging.
+		Decoder().decode(data.data(), data.size());
 		const auto destination = decoded.second.destination();
 		to_string(destination, decoded.second);
 		const auto source = decoded.second.source();

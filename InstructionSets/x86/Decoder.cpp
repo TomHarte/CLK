@@ -673,6 +673,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					ScaleIndexBase(0, Source::None, Source::eBX),
 				};
 
+				// TODO: unless overridden, BP and SP are always relative to ss; SI to ds; DI to es.
+				// Capture that.
+
 				sib_ = rm_table[rm];
 			}
 		}
