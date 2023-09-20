@@ -139,6 +139,13 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 						std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h' <<
 					']'
 				).str();
+
+			case Source::DirectAddress:
+				return (std::stringstream() <<
+					'[' <<
+					to_hex(instruction.operand(), 4) <<
+					']'
+				).str();
 		}
 
 		return operand;
