@@ -23,7 +23,7 @@ class NeskellTests: XCTestCase {
 
 				// Install the halt-forever trailer.
 				let targetAddress = UInt32(0x0600 + functionalTest.count)
-				let infiniteStop = Data([0x38, 0xb0, 0xff])	// i.e. SEC; BCS -2
+				let infiniteStop = Data([0x38, 0xb0, 0xfe])	// i.e. SEC; BCS -2
 				machine.setData(infiniteStop, atAddress: targetAddress)
 
 				while true {
