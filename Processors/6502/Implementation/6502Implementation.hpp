@@ -656,7 +656,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationTSX: flags_.set_nz(x_ = s_);	continue;
 
 					case OperationARR:
-						if(flags_.decimal) {
+						if(flags_.decimal && has_decimal_mode(personality)) {
 							a_ &= operand_;
 							uint8_t unshiftedA = a_;
 							a_ = uint8_t((a_ >> 1) | (flags_.carry << 7));
