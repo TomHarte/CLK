@@ -46,7 +46,15 @@ class NeskellTests: XCTestCase {
 		let stackStart = UInt32(0x101 + machine.value(for: .stackPointer))
 		let stackLength = UInt32(0x200 - stackStart)
 		let stackData = machine.data(atAddress: stackStart, length: stackLength)
-		XCTAssertEqual(stackData, Data(contents));
+
+		XCTAssertEqual(stackData.count, contents.count);
+		if stackData.count != contents.count {
+			return
+		}
+
+		for c in 0 ..< stackData.count {
+			XCTAssertEqual(stackData[c], contents[c], "Index \(c)")
+		}
 	}
 
 	func testAHX_TAS_SHX_SHY() {
