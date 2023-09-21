@@ -44,6 +44,10 @@ class NeskellTests: XCTestCase {
 	func testAHX_TAS_SHX_SHY() {
 		if let result = runTest(resource: "ahx_tas_shx_shy_test") {
 			XCTAssertEqual(result.value(for: .stackPointer), 0xf2)
+
+			let stackData = result.data(atAddress: 0x1f3, length: 0x200 - 0x1f3)
+			XCTAssertEqual(stackData,
+				Data([0x01, 0xC9, 0x01, 0x80, 0xC0, 0xE0, 0x01, 0x55, 0x80, 0x80, 0x01, 0x34, 0x10]));
 		}
 	}
 }

@@ -40,6 +40,7 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 - (nonnull instancetype)initWithProcessor:(CSTestMachine6502Processor)processor;
 
 - (void)setData:(nonnull NSData *)data atAddress:(uint32_t)startAddress;
+- (nonnull NSData *)dataAtAddress:(uint32_t)address length:(uint32_t)length;
 - (void)runForNumberOfCycles:(int)cycles;
 - (void)runForNumberOfInstructions:(int)instructions;
 
