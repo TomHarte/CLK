@@ -44,6 +44,9 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 	if(self) {
 		switch(processor) {
+			case CSTestMachine6502ProcessorNES6502:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TNES6502, hasCIAs);
+			break;
 			case CSTestMachine6502Processor6502:
 				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::T6502, hasCIAs);
 			break;

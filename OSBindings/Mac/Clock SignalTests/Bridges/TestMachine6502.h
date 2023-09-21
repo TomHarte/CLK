@@ -24,6 +24,7 @@ typedef NS_ENUM(NSInteger, CSTestMachine6502Register) {
 };
 
 typedef NS_ENUM(NSInteger, CSTestMachine6502Processor) {
+	CSTestMachine6502ProcessorNES6502,
 	CSTestMachine6502Processor6502,
 	CSTestMachine6502Processor65C02,
 	CSTestMachine6502Processor65816
