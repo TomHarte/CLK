@@ -9,6 +9,24 @@
 /* Begin PBXBuildFile section */
 		423BDC4A2AB24699008E37B6 /* 8088Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 423BDC492AB24699008E37B6 /* 8088Tests.mm */; };
 		4281683A2A37AFB4008ECD27 /* DispatcherTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 428168392A37AFB4008ECD27 /* DispatcherTests.mm */; };
+		42A5E80C2ABBE04600A0DD5D /* NeskellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A5E80B2ABBE04600A0DD5D /* NeskellTests.swift */; };
+		42A5E8442ABBE16F00A0DD5D /* illegal_rmw_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8332ABBE16F00A0DD5D /* illegal_rmw_test.bin */; };
+		42A5E8452ABBE16F00A0DD5D /* arr_bcd_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8342ABBE16F00A0DD5D /* arr_bcd_test.bin */; };
+		42A5E8462ABBE16F00A0DD5D /* add_sub_cvzn_flag_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8352ABBE16F00A0DD5D /* add_sub_cvzn_flag_test.bin */; };
+		42A5E8472ABBE16F00A0DD5D /* ahx_tas_shx_shy_pagecross_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8362ABBE16F00A0DD5D /* ahx_tas_shx_shy_pagecross_test.bin */; };
+		42A5E8482ABBE16F00A0DD5D /* sax_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8372ABBE16F00A0DD5D /* sax_test.bin */; };
+		42A5E8492ABBE16F00A0DD5D /* illegal_xb_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8382ABBE16F00A0DD5D /* illegal_xb_test.bin */; };
+		42A5E84A2ABBE16F00A0DD5D /* full_bcd_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8392ABBE16F00A0DD5D /* full_bcd_test.bin */; };
+		42A5E84B2ABBE16F00A0DD5D /* kil_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E83A2ABBE16F00A0DD5D /* kil_test.bin */; };
+		42A5E84C2ABBE16F00A0DD5D /* ahx_tas_shx_shy_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E83B2ABBE16F00A0DD5D /* ahx_tas_shx_shy_test.bin */; };
+		42A5E84D2ABBE16F00A0DD5D /* brk_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E83C2ABBE16F00A0DD5D /* brk_test.bin */; };
+		42A5E84E2ABBE16F00A0DD5D /* illegal_bcd_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E83D2ABBE16F00A0DD5D /* illegal_bcd_test.bin */; };
+		42A5E84F2ABBE16F00A0DD5D /* branch_pagecross_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E83E2ABBE16F00A0DD5D /* branch_pagecross_test.bin */; };
+		42A5E8502ABBE16F00A0DD5D /* jump_bug_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E83F2ABBE16F00A0DD5D /* jump_bug_test.bin */; };
+		42A5E8512ABBE16F00A0DD5D /* bcd_add_sub_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8402ABBE16F00A0DD5D /* bcd_add_sub_test.bin */; };
+		42A5E8522ABBE16F00A0DD5D /* nop_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8412ABBE16F00A0DD5D /* nop_test.bin */; };
+		42A5E8532ABBE16F00A0DD5D /* lax_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8422ABBE16F00A0DD5D /* lax_test.bin */; };
+		42A5E8542ABBE16F00A0DD5D /* branch_backwards_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8432ABBE16F00A0DD5D /* branch_backwards_test.bin */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -1109,6 +1127,24 @@
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
+		42A5E80B2ABBE04600A0DD5D /* NeskellTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NeskellTests.swift; sourceTree = "<group>"; };
+		42A5E8332ABBE16F00A0DD5D /* illegal_rmw_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = illegal_rmw_test.bin; sourceTree = "<group>"; };
+		42A5E8342ABBE16F00A0DD5D /* arr_bcd_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = arr_bcd_test.bin; sourceTree = "<group>"; };
+		42A5E8352ABBE16F00A0DD5D /* add_sub_cvzn_flag_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = add_sub_cvzn_flag_test.bin; sourceTree = "<group>"; };
+		42A5E8362ABBE16F00A0DD5D /* ahx_tas_shx_shy_pagecross_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ahx_tas_shx_shy_pagecross_test.bin; sourceTree = "<group>"; };
+		42A5E8372ABBE16F00A0DD5D /* sax_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = sax_test.bin; sourceTree = "<group>"; };
+		42A5E8382ABBE16F00A0DD5D /* illegal_xb_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = illegal_xb_test.bin; sourceTree = "<group>"; };
+		42A5E8392ABBE16F00A0DD5D /* full_bcd_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = full_bcd_test.bin; sourceTree = "<group>"; };
+		42A5E83A2ABBE16F00A0DD5D /* kil_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = kil_test.bin; sourceTree = "<group>"; };
+		42A5E83B2ABBE16F00A0DD5D /* ahx_tas_shx_shy_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ahx_tas_shx_shy_test.bin; sourceTree = "<group>"; };
+		42A5E83C2ABBE16F00A0DD5D /* brk_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = brk_test.bin; sourceTree = "<group>"; };
+		42A5E83D2ABBE16F00A0DD5D /* illegal_bcd_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = illegal_bcd_test.bin; sourceTree = "<group>"; };
+		42A5E83E2ABBE16F00A0DD5D /* branch_pagecross_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = branch_pagecross_test.bin; sourceTree = "<group>"; };
+		42A5E83F2ABBE16F00A0DD5D /* jump_bug_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = jump_bug_test.bin; sourceTree = "<group>"; };
+		42A5E8402ABBE16F00A0DD5D /* bcd_add_sub_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = bcd_add_sub_test.bin; sourceTree = "<group>"; };
+		42A5E8412ABBE16F00A0DD5D /* nop_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = nop_test.bin; sourceTree = "<group>"; };
+		42A5E8422ABBE16F00A0DD5D /* lax_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = lax_test.bin; sourceTree = "<group>"; };
+		42A5E8432ABBE16F00A0DD5D /* branch_backwards_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = branch_backwards_test.bin; sourceTree = "<group>"; };
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
@@ -2283,6 +2319,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		42A5E8322ABBE16F00A0DD5D /* Neskell Tests */ = {
+			isa = PBXGroup;
+			children = (
+				42A5E8332ABBE16F00A0DD5D /* illegal_rmw_test.bin */,
+				42A5E8342ABBE16F00A0DD5D /* arr_bcd_test.bin */,
+				42A5E8352ABBE16F00A0DD5D /* add_sub_cvzn_flag_test.bin */,
+				42A5E8362ABBE16F00A0DD5D /* ahx_tas_shx_shy_pagecross_test.bin */,
+				42A5E8372ABBE16F00A0DD5D /* sax_test.bin */,
+				42A5E8382ABBE16F00A0DD5D /* illegal_xb_test.bin */,
+				42A5E8392ABBE16F00A0DD5D /* full_bcd_test.bin */,
+				42A5E83A2ABBE16F00A0DD5D /* kil_test.bin */,
+				42A5E83B2ABBE16F00A0DD5D /* ahx_tas_shx_shy_test.bin */,
+				42A5E83C2ABBE16F00A0DD5D /* brk_test.bin */,
+				42A5E83D2ABBE16F00A0DD5D /* illegal_bcd_test.bin */,
+				42A5E83E2ABBE16F00A0DD5D /* branch_pagecross_test.bin */,
+				42A5E83F2ABBE16F00A0DD5D /* jump_bug_test.bin */,
+				42A5E8402ABBE16F00A0DD5D /* bcd_add_sub_test.bin */,
+				42A5E8412ABBE16F00A0DD5D /* nop_test.bin */,
+				42A5E8422ABBE16F00A0DD5D /* lax_test.bin */,
+				42A5E8432ABBE16F00A0DD5D /* branch_backwards_test.bin */,
+			);
+			path = "Neskell Tests";
+			sourceTree = "<group>";
+		};
 		42AD552D2A0C4D5000ACE410 /* 68000 */ = {
 			isa = PBXGroup;
 			children = (
@@ -2502,14 +2562,14 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4BBB77DC2867EBB300D335A1 /* IIgs Memory Map */,
-				4B7C7A06282C3DED002D6C0B /* flamewing 68000 BCD tests */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B75F97A280D7C7700121055 /* 68000 Decoding */,
 				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4BB0CAB127E51D2A00672A88 /* dingusdev PowerPC tests */,
+				4B7C7A06282C3DED002D6C0B /* flamewing 68000 BCD tests */,
+				4BBB77DC2867EBB300D335A1 /* IIgs Memory Map */,
 				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
 				4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */,
 				4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */,
@@ -2521,6 +2581,7 @@
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4B4F475B2533EA64004245B8 /* jeek816 */,
 				4B8DF5392550D91400F3433C /* krom 65816 */,
+				42A5E8322ABBE16F00A0DD5D /* Neskell Tests */,
 				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B9F11C72272375400701480 /* QL Startup */,
 				4B85322B227793CA00F26553 /* TOS Startup */,
@@ -4332,6 +4393,7 @@
 				4BBF49AE1ED2880200AB3669 /* FUSETests.swift */,
 				4B4F477B253530B7004245B8 /* Jeek816Tests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
+				42A5E80B2ABBE04600A0DD5D /* NeskellTests.swift */,
 				4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */,
@@ -5176,6 +5238,7 @@
 				4BB2998A1B587D8400A49093 /* lseix in Resources */,
 				4BB2994E1B587D8400A49093 /* dexn in Resources */,
 				4BB299971B587D8400A49093 /* nopa in Resources */,
+				42A5E84C2ABBE16F00A0DD5D /* ahx_tas_shx_shy_test.bin in Resources */,
 				4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */,
 				4BEDA3BE25B25563000C2DBD /* README.md in Resources */,
 				4BFCA1291ECBE7A700AC40C1 /* zexall.com in Resources */,
@@ -5183,6 +5246,7 @@
 				4BB299411B587D8400A49093 /* cpyb in Resources */,
 				4BB299A61B587D8400A49093 /* phan in Resources */,
 				4B8DF6352550D91600F3433C /* CPUTRN-trace_compare.log in Resources */,
+				42A5E8492ABBE16F00A0DD5D /* illegal_xb_test.bin in Resources */,
 				4BB299D91B587D8400A49093 /* staix in Resources */,
 				4BB299EA1B587D8400A49093 /* trap14 in Resources */,
 				4BB2990F1B587D8400A49093 /* asoiy in Resources */,
@@ -5215,6 +5279,7 @@
 				4BB299881B587D8400A49093 /* lseax in Resources */,
 				4BB299B91B587D8400A49093 /* rorz in Resources */,
 				4BB299F61B587D8400A49093 /* tsxn in Resources */,
+				42A5E8502ABBE16F00A0DD5D /* jump_bug_test.bin in Resources */,
 				4B8DF6682550D91600F3433C /* CPUSBC.sfc in Resources */,
 				4BB298F11B587D8400A49093 /*  start in Resources */,
 				4BDA00DD22E622C200AC3CD0 /* ROMImages in Resources */,
@@ -5232,6 +5297,7 @@
 				4BB299BE1B587D8400A49093 /* rraix in Resources */,
 				4BB299E41B587D8400A49093 /* tayn in Resources */,
 				4BB299CD1B587D8400A49093 /* sbxb in Resources */,
+				42A5E8462ABBE16F00A0DD5D /* add_sub_cvzn_flag_test.bin in Resources */,
 				4BB299801B587D8400A49093 /* ldxzy in Resources */,
 				4BB2995A1B587D8400A49093 /* icr01 in Resources */,
 				4BB299751B587D8400A49093 /* ldaax in Resources */,
@@ -5252,8 +5318,10 @@
 				4BB299CF1B587D8400A49093 /* sedn in Resources */,
 				4BB299D01B587D8400A49093 /* sein in Resources */,
 				4BB299151B587D8400A49093 /* axszy in Resources */,
+				42A5E84D2ABBE16F00A0DD5D /* brk_test.bin in Resources */,
 				4BB2994D1B587D8400A49093 /* deczx in Resources */,
 				4B8DF63A2550D91600F3433C /* CPUBRA.sfc in Resources */,
+				42A5E8452ABBE16F00A0DD5D /* arr_bcd_test.bin in Resources */,
 				4BB299B11B587D8400A49093 /* rola in Resources */,
 				4BB299CE1B587D8400A49093 /* secn in Resources */,
 				4BB298F31B587D8400A49093 /* adcax in Resources */,
@@ -5270,6 +5338,7 @@
 				4BB2995C1B587D8400A49093 /* inca in Resources */,
 				4BB2994C1B587D8400A49093 /* decz in Resources */,
 				4BB299511B587D8400A49093 /* eorax in Resources */,
+				42A5E8472ABBE16F00A0DD5D /* ahx_tas_shx_shy_pagecross_test.bin in Resources */,
 				4BB299A11B587D8400A49093 /* orab in Resources */,
 				4BB298F81B587D8400A49093 /* adcz in Resources */,
 				4B8DF6D02550D91700F3433C /* CPUPSR.sfc in Resources */,
@@ -5278,6 +5347,7 @@
 				4BB299871B587D8400A49093 /* lsea in Resources */,
 				4BB298F21B587D8400A49093 /* adca in Resources */,
 				4BB299391B587D8400A49093 /* cntdef in Resources */,
+				42A5E8442ABBE16F00A0DD5D /* illegal_rmw_test.bin in Resources */,
 				4BB299591B587D8400A49093 /* flipos in Resources */,
 				4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */,
 				4BB2998F1B587D8400A49093 /* lsrax in Resources */,
@@ -5286,6 +5356,7 @@
 				4BB2993A1B587D8400A49093 /* cnto2 in Resources */,
 				4BB298FA1B587D8400A49093 /* alrb in Resources */,
 				4BB299C71B587D8400A49093 /* sbcb in Resources */,
+				42A5E84A2ABBE16F00A0DD5D /* full_bcd_test.bin in Resources */,
 				4BB299D41B587D8400A49093 /* shxay in Resources */,
 				4BB299F71B587D8400A49093 /* txan in Resources */,
 				4BB299AB1B587D8400A49093 /* rlaax in Resources */,
@@ -5295,6 +5366,7 @@
 				4BB299381B587D8400A49093 /* cmpzx in Resources */,
 				4B8DF6A02550D91700F3433C /* readme.md in Resources */,
 				4B8DF6A62550D91700F3433C /* CPUAND.sfc in Resources */,
+				42A5E84E2ABBE16F00A0DD5D /* illegal_bcd_test.bin in Resources */,
 				4BB2997F1B587D8400A49093 /* ldxz in Resources */,
 				4BB2992D1B587D8400A49093 /* clcn in Resources */,
 				4BB299E01B587D8400A49093 /* stya in Resources */,
@@ -5354,6 +5426,7 @@
 				4BB299EF1B587D8400A49093 /* trap3 in Resources */,
 				4BB299D31B587D8400A49093 /* shsay in Resources */,
 				4BB299AE1B587D8400A49093 /* rlaiy in Resources */,
+				42A5E84F2ABBE16F00A0DD5D /* branch_pagecross_test.bin in Resources */,
 				4BB299181B587D8400A49093 /* beqr in Resources */,
 				4BB299311B587D8400A49093 /* cmpa in Resources */,
 				4B8DF6282550D91600F3433C /* CPUDEC-trace_compare.log in Resources */,
@@ -5376,6 +5449,7 @@
 				4B670AA12401CB8400D4E002 /* z80doc.tap in Resources */,
 				4BB299941B587D8400A49093 /* mmu in Resources */,
 				4BB299E11B587D8400A49093 /* styz in Resources */,
+				42A5E8532ABBE16F00A0DD5D /* lax_test.bin in Resources */,
 				4B8DF6812550D91700F3433C /* CPULDR.sfc in Resources */,
 				4BB299BA1B587D8400A49093 /* rorzx in Resources */,
 				4B8DF6512550D91600F3433C /* CPURET.sfc in Resources */,
@@ -5383,6 +5457,7 @@
 				4BB299AC1B587D8400A49093 /* rlaay in Resources */,
 				4BB299131B587D8400A49093 /* axsix in Resources */,
 				4BB299781B587D8400A49093 /* ldaix in Resources */,
+				42A5E8542ABBE16F00A0DD5D /* branch_backwards_test.bin in Resources */,
 				4B44EBF71DC9883B00A7820C /* 6502_functional_test.bin in Resources */,
 				4BB299291B587D8400A49093 /* cia2pb7 in Resources */,
 				4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */,
@@ -5394,6 +5469,7 @@
 				4B8DF6312550D91600F3433C /* CPUSBC-trace_compare.log in Resources */,
 				4BB299011B587D8400A49093 /* andiy in Resources */,
 				4BB2992B1B587D8400A49093 /* cia2tb in Resources */,
+				42A5E8512ABBE16F00A0DD5D /* bcd_add_sub_test.bin in Resources */,
 				4BB299221B587D8400A49093 /* cia1pb6 in Resources */,
 				4BB299F41B587D8400A49093 /* trap8 in Resources */,
 				4BB2996C1B587D8400A49093 /* jsrw in Resources */,
@@ -5454,6 +5530,7 @@
 				4B8DF6292550D91600F3433C /* CPUAND-trace_compare.log in Resources */,
 				4BB299571B587D8400A49093 /* eorzx in Resources */,
 				4BB299701B587D8400A49093 /* laxix in Resources */,
+				42A5E84B2ABBE16F00A0DD5D /* kil_test.bin in Resources */,
 				4B8DF6372550D91600F3433C /* CPUADC-trace_compare.log in Resources */,
 				4BB299441B587D8400A49093 /* dcmax in Resources */,
 				4BB2996F1B587D8400A49093 /* laxay in Resources */,
@@ -5483,6 +5560,7 @@
 				4BB299DF1B587D8400A49093 /* stxzy in Resources */,
 				4B8DF67F2550D91700F3433C /* CPUASL.sfc in Resources */,
 				4BB299231B587D8400A49093 /* cia1pb7 in Resources */,
+				42A5E8522ABBE16F00A0DD5D /* nop_test.bin in Resources */,
 				4BB2998D1B587D8400A49093 /* lsezx in Resources */,
 				4BB299811B587D8400A49093 /* ldya in Resources */,
 				4BB299991B587D8400A49093 /* nopb in Resources */,
@@ -5503,6 +5581,7 @@
 				4BB2996D1B587D8400A49093 /* lasay in Resources */,
 				4BB299421B587D8400A49093 /* cpyz in Resources */,
 				4B8DF6B72550D91700F3433C /* CPUADC.sfc in Resources */,
+				42A5E8482ABBE16F00A0DD5D /* sax_test.bin in Resources */,
 				4B8DF6222550D91600F3433C /* CPULSR-trace_compare.log in Resources */,
 				4B680CE423A555CA00451D43 /* 68000 Comparative Tests in Resources */,
 				4BB299DE1B587D8400A49093 /* stxz in Resources */,
@@ -6239,6 +6318,7 @@
 				4B778F4723A5F1DD0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B778F1923A5ED1B0000D260 /* 6502Storage.cpp in Sources */,
 				4B7752A828217E110073E2C5 /* Nick.cpp in Sources */,
+				42A5E80C2ABBE04600A0DD5D /* NeskellTests.swift in Sources */,
 				4B7752AE28217E830073E2C5 /* 2MG.cpp in Sources */,
 				4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */,
 				4B778F1E23A5EDC00000D260 /* DriveSpeedAccumulator.cpp in Sources */,

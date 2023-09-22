@@ -44,6 +44,9 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 	if(self) {
 		switch(processor) {
+			case CSTestMachine6502ProcessorNES6502:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TNES6502, hasCIAs);
+			break;
 			case CSTestMachine6502Processor6502:
 				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::T6502, hasCIAs);
 			break;
@@ -88,6 +91,12 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 - (void)setData:(NSData *)data atAddress:(uint32_t)startAddress {
 	_processor->set_data_at_address(startAddress, data.length, (const uint8_t *)data.bytes);
+}
+
+- (nonnull NSData *)dataAtAddress:(uint32_t)address length:(uint32_t)length {
+	NSMutableData *data = [[NSMutableData alloc] initWithLength:length];
+	_processor->get_data_at_address(address, length, (uint8_t *)data.mutableBytes);
+	return data;
 }
 
 - (BOOL)isJammed {
