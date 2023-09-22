@@ -629,10 +629,11 @@ class DataPointer {
 		/// @returns The default segment to use for this access.
 		constexpr Source default_segment() const {
 			switch(source_) {
-				default:	return Source::None;
+				default:
+				case Source::IndirectNoBase:
+					return Source::None;
 
 				case Source::Indirect:
-				case Source::IndirectNoBase:
 					switch(base()) {
 						default:			return Source::DS;
 						case Source::eBP:

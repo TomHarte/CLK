@@ -153,10 +153,10 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 					stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size()));
 					stream << '+' << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
 					if(instruction.offset()) {
-						stream << '+' << std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h';
+						stream << '+' << to_hex(instruction.offset(), 4);
 					}
 				} else {
-					stream << to_hex(instruction.operand(), 4);
+					stream << to_hex(instruction.offset(), 4);
 				}
 				stream << ']';
 				return stream.str();
