@@ -131,14 +131,25 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 					instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4
 				);
 
-			case Source::Indirect:
-				return (std::stringstream() <<
-					'[' <<
-						InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size())) << '+' <<
-						InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size())) << '+' <<
-						std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h' <<
-					']'
-				).str();
+			case Source::Indirect: {
+				std::stringstream stream;
+
+				Source segment = Source::None;
+				switch(instruction.data_segment()) {
+					default: 			segment = instruction.data_segment();	break;
+					case Source::None:	segment = pointer.default_segment();	break;
+				}
+				if(segment != Source::None && segment != Source::DS) {
+					stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+				}
+
+				stream << '[';
+				stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size())) << '+';
+				stream << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size())) << '+';
+				stream << std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h';
+				stream << ']';
+				return stream.str();
+			}
 
 			case Source::DirectAddress:
 				return (std::stringstream() <<

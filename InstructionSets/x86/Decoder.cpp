@@ -663,18 +663,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				// Classic 16-bit decoding: mode picks a displacement size,
 				// and a few fixed index+base pairs are defined.
 				constexpr ScaleIndexBase rm_table[8] = {
-					ScaleIndexBase(0, Source::eBX, Source::eSI),
-					ScaleIndexBase(0, Source::eBX, Source::eDI),
-					ScaleIndexBase(0, Source::eBP, Source::eSI),
-					ScaleIndexBase(0, Source::eBP, Source::eDI),
-					ScaleIndexBase(0, Source::None, Source::eSI),
-					ScaleIndexBase(0, Source::None, Source::eDI),
-					ScaleIndexBase(0, Source::None, Source::eBP),
-					ScaleIndexBase(0, Source::None, Source::eBX),
+					ScaleIndexBase(0, Source::eSI, Source::eBX),
+					ScaleIndexBase(0, Source::eDI, Source::eBX),
+					ScaleIndexBase(0, Source::eSI, Source::eBP),
+					ScaleIndexBase(0, Source::eDI, Source::eBP),
+					ScaleIndexBase(0, Source::eSI, Source::None),
+					ScaleIndexBase(0, Source::eDI, Source::None),
+					ScaleIndexBase(0, Source::eBP, Source::None),
+					ScaleIndexBase(0, Source::eBX, Source::None),
 				};
-
-				// TODO: unless overridden, BP and SP are always relative to ss; SI to ds; DI to es.
-				// Capture that.
 
 				sib_ = rm_table[rm];
 			}

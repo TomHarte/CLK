@@ -623,6 +623,22 @@ class DataPointer {
 			return sib_.index();
 		}
 
+		/// @returns The default segment to use for this access.
+		constexpr Source default_segment() const {
+			switch(source_) {
+				default:	return Source::None;
+
+				case Source::Indirect:
+				case Source::IndirectNoBase:
+					switch(base()) {
+						default:			return Source::DS;
+						case Source::eBP:
+						case Source::eSP:	return Source::SS;
+						case Source::eDI:	return Source::ES;
+					}
+			}
+		}
+
 		template <bool obscure_indirectNoBase = false> constexpr Source base() const {
 			if constexpr (obscure_indirectNoBase) {
 				return (source_ <= Source::IndirectNoBase) ? Source::None : sib_.base();
