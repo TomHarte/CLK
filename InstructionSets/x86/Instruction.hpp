@@ -521,7 +521,7 @@ class ScaleIndexBase {
 		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
 			sib_(uint8_t(
 				scale << 6 |
-				(int(index != Source::None ? index : Source::eSI) << 3) |
+				(int(index != Source::None ? index : Source::eSP) << 3) |
 				int(base)
 			)) {}
 		constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}

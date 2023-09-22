@@ -651,7 +651,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				data_size(address_size_)
 			};
 			displacement_size_ = sizes[mod];
-			memreg = Source::Indirect;
 
 			if(address_size_ == AddressSize::b32) {
 				// 32-bit decoding: the range of potential indirections is expanded,
@@ -659,21 +658,26 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				sib_ = ScaleIndexBase(0, Source::None, reg_table[rm]);
 				expects_sib = rm == 4;	// Indirect via eSP isn't directly supported; it's the
 										// escape indicator for reading a SIB.
+				memreg = Source::Indirect;
 			} else {
 				// Classic 16-bit decoding: mode picks a displacement size,
 				// and a few fixed index+base pairs are defined.
+				//
+				// A base of eAX is meaningless, with the source type being the indicator
+				// that it should be ignored. ScaleIndexBase can't store a base of Source::None.
 				constexpr ScaleIndexBase rm_table[8] = {
 					ScaleIndexBase(0, Source::eSI, Source::eBX),
 					ScaleIndexBase(0, Source::eDI, Source::eBX),
 					ScaleIndexBase(0, Source::eSI, Source::eBP),
 					ScaleIndexBase(0, Source::eDI, Source::eBP),
-					ScaleIndexBase(0, Source::eSI, Source::None),
-					ScaleIndexBase(0, Source::eDI, Source::None),
-					ScaleIndexBase(0, Source::eBP, Source::None),
-					ScaleIndexBase(0, Source::eBX, Source::None),
+					ScaleIndexBase(0, Source::eSI, Source::eAX),
+					ScaleIndexBase(0, Source::eDI, Source::eAX),
+					ScaleIndexBase(0, Source::eBP, Source::eAX),
+					ScaleIndexBase(0, Source::eBX, Source::eAX),
 				};
 
 				sib_ = rm_table[rm];
+				memreg = rm >= 4 ? Source::IndirectNoBase : Source::Indirect;
 			}
 		}
 
