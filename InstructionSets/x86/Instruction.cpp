@@ -142,6 +142,24 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 	}
 }
 
+bool InstructionSet::x86::mnemonic_implies_data_size(Operation operation) {
+	switch(operation) {
+		default:	return false;
+
+		case Operation::CMPS:
+		case Operation::LODS:
+		case Operation::MOVS:
+		case Operation::SCAS:
+		case Operation::STOS:
+			return true;
+	}
+}
+
+std::string InstructionSet::x86::to_string(DataSize size) {
+	constexpr char sizes[][6] = { "byte", "word", "dword", "?" };
+	return sizes[static_cast<int>(size)];
+}
+
 std::string InstructionSet::x86::to_string(Source source, DataSize size) {
 	switch(source) {
 		case Source::eAX: {

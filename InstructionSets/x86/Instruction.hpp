@@ -399,6 +399,7 @@ constexpr int num_operands(Operation operation) {
 		case Operation::DAA:	case Operation::DAS:
 		case Operation::CBW:	case Operation::CWD:
 		case Operation::INTO:
+		case Operation::PUSHF:	case Operation::POPF:
 		case Operation::Invalid:
 			return 0;
 	}
@@ -419,6 +420,8 @@ constexpr int bit_size(DataSize size) {
 	return (8 << int(size)) & 0x3f;
 }
 std::string to_string(Operation, DataSize);
+std::string to_string(DataSize);
+bool mnemonic_implies_data_size(Operation);
 
 enum class AddressSize: uint8_t {
 	b16 = 0,

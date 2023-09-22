@@ -131,32 +131,36 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 					instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4
 				);
 
+			case Source::DirectAddress:
 			case Source::Indirect: {
 				std::stringstream stream;
 
-				Source segment = Source::None;
-				switch(instruction.data_segment()) {
-					default: 			segment = instruction.data_segment();	break;
-					case Source::None:	segment = pointer.default_segment();	break;
-				}
-				if(segment != Source::None && segment != Source::DS) {
-					stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+				if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
+					stream << InstructionSet::x86::to_string(instruction.operation_size()) << ' ';
 				}
 
+				Source segment = instruction.data_segment();
+				if(segment == Source::None) {
+					segment = pointer.default_segment();
+					if(segment == Source::None) {
+						segment = Source::DS;
+					}
+				}
+				stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+
 				stream << '[';
-				stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size())) << '+';
-				stream << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size())) << '+';
-				stream << std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h';
+				if(source == Source::Indirect) {
+					stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size()));
+					stream << '+' << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
+					if(instruction.offset()) {
+						stream << '+' << std::setfill('0') << std::setw(4) << std::uppercase << std::hex << instruction.offset() << 'h';
+					}
+				} else {
+					stream << to_hex(instruction.operand(), 4);
+				}
 				stream << ']';
 				return stream.str();
 			}
-
-			case Source::DirectAddress:
-				return (std::stringstream() <<
-					'[' <<
-					to_hex(instruction.operand(), 4) <<
-					']'
-				).str();
 		}
 
 		return operand;
