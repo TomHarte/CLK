@@ -223,10 +223,45 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSTY:	operand_ = y_;											continue;
 					case OperationSTZ:	operand_ = 0;											continue;
 					case OperationSAX:	operand_ = a_ & x_;										continue;
-					case OperationSHA:	operand_ = a_ & x_ & (address_.halves.high+1);			continue;
-					case OperationSHX:	operand_ = x_ & (address_.halves.high+1);				continue;
-					case OperationSHY:	operand_ = y_ & (address_.halves.high+1);				continue;
-					case OperationSHS:	s_ = a_ & x_; operand_ = s_ & (address_.halves.high+1);	continue;
+
+					// For the next four, intended effect is:
+					//
+					//	CPU calculates what address would be if a page boundary is crossed. The high byte of that
+					//	takes part in the AND. If the page boundary is actually crossed then the total AND takes
+					//	the place of the intended high byte.
+					//
+					// Within this implementation, there's a bit of after-the-effect judgment on whether a page
+					// boundary was crossed.
+					case OperationSHA:
+						if(address_.full != next_address_.full) {
+							address_.halves.high = operand_ = a_ & x_ & address_.halves.high;
+						} else {
+							operand_ = a_ & x_ & (address_.halves.high + 1);
+						}
+					continue;
+					case OperationSHX:
+						if(address_.full != next_address_.full) {
+							address_.halves.high = operand_ = x_ & address_.halves.high;
+						} else {
+							operand_ = x_ & (address_.halves.high + 1);
+						}
+					continue;
+					case OperationSHY:
+						if(address_.full != next_address_.full) {
+							address_.halves.high = operand_ = y_ & address_.halves.high;
+						} else {
+							operand_ = y_ & (address_.halves.high + 1);
+						}
+					continue;
+					case OperationSHS:
+						if(address_.full != next_address_.full) {
+							s_ = a_ & x_;
+							address_.halves.high = operand_ = s_ & address_.halves.high;
+						} else {
+							s_ = a_ & x_;
+							operand_ = s_ & (address_.halves.high + 1);
+						}
+					continue;
 
 					case OperationLXA:
 						a_ = x_ = (a_ | 0xee) & operand_;
@@ -531,7 +566,11 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #undef page_crossing_stall_read
 
 					case OperationCorrectAddressHigh:
-						address_.full = next_address_.full;
+						// Preserve the uncorrected address in next_address_ (albeit that it's
+						// now a misnomer) as some of the more obscure illegal operations end
+						// up acting differently if an adjustment was necessary and therefore need
+						// a crumb trail to test for that.
+						std::swap(address_.full, next_address_.full);
 					continue;
 					case CycleIncrementPCFetchAddressLowFromOperand:
 						pc_.full++;

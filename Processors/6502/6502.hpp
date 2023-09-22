@@ -9,6 +9,7 @@
 #ifndef MOS6502_cpp
 #define MOS6502_cpp
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cstdint>
