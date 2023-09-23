@@ -36,7 +36,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = nil;
 //		[[NSSet alloc] initWithArray:@[
-//			@"00.json.gz",
+//			@"08.json.gz",
 //		]];
 
 	// Unofficial opcodes; ignored for now.
@@ -75,7 +75,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return fullPaths;
 }
 
-- (bool)applyDecodingTest:(NSDictionary *)test {
+- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file {
 	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 	Decoder decoder;
 
@@ -90,10 +90,11 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	const auto decoded = decoder.decode(data.data(), data.size());
 	XCTAssert(
 		decoded.first == [encoding count],
-		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu",
+		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu; file %@",
 			test[@"name"],
 			decoded.first,
-			(unsigned long)[encoding count]
+			(unsigned long)[encoding count],
+			file
 	);
 
 	auto log_hex = [&] {
@@ -212,7 +213,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	}
 
 	const NSString *objcOperation = [NSString stringWithUTF8String:operation.c_str()];
-	XCTAssertEqualObjects(objcOperation, test[@"name"]);
+	XCTAssertEqualObjects(objcOperation, test[@"name"], "Within %@", file);
 
 	if(![objcOperation isEqualToString:test[@"name"]]) {
 		log_hex();
@@ -246,7 +247,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		NSUInteger successes = 0;
 		for(NSDictionary *test in testsInFile) {
 			// A single failure per instruction is fine.
-			if(![self applyDecodingTest:test]) {
+			if(![self applyDecodingTest:test file:file]) {
 				[failures addObject:file];
 				break;
 			}
