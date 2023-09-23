@@ -902,6 +902,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
 
+			// TODO: whether the displacement is signed appears to depend on the opcode.
+			// Find an appropriate table.
+
 			switch(displacement_size_) {
 				case DataSize::None:	displacement_ = 0;						break;
 				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;

@@ -365,12 +365,13 @@ constexpr int num_operands(Operation operation) {
 
 		case Operation::INC:	case Operation::DEC:
 		case Operation::POP:	case Operation::PUSH:
-		case Operation::MUL:
-		case Operation::IDIV:
+		case Operation::MUL:	case Operation::IMUL_1:
+		case Operation::IDIV:	case Operation::DIV:
 		case Operation::RETfar:
 		case Operation::ESC:
 		case Operation::AAM:	case Operation::AAD:
 		case Operation::INT:
+		case Operation::JMPabs:	case Operation::JMPfar:
 			return 1;
 
 		// Pedantically, these have an displacement rather than an operand.

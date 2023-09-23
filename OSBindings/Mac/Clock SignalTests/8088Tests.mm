@@ -37,11 +37,31 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	NSSet *allowList = nil;
 //		[[NSSet alloc] initWithArray:@[
 //			@"00.json.gz",
-//		]];∂
+//		]];
+
+	// Unofficial opcodes; ignored for now.
+	NSSet *ignoreList =
+		[[NSSet alloc] initWithArray:@[
+			@"60.json.gz",		@"61.json.gz",		@"62.json.gz",		@"63.json.gz",
+			@"64.json.gz",		@"65.json.gz",		@"66.json.gz",		@"67.json.gz",
+			@"68.json.gz",		@"69.json.gz",		@"6a.json.gz",		@"6b.json.gz",
+			@"6c.json.gz",		@"6d.json.gz",		@"6e.json.gz",		@"6f.json.gz",
+
+			@"82.0.json.gz",	@"82.1.json.gz",	@"82.2.json.gz",	@"82.3.json.gz",
+			@"82.4.json.gz",	@"82.5.json.gz",	@"82.6.json.gz",	@"82.7.json.gz",
+
+			@"c0.json.gz",		@"c1.json.gz",		@"c8.json.gz",		@"c9.json.gz",
+
+			@"f6.1.json.gz",	@"f7.1.json.gz",
+			@"ff.7.json.gz",
+		]];
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
 	files = [files filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *) {
 		if(allowList && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
+			return NO;
+		}
+		if([ignoreList containsObject:[evaluatedObject lastPathComponent]]) {
 			return NO;
 		}
 		return [evaluatedObject hasSuffix:@"json.gz"];
