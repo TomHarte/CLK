@@ -193,8 +193,10 @@ template <Model model> class Decoder {
 		DataSize operand_size_ = DataSize::None;		// i.e. size of in-stream operand, if any.
 		DataSize operation_size_ = DataSize::None;		// i.e. size of data manipulated by the operation.
 
-		bool sign_extend_ = false;						// If set then sign extend the operand up to the operation size;
+		bool sign_extend_operand_ = false;				// If set then sign extend the operand up to the operation size;
 														// otherwise it'll be zero-padded.
+		bool sign_extend_displacement_ = false;			// Much as above; 'displacement' is used internally for both
+														// displacements and offsets, so signage will vary.
 
 		// Prefix capture fields.
 		Repetition repetition_ = Repetition::None;
@@ -222,7 +224,8 @@ template <Model model> class Decoder {
 			sib_ = ScaleIndexBase();
 			next_inward_data_shift_ = 0;
 			inward_data_ = 0;
-			sign_extend_ = false;
+			sign_extend_operand_ = false;
+			sign_extend_displacement_ = false;
 		}
 };
 

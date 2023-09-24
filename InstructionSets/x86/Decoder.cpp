@@ -238,7 +238,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80286);
 				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
 				operand_size_ = DataSize::Byte;
-				sign_extend_ = true;
+				sign_extend_operand_ = true;
 			break;
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
@@ -795,7 +795,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = Source::Immediate;
 				destination_ = memreg;
 				operand_size_ = (modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend) ? DataSize::Byte : operation_size_;
-				sign_extend_ = true;	// Will be effective only if modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend.
+				sign_extend_operand_ = true;	// Will be effective only if modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend.
 
 				switch(reg) {
 					default:	operation_ = Operation::ADD;	break;
@@ -905,16 +905,25 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// TODO: whether the displacement is signed appears to depend on the opcode.
 			// Find an appropriate table.
 
-			switch(displacement_size_) {
-				case DataSize::None:	displacement_ = 0;						break;
-				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
-				case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
-				case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+			if(!sign_extend_displacement_) {
+				switch(displacement_size_) {
+					case DataSize::None:	displacement_ = 0;											break;
+					case DataSize::Byte:	displacement_ = decltype(operand_)(uint8_t(inward_data_));	break;
+					case DataSize::Word:	displacement_ = decltype(operand_)(uint16_t(inward_data_));	break;
+					case DataSize::DWord:	displacement_ = decltype(operand_)(uint32_t(inward_data_));	break;
+				}
+			} else {
+				switch(displacement_size_) {
+					case DataSize::None:	displacement_ = 0;						break;
+					case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
+					case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
+					case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+				}
 			}
 			inward_data_ >>= bit_size(displacement_size_);
 
 			// Use inequality of sizes as a test for necessary sign extension.
-			if(operand_size_ == data_size_ || !sign_extend_) {
+			if(operand_size_ == data_size_ || !sign_extend_operand_) {
 				operand_ = decltype(operand_)(inward_data_);
 			} else {
 				switch(operand_size_) {
