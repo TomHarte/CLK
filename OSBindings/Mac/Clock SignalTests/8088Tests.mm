@@ -75,55 +75,18 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return fullPaths;
 }
 
-- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file {
-	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
-	Decoder decoder;
-
-	// Build a vector of the instruction; this makes manual step debugging easier.
-	NSArray<NSNumber *> *encoding = test[@"bytes"];
-	std::vector<uint8_t> data;
-	data.reserve(encoding.count);
-	for(NSNumber *number in encoding) {
-		data.push_back([number intValue]);
-	}
-
-	const auto decoded = decoder.decode(data.data(), data.size());
-	XCTAssert(
-		decoded.first == [encoding count],
-		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu; file %@",
-			test[@"name"],
-			decoded.first,
-			(unsigned long)[encoding count],
-			file
-	);
-
-	auto log_hex = [&] {
-		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
-		for(uint8_t byte: data) {
-			[hexInstruction appendFormat:@"%02x ", byte];
-		}
-		NSLog(@"Instruction was %@", hexInstruction);
-	};
-
-	if(decoded.first != [encoding count]) {
-		log_hex();
-
-		// Repeat the decoding, for ease of debugging.
-		Decoder().decode(data.data(), data.size());
-		return false;
-	}
-
+- (NSString *)toString:(const InstructionSet::x86::Instruction<false> &)instruction abbreviateOffset:(BOOL)abbreviateOffset {
 	// Form string version, compare.
 	std::string operation;
 
 	using Repetition = InstructionSet::x86::Repetition;
-	switch(decoded.second.repetition()) {
+	switch(instruction.repetition()) {
 		case Repetition::None: break;
 		case Repetition::RepE: operation += "repe ";	break;
 		case Repetition::RepNE: operation += "repne ";	break;
 	}
 
-	operation += to_string(decoded.second.operation, decoded.second.operation_size());
+	operation += to_string(instruction.operation, instruction.operation_size());
 
 	auto to_hex = [] (int value, int digits) -> std::string {
 		auto stream = std::stringstream();
@@ -137,7 +100,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		return stream.str();
 	};
 
-	auto to_string = [&to_hex] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
+	auto to_string = [&to_hex, abbreviateOffset] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
 		std::string operand;
 
 		using Source = InstructionSet::x86::Source;
@@ -171,24 +134,30 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 				stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
 
 				stream << '[';
+				bool addOffset = false;
 				switch(source) {
 					default: break;
 					case Source::Indirect:
 						stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size()));
 						stream << '+' << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
-						if(instruction.offset()) {
-							stream << '+' << to_hex(instruction.offset(), 4);
-						}
+						addOffset = true;
 					break;
 					case Source::IndirectNoBase:
 						stream << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
-						if(instruction.offset()) {
-							stream << '+' << to_hex(instruction.offset(), 4);
-						}
+						addOffset = true;
 					break;
 					case Source::DirectAddress:
 						stream << to_hex(instruction.offset(), 4);
 					break;
+				}
+				if(addOffset) {
+					if(instruction.offset()) {
+						if(abbreviateOffset && !(instruction.offset() & 0xff00)) {
+							stream << '+' << to_hex(instruction.offset(), 2);
+						} else {
+							stream << '+' << to_hex(instruction.offset(), 4);
+						}
+					}
 				}
 				stream << ']';
 				return stream.str();
@@ -198,24 +167,61 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		return operand;
 	};
 
-	const int operands = num_operands(decoded.second.operation);
-	const bool displacement = has_displacement(decoded.second.operation);
+	const int operands = num_operands(instruction.operation);
+	const bool displacement = has_displacement(instruction.operation);
 	operation += " ";
 	if(operands > 1) {
-		operation += to_string(decoded.second.destination(), decoded.second);
+		operation += to_string(instruction.destination(), instruction);
 		operation += ", ";
 	}
 	if(operands > 0) {
-		operation += to_string(decoded.second.source(), decoded.second);
+		operation += to_string(instruction.source(), instruction);
 	}
 	if(displacement) {
-		operation += to_hex(decoded.second.displacement(), 2);
+		operation += to_hex(instruction.displacement(), 2);
 	}
 
-	const NSString *objcOperation = [NSString stringWithUTF8String:operation.c_str()];
-	XCTAssertEqualObjects(objcOperation, test[@"name"], "Within %@", file);
+	return [NSString stringWithUTF8String:operation.c_str()];
+}
 
-	if(![objcOperation isEqualToString:test[@"name"]]) {
+- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file {
+	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
+	Decoder decoder;
+
+	// Build a vector of the instruction bytes; this makes manual step debugging easier.
+	NSArray<NSNumber *> *encoding = test[@"bytes"];
+	std::vector<uint8_t> data;
+	data.reserve(encoding.count);
+	for(NSNumber *number in encoding) {
+		data.push_back([number intValue]);
+	}
+	auto log_hex = [&] {
+		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
+		for(uint8_t byte: data) {
+			[hexInstruction appendFormat:@"%02x ", byte];
+		}
+		NSLog(@"Instruction was %@", hexInstruction);
+	};
+
+	const auto decoded = decoder.decode(data.data(), data.size());
+	XCTAssert(
+		decoded.first == [encoding count],
+		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu; file %@",
+			test[@"name"],
+			decoded.first,
+			(unsigned long)[encoding count],
+			file
+	);
+
+	// The decoder doesn't preserve the original offset length, which makes no functional difference but
+	// does affect the way that offsets are printed in the test set.
+	NSString *fullOffset = [self toString:decoded.second abbreviateOffset:NO];
+	NSString *shortOffset = [self toString:decoded.second abbreviateOffset:YES];
+	const bool isEqual = [fullOffset isEqualToString:test[@"name"]] || [shortOffset isEqualToString:test[@"name"]];
+	XCTAssert(isEqual, "%@ matches neither %@ nor %@, within %@", test[@"name"], fullOffset, shortOffset, file);
+
+	// Repetition, to allow for easy breakpoint placement.
+	if(!isEqual) {
 		log_hex();
 
 		// Repeat operand conversions, for debugging.
@@ -227,10 +233,10 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		};
 		(void)sources;
 
-		const auto destination = instruction.second.destination();
-		to_string(destination, instruction.second);
-		const auto source = instruction.second.source();
-		to_string(source, instruction.second);
+//		const auto destination = instruction.second.destination();
+//		to_string(destination, instruction.second);
+//		const auto source = instruction.second.source();
+//		to_string(source, instruction.second);
 		return false;
 	}
 
