@@ -25,6 +25,88 @@ namespace {
 // provide their real path here.
 constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
+std::string to_hex(int value, int digits) {
+	auto stream = std::stringstream();
+	stream << std::setfill('0') << std::uppercase << std::hex << std::setw(digits);
+	switch(digits) {
+		case 2: stream << +uint8_t(value);	break;
+		case 4: stream << +uint16_t(value);	break;
+		default: stream << value;	break;
+	}
+	stream << 'h';
+	return stream.str();
+};
+
+template <typename InstructionT>
+std::string to_string(InstructionSet::x86::DataPointer pointer, const InstructionT &instruction, bool abbreviateOffset) {
+	std::string operand;
+
+	using Source = InstructionSet::x86::Source;
+	const Source source = pointer.source<false>();
+	switch(source) {
+		// to_string handles all direct register names correctly.
+		default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
+
+		case Source::Immediate:
+			return to_hex(
+				instruction.operand(),
+				instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4
+			);
+
+		case Source::DirectAddress:
+		case Source::Indirect:
+		case Source::IndirectNoBase: {
+			std::stringstream stream;
+
+			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
+				stream << InstructionSet::x86::to_string(instruction.operation_size()) << ' ';
+			}
+
+			Source segment = instruction.data_segment();
+			if(segment == Source::None) {
+				segment = pointer.default_segment();
+				if(segment == Source::None) {
+					segment = Source::DS;
+				}
+			}
+			stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+
+			stream << '[';
+			bool addOffset = false;
+			switch(source) {
+				default: break;
+				case Source::Indirect:
+					stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size()));
+					if(pointer.index() != Source::None) {
+						stream << '+' << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
+					}
+					addOffset = true;
+				break;
+				case Source::IndirectNoBase:
+					stream << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
+					addOffset = true;
+				break;
+				case Source::DirectAddress:
+					stream << to_hex(instruction.offset(), 4);
+				break;
+			}
+			if(addOffset) {
+				if(instruction.offset()) {
+					if(abbreviateOffset && !(instruction.offset() & 0xff00)) {
+						stream << '+' << to_hex(instruction.offset(), 2);
+					} else {
+						stream << '+' << to_hex(instruction.offset(), 4);
+					}
+				}
+			}
+			stream << ']';
+			return stream.str();
+		}
+	}
+
+	return operand;
+};
+
 }
 
 @interface i8088Tests : XCTestCase
@@ -88,94 +170,15 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 
 	operation += to_string(instruction.operation, instruction.operation_size());
 
-	auto to_hex = [] (int value, int digits) -> std::string {
-		auto stream = std::stringstream();
-		stream << std::setfill('0') << std::uppercase << std::hex << std::setw(digits);
-		switch(digits) {
-			case 2: stream << +uint8_t(value);	break;
-			case 4: stream << +uint16_t(value);	break;
-			default: stream << value;	break;
-		}
-		stream << 'h';
-		return stream.str();
-	};
-
-	auto to_string = [&to_hex, abbreviateOffset] (InstructionSet::x86::DataPointer pointer, const auto &instruction) -> std::string {
-		std::string operand;
-
-		using Source = InstructionSet::x86::Source;
-		const Source source = pointer.source<false>();
-		switch(source) {
-			// to_string handles all direct register names correctly.
-			default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
-
-			case Source::Immediate:
-				return to_hex(
-					instruction.operand(),
-					instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4
-				);
-
-			case Source::DirectAddress:
-			case Source::Indirect:
-			case Source::IndirectNoBase: {
-				std::stringstream stream;
-
-				if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
-					stream << InstructionSet::x86::to_string(instruction.operation_size()) << ' ';
-				}
-
-				Source segment = instruction.data_segment();
-				if(segment == Source::None) {
-					segment = pointer.default_segment();
-					if(segment == Source::None) {
-						segment = Source::DS;
-					}
-				}
-				stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
-
-				stream << '[';
-				bool addOffset = false;
-				switch(source) {
-					default: break;
-					case Source::Indirect:
-						stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size()));
-						stream << '+' << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
-						addOffset = true;
-					break;
-					case Source::IndirectNoBase:
-						stream << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
-						addOffset = true;
-					break;
-					case Source::DirectAddress:
-						stream << to_hex(instruction.offset(), 4);
-					break;
-				}
-				if(addOffset) {
-					if(instruction.offset()) {
-						if(abbreviateOffset && !(instruction.offset() & 0xff00)) {
-							stream << '+' << to_hex(instruction.offset(), 2);
-						} else {
-							stream << '+' << to_hex(instruction.offset(), 4);
-						}
-					}
-				}
-				stream << ']';
-				return stream.str();
-			}
-		}
-
-		return operand;
-	};
-
 	const int operands = num_operands(instruction.operation);
 	const bool displacement = has_displacement(instruction.operation);
 	operation += " ";
 	if(operands > 1) {
-		operation += to_string(instruction.destination(), instruction);
+		operation += to_string(instruction.destination(), instruction, abbreviateOffset);
 		operation += ", ";
 	}
 	if(operands > 0) {
-		operation += to_string(instruction.source(), instruction);
+		operation += to_string(instruction.source(), instruction, abbreviateOffset);
 	}
 	if(displacement) {
 		operation += to_hex(instruction.displacement(), 2);
@@ -233,10 +236,10 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		};
 		(void)sources;
 
-//		const auto destination = instruction.second.destination();
-//		to_string(destination, instruction.second);
-//		const auto source = instruction.second.source();
-//		to_string(source, instruction.second);
+		const auto destination = instruction.second.destination();
+		to_string(destination, instruction.second, false);
+		const auto source = instruction.second.source();
+		to_string(source, instruction.second, false);
 		return false;
 	}
 

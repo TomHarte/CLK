@@ -672,12 +672,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					ScaleIndexBase(0, Source::eDI, Source::eBP),
 					ScaleIndexBase(0, Source::eSI, Source::eAX),
 					ScaleIndexBase(0, Source::eDI, Source::eAX),
-					ScaleIndexBase(0, Source::eBP, Source::eAX),
+					ScaleIndexBase(0, Source::None, Source::eBP),
 					ScaleIndexBase(0, Source::eBX, Source::eAX),
 				};
 
 				sib_ = rm_table[rm];
-				memreg = rm >= 4 ? Source::IndirectNoBase : Source::Indirect;
+				memreg = (rm >= 4 && rm != 6) ? Source::IndirectNoBase : Source::Indirect;
 			}
 		}
 
