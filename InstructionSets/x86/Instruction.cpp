@@ -58,13 +58,13 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 		case Operation::JLE:	return "jle";
 		case Operation::JNLE:	return "jnle";
 
-		case Operation::CALLabs:	return "call word";
+		case Operation::CALLabs:	return "call";
 		case Operation::CALLrel:	return "call";
 		case Operation::CALLfar:	return "callf word";
 		case Operation::IRET:		return "iret";
 		case Operation::RETfar:		return "retf";
 		case Operation::RETnear:	return "retn";
-		case Operation::JMPabs:		return "jmp word";
+		case Operation::JMPabs:		return "jmp";
 		case Operation::JMPrel:		return "jmp";
 		case Operation::JMPfar:		return "jmpf word";
 		case Operation::JCXZ:		return "jcxz";
@@ -151,7 +151,6 @@ bool InstructionSet::x86::mnemonic_implies_data_size(Operation operation) {
 		case Operation::MOVS:
 		case Operation::SCAS:
 		case Operation::STOS:
-		case Operation::JMPabs:
 		case Operation::JMPrel:
 		case Operation::JMPfar:
 			return true;

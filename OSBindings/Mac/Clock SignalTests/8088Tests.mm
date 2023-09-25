@@ -126,16 +126,19 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 		[[NSSet alloc] initWithArray:@[
 			@"60.json.gz",		@"61.json.gz",		@"62.json.gz",		@"63.json.gz",
 			@"64.json.gz",		@"65.json.gz",		@"66.json.gz",		@"67.json.gz",
-			@"68.json.gz",		@"69.json.gz",		@"6a.json.gz",		@"6b.json.gz",
-			@"6c.json.gz",		@"6d.json.gz",		@"6e.json.gz",		@"6f.json.gz",
+			@"68.json.gz",		@"69.json.gz",		@"6A.json.gz",		@"6B.json.gz",
+			@"6C.json.gz",		@"6D.json.gz",		@"6E.json.gz",		@"6F.json.gz",
 
 			@"82.0.json.gz",	@"82.1.json.gz",	@"82.2.json.gz",	@"82.3.json.gz",
 			@"82.4.json.gz",	@"82.5.json.gz",	@"82.6.json.gz",	@"82.7.json.gz",
 
-			@"c0.json.gz",		@"c1.json.gz",		@"c8.json.gz",		@"c9.json.gz",
+			@"C0.json.gz",		@"C1.json.gz",		@"C8.json.gz",		@"C9.json.gz",
 
-			@"f6.1.json.gz",	@"f7.1.json.gz",
-			@"ff.7.json.gz",
+			@"D0.6.json.gz",	@"D1.6.json.gz",	@"D2.6.json.gz",	@"D3.6.json.gz",
+			@"D6.json.gz",
+
+			@"F6.1.json.gz",	@"F7.1.json.gz",
+			@"FF.7.json.gz",
 		]];
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
@@ -198,21 +201,22 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	for(NSNumber *number in encoding) {
 		data.push_back([number intValue]);
 	}
-	auto log_hex = [&] {
+	auto hex_instruction = [&]() -> NSString * {
 		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
 		for(uint8_t byte: data) {
 			[hexInstruction appendFormat:@"%02x ", byte];
 		}
-		NSLog(@"Instruction was %@", hexInstruction);
+		return hexInstruction;
 	};
 
 	const auto decoded = decoder.decode(data.data(), data.size());
 	XCTAssert(
 		decoded.first == [encoding count],
-		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu; file %@",
+		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu from %@; file %@",
 			test[@"name"],
 			decoded.first,
 			(unsigned long)[encoding count],
+			hex_instruction(),
 			file
 	);
 
@@ -221,12 +225,10 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	NSString *fullOffset = [self toString:decoded.second abbreviateOffset:NO];
 	NSString *shortOffset = [self toString:decoded.second abbreviateOffset:YES];
 	const bool isEqual = [fullOffset isEqualToString:test[@"name"]] || [shortOffset isEqualToString:test[@"name"]];
-	XCTAssert(isEqual, "%@ matches neither %@ nor %@, within %@", test[@"name"], fullOffset, shortOffset, file);
+	XCTAssert(isEqual, "%@ matches neither %@ nor %@, was %@ within %@", test[@"name"], fullOffset, shortOffset, hex_instruction(), file);
 
 	// Repetition, to allow for easy breakpoint placement.
 	if(!isEqual) {
-		log_hex();
-
 		// Repeat operand conversions, for debugging.
 		Decoder decoder;
 		const auto instruction = decoder.decode(data.data(), data.size());
@@ -237,11 +239,44 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 		(void)sources;
 
 		const auto destination = instruction.second.destination();
-		to_string(destination, instruction.second, false);
+		std::cout << to_string(destination, instruction.second, false);
 		const auto source = instruction.second.source();
-		to_string(source, instruction.second, false);
+		std::cout << to_string(source, instruction.second, false);
 		return false;
 	}
+
+	// Known existing failures versus the provided 8088 disassemblies:
+	//
+	//	* quite a lot of instances similar to jmp word ss:[bp+si+1DEAh] being decoded as jmp word ss:[bp+di+1DEAh]
+	//		for ff a3 ea 1d; I don't currently know why SI is used rather than DI;
+	//	* shifts that have been given a literal source of '1' shouldn't print it; that's a figment ofd this encoding;
+	//	* similarly, shifts should print cl as a source rather than cx even when shifting a word;
+	//	* ... and in/out should always use an 8-bit source;
+	//	* ... and RCL ditto is SP, CL rather than CX;
+	//	* rep/etc shouldn't be printed on instructions that don't allow it, and may be just 'rep' rather than 'repe';
+	//	* I strongly suspect I'm dealing with ESC operands incorrectly;
+	//	* possibly LEA implies a word operand?;
+	//	* D1.6, which is undocumented, apparently maps to SETMO — add that;
+	//	* 36 8e 6b 7c should mirror to mov cs, word ss:[bp+di+7Ch]; it's literally mov gs, word ss:[bp+di+7Ch] so the
+	//		decoder rejects it for 16-bit mode;
+	//	* I'm using 'sal' whereas the test set is using 'shl';
+	//	* logging of far jumps and calls is way off; add a special case for printing segment:offset;
+	//	* CALLrel seems to lose a byte of argument? e8 4b 9c is printed as just call 4Bh rather than call 9C4Bh;
+	//	* JMPrel seems to have the same issue;
+	//	* my RETnear seems to fill in source, but not destination?
+	//	* there are still some false sign extensions going on, e.g. 26 83 8c 47 32 ad produces
+	//		`or word es:[si+3247h], FFADh` when the second argument should just be `ADh`;
+	//	* the decoder provides int3 as int with an operand of 3, so a special-case printing is necessary there;
+	//	* the provided dissassemblies sometimes include an offset of 00h, which won't be printed by this code;
+	//	* e5 4b is decoded as in ax, word ds:[0000h] rather than in ax, 4Bh;
+	//	* 36 f6 04 4b is decoded as the nonsensical test byte ss:[si], byte ss:[si] rather than test byte ss:[si], 4Bh;
+	//	* a1 4b 50 is decoded as `mov ax, word ds:[0000h]` rather than `mov ax, word ds:[504Bh]`, and other tests seem
+	//		similarly affected;
+	//	* `a0 4b 50`, `26 a2 d2 80`, also drop the suffix somewhere (or, actually, fail subsequently to surface it);
+	//	* POPs in general don't realise to print the other possible operand;
+	//	* c4 4b 9c somehow decodes as a _dword_ version of LES, and LDS seems similarly affected;
+	//
+
 
 	return true;
 }

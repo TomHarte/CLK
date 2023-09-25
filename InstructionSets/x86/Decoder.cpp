@@ -141,8 +141,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// The 286 onwards have a further set of instructions
 			// prefixed with $0f.
 			case 0x0f:
-				RequiresMin(i80286);
-				phase_ = Phase::InstructionPageF;
+				if constexpr (model < Model::i80286) {
+					Complete(POP, CS, None, data_size_);
+				} else {
+					phase_ = Phase::InstructionPageF;
+				}
 			break;
 
 			PartialBlock(0x10, ADC);								break;

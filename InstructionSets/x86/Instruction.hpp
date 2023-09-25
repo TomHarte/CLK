@@ -367,11 +367,12 @@ constexpr int num_operands(Operation operation) {
 		case Operation::POP:	case Operation::PUSH:
 		case Operation::MUL:	case Operation::IMUL_1:
 		case Operation::IDIV:	case Operation::DIV:
-		case Operation::RETfar:
 		case Operation::ESC:
 		case Operation::AAM:	case Operation::AAD:
 		case Operation::INT:
 		case Operation::JMPabs:	case Operation::JMPfar:
+		case Operation::CALLabs:	case Operation::CALLfar:
+		case Operation::NEG:	case Operation::NOT:
 			return 1;
 
 		// Pedantically, these have an displacement rather than an operand.
@@ -401,6 +402,11 @@ constexpr int num_operands(Operation operation) {
 		case Operation::CBW:	case Operation::CWD:
 		case Operation::INTO:
 		case Operation::PUSHF:	case Operation::POPF:
+		case Operation::RETnear:
+		case Operation::RETfar:
+		case Operation::IRET:
+		case Operation::NOP:
+		case Operation::XLAT:
 		case Operation::Invalid:
 			return 0;
 	}
