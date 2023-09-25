@@ -157,7 +157,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 		[fullPaths addObject:[path stringByAppendingPathComponent:file]];
 	}
 
-	return fullPaths;
+	return [fullPaths sortedArrayUsingSelector:@selector(compare:)];
 }
 
 - (NSString *)toString:(const InstructionSet::x86::Instruction<false> &)instruction abbreviateOffset:(BOOL)abbreviateOffset {
