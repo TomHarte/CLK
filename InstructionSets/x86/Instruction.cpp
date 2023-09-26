@@ -155,6 +155,7 @@ bool InstructionSet::x86::mnemonic_implies_data_size(Operation operation) {
 		case Operation::STOS:
 		case Operation::JMPrel:
 		case Operation::JMPfar:
+		case Operation::LEA:
 			return true;
 	}
 }

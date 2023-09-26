@@ -98,6 +98,9 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 						}
 						[[fallthrough]];
 					case 2:
+						// TODO: this mismatches some tests because it doesn't eliminate sign extensions.
+						// But when is it permissible to eliminate sign extensions? Always for now, and deal
+						// with it when testing actual execution?
 						if(!(instruction.offset() & 0xff00)) {
 							stream << '+' << to_hex(instruction.offset(), 2);
 							break;

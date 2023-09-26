@@ -716,6 +716,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case ModRegRMFormat::MemReg_Seg:
 				// The 16-bit chips have four segment registers;
 				// the 80386 onwards has six.
+
+				// TODO: the 8086, at least, decodes something. Probably just the low two bits?
 				if(!is_32bit(model) && reg > 3) {
 					undefined();
 				} else if(reg > 5) {
