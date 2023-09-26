@@ -133,7 +133,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			PartialBlock(0x00, ADD);							break;
 			case 0x06: Complete(PUSH, ES, None, data_size_);	break;
-			case 0x07: Complete(POP, None, ES, data_size_);		break;
+			case 0x07: Complete(POP, ES, None, data_size_);		break;
 
 			PartialBlock(0x08, OR);								break;
 			case 0x0e: Complete(PUSH, CS, None, data_size_);	break;
@@ -150,11 +150,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			PartialBlock(0x10, ADC);								break;
 			case 0x16: Complete(PUSH, SS, None, DataSize::Word);	break;
-			case 0x17: Complete(POP, None, SS, DataSize::Word);		break;
+			case 0x17: Complete(POP, SS, None, DataSize::Word);		break;
 
 			PartialBlock(0x18, SBB);								break;
 			case 0x1e: Complete(PUSH, DS, None, DataSize::Word);	break;
-			case 0x1f: Complete(POP, None, DS, DataSize::Word);		break;
+			case 0x1f: Complete(POP, DS, None, DataSize::Word);		break;
 
 			PartialBlock(0x20, AND);								break;
 			case 0x26: segment_override_ = Source::ES;				break;

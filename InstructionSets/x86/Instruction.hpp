@@ -154,7 +154,7 @@ enum class Operation: uint8_t {
 	XOR,
 	/// NOP; no further fields.
 	NOP,
-	/// POP from the stack to destination.
+	/// POP from the stack to source.
 	POP,
 	/// POP from the stack to the flags register.
 	POPF,
