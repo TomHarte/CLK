@@ -777,6 +777,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 5:	operation_ = Operation::JMPfar;		break;
 					case 6:	operation_ = Operation::PUSH;		break;
 				}
+				// TODO: CALLfar and JMPfar aren't correct above; find out what is.
 			break;
 
 			case ModRegRMFormat::MemRegSingleOperand:

@@ -25,7 +25,7 @@ namespace {
 // provide their real path here.
 constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
-std::string to_hex(int value, int digits) {
+std::string to_hex(int value, int digits, bool with_suffix = true) {
 	auto stream = std::stringstream();
 	stream << std::setfill('0') << std::uppercase << std::hex << std::setw(digits);
 	switch(digits) {
@@ -33,7 +33,7 @@ std::string to_hex(int value, int digits) {
 		case 4: stream << +uint16_t(value);	break;
 		default: stream << value;	break;
 	}
-	stream << 'h';
+	if (with_suffix) stream << 'h';
 	return stream.str();
 };
 
@@ -173,6 +173,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	// Form string version, compare.
 	std::string operation;
 
+	// TODO: determine which reps, if any, this operation permits, and print only as relevant.
 	using Repetition = InstructionSet::x86::Repetition;
 	switch(instruction.repetition()) {
 		case Repetition::None: break;
@@ -182,18 +183,32 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 	operation += to_string(instruction.operation, instruction.operation_size());
 
-	const int operands = num_operands(instruction.operation);
-	const bool displacement = has_displacement(instruction.operation);
-	operation += " ";
-	if(operands > 1) {
-		operation += to_string(instruction.destination(), instruction, offsetLength);
-		operation += ", ";
-	}
-	if(operands > 0) {
-		operation += to_string(instruction.source(), instruction, offsetLength);
-	}
-	if(displacement) {
-		operation += to_hex(instruction.displacement(), 2);
+	// Deal with a few special cases up front.
+	using Operation = InstructionSet::x86::Operation;
+	switch(instruction.operation) {
+		default: {
+			const int operands = num_operands(instruction.operation);
+			const bool displacement = has_displacement(instruction.operation);
+			operation += " ";
+			if(operands > 1) {
+				operation += to_string(instruction.destination(), instruction, offsetLength);
+				operation += ", ";
+			}
+			if(operands > 0) {
+				operation += to_string(instruction.source(), instruction, offsetLength);
+			}
+			if(displacement) {
+				operation += to_hex(instruction.displacement(), 2);
+			}
+		} break;
+
+		case Operation::CALLfar:
+		case Operation::JMPfar: {
+			operation += " 0x";
+			operation += to_hex(instruction.segment(), 4, false);
+			operation += ":0x";
+			operation += to_hex(instruction.offset(), 4, false);
+		} break;
 	}
 
 	return [NSString stringWithUTF8String:operation.c_str()];
