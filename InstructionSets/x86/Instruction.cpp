@@ -8,6 +8,8 @@
 
 #include "Instruction.hpp"
 
+#include <cassert>
+
 using namespace InstructionSet::x86;
 
 std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
