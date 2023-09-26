@@ -516,13 +516,13 @@ constexpr bool supports(Operation operation, Repetition repetition) {
 
 		case Operation::INS:
 		case Operation::OUTS:
-		case Operation::LODS:
 			return repetition == Repetition::RepE;
 
-		case Operation::STOS:
-		case Operation::MOVS:
 		case Operation::CMPS:
+		case Operation::LODS:
+		case Operation::MOVS:
 		case Operation::SCAS:
+		case Operation::STOS:
 			return true;
 
 		case Operation::IDIV:
