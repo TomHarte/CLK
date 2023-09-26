@@ -175,16 +175,21 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 - (NSString *)toString:(const InstructionSet::x86::Instruction<false> &)instruction offsetLength:(int)offsetLength {
 	// Form string version, compare.
 	std::string operation;
+	using Operation = InstructionSet::x86::Operation;
 
-	// TODO: this was a bit of a guess at the logic behind rep versus repe but doesn't seem to fit;
-	// check more thoroughly.
 	using Repetition = InstructionSet::x86::Repetition;
 	switch(instruction.repetition()) {
 		case Repetition::None: break;
 		case Repetition::RepE:
-			operation +=
-				InstructionSet::x86::supports(instruction.operation, Repetition::RepNE)
-					? "repe " : "rep ";
+			switch(instruction.operation) {
+				default:	operation += "repe ";	break;
+
+				case Operation::MOVS:
+				case Operation::STOS:
+				case Operation::LODS:
+					operation += "rep ";
+				break;
+			}
 		break;
 		case Repetition::RepNE: operation += "repne ";	break;
 	}
@@ -192,7 +197,6 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	operation += to_string(instruction.operation, instruction.operation_size());
 
 	// Deal with a few special cases up front.
-	using Operation = InstructionSet::x86::Operation;
 	switch(instruction.operation) {
 		default: {
 			const int operands = num_operands(instruction.operation);
