@@ -510,6 +510,27 @@ enum class Repetition: uint8_t {
 	None, RepE, RepNE
 };
 
+constexpr bool supports(Operation operation, Repetition repetition) {
+	switch(operation) {
+		default: return false;
+
+		case Operation::INS:
+		case Operation::OUTS:
+		case Operation::LODS:
+			return repetition == Repetition::RepE;
+
+		case Operation::STOS:
+		case Operation::MOVS:
+		case Operation::CMPS:
+		case Operation::SCAS:
+			return true;
+
+		case Operation::IDIV:
+			return repetition == Repetition::RepNE;
+	}
+}
+
+
 /// Provides a 32-bit-style scale, index and base; to produce the address this represents,
 /// calcluate base() + (index() << scale()).
 ///

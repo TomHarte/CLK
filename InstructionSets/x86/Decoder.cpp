@@ -31,11 +31,16 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 	// MARK: - Prefixes (if present) and the opcode.
 
+/// Sets the operation and verifies that the current repetition, if any, is compatible, discarding it otherwise.
+#define SetOperation(op)	\
+	operation_ = op;		\
+	repetition_ = supports(op, repetition_) ? repetition_ : Repetition::None
+
 /// Helper macro for those that follow.
 #define SetOpSrcDestSize(op, src, dest, size)	\
-	operation_ = Operation::op;			\
-	source_ = Source::src;				\
-	destination_ = Source::dest;		\
+	SetOperation(Operation::op);				\
+	source_ = Source::src;						\
+	destination_ = Source::dest;				\
 	operation_size_ = size
 
 /// Covers anything which is complete as soon as the opcode is encountered.
@@ -65,7 +70,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 /// Covers both `mem/reg, reg` and `reg, mem/reg`.
 #define MemRegReg(op, format, size)				\
-	operation_ = Operation::op;					\
+	SetOperation(Operation::op);				\
 	phase_ = Phase::ModRegRM;					\
 	modregrm_format_ = ModRegRMFormat::format;	\
 	operand_size_ = DataSize::None;				\
@@ -73,27 +78,27 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 /// Handles JO, JNO, JB, etc — anything with only a displacement.
 #define Displacement(op, size)						\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	displacement_size_ = size
 
 /// Handles PUSH [immediate], etc — anything with only an immediate operand.
 #define Immediate(op, size)							\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	source_ = Source::Immediate;					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = size
 
 /// Handles far CALL and far JMP — fixed four or six byte operand operations.
 #define Far(op)										\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = DataSize::Word;					\
 	displacement_size_ = data_size(default_address_size_)
 
 /// Handles ENTER — a fixed three-byte operation.
 #define Displacement16Operand8(op)					\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	displacement_size_ = DataSize::Word;			\
 	operand_size_ = DataSize::Byte
@@ -702,13 +707,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0:		operation_ = Operation::TEST;	break;
-					case 2:		operation_ = Operation::NOT;	break;
-					case 3:		operation_ = Operation::NEG;	break;
-					case 4:		operation_ = Operation::MUL;	break;
-					case 5:		operation_ = Operation::IMUL_1;	break;
-					case 6:		operation_ = Operation::DIV;	break;
-					case 7:		operation_ = Operation::IDIV;	break;
+					case 0:		SetOperation(Operation::TEST);		break;
+					case 2:		SetOperation(Operation::NOT);		break;
+					case 3:		SetOperation(Operation::NEG);		break;
+					case 4:		SetOperation(Operation::MUL);		break;
+					case 5:		SetOperation(Operation::IMUL_1);	break;
+					case 6:		SetOperation(Operation::DIV);		break;
+					case 7:		SetOperation(Operation::IDIV);		break;
 				}
 			break;
 
@@ -744,13 +749,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:	undefined();
 
-					case 0:		operation_ = Operation::ROL;	break;
-					case 1:		operation_ = Operation::ROR;	break;
-					case 2:		operation_ = Operation::RCL;	break;
-					case 3:		operation_ = Operation::RCR;	break;
-					case 4:		operation_ = Operation::SAL;	break;
-					case 5:		operation_ = Operation::SHR;	break;
-					case 7:		operation_ = Operation::SAR;	break;
+					case 0:		SetOperation(Operation::ROL);	break;
+					case 1:		SetOperation(Operation::ROR);	break;
+					case 2:		SetOperation(Operation::RCL);	break;
+					case 3:		SetOperation(Operation::RCR);	break;
+					case 4:		SetOperation(Operation::SAL);	break;
+					case 5:		SetOperation(Operation::SHR);	break;
+					case 7:		SetOperation(Operation::SAR);	break;
 				}
 			break;
 
@@ -760,8 +765,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:	undefined();
 
-					case 0:		operation_ = Operation::INC;	break;
-					case 1:		operation_ = Operation::DEC;	break;
+					case 0:		SetOperation(Operation::INC);	break;
+					case 1:		SetOperation(Operation::DEC);	break;
 				}
 			break;
 
@@ -771,13 +776,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:	undefined();
 
-					case 0:	operation_ = Operation::INC;		break;
-					case 1:	operation_ = Operation::DEC;		break;
-					case 2:	operation_ = Operation::CALLabs;	break;
-					case 3:	operation_ = Operation::CALLfar;	break;
-					case 4:	operation_ = Operation::JMPabs;		break;
-					case 5:	operation_ = Operation::JMPfar;		break;
-					case 6:	operation_ = Operation::PUSH;		break;
+					case 0:	SetOperation(Operation::INC);		break;
+					case 1:	SetOperation(Operation::DEC);		break;
+					case 2:	SetOperation(Operation::CALLabs);	break;
+					case 3:	SetOperation(Operation::CALLfar);	break;
+					case 4:	SetOperation(Operation::JMPabs);	break;
+					case 5:	SetOperation(Operation::JMPfar);	break;
+					case 6:	SetOperation(Operation::PUSH);		break;
 				}
 				// TODO: CALLfar and JMPfar aren't correct above; find out what is.
 			break;
@@ -804,14 +809,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				sign_extend_operand_ = true;	// Will be effective only if modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend.
 
 				switch(reg) {
-					default:	operation_ = Operation::ADD;	break;
-					case 1:		operation_ = Operation::OR;		break;
-					case 2:		operation_ = Operation::ADC;	break;
-					case 3:		operation_ = Operation::SBB;	break;
-					case 4:		operation_ = Operation::AND;	break;
-					case 5:		operation_ = Operation::SUB;	break;
-					case 6:		operation_ = Operation::XOR;	break;
-					case 7:		operation_ = Operation::CMP;	break;
+					default:	SetOperation(Operation::ADD);	break;
+					case 1:		SetOperation(Operation::OR);	break;
+					case 2:		SetOperation(Operation::ADC);	break;
+					case 3:		SetOperation(Operation::SBB);	break;
+					case 4:		SetOperation(Operation::AND);	break;
+					case 5:		SetOperation(Operation::SUB);	break;
+					case 6:		SetOperation(Operation::XOR);	break;
+					case 7:		SetOperation(Operation::CMP);	break;
 				}
 			break;
 
@@ -821,12 +826,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0:		operation_ = Operation::SLDT;	break;
-					case 1:		operation_ = Operation::STR;	break;
-					case 2:		operation_ = Operation::LLDT;	break;
-					case 3:		operation_ = Operation::LTR;	break;
-					case 4:		operation_ = Operation::VERR;	break;
-					case 5:		operation_ = Operation::VERW;	break;
+					case 0:		SetOperation(Operation::SLDT);	break;
+					case 1:		SetOperation(Operation::STR);	break;
+					case 2:		SetOperation(Operation::LLDT);	break;
+					case 3:		SetOperation(Operation::LTR);	break;
+					case 4:		SetOperation(Operation::VERR);	break;
+					case 5:		SetOperation(Operation::VERW);	break;
 				}
 			break;
 
@@ -836,12 +841,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0:		operation_ = Operation::SGDT;	break;
-					case 1:		operation_ = Operation::SIDT;	break;
-					case 2:		operation_ = Operation::LGDT;	break;
-					case 3:		operation_ = Operation::LIDT;	break;
-					case 4:		operation_ = Operation::SMSW;	break;
-					case 6:		operation_ = Operation::LMSW;	break;
+					case 0:		SetOperation(Operation::SGDT);	break;
+					case 1:		SetOperation(Operation::SIDT);	break;
+					case 2:		SetOperation(Operation::LGDT);	break;
+					case 3:		SetOperation(Operation::LIDT);	break;
+					case 4:		SetOperation(Operation::SMSW);	break;
+					case 6:		SetOperation(Operation::LMSW);	break;
 				}
 			break;
 
@@ -853,10 +858,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:	undefined();
 
-					case 4:		operation_ = Operation::BT;		break;
-					case 5:		operation_ = Operation::BTS;	break;
-					case 6:		operation_ = Operation::BTR;	break;
-					case 7:		operation_ = Operation::BTC;	break;
+					case 4:		SetOperation(Operation::BT);	break;
+					case 5:		SetOperation(Operation::BTS);	break;
+					case 6:		SetOperation(Operation::BTR);	break;
+					case 7:		SetOperation(Operation::BTC);	break;
 				}
 			break;
 
@@ -871,6 +876,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	}
 
 #undef undefined
+#undef SetOperation
 
 	// MARK: - ScaleIndexBase
 
@@ -913,10 +919,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			if(!sign_extend_displacement_) {
 				switch(displacement_size_) {
-					case DataSize::None:	displacement_ = 0;											break;
-					case DataSize::Byte:	displacement_ = decltype(operand_)(uint8_t(inward_data_));	break;
-					case DataSize::Word:	displacement_ = decltype(operand_)(uint16_t(inward_data_));	break;
-					case DataSize::DWord:	displacement_ = decltype(operand_)(uint32_t(inward_data_));	break;
+					case DataSize::None:	displacement_ = 0;													break;
+					case DataSize::Byte:	displacement_ = decltype(displacement_)(uint8_t(inward_data_));		break;
+					case DataSize::Word:	displacement_ = decltype(displacement_)(uint16_t(inward_data_));	break;
+					case DataSize::DWord:	displacement_ = decltype(displacement_)(uint32_t(inward_data_));	break;
 				}
 			} else {
 				switch(displacement_size_) {

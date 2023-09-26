@@ -176,11 +176,16 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	// Form string version, compare.
 	std::string operation;
 
-	// TODO: determine which reps, if any, this operation permits, and print only as relevant.
+	// TODO: this was a bit of a guess at the logic behind rep versus repe but doesn't seem to fit;
+	// check more thoroughly.
 	using Repetition = InstructionSet::x86::Repetition;
 	switch(instruction.repetition()) {
 		case Repetition::None: break;
-		case Repetition::RepE: operation += "repe ";	break;
+		case Repetition::RepE:
+			operation +=
+				InstructionSet::x86::supports(instruction.operation, Repetition::RepNE)
+					? "repe " : "rep ";
+		break;
 		case Repetition::RepNE: operation += "repne ";	break;
 	}
 
