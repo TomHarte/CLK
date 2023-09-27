@@ -128,10 +128,10 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
-	NSSet *allowList = nil;
-//		[[NSSet alloc] initWithArray:@[
-//			@"DB.json.gz",
-//		]];
+	NSSet *allowList = nil; /*
+		[[NSSet alloc] initWithArray:@[
+			@"D0.5.json.gz",
+		]]; */
 
 	// Unofficial opcodes; ignored for now.
 	NSSet *ignoreList =
@@ -237,6 +237,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 			}
 			if(operands > 0) {
 				switch(instruction.source().source()) {
+					case Source::None:	break;
 					case Source::eCX:	operation += ", cl"; break;
 					case Source::Immediate:
 						// Providing an immediate operand of 1 is a little future-proofing by the decoder; the '1'
@@ -331,8 +332,8 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 	// Known existing failures versus the provided 8088 disassemblies:
 	//
-	//	* quite a lot of instances similar to jmp word ss:[bp+si+1DEAh] being decoded as jmp word ss:[bp+di+1DEAh]
-	//		for ff a3 ea 1d; I don't currently know why SI is used rather than DI;
+	//	* quite a lot of instances similar to [bp+si+1DEAh] being decoded as [bp+di+1DEAh]; there is an error in the
+	//		test set where si will appear where di should, which obscures potential problems here;
 	//	* shifts that have been given a literal source of '1' shouldn't print it; that's a figment ofd this encoding;
 	//	* similarly, shifts should print cl as a source rather than cx even when shifting a word;
 	//	* ... and in/out should always use an 8-bit source;

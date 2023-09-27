@@ -162,19 +162,27 @@ enum class Operation: uint8_t {
 	PUSH,
 	/// PUSH the flags register to the stack.
 	PUSHF,
+
 	/// Rotate the destination left through carry the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	RCL,
 	/// Rotate the destination right through carry the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	RCR,
 	/// Rotate the destination left the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	ROL,
 	/// Rotate the destination right the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	ROR,
 	/// Arithmetic shift left the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the shift is by a single position only.
 	SAL,
 	/// Arithmetic shift right the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the shift is by a single position only.
 	SAR,
 	/// Logical shift right the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the shift is by a single position only.
 	SHR,
 
 	/// Clear carry flag; no source or destination provided.

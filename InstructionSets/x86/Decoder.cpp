@@ -390,8 +390,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			case 0xd0: case 0xd1:
 				ShiftGroup();
-				source_ = Source::Immediate;
-				operand_ = 1;
 			break;
 			case 0xd2: case 0xd3:
 				ShiftGroup();
