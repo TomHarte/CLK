@@ -27,6 +27,7 @@
 		42A5E8522ABBE16F00A0DD5D /* nop_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8412ABBE16F00A0DD5D /* nop_test.bin */; };
 		42A5E8532ABBE16F00A0DD5D /* lax_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8422ABBE16F00A0DD5D /* lax_test.bin */; };
 		42A5E8542ABBE16F00A0DD5D /* branch_backwards_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8432ABBE16F00A0DD5D /* branch_backwards_test.bin */; };
+		42E5C3932AC46A7700DA093D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42E5C3922AC46A7700DA093D /* Carbon.framework */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -1148,6 +1149,7 @@
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
+		42E5C3922AC46A7700DA093D /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B0333AD2094081A0050B93D /* AppleDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppleDSK.cpp; sourceTree = "<group>"; };
@@ -2302,6 +2304,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4BB8617124E22F5700A00E03 /* Accelerate.framework in Frameworks */,
+				42E5C3932AC46A7700DA093D /* Carbon.framework in Frameworks */,
 				4B50AF80242817F40099BBD7 /* QuartzCore.framework in Frameworks */,
 				4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */,
 			);
@@ -2391,6 +2394,7 @@
 		4B055A761FAE78210060FFFF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				42E5C3922AC46A7700DA093D /* Carbon.framework */,
 				4BB8617024E22F4900A00E03 /* Accelerate.framework */,
 				4B50AF7F242817F40099BBD7 /* QuartzCore.framework */,
 				4B055AF01FAE9C080060FFFF /* OpenGL.framework */,

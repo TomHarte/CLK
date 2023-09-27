@@ -130,7 +130,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = nil;
 //		[[NSSet alloc] initWithArray:@[
-//			@"08.json.gz",
+//			@"DB.json.gz",
 //		]];
 
 	// Unofficial opcodes; ignored for now.

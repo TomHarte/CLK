@@ -402,14 +402,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// Unused: 0xd6.
 			case 0xd7: Complete(XLAT, None, None, DataSize::Byte);	break;
 
-			case 0xd8: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xd9: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xda: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdb: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdc: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdd: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xde: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdf: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xd8: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xd9: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xda: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdb: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdc: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdd: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xde: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdf: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
 
 			case 0xe0: Displacement(LOOPNE, DataSize::Byte);	break;
 			case 0xe1: Displacement(LOOPE, DataSize::Byte);		break;
@@ -660,7 +660,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			};
 			displacement_size_ = sizes[mod];
 
-			if(address_size_ == AddressSize::b32) {
+			if(is_32bit(model) && address_size_ == AddressSize::b32) {
 				// 32-bit decoding: the range of potential indirections is expanded,
 				// and may segue into obtaining a SIB.
 				sib_ = ScaleIndexBase(0, Source::None, reg_table[rm]);
