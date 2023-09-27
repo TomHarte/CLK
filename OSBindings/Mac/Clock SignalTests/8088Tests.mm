@@ -41,17 +41,44 @@ template <typename InstructionT>
 std::string to_string(InstructionSet::x86::DataPointer pointer, const InstructionT &instruction, int offset_length) {
 	std::string operand;
 
+	auto append = [](std::stringstream &stream, auto value, int length, const char *prefix) {
+		switch(length) {
+			case 0:
+				if(!value) {
+					break;
+				}
+				[[fallthrough]];
+			case 2:
+				// If asked to pretend the offset was originally two digits then either of: an unsigned
+				// 8-bit value or a sign-extended 8-bit value as having been originally 8-bit.
+				//
+				// This kicks the issue of whether sign was extended appropriately to functionality tests.
+				if(
+					!(value & 0xff00) ||
+					((value & 0xff80) == 0xff80) ||
+					((value & 0xff80) == 0x0000)
+				) {
+					stream << prefix << to_hex(value, 2);
+					break;
+				}
+				[[fallthrough]];
+			default:
+				stream << prefix << to_hex(value, 4);
+				break;
+		}
+	};
+
 	using Source = InstructionSet::x86::Source;
 	const Source source = pointer.source<false>();
 	switch(source) {
 		// to_string handles all direct register names correctly.
 		default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
 
-		case Source::Immediate:
-			return to_hex(
-				instruction.operand(),
-				instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4
-			);
+		case Source::Immediate: {
+			std::stringstream stream;
+			append(stream, instruction.operand(), instruction.operation_size() == InstructionSet::x86::DataSize::Byte ? 2 : 4, "");
+			return stream.str();
+		}
 
 		case Source::DirectAddress:
 		case Source::Indirect:
@@ -91,25 +118,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 				break;
 			}
 			if(addOffset) {
-				switch(offset_length) {
-					case 0:
-						if(!instruction.offset()) {
-							break;
-						}
-						[[fallthrough]];
-					case 2:
-						// TODO: this mismatches some tests because it doesn't eliminate sign extensions.
-						// But when is it permissible to eliminate sign extensions? Always for now, and deal
-						// with it when testing actual execution?
-						if(!(instruction.offset() & 0xff00)) {
-							stream << '+' << to_hex(instruction.offset(), 2);
-							break;
-						}
-						[[fallthrough]];
-					default:
-						stream << '+' << to_hex(instruction.offset(), 4);
-						break;
-				}
+				append(stream, instruction.offset(), offset_length, "+");
 			}
 			stream << ']';
 			return stream.str();
@@ -128,10 +137,10 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
-	NSSet *allowList = nil; /*
-		[[NSSet alloc] initWithArray:@[
-			@"D0.5.json.gz",
-		]]; */
+	NSSet *allowList = nil;
+//		[[NSSet alloc] initWithArray:@[
+//			@"83.0.json.gz",
+//		]];
 
 	// Unofficial opcodes; ignored for now.
 	NSSet *ignoreList =
