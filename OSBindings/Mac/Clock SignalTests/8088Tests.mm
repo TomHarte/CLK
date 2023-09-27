@@ -176,8 +176,9 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	// Form string version, compare.
 	std::string operation;
 	using Operation = InstructionSet::x86::Operation;
-
 	using Repetition = InstructionSet::x86::Repetition;
+	using Source = InstructionSet::x86::Source;
+
 	switch(instruction.repetition()) {
 		case Repetition::None: break;
 		case Repetition::RepE:
@@ -221,6 +222,37 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 			operation += ":0x";
 			operation += to_hex(instruction.offset(), 4, false);
 		} break;
+
+		// Rolls and shifts list eCX as a source on the understanding that everyone knows that rolls and shifts
+		// use CL even when they're shifting or rolling a word-sized quantity.
+		case Operation::RCL:	case Operation::RCR:
+		case Operation::ROL:	case Operation::ROR:
+		case Operation::SAL:	case Operation::SAR:
+		case Operation::SHR:
+			const int operands = num_operands(instruction.operation);
+			const bool displacement = has_displacement(instruction.operation);
+			operation += " ";
+			if(operands > 1) {
+				operation += to_string(instruction.destination(), instruction, offsetLength);
+			}
+			if(operands > 0) {
+				switch(instruction.source().source()) {
+					case Source::eCX:	operation += ", cl"; break;
+					case Source::Immediate:
+						// Providing an immediate operand of 1 is a little future-proofing by the decoder; the '1'
+						// is actually implicit on a real 8088. So omit it.
+						if(instruction.operand() == 1) break;
+						[[fallthrough]];
+					default:
+						operation += ", ";
+						operation += to_string(instruction.source(), instruction, offsetLength);
+					break;
+				}
+			}
+			if(displacement) {
+				operation += to_hex(instruction.displacement(), 2);
+			}
+		break;
 	}
 
 	return [NSString stringWithUTF8String:operation.c_str()];
