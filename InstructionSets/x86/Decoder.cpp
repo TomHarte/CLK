@@ -1,4 +1,5 @@
 //
+//
 //  x86.cpp
 //  Clock Signal
 //
@@ -703,12 +704,17 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = memreg;
 
 				switch(reg) {
-					default: undefined();
+					default:
+						// case 1 is treated as another form of TEST on the 8086.
+						if constexpr (model >= Model::i80286) {
+							undefined();
+						}
+						[[fallthrough]];
 
 					case 0:
 						destination_ = memreg;
 						source_ = Source::Immediate;
-						operand_size_ = data_size_;
+						operand_size_ = operation_size_;
 						SetOperation(Operation::TEST);
 					break;
 					case 2:		SetOperation(Operation::NOT);		break;

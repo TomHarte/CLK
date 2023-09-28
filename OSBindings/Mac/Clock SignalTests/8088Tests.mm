@@ -137,10 +137,9 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
-	NSSet *allowList = nil;
-//		[NSSet setWithObject:
-//			@"D2.4.json.gz"
-//		];
+	NSSet *allowList = [NSSet setWithArray:@[
+//		@"F6.0.json.gz",
+	]];
 
 	// Unofficial opcodes; ignored for now.
 	NSSet *ignoreList =
@@ -166,7 +165,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
 	files = [files filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *) {
-		if(allowList && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
+		if(allowList.count && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
 			return NO;
 		}
 		if([ignoreList containsObject:[evaluatedObject lastPathComponent]]) {
