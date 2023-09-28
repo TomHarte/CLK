@@ -700,12 +700,17 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			} break;
 
 			case ModRegRMFormat::MemRegTEST_to_IDIV:
-				source_ = destination_ = memreg;
+				source_ = memreg;
 
 				switch(reg) {
 					default: undefined();
 
-					case 0:		SetOperation(Operation::TEST);		break;
+					case 0:
+						destination_ = memreg;
+						source_ = Source::Immediate;
+						operand_size_ = data_size_;
+						SetOperation(Operation::TEST);
+					break;
 					case 2:		SetOperation(Operation::NOT);		break;
 					case 3:		SetOperation(Operation::NEG);		break;
 					case 4:		SetOperation(Operation::MUL);		break;
