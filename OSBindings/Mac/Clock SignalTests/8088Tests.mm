@@ -146,8 +146,7 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"E8.json.gz",
-//		@"E9.json.gz",
+//		@"E4.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -343,21 +342,24 @@ std::string to_string(
 	//
 	// SEPARATELY: The test suite retains a distinction between SHL and SAL, which the decoder doesn't. So consider that
 	// a potential point of difference.
-	bool adjust_si = true;
-	bool adjust_sal = false;
-	while(!isEqual && (adjust_sal || adjust_si)) {
+	//
+	// Also, the decoder treats INT3 and INT 3 as the same thing. So allow for a meshing of those.
+	int adjustment = 7;
+	while(!isEqual && adjustment) {
 		NSString *alteredName = test[@"name"];
 
-		if(adjust_si) {
+		if(adjustment & 4) {
 			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"bp+si" withString:@"bp+di"];
 		}
-		if(adjust_sal) {
+		if(adjustment & 2) {
 			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"shl" withString:@"sal"];
+		}
+		if(adjustment & 1) {
+			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"int3 " withString:@"int 03h"];
 		}
 
 		isEqual = compare_decoding(alteredName);
-		adjust_sal ^= adjust_si;
-		adjust_si ^= true;
+		--adjustment;
 	}
 
 	XCTAssert(isEqual, "%@ doesn't match %@ or similar, was %@ within %@", test[@"name"], [decodings anyObject], hex_instruction(), file);
