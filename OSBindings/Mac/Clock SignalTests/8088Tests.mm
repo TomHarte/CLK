@@ -219,14 +219,14 @@ std::string to_string(
 	// Deal with a few special cases up front.
 	switch(instruction.operation) {
 		default: {
-			const int operands = num_operands(instruction.operation);
+			const int operands = max_num_operands(instruction.operation);
 			const bool displacement = has_displacement(instruction.operation);
 			operation += " ";
-			if(operands > 1) {
+			if(operands > 1 && instruction.destination().source() != Source::None) {
 				operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
 				operation += ", ";
 			}
-			if(operands > 0) {
+			if(operands > 0 && instruction.source().source() != Source::None) {
 				operation += to_string(instruction.source(), instruction, offsetLength, immediateLength);
 			}
 			if(displacement) {
@@ -257,7 +257,7 @@ std::string to_string(
 		case Operation::ROL:	case Operation::ROR:
 		case Operation::SAL:	case Operation::SAR:
 		case Operation::SHR:
-			const int operands = num_operands(instruction.operation);
+			const int operands = max_num_operands(instruction.operation);
 			const bool displacement = has_displacement(instruction.operation);
 			operation += " ";
 			if(operands > 1) {

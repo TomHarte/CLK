@@ -367,7 +367,7 @@ constexpr bool has_displacement(Operation operation) {
 	}
 }
 
-constexpr int num_operands(Operation operation) {
+constexpr int max_num_operands(Operation operation) {
 	switch(operation) {
 		default:	return 2;
 
@@ -381,6 +381,8 @@ constexpr int num_operands(Operation operation) {
 		case Operation::JMPabs:	case Operation::JMPfar:
 		case Operation::CALLabs:	case Operation::CALLfar:
 		case Operation::NEG:	case Operation::NOT:
+		case Operation::RETnear:
+		case Operation::RETfar:
 			return 1;
 
 		// Pedantically, these have an displacement rather than an operand.
@@ -410,8 +412,6 @@ constexpr int num_operands(Operation operation) {
 		case Operation::CBW:	case Operation::CWD:
 		case Operation::INTO:
 		case Operation::PUSHF:	case Operation::POPF:
-		case Operation::RETnear:
-		case Operation::RETfar:
 		case Operation::IRET:
 		case Operation::NOP:
 		case Operation::XLAT:
