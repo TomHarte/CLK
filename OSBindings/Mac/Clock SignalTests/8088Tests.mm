@@ -38,7 +38,15 @@ std::string to_hex(int value, int digits, bool with_suffix = true) {
 };
 
 template <typename InstructionT>
-std::string to_string(InstructionSet::x86::DataPointer pointer, const InstructionT &instruction, int offset_length, int immediate_length) {
+std::string to_string(
+	InstructionSet::x86::DataPointer pointer,
+	const InstructionT &instruction,
+	int offset_length,
+	int immediate_length,
+	InstructionSet::x86::DataSize operation_size = InstructionSet::x86::DataSize::None
+) {
+	if(operation_size == InstructionSet::x86::DataSize::None) operation_size = instruction.operation_size();
+
 	std::string operand;
 
 	auto append = [](std::stringstream &stream, auto value, int length, const char *prefix) {
@@ -72,7 +80,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	const Source source = pointer.source<false>();
 	switch(source) {
 		// to_string handles all direct register names correctly.
-		default:	return InstructionSet::x86::to_string(source, instruction.operation_size());
+		default:	return InstructionSet::x86::to_string(source, operation_size);
 
 		case Source::Immediate: {
 			std::stringstream stream;
@@ -86,7 +94,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 			std::stringstream stream;
 
 			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
-				stream << InstructionSet::x86::to_string(instruction.operation_size()) << ' ';
+				stream << InstructionSet::x86::to_string(operation_size) << ' ';
 			}
 
 			Source segment = instruction.data_segment();
@@ -138,7 +146,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"8C.json.gz",
+//		@"C4.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -232,6 +240,15 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 			operation += ":0x";
 			operation += to_hex(instruction.offset(), 4, false);
 		} break;
+
+		case Operation::LDS:
+		case Operation::LES:	// The test set labels the pointer type as dword, which I guess is technically accurate.
+								// A full 32 bits will be loaded from that address in 16-bit mode.
+			operation += " ";
+			operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
+			operation += ", ";
+			operation += to_string(instruction.source(), instruction, offsetLength, immediateLength, InstructionSet::x86::DataSize::DWord);
+		break;
 
 		// Rolls and shifts list eCX as a source on the understanding that everyone knows that rolls and shifts
 		// use CL even when they're shifting or rolling a word-sized quantity.
