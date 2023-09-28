@@ -146,7 +146,8 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"C4.json.gz",
+//		@"E8.json.gz",
+//		@"E9.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -229,7 +230,7 @@ std::string to_string(
 				operation += to_string(instruction.source(), instruction, offsetLength, immediateLength);
 			}
 			if(displacement) {
-				operation += to_hex(instruction.displacement(), 2);
+				operation += to_hex(instruction.displacement(), offsetLength);
 			}
 		} break;
 
@@ -278,7 +279,7 @@ std::string to_string(
 				}
 			}
 			if(displacement) {
-				operation += to_hex(instruction.displacement(), 2);
+				operation += to_hex(instruction.displacement(), offsetLength);
 			}
 		break;
 	}

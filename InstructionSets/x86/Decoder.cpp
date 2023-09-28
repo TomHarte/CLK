@@ -420,10 +420,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xe6: AddrReg(OUT, eAX, DataSize::Byte, DataSize::Byte);	break;
 			case 0xe7: AddrReg(OUT, eAX, data_size_, DataSize::Byte);		break;
 
-			case 0xe8: Displacement(CALLrel, data_size_);		break;
-			case 0xe9: Displacement(JMPrel, data_size_);		break;
-			case 0xea: Far(JMPfar);								break;
-			case 0xeb: Displacement(JMPrel, DataSize::Byte);	break;
+			case 0xe8: Displacement(CALLrel, data_size(address_size_));		break;
+			case 0xe9: Displacement(JMPrel, data_size(address_size_));		break;
+			case 0xea: Far(JMPfar);											break;
+			case 0xeb: Displacement(JMPrel, DataSize::Byte);				break;
 
 			case 0xec: Complete(IN, eDX, eAX, DataSize::Byte);	break;
 			case 0xed: Complete(IN, eDX, eAX, data_size_);		break;
