@@ -64,7 +64,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 /// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
 #define AddrReg(op, source, op_size, addr_size)				\
 	SetOpSrcDestSize(op, source, DirectAddress, op_size);	\
-	operand_size_ = addr_size;								\
+	displacement_size_ = addr_size;							\
 	destination_ = Source::DirectAddress;					\
 	phase_ = Phase::DisplacementOrOperand
 
