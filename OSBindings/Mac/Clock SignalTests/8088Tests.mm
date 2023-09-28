@@ -139,7 +139,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = nil;
 //		[NSSet setWithObject:
-//			@"A0.json.gz"
+//			@"D2.4.json.gz"
 //		];
 
 	// Unofficial opcodes; ignored for now.
@@ -318,12 +318,29 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 
 	bool isEqual = compare_decoding(test[@"name"]);
 
+	// Attempt clerical reconciliation:
+	//
 	// TEMPORARY HACK: the test set incorrectly states 'bp+si' whenever it means 'bp+di'.
 	// Though it also uses 'bp+si' correctly when it means 'bp+si'. Until fixed, take
 	// a pass on potential issues there.
-	if(!isEqual) {
-		NSString *alteredName = [test[@"name"] stringByReplacingOccurrencesOfString:@"bp+si" withString:@"bp+di"];
+	//
+	// SEPARATELY: The test suite retains a distinction between SHL and SAL, which the decoder doesn't. So consider that
+	// a potential point of difference.
+	bool adjust_si = true;
+	bool adjust_sal = false;
+	while(!isEqual && (adjust_sal || adjust_si)) {
+		NSString *alteredName = test[@"name"];
+
+		if(adjust_si) {
+			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"bp+si" withString:@"bp+di"];
+		}
+		if(adjust_sal) {
+			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"shl" withString:@"sal"];
+		}
+
 		isEqual = compare_decoding(alteredName);
+		adjust_sal ^= adjust_si;
+		adjust_si ^= true;
 	}
 
 	XCTAssert(isEqual, "%@ doesn't match %@ or similar, was %@ within %@", test[@"name"], [decodings anyObject], hex_instruction(), file);
