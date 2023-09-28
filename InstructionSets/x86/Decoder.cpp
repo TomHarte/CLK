@@ -740,7 +740,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				} else {
 					if(masked_reg > 3) {
 						undefined();
-					} 
+					}
 				}
 
 				if(modregrm_format_ == ModRegRMFormat::Seg_MemReg) {
