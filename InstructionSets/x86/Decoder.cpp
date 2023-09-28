@@ -727,30 +727,35 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 
 			case ModRegRMFormat::Seg_MemReg:
-			case ModRegRMFormat::MemReg_Seg:
+			case ModRegRMFormat::MemReg_Seg: {
+				// On the 8086, only two bits of reg are used.
+				const int masked_reg = model >= Model::i80286 ? reg : reg & 3;
+
 				// The 16-bit chips have four segment registers;
 				// the 80386 onwards has six.
-
-				// TODO: the 8086, at least, decodes something. Probably just the low two bits?
-				if(!is_32bit(model) && reg > 3) {
-					undefined();
-				} else if(reg > 5) {
-					undefined();
+				if constexpr (is_32bit(model)) {
+					if(masked_reg > 5) {
+						undefined();
+					}
+				} else {
+					if(masked_reg > 3) {
+						undefined();
+					} 
 				}
 
 				if(modregrm_format_ == ModRegRMFormat::Seg_MemReg) {
 					source_ = memreg;
-					destination_ = seg_table[reg];
+					destination_ = seg_table[masked_reg];
 
 					// 80286 and later disallow MOV to CS.
 					if(model >= Model::i80286 && destination_ == Source::CS) {
 						undefined();
 					}
 				} else {
-					source_ = seg_table[reg];
+					source_ = seg_table[masked_reg];
 					destination_ = memreg;
 				}
-			break;
+			} break;
 
 			case ModRegRMFormat::MemRegROL_to_SAR:
 				destination_ = memreg;

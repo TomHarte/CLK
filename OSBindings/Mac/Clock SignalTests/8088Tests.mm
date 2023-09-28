@@ -138,7 +138,7 @@ std::string to_string(InstructionSet::x86::DataPointer pointer, const Instructio
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"F6.0.json.gz",
+//		@"8C.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
