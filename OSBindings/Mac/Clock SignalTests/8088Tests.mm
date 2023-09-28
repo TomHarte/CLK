@@ -146,7 +146,7 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"E4.json.gz",
+//		@"F6.7.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -283,7 +283,7 @@ std::string to_string(
 		break;
 	}
 
-	return [NSString stringWithUTF8String:operation.c_str()];
+	return [[NSString stringWithUTF8String:operation.c_str()] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
 - (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file {
@@ -346,7 +346,7 @@ std::string to_string(
 	// Also, the decoder treats INT3 and INT 3 as the same thing. So allow for a meshing of those.
 	int adjustment = 7;
 	while(!isEqual && adjustment) {
-		NSString *alteredName = test[@"name"];
+		NSString *alteredName = [test[@"name"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
 		if(adjustment & 4) {
 			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"bp+si" withString:@"bp+di"];
@@ -355,7 +355,7 @@ std::string to_string(
 			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"shl" withString:@"sal"];
 		}
 		if(adjustment & 1) {
-			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"int3 " withString:@"int 03h"];
+			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"int3" withString:@"int 03h"];
 		}
 
 		isEqual = compare_decoding(alteredName);

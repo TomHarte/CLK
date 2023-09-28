@@ -526,6 +526,8 @@ constexpr bool supports(Operation operation, Repetition repetition) {
 		case Operation::OUTS:
 			return repetition == Repetition::RepE;
 
+		case Operation::Invalid:	// Retain context here; it's used as an intermediate
+									// state sometimes.
 		case Operation::CMPS:
 		case Operation::LODS:
 		case Operation::MOVS:
