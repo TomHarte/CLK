@@ -407,11 +407,23 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xbe: RegData(MOV, eSI, data_size_);		break;
 			case 0xbf: RegData(MOV, eDI, data_size_);		break;
 
-			case 0xc0: case 0xc1:
-				RequiresMin(i80186);
-				ShiftGroup();
-				source_ = Source::Immediate;
-				operand_size_ = DataSize::Byte;
+			case 0xc0:
+				if constexpr (model >= Model::i80186) {
+					ShiftGroup();
+					source_ = Source::Immediate;
+					operand_size_ = DataSize::Byte;
+				} else {
+					RegData(RETnear, None, data_size_);
+				}
+			break;
+			case 0xc1:
+				if constexpr (model >= Model::i80186) {
+					ShiftGroup();
+					source_ = Source::Immediate;
+					operand_size_ = data_size_;
+				} else {
+					Complete(RETnear, None, None, DataSize::None);
+				}
 			break;
 			case 0xc2: RegData(RETnear, None, data_size_);				break;
 			case 0xc3: Complete(RETnear, None, None, DataSize::None);	break;
@@ -421,12 +433,18 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xc7: MemRegReg(MOV, MemRegMOV, data_size_);			break;
 
 			case 0xc8:
-				RequiresMin(i80186);
-				Displacement16Operand8(ENTER);
+				if constexpr (model >= Model::i80186) {
+					Displacement16Operand8(ENTER);
+				} else {
+					RegData(RETfar, None, data_size_);
+				}
 			break;
 			case 0xc9:
-				RequiresMin(i80186);
-				Complete(LEAVE, None, None, DataSize::None);
+				if constexpr (model >= Model::i80186) {
+					Complete(LEAVE, None, None, DataSize::None);
+				} else {
+					Complete(RETfar, None, None, DataSize::DWord);
+				}
 			break;
 
 			case 0xca: RegData(RETfar, None, data_size_);				break;

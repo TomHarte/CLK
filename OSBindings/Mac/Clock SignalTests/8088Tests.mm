@@ -151,10 +151,6 @@ std::string to_string(
 	// Unofficial opcodes; ignored for now.
 	NSSet *ignoreList =
 		[NSSet setWithObjects:
-			// Aliases.
-			@"82.0.json.gz",	@"82.1.json.gz",	@"82.2.json.gz",	@"82.3.json.gz",
-			@"82.4.json.gz",	@"82.5.json.gz",	@"82.6.json.gz",	@"82.7.json.gz",
-			@"C0.json.gz",		@"C1.json.gz",		@"C8.json.gz",		@"C9.json.gz",
 
 			// Undocumented instructions.
 			@"D0.6.json.gz",	@"D1.6.json.gz",	@"D2.6.json.gz",	@"D3.6.json.gz",
