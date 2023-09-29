@@ -906,9 +906,6 @@ template<bool is_32bit> class Instruction {
 					++extension;
 				}
 				if(has_length_extension()) {
-					// As per the rule stated for segment(), this class provides ::DS for any instruction
-					// that doesn't have a segment override.
-					if(segment_override == Source::None) segment_override = Source::DS;
 					extensions_[extension] = ImmediateT(
 						(length << 6) | (int(repetition) << 4) | ((int(segment_override) & 7) << 1) | int(lock)
 					);

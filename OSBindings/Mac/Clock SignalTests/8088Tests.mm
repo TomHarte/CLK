@@ -146,7 +146,7 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"F6.7.json.gz",
+//		@"F6.7.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -286,7 +286,7 @@ std::string to_string(
 	return [[NSString stringWithUTF8String:operation.c_str()] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
-- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file {
+- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
 	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 	Decoder decoder;
 
@@ -306,15 +306,17 @@ std::string to_string(
 	};
 
 	const auto decoded = decoder.decode(data.data(), data.size());
-	XCTAssert(
-		decoded.first == [encoding count],
-		"Wrong length of instruction decoded for %@ — decoded %d rather than %lu from %@; file %@",
-			test[@"name"],
-			decoded.first,
-			(unsigned long)[encoding count],
-			hex_instruction(),
-			file
-	);
+	if(assert) {
+		XCTAssert(
+			decoded.first == [encoding count],
+			"Wrong length of instruction decoded for %@ — decoded %d rather than %lu from %@; file %@",
+				test[@"name"],
+				decoded.first,
+				(unsigned long)[encoding count],
+				hex_instruction(),
+				file
+		);
+	}
 	if(decoded.first != [encoding count]) {
 		return false;
 	}
@@ -365,7 +367,16 @@ std::string to_string(
 		--adjustment;
 	}
 
-	XCTAssert(isEqual, "%@ doesn't match %@ or similar, was %@ within %@", test[@"name"], [decodings anyObject], hex_instruction(), file);
+	if(assert) {
+		XCTAssert(
+			isEqual,
+			"%@ doesn't match %@ or similar, was %@ within %@",
+				test[@"name"],
+				[decodings anyObject],
+				hex_instruction(),
+				file
+		);
+	}
 
 	return isEqual;
 }
@@ -380,11 +391,11 @@ std::string to_string(
 		NSUInteger successes = 0;
 		for(NSDictionary *test in testsInFile) {
 			// A single failure per instruction is fine.
-			if(![self applyDecodingTest:test file:file]) {
+			if(![self applyDecodingTest:test file:file assert:YES]) {
 				[failures addObject:file];
 
 				// Attempt a second decoding, to provide a debugger hook.
-				[self applyDecodingTest:test file:file];
+				[self applyDecodingTest:test file:file assert:NO];
 
 				break;
 			}
