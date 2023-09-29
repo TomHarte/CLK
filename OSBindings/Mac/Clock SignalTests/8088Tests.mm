@@ -146,7 +146,7 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"F6.7.json.gz",
+		@"F6.7.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -315,6 +315,9 @@ std::string to_string(
 			hex_instruction(),
 			file
 	);
+	if(decoded.first != [encoding count]) {
+		return false;
+	}
 
 	// The decoder doesn't preserve the original offset length, which makes no functional difference but
 	// does affect the way that offsets are printed in the test set.
@@ -364,58 +367,7 @@ std::string to_string(
 
 	XCTAssert(isEqual, "%@ doesn't match %@ or similar, was %@ within %@", test[@"name"], [decodings anyObject], hex_instruction(), file);
 
-	// Repetition, to allow for easy breakpoint placement.
-	if(!isEqual) {
-		// Repeat operand conversions, for debugging.
-		Decoder decoder;
-		const auto instruction = decoder.decode(data.data(), data.size());
-		const InstructionSet::x86::Source sources[] = {
-			instruction.second.source().source<false>(),
-			instruction.second.destination().source<false>(),
-		};
-		(void)sources;
-
-		const auto destination = instruction.second.destination();
-		std::cout << to_string(destination, instruction.second, 4, 2);
-		const auto source = instruction.second.source();
-		std::cout << to_string(source, instruction.second, 4, 2);
-		return false;
-	}
-
-	// Known existing failures versus the provided 8088 disassemblies:
-	//
-	//	* quite a lot of instances similar to [bp+si+1DEAh] being decoded as [bp+di+1DEAh]; there is an error in the
-	//		test set where si will appear where di should, which obscures potential problems here;
-	//	* shifts that have been given a literal source of '1' shouldn't print it; that's a figment ofd this encoding;
-	//	* similarly, shifts should print cl as a source rather than cx even when shifting a word;
-	//	* ... and in/out should always use an 8-bit source;
-	//	* ... and RCL ditto is SP, CL rather than CX;
-	//	* rep/etc shouldn't be printed on instructions that don't allow it, and may be just 'rep' rather than 'repe';
-	//	* I strongly suspect I'm dealing with ESC operands incorrectly;
-	//	* possibly LEA implies a word operand?;
-	//	* D1.6, which is undocumented, apparently maps to SETMO — add that;
-	//	* 36 8e 6b 7c should mirror to mov cs, word ss:[bp+di+7Ch]; it's literally mov gs, word ss:[bp+di+7Ch] so the
-	//		decoder rejects it for 16-bit mode;
-	//	* I'm using 'sal' whereas the test set is using 'shl';
-	//	* logging of far jumps and calls is way off; add a special case for printing segment:offset;
-	//	* CALLrel seems to lose a byte of argument? e8 4b 9c is printed as just call 4Bh rather than call 9C4Bh;
-	//	* JMPrel seems to have the same issue;
-	//	* my RETnear seems to fill in source, but not destination?
-	//	* there are still some false sign extensions going on, e.g. 26 83 8c 47 32 ad produces
-	//		`or word es:[si+3247h], FFADh` when the second argument should just be `ADh`;
-	//	* the decoder provides int3 as int with an operand of 3, so a special-case printing is necessary there;
-	//	* the provided dissassemblies sometimes include an offset of 00h, which won't be printed by this code;
-	//	* e5 4b is decoded as in ax, word ds:[0000h] rather than in ax, 4Bh;
-	//	* 36 f6 04 4b is decoded as the nonsensical test byte ss:[si], byte ss:[si] rather than test byte ss:[si], 4Bh;
-	//	* a1 4b 50 is decoded as `mov ax, word ds:[0000h]` rather than `mov ax, word ds:[504Bh]`, and other tests seem
-	//		similarly affected;
-	//	* `a0 4b 50`, `26 a2 d2 80`, also drop the suffix somewhere (or, actually, fail subsequently to surface it);
-	//	* POPs in general don't realise to print the other possible operand;
-	//	* c4 4b 9c somehow decodes as a _dword_ version of LES, and LDS seems similarly affected;
-	//
-
-
-	return true;
+	return isEqual;
 }
 
 - (void)testDecoding {
@@ -430,6 +382,10 @@ std::string to_string(
 			// A single failure per instruction is fine.
 			if(![self applyDecodingTest:test file:file]) {
 				[failures addObject:file];
+
+				// Attempt a second decoding, to provide a debugger hook.
+				[self applyDecodingTest:test file:file];
+
 				break;
 			}
 			++successes;
