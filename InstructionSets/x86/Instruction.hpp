@@ -83,7 +83,7 @@ enum class Operation: uint8_t {
 
 	/// Reads from the port specified by source to the destination.
 	IN,
-	/// Writes from the port specified by destination from the source.
+	/// Writes to the port specified by destination from the source.
 	OUT,
 
 	// Various jumps; see the displacement to calculate targets.

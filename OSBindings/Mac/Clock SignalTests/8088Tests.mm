@@ -146,7 +146,9 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-//		@"F6.7.json.gz",
+		// Failing CALL and JMP.
+//		@"FF.3.json.gz",
+//		@"FF.5.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -248,6 +250,34 @@ std::string to_string(
 			operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
 			operation += ", ";
 			operation += to_string(instruction.source(), instruction, offsetLength, immediateLength, InstructionSet::x86::DataSize::DWord);
+		break;
+
+		case Operation::IN:
+			operation += " ";
+			operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
+			operation += ", ";
+			switch(instruction.source().source()) {
+				case Source::DirectAddress:
+					operation += to_hex(instruction.offset(), 2, true);
+				break;
+				default:
+					operation += to_string(instruction.source(), instruction, offsetLength, immediateLength, InstructionSet::x86::DataSize::Word);
+				break;
+			}
+		break;
+
+		case Operation::OUT:
+			operation += " ";
+			switch(instruction.destination().source()) {
+				case Source::DirectAddress:
+					operation += to_hex(instruction.offset(), 2, true);
+				break;
+				default:
+					operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength, InstructionSet::x86::DataSize::Word);
+				break;
+			}
+			operation += ", ";
+			operation += to_string(instruction.source(), instruction, offsetLength, immediateLength);
 		break;
 
 		// Rolls and shifts list eCX as a source on the understanding that everyone knows that rolls and shifts

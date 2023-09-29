@@ -141,6 +141,7 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 
 		default:
 			assert(false);
+			return "";
 	}
 }
 

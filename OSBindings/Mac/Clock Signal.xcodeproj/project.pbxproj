@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		423BDC4A2AB24699008E37B6 /* 8088Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 423BDC492AB24699008E37B6 /* 8088Tests.mm */; };
+		42437B332AC70833006DFED1 /* HDV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6FD0342923061300EC4760 /* HDV.cpp */; };
 		4281683A2A37AFB4008ECD27 /* DispatcherTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 428168392A37AFB4008ECD27 /* DispatcherTests.mm */; };
 		42A5E80C2ABBE04600A0DD5D /* NeskellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A5E80B2ABBE04600A0DD5D /* NeskellTests.swift */; };
 		42A5E8442ABBE16F00A0DD5D /* illegal_rmw_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8332ABBE16F00A0DD5D /* illegal_rmw_test.bin */; };
@@ -6329,6 +6330,7 @@
 				4B778F4323A5F1B00000D260 /* ImplicitSectors.cpp in Sources */,
 				4B7752B128217EA30073E2C5 /* StaticAnalyser.cpp in Sources */,
 				4B778F5123A5F2290000D260 /* StaticAnalyser.cpp in Sources */,
+				42437B332AC70833006DFED1 /* HDV.cpp in Sources */,
 				4B7752C028217F3D0073E2C5 /* Line.cpp in Sources */,
 				4B7C7A00282C3BCA002D6C0B /* 68000flamewingTests.mm in Sources */,
 				4B778F0223A5EBA40000D260 /* MFMSectorDump.cpp in Sources */,
