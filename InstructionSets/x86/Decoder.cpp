@@ -199,72 +199,124 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #undef RegisterBlock
 
 			case 0x60:
-				RequiresMin(i80186);
-				Complete(PUSHA, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JO, DataSize::Byte);
+				} else {
+					Complete(PUSHA, None, None, data_size_);
+				}
 			break;
 			case 0x61:
-				RequiresMin(i80186);
-				Complete(POPA, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JNO, DataSize::Byte);
+				} else {
+					Complete(POPA, None, None, data_size_);
+				}
 			break;
 			case 0x62:
-				RequiresMin(i80186);
-				MemRegReg(BOUND, Reg_MemReg, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JB, DataSize::Byte);
+				} else {
+					MemRegReg(BOUND, Reg_MemReg, data_size_);
+				}
 			break;
 			case 0x63:
-				RequiresMin(i80286);
-				MemRegReg(ARPL, MemReg_Reg, DataSize::Word);
+				if constexpr (model < Model::i80286) {
+					Displacement(JNB, DataSize::Byte);
+				} else {
+					MemRegReg(ARPL, MemReg_Reg, DataSize::Word);
+				}
 			break;
 			case 0x64:
-				RequiresMin(i80386);
-				segment_override_ = Source::FS;
+				if constexpr (model < Model::i80386) {
+					Displacement(JZ, DataSize::Byte);
+				} else {
+					RequiresMin(i80386);
+					segment_override_ = Source::FS;
+				}
 			break;
 			case 0x65:
+				if constexpr (model < Model::i80286) {
+					Displacement(JNZ, DataSize::Byte);
+					break;
+				}
 				RequiresMin(i80386);
 				segment_override_ = Source::GS;
 			break;
 			case 0x66:
+				if constexpr (model < Model::i80286) {
+					Displacement(JBE, DataSize::Byte);
+					break;
+				}
 				RequiresMin(i80386);
 				data_size_ = DataSize(int(default_data_size_) ^ int(DataSize::Word) ^ int(DataSize::DWord));
 			break;
 			case 0x67:
+				if constexpr (model < Model::i80286) {
+					Displacement(JNBE, DataSize::Byte);
+					break;
+				}
 				RequiresMin(i80386);
 				address_size_ = AddressSize(int(default_address_size_) ^ int(AddressSize::b16) ^ int(AddressSize::b32));
 			break;
 			case 0x68:
-				RequiresMin(i80286);
-				Immediate(PUSH, data_size_);
-				operation_size_ = data_size_;
+				if constexpr (model < Model::i80286) {
+					Displacement(JS, DataSize::Byte);
+				} else {
+					Immediate(PUSH, data_size_);
+					operation_size_ = data_size_;
+				}
 			break;
 			case 0x69:
-				RequiresMin(i80286);
-				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
-				operand_size_ = data_size_;
+				if constexpr (model < Model::i80286) {
+					Displacement(JNS, DataSize::Byte);
+				} else {
+					MemRegReg(IMUL_3, Reg_MemReg, data_size_);
+					operand_size_ = data_size_;
+				}
 			break;
 			case 0x6a:
-				RequiresMin(i80286);
-				Immediate(PUSH, DataSize::Byte);
+				if constexpr (model < Model::i80286) {
+					Displacement(JP, DataSize::Byte);
+				} else {
+					Immediate(PUSH, DataSize::Byte);
+				}
 			break;
 			case 0x6b:
-				RequiresMin(i80286);
-				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
-				operand_size_ = DataSize::Byte;
-				sign_extend_operand_ = true;
+				if constexpr (model < Model::i80286) {
+					Displacement(JNP, DataSize::Byte);
+				} else {
+					MemRegReg(IMUL_3, Reg_MemReg, data_size_);
+					operand_size_ = DataSize::Byte;
+					sign_extend_operand_ = true;
+				}
 			break;
 			case 0x6c:	// INSB
-				RequiresMin(i80186);
-				Complete(INS, None, None, DataSize::Byte);
+				if constexpr (model < Model::i80186) {
+					Displacement(JL, DataSize::Byte);
+				} else {
+					Complete(INS, None, None, DataSize::Byte);
+				}
 			break;
 			case 0x6d:	// INSW/INSD
-				RequiresMin(i80186);
-				Complete(INS, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JNL, DataSize::Byte);
+				} else {
+					Complete(INS, None, None, data_size_);
+				}
 			break;
 			case 0x6e:	// OUTSB
-				RequiresMin(i80186);
-				Complete(OUTS, None, None, DataSize::Byte);
+				if constexpr (model < Model::i80186) {
+					Displacement(JLE, DataSize::Byte);
+				} else {
+					Complete(OUTS, None, None, DataSize::Byte);
+				}
 			break;
 			case 0x6f:	// OUTSW/OUSD
-				RequiresMin(i80186);
-				Complete(OUTS, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JNLE, DataSize::Byte);
+				} else {
+					Complete(OUTS, None, None, data_size_);
+				}
 			break;
 
 			case 0x70: Displacement(JO, DataSize::Byte);	break;
