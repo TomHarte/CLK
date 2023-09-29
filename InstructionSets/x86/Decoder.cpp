@@ -759,6 +759,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:
 						// case 1 is treated as another form of TEST on the 8086.
+						// (and, I guess, the 80186?)
 						if constexpr (model >= Model::i80286) {
 							undefined();
 						}
@@ -841,7 +842,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default:	undefined();
+					default:
+						// case 7 is treated as another form of PUSH on the 8086.
+						// (and, I guess, the 80186?)
+						if constexpr (model >= Model::i80286) {
+							undefined();
+						}
+						[[fallthrough]];
+					case 6:	SetOperation(Operation::PUSH);		break;
 
 					case 0:	SetOperation(Operation::INC);		break;
 					case 1:	SetOperation(Operation::DEC);		break;
@@ -849,7 +857,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 3:	SetOperation(Operation::CALLfar);	break;
 					case 4:	SetOperation(Operation::JMPabs);	break;
 					case 5:	SetOperation(Operation::JMPfar);	break;
-					case 6:	SetOperation(Operation::PUSH);		break;
 				}
 				// TODO: CALLfar and JMPfar aren't correct above; find out what is.
 			break;

@@ -160,7 +160,6 @@ std::string to_string(
 			@"D6.json.gz",
 
 			@"F6.1.json.gz",	@"F7.1.json.gz",
-			@"FF.7.json.gz",
 
 			nil
 		];
