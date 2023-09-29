@@ -95,6 +95,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = DataSize::Word;					\
+	destination_ = Source::Immediate;				\
 	displacement_size_ = data_size(default_address_size_)
 
 /// Handles ENTER — a fixed three-byte operation.

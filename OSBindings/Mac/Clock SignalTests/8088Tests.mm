@@ -146,9 +146,6 @@ std::string to_string(
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		// Failing CALL and JMP.
-//		@"FF.3.json.gz",
-//		@"FF.5.json.gz",
 	]];
 
 	// Unofficial opcodes; ignored for now.
@@ -237,10 +234,18 @@ std::string to_string(
 
 		case Operation::CALLfar:
 		case Operation::JMPfar: {
-			operation += " 0x";
-			operation += to_hex(instruction.segment(), 4, false);
-			operation += ":0x";
-			operation += to_hex(instruction.offset(), 4, false);
+			switch(instruction.destination().source()) {
+				case Source::Immediate:
+					operation += " far 0x";
+					operation += to_hex(instruction.segment(), 4, false);
+					operation += ":0x";
+					operation += to_hex(instruction.offset(), 4, false);
+				break;
+				default:
+					operation += " ";
+					operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
+				break;
+			}
 		} break;
 
 		case Operation::LDS:

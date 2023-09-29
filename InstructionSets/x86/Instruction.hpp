@@ -94,7 +94,7 @@ enum class Operation: uint8_t {
 	CALLabs,
 	/// Relative call; see displacement().
 	CALLrel,
-	/// Far call; see the segment() and offset() fields.
+	/// Far call; if destination is Source::Immediate then see the segment() and offset() fields; otherwise take segment and offset by indirection.
 	CALLfar,
 	/// Return from interrupt.
 	IRET,
@@ -106,7 +106,7 @@ enum class Operation: uint8_t {
 	JMPabs,
 	/// Near jump with a relative destination.
 	JMPrel,
-	/// Far jump to the indicated segment and offset.
+	/// Far jump;  if destination is Source::Immediate then see the segment() and offset() fields; otherwise take segment and offset by indirection.
 	JMPfar,
 	/// Relative jump performed only if CX = 0; see the displacement.
 	JCXZ,
