@@ -215,6 +215,15 @@ enum class Operation: uint8_t {
 	SALC,
 
 	//
+	// 8086 exclusives.
+	//
+
+	/// Set destination to ~0 if CL is non-zero.
+	SETMOC,
+	/// Set destination to ~0.
+	SETMO,
+
+	//
 	// 80186 additions.
 	//
 
@@ -222,7 +231,7 @@ enum class Operation: uint8_t {
 	/// stored at the location indicated by the source register, which will point to two
 	/// 16- or 32-bit words, the first being a signed lower bound and the signed upper.
 	/// Raises a bounds exception if not.
-	BOUND = SALC,
+	BOUND = SETMOC,
 
 
 	/// Create stack frame. See operand() for the nesting level and offset()

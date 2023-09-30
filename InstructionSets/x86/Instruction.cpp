@@ -138,6 +138,9 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 		case Operation::XLAT:	return "xlat";
 		case Operation::SALC:	return "salc";
 
+		case Operation::SETMO:	return "setmo";
+		case Operation::SETMOC:	return "setmoc";
+
 		case Operation::Invalid:	return "invalid";
 
 		default:

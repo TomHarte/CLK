@@ -148,15 +148,7 @@ std::string to_string(
 	NSSet *allowList = [NSSet setWithArray:@[
 	]];
 
-	// Unofficial opcodes; ignored for now.
-	NSSet *ignoreList =
-		[NSSet setWithObjects:
-
-			// Undocumented instructions.
-			@"D0.6.json.gz",	@"D1.6.json.gz",	@"D2.6.json.gz",	@"D3.6.json.gz",
-
-			nil
-		];
+	NSSet *ignoreList = nil;
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
 	files = [files filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *) {
@@ -210,9 +202,9 @@ std::string to_string(
 			operation += " ";
 			if(operands > 1 && instruction.destination().source() != Source::None) {
 				operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
-				operation += ", ";
 			}
 			if(operands > 0 && instruction.source().source() != Source::None) {
+				if(operands > 1) operation += ", ";
 				operation += to_string(instruction.source(), instruction, offsetLength, immediateLength);
 			}
 			if(displacement) {
@@ -279,6 +271,7 @@ std::string to_string(
 		case Operation::ROL:	case Operation::ROR:
 		case Operation::SAL:	case Operation::SAR:
 		case Operation::SHR:
+		case Operation::SETMO:	case Operation::SETMOC:
 			const int operands = max_num_operands(instruction.operation);
 			const bool displacement = has_displacement(instruction.operation);
 			operation += " ";

@@ -833,7 +833,17 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				destination_ = memreg;
 
 				switch(reg) {
-					default:	undefined();
+					default:
+						if constexpr (model == Model::i8086) {
+							if(source_ == Source::eCX) {
+								SetOperation(Operation::SETMOC);
+							} else {
+								SetOperation(Operation::SETMO);
+							}
+						} else {
+							undefined();
+						}
+					break;
 
 					case 0:		SetOperation(Operation::ROL);	break;
 					case 1:		SetOperation(Operation::ROR);	break;
