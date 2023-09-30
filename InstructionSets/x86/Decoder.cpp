@@ -469,7 +469,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0xd4: RegData(AAM, eAX, DataSize::Byte);			break;
 			case 0xd5: RegData(AAD, eAX, DataSize::Byte);			break;
-			// Unused: 0xd6.
+			case 0xd6: Complete(SALC, None, None, DataSize::Byte);	break;
 			case 0xd7: Complete(XLAT, None, None, DataSize::Byte);	break;
 
 			case 0xd8: MemRegReg(ESC, Reg_MemReg, data_size_);	break;

@@ -154,7 +154,6 @@ std::string to_string(
 
 			// Undocumented instructions.
 			@"D0.6.json.gz",	@"D1.6.json.gz",	@"D2.6.json.gz",	@"D3.6.json.gz",
-			@"D6.json.gz",
 
 			nil
 		];

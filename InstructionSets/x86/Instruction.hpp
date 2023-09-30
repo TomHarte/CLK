@@ -211,6 +211,9 @@ enum class Operation: uint8_t {
 	/// Load AL with DS:[AL+BX].
 	XLAT,
 
+	/// Set AL to FFh if carry is set; 00h otherwise.
+	SALC,
+
 	//
 	// 80186 additions.
 	//
@@ -219,7 +222,7 @@ enum class Operation: uint8_t {
 	/// stored at the location indicated by the source register, which will point to two
 	/// 16- or 32-bit words, the first being a signed lower bound and the signed upper.
 	/// Raises a bounds exception if not.
-	BOUND,
+	BOUND = SALC,
 
 
 	/// Create stack frame. See operand() for the nesting level and offset()
@@ -415,6 +418,7 @@ constexpr int max_num_operands(Operation operation) {
 		case Operation::IRET:
 		case Operation::NOP:
 		case Operation::XLAT:
+		case Operation::SALC:
 		case Operation::Invalid:
 			return 0;
 	}

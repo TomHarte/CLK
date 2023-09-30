@@ -136,6 +136,7 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 
 		case Operation::XCHG:	return "xchg";
 		case Operation::XLAT:	return "xlat";
+		case Operation::SALC:	return "salc";
 
 		case Operation::Invalid:	return "invalid";
 
