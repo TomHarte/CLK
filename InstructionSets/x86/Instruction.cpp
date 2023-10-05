@@ -12,7 +12,80 @@
 
 using namespace InstructionSet::x86;
 
-std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
+bool InstructionSet::x86::has_displacement(Operation operation) {
+	switch(operation) {
+		default: return false;
+
+		case Operation::JO:			case Operation::JNO:
+		case Operation::JB:			case Operation::JNB:
+		case Operation::JZ:			case Operation::JNZ:
+		case Operation::JBE:		case Operation::JNBE:
+		case Operation::JS:			case Operation::JNS:
+		case Operation::JP:			case Operation::JNP:
+		case Operation::JL:			case Operation::JNL:
+		case Operation::JLE:		case Operation::JNLE:
+		case Operation::LOOPNE:		case Operation::LOOPE:
+		case Operation::LOOP:		case Operation::JCXZ:
+		case Operation::CALLrel:	case Operation::JMPrel:
+			return true;
+	}
+}
+
+int InstructionSet::x86::max_displayed_operands(Operation operation) {
+	switch(operation) {
+		default:	return 2;
+
+		case Operation::INC:	case Operation::DEC:
+		case Operation::POP:	case Operation::PUSH:
+		case Operation::MUL:	case Operation::IMUL_1:
+		case Operation::IDIV:	case Operation::DIV:
+		case Operation::ESC:
+		case Operation::AAM:	case Operation::AAD:
+		case Operation::INT:
+		case Operation::JMPabs:	case Operation::JMPfar:
+		case Operation::CALLabs:	case Operation::CALLfar:
+		case Operation::NEG:	case Operation::NOT:
+		case Operation::RETnear:
+		case Operation::RETfar:
+			return 1;
+
+		// Pedantically, these have an displacement rather than an operand.
+		case Operation::JO:		case Operation::JNO:
+		case Operation::JB:		case Operation::JNB:
+		case Operation::JZ:		case Operation::JNZ:
+		case Operation::JBE:	case Operation::JNBE:
+		case Operation::JS:		case Operation::JNS:
+		case Operation::JP:		case Operation::JNP:
+		case Operation::JL:		case Operation::JNL:
+		case Operation::JLE:	case Operation::JNLE:
+		case Operation::LOOPNE:		case Operation::LOOPE:
+		case Operation::LOOP:		case Operation::JCXZ:
+		case Operation::CALLrel:	case Operation::JMPrel:
+		// Genuine zero-operand instructions:
+		case Operation::CMPS:	case Operation::LODS:
+		case Operation::MOVS:	case Operation::SCAS:
+		case Operation::STOS:
+		case Operation::CLC:	case Operation::CLD:
+		case Operation::CLI:
+		case Operation::STC:	case Operation::STD:
+		case Operation::STI:
+		case Operation::CMC:
+		case Operation::LAHF:	case Operation::SAHF:
+		case Operation::AAA:	case Operation::AAS:
+		case Operation::DAA:	case Operation::DAS:
+		case Operation::CBW:	case Operation::CWD:
+		case Operation::INTO:
+		case Operation::PUSHF:	case Operation::POPF:
+		case Operation::IRET:
+		case Operation::NOP:
+		case Operation::XLAT:
+		case Operation::SALC:
+		case Operation::Invalid:
+			return 0;
+	}
+}
+
+std::string InstructionSet::x86::to_string(Operation operation, DataSize size, Model model) {
 	switch(operation) {
 		case Operation::AAA:	return "aaa";
 		case Operation::AAD:	return "aad";
@@ -138,8 +211,19 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size) {
 		case Operation::XLAT:	return "xlat";
 		case Operation::SALC:	return "salc";
 
-		case Operation::SETMO:	return "setmo";
-		case Operation::SETMOC:	return "setmoc";
+		case Operation::SETMO:
+			if(model == Model::i8086) {
+				return "setmo";
+			} else {
+				return  "enter";
+			}
+
+		case Operation::SETMOC:
+			if(model == Model::i8086) {
+				return "setmoc";
+			} else {
+				return "bound";
+			}
 
 		case Operation::Invalid:	return "invalid";
 
@@ -220,4 +304,3 @@ std::string InstructionSet::x86::to_string(Source source, DataSize size) {
 		default: return "???";
 	}
 }
-

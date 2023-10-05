@@ -192,19 +192,20 @@ std::string to_string(
 		case Repetition::RepNE: operation += "repne ";	break;
 	}
 
-	operation += to_string(instruction.operation, instruction.operation_size());
+	operation += to_string(instruction.operation, instruction.operation_size(), InstructionSet::x86::Model::i8086);
 
 	// Deal with a few special cases up front.
 	switch(instruction.operation) {
 		default: {
-			const int operands = max_num_operands(instruction.operation);
+			const int operands = max_displayed_operands(instruction.operation);
 			const bool displacement = has_displacement(instruction.operation);
 			operation += " ";
-			if(operands > 1 && instruction.destination().source() != Source::None) {
+			const bool print_first = operands > 1 && instruction.destination().source() != Source::None;
+			if(print_first) {
 				operation += to_string(instruction.destination(), instruction, offsetLength, immediateLength);
 			}
 			if(operands > 0 && instruction.source().source() != Source::None) {
-				if(operands > 1) operation += ", ";
+				if(print_first) operation += ", ";
 				operation += to_string(instruction.source(), instruction, offsetLength, immediateLength);
 			}
 			if(displacement) {
@@ -272,7 +273,7 @@ std::string to_string(
 		case Operation::SAL:	case Operation::SAR:
 		case Operation::SHR:
 		case Operation::SETMO:	case Operation::SETMOC:
-			const int operands = max_num_operands(instruction.operation);
+			const int operands = max_displayed_operands(instruction.operation);
 			const bool displacement = has_displacement(instruction.operation);
 			operation += " ";
 			if(operands > 1) {

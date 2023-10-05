@@ -9,6 +9,8 @@
 #ifndef InstructionSets_x86_Instruction_h
 #define InstructionSets_x86_Instruction_h
 
+#include "Model.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -360,78 +362,6 @@ enum class Operation: uint8_t {
 	MOVtoTr, MOVfromTr,
 };
 
-constexpr bool has_displacement(Operation operation) {
-	switch(operation) {
-		default: return false;
-
-		case Operation::JO:			case Operation::JNO:
-		case Operation::JB:			case Operation::JNB:
-		case Operation::JZ:			case Operation::JNZ:
-		case Operation::JBE:		case Operation::JNBE:
-		case Operation::JS:			case Operation::JNS:
-		case Operation::JP:			case Operation::JNP:
-		case Operation::JL:			case Operation::JNL:
-		case Operation::JLE:		case Operation::JNLE:
-		case Operation::LOOPNE:		case Operation::LOOPE:
-		case Operation::LOOP:		case Operation::JCXZ:
-		case Operation::CALLrel:	case Operation::JMPrel:
-			return true;
-	}
-}
-
-constexpr int max_num_operands(Operation operation) {
-	switch(operation) {
-		default:	return 2;
-
-		case Operation::INC:	case Operation::DEC:
-		case Operation::POP:	case Operation::PUSH:
-		case Operation::MUL:	case Operation::IMUL_1:
-		case Operation::IDIV:	case Operation::DIV:
-		case Operation::ESC:
-		case Operation::AAM:	case Operation::AAD:
-		case Operation::INT:
-		case Operation::JMPabs:	case Operation::JMPfar:
-		case Operation::CALLabs:	case Operation::CALLfar:
-		case Operation::NEG:	case Operation::NOT:
-		case Operation::RETnear:
-		case Operation::RETfar:
-			return 1;
-
-		// Pedantically, these have an displacement rather than an operand.
-		case Operation::JO:		case Operation::JNO:
-		case Operation::JB:		case Operation::JNB:
-		case Operation::JZ:		case Operation::JNZ:
-		case Operation::JBE:	case Operation::JNBE:
-		case Operation::JS:		case Operation::JNS:
-		case Operation::JP:		case Operation::JNP:
-		case Operation::JL:		case Operation::JNL:
-		case Operation::JLE:	case Operation::JNLE:
-		case Operation::LOOPNE:		case Operation::LOOPE:
-		case Operation::LOOP:		case Operation::JCXZ:
-		case Operation::CALLrel:	case Operation::JMPrel:
-		// Genuine zero-operand instructions:
-		case Operation::CMPS:	case Operation::LODS:
-		case Operation::MOVS:	case Operation::SCAS:
-		case Operation::STOS:
-		case Operation::CLC:	case Operation::CLD:
-		case Operation::CLI:
-		case Operation::STC:	case Operation::STD:
-		case Operation::STI:
-		case Operation::CMC:
-		case Operation::LAHF:	case Operation::SAHF:
-		case Operation::AAA:	case Operation::AAS:
-		case Operation::DAA:	case Operation::DAS:
-		case Operation::CBW:	case Operation::CWD:
-		case Operation::INTO:
-		case Operation::PUSHF:	case Operation::POPF:
-		case Operation::IRET:
-		case Operation::NOP:
-		case Operation::XLAT:
-		case Operation::SALC:
-		case Operation::Invalid:
-			return 0;
-	}
-}
 
 enum class DataSize: uint8_t {
 	Byte = 0,
@@ -447,9 +377,6 @@ constexpr int byte_size(DataSize size) {
 constexpr int bit_size(DataSize size) {
 	return (8 << int(size)) & 0x3f;
 }
-std::string to_string(Operation, DataSize);
-std::string to_string(DataSize);
-bool mnemonic_implies_data_size(Operation);
 
 enum class AddressSize: uint8_t {
 	b16 = 0,
@@ -525,12 +452,12 @@ enum class Source: uint8_t {
 	/// getter is used).
 	IndirectNoBase = Indirect - 1,
 };
-std::string to_string(Source, DataSize);
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE
 };
 
+/// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
 constexpr bool supports(Operation operation, Repetition repetition) {
 	switch(operation) {
 		default: return false;
@@ -929,6 +856,30 @@ template<bool is_32bit> class Instruction {
 
 static_assert(sizeof(Instruction<true>) <= 16);
 static_assert(sizeof(Instruction<false>) <= 10);
+
+//
+// Disassembly aids.
+//
+
+/// @returns @c true if @c operation uses a @c displacement().
+bool has_displacement(Operation operation);
+
+/// @returns The maximum number of operands to print in a disassembly of @c operation;
+///		i.e. 2 for both source() and destination(), 1 for source() alone, 0 for neither. This is a maximum
+///		only — if either source is Source::None then it should not be printed.
+int max_displayed_operands(Operation operation);
+
+/// Provides the idiomatic name of the @c Operation given an operation @c DataSize and processor @c Model.
+std::string to_string(Operation, DataSize, Model);
+
+/// @returns @c true if the idiomatic name of @c Operation implies the data size (e.g. stosb), @c false otherwise (e.g. ld).
+bool mnemonic_implies_data_size(Operation);
+
+/// Provides the name of the @c DataSize, i.e. 'byte', 'word' or 'dword'.
+std::string to_string(DataSize);
+
+/// Provides the name of the @c Source at @c DataSize, e.g. for Source::eAX it might return AL, AX or EAX.
+std::string to_string(Source, DataSize);
 
 }
 
