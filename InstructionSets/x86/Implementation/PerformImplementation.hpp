@@ -197,12 +197,92 @@ template <
 	[[maybe_unused]] IOT &io
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
+	using AddressT = typename AddressT<is_32bit(model)>::type;
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
-	IntT fetched_data;
-	bool needs_writeback = false;
+	IntT fetched_data = 0, original_data = 0;
+	Source segment;
+	AddressT address;
+
+	static constexpr IntT zero = 0;
 	auto data = [&](DataPointer source) -> IntT& {
-		// TODO.
+		// Rules:
+		//
+		// * if this is a memory access, set target_address and break;
+		// * otherwise return the appropriate value.
+		switch(source.source<false>()) {
+			case Source::eAX:
+				switch(data_size) {
+					default:				return registers.al();
+					case DataSize::Word:	return registers.ax();
+					case DataSize::DWord:	return registers.eax();
+				}
+			case Source::eCX:
+				switch(data_size) {
+					default:				return registers.cl();
+					case DataSize::Word:	return registers.cx();
+					case DataSize::DWord:	return registers.ecx();
+				}
+			case Source::eDX:
+				switch(data_size) {
+					default:				return registers.dl();
+					case DataSize::Word:	return registers.dx();
+					case DataSize::DWord:	return registers.edx();
+				}
+			case Source::eBX:
+				switch(data_size) {
+					default:				return registers.bl();
+					case DataSize::Word:	return registers.bx();
+					case DataSize::DWord:	return registers.ebx();
+				}
+			case Source::eSPorAH:
+				switch(data_size) {
+					default:				return registers.ah();
+					case DataSize::Word:	return registers.sp();
+					case DataSize::DWord:	return registers.esp();
+				}
+			case Source::eBPorCH:
+				switch(data_size) {
+					default:				return registers.ch();
+					case DataSize::Word:	return registers.bp();
+					case DataSize::DWord:	return registers.ebp();
+				}
+			case Source::eSIorDH:
+				switch(data_size) {
+					default:				return registers.dh();
+					case DataSize::Word:	return registers.si();
+					case DataSize::DWord:	return registers.esi();
+				}
+			case Source::eDIorBH:
+				switch(data_size) {
+					default:				return registers.bh();
+					case DataSize::Word:	return registers.di();
+					case DataSize::DWord:	return registers.edi();
+				}
+
+			case Source::ES:	return registers.es();
+			case Source::CS:	return registers.cs();
+			case Source::SS:	return registers.ss();
+			case Source::DS:	return registers.ds();
+			case Source::FS:	return registers.fs();
+			case Source::GS:	return registers.gs();
+
+			case Source::Immediate:			// TODO (here the use of a reference falls down?)
+
+			case Source::None:		return zero;
+
+			case Source::Indirect:			// TODO
+			case Source::IndirectNoBase:	// TODO
+
+			case Source::DirectAddress:
+				address = instruction.offset();
+			break;
+		}
+
+		// If execution has reached here then a memory fetch is required.
+		// Do it and exit.
+		segment = Source::DS;	// TODO.
+		fetched_data = original_data = memory.template read<IntT>(segment, address);
 		return fetched_data;
 	};
 
@@ -225,7 +305,7 @@ template <
 	}
 
 	// Write to memory if required to complete this operation.
-	if(needs_writeback) {
+	if(original_data != fetched_data) {
 		// TODO.
 	}
 }
