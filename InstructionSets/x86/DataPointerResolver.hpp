@@ -215,43 +215,44 @@ template <bool obscured_indirectNoBase, bool has_base>
 uint32_t DataPointerResolver<model, RegistersT, MemoryT>::effective_address(
 	RegistersT &registers,
 	const Instruction<is_32bit(model)> &instruction,
-	DataPointer pointer) {
-		using AddressT = typename Instruction<is_32bit(model)>::AddressT;
-		AddressT base = 0, index = 0;
+	DataPointer pointer
+) {
+	using AddressT = typename Instruction<is_32bit(model)>::AddressT;
+	AddressT base = 0, index = 0;
 
-		if constexpr (has_base) {
-			switch(pointer.base<obscured_indirectNoBase>()) {
-				default: break;
-				ALLREGS(base, false);
-			}
-		}
-
-		switch(pointer.index()) {
+	if constexpr (has_base) {
+		switch(pointer.base<obscured_indirectNoBase>()) {
 			default: break;
-			ALLREGS(index, false);
+			ALLREGS(base, false);
 		}
-
-		uint32_t address = index;
-		if constexpr (model >= Model::i80386) {
-			address <<= pointer.scale();
-		} else {
-			assert(!pointer.scale());
-		}
-
-		// Always compute address as 32-bit.
-		// TODO: verify use of memory_mask around here.
-		// Also I think possibly an exception is supposed to be generated
-		// if the programmer is in 32-bit mode and has asked for 16-bit
-		// address computation but generated e.g. a 17-bit result. Look into
-		// that when working on execution. For now the goal is merely decoding
-		// and this code exists both to verify the presence of all necessary
-		// fields and to help to explore the best breakdown of storage
-		// within Instruction.
-		constexpr uint32_t memory_masks[] = {0x0000'ffff, 0xffff'ffff};
-		const uint32_t memory_mask = memory_masks[int(instruction.address_size())];
-		address = (address & memory_mask) + (base & memory_mask) + instruction.displacement();
-		return address;
 	}
+
+	switch(pointer.index()) {
+		default: break;
+		ALLREGS(index, false);
+	}
+
+	uint32_t address = index;
+	if constexpr (model >= Model::i80386) {
+		address <<= pointer.scale();
+	} else {
+		assert(!pointer.scale());
+	}
+
+	// Always compute address as 32-bit.
+	// TODO: verify use of memory_mask around here.
+	// Also I think possibly an exception is supposed to be generated
+	// if the programmer is in 32-bit mode and has asked for 16-bit
+	// address computation but generated e.g. a 17-bit result. Look into
+	// that when working on execution. For now the goal is merely decoding
+	// and this code exists both to verify the presence of all necessary
+	// fields and to help to explore the best breakdown of storage
+	// within Instruction.
+	constexpr uint32_t memory_masks[] = {0x0000'ffff, 0xffff'ffff};
+	const uint32_t memory_mask = memory_masks[int(instruction.address_size())];
+	address = (address & memory_mask) + (base & memory_mask) + instruction.displacement();
+	return address;
+}
 
 template <Model model, typename RegistersT, typename MemoryT>
 template <bool is_write, typename DataT> void DataPointerResolver<model, RegistersT, MemoryT>::access(
@@ -281,6 +282,9 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 			case Source::Immediate:
 				value = DataT(instruction.operand());
 			break;
+
+			// TODO: data_segment() will return Source::None if there was no override.
+			// Fix.
 
 #define indirect(has_base)	{								\
 	const auto address = effective_address<false, has_base>	\
