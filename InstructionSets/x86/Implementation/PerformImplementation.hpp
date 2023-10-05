@@ -57,6 +57,50 @@ void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	status.parity = status.zero = ax.halves.low;
 }
 
+void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
+	/*
+		tempAL ← AL;
+		AH ← tempAL / imm8; (* imm8 is set to 0AH for the AAD mnemonic *)
+		AL ← tempAL MOD imm8;
+	*/
+	/*
+		The SF, ZF, and PF flags are set according to the result.
+		The OF, AF, and CF flags are undefined.
+	*/
+	ax.halves.high = ax.halves.low / imm;
+	ax.halves.low = ax.halves.low % imm;
+	status.sign = ax.halves.low & 0x80;
+	status.parity = status.zero = ax.halves.low;
+}
+
+void aas(CPU::RegisterPair16 &ax, Status &status) {
+	/*
+		IF ((AL AND 0FH) > 9) OR (AF = 1)
+		THEN
+			AL ← AL – 6;
+			AH ← AH – 1;
+			AF ← 1;
+			CF ← 1;
+		ELSE
+			CF ← 0;
+			AF ← 0;
+		FI;
+		AL ← AL AND 0FH;
+	*/
+	/*
+		The AF and CF flags are set to 1 if there is a decimal borrow;
+		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
+	*/
+	if((ax.halves.low & 0x0f) > 9 || status.auxiliary_carry) {
+		ax.halves.low -= 6;
+		--ax.halves.high;
+		status.auxiliary_carry = status.carry = 1;
+	} else {
+		status.auxiliary_carry = status.carry = 0;
+	}
+	ax.halves.low &= 0x0f;
+}
+
 }
 
 template <
@@ -73,6 +117,8 @@ template <
 	switch(operation) {
 		case Operation::AAA:	Primitive::aaa(destination, status);					break;
 		case Operation::AAD:	Primitive::aad(destination, source.halves.low, status);	break;
+		case Operation::AAM:	Primitive::aam(destination, source.halves.low, status);	break;
+		case Operation::AAS:	Primitive::aas(destination, status);					break;
 	}
 
 	(void)flow_controller;
