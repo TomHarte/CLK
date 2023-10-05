@@ -383,7 +383,7 @@ std::string InstructionSet::x86::to_string(
 				stream << InstructionSet::x86::to_string(operation_size) << ' ';
 			}
 
-			Source segment = instruction.data_segment();
+			Source segment = instruction.segment_override();
 			if(segment == Source::None) {
 				segment = pointer.default_segment();
 				if(segment == Source::None) {

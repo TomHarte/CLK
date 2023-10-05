@@ -277,9 +277,9 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 
 			case Source::DirectAddress:
 				if constexpr(is_write) {
-					memory.template write(instruction.data_segment(), instruction.displacement(), value);
+					memory.template write(instruction.segment_override(), instruction.displacement(), value);
 				} else {
-					value = memory.template read<DataT>(instruction.data_segment(), instruction.displacement());
+					value = memory.template read<DataT>(instruction.segment_override(), instruction.displacement());
 				}
 			break;
 			case Source::Immediate:
@@ -295,13 +295,13 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 															\
 	if constexpr (is_write) {								\
 		memory.template write(								\
-			instruction.data_segment(),						\
+			instruction.segment_override(),					\
 			address,										\
 			value											\
 		);													\
 	} else {												\
 		value = memory.template read<DataT>(				\
-			instruction.data_segment(),						\
+			instruction.segment_override(),					\
 			address											\
 		);													\
 	}														\

@@ -281,7 +281,7 @@ template <
 
 		// If execution has reached here then a memory fetch is required.
 		// Do it and exit.
-		segment = Source::DS;	// TODO.
+		segment = source.segment(instruction.segment_override());
 		fetched_data = original_data = memory.template read<IntT>(segment, address);
 		return fetched_data;
 	};

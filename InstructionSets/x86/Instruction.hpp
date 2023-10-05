@@ -625,6 +625,13 @@ class DataPointer {
 			}
 		}
 
+		constexpr Source segment(Source segment_override) const {
+			// TODO: remove conditionaluty here.
+			if(segment_override != Source::None) return segment_override;
+			if(const auto segment = default_segment(); segment != Source::None) return segment;
+			return Source::DS;
+		}
+
 		template <bool obscure_indirectNoBase = false> constexpr Source base() const {
 			if constexpr (obscure_indirectNoBase) {
 				return (source_ <= Source::IndirectNoBase) ? Source::None : sib_.base();
@@ -766,7 +773,7 @@ template<bool is_32bit> class Instruction {
 		/// On x86 a segment override cannot modify the segment used as a destination in string instructions,
 		/// or that used by stack instructions, but this function does not spend the time necessary to provide
 		/// the correct default for those.
-		Source data_segment() const {
+		Source segment_override() const {
 			if(!has_length_extension()) return Source::None;
 			return Source(
 				int(Source::ES) +
