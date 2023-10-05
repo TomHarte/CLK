@@ -550,6 +550,8 @@ std::string InstructionSet::x86::to_string(
 	return operation;
 }
 
+// Although advertised, 32-bit printing is incomplete.
+//
 //template std::string InstructionSet::x86::to_string(
 //	Instruction<true> instruction,
 //	Model model,
