@@ -370,6 +370,10 @@ enum class DataSize: uint8_t {
 	None = 3,
 };
 
+template <DataSize size> struct DataSizeType { using type = uint8_t; };
+template <> struct DataSizeType<DataSize::Word> { using type = uint16_t; };
+template <> struct DataSizeType<DataSize::DWord> { using type = uint32_t; };
+
 constexpr int byte_size(DataSize size) {
 	return (1 << int(size)) & 7;
 }

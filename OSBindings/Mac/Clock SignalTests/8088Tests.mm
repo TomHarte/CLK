@@ -187,25 +187,25 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 }
 
 - (void)testExecution {
-	CPU::RegisterPair16 source, dest;
-	InstructionSet::x86::Status status;
-	struct NoFlow {
-	} flow_controller;
-
-	dest.full = 0xff;
-	source.full = 10;
-
-	InstructionSet::x86::perform<
-		InstructionSet::x86::Model::i8086,
-		InstructionSet::x86::Operation::ADD,
-		InstructionSet::x86::DataSize::Byte
-	>(
-		dest,
-		source,
-		status,
-		flow_controller
-	);
-
+//	CPU::RegisterPair16 source, dest;
+//	InstructionSet::x86::Status status;
+//	struct NoFlow {
+//	} flow_controller;
+//
+//	dest.full = 0xff;
+//	source.full = 10;
+//
+//	InstructionSet::x86::perform<
+//		InstructionSet::x86::Model::i8086,
+//		InstructionSet::x86::Operation::ADD,
+//		InstructionSet::x86::DataSize::Byte
+//	>(
+//		dest,
+//		source,
+//		status,
+//		flow_controller
+//	);
+//
 }
 
 @end

@@ -182,65 +182,87 @@ void add(IntT &destination, IntT source, Status &status) {
 
 template <
 	Model model,
-	Operation operation,
 	DataSize data_size,
-	typename FlowControllerT
+	typename InstructionT,
+	typename FlowControllerT,
+	typename RegistersT,
+	typename MemoryT,
+	typename IOT
 > void perform(
-	CPU::RegisterPair16 &destination,
-	CPU::RegisterPair16 &source,
+	const InstructionT &instruction,
 	Status &status,
-	FlowControllerT &flow_controller
+	[[maybe_unused]] FlowControllerT &flow_controller,
+	RegistersT &registers,
+	[[maybe_unused]] MemoryT &memory,
+	[[maybe_unused]] IOT &io
 ) {
-	switch(operation) {
-		case Operation::AAA:	Primitive::aaa(destination, status);					break;
-		case Operation::AAD:	Primitive::aad(destination, source.halves.low, status);	break;
-		case Operation::AAM:	Primitive::aam(destination, source.halves.low, status);	break;
-		case Operation::AAS:	Primitive::aas(destination, status);					break;
+	using IntT = typename DataSizeType<data_size>::type;
 
-		case Operation::ADC:
-			static_assert(operation != Operation::ADC || data_size == DataSize::Byte || data_size == DataSize::Word);
-			switch(data_size) {
-				case DataSize::Byte:	Primitive::adc(destination.halves.low, source.halves.low, status);	break;
-				case DataSize::Word:	Primitive::adc(destination.full, source.full, status);				break;
-			}
-		break;
-		case Operation::ADD:
-			static_assert(operation != Operation::ADD || data_size == DataSize::Byte || data_size == DataSize::Word);
-			switch(data_size) {
-				case DataSize::Byte:	Primitive::add(destination.halves.low, source.halves.low, status);	break;
-				case DataSize::Word:	Primitive::add(destination.full, source.full, status);				break;
-			}
-		break;
+	// Establish source() and destination() shorthand to fetch data if necessary.
+	IntT fetched_data;
+	bool needs_writeback = false;
+	auto data = [&](DataPointer source) -> IntT& {
+		// TODO.
+		return fetched_data;
+	};
+
+	auto source = [&]() -> IntT& 		{	return data(instruction.source());		};
+	auto destination = [&]() -> IntT& 	{	return data(instruction.destination());	};
+
+	// Guide to the below:
+	//
+	//	* use hard-coded register names where appropriate;
+	//	* return directly if there is definitely no possible write back to RAM;
+	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
+	switch(instruction.operation) {
+		case Operation::AAA:	Primitive::aaa(registers.ax(), status);								return;
+		case Operation::AAD:	Primitive::aad(registers.ax(), instruction.immediate(), status);	return;
+		case Operation::AAM:	Primitive::aam(registers.ax(), instruction.immediate(), status);	return;
+		case Operation::AAS:	Primitive::aas(registers.ax(), status);								return;
+
+		case Operation::ADC:	Primitive::adc(destination(), source(), status);					break;
+		case Operation::ADD:	Primitive::add(destination(), source(), status);					break;
 	}
 
-	(void)flow_controller;
+	// Write to memory if required to complete this operation.
+	if(needs_writeback) {
+		// TODO.
+	}
 }
 
-
-/*template <
+template <
 	Model model,
 	typename InstructionT,
 	typename FlowControllerT,
-	typename DataPointerResolverT,
 	typename RegistersT,
 	typename MemoryT,
-	typename IOT,
-	Operation operation
+	typename IOT
 > void perform(
 	const InstructionT &instruction,
 	Status &status,
 	FlowControllerT &flow_controller,
-	DataPointerResolverT &resolver,
 	RegistersT &registers,
 	MemoryT &memory,
 	IOT &io
 ) {
-	switch((operation != Operation::Invalid) ? operation : instruction.operation) {
-		default:
-			assert(false);
-			return;
+	// Dispatch to a function just like this that is specialised on data size.
+	// Fetching will occur in that specialised function, per the overlapping
+	// meaning of register names.
+	switch(instruction.operation_size()) {
+		case DataSize::Byte:
+			perform<model, DataSize::Byte>(instruction, status, flow_controller, registers, memory, io);
+		break;
+		case DataSize::Word:
+			perform<model, DataSize::Word>(instruction, status, flow_controller, registers, memory, io);
+		break;
+		case DataSize::DWord:
+			perform<model, DataSize::DWord>(instruction, status, flow_controller, registers, memory, io);
+		break;
+		case DataSize::None:
+			perform<model, DataSize::None>(instruction, status, flow_controller, registers, memory, io);
+		break;
 	}
-}*/
+}
 
 
 }
