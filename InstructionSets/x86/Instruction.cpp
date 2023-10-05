@@ -9,6 +9,8 @@
 #include "Instruction.hpp"
 
 #include <cassert>
+#include <iomanip>
+#include <sstream>
 
 using namespace InstructionSet::x86;
 
@@ -304,3 +306,269 @@ std::string InstructionSet::x86::to_string(Source source, DataSize size) {
 		default: return "???";
 	}
 }
+
+namespace {
+
+std::string to_hex(int value, int digits, bool with_suffix = true) {
+	auto stream = std::stringstream();
+	stream << std::setfill('0') << std::uppercase << std::hex << std::setw(digits);
+	switch(digits) {
+		case 2: stream << +uint8_t(value);	break;
+		case 4: stream << +uint16_t(value);	break;
+		default: stream << value;	break;
+	}
+	if (with_suffix) stream << 'h';
+	return stream.str();
+};
+
+}
+
+template <bool is_32bit>
+std::string InstructionSet::x86::to_string(
+	DataPointer pointer,
+	Instruction<is_32bit> instruction,
+	int offset_length,
+	int immediate_length,
+	DataSize operation_size
+) {
+	if(operation_size == InstructionSet::x86::DataSize::None) operation_size = instruction.operation_size();
+
+	std::string operand;
+
+	auto append = [](std::stringstream &stream, auto value, int length, const char *prefix) {
+		switch(length) {
+			case 0:
+				if(!value) {
+					break;
+				}
+				[[fallthrough]];
+			case 2:
+				// If asked to pretend the offset was originally two digits then either of: an unsigned
+				// 8-bit value or a sign-extended 8-bit value as having been originally 8-bit.
+				//
+				// This kicks the issue of whether sign was extended appropriately to functionality tests.
+				if(
+					!(value & 0xff00) ||
+					((value & 0xff80) == 0xff80) ||
+					((value & 0xff80) == 0x0000)
+				) {
+					stream << prefix << to_hex(value, 2);
+					break;
+				}
+				[[fallthrough]];
+			default:
+				stream << prefix << to_hex(value, 4);
+				break;
+		}
+	};
+
+	using Source = InstructionSet::x86::Source;
+	const Source source = pointer.source<false>();
+	switch(source) {
+		// to_string handles all direct register names correctly.
+		default:	return InstructionSet::x86::to_string(source, operation_size);
+
+		case Source::Immediate: {
+			std::stringstream stream;
+			append(stream, instruction.operand(), immediate_length, "");
+			return stream.str();
+		}
+
+		case Source::DirectAddress:
+		case Source::Indirect:
+		case Source::IndirectNoBase: {
+			std::stringstream stream;
+
+			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
+				stream << InstructionSet::x86::to_string(operation_size) << ' ';
+			}
+
+			Source segment = instruction.data_segment();
+			if(segment == Source::None) {
+				segment = pointer.default_segment();
+				if(segment == Source::None) {
+					segment = Source::DS;
+				}
+			}
+			stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+
+			stream << '[';
+			bool addOffset = false;
+			switch(source) {
+				default: break;
+				case Source::Indirect:
+					stream << InstructionSet::x86::to_string(pointer.base(), data_size(instruction.address_size()));
+					if(pointer.index() != Source::None) {
+						stream << '+' << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
+					}
+					addOffset = true;
+				break;
+				case Source::IndirectNoBase:
+					stream << InstructionSet::x86::to_string(pointer.index(), data_size(instruction.address_size()));
+					addOffset = true;
+				break;
+				case Source::DirectAddress:
+					stream << to_hex(instruction.offset(), 4);
+				break;
+			}
+			if(addOffset) {
+				append(stream, instruction.offset(), offset_length, "+");
+			}
+			stream << ']';
+			return stream.str();
+		}
+	}
+
+	return operand;
+};
+
+template<bool is_32bit>
+std::string InstructionSet::x86::to_string(
+	Instruction<is_32bit> instruction,
+	Model model,
+	int offset_length,
+	int immediate_length
+) {
+	std::string operation;
+
+	// Add a repetition prefix; it'll be one of 'rep', 'repe' or 'repne'.
+	switch(instruction.repetition()) {
+		case Repetition::None: break;
+		case Repetition::RepE:
+			switch(instruction.operation) {
+				default:
+					operation += "repe ";
+				break;
+
+				case Operation::MOVS:
+				case Operation::STOS:
+				case Operation::LODS:
+					operation += "rep ";
+				break;
+			}
+		break;
+		case Repetition::RepNE:
+			operation += "repne ";
+		break;
+	}
+
+	// Add operation itself.
+	operation += to_string(instruction.operation, instruction.operation_size(), model);
+	operation += " ";
+
+	// Deal with a few special cases up front.
+	switch(instruction.operation) {
+		default: {
+			const int operands = max_displayed_operands(instruction.operation);
+			const bool displacement = has_displacement(instruction.operation);
+			const bool print_first = operands > 1 && instruction.destination().source() != Source::None;
+			if(print_first) {
+				operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			}
+			if(operands > 0 && instruction.source().source() != Source::None) {
+				if(print_first) operation += ", ";
+				operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+			}
+			if(displacement) {
+				operation += to_hex(instruction.displacement(), offset_length);
+			}
+		} break;
+
+		case Operation::CALLfar:
+		case Operation::JMPfar: {
+			switch(instruction.destination().source()) {
+				case Source::Immediate:
+					operation += "far 0x";
+					operation += to_hex(instruction.segment(), 4, false);
+					operation += ":0x";
+					operation += to_hex(instruction.offset(), 4, false);
+				break;
+				default:
+					operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+				break;
+			}
+		} break;
+
+		case Operation::LDS:
+		case Operation::LES:	// The test set labels the pointer type as dword, which I guess is technically accurate.
+								// A full 32 bits will be loaded from that address in 16-bit mode.
+			operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			operation += ", ";
+			operation += to_string(instruction.source(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::DWord);
+		break;
+
+		case Operation::IN:
+			operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			operation += ", ";
+			switch(instruction.source().source()) {
+				case Source::DirectAddress:
+					operation += to_hex(instruction.offset(), 2, true);
+				break;
+				default:
+					operation += to_string(instruction.source(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
+				break;
+			}
+		break;
+
+		case Operation::OUT:
+			switch(instruction.destination().source()) {
+				case Source::DirectAddress:
+					operation += to_hex(instruction.offset(), 2, true);
+				break;
+				default:
+					operation += to_string(instruction.destination(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
+				break;
+			}
+			operation += ", ";
+			operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+		break;
+
+		// Rolls and shifts list eCX as a source on the understanding that everyone knows that rolls and shifts
+		// use CL even when they're shifting or rolling a word-sized quantity.
+		case Operation::RCL:	case Operation::RCR:
+		case Operation::ROL:	case Operation::ROR:
+		case Operation::SAL:	case Operation::SAR:
+		case Operation::SHR:
+		case Operation::SETMO:	case Operation::SETMOC:
+			const int operands = max_displayed_operands(instruction.operation);
+			const bool displacement = has_displacement(instruction.operation);
+			if(operands > 1) {
+				operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			}
+			if(operands > 0) {
+				switch(instruction.source().source()) {
+					case Source::None:	break;
+					case Source::eCX:	operation += ", cl"; break;
+					case Source::Immediate:
+						// Providing an immediate operand of 1 is a little future-proofing by the decoder; the '1'
+						// is actually implicit on a real 8088. So omit it.
+						if(instruction.operand() == 1) break;
+						[[fallthrough]];
+					default:
+						operation += ", ";
+						operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+					break;
+				}
+			}
+			if(displacement) {
+				operation += to_hex(instruction.displacement(), offset_length);
+			}
+		break;
+	}
+
+	return operation;
+}
+
+//template std::string InstructionSet::x86::to_string(
+//	Instruction<true> instruction,
+//	Model model,
+//	int offset_length,
+//	int immediate_length
+//);
+
+template std::string InstructionSet::x86::to_string(
+	Instruction<false> instruction,
+	Model model,
+	int offset_length,
+	int immediate_length
+);

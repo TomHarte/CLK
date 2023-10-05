@@ -881,6 +881,32 @@ std::string to_string(DataSize);
 /// Provides the name of the @c Source at @c DataSize, e.g. for Source::eAX it might return AL, AX or EAX.
 std::string to_string(Source, DataSize);
 
+/// Provides the printable version of @c pointer as an appendage for @c instruction.
+///
+/// See notes below re: @c offset_length and @c immediate_length.
+/// If @c operation_size is the default value of @c ::None, it'll be taken from the @c instruction.
+template <bool is_32bit>
+std::string to_string(
+	DataPointer pointer,
+	Instruction<is_32bit> instruction,
+	int offset_length,
+	int immediate_length,
+	DataSize operation_size = InstructionSet::x86::DataSize::None
+);
+
+/// Provides the printable version of @c instruction.
+///
+/// Internally, instructions do not retain the original sizes of offsets/displacements or immediates so the following are available:
+///
+/// If @c offset_length is '2' or '4', truncates any printed offset to 2 or 4 digits if it is compatible with being that length.
+/// If @c immediate_length is '2' or '4', truncates any printed immediate value to 2 or 4 digits if it is compatible with being that length.
+template<bool is_32bit>
+std::string to_string(
+	Instruction<is_32bit> instruction,
+	Model model,
+	int offset_length = 0,
+	int immediate_length = 0);
+
 }
 
 #endif /* InstructionSets_x86_Instruction_h */
