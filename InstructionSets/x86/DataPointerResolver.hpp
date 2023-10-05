@@ -126,8 +126,11 @@ template <typename DataT> constexpr Register register_for_source(Source source) 
 /// * a register bank; and
 /// * a memory pool.
 ///
-/// The register bank should implement `template<typename DataT, Register> DataT read()` and `template<typename DataT, Register> void write(DataT)`.
-/// Those functions will be called only with registers and data types that are appropriate to the @c model.
+/// The register bank should implement:
+/// * `template<typename DataT, Register> DataT read()` and
+/// * `template<typename DataT, Register> void write(DataT)`.
+///
+/// Which will be called only with registers and data types that are appropriate to the @c model.
 ///
 /// The memory pool should implement `template<typename DataT> DataT read(Source segment, uint32_t address)` and
 /// `template<typename DataT> void write(Source segment, uint32_t address, DataT value)`.
@@ -192,14 +195,14 @@ template <typename DataT> void DataPointerResolver<model, RegistersT, MemoryT>::
 		access<true>(registers, memory, instruction, pointer, value);
 	}
 
-#define rw(v, r, is_write)														\
-	case Source::r:																\
-		using VType = typename std::remove_reference<decltype(v)>::type;		\
-		if constexpr (is_write) {												\
+#define rw(v, r, is_write)																	\
+	case Source::r:																			\
+		using VType = typename std::remove_reference<decltype(v)>::type;					\
+		if constexpr (is_write) {															\
 			registers.template write<VType, register_for_source<VType>(Source::r)>(v);		\
-		} else {																\
+		} else {																			\
 			 v = registers.template read<VType, register_for_source<VType>(Source::r)>();	\
-		}																		\
+		}																					\
 	break;
 
 #define ALLREGS(v, i)	rw(v, eAX, i);		rw(v, eCX, i);		\
