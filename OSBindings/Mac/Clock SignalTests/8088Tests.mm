@@ -18,6 +18,7 @@
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include "../../../InstructionSets/x86/Decoder.hpp"
+#include "../../../InstructionSets/x86/Perform.hpp"
 
 namespace {
 
@@ -183,6 +184,28 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	}
 
 	NSLog(@"%ld failures out of %ld tests: %@", failures.count, testFiles.count, [[failures allObjects] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
+}
+
+- (void)testExecution {
+	CPU::RegisterPair16 source, dest;
+	InstructionSet::x86::Status status;
+	struct NoFlow {
+	} flow_controller;
+
+	dest.full = 0xff;
+	source.full = 10;
+
+	InstructionSet::x86::perform<
+		InstructionSet::x86::Model::i8086,
+		InstructionSet::x86::Operation::AAD,
+		InstructionSet::x86::DataSize::Byte
+	>(
+		dest,
+		source,
+		status,
+		flow_controller
+	);
+
 }
 
 @end

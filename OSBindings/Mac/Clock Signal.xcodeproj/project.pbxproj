@@ -1128,6 +1128,7 @@
 		423BDC492AB24699008E37B6 /* 8088Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 8088Tests.mm; sourceTree = "<group>"; };
 		42437B342ACF02A9006DFED1 /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
+		42437B382ACF2798006DFED1 /* PerformImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PerformImplementation.hpp; sourceTree = "<group>"; };
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
@@ -2325,6 +2326,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		42437B372ACF2798006DFED1 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				42437B382ACF2798006DFED1 /* PerformImplementation.hpp */,
+			);
+			path = Implementation;
+			sourceTree = "<group>";
+		};
 		42A5E8322ABBE16F00A0DD5D /* Neskell Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -4995,8 +5004,9 @@
 				4BEDA3B825B25563000C2DBD /* Decoder.hpp */,
 				4BEDA3DB25B2588F000C2DBD /* Instruction.hpp */,
 				4BE3C69527CBC540000EAD28 /* Model.hpp */,
-				42437B342ACF02A9006DFED1 /* Status.hpp */,
 				42437B352ACF0AA2006DFED1 /* Perform.hpp */,
+				42437B342ACF02A9006DFED1 /* Status.hpp */,
+				42437B372ACF2798006DFED1 /* Implementation */,
 			);
 			path = x86;
 			sourceTree = "<group>";

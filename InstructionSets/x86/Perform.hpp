@@ -10,6 +10,9 @@
 #define Perform_h
 
 #include "Instruction.hpp"
+#include "Model.hpp"
+#include "Status.hpp"
+#include "../../Numeric/RegisterSizes.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -22,14 +25,15 @@ namespace InstructionSet::x86 {
 /// whatever is specifed in @c instruction.
 template <
 	Model model,
+	typename InstructionT,
 	typename FlowControllerT,
 	typename DataPointerResolverT,
 	typename RegistersT,
 	typename MemoryT,
 	typename IOT,
-	Operation operation = Operation::Undefined
+	Operation operation = Operation::Invalid
 > void perform(
-	const Instruction &instruction,
+	const InstructionT &instruction,
 	Status &status,
 	FlowControllerT &flow_controller,
 	DataPointerResolverT &resolver,
@@ -38,6 +42,32 @@ template <
 	IOT &io
 );
 
+template <
+	Model model,
+	Operation operation,
+	DataSize data_size,
+	typename FlowControllerT
+> void perform(
+	CPU::RegisterPair32 &destination,
+	CPU::RegisterPair32 &source,
+	Status &status,
+	FlowControllerT &flow_controller
+);
+
+template <
+	Model model,
+	Operation operation,
+	DataSize data_size,
+	typename FlowControllerT
+> void perform(
+	CPU::RegisterPair16 &destination,
+	CPU::RegisterPair16 &source,
+	Status &status,
+	FlowControllerT &flow_controller
+);
+
 }
+
+#include "Implementation/PerformImplementation.hpp"
 
 #endif /* Perform_h */

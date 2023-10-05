@@ -54,6 +54,16 @@ static constexpr uint32_t VirtualMode		= 1 << 17;
 }
 
 struct Status {
+	// Non-zero => set; zero => unset.
+	uint32_t carry;
+	uint32_t auxiliary_carry;
+	uint32_t sign;
+
+	// Zero => set; non-zero => unset.
+	uint32_t zero;
+
+	// Odd number of bits => set; even => unset.
+	uint32_t parity;
 };
 
 }
