@@ -58,12 +58,16 @@ struct Status {
 	uint32_t carry;
 	uint32_t auxiliary_carry;
 	uint32_t sign;
+	uint32_t overflow;
 
 	// Zero => set; non-zero => unset.
 	uint32_t zero;
 
 	// Odd number of bits => set; even => unset.
 	uint32_t parity;
+
+	// Convenience getters.
+	template <typename IntT> IntT carry_bit() { return carry ? 1 : 0; }
 };
 
 }

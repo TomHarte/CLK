@@ -9,9 +9,50 @@
 #ifndef PerformImplementation_h
 #define PerformImplementation_h
 
+#include "../../../Numeric/Carry.hpp"
+
 namespace InstructionSet::x86 {
 
 namespace Primitive {
+
+//
+// BEGIN TEMPORARY COPY AND PASTE SECTION.
+//
+// The following are largely excised from the M68k PerformImplementation.hpp; if there proves to be no
+// reason further to specialise them, there'll be a factoring out. In some cases I've tightened the documentation.
+//
+
+/// @returns An int of type @c IntT with only the most-significant bit set.
+template <typename IntT> constexpr IntT top_bit() {
+	static_assert(!std::numeric_limits<IntT>::is_signed);
+	constexpr IntT max = std::numeric_limits<IntT>::max();
+	return max - (max >> 1);
+}
+
+/// @returns The number of bits in @c IntT.
+template <typename IntT> constexpr int bit_size() {
+	return sizeof(IntT) * 8;
+}
+
+/// @returns An int with the top bit indicating whether overflow occurred during the calculation of
+///		• @c lhs + @c rhs (if @c is_add is true); or
+///		• @c lhs - @c rhs (if @c is_add is false)
+/// and the result was @c result. All other bits will be clear.
+template <bool is_add, typename IntT>
+IntT overflow(IntT lhs, IntT rhs, IntT result) {
+	const IntT output_changed = result ^ rhs;
+	const IntT input_differed = lhs ^ rhs;
+
+	if constexpr (is_add) {
+		return top_bit<IntT>() & output_changed & ~input_differed;
+	} else {
+		return top_bit<IntT>() & output_changed & input_differed;
+	}
+}
+
+//
+// END COPY AND PASTE SECTION.
+//
 
 void aaa(CPU::RegisterPair16 &ax, Status &status) {
 	/*
@@ -101,6 +142,42 @@ void aas(CPU::RegisterPair16 &ax, Status &status) {
 	ax.halves.low &= 0x0f;
 }
 
+template <typename IntT>
+void adc(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST + SRC + CF;
+	*/
+	/*
+		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
+	*/
+	const IntT result = destination + source + status.carry_bit<IntT>();
+
+	status.carry = Numeric::carried_out<bit_size<IntT>() - 1>(destination, source, result);
+	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
+	status.sign = status.zero = status.parity = result;
+	status.overflow = overflow<true, IntT>(destination, source, result);
+
+	destination = result;
+}
+
+template <typename IntT>
+void add(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST + SRC;
+	*/
+	/*
+		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
+	*/
+	const IntT result = destination + source;
+
+	status.carry = Numeric::carried_out<bit_size<IntT>() - 1>(destination, source, result);
+	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
+	status.sign = status.zero = status.parity = result;
+	status.overflow = overflow<true, IntT>(destination, source, result);
+
+	destination = result;
+}
+
 }
 
 template <
@@ -119,6 +196,21 @@ template <
 		case Operation::AAD:	Primitive::aad(destination, source.halves.low, status);	break;
 		case Operation::AAM:	Primitive::aam(destination, source.halves.low, status);	break;
 		case Operation::AAS:	Primitive::aas(destination, status);					break;
+
+		case Operation::ADC:
+			static_assert(operation != Operation::ADC || data_size == DataSize::Byte || data_size == DataSize::Word);
+			switch(data_size) {
+				case DataSize::Byte:	Primitive::adc(destination.halves.low, source.halves.low, status);	break;
+				case DataSize::Word:	Primitive::adc(destination.full, source.full, status);				break;
+			}
+		break;
+		case Operation::ADD:
+			static_assert(operation != Operation::ADD || data_size == DataSize::Byte || data_size == DataSize::Word);
+			switch(data_size) {
+				case DataSize::Byte:	Primitive::add(destination.halves.low, source.halves.low, status);	break;
+				case DataSize::Word:	Primitive::add(destination.full, source.full, status);				break;
+			}
+		break;
 	}
 
 	(void)flow_controller;
