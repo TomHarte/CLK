@@ -533,11 +533,11 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	// cmp    ecx,DWORD PTR [ebp+0x2c87445f]
 	// jecxz  0x00000084	(from 0x82)
 	// sahf
-	// je     0x000000f3	(from 0x85)
+	// jz     0x000000f3	(from 0x85)
 	test(instructions[52], DataSize::DWord, Operation::CMP, ScaleIndexBase(Source::eBP), Source::eCX, 0, 0x2c87445f);
-	test(instructions[53], Operation::JPCX, 0, 0x02);
+	test(instructions[53], Operation::JCXZ, 0, 0x02);
 	test(instructions[54], Operation::SAHF);
-	test(instructions[55], Operation::JE, 0, 0x6e);
+	test(instructions[55], Operation::JZ, 0, 0x6e);
 
 	// sbb    ecx,DWORD PTR [edi+0x433c54d]
 	// lahf
@@ -555,7 +555,7 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	test_far(instructions[60], Operation::CALLfar, 0xe21b, 0x97d0f58a);
 	test(instructions[61], Operation::PUSHA);
 	test(instructions[62], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0xcf);
-	test(instructions[63], Operation::JPCX, 0, 0xd4 - 0x9d);
+	test(instructions[63], Operation::JCXZ, 0, 0xd4 - 0x9d);
 }
 
 - (void)testSourceModRegRM1 {

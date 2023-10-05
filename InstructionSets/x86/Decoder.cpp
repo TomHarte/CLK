@@ -31,11 +31,16 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 	// MARK: - Prefixes (if present) and the opcode.
 
+/// Sets the operation and verifies that the current repetition, if any, is compatible, discarding it otherwise.
+#define SetOperation(op)	\
+	operation_ = op;		\
+	repetition_ = supports(op, repetition_) ? repetition_ : Repetition::None
+
 /// Helper macro for those that follow.
 #define SetOpSrcDestSize(op, src, dest, size)	\
-	operation_ = Operation::op;			\
-	source_ = Source::src;				\
-	destination_ = Source::dest;		\
+	SetOperation(Operation::op);				\
+	source_ = Source::src;						\
+	destination_ = Source::dest;				\
 	operation_size_ = size
 
 /// Covers anything which is complete as soon as the opcode is encountered.
@@ -53,19 +58,19 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 /// Handles instructions of the form Ax, jjkk where the latter is implicitly an address.
 #define RegAddr(op, dest, op_size, addr_size)			\
 	SetOpSrcDestSize(op, DirectAddress, dest, op_size);	\
-	operand_size_ = addr_size;							\
+	displacement_size_ = addr_size;						\
 	phase_ = Phase::DisplacementOrOperand
 
 /// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
 #define AddrReg(op, source, op_size, addr_size)				\
 	SetOpSrcDestSize(op, source, DirectAddress, op_size);	\
-	operand_size_ = addr_size;								\
+	displacement_size_ = addr_size;							\
 	destination_ = Source::DirectAddress;					\
 	phase_ = Phase::DisplacementOrOperand
 
 /// Covers both `mem/reg, reg` and `reg, mem/reg`.
 #define MemRegReg(op, format, size)				\
-	operation_ = Operation::op;					\
+	SetOperation(Operation::op);				\
 	phase_ = Phase::ModRegRM;					\
 	modregrm_format_ = ModRegRMFormat::format;	\
 	operand_size_ = DataSize::None;				\
@@ -73,27 +78,28 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 /// Handles JO, JNO, JB, etc — anything with only a displacement.
 #define Displacement(op, size)						\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	displacement_size_ = size
 
 /// Handles PUSH [immediate], etc — anything with only an immediate operand.
 #define Immediate(op, size)							\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	source_ = Source::Immediate;					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = size
 
 /// Handles far CALL and far JMP — fixed four or six byte operand operations.
 #define Far(op)										\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = DataSize::Word;					\
+	destination_ = Source::Immediate;				\
 	displacement_size_ = data_size(default_address_size_)
 
 /// Handles ENTER — a fixed three-byte operation.
 #define Displacement16Operand8(op)					\
-	operation_ = Operation::op;						\
+	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
 	displacement_size_ = DataSize::Word;			\
 	operand_size_ = DataSize::Byte
@@ -133,7 +139,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			PartialBlock(0x00, ADD);							break;
 			case 0x06: Complete(PUSH, ES, None, data_size_);	break;
-			case 0x07: Complete(POP, None, ES, data_size_);		break;
+			case 0x07: Complete(POP, ES, None, data_size_);		break;
 
 			PartialBlock(0x08, OR);								break;
 			case 0x0e: Complete(PUSH, CS, None, data_size_);	break;
@@ -141,17 +147,20 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// The 286 onwards have a further set of instructions
 			// prefixed with $0f.
 			case 0x0f:
-				RequiresMin(i80286);
-				phase_ = Phase::InstructionPageF;
+				if constexpr (model < Model::i80286) {
+					Complete(POP, CS, None, data_size_);
+				} else {
+					phase_ = Phase::InstructionPageF;
+				}
 			break;
 
 			PartialBlock(0x10, ADC);								break;
 			case 0x16: Complete(PUSH, SS, None, DataSize::Word);	break;
-			case 0x17: Complete(POP, None, SS, DataSize::Word);		break;
+			case 0x17: Complete(POP, SS, None, DataSize::Word);		break;
 
 			PartialBlock(0x18, SBB);								break;
 			case 0x1e: Complete(PUSH, DS, None, DataSize::Word);	break;
-			case 0x1f: Complete(POP, None, DS, DataSize::Word);		break;
+			case 0x1f: Complete(POP, DS, None, DataSize::Word);		break;
 
 			PartialBlock(0x20, AND);								break;
 			case 0x26: segment_override_ = Source::ES;				break;
@@ -189,80 +198,132 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #undef RegisterBlock
 
 			case 0x60:
-				RequiresMin(i80186);
-				Complete(PUSHA, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JO, DataSize::Byte);
+				} else {
+					Complete(PUSHA, None, None, data_size_);
+				}
 			break;
 			case 0x61:
-				RequiresMin(i80186);
-				Complete(POPA, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JNO, DataSize::Byte);
+				} else {
+					Complete(POPA, None, None, data_size_);
+				}
 			break;
 			case 0x62:
-				RequiresMin(i80186);
-				MemRegReg(BOUND, Reg_MemReg, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JB, DataSize::Byte);
+				} else {
+					MemRegReg(BOUND, Reg_MemReg, data_size_);
+				}
 			break;
 			case 0x63:
-				RequiresMin(i80286);
-				MemRegReg(ARPL, MemReg_Reg, DataSize::Word);
+				if constexpr (model < Model::i80286) {
+					Displacement(JNB, DataSize::Byte);
+				} else {
+					MemRegReg(ARPL, MemReg_Reg, DataSize::Word);
+				}
 			break;
 			case 0x64:
-				RequiresMin(i80386);
-				segment_override_ = Source::FS;
+				if constexpr (model < Model::i80386) {
+					Displacement(JZ, DataSize::Byte);
+				} else {
+					RequiresMin(i80386);
+					segment_override_ = Source::FS;
+				}
 			break;
 			case 0x65:
+				if constexpr (model < Model::i80286) {
+					Displacement(JNZ, DataSize::Byte);
+					break;
+				}
 				RequiresMin(i80386);
 				segment_override_ = Source::GS;
 			break;
 			case 0x66:
+				if constexpr (model < Model::i80286) {
+					Displacement(JBE, DataSize::Byte);
+					break;
+				}
 				RequiresMin(i80386);
 				data_size_ = DataSize(int(default_data_size_) ^ int(DataSize::Word) ^ int(DataSize::DWord));
 			break;
 			case 0x67:
+				if constexpr (model < Model::i80286) {
+					Displacement(JNBE, DataSize::Byte);
+					break;
+				}
 				RequiresMin(i80386);
 				address_size_ = AddressSize(int(default_address_size_) ^ int(AddressSize::b16) ^ int(AddressSize::b32));
 			break;
 			case 0x68:
-				RequiresMin(i80286);
-				Immediate(PUSH, data_size_);
-				operation_size_ = data_size_;
+				if constexpr (model < Model::i80286) {
+					Displacement(JS, DataSize::Byte);
+				} else {
+					Immediate(PUSH, data_size_);
+					operation_size_ = data_size_;
+				}
 			break;
 			case 0x69:
-				RequiresMin(i80286);
-				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
-				operand_size_ = data_size_;
+				if constexpr (model < Model::i80286) {
+					Displacement(JNS, DataSize::Byte);
+				} else {
+					MemRegReg(IMUL_3, Reg_MemReg, data_size_);
+					operand_size_ = data_size_;
+				}
 			break;
 			case 0x6a:
-				RequiresMin(i80286);
-				Immediate(PUSH, DataSize::Byte);
+				if constexpr (model < Model::i80286) {
+					Displacement(JP, DataSize::Byte);
+				} else {
+					Immediate(PUSH, DataSize::Byte);
+				}
 			break;
 			case 0x6b:
-				RequiresMin(i80286);
-				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
-				operand_size_ = DataSize::Byte;
-				sign_extend_ = true;
+				if constexpr (model < Model::i80286) {
+					Displacement(JNP, DataSize::Byte);
+				} else {
+					MemRegReg(IMUL_3, Reg_MemReg, data_size_);
+					operand_size_ = DataSize::Byte;
+					sign_extend_operand_ = true;
+				}
 			break;
 			case 0x6c:	// INSB
-				RequiresMin(i80186);
-				Complete(INS, None, None, DataSize::Byte);
+				if constexpr (model < Model::i80186) {
+					Displacement(JL, DataSize::Byte);
+				} else {
+					Complete(INS, None, None, DataSize::Byte);
+				}
 			break;
 			case 0x6d:	// INSW/INSD
-				RequiresMin(i80186);
-				Complete(INS, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JNL, DataSize::Byte);
+				} else {
+					Complete(INS, None, None, data_size_);
+				}
 			break;
 			case 0x6e:	// OUTSB
-				RequiresMin(i80186);
-				Complete(OUTS, None, None, DataSize::Byte);
+				if constexpr (model < Model::i80186) {
+					Displacement(JLE, DataSize::Byte);
+				} else {
+					Complete(OUTS, None, None, DataSize::Byte);
+				}
 			break;
 			case 0x6f:	// OUTSW/OUSD
-				RequiresMin(i80186);
-				Complete(OUTS, None, None, data_size_);
+				if constexpr (model < Model::i80186) {
+					Displacement(JNLE, DataSize::Byte);
+				} else {
+					Complete(OUTS, None, None, data_size_);
+				}
 			break;
 
 			case 0x70: Displacement(JO, DataSize::Byte);	break;
 			case 0x71: Displacement(JNO, DataSize::Byte);	break;
 			case 0x72: Displacement(JB, DataSize::Byte);	break;
 			case 0x73: Displacement(JNB, DataSize::Byte);	break;
-			case 0x74: Displacement(JE, DataSize::Byte);	break;
-			case 0x75: Displacement(JNE, DataSize::Byte);	break;
+			case 0x74: Displacement(JZ, DataSize::Byte);	break;
+			case 0x75: Displacement(JNZ, DataSize::Byte);	break;
 			case 0x76: Displacement(JBE, DataSize::Byte);	break;
 			case 0x77: Displacement(JNBE, DataSize::Byte);	break;
 			case 0x78: Displacement(JS, DataSize::Byte);	break;
@@ -345,11 +406,23 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xbe: RegData(MOV, eSI, data_size_);		break;
 			case 0xbf: RegData(MOV, eDI, data_size_);		break;
 
-			case 0xc0: case 0xc1:
-				RequiresMin(i80186);
-				ShiftGroup();
-				source_ = Source::Immediate;
-				operand_size_ = DataSize::Byte;
+			case 0xc0:
+				if constexpr (model >= Model::i80186) {
+					ShiftGroup();
+					source_ = Source::Immediate;
+					operand_size_ = DataSize::Byte;
+				} else {
+					RegData(RETnear, None, data_size_);
+				}
+			break;
+			case 0xc1:
+				if constexpr (model >= Model::i80186) {
+					ShiftGroup();
+					source_ = Source::Immediate;
+					operand_size_ = data_size_;
+				} else {
+					Complete(RETnear, None, None, DataSize::None);
+				}
 			break;
 			case 0xc2: RegData(RETnear, None, data_size_);				break;
 			case 0xc3: Complete(RETnear, None, None, DataSize::None);	break;
@@ -359,12 +432,18 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xc7: MemRegReg(MOV, MemRegMOV, data_size_);			break;
 
 			case 0xc8:
-				RequiresMin(i80186);
-				Displacement16Operand8(ENTER);
+				if constexpr (model >= Model::i80186) {
+					Displacement16Operand8(ENTER);
+				} else {
+					RegData(RETfar, None, data_size_);
+				}
 			break;
 			case 0xc9:
-				RequiresMin(i80186);
-				Complete(LEAVE, None, None, DataSize::None);
+				if constexpr (model >= Model::i80186) {
+					Complete(LEAVE, None, None, DataSize::None);
+				} else {
+					Complete(RETfar, None, None, DataSize::DWord);
+				}
 			break;
 
 			case 0xca: RegData(RETfar, None, data_size_);				break;
@@ -382,8 +461,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			case 0xd0: case 0xd1:
 				ShiftGroup();
-				source_ = Source::Immediate;
-				operand_ = 1;
 			break;
 			case 0xd2: case 0xd3:
 				ShiftGroup();
@@ -391,32 +468,32 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0xd4: RegData(AAM, eAX, DataSize::Byte);			break;
 			case 0xd5: RegData(AAD, eAX, DataSize::Byte);			break;
-			// Unused: 0xd6.
+			case 0xd6: Complete(SALC, None, None, DataSize::Byte);	break;
 			case 0xd7: Complete(XLAT, None, None, DataSize::Byte);	break;
 
-			case 0xd8: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xd9: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xda: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdb: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdc: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdd: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xde: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
-			case 0xdf: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xd8: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xd9: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xda: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdb: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdc: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdd: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xde: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
+			case 0xdf: MemRegReg(ESC, Reg_MemReg, data_size_);	break;
 
 			case 0xe0: Displacement(LOOPNE, DataSize::Byte);	break;
 			case 0xe1: Displacement(LOOPE, DataSize::Byte);		break;
 			case 0xe2: Displacement(LOOP, DataSize::Byte);		break;
-			case 0xe3: Displacement(JPCX, DataSize::Byte);		break;
+			case 0xe3: Displacement(JCXZ, DataSize::Byte);		break;
 
 			case 0xe4: RegAddr(IN, eAX, DataSize::Byte, DataSize::Byte);	break;
 			case 0xe5: RegAddr(IN, eAX, data_size_, DataSize::Byte);		break;
 			case 0xe6: AddrReg(OUT, eAX, DataSize::Byte, DataSize::Byte);	break;
 			case 0xe7: AddrReg(OUT, eAX, data_size_, DataSize::Byte);		break;
 
-			case 0xe8: Displacement(CALLrel, data_size_);		break;
-			case 0xe9: Displacement(JMPrel, data_size_);		break;
-			case 0xea: Far(JMPfar);								break;
-			case 0xeb: Displacement(JMPrel, DataSize::Byte);	break;
+			case 0xe8: Displacement(CALLrel, data_size(address_size_));		break;
+			case 0xe9: Displacement(JMPrel, data_size(address_size_));		break;
+			case 0xea: Far(JMPfar);											break;
+			case 0xeb: Displacement(JMPrel, DataSize::Byte);				break;
 
 			case 0xec: Complete(IN, eDX, eAX, DataSize::Byte);	break;
 			case 0xed: Complete(IN, eDX, eAX, data_size_);		break;
@@ -497,8 +574,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x71: RequiresMin(i80386);	Displacement(JNO, data_size_);	break;
 			case 0x72: RequiresMin(i80386);	Displacement(JB, data_size_);	break;
 			case 0x73: RequiresMin(i80386);	Displacement(JNB, data_size_);	break;
-			case 0x74: RequiresMin(i80386);	Displacement(JE, data_size_);	break;
-			case 0x75: RequiresMin(i80386);	Displacement(JNE, data_size_);	break;
+			case 0x74: RequiresMin(i80386);	Displacement(JZ, data_size_);	break;
+			case 0x75: RequiresMin(i80386);	Displacement(JNZ, data_size_);	break;
 			case 0x76: RequiresMin(i80386);	Displacement(JBE, data_size_);	break;
 			case 0x77: RequiresMin(i80386);	Displacement(JNBE, data_size_);	break;
 			case 0x78: RequiresMin(i80386);	Displacement(JS, data_size_);	break;
@@ -640,6 +717,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				operation_ == Operation::LFS) {
 				undefined();
 			}
+		} else if(rm == 6 && mod == 0) {
+			// There's no BP direct; BP with ostensibly no offset means 'direct address' mode.
+			displacement_size_ = data_size(address_size_);
+			memreg = Source::DirectAddress;
 		} else {
 			const DataSize sizes[] = {
 				DataSize::None,
@@ -647,29 +728,33 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				data_size(address_size_)
 			};
 			displacement_size_ = sizes[mod];
-			memreg = Source::Indirect;
 
-			if(address_size_ == AddressSize::b32) {
+			if(is_32bit(model) && address_size_ == AddressSize::b32) {
 				// 32-bit decoding: the range of potential indirections is expanded,
 				// and may segue into obtaining a SIB.
 				sib_ = ScaleIndexBase(0, Source::None, reg_table[rm]);
 				expects_sib = rm == 4;	// Indirect via eSP isn't directly supported; it's the
 										// escape indicator for reading a SIB.
+				memreg = Source::Indirect;
 			} else {
 				// Classic 16-bit decoding: mode picks a displacement size,
 				// and a few fixed index+base pairs are defined.
+				//
+				// A base of eAX is meaningless, with the source type being the indicator
+				// that it should be ignored. ScaleIndexBase can't store a base of Source::None.
 				constexpr ScaleIndexBase rm_table[8] = {
-					ScaleIndexBase(0, Source::eBX, Source::eSI),
-					ScaleIndexBase(0, Source::eBX, Source::eDI),
-					ScaleIndexBase(0, Source::eBP, Source::eSI),
-					ScaleIndexBase(0, Source::eBP, Source::eDI),
-					ScaleIndexBase(0, Source::None, Source::eSI),
-					ScaleIndexBase(0, Source::None, Source::eDI),
+					ScaleIndexBase(0, Source::eSI, Source::eBX),
+					ScaleIndexBase(0, Source::eDI, Source::eBX),
+					ScaleIndexBase(0, Source::eSI, Source::eBP),
+					ScaleIndexBase(0, Source::eDI, Source::eBP),
+					ScaleIndexBase(0, Source::eSI, Source::eAX),
+					ScaleIndexBase(0, Source::eDI, Source::eAX),
 					ScaleIndexBase(0, Source::None, Source::eBP),
-					ScaleIndexBase(0, Source::None, Source::eBX),
+					ScaleIndexBase(0, Source::eBX, Source::eAX),
 				};
 
 				sib_ = rm_table[rm];
+				memreg = (rm >= 4 && rm != 6) ? Source::IndirectNoBase : Source::Indirect;
 			}
 		}
 
@@ -686,58 +771,86 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			} break;
 
 			case ModRegRMFormat::MemRegTEST_to_IDIV:
-				source_ = destination_ = memreg;
+				source_ = memreg;
 
 				switch(reg) {
-					default: undefined();
+					default:
+						// case 1 is treated as another form of TEST on the 8086.
+						// (and, I guess, the 80186?)
+						if constexpr (model >= Model::i80286) {
+							undefined();
+						}
+						[[fallthrough]];
 
-					case 0:		operation_ = Operation::TEST;	break;
-					case 2:		operation_ = Operation::NOT;	break;
-					case 3:		operation_ = Operation::NEG;	break;
-					case 4:		operation_ = Operation::MUL;	break;
-					case 5:		operation_ = Operation::IMUL_1;	break;
-					case 6:		operation_ = Operation::DIV;	break;
-					case 7:		operation_ = Operation::IDIV;	break;
+					case 0:
+						destination_ = memreg;
+						source_ = Source::Immediate;
+						operand_size_ = operation_size_;
+						SetOperation(Operation::TEST);
+					break;
+					case 2:		SetOperation(Operation::NOT);		break;
+					case 3:		SetOperation(Operation::NEG);		break;
+					case 4:		SetOperation(Operation::MUL);		break;
+					case 5:		SetOperation(Operation::IMUL_1);	break;
+					case 6:		SetOperation(Operation::DIV);		break;
+					case 7:		SetOperation(Operation::IDIV);		break;
 				}
 			break;
 
 			case ModRegRMFormat::Seg_MemReg:
-			case ModRegRMFormat::MemReg_Seg:
+			case ModRegRMFormat::MemReg_Seg: {
+				// On the 8086, only two bits of reg are used.
+				const int masked_reg = model >= Model::i80286 ? reg : reg & 3;
+
 				// The 16-bit chips have four segment registers;
 				// the 80386 onwards has six.
-				if(!is_32bit(model) && reg > 3) {
-					undefined();
-				} else if(reg > 5) {
-					undefined();
+				if constexpr (is_32bit(model)) {
+					if(masked_reg > 5) {
+						undefined();
+					}
+				} else {
+					if(masked_reg > 3) {
+						undefined();
+					}
 				}
 
 				if(modregrm_format_ == ModRegRMFormat::Seg_MemReg) {
 					source_ = memreg;
-					destination_ = seg_table[reg];
+					destination_ = seg_table[masked_reg];
 
 					// 80286 and later disallow MOV to CS.
 					if(model >= Model::i80286 && destination_ == Source::CS) {
 						undefined();
 					}
 				} else {
-					source_ = seg_table[reg];
+					source_ = seg_table[masked_reg];
 					destination_ = memreg;
 				}
-			break;
+			} break;
 
 			case ModRegRMFormat::MemRegROL_to_SAR:
 				destination_ = memreg;
 
 				switch(reg) {
-					default:	undefined();
+					default:
+						if constexpr (model == Model::i8086) {
+							if(source_ == Source::eCX) {
+								SetOperation(Operation::SETMOC);
+							} else {
+								SetOperation(Operation::SETMO);
+							}
+						} else {
+							undefined();
+						}
+					break;
 
-					case 0:		operation_ = Operation::ROL;	break;
-					case 1:		operation_ = Operation::ROR;	break;
-					case 2:		operation_ = Operation::RCL;	break;
-					case 3:		operation_ = Operation::RCR;	break;
-					case 4:		operation_ = Operation::SAL;	break;
-					case 5:		operation_ = Operation::SHR;	break;
-					case 7:		operation_ = Operation::SAR;	break;
+					case 0:		SetOperation(Operation::ROL);	break;
+					case 1:		SetOperation(Operation::ROR);	break;
+					case 2:		SetOperation(Operation::RCL);	break;
+					case 3:		SetOperation(Operation::RCR);	break;
+					case 4:		SetOperation(Operation::SAL);	break;
+					case 5:		SetOperation(Operation::SHR);	break;
+					case 7:		SetOperation(Operation::SAR);	break;
 				}
 			break;
 
@@ -747,8 +860,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:	undefined();
 
-					case 0:		operation_ = Operation::INC;	break;
-					case 1:		operation_ = Operation::DEC;	break;
+					case 0:		SetOperation(Operation::INC);	break;
+					case 1:		SetOperation(Operation::DEC);	break;
 				}
 			break;
 
@@ -756,16 +869,23 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default:	undefined();
+					default:
+						// case 7 is treated as another form of PUSH on the 8086.
+						// (and, I guess, the 80186?)
+						if constexpr (model >= Model::i80286) {
+							undefined();
+						}
+						[[fallthrough]];
+					case 6:	SetOperation(Operation::PUSH);		break;
 
-					case 0:	operation_ = Operation::INC;		break;
-					case 1:	operation_ = Operation::DEC;		break;
-					case 2:	operation_ = Operation::CALLabs;	break;
-					case 3:	operation_ = Operation::CALLfar;	break;
-					case 4:	operation_ = Operation::JMPabs;		break;
-					case 5:	operation_ = Operation::JMPfar;		break;
-					case 6:	operation_ = Operation::PUSH;		break;
+					case 0:	SetOperation(Operation::INC);		break;
+					case 1:	SetOperation(Operation::DEC);		break;
+					case 2:	SetOperation(Operation::CALLabs);	break;
+					case 3:	SetOperation(Operation::CALLfar);	break;
+					case 4:	SetOperation(Operation::JMPabs);	break;
+					case 5:	SetOperation(Operation::JMPfar);	break;
 				}
+				// TODO: CALLfar and JMPfar aren't correct above; find out what is.
 			break;
 
 			case ModRegRMFormat::MemRegSingleOperand:
@@ -787,17 +907,17 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = Source::Immediate;
 				destination_ = memreg;
 				operand_size_ = (modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend) ? DataSize::Byte : operation_size_;
-				sign_extend_ = true;	// Will be effective only if modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend.
+				sign_extend_operand_ = true;	// Will be effective only if modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend.
 
 				switch(reg) {
-					default:	operation_ = Operation::ADD;	break;
-					case 1:		operation_ = Operation::OR;		break;
-					case 2:		operation_ = Operation::ADC;	break;
-					case 3:		operation_ = Operation::SBB;	break;
-					case 4:		operation_ = Operation::AND;	break;
-					case 5:		operation_ = Operation::SUB;	break;
-					case 6:		operation_ = Operation::XOR;	break;
-					case 7:		operation_ = Operation::CMP;	break;
+					default:	SetOperation(Operation::ADD);	break;
+					case 1:		SetOperation(Operation::OR);	break;
+					case 2:		SetOperation(Operation::ADC);	break;
+					case 3:		SetOperation(Operation::SBB);	break;
+					case 4:		SetOperation(Operation::AND);	break;
+					case 5:		SetOperation(Operation::SUB);	break;
+					case 6:		SetOperation(Operation::XOR);	break;
+					case 7:		SetOperation(Operation::CMP);	break;
 				}
 			break;
 
@@ -807,12 +927,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0:		operation_ = Operation::SLDT;	break;
-					case 1:		operation_ = Operation::STR;	break;
-					case 2:		operation_ = Operation::LLDT;	break;
-					case 3:		operation_ = Operation::LTR;	break;
-					case 4:		operation_ = Operation::VERR;	break;
-					case 5:		operation_ = Operation::VERW;	break;
+					case 0:		SetOperation(Operation::SLDT);	break;
+					case 1:		SetOperation(Operation::STR);	break;
+					case 2:		SetOperation(Operation::LLDT);	break;
+					case 3:		SetOperation(Operation::LTR);	break;
+					case 4:		SetOperation(Operation::VERR);	break;
+					case 5:		SetOperation(Operation::VERW);	break;
 				}
 			break;
 
@@ -822,12 +942,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: undefined();
 
-					case 0:		operation_ = Operation::SGDT;	break;
-					case 1:		operation_ = Operation::SIDT;	break;
-					case 2:		operation_ = Operation::LGDT;	break;
-					case 3:		operation_ = Operation::LIDT;	break;
-					case 4:		operation_ = Operation::SMSW;	break;
-					case 6:		operation_ = Operation::LMSW;	break;
+					case 0:		SetOperation(Operation::SGDT);	break;
+					case 1:		SetOperation(Operation::SIDT);	break;
+					case 2:		SetOperation(Operation::LGDT);	break;
+					case 3:		SetOperation(Operation::LIDT);	break;
+					case 4:		SetOperation(Operation::SMSW);	break;
+					case 6:		SetOperation(Operation::LMSW);	break;
 				}
 			break;
 
@@ -839,10 +959,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default:	undefined();
 
-					case 4:		operation_ = Operation::BT;		break;
-					case 5:		operation_ = Operation::BTS;	break;
-					case 6:		operation_ = Operation::BTR;	break;
-					case 7:		operation_ = Operation::BTC;	break;
+					case 4:		SetOperation(Operation::BT);	break;
+					case 5:		SetOperation(Operation::BTS);	break;
+					case 6:		SetOperation(Operation::BTR);	break;
+					case 7:		SetOperation(Operation::BTC);	break;
 				}
 			break;
 
@@ -857,6 +977,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	}
 
 #undef undefined
+#undef SetOperation
 
 	// MARK: - ScaleIndexBase
 
@@ -894,16 +1015,28 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
 
-			switch(displacement_size_) {
-				case DataSize::None:	displacement_ = 0;						break;
-				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
-				case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
-				case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+			// TODO: whether the displacement is signed appears to depend on the opcode.
+			// Find an appropriate table.
+
+			if(!sign_extend_displacement_) {
+				switch(displacement_size_) {
+					case DataSize::None:	displacement_ = 0;													break;
+					case DataSize::Byte:	displacement_ = decltype(displacement_)(uint8_t(inward_data_));		break;
+					case DataSize::Word:	displacement_ = decltype(displacement_)(uint16_t(inward_data_));	break;
+					case DataSize::DWord:	displacement_ = decltype(displacement_)(uint32_t(inward_data_));	break;
+				}
+			} else {
+				switch(displacement_size_) {
+					case DataSize::None:	displacement_ = 0;						break;
+					case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
+					case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
+					case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+				}
 			}
 			inward_data_ >>= bit_size(displacement_size_);
 
 			// Use inequality of sizes as a test for necessary sign extension.
-			if(operand_size_ == data_size_ || !sign_extend_) {
+			if(operand_size_ == data_size_ || !sign_extend_operand_) {
 				operand_ = decltype(operand_)(inward_data_);
 			} else {
 				switch(operand_size_) {
