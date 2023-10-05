@@ -530,28 +530,19 @@ std::string InstructionSet::x86::to_string(
 		case Operation::SAL:	case Operation::SAR:
 		case Operation::SHR:
 		case Operation::SETMO:	case Operation::SETMOC:
-			const int operands = max_displayed_operands(instruction.operation);
-			const bool displacement = has_displacement(instruction.operation);
-			if(operands > 1) {
-				operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
-			}
-			if(operands > 0) {
-				switch(instruction.source().source()) {
-					case Source::None:	break;
-					case Source::eCX:	operation += ", cl"; break;
-					case Source::Immediate:
-						// Providing an immediate operand of 1 is a little future-proofing by the decoder; the '1'
-						// is actually implicit on a real 8088. So omit it.
-						if(instruction.operand() == 1) break;
-						[[fallthrough]];
-					default:
-						operation += ", ";
-						operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
-					break;
-				}
-			}
-			if(displacement) {
-				operation += to_hex(instruction.displacement(), offset_length);
+			operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			switch(instruction.source().source()) {
+				case Source::None:	break;
+				case Source::eCX:	operation += ", cl"; break;
+				case Source::Immediate:
+					// Providing an immediate operand of 1 is a little future-proofing by the decoder; the '1'
+					// is actually implicit on a real 8088. So omit it.
+					if(instruction.operand() == 1) break;
+					[[fallthrough]];
+				default:
+					operation += ", ";
+					operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+				break;
 			}
 		break;
 	}
