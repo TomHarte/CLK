@@ -84,6 +84,13 @@ struct Registers {
 	}
 };
 struct Memory {
+	enum class Tag {
+		Accessed,
+		FlagsL,
+		FlagsH
+	};
+
+	std::unordered_map<uint32_t, Tag> tags;
 	std::vector<uint8_t> memory;
 	const Registers &registers_;
 
@@ -91,7 +98,9 @@ struct Memory {
 		memory.resize(1024*1024);
 	}
 
-	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address) {
+	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
+	// so that defined-flag-only masks can be applied while verifying RAM contents.
+	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
 		uint32_t physical_address;
 		using Source = InstructionSet::x86::Source;
 		switch(segment) {
@@ -101,11 +110,19 @@ struct Memory {
 			case Source::SS:	physical_address = registers_.ss_;	break;
 		}
 		physical_address = ((physical_address << 4) + address) & 0xf'ffff;
-		return access<IntT>(physical_address);
+		return access<IntT>(physical_address, tag);
 	}
 
-	template <typename IntT> IntT &access(uint32_t address) {
+	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
+	// to a selector, they're just at an absolute location.
+	template <typename IntT> IntT &access(uint32_t address, Tag tag) {
+		tags[address] = tag;
 		return *reinterpret_cast<IntT *>(&memory[address]);
+	}
+
+	// Entry point for the 8086; simply notes that memory was accessed.
+	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
+		return access<IntT>(segment, address, Tag::Accessed);
 	}
 };
 struct IO {
@@ -117,13 +134,13 @@ class FlowController {
 
 		void interrupt(int index) {
 			const uint16_t address = static_cast<uint16_t>(index) << 2;
-			const uint16_t new_ip = memory_.access<uint16_t>(address);
-			const uint16_t new_cs = memory_.access<uint16_t>(address + 2);
+			const uint16_t new_ip = memory_.access<uint16_t>(address, Memory::Tag::Accessed);
+			const uint16_t new_cs = memory_.access<uint16_t>(address + 2, Memory::Tag::Accessed);
 
-			push(status_.get());
+			push(status_.get(), true);
 
-			// TODO: set I and TF
-//			status_.
+			status_.interrupt = 0;
+			status_.trap = 0;
 
 			// Push CS and IP.
 			push(registers_.cs_);
@@ -136,13 +153,23 @@ class FlowController {
 	private:
 		Memory &memory_;
 		Registers &registers_;
-		Status status_;
+		Status &status_;
 
-		void push(uint16_t value) {
+		void push(uint16_t value, bool is_flags = false) {
+			// Perform the push in two steps because it's possible for SP to underflow, and so that FlagsL and
+			// FlagsH can be set separately.
 			--registers_.sp_;
-			memory_.access<uint8_t>(InstructionSet::x86::Source::SS, registers_.sp_) = value >> 8;
+			memory_.access<uint8_t>(
+				InstructionSet::x86::Source::SS,
+				registers_.sp_,
+				is_flags ? Memory::Tag::FlagsH : Memory::Tag::Accessed
+			) = value >> 8;
 			--registers_.sp_;
-			memory_.access<uint8_t>(InstructionSet::x86::Source::SS, registers_.sp_) = value & 0xff;
+			memory_.access<uint8_t>(
+				InstructionSet::x86::Source::SS,
+				registers_.sp_,
+				is_flags ? Memory::Tag::FlagsL : Memory::Tag::Accessed
+			) = value & 0xff;
 		}
 };
 
@@ -183,6 +210,11 @@ class FlowController {
 - (NSArray<NSDictionary *> *)testsInFile:(NSString *)file {
 	NSData *data = [NSData dataWithContentsOfGZippedFile:file];
 	return [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+}
+
+- (NSDictionary *)metadata {
+	NSString *path = [[NSString stringWithUTF8String:TestSuiteHome] stringByAppendingPathComponent:@"8088.json"];
+	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil];
 }
 
 - (NSString *)toString:(const InstructionSet::x86::Instruction<false> &)instruction offsetLength:(int)offsetLength immediateLength:(int)immediateLength {
@@ -307,23 +339,28 @@ class FlowController {
 	status.set([value[@"flags"] intValue]);
 }
 
-- (bool)applyExecutionTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
+- (bool)applyExecutionTest:(NSDictionary *)test file:(NSString *)file metadata:(NSDictionary *)metadata assert:(BOOL)assert {
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 	const auto data = [self bytes:test[@"bytes"]];
 	const auto decoded = decoder.decode(data.data(), data.size());
 
-	InstructionSet::x86::Status status;
+	InstructionSet::x86::Status initial_status, status;
 	Registers registers;
 	Memory memory(registers);
 	FlowController flow_controller(memory, registers, status);
 	IO io;
+
+	const uint16_t flags_mask = metadata[@"flags-mask"] ? [metadata[@"flags-mask"] intValue] : 0xffff;
 
 	// Apply initial state.
 	NSDictionary *const initial_state = test[@"initial"];
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
 		memory.memory[[ram[0] intValue]] = [ram[1] intValue];
 	}
-	[self populate:registers status:status value:initial_state[@"regs"]];
+	[self populate:registers status:initial_status value:initial_state[@"regs"]];
+	status = initial_status;
+
+	NSLog(@"Initial status: %04x as per %@", status.get(), initial_state[@"regs"][@"flags"]);
 
 	// Execute instruction.
 	registers.ip_ += decoded.first;
@@ -343,18 +380,30 @@ class FlowController {
 
 	bool ramEqual = true;
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
-		ramEqual &= memory.memory[[ram[0] intValue]] == [ram[1] intValue];
+		const uint32_t address = [ram[0] intValue];
+
+		uint8_t mask = 0xff;
+		if(const auto tag = memory.tags.find(address); tag != memory.tags.end()) {
+			switch(tag->second) {
+				default: break;
+				case Memory::Tag::FlagsH:	mask = flags_mask >> 8;		break;
+				case Memory::Tag::FlagsL:	mask = flags_mask & 0xff;	break;
+			}
+		}
+
+		ramEqual &= (memory.memory[address] & mask) == ([ram[1] intValue] & mask);
 	}
 
 	[self populate:intended_registers status:intended_status value:final_state[@"regs"]];
 	const bool registersEqual = intended_registers == registers;
-	const bool statusEqual = intended_status == status;
+	const bool statusEqual = (intended_status.get() & flags_mask) == (status.get() & flags_mask);
 
 	if(assert) {
 		XCTAssert(
 			statusEqual,
-			"Status doesn't match — differs in %02x after %@; executing %@",
-				intended_status.get() ^ status.get(),
+			"Status doesn't match despite mask %04x — differs in %04x after %@; executing %@",
+				flags_mask,
+				(intended_status.get() ^ status.get()) & flags_mask,
 				test[@"name"],
 				[self toString:decoded.second offsetLength:4 immediateLength:4]
 		);
@@ -403,15 +452,23 @@ class FlowController {
 }
 
 - (void)testExecution {
+	NSDictionary *metadata = [self metadata];
+
 	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
 	for(NSString *file in [self testFiles]) {
+		// Determine what the metadata key.
+		NSString *const name = [file lastPathComponent];
+		NSRange first_dot = [name rangeOfString:@"."];
+		NSString *metadata_key = [name substringToIndex:first_dot.location];
+
+		NSDictionary *test_metadata = metadata[metadata_key];
 		for(NSDictionary *test in [self testsInFile:file]) {
 			// A single failure per instruction is fine.
-			if(![self applyExecutionTest:test file:file assert:YES]) {
+			if(![self applyExecutionTest:test file:file metadata:test_metadata assert:YES]) {
 				[failures addObject:file];
 
 				// Attempt a second decoding, to provide a debugger hook.
-				[self applyExecutionTest:test file:file assert:NO];
+				[self applyExecutionTest:test file:file metadata:test_metadata assert:NO];
 				break;
 			}
 		}

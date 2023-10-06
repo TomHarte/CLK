@@ -59,6 +59,9 @@ struct Status {
 	uint32_t auxiliary_carry;
 	uint32_t sign;
 	uint32_t overflow;
+	uint32_t trap;
+	uint32_t interrupt;
+	uint32_t direction;
 
 	// Zero => set; non-zero => unset.
 	uint32_t zero;
@@ -66,18 +69,48 @@ struct Status {
 	// Odd number of bits => set; even => unset.
 	uint32_t parity;
 
-	// Convenience getters.
-	template <typename IntT> IntT carry_bit() { return carry ? 1 : 0; }
+	// Flag getters.
+	template <typename IntT> IntT carry_bit() const { return carry ? 1 : 0; }
+	bool parity_bit() const {
+		uint32_t result = parity;
+		result ^= result >> 16;
+		result ^= result >> 8;
+		result ^= result >> 4;
+		result ^= result >> 2;
+		result ^= result >> 1;
+		return 1 ^ (result & 1);
+	}
 
+	// Complete value get and set.
 	void set(uint16_t value) {
 		carry = value & ConditionCode::Carry;
+		auxiliary_carry = value & ConditionCode::AuxiliaryCarry;
+		sign = value & ConditionCode::Sign;
+		overflow = value & ConditionCode::Overflow;
+		trap = value & ConditionCode::Trap;
+		interrupt = value & ConditionCode::Interrupt;
+		direction = value & ConditionCode::Direction;
 
-		// TODO: the rest.
+		zero = (~value) & ConditionCode::Zero;
+
+		parity = (~value) & ConditionCode::Parity;
 	}
 
 	uint16_t get() const {
 		return
-			(carry ? ConditionCode::Carry : 0);
+			0xf002 |
+
+			(carry ? ConditionCode::Carry : 0) |
+			(auxiliary_carry ? ConditionCode::AuxiliaryCarry : 0) |
+			(sign ? ConditionCode::Sign : 0) |
+			(overflow ? ConditionCode::Overflow : 0) |
+			(trap ? ConditionCode::Trap : 0) |
+			(interrupt ? ConditionCode::Interrupt : 0) |
+			(direction ? ConditionCode::Direction : 0) |
+
+			(zero ? 0 : ConditionCode::Zero) |
+
+			(parity_bit() ? ConditionCode::Parity : 0);
 	}
 
 	bool operator ==(const Status &rhs) const {
