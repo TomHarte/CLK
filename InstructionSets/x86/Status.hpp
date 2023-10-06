@@ -74,6 +74,15 @@ struct Status {
 
 		// TODO: the rest.
 	}
+
+	uint16_t get() const {
+		return
+			(carry ? ConditionCode::Carry : 0);
+	}
+
+	bool operator ==(const Status &rhs) const {
+		return get() == rhs.get();
+	}
 };
 
 }

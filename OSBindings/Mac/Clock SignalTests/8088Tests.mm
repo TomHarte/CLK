@@ -27,6 +27,87 @@ namespace {
 // provide their real path here.
 constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
+struct Registers {
+	CPU::RegisterPair16 ax_;
+	uint8_t &al()	{	return ax_.halves.low;	}
+	uint8_t &ah()	{	return ax_.halves.high;	}
+	uint16_t &ax()	{	return ax_.full;		}
+
+	CPU::RegisterPair16 &axp()	{	return ax_;	}
+
+	CPU::RegisterPair16 cx_;
+	uint8_t &cl()	{	return cx_.halves.low;	}
+	uint8_t &ch()	{	return cx_.halves.high;	}
+	uint16_t &cx()	{	return cx_.full;		}
+
+	CPU::RegisterPair16 dx_;
+	uint8_t &dl()	{	return dx_.halves.low;	}
+	uint8_t &dh()	{	return dx_.halves.high;	}
+	uint16_t &dx()	{	return dx_.full;		}
+
+	CPU::RegisterPair16 bx_;
+	uint8_t &bl()	{	return bx_.halves.low;	}
+	uint8_t &bh()	{	return bx_.halves.high;	}
+	uint16_t &bx()	{	return bx_.full;		}
+
+	uint16_t sp_;
+	uint16_t &sp()	{	return sp_;				}
+
+	uint16_t bp_;
+	uint16_t &bp()	{	return bp_;				}
+
+	uint16_t si_;
+	uint16_t &si()	{	return si_;				}
+
+	uint16_t di_;
+	uint16_t &di()	{	return di_;				}
+
+	uint16_t es_, cs_, ds_, ss_;
+	uint16_t ip_;
+
+	bool operator ==(const Registers &rhs) const {
+		return
+			ax_.full == rhs.ax_.full &&
+			cx_.full == rhs.cx_.full &&
+			dx_.full == rhs.dx_.full &&
+			bx_.full == rhs.bx_.full &&
+			sp_ == rhs.sp_ &&
+			bp_ == rhs.bp_ &&
+			si_ == rhs.si_ &&
+			di_ == rhs.di_ &&
+			es_ == rhs.es_ &&
+			cs_ == rhs.cs_ &&
+			ds_ == rhs.ds_ &&
+			si_ == rhs.si_ &&
+			ip_ == rhs.ip_;
+	}
+};
+struct Memory {
+	std::vector<uint8_t> memory;
+	const Registers &registers_;
+
+	Memory(Registers &registers) : registers_(registers) {
+		memory.resize(1024*1024);
+	}
+
+	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address) {
+		uint32_t physical_address;
+		using Source = InstructionSet::x86::Source;
+		switch(segment) {
+			default:			physical_address = registers_.ds_;	break;
+			case Source::ES:	physical_address = registers_.es_;	break;
+			case Source::CS:	physical_address = registers_.cs_;	break;
+			case Source::DS:	physical_address = registers_.ds_;	break;
+		}
+		physical_address = ((physical_address << 4) + address) & 0xf'ffff;
+		return *reinterpret_cast<IntT *>(&memory[physical_address]);
+	}
+};
+struct IO {
+};
+struct FlowController {
+};
+
 }
 
 @interface i8088Tests : XCTestCase
@@ -37,6 +118,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
+		@"D4.json.gz"
 	]];
 
 	NSSet *ignoreList = nil;
@@ -168,74 +250,29 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return isEqual;
 }
 
+- (void)populate:(Registers &)registers status:(InstructionSet::x86::Status &)status value:(NSDictionary *)value {
+	registers.ax_.full = [value[@"ax"] intValue];
+	registers.bx_.full = [value[@"bx"] intValue];
+	registers.cx_.full = [value[@"cx"] intValue];
+	registers.dx_.full = [value[@"dx"] intValue];
+
+	registers.bp_ = [value[@"bp"] intValue];
+	registers.cs_ = [value[@"cs"] intValue];
+	registers.di_ = [value[@"di"] intValue];
+	registers.ds_ = [value[@"ds"] intValue];
+	registers.es_ = [value[@"es"] intValue];
+	registers.si_ = [value[@"si"] intValue];
+	registers.sp_ = [value[@"sp"] intValue];
+	registers.ss_ = [value[@"ss"] intValue];
+	registers.ip_ = [value[@"ip"] intValue];
+
+	status.set([value[@"flags"] intValue]);
+}
+
 - (bool)applyExecutionTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 	const auto data = [self bytes:test[@"bytes"]];
 	const auto decoded = decoder.decode(data.data(), data.size());
-
-	struct Registers {
-		CPU::RegisterPair16 ax_;
-		uint8_t &al()	{	return ax_.halves.low;	}
-		uint8_t &ah()	{	return ax_.halves.high;	}
-		uint16_t &ax()	{	return ax_.full;		}
-
-		CPU::RegisterPair16 &axp()	{	return ax_;	}
-
-		CPU::RegisterPair16 cx_;
-		uint8_t &cl()	{	return cx_.halves.low;	}
-		uint8_t &ch()	{	return cx_.halves.high;	}
-		uint16_t &cx()	{	return cx_.full;		}
-
-		CPU::RegisterPair16 dx_;
-		uint8_t &dl()	{	return dx_.halves.low;	}
-		uint8_t &dh()	{	return dx_.halves.high;	}
-		uint16_t &dx()	{	return dx_.full;		}
-
-		CPU::RegisterPair16 bx_;
-		uint8_t &bl()	{	return bx_.halves.low;	}
-		uint8_t &bh()	{	return bx_.halves.high;	}
-		uint16_t &bx()	{	return bx_.full;		}
-
-		uint16_t sp_;
-		uint16_t &sp()	{	return sp_;				}
-
-		uint16_t bp_;
-		uint16_t &bp()	{	return bp_;				}
-
-		uint16_t si_;
-		uint16_t &si()	{	return si_;				}
-
-		uint16_t di_;
-		uint16_t &di()	{	return di_;				}
-
-		uint16_t es_, cs_, ds_, ss_;
-		uint16_t ip_;
-	};
-	struct Memory {
-		std::vector<uint8_t> memory;
-		const Registers &registers_;
-
-		Memory(Registers &registers) : registers_(registers) {
-			memory.resize(1024*1024);
-		}
-
-		template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address) {
-			uint32_t physical_address;
-			using Source = InstructionSet::x86::Source;
-			switch(segment) {
-				default:			physical_address = registers_.ds_;	break;
-				case Source::ES:	physical_address = registers_.es_;	break;
-				case Source::CS:	physical_address = registers_.cs_;	break;
-				case Source::DS:	physical_address = registers_.ds_;	break;
-			}
-			physical_address = ((physical_address << 4) + address) & 0xf'ffff;
-			return *reinterpret_cast<IntT *>(&memory[physical_address]);
-		}
-	};
-	struct IO {
-	};
-	struct FlowController {
-	};
 
 	InstructionSet::x86::Status status;
 	FlowController flow_controller;
@@ -244,28 +281,14 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	IO io;
 
 	// Apply initial state.
-	NSDictionary *const initial = test[@"initial"];
-	for(NSArray<NSNumber *> *ram in initial[@"ram"]) {
+	NSDictionary *const initial_state = test[@"initial"];
+	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
 		memory.memory[[ram[0] intValue]] = [ram[1] intValue];
 	}
-	NSDictionary *const initial_registers = initial[@"regs"];
-	registers.ax_.full = [initial_registers[@"ax"] intValue];
-	registers.bx_.full = [initial_registers[@"bx"] intValue];
-	registers.cx_.full = [initial_registers[@"cx"] intValue];
-	registers.dx_.full = [initial_registers[@"dx"] intValue];
+	[self populate:registers status:status value:initial_state[@"regs"]];
 
-	registers.bp_ = [initial_registers[@"bp"] intValue];
-	registers.cs_ = [initial_registers[@"cs"] intValue];
-	registers.di_ = [initial_registers[@"di"] intValue];
-	registers.ds_ = [initial_registers[@"ds"] intValue];
-	registers.es_ = [initial_registers[@"es"] intValue];
-	registers.si_ = [initial_registers[@"si"] intValue];
-	registers.sp_ = [initial_registers[@"sp"] intValue];
-	registers.ss_ = [initial_registers[@"ss"] intValue];
-	registers.ip_ = [initial_registers[@"ip"] intValue];
-
-	status.set([initial_registers[@"flags"] intValue]);
-
+	// Execute instruction.
+	registers.ip_ += decoded.first;
 	InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
 		decoded.second,
 		status,
@@ -275,7 +298,41 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		io
 	);
 
-	return false;
+	// Compare final state.
+	NSDictionary *const final_state = test[@"final"];
+	Registers intended_registers;
+	InstructionSet::x86::Status intended_status;
+
+	bool ramEqual = true;
+	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
+		ramEqual &= memory.memory[[ram[0] intValue]] == [ram[1] intValue];
+	}
+
+	[self populate:intended_registers status:intended_status value:final_state[@"regs"]];
+	const bool registersEqual = intended_registers == registers;
+	const bool statusEqual = intended_status == status;
+
+	if(assert) {
+		XCTAssert(
+			statusEqual,
+			"Status doesn't match — differs in %02x after %@",
+				intended_status.get() ^ status.get(),
+				test[@"name"]
+		);
+		// TODO: should probably say more about the following two.
+		XCTAssert(
+			registersEqual,
+			"Register mismatch after %@",
+				test[@"name"]
+		);
+		XCTAssert(
+			ramEqual,
+			"Memory contents mismatch after %@",
+				test[@"name"]
+		);
+	}
+
+	return statusEqual && registersEqual && ramEqual;
 }
 
 - (void)printFailures:(NSArray<NSString *> *)failures {

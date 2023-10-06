@@ -63,7 +63,7 @@ IntT overflow(IntT lhs, IntT rhs, IntT result) {
 // Order Number 243191; e.g. https://www.ardent-tool.com/CPU/docs/Intel/IA/243191-002.pdf
 //
 
-inline void aaa(CPU::RegisterPair16 &ax, Status &status) {
+inline void aaa(CPU::RegisterPair16 &ax, Status &status) {	// P. 313
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 			THEN
