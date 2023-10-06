@@ -27,6 +27,7 @@ namespace {
 // provide their real path here.
 constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
+using Status = InstructionSet::x86::Status;
 struct Registers {
 	CPU::RegisterPair16 ax_;
 	uint8_t &al()	{	return ax_.halves.low;	}
@@ -97,15 +98,52 @@ struct Memory {
 			default:			physical_address = registers_.ds_;	break;
 			case Source::ES:	physical_address = registers_.es_;	break;
 			case Source::CS:	physical_address = registers_.cs_;	break;
-			case Source::DS:	physical_address = registers_.ds_;	break;
+			case Source::SS:	physical_address = registers_.ss_;	break;
 		}
 		physical_address = ((physical_address << 4) + address) & 0xf'ffff;
-		return *reinterpret_cast<IntT *>(&memory[physical_address]);
+		return access<IntT>(physical_address);
+	}
+
+	template <typename IntT> IntT &access(uint32_t address) {
+		return *reinterpret_cast<IntT *>(&memory[address]);
 	}
 };
 struct IO {
 };
-struct FlowController {
+class FlowController {
+	public:
+		FlowController(Memory &memory, Registers &registers, Status &status) :
+			memory_(memory), registers_(registers), status_(status) {}
+
+		void interrupt(int index) {
+			const uint16_t address = static_cast<uint16_t>(index) << 2;
+			const uint16_t new_ip = memory_.access<uint16_t>(address);
+			const uint16_t new_cs = memory_.access<uint16_t>(address + 2);
+
+			push(status_.get());
+
+			// TODO: set I and TF
+//			status_.
+
+			// Push CS and IP.
+			push(registers_.cs_);
+			push(registers_.ip_);
+
+			registers_.cs_ = new_cs;
+			registers_.ip_ = new_ip;
+		}
+
+	private:
+		Memory &memory_;
+		Registers &registers_;
+		Status status_;
+
+		void push(uint16_t value) {
+			--registers_.sp_;
+			memory_.access<uint8_t>(InstructionSet::x86::Source::SS, registers_.sp_) = value >> 8;
+			--registers_.sp_;
+			memory_.access<uint8_t>(InstructionSet::x86::Source::SS, registers_.sp_) = value & 0xff;
+		}
 };
 
 }
@@ -275,9 +313,9 @@ struct FlowController {
 	const auto decoded = decoder.decode(data.data(), data.size());
 
 	InstructionSet::x86::Status status;
-	FlowController flow_controller;
 	Registers registers;
 	Memory memory(registers);
+	FlowController flow_controller(memory, registers, status);
 	IO io;
 
 	// Apply initial state.

@@ -11,6 +11,7 @@
 
 #include "../../../Numeric/Carry.hpp"
 #include "../../../Numeric/RegisterSizes.hpp"
+#include "../Interrupts.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -108,7 +109,8 @@ inline void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	status.parity = status.zero = ax.halves.low;
 }
 
-inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
+template <typename FlowControllerT>
+inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowControllerT &flow_controller) {
 	/*
 		tempAL ← AL;
 		AH ← tempAL / imm8; (* imm8 is set to 0AH for the AAD mnemonic *)
@@ -121,12 +123,15 @@ inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	/*
 		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
 	*/
+	if(!imm) {
+		flow_controller.interrupt(Interrupt::DivideByZero);
+		return;
+	}
+
 	ax.halves.high = ax.halves.low / imm;
 	ax.halves.low = ax.halves.low % imm;
 	status.sign = ax.halves.low & 0x80;
 	status.parity = status.zero = ax.halves.low;
-
-	// TODO: #DE.
 }
 
 inline void aas(CPU::RegisterPair16 &ax, Status &status) {
@@ -303,13 +308,13 @@ template <
 		default: return;
 		//assert(false);
 
-		case Operation::AAA:	Primitive::aaa(registers.axp(), status);							return;
-		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);		return;
-		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status);		return;
-		case Operation::AAS:	Primitive::aas(registers.axp(), status);							return;
+		case Operation::AAA:	Primitive::aaa(registers.axp(), status);											return;
+		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);						return;
+		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status, flow_controller);	return;
+		case Operation::AAS:	Primitive::aas(registers.axp(), status);											return;
 
-		case Operation::ADC:	Primitive::adc(destination(), source(), status);					break;
-		case Operation::ADD:	Primitive::add(destination(), source(), status);					break;
+		case Operation::ADC:	Primitive::adc(destination(), source(), status);									break;
+		case Operation::ADD:	Primitive::add(destination(), source(), status);									break;
 	}
 
 	// Write to memory if required to complete this operation.
