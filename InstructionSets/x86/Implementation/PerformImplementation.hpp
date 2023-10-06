@@ -63,7 +63,7 @@ IntT overflow(IntT lhs, IntT rhs, IntT result) {
 // Order Number 243191; e.g. https://www.ardent-tool.com/CPU/docs/Intel/IA/243191-002.pdf
 //
 
-void aaa(CPU::RegisterPair16 &ax, Status &status) {
+inline void aaa(CPU::RegisterPair16 &ax, Status &status) {
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 			THEN
@@ -91,7 +91,7 @@ void aaa(CPU::RegisterPair16 &ax, Status &status) {
 	ax.halves.low &= 0x0f;
 }
 
-void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
+inline void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	/*
 		tempAL ← AL;
 		tempAH ← AH;
@@ -108,7 +108,7 @@ void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	status.parity = status.zero = ax.halves.low;
 }
 
-void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
+inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	/*
 		tempAL ← AL;
 		AH ← tempAL / imm8; (* imm8 is set to 0AH for the AAD mnemonic *)
@@ -124,7 +124,7 @@ void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	status.parity = status.zero = ax.halves.low;
 }
 
-void aas(CPU::RegisterPair16 &ax, Status &status) {
+inline void aas(CPU::RegisterPair16 &ax, Status &status) {
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 		THEN
