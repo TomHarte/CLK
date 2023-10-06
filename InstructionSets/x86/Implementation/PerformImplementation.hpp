@@ -55,6 +55,14 @@ IntT overflow(IntT lhs, IntT rhs, IntT result) {
 // END COPY AND PASTE SECTION.
 //
 
+//
+// Comments below on intended functioning of each operation come from the 1997 edition of the
+// Intel Architecture Software Developer’s Manual; that year all such definitions still fitted within a
+// single volume, Volume 2.
+//
+// Order Number 243191; e.g. https://www.ardent-tool.com/CPU/docs/Intel/IA/243191-002.pdf
+//
+
 void aaa(CPU::RegisterPair16 &ax, Status &status) {
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
