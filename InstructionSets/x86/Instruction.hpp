@@ -626,7 +626,7 @@ class DataPointer {
 		}
 
 		constexpr Source segment(Source segment_override) const {
-			// TODO: remove conditionaluty here.
+			// TODO: remove conditionality here.
 			if(segment_override != Source::None) return segment_override;
 			if(const auto segment = default_segment(); segment != Source::None) return segment;
 			return Source::DS;
