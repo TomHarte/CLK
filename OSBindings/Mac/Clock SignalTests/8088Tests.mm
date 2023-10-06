@@ -315,20 +315,23 @@ struct FlowController {
 	if(assert) {
 		XCTAssert(
 			statusEqual,
-			"Status doesn't match — differs in %02x after %@",
+			"Status doesn't match — differs in %02x after %@; executing %@",
 				intended_status.get() ^ status.get(),
-				test[@"name"]
+				test[@"name"],
+				[self toString:decoded.second offsetLength:4 immediateLength:4]
 		);
 		// TODO: should probably say more about the following two.
 		XCTAssert(
 			registersEqual,
-			"Register mismatch after %@",
-				test[@"name"]
+			"Register mismatch after %@; executing %@",
+				test[@"name"],
+				[self toString:decoded.second offsetLength:4 immediateLength:4]
 		);
 		XCTAssert(
 			ramEqual,
-			"Memory contents mismatch after %@",
-				test[@"name"]
+			"Memory contents mismatch after %@; executing %@",
+				test[@"name"],
+				[self toString:decoded.second offsetLength:4 immediateLength:4]
 		);
 	}
 

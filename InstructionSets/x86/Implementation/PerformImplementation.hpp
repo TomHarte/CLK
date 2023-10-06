@@ -118,10 +118,15 @@ inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 		The SF, ZF, and PF flags are set according to the result.
 		The OF, AF, and CF flags are undefined.
 	*/
+	/*
+		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
+	*/
 	ax.halves.high = ax.halves.low / imm;
 	ax.halves.low = ax.halves.low % imm;
 	status.sign = ax.halves.low & 0x80;
 	status.parity = status.zero = ax.halves.low;
+
+	// TODO: #DE.
 }
 
 inline void aas(CPU::RegisterPair16 &ax, Status &status) {
