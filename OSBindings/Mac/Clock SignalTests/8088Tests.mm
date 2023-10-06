@@ -19,6 +19,7 @@
 
 #include "../../../InstructionSets/x86/Decoder.hpp"
 #include "../../../InstructionSets/x86/Perform.hpp"
+#include "../../../Numeric/RegisterSizes.hpp"
 
 namespace {
 
@@ -59,22 +60,30 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return [fullPaths sortedArrayUsingSelector:@selector(compare:)];
 }
 
+- (NSArray<NSDictionary *> *)testsInFile:(NSString *)file {
+	NSData *data = [NSData dataWithContentsOfGZippedFile:file];
+	return [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+}
+
 - (NSString *)toString:(const InstructionSet::x86::Instruction<false> &)instruction offsetLength:(int)offsetLength immediateLength:(int)immediateLength {
 	const auto operation = to_string(instruction, InstructionSet::x86::Model::i8086, offsetLength, immediateLength);
 	return [[NSString stringWithUTF8String:operation.c_str()] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
-- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
-	using Decoder = InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
-	Decoder decoder;
-
-	// Build a vector of the instruction bytes; this makes manual step debugging easier.
-	NSArray<NSNumber *> *encoding = test[@"bytes"];
+- (std::vector<uint8_t>)bytes:(NSArray<NSNumber *> *)encoding {
 	std::vector<uint8_t> data;
 	data.reserve(encoding.count);
 	for(NSNumber *number in encoding) {
 		data.push_back([number intValue]);
 	}
+	return data;
+}
+
+- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
+	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+
+	// Build a vector of the instruction bytes; this makes manual step debugging easier.
+	const auto data = [self bytes:test[@"bytes"]];
 	auto hex_instruction = [&]() -> NSString * {
 		NSMutableString *hexInstruction = [[NSMutableString alloc] init];
 		for(uint8_t byte: data) {
@@ -84,18 +93,19 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	};
 
 	const auto decoded = decoder.decode(data.data(), data.size());
+	const bool sizeMatched = decoded.first == data.size();
 	if(assert) {
 		XCTAssert(
-			decoded.first == [encoding count],
+			sizeMatched,
 			"Wrong length of instruction decoded for %@ — decoded %d rather than %lu from %@; file %@",
 				test[@"name"],
 				decoded.first,
-				(unsigned long)[encoding count],
+				(unsigned long)data.size(),
 				hex_instruction(),
 				file
 		);
 	}
-	if(decoded.first != [encoding count]) {
+	if(!sizeMatched) {
 		return false;
 	}
 
@@ -158,54 +168,134 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	return isEqual;
 }
 
-- (void)testDecoding {
-	NSMutableSet<NSString *> *failures = [[NSMutableSet alloc] init];
-	NSArray<NSString *> *testFiles = [self testFiles];
+- (bool)applyExecutionTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
+	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+	const auto data = [self bytes:test[@"bytes"]];
+	const auto decoded = decoder.decode(data.data(), data.size());
 
-	for(NSString *file in testFiles) {
-		NSData *data = [NSData dataWithContentsOfGZippedFile:file];
-		NSArray<NSDictionary *> *testsInFile = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-		NSUInteger successes = 0;
-		for(NSDictionary *test in testsInFile) {
+	struct Registers {
+		CPU::RegisterPair16 ax_;
+		uint8_t &al()	{	return ax_.halves.low;	}
+		uint8_t &ah()	{	return ax_.halves.high;	}
+		uint16_t &ax()	{	return ax_.full;		}
+
+		CPU::RegisterPair16 &axp()	{	return ax_;	}
+
+		CPU::RegisterPair16 cx_;
+		uint8_t &cl()	{	return cx_.halves.low;	}
+		uint8_t &ch()	{	return cx_.halves.high;	}
+		uint16_t &cx()	{	return cx_.full;		}
+
+		CPU::RegisterPair16 dx_;
+		uint8_t &dl()	{	return dx_.halves.low;	}
+		uint8_t &dh()	{	return dx_.halves.high;	}
+		uint16_t &dx()	{	return dx_.full;		}
+
+		CPU::RegisterPair16 bx_;
+		uint8_t &bl()	{	return bx_.halves.low;	}
+		uint8_t &bh()	{	return bx_.halves.high;	}
+		uint16_t &bx()	{	return bx_.full;		}
+
+		uint16_t sp_;
+		uint16_t &sp()	{	return sp_;				}
+
+		uint16_t bp_;
+		uint16_t &bp()	{	return bp_;				}
+
+		uint16_t si_;
+		uint16_t &si()	{	return si_;				}
+
+		uint16_t di_;
+		uint16_t &di()	{	return di_;				}
+
+		uint16_t es_, cs_, ds_, ss_;
+	};
+	struct Memory {
+		std::vector<uint8_t> memory;
+		const Registers &registers_;
+
+		Memory(Registers &registers) : registers_(registers) {
+			memory.resize(1024*1024);
+		}
+
+		template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address) {
+			uint32_t physical_address;
+			using Source = InstructionSet::x86::Source;
+			switch(segment) {
+				default:			address = registers_.ds_;	break;
+				case Source::ES:	address = registers_.es_;	break;
+				case Source::CS:	address = registers_.cs_;	break;
+				case Source::DS:	address = registers_.ds_;	break;
+			}
+			physical_address = ((physical_address << 4) + address) & 0xf'ffff;
+			return *reinterpret_cast<IntT *>(&memory[physical_address]);
+		}
+	};
+	struct IO {
+	};
+	struct FlowController {
+	};
+
+	InstructionSet::x86::Status status;
+	FlowController flow_controller;
+	Registers registers;
+	Memory memory(registers);
+	IO io;
+
+	InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
+		decoded.second,
+		status,
+		flow_controller,
+		registers,
+		memory,
+		io
+	);
+
+	return false;
+}
+
+- (void)printFailures:(NSArray<NSString *> *)failures {
+	NSLog(
+		@"%ld failures out of %ld tests: %@",
+		failures.count,
+		[self testFiles].count,
+		[failures sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
+}
+
+- (void)testDecoding {
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+	for(NSString *file in [self testFiles]) {
+		for(NSDictionary *test in [self testsInFile:file]) {
 			// A single failure per instruction is fine.
 			if(![self applyDecodingTest:test file:file assert:YES]) {
 				[failures addObject:file];
 
 				// Attempt a second decoding, to provide a debugger hook.
 				[self applyDecodingTest:test file:file assert:NO];
-
 				break;
 			}
-			++successes;
-		}
-		if(successes != [testsInFile count]) {
-			NSLog(@"Failed after %ld successes", successes);
 		}
 	}
 
-	NSLog(@"%ld failures out of %ld tests: %@", failures.count, testFiles.count, [[failures allObjects] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
+	[self printFailures:failures];
 }
 
 - (void)testExecution {
-//	CPU::RegisterPair16 source, dest;
-//	InstructionSet::x86::Status status;
-//	struct NoFlow {
-//	} flow_controller;
-//
-//	dest.full = 0xff;
-//	source.full = 10;
-//
-//	InstructionSet::x86::perform<
-//		InstructionSet::x86::Model::i8086,
-//		InstructionSet::x86::Operation::ADD,
-//		InstructionSet::x86::DataSize::Byte
-//	>(
-//		dest,
-//		source,
-//		status,
-//		flow_controller
-//	);
-//
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+	for(NSString *file in [self testFiles]) {
+		for(NSDictionary *test in [self testsInFile:file]) {
+			// A single failure per instruction is fine.
+			if(![self applyExecutionTest:test file:file assert:YES]) {
+				[failures addObject:file];
+
+				// Attempt a second decoding, to provide a debugger hook.
+				[self applyExecutionTest:test file:file assert:NO];
+				break;
+			}
+		}
+	}
+
+	[self printFailures:failures];
 }
 
 @end

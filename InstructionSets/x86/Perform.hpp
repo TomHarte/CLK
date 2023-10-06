@@ -12,7 +12,6 @@
 #include "Instruction.hpp"
 #include "Model.hpp"
 #include "Status.hpp"
-#include "../../Numeric/RegisterSizes.hpp"
 
 namespace InstructionSet::x86 {
 

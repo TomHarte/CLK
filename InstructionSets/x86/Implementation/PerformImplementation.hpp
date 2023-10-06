@@ -10,6 +10,7 @@
 #define PerformImplementation_h
 
 #include "../../../Numeric/Carry.hpp"
+#include "../../../Numeric/RegisterSizes.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -79,6 +80,7 @@ void aaa(CPU::RegisterPair16 &ax, Status &status) {
 	} else {
 		status.auxiliary_carry = status.carry = 0;
 	}
+	ax.halves.low &= 0x0f;
 }
 
 void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
@@ -199,73 +201,63 @@ template <
 	using IntT = typename DataSizeType<data_size>::type;
 	using AddressT = typename AddressT<is_32bit(model)>::type;
 
-	// Establish source() and destination() shorthand to fetch data if necessary.
-	IntT fetched_data = 0, original_data = 0;
-	Source segment;
-	AddressT address;
-
-	static constexpr IntT zero = 0;
+	IntT zero = 0;
 	auto data = [&](DataPointer source) -> IntT& {
 		// Rules:
 		//
 		// * if this is a memory access, set target_address and break;
 		// * otherwise return the appropriate value.
+		AddressT address;
 		switch(source.source<false>()) {
 			case Source::eAX:
-				switch(data_size) {
-					default:				return registers.al();
-					case DataSize::Word:	return registers.ax();
-					case DataSize::DWord:	return registers.eax();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.eax();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.ax();		}
+				else															{	return registers.al();		}
 			case Source::eCX:
-				switch(data_size) {
-					default:				return registers.cl();
-					case DataSize::Word:	return registers.cx();
-					case DataSize::DWord:	return registers.ecx();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.ecx();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.cx();		}
+				else															{	return registers.cl();		}
 			case Source::eDX:
-				switch(data_size) {
-					default:				return registers.dl();
-					case DataSize::Word:	return registers.dx();
-					case DataSize::DWord:	return registers.edx();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.edx();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.dx();		}
+				else															{	return registers.dl();		}
 			case Source::eBX:
-				switch(data_size) {
-					default:				return registers.bl();
-					case DataSize::Word:	return registers.bx();
-					case DataSize::DWord:	return registers.ebx();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.ebx();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.bx();		}
+				else															{	return registers.bl();		}
 			case Source::eSPorAH:
-				switch(data_size) {
-					default:				return registers.ah();
-					case DataSize::Word:	return registers.sp();
-					case DataSize::DWord:	return registers.esp();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.esp();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.sp();		}
+				else															{	return registers.ah();		}
 			case Source::eBPorCH:
-				switch(data_size) {
-					default:				return registers.ch();
-					case DataSize::Word:	return registers.bp();
-					case DataSize::DWord:	return registers.ebp();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.ebp();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.bp();		}
+				else															{	return registers.ch();		}
 			case Source::eSIorDH:
-				switch(data_size) {
-					default:				return registers.dh();
-					case DataSize::Word:	return registers.si();
-					case DataSize::DWord:	return registers.esi();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.esi();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.si();		}
+				else															{	return registers.dh();		}
 			case Source::eDIorBH:
-				switch(data_size) {
-					default:				return registers.bh();
-					case DataSize::Word:	return registers.di();
-					case DataSize::DWord:	return registers.edi();
-				}
+				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.edi();		}
+				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
+				else if constexpr (data_size == DataSize::Word)					{	return registers.di();		}
+				else															{	return registers.bh();		}
 
-			case Source::ES:	return registers.es();
-			case Source::CS:	return registers.cs();
-			case Source::SS:	return registers.ss();
-			case Source::DS:	return registers.ds();
-			case Source::FS:	return registers.fs();
-			case Source::GS:	return registers.gs();
+			// TODO: the below.
+			default:
+//			case Source::ES:	return registers.es();
+//			case Source::CS:	return registers.cs();
+//			case Source::SS:	return registers.ss();
+//			case Source::DS:	return registers.ds();
+//			case Source::FS:	return registers.fs();
+//			case Source::GS:	return registers.gs();
 
 			case Source::Immediate:			// TODO (here the use of a reference falls down?)
 
@@ -281,11 +273,11 @@ template <
 
 		// If execution has reached here then a memory fetch is required.
 		// Do it and exit.
-		segment = source.segment(instruction.segment_override());
-		fetched_data = original_data = memory.template read<IntT>(segment, address);
-		return fetched_data;
+		const Source segment = source.segment(instruction.segment_override());
+		return memory.template access<IntT>(segment, address);
 	};
 
+	// Establish source() and destination() shorthand to fetch data if necessary.
 	auto source = [&]() -> IntT& 		{	return data(instruction.source());		};
 	auto destination = [&]() -> IntT& 	{	return data(instruction.destination());	};
 
@@ -295,19 +287,21 @@ template <
 	//	* return directly if there is definitely no possible write back to RAM;
 	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
 	switch(instruction.operation) {
-		case Operation::AAA:	Primitive::aaa(registers.ax(), status);								return;
-		case Operation::AAD:	Primitive::aad(registers.ax(), instruction.immediate(), status);	return;
-		case Operation::AAM:	Primitive::aam(registers.ax(), instruction.immediate(), status);	return;
-		case Operation::AAS:	Primitive::aas(registers.ax(), status);								return;
+		default: assert(false);
+
+		case Operation::AAA:	Primitive::aaa(registers.axp(), status);							return;
+		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);		return;
+		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status);		return;
+		case Operation::AAS:	Primitive::aas(registers.axp(), status);							return;
 
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);					break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);					break;
 	}
 
 	// Write to memory if required to complete this operation.
-	if(original_data != fetched_data) {
+//	if(original_data != fetched_data) {
 		// TODO.
-	}
+//	}
 }
 
 template <
