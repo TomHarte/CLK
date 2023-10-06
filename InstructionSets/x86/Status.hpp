@@ -68,6 +68,12 @@ struct Status {
 
 	// Convenience getters.
 	template <typename IntT> IntT carry_bit() { return carry ? 1 : 0; }
+
+	void set(uint16_t value) {
+		carry = value & ConditionCode::Carry;
+
+		// TODO: the rest.
+	}
 };
 
 }

@@ -287,7 +287,8 @@ template <
 	//	* return directly if there is definitely no possible write back to RAM;
 	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
 	switch(instruction.operation) {
-		default: assert(false);
+		default: return;
+		//assert(false);
 
 		case Operation::AAA:	Primitive::aaa(registers.axp(), status);							return;
 		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);		return;

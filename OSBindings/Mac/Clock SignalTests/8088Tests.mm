@@ -209,6 +209,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 		uint16_t &di()	{	return di_;				}
 
 		uint16_t es_, cs_, ds_, ss_;
+		uint16_t ip_;
 	};
 	struct Memory {
 		std::vector<uint8_t> memory;
@@ -222,10 +223,10 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 			uint32_t physical_address;
 			using Source = InstructionSet::x86::Source;
 			switch(segment) {
-				default:			address = registers_.ds_;	break;
-				case Source::ES:	address = registers_.es_;	break;
-				case Source::CS:	address = registers_.cs_;	break;
-				case Source::DS:	address = registers_.ds_;	break;
+				default:			physical_address = registers_.ds_;	break;
+				case Source::ES:	physical_address = registers_.es_;	break;
+				case Source::CS:	physical_address = registers_.cs_;	break;
+				case Source::DS:	physical_address = registers_.ds_;	break;
 			}
 			physical_address = ((physical_address << 4) + address) & 0xf'ffff;
 			return *reinterpret_cast<IntT *>(&memory[physical_address]);
@@ -241,6 +242,29 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 	Registers registers;
 	Memory memory(registers);
 	IO io;
+
+	// Apply initial state.
+	NSDictionary *const initial = test[@"initial"];
+	for(NSArray<NSNumber *> *ram in initial[@"ram"]) {
+		memory.memory[[ram[0] intValue]] = [ram[1] intValue];
+	}
+	NSDictionary *const initial_registers = initial[@"regs"];
+	registers.ax_.full = [initial_registers[@"ax"] intValue];
+	registers.bx_.full = [initial_registers[@"bx"] intValue];
+	registers.cx_.full = [initial_registers[@"cx"] intValue];
+	registers.dx_.full = [initial_registers[@"dx"] intValue];
+
+	registers.bp_ = [initial_registers[@"bp"] intValue];
+	registers.cs_ = [initial_registers[@"cs"] intValue];
+	registers.di_ = [initial_registers[@"di"] intValue];
+	registers.ds_ = [initial_registers[@"ds"] intValue];
+	registers.es_ = [initial_registers[@"es"] intValue];
+	registers.si_ = [initial_registers[@"si"] intValue];
+	registers.sp_ = [initial_registers[@"sp"] intValue];
+	registers.ss_ = [initial_registers[@"ss"] intValue];
+	registers.ip_ = [initial_registers[@"ip"] intValue];
+
+	status.set([initial_registers[@"flags"] intValue]);
 
 	InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
 		decoded.second,
