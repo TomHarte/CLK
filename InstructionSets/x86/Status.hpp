@@ -71,14 +71,13 @@ struct Status {
 
 	// Flag getters.
 	template <typename IntT> IntT carry_bit() const { return carry ? 1 : 0; }
-	bool parity_bit() const {
-		uint32_t result = parity;
-		result ^= result >> 16;
-		result ^= result >> 8;
+	bool not_parity_bit() const {
+		// x86 parity always considers the lowest 8-bits only.
+		auto result = static_cast<uint8_t>(parity);
 		result ^= result >> 4;
 		result ^= result >> 2;
 		result ^= result >> 1;
-		return 1 ^ (result & 1);
+		return result & 1;
 	}
 
 	// Complete value get and set.
@@ -110,7 +109,7 @@ struct Status {
 
 			(zero ? 0 : ConditionCode::Zero) |
 
-			(parity_bit() ? ConditionCode::Parity : 0);
+			(not_parity_bit() ? 0 : ConditionCode::Parity);
 	}
 
 	bool operator ==(const Status &rhs) const {
