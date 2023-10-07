@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -177,12 +177,29 @@ class FlowController {
 		}
 };
 
+struct ExecutionSupport {
+	InstructionSet::x86::Status status;
+	Registers registers;
+	Memory memory;
+	FlowController flow_controller;
+	IO io;
+
+	ExecutionSupport() : memory(registers), flow_controller(memory, registers, status) {}
+
+	void clear() {
+		memory.clear();
+	}
+};
+
+
 }
 
 @interface i8088Tests : XCTestCase
 @end
 
-@implementation i8088Tests
+@implementation i8088Tests {
+	ExecutionSupport execution_support;
+}
 
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
@@ -348,31 +365,28 @@ class FlowController {
 	const auto data = [self bytes:test[@"bytes"]];
 	const auto decoded = decoder.decode(data.data(), data.size());
 
-	InstructionSet::x86::Status initial_status, status;
-	Registers registers;
-	Memory memory(registers);
-	FlowController flow_controller(memory, registers, status);
-	IO io;
+	execution_support.clear();
 
 	const uint16_t flags_mask = metadata[@"flags-mask"] ? [metadata[@"flags-mask"] intValue] : 0xffff;
 
 	// Apply initial state.
 	NSDictionary *const initial_state = test[@"initial"];
+	InstructionSet::x86::Status initial_status;
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
-		memory.memory[[ram[0] intValue]] = [ram[1] intValue];
+		execution_support.memory.memory[[ram[0] intValue]] = [ram[1] intValue];
 	}
-	[self populate:registers status:initial_status value:initial_state[@"regs"]];
-	status = initial_status;
+	[self populate:execution_support.registers status:initial_status value:initial_state[@"regs"]];
+	execution_support.status = initial_status;
 
 	// Execute instruction.
-	registers.ip_ += decoded.first;
+	execution_support.registers.ip_ += decoded.first;
 	InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
 		decoded.second,
-		status,
-		flow_controller,
-		registers,
-		memory,
-		io
+		execution_support.status,
+		execution_support.flow_controller,
+		execution_support.registers,
+		execution_support.memory,
+		execution_support.io
 	);
 
 	// Compare final state.
@@ -385,7 +399,7 @@ class FlowController {
 		const uint32_t address = [ram[0] intValue];
 
 		uint8_t mask = 0xff;
-		if(const auto tag = memory.tags.find(address); tag != memory.tags.end()) {
+		if(const auto tag = execution_support.memory.tags.find(address); tag != execution_support.memory.tags.end()) {
 			switch(tag->second) {
 				default: break;
 				case Memory::Tag::FlagsH:	mask = flags_mask >> 8;		break;
@@ -393,19 +407,19 @@ class FlowController {
 			}
 		}
 
-		ramEqual &= (memory.memory[address] & mask) == ([ram[1] intValue] & mask);
+		ramEqual &= (execution_support.memory.memory[address] & mask) == ([ram[1] intValue] & mask);
 	}
 
 	[self populate:intended_registers status:intended_status value:final_state[@"regs"]];
-	const bool registersEqual = intended_registers == registers;
-	const bool statusEqual = (intended_status.get() & flags_mask) == (status.get() & flags_mask);
+	const bool registersEqual = intended_registers == execution_support.registers;
+	const bool statusEqual = (intended_status.get() & flags_mask) == (execution_support.status.get() & flags_mask);
 
 	if(assert) {
 		XCTAssert(
 			statusEqual,
 			"Status doesn't match despite mask %04x — differs in %04x after %@; executing %@",
 				flags_mask,
-				(intended_status.get() ^ status.get()) & flags_mask,
+				(intended_status.get() ^ execution_support.status.get()) & flags_mask,
 				test[@"name"],
 				[self toString:decoded.second offsetLength:4 immediateLength:4]
 		);
