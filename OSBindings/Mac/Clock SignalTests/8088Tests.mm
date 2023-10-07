@@ -191,6 +191,10 @@ struct ExecutionSupport {
 	}
 };
 
+struct FailedExecution {
+	std::string file, test_name;
+	InstructionSet::x86::Instruction<false> instruction;
+};
 
 }
 
@@ -199,6 +203,7 @@ struct ExecutionSupport {
 
 @implementation i8088Tests {
 	ExecutionSupport execution_support;
+	std::vector<FailedExecution> execution_failures;
 }
 
 - (NSArray<NSString *> *)testFiles {
@@ -360,7 +365,7 @@ struct ExecutionSupport {
 	status.set([value[@"flags"] intValue]);
 }
 
-- (bool)applyExecutionTest:(NSDictionary *)test file:(NSString *)file metadata:(NSDictionary *)metadata assert:(BOOL)assert {
+- (void)applyExecutionTest:(NSDictionary *)test file:(NSString *)file metadata:(NSDictionary *)metadata {
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 	const auto data = [self bytes:test[@"bytes"]];
 	const auto decoded = decoder.decode(data.data(), data.size());
@@ -414,7 +419,15 @@ struct ExecutionSupport {
 	const bool registersEqual = intended_registers == execution_support.registers;
 	const bool statusEqual = (intended_status.get() & flags_mask) == (execution_support.status.get() & flags_mask);
 
-	if(assert) {
+	if(!statusEqual || !registersEqual || !ramEqual) {
+		FailedExecution failure;
+		failure.instruction = decoded.second;
+//		failure.file =	// TODO
+		failure.test_name = std::string([test[@"name"] UTF8String]);
+		execution_failures.push_back(std::move(failure));
+	}
+
+/*	if(assert) {
 		XCTAssert(
 			statusEqual,
 			"Status doesn't match despite mask %04x — differs in %04x after %@; executing %@",
@@ -438,7 +451,7 @@ struct ExecutionSupport {
 		);
 	}
 
-	return statusEqual && registersEqual && ramEqual;
+	return statusEqual && registersEqual && ramEqual;*/
 }
 
 - (void)printFailures:(NSArray<NSString *> *)failures {
@@ -479,18 +492,15 @@ struct ExecutionSupport {
 
 		NSDictionary *test_metadata = metadata[metadata_key];
 		for(NSDictionary *test in [self testsInFile:file]) {
-			// A single failure per instruction is fine.
-			if(![self applyExecutionTest:test file:file metadata:test_metadata assert:YES]) {
-				[failures addObject:file];
-
-				// Attempt a second decoding, to provide a debugger hook.
-				[self applyExecutionTest:test file:file metadata:test_metadata assert:NO];
-				break;
-			}
+			[self applyExecutionTest:test file:file metadata:test_metadata];
 		}
 	}
 
-	[self printFailures:failures];
+	XCTAssertEqual(execution_failures.size(), 0);
+
+	for(const auto &failure: execution_failures) {
+		NSLog(@"Failed %s", failure.test_name.c_str());
+	}
 }
 
 @end
