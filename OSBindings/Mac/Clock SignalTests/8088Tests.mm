@@ -98,6 +98,10 @@ struct Memory {
 		memory.resize(1024*1024);
 	}
 
+	void clear() {
+		tags.clear();
+	}
+
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
 	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
@@ -359,8 +363,6 @@ class FlowController {
 	}
 	[self populate:registers status:initial_status value:initial_state[@"regs"]];
 	status = initial_status;
-
-	NSLog(@"Initial status: %04x as per %@", status.get(), initial_state[@"regs"][@"flags"]);
 
 	// Execute instruction.
 	registers.ip_ += decoded.first;
