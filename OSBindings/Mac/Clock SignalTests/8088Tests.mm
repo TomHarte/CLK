@@ -209,7 +209,18 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"D4.json.gz"
+		// ADC
+		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
+		// TO add: 80/2, 81/2, 83/2
+
+		// ADD
+		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
+		// TO add: 80/0, 81/0, 83/0
+
+		@"37.json.gz",	// AAA
+		@"3F.json.gz",	// AAS
+		@"D4.json.gz",	// AAM
+		@"D5.json.gz",	// AAD
 	]];
 
 	NSSet *ignoreList = nil;
@@ -483,7 +494,6 @@ struct FailedExecution {
 - (void)testExecution {
 	NSDictionary *metadata = [self metadata];
 
-	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
 	for(NSString *file in [self testFiles]) {
 		// Determine what the metadata key.
 		NSString *const name = [file lastPathComponent];
