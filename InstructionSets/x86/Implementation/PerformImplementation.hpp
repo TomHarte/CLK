@@ -203,7 +203,7 @@ void add(IntT &destination, IntT source, Status &status) {
 }
 
 template <Model model, DataSize data_size, typename InstructionT, typename RegistersT, typename MemoryT>
-typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, Source source, DataPointer pointer, RegistersT &registers, MemoryT &memory) {
+typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, Source source, DataPointer pointer, RegistersT &registers, MemoryT &memory, typename DataSizeType<data_size>::type *none = nullptr) {
 	// Rules:
 	//
 	// * if this is a memory access, set target_address and break;
@@ -266,23 +266,26 @@ typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, Sourc
 
 		case Source::Immediate:			// TODO (here the use of a pointer falls down?)
 
-		case Source::None:		return nullptr;
+		case Source::None:		return none;
 
-		case Source::Indirect:			// TODO: non-word indexes and bases.
-			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory);
+		// TODO: non-word indexes and bases in the next two cases.
+		case Source::Indirect: {
+			uint16_t zero = 0;
+			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory, &zero);
 			if constexpr (is_32bit(model)) {
 				address <<= pointer.scale();
 			}
 			address += instruction.offset() + *resolve<model, DataSize::Word>(instruction, pointer.base(), pointer, registers, memory);
-		break;
+		} break;
 
-		case Source::IndirectNoBase:	// TODO: non-word indexes and bases.
-			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory);
+		case Source::IndirectNoBase: {
+			uint16_t zero = 0;
+			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory, &zero);
 			if constexpr (is_32bit(model)) {
 				address <<= pointer.scale();
 			}
 			address += instruction.offset();
-		break;
+		} break;
 
 		case Source::DirectAddress:
 			address = instruction.offset();
