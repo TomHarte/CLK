@@ -96,6 +96,7 @@ struct Registers {
 struct Memory {
 	enum class Tag {
 		Seeded,
+		AccessExpected,
 		Accessed,
 		FlagsL,
 		FlagsH
@@ -118,6 +119,10 @@ struct Memory {
 		tags[address] = Tag::Seeded;
 	}
 
+	void touch(uint32_t address) {
+		tags[address] = Tag::AccessExpected;
+	}
+
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
 	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
@@ -136,15 +141,15 @@ struct Memory {
 	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 	// to a selector, they're just at an absolute location.
 	template <typename IntT> IntT &access(uint32_t address, Tag tag) {
+		if(tags.find(address) == tags.end()) {
+//			printf("Access to unexpected RAM address");
+		}
 		tags[address] = tag;
 		return *reinterpret_cast<IntT *>(&memory[address]);
 	}
 
 	// Entry point for the 8086; simply notes that memory was accessed.
 	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
-		if(tags.find(address) == tags.end()) {
-			printf("Access to uninitialised RAM area");
-		}
 		return access<IntT>(segment, address, Tag::Accessed);
 	}
 };
@@ -403,12 +408,16 @@ struct FailedExecution {
 	execution_support.clear();
 
 	const uint16_t flags_mask = metadata[@"flags-mask"] ? [metadata[@"flags-mask"] intValue] : 0xffff;
+	NSDictionary *const initial_state = test[@"initial"];
+	NSDictionary *const final_state = test[@"final"];
 
 	// Apply initial state.
-	NSDictionary *const initial_state = test[@"initial"];
 	InstructionSet::x86::Status initial_status;
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
 		execution_support.memory.seed([ram[0] intValue], [ram[1] intValue]);
+	}
+	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
+		execution_support.memory.touch([ram[0] intValue]);
 	}
 	[self populate:execution_support.registers status:initial_status value:initial_state[@"regs"]];
 	execution_support.status = initial_status;
@@ -425,7 +434,6 @@ struct FailedExecution {
 	);
 
 	// Compare final state.
-	NSDictionary *const final_state = test[@"final"];
 	Registers intended_registers;
 	InstructionSet::x86::Status intended_status;
 

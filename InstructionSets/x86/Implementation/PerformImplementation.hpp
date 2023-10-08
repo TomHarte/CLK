@@ -319,8 +319,8 @@ template <
 	using AddressT = typename AddressT<is_32bit(model)>::type;
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
-	auto source = [&]() -> IntT& 		{	return *resolve<model, data_size>(instruction, instruction.source().template source<false>(), instruction.source(), registers, memory);			};
-	auto destination = [&]() -> IntT& 	{	return *resolve<model, data_size>(instruction, instruction.destination().template source<false>(), instruction.source(), registers, memory);	};
+	auto source = [&]() -> IntT& 		{	return *resolve<model, data_size>(instruction, instruction.source().template source<false>(), instruction.source(), registers, memory);				};
+	auto destination = [&]() -> IntT& 	{	return *resolve<model, data_size>(instruction, instruction.destination().template source<false>(), instruction.destination(), registers, memory);	};
 
 	// Guide to the below:
 	//
