@@ -95,6 +95,7 @@ struct Registers {
 };
 struct Memory {
 	enum class Tag {
+		Seeded,
 		Accessed,
 		FlagsL,
 		FlagsH
@@ -110,6 +111,11 @@ struct Memory {
 
 	void clear() {
 		tags.clear();
+	}
+
+	void seed(uint32_t address, uint8_t value) {
+		memory[address] = value;
+		tags[address] = Tag::Seeded;
 	}
 
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
@@ -136,6 +142,9 @@ struct Memory {
 
 	// Entry point for the 8086; simply notes that memory was accessed.
 	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
+		if(tags.find(address) == tags.end()) {
+			printf("Access to uninitialised RAM area");
+		}
 		return access<IntT>(segment, address, Tag::Accessed);
 	}
 };
@@ -399,7 +408,7 @@ struct FailedExecution {
 	NSDictionary *const initial_state = test[@"initial"];
 	InstructionSet::x86::Status initial_status;
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
-		execution_support.memory.memory[[ram[0] intValue]] = [ram[1] intValue];
+		execution_support.memory.seed([ram[0] intValue], [ram[1] intValue]);
 	}
 	[self populate:execution_support.registers status:initial_status value:initial_state[@"regs"]];
 	execution_support.status = initial_status;
