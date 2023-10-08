@@ -174,7 +174,8 @@ void adc(IntT &destination, IntT source, Status &status) {
 
 	status.carry = Numeric::carried_out<bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = status.zero = status.parity = result;
+	status.sign = result & top_bit<IntT>();
+	status.zero = status.parity = result;
 	status.overflow = overflow<true, IntT>(destination, source, result);
 
 	destination = result;
@@ -192,7 +193,8 @@ void add(IntT &destination, IntT source, Status &status) {
 
 	status.carry = Numeric::carried_out<bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = status.zero = status.parity = result;
+	status.sign = result & top_bit<IntT>();
+	status.zero = status.parity = result;
 	status.overflow = overflow<true, IntT>(destination, source, result);
 
 	destination = result;
