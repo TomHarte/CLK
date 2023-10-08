@@ -66,6 +66,16 @@ struct Registers {
 	uint16_t es_, cs_, ds_, ss_;
 	uint16_t ip_;
 
+	uint16_t &es()	{	return es_;				}
+	uint16_t &cs()	{	return cs_;				}
+	uint16_t &ds()	{	return ds_;				}
+	uint16_t &ss()	{	return ss_;				}
+
+//	uint32_t zero_ = 0;
+//	template <typename IntT> IntT &zero() {
+//		return static_cast<IntT>(zero);
+//	}
+
 	bool operator ==(const Registers &rhs) const {
 		return
 			ax_.full == rhs.ax_.full &&
@@ -210,17 +220,17 @@ struct FailedExecution {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
 		// ADC
-		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
+//		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 		// TO add: 80/2, 81/2, 83/2
 
 		// ADD
-		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
+		@"00.json.gz",	//@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
 		// TO add: 80/0, 81/0, 83/0
 
-		@"37.json.gz",	// AAA
-		@"3F.json.gz",	// AAS
-		@"D4.json.gz",	// AAM
-		@"D5.json.gz",	// AAD
+//		@"37.json.gz",	// AAA
+//		@"3F.json.gz",	// AAS
+//		@"D4.json.gz",	// AAM
+//		@"D5.json.gz",	// AAD
 	]];
 
 	NSSet *ignoreList = nil;

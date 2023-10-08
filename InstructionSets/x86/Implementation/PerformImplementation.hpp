@@ -200,6 +200,88 @@ void add(IntT &destination, IntT source, Status &status) {
 
 }
 
+template <Model model, DataSize data_size, typename InstructionT, typename RegistersT, typename MemoryT>
+typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, DataPointer source, RegistersT &registers, MemoryT &memory) {
+	// Rules:
+	//
+	// * if this is a memory access, set target_address and break;
+	// * otherwise return the appropriate value.
+	uint32_t address;
+	switch(source.source<false>()) {
+		case Source::eAX:
+			// Slightly contorted if chain here and below:
+			//
+			//	(i) does the `constexpr` version of a `switch`; and
+			//	(i) ensures .eax() etc aren't called on @c registers for 16-bit processors, so they need not implement 32-bit storage.
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.eax();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.ax();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.al();		}
+			else 															{	return nullptr;				}
+		case Source::eCX:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.ecx();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.cx();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.cl();		}
+			else 															{	return nullptr;				}
+		case Source::eDX:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.edx();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.dx();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.dl();		}
+			else if constexpr (data_size == DataSize::DWord)				{	return nullptr;				}
+		case Source::eBX:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.ebx();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.bx();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.bl();		}
+			else if constexpr (data_size == DataSize::DWord)				{	return nullptr;				}
+		case Source::eSPorAH:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.esp();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.sp();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.ah();		}
+			else															{	return nullptr;				}
+		case Source::eBPorCH:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.ebp();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.bp();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.ch();		}
+			else 															{	return nullptr;				}
+		case Source::eSIorDH:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.esi();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.si();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.dh();		}
+			else 															{	return nullptr;				}
+		case Source::eDIorBH:
+			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.edi();	}
+			else if constexpr (data_size == DataSize::Word)					{	return &registers.di();		}
+			else if constexpr (data_size == DataSize::Byte)					{	return &registers.bh();		}
+			else															{	return nullptr;				}
+
+		case Source::ES:	if constexpr (data_size == DataSize::Word) return &registers.es(); else return nullptr;
+		case Source::CS:	if constexpr (data_size == DataSize::Word) return &registers.cs(); else return nullptr;
+		case Source::SS:	if constexpr (data_size == DataSize::Word) return &registers.ss(); else return nullptr;
+		case Source::DS:	if constexpr (data_size == DataSize::Word) return &registers.ds(); else return nullptr;
+
+		// 16-bit models don't have FS and GS.
+		case Source::FS:	if constexpr (is_32bit(model) && data_size == DataSize::Word) return &registers.fs(); else return nullptr;
+		case Source::GS:	if constexpr (is_32bit(model) && data_size == DataSize::Word) return &registers.gs(); else return nullptr;
+
+		case Source::Immediate:			// TODO (here the use of a pointer falls down?)
+
+		case Source::None:		return nullptr;
+
+		case Source::Indirect:			// TODO
+
+		case Source::IndirectNoBase:	// TODO
+
+		case Source::DirectAddress:
+			address = instruction.offset();
+		break;
+	}
+
+	// If execution has reached here then a memory fetch is required.
+	// Do it and exit.
+	const Source segment = source.segment(instruction.segment_override());
+	using IntT = typename DataSizeType<data_size>::type;
+	return &memory.template access<IntT>(segment, address);
+};
+
 template <
 	Model model,
 	DataSize data_size,
@@ -219,85 +301,9 @@ template <
 	using IntT = typename DataSizeType<data_size>::type;
 	using AddressT = typename AddressT<is_32bit(model)>::type;
 
-	IntT zero = 0;
-	auto data = [&](DataPointer source) -> IntT& {
-		// Rules:
-		//
-		// * if this is a memory access, set target_address and break;
-		// * otherwise return the appropriate value.
-		AddressT address;
-		switch(source.source<false>()) {
-			case Source::eAX:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.eax();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.ax();		}
-				else															{	return registers.al();		}
-			case Source::eCX:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.ecx();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.cx();		}
-				else															{	return registers.cl();		}
-			case Source::eDX:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.edx();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.dx();		}
-				else															{	return registers.dl();		}
-			case Source::eBX:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.ebx();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.bx();		}
-				else															{	return registers.bl();		}
-			case Source::eSPorAH:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.esp();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.sp();		}
-				else															{	return registers.ah();		}
-			case Source::eBPorCH:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.ebp();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.bp();		}
-				else															{	return registers.ch();		}
-			case Source::eSIorDH:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.esi();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.si();		}
-				else															{	return registers.dh();		}
-			case Source::eDIorBH:
-				if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return registers.edi();		}
-				else if constexpr (data_size == DataSize::DWord)				{	return zero;				}
-				else if constexpr (data_size == DataSize::Word)					{	return registers.di();		}
-				else															{	return registers.bh();		}
-
-			// TODO: the below.
-			default:
-//			case Source::ES:	return registers.es();
-//			case Source::CS:	return registers.cs();
-//			case Source::SS:	return registers.ss();
-//			case Source::DS:	return registers.ds();
-//			case Source::FS:	return registers.fs();
-//			case Source::GS:	return registers.gs();
-
-			case Source::Immediate:			// TODO (here the use of a reference falls down?)
-
-			case Source::None:		return zero;
-
-			case Source::Indirect:			// TODO
-			case Source::IndirectNoBase:	// TODO
-
-			case Source::DirectAddress:
-				address = instruction.offset();
-			break;
-		}
-
-		// If execution has reached here then a memory fetch is required.
-		// Do it and exit.
-		const Source segment = source.segment(instruction.segment_override());
-		return memory.template access<IntT>(segment, address);
-	};
-
 	// Establish source() and destination() shorthand to fetch data if necessary.
-	auto source = [&]() -> IntT& 		{	return data(instruction.source());		};
-	auto destination = [&]() -> IntT& 	{	return data(instruction.destination());	};
+	auto source = [&]() -> IntT& 		{	return *resolve<model, data_size>(instruction, instruction.source(), registers, memory);		};
+	auto destination = [&]() -> IntT& 	{	return *resolve<model, data_size>(instruction, instruction.destination(), registers, memory);	};
 
 	// Guide to the below:
 	//
