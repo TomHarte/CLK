@@ -203,13 +203,13 @@ void add(IntT &destination, IntT source, Status &status) {
 }
 
 template <Model model, DataSize data_size, typename InstructionT, typename RegistersT, typename MemoryT>
-typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, DataPointer source, RegistersT &registers, MemoryT &memory) {
+typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, Source source, DataPointer pointer, RegistersT &registers, MemoryT &memory) {
 	// Rules:
 	//
 	// * if this is a memory access, set target_address and break;
 	// * otherwise return the appropriate value.
 	uint32_t address;
-	switch(source.source<false>()) {
+	switch(source) {
 		case Source::eAX:
 			// Slightly contorted if chain here and below:
 			//
@@ -268,9 +268,21 @@ typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, DataP
 
 		case Source::None:		return nullptr;
 
-		case Source::Indirect:			// TODO
+		case Source::Indirect:			// TODO: non-word indexes and bases.
+			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory);
+			if constexpr (is_32bit(model)) {
+				address <<= pointer.scale();
+			}
+			address += instruction.offset() + *resolve<model, DataSize::Word>(instruction, pointer.base(), pointer, registers, memory);
+		break;
 
-		case Source::IndirectNoBase:	// TODO
+		case Source::IndirectNoBase:	// TODO: non-word indexes and bases.
+			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory);
+			if constexpr (is_32bit(model)) {
+				address <<= pointer.scale();
+			}
+			address += instruction.offset();
+		break;
 
 		case Source::DirectAddress:
 			address = instruction.offset();
@@ -279,7 +291,7 @@ typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, DataP
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	const Source segment = source.segment(instruction.segment_override());
+	const Source segment = pointer.segment(instruction.segment_override());
 	using IntT = typename DataSizeType<data_size>::type;
 	return &memory.template access<IntT>(segment, address);
 };
@@ -304,8 +316,8 @@ template <
 	using AddressT = typename AddressT<is_32bit(model)>::type;
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
-	auto source = [&]() -> IntT& 		{	return *resolve<model, data_size>(instruction, instruction.source(), registers, memory);		};
-	auto destination = [&]() -> IntT& 	{	return *resolve<model, data_size>(instruction, instruction.destination(), registers, memory);	};
+	auto source = [&]() -> IntT& 		{	return *resolve<model, data_size>(instruction, instruction.source().template source<false>(), instruction.source(), registers, memory);			};
+	auto destination = [&]() -> IntT& 	{	return *resolve<model, data_size>(instruction, instruction.destination().template source<false>(), instruction.source(), registers, memory);	};
 
 	// Guide to the below:
 	//
