@@ -444,7 +444,7 @@ void sbb(IntT &destination, IntT source, Status &status) {
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination + source + status.carry_bit<IntT>();
+	const IntT result = destination - source - status.carry_bit<IntT>();
 
 	status.carry = !Numeric::carried_out<bit_size<IntT>() - 1>(destination, IntT(~source), result);
 	status.auxiliary_carry = !Numeric::carried_in<4>(destination, IntT(~source), result);
