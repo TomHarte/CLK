@@ -35,30 +35,6 @@ template <
 	IOT &io
 );
 
-/*template <
-	Model model,
-	Operation operation,
-	DataSize data_size,
-	typename FlowControllerT
-> void perform(
-	CPU::RegisterPair32 &destination,
-	CPU::RegisterPair32 &source,
-	Status &status,
-	FlowControllerT &flow_controller
-);
-
-template <
-	Model model,
-	Operation operation,
-	DataSize data_size,
-	typename FlowControllerT
-> void perform(
-	CPU::RegisterPair16 &destination,
-	CPU::RegisterPair16 &source,
-	Status &status,
-	FlowControllerT &flow_controller
-);*/
-
 }
 
 #include "Implementation/PerformImplementation.hpp"

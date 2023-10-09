@@ -427,7 +427,6 @@ template <
 	}
 }
 
-
 }
 
 #endif /* PerformImplementation_h */
