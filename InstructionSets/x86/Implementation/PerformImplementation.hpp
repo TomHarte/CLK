@@ -292,6 +292,48 @@ inline void aas(CPU::RegisterPair16 &ax, Status &status) {
 	ax.halves.low &= 0x0f;
 }
 
+inline void daa(uint8_t &al, Status &status) {
+	/*
+		IF (((AL AND 0FH) > 9) or AF = 1)
+			THEN
+				AL ← AL + 6;
+				CF ← CF OR CarryFromLastAddition; (* CF OR carry from AL ← AL + 6 *)
+				AF ← 1;
+			ELSE
+				AF ← 0;
+		FI;
+		IF ((AL AND F0H) > 90H) or CF = 1)
+			THEN
+				AL ← AL + 60H;
+				CF ← 1;
+			ELSE
+				CF ← 0;
+		FI;
+	*/
+	/*
+		The CF and AF flags are set if the adjustment of the value results in a
+		decimal carry in either digit of the result (see the “Operation” section above).
+		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
+	*/
+	if((al & 0x0f) > 0x09 || status.auxiliary_carry) {
+		status.carry |= al > 0xf9;
+		al += 0x06;
+		status.auxiliary_carry = 1;
+	} else {
+		status.auxiliary_carry = 0;
+	}
+
+	if((al & 0xf0) > 0x90 || status.carry) {
+		al += 0x60;
+		status.carry = 1;
+	} else {
+		status.carry = 0;
+	}
+
+	status.sign = al & 0x80;
+	status.zero = status.parity = al;
+}
+
 template <typename IntT>
 void adc(IntT &destination, IntT source, Status &status) {
 	/*
@@ -455,6 +497,7 @@ template <
 		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);						return;
 		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status, flow_controller);	return;
 		case Operation::AAS:	Primitive::aas(registers.axp(), status);											return;
+		case Operation::DAA:	Primitive::daa(registers.al(), status);												return;
 
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;

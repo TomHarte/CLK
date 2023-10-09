@@ -275,6 +275,12 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
+		@"37.json.gz",	// AAA
+		@"3F.json.gz",	// AAS
+		@"D4.json.gz",	// AAM
+		@"D5.json.gz",	// AAD
+		@"27.json.gz",	// DAA
+
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
@@ -291,10 +297,6 @@ struct FailedExecution {
 		@"E8.json.gz",	@"FF.2.json.gz",
 		@"9A.json.gz",	@"FF.3.json.gz",
 
-		@"37.json.gz",	// AAA
-		@"3F.json.gz",	// AAS
-		@"D4.json.gz",	// AAM
-		@"D5.json.gz",	// AAD
 		@"98.json.gz",	// CBW
 		@"F8.json.gz",	// CLC
 		@"FC.json.gz",	// CLD
