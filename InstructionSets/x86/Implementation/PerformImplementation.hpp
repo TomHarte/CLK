@@ -371,9 +371,7 @@ template <
 	}
 
 	// Write to memory if required to complete this operation.
-//	if(original_data != fetched_data) {
-		// TODO.
-//	}
+	memory.template write_back<IntT>();
 }
 
 template <

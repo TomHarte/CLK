@@ -123,9 +123,7 @@ struct Memory {
 		tags[address] = Tag::AccessExpected;
 	}
 
-	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
-	// so that defined-flag-only masks can be applied while verifying RAM contents.
-	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
+	uint32_t segment_base(InstructionSet::x86::Source segment) {
 		uint32_t physical_address;
 		using Source = InstructionSet::x86::Source;
 		switch(segment) {
@@ -134,7 +132,13 @@ struct Memory {
 			case Source::CS:	physical_address = registers_.cs_;	break;
 			case Source::SS:	physical_address = registers_.ss_;	break;
 		}
-		physical_address = ((physical_address << 4) + address) & 0xf'ffff;
+		return physical_address << 4;
+	}
+
+	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
+	// so that defined-flag-only masks can be applied while verifying RAM contents.
+	template <typename IntT> IntT &access(InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
+		const uint32_t physical_address = (segment_base(segment) + address) & 0xf'ffff;
 		return access<IntT>(physical_address, tag);
 	}
 
@@ -150,8 +154,32 @@ struct Memory {
 
 	// Entry point for the 8086; simply notes that memory was accessed.
 	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
+			// to the start. So the 16-bit value will need to be a local cache.
+			if(address == 0xffff) {
+				write_back_address_ = (segment_base(segment) + address) & 0xf'ffff;
+				write_back_value_ = memory[write_back_address_] | (memory[write_back_address_ - 65535] << 8);
+				return write_back_value_;
+			}
+		}
 		return access<IntT>(segment, address, Tag::Accessed);
 	}
+
+	template <typename IntT> 
+	void write_back() {
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			if(write_back_address_) {
+				memory[write_back_address_] = write_back_value_ & 0xff;
+				memory[write_back_address_ - 65535] = write_back_value_ >> 8;
+				write_back_address_ = 0;
+			}
+		}
+	}
+
+	static constexpr uint32_t NoWriteBack = 0;	// Zero can never be an address that triggers write back, conveniently.
+	uint32_t write_back_address_ = NoWriteBack;
+	uint16_t write_back_value_;
 };
 struct IO {
 };
@@ -235,11 +263,11 @@ struct FailedExecution {
 	NSSet *allowList = [NSSet setWithArray:@[
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
-		// TO add: 80/2, 81/2, 83/2
+		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
 
 		// ADD
-		@"00.json.gz",	//@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
-		// TO add: 80/0, 81/0, 83/0
+		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
+		@"80.0.json.gz", @"81.0.json.gz", @"83.0.json.gz",
 
 //		@"37.json.gz",	// AAA
 //		@"3F.json.gz",	// AAS
@@ -522,12 +550,17 @@ struct FailedExecution {
 	NSDictionary *metadata = [self metadata];
 
 	for(NSString *file in [self testFiles]) {
-		// Determine what the metadata key.
+		// Determine the metadata key.
 		NSString *const name = [file lastPathComponent];
 		NSRange first_dot = [name rangeOfString:@"."];
 		NSString *metadata_key = [name substringToIndex:first_dot.location];
 
+		// Grab the metadata. If it wants a reg field, inspect a little further.
 		NSDictionary *test_metadata = metadata[metadata_key];
+		if(test_metadata[@"reg"]) {
+			test_metadata = test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
+		}
+
 		for(NSDictionary *test in [self testsInFile:file]) {
 			[self applyExecutionTest:test file:file metadata:test_metadata];
 		}
