@@ -435,6 +435,44 @@ void add(IntT &destination, IntT source, Status &status) {
 }
 
 template <typename IntT>
+void sbb(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST - (SRC + CF);
+	*/
+	/*
+		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
+	*/
+	const IntT result = destination + source + status.carry_bit<IntT>();
+
+	status.carry = !Numeric::carried_out<bit_size<IntT>() - 1>(destination, IntT(~source), result);
+	status.auxiliary_carry = !Numeric::carried_in<4>(destination, IntT(~source), result);
+	status.sign = result & top_bit<IntT>();
+	status.zero = status.parity = result;
+	status.overflow = overflow<false, IntT>(destination, source, result);
+
+	destination = result;
+}
+
+template <typename IntT>
+void sub(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST - SRC;
+	*/
+	/*
+		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
+	*/
+	const IntT result = destination - source;
+
+	status.carry = !Numeric::carried_out<bit_size<IntT>() - 1>(destination, IntT(~source), result);
+	status.auxiliary_carry = !Numeric::carried_in<4>(destination, IntT(~source), result);
+	status.sign = result & top_bit<IntT>();
+	status.zero = status.parity = result;
+	status.overflow = overflow<false, IntT>(destination, source, result);
+
+	destination = result;
+}
+
+template <typename IntT>
 void and_(IntT &destination, IntT source, Status &status) {
 	/*
 		DEST ← DEST AND SRC;
@@ -593,8 +631,14 @@ template <
 		case Operation::ESC:
 		case Operation::NOP:	return;
 
+		case Operation::HLT:	flow_controller.halt();		return;
+		case Operation::WAIT:	flow_controller.wait();		return;
+
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;
+		case Operation::SBB:	Primitive::sbb(destination(), source(), status);		break;
+		case Operation::SUB:	Primitive::sub(destination(), source(), status);		break;
+
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
 
 		case Operation::CALLrel:
