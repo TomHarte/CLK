@@ -358,7 +358,7 @@ inline void call_absolute(IntT target, FlowControllerT &flow_controller) {
 }
 
 template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
-inline void call_far(InstructionT &instruction,
+void call_far(InstructionT &instruction,
 	FlowControllerT &flow_controller,
 	RegistersT &registers,
 	MemoryT &memory) {
@@ -388,6 +388,15 @@ inline void call_far(InstructionT &instruction,
 	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
 	flow_controller.call(segment, offset);
 }
+
+inline void cbw(CPU::RegisterPair16 &ax) {
+	ax.halves.high = (ax.halves.low & 0x80) ? 0xff : 0x00;
+}
+
+inline void clc(Status &status) {	status.carry = 0;				}
+inline void cld(Status &status) {	status.direction = 0;			}
+inline void cli(Status &status) {	status.interrupt = 0;			}	// TODO: quite a bit more in protected mode.
+inline void cmc(Status &status) {	status.carry = !status.carry;	}
 
 }
 
@@ -447,10 +456,9 @@ template <
 		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status, flow_controller);	return;
 		case Operation::AAS:	Primitive::aas(registers.axp(), status);											return;
 
-		case Operation::ADC:	Primitive::adc(destination(), source(), status);									break;
-		case Operation::ADD:	Primitive::add(destination(), source(), status);									break;
-
-		case Operation::AND:	Primitive::and_(destination(), source(), status);									break;
+		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
+		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;
+		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
 
 		case Operation::CALLrel:
 			Primitive::call_relative(instruction.displacement(), registers, flow_controller);
@@ -461,6 +469,12 @@ template <
 		case Operation::CALLfar:
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
+
+		case Operation::CBW:	Primitive::cbw(registers.axp());	return;
+		case Operation::CLC:	Primitive::clc(status);				return;
+		case Operation::CLD:	Primitive::cld(status);				return;
+		case Operation::CLI:	Primitive::cli(status);				return;
+		case Operation::CMC:	Primitive::cmc(status);				return;
 	}
 
 	// Write to memory if required to complete this operation.

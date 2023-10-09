@@ -295,6 +295,11 @@ struct FailedExecution {
 		@"3F.json.gz",	// AAS
 		@"D4.json.gz",	// AAM
 		@"D5.json.gz",	// AAD
+		@"98.json.gz",	// CBW
+		@"F8.json.gz",	// CLC
+		@"FC.json.gz",	// CLD
+		@"FA.json.gz",	// CLI
+		@"F5.json.gz",	// CMC
 	]];
 
 	NSSet *ignoreList = nil;
