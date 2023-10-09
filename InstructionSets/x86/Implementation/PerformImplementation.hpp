@@ -15,6 +15,144 @@
 
 namespace InstructionSet::x86 {
 
+template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+IntT *resolve(
+	InstructionT &instruction,
+	Source source,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory,
+	IntT *none = nullptr,
+	IntT *immediate = nullptr
+);
+
+template <Model model, Source source, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+uint32_t address(
+	InstructionT &instruction,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory
+) {
+	// TODO: non-word indexes and bases.
+	uint32_t address;
+	switch(source) {
+		default: return 0;
+		case Source::Indirect: {
+			uint16_t zero = 0;
+			address = *resolve<model, uint16_t>(instruction, pointer.index(), pointer, registers, memory, &zero);
+			if constexpr (is_32bit(model)) {
+				address <<= pointer.scale();
+			}
+			address += instruction.offset() + *resolve<model, uint16_t>(instruction, pointer.base(), pointer, registers, memory);
+		} break;
+
+		case Source::IndirectNoBase: {
+			uint16_t zero = 0;
+			address = *resolve<model, uint16_t>(instruction, pointer.index(), pointer, registers, memory, &zero);
+			if constexpr (is_32bit(model)) {
+				address <<= pointer.scale();
+			}
+			address += instruction.offset();
+		} break;
+
+		case Source::DirectAddress:	return instruction.offset();
+	}
+	return address;
+}
+
+template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+IntT *resolve(
+	InstructionT &instruction,
+	Source source,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory,
+	IntT *none,
+	IntT *immediate
+) {
+	// Rules:
+	//
+	// * if this is a memory access, set target_address and break;
+	// * otherwise return the appropriate value.
+	uint32_t target_address;
+	switch(source) {
+		case Source::eAX:
+			// Slightly contorted if chain here and below:
+			//
+			//	(i) does the `constexpr` version of a `switch`; and
+			//	(i) ensures .eax() etc aren't called on @c registers for 16-bit processors, so they need not implement 32-bit storage.
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.eax();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.ax();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.al();		}
+			else 																{	return nullptr;				}
+		case Source::eCX:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.ecx();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.cx();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.cl();		}
+			else 																{	return nullptr;				}
+		case Source::eDX:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.edx();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.dx();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.dl();		}
+			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;				}
+		case Source::eBX:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.ebx();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.bx();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.bl();		}
+			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;				}
+		case Source::eSPorAH:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.esp();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.sp();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.ah();		}
+			else																{	return nullptr;				}
+		case Source::eBPorCH:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.ebp();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.bp();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.ch();		}
+			else 																{	return nullptr;				}
+		case Source::eSIorDH:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.esi();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.si();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.dh();		}
+			else 																{	return nullptr;				}
+		case Source::eDIorBH:
+			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.edi();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.di();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.bh();		}
+			else																{	return nullptr;				}
+
+		case Source::ES:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.es(); else return nullptr;
+		case Source::CS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.cs(); else return nullptr;
+		case Source::SS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ss(); else return nullptr;
+		case Source::DS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ds(); else return nullptr;
+
+		// 16-bit models don't have FS and GS.
+		case Source::FS:	if constexpr (is_32bit(model) && std::is_same_v<IntT, uint16_t>) return &registers.fs(); else return nullptr;
+		case Source::GS:	if constexpr (is_32bit(model) && std::is_same_v<IntT, uint16_t>) return &registers.gs(); else return nullptr;
+
+		case Source::Immediate:
+			*immediate = instruction.operand();
+		return immediate;
+
+		case Source::None:		return none;
+
+		case Source::Indirect:
+			target_address = address<model, Source::Indirect, IntT>(instruction, pointer, registers, memory);
+		break;
+		case Source::IndirectNoBase:
+			target_address = address<model, Source::IndirectNoBase, IntT>(instruction, pointer, registers, memory);
+		break;
+		case Source::DirectAddress:
+			target_address = address<model, Source::DirectAddress, IntT>(instruction, pointer, registers, memory);
+		break;
+	}
+
+	// If execution has reached here then a memory fetch is required.
+	// Do it and exit.
+	const Source segment = pointer.segment(instruction.segment_override());
+	return &memory.template access<IntT>(segment, target_address);
+};
+
 namespace Primitive {
 
 //
@@ -217,115 +355,49 @@ void and_(IntT &destination, IntT source, Status &status) {
 	status.zero = status.parity = destination;
 }
 
+template <typename IntT, typename RegistersT, typename FlowControllerT>
+inline void call_relative(IntT offset, RegistersT &registers, FlowControllerT &flow_controller) {
+	flow_controller.call(registers.ip() + offset);
 }
 
-template <Model model, DataSize data_size, typename InstructionT, typename RegistersT, typename MemoryT>
-typename DataSizeType<data_size>::type *
-resolve(
-	InstructionT &instruction,
-	Source source,
-	DataPointer pointer,
+template <typename IntT, typename FlowControllerT>
+inline void call_absolute(IntT target, FlowControllerT &flow_controller) {
+	flow_controller.call(target);
+}
+
+template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
+inline void call_far(InstructionT &instruction,
+	FlowControllerT &flow_controller,
 	RegistersT &registers,
-	MemoryT &memory,
-	typename DataSizeType<data_size>::type *none = nullptr,
-	typename DataSizeType<data_size>::type *immediate = nullptr
-) {
-	// Rules:
-	//
-	// * if this is a memory access, set target_address and break;
-	// * otherwise return the appropriate value.
-	uint32_t address;
-	switch(source) {
-		case Source::eAX:
-			// Slightly contorted if chain here and below:
-			//
-			//	(i) does the `constexpr` version of a `switch`; and
-			//	(i) ensures .eax() etc aren't called on @c registers for 16-bit processors, so they need not implement 32-bit storage.
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.eax();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.ax();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.al();		}
-			else 															{	return nullptr;				}
-		case Source::eCX:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.ecx();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.cx();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.cl();		}
-			else 															{	return nullptr;				}
-		case Source::eDX:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.edx();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.dx();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.dl();		}
-			else if constexpr (data_size == DataSize::DWord)				{	return nullptr;				}
-		case Source::eBX:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.ebx();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.bx();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.bl();		}
-			else if constexpr (data_size == DataSize::DWord)				{	return nullptr;				}
-		case Source::eSPorAH:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.esp();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.sp();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.ah();		}
-			else															{	return nullptr;				}
-		case Source::eBPorCH:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.ebp();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.bp();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.ch();		}
-			else 															{	return nullptr;				}
-		case Source::eSIorDH:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.esi();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.si();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.dh();		}
-			else 															{	return nullptr;				}
-		case Source::eDIorBH:
-			if constexpr (is_32bit(model) && data_size == DataSize::DWord) 	{	return &registers.edi();	}
-			else if constexpr (data_size == DataSize::Word)					{	return &registers.di();		}
-			else if constexpr (data_size == DataSize::Byte)					{	return &registers.bh();		}
-			else															{	return nullptr;				}
+	MemoryT &memory) {
 
-		case Source::ES:	if constexpr (data_size == DataSize::Word) return &registers.es(); else return nullptr;
-		case Source::CS:	if constexpr (data_size == DataSize::Word) return &registers.cs(); else return nullptr;
-		case Source::SS:	if constexpr (data_size == DataSize::Word) return &registers.ss(); else return nullptr;
-		case Source::DS:	if constexpr (data_size == DataSize::Word) return &registers.ds(); else return nullptr;
+	// TODO: eliminate 16-bit assumption below.
+	uint16_t source_address = 0;
+	auto pointer = instruction.destination();
+	switch(pointer.template source<false>()) {
+		default:
+		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
 
-		// 16-bit models don't have FS and GS.
-		case Source::FS:	if constexpr (is_32bit(model) && data_size == DataSize::Word) return &registers.fs(); else return nullptr;
-		case Source::GS:	if constexpr (is_32bit(model) && data_size == DataSize::Word) return &registers.gs(); else return nullptr;
-
-		case Source::Immediate:
-			*immediate = instruction.operand();
-		return immediate;
-
-		case Source::None:		return none;
-
-		// TODO: non-word indexes and bases in the next two cases.
-		case Source::Indirect: {
-			uint16_t zero = 0;
-			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory, &zero);
-			if constexpr (is_32bit(model)) {
-				address <<= pointer.scale();
-			}
-			address += instruction.offset() + *resolve<model, DataSize::Word>(instruction, pointer.base(), pointer, registers, memory);
-		} break;
-
-		case Source::IndirectNoBase: {
-			uint16_t zero = 0;
-			address = *resolve<model, DataSize::Word>(instruction, pointer.index(), pointer, registers, memory, &zero);
-			if constexpr (is_32bit(model)) {
-				address <<= pointer.scale();
-			}
-			address += instruction.offset();
-		} break;
-
+		case Source::Indirect:
+			source_address = address<model, Source::Indirect, uint16_t>(instruction, pointer, registers, memory);
+		break;
+		case Source::IndirectNoBase:
+			source_address = address<model, Source::IndirectNoBase, uint16_t>(instruction, pointer, registers, memory);
+		break;
 		case Source::DirectAddress:
-			address = instruction.offset();
+			source_address = address<model, Source::DirectAddress, uint16_t>(instruction, pointer, registers, memory);
 		break;
 	}
 
-	// If execution has reached here then a memory fetch is required.
-	// Do it and exit.
-	const Source segment = pointer.segment(instruction.segment_override());
-	using IntT = typename DataSizeType<data_size>::type;
-	return &memory.template access<IntT>(segment, address);
-};
+	const Source source_segment = pointer.segment(instruction.segment_override());
+
+	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
+	source_address += 2;
+	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
+	flow_controller.call(segment, offset);
+}
+
+}
 
 template <
 	Model model,
@@ -338,9 +410,9 @@ template <
 > void perform(
 	const InstructionT &instruction,
 	Status &status,
-	[[maybe_unused]] FlowControllerT &flow_controller,
+	FlowControllerT &flow_controller,
 	RegistersT &registers,
-	[[maybe_unused]] MemoryT &memory,
+	MemoryT &memory,
 	[[maybe_unused]] IOT &io
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
@@ -349,7 +421,7 @@ template <
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
 	auto source = [&]() -> IntT& {
-		return *resolve<model, data_size>(
+		return *resolve<model, IntT>(
 			instruction,
 			instruction.source().template source<false>(),
 			instruction.source(),
@@ -359,7 +431,7 @@ template <
 			&immediate);
 	};
 	auto destination = [&]() -> IntT& {
-		return *resolve<model, data_size>(
+		return *resolve<model, IntT>(
 			instruction,
 			instruction.destination().template source<false>(),
 			instruction.destination(),
@@ -375,8 +447,8 @@ template <
 	//	* return directly if there is definitely no possible write back to RAM;
 	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
 	switch(instruction.operation) {
-		default: return;
-		//assert(false);
+		default:
+			assert(false);
 
 		case Operation::AAA:	Primitive::aaa(registers.axp(), status);											return;
 		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);						return;
@@ -387,6 +459,16 @@ template <
 		case Operation::ADD:	Primitive::add(destination(), source(), status);									break;
 
 		case Operation::AND:	Primitive::and_(destination(), source(), status);									break;
+
+		case Operation::CALLrel:
+			Primitive::call_relative(instruction.displacement(), registers, flow_controller);
+		return;
+		case Operation::CALLabs:
+			Primitive::call_absolute(destination(), flow_controller);
+		return;
+		case Operation::CALLfar:
+			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
+		return;
 	}
 
 	// Write to memory if required to complete this operation.

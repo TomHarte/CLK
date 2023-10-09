@@ -64,7 +64,9 @@ struct Registers {
 	uint16_t &di()	{	return di_;				}
 
 	uint16_t es_, cs_, ds_, ss_;
+
 	uint16_t ip_;
+	uint16_t ip()	{	return ip_;				}
 
 	uint16_t &es()	{	return es_;				}
 	uint16_t &cs()	{	return cs_;				}
@@ -206,6 +208,18 @@ class FlowController {
 			registers_.ip_ = new_ip;
 		}
 
+		void call(uint16_t address) {
+			push(registers_.ip_);
+			registers_.ip_ = address;
+		}
+
+		void call(uint16_t segment, uint16_t offset) {
+			push(registers_.cs_);
+			push(registers_.ip_);
+			registers_.cs_ = segment;
+			registers_.ip_ = offset;
+		}
+
 	private:
 		Memory &memory_;
 		Registers &registers_;
@@ -272,6 +286,10 @@ struct FailedExecution {
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
 		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
+
+		// CALL
+		@"E8.json.gz",	@"FF.2.json.gz",
+		@"9A.json.gz",	@"FF.3.json.gz",
 
 		@"37.json.gz",	// AAA
 		@"3F.json.gz",	// AAS
