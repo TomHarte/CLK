@@ -304,12 +304,12 @@ struct FailedExecution {
 //		@"80.0.json.gz", @"81.0.json.gz", @"83.0.json.gz",
 
 		// SBB
-//		@"18.json.gz",	@"19.json.gz",	@"1A.json.gz",	@"1B.json.gz",	@"1C.json.gz",	@"1D.json.gz",
-//		@"80.3.json.gz", @"81.3.json.gz", @"83.3.json.gz",
+		@"18.json.gz",	@"19.json.gz",	@"1A.json.gz",	@"1B.json.gz",	@"1C.json.gz",	@"1D.json.gz",
+		@"80.3.json.gz", @"81.3.json.gz", @"83.3.json.gz",
 
 		// SUB
-		@"28.json.gz",	//@"29.json.gz",	@"2A.json.gz",	@"2B.json.gz",	@"2C.json.gz",	@"2D.json.gz",
-//		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
+		@"28.json.gz",	@"29.json.gz",	@"2A.json.gz",	@"2B.json.gz",	@"2C.json.gz",	@"2D.json.gz",
+		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
 
 		// AND
 //		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",

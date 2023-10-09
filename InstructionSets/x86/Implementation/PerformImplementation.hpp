@@ -172,7 +172,7 @@ template <typename IntT> constexpr int bit_size() {
 /// and the result was @c result. All other bits will be clear.
 template <bool is_add, typename IntT>
 IntT overflow(IntT lhs, IntT rhs, IntT result) {
-	const IntT output_changed = result ^ rhs;
+	const IntT output_changed = result ^ lhs;
 	const IntT input_differed = lhs ^ rhs;
 
 	if constexpr (is_add) {
@@ -181,6 +181,8 @@ IntT overflow(IntT lhs, IntT rhs, IntT result) {
 		return top_bit<IntT>() & output_changed & input_differed;
 	}
 }
+// NOTE TO FUTURE SELF: the original 68k `overflow` treats lhs and rhs the other way
+// around, affecting subtractive overflow. Be careful.
 
 //
 // END COPY AND PASTE SECTION.
