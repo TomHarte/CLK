@@ -200,6 +200,23 @@ void add(IntT &destination, IntT source, Status &status) {
 	destination = result;
 }
 
+template <typename IntT>
+void and_(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST AND SRC;
+	*/
+	/*
+		The OF and CF flags are cleared; the SF, ZF, and PF flags are set according to the result.
+		The state of the AF flag is undefined.
+	*/
+	destination &= source;
+
+	status.overflow = 0;
+	status.carry = 0;
+	status.sign = destination & top_bit<IntT>();
+	status.zero = status.parity = destination;
+}
+
 }
 
 template <Model model, DataSize data_size, typename InstructionT, typename RegistersT, typename MemoryT>
@@ -368,6 +385,8 @@ template <
 
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);									break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);									break;
+
+		case Operation::AND:	Primitive::and_(destination(), source(), status);									break;
 	}
 
 	// Write to memory if required to complete this operation.

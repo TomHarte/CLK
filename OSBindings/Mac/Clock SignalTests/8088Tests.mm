@@ -269,6 +269,10 @@ struct FailedExecution {
 		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
 		@"80.0.json.gz", @"81.0.json.gz", @"83.0.json.gz",
 
+		// AND
+		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
+		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
+
 		@"37.json.gz",	// AAA
 		@"3F.json.gz",	// AAS
 		@"D4.json.gz",	// AAM
