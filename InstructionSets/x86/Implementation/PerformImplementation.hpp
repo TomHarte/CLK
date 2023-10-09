@@ -409,7 +409,7 @@ void adc(IntT &destination, IntT source, Status &status) {
 	const IntT result = destination + source + status.carry_bit<IntT>();
 
 	status.carry = Numeric::carried_out<true, bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<true, 4>(destination, source, result);
+	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
 	status.sign = result & top_bit<IntT>();
 	status.zero = status.parity = result;
 	status.overflow = overflow<true, IntT>(destination, source, result);
@@ -428,7 +428,7 @@ void add(IntT &destination, IntT source, Status &status) {
 	const IntT result = destination + source;
 
 	status.carry = Numeric::carried_out<true, bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<true, 4>(destination, source, result);
+	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
 	status.sign = result & top_bit<IntT>();
 	status.zero = status.parity = result;
 	status.overflow = overflow<true, IntT>(destination, source, result);
@@ -447,7 +447,7 @@ void sbb(IntT &destination, IntT source, Status &status) {
 	const IntT result = destination - source - status.carry_bit<IntT>();
 
 	status.carry = Numeric::carried_out<false, bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<false, 4>(destination, source, result);
+	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
 	status.sign = result & top_bit<IntT>();
 	status.zero = status.parity = result;
 	status.overflow = overflow<false, IntT>(destination, source, result);
@@ -466,7 +466,7 @@ void sub(IntT &destination, IntT source, Status &status) {
 	const IntT result = destination - source;
 
 	status.carry = Numeric::carried_out<false, bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<false, 4>(destination, source, result);
+	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
 	status.sign = result & top_bit<IntT>();
 	status.zero = status.parity = result;
 	status.overflow = overflow<false, IntT>(destination, source, result);

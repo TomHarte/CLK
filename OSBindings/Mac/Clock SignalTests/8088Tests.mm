@@ -278,30 +278,30 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"37.json.gz",	// AAA
-		@"3F.json.gz",	// AAS
-		@"D4.json.gz",	// AAM
-		@"D5.json.gz",	// AAD
-		@"27.json.gz",	// DAA
-		@"2F.json.gz",	// DAS
-
-		@"98.json.gz",	// CBW
-		@"99.json.gz",	// CWD
-
-		// ESC
-		@"D8.json.gz",	@"D9.json.gz",	@"DA.json.gz",	@"DB.json.gz",
-		@"DC.json.gz",	@"DD.json.gz",	@"DE.json.gz",	@"DE.json.gz",
-
-		// NOP
-		@"90.json.gz",
-
-		// ADC
-		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
-		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
-
-		// ADD
-		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
-		@"80.0.json.gz", @"81.0.json.gz", @"83.0.json.gz",
+//		@"37.json.gz",	// AAA
+//		@"3F.json.gz",	// AAS
+//		@"D4.json.gz",	// AAM
+//		@"D5.json.gz",	// AAD
+//		@"27.json.gz",	// DAA
+//		@"2F.json.gz",	// DAS
+//
+//		@"98.json.gz",	// CBW
+//		@"99.json.gz",	// CWD
+//
+//		// ESC
+//		@"D8.json.gz",	@"D9.json.gz",	@"DA.json.gz",	@"DB.json.gz",
+//		@"DC.json.gz",	@"DD.json.gz",	@"DE.json.gz",	@"DE.json.gz",
+//
+//		// NOP
+//		@"90.json.gz",
+//
+//		// ADC
+//		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
+//		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
+//
+//		// ADD
+//		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
+//		@"80.0.json.gz", @"81.0.json.gz", @"83.0.json.gz",
 
 		// SBB
 		@"18.json.gz",	@"19.json.gz",	@"1A.json.gz",	@"1B.json.gz",	@"1C.json.gz",	@"1D.json.gz",
@@ -312,17 +312,17 @@ struct FailedExecution {
 		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
 
 		// AND
-		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
-		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
-
-		// CALL
-		@"E8.json.gz",	@"FF.2.json.gz",
-		@"9A.json.gz",	@"FF.3.json.gz",
-
-		@"F8.json.gz",	// CLC
-		@"FC.json.gz",	// CLD
-		@"FA.json.gz",	// CLI
-		@"F5.json.gz",	// CMC
+//		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
+//		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
+//
+//		// CALL
+//		@"E8.json.gz",	@"FF.2.json.gz",
+//		@"9A.json.gz",	@"FF.3.json.gz",
+//
+//		@"F8.json.gz",	// CLC
+//		@"FC.json.gz",	// CLD
+//		@"FA.json.gz",	// CLI
+//		@"F5.json.gz",	// CMC
 	]];
 
 	NSSet *ignoreList = nil;
