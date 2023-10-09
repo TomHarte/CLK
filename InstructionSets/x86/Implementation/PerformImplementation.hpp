@@ -493,12 +493,20 @@ void call_far(InstructionT &instruction,
 	flow_controller.call(segment, offset);
 }
 
-inline void cbw(CPU::RegisterPair16 &ax) {
-	ax.halves.high = (ax.halves.low & 0x80) ? 0xff : 0x00;
+template <typename IntT>
+void cbw(IntT &ax) {
+	constexpr IntT test_bit = 1 << (sizeof(IntT) * 4 - 1);
+	constexpr IntT low_half = (1 << (sizeof(IntT) * 4)) - 1;
+
+	if(ax & test_bit) {
+		ax |= ~low_half;
+	} else {
+		ax &= low_half;
+	}
 }
 
 template <typename IntT>
-inline void cwd(IntT &dx, IntT ax) {
+void cwd(IntT &dx, IntT ax) {
 	dx = ax & top_bit<IntT>() ? IntT(~0) : IntT(0);
 }
 
@@ -567,7 +575,13 @@ template <
 		case Operation::DAA:	Primitive::daa(registers.al(), status);												return;
 		case Operation::DAS:	Primitive::das(registers.al(), status);												return;
 
-		case Operation::CBW:	Primitive::cbw(registers.axp());	return;
+		case Operation::CBW:
+			if constexpr (data_size == DataSize::Word) {
+				Primitive::cbw(registers.ax());
+			} else if constexpr (is_32bit(model) && data_size == DataSize::DWord) {
+				Primitive::cbw(registers.eax());
+			}
+		return;
 		case Operation::CWD:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::cwd(registers.dx(), registers.ax());
