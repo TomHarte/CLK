@@ -497,6 +497,11 @@ inline void cbw(CPU::RegisterPair16 &ax) {
 	ax.halves.high = (ax.halves.low & 0x80) ? 0xff : 0x00;
 }
 
+template <typename IntT>
+inline void cwd(IntT &dx, IntT ax) {
+	dx = ax & top_bit<IntT>() ? IntT(~0) : IntT(0);
+}
+
 inline void clc(Status &status) {	status.carry = 0;				}
 inline void cld(Status &status) {	status.direction = 0;			}
 inline void cli(Status &status) {	status.interrupt = 0;			}	// TODO: quite a bit more in protected mode.
@@ -562,6 +567,15 @@ template <
 		case Operation::DAA:	Primitive::daa(registers.al(), status);												return;
 		case Operation::DAS:	Primitive::das(registers.al(), status);												return;
 
+		case Operation::CBW:	Primitive::cbw(registers.axp());	return;
+		case Operation::CWD:
+			if constexpr (data_size == DataSize::Word) {
+				Primitive::cwd(registers.dx(), registers.ax());
+			} else if constexpr (is_32bit(model) && data_size == DataSize::DWord) {
+				Primitive::cwd(registers.edx(), registers.eax());
+			}
+		return;
+
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
@@ -576,7 +590,6 @@ template <
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
 
-		case Operation::CBW:	Primitive::cbw(registers.axp());	return;
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
 		case Operation::CLI:	Primitive::cli(status);				return;

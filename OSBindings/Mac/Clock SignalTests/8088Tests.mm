@@ -283,6 +283,7 @@ struct FailedExecution {
 		@"2F.json.gz",	// DAS
 
 		@"98.json.gz",	// CBW
+		@"99.json.gz",	// CWD
 
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
