@@ -344,6 +344,58 @@ inline void daa(uint8_t &al, Status &status) {
 	status.zero = status.parity = al;
 }
 
+inline void das(uint8_t &al, Status &status) {
+	/*
+		(as modified by https://www.felixcloutier.com/x86/daa ...)
+
+        old_AL ← AL;
+        old_CF ← CF;
+        CF ← 0;
+
+		IF (((AL AND 0FH) > 9) or AF = 1)
+			THEN
+				AL ← AL - 6;
+				CF ← old_CF OR CarryFromLastAddition; (* CF OR borrow from AL ← AL - 6 *)
+				AF ← 1;
+			ELSE
+				AF ← 0;
+		FI;
+		IF ((old_AL > 99H) or old_CF = 1)
+			THEN
+				AL ← AL - 60H;
+				CF ← 1;
+			ELSE
+				CF ← 0;
+		FI;
+	*/
+	/*
+		The CF and AF flags are set if the adjustment of the value results in a
+		decimal carry in either digit of the result (see the “Operation” section above).
+		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
+	*/
+	const uint8_t old_al = al;
+	const auto old_carry = status.carry;
+	status.carry = 0;
+
+	if((al & 0x0f) > 0x09 || status.auxiliary_carry) {
+		status.carry = old_carry | (al < 0x06);
+		al -= 0x06;
+		status.auxiliary_carry = 1;
+	} else {
+		status.auxiliary_carry = 0;
+	}
+
+	if(old_al > 0x99 || old_carry) {
+		al -= 0x60;
+		status.carry = 1;
+	} else {
+		status.carry = 0;
+	}
+
+	status.sign = al & 0x80;
+	status.zero = status.parity = al;
+}
+
 template <typename IntT>
 void adc(IntT &destination, IntT source, Status &status) {
 	/*
@@ -508,6 +560,7 @@ template <
 		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status, flow_controller);	return;
 		case Operation::AAS:	Primitive::aas(registers.axp(), status);											return;
 		case Operation::DAA:	Primitive::daa(registers.al(), status);												return;
+		case Operation::DAS:	Primitive::das(registers.al(), status);												return;
 
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;

@@ -280,6 +280,9 @@ struct FailedExecution {
 		@"D4.json.gz",	// AAM
 		@"D5.json.gz",	// AAD
 		@"27.json.gz",	// DAA
+		@"2F.json.gz",	// DAS
+
+		@"98.json.gz",	// CBW
 
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
@@ -297,7 +300,6 @@ struct FailedExecution {
 		@"E8.json.gz",	@"FF.2.json.gz",
 		@"9A.json.gz",	@"FF.3.json.gz",
 
-		@"98.json.gz",	// CBW
 		@"F8.json.gz",	// CLC
 		@"FC.json.gz",	// CLD
 		@"FA.json.gz",	// CLI
