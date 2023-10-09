@@ -327,7 +327,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 							// All flags are set based only on the decimal result.
 							flags_.zero_result = result;
-							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
+							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
 							flags_.negative_result = result;
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
@@ -343,7 +343,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							// on a 6502 additional borrow isn't propagated but on a 65C02 it is.
 							// This difference affects invalid BCD numbers only — valid numbers will
 							// never be less than -9 so adding 10 will always generate carry.
-							if(!Numeric::carried_in<4>(a_, operand_, result)) {
+							if(!Numeric::carried_in<true, 4>(a_, operand_, result)) {
 								if constexpr (is_65c02(personality)) {
 									result += 0xfa;
 								} else {
@@ -377,7 +377,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						if(flags_.decimal && has_decimal_mode(personality)) {
 							uint8_t result = a_ + operand_ + flags_.carry;
 							flags_.zero_result = result;
-							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
+							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
 
 							// General ADC logic:
 							//
@@ -390,7 +390,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							//
 							// So if that carry already happened, fix up the bottom without permitting another;
 							// otherwise permit the carry to happen (and check whether carry then rippled out of bit 7).
-							if(Numeric::carried_in<4>(a_, operand_, result)) {
+							if(Numeric::carried_in<true, 4>(a_, operand_, result)) {
 								result = (result & 0xf0) | ((result + 0x06) & 0x0f);
 							} else if((result & 0xf) > 0x9) {
 								flags_.carry |= result >= 0x100 - 0x6;
