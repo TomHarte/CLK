@@ -285,6 +285,13 @@ struct FailedExecution {
 		@"98.json.gz",	// CBW
 		@"99.json.gz",	// CWD
 
+		// ESC
+		@"D8.json.gz",	@"D9.json.gz",	@"DA.json.gz",	@"DB.json.gz",
+		@"DC.json.gz",	@"DD.json.gz",	@"DE.json.gz",	@"DE.json.gz",
+
+		// NOP
+		@"90.json.gz",
+
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",

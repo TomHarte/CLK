@@ -590,6 +590,9 @@ template <
 			}
 		return;
 
+		case Operation::ESC:
+		case Operation::NOP:	return;
+
 		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
 		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
