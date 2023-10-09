@@ -203,7 +203,16 @@ void add(IntT &destination, IntT source, Status &status) {
 }
 
 template <Model model, DataSize data_size, typename InstructionT, typename RegistersT, typename MemoryT>
-typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, Source source, DataPointer pointer, RegistersT &registers, MemoryT &memory, typename DataSizeType<data_size>::type *none = nullptr) {
+typename DataSizeType<data_size>::type *
+resolve(
+	InstructionT &instruction,
+	Source source,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory,
+	typename DataSizeType<data_size>::type *none = nullptr,
+	typename DataSizeType<data_size>::type *immediate = nullptr
+) {
 	// Rules:
 	//
 	// * if this is a memory access, set target_address and break;
@@ -264,7 +273,9 @@ typename DataSizeType<data_size>::type *resolve(InstructionT &instruction, Sourc
 		case Source::FS:	if constexpr (is_32bit(model) && data_size == DataSize::Word) return &registers.fs(); else return nullptr;
 		case Source::GS:	if constexpr (is_32bit(model) && data_size == DataSize::Word) return &registers.gs(); else return nullptr;
 
-		case Source::Immediate:			// TODO (here the use of a pointer falls down?)
+		case Source::Immediate:
+			*immediate = instruction.operand();
+		return immediate;
 
 		case Source::None:		return none;
 
@@ -319,8 +330,27 @@ template <
 	using AddressT = typename AddressT<is_32bit(model)>::type;
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
-	auto source = [&]() -> IntT& 		{	return *resolve<model, data_size>(instruction, instruction.source().template source<false>(), instruction.source(), registers, memory);				};
-	auto destination = [&]() -> IntT& 	{	return *resolve<model, data_size>(instruction, instruction.destination().template source<false>(), instruction.destination(), registers, memory);	};
+	IntT immediate;
+	auto source = [&]() -> IntT& {
+		return *resolve<model, data_size>(
+			instruction,
+			instruction.source().template source<false>(),
+			instruction.source(),
+			registers,
+			memory,
+			nullptr,
+			&immediate);
+	};
+	auto destination = [&]() -> IntT& {
+		return *resolve<model, data_size>(
+			instruction,
+			instruction.destination().template source<false>(),
+			instruction.destination(),
+			registers,
+			memory,
+			nullptr,
+			&immediate);
+	};
 
 	// Guide to the below:
 	//

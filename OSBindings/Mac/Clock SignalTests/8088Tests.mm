@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -142,7 +142,7 @@ struct Memory {
 	// to a selector, they're just at an absolute location.
 	template <typename IntT> IntT &access(uint32_t address, Tag tag) {
 		if(tags.find(address) == tags.end()) {
-//			printf("Access to unexpected RAM address");
+			printf("Access to unexpected RAM address");
 		}
 		tags[address] = tag;
 		return *reinterpret_cast<IntT *>(&memory[address]);
@@ -234,7 +234,7 @@ struct FailedExecution {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
 		// ADC
-//		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
+		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 		// TO add: 80/2, 81/2, 83/2
 
 		// ADD
