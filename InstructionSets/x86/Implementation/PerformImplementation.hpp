@@ -34,30 +34,22 @@ uint32_t address(
 	MemoryT &memory
 ) {
 	// TODO: non-word indexes and bases.
-	uint32_t address;
-	switch(source) {
-		default: return 0;
-		case Source::Indirect: {
-			uint16_t zero = 0;
-			address = *resolve<model, uint16_t>(instruction, pointer.index(), pointer, registers, memory, &zero);
-			if constexpr (is_32bit(model)) {
-				address <<= pointer.scale();
-			}
-			address += instruction.offset() + *resolve<model, uint16_t>(instruction, pointer.base(), pointer, registers, memory);
-		} break;
-
-		case Source::IndirectNoBase: {
-			uint16_t zero = 0;
-			address = *resolve<model, uint16_t>(instruction, pointer.index(), pointer, registers, memory, &zero);
-			if constexpr (is_32bit(model)) {
-				address <<= pointer.scale();
-			}
-			address += instruction.offset();
-		} break;
-
-		case Source::DirectAddress:	return instruction.offset();
+	if constexpr (source == Source::DirectAddress) {
+		return instruction.offset();
 	}
-	return address;
+
+	uint32_t address;
+	uint16_t zero = 0;
+	address = *resolve<model, uint16_t>(instruction, pointer.index(), pointer, registers, memory, &zero);
+	if constexpr (is_32bit(model)) {
+		address <<= pointer.scale();
+	}
+	address += instruction.offset();
+
+	if constexpr (source == Source::IndirectNoBase) {
+		return address;
+	}
+	return address + *resolve<model, uint16_t>(instruction, pointer.base(), pointer, registers, memory);
 }
 
 template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
