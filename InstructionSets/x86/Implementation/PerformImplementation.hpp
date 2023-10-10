@@ -497,6 +497,41 @@ void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &sta
 }
 
 template <typename IntT>
+void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &status) {
+	/*
+		(as modified by https://www.felixcloutier.com/x86/daa ...)
+
+		IF (OperandSize = 8)
+			THEN
+				AX ← AL ∗ SRC (* signed multiplication *)
+				IF (AX = SignExtend(AL))
+					THEN CF = 0; OF = 0;
+					ELSE CF = 1; OF = 1;
+				FI;
+			ELSE IF OperandSize = 16
+				THEN
+					DX:AX ← AX ∗ SRC (* signed multiplication *)
+					IF (DX:AX = SignExtend(AX))
+						THEN CF = 0; OF = 0;
+						ELSE CF = 1; OF = 1;
+					FI;
+				ELSE (* OperandSize = 32 *)
+					EDX:EAX ← EAX ∗ SRC (* signed multiplication *)
+					IF (EDX:EAX = SignExtend(EAX))
+						THEN CF = 0; OF = 0;
+						ELSE CF = 1; OF = 1;
+					FI;
+		FI;
+	*/
+	using sIntT = typename std::make_signed<IntT>::type;
+	destination_high = (sIntT(destination_low) * sIntT(source)) >> (8 * sizeof(IntT));
+	destination_low = IntT(sIntT(destination_low) * sIntT(source));
+
+	const auto sign_extension = (destination_low & top_bit<IntT>()) ? IntT(~0) : 0;
+	status.overflow = status.carry = destination_high != sign_extension;
+}
+
+template <typename IntT>
 void and_(IntT &destination, IntT source, Status &status) {
 	/*
 		DEST ← DEST AND SRC;
@@ -669,6 +704,15 @@ template <
 				Primitive::mul(registers.dx(), registers.ax(), source(), status);
 			} else if constexpr (data_size == DataSize::DWord) {
 				Primitive::mul(registers.edx(), registers.eax(), source(), status);
+			}
+		return;
+		case Operation::IMUL_1:
+			if constexpr (data_size == DataSize::Byte) {
+				Primitive::imul(registers.ah(), registers.al(), source(), status);
+			} else if constexpr (data_size == DataSize::Word) {
+				Primitive::imul(registers.dx(), registers.ax(), source(), status);
+			} else if constexpr (data_size == DataSize::DWord) {
+				Primitive::imul(registers.edx(), registers.eax(), source(), status);
 			}
 		return;
 
