@@ -220,6 +220,10 @@ class FlowController {
 			registers_.ip_ = offset;
 		}
 
+		void jump(uint16_t address) {
+			registers_.ip_ = address;
+		}
+
 		void halt() {}
 		void wait() {}
 
@@ -323,20 +327,35 @@ struct FailedExecution {
 		@"F6.7.json.gz",	@"F7.7.json.gz",*/
 
 		// INC
-		@"40.json.gz",	@"41.json.gz",	@"42.json.gz",	@"43.json.gz",
-		@"44.json.gz",	@"45.json.gz",	@"46.json.gz",	@"47.json.gz",
-		@"FE.0.json.gz",
-		@"FF.0.json.gz",
+//		@"40.json.gz",	@"41.json.gz",	@"42.json.gz",	@"43.json.gz",
+//		@"44.json.gz",	@"45.json.gz",	@"46.json.gz",	@"47.json.gz",
+//		@"FE.0.json.gz",
+//		@"FF.0.json.gz",
 
 		// DEC
-		@"48.json.gz",	@"49.json.gz",	@"4A.json.gz",	@"4B.json.gz",
-		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
-		@"FE.1.json.gz",
-		@"FF.1.json.gz",
+//		@"48.json.gz",	@"49.json.gz",	@"4A.json.gz",	@"4B.json.gz",
+//		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
+//		@"FE.1.json.gz",
+//		@"FF.1.json.gz",
 
 		// TODO: IN, OUT
 
-		// TODO: JO, JNO, JB, JNB, JZ, JNZ, JBE, JNBE, JS, JNS, JP, JNP, JL, JNL, JLE, JNLE,
+		@"70.json.gz",	// JO
+		@"71.json.gz",	// JNO
+		@"72.json.gz",	// JB
+		@"73.json.gz",	// JNB
+		@"74.json.gz",	// JZ
+		@"75.json.gz",	// JNZ
+		@"76.json.gz",	// JBE
+		@"77.json.gz",	// JNBE
+		@"78.json.gz",	// JS
+		@"79.json.gz",	// JNS
+		@"7A.json.gz",	// JP
+		@"7B.json.gz",	// JNP
+		@"7C.json.gz",	// JL
+		@"7D.json.gz",	// JNL
+		@"7E.json.gz",	// JLE
+		@"7F.json.gz",	// JNLE
 
 		// CALL
 /*		@"E8.json.gz",	@"FF.2.json.gz",

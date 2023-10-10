@@ -661,6 +661,25 @@ void inc(IntT &destination, Status &status) {
 	status.auxiliary_carry = ((destination - 1) ^ destination) & 0x10;
 }
 
+template <typename IntT, typename RegistersT, typename FlowControllerT>
+inline void jump(bool condition, IntT displacement, RegistersT &registers, FlowControllerT &flow_controller) {
+	/*
+		IF condition
+			THEN
+				EIP ← EIP + SignExtend(DEST);
+				IF OperandSize = 16
+					THEN
+						EIP ← EIP AND 0000FFFFH;
+				FI;
+		FI;
+	*/
+
+	// TODO: proper behaviour in 32-bit.
+	if(condition) {
+		flow_controller.jump(registers.ip() + displacement);
+	}
+}
+
 template <typename IntT>
 void dec(IntT &destination, Status &status) {
 	/*
@@ -899,6 +918,119 @@ template <
 		case Operation::CALLfar:
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
+
+		case Operation::JO:
+			Primitive::jump(
+				status.condition<Status::Condition::Overflow>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNO:
+			Primitive::jump(
+				!status.condition<Status::Condition::Overflow>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JB:
+			Primitive::jump(
+				status.condition<Status::Condition::Below>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNB:
+			Primitive::jump(
+				!status.condition<Status::Condition::Below>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JZ:
+			Primitive::jump(
+				status.condition<Status::Condition::Zero>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNZ:
+			Primitive::jump(
+				!status.condition<Status::Condition::Zero>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JBE:
+			Primitive::jump(
+				status.condition<Status::Condition::BelowOrEqual>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNBE:
+			Primitive::jump(
+				!status.condition<Status::Condition::BelowOrEqual>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JS:
+			Primitive::jump(
+				status.condition<Status::Condition::Sign>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNS:
+			Primitive::jump(
+				!status.condition<Status::Condition::Sign>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JP:
+			Primitive::jump(
+				!status.condition<Status::Condition::ParityOdd>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNP:
+			Primitive::jump(
+				status.condition<Status::Condition::ParityOdd>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JL:
+			Primitive::jump(
+				status.condition<Status::Condition::Less>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNL:
+			Primitive::jump(
+				!status.condition<Status::Condition::Less>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JLE:
+			Primitive::jump(
+				status.condition<Status::Condition::LessOrEqual>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
+		case Operation::JNLE:
+			Primitive::jump(
+				!status.condition<Status::Condition::LessOrEqual>(),
+				instruction.displacement(),
+				registers,
+				flow_controller);
+		break;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
