@@ -256,7 +256,7 @@ inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowContro
 		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
 	*/
 	if(!imm) {
-		flow_controller.interrupt(Interrupt::DivideByZero);
+		flow_controller.interrupt(Interrupt::DivideError);
 		return;
 	}
 
@@ -531,6 +531,45 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &st
 	status.overflow = status.carry = destination_high != sign_extension;
 }
 
+template <typename IntT, typename FlowControllerT>
+void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControllerT &flow_controller) {
+	if(!source) {
+		flow_controller.interrupt(Interrupt::DivideError);
+		return;
+	}
+
+	// TEMPORARY HACK. Will not work with DWords.
+	const uint32_t dividend = (destination_high << (8 * sizeof(IntT))) + destination_low;
+	const auto result = dividend / source;
+	if(IntT(result) != result) {
+		flow_controller.interrupt(Interrupt::DivideError);
+		return;
+	}
+
+	destination_low = IntT(result);
+	destination_high = dividend % source;
+}
+
+template <typename IntT, typename FlowControllerT>
+void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowControllerT &flow_controller) {
+	if(!source) {
+		flow_controller.interrupt(Interrupt::DivideError);
+		return;
+	}
+
+	// TEMPORARY HACK. Will not work with DWords.
+	using sIntT = typename std::make_signed<IntT>::type;
+	const int32_t dividend = (sIntT(destination_high) << (8 * sizeof(IntT))) + destination_low;
+	const auto result = dividend / sIntT(source);
+	if(sIntT(result) != result) {
+		flow_controller.interrupt(Interrupt::DivideError);
+		return;
+	}
+
+	destination_low = IntT(result);
+	destination_high = dividend % sIntT(source);
+}
+
 template <typename IntT>
 void and_(IntT &destination, IntT source, Status &status) {
 	/*
@@ -716,6 +755,24 @@ template <
 				Primitive::imul(registers.dx(), registers.ax(), source(), status);
 			} else if constexpr (data_size == DataSize::DWord) {
 				Primitive::imul(registers.edx(), registers.eax(), source(), status);
+			}
+		return;
+		case Operation::DIV:
+			if constexpr (data_size == DataSize::Byte) {
+				Primitive::div(registers.ah(), registers.al(), source(), flow_controller);
+			} else if constexpr (data_size == DataSize::Word) {
+				Primitive::div(registers.dx(), registers.ax(), source(), flow_controller);
+			} else if constexpr (data_size == DataSize::DWord) {
+				Primitive::div(registers.edx(), registers.eax(), source(), flow_controller);
+			}
+		return;
+		case Operation::IDIV:
+			if constexpr (data_size == DataSize::Byte) {
+				Primitive::idiv(registers.ah(), registers.al(), source(), flow_controller);
+			} else if constexpr (data_size == DataSize::Word) {
+				Primitive::idiv(registers.dx(), registers.ax(), source(), flow_controller);
+			} else if constexpr (data_size == DataSize::DWord) {
+				Primitive::idiv(registers.edx(), registers.eax(), source(), flow_controller);
 			}
 		return;
 

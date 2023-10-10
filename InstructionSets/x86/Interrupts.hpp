@@ -12,11 +12,11 @@
 namespace InstructionSet::x86 {
 
 enum Interrupt {
-	DivideByZero		= 0,
-	SingleStep			= 1,
-	NMI					= 2,
-	OneByte				= 3,
-	OnOverflow			= 4,
+	DivideError		= 0,
+	SingleStep		= 1,
+	NMI				= 2,
+	OneByte			= 3,
+	OnOverflow		= 4,
 };
 
 }

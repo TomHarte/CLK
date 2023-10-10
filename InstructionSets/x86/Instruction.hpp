@@ -73,7 +73,7 @@ enum class Operation: uint8_t {
 	MUL,
 	/// Single operand signed multiply; multiplies the source value by EAX, AX or AL, storing the result in EDX:EAX, DX:AX or AX.
 	IMUL_1,
-	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	/// Unsigned divide; divide the AX, DX:AX or EDX:AX by the source(), storing the quotient in AL, AX or EAX and the remainder in AH, DX or EDX.
 	DIV,
 	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	IDIV,

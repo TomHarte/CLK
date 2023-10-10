@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -316,7 +316,12 @@ struct FailedExecution {
 		// IMUL_1
 		@"F6.5.json.gz",	@"F7.5.json.gz",
 
-		// TODO: DIV, IDIV
+		// DIV
+		@"F6.6.json.gz",	@"F7.6.json.gz",
+
+		// IDIV
+		@"F6.7.json.gz",	@"F7.7.json.gz",
+
 		// TODO: INC, DEC
 		// TODO: IN, OUT
 		// TODO: JO, JNO, JB, JNB, JZ, JNZ, JBE, JNBE, JS, JNS, JP, JNP, JL, JNL, JLE, JNLE,
@@ -363,6 +368,7 @@ struct FailedExecution {
 		// TODO: CMP, TEST
 		// TODO: XCHG, XLAT
 		// TODO: SALC, SETMO, SETMOC
+ 
 	]];
 
 	NSSet *ignoreList = nil;
@@ -537,8 +543,10 @@ struct FailedExecution {
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
 		execution_support.memory.touch([ram[0] intValue]);
 	}
-	[self populate:execution_support.registers status:initial_status value:initial_state[@"regs"]];
+	Registers initial_registers;
+	[self populate:initial_registers status:initial_status value:initial_state[@"regs"]];
 	execution_support.status = initial_status;
+	execution_support.registers = initial_registers;
 
 	// Execute instruction.
 	execution_support.registers.ip_ += decoded.first;
