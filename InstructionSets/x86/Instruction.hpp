@@ -195,7 +195,7 @@ enum class Operation: uint8_t {
 	CLI,
 	/// Set carry flag.
 	STC,
-	/// Set decimal flag.
+	/// Set direction flag.
 	STD,
 	/// Set interrupt flag.
 	STI,

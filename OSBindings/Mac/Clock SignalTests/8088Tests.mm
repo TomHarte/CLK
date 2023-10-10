@@ -330,6 +330,9 @@ struct FailedExecution {
 		@"F8.json.gz",	// CLC
 		@"FC.json.gz",	// CLD
 		@"FA.json.gz",	// CLI
+		@"F9.json.gz",	// STC
+		@"FD.json.gz",	// STD
+		@"FB.json.gz",	// STI
 		@"F5.json.gz",	// CMC
 	]];
 

@@ -610,6 +610,9 @@ void cwd(IntT &dx, IntT ax) {
 inline void clc(Status &status) {	status.carry = 0;				}
 inline void cld(Status &status) {	status.direction = 0;			}
 inline void cli(Status &status) {	status.interrupt = 0;			}	// TODO: quite a bit more in protected mode.
+inline void stc(Status &status) {	status.carry = 1;				}
+inline void std(Status &status) {	status.direction = 1;			}
+inline void sti(Status &status) {	status.interrupt = 1;			}	// TODO: quite a bit more in protected mode.
 inline void cmc(Status &status) {	status.carry = !status.carry;	}
 
 }
@@ -731,6 +734,9 @@ template <
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
 		case Operation::CLI:	Primitive::cli(status);				return;
+		case Operation::STC:	Primitive::stc(status);				return;
+		case Operation::STD:	Primitive::std(status);				return;
+		case Operation::STI:	Primitive::sti(status);				return;
 		case Operation::CMC:	Primitive::cmc(status);				return;
 	}
 
