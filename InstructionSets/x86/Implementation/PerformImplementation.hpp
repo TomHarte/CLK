@@ -533,6 +533,43 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &st
 
 template <typename IntT, typename FlowControllerT>
 void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControllerT &flow_controller) {
+	/*
+		IF SRC = 0
+			THEN #DE; (* divide error *)
+		FI;
+		IF OperandSize = 8 (* word/byte operation *)
+			THEN
+				temp ← AX / SRC;
+				IF temp > FFH
+					THEN #DE; (* divide error *) ;
+					ELSE
+						AL ← temp;
+						AH ← AX MOD SRC;
+				FI;
+		ELSE
+			IF OperandSize = 16 (* doubleword/word operation *)
+				THEN
+					temp ← DX:AX / SRC;
+					IF temp > FFFFH
+						THEN #DE; (* divide error *) ;
+						ELSE
+							AX ← temp;
+							DX ← DX:AX MOD SRC;
+					FI;
+				ELSE (* quadword/doubleword operation *)
+					temp ← EDX:EAX / SRC;
+					IF temp > FFFFFFFFH
+					THEN #DE; (* divide error *) ;
+					ELSE
+						EAX ← temp;
+						EDX ← EDX:EAX MOD SRC;
+					FI;
+			FI;
+		FI;
+	*/
+	/*
+		The CF, OF, SF, ZF, AF, and PF flags are undefined.
+	*/
 	if(!source) {
 		flow_controller.interrupt(Interrupt::DivideError);
 		return;
@@ -552,6 +589,43 @@ void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControl
 
 template <typename IntT, typename FlowControllerT>
 void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowControllerT &flow_controller) {
+	/*
+		IF SRC = 0
+			THEN #DE; (* divide error *)
+		FI;
+		IF OperandSize = 8 (* word/byte operation *)
+			THEN
+				temp ← AX / SRC; (* signed division *)
+				IF (temp > 7FH) OR (temp < 80H) (* if a positive result is greater than 7FH or a negative result is less than 80H *)
+					THEN #DE; (* divide error *) ;
+					ELSE
+						AL ← temp;
+						AH ← AX MOD SRC;
+				FI;
+		ELSE
+			IF OperandSize = 16 (* doubleword/word operation *)
+				THEN
+					temp ← DX:AX / SRC; (* signed division *)
+					IF (temp > 7FFFH) OR (temp < 8000H) (* if a positive result is greater than 7FFFH or a negative result is less than 8000H *)
+						THEN #DE; (* divide error *) ;
+						ELSE
+							AX ← temp;
+							DX ← DX:AX MOD SRC;
+					FI;
+				ELSE (* quadword/doubleword operation *)
+					temp ← EDX:EAX / SRC; (* signed division *)
+					IF (temp > 7FFFFFFFH) OR (temp < 80000000H) (* if a positive result is greater than 7FFFFFFFH or a negative result is less than 80000000H *)
+						THEN #DE; (* divide error *) ;
+						ELSE
+							EAX ← temp;
+							EDX ← EDX:EAX MOD SRC;
+						FI;
+			FI;
+		FI;
+	*/
+	/*
+		The CF, OF, SF, ZF, AF, and PF flags are undefined.
+	*/
 	if(!source) {
 		flow_controller.interrupt(Interrupt::DivideError);
 		return;
@@ -568,6 +642,41 @@ void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowContro
 
 	destination_low = IntT(result);
 	destination_high = dividend % sIntT(source);
+}
+
+template <typename IntT>
+void inc(IntT &destination, Status &status) {
+	/*
+		DEST ← DEST + 1;
+	*/
+	/*
+		The CF flag is not affected.
+		The OF, SF, ZF, AF, and PF flags are set according to the result.
+	*/
+	++destination;
+
+	status.overflow = destination == top_bit<IntT>();
+	status.sign = destination & top_bit<IntT>();
+	status.zero = status.parity = destination;
+	status.auxiliary_carry = ((destination - 1) ^ destination) & 0x10;
+}
+
+template <typename IntT>
+void dec(IntT &destination, Status &status) {
+	/*
+		DEST ← DEST - 1;
+	*/
+	/*
+		The CF flag is not affected.
+		The OF, SF, ZF, AF, and PF flags are set according to the result.
+	*/
+	status.overflow = destination == top_bit<IntT>();
+
+	--destination;
+
+	status.sign = destination & top_bit<IntT>();
+	status.zero = status.parity = destination;
+	status.auxiliary_carry = ((destination + 1) ^ destination) & 0x10;
 }
 
 template <typename IntT>
@@ -775,6 +884,9 @@ template <
 				Primitive::idiv(registers.edx(), registers.eax(), source(), flow_controller);
 			}
 		return;
+
+		case Operation::INC:	Primitive::inc(destination(), status);		break;
+		case Operation::DEC:	Primitive::dec(destination(), status);		break;
 
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
 

@@ -278,7 +278,7 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"37.json.gz",	// AAA
+/*		@"37.json.gz",	// AAA
 		@"3F.json.gz",	// AAS
 		@"D4.json.gz",	// AAM
 		@"D5.json.gz",	// AAD
@@ -320,14 +320,25 @@ struct FailedExecution {
 		@"F6.6.json.gz",	@"F7.6.json.gz",
 
 		// IDIV
-		@"F6.7.json.gz",	@"F7.7.json.gz",
+		@"F6.7.json.gz",	@"F7.7.json.gz",*/
 
-		// TODO: INC, DEC
+		// INC
+		@"40.json.gz",	@"41.json.gz",	@"42.json.gz",	@"43.json.gz",
+		@"44.json.gz",	@"45.json.gz",	@"46.json.gz",	@"47.json.gz",
+		@"FE.0.json.gz",
+		@"FF.0.json.gz",
+
+		// DEC
+		@"48.json.gz",	@"49.json.gz",	@"4A.json.gz",	@"4B.json.gz",
+		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
+		@"FE.1.json.gz",
+		@"FF.1.json.gz",
+
 		// TODO: IN, OUT
 		// TODO: JO, JNO, JB, JNB, JZ, JNZ, JBE, JNBE, JS, JNS, JP, JNP, JL, JNL, JLE, JNLE,
 
 		// CALL
-		@"E8.json.gz",	@"FF.2.json.gz",
+/*		@"E8.json.gz",	@"FF.2.json.gz",
 		@"9A.json.gz",	@"FF.3.json.gz",
 
 		// TODO: IRET
@@ -364,11 +375,12 @@ struct FailedExecution {
 		@"FD.json.gz",	// STD
 		@"FB.json.gz",	// STI
 		@"F5.json.gz",	// CMC
+*/
 
 		// TODO: CMP, TEST
 		// TODO: XCHG, XLAT
 		// TODO: SALC, SETMO, SETMOC
- 
+
 	]];
 
 	NSSet *ignoreList = nil;
