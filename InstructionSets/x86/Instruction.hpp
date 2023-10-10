@@ -479,6 +479,10 @@ constexpr bool supports(Operation operation, Repetition repetition) {
 		case Operation::STOS:
 			return true;
 
+		// TODO: my new understanding is that the 8086 and 8088 recognise rep and repne on
+		// IDIV — and possibly DIV — as a quirk, affecting the outcome (possibly negativing the result?).
+		// So the test below should be a function of model, if I come to a conclusion about whether I'm
+		// going for fidelity to the instruction set as generally implemented, or to Intel's specific implementation.
 		case Operation::IDIV:
 			return repetition == Repetition::RepNE;
 	}
