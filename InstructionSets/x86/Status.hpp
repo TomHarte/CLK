@@ -70,6 +70,55 @@ struct Status {
 	uint32_t parity;
 
 	// Flag getters.
+	enum class Flag {
+		Carry,
+		AuxiliaryCarry,
+		Sign,
+		Overflow,
+		Trap,
+		Interrupt,
+		Direction,
+		Zero,
+		ParityOdd
+	};
+	template <Flag flag> bool flag() {
+		switch(flag) {
+			case Flag::Carry:			return carry;
+			case Flag::AuxiliaryCarry:	return auxiliary_carry;
+			case Flag::Sign:			return sign;
+			case Flag::Overflow:		return overflow;
+			case Flag::Trap:			return trap;
+			case Flag::Interrupt:		return interrupt;
+			case Flag::Direction:		return direction;
+			case Flag::Zero:			return !zero;
+			case Flag::ParityOdd:		return not_parity_bit();
+		}
+	}
+
+	// Condition evaluation.
+	enum class Condition {
+		Overflow,
+		Below,
+		Zero,
+		BelowOrEqual,
+		Sign,
+		ParityOdd,
+		Less,
+		LessOrEqual
+	};
+	template <Condition test> bool condition() {
+		switch(test) {
+			case Condition::Overflow:		return flag<Flag::Overflow>();
+			case Condition::Below:			return flag<Flag::Carry>();
+			case Condition::Zero:			return flag<Flag::Zero>();
+			case Condition::BelowOrEqual:	return flag<Flag::Zero>() || flag<Flag::Carry>();
+			case Condition::Sign:			return flag<Flag::Sign>();
+			case Condition::ParityOdd:		return flag<Flag::ParityOdd>();
+			case Condition::Less:			return flag<Flag::Sign>() != flag<Flag::Overflow>();
+			case Condition::LessOrEqual:	return flag<Flag::Zero>() || flag<Flag::Sign>() != flag<Flag::Overflow>();
+		}
+	}
+
 	template <typename IntT> IntT carry_bit() const { return carry ? 1 : 0; }
 	bool not_parity_bit() const {
 		// x86 parity always considers the lowest 8-bits only.
