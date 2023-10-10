@@ -69,7 +69,7 @@ enum class Operation: uint8_t {
 	SBB,
 	/// Subtract; source, destination, operand and displacement will be populated appropriately.
 	SUB,
-	/// Unsigned multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	/// Unsigned multiply; multiplies the source value by EAX, AX or AL, storing the result in EDX:EAX, DX:AX or AX.
 	MUL,
 	/// Single operand signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
 	IMUL_1,

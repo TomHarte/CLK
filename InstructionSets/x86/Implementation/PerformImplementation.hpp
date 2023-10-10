@@ -475,6 +475,28 @@ void sub(IntT &destination, IntT source, Status &status) {
 }
 
 template <typename IntT>
+void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &status) {
+	/*
+		IF byte operation
+			THEN
+				AX ← AL * SRC
+			ELSE (* word or doubleword operation *)
+				IF OperandSize = 16 THEN
+					DX:AX ← AX * SRC
+				ELSE (* OperandSize = 32 *)
+					EDX:EAX ← EAX * SRC
+		FI;
+	*/
+	/*
+		The OF and CF flags are cleared to 0 if the upper half of the result is 0;
+		otherwise, they are set to 1. The SF, ZF, AF, and PF flags are undefined.
+	*/
+	destination_high = (destination_low * source) >> (8 * sizeof(IntT));
+	destination_low *= source;
+	status.overflow = status.carry = destination_high;
+}
+
+template <typename IntT>
 void and_(IntT &destination, IntT source, Status &status) {
 	/*
 		DEST ← DEST AND SRC;
@@ -625,7 +647,7 @@ template <
 		case Operation::CWD:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::cwd(registers.dx(), registers.ax());
-			} else if constexpr (is_32bit(model) && data_size == DataSize::DWord) {
+			} else if constexpr (data_size == DataSize::DWord) {
 				Primitive::cwd(registers.edx(), registers.eax());
 			}
 		return;
@@ -640,6 +662,15 @@ template <
 		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;
 		case Operation::SBB:	Primitive::sbb(destination(), source(), status);		break;
 		case Operation::SUB:	Primitive::sub(destination(), source(), status);		break;
+		case Operation::MUL:
+			if constexpr (data_size == DataSize::Byte) {
+				Primitive::mul(registers.ah(), registers.al(), source(), status);
+			} else if constexpr (data_size == DataSize::Word) {
+				Primitive::mul(registers.dx(), registers.ax(), source(), status);
+			} else if constexpr (data_size == DataSize::DWord) {
+				Primitive::mul(registers.edx(), registers.eax(), source(), status);
+			}
+		return;
 
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
 
@@ -689,7 +720,9 @@ template <
 			perform<model, DataSize::Word>(instruction, status, flow_controller, registers, memory, io);
 		break;
 		case DataSize::DWord:
-			perform<model, DataSize::DWord>(instruction, status, flow_controller, registers, memory, io);
+			if constexpr (is_32bit(model)) {
+				perform<model, DataSize::DWord>(instruction, status, flow_controller, registers, memory, io);
+			}
 		break;
 		case DataSize::None:
 			perform<model, DataSize::None>(instruction, status, flow_controller, registers, memory, io);

@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -292,9 +292,8 @@ struct FailedExecution {
 //		@"D8.json.gz",	@"D9.json.gz",	@"DA.json.gz",	@"DB.json.gz",
 //		@"DC.json.gz",	@"DD.json.gz",	@"DE.json.gz",	@"DE.json.gz",
 //
-//		// NOP
-//		@"90.json.gz",
-//
+//		// Untested: HLT, WAIT
+////
 //		// ADC
 //		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 //		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
@@ -302,14 +301,20 @@ struct FailedExecution {
 //		// ADD
 //		@"00.json.gz",	@"01.json.gz",	@"02.json.gz",	@"03.json.gz",	@"04.json.gz",	@"05.json.gz",
 //		@"80.0.json.gz", @"81.0.json.gz", @"83.0.json.gz",
+//
+//		// SBB
+//		@"18.json.gz",	@"19.json.gz",	@"1A.json.gz",	@"1B.json.gz",	@"1C.json.gz",	@"1D.json.gz",
+//		@"80.3.json.gz", @"81.3.json.gz", @"83.3.json.gz",
+//
+//		// SUB
+//		@"28.json.gz",	@"29.json.gz",	@"2A.json.gz",	@"2B.json.gz",	@"2C.json.gz",	@"2D.json.gz",
+//		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
 
-		// SBB
-		@"18.json.gz",	@"19.json.gz",	@"1A.json.gz",	@"1B.json.gz",	@"1C.json.gz",	@"1D.json.gz",
-		@"80.3.json.gz", @"81.3.json.gz", @"83.3.json.gz",
+		// MUL
+		@"F6.4.json.gz",	@"F7.4.json.gz",
 
-		// SUB
-		@"28.json.gz",	@"29.json.gz",	@"2A.json.gz",	@"2B.json.gz",	@"2C.json.gz",	@"2D.json.gz",
-		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
+//		// NOP
+//		@"90.json.gz",
 
 		// AND
 //		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
