@@ -316,16 +316,41 @@ struct FailedExecution {
 		// IMUL_1
 		@"F6.5.json.gz",	@"F7.5.json.gz",
 
-		// NOP
-		@"90.json.gz",
+		// TODO: DIV, IDIV
+		// TODO: INC, DEC
+		// TODO: IN, OUT
+		// TODO: JO, JNO, JB, JNB, JZ, JNZ, JBE, JNBE, JS, JNS, JP, JNP, JL, JNL, JLE, JNLE,
+
+		// CALL
+		@"E8.json.gz",	@"FF.2.json.gz",
+		@"9A.json.gz",	@"FF.3.json.gz",
+
+		// TODO: IRET
+		// TODO: RET
+		// TODO: JMP
+		// TODO: JCXZ
+		// TODO: INT, INTO
+
+		// TODO: LAHF, SAHF
+		// TODO: LDS, LES
+		// TODO: LEA
+
+		// TODO: CMPS, LODS, MOVS, SCAS, STOS
+
+		// TODO: LOOP, LOOPE, LOOPNE
+
+		// TODO: MOV
+		// TODO: NEG, NOT, OR, XOR
 
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
 		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
 
-		// CALL
-		@"E8.json.gz",	@"FF.2.json.gz",
-		@"9A.json.gz",	@"FF.3.json.gz",
+		// NOP
+		@"90.json.gz",
+
+		// TODO: POP, POPF, PUSH, PUSHF
+		// TODO: RCL, RCR, ROL, ROR, SAL, SAR, SHR
 
 		@"F8.json.gz",	// CLC
 		@"FC.json.gz",	// CLD
@@ -334,6 +359,10 @@ struct FailedExecution {
 		@"FD.json.gz",	// STD
 		@"FB.json.gz",	// STI
 		@"F5.json.gz",	// CMC
+
+		// TODO: CMP, TEST
+		// TODO: XCHG, XLAT
+		// TODO: SALC, SETMO, SETMOC
 	]];
 
 	NSSet *ignoreList = nil;
