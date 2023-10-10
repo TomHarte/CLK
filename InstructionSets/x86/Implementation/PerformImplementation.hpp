@@ -715,6 +715,40 @@ void and_(IntT &destination, IntT source, Status &status) {
 	status.zero = status.parity = destination;
 }
 
+template <typename IntT>
+void or_(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST OR SRC;
+	*/
+	/*
+		The OF and CF flags are cleared; the SF, ZF, and PF flags are set according to the result.
+		The state of the AF flag is undefined.
+	*/
+	destination |= source;
+
+	status.overflow = 0;
+	status.carry = 0;
+	status.sign = destination & top_bit<IntT>();
+	status.zero = status.parity = destination;
+}
+
+template <typename IntT>
+void xor_(IntT &destination, IntT source, Status &status) {
+	/*
+		DEST ← DEST XOR SRC;
+	*/
+	/*
+		The OF and CF flags are cleared; the SF, ZF, and PF flags are set according to the result.
+		The state of the AF flag is undefined.
+	*/
+	destination ^= source;
+
+	status.overflow = 0;
+	status.carry = 0;
+	status.sign = destination & top_bit<IntT>();
+	status.zero = status.parity = destination;
+}
+
 template <typename IntT, typename RegistersT, typename FlowControllerT>
 inline void call_relative(IntT offset, RegistersT &registers, FlowControllerT &flow_controller) {
 	flow_controller.call(registers.ip() + offset);
@@ -908,6 +942,8 @@ template <
 		case Operation::DEC:	Primitive::dec(destination(), status);		break;
 
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
+		case Operation::OR:		Primitive::or_(destination(), source(), status);		break;
+		case Operation::XOR:	Primitive::xor_(destination(), source(), status);		break;
 
 		case Operation::CALLrel:
 			Primitive::call_relative(instruction.displacement(), registers, flow_controller);

@@ -340,22 +340,22 @@ struct FailedExecution {
 
 		// TODO: IN, OUT
 
-		@"70.json.gz",	// JO
-		@"71.json.gz",	// JNO
-		@"72.json.gz",	// JB
-		@"73.json.gz",	// JNB
-		@"74.json.gz",	// JZ
-		@"75.json.gz",	// JNZ
-		@"76.json.gz",	// JBE
-		@"77.json.gz",	// JNBE
-		@"78.json.gz",	// JS
-		@"79.json.gz",	// JNS
-		@"7A.json.gz",	// JP
-		@"7B.json.gz",	// JNP
-		@"7C.json.gz",	// JL
-		@"7D.json.gz",	// JNL
-		@"7E.json.gz",	// JLE
-		@"7F.json.gz",	// JNLE
+//		@"70.json.gz",	// JO
+//		@"71.json.gz",	// JNO
+//		@"72.json.gz",	// JB
+//		@"73.json.gz",	// JNB
+//		@"74.json.gz",	// JZ
+//		@"75.json.gz",	// JNZ
+//		@"76.json.gz",	// JBE
+//		@"77.json.gz",	// JNBE
+//		@"78.json.gz",	// JS
+//		@"79.json.gz",	// JNS
+//		@"7A.json.gz",	// JP
+//		@"7B.json.gz",	// JNP
+//		@"7C.json.gz",	// JL
+//		@"7D.json.gz",	// JNL
+//		@"7E.json.gz",	// JLE
+//		@"7F.json.gz",	// JNLE
 
 		// CALL
 /*		@"E8.json.gz",	@"FF.2.json.gz",
@@ -376,12 +376,21 @@ struct FailedExecution {
 		// TODO: LOOP, LOOPE, LOOPNE
 
 		// TODO: MOV
-		// TODO: NEG, NOT, OR, XOR
+		// TODO: NEG, NOT
 
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
 		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
+*/
+		// OR
+		@"08.json.gz",	@"09.json.gz",	@"0A.json.gz",	@"0B.json.gz",	@"0C.json.gz",	@"0D.json.gz",
+		@"80.1.json.gz", @"81.1.json.gz", @"83.1.json.gz",
 
+		// XOR
+		@"30.json.gz",	@"31.json.gz",	@"32.json.gz",	@"33.json.gz",	@"34.json.gz",	@"35.json.gz",
+		@"80.6.json.gz", @"81.6.json.gz", @"83.6.json.gz",
+
+/*
 		// NOP
 		@"90.json.gz",
 
