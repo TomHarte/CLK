@@ -13,6 +13,8 @@
 #include "../../../Numeric/RegisterSizes.hpp"
 #include "../Interrupts.hpp"
 
+#include <utility>
+
 namespace InstructionSet::x86 {
 
 template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
