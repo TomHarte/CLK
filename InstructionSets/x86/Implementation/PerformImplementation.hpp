@@ -198,8 +198,7 @@ inline void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	*/
 	ax.halves.low = ax.halves.low + (ax.halves.high * imm);
 	ax.halves.high = 0;
-	status.sign = ax.halves.low & 0x80;
-	status.parity = status.zero = ax.halves.low;
+	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
 template <typename FlowControllerT>
@@ -223,8 +222,7 @@ inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowContro
 
 	ax.halves.high = ax.halves.low / imm;
 	ax.halves.low = ax.halves.low % imm;
-	status.sign = ax.halves.low & 0x80;
-	status.parity = status.zero = ax.halves.low;
+	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
 inline void aas(CPU::RegisterPair16 &ax, Status &status) {
@@ -303,8 +301,7 @@ inline void daa(uint8_t &al, Status &status) {
 		status.carry = 0;
 	}
 
-	status.sign = al & 0x80;
-	status.zero = status.parity = al;
+	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
 
 inline void das(uint8_t &al, Status &status) {
@@ -355,8 +352,7 @@ inline void das(uint8_t &al, Status &status) {
 		status.carry = 0;
 	}
 
-	status.sign = al & 0x80;
-	status.zero = status.parity = al;
+	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
 
 template <bool with_carry, typename IntT>
@@ -371,9 +367,9 @@ void add(IntT &destination, IntT source, Status &status) {
 
 	status.carry = Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = result & Numeric::top_bit<IntT>();
-	status.zero = status.parity = result;
 	status.overflow = Numeric::overflow<true, IntT>(destination, source, result);
+
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
 	destination = result;
 }
@@ -390,9 +386,9 @@ void sub(IntT &destination, IntT source, Status &status) {
 
 	status.carry = Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = result & Numeric::top_bit<IntT>();
-	status.zero = status.parity = result;
 	status.overflow = Numeric::overflow<false, IntT>(destination, source, result);
+
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
 	if constexpr (write_back) {
 		destination = result;
@@ -419,10 +415,8 @@ void test(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination & source;
 
-	status.sign = result & Numeric::top_bit<IntT>();
-	status.zero = result;
 	status.carry = status.overflow = 0;
-	status.parity = result;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 }
 
 template <typename IntT>
@@ -617,9 +611,8 @@ void inc(IntT &destination, Status &status) {
 	++destination;
 
 	status.overflow = destination == Numeric::top_bit<IntT>();
-	status.sign = destination & Numeric::top_bit<IntT>();
-	status.zero = status.parity = destination;
 	status.auxiliary_carry = ((destination - 1) ^ destination) & 0x10;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename RegistersT, typename FlowControllerT>
@@ -654,8 +647,7 @@ void dec(IntT &destination, Status &status) {
 
 	--destination;
 
-	status.sign = destination & Numeric::top_bit<IntT>();
-	status.zero = status.parity = destination;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 	status.auxiliary_carry = ((destination + 1) ^ destination) & 0x10;
 }
 
@@ -672,8 +664,7 @@ void and_(IntT &destination, IntT source, Status &status) {
 
 	status.overflow = 0;
 	status.carry = 0;
-	status.sign = destination & Numeric::top_bit<IntT>();
-	status.zero = status.parity = destination;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT>
@@ -689,8 +680,7 @@ void or_(IntT &destination, IntT source, Status &status) {
 
 	status.overflow = 0;
 	status.carry = 0;
-	status.sign = destination & Numeric::top_bit<IntT>();
-	status.zero = status.parity = destination;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT>
@@ -706,8 +696,7 @@ void xor_(IntT &destination, IntT source, Status &status) {
 
 	status.overflow = 0;
 	status.carry = 0;
-	status.sign = destination & Numeric::top_bit<IntT>();
-	status.zero = status.parity = destination;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT>
@@ -729,8 +718,7 @@ void neg(IntT &destination, Status &status) {
 
 	status.carry = destination;
 	status.overflow = destination == Numeric::top_bit<IntT>();
-	status.sign = destination & Numeric::top_bit<IntT>();
-	status.zero = status.parity = destination;
+	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT>
@@ -958,112 +946,112 @@ template <
 
 		case Operation::JO:
 			Primitive::jump(
-				status.condition<Status::Condition::Overflow>(),
+				status.condition<Condition::Overflow>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNO:
 			Primitive::jump(
-				!status.condition<Status::Condition::Overflow>(),
+				!status.condition<Condition::Overflow>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JB:
 			Primitive::jump(
-				status.condition<Status::Condition::Below>(),
+				status.condition<Condition::Below>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNB:
 			Primitive::jump(
-				!status.condition<Status::Condition::Below>(),
+				!status.condition<Condition::Below>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JZ:
 			Primitive::jump(
-				status.condition<Status::Condition::Zero>(),
+				status.condition<Condition::Zero>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNZ:
 			Primitive::jump(
-				!status.condition<Status::Condition::Zero>(),
+				!status.condition<Condition::Zero>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JBE:
 			Primitive::jump(
-				status.condition<Status::Condition::BelowOrEqual>(),
+				status.condition<Condition::BelowOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNBE:
 			Primitive::jump(
-				!status.condition<Status::Condition::BelowOrEqual>(),
+				!status.condition<Condition::BelowOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JS:
 			Primitive::jump(
-				status.condition<Status::Condition::Sign>(),
+				status.condition<Condition::Sign>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNS:
 			Primitive::jump(
-				!status.condition<Status::Condition::Sign>(),
+				!status.condition<Condition::Sign>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JP:
 			Primitive::jump(
-				!status.condition<Status::Condition::ParityOdd>(),
+				!status.condition<Condition::ParityOdd>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNP:
 			Primitive::jump(
-				status.condition<Status::Condition::ParityOdd>(),
+				status.condition<Condition::ParityOdd>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JL:
 			Primitive::jump(
-				status.condition<Status::Condition::Less>(),
+				status.condition<Condition::Less>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNL:
 			Primitive::jump(
-				!status.condition<Status::Condition::Less>(),
+				!status.condition<Condition::Less>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JLE:
 			Primitive::jump(
-				status.condition<Status::Condition::LessOrEqual>(),
+				status.condition<Condition::LessOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
 		return;
 		case Operation::JNLE:
 			Primitive::jump(
-				!status.condition<Status::Condition::LessOrEqual>(),
+				!status.condition<Condition::LessOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);

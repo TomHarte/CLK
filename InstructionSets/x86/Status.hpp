@@ -9,6 +9,7 @@
 #ifndef InstructionSets_x86_Status_hpp
 #define InstructionSets_x86_Status_hpp
 
+#include "../../Numeric/Carry.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -53,6 +54,29 @@ static constexpr uint32_t VirtualMode		= 1 << 17;
 
 }
 
+enum class Flag {
+	Carry,
+	AuxiliaryCarry,
+	Sign,
+	Overflow,
+	Trap,
+	Interrupt,
+	Direction,
+	Zero,
+	ParityOdd
+};
+
+enum class Condition {
+	Overflow,
+	Below,
+	Zero,
+	BelowOrEqual,
+	Sign,
+	ParityOdd,
+	Less,
+	LessOrEqual
+};
+
 struct Status {
 	// Non-zero => set; zero => unset.
 	uint32_t carry;
@@ -70,17 +94,6 @@ struct Status {
 	uint32_t parity;
 
 	// Flag getters.
-	enum class Flag {
-		Carry,
-		AuxiliaryCarry,
-		Sign,
-		Overflow,
-		Trap,
-		Interrupt,
-		Direction,
-		Zero,
-		ParityOdd
-	};
 	template <Flag flag> bool flag() {
 		switch(flag) {
 			case Flag::Carry:			return carry;
@@ -96,16 +109,6 @@ struct Status {
 	}
 
 	// Condition evaluation.
-	enum class Condition {
-		Overflow,
-		Below,
-		Zero,
-		BelowOrEqual,
-		Sign,
-		ParityOdd,
-		Less,
-		LessOrEqual
-	};
 	template <Condition test> bool condition() {
 		switch(test) {
 			case Condition::Overflow:		return flag<Flag::Overflow>();
@@ -116,6 +119,18 @@ struct Status {
 			case Condition::ParityOdd:		return flag<Flag::ParityOdd>();
 			case Condition::Less:			return flag<Flag::Sign>() != flag<Flag::Overflow>();
 			case Condition::LessOrEqual:	return flag<Flag::Zero>() || flag<Flag::Sign>() != flag<Flag::Overflow>();
+		}
+	}
+
+	// Convenience setters.
+	template <typename IntT, Flag... flags> void set_from(IntT value) {
+		for(const auto flag: {flags...}) {
+			switch(flag) {
+				default: break;
+				case Flag::Zero:		zero = value;								break;
+				case Flag::Sign:		sign = value & Numeric::top_bit<IntT>();	break;
+				case Flag::ParityOdd:	parity = value;								break;
+			}
 		}
 	}
 
