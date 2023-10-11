@@ -400,34 +400,15 @@ inline void das(uint8_t &al, Status &status) {
 	status.zero = status.parity = al;
 }
 
-template <typename IntT>
-void adc(IntT &destination, IntT source, Status &status) {
-	/*
-		DEST ← DEST + SRC + CF;
-	*/
-	/*
-		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
-	*/
-	const IntT result = destination + source + status.carry_bit<IntT>();
-
-	status.carry = Numeric::carried_out<true, bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = result & top_bit<IntT>();
-	status.zero = status.parity = result;
-	status.overflow = overflow<true, IntT>(destination, source, result);
-
-	destination = result;
-}
-
-template <typename IntT>
+template <bool with_carry, typename IntT>
 void add(IntT &destination, IntT source, Status &status) {
 	/*
-		DEST ← DEST + SRC;
+		DEST ← DEST + SRC [+ CF];
 	*/
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination + source;
+	const IntT result = destination + source + (with_carry ? status.carry_bit<IntT>() : 0);
 
 	status.carry = Numeric::carried_out<true, bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
@@ -438,34 +419,15 @@ void add(IntT &destination, IntT source, Status &status) {
 	destination = result;
 }
 
-template <typename IntT>
-void sbb(IntT &destination, IntT source, Status &status) {
-	/*
-		DEST ← DEST - (SRC + CF);
-	*/
-	/*
-		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
-	*/
-	const IntT result = destination - source - status.carry_bit<IntT>();
-
-	status.carry = Numeric::carried_out<false, bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = result & top_bit<IntT>();
-	status.zero = status.parity = result;
-	status.overflow = overflow<false, IntT>(destination, source, result);
-
-	destination = result;
-}
-
-template <bool write_back, typename IntT>
+template <bool with_borrow, bool write_back, typename IntT>
 void sub(IntT &destination, IntT source, Status &status) {
 	/*
-		DEST ← DEST - SRC;
+		DEST ← DEST - (SRC [+ CF]);
 	*/
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination - source;
+	const IntT result = destination - source - (with_borrow ? status.carry_bit<IntT>() : 0);
 
 	status.carry = Numeric::carried_out<false, bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
@@ -971,12 +933,12 @@ template <
 		case Operation::HLT:	flow_controller.halt();		return;
 		case Operation::WAIT:	flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::adc(destination(), source(), status);			break;
-		case Operation::ADD:	Primitive::add(destination(), source(), status);			break;
-		case Operation::SBB:	Primitive::sbb(destination(), source(), status);			break;
-		case Operation::SUB:	Primitive::sub<true>(destination(), source(), status);		break;
-		case Operation::CMP:	Primitive::sub<false>(destination(), source(), status);		break;
-		case Operation::TEST:	Primitive::test(destination(), source(), status);			break;
+		case Operation::ADC:	Primitive::add<true>(destination(), source(), status);			break;
+		case Operation::ADD:	Primitive::add<false>(destination(), source(), status);			break;
+		case Operation::SBB:	Primitive::sub<true, true>(destination(), source(), status);	break;
+		case Operation::SUB:	Primitive::sub<false, true>(destination(), source(), status);	break;
+		case Operation::CMP:	Primitive::sub<false, false>(destination(), source(), status);	break;
+		case Operation::TEST:	Primitive::test(destination(), source(), status);				break;
 
 		// TODO: all the below could call a common registers getter?
 		case Operation::MUL:

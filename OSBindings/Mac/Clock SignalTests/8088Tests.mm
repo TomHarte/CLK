@@ -297,7 +297,7 @@ struct FailedExecution {
 		@"DC.json.gz",	@"DD.json.gz",	@"DE.json.gz",	@"DE.json.gz",
 
 		// Untested: HLT, WAIT
-
+*/
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
@@ -313,7 +313,7 @@ struct FailedExecution {
 		// SUB
 		@"28.json.gz",	@"29.json.gz",	@"2A.json.gz",	@"2B.json.gz",	@"2C.json.gz",	@"2D.json.gz",
 		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
-
+/*
 		// MUL
 		@"F6.4.json.gz",	@"F7.4.json.gz",
 
@@ -413,9 +413,9 @@ struct FailedExecution {
 */
 
 		// CMP
-//		@"38.json.gz",	@"39.json.gz",	@"3A.json.gz",
-//		@"3B.json.gz",	@"3C.json.gz",	@"3D.json.gz",
-//		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
+		@"38.json.gz",	@"39.json.gz",	@"3A.json.gz",
+		@"3B.json.gz",	@"3C.json.gz",	@"3D.json.gz",
+		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
 
 		// TEST
 //		@"84.json.gz",	@"85.json.gz",
@@ -423,9 +423,9 @@ struct FailedExecution {
 //		@"F6.0.json.gz",	@"F7.0.json.gz",
 
 		// XCHG
-		@"86.json.gz",	@"87.json.gz",
-		@"91.json.gz",	@"92.json.gz",	@"93.json.gz",	@"94.json.gz",
-		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
+//		@"86.json.gz",	@"87.json.gz",
+//		@"91.json.gz",	@"92.json.gz",	@"93.json.gz",	@"94.json.gz",
+//		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
 
 		// TODO: XLAT
 		// TODO: SALC, SETMO, SETMOC
