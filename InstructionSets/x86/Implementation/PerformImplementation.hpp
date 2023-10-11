@@ -503,6 +503,16 @@ void test(IntT &destination, IntT source, Status &status) {
 }
 
 template <typename IntT>
+void xchg(IntT &destination, IntT &source) {
+	/*
+		TEMP ← DEST
+		DEST ← SRC
+		SRC ← TEMP
+	*/
+	std::swap(destination, source);
+}
+
+template <typename IntT>
 void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &status) {
 	/*
 		IF byte operation
@@ -1029,112 +1039,112 @@ template <
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNO:
 			Primitive::jump(
 				!status.condition<Status::Condition::Overflow>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JB:
 			Primitive::jump(
 				status.condition<Status::Condition::Below>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNB:
 			Primitive::jump(
 				!status.condition<Status::Condition::Below>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JZ:
 			Primitive::jump(
 				status.condition<Status::Condition::Zero>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNZ:
 			Primitive::jump(
 				!status.condition<Status::Condition::Zero>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JBE:
 			Primitive::jump(
 				status.condition<Status::Condition::BelowOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNBE:
 			Primitive::jump(
 				!status.condition<Status::Condition::BelowOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JS:
 			Primitive::jump(
 				status.condition<Status::Condition::Sign>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNS:
 			Primitive::jump(
 				!status.condition<Status::Condition::Sign>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JP:
 			Primitive::jump(
 				!status.condition<Status::Condition::ParityOdd>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNP:
 			Primitive::jump(
 				status.condition<Status::Condition::ParityOdd>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JL:
 			Primitive::jump(
 				status.condition<Status::Condition::Less>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNL:
 			Primitive::jump(
 				!status.condition<Status::Condition::Less>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JLE:
 			Primitive::jump(
 				status.condition<Status::Condition::LessOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 		case Operation::JNLE:
 			Primitive::jump(
 				!status.condition<Status::Condition::LessOrEqual>(),
 				instruction.displacement(),
 				registers,
 				flow_controller);
-		break;
+		return;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
@@ -1143,6 +1153,8 @@ template <
 		case Operation::STD:	Primitive::std(status);				return;
 		case Operation::STI:	Primitive::sti(status);				return;
 		case Operation::CMC:	Primitive::cmc(status);				return;
+
+		case Operation::XCHG:	Primitive::xchg(destination(), source());	return;
 	}
 
 	// Write to memory if required to complete this operation.

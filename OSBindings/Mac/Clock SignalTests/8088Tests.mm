@@ -418,11 +418,16 @@ struct FailedExecution {
 //		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
 
 		// TEST
-		@"84.json.gz",	@"85.json.gz",
-		@"A8.json.gz",	@"A9.json.gz",
-		@"F6.0.json.gz",	@"F7.0.json.gz",
+//		@"84.json.gz",	@"85.json.gz",
+//		@"A8.json.gz",	@"A9.json.gz",
+//		@"F6.0.json.gz",	@"F7.0.json.gz",
 
-		// TODO: XCHG, XLAT
+		// XCHG
+		@"86.json.gz",	@"87.json.gz",
+		@"91.json.gz",	@"92.json.gz",	@"93.json.gz",	@"94.json.gz",
+		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
+
+		// TODO: XLAT
 		// TODO: SALC, SETMO, SETMOC
 
 	]];
