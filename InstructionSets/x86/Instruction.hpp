@@ -789,6 +789,10 @@ template<bool is_32bit> class Instruction {
 			if(!has_length_extension()) return Repetition::None;
 			return Repetition((length_extension() >> 4) & 3);
 		}
+
+		/// @returns The data size of this operation — e.g. `MOV AX, BX` has a data size of `::Word` but `MOV EAX, EBX` has a data size of
+		/// `::DWord`. This value is guaranteed never to be `DataSize::None` even for operations such as `CLI` that don't have operands and operate
+		/// on data that is not a byte, word or double word.
 		DataSize operation_size() const {
 			return DataSize(source_data_dest_sib_ >> 14);
 		}

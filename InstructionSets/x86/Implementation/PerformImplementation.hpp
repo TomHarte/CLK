@@ -826,7 +826,7 @@ template <
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
-	auto source = [&]() -> IntT& {
+	const auto source = [&]() -> IntT& {
 		return *resolve<model, IntT>(
 			instruction,
 			instruction.source().template source<false>(),
@@ -836,7 +836,7 @@ template <
 			nullptr,
 			&immediate);
 	};
-	auto destination = [&]() -> IntT& {
+	const auto destination = [&]() -> IntT& {
 		return *resolve<model, IntT>(
 			instruction,
 			instruction.destination().template source<false>(),
@@ -845,6 +845,25 @@ template <
 			memory,
 			nullptr,
 			&immediate);
+	};
+
+	const auto jcc = [&](bool condition) {
+		Primitive::jump(
+			condition,
+			instruction.displacement(),
+			registers,
+			flow_controller);
+	};
+
+	const auto muldiv_high = [&]() -> IntT& {
+		if constexpr (data_size == DataSize::Byte) 			return registers.ah();
+		else if constexpr (data_size == DataSize::Word)		return registers.dx();
+		else if constexpr (data_size == DataSize::DWord)	return registers.edx();
+	};
+	const auto muldiv_low = [&]() -> IntT& {
+		if constexpr (data_size == DataSize::Byte) 			return registers.al();
+		else if constexpr (data_size == DataSize::Word)		return registers.ax();
+		else if constexpr (data_size == DataSize::DWord)	return registers.eax();
 	};
 
 	// Guide to the below:
@@ -891,43 +910,10 @@ template <
 		case Operation::CMP:	Primitive::sub<false, false>(destination(), source(), status);	break;
 		case Operation::TEST:	Primitive::test(destination(), source(), status);				break;
 
-		// TODO: all the below could call a common registers getter?
-		case Operation::MUL:
-			if constexpr (data_size == DataSize::Byte) {
-				Primitive::mul(registers.ah(), registers.al(), source(), status);
-			} else if constexpr (data_size == DataSize::Word) {
-				Primitive::mul(registers.dx(), registers.ax(), source(), status);
-			} else if constexpr (data_size == DataSize::DWord) {
-				Primitive::mul(registers.edx(), registers.eax(), source(), status);
-			}
-		return;
-		case Operation::IMUL_1:
-			if constexpr (data_size == DataSize::Byte) {
-				Primitive::imul(registers.ah(), registers.al(), source(), status);
-			} else if constexpr (data_size == DataSize::Word) {
-				Primitive::imul(registers.dx(), registers.ax(), source(), status);
-			} else if constexpr (data_size == DataSize::DWord) {
-				Primitive::imul(registers.edx(), registers.eax(), source(), status);
-			}
-		return;
-		case Operation::DIV:
-			if constexpr (data_size == DataSize::Byte) {
-				Primitive::div(registers.ah(), registers.al(), source(), flow_controller);
-			} else if constexpr (data_size == DataSize::Word) {
-				Primitive::div(registers.dx(), registers.ax(), source(), flow_controller);
-			} else if constexpr (data_size == DataSize::DWord) {
-				Primitive::div(registers.edx(), registers.eax(), source(), flow_controller);
-			}
-		return;
-		case Operation::IDIV:
-			if constexpr (data_size == DataSize::Byte) {
-				Primitive::idiv(registers.ah(), registers.al(), source(), flow_controller);
-			} else if constexpr (data_size == DataSize::Word) {
-				Primitive::idiv(registers.dx(), registers.ax(), source(), flow_controller);
-			} else if constexpr (data_size == DataSize::DWord) {
-				Primitive::idiv(registers.edx(), registers.eax(), source(), flow_controller);
-			}
-		return;
+		case Operation::MUL:	Primitive::mul(muldiv_high(), muldiv_low(), source(), status);				return;
+		case Operation::IMUL_1:	Primitive::imul(muldiv_high(), muldiv_low(), source(), status);				return;
+		case Operation::DIV:	Primitive::div(muldiv_high(), muldiv_low(), source(), flow_controller);		return;
+		case Operation::IDIV:	Primitive::idiv(muldiv_high(), muldiv_low(), source(), flow_controller);	return;
 
 		case Operation::INC:	Primitive::inc(destination(), status);		break;
 		case Operation::DEC:	Primitive::dec(destination(), status);		break;
@@ -948,118 +934,22 @@ template <
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
 
-		case Operation::JO:
-			Primitive::jump(
-				status.condition<Condition::Overflow>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNO:
-			Primitive::jump(
-				!status.condition<Condition::Overflow>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JB:
-			Primitive::jump(
-				status.condition<Condition::Below>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNB:
-			Primitive::jump(
-				!status.condition<Condition::Below>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JZ:
-			Primitive::jump(
-				status.condition<Condition::Zero>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNZ:
-			Primitive::jump(
-				!status.condition<Condition::Zero>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JBE:
-			Primitive::jump(
-				status.condition<Condition::BelowOrEqual>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNBE:
-			Primitive::jump(
-				!status.condition<Condition::BelowOrEqual>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JS:
-			Primitive::jump(
-				status.condition<Condition::Sign>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNS:
-			Primitive::jump(
-				!status.condition<Condition::Sign>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JP:
-			Primitive::jump(
-				!status.condition<Condition::ParityOdd>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNP:
-			Primitive::jump(
-				status.condition<Condition::ParityOdd>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JL:
-			Primitive::jump(
-				status.condition<Condition::Less>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNL:
-			Primitive::jump(
-				!status.condition<Condition::Less>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JLE:
-			Primitive::jump(
-				status.condition<Condition::LessOrEqual>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
-		case Operation::JNLE:
-			Primitive::jump(
-				!status.condition<Condition::LessOrEqual>(),
-				instruction.displacement(),
-				registers,
-				flow_controller);
-		return;
+		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
+		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;
+		case Operation::JB:		jcc(status.condition<Condition::Below>());			return;
+		case Operation::JNB:	jcc(!status.condition<Condition::Below>());			return;
+		case Operation::JZ:		jcc(status.condition<Condition::Zero>());			return;
+		case Operation::JNZ:	jcc(!status.condition<Condition::Zero>());			return;
+		case Operation::JBE:	jcc(status.condition<Condition::BelowOrEqual>());	return;
+		case Operation::JNBE:	jcc(!status.condition<Condition::BelowOrEqual>());	return;
+		case Operation::JS:		jcc(status.condition<Condition::Sign>());			return;
+		case Operation::JNS:	jcc(!status.condition<Condition::Sign>());			return;
+		case Operation::JP:		jcc(!status.condition<Condition::ParityOdd>());		return;
+		case Operation::JNP:	jcc(status.condition<Condition::ParityOdd>());		return;
+		case Operation::JL:		jcc(status.condition<Condition::Less>());			return;
+		case Operation::JNL:	jcc(!status.condition<Condition::Less>());			return;
+		case Operation::JLE:	jcc(status.condition<Condition::LessOrEqual>());	return;
+		case Operation::JNLE:	jcc(!status.condition<Condition::LessOrEqual>());	return;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
@@ -1105,9 +995,9 @@ template <
 			if constexpr (is_32bit(model)) {
 				perform<model, DataSize::DWord>(instruction, status, flow_controller, registers, memory, io);
 			}
-		break;
+			[[fallthrough]];
 		case DataSize::None:
-			perform<model, DataSize::None>(instruction, status, flow_controller, registers, memory, io);
+			assert(false);
 		break;
 	}
 }
