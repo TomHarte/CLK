@@ -202,7 +202,7 @@ inline void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 }
 
 template <typename FlowControllerT>
-inline void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowControllerT &flow_controller) {
+void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowControllerT &flow_controller) {
 	/*
 		tempAL ← AL;
 		AH ← tempAL / imm8; (* imm8 is set to 0AH for the AAD mnemonic *)
@@ -622,7 +622,7 @@ void inc(IntT &destination, Status &status) {
 }
 
 template <typename IntT, typename RegistersT, typename FlowControllerT>
-inline void jump(bool condition, IntT displacement, RegistersT &registers, FlowControllerT &flow_controller) {
+void jump(bool condition, IntT displacement, RegistersT &registers, FlowControllerT &flow_controller) {
 	/*
 		IF condition
 			THEN
@@ -736,12 +736,12 @@ void not_(IntT &destination) {
 }
 
 template <typename IntT, typename RegistersT, typename FlowControllerT>
-inline void call_relative(IntT offset, RegistersT &registers, FlowControllerT &flow_controller) {
+void call_relative(IntT offset, RegistersT &registers, FlowControllerT &flow_controller) {
 	flow_controller.call(registers.ip() + offset);
 }
 
 template <typename IntT, typename FlowControllerT>
-inline void call_absolute(IntT target, FlowControllerT &flow_controller) {
+void call_absolute(IntT target, FlowControllerT &flow_controller) {
 	flow_controller.call(target);
 }
 
@@ -775,6 +775,18 @@ void call_far(InstructionT &instruction,
 	source_address += 2;
 	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
 	flow_controller.call(segment, offset);
+}
+
+template <typename FlowControllerT>
+void int_(uint8_t vector, FlowControllerT &flow_controller) {
+	flow_controller.interrupt(vector);
+}
+
+template <typename FlowControllerT>
+void into(Status &status, FlowControllerT &flow_controller) {
+	if(status.flag<Flag::Overflow>()) {
+		flow_controller.interrupt(Interrupt::OnOverflow);
+	}
 }
 
 template <typename IntT>
@@ -925,6 +937,9 @@ template <
 		case Operation::CALLfar:
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
+
+		case Operation::INT:	Primitive::int_(instruction.operand(), flow_controller);	return;
+		case Operation::INTO:	Primitive::into(status, flow_controller);					return;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;

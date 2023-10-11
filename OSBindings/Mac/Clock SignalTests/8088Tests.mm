@@ -365,7 +365,12 @@ struct FailedExecution {
 		// TODO: RET
 		// TODO: JMP
 		// TODO: JCXZ
-		// TODO: INT, INTO
+
+		// INTO
+		@"CE.json.gz",
+
+		// INT, INT3
+		@"CC.json.gz", @"CD.json.gz",
 
 		// TODO: LAHF, SAHF
 		// TODO: LDS, LES
