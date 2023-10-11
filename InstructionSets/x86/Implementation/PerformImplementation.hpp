@@ -455,7 +455,7 @@ void sbb(IntT &destination, IntT source, Status &status) {
 	destination = result;
 }
 
-template <typename IntT>
+template <bool write_back, typename IntT>
 void sub(IntT &destination, IntT source, Status &status) {
 	/*
 		DEST ← DEST - SRC;
@@ -471,7 +471,9 @@ void sub(IntT &destination, IntT source, Status &status) {
 	status.zero = status.parity = result;
 	status.overflow = overflow<false, IntT>(destination, source, result);
 
-	destination = result;
+	if constexpr (write_back) {
+		destination = result;
+	}
 }
 
 template <typename IntT>
@@ -931,10 +933,13 @@ template <
 		case Operation::HLT:	flow_controller.halt();		return;
 		case Operation::WAIT:	flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::adc(destination(), source(), status);		break;
-		case Operation::ADD:	Primitive::add(destination(), source(), status);		break;
-		case Operation::SBB:	Primitive::sbb(destination(), source(), status);		break;
-		case Operation::SUB:	Primitive::sub(destination(), source(), status);		break;
+		case Operation::ADC:	Primitive::adc(destination(), source(), status);			break;
+		case Operation::ADD:	Primitive::add(destination(), source(), status);			break;
+		case Operation::SBB:	Primitive::sbb(destination(), source(), status);			break;
+		case Operation::SUB:	Primitive::sub<true>(destination(), source(), status);		break;
+		case Operation::CMP:	Primitive::sub<false>(destination(), source(), status);		break;
+
+		// TODO: all the below could call a common registers getter?
 		case Operation::MUL:
 			if constexpr (data_size == DataSize::Byte) {
 				Primitive::mul(registers.ah(), registers.al(), source(), status);

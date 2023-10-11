@@ -390,11 +390,11 @@ struct FailedExecution {
 		@"80.6.json.gz", @"81.6.json.gz", @"83.6.json.gz",
 */
 
-		// NEG
-		@"F6.3.json.gz",	@"F7.3.json.gz",
-
-		// NOT
-		@"F6.2.json.gz",	@"F7.2.json.gz",
+//		// NEG
+//		@"F6.3.json.gz",	@"F7.3.json.gz",
+//
+//		// NOT
+//		@"F6.2.json.gz",	@"F7.2.json.gz",
 
 /*
 		// NOP
@@ -411,6 +411,11 @@ struct FailedExecution {
 		@"FB.json.gz",	// STI
 		@"F5.json.gz",	// CMC
 */
+
+		// CMP
+		@"38.json.gz",	@"39.json.gz",	@"3A.json.gz",
+		@"3B.json.gz",	@"3C.json.gz",	@"3D.json.gz",
+		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
 
 		// TODO: CMP, TEST
 		// TODO: XCHG, XLAT
