@@ -376,12 +376,11 @@ struct FailedExecution {
 		// TODO: LOOP, LOOPE, LOOPNE
 
 		// TODO: MOV
-		// TODO: NEG, NOT
 
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
 		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
-*/
+
 		// OR
 		@"08.json.gz",	@"09.json.gz",	@"0A.json.gz",	@"0B.json.gz",	@"0C.json.gz",	@"0D.json.gz",
 		@"80.1.json.gz", @"81.1.json.gz", @"83.1.json.gz",
@@ -389,6 +388,13 @@ struct FailedExecution {
 		// XOR
 		@"30.json.gz",	@"31.json.gz",	@"32.json.gz",	@"33.json.gz",	@"34.json.gz",	@"35.json.gz",
 		@"80.6.json.gz", @"81.6.json.gz", @"83.6.json.gz",
+*/
+
+		// NEG
+		@"F6.3.json.gz",	@"F7.3.json.gz",
+
+		// NOT
+		@"F6.2.json.gz",	@"F7.2.json.gz",
 
 /*
 		// NOP

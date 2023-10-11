@@ -749,6 +749,40 @@ void xor_(IntT &destination, IntT source, Status &status) {
 	status.zero = status.parity = destination;
 }
 
+template <typename IntT>
+void neg(IntT &destination, Status &status) {
+	/*
+		IF DEST = 0
+			THEN CF ← 0
+			ELSE CF ← 1;
+		FI;
+		DEST ← –(DEST)
+	*/
+	/*
+		The CF flag cleared to 0 if the source operand is 0; otherwise it is set to 1.
+		The OF, SF, ZF, AF, and PF flags are set according to the result.
+	*/
+	status.auxiliary_carry = Numeric::carried_in<4>(IntT(0), destination, IntT(-destination));
+
+	destination = -destination;
+
+	status.carry = destination;
+	status.overflow = destination == top_bit<IntT>();
+	status.sign = destination & top_bit<IntT>();
+	status.zero = status.parity = destination;
+}
+
+template <typename IntT>
+void not_(IntT &destination) {
+	/*
+		DEST ← NOT DEST;
+	*/
+	/*
+		Flags affected: none.
+	*/
+	destination  = ~destination;
+}
+
 template <typename IntT, typename RegistersT, typename FlowControllerT>
 inline void call_relative(IntT offset, RegistersT &registers, FlowControllerT &flow_controller) {
 	flow_controller.call(registers.ip() + offset);
@@ -944,6 +978,8 @@ template <
 		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
 		case Operation::OR:		Primitive::or_(destination(), source(), status);		break;
 		case Operation::XOR:	Primitive::xor_(destination(), source(), status);		break;
+		case Operation::NEG:	Primitive::neg(source(), status);						break;
+		case Operation::NOT:	Primitive::not_(source());								break;
 
 		case Operation::CALLrel:
 			Primitive::call_relative(instruction.displacement(), registers, flow_controller);

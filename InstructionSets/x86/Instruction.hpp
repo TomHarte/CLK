@@ -144,9 +144,9 @@ enum class Operation: uint8_t {
 
 	/// Loads the destination with the source.
 	MOV,
-	/// Negatives; source and destination point to the same thing, to negative.
+	/// Negatives; source indicates what to negative.
 	NEG,
-	/// Logical NOT; source and destination point to the same thing, to negative.
+	/// Logical NOT; source indicates what to negative.
 	NOT,
 	/// Logical AND; source, destination, operand and displacement will be populated appropriately.
 	AND,
