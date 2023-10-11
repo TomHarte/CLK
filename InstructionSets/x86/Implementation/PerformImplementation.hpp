@@ -150,47 +150,6 @@ IntT *resolve(
 namespace Primitive {
 
 //
-// BEGIN TEMPORARY COPY AND PASTE SECTION.
-//
-// The following are largely excised from the M68k PerformImplementation.hpp; if there proves to be no
-// reason further to specialise them, there'll be a factoring out. In some cases I've tightened the documentation.
-//
-
-/// @returns An int of type @c IntT with only the most-significant bit set.
-template <typename IntT> constexpr IntT top_bit() {
-	static_assert(!std::numeric_limits<IntT>::is_signed);
-	constexpr IntT max = std::numeric_limits<IntT>::max();
-	return max - (max >> 1);
-}
-
-/// @returns The number of bits in @c IntT.
-template <typename IntT> constexpr int bit_size() {
-	return sizeof(IntT) * 8;
-}
-
-/// @returns An int with the top bit indicating whether overflow occurred during the calculation of
-///		• @c lhs + @c rhs (if @c is_add is true); or
-///		• @c lhs - @c rhs (if @c is_add is false)
-/// and the result was @c result. All other bits will be clear.
-template <bool is_add, typename IntT>
-IntT overflow(IntT lhs, IntT rhs, IntT result) {
-	const IntT output_changed = result ^ lhs;
-	const IntT input_differed = lhs ^ rhs;
-
-	if constexpr (is_add) {
-		return top_bit<IntT>() & output_changed & ~input_differed;
-	} else {
-		return top_bit<IntT>() & output_changed & input_differed;
-	}
-}
-// NOTE TO FUTURE SELF: the original 68k `overflow` treats lhs and rhs the other way
-// around, affecting subtractive overflow. Be careful.
-
-//
-// END COPY AND PASTE SECTION.
-//
-
-//
 // Comments below on intended functioning of each operation come from the 1997 edition of the
 // Intel Architecture Software Developer’s Manual; that year all such definitions still fitted within a
 // single volume, Volume 2.
@@ -410,11 +369,11 @@ void add(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination + source + (with_carry ? status.carry_bit<IntT>() : 0);
 
-	status.carry = Numeric::carried_out<true, bit_size<IntT>() - 1>(destination, source, result);
+	status.carry = Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = result & top_bit<IntT>();
+	status.sign = result & Numeric::top_bit<IntT>();
 	status.zero = status.parity = result;
-	status.overflow = overflow<true, IntT>(destination, source, result);
+	status.overflow = Numeric::overflow<true, IntT>(destination, source, result);
 
 	destination = result;
 }
@@ -429,11 +388,11 @@ void sub(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination - source - (with_borrow ? status.carry_bit<IntT>() : 0);
 
-	status.carry = Numeric::carried_out<false, bit_size<IntT>() - 1>(destination, source, result);
+	status.carry = Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result);
 	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.sign = result & top_bit<IntT>();
+	status.sign = result & Numeric::top_bit<IntT>();
 	status.zero = status.parity = result;
-	status.overflow = overflow<false, IntT>(destination, source, result);
+	status.overflow = Numeric::overflow<false, IntT>(destination, source, result);
 
 	if constexpr (write_back) {
 		destination = result;
@@ -460,7 +419,7 @@ void test(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination & source;
 
-	status.sign = result & top_bit<IntT>();
+	status.sign = result & Numeric::top_bit<IntT>();
 	status.zero = result;
 	status.carry = status.overflow = 0;
 	status.parity = result;
@@ -529,7 +488,7 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &st
 	destination_high = (sIntT(destination_low) * sIntT(source)) >> (8 * sizeof(IntT));
 	destination_low = IntT(sIntT(destination_low) * sIntT(source));
 
-	const auto sign_extension = (destination_low & top_bit<IntT>()) ? IntT(~0) : 0;
+	const auto sign_extension = (destination_low & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
 	status.overflow = status.carry = destination_high != sign_extension;
 }
 
@@ -657,8 +616,8 @@ void inc(IntT &destination, Status &status) {
 	*/
 	++destination;
 
-	status.overflow = destination == top_bit<IntT>();
-	status.sign = destination & top_bit<IntT>();
+	status.overflow = destination == Numeric::top_bit<IntT>();
+	status.sign = destination & Numeric::top_bit<IntT>();
 	status.zero = status.parity = destination;
 	status.auxiliary_carry = ((destination - 1) ^ destination) & 0x10;
 }
@@ -691,11 +650,11 @@ void dec(IntT &destination, Status &status) {
 		The CF flag is not affected.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	status.overflow = destination == top_bit<IntT>();
+	status.overflow = destination == Numeric::top_bit<IntT>();
 
 	--destination;
 
-	status.sign = destination & top_bit<IntT>();
+	status.sign = destination & Numeric::top_bit<IntT>();
 	status.zero = status.parity = destination;
 	status.auxiliary_carry = ((destination + 1) ^ destination) & 0x10;
 }
@@ -713,7 +672,7 @@ void and_(IntT &destination, IntT source, Status &status) {
 
 	status.overflow = 0;
 	status.carry = 0;
-	status.sign = destination & top_bit<IntT>();
+	status.sign = destination & Numeric::top_bit<IntT>();
 	status.zero = status.parity = destination;
 }
 
@@ -730,7 +689,7 @@ void or_(IntT &destination, IntT source, Status &status) {
 
 	status.overflow = 0;
 	status.carry = 0;
-	status.sign = destination & top_bit<IntT>();
+	status.sign = destination & Numeric::top_bit<IntT>();
 	status.zero = status.parity = destination;
 }
 
@@ -747,7 +706,7 @@ void xor_(IntT &destination, IntT source, Status &status) {
 
 	status.overflow = 0;
 	status.carry = 0;
-	status.sign = destination & top_bit<IntT>();
+	status.sign = destination & Numeric::top_bit<IntT>();
 	status.zero = status.parity = destination;
 }
 
@@ -769,8 +728,8 @@ void neg(IntT &destination, Status &status) {
 	destination = -destination;
 
 	status.carry = destination;
-	status.overflow = destination == top_bit<IntT>();
-	status.sign = destination & top_bit<IntT>();
+	status.overflow = destination == Numeric::top_bit<IntT>();
+	status.sign = destination & Numeric::top_bit<IntT>();
 	status.zero = status.parity = destination;
 }
 
@@ -841,7 +800,7 @@ void cbw(IntT &ax) {
 
 template <typename IntT>
 void cwd(IntT &dx, IntT ax) {
-	dx = ax & top_bit<IntT>() ? IntT(~0) : IntT(0);
+	dx = ax & Numeric::top_bit<IntT>() ? IntT(~0) : IntT(0);
 }
 
 inline void clc(Status &status) {	status.carry = 0;				}

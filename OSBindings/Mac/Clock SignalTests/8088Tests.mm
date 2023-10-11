@@ -282,7 +282,7 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-/*		@"37.json.gz",	// AAA
+		@"37.json.gz",	// AAA
 		@"3F.json.gz",	// AAS
 		@"D4.json.gz",	// AAM
 		@"D5.json.gz",	// AAD
@@ -297,7 +297,7 @@ struct FailedExecution {
 		@"DC.json.gz",	@"DD.json.gz",	@"DE.json.gz",	@"DE.json.gz",
 
 		// Untested: HLT, WAIT
-*/
+
 		// ADC
 		@"10.json.gz",	@"11.json.gz",	@"12.json.gz",	@"13.json.gz",	@"14.json.gz",	@"15.json.gz",
 		@"80.2.json.gz", @"81.2.json.gz", @"83.2.json.gz",
@@ -313,7 +313,7 @@ struct FailedExecution {
 		// SUB
 		@"28.json.gz",	@"29.json.gz",	@"2A.json.gz",	@"2B.json.gz",	@"2C.json.gz",	@"2D.json.gz",
 		@"80.5.json.gz", @"81.5.json.gz", @"83.5.json.gz",
-/*
+
 		// MUL
 		@"F6.4.json.gz",	@"F7.4.json.gz",
 
@@ -324,41 +324,41 @@ struct FailedExecution {
 		@"F6.6.json.gz",	@"F7.6.json.gz",
 
 		// IDIV
-		@"F6.7.json.gz",	@"F7.7.json.gz",*/
+		@"F6.7.json.gz",	@"F7.7.json.gz",
 
 		// INC
-//		@"40.json.gz",	@"41.json.gz",	@"42.json.gz",	@"43.json.gz",
-//		@"44.json.gz",	@"45.json.gz",	@"46.json.gz",	@"47.json.gz",
-//		@"FE.0.json.gz",
-//		@"FF.0.json.gz",
+		@"40.json.gz",	@"41.json.gz",	@"42.json.gz",	@"43.json.gz",
+		@"44.json.gz",	@"45.json.gz",	@"46.json.gz",	@"47.json.gz",
+		@"FE.0.json.gz",
+		@"FF.0.json.gz",
 
 		// DEC
-//		@"48.json.gz",	@"49.json.gz",	@"4A.json.gz",	@"4B.json.gz",
-//		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
-//		@"FE.1.json.gz",
-//		@"FF.1.json.gz",
+		@"48.json.gz",	@"49.json.gz",	@"4A.json.gz",	@"4B.json.gz",
+		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
+		@"FE.1.json.gz",
+		@"FF.1.json.gz",
 
 		// TODO: IN, OUT
 
-//		@"70.json.gz",	// JO
-//		@"71.json.gz",	// JNO
-//		@"72.json.gz",	// JB
-//		@"73.json.gz",	// JNB
-//		@"74.json.gz",	// JZ
-//		@"75.json.gz",	// JNZ
-//		@"76.json.gz",	// JBE
-//		@"77.json.gz",	// JNBE
-//		@"78.json.gz",	// JS
-//		@"79.json.gz",	// JNS
-//		@"7A.json.gz",	// JP
-//		@"7B.json.gz",	// JNP
-//		@"7C.json.gz",	// JL
-//		@"7D.json.gz",	// JNL
-//		@"7E.json.gz",	// JLE
-//		@"7F.json.gz",	// JNLE
+		@"70.json.gz",	// JO
+		@"71.json.gz",	// JNO
+		@"72.json.gz",	// JB
+		@"73.json.gz",	// JNB
+		@"74.json.gz",	// JZ
+		@"75.json.gz",	// JNZ
+		@"76.json.gz",	// JBE
+		@"77.json.gz",	// JNBE
+		@"78.json.gz",	// JS
+		@"79.json.gz",	// JNS
+		@"7A.json.gz",	// JP
+		@"7B.json.gz",	// JNP
+		@"7C.json.gz",	// JL
+		@"7D.json.gz",	// JNL
+		@"7E.json.gz",	// JLE
+		@"7F.json.gz",	// JNLE
 
 		// CALL
-/*		@"E8.json.gz",	@"FF.2.json.gz",
+		@"E8.json.gz",	@"FF.2.json.gz",
 		@"9A.json.gz",	@"FF.3.json.gz",
 
 		// TODO: IRET
@@ -388,15 +388,13 @@ struct FailedExecution {
 		// XOR
 		@"30.json.gz",	@"31.json.gz",	@"32.json.gz",	@"33.json.gz",	@"34.json.gz",	@"35.json.gz",
 		@"80.6.json.gz", @"81.6.json.gz", @"83.6.json.gz",
-*/
 
-//		// NEG
-//		@"F6.3.json.gz",	@"F7.3.json.gz",
-//
-//		// NOT
-//		@"F6.2.json.gz",	@"F7.2.json.gz",
+		// NEG
+		@"F6.3.json.gz",	@"F7.3.json.gz",
 
-/*
+		// NOT
+		@"F6.2.json.gz",	@"F7.2.json.gz",
+
 		// NOP
 		@"90.json.gz",
 
@@ -410,7 +408,6 @@ struct FailedExecution {
 		@"FD.json.gz",	// STD
 		@"FB.json.gz",	// STI
 		@"F5.json.gz",	// CMC
-*/
 
 		// CMP
 		@"38.json.gz",	@"39.json.gz",	@"3A.json.gz",
@@ -418,14 +415,14 @@ struct FailedExecution {
 		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
 
 		// TEST
-//		@"84.json.gz",	@"85.json.gz",
-//		@"A8.json.gz",	@"A9.json.gz",
-//		@"F6.0.json.gz",	@"F7.0.json.gz",
+		@"84.json.gz",	@"85.json.gz",
+		@"A8.json.gz",	@"A9.json.gz",
+		@"F6.0.json.gz",	@"F7.0.json.gz",
 
 		// XCHG
-//		@"86.json.gz",	@"87.json.gz",
-//		@"91.json.gz",	@"92.json.gz",	@"93.json.gz",	@"94.json.gz",
-//		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
+		@"86.json.gz",	@"87.json.gz",
+		@"91.json.gz",	@"92.json.gz",	@"93.json.gz",	@"94.json.gz",
+		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
 
 		// TODO: XLAT
 		// TODO: SALC, SETMO, SETMOC
