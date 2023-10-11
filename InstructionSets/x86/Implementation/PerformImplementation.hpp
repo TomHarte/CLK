@@ -847,6 +847,7 @@ template <
 			&immediate);
 	};
 
+	// Performs a displacement jump only if @c condition is true.
 	const auto jcc = [&](bool condition) {
 		Primitive::jump(
 			condition,
@@ -855,12 +856,15 @@ template <
 			flow_controller);
 	};
 
-	const auto muldiv_high = [&]() -> IntT& {
+	// Some instructions use a pair of registers as an extended accumulator — DX:AX or EDX:EAX.
+	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
+	// i.e. AX split into high and low parts.
+	const auto pair_high = [&]() -> IntT& {
 		if constexpr (data_size == DataSize::Byte) 			return registers.ah();
 		else if constexpr (data_size == DataSize::Word)		return registers.dx();
 		else if constexpr (data_size == DataSize::DWord)	return registers.edx();
 	};
-	const auto muldiv_low = [&]() -> IntT& {
+	const auto pair_low = [&]() -> IntT& {
 		if constexpr (data_size == DataSize::Byte) 			return registers.al();
 		else if constexpr (data_size == DataSize::Word)		return registers.ax();
 		else if constexpr (data_size == DataSize::DWord)	return registers.eax();
@@ -882,20 +886,8 @@ template <
 		case Operation::DAA:	Primitive::daa(registers.al(), status);												return;
 		case Operation::DAS:	Primitive::das(registers.al(), status);												return;
 
-		case Operation::CBW:
-			if constexpr (data_size == DataSize::Word) {
-				Primitive::cbw(registers.ax());
-			} else if constexpr (is_32bit(model) && data_size == DataSize::DWord) {
-				Primitive::cbw(registers.eax());
-			}
-		return;
-		case Operation::CWD:
-			if constexpr (data_size == DataSize::Word) {
-				Primitive::cwd(registers.dx(), registers.ax());
-			} else if constexpr (data_size == DataSize::DWord) {
-				Primitive::cwd(registers.edx(), registers.eax());
-			}
-		return;
+		case Operation::CBW:	Primitive::cbw(pair_low());					return;
+		case Operation::CWD:	Primitive::cwd(pair_high(), pair_low());	return;
 
 		case Operation::ESC:
 		case Operation::NOP:	return;
@@ -910,10 +902,10 @@ template <
 		case Operation::CMP:	Primitive::sub<false, false>(destination(), source(), status);	break;
 		case Operation::TEST:	Primitive::test(destination(), source(), status);				break;
 
-		case Operation::MUL:	Primitive::mul(muldiv_high(), muldiv_low(), source(), status);				return;
-		case Operation::IMUL_1:	Primitive::imul(muldiv_high(), muldiv_low(), source(), status);				return;
-		case Operation::DIV:	Primitive::div(muldiv_high(), muldiv_low(), source(), flow_controller);		return;
-		case Operation::IDIV:	Primitive::idiv(muldiv_high(), muldiv_low(), source(), flow_controller);	return;
+		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source(), status);				return;
+		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source(), status);				return;
+		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source(), flow_controller);		return;
+		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source(), flow_controller);	return;
 
 		case Operation::INC:	Primitive::inc(destination(), status);		break;
 		case Operation::DEC:	Primitive::dec(destination(), status);		break;
