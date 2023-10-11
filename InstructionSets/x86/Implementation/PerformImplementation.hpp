@@ -175,12 +175,12 @@ inline void aaa(CPU::RegisterPair16 &ax, Status &status) {	// P. 313
 		The AF and CF flags are set to 1 if the adjustment results in a decimal carry;
 		otherwise they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
 	*/
-	if((ax.halves.low & 0x0f) > 9 || status.auxiliary_carry) {
+	if((ax.halves.low & 0x0f) > 9 || status.flag<Flag::AuxiliaryCarry>()) {
 		ax.halves.low += 6;
 		++ax.halves.high;
-		status.auxiliary_carry = status.carry = 1;
+		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
 	} else {
-		status.auxiliary_carry = status.carry = 0;
+		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
@@ -243,12 +243,12 @@ inline void aas(CPU::RegisterPair16 &ax, Status &status) {
 		The AF and CF flags are set to 1 if there is a decimal borrow;
 		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
 	*/
-	if((ax.halves.low & 0x0f) > 9 || status.auxiliary_carry) {
+	if((ax.halves.low & 0x0f) > 9 || status.flag<Flag::AuxiliaryCarry>()) {
 		ax.halves.low -= 6;
 		--ax.halves.high;
-		status.auxiliary_carry = status.carry = 1;
+		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
 	} else {
-		status.auxiliary_carry = status.carry = 0;
+		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
@@ -283,22 +283,22 @@ inline void daa(uint8_t &al, Status &status) {
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = status.carry;
-	status.carry = 0;
+	const auto old_carry = status.flag<Flag::Carry>();
+	status.set_from<Flag::Carry>(0);
 
-	if((al & 0x0f) > 0x09 || status.auxiliary_carry) {
-		status.carry = old_carry | (al > 0xf9);
+	if((al & 0x0f) > 0x09 || status.flag<Flag::AuxiliaryCarry>()) {
+		status.set_from<Flag::Carry>(old_carry | (al > 0xf9));
 		al += 0x06;
-		status.auxiliary_carry = 1;
+		status.set_from<Flag::AuxiliaryCarry>(1);
 	} else {
-		status.auxiliary_carry = 0;
+		status.set_from<Flag::AuxiliaryCarry>(0);
 	}
 
 	if(old_al > 0x99 || old_carry) {
 		al += 0x60;
-		status.carry = 1;
+		status.set_from<Flag::Carry>(1);
 	} else {
-		status.carry = 0;
+		status.set_from<Flag::Carry>(0);
 	}
 
 	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
@@ -334,22 +334,22 @@ inline void das(uint8_t &al, Status &status) {
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = status.carry;
-	status.carry = 0;
+	const auto old_carry = status.flag<Flag::Carry>();
+	status.set_from<Flag::Carry>(0);
 
-	if((al & 0x0f) > 0x09 || status.auxiliary_carry) {
-		status.carry = old_carry | (al < 0x06);
+	if((al & 0x0f) > 0x09 || status.flag<Flag::AuxiliaryCarry>()) {
+		status.set_from<Flag::Carry>(old_carry | (al < 0x06));
 		al -= 0x06;
-		status.auxiliary_carry = 1;
+		status.set_from<Flag::AuxiliaryCarry>(1);
 	} else {
-		status.auxiliary_carry = 0;
+		status.set_from<Flag::AuxiliaryCarry>(0);
 	}
 
 	if(old_al > 0x99 || old_carry) {
 		al -= 0x60;
-		status.carry = 1;
+		status.set_from<Flag::Carry>(1);
 	} else {
-		status.carry = 0;
+		status.set_from<Flag::Carry>(0);
 	}
 
 	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
@@ -365,9 +365,12 @@ void add(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination + source + (with_carry ? status.carry_bit<IntT>() : 0);
 
-	status.carry = Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.overflow = Numeric::overflow<true, IntT>(destination, source, result);
+	status.set_from<Flag::Carry>(
+		Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result));
+	status.set_from<Flag::AuxiliaryCarry>(
+		Numeric::carried_in<4>(destination, source, result));
+	status.set_from<Flag::Overflow>(
+		Numeric::overflow<true, IntT>(destination, source, result));
 
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
@@ -384,9 +387,12 @@ void sub(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination - source - (with_borrow ? status.carry_bit<IntT>() : 0);
 
-	status.carry = Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result);
-	status.auxiliary_carry = Numeric::carried_in<4>(destination, source, result);
-	status.overflow = Numeric::overflow<false, IntT>(destination, source, result);
+	status.set_from<Flag::Carry>(
+		Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result));
+	status.set_from<Flag::AuxiliaryCarry>(
+		Numeric::carried_in<4>(destination, source, result));
+	status.set_from<Flag::Overflow>(
+		Numeric::overflow<false, IntT>(destination, source, result));
 
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
@@ -415,7 +421,7 @@ void test(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination & source;
 
-	status.carry = status.overflow = 0;
+	status.set_from<Flag::Carry, Flag::Overflow>(0);
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 }
 
@@ -448,7 +454,7 @@ void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &sta
 	*/
 	destination_high = (destination_low * source) >> (8 * sizeof(IntT));
 	destination_low *= source;
-	status.overflow = status.carry = destination_high;
+	status.set_from<Flag::Overflow, Flag::Carry>(destination_high);
 }
 
 template <typename IntT>
@@ -483,7 +489,7 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &st
 	destination_low = IntT(sIntT(destination_low) * sIntT(source));
 
 	const auto sign_extension = (destination_low & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
-	status.overflow = status.carry = destination_high != sign_extension;
+	status.set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
 }
 
 template <typename IntT, typename FlowControllerT>
@@ -610,8 +616,8 @@ void inc(IntT &destination, Status &status) {
 	*/
 	++destination;
 
-	status.overflow = destination == Numeric::top_bit<IntT>();
-	status.auxiliary_carry = ((destination - 1) ^ destination) & 0x10;
+	status.set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	status.set_from<Flag::AuxiliaryCarry>(((destination - 1) ^ destination) & 0x10);
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
@@ -643,12 +649,12 @@ void dec(IntT &destination, Status &status) {
 		The CF flag is not affected.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	status.overflow = destination == Numeric::top_bit<IntT>();
+	status.set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
 
 	--destination;
 
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
-	status.auxiliary_carry = ((destination + 1) ^ destination) & 0x10;
+	status.set_from<Flag::AuxiliaryCarry>(((destination + 1) ^ destination) & 0x10);
 }
 
 template <typename IntT>
@@ -662,8 +668,7 @@ void and_(IntT &destination, IntT source, Status &status) {
 	*/
 	destination &= source;
 
-	status.overflow = 0;
-	status.carry = 0;
+	status.set_from<Flag::Overflow, Flag::Carry>(0);
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
@@ -678,8 +683,7 @@ void or_(IntT &destination, IntT source, Status &status) {
 	*/
 	destination |= source;
 
-	status.overflow = 0;
-	status.carry = 0;
+	status.set_from<Flag::Overflow, Flag::Carry>(0);
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
@@ -694,8 +698,7 @@ void xor_(IntT &destination, IntT source, Status &status) {
 	*/
 	destination ^= source;
 
-	status.overflow = 0;
-	status.carry = 0;
+	status.set_from<Flag::Overflow, Flag::Carry>(0);
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
@@ -712,12 +715,12 @@ void neg(IntT &destination, Status &status) {
 		The CF flag cleared to 0 if the source operand is 0; otherwise it is set to 1.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	status.auxiliary_carry = Numeric::carried_in<4>(IntT(0), destination, IntT(-destination));
+	status.set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(IntT(0), destination, IntT(-destination)));
 
 	destination = -destination;
 
-	status.carry = destination;
-	status.overflow = destination == Numeric::top_bit<IntT>();
+	status.set_from<Flag::Carry>(destination);
+	status.set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
 	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
@@ -791,13 +794,14 @@ void cwd(IntT &dx, IntT ax) {
 	dx = ax & Numeric::top_bit<IntT>() ? IntT(~0) : IntT(0);
 }
 
-inline void clc(Status &status) {	status.carry = 0;				}
-inline void cld(Status &status) {	status.direction = 0;			}
-inline void cli(Status &status) {	status.interrupt = 0;			}	// TODO: quite a bit more in protected mode.
-inline void stc(Status &status) {	status.carry = 1;				}
-inline void std(Status &status) {	status.direction = 1;			}
-inline void sti(Status &status) {	status.interrupt = 1;			}	// TODO: quite a bit more in protected mode.
-inline void cmc(Status &status) {	status.carry = !status.carry;	}
+// TODO: changes to the interrupt flag do quite a lot more in protected mode.
+inline void clc(Status &status) {	status.set_from<Flag::Carry>(0);							}
+inline void cld(Status &status) {	status.set_from<Flag::Direction>(0);						}
+inline void cli(Status &status) {	status.set_from<Flag::Interrupt>(0);						}
+inline void stc(Status &status) {	status.set_from<Flag::Carry>(1);							}
+inline void std(Status &status) {	status.set_from<Flag::Direction>(1);						}
+inline void sti(Status &status) {	status.set_from<Flag::Interrupt>(1);						}
+inline void cmc(Status &status) {	status.set_from<Flag::Carry>(!status.flag<Flag::Carry>());	}
 
 }
 

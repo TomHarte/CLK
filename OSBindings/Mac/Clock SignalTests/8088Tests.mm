@@ -197,8 +197,8 @@ class FlowController {
 
 			push(status_.get(), true);
 
-			status_.interrupt = 0;
-			status_.trap = 0;
+			using Flag = InstructionSet::x86::Flag;
+			status_.set_from<Flag::Interrupt, Flag::Trap>(0);
 
 			// Push CS and IP.
 			push(registers_.cs_);
