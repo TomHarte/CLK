@@ -413,11 +413,15 @@ struct FailedExecution {
 */
 
 		// CMP
-		@"38.json.gz",	@"39.json.gz",	@"3A.json.gz",
-		@"3B.json.gz",	@"3C.json.gz",	@"3D.json.gz",
-		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
+//		@"38.json.gz",	@"39.json.gz",	@"3A.json.gz",
+//		@"3B.json.gz",	@"3C.json.gz",	@"3D.json.gz",
+//		@"80.7.json.gz",	@"81.7.json.gz",	@"83.7.json.gz",
 
-		// TODO: CMP, TEST
+		// TEST
+		@"84.json.gz",	@"85.json.gz",
+		@"A8.json.gz",	@"A9.json.gz",
+		@"F6.0.json.gz",	@"F7.0.json.gz",
+
 		// TODO: XCHG, XLAT
 		// TODO: SALC, SETMO, SETMOC
 

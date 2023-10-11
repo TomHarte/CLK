@@ -477,6 +477,32 @@ void sub(IntT &destination, IntT source, Status &status) {
 }
 
 template <typename IntT>
+void test(IntT &destination, IntT source, Status &status) {
+	/*
+		TEMP ← SRC1 AND SRC2;
+		SF ← MSB(TEMP);
+		IF TEMP = 0
+			THEN ZF ← 0;
+			ELSE ZF ← 1;
+		FI:
+		PF ← BitwiseXNOR(TEMP[0:7]);
+		CF ← 0;
+		OF ← 0;
+	*/
+	/*
+		The OF and CF flags are cleared to 0.
+		The SF, ZF, and PF flags are set according to the result (see the “Operation” section above).
+		The state of the AF flag is undefined.
+	*/
+	const IntT result = destination & source;
+
+	status.sign = result & top_bit<IntT>();
+	status.zero = result;
+	status.carry = status.overflow = 0;
+	status.parity = result;
+}
+
+template <typename IntT>
 void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &status) {
 	/*
 		IF byte operation
@@ -938,6 +964,7 @@ template <
 		case Operation::SBB:	Primitive::sbb(destination(), source(), status);			break;
 		case Operation::SUB:	Primitive::sub<true>(destination(), source(), status);		break;
 		case Operation::CMP:	Primitive::sub<false>(destination(), source(), status);		break;
+		case Operation::TEST:	Primitive::test(destination(), source(), status);			break;
 
 		// TODO: all the below could call a common registers getter?
 		case Operation::MUL:
