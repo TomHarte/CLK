@@ -1,4 +1,5 @@
 //
+//
 //  PerformImplementation.hpp
 //  Clock Signal
 //
@@ -789,6 +790,30 @@ void into(Status &status, FlowControllerT &flow_controller) {
 	}
 }
 
+inline void sahf(uint8_t &ah, Status &status) {
+	/*
+		EFLAGS(SF:ZF:0:AF:0:PF:1:CF) ← AH;
+	*/
+	status.set_from<uint8_t, Flag::Sign>(ah);
+	status.set_from<Flag::Zero>(!(ah & 0x40));
+	status.set_from<Flag::AuxiliaryCarry>(ah & 0x10);
+	status.set_from<Flag::ParityOdd>(!(ah & 0x04));
+	status.set_from<Flag::Carry>(ah & 0x01);
+}
+
+inline void lahf(uint8_t &ah, Status &status) {
+	/*
+		AH ← EFLAGS(SF:ZF:0:AF:0:PF:1:CF);
+	*/
+	ah =
+		(status.flag<Flag::Sign>() ? 0x80 : 0x00)	|
+		(status.flag<Flag::Zero>() ? 0x40 : 0x00)	|
+		(status.flag<Flag::AuxiliaryCarry>() ? 0x10 : 0x00)	|
+		(status.flag<Flag::ParityOdd>() ? 0x00 : 0x04)	|
+		0x02 |
+		(status.flag<Flag::Carry>() ? 0x01 : 0x00);
+}
+
 template <typename IntT>
 void cbw(IntT &ax) {
 	constexpr IntT test_bit = 1 << (sizeof(IntT) * 4 - 1);
@@ -940,6 +965,9 @@ template <
 
 		case Operation::INT:	Primitive::int_(instruction.operand(), flow_controller);	return;
 		case Operation::INTO:	Primitive::into(status, flow_controller);					return;
+
+		case Operation::SAHF:	Primitive::sahf(registers.ah(), status);					return;
+		case Operation::LAHF:	Primitive::lahf(registers.ah(), status);					return;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;

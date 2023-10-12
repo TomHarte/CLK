@@ -282,7 +282,7 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"37.json.gz",	// AAA
+/*		@"37.json.gz",	// AAA
 		@"3F.json.gz",	// AAS
 		@"D4.json.gz",	// AAM
 		@"D5.json.gz",	// AAD
@@ -371,8 +371,10 @@ struct FailedExecution {
 
 		// INT, INT3
 		@"CC.json.gz", @"CD.json.gz",
+*/
+		@"9E.json.gz",	// SAHF
+		@"9F.json.gz",	// LAHF
 
-		// TODO: LAHF, SAHF
 		// TODO: LDS, LES
 		// TODO: LEA
 
@@ -381,7 +383,7 @@ struct FailedExecution {
 		// TODO: LOOP, LOOPE, LOOPNE
 
 		// TODO: MOV
-
+/*
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
 		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
@@ -431,7 +433,7 @@ struct FailedExecution {
 
 		// TODO: XLAT
 		// TODO: SALC, SETMO, SETMOC
-
+*/
 	]];
 
 	NSSet *ignoreList = nil;
