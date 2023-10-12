@@ -377,13 +377,14 @@ struct FailedExecution {
 
 		@"C5.json.gz",	// LDS
 		@"C4.json.gz",	// LES
-*/
 		@"8D.json.gz",	// LEA
+*/
 
 		// TODO: CMPS, LODS, MOVS, SCAS, STOS
 
 		// TODO: LOOP, LOOPE, LOOPNE
 
+/*
 		// MOV
 		@"88.json.gz",	@"89.json.gz",	@"8A.json.gz",	@"8B.json.gz",
 		@"8C.json.gz",	@"8E.json.gz",
@@ -394,7 +395,6 @@ struct FailedExecution {
 		@"BC.json.gz",	@"BD.json.gz",	@"BE.json.gz",	@"BF.json.gz",
 		@"C6.json.gz",	@"C7.json.gz",
 
-/*
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",
 		@"80.4.json.gz", @"81.4.json.gz", @"83.4.json.gz",
@@ -443,8 +443,14 @@ struct FailedExecution {
 		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
 
 		// TODO: XLAT
-		// TODO: SALC, SETMO, SETMOC
 */
+		@"D6.json.gz",	// SALC
+
+		// SETMO
+		@"D0.6.json.gz",	@"D1.6.json.gz",
+		// SETMOC
+		@"D2.6.json.gz",	@"D3.6.json.gz",
+
 	]];
 
 	NSSet *ignoreList = nil;

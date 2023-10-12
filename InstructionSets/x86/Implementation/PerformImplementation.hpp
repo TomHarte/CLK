@@ -890,6 +890,24 @@ inline void std(Status &status) {	status.set_from<Flag::Direction>(1);						}
 inline void sti(Status &status) {	status.set_from<Flag::Interrupt>(1);						}
 inline void cmc(Status &status) {	status.set_from<Flag::Carry>(!status.flag<Flag::Carry>());	}
 
+inline void salc(uint8_t &al, const Status &status) {
+	al = status.flag<Flag::Carry>() ? 0xff : 0x00;
+}
+
+template <typename IntT>
+void setmo(IntT &destination, Status &status) {
+	destination = ~0;
+	status.set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
+	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+}
+
+template <typename IntT>
+void setmoc(IntT &destination, uint8_t cl, Status &status) {
+	if(cl) {
+		setmo(destination, status);
+	}
+}
+
 }
 
 template <
@@ -1051,6 +1069,22 @@ template <
 		case Operation::CMC:	Primitive::cmc(status);				return;
 
 		case Operation::XCHG:	Primitive::xchg(destination(), source());	return;
+
+		case Operation::SALC:	Primitive::salc(registers.al(), status);					return;
+		case Operation::SETMO:
+			if constexpr (model == Model::i8086) {
+				Primitive::setmo(destination(), status);
+			} else {
+				// TODO.
+			}
+		return;
+		case Operation::SETMOC:
+			if constexpr (model == Model::i8086) {
+				Primitive::setmoc(destination(), registers.cl(), status);
+			} else {
+				// TODO.
+			}
+		return;
 	}
 
 	// Write to memory if required to complete this operation.

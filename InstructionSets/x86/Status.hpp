@@ -82,7 +82,7 @@ class Status {
 		using FlagT = uint32_t;
 
 		// Flag getters.
-		template <Flag flag> bool flag() {
+		template <Flag flag> bool flag() const {
 			switch(flag) {
 				case Flag::Carry:			return carry;
 				case Flag::AuxiliaryCarry:	return auxiliary_carry;
@@ -97,7 +97,7 @@ class Status {
 		}
 
 		// Condition evaluation.
-		template <Condition test> bool condition() {
+		template <Condition test> bool condition() const {
 			switch(test) {
 				case Condition::Overflow:		return flag<Flag::Overflow>();
 				case Condition::Below:			return flag<Flag::Carry>();
