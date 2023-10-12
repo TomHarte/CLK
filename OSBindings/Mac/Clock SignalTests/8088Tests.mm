@@ -374,11 +374,11 @@ struct FailedExecution {
 
 		@"9E.json.gz",	// SAHF
 		@"9F.json.gz",	// LAHF
-*/
+
 		@"C5.json.gz",	// LDS
 		@"C4.json.gz",	// LES
-
-		// TODO: LEA
+*/
+		@"8D.json.gz",	// LEA
 
 		// TODO: CMPS, LODS, MOVS, SCAS, STOS
 

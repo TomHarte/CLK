@@ -812,6 +812,17 @@ void ld(
 	}
 }
 
+template <Model model, typename IntT, typename InstructionT, typename MemoryT, typename RegistersT>
+void lea(
+	InstructionT &instruction,
+	IntT &destination,
+	MemoryT &memory,
+	RegistersT &registers
+) {
+	// TODO: address size.
+	destination = IntT(address<model, uint16_t>(instruction, instruction.source(), registers, memory));
+}
+
 template <typename FlowControllerT>
 void int_(uint8_t vector, FlowControllerT &flow_controller) {
 	flow_controller.interrupt(vector);
@@ -1005,6 +1016,8 @@ template <
 
 		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::DS>(instruction, destination(), memory, registers);	return;
 		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination(), memory, registers);	return;
+
+		case Operation::LEA:	Primitive::lea<model>(instruction, destination(), memory, registers);	return;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;
