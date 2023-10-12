@@ -56,6 +56,21 @@ uint32_t address(
 }
 
 template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+uint32_t address(
+	InstructionT &instruction,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory
+) {
+	switch(pointer.source<false>()) {
+		default:						return 0;
+		case Source::Indirect:			return address<model, Source::Indirect, IntT>(instruction, pointer, registers, memory);
+		case Source::IndirectNoBase:	return address<model, Source::IndirectNoBase, IntT>(instruction, pointer, registers, memory);
+		case Source::DirectAddress:		return address<model, Source::DirectAddress, IntT>(instruction, pointer, registers, memory);
+	}
+}
+
+template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
 IntT *resolve(
 	InstructionT &instruction,
 	Source source,
@@ -750,11 +765,11 @@ template <Model model, typename InstructionT, typename FlowControllerT, typename
 void call_far(InstructionT &instruction,
 	FlowControllerT &flow_controller,
 	RegistersT &registers,
-	MemoryT &memory) {
-
+	MemoryT &memory
+) {
 	// TODO: eliminate 16-bit assumption below.
 	uint16_t source_address = 0;
-	auto pointer = instruction.destination();
+	const auto pointer = instruction.destination();
 	switch(pointer.template source<false>()) {
 		default:
 		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
@@ -776,6 +791,25 @@ void call_far(InstructionT &instruction,
 	source_address += 2;
 	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
 	flow_controller.call(segment, offset);
+}
+
+template <Model model, Source selector, typename InstructionT, typename MemoryT, typename RegistersT>
+void ld(
+	InstructionT &instruction,
+	uint16_t &destination,
+	MemoryT &memory,
+	RegistersT &registers
+) {
+	const auto pointer = instruction.source();
+	auto source_address = address<model, uint16_t>(instruction, pointer, registers, memory);
+	const Source source_segment = pointer.segment(instruction.segment_override());
+
+	destination = memory.template access<uint16_t>(source_segment, source_address);
+	source_address += 2;
+	switch(selector) {
+		case Source::DS:	registers.ds() = memory.template access<uint16_t>(source_segment, source_address);	break;
+		case Source::ES:	registers.es() = memory.template access<uint16_t>(source_segment, source_address);	break;
+	}
 }
 
 template <typename FlowControllerT>
@@ -966,8 +1000,11 @@ template <
 		case Operation::INT:	Primitive::int_(instruction.operand(), flow_controller);	return;
 		case Operation::INTO:	Primitive::into(status, flow_controller);					return;
 
-		case Operation::SAHF:	Primitive::sahf(registers.ah(), status);					return;
-		case Operation::LAHF:	Primitive::lahf(registers.ah(), status);					return;
+		case Operation::SAHF:	Primitive::sahf(registers.ah(), status);			return;
+		case Operation::LAHF:	Primitive::lahf(registers.ah(), status);			return;
+
+		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::DS>(instruction, destination(), memory, registers);	return;
+		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination(), memory, registers);	return;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;

@@ -371,11 +371,13 @@ struct FailedExecution {
 
 		// INT, INT3
 		@"CC.json.gz", @"CD.json.gz",
-*/
+
 		@"9E.json.gz",	// SAHF
 		@"9F.json.gz",	// LAHF
+*/
+		@"C5.json.gz",	// LDS
+		@"C4.json.gz",	// LES
 
-		// TODO: LDS, LES
 		// TODO: LEA
 
 		// TODO: CMPS, LODS, MOVS, SCAS, STOS
