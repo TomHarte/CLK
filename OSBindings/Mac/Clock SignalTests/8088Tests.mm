@@ -384,7 +384,16 @@ struct FailedExecution {
 
 		// TODO: LOOP, LOOPE, LOOPNE
 
-		// TODO: MOV
+		// MOV
+		@"88.json.gz",	@"89.json.gz",	@"8A.json.gz",	@"8B.json.gz",
+		@"8C.json.gz",	@"8E.json.gz",
+		@"A0.json.gz",	@"A1.json.gz",	@"A2.json.gz",	@"A3.json.gz",
+		@"B0.json.gz",	@"B1.json.gz",	@"B2.json.gz",	@"B3.json.gz",
+		@"B4.json.gz",	@"B5.json.gz",	@"B6.json.gz",	@"B7.json.gz",
+		@"B8.json.gz",	@"B9.json.gz",	@"BA.json.gz",	@"BB.json.gz",
+		@"BC.json.gz",	@"BD.json.gz",	@"BE.json.gz",	@"BF.json.gz",
+		@"C6.json.gz",	@"C7.json.gz",
+
 /*
 		// AND
 		@"20.json.gz",	@"21.json.gz",	@"22.json.gz",	@"23.json.gz",	@"24.json.gz",	@"25.json.gz",

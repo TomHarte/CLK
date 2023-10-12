@@ -823,6 +823,11 @@ void lea(
 	destination = IntT(address<model, uint16_t>(instruction, instruction.source(), registers, memory));
 }
 
+template <typename IntT>
+void mov(IntT &destination, IntT source) {
+	destination = source;
+}
+
 template <typename FlowControllerT>
 void int_(uint8_t vector, FlowControllerT &flow_controller) {
 	flow_controller.interrupt(vector);
@@ -1018,6 +1023,7 @@ template <
 		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination(), memory, registers);	return;
 
 		case Operation::LEA:	Primitive::lea<model>(instruction, destination(), memory, registers);	return;
+		case Operation::MOV:	Primitive::mov(destination(), source());								return;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;
