@@ -923,6 +923,54 @@ void setmoc(IntT &destination, uint8_t cl, Status &status) {
 	if(cl) setmo(destination, status);
 }
 
+template <Model model, typename IntT>
+inline void rcl(IntT &destination, uint8_t count, Status &status) {
+	/*
+		(* RCL and RCR instructions *)
+		SIZE ← OperandSize
+		CASE (determine count) OF
+			SIZE = 8:	tempCOUNT ← (COUNT AND 1FH) MOD 9;
+			SIZE = 16:	tempCOUNT ← (COUNT AND 1FH) MOD 17;
+			SIZE = 32:	tempCOUNT ← COUNT AND 1FH;
+		ESAC;
+	*/
+	if constexpr (model != Model::i8086) {
+		count &= 0x1f;
+	}
+	auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
+
+	/*
+		(* RCL instruction operation *)
+		WHILE (tempCOUNT ≠ 0)
+			DO
+				tempCF ← MSB(DEST);
+				DEST ← (DEST * 2) + CF;
+				CF ← tempCF;
+				tempCOUNT ← tempCOUNT – 1;
+			OD;
+		ELIHW;
+		IF COUNT = 1
+			THEN OF ← MSB(DEST) XOR CF;
+			ELSE OF is undefined;
+		FI;
+	*/
+	/*
+		The CF flag contains the value of the bit shifted into it.
+		The OF flag is affected only for single- bit rotates (see “Description” above);
+		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
+	*/
+	auto carry = status.carry_bit<IntT>();
+	while(temp_count--) {
+		const IntT temp_carry = (destination >> (Numeric::bit_size<IntT>() - 1)) & 1;
+		destination = (destination << 1) | carry;
+		carry = temp_carry;
+	}
+	status.set_from<Flag::Carry>(carry);
+	status.set_from<Flag::Overflow>(
+		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
+	);
+}
+
 }
 
 template <
@@ -974,6 +1022,14 @@ template <
 			instruction.displacement(),
 			registers,
 			flow_controller);
+	};
+
+	const auto shift_count = [&]() -> uint8_t {
+		switch(instruction.source().template source<false>()) {
+			case Source::None:		return 1;
+			case Source::Immediate:	return uint8_t(instruction.operand());
+			default:				return registers.cl();
+		}
 	};
 
 	// Some instructions use a pair of registers as an extended accumulator — DX:AX or EDX:EAX.
@@ -1075,6 +1131,8 @@ template <
 		case Operation::JLE:	jcc(status.condition<Condition::LessOrEqual>());	return;
 		case Operation::JNLE:	jcc(!status.condition<Condition::LessOrEqual>());	return;
 
+		case Operation::RCL:	Primitive::rcl<model>(destination(), shift_count(), status);	break;
+
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
 		case Operation::CLI:	Primitive::cli(status);				return;
@@ -1126,6 +1184,9 @@ template <
 	// Dispatch to a function just like this that is specialised on data size.
 	// Fetching will occur in that specialised function, per the overlapping
 	// meaning of register names.
+
+	// TODO: incorporate and propagate address size.
+
 	switch(instruction.operation_size()) {
 		case DataSize::Byte:
 			perform<model, DataSize::Byte>(instruction, status, flow_controller, registers, memory, io);
