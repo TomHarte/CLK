@@ -934,11 +934,6 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 			SIZE = 32:	tempCOUNT ← COUNT AND 1FH;
 		ESAC;
 	*/
-	if constexpr (model != Model::i8086) {
-		count &= 0x1f;
-	}
-	auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
-
 	/*
 		(* RCL instruction operation *)
 		WHILE (tempCOUNT ≠ 0)
@@ -959,6 +954,7 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 		The OF flag is affected only for single- bit rotates (see “Description” above);
 		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
 	*/
+	auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
 	auto carry = status.carry_bit<IntT>();
 	while(temp_count--) {
 		const IntT temp_carry = (destination >> (Numeric::bit_size<IntT>() - 1)) & 1;
@@ -1025,10 +1021,11 @@ template <
 	};
 
 	const auto shift_count = [&]() -> uint8_t {
+		static constexpr uint8_t mask = (model != Model::i8086) ? 0x1f : 0xff;
 		switch(instruction.source().template source<false>()) {
 			case Source::None:		return 1;
-			case Source::Immediate:	return uint8_t(instruction.operand());
-			default:				return registers.cl();
+			case Source::Immediate:	return uint8_t(instruction.operand()) & mask;
+			default:				return registers.cl() & mask;
 		}
 	};
 
