@@ -441,16 +441,14 @@ struct FailedExecution {
 		@"86.json.gz",	@"87.json.gz",
 		@"91.json.gz",	@"92.json.gz",	@"93.json.gz",	@"94.json.gz",
 		@"95.json.gz",	@"96.json.gz",	@"97.json.gz",
-
-		// TODO: XLAT
 */
-		@"D6.json.gz",	// SALC
+		@"D7.json.gz",		// XLAT
 
-		// SETMO
-		@"D0.6.json.gz",	@"D1.6.json.gz",
-		// SETMOC
-		@"D2.6.json.gz",	@"D3.6.json.gz",
-
+/*
+		@"D6.json.gz",							// SALC
+		@"D0.6.json.gz",	@"D1.6.json.gz",	// SETMO
+		@"D2.6.json.gz",	@"D3.6.json.gz",	// SETMOC
+*/
 	]];
 
 	NSSet *ignoreList = nil;

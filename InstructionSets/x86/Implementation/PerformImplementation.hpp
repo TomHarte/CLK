@@ -814,13 +814,30 @@ void ld(
 
 template <Model model, typename IntT, typename InstructionT, typename MemoryT, typename RegistersT>
 void lea(
-	InstructionT &instruction,
+	const InstructionT &instruction,
 	IntT &destination,
 	MemoryT &memory,
 	RegistersT &registers
 ) {
 	// TODO: address size.
 	destination = IntT(address<model, uint16_t>(instruction, instruction.source(), registers, memory));
+}
+
+template <typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT>
+void xlat(
+	const InstructionT &instruction,
+	MemoryT &memory,
+	RegistersT &registers
+) {
+	Source source_segment = instruction.segment_override();
+	if(source_segment == Source::None) source_segment = Source::DS;
+
+	AddressT address;
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		address = registers.bx() + registers.al();
+	}
+
+	registers.al() = memory.template access<uint8_t>(source_segment, address);
 }
 
 template <typename IntT>
@@ -903,9 +920,7 @@ void setmo(IntT &destination, Status &status) {
 
 template <typename IntT>
 void setmoc(IntT &destination, uint8_t cl, Status &status) {
-	if(cl) {
-		setmo(destination, status);
-	}
+	if(cl) setmo(destination, status);
 }
 
 }
@@ -1085,6 +1100,8 @@ template <
 				// TODO.
 			}
 		return;
+
+		case Operation::XLAT:	Primitive::xlat<uint16_t>(instruction, memory, registers);	return;
 	}
 
 	// Write to memory if required to complete this operation.
