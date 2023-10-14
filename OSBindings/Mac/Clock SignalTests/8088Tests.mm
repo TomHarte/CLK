@@ -418,11 +418,15 @@ struct FailedExecution {
 */
 
 		// TODO: POP, POPF, PUSH, PUSHF
-		// TODO: RCR, ROL, ROR, SAL, SAR, SHR
+		// TODO: ROL, ROR, SAL, SAR, SHR
 
 		// RCL
-		@"D0.2.json.gz",	@"D2.2.json.gz",
-		@"D1.2.json.gz",	@"D3.2.json.gz",
+//		@"D0.2.json.gz",	@"D2.2.json.gz",
+//		@"D1.2.json.gz",	@"D3.2.json.gz",
+
+		// RCR
+		@"D0.3.json.gz",	@"D2.3.json.gz",
+		@"D1.3.json.gz",	@"D3.3.json.gz",
 
 /*
 		@"F8.json.gz",	// CLC

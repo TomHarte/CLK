@@ -923,7 +923,7 @@ void setmoc(IntT &destination, uint8_t cl, Status &status) {
 	if(cl) setmo(destination, status);
 }
 
-template <Model model, typename IntT>
+template <typename IntT>
 inline void rcl(IntT &destination, uint8_t count, Status &status) {
 	/*
 		(* RCL and RCR instructions *)
@@ -954,7 +954,7 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 		The OF flag is affected only for single- bit rotates (see “Description” above);
 		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
 	*/
-	auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
+	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
 	auto carry = status.carry_bit<IntT>();
 	switch(temp_count) {
 		case 0: break;
@@ -978,6 +978,49 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
 	);
 }
+
+template <typename IntT>
+inline void rcr(IntT &destination, uint8_t count, Status &status) {
+	/*
+		(* RCR instruction operation *)
+		IF COUNT = 1
+			THEN OF ← MSB(DEST) XOR CF;
+			ELSE OF is undefined;
+		FI;
+		WHILE (tempCOUNT ≠ 0)
+			DO
+				tempCF ← LSB(SRC);
+				DEST ← (DEST / 2) + (CF * 2SIZE);
+				CF ← tempCF;
+				tempCOUNT ← tempCOUNT – 1;
+			OD;
+	*/
+	auto carry = status.carry_bit<IntT>();
+	status.set_from<Flag::Overflow>(
+		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
+	);
+
+	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
+	switch(temp_count) {
+		case 0: break;
+		case Numeric::bit_size<IntT>(): {
+			const IntT temp_carry = destination & Numeric::top_bit<IntT>();
+			destination = (destination << 1) | carry;
+			carry = temp_carry;
+		} break;
+		default: {
+			const IntT temp_carry = destination & (1 << (temp_count - 1));
+			destination =
+				(destination >> temp_count) |
+				(destination << (Numeric::bit_size<IntT>() + 1 - temp_count)) |
+				(carry << (Numeric::bit_size<IntT>() - temp_count));
+			carry = temp_carry;
+		} break;
+	}
+
+	status.set_from<Flag::Carry>(carry);
+}
+
 
 }
 
@@ -1140,7 +1183,8 @@ template <
 		case Operation::JLE:	jcc(status.condition<Condition::LessOrEqual>());	return;
 		case Operation::JNLE:	jcc(!status.condition<Condition::LessOrEqual>());	return;
 
-		case Operation::RCL:	Primitive::rcl<model>(destination(), shift_count(), status);	break;
+		case Operation::RCL:	Primitive::rcl(destination(), shift_count(), status);	break;
+		case Operation::RCR:	Primitive::rcr(destination(), shift_count(), status);	break;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
