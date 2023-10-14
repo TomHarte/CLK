@@ -956,11 +956,23 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 	*/
 	auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
 	auto carry = status.carry_bit<IntT>();
-	while(temp_count--) {
-		const IntT temp_carry = (destination >> (Numeric::bit_size<IntT>() - 1)) & 1;
-		destination = (destination << 1) | carry;
-		carry = temp_carry;
+	switch(temp_count) {
+		case 0: break;
+		case Numeric::bit_size<IntT>(): {
+			const IntT temp_carry = destination & 1;
+			destination = (destination >> 1) | (carry << (Numeric::bit_size<IntT>() - 1));
+			carry = temp_carry;
+		} break;
+		default: {
+			const IntT temp_carry = destination & (Numeric::top_bit<IntT>() >> (temp_count - 1));
+			destination =
+				(destination << temp_count) |
+				(destination >> (Numeric::bit_size<IntT>() + 1 - temp_count)) |
+				(carry << (temp_count - 1));
+			carry = temp_carry ? 1 : 0;
+		} break;
 	}
+
 	status.set_from<Flag::Carry>(carry);
 	status.set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
