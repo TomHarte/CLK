@@ -1021,7 +1021,99 @@ inline void rcr(IntT &destination, uint8_t count, Status &status) {
 	status.set_from<Flag::Carry>(carry);
 }
 
+template <typename IntT>
+inline void rol(IntT &destination, uint8_t count, Status &status) {
+	/*
+		(* ROL and ROR instructions *)
+		SIZE ← OperandSize
+		CASE (determine count) OF
+			SIZE = 8:	tempCOUNT ← COUNT MOD 8;
+			SIZE = 16:	tempCOUNT ← COUNT MOD 16;
+			SIZE = 32:	tempCOUNT ← COUNT MOD 32;
+		ESAC;
+	*/
+	/*
+		(* ROL instruction operation *)
+		WHILE (tempCOUNT ≠ 0)
+			DO
+				tempCF ← MSB(DEST);
+				DEST ← (DEST * 2) + tempCF;
+				tempCOUNT ← tempCOUNT – 1;
+			OD;
+		ELIHW;
+		IF COUNT = 1
+			THEN OF ← MSB(DEST) XOR CF;
+			ELSE OF is undefined;
+		FI;
+	*/
+	/*
+		The CF flag contains the value of the bit shifted into it.
+		The OF flag is affected only for single- bit rotates (see “Description” above);
+		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
+	*/
+	const auto temp_count = count & (Numeric::bit_size<IntT>() - 1);
+	if(!count) {
+		// TODO: is this 8086-specific? i.e. do the other x86s also exit without affecting flags when temp_count = 0?
+		return;
+	}
+	if(temp_count) {
+		destination =
+			(destination << temp_count) |
+			(destination >> (Numeric::bit_size<IntT>() - temp_count));
+	}
 
+	status.set_from<Flag::Carry>(destination & 1);
+	status.set_from<Flag::Overflow>(
+		((destination >> (Numeric::bit_size<IntT>() - 1)) ^ destination) & 1
+	);
+}
+
+template <typename IntT>
+inline void ror(IntT &destination, uint8_t count, Status &status) {
+	/*
+		(* ROL and ROR instructions *)
+		SIZE ← OperandSize
+		CASE (determine count) OF
+			SIZE = 8:	tempCOUNT ← COUNT MOD 8;
+			SIZE = 16:	tempCOUNT ← COUNT MOD 16;
+			SIZE = 32:	tempCOUNT ← COUNT MOD 32;
+		ESAC;
+	*/
+	/*
+		(* ROR instruction operation *)
+		WHILE (tempCOUNT ≠ 0)
+			DO
+				tempCF ← LSB(DEST);
+				DEST ← (DEST / 2) + (tempCF * 2^SIZE);
+				tempCOUNT ← tempCOUNT – 1;
+			OD;
+		ELIHW;
+		IF COUNT = 1
+			THEN OF ← MSB(DEST) XOR MSB - 1 (DEST);
+			ELSE OF is undefined;
+		FI;
+	*/
+	/*
+		The CF flag contains the value of the bit shifted into it.
+		The OF flag is affected only for single- bit rotates (see “Description” above);
+		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
+	*/
+	const auto temp_count = count & (Numeric::bit_size<IntT>() - 1);
+	if(!count) {
+		// TODO: is this 8086-specific? i.e. do the other x86s also exit without affecting flags when temp_count = 0?
+		return;
+	}
+	if(temp_count) {
+		destination =
+			(destination >> temp_count) |
+			(destination << (Numeric::bit_size<IntT>() - temp_count));
+	}
+
+	status.set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
+	status.set_from<Flag::Overflow>(
+		(destination ^ (destination << 1)) & Numeric::top_bit<IntT>()
+	);
+}
 }
 
 template <
@@ -1185,6 +1277,8 @@ template <
 
 		case Operation::RCL:	Primitive::rcl(destination(), shift_count(), status);	break;
 		case Operation::RCR:	Primitive::rcr(destination(), shift_count(), status);	break;
+		case Operation::ROL:	Primitive::rol(destination(), shift_count(), status);	break;
+		case Operation::ROR:	Primitive::ror(destination(), shift_count(), status);	break;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;

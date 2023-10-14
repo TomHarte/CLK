@@ -418,15 +418,23 @@ struct FailedExecution {
 */
 
 		// TODO: POP, POPF, PUSH, PUSHF
-		// TODO: ROL, ROR, SAL, SAR, SHR
+		// TODO: SAL, SAR, SHR
 
 		// RCL
-//		@"D0.2.json.gz",	@"D2.2.json.gz",
-//		@"D1.2.json.gz",	@"D3.2.json.gz",
+		@"D0.2.json.gz",	@"D2.2.json.gz",
+		@"D1.2.json.gz",	@"D3.2.json.gz",
 
 		// RCR
 		@"D0.3.json.gz",	@"D2.3.json.gz",
 		@"D1.3.json.gz",	@"D3.3.json.gz",
+
+		// ROL
+		@"D0.0.json.gz",	@"D2.0.json.gz",
+		@"D1.0.json.gz",	@"D3.0.json.gz",
+
+		// ROR
+		@"D0.1.json.gz",	@"D2.1.json.gz",
+		@"D1.1.json.gz",	@"D3.1.json.gz",
 
 /*
 		@"F8.json.gz",	// CLC
@@ -635,6 +643,10 @@ struct FailedExecution {
 	[self populate:initial_registers status:initial_status value:initial_state[@"regs"]];
 	execution_support.status = initial_status;
 	execution_support.registers = initial_registers;
+
+	if([test[@"name"] isEqual:@"rol byte ss:[bp+si+CF11h], cl"]) {
+		printf("");
+	}
 
 	// Execute instruction.
 	execution_support.registers.ip_ += decoded.first;
