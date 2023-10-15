@@ -1114,6 +1114,109 @@ inline void ror(IntT &destination, uint8_t count, Status &status) {
 		(destination ^ (destination << 1)) & Numeric::top_bit<IntT>()
 	);
 }
+
+/*
+	tempCOUNT ← (COUNT AND 1FH);
+	tempDEST ← DEST;
+	WHILE (tempCOUNT ≠ 0)
+	DO
+		IF instruction is SAL or SHL
+			THEN
+				CF ← MSB(DEST);
+			ELSE (* instruction is SAR or SHR *)
+				CF ← LSB(DEST);
+		FI;
+		IF instruction is SAL or SHL
+			THEN
+				DEST ← DEST ∗ 2;
+			ELSE
+				IF instruction is SAR
+					THEN
+						DEST ← DEST / 2 (*Signed divide, rounding toward negative infinity*);
+					ELSE (* instruction is SHR *)
+						DEST ← DEST / 2 ; (* Unsigned divide *);
+				FI;
+		FI;
+		tempCOUNT ← tempCOUNT – 1;
+	OD;
+	(* Determine overflow for the various instructions *)
+	IF COUNT = 1
+		THEN
+			IF instruction is SAL or SHL
+				THEN
+					OF ← MSB(DEST) XOR CF;
+				ELSE
+					IF instruction is SAR
+						THEN
+							OF ← 0;
+						ELSE (* instruction is SHR *)
+							OF ← MSB(tempDEST);
+					FI;
+			FI;
+		ELSE
+			IF COUNT = 0
+				THEN
+					All flags remain unchanged;
+				ELSE (* COUNT neither 1 or 0 *)
+					OF ← undefined;
+			FI;
+	FI;
+*/
+/*
+	The CF flag contains the value of the last bit shifted out of the destination operand;
+	it is undefined for SHL and SHR instructions where the count is greater than or equal to
+	the size (in bits) of the destination operand. The OF flag is affected only for 1-bit shifts
+	(see “Description” above); otherwise, it is undefined.
+
+	The SF, ZF, and PF flags are set according to the result. If the count is 0, the flags are not affected.
+	For a non-zero count, the AF flag is undefined.
+*/
+template <typename IntT>
+inline void sal(IntT &destination, uint8_t count, Status &status) {
+	switch(count) {
+		case 0:	return;
+		case Numeric::bit_size<IntT>():
+			status.set_from<Flag::Carry, Flag::Overflow>(destination & 1);
+			destination = 0;
+		break;
+		default:
+			if(count > Numeric::bit_size<IntT>()) {
+				status.set_from<Flag::Carry, Flag::Overflow>(0);
+				destination = 0;
+			} else {
+				const auto mask = (Numeric::top_bit<IntT>() >> (count - 1));
+				status.set_from<Flag::Carry>(
+					 destination & mask
+				);
+				status.set_from<Flag::Overflow>(
+					 (destination ^ (destination << 1)) & mask
+				);
+				destination <<= count;
+			}
+		break;
+	}
+	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+}
+
+template <typename IntT>
+inline void sar(IntT &destination, uint8_t count, Status &status) {
+	if(!count) {
+		return;
+	}
+
+	const IntT sign = Numeric::top_bit<IntT>() & destination;
+	if(count >= Numeric::bit_size<IntT>()) {
+		destination = sign ? IntT(~0) : IntT(0);
+		status.set_from<Flag::Carry>(sign);
+	} else {
+		const IntT mask = 1 << (count - 1);
+		status.set_from<Flag::Carry>(destination & mask);
+		destination = (destination >> count) | (sign ? ~(IntT(~0) >> count) : 0);
+	}
+	status.set_from<Flag::Overflow>(0);
+	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+}
+
 }
 
 template <
@@ -1279,6 +1382,8 @@ template <
 		case Operation::RCR:	Primitive::rcr(destination(), shift_count(), status);	break;
 		case Operation::ROL:	Primitive::rol(destination(), shift_count(), status);	break;
 		case Operation::ROR:	Primitive::ror(destination(), shift_count(), status);	break;
+		case Operation::SAL:	Primitive::sal(destination(), shift_count(), status);	break;
+		case Operation::SAR:	Primitive::sar(destination(), shift_count(), status);	break;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;

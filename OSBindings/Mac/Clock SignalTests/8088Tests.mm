@@ -415,7 +415,6 @@ struct FailedExecution {
 
 		// NOP
 		@"90.json.gz",
-*/
 
 		// TODO: POP, POPF, PUSH, PUSHF
 		// TODO: SAL, SAR, SHR
@@ -435,6 +434,15 @@ struct FailedExecution {
 		// ROR
 		@"D0.1.json.gz",	@"D2.1.json.gz",
 		@"D1.1.json.gz",	@"D3.1.json.gz",
+*/
+
+		// SAL
+//		@"D0.4.json.gz",	@"D2.4.json.gz",
+//		@"D1.4.json.gz",	@"D3.4.json.gz",
+
+		// SAR
+		@"D0.7.json.gz",	@"D2.7.json.gz",
+		@"D1.7.json.gz",	@"D3.7.json.gz",
 
 /*
 		@"F8.json.gz",	// CLC
