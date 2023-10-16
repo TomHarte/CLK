@@ -66,7 +66,7 @@ struct Registers {
 	uint16_t es_, cs_, ds_, ss_;
 
 	uint16_t ip_;
-	uint16_t ip()	{	return ip_;				}
+	uint16_t &ip()	{	return ip_;				}
 
 	uint16_t &es()	{	return es_;				}
 	uint16_t &cs()	{	return cs_;				}
@@ -189,6 +189,10 @@ class FlowController {
 	public:
 		FlowController(Memory &memory, Registers &registers, Status &status) :
 			memory_(memory), registers_(registers), status_(status) {}
+
+		void did_iret() {}
+		void did_near_ret() {}
+		void did_far_ret() {}
 
 		void interrupt(int index) {
 			const uint16_t address = static_cast<uint16_t>(index) << 2;
@@ -361,9 +365,13 @@ struct FailedExecution {
 		// CALL
 		@"E8.json.gz",	@"FF.2.json.gz",
 		@"9A.json.gz",	@"FF.3.json.gz",
+*/
+		// IRET
+		@"CF.json.gz",
 
-		// TODO: IRET
-		// TODO: RET
+		@"C3.json.gz",	@"C2.json.gz",	// near RET
+		@"CB.json.gz",	@"CA.json.gz",	// far RET
+/*
 		// TODO: JMP
 		// TODO: JCXZ
 
@@ -379,13 +387,11 @@ struct FailedExecution {
 		@"C5.json.gz",	// LDS
 		@"C4.json.gz",	// LES
 		@"8D.json.gz",	// LEA
-*/
 
 		// TODO: CMPS, LODS, MOVS, SCAS, STOS
 
 		// TODO: LOOP, LOOPE, LOOPNE
 
-/*
 		// MOV
 		@"88.json.gz",	@"89.json.gz",	@"8A.json.gz",	@"8B.json.gz",
 		@"8C.json.gz",	@"8E.json.gz",
@@ -434,21 +440,19 @@ struct FailedExecution {
 		// ROR
 		@"D0.1.json.gz",	@"D2.1.json.gz",
 		@"D1.1.json.gz",	@"D3.1.json.gz",
-*/
 
 		// SAL
-//		@"D0.4.json.gz",	@"D2.4.json.gz",
-//		@"D1.4.json.gz",	@"D3.4.json.gz",
+		@"D0.4.json.gz",	@"D2.4.json.gz",
+		@"D1.4.json.gz",	@"D3.4.json.gz",
 
 		// SAR
-//		@"D0.7.json.gz",	@"D2.7.json.gz",
-//		@"D1.7.json.gz",	@"D3.7.json.gz",
+		@"D0.7.json.gz",	@"D2.7.json.gz",
+		@"D1.7.json.gz",	@"D3.7.json.gz",
 
 		// SHR
 		@"D0.5.json.gz",	@"D2.5.json.gz",
 		@"D1.5.json.gz",	@"D3.5.json.gz",
 
-/*
 		@"F8.json.gz",	// CLC
 		@"FC.json.gz",	// CLD
 		@"FA.json.gz",	// CLI
@@ -632,7 +636,7 @@ struct FailedExecution {
 	status.set([value[@"flags"] intValue]);
 }
 
-- (void)applyExecutionTest:(NSDictionary *)test file:(NSString *)file metadata:(NSDictionary *)metadata {
+- (void)applyExecutionTest:(NSDictionary *)test metadata:(NSDictionary *)metadata {
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 	const auto data = [self bytes:test[@"bytes"]];
 	const auto decoded = decoder.decode(data.data(), data.size());
@@ -655,10 +659,6 @@ struct FailedExecution {
 	[self populate:initial_registers status:initial_status value:initial_state[@"regs"]];
 	execution_support.status = initial_status;
 	execution_support.registers = initial_registers;
-
-	if([test[@"name"] isEqual:@"rol byte ss:[bp+si+CF11h], cl"]) {
-		printf("");
-	}
 
 	// Execute instruction.
 	execution_support.registers.ip_ += decoded.first;
@@ -760,7 +760,7 @@ struct FailedExecution {
 		}
 
 		for(NSDictionary *test in [self testsInFile:file]) {
-			[self applyExecutionTest:test file:file metadata:test_metadata];
+			[self applyExecutionTest:test metadata:test_metadata];
 		}
 	}
 

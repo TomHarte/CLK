@@ -442,12 +442,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				if constexpr (model >= Model::i80186) {
 					Complete(LEAVE, None, None, DataSize::Byte);
 				} else {
-					Complete(RETfar, None, None, DataSize::DWord);
+					Complete(RETfar, None, None, DataSize::Word);
 				}
 			break;
 
 			case 0xca: RegData(RETfar, None, data_size_);				break;
-			case 0xcb: Complete(RETfar, None, None, DataSize::DWord);	break;
+			case 0xcb: Complete(RETfar, None, None, DataSize::Word);	break;
 
 			case 0xcc:
 				// Encode INT3 as though it were INT with an
@@ -1065,7 +1065,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				address_size_,
 				segment_override_,
 				repetition_,
-				DataSize(operation_size_),
+				operation_size_,
 				static_cast<typename InstructionT::DisplacementT>(displacement_),
 				static_cast<typename InstructionT::ImmediateT>(operand_),
 				consumed_

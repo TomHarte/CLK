@@ -165,6 +165,24 @@ IntT *resolve(
 
 namespace Primitive {
 
+template <typename IntT, typename MemoryT, typename RegistersT>
+void push(IntT value, MemoryT &memory, RegistersT &registers) {
+	registers.sp_ -= sizeof(IntT);
+	memory.template access<IntT>(
+		InstructionSet::x86::Source::SS,
+		registers.sp_) = value;
+	memory.template write_back<IntT>();
+}
+
+template <typename IntT, typename MemoryT, typename RegistersT>
+IntT pop(MemoryT &memory, RegistersT &registers) {
+	const auto value = memory.template access<IntT>(
+		InstructionSet::x86::Source::SS,
+		registers.sp_);
+	registers.sp_ += sizeof(IntT);
+	return value;
+}
+
 //
 // Comments below on intended functioning of each operation come from the 1997 edition of the
 // Intel Architecture Software Developer’s Manual; that year all such definitions still fitted within a
@@ -793,6 +811,30 @@ void call_far(InstructionT &instruction,
 	flow_controller.call(segment, offset);
 }
 
+template <typename FlowControllerT, typename RegistersT, typename MemoryT>
+void iret(RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory, Status &status) {
+	// TODO: all modes other than 16-bit real mode.
+	registers.ip() = pop<uint16_t>(memory, registers);
+	registers.cs() = pop<uint16_t>(memory, registers);
+	status.set(pop<uint16_t>(memory, registers));
+	flow_controller.did_iret();
+}
+
+template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
+void ret_near(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
+	registers.ip() = pop<uint16_t>(memory, registers);
+	registers.sp() += instruction.operand();
+	flow_controller.did_near_ret();
+}
+
+template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
+void ret_far(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
+	registers.ip() = pop<uint16_t>(memory, registers);
+	registers.cs() = pop<uint16_t>(memory, registers);
+	registers.sp() += instruction.operand();
+	flow_controller.did_far_ret();
+}
+
 template <Model model, Source selector, typename InstructionT, typename MemoryT, typename RegistersT>
 void ld(
 	InstructionT &instruction,
@@ -1369,6 +1411,10 @@ template <
 		case Operation::CALLfar:
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
+
+		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);				return;
+		case Operation::RETnear:	Primitive::ret_near(instruction, registers, flow_controller, memory);	return;
+		case Operation::RETfar:		Primitive::ret_far(instruction, registers, flow_controller, memory);	return;
 
 		case Operation::INT:	Primitive::int_(instruction.operand(), flow_controller);	return;
 		case Operation::INTO:	Primitive::into(status, flow_controller);					return;
