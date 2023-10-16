@@ -184,6 +184,25 @@ class Status {
 				(not_parity_bit() ? 0 : ConditionCode::Parity);
 		}
 
+		std::string to_string() const {
+			std::string result;
+
+			if(overflow) result += "O"; else result += "-";
+			if(direction) result += "D"; else result += "-";
+			if(interrupt) result += "I"; else result += "-";
+			if(trap) result += "T"; else result += "-";
+			if(sign) result += "S"; else result += "-";
+			if(!zero) result += "S"; else result += "-";
+			result += "-";
+			if(auxiliary_carry) result += "A"; else result += "-";
+			result += "-";
+			if(!not_parity_bit()) result += "P"; else result += "-";
+			result += "-";
+			if(carry) result += "C"; else result += "-";
+
+			return result;
+		}
+
 		bool operator ==(const Status &rhs) const {
 			return get() == rhs.get();
 		}

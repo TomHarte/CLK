@@ -702,9 +702,11 @@ struct FailedExecution {
 
 		NSMutableArray<NSString *> *reasons = [[NSMutableArray alloc] init];
 		if(!statusEqual) {
+			Status difference;
+			difference.set((intended_status.get() ^ execution_support.status.get()) & flags_mask);
 			[reasons addObject:
-				[NSString stringWithFormat:@"status differs by %04x",
-					(intended_status.get() ^ execution_support.status.get()) & flags_mask]];
+				[NSString stringWithFormat:@"status differs; errors in %s",
+					difference.to_string().c_str()]];
 		}
 		if(!registersEqual) {
 			[reasons addObject:@"registers don't match"];
