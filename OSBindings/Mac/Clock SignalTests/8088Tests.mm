@@ -265,7 +265,8 @@ struct ExecutionSupport {
 };
 
 struct FailedExecution {
-	std::string file, test_name;
+	std::string test_name;
+	std::string reason;
 	InstructionSet::x86::Instruction<false> instruction;
 };
 
@@ -417,7 +418,6 @@ struct FailedExecution {
 		@"90.json.gz",
 
 		// TODO: POP, POPF, PUSH, PUSHF
-		// TODO: SAL, SAR, SHR
 
 		// RCL
 		@"D0.2.json.gz",	@"D2.2.json.gz",
@@ -441,8 +441,12 @@ struct FailedExecution {
 //		@"D1.4.json.gz",	@"D3.4.json.gz",
 
 		// SAR
-		@"D0.7.json.gz",	@"D2.7.json.gz",
-		@"D1.7.json.gz",	@"D3.7.json.gz",
+//		@"D0.7.json.gz",	@"D2.7.json.gz",
+//		@"D1.7.json.gz",	@"D3.7.json.gz",
+
+		// SHR
+		@"D0.5.json.gz",	@"D2.5.json.gz",
+		@"D1.5.json.gz",	@"D3.5.json.gz",
 
 /*
 		@"F8.json.gz",	// CLC
@@ -694,36 +698,24 @@ struct FailedExecution {
 	if(!statusEqual || !registersEqual || !ramEqual) {
 		FailedExecution failure;
 		failure.instruction = decoded.second;
-//		failure.file =	// TODO
 		failure.test_name = std::string([test[@"name"] UTF8String]);
+
+		NSMutableArray<NSString *> *reasons = [[NSMutableArray alloc] init];
+		if(!statusEqual) {
+			[reasons addObject:
+				[NSString stringWithFormat:@"status differs by %04x",
+					(intended_status.get() ^ execution_support.status.get()) & flags_mask]];
+		}
+		if(!registersEqual) {
+			[reasons addObject:@"registers don't match"];
+		}
+		if(!ramEqual) {
+			[reasons addObject:@"RAM contents don't match"];
+		}
+
+		failure.reason = std::string([reasons componentsJoinedByString:@"; "].UTF8String);
 		execution_failures.push_back(std::move(failure));
 	}
-
-/*	if(assert) {
-		XCTAssert(
-			statusEqual,
-			"Status doesn't match despite mask %04x — differs in %04x after %@; executing %@",
-				flags_mask,
-				(intended_status.get() ^ execution_support.status.get()) & flags_mask,
-				test[@"name"],
-				[self toString:decoded.second offsetLength:4 immediateLength:4]
-		);
-		// TODO: should probably say more about the following two.
-		XCTAssert(
-			registersEqual,
-			"Register mismatch after %@; executing %@",
-				test[@"name"],
-				[self toString:decoded.second offsetLength:4 immediateLength:4]
-		);
-		XCTAssert(
-			ramEqual,
-			"Memory contents mismatch after %@; executing %@",
-				test[@"name"],
-				[self toString:decoded.second offsetLength:4 immediateLength:4]
-		);
-	}
-
-	return statusEqual && registersEqual && ramEqual;*/
 }
 
 - (void)printFailures:(NSArray<NSString *> *)failures {
@@ -775,7 +767,7 @@ struct FailedExecution {
 	XCTAssertEqual(execution_failures.size(), 0);
 
 	for(const auto &failure: execution_failures) {
-		NSLog(@"Failed %s", failure.test_name.c_str());
+		NSLog(@"Failed %s — %s", failure.test_name.c_str(), failure.reason.c_str());
 	}
 }
 

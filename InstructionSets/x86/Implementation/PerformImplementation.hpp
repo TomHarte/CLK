@@ -1217,6 +1217,27 @@ inline void sar(IntT &destination, uint8_t count, Status &status) {
 	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
+template <typename IntT>
+inline void shr(IntT &destination, uint8_t count, Status &status) {
+	if(!count) {
+		return;
+	}
+
+	status.set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
+	if(count == Numeric::bit_size<IntT>()) {
+		status.set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
+		destination = 0;
+	} else if(count > Numeric::bit_size<IntT>()) {
+		status.set_from<Flag::Carry>(0);
+		destination = 0;
+	} else {
+		const IntT mask = 1 << (count - 1);
+		status.set_from<Flag::Carry>(destination & mask);
+		destination >>= count;
+	}
+	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+}
+
 }
 
 template <
@@ -1384,6 +1405,7 @@ template <
 		case Operation::ROR:	Primitive::ror(destination(), shift_count(), status);	break;
 		case Operation::SAL:	Primitive::sal(destination(), shift_count(), status);	break;
 		case Operation::SAR:	Primitive::sar(destination(), shift_count(), status);	break;
+		case Operation::SHR:	Primitive::shr(destination(), shift_count(), status);	break;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
