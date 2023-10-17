@@ -70,7 +70,7 @@ Similar effort is put into audio generation. If the real machine normally genera
 
 The display produced is an emulated CRT, with phosphor decay. Therefore if you have a 140Hz 4k monitor it can produce 140 distinct frames per second at 4k resolution. Latency is dictated by the host hardware, not the emulated machine or emulator.
 
-Audio latency is disjoint from frame rate and is generlaly restrained to 5–10ms.
+Audio latency is disjoint from frame rate and is generally restrained to 5–10ms.
 
 ## Accurate Emulation
 
