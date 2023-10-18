@@ -165,8 +165,10 @@ IntT *resolve(
 
 namespace Primitive {
 
+// The below takes a reference in order properly to handle PUSH SP, which should place the value of SP after the
+// push onto the stack.
 template <typename IntT, typename MemoryT, typename RegistersT>
-void push(IntT value, MemoryT &memory, RegistersT &registers) {
+void push(IntT &value, MemoryT &memory, RegistersT &registers) {
 	registers.sp_ -= sizeof(IntT);
 	memory.template access<IntT>(
 		InstructionSet::x86::Source::SS,
@@ -1341,6 +1343,17 @@ inline void shr(IntT &destination, uint8_t count, Status &status) {
 	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
+template <typename MemoryT, typename RegistersT>
+void popf(MemoryT &memory, RegistersT &registers, Status &status) {
+	status.set(pop<uint16_t>(memory, registers));
+}
+
+template <typename MemoryT, typename RegistersT>
+void pushf(MemoryT &memory, RegistersT &registers, Status &status) {
+	uint16_t value = status.get();
+	push<uint16_t>(value, memory, registers);
+}
+
 }
 
 template <
@@ -1360,7 +1373,7 @@ template <
 	[[maybe_unused]] IOT &io
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
-	using AddressT = typename AddressT<is_32bit(model)>::type;
+//	using AddressT = typename AddressT<is_32bit(model)>::type;
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
@@ -1551,6 +1564,11 @@ template <
 		return;
 
 		case Operation::XLAT:	Primitive::xlat<uint16_t>(instruction, memory, registers);	return;
+
+		case Operation::POP:	source() = Primitive::pop<IntT>(memory, registers);		break;
+		case Operation::PUSH:	Primitive::push<IntT>(source(), memory, registers);		break;
+		case Operation::POPF:	Primitive::popf(memory, registers, status);				break;
+		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);			break;
 	}
 
 	// Write to memory if required to complete this operation.

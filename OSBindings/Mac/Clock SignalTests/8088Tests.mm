@@ -391,11 +391,11 @@ struct FailedExecution {
 		@"8D.json.gz",	// LEA
 
 		// TODO: CMPS, LODS, MOVS, SCAS, STOS
-*/
+
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
 		@"E2.json.gz",	// LOOP
-/*
+
 		// MOV
 		@"88.json.gz",	@"89.json.gz",	@"8A.json.gz",	@"8B.json.gz",
 		@"8C.json.gz",	@"8E.json.gz",
@@ -426,9 +426,25 @@ struct FailedExecution {
 
 		// NOP
 		@"90.json.gz",
+*/
+		// POP
+		@"07.json.gz",	@"0F.json.gz",	@"17.json.gz",	@"1F.json.gz",
+		@"58.json.gz",	@"59.json.gz",	@"5A.json.gz",	@"5B.json.gz",
+		@"5C.json.gz",	@"5D.json.gz",	@"5E.json.gz",	@"5F.json.gz",
+		@"8F.json.gz",
 
-		// TODO: POP, POPF, PUSH, PUSHF
+		// PUSH
+		@"06.json.gz",	@"0E.json.gz",	@"16.json.gz",	@"1E.json.gz",
+		@"50.json.gz",	@"51.json.gz",	@"52.json.gz",	@"53.json.gz",
+		@"54.json.gz",	@"55.json.gz",	@"56.json.gz",	@"57.json.gz",
+		@"FF.6.json.gz",
 
+		// POPF
+		@"9D.json.gz",
+
+		// PUSHF
+		@"9C.json.gz",
+/*
 		// RCL
 		@"D0.2.json.gz",	@"D2.2.json.gz",
 		@"D1.2.json.gz",	@"D3.2.json.gz",
