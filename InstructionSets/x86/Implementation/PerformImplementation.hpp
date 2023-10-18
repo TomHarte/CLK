@@ -1452,6 +1452,10 @@ template <
 		case Operation::JMPrel:	jcc(true);																		return;
 		case Operation::JMPabs:	Primitive::jump_absolute(destination(), flow_controller);						return;
 		case Operation::JMPfar:	Primitive::jump_far<model>(instruction, flow_controller, registers, memory);	return;
+		case Operation::JCXZ:
+			// TODO: use ECX rather than CX if address size is 32-bit.
+			jcc(!registers.cx());
+		return;
 
 		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);			return;
 		case Operation::RETnear:	Primitive::ret_near(instruction, registers, flow_controller, memory);	return;

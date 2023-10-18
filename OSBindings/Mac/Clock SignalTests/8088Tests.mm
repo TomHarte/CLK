@@ -375,18 +375,14 @@ struct FailedExecution {
 
 		@"C3.json.gz",	@"C2.json.gz",	// near RET
 		@"CB.json.gz",	@"CA.json.gz",	// far RET
-*/
-		// relative JMP
-		@"EB.json.gz",		@"E9.json.gz",
 
-		// far JMP
-		@"EA.josn.gz",		@"FF.5.json.gz",
+		@"EB.json.gz",	@"E9.json.gz",		// relative JMP
+		@"EA.josn.gz",	@"FF.5.json.gz",	// far JMP
 
 		@"FF.4.json.gz",	// absolute JMP
-
+*/
+		@"E3.json.gz",		// JCXZ
 /*
-		// TODO: JCXZ
-
 		// INTO
 		@"CE.json.gz",
 
