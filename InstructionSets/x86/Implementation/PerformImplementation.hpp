@@ -674,6 +674,30 @@ void jump(bool condition, IntT displacement, RegistersT &registers, FlowControll
 	}
 }
 
+template <typename IntT, typename OffsetT, typename RegistersT, typename FlowControllerT>
+void loop(IntT &counter, OffsetT displacement, RegistersT &registers, FlowControllerT &flow_controller) {
+	--counter;
+	if(counter) {
+		flow_controller.jump(registers.ip() + displacement);
+	}
+}
+
+template <typename IntT, typename OffsetT, typename RegistersT, typename FlowControllerT>
+void loope(IntT &counter, OffsetT displacement, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
+	--counter;
+	if(counter && status.flag<Flag::Zero>()) {
+		flow_controller.jump(registers.ip() + displacement);
+	}
+}
+
+template <typename IntT, typename OffsetT, typename RegistersT, typename FlowControllerT>
+void loopne(IntT &counter, OffsetT displacement, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
+	--counter;
+	if(counter && !status.flag<Flag::Zero>()) {
+		flow_controller.jump(registers.ip() + displacement);
+	}
+}
+
 template <typename IntT>
 void dec(IntT &destination, Status &status) {
 	/*
@@ -1452,10 +1476,12 @@ template <
 		case Operation::JMPrel:	jcc(true);																		return;
 		case Operation::JMPabs:	Primitive::jump_absolute(destination(), flow_controller);						return;
 		case Operation::JMPfar:	Primitive::jump_far<model>(instruction, flow_controller, registers, memory);	return;
-		case Operation::JCXZ:
-			// TODO: use ECX rather than CX if address size is 32-bit.
-			jcc(!registers.cx());
-		return;
+
+		// TODO: use ECX rather than CX for all of below if address size is 32-bit.
+		case Operation::JCXZ:	jcc(!registers.cx());								return;
+		case Operation::LOOP:	Primitive::loop(registers.cx(), instruction.offset(), registers, flow_controller);				return;
+		case Operation::LOOPE:	Primitive::loope(registers.cx(), instruction.offset(), registers, status, flow_controller);		return;
+		case Operation::LOOPNE:	Primitive::loopne(registers.cx(), instruction.offset(), registers, status, flow_controller);	return;
 
 		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);			return;
 		case Operation::RETnear:	Primitive::ret_near(instruction, registers, flow_controller, memory);	return;

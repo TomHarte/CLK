@@ -73,11 +73,6 @@ struct Registers {
 	uint16_t &ds()	{	return ds_;				}
 	uint16_t &ss()	{	return ss_;				}
 
-//	uint32_t zero_ = 0;
-//	template <typename IntT> IntT &zero() {
-//		return static_cast<IntT>(zero);
-//	}
-
 	bool operator ==(const Registers &rhs) const {
 		return
 			ax_.full == rhs.ax_.full &&
@@ -380,9 +375,8 @@ struct FailedExecution {
 		@"EA.josn.gz",	@"FF.5.json.gz",	// far JMP
 
 		@"FF.4.json.gz",	// absolute JMP
-*/
 		@"E3.json.gz",		// JCXZ
-/*
+
 		// INTO
 		@"CE.json.gz",
 
@@ -397,9 +391,11 @@ struct FailedExecution {
 		@"8D.json.gz",	// LEA
 
 		// TODO: CMPS, LODS, MOVS, SCAS, STOS
-
-		// TODO: LOOP, LOOPE, LOOPNE
-
+*/
+		@"E0.json.gz",	// LOOPNE
+		@"E1.json.gz",	// LOOPE
+		@"E2.json.gz",	// LOOP
+/*
 		// MOV
 		@"88.json.gz",	@"89.json.gz",	@"8A.json.gz",	@"8B.json.gz",
 		@"8C.json.gz",	@"8E.json.gz",
@@ -717,7 +713,23 @@ struct FailedExecution {
 					difference.to_string().c_str()]];
 		}
 		if(!registersEqual) {
-			[reasons addObject:@"registers don't match"];
+			NSMutableArray<NSString *> *registers = [[NSMutableArray alloc] init];
+			if(intended_registers.ax() != execution_support.registers.ax())	[registers addObject:@"ax"];
+			if(intended_registers.cx() != execution_support.registers.cx())	[registers addObject:@"cx"];
+			if(intended_registers.dx() != execution_support.registers.dx())	[registers addObject:@"dx"];
+			if(intended_registers.bx() != execution_support.registers.bx())	[registers addObject:@"bx"];
+			if(intended_registers.sp() != execution_support.registers.sp())	[registers addObject:@"sp"];
+			if(intended_registers.bp() != execution_support.registers.bp())	[registers addObject:@"bp"];
+			if(intended_registers.si() != execution_support.registers.si())	[registers addObject:@"si"];
+			if(intended_registers.di() != execution_support.registers.di())	[registers addObject:@"di"];
+			if(intended_registers.ip() != execution_support.registers.ip())	[registers addObject:@"ip"];
+			if(intended_registers.es() != execution_support.registers.es())	[registers addObject:@"es"];
+			if(intended_registers.cs() != execution_support.registers.cs())	[registers addObject:@"cs"];
+			if(intended_registers.ds() != execution_support.registers.ds())	[registers addObject:@"ds"];
+			if(intended_registers.ss() != execution_support.registers.ss())	[registers addObject:@"ss"];
+			[reasons addObject:[NSString stringWithFormat:
+				@"registers don't match: %@", [registers componentsJoinedByString:@", "]
+			]];
 		}
 		if(!ramEqual) {
 			[reasons addObject:@"RAM contents don't match"];
