@@ -779,6 +779,11 @@ void call_absolute(IntT target, FlowControllerT &flow_controller) {
 	flow_controller.call(target);
 }
 
+template <typename IntT, typename FlowControllerT>
+void jump_absolute(IntT target, FlowControllerT &flow_controller) {
+	flow_controller.jump(target);
+}
+
 template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
 void call_far(InstructionT &instruction,
 	FlowControllerT &flow_controller,
@@ -809,6 +814,38 @@ void call_far(InstructionT &instruction,
 	source_address += 2;
 	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
 	flow_controller.call(segment, offset);
+}
+
+template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
+void jump_far(InstructionT &instruction,
+	FlowControllerT &flow_controller,
+	RegistersT &registers,
+	MemoryT &memory
+) {
+	// TODO: eliminate 16-bit assumption below.
+	uint16_t source_address = 0;
+	const auto pointer = instruction.destination();
+	switch(pointer.template source<false>()) {
+		default:
+		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
+
+		case Source::Indirect:
+			source_address = address<model, Source::Indirect, uint16_t>(instruction, pointer, registers, memory);
+		break;
+		case Source::IndirectNoBase:
+			source_address = address<model, Source::IndirectNoBase, uint16_t>(instruction, pointer, registers, memory);
+		break;
+		case Source::DirectAddress:
+			source_address = address<model, Source::DirectAddress, uint16_t>(instruction, pointer, registers, memory);
+		break;
+	}
+
+	const Source source_segment = pointer.segment(instruction.segment_override());
+
+	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
+	source_address += 2;
+	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
+	flow_controller.jump(segment, offset);
 }
 
 template <typename FlowControllerT, typename RegistersT, typename MemoryT>
@@ -1412,7 +1449,11 @@ template <
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
 
-		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);				return;
+		case Operation::JMPrel:	jcc(true);																		return;
+		case Operation::JMPabs:	Primitive::jump_absolute(destination(), flow_controller);						return;
+		case Operation::JMPfar:	Primitive::jump_far<model>(instruction, flow_controller, registers, memory);	return;
+
+		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);			return;
 		case Operation::RETnear:	Primitive::ret_near(instruction, registers, flow_controller, memory);	return;
 		case Operation::RETfar:		Primitive::ret_far(instruction, registers, flow_controller, memory);	return;
 

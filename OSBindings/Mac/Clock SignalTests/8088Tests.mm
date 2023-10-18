@@ -214,17 +214,21 @@ class FlowController {
 
 		void call(uint16_t address) {
 			push(registers_.ip_);
-			registers_.ip_ = address;
+			jump(address);
 		}
 
 		void call(uint16_t segment, uint16_t offset) {
 			push(registers_.cs_);
 			push(registers_.ip_);
-			registers_.cs_ = segment;
-			registers_.ip_ = offset;
+			jump(segment, offset);
 		}
 
 		void jump(uint16_t address) {
+			registers_.ip_ = address;
+		}
+
+		void jump(uint16_t segment, uint16_t address) {
+			registers_.cs_ = segment;
 			registers_.ip_ = address;
 		}
 
@@ -365,14 +369,22 @@ struct FailedExecution {
 		// CALL
 		@"E8.json.gz",	@"FF.2.json.gz",
 		@"9A.json.gz",	@"FF.3.json.gz",
-*/
+
 		// IRET
 		@"CF.json.gz",
 
 		@"C3.json.gz",	@"C2.json.gz",	// near RET
 		@"CB.json.gz",	@"CA.json.gz",	// far RET
+*/
+		// relative JMP
+		@"EB.json.gz",		@"E9.json.gz",
+
+		// far JMP
+		@"EA.josn.gz",		@"FF.5.json.gz",
+
+		@"FF.4.json.gz",	// absolute JMP
+
 /*
-		// TODO: JMP
 		// TODO: JCXZ
 
 		// INTO
