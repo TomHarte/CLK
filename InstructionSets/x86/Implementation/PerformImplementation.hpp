@@ -1354,6 +1354,72 @@ void pushf(MemoryT &memory, RegistersT &registers, Status &status) {
 	push<uint16_t>(value, memory, registers);
 }
 
+template <typename AddressT, typename InstructionT, typename RegistersT>
+bool repetition_over(const InstructionT &instruction, RegistersT &registers) {
+	if(instruction.repetition() == Repetition::None) {
+		return false;
+	}
+
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		return !registers.cx();
+	} else {
+		return !registers.ecx();
+	}
+}
+
+template <typename AddressT, typename InstructionT, typename RegistersT, typename FlowControllerT>
+void repeat(const InstructionT &instruction, Status &status, RegistersT &registers, FlowControllerT &flow_controller) {
+	if(instruction.repetition() == Repetition::None) {
+		return;
+	}
+
+	bool count_exhausted = false;
+
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		count_exhausted = !(--registers.cx());
+	} else {
+		count_exhausted = !(--registers.ecx());
+	}
+
+	if(count_exhausted) {
+		return;
+	}
+	const bool zero = status.flag<Flag::Zero>();
+	if(instruction.repetition() == Repetition::RepE && !zero) {
+		return;
+	} else if(instruction.repetition() == Repetition::RepNE && zero) {
+		return;
+	}
+
+	flow_controller.repeat_last();
+}
+
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT, typename FlowControllerT>
+void cmps(const InstructionT &instruction, MemoryT &memory, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, registers)) {
+		return;
+	}
+
+	Source source_segment = instruction.segment_override();
+	if(source_segment == Source::None) source_segment = Source::DS;
+
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		IntT source = memory.template access<IntT>(source_segment, registers.si());
+		IntT destination = memory.template access<IntT>(Source::ES, registers.di());
+		Primitive::sub<false, false>(destination, source, status);
+		registers.si() += status.direction<AddressT>();
+		registers.di() += status.direction<AddressT>();
+	} else {
+		IntT source = memory.template access<IntT>(source_segment, registers.esi());
+		IntT destination = memory.template access<IntT>(Source::ES, registers.edi());
+		Primitive::sub<false, false>(destination, source, status);
+		registers.esi() += status.direction<AddressT>();
+		registers.edi() += status.direction<AddressT>();
+	}
+
+	repeat<AddressT>(instruction, status, registers, flow_controller);
+}
+
 }
 
 template <
@@ -1569,6 +1635,11 @@ template <
 		case Operation::PUSH:	Primitive::push<IntT>(source(), memory, registers);		break;
 		case Operation::POPF:	Primitive::popf(memory, registers, status);				break;
 		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);			break;
+
+		// TODO: don't assume address size below.
+		case Operation::CMPS:
+			Primitive::cmps<IntT, uint16_t>(instruction, memory, registers, status, flow_controller);
+		break;
 	}
 
 	// Write to memory if required to complete this operation.

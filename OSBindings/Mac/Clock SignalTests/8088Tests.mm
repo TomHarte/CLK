@@ -230,6 +230,10 @@ class FlowController {
 		void halt() {}
 		void wait() {}
 
+		void repeat_last() {
+			// TODO.
+		}
+
 	private:
 		Memory &memory_;
 		Registers &registers_;
@@ -390,8 +394,11 @@ struct FailedExecution {
 		@"C4.json.gz",	// LES
 		@"8D.json.gz",	// LEA
 
-		// TODO: CMPS, LODS, MOVS, SCAS, STOS
-
+		// TODO: LODS, MOVS, SCAS, STOS
+*/
+		// CMPS
+		@"A6.json.gz", //@"A7.json.gz",
+/*
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
 		@"E2.json.gz",	// LOOP
@@ -426,7 +433,7 @@ struct FailedExecution {
 
 		// NOP
 		@"90.json.gz",
-*/
+
 		// POP
 		@"07.json.gz",	@"0F.json.gz",	@"17.json.gz",	@"1F.json.gz",
 		@"58.json.gz",	@"59.json.gz",	@"5A.json.gz",	@"5B.json.gz",
@@ -444,7 +451,7 @@ struct FailedExecution {
 
 		// PUSHF
 		@"9C.json.gz",
-/*
+
 		// RCL
 		@"D0.2.json.gz",	@"D2.2.json.gz",
 		@"D1.2.json.gz",	@"D3.2.json.gz",
@@ -653,7 +660,26 @@ struct FailedExecution {
 	registers.ss_ = [value[@"ss"] intValue];
 	registers.ip_ = [value[@"ip"] intValue];
 
-	status.set([value[@"flags"] intValue]);
+	const uint16_t flags = [value[@"flags"] intValue];
+	status.set(flags);
+
+	// Apply a quick test of flag packing/unpacking.
+	constexpr auto defined_flags = static_cast<uint16_t>(
+		InstructionSet::x86::ConditionCode::Carry |
+		InstructionSet::x86::ConditionCode::Parity |
+		InstructionSet::x86::ConditionCode::AuxiliaryCarry |
+		InstructionSet::x86::ConditionCode::Zero |
+		InstructionSet::x86::ConditionCode::Sign |
+		InstructionSet::x86::ConditionCode::Trap |
+		InstructionSet::x86::ConditionCode::Interrupt |
+		InstructionSet::x86::ConditionCode::Direction |
+		InstructionSet::x86::ConditionCode::Overflow
+	);
+	XCTAssert((status.get() & defined_flags) == (flags & defined_flags),
+		"Set status of %04x was returned as %04x",
+			flags & defined_flags,
+			(status.get() & defined_flags)
+		);
 }
 
 - (void)applyExecutionTest:(NSDictionary *)test metadata:(NSDictionary *)metadata {

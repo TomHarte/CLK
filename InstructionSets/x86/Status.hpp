@@ -84,14 +84,14 @@ class Status {
 		// Flag getters.
 		template <Flag flag> bool flag() const {
 			switch(flag) {
-				case Flag::Carry:			return carry;
-				case Flag::AuxiliaryCarry:	return auxiliary_carry;
-				case Flag::Sign:			return sign;
-				case Flag::Overflow:		return overflow;
-				case Flag::Trap:			return trap;
-				case Flag::Interrupt:		return interrupt;
-				case Flag::Direction:		return direction;
-				case Flag::Zero:			return !zero;
+				case Flag::Carry:			return carry_;
+				case Flag::AuxiliaryCarry:	return auxiliary_carry_;
+				case Flag::Sign:			return sign_;
+				case Flag::Overflow:		return overflow_;
+				case Flag::Trap:			return trap_;
+				case Flag::Interrupt:		return interrupt_;
+				case Flag::Direction:		return direction_ < 0;
+				case Flag::Zero:			return !zero_;
 				case Flag::ParityOdd:		return not_parity_bit();
 			}
 		}
@@ -126,15 +126,15 @@ class Status {
 			for(const auto flag: {flags...}) {
 				switch(flag) {
 					default: break;
-					case Flag::Zero:			zero = value;								break;
-					case Flag::Sign:			sign = value & Numeric::top_bit<IntT>();	break;
-					case Flag::ParityOdd:		parity = value;								break;
-					case Flag::Carry:			carry = value;								break;
-					case Flag::AuxiliaryCarry:	auxiliary_carry = value;					break;
-					case Flag::Overflow:		overflow = value;							break;
-					case Flag::Interrupt:		interrupt = value;							break;
-					case Flag::Trap:			trap = value;								break;
-					case Flag::Direction:		direction = value;							break;
+					case Flag::Zero:			zero_ = value;								break;
+					case Flag::Sign:			sign_ = value & Numeric::top_bit<IntT>();	break;
+					case Flag::ParityOdd:		parity_ = value;							break;
+					case Flag::Carry:			carry_ = value;								break;
+					case Flag::AuxiliaryCarry:	auxiliary_carry_ = value;					break;
+					case Flag::Overflow:		overflow_ = value;							break;
+					case Flag::Interrupt:		interrupt_ = value;							break;
+					case Flag::Trap:			trap_ = value;								break;
+					case Flag::Direction:		direction_ = value ? -1 : 1;				break;
 				}
 			}
 		}
@@ -142,44 +142,45 @@ class Status {
 			set_from<FlagT, flags...>(value);
 		}
 
-		template <typename IntT> IntT carry_bit() const { return carry ? 1 : 0; }
+		template <typename IntT> IntT carry_bit() const { return carry_ ? 1 : 0; }
 		bool not_parity_bit() const {
 			// x86 parity always considers the lowest 8-bits only.
-			auto result = static_cast<uint8_t>(parity);
+			auto result = static_cast<uint8_t>(parity_);
 			result ^= result >> 4;
 			result ^= result >> 2;
 			result ^= result >> 1;
 			return result & 1;
 		}
 
+		template <typename IntT> IntT direction() const { return static_cast<IntT>(direction_); }
+
 		// Complete value get and set.
 		void set(uint16_t value) {
-			carry = value & ConditionCode::Carry;
-			auxiliary_carry = value & ConditionCode::AuxiliaryCarry;
-			sign = value & ConditionCode::Sign;
-			overflow = value & ConditionCode::Overflow;
-			trap = value & ConditionCode::Trap;
-			interrupt = value & ConditionCode::Interrupt;
-			direction = value & ConditionCode::Direction;
+			carry_ = value & ConditionCode::Carry;
+			auxiliary_carry_ = value & ConditionCode::AuxiliaryCarry;
+			sign_ = value & ConditionCode::Sign;
+			overflow_ = value & ConditionCode::Overflow;
+			trap_ = value & ConditionCode::Trap;
+			interrupt_ = value & ConditionCode::Interrupt;
+			direction_ = (value & ConditionCode::Direction) ? -1 : 1;
 
-			zero = (~value) & ConditionCode::Zero;
+			zero_ = (~value) & ConditionCode::Zero;
 
-			parity = (~value) & ConditionCode::Parity;
+			parity_ = (~value) & ConditionCode::Parity;
 		}
 
 		uint16_t get() const {
 			return
 				0xf002 |
 
-				(carry ? ConditionCode::Carry : 0) |
-				(auxiliary_carry ? ConditionCode::AuxiliaryCarry : 0) |
-				(sign ? ConditionCode::Sign : 0) |
-				(overflow ? ConditionCode::Overflow : 0) |
-				(trap ? ConditionCode::Trap : 0) |
-				(interrupt ? ConditionCode::Interrupt : 0) |
-				(direction ? ConditionCode::Direction : 0) |
-
-				(zero ? 0 : ConditionCode::Zero) |
+				(flag<Flag::Carry>() ? ConditionCode::Carry : 0) |
+				(flag<Flag::AuxiliaryCarry>() ? ConditionCode::AuxiliaryCarry : 0) |
+				(flag<Flag::Sign>() ? ConditionCode::Sign : 0) |
+				(flag<Flag::Overflow>() ? ConditionCode::Overflow : 0) |
+				(flag<Flag::Trap>() ? ConditionCode::Trap : 0) |
+				(flag<Flag::Interrupt>() ? ConditionCode::Interrupt : 0) |
+				(flag<Flag::Direction>() ? ConditionCode::Direction : 0) |
+				(flag<Flag::Zero>() ? ConditionCode::Zero : 0) |
 
 				(not_parity_bit() ? 0 : ConditionCode::Parity);
 		}
@@ -187,18 +188,18 @@ class Status {
 		std::string to_string() const {
 			std::string result;
 
-			if(overflow) result += "O"; else result += "-";
-			if(direction) result += "D"; else result += "-";
-			if(interrupt) result += "I"; else result += "-";
-			if(trap) result += "T"; else result += "-";
-			if(sign) result += "S"; else result += "-";
-			if(!zero) result += "S"; else result += "-";
+			if(overflow_) result += "O"; else result += "-";
+			if(direction_) result += "D"; else result += "-";
+			if(interrupt_) result += "I"; else result += "-";
+			if(trap_) result += "T"; else result += "-";
+			if(sign_) result += "S"; else result += "-";
+			if(!zero_) result += "Z"; else result += "-";
 			result += "-";
-			if(auxiliary_carry) result += "A"; else result += "-";
+			if(auxiliary_carry_) result += "A"; else result += "-";
 			result += "-";
 			if(!not_parity_bit()) result += "P"; else result += "-";
 			result += "-";
-			if(carry) result += "C"; else result += "-";
+			if(carry_) result += "C"; else result += "-";
 
 			return result;
 		}
@@ -209,19 +210,22 @@ class Status {
 
 	private:
 		// Non-zero => set; zero => unset.
-		uint32_t carry;
-		uint32_t auxiliary_carry;
-		uint32_t sign;
-		uint32_t overflow;
-		uint32_t trap;
-		uint32_t interrupt;
-		uint32_t direction;
+		uint32_t carry_;
+		uint32_t auxiliary_carry_;
+		uint32_t sign_;
+		uint32_t overflow_;
+		uint32_t trap_;
+		uint32_t interrupt_;
+
+		// +1 = direction flag not set;
+		// -1 = direction flag set.
+		int32_t direction_;
 
 		// Zero => set; non-zero => unset.
-		uint32_t zero;
+		uint32_t zero_;
 
 		// Odd number of bits => set; even => unset.
-		uint32_t parity;
+		uint32_t parity_;
 };
 
 }
