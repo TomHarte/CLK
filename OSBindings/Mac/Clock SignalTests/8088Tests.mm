@@ -230,14 +230,21 @@ class FlowController {
 		void halt() {}
 		void wait() {}
 
+		void begin_instruction() {
+			should_repeat_ = false;
+		}
 		void repeat_last() {
-			// TODO.
+			should_repeat_ = true;
+		}
+		bool should_repeat() const {
+			return should_repeat_;
 		}
 
 	private:
 		Memory &memory_;
 		Registers &registers_;
 		Status &status_;
+		bool should_repeat_ = false;
 
 		void push(uint16_t value, bool is_flags = false) {
 			// Perform the push in two steps because it's possible for SP to underflow, and so that FlagsL and
@@ -708,14 +715,17 @@ struct FailedExecution {
 
 	// Execute instruction.
 	execution_support.registers.ip_ += decoded.first;
-	InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
-		decoded.second,
-		execution_support.status,
-		execution_support.flow_controller,
-		execution_support.registers,
-		execution_support.memory,
-		execution_support.io
-	);
+	do {
+		execution_support.flow_controller.begin_instruction();
+		InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
+			decoded.second,
+			execution_support.status,
+			execution_support.flow_controller,
+			execution_support.registers,
+			execution_support.memory,
+			execution_support.io
+		);
+	} while (execution_support.flow_controller.should_repeat());
 
 	// Compare final state.
 	Registers intended_registers;

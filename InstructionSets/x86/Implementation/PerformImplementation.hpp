@@ -1401,18 +1401,22 @@ void cmps(const InstructionT &instruction, MemoryT &memory, RegistersT &register
 	}
 
 	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
+	if(source_segment == Source::None) {
+		source_segment = Source::DS;
+	} else {
+		printf("");
+	}
 
 	if constexpr (std::is_same_v<AddressT, uint16_t>) {
-		IntT source = memory.template access<IntT>(source_segment, registers.si());
-		IntT destination = memory.template access<IntT>(Source::ES, registers.di());
-		Primitive::sub<false, false>(destination, source, status);
+		IntT lhs = memory.template access<IntT>(source_segment, registers.si());
+		IntT rhs = memory.template access<IntT>(Source::ES, registers.di());
+		Primitive::sub<false, false>(lhs, rhs, status);
 		registers.si() += status.direction<AddressT>();
 		registers.di() += status.direction<AddressT>();
 	} else {
-		IntT source = memory.template access<IntT>(source_segment, registers.esi());
-		IntT destination = memory.template access<IntT>(Source::ES, registers.edi());
-		Primitive::sub<false, false>(destination, source, status);
+		IntT lhs = memory.template access<IntT>(source_segment, registers.esi());
+		IntT rhs = memory.template access<IntT>(Source::ES, registers.edi());
+		Primitive::sub<false, false>(lhs, rhs, status);
 		registers.esi() += status.direction<AddressT>();
 		registers.edi() += status.direction<AddressT>();
 	}
