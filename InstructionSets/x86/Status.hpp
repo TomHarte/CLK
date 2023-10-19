@@ -156,17 +156,17 @@ class Status {
 
 		// Complete value get and set.
 		void set(uint16_t value) {
-			carry_ = value & ConditionCode::Carry;
-			auxiliary_carry_ = value & ConditionCode::AuxiliaryCarry;
-			sign_ = value & ConditionCode::Sign;
-			overflow_ = value & ConditionCode::Overflow;
-			trap_ = value & ConditionCode::Trap;
-			interrupt_ = value & ConditionCode::Interrupt;
-			direction_ = (value & ConditionCode::Direction) ? -1 : 1;
+			set_from<Flag::Carry>(value & ConditionCode::Carry);
+			set_from<Flag::AuxiliaryCarry>(value & ConditionCode::AuxiliaryCarry);
+			set_from<Flag::Overflow>(value & ConditionCode::Overflow);
+			set_from<Flag::Trap>(value & ConditionCode::Trap);
+			set_from<Flag::Interrupt>(value & ConditionCode::Interrupt);
+			set_from<Flag::Direction>(value & ConditionCode::Direction);
 
-			zero_ = (~value) & ConditionCode::Zero;
+			set_from<uint8_t, Flag::Sign>(value);
 
-			parity_ = (~value) & ConditionCode::Parity;
+			set_from<Flag::Zero>((~value) & ConditionCode::Zero);
+			set_from<Flag::ParityOdd>((~value) & ConditionCode::Parity);
 		}
 
 		uint16_t get() const {
@@ -182,24 +182,24 @@ class Status {
 				(flag<Flag::Direction>() ? ConditionCode::Direction : 0) |
 				(flag<Flag::Zero>() ? ConditionCode::Zero : 0) |
 
-				(not_parity_bit() ? 0 : ConditionCode::Parity);
+				(flag<Flag::ParityOdd>() ? 0 : ConditionCode::Parity);
 		}
 
 		std::string to_string() const {
 			std::string result;
 
-			if(overflow_) result += "O"; else result += "-";
-			if(direction_) result += "D"; else result += "-";
-			if(interrupt_) result += "I"; else result += "-";
-			if(trap_) result += "T"; else result += "-";
-			if(sign_) result += "S"; else result += "-";
-			if(!zero_) result += "Z"; else result += "-";
+			if(flag<Flag::Overflow>()) result += "O"; else result += "-";
+			if(flag<Flag::Direction>()) result += "D"; else result += "-";
+			if(flag<Flag::Interrupt>()) result += "I"; else result += "-";
+			if(flag<Flag::Trap>()) result += "T"; else result += "-";
+			if(flag<Flag::Sign>()) result += "S"; else result += "-";
+			if(flag<Flag::Zero>()) result += "Z"; else result += "-";
 			result += "-";
-			if(auxiliary_carry_) result += "A"; else result += "-";
+			if(flag<Flag::AuxiliaryCarry>()) result += "A"; else result += "-";
 			result += "-";
-			if(!not_parity_bit()) result += "P"; else result += "-";
+			if(!flag<Flag::ParityOdd>()) result += "P"; else result += "-";
 			result += "-";
-			if(carry_) result += "C"; else result += "-";
+			if(flag<Flag::Carry>()) result += "C"; else result += "-";
 
 			return result;
 		}
