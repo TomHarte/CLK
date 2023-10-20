@@ -1354,49 +1354,26 @@ void pushf(MemoryT &memory, RegistersT &registers, Status &status) {
 	push<uint16_t>(value, memory, registers);
 }
 
-template <typename AddressT, typename InstructionT, typename RegistersT>
-bool repetition_over(const InstructionT &instruction, RegistersT &registers) {
-	if(instruction.repetition() == Repetition::None) {
-		return false;
-	}
-
-	if constexpr (std::is_same_v<AddressT, uint16_t>) {
-		return !registers.cx();
-	} else {
-		return !registers.ecx();
-	}
+template <typename AddressT, typename InstructionT>
+bool repetition_over(const InstructionT &instruction, AddressT &eCX) {
+	return instruction.repetition() != Repetition::None && !eCX;
 }
 
-template <typename AddressT, typename InstructionT, typename RegistersT, typename FlowControllerT>
-void repeat(const InstructionT &instruction, Status &status, RegistersT &registers, FlowControllerT &flow_controller) {
-	if(instruction.repetition() == Repetition::None) {
+template <typename AddressT, typename InstructionT, typename FlowControllerT>
+void repeat(const InstructionT &instruction, Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
+	if(
+		instruction.repetition() == Repetition::None ||
+		!(--eCX) ||
+		(instruction.repetition() == Repetition::RepNE) == status.flag<Flag::Zero>()
+	) {
 		return;
 	}
-
-	bool count_exhausted = false;
-
-	if constexpr (std::is_same_v<AddressT, uint16_t>) {
-		count_exhausted = !(--registers.cx());
-	} else {
-		count_exhausted = !(--registers.ecx());
-	}
-
-	if(count_exhausted) {
-		return;
-	}
-	const bool zero = status.flag<Flag::Zero>();
-	if(instruction.repetition() == Repetition::RepE && !zero) {
-		return;
-	} else if(instruction.repetition() == Repetition::RepNE && zero) {
-		return;
-	}
-
 	flow_controller.repeat_last();
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT, typename FlowControllerT>
-void cmps(const InstructionT &instruction, AddressT &eSI, AddressT &eDI, MemoryT &memory, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, registers)) {
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
 		return;
 	}
 
@@ -1410,7 +1387,7 @@ void cmps(const InstructionT &instruction, AddressT &eSI, AddressT &eDI, MemoryT
 
 	Primitive::sub<false, false>(lhs, rhs, status);
 
-	repeat<AddressT>(instruction, status, registers, flow_controller);
+	repeat<AddressT>(instruction, status, eCX, flow_controller);
 }
 
 }
@@ -1630,7 +1607,7 @@ template <
 
 		case Operation::XCHG:	Primitive::xchg(destination(), source());	return;
 
-		case Operation::SALC:	Primitive::salc(registers.al(), status);					return;
+		case Operation::SALC:	Primitive::salc(registers.al(), status);	return;
 		case Operation::SETMO:
 			if constexpr (model == Model::i8086) {
 				Primitive::setmo(destination(), status);
@@ -1654,7 +1631,7 @@ template <
 		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);			break;
 
 		case Operation::CMPS:
-			Primitive::cmps<IntT, AddressT>(instruction, eSI(), eDI(), memory, registers, status, flow_controller);
+			Primitive::cmps<IntT, AddressT>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
 		break;
 	}
 
