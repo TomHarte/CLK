@@ -401,10 +401,13 @@ struct FailedExecution {
 		@"C4.json.gz",	// LES
 		@"8D.json.gz",	// LEA
 
-		// TODO: LODS, MOVS, SCAS, STOS
+		// TODO: MOVS, SCAS, STOS
 */
 		// CMPS
 		@"A6.json.gz",	@"A7.json.gz",
+
+		// LODS
+		@"AC.json.gz",	@"AD.json.gz",
 /*
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE

@@ -1390,6 +1390,22 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 	repeat<AddressT>(instruction, status, eCX, flow_controller);
 }
 
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
+		return;
+	}
+
+	Source source_segment = instruction.segment_override();
+	if(source_segment == Source::None) source_segment = Source::DS;
+
+	eAX = memory.template access<IntT>(source_segment, eSI);
+	eSI += status.direction<AddressT>() * sizeof(IntT);
+
+	repeat<AddressT>(instruction, status, eCX, flow_controller);
+}
+
+
 }
 
 template <
@@ -1632,6 +1648,9 @@ template <
 
 		case Operation::CMPS:
 			Primitive::cmps<IntT, AddressT>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+		break;
+		case Operation::LODS:
+			Primitive::lods<IntT, AddressT>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
 		break;
 	}
 
