@@ -404,7 +404,7 @@ struct FailedExecution {
 		// TODO: LODS, MOVS, SCAS, STOS
 */
 		// CMPS
-		@"A6.json.gz", @"A7.json.gz",
+		@"A6.json.gz",	@"A7.json.gz",
 /*
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
@@ -844,8 +844,10 @@ struct FailedExecution {
 			test_metadata = test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
 		}
 
+		int index = 0;
 		for(NSDictionary *test in [self testsInFile:file]) {
 			[self applyExecutionTest:test metadata:test_metadata];
+			++index;
 		}
 	}
 

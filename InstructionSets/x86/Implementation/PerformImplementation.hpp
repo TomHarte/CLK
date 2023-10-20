@@ -1405,8 +1405,8 @@ void cmps(const InstructionT &instruction, AddressT &eSI, AddressT &eDI, MemoryT
 
 	IntT lhs = memory.template access<IntT>(source_segment, eSI);
 	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
-	eSI += status.direction<AddressT>();
-	eDI += status.direction<AddressT>();
+	eSI += status.direction<AddressT>() * sizeof(IntT);
+	eDI += status.direction<AddressT>() * sizeof(IntT);
 
 	Primitive::sub<false, false>(lhs, rhs, status);
 
