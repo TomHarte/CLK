@@ -1395,31 +1395,20 @@ void repeat(const InstructionT &instruction, Status &status, RegistersT &registe
 }
 
 template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT, typename FlowControllerT>
-void cmps(const InstructionT &instruction, MemoryT &memory, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
+void cmps(const InstructionT &instruction, AddressT &eSI, AddressT &eDI, MemoryT &memory, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
 	if(repetition_over<AddressT>(instruction, registers)) {
 		return;
 	}
 
 	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) {
-		source_segment = Source::DS;
-	} else {
-		printf("");
-	}
+	if(source_segment == Source::None) source_segment = Source::DS;
 
-	if constexpr (std::is_same_v<AddressT, uint16_t>) {
-		IntT lhs = memory.template access<IntT>(source_segment, registers.si());
-		IntT rhs = memory.template access<IntT>(Source::ES, registers.di());
-		Primitive::sub<false, false>(lhs, rhs, status);
-		registers.si() += status.direction<AddressT>();
-		registers.di() += status.direction<AddressT>();
-	} else {
-		IntT lhs = memory.template access<IntT>(source_segment, registers.esi());
-		IntT rhs = memory.template access<IntT>(Source::ES, registers.edi());
-		Primitive::sub<false, false>(lhs, rhs, status);
-		registers.esi() += status.direction<AddressT>();
-		registers.edi() += status.direction<AddressT>();
-	}
+	IntT lhs = memory.template access<IntT>(source_segment, eSI);
+	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
+	eSI += status.direction<AddressT>();
+	eDI += status.direction<AddressT>();
+
+	Primitive::sub<false, false>(lhs, rhs, status);
 
 	repeat<AddressT>(instruction, status, registers, flow_controller);
 }
@@ -1443,7 +1432,7 @@ template <
 	[[maybe_unused]] IOT &io
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
-//	using AddressT = typename AddressT<is_32bit(model)>::type;
+	using AddressT = uint16_t;	// TODO.
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
@@ -1498,6 +1487,23 @@ template <
 		if constexpr (data_size == DataSize::Byte) 			return registers.al();
 		else if constexpr (data_size == DataSize::Word)		return registers.ax();
 		else if constexpr (data_size == DataSize::DWord)	return registers.eax();
+	};
+
+	// For the string versions, evaluate to either SI and DI or ESI and EDI, depending on the address size.
+	// [TODO on the latter].
+	const auto eSI = [&]() -> AddressT& {
+		if constexpr (std::is_same_v<AddressT, uint16_t>) {
+			return registers.si();
+		} else {
+			return registers.esi();
+		}
+	};
+	const auto eDI = [&]() -> AddressT& {
+		if constexpr (std::is_same_v<AddressT, uint16_t>) {
+			return registers.di();
+		} else {
+			return registers.edi();
+		}
 	};
 
 	// Guide to the below:
@@ -1642,7 +1648,7 @@ template <
 
 		// TODO: don't assume address size below.
 		case Operation::CMPS:
-			Primitive::cmps<IntT, uint16_t>(instruction, memory, registers, status, flow_controller);
+			Primitive::cmps<IntT, uint16_t>(instruction, eSI(), eDI(), memory, registers, status, flow_controller);
 		break;
 	}
 

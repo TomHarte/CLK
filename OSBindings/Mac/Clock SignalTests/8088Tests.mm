@@ -404,7 +404,7 @@ struct FailedExecution {
 		// TODO: LODS, MOVS, SCAS, STOS
 */
 		// CMPS
-		@"A6.json.gz", //@"A7.json.gz",
+		@"A6.json.gz", @"A7.json.gz",
 /*
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
@@ -714,6 +714,9 @@ struct FailedExecution {
 	execution_support.registers = initial_registers;
 
 	// Execute instruction.
+	//
+	// TODO: enquire of the actual mechanism of repetition; if it were stateful as below then
+	// would it survive interrupts? So is it just IP adjustment?
 	execution_support.registers.ip_ += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
