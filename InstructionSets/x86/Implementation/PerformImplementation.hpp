@@ -1489,8 +1489,7 @@ template <
 		else if constexpr (data_size == DataSize::DWord)	return registers.eax();
 	};
 
-	// For the string versions, evaluate to either SI and DI or ESI and EDI, depending on the address size.
-	// [TODO on the latter].
+	// For the string operations, evaluate to either SI and DI or ESI and EDI, depending on the address size.
 	const auto eSI = [&]() -> AddressT& {
 		if constexpr (std::is_same_v<AddressT, uint16_t>) {
 			return registers.si();
@@ -1503,6 +1502,15 @@ template <
 			return registers.di();
 		} else {
 			return registers.edi();
+		}
+	};
+
+	// For counts, provide either eCX or CX depending on address size.
+	const auto eCX = [&]() -> AddressT& {
+		if constexpr (std::is_same_v<AddressT, uint16_t>) {
+			return registers.cx();
+		} else {
+			return registers.ecx();
 		}
 	};
 
@@ -1566,11 +1574,10 @@ template <
 		case Operation::JMPabs:	Primitive::jump_absolute(destination(), flow_controller);						return;
 		case Operation::JMPfar:	Primitive::jump_far<model>(instruction, flow_controller, registers, memory);	return;
 
-		// TODO: use ECX rather than CX for all of below if address size is 32-bit.
-		case Operation::JCXZ:	jcc(!registers.cx());								return;
-		case Operation::LOOP:	Primitive::loop(registers.cx(), instruction.offset(), registers, flow_controller);				return;
-		case Operation::LOOPE:	Primitive::loope(registers.cx(), instruction.offset(), registers, status, flow_controller);		return;
-		case Operation::LOOPNE:	Primitive::loopne(registers.cx(), instruction.offset(), registers, status, flow_controller);	return;
+		case Operation::JCXZ:	jcc(!eCX());																		return;
+		case Operation::LOOP:	Primitive::loop(eCX(), instruction.offset(), registers, flow_controller);			return;
+		case Operation::LOOPE:	Primitive::loope(eCX(), instruction.offset(), registers, status, flow_controller);	return;
+		case Operation::LOOPNE:	Primitive::loopne(eCX(), instruction.offset(), registers, status, flow_controller);	return;
 
 		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);			return;
 		case Operation::RETnear:	Primitive::ret_near(instruction, registers, flow_controller, memory);	return;
@@ -1639,16 +1646,15 @@ template <
 			}
 		return;
 
-		case Operation::XLAT:	Primitive::xlat<uint16_t>(instruction, memory, registers);	return;
+		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, memory, registers);	return;
 
 		case Operation::POP:	source() = Primitive::pop<IntT>(memory, registers);		break;
 		case Operation::PUSH:	Primitive::push<IntT>(source(), memory, registers);		break;
 		case Operation::POPF:	Primitive::popf(memory, registers, status);				break;
 		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);			break;
 
-		// TODO: don't assume address size below.
 		case Operation::CMPS:
-			Primitive::cmps<IntT, uint16_t>(instruction, eSI(), eDI(), memory, registers, status, flow_controller);
+			Primitive::cmps<IntT, AddressT>(instruction, eSI(), eDI(), memory, registers, status, flow_controller);
 		break;
 	}
 

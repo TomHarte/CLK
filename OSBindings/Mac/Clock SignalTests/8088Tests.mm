@@ -769,19 +769,27 @@ struct FailedExecution {
 		}
 		if(!registersEqual) {
 			NSMutableArray<NSString *> *registers = [[NSMutableArray alloc] init];
-			if(intended_registers.ax() != execution_support.registers.ax())	[registers addObject:@"ax"];
-			if(intended_registers.cx() != execution_support.registers.cx())	[registers addObject:@"cx"];
-			if(intended_registers.dx() != execution_support.registers.dx())	[registers addObject:@"dx"];
-			if(intended_registers.bx() != execution_support.registers.bx())	[registers addObject:@"bx"];
-			if(intended_registers.sp() != execution_support.registers.sp())	[registers addObject:@"sp"];
-			if(intended_registers.bp() != execution_support.registers.bp())	[registers addObject:@"bp"];
-			if(intended_registers.si() != execution_support.registers.si())	[registers addObject:@"si"];
-			if(intended_registers.di() != execution_support.registers.di())	[registers addObject:@"di"];
-			if(intended_registers.ip() != execution_support.registers.ip())	[registers addObject:@"ip"];
-			if(intended_registers.es() != execution_support.registers.es())	[registers addObject:@"es"];
-			if(intended_registers.cs() != execution_support.registers.cs())	[registers addObject:@"cs"];
-			if(intended_registers.ds() != execution_support.registers.ds())	[registers addObject:@"ds"];
-			if(intended_registers.ss() != execution_support.registers.ss())	[registers addObject:@"ss"];
+#define Reg(x)	\
+	if(intended_registers.x() != execution_support.registers.x())	\
+		[registers addObject:	\
+			[NSString stringWithFormat:	\
+				@#x" is %04x rather than %04x", execution_support.registers.x(), intended_registers.x()]];
+
+			Reg(ax);
+			Reg(cx);
+			Reg(dx);
+			Reg(bx);
+			Reg(sp);
+			Reg(bp);
+			Reg(si);
+			Reg(di);
+			Reg(ip);
+			Reg(es);
+			Reg(cs);
+			Reg(ds);
+			Reg(ss);
+
+#undef Reg
 			[reasons addObject:[NSString stringWithFormat:
 				@"registers don't match: %@", [registers componentsJoinedByString:@", "]
 			]];
