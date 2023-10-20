@@ -404,7 +404,7 @@ struct FailedExecution {
 		// TODO: MOVS, SCAS, STOS
 */
 		// CMPS
-		@"A6.json.gz",	@"A7.json.gz",
+//		@"A6.json.gz",	@"A7.json.gz",
 
 		// LODS
 		@"AC.json.gz",	@"AD.json.gz",
@@ -849,6 +849,9 @@ struct FailedExecution {
 
 		int index = 0;
 		for(NSDictionary *test in [self testsInFile:file]) {
+			if(index == 10) {
+				printf("");
+			}
 			[self applyExecutionTest:test metadata:test_metadata];
 			++index;
 		}

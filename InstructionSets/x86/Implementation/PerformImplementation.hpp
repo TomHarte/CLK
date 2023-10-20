@@ -1362,9 +1362,10 @@ bool repetition_over(const InstructionT &instruction, AddressT &eCX) {
 template <typename AddressT, typename InstructionT, typename FlowControllerT>
 void repeat(const InstructionT &instruction, Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
 	if(
-		instruction.repetition() == Repetition::None ||
-		!(--eCX) ||
+		instruction.repetition() == Repetition::None ||		// No repetition => stop.
+		!(--eCX) ||											// [e]cx is zero after being decremented => stop.
 		(instruction.repetition() == Repetition::RepNE) == status.flag<Flag::Zero>()
+															// repe and !zero, or repne and zero => stop.
 	) {
 		return;
 	}
