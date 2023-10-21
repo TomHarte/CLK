@@ -1360,12 +1360,23 @@ bool repetition_over(const InstructionT &instruction, AddressT &eCX) {
 }
 
 template <typename AddressT, typename InstructionT, typename FlowControllerT>
-void repeat(const InstructionT &instruction, Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
+void repeat_ene(const InstructionT &instruction, Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
 	if(
 		instruction.repetition() == Repetition::None ||		// No repetition => stop.
 		!(--eCX) ||											// [e]cx is zero after being decremented => stop.
 		(instruction.repetition() == Repetition::RepNE) == status.flag<Flag::Zero>()
 															// repe and !zero, or repne and zero => stop.
+	) {
+		return;
+	}
+	flow_controller.repeat_last();
+}
+
+template <typename AddressT, typename InstructionT, typename FlowControllerT>
+void repeat(const InstructionT &instruction, AddressT &eCX, FlowControllerT &flow_controller) {
+	if(
+		instruction.repetition() == Repetition::None ||		// No repetition => stop.
+		!(--eCX)											// [e]cx is zero after being decremented => stop.
 	) {
 		return;
 	}
@@ -1388,7 +1399,7 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 
 	Primitive::sub<false, false>(lhs, rhs, status);
 
-	repeat<AddressT>(instruction, status, eCX, flow_controller);
+	repeat_ene<AddressT>(instruction, status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
@@ -1403,7 +1414,7 @@ void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &e
 	eAX = memory.template access<IntT>(source_segment, eSI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT>(instruction, status, eCX, flow_controller);
+	repeat<AddressT>(instruction, eCX, flow_controller);
 }
 
 
