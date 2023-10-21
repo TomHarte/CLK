@@ -401,8 +401,6 @@ struct FailedExecution {
 		@"C4.json.gz",	// LES
 		@"8D.json.gz",	// LEA
 
-		// TODO: SCAS, INS, OUTS
-*/
 		// MOVS
 		@"A4.json.gz",	@"A5.json.gz",
 
@@ -415,6 +413,8 @@ struct FailedExecution {
 		// STOS
 		@"AA.json.gz",	@"AB.json.gz",
 
+		// TODO: INS, OUTS
+*/
 		// SCAS
 		@"AE.json.gz",	@"AF.json.gz",
 /*
