@@ -1417,6 +1417,38 @@ void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &e
 	repeat<AddressT>(instruction, eCX, flow_controller);
 }
 
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
+		return;
+	}
+
+	Source source_segment = instruction.segment_override();
+	if(source_segment == Source::None) source_segment = Source::DS;
+
+	memory.template access<IntT>(Source::ES, eDI) = memory.template access<IntT>(source_segment, eSI);
+
+	eSI += status.direction<AddressT>() * sizeof(IntT);
+	eDI += status.direction<AddressT>() * sizeof(IntT);
+
+	repeat<AddressT>(instruction, eCX, flow_controller);
+}
+
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+void stos(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
+		return;
+	}
+
+	Source destination_segment = instruction.segment_override();
+	if(destination_segment == Source::None) destination_segment = Source::DS;
+
+	memory.template access<IntT>(destination_segment, eDI) = eAX;
+
+	eDI += status.direction<AddressT>() * sizeof(IntT);
+
+	repeat<AddressT>(instruction, eCX, flow_controller);
+}
 
 }
 
@@ -1663,6 +1695,12 @@ template <
 		break;
 		case Operation::LODS:
 			Primitive::lods<IntT, AddressT>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+		break;
+		case Operation::MOVS:
+			Primitive::movs<IntT, AddressT>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+		break;
+		case Operation::STOS:
+			Primitive::stos<IntT, AddressT>(instruction, eCX(), eDI(), pair_low(), memory, status, flow_controller);
 		break;
 	}
 
