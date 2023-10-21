@@ -1403,6 +1403,20 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 }
 
 template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+void scas(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
+		return;
+	}
+
+	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
+	eDI += status.direction<AddressT>() * sizeof(IntT);
+
+	Primitive::sub<false, false>(eAX, rhs, status);
+
+	repeat_ene<AddressT>(instruction, status, eCX, flow_controller);
+}
+
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
 void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
 	if(repetition_over<AddressT>(instruction, eCX)) {
 		return;
@@ -1697,6 +1711,9 @@ template <
 		break;
 		case Operation::STOS:
 			Primitive::stos<IntT, AddressT>(instruction, eCX(), eDI(), pair_low(), memory, status, flow_controller);
+		break;
+		case Operation::SCAS:
+			Primitive::scas<IntT, AddressT>(instruction, eCX(), eDI(), pair_low(), memory, status, flow_controller);
 		break;
 	}
 

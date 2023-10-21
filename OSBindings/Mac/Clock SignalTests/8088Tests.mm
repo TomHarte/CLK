@@ -414,6 +414,9 @@ struct FailedExecution {
 
 		// STOS
 		@"AA.json.gz",	@"AB.json.gz",
+
+		// SCAS
+		@"AE.json.gz",	@"AF.json.gz",
 /*
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
