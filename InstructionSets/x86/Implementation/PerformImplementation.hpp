@@ -1440,11 +1440,7 @@ void stos(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &e
 		return;
 	}
 
-	Source destination_segment = instruction.segment_override();
-	if(destination_segment == Source::None) destination_segment = Source::DS;
-
-	memory.template access<IntT>(destination_segment, eDI) = eAX;
-
+	memory.template access<IntT>(Source::ES, eDI) = eAX;
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT>(instruction, eCX, flow_controller);

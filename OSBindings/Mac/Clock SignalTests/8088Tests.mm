@@ -156,7 +156,7 @@ struct Memory {
 			// to the start. So the 16-bit value will need to be a local cache.
 			if(address == 0xffff) {
 				write_back_address_ = (segment_base(segment) + address) & 0xf'ffff;
-				write_back_value_ = memory[write_back_address_] | (memory[write_back_address_ - 65535] << 8);
+				write_back_value_ = memory[write_back_address_] | (memory[(write_back_address_ - 65535) & 0xf'ffff] << 8);
 				return write_back_value_;
 			}
 		}
@@ -168,7 +168,7 @@ struct Memory {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			if(write_back_address_) {
 				memory[write_back_address_] = write_back_value_ & 0xff;
-				memory[write_back_address_ - 65535] = write_back_value_ >> 8;
+				memory[(write_back_address_ - 65535) & 0xf'ffff] = write_back_value_ >> 8;
 				write_back_address_ = 0;
 			}
 		}
