@@ -147,8 +147,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 			// Apply carry into the row counter.
 			int mapped_row = row_ + (mapped_column / 65);
-			mapped_column %= 65;
 			mapped_row %= 262;
+			mapped_column %= 65;
+
+			// Vertical blanking rows read eight bytes earlier.
+			if(mapped_row >= 192) {
+				mapped_column -= 8;
+			}
 
 			// Apple out-of-bounds row logic.
 			if(mapped_row >= 256) {
@@ -168,20 +173,20 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			@returns @c true if the display will be within vertical blank at now + @c offset; @c false otherwise.
 		*/
 		bool get_is_vertical_blank(Cycles offset) {
-			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
-			// (so what was column 0 is now column 25).
+			// Determine column at offset.
 			int mapped_column = column_ + int(offset.as_integral());
 
 			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 			// (so what was column 0 is now column 25).
 			mapped_column += 25;
 
-			// Apply carry into the row counter and test it for location.
+			// Apply carry into the row counter.
 			int mapped_row = row_ + (mapped_column / 65);
+			mapped_row %= 262;
 
 			// Per http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html
 			// "on the IIe, the screen is blanked when the bit is low".
-			return (mapped_row % 262) < 192;
+			return mapped_row < 192;
 		}
 
 	private:
