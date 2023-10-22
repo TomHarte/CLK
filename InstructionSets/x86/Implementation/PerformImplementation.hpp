@@ -1460,6 +1460,16 @@ void stos(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &e
 	repeat<AddressT>(instruction, eCX, flow_controller);
 }
 
+template <typename IntT, typename IOT>
+void out(uint16_t port, IntT value, IOT &io) {
+	io.template out<IntT>(port, value);
+}
+
+template <typename IntT, typename IOT>
+void in(uint16_t port, IntT &value, IOT &io) {
+	value = io.template in<IntT>(port);
+}
+
 }
 
 template <
@@ -1476,7 +1486,7 @@ template <
 	FlowControllerT &flow_controller,
 	RegistersT &registers,
 	MemoryT &memory,
-	[[maybe_unused]] IOT &io
+	IOT &io
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
 	using AddressT = uint16_t;	// TODO.
@@ -1692,6 +1702,23 @@ template <
 				// TODO.
 			}
 		return;
+
+		case Operation::OUT: {
+			uint16_t port;
+			switch(instruction.destination().source()) {
+				case Source::DirectAddress:	port = instruction.operand();	break;
+				default:					port = registers.dx();			break;
+			}
+			Primitive::out(port, pair_low(), io);
+		} return;
+		case Operation::IN: {
+			uint16_t port;
+			switch(instruction.source().source()) {
+				case Source::DirectAddress:	port = instruction.operand();	break;
+				default:					port = registers.dx();			break;
+			}
+			Primitive::in(port, pair_low(), io);
+		} return;
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, memory, registers);	return;
 

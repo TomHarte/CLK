@@ -179,6 +179,8 @@ struct Memory {
 	uint16_t write_back_value_;
 };
 struct IO {
+	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
+	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) { return IntT(~0); }
 };
 class FlowController {
 	public:
@@ -352,9 +354,15 @@ struct FailedExecution {
 		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
 		@"FE.1.json.gz",
 		@"FF.1.json.gz",
+*/
+		// OUT
+		@"E6.json.gz",	@"E7.json.gz",
+		@"EE.json.gz",	@"EF.json.gz",
 
-		// TODO: IN, OUT
-
+		// IN
+		@"E4.json.gz",	@"E5.json.gz",
+		@"EC.json.gz",	@"ED.json.gz",
+/*
 		@"70.json.gz",	// JO
 		@"71.json.gz",	// JNO
 		@"72.json.gz",	// JB
@@ -413,11 +421,11 @@ struct FailedExecution {
 		// STOS
 		@"AA.json.gz",	@"AB.json.gz",
 
-		// TODO: INS, OUTS
-*/
 		// SCAS
 		@"AE.json.gz",	@"AF.json.gz",
-/*
+
+		// TODO: INS, OUTS
+
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
 		@"E2.json.gz",	// LOOP
