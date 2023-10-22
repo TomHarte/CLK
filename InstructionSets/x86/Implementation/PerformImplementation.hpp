@@ -1460,6 +1460,32 @@ void stos(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &e
 	repeat<AddressT>(instruction, eCX, flow_controller);
 }
 
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
+void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, AddressT &eSI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
+		return;
+	}
+
+	Source source_segment = instruction.segment_override();
+	if(source_segment == Source::None) source_segment = Source::DS;
+	io.template out<IntT>(port, memory.template access<IntT>(source_segment, eSI));
+	eSI += status.direction<AddressT>() * sizeof(IntT);
+
+	repeat<AddressT>(instruction, eCX, flow_controller);
+}
+
+template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
+void ins(const InstructionT &instruction, AddressT &eCX, uint16_t port, AddressT &eDI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT>(instruction, eCX)) {
+		return;
+	}
+
+	memory.template access<IntT>(Source::ES, eDI) = io.template in<IntT>(port);
+	eDI += status.direction<AddressT>() * sizeof(IntT);
+
+	repeat<AddressT>(instruction, eCX, flow_controller);
+}
+
 template <typename IntT, typename IOT>
 void out(uint16_t port, IntT value, IOT &io) {
 	io.template out<IntT>(port, value);
@@ -1568,6 +1594,14 @@ template <
 			return registers.cx();
 		} else {
 			return registers.ecx();
+		}
+	};
+
+	// Gets the port for an IN or OUT; these are always 16-bit.
+	const auto port = [&](Source source) -> uint16_t {
+		switch(source) {
+			case Source::DirectAddress:	return instruction.operand();
+			default:					return registers.dx();
 		}
 	};
 
@@ -1703,22 +1737,8 @@ template <
 			}
 		return;
 
-		case Operation::OUT: {
-			uint16_t port;
-			switch(instruction.destination().source()) {
-				case Source::DirectAddress:	port = instruction.operand();	break;
-				default:					port = registers.dx();			break;
-			}
-			Primitive::out(port, pair_low(), io);
-		} return;
-		case Operation::IN: {
-			uint16_t port;
-			switch(instruction.source().source()) {
-				case Source::DirectAddress:	port = instruction.operand();	break;
-				default:					port = registers.dx();			break;
-			}
-			Primitive::in(port, pair_low(), io);
-		} return;
+		case Operation::OUT: Primitive::out(port(instruction.destination().source()), pair_low(), io);	return;
+		case Operation::IN:	 Primitive::in(port(instruction.source().source()), pair_low(), io);		return;
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, memory, registers);	return;
 
@@ -1741,6 +1761,12 @@ template <
 		break;
 		case Operation::SCAS:
 			Primitive::scas<IntT, AddressT>(instruction, eCX(), eDI(), pair_low(), memory, status, flow_controller);
+		break;
+		case Operation::OUTS:
+			Primitive::outs<IntT, AddressT>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
+		break;
+		case Operation::INS:
+			Primitive::outs<IntT, AddressT>(instruction, eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
 		break;
 	}
 

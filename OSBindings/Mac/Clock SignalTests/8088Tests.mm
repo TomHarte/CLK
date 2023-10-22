@@ -354,7 +354,7 @@ struct FailedExecution {
 		@"4C.json.gz",	@"4D.json.gz",	@"4E.json.gz",	@"4F.json.gz",
 		@"FE.1.json.gz",
 		@"FF.1.json.gz",
-*/
+
 		// OUT
 		@"E6.json.gz",	@"E7.json.gz",
 		@"EE.json.gz",	@"EF.json.gz",
@@ -362,7 +362,7 @@ struct FailedExecution {
 		// IN
 		@"E4.json.gz",	@"E5.json.gz",
 		@"EC.json.gz",	@"ED.json.gz",
-/*
+
 		@"70.json.gz",	// JO
 		@"71.json.gz",	// JNO
 		@"72.json.gz",	// JB
@@ -423,9 +423,13 @@ struct FailedExecution {
 
 		// SCAS
 		@"AE.json.gz",	@"AF.json.gz",
+*/
+		// OUTS
+		@"6E.json.gz",	@"6F.json.gz",
 
-		// TODO: INS, OUTS
-
+		// INS
+		@"6C.json.gz",	@"6D.json.gz",
+/*
 		@"E0.json.gz",	// LOOPNE
 		@"E1.json.gz",	// LOOPE
 		@"E2.json.gz",	// LOOP
