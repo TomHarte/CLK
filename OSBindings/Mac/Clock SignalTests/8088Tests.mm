@@ -142,8 +142,25 @@ struct Memory {
 	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 	// to a selector, they're just at an absolute location.
 	template <typename IntT> IntT &access(uint32_t address, Tag tag) {
+		// Check for address wraparound
+		if(address >= 0x10'0001 - sizeof(IntT)) {
+			if constexpr (std::is_same_v<IntT, uint8_t>) {
+				address &= 0xf'ffff;
+			} else {
+				if(address == 0xf'ffff) {
+					// This is a 16-bit access comprising the final byte in memory and the first.
+					write_back_address_[0] = address;
+					write_back_address_[1] = 0;
+					write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
+					return write_back_value_;
+				} else {
+					address &= 0xf'ffff;
+				}
+			}
+		}
+
 		if(tags.find(address) == tags.end()) {
-//			printf("Access to unexpected RAM address");
+			printf("Access to unexpected RAM address");
 		}
 		tags[address] = tag;
 		return *reinterpret_cast<IntT *>(&memory[address]);
@@ -155,8 +172,9 @@ struct Memory {
 			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
 			// to the start. So the 16-bit value will need to be a local cache.
 			if(address == 0xffff) {
-				write_back_address_ = (segment_base(segment) + address) & 0xf'ffff;
-				write_back_value_ = memory[write_back_address_] | (memory[(write_back_address_ - 65535) & 0xf'ffff] << 8);
+				write_back_address_[0] = (segment_base(segment) + address) & 0xf'ffff;
+				write_back_address_[1] = (write_back_address_[0] - 65535) & 0xf'ffff;
+				write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
 				return write_back_value_;
 			}
 		}
@@ -166,16 +184,16 @@ struct Memory {
 	template <typename IntT> 
 	void write_back() {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
-			if(write_back_address_) {
-				memory[write_back_address_] = write_back_value_ & 0xff;
-				memory[(write_back_address_ - 65535) & 0xf'ffff] = write_back_value_ >> 8;
-				write_back_address_ = 0;
+			if(write_back_address_[0] != NoWriteBack) {
+				memory[write_back_address_[0]] = write_back_value_ & 0xff;
+				memory[write_back_address_[1]] = write_back_value_ >> 8;
+				write_back_address_[0]  = 0;
 			}
 		}
 	}
 
-	static constexpr uint32_t NoWriteBack = 0;	// Zero can never be an address that triggers write back, conveniently.
-	uint32_t write_back_address_ = NoWriteBack;
+	static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
+	uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
 	uint16_t write_back_value_;
 };
 struct IO {
@@ -301,7 +319,6 @@ struct FailedExecution {
 	NSSet *allowList = [NSSet setWithArray:@[
 		@"27.json.gz",		// DAA
 		@"2F.json.gz",		// DAS
-		@"AB.json.gz",		// STOS[w]
 		@"D4.json.gz",		// AAM
 		@"F6.7.json.gz",	// IDIV
 		@"F7.7.json.gz",	// IDIV
@@ -537,7 +554,9 @@ struct FailedExecution {
 			}
 		}
 
-		ramEqual &= (execution_support.memory.memory[address] & mask) == ([ram[1] intValue] & mask);
+		if((execution_support.memory.memory[address] & mask) != ([ram[1] intValue] & mask)) {
+			ramEqual = false;
+		}
 	}
 
 	[self populate:intended_registers status:intended_status value:final_state[@"regs"]];
