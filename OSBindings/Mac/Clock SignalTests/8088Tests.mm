@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -143,7 +143,7 @@ struct Memory {
 	// to a selector, they're just at an absolute location.
 	template <typename IntT> IntT &access(uint32_t address, Tag tag) {
 		if(tags.find(address) == tags.end()) {
-			printf("Access to unexpected RAM address");
+//			printf("Access to unexpected RAM address");
 		}
 		tags[address] = tag;
 		return *reinterpret_cast<IntT *>(&memory[address]);
@@ -299,6 +299,13 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
+		@"27.json.gz",
+		@"2F.json.gz",
+		@"AB.json.gz",
+		@"D4.json.gz",
+		@"EA.json.gz",
+		@"F6.7.json.gz",
+		@"F7.7.json.gz",
 	]];
 
 	NSSet *ignoreList = nil;
@@ -497,10 +504,6 @@ struct FailedExecution {
 	execution_support.status = initial_status;
 	execution_support.registers = initial_registers;
 
-	if(decoded.second.operation != InstructionSet::x86::Operation::LEA) {
-		return;
-	}
-
 	// Execute instruction.
 	//
 	// TODO: enquire of the actual mechanism of repetition; if it were stateful as below then
@@ -619,8 +622,11 @@ struct FailedExecution {
 
 - (void)testExecution {
 	NSDictionary *metadata = [self metadata];
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
 
 	for(NSString *file in [self testFiles]) @autoreleasepool {
+		const auto failures_before = execution_failures.size();
+
 		// Determine the metadata key.
 		NSString *const name = [file lastPathComponent];
 		NSRange first_dot = [name rangeOfString:@"."];
@@ -634,11 +640,12 @@ struct FailedExecution {
 
 		int index = 0;
 		for(NSDictionary *test in [self testsInFile:file]) {
-			if(index == 10) {
-				printf("");
-			}
 			[self applyExecutionTest:test metadata:test_metadata];
 			++index;
+		}
+
+		if (execution_failures.size() != failures_before) {
+			[failures addObject:file];
 		}
 	}
 
@@ -647,6 +654,8 @@ struct FailedExecution {
 	for(const auto &failure: execution_failures) {
 		NSLog(@"Failed %s — %s", failure.test_name.c_str(), failure.reason.c_str());
 	}
+
+	NSLog(@"Files with failures were: %@", failures);
 }
 
 @end
