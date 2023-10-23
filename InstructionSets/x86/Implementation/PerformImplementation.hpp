@@ -55,36 +55,8 @@ uint32_t address(
 	return address + *resolve<model, uint16_t>(instruction, pointer.base(), pointer, registers, memory);
 }
 
-template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
-uint32_t address(
-	InstructionT &instruction,
-	DataPointer pointer,
-	RegistersT &registers,
-	MemoryT &memory
-) {
-	switch(pointer.source<false>()) {
-		default:						return 0;
-		case Source::Indirect:			return address<model, Source::Indirect, IntT>(instruction, pointer, registers, memory);
-		case Source::IndirectNoBase:	return address<model, Source::IndirectNoBase, IntT>(instruction, pointer, registers, memory);
-		case Source::DirectAddress:		return address<model, Source::DirectAddress, IntT>(instruction, pointer, registers, memory);
-	}
-}
-
-template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
-IntT *resolve(
-	InstructionT &instruction,
-	Source source,
-	DataPointer pointer,
-	RegistersT &registers,
-	MemoryT &memory,
-	IntT *none,
-	IntT *immediate
-) {
-	// Rules:
-	//
-	// * if this is a memory access, set target_address and break;
-	// * otherwise return the appropriate value.
-	uint32_t target_address;
+template <Model model, typename IntT, Source source, typename RegistersT>
+IntT *register_(RegistersT &registers) {
 	switch(source) {
 		case Source::eAX:
 			// Slightly contorted if chain here and below:
@@ -131,10 +103,63 @@ IntT *resolve(
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.bh();		}
 			else																{	return nullptr;				}
 
-		case Source::ES:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.es(); else return nullptr;
-		case Source::CS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.cs(); else return nullptr;
-		case Source::SS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ss(); else return nullptr;
-		case Source::DS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ds(); else return nullptr;
+		default: return nullptr;
+	}
+}
+
+template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+uint32_t address(
+	InstructionT &instruction,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory
+) {
+	switch(pointer.source<false>()) {
+		default:						return 0;
+		case Source::eAX:				return *register_<model, IntT, Source::eAX>(registers);
+		case Source::eCX:				return *register_<model, IntT, Source::eCX>(registers);
+		case Source::eDX:				return *register_<model, IntT, Source::eDX>(registers);
+		case Source::eBX:				return *register_<model, IntT, Source::eBX>(registers);
+		case Source::eSPorAH:			return *register_<model, IntT, Source::eSPorAH>(registers);
+		case Source::eBPorCH:			return *register_<model, IntT, Source::eBPorCH>(registers);
+		case Source::eSIorDH:			return *register_<model, IntT, Source::eSIorDH>(registers);
+		case Source::eDIorBH:			return *register_<model, IntT, Source::eDIorBH>(registers);
+		case Source::Indirect:			return address<model, Source::Indirect, IntT>(instruction, pointer, registers, memory);
+		case Source::IndirectNoBase:	return address<model, Source::IndirectNoBase, IntT>(instruction, pointer, registers, memory);
+		case Source::DirectAddress:		return address<model, Source::DirectAddress, IntT>(instruction, pointer, registers, memory);
+	}
+}
+
+template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+IntT *resolve(
+	InstructionT &instruction,
+	Source source,
+	DataPointer pointer,
+	RegistersT &registers,
+	MemoryT &memory,
+	IntT *none,
+	IntT *immediate
+) {
+	// Rules:
+	//
+	// * if this is a memory access, set target_address and break;
+	// * otherwise return the appropriate value.
+	uint32_t target_address;
+	switch(source) {
+		case Source::eAX:		return register_<model, IntT, Source::eAX>(registers);
+		case Source::eCX:		return register_<model, IntT, Source::eCX>(registers);
+		case Source::eDX:		return register_<model, IntT, Source::eDX>(registers);
+		case Source::eBX:		return register_<model, IntT, Source::eBX>(registers);
+		case Source::eSPorAH:	return register_<model, IntT, Source::eSPorAH>(registers);
+		case Source::eBPorCH:	return register_<model, IntT, Source::eBPorCH>(registers);
+		case Source::eSIorDH:	return register_<model, IntT, Source::eSIorDH>(registers);
+		case Source::eDIorBH:	return register_<model, IntT, Source::eDIorBH>(registers);
+
+		// Segment registers are always 16-bit.
+		case Source::ES:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.es(); else return nullptr;
+		case Source::CS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.cs(); else return nullptr;
+		case Source::SS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ss(); else return nullptr;
+		case Source::DS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ds(); else return nullptr;
 
 		// 16-bit models don't have FS and GS.
 		case Source::FS:	if constexpr (is_32bit(model) && std::is_same_v<IntT, uint16_t>) return &registers.fs(); else return nullptr;

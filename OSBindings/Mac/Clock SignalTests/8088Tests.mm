@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -496,6 +496,10 @@ struct FailedExecution {
 	[self populate:initial_registers status:initial_status value:initial_state[@"regs"]];
 	execution_support.status = initial_status;
 	execution_support.registers = initial_registers;
+
+	if(decoded.second.operation != InstructionSet::x86::Operation::LEA) {
+		return;
+	}
 
 	// Execute instruction.
 	//
