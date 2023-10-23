@@ -317,11 +317,71 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"27.json.gz",		// DAA
-		@"2F.json.gz",		// DAS
-		@"D4.json.gz",		// AAM
-		@"F6.7.json.gz",	// IDIV
-		@"F7.7.json.gz",	// IDIV
+		// Current decoding failures:
+		@"60.json.gz",
+		@"61.json.gz",
+		@"62.json.gz",
+		@"63.json.gz",
+		@"64.json.gz",
+		@"65.json.gz",
+		@"66.json.gz",
+		@"67.json.gz",
+		@"68.json.gz",
+		@"69.json.gz",
+		@"6A.json.gz",
+		@"6B.json.gz",
+		@"6C.json.gz",
+		@"6D.json.gz",
+		@"6E.json.gz",
+		@"6F.json.gz",
+		@"70.json.gz",
+		@"71.json.gz",
+		@"72.json.gz",
+		@"73.json.gz",
+		@"74.json.gz",
+		@"75.json.gz",
+		@"76.json.gz",
+		@"77.json.gz",
+		@"78.json.gz",
+		@"79.json.gz",
+		@"7A.json.gz",
+		@"7B.json.gz",
+		@"7C.json.gz",
+		@"7D.json.gz",
+		@"7E.json.gz",
+		@"7F.json.gz",
+		@"9A.json.gz",
+		@"A4.json.gz",
+		@"A5.json.gz",
+		@"A6.json.gz",
+		@"A7.json.gz",
+		@"AA.json.gz",
+		@"AB.json.gz",
+		@"AC.json.gz",
+		@"AD.json.gz",
+		@"AE.json.gz",
+		@"AF.json.gz",
+		@"CC.json.gz",
+		@"E0.json.gz",
+		@"E1.json.gz",
+		@"E2.json.gz",
+		@"E3.json.gz",
+		@"E4.json.gz",
+		@"E5.json.gz",
+		@"E6.json.gz",
+		@"E7.json.gz",
+		@"E8.json.gz",
+		@"E9.json.gz",
+		@"EA.json.gz",
+		@"EB.json.gz",
+
+
+		// Current execution failures:
+//		@"27.json.gz",		// DAA
+//		@"2F.json.gz",		// DAS
+//		@"D4.json.gz",		// AAM
+//		@"F6.7.json.gz",	// IDIV
+//		@"F7.7.json.gz",	// IDIV
 	]];
 
 	NSSet *ignoreList = nil;
@@ -418,11 +478,7 @@ struct FailedExecution {
 
 	// Attempt clerical reconciliation:
 	//
-	// TEMPORARY HACK: the test set incorrectly states 'bp+si' whenever it means 'bp+di'.
-	// Though it also uses 'bp+si' correctly when it means 'bp+si'. Until fixed, take
-	// a pass on potential issues there.
-	//
-	// SEPARATELY: The test suite retains a distinction between SHL and SAL, which the decoder doesn't. So consider that
+	// The test suite retains a distinction between SHL and SAL, which the decoder doesn't. So consider that
 	// a potential point of difference.
 	//
 	// Also, the decoder treats INT3 and INT 3 as the same thing. So allow for a meshing of those.
@@ -430,9 +486,6 @@ struct FailedExecution {
 	while(!isEqual && adjustment) {
 		NSString *alteredName = [test[@"name"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
-		if(adjustment & 4) {
-			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"bp+si" withString:@"bp+di"];
-		}
 		if(adjustment & 2) {
 			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"shl" withString:@"sal"];
 		}

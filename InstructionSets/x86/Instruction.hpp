@@ -462,16 +462,14 @@ enum class Repetition: uint8_t {
 };
 
 /// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
-constexpr bool supports(Operation operation, Repetition repetition) {
+constexpr bool supports(Operation operation, [[maybe_unused]] Repetition repetition) {
 	switch(operation) {
 		default: return false;
 
-		case Operation::INS:
-		case Operation::OUTS:
-			return repetition == Repetition::RepE;
-
 		case Operation::Invalid:	// Retain context here; it's used as an intermediate
 									// state sometimes.
+		case Operation::INS:
+		case Operation::OUTS:
 		case Operation::CMPS:
 		case Operation::LODS:
 		case Operation::MOVS:
@@ -483,8 +481,8 @@ constexpr bool supports(Operation operation, Repetition repetition) {
 		// IDIV — and possibly DIV — as a quirk, affecting the outcome (possibly negativing the result?).
 		// So the test below should be a function of model, if I come to a conclusion about whether I'm
 		// going for fidelity to the instruction set as generally implemented, or to Intel's specific implementation.
-		case Operation::IDIV:
-			return repetition == Repetition::RepNE;
+//		case Operation::IDIV:
+//			return repetition == Repetition::RepNE;
 	}
 }
 

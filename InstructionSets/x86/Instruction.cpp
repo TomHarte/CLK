@@ -8,6 +8,8 @@
 
 #include "Instruction.hpp"
 
+#include "../../Numeric/Carry.hpp"
+
 #include <cassert>
 #include <iomanip>
 #include <sstream>
@@ -335,33 +337,32 @@ std::string InstructionSet::x86::to_string(
 
 	std::string operand;
 
-	auto append = [](std::stringstream &stream, auto value, int length, const char *prefix) {
+	auto append = [](std::stringstream &stream, auto value, int length) {
 		switch(length) {
 			case 0:
 				if(!value) {
-					break;
+					return;
 				}
 				[[fallthrough]];
+
 			case 2:
-				// If asked to pretend the offset was originally two digits then either of: an unsigned
-				// 8-bit value or a sign-extended 8-bit value as having been originally 8-bit.
-				//
-				// This kicks the issue of whether sign was extended appropriately to functionality tests.
-				if(
-					!(value & 0xff00) ||
-					((value & 0xff80) == 0xff80) ||
-					((value & 0xff80) == 0x0000)
-				) {
-					stream << prefix << to_hex(value, 2);
-					break;
-				}
-				[[fallthrough]];
-			default:
-				stream << prefix << to_hex(value, 4);
-				break;
+				value &= 0xff;
+			break;
 		}
+
+		stream << std::uppercase << std::hex << value << 'h';
 	};
 
+	auto append_signed = [](std::stringstream &stream, auto value, int length) {
+		if(!value && !length) {
+			return;
+		}
+
+		const bool is_negative = Numeric::top_bit<decltype(value)>() & value;
+		const uint64_t abs_value = std::abs(int16_t(value));	// TODO: don't assume 16-bit.
+
+		stream << (is_negative ? '-' : '+') << std::uppercase << std::hex << abs_value << 'h';
+	};
 	using Source = InstructionSet::x86::Source;
 	const Source source = pointer.source<false>();
 	switch(source) {
@@ -370,7 +371,7 @@ std::string InstructionSet::x86::to_string(
 
 		case Source::Immediate: {
 			std::stringstream stream;
-			append(stream, instruction.operand(), immediate_length, "");
+			append(stream, instruction.operand(), immediate_length);
 			return stream.str();
 		}
 
@@ -383,6 +384,7 @@ std::string InstructionSet::x86::to_string(
 				stream << InstructionSet::x86::to_string(operation_size) << ' ';
 			}
 
+			stream << '[';
 			Source segment = instruction.segment_override();
 			if(segment == Source::None) {
 				segment = pointer.default_segment();
@@ -392,7 +394,6 @@ std::string InstructionSet::x86::to_string(
 			}
 			stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
 
-			stream << '[';
 			bool addOffset = false;
 			switch(source) {
 				default: break;
@@ -408,11 +409,11 @@ std::string InstructionSet::x86::to_string(
 					addOffset = true;
 				break;
 				case Source::DirectAddress:
-					stream << to_hex(instruction.offset(), 4);
+					stream << std::uppercase << std::hex << instruction.offset() << 'h';
 				break;
 			}
 			if(addOffset) {
-				append(stream, instruction.offset(), offset_length, "+");
+				append_signed(stream, instruction.offset(), offset_length);
 			}
 			stream << ']';
 			return stream.str();
