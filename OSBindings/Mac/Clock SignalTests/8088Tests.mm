@@ -299,13 +299,12 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		@"27.json.gz",
-		@"2F.json.gz",
-		@"AB.json.gz",
-		@"D4.json.gz",
-		@"EA.json.gz",
-		@"F6.7.json.gz",
-		@"F7.7.json.gz",
+		@"27.json.gz",		// DAA
+		@"2F.json.gz",		// DAS
+		@"AB.json.gz",		// STOS[w]
+		@"D4.json.gz",		// AAM
+		@"F6.7.json.gz",	// IDIV
+		@"F7.7.json.gz",	// IDIV
 	]];
 
 	NSSet *ignoreList = nil;

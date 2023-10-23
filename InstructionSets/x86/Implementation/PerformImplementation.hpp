@@ -878,7 +878,7 @@ void jump_far(InstructionT &instruction,
 	const auto pointer = instruction.destination();
 	switch(pointer.template source<false>()) {
 		default:
-		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
+		case Source::Immediate:	flow_controller.jump(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
 			source_address = address<model, Source::Indirect, uint16_t>(instruction, pointer, registers, memory);
