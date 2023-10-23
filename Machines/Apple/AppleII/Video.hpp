@@ -150,6 +150,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			mapped_row %= 262;
 			mapped_column %= 65;
 
+			// Remember if we're in a horizontal blanking interval.
+			int hbl = mapped_column < 25;
+
 			// Vertical blanking rows read eight bytes earlier.
 			if(mapped_row >= 192) {
 				mapped_column -= 8;
@@ -162,8 +165,17 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				mapped_row %= 192;
 			}
 
-			// Calculate the address and return the value.
+			// Calculate the address.
 			uint16_t read_address = uint16_t(get_row_address(mapped_row) + mapped_column - 25);
+
+			if(hbl) {
+				// Wraparound addressing within 128 byte sections.
+				if(mapped_row < 64) {
+					read_address += 128;
+				}
+			}
+
+			// Read the address and return the value.
 			uint8_t value, aux_value;
 			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
 			return value;
