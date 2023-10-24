@@ -350,7 +350,6 @@ struct FailedExecution {
 		@"7D.json.gz",
 		@"7E.json.gz",
 		@"7F.json.gz",
-		@"CC.json.gz",
 		@"E0.json.gz",
 		@"E1.json.gz",
 		@"E2.json.gz",
@@ -478,7 +477,7 @@ struct FailedExecution {
 			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"shl" withString:@"sal"];
 		}
 		if(adjustment & 1) {
-			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"int3" withString:@"int 03h"];
+			alteredName = [alteredName stringByReplacingOccurrencesOfString:@"int3" withString:@"int 3h"];
 		}
 
 		isEqual = compare_decoding(alteredName);
