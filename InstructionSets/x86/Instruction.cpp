@@ -437,19 +437,27 @@ std::string InstructionSet::x86::to_string(
 		case Repetition::None: break;
 		case Repetition::RepE:
 			switch(instruction.operation) {
-				default:
+				case Operation::CMPS:
+				case Operation::SCAS:
 					operation += "repe ";
 				break;
 
-				case Operation::MOVS:
-				case Operation::STOS:
-				case Operation::LODS:
+				default:
 					operation += "rep ";
 				break;
 			}
 		break;
 		case Repetition::RepNE:
-			operation += "repne ";
+			switch(instruction.operation) {
+				case Operation::CMPS:
+				case Operation::SCAS:
+					operation += "repne ";
+				break;
+
+				default:
+					operation += "rep ";
+				break;
+			}
 		break;
 	}
 
@@ -479,10 +487,10 @@ std::string InstructionSet::x86::to_string(
 		case Operation::JMPfar: {
 			switch(instruction.destination().source()) {
 				case Source::Immediate:
-					operation += "far 0x";
 					operation += to_hex(instruction.segment(), 4, false);
-					operation += ":0x";
+					operation += "h:";
 					operation += to_hex(instruction.offset(), 4, false);
+					operation += "h";
 				break;
 				default:
 					operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);

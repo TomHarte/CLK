@@ -350,7 +350,6 @@ struct FailedExecution {
 		@"7D.json.gz",
 		@"7E.json.gz",
 		@"7F.json.gz",
-		@"9A.json.gz",
 		@"A4.json.gz",
 		@"A5.json.gz",
 		@"A6.json.gz",
@@ -372,7 +371,6 @@ struct FailedExecution {
 		@"E7.json.gz",
 		@"E8.json.gz",
 		@"E9.json.gz",
-		@"EA.json.gz",
 		@"EB.json.gz",
 
 
@@ -500,11 +498,10 @@ struct FailedExecution {
 	if(assert) {
 		XCTAssert(
 			isEqual,
-			"%@ doesn't match %@ or similar, was %@ within %@",
+			"%@ doesn't match %@ or similar, was %@",
 				test[@"name"],
 				[decodings anyObject],
-				hex_instruction(),
-				file
+				hex_instruction()
 		);
 	}
 
