@@ -702,6 +702,16 @@ template<bool is_32bit> class Instruction {
 		// [b4, b0]: dest.
 		uint16_t source_data_dest_sib_ = 1 << 10;	// So that ::Invalid doesn't seem to have a length extension.
 
+		// Note to future self: if source length continues to prove avoidable, reuse its four bits as:
+		//	three bits: segment (as overridden, otherwise whichever operand has a segment, if either);
+		//	one bit: an extra bit for Operation.
+		//
+		// Then what was the length extension will hold only a repetition, if any, and the lock bit. As luck would have
+		// it there are six valid segment registers so there is an available sentinel value to put into the segment
+		// field to indicate that there's an extension if necessary. A further three bits would need to be trimmed
+		// to do away with that extension entirely, but since lock is rarely used and repetitions apply only to a
+		// small number of operations I think it'd at least be a limited problem.
+
 		bool has_length_extension() const {
 			return !((source_data_dest_sib_ >> 10) & 15);
 		}
