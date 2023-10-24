@@ -432,6 +432,27 @@ std::string InstructionSet::x86::to_string(
 ) {
 	std::string operation;
 
+	// Add segment override, if any, ahead of some operations that won't otherwise print it.
+	switch(instruction.operation) {
+		default: break;
+
+		case Operation::CMPS:
+		case Operation::SCAS:
+		case Operation::STOS:
+		case Operation::LODS:
+		case Operation::MOVS:
+			switch(instruction.segment_override()) {
+				default: 								break;
+				case Source::ES:	operation += "es ";	break;
+				case Source::CS:	operation += "cs ";	break;
+				case Source::DS:	operation += "ds ";	break;
+				case Source::SS:	operation += "ss ";	break;
+				case Source::GS:	operation += "gs ";	break;
+				case Source::FS:	operation += "fs ";	break;
+			}
+		break;
+	}
+
 	// Add a repetition prefix; it'll be one of 'rep', 'repe' or 'repne'.
 	switch(instruction.repetition()) {
 		case Repetition::None: break;
