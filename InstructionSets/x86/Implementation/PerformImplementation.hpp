@@ -1815,16 +1815,11 @@ template <
 	MemoryT &memory,
 	IOT &io
 ) {
-	// Dispatch to a function just like this that is specialised on data size.
-	// Fetching will occur in that specialised function, per the overlapping
-	// meaning of register names.
-
-	// TODO: incorporate and propagate address size.
-
 	auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
 		return int(operation_size) + (int(address_size) << 2);
 	};
 
+	// Dispatch to a function specialised on data and address size.
 	switch(size(instruction.operation_size(), instruction.address_size())) {
 		// 16-bit combinations.
 		case size(DataSize::Byte, AddressSize::b16):
@@ -1835,6 +1830,10 @@ template <
 		return;
 
 		// 32-bit combinations.
+		//
+		// The if constexprs below ensure that `perform` isn't compiled for incompatible data or address size and
+		// model combinations. So if a caller nominates a 16-bit model it can supply registers and memory objects
+		// that don't implement 32-bit registers or accesses.
 		case size(DataSize::Byte, AddressSize::b32):
 			if constexpr (is_32bit(model)) {
 				perform<model, DataSize::Byte, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
@@ -1863,8 +1862,8 @@ template <
 		default: break;
 	}
 
-	// This is reachable only if the data and address size combination in use isn't available on the processor
-	// model nominated.
+	// This is reachable only if the data and address size combination in use isn't available
+	// on the processor model nominated.
 	assert(false);
 }
 
