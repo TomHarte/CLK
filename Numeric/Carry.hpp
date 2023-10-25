@@ -9,6 +9,8 @@
 #ifndef Carry_hpp
 #define Carry_hpp
 
+#include <limits>
+
 namespace Numeric {
 
 /// @returns @c true if from @c bit there was:
