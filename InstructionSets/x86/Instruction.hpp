@@ -929,7 +929,7 @@ std::string to_string(
 /// If @c immediate_length is '2' or '4', truncates any printed immediate value to 2 or 4 digits if it is compatible with being that length.
 template<bool is_32bit>
 std::string to_string(
-	Instruction<is_32bit> instruction,
+	std::pair<int, Instruction<is_32bit>> instruction,
 	Model model,
 	int offset_length = 0,
 	int immediate_length = 0);

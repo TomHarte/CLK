@@ -432,7 +432,7 @@ std::string InstructionSet::x86::to_string(
 
 template<bool is_32bit>
 std::string InstructionSet::x86::to_string(
-	Instruction<is_32bit> instruction,
+	std::pair<int, Instruction<is_32bit>> instruction,
 	Model model,
 	int offset_length,
 	int immediate_length
@@ -440,7 +440,7 @@ std::string InstructionSet::x86::to_string(
 	std::string operation;
 
 	// Add segment override, if any, ahead of some operations that won't otherwise print it.
-	switch(instruction.operation) {
+	switch(instruction.second.operation) {
 		default: break;
 
 		case Operation::CMPS:
@@ -448,7 +448,7 @@ std::string InstructionSet::x86::to_string(
 		case Operation::STOS:
 		case Operation::LODS:
 		case Operation::MOVS:
-			switch(instruction.segment_override()) {
+			switch(instruction.second.segment_override()) {
 				default: 								break;
 				case Source::ES:	operation += "es ";	break;
 				case Source::CS:	operation += "cs ";	break;
@@ -461,10 +461,10 @@ std::string InstructionSet::x86::to_string(
 	}
 
 	// Add a repetition prefix; it'll be one of 'rep', 'repe' or 'repne'.
-	switch(instruction.repetition()) {
+	switch(instruction.second.repetition()) {
 		case Repetition::None: break;
 		case Repetition::RepE:
-			switch(instruction.operation) {
+			switch(instruction.second.operation) {
 				case Operation::CMPS:
 				case Operation::SCAS:
 					operation += "repe ";
@@ -476,7 +476,7 @@ std::string InstructionSet::x86::to_string(
 			}
 		break;
 		case Repetition::RepNE:
-			switch(instruction.operation) {
+			switch(instruction.second.operation) {
 				case Operation::CMPS:
 				case Operation::SCAS:
 					operation += "repne ";
@@ -490,38 +490,38 @@ std::string InstructionSet::x86::to_string(
 	}
 
 	// Add operation itself.
-	operation += to_string(instruction.operation, instruction.operation_size(), model);
+	operation += to_string(instruction.second.operation, instruction.second.operation_size(), model);
 	operation += " ";
 
 	// Deal with a few special cases up front.
-	switch(instruction.operation) {
+	switch(instruction.second.operation) {
 		default: {
-			const int operands = max_displayed_operands(instruction.operation);
-			const bool displacement = has_displacement(instruction.operation);
-			const bool print_first = operands > 1 && instruction.destination().source() != Source::None;
+			const int operands = max_displayed_operands(instruction.second.operation);
+			const bool displacement = has_displacement(instruction.second.operation);
+			const bool print_first = operands > 1 && instruction.second.destination().source() != Source::None;
 			if(print_first) {
-				operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+				operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
 			}
-			if(operands > 0 && instruction.source().source() != Source::None) {
+			if(operands > 0 && instruction.second.source().source() != Source::None) {
 				if(print_first) operation += ", ";
-				operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+				operation += to_string(instruction.second.source(), instruction.second, offset_length, immediate_length);
 			}
 			if(displacement) {
-				operation += to_hex(instruction.displacement(), offset_length);
+				operation += to_hex(instruction.second.displacement(), offset_length);
 			}
 		} break;
 
 		case Operation::CALLfar:
 		case Operation::JMPfar: {
-			switch(instruction.destination().source()) {
+			switch(instruction.second.destination().source()) {
 				case Source::Immediate:
-					operation += to_hex(instruction.segment(), 4, false);
+					operation += to_hex(instruction.second.segment(), 4, false);
 					operation += "h:";
-					operation += to_hex(instruction.offset(), 4, false);
+					operation += to_hex(instruction.second.offset(), 4, false);
 					operation += "h";
 				break;
 				default:
-					operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+					operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
 				break;
 			}
 		} break;
@@ -529,35 +529,35 @@ std::string InstructionSet::x86::to_string(
 		case Operation::LDS:
 		case Operation::LES:	// The test set labels the pointer type as dword, which I guess is technically accurate.
 								// A full 32 bits will be loaded from that address in 16-bit mode.
-			operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
 			operation += ", ";
-			operation += to_string(instruction.source(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::DWord);
+			operation += to_string(instruction.second.source(), instruction.second, offset_length, immediate_length, InstructionSet::x86::DataSize::DWord);
 		break;
 
 		case Operation::IN:
-			operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
+			operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
 			operation += ", ";
-			switch(instruction.source().source()) {
+			switch(instruction.second.source().source()) {
 				case Source::DirectAddress:
-					operation += to_hex(uint8_t(instruction.offset()));
+					operation += to_hex(uint8_t(instruction.second.offset()));
 				break;
 				default:
-					operation += to_string(instruction.source(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
+					operation += to_string(instruction.second.source(), instruction.second, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
 				break;
 			}
 		break;
 
 		case Operation::OUT:
-			switch(instruction.destination().source()) {
+			switch(instruction.second.destination().source()) {
 				case Source::DirectAddress:
-					operation += to_hex(uint8_t(instruction.offset()));
+					operation += to_hex(uint8_t(instruction.second.offset()));
 				break;
 				default:
-					operation += to_string(instruction.destination(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
+					operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
 				break;
 			}
 			operation += ", ";
-			operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+			operation += to_string(instruction.second.source(), instruction.second, offset_length, immediate_length);
 		break;
 
 		// Rolls and shifts list eCX as a source on the understanding that everyone knows that rolls and shifts
@@ -567,18 +567,18 @@ std::string InstructionSet::x86::to_string(
 		case Operation::SAL:	case Operation::SAR:
 		case Operation::SHR:
 		case Operation::SETMO:	case Operation::SETMOC:
-			operation += to_string(instruction.destination(), instruction, offset_length, immediate_length);
-			switch(instruction.source().source()) {
+			operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
+			switch(instruction.second.source().source()) {
 				case Source::None:	break;
 				case Source::eCX:	operation += ", cl"; break;
 				case Source::Immediate:
 					// Providing an immediate operand of 1 is a little future-proofing by the decoder; the '1'
 					// is actually implicit on a real 8088. So omit it.
-					if(instruction.operand() == 1) break;
+					if(instruction.second.operand() == 1) break;
 					[[fallthrough]];
 				default:
 					operation += ", ";
-					operation += to_string(instruction.source(), instruction, offset_length, immediate_length);
+					operation += to_string(instruction.second.source(), instruction.second, offset_length, immediate_length);
 				break;
 			}
 		break;
@@ -597,7 +597,7 @@ std::string InstructionSet::x86::to_string(
 //);
 
 template std::string InstructionSet::x86::to_string(
-	Instruction<false> instruction,
+	std::pair<int, Instruction<false>> instruction,
 	Model model,
 	int offset_length,
 	int immediate_length

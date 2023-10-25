@@ -398,7 +398,7 @@ struct FailedExecution {
 	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil];
 }
 
-- (NSString *)toString:(const InstructionSet::x86::Instruction<false> &)instruction offsetLength:(int)offsetLength immediateLength:(int)immediateLength {
+- (NSString *)toString:(const std::pair<int, InstructionSet::x86::Instruction<false>> &)instruction offsetLength:(int)offsetLength immediateLength:(int)immediateLength {
 	const auto operation = to_string(instruction, InstructionSet::x86::Model::i8086, offsetLength, immediateLength);
 	return [[NSString stringWithUTF8String:operation.c_str()] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
@@ -445,12 +445,12 @@ struct FailedExecution {
 	// The decoder doesn't preserve the original offset length, which makes no functional difference but
 	// does affect the way that offsets are printed in the test set.
 	NSSet<NSString *> *decodings = [NSSet setWithObjects:
-		[self toString:decoded.second offsetLength:4 immediateLength:4],
-		[self toString:decoded.second offsetLength:2 immediateLength:4],
-		[self toString:decoded.second offsetLength:0 immediateLength:4],
-		[self toString:decoded.second offsetLength:4 immediateLength:2],
-		[self toString:decoded.second offsetLength:2 immediateLength:2],
-		[self toString:decoded.second offsetLength:0 immediateLength:2],
+		[self toString:decoded offsetLength:4 immediateLength:4],
+		[self toString:decoded offsetLength:2 immediateLength:4],
+		[self toString:decoded offsetLength:0 immediateLength:4],
+		[self toString:decoded offsetLength:4 immediateLength:2],
+		[self toString:decoded offsetLength:2 immediateLength:2],
+		[self toString:decoded offsetLength:0 immediateLength:2],
 		nil];
 
 	auto compare_decoding = [&](NSString *name) -> bool {
