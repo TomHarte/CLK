@@ -372,7 +372,7 @@ std::string InstructionSet::x86::to_string(
 	};
 
 	using Source = InstructionSet::x86::Source;
-	const Source source = pointer.source<false>();
+	const Source source = pointer.source();
 	switch(source) {
 		// to_string handles all direct register names correctly.
 		default:	return InstructionSet::x86::to_string(source, operation_size);

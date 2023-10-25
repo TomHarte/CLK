@@ -114,7 +114,7 @@ uint32_t address(
 	RegistersT &registers,
 	MemoryT &memory
 ) {
-	switch(pointer.source<false>()) {
+	switch(pointer.source()) {
 		default:						return 0;
 		case Source::eAX:				return *register_<model, IntT, Source::eAX>(registers);
 		case Source::eCX:				return *register_<model, IntT, Source::eCX>(registers);
@@ -844,7 +844,7 @@ void call_far(InstructionT &instruction,
 	// TODO: eliminate 16-bit assumption below.
 	uint16_t source_address = 0;
 	const auto pointer = instruction.destination();
-	switch(pointer.template source<false>()) {
+	switch(pointer.source()) {
 		default:
 		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
 
@@ -876,7 +876,7 @@ void jump_far(InstructionT &instruction,
 	// TODO: eliminate 16-bit assumption below.
 	uint16_t source_address = 0;
 	const auto pointer = instruction.destination();
-	switch(pointer.template source<false>()) {
+	switch(pointer.source()) {
 		default:
 		case Source::Immediate:	flow_controller.jump(instruction.segment(), instruction.offset());	return;
 
@@ -1547,7 +1547,7 @@ template <
 	const auto source = [&]() -> IntT& {
 		return *resolve<model, IntT>(
 			instruction,
-			instruction.source().template source<false>(),
+			instruction.source().source(),
 			instruction.source(),
 			registers,
 			memory,
@@ -1557,7 +1557,7 @@ template <
 	const auto destination = [&]() -> IntT& {
 		return *resolve<model, IntT>(
 			instruction,
-			instruction.destination().template source<false>(),
+			instruction.destination().source(),
 			instruction.destination(),
 			registers,
 			memory,
@@ -1576,7 +1576,7 @@ template <
 
 	const auto shift_count = [&]() -> uint8_t {
 		static constexpr uint8_t mask = (model != Model::i8086) ? 0x1f : 0xff;
-		switch(instruction.source().template source<false>()) {
+		switch(instruction.source().source()) {
 			case Source::None:		return 1;
 			case Source::Immediate:	return uint8_t(instruction.operand()) & mask;
 			default:				return registers.cl() & mask;

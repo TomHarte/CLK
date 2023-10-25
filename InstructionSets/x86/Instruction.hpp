@@ -595,10 +595,7 @@ class DataPointer {
 				);
 		}
 
-		template <bool obscure_indirectNoBase = false> constexpr Source source() const {
-			if constexpr (obscure_indirectNoBase) {
-				return (source_ >= Source::IndirectNoBase) ? Source::Indirect : source_;
-			}
+		constexpr Source source() const {
 			return source_;
 		}
 
@@ -634,10 +631,7 @@ class DataPointer {
 			return Source::DS;
 		}
 
-		template <bool obscure_indirectNoBase = false> constexpr Source base() const {
-			if constexpr (obscure_indirectNoBase) {
-				return (source_ <= Source::IndirectNoBase) ? Source::None : sib_.base();
-			}
+		constexpr Source base() const {
 			return sib_.base();
 		}
 
@@ -805,11 +799,11 @@ template<bool is_32bit> class Instruction {
 			return DataSize(source_data_dest_sib_ >> 14);
 		}
 
-		int length() const {
-			const int short_length = (source_data_dest_sib_ >> 10) & 15;
-			if(short_length) return short_length;
-			return length_extension() >> 6;
-		}
+//		int length() const {
+//			const int short_length = (source_data_dest_sib_ >> 10) & 15;
+//			if(short_length) return short_length;
+//			return length_extension() >> 6;
+//		}
 
 		ImmediateT operand() const	{
 			const ImmediateT ops[] = {0, operand_extension()};

@@ -12,7 +12,6 @@
 #include <optional>
 #include <vector>
 #include "../../../InstructionSets/x86/Decoder.hpp"
-#include "../../../InstructionSets/x86/DataPointerResolver.hpp"
 
 using namespace InstructionSet::x86;
 
