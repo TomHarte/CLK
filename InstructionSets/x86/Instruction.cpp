@@ -370,6 +370,7 @@ std::string InstructionSet::x86::to_string(
 
 		stream << (is_negative ? '-' : '+') << std::uppercase << std::hex << abs_value << 'h';
 	};
+
 	using Source = InstructionSet::x86::Source;
 	const Source source = pointer.source<false>();
 	switch(source) {
@@ -507,7 +508,7 @@ std::string InstructionSet::x86::to_string(
 				operation += to_string(instruction.second.source(), instruction.second, offset_length, immediate_length);
 			}
 			if(displacement) {
-				operation += to_hex(instruction.second.displacement(), offset_length);
+				operation += to_hex(instruction.second.displacement() + instruction.first, offset_length);
 			}
 		} break;
 

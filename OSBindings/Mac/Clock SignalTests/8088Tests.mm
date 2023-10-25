@@ -317,48 +317,6 @@ struct FailedExecution {
 - (NSArray<NSString *> *)testFiles {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
-		// Current decoding failures:
-		@"60.json.gz",
-		@"61.json.gz",
-		@"62.json.gz",
-		@"63.json.gz",
-		@"64.json.gz",
-		@"65.json.gz",
-		@"66.json.gz",
-		@"67.json.gz",
-		@"68.json.gz",
-		@"69.json.gz",
-		@"6A.json.gz",
-		@"6B.json.gz",
-		@"6C.json.gz",
-		@"6D.json.gz",
-		@"6E.json.gz",
-		@"6F.json.gz",
-		@"70.json.gz",
-		@"71.json.gz",
-		@"72.json.gz",
-		@"73.json.gz",
-		@"74.json.gz",
-		@"75.json.gz",
-		@"76.json.gz",
-		@"77.json.gz",
-		@"78.json.gz",
-		@"79.json.gz",
-		@"7A.json.gz",
-		@"7B.json.gz",
-		@"7C.json.gz",
-		@"7D.json.gz",
-		@"7E.json.gz",
-		@"7F.json.gz",
-		@"E0.json.gz",
-		@"E1.json.gz",
-		@"E2.json.gz",
-		@"E3.json.gz",
-		@"E8.json.gz",
-		@"E9.json.gz",
-		@"EB.json.gz",
-
-
 		// Current execution failures:
 //		@"27.json.gz",		// DAA
 //		@"2F.json.gz",		// DAS
