@@ -323,6 +323,13 @@ std::string to_hex(int value, int digits, bool with_suffix = true) {
 	return stream.str();
 };
 
+template <typename IntT>
+std::string to_hex(IntT value) {
+	auto stream = std::stringstream();
+	stream << std::uppercase << std::hex << +value << 'h';
+	return stream.str();
+};
+
 }
 
 template <bool is_32bit>
@@ -532,7 +539,7 @@ std::string InstructionSet::x86::to_string(
 			operation += ", ";
 			switch(instruction.source().source()) {
 				case Source::DirectAddress:
-					operation += to_hex(instruction.offset(), 2, true);
+					operation += to_hex(uint8_t(instruction.offset()));
 				break;
 				default:
 					operation += to_string(instruction.source(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
@@ -543,7 +550,7 @@ std::string InstructionSet::x86::to_string(
 		case Operation::OUT:
 			switch(instruction.destination().source()) {
 				case Source::DirectAddress:
-					operation += to_hex(instruction.offset(), 2, true);
+					operation += to_hex(uint8_t(instruction.offset()));
 				break;
 				default:
 					operation += to_string(instruction.destination(), instruction, offset_length, immediate_length, InstructionSet::x86::DataSize::Word);
