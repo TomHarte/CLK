@@ -1526,6 +1526,7 @@ void in(uint16_t port, IntT &value, IOT &io) {
 template <
 	Model model,
 	DataSize data_size,
+	AddressSize address_size,
 	typename InstructionT,
 	typename FlowControllerT,
 	typename RegistersT,
@@ -1540,7 +1541,7 @@ template <
 	IOT &io
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
-	using AddressT = uint16_t;	// TODO.
+	using AddressT = typename AddressSizeType<address_size>::type;
 
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
@@ -1820,22 +1821,51 @@ template <
 
 	// TODO: incorporate and propagate address size.
 
-	switch(instruction.operation_size()) {
-		case DataSize::Byte:
-			perform<model, DataSize::Byte>(instruction, status, flow_controller, registers, memory, io);
-		break;
-		case DataSize::Word:
-			perform<model, DataSize::Word>(instruction, status, flow_controller, registers, memory, io);
-		break;
-		case DataSize::DWord:
+	auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
+		return int(operation_size) + (int(address_size) << 2);
+	};
+
+	switch(size(instruction.operation_size(), instruction.address_size())) {
+		// 16-bit combinations.
+		case size(DataSize::Byte, AddressSize::b16):
+			perform<model, DataSize::Byte, AddressSize::b16>(instruction, status, flow_controller, registers, memory, io);
+		return;
+		case size(DataSize::Word, AddressSize::b16):
+			perform<model, DataSize::Word, AddressSize::b16>(instruction, status, flow_controller, registers, memory, io);
+		return;
+
+		// 32-bit combinations.
+		case size(DataSize::Byte, AddressSize::b32):
 			if constexpr (is_32bit(model)) {
-				perform<model, DataSize::DWord>(instruction, status, flow_controller, registers, memory, io);
+				perform<model, DataSize::Byte, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
+				return;
 			}
-			[[fallthrough]];
-		case DataSize::None:
-			assert(false);
 		break;
+		case size(DataSize::Word, AddressSize::b32):
+			if constexpr (is_32bit(model)) {
+				perform<model, DataSize::Word, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
+				return;
+			}
+		break;
+		case size(DataSize::DWord, AddressSize::b16):
+			if constexpr (is_32bit(model)) {
+				perform<model, DataSize::DWord, AddressSize::b16>(instruction, status, flow_controller, registers, memory, io);
+				return;
+			}
+		break;
+		case size(DataSize::DWord, AddressSize::b32):
+			if constexpr (is_32bit(model)) {
+				perform<model, DataSize::DWord, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
+				return;
+			}
+		break;
+
+		default: break;
 	}
+
+	// This is reachable only if the data and address size combination in use isn't available on the processor
+	// model nominated.
+	assert(false);
 }
 
 }

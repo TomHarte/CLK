@@ -387,6 +387,9 @@ enum class AddressSize: uint8_t {
 	b32 = 1,
 };
 
+template <AddressSize size> struct AddressSizeType { using type = uint16_t; };
+template <> struct AddressSizeType<AddressSize::b32> { using type = uint32_t; };
+
 constexpr DataSize data_size(AddressSize size) {
 	return DataSize(int(size) + 1);
 }
