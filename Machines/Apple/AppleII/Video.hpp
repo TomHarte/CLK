@@ -153,6 +153,11 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			// Remember if we're in a horizontal blanking interval.
 			int hbl = mapped_column < 25;
 
+			// The first column is read twice.
+			if(mapped_column == 0) {
+				mapped_column = 1;
+			}
+
 			// Vertical blanking rows read eight bytes earlier.
 			if(mapped_row >= 192) {
 				mapped_column -= 8;
