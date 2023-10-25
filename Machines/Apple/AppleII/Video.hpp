@@ -178,6 +178,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				if(mapped_row < 64) {
 					read_address += 128;
 				}
+
+				// On Apple II and II+ (not IIe or later) in text/lores mode (not hires), horizontal
+				// blanking bytes read from $1000 higher.
+				const GraphicsMode pixel_mode = graphics_mode(mapped_row);
+				if(!is_iie_ && ((pixel_mode == GraphicsMode::Text) || (pixel_mode == GraphicsMode::LowRes))) {
+					read_address += 0x1000;
+				}
 			}
 
 			// Read the address and return the value.
