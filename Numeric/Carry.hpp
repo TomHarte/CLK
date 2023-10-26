@@ -50,13 +50,6 @@ template <int bit, typename IntT> bool carried_in(IntT lhs, IntT rhs, IntT resul
 	return IntT(1 << bit) & (lhs ^ rhs ^ result);
 }
 
-//
-// BEGIN TEMPORARY COPY AND PASTE SECTION.
-//
-// The following are largely excised from the M68k PerformImplementation.hpp; if there proves to be no
-// reason further to specialise them, there'll be a factoring out. In some cases I've tightened the documentation.
-//
-
 /// @returns An int of type @c IntT with only the most-significant bit set.
 template <typename IntT> constexpr IntT top_bit() {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
@@ -84,12 +77,6 @@ IntT overflow(IntT lhs, IntT rhs, IntT result) {
 		return top_bit<IntT>() & output_changed & input_differed;
 	}
 }
-// NOTE TO FUTURE SELF: the original 68k `overflow` treats lhs and rhs the other way
-// around, affecting subtractive overflow. Be careful.
-
-//
-// END COPY AND PASTE SECTION.
-//
 
 }
 
