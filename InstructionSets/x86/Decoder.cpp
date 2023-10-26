@@ -1014,24 +1014,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
 
-			// TODO: whether the displacement is signed appears to depend on the opcode.
-			// Find an appropriate table.
-
-//			if(!sign_extend_displacement_) {
-//				switch(displacement_size_) {
-//					case DataSize::None:	displacement_ = 0;													break;
-//					case DataSize::Byte:	displacement_ = decltype(displacement_)(uint8_t(inward_data_));		break;
-//					case DataSize::Word:	displacement_ = decltype(displacement_)(uint16_t(inward_data_));	break;
-//					case DataSize::DWord:	displacement_ = decltype(displacement_)(uint32_t(inward_data_));	break;
-//				}
-//			} else {
-				switch(displacement_size_) {
-					case DataSize::None:	displacement_ = 0;						break;
-					case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
-					case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
-					case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
-				}
-//			}
+			switch(displacement_size_) {
+				case DataSize::None:	displacement_ = 0;						break;
+				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
+				case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
+				case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+			}
 			inward_data_ >>= bit_size(displacement_size_);
 
 			// Use inequality of sizes as a test for necessary sign extension.

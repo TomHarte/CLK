@@ -195,8 +195,6 @@ template <Model model> class Decoder {
 
 		bool sign_extend_operand_ = false;				// If set then sign extend the operand up to the operation size;
 														// otherwise it'll be zero-padded.
-		bool sign_extend_displacement_ = false;			// Much as above; 'displacement' is used internally for both
-														// displacements and offsets, so signage will vary.
 
 		// Prefix capture fields.
 		Repetition repetition_ = Repetition::None;
@@ -225,7 +223,6 @@ template <Model model> class Decoder {
 			next_inward_data_shift_ = 0;
 			inward_data_ = 0;
 			sign_extend_operand_ = false;
-			sign_extend_displacement_ = false;
 		}
 };
 
