@@ -728,7 +728,7 @@ template<bool is_32bit> class Instruction {
 		/// this allows a denser packing of instructions into containers.
 		size_t packing_size() const	{
 			return
-				offsetof(Instruction<is_32bit>, extensions) +
+				offsetof(Instruction<is_32bit>, extensions_) +
 				(has_displacement() + has_operand()) * sizeof(ImmediateT);
 		}
 
