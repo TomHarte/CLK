@@ -693,13 +693,11 @@ template<bool is_32bit> class Instruction {
 		// Packing and encoding of fields is admittedly somewhat convoluted; what this
 		// achieves is that instructions will be sized:
 		//
-		//	four bytes + up to three extension words
-		//	(two bytes for 16-bit instructions, four for 32)
+		//	four bytes + up to two extension words
+		//	(extension words being two bytes for 16-bit instructions, four for 32)
 		//
-		// Two of the extension words are used to retain an operand and displacement
-		// if the instruction has those. The other can store sizes greater than 15
-		// bytes (for earlier processors), plus any repetition, segment override or
-		// repetition prefixes.
+		// The extension words are used to retain an operand and displacement
+		// if the instruction has those.
 
 		// b7: address size;
 		// b6: has displacement;
@@ -739,13 +737,6 @@ template<bool is_32bit> class Instruction {
 			return
 				offsetof(Instruction<is_32bit>, extensions) +
 				(has_displacement() + has_operand()) * sizeof(ImmediateT);
-
-			// To consider in the future: the length extension is always the last one,
-			// and uses only 8 bits of content within 32-bit instructions, so it'd be
-			// possible further to trim the packing size on little endian machines.
-			//
-			// ... but is that a speed improvement? How much space does it save, and
-			// is it enough to undo the costs of unaligned data?
 		}
 
 	private:
