@@ -398,7 +398,7 @@ std::string InstructionSet::x86::to_string(
 		}
 
 		const bool is_negative = Numeric::top_bit<decltype(value)>() & value;
-		const uint64_t abs_value = std::abs(int16_t(value));	// TODO: don't assume 16-bit.
+		const uint64_t abs_value = uint64_t(std::abs(int16_t(value)));	// TODO: don't assume 16-bit.
 
 		stream << (is_negative ? '-' : '+') << std::uppercase << std::hex << abs_value << 'h';
 	};

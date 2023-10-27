@@ -470,7 +470,7 @@ enum class Source: uint8_t {
 };
 
 enum class Repetition: uint8_t {
-	None, RepE, RepNE
+	None, RepE, RepNE, Rep,
 };
 
 /// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
@@ -491,16 +491,16 @@ constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 
 		case Operation::CMPS:
 			switch(repetition) {
-				default:
 				case Repetition::None:	return Operation::CMPS;
+				default:
 				case Repetition::RepE:	return Operation::CMPS_REPE;
 				case Repetition::RepNE:	return Operation::CMPS_REPNE;
 			}
 
 		case Operation::SCAS:
 			switch(repetition) {
-				default:
 				case Repetition::None:	return Operation::SCAS;
+				default:
 				case Repetition::RepE:	return Operation::SCAS_REPE;
 				case Repetition::RepNE:	return Operation::SCAS_REPNE;
 			}

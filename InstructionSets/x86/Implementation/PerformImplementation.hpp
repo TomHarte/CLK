@@ -1381,25 +1381,18 @@ bool repetition_over(const AddressT &eCX) {
 }
 
 template <typename AddressT, Repetition repetition, typename FlowControllerT>
-void repeat_ene(Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
-	if(
-		repetition == Repetition::None ||					// No repetition => stop.
-		!(--eCX) ||											// [e]cx is zero after being decremented => stop.
-		(repetition == Repetition::RepNE) == status.flag<Flag::Zero>()
-															// repe and !zero, or repne and zero => stop.
-	) {
-		return;
-	}
-	flow_controller.repeat_last();
-}
-
-template <typename AddressT, Repetition repetition, typename FlowControllerT>
-void repeat(AddressT &eCX, FlowControllerT &flow_controller) {
+void repeat([[maybe_unused]] Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
 	if(
 		repetition == Repetition::None ||		// No repetition => stop.
 		!(--eCX)								// [e]cx is zero after being decremented => stop.
 	) {
 		return;
+	}
+	if constexpr (repetition != Repetition::Rep) {
+		// If this is RepE or RepNE, also test the zero flag.
+		if((repetition == Repetition::RepNE) == status.flag<Flag::Zero>()) {
+			return;
+		}
 	}
 	flow_controller.repeat_last();
 }
@@ -1417,7 +1410,7 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 
 	Primitive::sub<false, false>(lhs, rhs, status);
 
-	repeat_ene<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename FlowControllerT>
@@ -1431,7 +1424,7 @@ void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &stat
 
 	Primitive::sub<false, false>(eAX, rhs, status);
 
-	repeat_ene<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
@@ -1443,7 +1436,7 @@ void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &e
 	eAX = memory.template access<IntT>(instruction.data_segment(), eSI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
@@ -1457,7 +1450,7 @@ void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename FlowControllerT>
@@ -1469,7 +1462,7 @@ void stos(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &stat
 	memory.template access<IntT>(Source::ES, eDI) = eAX;
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
@@ -1481,7 +1474,7 @@ void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, Address
 	io.template out<IntT>(port, memory.template access<IntT>(instruction.data_segment(), eSI));
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename IOT, typename FlowControllerT>
@@ -1493,7 +1486,7 @@ void ins(AddressT &eCX, uint16_t port, AddressT &eDI, MemoryT &memory, IOT &io, 
 	memory.template access<IntT>(Source::ES, eDI) = io.template in<IntT>(port);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename IOT>
@@ -1782,35 +1775,35 @@ template <
 			Primitive::lods<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
 		break;
 		case Operation::LODS_REP:
-			Primitive::lods<IntT, AddressT, Repetition::RepE>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+			Primitive::lods<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
 		break;
 
 		case Operation::MOVS:
 			Primitive::movs<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
 		break;
 		case Operation::MOVS_REP:
-			Primitive::movs<IntT, AddressT, Repetition::RepE>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::movs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
 		break;
 
 		case Operation::STOS:
 			Primitive::stos<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
 		break;
 		case Operation::STOS_REP:
-			Primitive::stos<IntT, AddressT, Repetition::RepE>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::stos<IntT, AddressT, Repetition::Rep>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
 		break;
 
 		case Operation::OUTS:
 			Primitive::outs<IntT, AddressT, Repetition::None>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
 		break;
 		case Operation::OUTS_REP:
-			Primitive::outs<IntT, AddressT, Repetition::RepE>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
+			Primitive::outs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
 		break;
 
 		case Operation::INS:
 			Primitive::ins<IntT, AddressT, Repetition::None>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
 		break;
 		case Operation::INS_REP:
-			Primitive::ins<IntT, AddressT, Repetition::RepE>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
+			Primitive::ins<IntT, AddressT, Repetition::Rep>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
 		break;
 	}
 
