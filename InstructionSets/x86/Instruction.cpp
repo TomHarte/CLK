@@ -420,7 +420,7 @@ std::string InstructionSet::x86::to_string(
 		case Source::IndirectNoBase: {
 			std::stringstream stream;
 
-			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
+			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation())) {
 				stream << InstructionSet::x86::to_string(operation_size) << ' ';
 			}
 
@@ -473,7 +473,7 @@ std::string InstructionSet::x86::to_string(
 	std::string operation;
 
 	// Add segment override, if any, ahead of some operations that won't otherwise print it.
-	switch(instruction.second.operation) {
+	switch(instruction.second.operation()) {
 		default: break;
 
 		case Operation::CMPS:
@@ -505,14 +505,14 @@ std::string InstructionSet::x86::to_string(
 	}
 
 	// Add operation itself.
-	operation += to_string(instruction.second.operation, instruction.second.operation_size(), model);
+	operation += to_string(instruction.second.operation(), instruction.second.operation_size(), model);
 	operation += " ";
 
 	// Deal with a few special cases up front.
-	switch(instruction.second.operation) {
+	switch(instruction.second.operation()) {
 		default: {
-			const int operands = max_displayed_operands(instruction.second.operation);
-			const bool displacement = has_displacement(instruction.second.operation);
+			const int operands = max_displayed_operands(instruction.second.operation());
+			const bool displacement = has_displacement(instruction.second.operation());
 			const bool print_first = operands > 1 && instruction.second.destination().source() != Source::None;
 			if(print_first) {
 				operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);

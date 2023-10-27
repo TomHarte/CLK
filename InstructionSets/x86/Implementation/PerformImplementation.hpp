@@ -1636,7 +1636,7 @@ template <
 	//	* use hard-coded register names where appropriate;
 	//	* return directly if there is definitely no possible write back to RAM;
 	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
-	switch(instruction.operation) {
+	switch(instruction.operation()) {
 		default:
 			assert(false);
 

@@ -21,7 +21,7 @@ namespace {
 
 template <typename InstructionT> void test(const InstructionT &instruction, DataSize size, Operation operation) {
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 }
 
 template <typename InstructionT> void test(
@@ -34,7 +34,7 @@ template <typename InstructionT> void test(
 	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
 
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 	if(source) XCTAssert(instruction.source() == *source);
 	if(destination) XCTAssert(instruction.destination() == *destination);
 	if(operand)	XCTAssertEqual(instruction.operand(), *operand);
@@ -46,7 +46,7 @@ template <typename InstructionT> void test(
 	Operation operation,
 	std::optional<typename InstructionT::ImmediateT> operand = std::nullopt,
 	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 	if(operand)	XCTAssertEqual(instruction.operand(), *operand);
 	if(displacement) XCTAssertEqual(instruction.displacement(), *displacement);
 }
@@ -56,7 +56,7 @@ template <typename InstructionT> void test_far(
 	Operation operation,
 	uint16_t segment,
 	typename InstructionT::DisplacementT offset) {
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 	XCTAssertEqual(instruction.segment(), segment);
 	XCTAssertEqual(instruction.offset(), offset);
 }

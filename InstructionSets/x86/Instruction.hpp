@@ -662,10 +662,12 @@ class DataPointer {
 
 template<bool is_32bit> class Instruction {
 	public:
-		Operation operation = Operation::Invalid;
+		Operation operation() const {
+			return operation_;
+		}
 
 		bool operator ==(const Instruction<is_32bit> &rhs) const {
-			if(	operation != rhs.operation ||
+			if(	operation_ != rhs.operation_ ||
 				mem_exts_source_ != rhs.mem_exts_source_ ||
 				source_data_dest_sib_ != rhs.source_data_dest_sib_) {
 				return false;
@@ -673,7 +675,7 @@ template<bool is_32bit> class Instruction {
 
 			// Have already established above that this and RHS have the
 			// same extensions, if any.
-			const int extension_count = has_length_extension() + has_displacement() + has_operand();
+			const int extension_count = has_displacement() + has_operand();
 			for(int c = 0; c < extension_count; c++) {
 				if(extensions_[c] != rhs.extensions_[c]) return false;
 			}
@@ -686,6 +688,8 @@ template<bool is_32bit> class Instruction {
 		using AddressT = ImmediateT;
 
 	private:
+		Operation operation_ = Operation::Invalid;
+
 		// Packing and encoding of fields is admittedly somewhat convoluted; what this
 		// achieves is that instructions will be sized:
 		//
@@ -711,43 +715,20 @@ template<bool is_32bit> class Instruction {
 		}
 
 		// [b15, b14]: data size;
-		// [b13, b10]: source length (0 => has length extension);
+		// [b13]: lock;
+		// [b12, b10]: segment override;
 		// [b9, b5]: top five of SIB;
 		// [b4, b0]: dest.
-		uint16_t source_data_dest_sib_ = 1 << 10;	// So that ::Invalid doesn't seem to have a length extension.
+		uint16_t source_data_dest_sib_ = 0;
 
-		// Note to future self: if source length continues to prove avoidable, reuse its four bits as:
-		//	three bits: segment (as overridden, otherwise whichever operand has a segment, if either);
-		//	one bit: an extra bit for Operation.
-		//
-		// Then what was the length extension will hold only a repetition, if any, and the lock bit. As luck would have
-		// it there are six valid segment registers so there is an available sentinel value to put into the segment
-		// field to indicate that there's an extension if necessary. A further three bits would need to be trimmed
-		// to do away with that extension entirely, but since lock is rarely used and repetitions apply only to a
-		// small number of operations I think it'd at least be a limited problem.
-
-		bool has_length_extension() const {
-			return !((source_data_dest_sib_ >> 10) & 15);
-		}
-
-		// {operand}, {displacement}, {length extension}.
-		//
-		// If length extension is present then:
-		//
-		//	[b15, b6]: source length;
-		//	[b5, b4]: repetition;
-		//	[b3, b1]: segment override;
-		//	b0: lock.
-		ImmediateT extensions_[3]{};
+		// {operand}, {displacement}.
+		ImmediateT extensions_[2]{};
 
 		ImmediateT operand_extension() const {
 			return extensions_[0];
 		}
 		ImmediateT displacement_extension() const {
 			return extensions_[(mem_exts_source_ >> 5) & 1];
-		}
-		ImmediateT length_extension() const {
-			return extensions_[((mem_exts_source_ >> 5) & 1) + ((mem_exts_source_ >> 6) & 1)];
 		}
 
 	public:
@@ -757,7 +738,7 @@ template<bool is_32bit> class Instruction {
 		size_t packing_size() const	{
 			return
 				offsetof(Instruction<is_32bit>, extensions) +
-				(has_displacement() + has_operand() + has_length_extension()) * sizeof(ImmediateT);
+				(has_displacement() + has_operand()) * sizeof(ImmediateT);
 
 			// To consider in the future: the length extension is always the last one,
 			// and uses only 8 bits of content within 32-bit instructions, so it'd be
@@ -788,7 +769,7 @@ template<bool is_32bit> class Instruction {
 			);
 		}
 		bool lock() const {
-			return has_length_extension() && length_extension()&1;
+			return source_data_dest_sib_ & (1 << 13);
 		}
 
 		AddressSize address_size() const {
@@ -800,10 +781,9 @@ template<bool is_32bit> class Instruction {
 		/// or that used by stack instructions, but this function does not spend the time necessary to provide
 		/// the correct default for those.
 		Source segment_override() const {
-			if(!has_length_extension()) return Source::None;
 			return Source(
 				int(Source::ES) +
-				((length_extension() >> 1) & 7)
+				((source_data_dest_sib_ >> 10) & 7)
 			);
 		}
 
@@ -844,7 +824,7 @@ template<bool is_32bit> class Instruction {
 			DataSize data_size,
 			DisplacementT displacement,
 			ImmediateT operand) noexcept :
-				operation(operation),
+				operation_(operation),
 				mem_exts_source_(uint8_t(
 					(int(address_size) << 7) |
 					(displacement ? 0x40 : 0x00) |
@@ -854,14 +834,13 @@ template<bool is_32bit> class Instruction {
 				)),
 				source_data_dest_sib_(uint16_t(
 					(int(data_size) << 14) |
-					((
-						(lock || (segment_override != Source::None))
-					) ? 0 : (1 << 10)) |
+					(lock ? (1 << 13) : 0) |
+					((int(segment_override)&7) << 10) |
 					((uint8_t(sib) & 0xf8) << 2) |
 					int(destination) |
 					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
-				)) {
-
+				))
+			{
 				// Decisions on whether to include operand, displacement and/or size extension words
 				// have implicitly been made in the int packing above; honour them here.
 				int extension = 0;
@@ -871,12 +850,6 @@ template<bool is_32bit> class Instruction {
 				}
 				if(has_displacement()) {
 					extensions_[extension] = ImmediateT(displacement);
-					++extension;
-				}
-				if(has_length_extension()) {
-					extensions_[extension] = ImmediateT(
-						((int(segment_override) & 7) << 1) | int(lock)
-					);
 					++extension;
 				}
 			}
