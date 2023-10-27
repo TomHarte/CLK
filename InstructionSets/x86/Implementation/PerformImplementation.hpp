@@ -184,8 +184,7 @@ IntT *resolve(
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	const Source segment = pointer.segment(instruction.segment_override());
-	return &memory.template access<IntT>(segment, target_address);
+	return &memory.template access<IntT>(instruction.data_segment(), target_address);
 };
 
 namespace Primitive {
@@ -859,7 +858,7 @@ void call_far(InstructionT &instruction,
 		break;
 	}
 
-	const Source source_segment = pointer.segment(instruction.segment_override());
+	const Source source_segment = instruction.data_segment();
 
 	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
 	source_address += 2;
@@ -891,7 +890,7 @@ void jump_far(InstructionT &instruction,
 		break;
 	}
 
-	const Source source_segment = pointer.segment(instruction.segment_override());
+	const Source source_segment = instruction.data_segment();
 
 	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
 	source_address += 2;
@@ -932,7 +931,7 @@ void ld(
 ) {
 	const auto pointer = instruction.source();
 	auto source_address = address<model, uint16_t>(instruction, pointer, registers, memory);
-	const Source source_segment = pointer.segment(instruction.segment_override());
+	const Source source_segment = instruction.data_segment();
 
 	destination = memory.template access<uint16_t>(source_segment, source_address);
 	source_address += 2;
@@ -959,15 +958,12 @@ void xlat(
 	MemoryT &memory,
 	RegistersT &registers
 ) {
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
 	AddressT address;
 	if constexpr (std::is_same_v<AddressT, uint16_t>) {
 		address = registers.bx() + registers.al();
 	}
 
-	registers.al() = memory.template access<uint8_t>(source_segment, address);
+	registers.al() = memory.template access<uint8_t>(instruction.data_segment(), address);
 }
 
 template <typename IntT>
@@ -1379,57 +1375,47 @@ void pushf(MemoryT &memory, RegistersT &registers, Status &status) {
 	push<uint16_t>(value, memory, registers);
 }
 
-template <typename AddressT, typename InstructionT>
-bool repetition_over(const InstructionT &instruction, AddressT &eCX) {
-	return instruction.repetition() != Repetition::None && !eCX;
+template <typename AddressT, Repetition repetition>
+bool repetition_over(const AddressT &eCX) {
+	return repetition != Repetition::None && !eCX;
 }
 
-template <typename AddressT, typename InstructionT, typename FlowControllerT>
-void repeat_ene(const InstructionT &instruction, Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
+template <typename AddressT, Repetition repetition, typename FlowControllerT>
+void repeat([[maybe_unused]] Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
 	if(
-		instruction.repetition() == Repetition::None ||		// No repetition => stop.
-		!(--eCX) ||											// [e]cx is zero after being decremented => stop.
-		(instruction.repetition() == Repetition::RepNE) == status.flag<Flag::Zero>()
-															// repe and !zero, or repne and zero => stop.
+		repetition == Repetition::None ||		// No repetition => stop.
+		!(--eCX)								// [e]cx is zero after being decremented => stop.
 	) {
 		return;
+	}
+	if constexpr (repetition != Repetition::Rep) {
+		// If this is RepE or RepNE, also test the zero flag.
+		if((repetition == Repetition::RepNE) == status.flag<Flag::Zero>()) {
+			return;
+		}
 	}
 	flow_controller.repeat_last();
 }
 
-template <typename AddressT, typename InstructionT, typename FlowControllerT>
-void repeat(const InstructionT &instruction, AddressT &eCX, FlowControllerT &flow_controller) {
-	if(
-		instruction.repetition() == Repetition::None ||		// No repetition => stop.
-		!(--eCX)											// [e]cx is zero after being decremented => stop.
-	) {
-		return;
-	}
-	flow_controller.repeat_last();
-}
-
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
 void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
-	IntT lhs = memory.template access<IntT>(source_segment, eSI);
+	IntT lhs = memory.template access<IntT>(instruction.data_segment(), eSI);
 	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
 	Primitive::sub<false, false>(lhs, rhs, status);
 
-	repeat_ene<AddressT>(instruction, status, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
-void scas(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename FlowControllerT>
+void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
@@ -1438,77 +1424,69 @@ void scas(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &e
 
 	Primitive::sub<false, false>(eAX, rhs, status);
 
-	repeat_ene<AddressT>(instruction, status, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
 void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
-	eAX = memory.template access<IntT>(source_segment, eSI);
+	eAX = memory.template access<IntT>(instruction.data_segment(), eSI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT>(instruction, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
 void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
-	memory.template access<IntT>(Source::ES, eDI) = memory.template access<IntT>(source_segment, eSI);
+	memory.template access<IntT>(Source::ES, eDI) = memory.template access<IntT>(instruction.data_segment(), eSI);
 
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT>(instruction, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename FlowControllerT>
-void stos(const InstructionT &instruction, AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename FlowControllerT>
+void stos(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
 	memory.template access<IntT>(Source::ES, eDI) = eAX;
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT>(instruction, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
 void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, AddressT &eSI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-	io.template out<IntT>(port, memory.template access<IntT>(source_segment, eSI));
+	io.template out<IntT>(port, memory.template access<IntT>(instruction.data_segment(), eSI));
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT>(instruction, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
-template <typename IntT, typename AddressT, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
-void ins(const InstructionT &instruction, AddressT &eCX, uint16_t port, AddressT &eDI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
-	if(repetition_over<AddressT>(instruction, eCX)) {
+template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename IOT, typename FlowControllerT>
+void ins(AddressT &eCX, uint16_t port, AddressT &eDI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
+	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
 	memory.template access<IntT>(Source::ES, eDI) = io.template in<IntT>(port);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT>(instruction, eCX, flow_controller);
+	repeat<AddressT, repetition>(status, eCX, flow_controller);
 }
 
 template <typename IntT, typename IOT>
@@ -1626,7 +1604,7 @@ template <
 	// Gets the port for an IN or OUT; these are always 16-bit.
 	const auto port = [&](Source source) -> uint16_t {
 		switch(source) {
-			case Source::DirectAddress:	return instruction.operand();
+			case Source::DirectAddress:	return instruction.offset();
 			default:					return registers.dx();
 		}
 	};
@@ -1636,7 +1614,7 @@ template <
 	//	* use hard-coded register names where appropriate;
 	//	* return directly if there is definitely no possible write back to RAM;
 	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
-	switch(instruction.operation) {
+	switch(instruction.operation()) {
 		default:
 			assert(false);
 
@@ -1774,25 +1752,58 @@ template <
 		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);			break;
 
 		case Operation::CMPS:
-			Primitive::cmps<IntT, AddressT>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
 		break;
-		case Operation::LODS:
-			Primitive::lods<IntT, AddressT>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+		case Operation::CMPS_REPE:
+			Primitive::cmps<IntT, AddressT, Repetition::RepE>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
 		break;
-		case Operation::MOVS:
-			Primitive::movs<IntT, AddressT>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+		case Operation::CMPS_REPNE:
+			Primitive::cmps<IntT, AddressT, Repetition::RepNE>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
 		break;
-		case Operation::STOS:
-			Primitive::stos<IntT, AddressT>(instruction, eCX(), eDI(), pair_low(), memory, status, flow_controller);
-		break;
+
 		case Operation::SCAS:
-			Primitive::scas<IntT, AddressT>(instruction, eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::scas<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
 		break;
+		case Operation::SCAS_REPE:
+			Primitive::scas<IntT, AddressT, Repetition::RepE>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+		break;
+		case Operation::SCAS_REPNE:
+			Primitive::scas<IntT, AddressT, Repetition::RepNE>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+		break;
+
+		case Operation::LODS:
+			Primitive::lods<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+		break;
+		case Operation::LODS_REP:
+			Primitive::lods<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+		break;
+
+		case Operation::MOVS:
+			Primitive::movs<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+		break;
+		case Operation::MOVS_REP:
+			Primitive::movs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+		break;
+
+		case Operation::STOS:
+			Primitive::stos<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+		break;
+		case Operation::STOS_REP:
+			Primitive::stos<IntT, AddressT, Repetition::Rep>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+		break;
+
 		case Operation::OUTS:
-			Primitive::outs<IntT, AddressT>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
+			Primitive::outs<IntT, AddressT, Repetition::None>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
 		break;
+		case Operation::OUTS_REP:
+			Primitive::outs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
+		break;
+
 		case Operation::INS:
-			Primitive::outs<IntT, AddressT>(instruction, eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
+			Primitive::ins<IntT, AddressT, Repetition::None>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
+		break;
+		case Operation::INS_REP:
+			Primitive::ins<IntT, AddressT, Repetition::Rep>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
 		break;
 	}
 

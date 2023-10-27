@@ -21,7 +21,7 @@ namespace {
 
 template <typename InstructionT> void test(const InstructionT &instruction, DataSize size, Operation operation) {
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 }
 
 template <typename InstructionT> void test(
@@ -34,7 +34,7 @@ template <typename InstructionT> void test(
 	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
 
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 	if(source) XCTAssert(instruction.source() == *source);
 	if(destination) XCTAssert(instruction.destination() == *destination);
 	if(operand)	XCTAssertEqual(instruction.operand(), *operand);
@@ -46,7 +46,7 @@ template <typename InstructionT> void test(
 	Operation operation,
 	std::optional<typename InstructionT::ImmediateT> operand = std::nullopt,
 	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 	if(operand)	XCTAssertEqual(instruction.operand(), *operand);
 	if(displacement) XCTAssertEqual(instruction.displacement(), *displacement);
 }
@@ -56,7 +56,7 @@ template <typename InstructionT> void test_far(
 	Operation operation,
 	uint16_t segment,
 	typename InstructionT::DisplacementT offset) {
-	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation(), operation);
 	XCTAssertEqual(instruction.segment(), segment);
 	XCTAssertEqual(instruction.offset(), offset);
 }
@@ -410,7 +410,7 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	// add    DWORD PTR [edi-0x42],0x9f683aa9
 	// lock jp 0xfffffff0	(from 0000000e)
 	test(instructions[0], DataSize::DWord, Operation::INC, Source::eDX);
-	XCTAssertEqual(instructions[0].segment_override(), Source::CS);
+	XCTAssertEqual(instructions[0].data_segment(), Source::CS);
 	test(instructions[1], DataSize::Byte, Operation::OR, Source::Immediate, Source::eAX, 0x9);
 	test(instructions[2], DataSize::DWord, Operation::ADD, Source::Immediate, ScaleIndexBase(Source::eDI), 0x9f683aa9, -0x42);
 	test(instructions[3], Operation::JP, 0, -30);
@@ -421,7 +421,7 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	// stos   BYTE PTR es:[edi],al
 	// pusha
 	test(instructions[4], DataSize::Byte, Operation::MOV, Source::Immediate, Source::AH, 0xc1);
-	XCTAssertEqual(instructions[4].segment_override(), Source::DS);
+	XCTAssertEqual(instructions[4].data_segment(), Source::DS);
 	test(instructions[5], DataSize::Word, Operation::POP, Source::None, Source::DS);
 	test(instructions[6], DataSize::Byte, Operation::STOS);
 	test(instructions[7], Operation::PUSHA);
@@ -464,7 +464,7 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	test(instructions[21], DataSize::Byte, Operation::XOR, Source::Immediate, Source::eAX, 0x45);
 	test(instructions[22], DataSize::DWord, Operation::LDS, ScaleIndexBase(Source::eCX), Source::eDX);
 	test(instructions[23], DataSize::Byte, Operation::MOV, Source::eAX, Source::DirectAddress, 0xe4dba6d3);
-	XCTAssertEqual(instructions[23].segment_override(), Source::DS);
+	XCTAssertEqual(instructions[23].data_segment(), Source::DS);
 
 	// pop    ds
 	// movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]

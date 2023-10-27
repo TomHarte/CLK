@@ -160,20 +160,52 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 			constexpr char sizes[][6] = { "cmpsb", "cmpsw", "cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
-		case Operation::LODS: {
-			constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
+		case Operation::CMPS_REPE: {
+			constexpr char sizes[][11] = { "repe cmpsb", "repe cmpsw", "repe cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
-		case Operation::MOVS: {
-			constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
+		case Operation::CMPS_REPNE: {
+			constexpr char sizes[][12] = { "repne cmpsb", "repne cmpsw", "repne cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
+
 		case Operation::SCAS: {
 			constexpr char sizes[][6] = { "scasb", "scasw", "scasd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
+		case Operation::SCAS_REPE: {
+			constexpr char sizes[][11] = { "repe scasb", "repe scasw", "repe scasd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::SCAS_REPNE: {
+			constexpr char sizes[][12] = { "repne scasb", "repne scasw", "repne scasd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+
+		case Operation::LODS: {
+			constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::LODS_REP: {
+			constexpr char sizes[][10] = { "rep lodsb", "rep lodsw", "rep lodsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+
+		case Operation::MOVS: {
+			constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::MOVS_REP: {
+			constexpr char sizes[][10] = { "rep movsb", "rep movsw", "rep movsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+
 		case Operation::STOS: {
 			constexpr char sizes[][6] = { "stosb", "stosw", "stosd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::STOS_REP: {
+			constexpr char sizes[][10] = { "rep stosb", "rep stosw", "rep stosd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
@@ -366,7 +398,7 @@ std::string InstructionSet::x86::to_string(
 		}
 
 		const bool is_negative = Numeric::top_bit<decltype(value)>() & value;
-		const uint64_t abs_value = std::abs(int16_t(value));	// TODO: don't assume 16-bit.
+		const uint64_t abs_value = uint64_t(std::abs(int16_t(value)));	// TODO: don't assume 16-bit.
 
 		stream << (is_negative ? '-' : '+') << std::uppercase << std::hex << abs_value << 'h';
 	};
@@ -388,19 +420,12 @@ std::string InstructionSet::x86::to_string(
 		case Source::IndirectNoBase: {
 			std::stringstream stream;
 
-			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation)) {
+			if(!InstructionSet::x86::mnemonic_implies_data_size(instruction.operation())) {
 				stream << InstructionSet::x86::to_string(operation_size) << ' ';
 			}
 
 			stream << '[';
-			Source segment = instruction.segment_override();
-			if(segment == Source::None) {
-				segment = pointer.default_segment();
-				if(segment == Source::None) {
-					segment = Source::DS;
-				}
-			}
-			stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+			stream << InstructionSet::x86::to_string(instruction.data_segment(), InstructionSet::x86::DataSize::None) << ':';
 
 			bool addOffset = false;
 			switch(source) {
@@ -441,15 +466,26 @@ std::string InstructionSet::x86::to_string(
 	std::string operation;
 
 	// Add segment override, if any, ahead of some operations that won't otherwise print it.
-	switch(instruction.second.operation) {
+	switch(instruction.second.operation()) {
 		default: break;
 
 		case Operation::CMPS:
+		case Operation::CMPS_REPE:
+		case Operation::CMPS_REPNE:
 		case Operation::SCAS:
+		case Operation::SCAS_REPE:
+		case Operation::SCAS_REPNE:
 		case Operation::STOS:
+		case Operation::STOS_REP:
 		case Operation::LODS:
+		case Operation::LODS_REP:
 		case Operation::MOVS:
-			switch(instruction.second.segment_override()) {
+		case Operation::MOVS_REP:
+		case Operation::INS:
+		case Operation::INS_REP:
+		case Operation::OUTS:
+		case Operation::OUTS_REP:
+			switch(instruction.second.data_segment()) {
 				default: 								break;
 				case Source::ES:	operation += "es ";	break;
 				case Source::CS:	operation += "cs ";	break;
@@ -461,44 +497,15 @@ std::string InstructionSet::x86::to_string(
 		break;
 	}
 
-	// Add a repetition prefix; it'll be one of 'rep', 'repe' or 'repne'.
-	switch(instruction.second.repetition()) {
-		case Repetition::None: break;
-		case Repetition::RepE:
-			switch(instruction.second.operation) {
-				case Operation::CMPS:
-				case Operation::SCAS:
-					operation += "repe ";
-				break;
-
-				default:
-					operation += "rep ";
-				break;
-			}
-		break;
-		case Repetition::RepNE:
-			switch(instruction.second.operation) {
-				case Operation::CMPS:
-				case Operation::SCAS:
-					operation += "repne ";
-				break;
-
-				default:
-					operation += "rep ";
-				break;
-			}
-		break;
-	}
-
 	// Add operation itself.
-	operation += to_string(instruction.second.operation, instruction.second.operation_size(), model);
+	operation += to_string(instruction.second.operation(), instruction.second.operation_size(), model);
 	operation += " ";
 
 	// Deal with a few special cases up front.
-	switch(instruction.second.operation) {
+	switch(instruction.second.operation()) {
 		default: {
-			const int operands = max_displayed_operands(instruction.second.operation);
-			const bool displacement = has_displacement(instruction.second.operation);
+			const int operands = max_displayed_operands(instruction.second.operation());
+			const bool displacement = has_displacement(instruction.second.operation());
 			const bool print_first = operands > 1 && instruction.second.destination().source() != Source::None;
 			if(print_first) {
 				operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
