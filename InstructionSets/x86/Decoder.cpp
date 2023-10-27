@@ -80,7 +80,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #define Displacement(op, size)						\
 	SetOperation(Operation::op);					\
 	phase_ = Phase::DisplacementOrOperand;			\
-	displacement_size_ = size
+	operation_size_= displacement_size_ = size
 
 /// Handles PUSH [immediate], etc — anything with only an immediate operand.
 #define Immediate(op, size)							\
@@ -90,11 +90,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	operand_size_ = size
 
 /// Handles far CALL and far JMP — fixed four or six byte operand operations.
-#define Far(op)										\
-	SetOperation(Operation::op);					\
-	phase_ = Phase::DisplacementOrOperand;			\
-	operand_size_ = DataSize::Word;					\
-	destination_ = Source::Immediate;				\
+#define Far(op)											\
+	SetOperation(Operation::op);						\
+	phase_ = Phase::DisplacementOrOperand;				\
+	operation_size_ = operand_size_ = DataSize::Word;	\
+	destination_ = Source::Immediate;					\
 	displacement_size_ = data_size(default_address_size_)
 
 /// Handles ENTER — a fixed three-byte operation.
@@ -353,7 +353,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x8e: MemRegReg(MOV, Seg_MemReg, DataSize::Word);		break;
 			case 0x8f: MemRegReg(POP, MemRegSingleOperand, data_size_);	break;
 
-			case 0x90: Complete(NOP, None, None, DataSize::None);	break;	// Or XCHG AX, AX?
+			case 0x90: Complete(NOP, None, None, DataSize::Byte);	break;	// Could be encoded as XCHG AX, AX if Operation space becomes limited.
 			case 0x91: Complete(XCHG, eAX, eCX, data_size_);		break;
 			case 0x92: Complete(XCHG, eAX, eDX, data_size_);		break;
 			case 0x93: Complete(XCHG, eAX, eBX, data_size_);		break;
@@ -365,7 +365,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x98: Complete(CBW, eAX, AH, data_size_);			break;
 			case 0x99: Complete(CWD, eAX, eDX, data_size_);			break;
 			case 0x9a: Far(CALLfar);								break;
-			case 0x9b: Complete(WAIT, None, None, DataSize::None);	break;
+			case 0x9b: Complete(WAIT, None, None, DataSize::Byte);	break;
 			case 0x9c: Complete(PUSHF, None, None, data_size_);		break;
 			case 0x9d: Complete(POPF, None, None, data_size_);		break;
 			case 0x9e: Complete(SAHF, None, None, DataSize::Byte);	break;
@@ -421,11 +421,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					source_ = Source::Immediate;
 					operand_size_ = data_size_;
 				} else {
-					Complete(RETnear, None, None, DataSize::None);
+					Complete(RETnear, None, None, DataSize::Byte);
 				}
 			break;
 			case 0xc2: RegData(RETnear, None, data_size_);				break;
-			case 0xc3: Complete(RETnear, None, None, DataSize::None);	break;
+			case 0xc3: Complete(RETnear, None, None, DataSize::Byte);	break;
 			case 0xc4: MemRegReg(LES, Reg_MemReg, data_size_);			break;
 			case 0xc5: MemRegReg(LDS, Reg_MemReg, data_size_);			break;
 			case 0xc6: MemRegReg(MOV, MemRegMOV, DataSize::Byte);		break;
@@ -440,14 +440,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0xc9:
 				if constexpr (model >= Model::i80186) {
-					Complete(LEAVE, None, None, DataSize::None);
+					Complete(LEAVE, None, None, DataSize::Byte);
 				} else {
-					Complete(RETfar, None, None, DataSize::DWord);
+					Complete(RETfar, None, None, DataSize::Word);
 				}
 			break;
 
 			case 0xca: RegData(RETfar, None, data_size_);				break;
-			case 0xcb: Complete(RETfar, None, None, DataSize::DWord);	break;
+			case 0xcb: Complete(RETfar, None, None, DataSize::Word);	break;
 
 			case 0xcc:
 				// Encode INT3 as though it were INT with an
@@ -456,8 +456,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				operand_ = 3;
 			break;
 			case 0xcd: RegData(INT, None, DataSize::Byte);			break;
-			case 0xce: Complete(INTO, None, None, DataSize::None);	break;
-			case 0xcf: Complete(IRET, None, None, DataSize::None);	break;
+			case 0xce: Complete(INTO, None, None, DataSize::Byte);	break;
+			case 0xcf: Complete(IRET, None, None, DataSize::Byte);	break;
 
 			case 0xd0: case 0xd1:
 				ShiftGroup();
@@ -505,17 +505,17 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xf2: repetition_ = Repetition::RepNE;	break;
 			case 0xf3: repetition_ = Repetition::RepE;	break;
 
-			case 0xf4: Complete(HLT, None, None, DataSize::None);				break;
-			case 0xf5: Complete(CMC, None, None, DataSize::None);				break;
+			case 0xf4: Complete(HLT, None, None, DataSize::Byte);				break;
+			case 0xf5: Complete(CMC, None, None, DataSize::Byte);				break;
 			case 0xf6: MemRegReg(Invalid, MemRegTEST_to_IDIV, DataSize::Byte);	break;
 			case 0xf7: MemRegReg(Invalid, MemRegTEST_to_IDIV, data_size_);		break;
 
-			case 0xf8: Complete(CLC, None, None, DataSize::None);	break;
-			case 0xf9: Complete(STC, None, None, DataSize::None);	break;
-			case 0xfa: Complete(CLI, None, None, DataSize::None);	break;
-			case 0xfb: Complete(STI, None, None, DataSize::None);	break;
-			case 0xfc: Complete(CLD, None, None, DataSize::None);	break;
-			case 0xfd: Complete(STD, None, None, DataSize::None);	break;
+			case 0xf8: Complete(CLC, None, None, DataSize::Byte);	break;
+			case 0xf9: Complete(STC, None, None, DataSize::Byte);	break;
+			case 0xfa: Complete(CLI, None, None, DataSize::Byte);	break;
+			case 0xfb: Complete(STI, None, None, DataSize::Byte);	break;
+			case 0xfc: Complete(CLD, None, None, DataSize::Byte);	break;
+			case 0xfd: Complete(STD, None, None, DataSize::Byte);	break;
 
 			case 0xfe: MemRegReg(Invalid, MemRegINC_DEC, DataSize::Byte);	break;
 			case 0xff: MemRegReg(Invalid, MemRegINC_to_PUSH, data_size_);	break;
@@ -541,7 +541,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x03:	MemRegReg(LSL, Reg_MemReg, data_size_);				break;
 			case 0x05:
 				Requires(i80286);
-				Complete(LOADALL, None, None, DataSize::None);
+				Complete(LOADALL, None, None, DataSize::Byte);
 			break;
 			case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
 
@@ -885,7 +885,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 4:	SetOperation(Operation::JMPabs);	break;
 					case 5:	SetOperation(Operation::JMPfar);	break;
 				}
-				// TODO: CALLfar and JMPfar aren't correct above; find out what is.
 			break;
 
 			case ModRegRMFormat::MemRegSingleOperand:
@@ -1015,23 +1014,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
 
-			// TODO: whether the displacement is signed appears to depend on the opcode.
-			// Find an appropriate table.
-
-			if(!sign_extend_displacement_) {
-				switch(displacement_size_) {
-					case DataSize::None:	displacement_ = 0;													break;
-					case DataSize::Byte:	displacement_ = decltype(displacement_)(uint8_t(inward_data_));		break;
-					case DataSize::Word:	displacement_ = decltype(displacement_)(uint16_t(inward_data_));	break;
-					case DataSize::DWord:	displacement_ = decltype(displacement_)(uint32_t(inward_data_));	break;
-				}
-			} else {
-				switch(displacement_size_) {
-					case DataSize::None:	displacement_ = 0;						break;
-					case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
-					case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
-					case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
-				}
+			switch(displacement_size_) {
+				case DataSize::None:	displacement_ = 0;						break;
+				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
+				case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
+				case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
 			}
 			inward_data_ >>= bit_size(displacement_size_);
 
@@ -1066,7 +1053,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				address_size_,
 				segment_override_,
 				repetition_,
-				DataSize(operation_size_),
+				operation_size_,
 				static_cast<typename InstructionT::DisplacementT>(displacement_),
 				static_cast<typename InstructionT::ImmediateT>(operand_),
 				consumed_

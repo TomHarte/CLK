@@ -327,7 +327,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 							// All flags are set based only on the decimal result.
 							flags_.zero_result = result;
-							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
+							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
 							flags_.negative_result = result;
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
@@ -377,7 +377,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						if(flags_.decimal && has_decimal_mode(personality)) {
 							uint8_t result = a_ + operand_ + flags_.carry;
 							flags_.zero_result = result;
-							flags_.carry = Numeric::carried_out<7>(a_, operand_, result);
+							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
 
 							// General ADC logic:
 							//

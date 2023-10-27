@@ -69,11 +69,11 @@ enum class Operation: uint8_t {
 	SBB,
 	/// Subtract; source, destination, operand and displacement will be populated appropriately.
 	SUB,
-	/// Unsigned multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	/// Unsigned multiply; multiplies the source value by EAX, AX or AL, storing the result in EDX:EAX, DX:AX or AX.
 	MUL,
-	/// Single operand signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	/// Single operand signed multiply; multiplies the source value by EAX, AX or AL, storing the result in EDX:EAX, DX:AX or AX.
 	IMUL_1,
-	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	/// Unsigned divide; divide the AX, DX:AX or EDX:AX by the source(), storing the quotient in AL, AX or EAX and the remainder in AH, DX or EDX.
 	DIV,
 	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	IDIV,
@@ -144,9 +144,9 @@ enum class Operation: uint8_t {
 
 	/// Loads the destination with the source.
 	MOV,
-	/// Negatives; source and destination point to the same thing, to negative.
+	/// Negatives; source indicates what to negative.
 	NEG,
-	/// Logical NOT; source and destination point to the same thing, to negative.
+	/// Logical NOT; source indicates what to negative.
 	NOT,
 	/// Logical AND; source, destination, operand and displacement will be populated appropriately.
 	AND,
@@ -195,7 +195,7 @@ enum class Operation: uint8_t {
 	CLI,
 	/// Set carry flag.
 	STC,
-	/// Set decimal flag.
+	/// Set direction flag.
 	STD,
 	/// Set interrupt flag.
 	STI,
@@ -370,6 +370,10 @@ enum class DataSize: uint8_t {
 	None = 3,
 };
 
+template <DataSize size> struct DataSizeType { using type = uint8_t; };
+template <> struct DataSizeType<DataSize::Word> { using type = uint16_t; };
+template <> struct DataSizeType<DataSize::DWord> { using type = uint32_t; };
+
 constexpr int byte_size(DataSize size) {
 	return (1 << int(size)) & 7;
 }
@@ -382,6 +386,9 @@ enum class AddressSize: uint8_t {
 	b16 = 0,
 	b32 = 1,
 };
+
+template <AddressSize size> struct AddressSizeType { using type = uint16_t; };
+template <> struct AddressSizeType<AddressSize::b32> { using type = uint32_t; };
 
 constexpr DataSize data_size(AddressSize size) {
 	return DataSize(int(size) + 1);
@@ -458,16 +465,14 @@ enum class Repetition: uint8_t {
 };
 
 /// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
-constexpr bool supports(Operation operation, Repetition repetition) {
+constexpr bool supports(Operation operation, [[maybe_unused]] Repetition repetition) {
 	switch(operation) {
 		default: return false;
 
-		case Operation::INS:
-		case Operation::OUTS:
-			return repetition == Repetition::RepE;
-
 		case Operation::Invalid:	// Retain context here; it's used as an intermediate
 									// state sometimes.
+		case Operation::INS:
+		case Operation::OUTS:
 		case Operation::CMPS:
 		case Operation::LODS:
 		case Operation::MOVS:
@@ -475,8 +480,12 @@ constexpr bool supports(Operation operation, Repetition repetition) {
 		case Operation::STOS:
 			return true;
 
-		case Operation::IDIV:
-			return repetition == Repetition::RepNE;
+		// TODO: my new understanding is that the 8086 and 8088 recognise rep and repne on
+		// IDIV — and possibly DIV — as a quirk, affecting the outcome (possibly negativing the result?).
+		// So the test below should be a function of model, if I come to a conclusion about whether I'm
+		// going for fidelity to the instruction set as generally implemented, or to Intel's specific implementation.
+//		case Operation::IDIV:
+//			return repetition == Repetition::RepNE;
 	}
 }
 
@@ -589,10 +598,7 @@ class DataPointer {
 				);
 		}
 
-		template <bool obscure_indirectNoBase = false> constexpr Source source() const {
-			if constexpr (obscure_indirectNoBase) {
-				return (source_ >= Source::IndirectNoBase) ? Source::Indirect : source_;
-			}
+		constexpr Source source() const {
 			return source_;
 		}
 
@@ -621,10 +627,14 @@ class DataPointer {
 			}
 		}
 
-		template <bool obscure_indirectNoBase = false> constexpr Source base() const {
-			if constexpr (obscure_indirectNoBase) {
-				return (source_ <= Source::IndirectNoBase) ? Source::None : sib_.base();
-			}
+		constexpr Source segment(Source segment_override) const {
+			// TODO: remove conditionality here.
+			if(segment_override != Source::None) return segment_override;
+			if(const auto segment = default_segment(); segment != Source::None) return segment;
+			return Source::DS;
+		}
+
+		constexpr Source base() const {
 			return sib_.base();
 		}
 
@@ -688,6 +698,16 @@ template<bool is_32bit> class Instruction {
 		// [b9, b5]: top five of SIB;
 		// [b4, b0]: dest.
 		uint16_t source_data_dest_sib_ = 1 << 10;	// So that ::Invalid doesn't seem to have a length extension.
+
+		// Note to future self: if source length continues to prove avoidable, reuse its four bits as:
+		//	three bits: segment (as overridden, otherwise whichever operand has a segment, if either);
+		//	one bit: an extra bit for Operation.
+		//
+		// Then what was the length extension will hold only a repetition, if any, and the lock bit. As luck would have
+		// it there are six valid segment registers so there is an available sentinel value to put into the segment
+		// field to indicate that there's an extension if necessary. A further three bits would need to be trimmed
+		// to do away with that extension entirely, but since lock is rarely used and repetitions apply only to a
+		// small number of operations I think it'd at least be a limited problem.
 
 		bool has_length_extension() const {
 			return !((source_data_dest_sib_ >> 10) & 15);
@@ -762,7 +782,7 @@ template<bool is_32bit> class Instruction {
 		/// On x86 a segment override cannot modify the segment used as a destination in string instructions,
 		/// or that used by stack instructions, but this function does not spend the time necessary to provide
 		/// the correct default for those.
-		Source data_segment() const {
+		Source segment_override() const {
 			if(!has_length_extension()) return Source::None;
 			return Source(
 				int(Source::ES) +
@@ -774,15 +794,19 @@ template<bool is_32bit> class Instruction {
 			if(!has_length_extension()) return Repetition::None;
 			return Repetition((length_extension() >> 4) & 3);
 		}
+
+		/// @returns The data size of this operation — e.g. `MOV AX, BX` has a data size of `::Word` but `MOV EAX, EBX` has a data size of
+		/// `::DWord`. This value is guaranteed never to be `DataSize::None` even for operations such as `CLI` that don't have operands and operate
+		/// on data that is not a byte, word or double word.
 		DataSize operation_size() const {
 			return DataSize(source_data_dest_sib_ >> 14);
 		}
 
-		int length() const {
-			const int short_length = (source_data_dest_sib_ >> 10) & 15;
-			if(short_length) return short_length;
-			return length_extension() >> 6;
-		}
+//		int length() const {
+//			const int short_length = (source_data_dest_sib_ >> 10) & 15;
+//			if(short_length) return short_length;
+//			return length_extension() >> 6;
+//		}
 
 		ImmediateT operand() const	{
 			const ImmediateT ops[] = {0, operand_extension()};
@@ -902,7 +926,7 @@ std::string to_string(
 /// If @c immediate_length is '2' or '4', truncates any printed immediate value to 2 or 4 digits if it is compatible with being that length.
 template<bool is_32bit>
 std::string to_string(
-	Instruction<is_32bit> instruction,
+	std::pair<int, Instruction<is_32bit>> instruction,
 	Model model,
 	int offset_length = 0,
 	int immediate_length = 0);
