@@ -425,14 +425,7 @@ std::string InstructionSet::x86::to_string(
 			}
 
 			stream << '[';
-			Source segment = instruction.segment_override();
-			if(segment == Source::None) {
-				segment = pointer.default_segment();
-				if(segment == Source::None) {
-					segment = Source::DS;
-				}
-			}
-			stream << InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::None) << ':';
+			stream << InstructionSet::x86::to_string(instruction.data_segment(), InstructionSet::x86::DataSize::None) << ':';
 
 			bool addOffset = false;
 			switch(source) {
@@ -492,7 +485,7 @@ std::string InstructionSet::x86::to_string(
 		case Operation::INS_REP:
 		case Operation::OUTS:
 		case Operation::OUTS_REP:
-			switch(instruction.second.segment_override()) {
+			switch(instruction.second.data_segment()) {
 				default: 								break;
 				case Source::ES:	operation += "es ";	break;
 				case Source::CS:	operation += "cs ";	break;

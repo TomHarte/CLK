@@ -644,13 +644,6 @@ class DataPointer {
 			}
 		}
 
-		constexpr Source segment(Source segment_override) const {
-			// TODO: remove conditionality here.
-			if(segment_override != Source::None) return segment_override;
-			if(const auto segment = default_segment(); segment != Source::None) return segment;
-			return Source::DS;
-		}
-
 		constexpr Source base() const {
 			return sib_.base();
 		}
@@ -767,11 +760,9 @@ template<bool is_32bit> class Instruction {
 			return AddressSize(mem_exts_source_ >> 7);
 		}
 
-		/// @returns @c Source::None if no segment override was found; the overridden segment otherwise.
-		/// On x86 a segment override cannot modify the segment used as a destination in string instructions,
-		/// or that used by stack instructions, but this function does not spend the time necessary to provide
-		/// the correct default for those.
-		Source segment_override() const {
+		/// @returns @c Source::None if no segment is applicable; the segment to use for any
+		/// memory-accessing source otherwise.
+		Source data_segment() const {
 			return Source(
 				int(Source::ES) +
 				((source_data_dest_sib_ >> 10) & 7)
@@ -826,7 +817,6 @@ template<bool is_32bit> class Instruction {
 				source_data_dest_sib_(uint16_t(
 					(int(data_size) << 14) |
 					(lock ? (1 << 13) : 0) |
-					((int(segment_override)&7) << 10) |
 					((uint8_t(sib) & 0xf8) << 2) |
 					int(destination) |
 					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
@@ -843,6 +833,13 @@ template<bool is_32bit> class Instruction {
 					extensions_[extension] = ImmediateT(displacement);
 					++extension;
 				}
+
+				// Patch in a fully-resolved segment.
+				Source segment = segment_override;
+				if(segment == Source::None) segment = this->source().default_segment();
+				if(segment == Source::None) segment = this->destination().default_segment();
+				if(segment == Source::None) segment = Source::DS;
+				source_data_dest_sib_ |= (int(segment)&7) << 10;
 			}
 };
 

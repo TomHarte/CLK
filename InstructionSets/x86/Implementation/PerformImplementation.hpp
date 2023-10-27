@@ -184,8 +184,7 @@ IntT *resolve(
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	const Source segment = pointer.segment(instruction.segment_override());
-	return &memory.template access<IntT>(segment, target_address);
+	return &memory.template access<IntT>(instruction.data_segment(), target_address);
 };
 
 namespace Primitive {
@@ -859,7 +858,7 @@ void call_far(InstructionT &instruction,
 		break;
 	}
 
-	const Source source_segment = pointer.segment(instruction.segment_override());
+	const Source source_segment = instruction.data_segment();
 
 	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
 	source_address += 2;
@@ -891,7 +890,7 @@ void jump_far(InstructionT &instruction,
 		break;
 	}
 
-	const Source source_segment = pointer.segment(instruction.segment_override());
+	const Source source_segment = instruction.data_segment();
 
 	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
 	source_address += 2;
@@ -932,7 +931,7 @@ void ld(
 ) {
 	const auto pointer = instruction.source();
 	auto source_address = address<model, uint16_t>(instruction, pointer, registers, memory);
-	const Source source_segment = pointer.segment(instruction.segment_override());
+	const Source source_segment = instruction.data_segment();
 
 	destination = memory.template access<uint16_t>(source_segment, source_address);
 	source_address += 2;
@@ -959,15 +958,12 @@ void xlat(
 	MemoryT &memory,
 	RegistersT &registers
 ) {
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
 	AddressT address;
 	if constexpr (std::is_same_v<AddressT, uint16_t>) {
 		address = registers.bx() + registers.al();
 	}
 
-	registers.al() = memory.template access<uint8_t>(source_segment, address);
+	registers.al() = memory.template access<uint8_t>(instruction.data_segment(), address);
 }
 
 template <typename IntT>
@@ -1414,10 +1410,7 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
-	IntT lhs = memory.template access<IntT>(source_segment, eSI);
+	IntT lhs = memory.template access<IntT>(instruction.data_segment(), eSI);
 	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
@@ -1447,10 +1440,7 @@ void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &e
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
-	eAX = memory.template access<IntT>(source_segment, eSI);
+	eAX = memory.template access<IntT>(instruction.data_segment(), eSI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, flow_controller);
@@ -1462,10 +1452,7 @@ void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-
-	memory.template access<IntT>(Source::ES, eDI) = memory.template access<IntT>(source_segment, eSI);
+	memory.template access<IntT>(Source::ES, eDI) = memory.template access<IntT>(instruction.data_segment(), eSI);
 
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
@@ -1491,9 +1478,7 @@ void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, Address
 		return;
 	}
 
-	Source source_segment = instruction.segment_override();
-	if(source_segment == Source::None) source_segment = Source::DS;
-	io.template out<IntT>(port, memory.template access<IntT>(source_segment, eSI));
+	io.template out<IntT>(port, memory.template access<IntT>(instruction.data_segment(), eSI));
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, flow_controller);
