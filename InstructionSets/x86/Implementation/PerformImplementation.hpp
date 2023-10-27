@@ -1611,7 +1611,7 @@ template <
 	// Gets the port for an IN or OUT; these are always 16-bit.
 	const auto port = [&](Source source) -> uint16_t {
 		switch(source) {
-			case Source::DirectAddress:	return instruction.operand();
+			case Source::DirectAddress:	return instruction.offset();
 			default:					return registers.dx();
 		}
 	};
