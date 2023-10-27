@@ -128,16 +128,23 @@ enum class Operation: uint8_t {
 	/// Computes the effective address of the source and loads it into the destination.
 	LEA,
 
-	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
-	CMPS,
-	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
-	LODS,
 	/// Move string; moves a byte or word from DS:SI to ES:DI. If a segment override is provided, it overrides the the source.
 	MOVS,
-	/// Scan string; reads a byte or word from DS:SI and compares it to AL or AX.
-	SCAS,
+	MOVS_REP,
+	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
+	LODS,
+	LODS_REP,
 	/// Store string; store AL or AX to ES:DI.
 	STOS,
+	STOS_REP,
+	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
+	CMPS,
+	CMPS_REPE,
+	CMPS_REPNE,
+	/// Scan string; reads a byte or word from DS:SI and compares it to AL or AX.
+	SCAS,
+	SCAS_REPE,
+	SCAS_REPNE,
 
 	// Perform a possibly-conditional loop, decrementing CX. See the displacement.
 	LOOP, LOOPE, LOOPNE,
@@ -246,9 +253,11 @@ enum class Operation: uint8_t {
 	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
 	/// current EFLAGS DF flag.
 	INS,
+	INS_REP,
 	/// Outputs a byte, word or double word from ES:[e]DI to the port specified by DX,
 	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.
 	OUTS,
+	OUTS_REP,
 
 	/// Pushes all general purpose registers to the stack, in the order:
 	/// AX, CX, DX, BX, [original] SP, BP, SI, DI.
@@ -465,30 +474,38 @@ enum class Repetition: uint8_t {
 };
 
 /// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
-constexpr bool supports(Operation operation, [[maybe_unused]] Repetition repetition) {
+constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 	switch(operation) {
-		default: return false;
+		default: return operation;
 
-		case Operation::Invalid:	// Retain context here; it's used as an intermediate
-									// state sometimes.
 		case Operation::INS:
+			return repetition != Repetition::None ? Operation::INS_REP : Operation::INS;
 		case Operation::OUTS:
-		case Operation::CMPS:
+			return repetition != Repetition::None ? Operation::OUTS_REP : Operation::OUTS;
 		case Operation::LODS:
+			return repetition != Repetition::None ? Operation::LODS_REP : Operation::LODS;
 		case Operation::MOVS:
-		case Operation::SCAS:
+			return repetition != Repetition::None ? Operation::MOVS_REP : Operation::MOVS;
 		case Operation::STOS:
-			return true;
+			return repetition != Repetition::None ? Operation::STOS_REP : Operation::STOS;
 
-		// TODO: my new understanding is that the 8086 and 8088 recognise rep and repne on
-		// IDIV — and possibly DIV — as a quirk, affecting the outcome (possibly negativing the result?).
-		// So the test below should be a function of model, if I come to a conclusion about whether I'm
-		// going for fidelity to the instruction set as generally implemented, or to Intel's specific implementation.
-//		case Operation::IDIV:
-//			return repetition == Repetition::RepNE;
+		case Operation::CMPS:
+			switch(repetition) {
+				default:
+				case Repetition::None:	return Operation::CMPS;
+				case Repetition::RepE:	return Operation::CMPS_REPE;
+				case Repetition::RepNE:	return Operation::CMPS_REPNE;
+			}
+
+		case Operation::SCAS:
+			switch(repetition) {
+				default:
+				case Repetition::None:	return Operation::SCAS;
+				case Repetition::RepE:	return Operation::SCAS_REPE;
+				case Repetition::RepNE:	return Operation::SCAS_REPNE;
+			}
 	}
 }
-
 
 /// Provides a 32-bit-style scale, index and base; to produce the address this represents,
 /// calcluate base() + (index() << scale()).
@@ -790,23 +807,12 @@ template<bool is_32bit> class Instruction {
 			);
 		}
 
-		Repetition repetition() const {
-			if(!has_length_extension()) return Repetition::None;
-			return Repetition((length_extension() >> 4) & 3);
-		}
-
 		/// @returns The data size of this operation — e.g. `MOV AX, BX` has a data size of `::Word` but `MOV EAX, EBX` has a data size of
 		/// `::DWord`. This value is guaranteed never to be `DataSize::None` even for operations such as `CLI` that don't have operands and operate
 		/// on data that is not a byte, word or double word.
 		DataSize operation_size() const {
 			return DataSize(source_data_dest_sib_ >> 14);
 		}
-
-//		int length() const {
-//			const int short_length = (source_data_dest_sib_ >> 10) & 15;
-//			if(short_length) return short_length;
-//			return length_extension() >> 6;
-//		}
 
 		ImmediateT operand() const	{
 			const ImmediateT ops[] = {0, operand_extension()};
@@ -825,8 +831,8 @@ template<bool is_32bit> class Instruction {
 		}
 
 		constexpr Instruction() noexcept {}
-		constexpr Instruction(Operation operation, int length) noexcept :
-			Instruction(operation, Source::None, Source::None, ScaleIndexBase(), false, AddressSize::b16, Source::None, Repetition::None, DataSize::None, 0, 0, length) {}
+		constexpr Instruction(Operation operation) noexcept :
+			Instruction(operation, Source::None, Source::None, ScaleIndexBase(), false, AddressSize::b16, Source::None, DataSize::None, 0, 0) {}
 		constexpr Instruction(
 			Operation operation,
 			Source source,
@@ -835,11 +841,9 @@ template<bool is_32bit> class Instruction {
 			bool lock,
 			AddressSize address_size,
 			Source segment_override,
-			Repetition repetition,
 			DataSize data_size,
 			DisplacementT displacement,
-			ImmediateT operand,
-			int length) noexcept :
+			ImmediateT operand) noexcept :
 				operation(operation),
 				mem_exts_source_(uint8_t(
 					(int(address_size) << 7) |
@@ -851,8 +855,8 @@ template<bool is_32bit> class Instruction {
 				source_data_dest_sib_(uint16_t(
 					(int(data_size) << 14) |
 					((
-						(lock || (segment_override != Source::None) || (length > 15) || (repetition != Repetition::None))
-					) ? 0 : (length << 10)) |
+						(lock || (segment_override != Source::None))
+					) ? 0 : (1 << 10)) |
 					((uint8_t(sib) & 0xf8) << 2) |
 					int(destination) |
 					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
@@ -871,7 +875,7 @@ template<bool is_32bit> class Instruction {
 				}
 				if(has_length_extension()) {
 					extensions_[extension] = ImmediateT(
-						(length << 6) | (int(repetition) << 4) | ((int(segment_override) & 7) << 1) | int(lock)
+						((int(segment_override) & 7) << 1) | int(lock)
 					);
 					++extension;
 				}

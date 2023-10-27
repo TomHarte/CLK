@@ -160,20 +160,52 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 			constexpr char sizes[][6] = { "cmpsb", "cmpsw", "cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
-		case Operation::LODS: {
-			constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
+		case Operation::CMPS_REPE: {
+			constexpr char sizes[][11] = { "repe cmpsb", "repe cmpsw", "repe cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
-		case Operation::MOVS: {
-			constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
+		case Operation::CMPS_REPNE: {
+			constexpr char sizes[][12] = { "repne cmpsb", "repne cmpsw", "repne cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
+
 		case Operation::SCAS: {
 			constexpr char sizes[][6] = { "scasb", "scasw", "scasd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
+		case Operation::SCAS_REPE: {
+			constexpr char sizes[][11] = { "repe scasb", "repe scasw", "repe scasd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::SCAS_REPNE: {
+			constexpr char sizes[][12] = { "repne scasb", "repne scasw", "repne scasd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+
+		case Operation::LODS: {
+			constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::LODS_REP: {
+			constexpr char sizes[][10] = { "rep lodsb", "rep lodsw", "rep lodsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+
+		case Operation::MOVS: {
+			constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::MOVS_REP: {
+			constexpr char sizes[][10] = { "rep movsb", "rep movsw", "rep movsd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+
 		case Operation::STOS: {
 			constexpr char sizes[][6] = { "stosb", "stosw", "stosd", "?" };
+			return sizes[static_cast<int>(size)];
+		}
+		case Operation::STOS_REP: {
+			constexpr char sizes[][10] = { "rep stosb", "rep stosw", "rep stosd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
@@ -445,10 +477,21 @@ std::string InstructionSet::x86::to_string(
 		default: break;
 
 		case Operation::CMPS:
+		case Operation::CMPS_REPE:
+		case Operation::CMPS_REPNE:
 		case Operation::SCAS:
+		case Operation::SCAS_REPE:
+		case Operation::SCAS_REPNE:
 		case Operation::STOS:
+		case Operation::STOS_REP:
 		case Operation::LODS:
+		case Operation::LODS_REP:
 		case Operation::MOVS:
+		case Operation::MOVS_REP:
+		case Operation::INS:
+		case Operation::INS_REP:
+		case Operation::OUTS:
+		case Operation::OUTS_REP:
 			switch(instruction.second.segment_override()) {
 				default: 								break;
 				case Source::ES:	operation += "es ";	break;
@@ -457,35 +500,6 @@ std::string InstructionSet::x86::to_string(
 				case Source::SS:	operation += "ss ";	break;
 				case Source::GS:	operation += "gs ";	break;
 				case Source::FS:	operation += "fs ";	break;
-			}
-		break;
-	}
-
-	// Add a repetition prefix; it'll be one of 'rep', 'repe' or 'repne'.
-	switch(instruction.second.repetition()) {
-		case Repetition::None: break;
-		case Repetition::RepE:
-			switch(instruction.second.operation) {
-				case Operation::CMPS:
-				case Operation::SCAS:
-					operation += "repe ";
-				break;
-
-				default:
-					operation += "rep ";
-				break;
-			}
-		break;
-		case Repetition::RepNE:
-			switch(instruction.second.operation) {
-				case Operation::CMPS:
-				case Operation::SCAS:
-					operation += "repne ";
-				break;
-
-				default:
-					operation += "rep ";
-				break;
 			}
 		break;
 	}

@@ -33,8 +33,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 /// Sets the operation and verifies that the current repetition, if any, is compatible, discarding it otherwise.
 #define SetOperation(op)	\
-	operation_ = op;		\
-	repetition_ = supports(op, repetition_) ? repetition_ : Repetition::None
+	operation_ = rep_operation(op, repetition_);
 
 /// Helper macro for those that follow.
 #define SetOpSrcDestSize(op, src, dest, size)	\
@@ -1052,11 +1051,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				lock_,
 				address_size_,
 				segment_override_,
-				repetition_,
 				operation_size_,
 				static_cast<typename InstructionT::DisplacementT>(displacement_),
-				static_cast<typename InstructionT::ImmediateT>(operand_),
-				consumed_
+				static_cast<typename InstructionT::ImmediateT>(operand_)
 			)
 		);
 		reset_parsing();
@@ -1067,7 +1064,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	if(consumed_ == max_instruction_length) {
 		std::pair<int, InstructionT> result;
 		if(max_instruction_length == 65536) {
-			result = std::make_pair(consumed_, InstructionT(Operation::NOP, consumed_));
+			result = std::make_pair(consumed_, InstructionT(Operation::NOP));
 		} else {
 			result = std::make_pair(consumed_, InstructionT());
 		}
