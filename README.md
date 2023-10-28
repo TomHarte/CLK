@@ -1,5 +1,27 @@
 ![Clock Signal Application Icon](READMEImages/Icon.png)
 # Clock Signal
+
+<p align="center">
+    <a href="https://github.com/CLK/CLK/blob/master/LICENSE">
+        <img alt="license" src="https://img.shields.io/badge/license-TomHarte--2.0-blue" />
+    </a>
+    <a href="https://github.com/oceanbase/oceanbase/releases/latest">
+        <img alt="license" src="https://img.shields.io/badge/dynamic/json?color=blue&label=release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase%2Freleases%2Flatest" />
+    </a>
+    <a href="https://github.com/CLK/CLK">
+        <img alt="stars" src="https://img.shields.io/badge/dynamic/json?color=blue&label=stars&query=stargazers_count&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase" />
+    </a>
+    <a href="https://github.com/CLK/CLK">
+        <img alt="forks" src="https://img.shields.io/badge/dynamic/json?color=blue&label=forks&query=forks&url=https%3A%2F%2Fapi.github.com%2Frepos%2Foceanbase%2Foceanbase" />
+    </a>
+    <a href="https://github.com/oceanbase/oceanbase/actions/workflows/compile.yml">
+        <img alt="building status" src="https://img.shields.io/github/actions/workflow/status/CLK/CLK/compile.yml?branch=master" />
+    </a>
+    <a href="https://github.com/oceanbase/oceanbase/commits/master">
+        <img alt="last commit" src="https://img.shields.io/github/last-commit/CLK/CLK/master" />
+    </a>
+</p>
+
 Clock Signal ('CLK') is an emulator for tourists that seeks to be invisible. Users directly launch classic software, avoiding the learning curves associated with emulators and with classic machines.
 
 macOS and source releases are [hosted on GitHub](https://github.com/TomHarte/CLK/releases). For desktop Linux it is also available as a [Snap](https://snapcraft.io/clock-signal). 
