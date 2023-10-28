@@ -6651,7 +6651,7 @@
 				INFOPLIST_FILE = "Clock Signal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(LD_RUNPATH_SEARCH_PATHS_$(IS_MACCATALYST))",
-					/System/Library/PrivateFrameworks/Swift/libswiftCore.dylib,
+					"@loader_path/../Frameworks",
 				);
 				MTL_TREAT_WARNINGS_AS_ERRORS = YES;
 				OTHER_CPLUSPLUSFLAGS = (
@@ -6696,7 +6696,7 @@
 				INFOPLIST_FILE = "Clock Signal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(LD_RUNPATH_SEARCH_PATHS_$(IS_MACCATALYST))",
-					/System/Library/PrivateFrameworks/Swift/libswiftCore.dylib,
+					"@loader_path/../Frameworks",
 				);
 				MTL_TREAT_WARNINGS_AS_ERRORS = YES;
 				OTHER_CPLUSPLUSFLAGS = (
