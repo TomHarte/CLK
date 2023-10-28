@@ -129,14 +129,56 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		*/
 		uint8_t get_last_read_value(Cycles offset) {
 			// Rules of generation:
-			// (1)	a complete sixty-five-cycle scan line consists of sixty-five consecutive bytes of
-			//		display buffer memory that starts twenty-five bytes prior to the actual data to be displayed.
-			// (2)	During VBL the data acts just as if it were starting a whole new frame from the beginning, but
-			//		it never finishes this pseudo-frame. After getting one third of the way through the frame (to
-			//		scan line $3F), it suddenly repeats the previous six scan lines ($3A through $3F) before aborting
-			//		to begin the next true frame.
+
+			// FOR ALL MODELS IN ALL MODES:
 			//
-			// Source: Have an Apple Split by Bob Bishop; http://rich12345.tripod.com/aiivideo/softalk.html
+			//   - "Screen memory is divided into 128-byte segments. Each segment is divided into the FIRST 40, the
+			//      SECOND 40, the THIRD 40, and eight bytes of no man's memory (UNUSED 8)." (5-8*)
+			//
+			//   - "The VBL base addresses are equal to the FIRST 40 base addresses minus eight bytes using 128-byte
+			//      wraparound subtraction. Example: $400 minus $8 gives $478; not $3F8." (5-11*)
+			//
+			//   - "The memory locations scanned during HBL prior to a displayed line are the 24 bytes just below the
+			//      displayed area, using 128-byte wraparound addressing." (5-13*)
+			//
+			//   - "The first address of HBL is always addressed twice consecutively" (5-11*)
+			//
+			//   - "Memory scanned by lines 256 through 261 is identical to memory scanned by lines 250 through 255,
+			//      so those six 64-byte sections are scanned twice" (5-13*)
+
+			// FOR II AND II+ ONLY (NOT IIE OR LATER) IN TEXT/LORES MODE ONLY (NOT HIRES):
+			//
+			//   - "HBL scanned memory begins $18 bytes before display scanned memory plus $1000." (5-11*)
+			//
+			//   - "Horizontal scanning wraps around at the 128-byte segment boundaries. Example: the address scanned
+			//      before address $400 is $47F during VBL. The address scanned before $400 when VBL is false is
+			//      $147F." (5-11*)
+			//
+			//   - "the memory scanned during HBL is completely separate from the memory scanned during HBL´." (5-11*)
+			//
+			//   - "HBL scanned memory is in an area normally taken up by Applesoft programs or Integer BASIC
+			//      variables" (5-37*)
+			//
+			//   -  Figure 5.17  Screen Memory Scanning (5-37*)
+
+			// FOR IIE AND LATER IN ALL MODES AND II AND II+ IN HIRES MODE:
+			//
+			//   - "HBL scanned memory begins $18 bytes before display scanned memory." (5-10**)
+			//
+			//   - "Horizontal scanning wraps around at the 128-byte segment boundaries. Example: the address scanned
+			//      before address $400 is $47F." (5-11**)
+			//
+			//   - "during HBL, the memory locations that are scanned are in the displayed memory area." (5-13*)
+			//
+			//   - "Programs written for the Apple II may well not perform correctly on the Apple IIe because of
+			//      differences in scanning during HBL. In the Apple II, HBL scanned memory was separate from other
+			//      display memory in TEXT/LORES scanning. In the Apple IIe, HBL scanned memory overlaps other scanned
+			//      memory in TEXT/LORES scanning in similar fashion to HIRES scanning." (5-43**)
+			//
+			//   -  Figure 5.17  Display Memory Scanning (5-41**)
+
+			// Source: *  Understanding the Apple II by Jim Sather
+			// Source: ** Understanding the Apple IIe by Jim Sather
 
 			// Determine column at offset.
 			int mapped_column = column_ + int(offset.as_integral());
@@ -147,8 +189,21 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 			// Apply carry into the row counter.
 			int mapped_row = row_ + (mapped_column / 65);
-			mapped_column %= 65;
 			mapped_row %= 262;
+			mapped_column %= 65;
+
+			// Remember if we're in a horizontal blanking interval.
+			int hbl = mapped_column < 25;
+
+			// The first column is read twice.
+			if(mapped_column == 0) {
+				mapped_column = 1;
+			}
+
+			// Vertical blanking rows read eight bytes earlier.
+			if(mapped_row >= 192) {
+				mapped_column -= 8;
+			}
 
 			// Apple out-of-bounds row logic.
 			if(mapped_row >= 256) {
@@ -157,8 +212,24 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				mapped_row %= 192;
 			}
 
-			// Calculate the address and return the value.
+			// Calculate the address.
 			uint16_t read_address = uint16_t(get_row_address(mapped_row) + mapped_column - 25);
+
+			if(hbl) {
+				// Wraparound addressing within 128 byte sections.
+				if(mapped_row < 64) {
+					read_address += 128;
+				}
+
+				// On Apple II and II+ (not IIe or later) in text/lores mode (not hires), horizontal
+				// blanking bytes read from $1000 higher.
+				const GraphicsMode pixel_mode = graphics_mode(mapped_row);
+				if(!is_iie_ && ((pixel_mode == GraphicsMode::Text) || (pixel_mode == GraphicsMode::LowRes))) {
+					read_address += 0x1000;
+				}
+			}
+
+			// Read the address and return the value.
 			uint8_t value, aux_value;
 			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
 			return value;
@@ -168,20 +239,20 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			@returns @c true if the display will be within vertical blank at now + @c offset; @c false otherwise.
 		*/
 		bool get_is_vertical_blank(Cycles offset) {
-			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
-			// (so what was column 0 is now column 25).
+			// Determine column at offset.
 			int mapped_column = column_ + int(offset.as_integral());
 
 			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 			// (so what was column 0 is now column 25).
 			mapped_column += 25;
 
-			// Apply carry into the row counter and test it for location.
+			// Apply carry into the row counter.
 			int mapped_row = row_ + (mapped_column / 65);
+			mapped_row %= 262;
 
 			// Per http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html
 			// "on the IIe, the screen is blanked when the bit is low".
-			return (mapped_row % 262) < 192;
+			return mapped_row < 192;
 		}
 
 	private:
