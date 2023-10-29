@@ -1526,7 +1526,7 @@ template <
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
 	const auto source = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::PreAuthorised>(
+		return *resolve<model, IntT, AccessType::Read>(
 			instruction,
 			instruction.source().source(),
 			instruction.source(),
@@ -1535,8 +1535,33 @@ template <
 			nullptr,
 			&immediate);
 	};
-	const auto destination = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::PreAuthorised>(
+
+	// C++17, which this project targets at the time of writing, does not provide templatised lambdas.
+	// So the following division is in part a necessity.
+	//
+	// (though GCC offers C++20 syntax as an extension, and Clang seems to follow along, so maybe I'm overthinking)
+	const auto destination_r = [&]() -> IntT& {
+		return *resolve<model, IntT, AccessType::Read>(
+			instruction,
+			instruction.destination().source(),
+			instruction.destination(),
+			registers,
+			memory,
+			nullptr,
+			&immediate);
+	};
+	const auto destination_w = [&]() -> IntT& {
+		return *resolve<model, IntT, AccessType::Write>(
+			instruction,
+			instruction.destination().source(),
+			instruction.destination(),
+			registers,
+			memory,
+			nullptr,
+			&immediate);
+	};
+	const auto destination_rmw = [&]() -> IntT& {
+		return *resolve<model, IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),
@@ -1636,39 +1661,39 @@ template <
 		case Operation::HLT:	flow_controller.halt();		return;
 		case Operation::WAIT:	flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::add<true>(destination(), source(), status);			break;
-		case Operation::ADD:	Primitive::add<false>(destination(), source(), status);			break;
-		case Operation::SBB:	Primitive::sub<true, true>(destination(), source(), status);	break;
-		case Operation::SUB:	Primitive::sub<false, true>(destination(), source(), status);	break;
-		case Operation::CMP:	Primitive::sub<false, false>(destination(), source(), status);	break;
-		case Operation::TEST:	Primitive::test(destination(), source(), status);				break;
+		case Operation::ADC:	Primitive::add<true>(destination_rmw(), source(), status);			break;
+		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source(), status);			break;
+		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source(), status);	break;
+		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source(), status);	break;
+		case Operation::CMP:	Primitive::sub<false, false>(destination_rmw(), source(), status);	break;
+		case Operation::TEST:	Primitive::test(destination_r(), source(), status);					return;
 
 		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source(), status);				return;
 		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source(), status);				return;
 		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source(), flow_controller);		return;
 		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source(), flow_controller);	return;
 
-		case Operation::INC:	Primitive::inc(destination(), status);		break;
-		case Operation::DEC:	Primitive::dec(destination(), status);		break;
+		case Operation::INC:	Primitive::inc(destination_rmw(), status);		break;
+		case Operation::DEC:	Primitive::dec(destination_rmw(), status);		break;
 
-		case Operation::AND:	Primitive::and_(destination(), source(), status);		break;
-		case Operation::OR:		Primitive::or_(destination(), source(), status);		break;
-		case Operation::XOR:	Primitive::xor_(destination(), source(), status);		break;
-		case Operation::NEG:	Primitive::neg(source(), status);						break;
-		case Operation::NOT:	Primitive::not_(source());								break;
+		case Operation::AND:	Primitive::and_(destination_rmw(), source(), status);		break;
+		case Operation::OR:		Primitive::or_(destination_rmw(), source(), status);		break;
+		case Operation::XOR:	Primitive::xor_(destination_rmw(), source(), status);		break;
+		case Operation::NEG:	Primitive::neg(source(), status);							break;	// TODO: should be a destination.
+		case Operation::NOT:	Primitive::not_(source());									break;	// TODO: should be a destination.
 
 		case Operation::CALLrel:
 			Primitive::call_relative(instruction.displacement(), registers, flow_controller);
 		return;
 		case Operation::CALLabs:
-			Primitive::call_absolute(destination(), flow_controller);
+			Primitive::call_absolute(destination_r(), flow_controller);
 		return;
 		case Operation::CALLfar:
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
 		return;
 
 		case Operation::JMPrel:	jcc(true);																		return;
-		case Operation::JMPabs:	Primitive::jump_absolute(destination(), flow_controller);						return;
+		case Operation::JMPabs:	Primitive::jump_absolute(destination_r(), flow_controller);						return;
 		case Operation::JMPfar:	Primitive::jump_far<model>(instruction, flow_controller, registers, memory);	return;
 
 		case Operation::JCXZ:	jcc(!eCX());																		return;
@@ -1686,11 +1711,11 @@ template <
 		case Operation::SAHF:	Primitive::sahf(registers.ah(), status);			return;
 		case Operation::LAHF:	Primitive::lahf(registers.ah(), status);			return;
 
-		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::DS>(instruction, destination(), memory, registers);	return;
-		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination(), memory, registers);	return;
+		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::DS>(instruction, destination_w(), memory, registers);	return;
+		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination_w(), memory, registers);	return;
 
-		case Operation::LEA:	Primitive::lea<model>(instruction, destination(), memory, registers);	return;
-		case Operation::MOV:	Primitive::mov(destination(), source());								return;
+		case Operation::LEA:	Primitive::lea<model>(instruction, destination_w(), memory, registers);	return;
+		case Operation::MOV:	Primitive::mov(destination_w(), source());								break;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;
@@ -1709,13 +1734,13 @@ template <
 		case Operation::JLE:	jcc(status.condition<Condition::LessOrEqual>());	return;
 		case Operation::JNLE:	jcc(!status.condition<Condition::LessOrEqual>());	return;
 
-		case Operation::RCL:	Primitive::rcl(destination(), shift_count(), status);	break;
-		case Operation::RCR:	Primitive::rcr(destination(), shift_count(), status);	break;
-		case Operation::ROL:	Primitive::rol(destination(), shift_count(), status);	break;
-		case Operation::ROR:	Primitive::ror(destination(), shift_count(), status);	break;
-		case Operation::SAL:	Primitive::sal(destination(), shift_count(), status);	break;
-		case Operation::SAR:	Primitive::sar(destination(), shift_count(), status);	break;
-		case Operation::SHR:	Primitive::shr(destination(), shift_count(), status);	break;
+		case Operation::RCL:	Primitive::rcl(destination_rmw(), shift_count(), status);	break;
+		case Operation::RCR:	Primitive::rcr(destination_rmw(), shift_count(), status);	break;
+		case Operation::ROL:	Primitive::rol(destination_rmw(), shift_count(), status);	break;
+		case Operation::ROR:	Primitive::ror(destination_rmw(), shift_count(), status);	break;
+		case Operation::SAL:	Primitive::sal(destination_rmw(), shift_count(), status);	break;
+		case Operation::SAR:	Primitive::sar(destination_rmw(), shift_count(), status);	break;
+		case Operation::SHR:	Primitive::shr(destination_rmw(), shift_count(), status);	break;
 
 		case Operation::CLC:	Primitive::clc(status);				return;
 		case Operation::CLD:	Primitive::cld(status);				return;
@@ -1725,19 +1750,21 @@ template <
 		case Operation::STI:	Primitive::sti(status);				return;
 		case Operation::CMC:	Primitive::cmc(status);				return;
 
-		case Operation::XCHG:	Primitive::xchg(destination(), source());	return;
+		case Operation::XCHG:	Primitive::xchg(destination_rmw(), source());	break;
 
-		case Operation::SALC:	Primitive::salc(registers.al(), status);	return;
+		case Operation::SALC:	Primitive::salc(registers.al(), status);		return;
 		case Operation::SETMO:
 			if constexpr (model == Model::i8086) {
-				Primitive::setmo(destination(), status);
+				Primitive::setmo(destination_w(), status);
+				break;
 			} else {
 				// TODO.
 			}
 		return;
 		case Operation::SETMOC:
 			if constexpr (model == Model::i8086) {
-				Primitive::setmoc(destination(), registers.cl(), status);
+				Primitive::setmoc(destination_w(), registers.cl(), status);
+				break;
 			} else {
 				// TODO.
 			}
