@@ -18,7 +18,7 @@
 
 namespace InstructionSet::x86 {
 
-template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+template <Model model, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
 IntT *resolve(
 	InstructionT &instruction,
 	Source source,
@@ -29,7 +29,7 @@ IntT *resolve(
 	IntT *immediate = nullptr
 );
 
-template <Model model, Source source, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+template <Model model, Source source, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
 uint32_t address(
 	InstructionT &instruction,
 	DataPointer pointer,
@@ -43,7 +43,7 @@ uint32_t address(
 
 	uint32_t address;
 	uint16_t zero = 0;
-	address = *resolve<model, uint16_t>(instruction, pointer.index(), pointer, registers, memory, &zero);
+	address = *resolve<model, uint16_t, access>(instruction, pointer.index(), pointer, registers, memory, &zero);
 	if constexpr (is_32bit(model)) {
 		address <<= pointer.scale();
 	}
@@ -52,10 +52,10 @@ uint32_t address(
 	if constexpr (source == Source::IndirectNoBase) {
 		return address;
 	}
-	return address + *resolve<model, uint16_t>(instruction, pointer.base(), pointer, registers, memory);
+	return address + *resolve<model, uint16_t, access>(instruction, pointer.base(), pointer, registers, memory);
 }
 
-template <Model model, typename IntT, Source source, typename RegistersT>
+template <Model model, typename IntT, AccessType access, Source source, typename RegistersT>
 IntT *register_(RegistersT &registers) {
 	switch(source) {
 		case Source::eAX:
@@ -107,30 +107,32 @@ IntT *register_(RegistersT &registers) {
 	}
 }
 
-template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+template <Model model, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
 uint32_t address(
 	InstructionT &instruction,
 	DataPointer pointer,
 	RegistersT &registers,
 	MemoryT &memory
 ) {
+	// TODO: at least on the 8086 this isn't how register 'addresses' are resolved; instead whatever was the last computed address
+	// remains in the address register and is returned. Find out what other x86s do and make a decision.
 	switch(pointer.source()) {
 		default:						return 0;
-		case Source::eAX:				return *register_<model, IntT, Source::eAX>(registers);
-		case Source::eCX:				return *register_<model, IntT, Source::eCX>(registers);
-		case Source::eDX:				return *register_<model, IntT, Source::eDX>(registers);
-		case Source::eBX:				return *register_<model, IntT, Source::eBX>(registers);
-		case Source::eSPorAH:			return *register_<model, IntT, Source::eSPorAH>(registers);
-		case Source::eBPorCH:			return *register_<model, IntT, Source::eBPorCH>(registers);
-		case Source::eSIorDH:			return *register_<model, IntT, Source::eSIorDH>(registers);
-		case Source::eDIorBH:			return *register_<model, IntT, Source::eDIorBH>(registers);
-		case Source::Indirect:			return address<model, Source::Indirect, IntT>(instruction, pointer, registers, memory);
-		case Source::IndirectNoBase:	return address<model, Source::IndirectNoBase, IntT>(instruction, pointer, registers, memory);
-		case Source::DirectAddress:		return address<model, Source::DirectAddress, IntT>(instruction, pointer, registers, memory);
+		case Source::eAX:				return *register_<model, IntT, access, Source::eAX>(registers);
+		case Source::eCX:				return *register_<model, IntT, access, Source::eCX>(registers);
+		case Source::eDX:				return *register_<model, IntT, access, Source::eDX>(registers);
+		case Source::eBX:				return *register_<model, IntT, access, Source::eBX>(registers);
+		case Source::eSPorAH:			return *register_<model, IntT, access, Source::eSPorAH>(registers);
+		case Source::eBPorCH:			return *register_<model, IntT, access, Source::eBPorCH>(registers);
+		case Source::eSIorDH:			return *register_<model, IntT, access, Source::eSIorDH>(registers);
+		case Source::eDIorBH:			return *register_<model, IntT, access, Source::eDIorBH>(registers);
+		case Source::Indirect:			return address<model, Source::Indirect, IntT, access>(instruction, pointer, registers, memory);
+		case Source::IndirectNoBase:	return address<model, Source::IndirectNoBase, IntT, access>(instruction, pointer, registers, memory);
+		case Source::DirectAddress:		return address<model, Source::DirectAddress, IntT, access>(instruction, pointer, registers, memory);
 	}
 }
 
-template <Model model, typename IntT, typename InstructionT, typename RegistersT, typename MemoryT>
+template <Model model, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
 IntT *resolve(
 	InstructionT &instruction,
 	Source source,
@@ -146,14 +148,14 @@ IntT *resolve(
 	// * otherwise return the appropriate value.
 	uint32_t target_address;
 	switch(source) {
-		case Source::eAX:		return register_<model, IntT, Source::eAX>(registers);
-		case Source::eCX:		return register_<model, IntT, Source::eCX>(registers);
-		case Source::eDX:		return register_<model, IntT, Source::eDX>(registers);
-		case Source::eBX:		return register_<model, IntT, Source::eBX>(registers);
-		case Source::eSPorAH:	return register_<model, IntT, Source::eSPorAH>(registers);
-		case Source::eBPorCH:	return register_<model, IntT, Source::eBPorCH>(registers);
-		case Source::eSIorDH:	return register_<model, IntT, Source::eSIorDH>(registers);
-		case Source::eDIorBH:	return register_<model, IntT, Source::eDIorBH>(registers);
+		case Source::eAX:		return register_<model, IntT, access, Source::eAX>(registers);
+		case Source::eCX:		return register_<model, IntT, access, Source::eCX>(registers);
+		case Source::eDX:		return register_<model, IntT, access, Source::eDX>(registers);
+		case Source::eBX:		return register_<model, IntT, access, Source::eBX>(registers);
+		case Source::eSPorAH:	return register_<model, IntT, access, Source::eSPorAH>(registers);
+		case Source::eBPorCH:	return register_<model, IntT, access, Source::eBPorCH>(registers);
+		case Source::eSIorDH:	return register_<model, IntT, access, Source::eSIorDH>(registers);
+		case Source::eDIorBH:	return register_<model, IntT, access, Source::eDIorBH>(registers);
 
 		// Segment registers are always 16-bit.
 		case Source::ES:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.es(); else return nullptr;
@@ -172,19 +174,19 @@ IntT *resolve(
 		case Source::None:		return none;
 
 		case Source::Indirect:
-			target_address = address<model, Source::Indirect, IntT>(instruction, pointer, registers, memory);
+			target_address = address<model, Source::Indirect, IntT, access>(instruction, pointer, registers, memory);
 		break;
 		case Source::IndirectNoBase:
-			target_address = address<model, Source::IndirectNoBase, IntT>(instruction, pointer, registers, memory);
+			target_address = address<model, Source::IndirectNoBase, IntT, access>(instruction, pointer, registers, memory);
 		break;
 		case Source::DirectAddress:
-			target_address = address<model, Source::DirectAddress, IntT>(instruction, pointer, registers, memory);
+			target_address = address<model, Source::DirectAddress, IntT, access>(instruction, pointer, registers, memory);
 		break;
 	}
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	return &memory.template access<IntT>(instruction.data_segment(), target_address);
+	return &memory.template access<IntT, access>(instruction.data_segment(), target_address);
 };
 
 namespace Primitive {
@@ -194,7 +196,7 @@ namespace Primitive {
 template <typename IntT, typename MemoryT, typename RegistersT>
 void push(IntT &value, MemoryT &memory, RegistersT &registers) {
 	registers.sp_ -= sizeof(IntT);
-	memory.template access<IntT>(
+	memory.template access<IntT, AccessType::Write>(
 		InstructionSet::x86::Source::SS,
 		registers.sp_) = value;
 	memory.template write_back<IntT>();
@@ -202,7 +204,7 @@ void push(IntT &value, MemoryT &memory, RegistersT &registers) {
 
 template <typename IntT, typename MemoryT, typename RegistersT>
 IntT pop(MemoryT &memory, RegistersT &registers) {
-	const auto value = memory.template access<IntT>(
+	const auto value = memory.template access<IntT, AccessType::Write>(
 		InstructionSet::x86::Source::SS,
 		registers.sp_);
 	registers.sp_ += sizeof(IntT);
@@ -848,21 +850,21 @@ void call_far(InstructionT &instruction,
 		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
-			source_address = address<model, Source::Indirect, uint16_t>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::Indirect, uint16_t, AccessType::PreAuthorised>(instruction, pointer, registers, memory);
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<model, Source::IndirectNoBase, uint16_t>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::IndirectNoBase, uint16_t, AccessType::PreAuthorised>(instruction, pointer, registers, memory);
 		break;
 		case Source::DirectAddress:
-			source_address = address<model, Source::DirectAddress, uint16_t>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::DirectAddress, uint16_t, AccessType::PreAuthorised>(instruction, pointer, registers, memory);
 		break;
 	}
 
 	const Source source_segment = instruction.data_segment();
 
-	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
+	const uint16_t offset = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
-	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
+	const uint16_t segment = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	flow_controller.call(segment, offset);
 }
 
@@ -880,21 +882,21 @@ void jump_far(InstructionT &instruction,
 		case Source::Immediate:	flow_controller.jump(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
-			source_address = address<model, Source::Indirect, uint16_t>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<model, Source::IndirectNoBase, uint16_t>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
 		break;
 		case Source::DirectAddress:
-			source_address = address<model, Source::DirectAddress, uint16_t>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
 		break;
 	}
 
 	const Source source_segment = instruction.data_segment();
 
-	const uint16_t offset = memory.template access<uint16_t>(source_segment, source_address);
+	const uint16_t offset = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
-	const uint16_t segment = memory.template access<uint16_t>(source_segment, source_address);
+	const uint16_t segment = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	flow_controller.jump(segment, offset);
 }
 
@@ -930,14 +932,14 @@ void ld(
 	RegistersT &registers
 ) {
 	const auto pointer = instruction.source();
-	auto source_address = address<model, uint16_t>(instruction, pointer, registers, memory);
+	auto source_address = address<model, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
 	const Source source_segment = instruction.data_segment();
 
-	destination = memory.template access<uint16_t>(source_segment, source_address);
+	destination = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	switch(selector) {
-		case Source::DS:	registers.ds() = memory.template access<uint16_t>(source_segment, source_address);	break;
-		case Source::ES:	registers.es() = memory.template access<uint16_t>(source_segment, source_address);	break;
+		case Source::DS:	registers.ds() = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
+		case Source::ES:	registers.es() = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
 	}
 }
 
@@ -949,7 +951,7 @@ void lea(
 	RegistersT &registers
 ) {
 	// TODO: address size.
-	destination = IntT(address<model, uint16_t>(instruction, instruction.source(), registers, memory));
+	destination = IntT(address<model, uint16_t, AccessType::PreAuthorised>(instruction, instruction.source(), registers, memory));
 }
 
 template <typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT>
@@ -963,7 +965,7 @@ void xlat(
 		address = registers.bx() + registers.al();
 	}
 
-	registers.al() = memory.template access<uint8_t>(instruction.data_segment(), address);
+	registers.al() = memory.template access<uint8_t, AccessType::Read>(instruction.data_segment(), address);
 }
 
 template <typename IntT>
@@ -1403,8 +1405,8 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 		return;
 	}
 
-	IntT lhs = memory.template access<IntT>(instruction.data_segment(), eSI);
-	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
+	IntT lhs = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	const IntT rhs = memory.template access<IntT, AccessType::Write>(Source::ES, eDI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
@@ -1419,7 +1421,7 @@ void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &stat
 		return;
 	}
 
-	const IntT rhs = memory.template access<IntT>(Source::ES, eDI);
+	const IntT rhs = memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
 	Primitive::sub<false, false>(eAX, rhs, status);
@@ -1433,7 +1435,7 @@ void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &e
 		return;
 	}
 
-	eAX = memory.template access<IntT>(instruction.data_segment(), eSI);
+	eAX = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(status, eCX, flow_controller);
@@ -1445,7 +1447,7 @@ void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 		return;
 	}
 
-	memory.template access<IntT>(Source::ES, eDI) = memory.template access<IntT>(instruction.data_segment(), eSI);
+	memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
 
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
@@ -1459,7 +1461,7 @@ void stos(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &stat
 		return;
 	}
 
-	memory.template access<IntT>(Source::ES, eDI) = eAX;
+	memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(status, eCX, flow_controller);
@@ -1471,7 +1473,7 @@ void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, Address
 		return;
 	}
 
-	io.template out<IntT>(port, memory.template access<IntT>(instruction.data_segment(), eSI));
+	io.template out<IntT>(port, memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI));
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(status, eCX, flow_controller);
@@ -1483,7 +1485,7 @@ void ins(AddressT &eCX, uint16_t port, AddressT &eDI, MemoryT &memory, IOT &io, 
 		return;
 	}
 
-	memory.template access<IntT>(Source::ES, eDI) = io.template in<IntT>(port);
+	memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = io.template in<IntT>(port);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(status, eCX, flow_controller);
@@ -1524,7 +1526,7 @@ template <
 	// Establish source() and destination() shorthand to fetch data if necessary.
 	IntT immediate;
 	const auto source = [&]() -> IntT& {
-		return *resolve<model, IntT>(
+		return *resolve<model, IntT, AccessType::PreAuthorised>(
 			instruction,
 			instruction.source().source(),
 			instruction.source(),
@@ -1534,7 +1536,7 @@ template <
 			&immediate);
 	};
 	const auto destination = [&]() -> IntT& {
-		return *resolve<model, IntT>(
+		return *resolve<model, IntT, AccessType::PreAuthorised>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),

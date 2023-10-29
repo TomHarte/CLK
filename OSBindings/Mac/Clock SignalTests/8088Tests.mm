@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -91,6 +91,7 @@ struct Registers {
 	}
 };
 struct Memory {
+	using AccessType = InstructionSet::x86::AccessType;
 	enum class Tag {
 		Seeded,
 		AccessExpected,
@@ -134,14 +135,14 @@ struct Memory {
 
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
-	template <typename IntT> IntT &access(InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
+	template <typename IntT, AccessType type> IntT &access(InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
 		const uint32_t physical_address = (segment_base(segment) + address) & 0xf'ffff;
-		return access<IntT>(physical_address, tag);
+		return access<IntT, type>(physical_address, tag);
 	}
 
 	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 	// to a selector, they're just at an absolute location.
-	template <typename IntT> IntT &access(uint32_t address, Tag tag) {
+	template <typename IntT, AccessType type> IntT &access(uint32_t address, Tag tag) {
 		// Check for address wraparound
 		if(address >= 0x10'0001 - sizeof(IntT)) {
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -167,7 +168,7 @@ struct Memory {
 	}
 
 	// Entry point for the 8086; simply notes that memory was accessed.
-	template <typename IntT> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
+	template <typename IntT, AccessType type> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
 			// to the start. So the 16-bit value will need to be a local cache.
@@ -178,7 +179,7 @@ struct Memory {
 				return write_back_value_;
 			}
 		}
-		return access<IntT>(segment, address, Tag::Accessed);
+		return access<IntT, type>(segment, address, Tag::Accessed);
 	}
 
 	template <typename IntT> 
@@ -210,9 +211,10 @@ class FlowController {
 		void did_far_ret() {}
 
 		void interrupt(int index) {
+			// TODO: reauthorise and possibly double fault?
 			const uint16_t address = static_cast<uint16_t>(index) << 2;
-			const uint16_t new_ip = memory_.access<uint16_t>(address, Memory::Tag::Accessed);
-			const uint16_t new_cs = memory_.access<uint16_t>(address + 2, Memory::Tag::Accessed);
+			const uint16_t new_ip = memory_.access<uint16_t, Memory::AccessType::Read>(address, Memory::Tag::Accessed);
+			const uint16_t new_cs = memory_.access<uint16_t, Memory::AccessType::Read>(address + 2, Memory::Tag::Accessed);
 
 			push(status_.get(), true);
 
@@ -270,13 +272,13 @@ class FlowController {
 			// Perform the push in two steps because it's possible for SP to underflow, and so that FlagsL and
 			// FlagsH can be set separately.
 			--registers_.sp_;
-			memory_.access<uint8_t>(
+			memory_.access<uint8_t, Memory::AccessType::Write>(
 				InstructionSet::x86::Source::SS,
 				registers_.sp_,
 				is_flags ? Memory::Tag::FlagsH : Memory::Tag::Accessed
 			) = value >> 8;
 			--registers_.sp_;
-			memory_.access<uint8_t>(
+			memory_.access<uint8_t, Memory::AccessType::Write>(
 				InstructionSet::x86::Source::SS,
 				registers_.sp_,
 				is_flags ? Memory::Tag::FlagsL : Memory::Tag::Accessed
