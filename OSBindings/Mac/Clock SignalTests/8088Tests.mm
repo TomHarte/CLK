@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -668,7 +668,7 @@ struct FailedExecution {
 	XCTAssertLessThanOrEqual(execution_failures.size(), 4138);
 
 	// Current accepted failures:
-	//	* 68 instances of DAA with invalid BCD input, and 64 of DAS;
+	//	* 65 instances of DAA with invalid BCD input, and 64 of DAS;
 	//	* 2484 instances of LEA from a register, which officially has undefined results;
 	//	* 42 instances of AAM 00h for which I can't figure out what to do with flags; and
 	//	* 1486 instances of IDIV, most either with a rep or repne that on the 8086 specifically negatives the result,
