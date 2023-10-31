@@ -1523,9 +1523,14 @@ template <
 	using IntT = typename DataSizeType<data_size>::type;
 	using AddressT = typename AddressSizeType<address_size>::type;
 
-	// Establish source() and destination() shorthand to fetch data if necessary.
+	// Establish source() and destination() shorthands to fetch data if necessary.
+	//
+	// C++17, which this project targets at the time of writing, does not provide templatised lambdas.
+	// So the following division is in part a necessity.
+	//
+	// (though GCC offers C++20 syntax as an extension, and Clang seems to follow along, so maybe I'm overthinking)
 	IntT immediate;
-	const auto source = [&]() -> IntT& {
+	const auto source_r = [&]() -> IntT& {
 		return *resolve<model, IntT, AccessType::Read>(
 			instruction,
 			instruction.source().source(),
@@ -1535,11 +1540,16 @@ template <
 			nullptr,
 			&immediate);
 	};
-
-	// C++17, which this project targets at the time of writing, does not provide templatised lambdas.
-	// So the following division is in part a necessity.
-	//
-	// (though GCC offers C++20 syntax as an extension, and Clang seems to follow along, so maybe I'm overthinking)
+	const auto source_rmw = [&]() -> IntT& {
+		return *resolve<model, IntT, AccessType::ReadModifyWrite>(
+			instruction,
+			instruction.source().source(),
+			instruction.source(),
+			registers,
+			memory,
+			nullptr,
+			&immediate);
+	};
 	const auto destination_r = [&]() -> IntT& {
 		return *resolve<model, IntT, AccessType::Read>(
 			instruction,
@@ -1661,26 +1671,26 @@ template <
 		case Operation::HLT:	flow_controller.halt();		return;
 		case Operation::WAIT:	flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::add<true>(destination_rmw(), source(), status);			break;
-		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source(), status);			break;
-		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source(), status);	break;
-		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source(), status);	break;
-		case Operation::CMP:	Primitive::sub<false, false>(destination_rmw(), source(), status);	break;
-		case Operation::TEST:	Primitive::test(destination_r(), source(), status);					return;
+		case Operation::ADC:	Primitive::add<true>(destination_rmw(), source_r(), status);			break;
+		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source_r(), status);			break;
+		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source_r(), status);		break;
+		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source_r(), status);		break;
+		case Operation::CMP:	Primitive::sub<false, false>(destination_rmw(), source_r(), status);	return;
+		case Operation::TEST:	Primitive::test(destination_r(), source_r(), status);					return;
 
-		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source(), status);				return;
-		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source(), status);				return;
-		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source(), flow_controller);		return;
-		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source(), flow_controller);	return;
+		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source_r(), status);			return;
+		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source_r(), status);			return;
+		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source_r(), flow_controller);	return;
+		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source_r(), flow_controller);	return;
 
 		case Operation::INC:	Primitive::inc(destination_rmw(), status);		break;
 		case Operation::DEC:	Primitive::dec(destination_rmw(), status);		break;
 
-		case Operation::AND:	Primitive::and_(destination_rmw(), source(), status);		break;
-		case Operation::OR:		Primitive::or_(destination_rmw(), source(), status);		break;
-		case Operation::XOR:	Primitive::xor_(destination_rmw(), source(), status);		break;
-		case Operation::NEG:	Primitive::neg(source(), status);							break;	// TODO: should be a destination.
-		case Operation::NOT:	Primitive::not_(source());									break;	// TODO: should be a destination.
+		case Operation::AND:	Primitive::and_(destination_rmw(), source_r(), status);		break;
+		case Operation::OR:		Primitive::or_(destination_rmw(), source_r(), status);		break;
+		case Operation::XOR:	Primitive::xor_(destination_rmw(), source_r(), status);		break;
+		case Operation::NEG:	Primitive::neg(source_rmw(), status);						break;	// TODO: should be a destination.
+		case Operation::NOT:	Primitive::not_(source_rmw());								break;	// TODO: should be a destination.
 
 		case Operation::CALLrel:
 			Primitive::call_relative(instruction.displacement(), registers, flow_controller);
@@ -1715,7 +1725,7 @@ template <
 		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination_w(), memory, registers);	return;
 
 		case Operation::LEA:	Primitive::lea<model>(instruction, destination_w(), memory, registers);	return;
-		case Operation::MOV:	Primitive::mov(destination_w(), source());								break;
+		case Operation::MOV:	Primitive::mov(destination_w(), source_r());							break;
 
 		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;
@@ -1750,9 +1760,9 @@ template <
 		case Operation::STI:	Primitive::sti(status);				return;
 		case Operation::CMC:	Primitive::cmc(status);				return;
 
-		case Operation::XCHG:	Primitive::xchg(destination_rmw(), source());	break;
+		case Operation::XCHG:	Primitive::xchg(destination_rmw(), source_rmw());	break;
 
-		case Operation::SALC:	Primitive::salc(registers.al(), status);		return;
+		case Operation::SALC:	Primitive::salc(registers.al(), status);			return;
 		case Operation::SETMO:
 			if constexpr (model == Model::i8086) {
 				Primitive::setmo(destination_w(), status);
@@ -1775,10 +1785,10 @@ template <
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, memory, registers);	return;
 
-		case Operation::POP:	source() = Primitive::pop<IntT>(memory, registers);		break;
-		case Operation::PUSH:	Primitive::push<IntT>(source(), memory, registers);		break;
-		case Operation::POPF:	Primitive::popf(memory, registers, status);				break;
-		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);			break;
+		case Operation::POP:	destination_w() = Primitive::pop<IntT>(memory, registers);	break;
+		case Operation::PUSH:	Primitive::push<IntT>(source_r(), memory, registers);		break;
+		case Operation::POPF:	Primitive::popf(memory, registers, status);					break;
+		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);				break;
 
 		case Operation::CMPS:
 			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);

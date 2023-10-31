@@ -179,7 +179,16 @@ struct Memory {
 				return write_back_value_;
 			}
 		}
-		return access<IntT, type>(segment, address, Tag::Accessed);
+		auto &value = access<IntT, type>(segment, address, Tag::Accessed);
+
+		// For testing purposes: if the CPU indicated it'll only be reading, copy the requested value into a temporary
+		// location so that any writes will be discarded.
+		if(type == AccessType::Read) {
+			*reinterpret_cast<IntT *>(&read_value_) = value;
+			return *reinterpret_cast<IntT *>(&read_value_);
+		}
+
+		return value;
 	}
 
 	template <typename IntT> 
@@ -196,6 +205,7 @@ struct Memory {
 	static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
 	uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
 	uint16_t write_back_value_;
+	uint16_t read_value_;
 };
 struct IO {
 	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
@@ -384,6 +394,8 @@ struct FailedExecution {
 		}
 		return hexInstruction;
 	};
+
+	EACCES;
 
 	const auto decoded = decoder.decode(data.data(), data.size());
 	const bool sizeMatched = decoded.first == data.size();

@@ -138,7 +138,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			PartialBlock(0x00, ADD);							break;
 			case 0x06: Complete(PUSH, ES, None, data_size_);	break;
-			case 0x07: Complete(POP, ES, None, data_size_);		break;
+			case 0x07: Complete(POP, None, ES, data_size_);		break;
 
 			PartialBlock(0x08, OR);								break;
 			case 0x0e: Complete(PUSH, CS, None, data_size_);	break;
@@ -147,7 +147,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// prefixed with $0f.
 			case 0x0f:
 				if constexpr (model < Model::i80286) {
-					Complete(POP, CS, None, data_size_);
+					Complete(POP, None, CS, data_size_);
 				} else {
 					phase_ = Phase::InstructionPageF;
 				}
@@ -155,11 +155,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			PartialBlock(0x10, ADC);								break;
 			case 0x16: Complete(PUSH, SS, None, DataSize::Word);	break;
-			case 0x17: Complete(POP, SS, None, DataSize::Word);		break;
+			case 0x17: Complete(POP, None, SS, DataSize::Word);		break;
 
 			PartialBlock(0x18, SBB);								break;
 			case 0x1e: Complete(PUSH, DS, None, DataSize::Word);	break;
-			case 0x1f: Complete(POP, DS, None, DataSize::Word);		break;
+			case 0x1f: Complete(POP, None, DS, DataSize::Word);		break;
 
 			PartialBlock(0x20, AND);								break;
 			case 0x26: segment_override_ = Source::ES;				break;
@@ -523,145 +523,147 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 	// MARK: - Additional F page of instructions.
 
-	if(phase_ == Phase::InstructionPageF && source != end) {
-		// Update the instruction acquired.
-		const uint8_t instr = *source;
-		++source;
-		++consumed_;
+	if constexpr (model >= Model::i80286) {
+		if(phase_ == Phase::InstructionPageF && source != end) {
+			// Update the instruction acquired.
+			const uint8_t instr = *source;
+			++source;
+			++consumed_;
 
-		// NB: to reach here, the instruction set must be at least
-		// that of an 80286.
-		switch(instr) {
-			default: undefined();
+			// NB: to reach here, the instruction set must be at least
+			// that of an 80286.
+			switch(instr) {
+				default: undefined();
 
-			case 0x00:	MemRegReg(Invalid, MemRegSLDT_to_VERW, data_size_);	break;
-			case 0x01:	MemRegReg(Invalid, MemRegSGDT_to_LMSW, data_size_);	break;
-			case 0x02:	MemRegReg(LAR, Reg_MemReg, data_size_);				break;
-			case 0x03:	MemRegReg(LSL, Reg_MemReg, data_size_);				break;
-			case 0x05:
-				Requires(i80286);
-				Complete(LOADALL, None, None, DataSize::Byte);
-			break;
-			case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
+				case 0x00:	MemRegReg(Invalid, MemRegSLDT_to_VERW, data_size_);	break;
+				case 0x01:	MemRegReg(Invalid, MemRegSGDT_to_LMSW, data_size_);	break;
+				case 0x02:	MemRegReg(LAR, Reg_MemReg, data_size_);				break;
+				case 0x03:	MemRegReg(LSL, Reg_MemReg, data_size_);				break;
+				case 0x05:
+					Requires(i80286);
+					Complete(LOADALL, None, None, DataSize::Byte);
+				break;
+				case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
 
-			case 0x20:
-				RequiresMin(i80386);
-				MemRegReg(MOVfromCr, Reg_MemReg, DataSize::DWord);
-			break;
-			case 0x21:
-				RequiresMin(i80386);
-				MemRegReg(MOVfromDr, Reg_MemReg, DataSize::DWord);
-			break;
-			case 0x22:
-				RequiresMin(i80386);
-				MemRegReg(MOVtoCr, Reg_MemReg, DataSize::DWord);
-			break;
-			case 0x23:
-				RequiresMin(i80386);
-				MemRegReg(MOVtoDr, Reg_MemReg, DataSize::DWord);
-			break;
-			case 0x24:
-				RequiresMin(i80386);
-				MemRegReg(MOVfromTr, Reg_MemReg, DataSize::DWord);
-			break;
-			case 0x26:
-				RequiresMin(i80386);
-				MemRegReg(MOVtoTr, Reg_MemReg, DataSize::DWord);
-			break;
+				case 0x20:
+					RequiresMin(i80386);
+					MemRegReg(MOVfromCr, Reg_MemReg, DataSize::DWord);
+				break;
+				case 0x21:
+					RequiresMin(i80386);
+					MemRegReg(MOVfromDr, Reg_MemReg, DataSize::DWord);
+				break;
+				case 0x22:
+					RequiresMin(i80386);
+					MemRegReg(MOVtoCr, Reg_MemReg, DataSize::DWord);
+				break;
+				case 0x23:
+					RequiresMin(i80386);
+					MemRegReg(MOVtoDr, Reg_MemReg, DataSize::DWord);
+				break;
+				case 0x24:
+					RequiresMin(i80386);
+					MemRegReg(MOVfromTr, Reg_MemReg, DataSize::DWord);
+				break;
+				case 0x26:
+					RequiresMin(i80386);
+					MemRegReg(MOVtoTr, Reg_MemReg, DataSize::DWord);
+				break;
 
-			case 0x70: RequiresMin(i80386);	Displacement(JO, data_size_);	break;
-			case 0x71: RequiresMin(i80386);	Displacement(JNO, data_size_);	break;
-			case 0x72: RequiresMin(i80386);	Displacement(JB, data_size_);	break;
-			case 0x73: RequiresMin(i80386);	Displacement(JNB, data_size_);	break;
-			case 0x74: RequiresMin(i80386);	Displacement(JZ, data_size_);	break;
-			case 0x75: RequiresMin(i80386);	Displacement(JNZ, data_size_);	break;
-			case 0x76: RequiresMin(i80386);	Displacement(JBE, data_size_);	break;
-			case 0x77: RequiresMin(i80386);	Displacement(JNBE, data_size_);	break;
-			case 0x78: RequiresMin(i80386);	Displacement(JS, data_size_);	break;
-			case 0x79: RequiresMin(i80386);	Displacement(JNS, data_size_);	break;
-			case 0x7a: RequiresMin(i80386);	Displacement(JP, data_size_);	break;
-			case 0x7b: RequiresMin(i80386);	Displacement(JNP, data_size_);	break;
-			case 0x7c: RequiresMin(i80386);	Displacement(JL, data_size_);	break;
-			case 0x7d: RequiresMin(i80386);	Displacement(JNL, data_size_);	break;
-			case 0x7e: RequiresMin(i80386);	Displacement(JLE, data_size_);	break;
-			case 0x7f: RequiresMin(i80386);	Displacement(JNLE, data_size_);	break;
+				case 0x70: RequiresMin(i80386);	Displacement(JO, data_size_);	break;
+				case 0x71: RequiresMin(i80386);	Displacement(JNO, data_size_);	break;
+				case 0x72: RequiresMin(i80386);	Displacement(JB, data_size_);	break;
+				case 0x73: RequiresMin(i80386);	Displacement(JNB, data_size_);	break;
+				case 0x74: RequiresMin(i80386);	Displacement(JZ, data_size_);	break;
+				case 0x75: RequiresMin(i80386);	Displacement(JNZ, data_size_);	break;
+				case 0x76: RequiresMin(i80386);	Displacement(JBE, data_size_);	break;
+				case 0x77: RequiresMin(i80386);	Displacement(JNBE, data_size_);	break;
+				case 0x78: RequiresMin(i80386);	Displacement(JS, data_size_);	break;
+				case 0x79: RequiresMin(i80386);	Displacement(JNS, data_size_);	break;
+				case 0x7a: RequiresMin(i80386);	Displacement(JP, data_size_);	break;
+				case 0x7b: RequiresMin(i80386);	Displacement(JNP, data_size_);	break;
+				case 0x7c: RequiresMin(i80386);	Displacement(JL, data_size_);	break;
+				case 0x7d: RequiresMin(i80386);	Displacement(JNL, data_size_);	break;
+				case 0x7e: RequiresMin(i80386);	Displacement(JLE, data_size_);	break;
+				case 0x7f: RequiresMin(i80386);	Displacement(JNLE, data_size_);	break;
 
 #define Set(x)												\
 	RequiresMin(i80386);									\
 	MemRegReg(SET##x, MemRegSingleOperand, DataSize::Byte);
 
-			case 0x90: Set(O);		break;
-			case 0x91: Set(NO);		break;
-			case 0x92: Set(B);		break;
-			case 0x93: Set(NB);		break;
-			case 0x94: Set(Z);		break;
-			case 0x95: Set(NZ);		break;
-			case 0x96: Set(BE);		break;
-			case 0x97: Set(NBE);	break;
-			case 0x98: Set(S);		break;
-			case 0x99: Set(NS);		break;
-			case 0x9a: Set(P);		break;
-			case 0x9b: Set(NP);		break;
-			case 0x9c: Set(L);		break;
-			case 0x9d: Set(NL);		break;
-			case 0x9e: Set(LE);		break;
-			case 0x9f: Set(NLE);	break;
+				case 0x90: Set(O);		break;
+				case 0x91: Set(NO);		break;
+				case 0x92: Set(B);		break;
+				case 0x93: Set(NB);		break;
+				case 0x94: Set(Z);		break;
+				case 0x95: Set(NZ);		break;
+				case 0x96: Set(BE);		break;
+				case 0x97: Set(NBE);	break;
+				case 0x98: Set(S);		break;
+				case 0x99: Set(NS);		break;
+				case 0x9a: Set(P);		break;
+				case 0x9b: Set(NP);		break;
+				case 0x9c: Set(L);		break;
+				case 0x9d: Set(NL);		break;
+				case 0x9e: Set(LE);		break;
+				case 0x9f: Set(NLE);	break;
 
 #undef Set
 
-			case 0xa0: RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
-			case 0xa1: RequiresMin(i80386);	Complete(POP, FS, None, data_size_);	break;
-			case 0xa3: RequiresMin(i80386);	MemRegReg(BT, MemReg_Reg, data_size_);	break;
-			case 0xa4:
-				RequiresMin(i80386);
-				MemRegReg(SHLDimm, Reg_MemReg, data_size_);
-				operand_size_ = DataSize::Byte;
-			break;
-			case 0xa5:
-				RequiresMin(i80386);
-				MemRegReg(SHLDCL, MemReg_Reg, data_size_);
-			break;
-			case 0xa8: RequiresMin(i80386);	Complete(PUSH, GS, None, data_size_);	break;
-			case 0xa9: RequiresMin(i80386);	Complete(POP, GS, None, data_size_);	break;
-			case 0xab: RequiresMin(i80386);	MemRegReg(BTS, MemReg_Reg, data_size_);	break;
-			case 0xac:
-				RequiresMin(i80386);
-				MemRegReg(SHRDimm, Reg_MemReg, data_size_);
-				operand_size_ = DataSize::Byte;
-			break;
-			case 0xad:
-				RequiresMin(i80386);
-				MemRegReg(SHRDCL, MemReg_Reg, data_size_);
-			break;
-			case 0xaf:
-				RequiresMin(i80386);
-				MemRegReg(IMUL_2, Reg_MemReg, data_size_);
-			break;
+				case 0xa0: RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
+				case 0xa1: RequiresMin(i80386);	Complete(POP, None, FS, data_size_);	break;
+				case 0xa3: RequiresMin(i80386);	MemRegReg(BT, MemReg_Reg, data_size_);	break;
+				case 0xa4:
+					RequiresMin(i80386);
+					MemRegReg(SHLDimm, Reg_MemReg, data_size_);
+					operand_size_ = DataSize::Byte;
+				break;
+				case 0xa5:
+					RequiresMin(i80386);
+					MemRegReg(SHLDCL, MemReg_Reg, data_size_);
+				break;
+				case 0xa8: RequiresMin(i80386);	Complete(PUSH, GS, None, data_size_);	break;
+				case 0xa9: RequiresMin(i80386);	Complete(POP, None, GS, data_size_);	break;
+				case 0xab: RequiresMin(i80386);	MemRegReg(BTS, MemReg_Reg, data_size_);	break;
+				case 0xac:
+					RequiresMin(i80386);
+					MemRegReg(SHRDimm, Reg_MemReg, data_size_);
+					operand_size_ = DataSize::Byte;
+				break;
+				case 0xad:
+					RequiresMin(i80386);
+					MemRegReg(SHRDCL, MemReg_Reg, data_size_);
+				break;
+				case 0xaf:
+					RequiresMin(i80386);
+					MemRegReg(IMUL_2, Reg_MemReg, data_size_);
+				break;
 
-			case 0xb2: RequiresMin(i80386);	MemRegReg(LSS, Reg_MemReg, data_size_);	break;
-			case 0xb3: RequiresMin(i80386);	MemRegReg(BTR, MemReg_Reg, data_size_);	break;
-			case 0xb4: RequiresMin(i80386);	MemRegReg(LFS, Reg_MemReg, data_size_);	break;
-			case 0xb5: RequiresMin(i80386);	MemRegReg(LGS, Reg_MemReg, data_size_);	break;
-			case 0xb6:
-				RequiresMin(i80386);
-				MemRegReg(MOVZX, Reg_MemReg, DataSize::Byte);
-			break;
-			case 0xb7:
-				RequiresMin(i80386);
-				MemRegReg(MOVZX, Reg_MemReg, DataSize::Word);
-			break;
-			case 0xba: RequiresMin(i80386);	MemRegReg(Invalid, MemRegBT_to_BTC, data_size_);	break;
-			case 0xbb: RequiresMin(i80386);	MemRegReg(BTC, MemReg_Reg, data_size_);				break;
-			case 0xbc: RequiresMin(i80386);	MemRegReg(BSF, MemReg_Reg, data_size_);				break;
-			case 0xbd: RequiresMin(i80386);	MemRegReg(BSR, MemReg_Reg, data_size_);				break;
-			case 0xbe:
-				RequiresMin(i80386);
-				MemRegReg(MOVSX, Reg_MemReg, DataSize::Byte);
-			break;
-			case 0xbf:
-				RequiresMin(i80386);
-				MemRegReg(MOVSX, Reg_MemReg, DataSize::Word);
-			break;
+				case 0xb2: RequiresMin(i80386);	MemRegReg(LSS, Reg_MemReg, data_size_);	break;
+				case 0xb3: RequiresMin(i80386);	MemRegReg(BTR, MemReg_Reg, data_size_);	break;
+				case 0xb4: RequiresMin(i80386);	MemRegReg(LFS, Reg_MemReg, data_size_);	break;
+				case 0xb5: RequiresMin(i80386);	MemRegReg(LGS, Reg_MemReg, data_size_);	break;
+				case 0xb6:
+					RequiresMin(i80386);
+					MemRegReg(MOVZX, Reg_MemReg, DataSize::Byte);
+				break;
+				case 0xb7:
+					RequiresMin(i80386);
+					MemRegReg(MOVZX, Reg_MemReg, DataSize::Word);
+				break;
+				case 0xba: RequiresMin(i80386);	MemRegReg(Invalid, MemRegBT_to_BTC, data_size_);	break;
+				case 0xbb: RequiresMin(i80386);	MemRegReg(BTC, MemReg_Reg, data_size_);				break;
+				case 0xbc: RequiresMin(i80386);	MemRegReg(BSF, MemReg_Reg, data_size_);				break;
+				case 0xbd: RequiresMin(i80386);	MemRegReg(BSR, MemReg_Reg, data_size_);				break;
+				case 0xbe:
+					RequiresMin(i80386);
+					MemRegReg(MOVSX, Reg_MemReg, DataSize::Byte);
+				break;
+				case 0xbf:
+					RequiresMin(i80386);
+					MemRegReg(MOVSX, Reg_MemReg, DataSize::Word);
+				break;
+			}
 		}
 	}
 
@@ -979,18 +981,20 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 	// MARK: - ScaleIndexBase
 
-	if(phase_ == Phase::ScaleIndexBase && source != end) {
-		sib_ = *source;
-		++source;
-		++consumed_;
+	if constexpr (is_32bit(model)) {
+		if(phase_ == Phase::ScaleIndexBase && source != end) {
+			sib_ = *source;
+			++source;
+			++consumed_;
 
-		// Potentially record the lack of a base.
-		if(displacement_size_ == DataSize::None && (uint8_t(sib_)&7) == 5) {
-			source_ = (source_ == Source::Indirect) ? Source::IndirectNoBase : source_;
-			destination_ = (destination_ == Source::Indirect) ? Source::IndirectNoBase : destination_;
+			// Potentially record the lack of a base.
+			if(displacement_size_ == DataSize::None && (uint8_t(sib_)&7) == 5) {
+				source_ = (source_ == Source::Indirect) ? Source::IndirectNoBase : source_;
+				destination_ = (destination_ == Source::Indirect) ? Source::IndirectNoBase : destination_;
+			}
+
+			phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 		}
-
-		phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
 
 	// MARK: - Displacement and operand.
@@ -1041,6 +1045,18 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	// MARK: - Check for completion.
 
 	if(phase_ == Phase::ReadyToPost) {
+		// TODO: map to #UD where applicable; build LOCK into the Operation type, buying an extra bit for the operation?
+		//
+		// As of the P6 Intel stipulates that:
+		//
+		// "The LOCK prefix can be prepended only to the following instructions and to those forms of the instructions
+		// that use a memory operand: ADD, ADC, AND, BTC, BTR, BTS, CMPXCHG, DEC, INC, NEG, NOT, OR, SBB, SUB, XOR,
+		// XADD, and XCHG."
+		//
+		// ... and the #UD exception will be raised if LOCK is encountered elsewhere. So adding 17 additional
+		// operations would unlock an extra bit of storage for a net gain of 239 extra operation types and thereby
+		// alleviating any concerns over whether there'll be space to handle MMX, floating point extensions, etc.
+
 		const auto result = std::make_pair(
 			consumed_,
 			InstructionT(
