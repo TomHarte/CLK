@@ -193,18 +193,18 @@ namespace Primitive {
 
 // The below takes a reference in order properly to handle PUSH SP, which should place the value of SP after the
 // push onto the stack.
-template <typename IntT, typename MemoryT, typename RegistersT>
+template <typename IntT, bool preauthorised, typename MemoryT, typename RegistersT>
 void push(IntT &value, MemoryT &memory, RegistersT &registers) {
 	registers.sp_ -= sizeof(IntT);
-	memory.template access<IntT, AccessType::Write>(
+	memory.template access<IntT, preauthorised ? AccessType::PreAuthorised : AccessType::Write>(
 		InstructionSet::x86::Source::SS,
 		registers.sp_) = value;
 	memory.template write_back<IntT>();
 }
 
-template <typename IntT, typename MemoryT, typename RegistersT>
+template <typename IntT, bool preauthorised, typename MemoryT, typename RegistersT>
 IntT pop(MemoryT &memory, RegistersT &registers) {
-	const auto value = memory.template access<IntT, AccessType::Write>(
+	const auto value = memory.template access<IntT, preauthorised ? AccessType::PreAuthorised : AccessType::Read>(
 		InstructionSet::x86::Source::SS,
 		registers.sp_);
 	registers.sp_ += sizeof(IntT);
@@ -903,23 +903,25 @@ void jump_far(InstructionT &instruction,
 template <typename FlowControllerT, typename RegistersT, typename MemoryT>
 void iret(RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory, Status &status) {
 	// TODO: all modes other than 16-bit real mode.
-	registers.ip() = pop<uint16_t>(memory, registers);
-	registers.cs() = pop<uint16_t>(memory, registers);
-	status.set(pop<uint16_t>(memory, registers));
+	memory.preauthorise_stack(sizeof(uint16_t) * 3);
+	registers.ip() = pop<uint16_t, true>(memory, registers);
+	registers.cs() = pop<uint16_t, true>(memory, registers);
+	status.set(pop<uint16_t, true>(memory, registers));
 	flow_controller.did_iret();
 }
 
 template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
 void ret_near(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
-	registers.ip() = pop<uint16_t>(memory, registers);
+	registers.ip() = pop<uint16_t, false>(memory, registers);
 	registers.sp() += instruction.operand();
 	flow_controller.did_near_ret();
 }
 
 template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
 void ret_far(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
-	registers.ip() = pop<uint16_t>(memory, registers);
-	registers.cs() = pop<uint16_t>(memory, registers);
+	memory.preauthorise_stack(sizeof(uint16_t) * 2);
+	registers.ip() = pop<uint16_t, true>(memory, registers);
+	registers.cs() = pop<uint16_t, true>(memory, registers);
 	registers.sp() += instruction.operand();
 	flow_controller.did_far_ret();
 }
@@ -1368,13 +1370,13 @@ inline void shr(IntT &destination, uint8_t count, Status &status) {
 
 template <typename MemoryT, typename RegistersT>
 void popf(MemoryT &memory, RegistersT &registers, Status &status) {
-	status.set(pop<uint16_t>(memory, registers));
+	status.set(pop<uint16_t, false>(memory, registers));
 }
 
 template <typename MemoryT, typename RegistersT>
 void pushf(MemoryT &memory, RegistersT &registers, Status &status) {
 	uint16_t value = status.get();
-	push<uint16_t>(value, memory, registers);
+	push<uint16_t, false>(value, memory, registers);
 }
 
 template <typename AddressT, Repetition repetition>
@@ -1785,10 +1787,10 @@ template <
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, memory, registers);	return;
 
-		case Operation::POP:	destination_w() = Primitive::pop<IntT>(memory, registers);	break;
-		case Operation::PUSH:	Primitive::push<IntT>(source_r(), memory, registers);		break;
-		case Operation::POPF:	Primitive::popf(memory, registers, status);					break;
-		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);				break;
+		case Operation::POP:	destination_w() = Primitive::pop<IntT, false>(memory, registers);	break;
+		case Operation::PUSH:	Primitive::push<IntT, false>(source_r(), memory, registers);		break;
+		case Operation::POPF:	Primitive::popf(memory, registers, status);							break;
+		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);						break;
 
 		case Operation::CMPS:
 			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
