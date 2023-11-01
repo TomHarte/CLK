@@ -862,6 +862,7 @@ void call_far(InstructionT &instruction,
 
 	const Source source_segment = instruction.data_segment();
 
+	// TODO: preauthorise reads.
 	const uint16_t offset = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const uint16_t segment = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
@@ -1672,7 +1673,7 @@ template <
 		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source_r(), status);			break;
 		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source_r(), status);		break;
 		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source_r(), status);		break;
-		case Operation::CMP:	Primitive::sub<false, false>(destination_rmw(), source_r(), status);	return;
+		case Operation::CMP:	Primitive::sub<false, false>(destination_r(), source_r(), status);		return;
 		case Operation::TEST:	Primitive::test(destination_r(), source_r(), status);					return;
 
 		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source_r(), status);			return;
