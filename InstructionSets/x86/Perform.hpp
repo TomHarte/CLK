@@ -31,8 +31,8 @@ enum class AccessType {
 	/// The requested value has already been authorised for whatever form of access is now intended, so there's no
 	/// need further to inspect. This is done e.g. by operations that will push multiple values to the stack to verify that
 	/// all necessary stack space is available ahead of pushing anything, though each individual push will then result in
-	/// a further `PreAuthorised` access.
-	PreAuthorised,
+	/// a further `Preauthorised` access.
+	Preauthorised,
 };
 
 /// Performs @c instruction  querying @c registers and/or @c memory as required, using @c io for port input/output,

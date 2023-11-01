@@ -193,18 +193,18 @@ namespace Primitive {
 
 // The below takes a reference in order properly to handle PUSH SP, which should place the value of SP after the
 // push onto the stack.
-template <typename IntT, bool preauthorised, typename MemoryT, typename RegistersT>
+template <typename IntT, bool Preauthorised, typename MemoryT, typename RegistersT>
 void push(IntT &value, MemoryT &memory, RegistersT &registers) {
 	registers.sp_ -= sizeof(IntT);
-	memory.template access<IntT, preauthorised ? AccessType::PreAuthorised : AccessType::Write>(
+	memory.template access<IntT, Preauthorised ? AccessType::Preauthorised : AccessType::Write>(
 		InstructionSet::x86::Source::SS,
 		registers.sp_) = value;
 	memory.template write_back<IntT>();
 }
 
-template <typename IntT, bool preauthorised, typename MemoryT, typename RegistersT>
+template <typename IntT, bool Preauthorised, typename MemoryT, typename RegistersT>
 IntT pop(MemoryT &memory, RegistersT &registers) {
-	const auto value = memory.template access<IntT, preauthorised ? AccessType::PreAuthorised : AccessType::Read>(
+	const auto value = memory.template access<IntT, Preauthorised ? AccessType::Preauthorised : AccessType::Read>(
 		InstructionSet::x86::Source::SS,
 		registers.sp_);
 	registers.sp_ += sizeof(IntT);
@@ -850,13 +850,13 @@ void call_far(InstructionT &instruction,
 		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
-			source_address = address<model, Source::Indirect, uint16_t, AccessType::PreAuthorised>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::Indirect, uint16_t, AccessType::Preauthorised>(instruction, pointer, registers, memory);
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<model, Source::IndirectNoBase, uint16_t, AccessType::PreAuthorised>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::IndirectNoBase, uint16_t, AccessType::Preauthorised>(instruction, pointer, registers, memory);
 		break;
 		case Source::DirectAddress:
-			source_address = address<model, Source::DirectAddress, uint16_t, AccessType::PreAuthorised>(instruction, pointer, registers, memory);
+			source_address = address<model, Source::DirectAddress, uint16_t, AccessType::Preauthorised>(instruction, pointer, registers, memory);
 		break;
 	}
 
@@ -954,7 +954,7 @@ void lea(
 	RegistersT &registers
 ) {
 	// TODO: address size.
-	destination = IntT(address<model, uint16_t, AccessType::PreAuthorised>(instruction, instruction.source(), registers, memory));
+	destination = IntT(address<model, uint16_t, AccessType::Preauthorised>(instruction, instruction.source(), registers, memory));
 }
 
 template <typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT>

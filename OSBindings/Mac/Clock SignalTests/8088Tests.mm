@@ -170,10 +170,20 @@ struct Memory {
 	}
 
 	template <typename IntT, AccessType type> struct ReturnType;
+
+	// Reads: return a value directly.
 	template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
+
+	// Byte writes: return a reference directly to the byte.
+	template <> struct ReturnType<uint8_t, AccessType::Write> { using type = uint8_t &; };
+	template <> struct ReturnType<uint8_t, AccessType::ReadModifyWrite> { using type = uint8_t &; };
+	template <> struct ReturnType<uint8_t, AccessType::Preauthorised> { using type = uint8_t &; };
+
+	// Larger writes: I'm on the fence here as to the proper approach to latching and writeback here;
+	// so offered as a separate case but with a conclusion yet to reach.
 	template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
 	template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
-	template <typename IntT> struct ReturnType<IntT, AccessType::PreAuthorised> { using type = IntT &; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::Preauthorised> { using type = IntT &; };
 
 	// Entry point for the 8086; simply notes that memory was accessed.
 	template <typename IntT, AccessType type>
