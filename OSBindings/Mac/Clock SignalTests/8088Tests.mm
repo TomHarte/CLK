@@ -25,7 +25,7 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/ProcessorTests/8088/v1";
 
 using Status = InstructionSet::x86::Status;
 struct Registers {
@@ -186,6 +186,11 @@ struct Memory {
 		if(type == AccessType::Read) {
 			*reinterpret_cast<IntT *>(&read_value_) = value;
 			return *reinterpret_cast<IntT *>(&read_value_);
+		}
+
+		// If the CPU has indicated a write, it should be safe to fuzz the value now.
+		if(type == AccessType::Write) {
+			value = IntT(~0);
 		}
 
 		return value;
