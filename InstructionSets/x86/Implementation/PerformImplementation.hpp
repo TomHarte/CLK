@@ -1408,7 +1408,7 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 	}
 
 	IntT lhs = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	const IntT rhs = memory.template access<IntT, AccessType::Write>(Source::ES, eDI);
+	const IntT rhs = memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
 	eSI += status.direction<AddressT>() * sizeof(IntT);
 	eDI += status.direction<AddressT>() * sizeof(IntT);
 
