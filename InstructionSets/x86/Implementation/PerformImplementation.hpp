@@ -821,14 +821,16 @@ void not_(IntT &destination) {
 	destination  = ~destination;
 }
 
-template <typename IntT, typename RegistersT, typename FlowControllerT>
-void call_relative(IntT offset, RegistersT &registers, FlowControllerT &flow_controller) {
-	flow_controller.call(registers.ip() + offset);
+template <typename IntT, typename RegistersT, typename MemoryT, typename FlowControllerT>
+void call_relative(IntT offset, RegistersT &registers, MemoryT &memory, FlowControllerT &flow_controller) {
+	push<uint16_t, false>(registers.ip(), memory, registers);
+	flow_controller.jump(registers.ip() + offset);
 }
 
-template <typename IntT, typename FlowControllerT>
-void call_absolute(IntT target, FlowControllerT &flow_controller) {
-	flow_controller.call(target);
+template <typename IntT, typename RegistersT, typename MemoryT, typename FlowControllerT>
+void call_absolute(IntT target, RegistersT &registers, MemoryT &memory, FlowControllerT &flow_controller) {
+	push<uint16_t, false>(registers.ip(), memory, registers);
+	flow_controller.jump(target);
 }
 
 template <typename IntT, typename FlowControllerT>
@@ -843,11 +845,18 @@ void call_far(InstructionT &instruction,
 	MemoryT &memory
 ) {
 	// TODO: eliminate 16-bit assumption below.
-	uint16_t source_address = 0;
+	const Source source_segment = instruction.data_segment();
+	memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+
+	uint16_t source_address;
 	const auto pointer = instruction.destination();
 	switch(pointer.source()) {
 		default:
-		case Source::Immediate:	flow_controller.call(instruction.segment(), instruction.offset());	return;
+		case Source::Immediate:
+			push<uint16_t, true>(registers.cs(), memory, registers);
+			push<uint16_t, true>(registers.ip(), memory, registers);
+			flow_controller.jump(instruction.segment(), instruction.offset());
+		return;
 
 		case Source::Indirect:
 			source_address = address<model, Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
@@ -860,13 +869,14 @@ void call_far(InstructionT &instruction,
 		break;
 	}
 
-	const Source source_segment = instruction.data_segment();
+	memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
+	push<uint16_t, true>(registers.cs(), memory, registers);
+	push<uint16_t, true>(registers.ip(), memory, registers);
 
-	// TODO: preauthorise reads.
-	const uint16_t offset = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	const uint16_t offset = memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
-	const uint16_t segment = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
-	flow_controller.call(segment, offset);
+	const uint16_t segment = memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+	flow_controller.jump(segment, offset);
 }
 
 template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
@@ -904,27 +914,27 @@ void jump_far(InstructionT &instruction,
 template <typename FlowControllerT, typename RegistersT, typename MemoryT>
 void iret(RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory, Status &status) {
 	// TODO: all modes other than 16-bit real mode.
-	memory.preauthorise_stack(sizeof(uint16_t) * 3);
-	registers.ip() = pop<uint16_t, true>(memory, registers);
-	registers.cs() = pop<uint16_t, true>(memory, registers);
+	memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
+	const auto ip = pop<uint16_t, true>(memory, registers);
+	const auto cs = pop<uint16_t, true>(memory, registers);
 	status.set(pop<uint16_t, true>(memory, registers));
-	flow_controller.did_iret();
+	flow_controller.jump(cs, ip);
 }
 
 template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
 void ret_near(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
-	registers.ip() = pop<uint16_t, false>(memory, registers);
+	const auto ip = pop<uint16_t, false>(memory, registers);
 	registers.sp() += instruction.operand();
-	flow_controller.did_near_ret();
+	flow_controller.jump(ip);
 }
 
 template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
 void ret_far(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
-	memory.preauthorise_stack(sizeof(uint16_t) * 2);
-	registers.ip() = pop<uint16_t, true>(memory, registers);
-	registers.cs() = pop<uint16_t, true>(memory, registers);
+	memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
+	const auto ip = pop<uint16_t, true>(memory, registers);
+	const auto cs = pop<uint16_t, true>(memory, registers);
 	registers.sp() += instruction.operand();
-	flow_controller.did_far_ret();
+	flow_controller.jump(cs, ip);
 }
 
 template <Model model, Source selector, typename InstructionT, typename MemoryT, typename RegistersT>
@@ -1691,10 +1701,10 @@ template <
 		case Operation::NOT:	Primitive::not_(source_rmw());								break;	// TODO: should be a destination.
 
 		case Operation::CALLrel:
-			Primitive::call_relative(instruction.displacement(), registers, flow_controller);
+			Primitive::call_relative(instruction.displacement(), registers, memory, flow_controller);
 		return;
 		case Operation::CALLabs:
-			Primitive::call_absolute(destination_r(), flow_controller);
+			Primitive::call_absolute(destination_r(), registers, memory, flow_controller);
 		return;
 		case Operation::CALLfar:
 			Primitive::call_far<model>(instruction, flow_controller, registers, memory);

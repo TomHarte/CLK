@@ -133,7 +133,9 @@ struct Memory {
 		return physical_address << 4;
 	}
 
-	void preauthorise_stack(uint32_t) {}
+	void preauthorise_stack_write(uint32_t) {}
+	void preauthorise_stack_read(uint32_t) {}
+	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
 
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
@@ -233,10 +235,6 @@ class FlowController {
 		FlowController(Memory &memory, Registers &registers, Status &status) :
 			memory_(memory), registers_(registers), status_(status) {}
 
-		void did_iret() {}
-		void did_near_ret() {}
-		void did_far_ret() {}
-
 		void interrupt(int index) {
 			// TODO: reauthorise and possibly double fault?
 			const uint16_t address = static_cast<uint16_t>(index) << 2;
@@ -254,17 +252,6 @@ class FlowController {
 
 			registers_.cs_ = new_cs;
 			registers_.ip_ = new_ip;
-		}
-
-		void call(uint16_t address) {
-			push(registers_.ip_);
-			jump(address);
-		}
-
-		void call(uint16_t segment, uint16_t offset) {
-			push(registers_.cs_);
-			push(registers_.ip_);
-			jump(segment, offset);
 		}
 
 		void jump(uint16_t address) {
