@@ -169,8 +169,15 @@ struct Memory {
 		return *reinterpret_cast<IntT *>(&memory[address]);
 	}
 
+	template <typename IntT, AccessType type> struct ReturnType;
+	template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::PreAuthorised> { using type = IntT &; };
+
 	// Entry point for the 8086; simply notes that memory was accessed.
-	template <typename IntT, AccessType type> IntT &access([[maybe_unused]] InstructionSet::x86::Source segment, uint32_t address) {
+	template <typename IntT, AccessType type>
+	typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint32_t address) {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
 			// to the start. So the 16-bit value will need to be a local cache.
@@ -182,13 +189,6 @@ struct Memory {
 			}
 		}
 		auto &value = access<IntT, type>(segment, address, Tag::Accessed);
-
-		// For testing purposes: if the CPU indicated it'll only be reading, copy the requested value into a temporary
-		// location so that any writes will be discarded.
-		if(type == AccessType::Read) {
-			*reinterpret_cast<IntT *>(&read_value_) = value;
-			return *reinterpret_cast<IntT *>(&read_value_);
-		}
 
 		// If the CPU has indicated a write, it should be safe to fuzz the value now.
 		if(type == AccessType::Write) {
@@ -212,7 +212,6 @@ struct Memory {
 	static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
 	uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
 	uint16_t write_back_value_;
-	uint16_t read_value_;
 };
 struct IO {
 	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
