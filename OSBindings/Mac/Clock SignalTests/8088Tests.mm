@@ -92,6 +92,19 @@ struct Registers {
 };
 struct Memory {
 	using AccessType = InstructionSet::x86::AccessType;
+
+	template <typename IntT, AccessType type> struct ReturnType;
+
+	// Reads: return a value directly.
+	template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
+
+	// Writes: return a reference.
+	template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
+	template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedWrite> { using type = IntT &; };
+
+
 	enum class Tag {
 		Seeded,
 		AccessExpected,
@@ -136,17 +149,20 @@ struct Memory {
 	void preauthorise_stack_write(uint32_t) {}
 	void preauthorise_stack_read(uint32_t) {}
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
+	void preauthorise_read(uint16_t, uint32_t) {}
 
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
-	template <typename IntT, AccessType type> IntT &access(InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
+	template <typename IntT, AccessType type>
+	typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
 		const uint32_t physical_address = (segment_base(segment) + address) & 0xf'ffff;
 		return access<IntT, type>(physical_address, tag);
 	}
 
 	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 	// to a selector, they're just at an absolute location.
-	template <typename IntT, AccessType type> IntT &access(uint32_t address, Tag tag) {
+	template <typename IntT, AccessType type>
+	typename ReturnType<IntT, type>::type &access(uint32_t address, Tag tag) {
 		// Check for address wraparound
 		if(address >= 0x10'0001 - sizeof(IntT)) {
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -171,23 +187,6 @@ struct Memory {
 		return *reinterpret_cast<IntT *>(&memory[address]);
 	}
 
-	template <typename IntT, AccessType type> struct ReturnType;
-
-	// Reads: return a value directly.
-	template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
-	template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
-
-	// Byte writes: return a reference directly to the byte.
-	template <> struct ReturnType<uint8_t, AccessType::Write> { using type = uint8_t &; };
-	template <> struct ReturnType<uint8_t, AccessType::ReadModifyWrite> { using type = uint8_t &; };
-	template <> struct ReturnType<uint8_t, AccessType::PreauthorisedWrite> { using type = uint8_t &; };
-
-	// Larger writes: I'm on the fence here as to the proper approach to latching and writeback here;
-	// so offered as a separate case but with a conclusion yet to reach.
-	template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
-	template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
-	template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedWrite> { using type = IntT &; };
-
 	// Entry point for the 8086; simply notes that memory was accessed.
 	template <typename IntT, AccessType type>
 	typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint32_t address) {
@@ -211,7 +210,12 @@ struct Memory {
 		return value;
 	}
 
-	template <typename IntT> 
+	template <typename IntT, AccessType type>
+	typename ReturnType<IntT, type>::type &access(uint32_t address) {
+		return access<IntT, type>(address, Tag::Accessed);
+	}
+
+	template <typename IntT>
 	void write_back() {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			if(write_back_address_[0] != NoWriteBack) {
@@ -306,8 +310,9 @@ struct ExecutionSupport {
 	Memory memory;
 	FlowController flow_controller;
 	IO io;
+	static constexpr auto model = InstructionSet::x86::Model::i8086;
 
-	ExecutionSupport() : memory(registers), flow_controller(memory, registers, status) {}
+	ExecutionSupport(): memory(registers), flow_controller(memory, registers, status) {}
 
 	void clear() {
 		memory.clear();
@@ -326,8 +331,8 @@ struct FailedExecution {
 @end
 
 @implementation i8088Tests {
-	ExecutionSupport execution_support;
 	std::vector<FailedExecution> execution_failures;
+	ExecutionSupport execution_support;
 }
 
 - (NSArray<NSString *> *)testFiles {
@@ -540,13 +545,9 @@ struct FailedExecution {
 	execution_support.registers.ip_ += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
-		InstructionSet::x86::perform<InstructionSet::x86::Model::i8086>(
+		InstructionSet::x86::perform(
 			decoded.second,
-			execution_support.status,
-			execution_support.flow_controller,
-			execution_support.registers,
-			execution_support.memory,
-			execution_support.io
+			execution_support
 		);
 	} while (execution_support.flow_controller.should_repeat());
 

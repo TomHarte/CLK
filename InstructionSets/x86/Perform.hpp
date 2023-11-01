@@ -36,24 +36,38 @@ enum class AccessType {
 	PreauthorisedWrite,
 };
 
+template <
+	Model model_,
+	typename FlowControllerT,
+	typename RegistersT,
+	typename MemoryT,
+	typename IOT
+> struct ExecutionContext {
+	FlowControllerT flow_controller;
+	Status status;
+	RegistersT registers;
+	MemoryT memory;
+	IOT io;
+	static constexpr Model model = model_;
+};
+
 /// Performs @c instruction  querying @c registers and/or @c memory as required, using @c io for port input/output,
 /// and providing any flow control effects to @c flow_controller.
 ///
 /// Any change in processor status will be applied to @c status.
 template <
-	Model model,
 	typename InstructionT,
-	typename FlowControllerT,
-	typename RegistersT,
-	typename MemoryT,
-	typename IOT
+	typename ContextT
 > void perform(
 	const InstructionT &instruction,
-	Status &status,
-	FlowControllerT &flow_controller,
-	RegistersT &registers,
-	MemoryT &memory,
-	IOT &io
+	ContextT &context
+);
+
+template <
+	typename ContextT
+> void interrupt(
+	int index,
+	ContextT &context
 );
 
 }

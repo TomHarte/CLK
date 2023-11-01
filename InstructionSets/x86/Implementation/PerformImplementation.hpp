@@ -18,23 +18,21 @@
 
 namespace InstructionSet::x86 {
 
-template <Model model, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
+template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 IntT *resolve(
 	InstructionT &instruction,
 	Source source,
 	DataPointer pointer,
-	RegistersT &registers,
-	MemoryT &memory,
+	ContextT &context,
 	IntT *none = nullptr,
 	IntT *immediate = nullptr
 );
 
-template <Model model, Source source, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
+template <Source source, typename IntT, AccessType access, typename InstructionT, typename ContextT>
 uint32_t address(
 	InstructionT &instruction,
 	DataPointer pointer,
-	RegistersT &registers,
-	MemoryT &memory
+	ContextT &context
 ) {
 	// TODO: non-word indexes and bases.
 	if constexpr (source == Source::DirectAddress) {
@@ -43,8 +41,8 @@ uint32_t address(
 
 	uint32_t address;
 	uint16_t zero = 0;
-	address = *resolve<model, uint16_t, access>(instruction, pointer.index(), pointer, registers, memory, &zero);
-	if constexpr (is_32bit(model)) {
+	address = *resolve<uint16_t, access>(instruction, pointer.index(), pointer, context, &zero);
+	if constexpr (is_32bit(ContextT::model)) {
 		address <<= pointer.scale();
 	}
 	address += instruction.offset();
@@ -52,93 +50,93 @@ uint32_t address(
 	if constexpr (source == Source::IndirectNoBase) {
 		return address;
 	}
-	return address + *resolve<model, uint16_t, access>(instruction, pointer.base(), pointer, registers, memory);
+	return address + *resolve<uint16_t, access>(instruction, pointer.base(), pointer, context);
 }
 
-template <Model model, typename IntT, AccessType access, Source source, typename RegistersT>
-IntT *register_(RegistersT &registers) {
+template <typename IntT, AccessType access, Source source, typename ContextT>
+IntT *register_(ContextT &context) {
+	static constexpr bool supports_dword = is_32bit(ContextT::model);
+
 	switch(source) {
 		case Source::eAX:
 			// Slightly contorted if chain here and below:
 			//
 			//	(i) does the `constexpr` version of a `switch`; and
 			//	(i) ensures .eax() etc aren't called on @c registers for 16-bit processors, so they need not implement 32-bit storage.
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.eax();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.ax();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.al();		}
-			else 																{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.eax();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.ax();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.al();		}
+			else 																{	return nullptr;						}
 		case Source::eCX:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.ecx();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.cx();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.cl();		}
-			else 																{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.ecx();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.cx();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.cl();		}
+			else 																{	return nullptr;						}
 		case Source::eDX:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.edx();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.dx();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.dl();		}
-			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.edx();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.dx();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.dl();		}
+			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;						}
 		case Source::eBX:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.ebx();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.bx();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.bl();		}
-			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.ebx();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.bx();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.bl();		}
+			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;						}
 		case Source::eSPorAH:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.esp();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.sp();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.ah();		}
-			else																{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.esp();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.sp();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.ah();		}
+			else																{	return nullptr;						}
 		case Source::eBPorCH:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.ebp();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.bp();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.ch();		}
-			else 																{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.ebp();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.bp();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.ch();		}
+			else 																{	return nullptr;						}
 		case Source::eSIorDH:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.esi();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.si();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.dh();		}
-			else 																{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.esi();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.si();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.dh();		}
+			else 																{	return nullptr;						}
 		case Source::eDIorBH:
-			if constexpr (is_32bit(model) && std::is_same_v<IntT, uint32_t>) 	{	return &registers.edi();	}
-			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &registers.di();		}
-			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &registers.bh();		}
-			else																{	return nullptr;				}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.edi();	}
+			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.di();		}
+			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.bh();		}
+			else																{	return nullptr;						}
 
 		default: return nullptr;
 	}
 }
 
-template <Model model, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
+template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 uint32_t address(
 	InstructionT &instruction,
 	DataPointer pointer,
-	RegistersT &registers,
-	MemoryT &memory
+	ContextT &context
 ) {
 	// TODO: at least on the 8086 this isn't how register 'addresses' are resolved; instead whatever was the last computed address
 	// remains in the address register and is returned. Find out what other x86s do and make a decision.
 	switch(pointer.source()) {
 		default:						return 0;
-		case Source::eAX:				return *register_<model, IntT, access, Source::eAX>(registers);
-		case Source::eCX:				return *register_<model, IntT, access, Source::eCX>(registers);
-		case Source::eDX:				return *register_<model, IntT, access, Source::eDX>(registers);
-		case Source::eBX:				return *register_<model, IntT, access, Source::eBX>(registers);
-		case Source::eSPorAH:			return *register_<model, IntT, access, Source::eSPorAH>(registers);
-		case Source::eBPorCH:			return *register_<model, IntT, access, Source::eBPorCH>(registers);
-		case Source::eSIorDH:			return *register_<model, IntT, access, Source::eSIorDH>(registers);
-		case Source::eDIorBH:			return *register_<model, IntT, access, Source::eDIorBH>(registers);
-		case Source::Indirect:			return address<model, Source::Indirect, IntT, access>(instruction, pointer, registers, memory);
-		case Source::IndirectNoBase:	return address<model, Source::IndirectNoBase, IntT, access>(instruction, pointer, registers, memory);
-		case Source::DirectAddress:		return address<model, Source::DirectAddress, IntT, access>(instruction, pointer, registers, memory);
+		case Source::eAX:				return *register_<IntT, access, Source::eAX>(context);
+		case Source::eCX:				return *register_<IntT, access, Source::eCX>(context);
+		case Source::eDX:				return *register_<IntT, access, Source::eDX>(context);
+		case Source::eBX:				return *register_<IntT, access, Source::eBX>(context);
+		case Source::eSPorAH:			return *register_<IntT, access, Source::eSPorAH>(context);
+		case Source::eBPorCH:			return *register_<IntT, access, Source::eBPorCH>(context);
+		case Source::eSIorDH:			return *register_<IntT, access, Source::eSIorDH>(context);
+		case Source::eDIorBH:			return *register_<IntT, access, Source::eDIorBH>(context);
+		case Source::Indirect:			return address<Source::Indirect, IntT, access>(instruction, pointer, context);
+		case Source::IndirectNoBase:	return address<Source::IndirectNoBase, IntT, access>(instruction, pointer, context);
+		case Source::DirectAddress:		return address<Source::DirectAddress, IntT, access>(instruction, pointer, context);
 	}
 }
 
-template <Model model, typename IntT, AccessType access, typename InstructionT, typename RegistersT, typename MemoryT>
+template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 IntT *resolve(
 	InstructionT &instruction,
 	Source source,
 	DataPointer pointer,
-	RegistersT &registers,
-	MemoryT &memory,
+	ContextT &context,
 	IntT *none,
 	IntT *immediate
 ) {
@@ -148,24 +146,24 @@ IntT *resolve(
 	// * otherwise return the appropriate value.
 	uint32_t target_address;
 	switch(source) {
-		case Source::eAX:		return register_<model, IntT, access, Source::eAX>(registers);
-		case Source::eCX:		return register_<model, IntT, access, Source::eCX>(registers);
-		case Source::eDX:		return register_<model, IntT, access, Source::eDX>(registers);
-		case Source::eBX:		return register_<model, IntT, access, Source::eBX>(registers);
-		case Source::eSPorAH:	return register_<model, IntT, access, Source::eSPorAH>(registers);
-		case Source::eBPorCH:	return register_<model, IntT, access, Source::eBPorCH>(registers);
-		case Source::eSIorDH:	return register_<model, IntT, access, Source::eSIorDH>(registers);
-		case Source::eDIorBH:	return register_<model, IntT, access, Source::eDIorBH>(registers);
+		case Source::eAX:		return register_<IntT, access, Source::eAX>(context);
+		case Source::eCX:		return register_<IntT, access, Source::eCX>(context);
+		case Source::eDX:		return register_<IntT, access, Source::eDX>(context);
+		case Source::eBX:		return register_<IntT, access, Source::eBX>(context);
+		case Source::eSPorAH:	return register_<IntT, access, Source::eSPorAH>(context);
+		case Source::eBPorCH:	return register_<IntT, access, Source::eBPorCH>(context);
+		case Source::eSIorDH:	return register_<IntT, access, Source::eSIorDH>(context);
+		case Source::eDIorBH:	return register_<IntT, access, Source::eDIorBH>(context);
 
 		// Segment registers are always 16-bit.
-		case Source::ES:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.es(); else return nullptr;
-		case Source::CS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.cs(); else return nullptr;
-		case Source::SS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ss(); else return nullptr;
-		case Source::DS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &registers.ds(); else return nullptr;
+		case Source::ES:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.es(); else return nullptr;
+		case Source::CS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.cs(); else return nullptr;
+		case Source::SS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ss(); else return nullptr;
+		case Source::DS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ds(); else return nullptr;
 
 		// 16-bit models don't have FS and GS.
-		case Source::FS:	if constexpr (is_32bit(model) && std::is_same_v<IntT, uint16_t>) return &registers.fs(); else return nullptr;
-		case Source::GS:	if constexpr (is_32bit(model) && std::is_same_v<IntT, uint16_t>) return &registers.gs(); else return nullptr;
+		case Source::FS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.fs(); else return nullptr;
+		case Source::GS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.gs(); else return nullptr;
 
 		case Source::Immediate:
 			*immediate = instruction.operand();
@@ -174,40 +172,40 @@ IntT *resolve(
 		case Source::None:		return none;
 
 		case Source::Indirect:
-			target_address = address<model, Source::Indirect, IntT, access>(instruction, pointer, registers, memory);
+			target_address = address<Source::Indirect, IntT, access>(instruction, pointer, context);
 		break;
 		case Source::IndirectNoBase:
-			target_address = address<model, Source::IndirectNoBase, IntT, access>(instruction, pointer, registers, memory);
+			target_address = address<Source::IndirectNoBase, IntT, access>(instruction, pointer, context);
 		break;
 		case Source::DirectAddress:
-			target_address = address<model, Source::DirectAddress, IntT, access>(instruction, pointer, registers, memory);
+			target_address = address<Source::DirectAddress, IntT, access>(instruction, pointer, context);
 		break;
 	}
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	return &memory.template access<IntT, access>(instruction.data_segment(), target_address);
+	return &context.memory.template access<IntT, access>(instruction.data_segment(), target_address);
 };
 
 namespace Primitive {
 
 // The below takes a reference in order properly to handle PUSH SP, which should place the value of SP after the
 // push onto the stack.
-template <typename IntT, bool Preauthorised, typename MemoryT, typename RegistersT>
-void push(IntT &value, MemoryT &memory, RegistersT &registers) {
-	registers.sp_ -= sizeof(IntT);
-	memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedWrite : AccessType::Write>(
+template <typename IntT, bool Preauthorised, typename ContextT>
+void push(IntT value, ContextT &context) {
+	context.registers.sp_ -= sizeof(IntT);
+	context.memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedWrite : AccessType::Write>(
 		InstructionSet::x86::Source::SS,
-		registers.sp_) = value;
-	memory.template write_back<IntT>();
+		context.registers.sp_) = value;
+	context.memory.template write_back<IntT>();
 }
 
-template <typename IntT, bool Preauthorised, typename MemoryT, typename RegistersT>
-IntT pop(MemoryT &memory, RegistersT &registers) {
-	const auto value = memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
+template <typename IntT, bool Preauthorised, typename ContextT>
+IntT pop(ContextT &context) {
+	const auto value = context.memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
 		InstructionSet::x86::Source::SS,
-		registers.sp_);
-	registers.sp_ += sizeof(IntT);
+		context.registers.sp_);
+	context.registers.sp_ += sizeof(IntT);
 	return value;
 }
 
@@ -219,7 +217,8 @@ IntT pop(MemoryT &memory, RegistersT &registers) {
 // Order Number 243191; e.g. https://www.ardent-tool.com/CPU/docs/Intel/IA/243191-002.pdf
 //
 
-inline void aaa(CPU::RegisterPair16 &ax, Status &status) {	// P. 313
+template <typename ContextT>
+void aaa(CPU::RegisterPair16 &ax, ContextT &context) {	// P. 313
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 			THEN
@@ -237,17 +236,18 @@ inline void aaa(CPU::RegisterPair16 &ax, Status &status) {	// P. 313
 		The AF and CF flags are set to 1 if the adjustment results in a decimal carry;
 		otherwise they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
 	*/
-	if((ax.halves.low & 0x0f) > 9 || status.flag<Flag::AuxiliaryCarry>()) {
+	if((ax.halves.low & 0x0f) > 9 || context.status.template flag<Flag::AuxiliaryCarry>()) {
 		ax.halves.low += 6;
 		++ax.halves.high;
-		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
+		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
 	} else {
-		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
+		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
 
-inline void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
+template <typename ContextT>
+void aad(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
 	/*
 		tempAL ← AL;
 		tempAH ← AH;
@@ -260,11 +260,11 @@ inline void aad(CPU::RegisterPair16 &ax, uint8_t imm, Status &status) {
 	*/
 	ax.halves.low = ax.halves.low + (ax.halves.high * imm);
 	ax.halves.high = 0;
-	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
+	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
-template <typename FlowControllerT>
-void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowControllerT &flow_controller) {
+template <typename ContextT>
+void aam(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
 	/*
 		tempAL ← AL;
 		AH ← tempAL / imm8; (* imm8 is set to 0AH for the AAD mnemonic *)
@@ -278,16 +278,17 @@ void aam(CPU::RegisterPair16 &ax, uint8_t imm, Status &status, FlowControllerT &
 		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
 	*/
 	if(!imm) {
-		flow_controller.interrupt(Interrupt::DivideError);
+		interrupt(Interrupt::DivideError, context);
 		return;
 	}
 
 	ax.halves.high = ax.halves.low / imm;
 	ax.halves.low = ax.halves.low % imm;
-	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
+	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
-inline void aas(CPU::RegisterPair16 &ax, Status &status) {
+template <typename ContextT>
+void aas(CPU::RegisterPair16 &ax, ContextT &context) {
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 		THEN
@@ -305,17 +306,18 @@ inline void aas(CPU::RegisterPair16 &ax, Status &status) {
 		The AF and CF flags are set to 1 if there is a decimal borrow;
 		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
 	*/
-	if((ax.halves.low & 0x0f) > 9 || status.flag<Flag::AuxiliaryCarry>()) {
+	if((ax.halves.low & 0x0f) > 9 || context.status.template flag<Flag::AuxiliaryCarry>()) {
 		ax.halves.low -= 6;
 		--ax.halves.high;
-		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
+		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
 	} else {
-		status.set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
+		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
 
-inline void daa(uint8_t &al, Status &status) {
+template <typename ContextT>
+void daa(uint8_t &al, ContextT &context) {
 	/*
 		(as modified by https://www.felixcloutier.com/x86/daa ...)
 
@@ -345,28 +347,29 @@ inline void daa(uint8_t &al, Status &status) {
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = status.flag<Flag::Carry>();
-	status.set_from<Flag::Carry>(0);
+	const auto old_carry = context.status.template flag<Flag::Carry>();
+	context.status.template set_from<Flag::Carry>(0);
 
-	if((al & 0x0f) > 0x09 || status.flag<Flag::AuxiliaryCarry>()) {
-		status.set_from<Flag::Carry>(old_carry | (al > 0xf9));
+	if((al & 0x0f) > 0x09 || context.status.template flag<Flag::AuxiliaryCarry>()) {
+		context.status.template set_from<Flag::Carry>(old_carry | (al > 0xf9));
 		al += 0x06;
-		status.set_from<Flag::AuxiliaryCarry>(1);
+		context.status.template set_from<Flag::AuxiliaryCarry>(1);
 	} else {
-		status.set_from<Flag::AuxiliaryCarry>(0);
+		context.status.template set_from<Flag::AuxiliaryCarry>(0);
 	}
 
 	if(old_al > 0x99 || old_carry) {
 		al += 0x60;
-		status.set_from<Flag::Carry>(1);
+		context.status.template set_from<Flag::Carry>(1);
 	} else {
-		status.set_from<Flag::Carry>(0);
+		context.status.template set_from<Flag::Carry>(0);
 	}
 
-	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
+	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
 
-inline void das(uint8_t &al, Status &status) {
+template <typename ContextT>
+void das(uint8_t &al, ContextT &context) {
 	/*
 		(as modified by https://www.felixcloutier.com/x86/daa ...)
 
@@ -396,75 +399,75 @@ inline void das(uint8_t &al, Status &status) {
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = status.flag<Flag::Carry>();
-	status.set_from<Flag::Carry>(0);
+	const auto old_carry = context.status.template flag<Flag::Carry>();
+	context.status.template set_from<Flag::Carry>(0);
 
-	if((al & 0x0f) > 0x09 || status.flag<Flag::AuxiliaryCarry>()) {
-		status.set_from<Flag::Carry>(old_carry | (al < 0x06));
+	if((al & 0x0f) > 0x09 || context.status.template flag<Flag::AuxiliaryCarry>()) {
+		context.status.template set_from<Flag::Carry>(old_carry | (al < 0x06));
 		al -= 0x06;
-		status.set_from<Flag::AuxiliaryCarry>(1);
+		context.status.template set_from<Flag::AuxiliaryCarry>(1);
 	} else {
-		status.set_from<Flag::AuxiliaryCarry>(0);
+		context.status.template set_from<Flag::AuxiliaryCarry>(0);
 	}
 
 	if(old_al > 0x99 || old_carry) {
 		al -= 0x60;
-		status.set_from<Flag::Carry>(1);
+		context.status.template set_from<Flag::Carry>(1);
 	} else {
-		status.set_from<Flag::Carry>(0);
+		context.status.template set_from<Flag::Carry>(0);
 	}
 
-	status.set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
+	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
 
-template <bool with_carry, typename IntT>
-void add(IntT &destination, IntT source, Status &status) {
+template <bool with_carry, typename IntT, typename ContextT>
+void add(IntT &destination, IntT source, ContextT &context) {
 	/*
 		DEST ← DEST + SRC [+ CF];
 	*/
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination + source + (with_carry ? status.carry_bit<IntT>() : 0);
+	const IntT result = destination + source + (with_carry ? context.status.template carry_bit<IntT>() : 0);
 
-	status.set_from<Flag::Carry>(
+	context.status.template set_from<Flag::Carry>(
 		Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result));
-	status.set_from<Flag::AuxiliaryCarry>(
+	context.status.template set_from<Flag::AuxiliaryCarry>(
 		Numeric::carried_in<4>(destination, source, result));
-	status.set_from<Flag::Overflow>(
+	context.status.template set_from<Flag::Overflow>(
 		Numeric::overflow<true, IntT>(destination, source, result));
 
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
 	destination = result;
 }
 
-template <bool with_borrow, bool write_back, typename IntT>
-void sub(IntT &destination, IntT source, Status &status) {
+template <bool with_borrow, bool write_back, typename IntT, typename ContextT>
+void sub(IntT &destination, IntT source, ContextT &context) {
 	/*
 		DEST ← DEST - (SRC [+ CF]);
 	*/
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination - source - (with_borrow ? status.carry_bit<IntT>() : 0);
+	const IntT result = destination - source - (with_borrow ? context.status.template carry_bit<IntT>() : 0);
 
-	status.set_from<Flag::Carry>(
+	context.status.template set_from<Flag::Carry>(
 		Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result));
-	status.set_from<Flag::AuxiliaryCarry>(
+	context.status.template set_from<Flag::AuxiliaryCarry>(
 		Numeric::carried_in<4>(destination, source, result));
-	status.set_from<Flag::Overflow>(
+	context.status.template set_from<Flag::Overflow>(
 		Numeric::overflow<false, IntT>(destination, source, result));
 
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
 	if constexpr (write_back) {
 		destination = result;
 	}
 }
 
-template <typename IntT>
-void test(IntT &destination, IntT source, Status &status) {
+template <typename IntT, typename ContextT>
+void test(IntT &destination, IntT source, ContextT &context) {
 	/*
 		TEMP ← SRC1 AND SRC2;
 		SF ← MSB(TEMP);
@@ -483,8 +486,8 @@ void test(IntT &destination, IntT source, Status &status) {
 	*/
 	const IntT result = destination & source;
 
-	status.set_from<Flag::Carry, Flag::Overflow>(0);
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
+	context.status.template set_from<Flag::Carry, Flag::Overflow>(0);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 }
 
 template <typename IntT>
@@ -497,8 +500,8 @@ void xchg(IntT &destination, IntT &source) {
 	std::swap(destination, source);
 }
 
-template <typename IntT>
-void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &status) {
+template <typename IntT, typename ContextT>
+void mul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
 	/*
 		IF byte operation
 			THEN
@@ -516,11 +519,11 @@ void mul(IntT &destination_high, IntT &destination_low, IntT source, Status &sta
 	*/
 	destination_high = (destination_low * source) >> (8 * sizeof(IntT));
 	destination_low *= source;
-	status.set_from<Flag::Overflow, Flag::Carry>(destination_high);
+	context.status.template set_from<Flag::Overflow, Flag::Carry>(destination_high);
 }
 
-template <typename IntT>
-void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &status) {
+template <typename IntT, typename ContextT>
+void imul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
 	/*
 		(as modified by https://www.felixcloutier.com/x86/daa ...)
 
@@ -551,11 +554,11 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, Status &st
 	destination_low = IntT(sIntT(destination_low) * sIntT(source));
 
 	const auto sign_extension = (destination_low & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
-	status.set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
+	context.status.template set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
 }
 
-template <typename IntT, typename FlowControllerT>
-void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControllerT &flow_controller) {
+template <typename IntT, typename ContextT>
+void div(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
 	/*
 		IF SRC = 0
 			THEN #DE; (* divide error *)
@@ -594,7 +597,7 @@ void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControl
 		The CF, OF, SF, ZF, AF, and PF flags are undefined.
 	*/
 	if(!source) {
-		flow_controller.interrupt(Interrupt::DivideError);
+		InstructionSet::x86::interrupt(Interrupt::DivideError, context);
 		return;
 	}
 
@@ -602,7 +605,7 @@ void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControl
 	const uint32_t dividend = (destination_high << (8 * sizeof(IntT))) + destination_low;
 	const auto result = dividend / source;
 	if(IntT(result) != result) {
-		flow_controller.interrupt(Interrupt::DivideError);
+		interrupt(Interrupt::DivideError, context);
 		return;
 	}
 
@@ -610,8 +613,8 @@ void div(IntT &destination_high, IntT &destination_low, IntT source, FlowControl
 	destination_high = dividend % source;
 }
 
-template <typename IntT, typename FlowControllerT>
-void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowControllerT &flow_controller) {
+template <typename IntT, typename ContextT>
+void idiv(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
 	/*
 		IF SRC = 0
 			THEN #DE; (* divide error *)
@@ -650,7 +653,7 @@ void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowContro
 		The CF, OF, SF, ZF, AF, and PF flags are undefined.
 	*/
 	if(!source) {
-		flow_controller.interrupt(Interrupt::DivideError);
+		interrupt(Interrupt::DivideError, context);
 		return;
 	}
 
@@ -659,7 +662,7 @@ void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowContro
 	const int32_t dividend = (sIntT(destination_high) << (8 * sizeof(IntT))) + destination_low;
 	const auto result = dividend / sIntT(source);
 	if(sIntT(result) != result) {
-		flow_controller.interrupt(Interrupt::DivideError);
+		interrupt(Interrupt::DivideError, context);
 		return;
 	}
 
@@ -667,8 +670,8 @@ void idiv(IntT &destination_high, IntT &destination_low, IntT source, FlowContro
 	destination_high = dividend % sIntT(source);
 }
 
-template <typename IntT>
-void inc(IntT &destination, Status &status) {
+template <typename IntT, typename ContextT>
+void inc(IntT &destination, ContextT &context) {
 	/*
 		DEST ← DEST + 1;
 	*/
@@ -678,13 +681,13 @@ void inc(IntT &destination, Status &status) {
 	*/
 	++destination;
 
-	status.set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
-	status.set_from<Flag::AuxiliaryCarry>(((destination - 1) ^ destination) & 0x10);
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	context.status.template set_from<Flag::AuxiliaryCarry>(((destination - 1) ^ destination) & 0x10);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT, typename RegistersT, typename FlowControllerT>
-void jump(bool condition, IntT displacement, RegistersT &registers, FlowControllerT &flow_controller) {
+template <typename IntT, typename ContextT>
+void jump(bool condition, IntT displacement, ContextT &context) {
 	/*
 		IF condition
 			THEN
@@ -698,36 +701,36 @@ void jump(bool condition, IntT displacement, RegistersT &registers, FlowControll
 
 	// TODO: proper behaviour in 32-bit.
 	if(condition) {
-		flow_controller.jump(registers.ip() + displacement);
+		context.flow_controller.jump(context.registers.ip() + displacement);
 	}
 }
 
-template <typename IntT, typename OffsetT, typename RegistersT, typename FlowControllerT>
-void loop(IntT &counter, OffsetT displacement, RegistersT &registers, FlowControllerT &flow_controller) {
+template <typename IntT, typename OffsetT, typename ContextT>
+void loop(IntT &counter, OffsetT displacement, ContextT &context) {
 	--counter;
 	if(counter) {
-		flow_controller.jump(registers.ip() + displacement);
+		context.flow_controller.jump(context.registers.ip() + displacement);
 	}
 }
 
-template <typename IntT, typename OffsetT, typename RegistersT, typename FlowControllerT>
-void loope(IntT &counter, OffsetT displacement, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename OffsetT, typename ContextT>
+void loope(IntT &counter, OffsetT displacement, ContextT &context) {
 	--counter;
-	if(counter && status.flag<Flag::Zero>()) {
-		flow_controller.jump(registers.ip() + displacement);
+	if(counter && context.status.template flag<Flag::Zero>()) {
+		context.flow_controller.jump(context.registers.ip() + displacement);
 	}
 }
 
-template <typename IntT, typename OffsetT, typename RegistersT, typename FlowControllerT>
-void loopne(IntT &counter, OffsetT displacement, RegistersT &registers, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename OffsetT, typename ContextT>
+void loopne(IntT &counter, OffsetT displacement, ContextT &context) {
 	--counter;
-	if(counter && !status.flag<Flag::Zero>()) {
-		flow_controller.jump(registers.ip() + displacement);
+	if(counter && !context.status.template flag<Flag::Zero>()) {
+		context.flow_controller.jump(context.registers.ip() + displacement);
 	}
 }
 
-template <typename IntT>
-void dec(IntT &destination, Status &status) {
+template <typename IntT, typename ContextT>
+void dec(IntT &destination, ContextT &context) {
 	/*
 		DEST ← DEST - 1;
 	*/
@@ -735,16 +738,16 @@ void dec(IntT &destination, Status &status) {
 		The CF flag is not affected.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	status.set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	context.status.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
 
 	--destination;
 
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
-	status.set_from<Flag::AuxiliaryCarry>(((destination + 1) ^ destination) & 0x10);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::AuxiliaryCarry>(((destination + 1) ^ destination) & 0x10);
 }
 
-template <typename IntT>
-void and_(IntT &destination, IntT source, Status &status) {
+template <typename IntT, typename ContextT>
+void and_(IntT &destination, IntT source, ContextT &context) {
 	/*
 		DEST ← DEST AND SRC;
 	*/
@@ -754,12 +757,12 @@ void and_(IntT &destination, IntT source, Status &status) {
 	*/
 	destination &= source;
 
-	status.set_from<Flag::Overflow, Flag::Carry>(0);
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Overflow, Flag::Carry>(0);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT>
-void or_(IntT &destination, IntT source, Status &status) {
+template <typename IntT, typename ContextT>
+void or_(IntT &destination, IntT source, ContextT &context) {
 	/*
 		DEST ← DEST OR SRC;
 	*/
@@ -769,12 +772,12 @@ void or_(IntT &destination, IntT source, Status &status) {
 	*/
 	destination |= source;
 
-	status.set_from<Flag::Overflow, Flag::Carry>(0);
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Overflow, Flag::Carry>(0);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT>
-void xor_(IntT &destination, IntT source, Status &status) {
+template <typename IntT, typename ContextT>
+void xor_(IntT &destination, IntT source, ContextT &context) {
 	/*
 		DEST ← DEST XOR SRC;
 	*/
@@ -784,12 +787,12 @@ void xor_(IntT &destination, IntT source, Status &status) {
 	*/
 	destination ^= source;
 
-	status.set_from<Flag::Overflow, Flag::Carry>(0);
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Overflow, Flag::Carry>(0);
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT>
-void neg(IntT &destination, Status &status) {
+template <typename IntT, typename ContextT>
+void neg(IntT &destination, ContextT &context) {
 	/*
 		IF DEST = 0
 			THEN CF ← 0
@@ -801,13 +804,13 @@ void neg(IntT &destination, Status &status) {
 		The CF flag cleared to 0 if the source operand is 0; otherwise it is set to 1.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	status.set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(IntT(0), destination, IntT(-destination)));
+	context.status.template set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(IntT(0), destination, IntT(-destination)));
 
 	destination = -destination;
 
-	status.set_from<Flag::Carry>(destination);
-	status.set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
-	status.set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Carry>(destination);
+	context.status.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT>
@@ -821,164 +824,153 @@ void not_(IntT &destination) {
 	destination  = ~destination;
 }
 
-template <typename IntT, typename RegistersT, typename MemoryT, typename FlowControllerT>
-void call_relative(IntT offset, RegistersT &registers, MemoryT &memory, FlowControllerT &flow_controller) {
-	push<uint16_t, false>(registers.ip(), memory, registers);
-	flow_controller.jump(registers.ip() + offset);
+template <typename IntT, typename ContextT>
+void call_relative(IntT offset, ContextT &context) {
+	push<uint16_t, false>(context.registers.ip(), context);
+	context.flow_controller.jump(context.registers.ip() + offset);
 }
 
-template <typename IntT, typename RegistersT, typename MemoryT, typename FlowControllerT>
-void call_absolute(IntT target, RegistersT &registers, MemoryT &memory, FlowControllerT &flow_controller) {
-	push<uint16_t, false>(registers.ip(), memory, registers);
-	flow_controller.jump(target);
+template <typename IntT, typename ContextT>
+void call_absolute(IntT target, ContextT &context) {
+	push<uint16_t, false>(context.registers.ip(), context);
+	context.flow_controller.jump(target);
 }
 
-template <typename IntT, typename FlowControllerT>
-void jump_absolute(IntT target, FlowControllerT &flow_controller) {
-	flow_controller.jump(target);
+template <typename IntT, typename ContextT>
+void jump_absolute(IntT target, ContextT &context) {
+	context.flow_controller.jump(target);
 }
 
-template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
-void call_far(InstructionT &instruction,
-	FlowControllerT &flow_controller,
-	RegistersT &registers,
-	MemoryT &memory
-) {
+template <typename InstructionT, typename ContextT>
+void call_far(InstructionT &instruction, ContextT &context) {
 	// TODO: eliminate 16-bit assumption below.
 	const Source source_segment = instruction.data_segment();
-	memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
 
 	uint16_t source_address;
 	const auto pointer = instruction.destination();
 	switch(pointer.source()) {
 		default:
 		case Source::Immediate:
-			push<uint16_t, true>(registers.cs(), memory, registers);
-			push<uint16_t, true>(registers.ip(), memory, registers);
-			flow_controller.jump(instruction.segment(), instruction.offset());
+			push<uint16_t, true>(context.registers.cs(), context);
+			push<uint16_t, true>(context.registers.ip(), context);
+			context.flow_controller.jump(instruction.segment(), instruction.offset());
 		return;
 
 		case Source::Indirect:
-			source_address = address<model, Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+			source_address = address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context);
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<model, Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+			source_address = address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context);
 		break;
 		case Source::DirectAddress:
-			source_address = address<model, Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+			source_address = address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context);
 		break;
 	}
 
-	memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
-	push<uint16_t, true>(registers.cs(), memory, registers);
-	push<uint16_t, true>(registers.ip(), memory, registers);
+	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
+	push<uint16_t, true>(context.registers.cs(), context);
+	push<uint16_t, true>(context.registers.ip(), context);
 
-	const uint16_t offset = memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+	const uint16_t offset = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
-	const uint16_t segment = memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
-	flow_controller.jump(segment, offset);
+	const uint16_t segment = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+	context.flow_controller.jump(segment, offset);
 }
 
-template <Model model, typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
-void jump_far(InstructionT &instruction,
-	FlowControllerT &flow_controller,
-	RegistersT &registers,
-	MemoryT &memory
-) {
+template <typename InstructionT, typename ContextT>
+void jump_far(InstructionT &instruction, ContextT &context) {
 	// TODO: eliminate 16-bit assumption below.
 	uint16_t source_address = 0;
 	const auto pointer = instruction.destination();
 	switch(pointer.source()) {
 		default:
-		case Source::Immediate:	flow_controller.jump(instruction.segment(), instruction.offset());	return;
+		case Source::Immediate:	context.flow_controller.jump(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
-			source_address = address<model, Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+			source_address = address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context);
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<model, Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+			source_address = address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context);
 		break;
 		case Source::DirectAddress:
-			source_address = address<model, Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+			source_address = address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context);
 		break;
 	}
 
 	const Source source_segment = instruction.data_segment();
 
-	const uint16_t offset = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	const uint16_t offset = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
-	const uint16_t segment = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
-	flow_controller.jump(segment, offset);
+	const uint16_t segment =context. memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	context.flow_controller.jump(segment, offset);
 }
 
-template <typename FlowControllerT, typename RegistersT, typename MemoryT>
-void iret(RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory, Status &status) {
+template <typename ContextT>
+void iret(ContextT &context) {
 	// TODO: all modes other than 16-bit real mode.
-	memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
-	const auto ip = pop<uint16_t, true>(memory, registers);
-	const auto cs = pop<uint16_t, true>(memory, registers);
-	status.set(pop<uint16_t, true>(memory, registers));
-	flow_controller.jump(cs, ip);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
+	const auto ip = pop<uint16_t, true>(context);
+	const auto cs = pop<uint16_t, true>(context);
+	context.status.set(pop<uint16_t, true>(context));
+	context.flow_controller.jump(cs, ip);
 }
 
-template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
-void ret_near(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
-	const auto ip = pop<uint16_t, false>(memory, registers);
-	registers.sp() += instruction.operand();
-	flow_controller.jump(ip);
+template <typename InstructionT, typename ContextT>
+void ret_near(InstructionT instruction, ContextT &context) {
+	const auto ip = pop<uint16_t, false>(context);
+	context.registers.sp() += instruction.operand();
+	context.flow_controller.jump(ip);
 }
 
-template <typename InstructionT, typename FlowControllerT, typename RegistersT, typename MemoryT>
-void ret_far(InstructionT instruction, RegistersT &registers, FlowControllerT &flow_controller, MemoryT &memory) {
-	memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
-	const auto ip = pop<uint16_t, true>(memory, registers);
-	const auto cs = pop<uint16_t, true>(memory, registers);
-	registers.sp() += instruction.operand();
-	flow_controller.jump(cs, ip);
+template <typename InstructionT, typename ContextT>
+void ret_far(InstructionT instruction, ContextT &context) {
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
+	const auto ip = pop<uint16_t, true>(context);
+	const auto cs = pop<uint16_t, true>(context);
+	context.registers.sp() += instruction.operand();
+	context.flow_controller.jump(cs, ip);
 }
 
-template <Model model, Source selector, typename InstructionT, typename MemoryT, typename RegistersT>
+template <Source selector, typename InstructionT, typename ContextT>
 void ld(
 	InstructionT &instruction,
 	uint16_t &destination,
-	MemoryT &memory,
-	RegistersT &registers
+	ContextT &context
 ) {
 	const auto pointer = instruction.source();
-	auto source_address = address<model, uint16_t, AccessType::Read>(instruction, pointer, registers, memory);
+	auto source_address = address<uint16_t, AccessType::Read>(instruction, pointer, context);
 	const Source source_segment = instruction.data_segment();
 
-	destination = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	destination = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	switch(selector) {
-		case Source::DS:	registers.ds() = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
-		case Source::ES:	registers.es() = memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
+		case Source::DS:	context.registers.ds() = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
+		case Source::ES:	context.registers.es() = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
 	}
 }
 
-template <Model model, typename IntT, typename InstructionT, typename MemoryT, typename RegistersT>
+template <typename IntT, typename InstructionT, typename ContextT>
 void lea(
 	const InstructionT &instruction,
 	IntT &destination,
-	MemoryT &memory,
-	RegistersT &registers
+	ContextT &context
 ) {
 	// TODO: address size.
-	destination = IntT(address<model, uint16_t, AccessType::Read>(instruction, instruction.source(), registers, memory));
+	destination = IntT(address<uint16_t, AccessType::Read>(instruction, instruction.source(), context));
 }
 
-template <typename AddressT, typename InstructionT, typename MemoryT, typename RegistersT>
+template <typename AddressT, typename InstructionT, typename ContextT>
 void xlat(
 	const InstructionT &instruction,
-	MemoryT &memory,
-	RegistersT &registers
+	ContextT &context
 ) {
 	AddressT address;
 	if constexpr (std::is_same_v<AddressT, uint16_t>) {
-		address = registers.bx() + registers.al();
+		address = context.registers.bx() + context.registers.al();
 	}
 
-	registers.al() = memory.template access<uint8_t, AccessType::Read>(instruction.data_segment(), address);
+	context.registers.al() = context.memory.template access<uint8_t, AccessType::Read>(instruction.data_segment(), address);
 }
 
 template <typename IntT>
@@ -986,40 +978,37 @@ void mov(IntT &destination, IntT source) {
 	destination = source;
 }
 
-template <typename FlowControllerT>
-void int_(uint8_t vector, FlowControllerT &flow_controller) {
-	flow_controller.interrupt(vector);
-}
-
-template <typename FlowControllerT>
-void into(Status &status, FlowControllerT &flow_controller) {
-	if(status.flag<Flag::Overflow>()) {
-		flow_controller.interrupt(Interrupt::OnOverflow);
+template <typename ContextT>
+void into(ContextT &context) {
+	if(context.status.template flag<Flag::Overflow>()) {
+		interrupt(Interrupt::OnOverflow, context);
 	}
 }
 
-inline void sahf(uint8_t &ah, Status &status) {
+template <typename ContextT>
+void sahf(uint8_t &ah, ContextT &context) {
 	/*
 		EFLAGS(SF:ZF:0:AF:0:PF:1:CF) ← AH;
 	*/
-	status.set_from<uint8_t, Flag::Sign>(ah);
-	status.set_from<Flag::Zero>(!(ah & 0x40));
-	status.set_from<Flag::AuxiliaryCarry>(ah & 0x10);
-	status.set_from<Flag::ParityOdd>(!(ah & 0x04));
-	status.set_from<Flag::Carry>(ah & 0x01);
+	context.status.template set_from<uint8_t, Flag::Sign>(ah);
+	context.status.template set_from<Flag::Zero>(!(ah & 0x40));
+	context.status.template set_from<Flag::AuxiliaryCarry>(ah & 0x10);
+	context.status.template set_from<Flag::ParityOdd>(!(ah & 0x04));
+	context.status.template set_from<Flag::Carry>(ah & 0x01);
 }
 
-inline void lahf(uint8_t &ah, Status &status) {
+template <typename ContextT>
+void lahf(uint8_t &ah, ContextT &context) {
 	/*
 		AH ← EFLAGS(SF:ZF:0:AF:0:PF:1:CF);
 	*/
 	ah =
-		(status.flag<Flag::Sign>() ? 0x80 : 0x00)	|
-		(status.flag<Flag::Zero>() ? 0x40 : 0x00)	|
-		(status.flag<Flag::AuxiliaryCarry>() ? 0x10 : 0x00)	|
-		(status.flag<Flag::ParityOdd>() ? 0x00 : 0x04)	|
+		(context.status.template flag<Flag::Sign>() ? 0x80 : 0x00)	|
+		(context.status.template flag<Flag::Zero>() ? 0x40 : 0x00)	|
+		(context.status.template flag<Flag::AuxiliaryCarry>() ? 0x10 : 0x00)	|
+		(context.status.template flag<Flag::ParityOdd>() ? 0x00 : 0x04)	|
 		0x02 |
-		(status.flag<Flag::Carry>() ? 0x01 : 0x00);
+		(context.status.template flag<Flag::Carry>() ? 0x01 : 0x00);
 }
 
 template <typename IntT>
@@ -1040,27 +1029,37 @@ void cwd(IntT &dx, IntT ax) {
 }
 
 // TODO: changes to the interrupt flag do quite a lot more in protected mode.
-inline void clc(Status &status) {	status.set_from<Flag::Carry>(0);							}
-inline void cld(Status &status) {	status.set_from<Flag::Direction>(0);						}
-inline void cli(Status &status) {	status.set_from<Flag::Interrupt>(0);						}
-inline void stc(Status &status) {	status.set_from<Flag::Carry>(1);							}
-inline void std(Status &status) {	status.set_from<Flag::Direction>(1);						}
-inline void sti(Status &status) {	status.set_from<Flag::Interrupt>(1);						}
-inline void cmc(Status &status) {	status.set_from<Flag::Carry>(!status.flag<Flag::Carry>());	}
-
-inline void salc(uint8_t &al, const Status &status) {
-	al = status.flag<Flag::Carry>() ? 0xff : 0x00;
+template <typename ContextT>
+void clc(ContextT &context) {	context.status.template set_from<Flag::Carry>(0);							}
+template <typename ContextT>
+void cld(ContextT &context) {	context.status.template set_from<Flag::Direction>(0);						}
+template <typename ContextT>
+void cli(ContextT &context) {	context.status.template set_from<Flag::Interrupt>(0);						}
+template <typename ContextT>
+void stc(ContextT &context) {	context.status.template set_from<Flag::Carry>(1);							}
+template <typename ContextT>
+void std(ContextT &context) {	context.status.template set_from<Flag::Direction>(1);						}
+template <typename ContextT>
+void sti(ContextT &context) {	context.status.template set_from<Flag::Interrupt>(1);						}
+template <typename ContextT>
+void cmc(ContextT &context) {
+	context.status.template set_from<Flag::Carry>(!context.status.template flag<Flag::Carry>());
 }
 
-template <typename IntT>
-void setmo(IntT &destination, Status &status) {
+template <typename ContextT>
+void salc(uint8_t &al, ContextT &context) {
+	al = context.status.template flag<Flag::Carry>() ? 0xff : 0x00;
+}
+
+template <typename IntT, typename ContextT>
+void setmo(IntT &destination, ContextT &context) {
 	destination = ~0;
-	status.set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
-	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
+	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT>
-inline void rcl(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void rcl(IntT &destination, uint8_t count, ContextT &context) {
 	/*
 		(* RCL and RCR instructions *)
 		SIZE ← OperandSize
@@ -1091,7 +1090,7 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
 	*/
 	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
-	auto carry = status.carry_bit<IntT>();
+	auto carry = context.status.template carry_bit<IntT>();
 	switch(temp_count) {
 		case 0: break;
 		case Numeric::bit_size<IntT>(): {
@@ -1109,14 +1108,14 @@ inline void rcl(IntT &destination, uint8_t count, Status &status) {
 		} break;
 	}
 
-	status.set_from<Flag::Carry>(carry);
-	status.set_from<Flag::Overflow>(
+	context.status.template set_from<Flag::Carry>(carry);
+	context.status.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
 	);
 }
 
-template <typename IntT>
-inline void rcr(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void rcr(IntT &destination, uint8_t count, ContextT &context) {
 	/*
 		(* RCR instruction operation *)
 		IF COUNT = 1
@@ -1131,8 +1130,8 @@ inline void rcr(IntT &destination, uint8_t count, Status &status) {
 				tempCOUNT ← tempCOUNT – 1;
 			OD;
 	*/
-	auto carry = status.carry_bit<IntT>();
-	status.set_from<Flag::Overflow>(
+	auto carry = context.status.template carry_bit<IntT>();
+	context.status.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
 	);
 
@@ -1154,11 +1153,11 @@ inline void rcr(IntT &destination, uint8_t count, Status &status) {
 		} break;
 	}
 
-	status.set_from<Flag::Carry>(carry);
+	context.status.template set_from<Flag::Carry>(carry);
 }
 
-template <typename IntT>
-inline void rol(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void rol(IntT &destination, uint8_t count, ContextT &context) {
 	/*
 		(* ROL and ROR instructions *)
 		SIZE ← OperandSize
@@ -1198,14 +1197,14 @@ inline void rol(IntT &destination, uint8_t count, Status &status) {
 			(destination >> (Numeric::bit_size<IntT>() - temp_count));
 	}
 
-	status.set_from<Flag::Carry>(destination & 1);
-	status.set_from<Flag::Overflow>(
+	context.status.template set_from<Flag::Carry>(destination & 1);
+	context.status.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) ^ destination) & 1
 	);
 }
 
-template <typename IntT>
-inline void ror(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void ror(IntT &destination, uint8_t count, ContextT &context) {
 	/*
 		(* ROL and ROR instructions *)
 		SIZE ← OperandSize
@@ -1245,8 +1244,8 @@ inline void ror(IntT &destination, uint8_t count, Status &status) {
 			(destination << (Numeric::bit_size<IntT>() - temp_count));
 	}
 
-	status.set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
-	status.set_from<Flag::Overflow>(
+	context.status.template set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
+	context.status.template set_from<Flag::Overflow>(
 		(destination ^ (destination << 1)) & Numeric::top_bit<IntT>()
 	);
 }
@@ -1307,35 +1306,35 @@ inline void ror(IntT &destination, uint8_t count, Status &status) {
 	The SF, ZF, and PF flags are set according to the result. If the count is 0, the flags are not affected.
 	For a non-zero count, the AF flag is undefined.
 */
-template <typename IntT>
-inline void sal(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void sal(IntT &destination, uint8_t count, ContextT &context) {
 	switch(count) {
 		case 0:	return;
 		case Numeric::bit_size<IntT>():
-			status.set_from<Flag::Carry, Flag::Overflow>(destination & 1);
+			context.status.template set_from<Flag::Carry, Flag::Overflow>(destination & 1);
 			destination = 0;
 		break;
 		default:
 			if(count > Numeric::bit_size<IntT>()) {
-				status.set_from<Flag::Carry, Flag::Overflow>(0);
+				context.status.template set_from<Flag::Carry, Flag::Overflow>(0);
 				destination = 0;
 			} else {
 				const auto mask = (Numeric::top_bit<IntT>() >> (count - 1));
-				status.set_from<Flag::Carry>(
+				context.status.template set_from<Flag::Carry>(
 					 destination & mask
 				);
-				status.set_from<Flag::Overflow>(
+				context.status.template set_from<Flag::Overflow>(
 					 (destination ^ (destination << 1)) & mask
 				);
 				destination <<= count;
 			}
 		break;
 	}
-	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT>
-inline void sar(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void sar(IntT &destination, uint8_t count, ContextT &context) {
 	if(!count) {
 		return;
 	}
@@ -1343,46 +1342,46 @@ inline void sar(IntT &destination, uint8_t count, Status &status) {
 	const IntT sign = Numeric::top_bit<IntT>() & destination;
 	if(count >= Numeric::bit_size<IntT>()) {
 		destination = sign ? IntT(~0) : IntT(0);
-		status.set_from<Flag::Carry>(sign);
+		context.status.template set_from<Flag::Carry>(sign);
 	} else {
 		const IntT mask = 1 << (count - 1);
-		status.set_from<Flag::Carry>(destination & mask);
+		context.status.template set_from<Flag::Carry>(destination & mask);
 		destination = (destination >> count) | (sign ? ~(IntT(~0) >> count) : 0);
 	}
-	status.set_from<Flag::Overflow>(0);
-	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.status.template set_from<Flag::Overflow>(0);
+	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
-template <typename IntT>
-inline void shr(IntT &destination, uint8_t count, Status &status) {
+template <typename IntT, typename ContextT>
+void shr(IntT &destination, uint8_t count, ContextT &context) {
 	if(!count) {
 		return;
 	}
 
-	status.set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
+	context.status.template set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
 	if(count == Numeric::bit_size<IntT>()) {
-		status.set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
+		context.status.template set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
 		destination = 0;
 	} else if(count > Numeric::bit_size<IntT>()) {
-		status.set_from<Flag::Carry>(0);
+		context.status.template set_from<Flag::Carry>(0);
 		destination = 0;
 	} else {
 		const IntT mask = 1 << (count - 1);
-		status.set_from<Flag::Carry>(destination & mask);
+		context.status.template set_from<Flag::Carry>(destination & mask);
 		destination >>= count;
 	}
-	status.set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
-template <typename MemoryT, typename RegistersT>
-void popf(MemoryT &memory, RegistersT &registers, Status &status) {
-	status.set(pop<uint16_t, false>(memory, registers));
+template <typename ContextT>
+void popf(ContextT &context) {
+	context.status.set(pop<uint16_t, false>(context));
 }
 
-template <typename MemoryT, typename RegistersT>
-void pushf(MemoryT &memory, RegistersT &registers, Status &status) {
-	uint16_t value = status.get();
-	push<uint16_t, false>(value, memory, registers);
+template <typename ContextT>
+void pushf(ContextT &context) {
+	uint16_t value = context.status.get();
+	push<uint16_t, false>(value, context);
 }
 
 template <typename AddressT, Repetition repetition>
@@ -1390,8 +1389,8 @@ bool repetition_over(const AddressT &eCX) {
 	return repetition != Repetition::None && !eCX;
 }
 
-template <typename AddressT, Repetition repetition, typename FlowControllerT>
-void repeat([[maybe_unused]] Status &status, AddressT &eCX, FlowControllerT &flow_controller) {
+template <typename AddressT, Repetition repetition, typename ContextT>
+void repeat(AddressT &eCX, ContextT &context) {
 	if(
 		repetition == Repetition::None ||		// No repetition => stop.
 		!(--eCX)								// [e]cx is zero after being decremented => stop.
@@ -1400,133 +1399,129 @@ void repeat([[maybe_unused]] Status &status, AddressT &eCX, FlowControllerT &flo
 	}
 	if constexpr (repetition != Repetition::Rep) {
 		// If this is RepE or RepNE, also test the zero flag.
-		if((repetition == Repetition::RepNE) == status.flag<Flag::Zero>()) {
+		if((repetition == Repetition::RepNE) == context.status.template flag<Flag::Zero>()) {
 			return;
 		}
 	}
-	flow_controller.repeat_last();
+	context.flow_controller.repeat_last();
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
-void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename ContextT>
+void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	IntT lhs = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	const IntT rhs = memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
-	eSI += status.direction<AddressT>() * sizeof(IntT);
-	eDI += status.direction<AddressT>() * sizeof(IntT);
+	IntT lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	Primitive::sub<false, false>(lhs, rhs, status);
+	Primitive::sub<false, false>(lhs, rhs, context);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename FlowControllerT>
-void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename ContextT>
+void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	const IntT rhs = memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
-	eDI += status.direction<AddressT>() * sizeof(IntT);
+	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	Primitive::sub<false, false>(eAX, rhs, status);
+	Primitive::sub<false, false>(eAX, rhs, context);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
-void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename ContextT>
+void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &eAX, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	eAX = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	eSI += status.direction<AddressT>() * sizeof(IntT);
+	eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename FlowControllerT>
-void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename ContextT>
+void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
+		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
 
-	eSI += status.direction<AddressT>() * sizeof(IntT);
-	eDI += status.direction<AddressT>() * sizeof(IntT);
+	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename FlowControllerT>
-void stos(AddressT &eCX, AddressT &eDI, IntT &eAX, MemoryT &memory, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename ContextT>
+void stos(AddressT &eCX, AddressT &eDI, IntT &eAX, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
-	eDI += status.direction<AddressT>() * sizeof(IntT);
+	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
+	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename MemoryT, typename IOT, typename FlowControllerT>
-void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, AddressT &eSI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename ContextT>
+void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, AddressT &eSI, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	io.template out<IntT>(port, memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI));
-	eSI += status.direction<AddressT>() * sizeof(IntT);
+	context.io.template out<IntT>(
+		port,
+		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
+	);
+	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename AddressT, Repetition repetition, typename MemoryT, typename IOT, typename FlowControllerT>
-void ins(AddressT &eCX, uint16_t port, AddressT &eDI, MemoryT &memory, IOT &io, Status &status, FlowControllerT &flow_controller) {
+template <typename IntT, typename AddressT, Repetition repetition, typename ContextT>
+void ins(AddressT &eCX, uint16_t port, AddressT &eDI, ContextT &context) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = io.template in<IntT>(port);
-	eDI += status.direction<AddressT>() * sizeof(IntT);
+	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = context.io.template in<IntT>(port);
+	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
 
-	repeat<AddressT, repetition>(status, eCX, flow_controller);
+	repeat<AddressT, repetition>(eCX, context);
 }
 
-template <typename IntT, typename IOT>
-void out(uint16_t port, IntT value, IOT &io) {
-	io.template out<IntT>(port, value);
+template <typename IntT, typename ContextT>
+void out(uint16_t port, IntT value, ContextT &context) {
+	context.io.template out<IntT>(port, value);
 }
 
-template <typename IntT, typename IOT>
-void in(uint16_t port, IntT &value, IOT &io) {
-	value = io.template in<IntT>(port);
+template <typename IntT, typename ContextT>
+void in(uint16_t port, IntT &value, ContextT &context) {
+	value = context.io.template in<IntT>(port);
 }
 
 }
 
 template <
-	Model model,
 	DataSize data_size,
 	AddressSize address_size,
 	typename InstructionT,
-	typename FlowControllerT,
-	typename RegistersT,
-	typename MemoryT,
-	typename IOT
+	typename ContextT
 > void perform(
 	const InstructionT &instruction,
-	Status &status,
-	FlowControllerT &flow_controller,
-	RegistersT &registers,
-	MemoryT &memory,
-	IOT &io
+	ContextT &context
 ) {
 	using IntT = typename DataSizeType<data_size>::type;
 	using AddressT = typename AddressSizeType<address_size>::type;
@@ -1539,52 +1534,47 @@ template <
 	// (though GCC offers C++20 syntax as an extension, and Clang seems to follow along, so maybe I'm overthinking)
 	IntT immediate;
 	const auto source_r = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::Read>(
+		return *resolve<IntT, AccessType::Read>(
 			instruction,
 			instruction.source().source(),
 			instruction.source(),
-			registers,
-			memory,
+			context,
 			nullptr,
 			&immediate);
 	};
 	const auto source_rmw = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::ReadModifyWrite>(
+		return *resolve<IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.source().source(),
 			instruction.source(),
-			registers,
-			memory,
+			context,
 			nullptr,
 			&immediate);
 	};
 	const auto destination_r = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::Read>(
+		return *resolve<IntT, AccessType::Read>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),
-			registers,
-			memory,
+			context,
 			nullptr,
 			&immediate);
 	};
 	const auto destination_w = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::Write>(
+		return *resolve<IntT, AccessType::Write>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),
-			registers,
-			memory,
+			context,
 			nullptr,
 			&immediate);
 	};
 	const auto destination_rmw = [&]() -> IntT& {
-		return *resolve<model, IntT, AccessType::ReadModifyWrite>(
+		return *resolve<IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),
-			registers,
-			memory,
+			context,
 			nullptr,
 			&immediate);
 	};
@@ -1594,16 +1584,15 @@ template <
 		Primitive::jump(
 			condition,
 			instruction.displacement(),
-			registers,
-			flow_controller);
+			context);
 	};
 
 	const auto shift_count = [&]() -> uint8_t {
-		static constexpr uint8_t mask = (model != Model::i8086) ? 0x1f : 0xff;
+		static constexpr uint8_t mask = (ContextT::model != Model::i8086) ? 0x1f : 0xff;
 		switch(instruction.source().source()) {
 			case Source::None:		return 1;
 			case Source::Immediate:	return uint8_t(instruction.operand()) & mask;
-			default:				return registers.cl() & mask;
+			default:				return context.registers.cl() & mask;
 		}
 	};
 
@@ -1611,38 +1600,38 @@ template <
 	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
 	// i.e. AX split into high and low parts.
 	const auto pair_high = [&]() -> IntT& {
-		if constexpr (data_size == DataSize::Byte) 			return registers.ah();
-		else if constexpr (data_size == DataSize::Word)		return registers.dx();
-		else if constexpr (data_size == DataSize::DWord)	return registers.edx();
+		if constexpr (data_size == DataSize::Byte) 			return context.registers.ah();
+		else if constexpr (data_size == DataSize::Word)		return context.registers.dx();
+		else if constexpr (data_size == DataSize::DWord)	return context.registers.edx();
 	};
 	const auto pair_low = [&]() -> IntT& {
-		if constexpr (data_size == DataSize::Byte) 			return registers.al();
-		else if constexpr (data_size == DataSize::Word)		return registers.ax();
-		else if constexpr (data_size == DataSize::DWord)	return registers.eax();
+		if constexpr (data_size == DataSize::Byte) 			return context.registers.al();
+		else if constexpr (data_size == DataSize::Word)		return context.registers.ax();
+		else if constexpr (data_size == DataSize::DWord)	return context.registers.eax();
 	};
 
 	// For the string operations, evaluate to either SI and DI or ESI and EDI, depending on the address size.
 	const auto eSI = [&]() -> AddressT& {
 		if constexpr (std::is_same_v<AddressT, uint16_t>) {
-			return registers.si();
+			return context.registers.si();
 		} else {
-			return registers.esi();
+			return context.registers.esi();
 		}
 	};
 	const auto eDI = [&]() -> AddressT& {
 		if constexpr (std::is_same_v<AddressT, uint16_t>) {
-			return registers.di();
+			return context.registers.di();
 		} else {
-			return registers.edi();
+			return context.registers.edi();
 		}
 	};
 
 	// For counts, provide either eCX or CX depending on address size.
 	const auto eCX = [&]() -> AddressT& {
 		if constexpr (std::is_same_v<AddressT, uint16_t>) {
-			return registers.cx();
+			return context.registers.cx();
 		} else {
-			return registers.ecx();
+			return context.registers.ecx();
 		}
 	};
 
@@ -1650,7 +1639,7 @@ template <
 	const auto port = [&](Source source) -> uint16_t {
 		switch(source) {
 			case Source::DirectAddress:	return instruction.offset();
-			default:					return registers.dx();
+			default:					return context.registers.dx();
 		}
 	};
 
@@ -1663,12 +1652,12 @@ template <
 		default:
 			assert(false);
 
-		case Operation::AAA:	Primitive::aaa(registers.axp(), status);											return;
-		case Operation::AAD:	Primitive::aad(registers.axp(), instruction.operand(), status);						return;
-		case Operation::AAM:	Primitive::aam(registers.axp(), instruction.operand(), status, flow_controller);	return;
-		case Operation::AAS:	Primitive::aas(registers.axp(), status);											return;
-		case Operation::DAA:	Primitive::daa(registers.al(), status);												return;
-		case Operation::DAS:	Primitive::das(registers.al(), status);												return;
+		case Operation::AAA:	Primitive::aaa(context.registers.axp(), context);							return;
+		case Operation::AAD:	Primitive::aad(context.registers.axp(), instruction.operand(), context);	return;
+		case Operation::AAM:	Primitive::aam(context.registers.axp(), instruction.operand(), context);	return;
+		case Operation::AAS:	Primitive::aas(context.registers.axp(), context);							return;
+		case Operation::DAA:	Primitive::daa(context.registers.al(), context);							return;
+		case Operation::DAS:	Primitive::das(context.registers.al(), context);							return;
 
 		case Operation::CBW:	Primitive::cbw(pair_low());					return;
 		case Operation::CWD:	Primitive::cwd(pair_high(), pair_low());	return;
@@ -1676,115 +1665,109 @@ template <
 		case Operation::ESC:
 		case Operation::NOP:	return;
 
-		case Operation::HLT:	flow_controller.halt();		return;
-		case Operation::WAIT:	flow_controller.wait();		return;
+		case Operation::HLT:	context.flow_controller.halt();		return;
+		case Operation::WAIT:	context.flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::add<true>(destination_rmw(), source_r(), status);			break;
-		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source_r(), status);			break;
-		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source_r(), status);		break;
-		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source_r(), status);		break;
-		case Operation::CMP:	Primitive::sub<false, false>(destination_r(), source_r(), status);		return;
-		case Operation::TEST:	Primitive::test(destination_r(), source_r(), status);					return;
+		case Operation::ADC:	Primitive::add<true>(destination_rmw(), source_r(), context);			break;
+		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source_r(), context);			break;
+		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source_r(), context);		break;
+		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source_r(), context);	break;
+		case Operation::CMP:	Primitive::sub<false, false>(destination_r(), source_r(), context);		return;
+		case Operation::TEST:	Primitive::test(destination_r(), source_r(), context);					return;
 
-		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source_r(), status);			return;
-		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source_r(), status);			return;
-		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source_r(), flow_controller);	return;
-		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source_r(), flow_controller);	return;
+		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source_r(), context);			return;
 
-		case Operation::INC:	Primitive::inc(destination_rmw(), status);		break;
-		case Operation::DEC:	Primitive::dec(destination_rmw(), status);		break;
+		case Operation::INC:	Primitive::inc(destination_rmw(), context);		break;
+		case Operation::DEC:	Primitive::dec(destination_rmw(), context);		break;
 
-		case Operation::AND:	Primitive::and_(destination_rmw(), source_r(), status);		break;
-		case Operation::OR:		Primitive::or_(destination_rmw(), source_r(), status);		break;
-		case Operation::XOR:	Primitive::xor_(destination_rmw(), source_r(), status);		break;
-		case Operation::NEG:	Primitive::neg(source_rmw(), status);						break;	// TODO: should be a destination.
+		case Operation::AND:	Primitive::and_(destination_rmw(), source_r(), context);	break;
+		case Operation::OR:		Primitive::or_(destination_rmw(), source_r(), context);		break;
+		case Operation::XOR:	Primitive::xor_(destination_rmw(), source_r(), context);	break;
+		case Operation::NEG:	Primitive::neg(source_rmw(), context);						break;	// TODO: should be a destination.
 		case Operation::NOT:	Primitive::not_(source_rmw());								break;	// TODO: should be a destination.
 
-		case Operation::CALLrel:
-			Primitive::call_relative(instruction.displacement(), registers, memory, flow_controller);
-		return;
-		case Operation::CALLabs:
-			Primitive::call_absolute(destination_r(), registers, memory, flow_controller);
-		return;
-		case Operation::CALLfar:
-			Primitive::call_far<model>(instruction, flow_controller, registers, memory);
-		return;
+		case Operation::CALLrel:	Primitive::call_relative(instruction.displacement(), context);		return;
+		case Operation::CALLabs:	Primitive::call_absolute(destination_r(), context);					return;
+		case Operation::CALLfar:	Primitive::call_far(instruction, context);							return;
 
-		case Operation::JMPrel:	jcc(true);																		return;
-		case Operation::JMPabs:	Primitive::jump_absolute(destination_r(), flow_controller);						return;
-		case Operation::JMPfar:	Primitive::jump_far<model>(instruction, flow_controller, registers, memory);	return;
+		case Operation::JMPrel:	jcc(true);												return;
+		case Operation::JMPabs:	Primitive::jump_absolute(destination_r(), context);		return;
+		case Operation::JMPfar:	Primitive::jump_far(instruction, context);				return;
 
-		case Operation::JCXZ:	jcc(!eCX());																		return;
-		case Operation::LOOP:	Primitive::loop(eCX(), instruction.offset(), registers, flow_controller);			return;
-		case Operation::LOOPE:	Primitive::loope(eCX(), instruction.offset(), registers, status, flow_controller);	return;
-		case Operation::LOOPNE:	Primitive::loopne(eCX(), instruction.offset(), registers, status, flow_controller);	return;
+		case Operation::JCXZ:	jcc(!eCX());												return;
+		case Operation::LOOP:	Primitive::loop(eCX(), instruction.offset(), context);		return;
+		case Operation::LOOPE:	Primitive::loope(eCX(), instruction.offset(), context);		return;
+		case Operation::LOOPNE:	Primitive::loopne(eCX(), instruction.offset(), context);	return;
 
-		case Operation::IRET:		Primitive::iret(registers, flow_controller, memory, status);			return;
-		case Operation::RETnear:	Primitive::ret_near(instruction, registers, flow_controller, memory);	return;
-		case Operation::RETfar:		Primitive::ret_far(instruction, registers, flow_controller, memory);	return;
+		case Operation::IRET:		Primitive::iret(context);					return;
+		case Operation::RETnear:	Primitive::ret_near(instruction, context);	return;
+		case Operation::RETfar:		Primitive::ret_far(instruction, context);	return;
 
-		case Operation::INT:	Primitive::int_(instruction.operand(), flow_controller);	return;
-		case Operation::INTO:	Primitive::into(status, flow_controller);					return;
+		case Operation::INT:	interrupt(instruction.operand(), context);		return;
+		case Operation::INTO:	Primitive::into(context);						return;
 
-		case Operation::SAHF:	Primitive::sahf(registers.ah(), status);			return;
-		case Operation::LAHF:	Primitive::lahf(registers.ah(), status);			return;
+		case Operation::SAHF:	Primitive::sahf(context.registers.ah(), context);		return;
+		case Operation::LAHF:	Primitive::lahf(context.registers.ah(), context);		return;
 
-		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::DS>(instruction, destination_w(), memory, registers);	return;
-		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<model, Source::ES>(instruction, destination_w(), memory, registers);	return;
+		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<Source::DS>(instruction, destination_w(), context);	return;
+		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<Source::ES>(instruction, destination_w(), context);	return;
 
-		case Operation::LEA:	Primitive::lea<model>(instruction, destination_w(), memory, registers);	return;
-		case Operation::MOV:	Primitive::mov(destination_w(), source_r());							break;
+		case Operation::LEA:	Primitive::lea(instruction, destination_w(), context);	return;
+		case Operation::MOV:	Primitive::mov(destination_w(), source_r());			break;
 
-		case Operation::JO:		jcc(status.condition<Condition::Overflow>());		return;
-		case Operation::JNO:	jcc(!status.condition<Condition::Overflow>());		return;
-		case Operation::JB:		jcc(status.condition<Condition::Below>());			return;
-		case Operation::JNB:	jcc(!status.condition<Condition::Below>());			return;
-		case Operation::JZ:		jcc(status.condition<Condition::Zero>());			return;
-		case Operation::JNZ:	jcc(!status.condition<Condition::Zero>());			return;
-		case Operation::JBE:	jcc(status.condition<Condition::BelowOrEqual>());	return;
-		case Operation::JNBE:	jcc(!status.condition<Condition::BelowOrEqual>());	return;
-		case Operation::JS:		jcc(status.condition<Condition::Sign>());			return;
-		case Operation::JNS:	jcc(!status.condition<Condition::Sign>());			return;
-		case Operation::JP:		jcc(!status.condition<Condition::ParityOdd>());		return;
-		case Operation::JNP:	jcc(status.condition<Condition::ParityOdd>());		return;
-		case Operation::JL:		jcc(status.condition<Condition::Less>());			return;
-		case Operation::JNL:	jcc(!status.condition<Condition::Less>());			return;
-		case Operation::JLE:	jcc(status.condition<Condition::LessOrEqual>());	return;
-		case Operation::JNLE:	jcc(!status.condition<Condition::LessOrEqual>());	return;
+		case Operation::JO:		jcc(context.status.template condition<Condition::Overflow>());		return;
+		case Operation::JNO:	jcc(!context.status.template condition<Condition::Overflow>());		return;
+		case Operation::JB:		jcc(context.status.template condition<Condition::Below>());			return;
+		case Operation::JNB:	jcc(!context.status.template condition<Condition::Below>());		return;
+		case Operation::JZ:		jcc(context.status.template condition<Condition::Zero>());			return;
+		case Operation::JNZ:	jcc(!context.status.template condition<Condition::Zero>());			return;
+		case Operation::JBE:	jcc(context.status.template condition<Condition::BelowOrEqual>());	return;
+		case Operation::JNBE:	jcc(!context.status.template condition<Condition::BelowOrEqual>());	return;
+		case Operation::JS:		jcc(context.status.template condition<Condition::Sign>());			return;
+		case Operation::JNS:	jcc(!context.status.template condition<Condition::Sign>());			return;
+		case Operation::JP:		jcc(!context.status.template condition<Condition::ParityOdd>());	return;
+		case Operation::JNP:	jcc(context.status.template condition<Condition::ParityOdd>());		return;
+		case Operation::JL:		jcc(context.status.template condition<Condition::Less>());			return;
+		case Operation::JNL:	jcc(!context.status.template condition<Condition::Less>());			return;
+		case Operation::JLE:	jcc(context.status.template condition<Condition::LessOrEqual>());	return;
+		case Operation::JNLE:	jcc(!context.status.template condition<Condition::LessOrEqual>());	return;
 
-		case Operation::RCL:	Primitive::rcl(destination_rmw(), shift_count(), status);	break;
-		case Operation::RCR:	Primitive::rcr(destination_rmw(), shift_count(), status);	break;
-		case Operation::ROL:	Primitive::rol(destination_rmw(), shift_count(), status);	break;
-		case Operation::ROR:	Primitive::ror(destination_rmw(), shift_count(), status);	break;
-		case Operation::SAL:	Primitive::sal(destination_rmw(), shift_count(), status);	break;
-		case Operation::SAR:	Primitive::sar(destination_rmw(), shift_count(), status);	break;
-		case Operation::SHR:	Primitive::shr(destination_rmw(), shift_count(), status);	break;
+		case Operation::RCL:	Primitive::rcl(destination_rmw(), shift_count(), context);	break;
+		case Operation::RCR:	Primitive::rcr(destination_rmw(), shift_count(), context);	break;
+		case Operation::ROL:	Primitive::rol(destination_rmw(), shift_count(), context);	break;
+		case Operation::ROR:	Primitive::ror(destination_rmw(), shift_count(), context);	break;
+		case Operation::SAL:	Primitive::sal(destination_rmw(), shift_count(), context);	break;
+		case Operation::SAR:	Primitive::sar(destination_rmw(), shift_count(), context);	break;
+		case Operation::SHR:	Primitive::shr(destination_rmw(), shift_count(), context);	break;
 
-		case Operation::CLC:	Primitive::clc(status);				return;
-		case Operation::CLD:	Primitive::cld(status);				return;
-		case Operation::CLI:	Primitive::cli(status);				return;
-		case Operation::STC:	Primitive::stc(status);				return;
-		case Operation::STD:	Primitive::std(status);				return;
-		case Operation::STI:	Primitive::sti(status);				return;
-		case Operation::CMC:	Primitive::cmc(status);				return;
+		case Operation::CLC:	Primitive::clc(context);				return;
+		case Operation::CLD:	Primitive::cld(context);				return;
+		case Operation::CLI:	Primitive::cli(context);				return;
+		case Operation::STC:	Primitive::stc(context);				return;
+		case Operation::STD:	Primitive::std(context);				return;
+		case Operation::STI:	Primitive::sti(context);				return;
+		case Operation::CMC:	Primitive::cmc(context);				return;
 
 		case Operation::XCHG:	Primitive::xchg(destination_rmw(), source_rmw());	break;
 
-		case Operation::SALC:	Primitive::salc(registers.al(), status);			return;
+		case Operation::SALC:	Primitive::salc(context.registers.al(), context);	return;
 		case Operation::SETMO:
-			if constexpr (model == Model::i8086) {
-				Primitive::setmo(destination_w(), status);
+			if constexpr (ContextT::model == Model::i8086) {
+				Primitive::setmo(destination_w(), context);
 				break;
 			} else {
 				// TODO.
 			}
 		return;
 		case Operation::SETMOC:
-			if constexpr (model == Model::i8086) {
+			if constexpr (ContextT::model == Model::i8086) {
 				// Test CL out here to avoid taking a reference to memory if
 				// no write is going to occur.
-				if(registers.cl()) {
-					Primitive::setmo(destination_w(), status);
+				if(context.registers.cl()) {
+					Primitive::setmo(destination_w(), context);
 				}
 				break;
 			} else {
@@ -1792,90 +1775,84 @@ template <
 			}
 		return;
 
-		case Operation::OUT: Primitive::out(port(instruction.destination().source()), pair_low(), io);	return;
-		case Operation::IN:	 Primitive::in(port(instruction.source().source()), pair_low(), io);		return;
+		case Operation::OUT: Primitive::out(port(instruction.destination().source()), pair_low(), context);	return;
+		case Operation::IN:	 Primitive::in(port(instruction.source().source()), pair_low(), context);		return;
 
-		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, memory, registers);	return;
+		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
-		case Operation::POP:	destination_w() = Primitive::pop<IntT, false>(memory, registers);	break;
-		case Operation::PUSH:	Primitive::push<IntT, false>(source_r(), memory, registers);		break;
-		case Operation::POPF:	Primitive::popf(memory, registers, status);							break;
-		case Operation::PUSHF:	Primitive::pushf(memory, registers, status);						break;
+		case Operation::POP:	destination_w() = Primitive::pop<IntT, false>(context);	break;
+		case Operation::PUSH:	Primitive::push<IntT, false>(source_r(), context);		break;
+		case Operation::POPF:	Primitive::popf(context);								break;
+		case Operation::PUSHF:	Primitive::pushf(context);								break;
 
 		case Operation::CMPS:
-			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), context);
 		break;
 		case Operation::CMPS_REPE:
-			Primitive::cmps<IntT, AddressT, Repetition::RepE>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::cmps<IntT, AddressT, Repetition::RepE>(instruction, eCX(), eSI(), eDI(), context);
 		break;
 		case Operation::CMPS_REPNE:
-			Primitive::cmps<IntT, AddressT, Repetition::RepNE>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::cmps<IntT, AddressT, Repetition::RepNE>(instruction, eCX(), eSI(), eDI(), context);
 		break;
 
 		case Operation::SCAS:
-			Primitive::scas<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::scas<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), context);
 		break;
 		case Operation::SCAS_REPE:
-			Primitive::scas<IntT, AddressT, Repetition::RepE>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::scas<IntT, AddressT, Repetition::RepE>(eCX(), eDI(), pair_low(), context);
 		break;
 		case Operation::SCAS_REPNE:
-			Primitive::scas<IntT, AddressT, Repetition::RepNE>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::scas<IntT, AddressT, Repetition::RepNE>(eCX(), eDI(), pair_low(), context);
 		break;
 
 		case Operation::LODS:
-			Primitive::lods<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+			Primitive::lods<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), pair_low(), context);
 		break;
 		case Operation::LODS_REP:
-			Primitive::lods<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), pair_low(), memory, status, flow_controller);
+			Primitive::lods<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), pair_low(), context);
 		break;
 
 		case Operation::MOVS:
-			Primitive::movs<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::movs<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), context);
 		break;
 		case Operation::MOVS_REP:
-			Primitive::movs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), eDI(), memory, status, flow_controller);
+			Primitive::movs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), eSI(), eDI(), context);
 		break;
 
 		case Operation::STOS:
-			Primitive::stos<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::stos<IntT, AddressT, Repetition::None>(eCX(), eDI(), pair_low(), context);
 		break;
 		case Operation::STOS_REP:
-			Primitive::stos<IntT, AddressT, Repetition::Rep>(eCX(), eDI(), pair_low(), memory, status, flow_controller);
+			Primitive::stos<IntT, AddressT, Repetition::Rep>(eCX(), eDI(), pair_low(), context);
 		break;
 
 		case Operation::OUTS:
-			Primitive::outs<IntT, AddressT, Repetition::None>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
+			Primitive::outs<IntT, AddressT, Repetition::None>(instruction, eCX(), context.registers.dx(), eSI(), context);
 		break;
 		case Operation::OUTS_REP:
-			Primitive::outs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), registers.dx(), eSI(), memory, io, status, flow_controller);
+			Primitive::outs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), context.registers.dx(), eSI(), context);
 		break;
 
 		case Operation::INS:
-			Primitive::ins<IntT, AddressT, Repetition::None>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
+			Primitive::ins<IntT, AddressT, Repetition::None>(eCX(), context.registers.dx(), eDI(), context);
 		break;
 		case Operation::INS_REP:
-			Primitive::ins<IntT, AddressT, Repetition::Rep>(eCX(), registers.dx(), eDI(), memory, io, status, flow_controller);
+			Primitive::ins<IntT, AddressT, Repetition::Rep>(eCX(), context.registers.dx(), eDI(), context);
 		break;
 	}
 
 	// Write to memory if required to complete this operation.
-	memory.template write_back<IntT>();
+	//
+	// TODO: can I eliminate this with some RAII magic?
+	context.memory.template write_back<IntT>();
 }
 
 template <
-	Model model,
 	typename InstructionT,
-	typename FlowControllerT,
-	typename RegistersT,
-	typename MemoryT,
-	typename IOT
+	typename ContextT
 > void perform(
 	const InstructionT &instruction,
-	Status &status,
-	FlowControllerT &flow_controller,
-	RegistersT &registers,
-	MemoryT &memory,
-	IOT &io
+	ContextT &context
 ) {
 	auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
 		return int(operation_size) + (int(address_size) << 2);
@@ -1885,10 +1862,10 @@ template <
 	switch(size(instruction.operation_size(), instruction.address_size())) {
 		// 16-bit combinations.
 		case size(DataSize::Byte, AddressSize::b16):
-			perform<model, DataSize::Byte, AddressSize::b16>(instruction, status, flow_controller, registers, memory, io);
+			perform<DataSize::Byte, AddressSize::b16>(instruction, context);
 		return;
 		case size(DataSize::Word, AddressSize::b16):
-			perform<model, DataSize::Word, AddressSize::b16>(instruction, status, flow_controller, registers, memory, io);
+			perform<DataSize::Word, AddressSize::b16>(instruction, context);
 		return;
 
 		// 32-bit combinations.
@@ -1897,26 +1874,26 @@ template <
 		// model combinations. So if a caller nominates a 16-bit model it can supply registers and memory objects
 		// that don't implement 32-bit registers or accesses.
 		case size(DataSize::Byte, AddressSize::b32):
-			if constexpr (is_32bit(model)) {
-				perform<model, DataSize::Byte, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
+			if constexpr (is_32bit(ContextT::model)) {
+				perform<DataSize::Byte, AddressSize::b32>(instruction, context);
 				return;
 			}
 		break;
 		case size(DataSize::Word, AddressSize::b32):
-			if constexpr (is_32bit(model)) {
-				perform<model, DataSize::Word, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
+			if constexpr (is_32bit(ContextT::model)) {
+				perform<DataSize::Word, AddressSize::b32>(instruction, context);
 				return;
 			}
 		break;
 		case size(DataSize::DWord, AddressSize::b16):
-			if constexpr (is_32bit(model)) {
-				perform<model, DataSize::DWord, AddressSize::b16>(instruction, status, flow_controller, registers, memory, io);
+			if constexpr (is_32bit(ContextT::model)) {
+				perform<DataSize::DWord, AddressSize::b16>(instruction, context);
 				return;
 			}
 		break;
 		case size(DataSize::DWord, AddressSize::b32):
-			if constexpr (is_32bit(model)) {
-				perform<model, DataSize::DWord, AddressSize::b32>(instruction, status, flow_controller, registers, memory, io);
+			if constexpr (is_32bit(ContextT::model)) {
+				perform<DataSize::DWord, AddressSize::b32>(instruction, context);
 				return;
 			}
 		break;
@@ -1927,6 +1904,30 @@ template <
 	// This is reachable only if the data and address size combination in use isn't available
 	// on the processor model nominated.
 	assert(false);
+}
+
+template <
+	typename ContextT
+> void interrupt(
+	int index,
+	ContextT &context
+) {
+	const uint32_t address = static_cast<uint32_t>(index) << 2;
+	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
+	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
+
+	const uint16_t ip = context.memory.template access<uint16_t, AccessType::Read>(address);
+	const uint16_t cs = context.memory.template access<uint16_t, AccessType::Read>(address + 2);
+
+	Primitive::push<uint16_t, true>(context.status.get(), context);
+	context.status.template set_from<Flag::Interrupt, Flag::Trap>(0);
+
+	// Push CS and IP.
+	Primitive::push<uint16_t, true>(context.registers.cs(), context);
+	Primitive::push<uint16_t, true>(context.registers.ip(), context);
+
+	// Set new destination.
+	context.flow_controller.jump(cs, ip);
 }
 
 }
