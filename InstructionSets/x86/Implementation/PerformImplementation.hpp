@@ -1049,11 +1049,6 @@ void setmo(IntT &destination, Status &status) {
 }
 
 template <typename IntT>
-void setmoc(IntT &destination, uint8_t cl, Status &status) {
-	if(cl) setmo(destination, status);
-}
-
-template <typename IntT>
 inline void rcl(IntT &destination, uint8_t count, Status &status) {
 	/*
 		(* RCL and RCR instructions *)
@@ -1775,7 +1770,11 @@ template <
 		return;
 		case Operation::SETMOC:
 			if constexpr (model == Model::i8086) {
-				Primitive::setmoc(destination_w(), registers.cl(), status);
+				// Test CL out here to avoid taking a reference to memory if
+				// no write is going to occur.
+				if(registers.cl()) {
+					Primitive::setmo(destination_w(), status);
+				}
 				break;
 			} else {
 				// TODO.
