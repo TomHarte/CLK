@@ -903,9 +903,9 @@ void jump_far(InstructionT &instruction, ContextT &context) {
 	const Source source_segment = instruction.data_segment();
 	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
 
-	const uint16_t offset = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	const uint16_t offset = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
-	const uint16_t segment =context. memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	const uint16_t segment = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	context.flow_controller.jump(segment, offset);
 }
 
@@ -945,11 +945,12 @@ void ld(
 	auto source_address = address<uint16_t, AccessType::Read>(instruction, pointer, context);
 	const Source source_segment = instruction.data_segment();
 
-	destination = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
+	context.memory.preauthorise_read(source_segment, source_address, 4);
+	destination = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
 	switch(selector) {
-		case Source::DS:	context.registers.ds() = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
-		case Source::ES:	context.registers.es() = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);	break;
+		case Source::DS:	context.registers.ds() = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);	break;
+		case Source::ES:	context.registers.es() = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);	break;
 	}
 }
 
@@ -1919,8 +1920,8 @@ template <
 	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
 	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
-	const uint16_t ip = context.memory.template access<uint16_t, AccessType::Read>(address);
-	const uint16_t cs = context.memory.template access<uint16_t, AccessType::Read>(address + 2);
+	const uint16_t ip = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address);
+	const uint16_t cs = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 2);
 
 	auto flags = context.status.get();
 	Primitive::push<uint16_t, true>(flags, context);

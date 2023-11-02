@@ -14,6 +14,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
@@ -125,10 +127,32 @@ struct Memory {
 		}
 
 		// Preauthorisation call-ins.
-		void preauthorise_stack_write(uint32_t) {}
-		void preauthorise_stack_read(uint32_t) {}
-		void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-		void preauthorise_read(uint16_t, uint32_t) {}
+		void preauthorise_stack_write(uint32_t length) {
+			uint16_t sp = registers_.sp_;
+			while(length--) {
+				--sp;
+				preauthorise(InstructionSet::x86::Source::SS, sp);
+			}
+		}
+		void preauthorise_stack_read(uint32_t length) {
+			uint16_t sp = registers_.sp_;
+			while(length--) {
+				preauthorise(InstructionSet::x86::Source::SS, sp);
+				++sp;
+			}
+		}
+		void preauthorise_read(InstructionSet::x86::Source segment, uint16_t start, uint32_t length) {
+			while(length--) {
+				preauthorise(segment, start);
+				++start;
+			}
+		}
+		void preauthorise_read(uint32_t start, uint32_t length) {
+			while(length--) {
+				preauthorise(start);
+				++start;
+			}
+		}
 
 		// Access call-ins.
 
@@ -179,9 +203,25 @@ struct Memory {
 			Accessed,
 		};
 
+		std::unordered_set<uint32_t> preauthorisations;
 		std::unordered_map<uint32_t, Tag> tags;
 		std::vector<uint8_t> memory;
 		const Registers &registers_;
+
+		void preauthorise(uint32_t address) {
+			preauthorisations.insert(address);
+		}
+		void preauthorise(InstructionSet::x86::Source segment, uint16_t address) {
+			preauthorise((segment_base(segment) + address) & 0xf'ffff);
+		}
+		bool test_preauthorisation(uint32_t address) {
+			auto authorisation = preauthorisations.find(address);
+			if(authorisation == preauthorisations.end()) {
+				return false;
+			}
+			preauthorisations.erase(authorisation);
+			return true;
+		}
 
 		uint32_t segment_base(InstructionSet::x86::Source segment) {
 			uint32_t physical_address;
@@ -208,6 +248,12 @@ struct Memory {
 		// to a selector, they're just at an absolute location.
 		template <typename IntT, AccessType type>
 		typename ReturnType<IntT, type>::type &access(uint32_t address, Tag tag) {
+			if constexpr (type == AccessType::PreauthorisedRead || type == AccessType::PreauthorisedWrite) {
+				if(!test_preauthorisation(address)) {
+					printf("Non preauthorised access\n");
+				}
+			}
+
 			// Check for address wraparound
 			if(address > 0x10'0000 - sizeof(IntT)) {
 				if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -225,7 +271,7 @@ struct Memory {
 			}
 
 			if(tags.find(address) == tags.end()) {
-				printf("Access to unexpected RAM address");
+				printf("Access to unexpected RAM address\n");
 			}
 			tags[address] = tag;
 			return *reinterpret_cast<IntT *>(&memory[address]);
