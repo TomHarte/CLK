@@ -236,12 +236,12 @@ void aaa(CPU::RegisterPair16 &ax, ContextT &context) {	// P. 313
 		The AF and CF flags are set to 1 if the adjustment results in a decimal carry;
 		otherwise they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
 	*/
-	if((ax.halves.low & 0x0f) > 9 || context.status.template flag<Flag::AuxiliaryCarry>()) {
+	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
 		ax.halves.low += 6;
 		++ax.halves.high;
-		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
+		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
 	} else {
-		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
+		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
@@ -260,7 +260,7 @@ void aad(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
 	*/
 	ax.halves.low = ax.halves.low + (ax.halves.high * imm);
 	ax.halves.high = 0;
-	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
+	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
 template <typename ContextT>
@@ -284,7 +284,7 @@ void aam(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
 
 	ax.halves.high = ax.halves.low / imm;
 	ax.halves.low = ax.halves.low % imm;
-	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
+	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
 template <typename ContextT>
@@ -306,12 +306,12 @@ void aas(CPU::RegisterPair16 &ax, ContextT &context) {
 		The AF and CF flags are set to 1 if there is a decimal borrow;
 		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
 	*/
-	if((ax.halves.low & 0x0f) > 9 || context.status.template flag<Flag::AuxiliaryCarry>()) {
+	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
 		ax.halves.low -= 6;
 		--ax.halves.high;
-		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
+		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
 	} else {
-		context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
+		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
@@ -347,25 +347,25 @@ void daa(uint8_t &al, ContextT &context) {
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = context.status.template flag<Flag::Carry>();
-	context.status.template set_from<Flag::Carry>(0);
+	const auto old_carry = context.flags.template flag<Flag::Carry>();
+	context.flags.template set_from<Flag::Carry>(0);
 
-	if((al & 0x0f) > 0x09 || context.status.template flag<Flag::AuxiliaryCarry>()) {
-		context.status.template set_from<Flag::Carry>(old_carry | (al > 0xf9));
+	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
+		context.flags.template set_from<Flag::Carry>(old_carry | (al > 0xf9));
 		al += 0x06;
-		context.status.template set_from<Flag::AuxiliaryCarry>(1);
+		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
 	} else {
-		context.status.template set_from<Flag::AuxiliaryCarry>(0);
+		context.flags.template set_from<Flag::AuxiliaryCarry>(0);
 	}
 
 	if(old_al > 0x99 || old_carry) {
 		al += 0x60;
-		context.status.template set_from<Flag::Carry>(1);
+		context.flags.template set_from<Flag::Carry>(1);
 	} else {
-		context.status.template set_from<Flag::Carry>(0);
+		context.flags.template set_from<Flag::Carry>(0);
 	}
 
-	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
+	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
 
 template <typename ContextT>
@@ -399,25 +399,25 @@ void das(uint8_t &al, ContextT &context) {
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = context.status.template flag<Flag::Carry>();
-	context.status.template set_from<Flag::Carry>(0);
+	const auto old_carry = context.flags.template flag<Flag::Carry>();
+	context.flags.template set_from<Flag::Carry>(0);
 
-	if((al & 0x0f) > 0x09 || context.status.template flag<Flag::AuxiliaryCarry>()) {
-		context.status.template set_from<Flag::Carry>(old_carry | (al < 0x06));
+	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
+		context.flags.template set_from<Flag::Carry>(old_carry | (al < 0x06));
 		al -= 0x06;
-		context.status.template set_from<Flag::AuxiliaryCarry>(1);
+		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
 	} else {
-		context.status.template set_from<Flag::AuxiliaryCarry>(0);
+		context.flags.template set_from<Flag::AuxiliaryCarry>(0);
 	}
 
 	if(old_al > 0x99 || old_carry) {
 		al -= 0x60;
-		context.status.template set_from<Flag::Carry>(1);
+		context.flags.template set_from<Flag::Carry>(1);
 	} else {
-		context.status.template set_from<Flag::Carry>(0);
+		context.flags.template set_from<Flag::Carry>(0);
 	}
 
-	context.status.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
+	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
 
 template <bool with_carry, typename IntT, typename ContextT>
@@ -428,16 +428,16 @@ void add(IntT &destination, IntT source, ContextT &context) {
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination + source + (with_carry ? context.status.template carry_bit<IntT>() : 0);
+	const IntT result = destination + source + (with_carry ? context.flags.template carry_bit<IntT>() : 0);
 
-	context.status.template set_from<Flag::Carry>(
+	context.flags.template set_from<Flag::Carry>(
 		Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result));
-	context.status.template set_from<Flag::AuxiliaryCarry>(
+	context.flags.template set_from<Flag::AuxiliaryCarry>(
 		Numeric::carried_in<4>(destination, source, result));
-	context.status.template set_from<Flag::Overflow>(
+	context.flags.template set_from<Flag::Overflow>(
 		Numeric::overflow<true, IntT>(destination, source, result));
 
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
 	destination = result;
 }
@@ -450,16 +450,16 @@ void sub(IntT &destination, IntT source, ContextT &context) {
 	/*
 		The OF, SF, ZF, AF, CF, and PF flags are set according to the result.
 	*/
-	const IntT result = destination - source - (with_borrow ? context.status.template carry_bit<IntT>() : 0);
+	const IntT result = destination - source - (with_borrow ? context.flags.template carry_bit<IntT>() : 0);
 
-	context.status.template set_from<Flag::Carry>(
+	context.flags.template set_from<Flag::Carry>(
 		Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result));
-	context.status.template set_from<Flag::AuxiliaryCarry>(
+	context.flags.template set_from<Flag::AuxiliaryCarry>(
 		Numeric::carried_in<4>(destination, source, result));
-	context.status.template set_from<Flag::Overflow>(
+	context.flags.template set_from<Flag::Overflow>(
 		Numeric::overflow<false, IntT>(destination, source, result));
 
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
 	if constexpr (write_back) {
 		destination = result;
@@ -486,8 +486,8 @@ void test(IntT &destination, IntT source, ContextT &context) {
 	*/
 	const IntT result = destination & source;
 
-	context.status.template set_from<Flag::Carry, Flag::Overflow>(0);
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
+	context.flags.template set_from<Flag::Carry, Flag::Overflow>(0);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 }
 
 template <typename IntT>
@@ -519,7 +519,7 @@ void mul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &c
 	*/
 	destination_high = (destination_low * source) >> (8 * sizeof(IntT));
 	destination_low *= source;
-	context.status.template set_from<Flag::Overflow, Flag::Carry>(destination_high);
+	context.flags.template set_from<Flag::Overflow, Flag::Carry>(destination_high);
 }
 
 template <typename IntT, typename ContextT>
@@ -554,7 +554,7 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &
 	destination_low = IntT(sIntT(destination_low) * sIntT(source));
 
 	const auto sign_extension = (destination_low & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
-	context.status.template set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
+	context.flags.template set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
 }
 
 template <typename IntT, typename ContextT>
@@ -681,9 +681,9 @@ void inc(IntT &destination, ContextT &context) {
 	*/
 	++destination;
 
-	context.status.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
-	context.status.template set_from<Flag::AuxiliaryCarry>(((destination - 1) ^ destination) & 0x10);
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	context.flags.template set_from<Flag::AuxiliaryCarry>(((destination - 1) ^ destination) & 0x10);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -716,7 +716,7 @@ void loop(IntT &counter, OffsetT displacement, ContextT &context) {
 template <typename IntT, typename OffsetT, typename ContextT>
 void loope(IntT &counter, OffsetT displacement, ContextT &context) {
 	--counter;
-	if(counter && context.status.template flag<Flag::Zero>()) {
+	if(counter && context.flags.template flag<Flag::Zero>()) {
 		context.flow_controller.jump(context.registers.ip() + displacement);
 	}
 }
@@ -724,7 +724,7 @@ void loope(IntT &counter, OffsetT displacement, ContextT &context) {
 template <typename IntT, typename OffsetT, typename ContextT>
 void loopne(IntT &counter, OffsetT displacement, ContextT &context) {
 	--counter;
-	if(counter && !context.status.template flag<Flag::Zero>()) {
+	if(counter && !context.flags.template flag<Flag::Zero>()) {
 		context.flow_controller.jump(context.registers.ip() + displacement);
 	}
 }
@@ -738,12 +738,12 @@ void dec(IntT &destination, ContextT &context) {
 		The CF flag is not affected.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	context.status.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	context.flags.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
 
 	--destination;
 
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
-	context.status.template set_from<Flag::AuxiliaryCarry>(((destination + 1) ^ destination) & 0x10);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::AuxiliaryCarry>(((destination + 1) ^ destination) & 0x10);
 }
 
 template <typename IntT, typename ContextT>
@@ -757,8 +757,8 @@ void and_(IntT &destination, IntT source, ContextT &context) {
 	*/
 	destination &= source;
 
-	context.status.template set_from<Flag::Overflow, Flag::Carry>(0);
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Overflow, Flag::Carry>(0);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -772,8 +772,8 @@ void or_(IntT &destination, IntT source, ContextT &context) {
 	*/
 	destination |= source;
 
-	context.status.template set_from<Flag::Overflow, Flag::Carry>(0);
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Overflow, Flag::Carry>(0);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -787,8 +787,8 @@ void xor_(IntT &destination, IntT source, ContextT &context) {
 	*/
 	destination ^= source;
 
-	context.status.template set_from<Flag::Overflow, Flag::Carry>(0);
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Overflow, Flag::Carry>(0);
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -804,13 +804,13 @@ void neg(IntT &destination, ContextT &context) {
 		The CF flag cleared to 0 if the source operand is 0; otherwise it is set to 1.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	context.status.template set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(IntT(0), destination, IntT(-destination)));
+	context.flags.template set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(IntT(0), destination, IntT(-destination)));
 
 	destination = -destination;
 
-	context.status.template set_from<Flag::Carry>(destination);
-	context.status.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
-	context.status.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Carry>(destination);
+	context.flags.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());
+	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT>
@@ -915,7 +915,7 @@ void iret(ContextT &context) {
 	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
-	context.status.set(pop<uint16_t, true>(context));
+	context.flags.set(pop<uint16_t, true>(context));
 	context.flow_controller.jump(cs, ip);
 }
 
@@ -984,7 +984,7 @@ void mov(IntT &destination, IntT source) {
 
 template <typename ContextT>
 void into(ContextT &context) {
-	if(context.status.template flag<Flag::Overflow>()) {
+	if(context.flags.template flag<Flag::Overflow>()) {
 		interrupt(Interrupt::OnOverflow, context);
 	}
 }
@@ -994,11 +994,11 @@ void sahf(uint8_t &ah, ContextT &context) {
 	/*
 		EFLAGS(SF:ZF:0:AF:0:PF:1:CF) ← AH;
 	*/
-	context.status.template set_from<uint8_t, Flag::Sign>(ah);
-	context.status.template set_from<Flag::Zero>(!(ah & 0x40));
-	context.status.template set_from<Flag::AuxiliaryCarry>(ah & 0x10);
-	context.status.template set_from<Flag::ParityOdd>(!(ah & 0x04));
-	context.status.template set_from<Flag::Carry>(ah & 0x01);
+	context.flags.template set_from<uint8_t, Flag::Sign>(ah);
+	context.flags.template set_from<Flag::Zero>(!(ah & 0x40));
+	context.flags.template set_from<Flag::AuxiliaryCarry>(ah & 0x10);
+	context.flags.template set_from<Flag::ParityOdd>(!(ah & 0x04));
+	context.flags.template set_from<Flag::Carry>(ah & 0x01);
 }
 
 template <typename ContextT>
@@ -1007,12 +1007,12 @@ void lahf(uint8_t &ah, ContextT &context) {
 		AH ← EFLAGS(SF:ZF:0:AF:0:PF:1:CF);
 	*/
 	ah =
-		(context.status.template flag<Flag::Sign>() ? 0x80 : 0x00)	|
-		(context.status.template flag<Flag::Zero>() ? 0x40 : 0x00)	|
-		(context.status.template flag<Flag::AuxiliaryCarry>() ? 0x10 : 0x00)	|
-		(context.status.template flag<Flag::ParityOdd>() ? 0x00 : 0x04)	|
+		(context.flags.template flag<Flag::Sign>() ? 0x80 : 0x00)	|
+		(context.flags.template flag<Flag::Zero>() ? 0x40 : 0x00)	|
+		(context.flags.template flag<Flag::AuxiliaryCarry>() ? 0x10 : 0x00)	|
+		(context.flags.template flag<Flag::ParityOdd>() ? 0x00 : 0x04)	|
 		0x02 |
-		(context.status.template flag<Flag::Carry>() ? 0x01 : 0x00);
+		(context.flags.template flag<Flag::Carry>() ? 0x01 : 0x00);
 }
 
 template <typename IntT>
@@ -1034,32 +1034,32 @@ void cwd(IntT &dx, IntT ax) {
 
 // TODO: changes to the interrupt flag do quite a lot more in protected mode.
 template <typename ContextT>
-void clc(ContextT &context) {	context.status.template set_from<Flag::Carry>(0);							}
+void clc(ContextT &context) {	context.flags.template set_from<Flag::Carry>(0);							}
 template <typename ContextT>
-void cld(ContextT &context) {	context.status.template set_from<Flag::Direction>(0);						}
+void cld(ContextT &context) {	context.flags.template set_from<Flag::Direction>(0);						}
 template <typename ContextT>
-void cli(ContextT &context) {	context.status.template set_from<Flag::Interrupt>(0);						}
+void cli(ContextT &context) {	context.flags.template set_from<Flag::Interrupt>(0);						}
 template <typename ContextT>
-void stc(ContextT &context) {	context.status.template set_from<Flag::Carry>(1);							}
+void stc(ContextT &context) {	context.flags.template set_from<Flag::Carry>(1);							}
 template <typename ContextT>
-void std(ContextT &context) {	context.status.template set_from<Flag::Direction>(1);						}
+void std(ContextT &context) {	context.flags.template set_from<Flag::Direction>(1);						}
 template <typename ContextT>
-void sti(ContextT &context) {	context.status.template set_from<Flag::Interrupt>(1);						}
+void sti(ContextT &context) {	context.flags.template set_from<Flag::Interrupt>(1);						}
 template <typename ContextT>
 void cmc(ContextT &context) {
-	context.status.template set_from<Flag::Carry>(!context.status.template flag<Flag::Carry>());
+	context.flags.template set_from<Flag::Carry>(!context.flags.template flag<Flag::Carry>());
 }
 
 template <typename ContextT>
 void salc(uint8_t &al, ContextT &context) {
-	al = context.status.template flag<Flag::Carry>() ? 0xff : 0x00;
+	al = context.flags.template flag<Flag::Carry>() ? 0xff : 0x00;
 }
 
 template <typename IntT, typename ContextT>
 void setmo(IntT &destination, ContextT &context) {
 	destination = ~0;
-	context.status.template set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
-	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
+	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -1094,7 +1094,7 @@ void rcl(IntT &destination, uint8_t count, ContextT &context) {
 		it is undefined for multi-bit rotates. The SF, ZF, AF, and PF flags are not affected.
 	*/
 	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
-	auto carry = context.status.template carry_bit<IntT>();
+	auto carry = context.flags.template carry_bit<IntT>();
 	switch(temp_count) {
 		case 0: break;
 		case Numeric::bit_size<IntT>(): {
@@ -1112,8 +1112,8 @@ void rcl(IntT &destination, uint8_t count, ContextT &context) {
 		} break;
 	}
 
-	context.status.template set_from<Flag::Carry>(carry);
-	context.status.template set_from<Flag::Overflow>(
+	context.flags.template set_from<Flag::Carry>(carry);
+	context.flags.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
 	);
 }
@@ -1134,8 +1134,8 @@ void rcr(IntT &destination, uint8_t count, ContextT &context) {
 				tempCOUNT ← tempCOUNT – 1;
 			OD;
 	*/
-	auto carry = context.status.template carry_bit<IntT>();
-	context.status.template set_from<Flag::Overflow>(
+	auto carry = context.flags.template carry_bit<IntT>();
+	context.flags.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
 	);
 
@@ -1157,7 +1157,7 @@ void rcr(IntT &destination, uint8_t count, ContextT &context) {
 		} break;
 	}
 
-	context.status.template set_from<Flag::Carry>(carry);
+	context.flags.template set_from<Flag::Carry>(carry);
 }
 
 template <typename IntT, typename ContextT>
@@ -1201,8 +1201,8 @@ void rol(IntT &destination, uint8_t count, ContextT &context) {
 			(destination >> (Numeric::bit_size<IntT>() - temp_count));
 	}
 
-	context.status.template set_from<Flag::Carry>(destination & 1);
-	context.status.template set_from<Flag::Overflow>(
+	context.flags.template set_from<Flag::Carry>(destination & 1);
+	context.flags.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) ^ destination) & 1
 	);
 }
@@ -1248,8 +1248,8 @@ void ror(IntT &destination, uint8_t count, ContextT &context) {
 			(destination << (Numeric::bit_size<IntT>() - temp_count));
 	}
 
-	context.status.template set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
-	context.status.template set_from<Flag::Overflow>(
+	context.flags.template set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
+	context.flags.template set_from<Flag::Overflow>(
 		(destination ^ (destination << 1)) & Numeric::top_bit<IntT>()
 	);
 }
@@ -1315,26 +1315,26 @@ void sal(IntT &destination, uint8_t count, ContextT &context) {
 	switch(count) {
 		case 0:	return;
 		case Numeric::bit_size<IntT>():
-			context.status.template set_from<Flag::Carry, Flag::Overflow>(destination & 1);
+			context.flags.template set_from<Flag::Carry, Flag::Overflow>(destination & 1);
 			destination = 0;
 		break;
 		default:
 			if(count > Numeric::bit_size<IntT>()) {
-				context.status.template set_from<Flag::Carry, Flag::Overflow>(0);
+				context.flags.template set_from<Flag::Carry, Flag::Overflow>(0);
 				destination = 0;
 			} else {
 				const auto mask = (Numeric::top_bit<IntT>() >> (count - 1));
-				context.status.template set_from<Flag::Carry>(
+				context.flags.template set_from<Flag::Carry>(
 					 destination & mask
 				);
-				context.status.template set_from<Flag::Overflow>(
+				context.flags.template set_from<Flag::Overflow>(
 					 (destination ^ (destination << 1)) & mask
 				);
 				destination <<= count;
 			}
 		break;
 	}
-	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -1346,14 +1346,14 @@ void sar(IntT &destination, uint8_t count, ContextT &context) {
 	const IntT sign = Numeric::top_bit<IntT>() & destination;
 	if(count >= Numeric::bit_size<IntT>()) {
 		destination = sign ? IntT(~0) : IntT(0);
-		context.status.template set_from<Flag::Carry>(sign);
+		context.flags.template set_from<Flag::Carry>(sign);
 	} else {
 		const IntT mask = 1 << (count - 1);
-		context.status.template set_from<Flag::Carry>(destination & mask);
+		context.flags.template set_from<Flag::Carry>(destination & mask);
 		destination = (destination >> count) | (sign ? ~(IntT(~0) >> count) : 0);
 	}
-	context.status.template set_from<Flag::Overflow>(0);
-	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.flags.template set_from<Flag::Overflow>(0);
+	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
@@ -1362,29 +1362,29 @@ void shr(IntT &destination, uint8_t count, ContextT &context) {
 		return;
 	}
 
-	context.status.template set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
+	context.flags.template set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
 	if(count == Numeric::bit_size<IntT>()) {
-		context.status.template set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
+		context.flags.template set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
 		destination = 0;
 	} else if(count > Numeric::bit_size<IntT>()) {
-		context.status.template set_from<Flag::Carry>(0);
+		context.flags.template set_from<Flag::Carry>(0);
 		destination = 0;
 	} else {
 		const IntT mask = 1 << (count - 1);
-		context.status.template set_from<Flag::Carry>(destination & mask);
+		context.flags.template set_from<Flag::Carry>(destination & mask);
 		destination >>= count;
 	}
-	context.status.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
 template <typename ContextT>
 void popf(ContextT &context) {
-	context.status.set(pop<uint16_t, false>(context));
+	context.flags.set(pop<uint16_t, false>(context));
 }
 
 template <typename ContextT>
 void pushf(ContextT &context) {
-	uint16_t value = context.status.get();
+	uint16_t value = context.flags.get();
 	push<uint16_t, false>(value, context);
 }
 
@@ -1403,7 +1403,7 @@ void repeat(AddressT &eCX, ContextT &context) {
 	}
 	if constexpr (repetition != Repetition::Rep) {
 		// If this is RepE or RepNE, also test the zero flag.
-		if((repetition == Repetition::RepNE) == context.status.template flag<Flag::Zero>()) {
+		if((repetition == Repetition::RepNE) == context.flags.template flag<Flag::Zero>()) {
 			return;
 		}
 	}
@@ -1418,8 +1418,8 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 
 	IntT lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
 	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
-	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
-	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	Primitive::sub<false, false>(lhs, rhs, context);
 
@@ -1433,7 +1433,7 @@ void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, ContextT &context) {
 	}
 
 	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
-	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	Primitive::sub<false, false>(eAX, rhs, context);
 
@@ -1447,7 +1447,7 @@ void lods(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, IntT &e
 	}
 
 	eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1461,8 +1461,8 @@ void movs(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
 		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
 
-	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
-	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1474,7 +1474,7 @@ void stos(AddressT &eCX, AddressT &eDI, IntT &eAX, ContextT &context) {
 	}
 
 	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
-	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1489,7 +1489,7 @@ void outs(const InstructionT &instruction, AddressT &eCX, uint16_t port, Address
 		port,
 		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
 	);
-	eSI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1501,7 +1501,7 @@ void ins(AddressT &eCX, uint16_t port, AddressT &eDI, ContextT &context) {
 	}
 
 	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = context.io.template in<IntT>(port);
-	eDI += context.status.template direction<AddressT>() * sizeof(IntT);
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1722,22 +1722,22 @@ template <
 		case Operation::LEA:	Primitive::lea(instruction, destination_w(), context);	return;
 		case Operation::MOV:	Primitive::mov(destination_w(), source_r());			break;
 
-		case Operation::JO:		jcc(context.status.template condition<Condition::Overflow>());		return;
-		case Operation::JNO:	jcc(!context.status.template condition<Condition::Overflow>());		return;
-		case Operation::JB:		jcc(context.status.template condition<Condition::Below>());			return;
-		case Operation::JNB:	jcc(!context.status.template condition<Condition::Below>());		return;
-		case Operation::JZ:		jcc(context.status.template condition<Condition::Zero>());			return;
-		case Operation::JNZ:	jcc(!context.status.template condition<Condition::Zero>());			return;
-		case Operation::JBE:	jcc(context.status.template condition<Condition::BelowOrEqual>());	return;
-		case Operation::JNBE:	jcc(!context.status.template condition<Condition::BelowOrEqual>());	return;
-		case Operation::JS:		jcc(context.status.template condition<Condition::Sign>());			return;
-		case Operation::JNS:	jcc(!context.status.template condition<Condition::Sign>());			return;
-		case Operation::JP:		jcc(!context.status.template condition<Condition::ParityOdd>());	return;
-		case Operation::JNP:	jcc(context.status.template condition<Condition::ParityOdd>());		return;
-		case Operation::JL:		jcc(context.status.template condition<Condition::Less>());			return;
-		case Operation::JNL:	jcc(!context.status.template condition<Condition::Less>());			return;
-		case Operation::JLE:	jcc(context.status.template condition<Condition::LessOrEqual>());	return;
-		case Operation::JNLE:	jcc(!context.status.template condition<Condition::LessOrEqual>());	return;
+		case Operation::JO:		jcc(context.flags.template condition<Condition::Overflow>());		return;
+		case Operation::JNO:	jcc(!context.flags.template condition<Condition::Overflow>());		return;
+		case Operation::JB:		jcc(context.flags.template condition<Condition::Below>());			return;
+		case Operation::JNB:	jcc(!context.flags.template condition<Condition::Below>());		return;
+		case Operation::JZ:		jcc(context.flags.template condition<Condition::Zero>());			return;
+		case Operation::JNZ:	jcc(!context.flags.template condition<Condition::Zero>());			return;
+		case Operation::JBE:	jcc(context.flags.template condition<Condition::BelowOrEqual>());	return;
+		case Operation::JNBE:	jcc(!context.flags.template condition<Condition::BelowOrEqual>());	return;
+		case Operation::JS:		jcc(context.flags.template condition<Condition::Sign>());			return;
+		case Operation::JNS:	jcc(!context.flags.template condition<Condition::Sign>());			return;
+		case Operation::JP:		jcc(!context.flags.template condition<Condition::ParityOdd>());	return;
+		case Operation::JNP:	jcc(context.flags.template condition<Condition::ParityOdd>());		return;
+		case Operation::JL:		jcc(context.flags.template condition<Condition::Less>());			return;
+		case Operation::JNL:	jcc(!context.flags.template condition<Condition::Less>());			return;
+		case Operation::JLE:	jcc(context.flags.template condition<Condition::LessOrEqual>());	return;
+		case Operation::JNLE:	jcc(!context.flags.template condition<Condition::LessOrEqual>());	return;
 
 		case Operation::RCL:	Primitive::rcl(destination_rmw(), shift_count(), context);	break;
 		case Operation::RCR:	Primitive::rcr(destination_rmw(), shift_count(), context);	break;
@@ -1923,9 +1923,9 @@ template <
 	const uint16_t ip = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address);
 	const uint16_t cs = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 2);
 
-	auto flags = context.status.get();
+	auto flags = context.flags.get();
 	Primitive::push<uint16_t, true>(flags, context);
-	context.status.template set_from<Flag::Interrupt, Flag::Trap>(0);
+	context.flags.template set_from<Flag::Interrupt, Flag::Trap>(0);
 
 	// Push CS and IP.
 	Primitive::push<uint16_t, true>(context.registers.cs(), context);

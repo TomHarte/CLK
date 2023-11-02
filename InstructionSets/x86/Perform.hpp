@@ -11,7 +11,7 @@
 
 #include "Instruction.hpp"
 #include "Model.hpp"
-#include "Status.hpp"
+#include "Flags.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -44,7 +44,7 @@ template <
 	typename IOT
 > struct ExecutionContext {
 	FlowControllerT flow_controller;
-	Status status;
+	Flags flags;
 	RegistersT registers;
 	MemoryT memory;
 	IOT io;
