@@ -191,18 +191,18 @@ namespace Primitive {
 
 // The below takes a reference in order properly to handle PUSH SP,
 // which should place the value of SP after the push onto the stack.
-template <typename IntT, bool Preauthorised, typename ContextT>
+template <typename IntT, bool preauthorised, typename ContextT>
 void push(IntT &value, ContextT &context) {
 	context.registers.sp_ -= sizeof(IntT);
-	context.memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedWrite : AccessType::Write>(
+	context.memory.template access<IntT, preauthorised ? AccessType::PreauthorisedWrite : AccessType::Write>(
 		Source::SS,
 		context.registers.sp_) = value;
 	context.memory.template write_back<IntT>();
 }
 
-template <typename IntT, bool Preauthorised, typename ContextT>
+template <typename IntT, bool preauthorised, typename ContextT>
 IntT pop(ContextT &context) {
-	const auto value = context.memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
+	const auto value = context.memory.template access<IntT, preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
 		Source::SS,
 		context.registers.sp_);
 	context.registers.sp_ += sizeof(IntT);
