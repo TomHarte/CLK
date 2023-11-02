@@ -189,13 +189,13 @@ IntT *resolve(
 
 namespace Primitive {
 
-// The below takes a reference in order properly to handle PUSH SP, which should place the value of SP after the
-// push onto the stack.
+// The below takes a reference in order properly to handle PUSH SP,
+// which should place the value of SP after the push onto the stack.
 template <typename IntT, bool Preauthorised, typename ContextT>
-void push(IntT value, ContextT &context) {
+void push(IntT &value, ContextT &context) {
 	context.registers.sp_ -= sizeof(IntT);
 	context.memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedWrite : AccessType::Write>(
-		InstructionSet::x86::Source::SS,
+		Source::SS,
 		context.registers.sp_) = value;
 	context.memory.template write_back<IntT>();
 }
@@ -203,7 +203,7 @@ void push(IntT value, ContextT &context) {
 template <typename IntT, bool Preauthorised, typename ContextT>
 IntT pop(ContextT &context) {
 	const auto value = context.memory.template access<IntT, Preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
-		InstructionSet::x86::Source::SS,
+		Source::SS,
 		context.registers.sp_);
 	context.registers.sp_ += sizeof(IntT);
 	return value;
@@ -597,7 +597,7 @@ void div(IntT &destination_high, IntT &destination_low, IntT source, ContextT &c
 		The CF, OF, SF, ZF, AF, and PF flags are undefined.
 	*/
 	if(!source) {
-		InstructionSet::x86::interrupt(Interrupt::DivideError, context);
+		interrupt(Interrupt::DivideError, context);
 		return;
 	}
 
@@ -869,12 +869,14 @@ void call_far(InstructionT &instruction, ContextT &context) {
 	}
 
 	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
-	push<uint16_t, true>(context.registers.cs(), context);
-	push<uint16_t, true>(context.registers.ip(), context);
-
 	const uint16_t offset = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
 	const uint16_t segment = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+
+	// At least on an 8086, the stack writes occur after the target address read.
+	push<uint16_t, true>(context.registers.cs(), context);
+	push<uint16_t, true>(context.registers.ip(), context);
+
 	context.flow_controller.jump(segment, offset);
 }
 
@@ -899,6 +901,7 @@ void jump_far(InstructionT &instruction, ContextT &context) {
 	}
 
 	const Source source_segment = instruction.data_segment();
+	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
 
 	const uint16_t offset = context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
@@ -1919,7 +1922,8 @@ template <
 	const uint16_t ip = context.memory.template access<uint16_t, AccessType::Read>(address);
 	const uint16_t cs = context.memory.template access<uint16_t, AccessType::Read>(address + 2);
 
-	Primitive::push<uint16_t, true>(context.status.get(), context);
+	auto flags = context.status.get();
+	Primitive::push<uint16_t, true>(flags, context);
 	context.status.template set_from<Flag::Interrupt, Flag::Trap>(0);
 
 	// Push CS and IP.

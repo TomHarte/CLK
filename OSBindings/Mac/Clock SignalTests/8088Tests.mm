@@ -109,8 +109,6 @@ struct Memory {
 		Seeded,
 		AccessExpected,
 		Accessed,
-		FlagsL,
-		FlagsH
 	};
 
 	std::unordered_map<uint32_t, Tag> tags;
@@ -239,25 +237,7 @@ class FlowController {
 		FlowController(Memory &memory, Registers &registers, Status &status) :
 			memory_(memory), registers_(registers), status_(status) {}
 
-		void interrupt(int index) {
-			// TODO: reauthorise and possibly double fault?
-			const uint16_t address = static_cast<uint16_t>(index) << 2;
-			const uint16_t new_ip = memory_.access<uint16_t, Memory::AccessType::Read>(address, Memory::Tag::Accessed);
-			const uint16_t new_cs = memory_.access<uint16_t, Memory::AccessType::Read>(address + 2, Memory::Tag::Accessed);
-
-			push(status_.get(), true);
-
-			using Flag = InstructionSet::x86::Flag;
-			status_.set_from<Flag::Interrupt, Flag::Trap>(0);
-
-			// Push CS and IP.
-			push(registers_.cs_);
-			push(registers_.ip_);
-
-			registers_.cs_ = new_cs;
-			registers_.ip_ = new_ip;
-		}
-
+		// Requirements for perform.
 		void jump(uint16_t address) {
 			registers_.ip_ = address;
 		}
@@ -270,11 +250,13 @@ class FlowController {
 		void halt() {}
 		void wait() {}
 
-		void begin_instruction() {
-			should_repeat_ = false;
-		}
 		void repeat_last() {
 			should_repeat_ = true;
+		}
+
+		// Other actions.
+		void begin_instruction() {
+			should_repeat_ = false;
 		}
 		bool should_repeat() const {
 			return should_repeat_;
@@ -285,23 +267,6 @@ class FlowController {
 		Registers &registers_;
 		Status &status_;
 		bool should_repeat_ = false;
-
-		void push(uint16_t value, bool is_flags = false) {
-			// Perform the push in two steps because it's possible for SP to underflow, and so that FlagsL and
-			// FlagsH can be set separately.
-			--registers_.sp_;
-			memory_.access<uint8_t, Memory::AccessType::Write>(
-				InstructionSet::x86::Source::SS,
-				registers_.sp_,
-				is_flags ? Memory::Tag::FlagsH : Memory::Tag::Accessed
-			) = value >> 8;
-			--registers_.sp_;
-			memory_.access<uint8_t, Memory::AccessType::Write>(
-				InstructionSet::x86::Source::SS,
-				registers_.sp_,
-				is_flags ? Memory::Tag::FlagsL : Memory::Tag::Accessed
-			) = value & 0xff;
-		}
 };
 
 struct ExecutionSupport {
@@ -556,21 +521,31 @@ struct FailedExecution {
 	InstructionSet::x86::Status intended_status;
 
 	bool ramEqual = true;
+	int mask_position = 0;
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
 		const uint32_t address = [ram[0] intValue];
 
-		uint8_t mask = 0xff;
-		if(const auto tag = execution_support.memory.tags.find(address); tag != execution_support.memory.tags.end()) {
-			switch(tag->second) {
-				default: break;
-				case Memory::Tag::FlagsH:	mask = flags_mask >> 8;		break;
-				case Memory::Tag::FlagsL:	mask = flags_mask & 0xff;	break;
-			}
+		if((mask_position != 1) && execution_support.memory.memory[address] == [ram[1] intValue]) {
+			continue;
 		}
 
-		if((execution_support.memory.memory[address] & mask) != ([ram[1] intValue] & mask)) {
-			ramEqual = false;
+		// Consider whether this apparent mismatch might be because flags have been written to memory;
+		// allow only one use of the [16-bit] mask per test.
+		bool matched_with_mask = false;
+		while(mask_position < 2) {
+			const uint8_t mask = mask_position ? (flags_mask >> 8) : (flags_mask & 0xff);
+			++mask_position;
+			if((execution_support.memory.memory[address] & mask) == ([ram[1] intValue] & mask)) {
+				matched_with_mask = true;
+				break;
+			}
 		}
+		if(matched_with_mask) {
+			continue;
+		}
+
+		ramEqual = false;
+		break;
 	}
 
 	[self populate:intended_registers status:intended_status value:final_state[@"regs"]];
