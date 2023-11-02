@@ -1,19 +1,19 @@
 //
-//  Status.hpp
+//  Flags.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 05/10/2023.
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Status_hpp
-#define InstructionSets_x86_Status_hpp
+#ifndef InstructionSets_x86_Flags_hpp
+#define InstructionSets_x86_Flags_hpp
 
 #include "../../Numeric/Carry.hpp"
 
 namespace InstructionSet::x86 {
 
-namespace ConditionCode {
+namespace FlagValue {
 
 //
 // Standard flags.
@@ -77,7 +77,7 @@ enum class Condition {
 	LessOrEqual
 };
 
-class Status {
+class Flags {
 	public:
 		using FlagT = uint32_t;
 
@@ -156,33 +156,33 @@ class Status {
 
 		// Complete value get and set.
 		void set(uint16_t value) {
-			set_from<Flag::Carry>(value & ConditionCode::Carry);
-			set_from<Flag::AuxiliaryCarry>(value & ConditionCode::AuxiliaryCarry);
-			set_from<Flag::Overflow>(value & ConditionCode::Overflow);
-			set_from<Flag::Trap>(value & ConditionCode::Trap);
-			set_from<Flag::Interrupt>(value & ConditionCode::Interrupt);
-			set_from<Flag::Direction>(value & ConditionCode::Direction);
+			set_from<Flag::Carry>(value & FlagValue::Carry);
+			set_from<Flag::AuxiliaryCarry>(value & FlagValue::AuxiliaryCarry);
+			set_from<Flag::Overflow>(value & FlagValue::Overflow);
+			set_from<Flag::Trap>(value & FlagValue::Trap);
+			set_from<Flag::Interrupt>(value & FlagValue::Interrupt);
+			set_from<Flag::Direction>(value & FlagValue::Direction);
 
 			set_from<uint8_t, Flag::Sign>(value);
 
-			set_from<Flag::Zero>((~value) & ConditionCode::Zero);
-			set_from<Flag::ParityOdd>((~value) & ConditionCode::Parity);
+			set_from<Flag::Zero>((~value) & FlagValue::Zero);
+			set_from<Flag::ParityOdd>((~value) & FlagValue::Parity);
 		}
 
 		uint16_t get() const {
 			return
 				0xf002 |
 
-				(flag<Flag::Carry>() ? ConditionCode::Carry : 0) |
-				(flag<Flag::AuxiliaryCarry>() ? ConditionCode::AuxiliaryCarry : 0) |
-				(flag<Flag::Sign>() ? ConditionCode::Sign : 0) |
-				(flag<Flag::Overflow>() ? ConditionCode::Overflow : 0) |
-				(flag<Flag::Trap>() ? ConditionCode::Trap : 0) |
-				(flag<Flag::Interrupt>() ? ConditionCode::Interrupt : 0) |
-				(flag<Flag::Direction>() ? ConditionCode::Direction : 0) |
-				(flag<Flag::Zero>() ? ConditionCode::Zero : 0) |
+				(flag<Flag::Carry>() ? FlagValue::Carry : 0) |
+				(flag<Flag::AuxiliaryCarry>() ? FlagValue::AuxiliaryCarry : 0) |
+				(flag<Flag::Sign>() ? FlagValue::Sign : 0) |
+				(flag<Flag::Overflow>() ? FlagValue::Overflow : 0) |
+				(flag<Flag::Trap>() ? FlagValue::Trap : 0) |
+				(flag<Flag::Interrupt>() ? FlagValue::Interrupt : 0) |
+				(flag<Flag::Direction>() ? FlagValue::Direction : 0) |
+				(flag<Flag::Zero>() ? FlagValue::Zero : 0) |
 
-				(flag<Flag::ParityOdd>() ? 0 : ConditionCode::Parity);
+				(flag<Flag::ParityOdd>() ? 0 : FlagValue::Parity);
 		}
 
 		std::string to_string() const {
@@ -204,7 +204,7 @@ class Status {
 			return result;
 		}
 
-		bool operator ==(const Status &rhs) const {
+		bool operator ==(const Flags &rhs) const {
 			return get() == rhs.get();
 		}
 
@@ -230,4 +230,4 @@ class Status {
 
 }
 
-#endif /* InstructionSets_x86_Status_hpp */
+#endif /* InstructionSets_x86_Flags_hpp */

@@ -21,6 +21,7 @@
 
 #include "../../../InstructionSets/x86/Decoder.hpp"
 #include "../../../InstructionSets/x86/Perform.hpp"
+#include "../../../InstructionSets/x86/Flags.hpp"
 #include "../../../Numeric/RegisterSizes.hpp"
 
 namespace {
@@ -29,7 +30,7 @@ namespace {
 // provide their real path here.
 constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1";
 
-using Status = InstructionSet::x86::Status;
+using Flags = InstructionSet::x86::Flags;
 struct Registers {
 	CPU::RegisterPair16 ax_;
 	uint8_t &al()	{	return ax_.halves.low;	}
@@ -287,8 +288,8 @@ struct IO {
 };
 class FlowController {
 	public:
-		FlowController(Memory &memory, Registers &registers, Status &status) :
-			memory_(memory), registers_(registers), status_(status) {}
+		FlowController(Memory &memory, Registers &registers, Flags &flags) :
+			memory_(memory), registers_(registers), flags_(flags) {}
 
 		// Requirements for perform.
 		void jump(uint16_t address) {
@@ -318,19 +319,19 @@ class FlowController {
 	private:
 		Memory &memory_;
 		Registers &registers_;
-		Status &status_;
+		Flags &flags_;
 		bool should_repeat_ = false;
 };
 
 struct ExecutionSupport {
-	InstructionSet::x86::Status status;
+	Flags flags;
 	Registers registers;
 	Memory memory;
 	FlowController flow_controller;
 	IO io;
 	static constexpr auto model = InstructionSet::x86::Model::i8086;
 
-	ExecutionSupport(): memory(registers), flow_controller(memory, registers, status) {}
+	ExecutionSupport(): memory(registers), flow_controller(memory, registers, flags) {}
 
 	void clear() {
 		memory.clear();
@@ -494,7 +495,7 @@ struct FailedExecution {
 	return isEqual;
 }
 
-- (void)populate:(Registers &)registers status:(InstructionSet::x86::Status &)status value:(NSDictionary *)value {
+- (void)populate:(Registers &)registers flags:(Flags &)flags value:(NSDictionary *)value {
 	registers.ax_.full = [value[@"ax"] intValue];
 	registers.bx_.full = [value[@"bx"] intValue];
 	registers.cx_.full = [value[@"cx"] intValue];
@@ -510,25 +511,25 @@ struct FailedExecution {
 	registers.ss_ = [value[@"ss"] intValue];
 	registers.ip_ = [value[@"ip"] intValue];
 
-	const uint16_t flags = [value[@"flags"] intValue];
-	status.set(flags);
+	const uint16_t flags_value = [value[@"flags"] intValue];
+	flags.set(flags_value);
 
 	// Apply a quick test of flag packing/unpacking.
 	constexpr auto defined_flags = static_cast<uint16_t>(
-		InstructionSet::x86::ConditionCode::Carry |
-		InstructionSet::x86::ConditionCode::Parity |
-		InstructionSet::x86::ConditionCode::AuxiliaryCarry |
-		InstructionSet::x86::ConditionCode::Zero |
-		InstructionSet::x86::ConditionCode::Sign |
-		InstructionSet::x86::ConditionCode::Trap |
-		InstructionSet::x86::ConditionCode::Interrupt |
-		InstructionSet::x86::ConditionCode::Direction |
-		InstructionSet::x86::ConditionCode::Overflow
+		InstructionSet::x86::FlagValue::Carry |
+		InstructionSet::x86::FlagValue::Parity |
+		InstructionSet::x86::FlagValue::AuxiliaryCarry |
+		InstructionSet::x86::FlagValue::Zero |
+		InstructionSet::x86::FlagValue::Sign |
+		InstructionSet::x86::FlagValue::Trap |
+		InstructionSet::x86::FlagValue::Interrupt |
+		InstructionSet::x86::FlagValue::Direction |
+		InstructionSet::x86::FlagValue::Overflow
 	);
-	XCTAssert((status.get() & defined_flags) == (flags & defined_flags),
-		"Set status of %04x was returned as %04x",
-			flags & defined_flags,
-			(status.get() & defined_flags)
+	XCTAssert((flags.get() & defined_flags) == (flags_value & defined_flags),
+		"Set flags of %04x was returned as %04x",
+			flags_value & defined_flags,
+			(flags.get() & defined_flags)
 		);
 }
 
@@ -544,7 +545,7 @@ struct FailedExecution {
 	NSDictionary *const final_state = test[@"final"];
 
 	// Apply initial state.
-	InstructionSet::x86::Status initial_status;
+	Flags initial_flags;
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
 		execution_support.memory.seed([ram[0] intValue], [ram[1] intValue]);
 	}
@@ -552,8 +553,8 @@ struct FailedExecution {
 		execution_support.memory.touch([ram[0] intValue]);
 	}
 	Registers initial_registers;
-	[self populate:initial_registers status:initial_status value:initial_state[@"regs"]];
-	execution_support.status = initial_status;
+	[self populate:initial_registers flags:initial_flags value:initial_state[@"regs"]];
+	execution_support.flags = initial_flags;
 	execution_support.registers = initial_registers;
 
 	// Execute instruction.
@@ -571,7 +572,7 @@ struct FailedExecution {
 
 	// Compare final state.
 	Registers intended_registers;
-	InstructionSet::x86::Status intended_status;
+	InstructionSet::x86::Flags intended_flags;
 
 	bool ramEqual = true;
 	int mask_position = 0;
@@ -602,21 +603,21 @@ struct FailedExecution {
 		break;
 	}
 
-	[self populate:intended_registers status:intended_status value:final_state[@"regs"]];
+	[self populate:intended_registers flags:intended_flags value:final_state[@"regs"]];
 	const bool registersEqual = intended_registers == execution_support.registers;
-	const bool statusEqual = (intended_status.get() & flags_mask) == (execution_support.status.get() & flags_mask);
+	const bool flagsEqual = (intended_flags.get() & flags_mask) == (execution_support.flags.get() & flags_mask);
 
-	if(!statusEqual || !registersEqual || !ramEqual) {
+	if(!flagsEqual || !registersEqual || !ramEqual) {
 		FailedExecution failure;
 		failure.instruction = decoded.second;
 		failure.test_name = std::string([test[@"name"] UTF8String]);
 
 		NSMutableArray<NSString *> *reasons = [[NSMutableArray alloc] init];
-		if(!statusEqual) {
-			Status difference;
-			difference.set((intended_status.get() ^ execution_support.status.get()) & flags_mask);
+		if(!flagsEqual) {
+			Flags difference;
+			difference.set((intended_flags.get() ^ execution_support.flags.get()) & flags_mask);
 			[reasons addObject:
-				[NSString stringWithFormat:@"status differs; errors in %s",
+				[NSString stringWithFormat:@"flags differs; errors in %s",
 					difference.to_string().c_str()]];
 		}
 		if(!registersEqual) {
