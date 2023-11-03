@@ -106,7 +106,6 @@ struct Memory {
 		// Writes: return a reference.
 		template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
 		template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
-		template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedWrite> { using type = IntT &; };
 
 		// Constructor.
 		Memory(Registers &registers) : registers_(registers) {
@@ -155,22 +154,24 @@ struct Memory {
 			}
 		}
 
+		//
 		// Access call-ins.
+		//
 
 		// Accesses an address based on segment:offset.
 		template <typename IntT, AccessType type>
-		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint32_t address) {
+		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset) {
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
 				// to the start. So the 16-bit value will need to be a local cache.
-				if(address == 0xffff) {
-					write_back_address_[0] = (segment_base(segment) + address) & 0xf'ffff;
+				if(offset == 0xffff) {
+					write_back_address_[0] = address(segment, offset);
 					write_back_address_[1] = (write_back_address_[0] - 65535) & 0xf'ffff;
 					write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
 					return write_back_value_;
 				}
 			}
-			auto &value = access<IntT, type>(segment, address, Tag::Accessed);
+			auto &value = access<IntT, type>(segment, offset, Tag::Accessed);
 
 			// If the CPU has indicated a write, it should be safe to fuzz the value now.
 			if(type == AccessType::Write) {
@@ -195,6 +196,41 @@ struct Memory {
 					write_back_address_[0]  = 0;
 				}
 			}
+		}
+
+		//
+		// Direct write.
+		//
+		template <typename IntT>
+		void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
+			if(!test_preauthorisation(address(segment, offset))) {
+				printf("Non-preauthorised access\n");
+			}
+
+			// Bytes can be written without further ado.
+			if constexpr (std::is_same_v<IntT, uint8_t>) {
+				memory[address(segment, offset) & 0xf'ffff] = value;
+				return;
+			}
+
+			// Words that straddle the segment end must be split in two.
+			if(offset == 0xffff) {
+				memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
+				memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
+				return;
+			}
+
+			const uint32_t target = address(segment, offset) & 0xf'ffff;
+
+			// Words that straddle the end of physical RAM must also be split in two.
+			if(target == 0xf'ffff) {
+				memory[0xf'ffff] = value & 0xff;
+				memory[0x0'0000] = value >> 8;
+				return;
+			}
+
+			// It's safe just to write then.
+			*reinterpret_cast<uint16_t *>(&memory[target]) = value;
 		}
 
 	private:
@@ -236,12 +272,16 @@ struct Memory {
 			return physical_address << 4;
 		}
 
+		uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
+			return (segment_base(segment) + offset) & 0xf'ffff;
+		}
+
 
 		// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 		// so that defined-flag-only masks can be applied while verifying RAM contents.
 		template <typename IntT, AccessType type>
-		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t address, Tag tag) {
-			const uint32_t physical_address = (segment_base(segment) + address) & 0xf'ffff;
+		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
+			const uint32_t physical_address = address(segment, offset);
 			return access<IntT, type>(physical_address, tag);
 		}
 
@@ -249,7 +289,7 @@ struct Memory {
 		// to a selector, they're just at an absolute location.
 		template <typename IntT, AccessType type>
 		typename ReturnType<IntT, type>::type &access(uint32_t address, Tag tag) {
-			if constexpr (type == AccessType::PreauthorisedRead || type == AccessType::PreauthorisedWrite) {
+			if constexpr (type == AccessType::PreauthorisedRead) {
 				if(!test_preauthorisation(address)) {
 					printf("Non preauthorised access\n");
 				}

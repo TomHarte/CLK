@@ -194,9 +194,13 @@ namespace Primitive {
 template <typename IntT, bool preauthorised, typename ContextT>
 void push(IntT &value, ContextT &context) {
 	context.registers.sp_ -= sizeof(IntT);
-	context.memory.template access<IntT, preauthorised ? AccessType::PreauthorisedWrite : AccessType::Write>(
-		Source::SS,
-		context.registers.sp_) = value;
+	if constexpr (preauthorised) {
+		context.memory.template preauthorised_write<IntT>(Source::SS, context.registers.sp_, value);
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(
+			Source::SS,
+			context.registers.sp_) = value;
+	}
 	context.memory.template write_back<IntT>();
 }
 

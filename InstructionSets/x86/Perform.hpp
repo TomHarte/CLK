@@ -33,7 +33,6 @@ enum class AccessType {
 	/// all necessary stack space is available ahead of pushing anything, though each individual push will then result in
 	/// a further `Preauthorised` access.
 	PreauthorisedRead,
-	PreauthorisedWrite,
 };
 
 template <
