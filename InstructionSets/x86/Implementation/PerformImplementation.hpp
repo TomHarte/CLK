@@ -28,13 +28,14 @@ IntT *resolve(
 	IntT *immediate = nullptr
 );
 
+/// Calculates the absolute address for @c pointer given the registers and memory provided in @c context and taking any
+/// referenced offset from @c instruction.
 template <Source source, typename IntT, AccessType access, typename InstructionT, typename ContextT>
 uint32_t address(
 	InstructionT &instruction,
 	DataPointer pointer,
 	ContextT &context
 ) {
-	// TODO: non-word indexes and bases.
 	if constexpr (source == Source::DirectAddress) {
 		return instruction.offset();
 	}
@@ -53,6 +54,9 @@ uint32_t address(
 	return address + *resolve<uint16_t, access>(instruction, pointer.base(), pointer, context);
 }
 
+/// @returns a pointer to the contents of the register identified by the combination of @c IntT and @c Source if any;
+/// @c nullptr otherwise. @c access is currently unused but is intended to provide the hook upon which updates to
+/// segment registers can be tracked for protected modes.
 template <typename IntT, AccessType access, Source source, typename ContextT>
 IntT *register_(ContextT &context) {
 	static constexpr bool supports_dword = is_32bit(ContextT::model);
@@ -103,10 +107,21 @@ IntT *register_(ContextT &context) {
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.bh();		}
 			else																{	return nullptr;						}
 
+		// Segment registers are always 16-bit.
+		case Source::ES:	if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.es(); else return nullptr;
+		case Source::CS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.cs(); else return nullptr;
+		case Source::SS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ss(); else return nullptr;
+		case Source::DS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ds(); else return nullptr;
+
+		// 16-bit models don't have FS and GS.
+		case Source::FS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.fs(); else return nullptr;
+		case Source::GS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.gs(); else return nullptr;
+
 		default: return nullptr;
 	}
 }
 
+///Obtains the address described by @c pointer from @c instruction given the registers and memory as described by @c context.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 uint32_t address(
 	InstructionT &instruction,
@@ -131,6 +146,13 @@ uint32_t address(
 	}
 }
 
+/// Obtain a pointer to the value desribed by @c source, which is one of those named by @c pointer, using @c instruction and @c context
+/// for offsets, registers and memory contents.
+///
+/// If @c source is Source::None then @c none is returned.
+///
+/// If @c source is Source::Immediate then the appropriate portion of @c instrucion's operand
+/// is copied to @c *immediate and @c immediate is returned.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 IntT *resolve(
 	InstructionT &instruction,
@@ -146,6 +168,7 @@ IntT *resolve(
 	// * otherwise return the appropriate value.
 	uint32_t target_address;
 	switch(source) {
+		// Defer all register accesses to the register-specific lookup.
 		case Source::eAX:		return register_<IntT, access, Source::eAX>(context);
 		case Source::eCX:		return register_<IntT, access, Source::eCX>(context);
 		case Source::eDX:		return register_<IntT, access, Source::eDX>(context);
@@ -154,22 +177,18 @@ IntT *resolve(
 		case Source::eBPorCH:	return register_<IntT, access, Source::eBPorCH>(context);
 		case Source::eSIorDH:	return register_<IntT, access, Source::eSIorDH>(context);
 		case Source::eDIorBH:	return register_<IntT, access, Source::eDIorBH>(context);
+		case Source::ES:		return register_<IntT, access, Source::ES>(context);
+		case Source::CS:		return register_<IntT, access, Source::CS>(context);
+		case Source::SS:		return register_<IntT, access, Source::SS>(context);
+		case Source::DS:		return register_<IntT, access, Source::DS>(context);
+		case Source::FS:		return register_<IntT, access, Source::FS>(context);
+		case Source::GS:		return register_<IntT, access, Source::GS>(context);
 
-		// Segment registers are always 16-bit.
-		case Source::ES:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.es(); else return nullptr;
-		case Source::CS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.cs(); else return nullptr;
-		case Source::SS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ss(); else return nullptr;
-		case Source::DS:		if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ds(); else return nullptr;
-
-		// 16-bit models don't have FS and GS.
-		case Source::FS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.fs(); else return nullptr;
-		case Source::GS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.gs(); else return nullptr;
+		case Source::None:		return none;
 
 		case Source::Immediate:
 			*immediate = instruction.operand();
 		return immediate;
-
-		case Source::None:		return none;
 
 		case Source::Indirect:
 			target_address = address<Source::Indirect, IntT, access>(instruction, pointer, context);

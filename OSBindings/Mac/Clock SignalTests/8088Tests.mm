@@ -126,7 +126,9 @@ struct Memory {
 			tags[address] = Tag::AccessExpected;
 		}
 
+		//
 		// Preauthorisation call-ins.
+		//
 		void preauthorise_stack_write(uint32_t length) {
 			uint16_t sp = registers_.sp_;
 			while(length--) {
