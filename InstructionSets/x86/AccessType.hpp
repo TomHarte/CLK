@@ -46,7 +46,8 @@ class Writeable {
 	private:
 		IntT &target_;
 };
-template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = Writeable<IntT>; };
+//template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = Writeable<IntT>; };
+template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
 
 // Read-modify-writes: return a reference.
 template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
