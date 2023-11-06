@@ -21,7 +21,7 @@ namespace InstructionSet::x86 {
 /// If @c source is Source::Immediate then the appropriate portion of @c instrucion's operand
 /// is copied to @c *immediate and @c immediate is returned.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
-IntT *resolve(
+typename Accessor<IntT, access>::type resolve(
 	InstructionT &instruction,
 	Source source,
 	DataPointer pointer,
@@ -44,7 +44,7 @@ uint32_t address(
 
 	uint32_t address;
 	uint16_t zero = 0;
-	address = *resolve<uint16_t, access>(instruction, pointer.index(), pointer, context, &zero);
+	address = resolve<uint16_t, access>(instruction, pointer.index(), pointer, context, &zero);
 	if constexpr (is_32bit(ContextT::model)) {
 		address <<= pointer.scale();
 	}
@@ -53,7 +53,7 @@ uint32_t address(
 	if constexpr (source == Source::IndirectNoBase) {
 		return address;
 	}
-	return address + *resolve<uint16_t, access>(instruction, pointer.base(), pointer, context);
+	return address + resolve<uint16_t, access>(instruction, pointer.base(), pointer, context);
 }
 
 /// @returns a pointer to the contents of the register identified by the combination of @c IntT and @c Source if any;
@@ -150,7 +150,7 @@ uint32_t address(
 
 // See forward declaration, above, for details.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
-IntT *resolve(
+typename Accessor<IntT, access>::type resolve(
 	InstructionT &instruction,
 	Source source,
 	DataPointer pointer,
@@ -165,26 +165,26 @@ IntT *resolve(
 	uint32_t target_address;
 	switch(source) {
 		// Defer all register accesses to the register-specific lookup.
-		case Source::eAX:		return register_<IntT, access, Source::eAX>(context);
-		case Source::eCX:		return register_<IntT, access, Source::eCX>(context);
-		case Source::eDX:		return register_<IntT, access, Source::eDX>(context);
-		case Source::eBX:		return register_<IntT, access, Source::eBX>(context);
-		case Source::eSPorAH:	return register_<IntT, access, Source::eSPorAH>(context);
-		case Source::eBPorCH:	return register_<IntT, access, Source::eBPorCH>(context);
-		case Source::eSIorDH:	return register_<IntT, access, Source::eSIorDH>(context);
-		case Source::eDIorBH:	return register_<IntT, access, Source::eDIorBH>(context);
-		case Source::ES:		return register_<IntT, access, Source::ES>(context);
-		case Source::CS:		return register_<IntT, access, Source::CS>(context);
-		case Source::SS:		return register_<IntT, access, Source::SS>(context);
-		case Source::DS:		return register_<IntT, access, Source::DS>(context);
-		case Source::FS:		return register_<IntT, access, Source::FS>(context);
-		case Source::GS:		return register_<IntT, access, Source::GS>(context);
+		case Source::eAX:		return *register_<IntT, access, Source::eAX>(context);
+		case Source::eCX:		return *register_<IntT, access, Source::eCX>(context);
+		case Source::eDX:		return *register_<IntT, access, Source::eDX>(context);
+		case Source::eBX:		return *register_<IntT, access, Source::eBX>(context);
+		case Source::eSPorAH:	return *register_<IntT, access, Source::eSPorAH>(context);
+		case Source::eBPorCH:	return *register_<IntT, access, Source::eBPorCH>(context);
+		case Source::eSIorDH:	return *register_<IntT, access, Source::eSIorDH>(context);
+		case Source::eDIorBH:	return *register_<IntT, access, Source::eDIorBH>(context);
+		case Source::ES:		return *register_<IntT, access, Source::ES>(context);
+		case Source::CS:		return *register_<IntT, access, Source::CS>(context);
+		case Source::SS:		return *register_<IntT, access, Source::SS>(context);
+		case Source::DS:		return *register_<IntT, access, Source::DS>(context);
+		case Source::FS:		return *register_<IntT, access, Source::FS>(context);
+		case Source::GS:		return *register_<IntT, access, Source::GS>(context);
 
-		case Source::None:		return none;
+		case Source::None:		return *none;
 
 		case Source::Immediate:
 			*immediate = instruction.operand();
-		return immediate;
+		return *immediate;
 
 		case Source::Indirect:
 			target_address = address<Source::Indirect, IntT, access>(instruction, pointer, context);
@@ -199,7 +199,7 @@ IntT *resolve(
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	return &context.memory.template access<IntT, access>(instruction.data_segment(), target_address);
+	return context.memory.template access<IntT, access>(instruction.data_segment(), target_address);
 }
 
 }

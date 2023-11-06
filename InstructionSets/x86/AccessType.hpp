@@ -31,11 +31,11 @@ enum class AccessType {
 	PreauthorisedRead,
 };
 
-template <typename IntT, AccessType type> struct ReturnType;
+template <typename IntT, AccessType type> struct Accessor;
 
 // Reads: return a value directly.
-template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
-template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
+template <typename IntT> struct Accessor<IntT, AccessType::Read> { using type = IntT; };
+template <typename IntT> struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
 
 // Writes: return a custom type that can be written but not read.
 template <typename IntT>
@@ -46,11 +46,16 @@ class Writeable {
 	private:
 		IntT &target_;
 };
-//template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = Writeable<IntT>; };
-template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
+//template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = Writeable<IntT>; };
+template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = IntT &; };
 
 // Read-modify-writes: return a reference.
-template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
+template <typename IntT> struct Accessor<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
+
+// Shorthands; assumed that preauthorised reads have the same return type as reads.
+template<typename IntT> using read_t = typename Accessor<IntT, AccessType::Read>::type;
+template<typename IntT> using write_t = typename Accessor<IntT, AccessType::Write>::type;
+template<typename IntT> using modify_t = typename Accessor<IntT, AccessType::ReadModifyWrite>::type;
 
 }
 

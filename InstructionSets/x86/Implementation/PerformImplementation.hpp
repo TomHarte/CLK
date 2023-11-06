@@ -279,8 +279,12 @@ void add(IntT &destination, IntT source, ContextT &context) {
 	destination = result;
 }
 
-template <bool with_borrow, bool write_back, typename IntT, typename ContextT>
-void sub(IntT &destination, IntT source, ContextT &context) {
+template <bool with_borrow, AccessType destination_type, typename IntT, typename ContextT>
+void sub(
+	typename Accessor<IntT, destination_type>::type destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST - (SRC [+ CF]);
 	*/
@@ -298,7 +302,7 @@ void sub(IntT &destination, IntT source, ContextT &context) {
 
 	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
-	if constexpr (write_back) {
+	if constexpr (destination_type == AccessType::Write) {
 		destination = result;
 	}
 }
@@ -1374,8 +1378,8 @@ template <
 	//
 	// (though GCC offers C++20 syntax as an extension, and Clang seems to follow along, so maybe I'm overthinking)
 	IntT immediate;
-	const auto source_r = [&]() -> IntT& {
-		return *resolve<IntT, AccessType::Read>(
+	const auto source_r = [&]() -> IntT {
+		return resolve<IntT, AccessType::Read>(
 			instruction,
 			instruction.source().source(),
 			instruction.source(),
@@ -1384,7 +1388,7 @@ template <
 			&immediate);
 	};
 	const auto source_rmw = [&]() -> IntT& {
-		return *resolve<IntT, AccessType::ReadModifyWrite>(
+		return resolve<IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.source().source(),
 			instruction.source(),
@@ -1392,8 +1396,8 @@ template <
 			nullptr,
 			&immediate);
 	};
-	const auto destination_r = [&]() -> IntT& {
-		return *resolve<IntT, AccessType::Read>(
+	const auto destination_r = [&]() -> IntT {
+		return resolve<IntT, AccessType::Read>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),
@@ -1402,7 +1406,7 @@ template <
 			&immediate);
 	};
 	const auto destination_w = [&]() -> IntT& {
-		return *resolve<IntT, AccessType::Write>(
+		return resolve<IntT, AccessType::Write>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),
@@ -1411,7 +1415,7 @@ template <
 			&immediate);
 	};
 	const auto destination_rmw = [&]() -> IntT& {
-		return *resolve<IntT, AccessType::ReadModifyWrite>(
+		return resolve<IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.destination().source(),
 			instruction.destination(),

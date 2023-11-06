@@ -98,6 +98,15 @@ struct Memory {
 	public:
 		using AccessType = InstructionSet::x86::AccessType;
 
+		template <typename IntT, AccessType type> struct ReturnType;
+
+		// Reads: return a value directly.
+		template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
+		template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
+
+		// Writes: return a reference.
+		template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
+
 		// Constructor.
 		Memory(Registers &registers) : registers_(registers) {
 			memory.resize(1024*1024);
@@ -153,7 +162,7 @@ struct Memory {
 
 		// Accesses an address based on segment:offset.
 		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset) {
+		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset) {
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
 				// to the start. So the 16-bit value will need to be a local cache.
@@ -176,7 +185,7 @@ struct Memory {
 
 		// Accesses an address based on physical location.
 		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::ReturnType<IntT, type>::type &access(uint32_t address) {
+		typename ReturnType<IntT, type>::type &access(uint32_t address) {
 			return access<IntT, type>(address, Tag::Accessed);
 		}
 
@@ -273,7 +282,7 @@ struct Memory {
 		// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 		// so that defined-flag-only masks can be applied while verifying RAM contents.
 		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
+		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
 			const uint32_t physical_address = address(segment, offset);
 			return access<IntT, type>(physical_address, tag);
 		}
@@ -281,7 +290,7 @@ struct Memory {
 		// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 		// to a selector, they're just at an absolute location.
 		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::ReturnType<IntT, type>::type &access(uint32_t address, Tag tag) {
+		typename ReturnType<IntT, type>::type &access(uint32_t address, Tag tag) {
 			if constexpr (type == AccessType::PreauthorisedRead) {
 				if(!test_preauthorisation(address)) {
 					printf("Non preauthorised access\n");
