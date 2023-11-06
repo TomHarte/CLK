@@ -1,0 +1,56 @@
+//
+//  AccessType.hpp
+//  Clock Signal
+//
+//  Created by Thomas Harte on 05/11/2023.
+//  Copyright © 2023 Thomas Harte. All rights reserved.
+//
+
+#ifndef AccessType_h
+#define AccessType_h
+
+namespace InstructionSet::x86 {
+
+/// Explains the type of access that `perform` intends to perform; is provided as a template parameter to whatever
+/// the caller supplies as `MemoryT` and `RegistersT` when obtaining a reference to whatever the processor
+/// intends to reference.
+///
+/// `perform` guarantees to validate all accesses before modifying any state, giving the caller opportunity to generate
+/// any exceptions that might be applicable.
+enum class AccessType {
+	/// The requested value will be read from.
+	Read,
+	/// The requested value will be written to.
+	Write,
+	/// The requested value will be read from and then written to.
+	ReadModifyWrite,
+	/// The requested value has already been authorised for whatever form of access is now intended, so there's no
+	/// need further to inspect. This is done e.g. by operations that will push multiple values to the stack to verify that
+	/// all necessary stack space is available ahead of pushing anything, though each individual push will then result in
+	/// a further `Preauthorised` access.
+	PreauthorisedRead,
+};
+
+template <typename IntT, AccessType type> struct ReturnType;
+
+// Reads: return a value directly.
+template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
+template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
+
+// Writes: return a custom type that can be written but not read.
+template <typename IntT>
+class Writeable {
+	public:
+		Writeable(IntT &target) : target_(target) {}
+		void operator=(IntT value) { target_ = value; }
+	private:
+		IntT &target_;
+};
+template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = Writeable<IntT>; };
+
+// Read-modify-writes: return a reference.
+template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
+
+}
+
+#endif /* AccessType_h */

@@ -15,26 +15,6 @@
 
 namespace InstructionSet::x86 {
 
-/// Explains the type of access that `perform` intends to perform; is provided as a template parameter to whatever
-/// the caller supplies as `MemoryT` and `RegistersT` when obtaining a reference to whatever the processor
-/// intends to reference.
-///
-/// `perform` guarantees to validate all accesses before modifying any state, giving the caller opportunity to generate
-/// any exceptions that might be applicable.
-enum class AccessType {
-	/// The requested value will be read from.
-	Read,
-	/// The requested value will be written to.
-	Write,
-	/// The requested value will be read from and then written to.
-	ReadModifyWrite,
-	/// The requested value has already been authorised for whatever form of access is now intended, so there's no
-	/// need further to inspect. This is done e.g. by operations that will push multiple values to the stack to verify that
-	/// all necessary stack space is available ahead of pushing anything, though each individual push will then result in
-	/// a further `Preauthorised` access.
-	PreauthorisedRead,
-};
-
 template <
 	Model model_,
 	typename FlowControllerT,
