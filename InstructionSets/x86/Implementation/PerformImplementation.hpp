@@ -281,7 +281,7 @@ void add(IntT &destination, IntT source, ContextT &context) {
 
 template <bool with_borrow, AccessType destination_type, typename IntT, typename ContextT>
 void sub(
-	typename Accessor<IntT, destination_type>::type destination,
+	access_t<IntT, destination_type> destination,
 	read_t<IntT> source,
 	ContextT &context
 ) {

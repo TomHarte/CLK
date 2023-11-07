@@ -56,6 +56,7 @@ template <typename IntT> struct Accessor<IntT, AccessType::ReadModifyWrite> { us
 template<typename IntT> using read_t = typename Accessor<IntT, AccessType::Read>::type;
 template<typename IntT> using write_t = typename Accessor<IntT, AccessType::Write>::type;
 template<typename IntT> using modify_t = typename Accessor<IntT, AccessType::ReadModifyWrite>::type;
+template<typename IntT, AccessType type> using access_t = typename Accessor<IntT, type>::type;
 
 }
 
