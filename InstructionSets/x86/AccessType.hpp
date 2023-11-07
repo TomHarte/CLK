@@ -31,6 +31,10 @@ enum class AccessType {
 	PreauthorisedRead,
 };
 
+constexpr bool is_writeable(AccessType type) {
+	return type == AccessType::ReadModifyWrite || type == AccessType::Write;
+}
+
 template <typename IntT, AccessType type> struct Accessor;
 
 // Reads: return a value directly.

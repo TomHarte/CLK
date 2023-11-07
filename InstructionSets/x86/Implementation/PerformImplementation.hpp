@@ -306,7 +306,7 @@ void sub(
 
 	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
-	if constexpr (destination_type == AccessType::Write) {
+	if constexpr (is_writeable(destination_type)) {
 		destination = result;
 	}
 }
@@ -1536,7 +1536,7 @@ template <
 	//
 	// (though GCC offers C++20 syntax as an extension, and Clang seems to follow along, so maybe I'm overthinking)
 	IntT immediate;
-	const auto source_r = [&]() -> IntT {
+	const auto source_r = [&]() -> read_t<IntT> {
 		return resolve<IntT, AccessType::Read>(
 			instruction,
 			instruction.source().source(),
@@ -1545,7 +1545,7 @@ template <
 			nullptr,
 			&immediate);
 	};
-	const auto source_rmw = [&]() -> IntT& {
+	const auto source_rmw = [&]() -> modify_t<IntT> {
 		return resolve<IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.source().source(),
@@ -1554,7 +1554,7 @@ template <
 			nullptr,
 			&immediate);
 	};
-	const auto destination_r = [&]() -> IntT {
+	const auto destination_r = [&]() -> read_t<IntT> {
 		return resolve<IntT, AccessType::Read>(
 			instruction,
 			instruction.destination().source(),
@@ -1563,7 +1563,7 @@ template <
 			nullptr,
 			&immediate);
 	};
-	const auto destination_w = [&]() -> IntT& {
+	const auto destination_w = [&]() -> write_t<IntT> {
 		return resolve<IntT, AccessType::Write>(
 			instruction,
 			instruction.destination().source(),
@@ -1572,7 +1572,7 @@ template <
 			nullptr,
 			&immediate);
 	};
-	const auto destination_rmw = [&]() -> IntT& {
+	const auto destination_rmw = [&]() -> modify_t<IntT> {
 		return resolve<IntT, AccessType::ReadModifyWrite>(
 			instruction,
 			instruction.destination().source(),
@@ -1762,7 +1762,7 @@ template <
 
 		case Operation::XCHG:	Primitive::xchg<IntT>(destination_rmw(), source_rmw());		break;
 
-		case Operation::SALC:	Primitive::salc(context.registers.al(), context);	return;
+		case Operation::SALC:	Primitive::salc(context.registers.al(), context);			return;
 		case Operation::SETMO:
 			if constexpr (ContextT::model == Model::i8086) {
 				Primitive::setmo<IntT>(destination_w(), context);
