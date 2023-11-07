@@ -302,7 +302,12 @@ struct Memory {
 				write_back_address_[1] = high_address;
 				tags[low_address] = tag;
 				tags[high_address] = tag;
-				write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
+
+				// Prepopulate only if this is a modify.
+				if constexpr (type == AccessType::ReadModifyWrite) {
+					write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
+				}
+
 				return write_back_value_;
 			} else {
 				return memory[low_address] | (memory[high_address] << 8);
