@@ -1013,9 +1013,9 @@ void setmo(
 	write_t<IntT> destination,
 	ContextT &context
 ) {
-	destination = ~0;
+	const auto result = destination = ~0;
 	context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
-	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
+	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(result);
 }
 
 template <typename IntT, typename ContextT>

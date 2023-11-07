@@ -46,12 +46,11 @@ template <typename IntT>
 class Writeable {
 	public:
 		Writeable(IntT &target) : target_(target) {}
-		void operator=(IntT value) { target_ = value; }
+		IntT operator=(IntT value) { return target_ = value; }
 	private:
 		IntT &target_;
 };
-//template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = Writeable<IntT>; };
-template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = IntT &; };
+template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = Writeable<IntT>; };
 
 // Read-modify-writes: return a reference.
 template <typename IntT> struct Accessor<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };

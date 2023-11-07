@@ -44,7 +44,7 @@ uint32_t address(
 
 	uint32_t address;
 	uint16_t zero = 0;
-	address = resolve<uint16_t, access>(instruction, pointer.index(), pointer, context, &zero);
+	address = resolve<uint16_t, AccessType::Read>(instruction, pointer.index(), pointer, context, &zero);
 	if constexpr (is_32bit(ContextT::model)) {
 		address <<= pointer.scale();
 	}
@@ -53,7 +53,7 @@ uint32_t address(
 	if constexpr (source == Source::IndirectNoBase) {
 		return address;
 	}
-	return address + resolve<uint16_t, access>(instruction, pointer.base(), pointer, context);
+	return address + resolve<uint16_t, AccessType::Read>(instruction, pointer.base(), pointer, context);
 }
 
 /// @returns a pointer to the contents of the register identified by the combination of @c IntT and @c Source if any;
