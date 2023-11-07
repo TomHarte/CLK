@@ -98,16 +98,6 @@ struct Memory {
 	public:
 		using AccessType = InstructionSet::x86::AccessType;
 
-		template <typename IntT, AccessType type> struct ReturnType;
-
-		// Reads: return a value directly.
-		template <typename IntT> struct ReturnType<IntT, AccessType::Read> { using type = IntT; };
-		template <typename IntT> struct ReturnType<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
-
-		// Writes: return a reference.
-		template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
-		template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
-
 		// Constructor.
 		Memory(Registers &registers) : registers_(registers) {
 			memory.resize(1024*1024);
@@ -163,30 +153,13 @@ struct Memory {
 
 		// Accesses an address based on segment:offset.
 		template <typename IntT, AccessType type>
-		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset) {
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
-				// to the start. So the 16-bit value will need to be a local cache.
-				if(offset == 0xffff) {
-					write_back_address_[0] = address(segment, offset);
-					write_back_address_[1] = (write_back_address_[0] - 65535) & 0xf'ffff;
-					write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
-					return write_back_value_;
-				}
-			}
-			auto &value = access<IntT, type>(segment, offset, Tag::Accessed);
-
-			// If the CPU has indicated a write, it should be safe to fuzz the value now.
-			if(type == AccessType::Write) {
-				value = IntT(~0);
-			}
-
-			return value;
+		typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
+			return access<IntT, type>(segment, offset, Tag::Accessed);
 		}
 
 		// Accesses an address based on physical location.
 		template <typename IntT, AccessType type>
-		typename ReturnType<IntT, type>::type &access(uint32_t address) {
+		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
 			return access<IntT, type>(address, Tag::Accessed);
 		}
 
@@ -283,42 +256,57 @@ struct Memory {
 		// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 		// so that defined-flag-only masks can be applied while verifying RAM contents.
 		template <typename IntT, AccessType type>
-		typename ReturnType<IntT, type>::type &access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
+		typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
 			const uint32_t physical_address = address(segment, offset);
+
+			if constexpr (std::is_same_v<IntT, uint16_t>) {
+				// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
+				// to the start. So the 16-bit value will need to be a local cache.
+				if(offset == 0xffff) {
+					return split_word<type>(physical_address, address(segment, 0), tag);
+				}
+			}
+
 			return access<IntT, type>(physical_address, tag);
 		}
 
 		// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 		// to a selector, they're just at an absolute location.
 		template <typename IntT, AccessType type>
-		typename ReturnType<IntT, type>::type &access(uint32_t address, Tag tag) {
+		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
 			if constexpr (type == AccessType::PreauthorisedRead) {
 				if(!test_preauthorisation(address)) {
 					printf("Non preauthorised access\n");
 				}
 			}
 
-			// Check for address wraparound
-			if(address > 0x10'0000 - sizeof(IntT)) {
-				if constexpr (std::is_same_v<IntT, uint8_t>) {
-					address &= 0xf'ffff;
-				} else {
-					address &= 0xf'ffff;
-					if(address == 0xf'ffff) {
-						// This is a 16-bit access comprising the final byte in memory and the first.
-						write_back_address_[0] = address;
-						write_back_address_[1] = 0;
-						write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
-						return write_back_value_;
-					}
-				}
+			for(size_t c = 0; c < sizeof(IntT); c++) {
+				tags[(address + c) & 0xf'ffff] = tag;
 			}
 
-			if(tags.find(address) == tags.end()) {
-				printf("Access to unexpected RAM address\n");
+			// Dispense with the single-byte case trivially.
+			if constexpr (std::is_same_v<IntT, uint8_t>) {
+				return memory[address];
+			} else if(address != 0xf'ffff) {
+				return *reinterpret_cast<IntT *>(&memory[address]);
+			} else {
+				return split_word<type>(address, 0, tag);
 			}
-			tags[address] = tag;
-			return *reinterpret_cast<IntT *>(&memory[address]);
+		}
+
+		template <AccessType type>
+		typename InstructionSet::x86::Accessor<uint16_t, type>::type
+		split_word(uint32_t low_address, uint32_t high_address, Tag tag) {
+			if constexpr (is_writeable(type)) {
+				write_back_address_[0] = low_address;
+				write_back_address_[1] = high_address;
+				tags[low_address] = tag;
+				tags[high_address] = tag;
+				write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
+				return write_back_value_;
+			} else {
+				return memory[low_address] | (memory[high_address] << 8);
+			}
 		}
 
 		static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
