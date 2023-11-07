@@ -258,7 +258,11 @@ void das(uint8_t &al, ContextT &context) {
 }
 
 template <bool with_carry, typename IntT, typename ContextT>
-void add(IntT &destination, IntT source, ContextT &context) {
+void add(
+	modify_t<IntT> destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST + SRC [+ CF];
 	*/
@@ -308,7 +312,11 @@ void sub(
 }
 
 template <typename IntT, typename ContextT>
-void test(IntT &destination, IntT source, ContextT &context) {
+void test(
+	read_t<IntT> destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		TEMP ← SRC1 AND SRC2;
 		SF ← MSB(TEMP);
@@ -332,7 +340,10 @@ void test(IntT &destination, IntT source, ContextT &context) {
 }
 
 template <typename IntT>
-void xchg(IntT &destination, IntT &source) {
+void xchg(
+	modify_t<IntT> destination,
+	modify_t<IntT> source
+) {
 	/*
 		TEMP ← DEST
 		DEST ← SRC
@@ -342,7 +353,12 @@ void xchg(IntT &destination, IntT &source) {
 }
 
 template <typename IntT, typename ContextT>
-void mul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
+void mul(
+	modify_t<IntT> destination_high,
+	modify_t<IntT> destination_low,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		IF byte operation
 			THEN
@@ -364,7 +380,12 @@ void mul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &c
 }
 
 template <typename IntT, typename ContextT>
-void imul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
+void imul(
+	modify_t<IntT> destination_high,
+	modify_t<IntT> destination_low,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		(as modified by https://www.felixcloutier.com/x86/daa ...)
 
@@ -399,7 +420,12 @@ void imul(IntT &destination_high, IntT &destination_low, IntT source, ContextT &
 }
 
 template <typename IntT, typename ContextT>
-void div(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
+void div(
+	modify_t<IntT> destination_high,
+	modify_t<IntT> destination_low,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		IF SRC = 0
 			THEN #DE; (* divide error *)
@@ -455,7 +481,12 @@ void div(IntT &destination_high, IntT &destination_low, IntT source, ContextT &c
 }
 
 template <typename IntT, typename ContextT>
-void idiv(IntT &destination_high, IntT &destination_low, IntT source, ContextT &context) {
+void idiv(
+	modify_t<IntT> destination_high,
+	modify_t<IntT> destination_low,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		IF SRC = 0
 			THEN #DE; (* divide error *)
@@ -512,7 +543,10 @@ void idiv(IntT &destination_high, IntT &destination_low, IntT source, ContextT &
 }
 
 template <typename IntT, typename ContextT>
-void inc(IntT &destination, ContextT &context) {
+void inc(
+	modify_t<IntT> destination,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST + 1;
 	*/
@@ -528,7 +562,11 @@ void inc(IntT &destination, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void jump(bool condition, IntT displacement, ContextT &context) {
+void jump(
+	bool condition,
+	IntT displacement,
+	ContextT &context
+) {
 	/*
 		IF condition
 			THEN
@@ -547,7 +585,11 @@ void jump(bool condition, IntT displacement, ContextT &context) {
 }
 
 template <typename IntT, typename OffsetT, typename ContextT>
-void loop(IntT &counter, OffsetT displacement, ContextT &context) {
+void loop(
+	modify_t<IntT> counter,
+	OffsetT displacement,
+	ContextT &context
+) {
 	--counter;
 	if(counter) {
 		context.flow_controller.jump(context.registers.ip() + displacement);
@@ -555,7 +597,11 @@ void loop(IntT &counter, OffsetT displacement, ContextT &context) {
 }
 
 template <typename IntT, typename OffsetT, typename ContextT>
-void loope(IntT &counter, OffsetT displacement, ContextT &context) {
+void loope(
+	modify_t<IntT> counter,
+	OffsetT displacement,
+	ContextT &context
+) {
 	--counter;
 	if(counter && context.flags.template flag<Flag::Zero>()) {
 		context.flow_controller.jump(context.registers.ip() + displacement);
@@ -563,7 +609,11 @@ void loope(IntT &counter, OffsetT displacement, ContextT &context) {
 }
 
 template <typename IntT, typename OffsetT, typename ContextT>
-void loopne(IntT &counter, OffsetT displacement, ContextT &context) {
+void loopne(
+	modify_t<IntT> counter,
+	OffsetT displacement,
+	ContextT &context
+) {
 	--counter;
 	if(counter && !context.flags.template flag<Flag::Zero>()) {
 		context.flow_controller.jump(context.registers.ip() + displacement);
@@ -571,7 +621,10 @@ void loopne(IntT &counter, OffsetT displacement, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void dec(IntT &destination, ContextT &context) {
+void dec(
+	modify_t<IntT> destination,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST - 1;
 	*/
@@ -588,7 +641,11 @@ void dec(IntT &destination, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void and_(IntT &destination, IntT source, ContextT &context) {
+void and_(
+	modify_t<IntT> destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST AND SRC;
 	*/
@@ -603,7 +660,11 @@ void and_(IntT &destination, IntT source, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void or_(IntT &destination, IntT source, ContextT &context) {
+void or_(
+	modify_t<IntT> destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST OR SRC;
 	*/
@@ -618,7 +679,11 @@ void or_(IntT &destination, IntT source, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void xor_(IntT &destination, IntT source, ContextT &context) {
+void xor_(
+	modify_t<IntT> destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
 	/*
 		DEST ← DEST XOR SRC;
 	*/
@@ -633,7 +698,10 @@ void xor_(IntT &destination, IntT source, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void neg(IntT &destination, ContextT &context) {
+void neg(
+	modify_t<IntT> destination,
+	ContextT &context
+) {
 	/*
 		IF DEST = 0
 			THEN CF ← 0
@@ -655,35 +723,49 @@ void neg(IntT &destination, ContextT &context) {
 }
 
 template <typename IntT>
-void not_(IntT &destination) {
+void not_(
+	modify_t<IntT> destination
+) {
 	/*
 		DEST ← NOT DEST;
 	*/
 	/*
 		Flags affected: none.
 	*/
-	destination  = ~destination;
+	destination = ~destination;
 }
 
 template <typename IntT, typename ContextT>
-void call_relative(IntT offset, ContextT &context) {
+void call_relative(
+	IntT offset,
+	ContextT &context
+) {
 	push<uint16_t, false>(context.registers.ip(), context);
 	context.flow_controller.jump(context.registers.ip() + offset);
 }
 
 template <typename IntT, typename ContextT>
-void call_absolute(IntT target, ContextT &context) {
+void call_absolute(
+	read_t<IntT> target,
+	ContextT &context
+) {
 	push<uint16_t, false>(context.registers.ip(), context);
 	context.flow_controller.jump(target);
 }
 
 template <typename IntT, typename ContextT>
-void jump_absolute(IntT target, ContextT &context) {
+void jump_absolute(
+	read_t<IntT> target,
+	ContextT &context
+) {
 	context.flow_controller.jump(target);
 }
 
 template <typename InstructionT, typename ContextT>
-void call_far(InstructionT &instruction, ContextT &context) {
+void call_far(
+	InstructionT &instruction,
+	ContextT &context
+) {
 	// TODO: eliminate 16-bit assumption below.
 	const Source source_segment = instruction.data_segment();
 	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
@@ -722,7 +804,10 @@ void call_far(InstructionT &instruction, ContextT &context) {
 }
 
 template <typename InstructionT, typename ContextT>
-void jump_far(InstructionT &instruction, ContextT &context) {
+void jump_far(
+	InstructionT &instruction,
+	ContextT &context
+) {
 	// TODO: eliminate 16-bit assumption below.
 	uint16_t source_address = 0;
 	const auto pointer = instruction.destination();
@@ -751,7 +836,9 @@ void jump_far(InstructionT &instruction, ContextT &context) {
 }
 
 template <typename ContextT>
-void iret(ContextT &context) {
+void iret(
+	ContextT &context
+) {
 	// TODO: all modes other than 16-bit real mode.
 	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
 	const auto ip = pop<uint16_t, true>(context);
@@ -761,14 +848,20 @@ void iret(ContextT &context) {
 }
 
 template <typename InstructionT, typename ContextT>
-void ret_near(InstructionT instruction, ContextT &context) {
+void ret_near(
+	InstructionT instruction,
+	ContextT &context
+) {
 	const auto ip = pop<uint16_t, false>(context);
 	context.registers.sp() += instruction.operand();
 	context.flow_controller.jump(ip);
 }
 
 template <typename InstructionT, typename ContextT>
-void ret_far(InstructionT instruction, ContextT &context) {
+void ret_far(
+	InstructionT instruction,
+	ContextT &context
+) {
 	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
@@ -778,8 +871,8 @@ void ret_far(InstructionT instruction, ContextT &context) {
 
 template <Source selector, typename InstructionT, typename ContextT>
 void ld(
-	InstructionT &instruction,
-	uint16_t &destination,
+	const InstructionT &instruction,
+	write_t<uint16_t> destination,
 	ContextT &context
 ) {
 	const auto pointer = instruction.source();
@@ -798,7 +891,7 @@ void ld(
 template <typename IntT, typename InstructionT, typename ContextT>
 void lea(
 	const InstructionT &instruction,
-	IntT &destination,
+	write_t<IntT> destination,
 	ContextT &context
 ) {
 	// TODO: address size.
@@ -819,19 +912,27 @@ void xlat(
 }
 
 template <typename IntT>
-void mov(IntT &destination, IntT source) {
+void mov(
+	write_t<IntT> destination,
+	read_t<IntT> source
+) {
 	destination = source;
 }
 
 template <typename ContextT>
-void into(ContextT &context) {
+void into(
+	ContextT &context
+) {
 	if(context.flags.template flag<Flag::Overflow>()) {
 		interrupt(Interrupt::OnOverflow, context);
 	}
 }
 
 template <typename ContextT>
-void sahf(uint8_t &ah, ContextT &context) {
+void sahf(
+	uint8_t &ah,
+	ContextT &context
+) {
 	/*
 		EFLAGS(SF:ZF:0:AF:0:PF:1:CF) ← AH;
 	*/
@@ -843,7 +944,10 @@ void sahf(uint8_t &ah, ContextT &context) {
 }
 
 template <typename ContextT>
-void lahf(uint8_t &ah, ContextT &context) {
+void lahf(
+	uint8_t &ah,
+	ContextT &context
+) {
 	/*
 		AH ← EFLAGS(SF:ZF:0:AF:0:PF:1:CF);
 	*/
@@ -857,7 +961,9 @@ void lahf(uint8_t &ah, ContextT &context) {
 }
 
 template <typename IntT>
-void cbw(IntT &ax) {
+void cbw(
+	IntT &ax
+) {
 	constexpr IntT test_bit = 1 << (sizeof(IntT) * 4 - 1);
 	constexpr IntT low_half = (1 << (sizeof(IntT) * 4)) - 1;
 
@@ -869,7 +975,10 @@ void cbw(IntT &ax) {
 }
 
 template <typename IntT>
-void cwd(IntT &dx, IntT ax) {
+void cwd(
+	IntT &dx,
+	IntT ax
+) {
 	dx = ax & Numeric::top_bit<IntT>() ? IntT(~0) : IntT(0);
 }
 
@@ -892,19 +1001,29 @@ void cmc(ContextT &context) {
 }
 
 template <typename ContextT>
-void salc(uint8_t &al, ContextT &context) {
+void salc(
+	uint8_t &al,
+	ContextT &context
+) {
 	al = context.flags.template flag<Flag::Carry>() ? 0xff : 0x00;
 }
 
 template <typename IntT, typename ContextT>
-void setmo(IntT &destination, ContextT &context) {
+void setmo(
+	write_t<IntT> destination,
+	ContextT &context
+) {
 	destination = ~0;
 	context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
 	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);
 }
 
 template <typename IntT, typename ContextT>
-void rcl(IntT &destination, uint8_t count, ContextT &context) {
+void rcl(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	/*
 		(* RCL and RCR instructions *)
 		SIZE ← OperandSize
@@ -960,7 +1079,11 @@ void rcl(IntT &destination, uint8_t count, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void rcr(IntT &destination, uint8_t count, ContextT &context) {
+void rcr(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	/*
 		(* RCR instruction operation *)
 		IF COUNT = 1
@@ -1002,7 +1125,11 @@ void rcr(IntT &destination, uint8_t count, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void rol(IntT &destination, uint8_t count, ContextT &context) {
+void rol(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	/*
 		(* ROL and ROR instructions *)
 		SIZE ← OperandSize
@@ -1049,7 +1176,11 @@ void rol(IntT &destination, uint8_t count, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void ror(IntT &destination, uint8_t count, ContextT &context) {
+void ror(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	/*
 		(* ROL and ROR instructions *)
 		SIZE ← OperandSize
@@ -1152,7 +1283,11 @@ void ror(IntT &destination, uint8_t count, ContextT &context) {
 	For a non-zero count, the AF flag is undefined.
 */
 template <typename IntT, typename ContextT>
-void sal(IntT &destination, uint8_t count, ContextT &context) {
+void sal(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	switch(count) {
 		case 0:	return;
 		case Numeric::bit_size<IntT>():
@@ -1179,7 +1314,11 @@ void sal(IntT &destination, uint8_t count, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void sar(IntT &destination, uint8_t count, ContextT &context) {
+void sar(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	if(!count) {
 		return;
 	}
@@ -1198,7 +1337,11 @@ void sar(IntT &destination, uint8_t count, ContextT &context) {
 }
 
 template <typename IntT, typename ContextT>
-void shr(IntT &destination, uint8_t count, ContextT &context) {
+void shr(
+	modify_t<IntT> destination,
+	uint8_t count,
+	ContextT &context
+) {
 	if(!count) {
 		return;
 	}
@@ -1219,23 +1362,32 @@ void shr(IntT &destination, uint8_t count, ContextT &context) {
 }
 
 template <typename ContextT>
-void popf(ContextT &context) {
+void popf(
+	ContextT &context
+) {
 	context.flags.set(pop<uint16_t, false>(context));
 }
 
 template <typename ContextT>
-void pushf(ContextT &context) {
+void pushf(
+	ContextT &context
+) {
 	uint16_t value = context.flags.get();
 	push<uint16_t, false>(value, context);
 }
 
 template <typename AddressT, Repetition repetition>
-bool repetition_over(const AddressT &eCX) {
+bool repetition_over(
+	const AddressT &eCX
+) {
 	return repetition != Repetition::None && !eCX;
 }
 
 template <typename AddressT, Repetition repetition, typename ContextT>
-void repeat(AddressT &eCX, ContextT &context) {
+void repeat(
+	AddressT &eCX,
+	ContextT &context
+) {
 	if(
 		repetition == Repetition::None ||		// No repetition => stop.
 		!(--eCX)								// [e]cx is zero after being decremented => stop.
@@ -1252,7 +1404,13 @@ void repeat(AddressT &eCX, ContextT &context) {
 }
 
 template <typename IntT, typename AddressT, Repetition repetition, typename InstructionT, typename ContextT>
-void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, AddressT &eDI, ContextT &context) {
+void cmps(
+	const InstructionT &instruction,
+	AddressT &eCX,
+	AddressT &eSI,
+	AddressT &eDI,
+	ContextT &context
+) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
@@ -1262,7 +1420,7 @@ void cmps(const InstructionT &instruction, AddressT &eCX, AddressT &eSI, Address
 	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
-	Primitive::sub<false, false>(lhs, rhs, context);
+	Primitive::sub<false, AccessType::Read, IntT>(lhs, rhs, context);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1276,7 +1434,7 @@ void scas(AddressT &eCX, AddressT &eDI, IntT &eAX, ContextT &context) {
 	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
-	Primitive::sub<false, false>(eAX, rhs, context);
+	Primitive::sub<false, AccessType::Read, IntT>(eAX, rhs, context);
 
 	repeat<AddressT, repetition>(eCX, context);
 }
@@ -1513,39 +1671,45 @@ template <
 		case Operation::HLT:	context.flow_controller.halt();		return;
 		case Operation::WAIT:	context.flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::add<true>(destination_rmw(), source_r(), context);			break;
-		case Operation::ADD:	Primitive::add<false>(destination_rmw(), source_r(), context);			break;
-		case Operation::SBB:	Primitive::sub<true, true>(destination_rmw(), source_r(), context);		break;
-		case Operation::SUB:	Primitive::sub<false, true>(destination_rmw(), source_r(), context);	break;
-		case Operation::CMP:	Primitive::sub<false, false>(destination_r(), source_r(), context);		return;
-		case Operation::TEST:	Primitive::test(destination_r(), source_r(), context);					return;
+		case Operation::ADC:	Primitive::add<true, IntT>(destination_rmw(), source_r(), context);			break;
+		case Operation::ADD:	Primitive::add<false, IntT>(destination_rmw(), source_r(), context);		break;
+		case Operation::SBB:
+			Primitive::sub<true, AccessType::ReadModifyWrite, IntT>(destination_rmw(), source_r(), context);
+		break;
+		case Operation::SUB:
+			Primitive::sub<false, AccessType::ReadModifyWrite, IntT>(destination_rmw(), source_r(), context);
+		break;
+		case Operation::CMP:
+			Primitive::sub<false, AccessType::Read, IntT>(destination_r(), source_r(), context);
+		return;
+		case Operation::TEST:	Primitive::test<IntT>(destination_r(), source_r(), context);				return;
 
-		case Operation::MUL:	Primitive::mul(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::IMUL_1:	Primitive::imul(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::DIV:	Primitive::div(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::IDIV:	Primitive::idiv(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::MUL:	Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::IMUL_1:	Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
+		case Operation::DIV:	Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::IDIV:	Primitive::idiv<IntT>(pair_high(), pair_low(), source_r(), context);		return;
 
-		case Operation::INC:	Primitive::inc(destination_rmw(), context);		break;
-		case Operation::DEC:	Primitive::dec(destination_rmw(), context);		break;
+		case Operation::INC:	Primitive::inc<IntT>(destination_rmw(), context);		break;
+		case Operation::DEC:	Primitive::dec<IntT>(destination_rmw(), context);		break;
 
-		case Operation::AND:	Primitive::and_(destination_rmw(), source_r(), context);	break;
-		case Operation::OR:		Primitive::or_(destination_rmw(), source_r(), context);		break;
-		case Operation::XOR:	Primitive::xor_(destination_rmw(), source_r(), context);	break;
-		case Operation::NEG:	Primitive::neg(source_rmw(), context);						break;	// TODO: should be a destination.
-		case Operation::NOT:	Primitive::not_(source_rmw());								break;	// TODO: should be a destination.
+		case Operation::AND:	Primitive::and_<IntT>(destination_rmw(), source_r(), context);		break;
+		case Operation::OR:		Primitive::or_<IntT>(destination_rmw(), source_r(), context);		break;
+		case Operation::XOR:	Primitive::xor_<IntT>(destination_rmw(), source_r(), context);		break;
+		case Operation::NEG:	Primitive::neg<IntT>(source_rmw(), context);						break;	// TODO: should be a destination.
+		case Operation::NOT:	Primitive::not_<IntT>(source_rmw());								break;	// TODO: should be a destination.
 
-		case Operation::CALLrel:	Primitive::call_relative(instruction.displacement(), context);		return;
-		case Operation::CALLabs:	Primitive::call_absolute(destination_r(), context);					return;
-		case Operation::CALLfar:	Primitive::call_far(instruction, context);							return;
+		case Operation::CALLrel:	Primitive::call_relative<AddressT>(instruction.displacement(), context);	return;
+		case Operation::CALLabs:	Primitive::call_absolute<IntT>(destination_r(), context);					return;
+		case Operation::CALLfar:	Primitive::call_far(instruction, context);									return;
 
-		case Operation::JMPrel:	jcc(true);												return;
-		case Operation::JMPabs:	Primitive::jump_absolute(destination_r(), context);		return;
-		case Operation::JMPfar:	Primitive::jump_far(instruction, context);				return;
+		case Operation::JMPrel:	jcc(true);														return;
+		case Operation::JMPabs:	Primitive::jump_absolute<IntT>(destination_r(), context);		return;
+		case Operation::JMPfar:	Primitive::jump_far(instruction, context);						return;
 
-		case Operation::JCXZ:	jcc(!eCX());												return;
-		case Operation::LOOP:	Primitive::loop(eCX(), instruction.offset(), context);		return;
-		case Operation::LOOPE:	Primitive::loope(eCX(), instruction.offset(), context);		return;
-		case Operation::LOOPNE:	Primitive::loopne(eCX(), instruction.offset(), context);	return;
+		case Operation::JCXZ:	jcc(!eCX());														return;
+		case Operation::LOOP:	Primitive::loop<AddressT>(eCX(), instruction.offset(), context);	return;
+		case Operation::LOOPE:	Primitive::loope<AddressT>(eCX(), instruction.offset(), context);	return;
+		case Operation::LOOPNE:	Primitive::loopne<AddressT>(eCX(), instruction.offset(), context);	return;
 
 		case Operation::IRET:		Primitive::iret(context);					return;
 		case Operation::RETnear:	Primitive::ret_near(instruction, context);	return;
@@ -1560,33 +1724,33 @@ template <
 		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<Source::DS>(instruction, destination_w(), context);	return;
 		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<Source::ES>(instruction, destination_w(), context);	return;
 
-		case Operation::LEA:	Primitive::lea(instruction, destination_w(), context);	return;
-		case Operation::MOV:	Primitive::mov(destination_w(), source_r());			break;
+		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
+		case Operation::MOV:	Primitive::mov<IntT>(destination_w(), source_r());				break;
 
 		case Operation::JO:		jcc(context.flags.template condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!context.flags.template condition<Condition::Overflow>());		return;
 		case Operation::JB:		jcc(context.flags.template condition<Condition::Below>());			return;
-		case Operation::JNB:	jcc(!context.flags.template condition<Condition::Below>());		return;
+		case Operation::JNB:	jcc(!context.flags.template condition<Condition::Below>());			return;
 		case Operation::JZ:		jcc(context.flags.template condition<Condition::Zero>());			return;
 		case Operation::JNZ:	jcc(!context.flags.template condition<Condition::Zero>());			return;
 		case Operation::JBE:	jcc(context.flags.template condition<Condition::BelowOrEqual>());	return;
 		case Operation::JNBE:	jcc(!context.flags.template condition<Condition::BelowOrEqual>());	return;
 		case Operation::JS:		jcc(context.flags.template condition<Condition::Sign>());			return;
 		case Operation::JNS:	jcc(!context.flags.template condition<Condition::Sign>());			return;
-		case Operation::JP:		jcc(!context.flags.template condition<Condition::ParityOdd>());	return;
+		case Operation::JP:		jcc(!context.flags.template condition<Condition::ParityOdd>());		return;
 		case Operation::JNP:	jcc(context.flags.template condition<Condition::ParityOdd>());		return;
 		case Operation::JL:		jcc(context.flags.template condition<Condition::Less>());			return;
 		case Operation::JNL:	jcc(!context.flags.template condition<Condition::Less>());			return;
 		case Operation::JLE:	jcc(context.flags.template condition<Condition::LessOrEqual>());	return;
 		case Operation::JNLE:	jcc(!context.flags.template condition<Condition::LessOrEqual>());	return;
 
-		case Operation::RCL:	Primitive::rcl(destination_rmw(), shift_count(), context);	break;
-		case Operation::RCR:	Primitive::rcr(destination_rmw(), shift_count(), context);	break;
-		case Operation::ROL:	Primitive::rol(destination_rmw(), shift_count(), context);	break;
-		case Operation::ROR:	Primitive::ror(destination_rmw(), shift_count(), context);	break;
-		case Operation::SAL:	Primitive::sal(destination_rmw(), shift_count(), context);	break;
-		case Operation::SAR:	Primitive::sar(destination_rmw(), shift_count(), context);	break;
-		case Operation::SHR:	Primitive::shr(destination_rmw(), shift_count(), context);	break;
+		case Operation::RCL:	Primitive::rcl<IntT>(destination_rmw(), shift_count(), context);	break;
+		case Operation::RCR:	Primitive::rcr<IntT>(destination_rmw(), shift_count(), context);	break;
+		case Operation::ROL:	Primitive::rol<IntT>(destination_rmw(), shift_count(), context);	break;
+		case Operation::ROR:	Primitive::ror<IntT>(destination_rmw(), shift_count(), context);	break;
+		case Operation::SAL:	Primitive::sal<IntT>(destination_rmw(), shift_count(), context);	break;
+		case Operation::SAR:	Primitive::sar<IntT>(destination_rmw(), shift_count(), context);	break;
+		case Operation::SHR:	Primitive::shr<IntT>(destination_rmw(), shift_count(), context);	break;
 
 		case Operation::CLC:	Primitive::clc(context);				return;
 		case Operation::CLD:	Primitive::cld(context);				return;
@@ -1596,12 +1760,12 @@ template <
 		case Operation::STI:	Primitive::sti(context);				return;
 		case Operation::CMC:	Primitive::cmc(context);				return;
 
-		case Operation::XCHG:	Primitive::xchg(destination_rmw(), source_rmw());	break;
+		case Operation::XCHG:	Primitive::xchg<IntT>(destination_rmw(), source_rmw());		break;
 
 		case Operation::SALC:	Primitive::salc(context.registers.al(), context);	return;
 		case Operation::SETMO:
 			if constexpr (ContextT::model == Model::i8086) {
-				Primitive::setmo(destination_w(), context);
+				Primitive::setmo<IntT>(destination_w(), context);
 				break;
 			} else {
 				// TODO.
@@ -1612,7 +1776,7 @@ template <
 				// Test CL out here to avoid taking a reference to memory if
 				// no write is going to occur.
 				if(context.registers.cl()) {
-					Primitive::setmo(destination_w(), context);
+					Primitive::setmo<IntT>(destination_w(), context);
 				}
 				break;
 			} else {
@@ -1626,7 +1790,10 @@ template <
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
 		case Operation::POP:	destination_w() = Primitive::pop<IntT, false>(context);	break;
-		case Operation::PUSH:	Primitive::push<IntT, false>(source_r(), context);		break;
+		case Operation::PUSH:
+			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
+																	// hence PUSH is sometimes read-modify-write.
+		break;
 		case Operation::POPF:	Primitive::popf(context);								break;
 		case Operation::PUSHF:	Primitive::pushf(context);								break;
 

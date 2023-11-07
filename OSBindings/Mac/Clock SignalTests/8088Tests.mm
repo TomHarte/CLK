@@ -106,6 +106,7 @@ struct Memory {
 
 		// Writes: return a reference.
 		template <typename IntT> struct ReturnType<IntT, AccessType::Write> { using type = IntT &; };
+		template <typename IntT> struct ReturnType<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
 
 		// Constructor.
 		Memory(Registers &registers) : registers_(registers) {
