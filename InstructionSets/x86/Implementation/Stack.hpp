@@ -16,7 +16,10 @@ namespace InstructionSet::x86::Primitive {
 // The below takes a reference in order properly to handle PUSH SP,
 // which should place the value of SP after the push onto the stack.
 template <typename IntT, bool preauthorised, typename ContextT>
-void push(IntT &value, ContextT &context) {
+void push(
+	IntT &value,
+	ContextT &context
+) {
 	context.registers.sp_ -= sizeof(IntT);
 	if constexpr (preauthorised) {
 		context.memory.template preauthorised_write<IntT>(Source::SS, context.registers.sp_, value);
@@ -29,7 +32,9 @@ void push(IntT &value, ContextT &context) {
 }
 
 template <typename IntT, bool preauthorised, typename ContextT>
-IntT pop(ContextT &context) {
+IntT pop(
+	ContextT &context
+) {
 	const auto value = context.memory.template access<IntT, preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
 		Source::SS,
 		context.registers.sp_);
