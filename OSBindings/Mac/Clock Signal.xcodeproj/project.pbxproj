@@ -1150,6 +1150,8 @@
 		42A5E8412ABBE16F00A0DD5D /* nop_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = nop_test.bin; sourceTree = "<group>"; };
 		42A5E8422ABBE16F00A0DD5D /* lax_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = lax_test.bin; sourceTree = "<group>"; };
 		42A5E8432ABBE16F00A0DD5D /* branch_backwards_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = branch_backwards_test.bin; sourceTree = "<group>"; };
+		42AA41232AF888370016751C /* AccessType.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AccessType.hpp; sourceTree = "<group>"; };
+		42AA41242AF8893F0016751C /* Resolver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Resolver.hpp; sourceTree = "<group>"; };
 		42AD552E2A0C4D5000ACE410 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		42AD55302A0C4D5000ACE410 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
@@ -2328,6 +2330,7 @@
 			isa = PBXGroup;
 			children = (
 				42437B382ACF2798006DFED1 /* PerformImplementation.hpp */,
+				42AA41242AF8893F0016751C /* Resolver.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
@@ -4997,12 +5000,13 @@
 			children = (
 				4BEDA3B925B25563000C2DBD /* Decoder.cpp */,
 				4B69DEB52AB79E4F0055B217 /* Instruction.cpp */,
+				42AA41232AF888370016751C /* AccessType.hpp */,
 				4BEDA3B825B25563000C2DBD /* Decoder.hpp */,
+				42437B342ACF02A9006DFED1 /* Flags.hpp */,
 				4BEDA3DB25B2588F000C2DBD /* Instruction.hpp */,
 				42437B392AD07465006DFED1 /* Interrupts.hpp */,
 				4BE3C69527CBC540000EAD28 /* Model.hpp */,
 				42437B352ACF0AA2006DFED1 /* Perform.hpp */,
-				42437B342ACF02A9006DFED1 /* Flags.hpp */,
 				42437B372ACF2798006DFED1 /* Implementation */,
 			);
 			path = x86;
