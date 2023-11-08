@@ -165,12 +165,15 @@ template <
 
 	// Guide to the below:
 	//
-	//	* use hard-coded register names where appropriate;
+	//	* use hard-coded register names where appropriate, otherwise use the source_X() and destination_X() lambdas;
 	//	* return directly if there is definitely no possible write back to RAM;
-	//	* otherwise use the source() and destination() lambdas, and break in order to allow a writeback if necessary.
+	//	* break if there's a chance of writeback.
 	switch(instruction.operation()) {
 		default:
 			assert(false);
+
+		case Operation::ESC:
+		case Operation::NOP:	return;
 
 		case Operation::AAA:	Primitive::aaa(context.registers.axp(), context);							return;
 		case Operation::AAD:	Primitive::aad(context.registers.axp(), instruction.operand(), context);	return;
@@ -182,14 +185,15 @@ template <
 		case Operation::CBW:	Primitive::cbw(pair_low());					return;
 		case Operation::CWD:	Primitive::cwd(pair_high(), pair_low());	return;
 
-		case Operation::ESC:
-		case Operation::NOP:	return;
-
 		case Operation::HLT:	context.flow_controller.halt();		return;
 		case Operation::WAIT:	context.flow_controller.wait();		return;
 
-		case Operation::ADC:	Primitive::add<true, IntT>(destination_rmw(), source_r(), context);			break;
-		case Operation::ADD:	Primitive::add<false, IntT>(destination_rmw(), source_r(), context);		break;
+		case Operation::ADC:
+			Primitive::add<true, IntT>(destination_rmw(), source_r(), context);
+		break;
+		case Operation::ADD:
+			Primitive::add<false, IntT>(destination_rmw(), source_r(), context);
+		break;
 		case Operation::SBB:
 			Primitive::sub<true, AccessType::ReadModifyWrite, IntT>(destination_rmw(), source_r(), context);
 		break;
@@ -199,7 +203,9 @@ template <
 		case Operation::CMP:
 			Primitive::sub<false, AccessType::Read, IntT>(destination_r(), source_r(), context);
 		return;
-		case Operation::TEST:	Primitive::test<IntT>(destination_r(), source_r(), context);				return;
+		case Operation::TEST:
+			Primitive::test<IntT>(destination_r(), source_r(), context);
+		return;
 
 		case Operation::MUL:	Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IMUL_1:	Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
@@ -238,8 +244,12 @@ template <
 		case Operation::SAHF:	Primitive::sahf(context.registers.ah(), context);		return;
 		case Operation::LAHF:	Primitive::lahf(context.registers.ah(), context);		return;
 
-		case Operation::LDS:	if constexpr (data_size == DataSize::Word) Primitive::ld<Source::DS>(instruction, destination_w(), context);	return;
-		case Operation::LES:	if constexpr (data_size == DataSize::Word) Primitive::ld<Source::ES>(instruction, destination_w(), context);	return;
+		case Operation::LDS:
+			if constexpr (data_size == DataSize::Word) Primitive::ld<Source::DS>(instruction, destination_w(), context);
+		return;
+		case Operation::LES:
+			if constexpr (data_size == DataSize::Word) Primitive::ld<Source::ES>(instruction, destination_w(), context);
+		return;
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
 		case Operation::MOV:	Primitive::mov<IntT>(destination_w(), source_r());				break;
@@ -285,7 +295,8 @@ template <
 				Primitive::setmo<IntT>(destination_w(), context);
 				break;
 			} else {
-				// TODO.
+				// TODO: perform ENTER as of the 80186.
+				static_assert(int(Operation::SETMO) == int(Operation::ENTER));
 			}
 		return;
 		case Operation::SETMOC:
@@ -297,12 +308,13 @@ template <
 				}
 				break;
 			} else {
-				// TODO.
+				// TODO: perform BOUND as of the 80186.
+				static_assert(int(Operation::SETMOC) == int(Operation::BOUND));
 			}
 		return;
 
 		case Operation::OUT: Primitive::out<IntT>(port(instruction.destination().source()), pair_low(), context);	return;
-		case Operation::IN:	 Primitive::in<IntT>(port(instruction.source().source()), pair_low(), context);		return;
+		case Operation::IN:	 Primitive::in<IntT>(port(instruction.source().source()), pair_low(), context);			return;
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
@@ -372,10 +384,19 @@ template <
 
 	// Write to memory if required to complete this operation.
 	//
-	// TODO: can I eliminate this with some RAII magic?
+	// This is not currently handled via RAII because of the amount of context that would need to place onto the stack;
+	// instead code has been set up to make sure there is only at most one writeable target on loan for potential
+	// write back. I might flip-flop on this, especially if I can verify whether extra stack context is easily
+	// optimised out.
 	context.memory.template write_back<IntT>();
 }
 
+//
+// Public function; just a trampoline into a version of perform templated on data and address size.
+//
+// Which, yes, means there's an outer switch leading to an inner switch, which could be reduced to one big switch.
+// It'd be a substantial effort to find the most neat expression of that, I think, so it is not currently done.
+//
 template <
 	typename InstructionT,
 	typename ContextT

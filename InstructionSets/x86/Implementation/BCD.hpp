@@ -16,7 +16,10 @@
 namespace InstructionSet::x86::Primitive {
 
 template <typename ContextT>
-void aaa(CPU::RegisterPair16 &ax, ContextT &context) {	// P. 313
+void aaa(
+	CPU::RegisterPair16 &ax,
+	ContextT &context
+) {	// P. 313
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 			THEN
@@ -45,7 +48,11 @@ void aaa(CPU::RegisterPair16 &ax, ContextT &context) {	// P. 313
 }
 
 template <typename ContextT>
-void aad(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
+void aad(
+	CPU::RegisterPair16 &ax,
+	uint8_t imm,
+	ContextT &context
+) {
 	/*
 		tempAL ← AL;
 		tempAH ← AH;
@@ -62,7 +69,11 @@ void aad(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
 }
 
 template <typename ContextT>
-void aam(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
+void aam(
+	CPU::RegisterPair16 &ax,
+	uint8_t imm,
+	ContextT &context
+) {
 	/*
 		tempAL ← AL;
 		AH ← tempAL / imm8; (* imm8 is set to 0AH for the AAD mnemonic *)
@@ -86,7 +97,10 @@ void aam(CPU::RegisterPair16 &ax, uint8_t imm, ContextT &context) {
 }
 
 template <typename ContextT>
-void aas(CPU::RegisterPair16 &ax, ContextT &context) {
+void aas(
+	CPU::RegisterPair16 &ax,
+	ContextT &context
+) {
 	/*
 		IF ((AL AND 0FH) > 9) OR (AF = 1)
 		THEN
@@ -115,7 +129,10 @@ void aas(CPU::RegisterPair16 &ax, ContextT &context) {
 }
 
 template <typename ContextT>
-void daa(uint8_t &al, ContextT &context) {
+void daa(
+	uint8_t &al,
+	ContextT &context
+) {
 	/*
 		(as modified by https://www.felixcloutier.com/x86/daa ...)
 
@@ -167,7 +184,10 @@ void daa(uint8_t &al, ContextT &context) {
 }
 
 template <typename ContextT>
-void das(uint8_t &al, ContextT &context) {
+void das(
+	uint8_t &al,
+	ContextT &context
+) {
 	/*
 		(as modified by https://www.felixcloutier.com/x86/daa ...)
 
