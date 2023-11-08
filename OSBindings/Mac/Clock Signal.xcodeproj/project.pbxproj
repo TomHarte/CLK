@@ -1129,6 +1129,15 @@
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		42437B382ACF2798006DFED1 /* PerformImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PerformImplementation.hpp; sourceTree = "<group>"; };
 		42437B392AD07465006DFED1 /* Interrupts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Interrupts.hpp; sourceTree = "<group>"; };
+		425739282AFBDF2700B7D1E4 /* Arithmetic.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Arithmetic.hpp; sourceTree = "<group>"; };
+		425739292AFBE03600B7D1E4 /* Logical.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Logical.hpp; sourceTree = "<group>"; };
+		4257392A2AFBE0AE00B7D1E4 /* ShiftRoll.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ShiftRoll.hpp; sourceTree = "<group>"; };
+		4257392B2AFBE16000B7D1E4 /* FlowControl.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FlowControl.hpp; sourceTree = "<group>"; };
+		4257392C2AFBE18900B7D1E4 /* Stack.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Stack.hpp; sourceTree = "<group>"; };
+		4257392D2AFBE27C00B7D1E4 /* BCD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BCD.hpp; sourceTree = "<group>"; };
+		4257392E2AFBE2BC00B7D1E4 /* Repetition.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Repetition.hpp; sourceTree = "<group>"; };
+		4257392F2AFBE36B00B7D1E4 /* LoadStore.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LoadStore.hpp; sourceTree = "<group>"; };
+		425739302AFBE47700B7D1E4 /* InOut.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = InOut.hpp; sourceTree = "<group>"; };
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
@@ -2329,8 +2338,17 @@
 		42437B372ACF2798006DFED1 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
+				425739282AFBDF2700B7D1E4 /* Arithmetic.hpp */,
+				4257392D2AFBE27C00B7D1E4 /* BCD.hpp */,
+				4257392B2AFBE16000B7D1E4 /* FlowControl.hpp */,
+				425739302AFBE47700B7D1E4 /* InOut.hpp */,
+				4257392F2AFBE36B00B7D1E4 /* LoadStore.hpp */,
+				425739292AFBE03600B7D1E4 /* Logical.hpp */,
 				42437B382ACF2798006DFED1 /* PerformImplementation.hpp */,
+				4257392E2AFBE2BC00B7D1E4 /* Repetition.hpp */,
 				42AA41242AF8893F0016751C /* Resolver.hpp */,
+				4257392A2AFBE0AE00B7D1E4 /* ShiftRoll.hpp */,
+				4257392C2AFBE18900B7D1E4 /* Stack.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
