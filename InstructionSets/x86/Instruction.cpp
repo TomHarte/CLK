@@ -506,7 +506,12 @@ std::string InstructionSet::x86::to_string(
 		default: {
 			const int operands = max_displayed_operands(instruction.second.operation());
 			const bool displacement = has_displacement(instruction.second.operation());
-			const bool print_first = operands > 1 && instruction.second.destination().source() != Source::None;
+			const bool print_first =
+				instruction.second.destination().source() != Source::None &&
+				(
+					operands > 1  ||
+					(operands > 0 && instruction.second.source().source() == Source::None)
+				);
 			if(print_first) {
 				operation += to_string(instruction.second.destination(), instruction.second, offset_length, immediate_length);
 			}

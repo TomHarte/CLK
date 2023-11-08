@@ -163,19 +163,19 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			PartialBlock(0x20, AND);								break;
 			case 0x26: segment_override_ = Source::ES;				break;
-			case 0x27: Complete(DAA, eAX, eAX, DataSize::Byte);		break;
+			case 0x27: Complete(DAA, None, None, DataSize::Byte);	break;
 
 			PartialBlock(0x28, SUB);								break;
 			case 0x2e: segment_override_ = Source::CS;				break;
-			case 0x2f: Complete(DAS, eAX, eAX, DataSize::Byte);		break;
+			case 0x2f: Complete(DAS, None, None, DataSize::Byte);	break;
 
 			PartialBlock(0x30, XOR);								break;
 			case 0x36: segment_override_ = Source::SS;				break;
-			case 0x37: Complete(AAA, eAX, eAX, DataSize::Word);		break;
+			case 0x37: Complete(AAA, None, None, DataSize::Word);	break;
 
 			PartialBlock(0x38, CMP);								break;
 			case 0x3e: segment_override_ = Source::DS;				break;
-			case 0x3f: Complete(AAS, eAX, eAX, DataSize::Word);		break;
+			case 0x3f: Complete(AAS, None, None, DataSize::Word);	break;
 
 #undef PartialBlock
 
@@ -361,8 +361,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x96: Complete(XCHG, eAX, eSI, data_size_);		break;
 			case 0x97: Complete(XCHG, eAX, eDI, data_size_);		break;
 
-			case 0x98: Complete(CBW, eAX, AH, data_size_);			break;
-			case 0x99: Complete(CWD, eAX, eDX, data_size_);			break;
+			case 0x98: Complete(CBW, None, None, data_size_);		break;
+			case 0x99: Complete(CWD, None, None, data_size_);		break;
 			case 0x9a: Far(CALLfar);								break;
 			case 0x9b: Complete(WAIT, None, None, DataSize::Byte);	break;
 			case 0x9c: Complete(PUSHF, None, None, data_size_);		break;
