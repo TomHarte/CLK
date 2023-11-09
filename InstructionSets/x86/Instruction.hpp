@@ -470,6 +470,9 @@ enum class Source: uint8_t {
 	/// getter is used).
 	IndirectNoBase = Indirect - 1,
 };
+constexpr bool is_register(Source source) {
+	return source < Source::None;
+}
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE, Rep,
