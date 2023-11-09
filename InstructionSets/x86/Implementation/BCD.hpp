@@ -15,67 +15,21 @@
 
 namespace InstructionSet::x86::Primitive {
 
-template <typename ContextT>
-void aaa(
-	CPU::RegisterPair16 &ax,
-	ContextT &context
-) {	// P. 313
-	/*
-		IF ((AL AND 0FH) > 9) OR (AF = 1)
-			THEN
-				AL ← (AL + 6);
-				AH ← AH + 1;
-				AF ← 1;
-				CF ← 1;
-			ELSE
-				AF ← 0;
-				CF ← 0;
-			FI;
-		AL ← AL AND 0FH;
-	*/
-	/*
-		The AF and CF flags are set to 1 if the adjustment results in a decimal carry;
-		otherwise they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
-	*/
-	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		ax.halves.low += 6;
-		++ax.halves.high;
-		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
-	} else {
-		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
-	}
-	ax.halves.low &= 0x0f;
-}
-
-
-template <typename ContextT>
-void aas(
+/// If @c add is @c true, performs an AAA; otherwise perfoms an AAS.
+template <bool add, typename ContextT>
+void aaas(
 	CPU::RegisterPair16 &ax,
 	ContextT &context
 ) {
-	/*
-		IF ((AL AND 0FH) > 9) OR (AF = 1)
-		THEN
-			AL ← AL – 6;
-			AH ← AH – 1;
-			AF ← 1;
-			CF ← 1;
-		ELSE
-			CF ← 0;
-			AF ← 0;
-		FI;
-		AL ← AL AND 0FH;
-	*/
-	/*
-		The AF and CF flags are set to 1 if there is a decimal borrow;
-		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
-	*/
 	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		ax.halves.low -= 6;
-		--ax.halves.high;
+		if constexpr (add) {
+			ax.halves.low += 6;
+			++ax.halves.high;
+		} else {
+			ax.halves.low -= 6;
+			--ax.halves.high;
+		}
 		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
-	} else {
-		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
