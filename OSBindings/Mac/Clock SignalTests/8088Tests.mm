@@ -572,10 +572,6 @@ struct FailedExecution {
 
 	execution_support.clear();
 
-	if([test[@"test_hash"] isEqualTo:@"503062cab62a583b2884554dfd332d01ab4cc7355b49a1b0523fcbf3e22777a4"]) {
-		printf("");
-	}
-
 	const uint16_t flags_mask = metadata[@"flags-mask"] ? [metadata[@"flags-mask"] intValue] : 0xffff;
 	NSDictionary *const initial_state = test[@"initial"];
 	NSDictionary *const final_state = test[@"final"];
