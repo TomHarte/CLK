@@ -227,7 +227,7 @@ void div(
 	destination_high = dividend % source;
 }
 
-template <typename IntT, typename ContextT>
+template <bool invert, typename IntT, typename ContextT>
 void idiv(
 	modify_t<IntT> destination_high,
 	modify_t<IntT> destination_low,
@@ -279,7 +279,14 @@ void idiv(
 	// TEMPORARY HACK. Will not work with DWords.
 	using sIntT = typename std::make_signed<IntT>::type;
 	const int32_t dividend = (sIntT(destination_high) << (8 * sizeof(IntT))) + destination_low;
-	const auto result = dividend / sIntT(source);
+	auto result = dividend / sIntT(source);
+
+	// An 8086 quirk: rep IDIV performs an IDIV that switches the sign on its result,
+	// due to reuse of an internal flag.
+	if constexpr (invert) {
+		result = -result;
+	}
+
 	if(sIntT(result) != result) {
 		interrupt(Interrupt::DivideError, context);
 		return;
