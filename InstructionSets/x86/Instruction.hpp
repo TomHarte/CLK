@@ -231,6 +231,8 @@ enum class Operation: uint8_t {
 	SETMOC,
 	/// Set destination to ~0.
 	SETMO,
+	/// Perform an IDIV and negative the result.
+	IDIV_REP,
 
 	//
 	// 80186 additions.
@@ -474,8 +476,15 @@ enum class Repetition: uint8_t {
 };
 
 /// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
+template <Model model>
 constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 	switch(operation) {
+		case Operation::IDIV:
+			if constexpr (model == Model::i8086) {
+				return repetition != Repetition::None ? Operation::IDIV_REP : Operation::IDIV;
+			}
+		[[fallthrough]];
+
 		default: return operation;
 
 		case Operation::INS:

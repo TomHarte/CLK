@@ -105,14 +105,15 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 		case Operation::HLT:	return "hlt";
 		case Operation::WAIT:	return "wait";
 
-		case Operation::ADC:	return "adc";
-		case Operation::ADD:	return "add";
-		case Operation::SBB:	return "sbb";
-		case Operation::SUB:	return "sub";
-		case Operation::MUL:	return "mul";
-		case Operation::IMUL_1:	return "imul";
-		case Operation::DIV:	return "div";
-		case Operation::IDIV:	return "idiv";
+		case Operation::ADC:		return "adc";
+		case Operation::ADD:		return "add";
+		case Operation::SBB:		return "sbb";
+		case Operation::SUB:		return "sub";
+		case Operation::MUL:		return "mul";
+		case Operation::IMUL_1:		return "imul";
+		case Operation::DIV:		return "div";
+		case Operation::IDIV:		return "idiv";
+		case Operation::IDIV_REP:	return "idiv";
 
 		case Operation::INC:	return "inc";
 		case Operation::DEC:	return "dec";

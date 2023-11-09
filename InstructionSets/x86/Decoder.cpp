@@ -33,7 +33,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 /// Sets the operation and verifies that the current repetition, if any, is compatible, discarding it otherwise.
 #define SetOperation(op)	\
-	operation_ = rep_operation(op, repetition_);
+	operation_ = rep_operation<model>(op, repetition_);
 
 /// Helper macro for those that follow.
 #define SetOpSrcDestSize(op, src, dest, size)	\

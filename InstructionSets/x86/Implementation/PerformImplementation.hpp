@@ -207,10 +207,11 @@ template <
 			Primitive::test<IntT>(destination_r(), source_r(), context);
 		return;
 
-		case Operation::MUL:	Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::IMUL_1:	Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
-		case Operation::DIV:	Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::IDIV:	Primitive::idiv<IntT>(pair_high(), pair_low(), source_r(), context);		return;
+		case Operation::MUL:		Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::IMUL_1:		Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
+		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
+		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
+		case Operation::IDIV_REP:	Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);	return;
 
 		case Operation::INC:	Primitive::inc<IntT>(destination_rmw(), context);		break;
 		case Operation::DEC:	Primitive::dec<IntT>(destination_rmw(), context);		break;
