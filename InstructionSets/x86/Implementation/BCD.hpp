@@ -162,22 +162,15 @@ void daa(
 		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
 	*/
 	const uint8_t old_al = al;
-	const auto old_carry = context.flags.template flag<Flag::Carry>();
-	context.flags.template set_from<Flag::Carry>(0);
 
 	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		context.flags.template set_from<Flag::Carry>(old_carry | (al > 0xf9));
 		al += 0x06;
 		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
-	} else {
-		context.flags.template set_from<Flag::AuxiliaryCarry>(0);
 	}
 
-	if(old_al > 0x99 || old_carry) {
+	if(old_al > 0x99 || context.flags.template flag<Flag::Carry>()) {
 		al += 0x60;
 		context.flags.template set_from<Flag::Carry>(1);
-	} else {
-		context.flags.template set_from<Flag::Carry>(0);
 	}
 
 	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
