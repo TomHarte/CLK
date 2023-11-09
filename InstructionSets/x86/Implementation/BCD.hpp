@@ -158,55 +158,21 @@ void das(
 	uint8_t &al,
 	ContextT &context
 ) {
-	/*
-		(as modified by https://www.felixcloutier.com/x86/daa ...)
-
-        old_AL ← AL;
-        old_CF ← CF;
-        CF ← 0;
-
-		IF (((AL AND 0FH) > 9) or AF = 1)
-			THEN
-				AL ← AL - 6;
-				CF ← old_CF OR CarryFromLastAddition; (* CF OR borrow from AL ← AL - 6 *)
-				AF ← 1;
-			ELSE
-				AF ← 0;
-		FI;
-		IF ((old_AL > 99H) or old_CF = 1)
-			THEN
-				AL ← AL - 60H;
-				CF ← 1;
-			ELSE
-				CF ← 0;
-		FI;
-	*/
-	/*
-		The CF and AF flags are set if the adjustment of the value results in a
-		decimal carry in either digit of the result (see the “Operation” section above).
-		The SF, ZF, and PF flags are set according to the result. The OF flag is undefined.
-	*/
 	const uint8_t old_al = al;
-	const auto old_carry = context.flags.template flag<Flag::Carry>();
-	context.flags.template set_from<Flag::Carry>(0);
 
 	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		context.flags.template set_from<Flag::Carry>(old_carry | (al < 0x06));
 		al -= 0x06;
 		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
-	} else {
-		context.flags.template set_from<Flag::AuxiliaryCarry>(0);
 	}
 
-	if(old_al > 0x99 || old_carry) {
+	if(old_al > 0x99 || context.flags.template flag<Flag::Carry>()) {
 		al -= 0x60;
 		context.flags.template set_from<Flag::Carry>(1);
-	} else {
-		context.flags.template set_from<Flag::Carry>(0);
 	}
 
 	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
+
 
 }
 
