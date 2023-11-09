@@ -179,8 +179,8 @@ template <
 		case Operation::AAD:	Primitive::aad(context.registers.axp(), instruction.operand(), context);	return;
 		case Operation::AAM:	Primitive::aam(context.registers.axp(), instruction.operand(), context);	return;
 		case Operation::AAS:	Primitive::aas(context.registers.axp(), context);							return;
-		case Operation::DAA:	Primitive::daa(context.registers.al(), context);							return;
-		case Operation::DAS:	Primitive::das(context.registers.al(), context);							return;
+		case Operation::DAA:	Primitive::daas<true>(context.registers.al(), context);						return;
+		case Operation::DAS:	Primitive::daas<false>(context.registers.al(), context);					return;
 
 		case Operation::CBW:	Primitive::cbw(pair_low());					return;
 		case Operation::CWD:	Primitive::cwd(pair_high(), pair_low());	return;

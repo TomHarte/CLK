@@ -47,6 +47,39 @@ void aaa(
 	ax.halves.low &= 0x0f;
 }
 
+
+template <typename ContextT>
+void aas(
+	CPU::RegisterPair16 &ax,
+	ContextT &context
+) {
+	/*
+		IF ((AL AND 0FH) > 9) OR (AF = 1)
+		THEN
+			AL ← AL – 6;
+			AH ← AH – 1;
+			AF ← 1;
+			CF ← 1;
+		ELSE
+			CF ← 0;
+			AF ← 0;
+		FI;
+		AL ← AL AND 0FH;
+	*/
+	/*
+		The AF and CF flags are set to 1 if there is a decimal borrow;
+		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
+	*/
+	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
+		ax.halves.low -= 6;
+		--ax.halves.high;
+		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
+	} else {
+		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
+	}
+	ax.halves.low &= 0x0f;
+}
+
 template <typename ContextT>
 void aad(
 	CPU::RegisterPair16 &ax,
@@ -96,40 +129,9 @@ void aam(
 	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(ax.halves.low);
 }
 
-template <typename ContextT>
-void aas(
-	CPU::RegisterPair16 &ax,
-	ContextT &context
-) {
-	/*
-		IF ((AL AND 0FH) > 9) OR (AF = 1)
-		THEN
-			AL ← AL – 6;
-			AH ← AH – 1;
-			AF ← 1;
-			CF ← 1;
-		ELSE
-			CF ← 0;
-			AF ← 0;
-		FI;
-		AL ← AL AND 0FH;
-	*/
-	/*
-		The AF and CF flags are set to 1 if there is a decimal borrow;
-		otherwise, they are cleared to 0. The OF, SF, ZF, and PF flags are undefined.
-	*/
-	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		ax.halves.low -= 6;
-		--ax.halves.high;
-		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
-	} else {
-		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(0);
-	}
-	ax.halves.low &= 0x0f;
-}
-
-template <typename ContextT>
-void daa(
+/// If @c add is @c true, performs a DAA; otherwise perfoms a DAS.
+template <bool add, typename ContextT>
+void daas(
 	uint8_t &al,
 	ContextT &context
 ) {
@@ -141,38 +143,17 @@ void daa(
 	}
 
 	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		al += 0x06;
+		if constexpr (add) al += 0x06; else al -= 0x06;
 		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
 	}
 
 	if(top_exceeded_threshold || context.flags.template flag<Flag::Carry>()) {
-		al += 0x60;
+		if constexpr (add) al += 0x60; else al -= 0x60;
 		context.flags.template set_from<Flag::Carry>(1);
 	}
 
 	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
 }
-
-template <typename ContextT>
-void das(
-	uint8_t &al,
-	ContextT &context
-) {
-	const uint8_t old_al = al;
-
-	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		al -= 0x06;
-		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
-	}
-
-	if(old_al > 0x99 || context.flags.template flag<Flag::Carry>()) {
-		al -= 0x60;
-		context.flags.template set_from<Flag::Carry>(1);
-	}
-
-	context.flags.template set_from<uint8_t, Flag::Zero, Flag::Sign, Flag::ParityOdd>(al);
-}
-
 
 }
 
