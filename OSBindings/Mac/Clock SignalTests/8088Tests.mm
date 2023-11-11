@@ -348,6 +348,7 @@ class FlowController {
 
 		void jump(uint16_t segment, uint16_t address) {
 			registers_.cs_ = segment;
+			registers_.did_update(Registers::Source::CS);
 			registers_.ip_ = address;
 		}
 

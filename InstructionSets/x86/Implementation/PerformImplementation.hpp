@@ -246,10 +246,16 @@ template <
 		case Operation::LAHF:	Primitive::lahf(context.registers.ah(), context);		return;
 
 		case Operation::LDS:
-			if constexpr (data_size == DataSize::Word) Primitive::ld<Source::DS>(instruction, destination_w(), context);
+			if constexpr (data_size == DataSize::Word) {
+				Primitive::ld<Source::DS>(instruction, destination_w(), context);
+				context.registers.did_update(Source::DS);
+			}
 		return;
 		case Operation::LES:
-			if constexpr (data_size == DataSize::Word) Primitive::ld<Source::ES>(instruction, destination_w(), context);
+			if constexpr (data_size == DataSize::Word) {
+				Primitive::ld<Source::ES>(instruction, destination_w(), context);
+				context.registers.did_update(Source::ES);
+			}
 		return;
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
