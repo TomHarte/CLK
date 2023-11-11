@@ -703,6 +703,7 @@ struct FailedExecution {
 			non_exception_registers.sp() = execution_support.registers.sp();
 			non_exception_registers.ax() = execution_support.registers.ax();
 			non_exception_registers.cs() = execution_support.registers.cs();
+			non_exception_registers.cs_base_ = execution_support.registers.cs_base_;
 
 			if(non_exception_registers == execution_support.registers) {
 				failure_list = &permitted_failures;
