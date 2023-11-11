@@ -103,7 +103,11 @@ struct Registers {
 			cs_ == rhs.cs_ &&
 			ds_ == rhs.ds_ &&
 			si_ == rhs.si_ &&
-			ip_ == rhs.ip_;
+			ip_ == rhs.ip_ &&
+			es_base_ == rhs.es_base_ &&
+			cs_base_ == rhs.cs_base_ &&
+			ds_base_ == rhs.ds_base_ &&
+			ss_base_ == rhs.ss_base_;
 	}
 };
 struct Memory {
