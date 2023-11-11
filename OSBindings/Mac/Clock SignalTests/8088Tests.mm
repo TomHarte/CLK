@@ -249,15 +249,13 @@ struct Memory {
 		}
 
 		uint32_t segment_base(InstructionSet::x86::Source segment) {
-			uint32_t physical_address;
 			using Source = InstructionSet::x86::Source;
 			switch(segment) {
-				default:			physical_address = registers_.ds_;	break;
-				case Source::ES:	physical_address = registers_.es_;	break;
-				case Source::CS:	physical_address = registers_.cs_;	break;
-				case Source::SS:	physical_address = registers_.ss_;	break;
+				default:			return registers_.ds_base_;
+				case Source::ES:	return registers_.es_base_;
+				case Source::CS:	return registers_.cs_base_;
+				case Source::SS:	return registers_.ss_base_;
 			}
-			return physical_address << 4;
 		}
 
 		uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
@@ -555,6 +553,11 @@ struct FailedExecution {
 	registers.sp_ = [value[@"sp"] intValue];
 	registers.ss_ = [value[@"ss"] intValue];
 	registers.ip_ = [value[@"ip"] intValue];
+
+	registers.did_update(Registers::Source::ES);
+	registers.did_update(Registers::Source::CS);
+	registers.did_update(Registers::Source::DS);
+	registers.did_update(Registers::Source::SS);
 
 	const uint16_t flags_value = [value[@"flags"] intValue];
 	flags.set(flags_value);

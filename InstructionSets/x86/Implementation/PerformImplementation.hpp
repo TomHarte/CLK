@@ -256,7 +256,7 @@ template <
 		case Operation::MOV:
 			Primitive::mov<IntT>(destination_w(), source_r());
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.registers.did_update(instruction.destination.source());
+				context.registers.did_update(instruction.destination().source());
 			}
 		break;
 
@@ -327,7 +327,7 @@ template <
 		case Operation::POP:
 			destination_w() = Primitive::pop<IntT, false>(context);
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.registers.did_update(instruction.destination.source());
+				context.registers.did_update(instruction.destination().source());
 			}
 		break;
 		case Operation::PUSH:
