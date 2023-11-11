@@ -79,6 +79,7 @@ struct Registers {
 	uint16_t &ss()	{	return ss_;				}
 
 	using Source = InstructionSet::x86::Source;
+	/// Posted by @c perform after any operation which *might* have affected a segment register.
 	void did_update(Source segment) {
 		switch(segment) {
 			default: break;
