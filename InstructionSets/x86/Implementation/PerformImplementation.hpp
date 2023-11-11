@@ -246,14 +246,25 @@ template <
 		case Operation::LAHF:	Primitive::lahf(context.registers.ah(), context);		return;
 
 		case Operation::LDS:
-			if constexpr (data_size == DataSize::Word) Primitive::ld<Source::DS>(instruction, destination_w(), context);
+			if constexpr (data_size == DataSize::Word) {
+				Primitive::ld<Source::DS>(instruction, destination_w(), context);
+				context.registers.did_update(Source::DS);
+			}
 		return;
 		case Operation::LES:
-			if constexpr (data_size == DataSize::Word) Primitive::ld<Source::ES>(instruction, destination_w(), context);
+			if constexpr (data_size == DataSize::Word) {
+				Primitive::ld<Source::ES>(instruction, destination_w(), context);
+				context.registers.did_update(Source::ES);
+			}
 		return;
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
-		case Operation::MOV:	Primitive::mov<IntT>(destination_w(), source_r());				break;
+		case Operation::MOV:
+			Primitive::mov<IntT>(destination_w(), source_r());
+			if constexpr (std::is_same_v<IntT, uint16_t>) {
+				context.registers.did_update(instruction.destination().source());
+			}
+		break;
 
 		case Operation::JO:		jcc(context.flags.template condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!context.flags.template condition<Condition::Overflow>());		return;
@@ -319,7 +330,12 @@ template <
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
-		case Operation::POP:	destination_w() = Primitive::pop<IntT, false>(context);	break;
+		case Operation::POP:
+			destination_w() = Primitive::pop<IntT, false>(context);
+			if constexpr (std::is_same_v<IntT, uint16_t>) {
+				context.registers.did_update(instruction.destination().source());
+			}
+		break;
 		case Operation::PUSH:
 			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
 																	// hence PUSH is sometimes read-modify-write.

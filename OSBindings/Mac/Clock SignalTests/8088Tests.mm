@@ -68,6 +68,7 @@ struct Registers {
 	uint16_t &di()	{	return di_;				}
 
 	uint16_t es_, cs_, ds_, ss_;
+	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
 
 	uint16_t ip_;
 	uint16_t &ip()	{	return ip_;				}
@@ -76,6 +77,18 @@ struct Registers {
 	uint16_t &cs()	{	return cs_;				}
 	uint16_t &ds()	{	return ds_;				}
 	uint16_t &ss()	{	return ss_;				}
+
+	using Source = InstructionSet::x86::Source;
+	/// Posted by @c perform after any operation which *might* have affected a segment register.
+	void did_update(Source segment) {
+		switch(segment) {
+			default: break;
+			case Source::ES:	es_base_ = es_ << 4;	break;
+			case Source::CS:	cs_base_ = cs_ << 4;	break;
+			case Source::DS:	ds_base_ = ds_ << 4;	break;
+			case Source::SS:	ss_base_ = ss_ << 4;	break;
+		}
+	}
 
 	bool operator ==(const Registers &rhs) const {
 		return
@@ -91,7 +104,11 @@ struct Registers {
 			cs_ == rhs.cs_ &&
 			ds_ == rhs.ds_ &&
 			si_ == rhs.si_ &&
-			ip_ == rhs.ip_;
+			ip_ == rhs.ip_ &&
+			es_base_ == rhs.es_base_ &&
+			cs_base_ == rhs.cs_base_ &&
+			ds_base_ == rhs.ds_base_ &&
+			ss_base_ == rhs.ss_base_;
 	}
 };
 struct Memory {
@@ -237,15 +254,13 @@ struct Memory {
 		}
 
 		uint32_t segment_base(InstructionSet::x86::Source segment) {
-			uint32_t physical_address;
 			using Source = InstructionSet::x86::Source;
 			switch(segment) {
-				default:			physical_address = registers_.ds_;	break;
-				case Source::ES:	physical_address = registers_.es_;	break;
-				case Source::CS:	physical_address = registers_.cs_;	break;
-				case Source::SS:	physical_address = registers_.ss_;	break;
+				default:			return registers_.ds_base_;
+				case Source::ES:	return registers_.es_base_;
+				case Source::CS:	return registers_.cs_base_;
+				case Source::SS:	return registers_.ss_base_;
 			}
-			return physical_address << 4;
 		}
 
 		uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
@@ -271,7 +286,7 @@ struct Memory {
 		}
 
 		// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
-		// to a selector, they're just at an absolute location.
+		// to a segment, they're just at an absolute location.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
 			if constexpr (type == AccessType::PreauthorisedRead) {
@@ -334,6 +349,7 @@ class FlowController {
 
 		void jump(uint16_t segment, uint16_t address) {
 			registers_.cs_ = segment;
+			registers_.did_update(Registers::Source::CS);
 			registers_.ip_ = address;
 		}
 
@@ -395,9 +411,9 @@ struct FailedExecution {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
 		// Current execution failures, albeit all permitted:
-		@"D4.json.gz",		// AAM
-		@"F6.7.json.gz",	// IDIV byte
-		@"F7.7.json.gz",	// IDIV word
+//		@"D4.json.gz",		// AAM
+//		@"F6.7.json.gz",	// IDIV byte
+//		@"F7.7.json.gz",	// IDIV word
 	]];
 
 	NSSet *ignoreList = nil;
@@ -544,6 +560,11 @@ struct FailedExecution {
 	registers.ss_ = [value[@"ss"] intValue];
 	registers.ip_ = [value[@"ip"] intValue];
 
+	registers.did_update(Registers::Source::ES);
+	registers.did_update(Registers::Source::CS);
+	registers.did_update(Registers::Source::DS);
+	registers.did_update(Registers::Source::SS);
+
 	const uint16_t flags_value = [value[@"flags"] intValue];
 	flags.set(flags_value);
 
@@ -682,6 +703,7 @@ struct FailedExecution {
 			non_exception_registers.sp() = execution_support.registers.sp();
 			non_exception_registers.ax() = execution_support.registers.ax();
 			non_exception_registers.cs() = execution_support.registers.cs();
+			non_exception_registers.cs_base_ = execution_support.registers.cs_base_;
 
 			if(non_exception_registers == execution_support.registers) {
 				failure_list = &permitted_failures;
@@ -692,10 +714,6 @@ struct FailedExecution {
 	// LEA from a register is undefined behaviour and throws on processors beyond the 8086.
 	if(decoded.second.operation() == Operation::LEA && InstructionSet::x86::is_register(decoded.second.source().source())) {
 		failure_list = &permitted_failures;
-	}
-
-	if(failure_list == &execution_failures) {
-		printf("Fail: %d\n", int(decoded.second.operation()));
 	}
 
 	// Record a failure.
