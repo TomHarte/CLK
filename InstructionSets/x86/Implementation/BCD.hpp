@@ -30,6 +30,8 @@ void aaas(
 			--ax.halves.high;
 		}
 		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);
+	} else {
+		context.flags.template set_from<Flag::Carry>(0);
 	}
 	ax.halves.low &= 0x0f;
 }
