@@ -68,6 +68,7 @@ struct Registers {
 	uint16_t &di()	{	return di_;				}
 
 	uint16_t es_, cs_, ds_, ss_;
+	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
 
 	uint16_t ip_;
 	uint16_t &ip()	{	return ip_;				}
@@ -76,6 +77,17 @@ struct Registers {
 	uint16_t &cs()	{	return cs_;				}
 	uint16_t &ds()	{	return ds_;				}
 	uint16_t &ss()	{	return ss_;				}
+
+	using Source = InstructionSet::x86::Source;
+	void did_update(Source segment) {
+		switch(segment) {
+			default: break;
+			case Source::ES:	es_base_ = es_ << 4;	break;
+			case Source::CS:	cs_base_ = cs_ << 4;	break;
+			case Source::DS:	ds_base_ = ds_ << 4;	break;
+			case Source::SS:	ss_base_ = ss_ << 4;	break;
+		}
+	}
 
 	bool operator ==(const Registers &rhs) const {
 		return
@@ -395,9 +407,9 @@ struct FailedExecution {
 	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
 	NSSet *allowList = [NSSet setWithArray:@[
 		// Current execution failures, albeit all permitted:
-		@"D4.json.gz",		// AAM
-		@"F6.7.json.gz",	// IDIV byte
-		@"F7.7.json.gz",	// IDIV word
+//		@"D4.json.gz",		// AAM
+//		@"F6.7.json.gz",	// IDIV byte
+//		@"F7.7.json.gz",	// IDIV word
 	]];
 
 	NSSet *ignoreList = nil;
@@ -692,10 +704,6 @@ struct FailedExecution {
 	// LEA from a register is undefined behaviour and throws on processors beyond the 8086.
 	if(decoded.second.operation() == Operation::LEA && InstructionSet::x86::is_register(decoded.second.source().source())) {
 		failure_list = &permitted_failures;
-	}
-
-	if(failure_list == &execution_failures) {
-		printf("Fail: %d\n", int(decoded.second.operation()));
 	}
 
 	// Record a failure.

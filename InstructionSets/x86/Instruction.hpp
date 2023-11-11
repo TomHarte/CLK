@@ -444,7 +444,7 @@ enum class Source: uint8_t {
 	T0 = 0, T1 = 1, T2 = 2, T3 = 3, T4 = 4, T5 = 5, T6 = 6, T7 = 7,
 	D0 = 0, D1 = 1, D2 = 2, D3 = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7,
 
-	// Selectors.
+	// Segment registers.
 	ES, CS, SS, DS, FS, GS,
 
 	/// @c None can be treated as a source that produces 0 when encountered;
@@ -472,6 +472,9 @@ enum class Source: uint8_t {
 };
 constexpr bool is_register(Source source) {
 	return source < Source::None;
+}
+constexpr bool is_segment_register(Source source) {
+	return is_register(source) && source >= Source::ES;
 }
 
 enum class Repetition: uint8_t {
