@@ -285,7 +285,7 @@ struct Memory {
 		}
 
 		// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
-		// to a selector, they're just at an absolute location.
+		// to a segment, they're just at an absolute location.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
 			if constexpr (type == AccessType::PreauthorisedRead) {
