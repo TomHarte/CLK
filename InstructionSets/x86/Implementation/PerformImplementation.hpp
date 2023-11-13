@@ -211,7 +211,15 @@ template <
 		case Operation::IMUL_1:		Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
 		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
-		case Operation::IDIV_REP:	Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);	return;
+		case Operation::IDIV_REP:
+			if constexpr (ContextT::model == Model::i8086) {
+				Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);
+				break;
+			} else {
+				// TODO: perform LEAVE as of the 80186.
+				static_assert(int(Operation::IDIV_REP) == int(Operation::LEAVE));
+			}
+		return;
 
 		case Operation::INC:	Primitive::inc<IntT>(destination_rmw(), context);		break;
 		case Operation::DEC:	Primitive::dec<IntT>(destination_rmw(), context);		break;
