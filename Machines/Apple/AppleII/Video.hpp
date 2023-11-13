@@ -215,16 +215,16 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			// Calculate the address.
 			uint16_t read_address = uint16_t(get_row_address(mapped_row) + mapped_column - 25);
 
-			if(hbl) {
-				// Wraparound addressing within 128 byte sections.
-				if(mapped_row < 64) {
-					read_address += 128;
-				}
+			// Wraparound addressing within 128 byte sections.
+			if(mapped_row < 64 && mapped_column < 25) {
+				read_address += 128;
+			}
 
+			if(hbl && !is_iie_) {
 				// On Apple II and II+ (not IIe or later) in text/lores mode (not hires), horizontal
 				// blanking bytes read from $1000 higher.
 				const GraphicsMode pixel_mode = graphics_mode(mapped_row);
-				if(!is_iie_ && ((pixel_mode == GraphicsMode::Text) || (pixel_mode == GraphicsMode::LowRes))) {
+				if((pixel_mode == GraphicsMode::Text) || (pixel_mode == GraphicsMode::LowRes)) {
 					read_address += 0x1000;
 				}
 			}
