@@ -22,13 +22,13 @@ void push(
 	IntT &value,
 	ContextT &context
 ) {
-	context.registers.sp_ -= sizeof(IntT);
+	context.registers.sp() -= sizeof(IntT);
 	if constexpr (preauthorised) {
-		context.memory.template preauthorised_write<IntT>(Source::SS, context.registers.sp_, value);
+		context.memory.template preauthorised_write<IntT>(Source::SS, context.registers.sp(), value);
 	} else {
 		context.memory.template access<IntT, AccessType::Write>(
 			Source::SS,
-			context.registers.sp_) = value;
+			context.registers.sp()) = value;
 	}
 	context.memory.template write_back<IntT>();
 }
@@ -39,8 +39,8 @@ IntT pop(
 ) {
 	const auto value = context.memory.template access<IntT, preauthorised ? AccessType::PreauthorisedRead : AccessType::Read>(
 		Source::SS,
-		context.registers.sp_);
-	context.registers.sp_ += sizeof(IntT);
+		context.registers.sp());
+	context.registers.sp() += sizeof(IntT);
 	return value;
 }
 
@@ -144,12 +144,49 @@ void pusha(
 	}
 }
 
+template <typename IntT, typename InstructionT, typename ContextT>
+void enter(
+	const InstructionT &instruction,
+	ContextT &context
+) {
+	// TODO: all non-16bit address sizes.
+	const auto alloc_size = instruction.dynamic_storage_size();
+	const auto nesting_level = instruction.nesting_level() & 0x1f;
+
+	// Preauthorse contents that'll be fetched via BP.
+	const auto copied_pointers = nesting_level - 2;
+	if(copied_pointers > 0) {
+		context.memory.preauthorise_read(
+			Source::SS,
+			context.registers.bp() - copied_pointers * sizeof(uint16_t),
+			copied_pointers * sizeof(uint16_t)
+		);
+	}
+
+	// Preauthorse stack activity.
+	context.memory.preauthorise_stack_write((1 + copied_pointers) * sizeof(uint16_t));
+
+	// Push BP and grab the end of frame.
+	push<uint16_t, true>(context.registers.bp(), context);
+	const auto frame = context.registers.sp();
+
+	// Copy data as per the nesting level.
+	for(int c = 1; c < nesting_level; c++) {
+		context.registers.bp() -= 2;
+
+		const auto value = context.memory.template preauthorised_read<uint16_t>(Source::SS, context.registers.bp());
+		push<uint16_t, true>(value);
+	}
+
+	// Set final BP.
+	context.registers.bp() = frame;
+}
+
 template <typename IntT, typename ContextT>
 void leave(
 	ContextT &context
 ) {
 	// TODO: should use StackAddressSize to determine assignment of bp to sp.
-	// Probably make that a static constexpr on registers.
 	if constexpr (std::is_same_v<IntT, uint32_t>) {
 		context.registers.esp() = context.registers.ebp();
 		context.registers.ebp() = pop<uint32_t, false>(context);

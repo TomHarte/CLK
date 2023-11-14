@@ -317,8 +317,8 @@ template <
 				Primitive::setmo<IntT>(destination_w(), context);
 				break;
 			} else {
-				// TODO: perform ENTER as of the 80186.
 				static_assert(int(Operation::SETMO) == int(Operation::ENTER));
+				Primitive::enter<IntT>(instruction, context);
 			}
 		return;
 		case Operation::SETMOC:

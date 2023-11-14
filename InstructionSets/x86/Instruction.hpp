@@ -245,8 +245,8 @@ enum class Operation: uint8_t {
 	/// Raises a bounds exception if not.
 	BOUND = SETMOC,
 
-	/// Create stack frame. See operand() for the nesting level and offset()
-	/// for the dynamic storage size.
+	/// Create stack frame. See the Instruction getters `nesting_level()`
+	/// and `dynamic_storage_size()`.
 	ENTER,
 	/// Procedure exit; copies BP to SP, then pops a new BP from the stack.
 	LEAVE,
@@ -815,6 +815,11 @@ template<bool is_32bit> class Instruction {
 			return ops[has_operand()];
 		}
 
+		/// @returns The nesting level argument supplied to an ENTER.
+		constexpr ImmediateT nesting_level() const	{
+			return operand();
+		}
+
 		/// @returns The immediate segment value provided with this instruction, if any. Relevant for far calls and jumps; e.g.  `JMP 1234h:5678h` will
 		/// have a segment value of `1234h`.
 		constexpr uint16_t segment() const		{
@@ -831,6 +836,11 @@ template<bool is_32bit> class Instruction {
 		/// has an offset of `19h`.
 		constexpr DisplacementT displacement() const {
 			return DisplacementT(offset());
+		}
+
+		/// @returns The dynamic storage size argument supplied to an ENTER.
+		constexpr ImmediateT dynamic_storage_size() const	{
+			return displacement();
 		}
 
 		// Standard comparison operator.
