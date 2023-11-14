@@ -95,27 +95,25 @@ template <typename IntT, typename ContextT>
 void popa(
 	ContextT &context
 ) {
-	if constexpr (!std::is_same_v<IntT, uint8_t>) {
-		context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
-		if constexpr (std::is_same_v<IntT, uint32_t>) {
-			context.registers.edi() = pop<uint32_t, true>(context);
-			context.registers.esi() = pop<uint32_t, true>(context);
-			context.registers.ebp() = pop<uint32_t, true>(context);
-			context.registers.esp() += 4;
-			context.registers.ebx() = pop<uint32_t, true>(context);
-			context.registers.edx() = pop<uint32_t, true>(context);
-			context.registers.ecx() = pop<uint32_t, true>(context);
-			context.registers.eax() = pop<uint32_t, true>(context);
-		} else {
-			context.registers.di() = pop<uint16_t, true>(context);
-			context.registers.si() = pop<uint16_t, true>(context);
-			context.registers.bp() = pop<uint16_t, true>(context);
-			context.registers.sp() += 2;
-			context.registers.bx() = pop<uint16_t, true>(context);
-			context.registers.dx() = pop<uint16_t, true>(context);
-			context.registers.cx() = pop<uint16_t, true>(context);
-			context.registers.ax() = pop<uint16_t, true>(context);
-		}
+	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
+	if constexpr (std::is_same_v<IntT, uint32_t>) {
+		context.registers.edi() = pop<uint32_t, true>(context);
+		context.registers.esi() = pop<uint32_t, true>(context);
+		context.registers.ebp() = pop<uint32_t, true>(context);
+		context.registers.esp() += 4;
+		context.registers.ebx() = pop<uint32_t, true>(context);
+		context.registers.edx() = pop<uint32_t, true>(context);
+		context.registers.ecx() = pop<uint32_t, true>(context);
+		context.registers.eax() = pop<uint32_t, true>(context);
+	} else {
+		context.registers.di() = pop<uint16_t, true>(context);
+		context.registers.si() = pop<uint16_t, true>(context);
+		context.registers.bp() = pop<uint16_t, true>(context);
+		context.registers.sp() += 2;
+		context.registers.bx() = pop<uint16_t, true>(context);
+		context.registers.dx() = pop<uint16_t, true>(context);
+		context.registers.cx() = pop<uint16_t, true>(context);
+		context.registers.ax() = pop<uint16_t, true>(context);
 	}
 }
 
@@ -123,28 +121,26 @@ template <typename IntT, typename ContextT>
 void pusha(
 	ContextT &context
 ) {
-	if constexpr (!std::is_same_v<IntT, uint8_t>) {
-		context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
-		IntT initial_sp = context.registers.sp();
-		if constexpr (std::is_same_v<IntT, uint32_t>) {
-			push<uint32_t, true>(context.registers.eax(), context);
-			push<uint32_t, true>(context.registers.ecx(), context);
-			push<uint32_t, true>(context.registers.edx(), context);
-			push<uint32_t, true>(context.registers.ebx(), context);
-			push<uint32_t, true>(initial_sp, context);
-			push<uint32_t, true>(context.registers.ebp(), context);
-			push<uint32_t, true>(context.registers.esi(), context);
-			push<uint32_t, true>(context.registers.esi(), context);
-		} else {
-			push<uint16_t, true>(context.registers.ax(), context);
-			push<uint16_t, true>(context.registers.cx(), context);
-			push<uint16_t, true>(context.registers.dx(), context);
-			push<uint16_t, true>(context.registers.bx(), context);
-			push<uint16_t, true>(initial_sp, context);
-			push<uint16_t, true>(context.registers.bp(), context);
-			push<uint16_t, true>(context.registers.si(), context);
-			push<uint16_t, true>(context.registers.si(), context);
-	}
+	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
+	IntT initial_sp = context.registers.sp();
+	if constexpr (std::is_same_v<IntT, uint32_t>) {
+		push<uint32_t, true>(context.registers.eax(), context);
+		push<uint32_t, true>(context.registers.ecx(), context);
+		push<uint32_t, true>(context.registers.edx(), context);
+		push<uint32_t, true>(context.registers.ebx(), context);
+		push<uint32_t, true>(initial_sp, context);
+		push<uint32_t, true>(context.registers.ebp(), context);
+		push<uint32_t, true>(context.registers.esi(), context);
+		push<uint32_t, true>(context.registers.esi(), context);
+	} else {
+		push<uint16_t, true>(context.registers.ax(), context);
+		push<uint16_t, true>(context.registers.cx(), context);
+		push<uint16_t, true>(context.registers.dx(), context);
+		push<uint16_t, true>(context.registers.bx(), context);
+		push<uint16_t, true>(initial_sp, context);
+		push<uint16_t, true>(context.registers.bp(), context);
+		push<uint16_t, true>(context.registers.si(), context);
+		push<uint16_t, true>(context.registers.si(), context);
 	}
 }
 

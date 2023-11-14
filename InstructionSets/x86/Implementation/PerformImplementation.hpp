@@ -256,13 +256,13 @@ template <
 		case Operation::LDS:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::DS>(instruction, destination_w(), context);
-				context.registers.did_update(Source::DS);
+				context.segments.did_update(Source::DS);
 			}
 		return;
 		case Operation::LES:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::ES>(instruction, destination_w(), context);
-				context.registers.did_update(Source::ES);
+				context.segments.did_update(Source::ES);
 			}
 		return;
 
@@ -270,7 +270,7 @@ template <
 		case Operation::MOV:
 			Primitive::mov<IntT>(destination_w(), source_r());
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.registers.did_update(instruction.destination().source());
+				context.segments.did_update(instruction.destination().source());
 			}
 		break;
 
@@ -341,7 +341,7 @@ template <
 		case Operation::POP:
 			destination_w() = Primitive::pop<IntT, false>(context);
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.registers.did_update(instruction.destination().source());
+				context.segments.did_update(instruction.destination().source());
 			}
 		break;
 		case Operation::PUSH:
@@ -349,10 +349,26 @@ template <
 																	// hence PUSH is sometimes read-modify-write.
 		break;
 
-		case Operation::POPF:	Primitive::popf(context);			return;
-		case Operation::PUSHF:	Primitive::pushf(context);			return;
-		case Operation::POPA:	Primitive::popa<IntT>(context);		return;
-		case Operation::PUSHA:	Primitive::pusha<IntT>(context);	return;
+		case Operation::POPF:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::popf(context);
+			}
+		return;
+		case Operation::PUSHF:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::pushf(context);
+			}
+		return;
+		case Operation::POPA:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::popa<IntT>(context);
+			}
+		return;
+		case Operation::PUSHA:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::pusha<IntT>(context);
+			}
+		return;
 
 		case Operation::CMPS:
 			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), context);
