@@ -348,8 +348,11 @@ template <
 			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
 																	// hence PUSH is sometimes read-modify-write.
 		break;
-		case Operation::POPF:	Primitive::popf(context);								return;
-		case Operation::PUSHF:	Primitive::pushf(context);								return;
+
+		case Operation::POPF:	Primitive::popf(context);			return;
+		case Operation::PUSHF:	Primitive::pushf(context);			return;
+		case Operation::POPA:	Primitive::popa<IntT>(context);		return;
+		case Operation::PUSHA:	Primitive::pusha<IntT>(context);	return;
 
 		case Operation::CMPS:
 			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), context);
