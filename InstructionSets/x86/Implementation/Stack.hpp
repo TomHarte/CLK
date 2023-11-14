@@ -144,6 +144,21 @@ void pusha(
 	}
 }
 
+template <typename IntT, typename ContextT>
+void leave(
+	ContextT &context
+) {
+	// TODO: should use StackAddressSize to determine assignment of bp to sp.
+	// Probably make that a static constexpr on registers.
+	if constexpr (std::is_same_v<IntT, uint32_t>) {
+		context.registers.esp() = context.registers.ebp();
+		context.registers.ebp() = pop<uint32_t, false>(context);
+	} else {
+		context.registers.sp() = context.registers.bp();
+		context.registers.bp() = pop<uint16_t, false>(context);
+	}
+}
+
 }
 
 #endif /* Stack_hpp */

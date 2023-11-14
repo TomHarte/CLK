@@ -216,8 +216,10 @@ template <
 				Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);
 				break;
 			} else {
-				// TODO: perform LEAVE as of the 80186.
 				static_assert(int(Operation::IDIV_REP) == int(Operation::LEAVE));
+				if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+					Primitive::leave<IntT>();
+				}
 			}
 		return;
 
