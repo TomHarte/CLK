@@ -328,8 +328,8 @@ template <
 				}
 				break;
 			} else {
-				// TODO: perform BOUND as of the 80186.
 				static_assert(int(Operation::SETMOC) == int(Operation::BOUND));
+				Primitive::bound<IntT>(instruction, destination_r(), source_r(), context);
 			}
 		return;
 
