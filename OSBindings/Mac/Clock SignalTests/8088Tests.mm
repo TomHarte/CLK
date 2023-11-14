@@ -127,10 +127,10 @@ class Segments {
 
 		bool operator ==(const Segments &rhs) const {
 			return
-				es_base_ != rhs.es_base_ &&
-				cs_base_ != rhs.cs_base_ &&
-				ds_base_ != rhs.ds_base_ &&
-				ss_base_ != rhs.ss_base_;
+				es_base_ == rhs.es_base_ &&
+				cs_base_ == rhs.cs_base_ &&
+				ds_base_ == rhs.ds_base_ &&
+				ss_base_ == rhs.ss_base_;
 		}
 
 	private:
