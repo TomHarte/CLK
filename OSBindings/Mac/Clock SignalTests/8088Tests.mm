@@ -33,71 +33,75 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 
 using Flags = InstructionSet::x86::Flags;
 struct Registers {
-	CPU::RegisterPair16 ax_;
-	uint8_t &al()	{	return ax_.halves.low;	}
-	uint8_t &ah()	{	return ax_.halves.high;	}
-	uint16_t &ax()	{	return ax_.full;		}
+	public:
+		static constexpr bool is_32bit = false;
 
-	CPU::RegisterPair16 &axp()	{	return ax_;	}
+		uint8_t &al()	{	return ax_.halves.low;	}
+		uint8_t &ah()	{	return ax_.halves.high;	}
+		uint16_t &ax()	{	return ax_.full;		}
 
-	CPU::RegisterPair16 cx_;
-	uint8_t &cl()	{	return cx_.halves.low;	}
-	uint8_t &ch()	{	return cx_.halves.high;	}
-	uint16_t &cx()	{	return cx_.full;		}
+		CPU::RegisterPair16 &axp()	{	return ax_;	}
 
-	CPU::RegisterPair16 dx_;
-	uint8_t &dl()	{	return dx_.halves.low;	}
-	uint8_t &dh()	{	return dx_.halves.high;	}
-	uint16_t &dx()	{	return dx_.full;		}
+		uint8_t &cl()	{	return cx_.halves.low;	}
+		uint8_t &ch()	{	return cx_.halves.high;	}
+		uint16_t &cx()	{	return cx_.full;		}
 
-	CPU::RegisterPair16 bx_;
-	uint8_t &bl()	{	return bx_.halves.low;	}
-	uint8_t &bh()	{	return bx_.halves.high;	}
-	uint16_t &bx()	{	return bx_.full;		}
+		uint8_t &dl()	{	return dx_.halves.low;	}
+		uint8_t &dh()	{	return dx_.halves.high;	}
+		uint16_t &dx()	{	return dx_.full;		}
 
-	uint16_t sp_;
-	uint16_t &sp()	{	return sp_;				}
+		uint8_t &bl()	{	return bx_.halves.low;	}
+		uint8_t &bh()	{	return bx_.halves.high;	}
+		uint16_t &bx()	{	return bx_.full;		}
 
-	uint16_t bp_;
-	uint16_t &bp()	{	return bp_;				}
+		uint16_t &sp()	{	return sp_;				}
+		uint16_t &bp()	{	return bp_;				}
+		uint16_t &si()	{	return si_;				}
+		uint16_t &di()	{	return di_;				}
 
-	uint16_t si_;
-	uint16_t &si()	{	return si_;				}
+		uint16_t ip_;
+		uint16_t &ip()	{	return ip_;				}
 
-	uint16_t di_;
-	uint16_t &di()	{	return di_;				}
+		uint16_t &es()	{	return es_;				}
+		uint16_t &cs()	{	return cs_;				}
+		uint16_t &ds()	{	return ds_;				}
+		uint16_t &ss()	{	return ss_;				}
 
-	uint16_t es_, cs_, ds_, ss_;
+		const uint16_t es() const	{	return es_;				}
+		const uint16_t cs() const	{	return cs_;				}
+		const uint16_t ds() const	{	return ds_;				}
+		const uint16_t ss() const	{	return ss_;				}
 
-	uint16_t ip_;
-	uint16_t &ip()	{	return ip_;				}
+		bool operator ==(const Registers &rhs) const {
+			return
+				ax_.full == rhs.ax_.full &&
+				cx_.full == rhs.cx_.full &&
+				dx_.full == rhs.dx_.full &&
+				bx_.full == rhs.bx_.full &&
+				sp_ == rhs.sp_ &&
+				bp_ == rhs.bp_ &&
+				si_ == rhs.si_ &&
+				di_ == rhs.di_ &&
+				es_ == rhs.es_ &&
+				cs_ == rhs.cs_ &&
+				ds_ == rhs.ds_ &&
+				si_ == rhs.si_ &&
+				ip_ == rhs.ip_;
+		}
 
-	uint16_t &es()	{	return es_;				}
-	uint16_t &cs()	{	return cs_;				}
-	uint16_t &ds()	{	return ds_;				}
-	uint16_t &ss()	{	return ss_;				}
+		// TODO: make the below private and use a friend class for test population, to ensure Perform
+		// is free of direct accesses.
+//	private:
+		CPU::RegisterPair16 ax_;
+		CPU::RegisterPair16 cx_;
+		CPU::RegisterPair16 dx_;
+		CPU::RegisterPair16 bx_;
 
-	const uint16_t es() const	{	return es_;				}
-	const uint16_t cs() const	{	return cs_;				}
-	const uint16_t ds() const	{	return ds_;				}
-	const uint16_t ss() const	{	return ss_;				}
-
-	bool operator ==(const Registers &rhs) const {
-		return
-			ax_.full == rhs.ax_.full &&
-			cx_.full == rhs.cx_.full &&
-			dx_.full == rhs.dx_.full &&
-			bx_.full == rhs.bx_.full &&
-			sp_ == rhs.sp_ &&
-			bp_ == rhs.bp_ &&
-			si_ == rhs.si_ &&
-			di_ == rhs.di_ &&
-			es_ == rhs.es_ &&
-			cs_ == rhs.cs_ &&
-			ds_ == rhs.ds_ &&
-			si_ == rhs.si_ &&
-			ip_ == rhs.ip_;
-	}
+		uint16_t sp_;
+		uint16_t bp_;
+		uint16_t si_;
+		uint16_t di_;
+		uint16_t es_, cs_, ds_, ss_;
 };
 class Segments {
 	public:
@@ -163,14 +167,14 @@ struct Memory {
 		// Preauthorisation call-ins.
 		//
 		void preauthorise_stack_write(uint32_t length) {
-			uint16_t sp = registers_.sp_;
+			uint16_t sp = registers_.sp();
 			while(length--) {
 				--sp;
 				preauthorise(InstructionSet::x86::Source::SS, sp);
 			}
 		}
 		void preauthorise_stack_read(uint32_t length) {
-			uint16_t sp = registers_.sp_;
+			uint16_t sp = registers_.sp();
 			while(length--) {
 				preauthorise(InstructionSet::x86::Source::SS, sp);
 				++sp;
@@ -261,7 +265,7 @@ struct Memory {
 		std::unordered_set<uint32_t> preauthorisations;
 		std::unordered_map<uint32_t, Tag> tags;
 		std::vector<uint8_t> memory;
-		const Registers &registers_;
+		Registers &registers_;
 		const Segments &segments_;
 
 		void preauthorise(uint32_t address) {
