@@ -205,6 +205,18 @@ struct Memory {
 			*reinterpret_cast<uint16_t *>(&memory[target]) = value;
 		}
 
+		//
+		// Helper for instruction fetch.
+		//
+		std::pair<const uint8_t *, size_t> next_code() {
+			const uint32_t start = segments_.cs_base_ + registers_.ip();
+			return std::make_pair(&memory[start], 0x10'000 - start);
+		}
+
+		std::pair<const uint8_t *, size_t> all() {
+			return std::make_pair(memory.data(), 0x10'000);
+		}
+
 	private:
 		std::vector<uint8_t> memory;
 		Registers &registers_;
@@ -314,8 +326,27 @@ class ConcreteMachine:
 		void run_for([[maybe_unused]] const Cycles cycles) override {
 			auto instructions = cycles.as_integral();
 			while(instructions--) {
-//				const auto decoded = decoder.decode(data.data(), data.size());
+				// Get the next thing to execute into decoded.
+				if(!context.flow_controller.should_repeat()) {
+					// Decode from the current IP.
+					const auto remainder = context.memory.next_code();
+					decoded = decoder.decode(remainder.first, remainder.second);
 
+					// If that didn't yield a whole instruction then the end of memory must have been hit;
+					// continue from the beginning.
+					if(decoded.first <= 0) {
+						const auto all = context.memory.all();
+						decoded = decoder.decode(all.first, all.second);
+					}
+				} else {
+					context.flow_controller.begin_instruction();
+				}
+
+				// Execute it.
+				InstructionSet::x86::perform(
+					decoded.second,
+					context
+				);
 			}
 		}
 
@@ -349,6 +380,7 @@ class ConcreteMachine:
 			static constexpr auto model = InstructionSet::x86::Model::i8086;
 		} context;
 		InstructionSet::x86::Decoder<Context::model> decoder;
+		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 };
 
 
