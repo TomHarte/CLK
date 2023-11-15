@@ -567,6 +567,8 @@ Description::Description(Name name) {
 		case Name::OricMicrodisc:		*this = Description(name, "Oric", "the Oric Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9cu);	break;
 		case Name::Oric8DOSBoot:		*this = Description(name, "Oric", "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u);				break;
 
+		case Name::PCCompatibleGLaBIOS:		*this = Description(name, "PCCompatible", "8088 GLaBIOS 0.2.5", "GLABIOS_0.2.5_8T.ROM", 8 * 1024, 0x9576944cu);		break;
+
 		// TODO: CRCs below are incomplete, at best.
 		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
 		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);	break;

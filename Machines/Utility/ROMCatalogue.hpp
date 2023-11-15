@@ -132,6 +132,9 @@ enum Name {
 	OricMicrodisc,
 	Oric8DOSBoot,
 
+	// PCCompatible.
+	PCCompatibleGLaBIOS,
+
 	// Sinclair QL.
 	SinclairQLJS,
 

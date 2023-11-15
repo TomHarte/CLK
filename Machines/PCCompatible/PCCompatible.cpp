@@ -25,9 +25,18 @@ class ConcreteMachine:
 		) {
 			// This is actually a MIPS count; try 3 million.
 			set_clock_rate(3'000'000);
+
+			// Fetch the BIOS. [8088 only, for now]
+			ROM::Request request = ROM::Request(ROM::Name::PCCompatibleGLaBIOS);
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
+				throw ROMMachine::Error::MissingROMs;
+			}
 		}
 
 		void run_for([[maybe_unused]] const Cycles cycles) override {}
+
+	private:
 };
 
 
