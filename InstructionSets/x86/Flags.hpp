@@ -82,8 +82,8 @@ class Flags {
 		using FlagT = uint32_t;
 
 		// Flag getters.
-		template <Flag flag> bool flag() const {
-			switch(flag) {
+		template <Flag flag_v> bool flag() const {
+			switch(flag_v) {
 				case Flag::Carry:			return carry_;
 				case Flag::AuxiliaryCarry:	return auxiliary_carry_;
 				case Flag::Sign:			return sign_;
