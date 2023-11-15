@@ -59,7 +59,6 @@ struct Registers {
 		uint16_t &si()	{	return si_;				}
 		uint16_t &di()	{	return di_;				}
 
-		uint16_t ip_;
 		uint16_t &ip()	{	return ip_;				}
 
 		uint16_t &es()	{	return es_;				}
@@ -89,9 +88,7 @@ struct Registers {
 				ip_ == rhs.ip_;
 		}
 
-		// TODO: make the below private and use a friend class for test population, to ensure Perform
-		// is free of direct accesses.
-//	private:
+	private:
 		CPU::RegisterPair16 ax_;
 		CPU::RegisterPair16 cx_;
 		CPU::RegisterPair16 dx_;
@@ -102,6 +99,7 @@ struct Registers {
 		uint16_t si_;
 		uint16_t di_;
 		uint16_t es_, cs_, ds_, ss_;
+		uint16_t ip_;
 };
 class Segments {
 	public:
@@ -369,18 +367,18 @@ struct IO {
 };
 class FlowController {
 	public:
-		FlowController(Memory &memory, Registers &registers, Segments &segments, Flags &flags) :
-			memory_(memory), registers_(registers), segments_(segments), flags_(flags) {}
+		FlowController(Registers &registers, Segments &segments) :
+			registers_(registers), segments_(segments) {}
 
 		// Requirements for perform.
 		void jump(uint16_t address) {
-			registers_.ip_ = address;
+			registers_.ip() = address;
 		}
 
 		void jump(uint16_t segment, uint16_t address) {
-			registers_.cs_ = segment;
+			registers_.cs() = segment;
 			segments_.did_update(Segments::Source::CS);
-			registers_.ip_ = address;
+			registers_.ip() = address;
 		}
 
 		void halt() {}
@@ -399,10 +397,8 @@ class FlowController {
 		}
 
 	private:
-		Memory &memory_;
 		Registers &registers_;
 		Segments &segments_;
-		Flags &flags_;
 		bool should_repeat_ = false;
 };
 
@@ -418,7 +414,7 @@ struct ExecutionSupport {
 	ExecutionSupport():
 		memory(registers, segments),
 		segments(registers),
-		flow_controller(memory, registers, segments, flags) {}
+		flow_controller(registers, segments) {}
 
 	void clear() {
 		memory.clear();
@@ -580,20 +576,20 @@ struct FailedExecution {
 }
 
 - (void)populate:(Registers &)registers flags:(Flags &)flags value:(NSDictionary *)value {
-	registers.ax_.full = [value[@"ax"] intValue];
-	registers.bx_.full = [value[@"bx"] intValue];
-	registers.cx_.full = [value[@"cx"] intValue];
-	registers.dx_.full = [value[@"dx"] intValue];
+	registers.ax() = [value[@"ax"] intValue];
+	registers.bx() = [value[@"bx"] intValue];
+	registers.cx() = [value[@"cx"] intValue];
+	registers.dx() = [value[@"dx"] intValue];
 
-	registers.bp_ = [value[@"bp"] intValue];
-	registers.cs_ = [value[@"cs"] intValue];
-	registers.di_ = [value[@"di"] intValue];
-	registers.ds_ = [value[@"ds"] intValue];
-	registers.es_ = [value[@"es"] intValue];
-	registers.si_ = [value[@"si"] intValue];
-	registers.sp_ = [value[@"sp"] intValue];
-	registers.ss_ = [value[@"ss"] intValue];
-	registers.ip_ = [value[@"ip"] intValue];
+	registers.bp() = [value[@"bp"] intValue];
+	registers.cs() = [value[@"cs"] intValue];
+	registers.di() = [value[@"di"] intValue];
+	registers.ds() = [value[@"ds"] intValue];
+	registers.es() = [value[@"es"] intValue];
+	registers.si() = [value[@"si"] intValue];
+	registers.sp() = [value[@"sp"] intValue];
+	registers.ss() = [value[@"ss"] intValue];
+	registers.ip() = [value[@"ip"] intValue];
 
 	const uint16_t flags_value = [value[@"flags"] intValue];
 	flags.set(flags_value);
@@ -646,7 +642,7 @@ struct FailedExecution {
 	//
 	// TODO: enquire of the actual mechanism of repetition; if it were stateful as below then
 	// would it survive interrupts? So is it just IP adjustment?
-	execution_support.registers.ip_ += decoded.first;
+	execution_support.registers.ip() += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
 		InstructionSet::x86::perform(
@@ -718,7 +714,7 @@ struct FailedExecution {
 	// More research required, but for now I'm not treating this as a roadblock.
 	if(decoded.second.operation() == Operation::IDIV_REP) {
 		Registers advanced_registers = intended_registers;
-		advanced_registers.ip_ += decoded.first;
+		advanced_registers.ip() += decoded.first;
 		if(advanced_registers == execution_support.registers && ramEqual && flagsEqual) {
 			failure_list = &permitted_failures;
 		}
