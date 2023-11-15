@@ -163,7 +163,7 @@ class Flags {
 			set_from<Flag::Interrupt>(value & FlagValue::Interrupt);
 			set_from<Flag::Direction>(value & FlagValue::Direction);
 
-			set_from<uint8_t, Flag::Sign>(value);
+			set_from<uint8_t, Flag::Sign>(uint8_t(value));
 
 			set_from<Flag::Zero>((~value) & FlagValue::Zero);
 			set_from<Flag::ParityOdd>((~value) & FlagValue::Parity);

@@ -25,6 +25,7 @@ enum class Machine {
 	MasterSystem,
 	MSX,
 	Oric,
+	PCCompatible,
 	Vic20,
 	ZX8081,
 	ZXSpectrum,

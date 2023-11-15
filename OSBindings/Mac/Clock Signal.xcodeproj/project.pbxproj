@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		423BDC4A2AB24699008E37B6 /* 8088Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 423BDC492AB24699008E37B6 /* 8088Tests.mm */; };
 		42437B332AC70833006DFED1 /* HDV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6FD0342923061300EC4760 /* HDV.cpp */; };
+		425739382B051EA800B7D1E4 /* PCCompatible.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 425739372B051EA800B7D1E4 /* PCCompatible.cpp */; };
+		425739392B051EA800B7D1E4 /* PCCompatible.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 425739372B051EA800B7D1E4 /* PCCompatible.cpp */; };
 		4281683A2A37AFB4008ECD27 /* DispatcherTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 428168392A37AFB4008ECD27 /* DispatcherTests.mm */; };
 		42A5E80C2ABBE04600A0DD5D /* NeskellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A5E80B2ABBE04600A0DD5D /* NeskellTests.swift */; };
 		42A5E8442ABBE16F00A0DD5D /* illegal_rmw_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8332ABBE16F00A0DD5D /* illegal_rmw_test.bin */; };
@@ -1138,6 +1140,8 @@
 		4257392E2AFBE2BC00B7D1E4 /* Repetition.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Repetition.hpp; sourceTree = "<group>"; };
 		4257392F2AFBE36B00B7D1E4 /* LoadStore.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LoadStore.hpp; sourceTree = "<group>"; };
 		425739302AFBE47700B7D1E4 /* InOut.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = InOut.hpp; sourceTree = "<group>"; };
+		425739362B051EA800B7D1E4 /* PCCompatible.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCCompatible.hpp; sourceTree = "<group>"; };
+		425739372B051EA800B7D1E4 /* PCCompatible.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCCompatible.cpp; sourceTree = "<group>"; };
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
@@ -2351,6 +2355,15 @@
 				4257392C2AFBE18900B7D1E4 /* Stack.hpp */,
 			);
 			path = Implementation;
+			sourceTree = "<group>";
+		};
+		425739352B051EA800B7D1E4 /* PCCompatible */ = {
+			isa = PBXGroup;
+			children = (
+				425739362B051EA800B7D1E4 /* PCCompatible.hpp */,
+				425739372B051EA800B7D1E4 /* PCCompatible.cpp */,
+			);
+			path = PCCompatible;
 			sourceTree = "<group>";
 		};
 		42A5E8322ABBE16F00A0DD5D /* Neskell Tests */ = {
@@ -4475,6 +4488,7 @@
 				4B7F188B2154825D00388727 /* MasterSystem */,
 				4B79A4FC1FC8FF9800EEDAD5 /* MSX */,
 				4BCF1FA51DADC3E10039D2E7 /* Oric */,
+				425739352B051EA800B7D1E4 /* PCCompatible */,
 				4B0F1BC92602F17B00B85C66 /* Sinclair */,
 				4B2B3A461F9B8FA70062DABF /* Utility */,
 			);
@@ -5733,6 +5747,7 @@
 				4BD424E62193B5830097291A /* Shader.cpp in Sources */,
 				4BC080CB26A238CC00D03FD8 /* AmigaADF.cpp in Sources */,
 				4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */,
+				425739392B051EA800B7D1E4 /* PCCompatible.cpp in Sources */,
 				4B055AC31FAE9AE80060FFFF /* AmstradCPC.cpp in Sources */,
 				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
 				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
@@ -5951,6 +5966,7 @@
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */,
 				4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */,
+				425739382B051EA800B7D1E4 /* PCCompatible.cpp in Sources */,
 				4BB8616E24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */,
 				4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */,
 				4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */,
