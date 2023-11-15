@@ -272,6 +272,16 @@
 	return self;
 }
 
+- (instancetype)initWithPCCompatibleModel:(CSPCCompatibleModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Target;
+		auto target = std::make_unique<Target>(Analyser::Machine::PCCompatible);
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model {
 	self = [super init];
 	if(self) {

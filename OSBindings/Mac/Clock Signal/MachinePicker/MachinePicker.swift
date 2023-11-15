@@ -396,6 +396,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
 
+			case "pc":
+				return CSStaticAnalyser(pcCompatibleModel: .turboXT)
+
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a
 				switch spectrumModelTypeButton.selectedTag() {
