@@ -240,13 +240,13 @@ enum class Operation: uint8_t {
 
 	/// Checks whether the signed value in the destination register is within the bounds
 	/// stored at the location indicated by the source register, which will point to two
-	/// 16- or 32-bit words, the first being a signed lower bound and the signed upper.
+	/// 16- or 32-bit words, the first being a signed lower bound and the second
+	/// a signed upper.
 	/// Raises a bounds exception if not.
 	BOUND = SETMOC,
 
-
-	/// Create stack frame. See operand() for the nesting level and offset()
-	/// for the dynamic storage size.
+	/// Create stack frame. See the Instruction getters `nesting_level()`
+	/// and `dynamic_storage_size()`.
 	ENTER,
 	/// Procedure exit; copies BP to SP, then pops a new BP from the stack.
 	LEAVE,
@@ -272,42 +272,70 @@ enum class Operation: uint8_t {
 	// 80286 additions.
 	//
 
-	// TODO: expand detail on all operations below.
-
-	/// Adjusts requested privilege level.
+	/// Read a segment selector from the destination and one from the source.
+	/// If the destination RPL is less than the source, set ZF and set the destination RPL to the source.
+	/// Otherwise clear ZF and don't modify the destination selector.
 	ARPL,
-	/// Clears the task-switched flag.
+	/// Clears the task-switched flag in CR0.
 	CLTS,
 	/// Loads access rights.
 	LAR,
 
-	/// Loads the global descriptor table.
+	/// Loads the global descriptor table register from the source.
+	/// 32-bit operand: read a 16-bit limit followed by a 32-bit base.
+	/// 16-bit operand: read a 16-bit limit followed by a 24-bit base.
 	LGDT,
-	/// Loads the interrupt descriptor table.
-	LIDT,
-	/// Loads the local descriptor table.
-	LLDT,
-	/// Stores the global descriptor table.
+	/// Stores the global descriptor table register at the destination;
+	/// Always stores a 16-bit limit followed by a 32-bit base though
+	/// the highest byte may be zero.
 	SGDT,
-	/// Stores the interrupt descriptor table.
+
+	/// Loads the interrupt descriptor table register from the source.
+	/// 32-bit operand: read a 16-bit limit followed by a 32-bit base.
+	/// 16-bit operand: read a 16-bit limit followed by a 24-bit base.
+	LIDT,
+	/// Stores the interrupt descriptor table register at the destination.
+	/// Always stores a 16-bit limit followed by a 32-bit base though
+	/// the highest byte may be zero.
 	SIDT,
-	/// Stores the local descriptor table.
+
+	/// Loads the local descriptor table register.
+	/// The source will contain a segment selector pointing into the local descriptor table.
+	/// That selector is loaded into the local descriptor table register, along with the corresponding
+	///  segment limit and base from the global descriptor table.
+	LLDT,
+	/// Stores the local descriptor table register.
 	SLDT,
 
-	/// Verifies a segment for reading.
+	/// Verifies the segment indicated by source for reading, setting ZF.
+	///
+	/// ZF is set if: (i) the selector is not null; (ii) the selector is within GDT or LDT bounds;
+	/// (iii) the selector points to code or data; (iv) the segment is readable;
+	/// (v) the segment is either a conforming code segment, or the segment's DPL
+	/// is greater than or equal to both the CPL and the selector's RPL.
+	///
+	/// Otherwise ZF is clear.
 	VERR,
-	/// Verifies a segment for writing.
+	/// Verifies a segment for writing. Operates as per VERR but checks for writeability
+	/// rather than readability.
 	VERW,
 
-	/// Loads the machine status word.
+	/// Loads a 16-bit value from source into the machine status word.
+	/// The low order four bits of the source are copied into CR0, with the caveat
+	/// that if PE is set, the processor will enter protected mode, but if PE is clear
+	/// then there will be no change in protected mode.
+	///
+	/// Usurped in function by MOV CR0 as of the 80286.
 	LMSW,
-	/// Stores the machine status word.
+	/// Stores the machine status word, i.e. copies the low 16 bits of CR0 into the destination.
 	SMSW,
-	/// Loads a segment limit
+
+	/// Load the segment limit from descriptor specified by source into destination,
+	/// setting ZF if successful.
 	LSL,
-	/// Loads the task register.
+	/// Load the source operand into the segment selector field of the task register.
 	LTR,
-	/// Stores the task register.
+	/// Store the segment seleector of the task register into the destination.
 	STR,
 
 	/// Three-operand form of IMUL; multiply the immediate by the source and write to the destination.
@@ -319,6 +347,8 @@ enum class Operation: uint8_t {
 	//
 	// 80386 additions.
 	//
+
+	// TODO: expand detail on all operations below.
 
 	/// Loads a pointer to FS.
 	LFS,
@@ -785,6 +815,11 @@ template<bool is_32bit> class Instruction {
 			return ops[has_operand()];
 		}
 
+		/// @returns The nesting level argument supplied to an ENTER.
+		constexpr ImmediateT nesting_level() const	{
+			return operand();
+		}
+
 		/// @returns The immediate segment value provided with this instruction, if any. Relevant for far calls and jumps; e.g.  `JMP 1234h:5678h` will
 		/// have a segment value of `1234h`.
 		constexpr uint16_t segment() const		{
@@ -801,6 +836,11 @@ template<bool is_32bit> class Instruction {
 		/// has an offset of `19h`.
 		constexpr DisplacementT displacement() const {
 			return DisplacementT(offset());
+		}
+
+		/// @returns The dynamic storage size argument supplied to an ENTER.
+		constexpr ImmediateT dynamic_storage_size() const	{
+			return displacement();
 		}
 
 		// Standard comparison operator.

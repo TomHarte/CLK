@@ -12,11 +12,26 @@
 namespace InstructionSet::x86 {
 
 enum Interrupt {
-	DivideError		= 0,
-	SingleStep		= 1,
-	NMI				= 2,
-	OneByte			= 3,
-	OnOverflow		= 4,
+	DivideError					= 0,
+	SingleStep					= 1,
+	NMI							= 2,
+	Breakpoint					= 3,
+	Overflow					= 4,
+	BoundRangeExceeded			= 5,
+	InvalidOpcode				= 6,
+	DeviceNotAvailable			= 7,
+	DoubleFault					= 8,
+	CoprocessorSegmentOverrun	= 9,
+	InvalidTSS					= 10,
+	SegmentNotPresent			= 11,
+	StackSegmentFault			= 12,
+	GeneralProtectionFault		= 13,
+	PageFault					= 14,
+	/* 15 is reserved */
+	FloatingPointException		= 16,
+	AlignmentCheck				= 17,
+	MachineCheck				= 18,
+
 };
 
 }

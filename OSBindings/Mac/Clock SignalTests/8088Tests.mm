@@ -33,90 +33,119 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 
 using Flags = InstructionSet::x86::Flags;
 struct Registers {
-	CPU::RegisterPair16 ax_;
-	uint8_t &al()	{	return ax_.halves.low;	}
-	uint8_t &ah()	{	return ax_.halves.high;	}
-	uint16_t &ax()	{	return ax_.full;		}
+	public:
+		static constexpr bool is_32bit = false;
 
-	CPU::RegisterPair16 &axp()	{	return ax_;	}
+		uint8_t &al()	{	return ax_.halves.low;	}
+		uint8_t &ah()	{	return ax_.halves.high;	}
+		uint16_t &ax()	{	return ax_.full;		}
 
-	CPU::RegisterPair16 cx_;
-	uint8_t &cl()	{	return cx_.halves.low;	}
-	uint8_t &ch()	{	return cx_.halves.high;	}
-	uint16_t &cx()	{	return cx_.full;		}
+		CPU::RegisterPair16 &axp()	{	return ax_;	}
 
-	CPU::RegisterPair16 dx_;
-	uint8_t &dl()	{	return dx_.halves.low;	}
-	uint8_t &dh()	{	return dx_.halves.high;	}
-	uint16_t &dx()	{	return dx_.full;		}
+		uint8_t &cl()	{	return cx_.halves.low;	}
+		uint8_t &ch()	{	return cx_.halves.high;	}
+		uint16_t &cx()	{	return cx_.full;		}
 
-	CPU::RegisterPair16 bx_;
-	uint8_t &bl()	{	return bx_.halves.low;	}
-	uint8_t &bh()	{	return bx_.halves.high;	}
-	uint16_t &bx()	{	return bx_.full;		}
+		uint8_t &dl()	{	return dx_.halves.low;	}
+		uint8_t &dh()	{	return dx_.halves.high;	}
+		uint16_t &dx()	{	return dx_.full;		}
 
-	uint16_t sp_;
-	uint16_t &sp()	{	return sp_;				}
+		uint8_t &bl()	{	return bx_.halves.low;	}
+		uint8_t &bh()	{	return bx_.halves.high;	}
+		uint16_t &bx()	{	return bx_.full;		}
 
-	uint16_t bp_;
-	uint16_t &bp()	{	return bp_;				}
+		uint16_t &sp()	{	return sp_;				}
+		uint16_t &bp()	{	return bp_;				}
+		uint16_t &si()	{	return si_;				}
+		uint16_t &di()	{	return di_;				}
 
-	uint16_t si_;
-	uint16_t &si()	{	return si_;				}
+		uint16_t ip_;
+		uint16_t &ip()	{	return ip_;				}
 
-	uint16_t di_;
-	uint16_t &di()	{	return di_;				}
+		uint16_t &es()	{	return es_;				}
+		uint16_t &cs()	{	return cs_;				}
+		uint16_t &ds()	{	return ds_;				}
+		uint16_t &ss()	{	return ss_;				}
 
-	uint16_t es_, cs_, ds_, ss_;
-	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
+		const uint16_t es() const	{	return es_;				}
+		const uint16_t cs() const	{	return cs_;				}
+		const uint16_t ds() const	{	return ds_;				}
+		const uint16_t ss() const	{	return ss_;				}
 
-	uint16_t ip_;
-	uint16_t &ip()	{	return ip_;				}
-
-	uint16_t &es()	{	return es_;				}
-	uint16_t &cs()	{	return cs_;				}
-	uint16_t &ds()	{	return ds_;				}
-	uint16_t &ss()	{	return ss_;				}
-
-	using Source = InstructionSet::x86::Source;
-	/// Posted by @c perform after any operation which *might* have affected a segment register.
-	void did_update(Source segment) {
-		switch(segment) {
-			default: break;
-			case Source::ES:	es_base_ = es_ << 4;	break;
-			case Source::CS:	cs_base_ = cs_ << 4;	break;
-			case Source::DS:	ds_base_ = ds_ << 4;	break;
-			case Source::SS:	ss_base_ = ss_ << 4;	break;
+		bool operator ==(const Registers &rhs) const {
+			return
+				ax_.full == rhs.ax_.full &&
+				cx_.full == rhs.cx_.full &&
+				dx_.full == rhs.dx_.full &&
+				bx_.full == rhs.bx_.full &&
+				sp_ == rhs.sp_ &&
+				bp_ == rhs.bp_ &&
+				si_ == rhs.si_ &&
+				di_ == rhs.di_ &&
+				es_ == rhs.es_ &&
+				cs_ == rhs.cs_ &&
+				ds_ == rhs.ds_ &&
+				si_ == rhs.si_ &&
+				ip_ == rhs.ip_;
 		}
-	}
 
-	bool operator ==(const Registers &rhs) const {
-		return
-			ax_.full == rhs.ax_.full &&
-			cx_.full == rhs.cx_.full &&
-			dx_.full == rhs.dx_.full &&
-			bx_.full == rhs.bx_.full &&
-			sp_ == rhs.sp_ &&
-			bp_ == rhs.bp_ &&
-			si_ == rhs.si_ &&
-			di_ == rhs.di_ &&
-			es_ == rhs.es_ &&
-			cs_ == rhs.cs_ &&
-			ds_ == rhs.ds_ &&
-			si_ == rhs.si_ &&
-			ip_ == rhs.ip_ &&
-			es_base_ == rhs.es_base_ &&
-			cs_base_ == rhs.cs_base_ &&
-			ds_base_ == rhs.ds_base_ &&
-			ss_base_ == rhs.ss_base_;
-	}
+		// TODO: make the below private and use a friend class for test population, to ensure Perform
+		// is free of direct accesses.
+//	private:
+		CPU::RegisterPair16 ax_;
+		CPU::RegisterPair16 cx_;
+		CPU::RegisterPair16 dx_;
+		CPU::RegisterPair16 bx_;
+
+		uint16_t sp_;
+		uint16_t bp_;
+		uint16_t si_;
+		uint16_t di_;
+		uint16_t es_, cs_, ds_, ss_;
+};
+class Segments {
+	public:
+		Segments(const Registers &registers) : registers_(registers) {}
+
+		using Source = InstructionSet::x86::Source;
+
+		/// Posted by @c perform after any operation which *might* have affected a segment register.
+		void did_update(Source segment) {
+			switch(segment) {
+				default: break;
+				case Source::ES:	es_base_ = registers_.es() << 4;	break;
+				case Source::CS:	cs_base_ = registers_.cs() << 4;	break;
+				case Source::DS:	ds_base_ = registers_.ds() << 4;	break;
+				case Source::SS:	ss_base_ = registers_.ss() << 4;	break;
+			}
+		}
+
+		void reset() {
+			did_update(Source::ES);
+			did_update(Source::CS);
+			did_update(Source::DS);
+			did_update(Source::SS);
+		}
+
+		uint32_t es_base_, cs_base_, ds_base_, ss_base_;
+
+		bool operator ==(const Segments &rhs) const {
+			return
+				es_base_ == rhs.es_base_ &&
+				cs_base_ == rhs.cs_base_ &&
+				ds_base_ == rhs.ds_base_ &&
+				ss_base_ == rhs.ss_base_;
+		}
+
+	private:
+		const Registers &registers_;
 };
 struct Memory {
 	public:
 		using AccessType = InstructionSet::x86::AccessType;
 
 		// Constructor.
-		Memory(Registers &registers) : registers_(registers) {
+		Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
 			memory.resize(1024*1024);
 		}
 
@@ -138,14 +167,14 @@ struct Memory {
 		// Preauthorisation call-ins.
 		//
 		void preauthorise_stack_write(uint32_t length) {
-			uint16_t sp = registers_.sp_;
+			uint16_t sp = registers_.sp();
 			while(length--) {
 				--sp;
 				preauthorise(InstructionSet::x86::Source::SS, sp);
 			}
 		}
 		void preauthorise_stack_read(uint32_t length) {
-			uint16_t sp = registers_.sp_;
+			uint16_t sp = registers_.sp();
 			while(length--) {
 				preauthorise(InstructionSet::x86::Source::SS, sp);
 				++sp;
@@ -236,7 +265,8 @@ struct Memory {
 		std::unordered_set<uint32_t> preauthorisations;
 		std::unordered_map<uint32_t, Tag> tags;
 		std::vector<uint8_t> memory;
-		const Registers &registers_;
+		Registers &registers_;
+		const Segments &segments_;
 
 		void preauthorise(uint32_t address) {
 			preauthorisations.insert(address);
@@ -256,10 +286,10 @@ struct Memory {
 		uint32_t segment_base(InstructionSet::x86::Source segment) {
 			using Source = InstructionSet::x86::Source;
 			switch(segment) {
-				default:			return registers_.ds_base_;
-				case Source::ES:	return registers_.es_base_;
-				case Source::CS:	return registers_.cs_base_;
-				case Source::SS:	return registers_.ss_base_;
+				default:			return segments_.ds_base_;
+				case Source::ES:	return segments_.es_base_;
+				case Source::CS:	return segments_.cs_base_;
+				case Source::SS:	return segments_.ss_base_;
 			}
 		}
 
@@ -339,8 +369,8 @@ struct IO {
 };
 class FlowController {
 	public:
-		FlowController(Memory &memory, Registers &registers, Flags &flags) :
-			memory_(memory), registers_(registers), flags_(flags) {}
+		FlowController(Memory &memory, Registers &registers, Segments &segments, Flags &flags) :
+			memory_(memory), registers_(registers), segments_(segments), flags_(flags) {}
 
 		// Requirements for perform.
 		void jump(uint16_t address) {
@@ -349,7 +379,7 @@ class FlowController {
 
 		void jump(uint16_t segment, uint16_t address) {
 			registers_.cs_ = segment;
-			registers_.did_update(Registers::Source::CS);
+			segments_.did_update(Segments::Source::CS);
 			registers_.ip_ = address;
 		}
 
@@ -371,6 +401,7 @@ class FlowController {
 	private:
 		Memory &memory_;
 		Registers &registers_;
+		Segments &segments_;
 		Flags &flags_;
 		bool should_repeat_ = false;
 };
@@ -378,12 +409,16 @@ class FlowController {
 struct ExecutionSupport {
 	Flags flags;
 	Registers registers;
+	Segments segments;
 	Memory memory;
 	FlowController flow_controller;
 	IO io;
 	static constexpr auto model = InstructionSet::x86::Model::i8086;
 
-	ExecutionSupport(): memory(registers), flow_controller(memory, registers, flags) {}
+	ExecutionSupport():
+		memory(registers, segments),
+		segments(registers),
+		flow_controller(memory, registers, segments, flags) {}
 
 	void clear() {
 		memory.clear();
@@ -560,11 +595,6 @@ struct FailedExecution {
 	registers.ss_ = [value[@"ss"] intValue];
 	registers.ip_ = [value[@"ip"] intValue];
 
-	registers.did_update(Registers::Source::ES);
-	registers.did_update(Registers::Source::CS);
-	registers.did_update(Registers::Source::DS);
-	registers.did_update(Registers::Source::SS);
-
 	const uint16_t flags_value = [value[@"flags"] intValue];
 	flags.set(flags_value);
 
@@ -610,6 +640,7 @@ struct FailedExecution {
 	[self populate:initial_registers flags:initial_flags value:initial_state[@"regs"]];
 	execution_support.flags = initial_flags;
 	execution_support.registers = initial_registers;
+	execution_support.segments.reset();
 
 	// Execute instruction.
 	//
@@ -657,8 +688,11 @@ struct FailedExecution {
 		break;
 	}
 
+	Segments intended_segments(intended_registers);
 	[self populate:intended_registers flags:intended_flags value:final_state[@"regs"]];
-	const bool registersEqual = intended_registers == execution_support.registers;
+	intended_segments.reset();
+
+	const bool registersEqual = intended_registers == execution_support.registers && intended_segments == execution_support.segments;
 	const bool flagsEqual = (intended_flags.get() & flags_mask) == (execution_support.flags.get() & flags_mask);
 
 	// Exit if no issues were found.
@@ -703,7 +737,6 @@ struct FailedExecution {
 			non_exception_registers.sp() = execution_support.registers.sp();
 			non_exception_registers.ax() = execution_support.registers.ax();
 			non_exception_registers.cs() = execution_support.registers.cs();
-			non_exception_registers.cs_base_ = execution_support.registers.cs_base_;
 
 			if(non_exception_registers == execution_support.registers) {
 				failure_list = &permitted_failures;

@@ -211,7 +211,17 @@ template <
 		case Operation::IMUL_1:		Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
 		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
-		case Operation::IDIV_REP:	Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);	return;
+		case Operation::IDIV_REP:
+			if constexpr (ContextT::model == Model::i8086) {
+				Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);
+				break;
+			} else {
+				static_assert(int(Operation::IDIV_REP) == int(Operation::LEAVE));
+				if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+					Primitive::leave<IntT>();
+				}
+			}
+		return;
 
 		case Operation::INC:	Primitive::inc<IntT>(destination_rmw(), context);		break;
 		case Operation::DEC:	Primitive::dec<IntT>(destination_rmw(), context);		break;
@@ -248,13 +258,13 @@ template <
 		case Operation::LDS:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::DS>(instruction, destination_w(), context);
-				context.registers.did_update(Source::DS);
+				context.segments.did_update(Source::DS);
 			}
 		return;
 		case Operation::LES:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::ES>(instruction, destination_w(), context);
-				context.registers.did_update(Source::ES);
+				context.segments.did_update(Source::ES);
 			}
 		return;
 
@@ -262,7 +272,7 @@ template <
 		case Operation::MOV:
 			Primitive::mov<IntT>(destination_w(), source_r());
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.registers.did_update(instruction.destination().source());
+				context.segments.did_update(instruction.destination().source());
 			}
 		break;
 
@@ -307,8 +317,8 @@ template <
 				Primitive::setmo<IntT>(destination_w(), context);
 				break;
 			} else {
-				// TODO: perform ENTER as of the 80186.
 				static_assert(int(Operation::SETMO) == int(Operation::ENTER));
+				Primitive::enter<IntT>(instruction, context);
 			}
 		return;
 		case Operation::SETMOC:
@@ -320,8 +330,8 @@ template <
 				}
 				break;
 			} else {
-				// TODO: perform BOUND as of the 80186.
 				static_assert(int(Operation::SETMOC) == int(Operation::BOUND));
+				Primitive::bound<IntT>(instruction, destination_r(), source_r(), context);
 			}
 		return;
 
@@ -333,15 +343,34 @@ template <
 		case Operation::POP:
 			destination_w() = Primitive::pop<IntT, false>(context);
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.registers.did_update(instruction.destination().source());
+				context.segments.did_update(instruction.destination().source());
 			}
 		break;
 		case Operation::PUSH:
 			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
 																	// hence PUSH is sometimes read-modify-write.
 		break;
-		case Operation::POPF:	Primitive::popf(context);								return;
-		case Operation::PUSHF:	Primitive::pushf(context);								return;
+
+		case Operation::POPF:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::popf(context);
+			}
+		return;
+		case Operation::PUSHF:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::pushf(context);
+			}
+		return;
+		case Operation::POPA:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::popa<IntT>(context);
+			}
+		return;
+		case Operation::PUSHA:
+			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
+				Primitive::pusha<IntT>(context);
+			}
+		return;
 
 		case Operation::CMPS:
 			Primitive::cmps<IntT, AddressT, Repetition::None>(instruction, eCX(), eSI(), eDI(), context);

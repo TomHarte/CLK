@@ -213,7 +213,27 @@ void into(
 	ContextT &context
 ) {
 	if(context.flags.template flag<Flag::Overflow>()) {
-		interrupt(Interrupt::OnOverflow, context);
+		interrupt(Interrupt::Overflow, context);
+	}
+}
+
+template <typename IntT, typename InstructionT, typename ContextT>
+void bound(
+	const InstructionT &instruction,
+	read_t<IntT> destination,
+	read_t<IntT> source,
+	ContextT &context
+) {
+	using sIntT = typename std::make_signed<IntT>::type;
+
+	const auto source_segment = instruction.data_segment();
+	context.memory.preauthorise_read(source_segment, source, 2*sizeof(IntT));
+	const sIntT lower_bound = sIntT(context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source));
+	source += 2;
+	const sIntT upper_bound = sIntT(context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source));
+
+	if(sIntT(destination) < lower_bound || sIntT(destination) > upper_bound) {
+		interrupt(Interrupt::BoundRangeExceeded, context);
 	}
 }
 
