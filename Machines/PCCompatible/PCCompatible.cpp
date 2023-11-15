@@ -10,13 +10,15 @@
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
+#include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
 namespace PCCompatible {
 
 class ConcreteMachine:
 	public Machine,
-	public MachineTypes::TimedMachine
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer
 {
 	public:
 		ConcreteMachine(
@@ -34,7 +36,14 @@ class ConcreteMachine:
 			}
 		}
 
+		// MARK: - TimedMachine.
 		void run_for([[maybe_unused]] const Cycles cycles) override {}
+
+		// MARK: - ScanProducer.
+		void set_scan_target([[maybe_unused]] Outputs::Display::ScanTarget *scan_target) override {}
+		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
+			return Outputs::Display::ScanStatus();
+		}
 
 	private:
 };
