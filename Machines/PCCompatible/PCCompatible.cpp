@@ -267,6 +267,7 @@ struct Memory {
 		uint16_t write_back_value_;
 };
 
+// TODO: the decoder is clearly sign-extending 8-bit port addresses. That's incorrect. Fix.
 struct IO {
 	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
 		if constexpr (std::is_same_v<IntT, uint8_t>) {
