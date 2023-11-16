@@ -16,6 +16,8 @@
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
+#include <array>
+
 namespace PCCompatible {
 
 struct Registers {
@@ -113,15 +115,13 @@ class Segments {
 		const Registers &registers_;
 };
 
+// TODO: send writes to the ROM area off to nowhere.
 struct Memory {
 	public:
 		using AccessType = InstructionSet::x86::AccessType;
 
 		// Constructor.
-		Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
-			memory.resize(1024*1024);
-			std::fill(memory.begin(), memory.end(), 0xff);
-		}
+		Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {}
 
 		//
 		// Preauthorisation call-ins. Since only an 8088 is currently modelled, all accesses are implicitly authorised.
@@ -154,13 +154,6 @@ struct Memory {
 		// Accesses an address based on physical location.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
-			// TODO: send writes to the ROM area off to nowhere.
-//			if constexpr (is_writeable(type)) {
-//				if(address >= 0xc'0000) {
-//
-//				}
-//			}
-
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
@@ -229,11 +222,11 @@ struct Memory {
 		// Population.
 		//
 		void install(size_t address, const uint8_t *data, size_t length) {
-			std::copy(data, data + length, memory.begin() + address);
+			std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
 		}
 
 	private:
-		std::vector<uint8_t> memory;
+		std::array<uint8_t, 1024*1024> memory{0xff};
 		Registers &registers_;
 		const Segments &segments_;
 
