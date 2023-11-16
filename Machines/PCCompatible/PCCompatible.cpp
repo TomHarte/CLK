@@ -18,6 +18,8 @@
 
 #include <array>
 
+extern template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
+
 namespace PCCompatible {
 
 struct Registers {
