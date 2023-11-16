@@ -1123,3 +1123,4 @@ template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;
+#error Is GCC here?
