@@ -120,6 +120,7 @@ struct Memory {
 		// Constructor.
 		Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
 			memory.resize(1024*1024);
+			std::fill(memory.begin(), memory.end(), 0xff);
 		}
 
 		//
@@ -215,6 +216,13 @@ struct Memory {
 
 		std::pair<const uint8_t *, size_t> all() {
 			return std::make_pair(memory.data(), 0x10'000);
+		}
+
+		//
+		// Population.
+		//
+		void install(size_t address, const uint8_t *data, size_t length) {
+			std::copy(data, data + length, memory.begin() + address);
 		}
 
 	private:
@@ -315,11 +323,16 @@ class ConcreteMachine:
 			set_clock_rate(3'000'000);
 
 			// Fetch the BIOS. [8088 only, for now]
-			ROM::Request request = ROM::Request(ROM::Name::PCCompatibleGLaBIOS);
+			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
+
+			ROM::Request request = ROM::Request(bios);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
+
+			const auto &bios_contents = roms.find(bios)->second;
+			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 		}
 
 		// MARK: - TimedMachine.
@@ -338,6 +351,8 @@ class ConcreteMachine:
 						const auto all = context.memory.all();
 						decoded = decoder.decode(all.first, all.second);
 					}
+
+					context.registers.ip() += decoded.first;
 				} else {
 					context.flow_controller.begin_instruction();
 				}
