@@ -13,6 +13,8 @@
 #include "Stack.hpp"
 #include "../AccessType.hpp"
 
+#include <type_traits>
+
 namespace InstructionSet::x86::Primitive {
 
 template <typename IntT, typename ContextT>
@@ -34,7 +36,7 @@ void jump(
 
 	// TODO: proper behaviour in 32-bit.
 	if(condition) {
-		context.flow_controller.jump(context.registers.ip() + displacement);
+		context.flow_controller.jump(uint16_t(context.registers.ip() + displacement));
 	}
 }
 
@@ -76,7 +78,7 @@ void loopne(
 
 template <typename IntT, typename ContextT>
 void call_relative(
-	IntT offset,
+	typename std::make_signed<IntT>::type offset,
 	ContextT &context
 ) {
 	push<uint16_t, false>(context.registers.ip(), context);

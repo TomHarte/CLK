@@ -175,8 +175,8 @@ template <
 		case Operation::ESC:
 		case Operation::NOP:	return;
 
-		case Operation::AAM:	Primitive::aam(context.registers.axp(), instruction.operand(), context);	return;
-		case Operation::AAD:	Primitive::aad(context.registers.axp(), instruction.operand(), context);	return;
+		case Operation::AAM:	Primitive::aam(context.registers.axp(), uint8_t(instruction.operand()), context);	return;
+		case Operation::AAD:	Primitive::aad(context.registers.axp(), uint8_t(instruction.operand()), context);	return;
 		case Operation::AAA:	Primitive::aaas<true>(context.registers.axp(), context);					return;
 		case Operation::AAS:	Primitive::aaas<false>(context.registers.axp(), context);					return;
 		case Operation::DAA:	Primitive::daas<true>(context.registers.al(), context);						return;
@@ -232,7 +232,9 @@ template <
 		case Operation::NEG:	Primitive::neg<IntT>(source_rmw(), context);						break;	// TODO: should be a destination.
 		case Operation::NOT:	Primitive::not_<IntT>(source_rmw());								break;	// TODO: should be a destination.
 
-		case Operation::CALLrel:	Primitive::call_relative<AddressT>(instruction.displacement(), context);	return;
+		case Operation::CALLrel:
+			Primitive::call_relative<AddressT>(instruction.displacement(), context);
+		return;
 		case Operation::CALLabs:	Primitive::call_absolute<IntT>(destination_r(), context);					return;
 		case Operation::CALLfar:	Primitive::call_far(instruction, context);									return;
 
