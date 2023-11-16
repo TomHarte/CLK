@@ -258,7 +258,7 @@ struct Memory {
 
 				return write_back_value_;
 			} else {
-				return memory[low_address] | (memory[high_address] << 8);
+				return uint16_t(memory[low_address] | (memory[high_address] << 8));
 			}
 		}
 
@@ -268,8 +268,17 @@ struct Memory {
 };
 
 struct IO {
-	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
-	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) { return IntT(~0); }
+	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
+		if constexpr (std::is_same_v<IntT, uint8_t>) {
+			printf("Unhandled out: %02x to %04x\n", value, port);
+		} else {
+			printf("Unhandled out: %04x to %04x\n", value, port);
+		}
+	}
+	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
+		printf("Unhandled in: %04x\n", port);
+		return IntT(~0);
+	}
 };
 
 class FlowController {
