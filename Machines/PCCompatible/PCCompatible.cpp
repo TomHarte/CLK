@@ -154,6 +154,13 @@ struct Memory {
 		// Accesses an address based on physical location.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
+			// TODO: send writes to the ROM area off to nowhere.
+//			if constexpr (is_writeable(type)) {
+//				if(address >= 0xc'0000) {
+//
+//				}
+//			}
+
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
@@ -267,18 +274,31 @@ struct Memory {
 		uint16_t write_back_value_;
 };
 
-struct IO {
-	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
-		if constexpr (std::is_same_v<IntT, uint8_t>) {
-			printf("Unhandled out: %02x to %04x\n", value, port);
-		} else {
-			printf("Unhandled out: %04x to %04x\n", value, port);
+class IO {
+	public:
+		template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
+			switch(port) {
+				default:
+					if constexpr (std::is_same_v<IntT, uint8_t>) {
+						printf("Unhandled out: %02x to %04x\n", value, port);
+					} else {
+						printf("Unhandled out: %04x to %04x\n", value, port);
+					}
+				break;
+
+				// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
+				case 0x00a0:
+					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
+				break;
+			}
 		}
-	}
-	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
-		printf("Unhandled in: %04x\n", port);
-		return IntT(~0);
-	}
+		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
+			printf("Unhandled in: %04x\n", port);
+			return IntT(~0);
+		}
+
+	private:
+
 };
 
 class FlowController {
