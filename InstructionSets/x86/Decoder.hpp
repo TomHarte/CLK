@@ -193,6 +193,8 @@ template <Model model> class Decoder {
 		DataSize operand_size_ = DataSize::None;		// i.e. size of in-stream operand, if any.
 		DataSize operation_size_ = DataSize::None;		// i.e. size of data manipulated by the operation.
 
+		bool sign_extend_displacement_ = true;			// If set then sign extend any displacement up to the address
+														// size; otherwise it'll be zero-padded.
 		bool sign_extend_operand_ = false;				// If set then sign extend the operand up to the operation size;
 														// otherwise it'll be zero-padded.
 
@@ -223,6 +225,7 @@ template <Model model> class Decoder {
 			next_inward_data_shift_ = 0;
 			inward_data_ = 0;
 			sign_extend_operand_ = false;
+			sign_extend_displacement_ = true;
 		}
 };
 
