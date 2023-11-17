@@ -416,8 +416,12 @@ class ConcreteMachine:
 			IO io;
 			static constexpr auto model = InstructionSet::x86::Model::i8086;
 		} context;
+
+		// TODO: eliminate use of Decoder8086 and Decoder8086 in gneral in favour of the templated version, as soon
+		// as whatever error is preventing GCC from picking up Decoder's explicit instantiations becomes apparent.
 		InstructionSet::x86::Decoder8086 decoder;
 //		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 };
 
