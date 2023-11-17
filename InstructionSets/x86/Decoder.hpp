@@ -44,7 +44,7 @@ template <Model model> class Decoder {
 				The 80286 and 80386 have instruction length limits of 10 and 15 bytes respectively, so
 				cannot overflow the field.
 		*/
-		std::pair<int, InstructionT> decode(const uint8_t *source, uint32_t length);
+		std::pair<int, InstructionT> decode(const uint8_t *source, std::size_t length);
 
 		/*!
 			Enables or disables 32-bit protected mode. Meaningful only if the @c Model supports it.
