@@ -15,7 +15,7 @@
 using namespace InstructionSet::x86;
 
 template <Model model>
-std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, size_t length) {
+std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, std::size_t length) {
 	// Instruction length limits:
 	//
 	//	8086/80186: none*
@@ -26,8 +26,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	// be back to wherever it started, so it's safe to spit out a NOP and reset parsing
 	// without any loss of context. This reduces the risk of the decoder tricking a caller into
 	// an infinite loop.
-	constexpr int max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 65536);
-	const uint8_t *const end = source + std::min(length, size_t(max_instruction_length - consumed_));
+	static constexpr std::size_t max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 65536);
+	const uint8_t *const end = source + std::min(length, max_instruction_length - consumed_);
 
 	// MARK: - Prefixes (if present) and the opcode.
 
@@ -58,14 +58,16 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #define RegAddr(op, dest, op_size, addr_size)			\
 	SetOpSrcDestSize(op, DirectAddress, dest, op_size);	\
 	displacement_size_ = addr_size;						\
-	phase_ = Phase::DisplacementOrOperand
+	phase_ = Phase::DisplacementOrOperand;				\
+	sign_extend_displacement_ = false
 
 /// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
 #define AddrReg(op, source, op_size, addr_size)				\
 	SetOpSrcDestSize(op, source, DirectAddress, op_size);	\
 	displacement_size_ = addr_size;							\
 	destination_ = Source::DirectAddress;					\
-	phase_ = Phase::DisplacementOrOperand
+	phase_ = Phase::DisplacementOrOperand;					\
+	sign_extend_displacement_ = false
 
 /// Covers both `mem/reg, reg` and `reg, mem/reg`.
 #define MemRegReg(op, format, size)				\
@@ -1017,11 +1019,20 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
 
-			switch(displacement_size_) {
-				case DataSize::None:	displacement_ = 0;						break;
-				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
-				case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
-				case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+			if(!sign_extend_displacement_) {
+				switch(displacement_size_) {
+					case DataSize::None:	displacement_ = 0;						break;
+					case DataSize::Byte:	displacement_ = uint8_t(inward_data_);	break;
+					case DataSize::Word:	displacement_ = uint16_t(inward_data_);	break;
+					case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+				}
+			} else {
+				switch(displacement_size_) {
+					case DataSize::None:	displacement_ = 0;						break;
+					case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
+					case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
+					case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
+				}
 			}
 			inward_data_ >>= bit_size(displacement_size_);
 
@@ -1112,3 +1123,7 @@ template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;
+
+std::pair<int, Instruction<false>> Decoder8086::decode(const uint8_t *source, std::size_t length) {
+	return decoder.decode(source, length);
+}

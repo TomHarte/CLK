@@ -13,7 +13,6 @@
 #include "../ClockReceiver/TimeTypes.hpp"
 
 #include "AudioProducer.hpp"
-#include "ScanProducer.hpp"
 
 #include <cmath>
 

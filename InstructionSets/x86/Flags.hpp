@@ -82,8 +82,8 @@ class Flags {
 		using FlagT = uint32_t;
 
 		// Flag getters.
-		template <Flag flag> bool flag() const {
-			switch(flag) {
+		template <Flag flag_v> bool flag() const {
+			switch(flag_v) {
 				case Flag::Carry:			return carry_;
 				case Flag::AuxiliaryCarry:	return auxiliary_carry_;
 				case Flag::Sign:			return sign_;
@@ -163,7 +163,7 @@ class Flags {
 			set_from<Flag::Interrupt>(value & FlagValue::Interrupt);
 			set_from<Flag::Direction>(value & FlagValue::Direction);
 
-			set_from<uint8_t, Flag::Sign>(value);
+			set_from<uint8_t, Flag::Sign>(uint8_t(value));
 
 			set_from<Flag::Zero>((~value) & FlagValue::Zero);
 			set_from<Flag::ParityOdd>((~value) & FlagValue::Parity);

@@ -84,9 +84,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Set up data soure.
 
-		// TEMPORARY: remove the Apple IIgs option. It's not yet a fully-working machine; no need to publicise it.
-		let appleIIgsTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "appleiigs")
-		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: appleIIgsTabIndex))
+		// TEMPORARY: remove the Apple IIgs and PC compatible options.
+		// Neither is yet a fully-working machine.
+		for hidden in ["appleiigs", "pc"] {
+			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
+			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
+		}
 		machineNameTable.reloadData()
 
 		// Machine type
@@ -395,6 +398,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				}
 
 				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
+
+			case "pc":
+				return CSStaticAnalyser(pcCompatibleModel: .turboXT)
 
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a

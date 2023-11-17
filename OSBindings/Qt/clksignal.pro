@@ -99,6 +99,7 @@ SOURCES += \
 	$$SRC/Machines/MasterSystem/*.cpp \
 	$$SRC/Machines/MSX/*.cpp \
 	$$SRC/Machines/Oric/*.cpp \
+	$$SRC/Machines/PCCompatible/*.cpp \
 	$$SRC/Machines/Utility/*.cpp \
 	$$SRC/Machines/Sinclair/Keyboard/*.cpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.cpp \
@@ -232,6 +233,7 @@ HEADERS += \
 	$$SRC/Machines/MasterSystem/*.hpp \
 	$$SRC/Machines/MSX/*.hpp \
 	$$SRC/Machines/Oric/*.hpp \
+	$$SRC/Machines/PCCompatible/*.hpp \
 	$$SRC/Machines/Utility/*.hpp \
 	$$SRC/Machines/Sinclair/Keyboard/*.hpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.hpp \

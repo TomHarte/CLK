@@ -25,6 +25,7 @@
 #include "../MasterSystem/MasterSystem.hpp"
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
+#include "../PCCompatible/PCCompatible.hpp"
 #include "../Sinclair/ZX8081/ZX8081.hpp"
 #include "../Sinclair/ZXSpectrum/ZXSpectrum.hpp"
 
@@ -69,6 +70,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 			Bind(Enterprise)
 			Bind(MSX)
 			Bind(Oric)
+			Bind(PCCompatible)
 			BindD(Sega::MasterSystem, MasterSystem)
 			BindD(Sinclair::ZX8081, ZX8081)
 			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
@@ -139,6 +141,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::MasterSystem:	return "MasterSystem";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
+		case Analyser::Machine::PCCompatible:	return "PCCompatible";
 		case Analyser::Machine::Vic20:			return "Vic20";
 		case Analyser::Machine::ZX8081:			return "ZX8081";
 		case Analyser::Machine::ZXSpectrum:		return "ZXSpectrum";
@@ -162,6 +165,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::MasterSystem:	return "Sega Master System";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
+		case Analyser::Machine::PCCompatible:	return "PC Compatible";
 		case Analyser::Machine::Vic20:			return "Vic 20";
 		case Analyser::Machine::ZX8081:			return "ZX80/81";
 		case Analyser::Machine::ZXSpectrum:		return "ZX Spectrum";
@@ -244,6 +248,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(Macintosh);
 	Add(MSX);
 	Add(Oric);
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::PCCompatible), new Analyser::Static::Target(Analyser::Machine::PCCompatible)));
 	AddMapped(Vic20, Commodore);
 	Add(ZX8081);
 	Add(ZXSpectrum);

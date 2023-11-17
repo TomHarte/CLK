@@ -1,6 +1,6 @@
 name: SDL/Ubuntu
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: sudo apt-get --allow-releaseinfo-change update && sudo apt-get --fix-missing install libsdl2-dev scons
+      run: sudo apt-get --allow-releaseinfo-change update && sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
     - name: Make
       working-directory: OSBindings/SDL
       run: scons -j$(nproc --all)

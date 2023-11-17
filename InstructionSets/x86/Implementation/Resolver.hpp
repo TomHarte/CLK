@@ -162,7 +162,7 @@ typename Accessor<IntT, access>::type resolve(
 	//
 	// * if this is a memory access, set target_address and break;
 	// * otherwise return the appropriate value.
-	uint32_t target_address;
+	uint32_t target_address = 0;
 	switch(source) {
 		// Defer all register accesses to the register-specific lookup.
 		case Source::eAX:		return *register_<IntT, access, Source::eAX>(context);
@@ -183,7 +183,7 @@ typename Accessor<IntT, access>::type resolve(
 		case Source::None:		return *none;
 
 		case Source::Immediate:
-			*immediate = instruction.operand();
+			*immediate = IntT(instruction.operand());
 		return *immediate;
 
 		case Source::Indirect:
