@@ -1123,3 +1123,7 @@ template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;
+
+std::pair<int, Instruction<false>> Decoder8086::decode(const uint8_t *source, std::size_t length) {
+	return decoder.decode(source, length);
+}

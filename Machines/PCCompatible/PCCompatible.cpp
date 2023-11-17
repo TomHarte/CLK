@@ -416,7 +416,8 @@ class ConcreteMachine:
 			IO io;
 			static constexpr auto model = InstructionSet::x86::Model::i8086;
 		} context;
-		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+		InstructionSet::x86::Decoder8086 decoder;
+//		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 };
 

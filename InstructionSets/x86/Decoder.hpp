@@ -228,6 +228,19 @@ template <Model model> class Decoder {
 		}
 };
 
+// This is a temporary measure; for reasons as-yet unknown, GCC isn't picking up the
+// explicit instantiations of the template above at link time, even though is is
+// unambiguously building and linking in Decoder.cpp.
+//
+// So here's a thin non-templated shim to unblock initial PC Compatible development.
+class Decoder8086 {
+	public:
+		std::pair<int, Instruction<false>> decode(const uint8_t *source, std::size_t length);
+
+	private:
+		Decoder<Model::i8086> decoder;
+};
+
 }
 
 #endif /* InstructionSets_x86_Decoder_hpp */
