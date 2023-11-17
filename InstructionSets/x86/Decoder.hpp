@@ -38,8 +38,7 @@ template <Model model> class Decoder {
 				supplied cannot form a valid instruction.
 
 			@discussion although instructions also contain an indicator of their length, on chips prior
-				to the 80286 there is no limit to instruction length and that could in theory overflow the available
-				storage, which can describe instructions only up to 1kb in size.
+				to the 80286 there is no limit to potential instruction length.
 
 				The 80286 and 80386 have instruction length limits of 10 and 15 bytes respectively, so
 				cannot overflow the field.
