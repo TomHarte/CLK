@@ -89,8 +89,8 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		let appleIIgsTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "appleiigs")
 		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: appleIIgsTabIndex))
 
-		let pcTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "pc")
-		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: pcTabIndex))
+//		let pcTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "pc")
+//		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: pcTabIndex))
 
 		machineNameTable.reloadData()
 
