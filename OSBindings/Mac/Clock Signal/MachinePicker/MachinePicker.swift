@@ -84,10 +84,16 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Set up data soure.
 
-		// TEMPORARY: remove the Apple IIgs option. It's not yet a fully-working machine; no need to publicise it.
+		// TEMPORARY: remove the Apple IIgs and PC compatible options.
+		// Neither is yet a fully-working machine.
 		let appleIIgsTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "appleiigs")
 		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: appleIIgsTabIndex))
+
+		let pcTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "pc")
+		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: pcTabIndex))
+
 		machineNameTable.reloadData()
+
 
 		// Machine type
 		if let machineIdentifier = standardUserDefaults.string(forKey: "new.machine") {
