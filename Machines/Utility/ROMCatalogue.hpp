@@ -134,6 +134,7 @@ enum Name {
 
 	// PCCompatible.
 	PCCompatibleGLaBIOS,
+	PCCompatiblePhoenix80286BIOS,
 
 	// Sinclair QL.
 	SinclairQLJS,
