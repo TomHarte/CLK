@@ -283,10 +283,66 @@ class IO {
 				case 0x00a0:
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
+
+				case 0x0000:	case 0x0001:	case 0x0002:	case 0x0003:
+				case 0x0004:	case 0x0005:	case 0x0006:	case 0x0007:
+				case 0x0008:	case 0x0009:	case 0x000a:	case 0x000b:
+				case 0x000c:	case 0x000d:	case 0x000e:	case 0x000f:
+					printf("TODO: DMA write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
+				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
+				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
+				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
+					printf("TODO: PPI write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x0080:	case 0x0081:	case 0x0082:	case 0x0083:
+				case 0x0084:	case 0x0085:	case 0x0086:	case 0x0087:
+				case 0x0088:	case 0x0089:	case 0x008a:	case 0x008b:
+				case 0x008c:	case 0x008d:	case 0x008e:	case 0x008f:
+					printf("TODO: DMA page write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x03b0:	case 0x03b1:	case 0x03b2:	case 0x03b3:
+				case 0x03b4:	case 0x03b5:	case 0x03b6:	case 0x03b7:
+				case 0x03b8:	case 0x03b9:	case 0x03ba:	case 0x03bb:
+				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf:
+					printf("TODO: MDA write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
+				case 0x03d4:	case 0x03d5:	case 0x03d6:	case 0x03d7:
+				case 0x03d8:	case 0x03d9:	case 0x03da:	case 0x03db:
+				case 0x03dc:	case 0x03dd:	case 0x03de:	case 0x03df:
+					printf("TODO: CGA write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x0040:	case 0x0041:	case 0x0042:	case 0x0043:
+				case 0x0044:	case 0x0045:	case 0x0046:	case 0x0047:
+					printf("TODO: PIT write of %02x at %04x\n", value, port);
+				break;
 			}
 		}
 		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
-			printf("Unhandled in: %04x\n", port);
+			switch(port) {
+				default:
+					printf("Unhandled in: %04x\n", port);
+				break;
+
+				case 0x0040:	case 0x0041:	case 0x0042:	case 0x0043:
+				case 0x0044:	case 0x0045:	case 0x0046:	case 0x0047:
+					printf("TODO: PIT read from %04x\n", port);
+				break;
+
+				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
+				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
+				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
+				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
+					printf("TODO: PPI read from %04x\n", port);
+				break;
+			}
 			return IntT(~0);
 		}
 
