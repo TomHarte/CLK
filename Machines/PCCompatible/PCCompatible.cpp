@@ -46,15 +46,16 @@ class PIT {
 			printf("Set mode on %d\n", channel_id);
 
 			Channel &channel = channels_[channel_id];
-
-			channel.is_bcd = value & 1;
 			switch((value >> 1) & 3) {
-				default:	channel.latch_value();	break;
+				default:
+					channel.latch_value();
+				return;
 
 				case 1:		channel.latch_mode = LatchMode::LowOnly;	break;
 				case 2:		channel.latch_mode = LatchMode::HighOnly;	break;
 				case 3:		channel.latch_mode = LatchMode::LowHigh;	break;
 			}
+			channel.is_bcd = value & 1;
 			channel.next_write_high = false;
 
 			const auto operating_mode = (value >> 3) & 7;
