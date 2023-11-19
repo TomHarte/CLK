@@ -20,6 +20,7 @@
 
 namespace PCCompatible {
 
+template <bool is_8254>
 class PIT {
 	public:
 		template <int channel> uint8_t read() {
@@ -29,16 +30,58 @@ class PIT {
 		template <int channel> void write([[maybe_unused]] uint8_t value) {
 		}
 
-		void set_mode([[maybe_unused]] uint8_t value) {
-			const int channel = (value >> 6) & 3;
-			if(channel == 3) {
+		void set_mode(uint8_t value) {
+			const int channel_id = (value >> 6) & 3;
+			if(channel_id == 3) {
+				read_back_ = is_8254;
 				return;
+			}
+
+			Channel &channel = channels_[channel_id];
+
+			channel.is_bcd = value & 1;
+			switch((value >> 1) & 3) {
+				default:	channel.latch_value();	break;
+
+				case 1:		channel.latch_mode = LatchMode::LowOnly;	break;
+				case 2:		channel.latch_mode = LatchMode::HighOnly;	break;
+				case 3:		channel.latch_mode = LatchMode::LowHigh;	break;
+			}
+
+			const auto operating_mode = (value >> 3) & 7;
+			switch(operating_mode) {
+				default:	channel.mode = OperatingMode(operating_mode);		break;
+				case 6:		channel.mode = OperatingMode::RateGenerator;		break;
+				case 7:		channel.mode = OperatingMode::SquareWaveGenerator;	break;
 			}
 		}
 
 	private:
+		// Supported only on 8254s.
+		bool read_back_ = false;
+
 		enum class LatchMode {
+			LowOnly,
+			HighOnly,
+			LowHigh,
 		};
+
+		enum class OperatingMode {
+			InterruptOnTerminalCount		= 0,
+			HardwareRetriggerableOneShot	= 1,
+			RateGenerator					= 2,
+			SquareWaveGenerator				= 3,
+			SoftwareTriggeredStrobe			= 4,
+			HardwareTriggeredStrobe			= 5,
+		};
+
+		struct Channel {
+			LatchMode latch_mode = LatchMode::LowHigh;
+			OperatingMode mode = OperatingMode::InterruptOnTerminalCount;
+			bool is_bcd = false;
+
+			void latch_value() {}
+		} channels_[3];
 };
 
 struct Registers {
