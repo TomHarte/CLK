@@ -20,6 +20,27 @@
 
 namespace PCCompatible {
 
+class PIT {
+	public:
+		template <int channel> uint8_t read() {
+			return 0;
+		}
+
+		template <int channel> void write([[maybe_unused]] uint8_t value) {
+		}
+
+		void set_mode([[maybe_unused]] uint8_t value) {
+			const int channel = (value >> 6) & 3;
+			if(channel == 3) {
+				return;
+			}
+		}
+
+	private:
+		enum class LatchMode {
+		};
+};
+
 struct Registers {
 	public:
 		static constexpr bool is_32bit = false;
@@ -269,6 +290,8 @@ struct Memory {
 
 class IO {
 	public:
+		IO(PIT &pit) : pit_(pit) {}
+
 		template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
 			switch(port) {
 				default:
@@ -320,10 +343,10 @@ class IO {
 					printf("TODO: CGA write of %02x at %04x\n", value, port);
 				break;
 
-				case 0x0040:	case 0x0041:	case 0x0042:	case 0x0043:
-				case 0x0044:	case 0x0045:	case 0x0046:	case 0x0047:
-					printf("TODO: PIT write of %02x at %04x\n", value, port);
-				break;
+				case 0x0040:	pit_.write<0>(uint8_t(value));	break;
+				case 0x0041:	pit_.write<1>(uint8_t(value));	break;
+				case 0x0042:	pit_.write<2>(uint8_t(value));	break;
+				case 0x0043:	pit_.set_mode(uint8_t(value));	break;
 			}
 		}
 		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
@@ -332,10 +355,9 @@ class IO {
 					printf("Unhandled in: %04x\n", port);
 				break;
 
-				case 0x0040:	case 0x0041:	case 0x0042:	case 0x0043:
-				case 0x0044:	case 0x0045:	case 0x0046:	case 0x0047:
-					printf("TODO: PIT read from %04x\n", port);
-				break;
+				case 0x0040:	return pit_.read<0>();
+				case 0x0041:	return pit_.read<1>();
+				case 0x0042:	return pit_.read<2>();
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
@@ -348,7 +370,7 @@ class IO {
 		}
 
 	private:
-
+		PIT &pit_;
 };
 
 class FlowController {
@@ -396,8 +418,8 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
-			[[maybe_unused]] const ROMMachine::ROMFetcher &rom_fetcher
-		) {
+			const ROMMachine::ROMFetcher &rom_fetcher
+		) : context(pit_) {
 			// This is actually a MIPS count; try 3 million.
 			set_clock_rate(3'000'000);
 
@@ -451,11 +473,14 @@ class ConcreteMachine:
 		}
 
 	private:
+		PIT pit_;
+
 		struct Context {
-			Context() :
+			Context(PIT &pit) :
 				segments(registers),
 				memory(registers, segments),
-				flow_controller(registers, segments)
+				flow_controller(registers, segments),
+				io(pit)
 			{
 				reset();
 			}
