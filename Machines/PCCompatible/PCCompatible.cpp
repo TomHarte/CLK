@@ -24,7 +24,9 @@ template <bool is_8254>
 class PIT {
 	public:
 		template <int channel> uint8_t read() {
-			return channels_[channel].read();
+			const auto result = channels_[channel].read();
+			printf("Read from %d; %02x\n", channel, result);
+			return result;
 		}
 
 		template <int channel> void write(uint8_t value) {
@@ -40,6 +42,8 @@ class PIT {
 				// TODO: decode rest of read-back command.
 				return;
 			}
+
+			printf("Set mode on %d\n", channel_id);
 
 			Channel &channel = channels_[channel_id];
 
@@ -60,10 +64,12 @@ class PIT {
 				case 7:		channel.mode = OperatingMode::SquareWaveGenerator;	break;
 			}
 
-			printf("%d switches to mode %d\n", channel_id, int(channel.mode));
-
 			// Set up operating mode.
 			switch(channel.mode) {
+				default:
+					printf("%d switches to unimplemented mode %d\n", channel_id, int(channel.mode));
+				break;
+
 				case OperatingMode::InterruptOnTerminalCount:
 					channel.output = false;
 					channel.awaiting_reload = true;
