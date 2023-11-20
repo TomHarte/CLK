@@ -13,12 +13,79 @@
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
+#include "../../Numeric/RegisterSizes.hpp"
+
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
 #include <array>
 
 namespace PCCompatible {
+
+class DMA {
+	public:
+		void flip_flop_reset() {
+			next_access_low = true;
+		}
+
+		void mask_reset() {
+			// TODO: set all mask bits off.
+		}
+
+		void master_reset() {
+			flip_flop_reset();
+			// TODO: clear status, set all mask bits on.
+		}
+
+		template <int address>
+		void write(uint8_t value) {
+			constexpr int channel = (address >> 1) & 3;
+			constexpr bool is_count = address & 1;
+
+			next_access_low ^= true;
+			if(next_access_low) {
+				if constexpr (is_count) {
+					channels_[channel].count.halves.high = value;
+				} else {
+					channels_[channel].address.halves.high = value;
+				}
+			} else {
+				if constexpr (is_count) {
+					channels_[channel].count.halves.low = value;
+				} else {
+					channels_[channel].address.halves.low = value;
+				}
+			}
+		}
+
+		template <int address>
+		uint8_t read() {
+			constexpr int channel = (address >> 1) & 3;
+			constexpr bool is_count = address & 1;
+
+			next_access_low ^= true;
+			if(next_access_low) {
+				if constexpr (is_count) {
+					return channels_[channel].count.halves.high;
+				} else {
+					return channels_[channel].address.halves.high;
+				}
+			} else {
+				if constexpr (is_count) {
+					return channels_[channel].count.halves.low;
+				} else {
+					return channels_[channel].address.halves.low;
+				}
+			}
+		}
+
+	private:
+		bool next_access_low = true;
+
+		struct Channel {
+			CPU::RegisterPair16 address, count;
+		} channels_[4];
+};
 
 template <bool is_8254>
 class PIT {
@@ -46,7 +113,6 @@ class PIT {
 			printf("Set mode on %d\n", channel_id);
 
 			Channel &channel = channels_[channel_id];
-			channel.next_write_high = false;
 			switch((value >> 4) & 3) {
 				default:
 					channel.latch_value();
@@ -57,7 +123,7 @@ class PIT {
 				case 3:		channel.latch_mode = LatchMode::LowHigh;	break;
 			}
 			channel.is_bcd = value & 1;
-			channel.next_write_high = false;
+			channel.next_access_high = false;
 
 			const auto operating_mode = (value >> 1) & 7;
 			switch(operating_mode) {
@@ -127,7 +193,7 @@ class PIT {
 			uint16_t latch = 0;
 			bool output = false;
 
-			bool next_write_high = false;
+			bool next_access_high = false;
 
 			void latch_value() {
 				latch = counter;
@@ -169,17 +235,16 @@ class PIT {
 						reload = (reload & 0xff00) | value;
 					break;
 					case LatchMode::HighOnly:
-						reload = (reload & 0x00ff) | (value << 8);
+						reload = uint16_t((reload & 0x00ff) | (value << 8));
 					break;
 					case LatchMode::LowHigh:
-						if(!next_write_high) {
+						next_access_high ^= true;
+						if(next_access_high) {
 							reload = (reload & 0xff00) | value;
-							next_write_high = true;
 							return;
 						}
 
-						reload = (reload & 0x00ff) | (value << 8);
-						next_write_high = false;
+						reload = uint16_t((reload & 0x00ff) | (value << 8));
 					break;
 				}
 
@@ -199,8 +264,8 @@ class PIT {
 					case LatchMode::HighOnly:	return uint8_t(latch >> 8);
 					default:
 					case LatchMode::LowHigh:
-						next_write_high ^= true;
-						return next_write_high ? uint8_t(latch) : uint8_t(latch >> 8);
+						next_access_high ^= true;
+						return next_access_high ? uint8_t(latch) : uint8_t(latch >> 8);
 					break;
 				}
 			}
@@ -464,7 +529,7 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT<false> &pit) : pit_(pit) {}
+		IO(PIT<false> &pit, DMA &dma) : pit_(pit), dma_(dma) {}
 
 		template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
 			switch(port) {
@@ -481,12 +546,22 @@ class IO {
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
-				case 0x0000:	case 0x0001:	case 0x0002:	case 0x0003:
-				case 0x0004:	case 0x0005:	case 0x0006:	case 0x0007:
+				case 0x0000:	dma_.write<0>(value);	break;
+				case 0x0001:	dma_.write<1>(value);	break;
+				case 0x0002:	dma_.write<2>(value);	break;
+				case 0x0003:	dma_.write<3>(value);	break;
+				case 0x0004:	dma_.write<4>(value);	break;
+				case 0x0005:	dma_.write<5>(value);	break;
+				case 0x0006:	dma_.write<6>(value);	break;
+				case 0x0007:	dma_.write<7>(value);	break;
+
 				case 0x0008:	case 0x0009:	case 0x000a:	case 0x000b:
-				case 0x000c:	case 0x000d:	case 0x000e:	case 0x000f:
+				case 0x000c:	case 0x000f:
 					printf("TODO: DMA write of %02x at %04x\n", value, port);
 				break;
+
+				case 0x000d:	dma_.master_reset();	break;
+				case 0x000e:	dma_.mask_reset();		break;
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
@@ -529,6 +604,15 @@ class IO {
 					printf("Unhandled in: %04x\n", port);
 				break;
 
+				case 0x0000:	return dma_.read<0>();
+				case 0x0001:	return dma_.read<1>();
+				case 0x0002:	return dma_.read<2>();
+				case 0x0003:	return dma_.read<3>();
+				case 0x0004:	return dma_.read<4>();
+				case 0x0005:	return dma_.read<5>();
+				case 0x0006:	return dma_.read<6>();
+				case 0x0007:	return dma_.read<7>();
+
 				case 0x0040:	return pit_.read<0>();
 				case 0x0041:	return pit_.read<1>();
 				case 0x0042:	return pit_.read<2>();
@@ -545,6 +629,7 @@ class IO {
 
 	private:
 		PIT<false> &pit_;
+		DMA &dma_;
 };
 
 class FlowController {
@@ -596,7 +681,7 @@ class ConcreteMachine:
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : context(pit_) {
+		) : context(pit_, dma_) {
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
@@ -655,13 +740,14 @@ class ConcreteMachine:
 
 	private:
 		PIT<false> pit_;
+		DMA dma_;
 
 		struct Context {
-			Context(PIT<false> &pit) :
+			Context(PIT<false> &pit, DMA &dma) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit)
+				io(pit, dma)
 			{
 				reset();
 			}
