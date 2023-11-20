@@ -25,6 +25,17 @@
 namespace PCCompatible {
 
 class PIC {
+	public:
+		template <int address>
+		void write(uint8_t value) {
+			printf("PIC: %02x to %d\n", value, address);
+		}
+
+		template <int address>
+		uint8_t read() {
+			printf("PIC: %read from %d\n", address);
+			return 0;
+		}
 };
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
@@ -603,12 +614,8 @@ class IO {
 				case 0x000d:	dma_.master_reset();	break;
 				case 0x000e:	dma_.mask_reset();		break;
 
-				case 0x0020:	case 0x0021:	case 0x0022:	case 0x0023:
-				case 0x0024:	case 0x0025:	case 0x0026:	case 0x0027:
-				case 0x0028:	case 0x0029:	case 0x002a:	case 0x002b:
-				case 0x002c:	case 0x002d:	case 0x002e:	case 0x002f:
-					printf("TODO: PIC write of %02x at %04x\n", value, port);
-				break;
+				case 0x0020:	pic_.write<0>(value);	break;
+				case 0x0021:	pic_.write<1>(value);	break;
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
@@ -658,6 +665,9 @@ class IO {
 				case 0x0005:	return dma_.read<5>();
 				case 0x0006:	return dma_.read<6>();
 				case 0x0007:	return dma_.read<7>();
+
+				case 0x0020:	return pic_.read<0>();
+				case 0x0021:	return pic_.read<1>();
 
 				case 0x0040:	return pit_.read<0>();
 				case 0x0041:	return pit_.read<1>();
