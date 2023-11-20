@@ -13,6 +13,8 @@
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
+#include "../../Components/8255/i8255.hpp"
+
 #include "../../Numeric/RegisterSizes.hpp"
 
 #include "../ScanProducer.hpp"
@@ -21,6 +23,19 @@
 #include <array>
 
 namespace PCCompatible {
+
+class i8255PortHandler : public Intel::i8255::PortHandler {
+	public:
+		void set_value(int port, uint8_t value) {
+			printf("PPI: %02x to %d\n", value, port);
+		}
+
+		uint8_t get_value(int port) {
+			printf("PPI: from %d\n", port);
+			return 0;
+		};
+};
+using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
 class DMA {
 	public:
@@ -529,9 +544,9 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT<false> &pit, DMA &dma) : pit_(pit), dma_(dma) {}
+		IO(PIT<false> &pit, DMA &dma, PPI &ppi) : pit_(pit), dma_(dma), ppi_(ppi) {}
 
-		template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
+		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
 				default:
 					if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -568,7 +583,7 @@ class IO {
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
 					// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
-					printf("TODO: PPI write of %02x at %04x\n", value, port);
+					ppi_.write(port, value);
 				break;
 
 				case 0x0080:	case 0x0081:	case 0x0082:	case 0x0083:
@@ -621,8 +636,7 @@ class IO {
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
-					printf("TODO: PPI read from %04x\n", port);
-				break;
+				return ppi_.read(port);
 			}
 			return IntT(~0);
 		}
@@ -630,6 +644,7 @@ class IO {
 	private:
 		PIT<false> &pit_;
 		DMA &dma_;
+		PPI &ppi_;
 };
 
 class FlowController {
@@ -681,7 +696,7 @@ class ConcreteMachine:
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : context(pit_, dma_) {
+		) : ppi_(ppi_handler_), context(pit_, dma_, ppi_) {
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
@@ -741,13 +756,15 @@ class ConcreteMachine:
 	private:
 		PIT<false> pit_;
 		DMA dma_;
+		i8255PortHandler ppi_handler_;
+		PPI ppi_;
 
 		struct Context {
-			Context(PIT<false> &pit, DMA &dma) :
+			Context(PIT<false> &pit, DMA &dma, PPI &ppi) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma)
+				io(pit, dma, ppi)
 			{
 				reset();
 			}
