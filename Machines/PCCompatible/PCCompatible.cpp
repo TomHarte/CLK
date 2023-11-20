@@ -27,13 +27,34 @@ namespace PCCompatible {
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
 		void set_value(int port, uint8_t value) {
+			switch(port) {
+				case 1:
+				break;
+			}
 			printf("PPI: %02x to %d\n", value, port);
 		}
 
 		uint8_t get_value(int port) {
+			switch(port) {
+				case 2:
+					// b7: 1 => memory parity error; 0 => none;
+					// b6: 1 => IO channel error; 0 => none;
+					// b5: timer 2 output;	[TODO]
+					// b4: cassette data input; [TODO]
+					// b3, b2: RAM on motherboard (64 * bit pattern)
+					// b1: 1 => FPU present; 0 => absent;
+					// b0: 1 => floppy drive present; 0 => absent.
+					return 0b0000'1100;
+				break;
+			}
 			printf("PPI: from %d\n", port);
 			return 0;
 		};
+
+	// Provisionally, possibly:
+	//
+	//	port 0 = keyboard data output buffer;
+	//
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
@@ -577,6 +598,13 @@ class IO {
 
 				case 0x000d:	dma_.master_reset();	break;
 				case 0x000e:	dma_.mask_reset();		break;
+
+				case 0x0020:	case 0x0021:	case 0x0022:	case 0x0023:
+				case 0x0024:	case 0x0025:	case 0x0026:	case 0x0027:
+				case 0x0028:	case 0x0029:	case 0x002a:	case 0x002b:
+				case 0x002c:	case 0x002d:	case 0x002e:	case 0x002f:
+					printf("TODO: PIC write of %02x at %04x\n", value, port);
+				break;
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
