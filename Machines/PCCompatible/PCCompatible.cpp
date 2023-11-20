@@ -24,6 +24,9 @@
 
 namespace PCCompatible {
 
+class PIC {
+};
+
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
@@ -566,7 +569,7 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT<false> &pit, DMA &dma, PPI &ppi) : pit_(pit), dma_(dma), ppi_(ppi) {}
+		IO(PIT<false> &pit, DMA &dma, PPI &ppi, PIC &pic) : pit_(pit), dma_(dma), ppi_(ppi), pic_(pic) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
@@ -673,6 +676,7 @@ class IO {
 		PIT<false> &pit_;
 		DMA &dma_;
 		PPI &ppi_;
+		PIC &pic_;
 };
 
 class FlowController {
@@ -724,7 +728,7 @@ class ConcreteMachine:
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : ppi_(ppi_handler_), context(pit_, dma_, ppi_) {
+		) : ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
@@ -786,13 +790,14 @@ class ConcreteMachine:
 		DMA dma_;
 		i8255PortHandler ppi_handler_;
 		PPI ppi_;
+		PIC pic_;
 
 		struct Context {
-			Context(PIT<false> &pit, DMA &dma, PPI &ppi) :
+			Context(PIT<false> &pit, DMA &dma, PPI &ppi, PIC &pic) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi)
+				io(pit, dma, ppi, pic)
 			{
 				reset();
 			}
