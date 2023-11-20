@@ -25,6 +25,7 @@
 namespace PCCompatible {
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
+	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -610,7 +611,6 @@ class IO {
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
-					// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 					ppi_.write(port, value);
 				break;
 
