@@ -46,7 +46,8 @@ class PIT {
 			printf("Set mode on %d\n", channel_id);
 
 			Channel &channel = channels_[channel_id];
-			switch((value >> 1) & 3) {
+			channel.next_write_high = false;
+			switch((value >> 4) & 3) {
 				default:
 					channel.latch_value();
 				return;
@@ -58,7 +59,7 @@ class PIT {
 			channel.is_bcd = value & 1;
 			channel.next_write_high = false;
 
-			const auto operating_mode = (value >> 3) & 7;
+			const auto operating_mode = (value >> 1) & 7;
 			switch(operating_mode) {
 				default:	channel.mode = OperatingMode(operating_mode);		break;
 				case 6:		channel.mode = OperatingMode::RateGenerator;		break;
