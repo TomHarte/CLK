@@ -24,18 +24,77 @@
 
 namespace PCCompatible {
 
+// Cf. https://helppc.netcore2k.net/hardware/pic
 class PIC {
 	public:
 		template <int address>
 		void write(uint8_t value) {
+			if(address) {
+				if(config_.word >= 0) {
+					switch(config_.word) {
+						case 0:
+							vector_base_ = value;
+						break;
+						case 1:
+							if(config_.has_fourth_word) {
+								// TODO:
+								//
+								//	(1) slave mask if this is a master;
+								//	(2) master interrupt attachment if this is a slave.
+							}
+							[[fallthrough]];
+						break;
+						case 2:
+							auto_eoi_ = value & 2;
+						break;
+					}
+
+					++config_.word;
+					if(config_.word == (config_.has_fourth_word ? 3 : 2)) {
+						config_.word = -1;
+					}
+				} else {
+					mask_ = value;
+				}
+			} else {
+				if(value & 0x10) {
+					config_.word = 0;
+					config_.has_fourth_word = value & 1;
+
+					if(!config_.has_fourth_word) {
+						auto_eoi_ = false;
+					}
+
+					single_pic_ = value & 2;
+					four_byte_vectors_ = value & 4;
+					level_triggered_ = value & 8;
+				}
+			}
 			printf("PIC: %02x to %d\n", value, address);
 		}
 
 		template <int address>
 		uint8_t read() {
-			printf("PIC: %read from %d\n", address);
+			printf("PIC: read from %d\n", address);
+			if(address) {
+				return mask_;
+			}
 			return 0;
 		}
+
+	private:
+		bool single_pic_ = false;
+		bool four_byte_vectors_ = false;
+		bool level_triggered_ = false;
+		bool auto_eoi_ = false;
+
+		uint8_t vector_base_ = 0;
+		uint8_t mask_ = 0;
+
+		struct ConfgurationState {
+			int word;
+			bool has_fourth_word;
+		} config_;
 };
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
@@ -143,12 +202,12 @@ class PIT {
 	public:
 		template <int channel> uint8_t read() {
 			const auto result = channels_[channel].read();
-			printf("Read from %d; %02x\n", channel, result);
+			printf("PIT: read from %d; %02x\n", channel, result);
 			return result;
 		}
 
 		template <int channel> void write(uint8_t value) {
-			printf("Write to %d\n", channel);
+			printf("PIT: write to %d\n", channel);
 			channels_[channel].write(value);
 		}
 
@@ -161,7 +220,7 @@ class PIT {
 				return;
 			}
 
-			printf("Set mode on %d\n", channel_id);
+			printf("PIT: set mode on %d\n", channel_id);
 
 			Channel &channel = channels_[channel_id];
 			switch((value >> 4) & 3) {
@@ -186,7 +245,7 @@ class PIT {
 			// Set up operating mode.
 			switch(channel.mode) {
 				default:
-					printf("%d switches to unimplemented mode %d\n", channel_id, int(channel.mode));
+					printf("PIT: %d switches to unimplemented mode %d\n", channel_id, int(channel.mode));
 				break;
 
 				case OperatingMode::InterruptOnTerminalCount:
