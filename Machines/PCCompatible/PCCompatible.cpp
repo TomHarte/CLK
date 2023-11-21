@@ -87,10 +87,20 @@ class PIC {
 		template <int input>
 		void apply_edge(bool final_level) {
 			const uint8_t input_mask = 1 << input;
-			if(mask_ & input_mask) {
-				return;
+
+			// Guess: level triggered means the request can be forwarded only so long as the
+			// relevant input is actually high. Whereas edge triggered implies capturing state.
+			if(level_triggered_) {
+				requests_ &= ~input_mask;
 			}
-			printf("PIC: Unmasked input %d switches to level %d\n", input, final_level);
+			if(final_level) {
+				requests_ |= input_mask;
+			}
+		}
+
+		bool pending() {
+			// Per the OSDev Wiki, masking is applied after the fact.
+			return requests_ & ~mask_;
 		}
 
 	private:
@@ -101,6 +111,9 @@ class PIC {
 
 		uint8_t vector_base_ = 0;
 		uint8_t mask_ = 0;
+
+		uint8_t requests_ = 0;
+		uint8_t in_service_ = 0;
 
 		struct ConfgurationState {
 			int word;
@@ -661,12 +674,29 @@ class ConcreteMachine:
 		void run_for(const Cycles cycles) override {
 			auto instructions = cycles.as_integral();
 			while(instructions--) {
+				//
 				// First draft: all hardware runs in lockstep.
+				//
+
+				// Advance the PIT.
 				pit_.run_for(PitDivisor / PitMultiplier);
 
-				// Get the next thing to execute into decoded.
+				// Query for interrupts and apply if pending.
+				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
+					// Regress the IP if a REP is in-progress so as to resume it later.
+					if(context.flow_controller.should_repeat()) {
+						context.registers.ip() = decoded_ip_;
+						context.flow_controller.begin_instruction();
+					}
+
+					// TODO: signal interrupt.
+					printf("TODO: should interrupt\n");
+				}
+
+				// Get the next thing to execute.
 				if(!context.flow_controller.should_repeat()) {
 					// Decode from the current IP.
+					decoded_ip_ = context.registers.ip();
 					const auto remainder = context.memory.next_code();
 					decoded = decoder.decode(remainder.first, remainder.second);
 
@@ -735,6 +765,7 @@ class ConcreteMachine:
 		InstructionSet::x86::Decoder8086 decoder;
 //		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 
+		uint16_t decoded_ip_ = 0;
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 };
 
