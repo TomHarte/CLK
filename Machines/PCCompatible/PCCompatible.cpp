@@ -152,6 +152,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
+					high_switches_ = value & 0x08;
 				break;
 			}
 			printf("PPI: %02x to %d\n", value, port);
@@ -159,20 +160,30 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		uint8_t get_value(int port) {
 			switch(port) {
-				// TODO: returned value should depend on 'PBSW', a value written... somewhere?
 				case 2:
+					// Common:
+					//
 					// b7: 1 => memory parity error; 0 => none;
 					// b6: 1 => IO channel error; 0 => none;
 					// b5: timer 2 output;	[TODO]
 					// b4: cassette data input; [TODO]
-					// b3, b2: RAM on motherboard (64 * bit pattern)
-					// b1: 1 => FPU present; 0 => absent;
-					// b0: 1 => floppy drive present; 0 => absent.
-					return 0b0000'1100;
+					return
+						high_switches_ ?
+							// b3, b2: drive count; 00 = 1, 01 = 2, etc
+							// b1, b0: video mode (00 = ROM; 01 = CGA40; 10 = CGA80; 11 = MDA)
+							0b0000'0011
+						:
+							// b3, b2: RAM on motherboard (64 * bit pattern)
+							// b1: 1 => FPU present; 0 => absent;
+							// b0: 1 => floppy drive present; 0 => absent.
+							0b0000'1100;
 			}
 			printf("PPI: from %d\n", port);
 			return 0;
 		};
+
+	private:
+		bool high_switches_ = false;
 
 	// Provisionally, possibly:
 	//
