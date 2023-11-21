@@ -61,6 +61,10 @@ class PIC {
 				}
 			} else {
 				if(value & 0x10) {
+					//
+					// Initialisation Command Word 1.
+					//
+
 					config_.word = 0;
 					config_.has_fourth_word = value & 1;
 
@@ -71,14 +75,33 @@ class PIC {
 					single_pic_ = value & 2;
 					four_byte_vectors_ = value & 4;
 					level_triggered_ = value & 8;
+				} else if(value & 0x08) {
+					//
+					// Operation Control Word 3.
+					//
+
+					// b6: 1 => use b5; 0 => ignore.
+					// b5: 1 => set special mask; 0 => clear.
+					// b2: 1 => poll command issued; 0 => not.
+					// b1: 1 => use b0; 0 => ignore.
+					// b0: 1 => read IRR on next read; 0 => read ISR.
+				} else {
+					//
+					// Operation Control Word 2.
+					//
+
+					// b7, b6, b5:	EOI type.
+					// b2, b1, b0:	interrupt level to acknowledge.
+					if((value >> 5) == 0b001) {
+						// Non-specific EOI.
+						awaiting_eoi_ = false;
+					}
 				}
 			}
-			printf("PIC: %02x to %d\n", value, address);
 		}
 
 		template <int address>
 		uint8_t read() {
-			printf("PIC: read from %d\n", address);
 			if(address) {
 				return mask_;
 			}
@@ -101,7 +124,28 @@ class PIC {
 
 		bool pending() {
 			// Per the OSDev Wiki, masking is applied after the fact.
-			return requests_ & ~mask_;
+			return !awaiting_eoi_ && (requests_ & ~mask_);
+		}
+
+		int acknowledge() {
+			awaiting_eoi_ = true;
+
+			// TODO: there's bound to be a better solution than this search?
+			// TODO: is this the right priority order?
+			in_service_ = 0x80;
+			int id = 7;
+			while(!(in_service_ & requests_)) {
+				in_service_ >>= 1;
+				--id;
+			}
+
+			if(in_service_) {
+				requests_ &= ~in_service_;
+				return vector_base_ + id;
+			}
+
+			// Spurious interrupt.
+			return vector_base_ + 7;
 		}
 
 	private:
@@ -112,6 +156,7 @@ class PIC {
 
 		uint8_t vector_base_ = 0;
 		uint8_t mask_ = 0;
+		bool awaiting_eoi_ = false;
 
 		uint8_t requests_ = 0;
 		uint8_t in_service_ = 0;
@@ -389,20 +434,20 @@ struct Memory {
 		}
 
 		// Accesses an address based on physical location.
-		int mda_delay = -1;	// HACK.
+//		int mda_delay = -1;	// HACK.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
 
 			// TEMPORARY HACK.
-			if(mda_delay > 0) {
-				--mda_delay;
-				if(!mda_delay) {
-					print_mda();
-				}
-			}
-			if(address >= 0xb'0000 && is_writeable(type)) {
-				mda_delay = 100;
-			}
+//			if(mda_delay > 0) {
+//				--mda_delay;
+//				if(!mda_delay) {
+//					print_mda();
+//				}
+//			}
+//			if(address >= 0xb'0000 && is_writeable(type)) {
+//				mda_delay = 100;
+//			}
 
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -477,16 +522,16 @@ struct Memory {
 
 
 		// TEMPORARY HACK.
-		void print_mda() {
-			uint32_t pointer = 0xb'0000;
-			for(int y = 0; y < 25; y++) {
-				for(int x = 0; x < 80; x++) {
-					printf("%c", memory[pointer]);
-					pointer += 2;	// MDA goes [character, attributes]...; skip the attributes.
-				}
-				printf("\n");
-			}
-		}
+//		void print_mda() {
+//			uint32_t pointer = 0xb'0000;
+//			for(int y = 0; y < 25; y++) {
+//				for(int x = 0; x < 80; x++) {
+//					printf("%c", memory[pointer]);
+//					pointer += 2;	// MDA goes [character, attributes]...; skip the attributes.
+//				}
+//				printf("\n");
+//			}
+//		}
 
 	private:
 		std::array<uint8_t, 1024*1024> memory{0xff};
@@ -729,8 +774,11 @@ class ConcreteMachine:
 						context.flow_controller.begin_instruction();
 					}
 
-					// TODO: signal interrupt.
-//					printf("TODO: should interrupt\n");
+					// Signal interrupt.
+					InstructionSet::x86::interrupt(
+						pic_.acknowledge(),
+						context
+					);
 				}
 
 				// Get the next thing to execute.
