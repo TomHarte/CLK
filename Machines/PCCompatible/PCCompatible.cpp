@@ -23,6 +23,7 @@
 #include "../TimedMachine.hpp"
 
 #include <array>
+#include <iostream>
 
 namespace PCCompatible {
 
@@ -675,6 +676,8 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
+//		bool log = false;
+//		std::string previous;
 		void run_for(const Cycles cycles) override {
 			auto instructions = cycles.as_integral();
 			while(instructions--) {
@@ -712,9 +715,19 @@ class ConcreteMachine:
 					}
 
 					context.registers.ip() += decoded.first;
+
+//					log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
 				} else {
 					context.flow_controller.begin_instruction();
 				}
+
+//				if(log) {
+//					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
+//					if(next != previous) {
+//						std::cout << next << std::endl;
+//						previous = next;
+//					}
+//				}
 
 				// Execute it.
 				InstructionSet::x86::perform(
