@@ -389,10 +389,19 @@ struct Memory {
 		}
 
 		// Accesses an address based on physical location.
+		int mda_delay = -1;	// HACK.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
+
+			// TEMPORARY HACK.
+			if(mda_delay > 0) {
+				--mda_delay;
+				if(!mda_delay) {
+					print_mda();
+				}
+			}
 			if(address >= 0xb'0000 && is_writeable(type)) {
-				printf("MDA?\n");
+				mda_delay = 100;
 			}
 
 			// Dispense with the single-byte case trivially.
@@ -464,6 +473,19 @@ struct Memory {
 		//
 		void install(size_t address, const uint8_t *data, size_t length) {
 			std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
+		}
+
+
+		// TEMPORARY HACK.
+		void print_mda() {
+			uint32_t pointer = 0xb'0000;
+			for(int y = 0; y < 25; y++) {
+				for(int x = 0; x < 80; x++) {
+					printf("%c", memory[pointer]);
+					pointer += 2;	// MDA goes [character, attributes]...; skip the attributes.
+				}
+				printf("\n");
+			}
 		}
 
 	private:
@@ -708,7 +730,7 @@ class ConcreteMachine:
 					}
 
 					// TODO: signal interrupt.
-					printf("TODO: should interrupt\n");
+//					printf("TODO: should interrupt\n");
 				}
 
 				// Get the next thing to execute.
