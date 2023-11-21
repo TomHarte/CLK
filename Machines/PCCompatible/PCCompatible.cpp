@@ -158,6 +158,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		uint8_t get_value(int port) {
 			switch(port) {
+				// TODO: returned value should depend on 'PBSW', a value written... somewhere?
 				case 2:
 					// b7: 1 => memory parity error; 0 => none;
 					// b6: 1 => IO channel error; 0 => none;
@@ -167,7 +168,6 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					// b1: 1 => FPU present; 0 => absent;
 					// b0: 1 => floppy drive present; 0 => absent.
 					return 0b0000'1100;
-				break;
 			}
 			printf("PPI: from %d\n", port);
 			return 0;
@@ -379,6 +379,10 @@ struct Memory {
 		// Accesses an address based on physical location.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
+			if(address >= 0xb'0000 && is_writeable(type)) {
+				printf("MDA?\n");
+			}
+
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
