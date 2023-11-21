@@ -84,8 +84,13 @@ class PIC {
 			return 0;
 		}
 
-		template <int vector>
-		void raise() {
+		template <int input>
+		void apply_edge(bool final_level) {
+			const uint8_t input_mask = 1 << input;
+			if(mask_ & input_mask) {
+				return;
+			}
+			printf("PIC: Unmasked input %d switches to level %d\n", input, final_level);
 		}
 
 	private:
@@ -102,6 +107,30 @@ class PIC {
 			bool has_fourth_word;
 		} config_;
 };
+
+
+class PITObserver {
+	public:
+		PITObserver(PIC &pic) : pic_(pic) {}
+
+		template <int channel>
+		void update_output(bool new_level) {
+			switch(channel) {
+				default: break;
+				case 0: pic_.apply_edge<0>(new_level);	break;
+			}
+		}
+
+	private:
+		PIC &pic_;
+
+	// TODO:
+	//
+	//	channel 0 is connected to IRQ 0;
+	//	channel 1 is used for DRAM refresh (presumably connected to DMA?);
+	//	channel 2 is gated by a PPI output and feeds into the speaker.
+};
+using PIT = i8237<false, PITObserver>;
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
@@ -452,7 +481,7 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT<false> &pit, DMA &dma, PPI &ppi, PIC &pic) : pit_(pit), dma_(dma), ppi_(ppi), pic_(pic) {}
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic) : pit_(pit), dma_(dma), ppi_(ppi), pic_(pic) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
@@ -555,7 +584,7 @@ class IO {
 		}
 
 	private:
-		PIT<false> &pit_;
+		PIT &pit_;
 		DMA &dma_;
 		PPI &ppi_;
 		PIC &pic_;
@@ -610,7 +639,7 @@ class ConcreteMachine:
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
+		) : pit_observer_(pic_), pit_(pit_observer_), ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
@@ -668,14 +697,17 @@ class ConcreteMachine:
 		}
 
 	private:
-		PIT<false> pit_;
-		DMA dma_;
-		i8255PortHandler ppi_handler_;
-		PPI ppi_;
 		PIC pic_;
+		DMA dma_;
+
+		PITObserver pit_observer_;
+		i8255PortHandler ppi_handler_;
+
+		PIT pit_;
+		PPI ppi_;
 
 		struct Context {
-			Context(PIT<false> &pit, DMA &dma, PPI &ppi, PIC &pic) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),

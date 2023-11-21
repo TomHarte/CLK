@@ -11,15 +11,17 @@
 
 namespace PCCompatible {
 
-template <bool is_8254>
-class PIT {
+template <bool is_8254, typename PITObserver>
+class i8237 {
 	public:
+		i8237(PITObserver &observer) : observer_(observer) {}
+
 		template <int channel> uint8_t read() {
 			return channels_[channel].read();
 		}
 
 		template <int channel> void write(uint8_t value) {
-			channels_[channel].write(value);
+			channels_[channel].template write<channel>(observer_, value);
 		}
 
 		void set_mode(uint8_t value) {
@@ -29,20 +31,27 @@ class PIT {
 				read_back_ = is_8254;
 				return;
 			}
-			channels_[channel_id].set_mode(value);
+			switch(channel_id) {
+				case 0:	channels_[0].template set_mode<0>(observer_, value);	break;
+				case 1:	channels_[1].template set_mode<1>(observer_, value);	break;
+				case 2:	channels_[2].template set_mode<2>(observer_, value);	break;
+			}
 		}
 
 		void run_for(Cycles cycles) {
 			// TODO: be intelligent enough to take ticks outside the loop when appropriate.
 			auto ticks = cycles.as<int>();
 			while(ticks--) {
-				channels_[0].advance(1);
-				channels_[1].advance(1);
-				channels_[2].advance(1);
+				channels_[0].template advance<0>(observer_, 1);
+				channels_[1].template advance<1>(observer_, 1);
+				channels_[2].template advance<2>(observer_, 1);
 			}
 		}
 
 	private:
+		// The target for output changes.
+		PITObserver &observer_;
+
 		// Supported only on 8254s.
 		bool read_back_ = false;
 
@@ -80,7 +89,8 @@ class PIT {
 				latch = counter;
 			}
 
-			void set_mode(uint8_t value) {
+			template <int channel>
+			void set_mode(PITObserver &observer, uint8_t value) {
 				switch((value >> 4) & 3) {
 					default:
 						latch_value();
@@ -108,19 +118,20 @@ class PIT {
 
 					case OperatingMode::InterruptOnTerminalCount:
 					case OperatingMode::HardwareRetriggerableOneShot:
-						set_output(false);
+						set_output<channel>(observer, false);
 						awaiting_reload = true;
 					break;
 
 					case OperatingMode::RateGenerator:
 					case OperatingMode::SquareWaveGenerator:
-						set_output(true);
+						set_output<channel>(observer, true);
 						awaiting_reload = true;
 					break;
 				}
 			}
 
-			void advance(int ticks) {
+			template <int channel>
+			void advance(PITObserver &observer, int ticks) {
 				if(gated || awaiting_reload) return;
 
 				// TODO: BCD mode is completely ignored below. Possibly not too important.
@@ -128,7 +139,7 @@ class PIT {
 					case OperatingMode::InterruptOnTerminalCount:
 					case OperatingMode::HardwareRetriggerableOneShot:
 						// Output goes permanently high upon a tick from 1 to 0; reload value is not reused.
-						set_output(output | (counter <= ticks));
+						set_output<channel>(observer, output | (counter <= ticks));
 						counter -= ticks;
 					break;
 
@@ -138,7 +149,7 @@ class PIT {
 							// If there's a step from 1 to 0 within the next batch of ticks,
 							// toggle output and apply a reload.
 							if(counter && ticks >= counter) {
-								set_output(output ^ true);
+								set_output<channel>(observer, output ^ true);
 								ticks -= counter;
 
 								const uint16_t reload_mask = output ? 0xffff : 0xfffe;
@@ -155,7 +166,7 @@ class PIT {
 							// Check for a step from 2 to 1 within the next batch of ticks, which would cause output
 							// to go high.
 							if(counter > 1 && ticks >= counter - 1) {
-								set_output(true);
+								set_output<channel>(observer, true);
 								ticks -= counter - 1;
 								counter = 1;
 								continue;
@@ -163,7 +174,7 @@ class PIT {
 
 							// If there is a step from 1 to 0, reload and set output back to low.
 							if(counter && ticks >= counter) {
-								set_output(false);
+								set_output<channel>(observer, false);
 								ticks -= counter;
 								counter = reload;
 								continue;
@@ -180,7 +191,8 @@ class PIT {
 				}
 			}
 
-			void write(uint8_t value) {
+			template <int channel>
+			void write([[maybe_unused]] PITObserver &observer, uint8_t value) {
 				switch(latch_mode) {
 					case LatchMode::LowOnly:
 						reload = (reload & 0xff00) | value;
@@ -225,21 +237,19 @@ class PIT {
 				}
 			}
 
-			void set_output(bool level) {
+			template <int channel>
+			void set_output(PITObserver &observer, bool level) {
 				if(output == level) {
 					return;
 				}
 
+				// TODO: how should time be notified?
+				observer.template update_output<channel>(level);
 				output = level;
-				// TODO: notify _someone_.
 			}
 		} channels_[3];
 
 		// TODO:
-		//
-		//	channel 0 is connected to IRQ 0;
-		//	channel 1 is used for DRAM refresh;
-		//	channel 2 is gated by a PPI output and feeds into the speaker.
 		//
 		//	RateGenerator: output goes high if gated.
 };
