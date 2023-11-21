@@ -15,73 +15,30 @@ template <bool is_8254>
 class PIT {
 	public:
 		template <int channel> uint8_t read() {
-			const auto result = channels_[channel].read();
-			printf("PIT: read from %d; %02x\n", channel, result);
-			return result;
+			return channels_[channel].read();
 		}
 
 		template <int channel> void write(uint8_t value) {
-			printf("PIT: write to %d\n", channel);
 			channels_[channel].write(value);
 		}
 
 		void set_mode(uint8_t value) {
 			const int channel_id = (value >> 6) & 3;
 			if(channel_id == 3) {
-				read_back_ = is_8254;
-
 				// TODO: decode rest of read-back command.
+				read_back_ = is_8254;
 				return;
 			}
-
-			printf("PIT: set mode on %d\n", channel_id);
-
-			Channel &channel = channels_[channel_id];
-			switch((value >> 4) & 3) {
-				default:
-					channel.latch_value();
-				return;
-
-				case 1:		channel.latch_mode = LatchMode::LowOnly;	break;
-				case 2:		channel.latch_mode = LatchMode::HighOnly;	break;
-				case 3:		channel.latch_mode = LatchMode::LowHigh;	break;
-			}
-			channel.is_bcd = value & 1;
-			channel.next_access_high = false;
-
-			const auto operating_mode = (value >> 1) & 7;
-			switch(operating_mode) {
-				default:	channel.mode = OperatingMode(operating_mode);		break;
-				case 6:		channel.mode = OperatingMode::RateGenerator;		break;
-				case 7:		channel.mode = OperatingMode::SquareWaveGenerator;	break;
-			}
-
-			// Set up operating mode.
-			switch(channel.mode) {
-				default:
-					printf("PIT: %d switches to unimplemented mode %d\n", channel_id, int(channel.mode));
-				break;
-
-				case OperatingMode::InterruptOnTerminalCount:
-					channel.output = false;
-					channel.awaiting_reload = true;
-				break;
-
-				case OperatingMode::RateGenerator:
-					channel.output = true;
-					channel.awaiting_reload = true;
-				break;
-			}
+			channels_[channel_id].set_mode(value);
 		}
 
 		void run_for(Cycles cycles) {
 			// TODO: be intelligent enough to take ticks outside the loop when appropriate.
 			auto ticks = cycles.as<int>();
 			while(ticks--) {
-				bool output_changed;
-				output_changed = channels_[0].advance(1);
-				output_changed |= channels_[1].advance(1);
-				output_changed |= channels_[2].advance(1);
+				channels_[0].advance(1);
+				channels_[1].advance(1);
+				channels_[2].advance(1);
 			}
 		}
 
@@ -123,34 +80,104 @@ class PIT {
 				latch = counter;
 			}
 
-			bool advance(int ticks) {
-				if(gated || awaiting_reload) return false;
+			void set_mode(uint8_t value) {
+				switch((value >> 4) & 3) {
+					default:
+						latch_value();
+					return;
 
-				// TODO: BCD mode is completely ignored below. Possibly not too important.
-				const bool initial_output = output;
+					case 1:		latch_mode = LatchMode::LowOnly;	break;
+					case 2:		latch_mode = LatchMode::HighOnly;	break;
+					case 3:		latch_mode = LatchMode::LowHigh;	break;
+				}
+				is_bcd = value & 1;
+				next_access_high = false;
+
+				const auto operating_mode = (value >> 1) & 7;
+				switch(operating_mode) {
+					default:	mode = OperatingMode(operating_mode);		break;
+					case 6:		mode = OperatingMode::RateGenerator;		break;
+					case 7:		mode = OperatingMode::SquareWaveGenerator;	break;
+				}
+
+				// Set up operating mode.
 				switch(mode) {
+					default:
+						printf("PIT: unimplemented mode %d\n", int(mode));
+					break;
+
 					case OperatingMode::InterruptOnTerminalCount:
-						// Output goes permanently high upon a tick from 1 to 0; reload value is not used on wraparound.
-						output |= counter <= ticks;
-						counter -= ticks;
+					case OperatingMode::HardwareRetriggerableOneShot:
+						set_output(false);
+						awaiting_reload = true;
 					break;
 
 					case OperatingMode::RateGenerator:
-						// Output goes low upon a tick from 2 to 1. It goes high again on 1 to 0, and the reload value is used.
-						if(counter <= ticks) {
-							counter = reload - ticks + counter;
-						} else {
+					case OperatingMode::SquareWaveGenerator:
+						set_output(true);
+						awaiting_reload = true;
+					break;
+				}
+			}
+
+			void advance(int ticks) {
+				if(gated || awaiting_reload) return;
+
+				// TODO: BCD mode is completely ignored below. Possibly not too important.
+				switch(mode) {
+					case OperatingMode::InterruptOnTerminalCount:
+					case OperatingMode::HardwareRetriggerableOneShot:
+						// Output goes permanently high upon a tick from 1 to 0; reload value is not reused.
+						set_output(output | (counter <= ticks));
+						counter -= ticks;
+					break;
+
+					case OperatingMode::SquareWaveGenerator: {
+						ticks <<= 1;
+						do {
+							// If there's a step from 1 to 0 within the next batch of ticks,
+							// toggle output and apply a reload.
+							if(counter && ticks >= counter) {
+								set_output(output ^ true);
+								ticks -= counter;
+
+								const uint16_t reload_mask = output ? 0xffff : 0xfffe;
+								counter = reload & reload_mask;
+
+								continue;
+							}
 							counter -= ticks;
-						}
-						output = counter != 1;
+						} while(false);
+					} break;
+
+					case OperatingMode::RateGenerator:
+						do {
+							// Check for a step from 2 to 1 within the next batch of ticks, which would cause output
+							// to go high.
+							if(counter > 1 && ticks >= counter - 1) {
+								set_output(true);
+								ticks -= counter - 1;
+								counter = 1;
+								continue;
+							}
+
+							// If there is a step from 1 to 0, reload and set output back to low.
+							if(counter && ticks >= counter) {
+								set_output(false);
+								ticks -= counter;
+								counter = reload;
+								continue;
+							}
+
+							// Otherwise, just continue.
+							counter -= ticks;
+						} while(false);
 					break;
 
 					default:
 						// TODO.
 						break;
 				}
-
-				return output != initial_output;
 			}
 
 			void write(uint8_t value) {
@@ -165,6 +192,7 @@ class PIT {
 						next_access_high ^= true;
 						if(next_access_high) {
 							reload = (reload & 0xff00) | value;
+							awaiting_reload = true;
 							return;
 						}
 
@@ -175,9 +203,12 @@ class PIT {
 				awaiting_reload = false;
 
 				switch(mode) {
-					case OperatingMode::InterruptOnTerminalCount:
-					case OperatingMode::RateGenerator:
+					default:
 						counter = reload;
+					break;
+
+					case OperatingMode::SquareWaveGenerator:
+						counter = reload & ~1;
 					break;
 				}
 			}
@@ -192,6 +223,15 @@ class PIT {
 						return next_access_high ? uint8_t(latch) : uint8_t(latch >> 8);
 					break;
 				}
+			}
+
+			void set_output(bool level) {
+				if(output == level) {
+					return;
+				}
+
+				output = level;
+				// TODO: notify _someone_.
 			}
 		} channels_[3];
 
