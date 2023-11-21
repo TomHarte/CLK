@@ -1142,6 +1142,7 @@
 		425739302AFBE47700B7D1E4 /* InOut.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = InOut.hpp; sourceTree = "<group>"; };
 		425739362B051EA800B7D1E4 /* PCCompatible.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCCompatible.hpp; sourceTree = "<group>"; };
 		425739372B051EA800B7D1E4 /* PCCompatible.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCCompatible.cpp; sourceTree = "<group>"; };
+		4267A9C72B0C26FA008A59BB /* PIT.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PIT.hpp; sourceTree = "<group>"; };
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
@@ -2360,8 +2361,9 @@
 		425739352B051EA800B7D1E4 /* PCCompatible */ = {
 			isa = PBXGroup;
 			children = (
-				425739362B051EA800B7D1E4 /* PCCompatible.hpp */,
 				425739372B051EA800B7D1E4 /* PCCompatible.cpp */,
+				425739362B051EA800B7D1E4 /* PCCompatible.hpp */,
+				4267A9C72B0C26FA008A59BB /* PIT.hpp */,
 			);
 			path = PCCompatible;
 			sourceTree = "<group>";
