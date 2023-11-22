@@ -525,8 +525,9 @@ class ConcreteMachine:
 	public MachineTypes::ScanProducer
 {
 	public:
-		static constexpr int PitMultiplier = 1;
-		static constexpr int PitDivisor = 3;
+		// i.e. CPU clock rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
+		static constexpr int CPUMultiplier = 1;
+		static constexpr int CPUDivisor = 3;
 
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
@@ -534,7 +535,7 @@ class ConcreteMachine:
 		) : pit_observer_(pic_), pit_(pit_observer_), ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
-			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
+			set_clock_rate(double(pit_frequency));
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
@@ -552,65 +553,75 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 //		bool log = false;
 //		std::string previous;
-		void run_for(const Cycles cycles) override {
-			auto instructions = cycles.as_integral();
-			while(instructions--) {
+		void run_for(const Cycles duration) override {
+			auto pit_ticks = duration.as_integral();
+			while(pit_ticks--) {
 				//
-				// First draft: all hardware runs in lockstep.
+				// First draft: all hardware runs in lockstep, as a multiple or divisor of the PIT frequency.
 				//
 
 				// Advance the PIT.
-				pit_.run_for(PitDivisor / PitMultiplier);
+				pit_.run_for(1);
 
-				// Query for interrupts and apply if pending.
-				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
-					// Regress the IP if a REP is in-progress so as to resume it later.
-					if(context.flow_controller.should_repeat()) {
-						context.registers.ip() = decoded_ip_;
+				// Advance the CPU.
+				cpu_divisor_ += CPUMultiplier;
+				int cycles = cpu_divisor_ / CPUDivisor;
+				cycles %= CPUDivisor;
+
+				// To consider: a Duff-esque switch table calling into a function templated on clock phase
+				// might alleviate a large part of the conditionality here?
+
+				while(cycles--) {
+					// Query for interrupts and apply if pending.
+					if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
+						// Regress the IP if a REP is in-progress so as to resume it later.
+						if(context.flow_controller.should_repeat()) {
+							context.registers.ip() = decoded_ip_;
+							context.flow_controller.begin_instruction();
+						}
+
+						// Signal interrupt.
+						InstructionSet::x86::interrupt(
+							pic_.acknowledge(),
+							context
+						);
+					}
+
+					// Get the next thing to execute.
+					if(!context.flow_controller.should_repeat()) {
+						// Decode from the current IP.
+						decoded_ip_ = context.registers.ip();
+						const auto remainder = context.memory.next_code();
+						decoded = decoder.decode(remainder.first, remainder.second);
+
+						// If that didn't yield a whole instruction then the end of memory must have been hit;
+						// continue from the beginning.
+						if(decoded.first <= 0) {
+							const auto all = context.memory.all();
+							decoded = decoder.decode(all.first, all.second);
+						}
+
+						context.registers.ip() += decoded.first;
+
+//						log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
+					} else {
 						context.flow_controller.begin_instruction();
 					}
 
-					// Signal interrupt.
-					InstructionSet::x86::interrupt(
-						pic_.acknowledge(),
+//					if(log) {
+//						const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
+//						if(next != previous) {
+//							std::cout << next << std::endl;
+//							previous = next;
+//						}
+//					}
+
+					// Execute it.
+					InstructionSet::x86::perform(
+						decoded.second,
 						context
 					);
 				}
-
-				// Get the next thing to execute.
-				if(!context.flow_controller.should_repeat()) {
-					// Decode from the current IP.
-					decoded_ip_ = context.registers.ip();
-					const auto remainder = context.memory.next_code();
-					decoded = decoder.decode(remainder.first, remainder.second);
-
-					// If that didn't yield a whole instruction then the end of memory must have been hit;
-					// continue from the beginning.
-					if(decoded.first <= 0) {
-						const auto all = context.memory.all();
-						decoded = decoder.decode(all.first, all.second);
-					}
-
-					context.registers.ip() += decoded.first;
-
-//					log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
-				} else {
-					context.flow_controller.begin_instruction();
-				}
-
-//				if(log) {
-//					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
-//					if(next != previous) {
-//						std::cout << next << std::endl;
-//						previous = next;
-//					}
-//				}
-
-				// Execute it.
-				InstructionSet::x86::perform(
-					decoded.second,
-					context
-				);
 			}
 		}
 
@@ -661,6 +672,8 @@ class ConcreteMachine:
 
 		uint16_t decoded_ip_ = 0;
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
+
+		int cpu_divisor_ = 0;
 };
 
 
