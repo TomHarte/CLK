@@ -17,10 +17,13 @@
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
+#include "../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../Components/8255/i8255.hpp"
 
 #include "../../Numeric/RegisterSizes.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../AudioProducer.hpp"
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
@@ -29,20 +32,65 @@
 
 namespace PCCompatible {
 
+struct PCSpeaker {
+	PCSpeaker() :
+		toggle(queue),
+		speaker(toggle) {}
+
+	void update() {
+		speaker.run_for(queue, cycles_since_update);
+		cycles_since_update = 0;
+	}
+
+	void set_pit(bool pit_input) {
+		pit_input_ = pit_input;
+		set_level();
+	}
+
+	void set_control(bool pit_mask, bool level) {
+		pit_mask_ = pit_mask;
+		level_ = level;
+		set_level();
+	}
+
+	void set_level() {
+		// TODO: eliminate complete guess of mixing function here.
+		const bool new_output = (pit_mask_ & pit_input_) ^ level_;
+
+		if(new_output != output_) {
+			update();
+			toggle.set_output(new_output);
+			output_ = new_output;
+		}
+	}
+
+	Concurrency::AsyncTaskQueue<false> queue;
+	Audio::Toggle toggle;
+	Outputs::Speaker::PullLowpass<Audio::Toggle> speaker;
+	Cycles cycles_since_update = 0;
+
+	bool pit_input_ = false;
+	bool pit_mask_ = false;
+	bool level_ = false;
+	bool output_ = false;
+};
+
 class PITObserver {
 	public:
-		PITObserver(PIC &pic) : pic_(pic) {}
+		PITObserver(PIC &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
 
 		template <int channel>
 		void update_output(bool new_level) {
 			switch(channel) {
 				default: break;
 				case 0: pic_.apply_edge<0>(new_level);	break;
+				case 2: speaker_.set_pit(new_level);	break;
 			}
 		}
 
 	private:
 		PIC &pic_;
+		PCSpeaker &speaker_;
 
 	// TODO:
 	//
@@ -55,10 +103,13 @@ using PIT = i8237<false, PITObserver>;
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
+		i8255PortHandler(PCSpeaker &speaker) : speaker_(speaker) {}
+
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
 					high_switches_ = value & 0x08;
+					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
 			}
 			printf("PPI: %02x to %d\n", value, port);
@@ -90,6 +141,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 	private:
 		bool high_switches_ = false;
+		PCSpeaker &speaker_;
 
 	// Provisionally, possibly:
 	//
@@ -522,19 +574,24 @@ class FlowController {
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::ScanProducer
 {
 	public:
-		static constexpr int PitMultiplier = 1;
-		static constexpr int PitDivisor = 3;
-
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : pit_observer_(pic_), pit_(pit_observer_), ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
+		) :
+			pit_observer_(pic_, speaker_),
+			ppi_handler_(speaker_),
+			pit_(pit_observer_),
+			ppi_(ppi_handler_),
+			context(pit_, dma_, ppi_, pic_)
+		{
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
-			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
+			set_clock_rate(double(pit_frequency));
+			speaker_.speaker.set_input_rate(double(pit_frequency));
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
@@ -549,18 +606,38 @@ class ConcreteMachine:
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 		}
 
+		~ConcreteMachine() {
+			speaker_.queue.flush();
+		}
+
 		// MARK: - TimedMachine.
 //		bool log = false;
 //		std::string previous;
-		void run_for(const Cycles cycles) override {
-			auto instructions = cycles.as_integral();
-			while(instructions--) {
+		void run_for(const Cycles duration) override {
+			const auto pit_ticks = duration.as_integral();
+			cpu_divisor_ += pit_ticks;
+			int ticks = cpu_divisor_ / 3;
+			cpu_divisor_ %= 3;
+
+			while(ticks--) {
 				//
-				// First draft: all hardware runs in lockstep.
+				// First draft: all hardware runs in lockstep, as a multiple or divisor of the PIT frequency.
 				//
 
-				// Advance the PIT.
-				pit_.run_for(PitDivisor / PitMultiplier);
+				//
+				// Advance the PIT and audio.
+				//
+				pit_.run_for(1);
+				++speaker_.cycles_since_update;
+				pit_.run_for(1);
+				++speaker_.cycles_since_update;
+				pit_.run_for(1);
+				++speaker_.cycles_since_update;
+
+				//
+				// Perform one CPU instruction every three PIT cycles.
+				// i.e. CPU instruction rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
+				//
 
 				// Query for interrupts and apply if pending.
 				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
@@ -620,9 +697,22 @@ class ConcreteMachine:
 			return Outputs::Display::ScanStatus();
 		}
 
+		// MARK: - AudioProducer.
+		Outputs::Speaker::Speaker *get_speaker() override {
+			return &speaker_.speaker;
+		}
+
+		void flush_output(int outputs) final {
+			if(outputs & Output::Audio) {
+				speaker_.update();
+				speaker_.queue.perform();
+			}
+		}
+
 	private:
 		PIC pic_;
 		DMA dma_;
+		PCSpeaker speaker_;
 
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
@@ -661,6 +751,8 @@ class ConcreteMachine:
 
 		uint16_t decoded_ip_ = 0;
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
+
+		int cpu_divisor_ = 0;
 };
 
 

@@ -6702,6 +6702,7 @@
 					"$(OTHER_CFLAGS)",
 					"-Wreorder",
 				);
+				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock Signal/ClockSignal-Bridging-Header.h";
