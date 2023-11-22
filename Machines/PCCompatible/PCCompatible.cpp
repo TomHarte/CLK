@@ -39,8 +39,9 @@ class MDA {
 	public:
 		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
 
-		void set_source(const uint8_t *source) {
-			outputter_.source = source;
+		void set_source(const uint8_t *ram, std::vector<uint8_t> font) {
+			outputter_.ram = ram;
+			outputter_.font = font;
 		}
 
 		void run_for(Cycles cycles) {
@@ -131,10 +132,21 @@ class MDA {
 					}
 
 					if(pixels) {
-						// TODO: use refresh address to fetch from RAM; use that plus row address to index font.
+						// TODO: use flags.
+						const uint8_t glyph = ram[(state.refresh_address << 1) + 0];
+//						const uint8_t flags = ram[(state.refresh_address << 1) + 1];
 
-						pixel_pointer[0] = pixel_pointer[2] = pixel_pointer[4] = pixel_pointer[6] = 0;
-						pixel_pointer[1] = pixel_pointer[3] = pixel_pointer[5] = pixel_pointer[7] = pixel_pointer[8] = 1;
+						const uint8_t row = font[(glyph * 14) + state.row_address];
+
+						pixel_pointer[0] = row & 0x80;
+						pixel_pointer[1] = row & 0x40;
+						pixel_pointer[2] = row & 0x20;
+						pixel_pointer[3] = row & 0x10;
+						pixel_pointer[4] = row & 0x08;
+						pixel_pointer[5] = row & 0x04;
+						pixel_pointer[6] = row & 0x02;
+						pixel_pointer[7] = row & 0x01;
+						pixel_pointer[8] = 0;	// TODO.
 						pixel_pointer += 9;
 					}
 				}
@@ -163,7 +175,8 @@ class MDA {
 			uint8_t *pixel_pointer = nullptr;
 			static constexpr size_t DefaultAllocationSize = 720;
 
-			const uint8_t *source = nullptr;
+			const uint8_t *ram = nullptr;
+			std::vector<uint8_t> font;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter> crtc_;
 
@@ -766,8 +779,9 @@ class ConcreteMachine:
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
+			const auto font = ROM::Name::PCCompatibleMDAFont;
 
-			ROM::Request request = ROM::Request(bios);
+			ROM::Request request = ROM::Request(bios) && ROM::Request(font);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
@@ -777,7 +791,8 @@ class ConcreteMachine:
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 
 			// Give the MDA something to read from.
-			mda_.set_source(context.memory.at(0xb'0000));
+			const auto &font_contents = roms.find(font)->second;
+			mda_.set_source(context.memory.at(0xb'0000), font_contents);
 		}
 
 		~ConcreteMachine() {
