@@ -17,10 +17,13 @@
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
+#include "../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../Components/8255/i8255.hpp"
 
 #include "../../Numeric/RegisterSizes.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../AudioProducer.hpp"
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
@@ -522,6 +525,7 @@ class FlowController {
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::ScanProducer
 {
 	public:
@@ -532,10 +536,18 @@ class ConcreteMachine:
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : pit_observer_(pic_), pit_(pit_observer_), ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
+		) :
+			pit_observer_(pic_),
+			pit_(pit_observer_),
+			ppi_(ppi_handler_),
+			context(pit_, dma_, ppi_, pic_),
+			audio_toggle_(audio_queue_),
+			speaker_(audio_toggle_)
+		{
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency));
+			speaker_.set_input_rate(double(pit_frequency));
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
@@ -550,6 +562,10 @@ class ConcreteMachine:
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		// MARK: - TimedMachine.
 //		bool log = false;
 //		std::string previous;
@@ -562,6 +578,9 @@ class ConcreteMachine:
 
 				// Advance the PIT.
 				pit_.run_for(1);
+
+				// Advance audio.
+				++cycles_since_audio_update_;
 
 				// Advance the CPU.
 				cpu_divisor_ += CPUMultiplier;
@@ -631,6 +650,22 @@ class ConcreteMachine:
 			return Outputs::Display::ScanStatus();
 		}
 
+		// MARK: - AudioProducer.
+		Outputs::Speaker::Speaker *get_speaker() override {
+			return &speaker_;
+		}
+
+		void flush_output(int outputs) final {
+			if(outputs & Output::Audio) {
+				update_audio();
+				audio_queue_.perform();
+			}
+		}
+
+		void update_audio() {
+			speaker_.run_for(audio_queue_, cycles_since_audio_update_);
+		}
+
 	private:
 		PIC pic_;
 		DMA dma_;
@@ -674,6 +709,12 @@ class ConcreteMachine:
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 
 		int cpu_divisor_ = 0;
+
+		// PC speaker.
+		Concurrency::AsyncTaskQueue<false> audio_queue_;
+		Audio::Toggle audio_toggle_;
+		Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
+		Cycles cycles_since_audio_update_ = 0;
 };
 
 
