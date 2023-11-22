@@ -259,6 +259,13 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
+					// b7: 0 => enable keyboard read; 1 => don't;
+					// b6: 0 => hold keyboard clock low; 1 => don't;
+					// b5: 1 => disable IO check; 0 => don't;
+					// b4: 1 => disable memory parity check; 0 => don't;
+					// b3: [5150] cassette motor control; [5160] high or low switches select;
+					// b2: [5150] high or low switches select; [5160] 1 => disable turbo mode;
+					// b1, b0: speaker control.
 					high_switches_ = value & 0x08;
 					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
@@ -266,8 +273,20 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			printf("PPI: %02x to %d\n", value, port);
 		}
 
+// KB Status Port 61h high bits:
+//; 01 - normal operation. wait for keypress, when one comes in,
+//;		force data line low (forcing keyboard to buffer additional
+//;		keypresses) and raise IRQ1 high
+//; 11 - stop forcing data line low. lower IRQ1 and don't raise it again.
+//;		drop all incoming keypresses on the floor.
+//; 10 - lower IRQ1 and force clock line low, resetting keyboard
+//; 00 - force clock line low, resetting keyboard, but on a 01->00 transition,
+//;		IRQ1 would remain high
+
 		uint8_t get_value(int port) {
 			switch(port) {
+
+
 				case 2:
 					// Common:
 					//
