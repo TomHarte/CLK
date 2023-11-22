@@ -631,10 +631,7 @@ class IO {
 					printf("TODO: DMA page write of %02x at %04x\n", value, port);
 				break;
 
-				case 0x03b0:
-				case 0x03b2:
-				case 0x03b4:
-				case 0x03b6:
+				case 0x03b0:	case 0x03b2:	case 0x03b4:	case 0x03b6:
 					if constexpr (std::is_same_v<IntT, uint16_t>) {
 						mda_.write<0>(value);
 						mda_.write<1>(value >> 8);
@@ -643,10 +640,7 @@ class IO {
 					}
 				break;
 
-				case 0x03b1:
-				case 0x03b3:
-				case 0x03b5:
-				case 0x03b7:
+				case 0x03b1:	case 0x03b3:	case 0x03b5:	case 0x03b7:
 					if constexpr (std::is_same_v<IntT, uint16_t>) {
 						mda_.write<1>(value);
 						mda_.write<0>(value >> 8);
@@ -655,15 +649,9 @@ class IO {
 					}
 				break;
 
-				case 0x03b8:
-				case 0x03b9:
-				case 0x03ba:
-				case 0x03bb:
-				case 0x03bc:
-				case 0x03bd:
-				case 0x03be:
-				case 0x03bf:
-					printf("TODO: MDA write of %02x at %04x\n", value, port);
+				case 0x03b8:	case 0x03b9:	case 0x03ba:	case 0x03bb:
+				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf:
+					mda_.write<8>(value);
 				break;
 
 				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
