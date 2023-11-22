@@ -90,30 +90,59 @@ class MDA {
 			}
 
 			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
+				// Determine new output state.
 				const OutputState new_state =
 					(state.hsync | state.vsync) ? OutputState::Sync :
 						(state.display_enable ? OutputState::Pixels : OutputState::Border);
-				if(new_state != output_state) {
-					switch(output_state) {
-						case OutputState::Sync:
-							crt.output_sync(count);
-						break;
 
-						case OutputState::Border:
-						case OutputState::Pixels: {
-							uint8_t *const target = crt.begin_data(1);
-							if(target) {
-								target[0] = (output_state == OutputState::Border) ? 0x00 : 0xff;
-							}
-							crt.output_level(count);
-						} break;
+				// Upon either a state change or just having accumulated too much local time...
+				if(new_state != output_state || count > 882) {
+					// (1) flush preexisting state.
+					if(count) {
+						switch(output_state) {
+							case OutputState::Sync:		crt.output_sync(count);		break;
+							case OutputState::Border: 	crt.output_blank(count);	break;
+							case OutputState::Pixels:
+								crt.output_data(count);
+								pixels = pixel_pointer = nullptr;
+							break;
+						}
 					}
 
+					// (2) adopt new state.
 					output_state = new_state;
 					count = 0;
 				}
 
+				// Collect pixels if applicable.
+				if(output_state == OutputState::Pixels) {
+					if(!pixels) {
+						pixel_pointer = pixels = crt.begin_data(DefaultAllocationSize);
+
+						// Flush any period where pixels weren't recorded due to back pressure.
+						if(pixels && count) {
+							crt.output_blank(count);
+							count = 0;
+						}
+					}
+
+					if(pixels) {
+						pixel_pointer[0] = pixel_pointer[2] = pixel_pointer[4] = pixel_pointer[6] = 0;
+						pixel_pointer[1] = pixel_pointer[3] = pixel_pointer[5] = pixel_pointer[7] = pixel_pointer[8] = 1;
+						pixel_pointer += 9;
+					}
+				}
+
+				// Advance.
 				count += 9;
+
+				// Output pixel row prematurely if storage is exhausted.
+				if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
+					crt.output_data(count);
+					count = 0;
+
+					pixels = pixel_pointer = nullptr;
+				}
 			}
 			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
 
@@ -123,6 +152,10 @@ class MDA {
 				Sync, Pixels, Border
 			} output_state = OutputState::Sync;
 			int count = 0;
+
+			uint8_t *pixels = nullptr;
+			uint8_t *pixel_pointer = nullptr;
+			static constexpr size_t DefaultAllocationSize = 720;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter> crtc_;
 
