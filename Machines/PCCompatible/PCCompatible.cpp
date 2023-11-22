@@ -133,8 +133,8 @@ class MDA {
 
 					if(pixels) {
 						// TODO: use flags.
-						const uint8_t glyph = ram[(state.refresh_address << 1) + 0];
-//						const uint8_t flags = ram[(state.refresh_address << 1) + 1];
+						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
+//						const uint8_t flags = ram[((state.refresh_address << 1) + 1) & 0xfff];
 
 						const uint8_t row = font[(glyph * 14) + state.row_address];
 
