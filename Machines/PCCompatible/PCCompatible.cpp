@@ -132,10 +132,10 @@ class MDA {
 					}
 
 					if(pixels) {
-						// TODO: use flags.
-						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-//						const uint8_t flags = ram[((state.refresh_address << 1) + 1) & 0xfff];
+						// TODO: use attributes, as per http://www.seasip.info/VintagePC/mda.html#memmap
+//						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
 
+						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
 						const uint8_t row = font[(glyph * 14) + state.row_address];
 
 						pixel_pointer[0] = row & 0x80;
