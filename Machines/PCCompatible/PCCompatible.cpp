@@ -37,13 +37,7 @@ namespace PCCompatible {
 
 class MDA {
 	public:
-		MDA() :
-			crtc_(Motorola::CRTC::Personality::HD6845S, outputter_),
-			crt_(873, 9, 382, 3, Outputs::Display::InputDataType::Luminance1)
-		{
-			crt_.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-			crt_.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
-		}
+		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
 
 		void run_for(Cycles cycles) {
 			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
@@ -79,22 +73,58 @@ class MDA {
 		// MARK: - Call-ins for ScanProducer.
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
-			crt_.set_scan_target(scan_target);
+			outputter_.crt.set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return crt_.get_scaled_scan_status() / 4.0f;
+			return outputter_.crt.get_scaled_scan_status() / 4.0f;
 		}
 
 	private:
 		struct CRTCOutputter {
-			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &) {
-				printf("");
+			CRTCOutputter() :
+				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Luminance1)
+			{
+//				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+				crt.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+			}
+
+			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
+				const OutputState new_state =
+					(state.hsync | state.vsync) ? OutputState::Sync :
+						(state.display_enable ? OutputState::Pixels : OutputState::Border);
+				if(new_state != output_state) {
+					switch(output_state) {
+						case OutputState::Sync:
+							crt.output_sync(count);
+						break;
+
+						case OutputState::Border:
+						case OutputState::Pixels: {
+							uint8_t *const target = crt.begin_data(1);
+							if(target) {
+								target[0] = (output_state == OutputState::Border) ? 0x00 : 0xff;
+							}
+							crt.output_level(count);
+						} break;
+					}
+
+					output_state = new_state;
+					count = 0;
+				}
+
+				count += 9;
 			}
 			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
+
+			Outputs::CRT::CRT crt;
+
+			enum class OutputState {
+				Sync, Pixels, Border
+			} output_state = OutputState::Sync;
+			int count = 0;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter> crtc_;
-		Outputs::CRT::CRT crt_;
 
 		int full_clock_;
 };
