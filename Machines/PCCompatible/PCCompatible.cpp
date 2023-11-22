@@ -32,20 +32,57 @@
 
 namespace PCCompatible {
 
+struct PCSpeaker {
+	PCSpeaker() :
+		toggle(queue),
+		speaker(toggle) {}
+
+	void update() {
+		speaker.run_for(queue, cycles_since_update);
+		cycles_since_update = 0;
+	}
+
+	void set_pit(bool pit_input) {
+		pit_input_ = pit_input;
+		set_level();
+	}
+
+	void set_control(bool pit_mask, bool level) {
+		pit_mask_ = pit_mask;
+		level_ = level;
+		set_level();
+	}
+
+	void set_level() {
+		toggle.set_output(pit_mask_ ? pit_input_ : level_);
+	}
+
+	Concurrency::AsyncTaskQueue<false> queue;
+	Audio::Toggle toggle;
+	Outputs::Speaker::PullLowpass<Audio::Toggle> speaker;
+	Cycles cycles_since_update = 0;
+
+	bool pit_input_ = false;
+	bool pit_mask_ = false;
+	bool level_ = false;
+};
+
 class PITObserver {
 	public:
-		PITObserver(PIC &pic) : pic_(pic) {}
+		PITObserver(PIC &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
 
 		template <int channel>
 		void update_output(bool new_level) {
 			switch(channel) {
 				default: break;
 				case 0: pic_.apply_edge<0>(new_level);	break;
+				case 2: speaker_.set_pit(new_level);	break;
 			}
 		}
 
 	private:
 		PIC &pic_;
+		PCSpeaker &speaker_;
 
 	// TODO:
 	//
@@ -58,10 +95,13 @@ using PIT = i8237<false, PITObserver>;
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
+		i8255PortHandler(PCSpeaker &speaker) : speaker_(speaker) {}
+
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
 					high_switches_ = value & 0x08;
+					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
 			}
 			printf("PPI: %02x to %d\n", value, port);
@@ -93,6 +133,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 	private:
 		bool high_switches_ = false;
+		PCSpeaker &speaker_;
 
 	// Provisionally, possibly:
 	//
@@ -537,17 +578,16 @@ class ConcreteMachine:
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) :
-			pit_observer_(pic_),
+			pit_observer_(pic_, speaker_),
+			ppi_handler_(speaker_),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_),
-			audio_toggle_(audio_queue_),
-			speaker_(audio_toggle_)
+			context(pit_, dma_, ppi_, pic_)
 		{
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency));
-			speaker_.set_input_rate(double(pit_frequency));
+			speaker_.speaker.set_input_rate(double(pit_frequency));
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
@@ -563,7 +603,7 @@ class ConcreteMachine:
 		}
 
 		~ConcreteMachine() {
-			audio_queue_.flush();
+			speaker_.queue.flush();
 		}
 
 		// MARK: - TimedMachine.
@@ -579,8 +619,8 @@ class ConcreteMachine:
 				// Advance the PIT.
 				pit_.run_for(1);
 
-				// Advance audio.
-				++cycles_since_audio_update_;
+				// Advance audio clock.
+				++speaker_.cycles_since_update;
 
 				// Advance the CPU.
 				cpu_divisor_ += CPUMultiplier;
@@ -652,23 +692,20 @@ class ConcreteMachine:
 
 		// MARK: - AudioProducer.
 		Outputs::Speaker::Speaker *get_speaker() override {
-			return &speaker_;
+			return &speaker_.speaker;
 		}
 
 		void flush_output(int outputs) final {
 			if(outputs & Output::Audio) {
-				update_audio();
-				audio_queue_.perform();
+				speaker_.update();
+				speaker_.queue.perform();
 			}
-		}
-
-		void update_audio() {
-			speaker_.run_for(audio_queue_, cycles_since_audio_update_);
 		}
 
 	private:
 		PIC pic_;
 		DMA dma_;
+		PCSpeaker speaker_;
 
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
@@ -709,12 +746,6 @@ class ConcreteMachine:
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 
 		int cpu_divisor_ = 0;
-
-		// PC speaker.
-		Concurrency::AsyncTaskQueue<false> audio_queue_;
-		Audio::Toggle audio_toggle_;
-		Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
-		Cycles cycles_since_audio_update_ = 0;
 };
 
 
