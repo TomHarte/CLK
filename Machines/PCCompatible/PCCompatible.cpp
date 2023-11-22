@@ -54,7 +54,14 @@ struct PCSpeaker {
 	}
 
 	void set_level() {
-		toggle.set_output(pit_mask_ ? pit_input_ : level_);
+		// TODO: eliminate complete guess of mixing function here.
+		const bool new_output = (pit_mask_ & pit_input_) ^ level_;
+
+		if(new_output != output_) {
+			update();
+			toggle.set_output(new_output);
+			output_ = new_output;
+		}
 	}
 
 	Concurrency::AsyncTaskQueue<false> queue;
@@ -65,6 +72,7 @@ struct PCSpeaker {
 	bool pit_input_ = false;
 	bool pit_mask_ = false;
 	bool level_ = false;
+	bool output_ = false;
 };
 
 class PITObserver {
