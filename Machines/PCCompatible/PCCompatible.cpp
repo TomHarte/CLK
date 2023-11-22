@@ -17,10 +17,13 @@
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
-#include "../../Components/AudioToggle/AudioToggle.hpp"
+#include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
+#include "../../Components/AudioToggle/AudioToggle.hpp"
 
 #include "../../Numeric/RegisterSizes.hpp"
+
+#include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../AudioProducer.hpp"
@@ -31,6 +34,154 @@
 #include <iostream>
 
 namespace PCCompatible {
+
+class MDA {
+	public:
+		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
+
+		void set_source(const uint8_t *ram, std::vector<uint8_t> font) {
+			outputter_.ram = ram;
+			outputter_.font = font;
+		}
+
+		void run_for(Cycles cycles) {
+			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
+			// Do that conversion here.
+			full_clock_ += 14 * cycles.as<int>();
+			crtc_.run_for(Cycles(full_clock_ / 9));
+			full_clock_ %= 9;
+		}
+
+		template <int address>
+		void write(uint8_t value) {
+			if constexpr (address & 0x8) {
+				printf("TODO: write MDA control %02x\n", value);
+			} else {
+				if constexpr (address & 0x1) {
+					crtc_.set_register(value);
+				} else {
+					crtc_.select_register(value);
+				}
+			}
+		}
+
+		template <int address>
+		uint8_t read() {
+			if constexpr (address & 0x8) {
+				printf("TODO: read MDA control\n");
+				return 0xff;
+			} else {
+				return crtc_.get_register();
+			}
+		}
+
+		// MARK: - Call-ins for ScanProducer.
+
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+			outputter_.crt.set_scan_target(scan_target);
+		}
+
+		Outputs::Display::ScanStatus get_scaled_scan_status() const {
+			return outputter_.crt.get_scaled_scan_status() / 4.0f;
+		}
+
+	private:
+		struct CRTCOutputter {
+			CRTCOutputter() :
+				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Luminance1)
+			{
+//				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+				crt.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+			}
+
+			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
+				// Determine new output state.
+				const OutputState new_state =
+					(state.hsync | state.vsync) ? OutputState::Sync :
+						(state.display_enable ? OutputState::Pixels : OutputState::Border);
+
+				// Upon either a state change or just having accumulated too much local time...
+				if(new_state != output_state || count > 882) {
+					// (1) flush preexisting state.
+					if(count) {
+						switch(output_state) {
+							case OutputState::Sync:		crt.output_sync(count);		break;
+							case OutputState::Border: 	crt.output_blank(count);	break;
+							case OutputState::Pixels:
+								crt.output_data(count);
+								pixels = pixel_pointer = nullptr;
+							break;
+						}
+					}
+
+					// (2) adopt new state.
+					output_state = new_state;
+					count = 0;
+				}
+
+				// Collect pixels if applicable.
+				if(output_state == OutputState::Pixels) {
+					if(!pixels) {
+						pixel_pointer = pixels = crt.begin_data(DefaultAllocationSize);
+
+						// Flush any period where pixels weren't recorded due to back pressure.
+						if(pixels && count) {
+							crt.output_blank(count);
+							count = 0;
+						}
+					}
+
+					if(pixels) {
+						// TODO: use attributes, as per http://www.seasip.info/VintagePC/mda.html#memmap
+//						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
+
+						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
+						const uint8_t row = font[(glyph * 14) + state.row_address];
+
+						pixel_pointer[0] = row & 0x80;
+						pixel_pointer[1] = row & 0x40;
+						pixel_pointer[2] = row & 0x20;
+						pixel_pointer[3] = row & 0x10;
+						pixel_pointer[4] = row & 0x08;
+						pixel_pointer[5] = row & 0x04;
+						pixel_pointer[6] = row & 0x02;
+						pixel_pointer[7] = row & 0x01;
+						pixel_pointer[8] = 0;	// TODO.
+						pixel_pointer += 9;
+					}
+				}
+
+				// Advance.
+				count += 9;
+
+				// Output pixel row prematurely if storage is exhausted.
+				if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
+					crt.output_data(count);
+					count = 0;
+
+					pixels = pixel_pointer = nullptr;
+				}
+			}
+			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
+
+			Outputs::CRT::CRT crt;
+
+			enum class OutputState {
+				Sync, Pixels, Border
+			} output_state = OutputState::Sync;
+			int count = 0;
+
+			uint8_t *pixels = nullptr;
+			uint8_t *pixel_pointer = nullptr;
+			static constexpr size_t DefaultAllocationSize = 720;
+
+			const uint8_t *ram = nullptr;
+			std::vector<uint8_t> font;
+		} outputter_;
+		Motorola::CRTC::CRTC6845<CRTCOutputter> crtc_;
+
+		int full_clock_;
+};
 
 struct PCSpeaker {
 	PCSpeaker() :
@@ -362,12 +513,15 @@ struct Memory {
 		}
 
 		//
-		// Population.
+		// External access.
 		//
 		void install(size_t address, const uint8_t *data, size_t length) {
 			std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
 		}
 
+		const uint8_t *at(uint32_t address) {
+			return &memory[address];
+		}
 
 		// TEMPORARY HACK.
 //		void print_mda() {
@@ -425,7 +579,8 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic) : pit_(pit), dma_(dma), ppi_(ppi), pic_(pic) {}
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
+			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), mda_(mda) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
@@ -476,11 +631,27 @@ class IO {
 					printf("TODO: DMA page write of %02x at %04x\n", value, port);
 				break;
 
-				case 0x03b0:	case 0x03b1:	case 0x03b2:	case 0x03b3:
-				case 0x03b4:	case 0x03b5:	case 0x03b6:	case 0x03b7:
+				case 0x03b0:	case 0x03b2:	case 0x03b4:	case 0x03b6:
+					if constexpr (std::is_same_v<IntT, uint16_t>) {
+						mda_.write<0>(value);
+						mda_.write<1>(value >> 8);
+					} else {
+						mda_.write<0>(value);
+					}
+				break;
+
+				case 0x03b1:	case 0x03b3:	case 0x03b5:	case 0x03b7:
+					if constexpr (std::is_same_v<IntT, uint16_t>) {
+						mda_.write<1>(value);
+						mda_.write<0>(value >> 8);
+					} else {
+						mda_.write<1>(value);
+					}
+				break;
+
 				case 0x03b8:	case 0x03b9:	case 0x03ba:	case 0x03bb:
 				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf:
-					printf("TODO: MDA write of %02x at %04x\n", value, port);
+					mda_.write<8>(value);
 				break;
 
 				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
@@ -532,6 +703,7 @@ class IO {
 		DMA &dma_;
 		PPI &ppi_;
 		PIC &pic_;
+		MDA &mda_;
 };
 
 class FlowController {
@@ -586,7 +758,7 @@ class ConcreteMachine:
 			ppi_handler_(speaker_),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_)
+			context(pit_, dma_, ppi_, pic_, mda_)
 		{
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
@@ -595,8 +767,9 @@ class ConcreteMachine:
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
+			const auto font = ROM::Name::PCCompatibleMDAFont;
 
-			ROM::Request request = ROM::Request(bios);
+			ROM::Request request = ROM::Request(bios) && ROM::Request(font);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
@@ -604,6 +777,10 @@ class ConcreteMachine:
 
 			const auto &bios_contents = roms.find(bios)->second;
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+
+			// Give the MDA something to read from.
+			const auto &font_contents = roms.find(font)->second;
+			mda_.set_source(context.memory.at(0xb'0000), font_contents);
 		}
 
 		~ConcreteMachine() {
@@ -633,6 +810,11 @@ class ConcreteMachine:
 				++speaker_.cycles_since_update;
 				pit_.run_for(1);
 				++speaker_.cycles_since_update;
+
+				//
+				// Advance CRTC at a more approximate rate.
+				//
+				mda_.run_for(Cycles(3));
 
 				//
 				// Perform one CPU instruction every three PIT cycles.
@@ -692,9 +874,11 @@ class ConcreteMachine:
 		}
 
 		// MARK: - ScanProducer.
-		void set_scan_target([[maybe_unused]] Outputs::Display::ScanTarget *scan_target) override {}
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+			mda_.set_scan_target(scan_target);
+		}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-			return Outputs::Display::ScanStatus();
+			return mda_.get_scaled_scan_status();
 		}
 
 		// MARK: - AudioProducer.
@@ -713,6 +897,7 @@ class ConcreteMachine:
 		PIC pic_;
 		DMA dma_;
 		PCSpeaker speaker_;
+		MDA mda_;
 
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
@@ -721,11 +906,11 @@ class ConcreteMachine:
 		PPI ppi_;
 
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi, pic)
+				io(pit, dma, ppi, pic, mda)
 			{
 				reset();
 			}

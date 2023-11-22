@@ -573,6 +573,9 @@ Description::Description(Name name) {
 		case Name::PCCompatiblePhoenix80286BIOS:
 			*this = Description(name, "PCCompatible", "Phoenix 80286 BIOS 3.05", "Phoenix 80286 ROM BIOS Version 3.05.bin", 32 * 1024, 0x8d0d318au);
 		break;
+		case Name::PCCompatibleMDAFont:
+			*this = Description(name, "PCCompatible", "IBM's MDA font", "EUMDA9.F14", 14 * 256, 0x7754882au);
+		break;
 
 		// TODO: CRCs below are incomplete, at best.
 		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
