@@ -39,6 +39,10 @@ class MDA {
 	public:
 		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
 
+		void set_source(const uint8_t *source) {
+			outputter_.source = source;
+		}
+
 		void run_for(Cycles cycles) {
 			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
 			// Do that conversion here.
@@ -127,6 +131,8 @@ class MDA {
 					}
 
 					if(pixels) {
+						// TODO: use refresh address to fetch from RAM; use that plus row address to index font.
+
 						pixel_pointer[0] = pixel_pointer[2] = pixel_pointer[4] = pixel_pointer[6] = 0;
 						pixel_pointer[1] = pixel_pointer[3] = pixel_pointer[5] = pixel_pointer[7] = pixel_pointer[8] = 1;
 						pixel_pointer += 9;
@@ -156,6 +162,8 @@ class MDA {
 			uint8_t *pixels = nullptr;
 			uint8_t *pixel_pointer = nullptr;
 			static constexpr size_t DefaultAllocationSize = 720;
+
+			const uint8_t *source = nullptr;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter> crtc_;
 
@@ -492,12 +500,15 @@ struct Memory {
 		}
 
 		//
-		// Population.
+		// External access.
 		//
 		void install(size_t address, const uint8_t *data, size_t length) {
 			std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
 		}
 
+		const uint8_t *at(uint32_t address) {
+			return &memory[address];
+		}
 
 		// TEMPORARY HACK.
 //		void print_mda() {
@@ -764,6 +775,9 @@ class ConcreteMachine:
 
 			const auto &bios_contents = roms.find(bios)->second;
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+
+			// Give the MDA something to read from.
+			mda_.set_source(context.memory.at(0xb'0000));
 		}
 
 		~ConcreteMachine() {
