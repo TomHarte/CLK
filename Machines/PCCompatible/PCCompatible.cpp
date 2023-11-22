@@ -578,10 +578,6 @@ class ConcreteMachine:
 	public MachineTypes::ScanProducer
 {
 	public:
-		// i.e. CPU clock rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
-		static constexpr int CPUMultiplier = 1;
-		static constexpr int CPUDivisor = 3;
-
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
@@ -618,77 +614,80 @@ class ConcreteMachine:
 //		bool log = false;
 //		std::string previous;
 		void run_for(const Cycles duration) override {
-			auto pit_ticks = duration.as_integral();
-			while(pit_ticks--) {
+			const auto pit_ticks = duration.as_integral();
+			cpu_divisor_ += pit_ticks;
+			int ticks = cpu_divisor_ / 3;
+			cpu_divisor_ %= 3;
+
+			while(ticks--) {
 				//
 				// First draft: all hardware runs in lockstep, as a multiple or divisor of the PIT frequency.
 				//
 
-				// Advance the PIT.
+				//
+				// Advance the PIT and audio.
+				//
 				pit_.run_for(1);
-
-				// Advance audio clock.
+				++speaker_.cycles_since_update;
+				pit_.run_for(1);
+				++speaker_.cycles_since_update;
+				pit_.run_for(1);
 				++speaker_.cycles_since_update;
 
-				// Advance the CPU.
-				cpu_divisor_ += CPUMultiplier;
-				int cycles = cpu_divisor_ / CPUDivisor;
-				cycles %= CPUDivisor;
+				//
+				// Perform one CPU instruction every three PIT cycles.
+				// i.e. CPU instruction rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
+				//
 
-				// To consider: a Duff-esque switch table calling into a function templated on clock phase
-				// might alleviate a large part of the conditionality here?
-
-				while(cycles--) {
-					// Query for interrupts and apply if pending.
-					if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
-						// Regress the IP if a REP is in-progress so as to resume it later.
-						if(context.flow_controller.should_repeat()) {
-							context.registers.ip() = decoded_ip_;
-							context.flow_controller.begin_instruction();
-						}
-
-						// Signal interrupt.
-						InstructionSet::x86::interrupt(
-							pic_.acknowledge(),
-							context
-						);
-					}
-
-					// Get the next thing to execute.
-					if(!context.flow_controller.should_repeat()) {
-						// Decode from the current IP.
-						decoded_ip_ = context.registers.ip();
-						const auto remainder = context.memory.next_code();
-						decoded = decoder.decode(remainder.first, remainder.second);
-
-						// If that didn't yield a whole instruction then the end of memory must have been hit;
-						// continue from the beginning.
-						if(decoded.first <= 0) {
-							const auto all = context.memory.all();
-							decoded = decoder.decode(all.first, all.second);
-						}
-
-						context.registers.ip() += decoded.first;
-
-//						log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
-					} else {
+				// Query for interrupts and apply if pending.
+				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
+					// Regress the IP if a REP is in-progress so as to resume it later.
+					if(context.flow_controller.should_repeat()) {
+						context.registers.ip() = decoded_ip_;
 						context.flow_controller.begin_instruction();
 					}
 
-//					if(log) {
-//						const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
-//						if(next != previous) {
-//							std::cout << next << std::endl;
-//							previous = next;
-//						}
-//					}
-
-					// Execute it.
-					InstructionSet::x86::perform(
-						decoded.second,
+					// Signal interrupt.
+					InstructionSet::x86::interrupt(
+						pic_.acknowledge(),
 						context
 					);
 				}
+
+				// Get the next thing to execute.
+				if(!context.flow_controller.should_repeat()) {
+					// Decode from the current IP.
+					decoded_ip_ = context.registers.ip();
+					const auto remainder = context.memory.next_code();
+					decoded = decoder.decode(remainder.first, remainder.second);
+
+					// If that didn't yield a whole instruction then the end of memory must have been hit;
+					// continue from the beginning.
+					if(decoded.first <= 0) {
+						const auto all = context.memory.all();
+						decoded = decoder.decode(all.first, all.second);
+					}
+
+					context.registers.ip() += decoded.first;
+
+//					log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
+				} else {
+					context.flow_controller.begin_instruction();
+				}
+
+//				if(log) {
+//					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
+//					if(next != previous) {
+//						std::cout << next << std::endl;
+//						previous = next;
+//					}
+//				}
+
+				// Execute it.
+				InstructionSet::x86::perform(
+					decoded.second,
+					context
+				);
 			}
 		}
 
