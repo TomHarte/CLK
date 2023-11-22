@@ -86,8 +86,8 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// TEMPORARY: remove the Apple IIgs and PC compatible options.
 		// Neither is yet a fully-working machine.
-		#if RELEASE
-		for hidden in ["appleiigs" /*, "pc" */] {
+		#if !DEBUG
+		for hidden in ["appleiigs", "pc"] {
 			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
 			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
 		}
