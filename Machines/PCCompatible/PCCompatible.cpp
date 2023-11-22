@@ -8,17 +8,95 @@
 
 #include "PCCompatible.hpp"
 
+#include "DMA.hpp"
+#include "PIC.hpp"
+#include "PIT.hpp"
+
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
+#include "../../Components/8255/i8255.hpp"
+
+#include "../../Numeric/RegisterSizes.hpp"
+
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
 #include <array>
+#include <iostream>
 
 namespace PCCompatible {
+
+class PITObserver {
+	public:
+		PITObserver(PIC &pic) : pic_(pic) {}
+
+		template <int channel>
+		void update_output(bool new_level) {
+			switch(channel) {
+				default: break;
+				case 0: pic_.apply_edge<0>(new_level);	break;
+			}
+		}
+
+	private:
+		PIC &pic_;
+
+	// TODO:
+	//
+	//	channel 0 is connected to IRQ 0;
+	//	channel 1 is used for DRAM refresh (presumably connected to DMA?);
+	//	channel 2 is gated by a PPI output and feeds into the speaker.
+};
+using PIT = i8237<false, PITObserver>;
+
+class i8255PortHandler : public Intel::i8255::PortHandler {
+	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
+	public:
+		void set_value(int port, uint8_t value) {
+			switch(port) {
+				case 1:
+					high_switches_ = value & 0x08;
+				break;
+			}
+			printf("PPI: %02x to %d\n", value, port);
+		}
+
+		uint8_t get_value(int port) {
+			switch(port) {
+				case 2:
+					// Common:
+					//
+					// b7: 1 => memory parity error; 0 => none;
+					// b6: 1 => IO channel error; 0 => none;
+					// b5: timer 2 output;	[TODO]
+					// b4: cassette data input; [TODO]
+					return
+						high_switches_ ?
+							// b3, b2: drive count; 00 = 1, 01 = 2, etc
+							// b1, b0: video mode (00 = ROM; 01 = CGA40; 10 = CGA80; 11 = MDA)
+							0b0000'0011
+						:
+							// b3, b2: RAM on motherboard (64 * bit pattern)
+							// b1: 1 => FPU present; 0 => absent;
+							// b0: 1 => floppy drive present; 0 => absent.
+							0b0000'1100;
+			}
+			printf("PPI: from %d\n", port);
+			return 0;
+		};
+
+	private:
+		bool high_switches_ = false;
+
+	// Provisionally, possibly:
+	//
+	//	port 0 = keyboard data output buffer;
+	//
+};
+using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
 struct Registers {
 	public:
@@ -152,8 +230,21 @@ struct Memory {
 		}
 
 		// Accesses an address based on physical location.
+//		int mda_delay = -1;	// HACK.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
+
+			// TEMPORARY HACK.
+//			if(mda_delay > 0) {
+//				--mda_delay;
+//				if(!mda_delay) {
+//					print_mda();
+//				}
+//			}
+//			if(address >= 0xb'0000 && is_writeable(type)) {
+//				mda_delay = 100;
+//			}
+
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
@@ -225,6 +316,19 @@ struct Memory {
 			std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
 		}
 
+
+		// TEMPORARY HACK.
+//		void print_mda() {
+//			uint32_t pointer = 0xb'0000;
+//			for(int y = 0; y < 25; y++) {
+//				for(int x = 0; x < 80; x++) {
+//					printf("%c", memory[pointer]);
+//					pointer += 2;	// MDA goes [character, attributes]...; skip the attributes.
+//				}
+//				printf("\n");
+//			}
+//		}
+
 	private:
 		std::array<uint8_t, 1024*1024> memory{0xff};
 		Registers &registers_;
@@ -269,7 +373,9 @@ struct Memory {
 
 class IO {
 	public:
-		template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic) : pit_(pit), dma_(dma), ppi_(ppi), pic_(pic) {}
+
+		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
 				default:
 					if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -283,15 +389,97 @@ class IO {
 				case 0x00a0:
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
+
+				case 0x0000:	dma_.write<0>(value);	break;
+				case 0x0001:	dma_.write<1>(value);	break;
+				case 0x0002:	dma_.write<2>(value);	break;
+				case 0x0003:	dma_.write<3>(value);	break;
+				case 0x0004:	dma_.write<4>(value);	break;
+				case 0x0005:	dma_.write<5>(value);	break;
+				case 0x0006:	dma_.write<6>(value);	break;
+				case 0x0007:	dma_.write<7>(value);	break;
+
+				case 0x0008:	case 0x0009:	case 0x000a:	case 0x000b:
+				case 0x000c:	case 0x000f:
+					printf("TODO: DMA write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x000d:	dma_.master_reset();	break;
+				case 0x000e:	dma_.mask_reset();		break;
+
+				case 0x0020:	pic_.write<0>(value);	break;
+				case 0x0021:	pic_.write<1>(value);	break;
+
+				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
+				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
+				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
+				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
+					ppi_.write(port, value);
+				break;
+
+				case 0x0080:	case 0x0081:	case 0x0082:	case 0x0083:
+				case 0x0084:	case 0x0085:	case 0x0086:	case 0x0087:
+				case 0x0088:	case 0x0089:	case 0x008a:	case 0x008b:
+				case 0x008c:	case 0x008d:	case 0x008e:	case 0x008f:
+					printf("TODO: DMA page write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x03b0:	case 0x03b1:	case 0x03b2:	case 0x03b3:
+				case 0x03b4:	case 0x03b5:	case 0x03b6:	case 0x03b7:
+				case 0x03b8:	case 0x03b9:	case 0x03ba:	case 0x03bb:
+				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf:
+					printf("TODO: MDA write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
+				case 0x03d4:	case 0x03d5:	case 0x03d6:	case 0x03d7:
+				case 0x03d8:	case 0x03d9:	case 0x03da:	case 0x03db:
+				case 0x03dc:	case 0x03dd:	case 0x03de:	case 0x03df:
+					printf("TODO: CGA write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x0040:	pit_.write<0>(uint8_t(value));	break;
+				case 0x0041:	pit_.write<1>(uint8_t(value));	break;
+				case 0x0042:	pit_.write<2>(uint8_t(value));	break;
+				case 0x0043:	pit_.set_mode(uint8_t(value));	break;
 			}
 		}
 		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
-			printf("Unhandled in: %04x\n", port);
+			switch(port) {
+				default:
+					printf("Unhandled in: %04x\n", port);
+				break;
+
+				case 0x0000:	return dma_.read<0>();
+				case 0x0001:	return dma_.read<1>();
+				case 0x0002:	return dma_.read<2>();
+				case 0x0003:	return dma_.read<3>();
+				case 0x0004:	return dma_.read<4>();
+				case 0x0005:	return dma_.read<5>();
+				case 0x0006:	return dma_.read<6>();
+				case 0x0007:	return dma_.read<7>();
+
+				case 0x0020:	return pic_.read<0>();
+				case 0x0021:	return pic_.read<1>();
+
+				case 0x0040:	return pit_.read<0>();
+				case 0x0041:	return pit_.read<1>();
+				case 0x0042:	return pit_.read<2>();
+
+				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
+				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
+				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
+				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
+				return ppi_.read(port);
+			}
 			return IntT(~0);
 		}
 
 	private:
-
+		PIT &pit_;
+		DMA &dma_;
+		PPI &ppi_;
+		PIC &pic_;
 };
 
 class FlowController {
@@ -337,12 +525,16 @@ class ConcreteMachine:
 	public MachineTypes::ScanProducer
 {
 	public:
+		static constexpr int PitMultiplier = 1;
+		static constexpr int PitDivisor = 3;
+
 		ConcreteMachine(
 			[[maybe_unused]] const Analyser::Static::Target &target,
-			[[maybe_unused]] const ROMMachine::ROMFetcher &rom_fetcher
-		) {
-			// This is actually a MIPS count; try 3 million.
-			set_clock_rate(3'000'000);
+			const ROMMachine::ROMFetcher &rom_fetcher
+		) : pit_observer_(pic_), pit_(pit_observer_), ppi_(ppi_handler_), context(pit_, dma_, ppi_, pic_) {
+			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
+			static constexpr int pit_frequency = 1'193'182;
+			set_clock_rate(double(pit_frequency) * double(PitMultiplier) / double(PitDivisor));	// i.e. almost 0.4 MIPS for an XT.
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
@@ -358,12 +550,37 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
-		void run_for([[maybe_unused]] const Cycles cycles) override {
+//		bool log = false;
+//		std::string previous;
+		void run_for(const Cycles cycles) override {
 			auto instructions = cycles.as_integral();
 			while(instructions--) {
-				// Get the next thing to execute into decoded.
+				//
+				// First draft: all hardware runs in lockstep.
+				//
+
+				// Advance the PIT.
+				pit_.run_for(PitDivisor / PitMultiplier);
+
+				// Query for interrupts and apply if pending.
+				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
+					// Regress the IP if a REP is in-progress so as to resume it later.
+					if(context.flow_controller.should_repeat()) {
+						context.registers.ip() = decoded_ip_;
+						context.flow_controller.begin_instruction();
+					}
+
+					// Signal interrupt.
+					InstructionSet::x86::interrupt(
+						pic_.acknowledge(),
+						context
+					);
+				}
+
+				// Get the next thing to execute.
 				if(!context.flow_controller.should_repeat()) {
 					// Decode from the current IP.
+					decoded_ip_ = context.registers.ip();
 					const auto remainder = context.memory.next_code();
 					decoded = decoder.decode(remainder.first, remainder.second);
 
@@ -375,9 +592,19 @@ class ConcreteMachine:
 					}
 
 					context.registers.ip() += decoded.first;
+
+//					log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
 				} else {
 					context.flow_controller.begin_instruction();
 				}
+
+//				if(log) {
+//					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
+//					if(next != previous) {
+//						std::cout << next << std::endl;
+//						previous = next;
+//					}
+//				}
 
 				// Execute it.
 				InstructionSet::x86::perform(
@@ -394,11 +621,21 @@ class ConcreteMachine:
 		}
 
 	private:
+		PIC pic_;
+		DMA dma_;
+
+		PITObserver pit_observer_;
+		i8255PortHandler ppi_handler_;
+
+		PIT pit_;
+		PPI ppi_;
+
 		struct Context {
-			Context() :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic) :
 				segments(registers),
 				memory(registers, segments),
-				flow_controller(registers, segments)
+				flow_controller(registers, segments),
+				io(pit, dma, ppi, pic)
 			{
 				reset();
 			}
@@ -422,6 +659,7 @@ class ConcreteMachine:
 		InstructionSet::x86::Decoder8086 decoder;
 //		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 
+		uint16_t decoded_ip_ = 0;
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 };
 
