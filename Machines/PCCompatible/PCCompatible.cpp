@@ -88,7 +88,7 @@ class MDA {
 	private:
 		struct CRTCOutputter {
 			CRTCOutputter() :
-				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Luminance8)
+				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
 				crt.set_display_type(Outputs::Display::DisplayType::RGB);
@@ -136,6 +136,9 @@ class MDA {
 						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
 						uint8_t row = font[(glyph * 14) + state.row_address];
 
+						const uint8_t intensity = (attributes & 0x08) ? 0x0d : 0x09;
+						uint8_t blank = 0;
+
 						// Handle irregular attributes.
 						// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
 						switch(attributes) {
@@ -144,15 +147,15 @@ class MDA {
 							break;
 							case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
 								row ^= 0xff;
+								blank = intensity;
 							break;
 						}
 
-						const uint8_t intensity = (attributes & 0x08) ? 0xff : 0xc0;
-
-						// Apply underline.
 						if(((attributes & 7) == 1) && state.row_address == 13) {
+							// Draw as underline.
 							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
 						} else {
+							// Draw according to ROM contents, possibly duplicating final column.
 							pixel_pointer[0] = (row & 0x80) ? intensity : 0;
 							pixel_pointer[1] = (row & 0x40) ? intensity : 0;
 							pixel_pointer[2] = (row & 0x20) ? intensity : 0;
@@ -161,7 +164,7 @@ class MDA {
 							pixel_pointer[5] = (row & 0x04) ? intensity : 0;
 							pixel_pointer[6] = (row & 0x02) ? intensity : 0;
 							pixel_pointer[7] = (row & 0x01) ? intensity : 0;
-							pixel_pointer[8] = 0;	// TODO.
+							pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
 						}
 						pixel_pointer += 9;
 					}
