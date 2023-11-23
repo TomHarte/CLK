@@ -88,10 +88,10 @@ class MDA {
 	private:
 		struct CRTCOutputter {
 			CRTCOutputter() :
-				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Luminance1)
+				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Luminance8)
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-				crt.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+				crt.set_display_type(Outputs::Display::DisplayType::RGB);
 			}
 
 			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
@@ -132,21 +132,37 @@ class MDA {
 					}
 
 					if(pixels) {
-						// TODO: use attributes, as per http://www.seasip.info/VintagePC/mda.html#memmap
-//						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-
+						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
 						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-						const uint8_t row = font[(glyph * 14) + state.row_address];
+						uint8_t row = font[(glyph * 14) + state.row_address];
 
-						pixel_pointer[0] = row & 0x80;
-						pixel_pointer[1] = row & 0x40;
-						pixel_pointer[2] = row & 0x20;
-						pixel_pointer[3] = row & 0x10;
-						pixel_pointer[4] = row & 0x08;
-						pixel_pointer[5] = row & 0x04;
-						pixel_pointer[6] = row & 0x02;
-						pixel_pointer[7] = row & 0x01;
-						pixel_pointer[8] = 0;	// TODO.
+						// Handle irregular attributes.
+						// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
+						switch(attributes) {
+							case 0x00:	case 0x08:	case 0x80:	case 0x88:
+								row = 0;
+							break;
+							case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
+								row ^= 0xff;
+							break;
+						}
+
+						const uint8_t intensity = (attributes & 0x08) ? 0xff : 0xc0;
+
+						// Apply underline.
+						if(((attributes & 7) == 1) && state.row_address == 13) {
+							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
+						} else {
+							pixel_pointer[0] = (row & 0x80) ? intensity : 0;
+							pixel_pointer[1] = (row & 0x40) ? intensity : 0;
+							pixel_pointer[2] = (row & 0x20) ? intensity : 0;
+							pixel_pointer[3] = (row & 0x10) ? intensity : 0;
+							pixel_pointer[4] = (row & 0x08) ? intensity : 0;
+							pixel_pointer[5] = (row & 0x04) ? intensity : 0;
+							pixel_pointer[6] = (row & 0x02) ? intensity : 0;
+							pixel_pointer[7] = (row & 0x01) ? intensity : 0;
+							pixel_pointer[8] = 0;	// TODO.
+						}
 						pixel_pointer += 9;
 					}
 				}
@@ -259,13 +275,14 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
-					// b7: 0 => enable keyboard read; 1 => don't;
+					// b7: 0 => enable keyboard read (and IRQ); 1 => don't;
 					// b6: 0 => hold keyboard clock low; 1 => don't;
 					// b5: 1 => disable IO check; 0 => don't;
 					// b4: 1 => disable memory parity check; 0 => don't;
 					// b3: [5150] cassette motor control; [5160] high or low switches select;
 					// b2: [5150] high or low switches select; [5160] 1 => disable turbo mode;
 					// b1, b0: speaker control.
+					enable_keyboard_ = !(value & 0x80);
 					high_switches_ = value & 0x08;
 					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
@@ -285,7 +302,9 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		uint8_t get_value(int port) {
 			switch(port) {
-
+				case 0:
+					printf("PPI: from keyboard\n");
+					return enable_keyboard_ ? keyboard_ : 0x00;	// ?
 
 				case 2:
 					// Common:
@@ -305,13 +324,15 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 							// b0: 1 => floppy drive present; 0 => absent.
 							0b0000'1100;
 			}
-			printf("PPI: from %d\n", port);
 			return 0;
 		};
 
 	private:
 		bool high_switches_ = false;
 		PCSpeaker &speaker_;
+
+		bool enable_keyboard_ = false;
+		uint8_t keyboard_ = 0x00;//0xaa;
 
 	// Provisionally, possibly:
 	//
