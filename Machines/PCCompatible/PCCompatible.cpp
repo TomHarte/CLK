@@ -89,6 +89,8 @@ class MDA {
 		struct CRTCOutputter {
 			CRTCOutputter() :
 				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
+				// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
+				// consider whether that's worth building into the scan target.
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
 				crt.set_display_type(Outputs::Display::DisplayType::RGB);
