@@ -133,6 +133,7 @@ class MDA {
 						}
 					}
 
+					// TODO: cursor.
 					if(pixels) {
 						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
 						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
