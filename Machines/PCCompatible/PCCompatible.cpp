@@ -361,13 +361,13 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
 			}
-			printf("PPI: %02x to %d\n", value, port);
+//			printf("PPI: %02x to %d\n", value, port);
 		}
 
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0:
-					printf("PPI: from keyboard\n");
+//					printf("PPI: from keyboard\n");
 					return enable_keyboard_ ? keyboard_.read() : 0b0011'1100;
 						// Guesses that switches is high and low combined as below.
 
@@ -706,7 +706,8 @@ class IO {
 				case 0x0006:	dma_.write<6>(value);	break;
 				case 0x0007:	dma_.write<7>(value);	break;
 
-				case 0x0008:	case 0x0009:	case 0x000a:	case 0x000b:
+				case 0x0008:	case 0x0009:
+				case 0x000a:	case 0x000b:
 				case 0x000c:	case 0x000f:
 					printf("TODO: DMA write of %02x at %04x\n", value, port);
 				break;
@@ -716,6 +717,11 @@ class IO {
 
 				case 0x0020:	pic_.write<0>(value);	break;
 				case 0x0021:	pic_.write<1>(value);	break;
+
+				case 0x0040:	pit_.write<0>(uint8_t(value));	break;
+				case 0x0041:	pit_.write<1>(uint8_t(value));	break;
+				case 0x0042:	pit_.write<2>(uint8_t(value));	break;
+				case 0x0043:	pit_.set_mode(uint8_t(value));	break;
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
@@ -749,8 +755,8 @@ class IO {
 					}
 				break;
 
-				case 0x03b8:	case 0x03b9:	case 0x03ba:	case 0x03bb:
-				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf:
+				case 0x03b8:	/* case 0x03b9:	case 0x03ba:	case 0x03bb:
+				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf: */
 					mda_.write<8>(value);
 				break;
 
@@ -758,13 +764,30 @@ class IO {
 				case 0x03d4:	case 0x03d5:	case 0x03d6:	case 0x03d7:
 				case 0x03d8:	case 0x03d9:	case 0x03da:	case 0x03db:
 				case 0x03dc:	case 0x03dd:	case 0x03de:	case 0x03df:
-					printf("TODO: CGA write of %02x at %04x\n", value, port);
+					// Ignore CGA accesses.
 				break;
 
-				case 0x0040:	pit_.write<0>(uint8_t(value));	break;
-				case 0x0041:	pit_.write<1>(uint8_t(value));	break;
-				case 0x0042:	pit_.write<2>(uint8_t(value));	break;
-				case 0x0043:	pit_.set_mode(uint8_t(value));	break;
+				case 0x03f0:	case 0x03f1:	case 0x03f2:	case 0x03f3:
+				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
+					printf("TODO: FDC write of %02x at %04x\n", value, port);
+				break;
+
+				case 0x0278:	case 0x0279:	case 0x027a:
+				case 0x0378:	case 0x0379:	case 0x037a:
+				case 0x03bc:	case 0x03bd:	case 0x03be:
+					// Ignore parallel port accesses.
+				break;
+
+				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
+				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
+				case 0x02f8:	case 0x02f9:	case 0x02fa:	case 0x02fb:
+				case 0x02fc:	case 0x02fd:	case 0x02fe:	case 0x02ff:
+				case 0x03e8:	case 0x03e9:	case 0x03ea:	case 0x03eb:
+				case 0x03ec:	case 0x03ed:	case 0x03ee:	case 0x03ef:
+				case 0x03f8:	case 0x03f9:	case 0x03fa:	case 0x03fb:
+				case 0x03fc:	case 0x03fd:	case 0x03fe:	case 0x03ff:
+					// Ignore serial port accesses.
+				break;
 			}
 		}
 		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
@@ -782,6 +805,12 @@ class IO {
 				case 0x0006:	return dma_.read<6>();
 				case 0x0007:	return dma_.read<7>();
 
+				case 0x0008:	case 0x0009:
+				case 0x000a:	case 0x000b:
+				case 0x000c:	case 0x000f:
+					printf("TODO: DMA read from %04x\n", port);
+				break;
+
 				case 0x0020:	return pic_.read<0>();
 				case 0x0021:	return pic_.read<1>();
 
@@ -794,6 +823,30 @@ class IO {
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
 				return ppi_.read(port);
+
+				case 0x0201:	break;		// Ignore game port.
+
+				case 0x0278:	case 0x0279:	case 0x027a:
+				case 0x0378:	case 0x0379:	case 0x037a:
+				case 0x03bc:	case 0x03bd:	case 0x03be:
+					// Ignore parallel port accesses.
+				break;
+
+				case 0x03f0:	case 0x03f1:	case 0x03f2:	case 0x03f3:
+				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
+					printf("TODO: FDC read from %04x\n", port);
+				break;
+
+				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
+				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
+				case 0x02f8:	case 0x02f9:	case 0x02fa:	case 0x02fb:
+				case 0x02fc:	case 0x02fd:	case 0x02fe:	case 0x02ff:
+				case 0x03e8:	case 0x03e9:	case 0x03ea:	case 0x03eb:
+				case 0x03ec:	case 0x03ed:	case 0x03ee:	case 0x03ef:
+				case 0x03f8:	case 0x03f9:	case 0x03fa:	case 0x03fb:
+				case 0x03fc:	case 0x03fd:	case 0x03fe:	case 0x03ff:
+					// Ignore serial port accesses.
+				break;
 			}
 			return IntT(~0);
 		}
