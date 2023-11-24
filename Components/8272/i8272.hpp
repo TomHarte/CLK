@@ -9,6 +9,8 @@
 #ifndef i8272_hpp
 #define i8272_hpp
 
+#include "CommandDecoder.hpp"
+
 #include "../../Storage/Disk/Controller/MFMDiskController.hpp"
 
 #include <cstdint>
@@ -54,7 +56,7 @@ class i8272 : public Storage::Disk::MFMController {
 		uint8_t status_[3] = {0, 0, 0};
 
 		// A buffer for accumulating the incoming command, and one for accumulating the result.
-		std::vector<uint8_t> command_;
+		CommandDecoder command_;
 		std::vector<uint8_t> result_stack_;
 		uint8_t input_ = 0;
 		bool has_input_ = false;

@@ -53,29 +53,6 @@ using namespace Intel::i8272;
 #define SetBadCylinder()				(status_[2] |= 0x02)
 #define SetMissingDataAddressMark()		(status_[2] |= 0x01)
 
-namespace {
-	const uint8_t CommandReadData = 0x06;
-	const uint8_t CommandReadDeletedData = 0x0c;
-
-	const uint8_t CommandWriteData = 0x05;
-	const uint8_t CommandWriteDeletedData = 0x09;
-
-	const uint8_t CommandReadTrack = 0x02;
-	const uint8_t CommandReadID = 0x0a;
-	const uint8_t CommandFormatTrack = 0x0d;
-
-	const uint8_t CommandScanLow = 0x11;
-	const uint8_t CommandScanLowOrEqual = 0x19;
-	const uint8_t CommandScanHighOrEqual = 0x1d;
-
-	const uint8_t CommandRecalibrate = 0x07;
-	const uint8_t CommandSeek = 0x0f;
-
-	const uint8_t CommandSenseInterruptStatus = 0x08;
-	const uint8_t CommandSpecify = 0x03;
-	const uint8_t CommandSenseDriveStatus = 0x04;
-}
-
 i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
 	Storage::Disk::MFMController(clock_rate),
 	bus_handler_(bus_handler) {
@@ -233,12 +210,12 @@ uint8_t i8272::read(int address) {
 	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
 
 #define SET_DRIVE_HEAD_MFM()	\
-	active_drive_ = command_[1]&3;	\
-	active_head_ = (command_[1] >> 2)&1;	\
-	status_[0] = (command_[1]&7);	\
+	active_drive_ = command_.target().drive;	\
+	active_head_ = command_.target().head;	\
+	status_[0] = command_.drive_head();	\
 	select_drive(active_drive_);	\
 	get_drive().set_head(active_head_);	\
-	set_is_double_density(command_[0] & 0x40);
+	set_is_double_density(command_.target().mfm);
 
 #define WAIT_FOR_BYTES(n) \
 	distance_into_section_ = 0;	\
@@ -296,42 +273,20 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event8272::CommandByte)
 			SetBusy();
 
-			static constexpr std::size_t required_lengths[32] = {
-				0,	0,	9,	3,	2,	9,	9,	2,
-				1,	9,	2,	0,	9,	6,	0,	3,
-				0,	9,	0,	0,	0,	0,	0,	0,
-				0,	9,	0,	0,	0,	9,	0,	0,
-			};
-
-			if(command_.size() < required_lengths[command_[0] & 0x1f]) goto wait_for_complete_command_sequence;
-			if(command_.size() == 9) {
-				cylinder_ = command_[2];
-				head_ = command_[3];
-				sector_ = command_[4];
-				size_ = command_[5];
+			if(!command_.has_command()) {
+				goto wait_for_complete_command_sequence;
+			}
+			if(command_.has_geometry() == 9) {
+				cylinder_ = command_.geometry().cylinder;
+				head_ = command_.geometry().head;
+				sector_ = command_.geometry().sector;
+				size_ = command_.geometry().size;
 			}
 			ResetDataRequest();
 			status_[0] = status_[1] = status_[2] = 0;
 
 			// If this is not clearly a command that's safe to carry out in parallel to a seek, end all seeks.
-			switch(command_[0] & 0x1f) {
-				case CommandReadData:
-				case CommandReadDeletedData:
-				case CommandWriteData:
-				case CommandWriteDeletedData:
-				case CommandReadTrack:
-				case CommandReadID:
-				case CommandFormatTrack:
-				case CommandScanLow:
-				case CommandScanLowOrEqual:
-				case CommandScanHighOrEqual:
-					is_access_command_ = true;
-				break;
-
-				default:
-					is_access_command_ = false;
-				break;
-			}
+			is_access_command_ = command_.is_access_command();
 
 			if(is_access_command_) {
 				for(int c = 0; c < 4; c++) {
@@ -353,29 +308,30 @@ void i8272::posit_event(int event_type) {
 			}
 
 			// Jump to the proper place.
-			switch(command_[0] & 0x1f) {
-				case CommandReadData:
-				case CommandReadDeletedData:
+			using Command = CommandDecoder::Command;
+			switch(command_.command()) {
+				case Command::ReadData:
+				case Command::ReadDeletedData:
 					goto read_data;
 
-				case CommandWriteData:
-				case CommandWriteDeletedData:
+				case Command::WriteData:
+				case Command::WriteDeletedData:
 					goto write_data;
 
-				case CommandReadTrack:				goto read_track;
-				case CommandReadID:					goto read_id;
-				case CommandFormatTrack:			goto format_track;
+				case Command::ReadTrack:			goto read_track;
+				case Command::ReadID:				goto read_id;
+				case Command::FormatTrack:			goto format_track;
 
-				case CommandScanLow:				goto scan_low;
-				case CommandScanLowOrEqual:			goto scan_low_or_equal;
-				case CommandScanHighOrEqual:		goto scan_high_or_equal;
+				case Command::ScanLow:				goto scan_low;
+				case Command::ScanLowOrEqual:		goto scan_low_or_equal;
+				case Command::ScanHighOrEqual:		goto scan_high_or_equal;
 
-				case CommandRecalibrate:			goto recalibrate;
-				case CommandSeek:					goto seek;
+				case Command::Recalibrate:			goto recalibrate;
+				case Command::Seek:					goto seek;
 
-				case CommandSenseInterruptStatus:	goto sense_interrupt_status;
-				case CommandSpecify:				goto specify;
-				case CommandSenseDriveStatus:		goto sense_drive_status;
+				case Command::SenseInterruptStatus:	goto sense_interrupt_status;
+				case Command::Specify:				goto specify;
+				case Command::SenseDriveStatus:		goto sense_drive_status;
 
 				default:							goto invalid;
 			}
@@ -415,26 +371,27 @@ void i8272::posit_event(int event_type) {
 
 			// Branch to whatever is supposed to happen next
 //			LOG("Proceeding");
-			switch(command_[0] & 0x1f) {
-				case CommandReadData:
-				case CommandReadDeletedData:
+			switch(command_.command()) {
+				default:
+				case Command::ReadData:
+				case Command::ReadDeletedData:
 				goto read_data_found_header;
 
-				case CommandWriteData:	// write data
-				case CommandWriteDeletedData:	// write deleted data
+				case Command::WriteData:	// write data
+				case Command::WriteDeletedData:	// write deleted data
 				goto write_data_found_header;
 			}
 
 
 	// Performs the read data or read deleted data command.
 	read_data:
-			LOG(PADHEX(2) << "Read [deleted] data ["
-				<< int(command_[2]) << " "
-				<< int(command_[3]) << " "
-				<< int(command_[4]) << " "
-				<< int(command_[5]) << " ... "
-				<< int(command_[6]) << " "
-				<< int(command_[8]) << "]");
+//			LOG(PADHEX(2) << "Read [deleted] data ["
+//				<< int(command_[2]) << " "
+//				<< int(command_[3]) << " "
+//				<< int(command_[4]) << " "
+//				<< int(command_[5]) << " ... "
+//				<< int(command_[6]) << " "
+//				<< int(command_[8]) << "]");
 		read_next_data:
 			goto read_write_find_header;
 
@@ -450,8 +407,8 @@ void i8272::posit_event(int event_type) {
 					SetMissingDataAddressMark();
 					goto abort;	// TODO: or read_next_data?
 				} else {
-					if((get_latest_token().type == Token::Data) != ((command_[0] & 0x1f) == CommandReadData)) {
-						if(!(command_[0]&0x20)) {
+					if((get_latest_token().type == Token::Data) != (command_.command() == Command::ReadData)) {
+						if(!command_.target().skip_deleted) {
 							// SK is not set; set the error flag but read this sector before finishing.
 							SetControlMark();
 						} else {
@@ -509,7 +466,7 @@ void i8272::posit_event(int event_type) {
 
 		// check whether that's it: either the final requested sector has been read, or because
 		// a sector that was [/wasn't] marked as deleted when it shouldn't [/should] have been
-			if(sector_ != command_[6] && !ControlMark()) {
+			if(sector_ != command_.geometry().end_of_track && !ControlMark()) {
 				sector_++;
 				goto read_next_data;
 			}
@@ -518,13 +475,13 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-			LOG(PADHEX(2) << "Write [deleted] data ["
-				<< int(command_[2]) << " "
-				<< int(command_[3]) << " "
-				<< int(command_[4]) << " "
-				<< int(command_[5]) << " ... "
-				<< int(command_[6]) << " "
-				<< int(command_[8]) << "]");
+//			LOG(PADHEX(2) << "Write [deleted] data ["
+//				<< int(command_[2]) << " "
+//				<< int(command_[3]) << " "
+//				<< int(command_[4]) << " "
+//				<< int(command_[5]) << " ... "
+//				<< int(command_[6]) << " "
+//				<< int(command_[8]) << "]");
 
 			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
@@ -538,7 +495,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_BYTES(get_is_double_density() ? 22 : 11);
 			begin_writing(true);
 
-			write_id_data_joiner((command_[0] & 0x1f) == CommandWriteDeletedData, true);
+			write_id_data_joiner(command_.command() == Command::WriteDeletedData, true);
 
 			SetDataDirectionFromProcessor();
 			SetDataRequest();
@@ -565,7 +522,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event::DataWritten);
 			end_writing();
 
-			if(sector_ != command_[6]) {
+			if(sector_ != command_.geometry().end_of_track) {
 				sector_++;
 				goto write_next_data;
 			}
@@ -575,7 +532,7 @@ void i8272::posit_event(int event_type) {
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
-			LOG(PADHEX(2) << "Read ID [" << int(command_[0]) << " " << int(command_[1]) << "]");
+//			LOG(PADHEX(2) << "Read ID [" << int(command_[0]) << " " << int(command_[1]) << "]");
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -597,11 +554,11 @@ void i8272::posit_event(int event_type) {
 
 	// Performs read track.
 	read_track:
-			LOG(PADHEX(2) << "Read track ["
-				<< int(command_[2]) << " "
-				<< int(command_[3]) << " "
-				<< int(command_[4]) << " "
-				<< int(command_[5]) << "]");
+//			LOG(PADHEX(2) << "Read track ["
+//				<< int(command_[2]) << " "
+//				<< int(command_[3]) << " "
+//				<< int(command_[4]) << " "
+//				<< int(command_[5]) << "]");
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
@@ -636,7 +593,7 @@ void i8272::posit_event(int event_type) {
 			if(distance_into_section_ < (128 << header_[2])) goto read_track_get_byte;
 
 			sector_++;
-			if(sector_ < command_[6]) goto read_track_next_sector;
+			if(sector_ < command_.geometry().end_of_track) goto read_track_next_sector;
 
 			goto post_st012chrn;
 
@@ -696,15 +653,15 @@ void i8272::posit_event(int event_type) {
 
 			// Write the sector body.
 			write_id_data_joiner(false, false);
-			write_n_bytes(128 << command_[2], command_[5]);
+			write_n_bytes(128 << command_.format_specs().bytes_per_sector, command_.format_specs().filler);
 			write_crc();
 
 			// Write the prescribed gap.
-			write_n_bytes(command_[4], get_is_double_density() ? 0x4e : 0xff);
+			write_n_bytes(command_.format_specs().gap3_length, get_is_double_density() ? 0x4e : 0xff);
 
 			// Consider repeating.
 			sector_++;
-			if(sector_ < command_[3] && !index_hole_count_)
+			if(sector_ < command_.format_specs().sectors_per_track && !index_hole_count_)
 				goto format_track_write_sector;
 
 			// Otherwise, pad out to the index hole.
@@ -739,7 +696,7 @@ void i8272::posit_event(int event_type) {
 	recalibrate:
 	seek:
 			{
-				int drive = command_[1]&3;
+				const int drive = command_.target().drive;
 				select_drive(drive);
 
 				// Increment the seeking count if this drive wasn't already seeking.
@@ -755,14 +712,14 @@ void i8272::posit_event(int event_type) {
 				drives_[drive].step_rate_counter = 8000 * step_rate_time_;
 				drives_[drive].steps_taken = 0;
 				drives_[drive].seek_failed = false;
-				main_status_ |= 1 << (command_[1]&3);
+				main_status_ |= 1 << command_.target().drive;
 
 				// If this is a seek, set the processor-supplied target location; otherwise it is a recalibrate,
 				// which means resetting the current state now but aiming to hit '-1' (which the stepping code
 				// up in run_for understands to mean 'keep going until track 0 is active').
-				if(command_.size() > 2) {
-					drives_[drive].target_head_position = command_[2];
-					LOG(PADHEX(2) << "Seek to " << int(command_[2]));
+				if(command_.command() != Command::Recalibrate) {
+					drives_[drive].target_head_position = command_.seek_target();
+					LOG(PADHEX(2) << "Seek to " << int(command_.seek_target()));
 				} else {
 					drives_[drive].target_head_position = -1;
 					drives_[drive].head_position = 0;
@@ -808,24 +765,24 @@ void i8272::posit_event(int event_type) {
 	specify:
 		// Just store the values, and terminate the command.
 			LOG("Specify");
-			step_rate_time_ = 16 - (command_[1] >> 4);			// i.e. 1 to 16ms
-			head_unload_time_ = (command_[1] & 0x0f) << 4;		// i.e. 16 to 240ms
-			head_load_time_ = command_[2] & ~1;					// i.e. 2 to 254 ms in increments of 2ms
+			step_rate_time_ = command_.specify_specs().step_rate_time;
+			head_unload_time_ = command_.specify_specs().head_unload_time;
+			head_load_time_ = command_.specify_specs().head_load_time;
 
 			if(!head_unload_time_) head_unload_time_ = 16;
 			if(!head_load_time_) head_load_time_ = 2;
-			dma_mode_ = !(command_[2] & 1);
+			dma_mode_ = command_.specify_specs().use_dma;
 			goto wait_for_command;
 
 	sense_drive_status:
 			LOG("Sense drive status");
 			{
-				int drive = command_[1] & 3;
+				int drive = command_.target().drive;
 				select_drive(drive);
 				result_stack_= {
 					uint8_t(
-						(command_[1] & 7) |	// drive and head number
-						0x08 |				// single sided
+						(command_.drive_head()) |	// drive and head number
+						0x08 |						// single sided
 						(get_drive().get_is_track_zero() ? 0x10 : 0x00)	|
 						(get_drive().get_is_ready() ? 0x20 : 0x00)		|
 						(get_drive().get_is_read_only() ? 0x40 : 0x00)
@@ -857,11 +814,11 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
-			LOGNBR(PADHEX(2) << "Result to " << int(command_[0] & 0x1f) << ", main " << int(main_status_) << "; ");
-			for(std::size_t c = 0; c < result_stack_.size(); c++) {
-				LOGNBR(" " << int(result_stack_[result_stack_.size() - 1 - c]));
-			}
-			LOGNBR(std::endl);
+//			LOGNBR(PADHEX(2) << "Result to " << int(command_[0] & 0x1f) << ", main " << int(main_status_) << "; ");
+//			for(std::size_t c = 0; c < result_stack_.size(); c++) {
+//				LOGNBR(" " << int(result_stack_[result_stack_.size() - 1 - c]));
+//			}
+//			LOGNBR(std::endl);
 
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
 			is_executing_ = false;

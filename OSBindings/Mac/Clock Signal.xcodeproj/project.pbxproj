@@ -1146,6 +1146,7 @@
 		4267A9C82B0D4EC2008A59BB /* PIC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PIC.hpp; sourceTree = "<group>"; };
 		4267A9C92B0D4F17008A59BB /* DMA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMA.hpp; sourceTree = "<group>"; };
 		4267A9CA2B111ED2008A59BB /* KeyboardMapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMapper.hpp; sourceTree = "<group>"; };
+		4267A9CB2B113958008A59BB /* CommandDecoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CommandDecoder.hpp; sourceTree = "<group>"; };
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
@@ -4552,6 +4553,7 @@
 			children = (
 				4BBC951C1F368D83008F4C34 /* i8272.cpp */,
 				4BBC951D1F368D83008F4C34 /* i8272.hpp */,
+				4267A9CB2B113958008A59BB /* CommandDecoder.hpp */,
 			);
 			path = 8272;
 			sourceTree = "<group>";
