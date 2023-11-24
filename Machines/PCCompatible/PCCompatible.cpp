@@ -9,6 +9,7 @@
 #include "PCCompatible.hpp"
 
 #include "DMA.hpp"
+#include "KeyboardMapper.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
 
@@ -27,6 +28,7 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../AudioProducer.hpp"
+#include "../KeyboardMachine.hpp"
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
@@ -82,12 +84,15 @@ class KeyboardController {
 			return key;
 		}
 
-	private:
 		void post(uint8_t value) {
+			if(mode_ == Mode::NoIRQsIgnoreInput) {
+				return;
+			}
 			input_ = value;
 			pic_.apply_edge<1>(true);
 		}
 
+	private:
 		enum class Mode {
 			NormalOperation = 0b01,
 			NoIRQsIgnoreInput = 0b11,
@@ -900,7 +905,8 @@ class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::AudioProducer,
-	public MachineTypes::ScanProducer
+	public MachineTypes::ScanProducer,
+	public MachineTypes::MappedKeyboardMachine
 {
 	public:
 		ConcreteMachine(
@@ -1049,6 +1055,15 @@ class ConcreteMachine:
 			}
 		}
 
+		// MARK: - MappedKeyboardMachine.
+		MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
+		}
+
+		void set_key_state(uint16_t key, bool is_pressed) override {
+			keyboard_.post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
+		}
+
 	private:
 		PIC pic_;
 		DMA dma_;
@@ -1061,6 +1076,8 @@ class ConcreteMachine:
 
 		PIT pit_;
 		PPI ppi_;
+
+		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
 			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
