@@ -35,6 +35,69 @@
 
 namespace PCCompatible {
 
+class KeyboardController {
+	public:
+		KeyboardController(PIC &pic) : pic_(pic) {}
+
+		// KB Status Port 61h high bits:
+		//; 01 - normal operation. wait for keypress, when one comes in,
+		//;		force data line low (forcing keyboard to buffer additional
+		//;		keypresses) and raise IRQ1 high
+		//; 11 - stop forcing data line low. lower IRQ1 and don't raise it again.
+		//;		drop all incoming keypresses on the floor.
+		//; 10 - lower IRQ1 and force clock line low, resetting keyboard
+		//; 00 - force clock line low, resetting keyboard, but on a 01->00 transition,
+		//;		IRQ1 would remain high
+		void set_mode(uint8_t mode) {
+			mode_ = Mode(mode);
+			switch(mode_) {
+				case Mode::NormalOperation: 	break;
+				case Mode::NoIRQsIgnoreInput:
+					pic_.apply_edge<1>(false);
+				break;
+				case Mode::ClearIRQReset:
+					pic_.apply_edge<1>(false);
+					[[fallthrough]];
+				case Mode::Reset:
+					reset_delay_ = 5;	// Arbitrarily.
+				break;
+			}
+		}
+
+		void run_for(Cycles cycles) {
+			if(reset_delay_ < 0) {
+				return;
+			}
+			reset_delay_ -= cycles.as<int>();
+			if(reset_delay_ < 0) {
+				post(0xaa);
+			}
+		}
+
+		uint8_t read() {
+			pic_.apply_edge<1>(false);
+			return input_;
+		}
+
+	private:
+		void post(uint8_t value) {
+			input_ = value;
+			pic_.apply_edge<1>(true);
+		}
+
+		enum class Mode {
+			NormalOperation = 0b01,
+			NoIRQsIgnoreInput = 0b11,
+			ClearIRQReset = 0b10,
+			Reset = 0b00,
+		} mode_;
+
+		uint8_t input_ = 0;
+		PIC &pic_;
+
+		int reset_delay_ = 0;
+};
+
 class MDA {
 	public:
 		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
@@ -276,7 +339,7 @@ using PIT = i8237<false, PITObserver>;
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
-		i8255PortHandler(PCSpeaker &speaker) : speaker_(speaker) {}
+		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) : speaker_(speaker), keyboard_(keyboard) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -289,6 +352,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					// b2: [5150] high or low switches select; [5160] 1 => disable turbo mode;
 					// b1, b0: speaker control.
 					enable_keyboard_ = !(value & 0x80);
+					keyboard_.set_mode(value >> 6);
+
 					high_switches_ = value & 0x08;
 					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
@@ -296,21 +361,12 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			printf("PPI: %02x to %d\n", value, port);
 		}
 
-// KB Status Port 61h high bits:
-//; 01 - normal operation. wait for keypress, when one comes in,
-//;		force data line low (forcing keyboard to buffer additional
-//;		keypresses) and raise IRQ1 high
-//; 11 - stop forcing data line low. lower IRQ1 and don't raise it again.
-//;		drop all incoming keypresses on the floor.
-//; 10 - lower IRQ1 and force clock line low, resetting keyboard
-//; 00 - force clock line low, resetting keyboard, but on a 01->00 transition,
-//;		IRQ1 would remain high
-
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0:
 					printf("PPI: from keyboard\n");
-					return enable_keyboard_ ? keyboard_ : 0x00;	// ?
+					return enable_keyboard_ ? keyboard_.read() : 0b0011'1100;
+						// Guesses that switches is high and low combined as below.
 
 				case 2:
 					// Common:
@@ -336,14 +392,9 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	private:
 		bool high_switches_ = false;
 		PCSpeaker &speaker_;
+		KeyboardController &keyboard_;
 
 		bool enable_keyboard_ = false;
-		uint8_t keyboard_ = 0x00;//0xaa;
-
-	// Provisionally, possibly:
-	//
-	//	port 0 = keyboard data output buffer;
-	//
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
@@ -800,8 +851,9 @@ class ConcreteMachine:
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) :
+			keyboard_(pic_),
 			pit_observer_(pic_, speaker_),
-			ppi_handler_(speaker_),
+			ppi_handler_(speaker_, keyboard_),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
 			context(pit_, dma_, ppi_, pic_, mda_)
@@ -866,6 +918,8 @@ class ConcreteMachine:
 				// Perform one CPU instruction every three PIT cycles.
 				// i.e. CPU instruction rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
 				//
+
+				keyboard_.run_for(Cycles(1));
 
 				// Query for interrupts and apply if pending.
 				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
@@ -945,6 +999,7 @@ class ConcreteMachine:
 		PCSpeaker speaker_;
 		MDA mda_;
 
+		KeyboardController keyboard_;
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
 
