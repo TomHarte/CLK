@@ -76,7 +76,10 @@ class KeyboardController {
 
 		uint8_t read() {
 			pic_.apply_edge<1>(false);
-			return input_;
+
+			const uint8_t key = input_;
+			input_ = 0;
+			return key;
 		}
 
 	private:
