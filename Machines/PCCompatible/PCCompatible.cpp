@@ -65,11 +65,11 @@ class KeyboardController {
 		}
 
 		void run_for(Cycles cycles) {
-			if(reset_delay_ < 0) {
+			if(reset_delay_ <= 0) {
 				return;
 			}
 			reset_delay_ -= cycles.as<int>();
-			if(reset_delay_ < 0) {
+			if(reset_delay_ <= 0) {
 				post(0xaa);
 			}
 		}
