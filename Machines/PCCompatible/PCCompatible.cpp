@@ -35,6 +35,72 @@
 
 namespace PCCompatible {
 
+class KeyboardController {
+	public:
+		KeyboardController(PIC &pic) : pic_(pic) {}
+
+		// KB Status Port 61h high bits:
+		//; 01 - normal operation. wait for keypress, when one comes in,
+		//;		force data line low (forcing keyboard to buffer additional
+		//;		keypresses) and raise IRQ1 high
+		//; 11 - stop forcing data line low. lower IRQ1 and don't raise it again.
+		//;		drop all incoming keypresses on the floor.
+		//; 10 - lower IRQ1 and force clock line low, resetting keyboard
+		//; 00 - force clock line low, resetting keyboard, but on a 01->00 transition,
+		//;		IRQ1 would remain high
+		void set_mode(uint8_t mode) {
+			mode_ = Mode(mode);
+			switch(mode_) {
+				case Mode::NormalOperation: 	break;
+				case Mode::NoIRQsIgnoreInput:
+					pic_.apply_edge<1>(false);
+				break;
+				case Mode::ClearIRQReset:
+					pic_.apply_edge<1>(false);
+					[[fallthrough]];
+				case Mode::Reset:
+					reset_delay_ = 5;	// Arbitrarily.
+				break;
+			}
+		}
+
+		void run_for(Cycles cycles) {
+			if(reset_delay_ <= 0) {
+				return;
+			}
+			reset_delay_ -= cycles.as<int>();
+			if(reset_delay_ <= 0) {
+				post(0xaa);
+			}
+		}
+
+		uint8_t read() {
+			pic_.apply_edge<1>(false);
+
+			const uint8_t key = input_;
+			input_ = 0;
+			return key;
+		}
+
+	private:
+		void post(uint8_t value) {
+			input_ = value;
+			pic_.apply_edge<1>(true);
+		}
+
+		enum class Mode {
+			NormalOperation = 0b01,
+			NoIRQsIgnoreInput = 0b11,
+			ClearIRQReset = 0b10,
+			Reset = 0b00,
+		} mode_;
+
+		uint8_t input_ = 0;
+		PIC &pic_;
+
+		int reset_delay_ = 0;
+};
+
 class MDA {
 	public:
 		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
@@ -88,10 +154,12 @@ class MDA {
 	private:
 		struct CRTCOutputter {
 			CRTCOutputter() :
-				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Luminance1)
+				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
+				// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
+				// consider whether that's worth building into the scan target.
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-				crt.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+				crt.set_display_type(Outputs::Display::DisplayType::RGB);
 			}
 
 			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
@@ -131,22 +199,42 @@ class MDA {
 						}
 					}
 
+					// TODO: cursor.
 					if(pixels) {
-						// TODO: use attributes, as per http://www.seasip.info/VintagePC/mda.html#memmap
-//						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-
+						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
 						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-						const uint8_t row = font[(glyph * 14) + state.row_address];
+						uint8_t row = font[(glyph * 14) + state.row_address];
 
-						pixel_pointer[0] = row & 0x80;
-						pixel_pointer[1] = row & 0x40;
-						pixel_pointer[2] = row & 0x20;
-						pixel_pointer[3] = row & 0x10;
-						pixel_pointer[4] = row & 0x08;
-						pixel_pointer[5] = row & 0x04;
-						pixel_pointer[6] = row & 0x02;
-						pixel_pointer[7] = row & 0x01;
-						pixel_pointer[8] = 0;	// TODO.
+						const uint8_t intensity = (attributes & 0x08) ? 0x0d : 0x09;
+						uint8_t blank = 0;
+
+						// Handle irregular attributes.
+						// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
+						switch(attributes) {
+							case 0x00:	case 0x08:	case 0x80:	case 0x88:
+								row = 0;
+							break;
+							case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
+								row ^= 0xff;
+								blank = intensity;
+							break;
+						}
+
+						if(((attributes & 7) == 1) && state.row_address == 13) {
+							// Draw as underline.
+							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
+						} else {
+							// Draw according to ROM contents, possibly duplicating final column.
+							pixel_pointer[0] = (row & 0x80) ? intensity : 0;
+							pixel_pointer[1] = (row & 0x40) ? intensity : 0;
+							pixel_pointer[2] = (row & 0x20) ? intensity : 0;
+							pixel_pointer[3] = (row & 0x10) ? intensity : 0;
+							pixel_pointer[4] = (row & 0x08) ? intensity : 0;
+							pixel_pointer[5] = (row & 0x04) ? intensity : 0;
+							pixel_pointer[6] = (row & 0x02) ? intensity : 0;
+							pixel_pointer[7] = (row & 0x01) ? intensity : 0;
+							pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
+						}
 						pixel_pointer += 9;
 					}
 				}
@@ -254,11 +342,21 @@ using PIT = i8237<false, PITObserver>;
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
-		i8255PortHandler(PCSpeaker &speaker) : speaker_(speaker) {}
+		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) : speaker_(speaker), keyboard_(keyboard) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
+					// b7: 0 => enable keyboard read (and IRQ); 1 => don't;
+					// b6: 0 => hold keyboard clock low; 1 => don't;
+					// b5: 1 => disable IO check; 0 => don't;
+					// b4: 1 => disable memory parity check; 0 => don't;
+					// b3: [5150] cassette motor control; [5160] high or low switches select;
+					// b2: [5150] high or low switches select; [5160] 1 => disable turbo mode;
+					// b1, b0: speaker control.
+					enable_keyboard_ = !(value & 0x80);
+					keyboard_.set_mode(value >> 6);
+
 					high_switches_ = value & 0x08;
 					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
@@ -268,6 +366,11 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		uint8_t get_value(int port) {
 			switch(port) {
+				case 0:
+					printf("PPI: from keyboard\n");
+					return enable_keyboard_ ? keyboard_.read() : 0b0011'1100;
+						// Guesses that switches is high and low combined as below.
+
 				case 2:
 					// Common:
 					//
@@ -286,18 +389,15 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 							// b0: 1 => floppy drive present; 0 => absent.
 							0b0000'1100;
 			}
-			printf("PPI: from %d\n", port);
 			return 0;
 		};
 
 	private:
 		bool high_switches_ = false;
 		PCSpeaker &speaker_;
+		KeyboardController &keyboard_;
 
-	// Provisionally, possibly:
-	//
-	//	port 0 = keyboard data output buffer;
-	//
+		bool enable_keyboard_ = false;
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
@@ -754,8 +854,9 @@ class ConcreteMachine:
 			[[maybe_unused]] const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) :
+			keyboard_(pic_),
 			pit_observer_(pic_, speaker_),
-			ppi_handler_(speaker_),
+			ppi_handler_(speaker_, keyboard_),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
 			context(pit_, dma_, ppi_, pic_, mda_)
@@ -820,6 +921,8 @@ class ConcreteMachine:
 				// Perform one CPU instruction every three PIT cycles.
 				// i.e. CPU instruction rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
 				//
+
+				keyboard_.run_for(Cycles(1));
 
 				// Query for interrupts and apply if pending.
 				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
@@ -899,6 +1002,7 @@ class ConcreteMachine:
 		PCSpeaker speaker_;
 		MDA mda_;
 
+		KeyboardController keyboard_;
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
 

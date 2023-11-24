@@ -114,13 +114,11 @@ class PIC {
 		int acknowledge() {
 			awaiting_eoi_ = true;
 
-			// TODO: there's bound to be a better solution than this search?
-			// TODO: is this the right priority order?
-			in_service_ = 0x80;
-			int id = 7;
-			while(!(in_service_ & requests_)) {
-				in_service_ >>= 1;
-				--id;
+			in_service_ = 0x01;
+			int id = 0;
+			while(!(in_service_ & requests_) && in_service_) {
+				in_service_ <<= 1;
+				++id;
 			}
 
 			if(in_service_) {
