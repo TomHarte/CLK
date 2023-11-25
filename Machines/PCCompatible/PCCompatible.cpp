@@ -55,13 +55,14 @@ class FloppyController {
 				reset();
 			}
 			hold_reset_ = hold_reset;
+			if(hold_reset_) {
+				pic_.apply_edge<6>(false);
+			}
 		}
 
 	private:
 		void reset() {
 			decoder_.clear();
-
-			// TODO: And?
 //			pic_.apply_edge<6>(true);
 		}
 
