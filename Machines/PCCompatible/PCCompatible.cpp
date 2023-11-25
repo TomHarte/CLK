@@ -20,6 +20,7 @@
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
+#include "../../Components/8272/CommandDecoder.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 
 #include "../../Numeric/RegisterSizes.hpp"
@@ -36,6 +37,41 @@
 #include <iostream>
 
 namespace PCCompatible {
+
+class FloppyController {
+	public:
+		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {}
+
+		void set_digital_output(uint8_t control) {
+			// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
+			// b3: 1 => enable DMA; 0 => disable;
+			// b2: 1 => enable FDC; 0 => hold at reset;
+			// b1, b0: drive select.
+
+			enable_dma_ = control & 0x08;
+
+			const bool hold_reset = !(control & 0x04);
+			if(!hold_reset && hold_reset_) {
+				reset();
+			}
+			hold_reset_ = hold_reset;
+		}
+
+	private:
+		void reset() {
+			decoder_.clear();
+
+			// TODO: And?
+//			pic_.apply_edge<6>(true);
+		}
+
+		PIC &pic_;
+		DMA &dma_;
+
+		bool hold_reset_ = false;
+		bool enable_dma_ = false;
+		Intel::i8272::CommandDecoder decoder_;
+};
 
 class KeyboardController {
 	public:
@@ -347,7 +383,8 @@ using PIT = i8237<false, PITObserver>;
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
-		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) : speaker_(speaker), keyboard_(keyboard) {}
+		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) :
+			speaker_(speaker), keyboard_(keyboard) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -684,8 +721,8 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
-			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), mda_(mda) {}
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
+			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), mda_(mda), fdc_(fdc) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
@@ -772,7 +809,11 @@ class IO {
 					// Ignore CGA accesses.
 				break;
 
-				case 0x03f0:	case 0x03f1:	case 0x03f2:	case 0x03f3:
+				case 0x03f2:
+					fdc_.set_digital_output(uint8_t(value));
+				break;
+
+				case 0x03f3:
 				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
 					printf("TODO: FDC write of %02x at %04x\n", value, port);
 				break;
@@ -862,6 +903,7 @@ class IO {
 		PPI &ppi_;
 		PIC &pic_;
 		MDA &mda_;
+		FloppyController &fdc_;
 };
 
 class FlowController {
@@ -914,11 +956,12 @@ class ConcreteMachine:
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) :
 			keyboard_(pic_),
+			fdc_(pic_, dma_),
 			pit_observer_(pic_, speaker_),
 			ppi_handler_(speaker_, keyboard_),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_, mda_)
+			context(pit_, dma_, ppi_, pic_, mda_, fdc_)
 		{
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
@@ -1071,6 +1114,7 @@ class ConcreteMachine:
 		MDA mda_;
 
 		KeyboardController keyboard_;
+		FloppyController fdc_;
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
 
@@ -1080,11 +1124,11 @@ class ConcreteMachine:
 		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi, pic, mda)
+				io(pit, dma, ppi, pic, mda, fdc)
 			{
 				reset();
 			}
