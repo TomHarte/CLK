@@ -13,6 +13,10 @@ namespace Intel::i8272 {
 
 class Status {
 	public:
+		Status() {
+			reset();
+		}
+
 		uint8_t main() const {
 			return main_status_;
 		}

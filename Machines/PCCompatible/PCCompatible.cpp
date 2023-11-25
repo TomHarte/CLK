@@ -66,6 +66,10 @@ class FloppyController {
 			return status_.main();
 		}
 
+		void write(uint8_t value) {
+			decoder_.push_back(value);
+		}
+
 	private:
 		void reset() {
 			decoder_.clear();
@@ -822,10 +826,12 @@ class IO {
 				case 0x03f2:
 					fdc_.set_digital_output(uint8_t(value));
 				break;
+				case 0x03f5:
+					fdc_.write(uint8_t(value));
+				break;
 
 				case 0x03f3:
 				case 0x03f4:
-				case 0x03f5:
 				case 0x03f6:
 				case 0x03f7:
 					printf("TODO: FDC write of %02x at %04x\n", value, port);
