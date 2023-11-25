@@ -21,6 +21,7 @@
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/8272/CommandDecoder.hpp"
+#include "../../Components/8272/Status.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 
 #include "../../Numeric/RegisterSizes.hpp"
@@ -52,6 +53,7 @@ class FloppyController {
 
 			const bool hold_reset = !(control & 0x04);
 			if(!hold_reset && hold_reset_) {
+				// TODO: add a delay mechanism.
 				reset();
 			}
 			hold_reset_ = hold_reset;
@@ -60,9 +62,14 @@ class FloppyController {
 			}
 		}
 
+		uint8_t status() const {
+			return status_.main();
+		}
+
 	private:
 		void reset() {
 			decoder_.clear();
+			status_.reset();
 			pic_.apply_edge<6>(true);
 		}
 
@@ -71,7 +78,9 @@ class FloppyController {
 
 		bool hold_reset_ = false;
 		bool enable_dma_ = false;
+
 		Intel::i8272::CommandDecoder decoder_;
+		Intel::i8272::Status status_;
 };
 
 class KeyboardController {
@@ -815,7 +824,10 @@ class IO {
 				break;
 
 				case 0x03f3:
-				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
+				case 0x03f4:
+				case 0x03f5:
+				case 0x03f6:
+				case 0x03f7:
 					printf("TODO: FDC write of %02x at %04x\n", value, port);
 				break;
 
@@ -879,8 +891,15 @@ class IO {
 					// Ignore parallel port accesses.
 				break;
 
-				case 0x03f0:	case 0x03f1:	case 0x03f2:	case 0x03f3:
-				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
+				case 0x03f4:	return fdc_.status();
+
+				case 0x03f0:
+				case 0x03f1:
+				case 0x03f2:
+				case 0x03f3:
+				case 0x03f5:
+				case 0x03f6:
+				case 0x03f7:
 					printf("TODO: FDC read from %04x\n", port);
 				break;
 

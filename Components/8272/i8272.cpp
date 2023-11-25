@@ -276,7 +276,7 @@ void i8272::posit_event(int event_type) {
 			if(!command_.has_command()) {
 				goto wait_for_complete_command_sequence;
 			}
-			if(command_.has_geometry() == 9) {
+			if(command_.has_geometry()) {
 				cylinder_ = command_.geometry().cylinder;
 				head_ = command_.geometry().head;
 				sector_ = command_.geometry().sector;
