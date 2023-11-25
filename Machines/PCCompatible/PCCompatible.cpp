@@ -63,7 +63,7 @@ class FloppyController {
 	private:
 		void reset() {
 			decoder_.clear();
-//			pic_.apply_edge<6>(true);
+			pic_.apply_edge<6>(true);
 		}
 
 		PIC &pic_;
