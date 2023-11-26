@@ -161,7 +161,7 @@ class CommandDecoder {
 			return result;
 		}
 		uint8_t drive_head() const {
-			return command_[1]&7;
+			return command_[1] & 7;
 		}
 
 		//
