@@ -134,7 +134,7 @@ class CommandDecoder {
 
 		/// @returns @c true if this command involves reading or writing data, in which case target() will be valid.
 		/// @c false otherwise.
-		bool is_access_command() const {
+		bool is_access() const {
 			switch(command()) {
 				case Command::ReadData:		case Command::ReadDeletedData:
 				case Command::WriteData:	case Command::WriteDeletedData:

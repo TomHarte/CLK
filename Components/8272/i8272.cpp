@@ -243,7 +243,7 @@ void i8272::posit_event(int event_type) {
 			}
 
 			// If this is not clearly a command that's safe to carry out in parallel to a seek, end all seeks.
-			is_access_command_ = command_.is_access_command();
+			is_access_command_ = command_.is_access();
 
 			if(is_access_command_) {
 				status_.set(MainStatus::ReadOrWriteOngoing, true);

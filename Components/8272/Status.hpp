@@ -109,7 +109,7 @@ class Status {
 		void begin(const CommandDecoder &command) {
 			set(MainStatus::DataReady, false);
 
-			if(command.is_access_command()) {
+			if(command.is_access()) {
 				set(MainStatus::ReadOrWriteOngoing, true);
 				status_[0] = command.drive_head();
 			}
