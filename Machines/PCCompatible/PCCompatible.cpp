@@ -68,6 +68,18 @@ class FloppyController {
 
 		void write(uint8_t value) {
 			decoder_.push_back(value);
+
+			if(decoder_.has_command()) {
+				using Command = Intel::i8272::CommandDecoder::Command;
+				switch(decoder_.command()) {
+					default:
+						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
+					break;
+
+//					case Command::Invalid:
+//					break;
+				}
+			}
 		}
 
 	private:
