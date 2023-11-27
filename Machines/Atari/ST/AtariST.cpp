@@ -174,7 +174,10 @@ class ConcreteMachine:
 		}
 
 		// MARK: MC68000::BusHandler
-		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+		using Microcycle = CPU::MC68000::Microcycle;
+		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+			const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
+
 			// Just in case the last cycle was an interrupt acknowledge or bus error. TODO: find a better solution?
 			mc68000_.set_is_peripheral_address(false);
 			mc68000_.set_bus_error(false);
@@ -183,15 +186,15 @@ class ConcreteMachine:
 			advance_time(cycle.length);
 
 			// Check for assertion of reset.
-			if(cycle.operation & Microcycle::Reset) {
+			if(operation & Microcycle::Reset) {
 				LOG("Unhandled Reset");
 			}
 
 			// A null cycle leaves nothing else to do.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+			if(!(operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
 			// An interrupt acknowledge, perhaps?
-			if(cycle.operation & Microcycle::InterruptAcknowledge) {
+			if(operation & Microcycle::InterruptAcknowledge) {
 				// Current implementation: everything other than 6 (i.e. the MFP) is autovectored.
 				const int interrupt_level = cycle.word_address()&7;
 				if(interrupt_level != 6) {
@@ -200,7 +203,7 @@ class ConcreteMachine:
 					mc68000_.set_is_peripheral_address(true);
 					return HalfCycles(0);
 				} else {
-					if(cycle.operation & Microcycle::SelectByte) {
+					if(operation & Microcycle::SelectByte) {
 						const int interrupt = mfp_->acknowledge_interrupt();
 						if(interrupt != Motorola::MFP68901::MFP68901::NoAcknowledgement) {
 							cycle.value->b = uint8_t(interrupt);
@@ -217,7 +220,7 @@ class ConcreteMachine:
 
 			// If this is a new strobing of the address signal, test for bus error and pre-DTack delay.
 			HalfCycles delay(0);
-			if(cycle.operation & Microcycle::NewAddress) {
+			if(operation & Microcycle::NewAddress) {
 				// Bus error test.
 				if(
 					// Anything unassigned should generate a bus error.
@@ -269,7 +272,7 @@ class ConcreteMachine:
 						TOS 1.0 appears to attempt to read from the catridge before it has setup
 						the bus error vector. Therefore I assume no bus error flows.
 					*/
-					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 						default: break;
 						case Microcycle::SelectWord | Microcycle::Read:
 							cycle.value->w = 0xffff;
@@ -313,7 +316,7 @@ class ConcreteMachine:
 						case 0x8260:	case 0x8262:
 							if(!cycle.data_select_active()) return delay;
 
-							if(cycle.operation & Microcycle::Read) {
+							if(operation & Microcycle::Read) {
 								cycle.set_value16(video_->read(int(address >> 1)));
 							} else {
 								video_->write(int(address >> 1), cycle.value16());
@@ -324,7 +327,7 @@ class ConcreteMachine:
 						case 0x8604:	case 0x8606:	case 0x8608:	case 0x860a:	case 0x860c:
 							if(!cycle.data_select_active()) return delay;
 
-							if(cycle.operation & Microcycle::Read) {
+							if(operation & Microcycle::Read) {
 								cycle.set_value16(dma_->read(int(address >> 1)));
 							} else {
 								dma_->write(int(address >> 1), cycle.value16());
@@ -360,7 +363,7 @@ class ConcreteMachine:
 							advance_time(HalfCycles(2));
 							update_audio();
 
-							if(cycle.operation & Microcycle::Read) {
+							if(operation & Microcycle::Read) {
 								cycle.set_value8_high(GI::AY38910::Utility::read(ay_));
 							} else {
 								// Net effect here: addresses with bit 1 set write to a register,
@@ -380,7 +383,7 @@ class ConcreteMachine:
 						case 0xfa38:	case 0xfa3a:	case 0xfa3c:	case 0xfa3e:
 							if(!cycle.data_select_active()) return delay;
 
-							if(cycle.operation & Microcycle::Read) {
+							if(operation & Microcycle::Read) {
 								cycle.set_value8_low(mfp_->read(int(address >> 1)));
 							} else {
 								mfp_->write(int(address >> 1), cycle.value8_low());
@@ -394,7 +397,7 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return delay;
 
 							const auto acia_ = (address & 4) ? &midi_acia_ : &keyboard_acia_;
-							if(cycle.operation & Microcycle::Read) {
+							if(operation & Microcycle::Read) {
 								cycle.set_value8_high((*acia_)->read(int(address >> 1)));
 							} else {
 								(*acia_)->write(int(address >> 1), cycle.value8_high());
@@ -405,7 +408,7 @@ class ConcreteMachine:
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
-			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+			switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 				default:
 				break;
 

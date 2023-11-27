@@ -85,6 +85,11 @@ struct Microcycle {
 	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
 	static constexpr OperationT BusGrant				= 1 << 12;
 
+	/// An otherwise invalid combination; used as the operaiton template parameter to @c perform_bus_operation if
+	/// the operation wasn't knowable in advance and the receiver should decode dynamically using the microcycle's
+	/// .operation field.
+	static constexpr OperationT DecodeDynamically		= NewAddress | SameAddress;
+
 	/// Contains a valid combination of the various static constexpr int flags, describing the operation
 	/// performed by this Microcycle.
 	OperationT operation = 0;
