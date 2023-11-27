@@ -82,6 +82,11 @@ class FloppyController {
 			}
 		}
 
+		uint8_t read() {
+			// TODO: is anything being serialised?
+			return 0x80;
+		}
+
 	private:
 		void reset() {
 			decoder_.clear();
@@ -823,9 +828,8 @@ class IO {
 					}
 				break;
 
-				case 0x03b8:	/* case 0x03b9:	case 0x03ba:	case 0x03bb:
-				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf: */
-					mda_.write<8>(value);
+				case 0x03b8:
+					mda_.write<8>(uint8_t(value));
 				break;
 
 				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
@@ -838,15 +842,11 @@ class IO {
 				case 0x03f2:
 					fdc_.set_digital_output(uint8_t(value));
 				break;
+				case 0x03f4:
+					printf("TODO: FDC write of %02x at %04x\n", value, port);
+				break;
 				case 0x03f5:
 					fdc_.write(uint8_t(value));
-				break;
-
-				case 0x03f3:
-				case 0x03f4:
-				case 0x03f6:
-				case 0x03f7:
-					printf("TODO: FDC write of %02x at %04x\n", value, port);
 				break;
 
 				case 0x0278:	case 0x0279:	case 0x027a:
@@ -910,16 +910,16 @@ class IO {
 				break;
 
 				case 0x03f4:	return fdc_.status();
+				case 0x03f5:	return fdc_.read();
 
-				case 0x03f0:
-				case 0x03f1:
-				case 0x03f2:
-				case 0x03f3:
-				case 0x03f5:
-				case 0x03f6:
-				case 0x03f7:
-					printf("TODO: FDC read from %04x\n", port);
-				break;
+//				3F0-3F7 Floppy disk controller (except PCjr)
+//				3F0 Diskette controller status A
+//				3F1 Diskette controller status B
+//				3F2 controller control port
+//				3F4 controller status register
+//				3F5 data register (write 1-9 byte command, see INT 13)
+//				3F6 Diskette controller data
+//				3F7 Diskette digital input
 
 				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
 				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
