@@ -179,32 +179,38 @@ void MFP68901::write(int address, uint8_t value) {
 	update_clocking_observer();
 }
 
+template <int timer>
+void MFP68901::run_timer_for(int cycles) {
+	if(timers_[timer].mode >= TimerMode::Delay) {
+		// This code applies the timer prescaling only. prescale_count is used to count
+		// upwards rather than downwards for simplicity, but on the real hardware it's
+		// pretty safe to assume it actually counted downwards. So the clamp to 0 is
+		// because gymnastics may need to occur when the prescale value is altered, e.g.
+		// if a prescale of 256 is set and the prescale_count is currently 2 then the
+		// counter should roll over in 254 cycles. If the user at that point changes the
+		// prescale_count to 1 then the counter will need to be altered to -253 and
+		// allowed to keep counting up until it crosses both 0 and 1.
+		const int dividend = timers_[timer].prescale_count + cycles;
+		const int decrements = std::max(dividend / timers_[timer].prescale, 0);
+		if(decrements) {
+			decrement_timer<timer>(decrements);
+			timers_[timer].prescale_count = dividend % timers_[timer].prescale;
+		} else {
+			timers_[timer].prescale_count += cycles;
+		}
+	}
+}
+
 void MFP68901::run_for(HalfCycles time) {
 	cycles_left_ += time;
 
 	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
 	if(!cycles) return;
 
-	for(int c = 0; c < 4; ++c) {
-		if(timers_[c].mode >= TimerMode::Delay) {
-			// This code applies the timer prescaling only. prescale_count is used to count
-			// upwards rather than downwards for simplicity, but on the real hardware it's
-			// pretty safe to assume it actually counted downwards. So the clamp to 0 is
-			// because gymnastics may need to occur when the prescale value is altered, e.g.
-			// if a prescale of 256 is set and the prescale_count is currently 2 then the
-			// counter should roll over in 254 cycles. If the user at that point changes the
-			// prescale_count to 1 then the counter will need to be altered to -253 and
-			// allowed to keep counting up until it crosses both 0 and 1.
-			const int dividend = timers_[c].prescale_count + cycles;
-			const int decrements = std::max(dividend / timers_[c].prescale, 0);
-			if(decrements) {
-				decrement_timer(c, decrements);
-				timers_[c].prescale_count = dividend % timers_[c].prescale;
-			} else {
-				timers_[c].prescale_count += cycles;
-			}
-		}
-	}
+	run_timer_for<0>(cycles);
+	run_timer_for<1>(cycles);
+	run_timer_for<2>(cycles);
+	run_timer_for<3>(cycles);
 }
 
 HalfCycles MFP68901::next_sequence_point() {
@@ -240,7 +246,8 @@ uint8_t MFP68901::get_timer_data(int timer) {
 	return timers_[timer].value;
 }
 
-void MFP68901::set_timer_event_input(int channel, bool value) {
+template <int channel>
+void MFP68901::set_timer_event_input(bool value) {
 	if(timers_[channel].event_input == value) return;
 
 	timers_[channel].event_input = value;
@@ -248,7 +255,7 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 		// "The active state of the signal on TAI or TBI is dependent upon the associated
 		// Interrupt Channel’s edge bit (GPIP 4 for TAI and GPIP 3 for TBI [...] ).
 		// If the edge bit associated with the TAI or TBI input is a one, it will be active high.
-		decrement_timer(channel, 1);
+		decrement_timer<channel>(1);
 	}
 
 	// TODO:
@@ -261,7 +268,13 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 	// (the final bit probably explains 13 cycles of the DE to interrupt latency; not sure about the other ~15)
 }
 
-void MFP68901::decrement_timer(int timer, int amount) {
+template void MFP68901::set_timer_event_input<0>(bool);
+template void MFP68901::set_timer_event_input<1>(bool);
+template void MFP68901::set_timer_event_input<2>(bool);
+template void MFP68901::set_timer_event_input<3>(bool);
+
+template <int timer>
+void MFP68901::decrement_timer(int amount) {
 	while(amount--) {
 		--timers_[timer].value;
 		if(timers_[timer].value < 1) {

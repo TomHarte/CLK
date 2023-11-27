@@ -484,7 +484,7 @@ class ConcreteMachine:
 				length -= video_.cycles_until_implicit_flush();
 				video_ += video_.cycles_until_implicit_flush();
 
-				mfp_->set_timer_event_input(1, video_->display_enabled());
+				mfp_->set_timer_event_input<1>(video_->display_enabled());
 				update_interrupt_input();
 			}
 
