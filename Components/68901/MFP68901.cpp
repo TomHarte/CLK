@@ -275,21 +275,41 @@ template void MFP68901::set_timer_event_input<3>(bool);
 
 template <int timer>
 void MFP68901::decrement_timer(int amount) {
-	while(amount--) {
-		--timers_[timer].value;
-		if(timers_[timer].value < 1) {
-			switch(timer) {
-				case 0: begin_interrupts(Interrupt::TimerA);	break;
-				case 1: begin_interrupts(Interrupt::TimerB);	break;
-				case 2: begin_interrupts(Interrupt::TimerC);	break;
-				case 3: begin_interrupts(Interrupt::TimerD);	break;
-			}
+	while(amount) {
+		if(timers_[timer].value > amount) {
+			timers_[timer].value -= amount;
+			return;
+		}
 
-			// Re: reloading when in event counting mode; I found the data sheet thoroughly unclear on
-			// this, but it appears empirically to be correct. See e.g. Pompey Pirates menu 27.
-			if(timers_[timer].mode == TimerMode::Delay || timers_[timer].mode == TimerMode::EventCount) {
-				timers_[timer].value += timers_[timer].reload_value;	// TODO: properly.
-			}
+		// Keep this check here to avoid the case where a decrement to zero occurs during one call to
+		// decrement_timer, triggering an interrupt, then the timer is already 0 at the next instance,
+		// causing a second interrupt.
+		//
+		// ... even though it would be nice to move it down below, after value has overtly been set to 0.
+		if(!timers_[timer].value) {
+			--timers_[timer].value;
+			--amount;
+			continue;
+		}
+
+		// If here then amount is sufficient to, at least once, decrement the timer
+		// from 1 to 0. So there's an interrupt.
+		//
+		// (and, this switch is why this function is templated on timer ID)
+		switch(timer) {
+			case 0: begin_interrupts(Interrupt::TimerA);	break;
+			case 1: begin_interrupts(Interrupt::TimerB);	break;
+			case 2: begin_interrupts(Interrupt::TimerC);	break;
+			case 3: begin_interrupts(Interrupt::TimerD);	break;
+		}
+
+		// Re: reloading when in event counting mode; I found the data sheet thoroughly unclear on
+		// this, but it appears empirically to be correct. See e.g. Pompey Pirates menu 27.
+		amount -= timers_[timer].value;
+		if(timers_[timer].mode == TimerMode::Delay || timers_[timer].mode == TimerMode::EventCount) {
+			timers_[timer].value = timers_[timer].reload_value;	// TODO: properly.
+		} else {
+			timers_[timer].value = 0;
 		}
 	}
 }
