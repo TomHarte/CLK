@@ -100,8 +100,7 @@ class ConcreteMachine:
 			Memory::PackBigEndian16(roms.find(rom_name)->second, rom_);
 
 			// Set up basic memory map.
-			memory_map_[0] = BusDevice::MostlyRAM;
-			int c = 1;
+			int c = 0;
 			for(; c < int(ram_.size() >> 16); ++c) memory_map_[c] = BusDevice::RAM;
 			for(; c < 0x40; ++c) memory_map_[c] = BusDevice::Floating;
 			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::Unassigned;
@@ -117,6 +116,9 @@ class ConcreteMachine:
 
 			memory_map_[0xfa] = memory_map_[0xfb] = BusDevice::Cartridge;
 			memory_map_[0xff] = BusDevice::IO;
+
+			// Copy the first 8 bytes of ROM into RAM.
+			reinstall_rom_vector();
 
 			midi_acia_->set_interrupt_delegate(this);
 			keyboard_acia_->set_interrupt_delegate(this);
@@ -249,18 +251,15 @@ class ConcreteMachine:
 			uint8_t *memory = nullptr;
 			switch(memory_map_[address >> 16]) {
 				default:
-				case BusDevice::MostlyRAM:
-					if(address < 8) {
-						memory = rom_.data();
-						break;
-					}
-					[[fallthrough]];
 				case BusDevice::RAM:
 					memory = ram_.data();
 				break;
 
 				case BusDevice::ROM:
 					memory = rom_.data();
+					if(!(operation & Microcycle::Read)) {
+						return delay;
+					}
 					address -= rom_start_;
 				break;
 
@@ -408,6 +407,9 @@ class ConcreteMachine:
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
+			//
+			// In both write cases, immediately reinstall the first eight bytes of RAM from ROM, so that any write to
+			// that area is in effect a no-op. This is cheaper than the conditionality of actually checking.
 			switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 				default:
 				break;
@@ -422,15 +424,21 @@ class ConcreteMachine:
 					if(address >= video_range_.low_address && address < video_range_.high_address)
 						video_.flush();
 					*reinterpret_cast<uint16_t *>(&memory[address]) = cycle.value->w;
+					reinstall_rom_vector();
 				break;
 				case Microcycle::SelectByte:
 					if(address >= video_range_.low_address && address < video_range_.high_address)
 						video_.flush();
 					memory[address] = cycle.value->b;
+					reinstall_rom_vector();
 				break;
 			}
 
 			return HalfCycles(0);
+		}
+
+		void reinstall_rom_vector() {
+			std::copy(rom_.begin(), rom_.begin() + 8, ram_.begin());
 		}
 
 		void flush_output(int outputs) final {
@@ -520,8 +528,6 @@ class ConcreteMachine:
 		uint32_t rom_start_ = 0;
 
 		enum class BusDevice {
-			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
-			MostlyRAM,
 			/// Allows reads and writes to ram_.
 			RAM,
 			/// Nothing is mapped to this area, and it also doesn't trigger an exception upon access.
