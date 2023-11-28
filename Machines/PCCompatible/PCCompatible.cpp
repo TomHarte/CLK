@@ -45,6 +45,8 @@ class FloppyController {
 		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {}
 
 		void set_digital_output(uint8_t control) {
+			printf("FDC DOR: %02x\n", control);
+
 			// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 			// b3: 1 => enable DMA; 0 => disable;
 			// b2: 1 => enable FDC; 0 => hold at reset;
@@ -64,6 +66,7 @@ class FloppyController {
 		}
 
 		uint8_t status() const {
+			printf("FDC: read status %02x\n", status_.main());
 			return status_.main();
 		}
 
@@ -78,10 +81,12 @@ class FloppyController {
 					break;
 
 					case Command::Invalid:
+						printf("FDC: Invalid\n");
 						results_.serialise_none();
 					break;
 
 					case Command::SenseInterruptStatus:
+						printf("FDC: SenseInterruptStatus\n");
 						pic_.apply_edge<6>(false);
 
 						if(interrupting_drives_) {
@@ -121,14 +126,17 @@ class FloppyController {
 				if(results_.empty()) {
 					status_.set(MainStatus::DataIsToProcessor, false);
 				}
+				printf("FDC read: %02x\n", result);
 				return result;
 			}
 
+			printf("FDC read?\n");
 			return 0x80;
 		}
 
 	private:
 		void reset() {
+			printf("FDC reset\n");
 			decoder_.clear();
 			status_.reset();
 			pic_.apply_edge<6>(true);
