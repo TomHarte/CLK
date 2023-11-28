@@ -82,10 +82,18 @@ class FloppyController {
 					break;
 
 					case Command::SenseInterruptStatus:
+						pic_.apply_edge<6>(false);
 						results_.serialise_none();
 					break;
 				}
 
+				// Set interrupt upon the end of any valid command other than sense interrupt status.
+				if(decoder_.command() != Command::SenseInterruptStatus && decoder_.command() != Command::Invalid) {
+					pic_.apply_edge<6>(true);
+				}
+				decoder_.clear();
+
+				// If there are any results to provide, set data direction and data ready.
 				if(!results_.empty()) {
 					using MainStatus = Intel::i8272::MainStatus;
 					status_.set(MainStatus::DataIsToProcessor, true);
@@ -112,6 +120,10 @@ class FloppyController {
 			decoder_.clear();
 			status_.reset();
 			pic_.apply_edge<6>(true);
+
+			using MainStatus = Intel::i8272::MainStatus;
+			status_.set(MainStatus::DataReady, true);
+			status_.set(MainStatus::DataIsToProcessor, false);
 		}
 
 		PIC &pic_;
