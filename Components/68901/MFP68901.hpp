@@ -43,7 +43,8 @@ class MFP68901: public ClockingHint::Source {
 		HalfCycles next_sequence_point();
 
 		/// Sets the current level of either of the timer event inputs — TAI and TBI in datasheet terms.
-		void set_timer_event_input(int channel, bool value);
+		template <int channel>
+		void set_timer_event_input(bool value);
 
 		/// Sets a port handler, a receiver that will be notified upon any change in GPIP output.
 		///
@@ -86,7 +87,8 @@ class MFP68901: public ClockingHint::Source {
 		void set_timer_mode(int timer, TimerMode, int prescale, bool reset_timer);
 		void set_timer_data(int timer, uint8_t);
 		uint8_t get_timer_data(int timer);
-		void decrement_timer(int timer, int amount);
+		template <int timer> void decrement_timer(int amount);
+		template <int timer> void run_timer_for(int cycles);
 
 		struct Timer {
 			TimerMode mode = TimerMode::Stopped;

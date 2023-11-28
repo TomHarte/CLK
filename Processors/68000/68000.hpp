@@ -85,6 +85,11 @@ struct Microcycle {
 	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
 	static constexpr OperationT BusGrant				= 1 << 12;
 
+	/// An otherwise invalid combination; used as the operaiton template parameter to @c perform_bus_operation if
+	/// the operation wasn't knowable in advance and the receiver should decode dynamically using the microcycle's
+	/// .operation field.
+	static constexpr OperationT DecodeDynamically		= NewAddress | SameAddress;
+
 	/// Contains a valid combination of the various static constexpr int flags, describing the operation
 	/// performed by this Microcycle.
 	OperationT operation = 0;
@@ -341,7 +346,12 @@ class BusHandler {
 
 			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
 			flags; FC2 is provided here as is_supervisor — it'll be either 0 or 1.
+
+			If @c operation is any value other than Microcycle::DecodeDynamically then it
+			can be used to select an appropriate execution path at compile time. Otherwise
+			cycle.operation must be inspected at runtime.
 		*/
+		template <Microcycle::OperationT operation>
 		HalfCycles perform_bus_operation([[maybe_unused]] const Microcycle &cycle, [[maybe_unused]] int is_supervisor) {
 			return HalfCycles(0);
 		}

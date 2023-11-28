@@ -184,12 +184,12 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	Microcycle idle{0};
 
 	// Read a program word. All accesses via the program counter are word sized.
-	Microcycle read_program_announce {
-		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsProgram
-	};
-	Microcycle read_program {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsProgram
-	};
+	static constexpr Microcycle::OperationT
+		ReadProgramAnnounceOperation = Microcycle::Read | Microcycle::NewAddress | Microcycle::IsProgram;
+	static constexpr Microcycle::OperationT
+		ReadProgramOperation = Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsProgram;
+	Microcycle read_program_announce { ReadProgramAnnounceOperation };
+	Microcycle read_program { ReadProgramOperation };
 
 	// Read a data word or byte.
 	Microcycle access_announce {
@@ -200,21 +200,35 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	};
 
 	// TAS.
+	static constexpr Microcycle::OperationT
+		TASOperations[5] = {
+			Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData,
+			Microcycle::Read | Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte,
+			Microcycle::SameAddress,
+			Microcycle::SameAddress | Microcycle::IsData,
+			Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte,
+		};
 	Microcycle tas_cycles[5] = {
-		{ Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData },
-		{ Microcycle::Read | Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte },
-		{ Microcycle::SameAddress },
-		{ Microcycle::SameAddress | Microcycle::IsData },
-		{ Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte },
+		{ TASOperations[0] },
+		{ TASOperations[1] },
+		{ TASOperations[2] },
+		{ TASOperations[3] },
+		{ TASOperations[4] },
 	};
 
 	// Reset.
-	Microcycle reset_cycle { Microcycle::Reset, HalfCycles(248) };
+	static constexpr Microcycle::OperationT ResetOperation = Microcycle::Reset;
+	Microcycle reset_cycle { ResetOperation, HalfCycles(248) };
 
 	// Interrupt acknowledge.
+	static constexpr Microcycle::OperationT
+		InterruptCycleOperations[2] = {
+			Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::NewAddress,
+			Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte
+		};
 	Microcycle interrupt_cycles[2] = {
-		{ Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::NewAddress },
-		{ Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte },
+		{ InterruptCycleOperations[0] },
+		{ InterruptCycleOperations[1] },
 	};
 
 	// Holding spot when awaiting DTACK/etc.
