@@ -282,14 +282,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the bus operation and then applies a `Spend` of its length
 	// plus any additional length returned by the bus handler.
-#define PerformBusOperation(x)										\
-	delay = bus_handler_.perform_bus_operation(x, is_supervisor_);	\
+#define PerformBusOperation(x, op)												\
+	delay = bus_handler_.template perform_bus_operation<op>(x, is_supervisor_);	\
 	Spend(x.length + delay)
+
+// TODO: the templated operation type to perform_bus_operation is intended to allow a much
+// cheaper through cost where the operation is knowable in advance. So use that pathway.
 
 	// Performs no bus activity for the specified number of microcycles.
 #define IdleBus(n)						\
 	idle.length = HalfCycles((n) << 2);	\
-	PerformBusOperation(idle)
+	PerformBusOperation(idle, 0)
 
 	// Spin until DTACK, VPA or BERR is asserted (unless DTACK is implicit),
 	// holding the bus cycle provided.
@@ -312,7 +315,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//
 	//	(1) wait until end of current 10-cycle window;
 	//	(2) run for the next 10-cycle window.
-#define CompleteAccess(x)												\
+#define CompleteAccess(x, op)											\
 	if(berr_) {															\
 		RaiseBusOrAddressError(AccessFault, x);							\
 	}																	\
@@ -321,21 +324,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	} else {															\
 		x.length = HalfCycles(4);										\
 	}																	\
-	PerformBusOperation(x)
+	PerformBusOperation(x, op)
 
 	// Performs the memory access implied by the announce, perform pair,
 	// honouring DTACK, BERR and VPA as necessary.
-#define AccessPair(val, announce, perform)					\
-	perform.value = &val;									\
-	if constexpr (!dtack_is_implicit) {						\
-		announce.length = HalfCycles(4);					\
-	}														\
-	if(*perform.address & (perform.operation >> 1) & 1) {	\
-		RaiseBusOrAddressError(AddressError, perform);		\
-	}														\
-	PerformBusOperation(announce);							\
-	WaitForDTACK(announce);									\
-	CompleteAccess(perform);
+#define AccessPair(val, announce, announce_op, perform, perform_op)		\
+	perform.value = &val;												\
+	if constexpr (!dtack_is_implicit) {									\
+		announce.length = HalfCycles(4);								\
+	}																	\
+	if(*perform.address & (perform.operation >> 1) & 1) {				\
+		RaiseBusOrAddressError(AddressError, perform);					\
+	}																	\
+	PerformBusOperation(announce, announce_op);							\
+	WaitForDTACK(announce);												\
+	CompleteAccess(perform, perform_op);
 
 	// Sets up the next data access size and read flags.
 #define SetupDataAccess(read_flag, select_flag)												\
@@ -348,11 +351,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the access established by SetupDataAccess into val.
 #define Access(val)										\
-	AccessPair(val, access_announce, access)
+	AccessPair(val, access_announce, Microcycle::DecodeDynamically, access, Microcycle::DecodeDynamically)
 
 	// Reads the program (i.e. non-data) word from addr into val.
 #define ReadProgramWord(val)								\
-	AccessPair(val, read_program_announce, read_program);	\
+	AccessPair(val, read_program_announce, ReadProgramAnnounceOperation, read_program, ReadProgramOperation);	\
 	program_counter_.l += 2;
 
 	// Reads one futher word from the program counter and inserts it into
@@ -377,7 +380,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Spin in place, one cycle at a time, until one of DTACK,
 		// BERR or VPA is asserted.
 		BeginState(WaitForDTACK):
-			PerformBusOperation(awaiting_dtack);
+			PerformBusOperation(awaiting_dtack, 0);
 
 			if(dtack_ || berr_ || vpa_) {
 				MoveToStateDynamic(post_dtack_state_);
@@ -601,8 +604,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
 			interrupt_cycles[0].address = interrupt_cycles[1].address = &temporary_address_.l;
 			interrupt_cycles[0].value = interrupt_cycles[1].value = &temporary_value_.low;
-			PerformBusOperation(interrupt_cycles[0]);
-			CompleteAccess(interrupt_cycles[1]);		// ni
+			PerformBusOperation(interrupt_cycles[0], InterruptCycleOperations[0]);
+			CompleteAccess(interrupt_cycles[1], InterruptCycleOperations[1]);		// ni
 
 			// If VPA is set, autovector.
 			if(vpa_) {
@@ -2627,11 +2630,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			tas_cycles[3].value = tas_cycles[4].value = &operand_[0].low;
 
 			// First two parts: the read.
-			PerformBusOperation(tas_cycles[0]);
-			CompleteAccess(tas_cycles[1]);
+			PerformBusOperation(tas_cycles[0], TASOperations[0]);
+			CompleteAccess(tas_cycles[1], TASOperations[1]);
 
 			// Third part: processing time.
-			PerformBusOperation(tas_cycles[2]);
+			PerformBusOperation(tas_cycles[2], TASOperations[2]);
 
 			// Do the actual TAS operation.
 			status_.overflow_flag = status_.carry_flag = 0;
@@ -2640,8 +2643,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Final parts: write back.
 			operand_[0].b |= 0x80;
-			PerformBusOperation(tas_cycles[3]);
-			CompleteAccess(tas_cycles[4]);
+			PerformBusOperation(tas_cycles[3], TASOperations[3]);
+			CompleteAccess(tas_cycles[4], TASOperations[4]);
 
 			Prefetch();
 		MoveToStateSpecific(Decode);
@@ -2755,7 +2758,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(RESET):
 			IdleBus(2);
-			PerformBusOperation(reset_cycle);
+			PerformBusOperation(reset_cycle, ResetOperation);
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
@@ -3081,13 +3084,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	captured_interrupt_level_ = bus_interrupt_level_;
 
 	read_program.value = &prefetch_.high;
-	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
-	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
+	bus_handler_.perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
 	program_counter_.l += 2;
 
 	read_program.value = &prefetch_.low;
-	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
-	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
+	bus_handler_.perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
 	program_counter_.l += 2;
 }
 
