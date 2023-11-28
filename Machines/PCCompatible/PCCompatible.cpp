@@ -83,6 +83,7 @@ class FloppyController {
 
 					case Command::SenseInterruptStatus:
 						pic_.apply_edge<6>(false);
+//						results_.serialise(status_, 0);
 						results_.serialise_none();
 					break;
 				}
