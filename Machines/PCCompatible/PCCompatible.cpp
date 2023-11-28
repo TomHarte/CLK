@@ -83,8 +83,19 @@ class FloppyController {
 
 					case Command::SenseInterruptStatus:
 						pic_.apply_edge<6>(false);
-//						results_.serialise(status_, 0);
-						results_.serialise_none();
+
+						if(interrupting_drives_) {
+							int drive = 3;
+							while(!(interrupting_drives_ & (1 << drive))) {
+								--drive;
+							}
+							interrupting_drives_ &= ~(1 << drive);
+
+							status_.end_sense_interrupt_status(drive, 0);
+							results_.serialise(status_, 10);
+						} else {
+							results_.serialise_none();
+						}
 					break;
 				}
 
@@ -121,6 +132,7 @@ class FloppyController {
 			decoder_.clear();
 			status_.reset();
 			pic_.apply_edge<6>(true);
+			interrupting_drives_ = 0xf;
 
 			using MainStatus = Intel::i8272::MainStatus;
 			status_.set(MainStatus::DataReady, true);
@@ -136,6 +148,7 @@ class FloppyController {
 		Intel::i8272::CommandDecoder decoder_;
 		Intel::i8272::Status status_;
 		Intel::i8272::Results results_;
+		int interrupting_drives_ = 0;
 };
 
 class KeyboardController {
