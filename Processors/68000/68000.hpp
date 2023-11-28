@@ -346,7 +346,12 @@ class BusHandler {
 
 			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
 			flags; FC2 is provided here as is_supervisor — it'll be either 0 or 1.
+
+			If @c operation is any value other than Microcycle::DecodeDynamically then it
+			can be used to select an appropriate execution path at compile time. Otherwise
+			cycle.operation must be inspected at runtime.
 		*/
+		template <Microcycle::OperationT operation>
 		HalfCycles perform_bus_operation([[maybe_unused]] const Microcycle &cycle, [[maybe_unused]] int is_supervisor) {
 			return HalfCycles(0);
 		}
