@@ -60,9 +60,8 @@ enum class Status3: uint8_t {
 	Fault				= 0x80,
 	WriteProtected 		= 0x40,
 	Ready				= 0x20,
-	Track9				= 0x10,
+	Track0				= 0x10,
 	TwoSided			= 0x08,
-
 	HeadAddress			= 0x04,
 	UnitSelect			= 0x03,
 };

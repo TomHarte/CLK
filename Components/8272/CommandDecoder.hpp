@@ -15,33 +15,33 @@
 
 namespace Intel::i8272 {
 
+enum class Command {
+	ReadData = 0x06,
+	ReadDeletedData = 0x0c,
+
+	WriteData = 0x05,
+	WriteDeletedData = 0x09,
+
+	ReadTrack = 0x02,
+	ReadID = 0x0a,
+	FormatTrack = 0x0d,
+
+	ScanLow = 0x11,
+	ScanLowOrEqual = 0x19,
+	ScanHighOrEqual = 0x1d,
+
+	Recalibrate = 0x07,
+	Seek = 0x0f,
+
+	SenseInterruptStatus = 0x08,
+	Specify = 0x03,
+	SenseDriveStatus = 0x04,
+
+	Invalid = 0x00,
+};
+
 class CommandDecoder {
 	public:
-		enum class Command {
-			ReadData = 0x06,
-			ReadDeletedData = 0x0c,
-
-			WriteData = 0x05,
-			WriteDeletedData = 0x09,
-
-			ReadTrack = 0x02,
-			ReadID = 0x0a,
-			FormatTrack = 0x0d,
-
-			ScanLow = 0x11,
-			ScanLowOrEqual = 0x19,
-			ScanHighOrEqual = 0x1d,
-
-			Recalibrate = 0x07,
-			Seek = 0x0f,
-
-			SenseInterruptStatus = 0x08,
-			Specify = 0x03,
-			SenseDriveStatus = 0x04,
-
-			Invalid = 0x00,
-		};
-
 		/// Add a byte to the current command.
 		void push_back(uint8_t byte) {
 			command_.push_back(byte);

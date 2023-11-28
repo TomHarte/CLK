@@ -1127,6 +1127,7 @@
 
 /* Begin PBXFileReference section */
 		4238200B2B1295AD00964EFE /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
+		4238200C2B15998800964EFE /* Results.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Results.hpp; sourceTree = "<group>"; };
 		423BDC492AB24699008E37B6 /* 8088Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 8088Tests.mm; sourceTree = "<group>"; };
 		42437B342ACF02A9006DFED1 /* Flags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Flags.hpp; sourceTree = "<group>"; };
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
@@ -4556,6 +4557,7 @@
 				4267A9CB2B113958008A59BB /* CommandDecoder.hpp */,
 				4BBC951D1F368D83008F4C34 /* i8272.hpp */,
 				4238200B2B1295AD00964EFE /* Status.hpp */,
+				4238200C2B15998800964EFE /* Results.hpp */,
 			);
 			path = 8272;
 			sourceTree = "<group>";

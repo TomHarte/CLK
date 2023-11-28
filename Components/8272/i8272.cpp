@@ -268,7 +268,6 @@ void i8272::posit_event(int event_type) {
 			}
 
 			// Jump to the proper place.
-			using Command = CommandDecoder::Command;
 			switch(command_.command()) {
 				case Command::ReadData:
 				case Command::ReadDeletedData:

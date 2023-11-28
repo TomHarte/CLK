@@ -21,6 +21,7 @@
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/8272/CommandDecoder.hpp"
+#include "../../Components/8272/Results.hpp"
 #include "../../Components/8272/Status.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 
@@ -70,20 +71,39 @@ class FloppyController {
 			decoder_.push_back(value);
 
 			if(decoder_.has_command()) {
-				using Command = Intel::i8272::CommandDecoder::Command;
+				using Command = Intel::i8272::Command;
 				switch(decoder_.command()) {
 					default:
 						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
-//					case Command::Invalid:
-//					break;
+					case Command::Invalid:
+						results_.serialise_none();
+					break;
+
+					case Command::SenseInterruptStatus:
+						results_.serialise_none();
+					break;
+				}
+
+				if(!results_.empty()) {
+					using MainStatus = Intel::i8272::MainStatus;
+					status_.set(MainStatus::DataIsToProcessor, true);
+					status_.set(MainStatus::DataReady, true);
 				}
 			}
 		}
 
 		uint8_t read() {
-			// TODO: is anything being serialised?
+			using MainStatus = Intel::i8272::MainStatus;
+			if(status_.get(MainStatus::DataIsToProcessor)) {
+				const uint8_t result = results_.next();
+				if(results_.empty()) {
+					status_.set(MainStatus::DataIsToProcessor, false);
+				}
+				return result;
+			}
+
 			return 0x80;
 		}
 
@@ -102,6 +122,7 @@ class FloppyController {
 
 		Intel::i8272::CommandDecoder decoder_;
 		Intel::i8272::Status status_;
+		Intel::i8272::Results results_;
 };
 
 class KeyboardController {
