@@ -84,9 +84,21 @@ class FloppyController {
 						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
-					case Command::Invalid:
-						printf("FDC: Invalid\n");
-						results_.serialise_none();
+					case Command::Seek:
+						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
+						drives_[decoder_.target().drive].track = decoder_.seek_target();
+						drives_[decoder_.target().drive].side = decoder_.target().head;
+
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
+						pic_.apply_edge<6>(true);
+					break;
+					case Command::Recalibrate:
+						printf("FDC: Recalibrate\n");
+						drives_[decoder_.target().drive].track = 0;
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+						pic_.apply_edge<6>(true);
 					break;
 
 					case Command::SenseInterruptStatus: {
@@ -109,28 +121,16 @@ class FloppyController {
 							pic_.apply_edge<6>(any_remaining_interrupts);
 						}
 					} break;
-
 					case Command::Specify:
 						printf("FDC: Specify\n");
 						specify_specs_ = decoder_.specify_specs();
 					break;
+//					case Command::SenseDriveStatus: {
+//					} break;
 
-					case Command::Recalibrate:
-						printf("FDC: Recalibrate\n");
-						drives_[decoder_.target().drive].track = 0;
-						drives_[decoder_.target().drive].raised_interrupt = true;
-						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
-						pic_.apply_edge<6>(true);
-					break;
-
-					case Command::Seek:
-						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
-						drives_[decoder_.target().drive].track = decoder_.seek_target();
-						drives_[decoder_.target().drive].side = decoder_.target().head;
-
-						drives_[decoder_.target().drive].raised_interrupt = true;
-						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
-						pic_.apply_edge<6>(true);
+					case Command::Invalid:
+						printf("FDC: Invalid\n");
+						results_.serialise_none();
 					break;
 				}
 
