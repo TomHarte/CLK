@@ -218,7 +218,7 @@ void i8272::posit_event(int event_type) {
 	wait_for_command:
 			expects_input_ = false;
 			set_data_mode(Storage::Disk::MFMController::DataMode::Scanning);
-			status_.set(MainStatus::ReadOrWriteOngoing, false);
+			status_.set(MainStatus::CommandInProgress, false);
 			status_.set(MainStatus::InNonDMAExecution, false);
 			command_.clear();
 
@@ -246,7 +246,6 @@ void i8272::posit_event(int event_type) {
 			is_access_command_ = command_.is_access();
 
 			if(is_access_command_) {
-				status_.set(MainStatus::ReadOrWriteOngoing, true);
 				for(int c = 0; c < 4; c++) {
 					if(drives_[c].phase == Drive::Seeking) {
 						drives_[c].phase = Drive::NotSeeking;

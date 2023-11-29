@@ -17,7 +17,7 @@ enum class MainStatus: uint8_t {
 	FDD2Seeking			= 0x04,
 	FDD3Seeking			= 0x08,
 
-	ReadOrWriteOngoing	= 0x10,
+	CommandInProgress	= 0x10,
 	InNonDMAExecution	= 0x20,
 	DataIsToProcessor	= 0x40,
 	DataReady			= 0x80,
@@ -107,9 +107,9 @@ class Status {
 		/// state appropriately.
 		void begin(const CommandDecoder &command) {
 			set(MainStatus::DataReady, false);
+			set(MainStatus::CommandInProgress, true);
 
 			if(command.is_access()) {
-				set(MainStatus::ReadOrWriteOngoing, true);
 				status_[0] = command.drive_head();
 			}
 		}

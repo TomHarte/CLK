@@ -40,6 +40,9 @@
 
 namespace PCCompatible {
 
+//bool log = false;
+//std::string previous;
+
 class FloppyController {
 	public:
 		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {}
@@ -58,6 +61,7 @@ class FloppyController {
 			if(!hold_reset && hold_reset_) {
 				// TODO: add a delay mechanism.
 				reset();
+//				log = true;
 			}
 			hold_reset_ = hold_reset;
 			if(hold_reset_) {
@@ -115,6 +119,7 @@ class FloppyController {
 					using MainStatus = Intel::i8272::MainStatus;
 					status_.set(MainStatus::DataIsToProcessor, true);
 					status_.set(MainStatus::DataReady, true);
+					status_.set(MainStatus::CommandInProgress, true);
 				}
 			}
 		}
@@ -125,6 +130,7 @@ class FloppyController {
 				const uint8_t result = results_.next();
 				if(results_.empty()) {
 					status_.set(MainStatus::DataIsToProcessor, false);
+					status_.set(MainStatus::CommandInProgress, false);
 				}
 				printf("FDC read: %02x\n", result);
 				return result;
@@ -1084,8 +1090,6 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
-//		bool log = false;
-//		std::string previous;
 		void run_for(const Cycles duration) override {
 			const auto pit_ticks = duration.as_integral();
 			cpu_divisor_ += pit_ticks;
