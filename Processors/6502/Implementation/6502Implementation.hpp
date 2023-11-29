@@ -544,6 +544,21 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
+					case CycleAddXToAddressLowReadSTA:
+						next_address_.full = address_.full + x_;
+						address_.halves.low = next_address_.halves.low;
+
+						// Cf. https://groups.google.com/g/comp.sys.apple2/c/RuTGaRxu5Iw/m/uyFLEsF8ceIJ
+						//
+						// STA abs,X has been fixed for the PX (page-crossing) case by adding a dummy read of the
+						// program counter, so the change was rW -> W. In the non-PX case it still reads the destination
+						// address, so there is no change: RW -> RW.
+						if(!is_65c02(personality) || next_address_.full == address_.full) {
+							throwaway_read(address_.full);
+						} else {
+							throwaway_read(pc_.full - 1);
+						}
+					break;
 					case CycleAddXToAddressLowRead:
 						next_address_.full = address_.full + x_;
 						address_.halves.low = next_address_.halves.low;

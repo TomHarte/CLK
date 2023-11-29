@@ -77,6 +77,11 @@ class ProcessorStorage {
 			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
 			OperationCorrectAddressHigh,	// copies next_address_ to address_
 
+			// Implements 65c02-compatible version of CycleAddXToAddressLowRead specialised for STA; on that processor
+			// a non-page-crossing `STA abs, x` acts exactly like a 6502, doing a read of the target address before
+			// the write, but a page-crossing store instead performs throaway read from PC-1.
+			CycleAddXToAddressLowReadSTA,
+
 			OperationIncrementPC,			// increments the PC
 			CycleFetchOperandFromAddress,	// fetches operand_ from address_
 			CycleWriteOperandToAddress,		// writes operand_ to address_
