@@ -30,8 +30,13 @@
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Storage/Disk/Track/TrackSerialiser.hpp"
+#include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "../../Storage/Disk/Encodings/MFM/SegmentParser.hpp"
+
 #include "../AudioProducer.hpp"
 #include "../KeyboardMachine.hpp"
+#include "../MediaTarget.hpp"
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
@@ -101,10 +106,15 @@ class FloppyController {
 						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
+					case Command::ReadData:
+						printf("FDC: Read %d:%d at %d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head);
+					break;
+
 					case Command::Seek:
 						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
 						drives_[decoder_.target().drive].track = decoder_.seek_target();
 						drives_[decoder_.target().drive].side = decoder_.target().head;
+						drives_[decoder_.target().drive].cache_track();
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
@@ -113,6 +123,8 @@ class FloppyController {
 					case Command::Recalibrate:
 						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
+						drives_[decoder_.target().drive].cache_track();
+
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
 						pic_.apply_edge<6>(true);
@@ -192,6 +204,10 @@ class FloppyController {
 			}
 		}
 
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+			drives_[drive].disk = disk;
+		}
+
 	private:
 		void reset() {
 			printf("FDC reset\n");
@@ -230,6 +246,32 @@ class FloppyController {
 			bool side = false;
 			bool motor = false;
 			bool exists = true;
+
+			std::shared_ptr<Storage::Disk::Disk> disk;
+			Storage::Encodings::MFM::SectorMap cached_track;
+			void cache_track() {
+				if(!disk) {
+					return;
+				}
+				cached_track.clear();
+
+				auto raw_track = disk->get_track_at_position(
+					Storage::Disk::Track::Address(
+						side,
+						Storage::Disk::HeadPosition(track)
+					)
+				);
+				if(!raw_track) {
+					return;
+				}
+
+				const bool is_double_density = true;	// TODO: use MFM flag here.
+				auto serialisation = Storage::Disk::track_serialisation(
+					*raw_track,
+					is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength
+				);
+				cached_track = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), is_double_density);
+			}
 		} drives_[4];
 
 		std::string drive_name(int c) const {
@@ -1088,8 +1130,9 @@ class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::AudioProducer,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
 	public Activity::Source
 {
 	public:
@@ -1126,6 +1169,9 @@ class ConcreteMachine:
 			// Give the MDA something to read from.
 			const auto &font_contents = roms.find(font)->second;
 			mda_.set_source(context.memory.at(0xb'0000), font_contents);
+
+			// ... and insert media.
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -1236,6 +1282,17 @@ class ConcreteMachine:
 				speaker_.update();
 				speaker_.queue.perform();
 			}
+		}
+
+		// MARK: - MediaTarget
+		bool insert_media(const Analyser::Static::Media &media) override {
+			int c = 0;
+			for(auto &disk : media.disks) {
+				fdc_.set_disk(disk, c);
+				c++;
+				if(c == 4) break;
+			}
+			return true;
 		}
 
 		// MARK: - MappedKeyboardMachine.
