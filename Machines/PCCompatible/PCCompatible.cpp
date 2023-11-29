@@ -60,6 +60,12 @@ class FloppyController {
 			drives_[2].motor = control & 0x40;
 			drives_[3].motor = control & 0x80;
 
+			if(observer_) {
+				for(int c = 0; c < 4; c++) {
+					if(drives_[c].exists) observer_->set_led_status(drive_name(c), drives_[c].motor);
+				}
+			}
+
 			enable_dma_ = control & 0x08;
 
 			const bool hold_reset = !(control & 0x04);
@@ -171,6 +177,15 @@ class FloppyController {
 			return 0x80;
 		}
 
+		void set_activity_observer(Activity::Observer *observer) {
+			observer_ = observer;
+			for(int c = 0; c < 4; c++) {
+				if(drives_[c].exists) {
+					observer_->register_led(drive_name(c), 0);
+				}
+			}
+		}
+
 	private:
 		void reset() {
 			printf("FDC reset\n");
@@ -208,7 +223,14 @@ class FloppyController {
 			uint8_t track = 0;
 			bool side = false;
 			bool motor = false;
+			bool exists = true;
 		} drives_[4];
+
+		std::string drive_name(int c) const {
+			return std::string("Drive ") + std::to_string(c + 1);
+		}
+
+		Activity::Observer *observer_ = nullptr;
 };
 
 class KeyboardController {
@@ -713,21 +735,8 @@ struct Memory {
 		}
 
 		// Accesses an address based on physical location.
-//		int mda_delay = -1;	// HACK.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
-
-			// TEMPORARY HACK.
-//			if(mda_delay > 0) {
-//				--mda_delay;
-//				if(!mda_delay) {
-//					print_mda();
-//				}
-//			}
-//			if(address >= 0xb'0000 && is_writeable(type)) {
-//				mda_delay = 100;
-//			}
-
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
@@ -802,18 +811,6 @@ struct Memory {
 		const uint8_t *at(uint32_t address) {
 			return &memory[address];
 		}
-
-		// TEMPORARY HACK.
-//		void print_mda() {
-//			uint32_t pointer = 0xb'0000;
-//			for(int y = 0; y < 25; y++) {
-//				for(int x = 0; x < 80; x++) {
-//					printf("%c", memory[pointer]);
-//					pointer += 2;	// MDA goes [character, attributes]...; skip the attributes.
-//				}
-//				printf("\n");
-//			}
-//		}
 
 	private:
 		std::array<uint8_t, 1024*1024> memory{0xff};
@@ -1019,15 +1016,6 @@ class IO {
 				case 0x03f4:	return fdc_.status();
 				case 0x03f5:	return fdc_.read();
 
-//				3F0-3F7 Floppy disk controller (except PCjr)
-//				3F0 Diskette controller status A
-//				3F1 Diskette controller status B
-//				3F2 controller control port
-//				3F4 controller status register
-//				3F5 data register (write 1-9 byte command, see INT 13)
-//				3F6 Diskette controller data
-//				3F7 Diskette digital input
-
 				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
 				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
 				case 0x02f8:	case 0x02f9:	case 0x02fa:	case 0x02fb:
@@ -1093,7 +1081,8 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::ScanProducer,
-	public MachineTypes::MappedKeyboardMachine
+	public MachineTypes::MappedKeyboardMachine,
+	public Activity::Source
 {
 	public:
 		ConcreteMachine(
@@ -1248,6 +1237,11 @@ class ConcreteMachine:
 
 		void set_key_state(uint16_t key, bool is_pressed) override {
 			keyboard_.post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
+		}
+
+		// MARK: - Activity::Source.
+		void set_activity_observer(Activity::Observer *observer) final {
+			fdc_.set_activity_observer(observer);
 		}
 
 	private:
