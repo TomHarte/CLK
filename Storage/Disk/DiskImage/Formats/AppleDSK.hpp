@@ -26,7 +26,7 @@ class AppleDSK: public DiskImage {
 			Construct an @c AppleDSK containing content from the file with name @c file_name.
 
 			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
-			@throws Error::InvalidFormat if the file doesn't appear to contain a .G64 format image.
+			@throws Error::InvalidFormat if the file doesn't appear to contain an Apple DSK format image.
 		*/
 		AppleDSK(const std::string &file_name);
 
