@@ -114,11 +114,6 @@ class Status {
 			}
 		}
 
-		void end_sense_interrupt_status(int drive, int head) 	{
-			status_[0] = uint8_t(drive | (head << 2));
-			main_status_ &= ~(1 << drive);
-		}
-
 	private:
 		void set(uint8_t flag, bool value, uint8_t &target) {
 			if(value) {

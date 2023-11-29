@@ -92,19 +92,7 @@ class FloppyController {
 					case Command::SenseInterruptStatus:
 						printf("FDC: SenseInterruptStatus\n");
 						pic_.apply_edge<6>(false);
-
-						if(interrupting_drives_) {
-							int drive = 3;
-							while(!(interrupting_drives_ & (1 << drive))) {
-								--drive;
-							}
-							interrupting_drives_ &= ~(1 << drive);
-
-							status_.end_sense_interrupt_status(drive, 0);
-							results_.serialise(status_, 10);
-						} else {
-							results_.serialise_none();
-						}
+						results_.serialise(status_, 0);	// TODO: get track of relevant drive.
 					break;
 				}
 
@@ -146,7 +134,11 @@ class FloppyController {
 			decoder_.clear();
 			status_.reset();
 			pic_.apply_edge<6>(true);
-			interrupting_drives_ = 0xf;
+
+			// Necessary to pass GlaBIOS [if this is called after reset?], but Why?
+			//
+			// Cf. INT_13_0_2 and the CMP	AL, 11000000B following a CALL	FDC_WAIT_SENSE.
+			status_.set(Intel::i8272::Status0::BecameNotReady);
 
 			using MainStatus = Intel::i8272::MainStatus;
 			status_.set(MainStatus::DataReady, true);
@@ -162,7 +154,6 @@ class FloppyController {
 		Intel::i8272::CommandDecoder decoder_;
 		Intel::i8272::Status status_;
 		Intel::i8272::Results results_;
-		int interrupting_drives_ = 0;
 };
 
 class KeyboardController {
