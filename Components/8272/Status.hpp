@@ -97,6 +97,8 @@ class Status {
 		void set(Status1 flag) {	set(uint8_t(flag), true, status_[1]);	}
 		void set(Status2 flag) {	set(uint8_t(flag), true, status_[2]);	}
 
+		void set_status0(uint8_t value)	{	status_[0] = value;	}
+
 		//
 		// Flag getters.
 		//

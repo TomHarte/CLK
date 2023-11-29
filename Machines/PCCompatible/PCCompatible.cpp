@@ -48,7 +48,7 @@ class FloppyController {
 		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {}
 
 		void set_digital_output(uint8_t control) {
-			printf("FDC DOR: %02x\n", control);
+//			printf("FDC DOR: %02x\n", control);
 
 			// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 			// b3: 1 => enable DMA; 0 => disable;
@@ -70,7 +70,7 @@ class FloppyController {
 		}
 
 		uint8_t status() const {
-			printf("FDC: read status %02x\n", status_.main());
+//			printf("FDC: read status %02x\n", status_.main());
 			return status_.main();
 		}
 
@@ -89,17 +89,55 @@ class FloppyController {
 						results_.serialise_none();
 					break;
 
-					case Command::SenseInterruptStatus:
+					case Command::SenseInterruptStatus: {
 						printf("FDC: SenseInterruptStatus\n");
-						pic_.apply_edge<6>(false);
-						results_.serialise(status_, 0);	// TODO: get track of relevant drive.
+
+						int c = 0;
+						for(; c < 4; c++) {
+							if(drives_[c].raised_interrupt) {
+								drives_[c].raised_interrupt = false;
+								status_.set_status0(drives_[c].status);
+								results_.serialise(status_, drives_[0].track);
+							}
+						}
+
+						bool any_remaining_interrupts = false;
+						for(; c < 4; c++) {
+							any_remaining_interrupts |= drives_[c].raised_interrupt;
+						}
+						if(!any_remaining_interrupts) {
+							pic_.apply_edge<6>(any_remaining_interrupts);
+						}
+					} break;
+
+					case Command::Specify:
+						printf("FDC: Specify\n");
+						specify_specs_ = decoder_.specify_specs();
+					break;
+
+					case Command::Recalibrate:
+						printf("FDC: Recalibrate\n");
+						drives_[decoder_.target().drive].track = 0;
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.target().drive;
+						pic_.apply_edge<6>(true);
+					break;
+
+					case Command::Seek:
+						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
+						drives_[decoder_.target().drive].track = decoder_.seek_target();
+						drives_[decoder_.target().drive].side = decoder_.target().head;
+
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.drive_head();
+						pic_.apply_edge<6>(true);
 					break;
 				}
 
 				// Set interrupt upon the end of any valid command other than sense interrupt status.
-				if(decoder_.command() != Command::SenseInterruptStatus && decoder_.command() != Command::Invalid) {
-					pic_.apply_edge<6>(true);
-				}
+//				if(decoder_.command() != Command::SenseInterruptStatus && decoder_.command() != Command::Invalid) {
+//					pic_.apply_edge<6>(true);
+//				}
 				decoder_.clear();
 
 				// If there are any results to provide, set data direction and data ready.
@@ -120,7 +158,7 @@ class FloppyController {
 					status_.set(MainStatus::DataIsToProcessor, false);
 					status_.set(MainStatus::CommandInProgress, false);
 				}
-				printf("FDC read: %02x\n", result);
+//				printf("FDC read: %02x\n", result);
 				return result;
 			}
 
@@ -133,12 +171,15 @@ class FloppyController {
 			printf("FDC reset\n");
 			decoder_.clear();
 			status_.reset();
-			pic_.apply_edge<6>(true);
 
 			// Necessary to pass GlaBIOS [if this is called after reset?], but Why?
 			//
 			// Cf. INT_13_0_2 and the CMP	AL, 11000000B following a CALL	FDC_WAIT_SENSE.
-			status_.set(Intel::i8272::Status0::BecameNotReady);
+			for(int c = 0; c < 4; c++) {
+				drives_[c].raised_interrupt = true;
+				drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
+			}
+			pic_.apply_edge<6>(true);
 
 			using MainStatus = Intel::i8272::MainStatus;
 			status_.set(MainStatus::DataReady, true);
@@ -154,6 +195,14 @@ class FloppyController {
 		Intel::i8272::CommandDecoder decoder_;
 		Intel::i8272::Status status_;
 		Intel::i8272::Results results_;
+
+		Intel::i8272::CommandDecoder::SpecifySpecs specify_specs_;
+		struct DriveStatus {
+			bool raised_interrupt = false;
+			uint8_t status = 0;
+			uint8_t track = 0;
+			bool side = false;
+		} drives_[4];
 };
 
 class KeyboardController {
