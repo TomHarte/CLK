@@ -353,6 +353,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define Access(val)										\
 	AccessPair(val, access_announce, Microcycle::DecodeDynamically, access, Microcycle::DecodeDynamically)
 
+	// Performs the access established by SetupDataAccess into val.
+#define AccessOp(val, read_flag, select_flag)										\
+	AccessPair(val, access_announce, Microcycle::NewAddress | Microcycle::IsData | (read_flag), access, Microcycle::SameAddress | Microcycle::IsData | (read_flag) | (select_flag))
+
 	// Reads the program (i.e. non-data) word from addr into val.
 #define ReadProgramWord(val)								\
 	AccessPair(val, read_program_announce, ReadProgramAnnounceOperation, read_program, ReadProgramOperation);	\
@@ -424,16 +428,16 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = 0;
-			Access(registers_[15].high);	// nF
+			AccessOp(registers_[15].high, Microcycle::Read, Microcycle::SelectWord);	// nF
 
 			temporary_address_.l += 2;
-			Access(registers_[15].low);		// nf
+			AccessOp(registers_[15].low, Microcycle::Read, Microcycle::SelectWord);		// nf
 
 			temporary_address_.l += 2;
-			Access(program_counter_.high);	// nV
+			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);	// nV
 
 			temporary_address_.l += 2;
-			Access(program_counter_.low);	// nv
+			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);	// nv
 
 			Prefetch();			// np
 			IdleBus(1);			// n
@@ -453,13 +457,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Push status and current program counter.
 			// Write order is wacky here, but I think it's correct.
 			registers_[15].l -= 2;
-			Access(instruction_address_.low);	// ns
+			AccessOp(instruction_address_.low, 0, Microcycle::SelectWord);	// ns
 
 			registers_[15].l -= 4;
-			Access(captured_status_);			// ns
+			AccessOp(captured_status_, 0, Microcycle::SelectWord);			// ns
 
 			registers_[15].l += 2;
-			Access(instruction_address_.high);	// nS
+			AccessOp(instruction_address_.high, 0, Microcycle::SelectWord);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -467,10 +471,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(exception_vector_ << 2);
-			Access(program_counter_.high);	// nV
+			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);	// nV
 
 			temporary_address_.l += 2;
-			Access(program_counter_.low);	// nv
+			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);	// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -526,17 +530,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// COMPLETE GUESS.
 			temporary_address_.l = program_counter_.l - 4;
 			registers_[15].l -= 2;
-			Access(temporary_address_.low);		// ns	[pc.l]
+			AccessOp(temporary_address_.low, 0, Microcycle::SelectWord);	// ns	[pc.l]
 
 			registers_[15].l -= 4;
-			Access(captured_status_);			// ns	[sr]
+			AccessOp(captured_status_, 0, Microcycle::SelectWord);			// ns	[sr]
 
 			registers_[15].l += 2;
-			Access(temporary_address_.high);	// nS	[pc.h]
+			AccessOp(temporary_address_.high, 0, Microcycle::SelectWord);	// nS	[pc.h]
 
 			registers_[15].l -= 4;
 			temporary_value_.w = opcode_;
-			Access(temporary_value_.low);		// ns	[instruction register]
+			AccessOp(temporary_value_.low, 0, Microcycle::SelectWord);		// ns	[instruction register]
 
 			// Construct the function code; which is:
 			//
@@ -557,13 +561,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			temporary_address_.l = *bus_error_.address;
 
 			registers_[15].l -= 2;
-			Access(temporary_address_.low);		// ns	[error address.l]
+			AccessOp(temporary_address_.low, 0, Microcycle::SelectWord);	// ns	[error address.l]
 
 			registers_[15].l -= 4;
-			Access(temporary_value_.low);		// ns	[function code]
+			AccessOp(temporary_value_.low, 0, Microcycle::SelectWord);		// ns	[function code]
 
 			registers_[15].l += 2;
-			Access(temporary_address_.high);	// nS	[error address.h]
+			AccessOp(temporary_address_.high, 0, Microcycle::SelectWord);	// nS	[error address.h]
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -571,10 +575,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(exception_vector_ << 2);
-			Access(program_counter_.high);	// nV
+			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);	// nV
 
 			temporary_address_.l += 2;
-			Access(program_counter_.low);	// nv
+			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);	// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -598,7 +602,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Push low part of program counter.
 			registers_[15].l -= 2;
-			Access(instruction_address_.low);	// ns
+			AccessOp(instruction_address_.low, 0, Microcycle::SelectWord);	// ns
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
@@ -624,10 +628,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l -= 4;
-			Access(captured_status_);			// ns
+			AccessOp(captured_status_, 0, Microcycle::SelectWord);			// ns
 
 			registers_[15].l += 2;
-			Access(instruction_address_.high);	// nS
+			AccessOp(instruction_address_.high, 0, Microcycle::SelectWord);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -635,10 +639,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(temporary_value_.b << 2);
-			Access(program_counter_.high);		// nV
+			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);		// nV
 
 			temporary_address_.l += 2;
-			Access(program_counter_.low);		// nv
+			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);		// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
