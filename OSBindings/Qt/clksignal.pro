@@ -52,6 +52,7 @@ SOURCES += \
 	$$SRC/Analyser/Static/Macintosh/*.cpp \
 	$$SRC/Analyser/Static/MSX/*.cpp \
 	$$SRC/Analyser/Static/Oric/*.cpp \
+	$$SRC/Analyser/Static/PCCompatible/*.cpp \
 	$$SRC/Analyser/Static/Sega/*.cpp \
 	$$SRC/Analyser/Static/ZX8081/*.cpp \
 	$$SRC/Analyser/Static/ZXSpectrum/*.cpp \
@@ -174,6 +175,7 @@ HEADERS += \
 	$$SRC/Analyser/Static/Macintosh/*.hpp \
 	$$SRC/Analyser/Static/MSX/*.hpp \
 	$$SRC/Analyser/Static/Oric/*.hpp \
+	$$SRC/Analyser/Static/PCCompatible/*.hpp \
 	$$SRC/Analyser/Static/Sega/*.hpp \
 	$$SRC/Analyser/Static/ZX8081/*.hpp \
 \

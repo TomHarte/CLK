@@ -28,6 +28,7 @@
 #include "Macintosh/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
+#include "PCCompatible/StaticAnalyser.hpp"
 #include "Sega/StaticAnalyser.hpp"
 #include "ZX8081/StaticAnalyser.hpp"
 #include "ZXSpectrum/StaticAnalyser.hpp"
@@ -177,6 +178,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
+	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (Enterprise/MS-DOS style)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::Enterprise)			// IMG (Enterprise/MS-DOS style)
@@ -289,6 +291,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	Append(Macintosh);
 	Append(MSX);
 	Append(Oric);
+	Append(PCCompatible);
 	Append(Sega);
 	Append(ZX8081);
 	Append(ZXSpectrum);

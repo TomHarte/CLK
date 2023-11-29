@@ -40,6 +40,8 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 	target->basic_version = Target::BASICVersion::Any;
 
 	// Inspect any supplied disks.
+	//
+	// TODO: how best can these be discerned from MS-DOS and MSX disks?
 	if(!media.disks.empty()) {
 		// DOS will be needed.
 		target->dos = Target::DOS::EXDOS;

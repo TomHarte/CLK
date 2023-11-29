@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		423820112B17CBC800964EFE /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 423820102B17CBC800964EFE /* StaticAnalyser.cpp */; };
+		423820122B17CBC800964EFE /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 423820102B17CBC800964EFE /* StaticAnalyser.cpp */; };
 		423BDC4A2AB24699008E37B6 /* 8088Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 423BDC492AB24699008E37B6 /* 8088Tests.mm */; };
 		42437B332AC70833006DFED1 /* HDV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6FD0342923061300EC4760 /* HDV.cpp */; };
 		425739382B051EA800B7D1E4 /* PCCompatible.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 425739372B051EA800B7D1E4 /* PCCompatible.cpp */; };
@@ -1128,6 +1130,9 @@
 /* Begin PBXFileReference section */
 		4238200B2B1295AD00964EFE /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
 		4238200C2B15998800964EFE /* Results.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Results.hpp; sourceTree = "<group>"; };
+		4238200E2B17CBC800964EFE /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4238200F2B17CBC800964EFE /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		423820102B17CBC800964EFE /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		423BDC492AB24699008E37B6 /* 8088Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 8088Tests.mm; sourceTree = "<group>"; };
 		42437B342ACF02A9006DFED1 /* Flags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Flags.hpp; sourceTree = "<group>"; };
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
@@ -2346,6 +2351,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4238200D2B17CBC800964EFE /* PCCompatible */ = {
+			isa = PBXGroup;
+			children = (
+				4238200E2B17CBC800964EFE /* StaticAnalyser.hpp */,
+				4238200F2B17CBC800964EFE /* Target.hpp */,
+				423820102B17CBC800964EFE /* StaticAnalyser.cpp */,
+			);
+			path = PCCompatible;
+			sourceTree = "<group>";
+		};
 		42437B372ACF2798006DFED1 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
@@ -3581,6 +3596,7 @@
 				4BB4BFB622A4372E0069048D /* Macintosh */,
 				4B89450F201967B4007DE474 /* MSX */,
 				4B8944F6201967B4007DE474 /* Oric */,
+				4238200D2B17CBC800964EFE /* PCCompatible */,
 				4B7F1894215486A100388727 /* Sega */,
 				4B894504201967B4007DE474 /* ZX8081 */,
 				4B0F1BAF2602645900B85C66 /* ZXSpectrum */,
@@ -5724,6 +5740,7 @@
 				4B0ACC2D23775819008902D0 /* IntelligentKeyboard.cpp in Sources */,
 				4B894539201967B4007DE474 /* Tape.cpp in Sources */,
 				4B92E26B234AE35100CD6D1B /* MFP68901.cpp in Sources */,
+				423820122B17CBC800964EFE /* StaticAnalyser.cpp in Sources */,
 				4B7F1898215486A200388727 /* StaticAnalyser.cpp in Sources */,
 				4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B055AD31FAE9B0B0060FFFF /* Microdisc.cpp in Sources */,
@@ -5994,6 +6011,7 @@
 				4B0ACC2A23775819008902D0 /* Video.cpp in Sources */,
 				4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */,
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
+				423820112B17CBC800964EFE /* StaticAnalyser.cpp in Sources */,
 				4BC6236D26F4235400F83DFE /* Copper.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */,

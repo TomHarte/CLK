@@ -675,6 +675,26 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>ima</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Raw DOS disk image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>hdv</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
