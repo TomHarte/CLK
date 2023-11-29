@@ -30,6 +30,10 @@
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Storage/Disk/Track/TrackSerialiser.hpp"
+#include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "../../Storage/Disk/Encodings/MFM/SegmentParser.hpp"
+
 #include "../AudioProducer.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../MediaTarget.hpp"
@@ -110,6 +114,7 @@ class FloppyController {
 						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
 						drives_[decoder_.target().drive].track = decoder_.seek_target();
 						drives_[decoder_.target().drive].side = decoder_.target().head;
+						drives_[decoder_.target().drive].cache_track();
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
@@ -118,6 +123,8 @@ class FloppyController {
 					case Command::Recalibrate:
 						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
+						drives_[decoder_.target().drive].cache_track();
+
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
 						pic_.apply_edge<6>(true);
@@ -241,6 +248,30 @@ class FloppyController {
 			bool exists = true;
 
 			std::shared_ptr<Storage::Disk::Disk> disk;
+			Storage::Encodings::MFM::SectorMap cached_track;
+			void cache_track() {
+				if(!disk) {
+					return;
+				}
+				cached_track.clear();
+
+				auto raw_track = disk->get_track_at_position(
+					Storage::Disk::Track::Address(
+						side,
+						Storage::Disk::HeadPosition(track)
+					)
+				);
+				if(!raw_track) {
+					return;
+				}
+
+				const bool is_double_density = true;	// TODO: use MFM flag here.
+				auto serialisation = Storage::Disk::track_serialisation(
+					*raw_track,
+					is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength
+				);
+				cached_track = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), is_double_density);
+			}
 		} drives_[4];
 
 		std::string drive_name(int c) const {

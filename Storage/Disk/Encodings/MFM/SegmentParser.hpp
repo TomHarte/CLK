@@ -15,12 +15,14 @@
 
 namespace Storage::Encodings::MFM {
 
+using SectorMap = std::map<std::size_t, Sector>;
+
 /*!
 	Scans @c segment for all included sectors, returning a set that maps from location within
 	the segment (counted in bits from the beginning and pointing to the location the disk
 	had reached upon detection of the ID mark) to sector.
 */
-std::map<std::size_t, Sector> sectors_from_segment(const Disk::PCMSegment &&segment, bool is_double_density);
+SectorMap sectors_from_segment(const Disk::PCMSegment &&segment, bool is_double_density);
 
 }
 
