@@ -172,7 +172,7 @@ class FloppyController {
 			decoder_.clear();
 			status_.reset();
 
-			// Necessary to pass GlaBIOS [if this is called after reset?], but Why?
+			// Necessary to pass GlaBIOS' POST test, but: why?
 			//
 			// Cf. INT_13_0_2 and the CMP	AL, 11000000B following a CALL	FDC_WAIT_SENSE.
 			for(int c = 0; c < 4; c++) {
