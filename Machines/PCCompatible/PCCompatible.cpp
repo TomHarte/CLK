@@ -32,6 +32,7 @@
 
 #include "../AudioProducer.hpp"
 #include "../KeyboardMachine.hpp"
+#include "../MediaTarget.hpp"
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
@@ -192,6 +193,10 @@ class FloppyController {
 			}
 		}
 
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+			drives_[drive].disk = disk;
+		}
+
 	private:
 		void reset() {
 			printf("FDC reset\n");
@@ -230,6 +235,8 @@ class FloppyController {
 			bool side = false;
 			bool motor = false;
 			bool exists = true;
+
+			std::shared_ptr<Storage::Disk::Disk> disk;
 		} drives_[4];
 
 		std::string drive_name(int c) const {
@@ -1088,8 +1095,9 @@ class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::AudioProducer,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
 	public Activity::Source
 {
 	public:
@@ -1126,6 +1134,9 @@ class ConcreteMachine:
 			// Give the MDA something to read from.
 			const auto &font_contents = roms.find(font)->second;
 			mda_.set_source(context.memory.at(0xb'0000), font_contents);
+
+			// ... and insert media.
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -1236,6 +1247,17 @@ class ConcreteMachine:
 				speaker_.update();
 				speaker_.queue.perform();
 			}
+		}
+
+		// MARK: - MediaTarget
+		bool insert_media(const Analyser::Static::Media &media) override {
+			int c = 0;
+			for(auto &disk : media.disks) {
+				fdc_.set_disk(disk, c);
+				c++;
+				if(c == 4) break;
+			}
+			return true;
 		}
 
 		// MARK: - MappedKeyboardMachine.
