@@ -1126,6 +1126,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4238200B2B1295AD00964EFE /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
+		4238200C2B15998800964EFE /* Results.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Results.hpp; sourceTree = "<group>"; };
 		423BDC492AB24699008E37B6 /* 8088Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 8088Tests.mm; sourceTree = "<group>"; };
 		42437B342ACF02A9006DFED1 /* Flags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Flags.hpp; sourceTree = "<group>"; };
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
@@ -1145,6 +1147,8 @@
 		4267A9C72B0C26FA008A59BB /* PIT.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PIT.hpp; sourceTree = "<group>"; };
 		4267A9C82B0D4EC2008A59BB /* PIC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PIC.hpp; sourceTree = "<group>"; };
 		4267A9C92B0D4F17008A59BB /* DMA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMA.hpp; sourceTree = "<group>"; };
+		4267A9CA2B111ED2008A59BB /* KeyboardMapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMapper.hpp; sourceTree = "<group>"; };
+		4267A9CB2B113958008A59BB /* CommandDecoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CommandDecoder.hpp; sourceTree = "<group>"; };
 		4281572E2AA0334300E16AA1 /* Carry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Carry.hpp; sourceTree = "<group>"; };
 		428168372A16C25C008ECD27 /* LineLayout.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineLayout.hpp; sourceTree = "<group>"; };
 		428168392A37AFB4008ECD27 /* DispatcherTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DispatcherTests.mm; sourceTree = "<group>"; };
@@ -2368,6 +2372,7 @@
 				4267A9C72B0C26FA008A59BB /* PIT.hpp */,
 				4267A9C82B0D4EC2008A59BB /* PIC.hpp */,
 				4267A9C92B0D4F17008A59BB /* DMA.hpp */,
+				4267A9CA2B111ED2008A59BB /* KeyboardMapper.hpp */,
 			);
 			path = PCCompatible;
 			sourceTree = "<group>";
@@ -4549,7 +4554,10 @@
 			isa = PBXGroup;
 			children = (
 				4BBC951C1F368D83008F4C34 /* i8272.cpp */,
+				4267A9CB2B113958008A59BB /* CommandDecoder.hpp */,
 				4BBC951D1F368D83008F4C34 /* i8272.hpp */,
+				4238200B2B1295AD00964EFE /* Status.hpp */,
+				4238200C2B15998800964EFE /* Results.hpp */,
 			);
 			path = 8272;
 			sourceTree = "<group>";

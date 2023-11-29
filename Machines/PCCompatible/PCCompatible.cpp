@@ -9,6 +9,7 @@
 #include "PCCompatible.hpp"
 
 #include "DMA.hpp"
+#include "KeyboardMapper.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
 
@@ -19,6 +20,9 @@
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
+#include "../../Components/8272/CommandDecoder.hpp"
+#include "../../Components/8272/Results.hpp"
+#include "../../Components/8272/Status.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 
 #include "../../Numeric/RegisterSizes.hpp"
@@ -27,6 +31,7 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../AudioProducer.hpp"
+#include "../KeyboardMachine.hpp"
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
@@ -34,6 +39,207 @@
 #include <iostream>
 
 namespace PCCompatible {
+
+//bool log = false;
+//std::string previous;
+
+class FloppyController {
+	public:
+		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {
+			// Default: one floppy drive only.
+			drives_[0].exists = true;
+			drives_[1].exists = false;
+			drives_[2].exists = false;
+			drives_[3].exists = false;
+		}
+
+		void set_digital_output(uint8_t control) {
+//			printf("FDC DOR: %02x\n", control);
+
+			// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
+			// b3: 1 => enable DMA; 0 => disable;
+			// b2: 1 => enable FDC; 0 => hold at reset;
+			// b1, b0: drive select (usurps FDC?)
+
+			drives_[0].motor = control & 0x10;
+			drives_[1].motor = control & 0x20;
+			drives_[2].motor = control & 0x40;
+			drives_[3].motor = control & 0x80;
+
+			if(observer_) {
+				for(int c = 0; c < 4; c++) {
+					if(drives_[c].exists) observer_->set_led_status(drive_name(c), drives_[c].motor);
+				}
+			}
+
+			enable_dma_ = control & 0x08;
+
+			const bool hold_reset = !(control & 0x04);
+			if(!hold_reset && hold_reset_) {
+				// TODO: add a delay mechanism.
+				reset();
+//				log = true;
+			}
+			hold_reset_ = hold_reset;
+			if(hold_reset_) {
+				pic_.apply_edge<6>(false);
+			}
+		}
+
+		uint8_t status() const {
+//			printf("FDC: read status %02x\n", status_.main());
+			return status_.main();
+		}
+
+		void write(uint8_t value) {
+			decoder_.push_back(value);
+
+			if(decoder_.has_command()) {
+				using Command = Intel::i8272::Command;
+				switch(decoder_.command()) {
+					default:
+						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
+					break;
+
+					case Command::Seek:
+						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
+						drives_[decoder_.target().drive].track = decoder_.seek_target();
+						drives_[decoder_.target().drive].side = decoder_.target().head;
+
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
+						pic_.apply_edge<6>(true);
+					break;
+					case Command::Recalibrate:
+						printf("FDC: Recalibrate\n");
+						drives_[decoder_.target().drive].track = 0;
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+						pic_.apply_edge<6>(true);
+					break;
+
+					case Command::SenseInterruptStatus: {
+						printf("FDC: SenseInterruptStatus\n");
+
+						int c = 0;
+						for(; c < 4; c++) {
+							if(drives_[c].raised_interrupt) {
+								drives_[c].raised_interrupt = false;
+								status_.set_status0(drives_[c].status);
+								results_.serialise(status_, drives_[0].track);
+							}
+						}
+
+						bool any_remaining_interrupts = false;
+						for(; c < 4; c++) {
+							any_remaining_interrupts |= drives_[c].raised_interrupt;
+						}
+						if(!any_remaining_interrupts) {
+							pic_.apply_edge<6>(any_remaining_interrupts);
+						}
+					} break;
+					case Command::Specify:
+						printf("FDC: Specify\n");
+						specify_specs_ = decoder_.specify_specs();
+					break;
+//					case Command::SenseDriveStatus: {
+//					} break;
+
+					case Command::Invalid:
+						printf("FDC: Invalid\n");
+						results_.serialise_none();
+					break;
+				}
+
+				// Set interrupt upon the end of any valid command other than sense interrupt status.
+//				if(decoder_.command() != Command::SenseInterruptStatus && decoder_.command() != Command::Invalid) {
+//					pic_.apply_edge<6>(true);
+//				}
+				decoder_.clear();
+
+				// If there are any results to provide, set data direction and data ready.
+				if(!results_.empty()) {
+					using MainStatus = Intel::i8272::MainStatus;
+					status_.set(MainStatus::DataIsToProcessor, true);
+					status_.set(MainStatus::DataReady, true);
+					status_.set(MainStatus::CommandInProgress, true);
+				}
+			}
+		}
+
+		uint8_t read() {
+			using MainStatus = Intel::i8272::MainStatus;
+			if(status_.get(MainStatus::DataIsToProcessor)) {
+				const uint8_t result = results_.next();
+				if(results_.empty()) {
+					status_.set(MainStatus::DataIsToProcessor, false);
+					status_.set(MainStatus::CommandInProgress, false);
+				}
+//				printf("FDC read: %02x\n", result);
+				return result;
+			}
+
+			printf("FDC read?\n");
+			return 0x80;
+		}
+
+		void set_activity_observer(Activity::Observer *observer) {
+			observer_ = observer;
+			for(int c = 0; c < 4; c++) {
+				if(drives_[c].exists) {
+					observer_->register_led(drive_name(c), 0);
+				}
+			}
+		}
+
+	private:
+		void reset() {
+			printf("FDC reset\n");
+			decoder_.clear();
+			status_.reset();
+
+			// Necessary to pass GlaBIOS' POST test, but: why?
+			//
+			// Cf. INT_13_0_2 and the CMP	AL, 11000000B following a CALL	FDC_WAIT_SENSE.
+			for(int c = 0; c < 4; c++) {
+				drives_[c].raised_interrupt = true;
+				drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
+			}
+			pic_.apply_edge<6>(true);
+
+			using MainStatus = Intel::i8272::MainStatus;
+			status_.set(MainStatus::DataReady, true);
+			status_.set(MainStatus::DataIsToProcessor, false);
+		}
+
+		PIC &pic_;
+		DMA &dma_;
+
+		bool hold_reset_ = false;
+		bool enable_dma_ = false;
+
+		Intel::i8272::CommandDecoder decoder_;
+		Intel::i8272::Status status_;
+		Intel::i8272::Results results_;
+
+		Intel::i8272::CommandDecoder::SpecifySpecs specify_specs_;
+		struct DriveStatus {
+			bool raised_interrupt = false;
+			uint8_t status = 0;
+			uint8_t track = 0;
+			bool side = false;
+			bool motor = false;
+			bool exists = true;
+		} drives_[4];
+
+		std::string drive_name(int c) const {
+			char name[3] = "A";
+			name[0] += c;
+			return std::string("Drive ") + name;
+		}
+
+		Activity::Observer *observer_ = nullptr;
+};
 
 class KeyboardController {
 	public:
@@ -82,12 +288,15 @@ class KeyboardController {
 			return key;
 		}
 
-	private:
 		void post(uint8_t value) {
+			if(mode_ == Mode::NoIRQsIgnoreInput) {
+				return;
+			}
 			input_ = value;
 			pic_.apply_edge<1>(true);
 		}
 
+	private:
 		enum class Mode {
 			NormalOperation = 0b01,
 			NoIRQsIgnoreInput = 0b11,
@@ -342,7 +551,8 @@ using PIT = i8237<false, PITObserver>;
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
-		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) : speaker_(speaker), keyboard_(keyboard) {}
+		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) :
+			speaker_(speaker), keyboard_(keyboard) {}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -533,21 +743,8 @@ struct Memory {
 		}
 
 		// Accesses an address based on physical location.
-//		int mda_delay = -1;	// HACK.
 		template <typename IntT, AccessType type>
 		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
-
-			// TEMPORARY HACK.
-//			if(mda_delay > 0) {
-//				--mda_delay;
-//				if(!mda_delay) {
-//					print_mda();
-//				}
-//			}
-//			if(address >= 0xb'0000 && is_writeable(type)) {
-//				mda_delay = 100;
-//			}
-
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
@@ -623,18 +820,6 @@ struct Memory {
 			return &memory[address];
 		}
 
-		// TEMPORARY HACK.
-//		void print_mda() {
-//			uint32_t pointer = 0xb'0000;
-//			for(int y = 0; y < 25; y++) {
-//				for(int x = 0; x < 80; x++) {
-//					printf("%c", memory[pointer]);
-//					pointer += 2;	// MDA goes [character, attributes]...; skip the attributes.
-//				}
-//				printf("\n");
-//			}
-//		}
-
 	private:
 		std::array<uint8_t, 1024*1024> memory{0xff};
 		Registers &registers_;
@@ -679,8 +864,8 @@ struct Memory {
 
 class IO {
 	public:
-		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
-			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), mda_(mda) {}
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
+			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), mda_(mda), fdc_(fdc) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			switch(port) {
@@ -755,9 +940,8 @@ class IO {
 					}
 				break;
 
-				case 0x03b8:	/* case 0x03b9:	case 0x03ba:	case 0x03bb:
-				case 0x03bc:	case 0x03bd:	case 0x03be:	case 0x03bf: */
-					mda_.write<8>(value);
+				case 0x03b8:
+					mda_.write<8>(uint8_t(value));
 				break;
 
 				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
@@ -767,9 +951,14 @@ class IO {
 					// Ignore CGA accesses.
 				break;
 
-				case 0x03f0:	case 0x03f1:	case 0x03f2:	case 0x03f3:
-				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
+				case 0x03f2:
+					fdc_.set_digital_output(uint8_t(value));
+				break;
+				case 0x03f4:
 					printf("TODO: FDC write of %02x at %04x\n", value, port);
+				break;
+				case 0x03f5:
+					fdc_.write(uint8_t(value));
 				break;
 
 				case 0x0278:	case 0x0279:	case 0x027a:
@@ -832,10 +1021,8 @@ class IO {
 					// Ignore parallel port accesses.
 				break;
 
-				case 0x03f0:	case 0x03f1:	case 0x03f2:	case 0x03f3:
-				case 0x03f4:	case 0x03f5:	case 0x03f6:	case 0x03f7:
-					printf("TODO: FDC read from %04x\n", port);
-				break;
+				case 0x03f4:	return fdc_.status();
+				case 0x03f5:	return fdc_.read();
 
 				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
 				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
@@ -857,6 +1044,7 @@ class IO {
 		PPI &ppi_;
 		PIC &pic_;
 		MDA &mda_;
+		FloppyController &fdc_;
 };
 
 class FlowController {
@@ -900,7 +1088,9 @@ class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::AudioProducer,
-	public MachineTypes::ScanProducer
+	public MachineTypes::ScanProducer,
+	public MachineTypes::MappedKeyboardMachine,
+	public Activity::Source
 {
 	public:
 		ConcreteMachine(
@@ -908,11 +1098,12 @@ class ConcreteMachine:
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) :
 			keyboard_(pic_),
+			fdc_(pic_, dma_),
 			pit_observer_(pic_, speaker_),
 			ppi_handler_(speaker_, keyboard_),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_, mda_)
+			context(pit_, dma_, ppi_, pic_, mda_, fdc_)
 		{
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
@@ -942,8 +1133,6 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
-//		bool log = false;
-//		std::string previous;
 		void run_for(const Cycles duration) override {
 			const auto pit_ticks = duration.as_integral();
 			cpu_divisor_ += pit_ticks;
@@ -1049,6 +1238,20 @@ class ConcreteMachine:
 			}
 		}
 
+		// MARK: - MappedKeyboardMachine.
+		MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
+		}
+
+		void set_key_state(uint16_t key, bool is_pressed) override {
+			keyboard_.post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
+		}
+
+		// MARK: - Activity::Source.
+		void set_activity_observer(Activity::Observer *observer) final {
+			fdc_.set_activity_observer(observer);
+		}
+
 	private:
 		PIC pic_;
 		DMA dma_;
@@ -1056,18 +1259,21 @@ class ConcreteMachine:
 		MDA mda_;
 
 		KeyboardController keyboard_;
+		FloppyController fdc_;
 		PITObserver pit_observer_;
 		i8255PortHandler ppi_handler_;
 
 		PIT pit_;
 		PPI ppi_;
 
+		PCCompatible::KeyboardMapper keyboard_mapper_;
+
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi, pic, mda)
+				io(pit, dma, ppi, pic, mda, fdc)
 			{
 				reset();
 			}
