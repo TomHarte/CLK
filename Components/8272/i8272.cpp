@@ -737,7 +737,7 @@ void i8272::posit_event(int event_type) {
 			{
 				int drive = command_.target().drive;
 				select_drive(drive);
-				result_stack_= {
+				result_stack_ = {
 					uint8_t(
 						(command_.drive_head()) |	// drive and head number
 						0x08 |						// single sided
