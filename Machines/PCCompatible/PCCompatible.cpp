@@ -53,7 +53,12 @@ class FloppyController {
 			// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 			// b3: 1 => enable DMA; 0 => disable;
 			// b2: 1 => enable FDC; 0 => hold at reset;
-			// b1, b0: drive select.
+			// b1, b0: drive select (usurps FDC?)
+
+			drives_[0].motor = control & 0x10;
+			drives_[1].motor = control & 0x20;
+			drives_[2].motor = control & 0x40;
+			drives_[3].motor = control & 0x80;
 
 			enable_dma_ = control & 0x08;
 
@@ -202,6 +207,7 @@ class FloppyController {
 			uint8_t status = 0;
 			uint8_t track = 0;
 			bool side = false;
+			bool motor = false;
 		} drives_[4];
 };
 
