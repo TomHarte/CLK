@@ -119,7 +119,7 @@ class FloppyController {
 						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
 						drives_[decoder_.target().drive].raised_interrupt = true;
-						drives_[decoder_.target().drive].status = decoder_.target().drive;
+						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
 						pic_.apply_edge<6>(true);
 					break;
 
@@ -129,7 +129,7 @@ class FloppyController {
 						drives_[decoder_.target().drive].side = decoder_.target().head;
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
-						drives_[decoder_.target().drive].status = decoder_.drive_head();
+						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
 						pic_.apply_edge<6>(true);
 					break;
 				}
