@@ -45,7 +45,13 @@ namespace PCCompatible {
 
 class FloppyController {
 	public:
-		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {}
+		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {
+			// Default: one floppy drive only.
+			drives_[0].exists = true;
+			drives_[1].exists = false;
+			drives_[2].exists = false;
+			drives_[3].exists = false;
+		}
 
 		void set_digital_output(uint8_t control) {
 //			printf("FDC DOR: %02x\n", control);
@@ -227,7 +233,9 @@ class FloppyController {
 		} drives_[4];
 
 		std::string drive_name(int c) const {
-			return std::string("Drive ") + std::to_string(c + 1);
+			char name[3] = "A";
+			name[0] += c;
+			return std::string("Drive ") + name;
 		}
 
 		Activity::Observer *observer_ = nullptr;
