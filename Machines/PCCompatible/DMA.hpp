@@ -13,7 +13,7 @@
 
 namespace PCCompatible {
 
-class DMA {
+class i8237 {
 	public:
 		void flip_flop_reset() {
 			next_access_low = true;
@@ -76,6 +76,41 @@ class DMA {
 		struct Channel {
 			CPU::RegisterPair16 address, count;
 		} channels_[4];
+};
+
+class DMAPages {
+	public:
+		template <int index>
+		void set_page(uint8_t value) {
+			pages_[page_for_index(index)] = value;
+		}
+
+		template <int index>
+		uint8_t page() {
+			return pages_[page_for_index(index)];
+		}
+
+		uint8_t channel_page(int channel) {
+			return pages_[channel];
+		}
+
+	private:
+		uint8_t pages_[8];
+
+		constexpr int page_for_index(int index) {
+			switch(index) {
+				case 7:		return 0;
+				case 3:		return 1;
+				case 1:		return 2;
+				case 2:		return 3;
+
+				default:
+				case 0:		return 4;
+				case 4:		return 5;
+				case 5:		return 6;
+				case 6:		return 7;
+			}
+		}
 };
 
 }

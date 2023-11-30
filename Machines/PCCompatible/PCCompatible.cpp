@@ -8,10 +8,10 @@
 
 #include "PCCompatible.hpp"
 
-#include "DMA.hpp"
 #include "KeyboardMapper.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
+#include "DMA.hpp"
 
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
@@ -47,6 +47,22 @@ namespace PCCompatible {
 
 //bool log = false;
 //std::string previous;
+
+struct Memory;
+
+class DMA {
+	public:
+		i8237 i8237;
+		DMAPages pages;
+
+		// Memory is set posthoc to resolve a startup time.
+		void set_memory(Memory *memory) {
+			memory_ = memory;
+		}
+
+	private:
+		Memory *memory_;
+};
 
 class FloppyController {
 	public:
@@ -106,9 +122,22 @@ class FloppyController {
 						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
-					case Command::ReadData:
+					case Command::ReadData: {
 						printf("FDC: Read %d:%d at %d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head);
-					break;
+
+						// Search for a matching sector.
+						const auto target = decoder_.geometry();
+						for(auto &pair: drives_[decoder_.target().drive].cached_track) {
+							if(
+								(pair.second.address.track == target.cylinder) &&
+								(pair.second.address.sector == target.sector) &&
+								(pair.second.address.side == target.head) &&
+								(pair.second.size == target.size)
+							) {
+								printf("");
+							}
+						}
+					} break;
 
 					case Command::Seek:
 						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
@@ -274,7 +303,7 @@ class FloppyController {
 			}
 		} drives_[4];
 
-		std::string drive_name(int c) const {
+		static std::string drive_name(int c) {
 			char name[3] = "A";
 			name[0] += c;
 			return std::string("Drive ") + name;
@@ -588,7 +617,7 @@ class PITObserver {
 	//	channel 1 is used for DRAM refresh (presumably connected to DMA?);
 	//	channel 2 is gated by a PPI output and feeds into the speaker.
 };
-using PIT = i8237<false, PITObserver>;
+using PIT = i8253<false, PITObserver>;
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
@@ -924,14 +953,14 @@ class IO {
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
-				case 0x0000:	dma_.write<0>(value);	break;
-				case 0x0001:	dma_.write<1>(value);	break;
-				case 0x0002:	dma_.write<2>(value);	break;
-				case 0x0003:	dma_.write<3>(value);	break;
-				case 0x0004:	dma_.write<4>(value);	break;
-				case 0x0005:	dma_.write<5>(value);	break;
-				case 0x0006:	dma_.write<6>(value);	break;
-				case 0x0007:	dma_.write<7>(value);	break;
+				case 0x0000:	dma_.i8237.write<0>(value);	break;
+				case 0x0001:	dma_.i8237.write<1>(value);	break;
+				case 0x0002:	dma_.i8237.write<2>(value);	break;
+				case 0x0003:	dma_.i8237.write<3>(value);	break;
+				case 0x0004:	dma_.i8237.write<4>(value);	break;
+				case 0x0005:	dma_.i8237.write<5>(value);	break;
+				case 0x0006:	dma_.i8237.write<6>(value);	break;
+				case 0x0007:	dma_.i8237.write<7>(value);	break;
 
 				case 0x0008:	case 0x0009:
 				case 0x000a:	case 0x000b:
@@ -939,8 +968,8 @@ class IO {
 					printf("TODO: DMA write of %02x at %04x\n", value, port);
 				break;
 
-				case 0x000d:	dma_.master_reset();	break;
-				case 0x000e:	dma_.mask_reset();		break;
+				case 0x000d:	dma_.i8237.master_reset();	break;
+				case 0x000e:	dma_.i8237.mask_reset();	break;
 
 				case 0x0020:	pic_.write<0>(value);	break;
 				case 0x0021:	pic_.write<1>(value);	break;
@@ -954,20 +983,22 @@ class IO {
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
-					ppi_.write(port, value);
+					ppi_.write(port, uint8_t(value));
 				break;
 
-				case 0x0080:	case 0x0081:	case 0x0082:	case 0x0083:
-				case 0x0084:	case 0x0085:	case 0x0086:	case 0x0087:
-				case 0x0088:	case 0x0089:	case 0x008a:	case 0x008b:
-				case 0x008c:	case 0x008d:	case 0x008e:	case 0x008f:
-					printf("TODO: DMA page write of %02x at %04x\n", value, port);
-				break;
+				case 0x0080:	dma_.pages.set_page<0>(uint8_t(value));	break;
+				case 0x0081:	dma_.pages.set_page<1>(uint8_t(value));	break;
+				case 0x0082:	dma_.pages.set_page<2>(uint8_t(value));	break;
+				case 0x0083:	dma_.pages.set_page<3>(uint8_t(value));	break;
+				case 0x0084:	dma_.pages.set_page<4>(uint8_t(value));	break;
+				case 0x0085:	dma_.pages.set_page<5>(uint8_t(value));	break;
+				case 0x0086:	dma_.pages.set_page<6>(uint8_t(value));	break;
+				case 0x0087:	dma_.pages.set_page<7>(uint8_t(value));	break;
 
 				case 0x03b0:	case 0x03b2:	case 0x03b4:	case 0x03b6:
 					if constexpr (std::is_same_v<IntT, uint16_t>) {
-						mda_.write<0>(value);
-						mda_.write<1>(value >> 8);
+						mda_.write<0>(uint8_t(value));
+						mda_.write<1>(uint8_t(value >> 8));
 					} else {
 						mda_.write<0>(value);
 					}
@@ -1027,14 +1058,14 @@ class IO {
 					printf("Unhandled in: %04x\n", port);
 				break;
 
-				case 0x0000:	return dma_.read<0>();
-				case 0x0001:	return dma_.read<1>();
-				case 0x0002:	return dma_.read<2>();
-				case 0x0003:	return dma_.read<3>();
-				case 0x0004:	return dma_.read<4>();
-				case 0x0005:	return dma_.read<5>();
-				case 0x0006:	return dma_.read<6>();
-				case 0x0007:	return dma_.read<7>();
+				case 0x0000:	return dma_.i8237.read<0>();
+				case 0x0001:	return dma_.i8237.read<1>();
+				case 0x0002:	return dma_.i8237.read<2>();
+				case 0x0003:	return dma_.i8237.read<3>();
+				case 0x0004:	return dma_.i8237.read<4>();
+				case 0x0005:	return dma_.i8237.read<5>();
+				case 0x0006:	return dma_.i8237.read<6>();
+				case 0x0007:	return dma_.i8237.read<7>();
 
 				case 0x0008:	case 0x0009:
 				case 0x000a:	case 0x000b:
@@ -1054,6 +1085,15 @@ class IO {
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
 				return ppi_.read(port);
+
+				case 0x0080:	return dma_.pages.page<0>();
+				case 0x0081:	return dma_.pages.page<1>();
+				case 0x0082:	return dma_.pages.page<2>();
+				case 0x0083:	return dma_.pages.page<3>();
+				case 0x0084:	return dma_.pages.page<4>();
+				case 0x0085:	return dma_.pages.page<5>();
+				case 0x0086:	return dma_.pages.page<6>();
+				case 0x0087:	return dma_.pages.page<7>();
 
 				case 0x0201:	break;		// Ignore game port.
 
@@ -1148,6 +1188,9 @@ class ConcreteMachine:
 			ppi_(ppi_handler_),
 			context(pit_, dma_, ppi_, pic_, mda_, fdc_)
 		{
+			// Set up DMA source/target.
+			dma_.set_memory(&context.memory);
+
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency));
