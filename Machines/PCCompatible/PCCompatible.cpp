@@ -962,9 +962,14 @@ class IO {
 				case 0x0006:	dma_.i8237.write<6>(value);	break;
 				case 0x0007:	dma_.i8237.write<7>(value);	break;
 
+				// TODO:	0x0008 -> command
+				// TODO:	0x0001 -> mask
+				// TODO:	0x000b -> mode
+				case 0x000c:	dma_.i8237.flip_flop_reset();	break;
+
 				case 0x0008:	case 0x0009:
 				case 0x000a:	case 0x000b:
-				case 0x000c:	case 0x000f:
+				case 0x000f:
 					printf("TODO: DMA write of %02x at %04x\n", value, port);
 				break;
 
