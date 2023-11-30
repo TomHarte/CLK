@@ -573,8 +573,8 @@ struct PCSpeaker {
 	}
 
 	void set_level() {
-		// TODO: eliminate complete guess of mixing function here.
-		const bool new_output = (pit_mask_ & pit_input_) ^ level_;
+		// TODO: I think pit_mask_ actually acts as the gate input to the PIT.
+		const bool new_output = (!pit_mask_ | pit_input_) & level_;
 
 		if(new_output != output_) {
 			update();
