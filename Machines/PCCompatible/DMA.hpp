@@ -29,7 +29,8 @@ class i8237 {
 			flip_flop_reset();
 			for(auto &channel : channels_) {
 				channel.mask = true;
-				channel.transfer_complete = channel.request = false;
+				channel.transfer_complete = true;
+				channel.request = false;
 			}
 		}
 
