@@ -30,7 +30,6 @@ class PIC {
 								//	(2) master interrupt attachment if this is a slave.
 							}
 							[[fallthrough]];
-						break;
 						case 2:
 							auto_eoi_ = value & 2;
 						break;
