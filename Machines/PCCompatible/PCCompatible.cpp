@@ -134,6 +134,8 @@ class FloppyController {
 					case Command::ReadData: {
 						printf("FDC: Read %d:%d at %d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head);
 
+						status_.begin(decoder_);
+
 						// Search for a matching sector.
 						const auto target = decoder_.geometry();
 						bool found_sector = false;
@@ -155,6 +157,12 @@ class FloppyController {
 								}
 
 								if(wrote_in_full) {
+									results_.serialise(
+										status_,
+										decoder_.geometry().cylinder,
+										decoder_.geometry().head,
+										decoder_.geometry().sector,
+										decoder_.geometry().size);
 								} else {
 								}
 
@@ -165,6 +173,7 @@ class FloppyController {
 						if(!found_sector) {
 						}
 
+						pic_.apply_edge<6>(true);
 					} break;
 
 					case Command::Seek:
@@ -220,10 +229,6 @@ class FloppyController {
 					break;
 				}
 
-				// Set interrupt upon the end of any valid command other than sense interrupt status.
-//				if(decoder_.command() != Command::SenseInterruptStatus && decoder_.command() != Command::Invalid) {
-//					pic_.apply_edge<6>(true);
-//				}
 				decoder_.clear();
 
 				// If there are any results to provide, set data direction and data ready.
