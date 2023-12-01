@@ -154,6 +154,7 @@ class FloppyController {
 
 								for(int c = 0; c < 128 << target.size; c++) {
 									if(!dma_.write(2, pair.second.samples[0].data()[c])) {
+										printf("FDC: DMA not permitted\n");
 										wrote_in_full = false;
 										break;
 									}
