@@ -164,6 +164,7 @@ class FloppyController {
 										decoder_.geometry().sector,
 										decoder_.geometry().size);
 								} else {
+									// TODO: Overrun, presumably?
 								}
 
 								break;
