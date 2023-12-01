@@ -171,6 +171,14 @@ class FloppyController {
 						}
 
 						if(!found_sector) {
+							// TODO: there's more than this, I think.
+							status_.set(Intel::i8272::Status0::AbnormalTermination);
+							results_.serialise(
+								status_,
+								decoder_.geometry().cylinder,
+								decoder_.geometry().head,
+								decoder_.geometry().sector,
+								decoder_.geometry().size);
 						}
 
 						pic_.apply_edge<6>(true);
