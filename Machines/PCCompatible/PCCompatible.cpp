@@ -953,28 +953,22 @@ class IO {
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
-				case 0x0000:	dma_.i8237.write<0>(value);	break;
-				case 0x0001:	dma_.i8237.write<1>(value);	break;
-				case 0x0002:	dma_.i8237.write<2>(value);	break;
-				case 0x0003:	dma_.i8237.write<3>(value);	break;
-				case 0x0004:	dma_.i8237.write<4>(value);	break;
-				case 0x0005:	dma_.i8237.write<5>(value);	break;
-				case 0x0006:	dma_.i8237.write<6>(value);	break;
-				case 0x0007:	dma_.i8237.write<7>(value);	break;
-
-				// TODO:	0x0008 -> command
-				// TODO:	0x000a -> mask
-				// TODO:	0x000b -> mode
-				case 0x000c:	dma_.i8237.flip_flop_reset();	break;
-
-				case 0x0008:	case 0x0009:
-				case 0x000a:	case 0x000b:
-				case 0x000f:
-					printf("TODO: DMA write of %02x at %04x\n", value, port);
-				break;
-
-				case 0x000d:	dma_.i8237.master_reset();	break;
-				case 0x000e:	dma_.i8237.mask_reset();	break;
+				case 0x0000:	dma_.i8237.write<0>(value);						break;
+				case 0x0001:	dma_.i8237.write<1>(value);						break;
+				case 0x0002:	dma_.i8237.write<2>(value);						break;
+				case 0x0003:	dma_.i8237.write<3>(value);						break;
+				case 0x0004:	dma_.i8237.write<4>(value);						break;
+				case 0x0005:	dma_.i8237.write<5>(value);						break;
+				case 0x0006:	dma_.i8237.write<6>(value);						break;
+				case 0x0007:	dma_.i8237.write<7>(value);						break;
+				case 0x0008:	dma_.i8237.set_command(uint8_t(value));			break;
+				case 0x0009:	dma_.i8237.set_reset_request(uint8_t(value));	break;
+				case 0x000a:	dma_.i8237.set_reset_mask(uint8_t(value));		break;
+				case 0x000b:	dma_.i8237.set_mode(uint8_t(value));			break;
+				case 0x000c:	dma_.i8237.flip_flop_reset();					break;
+				case 0x000d:	dma_.i8237.master_reset();						break;
+				case 0x000e:	dma_.i8237.mask_reset();						break;
+				case 0x000f:	dma_.i8237.set_mask(uint8_t(value));			break;
 
 				case 0x0020:	pic_.write<0>(value);	break;
 				case 0x0021:	pic_.write<1>(value);	break;
@@ -1072,7 +1066,9 @@ class IO {
 				case 0x0006:	return dma_.i8237.read<6>();
 				case 0x0007:	return dma_.i8237.read<7>();
 
-				case 0x0008:	case 0x0009:
+				case 0x0008:	return dma_.i8237.status();
+
+				case 0x0009:
 				case 0x000a:	case 0x000b:
 				case 0x000c:	case 0x000f:
 					printf("TODO: DMA read from %04x\n", port);
