@@ -46,6 +46,9 @@
 
 namespace PCCompatible {
 
+//bool log = false;
+//std::string previous;
+
 class DMA {
 	public:
 		i8237 controller;
@@ -108,7 +111,6 @@ class FloppyController {
 			if(!hold_reset && hold_reset_) {
 				// TODO: add a delay mechanism.
 				reset();
-//				log = true;
 			}
 			hold_reset_ = hold_reset;
 			if(hold_reset_) {
@@ -133,6 +135,7 @@ class FloppyController {
 
 					case Command::ReadData: {
 						printf("FDC: Read %d:%d at %d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head);
+//						log = true;
 
 						status_.begin(decoder_);
 
@@ -939,8 +942,12 @@ class FlowController {
 			registers_.ip() = address;
 		}
 
-		void halt() {}
-		void wait() {}
+		void halt() {
+			halted_ = true;
+		}
+		void wait() {
+			printf("WAIT ????\n");
+		}
 
 		void repeat_last() {
 			should_repeat_ = true;
@@ -954,10 +961,18 @@ class FlowController {
 			return should_repeat_;
 		}
 
+		void unhalt() {
+			halted_ = false;
+		}
+		bool halted() const {
+			return halted_;
+		}
+
 	private:
 		Registers &registers_;
 		Segments &segments_;
 		bool should_repeat_ = false;
+		bool halted_ = false;
 };
 
 class ConcreteMachine:
@@ -1058,10 +1073,16 @@ class ConcreteMachine:
 					}
 
 					// Signal interrupt.
+					context.flow_controller.unhalt();
 					InstructionSet::x86::interrupt(
 						pic_.acknowledge(),
 						context
 					);
+				}
+
+				// Do nothing if halted.
+				if(context.flow_controller.halted()) {
+					continue;
 				}
 
 				// Get the next thing to execute.
@@ -1079,8 +1100,6 @@ class ConcreteMachine:
 					}
 
 					context.registers.ip() += decoded.first;
-
-//					log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
 				} else {
 					context.flow_controller.begin_instruction();
 				}
@@ -1088,7 +1107,7 @@ class ConcreteMachine:
 //				if(log) {
 //					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
 //					if(next != previous) {
-//						std::cout << next << std::endl;
+//						std::cout << decoded_ip_ << " " << next << std::endl;
 //						previous = next;
 //					}
 //				}
