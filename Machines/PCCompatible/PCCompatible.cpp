@@ -134,7 +134,7 @@ class FloppyController {
 								(pair.second.address.side == target.head) &&
 								(pair.second.size == target.size)
 							) {
-								printf("");
+//								printf("");
 							}
 						}
 					} break;
