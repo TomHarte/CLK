@@ -181,6 +181,8 @@ class FloppyController {
 								decoder_.geometry().size);
 						}
 
+						drives_[decoder_.target().drive].status = decoder_.drive_head();
+						drives_[decoder_.target().drive].raised_interrupt = true;
 						pic_.apply_edge<6>(true);
 					} break;
 
