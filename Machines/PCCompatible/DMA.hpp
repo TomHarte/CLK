@@ -127,6 +127,37 @@ class i8237 {
 			return result;
 		}
 
+		//
+		// Interface for reading/writing via DMA.
+		//
+		static constexpr auto NotAvailable = uint32_t(~0);
+
+		/// Provides the next target address for @c channel if performing either a write (if @c is_write is @c true) or read (otherwise).
+		///
+		/// @returns Either a 16-bit address or @c NotAvailable if the requested channel isn't set up to perform a read or write at present.
+		uint32_t access(size_t channel, bool is_write) {
+			if(channels_[channel].transfer_complete) {
+				return NotAvailable;
+			}
+			if(is_write && channels_[channel].transfer != Channel::Transfer::Write) {
+				return NotAvailable;
+			}
+			if(!is_write && channels_[channel].transfer != Channel::Transfer::Read) {
+				return NotAvailable;
+			}
+
+			const auto address = channels_[channel].address.full;
+			channels_[channel].address.full += channels_[channel].address_decrement ? -1 : 1;
+
+			--channels_[channel].count.full;
+			channels_[channel].transfer_complete = (channels_[channel].count.full == 0xffff);
+			if(channels_[channel].transfer_complete) {
+				// TODO: _something_ with mode.
+			}
+
+			return address;
+		}
+
 	private:
 		// Low/high byte latch.
 		bool next_access_low_ = true;
@@ -173,7 +204,7 @@ class DMAPages {
 			return pages_[page_for_index(index)];
 		}
 
-		uint8_t channel_page(int channel) {
+		uint8_t channel_page(size_t channel) {
 			return pages_[channel];
 		}
 

@@ -1133,6 +1133,9 @@
 		4238200E2B17CBC800964EFE /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4238200F2B17CBC800964EFE /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		423820102B17CBC800964EFE /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
+		423820132B1A235200964EFE /* Memory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Memory.hpp; sourceTree = "<group>"; };
+		423820142B1A23C200964EFE /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
+		423820152B1A23E100964EFE /* Segments.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Segments.hpp; sourceTree = "<group>"; };
 		423BDC492AB24699008E37B6 /* 8088Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 8088Tests.mm; sourceTree = "<group>"; };
 		42437B342ACF02A9006DFED1 /* Flags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Flags.hpp; sourceTree = "<group>"; };
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
@@ -2383,11 +2386,14 @@
 			isa = PBXGroup;
 			children = (
 				425739372B051EA800B7D1E4 /* PCCompatible.cpp */,
-				425739362B051EA800B7D1E4 /* PCCompatible.hpp */,
-				4267A9C72B0C26FA008A59BB /* PIT.hpp */,
-				4267A9C82B0D4EC2008A59BB /* PIC.hpp */,
 				4267A9C92B0D4F17008A59BB /* DMA.hpp */,
 				4267A9CA2B111ED2008A59BB /* KeyboardMapper.hpp */,
+				423820132B1A235200964EFE /* Memory.hpp */,
+				425739362B051EA800B7D1E4 /* PCCompatible.hpp */,
+				4267A9C82B0D4EC2008A59BB /* PIC.hpp */,
+				4267A9C72B0C26FA008A59BB /* PIT.hpp */,
+				423820142B1A23C200964EFE /* Registers.hpp */,
+				423820152B1A23E100964EFE /* Segments.hpp */,
 			);
 			path = PCCompatible;
 			sourceTree = "<group>";
