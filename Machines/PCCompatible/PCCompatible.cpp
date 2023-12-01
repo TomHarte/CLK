@@ -8,10 +8,11 @@
 
 #include "PCCompatible.hpp"
 
-#include "DMA.hpp"
 #include "KeyboardMapper.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
+#include "DMA.hpp"
+#include "Memory.hpp"
 
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
@@ -48,6 +49,33 @@ namespace PCCompatible {
 //bool log = false;
 //std::string previous;
 
+class DMA {
+	public:
+		i8237 controller;
+		DMAPages pages;
+
+		// Memory is set posthoc to resolve a startup time.
+		void set_memory(Memory *memory) {
+			memory_ = memory;
+		}
+
+		// TODO: this permits only 8-bit DMA. Fix that.
+		bool write(size_t channel, uint8_t value) {
+			auto address = controller.access(channel, true);
+			if(address == i8237::NotAvailable) {
+				return false;
+			}
+
+			address |= uint32_t(pages.channel_page(channel) << 16);
+			*memory_->at(address) = value;
+
+			return true;
+		}
+
+	private:
+		Memory *memory_;
+};
+
 class FloppyController {
 	public:
 		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {
@@ -83,7 +111,6 @@ class FloppyController {
 			if(!hold_reset && hold_reset_) {
 				// TODO: add a delay mechanism.
 				reset();
-//				log = true;
 			}
 			hold_reset_ = hold_reset;
 			if(hold_reset_) {
@@ -106,9 +133,62 @@ class FloppyController {
 						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
-					case Command::ReadData:
+					case Command::ReadData: {
 						printf("FDC: Read %d:%d at %d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head);
-					break;
+//						log = true;
+
+						status_.begin(decoder_);
+
+						// Search for a matching sector.
+						const auto target = decoder_.geometry();
+						bool found_sector = false;
+						for(auto &pair: drives_[decoder_.target().drive].cached_track) {
+							if(
+								(pair.second.address.track == target.cylinder) &&
+								(pair.second.address.sector == target.sector) &&
+								(pair.second.address.side == target.head) &&
+								(pair.second.size == target.size)
+							) {
+								found_sector = true;
+								bool wrote_in_full = true;
+
+								for(int c = 0; c < 128 << target.size; c++) {
+									if(!dma_.write(2, pair.second.samples[0].data()[c])) {
+										wrote_in_full = false;
+										break;
+									}
+								}
+
+								if(wrote_in_full) {
+									results_.serialise(
+										status_,
+										decoder_.geometry().cylinder,
+										decoder_.geometry().head,
+										decoder_.geometry().sector,
+										decoder_.geometry().size);
+								} else {
+									// TODO: Overrun, presumably?
+								}
+
+								break;
+							}
+						}
+
+						if(!found_sector) {
+							// TODO: there's more than this, I think.
+							status_.set(Intel::i8272::Status0::AbnormalTermination);
+							results_.serialise(
+								status_,
+								decoder_.geometry().cylinder,
+								decoder_.geometry().head,
+								decoder_.geometry().sector,
+								decoder_.geometry().size);
+						}
+
+						drives_[decoder_.target().drive].status = decoder_.drive_head();
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						pic_.apply_edge<6>(true);
+					} break;
 
 					case Command::Seek:
 						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
@@ -163,10 +243,6 @@ class FloppyController {
 					break;
 				}
 
-				// Set interrupt upon the end of any valid command other than sense interrupt status.
-//				if(decoder_.command() != Command::SenseInterruptStatus && decoder_.command() != Command::Invalid) {
-//					pic_.apply_edge<6>(true);
-//				}
 				decoder_.clear();
 
 				// If there are any results to provide, set data direction and data ready.
@@ -274,7 +350,7 @@ class FloppyController {
 			}
 		} drives_[4];
 
-		std::string drive_name(int c) const {
+		static std::string drive_name(int c) {
 			char name[3] = "A";
 			name[0] += c;
 			return std::string("Drive ") + name;
@@ -544,8 +620,8 @@ struct PCSpeaker {
 	}
 
 	void set_level() {
-		// TODO: eliminate complete guess of mixing function here.
-		const bool new_output = (pit_mask_ & pit_input_) ^ level_;
+		// TODO: I think pit_mask_ actually acts as the gate input to the PIT.
+		const bool new_output = (!pit_mask_ | pit_input_) & level_;
 
 		if(new_output != output_) {
 			update();
@@ -588,7 +664,7 @@ class PITObserver {
 	//	channel 1 is used for DRAM refresh (presumably connected to DMA?);
 	//	channel 2 is gated by a PPI output and feeds into the speaker.
 };
-using PIT = i8237<false, PITObserver>;
+using PIT = i8253<false, PITObserver>;
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
@@ -653,257 +729,6 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
-struct Registers {
-	public:
-		static constexpr bool is_32bit = false;
-
-		uint8_t &al()	{	return ax_.halves.low;	}
-		uint8_t &ah()	{	return ax_.halves.high;	}
-		uint16_t &ax()	{	return ax_.full;		}
-
-		CPU::RegisterPair16 &axp()	{	return ax_;	}
-
-		uint8_t &cl()	{	return cx_.halves.low;	}
-		uint8_t &ch()	{	return cx_.halves.high;	}
-		uint16_t &cx()	{	return cx_.full;		}
-
-		uint8_t &dl()	{	return dx_.halves.low;	}
-		uint8_t &dh()	{	return dx_.halves.high;	}
-		uint16_t &dx()	{	return dx_.full;		}
-
-		uint8_t &bl()	{	return bx_.halves.low;	}
-		uint8_t &bh()	{	return bx_.halves.high;	}
-		uint16_t &bx()	{	return bx_.full;		}
-
-		uint16_t &sp()	{	return sp_;				}
-		uint16_t &bp()	{	return bp_;				}
-		uint16_t &si()	{	return si_;				}
-		uint16_t &di()	{	return di_;				}
-
-		uint16_t &ip()	{	return ip_;				}
-
-		uint16_t &es()		{	return es_;			}
-		uint16_t &cs()		{	return cs_;			}
-		uint16_t &ds()		{	return ds_;			}
-		uint16_t &ss()		{	return ss_;			}
-		uint16_t es() const	{	return es_;			}
-		uint16_t cs() const	{	return cs_;			}
-		uint16_t ds() const	{	return ds_;			}
-		uint16_t ss() const	{	return ss_;			}
-
-		void reset() {
-			cs_ = 0xffff;
-			ip_ = 0;
-		}
-
-	private:
-		CPU::RegisterPair16 ax_;
-		CPU::RegisterPair16 cx_;
-		CPU::RegisterPair16 dx_;
-		CPU::RegisterPair16 bx_;
-
-		uint16_t sp_;
-		uint16_t bp_;
-		uint16_t si_;
-		uint16_t di_;
-		uint16_t es_, cs_, ds_, ss_;
-		uint16_t ip_;
-};
-
-class Segments {
-	public:
-		Segments(const Registers &registers) : registers_(registers) {}
-
-		using Source = InstructionSet::x86::Source;
-
-		/// Posted by @c perform after any operation which *might* have affected a segment register.
-		void did_update(Source segment) {
-			switch(segment) {
-				default: break;
-				case Source::ES:	es_base_ = uint32_t(registers_.es()) << 4;	break;
-				case Source::CS:	cs_base_ = uint32_t(registers_.cs()) << 4;	break;
-				case Source::DS:	ds_base_ = uint32_t(registers_.ds()) << 4;	break;
-				case Source::SS:	ss_base_ = uint32_t(registers_.ss()) << 4;	break;
-			}
-		}
-
-		void reset() {
-			did_update(Source::ES);
-			did_update(Source::CS);
-			did_update(Source::DS);
-			did_update(Source::SS);
-		}
-
-		uint32_t es_base_, cs_base_, ds_base_, ss_base_;
-
-		bool operator ==(const Segments &rhs) const {
-			return
-				es_base_ == rhs.es_base_ &&
-				cs_base_ == rhs.cs_base_ &&
-				ds_base_ == rhs.ds_base_ &&
-				ss_base_ == rhs.ss_base_;
-		}
-
-	private:
-		const Registers &registers_;
-};
-
-// TODO: send writes to the ROM area off to nowhere.
-struct Memory {
-	public:
-		using AccessType = InstructionSet::x86::AccessType;
-
-		// Constructor.
-		Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {}
-
-		//
-		// Preauthorisation call-ins. Since only an 8088 is currently modelled, all accesses are implicitly authorised.
-		//
-		void preauthorise_stack_write([[maybe_unused]] uint32_t length) {}
-		void preauthorise_stack_read([[maybe_unused]] uint32_t length) {}
-		void preauthorise_read([[maybe_unused]] InstructionSet::x86::Source segment, [[maybe_unused]] uint16_t start, [[maybe_unused]] uint32_t length) {}
-		void preauthorise_read([[maybe_unused]] uint32_t start, [[maybe_unused]] uint32_t length) {}
-
-		//
-		// Access call-ins.
-		//
-
-		// Accesses an address based on segment:offset.
-		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
-			const uint32_t physical_address = address(segment, offset);
-
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
-				// to the start. So the 16-bit value will need to be a local cache.
-				if(offset == 0xffff) {
-					return split_word<type>(physical_address, address(segment, 0));
-				}
-			}
-
-			return access<IntT, type>(physical_address);
-		}
-
-		// Accesses an address based on physical location.
-		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
-			// Dispense with the single-byte case trivially.
-			if constexpr (std::is_same_v<IntT, uint8_t>) {
-				return memory[address];
-			} else if(address != 0xf'ffff) {
-				return *reinterpret_cast<IntT *>(&memory[address]);
-			} else {
-				return split_word<type>(address, 0);
-			}
-		}
-
-		template <typename IntT>
-		void write_back() {
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				if(write_back_address_[0] != NoWriteBack) {
-					memory[write_back_address_[0]] = write_back_value_ & 0xff;
-					memory[write_back_address_[1]] = write_back_value_ >> 8;
-					write_back_address_[0]  = 0;
-				}
-			}
-		}
-
-		//
-		// Direct write.
-		//
-		template <typename IntT>
-		void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
-			// Bytes can be written without further ado.
-			if constexpr (std::is_same_v<IntT, uint8_t>) {
-				memory[address(segment, offset) & 0xf'ffff] = value;
-				return;
-			}
-
-			// Words that straddle the segment end must be split in two.
-			if(offset == 0xffff) {
-				memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
-				memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
-				return;
-			}
-
-			const uint32_t target = address(segment, offset) & 0xf'ffff;
-
-			// Words that straddle the end of physical RAM must also be split in two.
-			if(target == 0xf'ffff) {
-				memory[0xf'ffff] = value & 0xff;
-				memory[0x0'0000] = value >> 8;
-				return;
-			}
-
-			// It's safe just to write then.
-			*reinterpret_cast<uint16_t *>(&memory[target]) = value;
-		}
-
-		//
-		// Helper for instruction fetch.
-		//
-		std::pair<const uint8_t *, size_t> next_code() {
-			const uint32_t start = segments_.cs_base_ + registers_.ip();
-			return std::make_pair(&memory[start], 0x10'000 - start);
-		}
-
-		std::pair<const uint8_t *, size_t> all() {
-			return std::make_pair(memory.data(), 0x10'000);
-		}
-
-		//
-		// External access.
-		//
-		void install(size_t address, const uint8_t *data, size_t length) {
-			std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
-		}
-
-		const uint8_t *at(uint32_t address) {
-			return &memory[address];
-		}
-
-	private:
-		std::array<uint8_t, 1024*1024> memory{0xff};
-		Registers &registers_;
-		const Segments &segments_;
-
-		uint32_t segment_base(InstructionSet::x86::Source segment) {
-			using Source = InstructionSet::x86::Source;
-			switch(segment) {
-				default:			return segments_.ds_base_;
-				case Source::ES:	return segments_.es_base_;
-				case Source::CS:	return segments_.cs_base_;
-				case Source::SS:	return segments_.ss_base_;
-			}
-		}
-
-		uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
-			return (segment_base(segment) + offset) & 0xf'ffff;
-		}
-
-		template <AccessType type>
-		typename InstructionSet::x86::Accessor<uint16_t, type>::type
-		split_word(uint32_t low_address, uint32_t high_address) {
-			if constexpr (is_writeable(type)) {
-				write_back_address_[0] = low_address;
-				write_back_address_[1] = high_address;
-
-				// Prepopulate only if this is a modify.
-				if constexpr (type == AccessType::ReadModifyWrite) {
-					write_back_value_ = uint16_t(memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8));
-				}
-
-				return write_back_value_;
-			} else {
-				return uint16_t(memory[low_address] | (memory[high_address] << 8));
-			}
-		}
-
-		static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
-		uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
-		uint16_t write_back_value_;
-};
-
 class IO {
 	public:
 		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
@@ -924,23 +749,22 @@ class IO {
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
-				case 0x0000:	dma_.write<0>(value);	break;
-				case 0x0001:	dma_.write<1>(value);	break;
-				case 0x0002:	dma_.write<2>(value);	break;
-				case 0x0003:	dma_.write<3>(value);	break;
-				case 0x0004:	dma_.write<4>(value);	break;
-				case 0x0005:	dma_.write<5>(value);	break;
-				case 0x0006:	dma_.write<6>(value);	break;
-				case 0x0007:	dma_.write<7>(value);	break;
-
-				case 0x0008:	case 0x0009:
-				case 0x000a:	case 0x000b:
-				case 0x000c:	case 0x000f:
-					printf("TODO: DMA write of %02x at %04x\n", value, port);
-				break;
-
-				case 0x000d:	dma_.master_reset();	break;
-				case 0x000e:	dma_.mask_reset();		break;
+				case 0x0000:	dma_.controller.write<0>(value);						break;
+				case 0x0001:	dma_.controller.write<1>(value);						break;
+				case 0x0002:	dma_.controller.write<2>(value);						break;
+				case 0x0003:	dma_.controller.write<3>(value);						break;
+				case 0x0004:	dma_.controller.write<4>(value);						break;
+				case 0x0005:	dma_.controller.write<5>(value);						break;
+				case 0x0006:	dma_.controller.write<6>(value);						break;
+				case 0x0007:	dma_.controller.write<7>(value);						break;
+				case 0x0008:	dma_.controller.set_command(uint8_t(value));			break;
+				case 0x0009:	dma_.controller.set_reset_request(uint8_t(value));		break;
+				case 0x000a:	dma_.controller.set_reset_mask(uint8_t(value));			break;
+				case 0x000b:	dma_.controller.set_mode(uint8_t(value));				break;
+				case 0x000c:	dma_.controller.flip_flop_reset();						break;
+				case 0x000d:	dma_.controller.master_reset();							break;
+				case 0x000e:	dma_.controller.mask_reset();							break;
+				case 0x000f:	dma_.controller.set_mask(uint8_t(value));				break;
 
 				case 0x0020:	pic_.write<0>(value);	break;
 				case 0x0021:	pic_.write<1>(value);	break;
@@ -954,20 +778,22 @@ class IO {
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
-					ppi_.write(port, value);
+					ppi_.write(port, uint8_t(value));
 				break;
 
-				case 0x0080:	case 0x0081:	case 0x0082:	case 0x0083:
-				case 0x0084:	case 0x0085:	case 0x0086:	case 0x0087:
-				case 0x0088:	case 0x0089:	case 0x008a:	case 0x008b:
-				case 0x008c:	case 0x008d:	case 0x008e:	case 0x008f:
-					printf("TODO: DMA page write of %02x at %04x\n", value, port);
-				break;
+				case 0x0080:	dma_.pages.set_page<0>(uint8_t(value));	break;
+				case 0x0081:	dma_.pages.set_page<1>(uint8_t(value));	break;
+				case 0x0082:	dma_.pages.set_page<2>(uint8_t(value));	break;
+				case 0x0083:	dma_.pages.set_page<3>(uint8_t(value));	break;
+				case 0x0084:	dma_.pages.set_page<4>(uint8_t(value));	break;
+				case 0x0085:	dma_.pages.set_page<5>(uint8_t(value));	break;
+				case 0x0086:	dma_.pages.set_page<6>(uint8_t(value));	break;
+				case 0x0087:	dma_.pages.set_page<7>(uint8_t(value));	break;
 
 				case 0x03b0:	case 0x03b2:	case 0x03b4:	case 0x03b6:
 					if constexpr (std::is_same_v<IntT, uint16_t>) {
-						mda_.write<0>(value);
-						mda_.write<1>(value >> 8);
+						mda_.write<0>(uint8_t(value));
+						mda_.write<1>(uint8_t(value >> 8));
 					} else {
 						mda_.write<0>(value);
 					}
@@ -1027,16 +853,18 @@ class IO {
 					printf("Unhandled in: %04x\n", port);
 				break;
 
-				case 0x0000:	return dma_.read<0>();
-				case 0x0001:	return dma_.read<1>();
-				case 0x0002:	return dma_.read<2>();
-				case 0x0003:	return dma_.read<3>();
-				case 0x0004:	return dma_.read<4>();
-				case 0x0005:	return dma_.read<5>();
-				case 0x0006:	return dma_.read<6>();
-				case 0x0007:	return dma_.read<7>();
+				case 0x0000:	return dma_.controller.read<0>();
+				case 0x0001:	return dma_.controller.read<1>();
+				case 0x0002:	return dma_.controller.read<2>();
+				case 0x0003:	return dma_.controller.read<3>();
+				case 0x0004:	return dma_.controller.read<4>();
+				case 0x0005:	return dma_.controller.read<5>();
+				case 0x0006:	return dma_.controller.read<6>();
+				case 0x0007:	return dma_.controller.read<7>();
 
-				case 0x0008:	case 0x0009:
+				case 0x0008:	return dma_.controller.status();
+
+				case 0x0009:
 				case 0x000a:	case 0x000b:
 				case 0x000c:	case 0x000f:
 					printf("TODO: DMA read from %04x\n", port);
@@ -1054,6 +882,15 @@ class IO {
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
 				return ppi_.read(port);
+
+				case 0x0080:	return dma_.pages.page<0>();
+				case 0x0081:	return dma_.pages.page<1>();
+				case 0x0082:	return dma_.pages.page<2>();
+				case 0x0083:	return dma_.pages.page<3>();
+				case 0x0084:	return dma_.pages.page<4>();
+				case 0x0085:	return dma_.pages.page<5>();
+				case 0x0086:	return dma_.pages.page<6>();
+				case 0x0087:	return dma_.pages.page<7>();
 
 				case 0x0201:	break;		// Ignore game port.
 
@@ -1105,8 +942,12 @@ class FlowController {
 			registers_.ip() = address;
 		}
 
-		void halt() {}
-		void wait() {}
+		void halt() {
+			halted_ = true;
+		}
+		void wait() {
+			printf("WAIT ????\n");
+		}
 
 		void repeat_last() {
 			should_repeat_ = true;
@@ -1120,10 +961,18 @@ class FlowController {
 			return should_repeat_;
 		}
 
+		void unhalt() {
+			halted_ = false;
+		}
+		bool halted() const {
+			return halted_;
+		}
+
 	private:
 		Registers &registers_;
 		Segments &segments_;
 		bool should_repeat_ = false;
+		bool halted_ = false;
 };
 
 class ConcreteMachine:
@@ -1148,6 +997,9 @@ class ConcreteMachine:
 			ppi_(ppi_handler_),
 			context(pit_, dma_, ppi_, pic_, mda_, fdc_)
 		{
+			// Set up DMA source/target.
+			dma_.set_memory(&context.memory);
+
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
 			set_clock_rate(double(pit_frequency));
@@ -1221,10 +1073,16 @@ class ConcreteMachine:
 					}
 
 					// Signal interrupt.
+					context.flow_controller.unhalt();
 					InstructionSet::x86::interrupt(
 						pic_.acknowledge(),
 						context
 					);
+				}
+
+				// Do nothing if halted.
+				if(context.flow_controller.halted()) {
+					continue;
 				}
 
 				// Get the next thing to execute.
@@ -1242,8 +1100,6 @@ class ConcreteMachine:
 					}
 
 					context.registers.ip() += decoded.first;
-
-//					log |= decoded.second.operation() == InstructionSet::x86::Operation::STI;
 				} else {
 					context.flow_controller.begin_instruction();
 				}
@@ -1251,7 +1107,7 @@ class ConcreteMachine:
 //				if(log) {
 //					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
 //					if(next != previous) {
-//						std::cout << next << std::endl;
+//						std::cout << decoded_ip_ << " " << next << std::endl;
 //						previous = next;
 //					}
 //				}

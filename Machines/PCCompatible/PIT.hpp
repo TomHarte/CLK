@@ -12,9 +12,9 @@
 namespace PCCompatible {
 
 template <bool is_8254, typename PITObserver>
-class i8237 {
+class i8253 {
 	public:
-		i8237(PITObserver &observer) : observer_(observer) {}
+		i8253(PITObserver &observer) : observer_(observer) {}
 
 		template <int channel> uint8_t read() {
 			return channels_[channel].read();

@@ -172,6 +172,8 @@ template <
 		default:
 			assert(false);
 
+		case Operation::Invalid:
+			// TODO: throw on higher-order processors.
 		case Operation::ESC:
 		case Operation::NOP:	return;
 
