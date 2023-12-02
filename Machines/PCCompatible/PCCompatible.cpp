@@ -134,7 +134,13 @@ class FloppyController {
 					break;
 
 					case Command::ReadData: {
-						printf("FDC: Read %d:%d at %d/%d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head, decoder_.geometry().sector);
+						printf("FDC: Read from drive %d / head %d / track %d of head %d / track %d / sector %d\n",
+							decoder_.target().drive,
+							decoder_.target().head,
+							drives_[decoder_.target().drive].track,
+							decoder_.geometry().head,
+							decoder_.geometry().cylinder,
+							decoder_.geometry().sector);
 //						log = true;
 
 						status_.begin(decoder_);
@@ -152,13 +158,17 @@ class FloppyController {
 								found_sector = true;
 								bool wrote_in_full = true;
 
+								printf("Writing data beginning: ");
 								for(int c = 0; c < 128 << target.size; c++) {
+									if(c < 8) printf("%02x ", pair.second.samples[0].data()[c]);
+
 									if(!dma_.write(2, pair.second.samples[0].data()[c])) {
 										printf("FDC: DMA not permitted\n");
 										wrote_in_full = false;
 										break;
 									}
 								}
+								printf("\n");
 
 								if(wrote_in_full) {
 									results_.serialise(
