@@ -53,6 +53,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/MSA.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/PCBooter.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/STX.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
@@ -179,9 +180,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (Enterprise/MS-DOS style)
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::Enterprise)			// IMG (Enterprise/MS-DOS style)
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::PCBooter>, TargetPlatform::PCCompatible)		// IMG (PC raw booter)
 	Format(	"ipf",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::IPF>,

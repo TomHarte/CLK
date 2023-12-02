@@ -136,9 +136,9 @@ class i8237 {
 		///
 		/// @returns Either a 16-bit address or @c NotAvailable if the requested channel isn't set up to perform a read or write at present.
 		uint32_t access(size_t channel, bool is_write) {
-			if(channels_[channel].transfer_complete) {
-				return NotAvailable;
-			}
+//			if(channels_[channel].transfer_complete) {
+//				return NotAvailable;
+//			}
 			if(is_write && channels_[channel].transfer != Channel::Transfer::Write) {
 				return NotAvailable;
 			}
