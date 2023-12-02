@@ -134,7 +134,7 @@ class FloppyController {
 					break;
 
 					case Command::ReadData: {
-						printf("FDC: Read %d:%d at %d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head);
+						printf("FDC: Read %d:%d at %d/%d/%d\n", decoder_.target().drive, decoder_.target().head, decoder_.geometry().cylinder, decoder_.geometry().head, decoder_.geometry().sector);
 //						log = true;
 
 						status_.begin(decoder_);
@@ -142,7 +142,7 @@ class FloppyController {
 						// Search for a matching sector.
 						const auto target = decoder_.geometry();
 						bool found_sector = false;
-						for(auto &pair: drives_[decoder_.target().drive].cached_track) {
+						for(auto &pair: drives_[decoder_.target().drive].sectors(decoder_.target().head)) {
 							if(
 								(pair.second.address.track == target.cylinder) &&
 								(pair.second.address.sector == target.sector) &&
@@ -168,6 +168,7 @@ class FloppyController {
 										decoder_.geometry().sector,
 										decoder_.geometry().size);
 								} else {
+									printf("FDC: didn't write in full\n");
 									// TODO: Overrun, presumably?
 								}
 
@@ -176,6 +177,7 @@ class FloppyController {
 						}
 
 						if(!found_sector) {
+							printf("FDC: sector not found\n");
 							// TODO: there's more than this, I think.
 							status_.set(Intel::i8272::Status0::AbnormalTermination);
 							results_.serialise(
@@ -194,8 +196,6 @@ class FloppyController {
 					case Command::Seek:
 						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
 						drives_[decoder_.target().drive].track = decoder_.seek_target();
-						drives_[decoder_.target().drive].side = decoder_.target().head;
-						drives_[decoder_.target().drive].cache_track();
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
@@ -204,7 +204,6 @@ class FloppyController {
 					case Command::Recalibrate:
 						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
-						drives_[decoder_.target().drive].cache_track();
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
@@ -317,38 +316,54 @@ class FloppyController {
 
 		Intel::i8272::CommandDecoder::SpecifySpecs specify_specs_;
 		struct DriveStatus {
-			bool raised_interrupt = false;
-			uint8_t status = 0;
-			uint8_t track = 0;
-			bool side = false;
-			bool motor = false;
-			bool exists = true;
+			public:
+				bool raised_interrupt = false;
+				uint8_t status = 0;
+				uint8_t track = 0;
+				bool motor = false;
+				bool exists = true;
 
-			std::shared_ptr<Storage::Disk::Disk> disk;
-			Storage::Encodings::MFM::SectorMap cached_track;
-			void cache_track() {
-				if(!disk) {
-					return;
+				std::shared_ptr<Storage::Disk::Disk> disk;
+
+				Storage::Encodings::MFM::SectorMap &sectors(bool side) {
+					if(cached.track == track && cached.side == side) {
+						return cached.sectors;
+					}
+
+					cached.track = track;
+					cached.side = side;
+					cached.sectors.clear();
+
+					if(!disk) {
+						return cached.sectors;
+					}
+
+					auto raw_track = disk->get_track_at_position(
+						Storage::Disk::Track::Address(
+							side,
+							Storage::Disk::HeadPosition(track)
+						)
+					);
+					if(!raw_track) {
+						return cached.sectors;
+					}
+
+					const bool is_double_density = true;	// TODO: use MFM flag here.
+					auto serialisation = Storage::Disk::track_serialisation(
+						*raw_track,
+						is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength
+					);
+					cached.sectors = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), is_double_density);
+					return cached.sectors;
 				}
-				cached_track.clear();
 
-				auto raw_track = disk->get_track_at_position(
-					Storage::Disk::Track::Address(
-						side,
-						Storage::Disk::HeadPosition(track)
-					)
-				);
-				if(!raw_track) {
-					return;
-				}
+			private:
+				struct {
+					uint8_t track = 0xff;
+					bool side;
+					Storage::Encodings::MFM::SectorMap sectors;
+				} cached;
 
-				const bool is_double_density = true;	// TODO: use MFM flag here.
-				auto serialisation = Storage::Disk::track_serialisation(
-					*raw_track,
-					is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength
-				);
-				cached_track = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), is_double_density);
-			}
 		} drives_[4];
 
 		static std::string drive_name(int c) {
@@ -1105,13 +1120,25 @@ class ConcreteMachine:
 					context.flow_controller.begin_instruction();
 				}
 
-//				if(log) {
-//					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
+/*				if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
+					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
 //					if(next != previous) {
-//						std::cout << decoded_ip_ << " " << next << std::endl;
+						std::cout << std::hex << decoded_ip_ << " " << next;
+
+						if(decoded.second.operation() == InstructionSet::x86::Operation::INT) {
+							std::cout << " dl:" << std::hex << +context.registers.dl() << "; ";
+							std::cout << "ah:" << std::hex << +context.registers.ah() << "; ";
+							std::cout << "ch:" << std::hex << +context.registers.ch() << "; ";
+							std::cout << "cl:" << std::hex << +context.registers.cl() << "; ";
+							std::cout << "dh:" << std::hex << +context.registers.dh() << "; ";
+							std::cout << "es:" << std::hex << +context.registers.es() << "; ";
+							std::cout << "bx:" << std::hex << +context.registers.bx();
+						}
+
+						std::cout << std::endl;
 //						previous = next;
 //					}
-//				}
+				}*/
 
 				// Execute it.
 				InstructionSet::x86::perform(
