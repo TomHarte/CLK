@@ -119,58 +119,75 @@ class FloppyController {
 						status_.begin(decoder_);
 
 						// Search for a matching sector.
-						const auto target = decoder_.geometry();
-						bool found_sector = false;
-						for(auto &pair: drives_[decoder_.target().drive].sectors(decoder_.target().head)) {
-							if(
-								(pair.second.address.track == target.cylinder) &&
-								(pair.second.address.sector == target.sector) &&
-								(pair.second.address.side == target.head) &&
-								(pair.second.size == target.size)
-							) {
-								found_sector = true;
-								bool wrote_in_full = true;
+						auto target = decoder_.geometry();
+//						bool found_sector = false;
 
-								printf("Writing data beginning: ");
-								for(int c = 0; c < 128 << target.size; c++) {
-									if(c < 8) printf("%02x ", pair.second.samples[0].data()[c]);
+						bool complete = false;
+						while(!complete) {
+							for(auto &pair: drives_[decoder_.target().drive].sectors(decoder_.target().head)) {
+								if(
+									(pair.second.address.track == target.cylinder) &&
+									(pair.second.address.sector == target.sector) &&
+									(pair.second.address.side == target.head) &&
+									(pair.second.size == target.size)
+								) {
+//									found_sector = true;
+//									bool wrote_in_full = true;
 
-									if(!dma_.write(2, pair.second.samples[0].data()[c])) {
-										printf("FDC: DMA not permitted\n");
-										wrote_in_full = false;
-										break;
+									printf("Writing data beginning: ");
+									for(int c = 0; c < 128 << target.size; c++) {
+										if(c < 8) printf("%02x ", pair.second.samples[0].data()[c]);
+
+										const auto access_result = dma_.write(2, pair.second.samples[0].data()[c]);
+										switch(access_result) {
+											default: break;
+											case AccessResult::NotAccepted:
+												printf("FDC: DMA not permitted\n");
+//												wrote_in_full = false;
+											break;
+											case AccessResult::AcceptedWithEOP:
+												complete = true;
+											break;
+										}
+										if(access_result != AccessResult::Accepted) {
+											break;
+										}
 									}
-								}
-								printf("\n");
 
-								if(wrote_in_full) {
-									results_.serialise(
-										status_,
-										decoder_.geometry().cylinder,
-										decoder_.geometry().head,
-										decoder_.geometry().sector,
-										decoder_.geometry().size);
-								} else {
-									printf("FDC: didn't write in full\n");
-									// TODO: Overrun, presumably?
-								}
+									++target.sector;	// TODO: multitrack?
+									printf("\n");
 
-								break;
+//									if(wrote_in_full) {
+//									} else {
+//										printf("FDC: didn't write in full\n");
+//										// TODO: Overrun, presumably?
+//									}
+
+									break;
+								}
 							}
 						}
 
-						if(!found_sector) {
-							printf("FDC: sector not found\n");
-							// TODO: there's more than this, I think.
-							status_.set(Intel::i8272::Status0::AbnormalTermination);
-							results_.serialise(
-								status_,
-								decoder_.geometry().cylinder,
-								decoder_.geometry().head,
-								decoder_.geometry().sector,
-								decoder_.geometry().size);
-						}
+						results_.serialise(
+							status_,
+							decoder_.geometry().cylinder,
+							decoder_.geometry().head,
+							decoder_.geometry().sector,
+							decoder_.geometry().size);
 
+//						if(!found_sector) {
+//							printf("FDC: sector not found\n");
+//							// TODO: there's more than this, I think.
+//							status_.set(Intel::i8272::Status0::AbnormalTermination);
+//							results_.serialise(
+//								status_,
+//								decoder_.geometry().cylinder,
+//								decoder_.geometry().head,
+//								decoder_.geometry().sector,
+//								decoder_.geometry().size);
+//						}
+
+						// TODO: what if head has changed?
 						drives_[decoder_.target().drive].status = decoder_.drive_head();
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						pic_.apply_edge<6>(true);

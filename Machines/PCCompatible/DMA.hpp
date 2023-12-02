@@ -15,6 +15,12 @@
 
 namespace PCCompatible {
 
+enum class AccessResult {
+	Accepted,
+	AcceptedWithEOP,
+	NotAccepted,
+};
+
 class i8237 {
 	public:
 		void flip_flop_reset() {
@@ -149,32 +155,38 @@ class i8237 {
 		//
 		// Interface for reading/writing via DMA.
 		//
-		static constexpr auto NotAvailable = uint32_t(~0);
 
 		/// Provides the next target address for @c channel if performing either a write (if @c is_write is @c true) or read (otherwise).
 		///
-		/// @returns Either a 16-bit address or @c NotAvailable if the requested channel isn't set up to perform a read or write at present.
-		uint32_t access(size_t channel, bool is_write) {
-//			if(channels_[channel].transfer_complete) {
-//				return NotAvailable;
-//			}
+		/// @returns A combined address and @c AccessResult.
+		std::pair<uint16_t, AccessResult> access(size_t channel, bool is_write) {
 			if(is_write && channels_[channel].transfer != Channel::Transfer::Write) {
-				return NotAvailable;
+				return std::make_pair(0, AccessResult::NotAccepted);
 			}
 			if(!is_write && channels_[channel].transfer != Channel::Transfer::Read) {
-				return NotAvailable;
+				return std::make_pair(0, AccessResult::NotAccepted);
 			}
 
 			const auto address = channels_[channel].address.full;
 			channels_[channel].address.full += channels_[channel].address_decrement ? -1 : 1;
 
 			--channels_[channel].count.full;
+
+			const bool was_complete = channels_[channel].transfer_complete;
 			channels_[channel].transfer_complete = (channels_[channel].count.full == 0xffff);
 			if(channels_[channel].transfer_complete) {
 				// TODO: _something_ with mode.
 			}
 
-			return address;
+			auto result = AccessResult::Accepted;
+			if(!was_complete && channels_[channel].transfer_complete) {
+				result = AccessResult::AcceptedWithEOP;
+			}
+			return std::make_pair(address, result);
+		}
+
+		void set_complete(size_t channel) {
+			channels_[channel].transfer_complete = true;
 		}
 
 	private:
@@ -257,16 +269,15 @@ class DMA {
 		}
 
 		// TODO: this permits only 8-bit DMA. Fix that.
-		bool write(size_t channel, uint8_t value) {
-			auto address = controller.access(channel, true);
-			if(address == i8237::NotAvailable) {
-				return false;
+		AccessResult write(size_t channel, uint8_t value) {
+			auto access = controller.access(channel, true);
+			if(access.second == AccessResult::NotAccepted) {
+				return access.second;
 			}
 
-			address |= uint32_t(pages.channel_page(channel) << 16);
+			const uint32_t address = uint32_t(pages.channel_page(channel) << 16) | access.first;
 			*memory_->at(address) = value;
-
-			return true;
+			return access.second;
 		}
 
 	private:
