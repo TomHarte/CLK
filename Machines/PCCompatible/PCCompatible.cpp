@@ -49,33 +49,6 @@ namespace PCCompatible {
 //bool log = false;
 //std::string previous;
 
-class DMA {
-	public:
-		i8237 controller;
-		DMAPages pages;
-
-		// Memory is set posthoc to resolve a startup time.
-		void set_memory(Memory *memory) {
-			memory_ = memory;
-		}
-
-		// TODO: this permits only 8-bit DMA. Fix that.
-		bool write(size_t channel, uint8_t value) {
-			auto address = controller.access(channel, true);
-			if(address == i8237::NotAvailable) {
-				return false;
-			}
-
-			address |= uint32_t(pages.channel_page(channel) << 16);
-			*memory_->at(address) = value;
-
-			return true;
-		}
-
-	private:
-		Memory *memory_;
-};
-
 class FloppyController {
 	public:
 		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {
