@@ -22,15 +22,28 @@ PCBooter::PCBooter(const std::string &file_name) :
 	switch(file_size) {
 		default: throw Error::InvalidFormat;
 
-		// Check for a single-sided, single-density 40-track image.
+		case 512 * 8 * 40:
+			head_count_ = 1;
+			track_count_ = 40;
+			sector_count_ = 8;
+		break;
+
 		case 512 * 9 * 40:
 			head_count_ = 1;
 			track_count_ = 40;
-			set_geometry(9, 2, 1, true);
+			sector_count_ = 9;
+		break;
+
+		case 512 * 9 * 40 * 2:
+			head_count_ = 2;
+			track_count_ = 40;
+			sector_count_ = 9;
 		break;
 	}
 
-	// TODO: check that an appropriate INT or similar is here?
+	set_geometry(sector_count_, 2, 1, true);
+
+	// TODO: check that an appropriate INT or similar is in the boot sector?
 	// Should probably factor out the "does this look like a PC boot sector?" test,
 	// as it can also be used to disambiguate FAT12 disks.
 }
@@ -44,5 +57,5 @@ int PCBooter::get_head_count() {
 }
 
 long PCBooter::get_file_offset_for_position(Track::Address address) {
-	return (address.position.as_int() * head_count_ + address.head) * 512 * 9;
+	return (address.position.as_int() * head_count_ + address.head) * 512 * sector_count_;
 }

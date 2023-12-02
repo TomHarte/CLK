@@ -30,6 +30,7 @@ class PCBooter: public MFMSectorDump {
 
 		int head_count_;
 		int track_count_;
+		int sector_count_;
 };
 
 }
