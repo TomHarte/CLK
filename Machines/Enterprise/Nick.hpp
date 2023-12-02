@@ -75,7 +75,7 @@ class Nick {
 		uint8_t lines_remaining_ = 0x00;
 		uint8_t two_colour_mask_ = 0xff;
 		int left_margin_ = 0, right_margin_ = 0;
-		const uint16_t *alt_ind_palettes[4];
+		const uint16_t *alt_ind_palettes[4] = {palette_, palette_, palette_, palette_};
 		enum class Mode {
 			Vsync,
 			Pixel,
