@@ -196,6 +196,7 @@ void Nick::run_for(Cycles duration) {
 						reload_line_parameter_pointer_ = ram_[line_parameter_pointer_ + 1] & 0x01;
 					break;
 
+					// TODO: is this interpreted live, or locked in here? Consider mid-line changes.
 					// Second slot: margins and ALT/IND bits.
 					case 1:
 						// Determine the margins.
