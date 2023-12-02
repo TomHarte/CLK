@@ -697,7 +697,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 			switch(port) {
 				case 0:
 //					printf("PPI: from keyboard\n");
-					return enable_keyboard_ ? keyboard_.read() : 0b0011'1100;
+					return enable_keyboard_ ? keyboard_.read() : 0b0011'1101;
 						// Guesses that switches is high and low combined as below.
 
 				case 2:
@@ -716,7 +716,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 							// b3, b2: RAM on motherboard (64 * bit pattern)
 							// b1: 1 => FPU present; 0 => absent;
 							// b0: 1 => floppy drive present; 0 => absent.
-							0b0000'1100;
+							0b0000'1101;
 			}
 			return 0;
 		};
