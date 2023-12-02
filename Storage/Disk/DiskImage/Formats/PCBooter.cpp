@@ -28,6 +28,12 @@ PCBooter::PCBooter(const std::string &file_name) :
 			sector_count_ = 8;
 		break;
 
+		case 512 * 8 * 40 * 2:
+			head_count_ = 2;
+			track_count_ = 40;
+			sector_count_ = 8;
+		break;
+
 		case 512 * 9 * 40:
 			head_count_ = 1;
 			track_count_ = 40;
