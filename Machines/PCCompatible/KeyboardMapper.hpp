@@ -84,18 +84,54 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 				case k::ForwardSlash:	return 53;
 				case k::RightShift:		return 54;
 
+				case k::KeypadAsterisk:	return 55;
+
 				case k::LeftOption:
 				case k::RightOption:	return 56;
 				case k::Space:			return 57;
 				case k::CapsLock:		return 58;
 
+				case k::F1:				return 59;
+				case k::F2:				return 60;
+				case k::F3:				return 61;
+				case k::F4:				return 62;
+				case k::F5:				return 63;
+				case k::F6:				return 64;
+				case k::F7:				return 65;
+				case k::F8:				return 66;
+				case k::F9:				return 67;
+				case k::F10:			return 68;
+
 				case k::NumLock:		return 69;
 				case k::ScrollLock:		return 70;
 
+				case k::Keypad7:		return 71;
+				case k::Up:
+				case k::Keypad8:		return 72;
+				case k::Keypad9:		return 73;
+				case k::KeypadMinus:	return 74;
+
+				case k::Left:
+				case k::Keypad4:		return 75;
+				case k::Keypad5:		return 76;
+				case k::Right:
+				case k::Keypad6:		return 77;
+				case k::KeypadPlus:		return 78;
+
+				case k::Keypad1:		return 79;
+				case k::Down:
+				case k::Keypad2:		return 80;
+				case k::Keypad3:		return 81;
+
+				case k::Keypad0:			return 82;
+				case k::KeypadDecimalPoint:	return 83;
+				/* TODO: SysReq = 84 */
+
+				case k::F11:			return 87;
+				case k::F12:			return 88;
+
 				default:	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 			}
-
-			// TODO: extended functions, including all F keys and cursors.
 		}
 };
 

@@ -359,12 +359,28 @@ class MachineDocument:
 	/// Synthesies appropriate key up and key down events upon any change in modifiers.
 	func flagsChanged(_ newModifiers: NSEvent) {
 		if let machine = self.machine {
-			machine.setKey(VK_Shift, characters: nil, isPressed: newModifiers.modifierFlags.contains(.shift))
-			machine.setKey(VK_Control, characters: nil, isPressed: newModifiers.modifierFlags.contains(.control))
-			machine.setKey(VK_Command, characters: nil, isPressed: newModifiers.modifierFlags.contains(.command))
-			machine.setKey(VK_Option, characters: nil, isPressed: newModifiers.modifierFlags.contains(.option))
+			if newModifiers.modifierFlags.contains(.shift) != shiftIsDown {
+				shiftIsDown = newModifiers.modifierFlags.contains(.shift)
+				machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown)
+			}
+			if newModifiers.modifierFlags.contains(.control) != controlIsDown {
+				controlIsDown = newModifiers.modifierFlags.contains(.control)
+				machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown)
+			}
+			if newModifiers.modifierFlags.contains(.command) != commandIsDown {
+				commandIsDown = newModifiers.modifierFlags.contains(.command)
+				machine.setKey(VK_Command, characters: nil, isPressed: commandIsDown)
+			}
+			if newModifiers.modifierFlags.contains(.option) != optionIsDown {
+				optionIsDown = newModifiers.modifierFlags.contains(.option)
+				machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown)
+			}
 		}
 	}
+	private var shiftIsDown = false
+	private var controlIsDown = false
+	private var commandIsDown = false
+	private var optionIsDown = false
 
 	/// Forwards mouse movement events to the mouse.
 	func mouseMoved(_ event: NSEvent) {
