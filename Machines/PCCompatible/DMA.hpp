@@ -13,6 +13,8 @@
 
 #include "Memory.hpp"
 
+#include <array>
+
 namespace PCCompatible {
 
 enum class AccessResult {

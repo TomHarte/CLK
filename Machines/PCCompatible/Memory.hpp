@@ -14,6 +14,8 @@
 
 #include "../../InstructionSets/x86/AccessType.hpp"
 
+#include <array>
+
 namespace PCCompatible {
 
 // TODO: send writes to the ROM area off to nowhere.
