@@ -71,7 +71,7 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 				case k::LeftShift:	return 42;
 				case k::Backslash:	return 43;
 
-				case k::Z:			return 55;
+				case k::Z:			return 44;
 				case k::X:			return 45;
 				case k::C:			return 46;
 				case k::V:			return 47;
