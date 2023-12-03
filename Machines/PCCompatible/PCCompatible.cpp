@@ -549,41 +549,50 @@ class MDA {
 						}
 					}
 
-					// TODO: cursor.
 					if(pixels) {
-						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-						uint8_t row = font[(glyph * 14) + state.row_address];
+						static constexpr uint8_t high_intensity = 0x0d;
+						static constexpr uint8_t low_intensity = 0x09;
+						static constexpr uint8_t off = 0x00;
 
-						const uint8_t intensity = (attributes & 0x08) ? 0x0d : 0x09;
-						uint8_t blank = 0;
-
-						// Handle irregular attributes.
-						// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
-						switch(attributes) {
-							case 0x00:	case 0x08:	case 0x80:	case 0x88:
-								row = 0;
-							break;
-							case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
-								row ^= 0xff;
-								blank = intensity;
-							break;
-						}
-
-						if(((attributes & 7) == 1) && state.row_address == 13) {
-							// Draw as underline.
-							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
+						if(state.cursor) {
+							pixel_pointer[0] =	pixel_pointer[1] =	pixel_pointer[2] =	pixel_pointer[3] =
+							pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
+							pixel_pointer[8] =	low_intensity;
 						} else {
-							// Draw according to ROM contents, possibly duplicating final column.
-							pixel_pointer[0] = (row & 0x80) ? intensity : 0;
-							pixel_pointer[1] = (row & 0x40) ? intensity : 0;
-							pixel_pointer[2] = (row & 0x20) ? intensity : 0;
-							pixel_pointer[3] = (row & 0x10) ? intensity : 0;
-							pixel_pointer[4] = (row & 0x08) ? intensity : 0;
-							pixel_pointer[5] = (row & 0x04) ? intensity : 0;
-							pixel_pointer[6] = (row & 0x02) ? intensity : 0;
-							pixel_pointer[7] = (row & 0x01) ? intensity : 0;
-							pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
+							const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
+							const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
+							uint8_t row = font[(glyph * 14) + state.row_address];
+
+							const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
+							uint8_t blank = off;
+
+							// Handle irregular attributes.
+							// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
+							switch(attributes) {
+								case 0x00:	case 0x08:	case 0x80:	case 0x88:
+									row = 0;
+								break;
+								case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
+									row ^= 0xff;
+									blank = intensity;
+								break;
+							}
+
+							if(((attributes & 7) == 1) && state.row_address == 13) {
+								// Draw as underline.
+								std::fill(pixel_pointer, pixel_pointer + 9, intensity);
+							} else {
+								// Draw according to ROM contents, possibly duplicating final column.
+								pixel_pointer[0] = (row & 0x80) ? intensity : off;
+								pixel_pointer[1] = (row & 0x40) ? intensity : off;
+								pixel_pointer[2] = (row & 0x20) ? intensity : off;
+								pixel_pointer[3] = (row & 0x10) ? intensity : off;
+								pixel_pointer[4] = (row & 0x08) ? intensity : off;
+								pixel_pointer[5] = (row & 0x04) ? intensity : off;
+								pixel_pointer[6] = (row & 0x02) ? intensity : off;
+								pixel_pointer[7] = (row & 0x01) ? intensity : off;
+								pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
+							}
 						}
 						pixel_pointer += 9;
 					}
