@@ -112,7 +112,7 @@ template <class T> class CRTC6845 {
 		void run_for(Cycles cycles) {
 			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
-				// check for end of visible characters
+				// Check for end of visible characters.
 				if(character_counter_ == registers_[1]) {
 					// TODO: consider skew in character_is_visible_. Or maybe defer until perform_bus_cycle?
 					character_is_visible_ = false;
@@ -122,23 +122,26 @@ template <class T> class CRTC6845 {
 				perform_bus_cycle_phase1();
 				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & 0x3fff;
 
-				// check for end-of-line
+				bus_state_.cursor = is_cursor_line_ &&
+					bus_state_.refresh_address == ((registers_[15] | (registers_[14] << 8))&0x3fff);
+
+				// Check for end-of-line.
 				if(character_counter_ == registers_[0]) {
 					character_counter_ = 0;
 					do_end_of_line();
 					character_is_visible_ = true;
 				} else {
-					// increment counter
+					// Increment counter.
 					character_counter_++;
 				}
 
-				// check for start of horizontal sync
+				// Check for start of horizontal sync.
 				if(character_counter_ == registers_[2]) {
 					hsync_counter_ = 0;
 					bus_state_.hsync = true;
 				}
 
-				// check for end of horizontal sync; note that a sync time of zero will result in an immediate
+				// Check for end of horizontal sync; note that a sync time of zero will result in an immediate
 				// cancellation of the plan to perform sync if this is an HD6845S or UM6845R; otherwise zero
 				// will end up counting as 16 as it won't be checked until after overflow.
 				if(bus_state_.hsync) {
@@ -176,10 +179,14 @@ template <class T> class CRTC6845 {
 		}
 
 		inline void do_end_of_line() {
-			// check for end of vertical sync
+			// Check for cursor disable.
+			// TODO: this is handled differently on the EGA, should I ever implement that.
+			is_cursor_line_ &= bus_state_.row_address != (registers_[11] & 0x1f);
+
+			// Check for end of vertical sync.
 			if(bus_state_.vsync) {
 				vsync_counter_ = (vsync_counter_ + 1) & 15;
-				// on the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
+				// On the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
 				// always use a vertical sync count of 16.
 				switch(personality_) {
 					case HD6845S:
@@ -199,12 +206,12 @@ template <class T> class CRTC6845 {
 					do_end_of_frame();
 				}
 			} else {
-				// advance vertical counter
+				// Advance vertical counter.
 				if(bus_state_.row_address == registers_[9]) {
 					bus_state_.row_address = 0;
 					line_address_ = end_of_line_address_;
 
-					// check for entry into the overflow area
+					// Check for entry into the overflow area.
 					if(line_counter_ == registers_[4]) {
 						if(registers_[5]) {
 							line_counter_ = 0;
@@ -215,13 +222,13 @@ template <class T> class CRTC6845 {
 					} else {
 						line_counter_ = (line_counter_ + 1) & 0x7f;
 
-						// check for start of vertical sync
+						// Check for start of vertical sync.
 						if(line_counter_ == registers_[7]) {
 							bus_state_.vsync = true;
 							vsync_counter_ = 0;
 						}
 
-						// check for end of visible lines
+						// Check for end of visible lines.
 						if(line_counter_ == registers_[6]) {
 							line_is_visible_ = false;
 						}
@@ -234,6 +241,9 @@ template <class T> class CRTC6845 {
 			bus_state_.refresh_address = line_address_;
 			character_counter_ = 0;
 			character_is_visible_ = (registers_[1] != 0);
+
+			// Check for cursor enable.
+			is_cursor_line_ |= bus_state_.row_address == (registers_[10] & 0x1f);
 		}
 
 		inline void do_end_of_frame() {
@@ -266,6 +276,8 @@ template <class T> class CRTC6845 {
 
 		int display_skew_mask_ = 1;
 		unsigned int character_is_visible_shifter_ = 0;
+
+		bool is_cursor_line_ = false;
 };
 
 }
