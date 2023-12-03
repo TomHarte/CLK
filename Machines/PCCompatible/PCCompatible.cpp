@@ -410,15 +410,22 @@ class KeyboardController {
 			}
 			reset_delay_ -= cycles.as<int>();
 			if(reset_delay_ <= 0) {
+				input_.clear();
 				post(0xaa);
 			}
 		}
 
 		uint8_t read() {
 			pic_.apply_edge<1>(false);
+			if(input_.empty()) {
+				return 0;
+			}
 
-			const uint8_t key = input_;
-			input_ = 0;
+			const uint8_t key = input_.front();
+			input_.erase(input_.begin());
+			if(!input_.empty()) {
+				pic_.apply_edge<1>(true);
+			}
 			return key;
 		}
 
@@ -426,7 +433,7 @@ class KeyboardController {
 			if(mode_ == Mode::NoIRQsIgnoreInput) {
 				return;
 			}
-			input_ = value;
+			input_.push_back(value);
 			pic_.apply_edge<1>(true);
 		}
 
@@ -438,7 +445,7 @@ class KeyboardController {
 			Reset = 0b00,
 		} mode_;
 
-		uint8_t input_ = 0;
+		std::vector<uint8_t> input_;
 		PIC &pic_;
 
 		int reset_delay_ = 0;
