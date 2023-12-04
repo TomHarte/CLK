@@ -98,9 +98,9 @@ Track::Event PCMTrack::get_next_event() {
 		// effect is an index hole
 		Time total_length = event.length;
 
-		// continue until somewhere no returning an index hole
+		// continue until somewhere not returning an index hole
 		while(event.type == Track::Event::IndexHole) {
-			// advance to the [start of] the next segment
+			// advance to [the start of] the next segment
 			segment_pointer_ = (segment_pointer_ + 1) % segment_event_sources_.size();
 			segment_event_sources_[segment_pointer_].reset();
 
