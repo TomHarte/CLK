@@ -269,13 +269,13 @@ class FloppyController {
 		}
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
-			if(drives_[drive].disk) {
-				// TODO: drive should only transition to unready if it was ready in the first place.
-				drives_[drive].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
-				drives_[drive].raised_interrupt = true;
-				pic_.apply_edge<6>(true);
-			}
-			drives_[drive].disk = disk;
+//			if(drives_[drive].has_disk()) {
+//				// TODO: drive should only transition to unready if it was ready in the first place.
+//				drives_[drive].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
+//				drives_[drive].raised_interrupt = true;
+//				pic_.apply_edge<6>(true);
+//			}
+			drives_[drive].set_disk(disk);
 		}
 
 	private:
@@ -317,7 +317,14 @@ class FloppyController {
 				bool motor = false;
 				bool exists = true;
 
-				std::shared_ptr<Storage::Disk::Disk> disk;
+				bool has_disk() const {
+					return bool(disk);
+				}
+
+				void set_disk(std::shared_ptr<Storage::Disk::Disk> image) {
+					disk = image;
+					cached.clear();
+				}
 
 				Storage::Encodings::MFM::SectorMap &sectors(bool side) {
 					if(cached.track == track && cached.side == side) {
@@ -356,7 +363,13 @@ class FloppyController {
 					uint8_t track = 0xff;
 					bool side;
 					Storage::Encodings::MFM::SectorMap sectors;
+
+					void clear() {
+						track = 0xff;
+						sectors.clear();
+					}
 				} cached;
+				std::shared_ptr<Storage::Disk::Disk> disk;
 
 		} drives_[4];
 
