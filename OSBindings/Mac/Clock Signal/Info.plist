@@ -55,7 +55,6 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>uef</string>
-				<string>uef.gz</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
