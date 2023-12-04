@@ -94,7 +94,7 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 		}
 
 		void set_register(uint8_t value) {
-			static uint8_t masks[] = {
+			static constexpr uint8_t masks[] = {
 				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
 				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
 			};
@@ -267,6 +267,8 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 						switch(registers_[10] >> 5) {
 							case 0b11: is_cursor_line_ &= (field_count_ & 15) < 5;	break;
 							case 0b00: is_cursor_line_ &= bool(field_count_ & 16);	break;
+							case 0b01: is_cursor_line_ = false;						break;
+							case 0b10: is_cursor_line_ = true;						break;
 							default: break;
 						}
 					break;
