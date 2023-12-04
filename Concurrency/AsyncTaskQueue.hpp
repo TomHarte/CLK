@@ -128,7 +128,7 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 					while(!should_quit_) {
 						// Wait for new actions to be signalled, and grab them.
 						std::unique_lock lock(condition_mutex_);
-						while(actions_.empty()) {
+						while(actions_.empty() && !should_quit_) {
 							condition_.wait(lock);
 						}
 						std::swap(actions, actions_);
