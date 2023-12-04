@@ -164,7 +164,7 @@ void DiskII::decide_clocking_preference() {
 	// If in sense-write-protect mode, clocking is just-in-time if the shift register hasn't yet filled with the value that
 	// corresponds to the current write protect status. Otherwise it is none.
 	if((inputs_ & ~input_flux) == input_command) {
-		clocking_preference_ = (shift_register_ == (is_write_protected() ? 0xff : 0x00)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+		clocking_preference_ = ((shift_register_ == (is_write_protected() ? 0xff : 0x00)) && ((state_ & 0xf) == 0xa || (state_ & 0xf) == 0xe)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 	}
 
 	// Announce a change if there was one.
