@@ -50,9 +50,22 @@ enum Personality {
 	AMS40226	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
 };
 
+// https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
+// register is really card specific".
+//
+// This enum captures those specifics.
+enum CursorType {
+	/// No cursor signal is generated.
+	None,
+	/// MDA style: 00 => symmetric blinking; 01 or 10 => no blinking; 11 => short on, long off.
+	MDA,
+	/// EGA style: ignore the bits completely.
+	EGA,
+};
+
 // TODO UM6845R and R12/R13; see http://www.cpcwiki.eu/index.php/CRTC#CRTC_Differences
 
-template <class T> class CRTC6845 {
+template <class T, CursorType cursor> class CRTC6845 {
 	public:
 
 		CRTC6845(Personality p, T &bus_handler) noexcept :

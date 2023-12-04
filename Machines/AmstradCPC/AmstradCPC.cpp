@@ -585,6 +585,7 @@ class CRTCBusHandler {
 
 		InterruptTimer &interrupt_timer_;
 };
+using CRTC = Motorola::CRTC::CRTC6845<CRTCBusHandler, Motorola::CRTC::CursorType::None>;
 
 /*!
 	Holds and vends the current keyboard state, acting as the AY's port handler.
@@ -683,7 +684,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
 		i8255PortHandler(
 			KeyboardState &key_state,
-			const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc,
+			const CRTC &crtc,
 			AYDeferrer &ay,
 			Storage::Tape::BinaryTapePlayer &tape_player) :
 				ay_(ay),
@@ -742,7 +743,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 	private:
 		AYDeferrer &ay_;
-		const Motorola::CRTC::CRTC6845<CRTCBusHandler> &crtc_;
+		const CRTC &crtc_;
 		KeyboardState &key_state_;
 		Storage::Tape::BinaryTapePlayer &tape_player_;
 };
@@ -1219,7 +1220,7 @@ template <bool has_fdc> class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, true> z80_;
 
 		CRTCBusHandler crtc_bus_handler_;
-		Motorola::CRTC::CRTC6845<CRTCBusHandler> crtc_;
+		CRTC crtc_;
 
 		AYDeferrer ay_;
 		i8255PortHandler i8255_port_handler_;
