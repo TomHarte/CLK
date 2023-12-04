@@ -50,9 +50,22 @@ enum Personality {
 	AMS40226	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
 };
 
+// https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
+// register is really card specific".
+//
+// This enum captures those specifics.
+enum CursorType {
+	/// No cursor signal is generated.
+	None,
+	/// MDA style: 00 => symmetric blinking; 01 or 10 => no blinking; 11 => short on, long off.
+	MDA,
+	/// EGA style: ignore the bits completely.
+	EGA,
+};
+
 // TODO UM6845R and R12/R13; see http://www.cpcwiki.eu/index.php/CRTC#CRTC_Differences
 
-template <class T> class CRTC6845 {
+template <class T, CursorType cursor_type> class CRTC6845 {
 	public:
 
 		CRTC6845(Personality p, T &bus_handler) noexcept :
@@ -123,7 +136,7 @@ template <class T> class CRTC6845 {
 				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & 0x3fff;
 
 				bus_state_.cursor = is_cursor_line_ &&
-					bus_state_.refresh_address == ((registers_[15] | (registers_[14] << 8))&0x3fff);
+					bus_state_.refresh_address == (registers_[15] | (registers_[14] << 8));
 
 				// Check for end-of-line.
 				if(character_counter_ == registers_[0]) {
@@ -179,9 +192,11 @@ template <class T> class CRTC6845 {
 		}
 
 		inline void do_end_of_line() {
-			// Check for cursor disable.
-			// TODO: this is handled differently on the EGA, should I ever implement that.
-			is_cursor_line_ &= bus_state_.row_address != (registers_[11] & 0x1f);
+			if constexpr (cursor_type != CursorType::None) {
+				// Check for cursor disable.
+				// TODO: this is handled differently on the EGA, should I ever implement that.
+				is_cursor_line_ &= bus_state_.row_address != (registers_[11] & 0x1f);
+			}
 
 			// Check for end of vertical sync.
 			if(bus_state_.vsync) {
@@ -242,8 +257,21 @@ template <class T> class CRTC6845 {
 			character_counter_ = 0;
 			character_is_visible_ = (registers_[1] != 0);
 
-			// Check for cursor enable.
-			is_cursor_line_ |= bus_state_.row_address == (registers_[10] & 0x1f);
+			if constexpr (cursor_type != CursorType::None) {
+				// Check for cursor enable.
+				is_cursor_line_ |= bus_state_.row_address == (registers_[10] & 0x1f);
+
+				switch(cursor_type) {
+					// MDA-style blinking; timings are a bit of a guess for now.
+					case CursorType::MDA:
+						switch(registers_[10] >> 5) {
+							case 0b11: is_cursor_line_ &= (field_count_ & 15) < 5;	break;
+							case 0b00: is_cursor_line_ &= bool(field_count_ & 16);	break;
+							default: break;
+						}
+					break;
+				}
+			}
 		}
 
 		inline void do_end_of_frame() {
@@ -251,6 +279,9 @@ template <class T> class CRTC6845 {
 			line_is_visible_ = true;
 			line_address_ = uint16_t((registers_[12] << 8) | registers_[13]);
 			bus_state_.refresh_address = line_address_;
+			if constexpr (cursor_type != CursorType::None) {
+				++field_count_;
+			}
 		}
 
 		Personality personality_;
@@ -278,6 +309,8 @@ template <class T> class CRTC6845 {
 		unsigned int character_is_visible_shifter_ = 0;
 
 		bool is_cursor_line_ = false;
+
+		int field_count_ = 0;
 };
 
 }

@@ -625,7 +625,7 @@ class MDA {
 			const uint8_t *ram = nullptr;
 			std::vector<uint8_t> font;
 		} outputter_;
-		Motorola::CRTC::CRTC6845<CRTCOutputter> crtc_;
+		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
 		int full_clock_;
 };
@@ -885,14 +885,14 @@ class IO {
 					printf("Unhandled in: %04x\n", port);
 				break;
 
-				case 0x0000:	return dma_.controller.read<0>();
-				case 0x0001:	return dma_.controller.read<1>();
-				case 0x0002:	return dma_.controller.read<2>();
-				case 0x0003:	return dma_.controller.read<3>();
-				case 0x0004:	return dma_.controller.read<4>();
-				case 0x0005:	return dma_.controller.read<5>();
-				case 0x0006:	return dma_.controller.read<6>();
-				case 0x0007:	return dma_.controller.read<7>();
+				case 0x0000:	return dma_.controller.template read<0>();
+				case 0x0001:	return dma_.controller.template read<1>();
+				case 0x0002:	return dma_.controller.template read<2>();
+				case 0x0003:	return dma_.controller.template read<3>();
+				case 0x0004:	return dma_.controller.template read<4>();
+				case 0x0005:	return dma_.controller.template read<5>();
+				case 0x0006:	return dma_.controller.template read<6>();
+				case 0x0007:	return dma_.controller.template read<7>();
 
 				case 0x0008:	return dma_.controller.status();
 
