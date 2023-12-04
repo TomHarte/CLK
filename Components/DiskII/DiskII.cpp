@@ -149,7 +149,7 @@ void DiskII::decide_clocking_preference() {
 	//	none, given that drives are not running, the shift register has already emptied or stopped and there's no flux about to be received.
 	if(!(inputs_ & ~input_flux)) {
 		const bool is_stuck_at_nop =
-			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6)] == state_ && (state_ &0xf) == 0x8;
+			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_ & 0x80) >> 6)] == state_ && ((state_ & 0xf) == 0x8 || (state_ & 0xf) == 0xc);
 
 		clocking_preference_ =
 			(drive_is_sleeping_[0] && drive_is_sleeping_[1] && (!shift_register_ || is_stuck_at_nop) && (inputs_&input_flux))
