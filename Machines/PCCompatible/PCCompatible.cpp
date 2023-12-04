@@ -114,16 +114,15 @@ class FloppyController {
 							decoder_.geometry().head,
 							decoder_.geometry().cylinder,
 							decoder_.geometry().sector);
-//						log = true;
 
 						status_.begin(decoder_);
 
 						// Search for a matching sector.
 						auto target = decoder_.geometry();
-//						bool found_sector = false;
-
 						bool complete = false;
 						while(!complete) {
+							bool found_sector = false;
+
 							for(auto &pair: drives_[decoder_.target().drive].sectors(decoder_.target().head)) {
 								if(
 									(pair.second.address.track == target.cylinder) &&
@@ -131,19 +130,15 @@ class FloppyController {
 									(pair.second.address.side == target.head) &&
 									(pair.second.size == target.size)
 								) {
-//									found_sector = true;
-//									bool wrote_in_full = true;
+									found_sector = true;
+									bool wrote_in_full = true;
 
-									printf("Writing data beginning: ");
 									for(int c = 0; c < 128 << target.size; c++) {
-										if(c < 8) printf("%02x ", pair.second.samples[0].data()[c]);
-
 										const auto access_result = dma_.write(2, pair.second.samples[0].data()[c]);
 										switch(access_result) {
 											default: break;
 											case AccessResult::NotAccepted:
-												printf("FDC: DMA not permitted\n");
-//												wrote_in_full = false;
+												wrote_in_full = false;
 											break;
 											case AccessResult::AcceptedWithEOP:
 												complete = true;
@@ -154,17 +149,22 @@ class FloppyController {
 										}
 									}
 
-									++target.sector;	// TODO: multitrack?
-									printf("\n");
+									if(!wrote_in_full) {
+										status_.set(Intel::i8272::Status1::OverRun);
+										status_.set(Intel::i8272::Status0::AbnormalTermination);
+										break;
+									}
 
-//									if(wrote_in_full) {
-//									} else {
-//										printf("FDC: didn't write in full\n");
-//										// TODO: Overrun, presumably?
-//									}
+									++target.sector;	// TODO: multitrack?
 
 									break;
 								}
+							}
+
+							if(!found_sector) {
+								status_.set(Intel::i8272::Status1::EndOfCylinder);
+								status_.set(Intel::i8272::Status0::AbnormalTermination);
+								break;
 							}
 						}
 
@@ -174,18 +174,6 @@ class FloppyController {
 							decoder_.geometry().head,
 							decoder_.geometry().sector,
 							decoder_.geometry().size);
-
-//						if(!found_sector) {
-//							printf("FDC: sector not found\n");
-//							// TODO: there's more than this, I think.
-//							status_.set(Intel::i8272::Status0::AbnormalTermination);
-//							results_.serialise(
-//								status_,
-//								decoder_.geometry().cylinder,
-//								decoder_.geometry().head,
-//								decoder_.geometry().sector,
-//								decoder_.geometry().size);
-//						}
 
 						// TODO: what if head has changed?
 						drives_[decoder_.target().drive].status = decoder_.drive_head();
@@ -281,7 +269,13 @@ class FloppyController {
 		}
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
-			drives_[drive].disk = disk;
+//			if(drives_[drive].has_disk()) {
+//				// TODO: drive should only transition to unready if it was ready in the first place.
+//				drives_[drive].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
+//				drives_[drive].raised_interrupt = true;
+//				pic_.apply_edge<6>(true);
+//			}
+			drives_[drive].set_disk(disk);
 		}
 
 	private:
@@ -323,7 +317,14 @@ class FloppyController {
 				bool motor = false;
 				bool exists = true;
 
-				std::shared_ptr<Storage::Disk::Disk> disk;
+				bool has_disk() const {
+					return bool(disk);
+				}
+
+				void set_disk(std::shared_ptr<Storage::Disk::Disk> image) {
+					disk = image;
+					cached.clear();
+				}
 
 				Storage::Encodings::MFM::SectorMap &sectors(bool side) {
 					if(cached.track == track && cached.side == side) {
@@ -362,7 +363,13 @@ class FloppyController {
 					uint8_t track = 0xff;
 					bool side;
 					Storage::Encodings::MFM::SectorMap sectors;
+
+					void clear() {
+						track = 0xff;
+						sectors.clear();
+					}
 				} cached;
+				std::shared_ptr<Storage::Disk::Disk> disk;
 
 		} drives_[4];
 
@@ -833,8 +840,8 @@ class IO {
 
 				case 0x03b1:	case 0x03b3:	case 0x03b5:	case 0x03b7:
 					if constexpr (std::is_same_v<IntT, uint16_t>) {
-						mda_.write<1>(value);
-						mda_.write<0>(value >> 8);
+						mda_.write<1>(uint8_t(value));
+						mda_.write<0>(uint8_t(value >> 8));
 					} else {
 						mda_.write<1>(value);
 					}
