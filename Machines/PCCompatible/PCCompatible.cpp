@@ -477,7 +477,7 @@ class MDA {
 
 		template <int address>
 		void write(uint8_t value) {
-			if constexpr (address & 0x8) {
+			if constexpr (!!(address & 0x8)) {
 				outputter_.set_control(value);
 			} else {
 				if constexpr (address & 0x1) {
@@ -490,7 +490,7 @@ class MDA {
 
 		template <int address>
 		uint8_t read() {
-			if constexpr (address & 0x8) {
+			if constexpr (!!(address & 0x8)) {
 				return outputter_.control();
 			} else {
 				return crtc_.get_register();
