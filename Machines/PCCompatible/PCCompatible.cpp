@@ -181,20 +181,20 @@ class FloppyController {
 						pic_.apply_edge<6>(true);
 					} break;
 
-					case Command::Seek:
-						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
-						drives_[decoder_.target().drive].track = decoder_.seek_target();
-
-						drives_[decoder_.target().drive].raised_interrupt = true;
-						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
-						pic_.apply_edge<6>(true);
-					break;
 					case Command::Recalibrate:
 						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+						pic_.apply_edge<6>(true);
+					break;
+					case Command::Seek:
+						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
+						drives_[decoder_.target().drive].track = decoder_.seek_target();
+
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
 						pic_.apply_edge<6>(true);
 					break;
 
@@ -215,7 +215,7 @@ class FloppyController {
 							any_remaining_interrupts |= drives_[c].raised_interrupt;
 						}
 						if(!any_remaining_interrupts) {
-							pic_.apply_edge<6>(any_remaining_interrupts);
+							pic_.apply_edge<6>(false);
 						}
 					} break;
 					case Command::Specify:
@@ -504,7 +504,7 @@ class MDA {
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() / 4.0f;
+			return outputter_.crt.get_scaled_scan_status() * 9.0f / 14.0f;
 		}
 
 	private:
