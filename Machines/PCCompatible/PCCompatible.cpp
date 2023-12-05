@@ -181,20 +181,20 @@ class FloppyController {
 						pic_.apply_edge<6>(true);
 					} break;
 
-					case Command::Seek:
-						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
-						drives_[decoder_.target().drive].track = decoder_.seek_target();
-
-						drives_[decoder_.target().drive].raised_interrupt = true;
-						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
-						pic_.apply_edge<6>(true);
-					break;
 					case Command::Recalibrate:
 						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+						pic_.apply_edge<6>(true);
+					break;
+					case Command::Seek:
+						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
+						drives_[decoder_.target().drive].track = decoder_.seek_target();
+
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
 						pic_.apply_edge<6>(true);
 					break;
 
@@ -215,7 +215,7 @@ class FloppyController {
 							any_remaining_interrupts |= drives_[c].raised_interrupt;
 						}
 						if(!any_remaining_interrupts) {
-							pic_.apply_edge<6>(any_remaining_interrupts);
+							pic_.apply_edge<6>(false);
 						}
 					} break;
 					case Command::Specify:
@@ -478,7 +478,7 @@ class MDA {
 		template <int address>
 		void write(uint8_t value) {
 			if constexpr (address & 0x8) {
-				printf("TODO: write MDA control %02x\n", value);
+				outputter_.set_control(value);
 			} else {
 				if constexpr (address & 0x1) {
 					crtc_.set_register(value);
@@ -491,8 +491,7 @@ class MDA {
 		template <int address>
 		uint8_t read() {
 			if constexpr (address & 0x8) {
-				printf("TODO: read MDA control\n");
-				return 0xff;
+				return outputter_.control();
 			} else {
 				return crtc_.get_register();
 			}
@@ -505,7 +504,7 @@ class MDA {
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() / 4.0f;
+			return outputter_.crt.get_scaled_scan_status() * 9.0f / 14.0f;
 		}
 
 	private:
@@ -519,11 +518,22 @@ class MDA {
 				crt.set_display_type(Outputs::Display::DisplayType::RGB);
 			}
 
+			void set_control(uint8_t control) {
+				// b0: 'high resolution' (probably breaks if not 1)
+				// b3: video enable
+				// b5: enable blink
+				control_ = control;
+			}
+
+			uint8_t control() {
+				return control_;
+			}
+
 			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
 				// Determine new output state.
 				const OutputState new_state =
 					(state.hsync | state.vsync) ? OutputState::Sync :
-						(state.display_enable ? OutputState::Pixels : OutputState::Border);
+						((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
 
 				// Upon either a state change or just having accumulated too much local time...
 				if(new_state != output_state || count > 882) {
@@ -585,6 +595,12 @@ class MDA {
 								break;
 							}
 
+							// Apply blink if enabled.
+							if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
+								row ^= 0xff;
+								blank = (blank == off) ? intensity : off;
+							}
+
 							if(((attributes & 7) == 1) && state.row_address == 13) {
 								// Draw as underline.
 								std::fill(pixel_pointer, pixel_pointer + 9, intensity);
@@ -631,6 +647,8 @@ class MDA {
 
 			const uint8_t *ram = nullptr;
 			std::vector<uint8_t> font;
+
+			uint8_t control_ = 0;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
@@ -941,6 +959,8 @@ class IO {
 
 				case 0x03f4:	return fdc_.status();
 				case 0x03f5:	return fdc_.read();
+
+				case 0x03b8:	return mda_.read<8>();
 
 				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
 				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
