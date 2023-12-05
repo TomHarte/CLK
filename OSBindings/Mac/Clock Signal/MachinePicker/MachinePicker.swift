@@ -63,6 +63,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var oricModelTypeButton: NSPopUpButton!
 	@IBOutlet var oricDiskInterfaceButton: NSPopUpButton!
 
+	// MARK: - PC compatible properties
+	@IBOutlet var pcVideoAdaptorButton: NSPopUpButton!
+
 	// MARK: - Spectrum properties
 	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
 
@@ -150,6 +153,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		oricDiskInterfaceButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
 		oricModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
 
+		// PC settings
+		pcVideoAdaptorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcVideoAdaptor"))
+
 		// Spectrum settings
 		spectrumModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.spectrumModel"))
 
@@ -215,6 +221,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		// Oric settings
 		standardUserDefaults.set(oricDiskInterfaceButton.selectedTag(), forKey: "new.oricDiskInterface")
 		standardUserDefaults.set(oricModelTypeButton.selectedTag(), forKey: "new.oricModel")
+
+		// PC settings
+		standardUserDefaults.set(pcVideoAdaptorButton.selectedTag(), forKey: "new.pcVideoAdaptor")
 
 		// Spectrum settings
 		standardUserDefaults.set(spectrumModelTypeButton.selectedTag(), forKey: "new.spectrumModel")
@@ -402,7 +411,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
 
 			case "pc":
-				return CSStaticAnalyser(pcCompatibleModel: .turboXT, videoAdaptor: .MDA)
+				var videoAdaptor: CSPCCompatibleVideoAdaptor = .MDA
+				switch pcVideoAdaptorButton.selectedTag() {
+					case 1:		videoAdaptor = .CGA
+					default:	break
+				}
+				return CSStaticAnalyser(pcCompatibleModel: .turboXT, videoAdaptor: videoAdaptor)
 
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a

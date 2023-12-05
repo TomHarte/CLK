@@ -730,7 +730,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="stw-i3-ikG">
-                                            <rect key="frame" x="108" y="192" width="116" height="25"/>
+                                            <rect key="frame" x="116" y="192" width="68" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="MDA" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="oIy-If-5bQ" id="xz8-mu-ynU">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -743,7 +743,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="uhf-1k-ibT">
-                                            <rect key="frame" x="18" y="198" width="87" height="16"/>
+                                            <rect key="frame" x="18" y="198" width="95" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Video Adaptor:" id="ROV-EU-T3W">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -1069,6 +1069,7 @@ Gw
                 <outlet property="msxRegionButton" destination="LG6-mP-SeG" id="3a9-VG-6Wf"/>
                 <outlet property="oricDiskInterfaceButton" destination="fYL-p6-wyn" id="aAt-wM-hRZ"/>
                 <outlet property="oricModelTypeButton" destination="ENP-hI-BVZ" id="n9i-Ym-miE"/>
+                <outlet property="pcVideoAdaptorButton" destination="stw-i3-ikG" id="6VO-Q9-4kV"/>
                 <outlet property="spectrumModelTypeButton" destination="gFZ-d4-WFv" id="tdX-Cv-Swe"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>
                 <outlet property="vic20MemorySizeButton" destination="2eV-Us-eEv" id="5j4-jw-89d"/>
