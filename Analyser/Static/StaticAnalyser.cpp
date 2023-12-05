@@ -25,6 +25,7 @@
 #include "Commodore/StaticAnalyser.hpp"
 #include "DiskII/StaticAnalyser.hpp"
 #include "Enterprise/StaticAnalyser.hpp"
+#include "FAT12/StaticAnalyser.hpp"
 #include "Macintosh/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
@@ -179,10 +180,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
-	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (Enterprise/MS-DOS style)
+	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (MS-DOS style)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::Enterprise)			// IMG (Enterprise/MS-DOS style)
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::FAT12)					// IMG (Enterprise or MS-DOS style)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::PCBooter>, TargetPlatform::PCCompatible)		// IMG (PC raw booter)
 	Format(	"ipf",
 			result.disks,
@@ -290,6 +291,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	Append(Commodore);
 	Append(DiskII);
 	Append(Enterprise);
+	Append(FAT12);
 	Append(Macintosh);
 	Append(MSX);
 	Append(Oric);

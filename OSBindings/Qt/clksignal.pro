@@ -49,6 +49,7 @@ SOURCES += \
 	$$SRC/Analyser/Static/Disassembler/*.cpp \
 	$$SRC/Analyser/Static/DiskII/*.cpp \
 	$$SRC/Analyser/Static/Enterprise/*.cpp \
+	$$SRC/Analyser/Static/FAT12/*.cpp \
 	$$SRC/Analyser/Static/Macintosh/*.cpp \
 	$$SRC/Analyser/Static/MSX/*.cpp \
 	$$SRC/Analyser/Static/Oric/*.cpp \
@@ -172,6 +173,7 @@ HEADERS += \
 	$$SRC/Analyser/Static/Disassembler/*.hpp \
 	$$SRC/Analyser/Static/DiskII/*.hpp \
 	$$SRC/Analyser/Static/Enterprise/*.hpp \
+	$$SRC/Analyser/Static/FAT12/*.hpp \
 	$$SRC/Analyser/Static/Macintosh/*.hpp \
 	$$SRC/Analyser/Static/MSX/*.hpp \
 	$$SRC/Analyser/Static/Oric/*.hpp \
