@@ -3,6 +3,15 @@ name: SDL/Ubuntu
 on: [pull_request]
 
 jobs:
+  build-mac:
+    name: Build Mac UI
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Make
+      working-directory: OSBindings/Mac
+      run: xcodebuild CODE_SIGN_IDENTITY=-
   build-sdl:
     name: Build SDL UI
     runs-on: ubuntu-latest
