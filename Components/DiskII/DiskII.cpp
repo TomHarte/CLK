@@ -294,7 +294,7 @@ int DiskII::read_address(int address) {
 		break;
 	}
 	decide_clocking_preference();
-	return (address & 1) ? 0xff : shift_register_;
+	return (address & 1) ? DidNotLoad : shift_register_;
 }
 
 void DiskII::set_activity_observer(Activity::Observer *observer) {
