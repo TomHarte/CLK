@@ -32,7 +32,7 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 	//
 	// (though the MSX and Atari ST don't currently call in here for now)
 
-	// If the disk image is very small, map it to the PC. That's the only option old enough
+	// If the disk image is very small or large, map it to the PC. That's the only option old enough
 	// to have used 5.25" media.
 	if(disk->get_maximum_head_position() <= Storage::Disk::HeadPosition(40)) {
 		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms);
@@ -46,8 +46,8 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 				Storage::Encodings::MFM::MFMBitLength
 			), true);
 
-	// If no sectors were found, assume this disk was single density, which also implies the PC.
-	if(sector_map.empty()) {
+	// If no sectors were found, assume this disk was either single density or high density, which both imply the PC.
+	if(sector_map.empty() || sector_map.size() > 10) {
 		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms);
 	}
 
@@ -67,8 +67,10 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 	// Check for key phrases that imply a PC disk.
 	const auto &sample = boot_sector->samples[0];
 	const std::vector<std::string> pc_strings = {
+		// MS-DOS strings.
 		"MSDOS",
 		"Non-System disk or disk error",
+		// DOS Plus strings.
 		"Insert a SYSTEM disk",
 	};
 	for(const auto &string: pc_strings) {
@@ -79,7 +81,9 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 		}
 	}
 
-	// TODO: attempt disassembly as 8086.
+	// TODO: look for a COM, EXE or BAT, inspect. AUTOEXEC.BAT and/or CONFIG.SYS could be either PC or MSX.
+	// Disassembling the boot sector doesn't necessarily work, as several Enterprise titles seem to have been
+	// imaged, or possibly created, by WINIMAGE which adds a PC-style boot sector.
 
 	// Being unable to prove that this is a PC disk, throw it to the Enterprise.
 	return Analyser::Static::Enterprise::GetTargets(media, file_name, platforms);
