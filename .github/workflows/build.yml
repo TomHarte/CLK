@@ -1,0 +1,25 @@
+name: Build
+on: [pull_request]
+jobs:
+  build-mac:
+    name: Build Mac UI
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Make
+      working-directory: OSBindings/Mac
+      run: xcodebuild CODE_SIGN_IDENTITY=-
+  build-sdl:
+    name: Build SDL UI
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        sudo apt-get --allow-releaseinfo-change update
+        sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
+    - name: Make
+      working-directory: OSBindings/SDL
+      run: scons -j$(nproc --all)
