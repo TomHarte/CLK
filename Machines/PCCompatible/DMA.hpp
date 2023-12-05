@@ -25,133 +25,71 @@ enum class AccessResult {
 
 class i8237 {
 	public:
-		void flip_flop_reset() {
-			printf("DMA: Flip flop reset\n");
-			next_access_low_ = true;
-		}
-
-		void mask_reset() {
-			printf("DMA: Mask reset\n");
-			for(auto &channel : channels_) {
-				channel.mask = false;
-			}
-		}
-
-		void master_reset() {
-			printf("DMA: Master reset\n");
-			flip_flop_reset();
-			for(auto &channel : channels_) {
-				channel.mask = true;
-				channel.transfer_complete = false;
-				channel.request = false;
-			}
-
-			// This is a bit of a hack; DMA channel 0 is supposed to be linked to the PIT,
-			// performing DRAM refresh. It isn't yet. So hack this, and hack that.
-			channels_[0].transfer_complete = true;
-		}
+		//
+		// CPU-facing interface.
+		//
 
 		template <int address>
 		void write(uint8_t value) {
 			printf("DMA: Write %02x to %d\n", value, address);
-			constexpr int channel = (address >> 1) & 3;
-			constexpr bool is_count = address & 1;
 
-			next_access_low_ ^= true;
-			if(next_access_low_) {
-				if constexpr (is_count) {
-					channels_[channel].count.halves.high = value;
-				} else {
-					channels_[channel].address.halves.high = value;
-				}
-			} else {
-				if constexpr (is_count) {
-					channels_[channel].count.halves.low = value;
-				} else {
-					channels_[channel].address.halves.low = value;
-				}
+			switch(address) {
+				default: {
+					constexpr int channel = (address >> 1) & 3;
+					constexpr bool is_count = address & 1;
+
+					next_access_low_ ^= true;
+					if(next_access_low_) {
+						if constexpr (is_count) {
+							channels_[channel].count.halves.high = value;
+						} else {
+							channels_[channel].address.halves.high = value;
+						}
+					} else {
+						if constexpr (is_count) {
+							channels_[channel].count.halves.low = value;
+						} else {
+							channels_[channel].address.halves.low = value;
+						}
+					}
+				} break;
+				case 0x8:	set_command(value);			break;
+				case 0x9:	set_reset_request(value);	break;
+				case 0xa:	set_reset_mask(value);		break;
+				case 0xb:	set_mode(value);			break;
+				case 0xc:	flip_flop_reset();			break;
+				case 0xd:	master_reset();				break;
+				case 0xe:	mask_reset();				break;
+				case 0xf:	set_mask(value);			break;
 			}
 		}
 
 		template <int address>
 		uint8_t read() {
 			printf("DMA: Read %d\n", address);
-			constexpr int channel = (address >> 1) & 3;
-			constexpr bool is_count = address & 1;
+			switch(address) {
+				default: {
+					constexpr int channel = (address >> 1) & 3;
+					constexpr bool is_count = address & 1;
 
-			next_access_low_ ^= true;
-			if(next_access_low_) {
-				if constexpr (is_count) {
-					return channels_[channel].count.halves.high;
-				} else {
-					return channels_[channel].address.halves.high;
-				}
-			} else {
-				if constexpr (is_count) {
-					return channels_[channel].count.halves.low;
-				} else {
-					return channels_[channel].address.halves.low;
-				}
+					next_access_low_ ^= true;
+					if(next_access_low_) {
+						if constexpr (is_count) {
+							return channels_[channel].count.halves.high;
+						} else {
+							return channels_[channel].address.halves.high;
+						}
+					} else {
+						if constexpr (is_count) {
+							return channels_[channel].count.halves.low;
+						} else {
+							return channels_[channel].address.halves.low;
+						}
+					}
+				 } break;
+				 case 0x8:	return status();				break;
+				 case 0xd:	return temporary_register();	break;
 			}
-		}
-
-		void set_reset_mask(uint8_t value) {
-			printf("DMA: Set/reset mask %02x\n", value);
-			channels_[value & 3].mask = value & 4;
-		}
-
-		void set_reset_request(uint8_t value) {
-			printf("DMA: Set/reset request %02x\n", value);
-			channels_[value & 3].request = value & 4;
-		}
-
-		void set_mask(uint8_t value) {
-			printf("DMA: Set mask %02x\n", value);
-			channels_[0].mask = value & 1;
-			channels_[1].mask = value & 2;
-			channels_[2].mask = value & 4;
-			channels_[3].mask = value & 8;
-		}
-
-		void set_mode(uint8_t value) {
-			printf("DMA: Set mode %02x\n", value);
-			channels_[value & 3].transfer = Channel::Transfer((value >> 2) & 3);
-			channels_[value & 3].autoinitialise = value & 0x10;
-			channels_[value & 3].address_decrement = value & 0x20;
-			channels_[value & 3].mode = Channel::Mode(value >> 6);
-		}
-
-		void set_command(uint8_t value) {
-			printf("DMA: Set command %02x\n", value);
-			enable_memory_to_memory_ = value & 0x01;
-			enable_channel0_address_hold_ = value & 0x02;
-			enable_controller_ = value & 0x04;
-			compressed_timing_ = value & 0x08;
-			rotating_priority_ = value & 0x10;
-			extended_write_selection_ = value & 0x20;
-			dreq_active_low_ = value & 0x40;
-			dack_sense_active_high_ = value & 0x80;
-		}
-
-		uint8_t status() {
-			const uint8_t result =
-				(channels_[0].transfer_complete ? 0x01 : 0x00) |
-				(channels_[1].transfer_complete ? 0x02 : 0x00) |
-				(channels_[2].transfer_complete ? 0x04 : 0x00) |
-				(channels_[3].transfer_complete ? 0x08 : 0x00) |
-
-				(channels_[0].request ? 0x10 : 0x00) |
-				(channels_[1].request ? 0x20 : 0x00) |
-				(channels_[2].request ? 0x40 : 0x00) |
-				(channels_[3].request ? 0x80 : 0x00);
-
-			for(auto &channel : channels_) {
-				channel.transfer_complete = false;
-			}
-
-			printf("DMA: status is %02x\n", result);
-
-			return result;
 		}
 
 		//
@@ -192,6 +130,96 @@ class i8237 {
 		}
 
 	private:
+		uint8_t status() {
+			const uint8_t result =
+				(channels_[0].transfer_complete ? 0x01 : 0x00) |
+				(channels_[1].transfer_complete ? 0x02 : 0x00) |
+				(channels_[2].transfer_complete ? 0x04 : 0x00) |
+				(channels_[3].transfer_complete ? 0x08 : 0x00) |
+
+				(channels_[0].request ? 0x10 : 0x00) |
+				(channels_[1].request ? 0x20 : 0x00) |
+				(channels_[2].request ? 0x40 : 0x00) |
+				(channels_[3].request ? 0x80 : 0x00);
+
+			for(auto &channel : channels_) {
+				channel.transfer_complete = false;
+			}
+
+			printf("DMA: status is %02x\n", result);
+
+			return result;
+		}
+
+		uint8_t temporary_register() const {
+			// Not actually implemented, so...
+			return 0xff;
+		}
+
+		void flip_flop_reset() {
+			printf("DMA: Flip flop reset\n");
+			next_access_low_ = true;
+		}
+
+		void mask_reset() {
+			printf("DMA: Mask reset\n");
+			for(auto &channel : channels_) {
+				channel.mask = false;
+			}
+		}
+
+		void master_reset() {
+			printf("DMA: Master reset\n");
+			flip_flop_reset();
+			for(auto &channel : channels_) {
+				channel.mask = true;
+				channel.transfer_complete = false;
+				channel.request = false;
+			}
+
+			// This is a bit of a hack; DMA channel 0 is supposed to be linked to the PIT,
+			// performing DRAM refresh. It isn't yet. So hack this, and hack that.
+			channels_[0].transfer_complete = true;
+		}
+
+		void set_reset_mask(uint8_t value) {
+			printf("DMA: Set/reset mask %02x\n", value);
+			channels_[value & 3].mask = value & 4;
+		}
+
+		void set_reset_request(uint8_t value) {
+			printf("DMA: Set/reset request %02x\n", value);
+			channels_[value & 3].request = value & 4;
+		}
+
+		void set_mask(uint8_t value) {
+			printf("DMA: Set mask %02x\n", value);
+			channels_[0].mask = value & 1;
+			channels_[1].mask = value & 2;
+			channels_[2].mask = value & 4;
+			channels_[3].mask = value & 8;
+		}
+
+		void set_mode(uint8_t value) {
+			printf("DMA: Set mode %02x\n", value);
+			channels_[value & 3].transfer = Channel::Transfer((value >> 2) & 3);
+			channels_[value & 3].autoinitialise = value & 0x10;
+			channels_[value & 3].address_decrement = value & 0x20;
+			channels_[value & 3].mode = Channel::Mode(value >> 6);
+		}
+
+		void set_command(uint8_t value) {
+			printf("DMA: Set command %02x\n", value);
+			enable_memory_to_memory_ = value & 0x01;
+			enable_channel0_address_hold_ = value & 0x02;
+			enable_controller_ = value & 0x04;
+			compressed_timing_ = value & 0x08;
+			rotating_priority_ = value & 0x10;
+			extended_write_selection_ = value & 0x20;
+			dreq_active_low_ = value & 0x40;
+			dack_sense_active_high_ = value & 0x80;
+		}
+
 		// Low/high byte latch.
 		bool next_access_low_ = true;
 
