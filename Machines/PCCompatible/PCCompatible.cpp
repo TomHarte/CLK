@@ -806,14 +806,14 @@ class IO {
 					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
-				case 0x0000:	dma_.controller.write<0>(value);						break;
-				case 0x0001:	dma_.controller.write<1>(value);						break;
-				case 0x0002:	dma_.controller.write<2>(value);						break;
-				case 0x0003:	dma_.controller.write<3>(value);						break;
-				case 0x0004:	dma_.controller.write<4>(value);						break;
-				case 0x0005:	dma_.controller.write<5>(value);						break;
-				case 0x0006:	dma_.controller.write<6>(value);						break;
-				case 0x0007:	dma_.controller.write<7>(value);						break;
+				case 0x0000:	dma_.controller.write<0>(uint8_t(value));				break;
+				case 0x0001:	dma_.controller.write<1>(uint8_t(value));				break;
+				case 0x0002:	dma_.controller.write<2>(uint8_t(value));				break;
+				case 0x0003:	dma_.controller.write<3>(uint8_t(value));				break;
+				case 0x0004:	dma_.controller.write<4>(uint8_t(value));				break;
+				case 0x0005:	dma_.controller.write<5>(uint8_t(value));				break;
+				case 0x0006:	dma_.controller.write<6>(uint8_t(value));				break;
+				case 0x0007:	dma_.controller.write<7>(uint8_t(value));				break;
 				case 0x0008:	dma_.controller.set_command(uint8_t(value));			break;
 				case 0x0009:	dma_.controller.set_reset_request(uint8_t(value));		break;
 				case 0x000a:	dma_.controller.set_reset_mask(uint8_t(value));			break;
@@ -823,8 +823,8 @@ class IO {
 				case 0x000e:	dma_.controller.mask_reset();							break;
 				case 0x000f:	dma_.controller.set_mask(uint8_t(value));				break;
 
-				case 0x0020:	pic_.write<0>(value);	break;
-				case 0x0021:	pic_.write<1>(value);	break;
+				case 0x0020:	pic_.write<0>(uint8_t(value));	break;
+				case 0x0021:	pic_.write<1>(uint8_t(value));	break;
 
 				case 0x0040:	pit_.write<0>(uint8_t(value));	break;
 				case 0x0041:	pit_.write<1>(uint8_t(value));	break;
