@@ -1,7 +1,5 @@
-name: SDL/Ubuntu
-
+name: Build
 on: [pull_request]
-
 jobs:
   build-mac:
     name: Build Mac UI
