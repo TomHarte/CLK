@@ -23,6 +23,10 @@ struct BusState {
 	bool cursor = false;
 	uint16_t refresh_address = 0;
 	uint16_t row_address = 0;
+
+	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
+	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
+	int field_count = 0;
 };
 
 class BusHandler {
@@ -262,13 +266,15 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 				is_cursor_line_ |= bus_state_.row_address == (registers_[10] & 0x1f);
 
 				switch(cursor_type) {
-					// MDA-style blinking; timings are a bit of a guess for now.
+					// MDA-style blinking.
+					// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+					// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
 					case CursorType::MDA:
 						switch(registers_[10] >> 5) {
-							case 0b11: is_cursor_line_ &= (field_count_ & 15) < 5;	break;
-							case 0b00: is_cursor_line_ &= bool(field_count_ & 16);	break;
-							case 0b01: is_cursor_line_ = false;						break;
-							case 0b10: is_cursor_line_ = true;						break;
+							case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
+							case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
+							case 0b01: is_cursor_line_ = false;								break;
+							case 0b10: is_cursor_line_ = true;								break;
 							default: break;
 						}
 					break;
@@ -281,9 +287,7 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 			line_is_visible_ = true;
 			line_address_ = uint16_t((registers_[12] << 8) | registers_[13]);
 			bus_state_.refresh_address = line_address_;
-			if constexpr (cursor_type != CursorType::None) {
-				++field_count_;
-			}
+			++bus_state_.field_count;
 		}
 
 		Personality personality_;
@@ -311,8 +315,6 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 		unsigned int character_is_visible_shifter_ = 0;
 
 		bool is_cursor_line_ = false;
-
-		int field_count_ = 0;
 };
 
 }

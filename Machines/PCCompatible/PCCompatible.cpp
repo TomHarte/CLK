@@ -595,7 +595,11 @@ class MDA {
 								break;
 							}
 
-							// TODO: blink.
+							// Apply blink if enabled.
+							if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
+								row ^= 0xff;
+								blank = (blank == off) ? intensity : off;
+							}
 
 							if(((attributes & 7) == 1) && state.row_address == 13) {
 								// Draw as underline.
