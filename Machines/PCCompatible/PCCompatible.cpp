@@ -55,7 +55,7 @@ template <> struct Adaptor<VideoAdaptor::MDA> {
 	using type = MDA;
 };
 template <> struct Adaptor<VideoAdaptor::CGA> {
-	using type = MDA;
+	using type = MDA;	// TODO: CGA.
 };
 
 class FloppyController {
@@ -892,7 +892,7 @@ class ConcreteMachine:
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
-			const auto font = ROM::Name::PCCompatibleMDAFont;	// ... or CGA.
+			const auto font = Video::FontROM;
 
 			ROM::Request request = ROM::Request(bios) && ROM::Request(font);
 			auto roms = rom_fetcher(request);
@@ -905,7 +905,7 @@ class ConcreteMachine:
 
 			// Give the video card something to read from.
 			const auto &font_contents = roms.find(font)->second;
-			video_.set_source(context.memory.at(0xb'0000), font_contents);	// TODO: get RAM base address from the card.
+			video_.set_source(context.memory.at(Video::BaseAddress), font_contents);
 
 			// ... and insert media.
 			insert_media(target.media);

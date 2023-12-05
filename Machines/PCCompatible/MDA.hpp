@@ -11,12 +11,16 @@
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
+#include "../../Machines/Utility/ROMCatalogue.hpp"
 
 namespace PCCompatible {
 
 class MDA {
 	public:
 		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
+
+		static constexpr uint32_t BaseAddress = 0xb'0000;
+		static constexpr auto FontROM = ROM::Name::PCCompatibleMDAFont;
 
 		void set_source(const uint8_t *ram, std::vector<uint8_t> font) {
 			outputter_.ram = ram;
