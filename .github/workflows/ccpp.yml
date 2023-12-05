@@ -6,9 +6,9 @@ jobs:
   build-sdl:
     name: Build SDL UI
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Install dependencies
       run: sudo apt-get --allow-releaseinfo-change update && sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
     - name: Make
