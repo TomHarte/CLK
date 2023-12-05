@@ -142,6 +142,7 @@ class FloppyController {
 										switch(access_result) {
 											default: break;
 											case AccessResult::NotAccepted:
+												complete = true;
 												wrote_in_full = false;
 											break;
 											case AccessResult::AcceptedWithEOP:
