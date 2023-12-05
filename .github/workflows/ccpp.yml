@@ -3,8 +3,8 @@ name: SDL/Ubuntu
 on: [pull_request]
 
 jobs:
-  build:
-
+  build-sdl:
+    name: Build SDL UI
     runs-on: ubuntu-latest
 
     steps:
