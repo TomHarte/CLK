@@ -10,7 +10,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Install dependencies
-      run: sudo apt-get --allow-releaseinfo-change update && sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
+      run: |
+        sudo apt-get --allow-releaseinfo-change update
+        sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
     - name: Make
       working-directory: OSBindings/SDL
       run: scons -j$(nproc --all)
