@@ -8,131 +8,79 @@
 
 #include "StaticAnalyser.hpp"
 
-//#include "../AppleII/Target.hpp"
-//#include "../AppleIIgs/Target.hpp"
-//#include "../Oric/Target.hpp"
-//#include "../Disassembler/6502.hpp"
-//#include "../Disassembler/AddressMapper.hpp"
+#include "../Enterprise/StaticAnalyser.hpp"
+#include "../PCCompatible/StaticAnalyser.hpp"
 
 #include "../../../Storage/Disk/Track/TrackSerialiser.hpp"
-//#include "../../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+#include "../../../Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "../../../Storage/Disk/Encodings/MFM/SegmentParser.hpp"
 
-//namespace {
-//
-//Analyser::Static::Target *AppleIITarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
-//	using Target = Analyser::Static::AppleII::Target;
-//	auto *const target = new Target;
-//
-//	if(sector_zero && sector_zero->encoding == Storage::Encodings::AppleGCR::Sector::Encoding::FiveAndThree) {
-//		target->disk_controller = Target::DiskController::ThirteenSector;
-//	} else {
-//		target->disk_controller = Target::DiskController::SixteenSector;
-//	}
-//
-//	return target;
-//}
-//
-//Analyser::Static::Target *AppleIIgsTarget() {
-//	return new Analyser::Static::AppleIIgs::Target();
-//}
-//
-//Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector *) {
-//	using Target = Analyser::Static::Oric::Target;
-//	auto *const target = new Target;
-//	target->rom = Target::ROM::Pravetz;
-//	target->disk_interface = Target::DiskInterface::Pravetz;
-//	target->loading_command = "CALL 800\n";
-//	return target;
-//}
-//
-//}
 
-Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType platforms) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 
-//	auto &disk = media.disks.front();
+	auto &disk = media.disks.front();
 	TargetList targets;
 
-	// If the disk image is too large for a 5.25" disk, map this to the IIgs.
-/*	if(disk->get_maximum_head_position() > Storage::Disk::HeadPosition(40)) {
-		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIIgsTarget()));
-		targets.back()->media = media;
-		return targets;
+	// Total list of potential platforms is:
+	//
+	//	* the Enterprise;
+	//	* the Atari ST;
+	//	* the MSX; and
+	//	* the PC.
+	//
+	// (though the MSX and Atari ST don't currently call in here for now)
+
+	// If the disk image is very small, map it to the PC. That's the only option old enough
+	// to have used 5.25" media.
+	if(disk->get_maximum_head_position() <= Storage::Disk::HeadPosition(40)) {
+		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms);
 	}
 
-	// Grab track 0, sector 0: the boot sector.
+	// Attempt to grab MFM track 0, sector 1: the boot sector.
 	const auto track_zero = disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
-	const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
-		Storage::Disk::track_serialisation(*track_zero, Storage::Time(1, 50000)));
+	const auto sector_map = Storage::Encodings::MFM::sectors_from_segment(
+			Storage::Disk::track_serialisation(
+				*track_zero,
+				Storage::Encodings::MFM::MFMBitLength
+			), true);
 
-	const Storage::Encodings::AppleGCR::Sector *sector_zero = nullptr;
+	// If no sectors were found, assume this disk was single density, which also implies the PC.
+	if(sector_map.empty()) {
+		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms);
+	}
+
+	const Storage::Encodings::MFM::Sector *boot_sector = nullptr;
 	for(const auto &pair: sector_map) {
-		if(!pair.second.address.sector) {
-			sector_zero = &pair.second;
+		if(pair.second.address.sector == 1) {
+			boot_sector = &pair.second;
 			break;
 		}
 	}
 
-	// If there's no boot sector then if there are also no sectors at all,
-	// decline to nominate a machine. Otherwise go with an Apple as the default.
-	if(!sector_zero) {
-		if(sector_map.empty()) {
-			return targets;
-		} else {
-			targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIITarget(nullptr)));
-			targets.back()->media = media;
-			return targets;
-		}
+	// This shouldn't technically be possible since the disk has been identified as FAT12, but be safe.
+	if(!boot_sector) {
+		return {};
 	}
 
-	// If the boot sector looks like it's intended for the Oric, create an Oric.
-	// Otherwise go with the Apple II.
-
-	const auto disassembly = Analyser::Static::MOS6502::Disassemble(sector_zero->data, Analyser::Static::Disassembler::OffsetMapper(0xb800), {0xb800});
-
-	bool did_read_shift_register = false;
-	bool is_oric = false;
-
-	// Look for a tight BPL loop reading the Oric's shift register address of 0x31c. The Apple II just has RAM there,
-	// so the probability of such a loop is infinitesimal.
-	for(const auto &instruction: disassembly.instructions_by_address) {
-		// Is this a read of the shift register?
+	// Check for key phrases that imply a PC disk.
+	const auto &sample = boot_sector->samples[0];
+	const std::vector<std::string> pc_strings = {
+		"MSDOS",
+		"Non-System disk or disk error",
+		"Insert a SYSTEM disk",
+	};
+	for(const auto &string: pc_strings) {
 		if(
-			(
-				(instruction.second.operation == Analyser::Static::MOS6502::Instruction::LDA) ||
-				(instruction.second.operation == Analyser::Static::MOS6502::Instruction::LDX) ||
-				(instruction.second.operation == Analyser::Static::MOS6502::Instruction::LDY)
-			) &&
-			instruction.second.addressing_mode == Analyser::Static::MOS6502::Instruction::Absolute &&
-			instruction.second.address == 0x031c) {
-			did_read_shift_register = true;
-			continue;
-		}
-
-		if(did_read_shift_register) {
-			if(
-				instruction.second.operation == Analyser::Static::MOS6502::Instruction::BPL &&
-				instruction.second.address == 0xfb) {
-				is_oric = true;
-				break;
-			}
-
-			did_read_shift_register = false;
+			std::search(sample.begin(), sample.end(), string.begin(), string.end()) != sample.end()
+		) {
+			return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms);
 		}
 	}
 
-	// Check also for calls into the 0x3xx page above 0x320, as that's where the Oric's boot ROM is.
-	for(const auto address: disassembly.outward_calls) {
-		is_oric |= address >= 0x320 && address < 0x400;
-	}
+	// TODO: attempt disassembly as 8086.
 
-	if(is_oric) {
-		targets.push_back(std::unique_ptr<Analyser::Static::Target>(OricTarget(sector_zero)));
-	} else {
-		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIITarget(sector_zero)));
-	}
-	targets.back()->media = media;*/
-
-	return targets;
+	// Being unable to prove that this is a PC disk, throw it to the Enterprise.
+	return Analyser::Static::Enterprise::GetTargets(media, file_name, platforms);
 }
