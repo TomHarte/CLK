@@ -41,10 +41,14 @@
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
+#include "../../Analyser/Static/PCCompatible/Target.hpp"
+
 #include <array>
 #include <iostream>
 
 namespace PCCompatible {
+
+using VideoAdaptor = Analyser::Static::PCCompatible::Target::VideoAdaptor;
 
 //bool log = false;
 //std::string previous;
@@ -786,6 +790,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
+template <VideoAdaptor video>
 class IO {
 	public:
 		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
@@ -972,7 +977,7 @@ class IO {
 					// Ignore serial port accesses.
 				break;
 			}
-			return IntT(~0);
+			return 0;
 		}
 
 	private:
@@ -1033,6 +1038,7 @@ class FlowController {
 		bool halted_ = false;
 };
 
+template <VideoAdaptor video>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
@@ -1123,7 +1129,7 @@ class ConcreteMachine:
 				keyboard_.run_for(Cycles(1));
 
 				// Query for interrupts and apply if pending.
-				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
+				if(pic_.pending() && context.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
 					// Regress the IP if a REP is in-progress so as to resume it later.
 					if(context.flow_controller.should_repeat()) {
 						context.registers.ip() = decoded_ip_;
@@ -1271,7 +1277,7 @@ class ConcreteMachine:
 			Segments segments;
 			Memory memory;
 			FlowController flow_controller;
-			IO io;
+			IO<video> io;
 			static constexpr auto model = InstructionSet::x86::Model::i8086;
 		} context;
 
@@ -1293,7 +1299,14 @@ using namespace PCCompatible;
 
 // See header; constructs and returns an instance of the Amstrad CPC.
 Machine *Machine::PCCompatible(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new PCCompatible::ConcreteMachine(*target, rom_fetcher);
+	using Target = Analyser::Static::PCCompatible::Target;
+	const Target *const pc_target = dynamic_cast<const Target *>(target);
+
+	switch(pc_target->adaptor) {
+		case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA>(*target, rom_fetcher);
+		case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA>(*target, rom_fetcher);
+		default: return nullptr;
+	}
 }
 
 Machine::~Machine() {}

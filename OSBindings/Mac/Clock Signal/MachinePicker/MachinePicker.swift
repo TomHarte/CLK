@@ -402,7 +402,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
 
 			case "pc":
-				return CSStaticAnalyser(pcCompatibleModel: .turboXT)
+				return CSStaticAnalyser(pcCompatibleModel: .turboXT, videoAdaptor: .MDA)
 
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a
