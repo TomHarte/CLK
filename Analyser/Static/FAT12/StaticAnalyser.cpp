@@ -25,9 +25,9 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 
 	// Total list of potential platforms is:
 	//
-	//	* the Enterprise;
+	//	* the Enterprise (and, by extension, CP/M-targetted software);
 	//	* the Atari ST;
-	//	* the MSX; and
+	//	* the MSX (ditto on CP/M); and
 	//	* the PC.
 	//
 	// (though the MSX and Atari ST don't currently call in here for now)
@@ -82,8 +82,18 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 	}
 
 	// TODO: look for a COM, EXE or BAT, inspect. AUTOEXEC.BAT and/or CONFIG.SYS could be either PC or MSX.
-	// Disassembling the boot sector doesn't necessarily work, as several Enterprise titles seem to have been
-	// imaged, or possibly created, by WINIMAGE which adds a PC-style boot sector.
+	// Disassembling the boot sector doesn't necessarily work, as several Enterprise titles out there in the wild seem
+	// to have been created by WINIMAGE which adds an x86 PC-style boot sector.
+
+	// Enterprise notes: EXOS files all start with a 16-byte header which should begin with a 0 and then have a type
+	// byte that will be 0xa or lower; cf http://epbas.lgb.hu/readme.html
+	//
+	// Some disks commonly passed around as Enterprise software are actually CP/M software, expecting IS-DOS (the CP/M
+	// clone) to be present. It's certainly possible the same could be true of MSX disks and MSX-DOS. So analysing COM
+	// files probably means searching for CALL 5s and/or INT 21hs, if not a more rigorous disassembly.
+	//
+	// I have not been able to locate a copy of IS-DOS so there's probably not much that can be done here; perhaps I
+	// could redirect to an MSX2 with MSX-DOS2? Though it'd be nicer if I had a machine that was pure CP/M.
 
 	// Being unable to prove that this is a PC disk, throw it to the Enterprise.
 	return Analyser::Static::Enterprise::GetTargets(media, file_name, platforms);

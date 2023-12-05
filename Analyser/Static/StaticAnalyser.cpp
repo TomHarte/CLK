@@ -183,8 +183,16 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (MS-DOS style)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::FAT12)					// IMG (Enterprise or MS-DOS style)
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::PCBooter>, TargetPlatform::PCCompatible)		// IMG (PC raw booter)
+
+	// Treat PC booter as a potential backup only if this doesn't parse as a FAT12.
+	if(extension == "img") {
+		try {
+			Insert(result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::FAT12, file_name)				// IMG (Enterprise or MS-DOS style)
+		} catch(...) {
+			Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::PCBooter>, TargetPlatform::PCCompatible)		// IMG (PC raw booter)
+		}
+	}
+
 	Format(	"ipf",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::IPF>,
