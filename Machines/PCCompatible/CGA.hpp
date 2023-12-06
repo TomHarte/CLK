@@ -73,6 +73,16 @@ class CGA {
 			}
 		}
 
+		/// Sets the type of display.
+		void set_display_type(Outputs::Display::DisplayType display_type) {
+			outputter_.crt.set_display_type(display_type);
+		}
+
+		/// Gets the type of display.
+		Outputs::Display::DisplayType get_display_type() const {
+			return outputter_.crt.get_display_type();
+		}
+
 		// MARK: - Call-ins for ScanProducer.
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -92,8 +102,9 @@ class CGA {
 			CRTCOutputter() :
 				crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
-//				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+				crt.set_visible_area(Outputs::Display::Rect(0.097f, 0.095f, 0.82f, 0.82f));
 				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);	// TODO: needs to be a user option.
+//				crt.set_display_type(Outputs::Display::DisplayType::RGB);	// TODO: needs to be a user option.
 			}
 
 			void set_mode(uint8_t control) {
@@ -341,7 +352,7 @@ class CGA {
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
-		int full_clock_;
+		int full_clock_ = 0;
 };
 
 }

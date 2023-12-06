@@ -222,7 +222,7 @@ class MDA {
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
-		int full_clock_;
+		int full_clock_ = 0;
 };
 
 }

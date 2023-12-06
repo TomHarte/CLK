@@ -222,6 +222,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(MasterSystem, Sega::MasterSystem::Machine);
 	Emplace(MSX, MSX::Machine);
 	Emplace(Oric, Oric::Machine);
+	Emplace(PCCompatible, PCCompatible::Machine);
 	Emplace(Vic20, Commodore::Vic20::Machine);
 	Emplace(ZX8081, Sinclair::ZX8081::Machine);
 	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);
