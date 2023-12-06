@@ -8,18 +8,19 @@
 
 #include "PCCompatible.hpp"
 
+#include "CGA.hpp"
+#include "DMA.hpp"
 #include "KeyboardMapper.hpp"
+#include "MDA.hpp"
+#include "Memory.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
-#include "DMA.hpp"
-#include "Memory.hpp"
 
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
 #include "../../InstructionSets/x86/Instruction.hpp"
 #include "../../InstructionSets/x86/Perform.hpp"
 
-#include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
 #include "../../Components/8272/CommandDecoder.hpp"
 #include "../../Components/8272/Results.hpp"
@@ -41,27 +42,33 @@
 #include "../ScanProducer.hpp"
 #include "../TimedMachine.hpp"
 
+#include "../../Analyser/Static/PCCompatible/Target.hpp"
+
 #include <array>
 #include <iostream>
 
 namespace PCCompatible {
 
-//bool log = false;
-//std::string previous;
+using VideoAdaptor = Analyser::Static::PCCompatible::Target::VideoAdaptor;
+
+template <VideoAdaptor adaptor> struct Adaptor;
+template <> struct Adaptor<VideoAdaptor::MDA> {
+	using type = MDA;
+};
+template <> struct Adaptor<VideoAdaptor::CGA> {
+	using type = CGA;
+};
 
 class FloppyController {
 	public:
-		FloppyController(PIC &pic, DMA &dma) : pic_(pic), dma_(dma) {
+		FloppyController(PIC &pic, DMA &dma, int drive_count) : pic_(pic), dma_(dma) {
 			// Default: one floppy drive only.
-			drives_[0].exists = true;
-			drives_[1].exists = false;
-			drives_[2].exists = false;
-			drives_[3].exists = false;
+			for(int c = 0; c < 4; c++) {
+				drives_[c].exists = drive_count > c;
+			}
 		}
 
 		void set_digital_output(uint8_t control) {
-//			printf("FDC DOR: %02x\n", control);
-
 			// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 			// b3: 1 => enable DMA; 0 => disable;
 			// b2: 1 => enable FDC; 0 => hold at reset;
@@ -92,7 +99,6 @@ class FloppyController {
 		}
 
 		uint8_t status() const {
-//			printf("FDC: read status %02x\n", status_.main());
 			return status_.main();
 		}
 
@@ -138,6 +144,7 @@ class FloppyController {
 										switch(access_result) {
 											default: break;
 											case AccessResult::NotAccepted:
+												complete = true;
 												wrote_in_full = false;
 											break;
 											case AccessResult::AcceptedWithEOP:
@@ -182,7 +189,6 @@ class FloppyController {
 					} break;
 
 					case Command::Recalibrate:
-						printf("FDC: Recalibrate\n");
 						drives_[decoder_.target().drive].track = 0;
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
@@ -190,7 +196,6 @@ class FloppyController {
 						pic_.apply_edge<6>(true);
 					break;
 					case Command::Seek:
-						printf("FDC: Seek %d:%d to %d\n", decoder_.target().drive, decoder_.target().head, decoder_.seek_target());
 						drives_[decoder_.target().drive].track = decoder_.seek_target();
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
@@ -199,8 +204,6 @@ class FloppyController {
 					break;
 
 					case Command::SenseInterruptStatus: {
-						printf("FDC: SenseInterruptStatus\n");
-
 						int c = 0;
 						for(; c < 4; c++) {
 							if(drives_[c].raised_interrupt) {
@@ -219,14 +222,12 @@ class FloppyController {
 						}
 					} break;
 					case Command::Specify:
-						printf("FDC: Specify\n");
 						specify_specs_ = decoder_.specify_specs();
 					break;
 //					case Command::SenseDriveStatus: {
 //					} break;
 
 					case Command::Invalid:
-						printf("FDC: Invalid\n");
 						results_.serialise_none();
 					break;
 				}
@@ -251,11 +252,9 @@ class FloppyController {
 					status_.set(MainStatus::DataIsToProcessor, false);
 					status_.set(MainStatus::CommandInProgress, false);
 				}
-//				printf("FDC read: %02x\n", result);
 				return result;
 			}
 
-			printf("FDC read?\n");
 			return 0x80;
 		}
 
@@ -458,203 +457,6 @@ class KeyboardController {
 		int reset_delay_ = 0;
 };
 
-class MDA {
-	public:
-		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
-
-		void set_source(const uint8_t *ram, std::vector<uint8_t> font) {
-			outputter_.ram = ram;
-			outputter_.font = font;
-		}
-
-		void run_for(Cycles cycles) {
-			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
-			// Do that conversion here.
-			full_clock_ += 14 * cycles.as<int>();
-			crtc_.run_for(Cycles(full_clock_ / 9));
-			full_clock_ %= 9;
-		}
-
-		template <int address>
-		void write(uint8_t value) {
-			if constexpr (address & 0x8) {
-				outputter_.set_control(value);
-			} else {
-				if constexpr (address & 0x1) {
-					crtc_.set_register(value);
-				} else {
-					crtc_.select_register(value);
-				}
-			}
-		}
-
-		template <int address>
-		uint8_t read() {
-			if constexpr (address & 0x8) {
-				return outputter_.control();
-			} else {
-				return crtc_.get_register();
-			}
-		}
-
-		// MARK: - Call-ins for ScanProducer.
-
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
-			outputter_.crt.set_scan_target(scan_target);
-		}
-
-		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() * 9.0f / 14.0f;
-		}
-
-	private:
-		struct CRTCOutputter {
-			CRTCOutputter() :
-				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
-				// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
-				// consider whether that's worth building into the scan target.
-			{
-//				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-				crt.set_display_type(Outputs::Display::DisplayType::RGB);
-			}
-
-			void set_control(uint8_t control) {
-				// b0: 'high resolution' (probably breaks if not 1)
-				// b3: video enable
-				// b5: enable blink
-				control_ = control;
-			}
-
-			uint8_t control() {
-				return control_;
-			}
-
-			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
-				// Determine new output state.
-				const OutputState new_state =
-					(state.hsync | state.vsync) ? OutputState::Sync :
-						((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
-
-				// Upon either a state change or just having accumulated too much local time...
-				if(new_state != output_state || count > 882) {
-					// (1) flush preexisting state.
-					if(count) {
-						switch(output_state) {
-							case OutputState::Sync:		crt.output_sync(count);		break;
-							case OutputState::Border: 	crt.output_blank(count);	break;
-							case OutputState::Pixels:
-								crt.output_data(count);
-								pixels = pixel_pointer = nullptr;
-							break;
-						}
-					}
-
-					// (2) adopt new state.
-					output_state = new_state;
-					count = 0;
-				}
-
-				// Collect pixels if applicable.
-				if(output_state == OutputState::Pixels) {
-					if(!pixels) {
-						pixel_pointer = pixels = crt.begin_data(DefaultAllocationSize);
-
-						// Flush any period where pixels weren't recorded due to back pressure.
-						if(pixels && count) {
-							crt.output_blank(count);
-							count = 0;
-						}
-					}
-
-					if(pixels) {
-						static constexpr uint8_t high_intensity = 0x0d;
-						static constexpr uint8_t low_intensity = 0x09;
-						static constexpr uint8_t off = 0x00;
-
-						if(state.cursor) {
-							pixel_pointer[0] =	pixel_pointer[1] =	pixel_pointer[2] =	pixel_pointer[3] =
-							pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
-							pixel_pointer[8] =	low_intensity;
-						} else {
-							const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-							const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-							uint8_t row = font[(glyph * 14) + state.row_address];
-
-							const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
-							uint8_t blank = off;
-
-							// Handle irregular attributes.
-							// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
-							switch(attributes) {
-								case 0x00:	case 0x08:	case 0x80:	case 0x88:
-									row = 0;
-								break;
-								case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
-									row ^= 0xff;
-									blank = intensity;
-								break;
-							}
-
-							// Apply blink if enabled.
-							if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
-								row ^= 0xff;
-								blank = (blank == off) ? intensity : off;
-							}
-
-							if(((attributes & 7) == 1) && state.row_address == 13) {
-								// Draw as underline.
-								std::fill(pixel_pointer, pixel_pointer + 9, intensity);
-							} else {
-								// Draw according to ROM contents, possibly duplicating final column.
-								pixel_pointer[0] = (row & 0x80) ? intensity : off;
-								pixel_pointer[1] = (row & 0x40) ? intensity : off;
-								pixel_pointer[2] = (row & 0x20) ? intensity : off;
-								pixel_pointer[3] = (row & 0x10) ? intensity : off;
-								pixel_pointer[4] = (row & 0x08) ? intensity : off;
-								pixel_pointer[5] = (row & 0x04) ? intensity : off;
-								pixel_pointer[6] = (row & 0x02) ? intensity : off;
-								pixel_pointer[7] = (row & 0x01) ? intensity : off;
-								pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
-							}
-						}
-						pixel_pointer += 9;
-					}
-				}
-
-				// Advance.
-				count += 9;
-
-				// Output pixel row prematurely if storage is exhausted.
-				if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
-					crt.output_data(count);
-					count = 0;
-
-					pixels = pixel_pointer = nullptr;
-				}
-			}
-			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
-
-			Outputs::CRT::CRT crt;
-
-			enum class OutputState {
-				Sync, Pixels, Border
-			} output_state = OutputState::Sync;
-			int count = 0;
-
-			uint8_t *pixels = nullptr;
-			uint8_t *pixel_pointer = nullptr;
-			static constexpr size_t DefaultAllocationSize = 720;
-
-			const uint8_t *ram = nullptr;
-			std::vector<uint8_t> font;
-
-			uint8_t control_ = 0;
-		} outputter_;
-		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
-
-		int full_clock_;
-};
-
 struct PCSpeaker {
 	PCSpeaker() :
 		toggle(queue),
@@ -724,10 +526,28 @@ class PITObserver {
 using PIT = i8253<false, PITObserver>;
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
-	// Likely to be helpful: https://github.com/tmk/tmk_keyboard/wiki/IBM-PC-XT-Keyboard-Protocol
 	public:
-		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard) :
-			speaker_(speaker), keyboard_(keyboard) {}
+		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard, VideoAdaptor adaptor, int drive_count) :
+			speaker_(speaker), keyboard_(keyboard) {
+				// High switches:
+				//
+				// b3, b2: drive count; 00 = 1, 01 = 2, etc
+				// b1, b0: video mode (00 = ROM; 01 = CGA40; 10 = CGA80; 11 = MDA)
+				switch(adaptor) {
+					default: break;
+					case VideoAdaptor::MDA:	high_switches_ |= 0b11;	break;
+					case VideoAdaptor::CGA:	high_switches_ |= 0b10;	break;	// Assume 80 columns.
+				}
+				high_switches_ |= uint8_t(drive_count << 2);
+
+				// Low switches:
+				//
+				// b3, b2: RAM on motherboard (64 * bit pattern)
+				// b1: 1 => FPU present; 0 => absent;
+				// b0: 1 => floppy drive present; 0 => absent.
+				low_switches_ |= 0b1100;	// Assume maximum RAM.
+				if(drive_count) low_switches_ |= 0xb0001;
+			}
 
 		void set_value(int port, uint8_t value) {
 			switch(port) {
@@ -742,43 +562,35 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					enable_keyboard_ = !(value & 0x80);
 					keyboard_.set_mode(value >> 6);
 
-					high_switches_ = value & 0x08;
+					use_high_switches_ = value & 0x08;
 					speaker_.set_control(value & 0x01, value & 0x02);
 				break;
 			}
-//			printf("PPI: %02x to %d\n", value, port);
 		}
 
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0:
-//					printf("PPI: from keyboard\n");
-					return enable_keyboard_ ? keyboard_.read() : 0b0011'1101;
+					return enable_keyboard_ ? keyboard_.read() : uint8_t((high_switches_ << 4) | low_switches_);
 						// Guesses that switches is high and low combined as below.
 
 				case 2:
-					// Common:
-					//
 					// b7: 1 => memory parity error; 0 => none;
 					// b6: 1 => IO channel error; 0 => none;
 					// b5: timer 2 output;	[TODO]
 					// b4: cassette data input; [TODO]
+					// b3...b0: whichever of the high and low switches is selected.
 					return
-						high_switches_ ?
-							// b3, b2: drive count; 00 = 1, 01 = 2, etc
-							// b1, b0: video mode (00 = ROM; 01 = CGA40; 10 = CGA80; 11 = MDA)
-							0b0000'0011
-						:
-							// b3, b2: RAM on motherboard (64 * bit pattern)
-							// b1: 1 => FPU present; 0 => absent;
-							// b0: 1 => floppy drive present; 0 => absent.
-							0b0000'1101;
+						use_high_switches_ ? high_switches_ : low_switches_;
 			}
 			return 0;
 		};
 
 	private:
-		bool high_switches_ = false;
+		uint8_t high_switches_ = 0;
+		uint8_t low_switches_ = 0;
+
+		bool use_high_switches_ = false;
 		PCSpeaker &speaker_;
 		KeyboardController &keyboard_;
 
@@ -786,12 +598,16 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
+template <VideoAdaptor video>
 class IO {
 	public:
-		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
-			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), mda_(mda), fdc_(fdc) {}
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc) :
+			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
+			static constexpr uint16_t crtc_base =
+				video == VideoAdaptor::MDA ? 0x03b0 : 0x03d0;
+
 			switch(port) {
 				default:
 					if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -847,34 +663,30 @@ class IO {
 				case 0x0086:	dma_.pages.set_page<6>(uint8_t(value));	break;
 				case 0x0087:	dma_.pages.set_page<7>(uint8_t(value));	break;
 
-				case 0x03b0:	case 0x03b2:	case 0x03b4:	case 0x03b6:
+				//
+				// CRTC access block, with slightly laboured 16-bit to 8-bit mapping.
+				//
+				case crtc_base + 0:		case crtc_base + 2:
+				case crtc_base + 4:		case crtc_base + 6:
 					if constexpr (std::is_same_v<IntT, uint16_t>) {
-						mda_.write<0>(uint8_t(value));
-						mda_.write<1>(uint8_t(value >> 8));
+						video_.template write<0>(uint8_t(value));
+						video_.template write<1>(uint8_t(value >> 8));
 					} else {
-						mda_.write<0>(value);
+						video_.template write<0>(value);
+					}
+				break;
+				case crtc_base + 1:		case crtc_base + 3:
+				case crtc_base + 5:		case crtc_base + 7:
+					if constexpr (std::is_same_v<IntT, uint16_t>) {
+						video_.template write<1>(uint8_t(value));
+						video_.template write<0>(uint8_t(value >> 8));
+					} else {
+						video_.template write<1>(value);
 					}
 				break;
 
-				case 0x03b1:	case 0x03b3:	case 0x03b5:	case 0x03b7:
-					if constexpr (std::is_same_v<IntT, uint16_t>) {
-						mda_.write<1>(uint8_t(value));
-						mda_.write<0>(uint8_t(value >> 8));
-					} else {
-						mda_.write<1>(value);
-					}
-				break;
-
-				case 0x03b8:
-					mda_.write<8>(uint8_t(value));
-				break;
-
-				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
-				case 0x03d4:	case 0x03d5:	case 0x03d6:	case 0x03d7:
-				case 0x03d8:	case 0x03d9:	case 0x03da:	case 0x03db:
-				case 0x03dc:	case 0x03dd:	case 0x03de:	case 0x03df:
-					// Ignore CGA accesses.
-				break;
+				case crtc_base + 0x8:	video_.template write<0x8>(uint8_t(value));	break;
+				case crtc_base + 0x9:	video_.template write<0x9>(uint8_t(value));	break;
 
 				case 0x03f2:
 					fdc_.set_digital_output(uint8_t(value));
@@ -959,7 +771,17 @@ class IO {
 				case 0x03f4:	return fdc_.status();
 				case 0x03f5:	return fdc_.read();
 
-				case 0x03b8:	return mda_.read<8>();
+				case 0x03b8:
+					if constexpr (video == VideoAdaptor::MDA) {
+						return video_.template read<0x8>();
+					}
+				break;
+
+				case 0x3da:
+					if constexpr (video == VideoAdaptor::CGA) {
+						return video_.template read<0xa>();
+					}
+				break;
 
 				case 0x02e8:	case 0x02e9:	case 0x02ea:	case 0x02eb:
 				case 0x02ec:	case 0x02ed:	case 0x02ee:	case 0x02ef:
@@ -972,7 +794,7 @@ class IO {
 					// Ignore serial port accesses.
 				break;
 			}
-			return IntT(~0);
+			return 0xff;
 		}
 
 	private:
@@ -980,7 +802,7 @@ class IO {
 		DMA &dma_;
 		PPI &ppi_;
 		PIC &pic_;
-		MDA &mda_;
+		typename Adaptor<video>::type &video_;
 		FloppyController &fdc_;
 };
 
@@ -1033,6 +855,7 @@ class FlowController {
 		bool halted_ = false;
 };
 
+template <VideoAdaptor video>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
@@ -1040,20 +863,24 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
-	public Activity::Source
+	public Activity::Source,
+	public Configurable::Device
 {
+		static constexpr int DriveCount = 1;
+		using Video = typename Adaptor<video>::type;
+
 	public:
 		ConcreteMachine(
-			[[maybe_unused]] const Analyser::Static::Target &target,
+			const Analyser::Static::PCCompatible::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) :
 			keyboard_(pic_),
-			fdc_(pic_, dma_),
+			fdc_(pic_, dma_, DriveCount),
 			pit_observer_(pic_, speaker_),
-			ppi_handler_(speaker_, keyboard_),
+			ppi_handler_(speaker_, keyboard_, video, DriveCount),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_, mda_, fdc_)
+			context(pit_, dma_, ppi_, pic_, video_, fdc_)
 		{
 			// Set up DMA source/target.
 			dma_.set_memory(&context.memory);
@@ -1065,7 +892,7 @@ class ConcreteMachine:
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
-			const auto font = ROM::Name::PCCompatibleMDAFont;
+			const auto font = Video::FontROM;
 
 			ROM::Request request = ROM::Request(bios) && ROM::Request(font);
 			auto roms = rom_fetcher(request);
@@ -1076,9 +903,9 @@ class ConcreteMachine:
 			const auto &bios_contents = roms.find(bios)->second;
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 
-			// Give the MDA something to read from.
+			// Give the video card something to read from.
 			const auto &font_contents = roms.find(font)->second;
-			mda_.set_source(context.memory.at(0xb'0000), font_contents);
+			video_.set_source(context.memory.at(Video::BaseAddress), font_contents);
 
 			// ... and insert media.
 			insert_media(target.media);
@@ -1113,7 +940,7 @@ class ConcreteMachine:
 				//
 				// Advance CRTC at a more approximate rate.
 				//
-				mda_.run_for(Cycles(3));
+				video_.run_for(Cycles(3));
 
 				//
 				// Perform one CPU instruction every three PIT cycles.
@@ -1123,7 +950,7 @@ class ConcreteMachine:
 				keyboard_.run_for(Cycles(1));
 
 				// Query for interrupts and apply if pending.
-				if(pic_.pending() && context.flags.flag<InstructionSet::x86::Flag::Interrupt>()) {
+				if(pic_.pending() && context.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
 					// Regress the IP if a REP is in-progress so as to resume it later.
 					if(context.flow_controller.should_repeat()) {
 						context.registers.ip() = decoded_ip_;
@@ -1192,10 +1019,10 @@ class ConcreteMachine:
 
 		// MARK: - ScanProducer.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			mda_.set_scan_target(scan_target);
+			video_.set_scan_target(scan_target);
 		}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-			return mda_.get_scaled_scan_status();
+			return video_.get_scaled_scan_status();
 		}
 
 		// MARK: - AudioProducer.
@@ -1235,11 +1062,31 @@ class ConcreteMachine:
 			fdc_.set_activity_observer(observer);
 		}
 
+		// MARK: - Configuration options.
+		std::unique_ptr<Reflection::Struct> get_options() override {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) override {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			video_.set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const override {
+			return video_.get_display_type();
+		}
+
 	private:
 		PIC pic_;
 		DMA dma_;
 		PCSpeaker speaker_;
-		MDA mda_;
+		Video video_;
 
 		KeyboardController keyboard_;
 		FloppyController fdc_;
@@ -1252,11 +1099,11 @@ class ConcreteMachine:
 		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi, pic, mda, fdc)
+				io(pit, dma, ppi, pic, card, fdc)
 			{
 				reset();
 			}
@@ -1271,7 +1118,7 @@ class ConcreteMachine:
 			Segments segments;
 			Memory memory;
 			FlowController flow_controller;
-			IO io;
+			IO<video> io;
 			static constexpr auto model = InstructionSet::x86::Model::i8086;
 		} context;
 
@@ -1293,7 +1140,14 @@ using namespace PCCompatible;
 
 // See header; constructs and returns an instance of the Amstrad CPC.
 Machine *Machine::PCCompatible(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new PCCompatible::ConcreteMachine(*target, rom_fetcher);
+	using Target = Analyser::Static::PCCompatible::Target;
+	const Target *const pc_target = dynamic_cast<const Target *>(target);
+
+	switch(pc_target->adaptor) {
+		case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA>(*pc_target, rom_fetcher);
+		case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA>(*pc_target, rom_fetcher);
+		default: return nullptr;
+	}
 }
 
 Machine::~Machine() {}

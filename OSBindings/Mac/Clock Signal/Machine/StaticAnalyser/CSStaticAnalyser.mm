@@ -24,6 +24,7 @@
 #include "../../../../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
 #include "../../../../../Analyser/Static/Oric/Target.hpp"
+#include "../../../../../Analyser/Static/PCCompatible/Target.hpp"
 #include "../../../../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -272,11 +273,15 @@
 	return self;
 }
 
-- (instancetype)initWithPCCompatibleModel:(CSPCCompatibleModel)model {
+- (instancetype)initWithPCCompatibleModel:(CSPCCompatibleModel)model videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Target;
-		auto target = std::make_unique<Target>(Analyser::Machine::PCCompatible);
+		using Target = Analyser::Static::PCCompatible::Target;
+		auto target = std::make_unique<Target>();
+		switch(adaptor) {
+			case CSPCCompatibleVideoAdaptorMDA:	target->adaptor = Target::VideoAdaptor::MDA;	break;
+			case CSPCCompatibleVideoAdaptorCGA:	target->adaptor = Target::VideoAdaptor::CGA;	break;
+		}
 		_targets.push_back(std::move(target));
 	}
 	return self;
@@ -375,6 +380,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::MasterSystem:	return @"CompositeOptions";
 		case Analyser::Machine::MSX:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::Oric:			return @"OricOptions";
+		case Analyser::Machine::PCCompatible:	return @"CompositeOptions";
 		case Analyser::Machine::Vic20:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";
 		case Analyser::Machine::ZXSpectrum:		return @"QuickLoadCompositeOptions"; // TODO: @"ZXSpectrumOptions";

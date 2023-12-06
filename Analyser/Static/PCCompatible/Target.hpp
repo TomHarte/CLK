@@ -18,7 +18,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ReflectableEnum(VideoAdaptor,
 		MDA,
 		CGA);
-	VideoAdaptor adaptor = VideoAdaptor::MDA;
+	VideoAdaptor adaptor = VideoAdaptor::CGA;
 
 	Target() : Analyser::Static::Target(Machine::PCCompatible) {
 		if(needs_declare()) {

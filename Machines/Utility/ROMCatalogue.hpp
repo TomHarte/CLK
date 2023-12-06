@@ -136,6 +136,7 @@ enum Name {
 	PCCompatibleGLaBIOS,
 	PCCompatiblePhoenix80286BIOS,
 	PCCompatibleMDAFont,
+	PCCompatibleCGAFont,
 
 	// Sinclair QL.
 	SinclairQLJS,

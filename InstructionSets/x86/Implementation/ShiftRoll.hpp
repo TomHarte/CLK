@@ -54,15 +54,16 @@ void rcl(
 		case 0: break;
 		case Numeric::bit_size<IntT>(): {
 			const IntT temp_carry = destination & 1;
-			destination = (destination >> 1) | (carry << (Numeric::bit_size<IntT>() - 1));
+			destination = IntT((destination >> 1) | (carry << (Numeric::bit_size<IntT>() - 1)));
 			carry = temp_carry;
 		} break;
 		default: {
 			const IntT temp_carry = destination & (Numeric::top_bit<IntT>() >> (temp_count - 1));
-			destination =
+			destination = IntT(
 				(destination << temp_count) |
 				(destination >> (Numeric::bit_size<IntT>() + 1 - temp_count)) |
-				(carry << (temp_count - 1));
+				(carry << (temp_count - 1))
+			);
 			carry = temp_carry ? 1 : 0;
 		} break;
 	}
@@ -103,15 +104,16 @@ void rcr(
 		case 0: break;
 		case Numeric::bit_size<IntT>(): {
 			const IntT temp_carry = destination & Numeric::top_bit<IntT>();
-			destination = (destination << 1) | carry;
+			destination = IntT((destination << 1) | carry);
 			carry = temp_carry;
 		} break;
 		default: {
 			const IntT temp_carry = destination & (1 << (temp_count - 1));
-			destination =
+			destination = IntT(
 				(destination >> temp_count) |
 				(destination << (Numeric::bit_size<IntT>() + 1 - temp_count)) |
-				(carry << (Numeric::bit_size<IntT>() - temp_count));
+				(carry << (Numeric::bit_size<IntT>() - temp_count))
+			);
 			carry = temp_carry;
 		} break;
 	}
@@ -159,9 +161,10 @@ void rol(
 		return;
 	}
 	if(temp_count) {
-		destination =
+		destination = IntT(
 			(destination << temp_count) |
-			(destination >> (Numeric::bit_size<IntT>() - temp_count));
+			(destination >> (Numeric::bit_size<IntT>() - temp_count))
+		);
 	}
 
 	context.flags.template set_from<Flag::Carry>(destination & 1);
@@ -210,9 +213,10 @@ void ror(
 		return;
 	}
 	if(temp_count) {
-		destination =
+		destination = IntT(
 			(destination >> temp_count) |
-			(destination << (Numeric::bit_size<IntT>() - temp_count));
+			(destination << (Numeric::bit_size<IntT>() - temp_count))
+		);
 	}
 
 	context.flags.template set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
@@ -298,9 +302,9 @@ void sal(
 				context.flags.template set_from<Flag::Carry>(
 					 destination & mask
 				);
-				context.flags.template set_from<Flag::Overflow>(
+				context.flags.template set_from<Flag::Overflow>(IntT(
 					 (destination ^ (destination << 1)) & mask
-				);
+				));
 				destination <<= count;
 			}
 		break;
@@ -323,7 +327,7 @@ void sar(
 		destination = sign ? IntT(~0) : IntT(0);
 		context.flags.template set_from<Flag::Carry>(sign);
 	} else {
-		const IntT mask = 1 << (count - 1);
+		const auto mask = IntT(1 << (count - 1));
 		context.flags.template set_from<Flag::Carry>(destination & mask);
 		destination = (destination >> count) | (sign ? ~(IntT(~0) >> count) : 0);
 	}
@@ -349,7 +353,7 @@ void shr(
 		context.flags.template set_from<Flag::Carry>(0);
 		destination = 0;
 	} else {
-		const IntT mask = 1 << (count - 1);
+		const auto mask = IntT(1 << (count - 1));
 		context.flags.template set_from<Flag::Carry>(destination & mask);
 		destination >>= count;
 	}

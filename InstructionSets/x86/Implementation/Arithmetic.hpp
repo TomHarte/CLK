@@ -159,7 +159,7 @@ void imul(
 		FI;
 	*/
 	using sIntT = typename std::make_signed<IntT>::type;
-	destination_high = (sIntT(destination_low) * sIntT(source)) >> (8 * sizeof(IntT));
+	destination_high = IntT((sIntT(destination_low) * sIntT(source)) >> (8 * sizeof(IntT)));
 	destination_low = IntT(sIntT(destination_low) * sIntT(source));
 
 	const auto sign_extension = (destination_low & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
@@ -216,7 +216,7 @@ void div(
 	}
 
 	// TEMPORARY HACK. Will not work with DWords.
-	const uint32_t dividend = (destination_high << (8 * sizeof(IntT))) + destination_low;
+	const uint32_t dividend = uint32_t((destination_high << (8 * sizeof(IntT))) + destination_low);
 	const auto result = dividend / source;
 	if(IntT(result) != result) {
 		interrupt(Interrupt::DivideError, context);
@@ -293,7 +293,7 @@ void idiv(
 	}
 
 	destination_low = IntT(result);
-	destination_high = dividend % sIntT(source);
+	destination_high = IntT(dividend % sIntT(source));
 }
 
 template <typename IntT, typename ContextT>
