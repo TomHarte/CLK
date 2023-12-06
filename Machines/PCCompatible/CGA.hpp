@@ -160,8 +160,6 @@ class CGA {
 					new_state = OutputState::Pixels;
 				}
 
-				// TODO: impose a colour burst, if enabled.
-
 				return new_state;
 			}
 
