@@ -32,8 +32,10 @@ class CGA {
 			// CGA is clocked at the real oscillator rate of 14 times that.
 			// But there's also an internal divide by 8 to align to the fetch clock.
 			full_clock_ += 7 * cycles.as<int>();
-			crtc_.run_for(Cycles(full_clock_ / 4));
-			full_clock_ %= 4;
+
+			const int modulo = 4 * outputter_.clock_divider;
+			crtc_.run_for(Cycles(full_clock_ / modulo));
+			full_clock_ %= modulo;
 		}
 
 		template <int address>
@@ -95,9 +97,11 @@ class CGA {
 				control_ = control;
 
 				if(control & 0x2) {
-					mode_ = (control & 0x10) ? Mode::Pixels640 : Mode::Pixels320;
+					mode_ = Mode::Pixels;
+					clock_divider = 1 + !(control & 0x10);
 				} else {
-					mode_ = (control & 0x01) ? Mode::Text80 : Mode::Text40;
+					mode_ = Mode::Text;
+					clock_divider = 1 + !(control & 0x01);
 				}
 			}
 
@@ -112,21 +116,19 @@ class CGA {
 						((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
 
 				// Upon either a state change or just having accumulated too much local time...
-				if(new_state != output_state || count > 882) {
+				if(new_state != output_state || pixels_divider != clock_divider || count > 912) {
 					// (1) flush preexisting state.
 					if(count) {
 						switch(output_state) {
-							case OutputState::Sync:		crt.output_sync(count);		break;
-							case OutputState::Border: 	crt.output_blank(count);	break;
-							case OutputState::Pixels:
-								crt.output_data(count);
-								pixels = pixel_pointer = nullptr;
-							break;
+							case OutputState::Sync:		crt.output_sync(count * clock_divider);		break;
+							case OutputState::Border: 	crt.output_blank(count * clock_divider);	break;
+							case OutputState::Pixels:	flush_pixels();								break;
 						}
 					}
 
 					// (2) adopt new state.
 					output_state = new_state;
+					pixels_divider = clock_divider;
 					count = 0;
 				}
 
@@ -137,7 +139,7 @@ class CGA {
 
 						// Flush any period where pixels weren't recorded due to back pressure.
 						if(pixels && count) {
-							crt.output_blank(count);
+							crt.output_blank(count * clock_divider);
 							count = 0;
 						}
 					}
@@ -192,13 +194,16 @@ class CGA {
 
 				// Output pixel row prematurely if storage is exhausted.
 				if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
-					crt.output_data(count);
+					flush_pixels();
 					count = 0;
-
-					pixels = pixel_pointer = nullptr;
 				}
 			}
 			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
+
+			void flush_pixels() {
+				crt.output_data(count * pixels_divider, size_t(count));
+				pixels = pixel_pointer = nullptr;
+			}
 
 			Outputs::CRT::CRT crt;
 
@@ -209,7 +214,8 @@ class CGA {
 
 			uint8_t *pixels = nullptr;
 			uint8_t *pixel_pointer = nullptr;
-			static constexpr size_t DefaultAllocationSize = 720;
+			int pixels_divider = 1;
+			static constexpr size_t DefaultAllocationSize = 320;
 
 			const uint8_t *ram = nullptr;
 			std::vector<uint8_t> font;
@@ -217,8 +223,9 @@ class CGA {
 			uint8_t control_ = 0;
 
 			enum class Mode {
-				Pixels320, Pixels640, Text80, Text40,
-			} mode_ = Mode::Text80;
+				Pixels, Text,
+			} mode_ = Mode::Text;
+			int clock_divider = 1;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
