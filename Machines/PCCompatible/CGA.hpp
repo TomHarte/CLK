@@ -176,7 +176,7 @@ class CGA {
 								serialise_pixels(state);
 							}
 						}
-						pixel_pointer += pixels_per_tick;
+						pixel_pointer += active_pixels_per_tick;
 					}
 				}
 
@@ -192,7 +192,7 @@ class CGA {
 			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
 
 			void flush_pixels() {
-				crt.output_data(count * active_clock_divider, size_t(count));
+				crt.output_data(count * active_clock_divider, size_t((count * active_pixels_per_tick) / 8));
 				pixels = pixel_pointer = nullptr;
 			}
 
