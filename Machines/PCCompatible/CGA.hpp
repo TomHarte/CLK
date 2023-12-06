@@ -98,15 +98,11 @@ class CGA {
 
 				if(control & 0x2) {
 					mode_ = (control & 0x10) ? Mode::Pixels640 : Mode::Pixels320;
+					pixels_per_tick = (mode_ == Mode::Pixels640) ? 16 : 8;
 				} else {
 					mode_ = Mode::Text;
+					pixels_per_tick = 8;
 				}
-
-				// TODO: I think I need a separate clock divider, which affects the input to the CRTC,
-				// and an output multiplier, to set how many pixels are generated per CRTC tick.
-				//
-				// 640px mode generates 16 pixels per tick, all the other modes generate 8.
-				// The clock is divided by 1 in all 80-column text mode, 2 in all other modes.
 				clock_divider = 1 + !(control & 0x01);
 			}
 
@@ -121,19 +117,20 @@ class CGA {
 						((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
 
 				// Upon either a state change or just having accumulated too much local time...
-				if(new_state != output_state || pixels_divider != clock_divider || count > 912) {
+				if(new_state != output_state || active_pixels_per_tick != pixels_per_tick || active_clock_divider != clock_divider || count > 912) {
 					// (1) flush preexisting state.
 					if(count) {
 						switch(output_state) {
-							case OutputState::Sync:		crt.output_sync(count * clock_divider);		break;
-							case OutputState::Border: 	crt.output_blank(count * clock_divider);	break;
-							case OutputState::Pixels:	flush_pixels();								break;
+							case OutputState::Sync:		crt.output_sync(count * active_clock_divider);	break;
+							case OutputState::Border: 	crt.output_blank(count * active_clock_divider);	break;
+							case OutputState::Pixels:	flush_pixels();									break;
 						}
 					}
 
 					// (2) adopt new state.
 					output_state = new_state;
-					pixels_divider = clock_divider;
+					active_pixels_per_tick = pixels_per_tick;
+					active_clock_divider = clock_divider;
 					count = 0;
 				}
 
@@ -144,16 +141,14 @@ class CGA {
 
 						// Flush any period where pixels weren't recorded due to back pressure.
 						if(pixels && count) {
-							crt.output_blank(count * clock_divider);
+							crt.output_blank(count * active_clock_divider);
 							count = 0;
 						}
 					}
 
 					if(pixels) {
 						if(state.cursor) {
-							pixel_pointer[0] =	pixel_pointer[1] =	pixel_pointer[2] =	pixel_pointer[3] =
-							pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
-							pixel_pointer[8] =	0x3f;	// i.e. white.
+							std::fill(pixel_pointer, pixel_pointer + pixels_per_tick, 0x3f); // i.e. white.
 						} else {
 							if(mode_ == Mode::Text) {
 								serialise_text(state);
@@ -161,7 +156,7 @@ class CGA {
 								serialise_pixels(state);
 							}
 						}
-						pixel_pointer += 8;
+						pixel_pointer += pixels_per_tick;
 					}
 				}
 
@@ -177,7 +172,7 @@ class CGA {
 			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
 
 			void flush_pixels() {
-				crt.output_data(count * pixels_divider, size_t(count));
+				crt.output_data(count * active_clock_divider, size_t(count));
 				pixels = pixel_pointer = nullptr;
 			}
 
@@ -188,18 +183,21 @@ class CGA {
 				// character code + attributes except that these are two bytes worth of graphics.
 				//
 				// Meanwhile, row address is used to invent a 15th address line.
-				const uint8_t bitmap = ram[((state.refresh_address << 1) + (state.row_address << 13)) & 0x3fff];
-//				const uint8_t bitmap = ram[(state.refresh_address + (state.row_address << 13)) & 0x3fff];
+				const auto base_address = ((state.refresh_address << 1) + (state.row_address << 13)) & 0x3fff;
+				const uint8_t bitmap[] = {
+					ram[base_address],
+					ram[base_address + 1],
+				};
 
 				// Better than nothing...
-				pixel_pointer[0] =
-				pixel_pointer[1] = (bitmap & 0xc0) >> 6;
-				pixel_pointer[2] =
-				pixel_pointer[3] = (bitmap & 0x30) >> 4;
-				pixel_pointer[4] =
-				pixel_pointer[5] = (bitmap & 0x0c) >> 2;
-				pixel_pointer[6] =
-				pixel_pointer[7] = (bitmap & 0x03) >> 0;
+				pixel_pointer[0] = (bitmap[0] & 0xc0) >> 6;
+				pixel_pointer[1] = (bitmap[0] & 0x30) >> 4;
+				pixel_pointer[2] = (bitmap[0] & 0x0c) >> 2;
+				pixel_pointer[3] = (bitmap[0] & 0x03) >> 0;
+				pixel_pointer[4] = (bitmap[1] & 0xc0) >> 6;
+				pixel_pointer[5] = (bitmap[1] & 0x30) >> 4;
+				pixel_pointer[6] = (bitmap[1] & 0x0c) >> 2;
+				pixel_pointer[7] = (bitmap[1] & 0x03) >> 0;
 			}
 
 			void serialise_text(const Motorola::CRTC::BusState &state) {
@@ -240,26 +238,32 @@ class CGA {
 			}
 
 			Outputs::CRT::CRT crt;
+			static constexpr size_t DefaultAllocationSize = 320;
 
+			// Current output stream.
+			uint8_t *pixels = nullptr;
+			uint8_t *pixel_pointer = nullptr;
+			int active_pixels_per_tick = 8;
+			int active_clock_divider = 1;
+
+			// Source data.
+			const uint8_t *ram = nullptr;
+			std::vector<uint8_t> font;
+
+			// CRTC state tracking, for CRT serialisation.
 			enum class OutputState {
 				Sync, Pixels, Border
 			} output_state = OutputState::Sync;
 			int count = 0;
 
-			uint8_t *pixels = nullptr;
-			uint8_t *pixel_pointer = nullptr;
-			int pixels_divider = 1;
-			static constexpr size_t DefaultAllocationSize = 320;
-
-			const uint8_t *ram = nullptr;
-			std::vector<uint8_t> font;
-
+			// Current Programmer-set parameters.
+			int clock_divider = 1;
+			int pixels_per_tick = 8;
 			uint8_t control_ = 0;
-
 			enum class Mode {
 				Pixels640, Pixels320, Text,
 			} mode_ = Mode::Text;
-			int clock_divider = 1;
+
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
