@@ -85,13 +85,16 @@ class CGA {
 
 	private:
 		struct CRTCOutputter {
+			enum class OutputState {
+				Sync, Pixels, Border, ColourBurst
+			};
+
 			CRTCOutputter() :
-				crt(912, 8, 262, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
+				crt(912, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-				crt.set_display_type(Outputs::Display::DisplayType::RGB);
+				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 			}
-
 
 			void set_mode(uint8_t control) {
 				// b5: enable blink
@@ -100,7 +103,8 @@ class CGA {
 				// b2: 1 => monochrome
 				// b1: 1 => 320x200 graphics; 0 => text
 				// b0: 1 => 80-column text; 0 => 40
-				control_ = control;
+
+				control_ = control;	// To capture blink, monochrome and video enable bits.
 
 				if(control & 0x2) {
 					mode_ = (control & 0x10) ? Mode::Pixels640 : Mode::Pixels320;
@@ -130,20 +134,49 @@ class CGA {
 				return control_;
 			}
 
+			void update_hsync(bool new_hsync) {
+				if(new_hsync == previous_hsync) {
+					cycles_since_hsync += clock_divider;
+				} else {
+					cycles_since_hsync = 0;
+					previous_hsync = new_hsync;
+				}
+			}
+
+			OutputState implied_state(const Motorola::CRTC::BusState &state) const {
+				OutputState new_state;
+
+				if(state.hsync || state.vsync) {
+					new_state = OutputState::Sync;
+				} else if(!state.display_enable || !(control_&0x08)) {
+					new_state = OutputState::Border;
+
+					if(cycles_since_hsync <= 4) {
+						new_state = OutputState::ColourBurst;
+					}
+				} else {
+					new_state = OutputState::Pixels;
+				}
+
+				// TODO: impose a colour burst, if enabled.
+
+				return new_state;
+			}
+
 			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
 				// Determine new output state.
-				const OutputState new_state =
-					(state.hsync | state.vsync) ? OutputState::Sync :
-						((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
+				update_hsync(state.hsync);
+				const OutputState new_state = implied_state(state);
 
 				// Upon either a state change or just having accumulated too much local time...
 				if(new_state != output_state || active_pixels_per_tick != pixels_per_tick || active_clock_divider != clock_divider || count > 912) {
 					// (1) flush preexisting state.
 					if(count) {
 						switch(output_state) {
-							case OutputState::Sync:		crt.output_sync(count * active_clock_divider);	break;
-							case OutputState::Border: 	crt.output_blank(count * active_clock_divider);	break;
-							case OutputState::Pixels:	flush_pixels();									break;
+							case OutputState::Sync:			crt.output_sync(count * active_clock_divider);				break;
+							case OutputState::Border: 		crt.output_blank(count * active_clock_divider);				break;
+							case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, 0);	break;
+							case OutputState::Pixels:		flush_pixels();												break;
 						}
 					}
 
@@ -289,10 +322,11 @@ class CGA {
 			std::vector<uint8_t> font;
 
 			// CRTC state tracking, for CRT serialisation.
-			enum class OutputState {
-				Sync, Pixels, Border
-			} output_state = OutputState::Sync;
+			OutputState output_state = OutputState::Sync;
 			int count = 0;
+
+			bool previous_hsync = false;
+			int cycles_since_hsync = 0;
 
 			// Current Programmer-set parameters.
 			int clock_divider = 1;
