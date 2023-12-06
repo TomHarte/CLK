@@ -39,23 +39,31 @@ class MDA {
 
 		template <int address>
 		void write(uint8_t value) {
-			if constexpr (address & 0x8) {
-				outputter_.set_control(value);
-			} else {
-				if constexpr (address & 0x1) {
-					crtc_.set_register(value);
-				} else {
+			switch(address) {
+				case 0:	case 2:	case 4:	case 6:
 					crtc_.select_register(value);
-				}
+				break;
+				case 1:	case 3:	case 5:	case 7:
+					crtc_.set_register(value);
+				break;
+
+				case 0x8:
+					outputter_.set_control(value);
+				break;
+
+				default: break;
 			}
 		}
 
 		template <int address>
 		uint8_t read() {
-			if constexpr (address & 0x8) {
-				return outputter_.control();
-			} else {
-				return crtc_.get_register();
+			switch(address) {
+				case 1:	case 3:	case 5:	case 7:
+					return crtc_.get_register();
+
+				case 0x8: return outputter_.control();
+
+				default: return 0xff;
 			}
 		}
 

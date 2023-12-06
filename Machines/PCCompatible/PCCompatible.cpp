@@ -685,9 +685,8 @@ class IO {
 					}
 				break;
 
-				case crtc_base + 8:
-					video_.template write<8>(uint8_t(value));
-				break;
+				case crtc_base + 0x8:	video_.template write<0x8>(uint8_t(value));	break;
+				case crtc_base + 0x9:	video_.template write<0x9>(uint8_t(value));	break;
 
 				case 0x03f2:
 					fdc_.set_digital_output(uint8_t(value));

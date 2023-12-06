@@ -40,21 +40,25 @@ class CGA {
 
 		template <int address>
 		void write(uint8_t value) {
-			if constexpr (address & 0x8) {
-				outputter_.set_mode(value);
-			} else {
-				if constexpr (address & 0x1) {
-					crtc_.set_register(value);
-				} else {
+			switch(address) {
+				case 0:	case 2:	case 4:	case 6:
 					crtc_.select_register(value);
-				}
+				break;
+				case 1:	case 3:	case 5:	case 7:
+					crtc_.set_register(value);
+				break;
+
+				case 0x8:	outputter_.set_mode(value);		break;
+				case 0x9:	outputter_.set_colours(value);	break;
 			}
 		}
 
 		template <int address>
 		uint8_t read() {
 			switch(address) {
-				default: 	return crtc_.get_register();
+				case 1:	case 3:	case 5:	case 7:
+					return crtc_.get_register();
+
 				case 0xa:
 					return
 						// b3: 1 => in vsync; 0 => not;
@@ -64,6 +68,8 @@ class CGA {
 						(crtc_.get_bus_state().vsync ? 0b1001 : 0b0000) |
 						(crtc_.get_bus_state().hsync ? 0b0001 : 0b0000) |
 						0b0100;
+
+				default: return 0xff;
 			}
 		}
 
@@ -104,6 +110,20 @@ class CGA {
 					pixels_per_tick = 8;
 				}
 				clock_divider = 1 + !(control & 0x01);
+			}
+
+			void set_colours(uint8_t value) {
+				if(value & 0x20) {
+					palette[0] = 0b00'00'00;
+					palette[1] = 0b00'10'10;
+					palette[2] = 0b10'00'10;
+					palette[3] = 0b10'10'10;
+				} else {
+					palette[0] = 0b00'00'00;
+					palette[1] = 0b00'10'00;
+					palette[2] = 0b10'00'00;
+					palette[3] = 0b10'10'00;	// TODO: brown, here and elsewhere.
+				}
 			}
 
 			uint8_t control() {
@@ -189,15 +209,17 @@ class CGA {
 					ram[base_address + 1],
 				};
 
-				// Better than nothing...
-				pixel_pointer[0] = (bitmap[0] & 0xc0) >> 6;
-				pixel_pointer[1] = (bitmap[0] & 0x30) >> 4;
-				pixel_pointer[2] = (bitmap[0] & 0x0c) >> 2;
-				pixel_pointer[3] = (bitmap[0] & 0x03) >> 0;
-				pixel_pointer[4] = (bitmap[1] & 0xc0) >> 6;
-				pixel_pointer[5] = (bitmap[1] & 0x30) >> 4;
-				pixel_pointer[6] = (bitmap[1] & 0x0c) >> 2;
-				pixel_pointer[7] = (bitmap[1] & 0x03) >> 0;
+				if(mode_ == Mode::Pixels320) {
+					pixel_pointer[0] = palette[(bitmap[0] & 0xc0) >> 6];
+					pixel_pointer[1] = palette[(bitmap[0] & 0x30) >> 4];
+					pixel_pointer[2] = palette[(bitmap[0] & 0x0c) >> 2];
+					pixel_pointer[3] = palette[(bitmap[0] & 0x03) >> 0];
+					pixel_pointer[4] = palette[(bitmap[1] & 0xc0) >> 6];
+					pixel_pointer[5] = palette[(bitmap[1] & 0x30) >> 4];
+					pixel_pointer[6] = palette[(bitmap[1] & 0x0c) >> 2];
+					pixel_pointer[7] = palette[(bitmap[1] & 0x03) >> 0];
+				} else {
+				}
 			}
 
 			void serialise_text(const Motorola::CRTC::BusState &state) {
@@ -263,6 +285,8 @@ class CGA {
 			enum class Mode {
 				Pixels640, Pixels320, Text,
 			} mode_ = Mode::Text;
+
+			uint8_t palette[4];
 
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
