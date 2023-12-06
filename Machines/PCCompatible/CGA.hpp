@@ -151,7 +151,9 @@ class CGA {
 				} else if(!state.display_enable || !(control_&0x08)) {
 					new_state = OutputState::Border;
 
-					if(cycles_since_hsync <= 4) {
+					// TODO: I'm pretty sure this isn't correct for colour burst positioning, though
+					// it happens to fool the particular CRT I've implemented.
+					if(!(control_&4) && cycles_since_hsync <= 4) {
 						new_state = OutputState::ColourBurst;
 					}
 				} else {
