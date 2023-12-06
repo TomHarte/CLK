@@ -605,6 +605,9 @@ class IO {
 			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
+			static constexpr uint16_t crtc_base =
+				video == VideoAdaptor::MDA ? 0x03b0 : 0x03d0;
+
 			switch(port) {
 				default:
 					if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -661,39 +664,29 @@ class IO {
 				case 0x0087:	dma_.pages.set_page<7>(uint8_t(value));	break;
 
 				//
-				// MDA block, with slightly laboured 16-bit to 8-bit mapping.
+				// CRTC access block, with slightly laboured 16-bit to 8-bit mapping.
 				//
-				case 0x03b0:	case 0x03b2:	case 0x03b4:	case 0x03b6:
-					if constexpr (video == VideoAdaptor::MDA) {
-						if constexpr (std::is_same_v<IntT, uint16_t>) {
-							video_.template write<0>(uint8_t(value));
-							video_.template write<1>(uint8_t(value >> 8));
-						} else {
-							video_.template write<0>(value);
-						}
+				case crtc_base + 0:		case crtc_base + 2:
+				case crtc_base + 4:		case crtc_base + 6:
+					if constexpr (std::is_same_v<IntT, uint16_t>) {
+						video_.template write<0>(uint8_t(value));
+						video_.template write<1>(uint8_t(value >> 8));
+					} else {
+						video_.template write<0>(value);
 					}
 				break;
-				case 0x03b1:	case 0x03b3:	case 0x03b5:	case 0x03b7:
-					if constexpr (video == VideoAdaptor::MDA) {
-						if constexpr (std::is_same_v<IntT, uint16_t>) {
-							video_.template write<1>(uint8_t(value));
-							video_.template write<0>(uint8_t(value >> 8));
-						} else {
-							video_.template write<1>(value);
-						}
-					}
-				break;
-				case 0x03b8:
-					if constexpr (video == VideoAdaptor::MDA) {
-						video_.template write<8>(uint8_t(value));
+				case crtc_base + 1:		case crtc_base + 3:
+				case crtc_base + 5:		case crtc_base + 7:
+					if constexpr (std::is_same_v<IntT, uint16_t>) {
+						video_.template write<1>(uint8_t(value));
+						video_.template write<0>(uint8_t(value >> 8));
+					} else {
+						video_.template write<1>(value);
 					}
 				break;
 
-				case 0x03d0:	case 0x03d1:	case 0x03d2:	case 0x03d3:
-				case 0x03d4:	case 0x03d5:	case 0x03d6:	case 0x03d7:
-				case 0x03d8:	case 0x03d9:	case 0x03da:	case 0x03db:
-				case 0x03dc:	case 0x03dd:	case 0x03de:	case 0x03df:
-					// TODO: CGA accesses.
+				case crtc_base + 8:
+					video_.template write<8>(uint8_t(value));
 				break;
 
 				case 0x03f2:
@@ -781,7 +774,13 @@ class IO {
 
 				case 0x03b8:
 					if constexpr (video == VideoAdaptor::MDA) {
-						return video_.template read<8>();
+						return video_.template read<0x8>();
+					}
+				break;
+
+				case 0x3da:
+					if constexpr (video == VideoAdaptor::CGA) {
+						return video_.template read<0xa>();
 					}
 				break;
 
