@@ -25,7 +25,9 @@ It currently contains emulations of the:
 * Sinclair ZX80/81; and
 * Sinclair ZX Spectrum.
 
-Commodore Amiga emulation is also present, but for now remains wilfully inaccurate.
+Also present but very much upcoming are the:
+* Commodore Amiga; and
+* early PC compatible.
 
 On the Mac it is a native Cocoa and Metal application; under Linux, BSD and other UNIXes and UNIX-alikes it uses OpenGL and can be built either with Qt or with SDL.
 
@@ -87,9 +89,10 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 |![Amiga James Pond II](READMEImages/AmigaJamesPondII.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
 |![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png) | ![Enterprise HERO](READMEImages/EnterpriseHERO.png)
 |![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png) | ![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)
-|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
+|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![Microsoft Flight Simulator](READMEImages/PCFlightSimulator.png)
 |![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
 |![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
+|![MS-DOS Prompt](READMEImages/MSDOSPrompt.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
