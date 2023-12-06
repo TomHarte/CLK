@@ -72,9 +72,15 @@ class MDA {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 			outputter_.crt.set_scan_target(scan_target);
 		}
-
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
 			return outputter_.crt.get_scaled_scan_status() * 596591.0f / 8128500.0f;
+		}
+
+		// MARK: - Display type configuration.
+
+		void set_display_type(Outputs::Display::DisplayType) {}
+		Outputs::Display::DisplayType get_display_type() const {
+			return outputter_.crt.get_display_type();
 		}
 
 	private:

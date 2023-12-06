@@ -73,12 +73,11 @@ class CGA {
 			}
 		}
 
-		/// Sets the type of display.
+		// MARK: - Display type configuration.
+
 		void set_display_type(Outputs::Display::DisplayType display_type) {
 			outputter_.crt.set_display_type(display_type);
 		}
-
-		/// Gets the type of display.
 		Outputs::Display::DisplayType get_display_type() const {
 			return outputter_.crt.get_display_type();
 		}

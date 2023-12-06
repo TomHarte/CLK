@@ -863,7 +863,8 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
-	public Activity::Source
+	public Activity::Source,
+	public Configurable::Device
 {
 		static constexpr int DriveCount = 1;
 		using Video = typename Adaptor<video>::type;
@@ -1059,6 +1060,26 @@ class ConcreteMachine:
 		// MARK: - Activity::Source.
 		void set_activity_observer(Activity::Observer *observer) final {
 			fdc_.set_activity_observer(observer);
+		}
+
+		// MARK: - Configuration options.
+		std::unique_ptr<Reflection::Struct> get_options() override {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) override {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			video_.set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const override {
+			return video_.get_display_type();
 		}
 
 	private:
