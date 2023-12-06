@@ -90,10 +90,10 @@ class CGA {
 			};
 
 			CRTCOutputter() :
-				crt(912, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
+				crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);
+				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);	// TODO: needs to be a user option.
 			}
 
 			void set_mode(uint8_t control) {
