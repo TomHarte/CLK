@@ -219,6 +219,22 @@ class CGA {
 					pixel_pointer[6] = palette[(bitmap[1] & 0x0c) >> 2];
 					pixel_pointer[7] = palette[(bitmap[1] & 0x03) >> 0];
 				} else {
+					pixel_pointer[0x0] = palette[(bitmap[0] & 0x80) >> 7];
+					pixel_pointer[0x1] = palette[(bitmap[0] & 0x40) >> 6];
+					pixel_pointer[0x2] = palette[(bitmap[0] & 0x20) >> 5];
+					pixel_pointer[0x3] = palette[(bitmap[0] & 0x10) >> 4];
+					pixel_pointer[0x4] = palette[(bitmap[0] & 0x08) >> 3];
+					pixel_pointer[0x5] = palette[(bitmap[0] & 0x04) >> 2];
+					pixel_pointer[0x6] = palette[(bitmap[0] & 0x02) >> 1];
+					pixel_pointer[0x7] = palette[(bitmap[0] & 0x01) >> 0];
+					pixel_pointer[0x8] = palette[(bitmap[1] & 0x80) >> 7];
+					pixel_pointer[0x9] = palette[(bitmap[1] & 0x40) >> 6];
+					pixel_pointer[0xa] = palette[(bitmap[1] & 0x20) >> 5];
+					pixel_pointer[0xb] = palette[(bitmap[1] & 0x10) >> 4];
+					pixel_pointer[0xc] = palette[(bitmap[1] & 0x08) >> 3];
+					pixel_pointer[0xd] = palette[(bitmap[1] & 0x04) >> 2];
+					pixel_pointer[0xe] = palette[(bitmap[1] & 0x02) >> 1];
+					pixel_pointer[0xf] = palette[(bitmap[1] & 0x01) >> 0];
 				}
 			}
 
