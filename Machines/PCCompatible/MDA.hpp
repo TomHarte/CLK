@@ -32,9 +32,6 @@ class MDA {
 			// MDA is actually clocked at 16.257 MHz; which is treated internally as 1,806,333.333333333333333... Hz
 			//
 			// The GCD of those two numbers is... 2. Oh well.
-
-			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
-			// Do that conversion here.
 			full_clock_ += 8'128'500 * cycles.as<int>();
 			crtc_.run_for(Cycles(full_clock_ / (596'591 * 9)));
 			full_clock_ %= (596'591 * 9);
