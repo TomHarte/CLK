@@ -19,8 +19,8 @@ class CGA {
 	public:
 		CGA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
 
-		static constexpr uint32_t BaseAddress = 0xb'0000;
-		static constexpr auto FontROM = ROM::Name::PCCompatibleMDAFont;
+		static constexpr uint32_t BaseAddress = 0xb'8000;
+		static constexpr auto FontROM = ROM::Name::PCCompatibleCGAFont;
 
 		void set_source(const uint8_t *ram, std::vector<uint8_t> font) {
 			outputter_.ram = ram;
@@ -29,21 +29,17 @@ class CGA {
 
 		void run_for(Cycles cycles) {
 			// Input rate is the PIT rate of 1,193,182 Hz.
-			// MDA is actually clocked at 16.257 MHz; which is treated internally as 1,806,333.333333333333333... Hz
-			//
-			// The GCD of those two numbers is... 2. Oh well.
-
-			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
-			// Do that conversion here.
-			full_clock_ += 8'128'500 * cycles.as<int>();
-			crtc_.run_for(Cycles(full_clock_ / (596'591 * 9)));
-			full_clock_ %= (596'591 * 9);
+			// CGA is clocked at the real oscillator rate of 14 times that.
+			// But there's also an internal divide by 8 to align to the fetch clock.
+			full_clock_ += 7 * cycles.as<int>();
+			crtc_.run_for(Cycles(full_clock_ / 4));
+			full_clock_ %= 4;
 		}
 
 		template <int address>
 		void write(uint8_t value) {
 			if constexpr (address & 0x8) {
-				outputter_.set_control(value);
+				outputter_.set_mode(value);
 			} else {
 				if constexpr (address & 0x1) {
 					crtc_.set_register(value);
@@ -55,10 +51,17 @@ class CGA {
 
 		template <int address>
 		uint8_t read() {
-			if constexpr (address & 0x8) {
-				return outputter_.control();
-			} else {
-				return crtc_.get_register();
+			switch(address) {
+				default: 	return crtc_.get_register();
+				case 0xa:
+					return
+						// b3: 1 => in vsync; 0 => not;
+						// b2: 1 => light pen switch is off;
+						// b1: 1 => positive edge from light pen has set trigger;
+						// b0: 1 => safe to write to VRAM now without causing snow.
+						(crtc_.get_bus_state().vsync ? 0b1001 : 0b0000) |
+						(crtc_.get_bus_state().hsync ? 0b0001 : 0b0000) |
+						0b0100;
 			}
 		}
 
@@ -69,25 +72,33 @@ class CGA {
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() * 596591.0f / 8128500.0f;
+			return outputter_.crt.get_scaled_scan_status() * 4.0f / (7.0f * 8.0f);
 		}
 
 	private:
 		struct CRTCOutputter {
 			CRTCOutputter() :
-				crt(882, 9, 370, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
-				// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
-				// consider whether that's worth building into the scan target.
+				crt(912, 8, 262, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
 //				crt.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
 				crt.set_display_type(Outputs::Display::DisplayType::RGB);
 			}
 
-			void set_control(uint8_t control) {
-				// b0: 'high resolution' (probably breaks if not 1)
-				// b3: video enable
+
+			void set_mode(uint8_t control) {
 				// b5: enable blink
+				// b4: 1 => 640x200 graphics
+				// b3: video enable
+				// b2: 1 => monochrome
+				// b1: 1 => 320x200 graphics; 0 => text
+				// b0: 1 => 80-column text; 0 => 40
 				control_ = control;
+
+				if(control & 0x2) {
+					mode_ = (control & 0x10) ? Mode::Pixels640 : Mode::Pixels320;
+				} else {
+					mode_ = (control & 0x01) ? Mode::Text80 : Mode::Text40;
+				}
 			}
 
 			uint8_t control() {
@@ -214,6 +225,10 @@ class CGA {
 			std::vector<uint8_t> font;
 
 			uint8_t control_ = 0;
+
+			enum class Mode {
+				Pixels320, Pixels640, Text80, Text40,
+			} mode_ = Mode::Text80;
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
