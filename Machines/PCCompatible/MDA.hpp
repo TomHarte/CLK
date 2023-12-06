@@ -28,11 +28,16 @@ class MDA {
 		}
 
 		void run_for(Cycles cycles) {
+			// Input rate is the PIT rate of 1,193,182 Hz.
+			// MDA is actually clocked at 16.257 MHz; which is treated internally as 1,806,333.333333333333333... Hz
+			//
+			// The GCD of those two numbers is... 2. Oh well.
+
 			// I _think_ the MDA's CRTC is clocked at 14/9ths the PIT clock.
 			// Do that conversion here.
-			full_clock_ += 14 * cycles.as<int>();
-			crtc_.run_for(Cycles(full_clock_ / 9));
-			full_clock_ %= 9;
+			full_clock_ += 8'128'500 * cycles.as<int>();
+			crtc_.run_for(Cycles(full_clock_ / (596'591 * 9)));
+			full_clock_ %= (596'591 * 9);
 		}
 
 		template <int address>
@@ -64,13 +69,13 @@ class MDA {
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() * 9.0f / 14.0f;
+			return outputter_.crt.get_scaled_scan_status() * 596591.0f / 8128500.0f;
 		}
 
 	private:
 		struct CRTCOutputter {
 			CRTCOutputter() :
-				crt(882, 9, 382, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
+				crt(882, 9, 370, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
 				// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
 				// consider whether that's worth building into the scan target.
 			{
