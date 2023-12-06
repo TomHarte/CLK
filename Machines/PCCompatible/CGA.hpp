@@ -179,7 +179,7 @@ class CGA {
 
 							if(((attributes & 7) == 1) && state.row_address == 13) {
 								// Draw as underline.
-								std::fill(pixel_pointer, pixel_pointer + 9, intensity);
+								std::fill(pixel_pointer, pixel_pointer + 8, intensity);
 							} else {
 								// Draw according to ROM contents, possibly duplicating final column.
 								pixel_pointer[0] = (row & 0x80) ? intensity : off;
@@ -190,15 +190,14 @@ class CGA {
 								pixel_pointer[5] = (row & 0x04) ? intensity : off;
 								pixel_pointer[6] = (row & 0x02) ? intensity : off;
 								pixel_pointer[7] = (row & 0x01) ? intensity : off;
-								pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
 							}
 						}
-						pixel_pointer += 9;
+						pixel_pointer += 8;
 					}
 				}
 
 				// Advance.
-				count += 9;
+				count += 8;
 
 				// Output pixel row prematurely if storage is exhausted.
 				if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
