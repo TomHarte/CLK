@@ -63,7 +63,7 @@ class FloppyController {
 		FloppyController(PIC &pic, DMA &dma, int drive_count) : pic_(pic), dma_(dma) {
 			// Default: one floppy drive only.
 			for(int c = 0; c < 4; c++) {
-				drives_[0].exists = drive_count >= c;
+				drives_[c].exists = drive_count > c;
 			}
 		}
 
@@ -795,7 +795,7 @@ class IO {
 					// Ignore serial port accesses.
 				break;
 			}
-			return 0;
+			return 0xff;
 		}
 
 	private:
