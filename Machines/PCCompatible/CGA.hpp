@@ -143,54 +143,45 @@ class CGA {
 					}
 
 					if(pixels) {
-						static constexpr uint8_t high_intensity = 0x0d;
-						static constexpr uint8_t low_intensity = 0x09;
-						static constexpr uint8_t off = 0x00;
-
 						if(state.cursor) {
 							pixel_pointer[0] =	pixel_pointer[1] =	pixel_pointer[2] =	pixel_pointer[3] =
 							pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
-							pixel_pointer[8] =	low_intensity;
+							pixel_pointer[8] =	0x3f;	// i.e. white.
 						} else {
 							const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
 							const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-							uint8_t row = font[(glyph * 14) + state.row_address];
+							const uint8_t row = font[(glyph * 8) + state.row_address];
 
-							const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
-							uint8_t blank = off;
+							uint8_t colours[2] = {
+								uint8_t(((attributes & 0x40) >> 1) | ((attributes & 0x20) >> 2) | ((attributes & 0x10) >> 3)),
+								uint8_t(((attributes & 0x04) << 3) | ((attributes & 0x02) << 2) | ((attributes & 0x01) << 1)),
+							};
 
-							// Handle irregular attributes.
-							// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
-							switch(attributes) {
-								case 0x00:	case 0x08:	case 0x80:	case 0x88:
-									row = 0;
-								break;
-								case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
-									row ^= 0xff;
-									blank = intensity;
-								break;
+							// Apply foreground intensity.
+							if(attributes & 0x08) {
+								colours[1] |= colours[1] >> 1;
 							}
 
-							// Apply blink if enabled.
-							if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
-								row ^= 0xff;
-								blank = (blank == off) ? intensity : off;
-							}
-
-							if(((attributes & 7) == 1) && state.row_address == 13) {
-								// Draw as underline.
-								std::fill(pixel_pointer, pixel_pointer + 8, intensity);
+							// Apply blink or background intensity.
+							if(control_ & 0x20) {
+								if((attributes & 0x80) && (state.field_count & 16)) {
+									std::swap(colours[0], colours[1]);
+								}
 							} else {
-								// Draw according to ROM contents, possibly duplicating final column.
-								pixel_pointer[0] = (row & 0x80) ? intensity : off;
-								pixel_pointer[1] = (row & 0x40) ? intensity : off;
-								pixel_pointer[2] = (row & 0x20) ? intensity : off;
-								pixel_pointer[3] = (row & 0x10) ? intensity : off;
-								pixel_pointer[4] = (row & 0x08) ? intensity : off;
-								pixel_pointer[5] = (row & 0x04) ? intensity : off;
-								pixel_pointer[6] = (row & 0x02) ? intensity : off;
-								pixel_pointer[7] = (row & 0x01) ? intensity : off;
+								if(attributes & 0x80) {
+									colours[0] |= colours[0] >> 1;
+								}
 							}
+
+							// Draw according to ROM contents.
+							pixel_pointer[0] = (row & 0x80) ? colours[1] : colours[0];
+							pixel_pointer[1] = (row & 0x40) ? colours[1] : colours[0];
+							pixel_pointer[2] = (row & 0x20) ? colours[1] : colours[0];
+							pixel_pointer[3] = (row & 0x10) ? colours[1] : colours[0];
+							pixel_pointer[4] = (row & 0x08) ? colours[1] : colours[0];
+							pixel_pointer[5] = (row & 0x04) ? colours[1] : colours[0];
+							pixel_pointer[6] = (row & 0x02) ? colours[1] : colours[0];
+							pixel_pointer[7] = (row & 0x01) ? colours[1] : colours[0];
 						}
 						pixel_pointer += 8;
 					}
