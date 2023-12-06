@@ -8,12 +8,13 @@
 
 #include "PCCompatible.hpp"
 
+#include "CGA.hpp"
+#include "DMA.hpp"
 #include "KeyboardMapper.hpp"
+#include "MDA.hpp"
+#include "Memory.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
-#include "DMA.hpp"
-#include "Memory.hpp"
-#include "MDA.hpp"
 
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
@@ -55,7 +56,7 @@ template <> struct Adaptor<VideoAdaptor::MDA> {
 	using type = MDA;
 };
 template <> struct Adaptor<VideoAdaptor::CGA> {
-	using type = MDA;	// TODO: CGA.
+	using type = CGA;
 };
 
 class FloppyController {
@@ -1079,11 +1080,11 @@ class ConcreteMachine:
 		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, MDA &mda, FloppyController &fdc) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi, pic, mda, fdc)
+				io(pit, dma, ppi, pic, card, fdc)
 			{
 				reset();
 			}

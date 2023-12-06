@@ -1169,6 +1169,7 @@
 		429B135E2B1F7BDA006BB4CB /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		429B135F2B1F7BDA006BB4CB /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		429B13622B1FCA96006BB4CB /* MDA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MDA.hpp; sourceTree = "<group>"; };
+		429B13632B20234B006BB4CB /* CGA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CGA.hpp; sourceTree = "<group>"; };
 		42A5E80B2ABBE04600A0DD5D /* NeskellTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NeskellTests.swift; sourceTree = "<group>"; };
 		42A5E8332ABBE16F00A0DD5D /* illegal_rmw_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = illegal_rmw_test.bin; sourceTree = "<group>"; };
 		42A5E8342ABBE16F00A0DD5D /* arr_bcd_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = arr_bcd_test.bin; sourceTree = "<group>"; };
@@ -2395,6 +2396,7 @@
 			isa = PBXGroup;
 			children = (
 				425739372B051EA800B7D1E4 /* PCCompatible.cpp */,
+				429B13632B20234B006BB4CB /* CGA.hpp */,
 				4267A9C92B0D4F17008A59BB /* DMA.hpp */,
 				4267A9CA2B111ED2008A59BB /* KeyboardMapper.hpp */,
 				429B13622B1FCA96006BB4CB /* MDA.hpp */,
