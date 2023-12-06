@@ -97,12 +97,17 @@ class CGA {
 				control_ = control;
 
 				if(control & 0x2) {
-					mode_ = Mode::Pixels;
-					clock_divider = 1 + !(control & 0x10);
+					mode_ = (control & 0x10) ? Mode::Pixels640 : Mode::Pixels320;
 				} else {
 					mode_ = Mode::Text;
-					clock_divider = 1 + !(control & 0x01);
 				}
+
+				// TODO: I think I need a separate clock divider, which affects the input to the CRTC,
+				// and an output multiplier, to set how many pixels are generated per CRTC tick.
+				//
+				// 640px mode generates 16 pixels per tick, all the other modes generate 8.
+				// The clock is divided by 1 in all 80-column text mode, 2 in all other modes.
+				clock_divider = 1 + !(control & 0x01);
 			}
 
 			uint8_t control() {
@@ -150,40 +155,11 @@ class CGA {
 							pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
 							pixel_pointer[8] =	0x3f;	// i.e. white.
 						} else {
-							const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-							const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-							const uint8_t row = font[(glyph * 8) + state.row_address];
-
-							uint8_t colours[2] = {
-								uint8_t(((attributes & 0x40) >> 1) | ((attributes & 0x20) >> 2) | ((attributes & 0x10) >> 3)),
-								uint8_t(((attributes & 0x04) << 3) | ((attributes & 0x02) << 2) | ((attributes & 0x01) << 1)),
-							};
-
-							// Apply foreground intensity.
-							if(attributes & 0x08) {
-								colours[1] |= colours[1] >> 1;
-							}
-
-							// Apply blink or background intensity.
-							if(control_ & 0x20) {
-								if((attributes & 0x80) && (state.field_count & 16)) {
-									std::swap(colours[0], colours[1]);
-								}
+							if(mode_ == Mode::Text) {
+								serialise_text(state);
 							} else {
-								if(attributes & 0x80) {
-									colours[0] |= colours[0] >> 1;
-								}
+								serialise_pixels(state);
 							}
-
-							// Draw according to ROM contents.
-							pixel_pointer[0] = (row & 0x80) ? colours[1] : colours[0];
-							pixel_pointer[1] = (row & 0x40) ? colours[1] : colours[0];
-							pixel_pointer[2] = (row & 0x20) ? colours[1] : colours[0];
-							pixel_pointer[3] = (row & 0x10) ? colours[1] : colours[0];
-							pixel_pointer[4] = (row & 0x08) ? colours[1] : colours[0];
-							pixel_pointer[5] = (row & 0x04) ? colours[1] : colours[0];
-							pixel_pointer[6] = (row & 0x02) ? colours[1] : colours[0];
-							pixel_pointer[7] = (row & 0x01) ? colours[1] : colours[0];
 						}
 						pixel_pointer += 8;
 					}
@@ -205,6 +181,64 @@ class CGA {
 				pixels = pixel_pointer = nullptr;
 			}
 
+			void serialise_pixels(const Motorola::CRTC::BusState &state) {
+				// This is what I think is happenings:
+				//
+				// Refresh address is still shifted left one and two bytes are fetched, just as if it were
+				// character code + attributes except that these are two bytes worth of graphics.
+				//
+				// Meanwhile, row address is used to invent a 15th address line.
+				const uint8_t bitmap = ram[((state.refresh_address << 1) + (state.row_address << 13)) & 0x3fff];
+//				const uint8_t bitmap = ram[(state.refresh_address + (state.row_address << 13)) & 0x3fff];
+
+				// Better than nothing...
+				pixel_pointer[0] =
+				pixel_pointer[1] = (bitmap & 0xc0) >> 6;
+				pixel_pointer[2] =
+				pixel_pointer[3] = (bitmap & 0x30) >> 4;
+				pixel_pointer[4] =
+				pixel_pointer[5] = (bitmap & 0x0c) >> 2;
+				pixel_pointer[6] =
+				pixel_pointer[7] = (bitmap & 0x03) >> 0;
+			}
+
+			void serialise_text(const Motorola::CRTC::BusState &state) {
+				const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
+				const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
+				const uint8_t row = font[(glyph * 8) + state.row_address];
+
+				uint8_t colours[2] = {
+					uint8_t(((attributes & 0x40) >> 1) | ((attributes & 0x20) >> 2) | ((attributes & 0x10) >> 3)),
+					uint8_t(((attributes & 0x04) << 3) | ((attributes & 0x02) << 2) | ((attributes & 0x01) << 1)),
+				};
+
+				// Apply foreground intensity.
+				if(attributes & 0x08) {
+					colours[1] |= colours[1] >> 1;
+				}
+
+				// Apply blink or background intensity.
+				if(control_ & 0x20) {
+					if((attributes & 0x80) && (state.field_count & 16)) {
+						std::swap(colours[0], colours[1]);
+					}
+				} else {
+					if(attributes & 0x80) {
+						colours[0] |= colours[0] >> 1;
+					}
+				}
+
+				// Draw according to ROM contents.
+				pixel_pointer[0] = (row & 0x80) ? colours[1] : colours[0];
+				pixel_pointer[1] = (row & 0x40) ? colours[1] : colours[0];
+				pixel_pointer[2] = (row & 0x20) ? colours[1] : colours[0];
+				pixel_pointer[3] = (row & 0x10) ? colours[1] : colours[0];
+				pixel_pointer[4] = (row & 0x08) ? colours[1] : colours[0];
+				pixel_pointer[5] = (row & 0x04) ? colours[1] : colours[0];
+				pixel_pointer[6] = (row & 0x02) ? colours[1] : colours[0];
+				pixel_pointer[7] = (row & 0x01) ? colours[1] : colours[0];
+			}
+
 			Outputs::CRT::CRT crt;
 
 			enum class OutputState {
@@ -223,7 +257,7 @@ class CGA {
 			uint8_t control_ = 0;
 
 			enum class Mode {
-				Pixels, Text,
+				Pixels640, Pixels320, Text,
 			} mode_ = Mode::Text;
 			int clock_divider = 1;
 		} outputter_;
