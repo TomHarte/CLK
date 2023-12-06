@@ -103,8 +103,8 @@ class CGA {
 				crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
 				crt.set_visible_area(Outputs::Display::Rect(0.097f, 0.095f, 0.82f, 0.82f));
-				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);	// TODO: needs to be a user option.
-//				crt.set_display_type(Outputs::Display::DisplayType::RGB);	// TODO: needs to be a user option.
+//				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);	// TODO: needs to be a user option.
+				crt.set_display_type(Outputs::Display::DisplayType::RGB);	// TODO: needs to be a user option.
 			}
 
 			void set_mode(uint8_t control) {
@@ -128,17 +128,34 @@ class CGA {
 			}
 
 			void set_colours(uint8_t value) {
+				// b5: 320x200 palette.
 				if(value & 0x20) {
-					palette[0] = 0b00'00'00;
-					palette[1] = 0b00'10'10;
-					palette[2] = 0b10'00'10;
-					palette[3] = 0b10'10'10;
+					palette320[1] = 0b00'10'10;
+					palette320[2] = 0b10'00'10;
+					palette320[3] = 0b10'10'10;
 				} else {
-					palette[0] = 0b00'00'00;
-					palette[1] = 0b00'10'00;
-					palette[2] = 0b10'00'00;
-					palette[3] = 0b10'10'00;	// TODO: brown, here and elsewhere.
+					palette320[1] = 0b00'10'00;
+					palette320[2] = 0b10'00'00;
+					palette320[3] = 0b10'10'00;	// TODO: brown, here and elsewhere.
 				}
+
+				// b4: set 320x200 palette into high intensity.
+				if(value & 0x10) {
+					palette320[1] |= palette320[1] >> 1;
+					palette320[2] |= palette320[2] >> 1;
+					palette320[3] |= palette320[3] >> 1;
+				}
+
+				// b3–b0: set background, border, monochrome colour.
+				palette320[0] = uint8_t(
+					((value & 0x01) << 1) |
+					((value & 0x02) << 2) |
+					((value & 0x04) << 3)
+				);
+				if(value & 0x08) {
+					palette320[0] |= palette320[0] >> 1;
+				}
+				palette640[1] = palette320[0];
 			}
 
 			uint8_t control() {
@@ -254,31 +271,31 @@ class CGA {
 				};
 
 				if(mode_ == Mode::Pixels320) {
-					pixel_pointer[0] = palette[(bitmap[0] & 0xc0) >> 6];
-					pixel_pointer[1] = palette[(bitmap[0] & 0x30) >> 4];
-					pixel_pointer[2] = palette[(bitmap[0] & 0x0c) >> 2];
-					pixel_pointer[3] = palette[(bitmap[0] & 0x03) >> 0];
-					pixel_pointer[4] = palette[(bitmap[1] & 0xc0) >> 6];
-					pixel_pointer[5] = palette[(bitmap[1] & 0x30) >> 4];
-					pixel_pointer[6] = palette[(bitmap[1] & 0x0c) >> 2];
-					pixel_pointer[7] = palette[(bitmap[1] & 0x03) >> 0];
+					pixel_pointer[0] = palette320[(bitmap[0] & 0xc0) >> 6];
+					pixel_pointer[1] = palette320[(bitmap[0] & 0x30) >> 4];
+					pixel_pointer[2] = palette320[(bitmap[0] & 0x0c) >> 2];
+					pixel_pointer[3] = palette320[(bitmap[0] & 0x03) >> 0];
+					pixel_pointer[4] = palette320[(bitmap[1] & 0xc0) >> 6];
+					pixel_pointer[5] = palette320[(bitmap[1] & 0x30) >> 4];
+					pixel_pointer[6] = palette320[(bitmap[1] & 0x0c) >> 2];
+					pixel_pointer[7] = palette320[(bitmap[1] & 0x03) >> 0];
 				} else {
-					pixel_pointer[0x0] = palette[(bitmap[0] & 0x80) >> 7];
-					pixel_pointer[0x1] = palette[(bitmap[0] & 0x40) >> 6];
-					pixel_pointer[0x2] = palette[(bitmap[0] & 0x20) >> 5];
-					pixel_pointer[0x3] = palette[(bitmap[0] & 0x10) >> 4];
-					pixel_pointer[0x4] = palette[(bitmap[0] & 0x08) >> 3];
-					pixel_pointer[0x5] = palette[(bitmap[0] & 0x04) >> 2];
-					pixel_pointer[0x6] = palette[(bitmap[0] & 0x02) >> 1];
-					pixel_pointer[0x7] = palette[(bitmap[0] & 0x01) >> 0];
-					pixel_pointer[0x8] = palette[(bitmap[1] & 0x80) >> 7];
-					pixel_pointer[0x9] = palette[(bitmap[1] & 0x40) >> 6];
-					pixel_pointer[0xa] = palette[(bitmap[1] & 0x20) >> 5];
-					pixel_pointer[0xb] = palette[(bitmap[1] & 0x10) >> 4];
-					pixel_pointer[0xc] = palette[(bitmap[1] & 0x08) >> 3];
-					pixel_pointer[0xd] = palette[(bitmap[1] & 0x04) >> 2];
-					pixel_pointer[0xe] = palette[(bitmap[1] & 0x02) >> 1];
-					pixel_pointer[0xf] = palette[(bitmap[1] & 0x01) >> 0];
+					pixel_pointer[0x0] = palette640[(bitmap[0] & 0x80) >> 7];
+					pixel_pointer[0x1] = palette640[(bitmap[0] & 0x40) >> 6];
+					pixel_pointer[0x2] = palette640[(bitmap[0] & 0x20) >> 5];
+					pixel_pointer[0x3] = palette640[(bitmap[0] & 0x10) >> 4];
+					pixel_pointer[0x4] = palette640[(bitmap[0] & 0x08) >> 3];
+					pixel_pointer[0x5] = palette640[(bitmap[0] & 0x04) >> 2];
+					pixel_pointer[0x6] = palette640[(bitmap[0] & 0x02) >> 1];
+					pixel_pointer[0x7] = palette640[(bitmap[0] & 0x01) >> 0];
+					pixel_pointer[0x8] = palette640[(bitmap[1] & 0x80) >> 7];
+					pixel_pointer[0x9] = palette640[(bitmap[1] & 0x40) >> 6];
+					pixel_pointer[0xa] = palette640[(bitmap[1] & 0x20) >> 5];
+					pixel_pointer[0xb] = palette640[(bitmap[1] & 0x10) >> 4];
+					pixel_pointer[0xc] = palette640[(bitmap[1] & 0x08) >> 3];
+					pixel_pointer[0xd] = palette640[(bitmap[1] & 0x04) >> 2];
+					pixel_pointer[0xe] = palette640[(bitmap[1] & 0x02) >> 1];
+					pixel_pointer[0xf] = palette640[(bitmap[1] & 0x01) >> 0];
 				}
 			}
 
@@ -347,7 +364,8 @@ class CGA {
 				Pixels640, Pixels320, Text,
 			} mode_ = Mode::Text;
 
-			uint8_t palette[4];
+			uint8_t palette320[4]{};
+			uint8_t palette640[2]{};
 
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
