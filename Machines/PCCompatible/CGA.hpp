@@ -89,9 +89,10 @@ class CGA {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 			outputter_.crt.set_scan_target(scan_target);
 		}
-
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() * float(outputter_.clock_divider) / (3.0f * 4.0f);
+			// The CRT is always handed data at the full CGA pixel clock rate, so just
+			// divide by 12 to get back to the rate that run_for is being called at.
+			return outputter_.crt.get_scaled_scan_status() / 12.0f;
 		}
 
 	private:
