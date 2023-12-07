@@ -134,6 +134,7 @@ enum Name {
 
 	// PCCompatible.
 	PCCompatibleGLaBIOS,
+	PCCompatibleGLaTICK,
 	PCCompatiblePhoenix80286BIOS,
 	PCCompatibleMDAFont,
 	PCCompatibleCGAFont,

@@ -15,6 +15,7 @@
 #include "Memory.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
+#include "RTC.hpp"
 
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
@@ -549,6 +550,25 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				if(drive_count) low_switches_ |= 0xb0001;
 			}
 
+		/// Supplies a hint about the user's display choice. If the high switches haven't been read yet and this is a CGA device,
+		/// this hint will be used to select between 40- and 80-column default display.
+		void hint_is_composite(bool composite) {
+			if(high_switches_observed_) {
+				return;
+			}
+
+			switch(high_switches_ & 3) {
+				// Do nothing if a non-CGA card is in use.
+				case 0b00:	case 0b11:
+					break;
+
+				default:
+					high_switches_ &= ~0b11;
+					high_switches_ |= composite ? 0b01 : 0b10;
+				break;
+			}
+		}
+
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
@@ -571,6 +591,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0:
+					high_switches_observed_ = true;
 					return enable_keyboard_ ? keyboard_.read() : uint8_t((high_switches_ << 4) | low_switches_);
 						// Guesses that switches is high and low combined as below.
 
@@ -580,6 +601,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					// b5: timer 2 output;	[TODO]
 					// b4: cassette data input; [TODO]
 					// b3...b0: whichever of the high and low switches is selected.
+					high_switches_observed_ |= use_high_switches_;
 					return
 						use_high_switches_ ? high_switches_ : low_switches_;
 			}
@@ -587,6 +609,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		};
 
 	private:
+		bool high_switches_observed_ = false;
 		uint8_t high_switches_ = 0;
 		uint8_t low_switches_ = 0;
 
@@ -601,8 +624,8 @@ using PPI = Intel::i8255::i8255<i8255PortHandler>;
 template <VideoAdaptor video>
 class IO {
 	public:
-		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc) :
-			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc) {}
+		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc, RTC &rtc) :
+			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc), rtc_(rtc) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			static constexpr uint16_t crtc_base =
@@ -616,6 +639,9 @@ class IO {
 						printf("Unhandled out: %04x to %04x\n", value, port);
 					}
 				break;
+
+				case 0x0070:	rtc_.write<0>(uint8_t(value));	break;
+				case 0x0071:	rtc_.write<1>(uint8_t(value));	break;
 
 				// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
 				case 0x00a0:
@@ -751,6 +777,8 @@ class IO {
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
 				return ppi_.read(port);
 
+				case 0x0071:	return rtc_.read();
+
 				case 0x0080:	return dma_.pages.page<0>();
 				case 0x0081:	return dma_.pages.page<1>();
 				case 0x0082:	return dma_.pages.page<2>();
@@ -804,6 +832,7 @@ class IO {
 		PIC &pic_;
 		typename Adaptor<video>::type &video_;
 		FloppyController &fdc_;
+		RTC &rtc_;
 };
 
 class FlowController {
@@ -880,7 +909,7 @@ class ConcreteMachine:
 			ppi_handler_(speaker_, keyboard_, video, DriveCount),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_, video_, fdc_)
+			context(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
 			// Set up DMA source/target.
 			dma_.set_memory(&context.memory);
@@ -892,9 +921,10 @@ class ConcreteMachine:
 
 			// Fetch the BIOS. [8088 only, for now]
 			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
+			const auto tick = ROM::Name::PCCompatibleGLaTICK;
 			const auto font = Video::FontROM;
 
-			ROM::Request request = ROM::Request(bios) && ROM::Request(font);
+			ROM::Request request = ROM::Request(bios) && ROM::Request(tick) && ROM::Request(font);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
@@ -902,6 +932,9 @@ class ConcreteMachine:
 
 			const auto &bios_contents = roms.find(bios)->second;
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+
+			const auto &tick_contents = roms.find(tick)->second;
+			context.memory.install(0xd'0000, tick_contents.data(), tick_contents.size());
 
 			// Give the video card something to read from.
 			const auto &font_contents = roms.find(font)->second;
@@ -1076,6 +1109,10 @@ class ConcreteMachine:
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
 			video_.set_display_type(display_type);
+			ppi_handler_.hint_is_composite(
+				(display_type == Outputs::Display::DisplayType::CompositeColour) ||
+				(display_type == Outputs::Display::DisplayType::CompositeMonochrome)
+			);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const override {
@@ -1095,15 +1132,16 @@ class ConcreteMachine:
 
 		PIT pit_;
 		PPI ppi_;
+		RTC rtc_;
 
 		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc) :
+			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc, RTC &rtc) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
-				io(pit, dma, ppi, pic, card, fdc)
+				io(pit, dma, ppi, pic, card, fdc, rtc)
 			{
 				reset();
 			}
