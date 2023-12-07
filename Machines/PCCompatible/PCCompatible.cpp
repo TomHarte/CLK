@@ -119,7 +119,7 @@ class FloppyController {
 
 						// Just decline to write, for now.
 						status_.set(Intel::i8272::Status1::NotWriteable);
-						status_.set(Intel::i8272::Status0::AbnormalTermination);
+						status_.set(Intel::i8272::Status0::BecameNotReady);
 
 						results_.serialise(
 							status_,
