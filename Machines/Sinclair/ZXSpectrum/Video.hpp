@@ -133,7 +133,7 @@ template <Timing timing> class Video {
 						// Output plain border line.
 						if(offset < sync_position) {
 							const int border_duration = std::min(sync_position, end_offset) - offset;
-							output_border(border_duration);
+							crt_.output_level<uint8_t>(border_duration, border_colour_);
 							offset += border_duration;
 						}
 					} else {
@@ -199,7 +199,7 @@ template <Timing timing> class Video {
 
 						if(offset >= 256 && offset < sync_position && end_offset > offset) {
 							const int border_duration = std::min(sync_position, end_offset) - offset;
-							output_border(border_duration);
+							crt_.output_level<uint8_t>(border_duration, border_colour_);
 							offset += border_duration;
 						}
 					}
@@ -231,8 +231,7 @@ template <Timing timing> class Video {
 					}
 
 					if(offset >= burst_position+burst_length && end_offset > offset) {
-						const int border_duration = end_offset - offset;
-						output_border(border_duration);
+						crt_.output_level<uint8_t>(end_offset - offset, border_colour_);
 					}
 				}
 
@@ -242,12 +241,6 @@ template <Timing timing> class Video {
 		}
 
 	private:
-		void output_border(int duration) {
-			uint8_t *const colour_pointer = crt_.begin_data(1);
-			if(colour_pointer) *colour_pointer = border_colour_;
-			crt_.output_level(duration);
-		}
-
 		static constexpr int half_cycles_per_line() {
 			if constexpr (timing == Timing::FortyEightK) {
 				// TODO: determine real figure here, if one exists.

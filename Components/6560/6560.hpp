@@ -278,7 +278,7 @@ template <class BusHandler> class MOS6560 {
 					switch(output_state_) {
 						case State::Sync:			crt_.output_sync(cycles_in_state_ * 4);														break;
 						case State::ColourBurst:	crt_.output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);	break;
-						case State::Border:			output_border(cycles_in_state_ * 4);														break;
+						case State::Border:			crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.borderColour);					break;
 						case State::Pixels:			crt_.output_data(cycles_in_state_ * 4);														break;
 					}
 					output_state_ = this_state_;
@@ -400,7 +400,7 @@ template <class BusHandler> class MOS6560 {
 				case 0xf: {
 					uint16_t new_border_colour = colours_[value & 0x07];
 					if(this_state_ == State::Border && new_border_colour != registers_.borderColour) {
-						output_border(cycles_in_state_ * 4);
+						crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.borderColour);
 						cycles_in_state_ = 0;
 					}
 					registers_.invertedCells = !((value >> 3)&1);
@@ -503,11 +503,6 @@ template <class BusHandler> class MOS6560 {
 		uint16_t colours_[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 		uint16_t *pixel_pointer = nullptr;
-		void output_border(int number_of_cycles) {
-			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-			if(colour_pointer) *colour_pointer = registers_.borderColour;
-			crt_.output_level(number_of_cycles);
-		}
 
 		struct {
 			int cycles_per_line = 0;

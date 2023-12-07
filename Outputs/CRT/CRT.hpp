@@ -180,6 +180,18 @@ class CRT {
 		*/
 		void output_level(int number_of_cycles);
 
+		/*!	Outputs @c value for @c number_of_cycles .
+
+			@param value The value to output.
+			@param number_of_cycles The number of cycles to repeat the output for.
+		*/
+		template <typename IntT>
+		void output_level(int number_of_cycles, IntT value) {
+			auto colour_pointer = reinterpret_cast<IntT *>(begin_data(1));
+			if(colour_pointer) *colour_pointer = value;
+			output_level(number_of_cycles);
+		}
+
 		/*!	Declares that the caller has created a run of data via @c begin_data that is at least @c number_of_samples
 			long, and that the first @c number_of_samples should be spread over @c number_of_cycles.
 
