@@ -15,7 +15,41 @@
 
 namespace PCCompatible {
 
-// TODO: border colour isn't currently honoured.
+static constexpr uint8_t DarkCyan		= 0b00'10'10;
+static constexpr uint8_t DarkMagenta	= 0b10'00'10;
+static constexpr uint8_t DarkGrey		= 0b10'10'10;
+
+static constexpr uint8_t DarkGreen		= 0b00'10'00;
+static constexpr uint8_t DarkRed		= 0b10'00'00;
+static constexpr uint8_t DarkYellow		= 0b10'10'00;
+
+static constexpr uint8_t Brown			= 0b10'01'00;
+
+/// @returns @c Brown if @c source is @c DarkYellow; @c source otherwise.
+constexpr uint8_t yellow_to_brown(uint8_t source) {
+	return (source == DarkYellow) ? Brown : source;
+}
+
+/// @returns The brightened (i.e. high intensity) version of @c source.
+constexpr uint8_t bright(uint8_t source) {
+	return source | (source >> 1);
+}
+
+/// Maps the RGB TTL triplet @c source to an appropriate output colour.
+constexpr uint8_t rgb(uint8_t source) {
+	return uint8_t(
+		((source & 0x01) << 1) |
+		((source & 0x02) << 2) |
+		((source & 0x04) << 3)
+	);
+}
+
+/// Maps the RGBI value in @c source to an appropriate output colour, including potential yellow-to-brown conversion.
+constexpr uint8_t rgbi(uint8_t source) {
+	const uint8_t result = rgb(source);
+	return (source & 0x10) ? bright(result) : yellow_to_brown(result);
+}
+
 class CGA {
 	public:
 		CGA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
@@ -126,37 +160,14 @@ class CGA {
 					pixels_per_tick = 8;
 				}
 				clock_divider = 1 + !(control & 0x01);
+
+				// Both graphics mode and monochrome/colour may have changed, so update the palette.
+				update_palette();
 			}
 
 			void set_colours(uint8_t value) {
-				// b5: 320x200 palette.
-				if(value & 0x20) {
-					palette320[1] = 0b00'10'10;
-					palette320[2] = 0b10'00'10;
-					palette320[3] = 0b10'10'10;
-				} else {
-					palette320[1] = 0b00'10'00;
-					palette320[2] = 0b10'00'00;
-					palette320[3] = 0b10'10'00;	// TODO: brown, here and elsewhere.
-				}
-
-				// b4: set 320x200 palette into high intensity.
-				if(value & 0x10) {
-					palette320[1] |= palette320[1] >> 1;
-					palette320[2] |= palette320[2] >> 1;
-					palette320[3] |= palette320[3] >> 1;
-				}
-
-				// b3–b0: set background, border, monochrome colour.
-				palette320[0] = uint8_t(
-					((value & 0x01) << 1) |
-					((value & 0x02) << 2) |
-					((value & 0x04) << 3)
-				);
-				if(value & 0x08) {
-					palette320[0] |= palette320[0] >> 1;
-				}
-				palette640[1] = palette320[0];
+				colours_ = value;
+				update_palette();
 			}
 
 			uint8_t control() {
@@ -180,9 +191,9 @@ class CGA {
 				} else if(!state.display_enable || !(control_&0x08)) {
 					new_state = OutputState::Border;
 
-					// TODO: I'm pretty sure this isn't correct for colour burst positioning, though
+					// TODO: this isn't correct for colour burst positioning, though
 					// it happens to fool the particular CRT I've implemented.
-					if(!(control_&4) && cycles_since_hsync <= 4) {
+					if(!(control_&4) && cycles_since_hsync <= 6) {
 						new_state = OutputState::ColourBurst;
 					}
 				} else {
@@ -198,12 +209,24 @@ class CGA {
 				const OutputState new_state = implied_state(state);
 
 				// Upon either a state change or just having accumulated too much local time...
-				if(new_state != output_state || active_pixels_per_tick != pixels_per_tick || active_clock_divider != clock_divider || count > 912) {
+				if(
+					new_state != output_state ||
+					active_pixels_per_tick != pixels_per_tick ||
+					active_clock_divider != clock_divider ||
+					active_border_colour != border_colour ||
+					count > 912
+				) {
 					// (1) flush preexisting state.
 					if(count) {
 						switch(output_state) {
 							case OutputState::Sync:			crt.output_sync(count * active_clock_divider);				break;
-							case OutputState::Border: 		crt.output_blank(count * active_clock_divider);				break;
+							case OutputState::Border:
+								if(active_border_colour) {
+									crt.output_blank(count * active_clock_divider);
+								} else {
+									crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
+								}
+							break;
 							case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, 0);	break;
 							case OutputState::Pixels:		flush_pixels();												break;
 						}
@@ -213,6 +236,7 @@ class CGA {
 					output_state = new_state;
 					active_pixels_per_tick = pixels_per_tick;
 					active_clock_divider = clock_divider;
+					active_border_colour = border_colour;
 					count = 0;
 				}
 
@@ -307,15 +331,7 @@ class CGA {
 				const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0x3fff];
 				const uint8_t row = font[(glyph * 8) + state.row_address];
 
-				uint8_t colours[2] = {
-					uint8_t(((attributes & 0x40) >> 1) | ((attributes & 0x20) >> 2) | ((attributes & 0x10) >> 3)),
-					uint8_t(((attributes & 0x04) << 3) | ((attributes & 0x02) << 2) | ((attributes & 0x01) << 1)),
-				};
-
-				// Apply foreground intensity.
-				if(attributes & 0x08) {
-					colours[1] |= colours[1] >> 1;
-				}
+				uint8_t colours[2] = { rgb(attributes >> 4), rgbi(attributes) };
 
 				// Apply blink or background intensity.
 				if(control_ & 0x20) {
@@ -324,9 +340,12 @@ class CGA {
 					}
 				} else {
 					if(attributes & 0x80) {
-						colours[0] |= colours[0] >> 1;
+						colours[0] = bright(colours[0]);
 					}
 				}
+
+				// Potentially remap dark yellow to brown.
+				colours[0] = yellow_to_brown(colours[0]);
 
 				// Draw according to ROM contents.
 				pixel_pointer[0] = (row & 0x80) ? colours[1] : colours[0];
@@ -347,6 +366,7 @@ class CGA {
 			uint8_t *pixel_pointer = nullptr;
 			int active_pixels_per_tick = 8;
 			int active_clock_divider = 1;
+			uint8_t active_border_colour = 0;
 
 			// Source data.
 			const uint8_t *ram = nullptr;
@@ -362,6 +382,7 @@ class CGA {
 			// Current Programmer-set parameters.
 			int clock_divider = 1;
 			int pixels_per_tick = 8;
+			uint8_t colours_ = 0;
 			uint8_t control_ = 0;
 			enum class Mode {
 				Pixels640, Pixels320, Text,
@@ -369,6 +390,40 @@ class CGA {
 
 			uint8_t palette320[4]{};
 			uint8_t palette640[2]{};
+			uint8_t border_colour;
+
+			void update_palette() {
+				// b5: 320x200 palette, unless in monochrome mode.
+				if(control_ & 0x04) {
+					palette320[1] = DarkCyan;
+					palette320[2] = DarkRed;
+					palette320[3] = DarkGrey;
+				} else {
+					if(colours_ & 0x20) {
+						palette320[1] = DarkCyan;
+						palette320[2] = DarkMagenta;
+						palette320[3] = DarkGrey;
+					} else {
+						palette320[1] = DarkGreen;
+						palette320[2] = DarkRed;
+						palette320[3] = DarkYellow;
+					}
+				}
+
+				// b4: set 320x200 palette into high intensity.
+				if(colours_ & 0x10) {
+					palette320[1] = bright(palette320[1]);
+					palette320[2] = bright(palette320[2]);
+					palette320[3] = bright(palette320[3]);
+				} else {
+					// Remap dark yellow to brown if applicable.
+					palette320[3] = yellow_to_brown(palette320[3]);
+				}
+
+				// b3–b0: set background, border, monochrome colour.
+				palette640[1] = palette320[0] = rgbi(colours_);
+				border_colour = (mode_ != Mode::Pixels640) ? palette320[0] : 0;
+			}
 
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
