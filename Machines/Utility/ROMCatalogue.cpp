@@ -570,6 +570,9 @@ Description::Description(Name name) {
 		case Name::PCCompatibleGLaBIOS:
 			*this = Description(name, "PCCompatible", "8088 GLaBIOS 0.2.5", "GLABIOS_0.2.5_8T.ROM", 8 * 1024, 0x9576944cu);
 		break;
+		case Name::PCCompatibleGLaTICK:
+			*this = Description(name, "PCCompatible", "AT GLaTICK 0.8.5", "GLaTICK_0.8.5_AT.ROM", 2 * 1024, 0x371ea3f1u);
+		break;
 		case Name::PCCompatiblePhoenix80286BIOS:
 			*this = Description(name, "PCCompatible", "Phoenix 80286 BIOS 3.05", "Phoenix 80286 ROM BIOS Version 3.05.bin", 32 * 1024, 0x8d0d318au);
 		break;
