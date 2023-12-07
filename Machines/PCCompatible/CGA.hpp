@@ -15,6 +15,7 @@
 
 namespace PCCompatible {
 
+// TODO: border colour isn't currently honoured.
 class CGA {
 	public:
 		CGA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
@@ -102,8 +103,7 @@ class CGA {
 				crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 			{
 				crt.set_visible_area(Outputs::Display::Rect(0.097f, 0.095f, 0.82f, 0.82f));
-//				crt.set_display_type(Outputs::Display::DisplayType::CompositeColour);	// TODO: needs to be a user option.
-				crt.set_display_type(Outputs::Display::DisplayType::RGB);	// TODO: needs to be a user option.
+				crt.set_display_type(Outputs::Display::DisplayType::RGB);
 			}
 
 			void set_mode(uint8_t control) {
