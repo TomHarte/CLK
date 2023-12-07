@@ -47,7 +47,8 @@ class RTC {
 						return bcd(time_date->tm_hour);
 					}
 					return
-//						((time_date->tm_hour > 12) ? 0x80 : 0x00) |
+						// TODO: determine why GLaTICK signals an RTC fault if I enable communication of PM as below.
+//						((time_date->tm_hour >= 12) ? 0x80 : 0x00) |
 						bcd(1 + (time_date->tm_hour + 11)%12);
 				break;
 				case 0x05:	return 0;	// Hours alarm
