@@ -46,7 +46,9 @@ class RTC {
 					if(statusB_ & 2) {
 						return bcd(time_date->tm_hour);
 					}
-					return bcd(1 + (time_date->tm_hour + 11)%12);
+					return
+//						((time_date->tm_hour > 12) ? 0x80 : 0x00) |
+						bcd(1 + (time_date->tm_hour + 11)%12);
 				break;
 				case 0x05:	return 0;	// Hours alarm
 				case 0x06:	return bcd(time_date->tm_wday + 1);		// Day of the week [Sunday = 1]
