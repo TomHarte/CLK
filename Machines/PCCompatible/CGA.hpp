@@ -30,11 +30,12 @@ class CGA {
 
 		void run_for(Cycles cycles) {
 			// Input rate is the PIT rate of 1,193,182 Hz.
-			// CGA is clocked at the real oscillator rate of 14 times that.
-			// But there's also an internal divide by 8 to align to the fetch clock.
-			full_clock_ += 7 * cycles.as<int>();
+			// CGA is clocked at the real oscillator rate of 12 times that.
+			// But there's also an internal divide by 8 to align to the 80-cfetch clock.
+			// ... and 12/8 = 3/2.
+			full_clock_ += 3 * cycles.as<int>();
 
-			const int modulo = 4 * outputter_.clock_divider;
+			const int modulo = 2 * outputter_.clock_divider;
 			crtc_.run_for(Cycles(full_clock_ / modulo));
 			full_clock_ %= modulo;
 		}
@@ -90,7 +91,7 @@ class CGA {
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() * 4.0f / (7.0f * 8.0f);
+			return outputter_.crt.get_scaled_scan_status() * float(outputter_.clock_divider) / (3.0f * 4.0f);
 		}
 
 	private:
