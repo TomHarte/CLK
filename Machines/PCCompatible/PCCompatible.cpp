@@ -550,6 +550,25 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				if(drive_count) low_switches_ |= 0xb0001;
 			}
 
+		/// Supplies a hint about the user's display choice. If the high switches haven't been read yet and this is a CGA device,
+		/// this hint will be used to select between 40- and 80-column default display.
+		void hint_is_composite(bool composite) {
+			if(high_switches_observed_) {
+				return;
+			}
+
+			switch(high_switches_ & 3) {
+				// Do nothing if a non-CGA card is in use.
+				case 0b00:	case 0b11:
+					break;
+
+				default:
+					high_switches_ &= ~0b11;
+					high_switches_ |= composite ? 0b01 : 0b10;
+				break;
+			}
+		}
+
 		void set_value(int port, uint8_t value) {
 			switch(port) {
 				case 1:
@@ -572,6 +591,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		uint8_t get_value(int port) {
 			switch(port) {
 				case 0:
+					high_switches_observed_ = true;
 					return enable_keyboard_ ? keyboard_.read() : uint8_t((high_switches_ << 4) | low_switches_);
 						// Guesses that switches is high and low combined as below.
 
@@ -581,6 +601,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 					// b5: timer 2 output;	[TODO]
 					// b4: cassette data input; [TODO]
 					// b3...b0: whichever of the high and low switches is selected.
+					high_switches_observed_ |= use_high_switches_;
 					return
 						use_high_switches_ ? high_switches_ : low_switches_;
 			}
@@ -588,6 +609,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 		};
 
 	private:
+		bool high_switches_observed_ = false;
 		uint8_t high_switches_ = 0;
 		uint8_t low_switches_ = 0;
 
@@ -1087,6 +1109,10 @@ class ConcreteMachine:
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
 			video_.set_display_type(display_type);
+			ppi_handler_.hint_is_composite(
+				(display_type == Outputs::Display::DisplayType::CompositeColour) ||
+				(display_type == Outputs::Display::DisplayType::CompositeMonochrome)
+			);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const override {
