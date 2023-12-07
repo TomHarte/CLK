@@ -113,6 +113,28 @@ class FloppyController {
 						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
+					case Command::WriteDeletedData:
+					case Command::WriteData: {
+						status_.begin(decoder_);
+
+						// Just decline to write, for now.
+						status_.set(Intel::i8272::Status1::NotWriteable);
+						status_.set(Intel::i8272::Status0::AbnormalTermination);
+
+						results_.serialise(
+							status_,
+							decoder_.geometry().cylinder,
+							decoder_.geometry().head,
+							decoder_.geometry().sector,
+							decoder_.geometry().size);
+
+						// TODO: what if head has changed?
+						drives_[decoder_.target().drive].status = decoder_.drive_head();
+						drives_[decoder_.target().drive].raised_interrupt = true;
+						pic_.apply_edge<6>(true);
+					} break;
+
+					case Command::ReadDeletedData:
 					case Command::ReadData: {
 						printf("FDC: Read from drive %d / head %d / track %d of head %d / track %d / sector %d\n",
 							decoder_.target().drive,
@@ -131,11 +153,13 @@ class FloppyController {
 							bool found_sector = false;
 
 							for(auto &pair: drives_[decoder_.target().drive].sectors(decoder_.target().head)) {
+								// TODO: I suspect that not all these fields are tested for equality.
 								if(
 									(pair.second.address.track == target.cylinder) &&
 									(pair.second.address.sector == target.sector) &&
 									(pair.second.address.side == target.head) &&
-									(pair.second.size == target.size)
+									(pair.second.size == target.size) &&
+									(pair.second.is_deleted == (decoder_.command() == Command::ReadDeletedData))
 								) {
 									found_sector = true;
 									bool wrote_in_full = true;
