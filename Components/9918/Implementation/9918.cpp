@@ -688,11 +688,7 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram
 	// If the border colour is 0, that can be communicated
 	// more efficiently as an explicit blank.
 	if(border_colour) {
-		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
-		if(pixel_target) {
-			*pixel_target = border_colour;
-		}
-		crt_.output_level(cycles);
+		crt_.output_level<uint32_t>(cycles, border_colour);
 	} else {
 		crt_.output_blank(cycles);
 	}

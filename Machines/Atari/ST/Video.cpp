@@ -633,10 +633,7 @@ void Video::VideoStream::will_change_border_colour() {
 
 void Video::VideoStream::flush_border() {
 	// Output colour 0 for the entirety of duration_ (or black, if this is 1bpp mode).
-	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ? palette_[0] : 0;
-	crt_.output_level(duration_*2);
-
+	crt_.output_level<uint16_t>(duration_ * 2, (bpp_ != OutputBpp::One) ? palette_[0] : 0);
 	duration_ = 0;
 }
 

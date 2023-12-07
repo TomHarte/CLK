@@ -389,9 +389,7 @@ class CRTCBusHandler {
 			// A black border can be output via crt_.output_blank for a minor performance
 			// win; otherwise paint whatever the border colour really is.
 			if(border_) {
-				uint8_t *const colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
-				if(colour_pointer) *colour_pointer = border_;
-				crt_.output_level(length * 16);
+				crt_.output_level<uint8_t>(length * 16, border_);
 			} else {
 				crt_.output_blank(length * 16);
 			}
