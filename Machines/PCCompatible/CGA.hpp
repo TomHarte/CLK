@@ -306,6 +306,9 @@ class CGA {
 
 				// Apply blink or background intensity.
 				if(control_ & 0x20) {
+					// Potentially remap dark yellow to brown.
+					colours[0] = yellow_to_brown(colours[0]);
+
 					if((attributes & 0x80) && (state.field_count & 16)) {
 						std::swap(colours[0], colours[1]);
 					}
@@ -314,9 +317,6 @@ class CGA {
 						colours[0] = bright(colours[0]);
 					}
 				}
-
-				// Potentially remap dark yellow to brown.
-				colours[0] = yellow_to_brown(colours[0]);
 
 				// Draw according to ROM contents.
 				pixel_pointer[0] = (row & 0x80) ? colours[1] : colours[0];
