@@ -103,12 +103,43 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		}
 	}
 
+	// If searching for sector prologues didn't work, look for runs of FF FF FF FF FF.
+	if(sync_starts.empty()) {
+		for(size_t index = 0; index < track_data.size(); ++index) {
+			if(track_data[index] == 0xff) {
+				size_t length = 0;
+				size_t end = index;
+				while(track_data[end] == 0xff && length < 5) {
+					end = (end + 1) % track_data.size();
+					++length;
+				}
+
+				if(length == 5) {
+					sync_starts.insert(index);
+
+					while(track_data[index] == 0xff && index < track_data.size()) {
+						++index;
+					}
+				}
+			}
+		}
+	}
+
 	PCMSegment segment;
 
 	// If the track started in a sync block, write sync first.
 	if(start_index) {
 		segment += Encodings::AppleGCR::six_and_two_sync(int(start_index));
 	}
+
+	// Cap slip bits per location to avoid packing too many bits onto the track
+	// and thereby making it over-dense.
+	//
+	// The magic constant 51,024 comes from the quantity that most DSKs are encoded to;
+	// the minimum of 5 is the minimum number of FFs that must have slip bits in order to
+	// guarantee synchronisation.
+	const int max_slip_bytes_per_location =
+		std::max(5, int((51024 - (track_data.size() * 8)) / sync_starts.size()));
 
 	std::size_t index = start_index;
 	for(const auto location: sync_starts) {
@@ -129,8 +160,17 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		while(index < track_length && track_data[index] == 0xff)
 			++index;
 
-		if(index - location)
-			segment += Encodings::AppleGCR::six_and_two_sync(int(index - location));
+		int leadin_length = int(index - location);
+		if(leadin_length) {
+			// If this is more bytes than are permitted slip bits, encode the first bunch as non-slipping FFs.
+			if(leadin_length > max_slip_bytes_per_location) {
+				std::vector<uint8_t> ffs(size_t(leadin_length - max_slip_bytes_per_location), 0xff);
+				segment += PCMSegment(ffs);
+				leadin_length = max_slip_bytes_per_location;
+			}
+
+			segment += Encodings::AppleGCR::six_and_two_sync(leadin_length);
+		}
 	}
 
 	// If there's still data remaining on the track, write it out. If a sync ran over
