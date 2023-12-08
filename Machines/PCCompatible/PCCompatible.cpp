@@ -136,13 +136,13 @@ class FloppyController {
 
 					case Command::ReadDeletedData:
 					case Command::ReadData: {
-						printf("FDC: Read from drive %d / head %d / track %d of head %d / track %d / sector %d\n",
-							decoder_.target().drive,
-							decoder_.target().head,
-							drives_[decoder_.target().drive].track,
-							decoder_.geometry().head,
-							decoder_.geometry().cylinder,
-							decoder_.geometry().sector);
+//						printf("FDC: Read from drive %d / head %d / track %d of head %d / track %d / sector %d\n",
+//							decoder_.target().drive,
+//							decoder_.target().head,
+//							drives_[decoder_.target().drive].track,
+//							decoder_.geometry().head,
+//							decoder_.geometry().cylinder,
+//							decoder_.geometry().sector);
 
 						status_.begin(decoder_);
 
@@ -304,7 +304,7 @@ class FloppyController {
 
 	private:
 		void reset() {
-			printf("FDC reset\n");
+//			printf("FDC reset\n");
 			decoder_.clear();
 			status_.reset();
 
