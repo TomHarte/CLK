@@ -67,7 +67,7 @@ class CGA {
 						// b1: 1 => positive edge from light pen has set trigger;
 						// b0: 1 => safe to write to VRAM now without causing snow.
 						(crtc_.get_bus_state().vsync ? 0b1001 : 0b0000) |
-						(crtc_.get_bus_state().hsync ? 0b0001 : 0b0000) |
+						(crtc_.get_bus_state().display_enable ? 0b0000 : 0b0001) |
 						0b0100;
 
 				default: return 0xff;
@@ -178,6 +178,7 @@ class CGA {
 				// Determine new output state.
 				update_hsync(state.hsync);
 				const OutputState new_state = implied_state(state);
+				static constexpr uint8_t colour_phase = 200;
 
 				// Upon either a state change or just having accumulated too much local time...
 				if(
@@ -190,7 +191,7 @@ class CGA {
 					// (1) flush preexisting state.
 					if(count) {
 						switch(output_state) {
-							case OutputState::Sync:			crt.output_sync(count * active_clock_divider);				break;
+							case OutputState::Sync:			crt.output_sync(count * active_clock_divider);							break;
 							case OutputState::Border:
 								if(active_border_colour) {
 									crt.output_blank(count * active_clock_divider);
@@ -198,8 +199,8 @@ class CGA {
 									crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
 								}
 							break;
-							case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, 0);	break;
-							case OutputState::Pixels:		flush_pixels();												break;
+							case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, colour_phase);	break;
+							case OutputState::Pixels:		flush_pixels();															break;
 						}
 					}
 
@@ -306,15 +307,18 @@ class CGA {
 
 				// Apply blink or background intensity.
 				if(control_ & 0x20) {
-					// Potentially remap dark yellow to brown.
-					colours[0] = yellow_to_brown(colours[0]);
-
+					// Set both colours to black if within a blink; otherwise consider a yellow-to-brown conversion.
 					if((attributes & 0x80) && (state.field_count & 16)) {
-						std::swap(colours[0], colours[1]);
+						colours[0] = colours[1] = 0;
+					} else {
+						colours[0] = yellow_to_brown(colours[0]);
 					}
 				} else {
 					if(attributes & 0x80) {
 						colours[0] = bright(colours[0]);
+					} else {
+						// Yellow to brown definitely doesn't apply if the colour has been brightened.
+						colours[0] = yellow_to_brown(colours[0]);
 					}
 				}
 

@@ -273,7 +273,7 @@
 	return self;
 }
 
-- (instancetype)initWithPCCompatibleModel:(CSPCCompatibleModel)model videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor {
+- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::PCCompatible::Target;
@@ -281,6 +281,10 @@
 		switch(adaptor) {
 			case CSPCCompatibleVideoAdaptorMDA:	target->adaptor = Target::VideoAdaptor::MDA;	break;
 			case CSPCCompatibleVideoAdaptorCGA:	target->adaptor = Target::VideoAdaptor::CGA;	break;
+		}
+		switch(speed) {
+			case CSPCCompatibleSpeedOriginal:	target->speed = Target::Speed::ApproximatelyOriginal;	break;
+			case CSPCCompatibleSpeedTurbo:		target->speed = Target::Speed::Fast;					break;
 		}
 		_targets.push_back(std::move(target));
 	}

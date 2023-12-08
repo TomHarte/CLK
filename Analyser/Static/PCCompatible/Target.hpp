@@ -20,10 +20,17 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		CGA);
 	VideoAdaptor adaptor = VideoAdaptor::CGA;
 
+	ReflectableEnum(Speed,
+		ApproximatelyOriginal,
+		Fast);
+	Speed speed = Speed::Fast;
+
 	Target() : Analyser::Static::Target(Machine::PCCompatible) {
 		if(needs_declare()) {
-			DeclareField(adaptor);
 			AnnounceEnum(VideoAdaptor);
+			AnnounceEnum(Speed);
+			DeclareField(adaptor);
+			DeclareField(speed);
 		}
 	}
 };

@@ -750,13 +750,39 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8vF-eu-ClP">
+                                            <rect key="frame" x="18" y="168" width="47" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed:" id="qXc-wf-5jm">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Ci6-TG-5tW">
+                                            <rect key="frame" x="68" y="162" width="146" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="Similar to Original" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="8086" imageScaling="axesIndependently" inset="2" selectedItem="R4W-s4-KFx" id="9i0-UG-B2c">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="KQw-8g-SrI">
+                                                    <items>
+                                                        <menuItem title="Similar to Original" state="on" tag="8086" id="R4W-s4-KFx"/>
+                                                        <menuItem title="Turbo" tag="80286" id="LeD-N4-avf"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
                                     </subviews>
                                     <constraints>
+                                        <constraint firstItem="Ci6-TG-5tW" firstAttribute="leading" secondItem="8vF-eu-ClP" secondAttribute="trailing" constant="8" symbolic="YES" id="0Sb-TO-UVM"/>
+                                        <constraint firstItem="Ci6-TG-5tW" firstAttribute="top" secondItem="stw-i3-ikG" secondAttribute="bottom" constant="10" symbolic="YES" id="4E9-4l-fat"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="Ci6-TG-5tW" secondAttribute="bottom" constant="20" symbolic="YES" id="9C6-PK-12w"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="stw-i3-ikG" secondAttribute="trailing" constant="20" symbolic="YES" id="A0n-lr-LHf"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Ci6-TG-5tW" secondAttribute="trailing" constant="20" symbolic="YES" id="G4D-zS-Q1t"/>
                                         <constraint firstItem="uhf-1k-ibT" firstAttribute="leading" secondItem="gJD-vd-WWu" secondAttribute="leading" constant="20" symbolic="YES" id="JNr-Tg-gDV"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="stw-i3-ikG" secondAttribute="bottom" constant="20" symbolic="YES" id="RSc-OQ-KNO"/>
                                         <constraint firstItem="uhf-1k-ibT" firstAttribute="centerY" secondItem="stw-i3-ikG" secondAttribute="centerY" id="bfD-kx-eOc"/>
                                         <constraint firstItem="stw-i3-ikG" firstAttribute="leading" secondItem="uhf-1k-ibT" secondAttribute="trailing" constant="8" symbolic="YES" id="f6l-B2-nBw"/>
+                                        <constraint firstItem="8vF-eu-ClP" firstAttribute="leading" secondItem="gJD-vd-WWu" secondAttribute="leading" constant="20" symbolic="YES" id="ftj-Es-CRQ"/>
+                                        <constraint firstItem="8vF-eu-ClP" firstAttribute="centerY" secondItem="Ci6-TG-5tW" secondAttribute="centerY" id="wUL-sD-fae"/>
                                         <constraint firstItem="stw-i3-ikG" firstAttribute="top" secondItem="gJD-vd-WWu" secondAttribute="top" constant="20" symbolic="YES" id="wjD-TM-5CL"/>
                                     </constraints>
                                 </view>
@@ -1069,6 +1095,7 @@ Gw
                 <outlet property="msxRegionButton" destination="LG6-mP-SeG" id="3a9-VG-6Wf"/>
                 <outlet property="oricDiskInterfaceButton" destination="fYL-p6-wyn" id="aAt-wM-hRZ"/>
                 <outlet property="oricModelTypeButton" destination="ENP-hI-BVZ" id="n9i-Ym-miE"/>
+                <outlet property="pcSpeedButton" destination="Ci6-TG-5tW" id="34Y-5H-5dN"/>
                 <outlet property="pcVideoAdaptorButton" destination="stw-i3-ikG" id="6VO-Q9-4kV"/>
                 <outlet property="spectrumModelTypeButton" destination="gFZ-d4-WFv" id="tdX-Cv-Swe"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>

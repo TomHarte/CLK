@@ -65,6 +65,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 	// MARK: - PC compatible properties
 	@IBOutlet var pcVideoAdaptorButton: NSPopUpButton!
+	@IBOutlet var pcSpeedButton: NSPopUpButton!
 
 	// MARK: - Spectrum properties
 	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
@@ -155,6 +156,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// PC settings
 		pcVideoAdaptorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcVideoAdaptor"))
+		pcSpeedButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcSpeed"))
 
 		// Spectrum settings
 		spectrumModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.spectrumModel"))
@@ -224,6 +226,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// PC settings
 		standardUserDefaults.set(pcVideoAdaptorButton.selectedTag(), forKey: "new.pcVideoAdaptor")
+		standardUserDefaults.set(pcSpeedButton.selectedTag(), forKey: "new.pcSpeed")
 
 		// Spectrum settings
 		standardUserDefaults.set(spectrumModelTypeButton.selectedTag(), forKey: "new.spectrumModel")
@@ -416,7 +419,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					case 1:		videoAdaptor = .CGA
 					default:	break
 				}
-				return CSStaticAnalyser(pcCompatibleModel: .turboXT, videoAdaptor: videoAdaptor)
+				var speed: CSPCCompatibleSpeed = .original
+				switch pcSpeedButton.selectedTag() {
+					case 80286:	speed = .turbo
+					default:	break
+				}
+				return CSStaticAnalyser(pcCompatibleSpeed: speed, videoAdaptor: videoAdaptor)
 
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a
