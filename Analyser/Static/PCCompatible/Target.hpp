@@ -21,9 +21,9 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	VideoAdaptor adaptor = VideoAdaptor::CGA;
 
 	ReflectableEnum(Speed,
-		Original,
+		ApproximatelyOriginal,
 		Fast);
-	Speed speed = Speed::Fast;
+	Speed speed = Speed::ApproximatelyOriginal;
 
 	Target() : Analyser::Static::Target(Machine::PCCompatible) {
 		if(needs_declare()) {
