@@ -1236,10 +1236,18 @@ Machine *Machine::PCCompatible(const Analyser::Static::Target *target, const ROM
 	using Target = Analyser::Static::PCCompatible::Target;
 	const Target *const pc_target = dynamic_cast<const Target *>(target);
 
-	switch(pc_target->adaptor) {
-		case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA, false>(*pc_target, rom_fetcher);
-		case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA, false>(*pc_target, rom_fetcher);
-		default: return nullptr;
+	if(pc_target->speed == Target::Speed::Fast) {
+		switch(pc_target->adaptor) {
+			case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA, true>(*pc_target, rom_fetcher);
+			case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA, true>(*pc_target, rom_fetcher);
+			default: return nullptr;
+		}
+	} else {
+		switch(pc_target->adaptor) {
+			case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA, false>(*pc_target, rom_fetcher);
+			case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA, false>(*pc_target, rom_fetcher);
+			default: return nullptr;
+		}
 	}
 }
 
