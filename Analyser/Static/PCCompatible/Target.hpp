@@ -23,7 +23,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ReflectableEnum(Speed,
 		ApproximatelyOriginal,
 		Fast);
-	Speed speed = Speed::ApproximatelyOriginal;
+	Speed speed = Speed::Fast;
 
 	Target() : Analyser::Static::Target(Machine::PCCompatible) {
 		if(needs_declare()) {
