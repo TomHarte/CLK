@@ -17,6 +17,8 @@
 
 using namespace Storage::Disk;
 
+// Documentation source: https://oldcomputers-ddns.org/public/pub/manuals/imd.pdf
+
 IMD::IMD(const std::string &file_name) : file_(file_name) {
 	// Check for signature.
 	if(!file_.check_signature("IMD")) {
