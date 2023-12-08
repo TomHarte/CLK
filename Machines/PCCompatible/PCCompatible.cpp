@@ -1109,10 +1109,9 @@ class ConcreteMachine:
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
 			video_.set_display_type(display_type);
-			ppi_handler_.hint_is_composite(
-				(display_type == Outputs::Display::DisplayType::CompositeColour) ||
-				(display_type == Outputs::Display::DisplayType::CompositeMonochrome)
-			);
+
+			// Give the PPI a shout-out in case it isn't too late to switch to CGA40.
+			ppi_handler_.hint_is_composite(Outputs::Display::is_composite(display_type));
 		}
 
 		Outputs::Display::DisplayType get_display_type() const override {
