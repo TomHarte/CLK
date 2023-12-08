@@ -908,7 +908,7 @@ class FlowController {
 		bool halted_ = false;
 };
 
-template <VideoAdaptor video>
+template <VideoAdaptor video, bool turbo>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
@@ -975,9 +975,15 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 		void run_for(const Cycles duration) override {
 			const auto pit_ticks = duration.as_integral();
-			cpu_divisor_ += pit_ticks;
-			int ticks = cpu_divisor_ / 3;
-			cpu_divisor_ %= 3;
+
+			int ticks;
+			if constexpr (!turbo) {
+				cpu_divisor_ += pit_ticks;
+				ticks = cpu_divisor_ / 3;
+				cpu_divisor_ %= 3;
+			} else {
+				ticks = pit_ticks;
+			}
 
 			while(ticks--) {
 				//
@@ -989,22 +995,29 @@ class ConcreteMachine:
 				//
 				pit_.run_for(1);
 				++speaker_.cycles_since_update;
-				pit_.run_for(1);
-				++speaker_.cycles_since_update;
-				pit_.run_for(1);
-				++speaker_.cycles_since_update;
+
+				if constexpr (!turbo) {
+					pit_.run_for(1);
+					++speaker_.cycles_since_update;
+					pit_.run_for(1);
+					++speaker_.cycles_since_update;
+				}
 
 				//
 				// Advance CRTC at a more approximate rate.
 				//
-				video_.run_for(Cycles(3));
+				video_.run_for(turbo ? Cycles(1) : Cycles(3));
+
+				//
+				// Give the keyboard a notification of passing time; it's very approximately clocked,
+				// really just including 'some' delays to avoid being instant.
+				//
+				keyboard_.run_for(Cycles(1));
 
 				//
 				// Perform one CPU instruction every three PIT cycles.
 				// i.e. CPU instruction rate is 1/3 * ~1.19Mhz ~= 0.4 MIPS.
 				//
-
-				keyboard_.run_for(Cycles(1));
 
 				// Query for interrupts and apply if pending.
 				if(pic_.pending() && context.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
@@ -1022,56 +1035,75 @@ class ConcreteMachine:
 					);
 				}
 
-				// Do nothing if halted.
+				// Do nothing if currently halted.
 				if(context.flow_controller.halted()) {
 					continue;
 				}
 
-				// Get the next thing to execute.
-				if(!context.flow_controller.should_repeat()) {
-					// Decode from the current IP.
-					decoded_ip_ = context.registers.ip();
-					const auto remainder = context.memory.next_code();
-					decoded = decoder.decode(remainder.first, remainder.second);
-
-					// If that didn't yield a whole instruction then the end of memory must have been hit;
-					// continue from the beginning.
-					if(decoded.first <= 0) {
-						const auto all = context.memory.all();
-						decoded = decoder.decode(all.first, all.second);
-					}
-
-					context.registers.ip() += decoded.first;
+				if constexpr (turbo) {
+					// There's no divider applied, so this makes for 2*PI = around 2.4 MIPS.
+					// That's broadly 80286 speed, if MIPS were a valid measure.
+					perform_instruction();
+					perform_instruction();
 				} else {
-					context.flow_controller.begin_instruction();
+					// With the clock divider above, this makes for a net of PIT/3 = around 0.4 MIPS.
+					// i.e. a shade more than 8086 speed, if MIPS were meaningful.
+					perform_instruction();
 				}
 
-/*				if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
-					const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
-//					if(next != previous) {
-						std::cout << std::hex << decoded_ip_ << " " << next;
-
-						if(decoded.second.operation() == InstructionSet::x86::Operation::INT) {
-							std::cout << " dl:" << std::hex << +context.registers.dl() << "; ";
-							std::cout << "ah:" << std::hex << +context.registers.ah() << "; ";
-							std::cout << "ch:" << std::hex << +context.registers.ch() << "; ";
-							std::cout << "cl:" << std::hex << +context.registers.cl() << "; ";
-							std::cout << "dh:" << std::hex << +context.registers.dh() << "; ";
-							std::cout << "es:" << std::hex << +context.registers.es() << "; ";
-							std::cout << "bx:" << std::hex << +context.registers.bx();
-						}
-
-						std::cout << std::endl;
-//						previous = next;
-//					}
-				}*/
-
-				// Execute it.
-				InstructionSet::x86::perform(
-					decoded.second,
-					context
-				);
+				// Other inevitably broad and fuzzy and inconsistent MIPS counts for my own potential future play:
+				//
+				// 80386 @ 20Mhz: 4–5 MIPS.
+				// 80486 @ 66Mhz: 25 MIPS.
+				// Pentium @ 100Mhz: 188 MIPS.
 			}
+		}
+
+		void perform_instruction() {
+			// Get the next thing to execute.
+			if(!context.flow_controller.should_repeat()) {
+				// Decode from the current IP.
+				decoded_ip_ = context.registers.ip();
+				const auto remainder = context.memory.next_code();
+				decoded = decoder.decode(remainder.first, remainder.second);
+
+				// If that didn't yield a whole instruction then the end of memory must have been hit;
+				// continue from the beginning.
+				if(decoded.first <= 0) {
+					const auto all = context.memory.all();
+					decoded = decoder.decode(all.first, all.second);
+				}
+
+				context.registers.ip() += decoded.first;
+			} else {
+				context.flow_controller.begin_instruction();
+			}
+
+/*			if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
+				const auto next = to_string(decoded, InstructionSet::x86::Model::i8086);
+//				if(next != previous) {
+					std::cout << std::hex << decoded_ip_ << " " << next;
+
+					if(decoded.second.operation() == InstructionSet::x86::Operation::INT) {
+						std::cout << " dl:" << std::hex << +context.registers.dl() << "; ";
+						std::cout << "ah:" << std::hex << +context.registers.ah() << "; ";
+						std::cout << "ch:" << std::hex << +context.registers.ch() << "; ";
+						std::cout << "cl:" << std::hex << +context.registers.cl() << "; ";
+						std::cout << "dh:" << std::hex << +context.registers.dh() << "; ";
+						std::cout << "es:" << std::hex << +context.registers.es() << "; ";
+						std::cout << "bx:" << std::hex << +context.registers.bx();
+					}
+
+					std::cout << std::endl;
+//					previous = next;
+//				}
+			}*/
+
+			// Execute it.
+			InstructionSet::x86::perform(
+				decoded.second,
+				context
+			);
 		}
 
 		// MARK: - ScanProducer.
@@ -1205,8 +1237,8 @@ Machine *Machine::PCCompatible(const Analyser::Static::Target *target, const ROM
 	const Target *const pc_target = dynamic_cast<const Target *>(target);
 
 	switch(pc_target->adaptor) {
-		case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA>(*pc_target, rom_fetcher);
-		case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA>(*pc_target, rom_fetcher);
+		case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA, false>(*pc_target, rom_fetcher);
+		case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA, false>(*pc_target, rom_fetcher);
 		default: return nullptr;
 	}
 }
