@@ -67,7 +67,7 @@ class CGA {
 						// b1: 1 => positive edge from light pen has set trigger;
 						// b0: 1 => safe to write to VRAM now without causing snow.
 						(crtc_.get_bus_state().vsync ? 0b1001 : 0b0000) |
-						(crtc_.get_bus_state().hsync ? 0b0001 : 0b0000) |
+						(crtc_.get_bus_state().display_enable ? 0b0000 : 0b0001) |
 						0b0100;
 
 				default: return 0xff;
