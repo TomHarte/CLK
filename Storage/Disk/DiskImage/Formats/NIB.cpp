@@ -73,9 +73,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// NIB files leave sync bytes implicit and make no guarantees
 	// about overall track positioning. The attempt works by locating
 	// any runs of FF and marking the last five as including slip bits.
-	std::size_t start_index = 0;
 	std::set<size_t> sync_locations;
-
 	for(size_t index = 0; index < track_data.size(); ++index) {
 		// Count the number of FFs starting from here.
 		size_t length = 0;
@@ -95,8 +93,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	}
 
 	PCMSegment segment;
-
-	std::size_t index = start_index;
+	std::size_t index = 0;
 	while(index < track_data.size()) {
 		// Deal with a run of sync values, if present.
 		const auto sync_start = index;
