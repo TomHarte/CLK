@@ -57,133 +57,73 @@ long NIB::file_offset(Track::Address address) {
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
 	// NIBs contain data for even-numbered tracks underneath a single head only.
 	if(address.head) return nullptr;
+	if(address.position.as_quarter() & 2) return nullptr;
 
 	long offset = file_offset(address);
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		if(cached_offset_ == offset && cached_track_) {
+			return cached_track_;
+		}
 		file_.seek(offset, SEEK_SET);
 		track_data = file_.read(track_length);
 	}
 
 	// NIB files leave sync bytes implicit and make no guarantees
-	// about overall track positioning. My current best-guess attempt
-	// is to seek sector prologues then work backwards, inserting sync
-	// bits into [at most 5] preceding FFs. This is intended to put the
-	// Disk II into synchronisation just before each sector.
+	// about overall track positioning. The attempt works by locating
+	// any runs of FF and marking the last five as including slip bits.
 	std::size_t start_index = 0;
-	std::set<size_t> sync_starts;
+	std::set<size_t> sync_locations;
 
-	// Establish where syncs start by finding instances of 0xd5 0xaa and then regressing
-	// from each along all preceding FFs.
 	for(size_t index = 0; index < track_data.size(); ++index) {
-		// This is a D5 AA...
-		if(track_data[index] == 0xd5 && track_data[(index+1)%track_data.size()] == 0xaa) {
-			// ... count backwards to find out where the preceding FFs started.
-			size_t start = index - 1;
-			size_t length = 0;
-			while(track_data[start] == 0xff && length < 5) {
-				start = (start + track_data.size() - 1) % track_data.size();
-				++length;
-			}
-
-			// Record a sync position only if there were at least five FFs, and
-			// sync only in the final five. One of the many crazy fictions of NIBs
-			// is the fixed track length in bytes, which is quite long. So the aim
-			// is to be as conservative as possible with sync placement.
-			if(length == 5) {
-				sync_starts.insert((start + 1) % track_data.size());
-
-				// If the apparent start of this sync area is 'after' the start, then
-				// this sync period overlaps position zero. So this track will start
-				// in a sync block.
-				if(start > index)
-					start_index = start;
-			}
+		// Count the number of FFs starting from here.
+		size_t length = 0;
+		size_t end = index;
+		while(track_data[end] == 0xff) {
+			end = (end + 1) % track_data.size();
+			++length;
 		}
-	}
 
-	// If searching for sector prologues didn't work, look for runs of FF FF FF FF FF.
-	if(sync_starts.empty()) {
-		for(size_t index = 0; index < track_data.size(); ++index) {
-			if(track_data[index] == 0xff) {
-				size_t length = 0;
-				size_t end = index;
-				while(track_data[end] == 0xff && length < 5) {
-					end = (end + 1) % track_data.size();
-					++length;
-				}
-
-				if(length == 5) {
-					sync_starts.insert(index);
-
-					while(track_data[index] == 0xff && index < track_data.size()) {
-						++index;
-					}
-				}
+		// If that's at least five, regress and mark all as syncs.
+		if(length >= 5) {
+			for(int c = 0; c < 5; c++) {
+				end = (end + track_data.size() - 1) % track_data.size();
+				sync_locations.insert(index);
 			}
 		}
 	}
 
 	PCMSegment segment;
 
-	// If the track started in a sync block, write sync first.
-	if(start_index) {
-		segment += Encodings::AppleGCR::six_and_two_sync(int(start_index));
-	}
-
-	// Cap slip bits per location to avoid packing too many bits onto the track
-	// and thereby making it over-dense.
-	//
-	// The magic constant 51,024 comes from the quantity that most DSKs are encoded to;
-	// the minimum of 5 is the minimum number of FFs that must have slip bits in order to
-	// guarantee synchronisation.
-	const int max_slip_bytes_per_location =
-		std::max(5, int((51024 - (track_data.size() * 8)) / sync_starts.size()));
-
 	std::size_t index = start_index;
-	for(const auto location: sync_starts) {
-		// Write data from index to sync_start.
-		if(location > index) {
-			// This is the usual case; the only occasion on which it won't be true is
-			// when the initial sync was detected to carry over the index hole,
-			// in which case there's nothing to copy.
+	while(index < track_data.size()) {
+		// Deal with a run of sync values, if present.
+		const auto sync_start = index;
+		while(sync_locations.find(index) != sync_locations.end() && index < track_data.size()) {
+			++index;
+		}
+		if(index != sync_start) {
+			segment += Encodings::AppleGCR::six_and_two_sync(int(index - sync_start));
+		}
+
+		// Deal with regular data.
+		const auto data_start = index;
+		while(sync_locations.find(index) == sync_locations.end() && index < track_data.size()) {
+			++index;
+		}
+		if(index != data_start) {
 			std::vector<uint8_t> data_segment(
-				track_data.begin() + ptrdiff_t(index),
-				track_data.begin() + ptrdiff_t(location));
+				track_data.begin() + ptrdiff_t(data_start),
+				track_data.begin() + ptrdiff_t(index));
 			segment += PCMSegment(data_segment);
 		}
-
-		// Add a sync from sync_start to end of 0xffs, if there are
-		// any before the end of data.
-		index = location;
-		while(index < track_length && track_data[index] == 0xff)
-			++index;
-
-		int leadin_length = int(index - location);
-		if(leadin_length) {
-			// If this is more bytes than are permitted slip bits, encode the first bunch as non-slipping FFs.
-			if(leadin_length > max_slip_bytes_per_location) {
-				std::vector<uint8_t> ffs(size_t(leadin_length - max_slip_bytes_per_location), 0xff);
-				segment += PCMSegment(ffs);
-				leadin_length = max_slip_bytes_per_location;
-			}
-
-			segment += Encodings::AppleGCR::six_and_two_sync(leadin_length);
-		}
 	}
 
-	// If there's still data remaining on the track, write it out. If a sync ran over
-	// the notional index hole, the loop above will already have completed the track
-	// with sync, so no need to deal with that case here.
-	if(index < track_length) {
-		std::vector<uint8_t> data_segment(
-			track_data.begin() + ptrdiff_t(index),
-			track_data.end());
-		segment += PCMSegment(data_segment);
-	}
-
-	return std::make_shared<PCMTrack>(segment);
+	std::lock_guard lock_guard(file_.get_file_access_mutex());
+	cached_offset_ = offset;
+	cached_track_ = std::make_shared<PCMTrack>(segment);;
+	return cached_track_;
 }
 
 void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
@@ -234,4 +174,5 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		file_.seek(file_offset(track.first), SEEK_SET);
 		file_.write(track.second);
 	}
+	cached_track_ = nullptr;	// Conservative, but safe.
 }
