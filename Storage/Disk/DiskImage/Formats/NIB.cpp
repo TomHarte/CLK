@@ -90,6 +90,11 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 				end = (end + track_data.size() - 1) % track_data.size();
 				sync_locations.insert(end);
 			}
+
+			// Experimental!! Permit only one run of sync locations.
+			// That should synchronise the Disk II to the nibble stream
+			// such that it remains synchronised from then on. At least,
+			// while this remains a read-only format.
 			break;
 		}
 	}
