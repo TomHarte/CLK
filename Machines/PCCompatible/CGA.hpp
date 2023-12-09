@@ -15,41 +15,6 @@
 
 namespace PCCompatible {
 
-static constexpr uint8_t DarkCyan		= 0b00'10'10;
-static constexpr uint8_t DarkMagenta	= 0b10'00'10;
-static constexpr uint8_t DarkGrey		= 0b10'10'10;
-
-static constexpr uint8_t DarkGreen		= 0b00'10'00;
-static constexpr uint8_t DarkRed		= 0b10'00'00;
-static constexpr uint8_t DarkYellow		= 0b10'10'00;
-
-static constexpr uint8_t Brown			= 0b10'01'00;
-
-/// @returns @c Brown if @c source is @c DarkYellow; @c source otherwise.
-constexpr uint8_t yellow_to_brown(uint8_t source) {
-	return (source == DarkYellow) ? Brown : source;
-}
-
-/// @returns The brightened (i.e. high intensity) version of @c source.
-constexpr uint8_t bright(uint8_t source) {
-	return source | (source >> 1);
-}
-
-/// Maps the RGB TTL triplet @c source to an appropriate output colour.
-constexpr uint8_t rgb(uint8_t source) {
-	return uint8_t(
-		((source & 0x01) << 1) |
-		((source & 0x02) << 2) |
-		((source & 0x04) << 3)
-	);
-}
-
-/// Maps the RGBI value in @c source to an appropriate output colour, including potential yellow-to-brown conversion.
-constexpr uint8_t rgbi(uint8_t source) {
-	const uint8_t result = rgb(source);
-	return (source & 0x10) ? bright(result) : yellow_to_brown(result);
-}
-
 class CGA {
 	public:
 		CGA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
@@ -102,7 +67,7 @@ class CGA {
 						// b1: 1 => positive edge from light pen has set trigger;
 						// b0: 1 => safe to write to VRAM now without causing snow.
 						(crtc_.get_bus_state().vsync ? 0b1001 : 0b0000) |
-						(crtc_.get_bus_state().hsync ? 0b0001 : 0b0000) |
+						(crtc_.get_bus_state().display_enable ? 0b0000 : 0b0001) |
 						0b0100;
 
 				default: return 0xff;
@@ -113,6 +78,7 @@ class CGA {
 
 		void set_display_type(Outputs::Display::DisplayType display_type) {
 			outputter_.crt.set_display_type(display_type);
+			outputter_.set_is_composite(Outputs::Display::is_composite(display_type));
 		}
 		Outputs::Display::DisplayType get_display_type() const {
 			return outputter_.crt.get_display_type();
@@ -165,6 +131,11 @@ class CGA {
 				update_palette();
 			}
 
+			void set_is_composite(bool is_composite) {
+				is_composite_ = is_composite;
+				update_palette();
+			}
+
 			void set_colours(uint8_t value) {
 				colours_ = value;
 				update_palette();
@@ -207,6 +178,7 @@ class CGA {
 				// Determine new output state.
 				update_hsync(state.hsync);
 				const OutputState new_state = implied_state(state);
+				static constexpr uint8_t colour_phase = 200;
 
 				// Upon either a state change or just having accumulated too much local time...
 				if(
@@ -219,7 +191,7 @@ class CGA {
 					// (1) flush preexisting state.
 					if(count) {
 						switch(output_state) {
-							case OutputState::Sync:			crt.output_sync(count * active_clock_divider);				break;
+							case OutputState::Sync:			crt.output_sync(count * active_clock_divider);							break;
 							case OutputState::Border:
 								if(active_border_colour) {
 									crt.output_blank(count * active_clock_divider);
@@ -227,8 +199,8 @@ class CGA {
 									crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
 								}
 							break;
-							case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, 0);	break;
-							case OutputState::Pixels:		flush_pixels();												break;
+							case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, colour_phase);	break;
+							case OutputState::Pixels:		flush_pixels();															break;
 						}
 					}
 
@@ -335,17 +307,20 @@ class CGA {
 
 				// Apply blink or background intensity.
 				if(control_ & 0x20) {
+					// Set both colours to black if within a blink; otherwise consider a yellow-to-brown conversion.
 					if((attributes & 0x80) && (state.field_count & 16)) {
-						std::swap(colours[0], colours[1]);
+						colours[0] = colours[1] = 0;
+					} else {
+						colours[0] = yellow_to_brown(colours[0]);
 					}
 				} else {
 					if(attributes & 0x80) {
 						colours[0] = bright(colours[0]);
+					} else {
+						// Yellow to brown definitely doesn't apply if the colour has been brightened.
+						colours[0] = yellow_to_brown(colours[0]);
 					}
 				}
-
-				// Potentially remap dark yellow to brown.
-				colours[0] = yellow_to_brown(colours[0]);
 
 				// Draw according to ROM contents.
 				pixel_pointer[0] = (row & 0x80) ? colours[1] : colours[0];
@@ -384,6 +359,7 @@ class CGA {
 			int pixels_per_tick = 8;
 			uint8_t colours_ = 0;
 			uint8_t control_ = 0;
+			bool is_composite_ = false;
 			enum class Mode {
 				Pixels640, Pixels320, Text,
 			} mode_ = Mode::Text;
@@ -425,10 +401,48 @@ class CGA {
 				border_colour = (mode_ != Mode::Pixels640) ? palette320[0] : 0;
 			}
 
+			//
+			// Named colours and mapping logic.
+			//
+			static constexpr uint8_t DarkCyan		= 0b00'10'10;
+			static constexpr uint8_t DarkMagenta	= 0b10'00'10;
+			static constexpr uint8_t DarkGrey		= 0b10'10'10;
+
+			static constexpr uint8_t DarkGreen		= 0b00'10'00;
+			static constexpr uint8_t DarkRed		= 0b10'00'00;
+			static constexpr uint8_t DarkYellow		= 0b10'10'00;
+
+			static constexpr uint8_t Brown			= 0b10'01'00;
+
+			/// @returns @c Brown if @c source is @c DarkYellow and composite output is not enabled; @c source otherwise.
+			constexpr uint8_t yellow_to_brown(uint8_t source) {
+				return (source == DarkYellow && !is_composite_) ? Brown : source;
+			}
+
+			/// @returns The brightened (i.e. high intensity) version of @c source.
+			constexpr uint8_t bright(uint8_t source) {
+				return source | (source >> 1);
+			}
+
+			/// Maps the RGB TTL triplet @c source to an appropriate output colour.
+			constexpr uint8_t rgb(uint8_t source) {
+				return uint8_t(
+					((source & 0x01) << 1) |
+					((source & 0x02) << 2) |
+					((source & 0x04) << 3)
+				);
+			}
+
+			/// Maps the RGBI value in @c source to an appropriate output colour, including potential yellow-to-brown conversion.
+			constexpr uint8_t rgbi(uint8_t source) {
+				const uint8_t result = rgb(source);
+				return (source & 0x10) ? bright(result) : yellow_to_brown(result);
+			}
 		} outputter_;
 		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
 
 		int full_clock_ = 0;
+
 };
 
 }

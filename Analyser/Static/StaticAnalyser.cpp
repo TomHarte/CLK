@@ -50,6 +50,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/FAT12.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/HFE.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/IPF.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/IMD.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/MSA.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
@@ -182,6 +183,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (MS-DOS style)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
+	Format("imd", result.disks, Disk::DiskImageHolder<Storage::Disk::IMD>, TargetPlatform::PCCompatible)			// IMD
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 
 	// Treat PC booter as a potential backup only if this doesn't parse as a FAT12.

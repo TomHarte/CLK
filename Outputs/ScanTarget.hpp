@@ -51,6 +51,10 @@ enum class DisplayType {
 	CompositeMonochrome
 };
 
+constexpr bool is_composite(DisplayType type) {
+	return type == DisplayType::CompositeColour || type == DisplayType::CompositeMonochrome;
+}
+
 /*!
 	Enumerates the potential formats of input data.
 

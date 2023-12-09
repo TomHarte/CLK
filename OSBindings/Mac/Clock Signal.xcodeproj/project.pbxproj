@@ -37,6 +37,8 @@
 		42A5E8532ABBE16F00A0DD5D /* lax_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8422ABBE16F00A0DD5D /* lax_test.bin */; };
 		42A5E8542ABBE16F00A0DD5D /* branch_backwards_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 42A5E8432ABBE16F00A0DD5D /* branch_backwards_test.bin */; };
 		42E5C3932AC46A7700DA093D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42E5C3922AC46A7700DA093D /* Carbon.framework */; };
+		42EB81282B23AAC300429AF4 /* IMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB81262B23AAC300429AF4 /* IMD.cpp */; };
+		42EB81292B23AAC300429AF4 /* IMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB81262B23AAC300429AF4 /* IMD.cpp */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -1195,6 +1197,8 @@
 		42AD55312A0C4D5000ACE410 /* 68000Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
 		42E5C3922AC46A7700DA093D /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		42EB81252B21788200429AF4 /* RTC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RTC.hpp; sourceTree = "<group>"; };
+		42EB81262B23AAC300429AF4 /* IMD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IMD.cpp; sourceTree = "<group>"; };
+		42EB81272B23AAC300429AF4 /* IMD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IMD.hpp; sourceTree = "<group>"; };
 		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B0333AD2094081A0050B93D /* AppleDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppleDSK.cpp; sourceTree = "<group>"; };
@@ -3064,6 +3068,7 @@
 				4BEBFB4B2002C4BF000708CC /* FAT12.cpp */,
 				4B4518931F75FD1B00926311 /* G64.cpp */,
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
+				42EB81262B23AAC300429AF4 /* IMD.cpp */,
 				4B5B372F2777C7FC0047F238 /* IPF.cpp */,
 				4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
@@ -3084,6 +3089,7 @@
 				4BEBFB4C2002C4BF000708CC /* FAT12.hpp */,
 				4B4518941F75FD1B00926311 /* G64.hpp */,
 				4B4518961F75FD1B00926311 /* HFE.hpp */,
+				42EB81272B23AAC300429AF4 /* IMD.hpp */,
 				4B5B37302777C7FC0047F238 /* IPF.hpp */,
 				4BB4BFAF22A42F290069048D /* MacintoshIMG.hpp */,
 				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
@@ -5959,6 +5965,7 @@
 				4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
+				42EB81292B23AAC300429AF4 /* IMD.cpp in Sources */,
 				4B051CB1267C1CA200CA44E8 /* Keyboard.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
@@ -6057,6 +6064,7 @@
 				4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */,
 				4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4BCE005A227CFFCA000CA200 /* Macintosh.cpp in Sources */,
+				42EB81282B23AAC300429AF4 /* IMD.cpp in Sources */,
 				4B6AAEA4230E3E1D0078E864 /* MassStorageDevice.cpp in Sources */,
 				4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */,

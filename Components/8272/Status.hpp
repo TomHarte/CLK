@@ -47,12 +47,12 @@ enum class Status1: uint8_t {
 };
 
 enum class Status2: uint8_t {
-	DeletedControlMark	= 0x40,
-	DataCRCError 		= 0x20,
-	WrongCyinder		= 0x10,
-	ScanEqualHit		= 0x08,
-	ScanNotSatisfied	= 0x04,
-	BadCylinder			= 0x02,
+	DeletedControlMark		= 0x40,
+	DataCRCError 			= 0x20,
+	WrongCyinder			= 0x10,
+	ScanEqualHit			= 0x08,
+	ScanNotSatisfied		= 0x04,
+	BadCylinder				= 0x02,
 	MissingDataAddressMark	= 0x01,
 };
 
