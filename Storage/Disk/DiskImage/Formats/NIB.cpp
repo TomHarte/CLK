@@ -58,6 +58,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// NIBs contain data for even-numbered tracks underneath a single head only.
 	if(address.head) return nullptr;
 	if(address.position.as_quarter() & 2) return nullptr;
+	if(address.position.as_int() >= number_of_tracks) return nullptr;
 
 	long offset = file_offset(address);
 	std::vector<uint8_t> track_data;
