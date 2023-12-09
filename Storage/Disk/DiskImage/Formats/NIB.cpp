@@ -90,7 +90,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 				end = (end + track_data.size() - 1) % track_data.size();
 				sync_locations.insert(end);
 			}
-//			break;
+			break;
 		}
 	}
 
