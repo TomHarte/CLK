@@ -121,7 +121,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 
 	std::lock_guard lock_guard(file_.get_file_access_mutex());
 	cached_offset_ = offset;
-	cached_track_ = std::make_shared<PCMTrack>(segment);;
+	cached_track_ = std::make_shared<PCMTrack>(segment);
 	return cached_track_;
 }
 
