@@ -72,7 +72,8 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 
 	// NIB files leave sync bytes implicit and make no guarantees
 	// about overall track positioning. The attempt works by locating
-	// any runs of FF and marking the last five as including slip bits.
+	// any single run of FF that is sufficiently long and marking the last
+	// five as including slip bits.
 	std::set<size_t> sync_locations;
 	for(size_t index = 0; index < track_data.size(); ++index) {
 		// Count the number of FFs starting from here.
@@ -87,8 +88,9 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		if(length >= 5) {
 			for(int c = 0; c < 5; c++) {
 				end = (end + track_data.size() - 1) % track_data.size();
-				sync_locations.insert(index);
+				sync_locations.insert(end);
 			}
+//			break;
 		}
 	}
 
