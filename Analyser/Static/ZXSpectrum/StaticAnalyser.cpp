@@ -37,10 +37,10 @@ bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 
 	// Get logical sector 1; the Spectrum appears to support various physical
 	// sectors as sector 1.
-	Storage::Encodings::MFM::Sector *boot_sector = nullptr;
+	const Storage::Encodings::MFM::Sector *boot_sector = nullptr;
 	uint8_t sector_mask = 0;
 	while(!boot_sector) {
-		boot_sector = parser.get_sector(0, 0, sector_mask + 1);
+		boot_sector = parser.sector(0, 0, sector_mask + 1);
 		sector_mask += 0x40;
 		if(!sector_mask) break;
 	}

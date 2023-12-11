@@ -80,7 +80,7 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	// Grab the boot sector; that'll be enough to establish the volume.
-	Storage::Encodings::MFM::Sector *const boot_sector = parser.get_sector(0, 0, 1);
+	const Storage::Encodings::MFM::Sector *const boot_sector = parser.sector(0, 0, 1);
 	if(!boot_sector || boot_sector->samples.empty() || boot_sector->samples[0].size() < 512) {
 		return std::nullopt;
 	}
@@ -108,8 +108,8 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 		const int sector_number = volume.reserved_sectors + c;
 		const auto address = volume.chs_for_sector(sector_number);
 
-		Storage::Encodings::MFM::Sector *const fat_sector =
-			parser.get_sector(address.head, address.cylinder, uint8_t(address.sector));
+		const Storage::Encodings::MFM::Sector *const fat_sector =
+			parser.sector(address.head, address.cylinder, uint8_t(address.sector));
 		if(!fat_sector || fat_sector->samples.empty() || fat_sector->samples[0].size() != volume.bytes_per_sector) {
 			return std::nullopt;
 		}
@@ -130,8 +130,8 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 		const auto sector_number = int(volume.reserved_sectors + c + volume.sectors_per_fat*volume.fat_copies);
 		const auto address = volume.chs_for_sector(sector_number);
 
-		Storage::Encodings::MFM::Sector *const sector =
-			parser.get_sector(address.head, address.cylinder, uint8_t(address.sector));
+		const Storage::Encodings::MFM::Sector *const sector =
+			parser.sector(address.head, address.cylinder, uint8_t(address.sector));
 		if(!sector || sector->samples.empty() || sector->samples[0].size() != volume.bytes_per_sector) {
 			return std::nullopt;
 		}
@@ -156,8 +156,8 @@ std::optional<std::vector<uint8_t>> FAT::GetFile(const std::shared_ptr<Storage::
 		for(int c = 0; c < volume.sectors_per_cluster; c++) {
 			const auto address = volume.chs_for_sector(sector + c);
 
-			Storage::Encodings::MFM::Sector *const sector_contents =
-				parser.get_sector(address.head, address.cylinder, uint8_t(address.sector));
+			const Storage::Encodings::MFM::Sector *const sector_contents =
+				parser.sector(address.head, address.cylinder, uint8_t(address.sector));
 			if(!sector_contents || sector_contents->samples.empty() || sector_contents->samples[0].size() != volume.bytes_per_sector) {
 				return std::nullopt;
 			}

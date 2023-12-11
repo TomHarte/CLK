@@ -85,7 +85,7 @@ bool is_microdisc(Storage::Encodings::MFM::Parser &parser) {
 	/*
 		The Microdisc boot sector is sector 2 of track 0 and contains a 23-byte signature.
 	*/
-	Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, 2);
+	const Storage::Encodings::MFM::Sector *sector = parser.sector(0, 0, 2);
 	if(!sector) return false;
 	if(sector->samples.empty()) return false;
 
@@ -108,7 +108,7 @@ bool is_400_loader(Storage::Encodings::MFM::Parser &parser, uint16_t range_start
 		use disassembly to test for likely matches.
 	*/
 
-	Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, 1);
+	const Storage::Encodings::MFM::Sector *sector = parser.sector(0, 0, 1);
 	if(!sector) return false;
 	if(sector->samples.empty()) return false;
 

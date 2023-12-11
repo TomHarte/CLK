@@ -17,12 +17,12 @@ using namespace Storage::Encodings::MFM;
 Parser::Parser(Density density, const std::shared_ptr<Storage::Disk::Disk> &disk) :
 		disk_(disk), density_(density) {}
 
-void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &address) {
+void Parser::install_track(const Storage::Disk::Track::Address &address) {
 	if(sectors_by_address_by_track_.find(address) != sectors_by_address_by_track_.end()) {
 		return;
 	}
 
-	std::shared_ptr<Storage::Disk::Track> track = disk_->get_track_at_position(address);
+	const auto track = disk_->get_track_at_position(address);
 	if(!track) {
 		return;
 	}
@@ -38,16 +38,16 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 	sectors_by_address_by_track_.insert(std::make_pair(address, std::move(sectors_by_id)));
 }
 
-Sector *Parser::get_sector(int head, int track, uint8_t sector) {
-	Disk::Track::Address address(head, Storage::Disk::HeadPosition(track));
-	install_sectors_from_track(address);
+const Sector *Parser::sector(int head, int track, uint8_t sector) {
+	const Disk::Track::Address address(head, Storage::Disk::HeadPosition(track));
+	install_track(address);
 
-	auto sectors = sectors_by_address_by_track_.find(address);
+	const auto sectors = sectors_by_address_by_track_.find(address);
 	if(sectors == sectors_by_address_by_track_.end()) {
 		return nullptr;
 	}
 
-	auto stored_sector = sectors->second.find(sector);
+	const auto stored_sector = sectors->second.find(sector);
 	if(stored_sector == sectors->second.end()) {
 		return nullptr;
 	}

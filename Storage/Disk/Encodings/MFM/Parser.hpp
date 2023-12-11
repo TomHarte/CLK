@@ -29,14 +29,20 @@ class Parser {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		Storage::Encodings::MFM::Sector *get_sector(int head, int track, uint8_t sector);
+		const Storage::Encodings::MFM::Sector *sector(int head, int track, uint8_t sector);
 
 	private:
 		std::shared_ptr<Storage::Disk::Disk> disk_;
 		Density density_ = Density::Double;
 
-		void install_sectors_from_track(const Storage::Disk::Track::Address &address);
-		std::map<Storage::Disk::Track::Address, std::map<int, Storage::Encodings::MFM::Sector>> sectors_by_address_by_track_;
+		void install_track(const Storage::Disk::Track::Address &address);
+
+		// Maps from a track address, i.e. head and position, to a map from
+		// sector IDs to sectors.
+		std::map<
+			Storage::Disk::Track::Address,
+			std::map<int, Storage::Encodings::MFM::Sector>
+		> sectors_by_address_by_track_;
 };
 
 }
