@@ -295,7 +295,7 @@ void Encoder::add_crc(bool incorrectly) {
 
 namespace {
 template <Density density>
-std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+std::shared_ptr<Storage::Disk::Track> TTrackWithSectors(
 	const std::vector<const Sector *> &sectors,
 	std::optional<std::size_t> sector_gap_length,
 	std::optional<uint8_t> sector_gap_filler_byte
@@ -317,7 +317,7 @@ std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
 
 }
 
-std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 	Density density,
 	const std::vector<Sector> &sectors,
 	std::optional<std::size_t> sector_gap_length,
@@ -331,16 +331,16 @@ std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
 	);
 }
 
-std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 	Density density,
 	const std::vector<const Sector *> &sectors,
 	std::optional<std::size_t> sector_gap_length,
 	std::optional<uint8_t> sector_gap_filler_byte
 ) {
 	switch(density) {
-		case Density::Single:	return TrackWithSectors<Density::Single>(sectors, sector_gap_length, sector_gap_filler_byte);
-		case Density::Double:	return TrackWithSectors<Density::Double>(sectors, sector_gap_length, sector_gap_filler_byte);
-		case Density::High:		return TrackWithSectors<Density::High>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Density::Single:	return TTrackWithSectors<Density::Single>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Density::Double:	return TTrackWithSectors<Density::Double>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Density::High:		return TTrackWithSectors<Density::High>(sectors, sector_gap_length, sector_gap_filler_byte);
 	}
 }
 
