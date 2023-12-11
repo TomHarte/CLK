@@ -461,7 +461,7 @@ class KeyboardController {
 					pic_.apply_edge<1>(false);
 					[[fallthrough]];
 				case Mode::Reset:
-					reset_delay_ = 5;	// Arbitrarily.
+					reset_delay_ = 15;	// Arbitrarily.
 				break;
 			}
 		}
