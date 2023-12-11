@@ -214,7 +214,11 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Add
 	}
 
 	// TODO: FM encoding, data rate?
-	return Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors, track->gap3_length, track->filler_byte);
+	return Storage::Encodings::MFM::TrackWithSectors(
+		Storage::Encodings::MFM::Density::Double,
+		sectors,
+		track->gap3_length,
+		track->filler_byte);
 }
 
 void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::shared_ptr<::Storage::Disk::Track>> &tracks) {
@@ -225,7 +229,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		std::map<std::size_t, Storage::Encodings::MFM::Sector> sectors =
 			Storage::Encodings::MFM::sectors_from_segment(
 				Storage::Disk::track_serialisation(*pair.second, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
-				is_double_density);
+				Storage::Encodings::MFM::Density::Double);
 
 		// Find slot for track, making it if neccessary.
 		const std::size_t chronological_track = index_for_track(pair.first);

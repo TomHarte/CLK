@@ -84,7 +84,7 @@ std::shared_ptr<::Storage::Disk::Track> MSA::get_track_at_position(::Storage::Di
 
 	const auto &track = uncompressed_tracks_[size_t(position - starting_track_) * size_t(sides_) + size_t(address.head)];
 	assert(!track.empty());
-	return track_for_sectors(track.data(), sectors_per_track_, uint8_t(position), uint8_t(address.head), 1, 2, true);
+	return track_for_sectors(track.data(), sectors_per_track_, uint8_t(position), uint8_t(address.head), 1, 2, Storage::Encodings::MFM::Density::Double);
 }
 
 HeadPosition MSA::get_maximum_head_position() {

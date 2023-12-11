@@ -41,7 +41,12 @@ FAT12::FAT12(const std::string &file_name) :
 	}
 	if(log_sector_size >= 5) throw Error::InvalidFormat;
 
-	set_geometry(sector_count_, log_sector_size, 1, true);
+	set_geometry(
+		sector_count_,
+		log_sector_size,
+		1,
+		sector_count_ > 10 ? Encodings::MFM::Density::High : Encodings::MFM::Density::Double
+	);
 }
 
 HeadPosition FAT12::get_maximum_head_position() {

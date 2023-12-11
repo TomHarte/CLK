@@ -119,7 +119,7 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track
 	for(const auto &track : tracks) {
 		PCMSegment segment = Storage::Disk::track_serialisation(*track.second, Storage::Encodings::MFM::MFMBitLength);
 		Storage::Encodings::MFM::Shifter shifter;
-		shifter.set_is_double_density(true);
+		shifter.set_is_mfm(true);
 		shifter.set_should_obey_syncs(true);
 		std::vector<uint8_t> parsed_track;
 		int size = 0;

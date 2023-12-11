@@ -9,6 +9,7 @@
 #ifndef Parser_hpp
 #define Parser_hpp
 
+#include "Constants.hpp"
 #include "Sector.hpp"
 #include "../../Track/Track.hpp"
 #include "../../Drive.hpp"
@@ -20,7 +21,7 @@ namespace Storage::Encodings::MFM {
 */
 class Parser {
 	public:
-		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk);
+		Parser(Density density, const std::shared_ptr<Storage::Disk::Disk> &disk);
 
 		/*!
 			Seeks to the physical track at @c head and @c track. Searches on it for a sector
@@ -32,7 +33,7 @@ class Parser {
 
 	private:
 		std::shared_ptr<Storage::Disk::Disk> disk_;
-		bool is_mfm_ = true;
+		Density density_ = Density::Double;
 
 		void install_sectors_from_track(const Storage::Disk::Track::Address &address);
 		std::map<Storage::Disk::Track::Address, std::map<int, Storage::Encodings::MFM::Sector>> sectors_by_address_by_track_;

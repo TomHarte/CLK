@@ -44,7 +44,7 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 			Storage::Disk::track_serialisation(
 				*track_zero,
 				Storage::Encodings::MFM::MFMBitLength
-			), true);
+			), Storage::Encodings::MFM::Density::Double);
 
 	// If no sectors were found, assume this disk was either single density or high density, which both imply the PC.
 	if(sector_map.empty() || sector_map.size() > 10) {

@@ -11,34 +11,78 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
+#include "Constants.hpp"
 #include "Sector.hpp"
 #include "../../Track/Track.hpp"
 #include "../../../../Numeric/CRC.hpp"
 
 namespace Storage::Encodings::MFM {
 
-extern const std::size_t DefaultSectorGapLength;
+template <Density density> struct Defaults;
+template <> struct Defaults<Density::Single> {
+	static constexpr size_t expected_track_bytes = 6250;
+
+	static constexpr size_t post_index_address_mark_bytes = 26;
+	static constexpr uint8_t post_index_address_mark_value = 0xff;
+
+	static constexpr size_t pre_address_mark_bytes = 6;
+	static constexpr size_t post_address_address_mark_bytes = 11;
+	static constexpr uint8_t post_address_address_mark_value = 0xff;
+
+	static constexpr size_t pre_data_mark_bytes = 6;
+	static constexpr size_t post_data_bytes = 27;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+template <> struct Defaults<Density::Double> {
+	static constexpr size_t expected_track_bytes = 12500;
+
+	static constexpr size_t post_index_address_mark_bytes = 50;
+	static constexpr uint8_t post_index_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_address_mark_bytes = 12;
+	static constexpr size_t post_address_address_mark_bytes = 22;
+	static constexpr uint8_t post_address_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_data_mark_bytes = 12;
+	static constexpr size_t post_data_bytes = 54;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+template <> struct Defaults<Density::High> {
+	static constexpr size_t expected_track_bytes = 25000;
+
+	static constexpr size_t post_index_address_mark_bytes = 50;
+	static constexpr uint8_t post_index_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_address_mark_bytes = 12;
+	static constexpr size_t post_address_address_mark_bytes = 22;
+	static constexpr uint8_t post_address_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_data_mark_bytes = 12;
+	static constexpr size_t post_data_bytes = 54;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+
 /*!
-	Converts a vector of sectors into a properly-encoded MFM track.
+	Converts a vector of sectors into a properly-encoded FM or MFM track.
 
 	@param sectors The sectors to write.
 	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
 	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
 */
-std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
-std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
+std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+	Density density,
+	const std::vector<Sector> &sectors,
+	std::optional<std::size_t> sector_gap_length = std::nullopt,
+	std::optional<uint8_t> sector_gap_filler_byte = std::nullopt);
 
-/*!
-	Converts a vector of sectors into a properly-encoded FM track.
-
-	@param sectors The sectors to write.
-	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
-	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
-*/
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0xff);
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0xff);
+std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+	Density density,
+	const std::vector<const Sector *> &sectors,
+	std::optional<std::size_t> sector_gap_length = std::nullopt,
+	std::optional<uint8_t> sector_gap_filler_byte = std::nullopt);
 
 class Encoder {
 	public:

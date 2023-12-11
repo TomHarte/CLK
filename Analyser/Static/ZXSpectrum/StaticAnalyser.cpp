@@ -33,7 +33,7 @@ bool IsSpectrumTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 }
 
 bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
-	Storage::Encodings::MFM::Parser parser(true, disk);
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	// Get logical sector 1; the Spectrum appears to support various physical
 	// sectors as sector 1.

@@ -77,7 +77,7 @@ FAT::Directory directory_from(const std::vector<uint8_t> &contents) {
 }
 
 std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::Disk> &disk) {
-	Storage::Encodings::MFM::Parser parser(true, disk);
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	// Grab the boot sector; that'll be enough to establish the volume.
 	Storage::Encodings::MFM::Sector *const boot_sector = parser.get_sector(0, 0, 1);
@@ -143,7 +143,7 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 }
 
 std::optional<std::vector<uint8_t>> FAT::GetFile(const std::shared_ptr<Storage::Disk::Disk> &disk, const Volume &volume, const File &file) {
-	Storage::Encodings::MFM::Parser parser(true, disk);
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	std::vector<uint8_t> contents;
 

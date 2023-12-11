@@ -29,7 +29,7 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 	if(track_count_ < 40) track_count_ = 40;
 	else if(track_count_ < 80) track_count_ = 80;
 
-	set_geometry(sectors_per_track, sector_size, 0, false);
+	set_geometry(sectors_per_track, sector_size, 0, Encodings::MFM::Density::Single);
 }
 
 HeadPosition SSD::get_maximum_head_position() {

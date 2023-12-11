@@ -136,7 +136,7 @@ class TrackConstructor {
 					using Shifter = Storage::Encodings::MFM::Shifter;
 					Shifter shifter;
 					shifter.set_should_obey_syncs(true);
-					shifter.set_is_double_density(true);
+					shifter.set_is_mfm(true);
 
 					result.emplace_back();
 
@@ -469,7 +469,7 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 	// If this is a trivial .ST-style sector dump, life is easy.
 	if(!(flags & 1)) {
 		const auto sector_contents = file_.read(sector_count * 512);
-		return track_for_sectors(sector_contents.data(), sector_count, uint8_t(address.position.as_int()), uint8_t(address.head), 1, 2, true);
+		return track_for_sectors(sector_contents.data(), sector_count, uint8_t(address.position.as_int()), uint8_t(address.head), 1, 2, Storage::Encodings::MFM::Density::Double);
 	}
 
 	// Grab sector records, if provided.

@@ -14,8 +14,8 @@
 
 using namespace Storage::Encodings::MFM;
 
-Parser::Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk) :
-		disk_(disk), is_mfm_(is_mfm) {}
+Parser::Parser(Density density, const std::shared_ptr<Storage::Disk::Disk> &disk) :
+		disk_(disk), density_(density) {}
 
 void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &address) {
 	if(sectors_by_address_by_track_.find(address) != sectors_by_address_by_track_.end()) {
@@ -28,8 +28,8 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 	}
 
 	std::map<std::size_t, Sector> sectors = sectors_from_segment(
-		Storage::Disk::track_serialisation(*track, is_mfm_ ? MFMBitLength : FMBitLength),
-		is_mfm_);
+		Storage::Disk::track_serialisation(*track, bit_length(density_)),
+		density_);
 
 	std::map<int, Storage::Encodings::MFM::Sector> sectors_by_id;
 	for(const auto &sector : sectors) {

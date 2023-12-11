@@ -13,6 +13,14 @@
 
 namespace Storage::Encodings::MFM {
 
+enum class Density {
+	Single, Double, High
+};
+
+constexpr bool is_mfm(Density density) {
+	return density != Density::Single;
+}
+
 const uint8_t IndexAddressByte			= 0xfc;
 const uint8_t IDAddressByte				= 0xfe;
 const uint8_t DataAddressByte			= 0xfb;
@@ -30,8 +38,17 @@ const uint16_t MFMPostSyncCRCValue		= 0xcdb4;	// the value the CRC generator sho
 const uint8_t MFMIndexSyncByteValue		= 0xc2;
 const uint8_t MFMSyncByteValue			= 0xa1;
 
+const Time HDMFMBitLength				= Time(1, 200000);
 const Time MFMBitLength					= Time(1, 100000);
 const Time FMBitLength					= Time(1, 50000);
+
+constexpr Time bit_length(Density density) {
+	switch(density) {
+		case Density::Single:	return FMBitLength;
+		case Density::Double:	return MFMBitLength;
+		case Density::High:		return HDMFMBitLength;
+	}
+}
 
 }
 

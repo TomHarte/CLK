@@ -373,12 +373,43 @@ class FloppyController {
 						return cached.sectors;
 					}
 
-					const bool is_double_density = true;	// TODO: use MFM flag here.
-					auto serialisation = Storage::Disk::track_serialisation(
+					const bool is_mfm = true;	// TODO: use MFM flag here.
+
+					Storage::Disk::PCMSegment serialisation;
+
+					// If attempting to load as FM then use the FM bit length only;
+					// if MFM decoding is enabled then try both double- and high-density
+					// parsings, keeping whichever provides the most meaningful reading.
+					//
+					// TODO: there must be a hardware selection for this somewhere on real hardware.
+					// Though not necessarily on an XT.
+					if(!is_mfm) {
+						serialisation = Storage::Disk::track_serialisation(
+							*raw_track,
+							Storage::Encodings::MFM::FMBitLength
+						);
+						cached.sectors = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), Storage::Encodings::MFM::Density::Single);
+						return cached.sectors;
+					}
+
+					// Get double-density candidate.
+					serialisation = Storage::Disk::track_serialisation(
 						*raw_track,
-						is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength
+						Storage::Encodings::MFM::MFMBitLength
 					);
-					cached.sectors = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), is_double_density);
+					auto double_candidate = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), Storage::Encodings::MFM::Density::High);
+
+					// Get high-density candidate.
+					serialisation = Storage::Disk::track_serialisation(
+						*raw_track,
+						Storage::Encodings::MFM::HDMFMBitLength
+					);
+					auto high_candidate = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), Storage::Encodings::MFM::Density::Double);
+
+					// Pick the more populous.
+					cached.sectors = high_candidate.size() > double_candidate.size() ?
+						std::move(high_candidate) : std::move(double_candidate);
+
 					return cached.sectors;
 				}
 

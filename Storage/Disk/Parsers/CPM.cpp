@@ -16,7 +16,7 @@
 using namespace Storage::Disk::CPM;
 
 std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters) {
-	Storage::Encodings::MFM::Parser parser(true, disk);
+	Storage::Encodings::MFM::Parser parser(Encodings::MFM::Density::Double, disk);
 
 	// Assemble the actual bytes of the catalogue.
 	std::vector<uint8_t> catalogue;
