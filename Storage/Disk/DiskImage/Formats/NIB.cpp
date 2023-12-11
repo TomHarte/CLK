@@ -55,12 +55,17 @@ long NIB::file_offset(Track::Address address) {
 }
 
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
-	// NIBs contain data for even-numbered tracks underneath a single head only.
+	// NIBs contain data for a fixed quantity of integer-position tracks underneath a single head only.
+	//
+	// Therefore:
+	//	* reject any attempt to read from the second head;
+	//	* treat 3/4 of any physical track as formatted, the remaining quarter as unformatted; and
+	//	* reject any attempt to read beyond the defined number of tracks.
 	if(address.head) return nullptr;
-	if(address.position.as_quarter() & 2) return nullptr;
-	if(address.position.as_int() >= number_of_tracks) return nullptr;
+	if((address.position.as_quarter() & 3) == 3) return nullptr;
+	if(size_t(address.position.as_int()) >= number_of_tracks) return nullptr;
 
-	long offset = file_offset(address);
+	const long offset = file_offset(address);
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
