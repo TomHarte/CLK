@@ -53,7 +53,7 @@ class RTC {
 				break;
 				case 0x05:	return 0;	// Hours alarm
 				case 0x06:	return bcd(time_date->tm_wday + 1);		// Day of the week [Sunday = 1]
-				case 0x07:	return bcd(time_date->tm_mon);			// Date of the Month [1-31]
+				case 0x07:	return bcd(time_date->tm_mday);			// Date of the Month [1-31]
 				case 0x08:	return bcd(time_date->tm_mon + 1);		// Month [1-12]
 				case 0x09:	return bcd(time_date->tm_year % 100);	// Year [0-99]
 				case 0x32:	return bcd(19 + time_date->tm_year / 100);	// Century
