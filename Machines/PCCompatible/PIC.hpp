@@ -90,6 +90,13 @@ class PIC {
 								awaiting_eoi_ = false;
 							}
 						} break;
+
+						// TODO:
+						//	0b000 = rotate in auto EOI mode (clear)
+						//	0b100 = rotate in auto EOI mode (set)
+						//	0b101 = rotate on nonspecific EOI command
+						//	0b110 = set primary command
+						//	0b111 = rotate on specific EOI command
 					}
 				}
 			}
