@@ -152,28 +152,22 @@ class FloppyController {
 							const auto sector = drives_[decoder_.target().drive].sector(target.head, target.sector);
 
 							if(sector) {
-								bool wrote_in_full = true;
-
 								for(int c = 0; c < 128 << target.size; c++) {
 									const auto access_result = dma_.write(2, sector->samples[0].data()[c]);
 									switch(access_result) {
-										default: break;
+										// Default: keep going.
+										default: continue;
+
+										// Anything else: update flags and exit.
 										case AccessResult::NotAccepted:
 											complete = true;
-											wrote_in_full = false;
+											status_.set(Intel::i8272::Status1::OverRun);
+											status_.set(Intel::i8272::Status0::AbnormalTermination);
 										break;
 										case AccessResult::AcceptedWithEOP:
 											complete = true;
 										break;
 									}
-									if(access_result != AccessResult::Accepted) {
-										break;
-									}
-								}
-
-								if(!wrote_in_full) {
-									status_.set(Intel::i8272::Status1::OverRun);
-									status_.set(Intel::i8272::Status0::AbnormalTermination);
 									break;
 								}
 
