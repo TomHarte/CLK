@@ -34,8 +34,7 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../../Storage/Disk/Track/TrackSerialiser.hpp"
-#include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
-#include "../../Storage/Disk/Encodings/MFM/SegmentParser.hpp"
+#include "../../Storage/Disk/Encodings/MFM/Parser.hpp"
 
 #include "../AudioProducer.hpp"
 #include "../KeyboardMachine.hpp"
@@ -150,50 +149,36 @@ class FloppyController {
 						auto target = decoder_.geometry();
 						bool complete = false;
 						while(!complete) {
-							bool found_sector = false;
+							const auto sector = drives_[decoder_.target().drive].sector(target.head, target.sector);
 
-							for(auto &pair: drives_[decoder_.target().drive].sectors(decoder_.target().head)) {
-								// TODO: I suspect that not all these fields are tested for equality.
-								if(
-									(pair.second.address.track == target.cylinder) &&
-									(pair.second.address.sector == target.sector) &&
-									(pair.second.address.side == target.head) &&
-									(pair.second.size == target.size) &&
-									(pair.second.is_deleted == (decoder_.command() == Command::ReadDeletedData))
-								) {
-									found_sector = true;
-									bool wrote_in_full = true;
+							if(sector) {
+								bool wrote_in_full = true;
 
-									for(int c = 0; c < 128 << target.size; c++) {
-										const auto access_result = dma_.write(2, pair.second.samples[0].data()[c]);
-										switch(access_result) {
-											default: break;
-											case AccessResult::NotAccepted:
-												complete = true;
-												wrote_in_full = false;
-											break;
-											case AccessResult::AcceptedWithEOP:
-												complete = true;
-											break;
-										}
-										if(access_result != AccessResult::Accepted) {
-											break;
-										}
-									}
-
-									if(!wrote_in_full) {
-										status_.set(Intel::i8272::Status1::OverRun);
-										status_.set(Intel::i8272::Status0::AbnormalTermination);
+								for(int c = 0; c < 128 << target.size; c++) {
+									const auto access_result = dma_.write(2, sector->samples[0].data()[c]);
+									switch(access_result) {
+										default: break;
+										case AccessResult::NotAccepted:
+											complete = true;
+											wrote_in_full = false;
+										break;
+										case AccessResult::AcceptedWithEOP:
+											complete = true;
 										break;
 									}
+									if(access_result != AccessResult::Accepted) {
+										break;
+									}
+								}
 
-									++target.sector;	// TODO: multitrack?
-
+								if(!wrote_in_full) {
+									status_.set(Intel::i8272::Status1::OverRun);
+									status_.set(Intel::i8272::Status0::AbnormalTermination);
 									break;
 								}
-							}
 
-							if(!found_sector) {
+								++target.sector;	// TODO: multitrack?
+							} else {
 								status_.set(Intel::i8272::Status1::EndOfCylinder);
 								status_.set(Intel::i8272::Status0::AbnormalTermination);
 								break;
@@ -342,89 +327,19 @@ class FloppyController {
 				bool exists = true;
 
 				bool has_disk() const {
-					return bool(disk);
+					return static_cast<bool>(parser_);
 				}
 
 				void set_disk(std::shared_ptr<Storage::Disk::Disk> image) {
-					disk = image;
-					cached.clear();
+					parser_ = std::make_unique<Storage::Encodings::MFM::Parser>(image);
 				}
 
-				Storage::Encodings::MFM::SectorMap &sectors(bool side) {
-					if(cached.track == track && cached.side == side) {
-						return cached.sectors;
-					}
-
-					cached.track = track;
-					cached.side = side;
-					cached.sectors.clear();
-
-					if(!disk) {
-						return cached.sectors;
-					}
-
-					auto raw_track = disk->get_track_at_position(
-						Storage::Disk::Track::Address(
-							side,
-							Storage::Disk::HeadPosition(track)
-						)
-					);
-					if(!raw_track) {
-						return cached.sectors;
-					}
-
-					const bool is_mfm = true;	// TODO: use MFM flag here.
-
-					Storage::Disk::PCMSegment serialisation;
-
-					// If attempting to load as FM then use the FM bit length only;
-					// if MFM decoding is enabled then try both double- and high-density
-					// parsings, keeping whichever provides the most meaningful reading.
-					//
-					// TODO: there must be a hardware selection for this somewhere on real hardware.
-					// Though not necessarily on an XT.
-					if(!is_mfm) {
-						serialisation = Storage::Disk::track_serialisation(
-							*raw_track,
-							Storage::Encodings::MFM::FMBitLength
-						);
-						cached.sectors = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), Storage::Encodings::MFM::Density::Single);
-						return cached.sectors;
-					}
-
-					// Get double-density candidate.
-					serialisation = Storage::Disk::track_serialisation(
-						*raw_track,
-						Storage::Encodings::MFM::MFMBitLength
-					);
-					auto double_candidate = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), Storage::Encodings::MFM::Density::High);
-
-					// Get high-density candidate.
-					serialisation = Storage::Disk::track_serialisation(
-						*raw_track,
-						Storage::Encodings::MFM::HDMFMBitLength
-					);
-					auto high_candidate = Storage::Encodings::MFM::sectors_from_segment(std::move(serialisation), Storage::Encodings::MFM::Density::Double);
-
-					// Pick the more populous.
-					cached.sectors = high_candidate.size() > double_candidate.size() ?
-						std::move(high_candidate) : std::move(double_candidate);
-
-					return cached.sectors;
+				const Storage::Encodings::MFM::Sector *sector(int head, uint8_t sector) {
+					return parser_ ? parser_->sector(head, track, sector) : nullptr;
 				}
 
 			private:
-				struct {
-					uint8_t track = 0xff;
-					bool side;
-					Storage::Encodings::MFM::SectorMap sectors;
-
-					void clear() {
-						track = 0xff;
-						sectors.clear();
-					}
-				} cached;
-				std::shared_ptr<Storage::Disk::Disk> disk;
+				std::unique_ptr<Storage::Encodings::MFM::Parser> parser_;
 
 		} drives_[4];
 
