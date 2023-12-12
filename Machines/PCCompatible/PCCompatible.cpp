@@ -152,6 +152,8 @@ class FloppyController {
 							const auto sector = drives_[decoder_.target().drive].sector(target.head, target.sector);
 
 							if(sector) {
+								// TODO: I _think_ I'm supposed to validate the rest of the address here?
+
 								for(int c = 0; c < 128 << target.size; c++) {
 									const auto access_result = dma_.write(2, sector->samples[0].data()[c]);
 									switch(access_result) {
