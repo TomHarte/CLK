@@ -28,6 +28,50 @@ std::vector<const Sector *> sector_pointers(const std::vector<Sector> &sectors) 
 	return pointers;
 }
 
+template <Density density> struct Defaults;
+template <> struct Defaults<Density::Single> {
+	static constexpr size_t expected_track_bytes = 6250;
+
+	static constexpr size_t post_index_address_mark_bytes = 26;
+	static constexpr uint8_t post_index_address_mark_value = 0xff;
+
+	static constexpr size_t pre_address_mark_bytes = 6;
+	static constexpr size_t post_address_address_mark_bytes = 11;
+	static constexpr uint8_t post_address_address_mark_value = 0xff;
+
+	static constexpr size_t pre_data_mark_bytes = 6;
+	static constexpr size_t post_data_bytes = 27;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+template <> struct Defaults<Density::Double> {
+	static constexpr size_t expected_track_bytes = 12500;
+
+	static constexpr size_t post_index_address_mark_bytes = 50;
+	static constexpr uint8_t post_index_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_address_mark_bytes = 12;
+	static constexpr size_t post_address_address_mark_bytes = 22;
+	static constexpr uint8_t post_address_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_data_mark_bytes = 12;
+	static constexpr size_t post_data_bytes = 54;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+template <> struct Defaults<Density::High> {
+	static constexpr size_t expected_track_bytes = 25000;
+
+	static constexpr size_t post_index_address_mark_bytes = 50;
+	static constexpr uint8_t post_index_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_address_mark_bytes = 12;
+	static constexpr size_t post_address_address_mark_bytes = 22;
+	static constexpr uint8_t post_address_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_data_mark_bytes = 12;
+	static constexpr size_t post_data_bytes = 54;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+
 }
 
 enum class SurfaceItem {
