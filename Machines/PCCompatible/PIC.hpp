@@ -75,9 +75,21 @@ class PIC {
 
 					// b7, b6, b5:	EOI type.
 					// b2, b1, b0:	interrupt level to acknowledge.
-					if((value >> 5) == 0b001) {
-						// Non-specific EOI.
-						awaiting_eoi_ = false;
+					switch(value >> 5) {
+						default:
+							printf("PIC: TODO EOI type %d\n", value >> 5);
+						case 0b010:	// No-op.
+						break;
+
+						case 0b001:	// Non-specific EOI.
+							awaiting_eoi_ = false;
+						break;
+
+						case 0b011: {	// Specific EOI.
+							if((value & 3) == eoi_target_) {
+								awaiting_eoi_ = false;
+							}
+						} break;
 					}
 				}
 			}
@@ -93,7 +105,7 @@ class PIC {
 
 		template <int input>
 		void apply_edge(bool final_level) {
-			const uint8_t input_mask = 1 << input;
+			constexpr uint8_t input_mask = 1 << input;
 
 			// Guess: level triggered means the request can be forwarded only so long as the
 			// relevant input is actually high. Whereas edge triggered implies capturing state.
@@ -111,8 +123,6 @@ class PIC {
 		}
 
 		int acknowledge() {
-			awaiting_eoi_ = true;
-
 			in_service_ = 0x01;
 			int id = 0;
 			while(!(in_service_ & requests_) && in_service_) {
@@ -121,6 +131,8 @@ class PIC {
 			}
 
 			if(in_service_) {
+				eoi_target_ = id;
+				awaiting_eoi_ = true;
 				requests_ &= ~in_service_;
 				return vector_base_ + id;
 			}
@@ -138,6 +150,7 @@ class PIC {
 		uint8_t vector_base_ = 0;
 		uint8_t mask_ = 0;
 		bool awaiting_eoi_ = false;
+		int eoi_target_ = 0;
 
 		uint8_t requests_ = 0;
 		uint8_t in_service_ = 0;
