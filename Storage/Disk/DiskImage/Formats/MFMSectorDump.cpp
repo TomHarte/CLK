@@ -14,10 +14,10 @@ using namespace Storage::Disk;
 
 MFMSectorDump::MFMSectorDump(const std::string &file_name) : file_(file_name) {}
 
-void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, bool is_double_density) {
+void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, Encodings::MFM::Density density) {
 	sectors_per_track_ = sectors_per_track;
 	sector_size_ = sector_size;
-	is_double_density_ = is_double_density;
+	density_ = density;
 	first_sector_ = first_sector;
 }
 
@@ -34,7 +34,14 @@ std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address addre
 		file_.read(sectors, sizeof(sectors));
 	}
 
-	return track_for_sectors(sectors, sectors_per_track_, uint8_t(address.position.as_int()), uint8_t(address.head), first_sector_, sector_size_, is_double_density_);
+	return track_for_sectors(
+		sectors,
+		sectors_per_track_,
+		uint8_t(address.position.as_int()),
+		uint8_t(address.head),
+		first_sector_,
+		sector_size_,
+		density_);
 }
 
 void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
@@ -44,7 +51,13 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Tr
 	// in one loop, then write in another.
 
 	for(const auto &track : tracks) {
-		decode_sectors(*track.second, parsed_track, first_sector_, first_sector_ + uint8_t(sectors_per_track_-1), sector_size_, is_double_density_);
+		decode_sectors(
+			*track.second,
+			parsed_track,
+			first_sector_,
+			first_sector_ + uint8_t(sectors_per_track_-1),
+			sector_size_,
+			density_);
 		const long file_offset = get_file_offset_for_position(track.first);
 
 		std::lock_guard lock_guard(file_.get_file_access_mutex());

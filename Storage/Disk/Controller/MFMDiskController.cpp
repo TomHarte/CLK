@@ -32,7 +32,7 @@ void MFMController::set_is_double_density(bool is_double_density) {
 	bit_length.clock_rate = is_double_density ? 500000 : 250000;
 	set_expected_bit_length(bit_length);
 
-	shifter_.set_is_double_density(is_double_density);
+	shifter_.set_is_mfm(is_double_density);
 }
 
 bool MFMController::get_is_double_density() {

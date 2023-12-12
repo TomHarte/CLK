@@ -11,10 +11,13 @@
 
 using namespace Storage::Encodings::MFM;
 
-std::map<std::size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::sectors_from_segment(const Storage::Disk::PCMSegment &&segment, bool is_double_density) {
+std::map<std::size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::sectors_from_segment(
+	const Storage::Disk::PCMSegment &segment,
+	Density density
+) {
 	std::map<std::size_t, Sector> result;
 	Shifter shifter;
-	shifter.set_is_double_density(is_double_density);
+	shifter.set_is_mfm(is_mfm(density));
 	shifter.set_should_obey_syncs(true);
 
 	std::unique_ptr<Storage::Encodings::MFM::Sector> new_sector;

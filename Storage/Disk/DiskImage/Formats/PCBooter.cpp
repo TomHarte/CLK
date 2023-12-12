@@ -47,7 +47,8 @@ PCBooter::PCBooter(const std::string &file_name) :
 		break;
 	}
 
-	set_geometry(sector_count_, 2, 1, true);
+	// TODO: probably single density, actually?
+	set_geometry(sector_count_, 2, 1, Encodings::MFM::Density::Double);
 
 	// TODO: check that an appropriate INT or similar is in the boot sector?
 	// Should probably factor out the "does this look like a PC boot sector?" test,

@@ -9,9 +9,13 @@
 #ifndef Parser_hpp
 #define Parser_hpp
 
+#include "Constants.hpp"
 #include "Sector.hpp"
+#include "SegmentParser.hpp"
 #include "../../Track/Track.hpp"
 #include "../../Drive.hpp"
+
+#include <optional>
 
 namespace Storage::Encodings::MFM {
 
@@ -20,7 +24,11 @@ namespace Storage::Encodings::MFM {
 */
 class Parser {
 	public:
-		Parser(bool is_mfm, const std::shared_ptr<Storage::Disk::Disk> &disk);
+		/// Creates a parser that will only attempt to interpret the underlying disk as being of @c density.
+		Parser(Density density, const std::shared_ptr<Storage::Disk::Disk> &disk);
+
+		/// Creates a parser that will automatically try all available FM and MFM densities to try to extract sectors.
+		Parser(const std::shared_ptr<Storage::Disk::Disk> &disk);
 
 		/*!
 			Seeks to the physical track at @c head and @c track. Searches on it for a sector
@@ -28,14 +36,24 @@ class Parser {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		Storage::Encodings::MFM::Sector *get_sector(int head, int track, uint8_t sector);
+		const Storage::Encodings::MFM::Sector *sector(int head, int track, uint8_t sector);
+
+		// TODO: set_sector.
 
 	private:
 		std::shared_ptr<Storage::Disk::Disk> disk_;
-		bool is_mfm_ = true;
+		std::optional<Density> density_;
 
-		void install_sectors_from_track(const Storage::Disk::Track::Address &address);
-		std::map<Storage::Disk::Track::Address, std::map<int, Storage::Encodings::MFM::Sector>> sectors_by_address_by_track_;
+		void install_track(const Storage::Disk::Track::Address &address);
+		static SectorMap parse_track(const Storage::Disk::Track &track, Density density);
+		static void append(const SectorMap &source, std::map<int, Sector> &destination);
+
+		// Maps from a track address, i.e. head and position, to a map from
+		// sector IDs to sectors.
+		std::map<
+			Storage::Disk::Track::Address,
+			std::map<int, Storage::Encodings::MFM::Sector>
+		> sectors_by_address_by_track_;
 };
 
 }

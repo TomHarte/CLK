@@ -11,34 +11,34 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
+#include "Constants.hpp"
 #include "Sector.hpp"
 #include "../../Track/Track.hpp"
 #include "../../../../Numeric/CRC.hpp"
 
 namespace Storage::Encodings::MFM {
 
-extern const std::size_t DefaultSectorGapLength;
 /*!
-	Converts a vector of sectors into a properly-encoded MFM track.
+	Converts a vector of sectors into a properly-encoded FM or MFM track.
 
 	@param sectors The sectors to write.
 	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
 	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
 */
-std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
-std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
+std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+	Density density,
+	const std::vector<Sector> &sectors,
+	std::optional<std::size_t> sector_gap_length = std::nullopt,
+	std::optional<uint8_t> sector_gap_filler_byte = std::nullopt);
 
-/*!
-	Converts a vector of sectors into a properly-encoded FM track.
-
-	@param sectors The sectors to write.
-	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
-	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
-*/
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0xff);
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0xff);
+std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+	Density density,
+	const std::vector<const Sector *> &sectors,
+	std::optional<std::size_t> sector_gap_length = std::nullopt,
+	std::optional<uint8_t> sector_gap_filler_byte = std::nullopt);
 
 class Encoder {
 	public:

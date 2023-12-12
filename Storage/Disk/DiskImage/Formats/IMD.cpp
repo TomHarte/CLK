@@ -157,7 +157,13 @@ std::shared_ptr<::Storage::Disk::Track> IMD::get_track_at_position(::Storage::Di
 	// Mode also indicates data density, but I don't have a good strategy for reconciling that if
 	// it were to disagree with the density implied by the quantity of sectors. So a broad 'is it MFM' test is
 	// applied only.
-	return (mode >= 3) ?
-		Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors) :
-		Storage::Encodings::MFM::GetFMTrackWithSectors(sectors);
+	using namespace Storage::Encodings::MFM;
+	if(mode < 3) {
+		return TrackWithSectors(Density::Single, sectors);
+	}
+	if(sector_size * sector_count >= 6912) {
+		return TrackWithSectors(Density::High, sectors);
+	} else {
+		return TrackWithSectors(Density::Double, sectors);
+	}
 }

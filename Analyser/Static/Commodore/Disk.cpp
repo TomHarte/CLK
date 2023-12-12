@@ -37,7 +37,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
-		std::shared_ptr<Sector> get_sector(uint8_t track, uint8_t sector) {
+		std::shared_ptr<Sector> sector(uint8_t track, uint8_t sector) {
 			int difference = int(track) - int(track_);
 			track_ = track;
 
@@ -182,7 +182,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 	uint8_t next_track = 18;
 	uint8_t next_sector = 1;
 	while(1) {
-		sector = parser.get_sector(next_track, next_sector);
+		sector = parser.sector(next_track, next_sector);
 		if(!sector) break;
 		directory.insert(directory.end(), sector->data.begin(), sector->data.end());
 		next_track = sector->data[0];
@@ -221,7 +221,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 
 		bool is_first_sector = true;
 		while(next_track) {
-			sector = parser.get_sector(next_track, next_sector);
+			sector = parser.sector(next_track, next_sector);
 			if(!sector) break;
 
 			next_track = sector->data[0];
