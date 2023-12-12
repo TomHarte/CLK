@@ -139,7 +139,7 @@ class PIC {
 
 			if(in_service_) {
 				eoi_target_ = id;
-				awaiting_eoi_ = true;
+				awaiting_eoi_ = !auto_eoi_;
 				requests_ &= ~in_service_;
 				return vector_base_ + id;
 			}
