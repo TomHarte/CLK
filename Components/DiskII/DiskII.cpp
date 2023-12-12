@@ -23,8 +23,14 @@ DiskII::DiskII(int clock_rate) :
 	clock_rate_(clock_rate),
 	inputs_(input_command),
 	drives_{
-		Storage::Disk::Drive{clock_rate, 300, 1},
-		Storage::Disk::Drive{clock_rate, 300, 1}
+		// Bit of a hack here: drives are marginally slowed down compared to real drives
+		// in order to accomodate NIB files, which usually carry more data than will
+		// physically fit on a track once slip bits are reinserted.
+		//
+		// I don't like the coupling here.
+		// TODO: resolve better, somehow.
+		Storage::Disk::Drive{clock_rate, 295, 1},
+		Storage::Disk::Drive{clock_rate, 295, 1}
 	}
 {
 	drives_[0].set_clocking_hint_observer(this);
