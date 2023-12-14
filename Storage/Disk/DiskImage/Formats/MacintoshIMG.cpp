@@ -38,8 +38,8 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type, size_t 
 MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	file_(file_name) {
 
-	// Test 1: is this a raw secctor dump? If so it'll start with
-	// either the magic word 0x4C4B (big endian) or with 0x00000
+	// Test 1: is this a raw sector dump? If so it'll start with
+	// either the magic word 0x4C4B (big endian) or with 0x0000
 	// and be exactly 819,200 bytes long if double sided, or
 	// 409,600 bytes if single sided.
 	//

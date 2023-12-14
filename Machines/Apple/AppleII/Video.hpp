@@ -280,7 +280,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 				if(is_vertical_sync_line) {
 					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
-					// pulses (and hencce keep hsync approximately where it should be during vsync).
+					// pulses (and hence keep hsync approximately where it should be during vsync).
 					const int blank_start = std::max(first_sync_column - sync_length, column_);
 					const int blank_end = std::min(first_sync_column, ending_column);
 					if(blank_end > blank_start) {

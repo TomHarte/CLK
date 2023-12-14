@@ -36,7 +36,7 @@
 		.b = 0.5 + 0.5 * chrominance * sin(phase)
 
 	Contents of the composition buffer are then drawn into the finalised line texture; at this point a suitable
-	low-filter is applied to the two chrominance channels, colours are converted to RGB and gamma corrected.
+	low-pass filter is applied to the two chrominance channels, colours are converted to RGB and gamma corrected.
 
 	Contents from the finalised line texture are then painted to the display.
 
@@ -54,7 +54,7 @@
 	[aside: upfront calculation of cos/sin is just because it'll need to be calculated at this precision anyway,
 	and doing it here avoids having to do unit<->radian conversions on phase alone]
 
-	Contents of the composition buffer are transferred to the separated-luma buffer, subject to a low-paass filter
+	Contents of the composition buffer are transferred to the separated-luma buffer, subject to a low-pass filter
 	that has sought to separate luminance and chrominance, and with phase and amplitude now baked into the latter:
 
 		.r = luminance
@@ -220,7 +220,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Textures: the stencil.
 	//
-	// Scan targets recceive scans, not full frames. Those scans may not cover the entire display,
+	// Scan targets receive scans, not full frames. Those scans may not cover the entire display,
 	// either because unlit areas have been omitted or because a sync discrepancy means that the full
 	// potential vertical or horizontal width of the display isn't used momentarily.
 	//
@@ -249,8 +249,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		/// from which lines are painted to the frame buffer.
 		CompositeColour
 
-		// TODO: decide what to do for downard-scaled direct-to-display. Obvious options are to include lowpass
-		// filtering into the scan outputter and contine hoping that the vertical takes care of itself, or maybe
+		// TODO: decide what to do for downward-scaled direct-to-display. Obvious options are to include lowpass
+		// filtering into the scan outputter and continue hoping that the vertical takes care of itself, or maybe
 		// to stick with DirectToDisplay but with a minimum size for the frame buffer and apply filtering from
 		// there to the screen.
 	};
@@ -448,7 +448,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
 	} else {
 		// TODO: this use of clearTexture is the only reasn _frameBuffer has a marked usage of MTLTextureUsageShaderWrite;
-		// it'd probably be smarter to blank it with  geometry rather than potentially complicating
+		// it'd probably be smarter to blank it with geometry rather than potentially complicating
 		// its storage further?
 		[self clearTexture:_frameBuffer];
 	}
