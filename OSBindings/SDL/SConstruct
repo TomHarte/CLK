@@ -143,6 +143,7 @@ env.Append(CCFLAGS = ['--std=c++17', '--std=c++1z', '-Wall', '-O2', '-DNDEBUG'])
 env.Append(LIBS = ['libz', 'pthread', 'GL'])
 
 if env['PLATFORM'] == 'darwin':
+	env.Append(CCFLAGS = ['-DGL_SILENCE_DEPRECATION'])
 	env.Append(FRAMEWORKS = ['Accelerate'])
 
 # Build target.
