@@ -1,4 +1,5 @@
 import glob
+import os
 import sys
 
 # Establish UTF-8 encoding for Python 2.
@@ -7,7 +8,7 @@ if sys.version_info < (3, 0):
 	sys.setdefaultencoding('utf-8')
 
 # Create build environment.
-env = Environment()
+env = Environment(ENV = {'PATH' : os.environ['PATH']})
 
 # Determine compiler and linker flags for SDL.
 env.ParseConfig('sdl2-config --cflags')
