@@ -471,7 +471,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 #if defined(__APPLE__) && !defined(IGNORE_APPLE)
 							constexpr int phase = 224;
 #else
-							constexpr int phase = 0;
+							constexpr int phase = 192;
 #endif
 
 							crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, phase);
