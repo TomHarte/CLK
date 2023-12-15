@@ -144,7 +144,7 @@ env.Append(LIBS = ['libz', 'pthread'])
 
 # Add additional platform-specific compiler flags, libraries, and frameworks.
 if env['PLATFORM'] == 'darwin':
-	env.Append(CCFLAGS = ['-DGL_SILENCE_DEPRECATION'])
+	env.Append(CCFLAGS = ['-DGL_SILENCE_DEPRECATION', '-DIGNORE_APPLE'])
 	env.Append(FRAMEWORKS = ['Accelerate', 'OpenGL'])
 else:
 	env.Append(LIBS = ['GL'])
