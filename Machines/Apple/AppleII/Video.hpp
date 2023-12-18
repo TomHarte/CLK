@@ -460,7 +460,10 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					int second_blank_start;
-					if(!is_text_mode(graphics_mode(row_+1))) {
+					// Colour burst is present on all lines of the display if graphics mode is enabled on the top
+					// portion; therefore use the graphics mode on line 0 rather than the current line, to avoid
+					// disabling it in mixed modes.
+					if(!is_text_mode(graphics_mode(0))) {
 						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
