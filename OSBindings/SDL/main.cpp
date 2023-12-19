@@ -19,7 +19,7 @@
 #include <memory>
 #include <sys/stat.h>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
