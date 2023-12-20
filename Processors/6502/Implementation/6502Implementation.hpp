@@ -544,7 +544,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
-					case CycleAddXToAddressLowReadSTA:
+					case CycleAddXToAddressLowRead:
 						next_address_.full = address_.full + x_;
 						address_.halves.low = next_address_.halves.low;
 
@@ -558,11 +558,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						} else {
 							throwaway_read(pc_.full - 1);
 						}
-					break;
-					case CycleAddXToAddressLowRead:
-						next_address_.full = address_.full + x_;
-						address_.halves.low = next_address_.halves.low;
-						page_crossing_stall_read();
 					break;
 					case CycleAddYToAddressLow:
 						next_address_.full = address_.full + y_;

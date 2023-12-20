@@ -73,14 +73,16 @@ class ProcessorStorage {
 
 			CycleAddXToAddressLow,			// calculates address_ + x and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
 			CycleAddYToAddressLow,			// calculates address_ + y and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
-			CycleAddXToAddressLowRead,		// calculates address_ + x and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
 			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
 			OperationCorrectAddressHigh,	// copies next_address_ to address_
 
-			// Implements 65c02-compatible version of CycleAddXToAddressLowRead specialised for STA; on that processor
-			// a non-page-crossing `STA abs, x` acts exactly like a 6502, doing a read of the target address before
-			// the write, but a page-crossing store instead performs throaway read from PC-1.
-			CycleAddXToAddressLowReadSTA,
+			// Calculates address_ + x and stores it to next_address; copies next_address.l back to address_.l.
+			//
+			//	6502: schedules a throwaway read from address_.
+			//	65C02: schedules a throaway read from PC-1 if a page boundary was crossed;
+			//		otherwise does as per the 6502.
+			//
+			CycleAddXToAddressLowRead,
 
 			OperationIncrementPC,			// increments the PC
 			CycleFetchOperandFromAddress,	// fetches operand_ from address_

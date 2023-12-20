@@ -18,7 +18,6 @@ using namespace CPU::MOS6502;
 #define AbsoluteXr							CycleLoadAddressAbsolute,					CycleAddXToAddressLow,					OperationCorrectAddressHigh
 #define AbsoluteYr							CycleLoadAddressAbsolute,					CycleAddYToAddressLow,					OperationCorrectAddressHigh
 #define AbsoluteXw							CycleLoadAddressAbsolute,					CycleAddXToAddressLowRead,				OperationCorrectAddressHigh
-#define AbsoluteXwSTA						CycleLoadAddressAbsolute,					CycleAddXToAddressLowReadSTA,			OperationCorrectAddressHigh
 #define AbsoluteYw							CycleLoadAddressAbsolute,					CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 #define Zero								OperationLoadAddressZeroPage
 #define ZeroX								CycleLoadAddessZeroX
@@ -44,7 +43,6 @@ using namespace CPU::MOS6502;
 
 #define AbsoluteWrite(op)					Program(Absolute,			Write(op))
 #define AbsoluteXWrite(op)					Program(AbsoluteXw,			Write(op))
-#define AbsoluteXWriteSTA(op)				Program(AbsoluteXwSTA,		Write(op))
 #define AbsoluteYWrite(op)					Program(AbsoluteYw,			Write(op))
 #define ZeroWrite(op)						Program(Zero,				Write(op))
 #define ZeroXWrite(op)						Program(ZeroX,				Write(op))
@@ -164,7 +162,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		/* 0x96 STX zpg, y */	ZeroYWrite(OperationSTX),												/* 0x97 SAX zpg, y */	ZeroYWrite(OperationSAX),
 		/* 0x98 TYA */			Program(OperationTYA),													/* 0x99 STA abs, y */	AbsoluteYWrite(OperationSTA),
 		/* 0x9a TXS */			Program(OperationTXS),													/* 0x9b SHS abs, y */	AbsoluteYWrite(OperationSHS),
-		/* 0x9c SHY abs, x */	AbsoluteXWrite(OperationSHY),											/* 0x9d STA abs, x */	AbsoluteXWriteSTA(OperationSTA),
+		/* 0x9c SHY abs, x */	AbsoluteXWrite(OperationSHY),											/* 0x9d STA abs, x */	AbsoluteXWrite(OperationSTA),
 		/* 0x9e SHX abs, y */	AbsoluteYWrite(OperationSHX),											/* 0x9f SHA abs, y */	AbsoluteYWrite(OperationSHA),
 		/* 0xa0 LDY # */		Immediate(OperationLDY),												/* 0xa1 LDA x, ind */	IndexedIndirectRead(OperationLDA),
 		/* 0xa2 LDX # */		Immediate(OperationLDX),												/* 0xa3 LAX x, ind */	IndexedIndirectRead(OperationLAX),
