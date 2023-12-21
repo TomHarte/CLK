@@ -71,15 +71,15 @@ class ProcessorStorage {
 			CycleLoadAddessZeroX,			// copies (operand_+x)&0xff to address_, increments the PC, and reads from operand_, throwing away the result
 			CycleLoadAddessZeroY,			// copies (operand_+y)&0xff to address_, increments the PC, and reads from operand_, throwing away the result
 
-			CycleAddXToAddressLow,			// calculates address_ + x and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
-			CycleAddYToAddressLow,			// calculates address_ + y and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
-			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
+			CycleAddXToAddressLow,			// calculates address_ + x and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throwaway read from PC-1
+			CycleAddYToAddressLow,			// calculates address_ + y and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throwaway read from PC-1
+			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throwaway read from PC-1
 			OperationCorrectAddressHigh,	// copies next_address_ to address_
 
 			// Calculates address_ + x and stores it to next_address; copies next_address.l back to address_.l.
 			//
 			//	6502: schedules a throwaway read from address_.
-			//	65C02: schedules a throaway read from PC-1 if a page boundary was crossed;
+			//	65C02: schedules a throwaway read from PC-1 if a page boundary was crossed;
 			//		otherwise does as per the 6502.
 			//
 			CycleAddXToAddressLowRead,
