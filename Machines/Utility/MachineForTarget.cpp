@@ -42,6 +42,7 @@
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/PCCompatible/Target.hpp"
 #include "../../Analyser/Static/Sega/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
@@ -196,6 +197,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 		AddName(Macintosh);
 		AddName(MSX);
 		AddName(Oric);
+		AddName(PCCompatible);
 		AddName(Vic20);
 		AddName(ZX8081);
 		AddName(ZXSpectrum);
@@ -249,7 +251,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(Macintosh);
 	Add(MSX);
 	Add(Oric);
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::PCCompatible), new Analyser::Static::Target(Analyser::Machine::PCCompatible)));
+	Add(PCCompatible);
 	AddMapped(Vic20, Commodore);
 	Add(ZX8081);
 	Add(ZXSpectrum);
