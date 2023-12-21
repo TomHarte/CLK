@@ -114,8 +114,7 @@ class MemoryMap {
 
 			const uint32_t register_address = *cycle.address & 0xfe;
 
-			using Microcycle = CPU::MC68000::Microcycle;
-			if(cycle.operation & Microcycle::Read) {
+			if(cycle.operation & CPU::MC68000::Operation::Read) {
 				// Re: Autoconf:
 				//
 				// "All read registers physically return only the top 4 bits of data, on D31-D28";

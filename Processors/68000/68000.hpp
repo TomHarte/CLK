@@ -15,6 +15,66 @@
 
 namespace CPU::MC68000 {
 
+using OperationT = unsigned int;
+
+namespace Operation {
+
+/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
+/// which by inspecting the low bit of the provided address. The RW line indicates a read.
+static constexpr OperationT SelectByte				= 1 << 0;
+// Maintenance note: this is bit 0 to reduce the cost of getting a host-endian
+// bytewise address. The assumption that it is bit 0 is also used for branchless
+// selection in a few places. See implementation of host_endian_byte_address(),
+// value8_high(), value8_low() and value16().
+
+/// Indicates that the address and both data select strobes are active.
+static constexpr OperationT SelectWord				= 1 << 1;
+
+/// If set, indicates a read. Otherwise, a write.
+static constexpr OperationT Read					= 1 << 2;
+
+// Two-bit gap deliberately left here for PermitRead/Write below.
+
+/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
+/// this correlates to states 0 to 5 of a standard read/write cycle.
+static constexpr OperationT NewAddress				= 1 << 5;
+
+/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
+/// of the data strobes are.
+static constexpr OperationT SameAddress				= 1 << 6;
+
+/// A Reset cycle is one in which the RESET output is asserted.
+static constexpr OperationT Reset					= 1 << 7;
+
+/// Contains the value of line FC0 if it is not implicit via InterruptAcknowledge.
+static constexpr OperationT IsData					= 1 << 8;
+
+/// Contains the value of line FC1 if it is not implicit via InterruptAcknowledge.
+static constexpr OperationT IsProgram				= 1 << 9;
+
+/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
+/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
+static constexpr OperationT InterruptAcknowledge	= 1 << 10;
+
+/// Represents the state of the 68000's valid memory address line — indicating whether this microcycle
+/// is synchronised with the E clock to satisfy a valid peripheral address request.
+static constexpr OperationT IsPeripheral			= 1 << 11;
+
+/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
+static constexpr OperationT BusGrant				= 1 << 12;
+
+/// An otherwise invalid combination; used as the operaiton template parameter to @c perform_bus_operation if
+/// the operation wasn't knowable in advance and the receiver should decode dynamically using the microcycle's
+/// .operation field.
+static constexpr OperationT DecodeDynamically		= NewAddress | SameAddress;
+
+/*! @returns true if any data select line is active; @c false otherwise. */
+constexpr bool data_select_active(OperationT operation) {
+	return bool(operation & (SelectWord | SelectByte | InterruptAcknowledge));
+}
+
+};
+
 /*!
 	A microcycle is an atomic unit of 68000 bus activity — it is a single item large enough
 	fully to specify a sequence of bus events that occur without any possible interruption.
@@ -39,56 +99,7 @@ namespace CPU::MC68000 {
 	avoid the runtime cost of actual DTack emulation. But such as the bus allows.)
 */
 struct Microcycle {
-	using OperationT = unsigned int;
-
-	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
-	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
-	static constexpr OperationT SelectByte				= 1 << 0;
-	// Maintenance note: this is bit 0 to reduce the cost of getting a host-endian
-	// bytewise address. The assumption that it is bit 0 is also used for branchless
-	// selection in a few places. See implementation of host_endian_byte_address(),
-	// value8_high(), value8_low() and value16().
-
-	/// Indicates that the address and both data select strobes are active.
-	static constexpr OperationT SelectWord				= 1 << 1;
-
-	/// If set, indicates a read. Otherwise, a write.
-	static constexpr OperationT Read					= 1 << 2;
-
-	// Two-bit gap deliberately left here for PermitRead/Write below.
-
-	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
-	/// this correlates to states 0 to 5 of a standard read/write cycle.
-	static constexpr OperationT NewAddress				= 1 << 5;
-
-	/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
-	/// of the data strobes are.
-	static constexpr OperationT SameAddress				= 1 << 6;
-
-	/// A Reset cycle is one in which the RESET output is asserted.
-	static constexpr OperationT Reset					= 1 << 7;
-
-	/// Contains the value of line FC0 if it is not implicit via InterruptAcknowledge.
-	static constexpr OperationT IsData					= 1 << 8;
-
-	/// Contains the value of line FC1 if it is not implicit via InterruptAcknowledge.
-	static constexpr OperationT IsProgram				= 1 << 9;
-
-	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
-	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
-	static constexpr OperationT InterruptAcknowledge	= 1 << 10;
-
-	/// Represents the state of the 68000's valid memory address line — indicating whether this microcycle
-	/// is synchronised with the E clock to satisfy a valid peripheral address request.
-	static constexpr OperationT IsPeripheral			= 1 << 11;
-
-	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
-	static constexpr OperationT BusGrant				= 1 << 12;
-
-	/// An otherwise invalid combination; used as the operaiton template parameter to @c perform_bus_operation if
-	/// the operation wasn't knowable in advance and the receiver should decode dynamically using the microcycle's
-	/// .operation field.
-	static constexpr OperationT DecodeDynamically		= NewAddress | SameAddress;
+	using OperationT = OperationT;
 
 	/// Contains a valid combination of the various static constexpr int flags, describing the operation
 	/// performed by this Microcycle.
@@ -139,11 +150,6 @@ struct Microcycle {
 
 	// Various inspectors.
 
-	/*! @returns true if any data select line is active; @c false otherwise. */
-	forceinline bool data_select_active() const {
-		return bool(operation & (SelectWord | SelectByte | InterruptAcknowledge));
-	}
-
 	/*!
 		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part,
 			i.e. take a word quantity and shift it right by this amount to get the quantity being
@@ -184,14 +190,14 @@ struct Microcycle {
 		@returns non-zero if the 68000 LDS is asserted; zero otherwise.
 	*/
 	forceinline int lower_data_select() const {
-		return (operation & SelectByte & *address) | (operation & SelectWord);
+		return (operation & Operation::SelectByte & *address) | (operation & Operation::SelectWord);
 	}
 
 	/*!
 		@returns non-zero if the 68000 UDS is asserted; zero otherwise.
 	*/
 	forceinline int upper_data_select() const {
-		return (operation & SelectByte & ~*address) | (operation & SelectWord);
+		return (operation & Operation::SelectByte & ~*address) | (operation & Operation::SelectWord);
 	}
 
 	/*!
@@ -228,7 +234,7 @@ struct Microcycle {
 		#if TARGET_RT_BIG_ENDIAN
 		return *address & 0xffffff;
 		#else
-		return (*address ^ (operation & SelectByte)) & 0xffffff;
+		return (*address ^ (operation & Operation::SelectByte)) & 0xffffff;
 		#endif
 	}
 
@@ -239,7 +245,7 @@ struct Microcycle {
 	*/
 	forceinline uint16_t value16() const {
 		const uint16_t values[] = { value->w, uint16_t((value->b << 8) | value->b) };
-		return values[operation & SelectByte];
+		return values[operation & Operation::SelectByte];
 	}
 
 	/*!
@@ -247,7 +253,7 @@ struct Microcycle {
 	*/
 	forceinline uint8_t value8_high() const {
 		const uint8_t values[] = { uint8_t(value->w >> 8), value->b};
-		return values[operation & SelectByte];
+		return values[operation & Operation::SelectByte];
 	}
 
 	/*!
@@ -262,8 +268,8 @@ struct Microcycle {
 		currently being read. Assumes this is a read cycle.
 	*/
 	forceinline void set_value16(uint16_t v) const {
-		assert(operation & Microcycle::Read);
-		if(operation & Microcycle::SelectWord) {
+		assert(operation & Operation::Read);
+		if(operation & Operation::SelectWord) {
 			value->w = v;
 		} else {
 			value->b = uint8_t(v >> byte_shift());
@@ -274,8 +280,8 @@ struct Microcycle {
 		Equivalent to set_value16((v << 8) | 0x00ff).
 	*/
 	forceinline void set_value8_high(uint8_t v) const {
-		assert(operation & Microcycle::Read);
-		if(operation & Microcycle::SelectWord) {
+		assert(operation & Operation::Read);
+		if(operation & Operation::SelectWord) {
 			value->w = uint16_t(0x00ff | (v << 8));
 		} else {
 			value->b = uint8_t(v | byte_mask());
@@ -286,8 +292,8 @@ struct Microcycle {
 		Equivalent to set_value16(v | 0xff00).
 	*/
 	forceinline void set_value8_low(uint8_t v) const {
-		assert(operation & Microcycle::Read);
-		if(operation & Microcycle::SelectWord) {
+		assert(operation & Operation::Read);
+		if(operation & Operation::SelectWord) {
 			value->w = 0xff00 | v;
 		} else {
 			value->b = uint8_t(v | untouched_byte_mask());
@@ -309,26 +315,26 @@ struct Microcycle {
 			* if this is a write, does the converse of a read.
 	*/
 	forceinline void apply(uint8_t *target, OperationT read_write_mask = PermitRead | PermitWrite) const {
-		assert( (operation & (SelectWord | SelectByte)) != (SelectWord | SelectByte));
+		assert( (operation & (Operation::SelectWord | Operation::SelectByte)) != (Operation::SelectWord | Operation::SelectByte));
 
-		switch((operation | read_write_mask) & (SelectWord | SelectByte | Read | PermitRead | PermitWrite)) {
+		switch((operation | read_write_mask) & (Operation::SelectWord | Operation::SelectByte | Operation::Read | PermitRead | PermitWrite)) {
 			default:
 			break;
 
-			case SelectWord | Read | PermitRead:
-			case SelectWord | Read | PermitRead | PermitWrite:
+			case Operation::SelectWord | Operation::Read | PermitRead:
+			case Operation::SelectWord | Operation::Read | PermitRead | PermitWrite:
 				value->w = *reinterpret_cast<uint16_t *>(target);
 			break;
-			case SelectByte | Read | PermitRead:
-			case SelectByte | Read | PermitRead | PermitWrite:
+			case Operation::SelectByte | Operation::Read | PermitRead:
+			case Operation::SelectByte | Operation::Read | PermitRead | PermitWrite:
 				value->b = *target;
 			break;
-			case SelectWord | PermitWrite:
-			case SelectWord | PermitWrite | PermitRead:
+			case Operation::SelectWord | PermitWrite:
+			case Operation::SelectWord | PermitWrite | PermitRead:
 				*reinterpret_cast<uint16_t *>(target) = value->w;
 			break;
-			case SelectByte | PermitWrite:
-			case SelectByte | PermitWrite | PermitRead:
+			case Operation::SelectByte | PermitWrite:
+			case Operation::SelectByte | PermitWrite | PermitRead:
 				*target = value->b;
 			break;
 		}

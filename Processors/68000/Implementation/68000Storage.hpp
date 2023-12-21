@@ -185,28 +185,28 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 	// Read a program word. All accesses via the program counter are word sized.
 	static constexpr Microcycle::OperationT
-		ReadProgramAnnounceOperation = Microcycle::Read | Microcycle::NewAddress | Microcycle::IsProgram;
+		ReadProgramAnnounceOperation = Operation::Read | Operation::NewAddress | Operation::IsProgram;
 	static constexpr Microcycle::OperationT
-		ReadProgramOperation = Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsProgram;
+		ReadProgramOperation = Operation::Read | Operation::SameAddress | Operation::SelectWord | Operation::IsProgram;
 	Microcycle read_program_announce { ReadProgramAnnounceOperation };
 	Microcycle read_program { ReadProgramOperation };
 
 	// Read a data word or byte.
 	Microcycle access_announce {
-		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData
+		Operation::Read | Operation::NewAddress | Operation::IsData
 	};
 	Microcycle access {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
+		Operation::Read | Operation::SameAddress | Operation::SelectWord | Operation::IsData
 	};
 
 	// TAS.
 	static constexpr Microcycle::OperationT
 		TASOperations[5] = {
-			Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData,
-			Microcycle::Read | Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte,
-			Microcycle::SameAddress,
-			Microcycle::SameAddress | Microcycle::IsData,
-			Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte,
+			Operation::Read | Operation::NewAddress | Operation::IsData,
+			Operation::Read | Operation::SameAddress | Operation::IsData | Operation::SelectByte,
+			Operation::SameAddress,
+			Operation::SameAddress | Operation::IsData,
+			Operation::SameAddress | Operation::IsData | Operation::SelectByte,
 		};
 	Microcycle tas_cycles[5] = {
 		{ TASOperations[0] },
@@ -217,14 +217,14 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	};
 
 	// Reset.
-	static constexpr Microcycle::OperationT ResetOperation = Microcycle::Reset;
+	static constexpr Microcycle::OperationT ResetOperation = CPU::MC68000::Operation::Reset;
 	Microcycle reset_cycle { ResetOperation, HalfCycles(248) };
 
 	// Interrupt acknowledge.
 	static constexpr Microcycle::OperationT
 		InterruptCycleOperations[2] = {
-			Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::NewAddress,
-			Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte
+			Operation::InterruptAcknowledge | Operation::Read | Operation::NewAddress,
+			Operation::InterruptAcknowledge | Operation::Read | Operation::SameAddress | Operation::SelectByte
 		};
 	Microcycle interrupt_cycles[2] = {
 		{ InterruptCycleOperations[0] },

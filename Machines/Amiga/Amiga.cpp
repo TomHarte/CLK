@@ -82,11 +82,11 @@ class ConcreteMachine:
 		// MARK: - MC68000::BusHandler.
 		using Microcycle = CPU::MC68000::Microcycle;
 		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
-			const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
+			const auto operation = (op != CPU::MC68000::Operation::DecodeDynamically) ? op : cycle.operation;
 
 			// Do a quick advance check for Chip RAM access; add a suitable delay if required.
 			HalfCycles total_length;
-			if(operation & Microcycle::NewAddress && *cycle.address < 0x20'0000) {
+			if(operation & CPU::MC68000::Operation::NewAddress && *cycle.address < 0x20'0000) {
 				total_length = chipset_.run_until_after_cpu_slot().duration;
 				assert(total_length >= cycle.length);
 			} else {
@@ -96,19 +96,19 @@ class ConcreteMachine:
 			mc68000_.set_interrupt_level(chipset_.get_interrupt_level());
 
 			// Check for assertion of reset.
-			if(operation & Microcycle::Reset) {
+			if(operation & CPU::MC68000::Operation::Reset) {
 				memory_.reset();
 				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().registers.program_counter);
 			}
 
 			// Autovector interrupts.
-			if(operation & Microcycle::InterruptAcknowledge) {
+			if(operation & CPU::MC68000::Operation::InterruptAcknowledge) {
 				mc68000_.set_is_peripheral_address(true);
 				return total_length - cycle.length;
 			}
 
 			// Do nothing if no address is exposed.
-			if(!(operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return total_length - cycle.length;
+			if(!(operation & (CPU::MC68000::Operation::NewAddress | CPU::MC68000::Operation::SameAddress))) return total_length - cycle.length;
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
@@ -117,7 +117,7 @@ class ConcreteMachine:
 			mc68000_.set_is_peripheral_address((address & 0xe0'0000) == 0xa0'0000);
 
 			if(!memory_.regions[address >> 18].read_write_mask) {
-				if((operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
+				if((operation & (CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::SelectWord))) {
 					// Check for various potential chip accesses.
 
 					// Per the manual:
@@ -135,7 +135,7 @@ class ConcreteMachine:
 						const bool select_a = !(address & 0x1000);
 						const bool select_b = !(address & 0x2000);
 
-						if(operation & Microcycle::Read) {
+						if(operation & CPU::MC68000::Operation::Read) {
 							uint16_t result = 0xffff;
 							if(select_a) result &= 0xff00 | (chipset_.cia_a.read(reg) << 0);
 							if(select_b) result &= 0x00ff | (chipset_.cia_b.read(reg) << 8);
@@ -157,13 +157,13 @@ class ConcreteMachine:
 						memory_.perform(cycle);
 					} else {
 						// This'll do for open bus, for now.
-						if(operation & Microcycle::Read) {
+						if(operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value16(0xffff);
 						}
 
 						// Don't log for the region that is definitely just ROM this machine doesn't have.
 						if(address < 0xf0'0000) {
-							LOG("Unmapped " << (operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(6) << ((*cycle.address)&0xffffff) << " of " << cycle.value16());
+							LOG("Unmapped " << (operation & CPU::MC68000::Operation::Read ? "read from " : "write to ") << PADHEX(6) << ((*cycle.address)&0xffffff) << " of " << cycle.value16());
 						}
 					}
 				}

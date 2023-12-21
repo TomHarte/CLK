@@ -845,7 +845,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	using Microcycle = CPU::MC68000::Microcycle;
 
 	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
-	if(cycle.operation & Microcycle::Read) {
+	if(cycle.operation & CPU::MC68000::Operation::Read) {
 		cycle.set_value16(read(register_address));
 	} else {
 		write(register_address, cycle.value16());

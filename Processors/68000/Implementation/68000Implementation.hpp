@@ -342,8 +342,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Sets up the next data access size and read flags.
 #define SetupDataAccess(read_flag, select_flag)												\
-	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | (read_flag);	\
-	access.operation = Microcycle::SameAddress | Microcycle::IsData | (read_flag) | (select_flag);
+	access_announce.operation = Operation::NewAddress | Operation::IsData | (read_flag);	\
+	access.operation = Operation::SameAddress | Operation::IsData | (read_flag) | (select_flag);
 
 	// Sets the address source for the next data access.
 #define SetDataAddress(addr)							\
@@ -351,11 +351,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the access established by SetupDataAccess into val.
 #define Access(val)										\
-	AccessPair(val, access_announce, Microcycle::DecodeDynamically, access, Microcycle::DecodeDynamically)
+	AccessPair(val, access_announce, Operation::DecodeDynamically, access, Operation::DecodeDynamically)
 
 	// Performs the access established by SetupDataAccess into val.
 #define AccessOp(val, read_flag, select_flag)										\
-	AccessPair(val, access_announce, Microcycle::NewAddress | Microcycle::IsData | (read_flag), access, Microcycle::SameAddress | Microcycle::IsData | (read_flag) | (select_flag))
+	AccessPair(val, access_announce, Operation::NewAddress | Operation::IsData | (read_flag), access, Operation::SameAddress | Operation::IsData | (read_flag) | (select_flag))
 
 	// Reads the program (i.e. non-data) word from addr into val.
 #define ReadProgramWord(val)								\
@@ -424,20 +424,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			should_trace_ = 0;
 			did_update_status();
 
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = 0;
-			AccessOp(registers_[15].high, Microcycle::Read, Microcycle::SelectWord);	// nF
+			AccessOp(registers_[15].high, Operation::Read, Operation::SelectWord);		// nF
 
 			temporary_address_.l += 2;
-			AccessOp(registers_[15].low, Microcycle::Read, Microcycle::SelectWord);		// nf
+			AccessOp(registers_[15].low, Operation::Read, Operation::SelectWord);		// nf
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);	// nV
+			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);	// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);	// nv
+			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);		// nv
 
 			Prefetch();			// np
 			IdleBus(1);			// n
@@ -451,30 +451,30 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			should_trace_ = 0;
 			did_update_status();
 
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			// Push status and current program counter.
 			// Write order is wacky here, but I think it's correct.
 			registers_[15].l -= 2;
-			AccessOp(instruction_address_.low, 0, Microcycle::SelectWord);	// ns
+			AccessOp(instruction_address_.low, 0, Operation::SelectWord);	// ns
 
 			registers_[15].l -= 4;
-			AccessOp(captured_status_, 0, Microcycle::SelectWord);			// ns
+			AccessOp(captured_status_, 0, Operation::SelectWord);			// ns
 
 			registers_[15].l += 2;
-			AccessOp(instruction_address_.high, 0, Microcycle::SelectWord);	// nS
+			AccessOp(instruction_address_.high, 0, Operation::SelectWord);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(exception_vector_ << 2);
-			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);	// nV
+			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);	// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);	// nv
+			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);	// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -523,24 +523,24 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			should_trace_ = 0;
 			did_update_status();
 
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			// Guess: the written program counter is adjusted to discount the prefetch queue.
 			// COMPLETE GUESS.
 			temporary_address_.l = program_counter_.l - 4;
 			registers_[15].l -= 2;
-			AccessOp(temporary_address_.low, 0, Microcycle::SelectWord);	// ns	[pc.l]
+			AccessOp(temporary_address_.low, 0, Operation::SelectWord);		// ns	[pc.l]
 
 			registers_[15].l -= 4;
-			AccessOp(captured_status_, 0, Microcycle::SelectWord);			// ns	[sr]
+			AccessOp(captured_status_, 0, Operation::SelectWord);			// ns	[sr]
 
 			registers_[15].l += 2;
-			AccessOp(temporary_address_.high, 0, Microcycle::SelectWord);	// nS	[pc.h]
+			AccessOp(temporary_address_.high, 0, Operation::SelectWord);	// nS	[pc.h]
 
 			registers_[15].l -= 4;
 			temporary_value_.w = opcode_;
-			AccessOp(temporary_value_.low, 0, Microcycle::SelectWord);		// ns	[instruction register]
+			AccessOp(temporary_value_.low, 0, Operation::SelectWord);		// ns	[instruction register]
 
 			// Construct the function code; which is:
 			//
@@ -554,31 +554,31 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// captured status register I guess maybe it is just duplicative.
 			temporary_value_.w =
 				(temporary_value_.w & ~31) |
-				((bus_error_.operation & Microcycle::Read) ? 0x10 : 0x00) |
-				((bus_error_.operation & Microcycle::IsProgram) ? 0x08 : 0x00) |
-				((bus_error_.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |
+				((bus_error_.operation & Operation::Read) ? 0x10 : 0x00) |
+				((bus_error_.operation & Operation::IsProgram) ? 0x08 : 0x00) |
+				((bus_error_.operation & Operation::IsProgram) ? 0x02 : 0x01) |
 				((captured_status_.w & InstructionSet::M68k::ConditionCode::Supervisor) ? 0x04 : 0x00);
 			temporary_address_.l = *bus_error_.address;
 
 			registers_[15].l -= 2;
-			AccessOp(temporary_address_.low, 0, Microcycle::SelectWord);	// ns	[error address.l]
+			AccessOp(temporary_address_.low, 0, Operation::SelectWord);		// ns	[error address.l]
 
 			registers_[15].l -= 4;
-			AccessOp(temporary_value_.low, 0, Microcycle::SelectWord);		// ns	[function code]
+			AccessOp(temporary_value_.low, 0, Operation::SelectWord);		// ns	[function code]
 
 			registers_[15].l += 2;
-			AccessOp(temporary_address_.high, 0, Microcycle::SelectWord);	// nS	[error address.h]
+			AccessOp(temporary_address_.high, 0, Operation::SelectWord);	// nS	[error address.h]
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(exception_vector_ << 2);
-			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);	// nV
+			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);	// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);	// nv
+			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);		// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -597,12 +597,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			did_update_status();
 
 			// Prepare for stack activity.
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			// Push low part of program counter.
 			registers_[15].l -= 2;
-			AccessOp(instruction_address_.low, 0, Microcycle::SelectWord);	// ns
+			AccessOp(instruction_address_.low, 0, Operation::SelectWord);	// ns
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
@@ -628,21 +628,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l -= 4;
-			AccessOp(captured_status_, 0, Microcycle::SelectWord);			// ns
+			AccessOp(captured_status_, 0, Operation::SelectWord);			// ns
 
 			registers_[15].l += 2;
-			AccessOp(instruction_address_.high, 0, Microcycle::SelectWord);	// nS
+			AccessOp(instruction_address_.high, 0, Operation::SelectWord);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(temporary_value_.b << 2);
-			AccessOp(program_counter_.high, Microcycle::Read, Microcycle::SelectWord);		// nV
+			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);		// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Microcycle::Read, Microcycle::SelectWord);		// nv
+			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);			// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -707,13 +707,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		y;	\
 		\
 		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
+			SetupDataAccess(Operation::Read, Operation::SelectWord);	\
 			MoveToStateSpecific(FetchOperand_l);	\
 		} else {	\
 			if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::Byte) {	\
-				SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);	\
+				SetupDataAccess(Operation::Read, Operation::SelectByte);	\
 			} else {	\
-				SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
+				SetupDataAccess(Operation::Read, Operation::SelectWord);	\
 			}	\
 			MoveToStateSpecific(FetchOperand_bw);	\
 		}
@@ -823,10 +823,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				CASE(ABCD)
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
-						SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+						SetupDataAccess(Operation::Read, Operation::SelectByte);
 						MoveToStateSpecific(FetchOperand_bw);
 					} else {
-						select_flag_ = Microcycle::SelectByte;
+						select_flag_ = Operation::SelectByte;
 						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 
@@ -876,7 +876,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np;
 					} else {
-						select_flag_ = Microcycle::SelectByte;
+						select_flag_ = Operation::SelectByte;
 						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 				})
@@ -884,7 +884,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np;
 					} else {
-						select_flag_ = Microcycle::SelectWord;
+						select_flag_ = Operation::SelectWord;
 						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 				})
@@ -1199,7 +1199,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[1] = registers_[8 + instruction_.reg(1)];
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			Access(operand_[next_operand_].high);	// nW
 			effective_address_[1].l += 2;
@@ -1258,7 +1258,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginStateMode(MOVE_l, AddressRegisterIndirectWithPostincrement):
 			SetDataAddress(registers_[8 + instruction_.reg(next_operand_)].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			Access(operand_[next_operand_].high);	// nW
 			registers_[8 + instruction_.reg(next_operand_)].l += 2;
@@ -1311,7 +1311,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginStateMode(MOVE_l, AddressRegisterIndirectWithPredecrement):
 			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			Prefetch();								// np
 
@@ -1374,7 +1374,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				uint32_t(int16_t(prefetch_.w));
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			Prefetch();								// np
 			Access(operand_[next_operand_].high);	// nW
@@ -1450,7 +1450,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				uint32_t(int16_t(prefetch_.w));
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			Prefetch();								// np
 			Access(operand_[next_operand_].high);	// nW
@@ -1529,7 +1529,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[1].l = d8Xn(registers_[8 + instruction_.reg(1)].l);
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			IdleBus(1);								// n
 			Prefetch();								// np
@@ -1607,7 +1607,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[1].l = d8Xn(program_counter_.l - 2);
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			IdleBus(1);								// n
 			Prefetch();								// np
@@ -1685,7 +1685,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[1].l = uint32_t(int16_t(prefetch_.w));
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			Prefetch();								// np
 			Access(operand_[next_operand_].high);	// nW
@@ -1767,7 +1767,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[1].l = prefetch_.l;
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			switch(instruction_.mode(0)) {
 				case Mode::AddressRegisterDirect:
@@ -1867,15 +1867,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(StoreOperand):
 			switch(instruction_.operand_size()) {
 				case InstructionSet::M68k::DataSize::LongWord:
-					SetupDataAccess(0, Microcycle::SelectWord);
+					SetupDataAccess(0, Operation::SelectWord);
 				MoveToStateSpecific(StoreOperand_l);
 
 				case InstructionSet::M68k::DataSize::Word:
-					SetupDataAccess(0, Microcycle::SelectWord);
+					SetupDataAccess(0, Operation::SelectWord);
 				MoveToStateSpecific(StoreOperand_bw);
 
 				case InstructionSet::M68k::DataSize::Byte:
-					SetupDataAccess(0, Microcycle::SelectByte);
+					SetupDataAccess(0, Operation::SelectByte);
 				MoveToStateSpecific(StoreOperand_bw);
 			}
 
@@ -1919,7 +1919,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToNextOperand(StoreOperand_l);
 			}
 
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 			SetDataAddress(effective_address_[next_operand_].l);
 			Access(operand_[next_operand_].low);		// nw
 
@@ -1995,7 +1995,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(TwoOp_Predec_bw):
 			IdleBus(1);					// n
 
-			SetupDataAccess(Microcycle::Read, select_flag_);
+			SetupDataAccess(Operation::Read, select_flag_);
 
 			SetDataAddress(registers_[8 + instruction_.reg(0)].l);
 			registers_[8 + instruction_.reg(0)].l -= address_increments[int(instruction_.operand_size())][instruction_.reg(0)];
@@ -2016,7 +2016,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(TwoOp_Predec_l):
 			IdleBus(1);					// n
 
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 
 			SetDataAddress(registers_[8 + instruction_.reg(0)].l);
 			registers_[8 + instruction_.reg(0)].l -= 2;
@@ -2034,7 +2034,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			PerformDynamic();
 
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			registers_[8 + instruction_.reg(1)].l += 2;
 			Access(operand_[1].low);	// nw
@@ -2160,7 +2160,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 
 #define Push(x)									\
-	SetupDataAccess(0, Microcycle::SelectWord);	\
+	SetupDataAccess(0, Operation::SelectWord);	\
 	SetDataAddress(registers_[15].l);			\
 	registers_[15].l -= 4;						\
 	Access(x.high);								\
@@ -2169,7 +2169,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	registers_[15].l -= 2;
 
 #define Pop(x)													\
-	SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
+	SetupDataAccess(Operation::Read, Operation::SelectWord);	\
 	SetDataAddress(registers_[15].l);							\
 	Access(x.high);												\
 	registers_[15].l += 2;										\
@@ -2246,7 +2246,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVEPtoM_l):
 			temporary_address_.l = registers_[8 + instruction_.reg(1)].l + uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(temporary_address_.l);
-			SetupDataAccess(0, Microcycle::SelectByte);
+			SetupDataAccess(0, Operation::SelectByte);
 
 			Prefetch();						// np
 
@@ -2271,7 +2271,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVEPtoM_w):
 			temporary_address_.l = registers_[8 + instruction_.reg(1)].l + uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(temporary_address_.l);
-			SetupDataAccess(0, Microcycle::SelectByte);
+			SetupDataAccess(0, Operation::SelectByte);
 
 			Prefetch();						// np
 
@@ -2288,7 +2288,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVEPtoR_l):
 			temporary_address_.l = registers_[8 + instruction_.reg(0)].l + uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(temporary_address_.l);
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+			SetupDataAccess(Operation::Read, Operation::SelectByte);
 
 			Prefetch();						// np
 
@@ -2313,7 +2313,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVEPtoR_w):
 			temporary_address_.l = registers_[8 + instruction_.reg(0)].l + uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(temporary_address_.l);
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+			SetupDataAccess(Operation::Read, Operation::SelectByte);
 
 			Prefetch();						// np
 
@@ -2353,7 +2353,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			register_index_ = 0;
 
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 
 			switch(instruction_.mode(1)) {
 				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
@@ -2426,7 +2426,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVEMtoM):
 			next_operand_ = 1;
 			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			SetupDataAccess(0, Operation::SelectWord);
 
 			register_index_ = 0;
 			post_ea_state_ =
@@ -2670,7 +2670,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// RTR, RTS, RTE
 		//
 		BeginState(RTS):
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			Access(program_counter_.high);
@@ -2688,7 +2688,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// being the converse of the write order.
 
 		BeginState(RTE):
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l += 2;
@@ -2709,7 +2709,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToStateSpecific(Decode);
 
 		BeginState(RTR):
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Operation::Read, Operation::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l += 2;
