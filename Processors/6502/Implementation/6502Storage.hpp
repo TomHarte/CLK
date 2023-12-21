@@ -73,7 +73,6 @@ class ProcessorStorage {
 
 			CycleAddXToAddressLow,			// calculates address_ + x and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throwaway read from PC-1
 			CycleAddYToAddressLow,			// calculates address_ + y and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throwaway read from PC-1
-			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throwaway read from PC-1
 			OperationCorrectAddressHigh,	// copies next_address_ to address_
 
 			// Calculates address_ + x and stores it to next_address; copies next_address.l back to address_.l.
@@ -83,6 +82,7 @@ class ProcessorStorage {
 			//		otherwise does as per the 6502.
 			//
 			CycleAddXToAddressLowRead,
+			CycleAddYToAddressLowRead,		// As per CycleAddXToAddressLowRead, but uses Y rather than X.
 
 			OperationIncrementPC,			// increments the PC
 			CycleFetchOperandFromAddress,	// fetches operand_ from address_
