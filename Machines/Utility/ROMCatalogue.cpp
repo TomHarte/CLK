@@ -512,7 +512,6 @@ Description::Description(Name name) {
 
 		case Name::AtariSTTOS100:		*this = Description(name, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64u);		break;
 		case Name::AtariSTTOS104:		*this = Description(name, "AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43u);		break;
-		case Name::AtariSTEmuTOS192:	*this = Description(name, "AtariST", "the UK EmuTOS 1.92 ROM", "etos192uk.img", 192*1024, 0xfc3b9e61u);	break;
 
 		case Name::ColecoVisionBIOS:
 			*this = Description(name, "ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8*1024, 0x3aa93ef3u);

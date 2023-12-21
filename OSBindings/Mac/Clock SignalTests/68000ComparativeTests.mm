@@ -96,8 +96,8 @@ struct TestProcessor: public CPU::MC68000::BusHandler {
 		if(!instructions_remaining_) comparitor();
 	}
 
-	HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
-		using Microcycle = CPU::MC68000::Microcycle;
+	using Microcycle = CPU::MC68000::Microcycle;
+	template <Microcycle::OperationT op> 	HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 		if(cycle.data_select_active()) {
 			cycle.apply(&ram[cycle.host_endian_byte_address()]);
 		}
