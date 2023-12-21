@@ -351,7 +351,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x6c, Program(CycleReadAddressHLoadAddressL, CycleReadPCLFromAddress, CycleReadPCHFromAddressLowInc, CycleReadPCHFromAddressFixed));
 		Install(0x7c, Program(
 			CycleReadAddressHLoadAddressL,	// (3) read second byte of (addr)
-			CycleAddYToAddressLowRead,
+			CycleAddXToAddressLowRead,
 			OperationCorrectAddressHigh,	// (4) read from incorrectly-calculated address
 			CycleReadPCLFromAddress,		// (5) read from real (addr+x)
 			CycleReadPCHFromAddressInc		// (6) read from addr+x+1
