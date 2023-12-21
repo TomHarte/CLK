@@ -112,11 +112,6 @@ class EmuTOS: public ComparativeBusHandler {
 	_machine->run_for(HalfCycles(length));
 }
 
-//- (void)testEmuTOSStartup {
-//	[self testImage:ROM::Name::AtariSTEmuTOS192 trace:@"etos192uk" length:313490];
-//	// TODO: assert that machine is now STOPped.
-//}
-
 - (void)testTOSStartup {
 	[self testImage:ROM::Name::AtariSTTOS100 trace:@"tos100" length:54011091];
 }
