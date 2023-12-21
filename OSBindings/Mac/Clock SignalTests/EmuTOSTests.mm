@@ -36,7 +36,8 @@ class EmuTOS: public ComparativeBusHandler {
 			return m68000_.get_state();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
+		using Microcycle = CPU::MC68000::Microcycle;
+		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
@@ -68,7 +69,8 @@ class EmuTOS: public ComparativeBusHandler {
 					}
 				}
 
-				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+				const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
+				switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 					default: break;
 
 					case Microcycle::SelectWord | Microcycle::Read:
@@ -110,10 +112,10 @@ class EmuTOS: public ComparativeBusHandler {
 	_machine->run_for(HalfCycles(length));
 }
 
-- (void)testEmuTOSStartup {
-	[self testImage:ROM::Name::AtariSTEmuTOS192 trace:@"etos192uk" length:313490];
-	// TODO: assert that machine is now STOPped.
-}
+//- (void)testEmuTOSStartup {
+//	[self testImage:ROM::Name::AtariSTEmuTOS192 trace:@"etos192uk" length:313490];
+//	// TODO: assert that machine is now STOPped.
+//}
 
 - (void)testTOSStartup {
 	[self testImage:ROM::Name::AtariSTTOS100 trace:@"tos100" length:54011091];

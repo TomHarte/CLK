@@ -78,16 +78,17 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return &ram_[(address >> 1) % ram_.size()];
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
+		using Microcycle = CPU::MC68000::Microcycle;
+		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			const uint32_t word_address = cycle.word_address();
 			duration_ += cycle.length;
 
-			using Microcycle = CPU::MC68000::Microcycle;
+			const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
 			if(cycle.data_select_active()) {
-				if(cycle.operation & Microcycle::InterruptAcknowledge) {
+				if(operation & Microcycle::InterruptAcknowledge) {
 					cycle.value->b = 10;
 				} else {
-					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 						default: break;
 
 						case Microcycle::SelectWord | Microcycle::Read:

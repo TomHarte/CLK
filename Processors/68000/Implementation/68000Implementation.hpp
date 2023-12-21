@@ -3088,13 +3088,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	captured_interrupt_level_ = bus_interrupt_level_;
 
 	read_program.value = &prefetch_.high;
-	bus_handler_.perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
-	bus_handler_.perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
+	bus_handler_.template perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
+	bus_handler_.template perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
 	program_counter_.l += 2;
 
 	read_program.value = &prefetch_.low;
-	bus_handler_.perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
-	bus_handler_.perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
+	bus_handler_.template perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
+	bus_handler_.template perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
 	program_counter_.l += 2;
 }
 

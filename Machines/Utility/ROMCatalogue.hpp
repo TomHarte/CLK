@@ -71,7 +71,6 @@ enum Name {
 	// Atari ST.
 	AtariSTTOS100,
 	AtariSTTOS104,
-	AtariSTEmuTOS192,
 
 	// ColecoVision.
 	ColecoVisionBIOS,
