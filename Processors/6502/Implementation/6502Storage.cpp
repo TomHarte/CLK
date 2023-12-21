@@ -346,11 +346,14 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		}
 
 		// Correct JMP (abs) and install JMP (abs, x).
+		//
+		// Guess: JMP (abs, x), being listed at a fixed 6 cycles, uses the slower abs,x of INC and DEC.
 		Install(0x6c, Program(CycleReadAddressHLoadAddressL, CycleReadPCLFromAddress, CycleReadPCHFromAddressLowInc, CycleReadPCHFromAddressFixed));
 		Install(0x7c, Program(
 			CycleReadAddressHLoadAddressL,	// (3) read second byte of (addr)
-			CycleAddXToAddressLowRead,		// (4) calculate addr+x, read from (addr+x) with high byte not yet calculated
-			OperationCorrectAddressHigh, CycleReadPCLFromAddress,	// (5) read from real (addr+x)
+			CycleAddXToAddressLowRead,
+			OperationCorrectAddressHigh,	// (4) read from incorrectly-calculated address
+			CycleReadPCLFromAddress,		// (5) read from real (addr+x)
 			CycleReadPCHFromAddressInc		// (6) read from addr+x+1
 		));
 

@@ -544,11 +544,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
-					case CycleAddXToAddressLowRead:
-						next_address_.full = address_.full + x_;
-						address_.halves.low = next_address_.halves.low;
-						page_crossing_stall_read();
-					break;
 					case CycleAddYToAddressLow:
 						next_address_.full = address_.full + y_;
 						address_.halves.low = next_address_.halves.low;
@@ -557,13 +552,36 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
+
+#undef page_crossing_stall_read
+
+					case CycleAddXToAddressLowRead:
+						next_address_.full = address_.full + x_;
+						address_.halves.low = next_address_.halves.low;
+
+						// Cf. https://groups.google.com/g/comp.sys.apple2/c/RuTGaRxu5Iw/m/uyFLEsF8ceIJ
+						//
+						// STA abs,X has been fixed for the PX (page-crossing) case by adding a dummy read of the
+						// program counter, so the change was rW -> W. In the non-PX case it still reads the destination
+						// address, so there is no change: RW -> RW.
+						if(!is_65c02(personality) || next_address_.full == address_.full) {
+							throwaway_read(address_.full);
+						} else {
+							throwaway_read(pc_.full - 1);
+						}
+					break;
 					case CycleAddYToAddressLowRead:
 						next_address_.full = address_.full + y_;
 						address_.halves.low = next_address_.halves.low;
-						page_crossing_stall_read();
-					break;
 
-#undef page_crossing_stall_read
+						// A similar rule as for above applies; this one adjusts (abs, y) addressing.
+
+						if(!is_65c02(personality) || next_address_.full == address_.full) {
+							throwaway_read(address_.full);
+						} else {
+							throwaway_read(pc_.full - 1);
+						}
+					break;
 
 					case OperationCorrectAddressHigh:
 						// Preserve the uncorrected address in next_address_ (albeit that it's
