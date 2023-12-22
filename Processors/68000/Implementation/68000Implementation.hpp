@@ -195,8 +195,8 @@ enum ExecutionState: int {
 #undef AddressingDispatch
 
 /// @returns The proper select lines for @c instruction's operand size, assuming it is either byte or word.
-template <typename InstructionT> Microcycle::OperationT data_select(const InstructionT &instruction) {
-	return Microcycle::OperationT(1 << int(instruction.operand_size()));
+template <typename InstructionT> OperationT data_select(const InstructionT &instruction) {
+	return OperationT(1 << int(instruction.operand_size()));
 }
 
 // MARK: - The state machine.
@@ -282,8 +282,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the bus operation and then applies a `Spend` of its length
 	// plus any additional length returned by the bus handler.
-#define PerformBusOperation(x, op)												\
-	delay = bus_handler_.template perform_bus_operation<op>(x, is_supervisor_);	\
+#define PerformBusOperation(x)										\
+	delay = bus_handler_.perform_bus_operation(x, is_supervisor_);	\
 	Spend(x.length + delay)
 
 // TODO: the templated operation type to perform_bus_operation is intended to allow a much
@@ -292,7 +292,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Performs no bus activity for the specified number of microcycles.
 #define IdleBus(n)						\
 	idle.length = HalfCycles((n) << 2);	\
-	PerformBusOperation(idle, 0)
+	PerformBusOperation(idle)
 
 	// Spin until DTACK, VPA or BERR is asserted (unless DTACK is implicit),
 	// holding the bus cycle provided.
@@ -315,7 +315,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//
 	//	(1) wait until end of current 10-cycle window;
 	//	(2) run for the next 10-cycle window.
-#define CompleteAccess(x, op)											\
+#define CompleteAccess(x)												\
 	if(berr_) {															\
 		RaiseBusOrAddressError(AccessFault, x);							\
 	}																	\
@@ -324,11 +324,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	} else {															\
 		x.length = HalfCycles(4);										\
 	}																	\
-	PerformBusOperation(x, op)
+	PerformBusOperation(x)
 
 	// Performs the memory access implied by the announce, perform pair,
 	// honouring DTACK, BERR and VPA as necessary.
-#define AccessPair(val, announce, announce_op, perform, perform_op)		\
+#define AccessPair(val, announce, perform)								\
 	perform.value = &val;												\
 	if constexpr (!dtack_is_implicit) {									\
 		announce.length = HalfCycles(4);								\
@@ -336,9 +336,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	if(*perform.address & (perform.operation >> 1) & 1) {				\
 		RaiseBusOrAddressError(AddressError, perform);					\
 	}																	\
-	PerformBusOperation(announce, announce_op);							\
+	PerformBusOperation(announce);										\
 	WaitForDTACK(announce);												\
-	CompleteAccess(perform, perform_op);
+	CompleteAccess(perform);
 
 	// Sets up the next data access size and read flags.
 #define SetupDataAccess(read_flag, select_flag)												\
@@ -351,15 +351,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the access established by SetupDataAccess into val.
 #define Access(val)										\
-	AccessPair(val, access_announce, Operation::DecodeDynamically, access, Operation::DecodeDynamically)
+	AccessPair(val, access_announce, access)
 
 	// Performs the access established by SetupDataAccess into val.
-#define AccessOp(val, read_flag, select_flag)										\
-	AccessPair(val, access_announce, Operation::NewAddress | Operation::IsData | (read_flag), access, Operation::SameAddress | Operation::IsData | (read_flag) | (select_flag))
+#define AccessOp(val)										\
+	AccessPair(val, access_announce, access)
 
 	// Reads the program (i.e. non-data) word from addr into val.
 #define ReadProgramWord(val)								\
-	AccessPair(val, read_program_announce, ReadProgramAnnounceOperation, read_program, ReadProgramOperation);	\
+	AccessPair(val, read_program_announce, read_program);	\
 	program_counter_.l += 2;
 
 	// Reads one futher word from the program counter and inserts it into
@@ -384,7 +384,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Spin in place, one cycle at a time, until one of DTACK,
 		// BERR or VPA is asserted.
 		BeginState(WaitForDTACK):
-			PerformBusOperation(awaiting_dtack, 0);
+			PerformBusOperation(awaiting_dtack);
 
 			if(dtack_ || berr_ || vpa_) {
 				MoveToStateDynamic(post_dtack_state_);
@@ -428,16 +428,16 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = 0;
-			AccessOp(registers_[15].high, Operation::Read, Operation::SelectWord);		// nF
+			AccessOp(registers_[15].high);		// nF
 
 			temporary_address_.l += 2;
-			AccessOp(registers_[15].low, Operation::Read, Operation::SelectWord);		// nf
+			AccessOp(registers_[15].low);		// nf
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);	// nV
+			AccessOp(program_counter_.high);	// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);		// nv
+			AccessOp(program_counter_.low);		// nv
 
 			Prefetch();			// np
 			IdleBus(1);			// n
@@ -457,13 +457,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Push status and current program counter.
 			// Write order is wacky here, but I think it's correct.
 			registers_[15].l -= 2;
-			AccessOp(instruction_address_.low, 0, Operation::SelectWord);	// ns
+			AccessOp(instruction_address_.low);	// ns
 
 			registers_[15].l -= 4;
-			AccessOp(captured_status_, 0, Operation::SelectWord);			// ns
+			AccessOp(captured_status_);			// ns
 
 			registers_[15].l += 2;
-			AccessOp(instruction_address_.high, 0, Operation::SelectWord);	// nS
+			AccessOp(instruction_address_.high);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -471,10 +471,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(exception_vector_ << 2);
-			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);	// nV
+			AccessOp(program_counter_.high);	// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);	// nv
+			AccessOp(program_counter_.low);	// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -530,17 +530,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// COMPLETE GUESS.
 			temporary_address_.l = program_counter_.l - 4;
 			registers_[15].l -= 2;
-			AccessOp(temporary_address_.low, 0, Operation::SelectWord);		// ns	[pc.l]
+			AccessOp(temporary_address_.low);		// ns	[pc.l]
 
 			registers_[15].l -= 4;
-			AccessOp(captured_status_, 0, Operation::SelectWord);			// ns	[sr]
+			AccessOp(captured_status_);			// ns	[sr]
 
 			registers_[15].l += 2;
-			AccessOp(temporary_address_.high, 0, Operation::SelectWord);	// nS	[pc.h]
+			AccessOp(temporary_address_.high);	// nS	[pc.h]
 
 			registers_[15].l -= 4;
 			temporary_value_.w = opcode_;
-			AccessOp(temporary_value_.low, 0, Operation::SelectWord);		// ns	[instruction register]
+			AccessOp(temporary_value_.low);		// ns	[instruction register]
 
 			// Construct the function code; which is:
 			//
@@ -561,13 +561,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			temporary_address_.l = *bus_error_.address;
 
 			registers_[15].l -= 2;
-			AccessOp(temporary_address_.low, 0, Operation::SelectWord);		// ns	[error address.l]
+			AccessOp(temporary_address_.low);		// ns	[error address.l]
 
 			registers_[15].l -= 4;
-			AccessOp(temporary_value_.low, 0, Operation::SelectWord);		// ns	[function code]
+			AccessOp(temporary_value_.low);		// ns	[function code]
 
 			registers_[15].l += 2;
-			AccessOp(temporary_address_.high, 0, Operation::SelectWord);	// nS	[error address.h]
+			AccessOp(temporary_address_.high);	// nS	[error address.h]
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -575,10 +575,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(exception_vector_ << 2);
-			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);	// nV
+			AccessOp(program_counter_.high);	// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);		// nv
+			AccessOp(program_counter_.low);		// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -602,14 +602,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Push low part of program counter.
 			registers_[15].l -= 2;
-			AccessOp(instruction_address_.low, 0, Operation::SelectWord);	// ns
+			AccessOp(instruction_address_.low);	// ns
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
 			interrupt_cycles[0].address = interrupt_cycles[1].address = &temporary_address_.l;
 			interrupt_cycles[0].value = interrupt_cycles[1].value = &temporary_value_.low;
-			PerformBusOperation(interrupt_cycles[0], InterruptCycleOperations[0]);
-			CompleteAccess(interrupt_cycles[1], InterruptCycleOperations[1]);		// ni
+			PerformBusOperation(interrupt_cycles[0]);
+			CompleteAccess(interrupt_cycles[1]);		// ni
 
 			// If VPA is set, autovector.
 			if(vpa_) {
@@ -628,10 +628,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l -= 4;
-			AccessOp(captured_status_, 0, Operation::SelectWord);			// ns
+			AccessOp(captured_status_);			// ns
 
 			registers_[15].l += 2;
-			AccessOp(instruction_address_.high, 0, Operation::SelectWord);	// nS
+			AccessOp(instruction_address_.high);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -639,10 +639,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(temporary_value_.b << 2);
-			AccessOp(program_counter_.high, Operation::Read, Operation::SelectWord);		// nV
+			AccessOp(program_counter_.high);		// nV
 
 			temporary_address_.l += 2;
-			AccessOp(program_counter_.low, Operation::Read, Operation::SelectWord);			// nv
+			AccessOp(program_counter_.low);			// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -2634,11 +2634,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			tas_cycles[3].value = tas_cycles[4].value = &operand_[0].low;
 
 			// First two parts: the read.
-			PerformBusOperation(tas_cycles[0], TASOperations[0]);
-			CompleteAccess(tas_cycles[1], TASOperations[1]);
+			PerformBusOperation(tas_cycles[0]);
+			CompleteAccess(tas_cycles[1]);
 
 			// Third part: processing time.
-			PerformBusOperation(tas_cycles[2], TASOperations[2]);
+			PerformBusOperation(tas_cycles[2]);
 
 			// Do the actual TAS operation.
 			status_.overflow_flag = status_.carry_flag = 0;
@@ -2647,8 +2647,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Final parts: write back.
 			operand_[0].b |= 0x80;
-			PerformBusOperation(tas_cycles[3], TASOperations[3]);
-			CompleteAccess(tas_cycles[4], TASOperations[4]);
+			PerformBusOperation(tas_cycles[3]);
+			CompleteAccess(tas_cycles[4]);
 
 			Prefetch();
 		MoveToStateSpecific(Decode);
@@ -2762,7 +2762,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(RESET):
 			IdleBus(2);
-			PerformBusOperation(reset_cycle, ResetOperation);
+			PerformBusOperation(reset_cycle);
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
@@ -3088,13 +3088,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	captured_interrupt_level_ = bus_interrupt_level_;
 
 	read_program.value = &prefetch_.high;
-	bus_handler_.template perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
-	bus_handler_.template perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
 	program_counter_.l += 2;
 
 	read_program.value = &prefetch_.low;
-	bus_handler_.template perform_bus_operation<ReadProgramAnnounceOperation>(read_program_announce, is_supervisor_);
-	bus_handler_.template perform_bus_operation<ReadProgramOperation>(read_program, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
 	program_counter_.l += 2;
 }
 

@@ -19,8 +19,8 @@ namespace Amiga {
 
 class MemoryMap {
 	private:
-		static constexpr auto PermitRead = CPU::MC68000::Microcycle::PermitRead;
-		static constexpr auto PermitWrite = CPU::MC68000::Microcycle::PermitWrite;
+		static constexpr auto PermitRead = CPU::MC68000::Operation::PermitRead;
+		static constexpr auto PermitWrite = CPU::MC68000::Operation::PermitWrite;
 		static constexpr auto PermitReadWrite = PermitRead | PermitWrite;
 
 	public:
@@ -109,7 +109,8 @@ class MemoryMap {
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access,
 		/// and in the Zorro register range.
-		bool perform(const CPU::MC68000::Microcycle &cycle) {
+		template <typename Microcycle>
+		bool perform(const Microcycle &cycle) {
 			if(!fast_autoconf_visible_) return false;
 
 			const uint32_t register_address = *cycle.address & 0xfe;

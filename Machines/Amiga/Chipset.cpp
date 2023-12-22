@@ -841,17 +841,6 @@ void Chipset::update_interrupts() {
 	}
 }
 
-void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
-	using Microcycle = CPU::MC68000::Microcycle;
-
-	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
-	if(cycle.operation & CPU::MC68000::Operation::Read) {
-		cycle.set_value16(read(register_address));
-	} else {
-		write(register_address, cycle.value16());
-	}
-}
-
 void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 #define ApplySetClear(target, mask)	{		\
 	if(value & 0x8000) {					\

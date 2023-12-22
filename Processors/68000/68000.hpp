@@ -13,6 +13,8 @@
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../InstructionSets/M68k/RegisterSet.hpp"
 
+#include <cassert>
+
 namespace CPU::MC68000 {
 
 using OperationT = unsigned int;
@@ -68,11 +70,21 @@ static constexpr OperationT BusGrant				= 1 << 12;
 /// .operation field.
 static constexpr OperationT DecodeDynamically		= NewAddress | SameAddress;
 
-/*! @returns true if any data select line is active; @c false otherwise. */
-constexpr bool data_select_active(OperationT operation) {
-	return bool(operation & (SelectWord | SelectByte | InterruptAcknowledge));
-}
+// PermitRead and PermitWrite are used as part of the read/write mask
+// supplied to @c Microcycle::apply; they are picked to be small enough values that
+// a byte can be used for storage.
+static constexpr OperationT PermitRead	= 1 << 3;
+static constexpr OperationT PermitWrite	= 1 << 4;
 
+};
+
+template <OperationT op>
+struct MicrocycleOperationStorage {
+	static constexpr auto operation = op;
+};
+template <>
+struct MicrocycleOperationStorage<Operation::DecodeDynamically> {
+	OperationT operation = 0;
 };
 
 /*!
@@ -98,12 +110,9 @@ constexpr bool data_select_active(OperationT operation) {
 	of an address-strobing microcycle, it can just supply those periods for accounting and
 	avoid the runtime cost of actual DTack emulation. But such as the bus allows.)
 */
-struct Microcycle {
+template <OperationT op = Operation::DecodeDynamically>
+struct Microcycle: public MicrocycleOperationStorage<op> {
 	using OperationT = OperationT;
-
-	/// Contains a valid combination of the various static constexpr int flags, describing the operation
-	/// performed by this Microcycle.
-	OperationT operation = 0;
 
 	/// Describes the duration of this Microcycle.
 	HalfCycles length = HalfCycles(4);
@@ -135,20 +144,45 @@ struct Microcycle {
 	*/
 	SlicedInt16 *value = nullptr;
 
-	Microcycle(OperationT operation) : operation(operation) {}
-	Microcycle(OperationT operation, HalfCycles length) : operation(operation), length(length) {}
-	Microcycle() {}
+	constexpr Microcycle() noexcept {}
+	constexpr Microcycle(OperationT dynamic_operation) noexcept {
+		if constexpr (op == Operation::DecodeDynamically) {
+			MicrocycleOperationStorage<op>::operation = dynamic_operation;
+		} else {
+			assert(MicrocycleOperationStorage<op>::operation == dynamic_operation);
+		}
+	}
+	constexpr Microcycle(OperationT dynamic_operation, HalfCycles length) noexcept :
+		Microcycle(dynamic_operation), length(length) {}
+	constexpr Microcycle(HalfCycles length) noexcept {
+		static_assert(op != Operation::DecodeDynamically);
+		this->length = length;
+	}
+
+	template <typename MicrocycleRHS>
+	Microcycle &operator =(const MicrocycleRHS &rhs) {
+		static_assert(op == Operation::DecodeDynamically);
+		/* TODO */
+		this->operation = rhs.operation;
+
+		return *this;
+	}
 
 	/// @returns @c true if two Microcycles are equal; @c false otherwise.
 	bool operator ==(const Microcycle &rhs) const {
 		if(value != rhs.value) return false;
 		if(address != rhs.address) return false;
 		if(length != rhs.length) return false;
-		if(operation != rhs.operation) return false;
+		if(this->operation != rhs.operation) return false;
 		return true;
 	}
 
 	// Various inspectors.
+
+	/*! @returns true if any data select line is active; @c false otherwise. */
+	bool data_select_active() const {
+		return bool(this->operation & (Operation::SelectWord | Operation::SelectByte | Operation::InterruptAcknowledge));
+	}
 
 	/*!
 		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part,
@@ -190,14 +224,14 @@ struct Microcycle {
 		@returns non-zero if the 68000 LDS is asserted; zero otherwise.
 	*/
 	forceinline int lower_data_select() const {
-		return (operation & Operation::SelectByte & *address) | (operation & Operation::SelectWord);
+		return (this->operation & Operation::SelectByte & *address) | (this->operation & Operation::SelectWord);
 	}
 
 	/*!
 		@returns non-zero if the 68000 UDS is asserted; zero otherwise.
 	*/
 	forceinline int upper_data_select() const {
-		return (operation & Operation::SelectByte & ~*address) | (operation & Operation::SelectWord);
+		return (this->operation & Operation::SelectByte & ~*address) | (this->operation & Operation::SelectWord);
 	}
 
 	/*!
@@ -232,9 +266,9 @@ struct Microcycle {
 	*/
 	forceinline uint32_t host_endian_byte_address() const {
 		#if TARGET_RT_BIG_ENDIAN
-		return *address & 0xffffff;
+		return *address & 0xff'ffff;
 		#else
-		return (*address ^ (operation & Operation::SelectByte)) & 0xffffff;
+		return (*address ^ (this->operation & Operation::SelectByte)) & 0xff'ffff;
 		#endif
 	}
 
@@ -245,7 +279,7 @@ struct Microcycle {
 	*/
 	forceinline uint16_t value16() const {
 		const uint16_t values[] = { value->w, uint16_t((value->b << 8) | value->b) };
-		return values[operation & Operation::SelectByte];
+		return values[this->operation & Operation::SelectByte];
 	}
 
 	/*!
@@ -253,7 +287,7 @@ struct Microcycle {
 	*/
 	forceinline uint8_t value8_high() const {
 		const uint8_t values[] = { uint8_t(value->w >> 8), value->b};
-		return values[operation & Operation::SelectByte];
+		return values[this->operation & Operation::SelectByte];
 	}
 
 	/*!
@@ -268,8 +302,8 @@ struct Microcycle {
 		currently being read. Assumes this is a read cycle.
 	*/
 	forceinline void set_value16(uint16_t v) const {
-		assert(operation & Operation::Read);
-		if(operation & Operation::SelectWord) {
+		assert(this->operation & Operation::Read);
+		if(this->operation & Operation::SelectWord) {
 			value->w = v;
 		} else {
 			value->b = uint8_t(v >> byte_shift());
@@ -280,8 +314,8 @@ struct Microcycle {
 		Equivalent to set_value16((v << 8) | 0x00ff).
 	*/
 	forceinline void set_value8_high(uint8_t v) const {
-		assert(operation & Operation::Read);
-		if(operation & Operation::SelectWord) {
+		assert(this->operation & Operation::Read);
+		if(this->operation & Operation::SelectWord) {
 			value->w = uint16_t(0x00ff | (v << 8));
 		} else {
 			value->b = uint8_t(v | byte_mask());
@@ -292,19 +326,13 @@ struct Microcycle {
 		Equivalent to set_value16(v | 0xff00).
 	*/
 	forceinline void set_value8_low(uint8_t v) const {
-		assert(operation & Operation::Read);
-		if(operation & Operation::SelectWord) {
+		assert(this->operation & Operation::Read);
+		if(this->operation & Operation::SelectWord) {
 			value->w = 0xff00 | v;
 		} else {
 			value->b = uint8_t(v | untouched_byte_mask());
 		}
 	}
-
-	// PermitRead and PermitWrite are used as part of the read/write mask
-	// supplied to @c apply; they are picked to be small enough values that
-	// a byte can be used for storage.
-	static constexpr OperationT PermitRead	= 1 << 3;
-	static constexpr OperationT PermitWrite	= 1 << 4;
 
 	/*!
 		Assuming this to be a cycle with a data select active, applies it to @c target
@@ -314,27 +342,27 @@ struct Microcycle {
 			* if this is a word read, reads a word (in the host platform's endianness) from @c target; and
 			* if this is a write, does the converse of a read.
 	*/
-	forceinline void apply(uint8_t *target, OperationT read_write_mask = PermitRead | PermitWrite) const {
-		assert( (operation & (Operation::SelectWord | Operation::SelectByte)) != (Operation::SelectWord | Operation::SelectByte));
+	forceinline void apply(uint8_t *target, OperationT read_write_mask = Operation::PermitRead | Operation::PermitWrite) const {
+		assert( (this->operation & (Operation::SelectWord | Operation::SelectByte)) != (Operation::SelectWord | Operation::SelectByte));
 
-		switch((operation | read_write_mask) & (Operation::SelectWord | Operation::SelectByte | Operation::Read | PermitRead | PermitWrite)) {
+		switch((this->operation | read_write_mask) & (Operation::SelectWord | Operation::SelectByte | Operation::Read | Operation::PermitRead | Operation::PermitWrite)) {
 			default:
 			break;
 
-			case Operation::SelectWord | Operation::Read | PermitRead:
-			case Operation::SelectWord | Operation::Read | PermitRead | PermitWrite:
+			case Operation::SelectWord | Operation::Read | Operation::PermitRead:
+			case Operation::SelectWord | Operation::Read | Operation::PermitRead | Operation::PermitWrite:
 				value->w = *reinterpret_cast<uint16_t *>(target);
 			break;
-			case Operation::SelectByte | Operation::Read | PermitRead:
-			case Operation::SelectByte | Operation::Read | PermitRead | PermitWrite:
+			case Operation::SelectByte | Operation::Read | Operation::PermitRead:
+			case Operation::SelectByte | Operation::Read | Operation::PermitRead | Operation::PermitWrite:
 				value->b = *target;
 			break;
-			case Operation::SelectWord | PermitWrite:
-			case Operation::SelectWord | PermitWrite | PermitRead:
+			case Operation::SelectWord | Operation::PermitWrite:
+			case Operation::SelectWord | Operation::PermitWrite | Operation::PermitRead:
 				*reinterpret_cast<uint16_t *>(target) = value->w;
 			break;
-			case Operation::SelectByte | PermitWrite:
-			case Operation::SelectByte | PermitWrite | PermitRead:
+			case Operation::SelectByte | Operation::PermitWrite:
+			case Operation::SelectByte | Operation::PermitWrite | Operation::PermitRead:
 				*target = value->b;
 			break;
 		}
@@ -357,8 +385,8 @@ class BusHandler {
 			can be used to select an appropriate execution path at compile time. Otherwise
 			cycle.operation must be inspected at runtime.
 		*/
-		template <Microcycle::OperationT operation>
-		HalfCycles perform_bus_operation([[maybe_unused]] const Microcycle &cycle, [[maybe_unused]] int is_supervisor) {
+		template <typename Microcycle>
+		HalfCycles perform_bus_operation(const Microcycle &, [[maybe_unused]] int is_supervisor) {
 			return HalfCycles(0);
 		}
 

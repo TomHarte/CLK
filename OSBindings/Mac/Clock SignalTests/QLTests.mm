@@ -39,8 +39,7 @@ class QL: public ComparativeBusHandler {
 			return m68000_.get_state();
 		}
 
-		using Microcycle = CPU::MC68000::Microcycle;
-		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
@@ -60,8 +59,7 @@ class QL: public ComparativeBusHandler {
 			if(cycle.data_select_active()) {
 				uint16_t peripheral_result = 0xffff;
 
-				const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
-				switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 					default: break;
 
 					case Microcycle::SelectWord | Microcycle::Read:
