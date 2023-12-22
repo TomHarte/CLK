@@ -35,7 +35,8 @@ static constexpr OperationT SelectWord				= 1 << 1;
 /// If set, indicates a read. Otherwise, a write.
 static constexpr OperationT Read					= 1 << 2;
 
-// Two-bit gap deliberately left here for PermitRead/Write below.
+// Two-bit gap deliberately left here for PermitRead/Write below; these are not
+// real 68000 signals, they're to do with internal manipulation only.
 
 /// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
 /// this correlates to states 0 to 5 of a standard read/write cycle.
@@ -65,9 +66,7 @@ static constexpr OperationT IsPeripheral			= 1 << 11;
 /// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
 static constexpr OperationT BusGrant				= 1 << 12;
 
-/// An otherwise invalid combination; used as the operaiton template parameter to @c perform_bus_operation if
-/// the operation wasn't knowable in advance and the receiver should decode dynamically using the microcycle's
-/// .operation field.
+/// An otherwise invalid combination; used as an implementation detail elsewhere. Shouldn't be exposed.
 static constexpr OperationT DecodeDynamically		= NewAddress | SameAddress;
 
 // PermitRead and PermitWrite are used as part of the read/write mask
@@ -339,7 +338,7 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 
 	/*!
 		Assuming this to be a cycle with a data select active, applies it to @c target
-		subject to the read_write_mask, where 'applies' means:
+		subject to the @c read_write_mask, where 'applies' means:
 
 			* if this is a byte read, reads a single byte from @c target;
 			* if this is a word read, reads a word (in the host platform's endianness) from @c target; and
@@ -348,7 +347,10 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 	forceinline void apply(uint8_t *target, OperationT read_write_mask = Operation::PermitRead | Operation::PermitWrite) const {
 		assert( (this->operation & (Operation::SelectWord | Operation::SelectByte)) != (Operation::SelectWord | Operation::SelectByte));
 
-		switch((this->operation | read_write_mask) & (Operation::SelectWord | Operation::SelectByte | Operation::Read | Operation::PermitRead | Operation::PermitWrite)) {
+		switch(
+			(this->operation | read_write_mask) &
+			(Operation::SelectWord | Operation::SelectByte | Operation::Read | Operation::PermitRead | Operation::PermitWrite)
+		) {
 			default:
 			break;
 
@@ -382,11 +384,10 @@ class BusHandler {
 			Provides the bus handler with a single Microcycle to 'perform'.
 
 			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
-			flags; FC2 is provided here as is_supervisor — it'll be either 0 or 1.
+			flags; FC2 is provided here as @c is_supervisor — it'll be either 0 or 1.
 
-			If @c operation is any value other than Microcycle::DecodeDynamically then it
-			can be used to select an appropriate execution path at compile time. Otherwise
-			cycle.operation must be inspected at runtime.
+			The @c Microcycle might be any instantiation of @c Microcycle above;
+			whether with a static constexpr operation or with a runtime-selected one.
 		*/
 		template <typename Microcycle>
 		HalfCycles perform_bus_operation(const Microcycle &, [[maybe_unused]] int is_supervisor) {

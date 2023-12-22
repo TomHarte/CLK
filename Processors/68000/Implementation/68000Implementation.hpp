@@ -2625,20 +2625,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(TAS):
 			// Populate all addresses.
-			tas_cycles[0].address = tas_cycles[1].address =
-			tas_cycles[2].address =
-			tas_cycles[3].address = tas_cycles[4].address = &effective_address_[0].l;
+			tas_cycle0.address = tas_cycle1.address =
+			tas_cycle2.address =
+			tas_cycle3.address = tas_cycle4.address = &effective_address_[0].l;
 
 			// Populate values to the relevant subset.
-			tas_cycles[0].value = tas_cycles[1].value =
-			tas_cycles[3].value = tas_cycles[4].value = &operand_[0].low;
+			tas_cycle0.value = tas_cycle1.value =
+			tas_cycle3.value = tas_cycle4.value = &operand_[0].low;
 
 			// First two parts: the read.
-			PerformBusOperation(tas_cycles[0]);
-			CompleteAccess(tas_cycles[1]);
+			PerformBusOperation(tas_cycle0);
+			CompleteAccess(tas_cycle1);
 
 			// Third part: processing time.
-			PerformBusOperation(tas_cycles[2]);
+			PerformBusOperation(tas_cycle2);
 
 			// Do the actual TAS operation.
 			status_.overflow_flag = status_.carry_flag = 0;
@@ -2647,8 +2647,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Final parts: write back.
 			operand_[0].b |= 0x80;
-			PerformBusOperation(tas_cycles[3]);
-			CompleteAccess(tas_cycles[4]);
+			PerformBusOperation(tas_cycle3);
+			CompleteAccess(tas_cycle4);
 
 			Prefetch();
 		MoveToStateSpecific(Decode);

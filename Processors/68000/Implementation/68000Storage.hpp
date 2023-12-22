@@ -208,13 +208,11 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 			Operation::SameAddress | Operation::IsData,
 			Operation::SameAddress | Operation::IsData | Operation::SelectByte,
 		};
-	Microcycle<Operation::DecodeDynamically> tas_cycles[5] = {
-		{ TASOperations[0] },
-		{ TASOperations[1] },
-		{ TASOperations[2] },
-		{ TASOperations[3] },
-		{ TASOperations[4] },
-	};
+	Microcycle<TASOperations[0]> tas_cycle0;
+	Microcycle<TASOperations[1]> tas_cycle1;
+	Microcycle<TASOperations[2]> tas_cycle2;
+	Microcycle<TASOperations[3]> tas_cycle3;
+	Microcycle<TASOperations[4]> tas_cycle4;
 
 	// Reset.
 	static constexpr OperationT ResetOperation = CPU::MC68000::Operation::Reset;
