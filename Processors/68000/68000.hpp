@@ -111,7 +111,10 @@ struct MicrocycleOperationStorage<Operation::DecodeDynamically> {
 */
 template <OperationT op = Operation::DecodeDynamically>
 struct Microcycle: public MicrocycleOperationStorage<op> {
-	using OperationT = OperationT;
+	// One of the following is also exposed here via inheritance:
+	//
+	//	static constexpr OperationT operation; or
+	//	OperationT operation;
 
 	/// Describes the duration of this Microcycle.
 	HalfCycles length = HalfCycles(4);
