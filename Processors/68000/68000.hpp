@@ -162,14 +162,17 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 	template <typename MicrocycleRHS>
 	Microcycle &operator =(const MicrocycleRHS &rhs) {
 		static_assert(op == Operation::DecodeDynamically);
-		/* TODO */
 		this->operation = rhs.operation;
+		this->value = rhs.value;
+		this->address = rhs.address;
+		this->length = rhs.length;
 
 		return *this;
 	}
 
 	/// @returns @c true if two Microcycles are equal; @c false otherwise.
-	bool operator ==(const Microcycle &rhs) const {
+	template <typename MicrocycleRHS>
+	bool operator ==(const MicrocycleRHS &rhs) const {
 		if(value != rhs.value) return false;
 		if(address != rhs.address) return false;
 		if(length != rhs.length) return false;
