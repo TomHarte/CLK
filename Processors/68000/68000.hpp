@@ -155,7 +155,7 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 		}
 	}
 	constexpr Microcycle(OperationT dynamic_operation, HalfCycles length) noexcept :
-		Microcycle(dynamic_operation), length(length) {}
+		length(length), Microcycle(dynamic_operation) {}
 	constexpr Microcycle(HalfCycles length) noexcept {
 		static_assert(op != Operation::DecodeDynamically);
 		this->length = length;
