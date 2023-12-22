@@ -14,6 +14,7 @@
 
 // TODO: figure out correct include paths for other platforms.
 #ifdef __APPLE__
+	#include <TargetConditionals.h>
 	#if TARGET_OS_IPHONE
 	#else
 		// These remain so that I can, at least for now, build the kiosk version under macOS.
