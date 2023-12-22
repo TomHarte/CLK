@@ -226,10 +226,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 			Operation::InterruptAcknowledge | Operation::Read | Operation::NewAddress,
 			Operation::InterruptAcknowledge | Operation::Read | Operation::SameAddress | Operation::SelectByte
 		};
-	Microcycle<Operation::DecodeDynamically> interrupt_cycles[2] = {
-		{ InterruptCycleOperations[0] },
-		{ InterruptCycleOperations[1] },
-	};
+	Microcycle<InterruptCycleOperations[0]> interrupt_cycle0;
+	Microcycle<InterruptCycleOperations[1]> interrupt_cycle1;
 
 	// Holding spot when awaiting DTACK/etc.
 	Microcycle<Operation::DecodeDynamically> awaiting_dtack;

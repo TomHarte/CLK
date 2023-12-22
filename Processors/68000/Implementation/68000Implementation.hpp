@@ -606,10 +606,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
-			interrupt_cycles[0].address = interrupt_cycles[1].address = &temporary_address_.l;
-			interrupt_cycles[0].value = interrupt_cycles[1].value = &temporary_value_.low;
-			PerformBusOperation(interrupt_cycles[0]);
-			CompleteAccess(interrupt_cycles[1]);		// ni
+			interrupt_cycle0.address = interrupt_cycle1.address = &temporary_address_.l;
+			interrupt_cycle0.value = interrupt_cycle1.value = &temporary_value_.low;
+			PerformBusOperation(interrupt_cycle0);
+			CompleteAccess(interrupt_cycle1);		// ni
 
 			// If VPA is set, autovector.
 			if(vpa_) {
