@@ -175,8 +175,8 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 		const bool is_selected = !(value & select_mask);
 
 		// Both the motor state and the ID shifter are affected upon
-		// changes in drive selection only.
-		if(difference & select_mask) {
+		// the trailing edge of changes in drive selection only.
+		if(difference & select_mask & ~value) {
 			// If transitioning to inactive, shift the drive ID value;
 			// if transitioning to active, possibly reset the drive
 			// ID and definitely latch the new motor state.
