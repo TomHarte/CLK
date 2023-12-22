@@ -154,8 +154,9 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 			assert(MicrocycleOperationStorage<op>::operation == dynamic_operation);
 		}
 	}
-	constexpr Microcycle(OperationT dynamic_operation, HalfCycles length) noexcept :
-		length(length), Microcycle(dynamic_operation) {}
+	constexpr Microcycle(OperationT dynamic_operation, HalfCycles length) noexcept : Microcycle(dynamic_operation) {
+		this->length = length;
+	}
 	constexpr Microcycle(HalfCycles length) noexcept {
 		static_assert(op != Operation::DecodeDynamically);
 		this->length = length;
