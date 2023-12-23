@@ -138,10 +138,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 	/// Used by some dedicated read-modify-write perform patterns to
 	/// determine the size of the bus operation.
-	Microcycle::OperationT select_flag_ = 0;
+	OperationT select_flag_ = 0;
 
 	// Captured bus/address-error state.
-	Microcycle bus_error_;
+	Microcycle<Operation::DecodeDynamically> bus_error_;
 
 	// Flow controller methods implemented.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
@@ -181,58 +181,54 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	// Some microcycles that will be modified as required and used in the main loop;
 	// the semantics of a switch statement make in-place declarations awkward and
 	// some of these may persist across multiple calls to run_for.
-	Microcycle idle{0};
+	Microcycle<OperationT(0)> idle;
 
 	// Read a program word. All accesses via the program counter are word sized.
-	static constexpr Microcycle::OperationT
-		ReadProgramAnnounceOperation = Microcycle::Read | Microcycle::NewAddress | Microcycle::IsProgram;
-	static constexpr Microcycle::OperationT
-		ReadProgramOperation = Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsProgram;
-	Microcycle read_program_announce { ReadProgramAnnounceOperation };
-	Microcycle read_program { ReadProgramOperation };
+	static constexpr OperationT
+		ReadProgramAnnounceOperation = Operation::Read | Operation::NewAddress | Operation::IsProgram;
+	static constexpr OperationT
+		ReadProgramOperation = Operation::Read | Operation::SameAddress | Operation::SelectWord | Operation::IsProgram;
+	Microcycle<ReadProgramAnnounceOperation> read_program_announce{};
+	Microcycle<ReadProgramOperation> read_program{};
 
 	// Read a data word or byte.
-	Microcycle access_announce {
-		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData
+	Microcycle<Operation::DecodeDynamically> access_announce {
+		Operation::Read | Operation::NewAddress | Operation::IsData
 	};
-	Microcycle access {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
+	Microcycle<Operation::DecodeDynamically> access {
+		Operation::Read | Operation::SameAddress | Operation::SelectWord | Operation::IsData
 	};
 
 	// TAS.
-	static constexpr Microcycle::OperationT
+	static constexpr OperationT
 		TASOperations[5] = {
-			Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData,
-			Microcycle::Read | Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte,
-			Microcycle::SameAddress,
-			Microcycle::SameAddress | Microcycle::IsData,
-			Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte,
+			Operation::Read | Operation::NewAddress | Operation::IsData,
+			Operation::Read | Operation::SameAddress | Operation::IsData | Operation::SelectByte,
+			Operation::SameAddress,
+			Operation::SameAddress | Operation::IsData,
+			Operation::SameAddress | Operation::IsData | Operation::SelectByte,
 		};
-	Microcycle tas_cycles[5] = {
-		{ TASOperations[0] },
-		{ TASOperations[1] },
-		{ TASOperations[2] },
-		{ TASOperations[3] },
-		{ TASOperations[4] },
-	};
+	Microcycle<TASOperations[0]> tas_cycle0;
+	Microcycle<TASOperations[1]> tas_cycle1;
+	Microcycle<TASOperations[2]> tas_cycle2;
+	Microcycle<TASOperations[3]> tas_cycle3;
+	Microcycle<TASOperations[4]> tas_cycle4;
 
 	// Reset.
-	static constexpr Microcycle::OperationT ResetOperation = Microcycle::Reset;
-	Microcycle reset_cycle { ResetOperation, HalfCycles(248) };
+	static constexpr OperationT ResetOperation = CPU::MC68000::Operation::Reset;
+	Microcycle<ResetOperation> reset_cycle { HalfCycles(248) };
 
 	// Interrupt acknowledge.
-	static constexpr Microcycle::OperationT
+	static constexpr OperationT
 		InterruptCycleOperations[2] = {
-			Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::NewAddress,
-			Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte
+			Operation::InterruptAcknowledge | Operation::Read | Operation::NewAddress,
+			Operation::InterruptAcknowledge | Operation::Read | Operation::SameAddress | Operation::SelectByte
 		};
-	Microcycle interrupt_cycles[2] = {
-		{ InterruptCycleOperations[0] },
-		{ InterruptCycleOperations[1] },
-	};
+	Microcycle<InterruptCycleOperations[0]> interrupt_cycle0;
+	Microcycle<InterruptCycleOperations[1]> interrupt_cycle1;
 
 	// Holding spot when awaiting DTACK/etc.
-	Microcycle awaiting_dtack;
+	Microcycle<Operation::DecodeDynamically> awaiting_dtack;
 };
 
 }

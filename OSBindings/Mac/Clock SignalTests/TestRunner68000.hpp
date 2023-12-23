@@ -78,8 +78,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return &ram_[(address >> 1) % ram_.size()];
 		}
 
-		using Microcycle = CPU::MC68000::Microcycle;
-		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			const uint32_t word_address = cycle.word_address();
 			duration_ += cycle.length;
 

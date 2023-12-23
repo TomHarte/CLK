@@ -36,8 +36,7 @@ class EmuTOS: public ComparativeBusHandler {
 			return m68000_.get_state();
 		}
 
-		using Microcycle = CPU::MC68000::Microcycle;
-		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
+		template <typename Microcycle> perform_bus_operation(const Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 

@@ -191,15 +191,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_.run_for(cycles);
 		}
 
-		using Microcycle = CPU::MC68000::Microcycle;
-		template <Microcycle::OperationT op> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
-			const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
-
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
 			advance_time(cycle.length);
 
 			// A null cycle leaves nothing else to do.
-			if(!(operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+			if(!(cycle.operation & (CPU::MC68000::Operation::NewAddress | CPU::MC68000::Operation::SameAddress))) return HalfCycles(0);
 
 			// Grab the address.
 			auto address = cycle.host_endian_byte_address();
@@ -219,7 +216,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// having set VPA above deals with those given that the generated address
 			// for interrupt acknowledge cycles always has all bits set except the
 			// lowest explicit address lines.
-			if(!cycle.data_select_active() || (operation & Microcycle::InterruptAcknowledge)) return HalfCycles(0);
+			if(
+				!cycle.data_select_active() ||
+				(cycle.operation & CPU::MC68000::Operation::InterruptAcknowledge)
+			) return HalfCycles(0);
 
 			// Grab the word-precision address being accessed.
 			uint8_t *memory_base = nullptr;
@@ -228,18 +228,18 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				default: assert(false);
 
 				case BusDevice::Unassigned:
-					fill_unmapped<op>(cycle);
+					fill_unmapped(cycle);
 				return delay;
 
 				case BusDevice::VIA: {
 					if(*cycle.address & 1) {
-						fill_unmapped<op>(cycle);
+						fill_unmapped(cycle);
 					} else {
 						const int register_address = address >> 9;
 
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
-						if(operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value8_high(via_.read(register_address));
 						} else {
 							via_.write(register_address, cycle.value8_high());
@@ -248,7 +248,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} return delay;
 
 				case BusDevice::PhaseRead: {
-					if(operation & Microcycle::Read) {
+					if(cycle.operation & CPU::MC68000::Operation::Read) {
 						cycle.set_value8_low(phase_ & 7);
 					}
 				} return delay;
@@ -258,13 +258,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						const int register_address = address >> 9;
 
 						// The IWM; this is a purely polled device, so can be run on demand.
-						if(operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value8_low(iwm_->read(register_address));
 						} else {
 							iwm_->write(register_address, cycle.value8_low());
 						}
 					} else {
-						fill_unmapped<op>(cycle);
+						fill_unmapped(cycle);
 					}
 				} return delay;
 
@@ -275,14 +275,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					// Even accesses = read; odd = write.
 					if(*cycle.address & 1) {
 						// Odd access => this is a write. Data will be in the upper byte.
-						if(operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							scsi_.write(register_address, 0xff, dma_acknowledge);
 						} else {
 							scsi_.write(register_address, cycle.value8_high());
 						}
 					} else {
 						// Even access => this is a read.
-						if(operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value8_high(scsi_.read(register_address, dma_acknowledge));
 						}
 					}
@@ -290,19 +290,19 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case BusDevice::SCCReadResetPhase: {
 					// Any word access here adjusts phase.
-					if(operation & Microcycle::SelectWord) {
+					if(cycle.operation & CPU::MC68000::Operation::SelectWord) {
 						adjust_phase();
 					} else {
 						// A0 = 1 => reset; A0 = 0 => read.
 						if(*cycle.address & 1) {
 							scc_.reset();
 
-							if(operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value16(0xffff);
 							}
 						} else {
 							const auto read = scc_.read(int(address >> 1));
-							if(operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value8_high(read);
 							}
 						}
@@ -311,20 +311,20 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case BusDevice::SCCWrite: {
 					// Any word access here adjusts phase.
-					if(operation & Microcycle::SelectWord) {
+					if(cycle.operation & CPU::MC68000::Operation::SelectWord) {
 						adjust_phase();
 					} else {
 						// This is definitely a byte access; either it's to an odd address, in which
 						// case it will reach the SCC, or it isn't, in which case it won't.
 						if(*cycle.address & 1) {
-							if(operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								scc_.write(int(address >> 1), 0xff);
 								cycle.value->b = 0xff;
 							} else {
 								scc_.write(int(address >> 1), cycle.value->b);
 							}
 						} else {
-							fill_unmapped<op>(cycle);
+							fill_unmapped(cycle);
 						}
 					}
 				} return delay;
@@ -352,7 +352,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} break;
 
 				case BusDevice::ROM: {
-					if(!(operation & Microcycle::Read)) return delay;
+					if(!(cycle.operation & CPU::MC68000::Operation::Read)) return delay;
 					memory_base = rom_;
 					address &= rom_mask_;
 				} break;
@@ -544,10 +544,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			++phase_;
 		}
 
-		template <Microcycle::OperationT op>
+		template <typename Microcycle>
 		forceinline void fill_unmapped(const Microcycle &cycle) {
-			const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
-			if(!(operation & Microcycle::Read)) return;
+			if(!(cycle.operation & CPU::MC68000::Operation::Read)) return;
 			cycle.set_value16(0xffff);
 		}
 
