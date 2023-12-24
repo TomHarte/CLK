@@ -920,7 +920,7 @@ class ConcreteMachine:
 
 		// MARK: - TimedMachine.
 		void run_for(const Cycles duration) override {
-			const auto pit_ticks = duration.as_integral();
+			const auto pit_ticks = duration.as<int>();
 
 			int ticks;
 			if constexpr (!turbo) {
