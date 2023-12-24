@@ -43,12 +43,11 @@ class RTC {
 				case 0x03:	return 0;	// Minutes alarm
 				case 0x04:
 					// Hours [1-12 or 0-23]
-					if(statusB_ & 2) {
+					if(is_24hour()) {
 						return bcd(time_date->tm_hour);
 					}
 					return
-						// TODO: determine why GLaTICK signals an RTC fault if I enable communication of PM as below.
-//						((time_date->tm_hour >= 12) ? 0x80 : 0x00) |
+						((time_date->tm_hour >= 12) ? 0x80 : 0x00) |
 						bcd(1 + (time_date->tm_hour + 11)%12);
 				break;
 				case 0x05:	return 0;	// Hours alarm
@@ -67,12 +66,15 @@ class RTC {
 		int selected_;
 
 		uint8_t statusA_ = 0x00;
-		uint8_t statusB_ = 0x00;
+		uint8_t statusB_ = 0x02;
+
+		bool is_decimal() const { return statusB_ & 0x04; }
+		bool is_24hour() const { return statusB_ & 0x02; }
 
 		template <typename IntT>
 		uint8_t bcd(IntT input) {
 			// If calendar is in binary format, don't convert.
-			if(statusB_ & 4) {
+			if(is_decimal()) {
 				return uint8_t(input);
 			}
 
@@ -87,6 +89,7 @@ class RTC {
 			switch(selected_) {
 				default: break;
 				case 0x0a:	statusA_ = value;	break;
+				case 0x0b:	statusB_ = value;	break;
 			}
 		}
 };
