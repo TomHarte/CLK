@@ -26,8 +26,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	// be back to wherever it started, so it's safe to spit out a NOP and reset parsing
 	// without any loss of context. This reduces the risk of the decoder tricking a caller into
 	// an infinite loop.
-	static constexpr std::size_t max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 65536);
-	const uint8_t *const end = source + std::min(length, max_instruction_length - consumed_);
+	static constexpr int max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 65536);
+	const uint8_t *const end = source + std::min(length, size_t(max_instruction_length - consumed_));
 
 	// MARK: - Prefixes (if present) and the opcode.
 

@@ -172,7 +172,7 @@ template <Model model> class Decoder {
 
 		// Ephemeral decoding state.
 		Operation operation_ = Operation::Invalid;
-		uint32_t consumed_ = 0, operand_bytes_ = 0;
+		int consumed_ = 0, operand_bytes_ = 0;
 
 		// Source and destination locations.
 		Source source_ = Source::None;
