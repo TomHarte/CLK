@@ -807,11 +807,15 @@ class FlowController {
 			registers_(registers), segments_(segments) {}
 
 		// Requirements for perform.
-		void jump(uint16_t address) {
+		template <typename AddressT>
+		void jump(AddressT address) {
+			static_assert(std::is_same_v<AddressT, uint16_t>);
 			registers_.ip() = address;
 		}
 
-		void jump(uint16_t segment, uint16_t address) {
+		template <typename AddressT>
+		void jump(uint16_t segment, AddressT address) {
+			static_assert(std::is_same_v<AddressT, uint16_t>);
 			registers_.cs() = segment;
 			segments_.did_update(Segments::Source::CS);
 			registers_.ip() = address;
