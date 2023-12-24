@@ -120,7 +120,7 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 		///
 		/// This is not guaranteed safely to restart a stopped queue.
 		void start() {
-			thread_ = std::move(std::thread{
+			thread_ = std::thread{
 				[this] {
 					ActionVector actions;
 
@@ -144,7 +144,7 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 						actions.clear();
 					}
 				}
-			});
+			};
 		}
 
 		/// Schedules any remaining unscheduled work, then blocks synchronously
