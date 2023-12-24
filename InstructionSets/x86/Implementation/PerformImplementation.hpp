@@ -237,8 +237,8 @@ template <
 		case Operation::CALLrel:
 			Primitive::call_relative<AddressT>(instruction.displacement(), context);
 		return;
-		case Operation::CALLabs:	Primitive::call_absolute<IntT>(destination_r(), context);					return;
-		case Operation::CALLfar:	Primitive::call_far(instruction, context);									return;
+		case Operation::CALLabs:	Primitive::call_absolute<IntT, AddressT>(destination_r(), context);					return;
+		case Operation::CALLfar:	Primitive::call_far<AddressT>(instruction, context);									return;
 
 		case Operation::JMPrel:	jcc(true);														return;
 		case Operation::JMPabs:	Primitive::jump_absolute<IntT>(destination_r(), context);		return;

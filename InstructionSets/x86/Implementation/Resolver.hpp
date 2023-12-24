@@ -199,7 +199,9 @@ typename Accessor<IntT, access>::type resolve(
 
 	// If execution has reached here then a memory fetch is required.
 	// Do it and exit.
-	return context.memory.template access<IntT, access>(instruction.data_segment(), target_address);
+	//
+	// TODO: support 32-bit addresses.
+	return context.memory.template access<IntT, access>(instruction.data_segment(), uint16_t(target_address));
 }
 
 }

@@ -36,7 +36,7 @@ void jump(
 
 	// TODO: proper behaviour in 32-bit.
 	if(condition) {
-		context.flow_controller.jump(uint16_t(context.registers.ip() + displacement));
+		context.flow_controller.template jump<uint16_t>(uint16_t(context.registers.ip() + displacement));
 	}
 }
 
@@ -48,7 +48,7 @@ void loop(
 ) {
 	--counter;
 	if(counter) {
-		context.flow_controller.jump(context.registers.ip() + displacement);
+		context.flow_controller.template jump<uint16_t>(context.registers.ip() + displacement);
 	}
 }
 
@@ -60,7 +60,7 @@ void loope(
 ) {
 	--counter;
 	if(counter && context.flags.template flag<Flag::Zero>()) {
-		context.flow_controller.jump(context.registers.ip() + displacement);
+		context.flow_controller.template jump<uint16_t>(context.registers.ip() + displacement);
 	}
 }
 
@@ -72,26 +72,30 @@ void loopne(
 ) {
 	--counter;
 	if(counter && !context.flags.template flag<Flag::Zero>()) {
-		context.flow_controller.jump(context.registers.ip() + displacement);
+		context.flow_controller.template jump<uint16_t>(context.registers.ip() + displacement);
 	}
 }
 
-template <typename IntT, typename ContextT>
+template <typename AddressT, typename ContextT>
 void call_relative(
-	typename std::make_signed<IntT>::type offset,
+	typename std::make_signed<AddressT>::type offset,
 	ContextT &context
 ) {
-	push<uint16_t, false>(context.registers.ip(), context);
-	context.flow_controller.jump(context.registers.ip() + offset);
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		push<uint16_t, false>(context.registers.ip(), context);
+		context.flow_controller.template jump<AddressT>(AddressT(context.registers.ip() + offset));
+	} else {
+		assert(false);
+	}
 }
 
-template <typename IntT, typename ContextT>
+template <typename IntT, typename AddressT, typename ContextT>
 void call_absolute(
 	read_t<IntT> target,
 	ContextT &context
 ) {
 	push<uint16_t, false>(context.registers.ip(), context);
-	context.flow_controller.jump(target);
+	context.flow_controller.template jump<AddressT>(AddressT(target));
 }
 
 template <typename IntT, typename ContextT>
@@ -99,10 +103,10 @@ void jump_absolute(
 	read_t<IntT> target,
 	ContextT &context
 ) {
-	context.flow_controller.jump(target);
+	context.flow_controller.template jump<uint16_t>(target);
 }
 
-template <typename InstructionT, typename ContextT>
+template <typename AddressT, typename InstructionT, typename ContextT>
 void call_far(
 	InstructionT &instruction,
 	ContextT &context
@@ -118,17 +122,17 @@ void call_far(
 		case Source::Immediate:
 			push<uint16_t, true>(context.registers.cs(), context);
 			push<uint16_t, true>(context.registers.ip(), context);
-			context.flow_controller.jump(instruction.segment(), instruction.offset());
+			context.flow_controller.template jump<uint16_t>(instruction.segment(), instruction.offset());
 		return;
 
 		case Source::Indirect:
-			source_address = address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::DirectAddress:
-			source_address = address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 	}
 
@@ -141,7 +145,7 @@ void call_far(
 	push<uint16_t, true>(context.registers.cs(), context);
 	push<uint16_t, true>(context.registers.ip(), context);
 
-	context.flow_controller.jump(segment, offset);
+	context.flow_controller.template jump<AddressT>(segment, offset);
 }
 
 template <typename InstructionT, typename ContextT>
@@ -154,16 +158,16 @@ void jump_far(
 	const auto pointer = instruction.destination();
 	switch(pointer.source()) {
 		default:
-		case Source::Immediate:	context.flow_controller.jump(instruction.segment(), instruction.offset());	return;
+		case Source::Immediate:	context.flow_controller.template jump<uint16_t>(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
-			source_address = address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::DirectAddress:
-			source_address = address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 	}
 
@@ -173,7 +177,7 @@ void jump_far(
 	const uint16_t offset = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
 	const uint16_t segment = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
-	context.flow_controller.jump(segment, offset);
+	context.flow_controller.template jump<uint16_t>(segment, offset);
 }
 
 template <typename ContextT>
@@ -185,7 +189,7 @@ void iret(
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.flags.set(pop<uint16_t, true>(context));
-	context.flow_controller.jump(cs, ip);
+	context.flow_controller.template jump<uint16_t>(cs, ip);
 }
 
 template <typename InstructionT, typename ContextT>
@@ -195,7 +199,7 @@ void ret_near(
 ) {
 	const auto ip = pop<uint16_t, false>(context);
 	context.registers.sp() += instruction.operand();
-	context.flow_controller.jump(ip);
+	context.flow_controller.template jump<uint16_t>(ip);
 }
 
 template <typename InstructionT, typename ContextT>
@@ -207,7 +211,7 @@ void ret_far(
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.registers.sp() += instruction.operand();
-	context.flow_controller.jump(cs, ip);
+	context.flow_controller.template jump<uint16_t>(cs, ip);
 }
 
 template <typename ContextT>

@@ -136,7 +136,7 @@ void setmo(
 	write_t<IntT> destination,
 	ContextT &context
 ) {
-	const auto result = destination = ~0;
+	const auto result = destination = IntT(~0);
 	context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry, Flag::Overflow>(0);
 	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(result);
 }
