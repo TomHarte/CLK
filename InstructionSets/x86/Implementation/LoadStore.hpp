@@ -35,7 +35,7 @@ void ld(
 	ContextT &context
 ) {
 	const auto pointer = instruction.source();
-	auto source_address = address<uint16_t, AccessType::Read>(instruction, pointer, context);
+	uint16_t source_address = uint16_t(address<uint16_t, AccessType::Read>(instruction, pointer, context));
 	const Source source_segment = instruction.data_segment();
 
 	context.memory.preauthorise_read(source_segment, source_address, 4);

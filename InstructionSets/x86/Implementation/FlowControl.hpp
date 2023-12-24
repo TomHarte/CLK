@@ -126,13 +126,13 @@ void call_far(
 		return;
 
 		case Source::Indirect:
-			source_address = address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::DirectAddress:
-			source_address = address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 	}
 
@@ -161,13 +161,13 @@ void jump_far(
 		case Source::Immediate:	context.flow_controller.template jump<uint16_t>(instruction.segment(), instruction.offset());	return;
 
 		case Source::Indirect:
-			source_address = address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::IndirectNoBase:
-			source_address = address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 		case Source::DirectAddress:
-			source_address = address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context);
+			source_address = uint16_t(address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context));
 		break;
 	}
 
