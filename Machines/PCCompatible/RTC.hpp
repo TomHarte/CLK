@@ -60,7 +60,7 @@ class RTC {
 				case 0x09:	return bcd(time_date->tm_year % 100);	// Year [0-99]
 				case 0x32:	return bcd(19 + time_date->tm_year / 100);	// Century
 
-				case 0x0a:	return statusA_;
+				case 0x0a:	return statusA_ & 0x7f;		// Exclude the update-in-progress bit.
 				case 0x0b:	return statusB_;
 			}
 		}
@@ -72,12 +72,26 @@ class RTC {
 		uint8_t statusA_ = 0x00;
 		uint8_t statusB_ = 0x02;
 
-		bool is_decimal() const { return statusB_ & 0x04; }
-		bool is_24hour() const { return statusB_ & 0x02; }
+		// Status A.
+		// b7: update-in-progress.
+		// b6–b4: selects condition of the divider chain (?);
+		// b3–b0: selects rate of the divider chain.
 
+		// Status B.
+		bool disable_updates() const				{ return statusB_ & 0x80; }
+		bool periodic_interrupt_enabled() const		{ return statusB_ & 0x40; }
+		bool alarm_interrupt_enabled() const		{ return statusB_ & 0x20; }
+		bool update_ended_interrupt_enabled() const	{ return statusB_ & 0x10; }
+		bool square_wave_enabled() const			{ return statusB_ & 0x08; }
+		bool is_decimal() const						{ return statusB_ & 0x04; }
+		bool is_24hour() const						{ return statusB_ & 0x02; }
+		bool daylight_savings_enabled() const		{ return statusB_ & 0x01; }
+
+		// Helpers for differentiating RAM accesses from the more meaningful registers.
 		bool ram_selected() const { return selected_ >= 0xe && selected_ < 0xe + ram_.size(); }
 		std::size_t ram_address() const { return selected_ - 0xe; }
 
+		/// Converts @c input to BCD if BCD mode is enabled; otherwise returns @c input unaltered.
 		template <typename IntT>
 		uint8_t bcd(IntT input) {
 			// If calendar is in binary format, don't convert.
@@ -92,6 +106,7 @@ class RTC {
 			);
 		}
 
+		/// Writes @c value to the register @c selected_ .
 		void write_register(uint8_t value) {
 			switch(selected_) {
 				default:
