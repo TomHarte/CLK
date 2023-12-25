@@ -362,7 +362,6 @@ class KeyboardController {
 		//; 00 - force clock line low, resetting keyboard, but on a 01->00 transition,
 		//;		IRQ1 would remain high
 		void set_mode(uint8_t mode) {
-			printf("Mode: %02x\n", mode);
 			const auto last_mode = mode_;
 			mode_ = Mode(mode);
 			switch(mode_) {
