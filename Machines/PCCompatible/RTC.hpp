@@ -35,6 +35,9 @@ class RTC {
 
 			switch(selected_) {
 				default:
+					if(ram_selected()) {
+						return ram_[ram_address()];
+					}
 				return 0xff;
 
 				case 0x00:	return bcd(time_date->tm_sec);			// Seconds [0-59]
@@ -63,13 +66,17 @@ class RTC {
 		}
 
 	private:
-		int selected_;
+		std::size_t selected_;
+		std::array<uint8_t, 50> ram_{};
 
 		uint8_t statusA_ = 0x00;
 		uint8_t statusB_ = 0x02;
 
 		bool is_decimal() const { return statusB_ & 0x04; }
 		bool is_24hour() const { return statusB_ & 0x02; }
+
+		bool ram_selected() const { return selected_ >= 0xe && selected_ < 0xe + ram_.size(); }
+		std::size_t ram_address() const { return selected_ - 0xe; }
 
 		template <typename IntT>
 		uint8_t bcd(IntT input) {
@@ -87,7 +94,11 @@ class RTC {
 
 		void write_register(uint8_t value) {
 			switch(selected_) {
-				default: break;
+				default:
+					if(ram_selected()) {
+						ram_[ram_address()] = value;
+					}
+				break;
 				case 0x0a:	statusA_ = value;	break;
 				case 0x0b:	statusB_ = value;	break;
 			}
