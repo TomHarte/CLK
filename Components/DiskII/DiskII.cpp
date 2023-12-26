@@ -61,7 +61,12 @@ void DiskII::set_control(Control control, bool on) {
 		if(stepper_mask_&2) direction += (((stepper_position_ - 2) + 4)&7) - 4;
 		if(stepper_mask_&4) direction += (((stepper_position_ - 4) + 4)&7) - 4;
 		if(stepper_mask_&8) direction += (((stepper_position_ - 6) + 4)&7) - 4;
-		const int bits_set = (stepper_mask_&1) + ((stepper_mask_ >> 1)&1) + ((stepper_mask_ >> 2)&1) + ((stepper_mask_ >> 3)&1);
+
+		// TODO: when adopting C++20, replace with std::popcount.
+		int bits_set = stepper_mask_;
+		bits_set = (bits_set & 0x5) + ((bits_set >> 1) & 0x5);
+		bits_set = (bits_set & 0x3) + ((bits_set >> 2) & 0x3);
+
 		direction /= bits_set;
 
 		// Compare to the stepper position to decide whether that pulls in the current cog notch,
@@ -126,7 +131,7 @@ void DiskII::run_for(const Cycles cycles) {
 		if(inputs_&input_mode) {
 			// state_ & 0x80 should be the current level sent to the disk;
 			// therefore transitions in that bit should become flux transitions
-			drives_[active_drive_].write_bit(!!((state_ ^ address) & 0x80));
+			drives_[active_drive_].write_bit((state_ ^ address) & 0x80);
 		}
 
 		// TODO: surely there's a less heavyweight solution than inline updates?
@@ -179,7 +184,7 @@ void DiskII::decide_clocking_preference() {
 }
 
 bool DiskII::is_write_protected() {
-	return !!(stepper_mask_ & 2) | drives_[active_drive_].get_is_read_only();
+	return (stepper_mask_ & 2) || drives_[active_drive_].get_is_read_only();
 }
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
