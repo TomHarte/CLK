@@ -362,18 +362,24 @@ class KeyboardController {
 		//; 00 - force clock line low, resetting keyboard, but on a 01->00 transition,
 		//;		IRQ1 would remain high
 		void set_mode(uint8_t mode) {
+			const auto last_mode = mode_;
 			mode_ = Mode(mode);
 			switch(mode_) {
 				case Mode::NormalOperation: 	break;
 				case Mode::NoIRQsIgnoreInput:
 					pic_.apply_edge<1>(false);
 				break;
+				case Mode::Reset:
+					input_.clear();
+					[[fallthrough]];
 				case Mode::ClearIRQReset:
 					pic_.apply_edge<1>(false);
-					[[fallthrough]];
-				case Mode::Reset:
-					reset_delay_ = 15;	// Arbitrarily.
 				break;
+			}
+
+			// If the reset condition ends, start a counter through until reset is complete.
+			if(last_mode == Mode::Reset && mode_ != Mode::Reset) {
+				reset_delay_ = 15;      // Arbitrarily.
 			}
 		}
 
@@ -403,7 +409,7 @@ class KeyboardController {
 		}
 
 		void post(uint8_t value) {
-			if(mode_ == Mode::NoIRQsIgnoreInput) {
+			if(mode_ != Mode::NormalOperation || reset_delay_) {
 				return;
 			}
 			input_.push_back(value);
