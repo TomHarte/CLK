@@ -24,6 +24,8 @@ namespace Activity {
 */
 class Observer {
 	public:
+		virtual ~Observer() {}
+
 		/// Provides hints as to the sort of information presented on an LED.
 		enum LEDPresentation: uint8_t {
 			/// This LED informs the user of some sort of persistent state, e.g. scroll lock.

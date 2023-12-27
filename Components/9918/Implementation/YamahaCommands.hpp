@@ -213,7 +213,7 @@ struct Line: public Command {
 		}
 
 	private:
-		int position_, numerator_, denominator_, duration_;
+		int position_, numerator_, denominator_;
 };
 
 // MARK: - Single pixel manipulation.

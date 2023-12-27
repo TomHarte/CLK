@@ -322,8 +322,6 @@ struct MOS6526Storage {
 			static constexpr int TestInputNow = 1 << 8;
 
 			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
-
-			bool active_ = false;
 	} counter_[2];
 
 	static constexpr int InterruptInOne = 1 << 0;
