@@ -49,15 +49,12 @@
 
 namespace PCCompatible {
 
-using VideoAdaptor = Analyser::Static::PCCompatible::Target::VideoAdaptor;
+using Target = Analyser::Static::PCCompatible::Target;
 
-template <VideoAdaptor adaptor> struct Adaptor;
-template <> struct Adaptor<VideoAdaptor::MDA> {
-	using type = MDA;
-};
-template <> struct Adaptor<VideoAdaptor::CGA> {
-	using type = CGA;
-};
+// Map from members of the VideoAdaptor enum to concrete class types.
+template <Target::VideoAdaptor adaptor> struct Adaptor;
+template <> struct Adaptor<Target::VideoAdaptor::MDA> {		using type = MDA;	};
+template <> struct Adaptor<Target::VideoAdaptor::CGA> {		using type = CGA;	};
 
 class FloppyController {
 	public:
@@ -500,7 +497,7 @@ using PIT = i8253<false, PITObserver>;
 
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
-		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard, VideoAdaptor adaptor, int drive_count) :
+		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard, Target::VideoAdaptor adaptor, int drive_count) :
 			speaker_(speaker), keyboard_(keyboard) {
 				// High switches:
 				//
@@ -508,8 +505,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 				// b1, b0: video mode (00 = ROM; 01 = CGA40; 10 = CGA80; 11 = MDA)
 				switch(adaptor) {
 					default: break;
-					case VideoAdaptor::MDA:	high_switches_ |= 0b11;	break;
-					case VideoAdaptor::CGA:	high_switches_ |= 0b10;	break;	// Assume 80 columns.
+					case Target::VideoAdaptor::MDA:	high_switches_ |= 0b11;	break;
+					case Target::VideoAdaptor::CGA:	high_switches_ |= 0b10;	break;	// Assume 80 columns.
 				}
 				high_switches_ |= uint8_t(drive_count << 2);
 
@@ -593,7 +590,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 };
 using PPI = Intel::i8255::i8255<i8255PortHandler>;
 
-template <VideoAdaptor video>
+template <Target::VideoAdaptor video>
 class IO {
 	public:
 		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc, RTC &rtc) :
@@ -601,7 +598,7 @@ class IO {
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
 			static constexpr uint16_t crtc_base =
-				video == VideoAdaptor::MDA ? 0x03b0 : 0x03d0;
+				video == Target::VideoAdaptor::MDA ? 0x03b0 : 0x03d0;
 
 			switch(port) {
 				default:
@@ -772,13 +769,13 @@ class IO {
 				case 0x03f5:	return fdc_.read();
 
 				case 0x03b8:
-					if constexpr (video == VideoAdaptor::MDA) {
+					if constexpr (video == Target::VideoAdaptor::MDA) {
 						return video_.template read<0x8>();
 					}
 				break;
 
 				case 0x3da:
-					if constexpr (video == VideoAdaptor::CGA) {
+					if constexpr (video == Target::VideoAdaptor::CGA) {
 						return video_.template read<0xa>();
 					}
 				break;
@@ -860,7 +857,7 @@ class FlowController {
 		bool halted_ = false;
 };
 
-template <VideoAdaptor video, bool turbo>
+template <Target::VideoAdaptor video>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
@@ -887,6 +884,9 @@ class ConcreteMachine:
 			ppi_(ppi_handler_),
 			context(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
+			// Capture speed.
+			speed_ = target.speed;
+
 			// Set up DMA source/target.
 			dma_.set_memory(&context.memory);
 
@@ -930,15 +930,23 @@ class ConcreteMachine:
 
 		// MARK: - TimedMachine.
 		void run_for(const Cycles duration) override {
+			switch(speed_) {
+				case Target::Speed::ApproximatelyOriginal:	run_for<Target::Speed::ApproximatelyOriginal>(duration);	break;
+				case Target::Speed::Fast: 					run_for<Target::Speed::Fast>(duration);						break;
+			}
+		}
+
+		template <Target::Speed speed>
+		void run_for(const Cycles duration) {
 			const auto pit_ticks = duration.as<int>();
 
 			int ticks;
-			if constexpr (!turbo) {
+			if constexpr (speed == Target::Speed::Fast) {
+				ticks = pit_ticks;
+			} else {
 				cpu_divisor_ += pit_ticks;
 				ticks = cpu_divisor_ / 3;
 				cpu_divisor_ %= 3;
-			} else {
-				ticks = pit_ticks;
 			}
 
 			while(ticks--) {
@@ -952,7 +960,7 @@ class ConcreteMachine:
 				pit_.run_for(1);
 				++speaker_.cycles_since_update;
 
-				if constexpr (!turbo) {
+				if constexpr (speed == Target::Speed::ApproximatelyOriginal) {
 					pit_.run_for(1);
 					++speaker_.cycles_since_update;
 					pit_.run_for(1);
@@ -962,7 +970,7 @@ class ConcreteMachine:
 				//
 				// Advance CRTC at a more approximate rate.
 				//
-				video_.run_for(turbo ? Cycles(1) : Cycles(3));
+				video_.run_for(speed == Target::Speed::Fast ? Cycles(1) : Cycles(3));
 
 				//
 				// Give the keyboard a notification of passing time; it's very approximately clocked,
@@ -996,7 +1004,7 @@ class ConcreteMachine:
 					continue;
 				}
 
-				if constexpr (turbo) {
+				if constexpr (speed == Target::Speed::Fast) {
 					// There's no divider applied, so this makes for 2*PI = around 2.4 MIPS.
 					// That's broadly 80286 speed, if MIPS were a valid measure.
 					perform_instruction();
@@ -1180,6 +1188,7 @@ class ConcreteMachine:
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 
 		int cpu_divisor_ = 0;
+		Target::Speed speed_{};
 };
 
 
@@ -1189,21 +1198,12 @@ using namespace PCCompatible;
 
 // See header; constructs and returns an instance of the Amstrad CPC.
 Machine *Machine::PCCompatible(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	using Target = Analyser::Static::PCCompatible::Target;
 	const Target *const pc_target = dynamic_cast<const Target *>(target);
 
-	if(pc_target->speed == Target::Speed::Fast) {
-		switch(pc_target->adaptor) {
-			case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA, true>(*pc_target, rom_fetcher);
-			case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA, true>(*pc_target, rom_fetcher);
-			default: return nullptr;
-		}
-	} else {
-		switch(pc_target->adaptor) {
-			case VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::MDA, false>(*pc_target, rom_fetcher);
-			case VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<VideoAdaptor::CGA, false>(*pc_target, rom_fetcher);
-			default: return nullptr;
-		}
+	switch(pc_target->adaptor) {
+		case Target::VideoAdaptor::MDA:	return new PCCompatible::ConcreteMachine<Target::VideoAdaptor::MDA>(*pc_target, rom_fetcher);
+		case Target::VideoAdaptor::CGA:	return new PCCompatible::ConcreteMachine<Target::VideoAdaptor::CGA>(*pc_target, rom_fetcher);
+		default: return nullptr;
 	}
 }
 
