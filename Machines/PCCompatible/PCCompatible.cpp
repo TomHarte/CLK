@@ -960,6 +960,8 @@ class ConcreteMachine:
 				pit_.run_for(1);
 				++speaker_.cycles_since_update;
 
+				// For original speed, the CPU performs instructions at a 1/3rd divider of the PIT clock,
+				// so run the PIT three times per 'tick'.
 				if constexpr (speed == Target::Speed::ApproximatelyOriginal) {
 					pit_.run_for(1);
 					++speaker_.cycles_since_update;
@@ -1005,7 +1007,7 @@ class ConcreteMachine:
 				}
 
 				if constexpr (speed == Target::Speed::Fast) {
-					// There's no divider applied, so this makes for 2*PI = around 2.4 MIPS.
+					// There's no divider applied, so this makes for 2*PIT = around 2.4 MIPS.
 					// That's broadly 80286 speed, if MIPS were a valid measure.
 					perform_instruction();
 					perform_instruction();
