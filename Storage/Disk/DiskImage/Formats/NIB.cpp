@@ -55,6 +55,8 @@ long NIB::file_offset(Track::Address address) {
 }
 
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
+	static constexpr size_t MinimumSyncByteCount = 4;
+
 	// NIBs contain data for a fixed quantity of integer-position tracks underneath a single head only.
 	//
 	// Therefore:
@@ -91,8 +93,8 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		}
 
 		// If that's at least five, regress and mark all as syncs.
-		if(length >= 5) {
-			for(int c = 0; c < 5; c++) {
+		if(length >= MinimumSyncByteCount) {
+			for(int c = 0; c < int(MinimumSyncByteCount); c++) {
 				end = (end + track_data.size() - 1) % track_data.size();
 				sync_locations.insert(end);
 			}
