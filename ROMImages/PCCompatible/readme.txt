@@ -3,7 +3,7 @@ Expected files:
 For XT-class emulation:
 
 	GLABIOS_0.2.5_8T.ROM — the 8088 GLaBIOS ROM.
-	GLaTICK_0.8.5_AT.ROM — the GLaBIOS AT RTC option ROM.
+	GLaTICK_0.8.5_AT.ROM (optionally) — the GLaBIOS AT RTC option ROM.
 
 For specific video cards:
 

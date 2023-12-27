@@ -900,17 +900,21 @@ class ConcreteMachine:
 			const auto tick = ROM::Name::PCCompatibleGLaTICK;
 			const auto font = Video::FontROM;
 
-			ROM::Request request = ROM::Request(bios) && ROM::Request(tick) && ROM::Request(font);
+			ROM::Request request = ROM::Request(bios) && ROM::Request(tick, true) && ROM::Request(font);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 
+			// A BIOS is mandatory.
 			const auto &bios_contents = roms.find(bios)->second;
 			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 
-			const auto &tick_contents = roms.find(tick)->second;
-			context.memory.install(0xd'0000, tick_contents.data(), tick_contents.size());
+			// If found, install GlaTICK at 0xd'0000.
+			auto tick_contents = roms.find(tick);
+			if(tick_contents != roms.end()) {
+				context.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
+			}
 
 			// Give the video card something to read from.
 			const auto &font_contents = roms.find(font)->second;
