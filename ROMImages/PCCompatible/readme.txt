@@ -13,8 +13,8 @@ For specific video cards:
 In the future:
 
 	Phoenix 80286 ROM BIOS Version 3.05.bin — Phoenix's 80286 AT-clone BIOS.
-	ibm_vga.bin — the VGA bios.
-	ibm_6277356_ega_card_u44_27128.bin — the EGA bios.
+	ibm_vga.bin — the VGA BIOS.
+	ibm_6277356_ega_card_u44_27128.bin — the EGA BIOS.
 
 
 GLaBIOS is an open-source GPLv3 alternative BIOS for XT clones, available from https://glabios.org/
