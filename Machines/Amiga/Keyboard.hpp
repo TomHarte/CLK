@@ -102,9 +102,9 @@ class Keyboard {
 //			Idle,
 //		} shift_state_ = ShiftState::Idle;
 
-		enum class State {
-			Startup,
-		} state_ = State::Startup;
+//		enum class State {
+//			Startup,
+//		} state_ = State::Startup;
 
 //		int bit_phase_ = 0;
 //		uint32_t shift_sequence_ = 0;
