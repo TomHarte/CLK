@@ -101,7 +101,9 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		void set_register(uint8_t value) {
 			static constexpr uint8_t masks[] = {
 				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
-				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
+				0xff, 0x1f, 0x7f, 0x1f,
+				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
+				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 			};
 
 			// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
@@ -138,7 +140,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				}
 
 				perform_bus_cycle_phase1();
-				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & 0x3fff;
+				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
 
 				bus_state_.cursor = is_cursor_line_ &&
 					bus_state_.refresh_address == (registers_[15] | (registers_[14] << 8));
@@ -185,6 +187,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		}
 
 	private:
+		static constexpr uint16_t RefreshMask = (personality >= Personality::EGA) ? 0xffff : 0x3fff;
+
 		inline void perform_bus_cycle_phase1() {
 			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
 			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | unsigned(character_is_visible_);
