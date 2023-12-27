@@ -225,9 +225,9 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t get_status();
 
 			private:
-				uint16_t value = 0, reload = 0;
-				uint16_t shift = 0, receive_shift = 0;
-				uint16_t status;
+//				uint16_t value = 0, reload = 0;
+//				uint16_t shift = 0, receive_shift = 0;
+//				uint16_t status;
 		} serial_;
 
 		// MARK: - Pixel output.
