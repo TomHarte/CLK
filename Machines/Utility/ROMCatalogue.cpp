@@ -581,6 +581,13 @@ Description::Description(Name name) {
 		case Name::PCCompatibleMDAFont:
 			*this = Description(name, "PCCompatible", "IBM's MDA font", "EUMDA9.F14", 14 * 256, 0x7754882au);
 		break;
+		case Name::PCCompatibleEGABIOS:
+			*this = Description(name, "PCCompatible", "IBM's EGA BIOS", "ibm_6277356_ega_card_u44_27128.bin", 16 * 1024, 0x2f2fbc40u);
+		break;
+		case Name::PCCompatibleVGABIOS:
+			*this = Description(name, "PCCompatible", "IBM's VGA BIOS", "ibm_vga.bin", 32 * 1024, 0x03b3f90du);
+		break;
+
 
 		// TODO: CRCs below are incomplete, at best.
 		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
