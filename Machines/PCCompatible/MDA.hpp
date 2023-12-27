@@ -17,7 +17,7 @@ namespace PCCompatible {
 
 class MDA {
 	public:
-		MDA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
+		MDA() : crtc_(outputter_) {}
 
 		static constexpr uint32_t BaseAddress = 0xb'0000;
 		static constexpr auto FontROM = ROM::Name::PCCompatibleMDAFont;
@@ -226,7 +226,10 @@ class MDA {
 
 			uint8_t control_ = 0;
 		} outputter_;
-		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
+		Motorola::CRTC::CRTC6845<
+			CRTCOutputter,
+			Motorola::CRTC::Personality::HD6845S,
+			Motorola::CRTC::CursorType::MDA> crtc_;
 
 		int full_clock_ = 0;
 };
