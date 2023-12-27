@@ -44,6 +44,7 @@ const Time FMBitLength					= Time(1, 50000);
 
 constexpr Time bit_length(Density density) {
 	switch(density) {
+		default:
 		case Density::Single:	return FMBitLength;
 		case Density::Double:	return MFMBitLength;
 		case Density::High:		return HDMFMBitLength;
