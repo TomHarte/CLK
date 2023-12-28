@@ -976,9 +976,11 @@ int main(int argc, char *argv[]) {
 		SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
 		SDL_Keycode keycode = SDLK_UNKNOWN;
 		bool is_down = true;
+		bool repeat = false;
 
 		KeyPress(uint32_t timestamp, const char *text) : timestamp(timestamp), input(text) {}
-		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down) : timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down) {}
+		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down, bool repeat) :
+			timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down), repeat(repeat) {}
 		KeyPress() {}
 	};
 	std::vector<KeyPress> keypresses;
@@ -1048,7 +1050,7 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case SDL_TEXTINPUT:
-					keypresses.emplace_back(event.text.timestamp, event.text.text);
+					keypresses.emplace_back(event.text.timestamp, event.text.text, false);
 				break;
 
 				case SDL_KEYDOWN:
@@ -1129,7 +1131,12 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 
-					keypresses.emplace_back(event.text.timestamp, event.key.keysym.scancode, event.key.keysym.sym, event.type == SDL_KEYDOWN);
+					keypresses.emplace_back(
+						event.text.timestamp,
+						event.key.keysym.scancode,
+						event.key.keysym.sym,
+						event.type == SDL_KEYDOWN,
+						event.repeat);
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
