@@ -33,7 +33,6 @@ void Parser::install_track(const Storage::Disk::Track::Address &address) {
 	std::map<int, Storage::Encodings::MFM::Sector> sectors_by_id;
 	if(density_) {
 		append(parse_track(*track, *density_), sectors_by_id);
-		return;
 	} else {
 		// Just try all three in succession.
 		append(parse_track(*track, Density::Single), sectors_by_id);
