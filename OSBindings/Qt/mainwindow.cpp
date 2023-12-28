@@ -889,7 +889,7 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 			if(!keyboardMachine) return true;
 
 			auto &keyboard = keyboardMachine->get_keyboard();
-			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed);
+			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed, false);
 			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
 				return false;
 			}

@@ -279,7 +279,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				open_apple_is_pressed = closed_apple_is_pressed = control_is_pressed = shift_is_pressed = key_is_down = false;
 			}
 
-			bool set_key_pressed(Key key, char value, bool is_pressed) final {
+			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
+				// TODO: unless a repeat key is pressed or this is a IIe.
+				if constexpr (!is_iie()) {
+					if(is_repeat && !repeat_is_pressed) return true;
+				}
+
 				// If no ASCII value is supplied, look for a few special cases.
 				switch(key) {
 					case Key::Left:			value = 0x08;	break;
@@ -333,7 +338,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
 					case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
-					case Key::F9:	case Key::F10:	case Key::F11:	case Key::F12:
+					case Key::F9:	case Key::F10:	case Key::F11:
+						repeat_is_pressed = is_pressed;
+					return true;
+
+					case Key::F12:
 					case Key::PrintScreen:
 					case Key::ScrollLock:
 					case Key::Pause:
@@ -402,6 +411,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 			}
 
+			bool repeat_is_pressed = false;
 			bool shift_is_pressed = false;
 			bool control_is_pressed = false;
 			// The IIe has three keys that are wired directly to the same input as the joystick buttons.

@@ -31,7 +31,7 @@ class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 			public:
 				MultiKeyboard(const std::vector<MachineTypes::KeyboardMachine *> &machines);
 
-				bool set_key_pressed(Key key, char value, bool is_pressed) final;
+				bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final;
 				void reset_all_keys() final;
 				const std::set<Key> &observed_keys() const final;
 				bool is_exclusive() const final;
