@@ -1214,7 +1214,6 @@ int main(int argc, char *argv[]) {
 					// is sufficiently untested on SDL, and somewhat too reliant on empirical timestamp behaviour,
 					// for it to be trustworthy enough otherwise to expose.
 					if(logical_keyboard) {
-						// TODO: is_repeat.
 						if(keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, keypress.repeat, logical_keyboard)) {
 							continue;
 						}
