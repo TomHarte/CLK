@@ -280,7 +280,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
-				// TODO: unless a repeat key is pressed or this is a IIe.
 				if constexpr (!is_iie()) {
 					if(is_repeat && !repeat_is_pressed) return true;
 				}
