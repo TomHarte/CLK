@@ -339,6 +339,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
 					case Key::F9:	case Key::F10:	case Key::F11:
 						repeat_is_pressed = is_pressed;
+
+						if constexpr (!is_iie()) {
+							if(is_pressed && !is_repeat) {
+								value = last_key;
+								break;
+							}
+						}
 					return true;
 
 					case Key::F12:
@@ -391,6 +398,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 
 				if(is_pressed) {
+					last_key = value;
 					keyboard_input = uint8_t(value | 0x80);
 					key_is_down = true;
 				} else {
@@ -410,6 +418,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 			}
 
+			char last_key = 0;
 			bool repeat_is_pressed = false;
 			bool shift_is_pressed = false;
 			bool control_is_pressed = false;
