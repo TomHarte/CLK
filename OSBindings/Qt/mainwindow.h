@@ -1,12 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QAudioOutput>
+#include <QAudioSink>
 #include <QMainWindow>
 
 #include <memory>
 #include <mutex>
-#include <optional>
 
 #include "audiobuffer.h"
 #include "timer.h"
@@ -71,7 +70,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::unique_ptr<Machine::DynamicMachine> machine;
 		std::mutex machineMutex;
 
-		std::unique_ptr<QAudioOutput> audioOutput;
+		std::unique_ptr<QAudioSink> audioOutput;
 		bool audioIs8bit = false, audioIsStereo = false;
 		void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override;
 		AudioBuffer audioBuffer;

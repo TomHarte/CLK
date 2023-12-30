@@ -1,4 +1,4 @@
-QT += core gui multimedia widgets
+QT += core gui multimedia widgets openglwidgets
 
 # Be specific about C++17 but also try the vaguer C++1z for older
 # versions of Qt.
@@ -24,10 +24,10 @@ DEFINES += TARGET_QT
 DEFINES += IGNORE_APPLE
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
 
-# Generate warnings for any use of APIs deprecated prior to Qt 6.0.0.
-# Development was performed against Qt 5.14.
+# Generate warnings for any use of APIs deprecated prior to Qt 7.0.0.
+# Development was performed against Qt 6.6.1.
 DEFINES += QT_DEPRECATED_WARNINGS
-DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x070000
 
 SRC = $$PWD/../..
 
