@@ -5,6 +5,9 @@
 #include <QObject>
 #include <QStandardPaths>
 
+#include <QAudioDevice>
+#include <QMediaDevices>
+
 #include <QtWidgets>
 #include <QtGlobal>
 
@@ -314,24 +317,24 @@ void MainWindow::launchMachine() {
 		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
-			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
-			if(!defaultDeviceInfo.isNull()) {
-				QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
+			QAudioDevice device(QMediaDevices::defaultAudioOutput());
+			if(true) {  // TODO: how to check that audio output is available in Qt6?
+				QAudioFormat idealFormat = device.preferredFormat();
 
 				// Use the ideal format's sample rate, provide stereo as long as at least two channels
 				// are available, and — at least for now — assume a good buffer size.
 				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
-				audioIs8bit = idealFormat.sampleSize() < 16;
+				audioIs8bit = idealFormat.sampleFormat() == QAudioFormat::UInt8;
 				idealFormat.setChannelCount(1 + int(audioIsStereo));
-				idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
+				idealFormat.setSampleFormat(audioIs8bit ? QAudioFormat::UInt8 : QAudioFormat::Int16);
 
 				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 				speaker->set_delegate(this);
 
 				audioThread.start();
-				audioThread.performAsync([this, idealFormat] {
+				audioThread.performAsync([&] {
 					// Create an audio output.
-					audioOutput = std::make_unique<QAudioOutput>(idealFormat);
+					audioOutput = std::make_unique<QAudioSink>(device, idealFormat);
 
 					// Start the output. The additional `audioBuffer` is meant to minimise latency,
 					// believe it or not, given Qt's semantics.
@@ -373,13 +376,13 @@ void MainWindow::launchMachine() {
 		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
 		asKeyboardAction->setCheckable(true);
 		asKeyboardAction->setChecked(true);
-		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
+		// asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
 		inputMenu->addAction(asKeyboardAction);
 
 		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
 		asJoystickAction->setCheckable(true);
 		asJoystickAction->setChecked(false);
-		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
+		// asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
 		inputMenu->addAction(asJoystickAction);
 
 		connect(asKeyboardAction, &QAction::triggered, this, [=] {
@@ -755,11 +758,12 @@ void MainWindow::dropEvent(QDropEvent* event) {
 
 			QString unusedRoms;
 			for(const auto &url: event->mimeData()->urls()) {
-				const char *const name = url.toLocalFile().toUtf8();
-				FILE *const file = fopen(name, "rb");
+				const std::string name = url.toLocalFile().toStdString();
+				FILE *const file = fopen(name.c_str(), "rb");
 				if(!file) continue;
 				const auto contents = fileContentsAndClose(file);
 				if(!contents) continue;
+
 
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
@@ -962,6 +966,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/PCCompatible/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -984,6 +989,7 @@ void MainWindow::startMachine() {
 	TEST(macintosh);
 	TEST(msx);
 	TEST(oric);
+	TEST(pc);
 	TEST(spectrum);
 	TEST(vic20);
 	TEST(zx80);
@@ -1177,6 +1183,23 @@ void MainWindow::start_oric() {
 		case 2:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
 		case 3:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
 		case 4:		target->disk_interface = Target::DiskInterface::BD500;		break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_pc() {
+	using Target = Analyser::Static::PCCompatible::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->pcSpeedComboBox->currentIndex()) {
+			default:	target->speed = Target::Speed::ApproximatelyOriginal;	break;
+			case 1:		target->speed = Target::Speed::Fast;						break;
+	}
+
+	switch(ui->pcVideoAdaptorComboBox->currentIndex()) {
+			default:	target->adaptor = Target::VideoAdaptor::MDA;		break;
+			case 1:		target->adaptor = Target::VideoAdaptor::CGA;		break;
 	}
 
 	launchTarget(std::move(target));
