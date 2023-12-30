@@ -966,6 +966,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/PCCompatible/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -988,6 +989,7 @@ void MainWindow::startMachine() {
 	TEST(macintosh);
 	TEST(msx);
 	TEST(oric);
+	TEST(pc);
 	TEST(spectrum);
 	TEST(vic20);
 	TEST(zx80);
@@ -1181,6 +1183,23 @@ void MainWindow::start_oric() {
 		case 2:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
 		case 3:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
 		case 4:		target->disk_interface = Target::DiskInterface::BD500;		break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_pc() {
+	using Target = Analyser::Static::PCCompatible::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->pcSpeedComboBox->currentIndex()) {
+			default:	target->speed = Target::Speed::ApproximatelyOriginal;	break;
+			case 1:		target->speed = Target::Speed::Fast;						break;
+	}
+
+	switch(ui->pcVideoAdaptorComboBox->currentIndex()) {
+			default:	target->adaptor = Target::VideoAdaptor::MDA;		break;
+			case 1:		target->adaptor = Target::VideoAdaptor::CGA;		break;
 	}
 
 	launchTarget(std::move(target));
