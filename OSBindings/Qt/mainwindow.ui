@@ -1170,9 +1170,6 @@
     </item>
     <item>
      <widget class="QPlainTextEdit" name="missingROMsBox">
-      <property name="acceptDrops">
-       <bool>true</bool>
-      </property>
       <property name="readOnly">
        <bool>true</bool>
       </property>

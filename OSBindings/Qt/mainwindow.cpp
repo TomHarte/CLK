@@ -758,11 +758,12 @@ void MainWindow::dropEvent(QDropEvent* event) {
 
 			QString unusedRoms;
 			for(const auto &url: event->mimeData()->urls()) {
-				const char *const name = url.toLocalFile().toUtf8();
-				FILE *const file = fopen(name, "rb");
+				const std::string name = url.toLocalFile().toStdString();
+				FILE *const file = fopen(name.c_str(), "rb");
 				if(!file) continue;
 				const auto contents = fileContentsAndClose(file);
 				if(!contents) continue;
+
 
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
