@@ -1050,7 +1050,7 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case SDL_TEXTINPUT:
-					keypresses.emplace_back(event.text.timestamp, event.text.text, false);
+					keypresses.emplace_back(event.text.timestamp, event.text.text);
 				break;
 
 				case SDL_KEYDOWN:
@@ -1136,7 +1136,7 @@ int main(int argc, char *argv[]) {
 						event.key.keysym.scancode,
 						event.key.keysym.sym,
 						event.type == SDL_KEYDOWN,
-						event.repeat);
+						event.key.repeat);
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
