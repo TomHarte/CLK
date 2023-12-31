@@ -6592,7 +6592,7 @@
 					"$(inherited)",
 					IGNORE_APPLE,
 				);
-				HEADER_SEARCH_PATHS = /Users/thomasharte/Library/Frameworks/SDL2.framework/Headers;
+				HEADER_SEARCH_PATHS = "$(USER_LIBRARY_DIR)/Frameworks/SDL2.framework/Headers";
 				LD_RUNPATH_SEARCH_PATHS = "$(USER_LIBRARY_DIR)/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6614,7 +6614,7 @@
 					NDEBUG,
 					IGNORE_APPLE,
 				);
-				HEADER_SEARCH_PATHS = /Users/thomasharte/Library/Frameworks/SDL2.framework/Headers;
+				HEADER_SEARCH_PATHS = "$(USER_LIBRARY_DIR)/Frameworks/SDL2.framework/Headers";
 				LD_RUNPATH_SEARCH_PATHS = "$(USER_LIBRARY_DIR)/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				ONLY_ACTIVE_ARCH = YES;
