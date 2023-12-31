@@ -399,13 +399,17 @@ void MainWindow::launchMachine() {
 		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
 		asKeyboardAction->setCheckable(true);
 		asKeyboardAction->setChecked(true);
-		// asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
+#endif
 		inputMenu->addAction(asKeyboardAction);
 
 		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
 		asJoystickAction->setCheckable(true);
 		asJoystickAction->setChecked(false);
-		// asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
+#endif
 		inputMenu->addAction(asJoystickAction);
 
 		connect(asKeyboardAction, &QAction::triggered, this, [=] {
