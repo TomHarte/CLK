@@ -341,9 +341,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						repeat_is_pressed = is_pressed;
 
 						if constexpr (!is_iie()) {
-							if(is_pressed && !is_repeat) {
-								value = last_key;
-								break;
+							if(is_pressed && (!is_repeat || pressed_character)) {
+								keyboard_input = uint8_t(last_pressed_character | 0x80);
 							}
 						}
 					return true;
@@ -398,10 +397,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 
 				if(is_pressed) {
-					last_key = value;
+					last_pressed_character = pressed_character = value;
 					keyboard_input = uint8_t(value | 0x80);
 					key_is_down = true;
 				} else {
+					if(value == pressed_character) {
+						pressed_character = 0;
+					}
 					if((keyboard_input & 0x3f) == value) {
 						key_is_down = false;
 					}
@@ -418,7 +420,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 			}
 
-			char last_key = 0;
+			char pressed_character = 0, last_pressed_character = 0;
+
 			bool repeat_is_pressed = false;
 			bool shift_is_pressed = false;
 			bool control_is_pressed = false;
