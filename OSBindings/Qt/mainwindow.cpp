@@ -2,14 +2,17 @@
 #include "settings.h"
 #include "timer.h"
 
+#include <QtGlobal>
+
 #include <QObject>
 #include <QStandardPaths>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QAudioDevice>
 #include <QMediaDevices>
+#endif
 
 #include <QtWidgets>
-#include <QtGlobal>
 
 #include <cstdio>
 
@@ -317,16 +320,32 @@ void MainWindow::launchMachine() {
 		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 			QAudioDevice device(QMediaDevices::defaultAudioOutput());
 			if(true) {  // TODO: how to check that audio output is available in Qt6?
 				QAudioFormat idealFormat = device.preferredFormat();
+#else
+			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
+			if(!defaultDeviceInfo.isNull()) {
+				QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
+#endif
 
 				// Use the ideal format's sample rate, provide stereo as long as at least two channels
 				// are available, and — at least for now — assume a good buffer size.
 				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 				audioIs8bit = idealFormat.sampleFormat() == QAudioFormat::UInt8;
+#else
+				audioIs8bit = idealFormat.sampleSize() < 16;
+#endif
+
 				idealFormat.setChannelCount(1 + int(audioIsStereo));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 				idealFormat.setSampleFormat(audioIs8bit ? QAudioFormat::UInt8 : QAudioFormat::Int16);
+#else
+				idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
+#endif
 
 				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 				speaker->set_delegate(this);
@@ -334,7 +353,11 @@ void MainWindow::launchMachine() {
 				audioThread.start();
 				audioThread.performAsync([&] {
 					// Create an audio output.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 					audioOutput = std::make_unique<QAudioSink>(device, idealFormat);
+#else
+					audioOutput = std::make_unique<QAudioOutput>(idealFormat);
+#endif
 
 					// Start the output. The additional `audioBuffer` is meant to minimise latency,
 					// believe it or not, given Qt's semantics.
