@@ -1,4 +1,5 @@
-QT += core gui multimedia widgets openglwidgets
+QT += core gui multimedia widgets
+greaterThan(5, QT_MAJOR_VERSION) QT += openglwidgets
 
 # Be specific about C++17 but also try the vaguer C++1z for older
 # versions of Qt.
@@ -25,7 +26,7 @@ DEFINES += IGNORE_APPLE
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
 
 # Generate warnings for any use of APIs deprecated prior to Qt 7.0.0.
-# Development was performed against Qt 6.6.1.
+# Development was performed against Qt 6.6.1 and Qt 5.15.2
 DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x070000
 
