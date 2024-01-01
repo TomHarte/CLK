@@ -56,10 +56,10 @@ MultiKeyboardMachine::MultiKeyboard::MultiKeyboard(const std::vector<::MachineTy
 	}
 }
 
-bool MultiKeyboardMachine::MultiKeyboard::set_key_pressed(Key key, char value, bool is_pressed) {
+bool MultiKeyboardMachine::MultiKeyboard::set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) {
 	bool was_consumed = false;
 	for(const auto &machine: machines_) {
-		was_consumed |= machine->get_keyboard().set_key_pressed(key, value, is_pressed);
+		was_consumed |= machine->get_keyboard().set_key_pressed(key, value, is_pressed, is_repeat);
 	}
 	return was_consumed;
 }

@@ -75,12 +75,12 @@ class KeyboardMachine: public KeyActions {
 				(i) if @c symbol can be typed and this is a key down, @c type_string it;
 				(ii) if @c symbol cannot be typed, set @c key as @c is_pressed
 		*/
-		bool apply_key(Inputs::Keyboard::Key key, char symbol, bool is_pressed, bool map_logically) {
+		bool apply_key(Inputs::Keyboard::Key key, char symbol, bool is_pressed, bool is_repeat, bool map_logically) {
 			Inputs::Keyboard &keyboard = get_keyboard();
 
 			if(!map_logically) {
 				// Try a regular keypress first, and stop if that works.
-				if(keyboard.set_key_pressed(key, symbol, is_pressed)) {
+				if(keyboard.set_key_pressed(key, symbol, is_pressed, is_repeat)) {
 					return true;
 				}
 
@@ -103,7 +103,7 @@ class KeyboardMachine: public KeyActions {
 				// That didn't work. Forward as a keypress. As, either:
 				//	(i) this is a key down, but doesn't have a symbol, or is an untypeable symbol; or
 				//	(ii) this is a key up, which it won't be an issue to miscommunicate.
-				return keyboard.set_key_pressed(key, symbol, is_pressed);
+				return keyboard.set_key_pressed(key, symbol, is_pressed, is_repeat);
 			}
 		}
 };

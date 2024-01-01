@@ -366,7 +366,7 @@ struct ActivityObserver: public Activity::Observer {
 	[self updateJoystickTimer];
 }
 
-- (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
+- (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed isRepeat:(BOOL)isRepeat {
 	[self applyInputEvent:^{
 		auto keyboard_machine = self->_machine->keyboard_machine();
 		if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
@@ -437,7 +437,13 @@ struct ActivityObserver: public Activity::Observer {
 			}
 
 			@synchronized(self) {
-				if(keyboard_machine->apply_key(mapped_key, pressedKey, isPressed, self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)) {
+				if(keyboard_machine->apply_key(
+					mapped_key,
+					pressedKey,
+					isPressed,
+					isRepeat,
+					self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)
+				) {
 					return;
 				}
 			}
