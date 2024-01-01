@@ -276,12 +276,18 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			Keyboard(Processor *m6502) : m6502_(m6502) {}
 
 			void reset_all_keys() final {
-				open_apple_is_pressed = closed_apple_is_pressed = control_is_pressed = shift_is_pressed = key_is_down = false;
+				open_apple_is_pressed =
+				closed_apple_is_pressed =
+				control_is_pressed_ =
+				shift_is_pressed_ =
+				repeat_is_pressed_ =
+				key_is_down =
+				character_is_pressed_ = false;
 			}
 
 			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
 				if constexpr (!is_iie()) {
-					if(is_repeat && !repeat_is_pressed) return true;
+					if(is_repeat && !repeat_is_pressed_) return true;
 				}
 
 				// If no ASCII value is supplied, look for a few special cases.
@@ -327,22 +333,22 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 
 					case Key::LeftControl:
-						control_is_pressed = is_pressed;
+						control_is_pressed_ = is_pressed;
 					return true;
 
 					case Key::LeftShift:
 					case Key::RightShift:
-						shift_is_pressed = is_pressed;
+						shift_is_pressed_ = is_pressed;
 					return true;
 
 					case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
 					case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
 					case Key::F9:	case Key::F10:	case Key::F11:
-						repeat_is_pressed = is_pressed;
+						repeat_is_pressed_ = is_pressed;
 
 						if constexpr (!is_iie()) {
-							if(is_pressed && (!is_repeat || pressed_character)) {
-								keyboard_input = uint8_t(last_pressed_character | 0x80);
+							if(is_pressed && (!is_repeat || character_is_pressed_)) {
+								keyboard_input = uint8_t(last_pressed_character_ | 0x80);
 							}
 						}
 					return true;
@@ -370,10 +376,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						// Prior to the IIe, the keyboard could produce uppercase only.
 						if(!is_iie()) value = char(toupper(value));
 
-						if(control_is_pressed && isalpha(value)) value &= 0xbf;
+						if(control_is_pressed_ && isalpha(value)) value &= 0xbf;
 
 						// TODO: properly map IIe keys
-						if(!is_iie() && shift_is_pressed) {
+						if(!is_iie() && shift_is_pressed_) {
 							switch(value) {
 							case 0x27: value = 0x22; break; // ' -> "
 							case 0x2c: value = 0x3c; break; // , -> <
@@ -397,12 +403,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 
 				if(is_pressed) {
-					last_pressed_character = pressed_character = value;
+					last_pressed_character_ = value;
+					character_is_pressed_ = true;
 					keyboard_input = uint8_t(value | 0x80);
 					key_is_down = true;
 				} else {
-					if(value == pressed_character) {
-						pressed_character = 0;
+					if(value == last_pressed_character_) {
+						character_is_pressed_ = false;
 					}
 					if((keyboard_input & 0x3f) == value) {
 						key_is_down = false;
@@ -420,20 +427,33 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 			}
 
-			char pressed_character = 0, last_pressed_character = 0;
 
-			bool repeat_is_pressed = false;
-			bool shift_is_pressed = false;
-			bool control_is_pressed = false;
 			// The IIe has three keys that are wired directly to the same input as the joystick buttons.
 			bool open_apple_is_pressed = false;
 			bool closed_apple_is_pressed = false;
+
+			// Current keyboard input register, as exposed to the programmer; on the IIe the programmer
+			// can also poll for whether any key is currently down.
 			uint8_t keyboard_input = 0x00;
 			bool key_is_down = false;
+
+			// A string serialiser for receiving copy and paste.
 			std::unique_ptr<Utility::StringSerialiser> string_serialiser;
 
 			private:
-			Processor *const m6502_;
+				// ASCII input state, referenced by the REPT key on models before the IIe.
+				char last_pressed_character_ = 0;
+				bool character_is_pressed_ = false;
+
+				// The repeat key itself.
+				bool repeat_is_pressed_ = false;
+
+				// Modifier states.
+				bool shift_is_pressed_ = false;
+				bool control_is_pressed_ = false;
+
+				// 6502 connection, for applying the reset button.
+				Processor *const m6502_;
 		};
 		Keyboard keyboard_;
 
