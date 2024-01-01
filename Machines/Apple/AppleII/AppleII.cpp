@@ -281,7 +281,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				control_is_pressed_ =
 				shift_is_pressed_ =
 				repeat_is_pressed_ =
-				key_is_down =
+				key_is_down_ =
 				character_is_pressed_ = false;
 			}
 
@@ -348,7 +348,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 						if constexpr (!is_iie()) {
 							if(is_pressed && (!is_repeat || character_is_pressed_)) {
-								keyboard_input = uint8_t(last_pressed_character_ | 0x80);
+								keyboard_input_ = uint8_t(last_pressed_character_ | 0x80);
 							}
 						}
 					return true;
@@ -405,14 +405,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				if(is_pressed) {
 					last_pressed_character_ = value;
 					character_is_pressed_ = true;
-					keyboard_input = uint8_t(value | 0x80);
-					key_is_down = true;
+					keyboard_input_ = uint8_t(value | 0x80);
+					key_is_down_ = true;
 				} else {
 					if(value == last_pressed_character_) {
 						character_is_pressed_ = false;
 					}
-					if((keyboard_input & 0x3f) == value) {
-						key_is_down = false;
+					if((keyboard_input_ & 0x3f) == value) {
+						key_is_down_ = false;
 					}
 				}
 
@@ -420,27 +420,38 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			uint8_t get_keyboard_input() {
-				if(string_serialiser) {
-					return string_serialiser->head() | 0x80;
+				if(string_serialiser_) {
+					return string_serialiser_->head() | 0x80;
 				} else {
-					return keyboard_input;
+					return keyboard_input_;
 				}
 			}
 
+			void clear_keyboard_input() {
+				keyboard_input_ &= 0x7f;
+				if(string_serialiser_ && !string_serialiser_->advance()) {
+					string_serialiser_.reset();
+				}
+			}
+
+			bool get_key_is_down() {
+				return key_is_down_;
+			}
+
+			void set_string_serialiser(std::unique_ptr<Utility::StringSerialiser> &&serialiser) {
+				string_serialiser_ = std::move(serialiser);
+			}
 
 			// The IIe has three keys that are wired directly to the same input as the joystick buttons.
 			bool open_apple_is_pressed = false;
 			bool closed_apple_is_pressed = false;
 
-			// Current keyboard input register, as exposed to the programmer; on the IIe the programmer
-			// can also poll for whether any key is currently down.
-			uint8_t keyboard_input = 0x00;
-			bool key_is_down = false;
-
-			// A string serialiser for receiving copy and paste.
-			std::unique_ptr<Utility::StringSerialiser> string_serialiser;
-
 			private:
+				// Current keyboard input register, as exposed to the programmer; on the IIe the programmer
+				// can also poll for whether any key is currently down.
+				uint8_t keyboard_input_ = 0x00;
+				bool key_is_down_ = false;
+
 				// ASCII input state, referenced by the REPT key on models before the IIe.
 				char last_pressed_character_ = 0;
 				bool character_is_pressed_ = false;
@@ -451,6 +462,9 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				// Modifier states.
 				bool shift_is_pressed_ = false;
 				bool control_is_pressed_ = false;
+
+				// A string serialiser for receiving copy and paste.
+				std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 
 				// 6502 connection, for applying the reset button.
 				Processor *const m6502_;
@@ -768,15 +782,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					break;
 
 					case 0xc010:
-						keyboard_.keyboard_input &= 0x7f;
-						if(keyboard_.string_serialiser) {
-							if(!keyboard_.string_serialiser->advance())
-								keyboard_.string_serialiser.reset();
-						}
+						keyboard_.clear_keyboard_input();
 
 						// On the IIe, reading C010 returns additional key info.
 						if(is_iie() && isReadOperation(operation)) {
-							*value = (keyboard_.key_is_down ? 0x80 : 0x00) | (keyboard_.keyboard_input & 0x7f);
+							*value = (keyboard_.get_key_is_down() ? 0x80 : 0x00) | (keyboard_.get_keyboard_input() & 0x7f);
 						}
 					break;
 
@@ -920,7 +930,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			keyboard_.string_serialiser = std::make_unique<Utility::StringSerialiser>(string, true);
+			keyboard_.set_string_serialiser(std::make_unique<Utility::StringSerialiser>(string, true));
 		}
 
 		bool can_type(char c) const final {
