@@ -55,6 +55,8 @@ long NIB::file_offset(Track::Address address) {
 }
 
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
+	static constexpr size_t MinimumSyncByteCount = 4;
+
 	// NIBs contain data for a fixed quantity of integer-position tracks underneath a single head only.
 	//
 	// Therefore:
@@ -77,9 +79,9 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	}
 
 	// NIB files leave sync bytes implicit and make no guarantees
-	// about overall track positioning. The attempt works by locating
-	// any single run of FF that is sufficiently long and marking the last
-	// five as including slip bits.
+	// about overall track positioning. This attempt to map to real
+	// flux locates any single run of FF that is sufficiently long
+	// and marks the last few as including slip bits.
 	std::set<size_t> sync_locations;
 	for(size_t index = 0; index < track_data.size(); ++index) {
 		// Count the number of FFs starting from here.
@@ -90,9 +92,9 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 			++length;
 		}
 
-		// If that's at least five, regress and mark all as syncs.
-		if(length >= 5) {
-			for(int c = 0; c < 5; c++) {
+		// If that's long enough, regress and mark syncs.
+		if(length >= MinimumSyncByteCount) {
+			for(int c = 0; c < int(MinimumSyncByteCount); c++) {
 				end = (end + track_data.size() - 1) % track_data.size();
 				sync_locations.insert(end);
 			}
