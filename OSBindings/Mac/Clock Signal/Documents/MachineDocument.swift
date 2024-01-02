@@ -345,14 +345,14 @@ class MachineDocument:
 	/// Forwards key down events directly to the machine.
 	func keyDown(_ event: NSEvent) {
 		if let machine = self.machine {
-			machine.setKey(event.keyCode, characters: event.characters, isPressed: true)
+			machine.setKey(event.keyCode, characters: event.characters, isPressed: true, isRepeat: event.isARepeat)
 		}
 	}
 
 	/// Forwards key up events directly to the machine.
 	func keyUp(_ event: NSEvent) {
 		if let machine = self.machine {
-			machine.setKey(event.keyCode, characters: event.characters, isPressed: false)
+			machine.setKey(event.keyCode, characters: event.characters, isPressed: false, isRepeat: false)
 		}
 	}
 
@@ -361,19 +361,19 @@ class MachineDocument:
 		if let machine = self.machine {
 			if newModifiers.modifierFlags.contains(.shift) != shiftIsDown {
 				shiftIsDown = newModifiers.modifierFlags.contains(.shift)
-				machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown)
+				machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
 			}
 			if newModifiers.modifierFlags.contains(.control) != controlIsDown {
 				controlIsDown = newModifiers.modifierFlags.contains(.control)
-				machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown)
+				machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown, isRepeat: false)
 			}
 			if newModifiers.modifierFlags.contains(.command) != commandIsDown {
 				commandIsDown = newModifiers.modifierFlags.contains(.command)
-				machine.setKey(VK_Command, characters: nil, isPressed: commandIsDown)
+				machine.setKey(VK_Command, characters: nil, isPressed: commandIsDown, isRepeat: false)
 			}
 			if newModifiers.modifierFlags.contains(.option) != optionIsDown {
 				optionIsDown = newModifiers.modifierFlags.contains(.option)
-				machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown)
+				machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown, isRepeat: false)
 			}
 		}
 	}

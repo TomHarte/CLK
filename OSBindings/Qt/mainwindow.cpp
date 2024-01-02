@@ -2,11 +2,17 @@
 #include "settings.h"
 #include "timer.h"
 
+#include <QtGlobal>
+
 #include <QObject>
 #include <QStandardPaths>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QAudioDevice>
+#include <QMediaDevices>
+#endif
+
 #include <QtWidgets>
-#include <QtGlobal>
 
 #include <cstdio>
 
@@ -314,24 +320,44 @@ void MainWindow::launchMachine() {
 		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+			QAudioDevice device(QMediaDevices::defaultAudioOutput());
+			if(true) {  // TODO: how to check that audio output is available in Qt6?
+				QAudioFormat idealFormat = device.preferredFormat();
+#else
 			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
 			if(!defaultDeviceInfo.isNull()) {
 				QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
+#endif
 
 				// Use the ideal format's sample rate, provide stereo as long as at least two channels
 				// are available, and — at least for now — assume a good buffer size.
 				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+				audioIs8bit = idealFormat.sampleFormat() == QAudioFormat::UInt8;
+#else
 				audioIs8bit = idealFormat.sampleSize() < 16;
+#endif
+
 				idealFormat.setChannelCount(1 + int(audioIsStereo));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+				idealFormat.setSampleFormat(audioIs8bit ? QAudioFormat::UInt8 : QAudioFormat::Int16);
+#else
 				idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
+#endif
 
 				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 				speaker->set_delegate(this);
 
 				audioThread.start();
-				audioThread.performAsync([this, idealFormat] {
+				audioThread.performAsync([&] {
 					// Create an audio output.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+					audioOutput = std::make_unique<QAudioSink>(device, idealFormat);
+#else
 					audioOutput = std::make_unique<QAudioOutput>(idealFormat);
+#endif
 
 					// Start the output. The additional `audioBuffer` is meant to minimise latency,
 					// believe it or not, given Qt's semantics.
@@ -373,13 +399,17 @@ void MainWindow::launchMachine() {
 		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
 		asKeyboardAction->setCheckable(true);
 		asKeyboardAction->setChecked(true);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
+#endif
 		inputMenu->addAction(asKeyboardAction);
 
 		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
 		asJoystickAction->setCheckable(true);
 		asJoystickAction->setChecked(false);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
+#endif
 		inputMenu->addAction(asJoystickAction);
 
 		connect(asKeyboardAction, &QAction::triggered, this, [=] {
@@ -755,11 +785,12 @@ void MainWindow::dropEvent(QDropEvent* event) {
 
 			QString unusedRoms;
 			for(const auto &url: event->mimeData()->urls()) {
-				const char *const name = url.toLocalFile().toUtf8();
-				FILE *const file = fopen(name, "rb");
+				const std::string name = url.toLocalFile().toStdString();
+				FILE *const file = fopen(name.c_str(), "rb");
 				if(!file) continue;
 				const auto contents = fileContentsAndClose(file);
 				if(!contents) continue;
+
 
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
@@ -889,7 +920,7 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 			if(!keyboardMachine) return true;
 
 			auto &keyboard = keyboardMachine->get_keyboard();
-			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed);
+			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
 			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
 				return false;
 			}
@@ -962,6 +993,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/PCCompatible/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -984,6 +1016,7 @@ void MainWindow::startMachine() {
 	TEST(macintosh);
 	TEST(msx);
 	TEST(oric);
+	TEST(pc);
 	TEST(spectrum);
 	TEST(vic20);
 	TEST(zx80);
@@ -1177,6 +1210,23 @@ void MainWindow::start_oric() {
 		case 2:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
 		case 3:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
 		case 4:		target->disk_interface = Target::DiskInterface::BD500;		break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_pc() {
+	using Target = Analyser::Static::PCCompatible::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->pcSpeedComboBox->currentIndex()) {
+			default:	target->speed = Target::Speed::ApproximatelyOriginal;	break;
+			case 1:		target->speed = Target::Speed::Fast;						break;
+	}
+
+	switch(ui->pcVideoAdaptorComboBox->currentIndex()) {
+			default:	target->adaptor = Target::VideoAdaptor::MDA;		break;
+			case 1:		target->adaptor = Target::VideoAdaptor::CGA;		break;
 	}
 
 	launchTarget(std::move(target));
