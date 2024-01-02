@@ -17,7 +17,7 @@ namespace PCCompatible {
 
 class CGA {
 	public:
-		CGA() : crtc_(Motorola::CRTC::Personality::HD6845S, outputter_) {}
+		CGA() : crtc_(outputter_) {}
 
 		static constexpr uint32_t BaseAddress = 0xb'8000;
 		static constexpr auto FontROM = ROM::Name::PCCompatibleCGAFont;
@@ -439,7 +439,10 @@ class CGA {
 				return (source & 0x10) ? bright(result) : yellow_to_brown(result);
 			}
 		} outputter_;
-		Motorola::CRTC::CRTC6845<CRTCOutputter, Motorola::CRTC::CursorType::MDA> crtc_;
+		Motorola::CRTC::CRTC6845<
+			CRTCOutputter,
+			Motorola::CRTC::Personality::HD6845S,
+			Motorola::CRTC::CursorType::MDA> crtc_;
 
 		int full_clock_ = 0;
 

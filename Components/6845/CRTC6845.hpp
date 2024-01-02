@@ -46,19 +46,21 @@ class BusHandler {
 		void perform_bus_cycle_phase2(const BusState &) {}
 };
 
-enum Personality {
+enum class Personality {
 	HD6845S,	// Type 0 in CPC parlance. Zero-width HSYNC available, no status, programmable VSYNC length.
 				// Considered exactly identical to the UM6845, so this enum covers both.
 	UM6845R,	// Type 1 in CPC parlance. Status register, fixed-length VSYNC.
 	MC6845,		// Type 2. No status register, fixed-length VSYNC, no zero-length HSYNC.
-	AMS40226	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
+	AMS40226,	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
+
+	EGA,		// Extended EGA-style CRTC; uses 16-bit addressing throughout.
 };
 
 // https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
 // register is really card specific".
 //
 // This enum captures those specifics.
-enum CursorType {
+enum class CursorType {
 	/// No cursor signal is generated.
 	None,
 	/// MDA style: 00 => symmetric blinking; 01 or 10 => no blinking; 11 => short on, long off.
@@ -69,21 +71,20 @@ enum CursorType {
 
 // TODO UM6845R and R12/R13; see http://www.cpcwiki.eu/index.php/CRTC#CRTC_Differences
 
-template <class T, CursorType cursor_type> class CRTC6845 {
+template <class BusHandlerT, Personality personality, CursorType cursor_type> class CRTC6845 {
 	public:
-
-		CRTC6845(Personality p, T &bus_handler) noexcept :
-			personality_(p), bus_handler_(bus_handler), status_(0) {}
+		CRTC6845(BusHandlerT &bus_handler) noexcept :
+			bus_handler_(bus_handler), status_(0) {}
 
 		void select_register(uint8_t r) {
 			selected_register_ = r;
 		}
 
 		uint8_t get_status() {
-			switch(personality_) {
-				case UM6845R:	return status_ | (bus_state_.vsync ? 0x20 : 0x00);
-				case AMS40226:	return get_register();
-				default:		return 0xff;
+			switch(personality) {
+				case Personality::UM6845R:	return status_ | (bus_state_.vsync ? 0x20 : 0x00);
+				case Personality::AMS40226:	return get_register();
+				default:					return 0xff;
 			}
 			return 0xff;
 		}
@@ -92,7 +93,7 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 			if(selected_register_ == 31) status_ &= ~0x80;
 			if(selected_register_ == 16 || selected_register_ == 17) status_ &= ~0x40;
 
-			if(personality_ == UM6845R && selected_register_ == 31) return dummy_register_;
+			if(personality == Personality::UM6845R && selected_register_ == 31) return dummy_register_;
 			if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
 			return registers_[selected_register_];
 		}
@@ -100,11 +101,13 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 		void set_register(uint8_t value) {
 			static constexpr uint8_t masks[] = {
 				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
-				0xff, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff
+				0xff, 0x1f, 0x7f, 0x1f,
+				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
+				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 			};
 
 			// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
-			if(selected_register_ == 8 && personality_ != UM6845R && personality_ != MC6845) {
+			if(selected_register_ == 8 && personality != Personality::UM6845R && personality != Personality::MC6845) {
 				switch((value >> 4)&3) {
 					default:	display_skew_mask_ = 1;		break;
 					case 1:		display_skew_mask_ = 2;		break;
@@ -115,7 +118,7 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 			if(selected_register_ < 16) {
 				registers_[selected_register_] = value & masks[selected_register_];
 			}
-			if(selected_register_ == 31 && personality_ == UM6845R) {
+			if(selected_register_ == 31 && personality == Personality::UM6845R) {
 				dummy_register_ = value;
 			}
 		}
@@ -137,7 +140,7 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 				}
 
 				perform_bus_cycle_phase1();
-				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & 0x3fff;
+				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
 
 				bus_state_.cursor = is_cursor_line_ &&
 					bus_state_.refresh_address == (registers_[15] | (registers_[14] << 8));
@@ -162,9 +165,9 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 				// cancellation of the plan to perform sync if this is an HD6845S or UM6845R; otherwise zero
 				// will end up counting as 16 as it won't be checked until after overflow.
 				if(bus_state_.hsync) {
-					switch(personality_) {
-						case HD6845S:
-						case UM6845R:
+					switch(personality) {
+						case Personality::HD6845S:
+						case Personality::UM6845R:
 							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
 							hsync_counter_ = (hsync_counter_ + 1) & 15;
 						break;
@@ -184,6 +187,8 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 		}
 
 	private:
+		static constexpr uint16_t RefreshMask = (personality >= Personality::EGA) ? 0xffff : 0x3fff;
+
 		inline void perform_bus_cycle_phase1() {
 			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
 			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | unsigned(character_is_visible_);
@@ -207,9 +212,9 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 				vsync_counter_ = (vsync_counter_ + 1) & 15;
 				// On the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
 				// always use a vertical sync count of 16.
-				switch(personality_) {
-					case HD6845S:
-					case AMS40226:
+				switch(personality) {
+					case Personality::HD6845S:
+					case Personality::AMS40226:
 						bus_state_.vsync = vsync_counter_ != (registers_[3] >> 4);
 					break;
 					default:
@@ -290,8 +295,7 @@ template <class T, CursorType cursor_type> class CRTC6845 {
 			++bus_state_.field_count;
 		}
 
-		Personality personality_;
-		T &bus_handler_;
+		BusHandlerT &bus_handler_;
 		BusState bus_state_;
 
 		uint8_t registers_[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
