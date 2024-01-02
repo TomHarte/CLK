@@ -84,7 +84,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			switch(personality) {
 				case Personality::UM6845R:	return status_ | (bus_state_.vsync ? 0x20 : 0x00);
 				case Personality::AMS40226:	return get_register();
-				default:		return 0xff;
+				default:					return 0xff;
 			}
 			return 0xff;
 		}
