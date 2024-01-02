@@ -1,12 +1,18 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QAudioOutput>
+#include <QtGlobal>
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	#include <QAudioSink>
+#else
+	#include <QAudioOutput>
+#endif
+
 #include <QMainWindow>
 
 #include <memory>
 #include <mutex>
-#include <optional>
 
 #include "audiobuffer.h"
 #include "timer.h"
@@ -71,7 +77,11 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::unique_ptr<Machine::DynamicMachine> machine;
 		std::mutex machineMutex;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		std::unique_ptr<QAudioSink> audioOutput;
+#else
 		std::unique_ptr<QAudioOutput> audioOutput;
+#endif
 		bool audioIs8bit = false, audioIsStereo = false;
 		void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override;
 		AudioBuffer audioBuffer;
@@ -96,6 +106,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_macintosh();
 		void start_msx();
 		void start_oric();
+		void start_pc();
 		void start_spectrum();
 		void start_vic20();
 		void start_zx80();

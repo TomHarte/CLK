@@ -38,7 +38,7 @@ class MemoryMap {
 
 			// Establish bank mapping.
 			uint8_t next_region = 0;
-			auto region = [&next_region, this]() -> uint8_t {
+			auto region = [&]() -> uint8_t {
 				assert(next_region != this->regions.size());
 				return next_region++;
 			};

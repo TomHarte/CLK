@@ -51,7 +51,7 @@ class Keyboard {
 		// Host interface.
 
 		/// @returns @c true if the key press affects the machine; @c false otherwise.
-		virtual bool set_key_pressed(Key key, char value, bool is_pressed);
+		virtual bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat);
 		virtual void reset_all_keys();
 
 		/// @returns a set of all Keys that this keyboard responds to.

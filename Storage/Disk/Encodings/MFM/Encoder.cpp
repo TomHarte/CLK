@@ -382,6 +382,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 	std::optional<uint8_t> sector_gap_filler_byte
 ) {
 	switch(density) {
+		default:
 		case Density::Single:	return TTrackWithSectors<Density::Single>(sectors, sector_gap_length, sector_gap_filler_byte);
 		case Density::Double:	return TTrackWithSectors<Density::Double>(sectors, sector_gap_length, sector_gap_filler_byte);
 		case Density::High:		return TTrackWithSectors<Density::High>(sectors, sector_gap_length, sector_gap_filler_byte);

@@ -3,7 +3,6 @@
 #include <QApplication>
 #include <QCursor>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -30,10 +29,7 @@ void ScanTargetWidget::paintGL() {
 		requestedRedrawTime = 0;
 	}
 
-	// TODO: if Qt 5.14 can be guaranteed, just use window()->screen().
-	const auto screenNumber = QApplication::desktop()->screenNumber(this);
-	QScreen *const screen = QGuiApplication::screens()[screenNumber];
-
+	QScreen *const screen = window()->screen();
 	const float newOutputScale = float(screen->devicePixelRatio());
 	if(outputScale != newOutputScale) {
 		outputScale = newOutputScale;

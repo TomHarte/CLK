@@ -583,7 +583,10 @@ class CRTCBusHandler {
 
 		InterruptTimer &interrupt_timer_;
 };
-using CRTC = Motorola::CRTC::CRTC6845<CRTCBusHandler, Motorola::CRTC::CursorType::None>;
+using CRTC = Motorola::CRTC::CRTC6845<
+	CRTCBusHandler,
+	Motorola::CRTC::Personality::HD6845S,
+	Motorola::CRTC::CursorType::None>;
 
 /*!
 	Holds and vends the current keyboard state, acting as the AY's port handler.
@@ -766,7 +769,7 @@ template <bool has_fdc> class ConcreteMachine:
 		ConcreteMachine(const Analyser::Static::AmstradCPC::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			crtc_bus_handler_(ram_, interrupt_timer_),
-			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
+			crtc_(crtc_bus_handler_),
 			i8255_port_handler_(key_state_, crtc_, ay_, tape_player_),
 			i8255_(i8255_port_handler_),
 			tape_player_(8000000),

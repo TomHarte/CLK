@@ -852,6 +852,76 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="pcTab">
+       <attribute name="title">
+        <string>PC Compatible</string>
+       </attribute>
+       <layout class="QVBoxLayout">
+        <item>
+         <layout class="QHBoxLayout">
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel">
+              <property name="text">
+               <string>Video Adaptor:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="pcVideoAdaptorComboBox">
+              <item>
+               <property name="text">
+                <string>MDA</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>CGA</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel">
+              <property name="text">
+               <string>Speed:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="pcSpeedComboBox">
+              <item>
+               <property name="text">
+                <string>Similar to Original</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Turbo</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="vic20Tab">
        <attribute name="title">
         <string>Vic-20</string>
@@ -1170,9 +1240,6 @@
     </item>
     <item>
      <widget class="QPlainTextEdit" name="missingROMsBox">
-      <property name="acceptDrops">
-       <bool>true</bool>
-      </property>
       <property name="readOnly">
        <bool>true</bool>
       </property>

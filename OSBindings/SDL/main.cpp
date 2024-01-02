@@ -976,9 +976,11 @@ int main(int argc, char *argv[]) {
 		SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
 		SDL_Keycode keycode = SDLK_UNKNOWN;
 		bool is_down = true;
+		bool repeat = false;
 
 		KeyPress(uint32_t timestamp, const char *text) : timestamp(timestamp), input(text) {}
-		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down) : timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down) {}
+		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down, bool repeat) :
+			timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down), repeat(repeat) {}
 		KeyPress() {}
 	};
 	std::vector<KeyPress> keypresses;
@@ -1129,7 +1131,12 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 
-					keypresses.emplace_back(event.text.timestamp, event.key.keysym.scancode, event.key.keysym.sym, event.type == SDL_KEYDOWN);
+					keypresses.emplace_back(
+						event.text.timestamp,
+						event.key.keysym.scancode,
+						event.key.keysym.sym,
+						event.type == SDL_KEYDOWN,
+						event.key.repeat);
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
@@ -1214,14 +1221,14 @@ int main(int argc, char *argv[]) {
 					// is sufficiently untested on SDL, and somewhat too reliant on empirical timestamp behaviour,
 					// for it to be trustworthy enough otherwise to expose.
 					if(logical_keyboard) {
-						if(keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, logical_keyboard)) {
+						if(keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, keypress.repeat, logical_keyboard)) {
 							continue;
 						}
 					} else {
 						// This is a slightly terrible way of obtaining a symbol for the key, e.g. for letters it will always return
 						// the capital letter version, at least empirically. But it'll have to do for now.
 						const char *key_name = SDL_GetKeyName(keypress.keycode);
-						if(keyboard_machine->get_keyboard().set_key_pressed(key, (strlen(key_name) == 1) ? key_name[0] : 0, keypress.is_down)) {
+						if(keyboard_machine->get_keyboard().set_key_pressed(key, (strlen(key_name) == 1) ? key_name[0] : 0, keypress.is_down, keypress.repeat)) {
 							continue;
 						}
 					}
