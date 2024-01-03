@@ -384,7 +384,7 @@ class ConcreteMachine:
 		// MARK: BusHandler.
 		uint64_t total = 0;
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
-			const auto &region = MemoryMapRegion(memory_, address);
+			const auto &region = memory_.region(address);
 			static bool log = false;
 			bool is_1Mhz = false;
 
@@ -945,7 +945,7 @@ class ConcreteMachine:
 				is_1Mhz = region.flags & MemoryMap::Region::Is1Mhz;
 
 				if(isReadOperation(operation)) {
-					MemoryMapRead(region, address, value);
+					*value = memory_.read(region, address);
 				} else {
 					// Shadowed writes also occur "at 1Mhz".
 					// TODO: this is probably an approximation. I'm assuming that there's the ability asynchronously to post
@@ -954,7 +954,7 @@ class ConcreteMachine:
 					// get by adding periodic NOPs within their copy-to-shadow step.
 					//
 					// Maybe the interaction with 2.8Mhz refresh isn't as straightforward as I think?
-					const bool is_shadowed = IsShadowed(memory_, region, address);
+					const bool is_shadowed = memory_.is_shadowed(address);
 					is_1Mhz |= is_shadowed;
 
 					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.
@@ -963,7 +963,7 @@ class ConcreteMachine:
 						video_.flush();
 					}
 
-					MemoryMapWrite(memory_, region, address, value);
+					memory_.write(region, address, *value);
 				}
 			}
 

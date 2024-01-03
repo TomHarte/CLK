@@ -631,54 +631,48 @@ class MemoryMap {
 		std::array<Region, 40> regions;	// An assert above ensures that this is large enough; there's no
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
+
+		// The below encapsulates an assumption that Apple intends to shadow physical addresses (i.e. after mapping).
+		// If the Apple shadows logical addresses (i.e. prior to mapping) then see commented out alternatives.
+
+		const Region &region(uint32_t address) {	return regions[region_map[address >> 8]];	}
+		uint8_t read(const Region &region, uint32_t address) {
+			return region.read ? region.read[address] : 0xff;
+		}
+
+		bool is_shadowed(uint32_t address) const {
+			// Logical mapping alternative:
+			// shadow_pages[((&region.write[address] - ram_base) >> 10) & 127] & shadow_banks[address >> 17]
+
+			return shadow_pages[(address >> 10) & 127] & shadow_banks[address >> 17];
+
+			// Quick notes on contortions above:
+			//
+			// The objective is to support shadowing:
+			//	1. without storing a whole extra pointer, and such that the shadowing flags
+			//		are orthogonal to the current auxiliary memory settings;
+			//	2. in such a way as to support shadowing both in banks $00/$01 and elsewhere; and
+			//	3. to do so without introducing too much in the way of branching.
+			//
+			// Hence the implemented solution: if shadowing is enabled then use the distance from the start of
+			// physical RAM modulo 128k indexed into the bank $e0/$e1 RAM.
+			//
+			// With a further twist: the modulo and pointer are indexed on ::IsShadowed to eliminate a branch
+			// even on that.
+		}
+		void write(const Region &region, uint32_t address, uint8_t value) {
+			if(!region.write) {
+				return;
+			}
+
+			region.write[address] = value;
+			const bool shadowed = is_shadowed(address);
+			shadow_base[shadowed][(&region.write[address] - ram_base) & shadow_mask[shadowed]] = value;
+
+			// Logical mapping alternative:
+			// shadow_base[shadowed][address & shadow_mask[shadowed]]
+		}
 };
-
-// TODO: branching below on region.read/write is predicated on the idea that extra scratch space
-// would be less efficient. Verify that?
-
-#define MemoryMapRegion(map, address)			map.regions[map.region_map[address >> 8]]
-#define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
-
-// The below encapsulates the fact that I've yet to determine whether Apple intends to
-// indicate that logical addresses (i.e. those prior to being mapped per the current paging)
-// or physical addresses (i.e. after mapping) are subject to shadowing.
-#ifdef SHADOW_LOGICAL
-
-#define IsShadowed(map, region, address)	\
-	(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
-
-#define MemoryMapWrite(map, region, address, value) \
-	if(region.write) {	\
-		region.write[address] = *value;	\
-		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
-		map.shadow_base[_mm_is_shadowed][address & map.shadow_mask[_mm_is_shadowed]] = *value;	\
-	}
-
-#else
-
-#define IsShadowed(map, region, address)	\
-	(map.shadow_pages[(address >> 10) & 127] & map.shadow_banks[address >> 17])
-
-#define MemoryMapWrite(map, region, address, value) \
-	if(region.write) {	\
-		region.write[address] = *value;	\
-		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
-		map.shadow_base[_mm_is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
-	}
-
-#endif
-
-// Quick notes on ::IsShadowed contortions:
-//
-// The objective is to support shadowing:
-//	1. without storing a whole extra pointer, and such that the shadowing flags are orthogonal to the current auxiliary memory settings;
-//	2. in such a way as to support shadowing both in banks $00/$01 and elsewhere; and
-//	3. to do so without introducing too much in the way of branching.
-//
-// Hence the implemented solution: if shadowing is enabled then use the distance from the start of physical RAM
-// modulo 128k indexed into the bank $e0/$e1 RAM.
-//
-// With a further twist: the modulo and pointer are indexed on ::IsShadowed to eliminate a branch even on that.
 
 }
 
