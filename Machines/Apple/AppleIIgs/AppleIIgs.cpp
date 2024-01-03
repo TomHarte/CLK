@@ -954,7 +954,7 @@ class ConcreteMachine:
 					// get by adding periodic NOPs within their copy-to-shadow step.
 					//
 					// Maybe the interaction with 2.8Mhz refresh isn't as straightforward as I think?
-					const bool is_shadowed = memory_.is_shadowed(address);
+					const bool is_shadowed = memory_.is_shadowed(region, address);
 					is_1Mhz |= is_shadowed;
 
 					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.

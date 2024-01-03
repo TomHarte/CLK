@@ -633,18 +633,15 @@ class MemoryMap {
 										// adjust as required.
 
 		// The below encapsulates an assumption that Apple intends to shadow physical addresses (i.e. after mapping).
-		// If the Apple shadows logical addresses (i.e. prior to mapping) then see commented out alternatives.
+		// I couldn't really find clear documentation on this.
 
 		const Region &region(uint32_t address) {	return regions[region_map[address >> 8]];	}
 		uint8_t read(const Region &region, uint32_t address) {
 			return region.read ? region.read[address] : 0xff;
 		}
 
-		bool is_shadowed(uint32_t address) const {
-			// Logical mapping alternative:
-			// shadow_pages[((&region.write[address] - ram_base) >> 10) & 127] & shadow_banks[address >> 17]
-
-			return shadow_pages[(address >> 10) & 127] & shadow_banks[address >> 17];
+		bool is_shadowed(const Region &region, uint32_t address) const {
+			return shadow_pages[((&region.write[address] - ram_base) >> 10) & 127] & shadow_banks[address >> 17];
 
 			// Quick notes on contortions above:
 			//
@@ -666,11 +663,8 @@ class MemoryMap {
 			}
 
 			region.write[address] = value;
-			const bool shadowed = is_shadowed(address);
+			const bool shadowed = is_shadowed(region, address);
 			shadow_base[shadowed][(&region.write[address] - ram_base) & shadow_mask[shadowed]] = value;
-
-			// Logical mapping alternative:
-			// shadow_base[shadowed][address & shadow_mask[shadowed]]
 		}
 };
 
