@@ -369,7 +369,7 @@ namespace {
 			while(logical < [next intValue]) {
 				[[maybe_unused]] const auto &region =
 					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
-				const bool isShadowed = _memoryMap.is_shadowed(logical << 8);
+				const bool isShadowed = _memoryMap.is_shadowed(region, logical << 8);
 
 				XCTAssertEqual(
 					isShadowed,
