@@ -288,19 +288,19 @@ template <bool has_scsi_bus> class ConcreteMachine:
 								evaluate_interrupts();
 
 								// TODO: NMI
-							}
+							} else {
+								// Latch the paged ROM in case external hardware is being emulated.
+								active_rom_ = *value & 0xf;
 
-							// latch the paged ROM in case external hardware is being emulated
-							active_rom_ = *value & 0xf;
-
-							// apply the ULA's test
-							if(*value & 0x08) {
-								if(*value & 0x04) {
-									keyboard_is_active_ = false;
-									basic_is_active_ = false;
-								} else {
-									keyboard_is_active_ = !(*value & 0x02);
-									basic_is_active_ = !keyboard_is_active_;
+								// apply the ULA's test
+								if(*value & 0x08) {
+									if(*value & 0x04) {
+										keyboard_is_active_ = false;
+										basic_is_active_ = false;
+									} else {
+										keyboard_is_active_ = !(*value & 0x02);
+										basic_is_active_ = !keyboard_is_active_;
+									}
 								}
 							}
 						}
