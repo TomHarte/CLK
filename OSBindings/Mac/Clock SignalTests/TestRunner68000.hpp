@@ -82,24 +82,23 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			const uint32_t word_address = cycle.word_address();
 			duration_ += cycle.length;
 
-			const auto operation = (op != Microcycle::DecodeDynamically) ? op : cycle.operation;
 			if(cycle.data_select_active()) {
-				if(operation & Microcycle::InterruptAcknowledge) {
+				if(cycle.operation & CPU::MC68000::Operation::InterruptAcknowledge) {
 					cycle.value->b = 10;
 				} else {
-					switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					switch(cycle.operation & (CPU::MC68000::Operation::SelectWord | CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::Read)) {
 						default: break;
 
-						case Microcycle::SelectWord | Microcycle::Read:
+						case CPU::MC68000::Operation::SelectWord | CPU::MC68000::Operation::Read:
 							cycle.value->w = ram_[word_address % ram_.size()];
 						break;
-						case Microcycle::SelectByte | Microcycle::Read:
+						case CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::Read:
 							cycle.value->b = ram_[word_address % ram_.size()] >> cycle.byte_shift();
 						break;
-						case Microcycle::SelectWord:
+						case CPU::MC68000::Operation::SelectWord:
 							ram_[word_address % ram_.size()] = cycle.value->w;
 						break;
-						case Microcycle::SelectByte:
+						case CPU::MC68000::Operation::SelectByte:
 							ram_[word_address % ram_.size()] = uint16_t(
 								(cycle.value->b << cycle.byte_shift()) |
 								(ram_[word_address % ram_.size()] & cycle.untouched_byte_mask())

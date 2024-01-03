@@ -38,16 +38,14 @@ namespace {
 }
 
 - (void)write:(uint8_t)value address:(uint32_t)address {
-	const auto &region = MemoryMapRegion(_memoryMap, address);
+	const auto &region = _memoryMap.region(address);
 	XCTAssertFalse(region.flags & MemoryMap::Region::IsIO);
-	MemoryMapWrite(_memoryMap, region, address, &value);
+	_memoryMap.write(region, address, value);
 }
 
 - (uint8_t)readAddress:(uint32_t)address {
-	const auto &region = MemoryMapRegion(_memoryMap, address);
-	uint8_t value;
-	MemoryMapRead(region, address, &value);
-	return value;
+	const auto &region = _memoryMap.region(address);
+	return _memoryMap.read(region, address);
 }
 
 - (void)testAllRAM {
@@ -371,8 +369,7 @@ namespace {
 			while(logical < [next intValue]) {
 				[[maybe_unused]] const auto &region =
 					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
-				const bool isShadowed =
-					IsShadowed(_memoryMap, region, (logical << 8));
+				const bool isShadowed = _memoryMap.is_shadowed(logical << 8);
 
 				XCTAssertEqual(
 					isShadowed,
