@@ -64,8 +64,8 @@ class MemoryMap {
 			};
 		};
 
-		const Region &region(uint32_t address) {	return regions[region_map[address >> 8]];	}
-		uint8_t read(const Region &region, uint32_t address) {
+		const Region &region(uint32_t address) const {	return regions[region_map[address >> 8]];	}
+		uint8_t read(const Region &region, uint32_t address) const {
 			return region.read ? region.read[address] : 0xff;
 		}
 
