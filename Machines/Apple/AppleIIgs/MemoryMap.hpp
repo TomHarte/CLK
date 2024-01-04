@@ -11,6 +11,7 @@
 
 #include <array>
 #include <bitset>
+#include <cassert>
 #include <vector>
 
 #include "../AppleII/LanguageCardSwitches.hpp"
