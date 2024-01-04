@@ -196,7 +196,6 @@ class ConcreteMachine:
 			iwm_->set_drive(1, &drives35_[1]);
 
 			// Randomise RAM contents.
-//			std::srand(23);
 			Memory::Fuzz(ram_);
 
 			// Prior to ROM03 there's no power-on bit.
