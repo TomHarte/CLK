@@ -70,6 +70,11 @@ class MemoryMap {
 		}
 
 		bool is_shadowed(const Region &region, uint32_t address) const {
+			// ROM is never shadowed.
+			if(!region.write) {
+				return false;
+			}
+
 			const auto physical = physical_address(region, address);
 			assert(physical >= 0 && physical <= 0xff'ffff);
 			return shadow_pages_[(physical >> 10) & 127] & shadow_banks_[physical >> 17];
