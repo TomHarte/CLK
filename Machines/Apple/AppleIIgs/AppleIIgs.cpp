@@ -514,6 +514,11 @@ class ConcreteMachine:
 						video_->set_page2(*value & 0x40);
 					break;
 
+					case Read(0xc069):
+					case Write(0xc069):
+						// Swallow silently; often hit as a side effect of a 16-bit write to 0xc068.
+					break;
+
 					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
 #define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00; is_1Mhz = true;
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
