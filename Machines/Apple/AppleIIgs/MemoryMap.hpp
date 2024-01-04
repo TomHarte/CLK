@@ -64,14 +64,14 @@ class MemoryMap {
 			};
 		};
 
-		const Region &region(uint32_t address) const {	return regions[region_map[address >> 8]];	}
+		const Region &region(uint32_t address) const {	return regions_[region_map_[address >> 8]];	}
 		uint8_t read(const Region &region, uint32_t address) const {
 			return region.read ? region.read[address] : 0xff;
 		}
 
 		bool is_shadowed(const Region &region, uint32_t address) const {
 			const auto physical = physical_address(region, address);
-			return shadow_pages[(physical >> 10) & 127] & shadow_banks[physical >> 17];
+			return shadow_pages_[(physical >> 10) & 127] & shadow_banks_[physical >> 17];
 		}
 		void write(const Region &region, uint32_t address, uint8_t value) {
 			if(!region.write) {
@@ -84,7 +84,7 @@ class MemoryMap {
 			// Write again, either to the same place (if unshadowed) or to the shadow destination.
 			static constexpr std::size_t shadow_mask[2] = {0xff'ffff, 0x01'ffff};
 			const bool shadowed = is_shadowed(region, address);
-			shadow_base[shadowed][physical_address(region, address) & shadow_mask[shadowed]] = value;
+			shadow_base_[shadowed][physical_address(region, address) & shadow_mask[shadowed]] = value;
 		}
 
 		// The objective is to support shadowing:
@@ -113,43 +113,44 @@ class MemoryMap {
 		void assert_is_region(uint8_t start, uint8_t end);
 		template <int type> void set_paging();
 
+		uint8_t *ram_base_ = nullptr;
+
 		// Memory layout here is done via double indirection; the main loop should:
 		//	(i) use the top two bytes of the address to get an index from region_map; and
 		//	(ii) use that to index the memory_regions table.
 		//
 		// Pointers are eight bytes at the time of writing, so the extra level of indirection
 		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
-		std::array<uint8_t, 65536> region_map{};
-		uint8_t *ram_base = nullptr;
-
-		std::array<Region, 40> regions;	// An assert above ensures that this is large enough; there's no
-										// doctrinal reason for it to be whatever size it is now, just
-										// adjust as required.
+		std::array<uint8_t, 65536> region_map_{};
+		std::array<Region, 40> regions_;	// An assert above ensures that this is large enough; there's no
+											// doctrinal reason for it to be whatever size it is now, just
+											// adjust as required.
 
 		std::size_t physical_address(const Region &region, uint32_t address) const {
-			return std::size_t(&region.write[address] - ram_base);
+			return std::size_t(&region.write[address] - ram_base_);
 		}
 
 		// MARK: - Shadowing
 
 		// Various precomputed bitsets describing key regions; std::bitset doesn't support constexpr instantiation
 		// beyond the first 64 bits at the time of writing, alas, so these are generated at runtime.
-		std::bitset<128> shadow_text1;
-		std::bitset<128> shadow_text2;
-		std::bitset<128> shadow_highres1, shadow_highres1_aux;
-		std::bitset<128> shadow_highres2, shadow_highres2_aux;
-		std::bitset<128> shadow_superhighres;
+		std::bitset<128> shadow_text1_;
+		std::bitset<128> shadow_text2_;
+		std::bitset<128> shadow_highres1_, shadow_highres1_aux_;
+		std::bitset<128> shadow_highres2_, shadow_highres2_aux_;
+		std::bitset<128> shadow_superhighres_;
 		void setup_shadow_maps(bool is_rom03);
 		void set_shadowing();
 
-		uint8_t *shadow_base[2] = {nullptr, nullptr};
+		uint8_t *shadow_base_[2] = {nullptr, nullptr};
 
-		// Shadow_pages: divides the final 128kb of memory into 1kb chunks and includes a flag to indicate whether
+		// Divide the final 128kb of memory into 1kb chunks and flag to indicate whether
 		// each is a potential destination for shadowing.
-		//
-		// Shadow_banks: divides the whole 16mb of memory into 128kb chunks and includes a flag to indicate whether
+		std::bitset<128> shadow_pages_{};
+
+		// Divide the whole 16mb of memory into 128kb chunks and flag to indicate whether
 		// each is a potential source of shadowing.
-		std::bitset<128> shadow_pages{}, shadow_banks{};
+		std::bitset<128> shadow_banks_{};
 };
 
 }
