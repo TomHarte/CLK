@@ -9,6 +9,7 @@
 #include "MemoryMap.hpp"
 
 using namespace Apple::IIgs;
+using PagingType = Apple::II::PagingType;
 
 void MemoryMap::set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 	// Keep a pointer for later; also note the proper RAM offset.

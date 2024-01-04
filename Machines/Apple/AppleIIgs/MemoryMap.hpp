@@ -19,9 +19,6 @@
 namespace Apple::IIgs {
 
 class MemoryMap {
-	private:
-		using PagingType = Apple::II::PagingType;
-
 	public:
 		// MARK: - Initial construction and configuration.
 
