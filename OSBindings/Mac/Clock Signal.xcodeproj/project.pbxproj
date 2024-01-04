@@ -39,6 +39,9 @@
 		42E5C3932AC46A7700DA093D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42E5C3922AC46A7700DA093D /* Carbon.framework */; };
 		42EB81282B23AAC300429AF4 /* IMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB81262B23AAC300429AF4 /* IMD.cpp */; };
 		42EB81292B23AAC300429AF4 /* IMD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB81262B23AAC300429AF4 /* IMD.cpp */; };
+		42EB812D2B4700B700429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
+		42EB812E2B4700B700429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
+		42EB812F2B4700B800429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -1198,6 +1201,7 @@
 		42EB81252B21788200429AF4 /* RTC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RTC.hpp; sourceTree = "<group>"; };
 		42EB81262B23AAC300429AF4 /* IMD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IMD.cpp; sourceTree = "<group>"; };
 		42EB81272B23AAC300429AF4 /* IMD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IMD.hpp; sourceTree = "<group>"; };
+		42EB812C2B47008D00429AF4 /* MemoryMap.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryMap.cpp; sourceTree = "<group>"; };
 		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B0333AD2094081A0050B93D /* AppleDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppleDSK.cpp; sourceTree = "<group>"; };
@@ -5035,6 +5039,7 @@
 				4B8DF4D62546561300F3433C /* MemoryMap.hpp */,
 				4B1EC715255398B000A1F44B /* Sound.hpp */,
 				4B8DF4F8254E36AD00F3433C /* Video.hpp */,
+				42EB812C2B47008D00429AF4 /* MemoryMap.cpp */,
 			);
 			path = AppleIIgs;
 			sourceTree = "<group>";
@@ -5853,6 +5858,7 @@
 				423820452B1A90BE00964EFE /* PCBooter.cpp in Sources */,
 				4B8318B922D3E56D006DB630 /* MemoryPacker.cpp in Sources */,
 				4B055ABA1FAE86170060FFFF /* Commodore.cpp in Sources */,
+				42EB812E2B4700B700429AF4 /* MemoryMap.cpp in Sources */,
 				4B0ACC2F23775819008902D0 /* TIA.cpp in Sources */,
 				4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */,
 				4B055AA61FAE85EF0060FFFF /* Parser.cpp in Sources */,
@@ -6087,6 +6093,7 @@
 				4B7C681A275196E8001671EC /* MouseJoystick.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */,
+				42EB812D2B4700B700429AF4 /* MemoryMap.cpp in Sources */,
 				4B9EC0EA26B384080060A31F /* Keyboard.cpp in Sources */,
 				4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */,
 				4B69DEB62AB79E4F0055B217 /* Instruction.cpp in Sources */,
@@ -6242,6 +6249,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B778EF623A5EB600000D260 /* WOZ.cpp in Sources */,
+				42EB812F2B4700B800429AF4 /* MemoryMap.cpp in Sources */,
 				4B778F1423A5EC960000D260 /* Z80Storage.cpp in Sources */,
 				4B778F1F23A5EDC70000D260 /* Audio.cpp in Sources */,
 				4B778F1523A5EC980000D260 /* PartialMachineCycle.cpp in Sources */,
