@@ -56,6 +56,10 @@ enum class Personality {
 	EGA,		// Extended EGA-style CRTC; uses 16-bit addressing throughout.
 };
 
+constexpr bool is_egavga(Personality p) {
+	return p >= Personality::EGA;
+}
+
 // https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
 // register is really card specific".
 //
@@ -99,8 +103,23 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		}
 
 		void set_register(uint8_t value) {
+			switch(selected_register_) {
+				case 0:	layout_.horizontal.total = value;		break;
+				case 1: layout_.horizontal.displayed = value;	break;
+				case 2:	layout_.horizontal.start_blank = value;	break;
+			}
+
+			static constexpr bool is_ega = is_egavga(personality);
 			static constexpr uint8_t masks[] = {
-				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+				0xff,	// Horizontal total.
+				0xff,	// Horizontal display end.
+				0xff,	// Start horizontal blank.
+				0xff,	//
+						// EGA: b0–b4: end of horizontal blank;
+						// b5–b6: "Number of character clocks to delay start of display after Horizontal Total has been reached."
+
+				is_ega ? 0xff : 0x7f,	// Start horizontal retrace.
+				0x1f, 0x7f, 0x7f,
 				0xff, 0x1f, 0x7f, 0x1f,
 				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
@@ -133,7 +152,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
 				// Check for end of visible characters.
-				if(character_counter_ == registers_[1]) {
+				if(character_counter_ == layout_.horizontal.displayed) {
 					// TODO: consider skew in character_is_visible_. Or maybe defer until perform_bus_cycle?
 					character_is_visible_ = false;
 					end_of_line_address_ = bus_state_.refresh_address;
@@ -146,7 +165,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					bus_state_.refresh_address == (registers_[15] | (registers_[14] << 8));
 
 				// Check for end-of-line.
-				if(character_counter_ == registers_[0]) {
+				if(character_counter_ == layout_.horizontal.total) {
 					character_counter_ = 0;
 					do_end_of_line();
 					character_is_visible_ = true;
@@ -156,7 +175,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				}
 
 				// Check for start of horizontal sync.
-				if(character_counter_ == registers_[2]) {
+				if(character_counter_ == layout_.horizontal.start_blank) {
 					hsync_counter_ = 0;
 					bus_state_.hsync = true;
 				}
@@ -264,7 +283,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 			bus_state_.refresh_address = line_address_;
 			character_counter_ = 0;
-			character_is_visible_ = (registers_[1] != 0);
+			character_is_visible_ = (layout_.horizontal.displayed != 0);
 
 			if constexpr (cursor_type != CursorType::None) {
 				// Check for cursor enable.
@@ -298,7 +317,15 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		BusHandlerT &bus_handler_;
 		BusState bus_state_;
 
-		uint8_t registers_[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		struct {
+			struct {
+				uint8_t total;
+				uint8_t displayed;
+				uint8_t start_blank;
+			} horizontal;
+		} layout_;
+
+		uint8_t registers_[18]{};
 		uint8_t dummy_register_ = 0;
 		int selected_register_ = 0;
 
