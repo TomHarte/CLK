@@ -108,7 +108,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			switch(selected_register_) {
 				case 0:	layout_.horizontal.total = value;		break;
 				case 1: layout_.horizontal.displayed = value;	break;
-				case 2:	layout_.horizontal.start_blank = value;	break;
+				case 2:	layout_.horizontal.start_sync = value;	break;
 				case 3:
 					if constexpr (is_ega) {
 					} else {
@@ -124,12 +124,9 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						layout_.vertical.total = value & 0x7f;
 					}
 				break;
-				case 5:
-					layout_.vertical.adjust = value & 0x1f;
-				break;
-				case 6:
-					layout_.vertical.displayed = value & 0x7f;
-				break;
+				case 5:	layout_.vertical.adjust = value & 0x1f;		break;
+				case 6:	layout_.vertical.displayed = value & 0x7f;	break;
+				case 7:	layout_.vertical.start_sync = value & 0x7f;	break;
 			}
 
 			static constexpr uint8_t masks[] = {
@@ -197,7 +194,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				}
 
 				// Check for start of horizontal sync.
-				if(character_counter_ == layout_.horizontal.start_blank) {
+				if(character_counter_ == layout_.horizontal.start_sync) {
 					hsync_counter_ = 0;
 					bus_state_.hsync = true;
 				}
@@ -288,7 +285,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						line_counter_ = (line_counter_ + 1) & 0x7f;
 
 						// Check for start of vertical sync.
-						if(line_counter_ == registers_[7]) {
+						if(line_counter_ == layout_.vertical.start_sync) {
 							bus_state_.vsync = true;
 							vsync_counter_ = 0;
 						}
@@ -343,13 +340,14 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			struct {
 				uint8_t total;
 				uint8_t displayed;
-				uint8_t start_blank;
+				uint8_t start_sync;
 				uint8_t sync_width;
 			} horizontal;
 
 			struct {
 				uint8_t total;
 				uint8_t displayed;
+				uint8_t start_sync;
 				uint8_t sync_lines;
 				uint8_t adjust;
 			} vertical;
