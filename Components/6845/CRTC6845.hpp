@@ -103,13 +103,35 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		}
 
 		void set_register(uint8_t value) {
+			static constexpr bool is_ega = is_egavga(personality);
+
 			switch(selected_register_) {
 				case 0:	layout_.horizontal.total = value;		break;
 				case 1: layout_.horizontal.displayed = value;	break;
 				case 2:	layout_.horizontal.start_blank = value;	break;
+				case 3:
+					if constexpr (is_ega) {
+					} else {
+						layout_.horizontal.sync_width = value & 0xf;
+						layout_.vertical.sync_lines = value >> 4;
+						// TODO: vertical sync lines:
+						// "(0 means 16 on some CRTC. Not present on all CRTCs, fixed to 16 lines on these)"
+					}
+				break;
+				case 4:
+					if constexpr (is_ega) {
+					} else {
+						layout_.vertical.total = value & 0x7f;
+					}
+				break;
+				case 5:
+					layout_.vertical.adjust = value & 0x1f;
+				break;
+				case 6:
+					layout_.vertical.displayed = value & 0x7f;
+				break;
 			}
 
-			static constexpr bool is_ega = is_egavga(personality);
 			static constexpr uint8_t masks[] = {
 				0xff,	// Horizontal total.
 				0xff,	// Horizontal display end.
@@ -187,12 +209,12 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					switch(personality) {
 						case Personality::HD6845S:
 						case Personality::UM6845R:
-							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+							bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
 							hsync_counter_ = (hsync_counter_ + 1) & 15;
 						break;
 						default:
 							hsync_counter_ = (hsync_counter_ + 1) & 15;
-							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+							bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
 						break;
 					}
 				}
@@ -234,7 +256,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				switch(personality) {
 					case Personality::HD6845S:
 					case Personality::AMS40226:
-						bus_state_.vsync = vsync_counter_ != (registers_[3] >> 4);
+						bus_state_.vsync = vsync_counter_ != layout_.vertical.sync_lines;
 					break;
 					default:
 						bus_state_.vsync = vsync_counter_ != 0;
@@ -244,7 +266,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 			if(is_in_adjustment_period_) {
 				line_counter_++;
-				if(line_counter_ == registers_[5]) {
+				if(line_counter_ == layout_.vertical.adjust) {
 					is_in_adjustment_period_ = false;
 					do_end_of_frame();
 				}
@@ -255,8 +277,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					line_address_ = end_of_line_address_;
 
 					// Check for entry into the overflow area.
-					if(line_counter_ == registers_[4]) {
-						if(registers_[5]) {
+					if(line_counter_ == layout_.vertical.total) {
+						if(layout_.vertical.adjust) {
 							line_counter_ = 0;
 							is_in_adjustment_period_ = true;
 						} else {
@@ -272,7 +294,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						}
 
 						// Check for end of visible lines.
-						if(line_counter_ == registers_[6]) {
+						if(line_counter_ == layout_.vertical.displayed) {
 							line_is_visible_ = false;
 						}
 					}
@@ -322,7 +344,15 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				uint8_t total;
 				uint8_t displayed;
 				uint8_t start_blank;
+				uint8_t sync_width;
 			} horizontal;
+
+			struct {
+				uint8_t total;
+				uint8_t displayed;
+				uint8_t sync_lines;
+				uint8_t adjust;
+			} vertical;
 		} layout_;
 
 		uint8_t registers_[18]{};
