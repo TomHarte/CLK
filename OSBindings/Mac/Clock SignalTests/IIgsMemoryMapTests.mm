@@ -275,11 +275,10 @@ namespace {
 
 					int physical = physicalStart;
 					for(int logical = logicalStart; logical < logicalEnd; logical++) {
-						const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+						const auto &region = self->_memoryMap.region(logical);
 
 						// Don't worry about IO pages here; they'll be compared shortly.
 						if(!(region.flags & MemoryMap::Region::IsIO)) {
-							const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
 							applyTest(logical, physical, region);
 
 							if(*stop) {
@@ -367,8 +366,7 @@ namespace {
 		int logical = 0;
 		for(NSNumber *next in test[@"shadowed"]) {
 			while(logical < [next intValue]) {
-				[[maybe_unused]] const auto &region =
-					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+				const auto &region = _memoryMap.region(logical);
 				const bool isShadowed = _memoryMap.is_shadowed(region, logical << 8);
 
 				XCTAssertEqual(
@@ -386,8 +384,7 @@ namespace {
 		logical = 0;
 		for(NSNumber *next in test[@"io"]) {
 			while(logical < [next intValue]) {
-				const auto &region =
-					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+				const auto &region = self->_memoryMap.region(logical);
 
 				// This emulator marks card pages as IO because it uses IO to mean
 				// "anything that isn't the built-in RAM". Just don't test card pages.
