@@ -141,11 +141,20 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						case 0b01:	layout_.interlace_mode_ = InterlaceMode::InterlaceSync;			break;
 						case 0b11:	layout_.interlace_mode_ = InterlaceMode::InterlaceSyncAndVideo;	break;
 					}
+
+					// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
+					if(personality != Personality::UM6845R && personality != Personality::MC6845) {
+						switch((value >> 4)&3) {
+							default:	display_skew_mask_ = 1;		break;
+							case 1:		display_skew_mask_ = 2;		break;
+							case 2:		display_skew_mask_ = 4;		break;
+						}
+					}
 				break;
 				case 9:	layout_.vertical.end_row = value & 0x1f;	break;
 				case 10:
 					layout_.vertical.start_cursor = value & 0x1f;
-					// TODO: blink mode.
+					layout_.cursor_flags = (value >> 5) & 3;
 				break;
 				case 11:
 					layout_.vertical.end_cursor = value & 0x1f;
@@ -170,15 +179,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 			};
-
-			// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
-			if(selected_register_ == 8 && personality != Personality::UM6845R && personality != Personality::MC6845) {
-				switch((value >> 4)&3) {
-					default:	display_skew_mask_ = 1;		break;
-					case 1:		display_skew_mask_ = 2;		break;
-					case 2:		display_skew_mask_ = 4;		break;
-				}
-			}
 
 			if(selected_register_ < 16) {
 				registers_[selected_register_] = value & masks[selected_register_];
@@ -340,7 +340,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
 					// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
 					case CursorType::MDA:
-						switch(registers_[10] >> 5) {
+						switch(layout_.cursor_flags) {
 							case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
 							case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
 							case 0b01: is_cursor_line_ = false;								break;
@@ -395,6 +395,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			uint16_t start_address;
 			uint16_t cursor_address;
 			uint16_t light_pen_address;
+			uint8_t cursor_flags;
 		} layout_;
 
 		uint8_t registers_[18]{};
