@@ -118,20 +118,12 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				case 1: layout_.horizontal.displayed = value;	break;
 				case 2:	layout_.horizontal.start_sync = value;	break;
 				case 3:
-					if constexpr (is_ega) {
-					} else {
-						layout_.horizontal.sync_width = value & 0xf;
-						layout_.vertical.sync_lines = value >> 4;
-						// TODO: vertical sync lines:
-						// "(0 means 16 on some CRTC. Not present on all CRTCs, fixed to 16 lines on these)"
-					}
+					layout_.horizontal.sync_width = value & 0xf;
+					layout_.vertical.sync_lines = value >> 4;
+					// TODO: vertical sync lines:
+					// "(0 means 16 on some CRTC. Not present on all CRTCs, fixed to 16 lines on these)"
 				break;
-				case 4:
-					if constexpr (is_ega) {
-					} else {
-						layout_.vertical.total = value & 0x7f;
-					}
-				break;
+				case 4:	layout_.vertical.total = value & 0x7f;		break;
 				case 5:	layout_.vertical.adjust = value & 0x1f;		break;
 				case 6:	layout_.vertical.displayed = value & 0x7f;	break;
 				case 7:	layout_.vertical.start_sync = value & 0x7f;	break;
