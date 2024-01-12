@@ -56,6 +56,10 @@ enum class Personality {
 	EGA,		// Extended EGA-style CRTC; uses 16-bit addressing throughout.
 };
 
+constexpr bool is_egavga(Personality p) {
+	return p >= Personality::EGA;
+}
+
 // https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
 // register is really card specific".
 //
@@ -99,21 +103,74 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		}
 
 		void set_register(uint8_t value) {
+			static constexpr bool is_ega = is_egavga(personality);
+
+			auto load_low = [value](uint16_t &target) {
+				target = (target & 0xff00) | value;
+			};
+			auto load_high = [value](uint16_t &target) {
+				constexpr uint8_t mask = RefreshMask >> 8;
+				target = uint16_t((target & 0x00ff) | ((value & mask) << 8));
+			};
+
+			switch(selected_register_) {
+				case 0:	layout_.horizontal.total = value;		break;
+				case 1: layout_.horizontal.displayed = value;	break;
+				case 2:	layout_.horizontal.start_sync = value;	break;
+				case 3:
+					layout_.horizontal.sync_width = value & 0xf;
+					layout_.vertical.sync_lines = value >> 4;
+					// TODO: vertical sync lines:
+					// "(0 means 16 on some CRTC. Not present on all CRTCs, fixed to 16 lines on these)"
+				break;
+				case 4:	layout_.vertical.total = value & 0x7f;		break;
+				case 5:	layout_.vertical.adjust = value & 0x1f;		break;
+				case 6:	layout_.vertical.displayed = value & 0x7f;	break;
+				case 7:	layout_.vertical.start_sync = value & 0x7f;	break;
+				case 8:
+					switch(value & 3) {
+						default:	layout_.interlace_mode_ = InterlaceMode::Off;					break;
+						case 0b01:	layout_.interlace_mode_ = InterlaceMode::InterlaceSync;			break;
+						case 0b11:	layout_.interlace_mode_ = InterlaceMode::InterlaceSyncAndVideo;	break;
+					}
+
+					// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
+					if(personality != Personality::UM6845R && personality != Personality::MC6845) {
+						switch((value >> 4)&3) {
+							default:	display_skew_mask_ = 1;		break;
+							case 1:		display_skew_mask_ = 2;		break;
+							case 2:		display_skew_mask_ = 4;		break;
+						}
+					}
+				break;
+				case 9:	layout_.vertical.end_row = value & 0x1f;	break;
+				case 10:
+					layout_.vertical.start_cursor = value & 0x1f;
+					layout_.cursor_flags = (value >> 5) & 3;
+				break;
+				case 11:
+					layout_.vertical.end_cursor = value & 0x1f;
+				break;
+				case 12:	load_high(layout_.start_address);	break;
+				case 13:	load_low(layout_.start_address);	break;
+				case 14:	load_high(layout_.cursor_address);	break;
+				case 15:	load_low(layout_.cursor_address);	break;
+			}
+
 			static constexpr uint8_t masks[] = {
-				0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+				0xff,	// Horizontal total.
+				0xff,	// Horizontal display end.
+				0xff,	// Start horizontal blank.
+				0xff,	//
+						// EGA: b0–b4: end of horizontal blank;
+						// b5–b6: "Number of character clocks to delay start of display after Horizontal Total has been reached."
+
+				is_ega ? 0xff : 0x7f,	// Start horizontal retrace.
+				0x1f, 0x7f, 0x7f,
 				0xff, 0x1f, 0x7f, 0x1f,
 				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 				uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
 			};
-
-			// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
-			if(selected_register_ == 8 && personality != Personality::UM6845R && personality != Personality::MC6845) {
-				switch((value >> 4)&3) {
-					default:	display_skew_mask_ = 1;		break;
-					case 1:		display_skew_mask_ = 2;		break;
-					case 2:		display_skew_mask_ = 4;		break;
-				}
-			}
 
 			if(selected_register_ < 16) {
 				registers_[selected_register_] = value & masks[selected_register_];
@@ -133,7 +190,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
 				// Check for end of visible characters.
-				if(character_counter_ == registers_[1]) {
+				if(character_counter_ == layout_.horizontal.displayed) {
 					// TODO: consider skew in character_is_visible_. Or maybe defer until perform_bus_cycle?
 					character_is_visible_ = false;
 					end_of_line_address_ = bus_state_.refresh_address;
@@ -143,10 +200,10 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
 
 				bus_state_.cursor = is_cursor_line_ &&
-					bus_state_.refresh_address == (registers_[15] | (registers_[14] << 8));
+					bus_state_.refresh_address == layout_.cursor_address;
 
 				// Check for end-of-line.
-				if(character_counter_ == registers_[0]) {
+				if(character_counter_ == layout_.horizontal.total) {
 					character_counter_ = 0;
 					do_end_of_line();
 					character_is_visible_ = true;
@@ -156,7 +213,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				}
 
 				// Check for start of horizontal sync.
-				if(character_counter_ == registers_[2]) {
+				if(character_counter_ == layout_.horizontal.start_sync) {
 					hsync_counter_ = 0;
 					bus_state_.hsync = true;
 				}
@@ -168,12 +225,12 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					switch(personality) {
 						case Personality::HD6845S:
 						case Personality::UM6845R:
-							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+							bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
 							hsync_counter_ = (hsync_counter_ + 1) & 15;
 						break;
 						default:
 							hsync_counter_ = (hsync_counter_ + 1) & 15;
-							bus_state_.hsync = hsync_counter_ != (registers_[3] & 15);
+							bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
 						break;
 					}
 				}
@@ -204,7 +261,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			if constexpr (cursor_type != CursorType::None) {
 				// Check for cursor disable.
 				// TODO: this is handled differently on the EGA, should I ever implement that.
-				is_cursor_line_ &= bus_state_.row_address != (registers_[11] & 0x1f);
+				is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
 			}
 
 			// Check for end of vertical sync.
@@ -215,7 +272,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				switch(personality) {
 					case Personality::HD6845S:
 					case Personality::AMS40226:
-						bus_state_.vsync = vsync_counter_ != (registers_[3] >> 4);
+						bus_state_.vsync = vsync_counter_ != layout_.vertical.sync_lines;
 					break;
 					default:
 						bus_state_.vsync = vsync_counter_ != 0;
@@ -225,19 +282,19 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 			if(is_in_adjustment_period_) {
 				line_counter_++;
-				if(line_counter_ == registers_[5]) {
+				if(line_counter_ == layout_.vertical.adjust) {
 					is_in_adjustment_period_ = false;
 					do_end_of_frame();
 				}
 			} else {
 				// Advance vertical counter.
-				if(bus_state_.row_address == registers_[9]) {
+				if(bus_state_.row_address == layout_.vertical.end_row) {
 					bus_state_.row_address = 0;
 					line_address_ = end_of_line_address_;
 
 					// Check for entry into the overflow area.
-					if(line_counter_ == registers_[4]) {
-						if(registers_[5]) {
+					if(line_counter_ == layout_.vertical.total) {
+						if(layout_.vertical.adjust) {
 							line_counter_ = 0;
 							is_in_adjustment_period_ = true;
 						} else {
@@ -247,13 +304,13 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						line_counter_ = (line_counter_ + 1) & 0x7f;
 
 						// Check for start of vertical sync.
-						if(line_counter_ == registers_[7]) {
+						if(line_counter_ == layout_.vertical.start_sync) {
 							bus_state_.vsync = true;
 							vsync_counter_ = 0;
 						}
 
 						// Check for end of visible lines.
-						if(line_counter_ == registers_[6]) {
+						if(line_counter_ == layout_.vertical.displayed) {
 							line_is_visible_ = false;
 						}
 					}
@@ -264,18 +321,18 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 			bus_state_.refresh_address = line_address_;
 			character_counter_ = 0;
-			character_is_visible_ = (registers_[1] != 0);
+			character_is_visible_ = (layout_.horizontal.displayed != 0);
 
 			if constexpr (cursor_type != CursorType::None) {
 				// Check for cursor enable.
-				is_cursor_line_ |= bus_state_.row_address == (registers_[10] & 0x1f);
+				is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
 
 				switch(cursor_type) {
 					// MDA-style blinking.
 					// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
 					// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
 					case CursorType::MDA:
-						switch(registers_[10] >> 5) {
+						switch(layout_.cursor_flags) {
 							case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
 							case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
 							case 0b01: is_cursor_line_ = false;								break;
@@ -290,7 +347,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		inline void do_end_of_frame() {
 			line_counter_ = 0;
 			line_is_visible_ = true;
-			line_address_ = uint16_t((registers_[12] << 8) | registers_[13]);
+			line_address_ = layout_.start_address;
 			bus_state_.refresh_address = line_address_;
 			++bus_state_.field_count;
 		}
@@ -298,7 +355,42 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		BusHandlerT &bus_handler_;
 		BusState bus_state_;
 
-		uint8_t registers_[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		enum class InterlaceMode {
+			Off,
+			InterlaceSync,
+			InterlaceSyncAndVideo,
+		};
+		enum class BlinkMode {
+			// TODO.
+		};
+		struct {
+			struct {
+				uint8_t total;
+				uint8_t displayed;
+				uint8_t start_sync;
+				uint8_t sync_width;
+			} horizontal;
+
+			struct {
+				uint8_t total;
+				uint8_t displayed;
+				uint8_t start_sync;
+				uint8_t sync_lines;
+				uint8_t adjust;
+
+				uint8_t end_row;
+				uint8_t start_cursor;
+				uint8_t end_cursor;
+			} vertical;
+
+			InterlaceMode interlace_mode_ = InterlaceMode::Off;
+			uint16_t start_address;
+			uint16_t cursor_address;
+			uint16_t light_pen_address;
+			uint8_t cursor_flags;
+		} layout_;
+
+		uint8_t registers_[18]{};
 		uint8_t dummy_register_ = 0;
 		int selected_register_ = 0;
 
