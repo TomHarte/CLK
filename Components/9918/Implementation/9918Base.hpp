@@ -170,16 +170,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// then the appropriate status information will be set.
 		int maximum_visible_sprites = 4;
 
-		// Set the position, in cycles, of the two interrupts,
-		// within a line.
-		//
-		// TODO: redetermine where this number came from.
-		struct {
-			int column = 313;
-			int row = 192;
-		} end_of_frame_interrupt_position;
-		int line_interrupt_position = -1;
-
 		// Enables or disabled the recognition of the sprite
 		// list terminator, and sets the terminator value.
 		bool allow_sprite_terminator = true;

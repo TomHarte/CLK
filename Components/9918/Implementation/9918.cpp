@@ -30,36 +30,28 @@ Base<personality>::Base() :
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
-	if constexpr (is_sega_vdp(personality)) {
-		// Cf. https://www.smspower.org/forums/8161-SMSDisplayTiming
-
-		// "For a line interrupt, /INT is pulled low 608 mclks into the appropriate scanline relative to pixel 0.
-		// This is 3 mclks before the rising edge of /HSYNC which starts the next scanline."
-		//
-		// i.e. it's 304 internal clocks after the end of the left border.
-		mode_timing_.line_interrupt_position = (LineLayout<personality>::EndOfLeftBorder + 304) % LineLayout<personality>::CyclesPerLine;
-
-		// For a frame interrupt, /INT is pulled low 607 mclks into scanline 192 (of scanlines 0 through 261) relative to pixel 0.
-		// This is 4 mclks before the rising edge of /HSYNC which starts the next scanline.
-		//
-		// i.e. it's 1/2 cycle before the line interrupt position, which I have rounded. Ugh.
-		mode_timing_.end_of_frame_interrupt_position.column = mode_timing_.line_interrupt_position - 1;
-		mode_timing_.end_of_frame_interrupt_position.row = 192 + (LineLayout<personality>::EndOfLeftBorder + 304) / LineLayout<personality>::CyclesPerLine;
-	}
-
-	if constexpr (is_yamaha_vdp(personality)) {
-		// TODO: this is used for interrupt _prediction_ but won't handle text modes correctly, and indeed
-		// can't be just a single value where the programmer has changed into or out of text modes during the
-		// middle of a line, since screen mode is latched (so it'll be one value for that line, another from then onwards).a
-		mode_timing_.line_interrupt_position = LineLayout<personality>::EndOfPixels;
-	}
-
 	// Establish that output is delayed after reading by `output_lag` cycles,
 	// i.e. the fetch pointer is currently _ahead_ of the output pointer.
 	output_pointer_.row = output_pointer_.column = 0;
 
 	fetch_pointer_ = output_pointer_;
 	fetch_pointer_.column += output_lag;
+
+	// The fetch pointer is interpreted such that its zero is at the mode-latch cycle.
+	// Conversely the output pointer has zero be at start of sync. So the following
+	// is a mere change-of-origin.
+	//
+	// Logically, any mode latch time greater than 0 — i.e. beyond the start of sync — will
+	// cause fetch_pointer_ to **regress**. It will be set to the value it was at the start
+	// of sync, ready to overflow to 0 upon mode latch. When it overflows, the fetch row
+	// will be incremented.
+	//
+	// Therefore the nominal output row at instantiation needs to be one greater than the
+	// fetch row, as that's the first row that'll actually be fetched.
+	fetch_pointer_.column = to_internal<personality, Origin::ModeLatch>(output_pointer_.column);
+	if(LineLayout<personality>::ModeLatchCycle) {
+		++output_pointer_.row;
+	}
 
 	fetch_line_buffer_ = line_buffers_.begin();
 	draw_line_buffer_ = line_buffers_.begin();
@@ -224,7 +216,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// TODO: where did this magic constant come from? https://www.smspower.org/forums/17970-RoadRashHow#111000 mentioned in passing
 					// that "the vertical scroll register is latched at the start of the active display" and this is two clocks before that, so it's
 					// not uncompelling. I can just no longer find my source.
-					constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
+					constexpr auto latch_time = to_internal<personality, Origin::ModeLatch>(LineLayout<personality>::EndOfLeftBorder - 2);
 					static_assert(latch_time > 0);
 					if(this->fetch_pointer_.column < latch_time && end_column >= latch_time) {
 						Storage<personality>::latched_vertical_scroll_ = Storage<personality>::vertical_scroll_;
@@ -283,13 +275,15 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// -------------------------------
 			// Check for interrupt conditions.
 			// -------------------------------
-			if constexpr (is_sega_vdp(personality)) {
+			if constexpr (LineLayout<personality>::HasFixedLineInterrupt) {
 				// The Sega VDP offers a decrementing counter for triggering line interrupts;
 				// it is reloaded either when it overflows or upon every non-pixel line after the first.
 				// It is otherwise decremented.
+
+				constexpr int FixedLineInterrupt = to_internal<personality, Origin::ModeLatch>(LineLayout<personality>::FixedLineInterrupt);
 				if(
-					this->fetch_pointer_.column < this->mode_timing_.line_interrupt_position &&
-					end_column >= this->mode_timing_.line_interrupt_position
+					this->fetch_pointer_.column < FixedLineInterrupt &&
+					end_column >= FixedLineInterrupt
 				) {
 					if(this->fetch_pointer_.row >= 0 && this->fetch_pointer_.row <= this->mode_timing_.pixel_lines) {
 						if(!this->line_interrupt_counter_) {
