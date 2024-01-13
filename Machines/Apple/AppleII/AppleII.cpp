@@ -985,15 +985,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 using namespace Apple::II;
 
-Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
 	switch(appleii_target->model) {
 		default: return nullptr;
-		case Target::Model::II: return new ConcreteMachine<Target::Model::II>(*appleii_target, rom_fetcher);
-		case Target::Model::IIplus: return new ConcreteMachine<Target::Model::IIplus>(*appleii_target, rom_fetcher);
-		case Target::Model::IIe: return new ConcreteMachine<Target::Model::IIe>(*appleii_target, rom_fetcher);
-		case Target::Model::EnhancedIIe: return new ConcreteMachine<Target::Model::EnhancedIIe>(*appleii_target, rom_fetcher);
+		case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II>>(*appleii_target, rom_fetcher);
+		case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus>>(*appleii_target, rom_fetcher);
+		case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe>>(*appleii_target, rom_fetcher);
+		case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe>>(*appleii_target, rom_fetcher);
 	}
 }
 

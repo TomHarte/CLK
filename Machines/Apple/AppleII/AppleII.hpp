@@ -23,7 +23,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an AppleII.
-		static Machine *AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Apple II.
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {

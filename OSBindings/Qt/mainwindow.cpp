@@ -288,7 +288,7 @@ void MainWindow::launchMachine() {
 		return results;
 	};
 	Machine::Error error;
-	machine.reset(Machine::MachineForTargets(targets, rom_fetcher, error));
+	machine = Machine::MachineForTargets(targets, rom_fetcher, error);
 
 	if(error != Machine::Error::None) {
 		switch(error) {

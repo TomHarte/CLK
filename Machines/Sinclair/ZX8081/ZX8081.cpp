@@ -496,12 +496,12 @@ template<bool is_zx81> class ConcreteMachine:
 using namespace Sinclair::ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
-Machine *Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
 
 	// Instantiate the correct type of machine.
-	if(zx_target->is_ZX81)	return new ConcreteMachine<true>(*zx_target, rom_fetcher);
-	else					return new ConcreteMachine<false>(*zx_target, rom_fetcher);
+	if(zx_target->is_ZX81)	return std::make_unique<ConcreteMachine<true>>(*zx_target, rom_fetcher);
+	else					return std::make_unique<ConcreteMachine<false>>(*zx_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

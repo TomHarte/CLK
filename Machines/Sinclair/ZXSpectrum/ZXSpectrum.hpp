@@ -21,7 +21,7 @@ namespace Sinclair::ZXSpectrum {
 class Machine {
 	public:
 		virtual ~Machine();
-		static Machine *ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		virtual void set_tape_is_playing(bool is_playing) = 0;
 		virtual bool get_tape_is_playing() = 0;

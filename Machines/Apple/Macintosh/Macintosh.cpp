@@ -840,16 +840,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 using namespace Apple::Macintosh;
 
-Machine *Machine::Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const mac_target = dynamic_cast<const Analyser::Static::Macintosh::Target *>(target);
 
 	using Model = Analyser::Static::Macintosh::Target::Model;
 	switch(mac_target->model) {
 		default:
-		case Model::Mac128k:	return new ConcreteMachine<Model::Mac128k>(*mac_target, rom_fetcher);
-		case Model::Mac512k:	return new ConcreteMachine<Model::Mac512k>(*mac_target, rom_fetcher);
-		case Model::Mac512ke:	return new ConcreteMachine<Model::Mac512ke>(*mac_target, rom_fetcher);
-		case Model::MacPlus:	return new ConcreteMachine<Model::MacPlus>(*mac_target, rom_fetcher);
+		case Model::Mac128k:	return std::make_unique<ConcreteMachine<Model::Mac128k>>(*mac_target, rom_fetcher);
+		case Model::Mac512k:	return std::make_unique<ConcreteMachine<Model::Mac512k>>(*mac_target, rom_fetcher);
+		case Model::Mac512ke:	return std::make_unique<ConcreteMachine<Model::Mac512ke>>(*mac_target, rom_fetcher);
+		case Model::MacPlus:	return std::make_unique<ConcreteMachine<Model::MacPlus>>(*mac_target, rom_fetcher);
 	}
 }
 

@@ -1285,12 +1285,12 @@ template <bool has_fdc> class ConcreteMachine:
 using namespace AmstradCPC;
 
 // See header; constructs and returns an instance of the Amstrad CPC.
-Machine *Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AmstradCPC::Target;
 	const Target *const cpc_target = dynamic_cast<const Target *>(target);
 	switch(cpc_target->model) {
-		default:					return new AmstradCPC::ConcreteMachine<true>(*cpc_target, rom_fetcher);
-		case Target::Model::CPC464:	return new AmstradCPC::ConcreteMachine<false>(*cpc_target, rom_fetcher);
+		default:					return std::make_unique<AmstradCPC::ConcreteMachine<true>>(*cpc_target, rom_fetcher);
+		case Target::Model::CPC464:	return std::make_unique<AmstradCPC::ConcreteMachine<false>>(*cpc_target, rom_fetcher);
 	}
 }
 

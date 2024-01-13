@@ -21,7 +21,7 @@ namespace Sega::MasterSystem {
 class Machine {
 	public:
 		virtual ~Machine();
-		static Machine *MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
 			friend Configurable::DisplayOption<Options>;

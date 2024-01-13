@@ -412,8 +412,8 @@ class ConcreteMachine:
 
 using namespace Coleco::Vision;
 
-Machine *Machine::ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new ConcreteMachine(*target, rom_fetcher);
+std::unique_ptr<Machine> Machine::ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	return std::make_unique<ConcreteMachine>(*target, rom_fetcher);
 }
 
 Machine::~Machine() {}

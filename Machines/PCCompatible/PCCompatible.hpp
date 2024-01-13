@@ -24,7 +24,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns a PC Compatible.
-		static Machine *PCCompatible(
+		static std::unique_ptr<Machine> PCCompatible(
 			const Analyser::Static::Target *target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		);

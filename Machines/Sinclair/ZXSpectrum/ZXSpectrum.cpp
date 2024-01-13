@@ -991,16 +991,16 @@ template<Model model> class ConcreteMachine:
 
 using namespace Sinclair::ZXSpectrum;
 
-Machine *Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZXSpectrum::Target *>(target);
 
 	switch(zx_target->model) {
-		case Model::SixteenK:		return new ConcreteMachine<Model::SixteenK>(*zx_target, rom_fetcher);
-		case Model::FortyEightK:	return new ConcreteMachine<Model::FortyEightK>(*zx_target, rom_fetcher);
-		case Model::OneTwoEightK:	return new ConcreteMachine<Model::OneTwoEightK>(*zx_target, rom_fetcher);
-		case Model::Plus2:			return new ConcreteMachine<Model::Plus2>(*zx_target, rom_fetcher);
-		case Model::Plus2a:			return new ConcreteMachine<Model::Plus2a>(*zx_target, rom_fetcher);
-		case Model::Plus3:			return new ConcreteMachine<Model::Plus3>(*zx_target, rom_fetcher);
+		case Model::SixteenK:		return std::make_unique<ConcreteMachine<Model::SixteenK>>(*zx_target, rom_fetcher);
+		case Model::FortyEightK:	return std::make_unique<ConcreteMachine<Model::FortyEightK>>(*zx_target, rom_fetcher);
+		case Model::OneTwoEightK:	return std::make_unique<ConcreteMachine<Model::OneTwoEightK>>(*zx_target, rom_fetcher);
+		case Model::Plus2:			return std::make_unique<ConcreteMachine<Model::Plus2>>(*zx_target, rom_fetcher);
+		case Model::Plus2a:			return std::make_unique<ConcreteMachine<Model::Plus2a>>(*zx_target, rom_fetcher);
+		case Model::Plus3:			return std::make_unique<ConcreteMachine<Model::Plus3>>(*zx_target, rom_fetcher);
 	}
 
 	return nullptr;

@@ -21,7 +21,7 @@ namespace MSX {
 class Machine {
 	public:
 		virtual ~Machine();
-		static Machine *MSX(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> MSX(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
 			friend Configurable::DisplayOption<Options>;

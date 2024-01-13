@@ -758,10 +758,10 @@ class ConcreteMachine:
 
 using namespace Commodore::Vic20;
 
-Machine *Machine::Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Commodore::Target;
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
-	return new Vic20::ConcreteMachine(*commodore_target, rom_fetcher);
+	return std::make_unique<Vic20::ConcreteMachine>(*commodore_target, rom_fetcher);
 }
 
 Machine::~Machine() {}
