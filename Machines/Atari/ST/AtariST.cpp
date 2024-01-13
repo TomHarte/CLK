@@ -706,13 +706,13 @@ class ConcreteMachine:
 
 using namespace Atari::ST;
 
-Machine *Machine::AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const atari_target = dynamic_cast<const Analyser::Static::AtariST::Target *>(target);
 	if(!atari_target) {
 		return nullptr;
 	}
 
-	return new ConcreteMachine(*atari_target, rom_fetcher);
+	return std::make_unique<ConcreteMachine>(*atari_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

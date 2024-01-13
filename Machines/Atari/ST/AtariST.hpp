@@ -22,7 +22,7 @@ class Machine {
 	public:
 		virtual ~Machine();
 
-		static Machine *AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
 			friend Configurable::DisplayOption<Options>;

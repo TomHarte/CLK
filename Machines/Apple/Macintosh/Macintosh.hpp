@@ -21,7 +21,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns a Macintosh.
-		static Machine *Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickbootOption<Options> {
 			friend Configurable::QuickbootOption<Options>;

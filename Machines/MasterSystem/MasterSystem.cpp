@@ -557,14 +557,14 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 
 using namespace Sega::MasterSystem;
 
-Machine *Machine::MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Sega::Target;
 	const Target *const sega_target = dynamic_cast<const Target *>(target);
 
 	switch(sega_target->model) {
-		case Target::Model::SG1000:			return new ConcreteMachine<Target::Model::SG1000>(*sega_target, rom_fetcher);
-		case Target::Model::MasterSystem:	return new ConcreteMachine<Target::Model::MasterSystem>(*sega_target, rom_fetcher);
-		case Target::Model::MasterSystem2:	return new ConcreteMachine<Target::Model::MasterSystem2>(*sega_target, rom_fetcher);
+		case Target::Model::SG1000:			return std::make_unique<ConcreteMachine<Target::Model::SG1000>>(*sega_target, rom_fetcher);
+		case Target::Model::MasterSystem:	return std::make_unique<ConcreteMachine<Target::Model::MasterSystem>>(*sega_target, rom_fetcher);
+		case Target::Model::MasterSystem2:	return std::make_unique<ConcreteMachine<Target::Model::MasterSystem2>>(*sega_target, rom_fetcher);
 		default:
 			assert(false);
 			return nullptr;

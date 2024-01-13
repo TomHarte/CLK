@@ -26,7 +26,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns a Vic-20.
-		static Machine *Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
 			friend Configurable::DisplayOption<Options>;

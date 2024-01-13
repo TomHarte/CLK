@@ -50,12 +50,12 @@
 #include "../../Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
 
-Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
+std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
 	error = Machine::Error::None;
 
-	Machine::DynamicMachine *machine = nullptr;
+	std::unique_ptr<Machine::DynamicMachine> machine;
 	try {
-#define BindD(name, m)	case Analyser::Machine::m: machine = new Machine::TypedDynamicMachine<::name::Machine>(name::Machine::m(target, rom_fetcher));	break;
+#define BindD(name, m)	case Analyser::Machine::m: machine = std::make_unique<Machine::TypedDynamicMachine<::name::Machine>>(name::Machine::m(target, rom_fetcher));	break;
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
 			Bind(Amiga)
@@ -95,7 +95,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 	return machine;
 }
 
-Machine::DynamicMachine *Machine::MachineForTargets(const Analyser::Static::TargetList &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
+std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(const Analyser::Static::TargetList &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
 	// Zero targets implies no machine.
 	if(targets.empty()) {
 		error = Error::NoTargets;
@@ -117,9 +117,9 @@ Machine::DynamicMachine *Machine::MachineForTargets(const Analyser::Static::Targ
 		// If a multimachine would just instantly collapse the list to a single machine, do
 		// so without the ongoing baggage of a multimachine.
 		if(Analyser::Dynamic::MultiMachine::would_collapse(machines)) {
-			return machines.front().release();
+			return std::move(machines.front());
 		} else {
-			return new Analyser::Dynamic::MultiMachine(std::move(machines));
+			return std::make_unique<Analyser::Dynamic::MultiMachine>(std::move(machines));
 		}
 	}
 

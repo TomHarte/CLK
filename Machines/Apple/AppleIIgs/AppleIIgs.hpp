@@ -23,7 +23,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an AppleIIgs.
-		static Machine *AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }

@@ -14,6 +14,8 @@
 #include "../../Configurable/StandardOptions.hpp"
 #include "../ROMMachine.hpp"
 
+#include <memory>
+
 namespace Enterprise {
 
 /*!
@@ -25,8 +27,7 @@ namespace Enterprise {
 class Machine {
 	public:
 		virtual ~Machine();
-
-		static Machine *Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Enterprise.
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {

@@ -14,12 +14,14 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
+#include <memory>
+
 namespace Coleco::Vision {
 
 class Machine {
 	public:
 		virtual ~Machine();
-		static Machine *ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
 			friend Configurable::DisplayOption<Options>;
