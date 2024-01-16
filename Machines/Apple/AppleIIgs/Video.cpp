@@ -22,31 +22,31 @@ constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 // Converts from Apple's RGB ordering to this emulator's.
 #if TARGET_RT_BIG_ENDIAN
-#define PaletteConvulve(x)	uint16_t(x)
+constexpr uint16_t convulve(uint16_t x) { return x; }
 #else
-#define PaletteConvulve(x)	uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8))
+constexpr uint16_t convulve(uint16_t x) { return uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8)); }
 #endif
 
 // The 12-bit values used by the Apple IIgs to approximate Apple II colours,
 // as implied by tech note #63's use of them as border colours.
 // http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.063.html
 constexpr uint16_t appleii_palette[16] = {
-	PaletteConvulve(0x0000),	// Black.
-	PaletteConvulve(0x0d03),	// Deep Red.
-	PaletteConvulve(0x0009),	// Dark Blue.
-	PaletteConvulve(0x0d2d),	// Purple.
-	PaletteConvulve(0x0072),	// Dark Green.
-	PaletteConvulve(0x0555),	// Dark Gray.
-	PaletteConvulve(0x022f),	// Medium Blue.
-	PaletteConvulve(0x06af),	// Light Blue.
-	PaletteConvulve(0x0850),	// Brown.
-	PaletteConvulve(0x0f60),	// Orange.
-	PaletteConvulve(0x0aaa),	// Light Grey.
-	PaletteConvulve(0x0f98),	// Pink.
-	PaletteConvulve(0x01d0),	// Light Green.
-	PaletteConvulve(0x0ff0),	// Yellow.
-	PaletteConvulve(0x04f9),	// Aquamarine.
-	PaletteConvulve(0x0fff),	// White.
+	convulve(0x0000),	// Black.
+	convulve(0x0d03),	// Deep Red.
+	convulve(0x0009),	// Dark Blue.
+	convulve(0x0d2d),	// Purple.
+	convulve(0x0072),	// Dark Green.
+	convulve(0x0555),	// Dark Gray.
+	convulve(0x022f),	// Medium Blue.
+	convulve(0x06af),	// Light Blue.
+	convulve(0x0850),	// Brown.
+	convulve(0x0f60),	// Orange.
+	convulve(0x0aaa),	// Light Grey.
+	convulve(0x0f98),	// Pink.
+	convulve(0x01d0),	// Light Green.
+	convulve(0x0ff0),	// Yellow.
+	convulve(0x04f9),	// Aquamarine.
+	convulve(0x0fff),	// White.
 };
 
 // Reasoned guesswork ahoy!
@@ -280,7 +280,7 @@ void Video::output_row(int row, int start, int end) {
 				const int palette_base = (line_control_ & 15) * 32 + 0x19e00;
 				for(int c = 0; c < 16; c++) {
 					const int entry = ram_[palette_base + (c << 1)] | (ram_[palette_base + (c << 1) + 1] << 8);
-					palette_[c] = PaletteConvulve(entry);
+					palette_[c] = convulve(entry);
 				}
 
 				// Post an interrupt if requested.
