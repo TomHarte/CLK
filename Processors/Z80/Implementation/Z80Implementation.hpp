@@ -88,26 +88,25 @@ template <	class T,
 
 	/// Sets flags as expected at the end of an 8080-style rotate operation (i.e. RRA, RRCA, RLA or RLCA).
 	/// Specifically:
-	/// * N and H are set to 0;
-	/// * C is set to whatever is supplied as new_carry; and
-	/// * 5 and 3 are set from the result now stored in A.
+	/// * C is set to whatever is supplied as new_carry;
+	/// * 5 and 3 are set from the result now stored in A; and
+	/// * H and N are reset.
 	const auto set_rotate_flags = [&](uint8_t new_carry) {
 		bit53_result_ = a_;
 		carry_result_ = new_carry;
-		subtract_flag_ = half_carry_result_ = 0;
+		half_carry_result_ = subtract_flag_ = 0;
 		set_did_compute_flags();
 	};
 
-	/// Sets flags as expected at the end of a shift or post-8080-style rotate operation.
+	/// Sets flags as expected at the end of a decimal rotate, shift or post-8080-style rotate operation.
 	/// Specifically:
-	/// * N, Z, 5 and 3 are set according to the value of source;
+	/// * S, Z, 5 and 3 are set according to the value of source;
 	/// * P is set according to the parity of the source; and
 	/// * H and N are reset.
 	const auto set_shift_flags = [&](uint8_t source) {
 		sign_result_ = zero_result_ = bit53_result_ = source;
 		set_parity(source);
-		half_carry_result_ = 0;
-		subtract_flag_ = 0;
+		half_carry_result_ = subtract_flag_ = 0;
 		set_did_compute_flags();
 	};
 
@@ -783,19 +782,12 @@ template <	class T,
 					set_shift_flags(source);
 				} break;
 
-#define set_decimal_rotate_flags()	\
-	subtract_flag_ = 0;	\
-	half_carry_result_ = 0;	\
-	set_parity(a_);	\
-	bit53_result_ = zero_result_ = sign_result_ = a_;	\
-	set_did_compute_flags();
-
 				case MicroOp::RRD: {
 					memptr_.full = hl_.full + 1;
 					const uint8_t low_nibble = a_ & 0xf;
 					a_ = (a_ & 0xf0) | (temp8_ & 0xf);
 					temp8_ = uint8_t((temp8_ >> 4) | (low_nibble << 4));
-					set_decimal_rotate_flags();
+					set_shift_flags(a_);
 				} break;
 
 				case MicroOp::RLD: {
@@ -803,11 +795,8 @@ template <	class T,
 					const uint8_t low_nibble = a_ & 0xf;
 					a_ = (a_ & 0xf0) | (temp8_ >> 4);
 					temp8_ = uint8_t((temp8_ << 4) | low_nibble);
-					set_decimal_rotate_flags();
+					set_shift_flags(a_);
 				} break;
-
-#undef set_decimal_rotate_flags
-
 
 // MARK: - Interrupt state
 
