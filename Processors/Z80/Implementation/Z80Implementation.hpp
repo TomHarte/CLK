@@ -18,23 +18,40 @@ template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
 				::run_for(const HalfCycles cycles) {
-#define advance_operation() \
-	pc_increment_ = 1;	\
-	if(last_request_status_) {	\
-		halt_mask_ = 0xff;	\
-		if(last_request_status_ & (Interrupt::PowerOn | Interrupt::Reset)) {	\
-			request_status_ &= ~Interrupt::PowerOn;	\
-			scheduled_program_counter_ = reset_program_.data();	\
-		} else if(last_request_status_ & Interrupt::NMI) {	\
-			request_status_ &= ~Interrupt::NMI;	\
-			scheduled_program_counter_ = nmi_program_.data();	\
-		} else if(last_request_status_ & Interrupt::IRQ) {	\
-			scheduled_program_counter_ = irq_program_[interrupt_mode_].data();	\
-		}	\
-	} else {	\
-		current_instruction_page_ = &base_page_;	\
-		scheduled_program_counter_ = base_page_.fetch_decode_execute_data;	\
-	}
+
+	/// Schedules the next concrete block of work for the CPU, whatever that may be:
+	/// performing the reset, NMI or IRQ sequences, or fetching a new instruction.
+	const auto advance_operation = [&] {
+		pc_increment_ = 1;
+		if(last_request_status_) {
+			halt_mask_ = 0xff;
+			if(last_request_status_ & (Interrupt::PowerOn | Interrupt::Reset)) {
+				request_status_ &= ~Interrupt::PowerOn;
+				scheduled_program_counter_ = reset_program_.data();
+			} else if(last_request_status_ & Interrupt::NMI) {
+				request_status_ &= ~Interrupt::NMI;
+				scheduled_program_counter_ = nmi_program_.data();
+			} else if(last_request_status_ & Interrupt::IRQ) {
+				scheduled_program_counter_ = irq_program_[interrupt_mode_].data();
+			}
+		} else {
+			current_instruction_page_ = &base_page_;
+			scheduled_program_counter_ = base_page_.fetch_decode_execute_data;
+		}
+	};
+
+	/// Indicates that the ALU was used in this operation; this affects flag output in future SCF and CCFs.
+	const auto set_did_compute_flags = [&] {
+		flag_adjustment_history_ |= 1;
+	};
+
+	/// Computes parity for @c v, leaving it bit 2 of parity_overflow_result_; the other bits are undefined.
+	const auto set_parity = [&](uint8_t v) {
+		parity_overflow_result_ = uint8_t(v^1);
+		parity_overflow_result_ ^= parity_overflow_result_ >> 4;
+		parity_overflow_result_ ^= parity_overflow_result_ << 2;
+		parity_overflow_result_ ^= parity_overflow_result_ >> 1;
+	};
 
 	number_of_cycles_ += cycles;
 	if(!scheduled_program_counter_) {
@@ -42,7 +59,6 @@ template <	class T,
 	}
 
 	while(1) {
-
 		do_bus_acknowledge:
 		while(uses_bus_request && bus_request_line_) {
 			static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
@@ -55,15 +71,6 @@ template <	class T,
 		while(true) {
 			const MicroOp *const operation = scheduled_program_counter_;
 			scheduled_program_counter_++;
-
-#define set_did_compute_flags()	\
-	flag_adjustment_history_ |= 1;
-
-#define set_parity(v)	\
-	parity_overflow_result_ = uint8_t(v^1);\
-	parity_overflow_result_ ^= parity_overflow_result_ >> 4;\
-	parity_overflow_result_ ^= parity_overflow_result_ << 2;\
-	parity_overflow_result_ ^= parity_overflow_result_ >> 1;
 
 			switch(operation->type) {
 				case MicroOp::BusOperation:
@@ -449,12 +456,9 @@ template <	class T,
 
 // MARK: - Exchange
 
-#define swap(a, b)	temp = a.full; a.full = b.full; b.full = temp;
-
-				case MicroOp::ExDEHL: {
-					uint16_t temp;
-					swap(de_, hl_);
-				} break;
+				case MicroOp::ExDEHL:
+					std::swap(de_, hl_);
+				break;
 
 				case MicroOp::ExAFAFDash: {
 					const uint8_t a = a_;
@@ -465,14 +469,11 @@ template <	class T,
 					af_dash_.halves.low = f;
 				} break;
 
-				case MicroOp::EXX: {
-					uint16_t temp;
-					swap(de_, de_dash_);
-					swap(bc_, bc_dash_);
-					swap(hl_, hl_dash_);
-				} break;
-
-#undef swap
+				case MicroOp::EXX:
+					std::swap(de_, de_dash_);
+					std::swap(bc_, bc_dash_);
+					std::swap(hl_, hl_dash_);
+				break;
 
 // MARK: - Repetition
 
@@ -890,7 +891,6 @@ template <	class T,
 				case MicroOp::IndexedPlaceHolder:
 				return;
 			}
-#undef set_parity
 		}
 
 	}
@@ -926,8 +926,6 @@ template <	class T,
 	return wait_line_;
 }
 
-#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation)
-
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
@@ -938,7 +936,7 @@ template <	class T,
 	// Count number of micro-ops required.
 	for(int c = 0; c < 256; c++) {
 		std::size_t length = 0;
-		while(!isTerminal(table[c][length].type)) length++;
+		while(!is_terminal(table[c][length].type)) length++;
 		length++;
 		lengths[c] = length;
 		number_of_micro_ops += length;
@@ -995,7 +993,7 @@ template <	class T,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
 		::copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
 	std::size_t length = 0;
-	while(!isTerminal(source[length].type)) length++;
+	while(!is_terminal(source[length].type)) length++;
 	std::size_t pointer = 0;
 	while(true) {
 		// TODO: This test is duplicated from assemble_page; can a better factoring be found?
@@ -1006,12 +1004,10 @@ template <	class T,
 		}
 
 		destination.emplace_back(source[pointer]);
-		if(isTerminal(source[pointer].type)) break;
+		if(is_terminal(source[pointer].type)) break;
 		pointer++;
 	}
 }
-
-#undef isTerminal
 
 bool ProcessorBase::get_halt_line() const {
 	return halt_mask_ == 0x00;
