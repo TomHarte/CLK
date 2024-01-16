@@ -758,11 +758,11 @@ template<Model model> class ConcreteMachine:
 		std::array<uint8_t, 128*1024> ram_;
 
 		std::array<uint8_t, 16*1024> scratch_;
-		const uint8_t *read_pointers_[4];
-		uint8_t *write_pointers_[4];
-		uint8_t pages_[4];
-		bool is_contended_[4];
-		bool is_video_[4];
+		std::array<const uint8_t *, 4> read_pointers_;
+		std::array<uint8_t *, 4> write_pointers_;
+		std::array<uint8_t, 4> pages_;
+		std::array<bool, 4> is_contended_;
+		std::array<bool, 4> is_video_;
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;
