@@ -53,6 +53,39 @@ template <	class T,
 		parity_overflow_result_ ^= parity_overflow_result_ >> 1;
 	};
 
+	/// Sets flags as expected at the end of a logical operation — an AND, OR or XOR.
+	/// Specifically:
+	/// * S, Z, 5 and 3 are set according to the value in A;
+	/// * P/V is set according to the parity of A;
+	/// * N and C are cleared; and
+	/// * H is set to whatever value is supplied as an argument.
+	const auto set_logical_flags = [&](uint8_t half_carry) {
+		sign_result_ = zero_result_ = bit53_result_ = a_;
+		set_parity(a_);
+		half_carry_result_ = half_carry;
+		subtract_flag_ = 0;
+		carry_result_ = 0;
+		set_did_compute_flags();
+	};
+
+	/// Sets flags as expected at the end of an arithmetic operation.
+	/// Specifically:
+	/// * S and Z are set according to result as trucated to 8 bits;
+	/// * C is set according to bit 8 of result;
+	/// * H is set according to whatever is supplied as half_result;
+	/// * V is set according to bit 7 of overflow;
+	/// * N is set to whatever is supplied as subtact; and
+	/// * 5 & 3 are set to the respective bits of bits53.
+	const auto set_arithmetic_flags = [&](int result, int half_result, int overflow, uint8_t subtract, uint8_t bits53) {
+		sign_result_ = zero_result_ = uint8_t(result);
+		carry_result_ = uint8_t(result >> 8);
+		half_carry_result_ = uint8_t(half_result);
+		parity_overflow_result_ = uint8_t(overflow >> 5);
+		subtract_flag_ = subtract;
+		bit53_result_ = bits53;
+		set_did_compute_flags();
+	};
+
 	number_of_cycles_ += cycles;
 	if(!scheduled_program_counter_) {
 		advance_operation();
@@ -125,14 +158,6 @@ template <	class T,
 
 // MARK: - Logical
 
-#define set_logical_flags(hf)	\
-	sign_result_ = zero_result_ = bit53_result_ = a_;	\
-	set_parity(a_);	\
-	half_carry_result_ = hf;	\
-	subtract_flag_ = 0;	\
-	carry_result_ = 0;	\
-	set_did_compute_flags();
-
 				case MicroOp::And:
 					a_ &= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(Flag::HalfCarry);
@@ -147,8 +172,6 @@ template <	class T,
 					a_ ^= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(0);
 				break;
-
-#undef set_logical_flags
 
 				case MicroOp::CPL:
 					a_ ^= 0xff;
@@ -197,26 +220,17 @@ template <	class T,
 
 // MARK: - 8-bit arithmetic
 
-#define set_arithmetic_flags(sub, b53)	\
-	sign_result_ = zero_result_ = uint8_t(result);	\
-	carry_result_ = uint8_t(result >> 8);	\
-	half_carry_result_ = uint8_t(half_result);	\
-	parity_overflow_result_ = uint8_t(overflow >> 5);	\
-	subtract_flag_ = sub;	\
-	bit53_result_ = uint8_t(b53);	\
-	set_did_compute_flags();
-
 				case MicroOp::CP8: {
 					const uint8_t value = *static_cast<uint8_t *>(operation->source);
 					const int result = a_ - value;
 					const int half_result = (a_&0xf) - (value&0xf);
 
-					// overflow for a subtraction is when the signs were originally
-					// different and the result is different again
+					// Overflow for a subtraction is when the signs were originally
+					// different and the result is different again.
 					const int overflow = (value^a_) & (result^a_);
 
-					// the 5 and 3 flags come from the operand, atypically
-					set_arithmetic_flags(Flag::Subtract, value);
+					// The 5 and 3 flags come from the operand, atypically.
+					set_arithmetic_flags(result, half_result, overflow, Flag::Subtract, value);
 				} break;
 
 				case MicroOp::SUB8: {
@@ -229,7 +243,7 @@ template <	class T,
 					const int overflow = (value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(Flag::Subtract, result);
+					set_arithmetic_flags(result, half_result, overflow, Flag::Subtract, uint8_t(result));
 				} break;
 
 				case MicroOp::SBC8: {
@@ -242,7 +256,7 @@ template <	class T,
 					const int overflow = (value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(Flag::Subtract, result);
+					set_arithmetic_flags(result, half_result, overflow, Flag::Subtract, uint8_t(result));
 				} break;
 
 				case MicroOp::ADD8: {
@@ -255,7 +269,7 @@ template <	class T,
 					const int overflow = ~(value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(0, result);
+					set_arithmetic_flags(result, half_result, overflow, 0, uint8_t(result));
 				} break;
 
 				case MicroOp::ADC8: {
@@ -268,10 +282,8 @@ template <	class T,
 					const int overflow = ~(value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(0, result);
+					set_arithmetic_flags(result, half_result, overflow, 0, uint8_t(result));
 				} break;
-
-#undef set_arithmetic_flags
 
 				case MicroOp::NEG: {
 					const int overflow = (a_ == 0x80);
@@ -279,12 +291,7 @@ template <	class T,
 					const int halfResult = -(a_&0xf);
 
 					a_ = uint8_t(result);
-					bit53_result_ = sign_result_ = zero_result_ = a_;
-					parity_overflow_result_ = overflow ? Flag::Overflow : 0;
-					subtract_flag_ = Flag::Subtract;
-					carry_result_ = uint8_t(result >> 8);
-					half_carry_result_ = uint8_t(halfResult);
-					set_did_compute_flags();
+					set_arithmetic_flags(result, halfResult, overflow ? 0xff : 0x00, Flag::Subtract, a_);
 				} break;
 
 				case MicroOp::Increment8: {
