@@ -86,6 +86,29 @@ template <	class T,
 		set_did_compute_flags();
 	};
 
+	/// Sets flags as expected at the end of a rotate operation.
+	/// Specifically:
+	/// * N and H are set to 0;
+	/// * C is set to whatever is supplied as new_carry; and
+	/// * 5 and 3 are set from the result now stored in A.
+	const auto set_rotate_flags = [&](uint8_t new_carry) {
+		bit53_result_ = a_;
+		carry_result_ = new_carry;
+		subtract_flag_ = half_carry_result_ = 0;
+		set_did_compute_flags();
+	};
+
+	/// Takes appropriate action for an untaken conditional branch; this might mean just skipping to the next instruction or it might mean taking
+	/// some other alternative follow-up action.
+	const auto decline_conditional = [&](const MicroOp *operation) {
+		if(operation->source) {
+			scheduled_program_counter_ = static_cast<MicroOp *>(operation->source);
+		} else {
+			advance_operation();
+		}
+	};
+
+
 	number_of_cycles_ += cycles;
 	if(!scheduled_program_counter_) {
 		advance_operation();
@@ -443,23 +466,14 @@ template <	class T,
 
 // MARK: - Conditionals
 
-#define decline_conditional()	\
-	if(operation->source) {		\
-		scheduled_program_counter_ = (MicroOp *)operation->source;	\
-	} else {	\
-		advance_operation();	\
-	}
-
-				case MicroOp::TestNZ:	if(!zero_result_)								{ decline_conditional(); }		break;
-				case MicroOp::TestZ:	if(zero_result_)								{ decline_conditional(); }		break;
-				case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ decline_conditional(); }		break;
-				case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ decline_conditional(); }		break;
-				case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ decline_conditional(); }		break;
-				case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ decline_conditional(); }		break;
-				case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ decline_conditional(); }		break;
-				case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ decline_conditional(); }		break;
-
-#undef decline_conditional
+				case MicroOp::TestNZ:	if(!zero_result_)								{ decline_conditional(operation); }		break;
+				case MicroOp::TestZ:	if(zero_result_)								{ decline_conditional(operation); }		break;
+				case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ decline_conditional(operation); }		break;
+				case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ decline_conditional(operation); }		break;
+				case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ decline_conditional(operation); }		break;
+				case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ decline_conditional(operation); }		break;
+				case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ decline_conditional(operation); }		break;
+				case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ decline_conditional(operation); }		break;
 
 // MARK: - Exchange
 
@@ -674,37 +688,29 @@ template <	class T,
 
 // MARK: - Rotation and shifting
 
-#define set_rotate_flags()	\
-	bit53_result_ = a_;	\
-	carry_result_ = new_carry;	\
-	subtract_flag_ = half_carry_result_ = 0;	\
-	set_did_compute_flags();
-
 				case MicroOp::RLA: {
 					const uint8_t new_carry = a_ >> 7;
 					a_ = uint8_t((a_ << 1) | (carry_result_ & Flag::Carry));
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
 				case MicroOp::RRA: {
 					const uint8_t new_carry = a_ & 1;
 					a_ = uint8_t((a_ >> 1) | (carry_result_ << 7));
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
 				case MicroOp::RLCA: {
 					const uint8_t new_carry = a_ >> 7;
 					a_ = uint8_t((a_ << 1) | new_carry);
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
 				case MicroOp::RRCA: {
 					const uint8_t new_carry = a_ & 1;
 					a_ = uint8_t((a_ >> 1) | (new_carry << 7));
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
-
-#undef set_rotate_flags
 
 #define set_shift_flags()	\
 	sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);	\
@@ -883,7 +889,7 @@ template <	class T,
 // MARK: - Internal bookkeeping
 
 				case MicroOp::SetInstructionPage:
-					current_instruction_page_ = (InstructionPage *)operation->source;
+					current_instruction_page_ = static_cast<InstructionPage *>(operation->source);
 					scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute_data;
 				break;
 
