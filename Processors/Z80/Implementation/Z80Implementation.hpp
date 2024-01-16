@@ -120,6 +120,109 @@ template <	class T,
 		}
 	};
 
+	/// Performs the repeat step of LDIR, LDDR, etc that either:
+	/// * repeats this instruction if test is true, updating MEMPTR appropriately; or
+	/// * moves to the next operation otherwise.
+	const auto repeat_mem = [&](bool test) {
+		if(test) {
+			pc_.full -= 2;
+			memptr_.full = pc_.full + 1;
+		} else {
+			advance_operation();
+		}
+	};
+
+	/// Performs the repeat step of INIR, OTIR, etc that either:
+	/// * repeats this instruction if test is true; or
+	/// * moves to the next operation otherwise.
+	/// Unlike repeat_memptr, this does not affect MEMPTR.
+	const auto repeat_io = [&](bool test) {
+		if(test) {
+			pc_.full -= 2;
+		} else {
+			advance_operation();
+		}
+	};
+
+	/// Performs a single instance of LDD/LDI/LDDR/LDIR, setting flags appropriately.
+	const auto LDxR = [&](int direction) {
+		--bc_.full;
+		de_.full += direction;
+		hl_.full += direction;
+
+		const uint8_t sum = a_ + temp8_;
+		bit53_result_ = uint8_t((sum&0x8) | ((sum & 0x02) << 4));
+		subtract_flag_ = 0;
+		half_carry_result_ = 0;
+		parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
+		set_did_compute_flags();
+	};
+
+	/// Performs a single instance of CPD/CPI/CPDR/CPIR, setting flags appropriately.
+	const auto CPxR = [&](int direction) {
+		--bc_.full;
+		hl_.full += direction;
+		memptr_.full += direction;
+
+		uint8_t result = a_ - temp8_;
+		const uint8_t halfResult = (a_&0xf) - (temp8_&0xf);
+
+		parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
+		half_carry_result_ = halfResult;
+		subtract_flag_ = Flag::Subtract;
+		sign_result_ = zero_result_ = result;
+
+		result -= (halfResult >> 4)&1;
+		bit53_result_ = uint8_t((result&0x8) | ((result&0x2) << 4));
+		set_did_compute_flags();
+	};
+
+	/// Performs a single instance of IND/INI/INDR/INIR, setting flags appropriately.
+	const auto INxR = [&](int direction) {
+		memptr_.full = uint16_t(bc_.full + direction);
+		--bc_.halves.high;
+		hl_.full += direction;
+
+		sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;
+		subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;
+
+		const int next_bc = bc_.halves.low + direction;
+		int summation = temp8_ + (next_bc&0xff);
+
+		if(summation > 0xff) {
+			carry_result_ = Flag::Carry;
+			half_carry_result_ = Flag::HalfCarry;
+		} else {
+			carry_result_ = 0;
+			half_carry_result_ = 0;
+		}
+
+		summation = (summation&7) ^ bc_.halves.high;
+		set_parity(uint8_t(summation));
+		set_did_compute_flags();
+	};
+
+	/// Performs a single instance of OTD/OTI/OTDR/OTIR, setting flags appropriately.
+	const auto OUTxR = [&](int direction) {
+		--bc_.halves.high;
+		memptr_.full = uint16_t(bc_.full + direction);
+		hl_.full += direction;
+
+		sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;
+		subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;
+
+		int summation = temp8_ + hl_.halves.low;
+		if(summation > 0xff) {
+			carry_result_ = Flag::Carry;
+			half_carry_result_ = Flag::HalfCarry;
+		} else {
+			carry_result_ = half_carry_result_ = 0;
+		}
+
+		summation = (summation&7) ^ bc_.halves.high;
+		set_parity(uint8_t(summation));
+		set_did_compute_flags();
+	};
 
 	number_of_cycles_ += cycles;
 	if(!scheduled_program_counter_) {
@@ -510,166 +613,48 @@ template <	class T,
 
 // MARK: - Repetition
 
-#define REPEAT(test)	\
-	if(test) {	\
-		pc_.full -= 2;	\
-		memptr_.full = pc_.full + 1;	\
-	} else {	\
-		advance_operation();		\
-	}
-
-#define LDxR_STEP(dir)	\
-	bc_.full--;	\
-	de_.full += dir;	\
-	hl_.full += dir;	\
-	const uint8_t sum = a_ + temp8_;	\
-	bit53_result_ = uint8_t((sum&0x8) | ((sum & 0x02) << 4));	\
-	subtract_flag_ = 0;	\
-	half_carry_result_ = 0;	\
-	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;	\
-	set_did_compute_flags();
-
-				case MicroOp::LDDR: {
-					LDxR_STEP(-1);
-					REPEAT(bc_.full);
-				} break;
-
-				case MicroOp::LDIR: {
-					LDxR_STEP(1);
-					REPEAT(bc_.full);
-				} break;
-
-				case MicroOp::LDD: {
-					LDxR_STEP(-1);
-				} break;
-
-				case MicroOp::LDI: {
-					LDxR_STEP(1);
-				} break;
-
-#undef LDxR_STEP
-
-#define CPxR_STEP(dir)		\
-	hl_.full += dir;		\
-	memptr_.full += dir;	\
-	bc_.full--;				\
-	\
-	uint8_t result = a_ - temp8_;	\
-	const uint8_t halfResult = (a_&0xf) - (temp8_&0xf);	\
-	\
-	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;	\
-	half_carry_result_ = halfResult;	\
-	subtract_flag_ = Flag::Subtract;	\
-	sign_result_ = zero_result_ = result;	\
-	\
-	result -= (halfResult >> 4)&1;	\
-	bit53_result_ = uint8_t((result&0x8) | ((result&0x2) << 4));	\
-	set_did_compute_flags();
-
-				case MicroOp::CPDR: {
-					CPxR_STEP(-1);
-					REPEAT(bc_.full && sign_result_);
-				} break;
-
-				case MicroOp::CPIR: {
-					CPxR_STEP(1);
-					REPEAT(bc_.full && sign_result_);
-				} break;
-
-				case MicroOp::CPD: {
-					CPxR_STEP(-1);
-				} break;
-
-				case MicroOp::CPI: {
-					CPxR_STEP(1);
-				} break;
-
-#undef CPxR_STEP
-
-#undef REPEAT
-#define REPEAT(test)	\
-	if(test) {	\
-		pc_.full -= 2;	\
-	} else {	\
-		advance_operation();		\
-	}
-
-#define INxR_STEP(dir)	\
-	memptr_.full = uint16_t(bc_.full + dir);	\
-	bc_.halves.high--;	\
-	hl_.full += dir;	\
-	\
-	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
-	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
-	\
-	const int next_bc = bc_.halves.low + dir;	\
-	int summation = temp8_ + (next_bc&0xff);	\
-	\
-	if(summation > 0xff) {	\
-		carry_result_ = Flag::Carry;	\
-		half_carry_result_ = Flag::HalfCarry;	\
-	} else {	\
-		carry_result_ = 0;	\
-		half_carry_result_ = 0;	\
-	}	\
-	\
-	summation = (summation&7) ^ bc_.halves.high;	\
-	set_parity(summation);	\
-	set_did_compute_flags();
-
-				case MicroOp::INDR: {
-					INxR_STEP(-1);
-					REPEAT(bc_.halves.high);
-				} break;
-
-				case MicroOp::INIR: {
-					INxR_STEP(1);
-					REPEAT(bc_.halves.high);
-				} break;
-
-				case MicroOp::IND: {
-					INxR_STEP(-1);
-				} break;
-
-				case MicroOp::INI: {
-					INxR_STEP(1);
-				} break;
-
-#undef INxR_STEP
-
-#define OUTxR_STEP(dir)	\
-	bc_.halves.high--;	\
-	memptr_.full = uint16_t(bc_.full + dir);	\
-	hl_.full += dir;	\
-	\
-	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
-	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
-	\
-	int summation = temp8_ + hl_.halves.low;	\
-	if(summation > 0xff) {	\
-		carry_result_ = Flag::Carry;	\
-		half_carry_result_ = Flag::HalfCarry;	\
-	} else {	\
-		carry_result_ = half_carry_result_ = 0;	\
-	}	\
-	\
-	summation = (summation&7) ^ bc_.halves.high;	\
-	set_parity(summation);	\
-	set_did_compute_flags();
-
-				case MicroOp::OUT_R:
-					REPEAT(bc_.halves.high);
+				case MicroOp::LDDR:
+					LDxR(-1);
+					repeat_mem(bc_.full);
 				break;
 
-				case MicroOp::OUTD: {
-					OUTxR_STEP(-1);
-				} break;
+				case MicroOp::LDIR:
+					LDxR(1);
+					repeat_mem(bc_.full);
+				break;
 
-				case MicroOp::OUTI: {
-					OUTxR_STEP(1);
-				} break;
+				case MicroOp::CPDR:
+					CPxR(-1);
+					repeat_mem(bc_.full && sign_result_);
+				break;
 
-#undef OUTxR_STEP
+				case MicroOp::CPIR:
+					CPxR(1);
+					repeat_mem(bc_.full && sign_result_);
+				break;
+
+				case MicroOp::INDR:
+					INxR(-1);
+					repeat_io(bc_.halves.high);
+				break;
+
+				case MicroOp::INIR:
+					INxR(1);
+					repeat_io(bc_.halves.high);
+				break;
+
+				case MicroOp::OUT_R:
+					repeat_io(bc_.halves.high);
+				break;
+
+				case MicroOp::LDD:	LDxR(-1);	break;
+				case MicroOp::CPD:	CPxR(-1);	break;
+				case MicroOp::IND:	INxR(-1);	break;
+				case MicroOp::OUTD:	OUTxR(-1);	break;
+				case MicroOp::LDI:	LDxR(1);	break;
+				case MicroOp::CPI:	CPxR(1);	break;
+				case MicroOp::INI:	INxR(1);	break;
+				case MicroOp::OUTI:	OUTxR(1);	break;
 
 // MARK: - Bit Manipulation
 
