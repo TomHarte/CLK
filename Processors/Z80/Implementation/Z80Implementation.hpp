@@ -165,14 +165,14 @@ template <	class T,
 		memptr_.full += direction;
 
 		uint8_t result = a_ - temp8_;
-		const uint8_t halfResult = (a_&0xf) - (temp8_&0xf);
+		const uint8_t half_result = (a_&0xf) - (temp8_&0xf);
 
 		parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
-		half_carry_result_ = halfResult;
+		half_carry_result_ = half_result;
 		subtract_flag_ = Flag::Subtract;
 		sign_result_ = zero_result_ = result;
 
-		result -= (halfResult >> 4)&1;
+		result -= (half_result >> 4)&1;
 		bit53_result_ = uint8_t((result&0x8) | ((result&0x2) << 4));
 		set_did_compute_flags();
 	};
@@ -426,10 +426,10 @@ template <	class T,
 				case MicroOp::NEG: {
 					const int overflow = (a_ == 0x80);
 					const int result = -a_;
-					const int halfResult = -(a_&0xf);
+					const int half_result = -(a_&0xf);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(result, halfResult, overflow ? 0xff : 0x00, Flag::Subtract, a_);
+					set_arithmetic_flags(result, half_result, overflow ? 0xff : 0x00, Flag::Subtract, a_);
 				} break;
 
 				case MicroOp::Increment8: {
@@ -520,11 +520,11 @@ template <	class T,
 					const uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					const uint16_t destinationValue = memptr_.full;
 					const int result = sourceValue + destinationValue;
-					const int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
+					const int half_result = (sourceValue&0xfff) + (destinationValue&0xfff);
 
 					bit53_result_ = uint8_t(result >> 8);
 					carry_result_ = uint8_t(result >> 16);
-					half_carry_result_ = uint8_t(halfResult >> 8);
+					half_carry_result_ = uint8_t(half_result >> 8);
 					subtract_flag_ = 0;
 					set_did_compute_flags();
 
@@ -537,7 +537,7 @@ template <	class T,
 					const uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					const uint16_t destinationValue = memptr_.full;
 					const int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
-					const int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
+					const int half_result = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
 
 					const int overflow = (result ^ destinationValue) & ~(destinationValue ^ sourceValue);
 
@@ -546,7 +546,7 @@ template <	class T,
 					zero_result_	= uint8_t(result | sign_result_);
 					subtract_flag_	= 0;
 					carry_result_	= uint8_t(result >> 16);
-					half_carry_result_ = uint8_t(halfResult >> 8);
+					half_carry_result_ = uint8_t(half_result >> 8);
 					parity_overflow_result_ = uint8_t(overflow >> 13);
 					set_did_compute_flags();
 
@@ -559,7 +559,7 @@ template <	class T,
 					const uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					const uint16_t destinationValue = memptr_.full;
 					const int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
-					const int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
+					const int half_result = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
 
 					// subtraction, so parity rules are:
 					// signs of operands were different,
@@ -571,7 +571,7 @@ template <	class T,
 					zero_result_	= uint8_t(result | sign_result_);
 					subtract_flag_	= Flag::Subtract;
 					carry_result_	= uint8_t(result >> 16);
-					half_carry_result_ = uint8_t(halfResult >> 8);
+					half_carry_result_ = uint8_t(half_result >> 8);
 					parity_overflow_result_ = uint8_t(overflow >> 13);
 					set_did_compute_flags();
 
