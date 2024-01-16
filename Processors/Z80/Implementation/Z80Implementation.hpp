@@ -86,7 +86,7 @@ template <	class T,
 		set_did_compute_flags();
 	};
 
-	/// Sets flags as expected at the end of a rotate operation.
+	/// Sets flags as expected at the end of an 8080-style rotate operation (i.e. RRA, RRCA, RLA or RLCA).
 	/// Specifically:
 	/// * N and H are set to 0;
 	/// * C is set to whatever is supplied as new_carry; and
@@ -95,6 +95,19 @@ template <	class T,
 		bit53_result_ = a_;
 		carry_result_ = new_carry;
 		subtract_flag_ = half_carry_result_ = 0;
+		set_did_compute_flags();
+	};
+
+	/// Sets flags as expected at the end of a shift or post-8080-style rotate operation.
+	/// Specifically:
+	/// * N, Z, 5 and 3 are set according to the value of source;
+	/// * P is set according to the parity of the source; and
+	/// * H and N are reset.
+	const auto set_shift_flags = [&](uint8_t source) {
+		sign_result_ = zero_result_ = bit53_result_ = source;
+		set_parity(source);
+		half_carry_result_ = 0;
+		subtract_flag_ = 0;
 		set_did_compute_flags();
 	};
 
@@ -712,64 +725,63 @@ template <	class T,
 					set_rotate_flags(new_carry);
 				} break;
 
-#define set_shift_flags()	\
-	sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);	\
-	set_parity(sign_result_);	\
-	half_carry_result_ = 0;	\
-	subtract_flag_ = 0;	\
-	set_did_compute_flags();
+				case MicroOp::RLC: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source >> 7;
+					source = uint8_t((source << 1) | carry_result_);
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::RLC:
-					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) << 1) | carry_result_);
-					set_shift_flags();
-				break;
-
-				case MicroOp::RRC:
-					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
-					set_shift_flags();
-				break;
+				case MicroOp::RRC: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source;
+					source = uint8_t((source >> 1) | (carry_result_ << 7));
+					set_shift_flags(source);
+				} break;
 
 				case MicroOp::RL: {
-					const uint8_t next_carry = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) << 1) | (carry_result_ & Flag::Carry));
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					const uint8_t next_carry = source >> 7;
+					source = uint8_t((source << 1) | (carry_result_ & Flag::Carry));
 					carry_result_ = next_carry;
-					set_shift_flags();
+					set_shift_flags(source);
 				} break;
 
 				case MicroOp::RR: {
-					const uint8_t next_carry = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					const uint8_t next_carry = source;
+					source = uint8_t((source >> 1) | (carry_result_ << 7));
 					carry_result_ = next_carry;
-					set_shift_flags();
+					set_shift_flags(source);
 				} break;
 
-				case MicroOp::SLA:
-					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t(*static_cast<uint8_t *>(operation->source) << 1);
-					set_shift_flags();
-				break;
+				case MicroOp::SLA: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source >> 7;
+					source <<= 1;
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::SRA:
-					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (*static_cast<uint8_t *>(operation->source) & 0x80));
-					set_shift_flags();
-				break;
+				case MicroOp::SRA: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source;
+					source = uint8_t((source >> 1) | (source & 0x80));
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::SLL:
-					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t(*static_cast<uint8_t *>(operation->source) << 1) | 1;
-					set_shift_flags();
-				break;
+				case MicroOp::SLL: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source >> 7;
+					source = uint8_t(source << 1) | 1;
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::SRL:
-					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1));
-					set_shift_flags();
-				break;
-
-#undef set_shift_flags
+				case MicroOp::SRL: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source;
+					source >>= 1;
+					set_shift_flags(source);
+				} break;
 
 #define set_decimal_rotate_flags()	\
 	subtract_flag_ = 0;	\
