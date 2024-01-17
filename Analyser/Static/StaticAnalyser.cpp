@@ -110,15 +110,15 @@ class MediaAccumulator {
 	/// Adds @c instance to the media collection and adds @c platforms to the set of potentials.
 	/// If @c instance is an @c TargetPlatform::TypeDistinguisher then it is given an opportunity to restrict the set of potentials.
 	template <typename InstanceT>
-	void insert(TargetPlatform::IntType platforms, InstanceT *instance) {
+	void insert(TargetPlatform::IntType platforms, std::shared_ptr<InstanceT> instance) {
 		if constexpr (std::is_base_of_v<Storage::Disk::Disk, InstanceT>) {
-			media.disks.emplace_back(instance);
+			media.disks.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::Tape::Tape, InstanceT>) {
-			media.tapes.emplace_back(instance);
+			media.tapes.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::Cartridge::Cartridge, InstanceT>) {
-			media.cartridges.emplace_back(instance);
+			media.cartridges.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::MassStorage::MassStorageDevice, InstanceT>) {
-			media.mass_storage_devices.emplace_back(instance);
+			media.mass_storage_devices.push_back(instance);
 		} else {
 			static_assert(always_false_v<InstanceT>, "Unexpected type encountered.");
 		}
@@ -127,14 +127,14 @@ class MediaAccumulator {
 
 		// Check whether the instance itself has any input on target platforms.
 		TargetPlatform::TypeDistinguisher *const distinguisher =
-			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance);
+			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance.get());
 		if(distinguisher) potential_platforms_ &= distinguisher->target_platform_type();
 	}
 
 	/// Concstructs a new instance of @c InstanceT supplying @c args and adds it to the back of @c list using @c insert_instance.
 	template <typename InstanceT, typename... Args>
 	void insert(TargetPlatform::IntType platforms, Args &&... args) {
-		insert(platforms, new InstanceT(std::forward<Args>(args)...));
+		insert(platforms, std::make_shared<InstanceT>(std::forward<Args>(args)...));
 	}
 
 	/// Calls @c insert with the specified parameters, ignoring any exceptions thrown.
@@ -182,10 +182,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 				if constexpr (std::is_same<Type, nullptr_t>::value) {
 					// It's valid for no media to be returned.
 				} else if constexpr (std::is_same<Type, Disk::DiskImageHolderBase *>::value) {
-					accumulator.insert(TargetPlatform::DiskII, arg);
+					accumulator.insert(TargetPlatform::DiskII, std::shared_ptr<Disk::DiskImageHolderBase>(arg));
 				} else if constexpr (std::is_same<Type, MassStorage::MassStorageDevice *>::value) {
 					// TODO: or is it Apple IIgs?
-					accumulator.insert(TargetPlatform::AppleII, arg);
+					accumulator.insert(TargetPlatform::AppleII, std::shared_ptr<MassStorage::MassStorageDevice>(arg));
 				} else {
 					static_assert(always_false_v<Type>, "Unexpected type encountered.");
 				}
