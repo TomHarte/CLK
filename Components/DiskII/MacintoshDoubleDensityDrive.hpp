@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MacintoshDoubleDensityDrive_hpp
-#define MacintoshDoubleDensityDrive_hpp
+#pragma once
 
 #include "IWM.hpp"
 
@@ -47,5 +46,3 @@ class DoubleDensityDrive: public IWMDrive {
 };
 
 }
-
-#endif /* MacintoshDoubleDensityDrive_hpp */

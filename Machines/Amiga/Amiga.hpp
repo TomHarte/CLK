@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Amiga_hpp
-#define Amiga_hpp
+#pragma once
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
@@ -25,5 +24,3 @@ class Machine {
 };
 
 }
-
-#endif /* Amiga_hpp */

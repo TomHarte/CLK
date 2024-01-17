@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSICard_hpp
-#define SCSICard_hpp
+#pragma once
 
 #include "Card.hpp"
 #include "../../ROMMachine.hpp"
@@ -51,5 +50,3 @@ class SCSICard: public Card {
 };
 
 }
-
-#endif /* SCSICard_hpp */

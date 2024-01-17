@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiSpeaker_hpp
-#define MultiSpeaker_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 #include "../../../../Outputs/Speaker/Speaker.hpp"
@@ -55,5 +54,3 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 };
 
 }
-
-#endif /* MultiSpeaker_hpp */

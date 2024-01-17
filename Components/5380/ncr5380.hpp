@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef ncr5380_hpp
-#define ncr5380_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -86,5 +85,3 @@ class NCR5380 final: public SCSI::Bus::Observer {
 };
 
 }
-
-#endif /* ncr5380_hpp */

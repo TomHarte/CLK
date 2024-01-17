@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef QuadratureMouse_hpp
-#define QuadratureMouse_hpp
+#pragma once
 
 #include "../Mouse.hpp"
 #include <atomic>
@@ -119,5 +118,3 @@ class QuadratureMouse: public Mouse {
 };
 
 }
-
-#endif /* QuadratureMouse_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M50740_Parser_hpp
-#define InstructionSets_M50740_Parser_hpp
+#pragma once
 
 #include <cstdint>
 #include "Decoder.hpp"
@@ -119,5 +118,3 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 };
 
 }
-
-#endif /* InstructionSets_M50740_Parser_hpp */

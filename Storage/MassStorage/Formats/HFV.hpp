@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef HFV_hpp
-#define HFV_hpp
+#pragma once
 
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
@@ -48,5 +47,3 @@ class HFV: public MassStorageDevice, public Encodings::Macintosh::Volume {
 };
 
 }
-
-#endif /* HFV_hpp */

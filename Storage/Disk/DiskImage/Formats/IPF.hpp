@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef IPF_hpp
-#define IPF_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../Track/PCMTrack.hpp"
@@ -85,5 +84,3 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 };
 
 }
-
-#endif /* IPF_hpp */

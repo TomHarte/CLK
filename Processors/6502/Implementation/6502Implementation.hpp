@@ -12,33 +12,85 @@
 	6502.hpp, but it's implementation stuff.
 */
 
-template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-#define checkSchedule() \
-	if(!scheduled_program_counter_) {\
-		if(interrupt_requests_) {\
-			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
-				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];\
-			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
-				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];\
-			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];\
-			} \
-		} else {\
-			scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];\
-		}\
-	}
+template <Personality personality, typename T, bool uses_ready_line>
+void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
-#define bus_access() \
-	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
-	irq_request_history_ = irq_line_ & flags_.inverse_interrupt;	\
-	number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);	\
-	next_bus_operation_ = BusOperation::None;	\
-	if(number_of_cycles <= Cycles(0)) break;
+	const auto check_schedule = [&] {
+		if(!scheduled_program_counter_) {
+			if(interrupt_requests_) {
+				if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {
+					interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];
+				} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {
+					interrupt_requests_ &= ~InterruptRequestFlags::NMI;
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];
+				} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];
+				}
+			} else {
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];
+			}
+		}
+	};
 
-	checkSchedule();
+	check_schedule();
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
+
+	const auto bus_access = [&]() -> bool {
+		interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;
+		irq_request_history_ = irq_line_ & flags_.inverse_interrupt;
+		number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);
+		next_bus_operation_ = BusOperation::None;
+		return number_of_cycles <= Cycles(0);
+	};
+
+	const auto read_op = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::ReadOpcode;
+		bus_address_ = address;
+		bus_value_ = &val;
+		val = 0xff;
+	};
+
+	const auto read_mem = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::Read;
+		bus_address_ = address;
+		bus_value_ = &val;
+		val = 0xff;
+	};
+
+	const auto throwaway_read = [&](uint16_t address) {
+		next_bus_operation_ = BusOperation::Read;
+		bus_address_ = address;
+		bus_value_ = &bus_throwaway_;
+		bus_throwaway_ = 0xff;
+	};
+
+	const auto write_mem = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::Write;
+		bus_address_ = address;
+		bus_value_ = &val;
+	};
+
+	const auto push = [&](uint8_t &val) {
+		const uint16_t targetAddress = s_ | 0x100;
+		--s_;
+		write_mem(val, targetAddress);
+	};
+
+	const auto page_crossing_stall_read = [&] {
+		if(is_65c02(personality)) {
+			throwaway_read(pc_.full - 1);
+		} else {
+			throwaway_read(address_.full);
+		}
+	};
+
+	const auto bra = [&](bool condition) {
+		++pc_.full;
+		if(condition) {
+			scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];
+		}
+	};
 
 	while(number_of_cycles > Cycles(0)) {
 
@@ -52,7 +104,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, bus_value_);
 			if(interrupt_requests_ & InterruptRequestFlags::Reset) {
 				stop_is_active_ = false;
-				checkSchedule();
+				check_schedule();
 				break;
 			}
 		}
@@ -63,25 +115,20 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 			interrupt_requests_ |= (irq_line_ & flags_.inverse_interrupt);
 			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
 				wait_is_active_ = false;
-				checkSchedule();
+				check_schedule();
 				break;
 			}
 		}
 
 		if((!uses_ready_line || !ready_is_active_) && (!has_stpwai(personality) || (!wait_is_active_ && !stop_is_active_))) {
 			if(next_bus_operation_ != BusOperation::None) {
-				bus_access();
+				if(bus_access()) break;
 			}
 
 			while(1) {
 
 				const MicroOp cycle = *scheduled_program_counter_;
 				scheduled_program_counter_++;
-
-#define read_op(val, addr)		next_bus_operation_ = BusOperation::ReadOpcode;	bus_address_ = addr;		bus_value_ = &val;				val = 0xff
-#define read_mem(val, addr)		next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &val;				val	= 0xff
-#define throwaway_read(addr)	next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &bus_throwaway_;	bus_throwaway_ = 0xff
-#define write_mem(val, addr)	next_bus_operation_ = BusOperation::Write;		bus_address_ = addr;		bus_value_ = &val
 
 				switch(cycle) {
 
@@ -117,13 +164,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationMoveToNextProgram:
 						scheduled_program_counter_ = nullptr;
-						checkSchedule();
+						check_schedule();
 					continue;
-
-#define push(v) {\
-	uint16_t targetAddress = s_ | 0x100; s_--;\
-	write_mem(v, targetAddress);\
-}
 
 					case CycleIncPCPushPCH:				pc_.full++;														[[fallthrough]];
 					case CyclePushPCH:					push(pc_.halves.high);											break;
@@ -133,12 +175,11 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case CyclePushX:					push(x_);														break;
 					case CyclePushY:					push(y_);														break;
 					case CycleNoWritePush: {
-						uint16_t targetAddress = s_ | 0x100; s_--;
+						uint16_t targetAddress = s_ | 0x100;
+						--s_;
 						read_mem(operand_, targetAddress);
 					}
 					break;
-
-#undef push
 
 					case CycleReadFromS:				throwaway_read(s_ | 0x100);										break;
 					case CycleReadFromPC:				throwaway_read(pc_.full);										break;
@@ -529,13 +570,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 // MARK: - Addressing Mode Work
 
-#define page_crossing_stall_read()	\
-	if(is_65c02(personality)) {	\
-		throwaway_read(pc_.full - 1);	\
-	} else {	\
-		throwaway_read(address_.full);	\
-	}
-
 					case CycleAddXToAddressLow:
 						next_address_.full = address_.full + x_;
 						address_.halves.low = next_address_.halves.low;
@@ -552,8 +586,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
-
-#undef page_crossing_stall_read
 
 					case CycleAddXToAddressLowRead:
 						next_address_.full = address_.full + x_;
@@ -649,23 +681,15 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 // MARK: - Branching
 
-#define BRA(condition)	\
-	pc_.full++; \
-	if(condition) {	\
-		scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];	\
-	}
-
-					case OperationBPL: BRA(!(flags_.negative_result&0x80));			continue;
-					case OperationBMI: BRA(flags_.negative_result&0x80);			continue;
-					case OperationBVC: BRA(!flags_.overflow);						continue;
-					case OperationBVS: BRA(flags_.overflow);						continue;
-					case OperationBCC: BRA(!flags_.carry);							continue;
-					case OperationBCS: BRA(flags_.carry);							continue;
-					case OperationBNE: BRA(flags_.zero_result);						continue;
-					case OperationBEQ: BRA(!flags_.zero_result);					continue;
-					case OperationBRA: BRA(true);									continue;
-
-#undef BRA
+					case OperationBPL: bra(!(flags_.negative_result&0x80));			continue;
+					case OperationBMI: bra(flags_.negative_result&0x80);			continue;
+					case OperationBVC: bra(!flags_.overflow);						continue;
+					case OperationBVS: bra(flags_.overflow);						continue;
+					case OperationBCC: bra(!flags_.carry);							continue;
+					case OperationBCS: bra(flags_.carry);							continue;
+					case OperationBNE: bra(flags_.zero_result);						continue;
+					case OperationBEQ: bra(!flags_.zero_result);					continue;
+					case OperationBRA: bra(true);									continue;
 
 					case CycleAddSignedOperandToPC:
 						next_address_.full = uint16_t(pc_.full + int8_t(operand_));
@@ -749,7 +773,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					ready_is_active_ = true;
 					break;
 				}
-				bus_access();
+				if(bus_access()) break;
 			}
 		}
 	}

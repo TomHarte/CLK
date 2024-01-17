@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef NumericCoder_hpp
-#define NumericCoder_hpp
+#pragma once
 
 namespace Numeric {
 
@@ -73,5 +72,3 @@ template <int... Sizes> class NumericCoder {
 };
 
 }
-
-#endif /* NumericCoder_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Amiga_Keyboard_hpp
-#define Machines_Amiga_Keyboard_hpp
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -117,5 +116,3 @@ class Keyboard {
 };
 
 }
-
-#endif /* Machines_Amiga_Keyboard_hpp */

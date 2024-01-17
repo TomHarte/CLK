@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_PowerPC_Decoder_hpp
-#define InstructionSets_PowerPC_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 
@@ -50,5 +49,3 @@ template <Model model, bool validate_reserved_bits = false> struct Decoder {
 };
 
 }
-
-#endif /* InstructionSets_PowerPC_Decoder_hpp */

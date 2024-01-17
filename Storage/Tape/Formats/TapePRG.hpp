@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_PRG_hpp
-#define Storage_Tape_PRG_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -70,5 +69,3 @@ class PRG: public Tape {
 };
 
 }
-
-#endif /* T64_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Dave_hpp
-#define Dave_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -182,5 +181,3 @@ class TimedInterruptSource {
 };
 
 }
-
-#endif /* Dave_hpp */

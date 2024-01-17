@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef AtariST_hpp
-#define AtariST_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -38,5 +37,3 @@ class Machine {
 };
 
 }
-
-#endif /* AtariST_hpp */

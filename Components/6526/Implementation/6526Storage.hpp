@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef _526Storage_h
-#define _526Storage_h
+#pragma once
 
 #include <array>
 
@@ -331,5 +330,3 @@ struct MOS6526Storage {
 };
 
 }
-
-#endif /* _526Storage_h */

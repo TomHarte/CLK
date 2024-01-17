@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef SerialPort_hpp
-#define SerialPort_hpp
+#pragma once
 
 #include <vector>
 #include "../../Storage/Storage.hpp"
@@ -143,5 +142,3 @@ class Port {
 };
 
 }
-
-#endif /* SerialPort_hpp */

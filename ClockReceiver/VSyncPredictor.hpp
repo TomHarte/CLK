@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef VSyncPredictor_hpp
-#define VSyncPredictor_hpp
+#pragma once
 
 #include "TimeTypes.hpp"
 #include <cassert>
@@ -151,5 +150,3 @@ class VSyncPredictor {
 };
 
 }
-
-#endif /* VSyncPredictor_hpp */

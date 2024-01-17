@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef CRC_hpp
-#define CRC_hpp
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -120,5 +119,3 @@ struct CRC32: public Generator<uint32_t, 0xffffffff, 0xffffffff, true, true> {
 };
 
 }
-
-#endif /* CRC_hpp */

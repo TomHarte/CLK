@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DMAController_hpp
-#define DMAController_hpp
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -110,5 +109,3 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 };
 
 }
-
-#endif /* DMAController_hpp */

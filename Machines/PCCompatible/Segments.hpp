@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Segments_hpp
-#define Segments_hpp
+#pragma once
 
 #include "Registers.hpp"
 
@@ -54,5 +53,3 @@ class Segments {
 };
 
 }
-
-#endif /* Segments_hpp */

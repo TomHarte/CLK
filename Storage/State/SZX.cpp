@@ -20,6 +20,14 @@
 
 using namespace Storage::State;
 
+namespace {
+
+constexpr uint32_t block(const char *str) {
+	return uint32_t(str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24));
+}
+
+}
+
 std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name) {
 	FileHolder file(file_name);
 
@@ -71,15 +79,13 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 		if(file.eof()) break;
 		const auto location = file.tell();
 
-#define BLOCK(str)	str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24)
-
 		switch(blockID) {
 			default:
 				LOG("Unhandled block " << char(blockID) << char(blockID >> 8) << char(blockID >> 16) << char(blockID >> 24));
 			break;
 
 			// ZXSTZ80REGS
-			case BLOCK("Z80R"): {
+			case block("Z80R"): {
 				state->z80.registers.flags = file.get8();
 				state->z80.registers.a = file.get8();
 
@@ -112,7 +118,6 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				// This emulator doesn't, so this field can be ignored.
 				[[maybe_unused]] uint8_t remaining_interrupt_cycles = file.get8();
 
-
 				const uint8_t flags = file.get8();
 				state->z80.execution_state.is_halted = flags & 2;
 				// TODO: bit 0 indicates that the last instruction was an EI, or an invalid
@@ -124,7 +129,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 			} break;
 
 			// ZXSTAYBLOCK
-			case BLOCK("AY\0\0"): {
+			case block("AY\0\0"): {
 				// This applies to 48kb machines with AY boxes only. This emulator
 				// doesn't currently support those.
 				[[maybe_unused]] const uint8_t interface_type = file.get8();
@@ -134,7 +139,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 			} break;
 
 			// ZXSTRAMPAGE
-			case BLOCK("RAMP"): {
+			case block("RAMP"): {
 				const uint16_t flags = file.get16le();
 				const uint8_t page = file.get8();
 
@@ -177,7 +182,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 			} break;
 
 			// ZXSTSPECREGS
-			case BLOCK("SPCR"): {
+			case block("SPCR"): {
 				state->video.border_colour = file.get8();
 				state->last_7ffd = file.get8();
 				state->last_1ffd = file.get8();
@@ -185,8 +190,6 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				// TODO: use last write to FE, at least.
 			} break;
 		}
-
-#undef BLOCK
 
 		// Advance to the next block.
 		file.seek(location + size, SEEK_SET);

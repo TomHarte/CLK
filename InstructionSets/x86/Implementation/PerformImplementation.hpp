@@ -7,8 +7,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef PerformImplementation_h
-#define PerformImplementation_h
+#pragma once
 
 #include "Arithmetic.hpp"
 #include "BCD.hpp"
@@ -532,5 +531,3 @@ template <
 }
 
 }
-
-#endif /* PerformImplementation_h */

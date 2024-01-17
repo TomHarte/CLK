@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeParkerBros_hpp
-#define Atari2600_CartridgeParkerBros_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
@@ -42,5 +41,3 @@ class ParkerBros: public BusExtender {
 };
 
 }
-
-#endif /* Atari2600_CartridgeParkerBros_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef OpenGL_h
-#define OpenGL_h
+#pragma once
 
 #include <cassert>
 #include <iostream>
@@ -57,5 +56,3 @@
 #else
 #define test_gl(command, ...) command(__VA_ARGS__)
 #endif
-
-#endif /* OpenGL_h */

@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Card_h
-#define Card_h
+#pragma once
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -112,5 +111,3 @@ class Card {
 };
 
 }
-
-#endif /* Card_h */

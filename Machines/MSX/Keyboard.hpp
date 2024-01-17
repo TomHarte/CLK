@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_MSX_Keyboard_hpp
-#define Machines_MSX_Keyboard_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 
@@ -37,6 +36,4 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
-};
-
-#endif /* Machines_MSX_Keyboard_hpp */
+}

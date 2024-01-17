@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Executor_h
-#define Executor_h
+#pragma once
 
 #include "Instruction.hpp"
 #include "Parser.hpp"
@@ -176,5 +175,3 @@ class Executor: public CachingExecutor {
 };
 
 }
-
-#endif /* Executor_h */

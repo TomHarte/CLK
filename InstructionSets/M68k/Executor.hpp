@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Executor_hpp
-#define InstructionSets_M68k_Executor_hpp
+#pragma once
 
 #include "Decoder.hpp"
 #include "Instruction.hpp"
@@ -165,5 +164,3 @@ template <Model model, typename BusHandler> class Executor {
 }
 
 #include "Implementation/ExecutorImplementation.hpp"
-
-#endif /* InstructionSets_M68k_Executor_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ZX8081_hpp
-#define ZX8081_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -47,5 +46,3 @@ class Machine {
 };
 
 }
-
-#endif /* ZX8081_hpp */

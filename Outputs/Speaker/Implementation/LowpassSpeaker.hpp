@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef LowpassSpeaker_hpp
-#define LowpassSpeaker_hpp
+#pragma once
 
 #include "../Speaker.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
@@ -410,5 +409,3 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 };
 
 }
-
-#endif /* LowpassSpeaker_hpp */

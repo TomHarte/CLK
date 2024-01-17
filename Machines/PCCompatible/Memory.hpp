@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Memory_hpp
-#define Memory_hpp
+#pragma once
 
 #include "Registers.hpp"
 #include "Segments.hpp"
@@ -175,5 +174,3 @@ struct Memory {
 };
 
 }
-
-#endif /* Memory_hpp */

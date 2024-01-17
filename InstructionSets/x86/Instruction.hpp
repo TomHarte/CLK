@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Instruction_h
-#define InstructionSets_x86_Instruction_h
+#pragma once
 
 #include "Model.hpp"
 
@@ -965,5 +964,3 @@ std::string to_string(
 	int immediate_length = 0);
 
 }
-
-#endif /* InstructionSets_x86_Instruction_h */

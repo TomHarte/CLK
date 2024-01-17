@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CompoundSource_h
-#define CompoundSource_h
+#pragma once
 
 #include "SampleSource.hpp"
 
@@ -174,5 +173,3 @@ template <typename... T> class CompoundSource:
 };
 
 }
-
-#endif /* CompoundSource_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_IIgs_Sound_hpp
-#define Apple_IIgs_Sound_hpp
+#pragma once
 
 #include <atomic>
 
@@ -103,5 +102,3 @@ class GLU: public Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* SoundGLU_hpp */

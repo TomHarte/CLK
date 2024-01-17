@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Stack_hpp
-#define Stack_hpp
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -197,5 +196,3 @@ void leave(
 }
 
 }
-
-#endif /* Stack_hpp */

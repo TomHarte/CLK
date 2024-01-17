@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502_State_hpp
-#define MOS6502_State_hpp
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
@@ -89,5 +88,3 @@ struct State: public Reflection::StructImpl<State> {
 };
 
 }
-
-#endif /* MOS6502_State_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSI_hpp
-#define SCSI_hpp
+#pragma once
 
 #include <array>
 #include <limits>
@@ -58,8 +57,8 @@ enum Line: BusState {
 	Request			= 1 << 17,
 };
 
-#define us(x)	(x) / 1000000.0
-#define ns(x)	(x) / 1000000000.0
+constexpr double us(double t)	{	return t / 1'000'000.0;		}
+constexpr double ns(double t)	{	return t / 1'000'000'000.0;	}
 
 /// The minimum amount of time that reset must be held for.
 constexpr double ResetHoldTime		= us(25.0);
@@ -167,5 +166,3 @@ class Bus: public ClockingHint::Source, public Activity::Source {
 };
 
 }
-
-#endif /* SCSI_hpp */

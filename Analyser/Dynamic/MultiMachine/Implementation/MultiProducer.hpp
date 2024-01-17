@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiProducer_hpp
-#define MultiProducer_hpp
+#pragma once
 
 #include "../../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../../Machines/MachineTypes.hpp"
@@ -115,5 +114,3 @@ class MultiAudioProducer: public MultiInterface<MachineTypes::AudioProducer>, pu
 */
 
 }
-
-#endif /* MultiProducer_hpp */

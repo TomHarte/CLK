@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef HDV_hpp
-#define HDV_hpp
+#pragma once
 
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
@@ -50,5 +49,3 @@ class HDV: public MassStorageDevice {
 };
 
 }
-
-#endif /* HDV_hpp */

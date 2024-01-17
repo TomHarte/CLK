@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef EXDos_hpp
-#define EXDos_hpp
+#pragma once
 
 #include "../../Components/1770/1770.hpp"
 #include "../../Activity/Observer.hpp"
@@ -32,5 +31,3 @@ class EXDos final : public WD::WD1770 {
 };
 
 }
-
-#endif /* EXDos_hpp */

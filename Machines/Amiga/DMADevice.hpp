@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef DMADevice_hpp
-#define DMADevice_hpp
+#pragma once
 
 #include <array>
 #include <cstddef>
@@ -70,5 +69,3 @@ template <size_t num_addresses, size_t num_modulos = 0> class DMADevice: public 
 };
 
 }
-
-#endif /* DMADevice_hpp */

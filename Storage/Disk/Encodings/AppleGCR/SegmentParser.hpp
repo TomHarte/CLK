@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef TrackParser_hpp
-#define TrackParser_hpp
+#pragma once
 
 #include "Sector.hpp"
 #include "../../Track/PCMSegment.hpp"
@@ -22,5 +21,3 @@ namespace Storage::Encodings::AppleGCR {
 std::map<std::size_t, Sector> sectors_from_segment(const Disk::PCMSegment &segment);
 
 }
-
-#endif /* TrackParser_hpp */

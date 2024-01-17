@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef AllRAMProcessor_hpp
-#define AllRAMProcessor_hpp
+#pragma once
 
 #include <cstdint>
 #include <set>
@@ -47,5 +46,3 @@ class AllRAMProcessor {
 };
 
 }
-
-#endif /* AllRAMProcessor_hpp */

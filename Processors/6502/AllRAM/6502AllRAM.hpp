@@ -6,8 +6,7 @@
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502AllRAM_cpp
-#define MOS6502AllRAM_cpp
+#pragma once
 
 #include "../../6502Esque/6502Selector.hpp"
 #include "../../AllRAMProcessor.hpp"
@@ -33,5 +32,3 @@ class AllRAMProcessor:
 };
 
 }
-
-#endif /* MOS6502AllRAM_cpp */

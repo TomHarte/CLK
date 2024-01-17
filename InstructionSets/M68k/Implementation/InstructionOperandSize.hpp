@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_68k_InstructionOperandSize_hpp
-#define InstructionSets_68k_InstructionOperandSize_hpp
+#pragma once
 
 namespace InstructionSet::M68k {
 
@@ -128,5 +127,3 @@ constexpr DataSize operand_size(Operation r_operation) {
 }
 
 }
-
-#endif /* InstructionSets_68k_InstructionOperandSize_hpp */

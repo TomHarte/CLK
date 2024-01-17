@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef KonamiSCC_hpp
-#define KonamiSCC_hpp
+#pragma once
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
@@ -70,5 +69,3 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* KonamiSCC_hpp */

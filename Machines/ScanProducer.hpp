@@ -6,8 +6,7 @@
 //  Copyright 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef ScanProducer_hpp
-#define ScanProducer_hpp
+#pragma once
 
 #include "../Outputs/ScanTarget.hpp"
 #include "../Configurable/StandardOptions.hpp"
@@ -100,5 +99,3 @@ class ScanProducer {
 };
 
 }
-
-#endif /* ScanProducer_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef CSApplication_h
-#define CSApplication_h
+#pragma once
 
 #import <Cocoa/Cocoa.h>
 
@@ -28,6 +27,3 @@
 @interface CSApplication: NSApplication
 @property(nonatomic, weak, nullable) id<CSApplicationEventDelegate> eventDelegate;
 @end
-
-
-#endif /* CSApplication_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LanguageCardSwitches_h
-#define LanguageCardSwitches_h
+#pragma once
 
 #include "MemorySwitches.hpp"
 
@@ -112,5 +111,3 @@ template <typename Machine> class LanguageCardSwitches {
 };
 
 }
-
-#endif /* LanguageCard_h */

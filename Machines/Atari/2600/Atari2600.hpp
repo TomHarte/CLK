@@ -6,8 +6,7 @@
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_cpp
-#define Atari2600_cpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
@@ -40,5 +39,3 @@ class Machine {
 };
 
 }
-
-#endif /* Atari2600_cpp */

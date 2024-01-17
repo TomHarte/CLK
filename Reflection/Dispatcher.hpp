@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Dispatcher_hpp
-#define Dispatcher_hpp
+#pragma once
 
 #include <algorithm>
 #include <cstdint>
@@ -170,5 +169,3 @@ struct SubrangeDispatcher {
 #undef index2048
 
 }
-
-#endif /* Dispatcher_hpp */

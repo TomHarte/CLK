@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef YamahaCommands_hpp
-#define YamahaCommands_hpp
+#pragma once
 
 #include "AccessEnums.hpp"
 
@@ -380,5 +379,3 @@ template <bool logical> struct Fill: public Rectangle<logical, false> {
 
 }
 }
-
-#endif /* YamahaCommands_hpp */

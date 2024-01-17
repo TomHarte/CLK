@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Fetch_hpp
-#define Fetch_hpp
+#pragma once
 
 namespace TI::TMS {
 
@@ -792,5 +791,3 @@ template<bool use_end> void Base<personality>::fetch_yamaha(uint8_t y, int, int 
 // TODO.
 
 }
-
-#endif /* Fetch_hpp */

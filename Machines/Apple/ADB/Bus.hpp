@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Bus_hpp
-#define Bus_hpp
+#pragma once
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
@@ -166,5 +165,3 @@ class Bus {
 };
 
 }
-
-#endif /* Bus_hpp */

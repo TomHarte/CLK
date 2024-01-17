@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef StandardOptions_hpp
-#define StandardOptions_hpp
+#pragma once
 
 #include "../Reflection/Enum.hpp"
 
@@ -61,5 +60,3 @@ template <typename Owner> class QuickbootOption {
 };
 
 }
-
-#endif /* StandardOptions_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef KeyboardMapper_hpp
-#define KeyboardMapper_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 
@@ -136,5 +135,3 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 };
 
 }
-
-#endif /* KeyboardMapper_hpp */

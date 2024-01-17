@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_MSX_Target_h
-#define Analyser_Static_MSX_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
@@ -47,5 +46,3 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 };
 
 }
-
-#endif /* Analyser_Static_MSX_Target_h */

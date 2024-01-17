@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef DigitalPhaseLockedLoop_hpp
-#define DigitalPhaseLockedLoop_hpp
+#pragma once
 
 #include <array>
 #include <cassert>
@@ -132,5 +131,3 @@ template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseL
 };
 
 }
-
-#endif /* DigitalPhaseLockedLoop_hpp */

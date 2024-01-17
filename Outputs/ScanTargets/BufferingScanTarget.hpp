@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef BufferingScanTarget_hpp
-#define BufferingScanTarget_hpp
+#pragma once
 
 #include "../ScanTarget.hpp"
 #include "../DisplayMetrics.hpp"
@@ -273,5 +272,3 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 };
 
 }
-
-#endif /* BufferingScanTarget_hpp */

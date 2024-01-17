@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef LineLayout_h
-#define LineLayout_h
+#pragma once
 
 namespace TI::TMS {
 
@@ -76,5 +75,3 @@ template <Personality personality> struct LineLayout<personality, std::enable_if
 };
 
 }
-
-#endif /* LineLayout_h */

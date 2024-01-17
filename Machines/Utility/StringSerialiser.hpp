@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef StringSerialiser_hpp
-#define StringSerialiser_hpp
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -27,5 +26,3 @@ class StringSerialiser {
 };
 
 }
-
-#endif /* StringSerialiser_hpp */

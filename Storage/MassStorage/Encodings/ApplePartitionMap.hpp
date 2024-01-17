@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef ApplePartitionMap_hpp
-#define ApplePartitionMap_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -247,5 +246,3 @@ template <typename VolumeProvider> class PartitionMap {
 };
 
 }
-
-#endif /* ApplePartitionMap_hpp */

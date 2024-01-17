@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef IWM_hpp
-#define IWM_hpp
+#pragma once
 
 #include "../../Activity/Observer.hpp"
 
@@ -119,7 +118,4 @@ class IWM:
 		void select_shift_mode();
 };
 
-
 }
-
-#endif /* IWM_hpp */

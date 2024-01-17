@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_68k_Instruction_hpp
-#define InstructionSets_68k_Instruction_hpp
+#pragma once
 
 #include "Model.hpp"
 
@@ -497,5 +496,3 @@ class Preinstruction {
 
 #include "Implementation/InstructionOperandSize.hpp"
 #include "Implementation/InstructionOperandFlags.hpp"
-
-#endif /* InstructionSets_68k_Instruction_hpp */

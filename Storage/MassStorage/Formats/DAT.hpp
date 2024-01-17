@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MassStorage_DAT_hpp
-#define MassStorage_DAT_hpp
+#pragma once
 
 #include "RawSectorDump.hpp"
 
@@ -24,5 +23,3 @@ class DAT: public RawSectorDump<256> {
 };
 
 }
-
-#endif /* MassStorage_DAT_hpp */

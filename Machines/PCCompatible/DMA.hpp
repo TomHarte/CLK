@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef DMA_hpp
-#define DMA_hpp
+#pragma once
 
 #include "../../Numeric/RegisterSizes.hpp"
 
@@ -315,5 +314,3 @@ class DMA {
 };
 
 }
-
-#endif /* DMA_hpp */

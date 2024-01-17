@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef FlowControl_hpp
-#define FlowControl_hpp
+#pragma once
 
 #include "Resolver.hpp"
 #include "Stack.hpp"
@@ -244,5 +243,3 @@ void bound(
 }
 
 }
-
-#endif /* FlowControl_hpp */

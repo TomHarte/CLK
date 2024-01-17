@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Chipset_hpp
-#define Chipset_hpp
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -376,5 +375,3 @@ class Chipset: private ClockingHint::Observer {
 };
 
 }
-
-#endif /* Chipset_hpp */

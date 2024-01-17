@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Perform_h
-#define InstructionSets_M68k_Perform_h
+#pragma once
 
 #include "Model.hpp"
 #include "Instruction.hpp"
@@ -169,5 +168,3 @@ template <
 }
 
 #include "Implementation/PerformImplementation.hpp"
-
-#endif /* InstructionSets_M68k_Perform_h */

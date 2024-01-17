@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef BitSpread_hpp
-#define BitSpread_hpp
+#pragma once
 
 namespace Numeric {
 
@@ -33,5 +32,3 @@ constexpr uint8_t unspread_bits(uint16_t input) {
 }
 
 }
-
-#endif /* BitSpread_hpp */

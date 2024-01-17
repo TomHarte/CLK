@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Sizes_h
-#define Sizes_h
+#pragma once
 
 #include <limits>
 #include <type_traits>
@@ -33,5 +32,3 @@ template <uint64_t max_value> struct MinIntTypeValue {
 			>
 		>;
 };
-
-#endif /* Sizes_h */

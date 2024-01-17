@@ -7,8 +7,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_ExecutorImplementation_hpp
-#define InstructionSets_M68k_ExecutorImplementation_hpp
+#pragma once
 
 #include "../Perform.hpp"
 #include "../ExceptionVectors.hpp"
@@ -749,5 +748,3 @@ void Executor<model, BusHandler>::State::movem_toR(Preinstruction instruction, u
 #undef AccessException
 
 }
-
-#endif /* InstructionSets_M68k_ExecutorImplementation_hpp */

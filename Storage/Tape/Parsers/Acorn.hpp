@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_Acorn_hpp
-#define Storage_Tape_Parsers_Acorn_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 #include "../../../Numeric/CRC.hpp"
@@ -65,5 +64,3 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 };
 
 }
-
-#endif /* Acorn_hpp */

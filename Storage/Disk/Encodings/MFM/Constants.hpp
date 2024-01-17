@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Constants_h
-#define Constants_h
+#pragma once
 
 #include "../../../Storage.hpp"
 
@@ -52,5 +51,3 @@ constexpr Time bit_length(Density density) {
 }
 
 }
-
-#endif /* Constants_h */

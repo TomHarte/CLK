@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TypedDynamicMachine_h
-#define TypedDynamicMachine_h
+#pragma once
 
 #include "MachineForTarget.hpp"
 
@@ -68,5 +67,3 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 };
 
 }
-
-#endif /* TypedDynamicMachine_h */

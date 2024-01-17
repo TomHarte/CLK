@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef ROMCatalogue_hpp
-#define ROMCatalogue_hpp
+#pragma once
 
 #include <algorithm>
 #include <cstdint>
@@ -313,5 +312,3 @@ struct Request {
 };
 
 }
-
-#endif /* ROMCatalogue_hpp */

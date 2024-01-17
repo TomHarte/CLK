@@ -6,9 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef AccessEnums_hpp
-#define AccessEnums_hpp
-
+#pragma once
 
 namespace TI::TMS {
 
@@ -111,5 +109,3 @@ enum class SpriteMode {
 };
 
 }
-
-#endif /* AccessEnums_hpp */

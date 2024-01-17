@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MacintoshIMG_hpp
-#define MacintoshIMG_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -73,5 +72,3 @@ class MacintoshIMG: public DiskImage {
 };
 
 }
-
-#endif /* DiskCopy42_hpp */

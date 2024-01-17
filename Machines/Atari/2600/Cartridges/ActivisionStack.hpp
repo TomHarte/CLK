@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_ActivisionStack_hpp
-#define Atari2600_ActivisionStack_hpp
+#pragma once
 
 namespace Atari2600::Cartridge {
 
@@ -45,5 +44,3 @@ class ActivisionStack: public BusExtender {
 };
 
 }
-
-#endif /* Atari2600_CartridgeActivisionStack_hpp */

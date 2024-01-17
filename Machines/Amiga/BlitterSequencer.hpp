@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef BlitterSequencer_hpp
-#define BlitterSequencer_hpp
+#pragma once
 
 #include <array>
 
@@ -163,5 +162,3 @@ class BlitterSequencer {
 };
 
 }
-
-#endif /* BlitterSequencer_hpp */

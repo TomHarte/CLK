@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef PCMTrack_hpp
-#define PCMTrack_hpp
+#pragma once
 
 #include "Track.hpp"
 #include "PCMSegment.hpp"
@@ -89,5 +88,3 @@ class PCMTrack: public Track {
 };
 
 }
-
-#endif /* PCMTrack_hpp */

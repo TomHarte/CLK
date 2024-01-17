@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DMK_hpp
-#define DMK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -49,5 +48,3 @@ class DMK: public DiskImage {
 };
 
 }
-
-#endif /* DMK_hpp */

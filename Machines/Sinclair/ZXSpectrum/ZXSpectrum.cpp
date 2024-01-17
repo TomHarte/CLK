@@ -60,36 +60,37 @@ class Joystick: public Inputs::ConcreteJoystick {
 			}) {}
 
 		void did_set_input(const Input &digital_input, bool is_active) final {
-#define APPLY_KEMPSTON(b)	if(is_active) kempston_ |= b; else kempston_ &= ~b;
-#define APPLY_SINCLAIR(b)	if(is_active) sinclair_ &= ~b; else sinclair_ |= b;
+			const auto apply_kempston = [&](uint8_t mask) {
+				if(is_active) kempston_ |= mask; else kempston_ &= ~mask;
+			};
+			const auto apply_sinclair = [&](uint16_t mask) {
+				if(is_active) sinclair_ &= ~mask; else sinclair_ |= mask;
+			};
 
 			switch(digital_input.type) {
 				default: return;
 
 				case Input::Right:
-					APPLY_KEMPSTON(0x01);
-					APPLY_SINCLAIR(0x0208);
+					apply_kempston(0x01);
+					apply_sinclair(0x0208);
 				break;
 				case Input::Left:
-					APPLY_KEMPSTON(0x02);
-					APPLY_SINCLAIR(0x0110);
+					apply_kempston(0x02);
+					apply_sinclair(0x0110);
 				break;
 				case Input::Down:
-					APPLY_KEMPSTON(0x04);
-					APPLY_SINCLAIR(0x0404);
+					apply_kempston(0x04);
+					apply_sinclair(0x0404);
 				break;
 				case Input::Up:
-					APPLY_KEMPSTON(0x08);
-					APPLY_SINCLAIR(0x0802);
+					apply_kempston(0x08);
+					apply_sinclair(0x0802);
 				break;
 				case Input::Fire:
-					APPLY_KEMPSTON(0x10);
-					APPLY_SINCLAIR(0x1001);
+					apply_kempston(0x10);
+					apply_sinclair(0x1001);
 				break;
 			}
-
-#undef APPLY_KEMPSTON
-#undef APPLY_SINCLAIR
 		}
 
 		/// @returns The value that a Kempston joystick interface would report if this joystick
@@ -757,11 +758,11 @@ template<Model model> class ConcreteMachine:
 		std::array<uint8_t, 128*1024> ram_;
 
 		std::array<uint8_t, 16*1024> scratch_;
-		const uint8_t *read_pointers_[4];
-		uint8_t *write_pointers_[4];
-		uint8_t pages_[4];
-		bool is_contended_[4];
-		bool is_video_[4];
+		std::array<const uint8_t *, 4> read_pointers_;
+		std::array<uint8_t *, 4> write_pointers_;
+		std::array<uint8_t, 4> pages_;
+		std::array<bool, 4> is_contended_;
+		std::array<bool, 4> is_video_;
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;

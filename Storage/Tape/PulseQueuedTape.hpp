@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef PulseQueuedTape_hpp
-#define PulseQueuedTape_hpp
+#pragma once
 
 #include "Tape.hpp"
 #include <vector>
@@ -48,5 +47,3 @@ class PulseQueuedTape: public Tape {
 };
 
 }
-
-#endif /* PulseQueuedTape_hpp */

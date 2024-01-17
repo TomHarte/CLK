@@ -6,13 +6,11 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Konami_hpp
-#define Konami_hpp
+#pragma once
 
 #include "../MemorySlotHandler.hpp"
 
-namespace MSX {
-namespace Cartridge {
+namespace MSX::Cartridge {
 
 class KonamiROMSlotHandler: public MemorySlotHandler {
 	public:
@@ -52,6 +50,3 @@ class KonamiROMSlotHandler: public MemorySlotHandler {
 };
 
 }
-}
-
-#endif /* Konami_hpp */

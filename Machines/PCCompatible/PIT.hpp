@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef PIT_hpp
-#define PIT_hpp
+#pragma once
 
 namespace PCCompatible {
 
@@ -255,5 +254,3 @@ class i8253 {
 };
 
 }
-
-#endif /* PIT_hpp */

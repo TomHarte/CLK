@@ -6,8 +6,7 @@
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600Inputs_h
-#define Atari2600Inputs_h
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,5 +37,3 @@ typedef enum {
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* Atari2600Inputs_h */

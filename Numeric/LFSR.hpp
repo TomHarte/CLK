@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LFSR_h
-#define LFSR_h
+#pragma once
 
 #include <cstdint>
 #include <cstdlib>
@@ -81,5 +80,3 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 template <uint64_t polynomial> class LFSRv: public LFSR<typename MinIntTypeValue<polynomial>::type, polynomial> {};
 
 }
-
-#endif /* LFSR_h */

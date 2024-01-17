@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TargetPlatforms_hpp
-#define TargetPlatforms_hpp
+#pragma once
 
 namespace TargetPlatform {
 
@@ -54,5 +53,3 @@ class TypeDistinguisher {
 };
 
 }
-
-#endif /* TargetPlatforms_h */

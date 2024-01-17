@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Inputs_Keyboard_hpp
-#define Inputs_Keyboard_hpp
+#pragma once
 
 #include <vector>
 #include <set>
@@ -90,5 +89,3 @@ class Keyboard {
 };
 
 }
-
-#endif /* Inputs_Keyboard_hpp */

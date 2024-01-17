@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Speaker_hpp
-#define Speaker_hpp
+#pragma once
 
 #include <atomic>
 #include <cstdint>
@@ -145,5 +144,3 @@ class Speaker {
 };
 
 }
-
-#endif /* Speaker_hpp */

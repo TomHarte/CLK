@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef SerialBus_hpp
-#define SerialBus_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -127,5 +126,3 @@ namespace Commodore::Serial {
 	};
 
 }
-
-#endif /* SerialPort_hpp */

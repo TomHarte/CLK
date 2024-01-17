@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MassStorage_DSK_hpp
-#define MassStorage_DSK_hpp
+#pragma once
 
 #include "RawSectorDump.hpp"
 
@@ -24,5 +23,3 @@ class DSK: public RawSectorDump<512> {
 };
 
 }
-
-#endif /* MassStorage_DSK_hpp */

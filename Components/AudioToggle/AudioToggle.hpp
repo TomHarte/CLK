@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef AudioToggle_hpp
-#define AudioToggle_hpp
+#pragma once
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
@@ -38,5 +37,3 @@ class Toggle: public Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* AudioToggle_hpp */

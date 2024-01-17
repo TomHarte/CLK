@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Copper_h
-#define Copper_h
+#pragma once
 
 #include "DMADevice.hpp"
 
@@ -50,5 +49,3 @@ class Copper: public DMADevice<2> {
 };
 
 }
-
-#endif /* Copper_h */

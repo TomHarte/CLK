@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Sprites_hpp
-#define Sprites_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -64,7 +63,4 @@ class TwoSpriteShifter {
 		uint8_t overflow_;
 };
 
-
 }
-
-#endif /* Sprites_hpp */

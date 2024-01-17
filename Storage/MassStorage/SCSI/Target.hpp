@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSI_Target_hpp
-#define SCSI_Target_hpp
+#pragma once
 
 #include "SCSI.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -396,5 +395,3 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 #include "TargetImplementation.hpp"
 
 }
-
-#endif /* SCSI_Target_hpp */

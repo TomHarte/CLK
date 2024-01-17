@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef DeferredValue_h
-#define DeferredValue_h
+#pragma once
 
 /*!
 	Provides storage for a single deferred value: one with a current value and a certain number
@@ -44,5 +43,3 @@ template <int DeferredDepth, typename ValueT> class DeferredValue {
 				(backlog[DeferredDepth / elements_per_uint32] & insert_mask) | (value << insert_shift);
 		}
 };
-
-#endif /* DeferredValue_h */

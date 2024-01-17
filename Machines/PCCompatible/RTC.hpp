@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef RTC_h
-#define RTC_h
+#pragma once
 
 #include <ctime>
 
@@ -121,5 +120,3 @@ class RTC {
 };
 
 }
-
-#endif /* RTC_h */

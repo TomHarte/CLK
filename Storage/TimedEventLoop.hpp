@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TimedEventLoop_hpp
-#define TimedEventLoop_hpp
+#pragma once
 
 #include "Storage.hpp"
 #include "../ClockReceiver/ClockReceiver.hpp"
@@ -107,5 +106,3 @@ namespace Storage {
 	};
 
 }
-
-#endif /* TimedEventLoop_hpp */

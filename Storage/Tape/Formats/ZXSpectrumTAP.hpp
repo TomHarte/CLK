@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef SpectrumTAP_hpp
-#define SpectrumTAP_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -55,5 +54,3 @@ class ZXSpectrumTAP: public Tape {
 };
 
 }
-
-#endif /* SpectrumTAP_hpp */

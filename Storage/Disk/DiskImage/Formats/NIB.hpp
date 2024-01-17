@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef NIB_hpp
-#define NIB_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -45,5 +44,3 @@ class NIB: public DiskImage {
 };
 
 }
-
-#endif /* NIB_hpp */

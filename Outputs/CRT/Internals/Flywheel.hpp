@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Flywheel_hpp
-#define Flywheel_hpp
+#pragma once
 
 #include <cassert>
 #include <cstdlib>
@@ -259,5 +258,3 @@ struct Flywheel {
 };
 
 }
-
-#endif /* Flywheel_hpp */

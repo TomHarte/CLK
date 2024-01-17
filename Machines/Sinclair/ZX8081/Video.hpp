@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_ZX8081_Video_hpp
-#define Machines_ZX8081_Video_hpp
+#pragma once
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -58,5 +57,3 @@ class Video {
 };
 
 }
-
-#endif /* Video_hpp */

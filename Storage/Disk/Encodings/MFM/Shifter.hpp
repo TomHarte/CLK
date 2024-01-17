@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Shifter_hpp
-#define Shifter_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -79,5 +78,3 @@ class Shifter {
 };
 
 }
-
-#endif /* Shifter_hpp */

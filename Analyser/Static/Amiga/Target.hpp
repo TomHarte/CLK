@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Amiga_Target_h
-#define Analyser_Static_Amiga_Target_h
+#pragma once
 
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
@@ -40,5 +39,3 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 };
 
 }
-
-#endif /* Analyser_Static_Amiga_Target_h */

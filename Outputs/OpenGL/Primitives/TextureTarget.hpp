@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TextureTarget_hpp
-#define TextureTarget_hpp
+#pragma once
 
 #include "../OpenGL.hpp"
 #include "Shader.hpp"
@@ -87,5 +86,3 @@ class TextureTarget {
 };
 
 }
-
-#endif /* TextureTarget_hpp */

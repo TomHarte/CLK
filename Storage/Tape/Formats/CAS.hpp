@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CAS_hpp
-#define CAS_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -67,5 +66,3 @@ class CAS: public Tape {
 };
 
 }
-
-#endif /* CAS_hpp */

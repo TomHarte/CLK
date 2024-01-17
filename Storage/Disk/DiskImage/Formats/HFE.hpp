@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef HFE_hpp
-#define HFE_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -47,5 +46,3 @@ class HFE: public DiskImage {
 };
 
 }
-
-#endif /* HFE_hpp */

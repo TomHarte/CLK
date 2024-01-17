@@ -88,6 +88,7 @@
 template<class> inline constexpr bool always_false_v = false;
 
 using namespace Analyser::Static;
+using namespace Storage;
 
 namespace {
 
@@ -101,46 +102,90 @@ std::string get_extension(const std::string &name) {
 	return extension;
 }
 
+class MediaAccumulator {
+	public:
+	MediaAccumulator(const std::string &file_name, TargetPlatform::IntType &potential_platforms) :
+		file_name_(file_name), potential_platforms_(potential_platforms), extension_(get_extension(file_name)) {}
+
+	/// Adds @c instance to the media collection and adds @c platforms to the set of potentials.
+	/// If @c instance is an @c TargetPlatform::TypeDistinguisher then it is given an opportunity to restrict the set of potentials.
+	template <typename InstanceT>
+	void insert(TargetPlatform::IntType platforms, InstanceT *instance) {
+		if constexpr (std::is_base_of_v<Storage::Disk::Disk, InstanceT>) {
+			media.disks.emplace_back(instance);
+		} else if constexpr (std::is_base_of_v<Storage::Tape::Tape, InstanceT>) {
+			media.tapes.emplace_back(instance);
+		} else if constexpr (std::is_base_of_v<Storage::Cartridge::Cartridge, InstanceT>) {
+			media.cartridges.emplace_back(instance);
+		} else if constexpr (std::is_base_of_v<Storage::MassStorage::MassStorageDevice, InstanceT>) {
+			media.mass_storage_devices.emplace_back(instance);
+		} else {
+			static_assert(always_false_v<InstanceT>, "Unexpected type encountered.");
+		}
+
+		potential_platforms_ |= platforms;
+
+		// Check whether the instance itself has any input on target platforms.
+		TargetPlatform::TypeDistinguisher *const distinguisher =
+			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance);
+		if(distinguisher) potential_platforms_ &= distinguisher->target_platform_type();
+	}
+
+	/// Concstructs a new instance of @c InstanceT supplying @c args and adds it to the back of @c list using @c insert_instance.
+	template <typename InstanceT, typename... Args>
+	void insert(TargetPlatform::IntType platforms, Args &&... args) {
+		insert(platforms, new InstanceT(std::forward<Args>(args)...));
+	}
+
+	/// Calls @c insert with the specified parameters, ignoring any exceptions thrown.
+	template <typename InstanceT, typename... Args>
+	void try_insert(TargetPlatform::IntType platforms, Args &&... args) {
+		try {
+			insert<InstanceT>(platforms, std::forward<Args>(args)...);
+		} catch(...) {}
+	}
+
+	/// Performs a @c try_insert for an object of @c InstanceT if @c extension matches that of the file name,
+	/// providing the file name as the only construction argument.
+	template <typename InstanceT>
+	void try_standard(TargetPlatform::IntType platforms, const char *extension) {
+		if(name_matches(extension))	{
+			try_insert<InstanceT>(platforms, file_name_);
+		}
+	}
+
+	bool name_matches(const char *extension) {
+		return extension_ == extension;
+	}
+
+	Media media;
+
+	private:
+		const std::string &file_name_;
+		TargetPlatform::IntType &potential_platforms_;
+		const std::string extension_;
+};
+
 }
 
 static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::IntType &potential_platforms) {
-	Media result;
-	const std::string extension = get_extension(file_name);
-
-#define InsertInstance(list, instance, platforms) \
-	list.emplace_back(instance);\
-	potential_platforms |= platforms;\
-	TargetPlatform::TypeDistinguisher *const distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
-	if(distinguisher) potential_platforms &= distinguisher->target_platform_type();
-
-#define Insert(list, class, platforms, ...) \
-	InsertInstance(list, new Storage::class(__VA_ARGS__), platforms);
-
-#define TryInsert(list, class, platforms, ...) \
-	try {\
-		Insert(list, class, platforms, __VA_ARGS__) \
-	} catch(...) {}
-
-#define Format(ext, list, class, platforms) \
-	if(extension == ext)	{		\
-		TryInsert(list, class, platforms, file_name)	\
-	}
+	MediaAccumulator accumulator(file_name, potential_platforms);
 
 	// 2MG
-	if(extension == "2mg") {
+	if(accumulator.name_matches("2mg")) {
 		// 2MG uses a factory method; defer to it.
 		try {
-			const auto media = Storage::Disk::Disk2MG::open(file_name);
-			std::visit([&result, &potential_platforms](auto &&arg) {
+			const auto media = Disk::Disk2MG::open(file_name);
+			std::visit([&](auto &&arg) {
 				using Type = typename std::decay<decltype(arg)>::type;
 
 				if constexpr (std::is_same<Type, nullptr_t>::value) {
 					// It's valid for no media to be returned.
-				} else if constexpr (std::is_same<Type, Storage::Disk::DiskImageHolderBase *>::value) {
-					InsertInstance(result.disks, arg, TargetPlatform::DiskII);
-				} else if constexpr (std::is_same<Type, Storage::MassStorage::MassStorageDevice *>::value) {
+				} else if constexpr (std::is_same<Type, Disk::DiskImageHolderBase *>::value) {
+					accumulator.insert(TargetPlatform::DiskII, arg);
+				} else if constexpr (std::is_same<Type, MassStorage::MassStorageDevice *>::value) {
 					// TODO: or is it Apple IIgs?
-					InsertInstance(result.mass_storage_devices, arg, TargetPlatform::AppleII);
+					accumulator.insert(TargetPlatform::AppleII, arg);
 				} else {
 					static_assert(always_false_v<Type>, "Unexpected type encountered.");
 				}
@@ -148,106 +193,108 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		} catch(...) {}
 	}
 
-	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 80
-	Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 81
-	Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)							// A26
-	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADF (Acorn)
-	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AmigaADF>, TargetPlatform::Amiga)			// ADF (Amiga)
-	Format("adl", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADL
-	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)						// BIN (cartridge dump)
-	Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)													// CAS
-	Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)											// CDT
-	Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Coleco)								// COL
-	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)												// CSW
-	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)			// D64
-	Format("dat", result.mass_storage_devices, MassStorage::DAT, TargetPlatform::Acorn)							// DAT
-	Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)					// DMK
-	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DO
-	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// DSD
-	Format(	"dsk",
-			result.disks,
-			Disk::DiskImageHolder<Storage::Disk::CPCDSK>,
-			TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)						// DSK (Amstrad CPC, etc)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DSK (Apple II)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// DSK (Macintosh, floppy disk)
-	Format("dsk", result.mass_storage_devices, MassStorage::HFV, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk, single volume image)
-	Format("dsk", result.mass_storage_devices, MassStorage::DSK, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk, full device image)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::MSX)				// DSK (MSX)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)			// DSK (Oric)
-	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)			// G64
-	Format("hdv", result.mass_storage_devices, MassStorage::HDV, TargetPlatform::AppleII)						// HDV (Apple II, hard disk, single volume image)
-	Format(	"hfe",
-			result.disks,
-			Disk::DiskImageHolder<Storage::Disk::HFE>,
-			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)
-			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
-	Format("ima", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::PCCompatible)			// IMG (MS-DOS style)
-	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
-	Format("imd", result.disks, Disk::DiskImageHolder<Storage::Disk::IMD>, TargetPlatform::PCCompatible)			// IMD
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "80");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "81");
+
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Atari2600, "a26");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adf");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AmigaADF>>(TargetPlatform::Amiga, "adf");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adl");
+
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, "bin");
+
+	accumulator.try_standard<Tape::CAS>(TargetPlatform::MSX, "cas");
+	accumulator.try_standard<Tape::TZX>(TargetPlatform::AmstradCPC, "cdt");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, "col");
+	accumulator.try_standard<Tape::CSW>(TargetPlatform::AllTape, "csw");
+
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::D64>>(TargetPlatform::Commodore, "d64");
+	accumulator.try_standard<MassStorage::DAT>(TargetPlatform::Acorn, "dat");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::DMK>>(TargetPlatform::MSX, "dmk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "do");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, "dsd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::CPCDSK>>(
+		TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum, "dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, "dsk");
+	accumulator.try_standard<MassStorage::HFV>(TargetPlatform::Macintosh, "dsk");
+	accumulator.try_standard<MassStorage::DSK>(TargetPlatform::Macintosh, "dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::MSX, "dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::OricMFMDSK>>(TargetPlatform::Oric, "dsk");
+
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::G64>>(TargetPlatform::Commodore, "g64");
+
+	accumulator.try_standard<MassStorage::HDV>(TargetPlatform::AppleII, "hdv");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::HFE>>(
+		TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum,
+		"hfe");	// TODO: switch to AllDisk once the MSX stops being so greedy.
+
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::PCCompatible, "ima");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, "image");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::IMD>>(TargetPlatform::PCCompatible, "imd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, "img");
 
 	// Treat PC booter as a potential backup only if this doesn't parse as a FAT12.
-	if(extension == "img") {
+	if(accumulator.name_matches("img")) {
 		try {
-			Insert(result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::FAT12, file_name)				// IMG (Enterprise or MS-DOS style)
+			accumulator.insert<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::FAT12, file_name);
 		} catch(...) {
-			Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::PCBooter>, TargetPlatform::PCCompatible)		// IMG (PC raw booter)
+			accumulator.try_standard<Disk::DiskImageHolder<Disk::PCBooter>>(TargetPlatform::PCCompatible, "img");
 		}
 	}
 
-	Format(	"ipf",
-			result.disks,
-			Disk::DiskImageHolder<Storage::Disk::IPF>,
-			TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum)		// IPF
-	Format("msa", result.disks, Disk::DiskImageHolder<Storage::Disk::MSA>, TargetPlatform::AtariST)				// MSA
-	Format("mx2", result.cartridges, Cartridge::BinaryDump, TargetPlatform::MSX)								// MX2
-	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
-	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
-	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
-	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// PO (original Apple II kind)
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::IPF>>(
+		TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum,
+		"ipf");
 
-	// PO (Apple IIgs kind)
-	if(extension == "po")	{
-		TryInsert(result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::AppleIIgs, file_name, Storage::Disk::MacintoshIMG::FixedType::GCR)
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::NIB>>(TargetPlatform::DiskII, "nib");
+
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "o");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "p");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "po");
+
+	if(accumulator.name_matches("po"))	{
+		accumulator.try_insert<Disk::DiskImageHolder<Disk::MacintoshIMG>>(
+			TargetPlatform::AppleIIgs,
+			file_name, Disk::MacintoshIMG::FixedType::GCR);
 	}
 
-	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P81
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "p81");
 
-	// PRG
-	if(extension == "prg") {
-		// try instantiating as a ROM; failing that accept as a tape
+	if(accumulator.name_matches("prg")) {
+		// Try instantiating as a ROM; failing that accept as a tape.
 		try {
-			Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore, file_name)
+			accumulator.insert<Cartridge::PRG>(TargetPlatform::Commodore, file_name);
 		} catch(...) {
 			try {
-				Insert(result.tapes, Tape::PRG, TargetPlatform::Commodore, file_name)
+				accumulator.insert<Tape::PRG>(TargetPlatform::Commodore, file_name);
 			} catch(...) {}
 		}
 	}
 
-	Format(	"rom",
-			result.cartridges,
-			Cartridge::BinaryDump,
-			TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX)						// ROM
-	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SG
-	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SMS
-	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// SSD
-	Format("st", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::AtariST)			// ST
-	Format("stx", result.disks, Disk::DiskImageHolder<Storage::Disk::STX>, TargetPlatform::AtariST)				// STX
-	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
-	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
-	Format("tap", result.tapes, Tape::ZXSpectrumTAP, TargetPlatform::ZXSpectrum)								// TAP (ZX Spectrum)
-	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)													// TSX
-	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum)					// TZX
-	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)												// UEF (tape)
-	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::DiskII)				// WOZ
+	accumulator.try_standard<Cartridge::BinaryDump>(
+		TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX,
+		"rom");
 
-#undef Format
-#undef Insert
-#undef TryInsert
-#undef InsertInstance
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sg");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sms");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, "ssd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::AtariST, "st");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::STX>>(TargetPlatform::AtariST, "stx");
 
-	return result;
+	accumulator.try_standard<Tape::CommodoreTAP>(TargetPlatform::Commodore, "tap");
+	accumulator.try_standard<Tape::OricTAP>(TargetPlatform::Oric, "tap");
+	accumulator.try_standard<Tape::ZXSpectrumTAP>(TargetPlatform::ZXSpectrum, "tap");
+	accumulator.try_standard<Tape::TZX>(TargetPlatform::MSX, "tsx");
+	accumulator.try_standard<Tape::TZX>(TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum, "tzx");
+
+	accumulator.try_standard<Tape::UEF>(TargetPlatform::Acorn, "uef");
+
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::WOZ>>(TargetPlatform::DiskII, "woz");
+
+	return accumulator.media;
 }
 
 Media Analyser::Static::GetMedia(const std::string &file_name) {

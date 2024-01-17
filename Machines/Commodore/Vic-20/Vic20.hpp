@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Vic20_hpp
-#define Vic20_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -45,5 +44,3 @@ class Machine {
 };
 
 }
-
-#endif /* Vic20_hpp */

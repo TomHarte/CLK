@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ROMMachine_hpp
-#define ROMMachine_hpp
+#pragma once
 
 #include <functional>
 #include <map>
@@ -35,5 +34,3 @@ enum class Error {
 };
 
 }
-
-#endif /* ROMMachine_h */

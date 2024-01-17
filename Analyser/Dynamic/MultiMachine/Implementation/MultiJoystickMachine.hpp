@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiJoystickMachine_hpp
-#define MultiJoystickMachine_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 
@@ -34,5 +33,3 @@ class MultiJoystickMachine: public MachineTypes::JoystickMachine {
 };
 
 }
-
-#endif /* MultiJoystickMachine_hpp */

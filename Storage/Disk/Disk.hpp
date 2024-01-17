@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Disk_hpp
-#define Disk_hpp
+#pragma once
 
 #include <map>
 #include <memory>
@@ -69,5 +68,3 @@ class Disk {
 };
 
 }
-
-#endif /* Disk_hpp */

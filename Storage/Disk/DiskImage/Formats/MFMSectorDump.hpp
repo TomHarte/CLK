@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef SectorDump_hpp
-#define SectorDump_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -42,5 +41,3 @@ class MFMSectorDump: public DiskImage {
 };
 
 }
-
-#endif /* SectorDump_hpp */

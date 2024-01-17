@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MachineForTarget_hpp
-#define MachineForTarget_hpp
+#pragma once
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Reflection/Struct.hpp"
@@ -94,5 +93,3 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> AllOptionsByMachineNa
 std::map<std::string, std::unique_ptr<Analyser::Static::Target>> TargetsByMachineName(bool meaningful_without_media_only);
 
 }
-
-#endif /* MachineForTarget_hpp */

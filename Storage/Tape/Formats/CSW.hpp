@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CSW_hpp
-#define CSW_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -62,5 +61,3 @@ class CSW: public Tape {
 };
 
 }
-
-#endif /* CSW_hpp */

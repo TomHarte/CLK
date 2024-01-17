@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Cartridge_BinaryDump_hpp
-#define Storage_Cartridge_BinaryDump_hpp
+#pragma once
 
 #include "../Cartridge.hpp"
 
@@ -25,5 +24,3 @@ class BinaryDump : public Cartridge {
 };
 
 }
-
-#endif /* AcornROM_hpp */

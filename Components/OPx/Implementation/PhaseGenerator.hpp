@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef PhaseGenerator_h
-#define PhaseGenerator_h
+#pragma once
 
 #include <cassert>
 #include "LowFrequencyOscillator.hpp"
@@ -119,5 +118,3 @@ template <int precision> class PhaseGenerator {
 };
 
 }
-
-#endif /* PhaseGenerator_h */

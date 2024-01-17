@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Enterprise_Keyboard_hpp
-#define Machines_Enterprise_Keyboard_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 #include "../Utility/Typer.hpp"
@@ -62,5 +61,3 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 };
 
 }
-
-#endif /* Keyboard_hpp */

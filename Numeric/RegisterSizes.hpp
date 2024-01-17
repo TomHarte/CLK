@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef RegisterSizes_hpp
-#define RegisterSizes_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -88,5 +87,3 @@ using SlicedInt32 = SlicedInt<uint32_t>;
 }
 
 #pragma pack(pop)
-
-#endif /* RegisterSizes_hpp */

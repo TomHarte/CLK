@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Logical_h
-#define Logical_h
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -142,5 +141,3 @@ void setmo(
 }
 
 }
-
-#endif /* Logical_h */

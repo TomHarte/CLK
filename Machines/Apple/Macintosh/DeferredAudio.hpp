@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DeferredAudio_h
-#define DeferredAudio_h
+#pragma once
 
 #include "Audio.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -28,5 +27,3 @@ struct DeferredAudio {
 };
 
 }
-
-#endif /* DeferredAudio_h */

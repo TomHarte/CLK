@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ColecoVision_hpp
-#define ColecoVision_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -37,5 +36,3 @@ class Machine {
 };
 
 }
-
-#endif /* ColecoVision_hpp */

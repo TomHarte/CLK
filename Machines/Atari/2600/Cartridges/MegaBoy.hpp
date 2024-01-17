@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeMegaBoy_hpp
-#define Atari2600_CartridgeMegaBoy_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
@@ -41,5 +40,3 @@ class MegaBoy: public BusExtender {
 };
 
 }
-
-#endif /* CartridgeMegaBoy_h */

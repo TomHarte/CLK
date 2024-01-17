@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Struct_hpp
-#define Struct_hpp
+#pragma once
 
 #include <cassert>
 #include <cstdarg>
@@ -428,5 +427,3 @@ template <typename Type> Type get(const Struct &target, const std::string &name,
 }
 
 }
-
-#endif /* Struct_hpp */

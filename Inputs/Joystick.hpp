@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Joystick_hpp
-#define Joystick_hpp
+#pragma once
 
 #include <cstddef>
 #include <vector>
@@ -234,5 +233,3 @@ class ConcreteJoystick: public Joystick {
 };
 
 }
-
-#endif /* Joystick_hpp */

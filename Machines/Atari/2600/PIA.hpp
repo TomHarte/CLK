@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_PIA_h
-#define Atari2600_PIA_h
+#pragma once
 
 #include <cstdint>
 
@@ -36,5 +35,3 @@ class PIA: public MOS::MOS6532<PIA> {
 };
 
 }
-
-#endif /* PIA_h */

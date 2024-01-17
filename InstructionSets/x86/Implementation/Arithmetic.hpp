@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Arithmetic_hpp
-#define Arithmetic_hpp
+#pragma once
 
 #include "../AccessType.hpp"
 #include "../Interrupts.hpp"
@@ -361,5 +360,3 @@ void neg(
 }
 
 }
-
-#endif /* Arithmetic_hpp */

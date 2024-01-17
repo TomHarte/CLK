@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TMS9918Base_hpp
-#define TMS9918Base_hpp
+#pragma once
 
 #include "ClockConverter.hpp"
 
@@ -624,5 +623,3 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 #include "Fetch.hpp"
 #include "Draw.hpp"
-
-#endif /* TMS9918Base_hpp */

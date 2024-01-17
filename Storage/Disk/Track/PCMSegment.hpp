@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef PCMSegment_hpp
-#define PCMSegment_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -203,5 +202,3 @@ class PCMSegmentEventSource {
 };
 
 }
-
-#endif /* PCMSegment_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef InOut_h
-#define InOut_h
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -32,5 +31,3 @@ void in(
 }
 
 }
-
-#endif /* InOut_h */

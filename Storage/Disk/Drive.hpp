@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Drive_hpp
-#define Drive_hpp
+#pragma once
 
 #include "Disk.hpp"
 #include "Track/PCMSegment.hpp"
@@ -296,5 +295,3 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 };
 
 }
-
-#endif /* Drive_hpp */

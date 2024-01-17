@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef OricMFMDSK_hpp
-#define OricMFMDSK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -46,5 +45,3 @@ class OricMFMDSK: public DiskImage {
 };
 
 }
-
-#endif /* OricMFMDSK_hpp */

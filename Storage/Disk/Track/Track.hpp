@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Track_h
-#define Track_h
+#pragma once
 
 #include "../../Storage.hpp"
 #include <tuple>
@@ -126,5 +125,3 @@ class Track {
 };
 
 }
-
-#endif /* Track_h */

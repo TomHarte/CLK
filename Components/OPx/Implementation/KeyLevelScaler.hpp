@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef KeyLevelScaler_h
-#define KeyLevelScaler_h
+#pragma once
 
 namespace Yamaha::OPL {
 
@@ -51,5 +50,3 @@ template <int frequency_precision> class KeyLevelScaler {
 };
 
 }
-
-#endif /* KeyLevelScaler_h */

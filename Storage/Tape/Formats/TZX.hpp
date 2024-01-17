@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TZX_hpp
-#define TZX_hpp
+#pragma once
 
 #include "../PulseQueuedTape.hpp"
 #include "../../FileHolder.hpp"
@@ -99,5 +98,3 @@ class TZX: public PulseQueuedTape {
 };
 
 }
-
-#endif /* TZX_hpp */

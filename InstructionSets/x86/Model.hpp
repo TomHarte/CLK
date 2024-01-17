@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef Model_h
-#define Model_h
+#pragma once
 
 #include <cstdint>
 
@@ -26,5 +25,3 @@ template <bool is_32bit> struct AddressT { using type = uint16_t; };
 template <> struct AddressT<true> { using type = uint32_t; };
 
 }
-
-#endif /* Model_h */

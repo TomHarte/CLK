@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Nick_hpp
-#define Nick_hpp
+#pragma once
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -120,7 +119,4 @@ class Nick {
 		template <int bpp> void output_attributed(uint16_t *target, int columns) const;
 };
 
-
 }
-
-#endif /* Nick_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LowFrequencyOscillator_hpp
-#define LowFrequencyOscillator_hpp
+#pragma once
 
 #include "../../../Numeric/LFSR.hpp"
 
@@ -62,5 +61,3 @@ class LowFrequencyOscillator {
 };
 
 }
-
-#endif /* LowFrequencyOscillator_hpp */

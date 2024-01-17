@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef C1540Base_hpp
-#define C1540Base_hpp
+#pragma once
 
 #include "../../../../Processors/6502/6502.hpp"
 #include "../../../../Components/6522/6522.hpp"
@@ -160,5 +159,3 @@ class MachineBase:
 };
 
 }
-
-#endif /* C1540Base_hpp */

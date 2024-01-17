@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Shader_hpp
-#define Shader_hpp
+#pragma once
 
 #include "../OpenGL.hpp"
 
@@ -129,5 +128,3 @@ protected:
 };
 
 }
-
-#endif /* Shader_hpp */

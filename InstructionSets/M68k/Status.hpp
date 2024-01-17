@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Status_h
-#define InstructionSets_M68k_Status_h
+#pragma once
 
 #include "Instruction.hpp"
 
@@ -159,5 +158,3 @@ struct Status {
 };
 
 }
-
-#endif /* InstructionSets_M68k_Status_h */

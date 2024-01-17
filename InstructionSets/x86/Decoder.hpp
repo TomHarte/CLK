@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Decoder_hpp
-#define InstructionSets_x86_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 #include "Model.hpp"
@@ -242,5 +241,3 @@ class Decoder8086 {
 };
 
 }
-
-#endif /* InstructionSets_x86_Decoder_hpp */

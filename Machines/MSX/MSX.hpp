@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MSX_hpp
-#define MSX_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -39,5 +38,3 @@ class Machine {
 };
 
 }
-
-#endif /* MSX_hpp */

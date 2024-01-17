@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AcornADF_hpp
-#define AcornADF_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
@@ -37,5 +36,3 @@ class AcornADF: public MFMSectorDump {
 };
 
 }
-
-#endif /* AcornADF_hpp */

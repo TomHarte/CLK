@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_RegisterSet_h
-#define InstructionSets_M68k_RegisterSet_h
+#pragma once
 
 namespace InstructionSet::M68k {
 
@@ -25,5 +24,3 @@ struct RegisterSet {
 };
 
 }
-
-#endif /* InstructionSets_M68k_RegisterSet_h */

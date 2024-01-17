@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_Cartridge_hpp
-#define Atari2600_Cartridge_hpp
+#pragma once
 
 #include "../../../../Processors/6502/6502.hpp"
 #include "../Bus.hpp"
@@ -214,5 +213,3 @@ template<class T> class Cartridge:
 };
 
 }
-
-#endif /* Atari2600_Cartridge_hpp */

@@ -7,8 +7,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_h
-#define Storage_h
+#pragma once
 
 #include "LineBuffer.hpp"
 #include "YamahaCommands.hpp"
@@ -486,5 +485,3 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 };
 
 }
-
-#endif /* Storage_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Tables_hpp
-#define Tables_hpp
+#pragma once
 
 namespace Yamaha::OPL {
 
@@ -221,5 +220,3 @@ inline int LogSign::level(int fractional) const {
 }
 
 }
-
-#endif /* Tables_hpp */

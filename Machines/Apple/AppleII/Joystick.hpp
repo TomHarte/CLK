@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleII_Joystick_hpp
-#define AppleII_Joystick_hpp
+#pragma once
 
 #include "../../../Inputs/Joystick.hpp"
 
@@ -106,5 +105,3 @@ class JoystickPair {
 };
 
 }
-
-#endif /* AppleII_Joystick_hpp */

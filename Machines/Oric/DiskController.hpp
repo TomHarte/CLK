@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskController_h
-#define DiskController_h
+#pragma once
 
 namespace Oric {
 
@@ -58,8 +57,4 @@ class DiskController: public WD::WD1770 {
 		Storage::Disk::Drive::ReadyType ready_type_;
 };
 
-
-};
-
-
-#endif /* DiskController_h */
+}

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ForceInline_hpp
-#define ForceInline_hpp
+#pragma once
 
 #ifndef NDEBUG
 
@@ -22,5 +21,3 @@
 #endif
 
 #endif
-
-#endif /* ForceInline_h */

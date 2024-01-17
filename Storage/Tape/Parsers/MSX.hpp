@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_MSX_hpp
-#define Storage_Tape_Parsers_MSX_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -48,5 +47,3 @@ class Parser {
 };
 
 }
-
-#endif /* Storage_Tape_Parsers_MSX_hpp */

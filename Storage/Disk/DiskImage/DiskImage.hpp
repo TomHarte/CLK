@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskImage_hpp
-#define DiskImage_hpp
+#pragma once
 
 #include <map>
 #include <memory>
@@ -119,5 +118,3 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase, public 
 #include "DiskImageImplementation.hpp"
 
 }
-
-#endif /* DiskImage_hpp */

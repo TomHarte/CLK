@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Electron_hpp
-#define Electron_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -49,5 +48,3 @@ class Machine {
 };
 
 }
-
-#endif /* Electron_hpp */

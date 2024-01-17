@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M50740_Decoder_hpp
-#define InstructionSets_M50740_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 
@@ -33,5 +32,3 @@ class Decoder {
 };
 
 }
-
-#endif /* InstructionSets_M50740_Decoder_hpp */

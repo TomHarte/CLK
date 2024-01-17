@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ImplicitSectors_hpp
-#define ImplicitSectors_hpp
+#pragma once
 
 #include "../../../Track/Track.hpp"
 #include <memory>
@@ -22,5 +21,3 @@ std::shared_ptr<Track> track_for_sectors(const uint8_t *source, int number_of_se
 void decode_sectors(const Track &track, uint8_t *destination, uint8_t first_sector, uint8_t last_sector, uint8_t sector_size, Storage::Encodings::MFM::Density density);
 
 }
-
-#endif /* ImplicitSectors_hpp */

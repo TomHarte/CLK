@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleII_hpp
-#define AppleII_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -42,5 +41,3 @@ class Machine {
 };
 
 }
-
-#endif /* AppleII_hpp */

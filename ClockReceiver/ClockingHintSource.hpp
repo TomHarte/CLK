@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ClockingHintSource_hpp
-#define ClockingHintSource_hpp
+#pragma once
 
 namespace ClockingHint {
 
@@ -84,5 +83,3 @@ class Source {
 };
 
 }
-
-#endif /* ClockingHintSource_h */

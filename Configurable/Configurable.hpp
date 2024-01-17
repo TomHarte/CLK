@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Configurable_h
-#define Configurable_h
+#pragma once
 
 #include "../Reflection/Struct.hpp"
 
@@ -42,5 +41,3 @@ enum class OptionsType {
 };
 
 }
-
-#endif /* Configurable_h */

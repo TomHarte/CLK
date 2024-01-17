@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef MediaTarget_hpp
-#define MediaTarget_hpp
+#pragma once
 
 #include "../Analyser/Static/StaticAnalyser.hpp"
 #include "../Configurable/Configurable.hpp"
@@ -30,5 +29,3 @@ class MediaTarget {
 };
 
 }
-
-#endif /* MediaTarget_hpp */

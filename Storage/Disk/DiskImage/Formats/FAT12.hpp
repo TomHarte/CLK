@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef FAT12_hpp
-#define FAT12_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
@@ -35,5 +34,3 @@ class FAT12: public MFMSectorDump {
 };
 
 }
-
-#endif /* FAT12_hpp */

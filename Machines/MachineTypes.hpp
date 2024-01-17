@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef MachineTypes_h
-#define MachineTypes_h
+#pragma once
 
 // Rounds up everything in the MachineTypes namespace, all being
 // optional (at least, semantically) interfaces that machines
@@ -22,5 +21,3 @@
 #include "ScanProducer.hpp"
 #include "StateProducer.hpp"
 #include "TimedMachine.hpp"
-
-#endif /* MachineTypes_h */
