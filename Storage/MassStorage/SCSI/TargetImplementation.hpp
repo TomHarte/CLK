@@ -6,6 +6,8 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 template <typename Executor> Target<Executor>::Target(Bus &bus, int scsi_id) :
 	bus_(bus),
 	scsi_id_mask_(BusState(1 << scsi_id)),

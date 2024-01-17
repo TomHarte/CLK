@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MFP68901_hpp
-#define MFP68901_hpp
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
@@ -184,5 +183,3 @@ class MFP68901: public ClockingHint::Source {
 };
 
 }
-
-#endif /* MFP68901_hpp */

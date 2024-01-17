@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_RealTimeClock_hpp
-#define Apple_RealTimeClock_hpp
+#pragma once
 
 #include <array>
 
@@ -293,5 +292,3 @@ class ParallelClock: public ClockStorage {
 };
 
 }
-
-#endif /* Apple_RealTimeClock_hpp */

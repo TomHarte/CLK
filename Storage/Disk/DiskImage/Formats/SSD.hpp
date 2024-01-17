@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef SSD_hpp
-#define SSD_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
@@ -37,5 +36,3 @@ class SSD: public MFMSectorDump {
 };
 
 }
-
-#endif /* SSD_hpp */

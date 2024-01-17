@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef JustInTime_h
-#define JustInTime_h
+#pragma once
 
 #include "ClockReceiver.hpp"
 #include "../Concurrency/AsyncTaskQueue.hpp"
@@ -335,5 +334,3 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 		bool is_flushed_ = true;
 		Concurrency::AsyncTaskQueue<true> task_queue_;
 };
-
-#endif /* JustInTime_h */

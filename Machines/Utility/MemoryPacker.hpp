@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemoryPacker_hpp
-#define MemoryPacker_hpp
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -43,4 +42,3 @@ void PackBigEndian16(const std::vector<uint8_t> &source, std::vector<uint16_t> &
 void PackBigEndian16(const std::vector<uint8_t> &source, std::vector<uint8_t> &target);
 
 }
-#endif /* MemoryPacker_hpp */

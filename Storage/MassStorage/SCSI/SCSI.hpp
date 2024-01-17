@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSI_hpp
-#define SCSI_hpp
+#pragma once
 
 #include <array>
 #include <limits>
@@ -167,5 +166,3 @@ class Bus: public ClockingHint::Source, public Activity::Source {
 };
 
 }
-
-#endif /* SCSI_hpp */

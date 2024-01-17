@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef m6502Esque_h
-#define m6502Esque_h
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
@@ -143,5 +142,3 @@ template <typename addr_t> class BusHandler {
 };
 
 }
-
-#endif /* m6502Esque_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Sega_Target_h
-#define Analyser_Static_Sega_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
@@ -51,5 +50,3 @@ constexpr bool is_master_system(Analyser::Static::Sega::Target::Model model) {
 }
 
 }
-
-#endif /* Analyser_Static_Sega_Target_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_State_SZX_hpp
-#define Storage_State_SZX_hpp
+#pragma once
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 
@@ -18,5 +17,3 @@ struct SZX {
 };
 
 }
-
-#endif /* Storage_State_SZX_hpp */

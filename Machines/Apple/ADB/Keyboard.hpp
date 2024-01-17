@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Keyboard_hpp
-#define Keyboard_hpp
+#pragma once
 
 #include "ReactiveDevice.hpp"
 #include "../../../Inputs/Keyboard.hpp"
@@ -119,5 +118,3 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 };
 
 }
-
-#endif /* Keyboard_hpp */

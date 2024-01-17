@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_PerformImplementation_h
-#define InstructionSets_M68k_PerformImplementation_h
+#pragma once
 
 #include "../../../Numeric/Carry.hpp"
 #include "../ExceptionVectors.hpp"
@@ -1004,5 +1003,3 @@ template <
 }
 
 }
-
-#endif /* InstructionSets_M68k_PerformImplementation_h */

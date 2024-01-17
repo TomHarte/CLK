@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Flags_hpp
-#define Flags_hpp
+#pragma once
 
 namespace Amiga {
 
@@ -49,5 +48,3 @@ namespace DMAFlag {
 }
 
 }
-
-#endif /* Flags_hpp */

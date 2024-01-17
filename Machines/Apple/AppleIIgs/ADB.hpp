@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_IIgs_ADB_hpp
-#define Apple_IIgs_ADB_hpp
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -84,5 +83,3 @@ class GLU: public InstructionSet::M50740::PortHandler {
 };
 
 }
-
-#endif /* Apple_IIgs_ADB_hpp */

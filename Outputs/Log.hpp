@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Log_h
-#define Log_h
+#pragma once
 
 #ifdef NDEBUG
 
@@ -45,6 +44,3 @@
 #endif
 
 #endif
-
-
-#endif /* Log_h */

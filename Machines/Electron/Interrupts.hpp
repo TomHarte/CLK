@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Interrupts_h
-#define Interrupts_h
+#pragma once
 
 #include <cstdint>
 
@@ -23,5 +22,3 @@ enum Interrupt: uint8_t {
 };
 
 }
-
-#endif /* Interrupts_h */

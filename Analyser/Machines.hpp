@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_h
-#define Machines_h
+#pragma once
 
 namespace Analyser {
 
@@ -32,5 +31,3 @@ enum class Machine {
 };
 
 }
-
-#endif /* Machines_h */

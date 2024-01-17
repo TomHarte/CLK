@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef AmstradCPC_hpp
-#define AmstradCPC_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -51,5 +50,3 @@ class Machine {
 };
 
 }
-
-#endif /* AmstradCPC_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef AccessType_h
-#define AccessType_h
+#pragma once
 
 namespace InstructionSet {
 
@@ -19,5 +18,3 @@ enum class AccessType {
 };
 
 }
-
-#endif /* AccessType_h */

@@ -6,13 +6,11 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ASCII16kb_hpp
-#define ASCII16kb_hpp
+#pragma once
 
 #include "../MemorySlotHandler.hpp"
 
-namespace MSX {
-namespace Cartridge {
+namespace MSX::Cartridge {
 
 class ASCII16kbROMSlotHandler: public MemorySlotHandler {
 	public:
@@ -47,6 +45,3 @@ class ASCII16kbROMSlotHandler: public MemorySlotHandler {
 };
 
 }
-}
-
-#endif /* ASCII16kb_hpp */

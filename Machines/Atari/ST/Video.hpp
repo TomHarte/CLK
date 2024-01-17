@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari_ST_Video_hpp
-#define Atari_ST_Video_hpp
+#pragma once
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -249,5 +248,3 @@ class Video {
 };
 
 }
-
-#endif /* Atari_ST_Video_hpp */

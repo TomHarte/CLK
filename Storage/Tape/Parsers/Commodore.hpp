@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_Commodore_hpp
-#define Storage_Tape_Parsers_Commodore_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 #include <memory>
@@ -130,5 +129,3 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 };
 
 }
-
-#endif /* Commodore_hpp */

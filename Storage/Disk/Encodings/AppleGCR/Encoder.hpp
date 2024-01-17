@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleGCR_hpp
-#define AppleGCR_hpp
+#pragma once
 
 #include <cstdint>
 #include "../../../Disk/Track/PCMSegment.hpp"
@@ -92,5 +91,3 @@ Storage::Disk::PCMSegment five_and_three_data(const uint8_t *source);
 Storage::Disk::PCMSegment five_and_three_sync(int length);
 
 }
-
-#endif /* AppleGCR_hpp */

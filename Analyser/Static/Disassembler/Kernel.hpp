@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Kernel_hpp
-#define Kernel_hpp
+#pragma once
 
 namespace Analyser::Static::Disassembly {
 
@@ -65,5 +64,3 @@ template <typename D, typename S, typename Disassembler> D Disassemble(
 }
 
 }
-
-#endif /* Kernel_hpp */

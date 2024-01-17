@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef KeyboardMachine_h
-#define KeyboardMachine_h
+#pragma once
 
 #include <bitset>
 #include <cstdint>
@@ -153,5 +152,3 @@ class MappedKeyboardMachine: public Inputs::Keyboard::Delegate, public KeyboardM
 };
 
 }
-
-#endif /* KeyboardMachine_h */

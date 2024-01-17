@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M6809_OperationMapper_hpp
-#define InstructionSets_M6809_OperationMapper_hpp
+#pragma once
 
 // Cf. https://techheap.packetizer.com/processors/6809/6809Instructions.html
 //
@@ -239,5 +238,3 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page2>::dispatc
 }
 
 }
-
-#endif /* InstructionSets_M6809_OperationMapper_hpp */

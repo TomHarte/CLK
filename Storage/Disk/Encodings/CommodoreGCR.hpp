@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Disk_Encodings_CommodoreGCR_hpp
-#define Storage_Disk_Encodings_CommodoreGCR_hpp
+#pragma once
 
 #include "../../Storage.hpp"
 #include <cstdint>
@@ -48,5 +47,3 @@ namespace CommodoreGCR {
 }
 
 }
-
-#endif /* CommodoreGCR_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef MC68000Storage_h
-#define MC68000Storage_h
+#pragma once
 
 #include "../../../InstructionSets/M68k/Decoder.hpp"
 #include "../../../InstructionSets/M68k/Perform.hpp"
@@ -232,5 +231,3 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 };
 
 }
-
-#endif /* MC68000Storage_h */

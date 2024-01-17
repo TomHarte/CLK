@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Oric_hpp
-#define Oric_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -44,4 +43,3 @@ class Machine {
 };
 
 }
-#endif /* Oric_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Atari2600_Target_h
-#define Analyser_Static_Atari2600_Target_h
+#pragma once
 
 #include "../StaticAnalyser.hpp"
 
@@ -37,5 +36,3 @@ struct Target: public ::Analyser::Static::Target {
 };
 
 }
-
-#endif /* Analyser_Static_Atari_Target_h */

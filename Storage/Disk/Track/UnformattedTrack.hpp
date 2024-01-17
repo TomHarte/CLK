@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef UnformattedTrack_hpp
-#define UnformattedTrack_hpp
+#pragma once
 
 #include "Track.hpp"
 
@@ -24,5 +23,3 @@ class UnformattedTrack: public Track {
 };
 
 }
-
-#endif /* UnformattedTrack_hpp */

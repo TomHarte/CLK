@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Repetition_h
-#define Repetition_h
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -176,5 +175,3 @@ void ins(
 }
 
 }
-
-#endif /* Repetition_h */

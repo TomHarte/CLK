@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef AudioProducer_h
-#define AudioProducer_h
+#pragma once
 
 #include "../Outputs/Speaker/Speaker.hpp"
 
@@ -23,5 +22,3 @@ class AudioProducer {
 };
 
 }
-
-#endif /* AudioProducer_h */

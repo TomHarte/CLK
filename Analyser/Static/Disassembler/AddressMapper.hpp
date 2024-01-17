@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef AddressMapper_hpp
-#define AddressMapper_hpp
+#pragma once
 
 #include <functional>
 
@@ -24,5 +23,3 @@ template <typename T> std::function<std::size_t(T)> OffsetMapper(T start_address
 }
 
 }
-
-#endif /* AddressMapper_hpp */

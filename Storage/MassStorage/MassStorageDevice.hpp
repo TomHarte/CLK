@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MassStorageDevice_hpp
-#define MassStorageDevice_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -55,5 +54,3 @@ class MassStorageDevice {
 };
 
 }
-
-#endif /* MassStorageDevice_hpp */

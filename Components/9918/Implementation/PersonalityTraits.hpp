@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef PersonalityTraits_hpp
-#define PersonalityTraits_hpp
+#pragma once
 
 namespace TI::TMS {
 
@@ -46,5 +45,3 @@ constexpr size_t memory_mask(Personality p) {
 }
 
 }
-
-#endif /* PersonalityTraits_hpp */

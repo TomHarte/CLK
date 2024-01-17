@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef _560_hpp
-#define _560_hpp
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
@@ -515,5 +514,3 @@ template <class BusHandler> class MOS6560 {
 };
 
 }
-
-#endif /* _560_hpp */

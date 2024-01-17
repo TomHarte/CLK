@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TapeParser_hpp
-#define TapeParser_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -156,5 +155,3 @@ template <typename WaveType, typename SymbolType> class PulseClassificationParse
 };
 
 }
-
-#endif /* TapeParser_hpp */

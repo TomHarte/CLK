@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef BCD_h
-#define BCD_h
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -112,5 +111,3 @@ void daas(
 }
 
 }
-
-#endif /* BCD_h */

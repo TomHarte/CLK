@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemorySwitches_h
-#define MemorySwitches_h
+#pragma once
 
 namespace Apple::II {
 
@@ -19,5 +18,3 @@ enum PagingType: int {
 };
 
 }
-
-#endif /* MemorySwitches_h */

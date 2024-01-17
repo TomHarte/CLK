@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AY_3_8910_hpp
-#define AY_3_8910_hpp
+#pragma once
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
@@ -219,5 +218,3 @@ struct State: public Reflection::StructImpl<State> {
 };
 
 }
-
-#endif /* AY_3_8910_hpp */

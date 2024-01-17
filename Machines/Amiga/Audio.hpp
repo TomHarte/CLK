@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Audio_hpp
-#define Audio_hpp
+#pragma once
 
 #include <atomic>
 #include <cstdint>
@@ -159,5 +158,3 @@ class Audio: public DMADevice<4> {
 };
 
 }
-
-#endif /* Audio_hpp */

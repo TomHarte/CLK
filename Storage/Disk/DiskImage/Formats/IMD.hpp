@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef IMD_hpp
-#define IMD_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -41,5 +40,3 @@ class IMD: public DiskImage {
 };
 
 }
-
-#endif /* IMD_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Bitplanes_hpp
-#define Bitplanes_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -98,5 +97,3 @@ class BitplaneShifter {
 };
 
 }
-
-#endif /* Bitplanes_hpp */

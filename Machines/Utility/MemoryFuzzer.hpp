@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemoryFuzzer_hpp
-#define MemoryFuzzer_hpp
+#pragma once
 
 #include <cstdint>
 #include <cstddef>
@@ -27,5 +26,3 @@ template <typename T> void Fuzz(T &buffer) {
 }
 
 }
-
-#endif /* MemoryFuzzer_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Decoder_hpp
-#define InstructionSets_M68k_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 #include "Model.hpp"
@@ -115,5 +114,3 @@ template <Model model> class Predecoder {
 };
 
 }
-
-#endif /* InstructionSets_M68k_Decoder_hpp */

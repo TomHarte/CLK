@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemoryMap_hpp
-#define MemoryMap_hpp
+#pragma once
 
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
@@ -193,4 +192,3 @@ class MemoryMap {
 };
 
 }
-#endif /* MemoryMap_hpp */

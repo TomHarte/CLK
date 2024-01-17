@@ -6,14 +6,12 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef KonamiWithSCC_hpp
-#define KonamiWithSCC_hpp
+#pragma once
 
 #include "../MemorySlotHandler.hpp"
 #include "../../../Components/KonamiSCC/KonamiSCC.hpp"
 
-namespace MSX {
-namespace Cartridge {
+namespace MSX::Cartridge {
 
 class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 	public:
@@ -86,6 +84,3 @@ class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 };
 
 }
-}
-
-#endif /* KonamiWithSCC_hpp */

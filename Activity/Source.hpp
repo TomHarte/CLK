@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ActivitySource_h
-#define ActivitySource_h
+#pragma once
 
 #include "Observer.hpp"
 
@@ -19,6 +18,3 @@ class Source {
 };
 
 }
-
-
-#endif /* ActivitySource_h */

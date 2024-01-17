@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Carry_hpp
-#define Carry_hpp
+#pragma once
 
 #include <limits>
 
@@ -79,5 +78,3 @@ IntT overflow(IntT lhs, IntT rhs, IntT result) {
 }
 
 }
-
-#endif /* Carry_hpp */

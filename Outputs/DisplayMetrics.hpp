@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DisplayMetrics_hpp
-#define DisplayMetrics_hpp
+#pragma once
 
 #include "ScanTarget.hpp"
 
@@ -56,5 +55,3 @@ class Metrics {
 };
 
 }
-
-#endif /* DisplayMetrics_hpp */

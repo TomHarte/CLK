@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ActivityObserver_h
-#define ActivityObserver_h
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -58,5 +57,3 @@ class Observer {
 };
 
 }
-
-#endif /* ActivityObserver_h */

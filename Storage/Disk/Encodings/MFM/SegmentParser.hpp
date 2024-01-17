@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef SegmentParser_hpp
-#define SegmentParser_hpp
+#pragma once
 
 #include "Constants.hpp"
 #include "Sector.hpp"
@@ -26,5 +25,3 @@ using SectorMap = std::map<std::size_t, Sector>;
 SectorMap sectors_from_segment(const Disk::PCMSegment &segment, Density density);
 
 }
-
-#endif /* SegmentParser_hpp */

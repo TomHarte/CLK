@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef i8272_hpp
-#define i8272_hpp
+#pragma once
 
 #include "CommandDecoder.hpp"
 #include "Status.hpp"
@@ -134,5 +133,3 @@ class i8272 : public Storage::Disk::MFMController {
 };
 
 }
-
-#endif /* i8272_hpp */

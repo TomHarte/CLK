@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Commodore1540_hpp
-#define Commodore1540_hpp
+#pragma once
 
 namespace Commodore::C1540 {
 
@@ -54,5 +53,3 @@ class Machine final: public MachineBase {
 };
 
 }
-
-#endif /* Commodore1540_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef State_hpp
-#define State_hpp
+#pragma once
 
 #include "../../../Reflection/Struct.hpp"
 #include "../../../Processors/Z80/State/State.hpp"
@@ -46,5 +45,3 @@ struct State: public Reflection::StructImpl<State> {
 };
 
 }
-
-#endif /* State_h */

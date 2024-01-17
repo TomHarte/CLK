@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiMachine_hpp
-#define MultiMachine_hpp
+#pragma once
 
 #include "../../../Machines/DynamicMachine.hpp"
 
@@ -80,5 +79,3 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiTimedMachine::
 };
 
 }
-
-#endif /* MultiMachine_hpp */

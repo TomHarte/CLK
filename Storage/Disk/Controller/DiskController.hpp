@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Disk_Controller_hpp
-#define Storage_Disk_Controller_hpp
+#pragma once
 
 #include "../Drive.hpp"
 #include "../DPLL/DigitalPhaseLockedLoop.hpp"
@@ -163,5 +162,3 @@ class Controller:
 };
 
 }
-
-#endif /* DiskDrive_hpp */

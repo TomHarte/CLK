@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleDSK_hpp
-#define AppleDSK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -46,5 +45,3 @@ class AppleDSK: public DiskImage {
 };
 
 }
-
-#endif /* AppleDSK_hpp */

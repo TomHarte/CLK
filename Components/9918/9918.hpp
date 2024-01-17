@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TMS9918_hpp
-#define TMS9918_hpp
+#pragma once
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -127,5 +126,3 @@ template <Personality personality> class TMS9918: private Base<personality> {
 };
 
 }
-
-#endif /* TMS9918_hpp */

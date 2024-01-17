@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Disassembler_Z80_hpp
-#define StaticAnalyser_Disassembler_Z80_hpp
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -91,5 +90,3 @@ Disassembly Disassemble(
 	Approach approach);
 
 }
-
-#endif /* StaticAnalyser_Disassembler_Z80_hpp */

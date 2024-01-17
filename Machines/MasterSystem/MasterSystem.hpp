@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MasterSystem_hpp
-#define MasterSystem_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -36,5 +35,3 @@ class Machine {
 };
 
 }
-
-#endif /* MasterSystem_hpp */

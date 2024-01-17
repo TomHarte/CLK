@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Comparative68000_hpp
-#define Comparative68000_hpp
+#pragma once
 
 #include <zlib.h>
 
@@ -55,5 +54,3 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 		int line_count = 0;
 		gzFile trace;
 };
-
-#endif /* Comparative68000_hpp */

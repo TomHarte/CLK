@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Disk_Encodings_MFM_hpp
-#define Storage_Disk_Encodings_MFM_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -79,5 +78,3 @@ std::unique_ptr<Encoder> GetMFMEncoder(std::vector<bool> &target, std::vector<bo
 std::unique_ptr<Encoder> GetFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
 
 }
-
-#endif /* MFM_hpp */

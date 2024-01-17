@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef _502Selector_h
-#define _502Selector_h
+#pragma once
 
 #include "6502Esque.hpp"
 #include "../6502/6502.hpp"
@@ -73,5 +72,3 @@ constexpr bool has_extended_bus_output(Type processor_type) {
 }
 
 }
-
-#endif /* _502Selector_h */

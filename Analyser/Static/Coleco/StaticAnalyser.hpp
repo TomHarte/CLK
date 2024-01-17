@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Coleco_StaticAnalyser_hpp
-#define StaticAnalyser_Coleco_StaticAnalyser_hpp
+#pragma once
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
@@ -18,5 +17,3 @@ namespace Analyser::Static::Coleco {
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-
-#endif /* StaticAnalyser_hpp */

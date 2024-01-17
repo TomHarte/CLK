@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef CommandDecoder_hpp
-#define CommandDecoder_hpp
+#pragma once
 
 #include <cstdint>
 #include <cstddef>
@@ -217,5 +216,3 @@ class CommandDecoder {
 };
 
 }
-
-#endif /* CommandDecoder_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Flags_hpp
-#define InstructionSets_x86_Flags_hpp
+#pragma once
 
 #include "../../Numeric/Carry.hpp"
 
@@ -229,5 +228,3 @@ class Flags {
 };
 
 }
-
-#endif /* InstructionSets_x86_Flags_hpp */

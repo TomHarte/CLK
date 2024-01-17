@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef ShiftRoll_hpp
-#define ShiftRoll_hpp
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -361,5 +360,3 @@ void shr(
 }
 
 }
-
-#endif /* ShiftRoll_hpp */

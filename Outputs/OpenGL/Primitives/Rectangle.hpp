@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Rectangle_hpp
-#define Rectangle_hpp
+#pragma once
 
 #include "../OpenGL.hpp"
 #include "Shader.hpp"
@@ -37,5 +36,3 @@ class Rectangle {
 };
 
 }
-
-#endif /* Rectangle_hpp */

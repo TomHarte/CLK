@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef VideoSwitches_h
-#define VideoSwitches_h
+#pragma once
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../ClockReceiver/DeferredQueue.hpp"
@@ -343,5 +342,3 @@ template <typename TimeUnit> class VideoSwitches {
 };
 
 }
-
-#endif /* VideoSwitches_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef RP5C01_hpp
-#define RP5C01_hpp
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
@@ -55,5 +54,3 @@ class RP5C01 {
 };
 
 }
-
-#endif /* RP5C01_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Parser_hpp
-#define Parser_hpp
+#pragma once
 
 #include "Constants.hpp"
 #include "Sector.hpp"
@@ -57,5 +56,3 @@ class Parser {
 };
 
 }
-
-#endif /* Parser_hpp */

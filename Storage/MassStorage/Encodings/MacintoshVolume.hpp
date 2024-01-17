@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MacintoshVolume_hpp
-#define MacintoshVolume_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -54,5 +53,3 @@ struct VolumeProvider {
 using Mapper = Storage::MassStorage::Encodings::Apple::PartitionMap<VolumeProvider>;
 
 }
-
-#endif /* MacintoshVolume_hpp */

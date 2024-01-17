@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef LoadStore_h
-#define LoadStore_h
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -79,5 +78,3 @@ void mov(
 }
 
 }
-
-#endif /* LoadStore_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Macintosh_hpp
-#define Macintosh_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -36,5 +35,3 @@ class Machine {
 };
 
 }
-
-#endif /* Macintosh_hpp */

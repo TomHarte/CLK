@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Enum_hpp
-#define Enum_hpp
+#pragma once
 
 #include <algorithm>
 #include <cctype>
@@ -169,5 +168,3 @@ class Enum {
 };
 
 }
-
-#endif /* Enum_hpp */

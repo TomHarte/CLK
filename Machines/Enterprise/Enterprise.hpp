@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Enterprise_hpp
-#define Enterprise_hpp
+#pragma once
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Configurable/Configurable.hpp"
@@ -44,5 +43,3 @@ class Machine {
 };
 
 };
-
-#endif /* Enterprise_hpp */

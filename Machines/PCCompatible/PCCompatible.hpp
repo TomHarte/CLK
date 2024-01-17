@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef PCCompatible_hpp
-#define PCCompatible_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -48,5 +47,3 @@ class Machine {
 };
 
 }
-
-#endif /* PCCompatible_hpp */

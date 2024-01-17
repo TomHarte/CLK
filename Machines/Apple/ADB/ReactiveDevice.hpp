@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef ReactiveDevice_hpp
-#define ReactiveDevice_hpp
+#pragma once
 
 #include "Bus.hpp"
 
@@ -60,5 +59,3 @@ class ReactiveDevice: public Bus::Device {
 };
 
 }
-
-#endif /* ReactiveDevice_hpp */

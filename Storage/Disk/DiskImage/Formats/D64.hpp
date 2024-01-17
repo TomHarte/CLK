@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef D64_hpp
-#define D64_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -39,5 +38,3 @@ class D64: public DiskImage {
 };
 
 }
-
-#endif /* D64_hpp */

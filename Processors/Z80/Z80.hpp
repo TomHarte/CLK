@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Z80_hpp
-#define Z80_hpp
+#pragma once
 
 #include <algorithm>
 #include <cassert>
@@ -538,5 +537,3 @@ template <class T, bool uses_bus_request, bool uses_wait_line> class Processor: 
 #include "Implementation/Z80Implementation.hpp"
 
 }
-
-#endif /* Z80_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskROM_hpp
-#define DiskROM_hpp
+#pragma once
 
 #include "MemorySlotHandler.hpp"
 
@@ -41,5 +40,3 @@ class DiskROM: public MemorySlotHandler, public WD::WD1770 {
 };
 
 }
-
-#endif /* DiskROM_hpp */

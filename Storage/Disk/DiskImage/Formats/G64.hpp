@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef G64_hpp
-#define G64_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -42,5 +41,3 @@ class G64: public DiskImage {
 };
 
 }
-
-#endif /* G64_hpp */

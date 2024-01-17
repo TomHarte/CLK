@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AsyncTaskQueue_hpp
-#define AsyncTaskQueue_hpp
+#pragma once
 
 #include <atomic>
 #include <condition_variable>
@@ -189,5 +188,3 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 };
 
 }
-
-#endif /* AsyncTaskQueue_hpp */

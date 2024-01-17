@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef z8530_hpp
-#define z8530_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -109,5 +108,3 @@ class z8530 {
 };
 
 }
-
-#endif /* z8530_hpp */

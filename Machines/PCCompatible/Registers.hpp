@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Registers_hpp
-#define Registers_hpp
+#pragma once
 
 namespace PCCompatible {
 
@@ -69,5 +68,3 @@ struct Registers {
 };
 
 }
-
-#endif /* Registers_hpp */

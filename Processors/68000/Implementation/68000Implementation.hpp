@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef MC68000Implementation_h
-#define MC68000Implementation_h
+#pragma once
 
 #include <cassert>
 #include <cstdio>
@@ -3109,5 +3108,3 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #endif
 
 }
-
-#endif /* MC68000Implementation_h */

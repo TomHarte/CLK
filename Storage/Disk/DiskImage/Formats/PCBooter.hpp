@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef PCBooter_hpp
-#define PCBooter_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
@@ -34,5 +33,3 @@ class PCBooter: public MFMSectorDump {
 };
 
 }
-
-#endif /* PCBooter_hpp */

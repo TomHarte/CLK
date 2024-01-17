@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef WDC65816_hpp
-#define WDC65816_hpp
+#pragma once
 
 #include <cassert>
 #include <cstddef>
@@ -92,5 +91,3 @@ template <typename BusHandler, bool uses_ready_line> class Processor: public Pro
 #include "Implementation/65816Implementation.hpp"
 
 }
-
-#endif /* WDC65816_hpp */

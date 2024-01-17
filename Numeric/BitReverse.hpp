@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef BitReverse_hpp
-#define BitReverse_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -58,5 +57,3 @@ template <typename IntT> constexpr IntT bit_reverse(IntT source) {
 }
 
 }
-
-#endif /* BitReverse_hpp */

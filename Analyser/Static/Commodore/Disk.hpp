@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Commodore_Disk_hpp
-#define StaticAnalyser_Commodore_Disk_hpp
+#pragma once
 
 #include "../../../Storage/Disk/Disk.hpp"
 #include "File.hpp"
@@ -19,5 +18,3 @@ namespace Analyser::Static::Commodore {
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk);
 
 }
-
-#endif /* Disk_hpp */

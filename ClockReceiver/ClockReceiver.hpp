@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ClockReceiver_hpp
-#define ClockReceiver_hpp
+#pragma once
 
 #include "ForceInline.hpp"
 
@@ -277,5 +276,3 @@ template <class T> class HalfClockReceiver: public T {
 	private:
 		HalfCycles half_cycles_;
 };
-
-#endif /* ClockReceiver_hpp */

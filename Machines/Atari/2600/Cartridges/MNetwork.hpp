@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeMNetwork_hpp
-#define Atari2600_CartridgeMNetwork_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
@@ -63,5 +62,3 @@ class MNetwork: public BusExtender {
 };
 
 }
-
-#endif /* Atari2600_CartridgeMNetwork_hpp */

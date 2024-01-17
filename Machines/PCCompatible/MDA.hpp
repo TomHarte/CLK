@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef MDA_h
-#define MDA_h
+#pragma once
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
@@ -235,5 +234,3 @@ class MDA {
 };
 
 }
-
-#endif /* MDA_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Perform_h
-#define Perform_h
+#pragma once
 
 #include "Instruction.hpp"
 #include "Model.hpp"
@@ -52,5 +51,3 @@ template <
 }
 
 #include "Implementation/PerformImplementation.hpp"
-
-#endif /* Perform_h */

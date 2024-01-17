@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef OPLBase_h
-#define OPLBase_h
+#pragma once
 
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
@@ -34,5 +33,3 @@ template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource
 };
 
 }
-
-#endif /* OPLBase_h */

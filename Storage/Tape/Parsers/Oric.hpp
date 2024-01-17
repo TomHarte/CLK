@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_Oric_hpp
-#define Storage_Tape_Parsers_Oric_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 
@@ -51,5 +50,3 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 };
 
 }
-
-#endif /* Oric_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CPCDSK_hpp
-#define CPCDSK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -70,5 +69,3 @@ class CPCDSK: public DiskImage {
 };
 
 }
-
-#endif /* CPCDSK_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_AmstradCPC_Keyboard_hpp
-#define Machines_AmstradCPC_Keyboard_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 #include "../Utility/Typer.hpp"
@@ -44,6 +43,4 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 	bool needs_pause_after_key(uint16_t key) const override;
 };
 
-};
-
-#endif /* KeyboardMapper_hpp */
+}

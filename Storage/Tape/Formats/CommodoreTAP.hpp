@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef CommodoreTAP_hpp
-#define CommodoreTAP_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -49,5 +48,3 @@ class CommodoreTAP: public Tape {
 };
 
 }
-
-#endif /* CommodoreTAP_hpp */

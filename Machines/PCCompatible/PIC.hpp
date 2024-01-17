@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef PIC_hpp
-#define PIC_hpp
+#pragma once
 
 namespace PCCompatible {
 
@@ -169,5 +168,3 @@ class PIC {
 };
 
 }
-
-#endif /* PIC_hpp */

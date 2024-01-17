@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef LineBuffer_hpp
-#define LineBuffer_hpp
+#pragma once
 
 #include "AccessEnums.hpp"
 
@@ -128,5 +127,3 @@ struct LineBufferPointer {
 };
 
 }
-
-#endif /* LineBuffer_hpp */

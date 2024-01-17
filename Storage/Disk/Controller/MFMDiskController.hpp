@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MFMDiskController_hpp
-#define MFMDiskController_hpp
+#pragma once
 
 #include "DiskController.hpp"
 #include "../../../Numeric/CRC.hpp"
@@ -166,5 +165,3 @@ class MFMController: public Controller {
 };
 
 }
-
-#endif /* MFMDiskController_hpp */

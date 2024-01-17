@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Data_ZX8081_hpp
-#define Storage_Data_ZX8081_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -28,5 +27,3 @@ std::wstring StringFromData(const std::vector<uint8_t> &data, bool is_zx81);
 std::vector<uint8_t> DataFromString(const std::wstring &string, bool is_zx81);
 
 }
-
-#endif /* ZX8081_hpp */

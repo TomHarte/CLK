@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Tape_hpp
-#define Tape_hpp
+#pragma once
 
 #include <memory>
 
@@ -164,5 +163,3 @@ class BinaryTapePlayer : public TapePlayer {
 };
 
 }
-
-#endif /* Tape_hpp */

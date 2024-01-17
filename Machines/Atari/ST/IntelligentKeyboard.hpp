@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef IntelligentKeyboard_hpp
-#define IntelligentKeyboard_hpp
+#pragma once
 
 #include "../../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../../Components/Serial/Line.hpp"
@@ -196,5 +195,3 @@ class IntelligentKeyboard:
 };
 
 }
-
-#endif /* IntelligentKeyboard_hpp */

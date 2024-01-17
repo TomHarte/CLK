@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_PowerPC_Instruction_h
-#define InstructionSets_PowerPC_Instruction_h
+#pragma once
 
 #include <cstdint>
 
@@ -1530,5 +1529,3 @@ struct Instruction {
 static_assert(sizeof(Instruction) <= 8);
 
 }
-
-#endif /* InstructionSets_PowerPC_Instruction_h */

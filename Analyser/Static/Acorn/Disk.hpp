@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Acorn_Disk_hpp
-#define StaticAnalyser_Acorn_Disk_hpp
+#pragma once
 
 #include "File.hpp"
 #include "../../../Storage/Disk/Disk.hpp"
@@ -30,5 +29,3 @@ std::unique_ptr<Catalogue> GetDFSCatalogue(const std::shared_ptr<Storage::Disk::
 std::unique_ptr<Catalogue> GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk);
 
 }
-
-#endif /* Disk_hpp */

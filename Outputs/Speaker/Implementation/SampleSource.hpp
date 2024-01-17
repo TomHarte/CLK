@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef SampleSource_hpp
-#define SampleSource_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -71,5 +70,3 @@ class SampleSource {
 };
 
 }
-
-#endif /* SampleSource_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef TestRunner68000_h
-#define TestRunner68000_h
+#pragma once
 
 #include <array>
 #include <functional>
@@ -135,5 +134,3 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		int instructions_remaining_;
 		HalfCycles duration_;
 };
-
-#endif /* TestRunner68000_h */

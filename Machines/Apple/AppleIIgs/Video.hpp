@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_IIgs_Video_hpp
-#define Apple_IIgs_Video_hpp
+#pragma once
 
 #include "../AppleII/VideoSwitches.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
@@ -252,6 +251,3 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 };
 
 }
-
-#endif /* Video_hpp */
-

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Z80AllRAM_hpp
-#define Z80AllRAM_hpp
+#pragma once
 
 #include "../Z80.hpp"
 #include "../../AllRAMProcessor.hpp"
@@ -52,5 +51,3 @@ class AllRAMProcessor:
 };
 
 }
-
-#endif /* Z80AllRAM_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef AmigaADF_hpp
-#define AmigaADF_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
@@ -41,5 +40,3 @@ class AmigaADF: public DiskImage {
 };
 
 }
-
-#endif /* AmigaADF_hpp */

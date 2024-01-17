@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DeferredQueue_h
-#define DeferredQueue_h
+#pragma once
 
 #include <functional>
 #include <vector>
@@ -120,5 +119,3 @@ template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<
 	private:
 		std::function<void(TimeUnit)> target_;
 };
-
-#endif /* DeferredQueue_h */

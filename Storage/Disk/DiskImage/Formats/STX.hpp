@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef STX_hpp
-#define STX_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -44,5 +43,3 @@ class STX: public DiskImage {
 };
 
 }
-
-#endif /* STX_hpp */

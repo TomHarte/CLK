@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef CachingExecutor_hpp
-#define CachingExecutor_hpp
+#pragma once
 
 #include "../Numeric/Sizes.hpp"
 
@@ -196,5 +195,3 @@ template <
 };
 
 }
-
-#endif /* CachingExecutor_hpp */

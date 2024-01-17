@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiConfigurable_hpp
-#define MultiConfigurable_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 #include "../../../../Configurable/Configurable.hpp"
@@ -36,5 +35,3 @@ class MultiConfigurable: public Configurable::Device {
 };
 
 }
-
-#endif /* MultiConfigurable_hpp */

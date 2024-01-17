@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Microdisc_hpp
-#define Microdisc_hpp
+#pragma once
 
 #include "../../Components/1770/1770.hpp"
 #include "../../Activity/Observer.hpp"
@@ -43,5 +42,3 @@ class Microdisc: public DiskController {
 };
 
 }
-
-#endif /* Microdisc_hpp */

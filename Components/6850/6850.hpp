@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Motorola_ACIA_6850_hpp
-#define Motorola_ACIA_6850_hpp
+#pragma once
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -126,5 +125,3 @@ class ACIA: public ClockingHint::Source, private Serial::Line<false>::ReadDelega
 };
 
 }
-
-#endif /* Motorola_ACIA_6850_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiKeyboardMachine_hpp
-#define MultiKeyboardMachine_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 #include "../../../../Machines/KeyboardMachine.hpp"
@@ -55,5 +54,3 @@ class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 };
 
 }
-
-#endif /* MultiKeyboardMachine_hpp */

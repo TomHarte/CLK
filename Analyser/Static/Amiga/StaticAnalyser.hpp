@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Amiga_StaticAnalyser_hpp
-#define Analyser_Static_Amiga_StaticAnalyser_hpp
+#pragma once
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
@@ -18,5 +17,3 @@ namespace Analyser::Static::Amiga {
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-
-#endif /* Analyser_Static_Amiga_StaticAnalyser_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Acorn_File_hpp
-#define StaticAnalyser_Acorn_File_hpp
+#pragma once
 
 #include <memory>
 #include <string>
@@ -59,5 +58,3 @@ struct File {
 };
 
 }
-
-#endif /* File_hpp */

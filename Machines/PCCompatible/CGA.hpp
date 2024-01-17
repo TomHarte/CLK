@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef CGA_h
-#define CGA_h
+#pragma once
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
@@ -449,5 +448,3 @@ class CGA {
 };
 
 }
-
-#endif /* CGA_h */

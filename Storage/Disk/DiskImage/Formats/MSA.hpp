@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MSA_hpp
-#define MSA_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -41,5 +40,3 @@ class MSA final: public DiskImage {
 };
 
 }
-
-#endif /* MSA_hpp */

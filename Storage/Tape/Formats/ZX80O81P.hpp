@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ZX80O81P_hpp
-#define ZX80O81P_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -59,5 +58,3 @@ class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
 };
 
 }
-
-#endif /* ZX80O_hpp */

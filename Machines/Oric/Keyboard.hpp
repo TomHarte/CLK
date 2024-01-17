@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Oric_Keyboard_hpp
-#define Machines_Oric_Keyboard_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 #include "../Utility/Typer.hpp"
@@ -44,6 +43,4 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 	const uint16_t *sequence_for_character(char character) const final;
 };
 
-};
-
-#endif /* KeyboardMapper_hpp */
+}

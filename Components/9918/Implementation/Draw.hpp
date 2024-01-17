@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Draw_hpp
-#define Draw_hpp
+#pragma once
 
 namespace TI::TMS {
 
@@ -568,5 +567,3 @@ void Base<personality>::draw_yamaha(uint8_t y, int start, int end) {
 // TODO.
 
 }
-
-#endif /* Draw_hpp */

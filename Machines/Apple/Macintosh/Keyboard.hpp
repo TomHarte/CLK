@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_Macintosh_Keyboard_hpp
-#define Apple_Macintosh_Keyboard_hpp
+#pragma once
 
 #include "../../KeyboardMachine.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -294,5 +293,3 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 };
 
 }
-
-#endif /* Apple_Macintosh_Keyboard_hpp */

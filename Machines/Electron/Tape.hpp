@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Electron_Tape_h
-#define Electron_Tape_h
+#pragma once
 
 #include <cstdint>
 
@@ -74,5 +73,3 @@ class Tape:
 };
 
 }
-
-#endif /* Electron_Tape_h */

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_hpp
-#define StaticAnalyser_hpp
+#pragma once
 
 #include "../Machines.hpp"
 
@@ -79,5 +78,3 @@ TargetList GetTargets(const std::string &file_name);
 Media GetMedia(const std::string &file_name);
 
 }
-
-#endif /* StaticAnalyser_hpp */

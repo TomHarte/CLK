@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Disassembler_6502_hpp
-#define StaticAnalyser_Disassembler_6502_hpp
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -93,5 +92,3 @@ Disassembly Disassemble(
 	std::vector<uint16_t> entry_points);
 
 }
-
-#endif /* Disassembler6502_hpp */

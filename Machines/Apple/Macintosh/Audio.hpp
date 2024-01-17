@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Audio_hpp
-#define Audio_hpp
+#pragma once
 
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -83,5 +82,3 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* Audio_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef ZXSpectrum_hpp
-#define ZXSpectrum_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -47,5 +46,3 @@ class Machine {
 };
 
 }
-
-#endif /* ZXSpectrum_hpp */

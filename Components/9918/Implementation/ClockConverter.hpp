@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef ClockConverter_hpp
-#define ClockConverter_hpp
+#pragma once
 
 #include "../9918.hpp"
 #include "PersonalityTraits.hpp"
@@ -164,5 +163,3 @@ template <Personality personality> class ClockConverter {
 };
 
 }
-
-#endif /* ClockConverter_hpp */

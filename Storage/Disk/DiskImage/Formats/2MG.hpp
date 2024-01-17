@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef _MG_hpp
-#define _MG_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../MassStorage/MassStorageDevice.hpp"
@@ -34,5 +33,3 @@ class Disk2MG {
 };
 
 }
-
-#endif /* _MG_hpp */

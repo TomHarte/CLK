@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Results_hpp
-#define Results_hpp
+#pragma once
 
 #include "CommandDecoder.hpp"
 #include "Status.hpp"
@@ -61,5 +60,3 @@ class Results {
 };
 
 }
-
-#endif /* Results_hpp */

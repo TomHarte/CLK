@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef WOZ_hpp
-#define WOZ_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -56,5 +55,3 @@ class WOZ: public DiskImage {
 };
 
 }
-
-#endif /* WOZ_hpp */

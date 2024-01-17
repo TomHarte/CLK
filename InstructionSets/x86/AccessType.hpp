@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef AccessType_h
-#define AccessType_h
+#pragma once
 
 namespace InstructionSet::x86 {
 
@@ -62,5 +61,3 @@ template<typename IntT> using modify_t = typename Accessor<IntT, AccessType::Rea
 template<typename IntT, AccessType type> using access_t = typename Accessor<IntT, type>::type;
 
 }
-
-#endif /* AccessType_h */

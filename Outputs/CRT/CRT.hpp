@@ -6,8 +6,7 @@
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef CRT_hpp
-#define CRT_hpp
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -366,5 +365,3 @@ template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::C
 };
 
 }
-
-#endif /* CRT_cpp */

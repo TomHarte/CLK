@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Interrupts_h
-#define InstructionSets_x86_Interrupts_h
+#pragma once
 
 namespace InstructionSet::x86 {
 
@@ -35,5 +34,3 @@ enum Interrupt {
 };
 
 }
-
-#endif /* InstructionSets_x86_Interrupts_h */

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeAtari16k_hpp
-#define Atari2600_CartridgeAtari16k_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
@@ -60,5 +59,3 @@ class Atari16kSuperChip: public BusExtender {
 };
 
 }
-
-#endif /* Atari2600_CartridgeAtari16k_hpp */

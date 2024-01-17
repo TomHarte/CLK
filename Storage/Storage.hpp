@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_hpp
-#define Storage_hpp
+#pragma once
 
 #include <cmath>
 #include <cstdint>
@@ -294,5 +293,3 @@ struct Time {
 };
 
 }
-
-#endif /* Storage_h */

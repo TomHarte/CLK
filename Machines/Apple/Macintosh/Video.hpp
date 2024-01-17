@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Video_hpp
-#define Video_hpp
+#pragma once
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -102,5 +101,3 @@ class Video {
 };
 
 }
-
-#endif /* Video_hpp */

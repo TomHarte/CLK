@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Resolver_h
-#define Resolver_h
+#pragma once
 
 #include "../AccessType.hpp"
 
@@ -205,5 +204,3 @@ typename Accessor<IntT, access>::type resolve(
 }
 
 }
-
-#endif /* Resolver_h */

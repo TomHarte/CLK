@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Cartridge_hpp
-#define Storage_Cartridge_hpp
+#pragma once
 
 #include <vector>
 #include <memory>
@@ -81,5 +80,3 @@ class Cartridge {
 };
 
 }
-
-#endif /* ROM_hpp */

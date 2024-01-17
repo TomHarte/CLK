@@ -6,8 +6,7 @@
 //  Copyright © 2023 Thomas Harte. All rights reserved.
 //
 
-#ifndef Status_hpp
-#define Status_hpp
+#pragma once
 
 namespace Intel::i8272 {
 
@@ -130,5 +129,3 @@ class Status {
 };
 
 }
-
-#endif /* Status_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TIA_hpp
-#define TIA_hpp
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -313,5 +312,3 @@ class TIA {
 };
 
 }
-
-#endif /* TIA_hpp */

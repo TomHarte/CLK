@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiMediaTarget_hpp
-#define MultiMediaTarget_hpp
+#pragma once
 
 #include "../../../../Machines/MediaTarget.hpp"
 #include "../../../../Machines/DynamicMachine.hpp"
@@ -35,5 +34,3 @@ struct MultiMediaTarget: public MachineTypes::MediaTarget {
 };
 
 }
-
-#endif /* MultiMediaTarget_hpp */

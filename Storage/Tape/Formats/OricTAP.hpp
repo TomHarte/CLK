@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef OricTAP_hpp
-#define OricTAP_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -54,5 +53,3 @@ class OricTAP: public Tape {
 };
 
 }
-
-#endif /* OricTAP_hpp */

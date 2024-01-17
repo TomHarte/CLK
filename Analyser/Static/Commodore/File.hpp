@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef File_hpp
-#define File_hpp
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -35,5 +34,3 @@ struct File {
 };
 
 }
-
-#endif /* File_hpp */

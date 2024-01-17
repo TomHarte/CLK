@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Cartridge_hpp
-#define Cartridge_hpp
+#pragma once
 
 #include "../../../Storage/Cartridge/Cartridge.hpp"
 
@@ -32,5 +31,3 @@ struct Cartridge: public ::Storage::Cartridge::Cartridge {
 };
 
 }
-
-#endif /* Cartridge_hpp */

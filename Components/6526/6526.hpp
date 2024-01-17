@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef _526_h
-#define _526_h
+#pragma once
 
 #include <cstdint>
 
@@ -88,5 +87,3 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 }
 
 #include "Implementation/6526Implementation.hpp"
-
-#endif /* _526_h */

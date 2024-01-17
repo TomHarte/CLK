@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef WaveformGenerator_h
-#define WaveformGenerator_h
+#pragma once
 
 #include "Tables.hpp"
 #include "LowFrequencyOscillator.hpp"
@@ -86,5 +85,3 @@ template <int phase_precision> class WaveformGenerator {
 };
 
 }
-
-#endif /* WaveformGenerator_h */

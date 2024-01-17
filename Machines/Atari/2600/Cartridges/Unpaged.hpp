@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeUnpaged_hpp
-#define Atari2600_CartridgeUnpaged_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
@@ -25,5 +24,3 @@ class Unpaged: public BusExtender {
 };
 
 }
-
-#endif /* Atari2600_CartridgeUnpaged_hpp */

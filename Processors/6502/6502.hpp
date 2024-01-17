@@ -6,8 +6,7 @@
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502_cpp
-#define MOS6502_cpp
+#pragma once
 
 #include <algorithm>
 #include <cassert>
@@ -170,5 +169,3 @@ template <Personality personality, typename BusHandler, bool uses_ready_line> cl
 #include "Implementation/6502Implementation.hpp"
 
 }
-
-#endif /* MOS6502_cpp */

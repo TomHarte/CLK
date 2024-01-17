@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemorySlotHandler_hpp
-#define MemorySlotHandler_hpp
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
@@ -147,5 +146,3 @@ class MemorySlotHandler {
 };
 
 }
-
-#endif /* MemorySlotHandler_hpp */

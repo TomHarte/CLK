@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Oric_Tape_hpp
-#define StaticAnalyser_Oric_Tape_hpp
+#pragma once
 
 #include "../../../Storage/Tape/Tape.hpp"
 
@@ -32,5 +31,3 @@ struct File {
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 }
-
-#endif /* Tape_hpp */

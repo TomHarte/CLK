@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ConfidenceSummary_hpp
-#define ConfidenceSummary_hpp
+#pragma once
 
 #include "ConfidenceSource.hpp"
 
@@ -40,5 +39,3 @@ class ConfidenceSummary: public ConfidenceSource {
 };
 
 }
-
-#endif /* ConfidenceSummary_hpp */

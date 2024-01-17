@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CRTC6845_hpp
-#define CRTC6845_hpp
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
@@ -414,5 +413,3 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 };
 
 }
-
-#endif /* CRTC6845_hpp */

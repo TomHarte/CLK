@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M50740_Instruction_h
-#define InstructionSets_M50740_Instruction_h
+#pragma once
 
 #include <cstdint>
 #include <iomanip>
@@ -235,5 +234,3 @@ inline std::ostream &operator <<(std::ostream &stream, const Instruction &instru
 }
 
 }
-
-#endif /* InstructionSets_M50740_Instruction_h */

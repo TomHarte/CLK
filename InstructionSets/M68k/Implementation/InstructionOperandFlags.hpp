@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_68k_InstructionOperandFlags_hpp
-#define InstructionSets_68k_InstructionOperandFlags_hpp
+#pragma once
 
 namespace InstructionSet::M68k {
 
@@ -168,5 +167,3 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 }
 
 }
-
-#endif /* InstructionSets_68k_InstructionOperandFlags_hpp */

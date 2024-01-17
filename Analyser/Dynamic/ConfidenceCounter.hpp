@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ConfidenceCounter_hpp
-#define ConfidenceCounter_hpp
+#pragma once
 
 #include "ConfidenceSource.hpp"
 
@@ -41,5 +40,3 @@ class ConfidenceCounter: public ConfidenceSource {
 };
 
 }
-
-#endif /* ConfidenceCounter_hpp */

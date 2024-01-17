@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef MC68000_h
-#define MC68000_h
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Numeric/RegisterSizes.hpp"
@@ -499,5 +498,3 @@ class Processor: private ProcessorBase {
 }
 
 #include "Implementation/68000Implementation.hpp"
-
-#endif /* MC68000_h */

@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LazyFlags_h
-#define LazyFlags_h
+#pragma once
 
 #include "../6502Esque.hpp"
 
@@ -76,5 +75,3 @@ struct LazyFlags {
 };
 
 }
-
-#endif /* LazyFlags_h */

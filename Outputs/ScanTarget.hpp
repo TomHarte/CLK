@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Outputs_Display_ScanTarget_h
-#define Outputs_Display_ScanTarget_h
+#pragma once
 
 #include <array>
 #include <cstddef>
@@ -451,5 +450,3 @@ struct NullScanTarget: public ScanTarget {
 };
 
 }
-
-#endif /* Outputs_Display_ScanTarget_h */

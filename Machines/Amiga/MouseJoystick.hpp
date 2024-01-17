@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MouseJoystick_hpp
-#define MouseJoystick_hpp
+#pragma once
 
 #include <array>
 #include <atomic>
@@ -53,5 +52,3 @@ class Joystick: public Inputs::ConcreteJoystick, public MouseJoystickInput {
 };
 
 }
-
-#endif /* MouseJoystick_hpp */
