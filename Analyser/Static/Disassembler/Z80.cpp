@@ -56,11 +56,11 @@ class Accessor {
 		bool overrun_ = false;
 };
 
-#define x(v) (v >> 6)
-#define y(v) ((v >> 3) & 7)
-#define q(v) ((v >> 3) & 1)
-#define p(v) ((v >> 4) & 3)
-#define z(v) (v & 7)
+constexpr uint8_t x(uint8_t v) { return v >> 6; }
+constexpr uint8_t y(uint8_t v) { return (v >> 3) & 7; }
+constexpr uint8_t q(uint8_t v) { return (v >> 3) & 1; }
+constexpr uint8_t p(uint8_t v) { return (v >> 4) & 3; }
+constexpr uint8_t z(uint8_t v) { return v & 7; }
 
 Instruction::Condition condition_table[] = {
 	Instruction::Condition::NZ,		Instruction::Condition::Z,

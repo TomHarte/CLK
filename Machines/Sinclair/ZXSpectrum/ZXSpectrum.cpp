@@ -200,7 +200,7 @@ template<Model model> class ConcreteMachine:
 				if(model <= Model::FortyEightK) {
 					const size_t num_banks = std::min(size_t(48*1024), state->ram.size()) >> 14;
 					for(size_t c = 0; c < num_banks; c++) {
-						memcpy(&write_pointers_[c + 1][(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
+						memcpy(&banks_[c + 1].write[(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
 					}
 				} else {
 					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
@@ -309,7 +309,7 @@ template<Model model> class ConcreteMachine:
 				// Model applied: the trigger for the ULA inserting a delay is the falling edge
 				// of MREQ, which is always half a cycle into a read or write.
 				if(
-					is_contended_[address >> 14] &&
+					banks_[address >> 14].is_contended &&
 					cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
 					cycle.operation <= PartialMachineCycle::WriteStart) {
 
@@ -363,7 +363,7 @@ template<Model model> class ConcreteMachine:
 					case PartialMachineCycle::WriteStart: {
 						// These all start by loading the address bus, then set MREQ
 						// half a cycle later.
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							const auto delay = video_.last_valid()->access_delay(video_.time_since_flush());
 
 							advance(cycle.length + delay);
@@ -375,7 +375,7 @@ template<Model model> class ConcreteMachine:
 						// Whatever's on the address bus will remain there, without IOREQ or
 						// MREQ interceding, for this entire bus cycle. So apply contentions
 						// all the way along.
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							const auto half_cycles = cycle.length.as<int>();
 							assert(!(half_cycles & 1));
 
@@ -405,7 +405,7 @@ template<Model model> class ConcreteMachine:
 					// Fast loading: ROM version.
 					//
 					// The below patches over part of the 'LD-BYTES' routine from the 48kb ROM.
-					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[classic_rom_offset()]) {
+					if(use_fast_tape_hack_ && address == 0x056b && banks_[0].read == &rom_[classic_rom_offset()]) {
 						// Stop pressing enter, if neccessry.
 						if(duration_to_press_enter_ > Cycles(0)) {
 							duration_to_press_enter_ = Cycles(0);
@@ -429,10 +429,10 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
-					*cycle.value = read_pointers_[address >> 14][address];
+					*cycle.value = banks_[address >> 14].read[address];
 
 					if constexpr (model >= Model::Plus2a) {
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							video_->set_last_contended_area_access(*cycle.value);
 						}
 					}
@@ -440,15 +440,15 @@ template<Model model> class ConcreteMachine:
 
 				case PartialMachineCycle::Write:
 					// Flush video if this access modifies screen contents.
-					if(is_video_[address >> 14] && (address & 0x3fff) < 6912) {
+					if(banks_[address >> 14].is_video && (address & 0x3fff) < 6912) {
 						video_.flush();
 					}
 
-					write_pointers_[address >> 14][address] = *cycle.value;
+					banks_[address >> 14].write[address] = *cycle.value;
 
 					if constexpr (model >= Model::Plus2a) {
 						// Fill the floating bus buffer if this write is within the contended area.
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							video_->set_last_contended_area_access(*cycle.value);
 						}
 					}
@@ -758,11 +758,14 @@ template<Model model> class ConcreteMachine:
 		std::array<uint8_t, 128*1024> ram_;
 
 		std::array<uint8_t, 16*1024> scratch_;
-		std::array<const uint8_t *, 4> read_pointers_;
-		std::array<uint8_t *, 4> write_pointers_;
-		std::array<uint8_t, 4> pages_;
-		std::array<bool, 4> is_contended_;
-		std::array<bool, 4> is_video_;
+		struct Bank {
+			const uint8_t * read;
+			uint8_t *write;
+			uint8_t page;
+			bool is_contended;
+			bool is_video;
+		};
+		std::array<Bank, 4> banks_;
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;
@@ -821,19 +824,19 @@ template<Model model> class ConcreteMachine:
 			disable_paging_ = port7ffd_ & 0x20;
 		}
 
-		void set_memory(int bank, uint8_t source) {
+		void set_memory(std::size_t bank, uint8_t source) {
 			if constexpr (model >= Model::Plus2a) {
-				is_contended_[bank] = source >= 4 && source < 8;
+				banks_[bank].is_contended = source >= 4 && source < 8;
 			} else {
-				is_contended_[bank] = source < 0x80 && source & 1;
+				banks_[bank].is_contended = source < 0x80 && source & 1;
 			}
-			pages_[bank] = source;
+			banks_[bank].page = source;
 
 			uint8_t *const read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
 			const auto offset = bank*16384;
 
-			read_pointers_[bank] = read - offset;
-			write_pointers_[bank] = ((source < 0x80) ? read : scratch_.data()) - offset;
+			banks_[bank].read = read - offset;
+			banks_[bank].write = ((source < 0x80) ? read : scratch_.data()) - offset;
 		}
 
 		void set_video_address() {
@@ -843,10 +846,10 @@ template<Model model> class ConcreteMachine:
 
 		void update_video_base() {
 			const uint8_t video_page = (port7ffd_ & 0x08) ? 7 : 5;
-			is_video_[0] = pages_[0] == video_page;
-			is_video_[1] = pages_[1] == video_page;
-			is_video_[2] = pages_[2] == video_page;
-			is_video_[3] = pages_[3] == video_page;
+			banks_[0].is_video = banks_[0].page == video_page;
+			banks_[1].is_video = banks_[1].page == video_page;
+			banks_[2].is_video = banks_[2].page == video_page;
+			banks_[3].is_video = banks_[3].page == video_page;
 		}
 
 		// MARK: - Audio.
@@ -934,7 +937,7 @@ template<Model model> class ConcreteMachine:
 					break;
 				}
 
-				write_pointers_[target >> 14][target] = *next;
+				banks_[target >> 14].write[target] = *next;
 				parity ^= *next;
 				++target;
 			}
