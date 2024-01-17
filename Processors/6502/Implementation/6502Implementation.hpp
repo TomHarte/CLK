@@ -12,33 +12,37 @@
 	6502.hpp, but it's implementation stuff.
 */
 
-template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-#define checkSchedule() \
-	if(!scheduled_program_counter_) {\
-		if(interrupt_requests_) {\
-			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
-				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];\
-			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
-				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];\
-			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];\
-			} \
-		} else {\
-			scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];\
-		}\
-	}
+template <Personality personality, typename T, bool uses_ready_line>
+void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
-#define bus_access() \
-	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
-	irq_request_history_ = irq_line_ & flags_.inverse_interrupt;	\
-	number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);	\
-	next_bus_operation_ = BusOperation::None;	\
-	if(number_of_cycles <= Cycles(0)) break;
+	const auto check_schedule = [&] {
+		if(!scheduled_program_counter_) {
+			if(interrupt_requests_) {
+				if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {
+					interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];
+				} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {
+					interrupt_requests_ &= ~InterruptRequestFlags::NMI;
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];
+				} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];
+				}
+			} else {
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];
+			}
+		}
+	};
 
-	checkSchedule();
+	check_schedule();
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
+
+	const auto bus_access = [&]() -> bool {
+		interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;
+		irq_request_history_ = irq_line_ & flags_.inverse_interrupt;
+		number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);
+		next_bus_operation_ = BusOperation::None;
+		return number_of_cycles <= Cycles(0);
+	};
 
 	while(number_of_cycles > Cycles(0)) {
 
@@ -52,7 +56,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, bus_value_);
 			if(interrupt_requests_ & InterruptRequestFlags::Reset) {
 				stop_is_active_ = false;
-				checkSchedule();
+				check_schedule();
 				break;
 			}
 		}
@@ -63,14 +67,14 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 			interrupt_requests_ |= (irq_line_ & flags_.inverse_interrupt);
 			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
 				wait_is_active_ = false;
-				checkSchedule();
+				check_schedule();
 				break;
 			}
 		}
 
 		if((!uses_ready_line || !ready_is_active_) && (!has_stpwai(personality) || (!wait_is_active_ && !stop_is_active_))) {
 			if(next_bus_operation_ != BusOperation::None) {
-				bus_access();
+				if(bus_access()) break;
 			}
 
 			while(1) {
@@ -117,7 +121,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationMoveToNextProgram:
 						scheduled_program_counter_ = nullptr;
-						checkSchedule();
+						check_schedule();
 					continue;
 
 #define push(v) {\
@@ -749,7 +753,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					ready_is_active_ = true;
 					break;
 				}
-				bus_access();
+				if(bus_access()) break;
 			}
 		}
 	}
