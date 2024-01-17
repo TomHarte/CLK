@@ -71,6 +71,27 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 		bus_value_ = &val;
 	};
 
+	const auto push = [&](uint8_t &val) {
+		const uint16_t targetAddress = s_ | 0x100;
+		--s_;
+		write_mem(val, targetAddress);
+	};
+
+	const auto page_crossing_stall_read = [&] {
+		if(is_65c02(personality)) {
+			throwaway_read(pc_.full - 1);
+		} else {
+			throwaway_read(address_.full);
+		}
+	};
+
+	const auto bra = [&](bool condition) {
+		++pc_.full;
+		if(condition) {
+			scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];
+		}
+	};
+
 	while(number_of_cycles > Cycles(0)) {
 
 		// Deal with a potential RDY state, if this 6502 has anything connected to ready.
@@ -146,11 +167,6 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 						check_schedule();
 					continue;
 
-#define push(v) {\
-	uint16_t targetAddress = s_ | 0x100; s_--;\
-	write_mem(v, targetAddress);\
-}
-
 					case CycleIncPCPushPCH:				pc_.full++;														[[fallthrough]];
 					case CyclePushPCH:					push(pc_.halves.high);											break;
 					case CyclePushPCL:					push(pc_.halves.low);											break;
@@ -159,12 +175,11 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 					case CyclePushX:					push(x_);														break;
 					case CyclePushY:					push(y_);														break;
 					case CycleNoWritePush: {
-						uint16_t targetAddress = s_ | 0x100; s_--;
+						uint16_t targetAddress = s_ | 0x100;
+						--s_;
 						read_mem(operand_, targetAddress);
 					}
 					break;
-
-#undef push
 
 					case CycleReadFromS:				throwaway_read(s_ | 0x100);										break;
 					case CycleReadFromPC:				throwaway_read(pc_.full);										break;
@@ -555,13 +570,6 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
 // MARK: - Addressing Mode Work
 
-#define page_crossing_stall_read()	\
-	if(is_65c02(personality)) {	\
-		throwaway_read(pc_.full - 1);	\
-	} else {	\
-		throwaway_read(address_.full);	\
-	}
-
 					case CycleAddXToAddressLow:
 						next_address_.full = address_.full + x_;
 						address_.halves.low = next_address_.halves.low;
@@ -578,8 +586,6 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 							break;
 						}
 					continue;
-
-#undef page_crossing_stall_read
 
 					case CycleAddXToAddressLowRead:
 						next_address_.full = address_.full + x_;
@@ -675,23 +681,15 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
 // MARK: - Branching
 
-#define BRA(condition)	\
-	pc_.full++; \
-	if(condition) {	\
-		scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];	\
-	}
-
-					case OperationBPL: BRA(!(flags_.negative_result&0x80));			continue;
-					case OperationBMI: BRA(flags_.negative_result&0x80);			continue;
-					case OperationBVC: BRA(!flags_.overflow);						continue;
-					case OperationBVS: BRA(flags_.overflow);						continue;
-					case OperationBCC: BRA(!flags_.carry);							continue;
-					case OperationBCS: BRA(flags_.carry);							continue;
-					case OperationBNE: BRA(flags_.zero_result);						continue;
-					case OperationBEQ: BRA(!flags_.zero_result);					continue;
-					case OperationBRA: BRA(true);									continue;
-
-#undef BRA
+					case OperationBPL: bra(!(flags_.negative_result&0x80));			continue;
+					case OperationBMI: bra(flags_.negative_result&0x80);			continue;
+					case OperationBVC: bra(!flags_.overflow);						continue;
+					case OperationBVS: bra(flags_.overflow);						continue;
+					case OperationBCC: bra(!flags_.carry);							continue;
+					case OperationBCS: bra(flags_.carry);							continue;
+					case OperationBNE: bra(flags_.zero_result);						continue;
+					case OperationBEQ: bra(!flags_.zero_result);					continue;
+					case OperationBRA: bra(true);									continue;
 
 					case CycleAddSignedOperandToPC:
 						next_address_.full = uint16_t(pc_.full + int8_t(operand_));
