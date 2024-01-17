@@ -44,6 +44,33 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 		return number_of_cycles <= Cycles(0);
 	};
 
+	const auto read_op = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::ReadOpcode;
+		bus_address_ = address;
+		bus_value_ = &val;
+		val = 0xff;
+	};
+
+	const auto read_mem = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::Read;
+		bus_address_ = address;
+		bus_value_ = &val;
+		val = 0xff;
+	};
+
+	const auto throwaway_read = [&](uint16_t address) {
+		next_bus_operation_ = BusOperation::Read;
+		bus_address_ = address;
+		bus_value_ = &bus_throwaway_;
+		bus_throwaway_ = 0xff;
+	};
+
+	const auto write_mem = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::Write;
+		bus_address_ = address;
+		bus_value_ = &val;
+	};
+
 	while(number_of_cycles > Cycles(0)) {
 
 		// Deal with a potential RDY state, if this 6502 has anything connected to ready.
@@ -81,11 +108,6 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
 				const MicroOp cycle = *scheduled_program_counter_;
 				scheduled_program_counter_++;
-
-#define read_op(val, addr)		next_bus_operation_ = BusOperation::ReadOpcode;	bus_address_ = addr;		bus_value_ = &val;				val = 0xff
-#define read_mem(val, addr)		next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &val;				val	= 0xff
-#define throwaway_read(addr)	next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &bus_throwaway_;	bus_throwaway_ = 0xff
-#define write_mem(val, addr)	next_bus_operation_ = BusOperation::Write;		bus_address_ = addr;		bus_value_ = &val
 
 				switch(cycle) {
 
