@@ -110,15 +110,15 @@ class MediaAccumulator {
 	/// Adds @c instance to the media collection and adds @c platforms to the set of potentials.
 	/// If @c instance is an @c TargetPlatform::TypeDistinguisher then it is given an opportunity to restrict the set of potentials.
 	template <typename InstanceT>
-	void insert(TargetPlatform::IntType platforms, InstanceT *instance) {
+	void insert(TargetPlatform::IntType platforms, std::shared_ptr<InstanceT> instance) {
 		if constexpr (std::is_base_of_v<Storage::Disk::Disk, InstanceT>) {
-			media.disks.emplace_back(instance);
+			media.disks.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::Tape::Tape, InstanceT>) {
-			media.tapes.emplace_back(instance);
+			media.tapes.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::Cartridge::Cartridge, InstanceT>) {
-			media.cartridges.emplace_back(instance);
+			media.cartridges.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::MassStorage::MassStorageDevice, InstanceT>) {
-			media.mass_storage_devices.emplace_back(instance);
+			media.mass_storage_devices.push_back(instance);
 		} else {
 			static_assert(always_false_v<InstanceT>, "Unexpected type encountered.");
 		}
@@ -127,14 +127,14 @@ class MediaAccumulator {
 
 		// Check whether the instance itself has any input on target platforms.
 		TargetPlatform::TypeDistinguisher *const distinguisher =
-			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance);
+			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance.get());
 		if(distinguisher) potential_platforms_ &= distinguisher->target_platform_type();
 	}
 
 	/// Concstructs a new instance of @c InstanceT supplying @c args and adds it to the back of @c list using @c insert_instance.
 	template <typename InstanceT, typename... Args>
 	void insert(TargetPlatform::IntType platforms, Args &&... args) {
-		insert(platforms, new InstanceT(std::forward<Args>(args)...));
+		insert(platforms, std::make_shared<InstanceT>(std::forward<Args>(args)...));
 	}
 
 	/// Calls @c insert with the specified parameters, ignoring any exceptions thrown.
@@ -182,10 +182,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 				if constexpr (std::is_same<Type, nullptr_t>::value) {
 					// It's valid for no media to be returned.
 				} else if constexpr (std::is_same<Type, Disk::DiskImageHolderBase *>::value) {
-					accumulator.insert(TargetPlatform::DiskII, arg);
+					accumulator.insert(TargetPlatform::DiskII, std::shared_ptr<Disk::DiskImageHolderBase>(arg));
 				} else if constexpr (std::is_same<Type, MassStorage::MassStorageDevice *>::value) {
 					// TODO: or is it Apple IIgs?
-					accumulator.insert(TargetPlatform::AppleII, arg);
+					accumulator.insert(TargetPlatform::AppleII, std::shared_ptr<MassStorage::MassStorageDevice>(arg));
 				} else {
 					static_assert(always_false_v<Type>, "Unexpected type encountered.");
 				}
@@ -303,26 +303,28 @@ Media Analyser::Static::GetMedia(const std::string &file_name) {
 }
 
 TargetList Analyser::Static::GetTargets(const std::string &file_name) {
-	TargetList targets;
 	const std::string extension = get_extension(file_name);
+	TargetList targets;
 
 	// Check whether the file directly identifies a target; if so then just return that.
-#define Format(ext, class)											\
-	if(extension == ext)	{										\
-		try {														\
-			auto target = Storage::State::class::load(file_name);	\
-			if(target) {											\
-				targets.push_back(std::move(target));				\
-				return targets;										\
-			}														\
-		} catch(...) {}												\
-	}
+	const auto try_snapshot = [&](const char *ext, auto loader) -> bool {
+		if(extension != ext) {
+			return false;
+		}
+		try {
+			auto target = loader(file_name);
+			if(target) {
+				targets.push_back(std::move(target));
+				return true;
+			}
+		} catch(...) {}
 
-	Format("sna", SNA);
-	Format("szx", SZX);
-	Format("z80", Z80);
+		return false;
+	};
 
-#undef TryInsert
+	if(try_snapshot("sna", Storage::State::SNA::load)) return targets;
+	if(try_snapshot("szx", Storage::State::SZX::load)) return targets;
+	if(try_snapshot("z80", Storage::State::Z80::load)) return targets;
 
 	// Otherwise:
 	//
@@ -333,30 +335,33 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 
 	// Hand off to platform-specific determination of whether these
 	// things are actually compatible and, if so, how to load them.
-#define Append(x) if(potential_platforms & TargetPlatform::x) {\
-	auto new_targets = x::GetTargets(media, file_name, potential_platforms);\
-	std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));\
-}
-	Append(Acorn);
-	Append(AmstradCPC);
-	Append(AppleII);
-	Append(AppleIIgs);
-	Append(Amiga);
-	Append(Atari2600);
-	Append(AtariST);
-	Append(Coleco);
-	Append(Commodore);
-	Append(DiskII);
-	Append(Enterprise);
-	Append(FAT12);
-	Append(Macintosh);
-	Append(MSX);
-	Append(Oric);
-	Append(PCCompatible);
-	Append(Sega);
-	Append(ZX8081);
-	Append(ZXSpectrum);
-#undef Append
+	const auto append = [&](TargetPlatform::IntType platform, auto evaluator) {
+		if(!(potential_platforms & platform)) {
+			return;
+		}
+		auto new_targets = evaluator(media, file_name, potential_platforms);
+		std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));
+	};
+
+	append(TargetPlatform::Acorn, Acorn::GetTargets);
+	append(TargetPlatform::AmstradCPC, AmstradCPC::GetTargets);
+	append(TargetPlatform::AppleII, AppleII::GetTargets);
+	append(TargetPlatform::AppleIIgs, AppleIIgs::GetTargets);
+	append(TargetPlatform::Amiga, Amiga::GetTargets);
+	append(TargetPlatform::Atari2600, Atari2600::GetTargets);
+	append(TargetPlatform::AtariST, AtariST::GetTargets);
+	append(TargetPlatform::Coleco, Coleco::GetTargets);
+	append(TargetPlatform::Commodore, Commodore::GetTargets);
+	append(TargetPlatform::DiskII, DiskII::GetTargets);
+	append(TargetPlatform::Enterprise, Enterprise::GetTargets);
+	append(TargetPlatform::FAT12, FAT12::GetTargets);
+	append(TargetPlatform::Macintosh, Macintosh::GetTargets);
+	append(TargetPlatform::MSX, MSX::GetTargets);
+	append(TargetPlatform::Oric, Oric::GetTargets);
+	append(TargetPlatform::PCCompatible, PCCompatible::GetTargets);
+	append(TargetPlatform::Sega, Sega::GetTargets);
+	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
+	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
 
 	// Reset any tapes to their initial position.
 	for(const auto &target : targets) {
