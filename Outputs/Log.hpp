@@ -8,39 +8,66 @@
 
 #pragma once
 
+// TODO: if adopting C++20, std::format would be a better model to apply below.
+// But I prefer C files to C++ streams, so here it is for now.
+
+enum Category {
+	Info,
+	Error,
+};
+
 #ifdef NDEBUG
 
-#define LOG(x)		while(false) {}
-#define LOGNBR(x)	while(false) {}
+class Logger {
+	public:
+		Logger(const char *) {}
 
-#define ERROR(x)	while(false) {}
-#define ERRORNBR(x)	while(false) {}
-
-#else
-
-#include <iostream>
-#include <ios>
-#include <iomanip>
-
-#define PADHEX(n) std::hex << std::setfill('0') << std::setw(n)
-#define PADDEC(n) std::dec << std::setfill('0') << std::setw(n)
-
-#ifdef LOG_PREFIX
-
-#define LOG(x) std::cout << LOG_PREFIX << x << std::endl
-#define LOGNBR(x) std::cout << LOG_PREFIX << x
-
-#define ERROR(x) std::cerr << LOG_PREFIX << x << std::endl
-#define ERRORNBR(x) std::cerr << LOG_PREFIX << x
+		struct LogLine {
+			void append(const char *, ...) {}
+		};
+		template <Category category> LogLine line() {
+			return LogLine();
+		}
+};
 
 #else
 
-#define LOG(x) std::cout << x << std::endl
-#define LOGNBR(x) std::cout << x
+#include <cstdio>
+#include <cstdarg>
 
-#define ERROR(x) std::cerr << x << std::endl
-#define ERRORNBR(x) std::cerr << x
+class Logger {
+	public:
+		Logger(const char *prefix) : prefix_(prefix) {}
 
-#endif
+		struct LogLine {
+			public:
+				LogLine(const char *prefix, FILE *stream) : stream_(stream) {
+					if(prefix) {
+						fprintf(stream_, "%s ", prefix);
+					}
+				}
+
+				~LogLine() {
+					fprintf(stream_, "\n");
+				}
+
+				void append(const char *format, ...) {
+					va_list args;
+					va_start(args, format);
+					vfprintf(stream_, format, args);
+					va_end(args);
+				}
+
+			private:
+				FILE *stream_;
+		};
+
+		template <Category category> LogLine line() {
+			return LogLine(prefix_, category == Info ? stdout : stderr);
+		}
+
+	private:
+		const char *prefix_;
+};
 
 #endif
