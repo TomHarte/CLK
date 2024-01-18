@@ -307,24 +307,24 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	TargetList targets;
 
 	// Check whether the file directly identifies a target; if so then just return that.
+	const auto try_snapshot = [&](const char *ext, auto loader) -> bool {
+		if(extension != ext) {
+			return false;
+		}
+		try {
+			auto target = loader(file_name);
+			if(target) {
+				targets.push_back(std::move(target));
+				return true;
+			}
+		} catch(...) {}
 
+		return false;
+	};
 
-#define Format(ext, class)											\
-	if(extension == ext)	{										\
-		try {														\
-			auto target = Storage::State::class::load(file_name);	\
-			if(target) {											\
-				targets.push_back(std::move(target));				\
-				return targets;										\
-			}														\
-		} catch(...) {}												\
-	}
-
-	Format("sna", SNA);
-	Format("szx", SZX);
-	Format("z80", Z80);
-
-#undef TryInsert
+	if(try_snapshot("sna", Storage::State::SNA::load)) return targets;
+	if(try_snapshot("szx", Storage::State::SZX::load)) return targets;
+	if(try_snapshot("z80", Storage::State::Z80::load)) return targets;
 
 	// Otherwise:
 	//
