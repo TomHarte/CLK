@@ -8,26 +8,38 @@
 
 #pragma once
 
+namespace Log {
 // TODO: if adopting C++20, std::format would be a better model to apply below.
 // But I prefer C files to C++ streams, so here it is for now.
 
-enum Category {
-	Info,
-	Error,
+enum class Source {
+	WDFDC,
 };
+
+constexpr bool is_enabled(Source source) {
+	// Allow for compile-time source-level enabling and disabling of different sources.
+	switch(source) {
+		default: return true;
+	}
+}
+
+constexpr const char *prefix(Source source) {
+	switch(source) {
+		case Source::WDFDC:	return "[WD FDC]";
+	}
+}
 
 #ifdef NDEBUG
 
 class Logger {
 	public:
-		Logger(const char *) {}
+		Logger(Source) {}
 
 		struct LogLine {
 			void append(const char *, ...) {}
 		};
-		template <Category category> LogLine line() {
-			return LogLine();
-		}
+		LogLine info() {	return LogLine();	}
+		LogLine error() {	return LogLine();	}
 };
 
 #else
@@ -37,21 +49,26 @@ class Logger {
 
 class Logger {
 	public:
-		Logger(const char *prefix) : prefix_(prefix) {}
+		Logger(Source source) : source_(source) {}
 
 		struct LogLine {
 			public:
-				LogLine(const char *prefix, FILE *stream) : stream_(stream) {
-					if(prefix) {
-						fprintf(stream_, "%s ", prefix);
+				LogLine(Source source, FILE *stream) : source_(source), stream_(stream) {
+					if(!is_enabled(source_)) return;
+
+					const auto source_prefix = prefix(source);
+					if(source_prefix) {
+						fprintf(stream_, "%s ", source_prefix);
 					}
 				}
 
 				~LogLine() {
+					if(!is_enabled(source_)) return;
 					fprintf(stream_, "\n");
 				}
 
 				void append(const char *format, ...) {
+					if(!is_enabled(source_)) return;
 					va_list args;
 					va_start(args, format);
 					vfprintf(stream_, format, args);
@@ -59,15 +76,17 @@ class Logger {
 				}
 
 			private:
+				Source source_;
 				FILE *stream_;
 		};
 
-		template <Category category> LogLine line() {
-			return LogLine(prefix_, category == Info ? stdout : stderr);
-		}
+		LogLine info() {	return LogLine(source_, stdout);	}
+		LogLine error() {	return LogLine(source_, stderr);	}
 
 	private:
-		const char *prefix_;
+		Source source_;
 };
 
 #endif
+
+}
