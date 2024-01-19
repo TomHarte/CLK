@@ -8,14 +8,15 @@
 
 #include "z8530.hpp"
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-#define LOG_PREFIX "[SCC] "
 #include "../../Outputs/Log.hpp"
 
 using namespace Zilog::SCC;
+
+namespace {
+
+Log::Logger<Log::Source::SCC> log;
+
+}
 
 void z8530::reset() {
 	// TODO.
@@ -53,7 +54,7 @@ std::uint8_t z8530::read(int address) {
 
 			case 2:		// Handled non-symmetrically between channels.
 				if(address & 1) {
-					LOG("Unimplemented: register 2 status bits");
+					log.error().append("Unimplemented: register 2 status bits");
 				} else {
 					result = interrupt_vector_;
 
@@ -110,11 +111,11 @@ void z8530::write(int address, std::uint8_t value) {
 			case 2:	// Interrupt vector register; used only by Channel B.
 					// So there's only one of these.
 				interrupt_vector_ = value;
-				LOG("Interrupt vector set to " << PADHEX(2) << int(value));
+				log.info().append("Interrupt vector set to %d", value);
 			break;
 
 			case 9:	// Master interrupt and reset register; there is also only one of these.
-				LOG("Master interrupt and reset register: " << PADHEX(2) << int(value));
+				log.info().append("Master interrupt and reset register: %02x", value);
 				master_interrupt_control_ = value;
 			break;
 		}
@@ -151,7 +152,7 @@ uint8_t z8530::Channel::read(bool data, uint8_t pointer) {
 	if(data) {
 		return data_;
 	} else {
-		LOG("Control read from register " << int(pointer));
+		log.info().append("Control read from register %d", pointer);
 		// Otherwise, this is a control read...
 		switch(pointer) {
 			default:
@@ -236,10 +237,10 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 		data_ = value;
 		return;
 	} else {
-		LOG("Control write: " << PADHEX(2) << int(value) << " to register " << int(pointer));
+		log.info().append("Control write: %02x to register %d", value, pointer);
 		switch(pointer) {
 			default:
-				LOG("Unrecognised control write: " << PADHEX(2) << int(value) << " to register " << int(pointer));
+				log.info().append("Unrecognised control write: %02x to register %d", value, pointer);
 			break;
 
 			case 0x0:	// Write register 0 — CRC reset and other functions.
@@ -247,13 +248,13 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 				switch(value >> 6) {
 					default:	/* Do nothing. */		break;
 					case 1:
-						LOG("TODO: reset Rx CRC checker.");
+						log.error().append("TODO: reset Rx CRC checker.");
 					break;
 					case 2:
-						LOG("TODO: reset Tx CRC checker.");
+						log.error().append("TODO: reset Tx CRC checker.");
 					break;
 					case 3:
-						LOG("TODO: reset Tx underrun/EOM latch.");
+						log.error().append("TODO: reset Tx underrun/EOM latch.");
 					break;
 				}
 
@@ -266,19 +267,19 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 						external_interrupt_status_ = 0;
 					break;
 					case 3:
-						LOG("TODO: send abort (SDLC).");
+						log.error().append("TODO: send abort (SDLC).");
 					break;
 					case 4:
-						LOG("TODO: enable interrupt on next Rx character.");
+						log.error().append("TODO: enable interrupt on next Rx character.");
 					break;
 					case 5:
-						LOG("TODO: reset Tx interrupt pending.");
+						log.error().append("TODO: reset Tx interrupt pending.");
 					break;
 					case 6:
-						LOG("TODO: reset error.");
+						log.error().append("TODO: reset error.");
 					break;
 					case 7:
-						LOG("TODO: reset highest IUS.");
+						log.error().append("TODO: reset highest IUS.");
 					break;
 				}
 			break;
@@ -303,7 +304,7 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 					b1 = 1 => transmit buffer empty interrupt is enabled; 0 => it isn't.
 					b0 = 1 => external interrupt is enabled; 0 => it isn't.
 				*/
-				LOG("Interrupt mask: " << PADHEX(2) << int(value));
+				log.info().append("Interrupt mask: %02x", value);
 			break;
 
 			case 0x2:	// Write register 2 - interrupt vector.
@@ -318,9 +319,7 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 					case 2:		receive_bit_count = 6;	break;
 					case 3:		receive_bit_count = 8;	break;
 				}
-				LOG("Receive bit count: " << receive_bit_count);
-
-				(void)receive_bit_count;
+				log.info().append("Receive bit count: %d", receive_bit_count);
 
 				/*
 					b7,b6:
