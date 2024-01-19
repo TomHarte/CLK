@@ -93,7 +93,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
 			default:
-				LOG("Unrecognised loading address for Commodore program: " << PADHEX(4) << files.front().starting_address);
+				Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append("Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
 				[[fallthrough]];
 			case 0x1001:
 				memory_model = Target::MemoryModel::Unexpanded;
