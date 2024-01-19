@@ -54,6 +54,7 @@ constexpr bool is_enabled(Source source) {
 		default: return true;
 
 		// The following are all things I'm not actively working on.
+		case Source::IWM:
 		case Source::MFP68901:
 		case Source::NCR5380:
 		case Source::SCC:	return false;
@@ -68,6 +69,7 @@ constexpr const char *prefix(Source source) {
 		case Source::AtariST:					return "AtariST";
 		case Source::CommodoreStaticAnalyser:	return "Commodore StaticAnalyser";
 		case Source::i8272:						return "i8272";
+		case Source::IWM:						return "IWM";
 		case Source::MFP68901:					return "MFP68901";
 		case Source::MultiMachine:				return "Multi machine";
 		case Source::NCR5380:					return "5380";
