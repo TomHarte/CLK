@@ -11,12 +11,13 @@
 #include <algorithm>
 #include <cstring>
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-#define LOG_PREFIX "[MFP] "
 #include "../../Outputs/Log.hpp"
+
+namespace {
+
+Log::Logger<Log::Source::MFP68901> logger;
+
+}
 
 using namespace Motorola::MFP68901;
 
@@ -64,11 +65,11 @@ uint8_t MFP68901::read(int address) {
 		case 0x11:	case 0x12:	return get_timer_data(address - 0xf);
 
 		// USART block: TODO.
-		case 0x13:		LOG("Read: sync character generator");	break;
-		case 0x14:		LOG("Read: USART control");				break;
-		case 0x15:		LOG("Read: receiver status");			break;
-		case 0x16:		LOG("Read: transmitter status");		break;
-		case 0x17:		LOG("Read: USART data");				break;
+		case 0x13:		logger.error().append("Read: sync character generator");	break;
+		case 0x14:		logger.error().append("Read: USART control");				break;
+		case 0x15:		logger.error().append("Read: receiver status");			break;
+		case 0x16:		logger.error().append("Read: transmitter status");		break;
+		case 0x17:		logger.error().append("Read: USART data");				break;
 	}
 	return 0x00;
 }
@@ -169,11 +170,11 @@ void MFP68901::write(int address, uint8_t value) {
 		break;
 
 		// USART block: TODO.
-		case 0x13:		LOG("Write: sync character generator");	break;
-		case 0x14:		LOG("Write: USART control");			break;
-		case 0x15:		LOG("Write: receiver status");			break;
-		case 0x16:		LOG("Write: transmitter status");		break;
-		case 0x17:		LOG("Write: USART data");				break;
+		case 0x13:		logger.error().append("Write: sync character generator");	break;
+		case 0x14:		logger.error().append("Write: USART control");				break;
+		case 0x15:		logger.error().append("Write: receiver status");			break;
+		case 0x16:		logger.error().append("Write: transmitter status");			break;
+		case 0x17:		logger.error().append("Write: USART data");					break;
 	}
 
 	update_clocking_observer();
@@ -220,7 +221,7 @@ HalfCycles MFP68901::next_sequence_point() {
 // MARK: - Timers
 
 void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool reset_timer) {
-	LOG("Timer " << timer << " mode set: " << int(mode) << "; prescale: " << prescale);
+	logger.error().append("Timer %d mode set: %d; prescale: %d", timer, mode, prescale);
 	timers_[timer].mode = mode;
 	if(reset_timer) {
 		timers_[timer].prescale_count = 0;
@@ -398,7 +399,7 @@ int MFP68901::acknowledge_interrupt() {
 
 	int selected = 0;
 	while((1 << selected) != mask) ++selected;
-//	LOG("Interrupt acknowledged: " << selected);
+//	logger.error().append("Interrupt acknowledged: %d", selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 

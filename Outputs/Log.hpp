@@ -29,10 +29,12 @@ enum class Source {
 	M50740,
 	Macintosh,
 	MasterSystem,
+	MultiMachine,
 	MFP68901,
 	MSX,
 	NCR5380,
 	OpenGL,
+	PCMTrack,
 	SCC,
 	SCSI,
 	SZX,
@@ -52,6 +54,7 @@ constexpr bool is_enabled(Source source) {
 		default: return true;
 
 		// The following are all things I'm not actively working on.
+		case Source::MFP68901:
 		case Source::NCR5380:
 		case Source::SCC:	return false;
 	}
@@ -65,7 +68,10 @@ constexpr const char *prefix(Source source) {
 		case Source::AtariST:					return "AtariST";
 		case Source::CommodoreStaticAnalyser:	return "Commodore StaticAnalyser";
 		case Source::i8272:						return "i8272";
+		case Source::MFP68901:					return "MFP68901";
+		case Source::MultiMachine:				return "Multi machine";
 		case Source::NCR5380:					return "5380";
+		case Source::PCMTrack:					return "PCM Track";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";
 		case Source::SZX:						return "SZX";
@@ -81,12 +87,14 @@ constexpr const char *prefix(Source source) {
 template <Source source>
 class Logger {
 	public:
+		static constexpr bool enabled = is_enabled(source);
+
 		Logger() {}
 
 		struct LogLine {
 			public:
 				LogLine(FILE *stream) : stream_(stream) {
-					if constexpr (!is_enabled(source)) return;
+					if constexpr (!enabled) return;
 
 					const auto source_prefix = prefix(source);
 					if(source_prefix) {
@@ -95,12 +103,12 @@ class Logger {
 				}
 
 				~LogLine() {
-					if constexpr (!is_enabled(source)) return;
+					if constexpr (!enabled) return;
 					fprintf(stream_, "\n");
 				}
 
 				void append(const char *format, ...) {
-					if constexpr (!is_enabled(source)) return;
+					if constexpr (!enabled) return;
 					va_list args;
 					va_start(args, format);
 					vfprintf(stream_, format, args);
