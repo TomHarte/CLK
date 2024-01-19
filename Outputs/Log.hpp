@@ -13,9 +13,33 @@ namespace Log {
 // But I prefer C files to C++ streams, so here it is for now.
 
 enum class Source {
-	WDFDC,
-	SCSI,
+	ADB,
+	Amiga,
+	AmigaDisk,
+	AmigaCopper,
+	AmigaChipset,
+	AmigaBlitter,
+	AtariST,
+	DirectAccessDevice,
+	Enterprise,
+	i8272,
+	IntelligentKeyboard,
+	IWM,
+	M50740,
+	Macintosh,
+	MasterSystem,
+	MFP68901,
+	MSX,
+	NCR5380,
+	OpenGL,
 	SCC,
+	SCSI,
+	StaticAnalyser,
+	SZX,
+	TapeUEF,
+	TMS9918,
+	TZX,
+	WDFDC,
 };
 
 constexpr bool is_enabled(Source source) {
@@ -27,15 +51,19 @@ constexpr bool is_enabled(Source source) {
 	switch(source) {
 		default: return true;
 
+		// The following are all things I'm not actively working on.
+		case Source::NCR5380:
 		case Source::SCC:	return false;
 	}
 }
 
 constexpr const char *prefix(Source source) {
 	switch(source) {
-		case Source::WDFDC:	return "WD FDC";
-		case Source::SCSI:	return "SCSI";
-		case Source::SCC:	return "SCC";
+		case Source::StaticAnalyser:	return "Analyser";
+		case Source::WDFDC:				return "WD FDC";
+		case Source::SCSI:				return "SCSI";
+		case Source::SCC:				return "SCC";
+		case Source::NCR5380:			return "5380";
 	}
 }
 

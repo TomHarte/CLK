@@ -103,7 +103,7 @@ uint8_t WD1770::read(int address) {
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
-//			LOG("Returned status " << PADHEX(2) << int(status) << " of type " << 1+int(status_.type));
+//			logger.info().append("Returned status %02x of type %d", status, 1+int(status_.type));
 			return status;
 		}
 		case 1:
