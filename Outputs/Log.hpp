@@ -15,6 +15,7 @@ namespace Log {
 enum class Source {
 	WDFDC,
 	SCSI,
+	SCC,
 };
 
 constexpr bool is_enabled(Source source) {
@@ -25,6 +26,8 @@ constexpr bool is_enabled(Source source) {
 	// Allow for compile-time source-level enabling and disabling of different sources.
 	switch(source) {
 		default: return true;
+
+		case Source::SCC:	return false;
 	}
 }
 
@@ -32,6 +35,7 @@ constexpr const char *prefix(Source source) {
 	switch(source) {
 		case Source::WDFDC:	return "WD FDC";
 		case Source::SCSI:	return "SCSI";
+		case Source::SCC:	return "SCC";
 	}
 }
 
