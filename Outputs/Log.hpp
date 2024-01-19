@@ -20,6 +20,7 @@ enum class Source {
 	AmigaChipset,
 	AmigaBlitter,
 	AtariST,
+	CommodoreStaticAnalyser,
 	DirectAccessDevice,
 	Enterprise,
 	i8272,
@@ -34,7 +35,6 @@ enum class Source {
 	OpenGL,
 	SCC,
 	SCSI,
-	StaticAnalyser,
 	SZX,
 	TapeUEF,
 	TMS9918,
@@ -59,11 +59,14 @@ constexpr bool is_enabled(Source source) {
 
 constexpr const char *prefix(Source source) {
 	switch(source) {
-		case Source::StaticAnalyser:	return "Analyser";
-		case Source::WDFDC:				return "WD FDC";
-		case Source::SCSI:				return "SCSI";
-		case Source::SCC:				return "SCC";
-		case Source::NCR5380:			return "5380";
+		default: return nullptr;
+
+		case Source::CommodoreStaticAnalyser:	return "Commodore StaticAnalyser";
+		case Source::i8272:						return "i8272";
+		case Source::NCR5380:					return "5380";
+		case Source::SCSI:						return "SCSI";
+		case Source::SCC:						return "SCC";
+		case Source::WDFDC:						return "WD FDC";
 	}
 }
 
