@@ -14,9 +14,14 @@ namespace Log {
 
 enum class Source {
 	WDFDC,
+	SCSI,
 };
 
 constexpr bool is_enabled(Source source) {
+#ifdef NDEBUG
+	return false;
+#endif
+
 	// Allow for compile-time source-level enabling and disabling of different sources.
 	switch(source) {
 		default: return true;
@@ -25,50 +30,37 @@ constexpr bool is_enabled(Source source) {
 
 constexpr const char *prefix(Source source) {
 	switch(source) {
-		case Source::WDFDC:	return "[WD FDC]";
+		case Source::WDFDC:	return "WD FDC";
+		case Source::SCSI:	return "SCSI";
 	}
 }
-
-#ifdef NDEBUG
-
-class Logger {
-	public:
-		Logger(Source) {}
-
-		struct LogLine {
-			void append(const char *, ...) {}
-		};
-		LogLine info() {	return LogLine();	}
-		LogLine error() {	return LogLine();	}
-};
-
-#else
 
 #include <cstdio>
 #include <cstdarg>
 
+template <Source source>
 class Logger {
 	public:
-		Logger(Source source) : source_(source) {}
+		Logger() {}
 
 		struct LogLine {
 			public:
-				LogLine(Source source, FILE *stream) : source_(source), stream_(stream) {
-					if(!is_enabled(source_)) return;
+				LogLine(FILE *stream) : stream_(stream) {
+					if constexpr (!is_enabled(source)) return;
 
 					const auto source_prefix = prefix(source);
 					if(source_prefix) {
-						fprintf(stream_, "%s ", source_prefix);
+						fprintf(stream_, "[%s] ", source_prefix);
 					}
 				}
 
 				~LogLine() {
-					if(!is_enabled(source_)) return;
+					if constexpr (!is_enabled(source)) return;
 					fprintf(stream_, "\n");
 				}
 
 				void append(const char *format, ...) {
-					if(!is_enabled(source_)) return;
+					if constexpr (!is_enabled(source)) return;
 					va_list args;
 					va_start(args, format);
 					vfprintf(stream_, format, args);
@@ -76,17 +68,11 @@ class Logger {
 				}
 
 			private:
-				Source source_;
 				FILE *stream_;
 		};
 
-		LogLine info() {	return LogLine(source_, stdout);	}
-		LogLine error() {	return LogLine(source_, stderr);	}
-
-	private:
-		Source source_;
+		LogLine info() {	return LogLine(stdout);	}
+		LogLine error() {	return LogLine(stderr);	}
 };
-
-#endif
 
 }
