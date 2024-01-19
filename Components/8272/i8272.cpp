@@ -10,6 +10,12 @@
 
 #include "../../Outputs/Log.hpp"
 
+namespace {
+
+Log::Logger<Log::Source::i8272> logger;
+
+}
+
 using namespace Intel::i8272;
 
 i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
@@ -54,7 +60,7 @@ void i8272::run_for(Cycles cycles) {
 				while(steps--) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					LOG("Target " << PADDEC(0) << drives_[c].target_head_position << " versus believed " << int(drives_[c].head_position));
+					logger.info().append("Target %d versus believed %d", drives_[c].target_head_position, drives_[c].head_position);
 					select_drive(c);
 					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
@@ -303,17 +309,17 @@ void i8272::posit_event(int event_type) {
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
 			index_hole_limit_ = 2;
-//			LOG("Seeking " << PADDEC(0) << cylinder_ << " " << head_ " " << sector_ << " " << size_);
+//			logger.info().append("Seeking " << PADDEC(0) << cylinder_ << " " << head_ " " << sector_ << " " << size_);
 		find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
-//				LOG("Not found");
+//				logger.info().append("Not found");
 				status_.set(Status1::NoData);
 				goto abort;
 			}
 			index_hole_count_ = 0;
-//			LOG("Header");
+//			logger.info().append("Header");
 			READ_HEADER();
 			if(index_hole_count_) {
 				// This implies an index hole was sighted within the header. Error out.
@@ -324,11 +330,11 @@ void i8272::posit_event(int event_type) {
 				// This implies a CRC error in the header; mark as such but continue.
 				status_.set(Status1::DataError);
 			}
-//			LOG("Considering << PADHEX(2) << header_[0] << " " << header_[1] << " " << header_[2] << " " << header_[3] << " [" << get_crc_generator().get_value() << "]");
+//			logger.info().append("Considering %02x %02x %02x %02x [%04x]", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 			// Branch to whatever is supposed to happen next
-//			LOG("Proceeding");
+//			logger.info().append("Proceeding");
 			switch(command_.command()) {
 				default:
 				case Command::ReadData:
@@ -343,13 +349,13 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
-//			LOG(PADHEX(2) << "Read [deleted] data ["
-//				<< int(command_[2]) << " "
-//				<< int(command_[3]) << " "
-//				<< int(command_[4]) << " "
-//				<< int(command_[5]) << " ... "
-//				<< int(command_[6]) << " "
-//				<< int(command_[8]) << "]");
+//			logger.info().append("Read [deleted] data [%02x %02x %02x %02x ... %02x %02x]",
+//				command_[2],
+//				command_[3],
+//				command_[4],
+//				command_[5],
+//				command_[6],
+//				command_[8]);
 		read_next_data:
 			goto read_write_find_header;
 
@@ -433,13 +439,13 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-//			LOG(PADHEX(2) << "Write [deleted] data ["
-//				<< int(command_[2]) << " "
-//				<< int(command_[3]) << " "
-//				<< int(command_[4]) << " "
-//				<< int(command_[5]) << " ... "
-//				<< int(command_[6]) << " "
-//				<< int(command_[8]) << "]");
+//			logger.info().append("Write [deleted] data [%02x %02x %02x %02x ... %02x %02x]",
+//				command_[2],
+//				command_[3],
+//				command_[4],
+//				command_[5],
+//				command_[6],
+//				command_[8]);
 
 			if(get_drive().get_is_read_only()) {
 				status_.set(Status1::NotWriteable);
@@ -474,7 +480,7 @@ void i8272::posit_event(int event_type) {
 				goto write_loop;
 			}
 
-			LOG("Wrote " << PADDEC(0) << distance_into_section_ << " bytes");
+			logger.info().append("Wrote %d bytes", distance_into_section_);
 			write_crc();
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
@@ -490,7 +496,7 @@ void i8272::posit_event(int event_type) {
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
-//			LOG(PADHEX(2) << "Read ID [" << int(command_[0]) << " " << int(command_[1]) << "]");
+//			logger.info().append("Read ID [%02x %02x]", command_[0], command_[1]);
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -512,11 +518,11 @@ void i8272::posit_event(int event_type) {
 
 	// Performs read track.
 	read_track:
-//			LOG(PADHEX(2) << "Read track ["
-//				<< int(command_[2]) << " "
-//				<< int(command_[3]) << " "
-//				<< int(command_[4]) << " "
-//				<< int(command_[5]) << "]");
+//			logger.info().append("Read track [%02x %02x %02x %02x]"
+//				command_[2],
+//				command_[3],
+//				command_[4],
+//				command_[5]);
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
@@ -557,7 +563,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs format [/write] track.
 	format_track:
-			LOG("Format track");
+			logger.info().append("Format track");
 			if(get_drive().get_is_read_only()) {
 				status_.set(Status1::NotWriteable);
 				goto abort;
@@ -601,12 +607,8 @@ void i8272::posit_event(int event_type) {
 				break;
 			}
 
-			LOG(PADHEX(2) << "W:"
-				<< int(header_[0]) << " "
-				<< int(header_[1]) << " "
-				<< int(header_[2]) << " "
-				<< int(header_[3]) << ", "
-				<< get_crc_generator().get_value());
+			logger.info().append("W: %02x %02x %02x %02x, %04x",
+				header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
 			write_crc();
 
 			// Write the sector body.
@@ -638,15 +640,15 @@ void i8272::posit_event(int event_type) {
 		goto post_st012chrn;
 
 	scan_low:
-		ERROR("Scan low unimplemented!!");
+		logger.error().append("Scan low unimplemented!!");
 		goto wait_for_command;
 
 	scan_low_or_equal:
-		ERROR("Scan low or equal unimplemented!!");
+		logger.error().append("Scan low or equal unimplemented!!");
 		goto wait_for_command;
 
 	scan_high_or_equal:
-		ERROR("Scan high or equal unimplemented!!");
+		logger.error().append("Scan high or equal unimplemented!!");
 		goto wait_for_command;
 
 	// Performs both recalibrate and seek commands. These commands occur asynchronously, so the actual work
@@ -677,11 +679,11 @@ void i8272::posit_event(int event_type) {
 				// up in run_for understands to mean 'keep going until track 0 is active').
 				if(command_.command() != Command::Recalibrate) {
 					drives_[drive].target_head_position = command_.seek_target();
-					LOG(PADHEX(2) << "Seek to " << int(command_.seek_target()));
+					logger.info().append("Seek to %d", command_.seek_target());
 				} else {
 					drives_[drive].target_head_position = -1;
 					drives_[drive].head_position = 0;
-					LOG("Recalibrate");
+					logger.info().append("Recalibrate");
 				}
 
 				// Check whether any steps are even needed; if not then mark as completed already.
@@ -694,7 +696,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs sense interrupt status.
 	sense_interrupt_status:
-			LOG("Sense interrupt status");
+			logger.info().append("Sense interrupt status");
 			{
 				// Find the first drive that is in the CompletedSeeking state.
 				int found_drive = -1;
@@ -722,7 +724,7 @@ void i8272::posit_event(int event_type) {
 	// Performs specify.
 	specify:
 		// Just store the values, and terminate the command.
-			LOG("Specify");
+			logger.info().append("Specify");
 			step_rate_time_ = command_.specify_specs().step_rate_time;
 			head_unload_time_ = command_.specify_specs().head_unload_time;
 			head_load_time_ = command_.specify_specs().head_load_time;
@@ -733,7 +735,7 @@ void i8272::posit_event(int event_type) {
 			goto wait_for_command;
 
 	sense_drive_status:
-			LOG("Sense drive status");
+			logger.info().append("Sense drive status");
 			{
 				int drive = command_.target().drive;
 				select_drive(drive);
@@ -772,11 +774,13 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
-//			LOGNBR(PADHEX(2) << "Result to " << int(command_[0] & 0x1f) << ", main " << int(main_status_) << "; ");
-//			for(std::size_t c = 0; c < result_stack_.size(); c++) {
-//				LOGNBR(" " << int(result_stack_[result_stack_.size() - 1 - c]));
+//			{
+//				auto line = logger.info();
+//				line.append("Result to %02x, main %02x", command_[0] & 0x1f, main_status_);
+//				for(std::size_t c = 0; c < result_stack_.size(); c++) {
+//					line.append(" %02x", result_stack_[result_stack_.size() - 1 - c]);
+//				}
 //			}
-//			LOGNBR(std::endl);
 
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
 			is_executing_ = false;

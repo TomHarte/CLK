@@ -16,7 +16,6 @@
 #include "../../../InstructionSets/M50740/Parser.hpp"
 #include "../../../InstructionSets/Disassembler.hpp"
 
-#define LOG_PREFIX "[ADB GLU] "
 #include "../../../Outputs/Log.hpp"
 
 using namespace Apple::IIgs::ADB;
@@ -39,6 +38,8 @@ enum class CPUFlags: uint8_t {
 enum class MicrocontrollerFlags: uint8_t {
 	CommandRegisterFull = 0x40,
 };
+
+Log::Logger<Log::Source::ADBGLU> logger;
 
 }
 
@@ -246,7 +247,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 		case 3:
 			if(modifier_state_ != (value & 0x30)) {
 				modifier_state_ = value & 0x30;
-				LOG("Modifier state: " << int(value & 0x30));
+				logger.info().append("Modifier state: %02x", modifier_state_);
 			}
 
 			// Output is inverted respective to input; the microcontroller

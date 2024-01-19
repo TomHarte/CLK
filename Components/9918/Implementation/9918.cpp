@@ -22,6 +22,8 @@ namespace {
 constexpr unsigned int CRTCyclesPerLine = 1365;
 constexpr unsigned int CRTCyclesDivider = 4;
 
+Log::Logger<Log::Source::TMS9918> logger;
+
 }
 
 template <Personality personality>
@@ -837,7 +839,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				Storage<personality>::solid_background_ = value & 0x20;
 				Storage<personality>::sprites_enabled_ = !(value & 0x02);
 				if(value & 0x01) {
-					LOG("TODO: Yamaha greyscale");
+					logger.error().append("TODO: Yamaha greyscale");
 				}
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
 				// b6: 1 = enable light pen
@@ -854,7 +856,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// TODO: on the Yamaha, at least, tie this interrupt overtly to vertical state.
 
 				if(value & 0x08) {
-					LOG("TODO: Yamaha interlace mode");
+					logger.error().append("TODO: Yamaha interlace mode");
 				}
 
 				// b7: 1 = 212 lines of pixels; 0 = 192
@@ -918,7 +920,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			case 20:
 			case 21:
 			case 22:
-//				LOG("TODO: Yamaha colour burst selection; " << PADHEX(2) << +value);
+//				logger.error().append("TODO: Yamaha colour burst selection; %02x", value);
 				// Documentation is "fill with 0s for no colour burst; magic pattern for colour burst"
 			break;
 
@@ -1004,7 +1006,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// Kill the command immediately if it's done in zero operations
 				// (e.g. a line of length 0).
 				if(!Storage<personality>::command_ && (value >> 4)) {
-					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
+					logger.error().append("TODO: Yamaha command %02x", value);
 				}
 
 				// Seed timing information if a command was found.

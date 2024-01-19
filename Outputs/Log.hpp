@@ -13,7 +13,7 @@ namespace Log {
 // But I prefer C files to C++ streams, so here it is for now.
 
 enum class Source {
-	ADB,
+	ADBGLU,
 	Amiga,
 	AmigaDisk,
 	AmigaCopper,
@@ -61,11 +61,16 @@ constexpr const char *prefix(Source source) {
 	switch(source) {
 		default: return nullptr;
 
+		case Source::ADBGLU:					return "ADB GLU";
+		case Source::AtariST:					return "AtariST";
 		case Source::CommodoreStaticAnalyser:	return "Commodore StaticAnalyser";
 		case Source::i8272:						return "i8272";
 		case Source::NCR5380:					return "5380";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";
+		case Source::SZX:						return "SZX";
+		case Source::TapeUEF:					return "UEF";
+		case Source::TZX:						return "TZX";
 		case Source::WDFDC:						return "WD FDC";
 	}
 }

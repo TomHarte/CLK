@@ -12,8 +12,13 @@
 #include <cstdlib>
 #include <cmath>
 
-#define LOG_PREFIX "[UEF] "
 #include "../../../Outputs/Log.hpp"
+
+namespace {
+
+Log::Logger<Log::Source::TapeUEF> logger;
+
+}
 
 // MARK: - ZLib extensions
 
@@ -156,7 +161,7 @@ void UEF::get_next_pulses() {
 			break;
 
 			default:
-				LOG("Skipping chunk of type " << PADHEX(4) << next_chunk.id);
+				logger.info().append("Skipping chunk of type %04x", next_chunk.id);
 			break;
 		}
 

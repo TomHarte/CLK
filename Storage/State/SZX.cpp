@@ -25,6 +25,7 @@ namespace {
 constexpr uint32_t block(const char *str) {
 	return uint32_t(str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24));
 }
+Log::Logger<Log::Source::SZX> logger;
 
 }
 
@@ -81,7 +82,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 		switch(blockID) {
 			default:
-				LOG("Unhandled block " << char(blockID) << char(blockID >> 8) << char(blockID >> 16) << char(blockID >> 24));
+				logger.info().append("Unhandled block %c%c%c%c", char(blockID), char(blockID >> 8), char(blockID >> 16), char(blockID >> 24));
 			break;
 
 			// ZXSTZ80REGS

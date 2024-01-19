@@ -262,7 +262,7 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 				switch((value >> 3)&7) {
 					default:	/* Do nothing. */		break;
 					case 2:
-//						LOG("reset ext/status interrupts.");
+//						log.info().append("reset ext/status interrupts.");
 						external_status_interrupt_ = false;
 						external_interrupt_status_ = 0;
 					break;
