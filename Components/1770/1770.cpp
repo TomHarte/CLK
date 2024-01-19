@@ -13,7 +13,7 @@
 
 namespace {
 
-auto logger = Log::Logger(Log::Source::WDFDC);
+auto logger = Log::Logger<Log::Source::WDFDC>();
 
 }
 

@@ -178,7 +178,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 #define G1(x)	(0x20|x)
 #define G5(x)	(0xa0|x)
 
-	LOG("---Command " << PADHEX(2) << int(command_[0]) << "---");
+	log_.info().append("---Command %02x---", command_[0]);
 
 	switch(command_[0]) {
 		default:		return false;
@@ -278,5 +278,5 @@ template <typename Executor> void Target<Executor>::end_command() {
 	bus_state_ = DefaultBusState;
 	set_device_output(bus_state_);
 
-	LOG("---Done---");
+	log_.info().append("---Done---");
 }
