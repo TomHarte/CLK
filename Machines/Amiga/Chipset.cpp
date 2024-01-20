@@ -877,7 +877,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 
 		// Joystick/mouse input.
 		case 0x034:		// POTGO
-//			LOG("TODO: pot port start");
+//			logger.error().append("TODO: pot port start");
 		break;
 
 		// Disk DMA and control.
@@ -1143,7 +1143,7 @@ uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
 		case 0x00c:	return joystick(0).get_position();		// JOY1DAT
 
 		case 0x016:		// POTGOR / POTINP
-//			LOG("TODO: pot port read");
+//			logger.error().append("TODO: pot port read");
 		return 0xff00;
 
 		// Disk DMA and control.

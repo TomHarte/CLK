@@ -37,7 +37,7 @@
 #include "../../../Analyser/Static/AtariST/Target.hpp"
 
 namespace {
-Log::Logger<Log::Source::NCR5380> logger;
+Log::Logger<Log::Source::AtariST> logger;
 }
 
 namespace Atari {

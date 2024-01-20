@@ -24,6 +24,7 @@ enum class Source {
 	AmigaChipset,
 	AmigaBlitter,
 	AtariST,
+	AtariSTDMAController,
 	CommodoreStaticAnalyser,
 	DirectAccessDevice,
 	Enterprise,
@@ -81,6 +82,7 @@ constexpr const char *prefix(Source source) {
 		case Source::AmigaCopper:				return "Copper";
 		case Source::AmigaDisk:					return "Disk";
 		case Source::AtariST:					return "AtariST";
+		case Source::AtariSTDMAController:		return "DMA";
 		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
 		case Source::Enterprise:				return "Enterprise";
 		case Source::i8272:						return "i8272";

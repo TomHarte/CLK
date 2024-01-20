@@ -163,13 +163,13 @@ void Blitter<record_bus>::set_minterms(uint16_t value) {
 
 //template <bool record_bus>
 //void Blitter<record_bus>::set_vertical_size([[maybe_unused]] uint16_t value) {
-//	LOG("Set vertical size " << PADHEX(4) << value);
+//	logger.info().append("Set vertical size %04x", value);
 //	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
 //}
 //
 //template <bool record_bus>
 //void Blitter<record_bus>::set_horizontal_size([[maybe_unused]] uint16_t value) {
-//	LOG("Set horizontal size " << PADHEX(4) << value);
+//	logger.info().append("Set horizontal size %04x", value);
 //}
 
 template <bool record_bus>
