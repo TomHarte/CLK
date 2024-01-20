@@ -29,13 +29,16 @@
 
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#define LOG_PREFIX "[ST] "
 #include "../../../Outputs/Log.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
 #include "../../Utility/MemoryFuzzer.hpp"
 
 #include "../../../Analyser/Static/AtariST/Target.hpp"
+
+namespace {
+Log::Logger<Log::Source::AtariST> logger;
+}
 
 namespace Atari {
 namespace ST {
@@ -186,7 +189,7 @@ class ConcreteMachine:
 
 			// Check for assertion of reset.
 			if(cycle.operation & CPU::MC68000::Operation::Reset) {
-				LOG("Unhandled Reset");
+				logger.error().append("Unhandled Reset");
 			}
 
 			// A null cycle leaves nothing else to do.

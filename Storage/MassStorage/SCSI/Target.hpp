@@ -347,6 +347,7 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 
 	private:
 		Executor executor_;
+		Log::Logger<Log::Source::SCSI> log_;
 
 		// Bus::Observer.
 		void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) final;

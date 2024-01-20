@@ -14,9 +14,8 @@
 using namespace Outputs::Display::OpenGL;
 
 namespace {
-	// The below is disabled because it isn't context/thread-specific. Which makes it
-	// fairly 'unuseful'.
-//	Shader *bound_shader = nullptr;
+thread_local const Shader *bound_shader = nullptr;
+Log::Logger<Log::Source::OpenGL> logger;
 }
 
 GLuint Shader::compile_shader(const std::string &source, GLenum type) {
@@ -25,22 +24,22 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	test_gl(glShaderSource, shader, 1, &c_str, NULL);
 	test_gl(glCompileShader, shader);
 
-#ifndef NDEBUG
-	GLint isCompiled = 0;
-	test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint logLength;
-		test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &logLength);
-		if(logLength > 0) {
-			const auto length = std::vector<GLchar>::size_type(logLength);
-			std::vector<GLchar> log(length);
-			test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
-			LOG("Compile log:\n" << log.data());
-		}
+	if constexpr (logger.enabled) {
+		GLint isCompiled = 0;
+		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
+		if(isCompiled == GL_FALSE) {
+			GLint logLength;
+			test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &logLength);
+			if(logLength > 0) {
+				const auto length = std::vector<GLchar>::size_type(logLength);
+				std::vector<GLchar> log(length);
+				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
+				logger.error().append("Compile log: %s", log.data());
+			}
 
-		throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
+			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
+		}
 	}
-#endif
 
 	return shader;
 }
@@ -69,58 +68,58 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 
 	for(const auto &binding : attribute_bindings) {
 		test_gl(glBindAttribLocation, shader_program_, binding.index, binding.name.c_str());
-#ifndef NDEBUG
-		const auto error = glGetError();
-		switch(error) {
-			case 0: break;
-			case GL_INVALID_VALUE:
-				LOG("GL_INVALID_VALUE when attempting to bind " << binding.name << " to index " << binding.index << " (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)");
-			break;
-			case GL_INVALID_OPERATION:
-				LOG("GL_INVALID_OPERATION when attempting to bind " << binding.name << " to index " << binding.index << " (i.e. name begins with gl_)");
-			break;
-			default:
-				LOG("Error " << error << " when attempting to bind " << binding.name << " to index " << binding.index);
-			break;
+
+		if constexpr (logger.enabled) {
+			const auto error = glGetError();
+			switch(error) {
+				case 0: break;
+				case GL_INVALID_VALUE:
+					logger.error().append("GL_INVALID_VALUE when attempting to bind %s to index %d (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)", binding.name.c_str(), binding.index);
+				break;
+				case GL_INVALID_OPERATION:
+					logger.error().append("GL_INVALID_OPERATION when attempting to bind %s to index %d (i.e. name begins with gl_)", binding.name.c_str(), binding.index);
+				break;
+				default:
+					logger.error().append("Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
+				break;
+			}
 		}
-#endif
 	}
 
 	test_gl(glLinkProgram, shader_program_);
 
-#ifndef NDEBUG
-	GLint logLength;
-	test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
-	if(logLength > 0) {
-		GLchar *log = new GLchar[std::size_t(logLength)];
-		test_gl(glGetProgramInfoLog, shader_program_, logLength, &logLength, log);
-		LOG("Link log:\n" << log);
-		delete[] log;
-	}
+	if constexpr (logger.enabled) {
+		GLint logLength;
+		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
+		if(logLength > 0) {
+			std::vector<GLchar> log(logLength);
+			test_gl(glGetProgramInfoLog, shader_program_, logLength, &logLength, log.data());
+			logger.error().append("Link log: %s", log.data());
+		}
 
-	GLint didLink = 0;
-	test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &didLink);
-	if(didLink == GL_FALSE) {
-		throw ProgramLinkageError;
+		GLint didLink = 0;
+		test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &didLink);
+		if(didLink == GL_FALSE) {
+			throw ProgramLinkageError;
+		}
 	}
-#endif
 }
 
 Shader::~Shader() {
-//	if(bound_shader == this) Shader::unbind();
+	if(bound_shader == this) Shader::unbind();
 	glDeleteProgram(shader_program_);
 }
 
 void Shader::bind() const {
-//	if(bound_shader != this) {
+	if(bound_shader != this) {
 		test_gl(glUseProgram, shader_program_);
-//		bound_shader = this;
-//	}
+		bound_shader = this;
+	}
 	flush_functions();
 }
 
 void Shader::unbind() {
-//	bound_shader = nullptr;
+	bound_shader = nullptr;
 	test_gl(glUseProgram, 0);
 }
 
@@ -139,7 +138,7 @@ void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint
 		test_gl(glVertexAttribPointer, GLuint(location), size, type, normalised, stride, pointer);
 		test_gl(glVertexAttribDivisor, GLuint(location), divisor);
 	} else {
-		LOG("Couldn't enable vertex attribute " << name);
+		logger.error().append("Couldn't enable vertex attribute %s", name.c_str());
 	}
 }
 
@@ -147,10 +146,10 @@ void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint
 #define with_location(func, ...) {\
 		const GLint location = glGetUniformLocation(shader_program_, name.c_str());	\
 		if(location == -1) { \
-			LOG("Couldn't get location for uniform " << name);	\
+			logger.error().append("Couldn't get location for uniform %s", name.c_str());	\
 		} else { \
 			func(location, __VA_ARGS__);	\
-			if(glGetError()) LOG("Error setting uniform " << name << " via " << #func);	\
+			if(glGetError()) logger.error().append("Error setting uniform %s via %s", name.c_str(), #func);	\
 		} \
 	}
 

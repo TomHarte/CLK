@@ -14,8 +14,11 @@
 using namespace Storage::Tape;
 
 namespace {
-const unsigned int StandardTZXClock = 3500000;
-const unsigned int TZXClockMSMultiplier = 3500;
+
+constexpr unsigned int StandardTZXClock = 3500000;
+constexpr unsigned int TZXClockMSMultiplier = 3500;
+Log::Logger<Log::Source::TZX> logger;
+
 }
 
 TZX::TZX(const std::string &file_name) :
@@ -92,7 +95,7 @@ void TZX::get_next_pulses() {
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
 				// so there is no route past an unimplemented chunk.
-				LOG("Unknown TZX chunk: " << PADHEX(4) << chunk_id);
+				logger.error().append("Unknown TZX chunk: %04x", chunk_id);
 				set_is_at_end(true);
 			return;
 		}

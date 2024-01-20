@@ -49,6 +49,10 @@
 
 #include "../../Analyser/Static/MSX/Target.hpp"
 
+namespace {
+Log::Logger<Log::Source::MSX> logger;
+}
+
 namespace MSX {
 
 class AYPortHandler: public GI::AY38910::PortHandler {
@@ -874,14 +878,14 @@ class ConcreteMachine:
 							// b0-b3: keyboard line
 							machine_.set_keyboard_line(value & 0xf);
 						} break;
-						default: LOG("Unrecognised: MSX set 8255 output port " << port << " to value " << PADHEX(2) << value); break;
+						default: logger.error().append("Unrecognised: MSX set 8255 output port %d to value %02x", port, value); break;
 					}
 				}
 
 				uint8_t get_value(int port) {
 					if(port == 1) {
 						return machine_.read_keyboard();
-					} else LOG("MSX attempted to read from 8255 port " << port);
+					} else logger.error().append("MSX attempted to read from 8255 port %d");
 					return 0xff;
 				}
 

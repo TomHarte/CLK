@@ -18,8 +18,6 @@
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 
-//#define NDEBUG
-#define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
 #include "Chipset.hpp"
@@ -34,6 +32,8 @@ namespace {
 // PAL clock rate: 7.09379Mhz; 227 cycles/line.
 constexpr int PALClockRate = 7'093'790;
 //constexpr int NTSCClockRate = 7'159'090;
+
+Log::Logger<Log::Source::Amiga> logger;
 
 }
 
@@ -95,7 +95,7 @@ class ConcreteMachine:
 			// Check for assertion of reset.
 			if(cycle.operation & CPU::MC68000::Operation::Reset) {
 				memory_.reset();
-				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().registers.program_counter);
+				logger.info().append("Reset; PC is around %08x", mc68000_.get_state().registers.program_counter);
 			}
 
 			// Autovector interrupts.
@@ -142,7 +142,7 @@ class ConcreteMachine:
 							if(select_b) chipset_.cia_b.write(reg, cycle.value8_high());
 						}
 
-//						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(4) << +cycle.value16());
+//						logger.info().append("CIA %d %s %d of %04x", ((address >> 12) & 3)^3, operation & Microcycle::Read ? "read" : "write", reg & 0xf, cycle.value16());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
 					} else if(address >= 0xe8'0000 && address < 0xe9'0000) {
@@ -158,9 +158,9 @@ class ConcreteMachine:
 							cycle.set_value16(0xffff);
 						}
 
-						// Don't log for the region that is definitely just ROM this machine doesn't have.
+						// Log only for the region that is definitely not just ROM this machine doesn't have.
 						if(address < 0xf0'0000) {
-							LOG("Unmapped " << (cycle.operation & CPU::MC68000::Operation::Read ? "read from " : "write to ") << PADHEX(6) << ((*cycle.address)&0xffffff) << " of " << cycle.value16());
+							logger.error().append("Unmapped %s %06x of %04x", cycle.operation & CPU::MC68000::Operation::Read ? "read from " : "write to ", (*cycle.address)&0xffffff, cycle.value16());
 						}
 					}
 				}
