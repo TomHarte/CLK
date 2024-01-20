@@ -59,6 +59,8 @@ constexpr bool is_enabled(Source source) {
 		default: return true;
 
 		// The following are all things I'm not actively working on.
+		case Source::AmigaBlitter:
+		case Source::AmigaChipset:
 		case Source::AmigaCopper:
 		case Source::AmigaDisk:
 		case Source::IWM:
@@ -74,6 +76,8 @@ constexpr const char *prefix(Source source) {
 
 		case Source::ADBDevice:					return "ADB device";
 		case Source::ADBGLU:					return "ADB GLU";
+		case Source::AmigaBlitter:				return "Blitter";
+		case Source::AmigaChipset:				return "Chipset";
 		case Source::AmigaCopper:				return "Copper";
 		case Source::AmigaDisk:					return "Disk";
 		case Source::AtariST:					return "AtariST";

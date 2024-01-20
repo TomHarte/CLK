@@ -9,19 +9,15 @@
 #include "Blitter.hpp"
 
 #include "Minterms.hpp"
+#include "../../Outputs/Log.hpp"
 
 #include <cassert>
-
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-#define LOG_PREFIX "[Blitter] "
-#include "../../Outputs/Log.hpp"
 
 using namespace Amiga;
 
 namespace {
+
+Log::Logger<Log::Source::AmigaBlitter> logger;
 
 /// @returns Either the final carry flag or the output nibble when using fill mode given that it either @c is_exclusive fill mode, or isn't;
 /// and the specified initial @c carry and input @c nibble.
@@ -130,18 +126,18 @@ void Blitter<record_bus>::set_control(int index, uint16_t value) {
 		sequencer_.set_control(value >> 8);
 	}
 	shifts_[index] = value >> 12;
-	LOG("Set control " << index << " to " << PADHEX(4) << value);
+	logger.info().append("Set control %d to %04x", index, value);
 }
 
 template <bool record_bus>
 void Blitter<record_bus>::set_first_word_mask(uint16_t value) {
-	LOG("Set first word mask: " << PADHEX(4) << value);
+	logger.info().append("Set first word mask: %04x", value);
 	a_mask_[0] = value;
 }
 
 template <bool record_bus>
 void Blitter<record_bus>::set_last_word_mask(uint16_t value) {
-	LOG("Set last word mask: " << PADHEX(4) << value);
+	logger.info().append("Set last word mask: %04x", value);
 	a_mask_[1] = value;
 }
 
@@ -153,7 +149,7 @@ void Blitter<record_bus>::set_size(uint16_t value) {
 	if(!width_) width_ = 0x40;
 	height_ = value >> 6;
 	if(!height_) height_ = 1024;
-	LOG("Set size to " << std::dec << width_ << ", " << height_);
+	logger.info().append("Set size to %d, %d", width_, height_);
 
 	// Current assumption: writing this register informs the
 	// blitter that it should treat itself as about to start a new line.
@@ -161,7 +157,7 @@ void Blitter<record_bus>::set_size(uint16_t value) {
 
 template <bool record_bus>
 void Blitter<record_bus>::set_minterms(uint16_t value) {
-	LOG("Set minterms " << PADHEX(4) << value);
+	logger.info().append("Set minterms: %02x", value & 0xff);
 	minterms_ = value & 0xff;
 }
 
@@ -178,7 +174,7 @@ void Blitter<record_bus>::set_minterms(uint16_t value) {
 
 template <bool record_bus>
 void Blitter<record_bus>::set_data(int channel, uint16_t value) {
-	LOG("Set data " << channel << " to " << PADHEX(4) << value);
+	logger.info().append("Set data %d to %04x", channel, value);
 
 	// Ugh, backed myself into a corner. TODO: clean.
 	switch(channel) {
@@ -193,7 +189,7 @@ template <bool record_bus>
 uint16_t Blitter<record_bus>::get_status() {
 	const uint16_t result =
 		(not_zero_flag_ ? 0x0000 : 0x2000) | (height_ ? 0x4000 : 0x0000);
-	LOG("Returned status of " << result);
+	logger.info().append("Returned status of %04x", result);
 	return result;
 }
 
