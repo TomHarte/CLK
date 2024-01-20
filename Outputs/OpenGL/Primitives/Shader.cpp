@@ -14,8 +14,7 @@
 using namespace Outputs::Display::OpenGL;
 
 namespace {
-// The below is disabled because it isn't context-specific. Work to do.
-thread_local Shader *bound_shader = nullptr;
+thread_local const Shader *bound_shader = nullptr;
 Log::Logger<Log::Source::OpenGL> logger;
 }
 
@@ -107,20 +106,20 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 }
 
 Shader::~Shader() {
-//	if(bound_shader == this) Shader::unbind();
+	if(bound_shader == this) Shader::unbind();
 	glDeleteProgram(shader_program_);
 }
 
 void Shader::bind() const {
-//	if(bound_shader != this) {
+	if(bound_shader != this) {
 		test_gl(glUseProgram, shader_program_);
-//		bound_shader = this;
-//	}
+		bound_shader = this;
+	}
 	flush_functions();
 }
 
 void Shader::unbind() {
-//	bound_shader = nullptr;
+	bound_shader = nullptr;
 	test_gl(glUseProgram, 0);
 }
 
