@@ -12,9 +12,7 @@
 #include "../../Outputs/Log.hpp"
 
 namespace {
-
 Log::Logger<Log::Source::WDFDC> logger;
-
 }
 
 using namespace WD;

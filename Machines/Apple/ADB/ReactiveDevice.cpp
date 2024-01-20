@@ -8,10 +8,13 @@
 
 #include "ReactiveDevice.hpp"
 
-#define LOG_PREFIX "[ADB device] "
 #include "../../../Outputs/Log.hpp"
 
 using namespace Apple::ADB;
+
+namespace {
+Log::Logger<Log::Source::ADBDevice> logger;
+}
 
 ReactiveDevice::ReactiveDevice(Apple::ADB::Bus &bus, uint8_t adb_device_id) :
 	bus_(bus),
@@ -125,7 +128,7 @@ void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) 
 		phase_ = Phase::AwaitingAttention;
 
 		command_ = decode_command(value);
-//		LOG(command_);
+//		logger.info().append("%d", command_);
 
 		// If this command doesn't apply here, but a service request is requested,
 		// post a service request.

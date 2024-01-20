@@ -55,7 +55,10 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use pr
 		struct OpenGLVersionDumper {
 			OpenGLVersionDumper() {
 				// Note the OpenGL version, as the first thing this class does prior to construction.
-				LOG("Constructing scan target with OpenGL " << glGetString(GL_VERSION) << "; shading language version " << glGetString(GL_SHADING_LANGUAGE_VERSION));
+				Log::Logger<Log::Source::OpenGL>().info().append(
+					"Constructing scan target with OpenGL %s; shading language version %s",
+					glGetString(GL_VERSION),
+					glGetString(GL_SHADING_LANGUAGE_VERSION));
 			}
 		} dumper_;
 #endif

@@ -50,7 +50,7 @@ namespace {
 
 constexpr int CLOCK_RATE = 7833600;
 constexpr auto KEYBOARD_CLOCK_RATE = HalfCycles(CLOCK_RATE / 100000);
-
+Log::Logger<Log::Source::Macintosh> logger;
 
 //	Former default PRAM:
 //
@@ -723,7 +723,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(port == Port::B && line == Line::Two) {
 						keyboard_.set_input(value);
 					}
-					else LOG("Unhandled control line output: " << (port ? 'B' : 'A') << int(line));
+					else logger.error().append("Unhandled 6522 control line output: %c%d", port ? 'B' : 'A', int(line));
 				}
 
 				void run_for(HalfCycles duration) {

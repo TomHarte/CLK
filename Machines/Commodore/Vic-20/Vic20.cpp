@@ -36,6 +36,10 @@
 #include <array>
 #include <cstdint>
 
+namespace {
+Log::Logger<Log::Source::Vic20> logger;
+}
+
 namespace Commodore::Vic20 {
 
 enum ROMSlot {
@@ -530,12 +534,12 @@ class ConcreteMachine:
 							const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
 							header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 							hold_tape_ = true;
-							LOG("Vic-20: Found header");
+							logger.info().append("Found header");
 						} else {
 							// no header found, so pretend this hack never interceded
 							tape_->get_tape()->set_offset(tape_position);
 							hold_tape_ = false;
-							LOG("Vic-20: Didn't find header");
+							logger.info().append("Didn't find header");
 						}
 
 						// clear status and the verify flag
@@ -576,11 +580,11 @@ class ConcreteMachine:
 								m6502_.set_value_of(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 								*value = 0xea;	// i.e. NOP implied
 								hold_tape_ = true;
-								LOG("Vic-20: Found data");
+								logger.info().append("Found data");
 							} else {
 								tape_->get_tape()->set_offset(tape_position);
 								hold_tape_ = false;
-								LOG("Vic-20: Didn't find data");
+								logger.info().append("Didn't find data");
 							}
 						}
 					}

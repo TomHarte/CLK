@@ -8,19 +8,18 @@
 
 #include "Executor.hpp"
 
+#include "../../Machines/Utility/MemoryFuzzer.hpp"
+#include "../../Outputs/Log.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-
-#include "../../Machines/Utility/MemoryFuzzer.hpp"
-
-#define LOG_PREFIX "[M50740] "
-#include "../../Outputs/Log.hpp"
 
 using namespace InstructionSet::M50740;
 
 namespace {
 	constexpr int port_remap[] = {0, 1, 2, 0, 3};
+	Log::Logger<Log::Source::M50740> logger;
 }
 
 Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
@@ -83,13 +82,13 @@ uint8_t Executor::read(uint16_t address) {
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
 		default:
-			LOG("Unrecognised read from " << PADHEX(4) << address);
+			logger.error().append("Unrecognised read from %02x", address);
 		return 0xff;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			LOG("Unimplemented Port R read from " << PADHEX(4) << address);
+			logger.error().append("Unimplemented Port R read from %04x", address);
 		return 0x00;
 
 		// Ports P0–P3.
@@ -134,7 +133,7 @@ void Executor::write(uint16_t address, uint8_t value) {
 
 	// ROM 'writes' are almost as easy (albeit unexpected).
 	if(address >= 0x100) {
-		LOG("Attempted ROM write of " << PADHEX(2) << value << " to " << PADHEX(4) << address);
+		logger.info().append("Attempted ROM write of %02x to %04x", value, address);
 		return;
 	}
 
@@ -143,13 +142,13 @@ void Executor::write(uint16_t address, uint8_t value) {
 
 	switch(address) {
 		default:
-			LOG("Unrecognised write of " << PADHEX(2) << value << " to " << PADHEX(4) << address);
+			logger.error().append("Unrecognised write of %02x to %04x", value, address);
 		break;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			LOG("Unimplemented Port R write of " << PADHEX(2) << value << " from " << PADHEX(4) << address);
+			logger.error().append("Unimplemented Port R write of %02x to %04x", value, address);
 		break;
 
 		// Ports P0–P3.
@@ -779,7 +778,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		*/
 
 		default:
-			LOG("Unimplemented operation: " << operation);
+			logger.error().append("Unimplemented operation: %d", operation);
 			assert(false);
 	}
 #undef set_nz
@@ -823,13 +822,13 @@ inline void Executor::subtract_duration(int duration) {
 			}
 		} break;
 		case 0x04:
-			LOG("TODO: Timer X; Pulse output mode");
+			logger.error().append("TODO: Timer X; Pulse output mode");
 		break;
 		case 0x08:
-			LOG("TODO: Timer X; Event counter mode");
+			logger.error().append("TODO: Timer X; Event counter mode");
 		break;
 		case 0x0c:
-			LOG("TODO: Timer X; Pulse width measurement mode");
+			logger.error().append("TODO: Timer X; Pulse width measurement mode");
 		break;
 	}
 }

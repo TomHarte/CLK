@@ -8,12 +8,11 @@
 
 #include "Chipset.hpp"
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-#define LOG_PREFIX "[Disk] "
 #include "../../Outputs/Log.hpp"
+
+namespace {
+Log::Logger<Log::Source::AmigaDisk> logger;
+}
 
 using namespace Amiga;
 
@@ -46,7 +45,7 @@ void Chipset::DiskDMA::set_length(uint16_t value) {
 		buffer_read_ = buffer_write_ = 0;
 
 		if(dma_enable_) {
-			LOG("Disk DMA " << (write_ ? "write" : "read") << " of " << length_ << " to " << PADHEX(8) << pointer_[0]);
+			logger.info().append("Disk DMA %s of %d to %08x", write_ ? "write" : "read", length_, pointer_[0]);
 		}
 
 		state_ = sync_with_word_ ? State::WaitingForSync : State::Reading;
@@ -110,7 +109,7 @@ void Chipset::DiskController::process_input_bit(int value) {
 }
 
 void Chipset::DiskController::set_sync_word(uint16_t value) {
-	LOG("Set disk sync word to " << PADHEX(4) << value);
+	logger.info().append("Set disk sync word to %04x", value);
 	sync_word_ = value;
 }
 
@@ -128,7 +127,7 @@ void Chipset::DiskController::set_control(uint16_t control) {
 	bit_length.clock_rate = (control & 0x100) ? 500000 : 250000;
 	set_expected_bit_length(bit_length);
 
-	LOG((sync_with_word_ ? "Will" : "Won't") << " sync with word; bit length is " << ((control & 0x100) ? "short" : "long"));
+	logger.info().append("%s sync with word; bit length is %s", sync_with_word_ ? "Will" : "Won't", (control & 0x100) ? "short" : "long");
 }
 
 void Chipset::DiskController::process_index_hole() {
@@ -182,7 +181,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 			// ID and definitely latch the new motor state.
 			if(!is_selected) {
 				drive_ids_[c] <<= 1;
-				LOG("Shifted drive ID shift register for drive " << +c << " to " << PADHEX(4) << std::bitset<16>{drive_ids_[c]});
+				logger.info().append("Shifted drive ID shift register for drive %d to %08x", c, drive_ids_[c]);
 			} else {
 				// Motor transition on -> off => reload register.
 				if(!motor_on && drive.get_motor_on()) {
@@ -191,7 +190,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 					//	0x5555'5555 = 5.25" drive;
 					//	0x0000'0000 = no drive.
 					drive_ids_[c] = 0xffff'ffff;
-					LOG("Reloaded drive ID shift register for drive " << +c);
+					logger.info().append("Reloaded drive ID shift register for drive %d", c);
 				}
 
 				// Also latch the new motor state.
@@ -204,7 +203,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 
 		// Possibly step.
 		if(did_step && is_selected) {
-			LOG("Stepped drive " << +c << " by " << std::dec << +direction.as_int());
+			logger.info().append("Stepped drive %d by %d", c, direction.as_int());
 			drive.step(direction);
 		}
 	}

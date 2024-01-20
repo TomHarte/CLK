@@ -8,10 +8,13 @@
 
 #include "IntelligentKeyboard.hpp"
 
+#include "../../../Outputs/Log.hpp"
+
 #include <algorithm>
 
-#define LOG_PREFIX "[IKYB] "
-#include "../../../Outputs/Log.hpp"
+namespace {
+Log::Logger<Log::Source::IntelligentKeyboard> logger;
+}
 
 using namespace Atari::ST;
 
@@ -157,7 +160,7 @@ void IntelligentKeyboard::dispatch_command(uint8_t command) {
 	// If not, exit. If so, perform and drop out of the switch.
 	switch(command_sequence_.front()) {
 		default:
-			LOG("Unrecognised IKBD command " << PADHEX(2) << +command);
+			logger.error().append("Unrecognised IKBD command %02x", command);
 		break;
 
 		case 0x80:
@@ -260,11 +263,11 @@ void IntelligentKeyboard::reset() {
 }
 
 void IntelligentKeyboard::resume() {
-	LOG("Unimplemented: resume");
+	logger.error().append("Unimplemented: resume");
 }
 
 void IntelligentKeyboard::pause() {
-	LOG("Unimplemented: pause");
+	logger.error().append("Unimplemented: pause");
 }
 
 void IntelligentKeyboard::disable_mouse() {
@@ -287,7 +290,7 @@ void IntelligentKeyboard::set_mouse_position(uint16_t x, uint16_t y) {
 }
 
 void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t, uint8_t) {
-	LOG("Unimplemented: set mouse keycode reporting");
+	logger.error().append("Unimplemented: set mouse keycode reporting");
 }
 
 void IntelligentKeyboard::set_mouse_threshold(uint8_t x, uint8_t y) {
@@ -309,7 +312,7 @@ void IntelligentKeyboard::set_mouse_y_upward() {
 }
 
 void IntelligentKeyboard::set_mouse_button_actions(uint8_t) {
-	LOG("Unimplemented: set mouse button actions");
+	logger.error().append("Unimplemented: set mouse button actions");
 }
 
 void IntelligentKeyboard::interrogate_mouse_position() {
@@ -499,9 +502,9 @@ void IntelligentKeyboard::interrogate_joysticks() {
 }
 
 void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t) {
-	LOG("Unimplemented: joystick monitoring mode");
+	logger.error().append("Unimplemented: joystick monitoring mode");
 }
 
 void IntelligentKeyboard::set_joystick_fire_button_monitoring_mode() {
-	LOG("Unimplemented: joystick fire button monitoring mode");
+	logger.error().append("Unimplemented: joystick fire button monitoring mode");
 }

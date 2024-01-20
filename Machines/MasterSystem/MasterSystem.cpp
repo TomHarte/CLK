@@ -23,7 +23,6 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 
-#define LOG_PREFIX "[SMS] "
 #include "../../Outputs/Log.hpp"
 
 #include "../../Analyser/Static/Sega/Target.hpp"
@@ -34,6 +33,7 @@
 
 namespace {
 constexpr int audio_divider = 1;
+Log::Logger<Log::Source::MasterSystem> logger;
 }
 
 namespace Sega {
@@ -255,17 +255,17 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 						}
 
 						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
-//						else LOG("Ignored write to ROM");
+//						else logger.info().append("Ignored write to ROM");
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xc1) {
 							case 0x00:
-								LOG("TODO: [input] memory control");
+								logger.error().append("TODO: [input] memory control");
 								*cycle.value = 0xff;
 							break;
 							case 0x01:
-								LOG("TODO: [input] I/O port control");
+								logger.error().append("TODO: [input] I/O port control");
 								*cycle.value = 0xff;
 							break;
 							case 0x40:
@@ -305,7 +305,7 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 							} break;
 
 							default:
-								ERROR("[input] Clearly some sort of typo");
+								logger.error().append("[input] Clearly some sort of typo");
 							break;
 						}
 					break;
@@ -315,7 +315,7 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 							case 0x00:		// i.e. even ports less than 0x40.
 								if constexpr (is_master_system(model)) {
 									// TODO: Obey the RAM enable.
-									LOG("Memory control: " << PADHEX(2) << +memory_control_);
+									logger.info().append("Memory control: %02x", memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
@@ -357,7 +357,7 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 							break;
 
 							default:
-								ERROR("[output] Clearly some sort of typo");
+								logger.error().append("[output] Clearly some sort of typo");
 							break;
 						}
 					break;

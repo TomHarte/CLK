@@ -8,11 +8,15 @@
 
 #pragma once
 
+#include <cstdio>
+#include <cstdarg>
+
 namespace Log {
 // TODO: if adopting C++20, std::format would be a better model to apply below.
 // But I prefer C files to C++ streams, so here it is for now.
 
 enum class Source {
+	ADBDevice,
 	ADBGLU,
 	Amiga,
 	AmigaDisk,
@@ -41,6 +45,7 @@ enum class Source {
 	TapeUEF,
 	TMS9918,
 	TZX,
+	Vic20,
 	WDFDC,
 };
 
@@ -54,6 +59,8 @@ constexpr bool is_enabled(Source source) {
 		default: return true;
 
 		// The following are all things I'm not actively working on.
+		case Source::AmigaCopper:
+		case Source::AmigaDisk:
 		case Source::IWM:
 		case Source::MFP68901:
 		case Source::NCR5380:
@@ -65,26 +72,34 @@ constexpr const char *prefix(Source source) {
 	switch(source) {
 		default: return nullptr;
 
+		case Source::ADBDevice:					return "ADB device";
 		case Source::ADBGLU:					return "ADB GLU";
+		case Source::AmigaCopper:				return "Copper";
+		case Source::AmigaDisk:					return "Disk";
 		case Source::AtariST:					return "AtariST";
-		case Source::CommodoreStaticAnalyser:	return "Commodore StaticAnalyser";
+		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
+		case Source::Enterprise:				return "Enterprise";
 		case Source::i8272:						return "i8272";
+		case Source::IntelligentKeyboard:		return "IKYB";
 		case Source::IWM:						return "IWM";
+		case Source::M50740:					return "M50740";
+		case Source::Macintosh:					return "Macintosh";
+		case Source::MasterSystem:				return "SMS";
 		case Source::MFP68901:					return "MFP68901";
-		case Source::MultiMachine:				return "Multi machine";
+		case Source::MultiMachine:				return "Multi-machine";
+		case Source::MSX:						return "MSX";
 		case Source::NCR5380:					return "5380";
+		case Source::OpenGL:					return "OpenGL";
 		case Source::PCMTrack:					return "PCM Track";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";
 		case Source::SZX:						return "SZX";
 		case Source::TapeUEF:					return "UEF";
 		case Source::TZX:						return "TZX";
+		case Source::Vic20:						return "Vic20";
 		case Source::WDFDC:						return "WD FDC";
 	}
 }
-
-#include <cstdio>
-#include <cstdarg>
 
 template <Source source>
 class Logger {
