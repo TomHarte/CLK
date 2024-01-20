@@ -24,7 +24,6 @@
 // just grab the CPC's version of an FDC.
 #include "../../AmstradCPC/FDC.hpp"
 
-#define LOG_PREFIX "[Spectrum] "
 #include "../../../Outputs/Log.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"

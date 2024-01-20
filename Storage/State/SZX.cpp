@@ -12,8 +12,6 @@
 
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 #include "../../Machines/Sinclair/ZXSpectrum/State.hpp"
-
-#define LOG_PREFIX "[SZX] "
 #include "../../Outputs/Log.hpp"
 
 #include <zlib.h>

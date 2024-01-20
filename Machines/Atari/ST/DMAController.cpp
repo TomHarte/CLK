@@ -8,7 +8,6 @@
 
 #include "DMAController.hpp"
 
-#define LOG_PREFIX "[DMA] "
 #include "../../../Outputs/Log.hpp"
 
 #include <cstdio>
