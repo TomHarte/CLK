@@ -208,7 +208,7 @@ void MemoryMap::access(uint16_t address, bool is_read) {
 	if((address & 0xfff0) == 0xc080) language_card_.access(address, is_read);
 }
 
-void MemoryMap::assert_is_region(uint8_t start, uint8_t end) {
+void MemoryMap::assert_is_region([[maybe_unused]] uint8_t start, [[maybe_unused]] uint8_t end) {
 	assert(region_map_[start] == region_map_[start-1]+1);
 	assert(region_map_[end-1] == region_map_[start]);
 	assert(region_map_[end] == region_map_[end-1]+1);

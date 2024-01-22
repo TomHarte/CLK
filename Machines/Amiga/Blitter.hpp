@@ -28,9 +28,6 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 		using DMADevice::DMADevice;
 
 		template <int id, int shift> void set_pointer(uint16_t value) {
-			if(get_status() & 0x4000) {
-				printf(">>>");
-			}
 			DMADevice<4, 4>::set_pointer<id, shift>(value);
 		}
 
