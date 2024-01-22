@@ -6,17 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Commodore_Target_h
-#define Analyser_Static_Commodore_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Commodore {
+namespace Analyser::Static::Commodore {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	enum class MemoryModel {
@@ -72,7 +69,3 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 };
 
 }
-}
-}
-
-#endif /* Analyser_Static_Commodore_Target_h */

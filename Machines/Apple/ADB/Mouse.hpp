@@ -6,14 +6,12 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Mouse_hpp
-#define Mouse_hpp
+#pragma once
 
 #include "ReactiveDevice.hpp"
 #include "../../../Inputs/Mouse.hpp"
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 class Mouse: public ReactiveDevice, public Inputs::Mouse {
 	public:
@@ -33,6 +31,3 @@ class Mouse: public ReactiveDevice, public Inputs::Mouse {
 };
 
 }
-}
-
-#endif /* Mouse_hpp */

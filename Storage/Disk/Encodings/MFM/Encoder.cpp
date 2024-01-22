@@ -18,6 +18,62 @@
 
 using namespace Storage::Encodings::MFM;
 
+namespace {
+
+std::vector<const Sector *> sector_pointers(const std::vector<Sector> &sectors) {
+	std::vector<const Sector *> pointers;
+	for(const Sector &sector: sectors) {
+		pointers.push_back(&sector);
+	}
+	return pointers;
+}
+
+template <Density density> struct Defaults;
+template <> struct Defaults<Density::Single> {
+	static constexpr size_t expected_track_bytes = 6250;
+
+	static constexpr size_t post_index_address_mark_bytes = 26;
+	static constexpr uint8_t post_index_address_mark_value = 0xff;
+
+	static constexpr size_t pre_address_mark_bytes = 6;
+	static constexpr size_t post_address_address_mark_bytes = 11;
+	static constexpr uint8_t post_address_address_mark_value = 0xff;
+
+	static constexpr size_t pre_data_mark_bytes = 6;
+	static constexpr size_t post_data_bytes = 27;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+template <> struct Defaults<Density::Double> {
+	static constexpr size_t expected_track_bytes = 12500;
+
+	static constexpr size_t post_index_address_mark_bytes = 50;
+	static constexpr uint8_t post_index_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_address_mark_bytes = 12;
+	static constexpr size_t post_address_address_mark_bytes = 22;
+	static constexpr uint8_t post_address_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_data_mark_bytes = 12;
+	static constexpr size_t post_data_bytes = 54;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+template <> struct Defaults<Density::High> {
+	static constexpr size_t expected_track_bytes = 25000;
+
+	static constexpr size_t post_index_address_mark_bytes = 50;
+	static constexpr uint8_t post_index_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_address_mark_bytes = 12;
+	static constexpr size_t post_address_address_mark_bytes = 22;
+	static constexpr uint8_t post_address_address_mark_value = 0x4e;
+
+	static constexpr size_t pre_data_mark_bytes = 12;
+	static constexpr size_t post_data_bytes = 54;
+	static constexpr uint8_t post_data_value = 0xff;
+};
+
+}
+
 enum class SurfaceItem {
 	Mark,
 	Data
@@ -124,7 +180,7 @@ class FMEncoder: public Encoder {
 };
 
 template<class T> std::shared_ptr<Storage::Disk::Track>
-		GetTrackWithSectors(
+		GTrackWithSectors(
 			const std::vector<const Sector *> &sectors,
 			std::size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
 			std::size_t pre_address_mark_bytes,
@@ -281,58 +337,56 @@ void Encoder::add_crc(bool incorrectly) {
 	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
 
-const std::size_t Storage::Encodings::MFM::DefaultSectorGapLength = std::numeric_limits<std::size_t>::max();
+namespace {
+template <Density density>
+std::shared_ptr<Storage::Disk::Track> TTrackWithSectors(
+	const std::vector<const Sector *> &sectors,
+	std::optional<std::size_t> sector_gap_length,
+	std::optional<uint8_t> sector_gap_filler_byte
+) {
+	using EncoderT = std::conditional_t<density == Density::Single, FMEncoder, MFMEncoder>;
+	return GTrackWithSectors<EncoderT>(
+		sectors,
+		Defaults<density>::post_index_address_mark_bytes,
+		Defaults<density>::post_index_address_mark_value,
+		Defaults<density>::pre_address_mark_bytes,
+		Defaults<density>::post_address_address_mark_bytes,
+		sector_gap_filler_byte ? *sector_gap_filler_byte : Defaults<density>::post_address_address_mark_value,
+		Defaults<density>::pre_data_mark_bytes,
+		sector_gap_length ? *sector_gap_length : Defaults<density>::post_data_bytes,
+		Defaults<density>::post_data_value,
+		Defaults<density>::expected_track_bytes
+	);
+}
 
-static std::vector<const Sector *> sector_pointers(const std::vector<Sector> &sectors) {
-	std::vector<const Sector *> pointers;
-	for(const Sector &sector: sectors) {
-		pointers.push_back(&sector);
+}
+
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
+	Density density,
+	const std::vector<Sector> &sectors,
+	std::optional<std::size_t> sector_gap_length,
+	std::optional<uint8_t> sector_gap_filler_byte
+) {
+	return TrackWithSectors(
+		density,
+		sector_pointers(sectors),
+		sector_gap_length,
+		sector_gap_filler_byte
+	);
+}
+
+std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
+	Density density,
+	const std::vector<const Sector *> &sectors,
+	std::optional<std::size_t> sector_gap_length,
+	std::optional<uint8_t> sector_gap_filler_byte
+) {
+	switch(density) {
+		default:
+		case Density::Single:	return TTrackWithSectors<Density::Single>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Density::Double:	return TTrackWithSectors<Density::Double>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Density::High:		return TTrackWithSectors<Density::High>(sectors, sector_gap_length, sector_gap_filler_byte);
 	}
-	return pointers;
-}
-
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
-	return GetTrackWithSectors<FMEncoder>(
-		sector_pointers(sectors),
-		26, 0xff,
-		6,
-		11, sector_gap_filler_byte,
-		6,
-		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
-		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
-}
-
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
-	return GetTrackWithSectors<FMEncoder>(
-		sectors,
-		26, 0xff,
-		6,
-		11, sector_gap_filler_byte,
-		6,
-		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
-		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
-}
-
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
-	return GetTrackWithSectors<MFMEncoder>(
-		sector_pointers(sectors),
-		50, 0x4e,
-		12,
-		22, sector_gap_filler_byte,
-		12,
-		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
-		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
-}
-
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length, uint8_t sector_gap_filler_byte) {
-	return GetTrackWithSectors<MFMEncoder>(
-		sectors,
-		50, 0x4e,
-		12,
-		22, sector_gap_filler_byte,
-		12,
-		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
-		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
 }
 
 std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) {

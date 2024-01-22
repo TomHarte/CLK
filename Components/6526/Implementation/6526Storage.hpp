@@ -6,15 +6,13 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef _526Storage_h
-#define _526Storage_h
+#pragma once
 
 #include <array>
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
-namespace MOS {
-namespace MOS6526 {
+namespace MOS::MOS6526 {
 
 class TODBase {
 	public:
@@ -323,8 +321,6 @@ struct MOS6526Storage {
 			static constexpr int TestInputNow = 1 << 8;
 
 			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
-
-			bool active_ = false;
 	} counter_[2];
 
 	static constexpr int InterruptInOne = 1 << 0;
@@ -334,6 +330,3 @@ struct MOS6526Storage {
 };
 
 }
-}
-
-#endif /* _526Storage_h */

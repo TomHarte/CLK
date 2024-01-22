@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef _522Storage_hpp
-#define _522Storage_hpp
+#pragma once
 
 #include <cstdint>
 
-namespace MOS {
-namespace MOS6522 {
+namespace MOS::MOS6522 {
 
 class MOS6522Storage {
 	protected:
@@ -108,6 +106,3 @@ class MOS6522Storage {
 };
 
 }
-}
-
-#endif /* _522Storage_hpp */

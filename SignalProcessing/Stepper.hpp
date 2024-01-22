@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Stepper_hpp
-#define Stepper_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -94,5 +93,3 @@ class Stepper {
 };
 
 }
-
-#endif /* Stepper_hpp */

@@ -6,14 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_ZX8081_Video_hpp
-#define Machines_ZX8081_Video_hpp
+#pragma once
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
-namespace Sinclair {
-namespace ZX8081 {
+namespace Sinclair::ZX8081 {
 
 /*!
 	Packages a ZX80/81-style video feed into a CRT-compatible waveform.
@@ -59,6 +57,3 @@ class Video {
 };
 
 }
-}
-
-#endif /* Video_hpp */

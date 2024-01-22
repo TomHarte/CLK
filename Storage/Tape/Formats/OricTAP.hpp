@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef OricTAP_hpp
-#define OricTAP_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -15,8 +14,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing an Oric-format tape image, which is a byte stream capture.
@@ -55,6 +53,3 @@ class OricTAP: public Tape {
 };
 
 }
-}
-
-#endif /* OricTAP_hpp */

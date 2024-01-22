@@ -14,20 +14,27 @@
 #include <vector>
 #include <unordered_map>
 
+#include "6502Selector.hpp"
+
 namespace {
 
 struct StopException {};
 
-struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
-	// Use a map to store RAM contents, in order to preserve initialised state.
-	std::unordered_map<uint32_t, uint8_t> ram;
-	std::unordered_map<uint32_t, uint8_t> inventions;
+template <CPU::MOS6502Esque::Type type>
+struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
+	using AddressType = typename CPU::MOS6502Esque::BusHandlerT<type>::AddressType;
 
-	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, uint32_t address, uint8_t *value) {
+	// Use a map to store RAM contents, in order to preserve initialised state.
+	std::unordered_map<AddressType, uint8_t> ram;
+	std::unordered_map<AddressType, uint8_t> inventions;
+
+	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, AddressType address, uint8_t *value) {
 		// Record the basics of the operation.
 		auto &cycle = cycles.emplace_back();
 		cycle.operation = operation;
-		cycle.extended_bus = processor.get_extended_bus_output();
+		if constexpr (has_extended_bus_output(type)) {
+			cycle.extended_bus = processor.get_extended_bus_output();
+		}
 
 		// Perform the operation, and fill in the cycle's value.
 		using BusOperation = CPU::MOS6502Esque::BusOperation;
@@ -92,25 +99,27 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		allow_pc_repetition = opcode == 0x54 || opcode == 0x44;
 
 		using Register = CPU::MOS6502Esque::Register;
-		const uint32_t pc =
-			processor.get_value_of_register(Register::ProgramCounter) |
-			(processor.get_value_of_register(Register::ProgramBank) << 16);
+		const auto pc =
+			AddressType(
+				processor.value_of(Register::ProgramCounter) |
+				(processor.value_of(Register::ProgramBank) << 16)
+			);
 		inventions[pc] = ram[pc] = opcode;
 	}
 
 	int pc_overshoot = 0;
-	std::optional<uint32_t> initial_pc;
+	std::optional<AddressType> initial_pc;
 	bool allow_pc_repetition = false;
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
-		std::optional<uint32_t> address;
+		std::optional<AddressType> address;
 		std::optional<uint8_t> value;
-		int extended_bus;
+		int extended_bus = 0;
 	};
 	std::vector<Cycle> cycles;
 
-	CPU::WDC65816::Processor<BusHandler, false> processor;
+	CPU::MOS6502Esque::Processor<type, BusHandler<type>, false> processor;
 
 	BusHandler() : processor(*this) {
 		// Never run the official reset procedure.
@@ -118,21 +127,24 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	}
 };
 
-template <typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset) {
+template <bool has_emulation, typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset) {
 	using Register = CPU::MOS6502Esque::Register;
-	fprintf(file, "\"pc\": %d, ", (processor.get_value_of_register(Register::ProgramCounter) + pc_offset) & 65535);
-	fprintf(file, "\"s\": %d, ", processor.get_value_of_register(Register::StackPointer));
-	fprintf(file, "\"p\": %d, ", processor.get_value_of_register(Register::Flags));
-	fprintf(file, "\"a\": %d, ", processor.get_value_of_register(Register::A));
-	fprintf(file, "\"x\": %d, ", processor.get_value_of_register(Register::X));
-	fprintf(file, "\"y\": %d, ", processor.get_value_of_register(Register::Y));
-	fprintf(file, "\"dbr\": %d, ", processor.get_value_of_register(Register::DataBank));
-	fprintf(file, "\"d\": %d, ", processor.get_value_of_register(Register::Direct));
-	fprintf(file, "\"pbr\": %d, ", processor.get_value_of_register(Register::ProgramBank));
-	fprintf(file, "\"e\": %d, ", processor.get_value_of_register(Register::EmulationFlag));
+	fprintf(file, "\"pc\": %d, ", (processor.value_of(Register::ProgramCounter) + pc_offset) & 65535);
+	fprintf(file, "\"s\": %d, ", processor.value_of(Register::StackPointer));
+	fprintf(file, "\"a\": %d, ", processor.value_of(Register::A));
+	fprintf(file, "\"x\": %d, ", processor.value_of(Register::X));
+	fprintf(file, "\"y\": %d, ", processor.value_of(Register::Y));
+	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
+	if constexpr (has_emulation) {
+		fprintf(file, "\"dbr\": %d, ", processor.value_of(Register::DataBank));
+		fprintf(file, "\"d\": %d, ", processor.value_of(Register::Direct));
+		fprintf(file, "\"pbr\": %d, ", processor.value_of(Register::ProgramBank));
+		fprintf(file, "\"e\": %d, ", processor.value_of(Register::EmulationFlag));
+	}
 }
 
-void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
+template <typename IntT>
+void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data) {
 	fprintf(file, "\"ram\": [");
 	bool is_first = true;
 	for(const auto &pair: data) {
@@ -143,30 +155,30 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 	fprintf(file, "]");
 }
 
-}
 
 // MARK: - New test generator.
 
-@interface TestGenerator : NSObject
-@end
 
-@implementation TestGenerator
-
-- (void)generate {
-	BusHandler handler;
-
-	// Make tests repeatable, at least for any given instance of
-	// the runtime.
-	srand(65816);
+template <CPU::MOS6502Esque::Type type> void generate() {
+	BusHandler<type> handler;
+	constexpr bool has_emulation = has(type, CPU::MOS6502Esque::Register::EmulationFlag);
 
 	NSString *const tempDir = NSTemporaryDirectory();
 	NSLog(@"Outputting to %@", tempDir);
 
-	for(int operation = 0; operation < 512; operation++) {
+	for(int operation = 0; operation < (has_emulation ? 512 : 256); operation++) {
+		// Make tests repeatable, at least for any given instance of
+		// the runtime.
+		constexpr auto type_offset = int(CPU::MOS6502Esque::Type::TWDC65816) - int(type);
+		srand(65816 + operation + type_offset);
+
 		const bool is_emulated = operation & 256;
 		const uint8_t opcode = operation & 255;
 
-		NSString *const targetName = [NSString stringWithFormat:@"%@%02x.%c.json", tempDir, opcode, is_emulated ? 'e' : 'n'];
+		NSString *const targetName =
+			has_emulation ?
+				[NSString stringWithFormat:@"%@%02x.%c.json", tempDir, opcode, is_emulated ? 'e' : 'n'] :
+				[NSString stringWithFormat:@"%@%02x.json", tempDir, opcode];
 		FILE *const target = fopen(targetName.UTF8String, "wt");
 
 		bool is_first_test = true;
@@ -180,27 +192,34 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 
 			// Randomise most of the processor state...
 			using Register = CPU::MOS6502Esque::Register;
-			handler.processor.set_value_of_register(Register::A, rand() >> 8);
-			handler.processor.set_value_of_register(Register::Flags, rand() >> 8);
-			handler.processor.set_value_of_register(Register::X, rand() >> 8);
-			handler.processor.set_value_of_register(Register::Y, rand() >> 8);
-			handler.processor.set_value_of_register(Register::ProgramCounter, rand() >> 8);
-			handler.processor.set_value_of_register(Register::StackPointer, rand() >> 8);
-			handler.processor.set_value_of_register(Register::DataBank, rand() >> 8);
-			handler.processor.set_value_of_register(Register::ProgramBank, rand() >> 8);
-			handler.processor.set_value_of_register(Register::Direct, rand() >> 8);
+			handler.processor.set_value_of(Register::A, rand() >> 8);
+			handler.processor.set_value_of(Register::Flags, rand() >> 8);
+			handler.processor.set_value_of(Register::X, rand() >> 8);
+			handler.processor.set_value_of(Register::Y, rand() >> 8);
+			handler.processor.set_value_of(Register::ProgramCounter, rand() >> 8);
+			handler.processor.set_value_of(Register::StackPointer, rand() >> 8);
 
-			// ... except for emulation mode, which is a given.
-			// And is set last to ensure proper internal state is applied.
-			handler.processor.set_value_of_register(Register::EmulationFlag, is_emulated);
+			if(has_emulation) {
+				handler.processor.set_value_of(Register::DataBank, rand() >> 8);
+				handler.processor.set_value_of(Register::ProgramBank, rand() >> 8);
+				handler.processor.set_value_of(Register::Direct, rand() >> 8);
+
+				// ... except for emulation mode, which is a given.
+				// And is set last to ensure proper internal state is applied.
+				handler.processor.set_value_of(Register::EmulationFlag, is_emulated);
+			}
 
 			// Establish the opcode.
 			handler.setup(opcode);
 
 			// Dump initial state.
-			fprintf(target, "{ \"name\": \"%02x %c %d\", ", opcode, is_emulated ? 'e' : 'n', test + 1);
+			if(has_emulation) {
+				fprintf(target, "{ \"name\": \"%02x %c %d\", ", opcode, is_emulated ? 'e' : 'n', test + 1);
+			} else {
+				fprintf(target, "{ \"name\": \"%02x %d\", ", opcode, test + 1);
+			}
 			fprintf(target, "\"initial\": {");
-			print_registers(target, handler.processor, 0);
+			print_registers<has_emulation>(target, handler.processor, 0);
 
 			// Run to the second opcode fetch.
 			try {
@@ -212,7 +231,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 
 			// Dump final state.
 			fprintf(target, "}, \"final\": {");
-			print_registers(target, handler.processor, handler.pc_overshoot);
+			print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot);
 			print_ram(target, handler.ram);
 			fprintf(target, "}, ");
 
@@ -247,12 +266,6 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 						assert(false);
 				}
 
-				using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
-				const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
-				const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
-				const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
-				const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
-
 				fprintf(target, "[");
 				if(cycle.address) {
 					fprintf(target, "%d, ", *cycle.address);
@@ -264,16 +277,31 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 				} else {
 					fprintf(target, "null, ");
 				}
-				fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
-					vda ? 'd' : '-',
-					vpa ? 'p' : '-',
-					vpb ? 'v' : '-',
-					wait ? '-' : (read ? 'r' : 'w'),
-					wait ? '-' : (emulation ? 'e' : '-'),
-					wait ? '-' : (memory_size ? 'm' : '-'),
-					wait ? '-' : (index_size ? 'x' : '-'),
-					wait ? '-' : (memory_lock ? 'l' : '-')
-				);
+
+				if(has_emulation) {
+					using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
+					const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
+					const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
+					const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
+					const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
+
+					fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
+						vda ? 'd' : '-',
+						vpa ? 'p' : '-',
+						vpb ? 'v' : '-',
+						wait ? '-' : (read ? 'r' : 'w'),
+						wait ? '-' : (emulation ? 'e' : '-'),
+						wait ? '-' : (memory_size ? 'm' : '-'),
+						wait ? '-' : (index_size ? 'x' : '-'),
+						wait ? '-' : (memory_lock ? 'l' : '-')
+					);
+				} else {
+					if(read) {
+						fprintf(target, "\"read\"]");
+					} else {
+						fprintf(target, "\"write\"]");
+					}
+				}
 			}
 
 			// Terminate object.
@@ -285,7 +313,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 	}
 }
 
-@end
+}
 
 // MARK: - Existing test evaluator.
 
@@ -296,7 +324,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 
 // A generator for tests; not intended to be a permanent fixture.
 //- (void)testGenerate {
-//	[[[TestGenerator alloc] init] generate];
+//	generate<CPU::MOS6502Esque::Type::TWDC65816>();
 //}
 
 @end

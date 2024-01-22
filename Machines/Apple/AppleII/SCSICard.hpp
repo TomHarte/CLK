@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSICard_hpp
-#define SCSICard_hpp
+#pragma once
 
 #include "Card.hpp"
 #include "../../ROMMachine.hpp"
@@ -21,8 +20,7 @@
 #include <array>
 #include <memory>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class SCSICard: public Card {
 	public:
@@ -37,6 +35,8 @@ class SCSICard: public Card {
 			scsi_bus_.run_for(cycles);
 		}
 
+		void set_activity_observer(Activity::Observer *observer) final;
+
 	private:
 		uint8_t *ram_pointer_ = nullptr;
 		uint8_t *rom_pointer_ = nullptr;
@@ -50,6 +50,3 @@ class SCSICard: public Card {
 };
 
 }
-}
-
-#endif /* SCSICard_hpp */

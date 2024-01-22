@@ -6,11 +6,12 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Amiga_hpp
-#define Amiga_hpp
+#pragma once
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
+
+#include <memory>
 
 namespace Amiga {
 
@@ -19,9 +20,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an Amiga.
-		static Machine *Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }
-
-#endif /* Amiga_hpp */

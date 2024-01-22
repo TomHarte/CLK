@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Dave_hpp
-#define Dave_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -16,8 +15,7 @@
 #include "../../Numeric/LFSR.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
-namespace Enterprise {
-namespace Dave {
+namespace Enterprise::Dave {
 
 enum class Interrupt: uint8_t {
 	VariableFrequency = 0x02,
@@ -145,7 +143,7 @@ class TimedInterruptSource {
 
 		/// @returns The amount of time from now until the earliest that
 		/// @c get_new_interrupts() _might_ have new interrupts to report.
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 
 	private:
 		static constexpr Cycles clock_rate{250000};
@@ -183,6 +181,3 @@ class TimedInterruptSource {
 };
 
 }
-}
-
-#endif /* Dave_hpp */

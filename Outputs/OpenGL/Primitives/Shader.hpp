@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Shader_hpp
-#define Shader_hpp
+#pragma once
 
 #include "../OpenGL.hpp"
 
@@ -16,9 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	A @c Shader compiles and holds a shader object, based on a single
@@ -131,7 +128,3 @@ protected:
 };
 
 }
-}
-}
-
-#endif /* Shader_hpp */

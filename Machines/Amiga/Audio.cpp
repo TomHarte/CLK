@@ -10,9 +10,6 @@
 
 #include "Flags.hpp"
 
-#define LOG_PREFIX "[Audio] "
-#include "../../Outputs/Log.hpp"
-
 #include <cassert>
 #include <tuple>
 

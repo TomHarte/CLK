@@ -6,16 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_Commodore_hpp
-#define Storage_Tape_Parsers_Commodore_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 #include <memory>
 #include <string>
 
-namespace Storage {
-namespace Tape {
-namespace Commodore {
+namespace Storage::Tape::Commodore {
 
 enum class WaveType {
 	Short, Medium, Long, Unrecognised
@@ -132,7 +129,3 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 };
 
 }
-}
-}
-
-#endif /* Commodore_hpp */

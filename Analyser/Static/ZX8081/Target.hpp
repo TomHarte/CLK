@@ -6,17 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_ZX8081_Target_h
-#define Analyser_Static_ZX8081_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace ZX8081 {
+namespace Analyser::Static::ZX8081 {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(MemoryModel,
@@ -41,7 +38,3 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 };
 
 }
-}
-}
-
-#endif /* Analyser_Static_ZX8081_Target_h */

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef _770_hpp
-#define _770_hpp
+#pragma once
 
 #include "../../Storage/Disk/Controller/MFMDiskController.hpp"
 
@@ -141,5 +140,3 @@ class WD1770: public Storage::Disk::MFMController {
 };
 
 }
-
-#endif /* _770_hpp */

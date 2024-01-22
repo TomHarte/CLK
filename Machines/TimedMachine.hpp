@@ -6,14 +6,12 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef TimedMachine_h
-#define TimedMachine_h
+#pragma once
 
 #include "../ClockReceiver/ClockReceiver.hpp"
 #include "../ClockReceiver/TimeTypes.hpp"
 
 #include "AudioProducer.hpp"
-#include "ScanProducer.hpp"
 
 #include <cmath>
 
@@ -99,5 +97,3 @@ class TimedMachine {
 };
 
 }
-
-#endif /* TimedMachine_h */

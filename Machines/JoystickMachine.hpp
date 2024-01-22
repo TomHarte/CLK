@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef JoystickMachine_hpp
-#define JoystickMachine_hpp
+#pragma once
 
 #include "../Inputs/Joystick.hpp"
 #include <vector>
@@ -20,5 +19,3 @@ class JoystickMachine {
 };
 
 }
-
-#endif /* JoystickMachine_hpp */

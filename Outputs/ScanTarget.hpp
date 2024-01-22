@@ -6,16 +6,14 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Outputs_Display_ScanTarget_h
-#define Outputs_Display_ScanTarget_h
+#pragma once
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include "../ClockReceiver/TimeTypes.hpp"
 
-namespace Outputs {
-namespace Display {
+namespace Outputs::Display {
 
 enum class Type {
 	PAL50,
@@ -51,6 +49,10 @@ enum class DisplayType {
 	CompositeColour,
 	CompositeMonochrome
 };
+
+constexpr bool is_composite(DisplayType type) {
+	return type == DisplayType::CompositeColour || type == DisplayType::CompositeMonochrome;
+}
 
 /*!
 	Enumerates the potential formats of input data.
@@ -448,6 +450,3 @@ struct NullScanTarget: public ScanTarget {
 };
 
 }
-}
-
-#endif /* Outputs_Display_ScanTarget_h */

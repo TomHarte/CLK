@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef SN76489_hpp
-#define SN76489_hpp
+#pragma once
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
@@ -65,5 +64,3 @@ class SN76489: public Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* SN76489_hpp */

@@ -6,13 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LanguageCardSwitches_h
-#define LanguageCardSwitches_h
+#pragma once
 
 #include "MemorySwitches.hpp"
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 /*!
 	Models the language card soft switches, present on any Apple II with a language card and provided built-in from the IIe onwards.
@@ -113,6 +111,3 @@ template <typename Machine> class LanguageCardSwitches {
 };
 
 }
-}
-
-#endif /* LanguageCard_h */

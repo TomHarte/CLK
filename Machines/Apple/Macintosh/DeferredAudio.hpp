@@ -6,14 +6,12 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DeferredAudio_h
-#define DeferredAudio_h
+#pragma once
 
 #include "Audio.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 struct DeferredAudio {
 	Concurrency::AsyncTaskQueue<false> queue;
@@ -29,6 +27,3 @@ struct DeferredAudio {
 };
 
 }
-}
-
-#endif /* DeferredAudio_h */

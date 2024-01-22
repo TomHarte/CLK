@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_IIgs_ADB_hpp
-#define Apple_IIgs_ADB_hpp
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -17,9 +16,7 @@
 #include "../ADB/Mouse.hpp"
 #include "../ADB/Keyboard.hpp"
 
-namespace Apple {
-namespace IIgs {
-namespace ADB {
+namespace Apple::IIgs::ADB {
 
 class GLU: public InstructionSet::M50740::PortHandler {
 	public:
@@ -86,7 +83,3 @@ class GLU: public InstructionSet::M50740::PortHandler {
 };
 
 }
-}
-}
-
-#endif /* Apple_IIgs_ADB_hpp */

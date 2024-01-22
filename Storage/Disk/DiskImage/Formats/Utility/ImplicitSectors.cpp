@@ -18,7 +18,15 @@
 
 using namespace Storage::Disk;
 
-std::shared_ptr<Track> Storage::Disk::track_for_sectors(const uint8_t *const source, int number_of_sectors, uint8_t track, uint8_t side, uint8_t first_sector, uint8_t size, bool is_double_density) {
+std::shared_ptr<Track> Storage::Disk::track_for_sectors(
+	const uint8_t *const source,
+	int number_of_sectors,
+	uint8_t track,
+	uint8_t side,
+	uint8_t first_sector,
+	uint8_t size,
+	Storage::Encodings::MFM::Density density
+) {
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 
 	size_t byte_size = size_t(128 << size);
@@ -39,17 +47,27 @@ std::shared_ptr<Track> Storage::Disk::track_for_sectors(const uint8_t *const sou
 	}
 
 	if(!sectors.empty()) {
-		return is_double_density ? Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors) : Storage::Encodings::MFM::GetFMTrackWithSectors(sectors);
+		return TrackWithSectors(density, sectors);
 	}
 
 	return nullptr;
 }
 
-void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uint8_t first_sector, uint8_t last_sector, uint8_t sector_size, bool is_double_density) {
+void Storage::Disk::decode_sectors(
+	const Track &track,
+	uint8_t *const destination,
+	uint8_t first_sector,
+	uint8_t last_sector,
+	uint8_t sector_size,
+	Storage::Encodings::MFM::Density density
+) {
 	std::map<std::size_t, Storage::Encodings::MFM::Sector> sectors =
 		Storage::Encodings::MFM::sectors_from_segment(
-			Storage::Disk::track_serialisation(track, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
-			is_double_density);
+			Storage::Disk::track_serialisation(
+				track,
+				Storage::Encodings::MFM::bit_length(density)
+			),
+			density);
 
 	std::size_t byte_size = size_t(128 << sector_size);
 	for(const auto &pair : sectors) {

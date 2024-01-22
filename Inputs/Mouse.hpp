@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Mouse_h
-#define Mouse_h
+#pragma once
 
 namespace Inputs {
 
@@ -43,5 +42,3 @@ class Mouse {
 };
 
 }
-
-#endif /* Mouse_h */

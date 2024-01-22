@@ -216,7 +216,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 
 bool WOZ::get_is_read_only() {
 	/*
-		There is an unintended issue with the disk code that sites above here: it doesn't understand the idea
+		There is an unintended issue with the disk code that sits above here: it doesn't understand the idea
 		of multiple addresses mapping to the same track, yet it maintains a cache of track contents. Therefore
 		if a WOZ is written to, what's written will magically be exactly 1/4 track wide, not affecting its
 		neighbours. I've made WOZs readonly until I can correct that issue.

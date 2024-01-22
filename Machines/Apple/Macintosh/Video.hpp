@@ -6,16 +6,14 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Video_hpp
-#define Video_hpp
+#pragma once
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "DeferredAudio.hpp"
 #include "DriveSpeedAccumulator.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 constexpr HalfCycles line_length(704);
 constexpr int number_of_lines = 370;
@@ -81,7 +79,7 @@ class Video {
 			@returns the amount of time until there is next a transition on the
 				vsync signal.
 		*/
-		HalfCycles get_next_sequence_point();
+		HalfCycles next_sequence_point();
 
 	private:
 		DeferredAudio &audio_;
@@ -103,6 +101,3 @@ class Video {
 };
 
 }
-}
-
-#endif /* Video_hpp */

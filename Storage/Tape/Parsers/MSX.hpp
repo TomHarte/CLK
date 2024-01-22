@@ -6,17 +6,14 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_MSX_hpp
-#define Storage_Tape_Parsers_MSX_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
 #include <memory>
 #include <cstdint>
 
-namespace Storage {
-namespace Tape {
-namespace MSX {
+namespace Storage::Tape::MSX {
 
 class Parser {
 	public:
@@ -50,7 +47,3 @@ class Parser {
 };
 
 }
-}
-}
-
-#endif /* Storage_Tape_Parsers_MSX_hpp */

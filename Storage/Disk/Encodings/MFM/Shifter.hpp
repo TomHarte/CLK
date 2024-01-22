@@ -6,23 +6,20 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Shifter_hpp
-#define Shifter_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
 #include "../../../../Numeric/CRC.hpp"
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 /*!
 	The MFM shifter parses a stream of bits as input in order to produce
 	a stream of MFM tokens as output. So e.g. it is suitable for use in parsing
 	the output of a PLL windowing of disk events.
 
-	It supports both FM and MFM parsing; see @c set_is_double_density.
+	It supports both FM and MFM parsing; see @c set_is_mfm.
 
 	It will ordinarily honour sync patterns; that should be turned off when within
 	a sector because false syncs can occur. See @c set_should_obey_syncs.
@@ -50,7 +47,7 @@ class Shifter {
 		Shifter();
 		Shifter(CRC::CCITT *crc_generator);
 
-		void set_is_double_density(bool is_double_density);
+		void set_is_mfm(bool is_mfm);
 		void set_should_obey_syncs(bool should_obey_syncs);
 		void add_input_bit(int bit);
 
@@ -74,14 +71,10 @@ class Shifter {
 		Token token_ = None;
 
 		// Input configuration.
-		bool is_double_density_ = false;
+		bool is_mfm_ = false;
 
 		std::unique_ptr<CRC::CCITT> owned_crc_generator_;
 		CRC::CCITT *crc_generator_;
 };
 
 }
-}
-}
-
-#endif /* Shifter_hpp */

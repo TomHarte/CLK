@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Electron_Video_hpp
-#define Machines_Electron_Video_hpp
+#pragma once
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -61,7 +60,7 @@ class VideoOutput {
 
 			This result may be mutated by calls to @c write.
 		*/
-		Cycles get_next_sequence_point();
+		Cycles next_sequence_point();
 
 		/*!
 			@returns a bit mask of all interrupts that have been triggered since the last call to get_interrupt().
@@ -137,5 +136,3 @@ class VideoOutput {
 };
 
 }
-
-#endif /* Video_hpp */

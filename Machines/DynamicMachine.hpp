@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DynamicMachine_h
-#define DynamicMachine_h
+#pragma once
 
 #include "../Configurable/Configurable.hpp"
 #include "../Activity/Source.hpp"
@@ -70,5 +69,3 @@ SpecialisedGet(MachineTypes::MediaTarget, media_target)
 #undef SpecialisedGet
 
 }
-
-#endif /* DynamicMachine_h */

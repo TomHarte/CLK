@@ -6,16 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_Acorn_hpp
-#define Storage_Tape_Parsers_Acorn_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 #include "../../../Numeric/CRC.hpp"
 #include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
-namespace Storage {
-namespace Tape {
-namespace Acorn {
+namespace Storage::Tape::Acorn {
 
 class Shifter {
 	public:
@@ -46,7 +43,7 @@ enum class SymbolType {
 	One, Zero
 };
 
-class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate  {
+class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate {
 	public:
 		Parser();
 
@@ -67,7 +64,3 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 };
 
 }
-}
-}
-
-#endif /* Acorn_hpp */

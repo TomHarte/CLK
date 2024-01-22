@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef _532_hpp
-#define _532_hpp
+#pragma once
 
 #include <cstdint>
 #include <cstdio>
@@ -188,5 +187,3 @@ template <class T> class MOS6532 {
 };
 
 }
-
-#endif /* _532_hpp */

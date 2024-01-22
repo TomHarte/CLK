@@ -6,8 +6,10 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef i8272_hpp
-#define i8272_hpp
+#pragma once
+
+#include "CommandDecoder.hpp"
+#include "Status.hpp"
 
 #include "../../Storage/Disk/Controller/MFMDiskController.hpp"
 
@@ -15,8 +17,7 @@
 #include <memory>
 #include <vector>
 
-namespace Intel {
-namespace i8272 {
+namespace Intel::i8272 {
 
 class BusHandler {
 	public:
@@ -51,11 +52,12 @@ class i8272 : public Storage::Disk::MFMController {
 		std::unique_ptr<BusHandler> allocated_bus_handler_;
 
 		// Status registers.
-		uint8_t main_status_ = 0;
-		uint8_t status_[3] = {0, 0, 0};
+		Status status_;
 
-		// A buffer for accumulating the incoming command, and one for accumulating the result.
-		std::vector<uint8_t> command_;
+		// The incoming command.
+		CommandDecoder command_;
+
+		// A buffer to accumulate the result.
 		std::vector<uint8_t> result_stack_;
 		uint8_t input_ = 0;
 		bool has_input_ = false;
@@ -131,6 +133,3 @@ class i8272 : public Storage::Disk::MFMController {
 };
 
 }
-}
-
-#endif /* i8272_hpp */

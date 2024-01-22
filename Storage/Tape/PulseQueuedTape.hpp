@@ -6,14 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef PulseQueuedTape_hpp
-#define PulseQueuedTape_hpp
+#pragma once
 
 #include "Tape.hpp"
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape with a queue of upcoming pulses and an is-at-end flag.
@@ -49,6 +47,3 @@ class PulseQueuedTape: public Tape {
 };
 
 }
-}
-
-#endif /* PulseQueuedTape_hpp */

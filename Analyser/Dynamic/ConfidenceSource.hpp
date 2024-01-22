@@ -6,11 +6,9 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ConfidenceSource_hpp
-#define ConfidenceSource_hpp
+#pragma once
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides an abstract interface through which objects can declare the probability
@@ -23,6 +21,3 @@ struct ConfidenceSource {
 };
 
 }
-}
-
-#endif /* ConfidenceSource_hpp */

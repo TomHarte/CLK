@@ -6,18 +6,17 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef _MG_hpp
-#define _MG_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../MassStorage/MassStorageDevice.hpp"
 
 #include "../../../FileHolder.hpp"
 
+#include <cstddef>
 #include <variant>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	2MG is slightly special because it's just a container format; there's a brief header and then
@@ -30,11 +29,8 @@ namespace Disk {
 
 class Disk2MG {
 	public:
-		using DiskOrMassStorageDevice = std::variant<nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
+		using DiskOrMassStorageDevice = std::variant<std::nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
 		static DiskOrMassStorageDevice open(const std::string &file_name);
 };
 
 }
-}
-
-#endif /* _MG_hpp */

@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef UnformattedTrack_hpp
-#define UnformattedTrack_hpp
+#pragma once
 
 #include "Track.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	A subclass of @c Track with no contents. Just an index hole.
@@ -25,6 +23,3 @@ class UnformattedTrack: public Track {
 };
 
 }
-}
-
-#endif /* UnformattedTrack_hpp */

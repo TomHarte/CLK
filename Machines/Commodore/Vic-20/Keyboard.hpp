@@ -6,14 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Commodore_Vic20_Keyboard_hpp
-#define Machines_Commodore_Vic20_Keyboard_hpp
+#pragma once
 
 #include "../../KeyboardMachine.hpp"
 #include "../../Utility/Typer.hpp"
 
-namespace Commodore {
-namespace Vic20 {
+namespace Commodore::Vic20 {
 
 enum Key: uint16_t {
 #define key(line, mask) (((mask) << 3) | (line))
@@ -42,7 +40,7 @@ enum Key: uint16_t {
 	KeyF6		= 0xfff4,
 	KeyF8		= 0xfff5,
 
-	//  Physical keys not within the usual matrix.
+	// Physical keys not within the usual matrix.
 	KeyRestore	= 0xfffd,
 #undef key
 };
@@ -56,6 +54,3 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 };
 
 }
-}
-
-#endif /* Keyboard_hpp */

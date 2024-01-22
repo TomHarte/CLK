@@ -6,17 +6,14 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_MSX_Tape_hpp
-#define StaticAnalyser_MSX_Tape_hpp
+#pragma once
 
 #include "../../../Storage/Tape/Tape.hpp"
 
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace MSX {
+namespace Analyser::Static::MSX {
 
 struct File {
 	std::string name;
@@ -38,7 +35,3 @@ struct File {
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 }
-}
-}
-
-#endif /* StaticAnalyser_MSX_Tape_hpp */

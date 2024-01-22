@@ -159,8 +159,8 @@ void InspectCatalogue(
 }
 
 bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
-	Storage::Encodings::MFM::Parser parser(true, disk);
-	Storage::Encodings::MFM::Sector *boot_sector = parser.get_sector(0, 0, 0x41);
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
+	const Storage::Encodings::MFM::Sector *boot_sector = parser.sector(0, 0, 0x41);
 	if(boot_sector != nullptr && !boot_sector->samples.empty() && boot_sector->samples[0].size() == 512) {
 		// Check that the first 64 bytes of the sector aren't identical; if they are then probably
 		// this disk was formatted and the filler byte never replaced.

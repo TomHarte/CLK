@@ -58,6 +58,11 @@ enum MicroOp: uint8_t {
 	/// Performs as CyclePull if the 65816 is not in emulation mode; otherwise skips itself.
 	CyclePullIfNotEmulation,
 
+	/// Pushes a single byte from the data buffer to the stack, always using its full 16-bit address.
+	CyclePushNotEmulation,
+	/// Pulls a single byte to the data buffer from the stack, always using its full 16-bit address.
+	CyclePullNotEmulation,
+
 	/// Issues a BusOperation::None and regresses the micro-op counter until an established
 	/// STP or WAI condition is satisfied.
 	CycleRepeatingNone,
@@ -80,8 +85,8 @@ enum MicroOp: uint8_t {
 	OperationConstructAbsoluteLongX,
 
 	/// Calculates an a, x address; if:
-	/// 	there was no carry into the top byte of the address; and
-	/// 	the process or in emulation or 8-bit index mode;
+	///		there was no carry into the top byte of the address; and
+	///		the process or in emulation or 8-bit index mode;
 	/// then it also skips the next micro-op.
 	OperationConstructAbsoluteXRead,
 

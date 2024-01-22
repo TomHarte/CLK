@@ -6,15 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Cartridge_PRG_hpp
-#define Storage_Cartridge_PRG_hpp
+#pragma once
 
 #include "../Cartridge.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Cartridge {
+namespace Storage::Cartridge {
 
 class PRG : public Cartridge {
 	public:
@@ -26,6 +24,3 @@ class PRG : public Cartridge {
 };
 
 }
-}
-
-#endif /* PRG_hpp */

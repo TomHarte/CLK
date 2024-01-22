@@ -71,115 +71,6 @@ constexpr uint8_t default_bram[] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd, 0x96, 0x57, 0x3c,
 };
 
-/*class MemManagerChecker {
-	int handle_total_ = 0;
-	bool dump_bank(const Apple::IIgs::MemoryMap &memory, const char *name, uint32_t address, bool print, uint32_t must_contain = 0xffffffff) {
-		const auto handles = memory.regions[memory.region_map[0xe117]].read;
-		bool did_find = false;
-
-		if(print) printf("%s: ", name);
-		int max = 52;
-		uint32_t last_visited = 0;
-
-		// Seed address.
-		address = uint32_t(handles[address] | (handles[address+1] << 8) | (handles[address+2] << 16) | (handles[address+3] << 24));
-
-		while(true) {
-			did_find |= address == must_contain;
-
-			if(!address) {
-				if(print) printf("nil\n");
-				break;
-			}
-			++handle_total_;
-			if(address < 0xe11700 || address > 0xe11aff) {
-				if(print) printf("Out of bounds error with address = %06x!\n", address);
-				return false;
-			}
-			if((address - 0xe11700)%20) {
-				if(print) printf("Address alignment error!\n");
-				return false;
-			}
-
-			const uint32_t previous = uint32_t(handles[address+12] | (handles[address+13] << 8) | (handles[address+14] << 16) | (handles[address+15] << 24));
-			const uint32_t next = uint32_t(handles[address+16] | (handles[address+17] << 8) | (handles[address+18] << 16) | (handles[address+19] << 24));
-			const uint32_t pointer = uint32_t(handles[address] | (handles[address+1] << 8) | (handles[address+2] << 16) | (handles[address+3] << 24));
-			const uint32_t size = uint32_t(handles[address+8] | (handles[address+9] << 8) | (handles[address+10] << 16) | (handles[address+11] << 24));
-			if(print) printf("%06x (<- %06x | %06x ->) [%06x:%06x] -> \n", address, previous, next, pointer, size);
-
-			if(previous && ((previous < 0xe0'0000) || (previous > 0xe2'0000))) {
-				if(print) printf("Out of bounds error with previous = %06x! [%d && (%d || %d)]\n", previous, bool(previous), previous < 0xe0'0000, previous > 0xe2'0000);
-				return false;
-			}
-			if((previous || last_visited) && (previous != last_visited)) {
-				if(print) printf("Back link error!\n");
-				return false;
-			}
-
-			last_visited = address;
-			address = next;
-
-			--max;
-			if(!max) {
-				if(print) printf("Endless loop error!\n");
-				return false;
-			}
-		}
-
-		if(must_contain != 0xffffffff) {
-			if(!did_find) {
-				if(print) printf("%08x not found\n", must_contain);
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-//	bool has_seen_valid_memory_ = false;
-//	bool should_validate_ = false;
-
-	public:
-		bool validate_memory_manager(const Apple::IIgs::MemoryMap &memory, bool print) {
-			const auto pointers = memory.regions[memory.region_map[0xe116]].read;
-
-			constexpr uint32_t address = 0xe1162c;
-			const uint32_t last_high_handle = uint32_t(pointers[address] | (pointers[address+1] << 8) | (pointers[address+2] << 16) | (pointers[address+3] << 24));
-
-			// Check for initial state having been reached.
-//			if(!has_seen_valid_memory_) {
-//				if(pointers[0xe11624]) return true;
-//				for(int c = 0xe1160c; c < 0xe1161c; c++) {
-//					if(pointers[c]) return true;
-//				}
-//				has_seen_valid_memory_ = true;
-//			}
-
-			// Output.
-			if(print) printf("\nNumber of banks: %d\n", pointers[0xe11624]);
-			if(print) printf("Last high handle: %04x\n", last_high_handle);
-			bool result = true;
-
-			handle_total_ = 0;
-			result &= dump_bank(memory, "Mem", 0xe11600, print, last_high_handle);
-			result &= dump_bank(memory, "Purge", 0xe11604, print);
-			result &= dump_bank(memory, "Free", 0xe11608, print);
-
-			// TODO: and other checs?
-
-//			result &= dump_bank("Bank 0", 0xe1160c);
-//			result &= dump_bank("Bank 1", 0xe11610);
-//			result &= dump_bank("Bank E0", 0xe11614);
-//			result &= dump_bank("Bank E1", 0xe11618);
-//			result &= dump_bank("Bank FF", 0xe1161c);
-
-			if(print) printf("Total: %d\n", handle_total_);
-			if(handle_total_ != 51) result &= false;
-
-			return result;
-		}
-};*/
-
 }
 
 namespace Apple {
@@ -203,8 +94,8 @@ class ConcreteMachine:
 			memory_(target.model >= Analyser::Static::AppleIIgs::Target::Model::ROM03),
 			iwm_(CLOCK_RATE / 2),
 			drives35_{
-		 		{CLOCK_RATE / 2, true},
-		 		{CLOCK_RATE / 2, true}
+				{CLOCK_RATE / 2, true},
+				{CLOCK_RATE / 2, true}
 			},
 			drives525_{
 				{CLOCK_RATE / 2},
@@ -305,7 +196,6 @@ class ConcreteMachine:
 			iwm_->set_drive(1, &drives35_[1]);
 
 			// Randomise RAM contents.
-//			std::srand(23);
 			Memory::Fuzz(ram_);
 
 			// Prior to ROM03 there's no power-on bit.
@@ -382,28 +272,9 @@ class ConcreteMachine:
 		}
 
 		// MARK: BusHandler.
-		uint64_t total = 0;
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
-			const auto &region = MemoryMapRegion(memory_, address);
-			static bool log = false;
+			const auto &region = memory_.region(address);
 			bool is_1Mhz = false;
-
-//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-//				if(address == 0xfe00d5) {
-//					printf("");
-//				}
-//
-//				printf("%06x a:%04x x:%04x y:%04x s:%04x d:%04x b:%04x\n",
-//					address,
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-////					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank)
-//				);
-//			}
 
 			if(operation == CPU::WDC65816::BusOperation::ReadVector && !(memory_.get_shadow_register()&0x40)) {
 				// I think vector pulls always go to ROM?
@@ -512,6 +383,11 @@ class ConcreteMachine:
 					case Write(0xc068):
 						memory_.set_state_register(*value);
 						video_->set_page2(*value & 0x40);
+					break;
+
+					case Read(0xc069):
+					case Write(0xc069):
+						// Swallow silently; often hit as a side effect of a 16-bit write to 0xc068.
 					break;
 
 					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
@@ -752,7 +628,7 @@ class ConcreteMachine:
 						is_1Mhz = true;
 					break;
 					case Read(0xc045):
-						// MMDELTAX byte.
+						// MMDELTAY byte.
 						*value = 0;
 						is_1Mhz = true;
 					break;
@@ -899,7 +775,6 @@ class ConcreteMachine:
 										// Temporary: log _potential_ mistakes.
 										if((address_suffix < 0xc100 && address_suffix >= 0xc090) || (address_suffix < 0xc080)) {
 											printf("Internal card-area access: %04x\n", address_suffix);
-//											log |= operation == CPU::WDC65816::BusOperation::ReadOpcode;
 										}
 										if(is_read) {
 											*value = rom_[rom_.size() - 65536 + address_suffix];
@@ -934,7 +809,6 @@ class ConcreteMachine:
 							if(address_suffix < 0xc080) {
 								// TODO: all other IO accesses.
 								printf("Unhandled IO %s: %04x\n", is_read ? "read" : "write", address_suffix);
-//								assert(false);
 							}
 						}
 				}
@@ -945,7 +819,7 @@ class ConcreteMachine:
 				is_1Mhz = region.flags & MemoryMap::Region::Is1Mhz;
 
 				if(isReadOperation(operation)) {
-					MemoryMapRead(region, address, value);
+					*value = memory_.read(region, address);
 				} else {
 					// Shadowed writes also occur "at 1Mhz".
 					// TODO: this is probably an approximation. I'm assuming that there's the ability asynchronously to post
@@ -954,7 +828,7 @@ class ConcreteMachine:
 					// get by adding periodic NOPs within their copy-to-shadow step.
 					//
 					// Maybe the interaction with 2.8Mhz refresh isn't as straightforward as I think?
-					const bool is_shadowed = IsShadowed(memory_, region, address);
+					const bool is_shadowed = memory_.is_shadowed(region, address);
 					is_1Mhz |= is_shadowed;
 
 					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.
@@ -963,66 +837,9 @@ class ConcreteMachine:
 						video_.flush();
 					}
 
-					MemoryMapWrite(memory_, region, address, value);
+					memory_.write(region, address, *value);
 				}
 			}
-
-
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-//				if(total >= 92168628 && !validate_memory_manager(false) && address < 0xe10000) {
-//					printf("@%llu\n", static_cast<unsigned long long>(total));
-//					validate_memory_manager(true);
-//				}
-//				assert(address);
-			}
-
-//			if(total == 132222166 || total == 467891275 || total == 491026055) {
-//				validate_memory_manager(true);
-//			}
-
-//			if(operation == CPU::WDC65816::BusOperation::Write && (
-//				(address >= 0xe11700 && address <= 0xe11aff) ||
-//				address == 0xe11624 || (address >= 0xe1160c && address < 0xe1161c))
-//				) {
-//				// Test for breakages in the chain.
-//				if(!dump_memory_manager()) {
-//					printf("Broken at %llu\n", static_cast<unsigned long long>(total));
-//				} else {
-//					printf("Correct at %llu\n", static_cast<unsigned long long>(total));
-//				}
-//			}
-
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-//				if(total > 482342960 && total < 482352960 && address == 0xe10000) {
-//					printf("entry: %llu\n", static_cast<unsigned long long>(total));
-//				}
-
-//				log |= address == 0xfc144f;
-//				log &= !((address < 0xfc144f) || (address >= 0xfc1490));
-
-//				if(address == 0xfc02b1) {
-//					dump_memory_manager();
-//				}
-			}
-
-			if(log) {
-				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
-				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x [tot:%llu]\n",
-						m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
-						static_cast<unsigned long long>(total)
-					);
-				} else printf("\n");
-			}
-
 
 			Cycles duration;
 
@@ -1054,7 +871,6 @@ class ConcreteMachine:
 			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 50;
 			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 912;
 
-
 			// Propagate time far and wide.
 			cycles_since_clock_tick_ += duration;
 			auto ticks = cycles_since_clock_tick_.divide(Cycles(CLOCK_RATE)).as_integral();
@@ -1066,15 +882,10 @@ class ConcreteMachine:
 				update_interrupts();
 			}
 
-//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode && *value == 0x00) {
-//				printf("%06x: %02x\n", address, *value);
-//			}
-
 			video_ += duration;
 			iwm_ += duration;
 			cycles_since_audio_update_ += duration;
 			adb_glu_ += duration;
-			total += decltype(total)(duration.as_integral());
 
 			if(cycles_since_audio_update_ >= cycles_until_audio_event_) {
 				AudioUpdater updater(this);
@@ -1144,9 +955,9 @@ class ConcreteMachine:
 		Apple::Clock::ParallelClock clock_;
 		JustInTimeActor<Apple::IIgs::Video::Video, Cycles, 1, 2> video_;	// i.e. run video at 7Mhz.
 		JustInTimeActor<Apple::IIgs::ADB::GLU, Cycles, 1, 4> adb_glu_;		// i.e. 3,579,545Mhz.
- 		Zilog::SCC::z8530 scc_;
- 		JustInTimeActor<Apple::IWM, Cycles, 1, 2> iwm_;
- 		Cycles cycles_since_clock_tick_;
+		Zilog::SCC::z8530 scc_;
+		JustInTimeActor<Apple::IWM, Cycles, 1, 2> iwm_;
+		Cycles cycles_since_clock_tick_;
 		Apple::Macintosh::DoubleDensityDrive drives35_[2];
 		Apple::Disk::DiskIIDrive drives525_[2];
 
@@ -1171,7 +982,7 @@ class ConcreteMachine:
 					machine_->update_audio();
 				}
 				~AudioUpdater() {
-					machine_->cycles_until_audio_event_ = machine_->sound_glu_.get_next_sequence_point();
+					machine_->cycles_until_audio_event_ = machine_->sound_glu_.next_sequence_point();
 				}
 			private:
 				ConcreteMachine *machine_;
@@ -1199,8 +1010,8 @@ class ConcreteMachine:
 
 using namespace Apple::IIgs;
 
-Machine *Machine::AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new ConcreteMachine(*dynamic_cast<const Analyser::Static::AppleIIgs::Target *>(target), rom_fetcher);
+std::unique_ptr<Machine> Machine::AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	return std::make_unique<ConcreteMachine>(*dynamic_cast<const Analyser::Static::AppleIIgs::Target *>(target), rom_fetcher);
 }
 
 Machine::~Machine() {}

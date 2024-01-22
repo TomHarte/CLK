@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef ScanSynchroniser_h
-#define ScanSynchroniser_h
+#pragma once
 
 #include "../Outputs/ScanTarget.hpp"
 
@@ -84,5 +83,3 @@ class ScanSynchroniser {
 };
 
 }
-
-#endif /* ScanSynchroniser_h */

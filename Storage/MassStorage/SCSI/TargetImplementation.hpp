@@ -6,6 +6,8 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 template <typename Executor> Target<Executor>::Target(Bus &bus, int scsi_id) :
 	bus_(bus),
 	scsi_id_mask_(BusState(1 << scsi_id)),
@@ -139,7 +141,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						bus_state_ &= ~0xff;
 
 						switch(phase_) {
-							case Phase::SendingData: 	bus_state_ |= data_[data_pointer_];	break;
+							case Phase::SendingData:	bus_state_ |= data_[data_pointer_];	break;
 							case Phase::SendingStatus:	bus_state_ |= BusState(status_);	break;
 							default:
 							case Phase::SendingMessage:	bus_state_ |= BusState(message_);	break;
@@ -176,7 +178,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 #define G1(x)	(0x20|x)
 #define G5(x)	(0xa0|x)
 
-	LOG("---Command " << PADHEX(2) << int(command_[0]) << "---");
+	log_.info().append("---Command %02x---", command_[0]);
 
 	switch(command_[0]) {
 		default:		return false;
@@ -276,5 +278,5 @@ template <typename Executor> void Target<Executor>::end_command() {
 	bus_state_ = DefaultBusState;
 	set_device_output(bus_state_);
 
-	LOG("---Done---");
+	log_.info().append("---Done---");
 }

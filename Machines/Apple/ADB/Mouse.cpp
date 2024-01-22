@@ -15,24 +15,36 @@ using namespace Apple::ADB;
 Mouse::Mouse(Bus &bus) : ReactiveDevice(bus, 3) {}
 
 void Mouse::perform_command(const Command &command) {
-	if(command.type == Command::Type::Talk && command.reg == 0) {
-		// Read current deltas and buttons, thread safely.
-		auto delta_x = delta_x_.exchange(0);
-		auto delta_y = delta_y_.exchange(0);
-		const int buttons = button_flags_;
+	// Mouse deltas are confined to a seven-bit signed field; this implementation keeps things symmetrical by
+	// limiting them to a maximum absolute value of 63 in any direction.
+	static constexpr int16_t max_delta = 63;
 
-		// Clamp deltas.
-		delta_x = std::clamp(delta_x, int16_t(-128), int16_t(127));
-		delta_y = std::clamp(delta_y, int16_t(-128), int16_t(127));
+	if(command.type == Command::Type::Talk && command.reg == 0) {
+		// Read and clamp current deltas and buttons.
+		//
+		// There's some small chance of creating negative feedback here — taking too much off delta_x_ or delta_y_
+		// due to a change in the underlying value between the load and the arithmetic. But if that occurs it means
+		// the user moved the mouse again in the interim, so it'll just play out as very slight latency.
+		auto delta_x = delta_x_.load(std::memory_order::memory_order_relaxed);
+		auto delta_y = delta_y_.load(std::memory_order::memory_order_relaxed);
+		if(abs(delta_x) > max_delta || abs(delta_y) > max_delta) {
+			int max = std::max(abs(delta_x), abs(delta_y));
+			delta_x = delta_x * max_delta / max;
+			delta_y = delta_y * max_delta / max;
+		}
+
+		const int buttons = button_flags_.load(std::memory_order::memory_order_relaxed);
+		delta_x_ -= delta_x;
+		delta_y_ -= delta_y;
 
 		// Figure out what that would look like, and don't respond if there's
-		// no change to report.
+		// no change or deltas to report.
 		const uint16_t reg0 =
 			((buttons & 1) ? 0x0000 : 0x8000) |
 			((buttons & 2) ? 0x0000 : 0x0080) |
 			uint16_t(delta_x & 0x7f) |
 			uint16_t((delta_y & 0x7f) << 8);
-		if(reg0 == last_posted_reg0_) return;
+		if(!(reg0 & 0x7f7f) && (reg0 & 0x8080) == (last_posted_reg0_ & 0x8080)) return;
 
 		// Post change.
 		last_posted_reg0_ = reg0;

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef CommodoreTAP_hpp
-#define CommodoreTAP_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -15,8 +14,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
@@ -50,6 +48,3 @@ class CommodoreTAP: public Tape {
 };
 
 }
-}
-
-#endif /* CommodoreTAP_hpp */

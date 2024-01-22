@@ -6,16 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiJoystickMachine_hpp
-#define MultiJoystickMachine_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the joystick machine interface to multiple machines.
@@ -35,6 +33,3 @@ class MultiJoystickMachine: public MachineTypes::JoystickMachine {
 };
 
 }
-}
-
-#endif /* MultiJoystickMachine_hpp */

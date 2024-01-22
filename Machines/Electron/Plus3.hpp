@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Plus3_hpp
-#define Plus3_hpp
+#pragma once
 
 #include "../../Components/1770/1770.hpp"
 #include "../../Activity/Observer.hpp"
@@ -31,6 +30,3 @@ class Plus3 final : public WD::WD1770 {
 };
 
 }
-
-#endif /* Plus3_hpp */
-

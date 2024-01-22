@@ -6,15 +6,13 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MSXDSK_hpp
-#define MSXDSK_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage holding an MSDOS-style FAT12 disk image:
@@ -36,6 +34,3 @@ class FAT12: public MFMSectorDump {
 };
 
 }
-}
-
-#endif /* MSXDSK_hpp */

@@ -6,16 +6,14 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M50740_Decoder_hpp
-#define InstructionSets_M50740_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 
 #include <cstddef>
 #include <utility>
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 class Decoder {
 	public:
@@ -34,6 +32,3 @@ class Decoder {
 };
 
 }
-}
-
-#endif /* InstructionSets_M50740_Decoder_hpp */

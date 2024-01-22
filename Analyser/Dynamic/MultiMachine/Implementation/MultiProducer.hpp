@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiProducer_hpp
-#define MultiProducer_hpp
+#pragma once
 
 #include "../../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../../Machines/MachineTypes.hpp"
@@ -19,8 +18,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 template <typename MachineType> class MultiInterface {
 	public:
@@ -116,7 +114,3 @@ class MultiAudioProducer: public MultiInterface<MachineTypes::AudioProducer>, pu
 */
 
 }
-}
-
-
-#endif /* MultiProducer_hpp */

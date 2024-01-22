@@ -16,9 +16,9 @@ using namespace Storage::Encodings::MFM;
 Shifter::Shifter() : owned_crc_generator_(new CRC::CCITT()), crc_generator_(owned_crc_generator_.get()) {}
 Shifter::Shifter(CRC::CCITT *crc_generator) : crc_generator_(crc_generator) {}
 
-void Shifter::set_is_double_density(bool is_double_density) {
-	is_double_density_ = is_double_density;
-	if(!is_double_density) is_awaiting_marker_value_ = false;
+void Shifter::set_is_mfm(bool is_mfm) {
+	is_mfm_ = is_mfm;
+	if(!is_mfm) is_awaiting_marker_value_ = false;
 }
 
 void Shifter::set_should_obey_syncs(bool should_obey_syncs) {
@@ -31,7 +31,7 @@ void Shifter::add_input_bit(int value) {
 
 	token_ = Token::None;
 	if(should_obey_syncs_) {
-		if(!is_double_density_) {
+		if(!is_mfm_) {
 			switch(shift_register_ & 0xffff) {
 				case Storage::Encodings::MFM::FMIndexAddressMark:
 					token_ = Token::Index;
@@ -100,7 +100,7 @@ void Shifter::add_input_bit(int value) {
 		token_ = Token::Byte;
 		bits_since_token_ = 0;
 
-		if(is_awaiting_marker_value_ && is_double_density_) {
+		if(is_awaiting_marker_value_ && is_mfm_) {
 			is_awaiting_marker_value_ = false;
 			switch(get_byte()) {
 				case Storage::Encodings::MFM::IndexAddressByte:

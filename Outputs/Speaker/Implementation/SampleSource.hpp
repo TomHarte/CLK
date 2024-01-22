@@ -6,14 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef SampleSource_hpp
-#define SampleSource_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
 
-namespace Outputs {
-namespace Speaker {
+namespace Outputs::Speaker {
 
 /*!
 	A sample source is something that can provide a stream of audio.
@@ -72,6 +70,3 @@ class SampleSource {
 };
 
 }
-}
-
-#endif /* SampleSource_hpp */

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TapeUEF_hpp
-#define TapeUEF_hpp
+#pragma once
 
 #include "../PulseQueuedTape.hpp"
 
@@ -17,8 +16,7 @@
 #include <string>
 #include <zlib.h>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a UEF tape image, a slightly-convoluted description of pulses.
@@ -74,6 +72,3 @@ class UEF : public PulseQueuedTape, public TargetPlatform::TypeDistinguisher {
 };
 
 }
-}
-
-#endif /* TapeUEF_hpp */

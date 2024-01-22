@@ -6,15 +6,13 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef AmigaADF_hpp
-#define AmigaADF_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an Amiga ADF, which is an MFM sector contents dump,
@@ -42,6 +40,3 @@ class AmigaADF: public DiskImage {
 };
 
 }
-}
-
-#endif /* AmigaADF_hpp */

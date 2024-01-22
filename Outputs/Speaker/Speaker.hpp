@@ -6,15 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Speaker_hpp
-#define Speaker_hpp
+#pragma once
 
 #include <atomic>
 #include <cstdint>
 #include <vector>
 
-namespace Outputs {
-namespace Speaker {
+namespace Outputs::Speaker {
 
 /*!
 	Provides a communication point for sound; machines that have a speaker provide an
@@ -146,6 +144,3 @@ class Speaker {
 };
 
 }
-}
-
-#endif /* Speaker_hpp */

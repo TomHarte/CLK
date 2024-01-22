@@ -36,9 +36,9 @@ constexpr uint64_t PixelMask = 0x0102040810204080;
 Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
 	audio_(audio),
 	drive_speed_accumulator_(drive_speed_accumulator),
- 	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
+	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
 
- 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 
 	// UGLY HACK. UGLY, UGLY HACK. UGLY!
 	// The OpenGL scan target fails properly to place visible areas which are not 4:3.
@@ -170,7 +170,7 @@ bool Video::vsync() {
 	return line >= 353 && line < 356;
 }
 
-HalfCycles Video::get_next_sequence_point() {
+HalfCycles Video::next_sequence_point() {
 	const auto line = (frame_position_ / line_length).as_integral();
 	if(line >= 353 && line < 356) {
 		// Currently in vsync, so get time until start of line 357,

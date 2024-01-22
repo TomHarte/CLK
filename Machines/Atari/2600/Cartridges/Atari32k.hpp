@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeAtari32k_hpp
-#define Atari2600_CartridgeAtari32k_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Atari32k: public BusExtender {
 	public:
@@ -57,6 +55,3 @@ class Atari32kSuperChip: public BusExtender {
 };
 
 }
-}
-
-#endif /* Atari2600_CartridgeAtari32k_hpp */

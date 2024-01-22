@@ -6,13 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef AuxiliaryMemorySwitches_h
-#define AuxiliaryMemorySwitches_h
+#pragma once
 
 #include "MemorySwitches.hpp"
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 /*!
 	Models the auxiliary memory soft switches, added as of the Apple IIe, which allow access to the auxiliary 64kb of RAM and to
@@ -272,6 +270,3 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 };
 
 }
-}
-
-#endif /* AuxiliaryMemorySwitches_h */

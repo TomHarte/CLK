@@ -6,13 +6,11 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ConfidenceCounter_hpp
-#define ConfidenceCounter_hpp
+#pragma once
 
 #include "ConfidenceSource.hpp"
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a confidence source that calculates its probability by virtual of a history of events.
@@ -42,6 +40,3 @@ class ConfidenceCounter: public ConfidenceSource {
 };
 
 }
-}
-
-#endif /* ConfidenceCounter_hpp */

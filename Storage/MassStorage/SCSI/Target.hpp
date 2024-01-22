@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSI_Target_hpp
-#define SCSI_Target_hpp
+#pragma once
 
 #include "SCSI.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -16,8 +15,7 @@
 #include <cstring>
 #include <functional>
 
-namespace SCSI {
-namespace Target {
+namespace SCSI::Target {
 
 /*!
 	Encapsulates the arguments supplied for a target SCSI command during
@@ -324,7 +322,7 @@ struct Executor {
 		return true;
 	}
 
-	/*  Group 5 commands. */
+	/* Group 5 commands. */
 	bool set_block_limits(const CommandState &, Responder &)	{	return false;	}
 };
 
@@ -349,6 +347,7 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 
 	private:
 		Executor executor_;
+		Log::Logger<Log::Source::SCSI> log_;
 
 		// Bus::Observer.
 		void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) final;
@@ -397,6 +396,3 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 #include "TargetImplementation.hpp"
 
 }
-}
-
-#endif /* SCSI_Target_hpp */

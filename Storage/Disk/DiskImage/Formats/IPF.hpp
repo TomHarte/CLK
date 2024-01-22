@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef IPF_hpp
-#define IPF_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../Track/PCMTrack.hpp"
@@ -17,8 +16,7 @@
 #include <string>
 #include <map>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an IPF, which is a mixed stream of raw flux windows and
@@ -86,6 +84,3 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 };
 
 }
-}
-
-#endif /* IPF_hpp */

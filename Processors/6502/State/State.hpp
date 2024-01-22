@@ -6,15 +6,13 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502_State_hpp
-#define MOS6502_State_hpp
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
 #include "../6502.hpp"
 
-namespace CPU {
-namespace MOS6502 {
+namespace CPU::MOS6502 {
 
 /*!
 	Provides a means for capturing or restoring complete 6502 state.
@@ -89,8 +87,4 @@ struct State: public Reflection::StructImpl<State> {
 	void apply(ProcessorBase &target);
 };
 
-
 }
-}
-
-#endif /* MOS6502_State_hpp */

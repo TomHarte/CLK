@@ -6,15 +6,16 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Instruction_h
-#define InstructionSets_x86_Instruction_h
+#pragma once
+
+#include "Model.hpp"
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <type_traits>
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 /*
 	Operations are documented below to establish expectations as to which
@@ -67,11 +68,11 @@ enum class Operation: uint8_t {
 	SBB,
 	/// Subtract; source, destination, operand and displacement will be populated appropriately.
 	SUB,
-	/// Unsigned multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	/// Unsigned multiply; multiplies the source value by EAX, AX or AL, storing the result in EDX:EAX, DX:AX or AX.
 	MUL,
-	/// Single operand signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	/// Single operand signed multiply; multiplies the source value by EAX, AX or AL, storing the result in EDX:EAX, DX:AX or AX.
 	IMUL_1,
-	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	/// Unsigned divide; divide the AX, DX:AX or EDX:AX by the source(), storing the quotient in AL, AX or EAX and the remainder in AH, DX or EDX.
 	DIV,
 	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	IDIV,
@@ -83,19 +84,19 @@ enum class Operation: uint8_t {
 
 	/// Reads from the port specified by source to the destination.
 	IN,
-	/// Writes from the port specified by destination from the source.
+	/// Writes to the port specified by destination from the source.
 	OUT,
 
 	// Various jumps; see the displacement to calculate targets.
-	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
+	JO,	JNO,	JB, JNB,	JZ, JNZ,	JBE, JNBE,
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
 
-	/// Far call; see the segment() and offset() fields.
-	CALLfar,
-	/// Relative call; see displacement().
-	CALLrel,
 	/// Near call.
 	CALLabs,
+	/// Relative call; see displacement().
+	CALLrel,
+	/// Far call; if destination is Source::Immediate then see the segment() and offset() fields; otherwise take segment and offset by indirection.
+	CALLfar,
 	/// Return from interrupt.
 	IRET,
 	/// Near return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
@@ -106,10 +107,10 @@ enum class Operation: uint8_t {
 	JMPabs,
 	/// Near jump with a relative destination.
 	JMPrel,
-	/// Far jump to the indicated segment and offset.
+	/// Far jump;  if destination is Source::Immediate then see the segment() and offset() fields; otherwise take segment and offset by indirection.
 	JMPfar,
 	/// Relative jump performed only if CX = 0; see the displacement.
-	JPCX,
+	JCXZ,
 	/// Generates a software interrupt of the level stated in the operand.
 	INT,
 	/// Generates a software interrupt of level 4 if overflow is set.
@@ -126,25 +127,32 @@ enum class Operation: uint8_t {
 	/// Computes the effective address of the source and loads it into the destination.
 	LEA,
 
-	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
-	CMPS,
-	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
-	LODS,
 	/// Move string; moves a byte or word from DS:SI to ES:DI. If a segment override is provided, it overrides the the source.
 	MOVS,
-	/// Scan string; reads a byte or word from DS:SI and compares it to AL or AX.
-	SCAS,
+	MOVS_REP,
+	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
+	LODS,
+	LODS_REP,
 	/// Store string; store AL or AX to ES:DI.
 	STOS,
+	STOS_REP,
+	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
+	CMPS,
+	CMPS_REPE,
+	CMPS_REPNE,
+	/// Scan string; reads a byte or word from DS:SI and compares it to AL or AX.
+	SCAS,
+	SCAS_REPE,
+	SCAS_REPNE,
 
 	// Perform a possibly-conditional loop, decrementing CX. See the displacement.
 	LOOP, LOOPE, LOOPNE,
 
 	/// Loads the destination with the source.
 	MOV,
-	/// Negatives; source and destination point to the same thing, to negative.
+	/// Negatives; source indicates what to negative.
 	NEG,
-	/// Logical NOT;  source and destination point to the same thing, to negative.
+	/// Logical NOT; source indicates what to negative.
 	NOT,
 	/// Logical AND; source, destination, operand and displacement will be populated appropriately.
 	AND,
@@ -162,19 +170,27 @@ enum class Operation: uint8_t {
 	PUSH,
 	/// PUSH the flags register to the stack.
 	PUSHF,
+
 	/// Rotate the destination left through carry the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	RCL,
 	/// Rotate the destination right through carry the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	RCR,
 	/// Rotate the destination left the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	ROL,
 	/// Rotate the destination right the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the rotation is by a single position only.
 	ROR,
 	/// Arithmetic shift left the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the shift is by a single position only.
 	SAL,
 	/// Arithmetic shift right the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the shift is by a single position only.
 	SAR,
 	/// Logical shift right the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
+	/// If it is ::None then the shift is by a single position only.
 	SHR,
 
 	/// Clear carry flag; no source or destination provided.
@@ -185,7 +201,7 @@ enum class Operation: uint8_t {
 	CLI,
 	/// Set carry flag.
 	STC,
-	/// Set decimal flag.
+	/// Set direction flag.
 	STD,
 	/// Set interrupt flag.
 	STI,
@@ -203,19 +219,33 @@ enum class Operation: uint8_t {
 	/// Load AL with DS:[AL+BX].
 	XLAT,
 
+	/// Set AL to FFh if carry is set; 00h otherwise.
+	SALC,
+
+	//
+	// 8086 exclusives.
+	//
+
+	/// Set destination to ~0 if CL is non-zero.
+	SETMOC,
+	/// Set destination to ~0.
+	SETMO,
+	/// Perform an IDIV and negative the result.
+	IDIV_REP,
+
 	//
 	// 80186 additions.
 	//
 
 	/// Checks whether the signed value in the destination register is within the bounds
 	/// stored at the location indicated by the source register, which will point to two
-	/// 16- or 32-bit words, the first being a signed lower bound and the signed upper.
+	/// 16- or 32-bit words, the first being a signed lower bound and the second
+	/// a signed upper.
 	/// Raises a bounds exception if not.
-	BOUND,
+	BOUND = SETMOC,
 
-
-	/// Create stack frame. See operand() for the nesting level and offset()
-	/// for the dynamic storage size.
+	/// Create stack frame. See the Instruction getters `nesting_level()`
+	/// and `dynamic_storage_size()`.
 	ENTER,
 	/// Procedure exit; copies BP to SP, then pops a new BP from the stack.
 	LEAVE,
@@ -224,9 +254,11 @@ enum class Operation: uint8_t {
 	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
 	/// current EFLAGS DF flag.
 	INS,
-	/// Outputs a byte, word or double word from ES:[e]DI  to the port specified by DX,
-	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.]
+	INS_REP,
+	/// Outputs a byte, word or double word from ES:[e]DI to the port specified by DX,
+	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.
 	OUTS,
+	OUTS_REP,
 
 	/// Pushes all general purpose registers to the stack, in the order:
 	/// AX, CX, DX, BX, [original] SP, BP, SI, DI.
@@ -239,42 +271,70 @@ enum class Operation: uint8_t {
 	// 80286 additions.
 	//
 
-	// TODO: expand detail on all operations below.
-
-	/// Adjusts requested privilege level.
+	/// Read a segment selector from the destination and one from the source.
+	/// If the destination RPL is less than the source, set ZF and set the destination RPL to the source.
+	/// Otherwise clear ZF and don't modify the destination selector.
 	ARPL,
-	/// Clears the task-switched flag.
+	/// Clears the task-switched flag in CR0.
 	CLTS,
 	/// Loads access rights.
 	LAR,
 
-	/// Loads the global descriptor table.
+	/// Loads the global descriptor table register from the source.
+	/// 32-bit operand: read a 16-bit limit followed by a 32-bit base.
+	/// 16-bit operand: read a 16-bit limit followed by a 24-bit base.
 	LGDT,
-	/// Loads the interrupt descriptor table.
-	LIDT,
-	/// Loads the local descriptor table.
-	LLDT,
-	/// Stores the global descriptor table.
+	/// Stores the global descriptor table register at the destination;
+	/// Always stores a 16-bit limit followed by a 32-bit base though
+	/// the highest byte may be zero.
 	SGDT,
-	/// Stores the interrupt descriptor table.
+
+	/// Loads the interrupt descriptor table register from the source.
+	/// 32-bit operand: read a 16-bit limit followed by a 32-bit base.
+	/// 16-bit operand: read a 16-bit limit followed by a 24-bit base.
+	LIDT,
+	/// Stores the interrupt descriptor table register at the destination.
+	/// Always stores a 16-bit limit followed by a 32-bit base though
+	/// the highest byte may be zero.
 	SIDT,
-	/// Stores the local descriptor table.
+
+	/// Loads the local descriptor table register.
+	/// The source will contain a segment selector pointing into the local descriptor table.
+	/// That selector is loaded into the local descriptor table register, along with the corresponding
+	///  segment limit and base from the global descriptor table.
+	LLDT,
+	/// Stores the local descriptor table register.
 	SLDT,
 
-	/// Verifies a segment for reading.
+	/// Verifies the segment indicated by source for reading, setting ZF.
+	///
+	/// ZF is set if: (i) the selector is not null; (ii) the selector is within GDT or LDT bounds;
+	/// (iii) the selector points to code or data; (iv) the segment is readable;
+	/// (v) the segment is either a conforming code segment, or the segment's DPL
+	/// is greater than or equal to both the CPL and the selector's RPL.
+	///
+	/// Otherwise ZF is clear.
 	VERR,
-	/// Verifies a segment for writing.
+	/// Verifies a segment for writing. Operates as per VERR but checks for writeability
+	/// rather than readability.
 	VERW,
 
-	/// Loads the machine status word.
+	/// Loads a 16-bit value from source into the machine status word.
+	/// The low order four bits of the source are copied into CR0, with the caveat
+	/// that if PE is set, the processor will enter protected mode, but if PE is clear
+	/// then there will be no change in protected mode.
+	///
+	/// Usurped in function by MOV CR0 as of the 80286.
 	LMSW,
-	/// Stores the machine status word.
+	/// Stores the machine status word, i.e. copies the low 16 bits of CR0 into the destination.
 	SMSW,
-	/// Loads a segment limit
+
+	/// Load the segment limit from descriptor specified by source into destination,
+	/// setting ZF if successful.
 	LSL,
-	/// Loads the task register.
+	/// Load the source operand into the segment selector field of the task register.
 	LTR,
-	/// Stores the task register.
+	/// Store the segment seleector of the task register into the destination.
 	STR,
 
 	/// Three-operand form of IMUL; multiply the immediate by the source and write to the destination.
@@ -286,6 +346,8 @@ enum class Operation: uint8_t {
 	//
 	// 80386 additions.
 	//
+
+	// TODO: expand detail on all operations below.
 
 	/// Loads a pointer to FS.
 	LFS,
@@ -340,12 +402,17 @@ enum class Operation: uint8_t {
 	MOVtoTr, MOVfromTr,
 };
 
+
 enum class DataSize: uint8_t {
 	Byte = 0,
 	Word = 1,
 	DWord = 2,
 	None = 3,
 };
+
+template <DataSize size> struct DataSizeType { using type = uint8_t; };
+template <> struct DataSizeType<DataSize::Word> { using type = uint16_t; };
+template <> struct DataSizeType<DataSize::DWord> { using type = uint32_t; };
 
 constexpr int byte_size(DataSize size) {
 	return (1 << int(size)) & 7;
@@ -359,6 +426,9 @@ enum class AddressSize: uint8_t {
 	b16 = 0,
 	b32 = 1,
 };
+
+template <AddressSize size> struct AddressSizeType { using type = uint16_t; };
+template <> struct AddressSizeType<AddressSize::b32> { using type = uint32_t; };
 
 constexpr DataSize data_size(AddressSize size) {
 	return DataSize(int(size) + 1);
@@ -403,7 +473,7 @@ enum class Source: uint8_t {
 	T0 = 0, T1 = 1, T2 = 2, T3 = 3, T4 = 4, T5 = 5, T6 = 6, T7 = 7,
 	D0 = 0, D1 = 1, D2 = 2, D3 = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7,
 
-	// Selectors.
+	// Segment registers.
 	ES, CS, SS, DS, FS, GS,
 
 	/// @c None can be treated as a source that produces 0 when encountered;
@@ -429,10 +499,57 @@ enum class Source: uint8_t {
 	/// getter is used).
 	IndirectNoBase = Indirect - 1,
 };
+constexpr bool is_register(Source source) {
+	return source < Source::None;
+}
+constexpr bool is_segment_register(Source source) {
+	return is_register(source) && source >= Source::ES;
+}
 
 enum class Repetition: uint8_t {
-	None, RepE, RepNE
+	None, RepE, RepNE, Rep,
 };
+
+/// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
+template <Model model>
+constexpr Operation rep_operation(Operation operation, Repetition repetition) {
+	switch(operation) {
+		case Operation::IDIV:
+			if constexpr (model == Model::i8086) {
+				return repetition != Repetition::None ? Operation::IDIV_REP : Operation::IDIV;
+			}
+		[[fallthrough]];
+
+		default: return operation;
+
+		case Operation::INS:
+			return repetition != Repetition::None ? Operation::INS_REP : Operation::INS;
+		case Operation::OUTS:
+			return repetition != Repetition::None ? Operation::OUTS_REP : Operation::OUTS;
+		case Operation::LODS:
+			return repetition != Repetition::None ? Operation::LODS_REP : Operation::LODS;
+		case Operation::MOVS:
+			return repetition != Repetition::None ? Operation::MOVS_REP : Operation::MOVS;
+		case Operation::STOS:
+			return repetition != Repetition::None ? Operation::STOS_REP : Operation::STOS;
+
+		case Operation::CMPS:
+			switch(repetition) {
+				case Repetition::None:	return Operation::CMPS;
+				default:
+				case Repetition::RepE:	return Operation::CMPS_REPE;
+				case Repetition::RepNE:	return Operation::CMPS_REPNE;
+			}
+
+		case Operation::SCAS:
+			switch(repetition) {
+				case Repetition::None:	return Operation::SCAS;
+				default:
+				case Repetition::RepE:	return Operation::SCAS_REPE;
+				case Repetition::RepNE:	return Operation::SCAS_REPNE;
+			}
+	}
+}
 
 /// Provides a 32-bit-style scale, index and base; to produce the address this represents,
 /// calcluate base() + (index() << scale()).
@@ -452,7 +569,7 @@ class ScaleIndexBase {
 		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
 			sib_(uint8_t(
 				scale << 6 |
-				(int(index != Source::None ? index : Source::eSI) << 3) |
+				(int(index != Source::None ? index : Source::eSP) << 3) |
 				int(base)
 			)) {}
 		constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}
@@ -542,10 +659,7 @@ class DataPointer {
 				);
 		}
 
-		template <bool obscure_indirectNoBase = false> constexpr Source source() const {
-			if constexpr (obscure_indirectNoBase) {
-				return (source_ >= Source::IndirectNoBase) ? Source::Indirect : source_;
-			}
+		constexpr Source source() const {
 			return source_;
 		}
 
@@ -557,10 +671,24 @@ class DataPointer {
 			return sib_.index();
 		}
 
-		template <bool obscure_indirectNoBase = false> constexpr Source base() const {
-			if constexpr (obscure_indirectNoBase) {
-				return (source_ <= Source::IndirectNoBase) ? Source::None : sib_.base();
+		/// @returns The default segment to use for this access.
+		constexpr Source default_segment() const {
+			switch(source_) {
+				default:
+				case Source::IndirectNoBase:
+					return Source::None;
+
+				case Source::Indirect:
+					switch(base()) {
+						default:			return Source::DS;
+						case Source::eBP:
+						case Source::eSP:	return Source::SS;
+						case Source::eDI:	return Source::ES;
+					}
 			}
+		}
+
+		constexpr Source base() const {
 			return sib_.base();
 		}
 
@@ -571,10 +699,152 @@ class DataPointer {
 
 template<bool is_32bit> class Instruction {
 	public:
-		Operation operation = Operation::Invalid;
+		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
+		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
+		using AddressT = ImmediateT;
 
-		bool operator ==(const Instruction<is_32bit> &rhs) const {
-			if(	operation != rhs.operation ||
+		constexpr Instruction() noexcept {}
+		constexpr Instruction(Operation operation) noexcept :
+			Instruction(operation, Source::None, Source::None, ScaleIndexBase(), false, AddressSize::b16, Source::None, DataSize::None, 0, 0) {}
+		constexpr Instruction(
+			Operation operation,
+			Source source,
+			Source destination,
+			ScaleIndexBase sib,
+			bool lock,
+			AddressSize address_size,
+			Source segment_override,
+			DataSize data_size,
+			DisplacementT displacement,
+			ImmediateT operand) noexcept :
+				operation_(operation),
+				mem_exts_source_(uint8_t(
+					(int(address_size) << 7) |
+					(displacement ? 0x40 : 0x00) |
+					(operand ? 0x20 : 0x00) |
+					int(source) |
+					(source == Source::Indirect ? (uint8_t(sib) & 7) : 0)
+				)),
+				source_data_dest_sib_(uint16_t(
+					(int(data_size) << 14) |
+					(lock ? (1 << 13) : 0) |
+					((uint8_t(sib) & 0xf8) << 2) |
+					int(destination) |
+					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
+				)) {
+			// Decisions on whether to include operand, displacement and/or size extension words
+			// have implicitly been made in the int packing above; honour them here.
+			int extension = 0;
+			if(has_operand()) {
+				extensions_[extension] = operand;
+				++extension;
+			}
+			if(has_displacement()) {
+				extensions_[extension] = ImmediateT(displacement);
+				++extension;
+			}
+
+			// Patch in a fully-resolved segment.
+			Source segment = segment_override;
+			if(segment == Source::None) segment = this->source().default_segment();
+			if(segment == Source::None) segment = this->destination().default_segment();
+			if(segment == Source::None) segment = Source::DS;
+			source_data_dest_sib_ |= (int(segment)&7) << 10;
+		}
+
+		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
+		/// to store an @c Instruction but is permitted to reuse the trailing sizeof(Instruction) - packing_size() for any purpose it likes. Teleologically,
+		/// this allows a denser packing of instructions into containers.
+		constexpr size_t packing_size() const	{
+			return
+				offsetof(Instruction<is_32bit>, extensions_) +
+				(has_displacement() + has_operand()) * sizeof(ImmediateT);
+		}
+
+		/// @returns The @c Operation performed by this instruction.
+		constexpr Operation operation() const {
+			return operation_;
+		}
+
+		/// @returns A @c DataPointer describing the 'destination' of this instruction, conventionally the first operand in Intel-syntax assembly.
+		constexpr DataPointer destination() const	{
+			return DataPointer(
+				Source(source_data_dest_sib_ & sib_masks[(source_data_dest_sib_ >> 3) & 3]),
+				((source_data_dest_sib_ >> 2) & 0xf8) | (source_data_dest_sib_ & 0x07)
+			);
+		}
+
+		/// @returns A @c DataPointer describing the 'source' of this instruction, conventionally the second operand in Intel-syntax assembly.
+		constexpr DataPointer source() const {
+			return DataPointer(
+				Source(mem_exts_source_ & sib_masks[(mem_exts_source_ >> 3) & 3]),
+				((source_data_dest_sib_ >> 2) & 0xf8) | (mem_exts_source_ & 0x07)
+			);
+		}
+
+		/// @returns @c true if the lock prefix was present on this instruction; @c false otherwise.
+		constexpr bool lock() const {
+			return source_data_dest_sib_ & (1 << 13);
+		}
+
+		/// @returns The address size for this instruction; will always be 16-bit for instructions decoded by a 16-bit decoder but can be 16- or 32-bit for
+		/// instructions decoded by a 32-bit decoder, depending on the program's use of the address size prefix byte.
+		constexpr AddressSize address_size() const {
+			return AddressSize(mem_exts_source_ >> 7);
+		}
+
+		/// @returns The segment that should be used for data fetches if this operation accepts segment overrides.
+		constexpr Source data_segment() const {
+			return Source(
+				int(Source::ES) +
+				((source_data_dest_sib_ >> 10) & 7)
+			);
+		}
+
+		/// @returns The data size of this operation — e.g. `MOV AX, BX` has a data size of `::Word` but `MOV EAX, EBX` has a data size of
+		/// `::DWord`. This value is guaranteed never to be `DataSize::None` even for operations such as `CLI` that don't have operands and operate
+		/// on data that is not a byte, word or double word.
+		constexpr DataSize operation_size() const {
+			return DataSize(source_data_dest_sib_ >> 14);
+		}
+
+		/// @returns The immediate value provided with this instruction, if any. E.g. `ADD AX, 23h` has the operand `23h`.
+		constexpr ImmediateT operand() const	{
+			const ImmediateT ops[] = {0, operand_extension()};
+			return ops[has_operand()];
+		}
+
+		/// @returns The nesting level argument supplied to an ENTER.
+		constexpr ImmediateT nesting_level() const	{
+			return operand();
+		}
+
+		/// @returns The immediate segment value provided with this instruction, if any. Relevant for far calls and jumps; e.g.  `JMP 1234h:5678h` will
+		/// have a segment value of `1234h`.
+		constexpr uint16_t segment() const		{
+			return uint16_t(operand());
+		}
+
+		/// @returns The offset provided with this instruction, if any. E.g. `MOV AX, [es:1998h]` has an offset of `1998h`.
+		constexpr ImmediateT offset() const	{
+			const ImmediateT offsets[] = {0, displacement_extension()};
+			return offsets[has_displacement()];
+		}
+
+		/// @returns The displacement provided with this instruction `SUB AX, [SI+BP-23h]` has an offset of `-23h` and `JMP 19h`
+		/// has an offset of `19h`.
+		constexpr DisplacementT displacement() const {
+			return DisplacementT(offset());
+		}
+
+		/// @returns The dynamic storage size argument supplied to an ENTER.
+		constexpr ImmediateT dynamic_storage_size() const	{
+			return displacement();
+		}
+
+		// Standard comparison operator.
+		constexpr bool operator ==(const Instruction<is_32bit> &rhs) const {
+			if(	operation_ != rhs.operation_ ||
 				mem_exts_source_ != rhs.mem_exts_source_ ||
 				source_data_dest_sib_ != rhs.source_data_dest_sib_) {
 				return false;
@@ -582,7 +852,7 @@ template<bool is_32bit> class Instruction {
 
 			// Have already established above that this and RHS have the
 			// same extensions, if any.
-			const int extension_count = has_length_extension() + has_displacement() + has_operand();
+			const int extension_count = has_displacement() + has_operand();
 			for(int c = 0; c < extension_count; c++) {
 				if(extensions_[c] != rhs.extensions_[c]) return false;
 			}
@@ -590,21 +860,17 @@ template<bool is_32bit> class Instruction {
 			return true;
 		}
 
-		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
-		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
-		using AddressT = ImmediateT;
-
 	private:
+		Operation operation_ = Operation::Invalid;
+
 		// Packing and encoding of fields is admittedly somewhat convoluted; what this
 		// achieves is that instructions will be sized:
 		//
-		//	four bytes + up to three extension words
-		//	(two bytes for 16-bit instructions, four for 32)
+		//	four bytes + up to two extension words
+		//	(extension words being two bytes for 16-bit instructions, four for 32)
 		//
-		// Two of the extension words are used to retain an operand and displacement
-		// if the instruction has those. The other can store sizes greater than 15
-		// bytes (for earlier processors), plus any repetition, segment override or
-		// repetition prefixes.
+		// The extension words are used to retain an operand and displacement
+		// if the instruction has those.
 
 		// b7: address size;
 		// b6: has displacement;
@@ -620,24 +886,14 @@ template<bool is_32bit> class Instruction {
 		}
 
 		// [b15, b14]: data size;
-		// [b13, b10]: source length (0 => has length extension);
+		// [b13]: lock;
+		// [b12, b10]: segment override;
 		// [b9, b5]: top five of SIB;
 		// [b4, b0]: dest.
-		uint16_t source_data_dest_sib_ = 1 << 10;	// So that ::Invalid doesn't seem to have a length extension.
+		uint16_t source_data_dest_sib_ = 0;
 
-		bool has_length_extension() const {
-			return !((source_data_dest_sib_ >> 10) & 15);
-		}
-
-		// {operand}, {displacement}, {length extension}.
-		//
-		// If length extension is present then:
-		//
-		//	[b15, b6]: source length;
-		//	[b5, b4]: repetition;
-		//	[b3, b1]: segment override;
-		//	b0: lock.
-		ImmediateT extensions_[3]{};
+		// {operand}, {displacement}.
+		ImmediateT extensions_[2]{};
 
 		ImmediateT operand_extension() const {
 			return extensions_[0];
@@ -645,158 +901,66 @@ template<bool is_32bit> class Instruction {
 		ImmediateT displacement_extension() const {
 			return extensions_[(mem_exts_source_ >> 5) & 1];
 		}
-		ImmediateT length_extension() const {
-			return extensions_[((mem_exts_source_ >> 5) & 1) + ((mem_exts_source_ >> 6) & 1)];
-		}
 
-	public:
-		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
-		/// to store an @c Instruction but is permitted to reuse the trailing sizeof(Instruction) - packing_size() for any purpose it likes. Teleologically,
-		/// this allows a denser packing of instructions into containers.
-		size_t packing_size() const	{
-			return
-				offsetof(Instruction<is_32bit>, extensions) +
-				(has_displacement() + has_operand() + has_length_extension()) * sizeof(ImmediateT);
-
-			// To consider in the future: the length extension is always the last one,
-			// and uses only 8 bits of content within 32-bit instructions, so it'd be
-			// possible further to trim the packing size on little endian machines.
-			//
-			// ... but is that a speed improvement? How much space does it save, and
-			// is it enough to undo the costs of unaligned data?
-		}
-
-	private:
 		// A lookup table to help with stripping parts of the SIB that have been
 		// hidden within the source/destination fields.
 		static constexpr uint8_t sib_masks[] = {
 			0x1f, 0x1f, 0x1f, 0x18
 		};
 
-	public:
-		DataPointer source() const {
-			return DataPointer(
-				Source(mem_exts_source_ & sib_masks[(mem_exts_source_ >> 3) & 3]),
-				((source_data_dest_sib_ >> 2) & 0xf8) | (mem_exts_source_ & 0x07)
-			);
-		}
-		DataPointer destination() const	{
-			return DataPointer(
-				Source(source_data_dest_sib_ & sib_masks[(source_data_dest_sib_ >> 3) & 3]),
-				((source_data_dest_sib_ >> 2) & 0xf8) | (source_data_dest_sib_ & 0x07)
-			);
-		}
-		bool lock() const {
-			return has_length_extension() && length_extension()&1;
-		}
-
-		AddressSize address_size() const {
-			return AddressSize(mem_exts_source_ >> 7);
-		}
-
-		/// @returns @c Source::DS if no segment override was found; the overridden segment otherwise.
-		/// On x86 a segment override cannot modify the segment used as a destination in string instructions,
-		/// or that used by stack instructions, but this function does not spend the time necessary to provide
-		/// the correct default for those.
-		Source data_segment() const {
-			if(!has_length_extension()) return Source::DS;
-			return Source(
-				int(Source::ES) +
-				((length_extension() >> 1) & 7)
-			);
-		}
-
-		Repetition repetition() const {
-			if(!has_length_extension()) return Repetition::None;
-			return Repetition((length_extension() >> 4) & 3);
-		}
-		DataSize operation_size() const {
-			return DataSize(source_data_dest_sib_ >> 14);
-		}
-
-		int length() const {
-			const int short_length = (source_data_dest_sib_ >> 10) & 15;
-			if(short_length) return short_length;
-			return length_extension() >> 6;
-		}
-
-		ImmediateT operand() const	{
-			const ImmediateT ops[] = {0, operand_extension()};
-			return ops[has_operand()];
-		}
-		DisplacementT displacement() const {
-			return DisplacementT(offset());
-		}
-
-		uint16_t segment() const		{
-			return uint16_t(operand());
-		}
-		ImmediateT offset() const	{
-			const ImmediateT offsets[] = {0, displacement_extension()};
-			return offsets[has_displacement()];
-		}
-
-		constexpr Instruction() noexcept {}
-		constexpr Instruction(Operation operation, int length) noexcept :
-			Instruction(operation, Source::None, Source::None, ScaleIndexBase(), false, AddressSize::b16, Source::None, Repetition::None, DataSize::None, 0, 0, length) {}
-		constexpr Instruction(
-			Operation operation,
-			Source source,
-			Source destination,
-			ScaleIndexBase sib,
-			bool lock,
-			AddressSize address_size,
-			Source segment_override,
-			Repetition repetition,
-			DataSize data_size,
-			DisplacementT displacement,
-			ImmediateT operand,
-			int length) noexcept :
-				operation(operation),
-				mem_exts_source_(uint8_t(
-					(int(address_size) << 7) |
-					(displacement ? 0x40 : 0x00) |
-					(operand ? 0x20 : 0x00) |
-					int(source) |
-					(source == Source::Indirect ? (uint8_t(sib) & 7) : 0)
-				)),
-				source_data_dest_sib_(uint16_t(
-					(int(data_size) << 14) |
-					((
-						(lock || (segment_override != Source::None) || (length > 15) || (repetition != Repetition::None))
-					) ? 0 : (length << 10)) |
-					((uint8_t(sib) & 0xf8) << 2) |
-					int(destination) |
-					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
-				)) {
-
-				// Decisions on whether to include operand, displacement and/or size extension words
-				// have implicitly been made in the int packing above; honour them here.
-				int extension = 0;
-				if(has_operand()) {
-					extensions_[extension] = operand;
-					++extension;
-				}
-				if(has_displacement()) {
-					extensions_[extension] = ImmediateT(displacement);
-					++extension;
-				}
-				if(has_length_extension()) {
-					// As per the rule stated for segment(), this class provides ::DS for any instruction
-					// that doesn't have a segment override.
-					if(segment_override == Source::None) segment_override = Source::DS;
-					extensions_[extension] = ImmediateT(
-						(length << 6) | (int(repetition) << 4) | ((int(segment_override) & 7) << 1) | int(lock)
-					);
-					++extension;
-				}
-			}
 };
 
 static_assert(sizeof(Instruction<true>) <= 16);
 static_assert(sizeof(Instruction<false>) <= 10);
 
-}
-}
+//
+// Disassembly aids.
+//
 
-#endif /* InstructionSets_x86_Instruction_h */
+/// @returns @c true if @c operation uses a @c displacement().
+bool has_displacement(Operation operation);
+
+/// @returns The maximum number of operands to print in a disassembly of @c operation;
+///		i.e. 2 for both source() and destination(), 1 for source() alone, 0 for neither. This is a maximum
+///		only — if either source is Source::None then it should not be printed.
+int max_displayed_operands(Operation operation);
+
+/// Provides the idiomatic name of the @c Operation given an operation @c DataSize and processor @c Model.
+std::string to_string(Operation, DataSize, Model);
+
+/// @returns @c true if the idiomatic name of @c Operation implies the data size (e.g. stosb), @c false otherwise (e.g. ld).
+bool mnemonic_implies_data_size(Operation);
+
+/// Provides the name of the @c DataSize, i.e. 'byte', 'word' or 'dword'.
+std::string to_string(DataSize);
+
+/// Provides the name of the @c Source at @c DataSize, e.g. for Source::eAX it might return AL, AX or EAX.
+std::string to_string(Source, DataSize);
+
+/// Provides the printable version of @c pointer as an appendage for @c instruction.
+///
+/// See notes below re: @c offset_length and @c immediate_length.
+/// If @c operation_size is the default value of @c ::None, it'll be taken from the @c instruction.
+template <bool is_32bit>
+std::string to_string(
+	DataPointer pointer,
+	Instruction<is_32bit> instruction,
+	int offset_length,
+	int immediate_length,
+	DataSize operation_size = InstructionSet::x86::DataSize::None
+);
+
+/// Provides the printable version of @c instruction.
+///
+/// Internally, instructions do not retain the original sizes of offsets/displacements or immediates so the following are available:
+///
+/// If @c offset_length is '2' or '4', truncates any printed offset to 2 or 4 digits if it is compatible with being that length.
+/// If @c immediate_length is '2' or '4', truncates any printed immediate value to 2 or 4 digits if it is compatible with being that length.
+template<bool is_32bit>
+std::string to_string(
+	std::pair<int, Instruction<is_32bit>> instruction,
+	Model model,
+	int offset_length = 0,
+	int immediate_length = 0);
+
+}

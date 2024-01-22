@@ -6,16 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DMK_hpp
-#define DMK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing a DMK disk image: mostly a decoded byte stream, but with
@@ -50,6 +48,3 @@ class DMK: public DiskImage {
 };
 
 }
-}
-
-#endif /* DMK_hpp */

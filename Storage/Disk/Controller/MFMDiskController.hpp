@@ -6,16 +6,14 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MFMDiskController_hpp
-#define MFMDiskController_hpp
+#pragma once
 
 #include "DiskController.hpp"
 #include "../../../Numeric/CRC.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../Encodings/MFM/Shifter.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Extends Controller with a built-in shift register and FM/MFM decoding logic,
@@ -167,6 +165,3 @@ class MFMController: public Controller {
 };
 
 }
-}
-
-#endif /* MFMDiskController_hpp */

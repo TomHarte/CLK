@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskII_hpp
-#define DiskII_hpp
+#pragma once
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
@@ -126,5 +125,3 @@ class DiskII :
 };
 
 }
-
-#endif /* DiskII_hpp */

@@ -6,16 +6,14 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef OricMFMDSK_hpp
-#define OricMFMDSK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an Oric MFM-stype disk image: a stream of the MFM data bits with clocks omitted.
@@ -47,6 +45,3 @@ class OricMFMDSK: public DiskImage {
 };
 
 }
-}
-
-#endif /* OricMFMDSK_hpp */

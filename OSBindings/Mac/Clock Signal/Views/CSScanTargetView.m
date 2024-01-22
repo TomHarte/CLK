@@ -145,12 +145,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 }
 
 - (void)awakeFromNib {
-	// Use the preferred device if available.
-	if(@available(macOS 10.15, *)) {
-		self.device = self.preferredDevice;
-	} else {
-		self.device = MTLCreateSystemDefaultDevice();
-	}
+	self.device = MTLCreateSystemDefaultDevice();
 
 	// Configure for explicit drawing.
 	self.paused = YES;
@@ -377,7 +372,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[super mouseUp:event];
 }
 
-- (void)rightMouseUp:(NSEvent *)event  {
+- (void)rightMouseUp:(NSEvent *)event {
 	[self applyButtonUp:event];
 	[super rightMouseUp:event];
 }

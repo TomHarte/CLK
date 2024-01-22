@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DMAController_hpp
-#define DMAController_hpp
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -17,8 +16,7 @@
 #include "../../../Components/1770/1770.hpp"
 #include "../../../Activity/Source.hpp"
 
-namespace Atari {
-namespace ST {
+namespace Atari::ST {
 
 class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, public ClockingHint::Observer {
 	public:
@@ -111,6 +109,3 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 };
 
 }
-}
-
-#endif /* DMAController_hpp */

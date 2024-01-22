@@ -6,8 +6,7 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ScanTarget_hpp
-#define ScanTarget_hpp
+#pragma once
 
 #include "../Log.hpp"
 #include "../DisplayMetrics.hpp"
@@ -28,9 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 
 /*!
@@ -58,7 +55,10 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use pr
 		struct OpenGLVersionDumper {
 			OpenGLVersionDumper() {
 				// Note the OpenGL version, as the first thing this class does prior to construction.
-				LOG("Constructing scan target with OpenGL " << glGetString(GL_VERSION) << "; shading language version " << glGetString(GL_SHADING_LANGUAGE_VERSION));
+				Log::Logger<Log::Source::OpenGL>().info().append(
+					"Constructing scan target with OpenGL %s; shading language version %s",
+					glGetString(GL_VERSION),
+					glGetString(GL_SHADING_LANGUAGE_VERSION));
 			}
 		} dumper_;
 #endif
@@ -157,7 +157,3 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use pr
 };
 
 }
-}
-}
-
-#endif /* ScanTarget_hpp */

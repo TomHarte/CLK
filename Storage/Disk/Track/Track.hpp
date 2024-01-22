@@ -6,14 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Track_h
-#define Track_h
+#pragma once
 
 #include "../../Storage.hpp"
 #include <tuple>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Contains a head position, with some degree of sub-integral precision.
@@ -127,6 +125,3 @@ class Track {
 };
 
 }
-}
-
-#endif /* Track_h */

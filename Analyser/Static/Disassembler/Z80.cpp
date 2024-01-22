@@ -11,7 +11,7 @@
 #include "Kernel.hpp"
 
 using namespace Analyser::Static::Z80;
-namespace  {
+namespace {
 
 using PartialDisassembly = Analyser::Static::Disassembly::PartialDisassembly<Disassembly, uint16_t>;
 
@@ -56,11 +56,11 @@ class Accessor {
 		bool overrun_ = false;
 };
 
-#define x(v) (v >> 6)
-#define y(v) ((v >> 3) & 7)
-#define q(v) ((v >> 3) & 1)
-#define p(v) ((v >> 4) & 3)
-#define z(v) (v & 7)
+constexpr uint8_t x(uint8_t v) { return v >> 6; }
+constexpr uint8_t y(uint8_t v) { return (v >> 3) & 7; }
+constexpr uint8_t q(uint8_t v) { return (v >> 3) & 1; }
+constexpr uint8_t p(uint8_t v) { return (v >> 4) & 3; }
+constexpr uint8_t z(uint8_t v) { return v & 7; }
 
 Instruction::Condition condition_table[] = {
 	Instruction::Condition::NZ,		Instruction::Condition::Z,
@@ -589,7 +589,7 @@ struct Z80Disassembler {
 				break;
 			}
 
-			// Add any (potentially) newly discovered entry point.
+			// Add any (potentially) newly-discovered entry point.
 			if(	instruction.operation == Instruction::Operation::JP ||
 				instruction.operation == Instruction::Operation::JR ||
 				instruction.operation == Instruction::Operation::CALL ||
@@ -598,22 +598,37 @@ struct Z80Disassembler {
 			}
 
 			// This is it if: an unconditional RET, RETI, RETN, JP or JR is found.
-			if(instruction.condition != Instruction::Condition::None)	continue;
+			switch(instruction.operation) {
+				default: break;
 
-			if(instruction.operation == Instruction::Operation::RET)	return;
-			if(instruction.operation == Instruction::Operation::RETI)	return;
-			if(instruction.operation == Instruction::Operation::RETN)	return;
-			if(instruction.operation == Instruction::Operation::JP)		return;
-			if(instruction.operation == Instruction::Operation::JR)		return;
+				case Instruction::Operation::RET:
+				case Instruction::Operation::RETI:
+				case Instruction::Operation::RETN:
+				case Instruction::Operation::JP:
+				case Instruction::Operation::JR:
+					if(instruction.condition == Instruction::Condition::None) {
+						disassembly.implicit_entry_points.push_back(accessor.address());
+						return;
+					}
+			}
 		}
 	}
 };
 
 }	// end of anonymous namespace
 
+
+
 Disassembly Analyser::Static::Z80::Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
-	std::vector<uint16_t> entry_points) {
-	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, Z80Disassembler>(memory, address_mapper, entry_points);
+	std::vector<uint16_t> entry_points,
+	Approach approach)
+{
+	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, Z80Disassembler>(
+		memory,
+		address_mapper,
+		entry_points,
+		approach == Approach::Exhaustive
+	);
 }

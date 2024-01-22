@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef HFV_hpp
-#define HFV_hpp
+#pragma once
 
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
@@ -16,8 +15,7 @@
 #include <vector>
 #include <map>
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing an HFV image, which is a sector dump of
@@ -49,6 +47,3 @@ class HFV: public MassStorageDevice, public Encodings::Macintosh::Volume {
 };
 
 }
-}
-
-#endif /* HFV_hpp */

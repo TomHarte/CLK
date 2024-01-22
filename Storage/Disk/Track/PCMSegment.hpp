@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef PCMSegment_hpp
-#define PCMSegment_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -17,8 +16,7 @@
 #include "../../../Numeric/LFSR.hpp"
 #include "Track.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	A segment of PCM-sampled data.
@@ -204,6 +202,3 @@ class PCMSegmentEventSource {
 };
 
 }
-}
-
-#endif /* PCMSegment_hpp */

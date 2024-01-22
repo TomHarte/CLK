@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CPCDSK_hpp
-#define CPCDSK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -16,8 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an Amstrad CPC-type disk image: some arrangement of sectors with status bits.
@@ -25,19 +23,18 @@ namespace Disk {
 class CPCDSK: public DiskImage {
 	public:
 		/*!
-			Construct an @c AcornADF containing content from the file with name @c file_name.
+			Construct a @c CPCDSK containing content from the file with name @c file_name.
 
 			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 			@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 		*/
 		CPCDSK(const std::string &file_name);
 
-		// implemented to satisfy @c Disk
+		// DiskImage interface.
 		HeadPosition get_maximum_head_position() final;
 		int get_head_count() final;
 		bool get_is_read_only() final;
-
-		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) final;
+		void set_tracks(const std::map<::Storage::Disk::Track::Address, std::shared_ptr<::Storage::Disk::Track>> &tracks) final;
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) final;
 
 	private:
@@ -72,7 +69,3 @@ class CPCDSK: public DiskImage {
 };
 
 }
-}
-
-
-#endif /* CPCDSK_hpp */

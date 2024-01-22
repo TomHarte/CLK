@@ -6,15 +6,12 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleGCR_hpp
-#define AppleGCR_hpp
+#pragma once
 
 #include <cstdint>
 #include "../../../Disk/Track/PCMSegment.hpp"
 
-namespace Storage {
-namespace Encodings {
-namespace AppleGCR {
+namespace Storage::Encodings::AppleGCR {
 
 /// Describes the standard three-byte prologue that begins a header on both the Macintosh and the Apple II from DOS 3.3.
 constexpr uint8_t header_prologue[3] = {0xd5, 0xaa, 0x96};
@@ -94,7 +91,3 @@ Storage::Disk::PCMSegment five_and_three_data(const uint8_t *source);
 Storage::Disk::PCMSegment five_and_three_sync(int length);
 
 }
-}
-}
-
-#endif /* AppleGCR_hpp */

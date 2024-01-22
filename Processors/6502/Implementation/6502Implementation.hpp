@@ -12,33 +12,85 @@
 	6502.hpp, but it's implementation stuff.
 */
 
-template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-#define checkSchedule() \
-	if(!scheduled_program_counter_) {\
-		if(interrupt_requests_) {\
-			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
-				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];\
-			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
-				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];\
-			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-				scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];\
-			} \
-		} else {\
-			scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];\
-		}\
-	}
+template <Personality personality, typename T, bool uses_ready_line>
+void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
-#define bus_access() \
-	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
-	irq_request_history_ = irq_line_ & flags_.inverse_interrupt;	\
-	number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);	\
-	next_bus_operation_ = BusOperation::None;	\
-	if(number_of_cycles <= Cycles(0)) break;
+	const auto check_schedule = [&] {
+		if(!scheduled_program_counter_) {
+			if(interrupt_requests_) {
+				if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {
+					interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];
+				} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {
+					interrupt_requests_ &= ~InterruptRequestFlags::NMI;
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];
+				} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {
+					scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];
+				}
+			} else {
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];
+			}
+		}
+	};
 
-	checkSchedule();
+	check_schedule();
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
+
+	const auto bus_access = [&]() -> bool {
+		interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;
+		irq_request_history_ = irq_line_ & flags_.inverse_interrupt;
+		number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);
+		next_bus_operation_ = BusOperation::None;
+		return number_of_cycles <= Cycles(0);
+	};
+
+	const auto read_op = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::ReadOpcode;
+		bus_address_ = address;
+		bus_value_ = &val;
+		val = 0xff;
+	};
+
+	const auto read_mem = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::Read;
+		bus_address_ = address;
+		bus_value_ = &val;
+		val = 0xff;
+	};
+
+	const auto throwaway_read = [&](uint16_t address) {
+		next_bus_operation_ = BusOperation::Read;
+		bus_address_ = address;
+		bus_value_ = &bus_throwaway_;
+		bus_throwaway_ = 0xff;
+	};
+
+	const auto write_mem = [&](uint8_t &val, uint16_t address) {
+		next_bus_operation_ = BusOperation::Write;
+		bus_address_ = address;
+		bus_value_ = &val;
+	};
+
+	const auto push = [&](uint8_t &val) {
+		const uint16_t targetAddress = s_ | 0x100;
+		--s_;
+		write_mem(val, targetAddress);
+	};
+
+	const auto page_crossing_stall_read = [&] {
+		if(is_65c02(personality)) {
+			throwaway_read(pc_.full - 1);
+		} else {
+			throwaway_read(address_.full);
+		}
+	};
+
+	const auto bra = [&](bool condition) {
+		++pc_.full;
+		if(condition) {
+			scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];
+		}
+	};
 
 	while(number_of_cycles > Cycles(0)) {
 
@@ -52,7 +104,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, bus_value_);
 			if(interrupt_requests_ & InterruptRequestFlags::Reset) {
 				stop_is_active_ = false;
-				checkSchedule();
+				check_schedule();
 				break;
 			}
 		}
@@ -63,25 +115,20 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 			interrupt_requests_ |= (irq_line_ & flags_.inverse_interrupt);
 			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
 				wait_is_active_ = false;
-				checkSchedule();
+				check_schedule();
 				break;
 			}
 		}
 
 		if((!uses_ready_line || !ready_is_active_) && (!has_stpwai(personality) || (!wait_is_active_ && !stop_is_active_))) {
 			if(next_bus_operation_ != BusOperation::None) {
-				bus_access();
+				if(bus_access()) break;
 			}
 
 			while(1) {
 
 				const MicroOp cycle = *scheduled_program_counter_;
 				scheduled_program_counter_++;
-
-#define read_op(val, addr)		next_bus_operation_ = BusOperation::ReadOpcode;	bus_address_ = addr;		bus_value_ = &val;				val = 0xff
-#define read_mem(val, addr)		next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &val;				val	= 0xff
-#define throwaway_read(addr)	next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &bus_throwaway_;	bus_throwaway_ = 0xff
-#define write_mem(val, addr)	next_bus_operation_ = BusOperation::Write;		bus_address_ = addr;		bus_value_ = &val
 
 				switch(cycle) {
 
@@ -117,13 +164,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationMoveToNextProgram:
 						scheduled_program_counter_ = nullptr;
-						checkSchedule();
+						check_schedule();
 					continue;
-
-#define push(v) {\
-	uint16_t targetAddress = s_ | 0x100; s_--;\
-	write_mem(v, targetAddress);\
-}
 
 					case CycleIncPCPushPCH:				pc_.full++;														[[fallthrough]];
 					case CyclePushPCH:					push(pc_.halves.high);											break;
@@ -133,12 +175,11 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case CyclePushX:					push(x_);														break;
 					case CyclePushY:					push(y_);														break;
 					case CycleNoWritePush: {
-						uint16_t targetAddress = s_ | 0x100; s_--;
+						uint16_t targetAddress = s_ | 0x100;
+						--s_;
 						read_mem(operand_, targetAddress);
 					}
 					break;
-
-#undef push
 
 					case CycleReadFromS:				throwaway_read(s_ | 0x100);										break;
 					case CycleReadFromPC:				throwaway_read(pc_.full);										break;
@@ -172,7 +213,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);				break;
 					case OperationSetFlagsFromOperand:	set_flags(operand_);								continue;
 					case OperationSetOperandFromFlagsWithBRKSet: operand_ = flags_.get();					continue;
-					case OperationSetOperandFromFlags:  operand_ = flags_.get() & ~Flag::Break;				continue;
+					case OperationSetOperandFromFlags:	operand_ = flags_.get() & ~Flag::Break;				continue;
 					case OperationSetFlagsFromA:		flags_.set_nz(a_);									continue;
 					case OperationSetFlagsFromX:		flags_.set_nz(x_);									continue;
 					case OperationSetFlagsFromY:		flags_.set_nz(y_);									continue;
@@ -223,10 +264,45 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSTY:	operand_ = y_;											continue;
 					case OperationSTZ:	operand_ = 0;											continue;
 					case OperationSAX:	operand_ = a_ & x_;										continue;
-					case OperationSHA:	operand_ = a_ & x_ & (address_.halves.high+1);			continue;
-					case OperationSHX:	operand_ = x_ & (address_.halves.high+1);				continue;
-					case OperationSHY:	operand_ = y_ & (address_.halves.high+1);				continue;
-					case OperationSHS:	s_ = a_ & x_; operand_ = s_ & (address_.halves.high+1);	continue;
+
+					// For the next four, intended effect is:
+					//
+					//	CPU calculates what address would be if a page boundary is crossed. The high byte of that
+					//	takes part in the AND. If the page boundary is actually crossed then the total AND takes
+					//	the place of the intended high byte.
+					//
+					// Within this implementation, there's a bit of after-the-effect judgment on whether a page
+					// boundary was crossed.
+					case OperationSHA:
+						if(address_.full != next_address_.full) {
+							address_.halves.high = operand_ = a_ & x_ & address_.halves.high;
+						} else {
+							operand_ = a_ & x_ & (address_.halves.high + 1);
+						}
+					continue;
+					case OperationSHX:
+						if(address_.full != next_address_.full) {
+							address_.halves.high = operand_ = x_ & address_.halves.high;
+						} else {
+							operand_ = x_ & (address_.halves.high + 1);
+						}
+					continue;
+					case OperationSHY:
+						if(address_.full != next_address_.full) {
+							address_.halves.high = operand_ = y_ & address_.halves.high;
+						} else {
+							operand_ = y_ & (address_.halves.high + 1);
+						}
+					continue;
+					case OperationSHS:
+						if(address_.full != next_address_.full) {
+							s_ = a_ & x_;
+							address_.halves.high = operand_ = s_ & address_.halves.high;
+						} else {
+							s_ = a_ & x_;
+							operand_ = s_ & (address_.halves.high + 1);
+						}
+					continue;
 
 					case OperationLXA:
 						a_ = x_ = (a_ | 0xee) & operand_;
@@ -282,55 +358,103 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 // MARK: - ADC/SBC (and INS)
 
 					case OperationINS:
-						operand_++;
+						++operand_;
 						[[fallthrough]];
 					case OperationSBC:
+						operand_ = ~operand_;
+
 						if(flags_.decimal && has_decimal_mode(personality)) {
-							const uint16_t notCarry = flags_.carry ^ 0x1;
-							const uint16_t decimalResult = uint16_t(a_) - uint16_t(operand_) - notCarry;
-							uint16_t temp16;
+							uint8_t result = a_ + operand_ + flags_.carry;
 
-							temp16 = (a_&0xf) - (operand_&0xf) - notCarry;
-							if(temp16 > 0xf) temp16 -= 0x6;
-							temp16 = (temp16&0x0f) | ((temp16 > 0x0f) ? 0xfff0 : 0x00);
-							temp16 += (a_&0xf0) - (operand_&0xf0);
+							// All flags are set based only on the decimal result.
+							flags_.zero_result = result;
+							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
+							flags_.negative_result = result;
+							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
-							flags_.overflow = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
-							flags_.negative_result = uint8_t(temp16);
-							flags_.zero_result = uint8_t(decimalResult);
+							// General SBC logic:
+							//
+							// Because the range of valid numbers starts at 0, any subtraction that should have
+							// caused decimal carry and which requires a digit fix up will definitely have caused
+							// binary carry: the subtraction will have crossed zero and gone into negative numbers.
+							//
+							// So just test for carry (well, actually borrow, which is !carry).
 
-							if(temp16 > 0xff) temp16 -= 0x60;
+							// The bottom nibble is adjusted if there was borrow into the top nibble;
+							// on a 6502 additional borrow isn't propagated but on a 65C02 it is.
+							// This difference affects invalid BCD numbers only — valid numbers will
+							// never be less than -9 so adding 10 will always generate carry.
+							if(!Numeric::carried_in<4>(a_, operand_, result)) {
+								if constexpr (is_65c02(personality)) {
+									result += 0xfa;
+								} else {
+									result = (result & 0xf0) | ((result + 0xfa) & 0xf);
+								}
+							}
 
-							flags_.carry = (temp16 > 0xff) ? 0 : Flag::Carry;
-							a_ = uint8_t(temp16);
+							// The top nibble is adjusted only if there was borrow out of the whole byte.
+							if(!flags_.carry) {
+								result += 0xa0;
+							}
 
-							if(is_65c02(personality)) {
+							a_ = result;
+
+							// fix up in case this was INS.
+							if(cycle == OperationINS) operand_ = ~operand_;
+
+							if constexpr (is_65c02(personality)) {
+								// 65C02 fix: set the N and Z flags based on the final, decimal result.
+								// Read into `operation_` for the sake of reading somewhere; the value isn't
+								// used and INS will write `operand_` back to memory.
 								flags_.set_nz(a_);
-								read_mem(operand_, address_.full);
+								read_mem(operation_, address_.full);
 								break;
 							}
 							continue;
-						} else {
-							operand_ = ~operand_;
 						}
 						[[fallthrough]];
 
 					case OperationADC:
 						if(flags_.decimal && has_decimal_mode(personality)) {
-							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(flags_.carry);
+							uint8_t result = a_ + operand_ + flags_.carry;
+							flags_.zero_result = result;
+							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
 
-							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + flags_.carry;
-							if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
-							uint16_t result = uint16_t(a_ & 0xf0) + uint16_t(operand_ & 0xf0) + uint16_t(low_nibble);
-							flags_.negative_result = uint8_t(result);
-							flags_.overflow = (( (result^a_)&(result^operand_) )&0x80) >> 1;
-							if(result >= 0xa0) result += 0x60;
+							// General ADC logic:
+							//
+							// Detecting decimal carry means finding occasions when two digits added together totalled
+							// more than 9. Within each four-bit window that means testing the digit itself and also
+							// testing for carry — e.g. 5 + 5 = 0xA, which is detectable only by the value of the final
+							// digit, but 9 + 9 = 0x18, which is detectable only by spotting the carry.
 
-							flags_.carry = (result >> 8) ? 1 : 0;
-							a_ = uint8_t(result);
-							flags_.zero_result = uint8_t(decimalResult);
+							// Only a single bit of carry can flow from the bottom nibble to the top.
+							//
+							// So if that carry already happened, fix up the bottom without permitting another;
+							// otherwise permit the carry to happen (and check whether carry then rippled out of bit 7).
+							if(Numeric::carried_in<4>(a_, operand_, result)) {
+								result = (result & 0xf0) | ((result + 0x06) & 0x0f);
+							} else if((result & 0xf) > 0x9) {
+								flags_.carry |= result >= 0x100 - 0x6;
+								result += 0x06;
+							}
 
-							if(is_65c02(personality)) {
+							// 6502 quirk: N and V are set before the full result is computed but
+							// after the low nibble has been corrected.
+							flags_.negative_result = result;
+							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
+
+							// i.e. fix high nibble if there was carry out of bit 7 already, or if the
+							// top nibble is too large (in which case there will be carry after the fix-up).
+							flags_.carry |= result >= 0xa0;
+							if(flags_.carry) {
+								result += 0x60;
+							}
+
+							a_ = result;
+
+							if constexpr (is_65c02(personality)) {
+								// 65C02 fix: N and Z are set correctly based on the final BCD result, at the cost of
+								// an extra cycle.
 								flags_.set_nz(a_);
 								read_mem(operand_, address_.full);
 								break;
@@ -342,7 +466,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							flags_.carry = (result >> 8)&1;
 						}
 
-						// fix up in case this was INS
+						// fix up in case this was INS.
 						if(cycle == OperationINS) operand_ = ~operand_;
 					continue;
 
@@ -421,12 +545,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationINC: operand_++; flags_.set_nz(operand_);		continue;
 					case OperationDEC: operand_--; flags_.set_nz(operand_);		continue;
-					case OperationINA: a_++; flags_.set_nz(a_); 				continue;
-					case OperationDEA: a_--; flags_.set_nz(a_); 				continue;
-					case OperationINX: x_++; flags_.set_nz(x_); 				continue;
-					case OperationDEX: x_--; flags_.set_nz(x_); 				continue;
-					case OperationINY: y_++; flags_.set_nz(y_); 				continue;
-					case OperationDEY: y_--; flags_.set_nz(y_); 				continue;
+					case OperationINA: a_++; flags_.set_nz(a_);					continue;
+					case OperationDEA: a_--; flags_.set_nz(a_);					continue;
+					case OperationINX: x_++; flags_.set_nz(x_);					continue;
+					case OperationDEX: x_--; flags_.set_nz(x_);					continue;
+					case OperationINY: y_++; flags_.set_nz(y_);					continue;
+					case OperationDEY: y_--; flags_.set_nz(y_);					continue;
 
 					case OperationANE:
 						a_ = (a_ | 0xee) & operand_ & x_;
@@ -446,13 +570,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 // MARK: - Addressing Mode Work
 
-#define page_crossing_stall_read()	\
-	if(is_65c02(personality)) {	\
-		throwaway_read(pc_.full - 1);	\
-	} else {	\
-		throwaway_read(address_.full);	\
-	}
-
 					case CycleAddXToAddressLow:
 						next_address_.full = address_.full + x_;
 						address_.halves.low = next_address_.halves.low;
@@ -461,11 +578,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
-					case CycleAddXToAddressLowRead:
-						next_address_.full = address_.full + x_;
-						address_.halves.low = next_address_.halves.low;
-						page_crossing_stall_read();
-					break;
 					case CycleAddYToAddressLow:
 						next_address_.full = address_.full + y_;
 						address_.halves.low = next_address_.halves.low;
@@ -474,16 +586,41 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							break;
 						}
 					continue;
+
+					case CycleAddXToAddressLowRead:
+						next_address_.full = address_.full + x_;
+						address_.halves.low = next_address_.halves.low;
+
+						// Cf. https://groups.google.com/g/comp.sys.apple2/c/RuTGaRxu5Iw/m/uyFLEsF8ceIJ
+						//
+						// STA abs,X has been fixed for the PX (page-crossing) case by adding a dummy read of the
+						// program counter, so the change was rW -> W. In the non-PX case it still reads the destination
+						// address, so there is no change: RW -> RW.
+						if(!is_65c02(personality) || next_address_.full == address_.full) {
+							throwaway_read(address_.full);
+						} else {
+							throwaway_read(pc_.full - 1);
+						}
+					break;
 					case CycleAddYToAddressLowRead:
 						next_address_.full = address_.full + y_;
 						address_.halves.low = next_address_.halves.low;
-						page_crossing_stall_read();
+
+						// A similar rule as for above applies; this one adjusts (abs, y) addressing.
+
+						if(!is_65c02(personality) || next_address_.full == address_.full) {
+							throwaway_read(address_.full);
+						} else {
+							throwaway_read(pc_.full - 1);
+						}
 					break;
 
-#undef page_crossing_stall_read
-
 					case OperationCorrectAddressHigh:
-						address_.full = next_address_.full;
+						// Preserve the uncorrected address in next_address_ (albeit that it's
+						// now a misnomer) as some of the more obscure illegal operations end
+						// up acting differently if an adjustment was necessary and therefore need
+						// a crumb trail to test for that.
+						std::swap(address_.full, next_address_.full);
 					continue;
 					case CycleIncrementPCFetchAddressLowFromOperand:
 						pc_.full++;
@@ -544,23 +681,15 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 // MARK: - Branching
 
-#define BRA(condition)	\
-	pc_.full++; \
-	if(condition) {	\
-		scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];	\
-	}
-
-					case OperationBPL: BRA(!(flags_.negative_result&0x80));			continue;
-					case OperationBMI: BRA(flags_.negative_result&0x80);			continue;
-					case OperationBVC: BRA(!flags_.overflow);						continue;
-					case OperationBVS: BRA(flags_.overflow);						continue;
-					case OperationBCC: BRA(!flags_.carry);							continue;
-					case OperationBCS: BRA(flags_.carry);							continue;
-					case OperationBNE: BRA(flags_.zero_result);						continue;
-					case OperationBEQ: BRA(!flags_.zero_result);					continue;
-					case OperationBRA: BRA(true);									continue;
-
-#undef BRA
+					case OperationBPL: bra(!(flags_.negative_result&0x80));			continue;
+					case OperationBMI: bra(flags_.negative_result&0x80);			continue;
+					case OperationBVC: bra(!flags_.overflow);						continue;
+					case OperationBVS: bra(flags_.overflow);						continue;
+					case OperationBCC: bra(!flags_.carry);							continue;
+					case OperationBCS: bra(flags_.carry);							continue;
+					case OperationBNE: bra(flags_.zero_result);						continue;
+					case OperationBEQ: bra(!flags_.zero_result);					continue;
+					case OperationBRA: bra(true);									continue;
 
 					case CycleAddSignedOperandToPC:
 						next_address_.full = uint16_t(pc_.full + int8_t(operand_));
@@ -608,7 +737,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationTSX: flags_.set_nz(x_ = s_);	continue;
 
 					case OperationARR:
-						if(flags_.decimal) {
+						if(flags_.decimal && has_decimal_mode(personality)) {
 							a_ &= operand_;
 							uint8_t unshiftedA = a_;
 							a_ = uint8_t((a_ >> 1) | (flags_.carry << 7));
@@ -644,7 +773,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					ready_is_active_ = true;
 					break;
 				}
-				bus_access();
+				if(bus_access()) break;
 			}
 		}
 	}
@@ -704,7 +833,7 @@ bool ProcessorBase::is_jammed() const {
 	return is_jammed_;
 }
 
-uint16_t ProcessorBase::get_value_of_register(Register r) const {
+uint16_t ProcessorBase::value_of(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return pc_.full;
 		case Register::LastOperationAddress:	return last_operation_pc_.full;
@@ -717,7 +846,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	}
 }
 
-void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
+void ProcessorBase::set_value_of(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	pc_.full = value;			break;
 		case Register::StackPointer:	s_ = uint8_t(value);		break;
@@ -727,4 +856,9 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::Y:				y_ = uint8_t(value);		break;
 		default: break;
 	}
+}
+
+void ProcessorBase::restart_operation_fetch() {
+	scheduled_program_counter_ = nullptr;
+	next_bus_operation_ = BusOperation::None;
 }

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AsyncTaskQueue_hpp
-#define AsyncTaskQueue_hpp
+#pragma once
 
 #include <atomic>
 #include <condition_variable>
@@ -120,7 +119,7 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 		///
 		/// This is not guaranteed safely to restart a stopped queue.
 		void start() {
-			thread_ = std::move(std::thread{
+			thread_ = std::thread{
 				[this] {
 					ActionVector actions;
 
@@ -128,7 +127,7 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 					while(!should_quit_) {
 						// Wait for new actions to be signalled, and grab them.
 						std::unique_lock lock(condition_mutex_);
-						while(actions_.empty()) {
+						while(actions_.empty() && !should_quit_) {
 							condition_.wait(lock);
 						}
 						std::swap(actions, actions_);
@@ -144,7 +143,7 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 						actions.clear();
 					}
 				}
-			});
+			};
 		}
 
 		/// Schedules any remaining unscheduled work, then blocks synchronously
@@ -189,5 +188,3 @@ template <bool perform_automatically, bool start_immediately = true, typename Pe
 };
 
 }
-
-#endif /* AsyncTaskQueue_hpp */

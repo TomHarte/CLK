@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Blitter_hpp
-#define Blitter_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -129,6 +128,3 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 };
 
 }
-
-
-#endif /* Blitter_hpp */

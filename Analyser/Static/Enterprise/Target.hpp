@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Enterprise_Target_h
-#define Analyser_Static_Enterprise_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
@@ -15,9 +14,7 @@
 
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Enterprise {
+namespace Analyser::Static::Enterprise {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, Enterprise64, Enterprise128, Enterprise256);
@@ -51,7 +48,3 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 };
 
 }
-}
-}
-
-#endif /* Analyser_Static_Enterprise_Target_h */

@@ -6,14 +6,15 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef NIB_hpp
-#define NIB_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
+#include "../../Track/PCMTrack.hpp"
 
-namespace Storage {
-namespace Disk {
+#include <memory>
+
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage describing an Apple NIB disk image:
@@ -34,9 +35,12 @@ class NIB: public DiskImage {
 		FileHolder file_;
 		long get_file_offset_for_position(Track::Address address);
 		long file_offset(Track::Address address);
+
+		// Cache for the last-generated track, given that head steps on an Apple II
+		// occur in quarter-track increments, so there'll routinely be four gets in
+		// a row for the same data.
+		long cached_offset_ = 0;
+		std::shared_ptr<Storage::Disk::PCMTrack> cached_track_;
 };
 
 }
-}
-
-#endif /* NIB_hpp */

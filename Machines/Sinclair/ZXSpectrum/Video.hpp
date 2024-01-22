@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Video_hpp
-#define Video_hpp
+#pragma once
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -16,9 +15,7 @@
 
 #include <algorithm>
 
-namespace Sinclair {
-namespace ZXSpectrum {
-namespace Video {
+namespace Sinclair::ZXSpectrum::Video {
 
 enum class Timing {
 	FortyEightK,
@@ -135,7 +132,7 @@ template <Timing timing> class Video {
 						// Output plain border line.
 						if(offset < sync_position) {
 							const int border_duration = std::min(sync_position, end_offset) - offset;
-							output_border(border_duration);
+							crt_.output_level<uint8_t>(border_duration, border_colour_);
 							offset += border_duration;
 						}
 					} else {
@@ -201,7 +198,7 @@ template <Timing timing> class Video {
 
 						if(offset >= 256 && offset < sync_position && end_offset > offset) {
 							const int border_duration = std::min(sync_position, end_offset) - offset;
-							output_border(border_duration);
+							crt_.output_level<uint8_t>(border_duration, border_colour_);
 							offset += border_duration;
 						}
 					}
@@ -233,8 +230,7 @@ template <Timing timing> class Video {
 					}
 
 					if(offset >= burst_position+burst_length && end_offset > offset) {
-						const int border_duration = end_offset - offset;
-						output_border(border_duration);
+						crt_.output_level<uint8_t>(end_offset - offset, border_colour_);
 					}
 				}
 
@@ -244,12 +240,6 @@ template <Timing timing> class Video {
 		}
 
 	private:
-		void output_border(int duration) {
-			uint8_t *const colour_pointer = crt_.begin_data(1);
-			if(colour_pointer) *colour_pointer = border_colour_;
-			crt_.output_level(duration);
-		}
-
 		static constexpr int half_cycles_per_line() {
 			if constexpr (timing == Timing::FortyEightK) {
 				// TODO: determine real figure here, if one exists.
@@ -317,7 +307,7 @@ template <Timing timing> class Video {
 		/*!
 			@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
 		*/
-		HalfCycles get_next_sequence_point() {
+		HalfCycles next_sequence_point() {
 			constexpr auto timings = get_timings();
 
 			// Is the frame still ahead of this interrupt?
@@ -493,7 +483,3 @@ struct State: public Reflection::StructImpl<State> {
 };
 
 }
-}
-}
-
-#endif /* Video_hpp */

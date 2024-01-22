@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DisplayMetrics_hpp
-#define DisplayMetrics_hpp
+#pragma once
 
 #include "ScanTarget.hpp"
 
@@ -15,8 +14,7 @@
 #include <atomic>
 #include <chrono>
 
-namespace Outputs {
-namespace Display {
+namespace Outputs::Display {
 
 /*!
 	A class to derive various metrics about the input to a ScanTarget,
@@ -57,6 +55,3 @@ class Metrics {
 };
 
 }
-}
-
-#endif /* DisplayMetrics_hpp */

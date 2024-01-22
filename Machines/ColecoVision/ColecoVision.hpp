@@ -6,21 +6,21 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ColecoVision_hpp
-#define ColecoVision_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
-namespace Coleco {
-namespace Vision {
+#include <memory>
+
+namespace Coleco::Vision {
 
 class Machine {
 	public:
 		virtual ~Machine();
-		static Machine *ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
 			friend Configurable::DisplayOption<Options>;
@@ -36,6 +36,3 @@ class Machine {
 };
 
 }
-}
-
-#endif /* ColecoVision_hpp */

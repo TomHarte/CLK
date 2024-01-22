@@ -38,7 +38,7 @@ Storage::Disk::PCMSegment sync(int length, int bit_size) {
 	// Reserve sufficient storage.
 	segment.data.reserve(size_t(length * bit_size));
 
-	// Write patters of 0xff padded with 0s to the selected bit size.
+	// Write patterns of 0xff padded with 0s to the selected bit size.
 	while(length--) {
 		int c = 8;
 		while(c--)

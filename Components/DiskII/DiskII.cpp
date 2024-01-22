@@ -13,7 +13,7 @@
 
 using namespace Apple;
 
-namespace  {
+namespace {
 	const uint8_t input_command = 0x4;	// i.e. Q6
 	const uint8_t input_mode = 0x8;		// i.e. Q7
 	const uint8_t input_flux = 0x1;
@@ -23,8 +23,14 @@ DiskII::DiskII(int clock_rate) :
 	clock_rate_(clock_rate),
 	inputs_(input_command),
 	drives_{
-		Storage::Disk::Drive{clock_rate, 300, 1},
-		Storage::Disk::Drive{clock_rate, 300, 1}
+		// Bit of a hack here: drives are marginally slowed down compared to real drives
+		// in order to accomodate NIB files, which usually carry more data than will
+		// physically fit on a track once slip bits are reinserted.
+		//
+		// I don't like the coupling here.
+		// TODO: resolve better, somehow.
+		Storage::Disk::Drive{clock_rate, 295, 1},
+		Storage::Disk::Drive{clock_rate, 295, 1}
 	}
 {
 	drives_[0].set_clocking_hint_observer(this);
@@ -55,7 +61,12 @@ void DiskII::set_control(Control control, bool on) {
 		if(stepper_mask_&2) direction += (((stepper_position_ - 2) + 4)&7) - 4;
 		if(stepper_mask_&4) direction += (((stepper_position_ - 4) + 4)&7) - 4;
 		if(stepper_mask_&8) direction += (((stepper_position_ - 6) + 4)&7) - 4;
-		const int bits_set = (stepper_mask_&1) + ((stepper_mask_ >> 1)&1) + ((stepper_mask_ >> 2)&1) + ((stepper_mask_ >> 3)&1);
+
+		// TODO: when adopting C++20, replace with std::popcount.
+		int bits_set = stepper_mask_;
+		bits_set = (bits_set & 0x5) + ((bits_set >> 1) & 0x5);
+		bits_set = (bits_set & 0x3) + ((bits_set >> 2) & 0x3);
+
 		direction /= bits_set;
 
 		// Compare to the stepper position to decide whether that pulls in the current cog notch,
@@ -91,12 +102,15 @@ void DiskII::run_for(const Cycles cycles) {
 		state_ = state_machine_[size_t(address)];
 		switch(state_ & 0xf) {
 			default:	shift_register_ = 0;										break;	// clear
-			case 0x8:																break;	// nop
+
+			case 0x8:
+			case 0xc:																break;	// nop
 
 			case 0x9:	shift_register_ = uint8_t(shift_register_ << 1);			break;	// shift left, bringing in a zero
 			case 0xd:	shift_register_ = uint8_t((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
 
-			case 0xa:	// shift right, bringing in write protected status
+			case 0xa:
+			case 0xe:	// shift right, bringing in write protected status
 				shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
 
 				// If the controller is in the sense write protect loop but the register will never change,
@@ -108,14 +122,16 @@ void DiskII::run_for(const Cycles cycles) {
 					return;
 				}
 			break;
-			case 0xb:	shift_register_ = data_input_;								break;	// load data register from data bus
+
+			case 0xb:
+			case 0xf:	shift_register_ = data_input_;								break;	// load data register from data bus
 		}
 
 		// Currently writing?
 		if(inputs_&input_mode) {
 			// state_ & 0x80 should be the current level sent to the disk;
 			// therefore transitions in that bit should become flux transitions
-			drives_[active_drive_].write_bit(!!((state_ ^ address) & 0x80));
+			drives_[active_drive_].write_bit((state_ ^ address) & 0x80);
 		}
 
 		// TODO: surely there's a less heavyweight solution than inline updates?
@@ -144,7 +160,7 @@ void DiskII::decide_clocking_preference() {
 	//	none, given that drives are not running, the shift register has already emptied or stopped and there's no flux about to be received.
 	if(!(inputs_ & ~input_flux)) {
 		const bool is_stuck_at_nop =
-			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6)] == state_  && (state_ &0xf) == 0x8;
+			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_ & 0x80) >> 6)] == state_ && ((state_ & 0xf) == 0x8 || (state_ & 0xf) == 0xc);
 
 		clocking_preference_ =
 			(drive_is_sleeping_[0] && drive_is_sleeping_[1] && (!shift_register_ || is_stuck_at_nop) && (inputs_&input_flux))
@@ -159,7 +175,7 @@ void DiskII::decide_clocking_preference() {
 	// If in sense-write-protect mode, clocking is just-in-time if the shift register hasn't yet filled with the value that
 	// corresponds to the current write protect status. Otherwise it is none.
 	if((inputs_ & ~input_flux) == input_command) {
-		clocking_preference_ = (shift_register_ == (is_write_protected() ? 0xff : 0x00)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+		clocking_preference_ = ((shift_register_ == (is_write_protected() ? 0xff : 0x00)) && ((state_ & 0xf) == 0xa || (state_ & 0xf) == 0xe)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 	}
 
 	// Announce a change if there was one.
@@ -168,7 +184,7 @@ void DiskII::decide_clocking_preference() {
 }
 
 bool DiskII::is_write_protected() {
-	return !!(stepper_mask_ & 2) | drives_[active_drive_].get_is_read_only();
+	return (stepper_mask_ & 2) || drives_[active_drive_].get_is_read_only();
 }
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
@@ -289,7 +305,7 @@ int DiskII::read_address(int address) {
 		break;
 	}
 	decide_clocking_preference();
-	return (address & 1) ? 0xff : shift_register_;
+	return (address & 1) ? DidNotLoad : shift_register_;
 }
 
 void DiskII::set_activity_observer(Activity::Observer *observer) {

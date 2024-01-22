@@ -38,16 +38,14 @@ namespace {
 }
 
 - (void)write:(uint8_t)value address:(uint32_t)address {
-	const auto &region = MemoryMapRegion(_memoryMap, address);
+	const auto &region = _memoryMap.region(address);
 	XCTAssertFalse(region.flags & MemoryMap::Region::IsIO);
-	MemoryMapWrite(_memoryMap, region, address, &value);
+	_memoryMap.write(region, address, value);
 }
 
 - (uint8_t)readAddress:(uint32_t)address {
-	const auto &region = MemoryMapRegion(_memoryMap, address);
-	uint8_t value;
-	MemoryMapRead(region, address, &value);
-	return value;
+	const auto &region = _memoryMap.region(address);
+	return _memoryMap.read(region, address);
 }
 
 - (void)testAllRAM {
@@ -154,7 +152,7 @@ namespace {
 		[self write:value address:c];
 		XCTAssertEqual(_ram[c], value);
 	}
-	
+
 	// Reset.
 	memset(_ram.data(), 0, 128*1024);
 
@@ -277,11 +275,10 @@ namespace {
 
 					int physical = physicalStart;
 					for(int logical = logicalStart; logical < logicalEnd; logical++) {
-						const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+						const auto &region = self->_memoryMap.region(logical);
 
 						// Don't worry about IO pages here; they'll be compared shortly.
 						if(!(region.flags & MemoryMap::Region::IsIO)) {
-							const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
 							applyTest(logical, physical, region);
 
 							if(*stop) {
@@ -369,10 +366,8 @@ namespace {
 		int logical = 0;
 		for(NSNumber *next in test[@"shadowed"]) {
 			while(logical < [next intValue]) {
-				[[maybe_unused]] const auto &region =
-					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
-				const bool isShadowed =
-					IsShadowed(_memoryMap, region, (logical << 8));
+				const auto &region = _memoryMap.region(logical);
+				const bool isShadowed = _memoryMap.is_shadowed(region, logical << 8);
 
 				XCTAssertEqual(
 					isShadowed,
@@ -389,8 +384,7 @@ namespace {
 		logical = 0;
 		for(NSNumber *next in test[@"io"]) {
 			while(logical < [next intValue]) {
-				const auto &region =
-					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+				const auto &region = self->_memoryMap.region(logical);
 
 				// This emulator marks card pages as IO because it uses IO to mean
 				// "anything that isn't the built-in RAM". Just don't test card pages.

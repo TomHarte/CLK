@@ -6,15 +6,13 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ConfidenceSummary_hpp
-#define ConfidenceSummary_hpp
+#pragma once
 
 #include "ConfidenceSource.hpp"
 
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Summaries a collection of confidence sources by calculating their weighted sum.
@@ -41,6 +39,3 @@ class ConfidenceSummary: public ConfidenceSource {
 };
 
 }
-}
-
-#endif /* ConfidenceSummary_hpp */

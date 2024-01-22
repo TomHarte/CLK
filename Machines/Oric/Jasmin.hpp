@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Jasmin_hpp
-#define Jasmin_hpp
+#pragma once
 
 #include "../../Components/1770/1770.hpp"
 #include "../../Activity/Observer.hpp"
@@ -41,6 +40,4 @@ class Jasmin: public DiskController {
 		}
 };
 
-};
-
-#endif /* Jasmin_hpp */
+}

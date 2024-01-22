@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef State_hpp
-#define State_hpp
+#pragma once
 
 #include "../../../Reflection/Struct.hpp"
 #include "../../../Processors/Z80/State/State.hpp"
@@ -15,9 +14,7 @@
 #include "Video.hpp"
 #include "../../../Components/AY38910/AY38910.hpp"
 
-namespace Sinclair {
-namespace ZXSpectrum {
-
+namespace Sinclair::ZXSpectrum {
 
 struct State: public Reflection::StructImpl<State> {
 	CPU::Z80::State z80;
@@ -48,6 +45,3 @@ struct State: public Reflection::StructImpl<State> {
 };
 
 }
-}
-
-#endif /* State_h */

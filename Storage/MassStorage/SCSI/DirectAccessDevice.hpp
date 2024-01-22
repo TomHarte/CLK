@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef SCSI_DirectAccessDevice_hpp
-#define SCSI_DirectAccessDevice_hpp
+#pragma once
 
 #include "Target.hpp"
 #include "../MassStorageDevice.hpp"
@@ -36,5 +35,3 @@ class DirectAccessDevice: public Target::Executor {
 };
 
 }
-
-#endif /* SCSI_DirectAccessDevice_hpp */

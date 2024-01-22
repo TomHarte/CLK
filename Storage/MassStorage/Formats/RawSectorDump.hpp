@@ -6,16 +6,14 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef RawSectorDump_h
-#define RawSectorDump_h
+#pragma once
 
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
 
 #include <cassert>
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 template <long sector_size> class RawSectorDump: public MassStorageDevice {
 	public:
@@ -54,6 +52,3 @@ template <long sector_size> class RawSectorDump: public MassStorageDevice {
 };
 
 }
-}
-
-#endif /* RawSectorDump_h */

@@ -6,23 +6,21 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Macintosh_hpp
-#define Macintosh_hpp
+#pragma once
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../ROMMachine.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 class Machine {
 	public:
 		virtual ~Machine();
 
 		/// Creates and returns a Macintosh.
-		static Machine *Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickbootOption<Options> {
 			friend Configurable::QuickbootOption<Options>;
@@ -36,8 +34,4 @@ class Machine {
 		};
 };
 
-
 }
-}
-
-#endif /* Macintosh_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef ApplePartitionMap_hpp
-#define ApplePartitionMap_hpp
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -15,10 +14,7 @@
 #include <sys/types.h>
 #include <vector>
 
-namespace Storage {
-namespace MassStorage {
-namespace Encodings {
-namespace Apple {
+namespace Storage::MassStorage::Encodings::Apple {
 
 enum class DriveType {
 	SCSI
@@ -250,8 +246,3 @@ template <typename VolumeProvider> class PartitionMap {
 };
 
 }
-}
-}
-}
-
-#endif /* ApplePartitionMap_hpp */

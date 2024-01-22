@@ -37,6 +37,11 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	auto target = std::make_unique<Analyser::Static::MSX::Target>();
 	target->confidence = confidence;
 
+	// Observation: all ROMs of 48kb or less are from the MSX 1 era.
+	if(segment.data.size() < 48*1024) {
+		target->model = Analyser::Static::MSX::Target::Model::MSX1;
+	}
+
 	if(type == Analyser::Static::MSX::Cartridge::Type::None) {
 		target->media.cartridges.emplace_back(new Storage::Cartridge::Cartridge(output_segments));
 	} else {
@@ -100,6 +105,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		// TODO: check for a rational init address?
 
 		// If this ROM is less than 48kb in size then it's an ordinary ROM. Just emplace it and move on.
+		// Bonus observation: all such ROMs are from the MSX 1 era.
 		if(data_size <= 0xc000) {
 			targets.emplace_back(CartridgeTarget(segment, start_address, Analyser::Static::MSX::Cartridge::Type::None, 1.0));
 			continue;
@@ -109,97 +115,16 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		// be at play; disassemble to try to figure it out.
 		std::vector<uint8_t> first_8k;
 		first_8k.insert(first_8k.begin(), segment.data.begin(), segment.data.begin() + 8192);
-		Analyser::Static::Z80::Disassembly disassembly =
+		const Analyser::Static::Z80::Disassembly disassembly =
 			Analyser::Static::Z80::Disassemble(
 				first_8k,
 				Analyser::Static::Disassembler::OffsetMapper(start_address),
-				{ init_address }
+				{ init_address },
+				Analyser::Static::Z80::Approach::Exhaustive
 			);
 
-//		// Look for a indirect store followed by an unconditional JP or CALL into another
-//		// segment, that's a fairly explicit sign where found.
 		using Instruction = Analyser::Static::Z80::Instruction;
-		std::map<uint16_t, Instruction> &instructions = disassembly.instructions_by_address;
-		bool is_ascii = false;
-//		auto iterator = instructions.begin();
-//		while(iterator != instructions.end()) {
-//			auto next_iterator = iterator;
-//			next_iterator++;
-//			if(next_iterator == instructions.end()) break;
-//
-//			if(	iterator->second.operation == Instruction::Operation::LD &&
-//				iterator->second.destination == Instruction::Location::Operand_Indirect &&
-//				(
-//					iterator->second.operand == 0x5000 ||
-//					iterator->second.operand == 0x6000 ||
-//					iterator->second.operand == 0x6800 ||
-//					iterator->second.operand == 0x7000 ||
-//					iterator->second.operand == 0x77ff ||
-//					iterator->second.operand == 0x7800 ||
-//					iterator->second.operand == 0x8000 ||
-//					iterator->second.operand == 0x9000 ||
-//					iterator->second.operand == 0xa000
-//				) &&
-//				(
-//					next_iterator->second.operation == Instruction::Operation::CALL ||
-//					next_iterator->second.operation == Instruction::Operation::JP
-//				) &&
-//				((next_iterator->second.operand >> 13) != (0x4000 >> 13))
-//			) {
-//				const uint16_t address = uint16_t(next_iterator->second.operand);
-//				switch(iterator->second.operand) {
-//					case 0x6000:
-//						if(address >= 0x6000 && address < 0x8000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::KonamiWithSCC;
-//						}
-//					break;
-//					case 0x6800:
-//						if(address >= 0x6000 && address < 0x6800) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::ASCII8kb;
-//						}
-//					break;
-//					case 0x7000:
-//						if(address >= 0x6000 && address < 0x8000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::KonamiWithSCC;
-//						}
-//						if(address >= 0x7000 && address < 0x7800) {
-//							is_ascii = true;
-//						}
-//					break;
-//					case 0x77ff:
-//						if(address >= 0x7000 && address < 0x7800) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::ASCII16kb;
-//						}
-//					break;
-//					case 0x7800:
-//						if(address >= 0xa000 && address < 0xc000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::ASCII8kb;
-//						}
-//					break;
-//					case 0x8000:
-//						if(address >= 0x8000 && address < 0xa000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::KonamiWithSCC;
-//						}
-//					break;
-//					case 0x9000:
-//						if(address >= 0x8000 && address < 0xa000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::KonamiWithSCC;
-//						}
-//					break;
-//					case 0xa000:
-//						if(address >= 0xa000 && address < 0xc000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::Konami;
-//						}
-//					break;
-//					case 0xb000:
-//						if(address >= 0xa000 && address < 0xc000) {
-//							target.msx.cartridge_type = Analyser::Static::MSXCartridgeType::KonamiWithSCC;
-//						}
-//					break;
-//				}
-//			}
-//
-//			iterator = next_iterator;
+		const std::map<uint16_t, Instruction> &instructions = disassembly.instructions_by_address;
 
 		// Look for LD (nnnn), A instructions, and collate those addresses.
 		std::map<uint16_t, int> address_counts;
@@ -211,49 +136,46 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 			}
 		}
 
-		// Weight confidences by number of observed hits.
-		float total_hits =
-			float(
-				address_counts[0x6000] + address_counts[0x6800] +
-				address_counts[0x7000] + address_counts[0x7800] +
-				address_counts[0x77ff] + address_counts[0x8000] +
-				address_counts[0xa000] + address_counts[0x5000] +
-				address_counts[0x9000] + address_counts[0xb000]
-			);
+		// Weight confidences by number of observed hits; if any is above 60% confidence, just use it.
+		const auto ascii_8kb_total = address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800];
+		const auto ascii_16kb_total = address_counts[0x6000] + address_counts[0x7000] + address_counts[0x77ff];
+		const auto konami_total = address_counts[0x6000] + address_counts[0x8000] + address_counts[0xa000];
+		const auto konami_with_scc_total = address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000];
 
-		targets.push_back(CartridgeTarget(
-			segment,
-			start_address,
-			Analyser::Static::MSX::Cartridge::ASCII8kb,
-			float(	address_counts[0x6000] +
-					address_counts[0x6800] +
-					address_counts[0x7000] +
-					address_counts[0x7800]) / total_hits));
-		targets.push_back(CartridgeTarget(
-			segment,
-			start_address,
-			Analyser::Static::MSX::Cartridge::ASCII16kb,
-			float(	address_counts[0x6000] +
-					address_counts[0x7000] +
-					address_counts[0x77ff]) / total_hits));
-		if(!is_ascii) {
+		const auto total_hits = ascii_8kb_total + ascii_16kb_total + konami_total + konami_with_scc_total;
+
+		const bool is_ascii_8kb = (ascii_8kb_total * 5) / (total_hits * 3);
+		const bool is_ascii_16kb = (ascii_16kb_total * 5) / (total_hits * 3);
+		const bool is_konami = (konami_total * 5) / (total_hits * 3);
+		const bool is_konami_with_scc = (konami_with_scc_total * 5) / (total_hits * 3);
+
+		if(!is_ascii_16kb && !is_konami && !is_konami_with_scc) {
+			targets.push_back(CartridgeTarget(
+				segment,
+				start_address,
+				Analyser::Static::MSX::Cartridge::ASCII8kb,
+				float(ascii_8kb_total) / float(total_hits)));
+		}
+		if(!is_ascii_8kb && !is_konami && !is_konami_with_scc) {
+			targets.push_back(CartridgeTarget(
+				segment,
+				start_address,
+				Analyser::Static::MSX::Cartridge::ASCII16kb,
+				float(ascii_16kb_total) / float(total_hits)));
+		}
+		if(!is_ascii_8kb && !is_ascii_16kb && !is_konami_with_scc) {
 			targets.push_back(CartridgeTarget(
 				segment,
 				start_address,
 				Analyser::Static::MSX::Cartridge::Konami,
-				float(	address_counts[0x6000] +
-						address_counts[0x8000] +
-						address_counts[0xa000]) / total_hits));
+				float(konami_total) / float(total_hits)));
 		}
-		if(!is_ascii) {
+		if(!is_ascii_8kb && !is_ascii_16kb && !is_konami) {
 			targets.push_back(CartridgeTarget(
 				segment,
 				start_address,
 				Analyser::Static::MSX::Cartridge::KonamiWithSCC,
-				float(	address_counts[0x5000] +
-						address_counts[0x7000] +
-						address_counts[0x9000] +
-						address_counts[0xb000]) / total_hits));
+				float(konami_with_scc_total) / float(total_hits)));
 		}
 	}
 

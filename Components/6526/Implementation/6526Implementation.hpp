@@ -6,14 +6,12 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef _526Implementation_h
-#define _526Implementation_h
+#pragma once
 
 #include <cassert>
 #include <cstdio>
 
-namespace MOS {
-namespace MOS6526 {
+namespace MOS::MOS6526 {
 
 enum Interrupts: uint8_t {
 	TimerA = 1 << 0,
@@ -239,6 +237,3 @@ bool MOS6526<BusHandlerT, personality>::serial_line_did_produce_bit(Serial::Line
 }
 
 }
-}
-
-#endif /* _526Implementation_h */

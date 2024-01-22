@@ -6,16 +6,13 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Macintosh_Target_h
-#define Analyser_Static_Macintosh_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Macintosh {
+namespace Analyser::Static::Macintosh {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, Mac128k, Mac512k, Mac512ke, MacPlus);
@@ -31,7 +28,3 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 };
 
 }
-}
-}
-
-#endif /* Analyser_Static_Macintosh_Target_h */

@@ -6,16 +6,13 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Acorn_Target_h
-#define Analyser_Static_Acorn_Target_h
+#pragma once
 
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_acorn_adfs = false;
@@ -38,7 +35,3 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 };
 
 }
-}
-}
-
-#endif /* Analyser_Static_Acorn_Target_h */

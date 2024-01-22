@@ -10,7 +10,6 @@
 
 #include "../../Track/PCMTrack.hpp"
 #include "../../Track/TrackSerialiser.hpp"
-#include "../../../Data/BitReverse.hpp"
 
 using namespace Storage::Disk;
 

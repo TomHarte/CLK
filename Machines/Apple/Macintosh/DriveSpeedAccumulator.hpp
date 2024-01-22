@@ -6,15 +6,13 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DriveSpeedAccumulator_hpp
-#define DriveSpeedAccumulator_hpp
+#pragma once
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 class DriveSpeedAccumulator {
 	public:
@@ -41,6 +39,3 @@ class DriveSpeedAccumulator {
 };
 
 }
-}
-
-#endif /* DriveSpeedAccumulator_hpp */

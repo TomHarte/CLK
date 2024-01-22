@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef ZX80O81P_hpp
-#define ZX80O81P_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -18,8 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a ZX80-format .O tape image, which is a byte stream capture.
@@ -60,6 +58,3 @@ class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
 };
 
 }
-}
-
-#endif /* ZX80O_hpp */

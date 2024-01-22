@@ -6,14 +6,12 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef D64_hpp
-#define D64_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing a D64 disk image: a decoded sector dump of a C1540-format disk.
@@ -40,6 +38,3 @@ class D64: public DiskImage {
 };
 
 }
-}
-
-#endif /* D64_hpp */

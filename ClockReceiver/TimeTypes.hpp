@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef TimeTypes_h
-#define TimeTypes_h
+#pragma once
 
 #include <chrono>
 
@@ -25,6 +24,3 @@ inline Seconds seconds(Nanos nanos) {
 }
 
 }
-
-#endif /* TimeTypes_h */
-

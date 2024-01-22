@@ -6,9 +6,9 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ActivityObserver_h
-#define ActivityObserver_h
+#pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace Activity {
@@ -23,6 +23,8 @@ namespace Activity {
 */
 class Observer {
 	public:
+		virtual ~Observer() {}
+
 		/// Provides hints as to the sort of information presented on an LED.
 		enum LEDPresentation: uint8_t {
 			/// This LED informs the user of some sort of persistent state, e.g. scroll lock.
@@ -55,5 +57,3 @@ class Observer {
 };
 
 }
-
-#endif /* ActivityObserver_h */

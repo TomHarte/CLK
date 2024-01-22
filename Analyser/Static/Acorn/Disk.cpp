@@ -19,10 +19,10 @@ using namespace Analyser::Static::Acorn;
 std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
 	auto catalogue = std::make_unique<Catalogue>();
-	Storage::Encodings::MFM::Parser parser(false, disk);
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Single, disk);
 
-	const Storage::Encodings::MFM::Sector *const names = parser.get_sector(0, 0, 0);
-	const Storage::Encodings::MFM::Sector *const details = parser.get_sector(0, 0, 1);
+	const Storage::Encodings::MFM::Sector *const names = parser.sector(0, 0, 0);
+	const Storage::Encodings::MFM::Sector *const details = parser.sector(0, 0, 1);
 
 	if(!names || !details) return nullptr;
 	if(names->samples.empty() || details->samples.empty()) return nullptr;
@@ -65,7 +65,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 			uint8_t track = uint8_t(start_sector / 10);
 			start_sector++;
 
-			Storage::Encodings::MFM::Sector *next_sector = parser.get_sector(0, track, sector);
+			const Storage::Encodings::MFM::Sector *next_sector = parser.sector(0, track, sector);
 			if(!next_sector) break;
 
 			long length_from_sector = std::min(data_length, 256l);
@@ -84,15 +84,15 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 */
 std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	auto catalogue = std::make_unique<Catalogue>();
-	Storage::Encodings::MFM::Parser parser(true, disk);
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
-	Storage::Encodings::MFM::Sector *free_space_map_second_half = parser.get_sector(0, 0, 1);
+	const Storage::Encodings::MFM::Sector *free_space_map_second_half = parser.sector(0, 0, 1);
 	if(!free_space_map_second_half) return nullptr;
 
 	std::vector<uint8_t> root_directory;
 	root_directory.reserve(5 * 256);
 	for(uint8_t c = 2; c < 7; c++) {
-		const Storage::Encodings::MFM::Sector *const sector = parser.get_sector(0, 0, c);
+		const Storage::Encodings::MFM::Sector *const sector = parser.sector(0, 0, c);
 		if(!sector) return nullptr;
 		root_directory.insert(root_directory.end(), sector->samples[0].begin(), sector->samples[0].end());
 	}
@@ -166,7 +166,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 
 		new_file.data.reserve(size);
 		while(new_file.data.size() < size) {
-			const Storage::Encodings::MFM::Sector *const sector = parser.get_sector(start_sector / (80 * 16), (start_sector / 16) % 80, start_sector % 16);
+			const Storage::Encodings::MFM::Sector *const sector = parser.sector(start_sector / (80 * 16), (start_sector / 16) % 80, start_sector % 16);
 			if(!sector) break;
 
 			const auto length_from_sector = std::min(size - new_file.data.size(), sector->samples[0].size());

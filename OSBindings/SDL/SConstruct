@@ -1,4 +1,5 @@
 import glob
+import os
 import sys
 
 # Establish UTF-8 encoding for Python 2.
@@ -7,7 +8,7 @@ if sys.version_info < (3, 0):
 	sys.setdefaultencoding('utf-8')
 
 # Create build environment.
-env = Environment()
+env = Environment(ENV = {'PATH' : os.environ['PATH']})
 
 # Determine compiler and linker flags for SDL.
 env.ParseConfig('sdl2-config --cflags')
@@ -33,9 +34,11 @@ SOURCES += glob.glob('../../Analyser/Static/Commodore/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Disassembler/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/DiskII/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Enterprise/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/FAT12/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Macintosh/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/MSX/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Oric/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/PCCompatible/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Sega/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/ZX8081/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/ZXSpectrum/*.cpp')
@@ -55,6 +58,7 @@ SOURCES += glob.glob('../../Components/AY38910/*.cpp')
 SOURCES += glob.glob('../../Components/DiskII/*.cpp')
 SOURCES += glob.glob('../../Components/KonamiSCC/*.cpp')
 SOURCES += glob.glob('../../Components/OPx/*.cpp')
+SOURCES += glob.glob('../../Components/RP5C01/*.cpp')
 SOURCES += glob.glob('../../Components/SN76489/*.cpp')
 SOURCES += glob.glob('../../Components/Serial/*.cpp')
 
@@ -85,6 +89,7 @@ SOURCES += glob.glob('../../Machines/Enterprise/*.cpp')
 SOURCES += glob.glob('../../Machines/MasterSystem/*.cpp')
 SOURCES += glob.glob('../../Machines/MSX/*.cpp')
 SOURCES += glob.glob('../../Machines/Oric/*.cpp')
+SOURCES += glob.glob('../../Machines/PCCompatible/*.cpp')
 SOURCES += glob.glob('../../Machines/Utility/*.cpp')
 SOURCES += glob.glob('../../Machines/Sinclair/Keyboard/*.cpp')
 SOURCES += glob.glob('../../Machines/Sinclair/ZX8081/*.cpp')
@@ -99,8 +104,6 @@ SOURCES += glob.glob('../../Outputs/OpenGL/Primitives/*.cpp')
 SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/6502/State/*.cpp')
 SOURCES += glob.glob('../../Processors/65816/Implementation/*.cpp')
-SOURCES += glob.glob('../../Processors/68000/Implementation/*.cpp')
-SOURCES += glob.glob('../../Processors/68000/State/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/State/*.cpp')
 
@@ -137,7 +140,14 @@ SOURCES += glob.glob('../../Storage/Tape/Parsers/*.cpp')
 env.Append(CCFLAGS = ['--std=c++17', '--std=c++1z', '-Wall', '-O2', '-DNDEBUG'])
 
 # Add additional libraries to link against.
-env.Append(LIBS = ['libz', 'pthread', 'GL'])
+env.Append(LIBS = ['libz', 'pthread'])
+
+# Add additional platform-specific compiler flags, libraries, and frameworks.
+if env['PLATFORM'] == 'darwin':
+	env.Append(CCFLAGS = ['-DGL_SILENCE_DEPRECATION', '-DIGNORE_APPLE'])
+	env.Append(FRAMEWORKS = ['Accelerate', 'OpenGL'])
+else:
+	env.Append(LIBS = ['GL'])
 
 # Build target.
 env.Program(target = 'clksignal', source = SOURCES)

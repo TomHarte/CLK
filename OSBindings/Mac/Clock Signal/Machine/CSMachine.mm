@@ -33,7 +33,6 @@
 #include <cassert>
 #include <atomic>
 #include <bitset>
-#include <codecvt>
 #include <locale>
 
 namespace {
@@ -43,10 +42,12 @@ struct MachineUpdater {
 		// Top out at 1/20th of a second; this is a safeguard against a negative
 		// feedback loop if emulation starts running slowly.
 		const auto seconds = std::min(Time::seconds(duration), 0.05);
-		machine->run_for(seconds);
+		timed_machine = machine->timed_machine();
+		timed_machine->run_for(seconds);
 	}
 
-	MachineTypes::TimedMachine *machine = nullptr;
+	Machine::DynamicMachine *machine = nullptr;
+	MachineTypes::TimedMachine *timed_machine = nullptr;
 };
 
 }
@@ -141,14 +142,18 @@ struct ActivityObserver: public Activity::Observer {
 
 		Machine::Error error;
 		ROM::Request missing_roms;
-		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
+		_machine = Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error);
 		if(!_machine) {
-			std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_converter;
 			const std::wstring description = missing_roms.description(0, L'•');
-			[missingROMs appendString:[NSString stringWithUTF8String:wstring_converter.to_bytes(description).c_str()]];
+			static_assert(sizeof(wchar_t) == 4, "This code assumes wchar_t is UTF32");
+			NSString *nativeString = [[NSString alloc]
+				initWithBytes:description.data()
+				length:description.size()*sizeof(wchar_t)
+				encoding:NSUTF32LittleEndianStringEncoding];
+			[missingROMs appendString:nativeString];
 			return nil;
 		}
-		updater.performer.machine = _machine->timed_machine();
+		updater.performer.machine = _machine.get();
 		if(updater.performer.machine) {
 			updater.start();
 		}
@@ -337,6 +342,16 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
+- (void)setInputMode:(CSMachineKeyboardInputMode)inputMode {
+	_inputMode = inputMode;
+
+	// Avoid the risk that the user used a keyboard shortcut to change input mode,
+	// leaving any modifiers associated with that dangling.
+	if(_inputMode == CSMachineKeyboardInputModeJoystick) {
+		[self clearAllKeys];
+	}
+}
+
 - (void)setJoystickManager:(CSJoystickManager *)joystickManager {
 	_joystickManager = joystickManager;
 	if(_joystickMachine) {
@@ -351,7 +366,7 @@ struct ActivityObserver: public Activity::Observer {
 	[self updateJoystickTimer];
 }
 
-- (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
+- (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed isRepeat:(BOOL)isRepeat {
 	[self applyInputEvent:^{
 		auto keyboard_machine = self->_machine->keyboard_machine();
 		if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
@@ -422,7 +437,13 @@ struct ActivityObserver: public Activity::Observer {
 			}
 
 			@synchronized(self) {
-				if(keyboard_machine->apply_key(mapped_key, pressedKey, isPressed, self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)) {
+				if(keyboard_machine->apply_key(
+					mapped_key,
+					pressedKey,
+					isPressed,
+					isRepeat,
+					self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)
+				) {
 					return;
 				}
 			}
@@ -433,7 +454,7 @@ struct ActivityObserver: public Activity::Observer {
 			auto &joysticks = joystick_machine->get_joysticks();
 			if(!joysticks.empty()) {
 				// Convert to a C++ bool so that the following calls are resolved correctly even if overloaded.
-				bool is_pressed = !!isPressed;
+				const auto is_pressed = bool(isPressed);
 				switch(key) {
 					case VK_LeftArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
 					case VK_RightArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
@@ -677,7 +698,7 @@ struct ActivityObserver: public Activity::Observer {
 	updater.enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
-			strongSelf->updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+			strongSelf->updater.performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 		}
 	});
 }
@@ -693,7 +714,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.machine;
+		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.timed_machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;

@@ -6,11 +6,9 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemorySwitches_h
-#define MemorySwitches_h
+#pragma once
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 enum PagingType: int {
 	Main = 1 << 0,
@@ -20,6 +18,3 @@ enum PagingType: int {
 };
 
 }
-}
-
-#endif /* MemorySwitches_h */

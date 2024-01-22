@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef TargetPlatforms_hpp
-#define TargetPlatforms_hpp
+#pragma once
 
 namespace TargetPlatform {
 
@@ -38,11 +37,13 @@ enum Type: IntType {
 	ZX80			=	1 << 19,
 	ZX81			=	1 << 20,
 	ZXSpectrum		=	1 << 21,
+	PCCompatible	=	1 << 22,
+	FAT12			=	1 << 23,
 
 	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB,
 	ZX8081			=	ZX80 | ZX81,
 	AllCartridge	=	Atari2600 | AcornElectron | Coleco | MSX,
-	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII | Amiga,
+	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII | Amiga | PCCompatible | FAT12,
 	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX8081 | MSX | ZXSpectrum,
 };
 
@@ -52,5 +53,3 @@ class TypeDistinguisher {
 };
 
 }
-
-#endif /* TargetPlatforms_h */

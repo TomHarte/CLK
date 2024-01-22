@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Disassembler_6502_hpp
-#define StaticAnalyser_Disassembler_6502_hpp
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -16,9 +15,7 @@
 #include <set>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace MOS6502 {
+namespace Analyser::Static::MOS6502 {
 
 /*!
 	Describes a 6502 instruciton: its address, the operation it performs, its addressing mode
@@ -95,7 +92,3 @@ Disassembly Disassemble(
 	std::vector<uint16_t> entry_points);
 
 }
-}
-}
-
-#endif /* Disassembler6502_hpp */

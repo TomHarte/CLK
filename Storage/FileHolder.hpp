@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef FileHolder_hpp
-#define FileHolder_hpp
+#pragma once
 
 #include <sys/stat.h>
 #include <array>
@@ -249,5 +248,3 @@ class FileHolder final {
 };
 
 }
-
-#endif /* FileHolder_hpp */

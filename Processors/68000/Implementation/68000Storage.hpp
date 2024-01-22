@@ -2,578 +2,232 @@
 //  68000Storage.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 08/03/2019.
-//  Copyright © 2019 Thomas Harte. All rights reserved.
+//  Created by Thomas Harte on 16/05/2022.
+//  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef MC68000Storage_h
-#define MC68000Storage_h
+#pragma once
 
-class ProcessorStorage {
-	public:
-		ProcessorStorage();
+#include "../../../InstructionSets/M68k/Decoder.hpp"
+#include "../../../InstructionSets/M68k/Perform.hpp"
+#include "../../../InstructionSets/M68k/Status.hpp"
 
-	protected:
-		RegisterPair32 data_[8];
-		RegisterPair32 address_[8];
-		RegisterPair32 program_counter_;
+#include <limits>
 
-		RegisterPair32 stack_pointers_[2];	// [0] = user stack pointer; [1] = supervisor; the values from here
-											// are copied into/out of address_[7] upon mode switches.
+namespace CPU::MC68000 {
 
-		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
+struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
+	ProcessorBase() {
+		read_program_announce.address = read_program.address = &program_counter_.l;
+	}
+	ProcessorBase(const ProcessorBase& rhs) = delete;
+	ProcessorBase& operator=(const ProcessorBase& rhs) = delete;
 
-		// Generic sources and targets for memory operations;
-		// by convention: effective_address_[0] = source, [1] = destination.
-		//
-		// These, and the various register contents above, should be kept
-		// close to the top of this class so that small-integer offsets can be
-		// used in instances of Program (see below).
-		RegisterPair32 effective_address_[2];
-		RegisterPair32 source_bus_data_;
-		RegisterPair32 destination_bus_data_;
+	int state_ = 0;
 
-		enum class ExecutionState {
-			/// The normal mode, this means the 68000 is expending processing effort.
-			Executing,
+	/// Counts time left on the clock before the current batch of processing
+	/// is complete; may be less than zero.
+	HalfCycles time_remaining_;
 
-			/// The 68000 is in a holding loop, waiting for either DTack or to be notified of a bus error.
-			WaitingForDTack,
+	/// E clock phase.
+	HalfCycles e_clock_phase_;
 
-			/// Occurs after executing a STOP instruction; the processor will idle waiting for an interrupt or reset.
-			Stopped,
+	/// Current supervisor state, for direct provision to the bus handler.
+	int is_supervisor_ = 1;
 
-			/// Occurs at the end of the current bus cycle after detection of the HALT input, continuing until
-			/// HALT is no longer signalled.
-			Halted,
+	// A decoder for instructions, plus all collected information about the
+	// current instruction.
+	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder_;
+	InstructionSet::M68k::Preinstruction instruction_;
+	uint16_t opcode_;
+	uint8_t operand_flags_;
+	SlicedInt32 instruction_address_;
 
-			/// Signals a transition from some other straight directly to cueing up an interrupt.
-			WillBeginInterrupt,
-		} execution_state_ = ExecutionState::Executing;
-		Microcycle dtack_cycle_;
-		Microcycle stop_cycle_;
+	// Register state.
+	InstructionSet::M68k::Status status_;
+	SlicedInt32 program_counter_;
+	SlicedInt32 registers_[16]{};		// D0–D7 followed by A0–A7.
+	SlicedInt32 stack_pointers_[2];
 
-		// Various status parts.
-		int is_supervisor_;
-		int interrupt_level_;
-		uint_fast32_t zero_result_;		// The zero flag is set if this value is zero.
-		uint_fast32_t carry_flag_;		// The carry flag is set if this value is non-zero.
-		uint_fast32_t extend_flag_;		// The extend flag is set if this value is non-zero.
-		uint_fast32_t overflow_flag_;	// The overflow flag is set if this value is non-zero.
-		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
-		uint_fast32_t trace_flag_;		// The trace flag is set if this value is non-zero.
+	/// Current state of the DTACK input.
+	bool dtack_ = false;
+	/// Current state of the VPA input.
+	bool vpa_ = false;
+	/// Current state of the BERR input.
+	bool berr_ = false;
+	/// Current input interrupt level.
+	int bus_interrupt_level_ = 0;
 
-		uint_fast32_t last_trace_flag_ = 0;
+	// Whether to trace at the end of this instruction.
+	InstructionSet::M68k::Status::FlagT should_trace_ = 0;
 
-		// Bus inputs.
-		int bus_interrupt_level_ = 0;
-		bool dtack_ = false;
-		bool is_peripheral_address_ = false;
-		bool bus_error_ = false;
-		bool bus_request_ = false;
-		bool bus_acknowledge_ = false;
-		bool halt_ = false;
+	// I don't have great information on the 68000 interrupt latency; as a first
+	// guess, capture the bus interrupt level upon every prefetch, and use that for
+	// the inner-loop decision.
+	int captured_interrupt_level_ = 0;
 
-		// Holds the interrupt level that should be serviced at the next instruction
-		// dispatch, if any.
-		int pending_interrupt_level_ = 0;
-		// Holds the interrupt level that is currently being serviced.
-		// TODO: surely this doesn't need to be distinct from the pending_interrupt_level_?
-		int accepted_interrupt_level_ = 0;
-		bool is_starting_interrupt_ = false;
+	/// Contains the prefetch queue; the most-recently fetched thing is the
+	/// low portion of this word, and the thing fetched before that has
+	/// proceeded to the high portion.
+	SlicedInt32 prefetch_;
 
-		HalfCycles half_cycles_left_to_run_;
-		HalfCycles e_clock_phase_;
+	// Temporary storage for the current instruction's operands
+	// and the corresponding effective addresses.
+	CPU::SlicedInt32 operand_[2];
+	CPU::SlicedInt32 effective_address_[2];
 
-		enum class Operation: uint8_t {
-			None,
-			ABCD,	SBCD,	NBCD,
+	/// If currently in the wait-for-DTACK state, this indicates where to go
+	/// upon receipt of DTACK or VPA. BERR will automatically segue
+	/// into the proper exception.
+	int post_dtack_state_ = 0;
 
-			ADDb,	ADDw,	ADDl,
-			ADDQb,	ADDQw,	ADDQl,
-			ADDAw,	ADDAl,
-			ADDQAw,	ADDQAl,
-			ADDXb,	ADDXw,	ADDXl,
+	/// If using CalcEffectiveAddress, this is the state to adopt after the
+	/// effective address for next_operand_ has been calculated.
+	int post_ea_state_ = 0;
 
-			SUBb,	SUBw,	SUBl,
-			SUBQb,	SUBQw,	SUBQl,
-			SUBAw,	SUBAl,
-			SUBQAw,	SUBQAl,
-			SUBXb,	SUBXw,	SUBXl,
+	/// The perform state for this operation.
+	int perform_state_ = 0;
 
-			MOVEb,	MOVEw,	MOVEl,	MOVEq,
-			MOVEAw,	MOVEAl,
-			PEA,
+	/// When fetching or storing operands, this is the next one to fetch
+	/// or store.
+	int next_operand_ = -1;
 
-			MOVEtoSR, MOVEfromSR,
-			MOVEtoCCR,
+	/// Storage for a temporary address, which can't be a local because it'll
+	/// be used to populate microcycles, which may persist beyond an entry
+	/// and exit of run_for (especially between an address announcement, and
+	/// a data select).
+	SlicedInt32 temporary_address_;
 
-			ORItoSR,	ORItoCCR,
-			ANDItoSR,	ANDItoCCR,
-			EORItoSR,	EORItoCCR,
+	/// Storage for a temporary value; primarily used by MOVEP to split a 32-bit
+	/// source into bus-compatible byte units.
+	SlicedInt32 temporary_value_;
 
-			BTSTb,	BTSTl,
-			BCLRl,	BCLRb,
-			CMPb,	CMPw,	CMPl,
-			CMPAw,
-			TSTb,	TSTw,	TSTl,
+	/// A record of the exception to trigger.
+	int exception_vector_ = 0;
 
-			JMP,	RTS,
-			BRA,	Bcc,
-			DBcc,
-			Scc,
+	/// Transient storage for exception processing.
+	SlicedInt16 captured_status_;
 
-			CLRb, CLRw, CLRl,
-			NEGXb, NEGXw, NEGXl,
-			NEGb, NEGw, NEGl,
+	/// An internal flag used during various dynamically-sized instructions
+	/// (e.g. BCHG, DIVU) to indicate how much additional processing happened;
+	/// this is measured in microcycles.
+	int dynamic_instruction_length_ = 0;
 
-			ASLb, ASLw, ASLl, ASLm,
-			ASRb, ASRw, ASRl, ASRm,
-			LSLb, LSLw, LSLl, LSLm,
-			LSRb, LSRw, LSRl, LSRm,
-			ROLb, ROLw, ROLl, ROLm,
-			RORb, RORw, RORl, RORm,
-			ROXLb, ROXLw, ROXLl, ROXLm,
-			ROXRb, ROXRw, ROXRl, ROXRm,
+	/// Two bits of state for MOVEM, being the curent register and what to
+	/// add to it to get to the next register.
+	int register_index_ = 0, register_delta_ = 0;
 
-			MOVEMtoRl, MOVEMtoRw,
-			MOVEMtoMl, MOVEMtoMw,
+	// A lookup table that aids with effective address calculation in
+	// predecrement and postincrement modes; index as [size][register]
+	// and note that [0][7] is 2 rather than 1.
+	static constexpr uint32_t address_increments[3][8] = {
+		{ 1, 1, 1, 1, 1, 1, 1, 2, },
+		{ 2, 2, 2, 2, 2, 2, 2, 2, },
+		{ 4, 4, 4, 4, 4, 4, 4, 4, },
+	};
 
-			MOVEPtoRl, MOVEPtoRw,
-			MOVEPtoMl, MOVEPtoMw,
+	// A lookup table that ensures write-back to data registers affects
+	// only the correct bits.
+	static constexpr uint32_t size_masks[3] = { 0xff, 0xffff, 0xffff'ffff };
 
-			ANDb,	ANDw,	ANDl,
-			EORb,	EORw,	EORl,
-			NOTb, 	NOTw, 	NOTl,
-			ORb,	ORw,	ORl,
+	// Assumptions used by the lookup tables above:
+	static_assert(int(InstructionSet::M68k::DataSize::Byte) == 0);
+	static_assert(int(InstructionSet::M68k::DataSize::Word) == 1);
+	static_assert(int(InstructionSet::M68k::DataSize::LongWord) == 2);
 
-			MULU,	MULS,
-			DIVU,	DIVS,
+	/// Used by some dedicated read-modify-write perform patterns to
+	/// determine the size of the bus operation.
+	OperationT select_flag_ = 0;
 
-			RTE_RTR,
+	// Captured bus/address-error state.
+	Microcycle<Operation::DecodeDynamically> bus_error_;
 
-			TRAP,	TRAPV,
-			CHK,
+	// Flow controller methods implemented.
+	using Preinstruction = InstructionSet::M68k::Preinstruction;
+	template <typename IntT> void did_mulu(IntT);
+	template <typename IntT> void did_muls(IntT);
+	inline void did_chk(bool, bool);
+	inline void did_scc(bool);
+	template <typename IntT> void did_shift(int);
+	template <bool did_overflow> void did_divu(uint32_t, uint32_t);
+	template <bool did_overflow> void did_divs(int32_t, int32_t);
+	inline void did_bit_op(int);
+	inline void did_update_status();
+	template <typename IntT> void complete_bcc(bool, IntT);
+	inline void complete_dbcc(bool, bool, int16_t);
+	inline void move_to_usp(uint32_t);
+	inline void move_from_usp(uint32_t &);
+	inline void tas(Preinstruction, uint32_t);
+	template <bool use_current_instruction_pc = true> void raise_exception(int);
 
-			EXG,	SWAP,
+	// These aren't implemented because the specific details of the implementation
+	// mean that the performer call-out isn't necessary.
+	template <typename IntT> void movep(Preinstruction, uint32_t, uint32_t) {}
+	template <typename IntT> void movem_toM(Preinstruction, uint32_t, uint32_t) {}
+	template <typename IntT> void movem_toR(Preinstruction, uint32_t, uint32_t) {}
+	void jsr(uint32_t) {}
+	void bsr(uint32_t) {}
+	void jmp(uint32_t) {}
+	inline void pea(uint32_t) {}
+	inline void link(Preinstruction, uint32_t) {}
+	inline void unlink(uint32_t &) {}
+	inline void rtr() {}
+	inline void rte() {}
+	inline void rts() {}
+	inline void reset() {}
+	inline void stop() {}
 
-			BCHGl,	BCHGb,
-			BSETl,	BSETb,
+	// Some microcycles that will be modified as required and used in the main loop;
+	// the semantics of a switch statement make in-place declarations awkward and
+	// some of these may persist across multiple calls to run_for.
+	Microcycle<OperationT(0)> idle;
 
-			TAS,
+	// Read a program word. All accesses via the program counter are word sized.
+	static constexpr OperationT
+		ReadProgramAnnounceOperation = Operation::Read | Operation::NewAddress | Operation::IsProgram;
+	static constexpr OperationT
+		ReadProgramOperation = Operation::Read | Operation::SameAddress | Operation::SelectWord | Operation::IsProgram;
+	Microcycle<ReadProgramAnnounceOperation> read_program_announce{};
+	Microcycle<ReadProgramOperation> read_program{};
 
-			EXTbtow,	EXTwtol,
+	// Read a data word or byte.
+	Microcycle<Operation::DecodeDynamically> access_announce {
+		Operation::Read | Operation::NewAddress | Operation::IsData
+	};
+	Microcycle<Operation::DecodeDynamically> access {
+		Operation::Read | Operation::SameAddress | Operation::SelectWord | Operation::IsData
+	};
 
-			LINK,	UNLINK,
-
-			STOP,
+	// TAS.
+	static constexpr OperationT
+		TASOperations[5] = {
+			Operation::Read | Operation::NewAddress | Operation::IsData,
+			Operation::Read | Operation::SameAddress | Operation::IsData | Operation::SelectByte,
+			Operation::SameAddress,
+			Operation::SameAddress | Operation::IsData,
+			Operation::SameAddress | Operation::IsData | Operation::SelectByte,
 		};
+	Microcycle<TASOperations[0]> tas_cycle0;
+	Microcycle<TASOperations[1]> tas_cycle1;
+	Microcycle<TASOperations[2]> tas_cycle2;
+	Microcycle<TASOperations[3]> tas_cycle3;
+	Microcycle<TASOperations[4]> tas_cycle4;
 
-		/*!
-			Bus steps are sequences of things to communicate to the bus.
-			Standard behaviour is: (i) perform microcycle; (ii) perform action.
-		*/
-		struct BusStep {
-			Microcycle microcycle;
-			enum class Action {
-				None,
+	// Reset.
+	static constexpr OperationT ResetOperation = CPU::MC68000::Operation::Reset;
+	Microcycle<ResetOperation> reset_cycle { HalfCycles(248) };
 
-				/// Performs effective_address_[0] += 2.
-				IncrementEffectiveAddress0,
-
-				/// Performs effective_address_[1] += 2.
-				IncrementEffectiveAddress1,
-
-				/// Performs effective_address_[0] -= 2.
-				DecrementEffectiveAddress0,
-
-				/// Performs effective_address_[1] -= 2.
-				DecrementEffectiveAddress1,
-
-				/// Performs program_counter_ += 2.
-				IncrementProgramCounter,
-
-				/// Copies prefetch_queue_[1] to prefetch_queue_[0].
-				AdvancePrefetch,
-
-				/// Performs effective_address_[0] += 2 and zeroes the final bit of the stack pointer.
-				IncrementEffectiveAddress0AlignStackPointer,
-
-				/*!
-					Terminates an atomic program; if nothing else is pending, schedules the next instruction.
-					This action is special in that it usurps any included microcycle. So any Step with this
-					as its action acts as an end-of-list sentinel.
-				*/
-				ScheduleNextProgram
-
-			} action = Action::None;
-
-			forceinline bool operator ==(const BusStep &rhs) const {
-				if(action != rhs.action) return false;
-				return microcycle == rhs.microcycle;
-			}
-
-			forceinline bool is_terminal() const {
-				return action == Action::ScheduleNextProgram;
-			}
+	// Interrupt acknowledge.
+	static constexpr OperationT
+		InterruptCycleOperations[2] = {
+			Operation::InterruptAcknowledge | Operation::Read | Operation::NewAddress,
+			Operation::InterruptAcknowledge | Operation::Read | Operation::SameAddress | Operation::SelectByte
 		};
-
-		/*!
-			A micro-op is: (i) an action to take; and (ii) a sequence of bus operations
-			to perform after taking the action.
-
-			NOTE: this therefore has the opposite order of behaviour compared to a BusStep,
-			the action occurs BEFORE the bus operations, not after.
-
-			A nullptr bus_program terminates a sequence of micro operations; the is_terminal
-			test should be used to query for that. The action on the final operation will
-			be performed.
-		*/
-		struct MicroOp {
-			enum class Action: uint8_t {
-				None,
-
-				/// Does whatever this instruction says is the main operation.
-				PerformOperation,
-
-				/*
-					All of the below will honour the source and destination masks
-					in deciding where to apply their actions.
-				*/
-
-				/// Subtracts 1 from the [source/destination]_address.
-				Decrement1,
-				/// Subtracts 2 from the [source/destination]_address.
-				Decrement2,
-				/// Subtracts 4 from the [source/destination]_address.
-				Decrement4,
-
-				/// Adds 1 from the [source/destination]_address.
-				Increment1,
-				/// Adds 2 from the [source/destination]_address.
-				Increment2,
-				/// Adds 4 from the [source/destination]_address.
-				Increment4,
-
-				/// Copies the source and/or destination to effective_address_.
-				CopyToEffectiveAddress,
-
-				/// Peeking into the end of the prefetch queue, calculates the proper target of (d16,An) addressing.
-				CalcD16An,
-
-				/// Peeking into the end of the prefetch queue, calculates the proper target of (d8,An,Xn) addressing.
-				CalcD8AnXn,
-
-				/// Peeking into the prefetch queue, calculates the proper target of (d16,PC) addressing,
-				/// adjusting as though it had been performed after the proper PC fetches. The source
-				/// and destination mask flags affect only the destination of the result.
-				CalcD16PC,
-
-				/// Peeking into the prefetch queue, calculates the proper target of (d8,An,Xn) addressing,
-				/// adjusting as though it had been performed after the proper PC fetches. The source
-				/// and destination mask flags affect only the destination of the result.
-				CalcD8PCXn,
-
-				/// Sets the high word according to the MSB of the low word.
-				SignExtendWord,
-
-				/// Sets the high three bytes according to the MSB of the low byte.
-				SignExtendByte,
-
-				/// From the next word in the prefetch queue assembles a sign-extended long word in either or
-				/// both of effective_address_[0] and effective_address_[1].
-				AssembleWordAddressFromPrefetch,
-
-				/// From the next word in the prefetch queue assembles a 0-padded 32-bit long word in either or
-				/// both of bus_data_[0] and bus_data_[1].
-				AssembleWordDataFromPrefetch,
-
-				/// Copies the next two prefetch words into one of the effective_address_.
-				AssembleLongWordAddressFromPrefetch,
-
-				/// Copies the next two prefetch words into one of the bus_data_.
-				AssembleLongWordDataFromPrefetch,
-
-				/// Copies the low part of the prefetch queue into next_word_.
-				CopyNextWord,
-
-				/// Performs write-back of post-increment address and/or sign extensions as necessary.
-				MOVEMtoRComplete,
-
-				/// Performs write-back of pre-decrement address.
-				MOVEMtoMComplete,
-
-				// (i) inspects the prefetch queue to determine the length of this instruction and copies the next PC to destination_bus_data_;
-				// (ii) copies the stack pointer minus 4 to effective_address_[1];
-				// (iii) decrements the stack pointer by four.
-				PrepareJSR,
-				PrepareBSR,
-
-				// (i) copies the stack pointer to effective_address_[0];
-				// (ii) increments the stack pointer by four.
-				PrepareRTS,
-
-				// (i) fills in the proper stack addresses to the bus steps for this micro-op; and
-				// (ii) adjusts the stack pointer appropriately.
-				PrepareRTE_RTR,
-
-				// Performs the necessary status word substitution for the current interrupt level,
-				// and does the first part of initialising the trap steps.
-				PrepareINT,
-
-				// Observes the bus_error_, valid_peripheral_address_ and/or the value currently in
-				// source_bus_data_ to determine an interrupt vector, and fills in the final trap
-				// steps detail appropriately.
-				PrepareINTVector,
-			};
-			static_assert(uint8_t(Action::PrepareINTVector) < 32);	// i.e. will fit into five bits.
-
-			static constexpr int SourceMask = 1 << 5;
-			static constexpr int DestinationMask = 1 << 6;
-			uint8_t action = uint8_t(Action::None);	// Requires 7 bits at present; sizeof(Action) + the two flags above.
-
-			static constexpr uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
-			uint16_t bus_program = NoBusProgram;	// Empirically requires 11 bits at present.
-
-			MicroOp(): action(uint8_t(Action::None)), bus_program(NoBusProgram) {}
-			MicroOp(uint8_t action) : action(action), bus_program(NoBusProgram) {}
-			MicroOp(uint8_t action, uint16_t bus_program) : action(action), bus_program(bus_program) {}
-
-			MicroOp(Action action) : MicroOp(uint8_t(action)) {}
-			MicroOp(Action action, uint16_t bus_program) : MicroOp(uint8_t(action), bus_program) {}
-
-			forceinline bool is_terminal() const {
-				return bus_program == NoBusProgram;
-			}
-		};
-
-		/*!
-			A program represents the implementation of a particular opcode, as a sequence
-			of micro-ops and, separately, the operation to perform plus whatever other
-			fields the operation requires.
-
-			Some of the fields are slightly convoluted in how they identify the information
-			they reference; this is done to keep this struct as small as possible due to
-			concerns about cache size.
-
-			On the 64-bit Intel processor this emulator was developed on, the struct below
-			adds up to 8 bytes; four for the initial uint32_t and then one each for the
-			remaining fields, with no additional padding being inserted by the compiler.
-		*/
-		struct Program {
-			Program() {
-				// Initialisers for bitfields aren't available until C++20. So, yuck, do it manually.
-				requires_supervisor = 0;
-				source = 0;
-				dest = 0;
-				destination_offset = 0;
-				source_offset = 0;
-			}
-
-			static constexpr uint32_t NoSuchProgram = std::numeric_limits<uint32_t>::max();
-
-			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin,
-			/// or std::numeric_limits<uint32_t>::max() if this is an invalid Program.
-			uint32_t micro_operations = NoSuchProgram;
-			/// The overarching operation applied by this program when the moment comes.
-			Operation operation;
-			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
-			/// a source value for this operation lies at.
-			uint8_t source_offset: 7;
-			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
-			/// a destination value for this operation lies at.
-			uint8_t destination_offset: 7;
-			///	Set if this program requires supervisor mode.
-			bool requires_supervisor: 1;
-			/// The source address register (for pre-decrement and post-increment actions).
-			uint8_t source: 3;
-			/// Destination address register.
-			uint8_t dest: 3;
-
-			void set_source_address([[maybe_unused]] ProcessorStorage &storage, int index) {
-				source = uint8_t(index);
-				assert(int(source) == index);
-			}
-
-			void set_destination_address([[maybe_unused]] ProcessorStorage &storage, int index) {
-				dest = uint8_t(index);
-				assert(int(dest) == index);
-			}
-
-			void set_requires_supervisor(bool req) {
-				requires_supervisor = req;
-				assert(requires_supervisor == req);
-			}
-
-			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
-				source_offset = decltype(source_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
-				// Test that destination_offset could be stored fully within the integer size provided for source_offset.
-				assert(source_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
-			}
-
-			void set_destination(ProcessorStorage &storage, RegisterPair32 *target) {
-				destination_offset = decltype(destination_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
-				// Test that destination_offset could be stored fully within the integer size provided for destination_offset.
-				assert(destination_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
-			}
-
-			void set_source(ProcessorStorage &storage, int mode, int reg) {
-				set_source_address(storage, reg);
-				switch(mode) {
-					case 0:		set_source(storage, &storage.data_[reg]);		break;
-					case 1:		set_source(storage, &storage.address_[reg]);	break;
-					default:	set_source(storage, &storage.source_bus_data_);	break;
-				}
-			}
-
-			void set_destination(ProcessorStorage &storage, int mode, int reg) {
-				set_destination_address(storage, reg);
-				switch(mode) {
-					case 0:		set_destination(storage, &storage.data_[reg]);				break;
-					case 1:		set_destination(storage, &storage.address_[reg]);			break;
-					default:	set_destination(storage, &storage.destination_bus_data_);	break;
-				}
-			}
-		};
-
-		// Storage for all the sequences of bus steps and micro-ops used throughout
-		// the 68000.
-		std::vector<BusStep> all_bus_steps_;
-		std::vector<MicroOp> all_micro_ops_;
-
-		// A lookup table from instructions to implementations.
-		Program instructions[65536];
-
-		// Special steps and programs for exception handlers.
-		BusStep *reset_bus_steps_;
-		MicroOp *long_exception_micro_ops_;		// i.e. those that leave 14 bytes on the stack — bus error and address error.
-		MicroOp *short_exception_micro_ops_;	// i.e. those that leave 6 bytes on the stack — everything else (other than interrupts).
-		MicroOp *interrupt_micro_ops_;
-
-		// Special micro-op sequences and storage for conditionals.
-		BusStep *branch_taken_bus_steps_;
-		BusStep *branch_byte_not_taken_bus_steps_;
-		BusStep *branch_word_not_taken_bus_steps_;
-		BusStep *bsr_bus_steps_;
-
-		uint32_t dbcc_false_address_;
-		BusStep *dbcc_condition_true_steps_;
-		BusStep *dbcc_condition_false_no_branch_steps_;
-		BusStep *dbcc_condition_false_branch_steps_;
-
-		BusStep *movem_read_steps_;
-		BusStep *movem_write_steps_;
-
-		// These two are dynamically modified depending on the particular
-		// TRAP and bus error.
-		BusStep *trap_steps_;
-		BusStep *bus_error_steps_;
-
-		// Current bus step pointer, and outer program pointer.
-		const Program *active_program_ = nullptr;
-		const MicroOp *active_micro_op_ = nullptr;
-		const BusStep *active_step_ = nullptr;
-		RegisterPair16 decoded_instruction_ = 0;
-		uint16_t next_word_ = 0;
-
-		/// Copies address_[7] to the proper stack pointer based on current mode.
-		void write_back_stack_pointer();
-
-		/// Sets or clears the supervisor flag, ensuring the stack pointer is properly updated.
-		void set_is_supervisor(bool);
-
-		// Transient storage for MOVEM, TRAP and others.
-		RegisterPair16 throwaway_value_;
-		uint32_t movem_final_address_;
-		uint32_t precomputed_addresses_[65];	// This is a big chunk of rarely-used storage. It's placed last deliberately.
-
-		/*!
-			Evaluates the conditional described by @c code and returns @c true or @c false to
-			indicate the result of that evaluation.
-		*/
-		forceinline bool evaluate_condition(uint8_t code) {
-			switch(code & 0xf) {
-				default:
-				case 0x00:	return true;							// true
-				case 0x01:	return false;							// false
-				case 0x02:	return zero_result_ && !carry_flag_;	// high
-				case 0x03:	return !zero_result_ || carry_flag_;	// low or same
-				case 0x04:	return !carry_flag_;					// carry clear
-				case 0x05:	return carry_flag_;						// carry set
-				case 0x06:	return zero_result_;					// not equal
-				case 0x07:	return !zero_result_;					// equal
-				case 0x08:	return !overflow_flag_;					// overflow clear
-				case 0x09:	return overflow_flag_;					// overflow set
-				case 0x0a:	return !negative_flag_;					// positive
-				case 0x0b:	return negative_flag_;					// negative
-				case 0x0c:	// greater than or equal
-					return (negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_);
-				case 0x0d:	// less than
-					return (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
-				case 0x0e:	// greater than
-					return zero_result_ && ((negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_));
-				case 0x0f:	// less than or equal
-					return !zero_result_ || (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
-			}
-		}
-
-		/*!
-			Fills in the appropriate addresses and values to complete the TRAP steps — those
-			representing a short-form exception — and mutates the status register as if one
-			were beginning.
-		*/
-		forceinline void populate_trap_steps(uint32_t vector, uint16_t status) {
-			// Fill in the status word value.
-			destination_bus_data_.full = status;
-
-			// Switch to supervisor mode, disable the trace bit.
-			set_is_supervisor(true);
-			trace_flag_ = last_trace_flag_ = 0;
-
-			// Pick a vector.
-			effective_address_[0].full = vector << 2;
-
-			// Schedule the proper stack activity.
-			precomputed_addresses_[0] = address_[7].full - 2;	// PC.l
-			precomputed_addresses_[1] = address_[7].full - 6;	// status word (in destination_bus_data_)
-			precomputed_addresses_[2] = address_[7].full - 4;	// PC.h
-			address_[7].full -= 6;
-
-			// Set the default timing.
-			trap_steps_->microcycle.length = HalfCycles(8);
-		}
-
-		forceinline void populate_bus_error_steps(uint32_t vector, uint16_t status, uint16_t bus_status, RegisterPair32 faulting_address) {
-			// Fill in the status word value.
-			destination_bus_data_.halves.low.full = status;
-			destination_bus_data_.halves.high.full = bus_status;
-			effective_address_[1] = faulting_address;
-
-			// Switch to supervisor mode, disable the trace bit.
-			set_is_supervisor(true);
-			trace_flag_ = last_trace_flag_ = 0;
-
-			// Pick a vector.
-			effective_address_[0].full = vector << 2;
-
-			// Schedule the proper stack activity.
-			precomputed_addresses_[0] = address_[7].full - 2;		// PC.l
-			precomputed_addresses_[1] = address_[7].full - 6;		// status word
-			precomputed_addresses_[2] = address_[7].full - 4;		// PC.h
-			precomputed_addresses_[3] = address_[7].full - 8;		// current instruction
-			precomputed_addresses_[4] = address_[7].full - 10;		// fault address.l
-			precomputed_addresses_[5] = address_[7].full - 14;		// bus cycle status word
-			precomputed_addresses_[6] = address_[7].full - 12;		// fault address.h
-			address_[7].full -= 14;
-		}
-
-		inline uint16_t get_status() const;
-		inline void set_status(uint16_t);
-
-	private:
-		friend struct ProcessorStorageConstructor;
-		friend class ProcessorStorageTests;
-		friend struct State;
+	Microcycle<InterruptCycleOperations[0]> interrupt_cycle0;
+	Microcycle<InterruptCycleOperations[1]> interrupt_cycle1;
+
+	// Holding spot when awaiting DTACK/etc.
+	Microcycle<Operation::DecodeDynamically> awaiting_dtack;
 };
 
-#endif /* MC68000Storage_h */
+}

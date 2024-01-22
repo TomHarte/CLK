@@ -6,8 +6,7 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Executor_hpp
-#define InstructionSets_M68k_Executor_hpp
+#pragma once
 
 #include "Decoder.hpp"
 #include "Instruction.hpp"
@@ -16,13 +15,12 @@
 #include "RegisterSet.hpp"
 #include "Status.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /// Maps the 68k function codes such that bits 0, 1 and 2 represent
 /// FC0, FC1 and FC2 respectively.
 enum class FunctionCode {
-	UserData 				= 0b001,
+	UserData				= 0b001,
 	UserProgram				= 0b010,
 	SupervisorData			= 0b101,
 	SupervisorProgram		= 0b110,
@@ -159,13 +157,10 @@ template <Model model, typename BusHandler> class Executor {
 					bool requires_fetch;
 				};
 				EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
-				uint32_t index_8bitdisplacement();
+				uint32_t index_8bitdisplacement(uint32_t);
 		} state_;
 };
 
 }
-}
 
 #include "Implementation/ExecutorImplementation.hpp"
-
-#endif /* InstructionSets_M68k_Executor_hpp */

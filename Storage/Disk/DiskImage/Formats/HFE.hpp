@@ -6,16 +6,14 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef HFE_hpp
-#define HFE_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an HFE: a bit stream representation of a floppy.
@@ -48,7 +46,3 @@ class HFE: public DiskImage {
 };
 
 }
-}
-
-
-#endif /* HFE_hpp */

@@ -243,8 +243,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 				page(0xc1, 0xc4, state.region_C1_C3 ? &rom_[0xc100 - 0xc100] : nullptr, nullptr);
 				read_pages_[0xc3] = state.region_C3 ? &rom_[0xc300 - 0xc100] : nullptr;
-				page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100]  : nullptr, nullptr);
-				page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100]  : nullptr, nullptr);
+				page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100] : nullptr, nullptr);
+				page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100] : nullptr, nullptr);
 			}
 
 			if constexpr (bool(type & PagingType::Main)) {
@@ -276,10 +276,20 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			Keyboard(Processor *m6502) : m6502_(m6502) {}
 
 			void reset_all_keys() final {
-				open_apple_is_pressed = closed_apple_is_pressed = control_is_pressed = shift_is_pressed = key_is_down = false;
+				open_apple_is_pressed =
+				closed_apple_is_pressed =
+				control_is_pressed_ =
+				shift_is_pressed_ =
+				repeat_is_pressed_ =
+				key_is_down_ =
+				character_is_pressed_ = false;
 			}
 
-			bool set_key_pressed(Key key, char value, bool is_pressed) final {
+			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
+				if constexpr (!is_iie()) {
+					if(is_repeat && !repeat_is_pressed_) return true;
+				}
+
 				// If no ASCII value is supplied, look for a few special cases.
 				switch(key) {
 					case Key::Left:			value = 0x08;	break;
@@ -323,17 +333,27 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 
 					case Key::LeftControl:
-						control_is_pressed = is_pressed;
+						control_is_pressed_ = is_pressed;
 					return true;
 
 					case Key::LeftShift:
 					case Key::RightShift:
-						shift_is_pressed = is_pressed;
+						shift_is_pressed_ = is_pressed;
 					return true;
 
 					case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
 					case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
-					case Key::F9:	case Key::F10:	case Key::F11:	case Key::F12:
+					case Key::F9:	case Key::F10:	case Key::F11:
+						repeat_is_pressed_ = is_pressed;
+
+						if constexpr (!is_iie()) {
+							if(is_pressed && (!is_repeat || character_is_pressed_)) {
+								keyboard_input_ = uint8_t(last_pressed_character_ | 0x80);
+							}
+						}
+					return true;
+
+					case Key::F12:
 					case Key::PrintScreen:
 					case Key::ScrollLock:
 					case Key::Pause:
@@ -356,10 +376,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						// Prior to the IIe, the keyboard could produce uppercase only.
 						if(!is_iie()) value = char(toupper(value));
 
-						if(control_is_pressed && isalpha(value)) value &= 0xbf;
+						if(control_is_pressed_ && isalpha(value)) value &= 0xbf;
 
 						// TODO: properly map IIe keys
-						if(!is_iie() && shift_is_pressed) {
+						if(!is_iie() && shift_is_pressed_) {
 							switch(value) {
 							case 0x27: value = 0x22; break; // ' -> "
 							case 0x2c: value = 0x3c; break; // , -> <
@@ -383,11 +403,16 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 
 				if(is_pressed) {
-					keyboard_input = uint8_t(value | 0x80);
-					key_is_down = true;
+					last_pressed_character_ = value;
+					character_is_pressed_ = true;
+					keyboard_input_ = uint8_t(value | 0x80);
+					key_is_down_ = true;
 				} else {
-					if((keyboard_input & 0x3f) == value) {
-						key_is_down = false;
+					if(value == last_pressed_character_) {
+						character_is_pressed_ = false;
+					}
+					if((keyboard_input_ & 0x3f) == value) {
+						key_is_down_ = false;
 					}
 				}
 
@@ -395,24 +420,54 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			uint8_t get_keyboard_input() {
-				if(string_serialiser) {
-					return string_serialiser->head() | 0x80;
+				if(string_serialiser_) {
+					return string_serialiser_->head() | 0x80;
 				} else {
-					return keyboard_input;
+					return keyboard_input_;
 				}
 			}
 
-			bool shift_is_pressed = false;
-			bool control_is_pressed = false;
+			void clear_keyboard_input() {
+				keyboard_input_ &= 0x7f;
+				if(string_serialiser_ && !string_serialiser_->advance()) {
+					string_serialiser_.reset();
+				}
+			}
+
+			bool get_key_is_down() {
+				return key_is_down_;
+			}
+
+			void set_string_serialiser(std::unique_ptr<Utility::StringSerialiser> &&serialiser) {
+				string_serialiser_ = std::move(serialiser);
+			}
+
 			// The IIe has three keys that are wired directly to the same input as the joystick buttons.
 			bool open_apple_is_pressed = false;
 			bool closed_apple_is_pressed = false;
-			uint8_t keyboard_input = 0x00;
-			bool key_is_down = false;
-			std::unique_ptr<Utility::StringSerialiser> string_serialiser;
 
 			private:
-			Processor *const m6502_;
+				// Current keyboard input register, as exposed to the programmer; on the IIe the programmer
+				// can also poll for whether any key is currently down.
+				uint8_t keyboard_input_ = 0x00;
+				bool key_is_down_ = false;
+
+				// ASCII input state, referenced by the REPT key on models before the IIe.
+				char last_pressed_character_ = 0;
+				bool character_is_pressed_ = false;
+
+				// The repeat key itself.
+				bool repeat_is_pressed_ = false;
+
+				// Modifier states.
+				bool shift_is_pressed_ = false;
+				bool control_is_pressed_ = false;
+
+				// A string serialiser for receiving copy and paste.
+				std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
+
+				// 6502 connection, for applying the reset button.
+				Processor *const m6502_;
 		};
 		Keyboard keyboard_;
 
@@ -727,15 +782,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					break;
 
 					case 0xc010:
-						keyboard_.keyboard_input &= 0x7f;
-						if(keyboard_.string_serialiser) {
-							if(!keyboard_.string_serialiser->advance())
-								keyboard_.string_serialiser.reset();
-						}
+						keyboard_.clear_keyboard_input();
 
 						// On the IIe, reading C010 returns additional key info.
 						if(is_iie() && isReadOperation(operation)) {
-							*value = (keyboard_.key_is_down ? 0x80 : 0x00) | (keyboard_.keyboard_input & 0x7f);
+							*value = (keyboard_.get_key_is_down() ? 0x80 : 0x00) | (keyboard_.get_keyboard_input() & 0x7f);
 						}
 					break;
 
@@ -879,7 +930,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			keyboard_.string_serialiser = std::make_unique<Utility::StringSerialiser>(string, true);
+			keyboard_.set_string_serialiser(std::make_unique<Utility::StringSerialiser>(string, true));
 		}
 
 		bool can_type(char c) const final {
@@ -934,15 +985,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 using namespace Apple::II;
 
-Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
 	switch(appleii_target->model) {
 		default: return nullptr;
-		case Target::Model::II: return new ConcreteMachine<Target::Model::II>(*appleii_target, rom_fetcher);
-		case Target::Model::IIplus: return new ConcreteMachine<Target::Model::IIplus>(*appleii_target, rom_fetcher);
-		case Target::Model::IIe: return new ConcreteMachine<Target::Model::IIe>(*appleii_target, rom_fetcher);
-		case Target::Model::EnhancedIIe: return new ConcreteMachine<Target::Model::EnhancedIIe>(*appleii_target, rom_fetcher);
+		case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II>>(*appleii_target, rom_fetcher);
+		case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus>>(*appleii_target, rom_fetcher);
+		case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe>>(*appleii_target, rom_fetcher);
+		case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe>>(*appleii_target, rom_fetcher);
 	}
 }
 

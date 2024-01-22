@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Apple_IIgs_Sound_hpp
-#define Apple_IIgs_Sound_hpp
+#pragma once
 
 #include <atomic>
 
@@ -15,9 +14,7 @@
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
-namespace Apple {
-namespace IIgs {
-namespace Sound {
+namespace Apple::IIgs::Sound {
 
 class GLU: public Outputs::Speaker::SampleSource {
 	public:
@@ -33,7 +30,7 @@ class GLU: public Outputs::Speaker::SampleSource {
 		uint8_t get_address_high();
 
 		void run_for(Cycles);
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 		bool get_interrupt_line();
 
 		// SampleSource.
@@ -105,7 +102,3 @@ class GLU: public Outputs::Speaker::SampleSource {
 };
 
 }
-}
-}
-
-#endif /* SoundGLU_hpp */

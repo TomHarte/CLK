@@ -35,11 +35,11 @@ class QL: public ComparativeBusHandler {
 			m68000_.run_for(cycles);
 		}
 
-		CPU::MC68000Mk2::State get_state() final {
+		CPU::MC68000::State get_state() final {
 			return m68000_.get_state();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
@@ -56,24 +56,24 @@ class QL: public ComparativeBusHandler {
 				word_address %= ram_.size();
 			}
 
-			using Microcycle = CPU::MC68000Mk2::Microcycle;
 			if(cycle.data_select_active()) {
 				uint16_t peripheral_result = 0xffff;
 
-				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+				using namespace CPU::MC68000;
+				switch(cycle.operation & (Operation::SelectWord | Operation::SelectByte | Operation::Read)) {
 					default: break;
 
-					case Microcycle::SelectWord | Microcycle::Read:
+					case Operation::SelectWord | Operation::Read:
 						cycle.value->w = is_peripheral ? peripheral_result : base[word_address];
 					break;
-					case Microcycle::SelectByte | Microcycle::Read:
+					case Operation::SelectByte | Operation::Read:
 						cycle.value->b = (is_peripheral ? peripheral_result : base[word_address]) >> cycle.byte_shift();
 					break;
-					case Microcycle::SelectWord:
+					case Operation::SelectWord:
 						assert(!(is_rom && !is_peripheral));
 						if(!is_peripheral) base[word_address] = cycle.value->w;
 					break;
-					case Microcycle::SelectByte:
+					case Operation::SelectByte:
 						assert(!(is_rom && !is_peripheral));
 						if(!is_peripheral) base[word_address] = (cycle.value->b << cycle.byte_shift()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
@@ -84,7 +84,7 @@ class QL: public ComparativeBusHandler {
 		}
 
 	private:
-		CPU::MC68000Mk2::Processor<QL, true, false, true> m68000_;
+		CPU::MC68000::Processor<QL, true, false, true> m68000_;
 
 		std::vector<uint16_t> rom_;
 		std::array<uint16_t, 64*1024> ram_;

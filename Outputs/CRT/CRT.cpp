@@ -199,7 +199,7 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(uint16_t data_offset
 	// Ensure .composite_angle is sampled at the location indicated by .cycles_since_end_of_horizontal_retrace.
 	// TODO: I could supply time_multiplier_ as a modal and just not round .cycles_since_end_of_horizontal_retrace. Would that be better?
 	const auto lost_precision = cycles_since_horizontal_sync_ % time_multiplier_;
-	end_point.composite_angle = int16_t(((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
+	end_point.composite_angle = int16_t(((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_) * (is_alternate_line_ ? -1 : 1);
 	end_point.cycles_since_end_of_horizontal_retrace = uint16_t(cycles_since_horizontal_sync_ / time_multiplier_);
 
 	return end_point;
@@ -414,7 +414,7 @@ void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alter
 	scan.number_of_cycles = number_of_cycles;
 	scan.phase = phase;
 	scan.amplitude = amplitude >> 1;
-	is_alernate_line_ = is_alternate_line;
+	is_alternate_line_ = is_alternate_line;
 	output_scan(&scan);
 }
 

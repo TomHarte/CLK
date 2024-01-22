@@ -6,14 +6,14 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef OpenGL_h
-#define OpenGL_h
+#pragma once
 
 #include <cassert>
 #include <iostream>
 
 // TODO: figure out correct include paths for other platforms.
 #ifdef __APPLE__
+	#include <TargetConditionals.h>
 	#if TARGET_OS_IPHONE
 	#else
 		// These remain so that I can, at least for now, build the kiosk version under macOS.
@@ -56,5 +56,3 @@
 #else
 #define test_gl(command, ...) command(__VA_ARGS__)
 #endif
-
-#endif /* OpenGL_h */

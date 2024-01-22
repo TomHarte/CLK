@@ -6,16 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleDSK_hpp
-#define AppleDSK_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing an Apple DSK disk image: a representation of sector contents,
@@ -27,7 +25,7 @@ class AppleDSK: public DiskImage {
 			Construct an @c AppleDSK containing content from the file with name @c file_name.
 
 			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
-			@throws Error::InvalidFormat if the file doesn't appear to contain a .G64 format image.
+			@throws Error::InvalidFormat if the file doesn't appear to contain an Apple DSK format image.
 		*/
 		AppleDSK(const std::string &file_name);
 
@@ -47,7 +45,3 @@ class AppleDSK: public DiskImage {
 };
 
 }
-}
-
-
-#endif /* AppleDSK_hpp */

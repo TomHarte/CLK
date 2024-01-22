@@ -11,12 +11,13 @@
 #include <algorithm>
 #include <cstring>
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-#define LOG_PREFIX "[MFP] "
 #include "../../Outputs/Log.hpp"
+
+namespace {
+
+Log::Logger<Log::Source::MFP68901> logger;
+
+}
 
 using namespace Motorola::MFP68901;
 
@@ -64,11 +65,11 @@ uint8_t MFP68901::read(int address) {
 		case 0x11:	case 0x12:	return get_timer_data(address - 0xf);
 
 		// USART block: TODO.
-		case 0x13:		LOG("Read: sync character generator");	break;
-		case 0x14:		LOG("Read: USART control");				break;
-		case 0x15:		LOG("Read: receiver status");			break;
-		case 0x16:		LOG("Read: transmitter status");		break;
-		case 0x17:		LOG("Read: USART data");				break;
+		case 0x13:		logger.error().append("Read: sync character generator");	break;
+		case 0x14:		logger.error().append("Read: USART control");				break;
+		case 0x15:		logger.error().append("Read: receiver status");			break;
+		case 0x16:		logger.error().append("Read: transmitter status");		break;
+		case 0x17:		logger.error().append("Read: USART data");				break;
 	}
 	return 0x00;
 }
@@ -169,14 +170,36 @@ void MFP68901::write(int address, uint8_t value) {
 		break;
 
 		// USART block: TODO.
-		case 0x13:		LOG("Write: sync character generator");	break;
-		case 0x14:		LOG("Write: USART control");			break;
-		case 0x15:		LOG("Write: receiver status");			break;
-		case 0x16:		LOG("Write: transmitter status");		break;
-		case 0x17:		LOG("Write: USART data");				break;
+		case 0x13:		logger.error().append("Write: sync character generator");	break;
+		case 0x14:		logger.error().append("Write: USART control");				break;
+		case 0x15:		logger.error().append("Write: receiver status");			break;
+		case 0x16:		logger.error().append("Write: transmitter status");			break;
+		case 0x17:		logger.error().append("Write: USART data");					break;
 	}
 
 	update_clocking_observer();
+}
+
+template <int timer>
+void MFP68901::run_timer_for(int cycles) {
+	if(timers_[timer].mode >= TimerMode::Delay) {
+		// This code applies the timer prescaling only. prescale_count is used to count
+		// upwards rather than downwards for simplicity, but on the real hardware it's
+		// pretty safe to assume it actually counted downwards. So the clamp to 0 is
+		// because gymnastics may need to occur when the prescale value is altered, e.g.
+		// if a prescale of 256 is set and the prescale_count is currently 2 then the
+		// counter should roll over in 254 cycles. If the user at that point changes the
+		// prescale_count to 1 then the counter will need to be altered to -253 and
+		// allowed to keep counting up until it crosses both 0 and 1.
+		const int dividend = timers_[timer].prescale_count + cycles;
+		const int decrements = std::max(dividend / timers_[timer].prescale, 0);
+		if(decrements) {
+			decrement_timer<timer>(decrements);
+			timers_[timer].prescale_count = dividend % timers_[timer].prescale;
+		} else {
+			timers_[timer].prescale_count += cycles;
+		}
+	}
 }
 
 void MFP68901::run_for(HalfCycles time) {
@@ -185,36 +208,20 @@ void MFP68901::run_for(HalfCycles time) {
 	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
 	if(!cycles) return;
 
-	for(int c = 0; c < 4; ++c) {
-		if(timers_[c].mode >= TimerMode::Delay) {
-			// This code applies the timer prescaling only. prescale_count is used to count
-			// upwards rather than downwards for simplicity, but on the real hardware it's
-			// pretty safe to assume it actually counted downwards. So the clamp to 0 is
-			// because gymnastics may need to occur when the prescale value is altered, e.g.
-			// if a prescale of 256 is set and the prescale_count is currently 2 then the
-			// counter should roll over in 254 cycles. If the user at that point changes the
-			// prescale_count to 1 then the counter will need to be altered to -253 and
-			// allowed to keep counting up until it crosses both 0 and 1.
-			const int dividend = timers_[c].prescale_count + cycles;
-			const int decrements = std::max(dividend / timers_[c].prescale, 0);
-			if(decrements) {
-				decrement_timer(c, decrements);
-				timers_[c].prescale_count = dividend % timers_[c].prescale;
-			} else {
-				timers_[c].prescale_count += cycles;
-			}
-		}
-	}
+	run_timer_for<0>(cycles);
+	run_timer_for<1>(cycles);
+	run_timer_for<2>(cycles);
+	run_timer_for<3>(cycles);
 }
 
-HalfCycles MFP68901::get_next_sequence_point() {
+HalfCycles MFP68901::next_sequence_point() {
 	return HalfCycles::max();
 }
 
 // MARK: - Timers
 
 void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool reset_timer) {
-	LOG("Timer " << timer << " mode set: " << int(mode) << "; prescale: " << prescale);
+	logger.error().append("Timer %d mode set: %d; prescale: %d", timer, mode, prescale);
 	timers_[timer].mode = mode;
 	if(reset_timer) {
 		timers_[timer].prescale_count = 0;
@@ -240,7 +247,8 @@ uint8_t MFP68901::get_timer_data(int timer) {
 	return timers_[timer].value;
 }
 
-void MFP68901::set_timer_event_input(int channel, bool value) {
+template <int channel>
+void MFP68901::set_timer_event_input(bool value) {
 	if(timers_[channel].event_input == value) return;
 
 	timers_[channel].event_input = value;
@@ -248,7 +256,7 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 		// "The active state of the signal on TAI or TBI is dependent upon the associated
 		// Interrupt Channel’s edge bit (GPIP 4 for TAI and GPIP 3 for TBI [...] ).
 		// If the edge bit associated with the TAI or TBI input is a one, it will be active high.
-		decrement_timer(channel, 1);
+		decrement_timer<channel>(1);
 	}
 
 	// TODO:
@@ -261,22 +269,48 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 	// (the final bit probably explains 13 cycles of the DE to interrupt latency; not sure about the other ~15)
 }
 
-void MFP68901::decrement_timer(int timer, int amount) {
-	while(amount--) {
-		--timers_[timer].value;
-		if(timers_[timer].value < 1) {
-			switch(timer) {
-				case 0: begin_interrupts(Interrupt::TimerA);	break;
-				case 1: begin_interrupts(Interrupt::TimerB);	break;
-				case 2: begin_interrupts(Interrupt::TimerC);	break;
-				case 3: begin_interrupts(Interrupt::TimerD);	break;
-			}
+template void MFP68901::set_timer_event_input<0>(bool);
+template void MFP68901::set_timer_event_input<1>(bool);
+template void MFP68901::set_timer_event_input<2>(bool);
+template void MFP68901::set_timer_event_input<3>(bool);
 
-			// Re: reloading when in event counting mode; I found the data sheet thoroughly unclear on
-			// this, but it appears empirically to be correct. See e.g. Pompey Pirates menu 27.
-			if(timers_[timer].mode == TimerMode::Delay || timers_[timer].mode == TimerMode::EventCount) {
-				timers_[timer].value += timers_[timer].reload_value;	// TODO: properly.
-			}
+template <int timer>
+void MFP68901::decrement_timer(int amount) {
+	while(amount) {
+		if(timers_[timer].value > amount) {
+			timers_[timer].value -= amount;
+			return;
+		}
+
+		// Keep this check here to avoid the case where a decrement to zero occurs during one call to
+		// decrement_timer, triggering an interrupt, then the timer is already 0 at the next instance,
+		// causing a second interrupt.
+		//
+		// ... even though it would be nice to move it down below, after value has overtly been set to 0.
+		if(!timers_[timer].value) {
+			--timers_[timer].value;
+			--amount;
+			continue;
+		}
+
+		// If here then amount is sufficient to, at least once, decrement the timer
+		// from 1 to 0. So there's an interrupt.
+		//
+		// (and, this switch is why this function is templated on timer ID)
+		switch(timer) {
+			case 0: begin_interrupts(Interrupt::TimerA);	break;
+			case 1: begin_interrupts(Interrupt::TimerB);	break;
+			case 2: begin_interrupts(Interrupt::TimerC);	break;
+			case 3: begin_interrupts(Interrupt::TimerD);	break;
+		}
+
+		// Re: reloading when in event counting mode; I found the data sheet thoroughly unclear on
+		// this, but it appears empirically to be correct. See e.g. Pompey Pirates menu 27.
+		amount -= timers_[timer].value;
+		if(timers_[timer].mode == TimerMode::Delay || timers_[timer].mode == TimerMode::EventCount) {
+			timers_[timer].value = timers_[timer].reload_value;	// TODO: properly.
+		} else {
+			timers_[timer].value = 0;
 		}
 	}
 }
@@ -365,7 +399,7 @@ int MFP68901::acknowledge_interrupt() {
 
 	int selected = 0;
 	while((1 << selected) != mask) ++selected;
-//	LOG("Interrupt acknowledged: " << selected);
+//	logger.error().append("Interrupt acknowledged: %d", selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 

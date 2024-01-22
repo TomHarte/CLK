@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiSpeaker_hpp
-#define MultiSpeaker_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 #include "../../../../Outputs/Speaker/Speaker.hpp"
@@ -16,8 +15,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes calls to and from Outputs::Speaker::Speaker in order
@@ -56,6 +54,3 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 };
 
 }
-}
-
-#endif /* MultiSpeaker_hpp */

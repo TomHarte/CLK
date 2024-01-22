@@ -6,16 +6,14 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Perform_h
-#define InstructionSets_M68k_Perform_h
+#pragma once
 
 #include "Model.hpp"
 #include "Instruction.hpp"
 #include "Status.hpp"
 #include "../../Numeric/RegisterSizes.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 struct NullFlowController {
 	//
@@ -168,8 +166,5 @@ template <
 > void perform(Preinstruction instruction, CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
 
 }
-}
 
 #include "Implementation/PerformImplementation.hpp"
-
-#endif /* InstructionSets_M68k_Perform_h */

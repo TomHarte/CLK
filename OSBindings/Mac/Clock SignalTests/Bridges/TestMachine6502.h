@@ -24,6 +24,7 @@ typedef NS_ENUM(NSInteger, CSTestMachine6502Register) {
 };
 
 typedef NS_ENUM(NSInteger, CSTestMachine6502Processor) {
+	CSTestMachine6502ProcessorNES6502,
 	CSTestMachine6502Processor6502,
 	CSTestMachine6502Processor65C02,
 	CSTestMachine6502Processor65816
@@ -39,6 +40,7 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 - (nonnull instancetype)initWithProcessor:(CSTestMachine6502Processor)processor;
 
 - (void)setData:(nonnull NSData *)data atAddress:(uint32_t)startAddress;
+- (nonnull NSData *)dataAtAddress:(uint32_t)address length:(uint32_t)length;
 - (void)runForNumberOfCycles:(int)cycles;
 - (void)runForNumberOfInstructions:(int)instructions;
 

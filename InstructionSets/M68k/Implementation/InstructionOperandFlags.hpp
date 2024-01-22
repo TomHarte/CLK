@@ -6,11 +6,9 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_68k_InstructionOperandFlags_hpp
-#define InstructionSets_68k_InstructionOperandFlags_hpp
+#pragma once
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Operation r_operation) {
 	switch((t_operation != Operation::Undefined) ? t_operation : r_operation) {
@@ -19,13 +17,29 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 
 		//
 		//	No operands are fetched or stored.
-		//	(which means that source and destination will appear as their effective addresses)
+		//
+		//	(which means that source and destination, if they exist,
+		//	should be supplied as their effective addresses)
 		//
 		case Operation::PEA:
 		case Operation::JMP:		case Operation::JSR:
 		case Operation::MOVEPw:		case Operation::MOVEPl:
 		case Operation::TAS:
 		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
+		case Operation::RTM:
+		case Operation::RTD:
+		case Operation::TRAP:		case Operation::RESET:		case Operation::NOP:
+		case Operation::STOP:		case Operation::TRAPV:		case Operation::BKPT:
+		case Operation::TRAPcc:
+		case Operation::CASb:		case Operation::CASw:		case Operation::CASl:
+		case Operation::CAS2w:		case Operation::CAS2l:
+			return 0;
+
+		//
+		// Operand fetch/store status isn't certain just from the operation; this means
+		// that further content from an extension word will be required.
+		//
+		case Operation::MOVESb:		case Operation::MOVESw:		case Operation::MOVESl:
 			return 0;
 
 		//
@@ -40,12 +54,17 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::TSTb:		case Operation::TSTw:		case Operation::TSTl:
 		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
 		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
+		case Operation::MOVEtoC:
+		case Operation::CALLM:
+		case Operation::CHKorCMP2b:	case Operation::CHKorCMP2w:	case Operation::CHKorCMP2l:
 			return FetchOp1;
 
 		//
 		//	Single-operand write.
 		//
 		case Operation::MOVEfromUSP:
+		case Operation::MOVEfromCCR:
+		case Operation::MOVEfromC:
 			return StoreOp1;
 
 		//
@@ -55,7 +74,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::NOTb:		case Operation::NOTw:		case Operation::NOTl:
 		case Operation::NEGb:		case Operation::NEGw:		case Operation::NEGl:
 		case Operation::NEGXb:		case Operation::NEGXw:		case Operation::NEGXl:
-		case Operation::EXTbtow:	case Operation::EXTwtol:
+		case Operation::EXTbtow:	case Operation::EXTwtol:	case Operation::EXTbtol:
 		case Operation::SWAP:
 		case Operation::UNLINK:
 		case Operation::ASLm:		case Operation::ASRm:
@@ -81,33 +100,38 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
-		case Operation::CHK:
+		case Operation::CHKw:	case Operation::CHKl:
 		case Operation::BTST:
-		case Operation::LINKw:
+		case Operation::LINKw:	case Operation::LINKl:
+		case Operation::BFTST:	case Operation::BFFFO:
+		case Operation::BFEXTU:	case Operation::BFEXTS:
+		case Operation::DIVSorDIVUl:
+		case Operation::MULSorMULUl:
 			return FetchOp1 | FetchOp2;
 
 		//
 		//	Two-operand; read source, write dest.
 		//
-		case Operation::MOVEb: 	case Operation::MOVEw: 	case Operation::MOVEl:
+		case Operation::MOVEb:	case Operation::MOVEw:	case Operation::MOVEl:
 		case Operation::MOVEAw:	case Operation::MOVEAl:
+		case Operation::PACK:	case Operation::UNPK:
 			return FetchOp1 | StoreOp2;
 
 		//
 		//	Two-operand; read both, write dest.
 		//
 		case Operation::ABCD:	case Operation::SBCD:
-		case Operation::ADDb: 	case Operation::ADDw: 	case Operation::ADDl:
+		case Operation::ADDb:	case Operation::ADDw:	case Operation::ADDl:
 		case Operation::ADDAw:	case Operation::ADDAl:
-		case Operation::ADDXb: 	case Operation::ADDXw: 	case Operation::ADDXl:
-		case Operation::SUBb: 	case Operation::SUBw: 	case Operation::SUBl:
+		case Operation::ADDXb:	case Operation::ADDXw:	case Operation::ADDXl:
+		case Operation::SUBb:	case Operation::SUBw:	case Operation::SUBl:
 		case Operation::SUBAw:	case Operation::SUBAl:
-		case Operation::SUBXb: 	case Operation::SUBXw: 	case Operation::SUBXl:
+		case Operation::SUBXb:	case Operation::SUBXw:	case Operation::SUBXl:
 		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
-		case Operation::DIVU:	case Operation::DIVS:
-		case Operation::MULU:	case Operation::MULS:
+		case Operation::DIVUw:	case Operation::DIVSw:
+		case Operation::MULUw:	case Operation::MULSw:
 		case Operation::ASLb:	case Operation::ASLw:	case Operation::ASLl:
 		case Operation::ASRb:	case Operation::ASRw:	case Operation::ASRl:
 		case Operation::LSLb:	case Operation::LSLw:	case Operation::LSLl:
@@ -118,6 +142,8 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
 		case Operation::BCHG:
 		case Operation::BCLR:	case Operation::BSET:
+		case Operation::BFCHG:	case Operation::BFCLR:	case Operation::BFSET:
+		case Operation::BFINS:
 			return FetchOp1 | FetchOp2 | StoreOp2;
 
 		//
@@ -141,6 +167,3 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 }
 
 }
-}
-
-#endif /* InstructionSets_68k_InstructionOperandFlags_hpp */

@@ -319,7 +319,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);			// New PCH.
 
 		target(OperationCopyPBRToData);			// Copy PBR to the data register.
-		target(CyclePush);						// PBR.
+		target(CyclePushNotEmulation);			// PBR.
 		target(CycleFetchPreviousThrowaway);	// IO.
 
 		target(CycleFetchPC);					// New PBR.
@@ -327,8 +327,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JSL]
 
-		target(CyclePush);						// PCH.
-		target(CyclePush);						// PCL.
+		target(CyclePushNotEmulation);			// PCH.
+		target(CyclePushNotEmulation);			// PCL.
 	}
 
 	// 5. Absolute long, X;	al, x.
@@ -600,9 +600,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void relative(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);		// Offset.
 
-		target(OperationPerform);			// The branch instructions will all skip one or three
+		target(OperationPerform);			// The branch instructions will skip zero, one or three
 											// of the next cycles, depending on the effect of
-											// the jump. It'll also calculate the correct target
+											// the jump. They'll also calculate the correct target
 											// address, placing it into the data buffer.
 
 		target(CycleFetchPreviousPCThrowaway);	// IO.
@@ -656,7 +656,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		stack_exception_impl(type, is8bit, target, CycleAccessStack);
 	}
 
-	// 22b. Stack; s, PLx.
+	// 22b(i). Stack; s, PLx, respecting emulation mode. E.g. PLP.
 	static void stack_pull(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
@@ -667,7 +667,18 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationPerform);
 	}
 
-	// 22c. Stack; s, PHx.
+	// 22b(ii). Stack; s, PLx, ignoring emulation mode. I.e. PLD.
+	static void stack_pld(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPCThrowaway);	// IO.
+
+		target(CyclePullNotEmulation);	// REG low.
+		target(CyclePullNotEmulation);	// REG [high].
+
+		target(OperationPerform);
+	}
+
+	// 22c(i). Stack; s, PHx, respecting emulation mode. E.g. PHP.
 	static void stack_push(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 
@@ -677,6 +688,16 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);				// REG [low].
 	}
 
+	// 22c(i). Stack; s, PHx, ignoring emulation mode. I.e. PHD.
+	static void stack_phd(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPCThrowaway);	// IO.
+
+		target(OperationPerform);
+
+		target(CyclePushNotEmulation);	// REG high.
+		target(CyclePushNotEmulation);	// REG [low].
+	}
+
 	// 22d. Stack; s, PEA.
 	static void stack_pea(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);	// AAL.
@@ -684,8 +705,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationCopyInstructionToData);
 
-		target(CyclePush);				// AAH.
-		target(CyclePush);				// AAL.
+		target(CyclePushNotEmulation);	// AAH.
+		target(CyclePushNotEmulation);	// AAL.
 	}
 
 	// 22e. Stack; s, PEI.
@@ -697,8 +718,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(CycleFetchIncrementData);		// AAL.
 		target(CycleFetchData);					// AAH.
-		target(CyclePush);						// AAH.
-		target(CyclePush);						// AAL.
+		target(CyclePushNotEmulation);			// AAH.
+		target(CyclePushNotEmulation);			// AAL.
 	}
 
 	// 22f. Stack; s, PER.
@@ -709,8 +730,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationConstructPER);
 
-		target(CyclePush);						// AAH.
-		target(CyclePush);						// AAL.
+		target(CyclePushNotEmulation);			// AAH.
+		target(CyclePushNotEmulation);			// AAL.
 	}
 
 	// 22g. Stack; s, RTI.
@@ -743,9 +764,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
 
-		target(CyclePull);				// New PCL.
-		target(CyclePull);				// New PCH.
-		target(CyclePull);				// New PBR.
+		target(CyclePullNotEmulation);	// New PCL.
+		target(CyclePullNotEmulation);	// New PCH.
+		target(CyclePullNotEmulation);	// New PBR.
 
 		target(OperationPerform);		// [RTL]
 	}
@@ -818,7 +839,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x08 PHP s */			op(stack_push, PHP, AccessMode::Always8Bit);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always16Bit);
+	/* 0x0b PHD s */			op(stack_phd, PHD);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
@@ -852,7 +873,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x28 PLP s */			op(stack_pull, PLP, AccessMode::Always8Bit);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always16Bit);
+	/* 0x2b PLD s */			op(stack_pld, PLD);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
@@ -1110,11 +1131,10 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 		set_m_x_flags(true, true);
 		registers_.e_masks[0] = 0xff00;
 		registers_.e_masks[1] = 0x00ff;
+		registers_.s.halves.high = 1;
 	} else {
 		registers_.e_masks[0] = 0x0000;
 		registers_.e_masks[1] = 0xffff;
-		registers_.s.halves.high = 1;	// To pretend it was 1 all along; this implementation actually ignores
-										// the top byte while in emulation mode.
 	}
 }
 

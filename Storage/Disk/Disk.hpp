@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Disk_hpp
-#define Disk_hpp
+#pragma once
 
 #include <map>
 #include <memory>
@@ -18,8 +17,7 @@
 #include "Track/Track.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Models a flopy disk.
@@ -70,6 +68,3 @@ class Disk {
 };
 
 }
-}
-
-#endif /* Disk_hpp */

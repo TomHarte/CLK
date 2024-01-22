@@ -6,22 +6,15 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Acorn_Tape_hpp
-#define StaticAnalyser_Acorn_Tape_hpp
+#pragma once
 
 #include <memory>
 
 #include "File.hpp"
 #include "../../../Storage/Tape/Tape.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 std::vector<File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
 }
-}
-}
-
-#endif /* Tape_hpp */

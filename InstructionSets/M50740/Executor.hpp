@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Executor_h
-#define Executor_h
+#pragma once
 
 #include "Instruction.hpp"
 #include "Parser.hpp"
@@ -18,8 +17,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace InstructionSet {
-namespace M50740 {
+namespace InstructionSet::M50740 {
 
 class Executor;
 using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
@@ -152,7 +150,7 @@ class Executor: public CachingExecutor {
 		Timer timers_[3], prescalers_[2];
 		inline int update_timer(Timer &timer, int count);
 
-		// Interrupt and timer  control.
+		// Interrupt and timer control.
 		uint8_t interrupt_control_ = 0, timer_control_ = 0;
 		bool interrupt_line_ = false;
 
@@ -166,6 +164,8 @@ class Executor: public CachingExecutor {
 		template<bool is_brk> inline void perform_interrupt(uint16_t vector);
 		inline void set_port_output(int port);
 
+		void set_interrupt_request(uint8_t &reg, uint8_t value, uint16_t vector);
+
 		// MARK: - Execution time
 
 		Cycles cycles_;
@@ -175,6 +175,3 @@ class Executor: public CachingExecutor {
 };
 
 }
-}
-
-#endif /* Executor_h */

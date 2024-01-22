@@ -24,6 +24,7 @@
 #include "../../../../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
 #include "../../../../../Analyser/Static/Oric/Target.hpp"
+#include "../../../../../Analyser/Static/PCCompatible/Target.hpp"
 #include "../../../../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -229,16 +230,21 @@
 	return self;
 }
 
-- (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive {
+- (instancetype)initWithMSXModel:(CSMachineMSXModel)model region:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive hasMSXMUSIC:(BOOL)hasMSXMUSIC {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::MSX::Target;
 		auto target = std::make_unique<Target>();
-		target->has_disk_drive = !!hasDiskDrive;
+		target->has_disk_drive = hasDiskDrive;
+		target->has_msx_music = hasMSXMUSIC;
 		switch(region) {
 			case CSMachineMSXRegionAmerican:	target->region = Target::Region::USA;		break;
 			case CSMachineMSXRegionEuropean:	target->region = Target::Region::Europe;	break;
 			case CSMachineMSXRegionJapanese:	target->region = Target::Region::Japan;		break;
+		}
+		switch(model) {
+			case CSMachineMSXModelMSX1:			target->model = Target::Model::MSX1;		break;
+			case CSMachineMSXModelMSX2:			target->model = Target::Model::MSX2;		break;
 		}
 		_targets.push_back(std::move(target));
 	}
@@ -261,6 +267,24 @@
 			case CSMachineOricDiskInterfacePravetz:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
 			case CSMachineOricDiskInterfaceJasmin:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
 			case CSMachineOricDiskInterfaceBD500:		target->disk_interface = Target::DiskInterface::BD500;		break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::PCCompatible::Target;
+		auto target = std::make_unique<Target>();
+		switch(adaptor) {
+			case CSPCCompatibleVideoAdaptorMDA:	target->adaptor = Target::VideoAdaptor::MDA;	break;
+			case CSPCCompatibleVideoAdaptorCGA:	target->adaptor = Target::VideoAdaptor::CGA;	break;
+		}
+		switch(speed) {
+			case CSPCCompatibleSpeedOriginal:	target->speed = Target::Speed::ApproximatelyOriginal;	break;
+			case CSPCCompatibleSpeedTurbo:		target->speed = Target::Speed::Fast;					break;
 		}
 		_targets.push_back(std::move(target));
 	}
@@ -360,6 +384,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::MasterSystem:	return @"CompositeOptions";
 		case Analyser::Machine::MSX:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::Oric:			return @"OricOptions";
+		case Analyser::Machine::PCCompatible:	return @"CompositeOptions";
 		case Analyser::Machine::Vic20:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";
 		case Analyser::Machine::ZXSpectrum:		return @"QuickLoadCompositeOptions"; // TODO: @"ZXSpectrumOptions";

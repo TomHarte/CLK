@@ -1,0 +1,51 @@
+name: Build
+on: [pull_request]
+jobs:
+  build-mac:
+    name: Mac UI on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Make
+      working-directory: OSBindings/Mac
+      run: xcodebuild CODE_SIGN_IDENTITY=-
+  build-sdl:
+    name: SDL UI on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      shell: bash
+      run: |
+        case $RUNNER_OS in
+          Linux)
+            sudo apt-get --allow-releaseinfo-change update
+            sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
+            ;;
+          macOS)
+            brew install scons sdl2
+            ;;
+        esac
+    - name: Make
+      working-directory: OSBindings/SDL
+      shell: bash
+      run: |
+        case $RUNNER_OS in
+          Linux)
+            jobs=$(nproc --all)
+            ;;
+          macOS)
+            jobs=$(sysctl -n hw.activecpu)
+            ;;
+          *)
+            jobs=1
+        esac
+        scons -j"$jobs"

@@ -6,13 +6,14 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef JustInTime_h
-#define JustInTime_h
+#pragma once
 
 #include "ClockReceiver.hpp"
 #include "../Concurrency/AsyncTaskQueue.hpp"
 #include "ClockingHintSource.hpp"
 #include "ForceInline.hpp"
+
+#include <atomic>
 
 /*!
 	A JustInTimeActor holds (i) an embedded object with a run_for method; and (ii) an amount
@@ -24,7 +25,7 @@
 	Machines that accumulate HalfCycle time but supply to a Cycle-counted device may supply a
 	separate @c TargetTimeScale at template declaration.
 
-	If the held object implements get_next_sequence_point() then it'll be used to flush implicitly
+	If the held object implements @c next_sequence_point() then it'll be used to flush implicitly
 	as and when sequence points are hit. Callers can use will_flush() to predict these.
 
 	If the held object is a subclass of ClockingHint::Source, this template will register as an
@@ -38,7 +39,7 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 	private:
 		/*!
 			A std::unique_ptr deleter which causes an update_sequence_point to occur on the actor supplied
-			to it at construction if it implements get_next_sequence_point(). Otherwise destruction is a no-op.
+			to it at construction if it implements @c next_sequence_point(). Otherwise destruction is a no-op.
 
 			**Does not delete the object.**
 
@@ -121,7 +122,13 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// If this object provides sequence points, checks for changes to the next
 		/// sequence point upon deletion of the pointer.
 		[[nodiscard]] forceinline auto operator->() {
+#ifndef NDEBUG
+			assert(!flush_concurrency_check_.test_and_set());
+#endif
 			flush();
+#ifndef NDEBUG
+			flush_concurrency_check_.clear();
+#endif
 			return std::unique_ptr<T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(this));
 		}
 
@@ -130,7 +137,13 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// Despite being const, this will flush the object and, if relevant, update the next sequence point.
 		[[nodiscard]] forceinline auto operator -> () const {
 			auto non_const_this = const_cast<JustInTimeActor<T, LocalTimeScale, multiplier, divider> *>(this);
+#ifndef NDEBUG
+			assert(!non_const_this->flush_concurrency_check_.test_and_set());
+#endif
 			non_const_this->flush();
+#ifndef NDEBUG
+			non_const_this->flush_concurrency_check_.clear();
+#endif
 			return std::unique_ptr<const T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(non_const_this));
 		}
 
@@ -233,9 +246,9 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 				// going to be applied then do a direct max -> max translation rather than
 				// allowing the arithmetic to overflow.
 				if constexpr (divider == 1 && std::is_same_v<LocalTimeScale, TargetTimeScale>) {
-					time_until_event_ = object_.get_next_sequence_point();
+					time_until_event_ = object_.next_sequence_point();
 				} else {
-					const auto time = object_.get_next_sequence_point();
+					const auto time = object_.next_sequence_point();
 					if(time == TargetTimeScale::max()) {
 						time_until_event_ = LocalTimeScale::max();
 					} else {
@@ -258,12 +271,16 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		bool did_flush_ = false;
 
 		template <typename S, typename = void> struct has_sequence_points : std::false_type {};
-		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().get_next_sequence_point()))> : std::true_type {};
+		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().next_sequence_point()))> : std::true_type {};
 
 		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::JustInTime;
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) {
 			clocking_preference_ = clocking;
 		}
+
+#ifndef NDEBUG
+		std::atomic_flag flush_concurrency_check_{};
+#endif
 };
 
 /*!
@@ -276,7 +293,7 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 		/// Constructs a new AsyncJustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> AsyncJustInTimeActor(TargetTimeScale threshold, Args&&... args) :
 			object_(std::forward<Args>(args)...),
-		 	threshold_(threshold) {}
+			threshold_(threshold) {}
 
 		/// Adds time to the actor.
 		inline void operator += (const LocalTimeScale &rhs) {
@@ -317,5 +334,3 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 		bool is_flushed_ = true;
 		Concurrency::AsyncTaskQueue<true> task_queue_;
 };
-
-#endif /* JustInTime_h */

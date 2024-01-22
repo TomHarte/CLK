@@ -6,14 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef AddressMapper_hpp
-#define AddressMapper_hpp
+#pragma once
 
 #include <functional>
 
-namespace Analyser {
-namespace Static {
-namespace Disassembler {
+namespace Analyser::Static::Disassembler {
 
 /*!
 	Provides an address mapper that relocates a chunk of memory so that it starts at
@@ -26,7 +23,3 @@ template <typename T> std::function<std::size_t(T)> OffsetMapper(T start_address
 }
 
 }
-}
-}
-
-#endif /* AddressMapper_hpp */

@@ -6,18 +6,15 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ASCII16kb_hpp
-#define ASCII16kb_hpp
+#pragma once
 
-#include "../ROMSlotHandler.hpp"
+#include "../MemorySlotHandler.hpp"
 
-namespace MSX {
-namespace Cartridge {
+namespace MSX::Cartridge {
 
-class ASCII16kbROMSlotHandler: public ROMSlotHandler {
+class ASCII16kbROMSlotHandler: public MemorySlotHandler {
 	public:
-		ASCII16kbROMSlotHandler(MSX::MemoryMap &map, int slot) :
-			map_(map), slot_(slot) {}
+		ASCII16kbROMSlotHandler(MSX::MemorySlot &slot) : slot_(slot) {}
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final {
 			switch(address >> 11) {
@@ -28,13 +25,13 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0x6000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x4000, 0x4000, 0x4000);
+					slot_.map(value * 0x4000, 0x4000, 0x4000);
 				break;
 				case 0xe:
 					if(pc_is_outside_bios) {
 						if(address == 0x7000 || address == 0x77ff) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x4000, 0x8000, 0x4000);
+					slot_.map(value * 0x4000, 0x8000, 0x4000);
 				break;
 			}
 		}
@@ -44,11 +41,7 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 		}
 
 	private:
-		MSX::MemoryMap &map_;
-		int slot_;
+		MSX::MemorySlot &slot_;
 };
 
 }
-}
-
-#endif /* ASCII16kb_hpp */

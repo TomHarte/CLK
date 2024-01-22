@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MemoryMap_hpp
-#define MemoryMap_hpp
+#pragma once
 
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
@@ -19,8 +18,8 @@ namespace Amiga {
 
 class MemoryMap {
 	private:
-		static constexpr auto PermitRead = CPU::MC68000Mk2::Microcycle::PermitRead;
-		static constexpr auto PermitWrite = CPU::MC68000Mk2::Microcycle::PermitWrite;
+		static constexpr auto PermitRead = CPU::MC68000::Operation::PermitRead;
+		static constexpr auto PermitWrite = CPU::MC68000::Operation::PermitWrite;
 		static constexpr auto PermitReadWrite = PermitRead | PermitWrite;
 
 	public:
@@ -109,13 +108,13 @@ class MemoryMap {
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access,
 		/// and in the Zorro register range.
-		bool perform(const CPU::MC68000Mk2::Microcycle &cycle) {
+		template <typename Microcycle>
+		bool perform(const Microcycle &cycle) {
 			if(!fast_autoconf_visible_) return false;
 
 			const uint32_t register_address = *cycle.address & 0xfe;
 
-			using Microcycle = CPU::MC68000Mk2::Microcycle;
-			if(cycle.operation & Microcycle::Read) {
+			if(cycle.operation & CPU::MC68000::Operation::Read) {
 				// Re: Autoconf:
 				//
 				// "All read registers physically return only the top 4 bits of data, on D31-D28";
@@ -193,4 +192,3 @@ class MemoryMap {
 };
 
 }
-#endif /* MemoryMap_hpp */

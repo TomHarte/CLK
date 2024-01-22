@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiConfigurable_hpp
-#define MultiConfigurable_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 #include "../../../../Configurable/Configurable.hpp"
@@ -15,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the configurable interface to multiple machines.
@@ -37,6 +35,3 @@ class MultiConfigurable: public Configurable::Device {
 };
 
 }
-}
-
-#endif /* MultiConfigurable_hpp */

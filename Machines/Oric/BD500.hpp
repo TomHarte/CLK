@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef BD500_hpp
-#define BD500_hpp
+#pragma once
 
 #include "../../Components/1770/1770.hpp"
 #include "../../Activity/Observer.hpp"
@@ -53,6 +52,4 @@ class BD500: public DiskController {
 		}
 };
 
-};
-
-#endif /* BD500_hpp */
+}

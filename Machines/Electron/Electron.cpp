@@ -288,19 +288,19 @@ template <bool has_scsi_bus> class ConcreteMachine:
 								evaluate_interrupts();
 
 								// TODO: NMI
-							}
+							} else {
+								// Latch the paged ROM in case external hardware is being emulated.
+								active_rom_ = *value & 0xf;
 
-							// latch the paged ROM in case external hardware is being emulated
-							active_rom_ = *value & 0xf;
-
-							// apply the ULA's test
-							if(*value & 0x08) {
-								if(*value & 0x04) {
-									keyboard_is_active_ = false;
-									basic_is_active_ = false;
-								} else {
-									keyboard_is_active_ = !(*value & 0x02);
-									basic_is_active_ = !keyboard_is_active_;
+								// apply the ULA's test
+								if(*value & 0x08) {
+									if(*value & 0x04) {
+										keyboard_is_active_ = false;
+										basic_is_active_ = false;
+									} else {
+										keyboard_is_active_ = !(*value & 0x02);
+										basic_is_active_ = !keyboard_is_active_;
+									}
 								}
 							}
 						}
@@ -421,7 +421,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									const auto service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									const auto service_call = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -441,8 +441,8 @@ template <bool has_scsi_bus> class ConcreteMachine:
 											interrupt_status_ |= tape_.get_interrupt_status();
 
 											fast_load_is_in_data_ = true;
-											m6502_.set_value_of_register(CPU::MOS6502::Register::A, 0);
-											m6502_.set_value_of_register(CPU::MOS6502::Register::Y, tape_.get_data_register());
+											m6502_.set_value_of(CPU::MOS6502::Register::A, 0);
+											m6502_.set_value_of(CPU::MOS6502::Register::Y, tape_.get_data_register());
 											*value = 0x60; // 0x60 is RTS
 										}
 										else *value = os_[address & 16383];
@@ -786,14 +786,14 @@ template <bool has_scsi_bus> class ConcreteMachine:
 
 using namespace Electron;
 
-Machine *Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Acorn::Target;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 
 	if(acorn_target->media.mass_storage_devices.empty()) {
-		return new Electron::ConcreteMachine<false>(*acorn_target, rom_fetcher);
+		return std::make_unique<Electron::ConcreteMachine<false>>(*acorn_target, rom_fetcher);
 	} else {
-		return new Electron::ConcreteMachine<true>(*acorn_target, rom_fetcher);
+		return std::make_unique<Electron::ConcreteMachine<true>>(*acorn_target, rom_fetcher);
 	}
 }
 

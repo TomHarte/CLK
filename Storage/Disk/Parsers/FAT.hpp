@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Disk_Parsers_FAT_hpp
-#define Storage_Disk_Parsers_FAT_hpp
+#pragma once
 
 #include "../Disk.hpp"
 
@@ -16,9 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Disk {
-namespace FAT {
+namespace Storage::Disk::FAT {
 
 struct File {
 	std::string name;
@@ -73,7 +70,3 @@ std::optional<std::vector<uint8_t>> GetFile(const std::shared_ptr<Storage::Disk:
 std::optional<Directory> GetDirectory(const std::shared_ptr<Storage::Disk::Disk> &disk, const Volume &volume, const File &file);
 
 }
-}
-}
-
-#endif /* FAT_hpp */

@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 #include "../../../InstructionSets/M68k/Executor.hpp"
 #include "../../../InstructionSets/M68k/Decoder.hpp"
 
@@ -84,9 +84,9 @@ struct TestExecutor {
 };
 
 /// Binds a bus-accurate 68000 to 16mb of RAM.
-struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
+struct TestProcessor: public CPU::MC68000::BusHandler {
 	uint8_t *const ram;
-	CPU::MC68000Mk2::Processor<TestProcessor, true, true, true> processor;
+	CPU::MC68000::Processor<TestProcessor, true, true, true> processor;
 	std::function<void(void)> comparitor;
 
 	TestProcessor(uint8_t *ram) : ram(ram), processor(*this) {}
@@ -96,8 +96,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		if(!instructions_remaining_) comparitor();
 	}
 
-	HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
-		using Microcycle = CPU::MC68000Mk2::Microcycle;
+
+	template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 		if(cycle.data_select_active()) {
 			cycle.apply(&ram[cycle.host_endian_byte_address()]);
 		}
@@ -177,7 +177,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 //		NSLog(@"Testing %@", url);
 		[self testJSONAtURL:url];
 	}
- 
+
 	XCTAssert(_failures.count == 0);
 
 	// Output a summary of failures, if any.
@@ -260,7 +260,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	}
 }
 
-- (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
+- (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name {
 	struct TerminateMarker {};
 
 	auto uniqueTest68000 = std::make_unique<TestProcessor>(reinterpret_cast<uint8_t *>(_ram.data()));
@@ -438,8 +438,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 		// For DIVU and DIVS, for now, test only the well-defined flags.
 		if(
-			instruction.operation != InstructionSet::M68k::Operation::DIVS &&
-			instruction.operation != InstructionSet::M68k::Operation::DIVU
+			instruction.operation != InstructionSet::M68k::Operation::DIVSw &&
+			instruction.operation != InstructionSet::M68k::Operation::DIVUw
 		) {
 			[_failures addObject:name];
 		} else {

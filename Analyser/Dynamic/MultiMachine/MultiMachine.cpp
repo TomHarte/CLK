@@ -11,6 +11,12 @@
 
 #include <algorithm>
 
+namespace {
+
+Log::Logger<Log::Source::MultiMachine> logger;
+
+}
+
 using namespace Analyser::Dynamic;
 
 MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines) :
@@ -61,13 +67,14 @@ bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachi
 
 void MultiMachine::did_run_machines(MultiTimedMachine *) {
 	std::lock_guard machines_lock(machines_mutex_);
-#ifndef NDEBUG
-	for(const auto &machine: machines_) {
-		auto timed_machine = machine->timed_machine();
-		LOGNBR(PADHEX(2) << timed_machine->get_confidence() << " " << timed_machine->debug_type() << "; ");
+
+	if constexpr (logger.enabled) {
+		auto line = logger.info();
+		for(const auto &machine: machines_) {
+			auto timed_machine = machine->timed_machine();
+			line.append("%0.4f %s; ", timed_machine->get_confidence(), timed_machine->debug_type().c_str());
+		}
 	}
-	LOGNBR(std::endl);
-#endif
 
 	DynamicMachine *front = machines_.front().get();
 	std::stable_sort(machines_.begin(), machines_.end(),

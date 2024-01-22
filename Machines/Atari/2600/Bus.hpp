@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_Bus_hpp
-#define Atari2600_Bus_hpp
+#pragma once
 
 #include "Atari2600.hpp"
 #include "PIA.hpp"
@@ -67,5 +66,3 @@ class Bus {
 };
 
 }
-
-#endif /* Atari2600_Bus_hpp */

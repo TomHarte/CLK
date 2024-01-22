@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Tape_hpp
-#define Tape_hpp
+#pragma once
 
 #include <memory>
 
@@ -18,8 +17,7 @@
 
 #include "../../Activity/Source.hpp"
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
@@ -165,6 +163,3 @@ class BinaryTapePlayer : public TapePlayer {
 };
 
 }
-}
-
-#endif /* Tape_hpp */

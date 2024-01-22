@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeCBSRAMPlus_hpp
-#define Atari2600_CartridgeCBSRAMPlus_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class CBSRAMPlus: public BusExtender {
 	public:
@@ -38,6 +36,3 @@ class CBSRAMPlus: public BusExtender {
 };
 
 }
-}
-
-#endif /* Atari2600_CartridgeCBSRAMPlus_hpp */

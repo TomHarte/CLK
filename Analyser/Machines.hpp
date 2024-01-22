@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_h
-#define Machines_h
+#pragma once
 
 namespace Analyser {
 
@@ -25,11 +24,10 @@ enum class Machine {
 	MasterSystem,
 	MSX,
 	Oric,
+	PCCompatible,
 	Vic20,
 	ZX8081,
 	ZXSpectrum,
 };
 
 }
-
-#endif /* Machines_h */

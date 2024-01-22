@@ -6,14 +6,12 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef WaveformGenerator_h
-#define WaveformGenerator_h
+#pragma once
 
 #include "Tables.hpp"
 #include "LowFrequencyOscillator.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 enum class Waveform {
 	Sine, HalfSine, AbsSine, PulseSine
@@ -87,6 +85,3 @@ template <int phase_precision> class WaveformGenerator {
 };
 
 }
-}
-
-#endif /* WaveformGenerator_h */

@@ -6,10 +6,10 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef ROMCatalogue_hpp
-#define ROMCatalogue_hpp
+#pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <optional>
@@ -70,7 +70,6 @@ enum Name {
 	// Atari ST.
 	AtariSTTOS100,
 	AtariSTTOS104,
-	AtariSTEmuTOS192,
 
 	// ColecoVision.
 	ColecoVisionBIOS,
@@ -117,6 +116,10 @@ enum Name {
 	MSXEuropeanBIOS,
 	MSXDOS,
 
+	MSX2GenericBIOS,
+	MSX2Extension,
+	MSXMusic,
+
 	// Oric.
 	OricColourROM,
 	OricBASIC10,
@@ -126,6 +129,16 @@ enum Name {
 	OricJasmin,
 	OricMicrodisc,
 	Oric8DOSBoot,
+
+	// PCCompatible.
+	PCCompatibleGLaBIOS,
+	PCCompatibleGLaTICK,
+	PCCompatiblePhoenix80286BIOS,
+
+	PCCompatibleMDAFont,
+	PCCompatibleCGAFont,
+	PCCompatibleEGABIOS,
+	PCCompatibleVGABIOS,
 
 	// Sinclair QL.
 	SinclairQLJS,
@@ -299,5 +312,3 @@ struct Request {
 };
 
 }
-
-#endif /* ROMCatalogue_hpp */

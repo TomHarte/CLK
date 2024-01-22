@@ -39,7 +39,7 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	head_count_ = 1 + (file_.stats().st_size > sectors_per_track * sizeT(128 << sector_size) * 80);
 
 	// Announce disk geometry.
-	set_geometry(sectors_per_track, sector_size, 0, true);
+	set_geometry(sectors_per_track, sector_size, 0, Encodings::MFM::Density::Double);
 }
 
 HeadPosition AcornADF::get_maximum_head_position() {

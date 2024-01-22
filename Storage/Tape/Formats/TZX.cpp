@@ -14,8 +14,11 @@
 using namespace Storage::Tape;
 
 namespace {
-const unsigned int StandardTZXClock = 3500000;
-const unsigned int TZXClockMSMultiplier = 3500;
+
+constexpr unsigned int StandardTZXClock = 3500000;
+constexpr unsigned int TZXClockMSMultiplier = 3500;
+Log::Logger<Log::Source::TZX> logger;
+
 }
 
 TZX::TZX(const std::string &file_name) :
@@ -31,7 +34,7 @@ TZX::TZX(const std::string &file_name) :
 	uint8_t minor_version = file_.get8();
 
 	// Reject if an incompatible version
-	if(major_version != 1 || minor_version > 21)  throw ErrorNotTZX;
+	if(major_version != 1 || minor_version > 21) throw ErrorNotTZX;
 
 	virtual_reset();
 }
@@ -92,7 +95,7 @@ void TZX::get_next_pulses() {
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
 				// so there is no route past an unimplemented chunk.
-				LOG("Unknown TZX chunk: " << PADHEX(4) << chunk_id);
+				logger.error().append("Unknown TZX chunk: %04x", chunk_id);
 				set_is_at_end(true);
 			return;
 		}
@@ -213,7 +216,7 @@ void TZX::get_standard_speed_data_block() {
 	if(!data_block.data.data_length) return;
 
 	uint8_t first_byte = file_.get8();
-	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063  : 3223;
+	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063 : 3223;
 	file_.seek(-1, SEEK_CUR);
 
 	get_data_block(data_block);

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Inputs_Keyboard_hpp
-#define Inputs_Keyboard_hpp
+#pragma once
 
 #include <vector>
 #include <set>
@@ -51,7 +50,7 @@ class Keyboard {
 		// Host interface.
 
 		/// @returns @c true if the key press affects the machine; @c false otherwise.
-		virtual bool set_key_pressed(Key key, char value, bool is_pressed);
+		virtual bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat);
 		virtual void reset_all_keys();
 
 		/// @returns a set of all Keys that this keyboard responds to.
@@ -90,5 +89,3 @@ class Keyboard {
 };
 
 }
-
-#endif /* Inputs_Keyboard_hpp */

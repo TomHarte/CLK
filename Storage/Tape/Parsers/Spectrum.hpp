@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_Spectrum_hpp
-#define Storage_Tape_Parsers_Spectrum_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 
@@ -15,9 +14,7 @@
 #include <optional>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
-namespace ZXSpectrum {
+namespace Storage::Tape::ZXSpectrum {
 
 enum class WaveType {
 	// All references to 't-states' below are cycles relative to the
@@ -132,7 +129,3 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 };
 
 }
-}
-}
-
-#endif /* Spectrum_hpp */

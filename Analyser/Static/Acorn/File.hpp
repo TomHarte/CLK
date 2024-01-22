@@ -6,16 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Acorn_File_hpp
-#define StaticAnalyser_Acorn_File_hpp
+#pragma once
 
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 struct File {
 	std::string name;
@@ -61,7 +58,3 @@ struct File {
 };
 
 }
-}
-}
-
-#endif /* File_hpp */

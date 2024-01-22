@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef State_h
-#define State_h
+#pragma once
 
 #include <memory>
 #include "../Analyser/Static/StaticAnalyser.hpp"
@@ -22,5 +21,3 @@ struct StateProducer {
 };
 
 };
-
-#endif /* State_h */

@@ -10,7 +10,7 @@
 
 #include <cstdio>
 
-namespace  {
+namespace {
 
 uint16_t mapped_colour(uint8_t source) {
 	// On the Enterprise, red and green are 3-bit quantities; blue is a 2-bit quantity.
@@ -442,22 +442,19 @@ void Nick::set_output_type(OutputType type, bool force_flush) {
 		return;
 	}
 	if(output_duration_) {
-		switch(output_type_) {
-			case OutputType::Border: {
-				uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-				if(colour_pointer) *colour_pointer = border_colour_;
-				crt_.output_level(output_duration_*16);
-			} break;
+		const int duration = output_duration_ * 16;
 
+		switch(output_type_) {
 			case OutputType::Pixels: {
-				crt_.output_data(output_duration_*16, size_t(output_duration_*column_size_));
+				crt_.output_data(duration, size_t(output_duration_*column_size_));
 				pixel_pointer_ = nullptr;
 				allocated_pointer_ = nullptr;
 			} break;
 
-			case OutputType::Sync:			crt_.output_sync(output_duration_*16);				break;
-			case OutputType::Blank:			crt_.output_blank(output_duration_*16);				break;
-			case OutputType::ColourBurst:	crt_.output_colour_burst(output_duration_*16, 0);	break;
+			case OutputType::Border:		crt_.output_level<uint16_t>(duration, border_colour_);	break;
+			case OutputType::Sync:			crt_.output_sync(duration);								break;
+			case OutputType::Blank:			crt_.output_blank(duration);							break;
+			case OutputType::ColourBurst:	crt_.output_colour_burst(duration, 0);					break;
 		}
 	}
 
@@ -467,7 +464,7 @@ void Nick::set_output_type(OutputType type, bool force_flush) {
 
 // MARK: - Sequence points.
 
-Cycles Nick::get_next_sequence_point() const {
+Cycles Nick::next_sequence_point() const {
 	constexpr int load_point = 16;	// i.e. 16 cycles after the start of the line, the
 									// interrupt line may change. That is, after the
 									// second byte of the mode line has been read.

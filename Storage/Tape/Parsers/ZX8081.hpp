@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_Parsers_ZX8081_hpp
-#define Storage_Tape_Parsers_ZX8081_hpp
+#pragma once
 
 #include "TapeParser.hpp"
 
@@ -17,9 +16,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace Storage {
-namespace Tape {
-namespace ZX8081 {
+namespace Storage::Tape::ZX8081 {
 
 enum class WaveType {
 	Pulse, Gap, LongGap, Unrecognised
@@ -58,7 +55,3 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 };
 
 }
-}
-}
-
-#endif /* ZX8081_hpp */

@@ -6,20 +6,20 @@
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502_cpp
-#define MOS6502_cpp
+#pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cstdint>
 
 #include "../6502Esque/6502Esque.hpp"
 #include "../6502Esque/Implementation/LazyFlags.hpp"
+#include "../../Numeric/Carry.hpp"
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
-namespace CPU {
-namespace MOS6502 {
+namespace CPU::MOS6502 {
 
 // Adopt a bunch of things from MOS6502Esque.
 using BusOperation = CPU::MOS6502Esque::BusOperation;
@@ -38,10 +38,10 @@ enum Personality {
 	PWDC65C02,			// like the Rockwell, but with STP and WAI
 };
 
-#define has_decimal_mode(p)	((p) >= Personality::P6502)
-#define is_65c02(p)			((p) >= Personality::PSynertek65C02)
-#define has_bbrbbsrmbsmb(p)	((p) >= Personality::PRockwell65C02)
-#define has_stpwai(p)		((p) >= Personality::PWDC65C02)
+constexpr bool has_decimal_mode(Personality p)	{	return p >= Personality::P6502;				}
+constexpr bool is_65c02(Personality p)			{	return p >= Personality::PSynertek65C02;	}
+constexpr bool has_bbrbbsrmbsmb(Personality p)	{	return p >= Personality::PRockwell65C02;	}
+constexpr bool has_stpwai(Personality p)		{	return p >= Personality::PWDC65C02;			}
 
 /*!
 	An opcode that is guaranteed to cause a 6502 to jam.
@@ -60,22 +60,22 @@ class ProcessorBase: public ProcessorStorage {
 		/*!
 			Gets the value of a register.
 
-			@see set_value_of_register
+			@see set_value_of
 
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		inline uint16_t get_value_of_register(Register r) const;
+		inline uint16_t value_of(Register r) const;
 
 		/*!
 			Sets the value of a register.
 
-			@see get_value_of_register
+			@see value_of
 
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
 		*/
-		inline void set_value_of_register(Register r, uint16_t value);
+		inline void set_value_of(Register r, uint16_t value);
 
 		/*!
 			Sets the current level of the RST line.
@@ -125,6 +125,12 @@ class ProcessorBase: public ProcessorStorage {
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
 		inline bool is_jammed() const;
+
+		/*!
+			FOR TESTING PURPOSES ONLY: forces the processor into a state where
+			the next thing it intends to do is fetch a new opcode.
+		*/
+		inline void restart_operation_fetch();
 };
 
 /*!
@@ -163,6 +169,3 @@ template <Personality personality, typename BusHandler, bool uses_ready_line> cl
 #include "Implementation/6502Implementation.hpp"
 
 }
-}
-
-#endif /* MOS6502_cpp */

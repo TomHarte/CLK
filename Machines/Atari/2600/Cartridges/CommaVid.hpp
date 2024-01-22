@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeCommaVid_hpp
-#define Atari2600_CartridgeCommaVid_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class CommaVid: public BusExtender {
 	public:
@@ -40,6 +38,3 @@ class CommaVid: public BusExtender {
 };
 
 }
-}
-
-#endif /* Atari2600_CartridgeCommaVid_hpp */

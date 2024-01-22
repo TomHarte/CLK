@@ -6,15 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AcornADF_hpp
-#define AcornADF_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an ADF disk image: a decoded sector dump of an Acorn ADFS disk.
@@ -38,6 +36,3 @@ class AcornADF: public MFMSectorDump {
 };
 
 }
-}
-
-#endif /* AcornADF_hpp */

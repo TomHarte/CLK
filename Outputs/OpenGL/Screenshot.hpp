@@ -6,14 +6,11 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Screenshot_h
-#define Screenshot_h
+#pragma once
 
 #include "OpenGL.hpp"
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	Upon construction, Screenshot will capture the centre portion of the currently-bound framebuffer,
@@ -55,7 +52,3 @@ struct Screenshot {
 };
 
 }
-}
-}
-
-#endif /* Screenshot_h */

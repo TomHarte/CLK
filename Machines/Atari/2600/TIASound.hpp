@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_TIASound_hpp
-#define Atari2600_TIASound_hpp
+#pragma once
 
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
@@ -48,5 +47,3 @@ class TIASound: public Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* Speaker_hpp */

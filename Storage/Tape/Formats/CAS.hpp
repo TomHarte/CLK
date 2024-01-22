@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CAS_hpp
-#define CAS_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -16,8 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a CAS tape image, which is an MSX byte stream.
@@ -68,6 +66,3 @@ class CAS: public Tape {
 };
 
 }
-}
-
-#endif /* CAS_hpp */

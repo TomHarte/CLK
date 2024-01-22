@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef IntelligentKeyboard_hpp
-#define IntelligentKeyboard_hpp
+#pragma once
 
 #include "../../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../../Components/Serial/Line.hpp"
@@ -21,8 +20,7 @@
 #include <memory>
 #include <vector>
 
-namespace Atari {
-namespace ST {
+namespace Atari::ST {
 
 enum class Key: uint16_t {
 	Escape = 1,
@@ -197,6 +195,3 @@ class IntelligentKeyboard:
 };
 
 }
-}
-
-#endif /* IntelligentKeyboard_hpp */

@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Enterprise_Keyboard_hpp
-#define Machines_Enterprise_Keyboard_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 #include "../Utility/Typer.hpp"
@@ -18,7 +17,7 @@ namespace Enterprise {
 
 enum class Key: uint16_t {
 	N		= 0x0000 | 0x01,	Backslash	= 0x0000 | 0x02,	B		= 0x0000 | 0x04,	C			= 0x0000 | 0x08,
-	V		= 0x0000 | 0x10,	X 			= 0x0000 | 0x20,	Z		= 0x0000 | 0x40,	LeftShift	= 0x0000 | 0x80,
+	V		= 0x0000 | 0x10,	X			= 0x0000 | 0x20,	Z		= 0x0000 | 0x40,	LeftShift	= 0x0000 | 0x80,
 
 	H		= 0x0100 | 0x01,	Lock		= 0x0100 | 0x02,	G		= 0x0100 | 0x04,	D			= 0x0100 | 0x08,
 	F		= 0x0100 | 0x10,	S			= 0x0100 | 0x20,	A		= 0x0100 | 0x40,	Control		= 0x0100 | 0x80,
@@ -62,5 +61,3 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 };
 
 }
-
-#endif /* Keyboard_hpp */

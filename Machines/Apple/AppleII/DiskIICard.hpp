@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskIICard_hpp
-#define DiskIICard_hpp
+#pragma once
 
 #include "Card.hpp"
 #include "../../ROMMachine.hpp"
@@ -20,8 +19,7 @@
 #include <memory>
 #include <vector>
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 class DiskIICard: public Card, public ClockingHint::Observer {
 	public:
@@ -44,6 +42,3 @@ class DiskIICard: public Card, public ClockingHint::Observer {
 };
 
 }
-}
-
-#endif /* DiskIICard_hpp */

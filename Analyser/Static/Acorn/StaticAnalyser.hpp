@@ -6,21 +6,14 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Acorn_StaticAnalyser_hpp
-#define StaticAnalyser_Acorn_StaticAnalyser_hpp
+#pragma once
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Acorn {
+namespace Analyser::Static::Acorn {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-}
-}
-
-#endif /* AcornAnalyser_hpp */

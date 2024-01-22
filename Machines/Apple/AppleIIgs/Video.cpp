@@ -22,31 +22,31 @@ constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 // Converts from Apple's RGB ordering to this emulator's.
 #if TARGET_RT_BIG_ENDIAN
-#define PaletteConvulve(x)	uint16_t(x)
+constexpr uint16_t convulve(uint16_t x) { return x; }
 #else
-#define PaletteConvulve(x)	uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8))
+constexpr uint16_t convulve(uint16_t x) { return uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8)); }
 #endif
 
 // The 12-bit values used by the Apple IIgs to approximate Apple II colours,
 // as implied by tech note #63's use of them as border colours.
 // http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.063.html
 constexpr uint16_t appleii_palette[16] = {
-	PaletteConvulve(0x0000),	// Black.
-	PaletteConvulve(0x0d03),	// Deep Red.
-	PaletteConvulve(0x0009),	// Dark Blue.
-	PaletteConvulve(0x0d2d),	// Purple.
-	PaletteConvulve(0x0072),	// Dark Green.
-	PaletteConvulve(0x0555),	// Dark Gray.
-	PaletteConvulve(0x022f),	// Medium Blue.
-	PaletteConvulve(0x06af),	// Light Blue.
-	PaletteConvulve(0x0850),	// Brown.
-	PaletteConvulve(0x0f60),	// Orange.
-	PaletteConvulve(0x0aaa),	// Light Grey.
-	PaletteConvulve(0x0f98),	// Pink.
-	PaletteConvulve(0x01d0),	// Light Green.
-	PaletteConvulve(0x0ff0),	// Yellow.
-	PaletteConvulve(0x04f9),	// Aquamarine.
-	PaletteConvulve(0x0fff),	// White.
+	convulve(0x0000),	// Black.
+	convulve(0x0d03),	// Deep Red.
+	convulve(0x0009),	// Dark Blue.
+	convulve(0x0d2d),	// Purple.
+	convulve(0x0072),	// Dark Green.
+	convulve(0x0555),	// Dark Gray.
+	convulve(0x022f),	// Medium Blue.
+	convulve(0x06af),	// Light Blue.
+	convulve(0x0850),	// Brown.
+	convulve(0x0f60),	// Orange.
+	convulve(0x0aaa),	// Light Grey.
+	convulve(0x0f98),	// Pink.
+	convulve(0x01d0),	// Light Green.
+	convulve(0x0ff0),	// Yellow.
+	convulve(0x04f9),	// Aquamarine.
+	convulve(0x0fff),	// White.
 };
 
 // Reasoned guesswork ahoy!
@@ -191,7 +191,7 @@ void Video::advance(Cycles cycles) {
 	}
 }
 
-Cycles Video::get_next_sequence_point() const {
+Cycles Video::next_sequence_point() const {
 	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
 	const int row = cycles_into_frame_ / CyclesPerLine;
 
@@ -279,13 +279,16 @@ void Video::output_row(int row, int start, int end) {
 				line_control_ = ram_[0x19d00 + row];
 				const int palette_base = (line_control_ & 15) * 32 + 0x19e00;
 				for(int c = 0; c < 16; c++) {
-					const int entry = ram_[palette_base + (c << 1)] | (ram_[palette_base + (c << 1) + 1] << 8);
-					palette_[c] = PaletteConvulve(entry);
+					const auto entry = uint16_t(
+						ram_[palette_base + (c << 1)] |
+						(ram_[palette_base + (c << 1) + 1] << 8)
+					);
+					palette_[c] = convulve(entry);
 				}
 
 				// Post an interrupt if requested.
 				if(line_control_ & 0x40) {
-					set_interrupts(0x20);
+					interrupts_.add(0x20);
 				}
 
 				// Set up appropriately for fill mode (or not).
@@ -498,19 +501,19 @@ uint8_t Video::get_new_video() {
 }
 
 void Video::clear_interrupts(uint8_t mask) {
-	set_interrupts(interrupts_ & ~(mask & 0x60));
+	interrupts_.clear(mask);
 }
 
 void Video::set_interrupt_register(uint8_t mask) {
-	set_interrupts(interrupts_ | (mask & 0x6));
+	interrupts_.set_control(mask);
 }
 
 uint8_t Video::get_interrupt_register() {
-	return interrupts_;
+	return interrupts_.status();
 }
 
 bool Video::get_interrupt_line() {
-	return (interrupts_&0x80) || (megaii_interrupt_mask_&megaii_interrupt_state_);
+	return interrupts_.active() || (megaii_interrupt_mask_ & megaii_interrupt_state_);
 }
 
 void Video::set_megaii_interrupts_enabled(uint8_t mask) {
@@ -526,13 +529,7 @@ void Video::clear_megaii_interrupts() {
 }
 
 void Video::notify_clock_tick() {
-	set_interrupts(interrupts_ | 0x40);
-}
-
-void Video::set_interrupts(uint8_t new_value) {
-	interrupts_ = new_value & 0x7f;
-	if((interrupts_ >> 4) & interrupts_ & 0x6)
-		interrupts_ |= 0x80;
+	interrupts_.add(0x40);
 }
 
 void Video::set_border_colour(uint8_t colour) {
@@ -635,21 +632,21 @@ uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start,
 			ram_[row_address + c],
 		};
 
-		target[0] = colours[(source[1] >> 0) & 0x1];
-		target[1] = colours[(source[1] >> 1) & 0x1];
-		target[2] = colours[(source[1] >> 2) & 0x1];
-		target[3] = colours[(source[1] >> 3) & 0x1];
-		target[4] = colours[(source[1] >> 4) & 0x1];
-		target[5] = colours[(source[1] >> 5) & 0x1];
-		target[6] = colours[(source[1] >> 6) & 0x1];
+		target[0] = colours[(source[0] >> 0) & 0x1];
+		target[1] = colours[(source[0] >> 1) & 0x1];
+		target[2] = colours[(source[0] >> 2) & 0x1];
+		target[3] = colours[(source[0] >> 3) & 0x1];
+		target[4] = colours[(source[0] >> 4) & 0x1];
+		target[5] = colours[(source[0] >> 5) & 0x1];
+		target[6] = colours[(source[0] >> 6) & 0x1];
 
-		target[7] = colours[(source[0] >> 0) & 0x1];
-		target[8] = colours[(source[0] >> 1) & 0x1];
-		target[9] = colours[(source[0] >> 2) & 0x1];
-		target[10] = colours[(source[0] >> 3) & 0x1];
-		target[11] = colours[(source[0] >> 4) & 0x1];
-		target[12] = colours[(source[0] >> 5) & 0x1];
-		target[13] = colours[(source[0] >> 6) & 0x1];
+		target[7] = colours[(source[1] >> 0) & 0x1];
+		target[8] = colours[(source[1] >> 1) & 0x1];
+		target[9] = colours[(source[1] >> 2) & 0x1];
+		target[10] = colours[(source[1] >> 3) & 0x1];
+		target[11] = colours[(source[1] >> 4) & 0x1];
+		target[12] = colours[(source[1] >> 5) & 0x1];
+		target[13] = colours[(source[1] >> 6) & 0x1];
 
 		target += 14;
 	}

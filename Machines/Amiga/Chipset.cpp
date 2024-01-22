@@ -8,16 +8,15 @@
 
 #include "Chipset.hpp"
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
-
-#define LOG_PREFIX "[Amiga chipset] "
 #include "../../Outputs/Log.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <tuple>
+
+namespace {
+Log::Logger<Log::Source::AmigaChipset> logger;
+}
 
 using namespace Amiga;
 
@@ -393,9 +392,9 @@ template <int cycle> void Chipset::output() {
 	constexpr int end_of_pixels	= 15;
 	constexpr int blank1		= 3 + end_of_pixels;
 	constexpr int sync			= 17 + blank1;
-	constexpr int blank2 		= 3 + sync;
-	constexpr int burst 		= 9 + blank2;
-	constexpr int blank3 		= 6 + burst;
+	constexpr int blank2		= 3 + sync;
+	constexpr int burst			= 9 + blank2;
+	constexpr int blank3		= 6 + burst;
 	static_assert(blank3 == 53);
 
 #define LINK(location, action, length)	\
@@ -674,8 +673,8 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 	}
 	assert(last_slot > first_slot);
 
-#define C(x) 										\
-	case x: 										\
+#define C(x)										\
+	case x:											\
 		output<x>();								\
 													\
 		if constexpr (stop_on_cpu) {				\
@@ -683,8 +682,8 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 				return 1 + x - first_slot;			\
 			}										\
 		} else {									\
-			perform_cycle<x, stop_on_cpu>(); 		\
-		} 											\
+			perform_cycle<x, stop_on_cpu>();		\
+		}											\
 													\
 		if((x + 1) == last_slot) break;				\
 		[[fallthrough]]
@@ -841,17 +840,6 @@ void Chipset::update_interrupts() {
 	}
 }
 
-void Chipset::perform(const CPU::MC68000Mk2::Microcycle &cycle) {
-	using Microcycle = CPU::MC68000Mk2::Microcycle;
-
-	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
-	if(cycle.operation & Microcycle::Read) {
-		cycle.set_value16(read(register_address));
-	} else {
-		write(register_address, cycle.value16());
-	}
-}
-
 void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 #define ApplySetClear(target, mask)	{		\
 	if(value & 0x8000) {					\
@@ -880,16 +868,16 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 
 		case 0x02a:		// VPOSW
-			LOG("TODO: write vertical position high " << PADHEX(4) << value);
+			logger.error().append("TODO: write vertical position high %04x", value);
 		break;
 		case 0x02c:		// VHPOSW
-			LOG("TODO: write vertical position low " << PADHEX(4) << value);
+			logger.error().append("TODO: write vertical position low %04x", value);
 			is_long_field_ = value & 0x8000;
 		break;
 
 		// Joystick/mouse input.
 		case 0x034:		// POTGO
-//			LOG("TODO: pot port start");
+//			logger.error().append("TODO: pot port start");
 		break;
 
 		// Disk DMA and control.
@@ -898,11 +886,11 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x024:	disk_.set_length(value);			break;		// DSKLEN
 
 		case 0x026:		// DSKDAT
-			LOG("TODO: disk DMA; " << PADHEX(4) << value << " to " << address);
+			logger.error().append("TODO: disk DMA; %04x to %04x", value, address);
 		break;
 
 		case 0x09e:		// ADKCON
-			LOG("Write disk control");
+			logger.info().append("Write disk control");
 			ApplySetClear(paula_disk_control_, 0x7fff);
 
 			disk_controller_.set_control(paula_disk_control_);
@@ -916,7 +904,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 
 		// Refresh.
 		case 0x028:		// REFPTR
-			LOG("TODO (maybe): refresh; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
+			logger.info().append("TODO (maybe): refresh; %04x to %08x", value, address);
 		break;
 
 		// Serial port.
@@ -955,7 +943,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 		case 0x092:		// DDFSTRT
 			if(fetch_window_[0] != value) {
-				LOG("Fetch window start set to " << std::dec << value);
+				logger.info().append("Fetch window start set to %d", value);
 			}
 			fetch_window_[0] = value & 0xfe;
 		break;
@@ -963,7 +951,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
 			if(fetch_window_[1] != value) {
-				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
+				logger.info().append("Fetch window stop set to %d", fetch_window_[1]);
 			}
 			fetch_window_[1] = value & 0xfe;
 		break;
@@ -1000,7 +988,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 
 		case 0x106:		// BPLCON3 (ECS)
-			LOG("TODO: Bitplane control; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
+			logger.error().append("TODO: Bitplane control; %04x to %08x", value, address);
 		break;
 
 		case 0x108:	bitplanes_.set_modulo<0>(value);	break;	// BPL1MOD
@@ -1012,7 +1000,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x116:
 		case 0x118:
 		case 0x11a:
-			LOG("TODO: Bitplane data; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
+			logger.error().append("TODO: Bitplane data; %04x to %08x", value, address);
 		break;
 
 		// Blitter.
@@ -1067,7 +1055,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x088:	copper_.reload<0>();				break;
 		case 0x08a:	copper_.reload<1>();				break;
 		case 0x08c:
-			LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << value);
+			logger.error().append("TODO: coprocessor instruction fetch identity %04x", value);
 		break;
 
 		// Sprites.
@@ -1155,15 +1143,15 @@ uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
 		case 0x00c:	return joystick(0).get_position();		// JOY1DAT
 
 		case 0x016:		// POTGOR / POTINP
-//			LOG("TODO: pot port read");
+//			logger.error().append("TODO: pot port read");
 		return 0xff00;
 
 		// Disk DMA and control.
 		case 0x010:		// ADKCONR
-			LOG("Read disk control");
+			logger.info().append("Read disk control");
 		return paula_disk_control_;
 		case 0x01a:		// DSKBYTR
-			LOG("TODO: disk status");
+			logger.error().append("TODO: disk status");
 			assert(false);	// Not yet implemented.
 		return 0xffff;
 
@@ -1205,7 +1193,7 @@ Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller, Mo
 void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
 		// CIA A, Port B: Parallel port output.
-		LOG("TODO: parallel output " << PADHEX(2) << +value);
+		logger.info().append("TODO: parallel output %02x", value);
 	} else {
 		// CIA A, Port A:
 		//
@@ -1227,7 +1215,7 @@ void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 
 uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	if(port) {
-		LOG("TODO: parallel input?");
+		logger.info().append("TODO: parallel input?");
 	} else {
 		// Use the mouse as FIR0, the joystick as FIR1.
 		return
@@ -1267,12 +1255,12 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		// b2: SEL
 		// b1: POUT
 		// b0: BUSY
-		LOG("TODO: DTR/RTS/etc: " << PADHEX(2) << +value);
+		logger.error().append("TODO: DTR/RTS/etc: %02x", value);
 	}
 }
 
 uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
-	LOG("Unexpected: input for CIA B");
+	logger.error().append("Unexpected: input for CIA B");
 	return 0xff;
 }
 

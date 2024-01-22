@@ -39,8 +39,8 @@ namespace {
 
 // TODO:
 //	Quiksilva sound support:
-//  7FFFh.W   PSG index
-//  7FFEh.R/W PSG data
+// 	7FFFh.W		PSG index
+//	7FFEh.R/W	PSG data
 
 namespace Sinclair {
 namespace ZX8081 {
@@ -235,10 +235,10 @@ template<bool is_zx81> class ConcreteMachine:
 						const uint64_t prior_offset = tape_player_.get_tape()->get_offset();
 						const int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 						if(next_byte != -1) {
-							const uint16_t hl = z80_.get_value_of_register(CPU::Z80::Register::HL);
+							const uint16_t hl = z80_.value_of(CPU::Z80::Register::HL);
 							ram_[hl & ram_mask_] = uint8_t(next_byte);
 							*cycle.value = 0x00;
-							z80_.set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
+							z80_.set_value_of(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 
 							// Assume that having read one byte quickly, we're probably going to be asked to read
 							// another shortly. Therefore, temporarily disable the tape motor for 1000 cycles in order
@@ -496,12 +496,12 @@ template<bool is_zx81> class ConcreteMachine:
 using namespace Sinclair::ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
-Machine *Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
 
 	// Instantiate the correct type of machine.
-	if(zx_target->is_ZX81)	return new ConcreteMachine<true>(*zx_target, rom_fetcher);
-	else					return new ConcreteMachine<false>(*zx_target, rom_fetcher);
+	if(zx_target->is_ZX81)	return std::make_unique<ConcreteMachine<true>>(*zx_target, rom_fetcher);
+	else					return std::make_unique<ConcreteMachine<false>>(*zx_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

@@ -6,14 +6,13 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Decoder_hpp
-#define InstructionSets_M68k_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 #include "Model.hpp"
+#include "../../Numeric/Sizes.hpp"
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /*!
 	A stateless decoder that can map from instruction words to preinstructions
@@ -50,23 +49,32 @@ template <Model model> class Predecoder {
 		Preinstruction decodeE(uint16_t instruction);
 		Preinstruction decodeF(uint16_t instruction);
 
-		using OpT = uint8_t;
+		// Yuckiness here: 67 is a count of the number of things contained below in
+		// ExtendedOperation; this acts to ensure ExtendedOperation is the minimum
+		// integer size large enough to hold all actual operations plus the ephemeral
+		// ones used here. Intention is to support table-based decoding, which will mean
+		// making those integers less ephemeral, hence the desire to pick a minimum size.
+		using OpT = typename MinIntTypeValue<
+			uint64_t(OperationMax<model>::value) + 67
+		>::type;
+		static constexpr auto OpMax = OpT(OperationMax<model>::value);
 
 		// Specific instruction decoders.
 		template <OpT operation, bool validate = true> Preinstruction decode(uint16_t instruction);
 		template <OpT operation, bool validate> Preinstruction validated(
 			AddressingMode op1_mode = AddressingMode::None, int op1_reg = 0,
 			AddressingMode op2_mode = AddressingMode::None, int op2_reg = 0,
-			Condition condition = Condition::True
+			Condition condition = Condition::True,
+			int further_extension_words = 0
 		);
-		template <uint8_t op> uint32_t invalid_operands();
+		template <OpT operation> uint32_t invalid_operands();
 
 		// Extended operation list; collapses into a single byte enough information to
 		// know both the type of operation and how to decode the operands. Most of the
 		// time that's knowable from the Operation alone, hence the rather awkward
 		// extension of @c Operation.
 		enum ExtendedOperation: OpT {
-			MOVEPtoRl = uint8_t(Operation::Max) + 1, MOVEPtoRw,
+			MOVEPtoRl = OpMax + 1, MOVEPtoRw,
 			MOVEPtoMl, MOVEPtoMw,
 
 			MOVEQ,
@@ -87,8 +95,6 @@ template <Model model> class Predecoder {
 
 			CMPMb,	CMPMw,	CMPMl,
 
-			MOVEq,
-
 			ADDtoMb, ADDtoMw, ADDtoMl,
 			ADDtoRb, ADDtoRw, ADDtoRl,
 
@@ -108,6 +114,3 @@ template <Model model> class Predecoder {
 };
 
 }
-}
-
-#endif /* InstructionSets_M68k_Decoder_hpp */

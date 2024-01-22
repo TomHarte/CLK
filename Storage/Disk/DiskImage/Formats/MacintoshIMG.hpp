@@ -6,14 +6,12 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MacintoshIMG_hpp
-#define MacintoshIMG_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing either:
@@ -74,6 +72,3 @@ class MacintoshIMG: public DiskImage {
 };
 
 }
-}
-
-#endif /* DiskCopy42_hpp */

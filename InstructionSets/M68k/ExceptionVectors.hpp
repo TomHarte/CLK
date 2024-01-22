@@ -6,11 +6,9 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_ExceptionVectors_hpp
-#define InstructionSets_M68k_ExceptionVectors_hpp
+#pragma once
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 enum Exception {
 	InitialStackPointer					= 0,
@@ -45,6 +43,3 @@ enum Exception {
 };
 
 }
-}
-
-#endif /* InstructionSets_M68k_ExceptionVectors_hpp */

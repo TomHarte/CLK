@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Electron_SoundGenerator_hpp
-#define Electron_SoundGenerator_hpp
+#pragma once
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
@@ -39,5 +38,3 @@ class SoundGenerator: public ::Outputs::Speaker::SampleSource {
 };
 
 }
-
-#endif /* Speaker_hpp */

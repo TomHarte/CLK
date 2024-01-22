@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef ReactiveDevice_hpp
-#define ReactiveDevice_hpp
+#pragma once
 
 #include "Bus.hpp"
 
@@ -15,8 +14,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 class ReactiveDevice: public Bus::Device {
 	protected:
@@ -61,6 +59,3 @@ class ReactiveDevice: public Bus::Device {
 };
 
 }
-}
-
-#endif /* ReactiveDevice_hpp */

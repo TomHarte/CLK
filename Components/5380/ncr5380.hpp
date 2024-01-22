@@ -6,16 +6,14 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef ncr5380_hpp
-#define ncr5380_hpp
+#pragma once
 
 #include <cstdint>
 
 #include "../../Storage/MassStorage/SCSI/SCSI.hpp"
 
 
-namespace NCR {
-namespace NCR5380 {
+namespace NCR::NCR5380 {
 
 /*!
 	Models the NCR 5380, a SCSI interface chip.
@@ -24,7 +22,7 @@ class NCR5380 final: public SCSI::Bus::Observer {
 	public:
 		NCR5380(SCSI::Bus &bus, int clock_rate);
 
-		/*! Writes @c value to @c address.  */
+		/*! Writes @c value to @c address. */
 		void write(int address, uint8_t value, bool dma_acknowledge = false);
 
 		/*! Reads from @c address. */
@@ -87,6 +85,3 @@ class NCR5380 final: public SCSI::Bus::Observer {
 };
 
 }
-}
-
-#endif /* ncr5380_hpp */

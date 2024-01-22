@@ -34,9 +34,8 @@
 #include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
-#include "../../../Processors/68000/68000.hpp"
 
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
 #include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
@@ -51,7 +50,7 @@ namespace {
 
 constexpr int CLOCK_RATE = 7833600;
 constexpr auto KEYBOARD_CLOCK_RATE = HalfCycles(CLOCK_RATE / 100000);
-
+Log::Logger<Log::Source::Macintosh> logger;
 
 //	Former default PRAM:
 //
@@ -74,7 +73,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
 	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
 	public Configurable::Device,
@@ -89,17 +88,17 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::Keyboard::Key::LeftOption, Inputs::Keyboard::Key::RightOption,
 				Inputs::Keyboard::Key::LeftMeta, Inputs::Keyboard::Key::RightMeta,
 			}),
-		 	mc68000_(*this),
-		 	iwm_(CLOCK_RATE),
-		 	video_(audio_, drive_speed_accumulator_),
-		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
-		 	scsi_bus_(CLOCK_RATE * 2),
-		 	scsi_(scsi_bus_, CLOCK_RATE * 2),
-		 	hard_drive_(scsi_bus_, 6 /* SCSI ID */),
-		 	drives_{
-		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
-		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
+			mc68000_(*this),
+			iwm_(CLOCK_RATE),
+			video_(audio_, drive_speed_accumulator_),
+			via_(via_port_handler_),
+			via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
+			scsi_bus_(CLOCK_RATE * 2),
+			scsi_(scsi_bus_, CLOCK_RATE * 2),
+			hard_drive_(scsi_bus_, 6 /* SCSI ID */),
+			drives_{
+				{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
+				{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
 			},
 			mouse_(1) {
 
@@ -192,14 +191,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_.run_for(cycles);
 		}
 
-		using Microcycle = CPU::MC68000Mk2::Microcycle;
-
-		HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
 			advance_time(cycle.length);
 
 			// A null cycle leaves nothing else to do.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+			if(!(cycle.operation & (CPU::MC68000::Operation::NewAddress | CPU::MC68000::Operation::SameAddress))) return HalfCycles(0);
 
 			// Grab the address.
 			auto address = cycle.host_endian_byte_address();
@@ -219,7 +216,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// having set VPA above deals with those given that the generated address
 			// for interrupt acknowledge cycles always has all bits set except the
 			// lowest explicit address lines.
-			if(!cycle.data_select_active() || (cycle.operation & Microcycle::InterruptAcknowledge)) return HalfCycles(0);
+			if(
+				!cycle.data_select_active() ||
+				(cycle.operation & CPU::MC68000::Operation::InterruptAcknowledge)
+			) return HalfCycles(0);
 
 			// Grab the word-precision address being accessed.
 			uint8_t *memory_base = nullptr;
@@ -239,7 +239,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
-						if(cycle.operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value8_high(via_.read(register_address));
 						} else {
 							via_.write(register_address, cycle.value8_high());
@@ -248,7 +248,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} return delay;
 
 				case BusDevice::PhaseRead: {
-					if(cycle.operation & Microcycle::Read) {
+					if(cycle.operation & CPU::MC68000::Operation::Read) {
 						cycle.set_value8_low(phase_ & 7);
 					}
 				} return delay;
@@ -258,7 +258,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						const int register_address = address >> 9;
 
 						// The IWM; this is a purely polled device, so can be run on demand.
-						if(cycle.operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value8_low(iwm_->read(register_address));
 						} else {
 							iwm_->write(register_address, cycle.value8_low());
@@ -275,14 +275,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					// Even accesses = read; odd = write.
 					if(*cycle.address & 1) {
 						// Odd access => this is a write. Data will be in the upper byte.
-						if(cycle.operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							scsi_.write(register_address, 0xff, dma_acknowledge);
 						} else {
 							scsi_.write(register_address, cycle.value8_high());
 						}
 					} else {
 						// Even access => this is a read.
-						if(cycle.operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value8_high(scsi_.read(register_address, dma_acknowledge));
 						}
 					}
@@ -290,19 +290,19 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case BusDevice::SCCReadResetPhase: {
 					// Any word access here adjusts phase.
-					if(cycle.operation & Microcycle::SelectWord) {
+					if(cycle.operation & CPU::MC68000::Operation::SelectWord) {
 						adjust_phase();
 					} else {
 						// A0 = 1 => reset; A0 = 0 => read.
 						if(*cycle.address & 1) {
 							scc_.reset();
 
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value16(0xffff);
 							}
 						} else {
 							const auto read = scc_.read(int(address >> 1));
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value8_high(read);
 							}
 						}
@@ -311,13 +311,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case BusDevice::SCCWrite: {
 					// Any word access here adjusts phase.
-					if(cycle.operation & Microcycle::SelectWord) {
+					if(cycle.operation & CPU::MC68000::Operation::SelectWord) {
 						adjust_phase();
 					} else {
 						// This is definitely a byte access; either it's to an odd address, in which
 						// case it will reach the SCC, or it isn't, in which case it won't.
 						if(*cycle.address & 1) {
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								scc_.write(int(address >> 1), 0xff);
 								cycle.value->b = 0xff;
 							} else {
@@ -352,7 +352,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} break;
 
 				case BusDevice::ROM: {
-					if(!(cycle.operation & Microcycle::Read)) return delay;
+					if(!(cycle.operation & CPU::MC68000::Operation::Read)) return delay;
 					memory_base = rom_;
 					address &= rom_mask_;
 				} break;
@@ -544,8 +544,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			++phase_;
 		}
 
+		template <typename Microcycle>
 		forceinline void fill_unmapped(const Microcycle &cycle) {
-			if(!(cycle.operation & Microcycle::Read)) return;
+			if(!(cycle.operation & CPU::MC68000::Operation::Read)) return;
 			cycle.set_value16(0xffff);
 		}
 
@@ -576,7 +577,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 					video_.run_for(time_until_video_event_);
 					time_since_video_update_ -= time_until_video_event_;
-					time_until_video_event_ = video_.get_next_sequence_point();
+					time_until_video_event_ = video_.next_sequence_point();
 
 					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 				}
@@ -627,7 +628,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		forceinline void update_video() {
 			video_.run_for(time_since_video_update_.flush<HalfCycles>());
-			time_until_video_event_ = video_.get_next_sequence_point();
+			time_until_video_event_ = video_.next_sequence_point();
 		}
 
 		Inputs::Mouse &get_mouse() final {
@@ -722,7 +723,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(port == Port::B && line == Line::Two) {
 						keyboard_.set_input(value);
 					}
-					else LOG("Unhandled control line output: " << (port ? 'B' : 'A') << int(line));
+					else logger.error().append("Unhandled 6522 control line output: %c%d", port ? 'B' : 'A', int(line));
 				}
 
 				void run_for(HalfCycles duration) {
@@ -748,7 +749,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::QuadratureMouse &mouse_;
 		};
 
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
 		IWMActor iwm_;
@@ -760,20 +761,20 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		Keyboard keyboard_;
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
- 		VIAPortHandler via_port_handler_;
+		VIAPortHandler via_port_handler_;
 
- 		Zilog::SCC::z8530 scc_;
+		Zilog::SCC::z8530 scc_;
 		SCSI::Bus scsi_bus_;
- 		NCR::NCR5380::NCR5380 scsi_;
+		NCR::NCR5380::NCR5380 scsi_;
 		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
- 		bool scsi_bus_is_clocked_ = false;
+		bool scsi_bus_is_clocked_ = false;
 
- 		HalfCycles via_clock_;
- 		HalfCycles real_time_clock_;
- 		HalfCycles keyboard_clock_;
- 		HalfCycles time_since_video_update_;
- 		HalfCycles time_until_video_event_;
- 		HalfCycles time_since_mouse_update_;
+		HalfCycles via_clock_;
+		HalfCycles real_time_clock_;
+		HalfCycles keyboard_clock_;
+		HalfCycles time_since_video_update_;
+		HalfCycles time_until_video_event_;
+		HalfCycles time_since_mouse_update_;
 
 		bool ROM_is_overlay_ = true;
 		int phase_ = 1;
@@ -839,16 +840,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 using namespace Apple::Macintosh;
 
-Machine *Machine::Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const mac_target = dynamic_cast<const Analyser::Static::Macintosh::Target *>(target);
 
 	using Model = Analyser::Static::Macintosh::Target::Model;
 	switch(mac_target->model) {
 		default:
-		case Model::Mac128k:	return new ConcreteMachine<Model::Mac128k>(*mac_target, rom_fetcher);
-		case Model::Mac512k:	return new ConcreteMachine<Model::Mac512k>(*mac_target, rom_fetcher);
-		case Model::Mac512ke:	return new ConcreteMachine<Model::Mac512ke>(*mac_target, rom_fetcher);
-		case Model::MacPlus:	return new ConcreteMachine<Model::MacPlus>(*mac_target, rom_fetcher);
+		case Model::Mac128k:	return std::make_unique<ConcreteMachine<Model::Mac128k>>(*mac_target, rom_fetcher);
+		case Model::Mac512k:	return std::make_unique<ConcreteMachine<Model::Mac512k>>(*mac_target, rom_fetcher);
+		case Model::Mac512ke:	return std::make_unique<ConcreteMachine<Model::Mac512ke>>(*mac_target, rom_fetcher);
+		case Model::MacPlus:	return std::make_unique<ConcreteMachine<Model::MacPlus>>(*mac_target, rom_fetcher);
 	}
 }
 

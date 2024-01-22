@@ -6,15 +6,13 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef VideoSwitches_h
-#define VideoSwitches_h
+#pragma once
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../ClockReceiver/DeferredQueue.hpp"
 #include "../../ROMMachine.hpp"
 
-namespace Apple {
-namespace II {
+namespace Apple::II {
 
 // Enumerates all Apple II and IIe display modes.
 enum class GraphicsMode {
@@ -40,7 +38,7 @@ template <typename TimeUnit> class VideoSwitches {
 			set of potential flashing characters and alternate video modes.
 		*/
 		VideoSwitches(bool is_iie, TimeUnit delay, std::function<void(TimeUnit)> &&target) : delay_(delay), deferrer_(std::move(target)) {
-			character_zones_[0].xor_mask = 0;
+			character_zones_[0].xor_mask = 0xff;
 			character_zones_[0].address_mask = 0x3f;
 			character_zones_[1].xor_mask = 0;
 			character_zones_[1].address_mask = 0x3f;
@@ -50,7 +48,7 @@ template <typename TimeUnit> class VideoSwitches {
 			character_zones_[3].address_mask = 0x3f;
 
 			if(is_iie) {
-				character_zones_[0].xor_mask =
+				character_zones_[1].xor_mask =
 				character_zones_[2].xor_mask =
 				character_zones_[3].xor_mask = 0xff;
 				character_zones_[2].address_mask =
@@ -89,7 +87,7 @@ template <typename TimeUnit> class VideoSwitches {
 
 				if(alternative_character_set) {
 					character_zones_[1].address_mask = 0xff;
-					character_zones_[1].xor_mask = 0;
+					character_zones_[1].xor_mask = 0xff;
 				} else {
 					character_zones_[1].address_mask = 0x3f;
 					character_zones_[1].xor_mask = flash_mask();
@@ -287,7 +285,9 @@ template <typename TimeUnit> class VideoSwitches {
 			// Update character set flashing; flashing is applied only when the alternative
 			// character set is not selected.
 			flash_ = (flash_ + 1) % (2 * flash_length);
-			character_zones_[1].xor_mask = flash_mask() * !internal_.alternative_character_set;
+			if(!internal_.alternative_character_set) {
+				character_zones_[1].xor_mask = flash_mask();
+			}
 		}
 
 	private:
@@ -342,6 +342,3 @@ template <typename TimeUnit> class VideoSwitches {
 };
 
 }
-}
-
-#endif /* VideoSwitches_h */

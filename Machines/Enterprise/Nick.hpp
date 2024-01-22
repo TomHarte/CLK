@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Nick_hpp
-#define Nick_hpp
+#pragma once
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -38,7 +37,7 @@ class Nick {
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/// @returns The amount of time until the next potential change in interrupt output.
-		Cycles get_next_sequence_point() const;
+		Cycles next_sequence_point() const;
 
 		/*!
 			@returns The current state of the interrupt line — @c true for active;
@@ -75,7 +74,7 @@ class Nick {
 		uint8_t lines_remaining_ = 0x00;
 		uint8_t two_colour_mask_ = 0xff;
 		int left_margin_ = 0, right_margin_ = 0;
-		const uint16_t *alt_ind_palettes[4];
+		const uint16_t *alt_ind_palettes[4] = {palette_, palette_, palette_, palette_};
 		enum class Mode {
 			Vsync,
 			Pixel,
@@ -120,7 +119,4 @@ class Nick {
 		template <int bpp> void output_attributed(uint16_t *target, int columns) const;
 };
 
-
 }
-
-#endif /* Nick_hpp */

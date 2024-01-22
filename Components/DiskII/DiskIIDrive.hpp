@@ -6,13 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskIIDrive_hpp
-#define DiskIIDrive_hpp
+#pragma once
 
 #include "IWM.hpp"
 
-namespace Apple {
-namespace Disk {
+namespace Apple::Disk {
 
 class DiskIIDrive: public IWMDrive {
 	public:
@@ -28,6 +26,3 @@ class DiskIIDrive: public IWMDrive {
 };
 
 }
-}
-
-#endif /* DiskIIDrive_hpp */

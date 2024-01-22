@@ -6,13 +6,11 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef SSD_hpp
-#define SSD_hpp
+#pragma once
 
 #include "MFMSectorDump.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing a DSD or SSD disk image: a decoded sector dump of an Acorn DFS disk.
@@ -38,6 +36,3 @@ class SSD: public MFMSectorDump {
 };
 
 }
-}
-
-#endif /* SSD_hpp */

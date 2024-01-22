@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeMegaBoy_hpp
-#define Atari2600_CartridgeMegaBoy_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class MegaBoy: public BusExtender {
 	public:
@@ -42,6 +40,3 @@ class MegaBoy: public BusExtender {
 };
 
 }
-}
-
-#endif /* CartridgeMegaBoy_h */

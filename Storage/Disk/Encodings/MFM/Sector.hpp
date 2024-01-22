@@ -6,15 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Sector_h
-#define Sector_h
+#pragma once
 
 #include <cstdint>
 #include <vector>
 
-namespace Storage {
-namespace Encodings {
-namespace MFM {
+namespace Storage::Encodings::MFM {
 
 /*!
 	Represents a single [M]FM sector, identified by its track, side and sector records, a blob of data
@@ -55,7 +52,3 @@ struct Sector {
 };
 
 }
-}
-}
-
-#endif /* Sector_h */

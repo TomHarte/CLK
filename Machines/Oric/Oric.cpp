@@ -202,7 +202,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			Reponds to changes in the 6522's port output. On an Oric port B sets the tape motor control
 			and the keyboard's active row. Port A is connected to the AY's data bus.
 		*/
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t)  {
+		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 			if(port) {
 				keyboard_.set_active_row(value);
 				tape_player_.set_motor_control(value & 0x40);
@@ -469,8 +469,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					!tape_player_.get_tape()->is_at_end()) {
 
 					uint8_t next_byte = tape_player_.get_next_byte(!ram_[tape_speed_address_]);
-					m6502_.set_value_of_register(CPU::MOS6502Esque::A, next_byte);
-					m6502_.set_value_of_register(CPU::MOS6502Esque::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
+					m6502_.set_value_of(CPU::MOS6502Esque::A, next_byte);
+					m6502_.set_value_of(CPU::MOS6502Esque::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 					*value = 0x60; // i.e. RTS
 				}
 			} else {
@@ -795,16 +795,16 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 
 using namespace Oric;
 
-Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
 
 #define DiskInterfaceSwitch(processor) \
 	switch(oric_target->disk_interface) {	\
-		default:						return new ConcreteMachine<DiskInterface::None, processor>(*oric_target, rom_fetcher);		\
-		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc, processor>(*oric_target, rom_fetcher);	\
-		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz, processor>(*oric_target, rom_fetcher);	\
-		case DiskInterface::Jasmin:		return new ConcreteMachine<DiskInterface::Jasmin, processor>(*oric_target, rom_fetcher);	\
-		case DiskInterface::BD500:		return new ConcreteMachine<DiskInterface::BD500, processor>(*oric_target, rom_fetcher);		\
+		default:						return std::make_unique<ConcreteMachine<DiskInterface::None, processor>>(*oric_target, rom_fetcher);		\
+		case DiskInterface::Microdisc:	return std::make_unique<ConcreteMachine<DiskInterface::Microdisc, processor>>(*oric_target, rom_fetcher);	\
+		case DiskInterface::Pravetz:	return std::make_unique<ConcreteMachine<DiskInterface::Pravetz, processor>>(*oric_target, rom_fetcher);	\
+		case DiskInterface::Jasmin:		return std::make_unique<ConcreteMachine<DiskInterface::Jasmin, processor>>(*oric_target, rom_fetcher);	\
+		case DiskInterface::BD500:		return std::make_unique<ConcreteMachine<DiskInterface::BD500, processor>>(*oric_target, rom_fetcher);		\
 	}
 
 	switch(oric_target->processor) {

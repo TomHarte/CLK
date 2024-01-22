@@ -6,15 +6,11 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleIIVolume_h
-#define AppleIIVolume_h
+#pragma once
 
 #include "ApplePartitionMap.hpp"
 
-namespace Storage {
-namespace MassStorage {
-namespace Encodings {
-namespace AppleII {
+namespace Storage::MassStorage::Encodings::AppleII {
 
 struct VolumeProvider {
 	static constexpr bool HasDriver = false;
@@ -31,8 +27,3 @@ struct VolumeProvider {
 using Mapper = Storage::MassStorage::Encodings::Apple::PartitionMap<VolumeProvider>;
 
 }
-}
-}
-}
-
-#endif /* AppleIIVolume_h */

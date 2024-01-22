@@ -63,11 +63,6 @@ class MachineDocument:
 		return "MachineDocument"
 	}
 
-	convenience init(type typeName: String) throws {
-		self.init()
-		self.fileType = typeName
-	}
-
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
@@ -255,7 +250,7 @@ class MachineDocument:
 		// but may be triggered on an arbitrary thread by a running machine, and that
 		// running machine may not be able to stop running until it has been called
 		// (e.g. if it is currently trying to run_until an audio event). Break the
-		// deadlock with an async dispatch. 
+		// deadlock with an async dispatch.
 		DispatchQueue.main.async {
 			self.setupAudioQueueClockRate()
 		}
@@ -350,26 +345,42 @@ class MachineDocument:
 	/// Forwards key down events directly to the machine.
 	func keyDown(_ event: NSEvent) {
 		if let machine = self.machine {
-			machine.setKey(event.keyCode, characters: event.characters, isPressed: true)
+			machine.setKey(event.keyCode, characters: event.characters, isPressed: true, isRepeat: event.isARepeat)
 		}
 	}
 
 	/// Forwards key up events directly to the machine.
 	func keyUp(_ event: NSEvent) {
 		if let machine = self.machine {
-			machine.setKey(event.keyCode, characters: event.characters, isPressed: false)
+			machine.setKey(event.keyCode, characters: event.characters, isPressed: false, isRepeat: false)
 		}
 	}
 
 	/// Synthesies appropriate key up and key down events upon any change in modifiers.
 	func flagsChanged(_ newModifiers: NSEvent) {
 		if let machine = self.machine {
-			machine.setKey(VK_Shift, characters: nil, isPressed: newModifiers.modifierFlags.contains(.shift))
-			machine.setKey(VK_Control, characters: nil, isPressed: newModifiers.modifierFlags.contains(.control))
-			machine.setKey(VK_Command, characters: nil, isPressed: newModifiers.modifierFlags.contains(.command))
-			machine.setKey(VK_Option, characters: nil, isPressed: newModifiers.modifierFlags.contains(.option))
+			if newModifiers.modifierFlags.contains(.shift) != shiftIsDown {
+				shiftIsDown = newModifiers.modifierFlags.contains(.shift)
+				machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
+			}
+			if newModifiers.modifierFlags.contains(.control) != controlIsDown {
+				controlIsDown = newModifiers.modifierFlags.contains(.control)
+				machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown, isRepeat: false)
+			}
+			if newModifiers.modifierFlags.contains(.command) != commandIsDown {
+				commandIsDown = newModifiers.modifierFlags.contains(.command)
+				machine.setKey(VK_Command, characters: nil, isPressed: commandIsDown, isRepeat: false)
+			}
+			if newModifiers.modifierFlags.contains(.option) != optionIsDown {
+				optionIsDown = newModifiers.modifierFlags.contains(.option)
+				machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown, isRepeat: false)
+			}
 		}
 	}
+	private var shiftIsDown = false
+	private var controlIsDown = false
+	private var commandIsDown = false
+	private var optionIsDown = false
 
 	/// Forwards mouse movement events to the mouse.
 	func mouseMoved(_ event: NSEvent) {

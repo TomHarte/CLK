@@ -6,14 +6,12 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Cartridge_hpp
-#define Storage_Cartridge_hpp
+#pragma once
 
 #include <vector>
 #include <memory>
 
-namespace Storage {
-namespace Cartridge {
+namespace Storage::Cartridge {
 
 /*!
 	Provides a base class for cartridges; the bus provided to cartridges and therefore
@@ -82,6 +80,3 @@ class Cartridge {
 };
 
 }
-}
-
-#endif /* ROM_hpp */

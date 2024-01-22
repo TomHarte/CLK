@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Disassembler_Z80_hpp
-#define StaticAnalyser_Disassembler_Z80_hpp
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -15,9 +14,7 @@
 #include <set>
 #include <vector>
 
-namespace Analyser {
-namespace Static {
-namespace Z80 {
+namespace Analyser::Static::Z80 {
 
 struct Instruction {
 	/*! The address this instruction starts at. This is a mapped address. */
@@ -78,13 +75,18 @@ struct Disassembly {
 	std::set<uint16_t> internal_stores, internal_loads, internal_modifies;
 };
 
+enum class Approach {
+	/// Disassemble from the supplied entry points until an indeterminate branch or return only, adding other fully-static
+	/// entry points as they are observed.
+	Recursive,
+	/// Disassemble all supplied bytes, regardless of what nonsense may be encountered by accidental parsing of data areas.
+	Exhaustive,
+};
+
 Disassembly Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
-	std::vector<uint16_t> entry_points);
+	std::vector<uint16_t> entry_points,
+	Approach approach);
 
 }
-}
-}
-
-#endif /* StaticAnalyser_Disassembler_Z80_hpp */

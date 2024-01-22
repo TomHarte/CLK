@@ -6,16 +6,13 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Sega_Target_h
-#define Analyser_Static_Sega_Target_h
+#pragma once
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace Sega {
+namespace Analyser::Static::Sega {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	enum class Model {
@@ -48,10 +45,8 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	}
 };
 
-#define is_master_system(v) v >= Analyser::Static::Sega::Target::Model::MasterSystem
-
-}
-}
+constexpr bool is_master_system(Analyser::Static::Sega::Target::Model model) {
+	return model >= Analyser::Static::Sega::Target::Model::MasterSystem;
 }
 
-#endif /* Analyser_Static_Sega_Target_h */
+}

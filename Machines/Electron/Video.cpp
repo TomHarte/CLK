@@ -370,7 +370,7 @@ void VideoOutput::setup_base_address() {
 
 // MARK: - Interrupts
 
-Cycles VideoOutput::get_next_sequence_point() {
+Cycles VideoOutput::next_sequence_point() {
 	if(output_position_ < real_time_clock_interrupt_1) {
 		return real_time_clock_interrupt_1 - output_position_;
 	}

@@ -11,15 +11,13 @@
 #include "../../Activity/Source.hpp"
 #include "../MachineTypes.hpp"
 
-#include "../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../Processors/68000/68000.hpp"
 
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 
-//#define NDEBUG
-#define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
 #include "Chipset.hpp"
@@ -35,13 +33,15 @@ namespace {
 constexpr int PALClockRate = 7'093'790;
 //constexpr int NTSCClockRate = 7'159'090;
 
+Log::Logger<Log::Source::Amiga> logger;
+
 }
 
 namespace Amiga {
 
 class ConcreteMachine:
 	public Activity::Source,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
@@ -81,10 +81,9 @@ class ConcreteMachine:
 
 		// MARK: - MC68000::BusHandler.
 		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
-
 			// Do a quick advance check for Chip RAM access; add a suitable delay if required.
 			HalfCycles total_length;
-			if(cycle.operation & Microcycle::NewAddress && *cycle.address < 0x20'0000) {
+			if(cycle.operation & CPU::MC68000::Operation::NewAddress && *cycle.address < 0x20'0000) {
 				total_length = chipset_.run_until_after_cpu_slot().duration;
 				assert(total_length >= cycle.length);
 			} else {
@@ -94,19 +93,19 @@ class ConcreteMachine:
 			mc68000_.set_interrupt_level(chipset_.get_interrupt_level());
 
 			// Check for assertion of reset.
-			if(cycle.operation & Microcycle::Reset) {
+			if(cycle.operation & CPU::MC68000::Operation::Reset) {
 				memory_.reset();
-				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().registers.program_counter);
+				logger.info().append("Reset; PC is around %08x", mc68000_.get_state().registers.program_counter);
 			}
 
 			// Autovector interrupts.
-			if(cycle.operation & Microcycle::InterruptAcknowledge) {
+			if(cycle.operation & CPU::MC68000::Operation::InterruptAcknowledge) {
 				mc68000_.set_is_peripheral_address(true);
 				return total_length - cycle.length;
 			}
 
 			// Do nothing if no address is exposed.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return total_length - cycle.length;
+			if(!(cycle.operation & (CPU::MC68000::Operation::NewAddress | CPU::MC68000::Operation::SameAddress))) return total_length - cycle.length;
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
@@ -115,7 +114,7 @@ class ConcreteMachine:
 			mc68000_.set_is_peripheral_address((address & 0xe0'0000) == 0xa0'0000);
 
 			if(!memory_.regions[address >> 18].read_write_mask) {
-				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
+				if((cycle.operation & (CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::SelectWord))) {
 					// Check for various potential chip accesses.
 
 					// Per the manual:
@@ -133,7 +132,7 @@ class ConcreteMachine:
 						const bool select_a = !(address & 0x1000);
 						const bool select_b = !(address & 0x2000);
 
-						if(cycle.operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							uint16_t result = 0xffff;
 							if(select_a) result &= 0xff00 | (chipset_.cia_a.read(reg) << 0);
 							if(select_b) result &= 0x00ff | (chipset_.cia_b.read(reg) << 8);
@@ -143,7 +142,7 @@ class ConcreteMachine:
 							if(select_b) chipset_.cia_b.write(reg, cycle.value8_high());
 						}
 
-//						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(4) << +cycle.value16());
+//						logger.info().append("CIA %d %s %d of %04x", ((address >> 12) & 3)^3, operation & Microcycle::Read ? "read" : "write", reg & 0xf, cycle.value16());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
 					} else if(address >= 0xe8'0000 && address < 0xe9'0000) {
@@ -155,13 +154,13 @@ class ConcreteMachine:
 						memory_.perform(cycle);
 					} else {
 						// This'll do for open bus, for now.
-						if(cycle.operation & Microcycle::Read) {
+						if(cycle.operation & CPU::MC68000::Operation::Read) {
 							cycle.set_value16(0xffff);
 						}
 
-						// Don't log for the region that is definitely just ROM this machine doesn't have.
+						// Log only for the region that is definitely not just ROM this machine doesn't have.
 						if(address < 0xf0'0000) {
-							LOG("Unmapped " << (cycle.operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(6) << ((*cycle.address)&0xffffff) << " of " << cycle.value16());
+							logger.error().append("Unmapped %s %06x of %04x", cycle.operation & CPU::MC68000::Operation::Read ? "read from " : "write to ", (*cycle.address)&0xffffff, cycle.value16());
 						}
 					}
 				}
@@ -177,7 +176,7 @@ class ConcreteMachine:
 		}
 
 	private:
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 
 		// MARK: - Memory map.
 
@@ -186,7 +185,7 @@ class ConcreteMachine:
 		// MARK: - Chipset.
 
 		Chipset chipset_;
-		
+
 		// MARK: - Activity Source
 
 		void set_activity_observer(Activity::Observer *observer) final {
@@ -252,10 +251,10 @@ class ConcreteMachine:
 
 using namespace Amiga;
 
-Machine *Machine::Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Amiga::Target;
 	const Target *const amiga_target = dynamic_cast<const Target *>(target);
-	return new Amiga::ConcreteMachine(*amiga_target, rom_fetcher);
+	return std::make_unique<Amiga::ConcreteMachine>(*amiga_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Electron_hpp
-#define Electron_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -29,7 +28,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an Electron.
-		static Machine *Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Electron.
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
@@ -49,5 +48,3 @@ class Machine {
 };
 
 }
-
-#endif /* Electron_hpp */

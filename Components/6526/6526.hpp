@@ -6,16 +6,14 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef _526_h
-#define _526_h
+#pragma once
 
 #include <cstdint>
 
 #include "Implementation/6526Storage.hpp"
 #include "../Serial/Line.hpp"
 
-namespace MOS {
-namespace MOS6526 {
+namespace MOS::MOS6526 {
 
 enum Port {
 	A = 0,
@@ -87,8 +85,5 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 };
 
 }
-}
 
 #include "Implementation/6526Implementation.hpp"
-
-#endif /* _526_h */

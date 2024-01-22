@@ -23,16 +23,17 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 
-#define LOG_PREFIX "[SMS] "
 #include "../../Outputs/Log.hpp"
 
 #include "../../Analyser/Static/Sega/Target.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 
 namespace {
 constexpr int audio_divider = 1;
+Log::Logger<Log::Source::MasterSystem> logger;
 }
 
 namespace Sega {
@@ -77,7 +78,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 		uint8_t state_ = 0xff;
 };
 
-class ConcreteMachine:
+template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public MachineTypes::TimedMachine,
@@ -90,11 +91,9 @@ class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			model_(target.model),
 			region_(target.region),
 			paging_scheme_(target.paging_scheme),
 			z80_(*this),
-			vdp_(tms_personality_for_model(target.model)),
 			sn76489_(
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
@@ -159,7 +158,7 @@ class ConcreteMachine:
 			page_cartridge();
 
 			// Map RAM.
-			if(is_master_system(model_)) {
+			if constexpr (is_master_system(model)) {
 				map(read_pointers_, ram_, 8*1024, 0xc000, 0x10000);
 				map(write_pointers_, ram_, 8*1024, 0xc000, 0x10000);
 			} else {
@@ -182,24 +181,27 @@ class ConcreteMachine:
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			vdp_->set_tv_standard(
+			vdp_.last_valid()->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
-			time_until_debounce_ = vdp_->get_time_until_line(-1);
 
-			vdp_->set_scan_target(scan_target);
+			// Doing the following would be technically correct, but isn't
+			// especially thread-safe and won't make a substantial difference.
+//			time_until_debounce_ = vdp_->get_time_until_line(-1);
+
+			vdp_.last_valid()->set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-			return vdp_->get_scaled_scan_status();
+			return vdp_.last_valid()->get_scaled_scan_status();
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
-			vdp_->set_display_type(display_type);
+			vdp_.last_valid()->set_display_type(display_type);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const final {
-			return vdp_->get_display_type();
+			return vdp_.last_valid()->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -253,17 +255,17 @@ class ConcreteMachine:
 						}
 
 						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
-//						else LOG("Ignored write to ROM");
+//						else logger.info().append("Ignored write to ROM");
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xc1) {
 							case 0x00:
-								LOG("TODO: [input] memory control");
+								logger.error().append("TODO: [input] memory control");
 								*cycle.value = 0xff;
 							break;
 							case 0x01:
-								LOG("TODO: [input] I/O port control");
+								logger.error().append("TODO: [input] I/O port control");
 								*cycle.value = 0xff;
 							break;
 							case 0x40:
@@ -303,7 +305,7 @@ class ConcreteMachine:
 							} break;
 
 							default:
-								ERROR("[input] Clearly some sort of typo");
+								logger.error().append("[input] Clearly some sort of typo");
 							break;
 						}
 					break;
@@ -311,9 +313,9 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
 							case 0x00:		// i.e. even ports less than 0x40.
-								if(is_master_system(model_)) {
+								if constexpr (is_master_system(model)) {
 									// TODO: Obey the RAM enable.
-									LOG("Memory control: " << PADHEX(2) << memory_control_);
+									logger.info().append("Memory control: %02x", memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
@@ -355,7 +357,7 @@ class ConcreteMachine:
 							break;
 
 							default:
-								ERROR("[output] Clearly some sort of typo");
+								logger.error().append("[output] Clearly some sort of typo");
 							break;
 						}
 					break;
@@ -431,7 +433,7 @@ class ConcreteMachine:
 		}
 
 	private:
-		static TI::TMS::Personality tms_personality_for_model(Analyser::Static::Sega::Target::Model model) {
+		static constexpr TI::TMS::Personality tms_personality() {
 			switch(model) {
 				default:
 				case Target::Model::SG1000:			return TI::TMS::TMS9918A;
@@ -481,11 +483,10 @@ class ConcreteMachine:
 		}
 
 		using Target = Analyser::Static::Sega::Target;
-		const Target::Model model_;
 		const Target::Region region_;
 		const Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<tms_personality()>> vdp_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;
@@ -556,10 +557,18 @@ class ConcreteMachine:
 
 using namespace Sega::MasterSystem;
 
-Machine *Machine::MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Sega::Target;
 	const Target *const sega_target = dynamic_cast<const Target *>(target);
-	return new ConcreteMachine(*sega_target, rom_fetcher);
+
+	switch(sega_target->model) {
+		case Target::Model::SG1000:			return std::make_unique<ConcreteMachine<Target::Model::SG1000>>(*sega_target, rom_fetcher);
+		case Target::Model::MasterSystem:	return std::make_unique<ConcreteMachine<Target::Model::MasterSystem>>(*sega_target, rom_fetcher);
+		case Target::Model::MasterSystem2:	return std::make_unique<ConcreteMachine<Target::Model::MasterSystem2>>(*sega_target, rom_fetcher);
+		default:
+			assert(false);
+			return nullptr;
+	}
 }
 
 Machine::~Machine() {}

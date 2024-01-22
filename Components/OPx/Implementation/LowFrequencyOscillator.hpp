@@ -6,13 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LowFrequencyOscillator_hpp
-#define LowFrequencyOscillator_hpp
+#pragma once
 
 #include "../../../Numeric/LFSR.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*!
 	Models the output of the OPL low-frequency oscillator, which provides a couple of optional fixed-frequency
@@ -54,7 +52,7 @@ class LowFrequencyOscillator {
 
 		/// Updartes the LFSR output. Should be called at the input clock rate.
 		void update_lfsr() {
-			lfsr = noise_source_.next();		
+			lfsr = noise_source_.next();
 		}
 
 	private:
@@ -63,6 +61,3 @@ class LowFrequencyOscillator {
 };
 
 }
-}
-
-#endif /* LowFrequencyOscillator_hpp */

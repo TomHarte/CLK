@@ -11,10 +11,10 @@ import XCTest
 
 class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 
-	func testBCD() {
+	func testBCD(processor: CSTestMachine6502Processor) {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "BCDTEST_beeb", ofType: nil) {
 			if let bcdTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine6502(processor: .processor6502)
+				let machine = CSTestMachine6502(processor: processor)
 				machine.trapHandler = self
 
 				machine.setData(bcdTest, atAddress: 0x2900)
@@ -40,13 +40,23 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 
+	func test6502BCD() {
+		testBCD(processor: .processor6502)
+	}
+
+	func test65C02BCD() {
+		testBCD(processor: .processor65C02)
+	}
+
 	private var output: String = ""
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		let machine6502 = testMachine as! CSTestMachine6502
 
 		// Only OSWRCH is trapped, so...
-		let character = machine6502.value(for: .A)
-		output.append(Character(UnicodeScalar(character)!))
+		let character = Character(UnicodeScalar(machine6502.value(for: .A))!)
+		if character != "\r" {		// The test internally uses \r\n; keep only one of those.
+			output.append(character)
+		}
 	}
 
 }

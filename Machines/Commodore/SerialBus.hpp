@@ -6,15 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef SerialBus_hpp
-#define SerialBus_hpp
+#pragma once
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
-namespace Commodore {
-namespace Serial {
+namespace Commodore::Serial {
 
 	enum Line {
 		ServiceRequest = 0,
@@ -128,6 +126,3 @@ namespace Serial {
 	};
 
 }
-}
-
-#endif /* SerialPort_hpp */

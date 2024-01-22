@@ -96,7 +96,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 
 	// Ignored from the next byte:
 	//
-	//	bit 2 = 1 	=> issue 2 emulation
+	//	bit 2 = 1	=> issue 2 emulation
 	//	bit 3 = 1	=> double interrupt frequency (?)
 	//	bit 4–5		=> video synchronisation (to do with emulation hackery?)
 	//	bit 6–7		=> joystick type

@@ -51,11 +51,11 @@ template <Type type, bool has_cias> class ConcreteAllRAMProcessor:
 				if(operation == BusOperation::ReadOpcode) {
 					if constexpr (LogProgramCounter) {
 						printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
-							mos6502_.get_value_of_register(Register::A),
-							mos6502_.get_value_of_register(Register::X),
-							mos6502_.get_value_of_register(Register::Y),
-							mos6502_.get_value_of_register(Register::Flags) & 0xff,
-							mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
+							mos6502_.value_of(Register::A),
+							mos6502_.value_of(Register::X),
+							mos6502_.value_of(Register::Y),
+							mos6502_.value_of(Register::Flags) & 0xff,
+							mos6502_.value_of(Register::StackPointer) & 0xff);
 					}
 					check_address_for_trap(address);
 					--instructions_;
@@ -137,12 +137,12 @@ template <Type type, bool has_cias> class ConcreteAllRAMProcessor:
 			mos6502_.set_nmi_line(value);
 		}
 
-		uint16_t get_value_of_register(Register r) {
-			return mos6502_.get_value_of_register(r);
+		uint16_t value_of(Register r) {
+			return mos6502_.value_of(r);
 		}
 
-		void set_value_of_register(Register r, uint16_t value) {
-			mos6502_.set_value_of_register(r, value);
+		void set_value_of(Register r, uint16_t value) {
+			mos6502_.set_value_of(r, value);
 		}
 
 	private:

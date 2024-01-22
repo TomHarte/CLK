@@ -6,13 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_PowerPC_Decoder_hpp
-#define InstructionSets_PowerPC_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 
-namespace InstructionSet {
-namespace PowerPC {
+namespace InstructionSet::PowerPC {
 
 enum class Model {
 	/// i.e. 32-bit, with POWER carry-over instructions.
@@ -51,6 +49,3 @@ template <Model model, bool validate_reserved_bits = false> struct Decoder {
 };
 
 }
-}
-
-#endif /* InstructionSets_PowerPC_Decoder_hpp */

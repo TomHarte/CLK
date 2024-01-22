@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TapeParser_hpp
-#define TapeParser_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -15,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 template <typename SymbolType> class Parser {
 	public:
@@ -157,6 +155,3 @@ template <typename WaveType, typename SymbolType> class PulseClassificationParse
 };
 
 }
-}
-
-#endif /* TapeParser_hpp */

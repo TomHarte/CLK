@@ -6,15 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_ZX8081_Keyboard_hpp
-#define Machines_ZX8081_Keyboard_hpp
+#pragma once
 
 #include "../../KeyboardMachine.hpp"
 #include "../../Utility/Typer.hpp"
 
-namespace Sinclair {
-namespace ZX {
-namespace Keyboard {
+namespace Sinclair::ZX::Keyboard {
 
 enum class Machine {
 	ZX80, ZX81, ZXSpectrum
@@ -75,7 +72,3 @@ class CharacterMapper: public ::Utility::CharacterMapper {
 };
 
 }
-}
-}
-
-#endif /* KeyboardMapper_hpp */

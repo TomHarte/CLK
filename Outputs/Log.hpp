@@ -6,45 +6,144 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Log_h
-#define Log_h
+#pragma once
 
+#include <cstdio>
+#include <cstdarg>
+
+namespace Log {
+// TODO: if adopting C++20, std::format would be a better model to apply below.
+// But I prefer C files to C++ streams, so here it is for now.
+
+enum class Source {
+	ADBDevice,
+	ADBGLU,
+	Amiga,
+	AmigaDisk,
+	AmigaCopper,
+	AmigaChipset,
+	AmigaBlitter,
+	AtariST,
+	AtariSTDMAController,
+	CommodoreStaticAnalyser,
+	DirectAccessDevice,
+	Enterprise,
+	i8272,
+	IntelligentKeyboard,
+	IWM,
+	M50740,
+	Macintosh,
+	MasterSystem,
+	MultiMachine,
+	MFP68901,
+	MSX,
+	NCR5380,
+	OpenGL,
+	PCMTrack,
+	SCC,
+	SCSI,
+	SZX,
+	TapeUEF,
+	TMS9918,
+	TZX,
+	Vic20,
+	WDFDC,
+};
+
+constexpr bool is_enabled(Source source) {
 #ifdef NDEBUG
-
-#define LOG(x)		while(false) {}
-#define LOGNBR(x)	while(false) {}
-
-#define ERROR(x)	while(false) {}
-#define ERRORNBR(x)	while(false) {}
-
-#else
-
-#include <iostream>
-#include <ios>
-#include <iomanip>
-
-#define PADHEX(n) std::hex << std::setfill('0') << std::setw(n)
-#define PADDEC(n) std::dec << std::setfill('0') << std::setw(n) 
-
-#ifdef LOG_PREFIX
-
-#define LOG(x) std::cout << LOG_PREFIX << x << std::endl
-#define LOGNBR(x) std::cout << LOG_PREFIX << x
-
-#define ERROR(x) std::cerr << LOG_PREFIX << x << std::endl
-#define ERRORNBR(x) std::cerr << LOG_PREFIX << x
-
-#else
-
-#define LOG(x) std::cout << x << std::endl
-#define LOGNBR(x) std::cout << x
-
-#define ERROR(x) std::cerr << x << std::endl
-#define ERRORNBR(x) std::cerr << x
-
+	return false;
 #endif
 
-#endif
+	// Allow for compile-time source-level enabling and disabling of different sources.
+	switch(source) {
+		default: return true;
 
+		// The following are all things I'm not actively working on.
+		case Source::AmigaBlitter:
+		case Source::AmigaChipset:
+		case Source::AmigaCopper:
+		case Source::AmigaDisk:
+		case Source::IWM:
+		case Source::MFP68901:
+		case Source::NCR5380:
+		case Source::SCC:	return false;
+	}
+}
 
-#endif /* Log_h */
+constexpr const char *prefix(Source source) {
+	switch(source) {
+		default: return nullptr;
+
+		case Source::ADBDevice:					return "ADB device";
+		case Source::ADBGLU:					return "ADB GLU";
+		case Source::AmigaBlitter:				return "Blitter";
+		case Source::AmigaChipset:				return "Chipset";
+		case Source::AmigaCopper:				return "Copper";
+		case Source::AmigaDisk:					return "Disk";
+		case Source::AtariST:					return "AtariST";
+		case Source::AtariSTDMAController:		return "DMA";
+		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
+		case Source::Enterprise:				return "Enterprise";
+		case Source::i8272:						return "i8272";
+		case Source::IntelligentKeyboard:		return "IKYB";
+		case Source::IWM:						return "IWM";
+		case Source::M50740:					return "M50740";
+		case Source::Macintosh:					return "Macintosh";
+		case Source::MasterSystem:				return "SMS";
+		case Source::MFP68901:					return "MFP68901";
+		case Source::MultiMachine:				return "Multi-machine";
+		case Source::MSX:						return "MSX";
+		case Source::NCR5380:					return "5380";
+		case Source::OpenGL:					return "OpenGL";
+		case Source::PCMTrack:					return "PCM Track";
+		case Source::SCSI:						return "SCSI";
+		case Source::SCC:						return "SCC";
+		case Source::SZX:						return "SZX";
+		case Source::TapeUEF:					return "UEF";
+		case Source::TZX:						return "TZX";
+		case Source::Vic20:						return "Vic20";
+		case Source::WDFDC:						return "WD FDC";
+	}
+}
+
+template <Source source>
+class Logger {
+	public:
+		static constexpr bool enabled = is_enabled(source);
+
+		Logger() {}
+
+		struct LogLine {
+			public:
+				LogLine(FILE *stream) : stream_(stream) {
+					if constexpr (!enabled) return;
+
+					const auto source_prefix = prefix(source);
+					if(source_prefix) {
+						fprintf(stream_, "[%s] ", source_prefix);
+					}
+				}
+
+				~LogLine() {
+					if constexpr (!enabled) return;
+					fprintf(stream_, "\n");
+				}
+
+				void append(const char *format, ...) {
+					if constexpr (!enabled) return;
+					va_list args;
+					va_start(args, format);
+					vfprintf(stream_, format, args);
+					va_end(args);
+				}
+
+			private:
+				FILE *stream_;
+		};
+
+		LogLine info() {	return LogLine(stdout);	}
+		LogLine error() {	return LogLine(stderr);	}
+};
+
+}

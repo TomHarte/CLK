@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef i8255_hpp
-#define i8255_hpp
+#pragma once
 
 #include <cstdint>
 
-namespace Intel {
-namespace i8255 {
+namespace Intel::i8255 {
 
 class PortHandler {
 	public:
@@ -89,6 +87,3 @@ template <class T> class i8255 {
 };
 
 }
-}
-
-#endif /* i8255_hpp */

@@ -18,23 +18,211 @@ template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
 				::run_for(const HalfCycles cycles) {
-#define advance_operation() \
-	pc_increment_ = 1;	\
-	if(last_request_status_) {	\
-		halt_mask_ = 0xff;	\
-		if(last_request_status_ & (Interrupt::PowerOn | Interrupt::Reset)) {	\
-			request_status_ &= ~Interrupt::PowerOn;	\
-			scheduled_program_counter_ = reset_program_.data();	\
-		} else if(last_request_status_ & Interrupt::NMI) {	\
-			request_status_ &= ~Interrupt::NMI;	\
-			scheduled_program_counter_ = nmi_program_.data();	\
-		} else if(last_request_status_ & Interrupt::IRQ) {	\
-			scheduled_program_counter_ = irq_program_[interrupt_mode_].data();	\
-		}	\
-	} else {	\
-		current_instruction_page_ = &base_page_;	\
-		scheduled_program_counter_ = base_page_.fetch_decode_execute_data;	\
-	}
+
+	/// Schedules the next concrete block of work for the CPU, whatever that may be:
+	/// performing the reset, NMI or IRQ sequences, or fetching a new instruction.
+	const auto advance_operation = [&] {
+		pc_increment_ = 1;
+		if(last_request_status_) {
+			halt_mask_ = 0xff;
+			if(last_request_status_ & (Interrupt::PowerOn | Interrupt::Reset)) {
+				request_status_ &= ~Interrupt::PowerOn;
+				scheduled_program_counter_ = reset_program_.data();
+			} else if(last_request_status_ & Interrupt::NMI) {
+				request_status_ &= ~Interrupt::NMI;
+				scheduled_program_counter_ = nmi_program_.data();
+			} else if(last_request_status_ & Interrupt::IRQ) {
+				scheduled_program_counter_ = irq_program_[interrupt_mode_].data();
+			}
+		} else {
+			current_instruction_page_ = &base_page_;
+			scheduled_program_counter_ = base_page_.fetch_decode_execute_data;
+		}
+	};
+
+	/// Indicates that the ALU was used in this operation; this affects flag output in future SCF and CCFs.
+	const auto set_did_compute_flags = [&] {
+		flag_adjustment_history_ |= 1;
+	};
+
+	/// Computes parity for @c v, leaving it bit 2 of parity_overflow_result_; the other bits are undefined.
+	const auto set_parity = [&](uint8_t v) {
+		parity_overflow_result_ = uint8_t(v^1);
+		parity_overflow_result_ ^= parity_overflow_result_ >> 4;
+		parity_overflow_result_ ^= parity_overflow_result_ << 2;
+		parity_overflow_result_ ^= parity_overflow_result_ >> 1;
+	};
+
+	/// Sets flags as expected at the end of a logical operation — an AND, OR or XOR.
+	/// Specifically:
+	/// * S, Z, 5 and 3 are set according to the value in A;
+	/// * P/V is set according to the parity of A;
+	/// * N and C are cleared; and
+	/// * H is set to whatever value is supplied as an argument.
+	const auto set_logical_flags = [&](uint8_t half_carry) {
+		sign_result_ = zero_result_ = bit53_result_ = a_;
+		set_parity(a_);
+		half_carry_result_ = half_carry;
+		subtract_flag_ = 0;
+		carry_result_ = 0;
+		set_did_compute_flags();
+	};
+
+	/// Sets flags as expected at the end of an arithmetic operation.
+	/// Specifically:
+	/// * S and Z are set according to result as trucated to 8 bits;
+	/// * C is set according to bit 8 of result;
+	/// * H is set according to whatever is supplied as half_result;
+	/// * V is set according to bit 7 of overflow;
+	/// * N is set to whatever is supplied as subtact; and
+	/// * 5 & 3 are set to the respective bits of bits53.
+	const auto set_arithmetic_flags = [&](int result, int half_result, int overflow, uint8_t subtract, uint8_t bits53) {
+		sign_result_ = zero_result_ = uint8_t(result);
+		carry_result_ = uint8_t(result >> 8);
+		half_carry_result_ = uint8_t(half_result);
+		parity_overflow_result_ = uint8_t(overflow >> 5);
+		subtract_flag_ = subtract;
+		bit53_result_ = bits53;
+		set_did_compute_flags();
+	};
+
+	/// Sets flags as expected at the end of an 8080-style rotate operation (i.e. RRA, RRCA, RLA or RLCA).
+	/// Specifically:
+	/// * C is set to whatever is supplied as new_carry;
+	/// * 5 and 3 are set from the result now stored in A; and
+	/// * H and N are reset.
+	const auto set_rotate_flags = [&](uint8_t new_carry) {
+		bit53_result_ = a_;
+		carry_result_ = new_carry;
+		half_carry_result_ = subtract_flag_ = 0;
+		set_did_compute_flags();
+	};
+
+	/// Sets flags as expected at the end of a decimal rotate, shift or post-8080-style rotate operation.
+	/// Specifically:
+	/// * S, Z, 5 and 3 are set according to the value of source;
+	/// * P is set according to the parity of the source; and
+	/// * H and N are reset.
+	const auto set_shift_flags = [&](uint8_t source) {
+		sign_result_ = zero_result_ = bit53_result_ = source;
+		set_parity(source);
+		half_carry_result_ = subtract_flag_ = 0;
+		set_did_compute_flags();
+	};
+
+	/// Takes appropriate action for an untaken conditional branch; this might mean just skipping to the next instruction or it might mean taking
+	/// some other alternative follow-up action.
+	const auto decline_conditional = [&](const MicroOp *operation) {
+		if(operation->source) {
+			scheduled_program_counter_ = static_cast<MicroOp *>(operation->source);
+		} else {
+			advance_operation();
+		}
+	};
+
+	/// Performs the repeat step of LDIR, LDDR, etc that either:
+	/// * repeats this instruction if test is true, updating MEMPTR appropriately; or
+	/// * moves to the next operation otherwise.
+	const auto repeat_mem = [&](bool test) {
+		if(test) {
+			pc_.full -= 2;
+			memptr_.full = pc_.full + 1;
+		} else {
+			advance_operation();
+		}
+	};
+
+	/// Performs the repeat step of INIR, OTIR, etc that either:
+	/// * repeats this instruction if test is true; or
+	/// * moves to the next operation otherwise.
+	/// Unlike repeat_memptr, this does not affect MEMPTR.
+	const auto repeat_io = [&](bool test) {
+		if(test) {
+			pc_.full -= 2;
+		} else {
+			advance_operation();
+		}
+	};
+
+	/// Performs a single instance of LDD/LDI/LDDR/LDIR, setting flags appropriately.
+	const auto LDxR = [&](int direction) {
+		--bc_.full;
+		de_.full += direction;
+		hl_.full += direction;
+
+		const uint8_t sum = a_ + temp8_;
+		bit53_result_ = uint8_t((sum&0x8) | ((sum & 0x02) << 4));
+		subtract_flag_ = 0;
+		half_carry_result_ = 0;
+		parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
+		set_did_compute_flags();
+	};
+
+	/// Performs a single instance of CPD/CPI/CPDR/CPIR, setting flags appropriately.
+	const auto CPxR = [&](int direction) {
+		--bc_.full;
+		hl_.full += direction;
+		memptr_.full += direction;
+
+		uint8_t result = a_ - temp8_;
+		const uint8_t half_result = (a_&0xf) - (temp8_&0xf);
+
+		parity_overflow_result_ = bc_.full ? Flag::Parity : 0;
+		half_carry_result_ = half_result;
+		subtract_flag_ = Flag::Subtract;
+		sign_result_ = zero_result_ = result;
+
+		result -= (half_result >> 4)&1;
+		bit53_result_ = uint8_t((result&0x8) | ((result&0x2) << 4));
+		set_did_compute_flags();
+	};
+
+	/// Performs a single instance of IND/INI/INDR/INIR, setting flags appropriately.
+	const auto INxR = [&](int direction) {
+		memptr_.full = uint16_t(bc_.full + direction);
+		--bc_.halves.high;
+		hl_.full += direction;
+
+		sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;
+		subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;
+
+		const int next_bc = bc_.halves.low + direction;
+		int summation = temp8_ + (next_bc&0xff);
+
+		if(summation > 0xff) {
+			carry_result_ = Flag::Carry;
+			half_carry_result_ = Flag::HalfCarry;
+		} else {
+			carry_result_ = 0;
+			half_carry_result_ = 0;
+		}
+
+		summation = (summation&7) ^ bc_.halves.high;
+		set_parity(uint8_t(summation));
+		set_did_compute_flags();
+	};
+
+	/// Performs a single instance of OTD/OTI/OTDR/OTIR, setting flags appropriately.
+	const auto OUTxR = [&](int direction) {
+		--bc_.halves.high;
+		memptr_.full = uint16_t(bc_.full + direction);
+		hl_.full += direction;
+
+		sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;
+		subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;
+
+		int summation = temp8_ + hl_.halves.low;
+		if(summation > 0xff) {
+			carry_result_ = Flag::Carry;
+			half_carry_result_ = Flag::HalfCarry;
+		} else {
+			carry_result_ = half_carry_result_ = 0;
+		}
+
+		summation = (summation&7) ^ bc_.halves.high;
+		set_parity(uint8_t(summation));
+		set_did_compute_flags();
+	};
 
 	number_of_cycles_ += cycles;
 	if(!scheduled_program_counter_) {
@@ -42,7 +230,6 @@ template <	class T,
 	}
 
 	while(1) {
-
 		do_bus_acknowledge:
 		while(uses_bus_request && bus_request_line_) {
 			static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
@@ -55,15 +242,6 @@ template <	class T,
 		while(true) {
 			const MicroOp *const operation = scheduled_program_counter_;
 			scheduled_program_counter_++;
-
-#define set_did_compute_flags()	\
-	flag_adjustment_history_ |= 1;
-
-#define set_parity(v)	\
-	parity_overflow_result_ = uint8_t(v^1);\
-	parity_overflow_result_ ^= parity_overflow_result_ >> 4;\
-	parity_overflow_result_ ^= parity_overflow_result_ << 2;\
-	parity_overflow_result_ ^= parity_overflow_result_ >> 1;
 
 			switch(operation->type) {
 				case MicroOp::BusOperation:
@@ -118,14 +296,6 @@ template <	class T,
 
 // MARK: - Logical
 
-#define set_logical_flags(hf)	\
-	sign_result_ = zero_result_ = bit53_result_ = a_;	\
-	set_parity(a_);	\
-	half_carry_result_ = hf;	\
-	subtract_flag_ = 0;	\
-	carry_result_ = 0;	\
-	set_did_compute_flags();
-
 				case MicroOp::And:
 					a_ &= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(Flag::HalfCarry);
@@ -140,8 +310,6 @@ template <	class T,
 					a_ ^= *static_cast<uint8_t *>(operation->source);
 					set_logical_flags(0);
 				break;
-
-#undef set_logical_flags
 
 				case MicroOp::CPL:
 					a_ ^= 0xff;
@@ -190,26 +358,17 @@ template <	class T,
 
 // MARK: - 8-bit arithmetic
 
-#define set_arithmetic_flags(sub, b53)	\
-	sign_result_ = zero_result_ = uint8_t(result);	\
-	carry_result_ = uint8_t(result >> 8);	\
-	half_carry_result_ = uint8_t(half_result);	\
-	parity_overflow_result_ = uint8_t(overflow >> 5);	\
-	subtract_flag_ = sub;	\
-	bit53_result_ = uint8_t(b53);	\
-	set_did_compute_flags();
-
 				case MicroOp::CP8: {
 					const uint8_t value = *static_cast<uint8_t *>(operation->source);
 					const int result = a_ - value;
 					const int half_result = (a_&0xf) - (value&0xf);
 
-					// overflow for a subtraction is when the signs were originally
-					// different and the result is different again
+					// Overflow for a subtraction is when the signs were originally
+					// different and the result is different again.
 					const int overflow = (value^a_) & (result^a_);
 
-					// the 5 and 3 flags come from the operand, atypically
-					set_arithmetic_flags(Flag::Subtract, value);
+					// The 5 and 3 flags come from the operand, atypically.
+					set_arithmetic_flags(result, half_result, overflow, Flag::Subtract, value);
 				} break;
 
 				case MicroOp::SUB8: {
@@ -222,7 +381,7 @@ template <	class T,
 					const int overflow = (value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(Flag::Subtract, result);
+					set_arithmetic_flags(result, half_result, overflow, Flag::Subtract, uint8_t(result));
 				} break;
 
 				case MicroOp::SBC8: {
@@ -235,7 +394,7 @@ template <	class T,
 					const int overflow = (value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(Flag::Subtract, result);
+					set_arithmetic_flags(result, half_result, overflow, Flag::Subtract, uint8_t(result));
 				} break;
 
 				case MicroOp::ADD8: {
@@ -248,7 +407,7 @@ template <	class T,
 					const int overflow = ~(value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(0, result);
+					set_arithmetic_flags(result, half_result, overflow, 0, uint8_t(result));
 				} break;
 
 				case MicroOp::ADC8: {
@@ -261,23 +420,16 @@ template <	class T,
 					const int overflow = ~(value^a_) & (result^a_);
 
 					a_ = uint8_t(result);
-					set_arithmetic_flags(0, result);
+					set_arithmetic_flags(result, half_result, overflow, 0, uint8_t(result));
 				} break;
-
-#undef set_arithmetic_flags
 
 				case MicroOp::NEG: {
 					const int overflow = (a_ == 0x80);
 					const int result = -a_;
-					const int halfResult = -(a_&0xf);
+					const int half_result = -(a_&0xf);
 
 					a_ = uint8_t(result);
-					bit53_result_ = sign_result_ = zero_result_ = a_;
-					parity_overflow_result_ = overflow ? Flag::Overflow : 0;
-					subtract_flag_ = Flag::Subtract;
-					carry_result_ = uint8_t(result >> 8);
-					half_carry_result_ = uint8_t(halfResult);
-					set_did_compute_flags();
+					set_arithmetic_flags(result, half_result, overflow ? 0xff : 0x00, Flag::Subtract, a_);
 				} break;
 
 				case MicroOp::Increment8: {
@@ -368,11 +520,11 @@ template <	class T,
 					const uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					const uint16_t destinationValue = memptr_.full;
 					const int result = sourceValue + destinationValue;
-					const int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
+					const int half_result = (sourceValue&0xfff) + (destinationValue&0xfff);
 
 					bit53_result_ = uint8_t(result >> 8);
 					carry_result_ = uint8_t(result >> 16);
-					half_carry_result_ = uint8_t(halfResult >> 8);
+					half_carry_result_ = uint8_t(half_result >> 8);
 					subtract_flag_ = 0;
 					set_did_compute_flags();
 
@@ -385,7 +537,7 @@ template <	class T,
 					const uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					const uint16_t destinationValue = memptr_.full;
 					const int result = sourceValue + destinationValue + (carry_result_ & Flag::Carry);
-					const int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
+					const int half_result = (sourceValue&0xfff) + (destinationValue&0xfff) + (carry_result_ & Flag::Carry);
 
 					const int overflow = (result ^ destinationValue) & ~(destinationValue ^ sourceValue);
 
@@ -394,7 +546,7 @@ template <	class T,
 					zero_result_	= uint8_t(result | sign_result_);
 					subtract_flag_	= 0;
 					carry_result_	= uint8_t(result >> 16);
-					half_carry_result_ = uint8_t(halfResult >> 8);
+					half_carry_result_ = uint8_t(half_result >> 8);
 					parity_overflow_result_ = uint8_t(overflow >> 13);
 					set_did_compute_flags();
 
@@ -407,7 +559,7 @@ template <	class T,
 					const uint16_t sourceValue = *static_cast<uint16_t *>(operation->source);
 					const uint16_t destinationValue = memptr_.full;
 					const int result = destinationValue - sourceValue - (carry_result_ & Flag::Carry);
-					const int halfResult = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
+					const int half_result = (destinationValue&0xfff) - (sourceValue&0xfff) - (carry_result_ & Flag::Carry);
 
 					// subtraction, so parity rules are:
 					// signs of operands were different,
@@ -419,7 +571,7 @@ template <	class T,
 					zero_result_	= uint8_t(result | sign_result_);
 					subtract_flag_	= Flag::Subtract;
 					carry_result_	= uint8_t(result >> 16);
-					half_carry_result_ = uint8_t(halfResult >> 8);
+					half_carry_result_ = uint8_t(half_result >> 8);
 					parity_overflow_result_ = uint8_t(overflow >> 13);
 					set_did_compute_flags();
 
@@ -429,23 +581,14 @@ template <	class T,
 
 // MARK: - Conditionals
 
-#define decline_conditional()	\
-	if(operation->source) {		\
-		scheduled_program_counter_ = (MicroOp *)operation->source;	\
-	} else {	\
-		advance_operation();	\
-	}
-
-				case MicroOp::TestNZ:	if(!zero_result_)								{ decline_conditional(); }		break;
-				case MicroOp::TestZ:	if(zero_result_)								{ decline_conditional(); }		break;
-				case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ decline_conditional(); }		break;
-				case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ decline_conditional(); }		break;
-				case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ decline_conditional(); }		break;
-				case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ decline_conditional(); }		break;
-				case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ decline_conditional(); }		break;
-				case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ decline_conditional(); }		break;
-
-#undef decline_conditional
+				case MicroOp::TestNZ:	if(!zero_result_)								{ decline_conditional(operation); }		break;
+				case MicroOp::TestZ:	if(zero_result_)								{ decline_conditional(operation); }		break;
+				case MicroOp::TestNC:	if(carry_result_ & Flag::Carry)					{ decline_conditional(operation); }		break;
+				case MicroOp::TestC:	if(!(carry_result_ & Flag::Carry))				{ decline_conditional(operation); }		break;
+				case MicroOp::TestPO:	if(parity_overflow_result_ & Flag::Parity)		{ decline_conditional(operation); }		break;
+				case MicroOp::TestPE:	if(!(parity_overflow_result_ & Flag::Parity))	{ decline_conditional(operation); }		break;
+				case MicroOp::TestP:	if(sign_result_ & Flag::Sign)					{ decline_conditional(operation); }		break;
+				case MicroOp::TestM:	if(!(sign_result_ & Flag::Sign))				{ decline_conditional(operation); }		break;
 
 // MARK: - Exchange
 
@@ -470,166 +613,48 @@ template <	class T,
 
 // MARK: - Repetition
 
-#define REPEAT(test)	\
-	if(test) {	\
-		pc_.full -= 2;	\
-		memptr_.full = pc_.full + 1;	\
-	} else {	\
-		advance_operation();		\
-	}
-
-#define LDxR_STEP(dir)	\
-	bc_.full--;	\
-	de_.full += dir;	\
-	hl_.full += dir;	\
-	const uint8_t sum = a_ + temp8_;	\
-	bit53_result_ = uint8_t((sum&0x8) | ((sum & 0x02) << 4));	\
-	subtract_flag_ = 0;	\
-	half_carry_result_ = 0;	\
-	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;	\
-	set_did_compute_flags();
-
-				case MicroOp::LDDR: {
-					LDxR_STEP(-1);
-					REPEAT(bc_.full);
-				} break;
-
-				case MicroOp::LDIR: {
-					LDxR_STEP(1);
-					REPEAT(bc_.full);
-				} break;
-
-				case MicroOp::LDD: {
-					LDxR_STEP(-1);
-				} break;
-
-				case MicroOp::LDI: {
-					LDxR_STEP(1);
-				} break;
-
-#undef LDxR_STEP
-
-#define CPxR_STEP(dir)		\
-	hl_.full += dir;		\
-	memptr_.full += dir;	\
-	bc_.full--;				\
-	\
-	uint8_t result = a_ - temp8_;	\
-	const uint8_t halfResult = (a_&0xf) - (temp8_&0xf);	\
-	\
-	parity_overflow_result_ =  bc_.full ? Flag::Parity : 0;	\
-	half_carry_result_ = halfResult;	\
-	subtract_flag_ = Flag::Subtract;	\
-	sign_result_ = zero_result_ = result;	\
-	\
-	result -= (halfResult >> 4)&1;	\
-	bit53_result_ = uint8_t((result&0x8) | ((result&0x2) << 4));	\
-	set_did_compute_flags();
-
-				case MicroOp::CPDR: {
-					CPxR_STEP(-1);
-					REPEAT(bc_.full && sign_result_);
-				} break;
-
-				case MicroOp::CPIR: {
-					CPxR_STEP(1);
-					REPEAT(bc_.full && sign_result_);
-				} break;
-
-				case MicroOp::CPD: {
-					CPxR_STEP(-1);
-				} break;
-
-				case MicroOp::CPI: {
-					CPxR_STEP(1);
-				} break;
-
-#undef CPxR_STEP
-
-#undef REPEAT
-#define REPEAT(test)	\
-	if(test) {	\
-		pc_.full -= 2;	\
-	} else {	\
-		advance_operation();		\
-	}
-
-#define INxR_STEP(dir)	\
-	memptr_.full = uint16_t(bc_.full + dir);	\
-	bc_.halves.high--;	\
-	hl_.full += dir;	\
-	\
-	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
-	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
-	\
-	const int next_bc = bc_.halves.low + dir;	\
-	int summation = temp8_ + (next_bc&0xff);	\
-	\
-	if(summation > 0xff) {	\
-		carry_result_ = Flag::Carry;	\
-		half_carry_result_ = Flag::HalfCarry;	\
-	} else {	\
-		carry_result_ = 0;	\
-		half_carry_result_ = 0;	\
-	}	\
-	\
-	summation = (summation&7) ^ bc_.halves.high;	\
-	set_parity(summation);	\
-	set_did_compute_flags();
-
-				case MicroOp::INDR: {
-					INxR_STEP(-1);
-					REPEAT(bc_.halves.high);
-				} break;
-
-				case MicroOp::INIR: {
-					INxR_STEP(1);
-					REPEAT(bc_.halves.high);
-				} break;
-
-				case MicroOp::IND: {
-					INxR_STEP(-1);
-				} break;
-
-				case MicroOp::INI: {
-					INxR_STEP(1);
-				} break;
-
-#undef INxR_STEP
-
-#define OUTxR_STEP(dir)	\
-	bc_.halves.high--;	\
-	memptr_.full = uint16_t(bc_.full + dir);	\
-	hl_.full += dir;	\
-	\
-	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
-	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
-	\
-	int summation = temp8_ + hl_.halves.low;	\
-	if(summation > 0xff) {	\
-		carry_result_ = Flag::Carry;	\
-		half_carry_result_ = Flag::HalfCarry;	\
-	} else {	\
-		carry_result_ = half_carry_result_ = 0;	\
-	}	\
-	\
-	summation = (summation&7) ^ bc_.halves.high;	\
-	set_parity(summation);	\
-	set_did_compute_flags();
-
-				case MicroOp::OUT_R:
-					REPEAT(bc_.halves.high);
+				case MicroOp::LDDR:
+					LDxR(-1);
+					repeat_mem(bc_.full);
 				break;
 
-				case MicroOp::OUTD: {
-					OUTxR_STEP(-1);
-				} break;
+				case MicroOp::LDIR:
+					LDxR(1);
+					repeat_mem(bc_.full);
+				break;
 
-				case MicroOp::OUTI: {
-					OUTxR_STEP(1);
-				} break;
+				case MicroOp::CPDR:
+					CPxR(-1);
+					repeat_mem(bc_.full && sign_result_);
+				break;
 
-#undef OUTxR_STEP
+				case MicroOp::CPIR:
+					CPxR(1);
+					repeat_mem(bc_.full && sign_result_);
+				break;
+
+				case MicroOp::INDR:
+					INxR(-1);
+					repeat_io(bc_.halves.high);
+				break;
+
+				case MicroOp::INIR:
+					INxR(1);
+					repeat_io(bc_.halves.high);
+				break;
+
+				case MicroOp::OUT_R:
+					repeat_io(bc_.halves.high);
+				break;
+
+				case MicroOp::LDD:	LDxR(-1);	break;
+				case MicroOp::CPD:	CPxR(-1);	break;
+				case MicroOp::IND:	INxR(-1);	break;
+				case MicroOp::OUTD:	OUTxR(-1);	break;
+				case MicroOp::LDI:	LDxR(1);	break;
+				case MicroOp::CPI:	CPxR(1);	break;
+				case MicroOp::INI:	INxR(1);	break;
+				case MicroOp::OUTI:	OUTxR(1);	break;
 
 // MARK: - Bit Manipulation
 
@@ -660,110 +685,94 @@ template <	class T,
 
 // MARK: - Rotation and shifting
 
-#define set_rotate_flags()	\
-	bit53_result_ = a_;	\
-	carry_result_ = new_carry;	\
-	subtract_flag_ = half_carry_result_ = 0;	\
-	set_did_compute_flags();
-
 				case MicroOp::RLA: {
 					const uint8_t new_carry = a_ >> 7;
 					a_ = uint8_t((a_ << 1) | (carry_result_ & Flag::Carry));
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
 				case MicroOp::RRA: {
 					const uint8_t new_carry = a_ & 1;
 					a_ = uint8_t((a_ >> 1) | (carry_result_ << 7));
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
 				case MicroOp::RLCA: {
 					const uint8_t new_carry = a_ >> 7;
 					a_ = uint8_t((a_ << 1) | new_carry);
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
 				case MicroOp::RRCA: {
 					const uint8_t new_carry = a_ & 1;
 					a_ = uint8_t((a_ >> 1) | (new_carry << 7));
-					set_rotate_flags();
+					set_rotate_flags(new_carry);
 				} break;
 
-#undef set_rotate_flags
+				case MicroOp::RLC: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source >> 7;
+					source = uint8_t((source << 1) | carry_result_);
+					set_shift_flags(source);
+				} break;
 
-#define set_shift_flags()	\
-	sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);	\
-	set_parity(sign_result_);	\
-	half_carry_result_ = 0;	\
-	subtract_flag_ = 0;	\
-	set_did_compute_flags();
-
-				case MicroOp::RLC:
-					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) << 1) | carry_result_);
-					set_shift_flags();
-				break;
-
-				case MicroOp::RRC:
-					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
-					set_shift_flags();
-				break;
+				case MicroOp::RRC: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source;
+					source = uint8_t((source >> 1) | (carry_result_ << 7));
+					set_shift_flags(source);
+				} break;
 
 				case MicroOp::RL: {
-					const uint8_t next_carry = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) << 1) | (carry_result_ & Flag::Carry));
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					const uint8_t next_carry = source >> 7;
+					source = uint8_t((source << 1) | (carry_result_ & Flag::Carry));
 					carry_result_ = next_carry;
-					set_shift_flags();
+					set_shift_flags(source);
 				} break;
 
 				case MicroOp::RR: {
-					const uint8_t next_carry = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					const uint8_t next_carry = source;
+					source = uint8_t((source >> 1) | (carry_result_ << 7));
 					carry_result_ = next_carry;
-					set_shift_flags();
+					set_shift_flags(source);
 				} break;
 
-				case MicroOp::SLA:
-					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t(*static_cast<uint8_t *>(operation->source) << 1);
-					set_shift_flags();
-				break;
+				case MicroOp::SLA: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source >> 7;
+					source <<= 1;
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::SRA:
-					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (*static_cast<uint8_t *>(operation->source) & 0x80));
-					set_shift_flags();
-				break;
+				case MicroOp::SRA: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source;
+					source = uint8_t((source >> 1) | (source & 0x80));
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::SLL:
-					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = uint8_t(*static_cast<uint8_t *>(operation->source) << 1) | 1;
-					set_shift_flags();
-				break;
+				case MicroOp::SLL: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source >> 7;
+					source = uint8_t(source << 1) | 1;
+					set_shift_flags(source);
+				} break;
 
-				case MicroOp::SRL:
-					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1));
-					set_shift_flags();
-				break;
-
-#undef set_shift_flags
-
-#define set_decimal_rotate_flags()	\
-	subtract_flag_ = 0;	\
-	half_carry_result_ = 0;	\
-	set_parity(a_);	\
-	bit53_result_ = zero_result_ = sign_result_ = a_;	\
-	set_did_compute_flags();
+				case MicroOp::SRL: {
+					uint8_t &source = *static_cast<uint8_t *>(operation->source);
+					carry_result_ = source;
+					source >>= 1;
+					set_shift_flags(source);
+				} break;
 
 				case MicroOp::RRD: {
 					memptr_.full = hl_.full + 1;
 					const uint8_t low_nibble = a_ & 0xf;
 					a_ = (a_ & 0xf0) | (temp8_ & 0xf);
 					temp8_ = uint8_t((temp8_ >> 4) | (low_nibble << 4));
-					set_decimal_rotate_flags();
+					set_shift_flags(a_);
 				} break;
 
 				case MicroOp::RLD: {
@@ -771,11 +780,8 @@ template <	class T,
 					const uint8_t low_nibble = a_ & 0xf;
 					a_ = (a_ & 0xf0) | (temp8_ >> 4);
 					temp8_ = uint8_t((temp8_ << 4) | low_nibble);
-					set_decimal_rotate_flags();
+					set_shift_flags(a_);
 				} break;
-
-#undef set_decimal_rotate_flags
-
 
 // MARK: - Interrupt state
 
@@ -869,7 +875,7 @@ template <	class T,
 // MARK: - Internal bookkeeping
 
 				case MicroOp::SetInstructionPage:
-					current_instruction_page_ = (InstructionPage *)operation->source;
+					current_instruction_page_ = static_cast<InstructionPage *>(operation->source);
 					scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute_data;
 
 					// Undo spurious history update.
@@ -887,7 +893,6 @@ template <	class T,
 				case MicroOp::IndexedPlaceHolder:
 				return;
 			}
-#undef set_parity
 		}
 
 	}
@@ -923,8 +928,6 @@ template <	class T,
 	return wait_line_;
 }
 
-#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation)
-
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
@@ -935,7 +938,7 @@ template <	class T,
 	// Count number of micro-ops required.
 	for(int c = 0; c < 256; c++) {
 		std::size_t length = 0;
-		while(!isTerminal(table[c][length].type)) length++;
+		while(!is_terminal(table[c][length].type)) length++;
 		length++;
 		lengths[c] = length;
 		number_of_micro_ops += length;
@@ -992,7 +995,7 @@ template <	class T,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
 		::copy_program(const MicroOp *source, std::vector<MicroOp> &destination) {
 	std::size_t length = 0;
-	while(!isTerminal(source[length].type)) length++;
+	while(!is_terminal(source[length].type)) length++;
 	std::size_t pointer = 0;
 	while(true) {
 		// TODO: This test is duplicated from assemble_page; can a better factoring be found?
@@ -1003,12 +1006,10 @@ template <	class T,
 		}
 
 		destination.emplace_back(source[pointer]);
-		if(isTerminal(source[pointer].type)) break;
+		if(is_terminal(source[pointer].type)) break;
 		pointer++;
 	}
 }
-
-#undef isTerminal
 
 bool ProcessorBase::get_halt_line() const {
 	return halt_mask_ == 0x00;

@@ -6,11 +6,9 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_Model_hpp
-#define InstructionSets_M68k_Model_hpp
+#pragma once
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 enum class Model {
 	M68000,
@@ -21,6 +19,3 @@ enum class Model {
 };
 
 }
-}
-
-#endif /* InstructionSets_M68k_Model_hpp */

@@ -6,16 +6,14 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef G64_hpp
-#define G64_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing a G64 disk image: a raw but perfectly-clocked GCR stream.
@@ -43,6 +41,3 @@ class G64: public DiskImage {
 };
 
 }
-}
-
-#endif /* G64_hpp */

@@ -6,21 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_AppleII_StaticAnalyser_hpp
-#define Analyser_Static_AppleII_StaticAnalyser_hpp
+#pragma once
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace AppleII {
+namespace Analyser::Static::AppleII {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-}
-}
-
-#endif /* Analyser_Static_AppleII_StaticAnalyser_hpp */

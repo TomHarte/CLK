@@ -6,11 +6,9 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgePitfall2_hpp
-#define Atari2600_CartridgePitfall2_hpp
+#pragma once
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Pitfall2: public BusExtender {
 	public:
@@ -124,6 +122,3 @@ class Pitfall2: public BusExtender {
 };
 
 }
-}
-
-#endif /* Atari2600_CartridgePitfall2_hpp */

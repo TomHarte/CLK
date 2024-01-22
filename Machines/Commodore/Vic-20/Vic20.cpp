@@ -36,8 +36,11 @@
 #include <array>
 #include <cstdint>
 
-namespace Commodore {
-namespace Vic20 {
+namespace {
+Log::Logger<Log::Source::Vic20> logger;
+}
+
+namespace Commodore::Vic20 {
 
 enum ROMSlot {
 	Kernel = 0,
@@ -531,12 +534,12 @@ class ConcreteMachine:
 							const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
 							header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 							hold_tape_ = true;
-							LOG("Vic-20: Found header");
+							logger.info().append("Found header");
 						} else {
 							// no header found, so pretend this hack never interceded
 							tape_->get_tape()->set_offset(tape_position);
 							hold_tape_ = false;
-							LOG("Vic-20: Didn't find header");
+							logger.info().append("Didn't find header");
 						}
 
 						// clear status and the verify flag
@@ -545,7 +548,7 @@ class ConcreteMachine:
 
 						*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 					} else if(address == 0xf90b) {
-						uint8_t x = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+						uint8_t x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
 							const uint64_t tape_position = tape_->get_tape()->get_offset();
@@ -568,20 +571,20 @@ class ConcreteMachine:
 
 								// set tape status, carry and flag
 								ram_[0x90] |= 0x40;
-								uint8_t	flags = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
+								uint8_t	flags = uint8_t(m6502_.value_of(CPU::MOS6502::Register::Flags));
 								flags &= ~uint8_t((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
-								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
+								m6502_.set_value_of(CPU::MOS6502::Register::Flags, flags);
 
 								// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
 								// ensure that the PC leaps to 0xfccf
-								m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
+								m6502_.set_value_of(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 								*value = 0xea;	// i.e. NOP implied
 								hold_tape_ = true;
-								LOG("Vic-20: Found data");
+								logger.info().append("Found data");
 							} else {
 								tape_->get_tape()->set_offset(tape_position);
 								hold_tape_ = false;
-								LOG("Vic-20: Didn't find data");
+								logger.info().append("Didn't find data");
 							}
 						}
 					}
@@ -706,9 +709,9 @@ class ConcreteMachine:
 		}
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
-		std::vector<uint8_t>  character_rom_;
-		std::vector<uint8_t>  basic_rom_;
-		std::vector<uint8_t>  kernel_rom_;
+		std::vector<uint8_t> character_rom_;
+		std::vector<uint8_t> basic_rom_;
+		std::vector<uint8_t> kernel_rom_;
 
 		std::vector<uint8_t> rom_;
 		uint16_t rom_address_, rom_length_;
@@ -756,14 +759,13 @@ class ConcreteMachine:
 };
 
 }
-}
 
 using namespace Commodore::Vic20;
 
-Machine *Machine::Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Commodore::Target;
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
-	return new Vic20::ConcreteMachine(*commodore_target, rom_fetcher);
+	return std::make_unique<Vic20::ConcreteMachine>(*commodore_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

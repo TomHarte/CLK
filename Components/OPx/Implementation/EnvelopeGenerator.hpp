@@ -6,15 +6,13 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef EnvelopeGenerator_h
-#define EnvelopeGenerator_h
+#pragma once
 
 #include <optional>
 #include <functional>
 #include "LowFrequencyOscillator.hpp"
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 /*!
 	Models an OPL-style envelope generator.
@@ -259,6 +257,3 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 };
 
 }
-}
-
-#endif /* EnvelopeGenerator_h */

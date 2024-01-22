@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef CSW_hpp
-#define CSW_hpp
+#pragma once
 
 #include "../Tape.hpp"
 
@@ -15,8 +14,7 @@
 #include <vector>
 #include <zlib.h>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a CSW tape image, which is a compressed 1-bit sampling.
@@ -63,6 +61,3 @@ class CSW: public Tape {
 };
 
 }
-}
-
-#endif /* CSW_hpp */

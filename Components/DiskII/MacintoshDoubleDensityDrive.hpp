@@ -6,13 +6,11 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MacintoshDoubleDensityDrive_hpp
-#define MacintoshDoubleDensityDrive_hpp
+#pragma once
 
 #include "IWM.hpp"
 
-namespace Apple {
-namespace Macintosh {
+namespace Apple::Macintosh {
 
 class DoubleDensityDrive: public IWMDrive {
 	public:
@@ -48,6 +46,3 @@ class DoubleDensityDrive: public IWMDrive {
 };
 
 }
-}
-
-#endif /* MacintoshDoubleDensityDrive_hpp */

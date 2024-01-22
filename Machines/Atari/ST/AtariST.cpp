@@ -13,7 +13,7 @@
 
 //#define LOG_TRACE
 //bool should_log = false;
-#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Components/AY38910/AY38910.hpp"
 #include "../../../Components/68901/MFP68901.hpp"
@@ -29,13 +29,16 @@
 
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#define LOG_PREFIX "[ST] "
 #include "../../../Outputs/Log.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
 #include "../../Utility/MemoryFuzzer.hpp"
 
 #include "../../../Analyser/Static/AtariST/Target.hpp"
+
+namespace {
+Log::Logger<Log::Source::AtariST> logger;
+}
 
 namespace Atari {
 namespace ST {
@@ -45,7 +48,7 @@ constexpr int CLOCK_RATE = 8021247;
 using Target = Analyser::Static::AtariST::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
-	public CPU::MC68000Mk2::BusHandler,
+	public CPU::MC68000::BusHandler,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
@@ -100,8 +103,7 @@ class ConcreteMachine:
 			Memory::PackBigEndian16(roms.find(rom_name)->second, rom_);
 
 			// Set up basic memory map.
-			memory_map_[0] = BusDevice::MostlyRAM;
-			int c = 1;
+			int c = 0;
 			for(; c < int(ram_.size() >> 16); ++c) memory_map_[c] = BusDevice::RAM;
 			for(; c < 0x40; ++c) memory_map_[c] = BusDevice::Floating;
 			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::Unassigned;
@@ -117,6 +119,9 @@ class ConcreteMachine:
 
 			memory_map_[0xfa] = memory_map_[0xfb] = BusDevice::Cartridge;
 			memory_map_[0xff] = BusDevice::IO;
+
+			// Copy the first 8 bytes of ROM into RAM.
+			reinstall_rom_vector();
 
 			midi_acia_->set_interrupt_delegate(this);
 			keyboard_acia_->set_interrupt_delegate(this);
@@ -183,15 +188,15 @@ class ConcreteMachine:
 			advance_time(cycle.length);
 
 			// Check for assertion of reset.
-			if(cycle.operation & Microcycle::Reset) {
-				LOG("Unhandled Reset");
+			if(cycle.operation & CPU::MC68000::Operation::Reset) {
+				logger.error().append("Unhandled Reset");
 			}
 
 			// A null cycle leaves nothing else to do.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+			if(!(cycle.operation & (CPU::MC68000::Operation::NewAddress | CPU::MC68000::Operation::SameAddress))) return HalfCycles(0);
 
 			// An interrupt acknowledge, perhaps?
-			if(cycle.operation & Microcycle::InterruptAcknowledge) {
+			if(cycle.operation & CPU::MC68000::Operation::InterruptAcknowledge) {
 				// Current implementation: everything other than 6 (i.e. the MFP) is autovectored.
 				const int interrupt_level = cycle.word_address()&7;
 				if(interrupt_level != 6) {
@@ -200,7 +205,7 @@ class ConcreteMachine:
 					mc68000_.set_is_peripheral_address(true);
 					return HalfCycles(0);
 				} else {
-					if(cycle.operation & Microcycle::SelectByte) {
+					if(cycle.operation & CPU::MC68000::Operation::SelectByte) {
 						const int interrupt = mfp_->acknowledge_interrupt();
 						if(interrupt != Motorola::MFP68901::MFP68901::NoAcknowledgement) {
 							cycle.value->b = uint8_t(interrupt);
@@ -217,7 +222,7 @@ class ConcreteMachine:
 
 			// If this is a new strobing of the address signal, test for bus error and pre-DTack delay.
 			HalfCycles delay(0);
-			if(cycle.operation & Microcycle::NewAddress) {
+			if(cycle.operation & CPU::MC68000::Operation::NewAddress) {
 				// Bus error test.
 				if(
 					// Anything unassigned should generate a bus error.
@@ -246,18 +251,15 @@ class ConcreteMachine:
 			uint8_t *memory = nullptr;
 			switch(memory_map_[address >> 16]) {
 				default:
-				case BusDevice::MostlyRAM:
-					if(address < 8) {
-						memory = rom_.data();
-						break;
-					}
-					[[fallthrough]];
 				case BusDevice::RAM:
 					memory = ram_.data();
 				break;
 
 				case BusDevice::ROM:
 					memory = rom_.data();
+					if(!(cycle.operation & CPU::MC68000::Operation::Read)) {
+						return delay;
+					}
 					address -= rom_start_;
 				break;
 
@@ -269,12 +271,12 @@ class ConcreteMachine:
 						TOS 1.0 appears to attempt to read from the catridge before it has setup
 						the bus error vector. Therefore I assume no bus error flows.
 					*/
-					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					switch(cycle.operation & (CPU::MC68000::Operation::SelectWord | CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::Read)) {
 						default: break;
-						case Microcycle::SelectWord | Microcycle::Read:
+						case CPU::MC68000::Operation::SelectWord | CPU::MC68000::Operation::Read:
 							cycle.value->w = 0xffff;
 						break;
-						case Microcycle::SelectByte | Microcycle::Read:
+						case CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::Read:
 							cycle.value->b = 0xff;
 						break;
 					}
@@ -313,7 +315,7 @@ class ConcreteMachine:
 						case 0x8260:	case 0x8262:
 							if(!cycle.data_select_active()) return delay;
 
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value16(video_->read(int(address >> 1)));
 							} else {
 								video_->write(int(address >> 1), cycle.value16());
@@ -324,7 +326,7 @@ class ConcreteMachine:
 						case 0x8604:	case 0x8606:	case 0x8608:	case 0x860a:	case 0x860c:
 							if(!cycle.data_select_active()) return delay;
 
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value16(dma_->read(int(address >> 1)));
 							} else {
 								dma_->write(int(address >> 1), cycle.value16());
@@ -354,13 +356,12 @@ class ConcreteMachine:
 						case 0x88d0: case 0x88d2: case 0x88d4: case 0x88d6: case 0x88d8: case 0x88da: case 0x88dc: case 0x88de:
 						case 0x88e0: case 0x88e2: case 0x88e4: case 0x88e6: case 0x88e8: case 0x88ea: case 0x88ec: case 0x88ee:
 						case 0x88f0: case 0x88f2: case 0x88f4: case 0x88f6: case 0x88f8: case 0x88fa: case 0x88fc: case 0x88fe:
-
 							if(!cycle.data_select_active()) return delay;
 
 							advance_time(HalfCycles(2));
 							update_audio();
 
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value8_high(GI::AY38910::Utility::read(ay_));
 							} else {
 								// Net effect here: addresses with bit 1 set write to a register,
@@ -380,7 +381,7 @@ class ConcreteMachine:
 						case 0xfa38:	case 0xfa3a:	case 0xfa3c:	case 0xfa3e:
 							if(!cycle.data_select_active()) return delay;
 
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value8_low(mfp_->read(int(address >> 1)));
 							} else {
 								mfp_->write(int(address >> 1), cycle.value8_low());
@@ -394,7 +395,7 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return delay;
 
 							const auto acia_ = (address & 4) ? &midi_acia_ : &keyboard_acia_;
-							if(cycle.operation & Microcycle::Read) {
+							if(cycle.operation & CPU::MC68000::Operation::Read) {
 								cycle.set_value8_high((*acia_)->read(int(address >> 1)));
 							} else {
 								(*acia_)->write(int(address >> 1), cycle.value8_high());
@@ -405,29 +406,38 @@ class ConcreteMachine:
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
-			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+			//
+			// In both write cases, immediately reinstall the first eight bytes of RAM from ROM, so that any write to
+			// that area is in effect a no-op. This is cheaper than the conditionality of actually checking.
+			switch(cycle.operation & (CPU::MC68000::Operation::SelectWord | CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::Read)) {
 				default:
 				break;
 
-				case Microcycle::SelectWord | Microcycle::Read:
+				case CPU::MC68000::Operation::SelectWord | CPU::MC68000::Operation::Read:
 					cycle.value->w = *reinterpret_cast<uint16_t *>(&memory[address]);
 				break;
-				case Microcycle::SelectByte | Microcycle::Read:
+				case CPU::MC68000::Operation::SelectByte | CPU::MC68000::Operation::Read:
 					cycle.value->b = memory[address];
 				break;
-				case Microcycle::SelectWord:
+				case CPU::MC68000::Operation::SelectWord:
 					if(address >= video_range_.low_address && address < video_range_.high_address)
 						video_.flush();
 					*reinterpret_cast<uint16_t *>(&memory[address]) = cycle.value->w;
+					reinstall_rom_vector();
 				break;
-				case Microcycle::SelectByte:
+				case CPU::MC68000::Operation::SelectByte:
 					if(address >= video_range_.low_address && address < video_range_.high_address)
 						video_.flush();
 					memory[address] = cycle.value->b;
+					reinstall_rom_vector();
 				break;
 			}
 
 			return HalfCycles(0);
+		}
+
+		void reinstall_rom_vector() {
+			std::copy(rom_.begin(), rom_.begin() + 8, ram_.begin());
 		}
 
 		void flush_output(int outputs) final {
@@ -481,7 +491,7 @@ class ConcreteMachine:
 				length -= video_.cycles_until_implicit_flush();
 				video_ += video_.cycles_until_implicit_flush();
 
-				mfp_->set_timer_event_input(1, video_->display_enabled());
+				mfp_->set_timer_event_input<1>(video_->display_enabled());
 				update_interrupt_input();
 			}
 
@@ -492,7 +502,7 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide_cycles(Cycles(4)));
 		}
 
-		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
+		CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;
 		HalfCycles bus_phase_;
 
 		JustInTimeActor<Video> video_;
@@ -517,8 +527,6 @@ class ConcreteMachine:
 		uint32_t rom_start_ = 0;
 
 		enum class BusDevice {
-			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
-			MostlyRAM,
 			/// Allows reads and writes to ram_.
 			RAM,
 			/// Nothing is mapped to this area, and it also doesn't trigger an exception upon access.
@@ -701,13 +709,13 @@ class ConcreteMachine:
 
 using namespace Atari::ST;
 
-Machine *Machine::AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const atari_target = dynamic_cast<const Analyser::Static::AtariST::Target *>(target);
 	if(!atari_target) {
 		return nullptr;
 	}
 
-	return new ConcreteMachine(*atari_target, rom_fetcher);
+	return std::make_unique<ConcreteMachine>(*atari_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

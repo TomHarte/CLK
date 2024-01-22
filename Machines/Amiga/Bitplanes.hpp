@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Bitplanes_hpp
-#define Bitplanes_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -46,7 +45,7 @@ class Bitplanes: public DMADevice<6, 2> {
 		BitplaneData next;
 };
 
-template <typename SourceT>  constexpr SourceT bitplane_swizzle(SourceT value) {
+template <typename SourceT> constexpr SourceT bitplane_swizzle(SourceT value) {
 	return
 		(value&0x21) |
 		((value&0x02) << 2) |
@@ -78,9 +77,9 @@ class BitplaneShifter {
 		/// The value is arranges so that MSB = first pixel to output, LSB = last.
 		///
 		/// Each byte is swizzled to provide easier playfield separation, being in the form:
-		/// 	b6, b7 = 0;
-		/// 	b3–b5: planes 1, 3 and 5;
-		/// 	b0–b2: planes 0, 2 and 4.
+		///		b6, b7 = 0;
+		///		b3–b5: planes 1, 3 and 5;
+		///		b0–b2: planes 0, 2 and 4.
 		uint32_t get(bool high_res) {
 			if(high_res) {
 				return uint32_t(data_[1] >> 32);
@@ -98,5 +97,3 @@ class BitplaneShifter {
 };
 
 }
-
-#endif /* Bitplanes_hpp */

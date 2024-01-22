@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef OPLL_hpp
-#define OPLL_hpp
+#pragma once
 
 #include "Implementation/OPLBase.hpp"
 #include "Implementation/EnvelopeGenerator.hpp"
@@ -18,8 +17,7 @@
 
 #include <atomic>
 
-namespace Yamaha {
-namespace OPL {
+namespace Yamaha::OPL {
 
 class OPLL: public OPLBase<OPLL> {
 	public:
@@ -126,6 +124,3 @@ class OPLL: public OPLBase<OPLL> {
 };
 
 }
-}
-
-#endif /* OPLL_hpp */

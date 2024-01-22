@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Disassembler_hpp
-#define Disassembler_hpp
+#pragma once
 
 #include "../Numeric/Sizes.hpp"
 
@@ -85,5 +84,3 @@ template <
 };
 
 }
-
-#endif /* Disassembler_h */

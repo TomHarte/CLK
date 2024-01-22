@@ -18,11 +18,13 @@
 
 #include "../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
+#include "../../Outputs/Log.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Processors/Z80/Z80.hpp"
 
-#define LOG_PREFIX "[Enterprise] "
-#include "../../Outputs/Log.hpp"
+namespace {
+Log::Logger<Log::Source::Enterprise> logger;
+}
 
 namespace Enterprise {
 
@@ -139,6 +141,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 						ROM::Request(ROM::Name::EnterpriseBASIC11) ||
 						ROM::Request(ROM::Name::EnterpriseBASIC11Suffixed)
 					);
+				break;
 				case Target::BASICVersion::v21:
 					request = request && ROM::Request(ROM::Name::EnterpriseBASIC21);
 				break;
@@ -346,7 +349,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 				case PartialMachineCycle::Input:
 					switch(address & 0xff) {
 						default:
-							LOG("Unhandled input from " << PADHEX(2) << (address & 0xff));
+							logger.error().append("Unhandled input from %02x", address & 0xff);
 							*cycle.value = 0xff;
 						break;
 
@@ -411,7 +414,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 				case PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						default:
-							LOG("Unhandled output: " << PADHEX(2) << *cycle.value << " to " << PADHEX(2) << (address & 0xff));
+							logger.error().append("Unhandled output: %02x to %02x", *cycle.value, address & 0xff);
 						break;
 
 						case 0x10:	case 0x11:	case 0x12:	case 0x13:
@@ -510,12 +513,12 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 						break;
 						case 0xb6:
 							// Just 8 bits of printer data.
-							LOG("TODO: printer output " << PADHEX(2) << *cycle.value);
+							logger.info().append("TODO: printer output: %02x", *cycle.value);
 						break;
 						case 0xb7:
 							// b0 = serial data out
 							// b1 = serial status out
-							LOG("TODO: serial output " << PADHEX(2) << *cycle.value);
+							logger.info().append("TODO: serial output: %02x", *cycle.value);
 						break;
 					}
 				break;
@@ -724,7 +727,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 		EXDos exdos_;
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) final {
+		void set_activity_observer([[maybe_unused]] Activity::Observer *observer) final {
 			if constexpr (has_disk_controller) {
 				exdos_.set_activity_observer(observer);
 			}
@@ -747,13 +750,13 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 
 using namespace Enterprise;
 
-Machine *Machine::Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Enterprise::Target;
 	const Target *const enterprise_target = dynamic_cast<const Target *>(target);
 
 #define BuildMachine(exdos, sixmhz)																									\
 	if((enterprise_target->dos == Target::DOS::None) != exdos && (enterprise_target->speed == Target::Speed::SixMHz) == sixmhz) {	\
-		return new Enterprise::ConcreteMachine<exdos, sixmhz>(*enterprise_target, rom_fetcher);										\
+		return std::make_unique<Enterprise::ConcreteMachine<exdos, sixmhz>>(*enterprise_target, rom_fetcher);						\
 	}
 
 	BuildMachine(false, false);

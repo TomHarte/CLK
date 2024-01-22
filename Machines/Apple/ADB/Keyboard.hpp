@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Keyboard_hpp
-#define Keyboard_hpp
+#pragma once
 
 #include "ReactiveDevice.hpp"
 #include "../../../Inputs/Keyboard.hpp"
@@ -18,8 +17,7 @@
 #include <mutex>
 #include <vector>
 
-namespace Apple {
-namespace ADB {
+namespace Apple::ADB {
 
 /*!
 	Defines the keycodes that could be passed directly via set_key_pressed; these
@@ -107,7 +105,7 @@ class Keyboard: public ReactiveDevice {
 		void did_receive_data(const Command &, const std::vector<uint8_t> &) override;
 
 		std::mutex keys_mutex_;
-		std::array<bool, 128> pressed_keys_;
+		std::array<bool, 128> pressed_keys_{};
 		std::vector<uint8_t> pending_events_;
 		uint16_t modifiers_ = 0xffff;
 };
@@ -120,6 +118,3 @@ class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper
 };
 
 }
-}
-
-#endif /* Keyboard_hpp */

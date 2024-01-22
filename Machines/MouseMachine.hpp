@@ -6,8 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef MouseMachine_hpp
-#define MouseMachine_hpp
+#pragma once
 
 #include "../Inputs/Mouse.hpp"
 
@@ -20,5 +19,3 @@ class MouseMachine {
 };
 
 }
-
-#endif /* MouseMachine_hpp */

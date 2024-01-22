@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Typer_hpp
-#define Typer_hpp
+#pragma once
 
 #include <memory>
 #include <string>
@@ -151,5 +150,3 @@ class TypeRecipient: public Typer::Delegate {
 };
 
 }
-
-#endif /* Typer_hpp */

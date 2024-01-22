@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef _522_hpp
-#define _522_hpp
+#pragma once
 
 #include <cstdint>
 
@@ -15,8 +14,7 @@
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
-namespace MOS {
-namespace MOS6522 {
+namespace MOS::MOS6522 {
 
 enum Port {
 	A = 0,
@@ -139,8 +137,5 @@ template <class BusHandlerT> class MOS6522: public MOS6522Storage {
 };
 
 }
-}
 
 #include "Implementation/6522Implementation.hpp"
-
-#endif /* _522_hpp */

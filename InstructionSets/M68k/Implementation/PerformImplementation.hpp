@@ -6,17 +6,16 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_M68k_PerformImplementation_h
-#define InstructionSets_M68k_PerformImplementation_h
+#pragma once
 
+#include "../../../Numeric/Carry.hpp"
 #include "../ExceptionVectors.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 
-namespace InstructionSet {
-namespace M68k {
+namespace InstructionSet::M68k {
 
 /// Sign-extend @c x to 32 bits and return as an unsigned 32-bit int.
 inline uint32_t u_extend16(uint16_t x)	{	return uint32_t(int16_t(x));	}
@@ -25,28 +24,6 @@ inline uint32_t u_extend16(uint16_t x)	{	return uint32_t(int16_t(x));	}
 inline int32_t s_extend16(uint16_t x)	{	return int32_t(int16_t(x));		}
 
 namespace Primitive {
-
-/// @returns An int of type @c IntT with only the most-significant bit set.
-template <typename IntT> constexpr IntT top_bit() {
-	static_assert(!std::numeric_limits<IntT>::is_signed);
-	constexpr IntT max = std::numeric_limits<IntT>::max();
-	return max - (max >> 1);
-}
-
-/// @returns An int with the top bit indicating whether overflow occurred when @c source and @c destination
-/// were either added (if @c is_add is true) or subtracted (if @c is_add is false) and the result was @c result.
-/// All other bits will be clear.
-template <bool is_add, typename IntT>
-static Status::FlagT overflow(IntT source, IntT destination, IntT result) {
-	const IntT output_changed = result ^ destination;
-	const IntT input_differed = source ^ destination;
-
-	if constexpr (is_add) {
-		return top_bit<IntT>() & output_changed & ~input_differed;
-	} else {
-		return top_bit<IntT>() & output_changed & input_differed;
-	}
-}
 
 /// Performs an add or subtract (as per @c is_add) between @c source and @c destination,
 /// updating @c status. @c is_extend indicates whether this is an extend operation (e.g. ADDX)
@@ -82,7 +59,7 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 		status.zero_result = Status::FlagT(result);
 	}
 	status.set_negative(result);
-	status.overflow_flag = overflow<is_add>(source, destination, result);
+	status.overflow_flag = Numeric::overflow<is_add>(destination, source, result);
 	destination = result;
 }
 
@@ -144,7 +121,7 @@ void compare(IntT source, IntT destination, Status &status) {
 	const IntT result = destination - source;
 	status.carry_flag = result > destination;
 	status.set_neg_zero(result);
-	status.overflow_flag = Primitive::overflow<false>(source, destination, result);
+	status.overflow_flag = Numeric::overflow<false>(destination, source, result);
 }
 
 /// @returns the name of the bit to be used as a mask for BCLR, BCHG, BSET or BTST for
@@ -294,7 +271,7 @@ template <bool is_extend, typename IntT> void negative(IntT &source, Status &sta
 	}
 	status.extend_flag = status.carry_flag = result;	// i.e. any value other than 0 will result in carry.
 	status.set_negative(result);
-	status.overflow_flag = Primitive::overflow<false>(source, IntT(0), result);
+	status.overflow_flag = Numeric::overflow<false>(IntT(0), source, result);
 
 	source = result;
 }
@@ -312,11 +289,6 @@ template <typename IntT, typename FlowController> int shift_count(uint8_t source
 	return count;
 }
 
-/// @returns The number of bits in @c IntT.
-template <typename IntT> constexpr int bit_size() {
-	return sizeof(IntT) * 8;
-}
-
 /// Perform an arithmetic or logical shift, i.e. any of LSL, LSR, ASL or ASR.
 template <Operation operation, typename IntT, typename FlowController> void shift(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
@@ -326,7 +298,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 		operation == Operation::LSRb || operation == Operation::LSRw || operation == Operation::LSRl
 	);
 
-	constexpr auto size = bit_size<IntT>();
+	constexpr auto size = Numeric::bit_size<IntT>();
 	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
@@ -356,7 +328,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 				if(shift > size) {
 					status.carry_flag = status.extend_flag = 0;
 				} else {
-					status.carry_flag = status.extend_flag = (destination << (shift - 1)) & top_bit<IntT>();
+					status.carry_flag = status.extend_flag = (destination << (shift - 1)) & Numeric::top_bit<IntT>();
 				}
 
 				if(type == Type::LSL) {
@@ -371,7 +343,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 						// For a shift of n places, overflow will be set if the top n+1 bits were not
 						// all the same value.
 						const auto affected_bits = IntT(
-							~((top_bit<IntT>() >> shift) - 1)
+							~((Numeric::top_bit<IntT>() >> shift) - 1)
 						);	// e.g. shift = 1 => ~((0x80 >> 1) - 1) = ~(0x40 - 1) = ~0x3f = 0xc0, i.e. if shift is
 							// 1 then the top two bits are relevant to whether there was overflow. If they have the
 							// same value, i.e. are both 0 or are both 1, then there wasn't. Otherwise there was.
@@ -397,7 +369,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 
 				const IntT sign_word =
 					type == Type::LSR ?
-						0 : (destination & top_bit<IntT>() ? IntT(~0) : 0);
+						0 : (destination & Numeric::top_bit<IntT>() ? IntT(~0) : 0);
 
 				if(shift >= size) {
 					destination = sign_word;
@@ -418,7 +390,7 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 		operation == Operation::RORb || operation == Operation::RORw || operation == Operation::RORl
 	);
 
-	constexpr auto size = bit_size<IntT>();
+	constexpr auto size = Numeric::bit_size<IntT>();
 	auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
@@ -443,7 +415,7 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 						(destination << (size - shift))
 					);
 				}
-				status.carry_flag = Status::FlagT(destination & top_bit<IntT>());
+				status.carry_flag = Status::FlagT(destination & Numeric::top_bit<IntT>());
 			break;
 		}
 	}
@@ -459,20 +431,20 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 		operation == Operation::ROXRb || operation == Operation::ROXRw || operation == Operation::ROXRl
 	);
 
-	constexpr auto size = bit_size<IntT>();
+	constexpr auto size = Numeric::bit_size<IntT>();
 	auto shift = shift_count<IntT>(uint8_t(source), flow_controller) % (size + 1);
 
 	if(!shift) {
 		// When shift is zero, extend is unaffected but is copied to carry.
 		status.carry_flag = status.extend_flag;
 	} else {
- 		switch(operation) {
+		switch(operation) {
 			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
 				status.carry_flag = Status::FlagT((destination >> (size - shift)) & 1);
 
-				if(shift == bit_size<IntT>()) {
+				if(shift == Numeric::bit_size<IntT>()) {
 					destination = IntT(
-						(status.extend_flag ? top_bit<IntT>() : 0) |
+						(status.extend_flag ? Numeric::top_bit<IntT>() : 0) |
 						(destination >> 1)
 					);
 				} else if(shift == 1) {
@@ -492,7 +464,7 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 			case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
 				status.carry_flag = Status::FlagT(destination & (1 << (shift - 1)));
 
-				if(shift == bit_size<IntT>()) {
+				if(shift == Numeric::bit_size<IntT>()) {
 					destination = IntT(
 						(status.extend_flag ? 1 : 0) |
 						(destination << 1)
@@ -500,12 +472,12 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 				} else if(shift == 1) {
 					destination = IntT(
 						(destination >> 1) |
-						(status.extend_flag ? top_bit<IntT>() : 0)
+						(status.extend_flag ? Numeric::top_bit<IntT>() : 0)
 					);
 				} else {
 					destination = IntT(
 						(destination >> shift) |
-						((status.extend_flag ? top_bit<IntT>() : 0) >> (shift - 1)) |
+						((status.extend_flag ? Numeric::top_bit<IntT>() : 0) >> (shift - 1)) |
 						(destination << (size + 1 - shift))
 					);
 				}
@@ -742,15 +714,15 @@ template <
 			Multiplications.
 		*/
 
-		case Operation::MULU:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::MULS:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULUw:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULSw:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
 
 		/*
 			Divisions.
 		*/
 
-		case Operation::DIVU:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::DIVS:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
+		case Operation::DIVUw:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::DIVSw:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
@@ -763,7 +735,7 @@ template <
 			}
 		} break;
 
-		case Operation::CHK: {
+		case Operation::CHKw: {
 			const bool is_under = s_extend16(dest.w) < 0;
 			const bool is_over = s_extend16(dest.w) > s_extend16(src.w);
 
@@ -883,14 +855,14 @@ template <
 			Shifts and rotates.
 		*/
 		case Operation::ASLm:
-			status.extend_flag = status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
-			status.overflow_flag = (src.w ^ (src.w << 1)) & Primitive::top_bit<uint16_t>();
+			status.extend_flag = status.carry_flag = src.w & Numeric::top_bit<uint16_t>();
+			status.overflow_flag = (src.w ^ (src.w << 1)) & Numeric::top_bit<uint16_t>();
 			src.w <<= 1;
 			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::LSLm:
-			status.extend_flag = status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			status.extend_flag = status.carry_flag = src.w & Numeric::top_bit<uint16_t>();
 			status.overflow_flag = 0;
 			src.w <<= 1;
 			status.set_neg_zero(src.w);
@@ -899,7 +871,7 @@ template <
 		case Operation::ASRm:
 			status.extend_flag = status.carry_flag = src.w & 1;
 			status.overflow_flag = 0;
-			src.w = (src.w & Primitive::top_bit<uint16_t>()) | (src.w >> 1);
+			src.w = (src.w & Numeric::top_bit<uint16_t>()) | (src.w >> 1);
 			status.set_neg_zero(src.w);
 		break;
 
@@ -919,13 +891,13 @@ template <
 
 		case Operation::RORm:
 			src.w = uint16_t((src.w >> 1) | (src.w << 15));
-			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			status.carry_flag = src.w & Numeric::top_bit<uint16_t>();
 			status.overflow_flag = 0;
 			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::ROXLm:
-			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			status.carry_flag = src.w & Numeric::top_bit<uint16_t>();
 			src.w = uint16_t((src.w << 1) | (status.extend_flag ? 0x0001 : 0x0000));
 			status.extend_flag = status.carry_flag;
 			status.overflow_flag = 0;
@@ -1031,6 +1003,3 @@ template <
 }
 
 }
-}
-
-#endif /* InstructionSets_M68k_PerformImplementation_h */

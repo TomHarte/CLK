@@ -6,8 +6,7 @@
 //  Copyright 2011 Thomas Harte. All rights reserved.
 //
 
-#ifndef FIRFilter_hpp
-#define FIRFilter_hpp
+#pragma once
 
 // Use the Accelerate framework to vectorise, unless this is a Qt build.
 // Primarily that avoids gymnastics in the QMake file; it also eliminates
@@ -101,5 +100,3 @@ class FIRFilter {
 };
 
 }
-
-#endif

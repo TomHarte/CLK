@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiKeyboardMachine_hpp
-#define MultiKeyboardMachine_hpp
+#pragma once
 
 #include "../../../../Machines/DynamicMachine.hpp"
 #include "../../../../Machines/KeyboardMachine.hpp"
@@ -15,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the keyboard machine interface to multiple machines.
@@ -32,7 +30,7 @@ class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 			public:
 				MultiKeyboard(const std::vector<MachineTypes::KeyboardMachine *> &machines);
 
-				bool set_key_pressed(Key key, char value, bool is_pressed) final;
+				bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final;
 				void reset_all_keys() final;
 				const std::set<Key> &observed_keys() const final;
 				bool is_exclusive() const final;
@@ -56,6 +54,3 @@ class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 };
 
 }
-}
-
-#endif /* MultiKeyboardMachine_hpp */

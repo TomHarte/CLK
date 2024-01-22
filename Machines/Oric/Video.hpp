@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Oric_Video_hpp
-#define Machines_Oric_Video_hpp
+#pragma once
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -65,5 +64,3 @@ class VideoOutput {
 };
 
 }
-
-#endif /* Video_hpp */

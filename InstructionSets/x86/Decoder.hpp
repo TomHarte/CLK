@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef InstructionSets_x86_Decoder_hpp
-#define InstructionSets_x86_Decoder_hpp
+#pragma once
 
 #include "Instruction.hpp"
 #include "Model.hpp"
@@ -15,8 +14,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace InstructionSet {
-namespace x86 {
+namespace InstructionSet::x86 {
 
 /*!
 	Implements Intel x86 instruction decoding.
@@ -39,13 +37,12 @@ template <Model model> class Decoder {
 				supplied cannot form a valid instruction.
 
 			@discussion although instructions also contain an indicator of their length, on chips prior
-				to the 80286 there is no limit to instruction length and that could in theory overflow the available
-				storage, which can describe instructions only up to 1kb in size.
+				to the 80286 there is no limit to potential instruction length.
 
 				The 80286 and 80386 have instruction length limits of 10 and 15 bytes respectively, so
 				cannot overflow the field.
 		*/
-		std::pair<int, InstructionT> decode(const uint8_t *source, size_t length);
+		std::pair<int, InstructionT> decode(const uint8_t *source, std::size_t length);
 
 		/*!
 			Enables or disables 32-bit protected mode. Meaningful only if the @c Model supports it.
@@ -194,7 +191,9 @@ template <Model model> class Decoder {
 		DataSize operand_size_ = DataSize::None;		// i.e. size of in-stream operand, if any.
 		DataSize operation_size_ = DataSize::None;		// i.e. size of data manipulated by the operation.
 
-		bool sign_extend_ = false;						// If set then sign extend the operand up to the operation size;
+		bool sign_extend_displacement_ = true;			// If set then sign extend any displacement up to the address
+														// size; otherwise it'll be zero-padded.
+		bool sign_extend_operand_ = false;				// If set then sign extend the operand up to the operation size;
 														// otherwise it'll be zero-padded.
 
 		// Prefix capture fields.
@@ -223,11 +222,22 @@ template <Model model> class Decoder {
 			sib_ = ScaleIndexBase();
 			next_inward_data_shift_ = 0;
 			inward_data_ = 0;
-			sign_extend_ = false;
+			sign_extend_operand_ = false;
+			sign_extend_displacement_ = true;
 		}
 };
 
-}
-}
+// This is a temporary measure; for reasons as-yet unknown, GCC isn't picking up the
+// explicit instantiations of the template above at link time, even though is is
+// unambiguously building and linking in Decoder.cpp.
+//
+// So here's a thin non-templated shim to unblock initial PC Compatible development.
+class Decoder8086 {
+	public:
+		std::pair<int, Instruction<false>> decode(const uint8_t *source, std::size_t length);
 
-#endif /* InstructionSets_x86_Decoder_hpp */
+	private:
+		Decoder<Model::i8086> decoder;
+};
+
+}

@@ -6,13 +6,11 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MassStorage_DAT_hpp
-#define MassStorage_DAT_hpp
+#pragma once
 
 #include "RawSectorDump.hpp"
 
-namespace Storage {
-namespace MassStorage {
+namespace Storage::MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing an Acorn ADFS image, which is just a
@@ -25,6 +23,3 @@ class DAT: public RawSectorDump<256> {
 };
 
 }
-}
-
-#endif /* MassStorage_DAT_hpp */

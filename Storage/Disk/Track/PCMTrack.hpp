@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef PCMTrack_hpp
-#define PCMTrack_hpp
+#pragma once
 
 #include "Track.hpp"
 #include "PCMSegment.hpp"
@@ -15,8 +14,7 @@
 
 #include <vector>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	A subclass of @c Track that provides its @c Events by querying a pulse-code modulated record of original
@@ -90,6 +88,3 @@ class PCMTrack: public Track {
 };
 
 }
-}
-
-#endif /* PCMTrack_hpp */

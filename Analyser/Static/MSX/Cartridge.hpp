@@ -6,14 +6,11 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Cartridge_hpp
-#define Cartridge_hpp
+#pragma once
 
 #include "../../../Storage/Cartridge/Cartridge.hpp"
 
-namespace Analyser {
-namespace Static {
-namespace MSX {
+namespace Analyser::Static::MSX {
 
 /*!
 	Extends the base cartridge class by adding a (guess at) the banking scheme.
@@ -34,7 +31,3 @@ struct Cartridge: public ::Storage::Cartridge::Cartridge {
 };
 
 }
-}
-}
-
-#endif /* Cartridge_hpp */

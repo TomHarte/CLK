@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Electron_Keyboard_hpp
-#define Machines_Electron_Keyboard_hpp
+#pragma once
 
 #include "../KeyboardMachine.hpp"
 #include "../Utility/Typer.hpp"
@@ -52,5 +51,3 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 };
 
 };
-
-#endif /* KeyboardMapper_hpp */

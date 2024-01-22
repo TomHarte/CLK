@@ -6,14 +6,12 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef STX_hpp
-#define STX_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c Disk containing an STX disk image: sector contents plus a bunch of annotations as to sizing,
@@ -45,6 +43,3 @@ class STX: public DiskImage {
 };
 
 }
-}
-
-#endif /* STX_hpp */

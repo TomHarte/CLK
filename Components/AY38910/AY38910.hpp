@@ -6,16 +6,14 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef AY_3_8910_hpp
-#define AY_3_8910_hpp
+#pragma once
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 #include "../../Reflection/Struct.hpp"
 
-namespace GI {
-namespace AY38910 {
+namespace GI::AY38910 {
 
 /*!
 	A port handler provides all input for an AY's two 8-bit ports, and may optionally receive
@@ -220,6 +218,3 @@ struct State: public Reflection::StructImpl<State> {
 };
 
 }
-}
-
-#endif /* AY_3_8910_hpp */

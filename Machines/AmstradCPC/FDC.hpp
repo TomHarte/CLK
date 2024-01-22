@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef FDC_h
-#define FDC_h
+#pragma once
 
 #include "../../Components/8272/i8272.hpp"
 
@@ -47,5 +46,3 @@ class FDC: public Intel::i8272::i8272 {
 };
 
 }
-
-#endif /* FDC_h */

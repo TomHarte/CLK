@@ -11,7 +11,7 @@
 #include "Kernel.hpp"
 
 using namespace Analyser::Static::MOS6502;
-namespace  {
+namespace {
 
 using PartialDisassembly = Analyser::Static::Disassembly::PartialDisassembly<Disassembly, uint16_t>;
 
@@ -236,7 +236,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			case Instruction::Relative: {
 				std::size_t operand_address = address_mapper(address);
 				if(operand_address >= memory.size()) return;
-				address++;
+				++address;
 
 				instruction.operand = memory[operand_address];
 			}
@@ -291,19 +291,33 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		}
 
 		// Decide on overall flow control.
-		if(instruction.operation == Instruction::RTS || instruction.operation == Instruction::RTI) return;
-		if(instruction.operation == Instruction::BRK) return;	// TODO: check whether IRQ vector is within memory range
-		if(instruction.operation == Instruction::JSR) {
-			disassembly.remaining_entry_points.push_back(instruction.operand);
-		}
-		if(instruction.operation == Instruction::JMP) {
-			if(instruction.addressing_mode == Instruction::Absolute)
-				disassembly.remaining_entry_points.push_back(instruction.operand);
-			return;
-		}
+
+		// All relative instructions are flow control.
 		if(instruction.addressing_mode == Instruction::Relative) {
 			uint16_t destination = uint16_t(address + int8_t(instruction.operand));
 			disassembly.remaining_entry_points.push_back(destination);
+		}
+
+		switch(instruction.operation) {
+			default: break;
+
+			case Instruction::KIL:
+			case Instruction::RTS:
+			case Instruction::RTI:
+			case Instruction::BRK: // TODO: check whether IRQ vector is within memory range.
+				disassembly.implicit_entry_points.push_back(address);
+			return;
+
+			case Instruction::JMP:
+				// Adding a new entry point for relative jumps was handled above.
+				if(instruction.addressing_mode == Instruction::Absolute) {
+					disassembly.remaining_entry_points.push_back(instruction.operand);
+				}
+			return;
+
+			case Instruction::JSR:
+				disassembly.remaining_entry_points.push_back(instruction.operand);
+			break;
 		}
 	}
 }
@@ -316,5 +330,5 @@ Disassembly Analyser::Static::MOS6502::Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
 	std::vector<uint16_t> entry_points) {
-	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(memory, address_mapper, entry_points);
+	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(memory, address_mapper, entry_points, false);
 }

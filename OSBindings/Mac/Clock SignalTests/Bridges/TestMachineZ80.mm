@@ -151,7 +151,7 @@ struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelega
 }
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg {
-	_processor->set_value_of_register(registerForRegister(reg), value);
+	_processor->set_value_of(registerForRegister(reg), value);
 }
 
 - (void)setValue:(uint8_t)value atAddress:(uint16_t)address {
@@ -165,7 +165,7 @@ struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelega
 }
 
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg {
-	return _processor->get_value_of_register(registerForRegister(reg));
+	return _processor->value_of(registerForRegister(reg));
 }
 
 - (BOOL)isHalted {

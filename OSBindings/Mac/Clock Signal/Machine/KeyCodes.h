@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef KeyCodes_h
-#define KeyCodes_h
+#pragma once
 
 /*
 	Carbon somehow still manages to get into the unit test target; I can't figure out how. So I've
@@ -147,5 +146,3 @@ enum: uint16_t {
   VK_DownArrow                 = 0x7D,
   VK_UpArrow                   = 0x7E
 };
-
-#endif /* KeyCodes_h */

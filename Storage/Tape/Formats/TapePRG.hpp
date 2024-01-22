@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Tape_PRG_hpp
-#define Storage_Tape_PRG_hpp
+#pragma once
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
@@ -15,8 +14,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Storage {
-namespace Tape {
+namespace Storage::Tape {
 
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
@@ -71,6 +69,3 @@ class PRG: public Tape {
 };
 
 }
-}
-
-#endif /* T64_hpp */

@@ -316,7 +316,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"out float compositeAngle;"
 			"out float compositeAmplitude;"
 			"out float oneOverCompositeAmplitude;"
-		
+
 			"uniform float angleOffsets[4];";
 		fragment_shader +=
 			"in float compositeAngle;"
@@ -457,7 +457,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				");"
 				"float luminance = dot(samples, vec4(0.15, 0.35, 0.35, 0.25));"
 
-				// Split and average chrominaxnce.
+				// Split and average chrominance.
 				"vec2 chrominances[4] = vec2[4]("
 					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
 					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"

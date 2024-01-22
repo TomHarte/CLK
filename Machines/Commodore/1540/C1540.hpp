@@ -6,11 +6,9 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Commodore1540_hpp
-#define Commodore1540_hpp
+#pragma once
 
-namespace Commodore {
-namespace C1540 {
+namespace Commodore::C1540 {
 
 /// Defines the type of drive this 1540 hardware is configured as.
 enum class Personality {
@@ -26,15 +24,13 @@ enum class Personality {
 */
 
 }
-}
 
 #include "../SerialBus.hpp"
 #include "../../ROMMachine.hpp"
 #include "../../../Storage/Disk/Disk.hpp"
 #include "Implementation/C1540Base.hpp"
 
-namespace Commodore {
-namespace C1540 {
+namespace Commodore::C1540 {
 
 /*!
 	Provides an emulation of the C1540.
@@ -57,6 +53,3 @@ class Machine final: public MachineBase {
 };
 
 }
-}
-
-#endif /* Commodore1540_hpp */

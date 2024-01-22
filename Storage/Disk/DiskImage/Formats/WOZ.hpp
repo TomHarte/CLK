@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef WOZ_hpp
-#define WOZ_hpp
+#pragma once
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -15,8 +14,7 @@
 
 #include <string>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides a @c DiskImage containing a WOZ: a bit stream representation of a floppy.
@@ -57,6 +55,3 @@ class WOZ: public DiskImage {
 };
 
 }
-}
-
-#endif /* WOZ_hpp */

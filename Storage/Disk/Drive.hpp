@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Drive_hpp
-#define Drive_hpp
+#pragma once
 
 #include "Disk.hpp"
 #include "Track/PCMSegment.hpp"
@@ -19,8 +18,7 @@
 
 #include <memory>
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
@@ -296,8 +294,4 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		float random_interval_;
 };
 
-
 }
-}
-
-#endif /* Drive_hpp */

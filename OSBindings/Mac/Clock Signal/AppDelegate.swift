@@ -17,8 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// that this project supports reascends to 10.14.
 		if (MTLCopyAllDevices().count == 0) {
 			let alert = NSAlert()
-			alert.messageText = "This application requires a Metal-capable GPU"
-			alert.addButton(withTitle: "Exit")
+			alert.messageText = "This application requires a Metal-capable GPU."
+			alert.addButton(withTitle: "Quit")
 			alert.runModal()
 
 			let application = notification.object as! NSApplication

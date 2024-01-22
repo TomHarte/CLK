@@ -6,8 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef Storage_Disk_Controller_hpp
-#define Storage_Disk_Controller_hpp
+#pragma once
 
 #include "../Drive.hpp"
 #include "../DPLL/DigitalPhaseLockedLoop.hpp"
@@ -16,8 +15,7 @@
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../ClockReceiver/ClockingHintSource.hpp"
 
-namespace Storage {
-namespace Disk {
+namespace Storage::Disk {
 
 /*!
 	Provides the shell for emulating a disk controller: something that is connected to a disk drive and uses a
@@ -164,6 +162,3 @@ class Controller:
 };
 
 }
-}
-
-#endif /* DiskDrive_hpp */

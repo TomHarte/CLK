@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef LowpassSpeaker_hpp
-#define LowpassSpeaker_hpp
+#pragma once
 
 #include "../Speaker.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
@@ -20,8 +19,7 @@
 #include <cstring>
 #include <mutex>
 
-namespace Outputs {
-namespace Speaker {
+namespace Outputs::Speaker {
 
 template <typename ConcreteT, bool is_stereo> class LowpassBase: public Speaker {
 	public:
@@ -411,6 +409,3 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 };
 
 }
-}
-
-#endif /* LowpassSpeaker_hpp */

@@ -24,7 +24,6 @@
 // just grab the CPC's version of an FDC.
 #include "../../AmstradCPC/FDC.hpp"
 
-#define LOG_PREFIX "[Spectrum] "
 #include "../../../Outputs/Log.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
@@ -60,36 +59,37 @@ class Joystick: public Inputs::ConcreteJoystick {
 			}) {}
 
 		void did_set_input(const Input &digital_input, bool is_active) final {
-#define APPLY_KEMPSTON(b)	if(is_active) kempston_ |= b; else kempston_ &= ~b;
-#define APPLY_SINCLAIR(b)	if(is_active) sinclair_ &= ~b; else sinclair_ |= b;
+			const auto apply_kempston = [&](uint8_t mask) {
+				if(is_active) kempston_ |= mask; else kempston_ &= ~mask;
+			};
+			const auto apply_sinclair = [&](uint16_t mask) {
+				if(is_active) sinclair_ &= ~mask; else sinclair_ |= mask;
+			};
 
 			switch(digital_input.type) {
 				default: return;
 
 				case Input::Right:
-					APPLY_KEMPSTON(0x01);
-					APPLY_SINCLAIR(0x0208);
+					apply_kempston(0x01);
+					apply_sinclair(0x0208);
 				break;
 				case Input::Left:
-					APPLY_KEMPSTON(0x02);
-					APPLY_SINCLAIR(0x0110);
+					apply_kempston(0x02);
+					apply_sinclair(0x0110);
 				break;
 				case Input::Down:
-					APPLY_KEMPSTON(0x04);
-					APPLY_SINCLAIR(0x0404);
+					apply_kempston(0x04);
+					apply_sinclair(0x0404);
 				break;
 				case Input::Up:
-					APPLY_KEMPSTON(0x08);
-					APPLY_SINCLAIR(0x0802);
+					apply_kempston(0x08);
+					apply_sinclair(0x0802);
 				break;
 				case Input::Fire:
-					APPLY_KEMPSTON(0x10);
-					APPLY_SINCLAIR(0x1001);
+					apply_kempston(0x10);
+					apply_sinclair(0x1001);
 				break;
 			}
-
-#undef APPLY_KEMPSTON
-#undef APPLY_SINCLAIR
 		}
 
 		/// @returns The value that a Kempston joystick interface would report if this joystick
@@ -119,7 +119,7 @@ using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
 
 template<Model model> class ConcreteMachine:
 	public Activity::Source,
- 	public ClockingHint::Observer,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
 	public Machine,
@@ -153,7 +153,7 @@ template<Model model> class ConcreteMachine:
 				case Model::OneTwoEightK:	rom_name = ROM::Name::Spectrum128k;		break;
 				case Model::Plus2:			rom_name = ROM::Name::SpecrumPlus2;		break;
 				case Model::Plus2a:
-				case Model::Plus3: 			rom_name = ROM::Name::SpectrumPlus3;	break;
+				case Model::Plus3:			rom_name = ROM::Name::SpectrumPlus3;	break;
 				// TODO: possibly accept the +3 ROM in multiple parts?
 			}
 			const auto request = ROM::Request(rom_name);
@@ -199,7 +199,7 @@ template<Model model> class ConcreteMachine:
 				if(model <= Model::FortyEightK) {
 					const size_t num_banks = std::min(size_t(48*1024), state->ram.size()) >> 14;
 					for(size_t c = 0; c < num_banks; c++) {
-						memcpy(&write_pointers_[c + 1][(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
+						memcpy(&banks_[c + 1].write[(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
 					}
 				} else {
 					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
@@ -308,7 +308,7 @@ template<Model model> class ConcreteMachine:
 				// Model applied: the trigger for the ULA inserting a delay is the falling edge
 				// of MREQ, which is always half a cycle into a read or write.
 				if(
-					is_contended_[address >> 14] &&
+					banks_[address >> 14].is_contended &&
 					cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
 					cycle.operation <= PartialMachineCycle::WriteStart) {
 
@@ -362,7 +362,7 @@ template<Model model> class ConcreteMachine:
 					case PartialMachineCycle::WriteStart: {
 						// These all start by loading the address bus, then set MREQ
 						// half a cycle later.
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							const auto delay = video_.last_valid()->access_delay(video_.time_since_flush());
 
 							advance(cycle.length + delay);
@@ -374,7 +374,7 @@ template<Model model> class ConcreteMachine:
 						// Whatever's on the address bus will remain there, without IOREQ or
 						// MREQ interceding, for this entire bus cycle. So apply contentions
 						// all the way along.
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							const auto half_cycles = cycle.length.as<int>();
 							assert(!(half_cycles & 1));
 
@@ -404,7 +404,7 @@ template<Model model> class ConcreteMachine:
 					// Fast loading: ROM version.
 					//
 					// The below patches over part of the 'LD-BYTES' routine from the 48kb ROM.
-					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[classic_rom_offset()]) {
+					if(use_fast_tape_hack_ && address == 0x056b && banks_[0].read == &rom_[classic_rom_offset()]) {
 						// Stop pressing enter, if neccessry.
 						if(duration_to_press_enter_ > Cycles(0)) {
 							duration_to_press_enter_ = Cycles(0);
@@ -428,10 +428,10 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
-					*cycle.value = read_pointers_[address >> 14][address];
+					*cycle.value = banks_[address >> 14].read[address];
 
 					if constexpr (model >= Model::Plus2a) {
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							video_->set_last_contended_area_access(*cycle.value);
 						}
 					}
@@ -439,15 +439,15 @@ template<Model model> class ConcreteMachine:
 
 				case PartialMachineCycle::Write:
 					// Flush video if this access modifies screen contents.
-					if(is_video_[address >> 14] && (address & 0x3fff) < 6912) {
+					if(banks_[address >> 14].is_video && (address & 0x3fff) < 6912) {
 						video_.flush();
 					}
 
-					write_pointers_[address >> 14][address] = *cycle.value;
+					banks_[address >> 14].write[address] = *cycle.value;
 
 					if constexpr (model >= Model::Plus2a) {
 						// Fill the floating bus buffer if this write is within the contended area.
-						if(is_contended_[address >> 14]) {
+						if(banks_[address >> 14].is_contended) {
 							video_->set_last_contended_area_access(*cycle.value);
 						}
 					}
@@ -523,7 +523,7 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::Input: {
-					bool did_match = false;
+					[[maybe_unused]] bool did_match = false;
 					*cycle.value = 0xff;
 
 					if(!(address&32)) {
@@ -693,7 +693,7 @@ template<Model model> class ConcreteMachine:
 				if(c == 4) break;
 			}
 
-			return !media.tapes.empty()  || (!media.disks.empty() && model == Model::Plus3);
+			return !media.tapes.empty() || (!media.disks.empty() && model == Model::Plus3);
 		}
 
 		// MARK: - ClockingHint::Observer.
@@ -757,11 +757,14 @@ template<Model model> class ConcreteMachine:
 		std::array<uint8_t, 128*1024> ram_;
 
 		std::array<uint8_t, 16*1024> scratch_;
-		const uint8_t *read_pointers_[4];
-		uint8_t *write_pointers_[4];
-		uint8_t pages_[4];
-		bool is_contended_[4];
-		bool is_video_[4];
+		struct Bank {
+			const uint8_t * read;
+			uint8_t *write;
+			uint8_t page;
+			bool is_contended;
+			bool is_video;
+		};
+		std::array<Bank, 4> banks_;
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;
@@ -820,19 +823,19 @@ template<Model model> class ConcreteMachine:
 			disable_paging_ = port7ffd_ & 0x20;
 		}
 
-		void set_memory(int bank, uint8_t source) {
+		void set_memory(std::size_t bank, uint8_t source) {
 			if constexpr (model >= Model::Plus2a) {
-				is_contended_[bank] = source >= 4 && source < 8;
+				banks_[bank].is_contended = source >= 4 && source < 8;
 			} else {
-				is_contended_[bank] = source < 0x80 && source & 1;
+				banks_[bank].is_contended = source < 0x80 && source & 1;
 			}
-			pages_[bank] = source;
+			banks_[bank].page = source;
 
 			uint8_t *const read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
 			const auto offset = bank*16384;
 
-			read_pointers_[bank] = read - offset;
-			write_pointers_[bank] = ((source < 0x80) ? read : scratch_.data()) - offset;
+			banks_[bank].read = read - offset;
+			banks_[bank].write = ((source < 0x80) ? read : scratch_.data()) - offset;
 		}
 
 		void set_video_address() {
@@ -842,10 +845,10 @@ template<Model model> class ConcreteMachine:
 
 		void update_video_base() {
 			const uint8_t video_page = (port7ffd_ & 0x08) ? 7 : 5;
-			is_video_[0] = pages_[0] == video_page;
-			is_video_[1] = pages_[1] == video_page;
-			is_video_[2] = pages_[2] == video_page;
-			is_video_[3] = pages_[3] == video_page;
+			banks_[0].is_video = banks_[0].page == video_page;
+			banks_[1].is_video = banks_[1].page == video_page;
+			banks_[2].is_video = banks_[2].page == video_page;
+			banks_[3].is_video = banks_[3].page == video_page;
 		}
 
 		// MARK: - Audio.
@@ -914,15 +917,15 @@ template<Model model> class ConcreteMachine:
 			Parser parser(Parser::MachineType::ZXSpectrum);
 
 			using Register = CPU::Z80::Register;
-			uint8_t flags = uint8_t(z80_.get_value_of_register(Register::FlagsDash));
+			uint8_t flags = uint8_t(z80_.value_of(Register::FlagsDash));
 			if(!(flags & 1)) return false;
 
-			const uint8_t block_type = uint8_t(z80_.get_value_of_register(Register::ADash));
+			const uint8_t block_type = uint8_t(z80_.value_of(Register::ADash));
 			const auto block = parser.find_block(tape_player_.get_tape());
 			if(!block || block_type != (*block).type) return false;
 
-			uint16_t length = z80_.get_value_of_register(Register::DE);
-			uint16_t target = z80_.get_value_of_register(Register::IX);
+			uint16_t length = z80_.value_of(Register::DE);
+			uint16_t target = z80_.value_of(Register::IX);
 
 			flags = 0x93;
 			uint8_t parity = 0x00;
@@ -933,7 +936,7 @@ template<Model model> class ConcreteMachine:
 					break;
 				}
 
-				write_pointers_[target >> 14][target] = *next;
+				banks_[target >> 14].write[target] = *next;
 				parity ^= *next;
 				++target;
 			}
@@ -942,16 +945,16 @@ template<Model model> class ConcreteMachine:
 			if(!stored_parity) {
 				flags &= ~1;
 			} else {
-				z80_.set_value_of_register(Register::L, *stored_parity);
+				z80_.set_value_of(Register::L, *stored_parity);
 			}
 
-			z80_.set_value_of_register(Register::Flags, flags);
-			z80_.set_value_of_register(Register::DE, length);
-			z80_.set_value_of_register(Register::IX, target);
+			z80_.set_value_of(Register::Flags, flags);
+			z80_.set_value_of(Register::DE, length);
+			z80_.set_value_of(Register::IX, target);
 
 			const uint8_t h = (flags & 1) ? 0x00 : 0xff;
-			z80_.set_value_of_register(Register::H, h);
-			z80_.set_value_of_register(Register::A, h);
+			z80_.set_value_of(Register::H, h);
+			z80_.set_value_of(Register::A, h);
 
 			return true;
 		}
@@ -991,16 +994,16 @@ template<Model model> class ConcreteMachine:
 
 using namespace Sinclair::ZXSpectrum;
 
-Machine *Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZXSpectrum::Target *>(target);
 
 	switch(zx_target->model) {
-		case Model::SixteenK:		return new ConcreteMachine<Model::SixteenK>(*zx_target, rom_fetcher);
-		case Model::FortyEightK:	return new ConcreteMachine<Model::FortyEightK>(*zx_target, rom_fetcher);
-		case Model::OneTwoEightK:	return new ConcreteMachine<Model::OneTwoEightK>(*zx_target, rom_fetcher);
-		case Model::Plus2:			return new ConcreteMachine<Model::Plus2>(*zx_target, rom_fetcher);
-		case Model::Plus2a:			return new ConcreteMachine<Model::Plus2a>(*zx_target, rom_fetcher);
-		case Model::Plus3:			return new ConcreteMachine<Model::Plus3>(*zx_target, rom_fetcher);
+		case Model::SixteenK:		return std::make_unique<ConcreteMachine<Model::SixteenK>>(*zx_target, rom_fetcher);
+		case Model::FortyEightK:	return std::make_unique<ConcreteMachine<Model::FortyEightK>>(*zx_target, rom_fetcher);
+		case Model::OneTwoEightK:	return std::make_unique<ConcreteMachine<Model::OneTwoEightK>>(*zx_target, rom_fetcher);
+		case Model::Plus2:			return std::make_unique<ConcreteMachine<Model::Plus2>>(*zx_target, rom_fetcher);
+		case Model::Plus2a:			return std::make_unique<ConcreteMachine<Model::Plus2a>>(*zx_target, rom_fetcher);
+		case Model::Plus3:			return std::make_unique<ConcreteMachine<Model::Plus3>>(*zx_target, rom_fetcher);
 	}
 
 	return nullptr;

@@ -6,8 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef AmstradCPC_hpp
-#define AmstradCPC_hpp
+#pragma once
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -26,7 +25,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an Amstrad CPC.
-		static Machine *AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		static std::unique_ptr<Machine> AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Amstrad CPC.
 		class Options:
@@ -51,5 +50,3 @@ class Machine {
 };
 
 }
-
-#endif /* AmstradCPC_hpp */

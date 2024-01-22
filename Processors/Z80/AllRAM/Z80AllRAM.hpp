@@ -6,14 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Z80AllRAM_hpp
-#define Z80AllRAM_hpp
+#pragma once
 
 #include "../Z80.hpp"
 #include "../../AllRAMProcessor.hpp"
 
-namespace CPU {
-namespace Z80 {
+namespace CPU::Z80 {
 
 class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
@@ -37,8 +35,8 @@ class AllRAMProcessor:
 
 		virtual void run_for(const Cycles cycles) = 0;
 		virtual void run_for_instruction() = 0;
-		virtual uint16_t get_value_of_register(Register r) = 0;
-		virtual void set_value_of_register(Register r, uint16_t value) = 0;
+		virtual uint16_t value_of(Register r) = 0;
+		virtual void set_value_of(Register r, uint16_t value) = 0;
 		virtual bool get_halt_line() = 0;
 		virtual void reset_power_on() = 0;
 
@@ -53,6 +51,3 @@ class AllRAMProcessor:
 };
 
 }
-}
-
-#endif /* Z80AllRAM_hpp */

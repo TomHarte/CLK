@@ -6,15 +6,12 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Sector_h
-#define Sector_h
+#pragma once
 
 #include <cstdint>
 #include <vector>
 
-namespace Storage {
-namespace Encodings {
-namespace AppleGCR {
+namespace Storage::Encodings::AppleGCR {
 
 struct Sector {
 	/*!
@@ -77,7 +74,3 @@ struct Sector {
 };
 
 }
-}
-}
-
-#endif /* Sector_h */

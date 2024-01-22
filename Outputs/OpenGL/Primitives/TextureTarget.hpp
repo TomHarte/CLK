@@ -6,16 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef TextureTarget_hpp
-#define TextureTarget_hpp
+#pragma once
 
 #include "../OpenGL.hpp"
 #include "Shader.hpp"
 #include <memory>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	A @c TextureTarget is a framebuffer that can be bound as a texture. So this class
@@ -89,7 +86,3 @@ class TextureTarget {
 };
 
 }
-}
-}
-
-#endif /* TextureTarget_hpp */

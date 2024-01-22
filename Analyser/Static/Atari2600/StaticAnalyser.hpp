@@ -6,21 +6,14 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_Atari_StaticAnalyser_hpp
-#define StaticAnalyser_Atari_StaticAnalyser_hpp
+#pragma once
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
 #include <string>
 
-namespace Analyser {
-namespace Static {
-namespace Atari2600 {
+namespace Analyser::Static::Atari2600 {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
-}
-}
-
-#endif /* StaticAnalyser_hpp */

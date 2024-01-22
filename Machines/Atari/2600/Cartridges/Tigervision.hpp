@@ -6,13 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef Atari2600_CartridgeTigervision_hpp
-#define Atari2600_CartridgeTigervision_hpp
+#pragma once
 
 #include "Cartridge.hpp"
 
-namespace Atari2600 {
-namespace Cartridge {
+namespace Atari2600::Cartridge {
 
 class Tigervision: public BusExtender {
 	public:
@@ -37,6 +35,3 @@ class Tigervision: public BusExtender {
 };
 
 }
-}
-
-#endif /* Atari2600_CartridgeTigervision_hpp */

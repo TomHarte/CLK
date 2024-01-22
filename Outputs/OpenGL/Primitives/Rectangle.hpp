@@ -6,16 +6,13 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Rectangle_hpp
-#define Rectangle_hpp
+#pragma once
 
 #include "../OpenGL.hpp"
 #include "Shader.hpp"
 #include <memory>
 
-namespace Outputs {
-namespace Display {
-namespace OpenGL {
+namespace Outputs::Display::OpenGL {
 
 /*!
 	Provides a wrapper for drawing a solid, single-colour rectangle.
@@ -39,7 +36,3 @@ class Rectangle {
 };
 
 }
-}
-}
-
-#endif /* Rectangle_hpp */

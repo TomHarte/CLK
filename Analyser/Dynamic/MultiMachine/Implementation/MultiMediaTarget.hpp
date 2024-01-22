@@ -6,8 +6,7 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiMediaTarget_hpp
-#define MultiMediaTarget_hpp
+#pragma once
 
 #include "../../../../Machines/MediaTarget.hpp"
 #include "../../../../Machines/DynamicMachine.hpp"
@@ -15,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace Analyser {
-namespace Dynamic {
+namespace Analyser::Dynamic {
 
 /*!
 	Provides a class that multiplexes the media target interface to multiple machines.
@@ -36,6 +34,3 @@ struct MultiMediaTarget: public MachineTypes::MediaTarget {
 };
 
 }
-}
-
-#endif /* MultiMediaTarget_hpp */

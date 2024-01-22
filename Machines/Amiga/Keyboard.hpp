@@ -6,8 +6,7 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Machines_Amiga_Keyboard_hpp
-#define Machines_Amiga_Keyboard_hpp
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -96,26 +95,24 @@ class Keyboard {
 		}
 
 	private:
-		enum class ShiftState {
-			Shifting,
-			AwaitingHandshake,
-			Idle,
-		} shift_state_ = ShiftState::Idle;
+//		enum class ShiftState {
+//			Shifting,
+//			AwaitingHandshake,
+//			Idle,
+//		} shift_state_ = ShiftState::Idle;
 
-		enum class State {
-			Startup,
-		} state_ = State::Startup;
+//		enum class State {
+//			Startup,
+//		} state_ = State::Startup;
 
-		int bit_phase_ = 0;
-		uint32_t shift_sequence_ = 0;
-		int bits_remaining_ = 0;
+//		int bit_phase_ = 0;
+//		uint32_t shift_sequence_ = 0;
+//		int bits_remaining_ = 0;
 
-		uint8_t lines_ = 0;
+//		uint8_t lines_ = 0;
 
 		Serial::Line<true> &output_;
 		std::array<bool, 128> pressed_{};
 };
 
 }
-
-#endif /* Machines_Amiga_Keyboard_hpp */
