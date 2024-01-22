@@ -1,5 +1,4 @@
-#ifndef FUNCTIONTHREAD_H
-#define FUNCTIONTHREAD_H
+#pragma once
 
 #include <atomic>
 #include <QApplication>
@@ -87,5 +86,3 @@ class FunctionThread: public QThread {
 		std::unique_ptr<FunctionPerformer> performer;
 		std::atomic_flag performerFlag;
 };
-
-#endif // FUNCTIONTHREAD_H

@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QtGlobal>
 
@@ -172,5 +171,3 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void addActivityObserver();
 };
-
-#endif // MAINWINDOW_H

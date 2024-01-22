@@ -1,5 +1,4 @@
-#ifndef SCANTARGETWIDGET_H
-#define SCANTARGETWIDGET_H
+#pragma once
 
 #include <QOpenGLWidget>
 
@@ -72,5 +71,3 @@ class ScanTargetWidget : public QOpenGLWidget {
 	private slots:
 		void vsync();
 };
-
-#endif // SCANTARGETWIDGET_H

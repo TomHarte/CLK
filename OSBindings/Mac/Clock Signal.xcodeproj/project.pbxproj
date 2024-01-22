@@ -1550,6 +1550,7 @@
 		4B6AAEA8230E40250078E864 /* Target.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Target.cpp; sourceTree = "<group>"; };
 		4B6AAEA9230E40250078E864 /* SCSI.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SCSI.hpp; sourceTree = "<group>"; };
 		4B6AAEAA230E40250078E864 /* TargetImplementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TargetImplementation.hpp; sourceTree = "<group>"; };
+		4B6BBE682B5E0E5800E4C085 /* TypeInfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TypeInfo.hpp; sourceTree = "<group>"; };
 		4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WOZ.cpp; sourceTree = "<group>"; };
 		4B6ED2EF208E2F8A0047B343 /* WOZ.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = WOZ.hpp; sourceTree = "<group>"; };
 		4B6FD0342923061300EC4760 /* HDV.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = HDV.cpp; sourceTree = "<group>"; };
@@ -2959,10 +2960,11 @@
 		4B3AF7CF2413470E00873C0B /* Reflection */ = {
 			isa = PBXGroup;
 			children = (
+				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
 				4BDA7F8129C4C223007A10A5 /* Dispatcher.hpp */,
 				4B3AF7D02413470E00873C0B /* Enum.hpp */,
-				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
 				4B3AF7D12413472200873C0B /* Struct.hpp */,
+				4B6BBE682B5E0E5800E4C085 /* TypeInfo.hpp */,
 			);
 			name = Reflection;
 			path = ../../Reflection;
