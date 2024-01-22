@@ -46,7 +46,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		z80_.reset_power_on();
 
 		// Set registers.
-#define Map(register, name)	z80_.set_value_of_register(CPU::Z80::Register::register, [state[name] intValue])
+#define Map(register, name)	z80_.set_value_of(CPU::Z80::Register::register, [state[name] intValue])
 		MapFields();
 #undef Map
 
@@ -74,8 +74,8 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	if(	\
 		CPU::Z80::Register::register != CPU::Z80::Register::DidChangeFlags &&	\
 		CPU::Z80::Register::register != CPU::Z80::Register::MemPtr &&	\
-		z80_.get_value_of_register(CPU::Z80::Register::register) != [state[name] intValue]) {	\
-		NSLog(@"Register %s should be %02x; is %02x", #register, [state[name] intValue], z80_.get_value_of_register(CPU::Z80::Register::register));	\
+		z80_.value_of(CPU::Z80::Register::register) != [state[name] intValue]) {	\
+		NSLog(@"Register %s should be %02x; is %02x", #register, [state[name] intValue], z80_.value_of(CPU::Z80::Register::register));	\
 		failed = true;	\
 	}
 
@@ -103,7 +103,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		return !failed;
 	}
 
-	bool compare_bus_states(NSArray<NSArray *> *states) {
+	bool compare_bus_states([[maybe_unused]] NSArray<NSArray *> *states) {
 /*		auto capture = bus_records_.begin() + 1;
 
 		int cycle = 0;
