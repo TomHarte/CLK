@@ -769,17 +769,17 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>23.12.28</string>
+	<string>24.01.22</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>23.12.28</string>
+	<string>24.01.22</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.entertainment</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2015–2023 Thomas Harte.
+	<string>Copyright © 2015–2024 Thomas Harte.
 All rights reserved.</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
