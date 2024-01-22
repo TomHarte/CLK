@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iterator>
@@ -179,7 +180,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			std::visit([&](auto &&arg) {
 				using Type = typename std::decay<decltype(arg)>::type;
 
-				if constexpr (std::is_same<Type, nullptr_t>::value) {
+				if constexpr (std::is_same<Type, std::nullptr_t>::value) {
 					// It's valid for no media to be returned.
 				} else if constexpr (std::is_same<Type, Disk::DiskImageHolderBase *>::value) {
 					accumulator.insert(TargetPlatform::DiskII, std::shared_ptr<Disk::DiskImageHolderBase>(arg));

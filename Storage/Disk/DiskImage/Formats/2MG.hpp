@@ -13,6 +13,7 @@
 
 #include "../../../FileHolder.hpp"
 
+#include <cstddef>
 #include <variant>
 
 namespace Storage::Disk {
@@ -28,7 +29,7 @@ namespace Storage::Disk {
 
 class Disk2MG {
 	public:
-		using DiskOrMassStorageDevice = std::variant<nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
+		using DiskOrMassStorageDevice = std::variant<std::nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
 		static DiskOrMassStorageDevice open(const std::string &file_name);
 };
 
