@@ -6,8 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef TypeInfo_hpp
-#define TypeInfo_hpp
+#pragma once
 
 #define ForAllInts(x)	\
 	x(uint8_t);			\
@@ -59,6 +58,3 @@ inline size_t size(const std::type_info *type) {
 }
 
 }
-
-
-#endif /* TypeInfo_hpp */

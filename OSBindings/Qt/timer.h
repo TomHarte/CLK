@@ -1,5 +1,4 @@
-#ifndef TIMER_H
-#define TIMER_H
+#pragma once
 
 #include <atomic>
 
@@ -30,5 +29,3 @@ class Timer : public QObject
 		FunctionThread thread;
 		std::unique_ptr<QTimer> timer;
 };
-
-#endif // TIMER_H

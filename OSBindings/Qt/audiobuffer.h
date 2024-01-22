@@ -1,5 +1,4 @@
-#ifndef AUDIOSOURCE_H
-#define AUDIOSOURCE_H
+#pragma once
 
 #include <cstdint>
 #include <mutex>
@@ -93,5 +92,3 @@ struct AudioBuffer: public QIODevice {
 		mutable size_t readPointer = 0;
 		size_t writePointer = 0;
 };
-
-#endif // AUDIOSOURCE_H

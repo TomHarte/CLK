@@ -1,5 +1,4 @@
-#ifndef KEYBOARD_H
-#define KEYBOARD_H
+#pragma once
 
 #include <QKeyEvent>
 #include <map>
@@ -14,5 +13,3 @@ class KeyboardMapper {
 	private:
 		std::map<quint32, Inputs::Keyboard::Key> keyByKeySym;
 };
-
-#endif // MAINWINDOW_H
