@@ -205,9 +205,11 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 	} else {
 		// Undo the 6 and 2 mapping.
 		constexpr uint8_t bit_reverse[] = {0, 2, 1, 3};
-		#define unmap(byte, nibble, shift)	\
-			sector->data[86 + byte] = uint8_t(\
-				(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
+		const auto unmap = [&](std::size_t byte, std::size_t nibble, int shift) {
+			sector->data[86 + byte] = uint8_t(
+				(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]
+			);
+		};
 
 		for(std::size_t c = 0; c < 84; ++c) {
 			unmap(c, c, 0);
@@ -219,8 +221,6 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 		unmap(170, 84, 2);
 		unmap(85, 85, 0);
 		unmap(171, 85, 2);
-
-		#undef unmap
 
 		// Throw away the collection of two-bit chunks from the start of the sector.
 		sector->data.erase(sector->data.begin(), sector->data.end() - 256);
