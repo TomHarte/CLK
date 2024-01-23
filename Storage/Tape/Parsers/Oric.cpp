@@ -88,22 +88,23 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			}
 		break;
 
-		case SlowData:
-#define CHECK_RUN(length, type, symbol)	\
-			if(waves.size() >= length) {\
-				std::size_t c;\
-				for(c = 0; c < length; c++) if(waves[c] != type) break;\
-				if(c == length) {\
-					push_symbol(symbol, length);\
-					return;\
-				}\
-			}
+		case SlowData: {
+			const auto check_run = [&](std::size_t length, WaveType type, SymbolType symbol) -> bool {
+				if(waves.size() >= length) {
+					std::size_t c;
+					for(c = 0; c < length; c++) if(waves[c] != type) break;
+					if(c == length) {
+						push_symbol(symbol, int(length));
+						return true;
+					}
+				}
+				return false;
+			};
 
-			CHECK_RUN(4, WaveType::Long, SymbolType::Zero);
-			CHECK_RUN(8, WaveType::Short, SymbolType::One);
-#undef CHECK_RUN
+			if(check_run(4, WaveType::Long, SymbolType::Zero)) return;
+			if(check_run(8, WaveType::Short, SymbolType::One)) return;
 			if(waves.size() < 16) return;	// TODO, maybe: if there are any inconsistencies in the first 8, don't return
-		break;
+		} break;
 
 		case Sync: {
 			// Sync is 0x16, either encoded fast or slow; i.e. 0 0110 1000 1
