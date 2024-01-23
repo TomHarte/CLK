@@ -15,6 +15,12 @@
 
 using namespace Storage::Disk;
 
+namespace {
+constexpr uint32_t chunk(const char *str) {
+	return uint32_t(str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24));
+}
+}
+
 WOZ::WOZ(const std::string &file_name) :
 	file_(file_name) {
 
@@ -58,9 +64,8 @@ WOZ::WOZ(const std::string &file_name) :
 
 		long end_of_chunk = file_.tell() + long(chunk_size);
 
-		#define CK(str) (str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24))
 		switch(chunk_id) {
-			case CK("INFO"): {
+			case chunk("INFO"): {
 				const uint8_t version = file_.get8();
 				if(version > 2) break;
 				is_3_5_disk_ = file_.get8() == 2;
@@ -81,12 +86,12 @@ WOZ::WOZ(const std::string &file_name) :
 				*/
 			} break;
 
-			case CK("TMAP"): {
+			case chunk("TMAP"): {
 				file_.read(track_map_, 160);
 				has_tmap = true;
 			} break;
 
-			case CK("TRKS"): {
+			case chunk("TRKS"): {
 				tracks_offset_ = file_.tell();
 			} break;
 
@@ -95,7 +100,6 @@ WOZ::WOZ(const std::string &file_name) :
 			default:
 			break;
 		}
-		#undef CK
 
 		file_.seek(end_of_chunk, SEEK_SET);
 	}
