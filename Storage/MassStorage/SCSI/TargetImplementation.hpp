@@ -170,14 +170,16 @@ template <typename Executor> void Target<Executor>::begin_command(uint8_t first_
 	}
 }
 
+namespace {
+
+constexpr uint8_t G0(uint8_t opcode) {	return 0x00 | opcode;	}
+constexpr uint8_t G1(uint8_t opcode) {	return 0x20 | opcode;	}
+constexpr uint8_t G5(uint8_t opcode) {	return 0xa0 | opcode;	}
+
+}
+
 template <typename Executor> bool Target<Executor>::dispatch_command() {
-
 	CommandState arguments(command_, data_);
-
-#define G0(x)	x
-#define G1(x)	(0x20|x)
-#define G5(x)	(0xa0|x)
-
 	log_.info().append("---Command %02x---", command_[0]);
 
 	switch(command_[0]) {
@@ -209,13 +211,8 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 		case G1(0x1c):	return executor_.read_buffer(arguments, *this);
 		case G1(0x15):	return executor_.mode_select(arguments, *this);
 
-
 		case G5(0x09):	return executor_.set_block_limits(arguments, *this);
 	}
-
-#undef G0
-#undef G1
-#undef G5
 
 	return false;
 }

@@ -74,16 +74,14 @@ Storage::Disk::PCMSegment AppleGCR::AppleII::header(uint8_t volume, uint8_t trac
 	data[1] = header_prologue[1];
 	data[2] = header_prologue[2];
 
-#define WriteFM(index, value)	\
-	data[index+0] = uint8_t(((value) >> 1) | 0xaa);	\
-	data[index+1] = uint8_t((value) | 0xaa);	\
-
-	WriteFM(3, volume);
-	WriteFM(5, track);
-	WriteFM(7, sector);
-	WriteFM(9, checksum);
-
-#undef WriteFM
+	const auto write_fm = [&](std::size_t index, uint8_t value) {
+		data[index+0] = uint8_t(((value) >> 1) | 0xaa);
+		data[index+1] = uint8_t((value) | 0xaa);
+	};
+	write_fm(3, volume);
+	write_fm(5, track);
+	write_fm(7, sector);
+	write_fm(9, checksum);
 
 	data[11] = epilogue[0];
 	data[12] = epilogue[1];
