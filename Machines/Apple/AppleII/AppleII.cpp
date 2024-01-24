@@ -41,15 +41,56 @@
 
 namespace {
 
-constexpr int DiskIISlot = 6;	// Apple recommended slot 6 for the (first) Disk II.
-constexpr int SCSISlot = 7;		// Install the SCSI card in slot 7, to one-up any connected Disk II.
+constexpr int DiskIISlot = 6;		// Apple recommended slot 6 for the (first) Disk II.
+constexpr int SCSISlot = 7;			// Install the SCSI card in slot 7, to one-up any connected Disk II.
+constexpr int MockingboardSlot = 4;	// Conventional Mockingboard slot.
+
+
+// The system's master clock rate.
+//
+// Quick note on this:
+//
+//	* 64 out of 65 CPU cycles last for 14 cycles of the master clock;
+//	* every 65th cycle lasts for 16 cycles of the master clock;
+//	* that keeps CPU cycles in-phase with the colour subcarrier: each line of output is 64*14 + 16 = 912 master cycles long;
+//	* ... and since hsync is placed to make each line 228 colour clocks long that means 4 master clocks per colour clock;
+//	* ... which is why all Apple II video modes are expressible as four binary outputs per colour clock;
+//	* ... and hence seven pixels per memory access window clock in high-res mode, 14 in double high-res, etc.
+constexpr float master_clock = 14318180.0;
+
+template <typename SourceT>
+class StretchedAudioSource {
+	public:
+		void get_samples(std::size_t number_of_samples, int16_t *target) {
+			// Approach should look something like — assuming a fully digital source_:
+			//
+			//	(1) sample_offset_ is always kept in the range [0, 912);
+			//	(2) break down sample generation into 912-cycle blocks, getting the underlying source to provide
+			//		the first 910 samples in each, then duplicate the final two.
+			//
+			// (possibly subject to an appropriate divider, with 'by two' being the obvious potential choice)
+			(void)number_of_samples;
+			(void)target;
+		}
+
+		// Direct passthroughs.
+		void set_sample_volume_range(std::int16_t range) {
+			source_.set_sample_volume_range(range);
+		}
+		bool is_zero_level() const 				{	return source_.is_zero_level();		}
+		static constexpr bool get_is_stereo() 	{	return SourceT::get_is_stereo();	}
+
+	private:
+		SourceT source_;
+		std::size_t sample_offset_ = 0;
+
+		static constexpr std::size_t clock_length = 7;
+};
 
 }
 
 namespace Apple {
 namespace II {
-
-#define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public Apple::II::Machine,
@@ -83,7 +124,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			false>;
 		Processor m6502_;
 		VideoBusHandler video_bus_handler_;
-		Apple::II::Video::Video<VideoBusHandler, is_iie()> video_;
+		Apple::II::Video::Video<VideoBusHandler, is_iie(model)> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
@@ -225,7 +266,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				const auto zero_state = auxiliary_switches_.zero_state();
 
 				uint8_t *const ram = zero_state ? aux_ram_ : ram_;
-				uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
+				uint8_t *const rom = is_iie(model) ? &rom_[3840] : rom_.data();
 
 				// Which way the region here is mapped to be banks 1 and 2 is
 				// arbitrary.
@@ -286,7 +327,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
-				if constexpr (!is_iie()) {
+				if constexpr (!is_iie(model)) {
 					if(is_repeat && !repeat_is_pressed_) return true;
 				}
 
@@ -297,7 +338,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::Down:			value = 0x0a;	break;
 					case Key::Up:			value = 0x0b;	break;
 					case Key::Backspace:
-						if(is_iie()) {
+						if(is_iie(model)) {
 							value = 0x7f;
 							break;
 						} else {
@@ -305,7 +346,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					case Key::Enter:		value = 0x0d;	break;
 					case Key::Tab:
-						if (is_iie()) {
+						if (is_iie(model)) {
 							value = '\t';
 							break;
 						} else {
@@ -316,7 +357,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case Key::LeftOption:
 					case Key::RightMeta:
-						if (is_iie()) {
+						if (is_iie(model)) {
 							open_apple_is_pressed = is_pressed;
 							return true;
 						} else {
@@ -325,7 +366,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case Key::RightOption:
 					case Key::LeftMeta:
-						if (is_iie()) {
+						if (is_iie(model)) {
 							closed_apple_is_pressed = is_pressed;
 							return true;
 						} else {
@@ -346,7 +387,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::F9:	case Key::F10:	case Key::F11:
 						repeat_is_pressed_ = is_pressed;
 
-						if constexpr (!is_iie()) {
+						if constexpr (!is_iie(model)) {
 							if(is_pressed && (!is_repeat || character_is_pressed_)) {
 								keyboard_input_ = uint8_t(last_pressed_character_ | 0x80);
 							}
@@ -374,12 +415,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 
 						// Prior to the IIe, the keyboard could produce uppercase only.
-						if(!is_iie()) value = char(toupper(value));
+						if(!is_iie(model)) value = char(toupper(value));
 
 						if(control_is_pressed_ && isalpha(value)) value &= 0xbf;
 
 						// TODO: properly map IIe keys
-						if(!is_iie() && shift_is_pressed_) {
+						if(!is_iie(model) && shift_is_pressed_) {
 							switch(value) {
 							case 0x27: value = 0x22; break; // ' -> "
 							case 0x2c: value = 0x3c; break; // , -> <
@@ -484,8 +525,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			language_card_(*this),
 			auxiliary_switches_(*this),
 			keyboard_(&m6502_) {
-			// The system's master clock rate.
-			constexpr float master_clock = 14318180.0;
 
 			// This is where things get slightly convoluted: establish the machine as having a clock rate
 			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
@@ -629,7 +668,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 				}
 
-				if(is_iie()) {
+				if(is_iie(model)) {
 					auxiliary_switches_.access(address, isReadOperation(operation));
 				}
 			} else {
@@ -669,7 +708,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										joysticks_.button(0) ||
-										(is_iie() && keyboard_.open_apple_is_pressed)
+										(is_iie(model) && keyboard_.open_apple_is_pressed)
 									)
 										*value |= 0x80;
 								break;
@@ -677,7 +716,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										joysticks_.button(1) ||
-										(is_iie() && keyboard_.closed_apple_is_pressed)
+										(is_iie(model) && keyboard_.closed_apple_is_pressed)
 									)
 										*value |= 0x80;
 								break;
@@ -699,7 +738,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-#define IIeSwitchRead(s)	*value = keyboard_.get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
+#define IIeSwitchRead(s)	*value = keyboard_.get_keyboard_input(); if(is_iie(model)) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
 								case 0xc011:	IIeSwitchRead(language_card_.state().bank2);								break;
 								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
 								case 0xc013:	IIeSwitchRead(auxiliary_switches_.switches().read_auxiliary_memory);		break;
@@ -718,12 +757,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 #undef IIeSwitchRead
 
 								case 0xc07f:
-									if(is_iie()) *value = (*value & 0x7f) | (video_.get_annunciator_3() ? 0x80 : 0x00);
+									if(is_iie(model)) *value = (*value & 0x7f) | (video_.get_annunciator_3() ? 0x80 : 0x00);
 								break;
 							}
 						} else {
 							// Write-only switches. All IIe as currently implemented.
-							if(is_iie()) {
+							if(is_iie(model)) {
 								auxiliary_switches_.access(address, false);
 								switch(address) {
 									default: break;
@@ -775,7 +814,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case 0xc05e:
 					case 0xc05f:
-						if(is_iie()) {
+						if(is_iie(model)) {
 							update_video();
 							video_.set_annunciator_3(!(address&1));
 						}
@@ -785,7 +824,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						keyboard_.clear_keyboard_input();
 
 						// On the IIe, reading C010 returns additional key info.
-						if(is_iie() && isReadOperation(operation)) {
+						if(is_iie(model) && isReadOperation(operation)) {
 							*value = (keyboard_.get_key_is_down() ? 0x80 : 0x00) | (keyboard_.get_keyboard_input() & 0x7f);
 						}
 					break;
@@ -922,7 +961,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		bool prefers_logical_input() final {
-			return is_iie();
+			return is_iie(model);
 		}
 
 		Inputs::Keyboard &get_keyboard() final {

@@ -105,7 +105,7 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		*/
 		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
-		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
+		// To satisfy ::Outputs::Speaker::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
