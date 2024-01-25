@@ -159,13 +159,10 @@ set(CLK_SOURCES
 	Outputs/ScanTarget.cpp
 	Outputs/ScanTargets/BufferingScanTarget.cpp
 
-	Processors/6502/AllRAM/6502AllRAM.cpp
 	Processors/6502/Implementation/6502Storage.cpp
 	Processors/6502/State/State.cpp
 	Processors/65816/Implementation/65816Base.cpp
 	Processors/65816/Implementation/65816Storage.cpp
-	Processors/AllRAMProcessor.cpp
-	Processors/Z80/AllRAM/Z80AllRAM.cpp
 	Processors/Z80/Implementation/PartialMachineCycle.cpp
 	Processors/Z80/Implementation/Z80Base.cpp
 	Processors/Z80/Implementation/Z80Storage.cpp
