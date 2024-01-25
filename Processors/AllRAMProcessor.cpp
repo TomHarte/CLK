@@ -8,6 +8,8 @@
 
 #include "AllRAMProcessor.hpp"
 
+#include <cstring>
+
 using namespace CPU;
 
 AllRAMProcessor::AllRAMProcessor(std::size_t memory_size) :
