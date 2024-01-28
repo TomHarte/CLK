@@ -3,12 +3,14 @@
 Tests contained in this folder are original to Clock Signal. All are JSON.
 
 Tests assume a test machine consisting of a vanilla 68000 with 16mb of RAM. For each test either:
+
 1. start from a reset, e.g. if you have a prefetch queue you need to fill; or
 2. just apply the entire initial state, which indicates the proper PC and A7 for itself.
 
 Then execute to the end of a single instruction (including any generated exception).
 
 Each file contains an array of dictionaries. Each dictionary is a single test and includes:
+
 * a name;
 * initial memory contents;
 * initial register state;
@@ -43,11 +45,13 @@ So the output is very scattergun approach, with a lot of redundancy.
 ## Known Issues
 
 Errors in generation mean that:
+
 1. MOVE is mostly untested; MOVEq is well-tested and other MOVEs appear within the test set as per the approximate generation algorithm above but due to an error in the generation of move.json, all of its opcodes are $2000 less than they should be, causing them to hit various instructions other than MOVE;
 2. there is sparse coverage of the rotates and shifts: LS[L/R], AS[L/R], RO[L/R] and ROX[L/R]; and
 3. there are similarly few tests of MULU.
 
 Issues with comparing results between multiple emulators in the case of unusual instructions mean that no tests have been generated for:
+
 1. MOVE [to or from] SR;
 2. TRAP;
 3. TRAPV;

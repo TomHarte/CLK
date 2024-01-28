@@ -1,15 +1,19 @@
 ![Clock Signal Application Icon](READMEImages/Icon.png)
+
 # Clock Signal
+
 Clock Signal ('CLK') is an emulator that seeks to be invisible. Users directly launch classic software, avoiding the learning curves associated with emulators and with classic machines.
 
 macOS and source releases are [hosted on GitHub](https://github.com/TomHarte/CLK/releases). A Qt-based Linux build is available as a [Snap](https://snapcraft.io/clock-signal). 
 
 This emulator seeks to offer:
+
 * single-click load of any piece of source media for any supported platform;
 * with a heavy signal processing tilt for accurate reproduction of original outputs;
 * avoiding latency as much as possible.
 
 It currently contains emulations of the:
+
 * Acorn Electron;
 * Amstrad CPC;
 * Apple II/II+ and IIe;
@@ -26,6 +30,7 @@ It currently contains emulations of the:
 * Sinclair ZX Spectrum.
 
 Also present but very much upcoming are the:
+
 * Commodore Amiga; and
 * early PC compatible.
 
