@@ -58,19 +58,65 @@ constexpr int MockingboardSlot = 4;	// Conventional Mockingboard slot.
 //	* ... and hence seven pixels per memory access window clock in high-res mode, 14 in double high-res, etc.
 constexpr float master_clock = 14318180.0;
 
-template <typename SourceT>
+/// Provides an audio source with will hold an instance of @c SourceT for audio generation, repeating one of its output samples
+/// after every @c PacketClocks of output.
+template <typename SourceT, std::size_t PacketClocks = 456>
 class StretchedAudioSource {
 	public:
+		template <typename... Args>
+		StretchedAudioSource(Args &&... args) : source_(std::forward<Args>(args)...) {}
+
 		void get_samples(std::size_t number_of_samples, int16_t *target) {
-			// Approach should look something like — assuming a fully digital source_:
+			// Possible: the sample to duplicate fell exactly at the end of the last batch.
+			if(!remaining_packet_) {
+				remaining_packet_ = PacketClocks;
+				if constexpr (source_.get_is_stero()) {
+					target[0] = carry[0];
+					target[1] = carry[1];
+					target += 2;
+				} else {
+					target[0] = carry[0];
+					++target;
+				}
+				--number_of_samples;
+			}
+
+			// Divide required input into groups of PacketClocks samples; get all of those
+			// from the underlying source and then duplicate the final one.
 			//
-			//	(1) sample_offset_ is always kept in the range [0, 912);
-			//	(2) break down sample generation into 912-cycle blocks, getting the underlying source to provide
-			//		the first 910 samples in each, then duplicate the final two.
-			//
-			// (possibly subject to an appropriate divider, with 'by two' being the obvious potential choice)
-			(void)number_of_samples;
-			(void)target;
+			// Duplicating into the current output packet won't be possible if it happens
+			// to line up exactly with the end of the PacketClocks, in which case hold a copy
+			// of the last level output in `carry` until next time.
+			while(number_of_samples) {
+				const auto target_length = std::min(number_of_samples, remaining_packet_);
+				source_.get_samples(target_length, target);
+
+				target += target_length * (1 + source_.get_is_stero());
+				number_of_samples -= target_length;
+				remaining_packet_ -= target_length;
+
+				if(!remaining_packet_) {
+					if(number_of_samples) {
+						remaining_packet_ = PacketClocks;
+
+						if constexpr (source_.get_is_stero()) {
+							target[0] = target[-2];
+							target[1] = target[-1];
+							target += 2;
+						} else {
+							target[0] = target[-1];
+							++target;
+						}
+					} else {
+						if constexpr (source_.get_is_stero()) {
+							carry[0] = target[-2];
+							carry[1] = target[-1];
+						} else {
+							carry[0] = target[-1];
+						}
+					}
+				}
+			}
 		}
 
 		// Direct passthroughs.
@@ -82,9 +128,9 @@ class StretchedAudioSource {
 
 	private:
 		SourceT source_;
-		std::size_t sample_offset_ = 0;
 
-		static constexpr std::size_t clock_length = 7;
+		std::size_t remaining_packet_ = PacketClocks;
+		std::array<uint16_t, 2> carry;
 };
 
 }
