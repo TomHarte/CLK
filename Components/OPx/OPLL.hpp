@@ -30,7 +30,7 @@ class OPLL: public OPLBase<OPLL> {
 
 		// The OPLL is generally 'half' as loud as it's told to be. This won't strictly be true in
 		// rhythm mode, but it's correct for melodic output.
-		double get_average_output_peak() const { return 0.5; }
+		double average_output_peak() const { return 0.5; }
 
 		/// Reads from the OPL.
 		uint8_t read(uint16_t address);

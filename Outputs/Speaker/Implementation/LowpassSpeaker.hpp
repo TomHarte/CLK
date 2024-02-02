@@ -348,7 +348,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 	source of a high-frequency stream of audio which it filters down to a
 	lower-frequency output.
 */
-template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpass<SampleSource>, SampleSource::get_is_stereo()> {
+template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpass<SampleSource>, SampleSource::is_stereo> {
 	public:
 		PullLowpass(SampleSource &sample_source) : sample_source_(sample_source) {
 			// Propagate an initial volume level.
@@ -362,7 +362,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		}
 
 		bool get_is_stereo() final {
-			return SampleSource::get_is_stereo();
+			return SampleSource::is_stereo;
 		}
 
 		/*!
@@ -381,7 +381,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		}
 
 	private:
-		using BaseT = LowpassBase<PullLowpass<SampleSource>, SampleSource::get_is_stereo()>;
+		using BaseT = LowpassBase<PullLowpass<SampleSource>, SampleSource::is_stereo>;
 		friend BaseT;
 		using BaseT::process;
 
@@ -400,7 +400,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		}
 
 		int get_scale() {
-			return int(65536.0 / sample_source_.get_average_output_peak());
+			return int(65536.0 / sample_source_.average_output_peak());
 		}
 
 		void get_samples(size_t length, int16_t *target) {

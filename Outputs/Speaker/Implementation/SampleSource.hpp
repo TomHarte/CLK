@@ -54,7 +54,7 @@ class SampleSource {
 		/*!
 			Indicates whether this component will write stereo samples.
 		*/
-		static constexpr bool get_is_stereo() { return false; }
+		static constexpr bool is_stereo = false;
 
 		/*!
 			Permits a sample source to declare that, averaged over time, it will use only
@@ -66,7 +66,7 @@ class SampleSource {
 			used by a speaker. If it varies, it should do so very infrequently and only to
 			represent changes in hardware configuration.
 		*/
-		double get_average_output_peak() const { return 1.0; }
+		double average_output_peak() const { return 1.0; }
 };
 
 }

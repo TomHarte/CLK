@@ -37,7 +37,7 @@ class Audio: public Outputs::Speaker::SampleSource {
 
 		// MARK: - SampleSource.
 		void set_sample_volume_range(int16_t range);
-		static constexpr bool get_is_stereo() { return true; }	// Dave produces stereo sound.
+		static constexpr bool is_stereo = true;
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 
 	private:

@@ -22,62 +22,7 @@ namespace Outputs::Speaker {
 */
 template <typename... T> class CompoundSource:
 	public Outputs::Speaker::SampleSource {
-	public:
-		CompoundSource(T &... sources) : source_holder_(sources...) {
-			// Default: give all sources equal volume.
-			const auto volume = 1.0 / double(source_holder_.size());
-			for(std::size_t c = 0; c < source_holder_.size(); ++c) {
-				volumes_.push_back(volume);
-			}
-		}
-
-		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-			source_holder_.template get_samples<get_is_stereo()>(number_of_samples, target);
-		}
-
-		void skip_samples(const std::size_t number_of_samples) {
-			source_holder_.skip_samples(number_of_samples);
-		}
-
-		/*!
-			Sets the total output volume of this CompoundSource.
-		*/
-		void set_sample_volume_range(int16_t range) {
-			volume_range_ = range;
-			push_volumes();
-		}
-
-		/*!
-			Sets the relative volumes of the various sources underlying this
-			compound. The caller should ensure that the number of items supplied
-			matches the number of sources and that the values in it sum to 1.0.
-		*/
-		void set_relative_volumes(const std::vector<double> &volumes) {
-			assert(volumes.size() == source_holder_.size());
-			volumes_ = volumes;
-			push_volumes();
-			average_output_peak_ = 1.0 / source_holder_.total_scale(volumes_.data());
-		}
-
-		/*!
-			@returns true if any of the sources owned by this CompoundSource is stereo.
-		*/
-		static constexpr bool get_is_stereo() { return CompoundSourceHolder<T...>::get_is_stereo(); }
-
-		/*!
-			@returns the average output peak given the sources owned by this CompoundSource and the
-				current relative volumes.
-		*/
-		double get_average_output_peak() const {
-			return average_output_peak_;
-		}
-
 	private:
-		void push_volumes() {
-			const double scale = source_holder_.total_scale(volumes_.data());
-			source_holder_.set_scaled_volume_range(volume_range_, volumes_.data(), scale);
-		}
-
 		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource {
 			public:
 				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
@@ -90,9 +35,7 @@ template <typename... T> class CompoundSource:
 					return 0;
 				}
 
-				static constexpr bool get_is_stereo() {
-					return false;
-				}
+				static constexpr bool is_stereo = false;
 
 				double total_scale(double *) const {
 					return 0.0;
@@ -121,7 +64,7 @@ template <typename... T> class CompoundSource:
 
 					// Merge it in; furthermore if total output is stereo but this source isn't,
 					// map it to stereo.
-					if constexpr (output_stereo == S::get_is_stereo()) {
+					if constexpr (output_stereo == S::is_stereo) {
 						while(buffer_size--) {
 							target[buffer_size] += local_samples[buffer_size];
 						}
@@ -144,7 +87,7 @@ template <typename... T> class CompoundSource:
 				}
 
 				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {
-					const auto scaled_range = volumes[0] / double(source_.get_average_output_peak()) * double(range) / scale;
+					const auto scaled_range = volumes[0] / double(source_.average_output_peak()) * double(range) / scale;
 					source_.set_sample_volume_range(int16_t(scaled_range));
 					next_source_.set_scaled_volume_range(range, &volumes[1], scale);
 				}
@@ -153,18 +96,72 @@ template <typename... T> class CompoundSource:
 					return 1 + CompoundSourceHolder<R...>::size();
 				}
 
-				static constexpr bool get_is_stereo() {
-					return S::get_is_stereo() || CompoundSourceHolder<R...>::get_is_stereo();
-				}
+				static constexpr bool is_stereo =  S::is_stereo || CompoundSourceHolder<R...>::is_stereo;
 
 				double total_scale(double *volumes) const {
-					return (volumes[0] / source_.get_average_output_peak()) + next_source_.total_scale(&volumes[1]);
+					return (volumes[0] / source_.average_output_peak()) + next_source_.total_scale(&volumes[1]);
 				}
 
 			private:
 				S &source_;
 				CompoundSourceHolder<R...> next_source_;
 		};
+
+	public:
+		CompoundSource(T &... sources) : source_holder_(sources...) {
+			// Default: give all sources equal volume.
+			const auto volume = 1.0 / double(source_holder_.size());
+			for(std::size_t c = 0; c < source_holder_.size(); ++c) {
+				volumes_.push_back(volume);
+			}
+		}
+
+		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+			source_holder_.template get_samples<is_stereo>(number_of_samples, target);
+		}
+
+		void skip_samples(const std::size_t number_of_samples) {
+			source_holder_.skip_samples(number_of_samples);
+		}
+
+		/*!
+			Sets the total output volume of this CompoundSource.
+		*/
+		void set_sample_volume_range(int16_t range) {
+			volume_range_ = range;
+			push_volumes();
+		}
+
+		/*!
+			Sets the relative volumes of the various sources underlying this
+			compound. The caller should ensure that the number of items supplied
+			matches the number of sources and that the values in it sum to 1.0.
+		*/
+		void set_relative_volumes(const std::vector<double> &volumes) {
+			assert(volumes.size() == source_holder_.size());
+			volumes_ = volumes;
+			push_volumes();
+			average_output_peak_ = 1.0 / source_holder_.total_scale(volumes_.data());
+		}
+
+		/*!
+			@c true if any of the sources owned by this CompoundSource is stereo.
+		*/
+		static constexpr bool is_stereo = CompoundSourceHolder<T...>::is_stereo;
+
+		/*!
+			@returns the average output peak given the sources owned by this CompoundSource and the
+				current relative volumes.
+		*/
+		double average_output_peak() const {
+			return average_output_peak_;
+		}
+
+	private:
+		void push_volumes() {
+			const double scale = source_holder_.total_scale(volumes_.data());
+			source_holder_.set_scaled_volume_range(volume_range_, volumes_.data(), scale);
+		}
 
 		CompoundSourceHolder<T...> source_holder_;
 		std::vector<double> volumes_;
