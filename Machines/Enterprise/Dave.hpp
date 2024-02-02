@@ -26,7 +26,7 @@ enum class Interrupt: uint8_t {
 /*!
 	Models the audio-production subset of Dave's behaviour.
 */
-class Audio: public Outputs::Speaker::SampleSource {
+class Audio: public Outputs::Speaker::SampleSource<Audio> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

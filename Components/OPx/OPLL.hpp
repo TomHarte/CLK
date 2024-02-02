@@ -27,6 +27,7 @@ class OPLL: public OPLBase<OPLL> {
 		/// As per ::SampleSource; provides audio output.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool is_stereo = false;
 
 		// The OPLL is generally 'half' as loud as it's told to be. This won't strictly be true in
 		// rhythm mode, but it's correct for melodic output.

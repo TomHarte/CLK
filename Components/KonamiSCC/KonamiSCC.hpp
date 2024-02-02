@@ -20,7 +20,7 @@ namespace Konami {
 	and five channels of output. The original SCC uses the same wave for channels
 	four and five, the SCC+ supports different waves for the two channels.
 */
-class SCC: public ::Outputs::Speaker::SampleSource {
+class SCC: public ::Outputs::Speaker::SampleSource<SCC> {
 	public:
 		/// Creates a new SCC.
 		SCC(Concurrency::AsyncTaskQueue<false> &task_queue);

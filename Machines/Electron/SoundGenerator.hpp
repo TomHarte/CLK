@@ -13,7 +13,7 @@
 
 namespace Electron {
 
-class SoundGenerator: public ::Outputs::Speaker::SampleSource {
+class SoundGenerator: public ::Outputs::Speaker::SampleSource<SoundGenerator> {
 	public:
 		SoundGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

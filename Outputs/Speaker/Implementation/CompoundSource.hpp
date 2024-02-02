@@ -21,9 +21,9 @@ namespace Outputs::Speaker {
 	An owner may optionally assign relative volumes.
 */
 template <typename... T> class CompoundSource:
-	public Outputs::Speaker::SampleSource {
+	public Outputs::Speaker::SampleSource<CompoundSource<T...>> {
 	private:
-		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource {
+		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource<CompoundSourceHolder<S...>> {
 			public:
 				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
 					std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);

@@ -23,7 +23,7 @@ namespace Apple::Macintosh {
 	Designed to be clocked at half the rate of the real hardware — i.e.
 	a shade less than 4Mhz.
 */
-class Audio: public ::Outputs::Speaker::SampleSource {
+class Audio: public ::Outputs::Speaker::SampleSource<Audio> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &task_queue);
 

@@ -17,7 +17,7 @@
 namespace MOS::MOS6560 {
 
 // audio state
-class AudioGenerator: public ::Outputs::Speaker::SampleSource {
+class AudioGenerator: public ::Outputs::Speaker::SampleSource<AudioGenerator> {
 	public:
 		AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

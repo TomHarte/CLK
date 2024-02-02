@@ -8,16 +8,22 @@
 
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
 namespace Outputs::Speaker {
+
+template <bool stereo> struct SampleT;
+template <> struct SampleT<true> { using type = std::array<std::uint16_t, 2>; };
+template <> struct SampleT<false> { using type = std::uint16_t; };
 
 /*!
 	A sample source is something that can provide a stream of audio.
 	This optional base class provides the interface expected to be exposed
 	by the template parameter to LowpassSpeaker.
 */
+template <typename SourceT>
 class SampleSource {
 	public:
 		/*!
@@ -54,7 +60,7 @@ class SampleSource {
 		/*!
 			Indicates whether this component will write stereo samples.
 		*/
-		static constexpr bool is_stereo = false;
+		static constexpr bool is_stereo = SourceT::is_stereo;
 
 		/*!
 			Permits a sample source to declare that, averaged over time, it will use only

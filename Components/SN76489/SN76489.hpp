@@ -13,7 +13,7 @@
 
 namespace TI {
 
-class SN76489: public Outputs::Speaker::SampleSource {
+class SN76489: public Outputs::Speaker::SampleSource<SN76489> {
 	public:
 		enum class Personality {
 			SN76489,

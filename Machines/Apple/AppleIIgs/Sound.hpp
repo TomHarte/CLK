@@ -16,7 +16,7 @@
 
 namespace Apple::IIgs::Sound {
 
-class GLU: public Outputs::Speaker::SampleSource {
+class GLU: public Outputs::Speaker::SampleSource<GLU> {
 	public:
 		GLU(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -37,6 +37,7 @@ class GLU: public Outputs::Speaker::SampleSource {
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
 		void skip_samples(const std::size_t number_of_samples);
+		static constexpr bool is_stereo = false;
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

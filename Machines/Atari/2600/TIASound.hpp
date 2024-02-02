@@ -17,7 +17,7 @@ namespace Atari2600 {
 // will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
 constexpr int CPUTicksPerAudioTick = 2;
 
-class TIASound: public Outputs::Speaker::SampleSource {
+class TIASound: public Outputs::Speaker::SampleSource<TIASound> {
 	public:
 		TIASound(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

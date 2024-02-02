@@ -16,13 +16,14 @@ namespace Audio {
 /*!
 	Provides a sample source that can programmatically be set to one of two values.
 */
-class Toggle: public Outputs::Speaker::SampleSource {
+class Toggle: public Outputs::Speaker::SampleSource<Toggle> {
 	public:
 		Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
 		void skip_samples(const std::size_t number_of_samples);
+		static constexpr bool is_stereo = false;
 
 		void set_output(bool enabled);
 		bool get_output() const;
