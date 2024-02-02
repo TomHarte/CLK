@@ -5,7 +5,7 @@ jobs:
     name: Mac UI on ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [macos-11, macos-12, macos-13, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
@@ -17,7 +17,7 @@ jobs:
     name: SDL UI on ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-11, macos-12, macos-13, macos-14, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
