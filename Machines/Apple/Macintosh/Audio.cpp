@@ -8,6 +8,8 @@
 
 #include "Audio.hpp"
 
+#include <algorithm>
+
 using namespace Apple::Macintosh;
 
 namespace {
@@ -79,11 +81,8 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 		const auto cycles_left_in_sample = std::min(number_of_samples, sample_length - subcycle_offset_);
 
 		// Determine the output level, and output that many samples.
-		// (Hoping that the copiler substitutes an effective memset16-type operation here).
 		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer].load(std::memory_order::memory_order_relaxed)) - 128);
-		for(size_t c = 0; c < cycles_left_in_sample; ++c) {
-			target[c] = output_level;
-		}
+		std::fill(target, target + cycles_left_in_sample, output_level);
 		target += cycles_left_in_sample;
 
 		// Advance the sample pointer.
