@@ -15,8 +15,8 @@
 namespace Outputs::Speaker {
 
 template <bool stereo> struct SampleT;
-template <> struct SampleT<true> { using type = std::array<std::uint16_t, 2>; };
-template <> struct SampleT<false> { using type = std::uint16_t; };
+template <> struct SampleT<true> { using type = std::array<std::int16_t, 2>; };
+template <> struct SampleT<false> { using type = std::int16_t; };
 
 /*!
 	A sample source is something that can provide a stream of audio.
@@ -27,9 +27,27 @@ template <typename SourceT>
 class SampleSource {
 	public:
 		/*!
+			Indicates whether this component will write stereo samples.
+		*/
+		static constexpr bool is_stereo = SourceT::is_stereo;
+
+		/*!
 			Should write the next @c number_of_samples to @c target.
 		*/
-		void get_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] std::int16_t *target) {}
+		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+			const auto &source = *static_cast<SourceT *>(this);
+			while(number_of_samples--) {
+				if constexpr (is_stereo) {
+					const auto next = source.level();
+					target[0] = next[0];
+					target[1] = next[1];
+					target += 2;
+				} else {
+					*target = source.level();
+					++target;
+				}
+			}
+		}
 
 		/*!
 			Should skip the next @c number_of_samples. Subclasses of this SampleSource
@@ -38,6 +56,9 @@ class SampleSource {
 			implementation below.
 		*/
 		void skip_samples(const std::size_t number_of_samples) {
+			if constexpr (&SourceT::advance == &SampleSource<SourceT>::advance) {
+				return;
+			}
 			std::int16_t scratch_pad[number_of_samples];
 			get_samples(number_of_samples, scratch_pad);
 		}
@@ -47,20 +68,23 @@ class SampleSource {
 				fill the target with zeroes; @c false if a call might return all zeroes or
 				might not.
 		*/
-		bool is_zero_level() const {
-			return false;
+		bool is_zero_level() const						{	return false;	}
+		auto level() const	{
+			typename SampleT<is_stereo>::type result;
+			if constexpr (is_stereo) {
+				result[0] = result[1] = 0;
+			} else {
+				result = 0;
+			}
+			return result;
 		}
+		void advance()									{}
 
 		/*!
 			Sets the proper output range for this sample source; it should write values
 			between 0 and volume.
 		*/
 		void set_sample_volume_range([[maybe_unused]] std::int16_t volume) {}
-
-		/*!
-			Indicates whether this component will write stereo samples.
-		*/
-		static constexpr bool is_stereo = SourceT::is_stereo;
 
 		/*!
 			Permits a sample source to declare that, averaged over time, it will use only
