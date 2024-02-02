@@ -34,6 +34,7 @@ class Toggle: public Outputs::Speaker::SampleSource {
 
 		// Accessed on the audio thread.
 		int16_t level_ = 0, volume_ = 0;
+		bool level_active_ = false;
 };
 
 }
