@@ -23,7 +23,7 @@ namespace Apple::Macintosh {
 	Designed to be clocked at half the rate of the real hardware — i.e.
 	a shade less than 4Mhz.
 */
-class Audio: public ::Outputs::Speaker::SampleSource<Audio> {
+class Audio: public ::Outputs::Speaker::SampleSource<Audio, false> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &task_queue);
 
@@ -53,7 +53,6 @@ class Audio: public ::Outputs::Speaker::SampleSource<Audio> {
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
-		constexpr static bool is_stereo = false;
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;

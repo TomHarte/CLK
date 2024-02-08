@@ -26,7 +26,7 @@ enum class Interrupt: uint8_t {
 /*!
 	Models the audio-production subset of Dave's behaviour.
 */
-class Audio: public Outputs::Speaker::SampleSource<Audio> {
+class Audio: public Outputs::Speaker::SampleSource<Audio, true> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -37,7 +37,6 @@ class Audio: public Outputs::Speaker::SampleSource<Audio> {
 
 		// MARK: - SampleSource.
 		void set_sample_volume_range(int16_t range);
-		static constexpr bool is_stereo = true;
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 
 	private:

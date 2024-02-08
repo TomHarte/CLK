@@ -17,7 +17,7 @@ namespace Atari2600 {
 // will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
 constexpr int CPUTicksPerAudioTick = 2;
 
-class TIASound: public Outputs::Speaker::SampleSource<TIASound> {
+class TIASound: public Outputs::Speaker::SampleSource<TIASound, false> {
 	public:
 		TIASound(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -28,7 +28,6 @@ class TIASound: public Outputs::Speaker::SampleSource<TIASound> {
 		// To satisfy ::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool is_stereo = false;
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

@@ -19,7 +19,7 @@
 
 namespace Yamaha::OPL {
 
-class OPLL: public OPLBase<OPLL> {
+class OPLL: public OPLBase<OPLL, false> {
 	public:
 		/// Creates a new OPLL or VRC7.
 		OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, int audio_divider = 1, bool is_vrc7 = false);
@@ -27,7 +27,6 @@ class OPLL: public OPLBase<OPLL> {
 		/// As per ::SampleSource; provides audio output.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool is_stereo = false;
 
 		// The OPLL is generally 'half' as loud as it's told to be. This won't strictly be true in
 		// rhythm mode, but it's correct for melodic output.
@@ -37,7 +36,7 @@ class OPLL: public OPLBase<OPLL> {
 		uint8_t read(uint16_t address);
 
 	private:
-		friend OPLBase<OPLL>;
+		friend OPLBase<OPLL, false>;
 		void write_register(uint8_t address, uint8_t value);
 
 		int audio_divider_ = 0;

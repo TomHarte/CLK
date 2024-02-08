@@ -31,7 +31,7 @@ template <typename... S> constexpr bool is_stereo() {
 	An owner may optionally assign relative volumes.
 */
 template <typename... T> class CompoundSource:
-	public Outputs::Speaker::SampleSource<CompoundSource<T...>> {
+	public Outputs::Speaker::SampleSource<CompoundSource<T...>, ::Outputs::Speaker::is_stereo<T...>()> {
 	private:
 		template <typename... S> class CompoundSourceHolder {
 			public:
@@ -56,6 +56,8 @@ template <typename... T> class CompoundSource:
 		template <typename S, typename... R> class CompoundSourceHolder<S, R...> {
 			public:
 				CompoundSourceHolder(S &source, R &...next) : source_(source), next_source_(next...) {}
+
+				static constexpr bool is_stereo = S::is_stereo || CompoundSourceHolder<R...>::is_stereo;
 
 				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
 					// Get the rest of the output.
@@ -107,8 +109,6 @@ template <typename... T> class CompoundSource:
 					return 1 + CompoundSourceHolder<R...>::size();
 				}
 
-				static constexpr bool is_stereo =  S::is_stereo || CompoundSourceHolder<R...>::is_stereo;
-
 				double total_scale(double *volumes) const {
 					return (volumes[0] / source_.average_output_peak()) + next_source_.total_scale(&volumes[1]);
 				}
@@ -128,7 +128,7 @@ template <typename... T> class CompoundSource:
 		}
 
 		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-			source_holder_.template get_samples<is_stereo>(number_of_samples, target);
+			source_holder_.template get_samples<::Outputs::Speaker::is_stereo<T...>()>(number_of_samples, target);
 		}
 
 		void skip_samples(const std::size_t number_of_samples) {
@@ -154,11 +154,6 @@ template <typename... T> class CompoundSource:
 			push_volumes();
 			average_output_peak_ = 1.0 / source_holder_.total_scale(volumes_.data());
 		}
-
-		/*!
-			@c true if any of the sources owned by this CompoundSource is stereo.
-		*/
-		static constexpr bool is_stereo = ::Outputs::Speaker::is_stereo<T...>();
 
 		/*!
 			@returns the average output peak given the sources owned by this CompoundSource and the

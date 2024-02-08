@@ -13,7 +13,7 @@
 
 namespace Electron {
 
-class SoundGenerator: public ::Outputs::Speaker::SampleSource<SoundGenerator> {
+class SoundGenerator: public ::Outputs::Speaker::SampleSource<SoundGenerator, false> {
 	public:
 		SoundGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -27,7 +27,6 @@ class SoundGenerator: public ::Outputs::Speaker::SampleSource<SoundGenerator> {
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		void skip_samples(std::size_t number_of_samples);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool is_stereo = false;
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

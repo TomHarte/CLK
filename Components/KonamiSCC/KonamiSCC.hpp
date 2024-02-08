@@ -20,7 +20,7 @@ namespace Konami {
 	and five channels of output. The original SCC uses the same wave for channels
 	four and five, the SCC+ supports different waves for the two channels.
 */
-class SCC: public ::Outputs::Speaker::SampleSource<SCC> {
+class SCC: public ::Outputs::Speaker::SampleSource<SCC, false> {
 	public:
 		/// Creates a new SCC.
 		SCC(Concurrency::AsyncTaskQueue<false> &task_queue);
@@ -31,7 +31,6 @@ class SCC: public ::Outputs::Speaker::SampleSource<SCC> {
 		/// As per ::SampleSource; provides audio output.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool is_stereo = false;
 
 		/// Writes to the SCC.
 		void write(uint16_t address, uint8_t value);

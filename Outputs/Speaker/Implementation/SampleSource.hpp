@@ -23,13 +23,13 @@ template <> struct SampleT<false> { using type = std::int16_t; };
 	This optional base class provides the interface expected to be exposed
 	by the template parameter to LowpassSpeaker.
 */
-template <typename SourceT>
+template <typename SourceT, bool stereo>
 class SampleSource {
 	public:
 		/*!
 			Indicates whether this component will write stereo samples.
 		*/
-		static constexpr bool is_stereo = SourceT::is_stereo;
+		static constexpr bool is_stereo = stereo;
 
 		/*!
 			Should write the next @c number_of_samples to @c target.
@@ -56,7 +56,7 @@ class SampleSource {
 			implementation below.
 		*/
 		void skip_samples(const std::size_t number_of_samples) {
-			if constexpr (&SourceT::advance == &SampleSource<SourceT>::advance) {
+			if constexpr (&SourceT::advance == &SampleSource<SourceT, stereo>::advance) {
 				return;
 			}
 			std::int16_t scratch_pad[number_of_samples];

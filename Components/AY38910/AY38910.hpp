@@ -66,7 +66,7 @@ enum class Personality {
 
 	This AY has an attached mono or stereo mixer.
 */
-template <bool stereo> class AY38910: public ::Outputs::Speaker::SampleSource<AY38910<stereo>> {
+template <bool stereo> class AY38910: public ::Outputs::Speaker::SampleSource<AY38910<stereo>, stereo> {
 	public:
 		/// Creates a new AY38910.
 		AY38910(Personality, Concurrency::AsyncTaskQueue<false> &);
@@ -109,7 +109,6 @@ template <bool stereo> class AY38910: public ::Outputs::Speaker::SampleSource<AY
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool is_stereo = stereo;
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;

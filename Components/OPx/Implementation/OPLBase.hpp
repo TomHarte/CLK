@@ -13,7 +13,7 @@
 
 namespace Yamaha::OPL {
 
-template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource<Child> {
+template <typename Child, bool stereo> class OPLBase: public ::Outputs::Speaker::SampleSource<Child, stereo> {
 	public:
 		void write(uint16_t address, uint8_t value) {
 			if(address & 1) {
