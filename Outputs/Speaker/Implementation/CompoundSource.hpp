@@ -10,6 +10,7 @@
 
 #include "SampleSource.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <atomic>
@@ -26,7 +27,7 @@ template <typename... T> class CompoundSource:
 		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource<CompoundSourceHolder<S...>> {
 			public:
 				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-					std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
+					std::fill(target, target + number_of_samples, 0);
 				}
 
 				void set_scaled_volume_range(int16_t, double *, double) {}
