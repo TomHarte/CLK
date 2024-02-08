@@ -33,13 +33,14 @@ template <typename... S> constexpr bool is_stereo() {
 template <typename... T> class CompoundSource:
 	public Outputs::Speaker::SampleSource<CompoundSource<T...>> {
 	private:
-		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource<CompoundSourceHolder<S...>> {
+		template <typename... S> class CompoundSourceHolder {
 			public:
 				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
 					std::fill(target, target + number_of_samples, 0);
 				}
 
 				void set_scaled_volume_range(int16_t, double *, double) {}
+				void skip_samples(const std::size_t) {}
 
 				static constexpr std::size_t size() {
 					return 0;
