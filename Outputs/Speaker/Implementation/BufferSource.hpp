@@ -86,7 +86,7 @@ struct SampleSource: public BufferSource<SourceT, stereo> {
 			} else {
 				std::size_t c = 0;
 
-				// Fill in the tail of any pa3rtially-captured level.
+				// Fill in the tail of any partially-captured level.
 				auto level = source.level();
 				while(c < number_of_samples && master_divider_ != divider) {
 					target[c] = level;
