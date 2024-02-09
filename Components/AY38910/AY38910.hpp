@@ -106,7 +106,7 @@ template <bool stereo> class AY38910: public ::Outputs::Speaker::SampleSource<AY
 		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		void get_samples(std::size_t number_of_samples, typename Outputs::Speaker::SampleT<stereo>::type *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
 
@@ -149,7 +149,7 @@ template <bool stereo> class AY38910: public ::Outputs::Speaker::SampleSource<AY
 
 		uint8_t data_input_, data_output_;
 
-		uint32_t output_volume_;
+		typename Outputs::Speaker::SampleT<stereo>::type output_volume_;
 
 		void update_bus();
 		PortHandler *port_handler_ = nullptr;

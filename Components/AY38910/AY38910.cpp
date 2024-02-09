@@ -101,7 +101,11 @@ template <bool is_stereo> void AY38910<is_stereo>::set_output_mixing(float a_lef
 	c_right_ = uint8_t(c_right * 255.0f);
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::get_samples(std::size_t number_of_samples, int16_t *target) {
+template <bool is_stereo>
+void AY38910<is_stereo>::get_samples(
+	std::size_t number_of_samples,
+	typename Outputs::Speaker::SampleT<is_stereo>::type *target
+) {
 	// Note on structure below: the real AY has a built-in divider of 8
 	// prior to applying its tone and noise dividers. But the YM fills the
 	// same total periods for noise and tone with double-precision envelopes.
@@ -113,11 +117,7 @@ template <bool is_stereo> void AY38910<is_stereo>::get_samples(std::size_t numbe
 
 	std::size_t c = 0;
 	while((master_divider_&3) && c < number_of_samples) {
-		if constexpr (is_stereo) {
-			reinterpret_cast<uint32_t *>(target)[c] = output_volume_;
-		} else {
-			target[c] = int16_t(output_volume_);
-		}
+		target[c] = output_volume_;
 		master_divider_++;
 		c++;
 	}
@@ -159,11 +159,7 @@ template <bool is_stereo> void AY38910<is_stereo>::get_samples(std::size_t numbe
 		evaluate_output_volume();
 
 		for(int ic = 0; ic < 4 && c < number_of_samples; ic++) {
-			if constexpr (is_stereo) {
-				reinterpret_cast<uint32_t *>(target)[c] = output_volume_;
-			} else {
-				target[c] = int16_t(output_volume_);
-			}
+			target[c] = output_volume_;
 			c++;
 			master_divider_++;
 		}
@@ -214,19 +210,19 @@ template <bool is_stereo> void AY38910<is_stereo>::evaluate_output_volume() {
 
 	// Mix additively, weighting if in stereo.
 	if constexpr (is_stereo) {
-		int16_t *const output_volumes = reinterpret_cast<int16_t *>(&output_volume_);
-		output_volumes[0] = int16_t((
+//		int16_t *const output_volumes = reinterpret_cast<int16_t *>(&output_volume_);
+		output_volume_[0] = int16_t((
 			volumes_[volumes[0]] * channel_levels[0] * a_left_ +
 			volumes_[volumes[1]] * channel_levels[1] * b_left_ +
 			volumes_[volumes[2]] * channel_levels[2] * c_left_
 		) >> 8);
-		output_volumes[1] = int16_t((
+		output_volume_[1] = int16_t((
 			volumes_[volumes[0]] * channel_levels[0] * a_right_ +
 			volumes_[volumes[1]] * channel_levels[1] * b_right_ +
 			volumes_[volumes[2]] * channel_levels[2] * c_right_
 		) >> 8);
 	} else {
-		output_volume_ = uint32_t(
+		output_volume_ = int16_t(
 			volumes_[volumes[0]] * channel_levels[0] +
 			volumes_[volumes[1]] * channel_levels[1] +
 			volumes_[volumes[2]] * channel_levels[2]

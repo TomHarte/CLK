@@ -14,6 +14,14 @@
 
 namespace Outputs::Speaker {
 
+template <bool stereo> struct SampleT;
+template <> struct SampleT<true> { using type = std::array<std::int16_t, 2>; };	// TODO: adopt left/right as per Dave?
+template <> struct SampleT<false> { using type = std::int16_t; };
+
+// Shorthands.
+using MonoSample = SampleT<false>::type;
+using StereoSample = SampleT<true>::type;
+
 /*!
 	Provides a communication point for sound; machines that have a speaker provide an
 	audio output.

@@ -99,17 +99,14 @@ void Audio::update_channel(int c) {
 	channels_[c].output |= output;
 }
 
-void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
-	struct Frame {
-		int16_t left, right;
-	} output_level;
-	Frame *target_frames = reinterpret_cast<Frame *>(target);
+void Audio::get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
+	Outputs::Speaker::StereoSample output_level;
 
 	size_t c = 0;
 	while(c < number_of_samples) {
 		// I'm unclear on the details of the time division multiplexing so,
 		// for now, just sum the outputs.
-		output_level.left =
+		output_level[0] =
 			volume_ *
 				(use_direct_output_[0] ?
 					channels_[0].amplitude[0]
@@ -120,7 +117,7 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 						noise_.amplitude[0] * noise_.final_output
 				));
 
-		output_level.right =
+		output_level[1] =
 			volume_ *
 				(use_direct_output_[1] ?
 					channels_[0].amplitude[1]
@@ -133,14 +130,11 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 		while(global_divider_ && c < number_of_samples) {
 			--global_divider_;
-			target_frames[c] = output_level;
+			target[c] = output_level;
 			++c;
 		}
-
 		global_divider_ = global_divider_reload_;
-		if(!global_divider_) {
-			global_divider_ = global_divider_reload_;
-		}
+
 		poly_state_[int(Channel::Distortion::FourBit)] = poly4_.next();
 		poly_state_[int(Channel::Distortion::FiveBit)] = poly5_.next();
 		poly_state_[int(Channel::Distortion::SevenBit)] = poly7_.next();

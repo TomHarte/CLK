@@ -404,7 +404,12 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		}
 
 		void get_samples(size_t length, int16_t *target) {
-			sample_source_.get_samples(length, target);
+			if constexpr (SampleSource::is_stereo) {
+				StereoSample *const stereo_target = reinterpret_cast<StereoSample *>(target);
+				sample_source_.get_samples(length, stereo_target);
+			} else {
+				sample_source_.get_samples(length, target);
+			}
 		}
 };
 

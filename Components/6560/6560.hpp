@@ -17,7 +17,7 @@
 namespace MOS::MOS6560 {
 
 // audio state
-class AudioGenerator: public ::Outputs::Speaker::SampleSource<AudioGenerator, false> {
+class AudioGenerator: public Outputs::Speaker::SampleSource<AudioGenerator, false> {
 	public:
 		AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -25,7 +25,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource<AudioGenerator, fa
 		void set_control(int channel, uint8_t value);
 
 		// For ::SampleSource.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		void get_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void skip_samples(std::size_t number_of_samples);
 		void set_sample_volume_range(std::int16_t range);
 

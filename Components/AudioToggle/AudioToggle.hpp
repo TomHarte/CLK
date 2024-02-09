@@ -20,7 +20,7 @@ class Toggle: public Outputs::Speaker::SampleSource<Toggle, false> {
 	public:
 		Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		void get_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
 		void skip_samples(const std::size_t number_of_samples);
 
