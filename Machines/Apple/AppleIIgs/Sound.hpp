@@ -12,11 +12,11 @@
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace Apple::IIgs::Sound {
 
-class GLU: public Outputs::Speaker::SampleSource<GLU, false> {	// TODO: isn't this stereo?
+class GLU: public Outputs::Speaker::BufferSource<GLU, false> {	// TODO: isn't this stereo?
 	public:
 		GLU(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

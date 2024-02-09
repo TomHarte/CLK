@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "SampleSource.hpp"
+#include "BufferSource.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -31,7 +31,7 @@ template <typename... S> constexpr bool is_stereo() {
 	An owner may optionally assign relative volumes.
 */
 template <typename... T> class CompoundSource:
-	public Outputs::Speaker::SampleSource<CompoundSource<T...>, ::Outputs::Speaker::is_stereo<T...>()> {
+	public Outputs::Speaker::BufferSource<CompoundSource<T...>, ::Outputs::Speaker::is_stereo<T...>()> {
 	private:
 		template <typename... S> class CompoundSourceHolder {
 			public:

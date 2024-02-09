@@ -13,7 +13,7 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Numeric/LFSR.hpp"
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace Enterprise::Dave {
 
@@ -26,7 +26,7 @@ enum class Interrupt: uint8_t {
 /*!
 	Models the audio-production subset of Dave's behaviour.
 */
-class Audio: public Outputs::Speaker::SampleSource<Audio, true> {
+class Audio: public Outputs::Speaker::BufferSource<Audio, true> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

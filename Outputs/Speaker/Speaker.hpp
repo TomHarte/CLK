@@ -14,7 +14,6 @@
 
 namespace Outputs::Speaker {
 
-// Shorthands.
 using MonoSample = int16_t;
 struct StereoSample {
 #if TARGET_RT_BIG_ENDIAN

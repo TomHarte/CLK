@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Konami {
@@ -20,7 +20,7 @@ namespace Konami {
 	and five channels of output. The original SCC uses the same wave for channels
 	four and five, the SCC+ supports different waves for the two channels.
 */
-class SCC: public ::Outputs::Speaker::SampleSource<SCC, false> {
+class SCC: public ::Outputs::Speaker::BufferSource<SCC, false> {
 	public:
 		/// Creates a new SCC.
 		SCC(Concurrency::AsyncTaskQueue<false> &task_queue);

@@ -12,12 +12,12 @@
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace MOS::MOS6560 {
 
 // audio state
-class AudioGenerator: public Outputs::Speaker::SampleSource<AudioGenerator, false> {
+class AudioGenerator: public Outputs::Speaker::BufferSource<AudioGenerator, false> {
 	public:
 		AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

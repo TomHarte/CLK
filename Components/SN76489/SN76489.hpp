@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace TI {
 
-class SN76489: public Outputs::Speaker::SampleSource<SN76489, false> {
+class SN76489: public Outputs::Speaker::BufferSource<SN76489, false> {
 	public:
 		enum class Personality {
 			SN76489,

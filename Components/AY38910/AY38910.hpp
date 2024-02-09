@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 #include "../../Reflection/Struct.hpp"
@@ -66,7 +66,7 @@ enum class Personality {
 
 	This AY has an attached mono or stereo mixer.
 */
-template <bool stereo> class AY38910: public ::Outputs::Speaker::SampleSource<AY38910<stereo>, stereo> {
+template <bool stereo> class AY38910: public ::Outputs::Speaker::BufferSource<AY38910<stereo>, stereo> {
 	public:
 		/// Creates a new AY38910.
 		AY38910(Personality, Concurrency::AsyncTaskQueue<false> &);

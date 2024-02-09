@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Electron {
 
-class SoundGenerator: public ::Outputs::Speaker::SampleSource<SoundGenerator, false> {
+class SoundGenerator: public ::Outputs::Speaker::BufferSource<SoundGenerator, false> {
 	public:
 		SoundGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 

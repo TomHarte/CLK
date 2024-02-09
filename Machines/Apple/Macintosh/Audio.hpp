@@ -10,7 +10,7 @@
 
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 #include <array>
 #include <atomic>
@@ -23,7 +23,7 @@ namespace Apple::Macintosh {
 	Designed to be clocked at half the rate of the real hardware — i.e.
 	a shade less than 4Mhz.
 */
-class Audio: public ::Outputs::Speaker::SampleSource<Audio, false> {
+class Audio: public ::Outputs::Speaker::BufferSource<Audio, false> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &task_queue);
 

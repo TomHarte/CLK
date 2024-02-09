@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Audio {
@@ -16,7 +16,7 @@ namespace Audio {
 /*!
 	Provides a sample source that can programmatically be set to one of two values.
 */
-class Toggle: public Outputs::Speaker::SampleSource<Toggle, false> {
+class Toggle: public Outputs::Speaker::BufferSource<Toggle, false> {
 	public:
 		Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
