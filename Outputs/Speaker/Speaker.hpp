@@ -14,13 +14,38 @@
 
 namespace Outputs::Speaker {
 
-template <bool stereo> struct SampleT;
-template <> struct SampleT<true> { using type = std::array<std::int16_t, 2>; };	// TODO: adopt left/right as per Dave?
-template <> struct SampleT<false> { using type = std::int16_t; };
-
 // Shorthands.
-using MonoSample = SampleT<false>::type;
-using StereoSample = SampleT<true>::type;
+using MonoSample = int16_t;
+struct StereoSample {
+#if TARGET_RT_BIG_ENDIAN
+	int16_t right, left;
+#else
+	int16_t left, right;
+#endif
+
+	StereoSample() = default;
+	StereoSample(const StereoSample &rhs) {
+		left = rhs.left;
+		right = rhs.right;
+	}
+
+	StereoSample &operator +=(const StereoSample &rhs) {
+		left += rhs.left;
+		right += rhs.right;
+		return *this;
+	}
+
+	StereoSample operator +(const StereoSample &rhs) {
+		StereoSample result;
+		result.left = left + rhs.left;
+		result.right = right + rhs.right;
+		return *this;
+	}
+};
+
+template <bool stereo> struct SampleT {
+	using type = std::conditional_t<stereo, StereoSample, MonoSample>;
+};
 
 /*!
 	Provides a communication point for sound; machines that have a speaker provide an

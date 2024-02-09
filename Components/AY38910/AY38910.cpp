@@ -210,13 +210,12 @@ template <bool is_stereo> void AY38910<is_stereo>::evaluate_output_volume() {
 
 	// Mix additively, weighting if in stereo.
 	if constexpr (is_stereo) {
-//		int16_t *const output_volumes = reinterpret_cast<int16_t *>(&output_volume_);
-		output_volume_[0] = int16_t((
+		output_volume_.left = int16_t((
 			volumes_[volumes[0]] * channel_levels[0] * a_left_ +
 			volumes_[volumes[1]] * channel_levels[1] * b_left_ +
 			volumes_[volumes[2]] * channel_levels[2] * c_left_
 		) >> 8);
-		output_volume_[1] = int16_t((
+		output_volume_.right = int16_t((
 			volumes_[volumes[0]] * channel_levels[0] * a_right_ +
 			volumes_[volumes[1]] * channel_levels[1] * b_right_ +
 			volumes_[volumes[2]] * channel_levels[2] * c_right_

@@ -106,7 +106,7 @@ void Audio::get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoS
 	while(c < number_of_samples) {
 		// I'm unclear on the details of the time division multiplexing so,
 		// for now, just sum the outputs.
-		output_level[0] =
+		output_level.left =
 			volume_ *
 				(use_direct_output_[0] ?
 					channels_[0].amplitude[0]
@@ -117,7 +117,7 @@ void Audio::get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoS
 						noise_.amplitude[0] * noise_.final_output
 				));
 
-		output_level[1] =
+		output_level.right =
 			volume_ *
 				(use_direct_output_[1] ?
 					channels_[0].amplitude[1]

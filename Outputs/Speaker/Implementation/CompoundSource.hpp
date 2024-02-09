@@ -59,7 +59,9 @@ template <typename... T> class CompoundSource:
 
 				static constexpr bool is_stereo = S::is_stereo || CompoundSourceHolder<R...>::is_stereo;
 
-				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+				// TODO: fix below for mixed mono/stereo sources.
+				template <bool output_stereo>
+				void get_samples(std::size_t number_of_samples, typename SampleT<output_stereo>::type *target) {
 					// Get the rest of the output.
 					next_source_.template get_samples<output_stereo>(number_of_samples, target);
 
@@ -72,7 +74,7 @@ template <typename... T> class CompoundSource:
 
 					// Get this component's output.
 					auto buffer_size = number_of_samples * (output_stereo ? 2 : 1);
-					int16_t local_samples[buffer_size];
+					typename SampleT<is_stereo>::type local_samples[number_of_samples];
 					source_.get_samples(number_of_samples, local_samples);
 
 					// Merge it in; furthermore if total output is stereo but this source isn't,
@@ -127,7 +129,7 @@ template <typename... T> class CompoundSource:
 			}
 		}
 
-		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+		void get_samples(std::size_t number_of_samples, typename SampleT<::Outputs::Speaker::is_stereo<T...>()>::type *target) {
 			source_holder_.template get_samples<::Outputs::Speaker::is_stereo<T...>()>(number_of_samples, target);
 		}
 
