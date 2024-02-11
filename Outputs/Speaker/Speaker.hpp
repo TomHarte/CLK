@@ -17,9 +17,9 @@ namespace Outputs::Speaker {
 using MonoSample = int16_t;
 struct StereoSample {
 #if TARGET_RT_BIG_ENDIAN
-	int16_t right, left;
+	int16_t right = 0, left = 0;
 #else
-	int16_t left, right;
+	int16_t left = 0, right = 0;
 #endif
 
 	StereoSample() = default;

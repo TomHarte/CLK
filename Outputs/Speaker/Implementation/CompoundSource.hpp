@@ -49,8 +49,10 @@ template <typename... T> class CompoundSource:
 	private:
 		template <typename... S> class CompoundSourceHolder {
 			public:
-				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-					std::fill(target, target + number_of_samples, 0);
+				template <bool output_stereo>
+				void get_samples(std::size_t number_of_samples, typename SampleT<output_stereo>::type *target) {
+					// Default-construct all samples, to fill with silence.
+					std::fill(target, target + number_of_samples, typename SampleT<output_stereo>::type());
 				}
 
 				void set_scaled_volume_range(int16_t, double *, double) {}
@@ -73,9 +75,27 @@ template <typename... T> class CompoundSource:
 
 				static constexpr bool is_stereo = S::is_stereo || CompoundSourceHolder<R...>::is_stereo;
 
-				// TODO: fix below for potential stereo -> mono conversion.
 				template <bool output_stereo>
-				void get_samples(std::size_t number_of_samples, typename SampleT<output_stereo>::type *target) {
+				void get_samples(std::size_t number_of_samples, typename ::Outputs::Speaker::SampleT<output_stereo>::type *target) {
+
+					// If this is the step at which a mono-to-stereo adaptation happens, apply it.
+					if constexpr (output_stereo && !S::is_stereo) {
+						// There'll be only one place in the chain that this conversion happens, but it'll
+						// happen there often. So avoid continuously reallocating.
+						if(conversion_source_.size() < number_of_samples) {
+							conversion_source_.resize(number_of_samples);
+						}
+
+						// Populate the conversion buffer with this source and all below.
+						get_samples<false>(number_of_samples, conversion_source_.data());
+
+						// Map up and return.
+						for(std::size_t c = 0; c < number_of_samples; c++) {
+							target[c].left = target[c].right = conversion_source_[c];
+						}
+						return;
+					}
+
 					// Get the rest of the output.
 					next_source_.template get_samples<output_stereo>(number_of_samples, target);
 
@@ -87,24 +107,12 @@ template <typename... T> class CompoundSource:
 					}
 
 					// Get this component's output.
-					auto buffer_size = number_of_samples * (output_stereo ? 2 : 1);
-					typename SampleT<is_stereo>::type local_samples[number_of_samples];
+					typename SampleT<output_stereo>::type local_samples[number_of_samples];
 					source_.get_samples(number_of_samples, local_samples);
 
-					// Merge it in; furthermore if total output is stereo but this source isn't,
-					// map it to stereo.
-					if constexpr (output_stereo == S::is_stereo) {
-						while(buffer_size--) {
-							target[buffer_size] += local_samples[buffer_size];
-						}
-					} else {
-						// This will happen only if mapping from mono to stereo, never in the
-						// other direction, because the compound source outputs stereo if any
-						// subcomponent does. So it outputs mono only if no stereo devices are
-						// in the mixing chain.
-						while(buffer_size--) {
-							target[buffer_size] += local_samples[buffer_size >> 1];
-						}
+					// Merge it in.
+					while(number_of_samples--) {
+						target[number_of_samples] += local_samples[number_of_samples];
 					}
 
 					// TODO: accelerate above?
@@ -132,9 +140,12 @@ template <typename... T> class CompoundSource:
 			private:
 				S &source_;
 				CompoundSourceHolder<R...> next_source_;
+				std::vector<MonoSample> conversion_source_;
 		};
 
 	public:
+		using Sample = typename SampleT<::Outputs::Speaker::is_stereo<T...>()>::type;
+
 		// To ensure at most one mono to stereo conversion, require appropriate source ordering.
 		static_assert(are_properly_ordered<T...>(), "Sources should be listed with all stereo sources before all mono sources");
 
@@ -146,7 +157,7 @@ template <typename... T> class CompoundSource:
 			}
 		}
 
-		void get_samples(std::size_t number_of_samples, typename SampleT<::Outputs::Speaker::is_stereo<T...>()>::type *target) {
+		void get_samples(std::size_t number_of_samples, Sample *target) {
 			source_holder_.template get_samples<::Outputs::Speaker::is_stereo<T...>()>(number_of_samples, target);
 		}
 
