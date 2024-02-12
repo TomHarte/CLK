@@ -49,23 +49,10 @@ template <typename... T> class CompoundSource:
 	private:
 		template <typename... S> class CompoundSourceHolder {
 			public:
-				template <Outputs::Speaker::Action action, bool output_stereo>
-				void apply_samples(std::size_t number_of_samples, typename SampleT<output_stereo>::type *target) {
-					// Default-construct all samples, to fill with silence.
-					Outputs::Speaker::fill<action>(target, target + number_of_samples, typename SampleT<output_stereo>::type());
-				}
-
-				void set_scaled_volume_range(int16_t, double *, double) {}
-
-				static constexpr std::size_t size() {
-					return 0;
-				}
-
 				static constexpr bool is_stereo = false;
-
-				double total_scale(double *) const {
-					return 0.0;
-				}
+				void set_scaled_volume_range(int16_t, double *, double) {}
+				static constexpr std::size_t size() {	return 0;	}
+				double total_scale(double *) const {	return 0.0;	}
 		};
 
 		template <typename S, typename... R> class CompoundSourceHolder<S, R...> {
@@ -95,17 +82,24 @@ template <typename... T> class CompoundSource:
 						return;
 					}
 
-					// Get the rest of the output.
-					next_source_.template apply_samples<action, output_stereo>(number_of_samples, target);
+					constexpr bool is_final_source = sizeof...(R) == 0;
+
+					// Get the rest of the output, if any.
+					if constexpr (!is_final_source) {
+						next_source_.template apply_samples<action, output_stereo>(number_of_samples, target);
+					}
 
 					if(source_.is_zero_level()) {
 						// This component is currently outputting silence; therefore don't add anything to the output
-						// audio — just pass the call onward.
+						// audio. Zero fill only if this is the final source (as everything above will be additive).
+						if constexpr (is_final_source) {
+							Outputs::Speaker::fill<action>(target, target + number_of_samples, typename SampleT<output_stereo>::type());
+						}
 						return;
 					}
 
 					// Add in this component's output.
-					source_.template apply_samples<Action::Mix>(number_of_samples, target);
+					source_.template apply_samples<is_final_source ? Action::Store : Action::Mix>(number_of_samples, target);
 				}
 
 				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {
