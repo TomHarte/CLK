@@ -562,7 +562,7 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << "." << std::endl << std::endl;
 
-		std::cout << "Further machine options:" << std::endl << std::endl;;
+		std::cout << "Further machine options:" << std::endl << std::endl;
 
 		const auto targets = Machine::TargetsByMachineName(false);
 		const auto runtime_options = Machine::AllOptionsByMachineName();

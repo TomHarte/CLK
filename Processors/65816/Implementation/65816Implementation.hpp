@@ -793,7 +793,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							assert(data_buffer_.size == 2 - m_flag());
 							++data_buffer_.value;
 							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
-						break;;
+						break;
 
 						case DEC:
 							assert(data_buffer_.size == 2 - m_flag());

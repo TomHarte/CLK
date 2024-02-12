@@ -108,7 +108,7 @@ uint8_t GLU::get_data() {
 
 	switch(address & 0xe0) {
 		case 0x00:	return local_.oscillators[address & 0x1f].velocity & 0xff;
-		case 0x20:	return local_.oscillators[address & 0x1f].velocity >> 8;;
+		case 0x20:	return local_.oscillators[address & 0x1f].velocity >> 8;
 		case 0x40:	return local_.oscillators[address & 0x1f].volume;
 		case 0x60:	return local_.oscillators[address & 0x1f].sample(local_.ram_);	// i.e. look up what the sample was on demand.
 		case 0x80:	return local_.oscillators[address & 0x1f].address;

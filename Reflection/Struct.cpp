@@ -110,7 +110,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, bool v
 	if(!target_type) return false;
 
 	if(*target_type == typeid(bool)) {
-		target.set(name, &value, offset);;
+		target.set(name, &value, offset);
 	}
 
 	return false;
