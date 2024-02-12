@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "BufferSource.hpp"
 #include "../Speaker.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -396,7 +397,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		SampleSource &sample_source_;
 
 		void skip_samples(size_t count) {
-			sample_source_.skip_samples(count);
+			sample_source_.template apply_samples<Action::Ignore>(count, nullptr);
 		}
 
 		int get_scale() {
@@ -406,9 +407,9 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		void get_samples(size_t length, int16_t *target) {
 			if constexpr (SampleSource::is_stereo) {
 				StereoSample *const stereo_target = reinterpret_cast<StereoSample *>(target);
-				sample_source_.get_samples(length, stereo_target);
+				sample_source_.template apply_samples<Action::Store>(length, stereo_target);
 			} else {
-				sample_source_.get_samples(length, target);
+				sample_source_.template apply_samples<Action::Store>(length, target);
 			}
 		}
 };

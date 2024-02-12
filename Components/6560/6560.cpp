@@ -19,6 +19,7 @@ AudioGenerator::AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue) 
 void AudioGenerator::set_volume(uint8_t volume) {
 	audio_queue_.enqueue([this, volume]() {
 		volume_ = int16_t(volume) * range_multiplier_;
+		dc_offset_ = volume_ >> 4;
 	});
 }
 
@@ -105,7 +106,8 @@ static uint8_t noise_pattern[] = {
 // testing against 0x80. The effect should be the same: loading with 0x7f means an output update every cycle, loading with 0x7e
 // means every second cycle, etc.
 
-void AudioGenerator::get_samples(std::size_t number_of_samples, int16_t *target) {
+template <Outputs::Speaker::Action action>
+void AudioGenerator::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 	for(unsigned int c = 0; c < number_of_samples; ++c) {
 		update(0, 2, shift);
 		update(1, 1, shift);
@@ -114,23 +116,22 @@ void AudioGenerator::get_samples(std::size_t number_of_samples, int16_t *target)
 
 		// this sums the output of all three sounds channels plus a DC offset for volume;
 		// TODO: what's the real ratio of this stuff?
-		target[c] = int16_t(
+		const int16_t sample =
 			(shift_registers_[0]&1) +
 			(shift_registers_[1]&1) +
 			(shift_registers_[2]&1) +
-			((noise_pattern[shift_registers_[3] >> 3] >> (shift_registers_[3]&7))&(control_registers_[3] >> 7)&1)
-		) * volume_ + (volume_ >> 4);
-	}
-}
+			((noise_pattern[shift_registers_[3] >> 3] >> (shift_registers_[3]&7))&(control_registers_[3] >> 7)&1);
 
-void AudioGenerator::skip_samples(std::size_t number_of_samples) {
-	for(unsigned int c = 0; c < number_of_samples; ++c) {
-		update(0, 2, shift);
-		update(1, 1, shift);
-		update(2, 0, shift);
-		update(3, 1, increment);
+		Outputs::Speaker::apply<action>(
+			target[c],
+			Outputs::Speaker::MonoSample(
+				sample * volume_ + dc_offset_
+			));
 	}
 }
+template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
 
 void AudioGenerator::set_sample_volume_range(std::int16_t range) {
 	range_multiplier_ = int16_t(range / 64);

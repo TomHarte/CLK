@@ -27,6 +27,9 @@ struct StereoSample {
 		left = rhs.left;
 		right = rhs.right;
 	}
+	StereoSample(MonoSample value) {
+		left = right = value;
+	}
 
 	StereoSample &operator +=(const StereoSample &rhs) {
 		left += rhs.left;

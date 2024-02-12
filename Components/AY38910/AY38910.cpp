@@ -102,7 +102,8 @@ template <bool is_stereo> void AY38910<is_stereo>::set_output_mixing(float a_lef
 }
 
 template <bool is_stereo>
-void AY38910<is_stereo>::get_samples(
+template <Outputs::Speaker::Action action>
+void AY38910<is_stereo>::apply_samples(
 	std::size_t number_of_samples,
 	typename Outputs::Speaker::SampleT<is_stereo>::type *target
 ) {
@@ -117,7 +118,7 @@ void AY38910<is_stereo>::get_samples(
 
 	std::size_t c = 0;
 	while((master_divider_&3) && c < number_of_samples) {
-		target[c] = output_volume_;
+		Outputs::Speaker::apply<action>(target[c], output_volume_);
 		master_divider_++;
 		c++;
 	}
@@ -159,7 +160,7 @@ void AY38910<is_stereo>::get_samples(
 		evaluate_output_volume();
 
 		for(int ic = 0; ic < 4 && c < number_of_samples; ic++) {
-			target[c] = output_volume_;
+			Outputs::Speaker::apply<action>(target[c], output_volume_);
 			c++;
 			master_divider_++;
 		}
@@ -167,6 +168,13 @@ void AY38910<is_stereo>::get_samples(
 
 	master_divider_ &= 3;
 }
+
+template void AY38910<false>::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, typename Outputs::Speaker::SampleT<false>::type *);
+template void AY38910<false>::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, typename Outputs::Speaker::SampleT<false>::type *);
+template void AY38910<false>::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, typename Outputs::Speaker::SampleT<false>::type *);
+template void AY38910<true>::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, typename Outputs::Speaker::SampleT<true>::type *);
+template void AY38910<true>::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, typename Outputs::Speaker::SampleT<true>::type *);
+template void AY38910<true>::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, typename Outputs::Speaker::SampleT<true>::type *);
 
 template <bool is_stereo> void AY38910<is_stereo>::evaluate_output_volume() {
 	int envelope_volume = envelope_shapes_[output_registers_[13]][envelope_position_ | envelope_position_mask_];

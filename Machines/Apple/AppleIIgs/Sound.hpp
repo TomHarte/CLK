@@ -34,9 +34,9 @@ class GLU: public Outputs::Speaker::BufferSource<GLU, false> {	// TODO: isn't th
 		bool get_interrupt_line();
 
 		// SampleSource.
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
-		void skip_samples(const std::size_t number_of_samples);
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;
@@ -94,7 +94,8 @@ class GLU: public Outputs::Speaker::BufferSource<GLU, false> {	// TODO: isn't th
 
 		// Functions to update an EnsoniqState; these don't belong to the state itself
 		// because they also access the pending stores (inter alia).
-		void generate_audio(size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void skip_audio(EnsoniqState &state, size_t number_of_samples);
 
 		// Audio-thread state.

@@ -20,9 +20,11 @@ class Toggle: public Outputs::Speaker::BufferSource<Toggle, false> {
 	public:
 		Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
-		void get_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+			Outputs::Speaker::fill<action>(target, target + number_of_samples, level_);
+		}
 		void set_sample_volume_range(std::int16_t range);
-		void skip_samples(const std::size_t number_of_samples);
 
 		void set_output(bool enabled);
 		bool get_output() const;

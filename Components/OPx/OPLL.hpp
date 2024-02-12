@@ -25,7 +25,8 @@ class OPLL: public OPLBase<OPLL, false> {
 		OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, int audio_divider = 1, bool is_vrc7 = false);
 
 		/// As per ::SampleSource; provides audio output.
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
 
 		// The OPLL is generally 'half' as loud as it's told to be. This won't strictly be true in

@@ -28,7 +28,8 @@ class SN76489: public Outputs::Speaker::BufferSource<SN76489, false> {
 		void write(uint8_t value);
 
 		// As per SampleSource.
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
 

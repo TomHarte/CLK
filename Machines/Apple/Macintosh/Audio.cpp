@@ -71,7 +71,8 @@ void Audio::set_volume_multiplier() {
 	volume_multiplier_ = int16_t(output_volume_ * volume_ * enabled_mask_);
 }
 
-void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
+template <Outputs::Speaker::Action action>
+void Audio::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 	// TODO: the implementation below acts as if the hardware uses pulse-amplitude modulation;
 	// in fact it uses pulse-width modulation. But the scale for pulses isn't specified, so
 	// that's something to return to.
@@ -82,7 +83,7 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 		// Determine the output level, and output that many samples.
 		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer].load(std::memory_order::memory_order_relaxed)) - 128);
-		std::fill(target, target + cycles_left_in_sample, output_level);
+		Outputs::Speaker::fill<action>(target, target + cycles_left_in_sample, output_level);
 		target += cycles_left_in_sample;
 
 		// Advance the sample pointer.
@@ -94,3 +95,6 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 		number_of_samples -= cycles_left_in_sample;
 	}
 }
+template void Audio::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void Audio::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void Audio::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);

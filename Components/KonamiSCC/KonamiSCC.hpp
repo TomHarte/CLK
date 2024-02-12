@@ -29,7 +29,8 @@ class SCC: public ::Outputs::Speaker::BufferSource<SCC, false> {
 		bool is_zero_level() const;
 
 		/// As per ::SampleSource; provides audio output.
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
 
 		/// Writes to the SCC.
@@ -44,7 +45,7 @@ class SCC: public ::Outputs::Speaker::BufferSource<SCC, false> {
 		// State from here on down is accessed ony from the audio thread.
 		int master_divider_ = 0;
 		std::int16_t master_volume_ = 0;
-		int16_t transient_output_level_ = 0;
+		Outputs::Speaker::MonoSample transient_output_level_ = 0;
 
 		struct Channel {
 			int period = 0;

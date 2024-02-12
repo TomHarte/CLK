@@ -99,7 +99,8 @@ void Audio::update_channel(int c) {
 	channels_[c].output |= output;
 }
 
-void Audio::get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
+template <Outputs::Speaker::Action action>
+void Audio::apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
 	Outputs::Speaker::StereoSample output_level;
 
 	size_t c = 0;
@@ -130,7 +131,7 @@ void Audio::get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoS
 
 		while(global_divider_ && c < number_of_samples) {
 			--global_divider_;
-			target[c] = output_level;
+			Outputs::Speaker::apply<action>(target[c], output_level);
 			++c;
 		}
 		global_divider_ = global_divider_reload_;
@@ -203,6 +204,9 @@ void Audio::get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoS
 		}
 	}
 }
+template void Audio::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::StereoSample *);
+template void Audio::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::StereoSample *);
+template void Audio::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::StereoSample *);
 
 // MARK: - Interrupt source
 

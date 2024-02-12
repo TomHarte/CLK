@@ -50,7 +50,8 @@ class Audio: public ::Outputs::Speaker::BufferSource<Audio, false> {
 		void set_enabled(bool on);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
 

@@ -37,7 +37,8 @@ class Audio: public Outputs::Speaker::BufferSource<Audio, true> {
 
 		// MARK: - SampleSource.
 		void set_sample_volume_range(int16_t range);
-		void get_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target);
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

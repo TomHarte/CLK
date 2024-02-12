@@ -49,14 +49,13 @@ template <typename... T> class CompoundSource:
 	private:
 		template <typename... S> class CompoundSourceHolder {
 			public:
-				template <bool output_stereo>
-				void get_samples(std::size_t number_of_samples, typename SampleT<output_stereo>::type *target) {
+				template <Outputs::Speaker::Action action, bool output_stereo>
+				void apply_samples(std::size_t number_of_samples, typename SampleT<output_stereo>::type *target) {
 					// Default-construct all samples, to fill with silence.
-					std::fill(target, target + number_of_samples, typename SampleT<output_stereo>::type());
+					Outputs::Speaker::fill<action>(target, target + number_of_samples, typename SampleT<output_stereo>::type());
 				}
 
 				void set_scaled_volume_range(int16_t, double *, double) {}
-				void skip_samples(const std::size_t) {}
 
 				static constexpr std::size_t size() {
 					return 0;
@@ -75,8 +74,8 @@ template <typename... T> class CompoundSource:
 
 				static constexpr bool is_stereo = S::is_stereo || CompoundSourceHolder<R...>::is_stereo;
 
-				template <bool output_stereo>
-				void get_samples(std::size_t number_of_samples, typename ::Outputs::Speaker::SampleT<output_stereo>::type *target) {
+				template <Outputs::Speaker::Action action, bool output_stereo>
+				void apply_samples(std::size_t number_of_samples, typename ::Outputs::Speaker::SampleT<output_stereo>::type *target) {
 
 					// If this is the step at which a mono-to-stereo adaptation happens, apply it.
 					if constexpr (output_stereo && !S::is_stereo) {
@@ -87,40 +86,26 @@ template <typename... T> class CompoundSource:
 						}
 
 						// Populate the conversion buffer with this source and all below.
-						get_samples<false>(number_of_samples, conversion_source_.data());
+						apply_samples<Action::Store, false>(number_of_samples, conversion_source_.data());
 
 						// Map up and return.
 						for(std::size_t c = 0; c < number_of_samples; c++) {
-							target[c].left = target[c].right = conversion_source_[c];
+							Outputs::Speaker::apply<action>(target[c].left, StereoSample(conversion_source_[c]));
 						}
 						return;
 					}
 
 					// Get the rest of the output.
-					next_source_.template get_samples<output_stereo>(number_of_samples, target);
+					next_source_.template apply_samples<action, output_stereo>(number_of_samples, target);
 
 					if(source_.is_zero_level()) {
 						// This component is currently outputting silence; therefore don't add anything to the output
 						// audio — just pass the call onward.
-						source_.skip_samples(number_of_samples);
 						return;
 					}
 
-					// Get this component's output.
-					typename SampleT<output_stereo>::type local_samples[number_of_samples];
-					source_.get_samples(number_of_samples, local_samples);
-
-					// Merge it in.
-					while(number_of_samples--) {
-						target[number_of_samples] += local_samples[number_of_samples];
-					}
-
-					// TODO: accelerate above?
-				}
-
-				void skip_samples(const std::size_t number_of_samples) {
-					source_.skip_samples(number_of_samples);
-					next_source_.skip_samples(number_of_samples);
+					// Add in this component's output.
+					source_.template apply_samples<Action::Mix>(number_of_samples, target);
 				}
 
 				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {
@@ -157,12 +142,9 @@ template <typename... T> class CompoundSource:
 			}
 		}
 
-		void get_samples(std::size_t number_of_samples, Sample *target) {
-			source_holder_.template get_samples<::Outputs::Speaker::is_stereo<T...>()>(number_of_samples, target);
-		}
-
-		void skip_samples(const std::size_t number_of_samples) {
-			source_holder_.skip_samples(number_of_samples);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Sample *target) {
+			source_holder_.template apply_samples<action, ::Outputs::Speaker::is_stereo<T...>()>(number_of_samples, target);
 		}
 
 		/*!

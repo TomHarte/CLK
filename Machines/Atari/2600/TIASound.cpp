@@ -40,9 +40,10 @@ void Atari2600::TIASound::set_control(int channel, uint8_t control) {
 #define advance_poly5(c) poly5_counter_[channel] = (poly5_counter_[channel] >> 1) | (((poly5_counter_[channel] << 4) ^ (poly5_counter_[channel] << 2))&0x010)
 #define advance_poly9(c) poly9_counter_[channel] = (poly9_counter_[channel] >> 1) | (((poly9_counter_[channel] << 4) ^ (poly9_counter_[channel] << 8))&0x100)
 
-void Atari2600::TIASound::get_samples(std::size_t number_of_samples, int16_t *target) {
+template <Outputs::Speaker::Action action>
+void Atari2600::TIASound::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 	for(unsigned int c = 0; c < number_of_samples; c++) {
-		target[c] = 0;
+		Outputs::Speaker::MonoSample output = 0;
 		for(int channel = 0; channel < 2; channel++) {
 			divider_counter_[channel] ++;
 			int divider_value = divider_counter_[channel] / (38 / CPUTicksPerAudioTick);
@@ -119,10 +120,14 @@ void Atari2600::TIASound::get_samples(std::size_t number_of_samples, int16_t *ta
 				break;
 			}
 
-			target[c] += (volume_[channel] * per_channel_volume_ * level) >> 4;
+			output += (volume_[channel] * per_channel_volume_ * level) >> 4;
 		}
+		Outputs::Speaker::apply<action>(target[c], output);
 	}
 }
+template void Atari2600::TIASound::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void Atari2600::TIASound::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void Atari2600::TIASound::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
 
 void Atari2600::TIASound::set_sample_volume_range(std::int16_t range) {
 	per_channel_volume_ = range / 2;

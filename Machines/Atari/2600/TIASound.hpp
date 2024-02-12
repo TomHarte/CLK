@@ -26,7 +26,8 @@ class TIASound: public Outputs::Speaker::BufferSource<TIASound, false> {
 		void set_control(int channel, uint8_t control);
 
 		// To satisfy ::SampleSource.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
 
 	private:

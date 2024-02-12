@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -15,6 +16,38 @@
 #include "../Speaker.hpp"
 
 namespace Outputs::Speaker {
+
+enum class Action {
+	/// New values should be _stored_ to the sample buffer.
+	Store,
+	/// New values should be _added_ to the sample buffer.
+	Mix,
+	/// New values shouldn't be stored; the source can skip generation of them if desired.
+	Ignore,
+};
+
+template <Action action, typename SampleT> void apply(SampleT &lhs, SampleT rhs) {
+	switch(action) {
+		case Action::Mix:	lhs += rhs;	break;
+		case Action::Store:	lhs = rhs;	break;
+		case Action::Ignore:			break;
+	}
+}
+
+template <Action action, typename IteratorT, typename SampleT> void fill(IteratorT begin, IteratorT end, SampleT value) {
+	switch(action) {
+		case Action::Mix:
+			while(begin != end) {
+				apply<action>(*begin, value);
+				++begin;
+			}
+		break;
+		case Action::Store:
+			std::fill(begin, end, value);
+		break;
+		case Action::Ignore:	break;
+	}
+}
 
 /*!
 	A sample source is something that can provide a stream of audio.
@@ -30,20 +63,11 @@ class BufferSource {
 		static constexpr bool is_stereo = stereo;
 
 		/*!
-			Should write the next @c number_of_samples to @c target.
+			Should 'apply' the next @c number_of_samples to @c target ; application means applying @c action which can be achieved either via the
+			helper functions above — @c apply and @c fill — or by semantic inspection (primarily, if an obvious quick route for @c Action::Ignore is available)
 		*/
-		void get_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] typename SampleT<stereo>::type *target) {}
-
-		/*!
-			Should skip the next @c number_of_samples. Subclasses of this SampleSource
-			need not implement this if it would no more efficient to do so than it is
-			merely to call get_samples and throw the result away, as per the default
-			implementation below.
-		*/
-		void skip_samples(std::size_t number_of_samples) {
-			typename SampleT<stereo>::type scratch_pad[number_of_samples];
-			get_samples(number_of_samples, scratch_pad);
-		}
+		template <Action action>
+		void apply_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] typename SampleT<stereo>::type *target) {}
 
 		/*!
 			@returns @c true if it is trivially true that a call to get_samples would just
@@ -75,13 +99,15 @@ class BufferSource {
 template <typename SourceT, bool stereo, int divider = 1>
 struct SampleSource: public BufferSource<SourceT, stereo> {
 	public:
-		void get_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target) {
+		template <bool mix>
+		void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target) {
 			const auto &source = *static_cast<SourceT *>(this);
 
 			if constexpr (divider == 1) {
 				while(number_of_samples--) {
-					*target = source.level();
+					apply<mix>(*target, source.level());
 					++target;
+					source.advance();
 				}
 			} else {
 				std::size_t c = 0;
@@ -89,7 +115,7 @@ struct SampleSource: public BufferSource<SourceT, stereo> {
 				// Fill in the tail of any partially-captured level.
 				auto level = source.level();
 				while(c < number_of_samples && master_divider_ != divider) {
-					target[c] = level;
+					apply<mix>(target[c], level);
 					++c;
 					++master_divider_;
 				}
@@ -98,7 +124,7 @@ struct SampleSource: public BufferSource<SourceT, stereo> {
 				// Provide all full levels.
 				int whole_steps = (number_of_samples - c) / divider;
 				while(whole_steps--) {
-					std::fill(&target[c], &target[c + divider], source.level());
+					fill<mix>(&target[c], &target[c + divider], source.level());
 					c += divider;
 					source.advance();
 				}
@@ -106,31 +132,7 @@ struct SampleSource: public BufferSource<SourceT, stereo> {
 				// Provide the head of a further partial capture.
 				level = source.level();
 				master_divider_ = number_of_samples - c;
-				std::fill(&target[c], &target[number_of_samples], source.level());
-			}
-		}
-
-		void skip_samples(std::size_t number_of_samples) {
-			const auto &source = *static_cast<SourceT *>(this);
-
-			if constexpr (&SourceT::advance == &SampleSource::advance) {
-				return;
-			}
-
-			if constexpr (divider == 1) {
-				while(--number_of_samples) {
-					source.advance();
-				}
-			} else {
-				if(number_of_samples >= divider - master_divider_) {
-					source.advance();
-					number_of_samples -= (divider - master_divider_);
-				}
-				while(number_of_samples > divider) {
-					advance();
-					number_of_samples -= divider;
-				}
-				master_divider_ = number_of_samples;
+				fill<mix>(&target[c], &target[number_of_samples], source.level());
 			}
 		}
 
