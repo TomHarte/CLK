@@ -14,6 +14,41 @@
 
 namespace Outputs::Speaker {
 
+using MonoSample = int16_t;
+struct StereoSample {
+#if TARGET_RT_BIG_ENDIAN
+	int16_t right = 0, left = 0;
+#else
+	int16_t left = 0, right = 0;
+#endif
+
+	StereoSample() = default;
+	StereoSample(const StereoSample &rhs) {
+		left = rhs.left;
+		right = rhs.right;
+	}
+	StereoSample(MonoSample value) {
+		left = right = value;
+	}
+
+	StereoSample &operator +=(const StereoSample &rhs) {
+		left += rhs.left;
+		right += rhs.right;
+		return *this;
+	}
+
+	StereoSample operator +(const StereoSample &rhs) {
+		StereoSample result;
+		result.left = left + rhs.left;
+		result.right = right + rhs.right;
+		return *this;
+	}
+};
+
+template <bool stereo> struct SampleT {
+	using type = std::conditional_t<stereo, StereoSample, MonoSample>;
+};
+
 /*!
 	Provides a communication point for sound; machines that have a speaker provide an
 	audio output.

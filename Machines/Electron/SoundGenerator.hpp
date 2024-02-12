@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Electron {
 
-class SoundGenerator: public ::Outputs::Speaker::SampleSource {
+class SoundGenerator: public ::Outputs::Speaker::BufferSource<SoundGenerator, false> {
 	public:
 		SoundGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -23,11 +23,10 @@ class SoundGenerator: public ::Outputs::Speaker::SampleSource {
 
 		static constexpr unsigned int clock_rate_divider = 8;
 
-		// To satisfy ::SampleSource.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
-		void skip_samples(std::size_t number_of_samples);
+		// For BufferSource.
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

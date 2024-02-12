@@ -13,7 +13,7 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Numeric/LFSR.hpp"
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace Enterprise::Dave {
 
@@ -26,7 +26,7 @@ enum class Interrupt: uint8_t {
 /*!
 	Models the audio-production subset of Dave's behaviour.
 */
-class Audio: public Outputs::Speaker::SampleSource {
+class Audio: public Outputs::Speaker::BufferSource<Audio, true> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -37,8 +37,8 @@ class Audio: public Outputs::Speaker::SampleSource {
 
 		// MARK: - SampleSource.
 		void set_sample_volume_range(int16_t range);
-		static constexpr bool get_is_stereo() { return true; }	// Dave produces stereo sound.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target);
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Atari2600 {
@@ -17,7 +17,7 @@ namespace Atari2600 {
 // will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
 constexpr int CPUTicksPerAudioTick = 2;
 
-class TIASound: public Outputs::Speaker::SampleSource {
+class TIASound: public Outputs::Speaker::BufferSource<TIASound, false> {
 	public:
 		TIASound(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -26,9 +26,9 @@ class TIASound: public Outputs::Speaker::SampleSource {
 		void set_control(int channel, uint8_t control);
 
 		// To satisfy ::SampleSource.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;

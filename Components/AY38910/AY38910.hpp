@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 #include "../../Reflection/Struct.hpp"
@@ -66,7 +66,7 @@ enum class Personality {
 
 	This AY has an attached mono or stereo mixer.
 */
-template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource {
+template <bool stereo> class AY38910: public ::Outputs::Speaker::BufferSource<AY38910<stereo>, stereo> {
 	public:
 		/// Creates a new AY38910.
 		AY38910(Personality, Concurrency::AsyncTaskQueue<false> &);
@@ -105,11 +105,11 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		*/
 		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
-		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		// Buffer generation.
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, typename Outputs::Speaker::SampleT<stereo>::type *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool get_is_stereo() { return is_stereo; }
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;
@@ -150,7 +150,7 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 
 		uint8_t data_input_, data_output_;
 
-		uint32_t output_volume_;
+		typename Outputs::Speaker::SampleT<stereo>::type output_volume_;
 
 		void update_bus();
 		PortHandler *port_handler_ = nullptr;

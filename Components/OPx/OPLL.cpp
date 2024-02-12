@@ -278,7 +278,8 @@ void OPLL::set_sample_volume_range(std::int16_t range) {
 	total_volume_ = range;
 }
 
-void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+template <Outputs::Speaker::Action action>
+void OPLL::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 	// Both the OPLL and the OPL2 divide the input clock by 72 to get the base tick frequency;
 	// unlike the OPL2 the OPLL time-divides the output for 'mixing'.
 
@@ -289,11 +290,15 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	while(number_of_samples--) {
 		if(!audio_offset_) update_all_channels();
 
-		*target = output_levels_[audio_offset_ / channel_output_period];
+		Outputs::Speaker::apply<action>(*target, output_levels_[audio_offset_ / channel_output_period]);
 		++target;
 		audio_offset_ = (audio_offset_ + 1) % update_period;
 	}
 }
+
+template void OPLL::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void OPLL::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void OPLL::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
 
 void OPLL::update_all_channels() {
 	oscillator_.update();

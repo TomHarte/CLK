@@ -41,7 +41,7 @@
 #include "../../Outputs/Log.hpp"
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"

@@ -28,7 +28,7 @@ class DriveSpeedAccumulator {
 			Sets the delegate to receive drive speed changes.
 		*/
 		void set_delegate(Delegate *delegate) {
-			delegate_ = delegate;;
+			delegate_ = delegate;
 		}
 
 	private:

@@ -221,7 +221,7 @@ class ConcreteMachine:
 		// MARK: - MachineTypes::MouseMachine.
 
 		Inputs::Mouse &get_mouse() final {
-			return chipset_.get_mouse();;
+			return chipset_.get_mouse();
 		}
 
 		// MARK: - MachineTypes::JoystickMachine.
