@@ -23,7 +23,7 @@ class SoundGenerator: public ::Outputs::Speaker::BufferSource<SoundGenerator, fa
 
 		static constexpr unsigned int clock_rate_divider = 8;
 
-		// To satisfy ::SampleSource.
+		// For BufferSource.
 		template <Outputs::Speaker::Action action>
 		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);

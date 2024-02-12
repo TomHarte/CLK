@@ -64,10 +64,12 @@ class BufferSource {
 
 		/*!
 			Should 'apply' the next @c number_of_samples to @c target ; application means applying @c action which can be achieved either via the
-			helper functions above — @c apply and @c fill — or by semantic inspection (primarily, if an obvious quick route for @c Action::Ignore is available)
+			helper functions above — @c apply and @c fill — or by semantic inspection (primarily, if an obvious quick route for @c Action::Ignore is available).
+
+			No default implementation is provided.
 		*/
 		template <Action action>
-		void apply_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] typename SampleT<stereo>::type *target) {}
+		void apply_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] typename SampleT<stereo>::type *target);
 
 		/*!
 			@returns @c true if it is trivially true that a call to get_samples would just
