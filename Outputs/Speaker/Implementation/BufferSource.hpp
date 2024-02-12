@@ -69,7 +69,7 @@ class BufferSource {
 			No default implementation is provided.
 		*/
 		template <Action action>
-		void apply_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] typename SampleT<stereo>::type *target);
+		void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target);
 
 		/*!
 			@returns @c true if it is trivially true that a call to get_samples would just
@@ -82,7 +82,7 @@ class BufferSource {
 			Sets the proper output range for this sample source; it should write values
 			between 0 and volume.
 		*/
-		void set_sample_volume_range([[maybe_unused]] std::int16_t volume) {}
+		void set_sample_volume_range(std::int16_t volume);
 
 		/*!
 			Permits a sample source to declare that, averaged over time, it will use only
