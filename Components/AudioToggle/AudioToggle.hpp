@@ -25,6 +25,9 @@ class Toggle: public Outputs::Speaker::BufferSource<Toggle, false> {
 			Outputs::Speaker::fill<action>(target, target + number_of_samples, level_);
 		}
 		void set_sample_volume_range(std::int16_t range);
+		bool is_zero_level() const {
+			return !level_;
+		}
 
 		void set_output(bool enabled);
 		bool get_output() const;

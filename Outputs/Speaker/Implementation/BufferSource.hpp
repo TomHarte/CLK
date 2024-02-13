@@ -76,13 +76,13 @@ class BufferSource {
 				fill the target with zeroes; @c false if a call might return all zeroes or
 				might not.
 		*/
-		bool is_zero_level() const						{	return false;	}
+//		bool is_zero_level() const						{	return false;	}
 
 		/*!
 			Sets the proper output range for this sample source; it should write values
 			between 0 and volume.
 		*/
-		void set_sample_volume_range(std::int16_t volume);
+//		void set_sample_volume_range(std::int16_t volume);
 
 		/*!
 			Permits a sample source to declare that, averaged over time, it will use only
@@ -101,13 +101,13 @@ class BufferSource {
 template <typename SourceT, bool stereo, int divider = 1>
 struct SampleSource: public BufferSource<SourceT, stereo> {
 	public:
-		template <bool mix>
+		template <Action action>
 		void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target) {
-			const auto &source = *static_cast<SourceT *>(this);
+			auto &source = *static_cast<SourceT *>(this);
 
 			if constexpr (divider == 1) {
 				while(number_of_samples--) {
-					apply<mix>(*target, source.level());
+					apply<action>(*target, source.level());
 					++target;
 					source.advance();
 				}
@@ -117,34 +117,32 @@ struct SampleSource: public BufferSource<SourceT, stereo> {
 				// Fill in the tail of any partially-captured level.
 				auto level = source.level();
 				while(c < number_of_samples && master_divider_ != divider) {
-					apply<mix>(target[c], level);
+					apply<action>(target[c], level);
 					++c;
 					++master_divider_;
 				}
 				source.advance();
 
 				// Provide all full levels.
-				int whole_steps = (number_of_samples - c) / divider;
+				auto whole_steps = static_cast<int>((number_of_samples - c) / divider);
 				while(whole_steps--) {
-					fill<mix>(&target[c], &target[c + divider], source.level());
+					fill<action>(&target[c], &target[c + divider], source.level());
 					c += divider;
 					source.advance();
 				}
 
 				// Provide the head of a further partial capture.
 				level = source.level();
-				master_divider_ = number_of_samples - c;
-				fill<mix>(&target[c], &target[number_of_samples], source.level());
+				master_divider_ = static_cast<int>(number_of_samples - c);
+				fill<action>(&target[c], &target[number_of_samples], source.level());
 			}
 		}
 
 		// TODO: use a concept here, when C++20 filters through.
 		//
 		// Until then: sample sources should implement this.
-		auto level() const	{
-			return typename SampleT<stereo>::type();
-		}
-		void advance() {}
+//		typename SampleT<stereo>::type level() const;
+//		void advance();
 
 	private:
 		int master_divider_{};

@@ -37,6 +37,7 @@ class GLU: public Outputs::Speaker::BufferSource<GLU, false> {	// TODO: isn't th
 		template <Outputs::Speaker::Action action>
 		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
+		bool is_zero_level() const { return false; }	// TODO.
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;
