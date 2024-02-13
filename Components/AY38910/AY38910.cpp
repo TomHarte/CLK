@@ -12,6 +12,15 @@
 
 using namespace GI::AY38910;
 
+// Note on dividers: the real AY has a built-in divider of 8
+// prior to applying its tone and noise dividers. But the YM fills the
+// same total periods for noise and tone with double-precision envelopes.
+// Therefore this class implements a divider of 4 and doubles the tone
+// and noise periods. The envelope ticks along at the divide-by-four rate,
+// but if this is an AY rather than a YM then its lowest bit is forced to 1,
+// matching the YM datasheet's depiction of envelope level 31 as equal to
+// programmatic volume 15, envelope level 29 as equal to programmatic 14, etc.
+
 template <bool is_stereo>
 AY38910SampleSource<is_stereo>::AY38910SampleSource(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {
 	// Don't use the low bit of the envelope position if this is an AY.
@@ -100,15 +109,6 @@ void AY38910SampleSource<is_stereo>::set_output_mixing(float a_left, float b_lef
 	b_right_ = uint8_t(b_right * 255.0f);
 	c_right_ = uint8_t(c_right * 255.0f);
 }
-
-	// Note on structure below: the real AY has a built-in divider of 8
-	// prior to applying its tone and noise dividers. But the YM fills the
-	// same total periods for noise and tone with double-precision envelopes.
-	// Therefore this class implements a divider of 4 and doubles the tone
-	// and noise periods. The envelope ticks along at the divide-by-four rate,
-	// but if this is an AY rather than a YM then its lowest bit is forced to 1,
-	// matching the YM datasheet's depiction of envelope level 31 as equal to
-	// programmatic volume 15, envelope level 29 as equal to programmatic 14, etc.
 
 template <bool is_stereo>
 void AY38910SampleSource<is_stereo>::advance() {
@@ -391,3 +391,8 @@ void AY38910SampleSource<is_stereo>::update_bus() {
 // Ensure both mono and stereo versions of the AY are built.
 template class GI::AY38910::AY38910SampleSource<true>;
 template class GI::AY38910::AY38910SampleSource<false>;
+
+// Perform an explicit instantiation of the BufferSource to hope for
+// appropriate inlining of advance() and level().
+template struct GI::AY38910::AY38910<true>;
+template struct GI::AY38910::AY38910<false>;

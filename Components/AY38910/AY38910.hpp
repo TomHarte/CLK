@@ -164,8 +164,11 @@ template <bool stereo> class AY38910SampleSource {
 		friend struct State;
 };
 
-/// Define a default AY to be the sample source with a master divider of 4;
-/// real AYs have a divide-by-8 step built in but YMs have only a divide-by-4,
+/// Defines a default AY to be the sample source with a master divider of 4;
+/// real AYs have a divide-by-8 step built in but YMs apply only a divide by 4.
+///
+/// The implementation of AY38910SampleSource combines those two worlds
+/// by always applying a divide by four and scaling other things as appropriate.
 template <bool stereo> struct AY38910:
 	public AY38910SampleSource<stereo>,
 	public Outputs::Speaker::SampleSource<AY38910<stereo>, stereo, 4> {
