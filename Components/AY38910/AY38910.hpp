@@ -66,10 +66,10 @@ enum class Personality {
 
 	This AY has an attached mono or stereo mixer.
 */
-template <bool stereo> class AY38910: public ::Outputs::Speaker::BufferSource<AY38910<stereo>, stereo> {
+template <bool stereo> class AY38910SampleSource {
 	public:
 		/// Creates a new AY38910.
-		AY38910(Personality, Concurrency::AsyncTaskQueue<false> &);
+		AY38910SampleSource(Personality, Concurrency::AsyncTaskQueue<false> &);
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -105,9 +105,9 @@ template <bool stereo> class AY38910: public ::Outputs::Speaker::BufferSource<AY
 		*/
 		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
-		// Buffer generation.
-		template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, typename Outputs::Speaker::SampleT<stereo>::type *target);
+		// Sample generation.
+		typename Outputs::Speaker::SampleT<stereo>::type level() const;
+		void advance();
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
 
@@ -117,8 +117,6 @@ template <bool stereo> class AY38910: public ::Outputs::Speaker::BufferSource<AY
 		int selected_register_ = 0;
 		uint8_t registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-		int master_divider_ = 0;
 
 		int tone_periods_[3] = {0, 0, 0};
 		int tone_counters_[3] = {0, 0, 0};
@@ -164,6 +162,20 @@ template <bool stereo> class AY38910: public ::Outputs::Speaker::BufferSource<AY
 		uint8_t c_left_ = 255, c_right_ = 255;
 
 		friend struct State;
+};
+
+/// Defines a default AY to be the sample source with a master divider of 4;
+/// real AYs have a divide-by-8 step built in but YMs apply only a divide by 4.
+///
+/// The implementation of AY38910SampleSource combines those two worlds
+/// by always applying a divide by four and scaling other things as appropriate.
+template <bool stereo> struct AY38910:
+	public AY38910SampleSource<stereo>,
+	public Outputs::Speaker::SampleSource<AY38910<stereo>, stereo, 4> {
+
+	// Use the same constructor as `AY38910SampleSource` (along with inheriting
+	// the rest of its interface).
+	using AY38910SampleSource<stereo>::AY38910SampleSource;
 };
 
 /*!

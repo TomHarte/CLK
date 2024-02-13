@@ -10,17 +10,24 @@
 
 #include "AY38910.hpp"
 
-//namespace GI {
-//namespace AY38910 {
-
 using namespace GI::AY38910;
 
+// Note on dividers: the real AY has a built-in divider of 8
+// prior to applying its tone and noise dividers. But the YM fills the
+// same total periods for noise and tone with double-precision envelopes.
+// Therefore this class implements a divider of 4 and doubles the tone
+// and noise periods. The envelope ticks along at the divide-by-four rate,
+// but if this is an AY rather than a YM then its lowest bit is forced to 1,
+// matching the YM datasheet's depiction of envelope level 31 as equal to
+// programmatic volume 15, envelope level 29 as equal to programmatic 14, etc.
+
 template <bool is_stereo>
-AY38910<is_stereo>::AY38910(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {
+AY38910SampleSource<is_stereo>::AY38910SampleSource(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {
 	// Don't use the low bit of the envelope position if this is an AY.
 	envelope_position_mask_ |= personality == Personality::AY38910;
 
-	// Set up envelope lookup tables.
+	// Set up envelope lookup tables; these are based on 32 volume levels as used by the YM2149F.
+	// The AY38910 will just use only even table entries, and therefore only even volumes.
 	for(int c = 0; c < 16; c++) {
 		for(int p = 0; p < 64; p++) {
 			switch(c) {
@@ -74,7 +81,8 @@ AY38910<is_stereo>::AY38910(Personality personality, Concurrency::AsyncTaskQueue
 	set_sample_volume_range(0);
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::set_sample_volume_range(std::int16_t range) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_sample_volume_range(std::int16_t range) {
 	// Set up volume lookup table; the function below is based on a combination of the graph
 	// from the YM's datasheet, showing a clear power curve, and fitting that to observed
 	// values reported elsewhere.
@@ -92,7 +100,8 @@ template <bool is_stereo> void AY38910<is_stereo>::set_sample_volume_range(std::
 	evaluate_output_volume();
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::set_output_mixing(float a_left, float b_left, float c_left, float a_right, float b_right, float c_right) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_output_mixing(float a_left, float b_left, float c_left, float a_right, float b_right, float c_right) {
 	a_left_ = uint8_t(a_left * 255.0f);
 	b_left_ = uint8_t(b_left * 255.0f);
 	c_left_ = uint8_t(c_left * 255.0f);
@@ -102,81 +111,49 @@ template <bool is_stereo> void AY38910<is_stereo>::set_output_mixing(float a_lef
 }
 
 template <bool is_stereo>
-template <Outputs::Speaker::Action action>
-void AY38910<is_stereo>::apply_samples(
-	std::size_t number_of_samples,
-	typename Outputs::Speaker::SampleT<is_stereo>::type *target
-) {
-	// Note on structure below: the real AY has a built-in divider of 8
-	// prior to applying its tone and noise dividers. But the YM fills the
-	// same total periods for noise and tone with double-precision envelopes.
-	// Therefore this class implements a divider of 4 and doubles the tone
-	// and noise periods. The envelope ticks along at the divide-by-four rate,
-	// but if this is an AY rather than a YM then its lowest bit is forced to 1,
-	// matching the YM datasheet's depiction of envelope level 31 as equal to
-	// programmatic volume 15, envelope level 29 as equal to programmatic 14, etc.
-
-	std::size_t c = 0;
-	while((master_divider_&3) && c < number_of_samples) {
-		Outputs::Speaker::apply<action>(target[c], output_volume_);
-		master_divider_++;
-		c++;
-	}
-
-	while(c < number_of_samples) {
-#define step_channel(c) \
-	if(tone_counters_[c]) tone_counters_[c]--;\
-	else {\
-		tone_outputs_[c] ^= 1;\
-		tone_counters_[c] = tone_periods_[c] << 1;\
-	}
-
-		// Update the tone channels.
-		step_channel(0);
-		step_channel(1);
-		step_channel(2);
-
-#undef step_channel
-
-		// Update the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
-		// it into the official 17 upon divider underflow.
-		if(noise_counter_) noise_counter_--;
+void AY38910SampleSource<is_stereo>::advance() {
+	const auto step_channel = [&](int c) {
+		if(tone_counters_[c]) --tone_counters_[c];
 		else {
-			noise_counter_ = noise_period_ << 1;	// To cover the double resolution of envelopes.
-			noise_output_ ^= noise_shift_register_&1;
-			noise_shift_register_ |= ((noise_shift_register_ ^ (noise_shift_register_ >> 3))&1) << 17;
-			noise_shift_register_ >>= 1;
+			tone_outputs_[c] ^= 1;
+			tone_counters_[c] = tone_periods_[c] << 1;
 		}
+	};
 
-		// Update the envelope generator. Table based for pattern lookup, with a 'refill' step: a way of
-		// implementing non-repeating patterns by locking them to the final table position.
-		if(envelope_divider_) envelope_divider_--;
-		else {
-			envelope_divider_ = envelope_period_;
-			envelope_position_ ++;
-			if(envelope_position_ == 64) envelope_position_ = envelope_overflow_masks_[output_registers_[13]];
-		}
+	// Update the tone channels.
+	step_channel(0);
+	step_channel(1);
+	step_channel(2);
 
-		evaluate_output_volume();
-
-		for(int ic = 0; ic < 4 && c < number_of_samples; ic++) {
-			Outputs::Speaker::apply<action>(target[c], output_volume_);
-			c++;
-			master_divider_++;
-		}
+	// Update the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
+	// it into the official 17 upon divider underflow.
+	if(noise_counter_) noise_counter_--;
+	else {
+		noise_counter_ = noise_period_ << 1;	// To cover the double resolution of envelopes.
+		noise_output_ ^= noise_shift_register_&1;
+		noise_shift_register_ |= ((noise_shift_register_ ^ (noise_shift_register_ >> 3))&1) << 17;
+		noise_shift_register_ >>= 1;
 	}
 
-	master_divider_ &= 3;
+	// Update the envelope generator. Table based for pattern lookup, with a 'refill' step: a way of
+	// implementing non-repeating patterns by locking them to the final table position.
+	if(envelope_divider_) envelope_divider_--;
+	else {
+		envelope_divider_ = envelope_period_;
+		envelope_position_ ++;
+		if(envelope_position_ == 64) envelope_position_ = envelope_overflow_masks_[output_registers_[13]];
+	}
+
+	evaluate_output_volume();
 }
 
-template void AY38910<false>::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, typename Outputs::Speaker::SampleT<false>::type *);
-template void AY38910<false>::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, typename Outputs::Speaker::SampleT<false>::type *);
-template void AY38910<false>::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, typename Outputs::Speaker::SampleT<false>::type *);
-template void AY38910<true>::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, typename Outputs::Speaker::SampleT<true>::type *);
-template void AY38910<true>::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, typename Outputs::Speaker::SampleT<true>::type *);
-template void AY38910<true>::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, typename Outputs::Speaker::SampleT<true>::type *);
+template <bool is_stereo>
+typename Outputs::Speaker::SampleT<is_stereo>::type AY38910SampleSource<is_stereo>::level() const {
+	return output_volume_;
+}
 
-template <bool is_stereo> void AY38910<is_stereo>::evaluate_output_volume() {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::evaluate_output_volume() {
 	int envelope_volume = envelope_shapes_[output_registers_[13]][envelope_position_ | envelope_position_mask_];
 
 	// The output level for a channel is:
@@ -237,18 +214,21 @@ template <bool is_stereo> void AY38910<is_stereo>::evaluate_output_volume() {
 	}
 }
 
-template <bool is_stereo> bool AY38910<is_stereo>::is_zero_level() const {
+template <bool is_stereo>
+bool AY38910SampleSource<is_stereo>::is_zero_level() const {
 	// Confirm that the AY is trivially at the zero level if all three volume controls are set to fixed zero.
 	return output_registers_[0x8] == 0 && output_registers_[0x9] == 0 && output_registers_[0xa] == 0;
 }
 
 // MARK: - Register manipulation
 
-template <bool is_stereo> void AY38910<is_stereo>::select_register(uint8_t r) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::select_register(uint8_t r) {
 	selected_register_ = r;
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::set_register_value(uint8_t value) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_register_value(uint8_t value) {
 	// There are only 16 registers.
 	if(selected_register_ > 15) return;
 
@@ -317,7 +297,8 @@ template <bool is_stereo> void AY38910<is_stereo>::set_register_value(uint8_t va
 	if(update_port_a) set_port_output(false);
 }
 
-template <bool is_stereo> uint8_t AY38910<is_stereo>::get_register_value() {
+template <bool is_stereo>
+uint8_t AY38910SampleSource<is_stereo>::get_register_value() {
 	// This table ensures that bits that aren't defined within the AY are returned as 0s
 	// when read, conforming to CPC-sourced unit tests.
 	const uint8_t register_masks[16] = {
@@ -331,24 +312,28 @@ template <bool is_stereo> uint8_t AY38910<is_stereo>::get_register_value() {
 
 // MARK: - Port querying
 
-template <bool is_stereo> uint8_t AY38910<is_stereo>::get_port_output(bool port_b) {
+template <bool is_stereo>
+uint8_t AY38910SampleSource<is_stereo>::get_port_output(bool port_b) {
 	return registers_[port_b ? 15 : 14];
 }
 
 // MARK: - Bus handling
 
-template <bool is_stereo> void AY38910<is_stereo>::set_port_handler(PortHandler *handler) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_port_handler(PortHandler *handler) {
 	port_handler_ = handler;
 	set_port_output(true);
 	set_port_output(false);
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::set_data_input(uint8_t r) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_data_input(uint8_t r) {
 	data_input_ = r;
 	update_bus();
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::set_port_output(bool port_b) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_port_output(bool port_b) {
 	// Per the data sheet: "each [IO] pin is provided with an on-chip pull-up resistor,
 	// so that when in the "input" mode, all pins will read normally high". Therefore,
 	// report programmer selection of input mode as creating an output of 0xff.
@@ -358,7 +343,8 @@ template <bool is_stereo> void AY38910<is_stereo>::set_port_output(bool port_b) 
 	}
 }
 
-template <bool is_stereo> uint8_t AY38910<is_stereo>::get_data_output() {
+template <bool is_stereo>
+uint8_t AY38910SampleSource<is_stereo>::get_data_output() {
 	if(control_state_ == Read && selected_register_ >= 14 && selected_register_ < 16) {
 		// Per http://cpctech.cpc-live.com/docs/psgnotes.htm if a port is defined as output then the
 		// value returned to the CPU when reading it is the and of the output value and any input.
@@ -374,7 +360,8 @@ template <bool is_stereo> uint8_t AY38910<is_stereo>::get_data_output() {
 	return data_output_;
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::set_control_lines(ControlLines control_lines) {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_control_lines(ControlLines control_lines) {
 	switch(int(control_lines)) {
 		default:					control_state_ = Inactive;		break;
 
@@ -389,7 +376,8 @@ template <bool is_stereo> void AY38910<is_stereo>::set_control_lines(ControlLine
 	update_bus();
 }
 
-template <bool is_stereo> void AY38910<is_stereo>::update_bus() {
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::update_bus() {
 	// Assume no output, unless this turns out to be a read.
 	data_output_ = 0xff;
 	switch(control_state_) {
@@ -401,5 +389,10 @@ template <bool is_stereo> void AY38910<is_stereo>::update_bus() {
 }
 
 // Ensure both mono and stereo versions of the AY are built.
-template class GI::AY38910::AY38910<true>;
-template class GI::AY38910::AY38910<false>;
+template class GI::AY38910::AY38910SampleSource<true>;
+template class GI::AY38910::AY38910SampleSource<false>;
+
+// Perform an explicit instantiation of the BufferSource to hope for
+// appropriate inlining of advance() and level().
+template struct GI::AY38910::AY38910<true>;
+template struct GI::AY38910::AY38910<false>;
