@@ -17,7 +17,8 @@ AY38910SampleSource<is_stereo>::AY38910SampleSource(Personality personality, Con
 	// Don't use the low bit of the envelope position if this is an AY.
 	envelope_position_mask_ |= personality == Personality::AY38910;
 
-	// Set up envelope lookup tables.
+	// Set up envelope lookup tables; these are based on 32 volume levels as used by the YM2149F.
+	// The AY38910 will just use only even table entries, and therefore only even volumes.
 	for(int c = 0; c < 16; c++) {
 		for(int p = 0; p < 64; p++) {
 			switch(c) {
