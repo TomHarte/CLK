@@ -111,19 +111,18 @@ void AY38910SampleSource<is_stereo>::set_output_mixing(float a_left, float b_lef
 
 template <bool is_stereo>
 void AY38910SampleSource<is_stereo>::advance() {
-#define step_channel(c) \
-	if(tone_counters_[c]) tone_counters_[c]--;\
-	else {\
-		tone_outputs_[c] ^= 1;\
-		tone_counters_[c] = tone_periods_[c] << 1;\
-	}
+	const auto step_channel = [&](int c) {
+		if(tone_counters_[c]) --tone_counters_[c];
+		else {
+			tone_outputs_[c] ^= 1;
+			tone_counters_[c] = tone_periods_[c] << 1;
+		}
+	};
 
 	// Update the tone channels.
 	step_channel(0);
 	step_channel(1);
 	step_channel(2);
-
-#undef step_channel
 
 	// Update the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
 	// it into the official 17 upon divider underflow.
