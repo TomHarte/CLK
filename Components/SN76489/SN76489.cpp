@@ -99,10 +99,11 @@ void SN76489::evaluate_output_volume() {
 	);
 }
 
-void SN76489::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+template <Outputs::Speaker::Action action>
+void SN76489::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 	std::size_t c = 0;
 	while((master_divider_& (master_divider_period_ - 1)) && c < number_of_samples) {
-		target[c] = output_volume_;
+		Outputs::Speaker::apply<action>(target[c], output_volume_);
 		master_divider_++;
 		c++;
 	}
@@ -151,7 +152,7 @@ void SN76489::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 		evaluate_output_volume();
 
 		for(int ic = 0; ic < master_divider_period_ && c < number_of_samples; ++ic) {
-			target[c] = output_volume_;
+			Outputs::Speaker::apply<action>(target[c], output_volume_);
 			c++;
 			master_divider_++;
 		}
@@ -159,3 +160,6 @@ void SN76489::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 
 	master_divider_ &= (master_divider_period_ - 1);
 }
+template void SN76489::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void SN76489::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void SN76489::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);

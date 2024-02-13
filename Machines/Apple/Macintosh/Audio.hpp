@@ -10,7 +10,7 @@
 
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 #include <array>
 #include <atomic>
@@ -23,7 +23,7 @@ namespace Apple::Macintosh {
 	Designed to be clocked at half the rate of the real hardware — i.e.
 	a shade less than 4Mhz.
 */
-class Audio: public ::Outputs::Speaker::SampleSource {
+class Audio: public ::Outputs::Speaker::BufferSource<Audio, false> {
 	public:
 		Audio(Concurrency::AsyncTaskQueue<false> &task_queue);
 
@@ -50,10 +50,10 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		void set_enabled(bool on);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
-		constexpr static bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;

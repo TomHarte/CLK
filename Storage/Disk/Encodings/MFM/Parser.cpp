@@ -37,7 +37,7 @@ void Parser::install_track(const Storage::Disk::Track::Address &address) {
 		// Just try all three in succession.
 		append(parse_track(*track, Density::Single), sectors_by_id);
 		append(parse_track(*track, Density::Double), sectors_by_id);
-		append(parse_track(*track, Density::High), sectors_by_id);;
+		append(parse_track(*track, Density::High), sectors_by_id);
 	}
 
 	sectors_by_address_by_track_.emplace(address, std::move(sectors_by_id));

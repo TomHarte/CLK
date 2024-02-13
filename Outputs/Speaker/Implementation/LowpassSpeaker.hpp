@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "BufferSource.hpp"
 #include "../Speaker.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -348,7 +349,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 	source of a high-frequency stream of audio which it filters down to a
 	lower-frequency output.
 */
-template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpass<SampleSource>, SampleSource::get_is_stereo()> {
+template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpass<SampleSource>, SampleSource::is_stereo> {
 	public:
 		PullLowpass(SampleSource &sample_source) : sample_source_(sample_source) {
 			// Propagate an initial volume level.
@@ -362,7 +363,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		}
 
 		bool get_is_stereo() final {
-			return SampleSource::get_is_stereo();
+			return SampleSource::is_stereo;
 		}
 
 		/*!
@@ -381,7 +382,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		}
 
 	private:
-		using BaseT = LowpassBase<PullLowpass<SampleSource>, SampleSource::get_is_stereo()>;
+		using BaseT = LowpassBase<PullLowpass<SampleSource>, SampleSource::is_stereo>;
 		friend BaseT;
 		using BaseT::process;
 
@@ -396,15 +397,20 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 		SampleSource &sample_source_;
 
 		void skip_samples(size_t count) {
-			sample_source_.skip_samples(count);
+			sample_source_.template apply_samples<Action::Ignore>(count, nullptr);
 		}
 
 		int get_scale() {
-			return int(65536.0 / sample_source_.get_average_output_peak());
+			return int(65536.0 / sample_source_.average_output_peak());
 		}
 
 		void get_samples(size_t length, int16_t *target) {
-			sample_source_.get_samples(length, target);
+			if constexpr (SampleSource::is_stereo) {
+				StereoSample *const stereo_target = reinterpret_cast<StereoSample *>(target);
+				sample_source_.template apply_samples<Action::Store>(length, stereo_target);
+			} else {
+				sample_source_.template apply_samples<Action::Store>(length, target);
+			}
 		}
 };
 

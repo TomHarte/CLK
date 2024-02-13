@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Yamaha::OPL {
 
-template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource {
+template <typename Child, bool stereo> class OPLBase: public ::Outputs::Speaker::BufferSource<Child, stereo> {
 	public:
 		void write(uint16_t address, uint8_t value) {
 			if(address & 1) {

@@ -99,11 +99,9 @@ void Audio::update_channel(int c) {
 	channels_[c].output |= output;
 }
 
-void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
-	struct Frame {
-		int16_t left, right;
-	} output_level;
-	Frame *target_frames = reinterpret_cast<Frame *>(target);
+template <Outputs::Speaker::Action action>
+void Audio::apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
+	Outputs::Speaker::StereoSample output_level;
 
 	size_t c = 0;
 	while(c < number_of_samples) {
@@ -133,14 +131,11 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 		while(global_divider_ && c < number_of_samples) {
 			--global_divider_;
-			target_frames[c] = output_level;
+			Outputs::Speaker::apply<action>(target[c], output_level);
 			++c;
 		}
-
 		global_divider_ = global_divider_reload_;
-		if(!global_divider_) {
-			global_divider_ = global_divider_reload_;
-		}
+
 		poly_state_[int(Channel::Distortion::FourBit)] = poly4_.next();
 		poly_state_[int(Channel::Distortion::FiveBit)] = poly5_.next();
 		poly_state_[int(Channel::Distortion::SevenBit)] = poly7_.next();
@@ -209,6 +204,9 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 		}
 	}
 }
+template void Audio::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::StereoSample *);
+template void Audio::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::StereoSample *);
+template void Audio::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::StereoSample *);
 
 // MARK: - Interrupt source
 

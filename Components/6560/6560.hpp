@@ -12,12 +12,12 @@
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace MOS::MOS6560 {
 
 // audio state
-class AudioGenerator: public ::Outputs::Speaker::SampleSource {
+class AudioGenerator: public Outputs::Speaker::BufferSource<AudioGenerator, false> {
 	public:
 		AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -25,10 +25,9 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 		void set_control(int channel, uint8_t value);
 
 		// For ::SampleSource.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
-		void skip_samples(std::size_t number_of_samples);
+		template <Outputs::Speaker::Action action>
+			void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;
@@ -37,6 +36,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 		unsigned int shift_registers_[4] = {0, 0, 0, 0};
 		uint8_t control_registers_[4] = {0, 0, 0, 0};
 		int16_t volume_ = 0;
+		int16_t dc_offset_ = 0;
 		int16_t range_multiplier_ = 1;
 };
 

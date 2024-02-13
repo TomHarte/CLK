@@ -19,15 +19,16 @@ bool SCC::is_zero_level() const {
 	return !(channel_enable_ & 0x1f);
 }
 
-void SCC::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+template <Outputs::Speaker::Action action>
+void SCC::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 	if(is_zero_level()) {
-		std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
+		Outputs::Speaker::fill<action>(target, target + number_of_samples, Outputs::Speaker::MonoSample());
 		return;
 	}
 
 	std::size_t c = 0;
 	while((master_divider_&7) && c < number_of_samples) {
-		target[c] = transient_output_level_;
+		Outputs::Speaker::apply<action>(target[c], transient_output_level_);
 		master_divider_++;
 		c++;
 	}
@@ -44,12 +45,15 @@ void SCC::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 		evaluate_output_volume();
 
 		for(int ic = 0; ic < 8 && c < number_of_samples; ++ic) {
-			target[c] = transient_output_level_;
+			Outputs::Speaker::apply<action>(target[c], transient_output_level_);
 			c++;
 			master_divider_++;
 		}
 	}
 }
+template void SCC::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void SCC::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void SCC::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
 
 void SCC::write(uint16_t address, uint8_t value) {
 	address &= 0xff;
@@ -111,5 +115,3 @@ uint8_t SCC::read(uint16_t address) {
 	}
 	return 0xff;
 }
-
-

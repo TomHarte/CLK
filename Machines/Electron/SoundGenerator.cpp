@@ -19,21 +19,26 @@ void SoundGenerator::set_sample_volume_range(std::int16_t range) {
 	volume_ = unsigned(range / 2);
 }
 
-void SoundGenerator::get_samples(std::size_t number_of_samples, int16_t *target) {
+template <Outputs::Speaker::Action action>
+void SoundGenerator::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+	if constexpr (action == Outputs::Speaker::Action::Ignore) {
+		counter_ = (counter_ + number_of_samples) % ((divider_+1) * 2);
+		return;
+	}
+
 	if(is_enabled_) {
 		while(number_of_samples--) {
-			*target = int16_t((counter_ / (divider_+1)) * volume_);
+			Outputs::Speaker::apply<action>(*target, Outputs::Speaker::MonoSample((counter_ / (divider_+1)) * volume_));
 			target++;
 			counter_ = (counter_ + 1) % ((divider_+1) * 2);
 		}
 	} else {
-		std::memset(target, 0, sizeof(int16_t) * number_of_samples);
+		Outputs::Speaker::fill<action>(target, target + number_of_samples, Outputs::Speaker::MonoSample(0));
 	}
 }
-
-void SoundGenerator::skip_samples(std::size_t number_of_samples) {
-	counter_ = (counter_ + number_of_samples) % ((divider_+1) * 2);
-}
+template void SoundGenerator::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
+template void SoundGenerator::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
+template void SoundGenerator::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
 
 void SoundGenerator::set_divider(uint8_t divider) {
 	audio_queue_.enqueue([this, divider]() {

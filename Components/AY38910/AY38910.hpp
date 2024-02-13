@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 #include "../../Reflection/Struct.hpp"
@@ -66,10 +66,10 @@ enum class Personality {
 
 	This AY has an attached mono or stereo mixer.
 */
-template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource {
+template <bool stereo> class AY38910SampleSource {
 	public:
 		/// Creates a new AY38910.
-		AY38910(Personality, Concurrency::AsyncTaskQueue<false> &);
+		AY38910SampleSource(Personality, Concurrency::AsyncTaskQueue<false> &);
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -105,11 +105,11 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		*/
 		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
-		// To satisfy ::Outputs::Speaker::SampleSource.
-		void get_samples(std::size_t number_of_samples, int16_t *target);
+		// Sample generation.
+		typename Outputs::Speaker::SampleT<stereo>::type level() const;
+		void advance();
 		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool get_is_stereo() { return is_stereo; }
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;
@@ -117,8 +117,6 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		int selected_register_ = 0;
 		uint8_t registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-		int master_divider_ = 0;
 
 		int tone_periods_[3] = {0, 0, 0};
 		int tone_counters_[3] = {0, 0, 0};
@@ -150,7 +148,7 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 
 		uint8_t data_input_, data_output_;
 
-		uint32_t output_volume_;
+		typename Outputs::Speaker::SampleT<stereo>::type output_volume_;
 
 		void update_bus();
 		PortHandler *port_handler_ = nullptr;
@@ -164,6 +162,20 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		uint8_t c_left_ = 255, c_right_ = 255;
 
 		friend struct State;
+};
+
+/// Defines a default AY to be the sample source with a master divider of 4;
+/// real AYs have a divide-by-8 step built in but YMs apply only a divide by 4.
+///
+/// The implementation of AY38910SampleSource combines those two worlds
+/// by always applying a divide by four and scaling other things as appropriate.
+template <bool stereo> struct AY38910:
+	public AY38910SampleSource<stereo>,
+	public Outputs::Speaker::SampleSource<AY38910<stereo>, stereo, 4> {
+
+	// Use the same constructor as `AY38910SampleSource` (along with inheriting
+	// the rest of its interface).
+	using AY38910SampleSource<stereo>::AY38910SampleSource;
 };
 
 /*!

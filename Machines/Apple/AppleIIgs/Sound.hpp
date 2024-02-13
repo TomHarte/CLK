@@ -12,11 +12,11 @@
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace Apple::IIgs::Sound {
 
-class GLU: public Outputs::Speaker::SampleSource {
+class GLU: public Outputs::Speaker::BufferSource<GLU, false> {	// TODO: isn't this stereo?
 	public:
 		GLU(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
@@ -34,9 +34,10 @@ class GLU: public Outputs::Speaker::SampleSource {
 		bool get_interrupt_line();
 
 		// SampleSource.
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
-		void skip_samples(const std::size_t number_of_samples);
+		bool is_zero_level() const { return false; }	// TODO.
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &audio_queue_;
@@ -94,7 +95,8 @@ class GLU: public Outputs::Speaker::SampleSource {
 
 		// Functions to update an EnsoniqState; these don't belong to the state itself
 		// because they also access the pending stores (inter alia).
-		void generate_audio(size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void skip_audio(EnsoniqState &state, size_t number_of_samples);
 
 		// Audio-thread state.

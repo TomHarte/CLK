@@ -1,8 +1,9 @@
-#  Instruction Sets
+# Instruction Sets
 
 Code in here provides the means to disassemble, and to execute code for certain instruction sets.
 
 It **does not seek to emulate specific processors** other than in terms of implementing their instruction sets. So:
+
 * it doesn't involve itself in the actual bus signalling of real processors; and
 * instruction-level timing (e.g. total cycle counts) may be unimplemented, and is likely to be incomplete.
 
@@ -13,6 +14,7 @@ This part of CLK is intended primarily to provide disassembly services for stati
 A decoder extracts fully-decoded instructions from a data stream for its associated architecture.
 
 The meaning of 'fully-decoded' is flexible but it means that a caller can easily discern at least:
+
 * the operation in use;
 * its addressing mode; and
 * relevant registers.
@@ -20,6 +22,7 @@ The meaning of 'fully-decoded' is flexible but it means that a caller can easily
 It may be assumed that callers will have access to the original data stream for immediate values, if it is sensible to do so.
 
 In deciding what to expose, what to store ahead of time and what to obtain just-in-time a decoder should have an eye on two principal consumers:
+
 1. disassemblers; and
 2. instruction executors.
 
@@ -50,6 +53,7 @@ A sample interface:
     std::pair<int, Instruction> decode(word_type *stream, size_t length) { ... }
 
 In this sample the returned pair provides an `int` size that is one of:
+
 * a positive number, indicating a completed decoding that consumed that many `word_type`s; or
 * a negative number, indicating the [negatived] minimum number of `word_type`s that the caller should try to get hold of before calling `decode` again.
 
@@ -58,6 +62,7 @@ A caller is permitted to react in any way it prefers to negative numbers; they'r
 ## Parsers
 
 A parser sits one level above a decoder; it is handed:
+
 * a start address;
 * a closing bound; and
 * a target.
@@ -65,6 +70,7 @@ A parser sits one level above a decoder; it is handed:
 It is responsible for parsing the instruction stream from the start address up to and not beyond the closing bound, and no further than any unconditional branches.
 
 It should post to the target:
+
 * any instructions fully decoded;
 * any conditional branch destinations encountered;
 * any immediately-knowable accessed addresses; and
@@ -75,6 +81,7 @@ So a parser has the same two primary potential recipients as a decoder: diassemb
 ## Executors
 
 An executor is responsible for only one thing:
+
 * mapping from decoded instructions to objects that can perform those instructions.
 
 An executor is assumed to bundle all the things that go into instruction set execution: processor state and memory, alongside a parser.

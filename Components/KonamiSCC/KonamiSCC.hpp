@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Konami {
@@ -20,7 +20,7 @@ namespace Konami {
 	and five channels of output. The original SCC uses the same wave for channels
 	four and five, the SCC+ supports different waves for the two channels.
 */
-class SCC: public ::Outputs::Speaker::SampleSource {
+class SCC: public ::Outputs::Speaker::BufferSource<SCC, false> {
 	public:
 		/// Creates a new SCC.
 		SCC(Concurrency::AsyncTaskQueue<false> &task_queue);
@@ -29,9 +29,9 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		bool is_zero_level() const;
 
 		/// As per ::SampleSource; provides audio output.
-		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 		void set_sample_volume_range(std::int16_t range);
-		static constexpr bool get_is_stereo() { return false; }
 
 		/// Writes to the SCC.
 		void write(uint16_t address, uint8_t value);
@@ -45,7 +45,7 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		// State from here on down is accessed ony from the audio thread.
 		int master_divider_ = 0;
 		std::int16_t master_volume_ = 0;
-		int16_t transient_output_level_ = 0;
+		Outputs::Speaker::MonoSample transient_output_level_ = 0;
 
 		struct Channel {
 			int period = 0;
