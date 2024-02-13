@@ -173,9 +173,10 @@ template <bool stereo> struct AY38910:
 	public AY38910SampleSource<stereo>,
 	public Outputs::Speaker::SampleSource<AY38910<stereo>, stereo, 4> {
 
+	// Use the same constructor as `AY38910SampleSource` (along with inheriting
+	// the rest of its interface).
 	using AY38910SampleSource<stereo>::AY38910SampleSource;
-
-	};
+};
 
 /*!
 	Provides helper code, to provide something closer to the interface exposed by many
