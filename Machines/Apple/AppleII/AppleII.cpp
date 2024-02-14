@@ -60,13 +60,43 @@ constexpr int MockingboardSlot = 4;	// Conventional Mockingboard slot.
 //	* ... and hence seven pixels per memory access window clock in high-res mode, 14 in double high-res, etc.
 constexpr float master_clock = 14318180.0;
 
+class AYPair {
+	public:
+		AYPair(Concurrency::AsyncTaskQueue<false> &queue) :
+			ays_{
+				{GI::AY38910::Personality::AY38910, queue},
+				{GI::AY38910::Personality::AY38910, queue},
+			} {}
+
+		void advance() {
+			ays_[0].advance();
+			ays_[1].advance();
+		}
+
+		void set_sample_volume_range(std::int16_t range) {
+			ays_[0].set_sample_volume_range(range >> 1);
+			ays_[1].set_sample_volume_range(range >> 1);
+		}
+
+		bool is_zero_level() const {
+			return ays_[0].is_zero_level() && ays_[1].is_zero_level();
+		}
+
+		Outputs::Speaker::MonoSample level() const {
+			return ays_[0].level() + ays_[1].level();
+		}
+
+	private:
+		GI::AY38910::AY38910SampleSource<false> ays_[2];
+};
+
 /// Provides an AY that runs at the CPU rate divided by 4 given an input of the master clock divided by 2,
 /// allowing for stretched CPU clock cycles.
 struct StretchedAY:
-	public GI::AY38910::AY38910SampleSource<false>,
+	AYPair,
 	public Outputs::Speaker::BufferSource<StretchedAY, false> {
 
-		using GI::AY38910::AY38910SampleSource<false>::AY38910SampleSource;
+		using AYPair::AYPair;
 
 		template <Outputs::Speaker::Action action>
 		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
@@ -550,7 +580,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 			video_bus_handler_(ram_, aux_ram_),
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
-			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
+			ay_(audio_queue_),
 			mixer_(audio_toggle_, ay_),
 			speaker_(lowpass_source()),
 			language_card_(*this),

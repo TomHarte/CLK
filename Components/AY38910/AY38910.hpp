@@ -70,6 +70,7 @@ template <bool stereo> class AY38910SampleSource {
 	public:
 		/// Creates a new AY38910.
 		AY38910SampleSource(Personality, Concurrency::AsyncTaskQueue<false> &);
+		AY38910SampleSource(const AY38910SampleSource &) = delete;
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
