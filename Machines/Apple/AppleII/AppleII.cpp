@@ -26,6 +26,7 @@
 #include "DiskIICard.hpp"
 #include "Joystick.hpp"
 #include "LanguageCardSwitches.hpp"
+#include "Mockingboard.hpp"
 #include "SCSICard.hpp"
 #include "Video.hpp"
 
@@ -92,9 +93,9 @@ class AYPair {
 
 /// Provides an AY that runs at the CPU rate divided by 4 given an input of the master clock divided by 2,
 /// allowing for stretched CPU clock cycles.
-struct StretchedAY:
+struct StretchedAYPair:
 	AYPair,
-	public Outputs::Speaker::BufferSource<StretchedAY, false> {
+	public Outputs::Speaker::BufferSource<StretchedAYPair, false> {
 
 		using AYPair::AYPair;
 
@@ -195,12 +196,12 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		Audio::Toggle audio_toggle_;
-		StretchedAY ay_;
+		StretchedAYPair ays_;
 		using SourceT =
-			std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAY>, Audio::Toggle>;
+			std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAYPair>, Audio::Toggle>;
 		using LowpassT = Outputs::Speaker::PullLowpass<SourceT>;
 
-		Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAY> mixer_;
+		Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAYPair> mixer_;
 		Outputs::Speaker::PullLowpass<SourceT> speaker_;
 		Cycles cycles_since_audio_update_;
 
@@ -253,6 +254,10 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 
 		void card_did_change_select_constraints(Apple::II::Card *card) final {
 			pick_card_messaging_group(card);
+		}
+
+		Apple::II::Mockingboard *mockingboard() {
+			return dynamic_cast<Apple::II::Mockingboard *>(cards_[MockingboardSlot - 1].get());
 		}
 
 		Apple::II::DiskIICard *diskii_card() {
@@ -580,8 +585,8 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 			video_bus_handler_(ram_, aux_ram_),
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
-			ay_(audio_queue_),
-			mixer_(audio_toggle_, ay_),
+			ays_(audio_queue_),
+			mixer_(audio_toggle_, ays_),
 			speaker_(lowpass_source()),
 			language_card_(*this),
 			auxiliary_switches_(*this),
@@ -657,6 +662,12 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 				// Rounding the clock rate slightly shouldn't matter, but:
 				// TODO: be [slightly] more honest about clock rate.
 				install_card(SCSISlot, new Apple::II::SCSICard(roms, int(master_clock / 14.0f)));
+			}
+
+			if(target.has_mockingboard) {
+				// The Mockingboard has a parasitic relationship with this class due to the way
+				// that audio outputs are implemented in this emulator.
+				install_card(MockingboardSlot, new Apple::II::Mockingboard());
 			}
 
 			rom_ = std::move(roms.find(system)->second);

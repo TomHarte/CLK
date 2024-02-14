@@ -34,7 +34,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	Model model = Model::IIe;
 	DiskController disk_controller = DiskController::None;
 	SCSIController scsi_controller = SCSIController::None;
-	bool has_mockingboard = false;
+	bool has_mockingboard = true;
 
 	Target() : Analyser::Static::Target(Machine::AppleII) {
 		if(needs_declare()) {

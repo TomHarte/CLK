@@ -1568,6 +1568,7 @@
 		4B71368D1F788112008B8ED9 /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
 		4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
 		4B7136901F789C93008B8ED9 /* SegmentParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentParser.hpp; sourceTree = "<group>"; };
+		4B72FAEF2B7D51BB000C7E90 /* Mockingboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Mockingboard.hpp; sourceTree = "<group>"; };
 		4B74CF7F2312FA9C00500CE8 /* HFV.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = HFV.hpp; sourceTree = "<group>"; };
 		4B74CF802312FA9C00500CE8 /* HFV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HFV.cpp; sourceTree = "<group>"; };
 		4B75F978280D7C5100121055 /* 68000DecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000DecoderTests.mm; sourceTree = "<group>"; };
@@ -4840,6 +4841,7 @@
 				4B2E86E125DC95150024F1E9 /* Joystick.hpp */,
 				4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */,
 				4BE0151C286A8C8E00EA42E9 /* MemorySwitches.hpp */,
+				4B72FAEF2B7D51BB000C7E90 /* Mockingboard.hpp */,
 				4B4C81C428B3C5CD00F84AE9 /* SCSICard.hpp */,
 				4BCE004F227CE8CA000CA200 /* Video.hpp */,
 				4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */,
