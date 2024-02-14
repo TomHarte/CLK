@@ -17,6 +17,7 @@
 #include "../../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../../Components/AY38910/AY38910.hpp"
 
+#include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Log.hpp"
 
@@ -65,6 +66,8 @@ struct StretchedAY:
 	public GI::AY38910::AY38910SampleSource<false>,
 	public Outputs::Speaker::BufferSource<StretchedAY, false> {
 
+		using GI::AY38910::AY38910SampleSource<false>::AY38910SampleSource;
+
 		template <Outputs::Speaker::Action action>
 		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 
@@ -104,7 +107,7 @@ struct StretchedAY:
 namespace Apple {
 namespace II {
 
-template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
+template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard> class ConcreteMachine:
 	public Apple::II::Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -162,8 +165,22 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		Audio::Toggle audio_toggle_;
-		Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
+		StretchedAY ay_;
+		using SourceT =
+			std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAY>, Audio::Toggle>;
+		using LowpassT = Outputs::Speaker::PullLowpass<SourceT>;
+
+		Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAY> mixer_;
+		Outputs::Speaker::PullLowpass<SourceT> speaker_;
 		Cycles cycles_since_audio_update_;
+
+		constexpr SourceT &lowpass_source() {
+			if constexpr (has_mockingboard) {
+				return mixer_;
+			} else {
+				return audio_toggle_;
+			}
+		}
 
 		// MARK: - Cards
 		static constexpr size_t NoActiveCard = 7;	// There is no 'card 0' in internal numbering.
@@ -533,7 +550,9 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			video_bus_handler_(ram_, aux_ram_),
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
-			speaker_(audio_toggle_),
+			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
+			mixer_(audio_toggle_, ay_),
+			speaker_(lowpass_source()),
 			language_card_(*this),
 			auxiliary_switches_(*this),
 			keyboard_(&m6502_) {
@@ -1039,12 +1058,23 @@ using namespace Apple::II;
 std::unique_ptr<Machine> Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
-	switch(appleii_target->model) {
-		default: return nullptr;
-		case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II>>(*appleii_target, rom_fetcher);
-		case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus>>(*appleii_target, rom_fetcher);
-		case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe>>(*appleii_target, rom_fetcher);
-		case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe>>(*appleii_target, rom_fetcher);
+
+	if(appleii_target->has_mockingboard) {
+		switch(appleii_target->model) {
+			default: return nullptr;
+			case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II, true>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus, true>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe, true>>(*appleii_target, rom_fetcher);
+			case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe, true>>(*appleii_target, rom_fetcher);
+		}
+	} else {
+		switch(appleii_target->model) {
+			default: return nullptr;
+			case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II, false>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus, false>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe, false>>(*appleii_target, rom_fetcher);
+			case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe, false>>(*appleii_target, rom_fetcher);
+		}
 	}
 }
 
