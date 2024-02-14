@@ -15,6 +15,7 @@
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/AudioToggle/AudioToggle.hpp"
+#include "../../../Components/AY38910/AY38910.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -58,79 +59,44 @@ constexpr int MockingboardSlot = 4;	// Conventional Mockingboard slot.
 //	* ... and hence seven pixels per memory access window clock in high-res mode, 14 in double high-res, etc.
 constexpr float master_clock = 14318180.0;
 
-/// Provides an audio source with will hold an instance of @c SourceT for audio generation, repeating one of its output samples
-/// after every @c PacketClocks of output.
-template <typename SourceT, std::size_t PacketClocks = 456>
-class StretchedAudioSource {
-	public:
-		template <typename... Args>
-		StretchedAudioSource(Args &&... args) : source_(std::forward<Args>(args)...) {}
+/// Provides an AY that runs at the CPU rate divided by 4 given an input of the master clock divided by 2,
+/// allowing for stretched CPU clock cycles.
+struct StretchedAY:
+	public GI::AY38910::AY38910SampleSource<false>,
+	public Outputs::Speaker::BufferSource<StretchedAY, false> {
 
-		void get_samples(std::size_t number_of_samples, int16_t *target) {
-			// Possible: the sample to duplicate fell exactly at the end of the last batch.
-			if(!remaining_packet_) {
-				remaining_packet_ = PacketClocks;
-				if constexpr (source_.get_is_stero()) {
-					target[0] = carry[0];
-					target[1] = carry[1];
-					target += 2;
-				} else {
-					target[0] = carry[0];
-					++target;
-				}
-				--number_of_samples;
-			}
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 
-			// Divide required input into groups of PacketClocks samples; get all of those
-			// from the underlying source and then duplicate the final one.
+			// (1) take 64 windows of 7 input cycles followed by one window of 8 input cycles;
+			// (2) after each four windows, advance the underlying AY.
 			//
-			// Duplicating into the current output packet won't be possible if it happens
-			// to line up exactly with the end of the PacketClocks, in which case hold a copy
-			// of the last level output in `carry` until next time.
-			while(number_of_samples) {
-				const auto target_length = std::min(number_of_samples, remaining_packet_);
-				source_.get_samples(target_length, target);
+			// i.e. advance after:
+			//
+			//	* 28 cycles, {16 times, then 15 times, then 15 times, then 15 times};
+			//	* 29 cycles, once.
+			//
+			// so:
+			//	16, 1;	15, 1;	15, 1;	15, 1
+			//
+			// i.e. add an extra one on the 17th, 33rd, 49th and 65th ticks in a 65-tick loop.
+			for(std::size_t c = 0; c < number_of_samples; c++) {
+				++subdivider_;
+				if(subdivider_ == 28) {
+					++phase_;
+					subdivider_ = (phase_ & 15) ? 0 : -1;
+					if(phase_ == 65) phase_ = 0;
 
-				target += target_length * (1 + source_.get_is_stero());
-				number_of_samples -= target_length;
-				remaining_packet_ -= target_length;
-
-				if(!remaining_packet_) {
-					if(number_of_samples) {
-						remaining_packet_ = PacketClocks;
-
-						if constexpr (source_.get_is_stero()) {
-							target[0] = target[-2];
-							target[1] = target[-1];
-							target += 2;
-						} else {
-							target[0] = target[-1];
-							++target;
-						}
-					} else {
-						if constexpr (source_.get_is_stero()) {
-							carry[0] = target[-2];
-							carry[1] = target[-1];
-						} else {
-							carry[0] = target[-1];
-						}
-					}
+					advance();
 				}
+
+				target[c] = level();
 			}
 		}
-
-		// Direct passthroughs.
-		void set_sample_volume_range(std::int16_t range) {
-			source_.set_sample_volume_range(range);
-		}
-		bool is_zero_level() const 				{	return source_.is_zero_level();		}
-		static constexpr bool get_is_stereo() 	{	return SourceT::get_is_stereo();	}
 
 	private:
-		SourceT source_;
-
-		std::size_t remaining_packet_ = PacketClocks;
-		std::array<uint16_t, 2> carry;
+		int phase_ = 0;
+		int subdivider_ = 0;
 };
 
 }
