@@ -70,6 +70,7 @@ template <bool stereo> class AY38910SampleSource {
 	public:
 		/// Creates a new AY38910.
 		AY38910SampleSource(Personality, Concurrency::AsyncTaskQueue<false> &);
+		AY38910SampleSource(const AY38910SampleSource &) = delete;
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -79,6 +80,12 @@ template <bool stereo> class AY38910SampleSource {
 
 		/// Sets the current control line state, as a bit field.
 		void set_control_lines(ControlLines control_lines);
+
+		/// Strobes the reset line.
+		void reset();
+
+		/// Sets the current value of the reset line.
+		void set_reset(bool reset);
 
 		/*!
 			Gets the value that would appear on the requested interface port if it were in output mode.
@@ -114,13 +121,15 @@ template <bool stereo> class AY38910SampleSource {
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;
 
-		int selected_register_ = 0;
-		uint8_t registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		bool reset_ = false;
 
-		int tone_periods_[3] = {0, 0, 0};
-		int tone_counters_[3] = {0, 0, 0};
-		int tone_outputs_[3] = {0, 0, 0};
+		int selected_register_ = 0;
+		uint8_t registers_[16]{};
+		uint8_t output_registers_[16]{};
+
+		int tone_periods_[3]{};
+		int tone_counters_[3]{};
+		int tone_outputs_[3]{};
 
 		int noise_period_ = 0;
 		int noise_counter_ = 0;

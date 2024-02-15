@@ -49,12 +49,16 @@ class Card {
 									// by an access to $cfff.
 		};
 
+		// TODO: I think IO and Device are the wrong way around above.
+		// See https://retrocomputing.stackexchange.com/questions/5730/how-did-the-address-decode-for-apple-ii-expansion-cards-work
+		// and/or https://gglabs.us/sites/gglabs.us/files/a2scsi-A00_sch.pdf
+
 		/*!
 			Advances time by @c cycles, of which @c stretches were stretched.
 
 			This is posted only to cards that announced a select constraint. Cards with
 			no constraints, that want to be informed of every machine cycle, will receive
-			a call to perform_bus_operation every cycle and should use that for time keeping.
+			a call to @c perform_bus_operation every cycle and should use that for time keeping.
 		*/
 		virtual void run_for([[maybe_unused]] Cycles cycles, [[maybe_unused]] int stretches) {}
 
@@ -93,8 +97,15 @@ class Card {
 		/*! Cards may supply a target for activity observation if desired. */
 		virtual void set_activity_observer([[maybe_unused]] Activity::Observer *observer) {}
 
+		/// @returns The current semantic NMI line output of this card.
+		virtual bool nmi() { return false; }
+
+		/// @returns The current semantic IRQ line output of this card.
+		virtual bool irq() { return false; }
+
 		struct Delegate {
 			virtual void card_did_change_select_constraints(Card *card) = 0;
+			virtual void card_did_change_interrupt_flags(Card *card) = 0;
 		};
 		void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;

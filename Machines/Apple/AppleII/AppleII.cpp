@@ -15,7 +15,9 @@
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/AudioToggle/AudioToggle.hpp"
+#include "../../../Components/AY38910/AY38910.hpp"
 
+#include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Log.hpp"
 
@@ -24,6 +26,7 @@
 #include "DiskIICard.hpp"
 #include "Joystick.hpp"
 #include "LanguageCardSwitches.hpp"
+#include "Mockingboard.hpp"
 #include "SCSICard.hpp"
 #include "Video.hpp"
 
@@ -41,17 +44,71 @@
 
 namespace {
 
-constexpr int DiskIISlot = 6;	// Apple recommended slot 6 for the (first) Disk II.
-constexpr int SCSISlot = 7;		// Install the SCSI card in slot 7, to one-up any connected Disk II.
+constexpr int DiskIISlot = 6;		// Apple recommended slot 6 for the (first) Disk II.
+constexpr int SCSISlot = 7;			// Install the SCSI card in slot 7, to one-up any connected Disk II.
+constexpr int MockingboardSlot = 4;	// Conventional Mockingboard slot.
+
+
+// The system's master clock rate.
+//
+// Quick note on this:
+//
+//	* 64 out of 65 CPU cycles last for 14 cycles of the master clock;
+//	* every 65th cycle lasts for 16 cycles of the master clock;
+//	* that keeps CPU cycles in-phase with the colour subcarrier: each line of output is 64*14 + 16 = 912 master cycles long;
+//	* ... and since hsync is placed to make each line 228 colour clocks long that means 4 master clocks per colour clock;
+//	* ... which is why all Apple II video modes are expressible as four binary outputs per colour clock;
+//	* ... and hence seven pixels per memory access window clock in high-res mode, 14 in double high-res, etc.
+constexpr float master_clock = 14318180.0;
+
+/// Provides an AY that runs at the CPU rate divided by 4 given an input of the master clock divided by 2,
+/// allowing for stretched CPU clock cycles.
+struct StretchedAYPair:
+	Apple::II::AYPair,
+	public Outputs::Speaker::BufferSource<StretchedAYPair, true> {
+
+		using AYPair::AYPair;
+
+		template <Outputs::Speaker::Action action>
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
+
+			// (1) take 64 windows of 7 input cycles followed by one window of 8 input cycles;
+			// (2) after each four windows, advance the underlying AY.
+			//
+			// i.e. advance after:
+			//
+			//	* 28 cycles, {16 times, then 15 times, then 15 times, then 15 times};
+			//	* 29 cycles, once.
+			//
+			// so:
+			//	16, 1;	15, 1;	15, 1;	15, 1
+			//
+			// i.e. add an extra one on the 17th, 33rd, 49th and 65th ticks in a 65-tick loop.
+			for(std::size_t c = 0; c < number_of_samples; c++) {
+				++subdivider_;
+				if(subdivider_ == 28) {
+					++phase_;
+					subdivider_ = (phase_ & 15) ? 0 : -1;
+					if(phase_ == 65) phase_ = 0;
+
+					advance();
+				}
+
+				target[c] = level();
+			}
+		}
+
+	private:
+		int phase_ = 0;
+		int subdivider_ = 0;
+};
 
 }
 
 namespace Apple {
 namespace II {
 
-#define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
-
-template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
+template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard> class ConcreteMachine:
 	public Apple::II::Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -83,14 +140,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			false>;
 		Processor m6502_;
 		VideoBusHandler video_bus_handler_;
-		Apple::II::Video::Video<VideoBusHandler, is_iie()> video_;
+		Apple::II::Video::Video<VideoBusHandler, is_iie(model)> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
 		void update_video() {
 			video_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
-		static constexpr int audio_divider = 8;
+		static constexpr int audio_divider = has_mockingboard ? 1 : 8;
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
@@ -109,8 +166,22 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		Audio::Toggle audio_toggle_;
-		Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
+		StretchedAYPair ays_;
+		using SourceT =
+			std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<StretchedAYPair, Audio::Toggle>, Audio::Toggle>;
+		using LowpassT = Outputs::Speaker::PullLowpass<SourceT>;
+
+		Outputs::Speaker::CompoundSource<StretchedAYPair, Audio::Toggle> mixer_;
+		Outputs::Speaker::PullLowpass<SourceT> speaker_;
 		Cycles cycles_since_audio_update_;
+
+		constexpr SourceT &lowpass_source() {
+			if constexpr (has_mockingboard) {
+				return mixer_;
+			} else {
+				return audio_toggle_;
+			}
+		}
 
 		// MARK: - Cards
 		static constexpr size_t NoActiveCard = 7;	// There is no 'card 0' in internal numbering.
@@ -153,6 +224,24 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		void card_did_change_select_constraints(Apple::II::Card *card) final {
 			pick_card_messaging_group(card);
+		}
+
+		void card_did_change_interrupt_flags(Apple::II::Card *) final {
+			bool nmi = false;
+			bool irq = false;
+
+			for(const auto &card: cards_) {
+				if(card) {
+					nmi |= card->nmi();
+					irq |= card->irq();
+				}
+			}
+			m6502_.set_nmi_line(nmi);
+			m6502_.set_irq_line(irq);
+		}
+
+		Apple::II::Mockingboard *mockingboard() {
+			return dynamic_cast<Apple::II::Mockingboard *>(cards_[MockingboardSlot - 1].get());
 		}
 
 		Apple::II::DiskIICard *diskii_card() {
@@ -225,7 +314,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				const auto zero_state = auxiliary_switches_.zero_state();
 
 				uint8_t *const ram = zero_state ? aux_ram_ : ram_;
-				uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
+				uint8_t *const rom = is_iie(model) ? &rom_[3840] : rom_.data();
 
 				// Which way the region here is mapped to be banks 1 and 2 is
 				// arbitrary.
@@ -286,7 +375,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
-				if constexpr (!is_iie()) {
+				if constexpr (!is_iie(model)) {
 					if(is_repeat && !repeat_is_pressed_) return true;
 				}
 
@@ -297,7 +386,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::Down:			value = 0x0a;	break;
 					case Key::Up:			value = 0x0b;	break;
 					case Key::Backspace:
-						if(is_iie()) {
+						if(is_iie(model)) {
 							value = 0x7f;
 							break;
 						} else {
@@ -305,7 +394,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					case Key::Enter:		value = 0x0d;	break;
 					case Key::Tab:
-						if (is_iie()) {
+						if (is_iie(model)) {
 							value = '\t';
 							break;
 						} else {
@@ -316,7 +405,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case Key::LeftOption:
 					case Key::RightMeta:
-						if (is_iie()) {
+						if (is_iie(model)) {
 							open_apple_is_pressed = is_pressed;
 							return true;
 						} else {
@@ -325,7 +414,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case Key::RightOption:
 					case Key::LeftMeta:
-						if (is_iie()) {
+						if (is_iie(model)) {
 							closed_apple_is_pressed = is_pressed;
 							return true;
 						} else {
@@ -346,7 +435,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::F9:	case Key::F10:	case Key::F11:
 						repeat_is_pressed_ = is_pressed;
 
-						if constexpr (!is_iie()) {
+						if constexpr (!is_iie(model)) {
 							if(is_pressed && (!is_repeat || character_is_pressed_)) {
 								keyboard_input_ = uint8_t(last_pressed_character_ | 0x80);
 							}
@@ -374,12 +463,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 
 						// Prior to the IIe, the keyboard could produce uppercase only.
-						if(!is_iie()) value = char(toupper(value));
+						if(!is_iie(model)) value = char(toupper(value));
 
 						if(control_is_pressed_ && isalpha(value)) value &= 0xbf;
 
 						// TODO: properly map IIe keys
-						if(!is_iie() && shift_is_pressed_) {
+						if(!is_iie(model) && shift_is_pressed_) {
 							switch(value) {
 							case 0x27: value = 0x22; break; // ' -> "
 							case 0x2c: value = 0x3c; break; // , -> <
@@ -480,12 +569,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			video_bus_handler_(ram_, aux_ram_),
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
-			speaker_(audio_toggle_),
+			ays_(audio_queue_),
+			mixer_(ays_, audio_toggle_),
+			speaker_(lowpass_source()),
 			language_card_(*this),
 			auxiliary_switches_(*this),
 			keyboard_(&m6502_) {
-			// The system's master clock rate.
-			constexpr float master_clock = 14318180.0;
 
 			// This is where things get slightly convoluted: establish the machine as having a clock rate
 			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
@@ -559,6 +648,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				install_card(SCSISlot, new Apple::II::SCSICard(roms, int(master_clock / 14.0f)));
 			}
 
+			if(target.has_mockingboard) {
+				// The Mockingboard has a parasitic relationship with this class due to the way
+				// that audio outputs are implemented in this emulator.
+				install_card(MockingboardSlot, new Apple::II::Mockingboard(ays_));
+			}
+
 			rom_ = std::move(roms.find(system)->second);
 			// The IIe and Enhanced IIe ROMs often distributed are oversized; trim if necessary.
 			if(system == ROM::Name::AppleIIe || system == ROM::Name::AppleIIEnhancedE) {
@@ -629,7 +724,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 				}
 
-				if(is_iie()) {
+				if(is_iie(model)) {
 					auxiliary_switches_.access(address, isReadOperation(operation));
 				}
 			} else {
@@ -669,7 +764,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										joysticks_.button(0) ||
-										(is_iie() && keyboard_.open_apple_is_pressed)
+										(is_iie(model) && keyboard_.open_apple_is_pressed)
 									)
 										*value |= 0x80;
 								break;
@@ -677,7 +772,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										joysticks_.button(1) ||
-										(is_iie() && keyboard_.closed_apple_is_pressed)
+										(is_iie(model) && keyboard_.closed_apple_is_pressed)
 									)
 										*value |= 0x80;
 								break;
@@ -699,7 +794,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-#define IIeSwitchRead(s)	*value = keyboard_.get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
+#define IIeSwitchRead(s)	*value = keyboard_.get_keyboard_input(); if(is_iie(model)) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
 								case 0xc011:	IIeSwitchRead(language_card_.state().bank2);								break;
 								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
 								case 0xc013:	IIeSwitchRead(auxiliary_switches_.switches().read_auxiliary_memory);		break;
@@ -718,12 +813,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 #undef IIeSwitchRead
 
 								case 0xc07f:
-									if(is_iie()) *value = (*value & 0x7f) | (video_.get_annunciator_3() ? 0x80 : 0x00);
+									if(is_iie(model)) *value = (*value & 0x7f) | (video_.get_annunciator_3() ? 0x80 : 0x00);
 								break;
 							}
 						} else {
 							// Write-only switches. All IIe as currently implemented.
-							if(is_iie()) {
+							if(is_iie(model)) {
 								auxiliary_switches_.access(address, false);
 								switch(address) {
 									default: break;
@@ -775,7 +870,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 					case 0xc05e:
 					case 0xc05f:
-						if(is_iie()) {
+						if(is_iie(model)) {
 							update_video();
 							video_.set_annunciator_3(!(address&1));
 						}
@@ -785,7 +880,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						keyboard_.clear_keyboard_input();
 
 						// On the IIe, reading C010 returns additional key info.
-						if(is_iie() && isReadOperation(operation)) {
+						if(is_iie(model) && isReadOperation(operation)) {
 							*value = (keyboard_.get_key_is_down() ? 0x80 : 0x00) | (keyboard_.get_keyboard_input() & 0x7f);
 						}
 					break;
@@ -922,7 +1017,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		bool prefers_logical_input() final {
-			return is_iie();
+			return is_iie(model);
 		}
 
 		Inputs::Keyboard &get_keyboard() final {
@@ -988,12 +1083,23 @@ using namespace Apple::II;
 std::unique_ptr<Machine> Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
-	switch(appleii_target->model) {
-		default: return nullptr;
-		case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II>>(*appleii_target, rom_fetcher);
-		case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus>>(*appleii_target, rom_fetcher);
-		case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe>>(*appleii_target, rom_fetcher);
-		case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe>>(*appleii_target, rom_fetcher);
+
+	if(appleii_target->has_mockingboard) {
+		switch(appleii_target->model) {
+			default: return nullptr;
+			case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II, true>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus, true>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe, true>>(*appleii_target, rom_fetcher);
+			case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe, true>>(*appleii_target, rom_fetcher);
+		}
+	} else {
+		switch(appleii_target->model) {
+			default: return nullptr;
+			case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II, false>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus, false>>(*appleii_target, rom_fetcher);
+			case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe, false>>(*appleii_target, rom_fetcher);
+			case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe, false>>(*appleii_target, rom_fetcher);
+		}
 	}
 }
 

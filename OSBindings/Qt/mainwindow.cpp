@@ -1042,6 +1042,8 @@ void MainWindow::start_appleII() {
 		case 2:		target->disk_controller = Target::DiskController::None;				break;
 	}
 
+	target->has_mockingboard = ui->appleIIMockingboardCheckBox->isChecked();
+
 	launchTarget(std::move(target));
 }
 

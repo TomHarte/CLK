@@ -377,6 +377,30 @@ void AY38910SampleSource<is_stereo>::set_control_lines(ControlLines control_line
 }
 
 template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::set_reset(bool active) {
+	if(active == reset_) return;
+	reset_ = active;
+
+	// Reset upon the leading edge; TODO: is this right?
+	if(reset_) {
+		reset();
+	}
+}
+
+template <bool is_stereo>
+void AY38910SampleSource<is_stereo>::reset() {
+	// TODO: the below is a guess. Look up real answers.
+
+	selected_register_ = 0;
+	std::fill(registers_, registers_ + 16, 0);
+
+	task_queue_.enqueue([&] {
+		std::fill(output_registers_, output_registers_ + 16, 0);
+		evaluate_output_volume();
+	});
+}
+
+template <bool is_stereo>
 void AY38910SampleSource<is_stereo>::update_bus() {
 	// Assume no output, unless this turns out to be a read.
 	data_output_ = 0xff;
