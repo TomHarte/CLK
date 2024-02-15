@@ -11,6 +11,7 @@
 #include <array>
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Outputs/Log.hpp"
 
 namespace MOS::MOS6526 {
 
@@ -220,7 +221,8 @@ struct MOS6526Storage {
 			control = v;
 
 			if(v&2) {
-				printf("UNIMPLEMENTED: PB strobe\n");
+				Log::Logger<Log::Source::MOS6526> log;
+				log.error().append("UNIMPLEMENTED: PB strobe");
 			}
 		}
 

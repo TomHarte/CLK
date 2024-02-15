@@ -12,7 +12,6 @@
 
 #include "Implementation/6526Storage.hpp"
 #include "../Serial/Line.hpp"
-#include "../../Outputs/Log.hpp"
 
 namespace MOS::MOS6526 {
 

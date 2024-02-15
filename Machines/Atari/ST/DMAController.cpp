@@ -16,7 +16,7 @@ using namespace Atari::ST;
 
 namespace {
 
-Log::Logger<Log::Source::AtariSTDMAController> logger;
+[[maybe_unused]] Log::Logger<Log::Source::AtariSTDMAController> logger;
 
 enum Control: uint16_t {
 	Direction = 0x100,
