@@ -147,7 +147,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 		void update_video() {
 			video_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
-		static constexpr int audio_divider = 8;
+		static constexpr int audio_divider = has_mockingboard ? 1 : 8;
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
