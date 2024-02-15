@@ -49,10 +49,6 @@ class Card {
 									// by an access to $cfff. IOSTRB on original hardware.
 		};
 
-		// TODO: I think IO and Device are the wrong way around above.
-		// See https://retrocomputing.stackexchange.com/questions/5730/how-did-the-address-decode-for-apple-ii-expansion-cards-work
-		// and/or https://gglabs.us/sites/gglabs.us/files/a2scsi-A00_sch.pdf
-
 		/*!
 			Advances time by @c cycles, of which @c stretches were stretched.
 
