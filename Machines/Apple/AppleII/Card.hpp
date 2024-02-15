@@ -41,12 +41,12 @@ class Card {
 		virtual ~Card() {}
 		enum Select: int {
 			None		= 0,		// No select line is active.
-			IO			= 1 << 0,	// IO select is active; i.e. access is in range $C0x0 to $C0xf.
-			Device		= 1 << 1,	// Device select is active; i.e. access is in range $Cx00 to $Cxff.
+			Device		= 1 << 0,	// Device select ('DEVSEL') is active; i.e. access is in range $C0x0 to $C0xf.
+			IO			= 1 << 1,	// IO select ('IOSEL') is active; i.e. access is in range $Cx00 to $Cxff.
 
 			C8Region	= 1 << 2,	// Access is to the region $c800 to $cfff, was preceded by at least
 									// one Device access to this card, and has not yet been followed up
-									// by an access to $cfff.
+									// by an access to $cfff. IOSTRB on original hardware.
 		};
 
 		// TODO: I think IO and Device are the wrong way around above.
@@ -112,7 +112,7 @@ class Card {
 		}
 
 	protected:
-		int select_constraints_ = IO | Device;
+		int select_constraints_ = Device | IO;
 		Delegate *delegate_ = nullptr;
 		void set_select_constraints(int constraints) {
 			if(constraints == select_constraints_) return;

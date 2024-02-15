@@ -46,14 +46,14 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 	diskii_.set_data_input(*value);
 	switch(select) {
 		default: break;
-		case IO: {
+		case Device: {
 			const int disk_value = diskii_.read_address(address);
 			if(is_read) {
 				if(disk_value != diskii_.DidNotLoad)
 					*value = uint8_t(disk_value);
 			}
 		} break;
-		case Device:
+		case IO:
 			if(is_read) *value = boot_[address & 0xff];
 		break;
 	}
@@ -74,7 +74,7 @@ void DiskIICard::set_activity_observer(Activity::Observer *observer) {
 
 void DiskIICard::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) {
 	diskii_clocking_preference_ = preference;
-	set_select_constraints((preference != ClockingHint::Preference::RealTime) ? (IO | Device) : None);
+	set_select_constraints((preference != ClockingHint::Preference::RealTime) ? (Device | IO) : None);
 }
 
 Storage::Disk::Drive &DiskIICard::get_drive(int drive) {

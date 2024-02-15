@@ -60,7 +60,7 @@ class Mockingboard: public Card {
 		}
 
 		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final {
-			if(!(select & Device)) {
+			if(!(select & IO)) {
 				return;
 			}
 
