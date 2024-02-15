@@ -256,6 +256,20 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 			pick_card_messaging_group(card);
 		}
 
+		void card_did_change_interrupt_flags(Apple::II::Card *) final {
+			bool nmi = false;
+			bool irq = false;
+
+			for(const auto &card: cards_) {
+				if(card) {
+					nmi |= card->nmi();
+					irq |= card->irq();
+				}
+			}
+			m6502_.set_nmi_line(nmi);
+			m6502_.set_irq_line(irq);
+		}
+
 		Apple::II::Mockingboard *mockingboard() {
 			return dynamic_cast<Apple::II::Mockingboard *>(cards_[MockingboardSlot - 1].get());
 		}

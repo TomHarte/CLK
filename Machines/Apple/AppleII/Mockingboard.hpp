@@ -18,7 +18,10 @@ namespace Apple::II {
 class Mockingboard: public Card {
 	public:
 		Mockingboard() :
-			vias_{ {handlers_[0]}, {handlers_[1]} } {}
+			vias_{ {handlers_[0]}, {handlers_[1]} } {
+			set_select_constraints(0);
+			handlers_[0].card = handlers_[1].card = this;
+		}
 
 		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final {
 			if(!(select & Device)) {
@@ -33,8 +36,32 @@ class Mockingboard: public Card {
 			}
 		}
 
+		void run_for(Cycles cycles, int) final {
+			vias_[0].run_for(cycles);
+			vias_[1].run_for(cycles);
+		}
+
+		bool nmi() final {
+			return handlers_[1].interrupt;
+		}
+
+		bool irq() final {
+			return handlers_[0].interrupt;
+		}
+
+		void did_change_interrupt_flags() {
+			delegate_->card_did_change_interrupt_flags(this);
+		}
+
 	private:
-		class AYVIA: public MOS::MOS6522::IRQDelegatePortHandler {
+		struct AYVIA: public MOS::MOS6522::PortHandler {
+			void set_interrupt_status(bool status) {
+				interrupt = status;
+				card->did_change_interrupt_flags();
+			}
+
+			bool interrupt;
+			Mockingboard *card = nullptr;
 		};
 
 		MOS::MOS6522::MOS6522<AYVIA> vias_[2];

@@ -68,7 +68,7 @@ class IRQDelegatePortHandler: public PortHandler {
 		/// Sets the delegate that will receive notification of changes in the interrupt line.
 		void set_interrupt_delegate(Delegate *delegate);
 
-		/// Overrides PortHandler::set_interrupt_status, notifying the delegate if one is set.
+		/// Overrides @c PortHandler::set_interrupt_status, notifying the delegate if one is set.
 		void set_interrupt_status(bool new_status);
 
 	private:
