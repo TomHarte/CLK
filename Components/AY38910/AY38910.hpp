@@ -84,6 +84,9 @@ template <bool stereo> class AY38910SampleSource {
 		/// Strobes the reset line.
 		void reset();
 
+		/// Sets the current value of the reset line.
+		void set_reset(bool reset);
+
 		/*!
 			Gets the value that would appear on the requested interface port if it were in output mode.
 			@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
@@ -117,6 +120,8 @@ template <bool stereo> class AY38910SampleSource {
 
 	private:
 		Concurrency::AsyncTaskQueue<false> &task_queue_;
+
+		bool reset_ = false;
 
 		int selected_register_ = 0;
 		uint8_t registers_[16]{};

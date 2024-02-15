@@ -103,13 +103,11 @@ class Mockingboard: public Card {
 						ControlLines(
 							((value & 1) ? ControlLines::BC1 : 0) |
 							((value & 2) ? ControlLines::BDIR : 0) |
-							((value & 4) ? ControlLines::BC2 : 0)
+							ControlLines::BC2
 						)
 					);
 
-					if(!value) {
-						ay.reset();
-					}
+					ay.set_reset(!(value & 4));
 				} else {
 					ay.set_data_input(value);
 				}
