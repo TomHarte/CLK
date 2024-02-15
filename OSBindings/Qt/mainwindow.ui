@@ -202,6 +202,13 @@
           </item>
          </layout>
         </item>
+        <item>
+         <widget class="QCheckBox" name="appleIIMockingboardCheckBox">
+          <property name="text">
+           <string>Has Mockingboard</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="appleIIgsTab">
