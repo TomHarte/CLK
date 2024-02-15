@@ -61,40 +61,10 @@ constexpr int MockingboardSlot = 4;	// Conventional Mockingboard slot.
 //	* ... and hence seven pixels per memory access window clock in high-res mode, 14 in double high-res, etc.
 constexpr float master_clock = 14318180.0;
 
-class AYPair {
-	public:
-		AYPair(Concurrency::AsyncTaskQueue<false> &queue) :
-			ays_{
-				{GI::AY38910::Personality::AY38910, queue},
-				{GI::AY38910::Personality::AY38910, queue},
-			} {}
-
-		void advance() {
-			ays_[0].advance();
-			ays_[1].advance();
-		}
-
-		void set_sample_volume_range(std::int16_t range) {
-			ays_[0].set_sample_volume_range(range >> 1);
-			ays_[1].set_sample_volume_range(range >> 1);
-		}
-
-		bool is_zero_level() const {
-			return ays_[0].is_zero_level() && ays_[1].is_zero_level();
-		}
-
-		Outputs::Speaker::MonoSample level() const {
-			return ays_[0].level() + ays_[1].level();
-		}
-
-	private:
-		GI::AY38910::AY38910SampleSource<false> ays_[2];
-};
-
 /// Provides an AY that runs at the CPU rate divided by 4 given an input of the master clock divided by 2,
 /// allowing for stretched CPU clock cycles.
 struct StretchedAYPair:
-	AYPair,
+	Apple::II::AYPair,
 	public Outputs::Speaker::BufferSource<StretchedAYPair, false> {
 
 		using AYPair::AYPair;
@@ -681,7 +651,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 			if(target.has_mockingboard) {
 				// The Mockingboard has a parasitic relationship with this class due to the way
 				// that audio outputs are implemented in this emulator.
-				install_card(MockingboardSlot, new Apple::II::Mockingboard());
+				install_card(MockingboardSlot, new Apple::II::Mockingboard(ays_));
 			}
 
 			rom_ = std::move(roms.find(system)->second);
