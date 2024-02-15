@@ -107,8 +107,9 @@ class Mockingboard: public Card {
 						)
 					);
 
-					// TODO: all lines disabled sees to map to reset? Possibly?
-					// Cf. https://gswv.apple2.org.za/a2zine/Docs/Mockingboard_MiniManual.html
+					if(!value) {
+						ay.reset();
+					}
 				} else {
 					ay.set_data_input(value);
 				}

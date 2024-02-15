@@ -81,6 +81,9 @@ template <bool stereo> class AY38910SampleSource {
 		/// Sets the current control line state, as a bit field.
 		void set_control_lines(ControlLines control_lines);
 
+		/// Strobes the reset line.
+		void reset();
+
 		/*!
 			Gets the value that would appear on the requested interface port if it were in output mode.
 			@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
@@ -116,12 +119,12 @@ template <bool stereo> class AY38910SampleSource {
 		Concurrency::AsyncTaskQueue<false> &task_queue_;
 
 		int selected_register_ = 0;
-		uint8_t registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		uint8_t registers_[16]{};
+		uint8_t output_registers_[16]{};
 
-		int tone_periods_[3] = {0, 0, 0};
-		int tone_counters_[3] = {0, 0, 0};
-		int tone_outputs_[3] = {0, 0, 0};
+		int tone_periods_[3]{};
+		int tone_counters_[3]{};
+		int tone_outputs_[3]{};
 
 		int noise_period_ = 0;
 		int noise_counter_ = 0;
