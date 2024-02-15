@@ -8,9 +8,6 @@
 
 #pragma once
 
-#include <cassert>
-#include <cstdio>
-
 namespace MOS::MOS6526 {
 
 enum Interrupts: uint8_t {
@@ -132,13 +129,11 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 
 		// Shift control.
 		case 12:
-			printf("TODO: write to shift register\n");
+			log.error().append("TODO: write to shift register");
 		break;
 
-		default:
-			printf("Unhandled 6526 write: %02x to %d\n", value, address);
-			assert(false);
-		break;
+		// Logically unreachable.
+		default: break;
 	}
 }
 
@@ -179,10 +174,8 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		// Shift register.
 		case 12:	return shift_data_;
 
-		default:
-			printf("Unhandled 6526 read from %d\n", address);
-			assert(false);
-		break;
+		// Logically unreachable.
+		default: break;
 	}
 	return 0xff;
 }

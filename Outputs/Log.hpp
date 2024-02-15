@@ -36,6 +36,7 @@ enum class Source {
 	MasterSystem,
 	MultiMachine,
 	MFP68901,
+	MOS6526,
 	MSX,
 	NCR5380,
 	OpenGL,
@@ -91,6 +92,7 @@ constexpr const char *prefix(Source source) {
 		case Source::M50740:					return "M50740";
 		case Source::Macintosh:					return "Macintosh";
 		case Source::MasterSystem:				return "SMS";
+		case Source::MOS6526:					return "MOS6526";
 		case Source::MFP68901:					return "MFP68901";
 		case Source::MultiMachine:				return "Multi-machine";
 		case Source::MSX:						return "MSX";
@@ -111,8 +113,6 @@ template <Source source>
 class Logger {
 	public:
 		static constexpr bool enabled = is_enabled(source);
-
-		Logger() {}
 
 		struct LogLine {
 			public:

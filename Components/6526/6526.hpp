@@ -12,6 +12,7 @@
 
 #include "Implementation/6526Storage.hpp"
 #include "../Serial/Line.hpp"
+#include "../../Outputs/Log.hpp"
 
 namespace MOS::MOS6526 {
 
@@ -82,6 +83,8 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		void advance_counters(int);
 
 		bool serial_line_did_produce_bit(Serial::Line<true> *line, int bit) final;
+
+		Log::Logger<Log::Source::MOS6526> log;
 };
 
 }
