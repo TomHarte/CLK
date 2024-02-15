@@ -929,14 +929,14 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 							This also sets the active card for the C8 region.
 						*/
 						active_card_ = card_number = (address - 0xc100) >> 8;
-						select = Apple::II::Card::Device;
+						select = Apple::II::Card::IO;
 					} else {
 						/*
 							Decode the area conventionally used by cards for registers:
 								C0n0 to C0nF: card n - 8.
 						*/
 						card_number = (address - 0xc090) >> 4;
-						select = Apple::II::Card::IO;
+						select = Apple::II::Card::Device;
 					}
 
 					// If the selected card is a just-in-time card, update the just-in-time cards,

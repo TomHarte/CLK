@@ -79,13 +79,13 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 	switch(select) {
 		default: break;
 
-		case Select::Device:
+		case Select::IO:
 			if(is_read) {
 				*value = rom_[address & 255];
 			}
 		break;
 
-		case Select::IO:
+		case Select::Device:
 			address &= 0xf;
 			switch(address) {
 				case 0x0:	case 0x1:	case 0x2:	case 0x3:
