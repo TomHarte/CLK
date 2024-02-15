@@ -13,7 +13,7 @@
 using namespace Apple::ADB;
 
 namespace {
-Log::Logger<Log::Source::ADBDevice> logger;
+[[maybe_unused]] Log::Logger<Log::Source::ADBDevice> logger;
 }
 
 ReactiveDevice::ReactiveDevice(Apple::ADB::Bus &bus, uint8_t adb_device_id) :
