@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21701"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="590" height="369"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1800" height="1131"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="590" height="369"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -49,7 +49,7 @@ Gw
                             <action selector="cancelCreateMachine:" target="-2" id="lf8-PM-c0m"/>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9YM-5x-pc0">
+                    <textField focusRingType="none" horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9YM-5x-pc0">
                         <rect key="frame" x="18" y="14" width="405" height="32"/>
                         <textFieldCell key="cell" allowsUndo="NO" sendsActionOnEndEditing="YES" id="xTm-Oy-oz5">
                             <font key="font" metaFont="system"/>
@@ -104,7 +104,7 @@ Gw
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                     </scrollView>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="VAc-6N-O7q">
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="VAc-6N-O7q">
                         <rect key="frame" x="18" y="328" width="554" height="21"/>
                         <textFieldCell key="cell" lineBreakMode="clipping" title="Choose a machine" id="32m-Vs-dPO">
                             <font key="font" textStyle="title2" name=".SFNS-Regular"/>
@@ -135,7 +135,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="P6K-dt-stj">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="P6K-dt-stj">
                                             <rect key="frame" x="18" y="216" width="89" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Chip Memory:" id="FIO-ZR-rsA">
                                                 <font key="font" metaFont="system"/>
@@ -143,7 +143,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YD0-OJ-2bY">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YD0-OJ-2bY">
                                             <rect key="frame" x="18" y="186" width="87" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Fast Memory:" id="Rpz-39-jyt">
                                                 <font key="font" metaFont="system"/>
@@ -202,7 +202,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="c3g-96-b3x">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="c3g-96-b3x">
                                             <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="53v-92-jmf">
                                                 <font key="font" metaFont="system"/>
@@ -223,19 +223,19 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
                                 <view key="view" id="dHz-Yv-GNq">
-                                    <rect key="frame" x="10" y="7" width="400" height="222"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="254"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V5Z-dX-Ns4">
-                                            <rect key="frame" x="18" y="184" width="46" height="16"/>
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V5Z-dX-Ns4">
+                                            <rect key="frame" x="18" y="216" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="qV3-2P-3JW">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WnO-ef-IC6">
-                                            <rect key="frame" x="18" y="154" width="96" height="16"/>
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WnO-ef-IC6">
+                                            <rect key="frame" x="18" y="186" width="98" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Disk Controller:" id="kbf-rc-Y4M">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -243,7 +243,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jli-ac-Sij">
-                                            <rect key="frame" x="67" y="178" width="117" height="25"/>
+                                            <rect key="frame" x="67" y="210" width="117" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -258,7 +258,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LSB-WP-FMi">
-                                            <rect key="frame" x="117" y="148" width="134" height="25"/>
+                                            <rect key="frame" x="119" y="180" width="134" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Sixteen Sector" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="QaV-Yr-k9o" id="8BT-RV-2Nm">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -271,16 +271,25 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="6UC-5k-3b6">
+                                            <rect key="frame" x="18" y="159" width="140" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Has Mockingboard" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="vpo-D2-Tzo">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="WnO-ef-IC6" firstAttribute="leading" secondItem="dHz-Yv-GNq" secondAttribute="leading" constant="20" symbolic="YES" id="5RF-1w-9HW"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="LSB-WP-FMi" secondAttribute="bottom" constant="20" symbolic="YES" id="865-cv-qVk"/>
+                                        <constraint firstItem="6UC-5k-3b6" firstAttribute="top" secondItem="LSB-WP-FMi" secondAttribute="bottom" constant="8" symbolic="YES" id="5Wg-y8-hWt"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="LSB-WP-FMi" secondAttribute="trailing" constant="20" symbolic="YES" id="9GL-al-1qi"/>
                                         <constraint firstItem="WnO-ef-IC6" firstAttribute="centerY" secondItem="LSB-WP-FMi" secondAttribute="centerY" id="Fuj-zT-MIm"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="jli-ac-Sij" secondAttribute="trailing" constant="20" symbolic="YES" id="I8d-OR-ICN"/>
                                         <constraint firstItem="jli-ac-Sij" firstAttribute="top" secondItem="dHz-Yv-GNq" secondAttribute="top" constant="20" symbolic="YES" id="Qi1-CV-A0c"/>
                                         <constraint firstItem="V5Z-dX-Ns4" firstAttribute="leading" secondItem="dHz-Yv-GNq" secondAttribute="leading" constant="20" symbolic="YES" id="SWc-iX-1We"/>
+                                        <constraint firstItem="6UC-5k-3b6" firstAttribute="leading" secondItem="dHz-Yv-GNq" secondAttribute="leading" constant="20" symbolic="YES" id="VRC-Bl-5gF"/>
                                         <constraint firstItem="LSB-WP-FMi" firstAttribute="leading" secondItem="WnO-ef-IC6" secondAttribute="trailing" constant="8" symbolic="YES" id="bte-XA-xNQ"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="6UC-5k-3b6" secondAttribute="bottom" constant="20" symbolic="YES" id="iTH-2B-JJa"/>
                                         <constraint firstItem="LSB-WP-FMi" firstAttribute="top" secondItem="jli-ac-Sij" secondAttribute="bottom" constant="10" symbolic="YES" id="ki5-JR-vRe"/>
                                         <constraint firstItem="jli-ac-Sij" firstAttribute="leading" secondItem="V5Z-dX-Ns4" secondAttribute="trailing" constant="8" symbolic="YES" id="qcd-pf-0T3"/>
                                         <constraint firstItem="V5Z-dX-Ns4" firstAttribute="centerY" secondItem="jli-ac-Sij" secondAttribute="centerY" id="v25-BK-BoD"/>
@@ -292,7 +301,7 @@ Gw
                                     <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0d9-IG-gKU">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0d9-IG-gKU">
                                             <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="kiv-1P-FWc">
                                                 <font key="font" metaFont="system"/>
@@ -300,7 +309,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LES-76-Ovz">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LES-76-Ovz">
                                             <rect key="frame" x="18" y="154" width="85" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="OLJ-nC-yyj">
                                                 <font key="font" metaFont="system"/>
@@ -357,7 +366,7 @@ Gw
                                     <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dKg-qC-BBF">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dKg-qC-BBF">
                                             <rect key="frame" x="18" y="184" width="58" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory:" id="ZBF-0r-RNK">
                                                 <font key="font" metaFont="system"/>
@@ -515,7 +524,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ykc-W1-YaS">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ykc-W1-YaS">
                                             <rect key="frame" x="18" y="124" width="43" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="EXOS:" id="gUC-PN-zVL">
                                                 <font key="font" metaFont="system"/>
@@ -523,7 +532,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="frx-nk-c3P">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="frx-nk-c3P">
                                             <rect key="frame" x="18" y="184" width="59" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Machine:" id="uTv-hH-mIC">
                                                 <font key="font" metaFont="system"/>
@@ -531,7 +540,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dzd-tH-BjX">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dzd-tH-BjX">
                                             <rect key="frame" x="18" y="94" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="BASIC:" id="ai1-oR-X6Y">
                                                 <font key="font" metaFont="system"/>
@@ -539,7 +548,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pxr-Bq-yh0">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pxr-Bq-yh0">
                                             <rect key="frame" x="18" y="64" width="36" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="DOS:" id="NFk-cp-DfS">
                                                 <font key="font" metaFont="system"/>
@@ -547,7 +556,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rHr-bh-QMV">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rHr-bh-QMV">
                                             <rect key="frame" x="17" y="154" width="47" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed:" id="sAw-C9-Sf7">
                                                 <font key="font" metaFont="system"/>
@@ -593,7 +602,7 @@ Gw
                                     <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZOY-4E-Cfl">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZOY-4E-Cfl">
                                             <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="h9r-i6-66j">
                                                 <font key="font" metaFont="system"/>
@@ -653,7 +662,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZaD-7v-rMS">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZaD-7v-rMS">
                                             <rect key="frame" x="18" y="154" width="50" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region:" id="x4m-eh-Nif">
                                                 <font key="font" metaFont="system"/>
@@ -661,7 +670,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFV-RB-7dB">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFV-RB-7dB">
                                             <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="r7C-zE-gyj">
                                                 <font key="font" metaFont="system"/>
@@ -716,7 +725,7 @@ Gw
                                     <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
                                             <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="Xm1-7x-YVl">
                                                 <font key="font" metaFont="system"/>
@@ -754,7 +763,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="okM-ZI-NbF">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="okM-ZI-NbF">
                                             <rect key="frame" x="18" y="154" width="92" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Disk Interface:" id="SFK-hS-tFC">
                                                 <font key="font" metaFont="system"/>
@@ -796,7 +805,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="uhf-1k-ibT">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="uhf-1k-ibT">
                                             <rect key="frame" x="18" y="198" width="95" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Video Adaptor:" id="ROV-EU-T3W">
                                                 <font key="font" metaFont="system"/>
@@ -804,7 +813,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8vF-eu-ClP">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8vF-eu-ClP">
                                             <rect key="frame" x="18" y="168" width="47" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed:" id="qXc-wf-5jm">
                                                 <font key="font" metaFont="system"/>
@@ -876,7 +885,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MTh-9p-FqC">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MTh-9p-FqC">
                                             <rect key="frame" x="18" y="184" width="50" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region:" id="F3g-Ya-ypU">
                                                 <font key="font" metaFont="system"/>
@@ -884,7 +893,7 @@ Gw
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gRS-DK-rIy">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gRS-DK-rIy">
                                             <rect key="frame" x="18" y="154" width="87" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="a4I-vG-yCp">
                                                 <font key="font" metaFont="system"/>
@@ -937,7 +946,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NCX-4e-lSu">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NCX-4e-lSu">
                                             <rect key="frame" x="18" y="184" width="87" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="e6x-TE-OC5">
                                                 <font key="font" metaFont="system"/>
@@ -985,7 +994,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8tU-73-XEE">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8tU-73-XEE">
                                             <rect key="frame" x="18" y="184" width="87" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="z4b-oR-Yl2">
                                                 <font key="font" metaFont="system"/>
@@ -1026,7 +1035,7 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ3-ma-Byy">
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ3-ma-Byy">
                                             <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="JId-Tp-LrE">
                                                 <font key="font" metaFont="system"/>
@@ -1075,6 +1084,7 @@ Gw
                 <outlet property="amigaChipRAMButton" destination="qfH-1l-GXp" id="3PG-QC-tyI"/>
                 <outlet property="amigaFastRAMButton" destination="af8-pF-qc9" id="laa-1H-JfD"/>
                 <outlet property="appleIIDiskControllerButton" destination="LSB-WP-FMi" id="Ssa-jd-t63"/>
+                <outlet property="appleIIMockingboardButton" destination="6UC-5k-3b6" id="1h1-bx-edx"/>
                 <outlet property="appleIIModelButton" destination="jli-ac-Sij" id="Jm3-f7-C17"/>
                 <outlet property="appleIIgsMemorySizeButton" destination="nQa-YS-utT" id="pTV-XL-zX3"/>
                 <outlet property="appleIIgsModelButton" destination="gcS-uy-mzl" id="Jcc-jC-cV1"/>

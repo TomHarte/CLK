@@ -26,6 +26,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	// MARK: - Apple II properties
 	@IBOutlet var appleIIModelButton: NSPopUpButton!
 	@IBOutlet var appleIIDiskControllerButton: NSPopUpButton!
+	@IBOutlet var appleIIMockingboardButton: NSButton!
 
 	// MARK: - Apple IIgs properties
 	@IBOutlet var appleIIgsModelButton: NSPopUpButton!
@@ -117,6 +118,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		// Apple II settings
 		appleIIModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
 		appleIIDiskControllerButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
+		appleIIMockingboardButton.state = standardUserDefaults.bool(forKey: "new.appleIIMockingboard") ? .on : .off
 
 		// Apple IIgs settings
 		appleIIgsModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsModel"))
@@ -187,6 +189,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		// Apple II settings
 		standardUserDefaults.set(appleIIModelButton.selectedTag(), forKey: "new.appleIIModel")
 		standardUserDefaults.set(appleIIDiskControllerButton.selectedTag(), forKey: "new.appleIIDiskController")
+		standardUserDefaults.set(appleIIMockingboardButton.state == .on, forKey: "new.appleIIMockingboard")
 
 		// Apple IIgs settings
 		standardUserDefaults.set(appleIIgsModelButton.selectedTag(), forKey: "new.appleIIgsModel")
@@ -292,7 +295,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					default:	diskController = .none
 				}
 
-				return CSStaticAnalyser(appleIIModel: model, diskController: diskController)
+				return CSStaticAnalyser(appleIIModel: model, diskController: diskController, hasMockingboard: appleIIMockingboardButton.state == .on)
 
 			case "appleiigs":
 				var model: CSMachineAppleIIgsModel = .ROM00

@@ -93,7 +93,7 @@
 	return self;
 }
 
-- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController {
+- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController hasMockingboard:(BOOL)hasMockingboard {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AppleII::Target;
@@ -110,6 +110,7 @@
 			case CSMachineAppleIIDiskControllerSixteenSector:	target->disk_controller = Target::DiskController::SixteenSector;	break;
 			case CSMachineAppleIIDiskControllerThirteenSector:	target->disk_controller = Target::DiskController::ThirteenSector;	break;
 		}
+		target->has_mockingboard = hasMockingboard;
 		_targets.push_back(std::move(target));
 	}
 	return self;
