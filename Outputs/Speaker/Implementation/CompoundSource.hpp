@@ -77,29 +77,28 @@ template <typename... T> class CompoundSource:
 
 						// Map up and return.
 						for(std::size_t c = 0; c < number_of_samples; c++) {
-							Outputs::Speaker::apply<action>(target[c].left, StereoSample(conversion_source_[c]));
+							Outputs::Speaker::apply<action>(target[c], StereoSample(conversion_source_[c]));
 						}
-						return;
-					}
+					} else {
+						constexpr bool is_final_source = sizeof...(R) == 0;
 
-					constexpr bool is_final_source = sizeof...(R) == 0;
-
-					// Get the rest of the output, if any.
-					if constexpr (!is_final_source) {
-						next_source_.template apply_samples<action, output_stereo>(number_of_samples, target);
-					}
-
-					if(source_.is_zero_level()) {
-						// This component is currently outputting silence; therefore don't add anything to the output
-						// audio. Zero fill only if this is the final source (as everything above will be additive).
-						if constexpr (is_final_source) {
-							Outputs::Speaker::fill<action>(target, target + number_of_samples, typename SampleT<output_stereo>::type());
+						// Get the rest of the output, if any.
+						if constexpr (!is_final_source) {
+							next_source_.template apply_samples<action, output_stereo>(number_of_samples, target);
 						}
-						return;
-					}
 
-					// Add in this component's output.
-					source_.template apply_samples<is_final_source ? Action::Store : Action::Mix>(number_of_samples, target);
+						if(source_.is_zero_level()) {
+							// This component is currently outputting silence; therefore don't add anything to the output
+							// audio. Zero fill only if this is the final source (as everything above will be additive).
+							if constexpr (is_final_source) {
+								Outputs::Speaker::fill<action>(target, target + number_of_samples, typename SampleT<output_stereo>::type());
+							}
+							return;
+						}
+
+						// Add in this component's output.
+						source_.template apply_samples<is_final_source ? Action::Store : Action::Mix>(number_of_samples, target);
+					}
 				}
 
 				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {

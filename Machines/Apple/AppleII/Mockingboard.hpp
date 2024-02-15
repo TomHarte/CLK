@@ -28,16 +28,19 @@ class AYPair {
 		}
 
 		void set_sample_volume_range(std::int16_t range) {
-			ays_[0].set_sample_volume_range(range >> 1);
-			ays_[1].set_sample_volume_range(range >> 1);
+			ays_[0].set_sample_volume_range(range);
+			ays_[1].set_sample_volume_range(range);
 		}
 
 		bool is_zero_level() const {
 			return ays_[0].is_zero_level() && ays_[1].is_zero_level();
 		}
 
-		Outputs::Speaker::MonoSample level() const {
-			return ays_[0].level() + ays_[1].level();
+		Outputs::Speaker::StereoSample level() const {
+			Outputs::Speaker::StereoSample level;
+			level.left = ays_[0].level();
+			level.right = ays_[1].level();
+			return level;
 		}
 
 		GI::AY38910::AY38910SampleSource<false> &get(int index) {

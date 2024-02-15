@@ -65,12 +65,12 @@ constexpr float master_clock = 14318180.0;
 /// allowing for stretched CPU clock cycles.
 struct StretchedAYPair:
 	Apple::II::AYPair,
-	public Outputs::Speaker::BufferSource<StretchedAYPair, false> {
+	public Outputs::Speaker::BufferSource<StretchedAYPair, true> {
 
 		using AYPair::AYPair;
 
 		template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
 
 			// (1) take 64 windows of 7 input cycles followed by one window of 8 input cycles;
 			// (2) after each four windows, advance the underlying AY.
@@ -168,10 +168,10 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 		Audio::Toggle audio_toggle_;
 		StretchedAYPair ays_;
 		using SourceT =
-			std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAYPair>, Audio::Toggle>;
+			std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<StretchedAYPair, Audio::Toggle>, Audio::Toggle>;
 		using LowpassT = Outputs::Speaker::PullLowpass<SourceT>;
 
-		Outputs::Speaker::CompoundSource<Audio::Toggle, StretchedAYPair> mixer_;
+		Outputs::Speaker::CompoundSource<StretchedAYPair, Audio::Toggle> mixer_;
 		Outputs::Speaker::PullLowpass<SourceT> speaker_;
 		Cycles cycles_since_audio_update_;
 
@@ -570,7 +570,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
 			ays_(audio_queue_),
-			mixer_(audio_toggle_, ays_),
+			mixer_(ays_, audio_toggle_),
 			speaker_(lowpass_source()),
 			language_card_(*this),
 			auxiliary_switches_(*this),
