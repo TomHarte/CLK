@@ -73,6 +73,11 @@ template <typename TimeUnit> class DeferredQueue {
 			}
 		}
 
+		/// @returns @c true if no actions are enqueued; @c false otherwise.
+		bool empty() const {
+			return pending_actions_.empty();
+		}
+
 	private:
 		// The list of deferred actions.
 		struct DeferredAction {

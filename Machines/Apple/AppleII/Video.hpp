@@ -10,7 +10,6 @@
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/DeferredQueue.hpp"
 
 #include "VideoSwitches.hpp"
 

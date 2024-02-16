@@ -247,6 +247,10 @@ template <typename TimeUnit> class VideoSwitches {
 			}
 		}
 
+		bool has_deferred_actions() const {
+			return !deferrer_.empty();
+		}
+
 	protected:
 		GraphicsMode graphics_mode(int row) const {
 			if(
