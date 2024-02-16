@@ -123,7 +123,8 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			bus_handler_(bus_handler) {}
 
 		/*!
-			Obtains the last value the video read prior to time now+offset.
+			Obtains the last value the video read prior to time now+offset, according to the *current*
+			video mode, i.e. not allowing for any changes still enqueued.
 		*/
 		uint8_t get_last_read_value(Cycles offset) {
 			// Rules of generation:

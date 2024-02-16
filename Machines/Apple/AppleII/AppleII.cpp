@@ -742,6 +742,8 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 				// actor, but this will actually be the result most of the time so it's not
 				// too terrible.
 				if(isReadOperation(operation) && address != 0xc000) {
+					// Ensure any enqueued video changes are applied before grabbing the
+					// vapour value.
 					if(video_.has_deferred_actions()) {
 						update_video();
 					}
