@@ -23,6 +23,7 @@ enum class Source {
 	AmigaCopper,
 	AmigaChipset,
 	AmigaBlitter,
+	AppleIISCSICard,
 	AtariST,
 	AtariSTDMAController,
 	CommodoreStaticAnalyser,
@@ -36,6 +37,7 @@ enum class Source {
 	MasterSystem,
 	MultiMachine,
 	MFP68901,
+	MOS6526,
 	MSX,
 	NCR5380,
 	OpenGL,
@@ -64,10 +66,13 @@ constexpr bool is_enabled(Source source) {
 		case Source::AmigaChipset:
 		case Source::AmigaCopper:
 		case Source::AmigaDisk:
+		case Source::DirectAccessDevice:
 		case Source::IWM:
 		case Source::MFP68901:
 		case Source::NCR5380:
-		case Source::SCC:	return false;
+		case Source::SCC:
+		case Source::SCSI:
+			return false;
 	}
 }
 
@@ -81,9 +86,11 @@ constexpr const char *prefix(Source source) {
 		case Source::AmigaChipset:				return "Chipset";
 		case Source::AmigaCopper:				return "Copper";
 		case Source::AmigaDisk:					return "Disk";
+		case Source::AppleIISCSICard:			return "SCSI card";
 		case Source::AtariST:					return "AtariST";
 		case Source::AtariSTDMAController:		return "DMA";
 		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
+		case Source::DirectAccessDevice:		return "Direct Access Device";
 		case Source::Enterprise:				return "Enterprise";
 		case Source::i8272:						return "i8272";
 		case Source::IntelligentKeyboard:		return "IKYB";
@@ -91,6 +98,7 @@ constexpr const char *prefix(Source source) {
 		case Source::M50740:					return "M50740";
 		case Source::Macintosh:					return "Macintosh";
 		case Source::MasterSystem:				return "SMS";
+		case Source::MOS6526:					return "MOS6526";
 		case Source::MFP68901:					return "MFP68901";
 		case Source::MultiMachine:				return "Multi-machine";
 		case Source::MSX:						return "MSX";
@@ -111,8 +119,6 @@ template <Source source>
 class Logger {
 	public:
 		static constexpr bool enabled = is_enabled(source);
-
-		Logger() {}
 
 		struct LogLine {
 			public:

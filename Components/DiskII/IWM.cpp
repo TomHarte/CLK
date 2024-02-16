@@ -55,10 +55,6 @@ uint8_t IWM::read(int address) {
 			logger.info().append("Invalid read\n");
 		return 0xff;
 
-		// "Read all 1s".
-//			printf("Reading all 1s\n");
-//		return 0xff;
-
 		case 0:
 		case ENABLE: {				/* Read data register. Zeroing afterwards is a guess. */
 			const auto result = data_register_;
