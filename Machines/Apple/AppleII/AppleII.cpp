@@ -742,6 +742,11 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 				// actor, but this will actually be the result most of the time so it's not
 				// too terrible.
 				if(isReadOperation(operation) && address != 0xc000) {
+					// Ensure any enqueued video changes are applied before grabbing the
+					// vapour value.
+					if(video_.has_deferred_actions()) {
+						update_video();
+					}
 					*value = video_.get_last_read_value(cycles_since_video_update_);
 				}
 
@@ -826,19 +831,19 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 									case 0xc000:
 									case 0xc001:
 										update_video();
-										video_.set_80_store(!!(address&1));
+										video_.set_80_store(address&1);
 									break;
 
 									case 0xc00c:
 									case 0xc00d:
 										update_video();
-										video_.set_80_columns(!!(address&1));
+										video_.set_80_columns(address&1);
 									break;
 
 									case 0xc00e:
 									case 0xc00f:
 										update_video();
-										video_.set_alternative_character_set(!!(address&1));
+										video_.set_alternative_character_set(address&1);
 									break;
 								}
 							}
@@ -851,7 +856,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 					case 0xc050:
 					case 0xc051:
 						update_video();
-						video_.set_text(!!(address&1));
+						video_.set_text(address&1);
 					break;
 					case 0xc052:	update_video();		video_.set_mixed(false);		break;
 					case 0xc053:	update_video();		video_.set_mixed(true);			break;
