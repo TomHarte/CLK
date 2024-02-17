@@ -31,7 +31,7 @@ enum class Error {
 */
 class DiskImage {
 	public:
-		virtual ~DiskImage() {}
+		virtual ~DiskImage() = default;
 
 		/*!
 			@returns the distance at which there stops being any further content.

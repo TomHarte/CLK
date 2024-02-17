@@ -717,5 +717,3 @@ std::unique_ptr<Machine> Machine::AtariST(const Analyser::Static::Target *target
 
 	return std::make_unique<ConcreteMachine>(*atari_target, rom_fetcher);
 }
-
-Machine::~Machine() {}

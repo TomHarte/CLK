@@ -222,7 +222,7 @@ std::vector<Description> all_descriptions();
 
 struct Request {
 	Request(Name name, bool optional = false);
-	Request() {}
+	Request() = default;
 
 	/// Forms the request that would be satisfied by @c this plus the right-hand side.
 	Request operator &&(const Request &);

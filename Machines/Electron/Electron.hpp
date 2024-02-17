@@ -25,7 +25,7 @@ namespace Electron {
 */
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns an Electron.
 		static std::unique_ptr<Machine> Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);

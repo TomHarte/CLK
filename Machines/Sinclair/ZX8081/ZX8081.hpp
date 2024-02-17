@@ -20,7 +20,7 @@ namespace Sinclair::ZX8081 {
 /// The ZX80/81 machine.
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 		static std::unique_ptr<Machine> ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		virtual void set_tape_is_playing(bool is_playing) = 0;

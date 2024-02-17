@@ -23,7 +23,7 @@ namespace Atari2600 {
 */
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns an Atari 2600 on the heap.
 		static std::unique_ptr<Machine> Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);

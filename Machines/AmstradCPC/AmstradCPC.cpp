@@ -1293,5 +1293,3 @@ std::unique_ptr<Machine> Machine::AmstradCPC(const Analyser::Static::Target *tar
 		case Target::Model::CPC464:	return std::make_unique<AmstradCPC::ConcreteMachine<false>>(*cpc_target, rom_fetcher);
 	}
 }
-
-Machine::~Machine() {}

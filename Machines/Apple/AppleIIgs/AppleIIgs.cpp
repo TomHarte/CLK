@@ -1013,6 +1013,3 @@ using namespace Apple::IIgs;
 std::unique_ptr<Machine> Machine::AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	return std::make_unique<ConcreteMachine>(*dynamic_cast<const Analyser::Static::AppleIIgs::Target *>(target), rom_fetcher);
 }
-
-Machine::~Machine() {}
-

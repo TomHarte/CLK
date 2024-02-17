@@ -22,7 +22,7 @@ std::unique_ptr<Reflection::Struct> get_options();
 
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns a Vic-20.
 		static std::unique_ptr<Machine> Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);

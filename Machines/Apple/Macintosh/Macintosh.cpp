@@ -852,5 +852,3 @@ std::unique_ptr<Machine> Machine::Macintosh(const Analyser::Static::Target *targ
 		case Model::MacPlus:	return std::make_unique<ConcreteMachine<Model::MacPlus>>(*mac_target, rom_fetcher);
 	}
 }
-
-Machine::~Machine() {}

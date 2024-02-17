@@ -132,7 +132,7 @@ struct Command {
 	CommandContext &context;
 	ModeDescription &mode_description;
 	Command(CommandContext &context, ModeDescription &mode_description) : context(context), mode_description(mode_description) {}
-	virtual ~Command() {}
+	virtual ~Command() = default;
 
 	/// @returns @c true if all output from this command is done; @c false otherwise.
 	virtual bool done() = 0;

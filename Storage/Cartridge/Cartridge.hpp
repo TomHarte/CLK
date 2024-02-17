@@ -70,9 +70,9 @@ class Cartridge {
 		const std::vector<Segment> &get_segments() const {
 			return segments_;
 		}
-		virtual ~Cartridge() {}
+		virtual ~Cartridge() = default;
 
-		Cartridge() {}
+		Cartridge() = default;
 		Cartridge(const std::vector<Segment> &segments) : segments_(segments) {}
 
 	protected:

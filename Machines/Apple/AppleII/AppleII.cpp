@@ -1107,5 +1107,3 @@ std::unique_ptr<Machine> Machine::AppleII(const Analyser::Static::Target *target
 		}
 	}
 }
-
-Machine::~Machine() {}

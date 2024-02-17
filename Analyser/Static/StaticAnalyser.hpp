@@ -57,7 +57,7 @@ struct Media {
 */
 struct Target {
 	Target(Machine machine) : machine(machine) {}
-	virtual ~Target() {}
+	virtual ~Target() = default;
 
 	// This field is entirely optional.
 	std::unique_ptr<Reflection::Struct> state;

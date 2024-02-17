@@ -19,7 +19,7 @@ namespace Apple::IIgs {
 
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns an AppleIIgs.
 		static std::unique_ptr<Machine> AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);

@@ -121,7 +121,7 @@ class PrimarySlot {
 
 class MemorySlotHandler {
 	public:
-		virtual ~MemorySlotHandler() {}
+		virtual ~MemorySlotHandler() = default;
 
 		/*! Advances time by @c half_cycles. */
 		virtual void run_for([[maybe_unused]] HalfCycles half_cycles) {}

@@ -198,7 +198,7 @@ inline std::array<float, 9> from_rgb_matrix(ColourSpace colour_space) {
 	for use of shared memory where available.
 */
 struct ScanTarget {
-		virtual ~ScanTarget() {}
+		virtual ~ScanTarget() = default;
 
 
 	/*
