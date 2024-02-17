@@ -145,7 +145,7 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 	*/
 	SlicedInt16 *value = nullptr;
 
-	constexpr Microcycle() noexcept {}
+	constexpr Microcycle() noexcept = default;
 	constexpr Microcycle(OperationT dynamic_operation) noexcept {
 		if constexpr (op == Operation::DecodeDynamically) {
 			MicrocycleOperationStorage<op>::operation = dynamic_operation;

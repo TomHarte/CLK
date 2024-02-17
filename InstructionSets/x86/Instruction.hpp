@@ -564,7 +564,7 @@ constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 /// It cannot natively describe a base of ::None.
 class ScaleIndexBase {
 	public:
-		constexpr ScaleIndexBase() noexcept {}
+		constexpr ScaleIndexBase() noexcept = default;
 		constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
 		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
 			sib_(uint8_t(
@@ -703,7 +703,7 @@ template<bool is_32bit> class Instruction {
 		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
 		using AddressT = ImmediateT;
 
-		constexpr Instruction() noexcept {}
+		constexpr Instruction() noexcept = default;
 		constexpr Instruction(Operation operation) noexcept :
 			Instruction(operation, Source::None, Source::None, ScaleIndexBase(), false, AddressSize::b16, Source::None, DataSize::None, 0, 0) {}
 		constexpr Instruction(

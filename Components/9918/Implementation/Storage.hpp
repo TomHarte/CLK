@@ -59,7 +59,7 @@ struct YamahaFetcher {
 				type(type),
 				id(id) {}
 
-			constexpr Event() noexcept {}
+			constexpr Event() noexcept = default;
 		};
 
 		// State that tracks fetching position within a line.

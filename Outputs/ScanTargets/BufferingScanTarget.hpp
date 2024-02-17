@@ -203,7 +203,7 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		struct PointerSet {
 			// This constructor is here to appease GCC's interpretation of
 			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
-			PointerSet() noexcept {}
+			PointerSet() noexcept = default;
 
 			// Squeezing this struct into 64 bits makes the std::atomics more likely
 			// to be lock free; they are under LLVM x86-64.
