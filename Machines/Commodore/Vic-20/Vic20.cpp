@@ -767,5 +767,3 @@ std::unique_ptr<Machine> Machine::Vic20(const Analyser::Static::Target *target, 
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<Vic20::ConcreteMachine>(*commodore_target, rom_fetcher);
 }
-
-Machine::~Machine() {}

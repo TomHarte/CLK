@@ -503,5 +503,3 @@ std::unique_ptr<Machine> Machine::ZX8081(const Analyser::Static::Target *target,
 	if(zx_target->is_ZX81)	return std::make_unique<ConcreteMachine<true>>(*zx_target, rom_fetcher);
 	else					return std::make_unique<ConcreteMachine<false>>(*zx_target, rom_fetcher);
 }
-
-Machine::~Machine() {}

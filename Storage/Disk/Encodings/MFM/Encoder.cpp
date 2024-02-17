@@ -82,7 +82,7 @@ enum class SurfaceItem {
 class MFMEncoder: public Encoder {
 	public:
 		MFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
-		virtual ~MFMEncoder() {}
+		virtual ~MFMEncoder() = default;
 
 		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);

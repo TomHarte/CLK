@@ -25,7 +25,7 @@ namespace Enterprise {
 */
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 		static std::unique_ptr<Machine> Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Enterprise.

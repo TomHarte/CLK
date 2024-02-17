@@ -104,7 +104,7 @@ struct PCMSegment {
 		Constructs an instance of PCMSegment where each bit window is 1 unit of time
 		long and @c data is empty.
 	*/
-	PCMSegment() {}
+	PCMSegment() = default;
 
 	/// Empties the PCMSegment.
 	void clear() {

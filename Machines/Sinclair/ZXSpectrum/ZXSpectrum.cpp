@@ -1008,5 +1008,3 @@ std::unique_ptr<Machine> Machine::ZXSpectrum(const Analyser::Static::Target *tar
 
 	return nullptr;
 }
-
-Machine::~Machine() {}

@@ -22,7 +22,7 @@ namespace Oric {
 */
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns an Oric.
 		static std::unique_ptr<Machine> Oric(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);

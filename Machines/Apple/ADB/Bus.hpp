@@ -34,7 +34,7 @@ struct Command {
 	uint8_t device = AllDevices;
 	uint8_t reg = NoRegister;
 
-	Command() {}
+	Command() = default;
 	Command(Type type) : type(type) {}
 	Command(Type type, uint8_t device) : type(type), device(device) {}
 	Command(Type type, uint8_t device, uint8_t reg) : type(type), device(device), reg(reg) {}

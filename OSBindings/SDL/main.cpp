@@ -981,7 +981,7 @@ int main(int argc, char *argv[]) {
 		KeyPress(uint32_t timestamp, const char *text) : timestamp(timestamp), input(text) {}
 		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down, bool repeat) :
 			timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down), repeat(repeat) {}
-		KeyPress() {}
+		KeyPress() = default;
 	};
 	std::vector<KeyPress> keypresses;
 

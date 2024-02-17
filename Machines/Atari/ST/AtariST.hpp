@@ -19,7 +19,7 @@ namespace Atari::ST {
 
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		static std::unique_ptr<Machine> AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 

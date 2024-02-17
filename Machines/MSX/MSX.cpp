@@ -1050,5 +1050,3 @@ std::unique_ptr<Machine> Machine::MSX(const Analyser::Static::Target *target, co
 		}
 	}
 }
-
-Machine::~Machine() {}

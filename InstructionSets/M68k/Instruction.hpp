@@ -478,7 +478,7 @@ class Preinstruction {
 			static constexpr int SizeShift						= 0;
 		};
 
-		Preinstruction() {}
+		Preinstruction() = default;
 
 		/// Produces a string description of this instruction; if @c opcode
 		/// is supplied then any quick fields in this instruction will be decoded;

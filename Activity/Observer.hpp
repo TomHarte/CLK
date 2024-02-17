@@ -23,7 +23,7 @@ namespace Activity {
 */
 class Observer {
 	public:
-		virtual ~Observer() {}
+		virtual ~Observer() = default;
 
 		/// Provides hints as to the sort of information presented on an LED.
 		enum LEDPresentation: uint8_t {

@@ -24,7 +24,7 @@ namespace Storage::Disk {
 */
 class Disk {
 	public:
-		virtual ~Disk() {}
+		virtual ~Disk() = default;
 
 		/*!
 			@returns the number of discrete positions that this disk uses to model its complete surface area.

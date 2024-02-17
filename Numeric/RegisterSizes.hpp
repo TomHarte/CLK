@@ -20,7 +20,7 @@ namespace CPU {
 /// Provides access to all intermediate parts of a larger int.
 template <typename Full, typename Half> union alignas(Full) alignas(Half) RegisterPair {
 	RegisterPair(Full v) : full(v) {}
-	RegisterPair() {}
+	RegisterPair() = default;
 
 	Full full;
 #if TARGET_RT_BIG_ENDIAN

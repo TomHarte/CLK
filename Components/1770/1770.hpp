@@ -30,7 +30,7 @@ class WD1770: public Storage::Disk::MFMController {
 			@param p The type of controller to emulate.
 		*/
 		WD1770(Personality p);
-		virtual ~WD1770() {}
+		virtual ~WD1770() = default;
 
 		/// Sets the value of the double-density input; when @c is_double_density is @c true, reads and writes double-density format data.
 		using Storage::Disk::MFMController::set_is_double_density;

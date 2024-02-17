@@ -768,5 +768,3 @@ std::unique_ptr<Machine> Machine::Enterprise(const Analyser::Static::Target *tar
 
 	return nullptr;
 }
-
-Machine::~Machine() {}

@@ -816,5 +816,3 @@ std::unique_ptr<Machine> Machine::Oric(const Analyser::Static::Target *target_hi
 
 	return nullptr;
 }
-
-Machine::~Machine() {}

@@ -39,7 +39,7 @@ class Tape {
 			Time length;
 
 			Pulse(Type type, Time length) : type(type), length(length) {}
-			Pulse() {}
+			Pulse() = default;
 		};
 
 		/*!
@@ -78,7 +78,7 @@ class Tape {
 		*/
 		virtual void seek(Time &time);
 
-		virtual ~Tape() {};
+		virtual ~Tape() = default;
 
 	private:
 		uint64_t offset_;
@@ -98,7 +98,7 @@ class Tape {
 class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 	public:
 		TapePlayer(int input_clock_rate);
-		virtual ~TapePlayer() {}
+		virtual ~TapePlayer() = default;
 
 		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();

@@ -62,7 +62,7 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 			uint32_t address = 0;
 			uint16_t value = 0;
 
-			Transaction() {}
+			Transaction() = default;
 			Transaction(Type type) : type(type) {}
 			Transaction(Type type, uint32_t address, uint16_t value) : type(type), address(address), value(value) {}
 

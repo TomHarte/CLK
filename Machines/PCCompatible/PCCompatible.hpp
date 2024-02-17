@@ -20,7 +20,7 @@ namespace PCCompatible {
 */
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns a PC Compatible.
 		static std::unique_ptr<Machine> PCCompatible(

@@ -56,7 +56,7 @@ struct Sector {
 	};
 	Encoding encoding = Encoding::SixAndTwo;
 
-	Sector() {}
+	Sector() = default;
 
 	Sector(Sector &&rhs) :
 		address(rhs.address),

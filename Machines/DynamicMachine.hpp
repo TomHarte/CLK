@@ -20,7 +20,7 @@ namespace Machine {
 	the machine's parent class or, therefore, the need to establish a common one.
 */
 struct DynamicMachine {
-	virtual ~DynamicMachine() {}
+	virtual ~DynamicMachine() = default;
 
 	virtual Activity::Source *activity_source() = 0;
 	virtual Configurable::Device *configurable_device() = 0;

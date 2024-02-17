@@ -17,7 +17,7 @@ class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
 	public:
 		static AllRAMProcessor *Processor(CPU::MOS6502Esque::Type type, bool has_cias = false);
-		virtual ~AllRAMProcessor() {}
+		virtual ~AllRAMProcessor() = default;
 
 		virtual void run_for(const Cycles cycles) = 0;
 		virtual void run_for_instructions(int) = 0;

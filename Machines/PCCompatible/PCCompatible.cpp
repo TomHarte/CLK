@@ -1208,5 +1208,3 @@ std::unique_ptr<Machine> Machine::PCCompatible(const Analyser::Static::Target *t
 		default: return nullptr;
 	}
 }
-
-Machine::~Machine() {}
