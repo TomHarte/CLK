@@ -213,6 +213,7 @@
 		4B1EC716255398B000A1F44B /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1EC714255398B000A1F44B /* Sound.cpp */; };
 		4B1EC717255398B000A1F44B /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1EC714255398B000A1F44B /* Sound.cpp */; };
 		4B1EDB451E39A0AC009D6819 /* chip.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B1EDB431E39A0AC009D6819 /* chip.png */; };
+		4B2005432B804D6400420C5C /* ARMDecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2005422B804D6400420C5C /* ARMDecoderTests.mm */; };
 		4B2130E2273A7A0A008A77B4 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2130E0273A7A0A008A77B4 /* Audio.cpp */; };
 		4B2130E3273A7A0A008A77B4 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2130E0273A7A0A008A77B4 /* Audio.cpp */; };
 		4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD424D773B30077EF25 /* CSScanTarget.mm */; };
@@ -1332,6 +1333,11 @@
 		4B1EC714255398B000A1F44B /* Sound.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sound.cpp; sourceTree = "<group>"; };
 		4B1EC715255398B000A1F44B /* Sound.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sound.hpp; sourceTree = "<group>"; };
 		4B1EDB431E39A0AC009D6819 /* chip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chip.png; sourceTree = "<group>"; };
+		4B20053E2B804A4F00420C5C /* Instruction.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
+		4B2005402B804AA300420C5C /* Decoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
+		4B2005422B804D6400420C5C /* ARMDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ARMDecoderTests.mm; sourceTree = "<group>"; };
+		4B2005442B804DC900420C5C /* Model.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
+		4B2005452B804DF600420C5C /* Operation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Operation.hpp; sourceTree = "<group>"; };
 		4B2130E0273A7A0A008A77B4 /* Audio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
 		4B2130E1273A7A0A008A77B4 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B228CD424D773B30077EF25 /* CSScanTarget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSScanTarget.mm; sourceTree = "<group>"; };
@@ -2750,6 +2756,17 @@
 				4B1EDB431E39A0AC009D6819 /* chip.png */,
 			);
 			path = Icons;
+			sourceTree = "<group>";
+		};
+		4B20053D2B804A4F00420C5C /* ARM */ = {
+			isa = PBXGroup;
+			children = (
+				4B2005402B804AA300420C5C /* Decoder.hpp */,
+				4B20053E2B804A4F00420C5C /* Instruction.hpp */,
+				4B2005442B804DC900420C5C /* Model.hpp */,
+				4B2005452B804DF600420C5C /* Operation.hpp */,
+			);
+			path = ARM;
 			sourceTree = "<group>";
 		};
 		4B228CD324D773B30077EF25 /* ScanTarget */ = {
@@ -4471,6 +4488,7 @@
 				4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
 				4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */,
+				4B2005422B804D6400420C5C /* ARMDecoderTests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BE34437238389E10058E78F /* AtariSTVideoTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
@@ -5082,6 +5100,7 @@
 				4BE8EB5425C0E9D40040BC40 /* Disassembler.hpp */,
 				4BEDA3B625B25563000C2DBD /* README.md */,
 				4BDA7F7F29C4C179007A10A5 /* 6809 */,
+				4B20053D2B804A4F00420C5C /* ARM */,
 				4B79629B2819681F008130F9 /* M68k */,
 				4BEDA40925B2844B000C2DBD /* M50740 */,
 				4BEDA3B325B25563000C2DBD /* PowerPC */,
@@ -6334,6 +6353,7 @@
 				4B778F2823A5EEF80000D260 /* Cartridge.cpp in Sources */,
 				4B7752B528217ED30073E2C5 /* SNA.cpp in Sources */,
 				4BEDA3C025B25563000C2DBD /* Decoder.cpp in Sources */,
+				4B2005432B804D6400420C5C /* ARMDecoderTests.mm in Sources */,
 				4B778F4C23A5F2090000D260 /* StaticAnalyser.cpp in Sources */,
 				4B778F2623A5EE350000D260 /* Acorn.cpp in Sources */,
 				4B7752C128217F490073E2C5 /* FAT.cpp in Sources */,
