@@ -45,7 +45,7 @@ class Keyboard {
 		/// Constructs a Keyboard that declares itself to observe only members of @c observed_keys.
 		Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers);
 
-		virtual ~Keyboard() {}
+		virtual ~Keyboard() = default;
 
 		// Host interface.
 

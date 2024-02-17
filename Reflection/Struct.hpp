@@ -37,7 +37,7 @@ struct Struct {
 		return const_cast<Struct *>(this)->get(name);
 	}
 	virtual std::vector<std::string> values_for(const std::string &name) const = 0;
-	virtual ~Struct() {}
+	virtual ~Struct() = default;
 
 	/*!
 		@returns A string describing this struct. This string has no guaranteed layout, may not be

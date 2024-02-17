@@ -19,7 +19,7 @@ namespace Coleco::Vision {
 
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 		static std::unique_ptr<Machine> ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {

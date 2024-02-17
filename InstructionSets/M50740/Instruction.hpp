@@ -222,7 +222,7 @@ struct Instruction {
 
 	Instruction(Operation operation, AddressingMode addressing_mode, uint8_t opcode) : operation(operation), addressing_mode(addressing_mode), opcode(opcode) {}
 	Instruction(uint8_t opcode) : opcode(opcode) {}
-	Instruction() {}
+	Instruction() = default;
 };
 
 /*!

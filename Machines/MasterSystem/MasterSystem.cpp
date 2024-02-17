@@ -570,5 +570,3 @@ std::unique_ptr<Machine> Machine::MasterSystem(const Analyser::Static::Target *t
 			return nullptr;
 	}
 }
-
-Machine::~Machine() {}

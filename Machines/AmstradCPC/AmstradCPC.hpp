@@ -22,7 +22,7 @@ namespace AmstradCPC {
 */
 class Machine {
 	public:
-		virtual ~Machine();
+		virtual ~Machine() = default;
 
 		/// Creates and returns an Amstrad CPC.
 		static std::unique_ptr<Machine> AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);

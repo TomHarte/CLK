@@ -796,5 +796,3 @@ std::unique_ptr<Machine> Machine::Electron(const Analyser::Static::Target *targe
 		return std::make_unique<Electron::ConcreteMachine<true>>(*acorn_target, rom_fetcher);
 	}
 }
-
-Machine::~Machine() {}

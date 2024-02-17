@@ -19,7 +19,7 @@ namespace Inputs {
 */
 class Joystick {
 	public:
-		virtual ~Joystick() {}
+		virtual ~Joystick() = default;
 
 		/*!
 			Defines a single input, any individually-measured thing — a fire button or

@@ -42,7 +42,7 @@ std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
 class Encoder {
 	public:
 		Encoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target);
-		virtual ~Encoder() {}
+		virtual ~Encoder() = default;
 		virtual void reset_target(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
 
 		virtual void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) = 0;

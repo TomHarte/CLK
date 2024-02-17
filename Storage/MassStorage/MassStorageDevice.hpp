@@ -27,7 +27,7 @@ namespace Storage::MassStorage {
 */
 class MassStorageDevice {
 	public:
-		virtual ~MassStorageDevice() {}
+		virtual ~MassStorageDevice() = default;
 
 		/*!
 			@returns The size of each individual block.

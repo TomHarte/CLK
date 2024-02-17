@@ -21,8 +21,6 @@ namespace Apple::Clock {
 */
 class ClockStorage {
 	public:
-		ClockStorage() {}
-
 		/*!
 			Advances the clock by 1 second.
 

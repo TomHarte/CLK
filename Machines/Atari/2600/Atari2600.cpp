@@ -216,5 +216,3 @@ std::unique_ptr<Machine> Machine::Atari2600(const Analyser::Static::Target *targ
 	const Target *const atari_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<Atari2600::ConcreteMachine>(*atari_target);
 }
-
-Machine::~Machine() {}

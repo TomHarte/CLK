@@ -55,7 +55,7 @@ template <bool stereo> struct SampleT {
 */
 class Speaker {
 	public:
-		virtual ~Speaker() {}
+		virtual ~Speaker() = default;
 
 		/*!
 			@returns The best output clock rate for the audio being supplied to this speaker, from the range given.
