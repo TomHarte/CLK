@@ -16,25 +16,25 @@
 namespace InstructionSet::ARM {
 
 template <Model model>
-constexpr std::array<Operation, 256> operation_table() {
-	std::array<Operation, 256> result{};
-	for(int c = 0; c < 256; c++) {
-		const uint32_t opcode = c << 20;
+using OperationTable = std::array<Operation, 128>;
+
+template <Model model>
+constexpr OperationTable<model> operation_table() {
+	OperationTable<model> result{};
+	for(std::size_t c = 0; c < result.size(); c++) {
+		const auto opcode = static_cast<uint32_t>(c << 21);
+
+		// Cf. the ARM2 datasheet, p45. Tests below match its ordering
+		// other than that 'undefined' is the fallthrough case.
 
 		if(((opcode >> 26) & 0b11) == 0b00) {
 			result[c] = Operation((c >> 21) & 0xf);
 			continue;
 		}
 
-		if(((opcode >> 25) & 0b111) == 0b101) {
-			result[c] =
-				((opcode >> 24) & 1) ? Operation::BranchWithLink : Operation::Branch;
-			continue;
-		}
-
 		if(((opcode >> 22) & 0b111'111) == 0b000'000) {
 			result[c] =
-				((opcode >> 21) & 1) ? Operation::MultiplyWithAccumulate : Operation::Multiply;
+				((opcode >> 21) & 1) ? Operation::MLA : Operation::MUL;
 			continue;
 		}
 
@@ -48,8 +48,14 @@ constexpr std::array<Operation, 256> operation_table() {
 			continue;
 		}
 
-		if(((opcode >> 24) & 0b1111) == 0b1111) {
-			result[c] = Operation::SoftwareInterrupt;
+		if(((opcode >> 25) & 0b111) == 0b101) {
+			result[c] =
+				((opcode >> 24) & 1) ? Operation::BL : Operation::B;
+			continue;
+		}
+
+		if(((opcode >> 25) & 0b111) == 0b110) {
+			result[c] = Operation::CoprocessorDataTransfer;
 			continue;
 		}
 
@@ -58,8 +64,8 @@ constexpr std::array<Operation, 256> operation_table() {
 			continue;
 		}
 
-		if(((opcode >> 25) & 0b111) == 0b110) {
-			result[c] = Operation::CoprocessorDataTransfer;
+		if(((opcode >> 24) & 0b1111) == 0b1111) {
+			result[c] = Operation::SoftwareInterrupt;
 			continue;
 		}
 
@@ -70,8 +76,8 @@ constexpr std::array<Operation, 256> operation_table() {
 
 template <Model model>
 constexpr Operation operation(uint32_t opcode) {
-	constexpr std::array<Operation, 256> operations = operation_table<model>();
-	return operations[(opcode >> 20) & 0xff];
+	constexpr OperationTable<model> operations = operation_table<model>();
+	return operations[(opcode >> 21) & 0x7f];
 }
 
 }

@@ -16,11 +16,11 @@ enum class Operation {
 	TST,	TEQ,	CMP,	CMN,
 	ORR,	MOV,	BIC,	MVN,
 
-	Branch,		BranchWithLink,
-	Multiply,	MultiplyWithAccumulate,
+	B,		BL,
+	MUL,	MLA,
 
-	SingleDataTransfer,
-	BlockDataTransfer,
+	SingleDataTransfer,	// TODO: LDR or STR?
+	BlockDataTransfer,	// TODO: LDM or STM?
 	SoftwareInterrupt,
 
 	CoprocessorDataOperationOrRegisterTransfer,
