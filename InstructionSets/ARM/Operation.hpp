@@ -11,16 +11,44 @@
 namespace InstructionSet::ARM {
 
 enum class Operation {
-	AND,	EOR,	SUB,	RSB,
-	ADD,	ADC,	SBC,	RSC,
-	TST,	TEQ,	CMP,	CMN,
-	ORR,	MOV,	BIC,	MVN,
+	/// Rd = Op1 AND Op2.
+	AND,
+	/// Rd = Op1 EOR Op2.
+	EOR,
+	/// Rd = Op1 - Op2.
+	SUB,
+	/// Rd = Op2 - Op1.
+	RSB,
+	/// Rd = Op1 + Op2.
+	ADD,
+	/// Rd = Op1 + Ord2 + C.
+	ADC,
+	/// Rd = Op1 - Op2 + C.
+	SBC,
+	/// Rd = Op2 - Op1 + C.
+	RSC,
+	/// Set condition codes on Op1 AND Op2.
+	TST,
+	/// Set condition codes on Op1 EOR Op2.
+	TEQ,
+	/// Set condition codes on Op1 - Op2.
+	CMP,
+	/// Set condition codes on Op1 + Op2.
+	CMN,
+	/// Rd = Op1 OR Op2.
+	ORR,
+	/// Rd = Op2
+	MOV,
+	/// Rd = Op1 AND NOT Op2.
+	BIC,
+	/// Rd = NOT Op2.
+	MVN,
 
 	B,		BL,
 	MUL,	MLA,
 
-	SingleDataTransfer,	// TODO: LDR or STR?
-	BlockDataTransfer,	// TODO: LDM or STM?
+	LDR, 	STR,
+	LDM,	STM,
 	SoftwareInterrupt,
 
 	CoprocessorDataOperationOrRegisterTransfer,

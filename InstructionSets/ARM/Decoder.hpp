@@ -16,38 +16,47 @@
 namespace InstructionSet::ARM {
 
 template <Model model>
-using OperationTable = std::array<Operation, 128>;
+using OperationTable = std::array<Operation, 256>;
 
 template <Model model>
 constexpr OperationTable<model> operation_table() {
 	OperationTable<model> result{};
 	for(std::size_t c = 0; c < result.size(); c++) {
-		const auto opcode = static_cast<uint32_t>(c << 21);
+		const auto opcode = static_cast<uint32_t>(c << 20);
 
-		// Cf. the ARM2 datasheet, p45. Tests below match its ordering
-		// other than that 'undefined' is the fallthrough case.
+		// Cf. the ARM2 datasheet, p.45. Tests below match its ordering
+		// other than that 'undefined' is the fallthrough case. More specific
+		// page references are provided were more detailed versions of the
+		// decoding are depicted.
 
+		// Data processing; cf. p.17.
 		if(((opcode >> 26) & 0b11) == 0b00) {
 			result[c] = Operation((c >> 21) & 0xf);
 			continue;
 		}
 
+		// Multiply and multiply-accumulate (MUL, MLA); cf. p.23.
 		if(((opcode >> 22) & 0b111'111) == 0b000'000) {
 			result[c] =
 				((opcode >> 21) & 1) ? Operation::MLA : Operation::MUL;
 			continue;
 		}
 
+		// Single data transfer (LDR, STR); cf. p.25.
 		if(((opcode >> 26) & 0b11) == 0b01) {
-			result[c] = Operation::SingleDataTransfer;
+			result[c] =
+				((opcode >> 20) & 1) ? Operation::LDR : Operation::STR;
 			continue;
 		}
 
+		// Block data transfer (LDM, STM); cf. p.29.
 		if(((opcode >> 25) & 0b111) == 0b100) {
-			result[c] = Operation::BlockDataTransfer;
+			result[c] =
+				((opcode >> 20) & 1) ? Operation::LDM : Operation::STM;
 			continue;
 		}
 
+		// Branch and branch with link (B, BL); cf. p.15.
 		if(((opcode >> 25) & 0b111) == 0b101) {
 			result[c] =
 				((opcode >> 24) & 1) ? Operation::BL : Operation::B;
@@ -77,7 +86,19 @@ constexpr OperationTable<model> operation_table() {
 template <Model model>
 constexpr Operation operation(uint32_t opcode) {
 	constexpr OperationTable<model> operations = operation_table<model>();
-	return operations[(opcode >> 21) & 0x7f];
+
+	const auto op = operations[(opcode >> 21) & 0x7f];
+
+	// MUL and MLA have an extra constraint that doesn't fit the neat
+	// 256-entry table format as above.
+	if(
+		(op == Operation::MUL || op == Operation::MLA)
+		&& ((opcode >> 4) & 0b1111) != 0b1001
+	) {
+		return Operation::Undefined;
+	}
+
+	return op;
 }
 
 }
