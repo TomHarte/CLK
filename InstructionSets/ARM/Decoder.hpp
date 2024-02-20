@@ -31,14 +31,23 @@ constexpr OperationTable<model> operation_table() {
 
 		// Data processing; cf. p.17.
 		if(((opcode >> 26) & 0b11) == 0b00) {
-			result[c] = Operation((c >> 21) & 0xf);
+			const auto operation = (c >> 21) & 0xf;
+			if((opcode >> 20) & 1) {
+				result[c] = Operation(int(Operation::ANDS) + operation);
+			} else {
+				result[c] = Operation(int(Operation::AND) + operation);
+			}
 			continue;
 		}
 
 		// Multiply and multiply-accumulate (MUL, MLA); cf. p.23.
 		if(((opcode >> 22) & 0b111'111) == 0b000'000) {
-			result[c] =
-				((opcode >> 21) & 1) ? Operation::MLA : Operation::MUL;
+			switch((opcode >> 20) & 3) {
+				case 0:	result[c] = Operation::MUL;		break;
+				case 1:	result[c] = Operation::MULS;	break;
+				case 2:	result[c] = Operation::MLA;		break;
+				case 3:	result[c] = Operation::MLAS;	break;
+			}
 			continue;
 		}
 
@@ -91,8 +100,11 @@ constexpr Operation operation(uint32_t opcode) {
 
 	// MUL and MLA have an extra constraint that doesn't fit the neat
 	// 256-entry table format as above.
+	//
+	// Hope: most instructions aren't MUL/MLA so relying on the branch predictor
+	// here is fine.
 	if(
-		(op == Operation::MUL || op == Operation::MLA)
+		is_multiply(op)
 		&& ((opcode >> 4) & 0b1111) != 0b1001
 	) {
 		return Operation::Undefined;

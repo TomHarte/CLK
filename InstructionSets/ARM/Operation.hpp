@@ -44,8 +44,40 @@ enum class Operation {
 	/// Rd = NOT Op2.
 	MVN,
 
+	/// Rd = Op1 AND Op2.
+	ANDS,
+	/// Rd = Op1 EOR Op2.
+	EORS,
+	/// Rd = Op1 - Op2.
+	SUBS,
+	/// Rd = Op2 - Op1.
+	RSBS,
+	/// Rd = Op1 + Op2.
+	ADDS,
+	/// Rd = Op1 + Ord2 + C.
+	ADCS,
+	/// Rd = Op1 - Op2 + C.
+	SBCS,
+	/// Rd = Op2 - Op1 + C.
+	RSCS,
+	/// Set condition codes on Op1 AND Op2.
+	TSTS,
+	/// Set condition codes on Op1 EOR Op2.
+	TEQS,
+	/// Set condition codes on Op1 - Op2.
+	CMPS,
+	/// Set condition codes on Op1 + Op2.
+	CMNS,
+	/// Rd = Op1 OR Op2.
+	ORRS,
+	/// Rd = Op2
+	MOVS,
+	/// Rd = Op1 AND NOT Op2.
+	BICS,
+	/// Rd = NOT Op2.
+	MVNS,
+
 	B,		BL,
-	MUL,	MLA,
 
 	LDR, 	STR,
 	LDM,	STM,
@@ -55,7 +87,20 @@ enum class Operation {
 	CoprocessorDataTransfer,
 
 	Undefined,
+
+	// These are kept at the end for a minor decoding win; they can be only partially decoded
+	// with the table-based decoder used elsewhere so a special case checks more bits upon
+	// a MUL or MLA and keeping these at the end of the enum allows a single conditional to
+	// determine whether the extra decoding is needed.
+	//
+	// See is_multiply below.
+	MUL,	MLA,
+	MULS,	MLAS,
 };
+
+constexpr bool is_multiply(Operation op) {
+	return op >= Operation::MUL;
+}
 
 enum class Condition {
 	EQ,	NE,	CS,	CC,
