@@ -1,5 +1,5 @@
 //
-//  Decoder.hpp
+//  OperationMapper.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 16/02/2024.
@@ -8,14 +8,68 @@
 
 #pragma once
 
-#include "Model.hpp"
-#include "Operation.hpp"
-
 #include "../../Reflection/Dispatcher.hpp"
 
-#include <array>
-
 namespace InstructionSet::ARM {
+
+enum class Model {
+	ARM2,
+};
+
+enum class Operation {
+	/// Rd = Op1 AND Op2.
+	AND,
+	/// Rd = Op1 EOR Op2.
+	EOR,
+	/// Rd = Op1 - Op2.
+	SUB,
+	/// Rd = Op2 - Op1.
+	RSB,
+	/// Rd = Op1 + Op2.
+	ADD,
+	/// Rd = Op1 + Ord2 + C.
+	ADC,
+	/// Rd = Op1 - Op2 + C.
+	SBC,
+	/// Rd = Op2 - Op1 + C.
+	RSC,
+	/// Set condition codes on Op1 AND Op2.
+	TST,
+	/// Set condition codes on Op1 EOR Op2.
+	TEQ,
+	/// Set condition codes on Op1 - Op2.
+	CMP,
+	/// Set condition codes on Op1 + Op2.
+	CMN,
+	/// Rd = Op1 OR Op2.
+	ORR,
+	/// Rd = Op2
+	MOV,
+	/// Rd = Op1 AND NOT Op2.
+	BIC,
+	/// Rd = NOT Op2.
+	MVN,
+
+	MUL,	MLA,
+	B,		BL,
+
+	LDR, 	STR,
+	LDM,	STM,
+	SWI,
+
+	CDP,
+	MRC, MCR,
+	LDC, STC,
+
+	Undefined,
+};
+
+enum class Condition {
+	EQ,	NE,	CS,	CC,
+	MI,	PL,	VS,	VC,
+	HI,	LS,	GE,	LT,
+	GT,	LE,	AL,	NV,
+};
 
 enum class ShiftType {
 	LogicalLeft = 0b00,
@@ -204,10 +258,41 @@ struct CoprocessorOperationOrRegisterTransfer {
 	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
 	int information()	{ return (opcode_ >> 5) & 0x7;	}
 
-protected:
+private:
 	uint32_t opcode_;
 };
 
+//
+// Coprocessor data transfer.
+//
+struct CoprocessorDataTransferFlags {
+	constexpr CoprocessorDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	constexpr bool pre_index()				{	return flag_bit<24>(flags_);	}
+	constexpr bool add_offset()				{	return flag_bit<23>(flags_);	}
+	constexpr bool transfer_length()		{	return flag_bit<22>(flags_);	}
+	constexpr bool write_back_address()		{	return flag_bit<21>(flags_);	}
+
+private:
+	uint8_t flags_;
+};
+
+struct CoprocessorDataTransfer {
+	constexpr CoprocessorDataTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	int base()			{ return (opcode_ >> 16) & 0xf;	}
+
+	int source()		{ return (opcode_ >> 12) & 0xf; }
+	int destination()	{ return (opcode_ >> 12) & 0xf;	}
+
+	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
+	int offset()		{ return opcode_ & 0xff;		}
+
+private:
+	uint32_t opcode_;
+};
+
+/// Operation mapper; use the free function @c dispatch as defined below.
 struct OperationMapper {
 	template <int i, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 		constexpr auto partial = uint32_t(i << 20);
@@ -304,6 +389,16 @@ struct OperationMapper {
 				);
 			}
 		}
+
+		// Coprocessor data transfers; cf. p.39.
+		if constexpr (((partial >> 25) & 0b111) == 0b110) {
+			constexpr bool is_ldc = partial & (1 << 20);
+			constexpr auto flags = CoprocessorDataTransferFlags(i);
+			scheduler.template coprocessor_data_transfer<is_ldc ? Operation::LDC : Operation::STC, flags>(
+				condition,
+				CoprocessorDataTransfer(instruction)
+			);
+		}
 	}
 };
 
@@ -312,13 +407,5 @@ template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &s
 	OperationMapper mapper;
 	Reflection::dispatch(mapper, (instruction >> FlagsStartBit) & 0xff, instruction, scheduler);
 }
-
-/*
-		if(((opcode >> 25) & 0b111) == 0b110) {
-			result[c] = Operation::CoprocessorDataTransfer;
-			continue;
-		}
-
-*/
 
 }
