@@ -33,6 +33,25 @@ constexpr bool flag_bit(uint8_t flags) {
 	return flags & (1 << (position - FlagsStartBit));
 }
 
+struct WithShiftControlBits {
+	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
+	int operand2() const					{	return opcode_ & 0xf;			}
+	/// The type of shift to apply to operand 2 if @c operand2_is_immediate() is @c false; meaningless otherwise.
+	ShiftType shift_type() const			{	return ShiftType((opcode_ >> 5) & 3);	}
+	/// @returns @c true if the amount to shift by should be taken from a register; @c false if it is an immediate value.
+	bool shift_count_is_register() const	{	return opcode_ & (1 << 4);				}
+	/// The shift amount register index if @c shift_count_is_register() is @c true; meaningless otherwise.
+	int shift_register() const				{	return (opcode_ >> 8) & 0xf;			}
+	/// The amount to shift by if @c shift_count_is_register() is @c false; meaningless otherwise.
+	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
+
+
+protected:
+	uint32_t opcode_;
+};
+
 //
 // Data processing (i.e. AND to MVN).
 //
@@ -49,30 +68,14 @@ private:
 	uint8_t flags_;
 };
 
-struct DataProcessing {
-	constexpr DataProcessing(uint32_t opcode) noexcept : opcode_(opcode) {}
+struct DataProcessing: public WithShiftControlBits {
+	using WithShiftControlBits::WithShiftControlBits;
 
 	/// The destination register index. i.e. Rd.
 	int destination() const				{	return (opcode_ >> 12) & 0xf;	}
 
 	/// The operand 1 register index. i.e. Rn.
 	int operand1() const				{	return (opcode_ >> 16) & 0xf;	}
-
-
-	//
-	// Register values for operand 2.
-	//
-
-	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
-	int operand2() const					{	return opcode_ & 0xf;			}
-	/// The type of shift to apply to operand 2 if @c operand2_is_immediate() is @c false; meaningless otherwise.
-	ShiftType shift_type() const			{	return ShiftType((opcode_ >> 5) & 3);	}
-	/// @returns @c true if the amount to shift by should be taken from a register; @c false if it is an immediate value.
-	bool shift_count_is_register() const	{	return opcode_ & (1 << 4);				}
-	/// The shift amount register index if @c shift_count_is_register() is @c true; meaningless otherwise.
-	int shift_register() const				{	return (opcode_ >> 8) & 0xf;			}
-	/// The amount to shift by if @c shift_count_is_register() is @c false; meaningless otherwise.
-	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
 
 	//
 	// Immediate values for operand 2.
@@ -82,9 +85,6 @@ struct DataProcessing {
 	int immediate() const				{	return opcode_ & 0xff;			}
 	/// The number of bits to rotate @c immediate()  by to the right if @c operand2_is_immediate() is @c true; meaningless otherwise.
 	int rotate() const					{	return (opcode_ >> 7) & 0x1e;	}
-
-private:
-	uint32_t opcode_;
 };
 
 //
@@ -118,6 +118,38 @@ private:
 	uint32_t opcode_;
 };
 
+//
+// Single data transfer (LDR, STR).
+//
+struct SingleDataTransferFlags {
+	constexpr SingleDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	constexpr bool offset_is_immediate()	{	return flag_bit<25>(flags_);	}
+	constexpr bool pre_index()				{	return flag_bit<24>(flags_);	}
+	constexpr bool add_offset()				{	return flag_bit<23>(flags_);	}
+	constexpr bool transfer_byte()			{	return flag_bit<22>(flags_);	}
+	constexpr bool write_back_address()		{	return flag_bit<21>(flags_);	}
+
+private:
+	uint8_t flags_;
+};
+
+struct SingleDataTransfer: public WithShiftControlBits {
+	using WithShiftControlBits::WithShiftControlBits;
+
+	/// The destination register index. i.e. 'Rd' for LDR.
+	int destination() const				{	return (opcode_ >> 12) & 0xf;	}
+
+	/// The destination register index. i.e. 'Rd' for STR.
+	int source() const					{	return (opcode_ >> 12) & 0xf;	}
+
+	/// The base register index. i.e. 'Rn'.
+	int base() const					{	return (opcode_ >> 16) & 0xf;	}
+
+	/// The immediate offset, if @c offset_is_immediate() was @c true; meaningless otherwise.
+	int immediate() const				{	return opcode_ & 0xfff;			}
+};
+
 
 struct OperationMapper {
 	template <int i, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
@@ -135,11 +167,12 @@ struct OperationMapper {
 			scheduler.template data_processing<operation, flags>(
 				DataProcessing(instruction)
 			);
-			return;
 		}
 
 		// Multiply and multiply-accumulate (MUL, MLA); cf. p.23.
-		if(((partial >> 22) & 0b111'111) == 0b000'000) {
+		if constexpr (((partial >> 22) & 0b111'111) == 0b000'000) {
+			// This implementation provides only eight bits baked into the template parameters so
+			// an additional dynamic test is required to check whether this is really, really MUL or MLA.
 			if(((instruction >> 4) & 0b1111) != 0b1001) {
 				scheduler.unknown(instruction);
 			} else {
@@ -149,8 +182,15 @@ struct OperationMapper {
 					Multiply(instruction)
 				);
 			}
+		}
 
-			return;
+		// Single data transfer (LDR, STR); cf. p.25.
+		if constexpr (((partial >> 26) & 0b11) == 0b01) {
+			constexpr bool is_ldr = partial & (1 << 20);
+			constexpr auto flags = SingleDataTransferFlags(i);
+			scheduler.template single_data_transfer<is_ldr ? Operation::LDR : Operation::STR, flags>(
+				SingleDataTransfer(instruction)
+			);
 		}
 	}
 };
@@ -158,19 +198,12 @@ struct OperationMapper {
 /// Decodes @c instruction, making an appropriate call into @c scheduler.
 template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 	OperationMapper mapper;
-	Reflection::dispatch(mapper, (instruction >> 20) & 0xff, instruction, scheduler);
+	Reflection::dispatch(mapper, (instruction >> FlagsStartBit) & 0xff, instruction, scheduler);
 }
 
 /*
 
 
-
-		// Single data transfer (LDR, STR); cf. p.25.
-		if(((opcode >> 26) & 0b11) == 0b01) {
-			result[c] =
-				((opcode >> 20) & 1) ? Operation::LDR : Operation::STR;
-			continue;
-		}
 
 		// Block data transfer (LDM, STM); cf. p.29.
 		if(((opcode >> 25) & 0b111) == 0b100) {
