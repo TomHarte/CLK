@@ -123,6 +123,11 @@ struct OperationMapper {
 	template <int i, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 		constexpr auto partial = static_cast<uint32_t>(i << 20);
 
+		// Cf. the ARM2 datasheet, p.45. Tests below match its ordering
+		// other than that 'undefined' is the fallthrough case. More specific
+		// page references are provided were more detailed versions of the
+		// decoding are depicted.
+
 		// Data processing; cf. p.17.
 		if constexpr (((partial >> 26) & 0b11) == 0b00) {
 			constexpr auto operation = Operation(int(Operation::AND) + ((partial >> 21) & 0xf));
@@ -150,47 +155,15 @@ struct OperationMapper {
 	}
 };
 
+/// Decodes @c instruction, making an appropriate call into @c scheduler.
 template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 	OperationMapper mapper;
 	Reflection::dispatch(mapper, (instruction >> 20) & 0xff, instruction, scheduler);
 }
 
 /*
-template <Model model>
-using OperationTable = std::array<Operation, 256>;
 
-template <Model model>
-constexpr OperationTable<model> operation_table() {
-	OperationTable<model> result{};
-	for(std::size_t c = 0; c < result.size(); c++) {
-		const auto opcode = static_cast<uint32_t>(c << 20);
 
-		// Cf. the ARM2 datasheet, p.45. Tests below match its ordering
-		// other than that 'undefined' is the fallthrough case. More specific
-		// page references are provided were more detailed versions of the
-		// decoding are depicted.
-
-		// Data processing; cf. p.17.
-		if(((opcode >> 26) & 0b11) == 0b00) {
-			const auto operation = (c >> 21) & 0xf;
-			if((opcode >> 20) & 1) {
-				result[c] = Operation(int(Operation::ANDS) + operation);
-			} else {
-				result[c] = Operation(int(Operation::AND) + operation);
-			}
-			continue;
-		}
-
-		// Multiply and multiply-accumulate (MUL, MLA); cf. p.23.
-		if(((opcode >> 22) & 0b111'111) == 0b000'000) {
-			switch((opcode >> 20) & 3) {
-				case 0:	result[c] = Operation::MUL;		break;
-				case 1:	result[c] = Operation::MULS;	break;
-				case 2:	result[c] = Operation::MLA;		break;
-				case 3:	result[c] = Operation::MLAS;	break;
-			}
-			continue;
-		}
 
 		// Single data transfer (LDR, STR); cf. p.25.
 		if(((opcode >> 26) & 0b11) == 0b01) {
@@ -229,30 +202,6 @@ constexpr OperationTable<model> operation_table() {
 		}
 
 		result[c] = Operation::Undefined;
-	}
-	return result;
-}
-
-template <Model model>
-constexpr Operation operation(uint32_t opcode) {
-	constexpr OperationTable<model> operations = operation_table<model>();
-
-	const auto op = operations[(opcode >> 21) & 0x7f];
-
-	// MUL and MLA have an extra constraint that doesn't fit the neat
-	// 256-entry table format as above.
-	//
-	// Hope: most instructions aren't MUL/MLA so relying on the branch predictor
-	// here is fine.
-	if(
-		is_multiply(op)
-		&& ((opcode >> 4) & 0b1111) != 0b1001
-	) {
-		return Operation::Undefined;
-	}
-
-	return op;
-}
 
 */
 
