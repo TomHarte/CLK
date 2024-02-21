@@ -14,7 +14,7 @@
 
 namespace InstructionSet::ARM {
 
-enum class ShiftType {
+/*enum class ShiftType {
 	LogicalLeft = 0b00,
 	LogicalRight = 0b01,
 	ArithmeticRight = 0b10,
@@ -140,7 +140,7 @@ class Instruction {
 
 	private:
 		uint32_t opcode_;
-};
+};*/
 
 // TODO: do MUL and MLA really transpose Rd and Rn as per the data sheet?
 // ARM: Assembly Language Programming by Cockerell thinks not.
