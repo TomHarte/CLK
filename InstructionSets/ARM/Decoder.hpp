@@ -47,7 +47,6 @@ struct WithShiftControlBits {
 	/// The amount to shift by if @c shift_count_is_register() is @c false; meaningless otherwise.
 	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
 
-
 protected:
 	uint32_t opcode_;
 };
@@ -150,10 +149,69 @@ struct SingleDataTransfer: public WithShiftControlBits {
 	int immediate() const				{	return opcode_ & 0xfff;			}
 };
 
+//
+// Block data transfer (LDR, STR).
+//
+struct BlockDataTransferFlags {
+	constexpr BlockDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	constexpr bool pre_index()				{	return flag_bit<24>(flags_);	}
+	constexpr bool add_offset()				{	return flag_bit<23>(flags_);	}
+	constexpr bool load_psr()				{	return flag_bit<22>(flags_);	}
+	constexpr bool write_back_address()		{	return flag_bit<21>(flags_);	}
+
+private:
+	uint8_t flags_;
+};
+
+struct BlockDataTransfer: public WithShiftControlBits {
+	using WithShiftControlBits::WithShiftControlBits;
+
+	/// The base register index. i.e. 'Rn'.
+	int base() const					{	return (opcode_ >> 16) & 0xf;	}
+
+	/// A bitfield indicating which registers to load or store.
+	int register_list() const			{	return opcode_ & 0xffff;		}
+};
+
+//
+// Coprocessor data operation and register transfer.
+//
+struct CoprocessorDataOperationFlags {
+	constexpr CoprocessorDataOperationFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	constexpr int operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0xf;	}
+
+private:
+	uint8_t flags_;
+};
+
+struct CoprocessorRegisterTransferFlags {
+	constexpr CoprocessorRegisterTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	constexpr int operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0x7;	}
+
+private:
+	uint8_t flags_;
+};
+
+struct CoprocessorOperationOrRegisterTransfer {
+	constexpr CoprocessorOperationOrRegisterTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	int operand1()		{ return (opcode_ >> 16) & 0xf;	}
+	int operand2()		{ return opcode_ & 0xf; 		}
+	int destination()	{ return (opcode_ >> 12) & 0xf;	}
+	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
+	int information()	{ return (opcode_ >> 5) & 0x7;	}
+
+protected:
+	uint32_t opcode_;
+};
 
 struct OperationMapper {
 	template <int i, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
-		constexpr auto partial = static_cast<uint32_t>(i << 20);
+		constexpr auto partial = uint32_t(i << 20);
+		const auto condition = 	Condition(instruction >> 28);
 
 		// Cf. the ARM2 datasheet, p.45. Tests below match its ordering
 		// other than that 'undefined' is the fallthrough case. More specific
@@ -165,6 +223,7 @@ struct OperationMapper {
 			constexpr auto operation = Operation(int(Operation::AND) + ((partial >> 21) & 0xf));
 			constexpr auto flags = DataProcessingFlags(i);
 			scheduler.template data_processing<operation, flags>(
+				condition,
 				DataProcessing(instruction)
 			);
 		}
@@ -179,6 +238,7 @@ struct OperationMapper {
 				constexpr bool is_mla = partial & (1 << 21);
 				constexpr auto flags = MultiplyFlags(i);
 				scheduler.template multiply<is_mla ? Operation::MLA : Operation::MUL, flags>(
+					condition,
 					Multiply(instruction)
 				);
 			}
@@ -189,8 +249,60 @@ struct OperationMapper {
 			constexpr bool is_ldr = partial & (1 << 20);
 			constexpr auto flags = SingleDataTransferFlags(i);
 			scheduler.template single_data_transfer<is_ldr ? Operation::LDR : Operation::STR, flags>(
+				condition,
 				SingleDataTransfer(instruction)
 			);
+		}
+
+		// Block data transfer (LDM, STM); cf. p.29.
+		if constexpr (((partial >> 25) & 0b111) == 0b100) {
+			constexpr bool is_ldm = partial & (1 << 20);
+			constexpr auto flags = BlockDataTransferFlags(i);
+			scheduler.template block_data_transfer<is_ldm ? Operation::LDM : Operation::STM, flags>(
+				condition,
+				BlockDataTransfer(instruction)
+			);
+		}
+
+		// Branch and branch with link (B, BL); cf. p.15.
+		if constexpr (((partial >> 25) & 0b111) == 0b101) {
+			constexpr bool is_bl = partial & (1 << 24);
+			scheduler.template branch<is_bl ? Operation::BL : Operation::B>(
+				condition,
+				(instruction & 0xf'ffff) << 2
+			);
+		}
+
+		// Software interreupt; cf. p.35.
+		if constexpr (((partial >> 24) & 0b1111) == 0b1111) {
+			scheduler.software_interrupt(condition);
+		}
+
+
+		// Both:
+		// Coprocessor data operation; cf. p. 37; and
+		// Coprocessor register transfers; cf. p. 42.
+		if constexpr (((partial >> 24) & 0b1111) == 0b1110) {
+			const auto parameters = CoprocessorOperationOrRegisterTransfer(instruction);
+
+			// TODO: parameters should probably vary.
+
+			if(instruction & (1 << 4)) {
+				// Register transfer.
+				constexpr auto flags = CoprocessorRegisterTransferFlags(i);
+				constexpr bool is_mrc = partial & (1 << 20);
+				scheduler.template coprocessor_register_transfer<is_mrc ? Operation::MRC : Operation::MCR, flags>(
+					condition,
+					parameters
+				);
+			} else {
+				// Data operation.
+				constexpr auto flags = CoprocessorDataOperationFlags(i);
+				scheduler.template coprocessor_data_operation<flags>(
+					condition,
+					parameters
+				);
+			}
 		}
 	}
 };
@@ -202,39 +314,10 @@ template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &s
 }
 
 /*
-
-
-
-		// Block data transfer (LDM, STM); cf. p.29.
-		if(((opcode >> 25) & 0b111) == 0b100) {
-			result[c] =
-				((opcode >> 20) & 1) ? Operation::LDM : Operation::STM;
-			continue;
-		}
-
-		// Branch and branch with link (B, BL); cf. p.15.
-		if(((opcode >> 25) & 0b111) == 0b101) {
-			result[c] =
-				((opcode >> 24) & 1) ? Operation::BL : Operation::B;
-			continue;
-		}
-
 		if(((opcode >> 25) & 0b111) == 0b110) {
 			result[c] = Operation::CoprocessorDataTransfer;
 			continue;
 		}
-
-		if(((opcode >> 24) & 0b1111) == 0b1110) {
-			result[c] = Operation::CoprocessorDataOperationOrRegisterTransfer;
-			continue;
-		}
-
-		if(((opcode >> 24) & 0b1111) == 0b1111) {
-			result[c] = Operation::SoftwareInterrupt;
-			continue;
-		}
-
-		result[c] = Operation::Undefined;
 
 */
 

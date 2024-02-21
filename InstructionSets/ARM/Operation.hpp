@@ -49,9 +49,10 @@ enum class Operation {
 
 	LDR, 	STR,
 	LDM,	STM,
-	SoftwareInterrupt,
+	SWI,
 
-	CoprocessorDataOperationOrRegisterTransfer,
+	CDP,
+	MRC, MCR,
 	CoprocessorDataTransfer,
 
 	Undefined,

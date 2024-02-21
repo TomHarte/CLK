@@ -1333,7 +1333,6 @@
 		4B1EC714255398B000A1F44B /* Sound.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sound.cpp; sourceTree = "<group>"; };
 		4B1EC715255398B000A1F44B /* Sound.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sound.hpp; sourceTree = "<group>"; };
 		4B1EDB431E39A0AC009D6819 /* chip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chip.png; sourceTree = "<group>"; };
-		4B20053E2B804A4F00420C5C /* Instruction.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
 		4B2005402B804AA300420C5C /* Decoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
 		4B2005422B804D6400420C5C /* ARMDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ARMDecoderTests.mm; sourceTree = "<group>"; };
 		4B2005442B804DC900420C5C /* Model.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
@@ -2762,7 +2761,6 @@
 			isa = PBXGroup;
 			children = (
 				4B2005402B804AA300420C5C /* Decoder.hpp */,
-				4B20053E2B804A4F00420C5C /* Instruction.hpp */,
 				4B2005442B804DC900420C5C /* Model.hpp */,
 				4B2005452B804DF600420C5C /* Operation.hpp */,
 			);
