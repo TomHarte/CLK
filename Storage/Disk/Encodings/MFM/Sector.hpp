@@ -40,7 +40,7 @@ struct Sector {
 	bool has_header_crc_error = false;
 	bool is_deleted = false;
 
-	Sector() noexcept {}
+	Sector() noexcept = default;
 
 	Sector(const Sector &&rhs) noexcept :
 		address(rhs.address),
