@@ -17,49 +17,39 @@ enum class Model {
 };
 
 enum class Operation {
-	/// Rd = Op1 AND Op2.
-	AND,
-	/// Rd = Op1 EOR Op2.
-	EOR,
-	/// Rd = Op1 - Op2.
-	SUB,
-	/// Rd = Op2 - Op1.
-	RSB,
-	/// Rd = Op1 + Op2.
-	ADD,
-	/// Rd = Op1 + Ord2 + C.
-	ADC,
-	/// Rd = Op1 - Op2 + C.
-	SBC,
-	/// Rd = Op2 - Op1 + C.
-	RSC,
-	/// Set condition codes on Op1 AND Op2.
-	TST,
-	/// Set condition codes on Op1 EOR Op2.
-	TEQ,
-	/// Set condition codes on Op1 - Op2.
-	CMP,
-	/// Set condition codes on Op1 + Op2.
-	CMN,
-	/// Rd = Op1 OR Op2.
-	ORR,
-	/// Rd = Op2
-	MOV,
-	/// Rd = Op1 AND NOT Op2.
-	BIC,
-	/// Rd = NOT Op2.
-	MVN,
+	AND,	/// Rd = Op1 AND Op2.
+	EOR,	/// Rd = Op1 EOR Op2.
+	SUB,	/// Rd = Op1 - Op2.
+	RSB,	/// Rd = Op2 - Op1.
+	ADD,	/// Rd = Op1 + Op2.
+	ADC,	/// Rd = Op1 + Ord2 + C.
+	SBC,	/// Rd = Op1 - Op2 + C.
+	RSC,	/// Rd = Op2 - Op1 + C.
+	TST,	/// Set condition codes on Op1 AND Op2.
+	TEQ,	/// Set condition codes on Op1 EOR Op2.
+	CMP,	/// Set condition codes on Op1 - Op2.
+	CMN,	/// Set condition codes on Op1 + Op2.
+	ORR,	/// Rd = Op1 OR Op2.
+	MOV,	/// Rd = Op2
+	BIC,	/// Rd = Op1 AND NOT Op2.
+	MVN,	/// Rd = NOT Op2.
 
-	MUL,	MLA,
-	B,		BL,
+	MUL,	/// Rd = Rm * Rs
+	MLA,	/// Rd = Rm * Rs + Rn
+	B,		/// Add offset to PC; programmer allows for PC being two words ahead.
+	BL,		/// Copy PC and PSR to R14, then branch. Copied PC points to next instruction.
 
-	LDR, 	STR,
-	LDM,	STM,
-	SWI,
+	LDR,	/// Read single byte or word from [base + offset], possibly mutating the base.
+	STR,	/// Write a single byte or word to [base + offset], possibly mutating the base.
+	LDM,	/// Read 1–16 words from [base], possibly mutating it.
+	STM,	/// Write 1-16 words to [base], possibly mutating it.
+	SWI,	/// Perform a software interrupt.
 
-	CDP,
-	MRC, MCR,
-	LDC, STC,
+	CDP,	/// Coprocessor data operation.
+	MRC,	///	Move from coprocessor register to ARM register.
+	MCR,	/// Move from ARM register to coprocessor register.
+	LDC,	/// Coprocessor data transfer load.
+	STC,	/// Coprocessor data transfer store.
 
 	Undefined,
 };
@@ -78,8 +68,11 @@ enum class ShiftType {
 	RotateRight = 0b11,
 };
 
-
+//
+// Implementation details.
+//
 static constexpr int FlagsStartBit = 20;
+using Flags = uint8_t;
 
 template <int position>
 constexpr bool flag_bit(uint8_t flags) {
@@ -102,6 +95,19 @@ struct WithShiftControlBits {
 	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
 
 protected:
+	uint32_t opcode_;
+};
+
+//
+// Branch (i.e. B and BL).
+//
+struct Branch {
+	constexpr Branch(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	/// The 26-bit offset to add to the PC.
+	int offset() const				{	return (opcode_ & 0xff'ffff) << 2;	}
+
+private:
 	uint32_t opcode_;
 };
 
@@ -229,7 +235,7 @@ struct BlockDataTransfer: public WithShiftControlBits {
 };
 
 //
-// Coprocessor data operation and register transfer.
+// Coprocessor data operation.
 //
 struct CoprocessorDataOperationFlags {
 	constexpr CoprocessorDataOperationFlags(uint8_t flags) noexcept : flags_(flags) {}
@@ -240,6 +246,22 @@ private:
 	uint8_t flags_;
 };
 
+struct CoprocessorDataOperation {
+	constexpr CoprocessorDataOperation(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	int operand1()		{ return (opcode_ >> 16) & 0xf;	}
+	int operand2()		{ return opcode_ & 0xf; 		}
+	int destination()	{ return (opcode_ >> 12) & 0xf;	}
+	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
+	int information()	{ return (opcode_ >> 5) & 0x7;	}
+
+private:
+	uint32_t opcode_;
+};
+
+//
+// Coprocessor register transfer.
+//
 struct CoprocessorRegisterTransferFlags {
 	constexpr CoprocessorRegisterTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
@@ -249,8 +271,8 @@ private:
 	uint8_t flags_;
 };
 
-struct CoprocessorOperationOrRegisterTransfer {
-	constexpr CoprocessorOperationOrRegisterTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
+struct CoprocessorRegisterTransfer {
+	constexpr CoprocessorRegisterTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	int operand1()		{ return (opcode_ >> 16) & 0xf;	}
 	int operand2()		{ return opcode_ & 0xf; 		}
@@ -306,103 +328,134 @@ struct OperationMapper {
 		// Data processing; cf. p.17.
 		if constexpr (((partial >> 26) & 0b11) == 0b00) {
 			constexpr auto operation = Operation(int(Operation::AND) + ((partial >> 21) & 0xf));
-			constexpr auto flags = DataProcessingFlags(i);
-			scheduler.template data_processing<operation, flags>(
+			scheduler.template perform<operation, i>(
 				condition,
 				DataProcessing(instruction)
 			);
+			return;
 		}
 
 		// Multiply and multiply-accumulate (MUL, MLA); cf. p.23.
 		if constexpr (((partial >> 22) & 0b111'111) == 0b000'000) {
 			// This implementation provides only eight bits baked into the template parameters so
 			// an additional dynamic test is required to check whether this is really, really MUL or MLA.
-			if(((instruction >> 4) & 0b1111) != 0b1001) {
-				scheduler.unknown(instruction);
-			} else {
+			if(((instruction >> 4) & 0b1111) == 0b1001) {
 				constexpr bool is_mla = partial & (1 << 21);
-				constexpr auto flags = MultiplyFlags(i);
-				scheduler.template multiply<is_mla ? Operation::MLA : Operation::MUL, flags>(
+				scheduler.template perform<is_mla ? Operation::MLA : Operation::MUL, i>(
 					condition,
 					Multiply(instruction)
 				);
+				return;
 			}
 		}
 
 		// Single data transfer (LDR, STR); cf. p.25.
 		if constexpr (((partial >> 26) & 0b11) == 0b01) {
 			constexpr bool is_ldr = partial & (1 << 20);
-			constexpr auto flags = SingleDataTransferFlags(i);
-			scheduler.template single_data_transfer<is_ldr ? Operation::LDR : Operation::STR, flags>(
+			scheduler.template perform<is_ldr ? Operation::LDR : Operation::STR, i>(
 				condition,
 				SingleDataTransfer(instruction)
 			);
+			return;
 		}
 
 		// Block data transfer (LDM, STM); cf. p.29.
 		if constexpr (((partial >> 25) & 0b111) == 0b100) {
 			constexpr bool is_ldm = partial & (1 << 20);
-			constexpr auto flags = BlockDataTransferFlags(i);
-			scheduler.template block_data_transfer<is_ldm ? Operation::LDM : Operation::STM, flags>(
+			scheduler.template perform<is_ldm ? Operation::LDM : Operation::STM, i>(
 				condition,
 				BlockDataTransfer(instruction)
 			);
+			return;
 		}
 
 		// Branch and branch with link (B, BL); cf. p.15.
 		if constexpr (((partial >> 25) & 0b111) == 0b101) {
 			constexpr bool is_bl = partial & (1 << 24);
-			scheduler.template branch<is_bl ? Operation::BL : Operation::B>(
+			scheduler.template perform<is_bl ? Operation::BL : Operation::B>(
 				condition,
-				(instruction & 0xf'ffff) << 2
+				Branch(instruction)
 			);
+			return;
 		}
 
 		// Software interreupt; cf. p.35.
 		if constexpr (((partial >> 24) & 0b1111) == 0b1111) {
 			scheduler.software_interrupt(condition);
+			return;
 		}
-
 
 		// Both:
 		// Coprocessor data operation; cf. p. 37; and
 		// Coprocessor register transfers; cf. p. 42.
 		if constexpr (((partial >> 24) & 0b1111) == 0b1110) {
-			const auto parameters = CoprocessorOperationOrRegisterTransfer(instruction);
-
-			// TODO: parameters should probably vary.
-
 			if(instruction & (1 << 4)) {
 				// Register transfer.
-				constexpr auto flags = CoprocessorRegisterTransferFlags(i);
+				const auto parameters = CoprocessorRegisterTransfer(instruction);
 				constexpr bool is_mrc = partial & (1 << 20);
-				scheduler.template coprocessor_register_transfer<is_mrc ? Operation::MRC : Operation::MCR, flags>(
+				scheduler.template perform<is_mrc ? Operation::MRC : Operation::MCR, i>(
 					condition,
 					parameters
 				);
 			} else {
 				// Data operation.
-				constexpr auto flags = CoprocessorDataOperationFlags(i);
-				scheduler.template coprocessor_data_operation<flags>(
+				const auto parameters = CoprocessorDataOperation(instruction);
+				scheduler.template perform<i>(
 					condition,
 					parameters
 				);
 			}
+			return;
 		}
 
 		// Coprocessor data transfers; cf. p.39.
 		if constexpr (((partial >> 25) & 0b111) == 0b110) {
 			constexpr bool is_ldc = partial & (1 << 20);
-			constexpr auto flags = CoprocessorDataTransferFlags(i);
-			scheduler.template coprocessor_data_transfer<is_ldc ? Operation::LDC : Operation::STC, flags>(
+			scheduler.template perform<is_ldc ? Operation::LDC : Operation::STC, i>(
 				condition,
 				CoprocessorDataTransfer(instruction)
 			);
+			return;
 		}
+
+		// Fallback position.
+		scheduler.unknown(instruction);
 	}
 };
 
+/// A brief documentation of the interface expected by @c dispatch below; will be a concept if/when this project adopts C++20.
+struct SampleScheduler {
+	// General template arguments:
+	//
+	//	(1) Operation, telling the function which operation to perform. Will always be from the subset
+	//		implied by the operation category; and
+	//	(2)	Flags, an opaque type which can be converted into a DataProcessingFlags, MultiplyFlags, etc,
+	//		by simply construction, to provide all flags that can be baked into the template parameters.
+	//
+	// Arguments are ommitted if not relevant.
+	//
+	// Function arguments:
+	//
+	// 	(1)	Condition, indicating the condition code associated with this operation; and
+	//	(2)	An operation-specific encapsulation of the operation code for decoding of fields that didn't
+	//		fit into the template parameters.
+	template <Operation, Flags> void perform(Condition, DataProcessing);
+	template <Operation, Flags> void perform(Condition, Multiply);
+	template <Operation, Flags> void perform(Condition, SingleDataTransfer);
+	template <Operation, Flags> void perform(Condition, BlockDataTransfer);
+	template <Operation> void perform(Condition, Branch);
+	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer);
+	template <Flags> void perform(Condition, CoprocessorDataOperation);
+	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer);
+
+	// Irregular operations.
+	void software_interrupt(Condition);
+	void unknown(uint32_t opcode);
+};
+
 /// Decodes @c instruction, making an appropriate call into @c scheduler.
+///
+/// In lieue of C++20, see the sample definition of SampleScheduler above for the expected interface.
 template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 	OperationMapper mapper;
 	Reflection::dispatch(mapper, (instruction >> FlagsStartBit) & 0xff, instruction, scheduler);
