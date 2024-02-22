@@ -19,7 +19,10 @@ struct Scheduler {
 	template <Operation, Flags> void perform(Condition, Multiply) {}
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer) {}
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer) {}
-	template <Operation> void perform(Condition, Branch) {}
+
+	template <Operation op> void perform(Condition condition, Branch branch) {
+		printf("Branch %sif %d; add %08x\n", op == Operation::BL ? "with link " : "", int(condition), branch.offset());
+	}
 	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer) {}
 	template <Flags> void perform(Condition, CoprocessorDataOperation) {}
 	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer) {}
@@ -38,7 +41,7 @@ struct Scheduler {
 - (void)testXYX {
 	Scheduler scheduler;
 
-	InstructionSet::ARM::dispatch(1, scheduler);
+	InstructionSet::ARM::dispatch(0xEAE06900, scheduler);
 //	const auto intr = Instruction<Model::ARM2>(1);
 //	NSLog(@"%d", intr.operation());
 }
