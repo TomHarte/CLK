@@ -80,6 +80,9 @@ constexpr bool flag_bit(uint8_t flags) {
 	return flags & (1 << (position - FlagsStartBit));
 }
 
+//
+// Methods common to data processing and data transfer.
+//
 struct WithShiftControlBits {
 	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
 
@@ -121,6 +124,7 @@ struct DataProcessingFlags {
 	///		@c false if it is defined by the @c shift_*() and @c operand2() fields.
 	constexpr bool operand2_is_immediate()	{	return flag_bit<25>(flags_);	}
 
+	/// @c true if the status register should be updated; @c false otherwise.
 	constexpr bool set_condition_codes()	{	return flag_bit<20>(flags_);	}
 
 private:
@@ -152,6 +156,7 @@ struct DataProcessing: public WithShiftControlBits {
 struct MultiplyFlags {
 	constexpr MultiplyFlags(uint8_t flags) noexcept : flags_(flags) {}
 
+	/// @c true if the status register should be updated; @c false otherwise.
 	constexpr bool set_condition_codes()	{	return flag_bit<20>(flags_);	}
 
 private:
