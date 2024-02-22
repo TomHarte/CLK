@@ -25,15 +25,15 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	// Check that the disk image is at least large enough to hold an ADFS catalogue.
 	if(file_.stats().st_size < 7 * sizeT(128 << sector_size)) throw Error::InvalidFormat;
 
-	// Check that the initial directory's 'Hugo's are present.
+	// Check that the initial directory's 'Hugo's or 'Nick's are present.
 	file_.seek(513, SEEK_SET);
 	uint8_t bytes[4];
 	file_.read(bytes, 4);
-	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw Error::InvalidFormat;
+	if(memcmp(bytes, "Hugo", 4)) throw Error::InvalidFormat;
 
 	file_.seek(0x6fb, SEEK_SET);
 	file_.read(bytes, 4);
-	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw Error::InvalidFormat;
+	if(memcmp(bytes, "Hugo", 4)) throw Error::InvalidFormat;
 
 	// Pick a number of heads; treat this image as double sided if it's too large to be single-sided.
 	head_count_ = 1 + (file_.stats().st_size > sectors_per_track * sizeT(128 << sector_size) * 80);

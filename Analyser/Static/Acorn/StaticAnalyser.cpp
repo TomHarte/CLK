@@ -62,10 +62,10 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	auto target = std::make_unique<Target>();
 
-	// strip out inappropriate cartridges
+	// Strip out inappropriate cartridges.
 	target->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
-	// if there are any tapes, attempt to get data from the first
+	// If there are any tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
 		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
 		std::vector<File> files = GetFiles(tape);
@@ -101,6 +101,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	}
 
 	if(!media.disks.empty()) {
+		// TODO: check for 'Hugo' versus 'Nick' in an ADFS catalogue as a hint for the Archimedes;
+
 		std::shared_ptr<Storage::Disk::Disk> disk = media.disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
 		dfs_catalogue = GetDFSCatalogue(disk);
