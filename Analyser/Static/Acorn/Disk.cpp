@@ -99,8 +99,11 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 
 	// Quick sanity checks.
 	if(root_directory[0x4cb]) return nullptr;
-	if(root_directory[1] != 'H' || root_directory[2] != 'u' || root_directory[3] != 'g' || root_directory[4] != 'o') return nullptr;
-	if(root_directory[0x4FB] != 'H' || root_directory[0x4FC] != 'u' || root_directory[0x4FD] != 'g' || root_directory[0x4FE] != 'o') return nullptr;
+	catalogue->is_hugo = !memcmp(&root_directory[1], "Hugo", 4) && !memcmp(&root_directory[0x4FB], "Hugo", 4);
+	const bool is_nick = !memcmp(&root_directory[1], "Nick", 4) && !memcmp(&root_directory[0x4FB], "Nick", 4);
+	if(!catalogue->is_hugo && !is_nick) {
+		return nullptr;
+	}
 
 	switch(free_space_map_second_half->samples[0][0xfd]) {
 		default: catalogue->bootOption = Catalogue::BootOption::None;		break;

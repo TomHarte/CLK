@@ -101,13 +101,15 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	}
 
 	if(!media.disks.empty()) {
-		// TODO: check for 'Hugo' versus 'Nick' in an ADFS catalogue as a hint for the Archimedes;
-
+		// TODO: below requires an [8-bit compatible] 'Hugo' ADFS catalogue, disallowing
+		// [Archimedes-exclusive] 'Nick' catalogues.
+		//
+		// Would be better to form the appropriate target in the latter case.
 		std::shared_ptr<Storage::Disk::Disk> disk = media.disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
-		if(dfs_catalogue || adfs_catalogue) {
+		if(dfs_catalogue || (adfs_catalogue && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
 			target->media.disks = media.disks;
