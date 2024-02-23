@@ -22,7 +22,7 @@ It currently contains emulations of the:
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
 * Enterprise 64/128;
-* Macintosh 512ke and Plus;
+* Macintosh 128K, 512K, 512Ke, and Plus;
 * MSX 1 and 2;
 * Oric 1/Atmos;
 * Sega Master System;
