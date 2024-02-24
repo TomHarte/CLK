@@ -13,6 +13,7 @@
 #include "../../../Numeric/CRC.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 using namespace Analyser::Static::Acorn;
 
