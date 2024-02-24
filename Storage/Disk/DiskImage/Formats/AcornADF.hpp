@@ -33,6 +33,8 @@ class AcornADF: public MFMSectorDump {
 	private:
 		long get_file_offset_for_position(Track::Address address) final;
 		int head_count_ = 1;
+		uint8_t sector_size_ = 1;
+		int sectors_per_track_ = 16;
 };
 
 }
