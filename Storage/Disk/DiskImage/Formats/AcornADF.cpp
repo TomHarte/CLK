@@ -51,32 +51,64 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	//
 	// So then .ADF files might be track-interleaved and might not be.
 
-	switch(size) {
-		default:
-			sector_size_ = 1;
-			sectors_per_track_ = 16;
-		break;
+	const auto has_identifier = [&](long location, bool permit_hugo, bool permit_nick) -> bool {
+		file_.seek(location, SEEK_SET);
+
+		uint8_t bytes[4];
+		file_.read(bytes, 4);
+
+		return
+			(permit_hugo && !memcmp(bytes, "Hugo", 4)) ||
+			(permit_nick && !memcmp(bytes, "Nick", 4));
+	};
+
+	const auto file_size = file_.stats().st_size;
+	Encodings::MFM::Density density = Encodings::MFM::Density::Double;
+	if(has_identifier(513, true, false)) {
+		// One of:
+		//
+		// ADFS-S: 1 side, 40 tracks, 16 sectors, 256 bytes = 160K old map, old dir
+		// ADFS-M: 1 side, 80 tracks, 16 sectors, 256 bytes = 320K old map, old dir
+		// ADFS-L: 2 sides, 80 tracks, 16 sectors, 256 bytes = 640K old map, old dir
+
+		head_count_ = file_.stats().st_size > 80*16*256 ? 2 : 1;
+		sector_size_ = 1;
+		sectors_per_track_ = 16;
+	} else if(has_identifier(1025, true, true)) {
+		// ADFS-D: 80 tracks, 2 sides, 5 sectors, 1024 bytes = 800K old map, new dir
+		head_count_ = 2;
+		sector_size_ = 3;
+		sectors_per_track_ = 5;
+	} else if(has_identifier(2049, false, true)) {
+		// One of:
+		//
+		// ADFS-E: 80 tracks, 2 sides, 5 sectors, 1024 bytes = 800K new map, new dir
+		// ADFS-F: 80 tracks, 2 sides, 10 sectors, 1024 bytes = 1600K new map, new dir
+		// ADFS-G: 80 tracks, 2 sides, 20 sectors, 1024 bytes = 3200K new map, new dir
+
+		head_count_ = 2;
+		sector_size_ = 3;
+		if(file_size > 80*2*10*1024) {
+			sectors_per_track_ = 20;
+			density = Encodings::MFM::Density::High;	// Or, presumably, higher than high?
+		} else if(file_size > 80*2*10*1024) {
+			sectors_per_track_ = 10;
+			density = Encodings::MFM::Density::High;
+		} else {
+			sectors_per_track_ = 5;
+		}
+	} else {
+		throw Error::InvalidFormat;
 	}
+
+	// TODO: possibly this image is side-interleaved if sectors per track is less than 16.
+	// Figure that out.
 
 	// Check that the disk image is at least large enough to hold an ADFS catalogue.
 	if(file_.stats().st_size < 7 * sizeT(128 << sector_size_)) throw Error::InvalidFormat;
 
-	// Check that the initial directory's 'Hugo's or 'Nick's are present.
-	// TODO: check other locations, to pick sector size and count.
-	file_.seek(513, SEEK_SET);
-	uint8_t bytes[4];
-	file_.read(bytes, 4);
-	if(memcmp(bytes, "Hugo", 4) && memcmp(bytes, "Nick", 4)) throw Error::InvalidFormat;
-
-	file_.seek(0x6fb, SEEK_SET);
-	file_.read(bytes, 4);
-	if(memcmp(bytes, "Hugo", 4) && memcmp(bytes, "Nick", 4)) throw Error::InvalidFormat;
-
-	// Pick a number of heads; treat this image as double sided if it's too large to be single-sided.
-	head_count_ = 1 + (file_.stats().st_size > sectors_per_track_ * sizeT(128 << sector_size_) * 80);
-
 	// Announce disk geometry.
-	set_geometry(sectors_per_track_, sector_size_, 0, Encodings::MFM::Density::Double);
+	set_geometry(sectors_per_track_, sector_size_, 0, density);
 }
 
 HeadPosition AcornADF::get_maximum_head_position() {
