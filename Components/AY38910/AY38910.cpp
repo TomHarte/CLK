@@ -127,9 +127,9 @@ void AY38910SampleSource<is_stereo>::advance() {
 
 	// Update the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
 	// it into the official 17 upon divider underflow.
-	if(noise_counter_) noise_counter_--;
+	if(noise_counter_) --noise_counter_;
 	else {
-		noise_counter_ = noise_period_ << 1;	// To cover the double resolution of envelopes.
+		noise_counter_ = noise_period_ << 1;		// To cover the double resolution of envelopes.
 		noise_output_ ^= noise_shift_register_&1;
 		noise_shift_register_ |= ((noise_shift_register_ ^ (noise_shift_register_ >> 3))&1) << 17;
 		noise_shift_register_ >>= 1;
@@ -137,10 +137,10 @@ void AY38910SampleSource<is_stereo>::advance() {
 
 	// Update the envelope generator. Table based for pattern lookup, with a 'refill' step: a way of
 	// implementing non-repeating patterns by locking them to the final table position.
-	if(envelope_divider_) envelope_divider_--;
+	if(envelope_divider_) --envelope_divider_;
 	else {
-		envelope_divider_ = envelope_period_;
-		envelope_position_ ++;
+		envelope_divider_ = envelope_period_ << 1;
+		++envelope_position_;
 		if(envelope_position_ == 64) envelope_position_ = envelope_overflow_masks_[output_registers_[13]];
 	}
 
