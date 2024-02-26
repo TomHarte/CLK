@@ -16,7 +16,7 @@ enum class Model {
 	ARM2,
 };
 
-enum class Operation {
+enum class DataProcessingOperation {
 	AND,	/// Rd = Op1 AND Op2.
 	EOR,	/// Rd = Op1 EOR Op2.
 	SUB,	/// Rd = Op1 - Op2.
@@ -33,7 +33,9 @@ enum class Operation {
 	MOV,	/// Rd = Op2
 	BIC,	/// Rd = Op1 AND NOT Op2.
 	MVN,	/// Rd = NOT Op2.
+};
 
+enum class Operation {
 	MUL,	/// Rd = Rm * Rs
 	MLA,	/// Rd = Rm * Rs + Rn
 	B,		/// Add offset to PC; programmer allows for PC being two words ahead.
@@ -120,12 +122,17 @@ private:
 struct DataProcessingFlags {
 	constexpr DataProcessingFlags(uint8_t flags) noexcept : flags_(flags) {}
 
+	/// @returns The operation to apply.
+	constexpr DataProcessingOperation operation() const {
+		return DataProcessingOperation((flags_ >> 21) & 0xf);
+	}
+
 	/// @returns @c true if operand 2 is defined by the @c rotate() and @c immediate() fields;
 	///		@c false if it is defined by the @c shift_*() and @c operand2() fields.
-	constexpr bool operand2_is_immediate()	{	return flag_bit<25>(flags_);	}
+	constexpr bool operand2_is_immediate() const	{	return flag_bit<25>(flags_);	}
 
 	/// @c true if the status register should be updated; @c false otherwise.
-	constexpr bool set_condition_codes()	{	return flag_bit<20>(flags_);	}
+	constexpr bool set_condition_codes() const		{	return flag_bit<20>(flags_);	}
 
 private:
 	uint8_t flags_;
@@ -332,8 +339,7 @@ struct OperationMapper {
 
 		// Data processing; cf. p.17.
 		if constexpr (((partial >> 26) & 0b11) == 0b00) {
-			constexpr auto operation = Operation(int(Operation::AND) + ((partial >> 21) & 0xf));
-			scheduler.template perform<operation, i>(
+			scheduler.template perform<i>(
 				condition,
 				DataProcessing(instruction)
 			);
@@ -444,7 +450,7 @@ struct SampleScheduler {
 	// 	(1)	Condition, indicating the condition code associated with this operation; and
 	//	(2)	An operation-specific encapsulation of the operation code for decoding of fields that didn't
 	//		fit into the template parameters.
-	template <Operation, Flags> void perform(Condition, DataProcessing);
+	template <Flags> void perform(Condition, DataProcessing);
 	template <Operation, Flags> void perform(Condition, Multiply);
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer);
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer);
