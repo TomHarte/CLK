@@ -68,6 +68,7 @@ struct Scheduler {
 		// Populate carry from the shift only if it'll be used.
 		constexpr bool shift_sets_carry = is_logical(flags.operation()) && flags.set_condition_codes();
 
+		// Get operand 2.
 		if constexpr (flags.operand2_is_immediate()) {
 			operand2 = fields.immediate();
 			if(fields.rotate()) {
@@ -85,17 +86,27 @@ struct Scheduler {
 			shift<shift_sets_carry>(fields.shift_type(), operand2, shift_amount, &rotate_carry);
 		}
 
+		// Perform the data processing operation.
+		uint32_t conditions = 0;
 		switch(flags.operation()) {
-			case DataProcessingOperation::AND:
-				destination = operand1 & operand2;
-			break;
+			// Logical operations.
+			case DataProcessingOperation::AND:	conditions = destination = operand1 & operand2;		break;
+			case DataProcessingOperation::EOR:	conditions = destination = operand1 ^ operand2;		break;
+			case DataProcessingOperation::ORR:	conditions = destination = operand1 | operand2;		break;
+			case DataProcessingOperation::BIC:	conditions = destination = operand1 & ~operand2;	break;
+
+			case DataProcessingOperation::MOV:	conditions = destination = operand2;	break;
+			case DataProcessingOperation::MVN:	conditions = destination = ~operand2;	break;
+
+			case DataProcessingOperation::TST:	conditions = operand1 & operand2;	break;
+			case DataProcessingOperation::TEQ:	conditions = operand1 ^ operand2;	break;
 
 			default: break;	// ETC.
 		}
 
 		// Set N and Z in a unified way.
 		if constexpr (flags.set_condition_codes()) {
-			status.set_nz(destination);
+			status.set_nz(conditions);
 		}
 
 		// Set C from the barrel shifter if applicable.
