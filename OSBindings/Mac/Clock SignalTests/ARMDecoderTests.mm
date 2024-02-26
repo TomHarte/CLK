@@ -53,11 +53,14 @@ void shift(ShiftType type, uint32_t &source, uint32_t amount, uint32_t *carry) {
 	}
 }
 
+
 struct Scheduler {
 	template <Flags f> void perform(Condition condition, DataProcessing fields) {
 		if(!status.test(condition)) {
 			return;
 		}
+
+		// TODO: how does register 15 fit into all of below? As an operand or as a target?
 
 		constexpr DataProcessingFlags flags(f);
 		auto &destination = registers_[fields.destination()];
@@ -113,6 +116,8 @@ struct Scheduler {
 		if constexpr (shift_sets_carry) {
 			status.set_c(rotate_carry);
 		}
+
+		// TODO: If register 15 was in use as a destination, write back and clean up.
 	}
 
 	template <Operation, Flags> void perform(Condition, Multiply) {}
