@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "../../../InstructionSets/ARM/OperationMapper.hpp"
+#include "../../../InstructionSets/ARM/Status.hpp"
 
 using namespace InstructionSet::ARM;
 
