@@ -35,6 +35,22 @@ enum class DataProcessingOperation {
 	MVN,	/// Rd = NOT Op2.
 };
 
+constexpr bool is_logical(DataProcessingOperation operation) {
+	switch(operation) {
+		case DataProcessingOperation::AND:
+		case DataProcessingOperation::EOR:
+		case DataProcessingOperation::TST:
+		case DataProcessingOperation::TEQ:
+		case DataProcessingOperation::ORR:
+		case DataProcessingOperation::MOV:
+		case DataProcessingOperation::BIC:
+		case DataProcessingOperation::MVN:
+			return true;
+
+		default: return false;
+	}
+}
+
 enum class Operation {
 	MUL,	/// Rd = Rm * Rs
 	MLA,	/// Rd = Rm * Rs + Rn

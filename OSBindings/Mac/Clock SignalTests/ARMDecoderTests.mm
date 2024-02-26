@@ -15,17 +15,18 @@ using namespace InstructionSet::ARM;
 
 namespace {
 
-template <ShiftType type>
-void shift(uint32_t &source, uint32_t &carry, uint32_t amount) {
+template <ShiftType type, bool set_carry>
+void shift(uint32_t &source, uint32_t amount, uint32_t *carry = nullptr) {
 	switch(type) {
 		case ShiftType::LogicalLeft:
 			if(amount > 32) {
-				source = carry = 0;
+				if constexpr (set_carry) *carry = 0;
+				source = 0;
 			} else if(amount == 32) {
-				carry = source & 1;
+				if constexpr (set_carry) *carry = source & 1;
 				source = 0;
 			} else {
-				carry = source & (0x8000'0000 >> amount);
+				if constexpr (set_carry) *carry = source & (0x8000'0000 >> amount);
 				source <<= amount;
 			}
 		break;
@@ -34,12 +35,21 @@ void shift(uint32_t &source, uint32_t &carry, uint32_t amount) {
 	}
 }
 
-void shift(ShiftType type, uint32_t &source, uint32_t &carry, uint32_t amount) {
+template <bool set_carry>
+void shift(ShiftType type, uint32_t &source, uint32_t amount, uint32_t *carry) {
 	switch(type) {
-		case ShiftType::LogicalLeft:		shift<ShiftType::LogicalLeft>(source, carry, amount);		break;
-		case ShiftType::LogicalRight:		shift<ShiftType::LogicalRight>(source, carry, amount);		break;
-		case ShiftType::ArithmeticRight:	shift<ShiftType::ArithmeticRight>(source, carry, amount);	break;
-		case ShiftType::RotateRight:		shift<ShiftType::RotateRight>(source, carry, amount);		break;
+		case ShiftType::LogicalLeft:
+			shift<ShiftType::LogicalLeft, set_carry>(source, amount, carry);
+		break;
+		case ShiftType::LogicalRight:
+			shift<ShiftType::LogicalRight, set_carry>(source, amount, carry);
+		break;
+		case ShiftType::ArithmeticRight:
+			shift<ShiftType::ArithmeticRight, set_carry>(source, amount, carry);
+		break;
+		case ShiftType::RotateRight:
+			shift<ShiftType::RotateRight, set_carry>(source, amount, carry);
+		break;
 	}
 }
 
@@ -55,12 +65,13 @@ struct Scheduler {
 		uint32_t operand2;
 		uint32_t rotate_carry = 0;
 
+		// Populate carry from the shift only if it'll be used.
+		constexpr bool shift_sets_carry = is_logical(flags.operation()) && flags.set_condition_codes();
+
 		if constexpr (flags.operand2_is_immediate()) {
-			if(!fields.rotate()) {
-				operand2 = fields.immediate();
-			} else {
-				operand2 = fields.immediate() >> fields.rotate();
-				operand2 |= fields.immediate() << (32 - fields.rotate());
+			operand2 = fields.immediate();
+			if(fields.rotate()) {
+				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), &rotate_carry);
 			}
 		} else {
 			uint32_t shift_amount;
@@ -71,7 +82,7 @@ struct Scheduler {
 			}
 
 			operand2 = registers_[fields.operand2()];
-			shift(fields.shift_type(), operand2, rotate_carry, shift_amount);
+			shift<shift_sets_carry>(fields.shift_type(), operand2, shift_amount, &rotate_carry);
 		}
 
 		switch(flags.operation()) {
@@ -80,6 +91,16 @@ struct Scheduler {
 			break;
 
 			default: break;	// ETC.
+		}
+
+		// Set N and Z in a unified way.
+		if constexpr (flags.set_condition_codes()) {
+			status.set_nz(destination);
+		}
+
+		// Set C from the barrel shifter if applicable.
+		if constexpr (shift_sets_carry) {
+			status.set_c(rotate_carry);
 		}
 	}
 
@@ -113,9 +134,10 @@ private:
 - (void)testXYX {
 	Scheduler scheduler;
 
+	for(int c = 0; c < 65536; c++) {
+		InstructionSet::ARM::dispatch(c << 16, scheduler);
+	}
 	InstructionSet::ARM::dispatch(0xEAE06900, scheduler);
-//	const auto intr = Instruction<Model::ARM2>(1);
-//	NSLog(@"%d", intr.operation());
 }
 
 @end
