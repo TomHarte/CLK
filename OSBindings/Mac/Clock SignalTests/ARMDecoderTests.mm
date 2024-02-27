@@ -9,7 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "../../../InstructionSets/ARM/OperationMapper.hpp"
-#include "../../../InstructionSets/ARM/Status.hpp"
+#include "../../../InstructionSets/ARM/Registers.hpp"
 #include "../../../Numeric/Carry.hpp"
 
 using namespace InstructionSet::ARM;
@@ -270,7 +270,7 @@ struct Scheduler {
 	void unknown(uint32_t) {}
 
 private:
-	Status status;
+	Registers status;
 
 	uint32_t registers_[16];	// TODO: register swaps with mode.
 };

@@ -35,7 +35,9 @@ enum class Mode {
 	Supervisor = 0b11,
 };
 
-struct Status {
+/// Combines the ARM registers and status flags into a single whole, given that the architecture
+/// doesn't have the same degree of separation as others.
+struct Registers {
 	public:
 		/// Sets the N and Z flags according to the value of @c result.
 		void set_nz(uint32_t value) {
