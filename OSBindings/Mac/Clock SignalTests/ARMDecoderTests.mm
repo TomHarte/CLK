@@ -10,6 +10,7 @@
 
 #include "../../../InstructionSets/ARM/OperationMapper.hpp"
 #include "../../../InstructionSets/ARM/Status.hpp"
+#include "../../../Numeric/Carry.hpp"
 
 using namespace InstructionSet::ARM;
 
@@ -64,7 +65,7 @@ struct Scheduler {
 
 		constexpr DataProcessingFlags flags(f);
 		auto &destination = registers_[fields.destination()];
-		const auto &operand1 = registers_[fields.operand1()];
+		const uint32_t operand1 = registers_[fields.operand1()];
 		uint32_t operand2;
 		uint32_t rotate_carry = 0;
 
@@ -104,7 +105,59 @@ struct Scheduler {
 			case DataProcessingOperation::TST:	conditions = operand1 & operand2;	break;
 			case DataProcessingOperation::TEQ:	conditions = operand1 ^ operand2;	break;
 
-			default: break;	// ETC.
+			case DataProcessingOperation::ADD:
+			case DataProcessingOperation::ADC:
+			case DataProcessingOperation::CMN:
+				conditions = operand1 + operand2;
+
+				if constexpr (flags.operation() == DataProcessingOperation::ADC) {
+					conditions += status.c();
+				}
+
+				if constexpr (flags.set_condition_codes()) {
+					status.set_c(Numeric::carried_out<true, 31>(operand1, operand2, conditions));
+					status.set_v(Numeric::overflow<true>(operand1, operand2, conditions));
+				}
+
+				if constexpr (!is_comparison(flags.operation())) {
+					destination = conditions;
+				}
+			break;
+
+			case DataProcessingOperation::SUB:
+			case DataProcessingOperation::SBC:
+			case DataProcessingOperation::CMP:
+				conditions = operand1 - operand2;
+
+				if constexpr (flags.operation() == DataProcessingOperation::SBC) {
+					conditions -= status.c();
+				}
+
+				if constexpr (flags.set_condition_codes()) {
+					status.set_c(Numeric::carried_out<false, 31>(operand1, operand2, conditions));
+					status.set_v(Numeric::overflow<false>(operand1, operand2, conditions));
+				}
+
+				if constexpr (!is_comparison(flags.operation())) {
+					destination = conditions;
+				}
+			break;
+
+			case DataProcessingOperation::RSB:
+			case DataProcessingOperation::RSC:
+				conditions = operand2 - operand1;
+
+				if constexpr (flags.operation() == DataProcessingOperation::RSC) {
+					conditions -= status.c();
+				}
+
+				if constexpr (flags.set_condition_codes()) {
+					status.set_c(Numeric::carried_out<false, 31>(operand2, operand1, conditions));
+					status.set_v(Numeric::overflow<false>(operand2, operand1, conditions));
+				}
+
+				destination = conditions;
+			break;
 		}
 
 		// Set N and Z in a unified way.

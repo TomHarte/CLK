@@ -10,6 +10,8 @@
 
 #include "OperationMapper.hpp"
 
+#include <cstdint>
+
 namespace InstructionSet::ARM {
 
 namespace ConditionCode {
@@ -43,6 +45,11 @@ struct Status {
 		/// Sets C if @c value is non-zero; resets it otherwise.
 		void set_c(uint32_t value) {
 			carry_flag_ = value;
+		}
+
+		/// @returns @c 1 if carry is set; @c 0 otherwise.
+		uint32_t c() const {
+			return carry_flag_ ? 1 : 0;
 		}
 
 		/// Sets V if the highest bit of @c value is set; resets it otherwise.

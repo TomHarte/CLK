@@ -51,6 +51,18 @@ constexpr bool is_logical(DataProcessingOperation operation) {
 	}
 }
 
+constexpr bool is_comparison(DataProcessingOperation operation) {
+	switch(operation) {
+		case DataProcessingOperation::TST:
+		case DataProcessingOperation::TEQ:
+		case DataProcessingOperation::CMP:
+		case DataProcessingOperation::CMN:
+			return true;
+
+		default: return false;
+	}
+}
+
 enum class Operation {
 	MUL,	/// Rd = Rm * Rs
 	MLA,	/// Rd = Rm * Rs + Rn
