@@ -117,7 +117,7 @@ struct WithShiftControlBits {
 	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
-	int operand2() const					{	return opcode_ & 0xf;			}
+	int operand2() const					{	return opcode_ & 0xf;					}
 	/// The type of shift to apply to operand 2 if @c operand2_is_immediate() is @c false; meaningless otherwise.
 	ShiftType shift_type() const			{	return ShiftType((opcode_ >> 5) & 3);	}
 	/// @returns @c true if the amount to shift by should be taken from a register; @c false if it is an immediate value.
