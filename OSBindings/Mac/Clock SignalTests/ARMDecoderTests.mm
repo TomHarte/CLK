@@ -110,7 +110,40 @@ struct Scheduler {
 	}
 
 	template <Flags f> void perform(DataProcessing fields) {
-		// TODO: how does register 15 fit into all of below? As an operand or as a target?
+		// TODO: ensure R15 is handled correctly.
+		//
+		// From the data sheet:
+		//
+		// # Writing to R15
+		//
+		// When Rd is a register other than R15, the condition code flags in the PSR may be
+		// updated from the ALU flags as described above. When Rd is R15 and the S flag in
+		// the instruction is set, the PSR is overwritten by the corresponding ALU result
+		// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
+		// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
+		// 1 and 0 of the result respectively.
+		//
+		// ...
+		//
+		// If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written.
+		// Conversely, if the instruction is of a type which does not normally produce a result
+		// (CMP, CMN, TST, TEQ) but Rd is R15 and the S bit is set, the result will be used in
+		// this case to update those PSR flags which are not protected by virtue of the
+		// processor mode.
+		//
+		// # Using R15 as an operand
+		//
+		// When R15 appears in the Rm position it will give the value of the PC together
+		// with the PSR flags to the barrel shifter.
+		//
+		// When R15 appears in either of the Rn or Rs positions it will give the value
+		// of the PC alone, with the PSR bits replaced by zeroes.
+		//
+		// The PC value will be the address of the instruction, plus 8 or 12 bytes due to
+		// instruction prefetching. If the shift amount is specified in the instruction, the
+		// PC will be 8 bytes ahead. If a register is used to specify the shift amount, the
+		// PC will be 8 bytes ahead when used as Rs and 12 bytes ahead when used as Rn
+		// or Rm.
 
 		constexpr DataProcessingFlags flags(f);
 		auto &destination = registers_[fields.destination()];
