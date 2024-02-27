@@ -356,9 +356,21 @@ private:
 
 /// Operation mapper; use the free function @c dispatch as defined below.
 struct OperationMapper {
-	template <int i, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
+	static Condition condition(uint32_t instruction) {
+		return Condition(instruction >> 28);
+	}
+
+	template <int i, typename SchedulerT>
+	static void dispatch(uint32_t instruction, SchedulerT &scheduler) {
+		// Legacy: grab condition. This'll be eliminated.
+		// TODO: eliminate.
+		const auto condition = Condition(instruction >> 28);
+
+		// Put the 8-bit segment of instruction back into its proper place;
+		// this allows all the tests below to be written so as to coordinate
+		// properly with the data sheet, and since it's all compile-time work
+		// it doesn't cost anything.
 		constexpr auto partial = uint32_t(i << 20);
-		const auto condition = 	Condition(instruction >> 28);
 
 		// Cf. the ARM2 datasheet, p.45. Tests below match its ordering
 		// other than that 'undefined' is the fallthrough case. More specific
@@ -367,10 +379,7 @@ struct OperationMapper {
 
 		// Data processing; cf. p.17.
 		if constexpr (((partial >> 26) & 0b11) == 0b00) {
-			scheduler.template perform<i>(
-				condition,
-				DataProcessing(instruction)
-			);
+			scheduler.template perform<i>(DataProcessing(instruction));
 			return;
 		}
 
@@ -478,7 +487,7 @@ struct SampleScheduler {
 	// 	(1)	Condition, indicating the condition code associated with this operation; and
 	//	(2)	An operation-specific encapsulation of the operation code for decoding of fields that didn't
 	//		fit into the template parameters.
-	template <Flags> void perform(Condition, DataProcessing);
+	template <Flags> void perform(DataProcessing);
 	template <Operation, Flags> void perform(Condition, Multiply);
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer);
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer);
@@ -497,6 +506,14 @@ struct SampleScheduler {
 /// In lieue of C++20, see the sample definition of SampleScheduler above for the expected interface.
 template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 	OperationMapper mapper;
+
+	// Test condition.
+	const auto condition = mapper.condition(instruction);
+	if(!scheduler.should_schedule(condition)) {
+		return;
+	}
+
+	// Dispatch body.
 	Reflection::dispatch(mapper, (instruction >> FlagsStartBit) & 0xff, instruction, scheduler);
 }
 

@@ -56,11 +56,11 @@ void shift(ShiftType type, uint32_t &source, uint32_t amount, uint32_t *carry) {
 
 
 struct Scheduler {
-	template <Flags f> void perform(Condition condition, DataProcessing fields) {
-		if(!status.test(condition)) {
-			return;
-		}
+	bool should_schedule(Condition condition) {
+		return status.test(condition);
+	}
 
+	template <Flags f> void perform(DataProcessing fields) {
 		// TODO: how does register 15 fit into all of below? As an operand or as a target?
 
 		constexpr DataProcessingFlags flags(f);
