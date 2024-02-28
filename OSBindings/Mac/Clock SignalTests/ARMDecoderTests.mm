@@ -226,12 +226,23 @@ struct Scheduler {
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer) {}
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer) {}
 
-	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer) {}
-	template <Flags> void perform(Condition, CoprocessorDataOperation) {}
-	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer) {}
+	void software_interrupt() {
+		registers_.exception<Registers::Exception::SoftwareInterrupt>();
+	}
+	void unknown() {
+		registers_.exception<Registers::Exception::UndefinedInstruction>();
+	}
 
-	void software_interrupt() {}
-	void unknown(uint32_t) {}
+	// Act as if no coprocessors present.
+	template <Flags> void perform(CoprocessorRegisterTransfer) {
+		registers_.exception<Registers::Exception::UndefinedInstruction>();
+	}
+	template <Flags> void perform(CoprocessorDataOperation) {
+		registers_.exception<Registers::Exception::UndefinedInstruction>();
+	}
+	template <Flags> void perform(CoprocessorDataTransfer) {
+		registers_.exception<Registers::Exception::UndefinedInstruction>();
+	}
 
 private:
 	Registers registers_;

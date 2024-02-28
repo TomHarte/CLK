@@ -64,9 +64,6 @@ struct Registers {
 			overflow_flag_ = value;
 		}
 
-		void begin_irq() {	interrupt_flags_ |= ConditionCode::IRQDisable;	}
-		void begin_fiq() {	interrupt_flags_ |= ConditionCode::FIQDisable;	}
-
 		/// @returns The full PC + status bits.
 		uint32_t pc_status(uint32_t offset) const {
 			return
@@ -105,6 +102,46 @@ struct Registers {
 		uint32_t pc(uint32_t offset) const {
 			return (active[15] + offset) & ConditionCode::Address;
 		}
+
+		// MARK: - Exceptions.
+
+		enum class Exception {
+			Reset = 0x00,
+			UndefinedInstruction = 0x04,
+			SoftwareInterrupt = 0x08,
+			PrefetchAbort = 0x0c,
+			DataAbort = 0x10,
+			Address = 0x14,
+			IRQ = 0x18,
+			FIQ = 0x1c,
+		};
+
+		template <Exception exception>
+		void exception() {
+			interrupt_flags_ |= ConditionCode::IRQDisable;
+			if constexpr (exception == Exception::Reset || exception == Exception::FIQ) {
+				interrupt_flags_ |= ConditionCode::FIQDisable;
+			}
+
+			switch(exception) {
+				case Exception::IRQ:
+					set_mode(Mode::IRQ);
+					active[14] = pc(8);
+				break;
+				case Exception::FIQ:
+					set_mode(Mode::FIQ);
+					active[14] = pc(8);
+				break;
+				default:
+					set_mode(Mode::Supervisor);
+					active[14] = pc(4);
+				break;
+			}
+
+			set_pc(uint32_t(exception));
+		}
+
+		// MARK: - Condition tests.
 
 		bool test(Condition condition) {
 			const auto ne = [&]() -> bool {
