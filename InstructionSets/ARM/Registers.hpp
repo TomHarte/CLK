@@ -261,7 +261,7 @@ struct Registers {
 			}
 
 			mode_ = target_mode;
-	}
+		}
 };
 
 }

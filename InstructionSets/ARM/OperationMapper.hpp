@@ -79,15 +79,16 @@ enum class Operation {
 	STR,	/// Write a single byte or word to [base + offset], possibly mutating the base.
 	LDM,	/// Read 1–16 words from [base], possibly mutating it.
 	STM,	/// Write 1-16 words to [base], possibly mutating it.
-	SWI,	/// Perform a software interrupt.
+};
 
-	CDP,	/// Coprocessor data operation.
+enum class CoprocessorRegisterTransferOperation {
 	MRC,	///	Move from coprocessor register to ARM register.
 	MCR,	/// Move from ARM register to coprocessor register.
+};
+
+enum class CoprocessorDataTransferOperation {
 	LDC,	/// Coprocessor data transfer load.
 	STC,	/// Coprocessor data transfer store.
-
-	Undefined,
 };
 
 enum class Condition {
@@ -239,11 +240,11 @@ private:
 struct SingleDataTransferFlags {
 	constexpr SingleDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr bool offset_is_immediate()	{	return flag_bit<25>(flags_);	}
-	constexpr bool pre_index()				{	return flag_bit<24>(flags_);	}
-	constexpr bool add_offset()				{	return flag_bit<23>(flags_);	}
-	constexpr bool transfer_byte()			{	return flag_bit<22>(flags_);	}
-	constexpr bool write_back_address()		{	return flag_bit<21>(flags_);	}
+	constexpr bool offset_is_immediate() const	{	return flag_bit<25>(flags_);	}
+	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
+	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
+	constexpr bool transfer_byte() const		{	return flag_bit<22>(flags_);	}
+	constexpr bool write_back_address() const	{	return flag_bit<21>(flags_);	}
 
 private:
 	uint8_t flags_;
@@ -271,10 +272,10 @@ struct SingleDataTransfer: public WithShiftControlBits {
 struct BlockDataTransferFlags {
 	constexpr BlockDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr bool pre_index()				{	return flag_bit<24>(flags_);	}
-	constexpr bool add_offset()				{	return flag_bit<23>(flags_);	}
-	constexpr bool load_psr()				{	return flag_bit<22>(flags_);	}
-	constexpr bool write_back_address()		{	return flag_bit<21>(flags_);	}
+	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
+	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
+	constexpr bool load_psr() const				{	return flag_bit<22>(flags_);	}
+	constexpr bool write_back_address() const	{	return flag_bit<21>(flags_);	}
 
 private:
 	uint8_t flags_;
@@ -296,7 +297,7 @@ struct BlockDataTransfer: public WithShiftControlBits {
 struct CoprocessorDataOperationFlags {
 	constexpr CoprocessorDataOperationFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr int operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0xf;	}
+	constexpr int coprocessor_operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0xf;	}
 
 private:
 	uint8_t flags_;
@@ -305,11 +306,11 @@ private:
 struct CoprocessorDataOperation {
 	constexpr CoprocessorDataOperation(uint32_t opcode) noexcept : opcode_(opcode) {}
 
-	int operand1()		{ return (opcode_ >> 16) & 0xf;	}
-	int operand2()		{ return opcode_ & 0xf; 		}
-	int destination()	{ return (opcode_ >> 12) & 0xf;	}
-	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
-	int information()	{ return (opcode_ >> 5) & 0x7;	}
+	int operand1() const	{ return (opcode_ >> 16) & 0xf;	}
+	int operand2() const	{ return opcode_ & 0xf; 		}
+	int destination() const	{ return (opcode_ >> 12) & 0xf;	}
+	int coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
+	int information() const	{ return (opcode_ >> 5) & 0x7;	}
 
 private:
 	uint32_t opcode_;
@@ -321,7 +322,10 @@ private:
 struct CoprocessorRegisterTransferFlags {
 	constexpr CoprocessorRegisterTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr int operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0x7;	}
+	constexpr CoprocessorRegisterTransferOperation operation() const {
+		return flag_bit<20>(flags_) ? CoprocessorRegisterTransferOperation::MRC : CoprocessorRegisterTransferOperation::MCR;
+	}
+	constexpr int coprocessor_operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0x7;	}
 
 private:
 	uint8_t flags_;
@@ -330,11 +334,11 @@ private:
 struct CoprocessorRegisterTransfer {
 	constexpr CoprocessorRegisterTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
 
-	int operand1()		{ return (opcode_ >> 16) & 0xf;	}
-	int operand2()		{ return opcode_ & 0xf; 		}
-	int destination()	{ return (opcode_ >> 12) & 0xf;	}
-	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
-	int information()	{ return (opcode_ >> 5) & 0x7;	}
+	int operand1() const	{ return (opcode_ >> 16) & 0xf;	}
+	int operand2() const	{ return opcode_ & 0xf; 		}
+	int destination() const	{ return (opcode_ >> 12) & 0xf;	}
+	int coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
+	int information() const	{ return (opcode_ >> 5) & 0x7;	}
 
 private:
 	uint32_t opcode_;
@@ -346,10 +350,13 @@ private:
 struct CoprocessorDataTransferFlags {
 	constexpr CoprocessorDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr bool pre_index()				{	return flag_bit<24>(flags_);	}
-	constexpr bool add_offset()				{	return flag_bit<23>(flags_);	}
-	constexpr bool transfer_length()		{	return flag_bit<22>(flags_);	}
-	constexpr bool write_back_address()		{	return flag_bit<21>(flags_);	}
+	constexpr CoprocessorDataTransferOperation operation() const {
+		return flag_bit<20>(flags_) ? CoprocessorDataTransferOperation::LDC : CoprocessorDataTransferOperation::STC;
+	}
+	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
+	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
+	constexpr bool transfer_length() const		{	return flag_bit<22>(flags_);	}
+	constexpr bool write_back_address() const	{	return flag_bit<21>(flags_);	}
 
 private:
 	uint8_t flags_;
@@ -358,13 +365,13 @@ private:
 struct CoprocessorDataTransfer {
 	constexpr CoprocessorDataTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
 
-	int base()			{ return (opcode_ >> 16) & 0xf;	}
+	int base() const		{ return (opcode_ >> 16) & 0xf;	}
 
-	int source()		{ return (opcode_ >> 12) & 0xf; }
-	int destination()	{ return (opcode_ >> 12) & 0xf;	}
+	int source() const		{ return (opcode_ >> 12) & 0xf; }
+	int destination() const	{ return (opcode_ >> 12) & 0xf;	}
 
-	int coprocessor()	{ return (opcode_ >> 8) & 0xf;	}
-	int offset()		{ return opcode_ & 0xff;		}
+	int coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
+	int offset() const		{ return opcode_ & 0xff;		}
 
 private:
 	uint32_t opcode_;
@@ -447,35 +454,22 @@ struct OperationMapper {
 		if constexpr (((partial >> 24) & 0b1111) == 0b1110) {
 			if(instruction & (1 << 4)) {
 				// Register transfer.
-				const auto parameters = CoprocessorRegisterTransfer(instruction);
-				constexpr bool is_mrc = partial & (1 << 20);
-				scheduler.template perform<is_mrc ? Operation::MRC : Operation::MCR, i>(
-					condition,
-					parameters
-				);
+				scheduler.template perform<i>(CoprocessorRegisterTransfer(instruction));
 			} else {
 				// Data operation.
-				const auto parameters = CoprocessorDataOperation(instruction);
-				scheduler.template perform<i>(
-					condition,
-					parameters
-				);
+				scheduler.template perform<i>(CoprocessorDataOperation(instruction));
 			}
 			return;
 		}
 
 		// Coprocessor data transfers; cf. p.39.
 		if constexpr (((partial >> 25) & 0b111) == 0b110) {
-			constexpr bool is_ldc = partial & (1 << 20);
-			scheduler.template perform<is_ldc ? Operation::LDC : Operation::STC, i>(
-				condition,
-				CoprocessorDataTransfer(instruction)
-			);
+			scheduler.template perform<i>(CoprocessorDataTransfer(instruction));
 			return;
 		}
 
 		// Fallback position.
-		scheduler.unknown(instruction);
+		scheduler.unknown();
 	}
 };
 
@@ -500,9 +494,9 @@ struct SampleScheduler {
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer);
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer);
 	template <Flags> void perform(Branch);
-	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer);
-	template <Flags> void perform(Condition, CoprocessorDataOperation);
-	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer);
+	template <Flags> void perform(CoprocessorRegisterTransfer);
+	template <Flags> void perform(CoprocessorDataOperation);
+	template<Flags> void perform(CoprocessorDataTransfer);
 
 	// Irregular operations.
 	void software_interrupt();
