@@ -106,13 +106,23 @@ struct Registers {
 		// MARK: - Exceptions.
 
 		enum class Exception {
+			/// Reset line went from high to low.
 			Reset = 0x00,
+			/// Either an undefined instruction or a coprocessor instruction for which no coprocessor was found.
 			UndefinedInstruction = 0x04,
+			/// Code executed a software interrupt.
 			SoftwareInterrupt = 0x08,
+			/// The memory subsystem indicated an abort during prefetch and that instruction has now come to the head of the queue.
 			PrefetchAbort = 0x0c,
+			/// The memory subsystem indicated an abort during an instruction; if it is an LDR or STR then this should be signalled
+			/// before any instruction execution. If it was an LDM then loading stops upon a data abort but both an LDM and STM
+			/// otherwise complete, including pointer writeback.
 			DataAbort = 0x10,
+			/// The first data transfer attempted within an instruction was above address 0x3ff'ffff.
 			Address = 0x14,
+			/// The IRQ line was low at the end of an instruction and ConditionCode::IRQDisable was not set.
 			IRQ = 0x18,
+			/// The FIQ went low at least one cycle ago and ConditionCode::FIQDisable was not set.
 			FIQ = 0x1c,
 		};
 
