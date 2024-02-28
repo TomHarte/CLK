@@ -317,7 +317,7 @@ struct Scheduler {
 	template <Flags> void perform(Condition, CoprocessorDataOperation) {}
 	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer) {}
 
-	void software_interrupt(Condition) {}
+	void software_interrupt() {}
 	void unknown(uint32_t) {}
 
 private:

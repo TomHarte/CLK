@@ -443,7 +443,7 @@ struct OperationMapper {
 
 		// Software interreupt; cf. p.35.
 		if constexpr (((partial >> 24) & 0b1111) == 0b1111) {
-			scheduler.software_interrupt(condition);
+			scheduler.software_interrupt();
 			return;
 		}
 
@@ -502,16 +502,16 @@ struct SampleScheduler {
 	//	(2)	An operation-specific encapsulation of the operation code for decoding of fields that didn't
 	//		fit into the template parameters.
 	template <Flags> void perform(DataProcessing);
-	template <Operation, Flags> void perform(Condition, Multiply);
+	template <Flags> void perform(Multiply);
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer);
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer);
-	template <Operation> void perform(Condition, Branch);
+	template <Flags> void perform(Branch);
 	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer);
 	template <Flags> void perform(Condition, CoprocessorDataOperation);
 	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer);
 
 	// Irregular operations.
-	void software_interrupt(Condition);
+	void software_interrupt();
 	void unknown(uint32_t opcode);
 };
 
