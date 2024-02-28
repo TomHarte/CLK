@@ -1336,6 +1336,7 @@
 		4B2005402B804AA300420C5C /* OperationMapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OperationMapper.hpp; sourceTree = "<group>"; };
 		4B2005422B804D6400420C5C /* ARMDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ARMDecoderTests.mm; sourceTree = "<group>"; };
 		4B2005462B8BD7A500420C5C /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
+		4B2005472B8FB13D00420C5C /* BarrelShifter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BarrelShifter.hpp; sourceTree = "<group>"; };
 		4B2130E0273A7A0A008A77B4 /* Audio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
 		4B2130E1273A7A0A008A77B4 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B228CD424D773B30077EF25 /* CSScanTarget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSScanTarget.mm; sourceTree = "<group>"; };
@@ -2759,6 +2760,7 @@
 		4B20053D2B804A4F00420C5C /* ARM */ = {
 			isa = PBXGroup;
 			children = (
+				4B2005472B8FB13D00420C5C /* BarrelShifter.hpp */,
 				4B2005402B804AA300420C5C /* OperationMapper.hpp */,
 				4B2005462B8BD7A500420C5C /* Registers.hpp */,
 			);

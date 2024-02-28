@@ -8,6 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
+#include "../../../InstructionSets/ARM/BarrelShifter.hpp"
 #include "../../../InstructionSets/ARM/OperationMapper.hpp"
 #include "../../../InstructionSets/ARM/Registers.hpp"
 #include "../../../Numeric/Carry.hpp"
@@ -15,94 +16,6 @@
 using namespace InstructionSet::ARM;
 
 namespace {
-
-template <ShiftType type, bool set_carry>
-void shift(uint32_t &source, uint32_t amount, uint32_t *carry = nullptr) {
-	switch(type) {
-		case ShiftType::LogicalLeft:
-			if(amount > 32) {
-				if constexpr (set_carry) *carry = 0;
-				source = 0;
-			} else if(amount == 32) {
-				if constexpr (set_carry) *carry = source & 1;
-				source = 0;
-			} else if(amount > 0) {
-				if constexpr (set_carry) *carry = source & (0x8000'0000 >> (amount - 1));
-				source <<= amount;
-			}
-		break;
-
-		case ShiftType::LogicalRight:
-			if(amount > 32) {
-				if constexpr (set_carry) *carry = 0;
-				source = 0;
-			} else if(amount == 32) {
-				if constexpr (set_carry) *carry = source & 0x8000'0000;
-				source = 0;
-			} else if(amount > 0) {
-				if constexpr (set_carry) *carry = source & (1 << (amount - 1));
-				source >>= amount;
-			} else {
-				// A logical shift right by '0' is treated as a shift by 32;
-				// assemblers are supposed to map LSR #0 to LSL #0.
-				if constexpr (set_carry) *carry = source & 0x8000'0000;
-				source = 0;
-			}
-		break;
-
-		case ShiftType::ArithmeticRight: {
-			const uint32_t sign = (source & 0x8000'0000) ? 0xffff'ffff : 0x0000'0000;
-
-			if(amount >= 32) {
-				if constexpr (set_carry) *carry = sign;
-				source = sign;
-			} else if(amount > 0) {
-				if constexpr (set_carry) *carry = source & (1 << (amount - 1));
-				source = (source >> amount) | (sign << (32 - amount));
-			} else {
-				// As per logical right, an arithmetic shift of '0' is
-				// treated as a shift by 32.
-				if constexpr (set_carry) *carry = source & 0x8000'0000;
-				source = sign;
-			}
-		} break;
-
-		case ShiftType::RotateRight: {
-			if(amount == 32) {
-				if constexpr (set_carry) *carry = source & 0x8000'0000;
-			} else if(amount == 0) {
-				// Rotate right by 0 is treated as a rotate right by 1 through carry.
-				const uint32_t high = *carry << 31;
-				if constexpr (set_carry) *carry = source & 1;
-				source = (source >> 1) | high;
-			} else {
-				amount &= 31;
-				if constexpr (set_carry) *carry = source & (1 << (amount - 1));
-				source = (source >> amount) | (source << (32 - amount));
-			}
-		} break;
-
-		default: break;
-	}
-}
-
-template <bool set_carry>
-void shift(ShiftType type, uint32_t &source, uint32_t amount, uint32_t *carry) {
-	switch(type) {
-		case ShiftType::LogicalLeft:
-			shift<ShiftType::LogicalLeft, set_carry>(source, amount, carry);
-		break;
-		case ShiftType::LogicalRight:
-			shift<ShiftType::LogicalRight, set_carry>(source, amount, carry);
-		break;
-		case ShiftType::ArithmeticRight:
-			shift<ShiftType::ArithmeticRight, set_carry>(source, amount, carry);
-		break;
-		case ShiftType::RotateRight:
-			shift<ShiftType::RotateRight, set_carry>(source, amount, carry);
-		break;
-	}
-}
 
 struct Scheduler {
 	bool should_schedule(Condition condition) {
@@ -138,7 +51,7 @@ struct Scheduler {
 		if constexpr (flags.operand2_is_immediate()) {
 			operand2 = fields.immediate();
 			if(fields.rotate()) {
-				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), &rotate_carry);
+				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
 			}
 		} else {
 			uint32_t shift_amount;
@@ -167,7 +80,7 @@ struct Scheduler {
 			} else {
 				operand2 = registers_.active[fields.operand2()];
 			}
-			shift<shift_sets_carry>(fields.shift_type(), operand2, shift_amount, &rotate_carry);
+			shift<shift_sets_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
 		}
 
 		// Perform the data processing operation.

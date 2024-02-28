@@ -9,6 +9,7 @@
 #pragma once
 
 #include "../../Reflection/Dispatcher.hpp"
+#include "BarrelShifter.hpp"
 
 namespace InstructionSet::ARM {
 
@@ -94,13 +95,6 @@ enum class Condition {
 	MI,	PL,	VS,	VC,
 	HI,	LS,	GE,	LT,
 	GT,	LE,	AL,	NV,
-};
-
-enum class ShiftType {
-	LogicalLeft = 0b00,
-	LogicalRight = 0b01,
-	ArithmeticRight = 0b10,
-	RotateRight = 0b11,
 };
 
 //
