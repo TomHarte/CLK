@@ -110,52 +110,19 @@ struct Scheduler {
 	}
 
 	template <Flags f> void perform(DataProcessing fields) {
-		// TODO: ensure R15 is handled correctly.
-		//
-		// From the data sheet:
-		//
-		// # Writing to R15
-		//
-		// When Rd is a register other than R15, the condition code flags in the PSR may be
-		// updated from the ALU flags as described above. When Rd is R15 and the S flag in
-		// the instruction is set, the PSR is overwritten by the corresponding ALU result
-		// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
-		// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
-		// 1 and 0 of the result respectively.
-		//
-		// ...
-		//
-		// If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written.
-		// Conversely, if the instruction is of a type which does not normally produce a result
-		// (CMP, CMN, TST, TEQ) but Rd is R15 and the S bit is set, the result will be used in
-		// this case to update those PSR flags which are not protected by virtue of the
-		// processor mode.
-		//
-		// # Using R15 as an operand
-		//
-		// When R15 appears in the Rm position it will give the value of the PC together
-		// with the PSR flags to the barrel shifter.
-		//
-		// When R15 appears in either of the Rn or Rs positions it will give the value
-		// of the PC alone, with the PSR bits replaced by zeroes.
-		//
-		// The PC value will be the address of the instruction, plus 8 or 12 bytes due to
-		// instruction prefetching. If the shift amount is specified in the instruction, the
-		// PC will be 8 bytes ahead. If a register is used to specify the shift amount, the
-		// PC will be 8 bytes ahead when used as Rs and 12 bytes ahead when used as Rn
-		// or Rm.
-
 		constexpr DataProcessingFlags flags(f);
 		const bool shift_by_register = !flags.operand2_is_immediate() && fields.shift_count_is_register();
 
-		auto &destination = registers_.active[fields.destination()];
+		// Write a raw result into the PC proxy if the target is R15; it'll be stored properly later.
+		uint32_t pc_proxy;
+		auto &destination = fields.destination() == 15 ? pc_proxy : registers_.active[fields.destination()];
 
-		// When R15 appears in either of the Rn or Rs positions it will give the value
+		// "When R15 appears in either of the Rn or Rs positions it will give the value
 		// of the PC alone, with the PSR bits replaced by zeroes. ...
 		//
 		// If the shift amount is specified in the instruction, the PC will be 8 bytes ahead.
 		// If a register is used to specify the shift amount, the PC will be ... 12 bytes ahead
-		// when used as Rn or Rm.
+		// when used as Rn or Rm."
 		const uint32_t operand1 =
 			(fields.operand1() == 15) ?
 				registers_.pc(shift_by_register ? 12 : 8) :
@@ -176,11 +143,11 @@ struct Scheduler {
 		} else {
 			uint32_t shift_amount;
 			if(fields.shift_count_is_register()) {
-				// When R15 appears in either of the Rn or Rs positions it will give the value
+				// "When R15 appears in either of the Rn or Rs positions it will give the value
 				// of the PC alone, with the PSR bits replaced by zeroes. ...
 				//
 				// If a register is used to specify the shift amount, the
-				// PC will be 8 bytes ahead when used as Rs.
+				// PC will be 8 bytes ahead when used as Rs."
 				shift_amount =
 					fields.shift_register() == 15 ?
 						registers_.pc(8) :
@@ -189,14 +156,14 @@ struct Scheduler {
 				shift_amount = fields.shift_amount();
 			}
 
-			// When R15 appears in the Rm position it will give the value of the PC together
+			// "When R15 appears in the Rm position it will give the value of the PC together
 			// with the PSR flags to the barrel shifter. ...
 			//
 			// If the shift amount is specified in the instruction, the PC will be 8 bytes ahead.
 			// If a register is used to specify the shift amount, the PC will be ... 12 bytes ahead
-			// when used as Rn or Rm.
+			// when used as Rn or Rm."
 			if(fields.operand2() == 15) {
-				operand2 = registers_.status(shift_by_register ? 12 : 8);
+				operand2 = registers_.pc_status(shift_by_register ? 12 : 8);
 			} else {
 				operand2 = registers_.active[fields.operand2()];
 			}
@@ -273,17 +240,38 @@ struct Scheduler {
 			break;
 		}
 
-		// Set N and Z in a unified way.
 		if constexpr (flags.set_condition_codes()) {
-			registers_.set_nz(conditions);
-		}
+			// "When Rd is a register other than R15, the condition code flags in the PSR may be
+			// updated from the ALU flags as described above. When Rd is R15 and the S flag in
+			// the instruction is set, the PSR is overwritten by the corresponding ALU result.
+			//
+			// ... if the instruction is of a type which does not normally produce a result
+			// (CMP, CMN, TST, TEQ) but Rd is R15 and the S bit is set, the result will be used in
+			// this case to update those PSR flags which are not protected by virtue of the
+			// processor mode."
 
-		// Set C from the barrel shifter if applicable.
-		if constexpr (shift_sets_carry) {
-			registers_.set_c(rotate_carry);
-		}
+			if(fields.destination() == 15) {
+				if constexpr (is_comparison(flags.operation())) {
+					registers_.set_status(pc_proxy);
+				} else {
+					registers_.set_status(pc_proxy);
+					registers_.set_pc(pc_proxy);
+				}
+			} else {
+				// Set N and Z in a unified way.
+				registers_.set_nz(conditions);
 
-		// TODO: If register 15 was in use as a destination, write back and clean up.
+				// Set C from the barrel shifter if applicable.
+				if constexpr (shift_sets_carry) {
+					registers_.set_c(rotate_carry);
+				}
+			}
+		} else {
+			// "If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written."
+			if(fields.destination() == 15) {
+				registers_.set_pc(pc_proxy);
+			}
+		}
 	}
 
 	template <Operation, Flags> void perform(Condition, Multiply) {}

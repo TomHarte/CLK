@@ -63,7 +63,7 @@ struct Registers {
 		void begin_fiq() {	interrupt_flags_ |= ConditionCode::FIQDisable;	}
 
 		/// @returns The full PC + status bits.
-		uint32_t status(uint32_t offset) const {
+		uint32_t pc_status(uint32_t offset) const {
 			return
 				uint32_t(mode_) |
 				((active[15] + offset) & ConditionCode::Address) |
@@ -73,6 +73,14 @@ struct Registers {
 				((overflow_flag_ >> 3) & ConditionCode::Overflow) |
 				interrupt_flags_;
 		}
+
+		void set_status(uint32_t) {
+			// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
+			// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
+			// 1 and 0 of the result respectively.
+		}
+
+		void set_pc(uint32_t) {}
 
 		uint32_t pc(uint32_t offset) const {
 			return (active[15] + offset) & ConditionCode::Address;
