@@ -59,29 +59,23 @@ struct Registers {
 			overflow_flag_ = value;
 		}
 
-		/// @returns The program counter address only, optionally with a post-increment.
-		template <bool increment>
-		uint32_t pc() {
-			const uint32_t result = pc_;
-			if constexpr (increment) {
-				pc_ = (pc_ + 4) & ConditionCode::Address;
-			}
-			return result;
-		}
-
 		void begin_irq() {	interrupt_flags_ |= ConditionCode::IRQDisable;	}
 		void begin_fiq() {	interrupt_flags_ |= ConditionCode::FIQDisable;	}
 
 		/// @returns The full PC + status bits.
-		uint32_t get() const {
+		uint32_t status(uint32_t offset) const {
 			return
 				uint32_t(mode_) |
-				pc_ |
+				((active[15] + offset) & ConditionCode::Address) |
 				(negative_flag_ & ConditionCode::Negative) |
 				(zero_result_ ? 0 : ConditionCode::Zero) |
 				(carry_flag_ ? ConditionCode::Carry : 0) |
 				((overflow_flag_ >> 3) & ConditionCode::Overflow) |
 				interrupt_flags_;
+		}
+
+		uint32_t pc(uint32_t offset) const {
+			return (active[15] + offset) & ConditionCode::Address;
 		}
 
 		bool test(Condition condition) {
@@ -129,8 +123,9 @@ struct Registers {
 			}
 		}
 
+		uint32_t active[16];	// TODO: register swaps with mode.
+
 	private:
-		uint32_t pc_ = 0;
 		Mode mode_ = Mode::Supervisor;
 
 		uint32_t zero_result_ = 0;

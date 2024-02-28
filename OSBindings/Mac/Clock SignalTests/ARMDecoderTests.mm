@@ -106,7 +106,7 @@ void shift(ShiftType type, uint32_t &source, uint32_t amount, uint32_t *carry) {
 
 struct Scheduler {
 	bool should_schedule(Condition condition) {
-		return status.test(condition);
+		return registers_.test(condition);
 	}
 
 	template <Flags f> void perform(DataProcessing fields) {
@@ -146,10 +146,23 @@ struct Scheduler {
 		// or Rm.
 
 		constexpr DataProcessingFlags flags(f);
-		auto &destination = registers_[fields.destination()];
-		const uint32_t operand1 = registers_[fields.operand1()];
+		const bool shift_by_register = !flags.operand2_is_immediate() && fields.shift_count_is_register();
+
+		auto &destination = registers_.active[fields.destination()];
+
+		// When R15 appears in either of the Rn or Rs positions it will give the value
+		// of the PC alone, with the PSR bits replaced by zeroes. ...
+		//
+		// If the shift amount is specified in the instruction, the PC will be 8 bytes ahead.
+		// If a register is used to specify the shift amount, the PC will be ... 12 bytes ahead
+		// when used as Rn or Rm.
+		const uint32_t operand1 =
+			(fields.operand1() == 15) ?
+				registers_.pc(shift_by_register ? 12 : 8) :
+				registers_.active[fields.operand1()];
+
 		uint32_t operand2;
-		uint32_t rotate_carry = status.c();
+		uint32_t rotate_carry = registers_.c();
 
 		// Populate carry from the shift only if it'll be used.
 		constexpr bool shift_sets_carry = is_logical(flags.operation()) && flags.set_condition_codes();
@@ -163,12 +176,30 @@ struct Scheduler {
 		} else {
 			uint32_t shift_amount;
 			if(fields.shift_count_is_register()) {
-				shift_amount = registers_[fields.shift_register()];
+				// When R15 appears in either of the Rn or Rs positions it will give the value
+				// of the PC alone, with the PSR bits replaced by zeroes. ...
+				//
+				// If a register is used to specify the shift amount, the
+				// PC will be 8 bytes ahead when used as Rs.
+				shift_amount =
+					fields.shift_register() == 15 ?
+						registers_.pc(8) :
+						registers_.active[fields.shift_register()];
 			} else {
 				shift_amount = fields.shift_amount();
 			}
 
-			operand2 = registers_[fields.operand2()];
+			// When R15 appears in the Rm position it will give the value of the PC together
+			// with the PSR flags to the barrel shifter. ...
+			//
+			// If the shift amount is specified in the instruction, the PC will be 8 bytes ahead.
+			// If a register is used to specify the shift amount, the PC will be ... 12 bytes ahead
+			// when used as Rn or Rm.
+			if(fields.operand2() == 15) {
+				operand2 = registers_.status(shift_by_register ? 12 : 8);
+			} else {
+				operand2 = registers_.active[fields.operand2()];
+			}
 			shift<shift_sets_carry>(fields.shift_type(), operand2, shift_amount, &rotate_carry);
 		}
 
@@ -193,12 +224,12 @@ struct Scheduler {
 				conditions = operand1 + operand2;
 
 				if constexpr (flags.operation() == DataProcessingOperation::ADC) {
-					conditions += status.c();
+					conditions += registers_.c();
 				}
 
 				if constexpr (flags.set_condition_codes()) {
-					status.set_c(Numeric::carried_out<true, 31>(operand1, operand2, conditions));
-					status.set_v(Numeric::overflow<true>(operand1, operand2, conditions));
+					registers_.set_c(Numeric::carried_out<true, 31>(operand1, operand2, conditions));
+					registers_.set_v(Numeric::overflow<true>(operand1, operand2, conditions));
 				}
 
 				if constexpr (!is_comparison(flags.operation())) {
@@ -212,12 +243,12 @@ struct Scheduler {
 				conditions = operand1 - operand2;
 
 				if constexpr (flags.operation() == DataProcessingOperation::SBC) {
-					conditions -= status.c();
+					conditions -= registers_.c();
 				}
 
 				if constexpr (flags.set_condition_codes()) {
-					status.set_c(Numeric::carried_out<false, 31>(operand1, operand2, conditions));
-					status.set_v(Numeric::overflow<false>(operand1, operand2, conditions));
+					registers_.set_c(Numeric::carried_out<false, 31>(operand1, operand2, conditions));
+					registers_.set_v(Numeric::overflow<false>(operand1, operand2, conditions));
 				}
 
 				if constexpr (!is_comparison(flags.operation())) {
@@ -230,12 +261,12 @@ struct Scheduler {
 				conditions = operand2 - operand1;
 
 				if constexpr (flags.operation() == DataProcessingOperation::RSC) {
-					conditions -= status.c();
+					conditions -= registers_.c();
 				}
 
 				if constexpr (flags.set_condition_codes()) {
-					status.set_c(Numeric::carried_out<false, 31>(operand2, operand1, conditions));
-					status.set_v(Numeric::overflow<false>(operand2, operand1, conditions));
+					registers_.set_c(Numeric::carried_out<false, 31>(operand2, operand1, conditions));
+					registers_.set_v(Numeric::overflow<false>(operand2, operand1, conditions));
 				}
 
 				destination = conditions;
@@ -244,12 +275,12 @@ struct Scheduler {
 
 		// Set N and Z in a unified way.
 		if constexpr (flags.set_condition_codes()) {
-			status.set_nz(conditions);
+			registers_.set_nz(conditions);
 		}
 
 		// Set C from the barrel shifter if applicable.
 		if constexpr (shift_sets_carry) {
-			status.set_c(rotate_carry);
+			registers_.set_c(rotate_carry);
 		}
 
 		// TODO: If register 15 was in use as a destination, write back and clean up.
@@ -270,9 +301,7 @@ struct Scheduler {
 	void unknown(uint32_t) {}
 
 private:
-	Registers status;
-
-	uint32_t registers_[16];	// TODO: register swaps with mode.
+	Registers registers_;
 };
 
 }
