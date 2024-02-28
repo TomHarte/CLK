@@ -37,6 +37,10 @@ enum class Mode {
 
 /// Combines the ARM registers and status flags into a single whole, given that the architecture
 /// doesn't have the same degree of separation as others.
+///
+/// The PC contained here is always taken to be **the address of the current instruction**,
+/// i.e. disregarding pipeline differences. Appropriate prefetch offsets are left to other code to handle.
+/// This is to try to keep this structure independent of a specific ARM implementation.
 struct Registers {
 	public:
 		/// Sets the N and Z flags according to the value of @c result.
@@ -74,13 +78,28 @@ struct Registers {
 				interrupt_flags_;
 		}
 
-		void set_status(uint32_t) {
+		/// Sets status bits only, subject to mode.
+		void set_status(uint32_t status) {
 			// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
 			// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
 			// 1 and 0 of the result respectively.
+
+			negative_flag_ = status;
+			overflow_flag_ = status << 3;
+			carry_flag_ = status & ConditionCode::Carry;
+			zero_result_ = ~status & ConditionCode::Zero;
+
+			if(mode_ != Mode::User) {
+				mode_ = Mode(status & 3);
+				interrupt_flags_ = status & (ConditionCode::IRQDisable | ConditionCode::FIQDisable);
+			}
 		}
 
-		void set_pc(uint32_t) {}
+		/// Sets a new PC.
+		/// TODO: communicate this onward.
+		void set_pc(uint32_t value) {
+			active[15] = value & ConditionCode::Address;
+		}
 
 		uint32_t pc(uint32_t offset) const {
 			return (active[15] + offset) & ConditionCode::Address;
