@@ -274,7 +274,33 @@ struct Scheduler {
 		}
 	}
 
-	template <Operation, Flags> void perform(Condition, Multiply) {}
+	template <Flags f> void perform(Multiply fields) {
+		constexpr MultiplyFlags flags(f);
+
+		// R15 rules:
+		//
+		//	* Rs: no PSR, 8 bytes ahead;
+		//	* Rn: with PSR, 8 bytes ahead;
+		//	* Rm: with PSR, 12 bytes ahead.
+
+		const uint32_t multiplicand = fields.multiplicand() == 15 ? registers_.pc(8) : registers_.active[fields.multiplicand()];
+		const uint32_t multiplier = fields.multiplier() == 15 ? registers_.pc_status(8) : registers_.active[fields.multiplier()];
+		const uint32_t accumulator =
+			flags.operation() == MultiplyOperation::MUL ? 0 :
+				(fields.multiplicand() == 15 ? registers_.pc_status(12) : registers_.active[fields.accumulator()]);
+
+		const uint32_t result = multiplicand * multiplier + accumulator;
+
+		if constexpr (flags.set_condition_codes()) {
+			registers_.set_nz(result);
+			// V is unaffected; C is undefined.
+		}
+
+		if(fields.destination() != 15) {
+			registers_.active[fields.destination()] = result;
+		}
+	}
+
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer) {}
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer) {}
 

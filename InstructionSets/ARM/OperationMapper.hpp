@@ -63,9 +63,12 @@ constexpr bool is_comparison(DataProcessingOperation operation) {
 	}
 }
 
-enum class Operation {
+enum class MultiplyOperation {
 	MUL,	/// Rd = Rm * Rs
 	MLA,	/// Rd = Rm * Rs + Rn
+};
+
+enum class Operation {
 	B,		/// Add offset to PC; programmer allows for PC being two words ahead.
 	BL,		/// Copy PC and PSR to R14, then branch. Copied PC points to next instruction.
 
@@ -192,7 +195,12 @@ struct MultiplyFlags {
 	constexpr MultiplyFlags(uint8_t flags) noexcept : flags_(flags) {}
 
 	/// @c true if the status register should be updated; @c false otherwise.
-	constexpr bool set_condition_codes()	{	return flag_bit<20>(flags_);	}
+	constexpr bool set_condition_codes() const	{	return flag_bit<20>(flags_);	}
+
+	/// @returns The operation to apply.
+	constexpr MultiplyOperation operation() const {
+		return flag_bit<21>(flags_) ? MultiplyOperation::MLA : MultiplyOperation::MUL;
+	}
 
 private:
 	uint8_t flags_;
@@ -388,11 +396,7 @@ struct OperationMapper {
 			// This implementation provides only eight bits baked into the template parameters so
 			// an additional dynamic test is required to check whether this is really, really MUL or MLA.
 			if(((instruction >> 4) & 0b1111) == 0b1001) {
-				constexpr bool is_mla = partial & (1 << 21);
-				scheduler.template perform<is_mla ? Operation::MLA : Operation::MUL, i>(
-					condition,
-					Multiply(instruction)
-				);
+				scheduler.template perform<i>(Multiply(instruction));
 				return;
 			}
 		}
