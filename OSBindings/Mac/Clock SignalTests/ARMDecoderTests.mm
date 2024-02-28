@@ -114,7 +114,7 @@ struct Scheduler {
 		const bool shift_by_register = !flags.operand2_is_immediate() && fields.shift_count_is_register();
 
 		// Write a raw result into the PC proxy if the target is R15; it'll be stored properly later.
-		uint32_t pc_proxy;
+		uint32_t pc_proxy = 0;
 		auto &destination = fields.destination() == 15 ? pc_proxy : registers_.active[fields.destination()];
 
 		// "When R15 appears in either of the Rn or Rs positions it will give the value
@@ -301,12 +301,18 @@ struct Scheduler {
 		}
 	}
 
+	template <Flags f> void perform(Branch branch) {
+		constexpr BranchFlags flags(f);
+
+		if constexpr (flags.operation() == BranchOperation::BL) {
+			registers_.active[14] = registers_.pc(4);
+		}
+		registers_.set_pc(registers_.pc(8) + branch.offset());
+	}
+
 	template <Operation, Flags> void perform(Condition, SingleDataTransfer) {}
 	template <Operation, Flags> void perform(Condition, BlockDataTransfer) {}
 
-	template <Operation op> void perform(Condition condition, Branch branch) {
-		printf("Branch %sif %d; add %08x\n", op == Operation::BL ? "with link " : "", int(condition), branch.offset());
-	}
 	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer) {}
 	template <Flags> void perform(Condition, CoprocessorDataOperation) {}
 	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer) {}

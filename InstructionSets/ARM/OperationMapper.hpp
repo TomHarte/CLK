@@ -68,10 +68,12 @@ enum class MultiplyOperation {
 	MLA,	/// Rd = Rm * Rs + Rn
 };
 
-enum class Operation {
+enum class BranchOperation {
 	B,		/// Add offset to PC; programmer allows for PC being two words ahead.
 	BL,		/// Copy PC and PSR to R14, then branch. Copied PC points to next instruction.
+};
 
+enum class Operation {
 	LDR,	/// Read single byte or word from [base + offset], possibly mutating the base.
 	STR,	/// Write a single byte or word to [base + offset], possibly mutating the base.
 	LDM,	/// Read 1–16 words from [base], possibly mutating it.
@@ -137,6 +139,18 @@ protected:
 //
 // Branch (i.e. B and BL).
 //
+struct BranchFlags {
+	constexpr BranchFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	/// @returns The operation to apply.
+	constexpr BranchOperation operation() const {
+		return flag_bit<24>(flags_) ? BranchOperation::BL : BranchOperation::B;
+	}
+
+private:
+	uint8_t flags_;
+};
+
 struct Branch {
 	constexpr Branch(uint32_t opcode) noexcept : opcode_(opcode) {}
 
@@ -423,11 +437,7 @@ struct OperationMapper {
 
 		// Branch and branch with link (B, BL); cf. p.15.
 		if constexpr (((partial >> 25) & 0b111) == 0b101) {
-			constexpr bool is_bl = partial & (1 << 24);
-			scheduler.template perform<is_bl ? Operation::BL : Operation::B>(
-				condition,
-				Branch(instruction)
-			);
+			scheduler.template perform<i>(Branch(instruction));
 			return;
 		}
 
