@@ -22,6 +22,44 @@ struct Scheduler {
 		return registers_.test(condition);
 	}
 
+	template <bool allow_register, bool set_carry, typename FieldsT>
+	uint32_t decode_shift(FieldsT fields, uint32_t &rotate_carry, uint32_t pc_offset) {
+		uint32_t shift_amount;
+		if constexpr (allow_register) {
+			if(fields.shift_count_is_register()) {
+				// "When R15 appears in either of the Rn or Rs positions it will give the value
+				// of the PC alone, with the PSR bits replaced by zeroes. ...
+				//
+				// If a register is used to specify the shift amount, the
+				// PC will be 8 bytes ahead when used as Rs."
+				shift_amount =
+					fields.shift_register() == 15 ?
+						registers_.pc(8) :
+						registers_.active[fields.shift_register()];
+			} else {
+				shift_amount = fields.shift_amount();
+			}
+		} else {
+			shift_amount = fields.shift_amount();
+		}
+
+		// "When R15 appears in the Rm position it will give the value of the PC together
+		// with the PSR flags to the barrel shifter. ...
+		//
+		// If the shift amount is specified in the instruction, the PC will be 8 bytes ahead.
+		// If a register is used to specify the shift amount, the PC will be ... 12 bytes ahead
+		// when used as Rn or Rm."
+		uint32_t operand2;
+		if(fields.operand2() == 15) {
+			operand2 = registers_.pc_status(pc_offset);
+		} else {
+			operand2 = registers_.active[fields.operand2()];
+		}
+		shift<set_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
+
+		return operand2;
+	}
+
 	template <Flags f> void perform(DataProcessing fields) {
 		constexpr DataProcessingFlags flags(f);
 		const bool shift_by_register = !flags.operand2_is_immediate() && fields.shift_count_is_register();
@@ -54,33 +92,7 @@ struct Scheduler {
 				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
 			}
 		} else {
-			uint32_t shift_amount;
-			if(fields.shift_count_is_register()) {
-				// "When R15 appears in either of the Rn or Rs positions it will give the value
-				// of the PC alone, with the PSR bits replaced by zeroes. ...
-				//
-				// If a register is used to specify the shift amount, the
-				// PC will be 8 bytes ahead when used as Rs."
-				shift_amount =
-					fields.shift_register() == 15 ?
-						registers_.pc(8) :
-						registers_.active[fields.shift_register()];
-			} else {
-				shift_amount = fields.shift_amount();
-			}
-
-			// "When R15 appears in the Rm position it will give the value of the PC together
-			// with the PSR flags to the barrel shifter. ...
-			//
-			// If the shift amount is specified in the instruction, the PC will be 8 bytes ahead.
-			// If a register is used to specify the shift amount, the PC will be ... 12 bytes ahead
-			// when used as Rn or Rm."
-			if(fields.operand2() == 15) {
-				operand2 = registers_.pc_status(shift_by_register ? 12 : 8);
-			} else {
-				operand2 = registers_.active[fields.operand2()];
-			}
-			shift<shift_sets_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
+			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 12 : 8);
 		}
 
 		// Perform the data processing operation.
@@ -223,7 +235,53 @@ struct Scheduler {
 		registers_.set_pc(registers_.pc(8) + branch.offset());
 	}
 
-	template <Flags> void perform(SingleDataTransfer) {}
+	template <Flags f> void perform(SingleDataTransfer transfer) {
+		constexpr SingleDataTransferFlags flags(f);
+
+		// Calculate offset.
+		uint32_t offset;
+		if constexpr (flags.offset_is_immediate()) {
+			offset = transfer.immediate();
+		} else {
+			// The 8 shift control bits are described in 6.2.3, but
+			// the register specified shift amounts are not available
+			// in this instruction class.
+			uint32_t carry = registers_.c();
+			offset = decode_shift<false, false>(transfer, carry, 8);
+		}
+
+		// Obtain base address.
+		uint32_t address =
+			transfer.base() == 15 ?
+				registers_.pc(8) :
+				registers_.active[transfer.base()];
+
+		// Determine what the address will be after offsetting.
+		uint32_t offsetted_address = address;
+		if constexpr (flags.add_offset()) {
+			offsetted_address += offset;
+		} else {
+			offsetted_address -= offset;
+		}
+
+		// If preindexing, apply now.
+		if constexpr (flags.pre_index()) {
+			address = offsetted_address;
+		}
+
+		// TODO: attempt access, possibly abort.
+		// Cf. transfer_byte()
+
+		// If either postindexing or else with writeback, update base.
+		if constexpr (!flags.pre_index() || flags.write_back_address()) {
+			// TODO: check for R15.
+			if(transfer.base() == 15) {
+				registers_.set_pc(offsetted_address);
+			} else {
+				registers_.active[transfer.base()] = offsetted_address;
+			}
+		}
+	}
 	template <Flags> void perform(BlockDataTransfer) {}
 
 	void software_interrupt() {
