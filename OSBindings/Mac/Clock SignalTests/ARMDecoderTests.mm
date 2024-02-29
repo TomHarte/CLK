@@ -301,6 +301,7 @@ struct Scheduler {
 			if constexpr (flags.transfer_byte()) {
 				did_write = bus_.template write<uint8_t>(address, uint8_t(source), registers_.mode(), trans);
 			} else {
+				// "The data presented to the data bus are not affected if the address is not word aligned".
 				did_write = bus_.template write<uint32_t>(address, source, registers_.mode(), trans);
 			}
 
@@ -319,8 +320,14 @@ struct Scheduler {
 			} else {
 				did_read = bus_.template read<uint32_t>(address, value, registers_.mode(), trans);
 
-				// TODO: "An address offset from a word boundary will cause the data to be rotated into the
-				// register so that the addressed byte occuplies bits 0 to 7.
+				// "An address offset from a word boundary will cause the data to be rotated into the
+				// register so that the addressed byte occuplies bits 0 to 7."
+				switch(address & 3) {
+					case 0:	break;
+					case 1:	value = (value >> 8) | (value << 24);	break;
+					case 2:	value = (value >> 16) | (value << 16);	break;
+					case 3:	value = (value >> 24) | (value << 8);	break;
+				}
 			}
 
 			if(!did_read) {
