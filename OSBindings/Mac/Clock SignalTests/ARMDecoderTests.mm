@@ -360,32 +360,57 @@ struct Scheduler {
 	template <Flags f> void perform(BlockDataTransfer transfer) {
 		constexpr BlockDataTransferFlags flags(f);
 
-		uint32_t address = transfer.base() == 15 ?
-			registers_.pc_status(8) :
-			registers_.active[transfer.base()];
-		constexpr uint32_t step = flags.add_offset() ? 4 : -4;
-
-		// TODO: forcing transfer of the user bank.
 		// TODO: inclusion of the base in the register list.
 		// TODO: data aborts.
 
+		uint32_t address = transfer.base() == 15 ?
+			registers_.pc_status(8) :
+			registers_.active[transfer.base()];
+
+		const uint16_t list = transfer.register_list();
+
+		// Writes are always from lowest address to highest; asking for storage downward
+		// just results in predecrementation of the address.
+		if constexpr (!flags.add_offset()) {
+			uint32_t total = ((list & 0xa) >> 1) + (list & 0x5);
+			total = ((list & 0xc) >> 2) + (list & 0x3);
+			address -= total * 4;
+		}
+
+		[[maybe_unused]] uint32_t final_address = address;
+
+		bool completed_all_visits = true;
 		const auto visit = [&](uint32_t &value) {
-			if constexpr (flags.pre_index()) {
-				address += step;
+			if constexpr (flags.pre_index() == flags.add_offset()) {
+				address += 4;
 			}
 
 			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
 				bus_.template read<uint32_t>(address, value, registers_.mode(), false);
 			} else {
-				bus_.template write<uint32_t>(address, value, registers_.mode(), false);
+				completed_all_visits &= bus_.template write<uint32_t>(address, value, registers_.mode(), false);
 			}
 
-			if constexpr (!flags.pre_index()) {
-				address += step;
+			if constexpr (!flags.pre_index() != flags.add_offset()) {
+				address += 4;
 			}
 		};
 
-		const uint16_t list = transfer.register_list();
+		// Handle forcing transfer of the user bank.
+		Mode original_mode = registers_.mode();
+		const bool adopt_user_mode =
+			(
+				flags.operation() == BlockDataTransferFlags::Operation::STM &&
+				flags.load_psr()
+			) ||
+			(
+				flags.operation() == BlockDataTransferFlags::Operation::LDM &&
+				!(list & (1 << 15))
+			);
+		if(adopt_user_mode) {
+			registers_.set_mode(Mode::User);
+		}
+
 		for(int c = 0; c < 15; c++) {
 			if(list & (1 << c)) {
 				visit(registers_.active[c]);
@@ -400,20 +425,24 @@ struct Scheduler {
 			} else {
 				visit(value);
 				registers_.set_pc(value);
-
 				if constexpr (flags.load_psr()) {
-					// TODO: [T]he PSR will be overwritten by the corresponding bits of the loaded value.
-					// In user mode, however, the I, F, M0 and M1 bits are protected from change
-					// ... The mode at the start of the instruction determines whether these bits
-					// are protected.
+					registers_.set_status(value);
 				}
 			}
 		}
 
 		if constexpr (flags.write_back_address()) {
 			if(transfer.base() != 15) {
-				registers_.active[transfer.base()] = address;
+				if constexpr (flags.add_offset()) {
+					registers_.active[transfer.base()] = address;
+				} else {
+					registers_.active[transfer.base()] = final_address;
+				}
 			}
+		}
+
+		if(adopt_user_mode) {
+			registers_.set_mode(original_mode);
 		}
 	}
 

@@ -204,21 +204,6 @@ struct Registers {
 
 		std::array<uint32_t, 16> active;
 
-	private:
-		Mode mode_ = Mode::Supervisor;
-
-		uint32_t zero_result_ = 0;
-		uint32_t negative_flag_ = 0;
-		uint32_t interrupt_flags_ = 0;
-		uint32_t carry_flag_ = 0;
-		uint32_t overflow_flag_ = 0;
-
-		// Various shadow registers.
-		std::array<uint32_t, 7> user_registers_;
-		std::array<uint32_t, 7> fiq_registers_;
-		std::array<uint32_t, 2> irq_registers_;
-		std::array<uint32_t, 2> supervisor_registers_;
-
 		void set_mode(Mode target_mode) {
 			if(mode_ == target_mode) {
 				return;
@@ -266,6 +251,23 @@ struct Registers {
 
 			mode_ = target_mode;
 		}
+
+	private:
+		Mode mode_ = Mode::Supervisor;
+
+		uint32_t zero_result_ = 0;
+		uint32_t negative_flag_ = 0;
+		uint32_t interrupt_flags_ = 0;
+		uint32_t carry_flag_ = 0;
+		uint32_t overflow_flag_ = 0;
+
+		// Various shadow registers.
+		std::array<uint32_t, 7> user_registers_;
+		std::array<uint32_t, 7> fiq_registers_;
+		std::array<uint32_t, 2> irq_registers_;
+		std::array<uint32_t, 2> supervisor_registers_;
+
+
 };
 
 }
