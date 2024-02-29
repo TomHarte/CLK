@@ -357,7 +357,65 @@ struct Scheduler {
 			}
 		}
 	}
-	template <Flags> void perform(BlockDataTransfer) {}
+	template <Flags f> void perform(BlockDataTransfer transfer) {
+		constexpr BlockDataTransferFlags flags(f);
+
+		uint32_t address = transfer.base() == 15 ?
+			registers_.pc_status(8) :
+			registers_.active[transfer.base()];
+		constexpr uint32_t step = flags.add_offset() ? 4 : -4;
+
+		// TODO: forcing transfer of the user bank.
+		// TODO: inclusion of the base in the register list.
+		// TODO: data aborts.
+
+		const auto visit = [&](uint32_t &value) {
+			if constexpr (flags.pre_index()) {
+				address += step;
+			}
+
+			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
+				bus_.template read<uint32_t>(address, value, registers_.mode(), false);
+			} else {
+				bus_.template write<uint32_t>(address, value, registers_.mode(), false);
+			}
+
+			if constexpr (!flags.pre_index()) {
+				address += step;
+			}
+		};
+
+		const uint16_t list = transfer.register_list();
+		for(int c = 0; c < 15; c++) {
+			if(list & (1 << c)) {
+				visit(registers_.active[c]);
+			}
+		}
+
+		if(list & (1 << 15)) {
+			uint32_t value;
+			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
+				value = registers_.pc_status(12);
+				visit(value);
+			} else {
+				visit(value);
+				registers_.set_pc(value);
+
+				if constexpr (flags.load_psr()) {
+					// TODO: [T]he PSR will be overwritten by the corresponding bits of the loaded value.
+					// In user mode, however, the I, F, M0 and M1 bits are protected from change
+					// ... The mode at the start of the instruction determines whether these bits
+					// are protected.
+				}
+			}
+		}
+
+		if constexpr (flags.write_back_address()) {
+			if(transfer.base() != 15) {
+				registers_.active[transfer.base()] = address;
+			}
+		}
+	}
 
 	void software_interrupt() {
 		registers_.exception<Registers::Exception::SoftwareInterrupt>();
