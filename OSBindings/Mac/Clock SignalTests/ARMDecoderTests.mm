@@ -290,6 +290,12 @@ struct Scheduler {
 			address = offsetted_address;
 		}
 
+		// Check for an address exception.
+		if(address >= (1 << 26)) {
+			registers_.exception<Registers::Exception::Address>();
+			return;
+		}
+
 		constexpr bool trans = !flags.pre_index() && flags.write_back_address();
 		if constexpr (flags.operation() == SingleDataTransferFlags::Operation::STR) {
 			const uint32_t source =
