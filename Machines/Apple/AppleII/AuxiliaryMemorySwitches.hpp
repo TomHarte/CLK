@@ -90,6 +90,10 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			bool alternative_zero_page = false;
 			bool video_page_2 = false;
 			bool high_resolution = false;
+
+			void reset() {
+				*this = SwitchState();
+			}
 		};
 
 		AuxiliaryMemorySwitches(Machine &machine) : machine_(machine) {}
@@ -206,6 +210,14 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 
 		const SwitchState switches() const {
 			return switches_;
+		}
+
+		void reset() {
+			switches_.reset();
+
+			set_main_paging();
+			set_zero_page_paging();
+			set_card_paging();
 		}
 
 	private:
