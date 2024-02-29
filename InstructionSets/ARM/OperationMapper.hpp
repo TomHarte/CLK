@@ -74,9 +74,12 @@ enum class BranchOperation {
 	BL,		/// Copy PC and PSR to R14, then branch. Copied PC points to next instruction.
 };
 
-enum class Operation {
+enum class SingleDataTransferOperation {
 	LDR,	/// Read single byte or word from [base + offset], possibly mutating the base.
 	STR,	/// Write a single byte or word to [base + offset], possibly mutating the base.
+};
+
+enum class BlockDataTransferOperation {
 	LDM,	/// Read 1–16 words from [base], possibly mutating it.
 	STM,	/// Write 1-16 words to [base], possibly mutating it.
 };
@@ -240,6 +243,10 @@ private:
 struct SingleDataTransferFlags {
 	constexpr SingleDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
+	constexpr SingleDataTransferOperation operation() const {
+		return flag_bit<20>(flags_) ? SingleDataTransferOperation::LDR : SingleDataTransferOperation::STR;
+	}
+
 	constexpr bool offset_is_immediate() const	{	return flag_bit<25>(flags_);	}
 	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
 	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
@@ -271,6 +278,10 @@ struct SingleDataTransfer: public WithShiftControlBits {
 //
 struct BlockDataTransferFlags {
 	constexpr BlockDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	constexpr BlockDataTransferOperation operation() const {
+		return flag_bit<20>(flags_) ? BlockDataTransferOperation::LDM : BlockDataTransferOperation::STM;
+	}
 
 	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
 	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
@@ -418,21 +429,13 @@ struct OperationMapper {
 
 		// Single data transfer (LDR, STR); cf. p.25.
 		if constexpr (((partial >> 26) & 0b11) == 0b01) {
-			constexpr bool is_ldr = partial & (1 << 20);
-			scheduler.template perform<is_ldr ? Operation::LDR : Operation::STR, i>(
-				condition,
-				SingleDataTransfer(instruction)
-			);
+			scheduler.template perform<i>(SingleDataTransfer(instruction));
 			return;
 		}
 
 		// Block data transfer (LDM, STM); cf. p.29.
 		if constexpr (((partial >> 25) & 0b111) == 0b100) {
-			constexpr bool is_ldm = partial & (1 << 20);
-			scheduler.template perform<is_ldm ? Operation::LDM : Operation::STM, i>(
-				condition,
-				BlockDataTransfer(instruction)
-			);
+			scheduler.template perform<i>(BlockDataTransfer(instruction));
 			return;
 		}
 
@@ -475,37 +478,38 @@ struct OperationMapper {
 
 /// A brief documentation of the interface expected by @c dispatch below; will be a concept if/when this project adopts C++20.
 struct SampleScheduler {
-	// General template arguments:
+	/// @returns @c true if the rest of the instruction should be decoded and supplied
+	/// to the scheduler as defined below; @c false otherwise.
+	bool should_schedule(Condition condition);
+
+	// Template argument:
 	//
-	//	(1) Operation, telling the function which operation to perform. Will always be from the subset
-	//		implied by the operation category; and
-	//	(2)	Flags, an opaque type which can be converted into a DataProcessingFlags, MultiplyFlags, etc,
-	//		by simply construction, to provide all flags that can be baked into the template parameters.
+	//		Flags, an opaque type which can be converted into a DataProcessingFlags, MultiplyFlags, etc,
+	//		by simple construction, to provide all flags that can be baked into the template parameters.
 	//
-	// Arguments are ommitted if not relevant.
+	// Function argument:
 	//
-	// Function arguments:
-	//
-	// 	(1)	Condition, indicating the condition code associated with this operation; and
-	//	(2)	An operation-specific encapsulation of the operation code for decoding of fields that didn't
+	//		An operation-specific encapsulation of the operation code for decoding of fields that didn't
 	//		fit into the template parameters.
+	//
+	// Either or both may be omitted if unnecessary.
 	template <Flags> void perform(DataProcessing);
 	template <Flags> void perform(Multiply);
-	template <Operation, Flags> void perform(Condition, SingleDataTransfer);
-	template <Operation, Flags> void perform(Condition, BlockDataTransfer);
+	template <Flags> void perform(SingleDataTransfer);
+	template <Flags> void perform(BlockDataTransfer);
 	template <Flags> void perform(Branch);
 	template <Flags> void perform(CoprocessorRegisterTransfer);
 	template <Flags> void perform(CoprocessorDataOperation);
-	template<Flags> void perform(CoprocessorDataTransfer);
+	template <Flags> void perform(CoprocessorDataTransfer);
 
 	// Irregular operations.
 	void software_interrupt();
-	void unknown(uint32_t opcode);
+	void unknown();
 };
 
 /// Decodes @c instruction, making an appropriate call into @c scheduler.
 ///
-/// In lieue of C++20, see the sample definition of SampleScheduler above for the expected interface.
+/// In lieu of C++20, see the sample definition of SampleScheduler above for the expected interface.
 template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
 	OperationMapper mapper;
 

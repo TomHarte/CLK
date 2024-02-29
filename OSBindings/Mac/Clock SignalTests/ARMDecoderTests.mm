@@ -223,8 +223,8 @@ struct Scheduler {
 		registers_.set_pc(registers_.pc(8) + branch.offset());
 	}
 
-	template <Operation, Flags> void perform(Condition, SingleDataTransfer) {}
-	template <Operation, Flags> void perform(Condition, BlockDataTransfer) {}
+	template <Flags> void perform(SingleDataTransfer) {}
+	template <Flags> void perform(BlockDataTransfer) {}
 
 	void software_interrupt() {
 		registers_.exception<Registers::Exception::SoftwareInterrupt>();
