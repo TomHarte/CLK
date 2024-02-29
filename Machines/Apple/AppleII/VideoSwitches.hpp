@@ -310,7 +310,14 @@ template <typename TimeUnit> class VideoSwitches {
 			bool annunciator_3 = false;
 		} external_, internal_;
 
-		int flash_length = 8406;
+		// 8406 lines covers a complete on-off cycle, i.e. because the Apple II has a line
+		// rate of around 15734.26 lines/second, flashing has a frequency of roughly
+		// 15734.26 / 8406, or roughly 1.83Hz.
+		//
+		// Internally that's modelled by a counter that goes to **twice** the value of the
+		// constant specified below. Hence the divide by two.
+		static constexpr int flash_length = 8406 / 2;
+
 		int flash_ = 0;
 		uint8_t flash_mask() const {
 			return uint8_t((flash_ / flash_length) * 0xff);

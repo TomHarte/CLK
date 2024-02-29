@@ -362,7 +362,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 		// MARK: - Keyboard and typing.
 
 		struct Keyboard: public Inputs::Keyboard {
-			Keyboard(Processor *m6502) : m6502_(m6502) {}
+			Keyboard(Processor &m6502, AuxiliaryMemorySwitches<ConcreteMachine> &switches) : m6502_(m6502), auxiliary_switches_(switches) {}
 
 			void reset_all_keys() final {
 				open_apple_is_pressed =
@@ -454,7 +454,10 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 						// Accept a bunch non-symbolic other keys, as
 						// reset, in the hope that the user can find
 						// at least one usable key.
-						m6502_->set_reset_line(is_pressed);
+						m6502_.set_reset_line(is_pressed);
+						if(!is_pressed) {
+							auxiliary_switches_.reset();
+						}
 					return true;
 
 					default:
@@ -556,7 +559,8 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 				std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 
 				// 6502 connection, for applying the reset button.
-				Processor *const m6502_;
+				Processor &m6502_;
+				AuxiliaryMemorySwitches<ConcreteMachine> &auxiliary_switches_;
 		};
 		Keyboard keyboard_;
 
@@ -574,7 +578,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 			speaker_(lowpass_source()),
 			language_card_(*this),
 			auxiliary_switches_(*this),
-			keyboard_(&m6502_) {
+			keyboard_(m6502_, auxiliary_switches_) {
 
 			// This is where things get slightly convoluted: establish the machine as having a clock rate
 			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
