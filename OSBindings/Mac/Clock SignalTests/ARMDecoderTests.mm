@@ -199,7 +199,7 @@ struct Scheduler {
 		const uint32_t multiplicand = fields.multiplicand() == 15 ? registers_.pc(8) : registers_.active[fields.multiplicand()];
 		const uint32_t multiplier = fields.multiplier() == 15 ? registers_.pc_status(8) : registers_.active[fields.multiplier()];
 		const uint32_t accumulator =
-			flags.operation() == MultiplyOperation::MUL ? 0 :
+			flags.operation() == MultiplyFlags::Operation::MUL ? 0 :
 				(fields.multiplicand() == 15 ? registers_.pc_status(12) : registers_.active[fields.accumulator()]);
 
 		const uint32_t result = multiplicand * multiplier + accumulator;
@@ -217,7 +217,7 @@ struct Scheduler {
 	template <Flags f> void perform(Branch branch) {
 		constexpr BranchFlags flags(f);
 
-		if constexpr (flags.operation() == BranchOperation::BL) {
+		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
 			registers_.active[14] = registers_.pc(4);
 		}
 		registers_.set_pc(registers_.pc(8) + branch.offset());

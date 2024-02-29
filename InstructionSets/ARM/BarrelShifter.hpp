@@ -22,7 +22,7 @@ template <> struct Carry<true> {
 	using type = uint32_t &;
 };
 template <> struct Carry<false> {
-	using type = uint32_t;
+	using type = const uint32_t;
 };
 
 /// Apply a rotation of @c type to @c source of @c amount; @c carry should be either @c 1 or @c 0

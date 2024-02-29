@@ -17,6 +17,79 @@ enum class Model {
 	ARM2,
 };
 
+enum class Condition {
+	EQ,	NE,	CS,	CC,
+	MI,	PL,	VS,	VC,
+	HI,	LS,	GE,	LT,
+	GT,	LE,	AL,	NV,
+};
+
+//
+// Implementation details.
+//
+static constexpr int FlagsStartBit = 20;
+using Flags = uint8_t;
+
+template <int position>
+constexpr bool flag_bit(uint8_t flags) {
+	static_assert(position >= 20 && position < 28);
+	return flags & (1 << (position - FlagsStartBit));
+}
+
+//
+// Methods common to data processing and data transfer.
+//
+struct WithShiftControlBits {
+	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
+	int operand2() const					{	return opcode_ & 0xf;					}
+	/// The type of shift to apply to operand 2 if @c operand2_is_immediate() is @c false; meaningless otherwise.
+	ShiftType shift_type() const			{	return ShiftType((opcode_ >> 5) & 3);	}
+	/// @returns @c true if the amount to shift by should be taken from a register; @c false if it is an immediate value.
+	bool shift_count_is_register() const	{	return opcode_ & (1 << 4);				}
+	/// The shift amount register index if @c shift_count_is_register() is @c true; meaningless otherwise.
+	int shift_register() const				{	return (opcode_ >> 8) & 0xf;			}
+	/// The amount to shift by if @c shift_count_is_register() is @c false; meaningless otherwise.
+	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
+
+protected:
+	uint32_t opcode_;
+};
+
+//
+// Branch (i.e. B and BL).
+//
+struct BranchFlags {
+	constexpr BranchFlags(uint8_t flags) noexcept : flags_(flags) {}
+
+	enum class Operation {
+		B,		/// Add offset to PC; programmer allows for PC being two words ahead.
+		BL,		/// Copy PC and PSR to R14, then branch. Copied PC points to next instruction.
+	};
+
+	/// @returns The operation to apply.
+	constexpr Operation operation() const {
+		return flag_bit<24>(flags_) ? Operation::BL : Operation::B;
+	}
+
+private:
+	uint8_t flags_;
+};
+
+struct Branch {
+	constexpr Branch(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	/// The 26-bit offset to add to the PC.
+	int offset() const				{	return (opcode_ & 0xff'ffff) << 2;	}
+
+private:
+	uint32_t opcode_;
+};
+
+//
+// Data processing (i.e. AND to MVN).
+//
 enum class DataProcessingOperation {
 	AND,	/// Rd = Op1 AND Op2.
 	EOR,	/// Rd = Op1 EOR Op2.
@@ -64,104 +137,6 @@ constexpr bool is_comparison(DataProcessingOperation operation) {
 	}
 }
 
-enum class MultiplyOperation {
-	MUL,	/// Rd = Rm * Rs
-	MLA,	/// Rd = Rm * Rs + Rn
-};
-
-enum class BranchOperation {
-	B,		/// Add offset to PC; programmer allows for PC being two words ahead.
-	BL,		/// Copy PC and PSR to R14, then branch. Copied PC points to next instruction.
-};
-
-enum class SingleDataTransferOperation {
-	LDR,	/// Read single byte or word from [base + offset], possibly mutating the base.
-	STR,	/// Write a single byte or word to [base + offset], possibly mutating the base.
-};
-
-enum class BlockDataTransferOperation {
-	LDM,	/// Read 1–16 words from [base], possibly mutating it.
-	STM,	/// Write 1-16 words to [base], possibly mutating it.
-};
-
-enum class CoprocessorRegisterTransferOperation {
-	MRC,	///	Move from coprocessor register to ARM register.
-	MCR,	/// Move from ARM register to coprocessor register.
-};
-
-enum class CoprocessorDataTransferOperation {
-	LDC,	/// Coprocessor data transfer load.
-	STC,	/// Coprocessor data transfer store.
-};
-
-enum class Condition {
-	EQ,	NE,	CS,	CC,
-	MI,	PL,	VS,	VC,
-	HI,	LS,	GE,	LT,
-	GT,	LE,	AL,	NV,
-};
-
-//
-// Implementation details.
-//
-static constexpr int FlagsStartBit = 20;
-using Flags = uint8_t;
-
-template <int position>
-constexpr bool flag_bit(uint8_t flags) {
-	static_assert(position >= 20 && position < 28);
-	return flags & (1 << (position - FlagsStartBit));
-}
-
-//
-// Methods common to data processing and data transfer.
-//
-struct WithShiftControlBits {
-	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
-
-	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
-	int operand2() const					{	return opcode_ & 0xf;					}
-	/// The type of shift to apply to operand 2 if @c operand2_is_immediate() is @c false; meaningless otherwise.
-	ShiftType shift_type() const			{	return ShiftType((opcode_ >> 5) & 3);	}
-	/// @returns @c true if the amount to shift by should be taken from a register; @c false if it is an immediate value.
-	bool shift_count_is_register() const	{	return opcode_ & (1 << 4);				}
-	/// The shift amount register index if @c shift_count_is_register() is @c true; meaningless otherwise.
-	int shift_register() const				{	return (opcode_ >> 8) & 0xf;			}
-	/// The amount to shift by if @c shift_count_is_register() is @c false; meaningless otherwise.
-	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
-
-protected:
-	uint32_t opcode_;
-};
-
-//
-// Branch (i.e. B and BL).
-//
-struct BranchFlags {
-	constexpr BranchFlags(uint8_t flags) noexcept : flags_(flags) {}
-
-	/// @returns The operation to apply.
-	constexpr BranchOperation operation() const {
-		return flag_bit<24>(flags_) ? BranchOperation::BL : BranchOperation::B;
-	}
-
-private:
-	uint8_t flags_;
-};
-
-struct Branch {
-	constexpr Branch(uint32_t opcode) noexcept : opcode_(opcode) {}
-
-	/// The 26-bit offset to add to the PC.
-	int offset() const				{	return (opcode_ & 0xff'ffff) << 2;	}
-
-private:
-	uint32_t opcode_;
-};
-
-//
-// Data processing (i.e. AND to MVN).
-//
 struct DataProcessingFlags {
 	constexpr DataProcessingFlags(uint8_t flags) noexcept : flags_(flags) {}
 
@@ -209,9 +184,14 @@ struct MultiplyFlags {
 	/// @c true if the status register should be updated; @c false otherwise.
 	constexpr bool set_condition_codes() const	{	return flag_bit<20>(flags_);	}
 
+	enum class Operation {
+		MUL,	/// Rd = Rm * Rs
+		MLA,	/// Rd = Rm * Rs + Rn
+	};
+
 	/// @returns The operation to apply.
-	constexpr MultiplyOperation operation() const {
-		return flag_bit<21>(flags_) ? MultiplyOperation::MLA : MultiplyOperation::MUL;
+	constexpr Operation operation() const {
+		return flag_bit<21>(flags_) ? Operation::MLA : Operation::MUL;
 	}
 
 private:
@@ -243,8 +223,13 @@ private:
 struct SingleDataTransferFlags {
 	constexpr SingleDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr SingleDataTransferOperation operation() const {
-		return flag_bit<20>(flags_) ? SingleDataTransferOperation::LDR : SingleDataTransferOperation::STR;
+	enum class Operation {
+		LDR,	/// Read single byte or word from [base + offset], possibly mutating the base.
+		STR,	/// Write a single byte or word to [base + offset], possibly mutating the base.
+	};
+
+	constexpr Operation operation() const {
+		return flag_bit<20>(flags_) ? Operation::LDR : Operation::STR;
 	}
 
 	constexpr bool offset_is_immediate() const	{	return flag_bit<25>(flags_);	}
@@ -279,8 +264,13 @@ struct SingleDataTransfer: public WithShiftControlBits {
 struct BlockDataTransferFlags {
 	constexpr BlockDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr BlockDataTransferOperation operation() const {
-		return flag_bit<20>(flags_) ? BlockDataTransferOperation::LDM : BlockDataTransferOperation::STM;
+	enum class Operation {
+		LDM,	/// Read 1–16 words from [base], possibly mutating it.
+		STM,	/// Write 1-16 words to [base], possibly mutating it.
+	};
+
+	constexpr Operation operation() const {
+		return flag_bit<20>(flags_) ? Operation::LDM : Operation::STM;
 	}
 
 	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
@@ -333,8 +323,13 @@ private:
 struct CoprocessorRegisterTransferFlags {
 	constexpr CoprocessorRegisterTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr CoprocessorRegisterTransferOperation operation() const {
-		return flag_bit<20>(flags_) ? CoprocessorRegisterTransferOperation::MRC : CoprocessorRegisterTransferOperation::MCR;
+	enum class Operation {
+		MRC,	///	Move from coprocessor register to ARM register.
+		MCR,	/// Move from ARM register to coprocessor register.
+	};
+
+	constexpr Operation operation() const {
+		return flag_bit<20>(flags_) ? Operation::MRC : Operation::MCR;
 	}
 	constexpr int coprocessor_operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0x7;	}
 
@@ -361,8 +356,13 @@ private:
 struct CoprocessorDataTransferFlags {
 	constexpr CoprocessorDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
 
-	constexpr CoprocessorDataTransferOperation operation() const {
-		return flag_bit<20>(flags_) ? CoprocessorDataTransferOperation::LDC : CoprocessorDataTransferOperation::STC;
+	enum class Operation {
+		LDC,	/// Coprocessor data transfer load.
+		STC,	/// Coprocessor data transfer store.
+	};
+
+	constexpr Operation operation() const {
+		return flag_bit<20>(flags_) ? Operation::LDC : Operation::STC;
 	}
 	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
 	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
