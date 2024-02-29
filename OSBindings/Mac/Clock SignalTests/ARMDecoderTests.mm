@@ -17,6 +17,27 @@ using namespace InstructionSet::ARM;
 
 namespace {
 
+struct Memory {
+	template <typename IntT>
+	bool write(uint32_t address, IntT source, Mode mode, bool trans) {
+		(void)address;
+		(void)source;
+		(void)mode;
+		(void)trans;
+		return true;
+	}
+
+	template <typename IntT>
+	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
+		(void)address;
+		(void)source;
+		(void)mode;
+		(void)trans;
+		return true;
+	}
+};
+
+template <typename MemoryT>
 struct Scheduler {
 	bool should_schedule(Condition condition) {
 		return registers_.test(condition);
@@ -269,12 +290,53 @@ struct Scheduler {
 			address = offsetted_address;
 		}
 
-		// TODO: attempt access, possibly abort.
-		// Cf. transfer_byte()
+		constexpr bool trans = !flags.pre_index() && flags.write_back_address();
+		if constexpr (flags.operation() == SingleDataTransferFlags::Operation::STR) {
+			const uint32_t source =
+				transfer.source() == 15 ?
+					registers_.pc_status(12) :
+					registers_.active[transfer.source()];
+
+			bool did_write;
+			if constexpr (flags.transfer_byte()) {
+				did_write = bus_.template write<uint8_t>(address, uint8_t(source), registers_.mode(), trans);
+			} else {
+				did_write = bus_.template write<uint32_t>(address, source, registers_.mode(), trans);
+			}
+
+			if(!did_write) {
+				registers_.exception<Registers::Exception::DataAbort>();
+				return;
+			}
+		} else {
+			bool did_read;
+			uint32_t value;
+
+			if constexpr (flags.transfer_byte()) {
+				uint8_t target;
+				did_read = bus_.template read<uint8_t>(address, target, registers_.mode(), trans);
+				value = target;
+			} else {
+				did_read = bus_.template read<uint32_t>(address, value, registers_.mode(), trans);
+
+				// TODO: "An address offset from a word boundary will cause the data to be rotated into the
+				// register so that the addressed byte occuplies bits 0 to 7.
+			}
+
+			if(!did_read) {
+				registers_.exception<Registers::Exception::DataAbort>();
+				return;
+			}
+
+			if(transfer.destination() == 15) {
+				registers_.set_pc(value);
+			} else {
+				registers_.active[transfer.destination()] = value;
+			}
+		}
 
 		// If either postindexing or else with writeback, update base.
 		if constexpr (!flags.pre_index() || flags.write_back_address()) {
-			// TODO: check for R15.
 			if(transfer.base() == 15) {
 				registers_.set_pc(offsetted_address);
 			} else {
@@ -302,6 +364,8 @@ struct Scheduler {
 		registers_.exception<Registers::Exception::UndefinedInstruction>();
 	}
 
+	MemoryT bus_;
+
 private:
 	Registers registers_;
 };
@@ -314,7 +378,7 @@ private:
 @implementation ARMDecoderTests
 
 - (void)testXYX {
-	Scheduler scheduler;
+	Scheduler<Memory> scheduler;
 
 	for(int c = 0; c < 65536; c++) {
 		InstructionSet::ARM::dispatch(c << 16, scheduler);

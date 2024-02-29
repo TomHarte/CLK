@@ -93,6 +93,10 @@ struct Registers {
 			}
 		}
 
+		Mode mode() {
+			return mode_;
+		}
+
 		/// Sets a new PC.
 		/// TODO: communicate this onward.
 		void set_pc(uint32_t value) {
