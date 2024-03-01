@@ -266,8 +266,6 @@ struct Registers {
 		std::array<uint32_t, 7> fiq_registers_;
 		std::array<uint32_t, 2> irq_registers_;
 		std::array<uint32_t, 2> supervisor_registers_;
-
-
 };
 
 }

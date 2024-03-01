@@ -396,10 +396,6 @@ struct OperationMapper {
 
 	template <int i, typename SchedulerT>
 	static void dispatch(uint32_t instruction, SchedulerT &scheduler) {
-		// Legacy: grab condition. This'll be eliminated.
-		// TODO: eliminate.
-		const auto condition = Condition(instruction >> 28);
-
 		// Put the 8-bit segment of instruction back into its proper place;
 		// this allows all the tests below to be written so as to coordinate
 		// properly with the data sheet, and since it's all compile-time work
