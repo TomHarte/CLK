@@ -361,13 +361,18 @@ struct Scheduler {
 		constexpr BlockDataTransferFlags flags(f);
 
 		// TODO: inclusion of the base in the register list.
-		// TODO: data aborts.
 
 		uint32_t address = transfer.base() == 15 ?
 			registers_.pc_status(8) :
 			registers_.active[transfer.base()];
 
+		const uint32_t initial_address = address;
 		const uint16_t list = transfer.register_list();
+
+		struct {
+			uint32_t *target = nullptr;
+			uint32_t value;
+		} last_replacement;
 
 		// Writes are always from lowest address to highest; asking for storage downward
 		// just results in predecrementation of the address.
@@ -379,16 +384,43 @@ struct Scheduler {
 
 		[[maybe_unused]] uint32_t final_address = address;
 
-		bool completed_all_visits = true;
+		bool visits_succeeded = true;
 		const auto visit = [&](uint32_t &value) {
 			if constexpr (flags.pre_index() == flags.add_offset()) {
 				address += 4;
 			}
 
 			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
-				bus_.template read<uint32_t>(address, value, registers_.mode(), false);
+				// "If the abort occurs during a store multiple instruction, ARM takes little action until
+				// the instruction completes, whereupon it enters the data abort trap. The memory manager is
+				// responsible for preventing erroneous writes to the memory."
+				visits_succeeded &= bus_.template write<uint32_t>(address, value, registers_.mode(), false);
 			} else {
-				completed_all_visits &= bus_.template write<uint32_t>(address, value, registers_.mode(), false);
+				// When ARM detects a data abort during a load multiple instruction, it modifies the operation of
+				// the instruction to ensure that recovery is possible.
+				//
+				//	*	Overwriting of registers stops when the abort happens. The aborting load will not
+				//		take place, nor will the preceding one ...
+				//	*	The base register is restored, to its modified value if write-back was requested.
+				if(visits_succeeded) {
+					const uint32_t replaced = value;
+					visits_succeeded &= bus_.template read<uint32_t>(address, value, registers_.mode(), false);
+
+					if(visits_succeeded) {
+						last_replacement.value = replaced;
+						last_replacement.target = &value;
+					} else {
+						if(last_replacement.target) {
+							*last_replacement.target = last_replacement.value;
+						}
+
+						if constexpr (!flags.write_back_address()) {
+							if(transfer.base() != 15) {
+								registers_.active[transfer.base()] = initial_address;
+							}
+						}
+					}
+				}
 			}
 
 			if constexpr (!flags.pre_index() != flags.add_offset()) {
@@ -443,6 +475,10 @@ struct Scheduler {
 
 		if(adopt_user_mode) {
 			registers_.set_mode(original_mode);
+		}
+
+		if(!visits_succeeded) {
+			registers_.exception<Registers::Exception::DataAbort>();
 		}
 	}
 
