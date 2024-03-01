@@ -26,25 +26,6 @@ struct Executor {
 
 	template <bool allow_register, bool set_carry, typename FieldsT>
 	uint32_t decode_shift(FieldsT fields, uint32_t &rotate_carry, uint32_t pc_offset) {
-		uint32_t shift_amount;
-		if constexpr (allow_register) {
-			if(fields.shift_count_is_register()) {
-				// "When R15 appears in either of the Rn or Rs positions it will give the value
-				// of the PC alone, with the PSR bits replaced by zeroes. ...
-				//
-				// If a register is used to specify the shift amount, the
-				// PC will be 8 bytes ahead when used as Rs."
-				shift_amount =
-					fields.shift_register() == 15 ?
-						registers_.pc(8) :
-						registers_.active[fields.shift_register()];
-			} else {
-				shift_amount = fields.shift_amount();
-			}
-		} else {
-			shift_amount = fields.shift_amount();
-		}
-
 		// "When R15 appears in the Rm position it will give the value of the PC together
 		// with the PSR flags to the barrel shifter. ...
 		//
@@ -57,8 +38,33 @@ struct Executor {
 		} else {
 			operand2 = registers_.active[fields.operand2()];
 		}
-		shift<set_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
 
+		uint32_t shift_amount;
+		if constexpr (allow_register) {
+			if(fields.shift_count_is_register()) {
+				// "When R15 appears in either of the Rn or Rs positions it will give the value
+				// of the PC alone, with the PSR bits replaced by zeroes. ...
+				//
+				// If a register is used to specify the shift amount, the
+				// PC will be 8 bytes ahead when used as Rs."
+				shift_amount =
+					fields.shift_register() == 15 ?
+						registers_.pc(8) :
+						registers_.active[fields.shift_register()];
+
+				// A register shift amount of 0 has a different meaning than an in-instruction
+				// shift amount of 0.
+				if(!shift_amount) {
+					return operand2;
+				}
+			} else {
+				shift_amount = fields.shift_amount();
+			}
+		} else {
+			shift_amount = fields.shift_amount();
+		}
+
+		shift<set_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
 		return operand2;
 	}
 
