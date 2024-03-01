@@ -8,28 +8,30 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../InstructionSets/ARM/OperationMapper.hpp"
-#include "../../../InstructionSets/ARM/Status.hpp"
+#include "../../../InstructionSets/ARM/Executor.hpp"
 
 using namespace InstructionSet::ARM;
 
 namespace {
 
-struct Scheduler {
-	template <Operation, Flags> void perform(Condition, DataProcessing) {}
-	template <Operation, Flags> void perform(Condition, Multiply) {}
-	template <Operation, Flags> void perform(Condition, SingleDataTransfer) {}
-	template <Operation, Flags> void perform(Condition, BlockDataTransfer) {}
-
-	template <Operation op> void perform(Condition condition, Branch branch) {
-		printf("Branch %sif %d; add %08x\n", op == Operation::BL ? "with link " : "", int(condition), branch.offset());
+struct Memory {
+	template <typename IntT>
+	bool write(uint32_t address, IntT source, Mode mode, bool trans) {
+		(void)address;
+		(void)source;
+		(void)mode;
+		(void)trans;
+		return true;
 	}
-	template <Operation, Flags> void perform(Condition, CoprocessorRegisterTransfer) {}
-	template <Flags> void perform(Condition, CoprocessorDataOperation) {}
-	template<Operation, Flags> void perform(Condition, CoprocessorDataTransfer) {}
 
-	void software_interrupt(Condition) {}
-	void unknown(uint32_t) {}
+	template <typename IntT>
+	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
+		(void)address;
+		(void)source;
+		(void)mode;
+		(void)trans;
+		return true;
+	}
 };
 
 }
@@ -40,11 +42,12 @@ struct Scheduler {
 @implementation ARMDecoderTests
 
 - (void)testXYX {
-	Scheduler scheduler;
+	Executor<Memory> scheduler;
 
+	for(int c = 0; c < 65536; c++) {
+		InstructionSet::ARM::dispatch(c << 16, scheduler);
+	}
 	InstructionSet::ARM::dispatch(0xEAE06900, scheduler);
-//	const auto intr = Instruction<Model::ARM2>(1);
-//	NSLog(@"%d", intr.operation());
 }
 
 @end
