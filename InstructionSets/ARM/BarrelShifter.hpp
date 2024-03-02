@@ -28,6 +28,8 @@ template <> struct Carry<false> {
 /// Apply a rotation of @c type to @c source of @c amount; @c carry should be either @c 1 or @c 0
 /// at call to represent the current value of the carry flag. If @c set_carry is @c true then @c carry will
 /// receive the new value of the carry flag following the rotation — @c 0 for no carry, @c non-0 for carry.
+///
+/// Shift amounts of 0 are given the meaning attributed to them for immediate shift counts.
 template <ShiftType type, bool set_carry>
 void shift(uint32_t &source, uint32_t amount, typename Carry<set_carry>::type carry) {
 	switch(type) {
@@ -48,17 +50,14 @@ void shift(uint32_t &source, uint32_t amount, typename Carry<set_carry>::type ca
 			if(amount > 32) {
 				if constexpr (set_carry) carry = 0;
 				source = 0;
-			} else if(amount == 32) {
-				if constexpr (set_carry) carry = source & 0x8000'0000;
-				source = 0;
-			} else if(amount > 0) {
-				if constexpr (set_carry) carry = source & (1 << (amount - 1));
-				source >>= amount;
-			} else {
+			} else if(amount == 32 || !amount) {
 				// A logical shift right by '0' is treated as a shift by 32;
 				// assemblers are supposed to map LSR #0 to LSL #0.
 				if constexpr (set_carry) carry = source & 0x8000'0000;
 				source = 0;
+			} else {
+				if constexpr (set_carry) carry = source & (1 << (amount - 1));
+				source >>= amount;
 			}
 		break;
 
