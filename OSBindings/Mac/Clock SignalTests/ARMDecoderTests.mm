@@ -9,29 +9,44 @@
 #import <XCTest/XCTest.h>
 
 #include "../../../InstructionSets/ARM/Executor.hpp"
+#include "CSROMFetcher.hpp"
 
 using namespace InstructionSet::ARM;
 
 namespace {
 
 struct Memory {
+	std::vector<uint8_t> rom;
+
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, Mode mode, bool trans) {
 		(void)address;
 		(void)source;
 		(void)mode;
 		(void)trans;
+		printf("W of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
 		return true;
 	}
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
-		(void)address;
-		(void)source;
+		if(address > 0x3800000) {
+			has_moved_rom_ = true;
+			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
+		} else if(!has_moved_rom_) {
+			// TODO: this is true only very transiently.
+			source = *reinterpret_cast<const IntT *>(&rom[address]);
+		} else {
+			printf("Unknown read from %08x [%lu]\n", address, sizeof(IntT));
+		}
+
 		(void)mode;
 		(void)trans;
 		return true;
 	}
+
+	private:
+		bool has_moved_rom_ = false;
 };
 
 }
@@ -40,15 +55,6 @@ struct Memory {
 @end
 
 @implementation ARMDecoderTests
-
-//- (void)testXYX {
-//	Executor<Memory> scheduler;
-//
-//	for(int c = 0; c < 65536; c++) {
-//		InstructionSet::ARM::dispatch(c << 16, scheduler);
-//	}
-//	InstructionSet::ARM::dispatch(0xEAE06900, scheduler);
-//}
 
 - (void)testBarrelShifterLogicalLeft {
 	uint32_t value;
@@ -194,5 +200,23 @@ struct Memory {
 	XCTAssertEqual(value, 0x891f'd5e7);
 	XCTAssertEqual(carry, 0);
 }
+
+// TODO: turn the below into a trace-driven test case.
+/*- (void)testROM319 {
+	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
+	ROM::Request request(rom_name);
+	const auto roms = CSROMFetcher()(request);
+
+	Executor<Model::ARMv2, Memory> executor;
+	executor.bus.rom = roms.find(rom_name)->second;
+
+	for(int c = 0; c < 1000; c++) {
+		uint32_t instruction;
+		executor.bus.read(executor.pc(), instruction, executor.mode(), false);
+
+		printf("%08x: %08x\n", executor.pc(), instruction);
+		execute<Model::ARMv2>(instruction, executor);
+	}
+}*/
 
 @end

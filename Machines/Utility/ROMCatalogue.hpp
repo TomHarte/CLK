@@ -22,7 +22,7 @@ namespace ROM {
 enum Name {
 	None,
 
-	// Acorn.
+	// Acorn Electron.
 	AcornBASICII,
 	AcornElectronMOS100,
 	PRESADFSSlot1,
@@ -30,6 +30,9 @@ enum Name {
 	AcornADFS,
 	PRESAdvancedPlus6,
 	Acorn1770DFS,
+
+	// Acorn Archimedes.
+	AcornRISCOS319,
 
 	// Amiga.
 	AmigaKickstart10,

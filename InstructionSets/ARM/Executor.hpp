@@ -18,7 +18,7 @@ namespace InstructionSet::ARM {
 /// A class compatible with the @c OperationMapper definition of a scheduler which applies all actions
 /// immediately, updating either a set of @c Registers or using the templated @c MemoryT to access
 /// memory. No hooks are currently provided for applying realistic timing.
-template <typename MemoryT>
+template <Model model, typename MemoryT>
 struct Executor {
 	bool should_schedule(Condition condition) {
 		return registers_.test(condition);
@@ -49,7 +49,7 @@ struct Executor {
 				// PC will be 8 bytes ahead when used as Rs."
 				shift_amount =
 					fields.shift_register() == 15 ?
-						registers_.pc(8) :
+						registers_.pc(4) :
 						registers_.active[fields.shift_register()];
 
 				// A register shift amount of 0 has a different meaning than an in-instruction
@@ -84,7 +84,7 @@ struct Executor {
 		// when used as Rn or Rm."
 		const uint32_t operand1 =
 			(fields.operand1() == 15) ?
-				registers_.pc(shift_by_register ? 12 : 8) :
+				registers_.pc(shift_by_register ? 8 : 4) :
 				registers_.active[fields.operand1()];
 
 		uint32_t operand2;
@@ -100,7 +100,7 @@ struct Executor {
 				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
 			}
 		} else {
-			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 12 : 8);
+			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
 		}
 
 		// Perform the data processing operation.
@@ -216,11 +216,11 @@ struct Executor {
 		//	* Rn: with PSR, 8 bytes ahead;
 		//	* Rm: with PSR, 12 bytes ahead.
 
-		const uint32_t multiplicand = fields.multiplicand() == 15 ? registers_.pc(8) : registers_.active[fields.multiplicand()];
-		const uint32_t multiplier = fields.multiplier() == 15 ? registers_.pc_status(8) : registers_.active[fields.multiplier()];
+		const uint32_t multiplicand = fields.multiplicand() == 15 ? registers_.pc(4) : registers_.active[fields.multiplicand()];
+		const uint32_t multiplier = fields.multiplier() == 15 ? registers_.pc_status(4) : registers_.active[fields.multiplier()];
 		const uint32_t accumulator =
 			flags.operation() == MultiplyFlags::Operation::MUL ? 0 :
-				(fields.multiplicand() == 15 ? registers_.pc_status(12) : registers_.active[fields.accumulator()]);
+				(fields.multiplicand() == 15 ? registers_.pc_status(8) : registers_.active[fields.accumulator()]);
 
 		const uint32_t result = multiplicand * multiplier + accumulator;
 
@@ -238,9 +238,9 @@ struct Executor {
 		constexpr BranchFlags flags(f);
 
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
-			registers_.active[14] = registers_.pc(4);
+			registers_.active[14] = registers_.pc(0);
 		}
-		registers_.set_pc(registers_.pc(8) + branch.offset());
+		registers_.set_pc(registers_.pc(4) + branch.offset());
 	}
 
 	template <Flags f> void perform(SingleDataTransfer transfer) {
@@ -255,13 +255,13 @@ struct Executor {
 			// the register specified shift amounts are not available
 			// in this instruction class.
 			uint32_t carry = registers_.c();
-			offset = decode_shift<false, false>(transfer, carry, 8);
+			offset = decode_shift<false, false>(transfer, carry, 4);
 		}
 
 		// Obtain base address.
 		uint32_t address =
 			transfer.base() == 15 ?
-				registers_.pc(8) :
+				registers_.pc(4) :
 				registers_.active[transfer.base()];
 
 		// Determine what the address will be after offsetting.
@@ -287,15 +287,15 @@ struct Executor {
 		if constexpr (flags.operation() == SingleDataTransferFlags::Operation::STR) {
 			const uint32_t source =
 				transfer.source() == 15 ?
-					registers_.pc_status(12) :
+					registers_.pc_status(8) :
 					registers_.active[transfer.source()];
 
 			bool did_write;
 			if constexpr (flags.transfer_byte()) {
-				did_write = bus_.template write<uint8_t>(address, uint8_t(source), registers_.mode(), trans);
+				did_write = bus.template write<uint8_t>(address, uint8_t(source), registers_.mode(), trans);
 			} else {
 				// "The data presented to the data bus are not affected if the address is not word aligned".
-				did_write = bus_.template write<uint32_t>(address, source, registers_.mode(), trans);
+				did_write = bus.template write<uint32_t>(address, source, registers_.mode(), trans);
 			}
 
 			if(!did_write) {
@@ -308,10 +308,10 @@ struct Executor {
 
 			if constexpr (flags.transfer_byte()) {
 				uint8_t target;
-				did_read = bus_.template read<uint8_t>(address, target, registers_.mode(), trans);
+				did_read = bus.template read<uint8_t>(address, target, registers_.mode(), trans);
 				value = target;
 			} else {
-				did_read = bus_.template read<uint32_t>(address, value, registers_.mode(), trans);
+				did_read = bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 
 				// "An address offset from a word boundary will cause the data to be rotated into the
 				// register so that the addressed byte occuplies bits 0 to 7."
@@ -354,7 +354,7 @@ struct Executor {
 		// it has to be restored later, and to write that value rather than
 		// the final address if the base register is first in the write-out list.
 		uint32_t address = transfer.base() == 15 ?
-			registers_.pc_status(8) :
+			registers_.pc_status(4) :
 			registers_.active[transfer.base()];
 		const uint32_t initial_address = address;
 
@@ -422,7 +422,7 @@ struct Executor {
 					// "If the abort occurs during a store multiple instruction, ARM takes little action until
 					// the instruction completes, whereupon it enters the data abort trap. The memory manager is
 					// responsible for preventing erroneous writes to the memory."
-					accesses_succeeded &= bus_.template write<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), false);
 				}
 			} else {
 				// When ARM detects a data abort during a load multiple instruction, it modifies the operation of
@@ -433,7 +433,7 @@ struct Executor {
 				//	*	The base register is restored, to its modified value if write-back was requested.
 				if(accesses_succeeded) {
 					const uint32_t replaced = value;
-					accesses_succeeded &= bus_.template read<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template read<uint32_t>(address, value, registers_.mode(), false);
 
 					// Update the last-modified slot if the access succeeded; otherwise
 					// undo the last modification if there was one, and undo the base
@@ -458,7 +458,7 @@ struct Executor {
 				} else {
 					// Implicitly: do the access anyway, but don't store the value. I think.
 					uint32_t throwaway;
-					bus_.template read<uint32_t>(address, throwaway, registers_.mode(), false);
+					bus.template read<uint32_t>(address, throwaway, registers_.mode(), false);
 				}
 			}
 
@@ -501,7 +501,7 @@ struct Executor {
 		if(list & (1 << 15)) {
 			uint32_t value;
 			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
-				value = registers_.pc_status(12);
+				value = registers_.pc_status(8);
 				access(value);
 			} else {
 				access(value);
@@ -544,10 +544,24 @@ struct Executor {
 		registers_.exception<Registers::Exception::UndefinedInstruction>();
 	}
 
-	MemoryT bus_;
+	MemoryT bus;
 
+	/// Sets the expected address of the instruction after whichever  is about to be executed.
+	/// So it's PC+4 compared to most other systems.
 	void set_pc(uint32_t pc) {
 		registers_.set_pc(pc);
+	}
+
+	/// @returns The address of the instruction that should be fetched next. So as execution of each instruction
+	/// begins, this will be +4 from the instruction being executed; at the end of the instruction it'll either still be +4
+	/// or else be some other address if a branch or exception has occurred.
+	uint32_t pc() const {
+		return registers_.pc(0);
+	}
+
+	/// @returns The current processor mode.
+	Mode mode() const {
+		return registers_.mode();
 	}
 
 private:
@@ -555,11 +569,11 @@ private:
 };
 
 /// Provides an analogue of the @c OperationMapper -affiliated @c dispatch that also updates the
-/// program counter in an executor's register bank appropriately.
-template <typename MemoryT>
-void dispatch(uint32_t pc, uint32_t instruction, Executor<MemoryT> &executor) {
-	executor.set_pc(pc);
-	dispatch(instruction, executor);
+/// executor's program counter appropriately.
+template <Model model, typename MemoryT>
+void execute(uint32_t instruction, Executor<model, MemoryT> &executor) {
+	executor.set_pc(executor.pc() + 4);
+	dispatch<model>(instruction, executor);
 }
 
 }

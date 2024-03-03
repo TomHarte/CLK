@@ -540,6 +540,10 @@ Description::Description(Name name) {
 			*this = Description(name, "Electron", "the Electron MOS ROM v1.00", "os.rom", 16*1024, 0xbf63fb1fu);
 		break;
 
+		case Name::AcornRISCOS319:
+			*this = Description(name, "Archimedes", "RISC OS v3.19", "ROM319", 2*1024*1024, 0x00c7a3d3u);
+		break;
+
 		case Name::MasterSystemJapaneseBIOS:	*this = Description(name, "MasterSystem", "the Japanese Master System BIOS", "japanese-bios.sms", 8*1024, 0x48d44a13u); break;
 		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8*1024, 0x0072ed54u);		break;
 
