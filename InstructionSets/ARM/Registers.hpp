@@ -95,7 +95,7 @@ struct Registers {
 			}
 		}
 
-		Mode mode() {
+		Mode mode() const {
 			return mode_;
 		}
 

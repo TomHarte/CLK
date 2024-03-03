@@ -16,6 +16,8 @@ using namespace InstructionSet::ARM;
 namespace {
 
 struct Memory {
+	std::vector<uint8_t> rom;
+
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, Mode mode, bool trans) {
 		(void)address;
@@ -27,8 +29,13 @@ struct Memory {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
-		(void)address;
-		(void)source;
+		if(address > 0x3800000) {
+			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
+		} else {
+			// TODO: this is true only very transiently.
+			source = *reinterpret_cast<const IntT *>(&rom[address]);
+		}
+
 		(void)mode;
 		(void)trans;
 		return true;
@@ -192,18 +199,13 @@ struct Memory {
 	ROM::Request request(rom_name);
 	const auto roms = CSROMFetcher()(request);
 
-	const auto rom = roms.find(rom_name)->second;
+	Executor<Model::ARMv2, Memory> executor;
+	executor.bus_.rom = roms.find(rom_name)->second;
 
 	uint32_t pc = 0;
-	Executor<Model::ARMv2, Memory> executor;
 	for(int c = 0; c < 100; c++) {
 		uint32_t instruction;
-
-		if(pc > 0x3800000) {
-			instruction = *reinterpret_cast<const uint32_t *>(&rom[pc - 0x3800000]);
-		} else {
-			instruction = *reinterpret_cast<const uint32_t *>(&rom[pc]);
-		}
+		executor.bus_.read(pc, instruction, executor.mode(), false);
 
 		printf("%08x: %08x\n", pc, instruction);
 		dispatch<Model::ARMv2>(pc, instruction, executor);

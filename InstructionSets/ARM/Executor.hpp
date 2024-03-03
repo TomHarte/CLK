@@ -554,6 +554,10 @@ struct Executor {
 		return registers_.pc(0);
 	}
 
+	Mode mode() const {
+		return registers_.mode();
+	}
+
 private:
 	Registers registers_;
 };
