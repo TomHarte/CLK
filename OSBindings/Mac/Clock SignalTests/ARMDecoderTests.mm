@@ -201,24 +201,21 @@ struct Memory {
 	XCTAssertEqual(carry, 0);
 }
 
-/*
-	TODO: turn the below into a trace-driven test case.
-
-- (void)testROM319 {
+// TODO: turn the below into a trace-driven test case.
+/*- (void)testROM319 {
 	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
 	ROM::Request request(rom_name);
 	const auto roms = CSROMFetcher()(request);
 
 	Executor<Model::ARMv2, Memory> executor;
-	executor.bus_.rom = roms.find(rom_name)->second;
+	executor.bus.rom = roms.find(rom_name)->second;
 
-	uint32_t pc = 0;
 	for(int c = 0; c < 1000; c++) {
 		uint32_t instruction;
-		executor.bus_.read(pc, instruction, executor.mode(), false);
+		executor.bus.read(executor.pc(), instruction, executor.mode(), false);
 
-		printf("%08x: %08x\n", pc, instruction);
-		dispatch<Model::ARMv2>(pc, instruction, executor);
+		printf("%08x: %08x\n", executor.pc(), instruction);
+		execute<Model::ARMv2>(instruction, executor);
 	}
 }*/
 

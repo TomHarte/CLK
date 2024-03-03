@@ -292,10 +292,10 @@ struct Executor {
 
 			bool did_write;
 			if constexpr (flags.transfer_byte()) {
-				did_write = bus_.template write<uint8_t>(address, uint8_t(source), registers_.mode(), trans);
+				did_write = bus.template write<uint8_t>(address, uint8_t(source), registers_.mode(), trans);
 			} else {
 				// "The data presented to the data bus are not affected if the address is not word aligned".
-				did_write = bus_.template write<uint32_t>(address, source, registers_.mode(), trans);
+				did_write = bus.template write<uint32_t>(address, source, registers_.mode(), trans);
 			}
 
 			if(!did_write) {
@@ -308,10 +308,10 @@ struct Executor {
 
 			if constexpr (flags.transfer_byte()) {
 				uint8_t target;
-				did_read = bus_.template read<uint8_t>(address, target, registers_.mode(), trans);
+				did_read = bus.template read<uint8_t>(address, target, registers_.mode(), trans);
 				value = target;
 			} else {
-				did_read = bus_.template read<uint32_t>(address, value, registers_.mode(), trans);
+				did_read = bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 
 				// "An address offset from a word boundary will cause the data to be rotated into the
 				// register so that the addressed byte occuplies bits 0 to 7."
@@ -422,7 +422,7 @@ struct Executor {
 					// "If the abort occurs during a store multiple instruction, ARM takes little action until
 					// the instruction completes, whereupon it enters the data abort trap. The memory manager is
 					// responsible for preventing erroneous writes to the memory."
-					accesses_succeeded &= bus_.template write<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), false);
 				}
 			} else {
 				// When ARM detects a data abort during a load multiple instruction, it modifies the operation of
@@ -433,7 +433,7 @@ struct Executor {
 				//	*	The base register is restored, to its modified value if write-back was requested.
 				if(accesses_succeeded) {
 					const uint32_t replaced = value;
-					accesses_succeeded &= bus_.template read<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template read<uint32_t>(address, value, registers_.mode(), false);
 
 					// Update the last-modified slot if the access succeeded; otherwise
 					// undo the last modification if there was one, and undo the base
@@ -458,7 +458,7 @@ struct Executor {
 				} else {
 					// Implicitly: do the access anyway, but don't store the value. I think.
 					uint32_t throwaway;
-					bus_.template read<uint32_t>(address, throwaway, registers_.mode(), false);
+					bus.template read<uint32_t>(address, throwaway, registers_.mode(), false);
 				}
 			}
 
@@ -544,16 +544,22 @@ struct Executor {
 		registers_.exception<Registers::Exception::UndefinedInstruction>();
 	}
 
-	MemoryT bus_;
+	MemoryT bus;
 
+	/// Sets the expected address of the instruction after whichever  is about to be executed.
+	/// So it's PC+4 compared to most other systems.
 	void set_pc(uint32_t pc) {
 		registers_.set_pc(pc);
 	}
 
+	/// @returns The address of the instruction that should be fetched next. So as execution of each instruction
+	/// begins, this will be +4 from the instruction being executed; at the end of the instruction it'll either still be +4
+	/// or else be some other address if a branch or exception has occurred.
 	uint32_t pc() const {
 		return registers_.pc(0);
 	}
 
+	/// @returns The current processor mode.
 	Mode mode() const {
 		return registers_.mode();
 	}
@@ -563,13 +569,11 @@ private:
 };
 
 /// Provides an analogue of the @c OperationMapper -affiliated @c dispatch that also updates the
-/// program counter in an executor's register bank appropriately.
+/// executor's program counter appropriately.
 template <Model model, typename MemoryT>
-void dispatch(uint32_t &pc, uint32_t instruction, Executor<model, MemoryT> &executor) {
-	// TODO: avoid PC gymnastics below.
-	executor.set_pc(pc + 4);
+void execute(uint32_t instruction, Executor<model, MemoryT> &executor) {
+	executor.set_pc(executor.pc() + 4);
 	dispatch<model>(instruction, executor);
-	pc = executor.pc();
 }
 
 }
