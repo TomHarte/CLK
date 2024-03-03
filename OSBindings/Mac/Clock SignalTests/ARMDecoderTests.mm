@@ -203,7 +203,7 @@ struct Memory {
 	executor.bus_.rom = roms.find(rom_name)->second;
 
 	uint32_t pc = 0;
-	for(int c = 0; c < 100; c++) {
+	for(int c = 0; c < 200; c++) {
 		uint32_t instruction;
 		executor.bus_.read(pc, instruction, executor.mode(), false);
 

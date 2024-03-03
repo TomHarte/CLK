@@ -142,7 +142,7 @@ struct DataProcessingFlags {
 
 	/// @returns The operation to apply.
 	constexpr DataProcessingOperation operation() const {
-		return DataProcessingOperation((flags_ >> 21) & 0xf);
+		return DataProcessingOperation((flags_ >> (21 - FlagsStartBit)) & 0xf);
 	}
 
 	/// @returns @c true if operand 2 is defined by the @c rotate() and @c immediate() fields;
@@ -232,7 +232,7 @@ struct SingleDataTransferFlags {
 		return flag_bit<20>(flags_) ? Operation::LDR : Operation::STR;
 	}
 
-	constexpr bool offset_is_immediate() const	{	return flag_bit<25>(flags_);	}
+	constexpr bool offset_is_immediate() const	{	return !flag_bit<25>(flags_);	}
 	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
 	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
 	constexpr bool transfer_byte() const		{	return flag_bit<22>(flags_);	}
