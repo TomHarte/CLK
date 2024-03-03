@@ -248,14 +248,14 @@ struct Executor {
 
 		// Calculate offset.
 		uint32_t offset;
-		if constexpr (flags.offset_is_immediate()) {
-			offset = transfer.immediate();
-		} else {
+		if constexpr (flags.offset_is_register()) {
 			// The 8 shift control bits are described in 6.2.3, but
 			// the register specified shift amounts are not available
 			// in this instruction class.
 			uint32_t carry = registers_.c();
 			offset = decode_shift<false, false>(transfer, carry, 4);
+		} else {
+			offset = transfer.immediate();
 		}
 
 		// Obtain base address.

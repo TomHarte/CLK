@@ -232,7 +232,7 @@ struct SingleDataTransferFlags {
 		return flag_bit<20>(flags_) ? Operation::LDR : Operation::STR;
 	}
 
-	constexpr bool offset_is_immediate() const	{	return !flag_bit<25>(flags_);	}
+	constexpr bool offset_is_register() const	{	return flag_bit<25>(flags_);	}
 	constexpr bool pre_index() const			{	return flag_bit<24>(flags_);	}
 	constexpr bool add_offset() const			{	return flag_bit<23>(flags_);	}
 	constexpr bool transfer_byte() const		{	return flag_bit<22>(flags_);	}
