@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "../../../InstructionSets/ARM/Executor.hpp"
+#include "CSROMFetcher.hpp"
 
 using namespace InstructionSet::ARM;
 
@@ -40,15 +41,6 @@ struct Memory {
 @end
 
 @implementation ARMDecoderTests
-
-//- (void)testXYX {
-//	Executor<Memory> scheduler;
-//
-//	for(int c = 0; c < 65536; c++) {
-//		InstructionSet::ARM::dispatch(c << 16, scheduler);
-//	}
-//	InstructionSet::ARM::dispatch(0xEAE06900, scheduler);
-//}
 
 - (void)testBarrelShifterLogicalLeft {
 	uint32_t value;
@@ -193,6 +185,14 @@ struct Memory {
 	shift<ShiftType::RotateRight, true>(value, 0, carry);
 	XCTAssertEqual(value, 0x891f'd5e7);
 	XCTAssertEqual(carry, 0);
+}
+
+- (void)testROM319 {
+	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
+	ROM::Request request(rom_name);
+	const auto roms = CSROMFetcher()(request);
+
+	NSLog(@"");
 }
 
 @end
