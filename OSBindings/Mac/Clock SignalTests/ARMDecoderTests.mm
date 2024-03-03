@@ -30,7 +30,7 @@ struct Memory {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
-		if(address > 0x3800000) {
+		if(address >= 0x3800000) {
 			has_moved_rom_ = true;
 			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
 		} else if(!has_moved_rom_) {
@@ -202,7 +202,7 @@ struct Memory {
 }
 
 // TODO: turn the below into a trace-driven test case.
-/*- (void)testROM319 {
+- (void)testROM319 {
 	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
 	ROM::Request request(rom_name);
 	const auto roms = CSROMFetcher()(request);
@@ -217,6 +217,6 @@ struct Memory {
 		printf("%08x: %08x\n", executor.pc(), instruction);
 		execute<Model::ARMv2>(instruction, executor);
 	}
-}*/
+}
 
 @end

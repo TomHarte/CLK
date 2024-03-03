@@ -254,7 +254,7 @@ struct SingleDataTransfer: public WithShiftControlBits {
 	/// The base register index. i.e. 'Rn'.
 	int base() const					{	return (opcode_ >> 16) & 0xf;	}
 
-	/// The immediate offset, if @c offset_is_immediate() was @c true; meaningless otherwise.
+	/// The immediate offset, if @c offset_is_register() was @c false; meaningless otherwise.
 	int immediate() const				{	return opcode_ & 0xfff;			}
 };
 
