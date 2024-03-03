@@ -556,10 +556,10 @@ private:
 
 /// Provides an analogue of the @c OperationMapper -affiliated @c dispatch that also updates the
 /// program counter in an executor's register bank appropriately.
-template <typename MemoryT>
+template <Model model, typename MemoryT>
 void dispatch(uint32_t pc, uint32_t instruction, Executor<MemoryT> &executor) {
 	executor.set_pc(pc);
-	dispatch(instruction, executor);
+	dispatch<model>(instruction, executor);
 }
 
 }

@@ -14,7 +14,7 @@
 namespace InstructionSet::ARM {
 
 enum class Model {
-	ARM2,
+	ARMv2,
 };
 
 enum class Condition {
@@ -389,6 +389,7 @@ private:
 };
 
 /// Operation mapper; use the free function @c dispatch as defined below.
+template <Model>
 struct OperationMapper {
 	static Condition condition(uint32_t instruction) {
 		return Condition(instruction >> 28);
@@ -506,8 +507,8 @@ struct SampleScheduler {
 /// Decodes @c instruction, making an appropriate call into @c scheduler.
 ///
 /// In lieu of C++20, see the sample definition of SampleScheduler above for the expected interface.
-template <typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
-	OperationMapper mapper;
+template <Model model, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
+	OperationMapper<model> mapper;
 
 	// Test condition.
 	const auto condition = mapper.condition(instruction);
