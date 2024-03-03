@@ -24,22 +24,29 @@ struct Memory {
 		(void)source;
 		(void)mode;
 		(void)trans;
+		printf("W of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
 		return true;
 	}
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
 		if(address > 0x3800000) {
+			has_moved_rom_ = true;
 			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
-		} else {
+		} else if(!has_moved_rom_) {
 			// TODO: this is true only very transiently.
 			source = *reinterpret_cast<const IntT *>(&rom[address]);
+		} else {
+			printf("Unknown read from %08x [%lu]\n", address, sizeof(IntT));
 		}
 
 		(void)mode;
 		(void)trans;
 		return true;
 	}
+
+	private:
+		bool has_moved_rom_ = false;
 };
 
 }
@@ -194,6 +201,9 @@ struct Memory {
 	XCTAssertEqual(carry, 0);
 }
 
+/*
+	TODO: turn the below into a trace-driven test case.
+
 - (void)testROM319 {
 	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
 	ROM::Request request(rom_name);
@@ -203,13 +213,13 @@ struct Memory {
 	executor.bus_.rom = roms.find(rom_name)->second;
 
 	uint32_t pc = 0;
-	for(int c = 0; c < 200; c++) {
+	for(int c = 0; c < 1000; c++) {
 		uint32_t instruction;
 		executor.bus_.read(pc, instruction, executor.mode(), false);
 
 		printf("%08x: %08x\n", pc, instruction);
 		dispatch<Model::ARMv2>(pc, instruction, executor);
 	}
-}
+}*/
 
 @end
