@@ -192,7 +192,22 @@ struct Memory {
 	ROM::Request request(rom_name);
 	const auto roms = CSROMFetcher()(request);
 
-	NSLog(@"");
+	const auto rom = roms.find(rom_name)->second;
+
+	uint32_t pc = 0;
+	Executor<Model::ARMv2, Memory> executor;
+	for(int c = 0; c < 100; c++) {
+		uint32_t instruction;
+
+		if(pc > 0x3800000) {
+			instruction = *reinterpret_cast<const uint32_t *>(&rom[pc - 0x3800000]);
+		} else {
+			instruction = *reinterpret_cast<const uint32_t *>(&rom[pc]);
+		}
+
+		printf("%08x: %08x\n", pc, instruction);
+		dispatch<Model::ARMv2>(pc, instruction, executor);
+	}
 }
 
 @end

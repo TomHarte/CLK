@@ -39,8 +39,10 @@ enum class Mode {
 /// Combines the ARM registers and status flags into a single whole, given that the architecture
 /// doesn't have the same degree of separation as others.
 ///
-/// The PC contained here is always taken to be **the address of the current instruction**,
-/// i.e. disregarding pipeline differences. Appropriate prefetch offsets are left to other code to handle.
+/// The PC contained here is always taken to be **the address of the current instruction + 4**,
+/// i.e. whatever should be executed next, disregarding pipeline differences.
+///
+/// Appropriate prefetch offsets are left to other code to handle.
 /// This is to try to keep this structure independent of a specific ARM implementation.
 struct Registers {
 	public:
