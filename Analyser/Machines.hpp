@@ -17,6 +17,7 @@ enum class Machine {
 	Atari2600,
 	AtariST,
 	Amiga,
+	Archimedes,
 	ColecoVision,
 	Electron,
 	Enterprise,

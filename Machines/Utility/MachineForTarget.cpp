@@ -55,6 +55,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(const Analyse
 
 	std::unique_ptr<Machine::DynamicMachine> machine;
 	try {
+		// TODO: add Archimedes below.
 #define BindD(name, m)	case Analyser::Machine::m: machine = std::make_unique<Machine::TypedDynamicMachine<::name::Machine>>(name::Machine::m(target, rom_fetcher));	break;
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
@@ -133,6 +134,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
 		case Analyser::Machine::AppleII:		return "AppleII";
 		case Analyser::Machine::AppleIIgs:		return "AppleIIgs";
+		case Analyser::Machine::Archimedes:		return "Archimedes";
 		case Analyser::Machine::Atari2600:		return "Atari2600";
 		case Analyser::Machine::AtariST:		return "AtariST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
@@ -157,6 +159,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
 		case Analyser::Machine::AppleII:		return "Apple II";
 		case Analyser::Machine::AppleIIgs:		return "Apple IIgs";
+		case Analyser::Machine::Archimedes:		return "Acorn Archimedes";
 		case Analyser::Machine::Atari2600:		return "Atari 2600";
 		case Analyser::Machine::AtariST:		return "Atari ST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
@@ -191,6 +194,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 		AddName(AmstradCPC);
 		AddName(AppleII);
 		AddName(AppleIIgs);
+		AddName(Archimedes);
 		AddName(AtariST);
 		AddName(Electron);
 		AddName(Enterprise);
@@ -245,6 +249,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(AmstradCPC);
 	Add(AppleII);
 	Add(AppleIIgs);
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Archimedes), new Analyser::Static::Target(Analyser::Machine::Archimedes)));
 	Add(AtariST);
 	AddMapped(Electron, Acorn);
 	Add(Enterprise);

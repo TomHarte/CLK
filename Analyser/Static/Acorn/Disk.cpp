@@ -87,37 +87,45 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 	auto catalogue = std::make_unique<Catalogue>();
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
-	const Storage::Encodings::MFM::Sector *free_space_map_second_half = parser.sector(0, 0, 1);
+	// Grab the second half of the free-space map because it has the boot option in it.
+	const Storage::Encodings::MFM::Sector *const free_space_map_second_half = parser.sector(0, 0, 1);
 	if(!free_space_map_second_half) return nullptr;
 
+	const bool has_large_sectors = free_space_map_second_half->samples[0].size() == 1024;
 	std::vector<uint8_t> root_directory;
-	root_directory.reserve(5 * 256);
-	for(uint8_t c = 2; c < 7; c++) {
+	root_directory.reserve((has_large_sectors ? 5 : 8) * 256);
+
+	for(uint8_t c = 2; c < (has_large_sectors ? 4 : 7); c++) {
 		const Storage::Encodings::MFM::Sector *const sector = parser.sector(0, 0, c);
 		if(!sector) return nullptr;
 		root_directory.insert(root_directory.end(), sector->samples[0].begin(), sector->samples[0].end());
 	}
 
-	// Quick sanity checks.
-	if(root_directory[0x4cb]) return nullptr;
-	catalogue->is_hugo = !memcmp(&root_directory[1], "Hugo", 4) && !memcmp(&root_directory[0x4FB], "Hugo", 4);
-	const bool is_nick = !memcmp(&root_directory[1], "Nick", 4) && !memcmp(&root_directory[0x4FB], "Nick", 4);
+	// Check for end of directory marker.
+	if(root_directory[has_large_sectors ? 0x7d7 : 0x4cb]) return nullptr;
+
+	// Check for both directory identifiers.
+	catalogue->is_hugo = !memcmp(&root_directory[1], "Hugo", 4) && !memcmp(&root_directory[0x4fb], "Hugo", 4);
+	const bool is_nick = !memcmp(&root_directory[1], "Nick", 4) && !memcmp(&root_directory[0x7fb], "Nick", 4);
 	if(!catalogue->is_hugo && !is_nick) {
 		return nullptr;
 	}
 
-	switch(free_space_map_second_half->samples[0][0xfd]) {
-		default: catalogue->bootOption = Catalogue::BootOption::None;		break;
-		case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
-		case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;
-		case 3: catalogue->bootOption = Catalogue::BootOption::ExecBOOT;	break;
+	if(!has_large_sectors) {
+		// TODO: I don't know where the boot option rests with large sectors.
+		switch(free_space_map_second_half->samples[0][0xfd]) {
+			default: catalogue->bootOption = Catalogue::BootOption::None;		break;
+			case 1: catalogue->bootOption = Catalogue::BootOption::LoadBOOT;	break;
+			case 2: catalogue->bootOption = Catalogue::BootOption::RunBOOT;		break;
+			case 3: catalogue->bootOption = Catalogue::BootOption::ExecBOOT;	break;
+		}
 	}
 
 	// Parse the root directory, at least.
-	for(std::size_t file_offset = 0x005; file_offset < 0x4cb; file_offset += 0x1a) {
+	for(std::size_t file_offset = 0x005; file_offset < (has_large_sectors ? 0x7d7 : 0x4cb); file_offset += 0x1a) {
 		// Obtain the name, which will be at most ten characters long, and will
 		// be terminated by either a NULL character or a \r.
-		char name[11];
+		char name[11]{};
 		std::size_t c = 0;
 		for(; c < 10; c++) {
 			const char next = root_directory[file_offset + c] & 0x7f;

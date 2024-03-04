@@ -60,10 +60,11 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 }
 
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
-	auto target = std::make_unique<Target>();
+	auto target8bit = std::make_unique<Target>();
+	auto targetArchimedes = std::make_unique<Analyser::Static::Target>(Machine::Archimedes);
 
-	// Strip out inappropriate cartridges.
-	target->media.cartridges = AcornCartridgesFrom(media.cartridges);
+	// Copy appropriate cartridges to the 8-bit target.
+	target8bit->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
 	// If there are any tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
@@ -94,9 +95,9 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
-			target->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+			target8bit->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
 
-			target->media.tapes = media.tapes;
+			target8bit->media.tapes = media.tapes;
 		}
 	}
 
@@ -112,16 +113,16 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		if(dfs_catalogue || (adfs_catalogue && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
-			target->media.disks = media.disks;
-			target->has_dfs = bool(dfs_catalogue);
-			target->has_pres_adfs = bool(adfs_catalogue);
+			target8bit->media.disks = media.disks;
+			target8bit->has_dfs = bool(dfs_catalogue);
+			target8bit->has_pres_adfs = bool(adfs_catalogue);
 
 			// Check whether a simple shift+break will do for loading this disk.
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None) {
-				target->should_shift_restart = true;
+				target8bit->should_shift_restart = true;
 			} else {
-				target->loading_command = "*CAT\n";
+				target8bit->loading_command = "*CAT\n";
 			}
 
 			// Check whether adding the AP6 ROM is justified.
@@ -137,39 +138,44 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 					"VERIFY", "ZERO"
 				}) {
 					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
-						target->has_ap6_rom = true;
-						target->has_sideways_ram = true;
+						target8bit->has_ap6_rom = true;
+						target8bit->has_sideways_ram = true;
 					}
 				}
 			}
+		} else if(adfs_catalogue) {
+			targetArchimedes->media.disks = media.disks;
 		}
 	}
 
 	// Enable the Acorn ADFS if a mass-storage device is attached;
 	// unlike the Pres ADFS it retains SCSI logic.
 	if(!media.mass_storage_devices.empty()) {
-		target->has_pres_adfs = false;	// To override a floppy selection, if one was made.
-		target->has_acorn_adfs = true;
+		target8bit->has_pres_adfs = false;	// To override a floppy selection, if one was made.
+		target8bit->has_acorn_adfs = true;
 
 		// Assume some sort of later-era Acorn work is likely to happen;
 		// so ensure *TYPE, etc are present.
-		target->has_ap6_rom = true;
-		target->has_sideways_ram = true;
+		target8bit->has_ap6_rom = true;
+		target8bit->has_sideways_ram = true;
 
-		target->media.mass_storage_devices = media.mass_storage_devices;
+		target8bit->media.mass_storage_devices = media.mass_storage_devices;
 
 		// Check for a boot option.
-		const auto sector = target->media.mass_storage_devices.front()->get_block(1);
+		const auto sector = target8bit->media.mass_storage_devices.front()->get_block(1);
 		if(sector[0xfd]) {
-			target->should_shift_restart = true;
+			target8bit->should_shift_restart = true;
 		} else {
-			target->loading_command = "*CAT\n";
+			target8bit->loading_command = "*CAT\n";
 		}
 	}
 
 	TargetList targets;
-	if(!target->media.empty()) {
-		targets.push_back(std::move(target));
+	if(!target8bit->media.empty()) {
+		targets.push_back(std::move(target8bit));
+	}
+	if(!targetArchimedes->media.empty()) {
+		targets.push_back(std::move(targetArchimedes));
 	}
 	return targets;
 }
