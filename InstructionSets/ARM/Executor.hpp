@@ -544,8 +544,7 @@ struct Executor {
 		registers_.exception<Registers::Exception::UndefinedInstruction>();
 	}
 
-	MemoryT bus;
-
+	/// @returns The current registers state.
 	const Registers &registers() const {
 		return registers_;
 	}
@@ -563,12 +562,14 @@ struct Executor {
 		return registers_.pc(0);
 	}
 
+	MemoryT bus;
+
 private:
 	Registers registers_;
 };
 
-/// Provides an analogue of the @c OperationMapper -affiliated @c dispatch that also updates the
-/// executor's program counter appropriately.
+/// Executes the instruction @c instruction which should have been fetched from @c executor.pc(),
+/// modifying @c executor.
 template <Model model, typename MemoryT>
 void execute(uint32_t instruction, Executor<model, MemoryT> &executor) {
 	executor.set_pc(executor.pc() + 4);

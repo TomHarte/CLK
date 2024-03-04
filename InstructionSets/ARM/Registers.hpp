@@ -66,6 +66,7 @@ struct Registers {
 			overflow_flag_ = value;
 		}
 
+		/// @returns The current status bits, separate from the PC — mode, NVCZ and the two interrupt flags.
 		uint32_t status() const {
 			return
 				uint32_t(mode_) |
@@ -100,6 +101,7 @@ struct Registers {
 			}
 		}
 
+		/// @returns The current mode.
 		Mode mode() const {
 			return mode_;
 		}
@@ -109,6 +111,7 @@ struct Registers {
 			active[15] = value & ConditionCode::Address;
 		}
 
+		/// @returns The stored PC plus @c offset limited to 26 bits.
 		uint32_t pc(uint32_t offset) const {
 			return (active[15] + offset) & ConditionCode::Address;
 		}
@@ -136,6 +139,7 @@ struct Registers {
 			FIQ = 0x1c,
 		};
 
+		/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
 		template <Exception exception>
 		void exception() {
 			interrupt_flags_ |= ConditionCode::IRQDisable;
@@ -163,6 +167,7 @@ struct Registers {
 
 		// MARK: - Condition tests.
 
+		/// @returns @c true if @c condition tests as true; @c false otherwise.
 		bool test(Condition condition) {
 			const auto ne = [&]() -> bool {
 				return zero_result_;
@@ -208,8 +213,7 @@ struct Registers {
 			}
 		}
 
-		std::array<uint32_t, 16> active{};
-
+		/// Sets current execution mode.
 		void set_mode(Mode target_mode) {
 			if(mode_ == target_mode) {
 				return;
@@ -257,6 +261,10 @@ struct Registers {
 
 			mode_ = target_mode;
 		}
+
+		/// The active register set. TODO: switch to an implementation of operator[], hiding the
+		/// current implementation decision to maintain this as a linear block of memory.
+		std::array<uint32_t, 16> active{};
 
 	private:
 		Mode mode_ = Mode::Supervisor;
