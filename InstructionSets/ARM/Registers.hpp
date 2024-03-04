@@ -17,13 +17,13 @@ namespace InstructionSet::ARM {
 
 namespace ConditionCode {
 
-static constexpr uint32_t Negative		= 1 << 31;
-static constexpr uint32_t Zero			= 1 << 30;
-static constexpr uint32_t Carry			= 1 << 29;
-static constexpr uint32_t Overflow		= 1 << 28;
-static constexpr uint32_t IRQDisable	= 1 << 27;
-static constexpr uint32_t FIQDisable	= 1 << 26;
-static constexpr uint32_t Mode			= (1 << 1) | (1 << 0);
+static constexpr uint32_t Negative		= 1u << 31;
+static constexpr uint32_t Zero			= 1u << 30;
+static constexpr uint32_t Carry			= 1u << 29;
+static constexpr uint32_t Overflow		= 1u << 28;
+static constexpr uint32_t IRQDisable	= 1u << 27;
+static constexpr uint32_t FIQDisable	= 1u << 26;
+static constexpr uint32_t Mode			= (1u << 1) | (1u << 0);
 
 static constexpr uint32_t Address		= FIQDisable - Mode - 1;
 

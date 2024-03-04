@@ -81,7 +81,7 @@ struct Branch {
 	constexpr Branch(uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The 26-bit offset to add to the PC.
-	int offset() const				{	return (opcode_ & 0xff'ffff) << 2;	}
+	uint32_t offset() const				{	return (opcode_ & 0xff'ffff) << 2;	}
 
 private:
 	uint32_t opcode_;
@@ -170,7 +170,7 @@ struct DataProcessing: public WithShiftControlBits {
 	//
 
 	/// An 8-bit value to rotate right @c rotate() places if @c operand2_is_immediate() is @c true; meaningless otherwise.
-	int immediate() const				{	return opcode_ & 0xff;			}
+	uint32_t immediate() const			{	return opcode_ & 0xff;			}
 	/// The number of bits to rotate @c immediate()  by to the right if @c operand2_is_immediate() is @c true; meaningless otherwise.
 	int rotate() const					{	return (opcode_ >> 7) & 0x1e;	}
 };
@@ -255,7 +255,7 @@ struct SingleDataTransfer: public WithShiftControlBits {
 	int base() const					{	return (opcode_ >> 16) & 0xf;	}
 
 	/// The immediate offset, if @c offset_is_register() was @c false; meaningless otherwise.
-	int immediate() const				{	return opcode_ & 0xfff;			}
+	uint32_t immediate() const			{	return opcode_ & 0xfff;			}
 };
 
 //
@@ -286,10 +286,10 @@ struct BlockDataTransfer: public WithShiftControlBits {
 	using WithShiftControlBits::WithShiftControlBits;
 
 	/// The base register index. i.e. 'Rn'.
-	int base() const					{	return (opcode_ >> 16) & 0xf;	}
+	int base() const					{	return (opcode_ >> 16) & 0xf;			}
 
 	/// A bitfield indicating which registers to load or store.
-	int register_list() const			{	return opcode_ & 0xffff;		}
+	uint16_t register_list() const		{	return static_cast<uint16_t>(opcode_);	}
 };
 
 //
