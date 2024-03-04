@@ -14,7 +14,52 @@
 #include "../../ScanProducer.hpp"
 #include "../../TimedMachine.hpp"
 
+#include "../../../InstructionSets/ARM/Executor.hpp"
+
 namespace Archimedes {
+
+struct Memory {
+	std::vector<uint8_t> rom;
+
+	template <typename IntT>
+	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool trans) {
+		(void)mode;
+		(void)trans;
+
+		printf("W of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
+
+		if(has_moved_rom_ && address < ram_.size()) {
+			*reinterpret_cast<IntT *>(&ram_[address]) = source;
+		}
+
+		return true;
+	}
+
+	template <typename IntT>
+	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
+		(void)mode;
+		(void)trans;
+
+		if(address >= 0x3800000) {
+			has_moved_rom_ = true;
+			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
+		} else if(!has_moved_rom_) {
+			// TODO: this is true only very transiently.
+			source = *reinterpret_cast<const IntT *>(&rom[address]);
+		} else if(address < ram_.size()) {
+			source = *reinterpret_cast<const IntT *>(&ram_[address]);
+		} else {
+			source = 0;
+			printf("Unknown read from %08x [%lu]\n", address, sizeof(IntT));
+		}
+
+		return true;
+	}
+
+	private:
+		bool has_moved_rom_ = false;
+		std::array<uint8_t, 4*1024*1024> ram_{};
+};
 
 class ConcreteMachine:
 	public Machine,
@@ -44,6 +89,9 @@ class ConcreteMachine:
 		void run_for(Cycles cycles) override {
 			(void)cycles;
 		}
+
+		// MARK: - ARM execution
+		InstructionSet::ARM::Executor<InstructionSet::ARM::Model::ARMv2, Memory> executor_;
 };
 
 }
