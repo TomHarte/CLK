@@ -71,6 +71,7 @@ set(CLK_SOURCES
 	InstructionSets/x86/Decoder.cpp
 	InstructionSets/x86/Instruction.cpp
 
+	Machines/Acorn/Archimedes/Archimedes.cpp
 	Machines/Acorn/Electron/Electron.cpp
 	Machines/Acorn/Electron/Keyboard.cpp
 	Machines/Acorn/Electron/Plus3.cpp

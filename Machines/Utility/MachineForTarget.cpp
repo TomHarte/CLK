@@ -11,9 +11,10 @@
 #include <algorithm>
 
 // Sources for runtime options and machines.
+#include "../Acorn/Archimedes/Archimedes.hpp"
+#include "../Acorn/Electron/Electron.hpp"
 #include "../Amiga/Amiga.hpp"
 #include "../AmstradCPC/AmstradCPC.hpp"
-#include "../Acorn/Electron/Electron.hpp"
 #include "../Apple/AppleII/AppleII.hpp"
 #include "../Apple/AppleIIgs/AppleIIgs.hpp"
 #include "../Apple/Macintosh/Macintosh.hpp"
@@ -55,12 +56,12 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(const Analyse
 
 	std::unique_ptr<Machine::DynamicMachine> machine;
 	try {
-		// TODO: add Archimedes below.
 #define BindD(name, m)	case Analyser::Machine::m: machine = std::make_unique<Machine::TypedDynamicMachine<::name::Machine>>(name::Machine::m(target, rom_fetcher));	break;
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
 			Bind(Amiga)
 			Bind(AmstradCPC)
+			Bind(Archimedes)
 			BindD(Apple::II, AppleII)
 			BindD(Apple::IIgs, AppleIIgs)
 			BindD(Apple::Macintosh, Macintosh)

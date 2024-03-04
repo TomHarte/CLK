@@ -966,6 +966,8 @@
 		4BB505812B962DDF0031C43C /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505752B962DDF0031C43C /* Plus3.cpp */; };
 		4BB505822B962DDF0031C43C /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505762B962DDF0031C43C /* Keyboard.cpp */; };
 		4BB505832B962DDF0031C43C /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505762B962DDF0031C43C /* Keyboard.cpp */; };
+		4BB505862B9634F30031C43C /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
+		4BB505872B9634F30031C43C /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
 		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
@@ -2102,6 +2104,8 @@
 		4BB505752B962DDF0031C43C /* Plus3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Plus3.cpp; sourceTree = "<group>"; };
 		4BB505762B962DDF0031C43C /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4BB505772B962DDF0031C43C /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Electron.hpp; sourceTree = "<group>"; };
+		4BB505842B9634F30031C43C /* Archimedes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Archimedes.cpp; sourceTree = "<group>"; };
+		4BB505852B9634F30031C43C /* Archimedes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Archimedes.hpp; sourceTree = "<group>"; };
 		4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4BB5B996281B1E3F00522DA9 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4BB5B997281B1F7B00522DA9 /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
@@ -4370,6 +4374,8 @@
 		4BB505692B962DDF0031C43C /* Archimedes */ = {
 			isa = PBXGroup;
 			children = (
+				4BB505842B9634F30031C43C /* Archimedes.cpp */,
+				4BB505852B9634F30031C43C /* Archimedes.hpp */,
 			);
 			path = Archimedes;
 			sourceTree = "<group>";
@@ -4377,19 +4383,19 @@
 		4BB5056A2B962DDF0031C43C /* Electron */ = {
 			isa = PBXGroup;
 			children = (
-				4BB5056B2B962DDF0031C43C /* SoundGenerator.cpp */,
-				4BB5056C2B962DDF0031C43C /* Plus3.hpp */,
-				4BB5056D2B962DDF0031C43C /* Keyboard.hpp */,
 				4BB5056E2B962DDF0031C43C /* Electron.cpp */,
-				4BB5056F2B962DDF0031C43C /* Video.cpp */,
-				4BB505702B962DDF0031C43C /* Tape.hpp */,
-				4BB505712B962DDF0031C43C /* Interrupts.hpp */,
-				4BB505722B962DDF0031C43C /* Video.hpp */,
-				4BB505732B962DDF0031C43C /* Tape.cpp */,
-				4BB505742B962DDF0031C43C /* SoundGenerator.hpp */,
-				4BB505752B962DDF0031C43C /* Plus3.cpp */,
 				4BB505762B962DDF0031C43C /* Keyboard.cpp */,
+				4BB505752B962DDF0031C43C /* Plus3.cpp */,
+				4BB5056B2B962DDF0031C43C /* SoundGenerator.cpp */,
+				4BB505732B962DDF0031C43C /* Tape.cpp */,
+				4BB5056F2B962DDF0031C43C /* Video.cpp */,
 				4BB505772B962DDF0031C43C /* Electron.hpp */,
+				4BB505712B962DDF0031C43C /* Interrupts.hpp */,
+				4BB5056D2B962DDF0031C43C /* Keyboard.hpp */,
+				4BB5056C2B962DDF0031C43C /* Plus3.hpp */,
+				4BB505742B962DDF0031C43C /* SoundGenerator.hpp */,
+				4BB505702B962DDF0031C43C /* Tape.hpp */,
+				4BB505722B962DDF0031C43C /* Video.hpp */,
 			);
 			path = Electron;
 			sourceTree = "<group>";
@@ -5953,6 +5959,7 @@
 				4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
+				4BB505872B9634F30031C43C /* Archimedes.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
 				4B2130E3273A7A0A008A77B4 /* Audio.cpp in Sources */,
 				4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */,
@@ -6143,6 +6150,7 @@
 				4B4518831F75E91A00926311 /* PCMTrack.cpp in Sources */,
 				4B8DF4F9254E36AE00F3433C /* Video.cpp in Sources */,
 				4B0ACC3223775819008902D0 /* Atari2600.cpp in Sources */,
+				4BB505862B9634F30031C43C /* Archimedes.cpp in Sources */,
 				4B7C681E2751A104001671EC /* Bitplanes.cpp in Sources */,
 				4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */,
 				4B7BA03023C2B19C00B98D9E /* Jasmin.cpp in Sources */,

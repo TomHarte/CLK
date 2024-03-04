@@ -85,6 +85,7 @@ SOURCES += \
 	$$SRC/InstructionSets/x86/*.cpp \
 \
 	$$SRC/Machines/*.cpp \
+	$$SRC/Machines/Acorn/Archimedes/*.cpp \
 	$$SRC/Machines/Acorn/Electron/*.cpp \
 	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
