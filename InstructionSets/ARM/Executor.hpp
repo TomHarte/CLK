@@ -248,14 +248,14 @@ struct Executor {
 
 		// Calculate offset.
 		uint32_t offset;
-		if constexpr (flags.offset_is_immediate()) {
-			offset = transfer.immediate();
-		} else {
+		if constexpr (flags.offset_is_register()) {
 			// The 8 shift control bits are described in 6.2.3, but
 			// the register specified shift amounts are not available
 			// in this instruction class.
 			uint32_t carry = registers_.c();
 			offset = decode_shift<false, false>(transfer, carry, 4);
+		} else {
+			offset = transfer.immediate();
 		}
 
 		// Obtain base address.
@@ -544,7 +544,10 @@ struct Executor {
 		registers_.exception<Registers::Exception::UndefinedInstruction>();
 	}
 
-	MemoryT bus;
+	/// @returns The current registers state.
+	const Registers &registers() const {
+		return registers_;
+	}
 
 	/// Sets the expected address of the instruction after whichever  is about to be executed.
 	/// So it's PC+4 compared to most other systems.
@@ -559,17 +562,14 @@ struct Executor {
 		return registers_.pc(0);
 	}
 
-	/// @returns The current processor mode.
-	Mode mode() const {
-		return registers_.mode();
-	}
+	MemoryT bus;
 
 private:
 	Registers registers_;
 };
 
-/// Provides an analogue of the @c OperationMapper -affiliated @c dispatch that also updates the
-/// executor's program counter appropriately.
+/// Executes the instruction @c instruction which should have been fetched from @c executor.pc(),
+/// modifying @c executor.
 template <Model model, typename MemoryT>
 void execute(uint32_t instruction, Executor<model, MemoryT> &executor) {
 	executor.set_pc(executor.pc() + 4);

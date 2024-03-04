@@ -66,16 +66,22 @@ struct Registers {
 			overflow_flag_ = value;
 		}
 
-		/// @returns The full PC + status bits.
-		uint32_t pc_status(uint32_t offset) const {
+		/// @returns The current status bits, separate from the PC — mode, NVCZ and the two interrupt flags.
+		uint32_t status() const {
 			return
 				uint32_t(mode_) |
-				((active[15] + offset) & ConditionCode::Address) |
 				(negative_flag_ & ConditionCode::Negative) |
 				(zero_result_ ? 0 : ConditionCode::Zero) |
 				(carry_flag_ ? ConditionCode::Carry : 0) |
 				((overflow_flag_ >> 3) & ConditionCode::Overflow) |
 				interrupt_flags_;
+		}
+
+		/// @returns The full PC + status bits.
+		uint32_t pc_status(uint32_t offset) const {
+			return
+				((active[15] + offset) & ConditionCode::Address) |
+				status();
 		}
 
 		/// Sets status bits only, subject to mode.
@@ -95,16 +101,17 @@ struct Registers {
 			}
 		}
 
+		/// @returns The current mode.
 		Mode mode() const {
 			return mode_;
 		}
 
 		/// Sets a new PC.
-		/// TODO: communicate this onward.
 		void set_pc(uint32_t value) {
 			active[15] = value & ConditionCode::Address;
 		}
 
+		/// @returns The stored PC plus @c offset limited to 26 bits.
 		uint32_t pc(uint32_t offset) const {
 			return (active[15] + offset) & ConditionCode::Address;
 		}
@@ -132,6 +139,7 @@ struct Registers {
 			FIQ = 0x1c,
 		};
 
+		/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
 		template <Exception exception>
 		void exception() {
 			interrupt_flags_ |= ConditionCode::IRQDisable;
@@ -159,6 +167,7 @@ struct Registers {
 
 		// MARK: - Condition tests.
 
+		/// @returns @c true if @c condition tests as true; @c false otherwise.
 		bool test(Condition condition) {
 			const auto ne = [&]() -> bool {
 				return zero_result_;
@@ -204,8 +213,7 @@ struct Registers {
 			}
 		}
 
-		std::array<uint32_t, 16> active;
-
+		/// Sets current execution mode.
 		void set_mode(Mode target_mode) {
 			if(mode_ == target_mode) {
 				return;
@@ -254,20 +262,24 @@ struct Registers {
 			mode_ = target_mode;
 		}
 
+		/// The active register set. TODO: switch to an implementation of operator[], hiding the
+		/// current implementation decision to maintain this as a linear block of memory.
+		std::array<uint32_t, 16> active{};
+
 	private:
 		Mode mode_ = Mode::Supervisor;
 
-		uint32_t zero_result_ = 0;
+		uint32_t zero_result_ = 1;
 		uint32_t negative_flag_ = 0;
-		uint32_t interrupt_flags_ = 0;
+		uint32_t interrupt_flags_ = ConditionCode::IRQDisable | ConditionCode::FIQDisable;
 		uint32_t carry_flag_ = 0;
 		uint32_t overflow_flag_ = 0;
 
 		// Various shadow registers.
-		std::array<uint32_t, 7> user_registers_;
-		std::array<uint32_t, 7> fiq_registers_;
-		std::array<uint32_t, 2> irq_registers_;
-		std::array<uint32_t, 2> supervisor_registers_;
+		std::array<uint32_t, 7> user_registers_{};
+		std::array<uint32_t, 7> fiq_registers_{};
+		std::array<uint32_t, 2> irq_registers_{};
+		std::array<uint32_t, 2> supervisor_registers_{};
 };
 
 }
