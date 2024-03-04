@@ -248,14 +248,14 @@ struct Executor {
 
 		// Calculate offset.
 		uint32_t offset;
-		if constexpr (flags.offset_is_immediate()) {
-			offset = transfer.immediate();
-		} else {
+		if constexpr (!flags.offset_is_immediate()) {
 			// The 8 shift control bits are described in 6.2.3, but
 			// the register specified shift amounts are not available
 			// in this instruction class.
 			uint32_t carry = registers_.c();
 			offset = decode_shift<false, false>(transfer, carry, 4);
+		} else {
+			offset = transfer.immediate();
 		}
 
 		// Obtain base address.
@@ -546,6 +546,10 @@ struct Executor {
 
 	MemoryT bus;
 
+	const Registers &registers() const {
+		return registers_;
+	}
+
 	/// Sets the expected address of the instruction after whichever  is about to be executed.
 	/// So it's PC+4 compared to most other systems.
 	void set_pc(uint32_t pc) {
@@ -557,11 +561,6 @@ struct Executor {
 	/// or else be some other address if a branch or exception has occurred.
 	uint32_t pc() const {
 		return registers_.pc(0);
-	}
-
-	/// @returns The current processor mode.
-	Mode mode() const {
-		return registers_.mode();
 	}
 
 private:

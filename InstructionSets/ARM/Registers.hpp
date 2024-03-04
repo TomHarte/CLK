@@ -66,16 +66,21 @@ struct Registers {
 			overflow_flag_ = value;
 		}
 
-		/// @returns The full PC + status bits.
-		uint32_t pc_status(uint32_t offset) const {
+		uint32_t status() const {
 			return
 				uint32_t(mode_) |
-				((active[15] + offset) & ConditionCode::Address) |
 				(negative_flag_ & ConditionCode::Negative) |
 				(zero_result_ ? 0 : ConditionCode::Zero) |
 				(carry_flag_ ? ConditionCode::Carry : 0) |
 				((overflow_flag_ >> 3) & ConditionCode::Overflow) |
 				interrupt_flags_;
+		}
+
+		/// @returns The full PC + status bits.
+		uint32_t pc_status(uint32_t offset) const {
+			return
+				((active[15] + offset) & ConditionCode::Address) |
+				status();
 		}
 
 		/// Sets status bits only, subject to mode.
@@ -100,7 +105,6 @@ struct Registers {
 		}
 
 		/// Sets a new PC.
-		/// TODO: communicate this onward.
 		void set_pc(uint32_t value) {
 			active[15] = value & ConditionCode::Address;
 		}
@@ -204,7 +208,7 @@ struct Registers {
 			}
 		}
 
-		std::array<uint32_t, 16> active;
+		std::array<uint32_t, 16> active{};
 
 		void set_mode(Mode target_mode) {
 			if(mode_ == target_mode) {
@@ -257,17 +261,17 @@ struct Registers {
 	private:
 		Mode mode_ = Mode::Supervisor;
 
-		uint32_t zero_result_ = 0;
+		uint32_t zero_result_ = 1;
 		uint32_t negative_flag_ = 0;
-		uint32_t interrupt_flags_ = 0;
+		uint32_t interrupt_flags_ = ConditionCode::IRQDisable | ConditionCode::FIQDisable;
 		uint32_t carry_flag_ = 0;
 		uint32_t overflow_flag_ = 0;
 
 		// Various shadow registers.
-		std::array<uint32_t, 7> user_registers_;
-		std::array<uint32_t, 7> fiq_registers_;
-		std::array<uint32_t, 2> irq_registers_;
-		std::array<uint32_t, 2> supervisor_registers_;
+		std::array<uint32_t, 7> user_registers_{};
+		std::array<uint32_t, 7> fiq_registers_{};
+		std::array<uint32_t, 2> irq_registers_{};
+		std::array<uint32_t, 2> supervisor_registers_{};
 };
 
 }
