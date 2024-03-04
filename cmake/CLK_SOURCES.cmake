@@ -71,6 +71,12 @@ set(CLK_SOURCES
 	InstructionSets/x86/Decoder.cpp
 	InstructionSets/x86/Instruction.cpp
 
+	Machines/Acorn/Electron/Electron.cpp
+	Machines/Acorn/Electron/Keyboard.cpp
+	Machines/Acorn/Electron/Plus3.cpp
+	Machines/Acorn/Electron/SoundGenerator.cpp
+	Machines/Acorn/Electron/Tape.cpp
+	Machines/Acorn/Electron/Video.cpp
 	Machines/Amiga/Amiga.cpp
 	Machines/Amiga/Audio.cpp
 	Machines/Amiga/Bitplanes.cpp
@@ -114,12 +120,6 @@ set(CLK_SOURCES
 	Machines/Commodore/SerialBus.cpp
 	Machines/Commodore/Vic-20/Keyboard.cpp
 	Machines/Commodore/Vic-20/Vic20.cpp
-	Machines/Electron/Electron.cpp
-	Machines/Electron/Keyboard.cpp
-	Machines/Electron/Plus3.cpp
-	Machines/Electron/SoundGenerator.cpp
-	Machines/Electron/Tape.cpp
-	Machines/Electron/Video.cpp
 	Machines/Enterprise/Dave.cpp
 	Machines/Enterprise/EXDos.cpp
 	Machines/Enterprise/Enterprise.cpp
