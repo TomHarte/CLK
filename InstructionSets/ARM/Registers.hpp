@@ -80,7 +80,7 @@ struct Registers {
 		/// @returns The full PC + status bits.
 		uint32_t pc_status(uint32_t offset) const {
 			return
-				((active[15] + offset) & ConditionCode::Address) |
+				((active_[15] + offset) & ConditionCode::Address) |
 				status();
 		}
 
@@ -108,12 +108,12 @@ struct Registers {
 
 		/// Sets a new PC.
 		void set_pc(uint32_t value) {
-			active[15] = value & ConditionCode::Address;
+			active_[15] = value & ConditionCode::Address;
 		}
 
 		/// @returns The stored PC plus @c offset limited to 26 bits.
 		uint32_t pc(uint32_t offset) const {
-			return (active[15] + offset) & ConditionCode::Address;
+			return (active_[15] + offset) & ConditionCode::Address;
 		}
 
 		// MARK: - Exceptions.
@@ -150,15 +150,15 @@ struct Registers {
 			switch(exception) {
 				case Exception::IRQ:
 					set_mode(Mode::IRQ);
-					active[14] = pc(8);
+					active_[14] = pc(8);
 				break;
 				case Exception::FIQ:
 					set_mode(Mode::FIQ);
-					active[14] = pc(8);
+					active_[14] = pc(8);
 				break;
 				default:
 					set_mode(Mode::Supervisor);
-					active[14] = pc(4);
+					active_[14] = pc(4);
 				break;
 			}
 
@@ -223,16 +223,16 @@ struct Registers {
 			// if the incoming mode is FIQ then the other five will be saved in the next switch.
 			switch(mode_) {
 				case Mode::FIQ:
-					std::copy(active.begin() + 8, active.begin() + 15, fiq_registers_.begin());
+					std::copy(active_.begin() + 8, active_.begin() + 15, fiq_registers_.begin());
 				break;
 				case Mode::User:
-					std::copy(active.begin() + 13, active.begin() + 15, user_registers_.begin() + 5);
+					std::copy(active_.begin() + 13, active_.begin() + 15, user_registers_.begin() + 5);
 				break;
 				case Mode::Supervisor:
-					std::copy(active.begin() + 13, active.begin() + 15, supervisor_registers_.begin());
+					std::copy(active_.begin() + 13, active_.begin() + 15, supervisor_registers_.begin());
 				break;
 				case Mode::IRQ:
-					std::copy(active.begin() + 13, active.begin() + 15, irq_registers_.begin());
+					std::copy(active_.begin() + 13, active_.begin() + 15, irq_registers_.begin());
 				break;
 			}
 
@@ -240,31 +240,35 @@ struct Registers {
 			// For FIQ: save an additional five, then overwrite seven.
 			switch(target_mode) {
 				case Mode::FIQ:
-					std::copy(active.begin() + 8, active.begin() + 13, user_registers_.begin());
-					std::copy(fiq_registers_.begin(), fiq_registers_.end(), active.begin() + 8);
+					std::copy(active_.begin() + 8, active_.begin() + 13, user_registers_.begin());
+					std::copy(fiq_registers_.begin(), fiq_registers_.end(), active_.begin() + 8);
 				break;
 				case Mode::User:
-					std::copy(user_registers_.begin() + 5, user_registers_.end(), active.begin() + 13);
+					std::copy(user_registers_.begin() + 5, user_registers_.end(), active_.begin() + 13);
 				break;
 				case Mode::Supervisor:
-					std::copy(supervisor_registers_.begin(), supervisor_registers_.end(), active.begin() + 13);
+					std::copy(supervisor_registers_.begin(), supervisor_registers_.end(), active_.begin() + 13);
 				break;
 				case Mode::IRQ:
-					std::copy(irq_registers_.begin(), irq_registers_.end(), active.begin() + 13);
+					std::copy(irq_registers_.begin(), irq_registers_.end(), active_.begin() + 13);
 				break;
 			}
 
 			// If FIQ is outgoing then there's another five registers to restore.
 			if(mode_ == Mode::FIQ) {
-				std::copy(user_registers_.begin(), user_registers_.begin() + 5, active.begin() + 8);
+				std::copy(user_registers_.begin(), user_registers_.begin() + 5, active_.begin() + 8);
 			}
 
 			mode_ = target_mode;
 		}
 
-		/// The active register set. TODO: switch to an implementation of operator[], hiding the
-		/// current implementation decision to maintain this as a linear block of memory.
-		std::array<uint32_t, 16> active{};
+		uint32_t &operator[](int offset) {
+			return active_[offset];
+		}
+
+		const uint32_t operator[](int offset) const {
+			return active_[offset];
+		}
 
 	private:
 		Mode mode_ = Mode::Supervisor;
@@ -280,6 +284,9 @@ struct Registers {
 		std::array<uint32_t, 7> fiq_registers_{};
 		std::array<uint32_t, 2> irq_registers_{};
 		std::array<uint32_t, 2> supervisor_registers_{};
+
+		// The active register set.
+		std::array<uint32_t, 16> active_{};
 };
 
 }

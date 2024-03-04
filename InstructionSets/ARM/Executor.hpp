@@ -36,7 +36,7 @@ struct Executor {
 		if(fields.operand2() == 15) {
 			operand2 = registers_.pc_status(pc_offset);
 		} else {
-			operand2 = registers_.active[fields.operand2()];
+			operand2 = registers_[fields.operand2()];
 		}
 
 		uint32_t shift_amount;
@@ -50,7 +50,7 @@ struct Executor {
 				shift_amount =
 					fields.shift_register() == 15 ?
 						registers_.pc(4) :
-						registers_.active[fields.shift_register()];
+						registers_[fields.shift_register()];
 
 				// A register shift amount of 0 has a different meaning than an in-instruction
 				// shift amount of 0.
@@ -74,7 +74,7 @@ struct Executor {
 
 		// Write a raw result into the PC proxy if the target is R15; it'll be stored properly later.
 		uint32_t pc_proxy = 0;
-		auto &destination = fields.destination() == 15 ? pc_proxy : registers_.active[fields.destination()];
+		auto &destination = fields.destination() == 15 ? pc_proxy : registers_[fields.destination()];
 
 		// "When R15 appears in either of the Rn or Rs positions it will give the value
 		// of the PC alone, with the PSR bits replaced by zeroes. ...
@@ -85,7 +85,7 @@ struct Executor {
 		const uint32_t operand1 =
 			(fields.operand1() == 15) ?
 				registers_.pc(shift_by_register ? 8 : 4) :
-				registers_.active[fields.operand1()];
+				registers_[fields.operand1()];
 
 		uint32_t operand2;
 		uint32_t rotate_carry = registers_.c();
@@ -216,11 +216,11 @@ struct Executor {
 		//	* Rn: with PSR, 8 bytes ahead;
 		//	* Rm: with PSR, 12 bytes ahead.
 
-		const uint32_t multiplicand = fields.multiplicand() == 15 ? registers_.pc(4) : registers_.active[fields.multiplicand()];
-		const uint32_t multiplier = fields.multiplier() == 15 ? registers_.pc_status(4) : registers_.active[fields.multiplier()];
+		const uint32_t multiplicand = fields.multiplicand() == 15 ? registers_.pc(4) : registers_[fields.multiplicand()];
+		const uint32_t multiplier = fields.multiplier() == 15 ? registers_.pc_status(4) : registers_[fields.multiplier()];
 		const uint32_t accumulator =
 			flags.operation() == MultiplyFlags::Operation::MUL ? 0 :
-				(fields.multiplicand() == 15 ? registers_.pc_status(8) : registers_.active[fields.accumulator()]);
+				(fields.multiplicand() == 15 ? registers_.pc_status(8) : registers_[fields.accumulator()]);
 
 		const uint32_t result = multiplicand * multiplier + accumulator;
 
@@ -230,7 +230,7 @@ struct Executor {
 		}
 
 		if(fields.destination() != 15) {
-			registers_.active[fields.destination()] = result;
+			registers_[fields.destination()] = result;
 		}
 	}
 
@@ -238,7 +238,7 @@ struct Executor {
 		constexpr BranchFlags flags(f);
 
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
-			registers_.active[14] = registers_.pc(0);
+			registers_[14] = registers_.pc(0);
 		}
 		registers_.set_pc(registers_.pc(4) + branch.offset());
 	}
@@ -262,7 +262,7 @@ struct Executor {
 		uint32_t address =
 			transfer.base() == 15 ?
 				registers_.pc(4) :
-				registers_.active[transfer.base()];
+				registers_[transfer.base()];
 
 		// Determine what the address will be after offsetting.
 		uint32_t offsetted_address = address;
@@ -288,7 +288,7 @@ struct Executor {
 			const uint32_t source =
 				transfer.source() == 15 ?
 					registers_.pc_status(8) :
-					registers_.active[transfer.source()];
+					registers_[transfer.source()];
 
 			bool did_write;
 			if constexpr (flags.transfer_byte()) {
@@ -331,7 +331,7 @@ struct Executor {
 			if(transfer.destination() == 15) {
 				registers_.set_pc(value);
 			} else {
-				registers_.active[transfer.destination()] = value;
+				registers_[transfer.destination()] = value;
 			}
 		}
 
@@ -340,7 +340,7 @@ struct Executor {
 			if(transfer.base() == 15) {
 				registers_.set_pc(offsetted_address);
 			} else {
-				registers_.active[transfer.base()] = offsetted_address;
+				registers_[transfer.base()] = offsetted_address;
 			}
 		}
 	}
@@ -355,7 +355,7 @@ struct Executor {
 		// the final address if the base register is first in the write-out list.
 		uint32_t address = transfer.base() == 15 ?
 			registers_.pc_status(4) :
-			registers_.active[transfer.base()];
+			registers_[transfer.base()];
 		const uint32_t initial_address = address;
 
 		// Figure out what the final address will be, since that's what'll be
@@ -449,9 +449,9 @@ struct Executor {
 						// Also restore the base register.
 						if(transfer.base() != 15) {
 							if constexpr (flags.write_back_address()) {
-								registers_.active[transfer.base()] = final_address;
+								registers_[transfer.base()] = final_address;
 							} else {
-								registers_.active[transfer.base()] = initial_address;
+								registers_[transfer.base()] = initial_address;
 							}
 						}
 					}
@@ -476,14 +476,14 @@ struct Executor {
 		// Write out registers 1 to 14.
 		for(int c = 0; c < 15; c++) {
 			if(list & (1 << c)) {
-				access(registers_.active[c]);
+				access(registers_[c]);
 
 				// Modify base register after each write if writeback is enabled.
 				// This'll ensure the unmodified value goes out if it was the
 				// first-selected register only.
 				if constexpr (flags.write_back_address()) {
 					if(transfer.base() != 15) {
-						registers_.active[transfer.base()] = final_address;
+						registers_[transfer.base()] = final_address;
 					}
 				}
 			}
@@ -493,7 +493,7 @@ struct Executor {
 		// was empty.
 		if constexpr (flags.write_back_address()) {
 			if(transfer.base() != 15) {
-				registers_.active[transfer.base()] = final_address;
+				registers_[transfer.base()] = final_address;
 			}
 		}
 
