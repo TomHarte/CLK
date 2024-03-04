@@ -266,7 +266,7 @@ struct Registers {
 			return active_[offset];
 		}
 
-		const uint32_t operator[](size_t offset) const {
+		uint32_t operator[](size_t offset) const {
 			return active_[offset];
 		}
 
