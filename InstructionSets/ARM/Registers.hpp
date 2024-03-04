@@ -162,7 +162,7 @@ struct Registers {
 				break;
 			}
 
-			set_pc(uint32_t(exception));
+			set_pc(uint32_t(type));
 		}
 
 		// MARK: - Condition tests.

@@ -34,7 +34,7 @@ enum Register {
 	X,
 	Y,
 
-	// These exist on a 65816 only.
+	// These `ex`ist on a 65816 only.
 	EmulationFlag,
 	DataBank,
 	ProgramBank,
