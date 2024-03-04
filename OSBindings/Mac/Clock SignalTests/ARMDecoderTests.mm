@@ -225,7 +225,7 @@ struct Memory {
 //
 //		printf("%08x: %08x [", executor->pc(), instruction);
 //		for(int c = 0; c < 15; c++) {
-//			printf("r%d:%08x ", c, executor->registers().active[c]);
+//			printf("r%d:%08x ", c, executor->registers()[c]);
 //		}
 //		printf("psr:%08x]\n", executor->registers().status());
 //		execute<Model::ARMv2>(instruction, *executor);
