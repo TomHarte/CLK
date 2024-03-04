@@ -20,33 +20,42 @@ struct Memory {
 
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, Mode mode, bool trans) {
-		(void)address;
-		(void)source;
 		(void)mode;
 		(void)trans;
+
 		printf("W of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
+
+		if(has_moved_rom_ && address < ram_.size()) {
+			*reinterpret_cast<IntT *>(&ram_[address]) = source;
+		}
+
 		return true;
 	}
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
+		(void)mode;
+		(void)trans;
+
 		if(address >= 0x3800000) {
 			has_moved_rom_ = true;
 			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
 		} else if(!has_moved_rom_) {
 			// TODO: this is true only very transiently.
 			source = *reinterpret_cast<const IntT *>(&rom[address]);
+		} else if(address < ram_.size()) {
+			source = *reinterpret_cast<const IntT *>(&ram_[address]);
 		} else {
+			source = 0;
 			printf("Unknown read from %08x [%lu]\n", address, sizeof(IntT));
 		}
 
-		(void)mode;
-		(void)trans;
 		return true;
 	}
 
 	private:
 		bool has_moved_rom_ = false;
+		std::array<uint8_t, 4*1024*1024> ram_{};
 };
 
 }
@@ -207,15 +216,19 @@ struct Memory {
 	ROM::Request request(rom_name);
 	const auto roms = CSROMFetcher()(request);
 
-	Executor<Model::ARMv2, Memory> executor;
-	executor.bus.rom = roms.find(rom_name)->second;
+	auto executor = std::make_unique<Executor<Model::ARMv2, Memory>>();
+	executor->bus.rom = roms.find(rom_name)->second;
 
 	for(int c = 0; c < 1000; c++) {
 		uint32_t instruction;
-		executor.bus.read(executor.pc(), instruction, executor.mode(), false);
+		executor->bus.read(executor->pc(), instruction, executor->registers().mode(), false);
 
-		printf("%08x: %08x\n", executor.pc(), instruction);
-		execute<Model::ARMv2>(instruction, executor);
+		printf("%08x: %08x [", executor->pc(), instruction);
+		for(int c = 0; c < 15; c++) {
+			printf("r%d:%08x ", c, executor->registers().active[c]);
+		}
+		printf("psr:%08x]\n", executor->registers().status());
+		execute<Model::ARMv2>(instruction, *executor);
 	}
 }
 

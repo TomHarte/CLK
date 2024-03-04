@@ -546,6 +546,10 @@ struct Executor {
 
 	MemoryT bus;
 
+	const Registers &registers() const {
+		return registers_;
+	}
+
 	/// Sets the expected address of the instruction after whichever  is about to be executed.
 	/// So it's PC+4 compared to most other systems.
 	void set_pc(uint32_t pc) {
@@ -557,11 +561,6 @@ struct Executor {
 	/// or else be some other address if a branch or exception has occurred.
 	uint32_t pc() const {
 		return registers_.pc(0);
-	}
-
-	/// @returns The current processor mode.
-	Mode mode() const {
-		return registers_.mode();
 	}
 
 private:
