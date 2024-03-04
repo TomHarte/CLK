@@ -85,6 +85,7 @@ SOURCES += \
 	$$SRC/InstructionSets/x86/*.cpp \
 \
 	$$SRC/Machines/*.cpp \
+	$$SRC/Machines/Acorn/Electron/*.cpp \
 	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
 	$$SRC/Machines/Apple/ADB/*.cpp \
@@ -97,7 +98,6 @@ SOURCES += \
 	$$SRC/Machines/Commodore/*.cpp \
 	$$SRC/Machines/Commodore/1540/Implementation/*.cpp \
 	$$SRC/Machines/Commodore/Vic-20/*.cpp \
-	$$SRC/Machines/Electron/*.cpp \
 	$$SRC/Machines/Enterprise/*.cpp \
 	$$SRC/Machines/MasterSystem/*.cpp \
 	$$SRC/Machines/MSX/*.cpp \

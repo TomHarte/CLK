@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../Components/1770/1770.hpp"
-#include "../../Activity/Observer.hpp"
+#include "../../../Components/1770/1770.hpp"
+#include "../../../Activity/Observer.hpp"
 
 namespace Electron {
 

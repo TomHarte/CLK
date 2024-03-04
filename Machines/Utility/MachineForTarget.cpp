@@ -13,6 +13,7 @@
 // Sources for runtime options and machines.
 #include "../Amiga/Amiga.hpp"
 #include "../AmstradCPC/AmstradCPC.hpp"
+#include "../Acorn/Electron/Electron.hpp"
 #include "../Apple/AppleII/AppleII.hpp"
 #include "../Apple/AppleIIgs/AppleIIgs.hpp"
 #include "../Apple/Macintosh/Macintosh.hpp"
@@ -20,7 +21,6 @@
 #include "../Atari/ST/AtariST.hpp"
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
-#include "../Electron/Electron.hpp"
 #include "../Enterprise/Enterprise.hpp"
 #include "../MasterSystem/MasterSystem.hpp"
 #include "../MSX/MSX.hpp"
