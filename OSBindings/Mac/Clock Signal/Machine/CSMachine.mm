@@ -144,13 +144,21 @@ struct ActivityObserver: public Activity::Observer {
 		ROM::Request missing_roms;
 		_machine = Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error);
 		if(!_machine) {
-			const std::wstring description = missing_roms.description(0, L'•');
-			static_assert(sizeof(wchar_t) == 4, "This code assumes wchar_t is UTF32");
-			NSString *nativeString = [[NSString alloc]
-				initWithBytes:description.data()
-				length:description.size()*sizeof(wchar_t)
-				encoding:NSUTF32LittleEndianStringEncoding];
-			[missingROMs appendString:nativeString];
+			switch(error) {
+				case Machine::Error::MissingROM: {
+					const std::wstring description = missing_roms.description(0, L'•');
+					static_assert(sizeof(wchar_t) == 4, "This code assumes wchar_t is UTF32");
+					NSString *nativeString = [[NSString alloc]
+						initWithBytes:description.data()
+						length:description.size()*sizeof(wchar_t)
+						encoding:NSUTF32LittleEndianStringEncoding];
+					[missingROMs appendString:nativeString];
+				} break;
+
+				default:
+					NSLog(@"Unhandled machine creation error %d", error);
+				break;
+			}
 			return nil;
 		}
 		updater.performer.machine = _machine.get();
