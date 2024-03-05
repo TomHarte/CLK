@@ -183,7 +183,7 @@ struct Executor {
 			// this case to update those PSR flags which are not protected by virtue of the
 			// processor mode."
 
-			if(fields.destination() == 15) {
+			if(fields.destination() == 15 && !is_logical(flags.operation())) {
 				if constexpr (is_comparison(flags.operation())) {
 					registers_.set_status(pc_proxy);
 				} else {
@@ -201,7 +201,7 @@ struct Executor {
 			}
 		} else {
 			// "If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written."
-			if(fields.destination() == 15) {
+			if(fields.destination() == 15 && !is_logical(flags.operation())) {
 				registers_.set_pc(pc_proxy);
 			}
 		}
