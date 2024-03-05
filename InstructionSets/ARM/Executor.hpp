@@ -183,9 +183,9 @@ struct Executor {
 			// this case to update those PSR flags which are not protected by virtue of the
 			// processor mode."
 
-			if(fields.destination() == 15 && !is_logical(flags.operation())) {
+			if(fields.destination() == 15) {
 				if constexpr (is_comparison(flags.operation())) {
-					registers_.set_status(pc_proxy);
+					registers_.set_status(conditions);
 				} else {
 					registers_.set_status(pc_proxy);
 					registers_.set_pc(pc_proxy);
