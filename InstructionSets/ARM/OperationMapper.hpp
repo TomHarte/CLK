@@ -202,16 +202,16 @@ struct Multiply {
 	constexpr Multiply(uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The destination register index. i.e. 'Rd'.
-	int destination() const				{	return (opcode_ >> 16) & 0xf;	}
+	uint32_t destination() const	{	return (opcode_ >> 16) & 0xf;	}
 
 	/// The accumulator register index for multiply-add. i.e. 'Rn'.
-	int accumulator() const				{	return (opcode_ >> 12) & 0xf;	}
+	uint32_t accumulator() const	{	return (opcode_ >> 12) & 0xf;	}
 
 	/// The multiplicand register index. i.e. 'Rs'.
-	int multiplicand() const			{	return (opcode_ >> 8) & 0xf;	}
+	uint32_t multiplicand() const	{	return (opcode_ >> 8) & 0xf;	}
 
 	/// The multiplier register index. i.e. 'Rm'.
-	int multiplier() const				{	return opcode_ & 0xf;			}
+	uint32_t multiplier() const		{	return opcode_ & 0xf;			}
 
 private:
 	uint32_t opcode_;
@@ -286,7 +286,7 @@ struct BlockDataTransfer: public WithShiftControlBits {
 	using WithShiftControlBits::WithShiftControlBits;
 
 	/// The base register index. i.e. 'Rn'.
-	int base() const					{	return (opcode_ >> 16) & 0xf;			}
+	uint32_t base() const				{	return (opcode_ >> 16) & 0xf;			}
 
 	/// A bitfield indicating which registers to load or store.
 	uint16_t register_list() const		{	return static_cast<uint16_t>(opcode_);	}
