@@ -172,7 +172,7 @@ struct DataProcessing: public WithShiftControlBits {
 	/// An 8-bit value to rotate right @c rotate() places if @c operand2_is_immediate() is @c true; meaningless otherwise.
 	uint32_t immediate() const			{	return opcode_ & 0xff;			}
 	/// The number of bits to rotate @c immediate()  by to the right if @c operand2_is_immediate() is @c true; meaningless otherwise.
-	int rotate() const					{	return (opcode_ >> 7) & 0x1e;	}
+	uint32_t rotate() const				{	return (opcode_ >> 7) & 0x1e;	}
 };
 
 //
