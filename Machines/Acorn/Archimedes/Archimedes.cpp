@@ -94,6 +94,7 @@ struct Memory {
 					high_rom_access_time_ = ROMAccessTime((address >> 6) & 3);
 					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 					page_size_ = PageSize((address >> 2) & 3);
+					update_mapping();
 
 					logger.info().append("MEMC Control: %08x/%08x -> OS:%d sound:%d video:%d high:%d low:%d size:%d", address, source, os_mode_, sound_dma_enable_, video_dma_enable_, high_rom_access_time_, low_rom_access_time_, page_size_);
 
@@ -126,7 +127,8 @@ struct Memory {
 			return true;
 
 			case Zone::AddressTranslator:
-				logger.error().append("TODO: Write address translator of %08x to %08x", source, address);
+				pages_[address & 0x7f] = address;
+				update_mapping();
 			break;
 
 			default:
@@ -166,6 +168,7 @@ struct Memory {
 			break;
 
 			case Zone::HighROM:
+				// TODO: require A24=A25=0, then A25=1.
 				has_moved_rom_ = true;
 				source = high_rom<IntT>(address);
 			return true;
@@ -196,6 +199,11 @@ struct Memory {
 
 		source = 0;
 		return true;
+	}
+
+	Memory() {
+		// Install initial logical memory map.
+		update_mapping();
 	}
 
 	private:
@@ -264,11 +272,30 @@ struct Memory {
 
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode) {
+			// TODO: (1) which logical page is this?
 			logger.error().append("TODO: Logical RAM mapping at %08x", address);
+
+			// 4kb:
+			//		A[6:0] -> PPN[6:0]
+			//		A[11:10] -> LPN[12:11];	A[22:12] -> LPN[10:0]
+
+			// 8kb:
+			//		A[0] -> PPN[6]; A[6:1] -> PPN[5:0]
+			//		A[11:10] -> LPN[11:10];	A[22:13] -> LPN[9:0]
+
+			// 16kb:
+			//		A[1:0] -> PPN[6:5]; A[6:2] -> PPN[4:0]
+			//		A[11:10] -> LPN[10:9];	A[22:14] -> LPN[8:0]
+
+			// 32kb:
+			//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[6:3]
+			//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]
+
 			return nullptr;
 		}
 
 		void update_mapping() {
+			logger.error().append("TODO: Update logical RAM mapping");
 		}
 };
 
