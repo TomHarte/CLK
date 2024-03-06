@@ -78,16 +78,55 @@ struct Memory {
 			case Zone::DMAAndMEMC:
 //				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
 				if((address & 0b1110'0000'0000'0000'0000) == 0b1110'0000'0000'0000'0000) {
-					logger.error().append("TODO: MEMC Control: %08x", source);
-					break;
+					// "The parameters are encoded into the processor address lines".
+					os_mode_ = address & (1 << 12);
+					sound_dma_enable_ = address & (1 << 11);
+					video_dma_enable_ = address & (1 << 10);
+					switch((address >> 8) & 3) {
+						default:
+							dynamic_ram_refresh_ = DynamicRAMRefresh::None;
+						break;
+						case 0b01:
+						case 0b11:
+							dynamic_ram_refresh_ = DynamicRAMRefresh((address >> 8) & 3);
+						break;
+					}
+					high_rom_access_time_ = ROMAccessTime((address >> 6) & 3);
+					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
+					page_size_ = PageSize((address >> 2) & 3);
+
+					logger.info().append("MEMC Control: OS:%d sound:%d video:%d ", os_mode_, sound_dma_enable_, video_dma_enable_);
+
+					return true;
 				} else {
 					logger.error().append("TODO: DMA/MEMC %08x to %08x", source, address);
-					break;
 				}
+			break;
+
+			case Zone::LogicallyMappedRAM: {
+				const auto item = logical_ram<IntT, false>(address, mode);
+				if(!item) {
+					return false;
+				}
+				*item = source;
+				return true;
+			} break;
+
+			case Zone::IOControllers:
+				logger.error().append("TODO: Write to IO controllers of %08x to %08x", source, address);
+			break;
+
+			case Zone::VideoController:
+				logger.error().append("TODO: Write to video controller of %08x to %08x", source, address);
+			break;
 
 			case Zone::PhysicallyMappedRAM:
 //				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
 				physical_ram<IntT>(address) = source;
+			return true;
+
+			case Zone::AddressTranslator:
+				logger.error().append("TODO: Write address translator of %08x to %08x", source, address);
 			break;
 
 			default:
@@ -100,7 +139,6 @@ struct Memory {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
-		(void)mode;
 		(void)trans;
 
 		switch (read_zones_[(address >> 21) & 31]) {
@@ -109,17 +147,46 @@ struct Memory {
 				source = physical_ram<IntT>(address);
 			return true;
 
-			case Zone::LogicallyMappedRAM:
-				if(!has_moved_rom_) {
+			case Zone::LogicallyMappedRAM: {
+				if(!has_moved_rom_) {	// TODO: maintain this state in the zones table.
 					source = high_rom<IntT>(address);
-					break;
+					return true;
 				}
-				logger.error().append("TODO: Logical RAM read from %08x", address);
+
+				const auto item = logical_ram<IntT, true>(address, mode);
+				if(!item) {
+					return false;
+				}
+				source = *item;
+				return true;
+			} break;
+
+			case Zone::LowROM:
+				logger.error().append("TODO: Low ROM read from %08x", address);
 			break;
 
 			case Zone::HighROM:
 				has_moved_rom_ = true;
 				source = high_rom<IntT>(address);
+			return true;
+
+			case Zone::IOControllers:
+				switch(address & 0x7f) {
+					default: break;
+
+					case 0x10:	// IRQ status A
+						source = 0x80;
+					return true;
+
+					case 0x20:	// IRQ status B
+						source = 0x00;
+					return true;
+
+					case 0x30:	// FIQ status
+						source = 0x80;
+					return true;
+				}
+				logger.error().append("TODO: IO controller read from %08x", address);
 			break;
 
 			default:
@@ -128,7 +195,6 @@ struct Memory {
 		}
 
 		source = 0;
-
 		return true;
 	}
 
@@ -149,6 +215,61 @@ struct Memory {
 
 		static constexpr std::array<Zone, 0x20> read_zones_ = zones(true);
 		static constexpr std::array<Zone, 0x20> write_zones_ = zones(false);
+
+		// Control register values.
+		bool os_mode_ = false;
+		bool sound_dma_enable_ = false;
+		bool video_dma_enable_ = false;	// "Unaffected" by reset, so here picked arbitrarily.
+
+		enum class DynamicRAMRefresh {
+			None = 0b00,
+			DuringFlyback = 0b01,
+			Continuous = 0b11,
+		} dynamic_ram_refresh_ = DynamicRAMRefresh::None;	// State at reset is undefined; constrain to a valid enum value.
+
+		enum class ROMAccessTime {
+			ns450 = 0b00,
+			ns325 = 0b01,
+			ns200 = 0b10,
+			ns200with60nsNibble = 0b11,
+		} high_rom_access_time_ = ROMAccessTime::ns450, low_rom_access_time_ = ROMAccessTime::ns450;
+
+		enum class PageSize {
+			kb4 = 0b00,
+			kb8 = 0b01,
+			kb16 = 0b10,
+			kb32 = 0b11,
+		} page_size_ = PageSize::kb4;
+
+		// Address translator.
+		//
+		// MEMC contains one entry per a physical page number, indicating where it goes logically.
+		// Any logical access is tested against all 128 mappings. So that's backwards compared to
+		// the ideal for an emulator, which would map from logical to physical, even if a lot more
+		// compact — there are always 128 physical pages; there are up to 8192 logical pages.
+		//
+		// So captured here are both the physical -> logical map as representative of the real
+		// hardware, and the reverse logical -> physical map, which is built (and rebuilt, and rebuilt)
+		// from the other.
+
+		// Physical to logical mapping.
+		uint32_t pages_[128]{};
+
+		// Logical to physical mapping.
+		struct MappedPage {
+			uint8_t *target = nullptr;
+			uint8_t protection_level = 0;
+		};
+		MappedPage mapping_[8192];
+
+		template <typename IntT, bool is_read>
+		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode) {
+			logger.error().append("TODO: Logical RAM mapping at %08x", address);
+			return nullptr;
+		}
+
+		void update_mapping() {
+		}
 };
 
 class ConcreteMachine:
@@ -195,6 +316,7 @@ class ConcreteMachine:
 				executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
 				// TODO: what if abort? How about pipeline prefetch?
 
+				logger.info().append("%08x: %08x", executor_.pc(), instruction);
 				InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 			}
 		}
