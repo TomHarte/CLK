@@ -94,9 +94,9 @@ struct Memory {
 					high_rom_access_time_ = ROMAccessTime((address >> 6) & 3);
 					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 					page_size_ = PageSize((address >> 2) & 3);
-					update_mapping();
 
 					logger.info().append("MEMC Control: %08x/%08x -> OS:%d sound:%d video:%d high:%d low:%d size:%d", address, source, os_mode_, sound_dma_enable_, video_dma_enable_, high_rom_access_time_, low_rom_access_time_, page_size_);
+					update_mapping();
 
 					return true;
 				} else {
