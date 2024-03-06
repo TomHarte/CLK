@@ -95,7 +95,7 @@ struct Memory {
 					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 					page_size_ = PageSize((address >> 2) & 3);
 
-					logger.info().append("MEMC Control: OS:%d sound:%d video:%d ", os_mode_, sound_dma_enable_, video_dma_enable_);
+					logger.info().append("MEMC Control: %08x/%08x -> OS:%d sound:%d video:%d high:%d low:%d size:%d", address, source, os_mode_, sound_dma_enable_, video_dma_enable_, high_rom_access_time_, low_rom_access_time_, page_size_);
 
 					return true;
 				} else {
@@ -313,8 +313,13 @@ class ConcreteMachine:
 			auto instructions = cycles.as<int>();
 			while(instructions--) {
 				uint32_t instruction;
-				executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
-				// TODO: what if abort? How about pipeline prefetch?
+				if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
+					executor_.prefetch_abort();
+
+					// TODO: does a double abort cause a reset?
+					executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
+				}
+				// TODO: pipeline prefetch?
 
 				logger.info().append("%08x: %08x", executor_.pc(), instruction);
 				InstructionSet::ARM::execute<arm_model>(instruction, executor_);

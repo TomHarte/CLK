@@ -549,6 +549,11 @@ struct Executor {
 		return registers_;
 	}
 
+	/// Indicates a prefetch abort exception.
+	void prefetch_abort() {
+		registers_.exception<Registers::Exception::PrefetchAbort>();
+	}
+
 	/// Sets the expected address of the instruction after whichever  is about to be executed.
 	/// So it's PC+4 compared to most other systems.
 	void set_pc(uint32_t pc) {
