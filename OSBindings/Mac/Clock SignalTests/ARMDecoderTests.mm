@@ -211,25 +211,29 @@ struct Memory {
 }
 
 // TODO: turn the below into a trace-driven test case.
-//- (void)testROM319 {
-//	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
-//	ROM::Request request(rom_name);
-//	const auto roms = CSROMFetcher()(request);
-//
-//	auto executor = std::make_unique<Executor<Model::ARMv2, Memory>>();
-//	executor->bus.rom = roms.find(rom_name)->second;
-//
-//	for(int c = 0; c < 1000; c++) {
-//		uint32_t instruction;
-//		executor->bus.read(executor->pc(), instruction, executor->registers().mode(), false);
-//
-//		printf("%08x: %08x [", executor->pc(), instruction);
-//		for(int c = 0; c < 15; c++) {
-//			printf("r%d:%08x ", c, executor->registers()[c]);
-//		}
-//		printf("psr:%08x]\n", executor->registers().status());
-//		execute<Model::ARMv2>(instruction, *executor);
-//	}
-//}
+- (void)testROM319 {
+	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
+	ROM::Request request(rom_name);
+	const auto roms = CSROMFetcher()(request);
+
+	auto executor = std::make_unique<Executor<Model::ARMv2, Memory>>();
+	executor->bus.rom = roms.find(rom_name)->second;
+
+	for(int c = 0; c < 1000; c++) {
+		uint32_t instruction;
+		executor->bus.read(executor->pc(), instruction, executor->registers().mode(), false);
+
+		if(instruction == 0xe33ff343) {
+			printf("");
+		}
+
+		printf("%08x: %08x [", executor->pc(), instruction);
+		for(int c = 0; c < 15; c++) {
+			printf("r%d:%08x ", c, executor->registers()[c]);
+		}
+		printf("psr:%08x]\n", executor->registers().status());
+		execute<Model::ARMv2>(instruction, *executor);
+	}
+}
 
 @end

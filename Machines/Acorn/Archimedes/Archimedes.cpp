@@ -15,12 +15,15 @@
 #include "../../TimedMachine.hpp"
 
 #include "../../../InstructionSets/ARM/Executor.hpp"
+#include "../../../Outputs/Log.hpp"
 
 #include <algorithm>
 #include <array>
 #include <vector>
 
 namespace {
+
+Log::Logger<Log::Source::Archimedes> logger;
 
 enum class Zone {
 	LogicallyMappedRAM,
@@ -75,18 +78,21 @@ struct Memory {
 			case Zone::DMAAndMEMC:
 //				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
 				if((address & 0b1110'0000'0000'0000'0000) == 0b1110'0000'0000'0000'0000) {
-					printf("MEMC Control: %04x\n", source);
+					logger.error().append("TODO: MEMC Control: %08x", source);
+					break;
+				} else {
+					logger.error().append("TODO: DMA/MEMC %08x to %08x", source, address);
 					break;
 				}
-			[[fallthrough]];
+
+			case Zone::PhysicallyMappedRAM:
+//				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
+				physical_ram<IntT>(address) = source;
+			break;
 
 			default:
-				printf("Unhandled W of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
+				printf("TODO: write of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
 			break;
-		}
-
-		if(has_moved_rom_ && address < ram_.size()) {
-			*reinterpret_cast<IntT *>(&ram_[address]) = source;
 		}
 
 		return true;
@@ -100,22 +106,28 @@ struct Memory {
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
 //				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
-				source = *reinterpret_cast<const IntT *>(&ram_[address & (ram_.size() - 1)]);
+				source = physical_ram<IntT>(address);
 			return true;
 
-			default: break;
+			case Zone::LogicallyMappedRAM:
+				if(!has_moved_rom_) {
+					source = high_rom<IntT>(address);
+					break;
+				}
+				logger.error().append("TODO: Logical RAM read from %08x", address);
+			break;
+
+			case Zone::HighROM:
+				has_moved_rom_ = true;
+				source = high_rom<IntT>(address);
+			break;
+
+			default:
+				logger.error().append("TODO: read from %08x", address);
+			break;
 		}
-		if(address >= 0x3800000) {
-			has_moved_rom_ = true;
-			source = *reinterpret_cast<const IntT *>(&rom_[address - 0x3800000]);
-		} else if(!has_moved_rom_) {
-			// TODO: this is true only very transiently.
-			source = *reinterpret_cast<const IntT *>(&rom_[address]);
-		} else if(address < ram_.size()) {
-			source = *reinterpret_cast<const IntT *>(&ram_[address]);
-		} else {
-			source = 0;
-		}
+
+		source = 0;
 
 		return true;
 	}
@@ -124,6 +136,16 @@ struct Memory {
 		bool has_moved_rom_ = false;
 		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
+
+		template <typename IntT>
+		IntT &physical_ram(uint32_t address) {
+			return *reinterpret_cast<IntT *>(&ram_[address & (ram_.size() - 1)]);
+		}
+
+		template <typename IntT>
+		IntT &high_rom(uint32_t address) {
+			return *reinterpret_cast<IntT *>(&rom_[address & (rom_.size() - 1)]);
+		}
 
 		static constexpr std::array<Zone, 0x20> read_zones_ = zones(true);
 		static constexpr std::array<Zone, 0x20> write_zones_ = zones(false);
