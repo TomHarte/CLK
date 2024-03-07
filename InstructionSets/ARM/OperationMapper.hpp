@@ -408,13 +408,9 @@ struct OperationMapper {
 		// page references are provided were more detailed versions of the
 		// decoding are depicted.
 
-		// Data processing; cf. p.17.
-		if constexpr (((partial >> 26) & 0b11) == 0b00) {
-			scheduler.template perform<i>(DataProcessing(instruction));
-			return;
-		}
-
 		// Multiply and multiply-accumulate (MUL, MLA); cf. p.23.
+		//
+		// This usurps a potential data processing decoding, so needs priority.
 		if constexpr (((partial >> 22) & 0b111'111) == 0b000'000) {
 			// This implementation provides only eight bits baked into the template parameters so
 			// an additional dynamic test is required to check whether this is really, really MUL or MLA.
@@ -422,6 +418,12 @@ struct OperationMapper {
 				scheduler.template perform<i>(Multiply(instruction));
 				return;
 			}
+		}
+
+		// Data processing; cf. p.17.
+		if constexpr (((partial >> 26) & 0b11) == 0b00) {
+			scheduler.template perform<i>(DataProcessing(instruction));
+			return;
 		}
 
 		// Single data transfer (LDR, STR); cf. p.25.
