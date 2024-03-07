@@ -143,11 +143,13 @@ struct Executor {
 				conditions = operand1 - operand2;
 
 				if constexpr (flags.operation() == DataProcessingOperation::SBC) {
-					conditions -= registers_.c();
+					conditions += registers_.c() - 1;
 				}
 
 				if constexpr (flags.set_condition_codes()) {
-					registers_.set_c(Numeric::carried_out<false, 31>(operand1, operand2, conditions));
+					// "For a subtraction, including the comparison instruction CMP, C is set to 0 if
+					// the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise."
+					registers_.set_c(!Numeric::carried_out<false, 31>(operand1, operand2, conditions));
 					registers_.set_v(Numeric::overflow<false>(operand1, operand2, conditions));
 				}
 
@@ -365,8 +367,10 @@ struct Executor {
 		// the base.
 
 		// TODO: use std::popcount when adopting C++20.
-		uint32_t total = ((list & 0xa) >> 1) + (list & 0x5);
-		total = ((list & 0xc) >> 2) + (list & 0x3);
+		uint32_t total = ((list & 0xaaa) >> 1) + (list & 0x555);
+		total = ((total & 0xccc) >> 2) + (total & 0x333);
+		total = ((total & 0x0f0) >> 4) + (total & 0xf0f);
+		total = ((total & 0xff0) >> 8) + (total & 0x00f);
 
 		uint32_t final_address;
 		if constexpr (!flags.add_offset()) {
