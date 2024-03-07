@@ -367,10 +367,10 @@ struct Executor {
 		// the base.
 
 		// TODO: use std::popcount when adopting C++20.
-		uint32_t total = ((list & 0xaaa) >> 1) + (list & 0x555);
-		total = ((total & 0xccc) >> 2) + (total & 0x333);
-		total = ((total & 0x0f0) >> 4) + (total & 0xf0f);
-		total = ((total & 0xff0) >> 8) + (total & 0x00f);
+		uint32_t total = ((list & 0xaaaa) >> 1) + (list & 0x5555);
+		total = ((total & 0xcccc) >> 2) + (total & 0x3333);
+		total = ((total & 0xf0f0) >> 4) + (total & 0x0f0f);
+		total = ((total & 0xff00) >> 8) + (total & 0x00ff);
 
 		uint32_t final_address;
 		if constexpr (!flags.add_offset()) {
