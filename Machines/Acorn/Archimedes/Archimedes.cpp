@@ -60,6 +60,14 @@ constexpr std::array<Zone, 0x20> zones(bool is_read) {
 
 namespace Archimedes {
 
+struct Interrupts {
+	uint8_t irq_status_a() const {
+		return irq_status_a_;
+	}
+
+	uint8_t irq_status_a_ = 0x80 | 0x10;	// 0x80 = always; 0x10 = at power-on.
+};
+
 /// Primarily models the MEMC.
 struct Memory {
 	void set_rom(const std::vector<uint8_t> &rom) {
@@ -142,6 +150,7 @@ struct Memory {
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
 		(void)trans;
+//		logger.info().append("R %08x", address);
 
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
@@ -168,7 +177,8 @@ struct Memory {
 			break;
 
 			case Zone::HighROM:
-				// TODO: require A24=A25=0, then A25=1.
+				// Real test is: require A24=A25=0, then A25=1.
+				// TODO: as above, move this test into the zones tables.
 				has_moved_rom_ = true;
 				source = high_rom<IntT>(address);
 			return true;
@@ -178,7 +188,7 @@ struct Memory {
 					default: break;
 
 					case 0x10:	// IRQ status A
-						source = 0x80;
+						source = ioc_.irq_status_a();
 					return true;
 
 					case 0x20:	// IRQ status B
@@ -210,6 +220,7 @@ struct Memory {
 		bool has_moved_rom_ = false;
 		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
+		Interrupts ioc_;
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
@@ -272,9 +283,6 @@ struct Memory {
 
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode mode) {
-			// TODO: (1) which logical page is this?
-//			logger.error().append("TODO: Logical RAM mapping at %08x", address);
-
 			address &= 0x1ff'ffff;
 			size_t page;
 
@@ -304,6 +312,9 @@ struct Memory {
 			}
 
 			// TODO: eliminate switch here.
+			// Top of my head idea: is_read, is_user and is_os_mode make three bits, so
+			// keep a one-byte bitmap of permitted accesses rather than the raw protection
+			// level?
 			switch(mapping_[page].protection_level) {
 				case 0b00:	break;
 				case 0b01:
@@ -463,11 +474,7 @@ class ConcreteMachine:
 				}
 				// TODO: pipeline prefetch?
 
-				logger.info().append("%08x: %08x", executor_.pc(), instruction);
-
-				if(executor_.pc() == 0x03812148) {
-					printf("");
-				}
+//				logger.info().append("%08x: %08x", executor_.pc(), instruction);
 				InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 			}
 		}
