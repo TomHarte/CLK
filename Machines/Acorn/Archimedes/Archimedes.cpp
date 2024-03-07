@@ -261,41 +261,140 @@ struct Memory {
 		// from the other.
 
 		// Physical to logical mapping.
-		uint32_t pages_[128]{};
+		std::array<uint32_t, 128> pages_{};
 
 		// Logical to physical mapping.
 		struct MappedPage {
 			uint8_t *target = nullptr;
 			uint8_t protection_level = 0;
 		};
-		MappedPage mapping_[8192];
+		std::array<MappedPage, 8192> mapping_;
 
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode) {
 			// TODO: (1) which logical page is this?
-			logger.error().append("TODO: Logical RAM mapping at %08x", address);
+//			logger.error().append("TODO: Logical RAM mapping at %08x", address);
 
-			// 4kb:
-			//		A[6:0] -> PPN[6:0]
-			//		A[11:10] -> LPN[12:11];	A[22:12] -> LPN[10:0]
+			address &= 0x1ff'ffff;
+			size_t page;
 
-			// 8kb:
-			//		A[0] -> PPN[6]; A[6:1] -> PPN[5:0]
-			//		A[11:10] -> LPN[11:10];	A[22:13] -> LPN[9:0]
+			// TODO: eliminate switch here.
+			switch(page_size_) {
+				default:
+				case PageSize::kb4:
+					page = address >> 12;
+					address &= 0x0fff;
+				break;
+				case PageSize::kb8:
+					page = address >> 13;
+					address &= 0x1fff;
+				break;
+				case PageSize::kb16:
+					page = address >> 14;
+					address &= 0x3fff;
+				break;
+				case PageSize::kb32:
+					page = address >> 15;
+					address &= 0x7fff;
+				break;
+			}
 
-			// 16kb:
-			//		A[1:0] -> PPN[6:5]; A[6:2] -> PPN[4:0]
-			//		A[11:10] -> LPN[10:9];	A[22:14] -> LPN[8:0]
+			if(!mapping_[page].target) {
+				return nullptr;
+			}
 
-			// 32kb:
-			//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[6:3]
-			//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]
+			// TODO: consider protection level.
 
-			return nullptr;
+			return reinterpret_cast<IntT *>(mapping_[page].target + address);
 		}
 
 		void update_mapping() {
-			logger.error().append("TODO: Update logical RAM mapping");
+			logger.info().append("Updated logical RAM mapping");
+
+			// For each physical page, project it into logical space.
+			switch(page_size_) {
+				default:
+				case PageSize::kb4:		update_mapping<PageSize::kb4>();	break;
+				case PageSize::kb8:		update_mapping<PageSize::kb8>();	break;
+				case PageSize::kb16:	update_mapping<PageSize::kb16>();	break;
+				case PageSize::kb32:	update_mapping<PageSize::kb32>();	break;
+			}
+		}
+
+		template <PageSize size>
+		void update_mapping() {
+			// Clear all logical mappings.
+			std::fill(mapping_.begin(), mapping_.end(), MappedPage{});
+
+			const auto bits = [](int start, int end) -> uint32_t {
+				return ((1 << start) - 1) - ((1 << end) - 1);
+			};
+
+			// For each physical page, project it into logical space
+			// and store it.
+			for(const auto page: pages_) {
+				uint32_t physical, logical;
+
+				switch(size) {
+					case PageSize::kb4:
+						// 4kb:
+						//		A[6:0] -> PPN[6:0]
+						//		A[11:10] -> LPN[12:11];	A[22:12] -> LPN[10:0]	i.e. 8192 logical pages
+						physical = page & bits(6, 0);
+
+						physical <<= 12;
+
+						logical = (page & bits(11, 10)) << 1;
+						logical |= (page & bits(22, 12)) >> 12;
+					break;
+
+					case PageSize::kb8:
+						// 8kb:
+						//		A[0] -> PPN[6]; A[6:1] -> PPN[5:0]
+						//		A[11:10] -> LPN[11:10];	A[22:13] -> LPN[9:0]	i.e. 4096 logical pages
+						physical = (page & bits(0, 0)) << 6;
+						physical |= (page & bits(6, 1)) >> 1;
+
+						physical <<= 13;
+
+						logical = page & bits(11, 10);
+						logical |= (page & bits(22, 13)) >> 13;
+					break;
+
+					case PageSize::kb16:
+						// 16kb:
+						//		A[1:0] -> PPN[6:5]; A[6:2] -> PPN[4:0]
+						//		A[11:10] -> LPN[10:9];	A[22:14] -> LPN[8:0]	i.e. 2048 logical pages
+						physical = (page & bits(1, 0)) << 5;
+						physical |= (page & bits(6, 2)) >> 2;
+
+						physical <<= 14;
+
+						logical = (page & bits(11, 10)) >> 1;
+						logical |= (page & bits(22, 14)) >> 14;
+					break;
+
+					case PageSize::kb32:
+						// 32kb:
+						//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[6:3]
+						//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]	i.e. 1024 logical pages
+						physical = (page & bits(1, 1)) << 5;
+						physical |= (page & bits(2, 2)) << 3;
+						physical |= (page & bits(0, 0)) << 4;
+						physical |= page & bits(6, 3);
+
+						physical <<= 15;
+
+						logical = (page & bits(11, 10)) >> 2;
+						logical |= (page & bits(22, 15)) >> 15;
+					break;
+				}
+
+				// TODO: consider clashes.
+				// TODO: what if there's less than 4mb present?
+				mapping_[logical].target = &ram_[physical];
+				mapping_[logical].protection_level = (page >> 8) & 3;
+			}
 		}
 };
 
