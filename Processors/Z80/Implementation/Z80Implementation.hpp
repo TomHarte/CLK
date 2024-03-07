@@ -877,6 +877,9 @@ template <	class T,
 				case MicroOp::SetInstructionPage:
 					current_instruction_page_ = static_cast<InstructionPage *>(operation->source);
 					scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute_data;
+
+					// Undo spurious history update.
+					flag_adjustment_history_ >>= 1;
 				break;
 
 				case MicroOp::CalculateIndexAddress:
@@ -928,7 +931,7 @@ template <	class T,
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
-				::assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) {
+				::assemble_page(InstructionPage &target, const InstructionTable &table, bool add_offsets) {
 	std::size_t number_of_micro_ops = 0;
 	std::size_t lengths[256];
 
