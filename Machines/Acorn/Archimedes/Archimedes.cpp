@@ -153,41 +153,127 @@ struct Video {
 struct Interrupts {
 	// TODO: timers, which decrement at 2Mhz.
 	void tick_timers() {
+		for(int c = 0; c < 4; c++) {
+			// Events happen only on a decrement to 0; a reload value of 0 effectively means 'don't count'.
+			if(!counters_[c].value && !counters_[c].reload) {
+				continue;
+			}
 
+			--counters_[c].value;
+			if(!counters_[c].value) {
+				counters_[c].value = counters_[c].reload;
+
+				// TODO: event triggered here.
+			}
+		}
 	}
 
 	bool read(uint32_t address, uint8_t &value) {
-		switch(address & 0x7f) {
+		const auto target = address & 0x7f;
+		switch(target) {
 			default: break;
 
-			case 0x10:	// IRQ status A
-				value = irq_status_a();
+			case 0x00:
+				logger.error().append("TODO: IOC control read");
+				value = 0;
 			return true;
 
-			case 0x20:	// IRQ status B
-				value = 0x00;
-			return true;
+			// IRQ A.
+			case 0x10:		value = irq_a_.status;		return true;
+			case 0x14:		value = irq_a_.request();	return true;
+			case 0x18:		value = irq_a_.mask;		return true;
 
-			case 0x30:	// FIQ status
-				value = 0x80;
+			// IRQ B.
+			case 0x20:		value = irq_b_.status;		return true;
+			case 0x24:		value = irq_b_.request();	return true;
+			case 0x28:		value = irq_b_.mask;		return true;
+
+			// FIQ.
+			case 0x30:		value = fiq_.status;		return true;
+			case 0x34:		value = fiq_.request();		return true;
+			case 0x38:		value = fiq_.mask;			return true;
+
+			// Counters.
+			case 0x40:	case 0x50:	case 0x60:	case 0x70:
+				value = counters_[(target >> 4) - 0x4].output & 0xff;
+			return true;
+			case 0x44:	case 0x54:	case 0x64:	case 0x74:
+				value = counters_[(target >> 4) - 0x4].output >> 8;
 			return true;
 		}
-		logger.error().append("TODO: IO controller read from %08x", address);
 
+		logger.error().append("TODO: IO controller read from %08x", address);
 		return false;
 	}
 
 	bool write(uint32_t address, uint8_t value) {
+		const auto target = address & 0x7f;
+		switch(target) {
+			default: break;
+
+			case 0x00:
+				logger.error().append("TODO: IOC control write %02x", value);
+			return true;
+
+			case 0x14:
+				logger.error().append("TODO: IRQ clear write %02x", value);
+				// b2: clear IF.
+				// b3: clear IR.
+				// b4: clear POR.
+				// b5: clear TM[0].
+				// b6: clear TM[1].
+			return true;
+
+			// Interrupts.
+			case 0x18:		irq_a_.mask = value;		return true;
+			case 0x28:		irq_b_.mask = value;		return true;
+			case 0x38:		fiq_.mask = value;			return true;
+
+			// Counters.
+			case 0x40:	case 0x50:	case 0x60:	case 0x70:
+				counters_[(target >> 4) - 0x4].reload = uint16_t(
+					(counters_[(target >> 4) - 0x4].reload & 0xff00) | value
+				);
+			return true;
+			case 0x44:	case 0x54:	case 0x64:	case 0x74:
+				counters_[(target >> 4) - 0x4].reload = uint16_t(
+					(counters_[(target >> 4) - 0x4].reload & 0x00ff) | (value << 8)
+				);
+			return true;
+
+			case 0x48:	case 0x58:	case 0x68:	case 0x78:
+				counters_[(target >> 4) - 0x4].value = counters_[(target >> 4) - 0x4].reload;
+			return true;
+			case 0x4c:	case 0x5c:	case 0x6c:	case 0x7c:
+				counters_[(target >> 4) - 0x4].output = counters_[(target >> 4) - 0x4].value;
+			return true;
+		}
+
 		logger.error().append("TODO: IO controller write of %02x at %08x", value, address);
 		return false;
 	}
 
-private:
-	uint8_t irq_status_a() const {
-		return irq_status_a_;
+	Interrupts() {
+		irq_a_.status = 0x80 | 0x10;	// i.e. 'set always' + 'power-on'.
+		irq_b_.status = 0x00;
+		fiq_.status = 0x80;				// 'set always'.
 	}
 
-	uint8_t irq_status_a_ = 0x80 | 0x10;	// 0x80 = always; 0x10 = at power-on.
+private:
+	struct Interrupt {
+		uint8_t status, mask;
+		uint8_t request() const {
+			return status & mask;
+		}
+	};
+	Interrupt irq_a_, irq_b_, fiq_;
+
+	struct Counter {
+		uint16_t value;
+		uint16_t reload;
+		uint16_t output;
+	};
+	Counter counters_[4];
 };
 
 /// Primarily models the MEMC.
@@ -242,7 +328,9 @@ struct Memory {
 				return true;
 			} break;
 
-			case Zone::IOControllers: return ioc_.write(address, source);
+			case Zone::IOControllers:
+				ioc_.write(address, source);
+			return true;
 
 			case Zone::VideoController:
 				// TODO: handle byte writes correctly.
@@ -305,13 +393,15 @@ struct Memory {
 
 			case Zone::IOControllers:	{
 				if constexpr (std::is_same_v<IntT, uint8_t>) {
-					return ioc_.read(address, source);
+					ioc_.read(address, source);
+					return true;
 				} else {
 					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
 					uint8_t value;
-					if(!ioc_.read(address, value)) {
-						return false;
-					}
+					ioc_.read(address, value);
+//					if(!ioc_.read(address, value)) {
+//						return false;
+//					}
 					source = value;
 					return true;
 				}
@@ -610,10 +700,10 @@ class ConcreteMachine:
 					}
 					// TODO: pipeline prefetch?
 
-//					static bool log = false;
-//					if(log) {
-//						logger.info().append("%08x: %08x [r14:%08x]", executor_.pc(), instruction, executor_.registers()[14]);
-//					}
+					static bool log = false;
+					if(log) {
+						logger.info().append("%08x: %08x [r14:%08x]", executor_.pc(), instruction, executor_.registers()[14]);
+					}
 					InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 				}
 
