@@ -422,6 +422,9 @@ struct OperationMapper {
 
 		// Data processing; cf. p.17.
 		if constexpr (((partial >> 26) & 0b11) == 0b00) {
+			// TODO: This decoding technically requires that either b4 is 0 or, failing that, that b7 is 0.
+			// i.e. b4 and b7 set should be rejected. Which is not quite fully tested by the multiply
+			// condition above.
 			scheduler.template perform<i>(DataProcessing(instruction));
 			return;
 		}
