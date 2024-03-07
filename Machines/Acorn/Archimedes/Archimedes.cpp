@@ -95,7 +95,7 @@ struct Memory {
 					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 					page_size_ = PageSize((address >> 2) & 3);
 
-					logger.info().append("MEMC Control: %08x/%08x -> OS:%d sound:%d video:%d high:%d low:%d size:%d", address, source, os_mode_, sound_dma_enable_, video_dma_enable_, high_rom_access_time_, low_rom_access_time_, page_size_);
+					logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, high_rom_access_time_, low_rom_access_time_, page_size_);
 					update_mapping();
 
 					return true;
@@ -271,7 +271,7 @@ struct Memory {
 		std::array<MappedPage, 8192> mapping_;
 
 		template <typename IntT, bool is_read>
-		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode) {
+		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode mode) {
 			// TODO: (1) which logical page is this?
 //			logger.error().append("TODO: Logical RAM mapping at %08x", address);
 
@@ -303,7 +303,23 @@ struct Memory {
 				return nullptr;
 			}
 
-			// TODO: consider protection level.
+			// TODO: eliminate switch here.
+			switch(mapping_[page].protection_level) {
+				case 0b00:	break;
+				case 0b01:
+					if(!is_read && mode == InstructionSet::ARM::Mode::User) {
+						return nullptr;
+					}
+				break;
+				default:
+					if(mode == InstructionSet::ARM::Mode::User) {
+						return nullptr;
+					}
+					if(!is_read && !os_mode_) {
+						return nullptr;
+					}
+				break;
+			}
 
 			return reinterpret_cast<IntT *>(mapping_[page].target + address);
 		}
@@ -448,6 +464,10 @@ class ConcreteMachine:
 				// TODO: pipeline prefetch?
 
 				logger.info().append("%08x: %08x", executor_.pc(), instruction);
+
+				if(executor_.pc() == 0x03812148) {
+					printf("");
+				}
 				InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 			}
 		}
