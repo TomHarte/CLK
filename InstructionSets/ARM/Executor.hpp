@@ -394,13 +394,12 @@ struct Executor {
 		// the end.
 		const Mode original_mode = registers_.mode();
 		const bool adopt_user_mode =
-			(
-				flags.operation() == BlockDataTransferFlags::Operation::STM &&
-				flags.load_psr()
-			) ||
-			(
-				flags.operation() == BlockDataTransferFlags::Operation::LDM &&
-				!(list & (1 << 15))
+			flags.load_psr() && (
+				flags.operation() == BlockDataTransferFlags::Operation::STM ||
+				(
+					flags.operation() == BlockDataTransferFlags::Operation::LDM &&
+					!(list & (1 << 15))
+				)
 			);
 		if(adopt_user_mode) {
 			registers_.set_mode(Mode::User);
