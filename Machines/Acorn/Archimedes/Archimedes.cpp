@@ -151,6 +151,38 @@ struct Video {
 };
 
 struct Interrupts {
+	// TODO: timers, which decrement at 2Mhz.
+	void tick_timers() {
+
+	}
+
+	bool read(uint32_t address, uint8_t &value) {
+		switch(address & 0x7f) {
+			default: break;
+
+			case 0x10:	// IRQ status A
+				value = irq_status_a();
+			return true;
+
+			case 0x20:	// IRQ status B
+				value = 0x00;
+			return true;
+
+			case 0x30:	// FIQ status
+				value = 0x80;
+			return true;
+		}
+		logger.error().append("TODO: IO controller read from %08x", address);
+
+		return false;
+	}
+
+	bool write(uint32_t address, uint8_t value) {
+		logger.error().append("TODO: IO controller write of %02x at %08x", value, address);
+		return false;
+	}
+
+private:
 	uint8_t irq_status_a() const {
 		return irq_status_a_;
 	}
@@ -210,9 +242,7 @@ struct Memory {
 				return true;
 			} break;
 
-			case Zone::IOControllers:
-				logger.error().append("TODO: Write to IO controllers of %08x to %08x", source, address);
-			break;
+			case Zone::IOControllers: return ioc_.write(address, source);
 
 			case Zone::VideoController:
 				// TODO: handle byte writes correctly.
@@ -273,24 +303,19 @@ struct Memory {
 				source = high_rom<IntT>(address);
 			return true;
 
-			case Zone::IOControllers:
-				switch(address & 0x7f) {
-					default: break;
-
-					case 0x10:	// IRQ status A
-						source = ioc_.irq_status_a();
-					return true;
-
-					case 0x20:	// IRQ status B
-						source = 0x00;
-					return true;
-
-					case 0x30:	// FIQ status
-						source = 0x80;
+			case Zone::IOControllers:	{
+				if constexpr (std::is_same_v<IntT, uint8_t>) {
+					return ioc_.read(address, source);
+				} else {
+					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
+					uint8_t value;
+					if(!ioc_.read(address, value)) {
+						return false;
+					}
+					source = value;
 					return true;
 				}
-				logger.error().append("TODO: IO controller read from %08x", address);
-			break;
+			}
 
 			default:
 				logger.error().append("TODO: read from %08x", address);
@@ -304,6 +329,10 @@ struct Memory {
 	Memory() {
 		// Install initial logical memory map.
 		update_mapping();
+	}
+
+	void tick_timers() {
+		ioc_.tick_timers();
 	}
 
 	private:
@@ -522,11 +551,20 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer
 {
+	// TODO: pick a sensible clock rate; this is just code for '20 MIPS, please'.
+	static constexpr int ClockRate = 20'000'000;
+
+	// Timers tick at 2Mhz, so figure out the proper divider for that.
+	static constexpr int TimerTarget = ClockRate / 2'000'000;
+	int timer_divider_ = TimerTarget;
+
 	public:
 		ConcreteMachine(
 			const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) {
+			set_clock_rate(ClockRate);
+
 			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS319;
 			ROM::Request request(risc_os);
 			auto roms = rom_fetcher(request);
@@ -535,10 +573,6 @@ class ConcreteMachine:
 			}
 
 			executor_.bus.set_rom(roms.find(risc_os)->second);
-
-			// TODO: pick a sensible clock rate; this is just code for '20 MIPS, please'.
-			set_clock_rate(20'000'000);
-
 			insert_media(target.media);
 		}
 
@@ -557,25 +591,39 @@ class ConcreteMachine:
 			static uint32_t last_pc = 0;
 
 			auto instructions = cycles.as<int>();
-			while(instructions--) {
-				uint32_t instruction;
-				if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
-					logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
-					executor_.prefetch_abort();
 
-					// TODO: does a double abort cause a reset?
-					executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
-				} else {
-					last_pc = executor_.pc();
+			while(instructions) {
+				auto run_length = std::min(timer_divider_, instructions);
+				instructions -= run_length;
+				timer_divider_ -= run_length;
+
+				while(run_length--) {
+					uint32_t instruction;
+					if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
+						logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
+						executor_.prefetch_abort();
+
+						// TODO: does a double abort cause a reset?
+						executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
+					} else {
+						last_pc = executor_.pc();
+					}
+					// TODO: pipeline prefetch?
+
+//					static bool log = false;
+//					if(log) {
+//						logger.info().append("%08x: %08x [r14:%08x]", executor_.pc(), instruction, executor_.registers()[14]);
+//					}
+					InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 				}
-				// TODO: pipeline prefetch?
 
-//				static bool log = false;
-//				if(log) {
-//					logger.info().append("%08x: %08x [r14:%08x]", executor_.pc(), instruction, executor_.registers()[14]);
-//				}
-				InstructionSet::ARM::execute<arm_model>(instruction, executor_);
+				if(!timer_divider_) {
+					executor_.bus.tick_timers();
+					timer_divider_ = TimerTarget;
+				}
 			}
+
+
 		}
 
 		// MARK: - MediaTarget
