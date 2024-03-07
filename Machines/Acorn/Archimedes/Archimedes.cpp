@@ -554,18 +554,26 @@ class ConcreteMachine:
 
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
+			static uint32_t last_pc = 0;
+
 			auto instructions = cycles.as<int>();
 			while(instructions--) {
 				uint32_t instruction;
 				if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
+					logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
 					executor_.prefetch_abort();
 
 					// TODO: does a double abort cause a reset?
 					executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
+				} else {
+					last_pc = executor_.pc();
 				}
 				// TODO: pipeline prefetch?
 
-//				logger.info().append("%08x: %08x", executor_.pc(), instruction);
+//				static bool log = false;
+//				if(log) {
+//					logger.info().append("%08x: %08x", executor_.pc(), instruction);
+//				}
 				InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 			}
 		}
