@@ -184,10 +184,8 @@ struct Executor {
 			// processor mode."
 
 			if(fields.destination() == 15) {
-				if constexpr (is_comparison(flags.operation())) {
-					registers_.set_status(conditions);
-				} else {
-					registers_.set_status(pc_proxy);
+				registers_.set_status(conditions);
+				if constexpr (!is_comparison(flags.operation())) {
 					registers_.set_pc(pc_proxy);
 				}
 			} else {
@@ -201,7 +199,7 @@ struct Executor {
 			}
 		} else {
 			// "If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written."
-			if(fields.destination() == 15 && !is_logical(flags.operation())) {
+			if(fields.destination() == 15 && !is_comparison(flags.operation())) {
 				registers_.set_pc(pc_proxy);
 			}
 		}

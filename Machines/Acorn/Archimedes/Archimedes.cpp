@@ -572,7 +572,7 @@ class ConcreteMachine:
 
 //				static bool log = false;
 //				if(log) {
-//					logger.info().append("%08x: %08x", executor_.pc(), instruction);
+//					logger.info().append("%08x: %08x [r14:%08x]", executor_.pc(), instruction, executor_.registers()[14]);
 //				}
 				InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 			}
