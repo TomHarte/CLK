@@ -546,8 +546,6 @@ struct Memory {
 		}
 
 		void update_mapping() {
-			logger.info().append("Updated logical RAM mapping");
-
 			// For each physical page, project it into logical space.
 			switch(page_size_) {
 				default:
@@ -556,6 +554,8 @@ struct Memory {
 				case PageSize::kb16:	update_mapping<PageSize::kb16>();	break;
 				case PageSize::kb32:	update_mapping<PageSize::kb32>();	break;
 			}
+
+			logger.info().append("Updated logical RAM mapping");
 		}
 
 		template <PageSize size>
@@ -679,6 +679,10 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
 			static uint32_t last_pc = 0;
+			static uint32_t last_link = 0;
+			static uint32_t last_r0 = 0;
+			static uint32_t last_r1 = 0;
+			static uint32_t last_r10 = 0;
 
 			auto instructions = cycles.as<int>();
 
@@ -701,10 +705,44 @@ class ConcreteMachine:
 					// TODO: pipeline prefetch?
 
 					static bool log = false;
+
+//					if(executor_.pc() == 0x02000058) {
+//						printf("");
+//					}
+//					log |= (executor_.pc() == 0x02000054);
+//					log = (executor_.pc() == 0x038019dc);
+
 					if(log) {
-						logger.info().append("%08x: %08x [r0:%08x]", executor_.pc(), instruction, executor_.registers()[0]);
+						logger.info().append("%08x: %08x prior:[r0:%08x r1:%08x r4:%08x r10:%08x r14:%08x]",
+							executor_.pc(),
+							instruction,
+							executor_.registers()[0],
+							executor_.registers()[1],
+							executor_.registers()[4],
+							executor_.registers()[10],
+							executor_.registers()[14]
+						);
 					}
 					InstructionSet::ARM::execute<arm_model>(instruction, executor_);
+
+//					if(
+//						last_link != executor_.registers()[14] ||
+//						last_r0 != executor_.registers()[0] ||
+//						last_r10 != executor_.registers()[10] ||
+//						last_r1 != executor_.registers()[1]
+//					) {
+//						logger.info().append("%08x modified R14 to %08x; R0 to %08x; R10 to %08x; R1 to %08x",
+//							last_pc,
+//							executor_.registers()[14],
+//							executor_.registers()[0],
+//							executor_.registers()[10],
+//							executor_.registers()[1]
+//						);
+//						last_link = executor_.registers()[14];
+//						last_r0 = executor_.registers()[0];
+//						last_r10 = executor_.registers()[10];
+//						last_r1 = executor_.registers()[1];
+//					}
 				}
 
 				if(!timer_divider_) {
