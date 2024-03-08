@@ -475,7 +475,7 @@ struct Executor {
 		address_error = address >= (1 << 26);
 
 		// Write out registers 1 to 14.
-		for(int c = 0; c < 15; c++) {
+		for(uint32_t c = 0; c < 15; c++) {
 			if(list & (1 << c)) {
 				access(registers_[c]);
 

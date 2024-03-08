@@ -270,12 +270,12 @@ struct Registers {
 			mode_ = target_mode;
 		}
 
-		uint32_t &operator[](size_t offset) {
-			return active_[offset];
+		uint32_t &operator[](uint32_t offset) {
+			return active_[static_cast<size_t>(offset)];
 		}
 
-		uint32_t operator[](size_t offset) const {
-			return active_[offset];
+		uint32_t operator[](uint32_t offset) const {
+			return active_[static_cast<size_t>(offset)];
 		}
 
 	private:

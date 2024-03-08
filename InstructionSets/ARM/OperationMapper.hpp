@@ -43,15 +43,15 @@ struct WithShiftControlBits {
 	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
-	int operand2() const					{	return opcode_ & 0xf;					}
+	uint32_t operand2() const				{	return opcode_ & 0xf;					}
 	/// The type of shift to apply to operand 2 if @c operand2_is_immediate() is @c false; meaningless otherwise.
 	ShiftType shift_type() const			{	return ShiftType((opcode_ >> 5) & 3);	}
 	/// @returns @c true if the amount to shift by should be taken from a register; @c false if it is an immediate value.
 	bool shift_count_is_register() const	{	return opcode_ & (1 << 4);				}
 	/// The shift amount register index if @c shift_count_is_register() is @c true; meaningless otherwise.
-	int shift_register() const				{	return (opcode_ >> 8) & 0xf;			}
+	uint32_t shift_register() const			{	return (opcode_ >> 8) & 0xf;			}
 	/// The amount to shift by if @c shift_count_is_register() is @c false; meaningless otherwise.
-	int shift_amount() const				{	return (opcode_ >> 7) & 0x1f;			}
+	uint32_t shift_amount() const			{	return (opcode_ >> 7) & 0x1f;			}
 
 protected:
 	uint32_t opcode_;
@@ -160,10 +160,10 @@ struct DataProcessing: public WithShiftControlBits {
 	using WithShiftControlBits::WithShiftControlBits;
 
 	/// The destination register index. i.e. Rd.
-	int destination() const				{	return (opcode_ >> 12) & 0xf;	}
+	uint32_t destination() const		{	return (opcode_ >> 12) & 0xf;	}
 
 	/// The operand 1 register index. i.e. Rn.
-	int operand1() const				{	return (opcode_ >> 16) & 0xf;	}
+	uint32_t operand1() const			{	return (opcode_ >> 16) & 0xf;	}
 
 	//
 	// Immediate values for operand 2.
@@ -246,13 +246,13 @@ struct SingleDataTransfer: public WithShiftControlBits {
 	using WithShiftControlBits::WithShiftControlBits;
 
 	/// The destination register index. i.e. 'Rd' for LDR.
-	int destination() const				{	return (opcode_ >> 12) & 0xf;	}
+	uint32_t destination() const		{	return (opcode_ >> 12) & 0xf;	}
 
 	/// The destination register index. i.e. 'Rd' for STR.
-	int source() const					{	return (opcode_ >> 12) & 0xf;	}
+	uint32_t source() const				{	return (opcode_ >> 12) & 0xf;	}
 
 	/// The base register index. i.e. 'Rn'.
-	int base() const					{	return (opcode_ >> 16) & 0xf;	}
+	uint32_t base() const				{	return (opcode_ >> 16) & 0xf;	}
 
 	/// The immediate offset, if @c offset_is_register() was @c false; meaningless otherwise.
 	uint32_t immediate() const			{	return opcode_ & 0xfff;			}
@@ -307,11 +307,11 @@ private:
 struct CoprocessorDataOperation {
 	constexpr CoprocessorDataOperation(uint32_t opcode) noexcept : opcode_(opcode) {}
 
-	int operand1() const	{ return (opcode_ >> 16) & 0xf;	}
-	int operand2() const	{ return opcode_ & 0xf; 		}
-	int destination() const	{ return (opcode_ >> 12) & 0xf;	}
-	int coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
-	int information() const	{ return (opcode_ >> 5) & 0x7;	}
+	uint32_t operand1() const		{ return (opcode_ >> 16) & 0xf;	}
+	uint32_t operand2() const		{ return opcode_ & 0xf; 		}
+	uint32_t destination() const	{ return (opcode_ >> 12) & 0xf;	}
+	uint32_t coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
+	uint32_t information() const	{ return (opcode_ >> 5) & 0x7;	}
 
 private:
 	uint32_t opcode_;
@@ -340,11 +340,11 @@ private:
 struct CoprocessorRegisterTransfer {
 	constexpr CoprocessorRegisterTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
 
-	int operand1() const	{ return (opcode_ >> 16) & 0xf;	}
-	int operand2() const	{ return opcode_ & 0xf; 		}
-	int destination() const	{ return (opcode_ >> 12) & 0xf;	}
-	int coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
-	int information() const	{ return (opcode_ >> 5) & 0x7;	}
+	uint32_t operand1() const		{ return (opcode_ >> 16) & 0xf;	}
+	uint32_t operand2() const		{ return opcode_ & 0xf; 		}
+	uint32_t destination() const	{ return (opcode_ >> 12) & 0xf;	}
+	uint32_t coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
+	uint32_t information() const	{ return (opcode_ >> 5) & 0x7;	}
 
 private:
 	uint32_t opcode_;

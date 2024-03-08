@@ -170,6 +170,7 @@ struct Interrupts {
 
 	bool read(uint32_t address, uint8_t &value) {
 		const auto target = address & 0x7f;
+		logger.error().append("IO controller read from %08x", address);
 		switch(target) {
 			default: break;
 
@@ -202,12 +203,12 @@ struct Interrupts {
 			return true;
 		}
 
-		logger.error().append("TODO: IO controller read from %08x", address);
 		return false;
 	}
 
 	bool write(uint32_t address, uint8_t value) {
 		const auto target = address & 0x7f;
+		logger.error().append("IO controller write of %02x at %08x", value, address);
 		switch(target) {
 			default: break;
 
@@ -249,7 +250,6 @@ struct Interrupts {
 			return true;
 		}
 
-		logger.error().append("TODO: IO controller write of %02x at %08x", value, address);
 		return false;
 	}
 
@@ -714,32 +714,37 @@ class ConcreteMachine:
 					}
 					// TODO: pipeline prefetch?
 
-					static bool log = false;
+					static bool log = true;
 
-					if(executor_.pc() == 0x03801a1c) {
-						printf("");
-					}
+//					if(executor_.pc() == 0x0380096c) {
+//						printf("");
+//					}
 //					log |= (executor_.pc() > 0 && executor_.pc() < 0x03800000);
-					log |= (executor_.pc() == 0x038019e0);
+					log |= executor_.pc() == 0x38008e0;
+//					log |= (executor_.pc() > 0x03801000);
+//					log &= (executor_.pc() != 0x038019f8);
+
+					if(executor_.pc() == 0x38008e0) //0x038019f8)
+						return;
 
 					if(log) {
-						logger.info().append("%08x: %08x prior:[r0:%08x r1:%08x r4:%08x r10:%08x r14:%08x]",
-							executor_.pc(),
-							instruction,
-							executor_.registers()[0],
-							executor_.registers()[1],
-							executor_.registers()[4],
-							executor_.registers()[10],
-							executor_.registers()[14]
-						);
+						auto info = logger.info();
+						info.append("%08x: %08x prior:[", executor_.pc(), instruction);
+						for(size_t c = 0; c < 15; c++) {
+							info.append("r%d:%08x ", c, executor_.registers()[c]);
+						}
+						info.append("]");
 					}
 					InstructionSet::ARM::execute<arm_model>(instruction, executor_);
 
 //					if(
-//						last_link != executor_.registers()[14] ||
-//						last_r0 != executor_.registers()[0] ||
-//						last_r10 != executor_.registers()[10] ||
-//						last_r1 != executor_.registers()[1]
+////						executor_.pc() > 0x038021d0 &&
+//						(
+//							last_link != executor_.registers()[14] ||
+//							last_r0 != executor_.registers()[0] ||
+//							last_r10 != executor_.registers()[10] ||
+//							last_r1 != executor_.registers()[1]
+//						)
 //					) {
 //						logger.info().append("%08x modified R14 to %08x; R0 to %08x; R10 to %08x; R1 to %08x",
 //							last_pc,
