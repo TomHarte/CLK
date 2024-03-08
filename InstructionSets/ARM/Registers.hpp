@@ -221,10 +221,15 @@ struct Registers {
 
 			// For outgoing modes other than FIQ, only save the final two registers for now;
 			// if the incoming mode is FIQ then the other five will be saved in the next switch.
+			// For FIQ, save all seven up front.
 			switch(mode_) {
+				// FIQ outgoing: save R8 to R14.
 				case Mode::FIQ:
 					std::copy(active_.begin() + 8, active_.begin() + 15, fiq_registers_.begin());
 				break;
+
+				// Non-FIQ outgoing: save R13 and R14. If saving to the user registers,
+				// use only the final two slots.
 				case Mode::User:
 					std::copy(active_.begin() + 13, active_.begin() + 15, user_registers_.begin() + 5);
 				break;
@@ -240,7 +245,10 @@ struct Registers {
 			// For FIQ: save an additional five, then overwrite seven.
 			switch(target_mode) {
 				case Mode::FIQ:
+					// FIQ is incoming, so save registers 8 to 12 to the first five slots of the user registers.
 					std::copy(active_.begin() + 8, active_.begin() + 13, user_registers_.begin());
+
+					// Replace R8 to R14.
 					std::copy(fiq_registers_.begin(), fiq_registers_.end(), active_.begin() + 8);
 				break;
 				case Mode::User:
