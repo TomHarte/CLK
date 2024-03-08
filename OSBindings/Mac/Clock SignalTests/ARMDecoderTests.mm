@@ -210,6 +210,73 @@ struct Memory {
 	XCTAssertEqual(carry, 0);
 }
 
+- (void)testRegisterModes {
+	Registers r;
+
+	// Set all user mode registers to their indices.
+	r.set_mode(Mode::User);
+	for(int c = 0; c < 15; c++) {
+		r[c] = c;
+	}
+
+	// Set FIQ registers.
+	r.set_mode(Mode::FIQ);
+	for(int c = 8; c < 15; c++) {
+		r[c] = c | 0x100;
+	}
+
+	// Set IRQ registers.
+	r.set_mode(Mode::IRQ);
+	for(int c = 13; c < 15; c++) {
+		r[c] = c | 0x200;
+	}
+
+	// Set supervisor registers.
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::User);
+	r.set_mode(Mode::Supervisor);
+	for(int c = 13; c < 15; c++) {
+		r[c] = c | 0x300;
+	}
+
+	// Check all results.
+	r.set_mode(Mode::User);
+	r.set_mode(Mode::FIQ);
+	for(int c = 0; c < 8; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+	for(int c = 8; c < 15; c++) {
+		XCTAssertEqual(r[c], c | 0x100);
+	}
+
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::IRQ);
+	r.set_mode(Mode::User);
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::Supervisor);
+	for(int c = 0; c < 13; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+	for(int c = 13; c < 15; c++) {
+		XCTAssertEqual(r[c], c | 0x300);
+	}
+
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::User);
+	for(int c = 0; c < 15; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+
+	r.set_mode(Mode::Supervisor);
+	r.set_mode(Mode::IRQ);
+	for(int c = 0; c < 13; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+	for(int c = 13; c < 15; c++) {
+		XCTAssertEqual(r[c], c | 0x200);
+	}
+}
+
 // TODO: turn the below into a trace-driven test case.
 - (void)testROM319 {
 	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
