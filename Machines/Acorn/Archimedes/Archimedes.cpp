@@ -564,7 +564,7 @@ struct Memory {
 			std::fill(mapping_.begin(), mapping_.end(), MappedPage{});
 
 			const auto bits = [](int start, int end) -> uint32_t {
-				return ((1 << start) - 1) - ((1 << end) - 1);
+				return ((1 << (start + 1)) - 1) - ((1 << end) - 1);
 			};
 
 			// For each physical page, project it into logical space
@@ -613,12 +613,12 @@ struct Memory {
 
 					case PageSize::kb32:
 						// 32kb:
-						//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[6:3]
+						//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[3:0]
 						//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]	i.e. 1024 logical pages
 						physical = (page & bits(1, 1)) << 5;
 						physical |= (page & bits(2, 2)) << 3;
 						physical |= (page & bits(0, 0)) << 4;
-						physical |= page & bits(6, 3);
+						physical |= (page & bits(6, 3)) >> 3;
 
 						physical <<= 15;
 
@@ -750,8 +750,6 @@ class ConcreteMachine:
 					timer_divider_ = TimerTarget;
 				}
 			}
-
-
 		}
 
 		// MARK: - MediaTarget
