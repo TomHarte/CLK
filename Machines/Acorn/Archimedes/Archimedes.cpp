@@ -289,6 +289,11 @@ struct Memory {
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool trans) {
 		(void)trans;
 
+//		if(address == 0x0200002c && address < 0x04000000) {
+//		if(address == 0x02000074) {
+//			printf("%08x <- %08x\n", address, source);
+//		}
+//
 		switch (write_zones_[(address >> 21) & 31]) {
 			case Zone::DMAAndMEMC:
 //				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
@@ -434,7 +439,12 @@ struct Memory {
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
-			return *reinterpret_cast<IntT *>(&ram_[address & (ram_.size() - 1)]);
+			address &= ram_.size() - 1;
+			if(address == (0x02000074 & (ram_.size() - 1))) {
+				printf("%08x\n", address);
+			}
+
+			return *reinterpret_cast<IntT *>(&ram_[address]);
 		}
 
 		template <typename IntT>
@@ -641,8 +651,8 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer
 {
-	// TODO: pick a sensible clock rate; this is just code for '20 MIPS, please'.
-	static constexpr int ClockRate = 20'000'000;
+	// TODO: pick a sensible clock rate; this is just code for '24 MIPS, please'.
+	static constexpr int ClockRate = 24'000'000;
 
 	// Timers tick at 2Mhz, so figure out the proper divider for that.
 	static constexpr int TimerTarget = ClockRate / 2'000'000;
@@ -706,11 +716,11 @@ class ConcreteMachine:
 
 					static bool log = false;
 
-//					if(executor_.pc() == 0x02000058) {
-//						printf("");
-//					}
-//					log |= (executor_.pc() == 0x02000054);
-//					log = (executor_.pc() == 0x038019dc);
+					if(executor_.pc() == 0x03801a1c) {
+						printf("");
+					}
+//					log |= (executor_.pc() > 0 && executor_.pc() < 0x03800000);
+					log |= (executor_.pc() == 0x038019e0);
 
 					if(log) {
 						logger.info().append("%08x: %08x prior:[r0:%08x r1:%08x r4:%08x r10:%08x r14:%08x]",
