@@ -46,6 +46,11 @@ enum class Mode {
 /// This is to try to keep this structure independent of a specific ARM implementation.
 struct Registers {
 	public:
+		// Don't allow copying.
+		Registers(const Registers &) = delete;
+		Registers &operator =(const Registers &) = delete;
+		Registers() = default;
+
 		/// Sets the N and Z flags according to the value of @c result.
 		void set_nz(uint32_t value) {
 			zero_result_ = negative_flag_ = value;
