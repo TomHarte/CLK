@@ -64,13 +64,41 @@ struct Memory {
 struct MemoryLedger {
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, Mode, bool) {
-		return false;	// TODO.
+		if(write_pointer == writes.size() || writes[write_pointer].size != sizeof(IntT) || writes[write_pointer].address != address || writes[write_pointer].value != source) {
+			throw 0;
+		}
+		++write_pointer;
+		return true;
 	}
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode, bool) {
-		return false;	// TODO.
+		if(read_pointer == reads.size() || reads[read_pointer].size != sizeof(IntT) || reads[read_pointer].address != address) {
+			throw 0;
+		}
+		source = reads[read_pointer].value;
+		++read_pointer;
+		return true;
 	}
+
+	struct Access {
+		size_t size;
+		uint32_t address;
+		uint32_t value;
+	};
+
+	template <typename IntT>
+	void add_access(bool is_read, uint32_t address, IntT value) {
+		auto &read = is_read ? reads.emplace_back() : writes.emplace_back();
+		read.address = address;
+		read.value = value;
+		read.size = sizeof(IntT);
+	}
+
+	std::vector<Access> reads;
+	std::vector<Access> writes;
+	size_t read_pointer = 0;
+	size_t write_pointer = 0;
 };
 
 }
@@ -339,7 +367,10 @@ struct MemoryLedger {
 				execute<Model::ARMv2>(instruction, *test);
 
 				for(uint32_t c = 0; c < 15; c++) {
-					XCTAssertEqual(regs[c], registers[c]);
+					XCTAssertEqual(
+						regs[c],
+						registers[c],
+						@"R%d doesn't match during instruction %08x", c, instruction);
 				}
 			}
 			continue;
@@ -353,21 +384,25 @@ struct MemoryLedger {
 
 		if(label == "r.b") {
 			// Capture a byte read for provision.
+			test->bus.add_access<uint8_t>(true, address, value);
 			continue;
 		}
 
 		if(label == "r.w") {
 			// Capture a word read for provision.
+			test->bus.add_access<uint32_t>(true, address, value);
 			continue;
 		}
 
 		if(label == "w.b") {
 			// Capture a byte write for comparison.
+			test->bus.add_access<uint8_t>(false, address, value);
 			continue;
 		}
 
 		if(label == "w.w") {
 			// Capture a word write for comparison.
+			test->bus.add_access<uint32_t>(false, address, value);
 			continue;
 		}
 	}
