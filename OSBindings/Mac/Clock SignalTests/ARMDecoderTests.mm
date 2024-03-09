@@ -10,6 +10,9 @@
 
 #include "../../../InstructionSets/ARM/Executor.hpp"
 #include "CSROMFetcher.hpp"
+#include "NSData+dataWithContentsOfGZippedFile.h"
+
+#include <sstream>
 
 using namespace InstructionSet::ARM;
 
@@ -275,6 +278,72 @@ struct Memory {
 	for(int c = 13; c < 15; c++) {
 		XCTAssertEqual(r[c], c | 0x200);
 	}
+}
+
+- (void)testMessy {
+	NSData *const tests =
+		[NSData dataWithContentsOfGZippedFile:
+			[[NSBundle bundleForClass:[self class]]
+				pathForResource:@"test"
+				ofType:@"txt.gz"
+				inDirectory:@"Messy ARM"]
+		];
+	const std::string text((char *)tests.bytes);
+	std::istringstream input(text);
+
+	input >> std::hex;
+
+	uint32_t instruction;
+	while(!input.eof()) {
+		std::string label;
+		input >> label;
+
+		if(label == "**") {
+			input >> instruction;
+			continue;
+		}
+
+		if(label == "Before:" || label == "After:") {
+			// Read register state.
+			uint32_t regs[17];
+			for(int c = 0; c < 17; c++) {
+				input >> regs[c];
+			}
+
+			if(label == "Before:") {
+				// This is the start of a new test.
+			} else {
+				// Execute test and compare.
+			}
+			continue;
+		}
+
+		uint32_t address;
+		uint32_t value;
+		input >> address >> value;
+
+		if(label == "r.b") {
+			// Capture a byte read for provision.
+			continue;
+		}
+
+		if(label == "r.w") {
+			// Capture a word read for provision.
+			continue;
+		}
+
+		if(label == "w.b") {
+			// Capture a byte write for comparison.
+			continue;
+		}
+
+		if(label == "w.w") {
+			// Capture a word write for comparison.
+			continue;
+		}
+	}
+
+	XCTAssertNotNil(tests);
 }
 
 // TODO: turn the below into a trace-driven test case.

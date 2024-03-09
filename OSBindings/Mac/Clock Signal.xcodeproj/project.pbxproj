@@ -968,6 +968,7 @@
 		4BB505832B962DDF0031C43C /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505762B962DDF0031C43C /* Keyboard.cpp */; };
 		4BB505862B9634F30031C43C /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
 		4BB505872B9634F30031C43C /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
+		4BB505892B9C0E6F0031C43C /* Messy ARM in Resources */ = {isa = PBXBuildFile; fileRef = 4BB505882B9C0E6F0031C43C /* Messy ARM */; };
 		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
@@ -2106,6 +2107,7 @@
 		4BB505772B962DDF0031C43C /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Electron.hpp; sourceTree = "<group>"; };
 		4BB505842B9634F30031C43C /* Archimedes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Archimedes.cpp; sourceTree = "<group>"; };
 		4BB505852B9634F30031C43C /* Archimedes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Archimedes.hpp; sourceTree = "<group>"; };
+		4BB505882B9C0E6F0031C43C /* Messy ARM */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Messy ARM"; sourceTree = "<group>"; };
 		4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4BB5B996281B1E3F00522DA9 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4BB5B997281B1F7B00522DA9 /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
@@ -2683,6 +2685,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4BB505882B9C0E6F0031C43C /* Messy ARM */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B75F97A280D7C7700121055 /* 68000 Decoding */,
 				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
@@ -5572,6 +5575,7 @@
 				4BB299B51B587D8400A49093 /* rolzx in Resources */,
 				4BB299DD1B587D8400A49093 /* stxa in Resources */,
 				4BB299051B587D8400A49093 /* arrb in Resources */,
+				4BB505892B9C0E6F0031C43C /* Messy ARM in Resources */,
 				4BB299DC1B587D8400A49093 /* stazx in Resources */,
 				4B670A9D2401CB8400D4E002 /* z80ccf.tap in Resources */,
 				4B4F47652533EA64004245B8 /* suite-a.prg in Resources */,

@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <array>
+#include <set>
 #include <vector>
 
 namespace {
@@ -686,6 +687,8 @@ class ConcreteMachine:
 			return Outputs::Display::ScanStatus();
 		}
 
+		std::set<uint32_t> all;
+
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
 			static uint32_t last_pc = 0;
@@ -714,23 +717,25 @@ class ConcreteMachine:
 					}
 					// TODO: pipeline prefetch?
 
-					static bool log = true;
+					static bool log = false;
 
-//					if(executor_.pc() == 0x0380096c) {
+					all.insert(instruction);
+
+//					if(executor_.pc() == 0x03801404) {
 //						printf("");
 //					}
 //					log |= (executor_.pc() > 0 && executor_.pc() < 0x03800000);
-					log |= executor_.pc() == 0x38008e0;
+//					log |= executor_.pc() == 0x38008e0;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= (executor_.pc() != 0x038019f8);
 
-					if(executor_.pc() == 0x38008e0) //0x038019f8)
-						return;
+//					if(executor_.pc() == 0x38008e0) //0x038019f8)
+//						return;
 
 					if(log) {
 						auto info = logger.info();
 						info.append("%08x: %08x prior:[", executor_.pc(), instruction);
-						for(size_t c = 0; c < 15; c++) {
+						for(uint32_t c = 0; c < 15; c++) {
 							info.append("r%d:%08x ", c, executor_.registers()[c]);
 						}
 						info.append("]");
