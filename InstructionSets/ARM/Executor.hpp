@@ -550,6 +550,12 @@ struct Executor {
 		return registers_;
 	}
 
+	// Included primarily for testing; my full opinion on this is still
+	// incompletely-formed.
+	Registers &registers() {
+		return registers_;
+	}
+
 	/// Indicates a prefetch abort exception.
 	void prefetch_abort() {
 		registers_.exception<Registers::Exception::PrefetchAbort>();
