@@ -61,6 +61,18 @@ struct Memory {
 		std::array<uint8_t, 4*1024*1024> ram_{};
 };
 
+struct MemoryLedger {
+	template <typename IntT>
+	bool write(uint32_t address, IntT source, Mode, bool) {
+		return false;	// TODO.
+	}
+
+	template <typename IntT>
+	bool read(uint32_t address, IntT &source, Mode, bool) {
+		return false;	// TODO.
+	}
+};
+
 }
 
 @interface ARMDecoderTests : XCTestCase
@@ -293,30 +305,47 @@ struct Memory {
 
 	input >> std::hex;
 
-	uint32_t instruction;
+	using Exec = Executor<Model::ARMv2, MemoryLedger>;
+	std::unique_ptr<Exec> test;
+
+	uint32_t instruction = 0;
 	while(!input.eof()) {
 		std::string label;
 		input >> label;
 
 		if(label == "**") {
 			input >> instruction;
+			test = std::make_unique<Exec>();
 			continue;
 		}
 
 		if(label == "Before:" || label == "After:") {
 			// Read register state.
-			uint32_t regs[17];
-			for(int c = 0; c < 17; c++) {
+			uint32_t regs[16];
+			for(int c = 0; c < 16; c++) {
 				input >> regs[c];
 			}
 
+			auto &registers = test->registers();
 			if(label == "Before:") {
 				// This is the start of a new test.
+				registers.set_pc(regs[15] - 8);
+				registers.set_status(regs[15]);
+				for(uint32_t c = 0; c < 15; c++) {
+					registers[c] = regs[c];
+				}
 			} else {
 				// Execute test and compare.
+				execute<Model::ARMv2>(instruction, *test);
+
+				for(uint32_t c = 0; c < 15; c++) {
+					XCTAssertEqual(regs[c], registers[c]);
+				}
 			}
 			continue;
 		}
+
+		// TODO: supply information below to ledger, and then use and test it.
 
 		uint32_t address;
 		uint32_t value;
