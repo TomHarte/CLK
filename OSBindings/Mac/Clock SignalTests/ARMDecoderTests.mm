@@ -337,12 +337,14 @@ struct MemoryLedger {
 	std::unique_ptr<Exec> test;
 
 	uint32_t instruction = 0;
+	int test_count = 0;
 	while(!input.eof()) {
 		std::string label;
 		input >> label;
 
 		if(label == "**") {
 			input >> instruction;
+			test_count = 0;
 			test = std::make_unique<Exec>();
 			continue;
 		}
@@ -357,6 +359,7 @@ struct MemoryLedger {
 			auto &registers = test->registers();
 			if(label == "Before:") {
 				// This is the start of a new test.
+				registers.set_mode(Mode::Supervisor);	// To make sure the actual mode is applied.
 				registers.set_pc(regs[15] - 8);
 				registers.set_status(regs[15]);
 				for(uint32_t c = 0; c < 15; c++) {
@@ -364,14 +367,22 @@ struct MemoryLedger {
 				}
 			} else {
 				// Execute test and compare.
+				++test_count;
 				execute<Model::ARMv2>(instruction, *test);
 
 				for(uint32_t c = 0; c < 15; c++) {
 					XCTAssertEqual(
 						regs[c],
 						registers[c],
-						@"R%d doesn't match during instruction %08x", c, instruction);
+						@"R%d doesn't match during instruction %08x, test %d", c, instruction, test_count);
 				}
+				XCTAssertEqual(
+					regs[15],
+					registers.pc_status(8),
+					@"PC or PSR doesn't match during instruction %08x, test %d; PC: %08x v %08x; PSR: %08x v %08x",
+						instruction, test_count,
+						regs[15] & 0x3fffffc, registers.pc(8),
+						regs[15] & ~0x3fffffc, registers.status());
 			}
 			continue;
 		}
