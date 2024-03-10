@@ -12,6 +12,7 @@
 #include "CSROMFetcher.hpp"
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
+#include <map>
 #include <sstream>
 
 using namespace InstructionSet::ARM;
@@ -65,7 +66,7 @@ struct MemoryLedger {
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, Mode, bool) {
 		if(write_pointer == writes.size() || writes[write_pointer].size != sizeof(IntT) || writes[write_pointer].address != address || writes[write_pointer].value != source) {
-			throw 0;
+			return false;
 		}
 		++write_pointer;
 		return true;
@@ -74,7 +75,7 @@ struct MemoryLedger {
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode, bool) {
 		if(read_pointer == reads.size() || reads[read_pointer].size != sizeof(IntT) || reads[read_pointer].address != address) {
-			throw 0;
+			return false;
 		}
 		source = reads[read_pointer].value;
 		++read_pointer;
@@ -336,6 +337,13 @@ struct MemoryLedger {
 	using Exec = Executor<Model::ARMv2, MemoryLedger>;
 	std::unique_ptr<Exec> test;
 
+	struct FailureRecord {
+		int count = 0;
+		int first = 0;
+		NSString *sample;
+	};
+	std::map<uint32_t, FailureRecord> failures;
+
 	uint32_t instruction = 0;
 	int test_count = 0;
 	while(!input.eof()) {
@@ -345,7 +353,6 @@ struct MemoryLedger {
 		if(label == "**") {
 			input >> instruction;
 			test_count = 0;
-			test = std::make_unique<Exec>();
 			continue;
 		}
 
@@ -356,6 +363,7 @@ struct MemoryLedger {
 				input >> regs[c];
 			}
 
+			if(!test) test = std::make_unique<Exec>();
 			auto &registers = test->registers();
 			if(label == "Before:") {
 				// This is the start of a new test.
@@ -382,20 +390,30 @@ struct MemoryLedger {
 				}
 
 				execute<Model::ARMv2>(instruction, *test);
+				NSMutableString *error = nil;
 
 				for(uint32_t c = 0; c < 15; c++) {
-					XCTAssertEqual(
-						regs[c],
-						registers[c],
-						@"R%d doesn't match during instruction %08x, test %d", c, instruction, test_count);
+					if(regs[c] != registers[c]) {
+						if(!error) error = [[NSMutableString alloc] init]; else [error appendString:@"; "];
+						[error appendFormat:@"R%d %08x v %08x", c, regs[c], registers[c]];
+					}
 				}
-				XCTAssertEqual(
-					regs[15] & r15_mask,
-					registers.pc_status(8) & r15_mask,
-					@"PC or PSR doesn't match during instruction %08x, test %d; PC: %08x v %08x; PSR: %08x v %08x",
-						instruction, test_count,
-						regs[15] & 0x3fffffc, registers.pc(8),
-						regs[15] & ~0x3fffffc, registers.status());
+				if((regs[15] & r15_mask) != (registers.pc_status(8) & r15_mask)) {
+					if(!error) error = [[NSMutableString alloc] init]; else [error appendString:@"; "];
+					[error appendFormat:@"; PC/PSR %08x/%08x v %08x/%08x",
+						regs[15] & 0x3fffffc, regs[15] & ~0x3fffffc,
+						registers.pc(8), registers.status()];
+				}
+
+				if(error) {
+					++failures[instruction].count;
+					if(failures[instruction].count == 1) {
+						failures[instruction].first = test_count;
+						failures[instruction].sample = error;
+					}
+				}
+
+				test.reset();
 			}
 			continue;
 		}
@@ -431,7 +449,14 @@ struct MemoryLedger {
 		}
 	}
 
-	XCTAssertNotNil(tests);
+	XCTAssertTrue(failures.empty());
+
+	if(!failures.empty()) {
+		NSLog(@"Failed %zu instructions; examples below", failures.size());
+		for(const auto &pair: failures) {
+			NSLog(@"%08x, %d total, test %d: %@", pair.first, pair.second.count, pair.second.first, pair.second.sample);
+		}
+	}
 }
 
 // TODO: turn the below into a trace-driven test case.
