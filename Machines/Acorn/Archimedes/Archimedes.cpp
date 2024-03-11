@@ -740,7 +740,7 @@ class ConcreteMachine:
 						}
 						info.append("]");
 					}
-					InstructionSet::ARM::execute<arm_model>(instruction, executor_);
+					InstructionSet::ARM::execute(instruction, executor_);
 
 //					if(
 ////						executor_.pc() > 0x038021d0 &&

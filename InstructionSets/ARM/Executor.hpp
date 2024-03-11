@@ -278,7 +278,7 @@ struct Executor {
 		}
 
 		// Check for an address exception.
-		if(address >= (1 << 26)) {
+		if(is_invalid_address(address)) {
 			registers_.exception<Registers::Exception::Address>();
 			return;
 		}
@@ -472,7 +472,7 @@ struct Executor {
 		};
 
 		// Check for an address exception.
-		address_error = address >= (1 << 26);
+		address_error = is_invalid_address(address);
 
 		// Write out registers 1 to 14.
 		for(uint32_t c = 0; c < 15; c++) {
@@ -578,6 +578,13 @@ struct Executor {
 
 private:
 	Registers registers_;
+
+	static bool is_invalid_address(uint32_t address) {
+		if constexpr (model == Model::ARMv2with32bitAddressing) {
+			return false;
+		}
+		return address >= 1 << 26;
+	}
 };
 
 /// Executes the instruction @c instruction which should have been fetched from @c executor.pc(),

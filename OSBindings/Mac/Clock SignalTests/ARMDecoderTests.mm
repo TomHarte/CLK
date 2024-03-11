@@ -334,7 +334,7 @@ struct MemoryLedger {
 
 	input >> std::hex;
 
-	using Exec = Executor<Model::ARMv2, MemoryLedger>;
+	using Exec = Executor<Model::ARMv2with32bitAddressing, MemoryLedger>;
 	std::unique_ptr<Exec> test;
 
 	struct FailureRecord {
@@ -389,7 +389,7 @@ struct MemoryLedger {
 					default: break;
 				}
 
-				execute<Model::ARMv2>(instruction, *test);
+				execute(instruction, *test);
 				NSMutableString *error = nil;
 
 				for(uint32_t c = 0; c < 15; c++) {

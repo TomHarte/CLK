@@ -15,6 +15,10 @@ namespace InstructionSet::ARM {
 
 enum class Model {
 	ARMv2,
+
+	/// Like an ARMv2 but all non-PC addressing is 64-bit. Primarily useful for a particular set of test
+	/// cases that I want to apply retroactively; not a real iteration.
+	ARMv2with32bitAddressing,
 };
 
 enum class Condition {
