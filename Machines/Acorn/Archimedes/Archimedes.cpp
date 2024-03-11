@@ -152,8 +152,9 @@ struct Video {
 };
 
 struct Interrupts {
-	// TODO: timers, which decrement at 2Mhz.
-	void tick_timers() {
+	bool tick_timers() {
+		bool did_change_interrupts = false;
+
 		for(int c = 0; c < 4; c++) {
 			// Events happen only on a decrement to 0; a reload value of 0 effectively means 'don't count'.
 			if(!counters_[c].value && !counters_[c].reload) {
@@ -164,9 +165,16 @@ struct Interrupts {
 			if(!counters_[c].value) {
 				counters_[c].value = counters_[c].reload;
 
-				// TODO: event triggered here.
+				switch(c) {
+					case 0:	did_change_interrupts |= irq_a_.apply(0x20);	break;
+					case 1:	did_change_interrupts |= irq_a_.apply(0x40);	break;
+					default: break;
+				}
+				// TODO: events for timers 2 and 3. Also remove some branchyness.
 			}
 		}
+
+		return did_change_interrupts;
 	}
 
 	bool read(uint32_t address, uint8_t &value) {
@@ -266,6 +274,10 @@ private:
 		uint8_t request() const {
 			return status & mask;
 		}
+		bool apply(uint8_t value) {
+			status |= value;
+			return status & mask;
+		}
 	};
 	Interrupt irq_a_, irq_b_, fiq_;
 
@@ -287,21 +299,16 @@ struct Memory {
 	}
 
 	template <typename IntT>
-	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool trans) {
-		(void)trans;
-
+	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool) {
 		if constexpr (std::is_same_v<IntT, uint32_t>) {
 			address &= static_cast<uint32_t>(~3);
 		}
+		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
+			return false;
+		}
 
-//		if(address == 0x0200002c && address < 0x04000000) {
-//		if(address == 0x02000074) {
-//			printf("%08x <- %08x\n", address, source);
-//		}
-//
 		switch (write_zones_[(address >> 21) & 31]) {
 			case Zone::DMAAndMEMC:
-//				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
 				if((address & 0b1110'0000'0000'0000'0000) == 0b1110'0000'0000'0000'0000) {
 					// "The parameters are encoded into the processor address lines".
 					os_mode_ = address & (1 << 12);
@@ -348,7 +355,6 @@ struct Memory {
 			break;
 
 			case Zone::PhysicallyMappedRAM:
-//				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
 				physical_ram<IntT>(address) = source;
 			return true;
 
@@ -366,15 +372,15 @@ struct Memory {
 	}
 
 	template <typename IntT>
-	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
+	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool) {
 		// Unaligned addresses are presented on the bus, but in an Archimedes
 		// the bus will ignore the low two bits.
 		if constexpr (std::is_same_v<IntT, uint32_t>) {
 			address &= static_cast<uint32_t>(~3);
 		}
-
-		(void)trans;
-//		logger.info().append("R %08x", address);
+		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
+			return false;
+		}
 
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
@@ -437,8 +443,8 @@ struct Memory {
 		update_mapping();
 	}
 
-	void tick_timers() {
-		ioc_.tick_timers();
+	bool tick_timers() {
+		return ioc_.tick_timers();
 	}
 
 	private:
@@ -702,10 +708,10 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
 			static uint32_t last_pc = 0;
-			static uint32_t last_link = 0;
-			static uint32_t last_r0 = 0;
-			static uint32_t last_r1 = 0;
-			static uint32_t last_r10 = 0;
+//			static uint32_t last_link = 0;
+//			static uint32_t last_r0 = 0;
+//			static uint32_t last_r1 = 0;
+//			static uint32_t last_r10 = 0;
 
 			auto instructions = cycles.as<int>();
 
@@ -776,8 +782,11 @@ class ConcreteMachine:
 				}
 
 				if(!timer_divider_) {
-					executor_.bus.tick_timers();
 					timer_divider_ = TimerTarget;
+
+					if(executor_.bus.tick_timers()) {
+						logger.error().append("TODO: Interrupts (or maybe in the main loop?)");
+					}
 				}
 			}
 		}
