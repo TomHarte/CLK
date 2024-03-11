@@ -391,10 +391,16 @@ struct MemoryLedger {
 					regs[15] &= 0x03ff'fffc;
 				break;
 
+				case 0xe33ff3c3:
+				case 0xe33ff343:
+				case 0xe33ef000:
+					// TEQs to R15; sometimes these change privilege mode, and the captures then refill
+					// the ARM pipeline, which doesn't match this interpreter's behaviour.
+				continue;
+
 				// TODO:
 				//	* adds to R15: e090f00e, e090f00f; possibly to do with non-multiplexing original?
 				//	* movs to PC: e1b0f00e; as above?
-				//	* some test set teqs — e33ff3c3, e33ff343, e33ef000 — seem to advance the PC twice?
 
 				default: break;
 			}
@@ -418,8 +424,8 @@ struct MemoryLedger {
 				if(ignore_test) {
 					continue;
 				}
-//
-//				if(instruction == 0x03110002 && test_count == 5) {
+
+//				if(instruction == 0xe090f00e && test_count == 1) {
 //					printf("");
 //				}
 
