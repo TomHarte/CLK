@@ -337,10 +337,13 @@ struct Executor {
 
 		// If either postindexing or else with writeback, update base.
 		if constexpr (!flags.pre_index() || flags.write_back_address()) {
-			if(transfer.base() == 15) {
-				registers_.set_pc(offsetted_address);
-			} else {
-				registers_[transfer.base()] = offsetted_address;
+			// Empirically: I think writeback occurs before the access, so shouldn't overwrite on a load.
+			if(flags.operation() == SingleDataTransferFlags::Operation::STR || transfer.base() != transfer.destination()) {
+				if(transfer.base() == 15) {
+					registers_.set_pc(offsetted_address);
+				} else {
+					registers_[transfer.base()] = offsetted_address;
+				}
 			}
 		}
 	}
