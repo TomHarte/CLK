@@ -175,6 +175,7 @@ struct Executor {
 			break;
 		}
 
+		const bool writes_pc = !is_comparison(flags.operation()) && fields.destination() == 15;
 		if constexpr (flags.set_condition_codes()) {
 			// "When Rd is a register other than R15, the condition code flags in the PSR may be
 			// updated from the ALU flags as described above. When Rd is R15 and the S flag in
@@ -185,11 +186,9 @@ struct Executor {
 			// this case to update those PSR flags which are not protected by virtue of the
 			// processor mode."
 
-			if(fields.destination() == 15) {
-				registers_.set_status(conditions);
-				if constexpr (!is_comparison(flags.operation())) {
-					registers_.set_pc(pc_proxy);
-				}
+			if(writes_pc) {
+				registers_.set_status(pc_proxy);
+				registers_.set_pc(pc_proxy);
 			} else {
 				// Set N and Z in a unified way.
 				registers_.set_nz(conditions);
@@ -201,7 +200,7 @@ struct Executor {
 			}
 		} else {
 			// "If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written."
-			if(fields.destination() == 15 && !is_comparison(flags.operation())) {
+			if(writes_pc) {
 				registers_.set_pc(pc_proxy);
 			}
 		}

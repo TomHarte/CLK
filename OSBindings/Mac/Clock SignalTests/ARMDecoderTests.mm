@@ -396,7 +396,7 @@ struct MemoryLedger {
 					// sheet specifically says for a shift-by-register that
 					// "LSL by more than 32 has result zero, carry out zero" so I think
 					// the test set is adrift on the following:
-					ignore_test = test_count == 15 - 1;
+					ignore_test = regs[2] >= 32;
 				break;
 
 				case 0xe090e00f:
@@ -414,6 +414,9 @@ struct MemoryLedger {
 			auto &registers = test->registers();
 			if(label == "Before:") {
 				// This is the start of a new test.
+				// TODO: establish implicit register values?
+
+				// Apply provided state.
 				registers.set_mode(Mode::Supervisor);	// To make sure the actual mode is applied.
 				registers.set_pc(regs[15] - 8);
 				registers.set_status(regs[15]);
@@ -427,7 +430,7 @@ struct MemoryLedger {
 					continue;
 				}
 
-				if(instruction == 0xe4931000 && test_count == 3) {
+				if(instruction == 0xe33ef000 && test_count == 1) {
 					printf("");
 				}
 
