@@ -151,7 +151,21 @@ struct Video {
 	}
 };
 
+// IRQ A flags
+namespace IRQA {
+	// The first four of these are taken from the A500 documentation and may be inaccurate.
+	static constexpr uint8_t PrinterBusy		= 0x01;
+	static constexpr uint8_t SerialRinging		= 0x02;
+	static constexpr uint8_t PrinterAcknowledge	= 0x04;
+	static constexpr uint8_t VerticalFlyback	= 0x08;
+	static constexpr uint8_t PowerOnReset		= 0x10;
+	static constexpr uint8_t Timer0				= 0x20;
+	static constexpr uint8_t Timer1				= 0x40;
+	static constexpr uint8_t SetAlways			= 0x80;
+}
+
 struct Interrupts {
+
 	bool tick_timers() {
 		bool did_change_interrupts = false;
 
@@ -263,7 +277,7 @@ struct Interrupts {
 	}
 
 	Interrupts() {
-		irq_a_.status = 0x80 | 0x10;	// i.e. 'set always' + 'power-on'.
+		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
 		fiq_.status = 0x80;				// 'set always'.
 	}
@@ -305,6 +319,10 @@ struct Memory {
 		}
 		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
 			return false;
+		}
+
+		if(address == 0x02000078 || address == 0x02400078) {
+			printf("%08x: %08x\n", address, source);
 		}
 
 		switch (write_zones_[(address >> 21) & 31]) {
@@ -384,7 +402,6 @@ struct Memory {
 
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
-//				if(mode != InstructionSet::ARM::Mode::Supervisor) return false;
 				source = physical_ram<IntT>(address);
 			return true;
 
@@ -456,12 +473,8 @@ struct Memory {
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
-			address &= ram_.size() - 1;
-			if(address == (0x02000074 & (ram_.size() - 1))) {
-				printf("%08x\n", address);
-			}
-
-			return *reinterpret_cast<IntT *>(&ram_[address]);
+			const auto access_address = address & (ram_.size() - 1);
+			return *reinterpret_cast<IntT *>(&ram_[access_address]);
 		}
 
 		template <typename IntT>
@@ -741,12 +754,22 @@ class ConcreteMachine:
 //						printf("");
 //					}
 //					log |= (executor_.pc() > 0 && executor_.pc() < 0x03800000);
-//					log |= executor_.pc() == 0x38008e0;
+//					log |= executor_.pc() == 0x02000078;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= (executor_.pc() != 0x038019f8);
 
-//					if(executor_.pc() == 0x38008e0) //0x038019f8)
-//						return;
+					if(executor_.pc() == 0x02000078) {
+						if(!all.empty()) {
+							int c = 0;
+							for(auto instr: all) {
+								printf("0x%08x, ", instr);
+								++c;
+								if(!(c&31)) printf("\n");
+							}
+							all.clear();
+						}
+						return;
+					}
 
 					if(log) {
 						auto info = logger.info();

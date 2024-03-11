@@ -425,9 +425,9 @@ struct MemoryLedger {
 					continue;
 				}
 
-//				if(instruction == 0xe090f00e && test_count == 1) {
-//					printf("");
-//				}
+				if(instruction == 0xe1a0f001 && test_count == 1) {
+					printf("");
+				}
 
 				execute(instruction, *test);
 				NSMutableString *error = nil;
