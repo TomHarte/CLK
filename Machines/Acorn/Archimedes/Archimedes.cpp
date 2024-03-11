@@ -782,7 +782,7 @@ class ConcreteMachine:
 					InstructionSet::ARM::execute(instruction, executor_);
 
 //					if(
-////						executor_.pc() > 0x038021d0 &&
+//						executor_.pc() > 0x038021d0 &&
 //						(
 //							last_link != executor_.registers()[14] ||
 //							last_r0 != executor_.registers()[0] ||
