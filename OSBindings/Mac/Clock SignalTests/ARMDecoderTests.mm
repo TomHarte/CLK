@@ -381,6 +381,7 @@ struct MemoryLedger {
 			}
 
 			uint32_t r15_mask = 0xffff'ffff;
+			bool ignore_test = false;
 			switch(instruction) {
 				case 0x03110002:
 					// tsteq r1, #2; per my reading this is LSL#0 so the original
@@ -395,7 +396,7 @@ struct MemoryLedger {
 					// sheet specifically says for a shift-by-register that
 					// "LSL by more than 32 has result zero, carry out zero" so I think
 					// the test set is adrift on the following:
-					if(test_count == 15) continue;
+					ignore_test = test_count == 15 - 1;
 				break;
 
 				case 0xe090e00f:
@@ -422,6 +423,9 @@ struct MemoryLedger {
 			} else {
 				// Execute test and compare.
 				++test_count;
+				if(ignore_test) {
+					continue;
+				}
 
 				if(instruction == 0xe4931000 && test_count == 3) {
 					printf("");
