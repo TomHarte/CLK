@@ -65,6 +65,9 @@ struct Memory {
 struct MemoryLedger {
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, Mode, bool) {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			address &= static_cast<uint32_t>(~3);
+		}
 		if(write_pointer == writes.size() || writes[write_pointer].size != sizeof(IntT) || writes[write_pointer].address != address || writes[write_pointer].value != source) {
 			return false;
 		}
@@ -74,6 +77,10 @@ struct MemoryLedger {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode, bool) {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			address &= static_cast<uint32_t>(~3);
+		}
+
 		if(read_pointer == reads.size() || reads[read_pointer].size != sizeof(IntT) || reads[read_pointer].address != address) {
 			return false;
 		}

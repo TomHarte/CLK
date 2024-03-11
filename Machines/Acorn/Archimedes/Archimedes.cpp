@@ -290,6 +290,10 @@ struct Memory {
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool trans) {
 		(void)trans;
 
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			address &= static_cast<uint32_t>(~3);
+		}
+
 //		if(address == 0x0200002c && address < 0x04000000) {
 //		if(address == 0x02000074) {
 //			printf("%08x <- %08x\n", address, source);
@@ -363,6 +367,12 @@ struct Memory {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
+		// Unaligned addresses are presented on the bus, but in an Archimedes
+		// the bus will ignore the low two bits.
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			address &= static_cast<uint32_t>(~3);
+		}
+
 		(void)trans;
 //		logger.info().append("R %08x", address);
 
