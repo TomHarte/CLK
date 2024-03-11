@@ -383,22 +383,6 @@ struct MemoryLedger {
 			uint32_t r15_mask = 0xffff'ffff;
 			bool ignore_test = false;
 			switch(instruction) {
-				case 0x03110002:
-					// tsteq r1, #2; per my reading this is LSL#0 so the original
-					// carry value should be preserved. The test set doesn't seem
-					// to agree. Until I can reconcile them, don't test carry.
-					r15_mask &= ~ConditionCode::Carry;
-				break;
-
-				case 0x11800215:
-					// orrne r0, r0, r5, lsl r2
-					// The test set applies the rule 'lsl r2 % 32' whereas the data
-					// sheet specifically says for a shift-by-register that
-					// "LSL by more than 32 has result zero, carry out zero" so I think
-					// the test set is adrift on the following:
-					ignore_test = regs[2] >= 32;
-				break;
-
 				case 0xe090e00f:
 					// adds lr, r0, pc
 					// The test set comes from an ARM that doesn't multiplex flags
@@ -406,6 +390,11 @@ struct MemoryLedger {
 					r15_mask = 0;
 					regs[15] &= 0x03ff'fffc;
 				break;
+
+				// TODO:
+				//	* adds to R15: e090f00e, e090f00f; possibly to do with non-multiplexing original?
+				//	* movs to PC: e1b0f00e; as above?
+				//	* some test set teqs — e33ff3c3, e33ff343, e33ef000 — seem to advance the PC twice?
 
 				default: break;
 			}
@@ -429,10 +418,10 @@ struct MemoryLedger {
 				if(ignore_test) {
 					continue;
 				}
-
-				if(instruction == 0xe33ef000 && test_count == 1) {
-					printf("");
-				}
+//
+//				if(instruction == 0x03110002 && test_count == 5) {
+//					printf("");
+//				}
 
 				execute(instruction, *test);
 				NSMutableString *error = nil;

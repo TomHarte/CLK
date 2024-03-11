@@ -52,6 +52,10 @@ struct Executor {
 						registers_.pc(4) :
 						registers_[fields.shift_register()];
 
+				// "The amount by which the register should be shifted may be contained in
+				// ... **the bottom byte** of another register".
+				shift_amount &= 0xff;
+
 				// A register shift amount of 0 has a different meaning than an in-instruction
 				// shift amount of 0.
 				if(!shift_amount) {
@@ -98,6 +102,12 @@ struct Executor {
 			operand2 = fields.immediate();
 			if(fields.rotate()) {
 				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
+			} else {
+				// This is possibly clarified by later data sheets; take carry as if a rotate by 32
+				// had occurred.
+				if constexpr (shift_sets_carry) {
+					rotate_carry = operand2 & 0x8000'0000;
+				}
 			}
 		} else {
 			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
