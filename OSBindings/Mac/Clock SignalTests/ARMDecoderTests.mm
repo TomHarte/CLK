@@ -83,11 +83,15 @@ struct MemoryLedger {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, Mode, bool) {
-		if constexpr (std::is_same_v<IntT, uint32_t>) {
-			address &= static_cast<uint32_t>(~3);
-		}
+		const auto is_faulty = [&](uint32_t address) -> bool {
+			return
+				read_pointer == reads.size() ||
+				reads[read_pointer].size != sizeof(IntT) ||
+				reads[read_pointer].address != address;
+		};
 
-		if(read_pointer == reads.size() || reads[read_pointer].size != sizeof(IntT) || reads[read_pointer].address != address) {
+		// As per writes; the test set sometimes forces alignment on the record, sometimes not...
+		if(is_faulty(address) && is_faulty(address & static_cast<uint32_t>(~3))) {
 			return false;
 		}
 		source = reads[read_pointer].value;
