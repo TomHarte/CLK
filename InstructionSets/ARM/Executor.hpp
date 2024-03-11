@@ -113,8 +113,27 @@ struct Executor {
 			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
 		}
 
-		// Perform the data processing operation.
 		uint32_t conditions = 0;
+		const auto sub = [&](uint32_t lhs, uint32_t rhs) {
+			conditions = lhs - rhs;
+
+			if constexpr (flags.operation() == DataProcessingOperation::SBC || flags.operation() == DataProcessingOperation::RSC) {
+				conditions += registers_.c() - 1;
+			}
+
+			if constexpr (flags.set_condition_codes()) {
+				// "For a subtraction, including the comparison instruction CMP, C is set to 0 if
+				// the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise."
+				registers_.set_c(!Numeric::carried_out<false, 31>(lhs, rhs, conditions));
+				registers_.set_v(Numeric::overflow<false>(lhs, rhs, conditions));
+			}
+
+			if constexpr (!is_comparison(flags.operation())) {
+				destination = conditions;
+			}
+		};
+
+		// Perform the data processing operation.
 		switch(flags.operation()) {
 			// Logical operations.
 			case DataProcessingOperation::AND:	conditions = destination = operand1 & operand2;		break;
@@ -150,38 +169,12 @@ struct Executor {
 			case DataProcessingOperation::SUB:
 			case DataProcessingOperation::SBC:
 			case DataProcessingOperation::CMP:
-				conditions = operand1 - operand2;
-
-				if constexpr (flags.operation() == DataProcessingOperation::SBC) {
-					conditions += registers_.c() - 1;
-				}
-
-				if constexpr (flags.set_condition_codes()) {
-					// "For a subtraction, including the comparison instruction CMP, C is set to 0 if
-					// the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise."
-					registers_.set_c(!Numeric::carried_out<false, 31>(operand1, operand2, conditions));
-					registers_.set_v(Numeric::overflow<false>(operand1, operand2, conditions));
-				}
-
-				if constexpr (!is_comparison(flags.operation())) {
-					destination = conditions;
-				}
+				sub(operand1, operand2);
 			break;
 
 			case DataProcessingOperation::RSB:
 			case DataProcessingOperation::RSC:
-				conditions = operand2 - operand1;
-
-				if constexpr (flags.operation() == DataProcessingOperation::RSC) {
-					conditions += registers_.c() - 1;
-				}
-
-				if constexpr (flags.set_condition_codes()) {
-					registers_.set_c(!Numeric::carried_out<false, 31>(operand2, operand1, conditions));
-					registers_.set_v(Numeric::overflow<false>(operand2, operand1, conditions));
-				}
-
-				destination = conditions;
+				sub(operand2, operand1);
 			break;
 		}
 
