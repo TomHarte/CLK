@@ -173,11 +173,11 @@ struct Executor {
 				conditions = operand2 - operand1;
 
 				if constexpr (flags.operation() == DataProcessingOperation::RSC) {
-					conditions -= registers_.c();
+					conditions += registers_.c() - 1;
 				}
 
 				if constexpr (flags.set_condition_codes()) {
-					registers_.set_c(Numeric::carried_out<false, 31>(operand2, operand1, conditions));
+					registers_.set_c(!Numeric::carried_out<false, 31>(operand2, operand1, conditions));
 					registers_.set_v(Numeric::overflow<false>(operand2, operand1, conditions));
 				}
 
@@ -186,6 +186,9 @@ struct Executor {
 		}
 
 		const bool writes_pc = !is_comparison(flags.operation()) && fields.destination() == 15;
+		if(writes_pc) {
+			registers_.set_pc(pc_proxy);
+		}
 		if constexpr (flags.set_condition_codes()) {
 			// "When Rd is a register other than R15, the condition code flags in the PSR may be
 			// updated from the ALU flags as described above. When Rd is R15 and the S flag in
@@ -198,7 +201,6 @@ struct Executor {
 
 			if(writes_pc) {
 				registers_.set_status(pc_proxy);
-				registers_.set_pc(pc_proxy);
 			} else {
 				// Set N and Z in a unified way.
 				registers_.set_nz(conditions);
@@ -207,11 +209,6 @@ struct Executor {
 				if constexpr (shift_sets_carry) {
 					registers_.set_c(rotate_carry);
 				}
-			}
-		} else {
-			// "If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written."
-			if(writes_pc) {
-				registers_.set_pc(pc_proxy);
 			}
 		}
 	}
