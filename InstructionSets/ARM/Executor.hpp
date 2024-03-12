@@ -178,22 +178,12 @@ struct Executor {
 			break;
 		}
 
-		const bool writes_pc = !is_comparison(flags.operation()) && fields.destination() == 15;
-		if(writes_pc) {
+		if(!is_comparison(flags.operation()) && fields.destination() == 15) {
 			registers_.set_pc(pc_proxy);
 		}
 		if constexpr (flags.set_condition_codes()) {
-			// "When Rd is a register other than R15, the condition code flags in the PSR may be
-			// updated from the ALU flags as described above. When Rd is R15 and the S flag in
-			// the instruction is set, the PSR is overwritten by the corresponding ALU result.
-			//
-			// ... if the instruction is of a type which does not normally produce a result
-			// (CMP, CMN, TST, TEQ) but Rd is R15 and the S bit is set, the result will be used in
-			// this case to update those PSR flags which are not protected by virtue of the
-			// processor mode."
-
-			if(writes_pc) {
-				registers_.set_status(pc_proxy);
+			if(fields.destination() == 15) {
+				registers_.set_status(conditions);
 			} else {
 				// Set N and Z in a unified way.
 				registers_.set_nz(conditions);
