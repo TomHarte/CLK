@@ -191,6 +191,7 @@ struct Registers {
 			}
 
 			exception<type>();
+			return true;
 		}
 
 		// MARK: - Condition tests.
