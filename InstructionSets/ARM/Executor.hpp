@@ -20,6 +20,11 @@ namespace InstructionSet::ARM {
 /// memory. No hooks are currently provided for applying realistic timing.
 template <Model model, typename MemoryT>
 struct Executor {
+	template <typename... Args>
+	Executor(Args &&...args) : bus(std::forward<Args...>(args)...) {}
+
+	/// @returns @c true if @c condition implies an appropriate perform call should be made for this instruction,
+	/// @c false otherwise.
 	bool should_schedule(Condition condition) {
 		return registers_.test(condition);
 	}

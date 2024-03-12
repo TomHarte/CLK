@@ -164,7 +164,19 @@ namespace IRQA {
 	static constexpr uint8_t SetAlways			= 0x80;
 }
 
+namespace InterruptRequests {
+
+	static constexpr int IRQ = 0x01;
+	static constexpr int FIQ = 0x02;
+
+};
+
 struct Interrupts {
+	int interrupt_mask() const {
+		return
+			((irq_a_.request() | irq_b_.request()) ? InterruptRequests::IRQ : 0) |
+			(fiq_.request() ? InterruptRequests::FIQ : 0);
+	}
 
 	bool tick_timers() {
 		bool did_change_interrupts = false;
@@ -180,8 +192,8 @@ struct Interrupts {
 				counters_[c].value = counters_[c].reload;
 
 				switch(c) {
-					case 0:	did_change_interrupts |= irq_a_.apply(0x20);	break;
-					case 1:	did_change_interrupts |= irq_a_.apply(0x40);	break;
+					case 0:	did_change_interrupts |= irq_a_.apply(IRQA::Timer0);	break;
+					case 1:	did_change_interrupts |= irq_a_.apply(IRQA::Timer1);	break;
 					default: break;
 				}
 				// TODO: events for timers 2 and 3. Also remove some branchyness.
@@ -191,7 +203,7 @@ struct Interrupts {
 		return did_change_interrupts;
 	}
 
-	bool read(uint32_t address, uint8_t &value) {
+	bool read(uint32_t address, uint8_t &value) const {
 		const auto target = address & 0x7f;
 		logger.error().append("IO controller read from %08x", address);
 		switch(target) {
@@ -240,12 +252,12 @@ struct Interrupts {
 			return true;
 
 			case 0x14:
-				logger.error().append("TODO: IRQ clear write %02x", value);
 				// b2: clear IF.
 				// b3: clear IR.
 				// b4: clear POR.
 				// b5: clear TM[0].
 				// b6: clear TM[1].
+				irq_a_.clear(value & 0x7c);
 			return true;
 
 			// Interrupts.
@@ -292,6 +304,9 @@ private:
 			status |= value;
 			return status & mask;
 		}
+		void clear(uint8_t bits) {
+			status &= ~bits;
+		}
 	};
 	Interrupt irq_a_, irq_b_, fiq_;
 
@@ -304,7 +319,14 @@ private:
 };
 
 /// Primarily models the MEMC.
+template <typename IOCWriteDelegateT>
 struct Memory {
+	Memory(IOCWriteDelegateT &ioc_write_delegate) : ioc_write_delegate_(ioc_write_delegate) {}
+
+	int interrupt_mask() const {
+		return ioc_.interrupt_mask();
+	}
+
 	void set_rom(const std::vector<uint8_t> &rom) {
 		std::copy(
 			rom.begin(),
@@ -319,10 +341,6 @@ struct Memory {
 		}
 		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
 			return false;
-		}
-
-		if(address == 0x02000078 || address == 0x02400078) {
-			printf("%08x: %08x\n", address, source);
 		}
 
 		switch (write_zones_[(address >> 21) & 31]) {
@@ -365,6 +383,7 @@ struct Memory {
 
 			case Zone::IOControllers:
 				ioc_.write(address, source);
+				ioc_write_delegate_.did_write_ioc();
 			return true;
 
 			case Zone::VideoController:
@@ -470,6 +489,7 @@ struct Memory {
 		std::array<uint8_t, 2*1024*1024> rom_;
 		Interrupts ioc_;
 		Video vidc_;
+		IOCWriteDelegateT &ioc_write_delegate_;
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
@@ -692,7 +712,7 @@ class ConcreteMachine:
 		ConcreteMachine(
 			const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) {
+		) : executor_(*this) {
 			set_clock_rate(ClockRate);
 
 			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS319;
@@ -706,8 +726,11 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-	private:
+		void did_write_ioc() {
+			test_interrupts();
+		}
 
+	private:
 		// MARK: - ScanProducer.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			(void)scan_target;
@@ -716,15 +739,9 @@ class ConcreteMachine:
 			return Outputs::Display::ScanStatus();
 		}
 
-		std::set<uint32_t> all;
-
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
 			static uint32_t last_pc = 0;
-//			static uint32_t last_link = 0;
-//			static uint32_t last_r0 = 0;
-//			static uint32_t last_r1 = 0;
-//			static uint32_t last_r10 = 0;
 
 			auto instructions = cycles.as<int>();
 
@@ -748,11 +765,9 @@ class ConcreteMachine:
 
 					static bool log = false;
 
-					all.insert(instruction);
-
-					if(executor_.pc() == 0x03802b40) {
-						printf("");
-					}
+//					if(executor_.pc() == 0x03802b40) {
+//						printf("");
+//					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
 //					log |= executor_.pc() == 0x03801980;
 //					log |= (executor_.pc() > 0x03801000);
@@ -814,9 +829,21 @@ class ConcreteMachine:
 					timer_divider_ = TimerTarget;
 
 					if(executor_.bus.tick_timers()) {
-						logger.error().append("TODO: Interrupts (or maybe in the main loop?)");
+						test_interrupts();
 					}
 				}
+			}
+		}
+
+		void test_interrupts() {
+			using Exception = InstructionSet::ARM::Registers::Exception;
+
+			const int requests = executor_.bus.interrupt_mask();
+			if((requests & InterruptRequests::FIQ) && executor_.registers().interrupt<Exception::FIQ>()) {
+				return;
+			}
+			if(requests & InterruptRequests::IRQ) {
+				executor_.registers().interrupt<Exception::IRQ>();
 			}
 		}
 
@@ -834,7 +861,7 @@ class ConcreteMachine:
 
 		// MARK: - ARM execution
 		static constexpr auto arm_model = InstructionSet::ARM::Model::ARMv2;
-		InstructionSet::ARM::Executor<arm_model, Memory> executor_;
+		InstructionSet::ARM::Executor<arm_model, Memory<ConcreteMachine>> executor_;
 };
 
 }
