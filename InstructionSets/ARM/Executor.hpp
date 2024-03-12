@@ -182,9 +182,11 @@ struct Executor {
 			registers_.set_pc(pc_proxy);
 		}
 		if constexpr (flags.set_condition_codes()) {
-			// TODO: different sources have me going back and forth on the second
-			// part of the conditional here.
-			if(fields.destination() == 15 && is_comparison(flags.operation())) {
+			// "When Rd is R15 and the S flag in the instruction is set, the PSR is overwritten by the
+			// corresponding bits in the ALU result... [even] if the instruction is of a type that does not
+			// normally produce a result (CMP, CMN, TST, TEQ) ... the result will be used to update those
+			// PSR flags which are not protected by virtue of the processor mode"
+			if(fields.destination() == 15) {
 				registers_.set_status(conditions);
 			} else {
 				// Set N and Z in a unified way.
@@ -229,7 +231,7 @@ struct Executor {
 		constexpr BranchFlags flags(f);
 
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
-			registers_[14] = registers_.pc(0);
+			registers_[14] = registers_.pc_status(0);
 		}
 		registers_.set_pc(registers_.pc(4) + branch.offset());
 	}

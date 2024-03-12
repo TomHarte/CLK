@@ -155,15 +155,15 @@ struct Registers {
 			switch(type) {
 				case Exception::IRQ:
 					set_mode(Mode::IRQ);
-					active_[14] = pc(8);
+					active_[14] = pc_status(8);
 				break;
 				case Exception::FIQ:
 					set_mode(Mode::FIQ);
-					active_[14] = pc(8);
+					active_[14] = pc_status(8);
 				break;
 				default:
 					set_mode(Mode::Supervisor);
-					active_[14] = pc(4);
+					active_[14] = pc_status(4);
 				break;
 			}
 

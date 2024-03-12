@@ -750,26 +750,26 @@ class ConcreteMachine:
 
 					all.insert(instruction);
 
-					if(executor_.pc() == 0x03801a14) {
+					if(executor_.pc() == 0x03802b40) {
 						printf("");
 					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-					log |= executor_.pc() == 0x03801980;
+//					log |= executor_.pc() == 0x03801980;
 //					log |= (executor_.pc() > 0x03801000);
-					log &= executor_.pc() != 0x03801a0c;
+//					log &= executor_.pc() != 0x03801a0c;
 
-					if(executor_.pc() == 0x02000078) {
-						if(!all.empty()) {
-							int c = 0;
-							for(auto instr: all) {
-								printf("0x%08x, ", instr);
-								++c;
-								if(!(c&31)) printf("\n");
-							}
-							all.clear();
-						}
-						return;
-					}
+//					if(executor_.pc() == 0x02000078) {
+//						if(!all.empty()) {
+//							int c = 0;
+//							for(auto instr: all) {
+//								printf("0x%08x, ", instr);
+//								++c;
+//								if(!(c&31)) printf("\n");
+//							}
+//							all.clear();
+//						}
+//						return;
+//					}
 
 					if(log) {
 						auto info = logger.info();
