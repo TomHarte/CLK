@@ -182,7 +182,9 @@ struct Executor {
 			registers_.set_pc(pc_proxy);
 		}
 		if constexpr (flags.set_condition_codes()) {
-			if(fields.destination() == 15) {
+			// TODO: different sources have me going back and forth on the second
+			// part of the conditional here.
+			if(fields.destination() == 15 && is_comparison(flags.operation())) {
 				registers_.set_status(conditions);
 			} else {
 				// Set N and Z in a unified way.
