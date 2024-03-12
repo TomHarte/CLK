@@ -750,13 +750,13 @@ class ConcreteMachine:
 
 					all.insert(instruction);
 
-//					if(executor_.pc() == 0x03801404) {
-//						printf("");
-//					}
-//					log |= (executor_.pc() > 0 && executor_.pc() < 0x03800000);
-//					log |= executor_.pc() == 0x02000078;
+					if(executor_.pc() == 0x03801a0c) {
+						printf("");
+					}
+//					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
+					log |= executor_.pc() == 0x03801980;
 //					log |= (executor_.pc() > 0x03801000);
-//					log &= (executor_.pc() != 0x038019f8);
+					log &= executor_.pc() != 0x03801a0c;
 
 					if(executor_.pc() == 0x02000078) {
 						if(!all.empty()) {
@@ -783,6 +783,8 @@ class ConcreteMachine:
 
 //					if(
 //						executor_.pc() > 0x038021d0 &&
+//							last_r1 != executor_.registers()[1]
+//							 ||
 //						(
 //							last_link != executor_.registers()[14] ||
 //							last_r0 != executor_.registers()[0] ||
@@ -795,6 +797,10 @@ class ConcreteMachine:
 //							executor_.registers()[14],
 //							executor_.registers()[0],
 //							executor_.registers()[10],
+//							executor_.registers()[1]
+//						);
+//						logger.info().append("%08x modified R1 to %08x",
+//							last_pc,
 //							executor_.registers()[1]
 //						);
 //						last_link = executor_.registers()[14];
