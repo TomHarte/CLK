@@ -57,6 +57,16 @@ constexpr std::array<Zone, 0x20> zones(bool is_read) {
 	return zones;
 }
 
+template <int start, int end> struct BitMask {
+	static_assert(start >= end);
+	static constexpr uint32_t value = ((1 << (start + 1)) - 1) - ((1 << end) - 1);
+};
+static_assert(BitMask<0, 0>::value == 1);
+static_assert(BitMask<1, 1>::value == 2);
+static_assert(BitMask<15, 15>::value == 32768);
+static_assert(BitMask<15, 0>::value == 0xffff);
+static_assert(BitMask<15, 14>::value == 49152);
+
 }
 
 namespace Archimedes {
@@ -312,21 +322,20 @@ struct Interrupts {
 
 	bool write(uint32_t address, uint8_t value) {
 		const auto target = address & AddressMask;
-		logger.error().append("IO controller write of %02x at %08x", value, address);
 		switch(target) {
 			default:
 				logger.error().append("Unrecognised IOC write of %02x at %08x", value, address);
 			break;
 
-			case 0x3200000 & AddressMask:
+			case 0x320'0000 & AddressMask:
 				logger.error().append("TODO: IOC control write %02x", value);
 			return true;
 
-			case 0x3200004 & AddressMask:
-				logger.error().append("TODO: IOC serial transmit");
+			case 0x320'0004 & AddressMask:
+				logger.error().append("TODO: IOC serial transmit %02x", value);
 			return true;
 
-			case 0x3200014 & AddressMask:
+			case 0x320'0014 & AddressMask:
 				// b2: clear IF.
 				// b3: clear IR.
 				// b4: clear POR.
@@ -336,41 +345,81 @@ struct Interrupts {
 			return true;
 
 			// Interrupts.
-			case 0x3200018 & AddressMask:	irq_a_.mask = value;	return true;
-			case 0x3200028 & AddressMask:	irq_b_.mask = value;	return true;
-			case 0x3200038 & AddressMask:	fiq_.mask = value;		return true;
+			case 0x320'0018 & AddressMask:	irq_a_.mask = value;	return true;
+			case 0x320'0028 & AddressMask:	irq_b_.mask = value;	return true;
+			case 0x320'0038 & AddressMask:	fiq_.mask = value;		return true;
 
 			// Counters.
-			case 0x3200040 & AddressMask:
-			case 0x3200050 & AddressMask:
-			case 0x3200060 & AddressMask:
-			case 0x3200070 & AddressMask:
+			case 0x320'0040 & AddressMask:
+			case 0x320'0050 & AddressMask:
+			case 0x320'0060 & AddressMask:
+			case 0x320'0070 & AddressMask:
 				counters_[(target >> 4) - 0x4].reload = uint16_t(
 					(counters_[(target >> 4) - 0x4].reload & 0xff00) | value
 				);
 			return true;
 
-			case 0x3200044 & AddressMask:
-			case 0x3200054 & AddressMask:
-			case 0x3200064 & AddressMask:
-			case 0x3200074 & AddressMask:
+			case 0x320'0044 & AddressMask:
+			case 0x320'0054 & AddressMask:
+			case 0x320'0064 & AddressMask:
+			case 0x320'0074 & AddressMask:
 				counters_[(target >> 4) - 0x4].reload = uint16_t(
 					(counters_[(target >> 4) - 0x4].reload & 0x00ff) | (value << 8)
 				);
 			return true;
 
-			case 0x3200048 & AddressMask:
-			case 0x3200058 & AddressMask:
-			case 0x3200068 & AddressMask:
-			case 0x3200078 & AddressMask:
+			case 0x320'0048 & AddressMask:
+			case 0x320'0058 & AddressMask:
+			case 0x320'0068 & AddressMask:
+			case 0x320'0078 & AddressMask:
 				counters_[(target >> 4) - 0x4].value = counters_[(target >> 4) - 0x4].reload;
 			return true;
 
-			case 0x320004c & AddressMask:
-			case 0x320005c & AddressMask:
-			case 0x320006c & AddressMask:
-			case 0x320007c & AddressMask:
+			case 0x320'004c & AddressMask:
+			case 0x320'005c & AddressMask:
+			case 0x320'006c & AddressMask:
+			case 0x320'007c & AddressMask:
 				counters_[(target >> 4) - 0x4].output = counters_[(target >> 4) - 0x4].value;
+			return true;
+
+			case 0x327'0000 & AddressMask:
+				logger.error().append("TODO: exteded external podule space");
+			return true;
+
+			case 0x331'0000 & AddressMask:
+				logger.error().append("TODO: 1772 / disk write");
+			return true;
+
+			case 0x335'0000 & AddressMask:
+				logger.error().append("TODO: LS374 / printer data write");
+			return true;
+
+			case 0x335'0018 & AddressMask:
+				logger.error().append("TODO: latch B write");
+			return true;
+
+			case 0x335'0040 & AddressMask:
+				logger.error().append("TODO: latch A write");
+			return true;
+
+			case 0x335'0048 & AddressMask:
+				logger.error().append("TODO: latch C write");
+			return true;
+
+			case 0x336'0000 & AddressMask:
+				logger.error().append("TODO: podule interrupt request");
+			return true;
+
+			case 0x336'0004 & AddressMask:
+				logger.error().append("TODO: podule interrupt mask");
+			return true;
+
+			case 0x33a'0000 & AddressMask:
+				logger.error().append("TODO: 6854 / econet write");
+			return true;
+
+			case 0x33b'0000 & AddressMask:
+				logger.error().append("TODO: 6551 / serial line write");
 			return true;
 		}
 
@@ -424,10 +473,15 @@ struct Memory {
 	}
 
 	template <typename IntT>
-	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool) {
+	uint32_t aligned(uint32_t address) {
 		if constexpr (std::is_same_v<IntT, uint32_t>) {
-			address &= static_cast<uint32_t>(~3);
+			return address & static_cast<uint32_t>(~3);
 		}
+		return address;
+	}
+
+	template <typename IntT>
+	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool) {
 		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
 			return false;
 		}
@@ -452,7 +506,7 @@ struct Memory {
 					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 					page_size_ = PageSize((address >> 2) & 3);
 
-					logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, high_rom_access_time_, low_rom_access_time_, page_size_);
+					logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
 					update_mapping();
 
 					return true;
@@ -462,6 +516,7 @@ struct Memory {
 			break;
 
 			case Zone::LogicallyMappedRAM: {
+				update_mapping();
 				const auto item = logical_ram<IntT, false>(address, mode);
 				if(!item) {
 					return false;
@@ -485,9 +540,9 @@ struct Memory {
 			return true;
 
 			case Zone::AddressTranslator:
-//				printf("Translator write at %08x\n", address);
+				printf("Translator write at %08x\n", address);
 				pages_[address & 0x7f] = address;
-				update_mapping();
+//				update_mapping();
 			break;
 
 			default:
@@ -580,12 +635,14 @@ struct Memory {
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
-			const auto access_address = address & (ram_.size() - 1);
-			return *reinterpret_cast<IntT *>(&ram_[access_address]);
+			address = aligned<IntT>(address);
+			address &= (ram_.size() - 1);
+			return *reinterpret_cast<IntT *>(&ram_[address]);
 		}
 
 		template <typename IntT>
 		IntT &high_rom(uint32_t address) {
+			address = aligned<IntT>(address);
 			return *reinterpret_cast<IntT *>(&rom_[address & (rom_.size() - 1)]);
 		}
 
@@ -640,6 +697,7 @@ struct Memory {
 
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode mode) {
+			address = aligned<IntT>(address);
 			address &= 0x1ff'ffff;
 			size_t page;
 
@@ -716,10 +774,6 @@ struct Memory {
 			// Clear all logical mappings.
 			std::fill(mapping_.begin(), mapping_.end(), MappedPage{});
 
-			const auto bits = [](int start, int end) -> uint32_t {
-				return ((1 << (start + 1)) - 1) - ((1 << end) - 1);
-			};
-
 			// For each physical page, project it into logical space
 			// and store it.
 			for(const auto page: pages_) {
@@ -730,57 +784,57 @@ struct Memory {
 						// 4kb:
 						//		A[6:0] -> PPN[6:0]
 						//		A[11:10] -> LPN[12:11];	A[22:12] -> LPN[10:0]	i.e. 8192 logical pages
-						physical = page & bits(6, 0);
+						physical = page & BitMask<6, 0>::value;
 
 						physical <<= 12;
 
-						logical = (page & bits(11, 10)) << 1;
-						logical |= (page & bits(22, 12)) >> 12;
+						logical = (page & BitMask<11, 10>::value) << 1;
+						logical |= (page & BitMask<22, 12>::value) >> 12;
 					break;
 
 					case PageSize::kb8:
 						// 8kb:
 						//		A[0] -> PPN[6]; A[6:1] -> PPN[5:0]
 						//		A[11:10] -> LPN[11:10];	A[22:13] -> LPN[9:0]	i.e. 4096 logical pages
-						physical = (page & bits(0, 0)) << 6;
-						physical |= (page & bits(6, 1)) >> 1;
+						physical = (page & BitMask<0, 0>::value) << 6;
+						physical |= (page & BitMask<6, 1>::value) >> 1;
 
 						physical <<= 13;
 
-						logical = page & bits(11, 10);
-						logical |= (page & bits(22, 13)) >> 13;
+						logical = page & BitMask<11, 10>::value;
+						logical |= (page & BitMask<22, 13>::value) >> 13;
 					break;
 
 					case PageSize::kb16:
 						// 16kb:
 						//		A[1:0] -> PPN[6:5]; A[6:2] -> PPN[4:0]
 						//		A[11:10] -> LPN[10:9];	A[22:14] -> LPN[8:0]	i.e. 2048 logical pages
-						physical = (page & bits(1, 0)) << 5;
-						physical |= (page & bits(6, 2)) >> 2;
+						physical = (page & BitMask<1, 0>::value) << 5;
+						physical |= (page & BitMask<6, 2>::value) >> 2;
 
 						physical <<= 14;
 
-						logical = (page & bits(11, 10)) >> 1;
-						logical |= (page & bits(22, 14)) >> 14;
+						logical = (page & BitMask<11, 10>::value) >> 1;
+						logical |= (page & BitMask<22, 14>::value) >> 14;
 					break;
 
 					case PageSize::kb32:
 						// 32kb:
 						//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[3:0]
 						//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]	i.e. 1024 logical pages
-						physical = (page & bits(1, 1)) << 5;
-						physical |= (page & bits(2, 2)) << 3;
-						physical |= (page & bits(0, 0)) << 4;
-						physical |= (page & bits(6, 3)) >> 3;
+						physical = (page & BitMask<1, 1>::value) << 5;
+						physical |= (page & BitMask<2, 2>::value) << 3;
+						physical |= (page & BitMask<0, 0>::value) << 4;
+						physical |= (page & BitMask<6, 3>::value) >> 3;
 
 						physical <<= 15;
 
-						logical = (page & bits(11, 10)) >> 2;
-						logical |= (page & bits(22, 15)) >> 15;
+						logical = (page & BitMask<11, 10>::value) >> 2;
+						logical |= (page & BitMask<22, 15>::value) >> 15;
 					break;
 				}
 
-//				printf("%08x => logical %d -> physical %d\n", page, logical, (physical >> 15));
+				printf("%08x => logical %d -> physical %d\n", page, logical, (physical >> 15));
 
 				// TODO: consider clashes.
 				// TODO: what if there's less than 4mb present?
@@ -864,7 +918,7 @@ class ConcreteMachine:
 //						printf("");
 //					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-//					log |= executor_.pc() == 0x03801980;
+					log |= executor_.pc() == 0x03810398;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= executor_.pc() != 0x03801a0c;
 
