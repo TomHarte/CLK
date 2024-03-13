@@ -164,11 +164,31 @@ namespace IRQA {
 	static constexpr uint8_t SetAlways			= 0x80;
 }
 
-namespace InterruptRequests {
+// IRQ B flags
+namespace IRQB {
+	// These are taken from the A3010 documentation.
+	static constexpr uint8_t PoduleFIQRequest		= 0x01;
+	static constexpr uint8_t SoundBufferPointerUsed	= 0x02;
+	static constexpr uint8_t SerialLine				= 0x04;
+	static constexpr uint8_t IDE					= 0x08;
+	static constexpr uint8_t FloppyDiscInterrupt	= 0x10;
+	static constexpr uint8_t PoduleIRQRequest		= 0x20;
+	static constexpr uint8_t KeyboardTransmitEmpty	= 0x40;
+	static constexpr uint8_t KeyboardReceiveFull	= 0x80;
+}
 
+// FIQ flags
+namespace FIQ {
+	// These are taken from the A3010 documentation.
+	static constexpr uint8_t FloppyDiscData			= 0x01;
+	static constexpr uint8_t SerialLine				= 0x10;
+	static constexpr uint8_t PoduleFIQRequest		= 0x40;
+	static constexpr uint8_t SetAlways				= 0x80;
+}
+
+namespace InterruptRequests {
 	static constexpr int IRQ = 0x01;
 	static constexpr int FIQ = 0x02;
-
 };
 
 struct Interrupts {
@@ -203,38 +223,82 @@ struct Interrupts {
 		return did_change_interrupts;
 	}
 
-	bool read(uint32_t address, uint8_t &value) const {
-		const auto target = address & 0x7f;
-		logger.error().append("IO controller read from %08x", address);
-		switch(target) {
-			default: break;
+	static constexpr uint32_t AddressMask = 0x1f'ffff;
 
-			case 0x00:
+	bool read(uint32_t address, uint8_t &value) const {
+		const auto target = address & AddressMask;
+		switch(target) {
+			default:
+				logger.error().append("Unrecognised IOC read from %08x", address);
+			break;
+
+			case 0x3200000 & AddressMask:
 				logger.error().append("TODO: IOC control read");
 				value = 0;
 			return true;
 
+			case 0x3200004 & AddressMask:
+				logger.error().append("TODO: IOC serial receive");
+				value = 0;
+			return true;
+
 			// IRQ A.
-			case 0x10:		value = irq_a_.status;		return true;
-			case 0x14:		value = irq_a_.request();	return true;
-			case 0x18:		value = irq_a_.mask;		return true;
+			case 0x3200010 & AddressMask:
+				value = irq_a_.status;
+				logger.error().append("IRQ A status is %02x", value);
+			return true;
+			case 0x3200014 & AddressMask:
+				value = irq_a_.request();
+				logger.error().append("IRQ A request is %02x", value);
+			return true;
+			case 0x3200018 & AddressMask:
+				value = irq_a_.mask;
+				logger.error().append("IRQ A mask is %02x", value);
+			return true;
 
 			// IRQ B.
-			case 0x20:		value = irq_b_.status;		return true;
-			case 0x24:		value = irq_b_.request();	return true;
-			case 0x28:		value = irq_b_.mask;		return true;
+			case 0x3200020 & AddressMask:
+				value = irq_b_.status;
+				logger.error().append("IRQ B status is %02x", value);
+			return true;
+			case 0x3200024 & AddressMask:
+				value = irq_b_.request();
+				logger.error().append("IRQ B request is %02x", value);
+			return true;
+			case 0x3200028 & AddressMask:
+				value = irq_b_.mask;
+				logger.error().append("IRQ B mask is %02x", value);
+			return true;
 
 			// FIQ.
-			case 0x30:		value = fiq_.status;		return true;
-			case 0x34:		value = fiq_.request();		return true;
-			case 0x38:		value = fiq_.mask;			return true;
+			case 0x3200030 & AddressMask:
+				value = fiq_.status;
+				logger.error().append("FIQ status is %02x", value);
+			return true;
+			case 0x3200034 & AddressMask:
+				value = fiq_.request();
+				logger.error().append("FIQ request is %02x", value);
+			return true;
+			case 0x3200038 & AddressMask:
+				value = fiq_.mask;
+				logger.error().append("FIQ mask is %02x", value);
+			return true;
 
 			// Counters.
-			case 0x40:	case 0x50:	case 0x60:	case 0x70:
+			case 0x3200040 & AddressMask:
+			case 0x3200050 & AddressMask:
+			case 0x3200060 & AddressMask:
+			case 0x3200070 & AddressMask:
 				value = counters_[(target >> 4) - 0x4].output & 0xff;
+				logger.error().append("%02x: Counter %d low is %02x", target, (target >> 4) - 0x4, value);
 			return true;
-			case 0x44:	case 0x54:	case 0x64:	case 0x74:
+
+			case 0x3200044 & AddressMask:
+			case 0x3200054 & AddressMask:
+			case 0x3200064 & AddressMask:
+			case 0x3200074 & AddressMask:
 				value = counters_[(target >> 4) - 0x4].output >> 8;
+				logger.error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
 			return true;
 		}
 
@@ -242,16 +306,22 @@ struct Interrupts {
 	}
 
 	bool write(uint32_t address, uint8_t value) {
-		const auto target = address & 0x7f;
+		const auto target = address & AddressMask;
 		logger.error().append("IO controller write of %02x at %08x", value, address);
 		switch(target) {
-			default: break;
+			default:
+				logger.error().append("Unrecognised IOC write of %02x at %08x", value, address);
+			break;
 
-			case 0x00:
+			case 0x3200000 & AddressMask:
 				logger.error().append("TODO: IOC control write %02x", value);
 			return true;
 
-			case 0x14:
+			case 0x3200004 & AddressMask:
+				logger.error().append("TODO: IOC serial transmit");
+			return true;
+
+			case 0x3200014 & AddressMask:
 				// b2: clear IF.
 				// b3: clear IR.
 				// b4: clear POR.
@@ -261,26 +331,40 @@ struct Interrupts {
 			return true;
 
 			// Interrupts.
-			case 0x18:		irq_a_.mask = value;		return true;
-			case 0x28:		irq_b_.mask = value;		return true;
-			case 0x38:		fiq_.mask = value;			return true;
+			case 0x3200018 & AddressMask:	irq_a_.mask = value;	return true;
+			case 0x3200028 & AddressMask:	irq_b_.mask = value;	return true;
+			case 0x3200038 & AddressMask:	fiq_.mask = value;		return true;
 
 			// Counters.
-			case 0x40:	case 0x50:	case 0x60:	case 0x70:
+			case 0x3200040 & AddressMask:
+			case 0x3200050 & AddressMask:
+			case 0x3200060 & AddressMask:
+			case 0x3200070 & AddressMask:
 				counters_[(target >> 4) - 0x4].reload = uint16_t(
 					(counters_[(target >> 4) - 0x4].reload & 0xff00) | value
 				);
 			return true;
-			case 0x44:	case 0x54:	case 0x64:	case 0x74:
+
+			case 0x3200044 & AddressMask:
+			case 0x3200054 & AddressMask:
+			case 0x3200064 & AddressMask:
+			case 0x3200074 & AddressMask:
 				counters_[(target >> 4) - 0x4].reload = uint16_t(
 					(counters_[(target >> 4) - 0x4].reload & 0x00ff) | (value << 8)
 				);
 			return true;
 
-			case 0x48:	case 0x58:	case 0x68:	case 0x78:
+			case 0x3200048 & AddressMask:
+			case 0x3200058 & AddressMask:
+			case 0x3200068 & AddressMask:
+			case 0x3200078 & AddressMask:
 				counters_[(target >> 4) - 0x4].value = counters_[(target >> 4) - 0x4].reload;
 			return true;
-			case 0x4c:	case 0x5c:	case 0x6c:	case 0x7c:
+
+			case 0x320004c & AddressMask:
+			case 0x320005c & AddressMask:
+			case 0x320006c & AddressMask:
+			case 0x320007c & AddressMask:
 				counters_[(target >> 4) - 0x4].output = counters_[(target >> 4) - 0x4].value;
 			return true;
 		}
@@ -396,12 +480,13 @@ struct Memory {
 			return true;
 
 			case Zone::AddressTranslator:
+//				printf("Translator write at %08x\n", address);
 				pages_[address & 0x7f] = address;
 				update_mapping();
 			break;
 
 			default:
-				printf("TODO: write of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
+//				printf("TODO: write of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
 			break;
 		}
 
@@ -457,9 +542,6 @@ struct Memory {
 					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
 					uint8_t value;
 					ioc_.read(address, value);
-//					if(!ioc_.read(address, value)) {
-//						return false;
-//					}
 					source = value;
 					return true;
 				}
@@ -606,6 +688,12 @@ struct Memory {
 		}
 
 		void update_mapping() {
+//			static int c = 0;
+//			++c;
+//			if(c == 662) {
+//				printf("");
+//			}
+
 			// For each physical page, project it into logical space.
 			switch(page_size_) {
 				default:
@@ -615,7 +703,7 @@ struct Memory {
 				case PageSize::kb32:	update_mapping<PageSize::kb32>();	break;
 			}
 
-			logger.info().append("Updated logical RAM mapping");
+//			logger.info().append("Updated logical RAM mapping [%d]", c);
 		}
 
 		template <PageSize size>
@@ -686,6 +774,8 @@ struct Memory {
 						logical |= (page & bits(22, 15)) >> 15;
 					break;
 				}
+
+//				printf("%08x => logical %d -> physical %d\n", page, logical, (physical >> 15));
 
 				// TODO: consider clashes.
 				// TODO: what if there's less than 4mb present?
