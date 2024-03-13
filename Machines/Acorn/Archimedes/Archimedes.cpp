@@ -198,28 +198,33 @@ struct Interrupts {
 			(fiq_.request() ? InterruptRequests::FIQ : 0);
 	}
 
-	bool tick_timers() {
-		bool did_change_interrupts = false;
-
-		for(int c = 0; c < 4; c++) {
-			// Events happen only on a decrement to 0; a reload value of 0 effectively means 'don't count'.
-			if(!counters_[c].value && !counters_[c].reload) {
-				continue;
-			}
-
-			--counters_[c].value;
-			if(!counters_[c].value) {
-				counters_[c].value = counters_[c].reload;
-
-				switch(c) {
-					case 0:	did_change_interrupts |= irq_a_.apply(IRQA::Timer0);	break;
-					case 1:	did_change_interrupts |= irq_a_.apply(IRQA::Timer1);	break;
-					default: break;
-				}
-				// TODO: events for timers 2 and 3. Also remove some branchyness.
-			}
+	template <int c>
+	bool tick_timer() {
+		if(!counters_[c].value && !counters_[c].reload) {
+			return false;
 		}
 
+		--counters_[c].value;
+		if(!counters_[c].value) {
+			counters_[c].value = counters_[c].reload;
+
+			switch(c) {
+				case 0:	return irq_a_.apply(IRQA::Timer0);
+				case 1:	return irq_a_.apply(IRQA::Timer1);
+				default: break;
+			}
+			// TODO: events for timers 2 and 3.
+		}
+
+		return false;
+	}
+
+	bool tick_timers() {
+		bool did_change_interrupts = false;
+		did_change_interrupts |= tick_timer<0>();
+		did_change_interrupts |= tick_timer<1>();
+		did_change_interrupts |= tick_timer<2>();
+		did_change_interrupts |= tick_timer<3>();
 		return did_change_interrupts;
 	}
 
