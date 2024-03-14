@@ -242,6 +242,7 @@ struct Interrupts {
 
 	bool read(uint32_t address, uint8_t &value) const {
 		const auto target = address & AddressMask;
+		value = 0xff;
 		switch(target) {
 			default:
 				logger.error().append("Unrecognised IOC read from %08x", address);
@@ -317,7 +318,7 @@ struct Interrupts {
 			return true;
 		}
 
-		return false;
+		return true;
 	}
 
 	bool write(uint32_t address, uint8_t value) {
@@ -423,7 +424,7 @@ struct Interrupts {
 			return true;
 		}
 
-		return false;
+		return true;
 	}
 
 	Interrupts() {
@@ -482,7 +483,7 @@ struct Memory {
 
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool) {
-		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
+		if(mode == InstructionSet::ARM::Mode::User && address >= 0x2000000) {
 			return false;
 		}
 
@@ -507,7 +508,7 @@ struct Memory {
 					page_size_ = PageSize((address >> 2) & 3);
 
 					logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
-					update_mapping();
+					map_dirty_ = true;
 
 					return true;
 				} else {
@@ -516,7 +517,6 @@ struct Memory {
 			break;
 
 			case Zone::LogicallyMappedRAM: {
-				update_mapping();
 				const auto item = logical_ram<IntT, false>(address, mode);
 				if(!item) {
 					return false;
@@ -540,9 +540,9 @@ struct Memory {
 			return true;
 
 			case Zone::AddressTranslator:
-				printf("Translator write at %08x\n", address);
+				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
 				pages_[address & 0x7f] = address;
-//				update_mapping();
+				map_dirty_ = true;
 			break;
 
 			default:
@@ -555,12 +555,7 @@ struct Memory {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool) {
-		// Unaligned addresses are presented on the bus, but in an Archimedes
-		// the bus will ignore the low two bits.
-		if constexpr (std::is_same_v<IntT, uint32_t>) {
-			address &= static_cast<uint32_t>(~3);
-		}
-		if(mode == InstructionSet::ARM::Mode::User && address < 0x2000000) {
+		if(mode == InstructionSet::ARM::Mode::User && address >= 0x2000000) {
 			return false;
 		}
 
@@ -614,11 +609,6 @@ struct Memory {
 
 		source = 0;
 		return true;
-	}
-
-	Memory() {
-		// Install initial logical memory map.
-		update_mapping();
 	}
 
 	bool tick_timers() {
@@ -694,9 +684,17 @@ struct Memory {
 			uint8_t protection_level = 0;
 		};
 		std::array<MappedPage, 8192> mapping_;
+		bool map_dirty_ = true;
 
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode mode) {
+			// Possibly TODO: this recompute-if-dirty flag is supposed to ameliorate for an expensive
+			// mapping process. It can be eliminated when the process is improved.
+			if(map_dirty_) {
+				update_mapping();
+				map_dirty_ = false;
+			}
+
 			address = aligned<IntT>(address);
 			address &= 0x1ff'ffff;
 			size_t page;
@@ -751,12 +749,6 @@ struct Memory {
 		}
 
 		void update_mapping() {
-//			static int c = 0;
-//			++c;
-//			if(c == 662) {
-//				printf("");
-//			}
-
 			// For each physical page, project it into logical space.
 			switch(page_size_) {
 				default:
@@ -765,8 +757,6 @@ struct Memory {
 				case PageSize::kb16:	update_mapping<PageSize::kb16>();	break;
 				case PageSize::kb32:	update_mapping<PageSize::kb32>();	break;
 			}
-
-//			logger.info().append("Updated logical RAM mapping [%d]", c);
 		}
 
 		template <PageSize size>
@@ -834,7 +824,7 @@ struct Memory {
 					break;
 				}
 
-				printf("%08x => logical %d -> physical %d\n", page, logical, (physical >> 15));
+				printf("%08x => physical %d -> logical %d\n", page, (physical >> 15), logical);
 
 				// TODO: consider clashes.
 				// TODO: what if there's less than 4mb present?
@@ -914,11 +904,11 @@ class ConcreteMachine:
 
 					static bool log = false;
 
-//					if(executor_.pc() == 0x03802b40) {
-//						printf("");
-//					}
+					if(executor_.pc() == 0x0380214c) {
+						printf("");
+					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-					log |= executor_.pc() == 0x03810398;
+//					log |= executor_.pc() == 0x03811eb4;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= executor_.pc() != 0x03801a0c;
 
@@ -943,6 +933,7 @@ class ConcreteMachine:
 						}
 						info.append("]");
 					}
+//					logger.info().append("%08x: %08x", executor_.pc(), instruction);
 					InstructionSet::ARM::execute(instruction, executor_);
 
 //					if(

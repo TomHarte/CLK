@@ -418,7 +418,7 @@ struct OperationMapper {
 		if constexpr (((partial >> 22) & 0b111'111) == 0b000'000) {
 			// This implementation provides only eight bits baked into the template parameters so
 			// an additional dynamic test is required to check whether this is really, really MUL or MLA.
-			if(((instruction >> 4) & 0b1111) == 0b1001) {
+			if((instruction & 0b1111'0000) == 0b1001'0000) {
 				scheduler.template perform<i>(Multiply(instruction));
 				return;
 			}
@@ -426,9 +426,6 @@ struct OperationMapper {
 
 		// Data processing; cf. p.17.
 		if constexpr (((partial >> 26) & 0b11) == 0b00) {
-			// TODO: This decoding technically requires that either b4 is 0 or, failing that, that b7 is 0.
-			// i.e. b4 and b7 set should be rejected. Which is not quite fully tested by the multiply
-			// condition above.
 			scheduler.template perform<i>(DataProcessing(instruction));
 			return;
 		}
