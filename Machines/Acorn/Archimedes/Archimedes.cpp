@@ -526,7 +526,8 @@ struct Memory {
 			} break;
 
 			case Zone::IOControllers:
-				ioc_.write(address, source);
+				// TODO: have I overrestricted the value type for the IOC area?
+				ioc_.write(address, uint8_t(source));
 				ioc_write_delegate_.did_write_ioc();
 			return true;
 
@@ -540,7 +541,7 @@ struct Memory {
 			return true;
 
 			case Zone::AddressTranslator:
-				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
+//				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
 				pages_[address & 0x7f] = address;
 				map_dirty_ = true;
 			break;
@@ -824,7 +825,7 @@ struct Memory {
 					break;
 				}
 
-				printf("%08x => physical %d -> logical %d\n", page, (physical >> 15), logical);
+//				printf("%08x => physical %d -> logical %d\n", page, (physical >> 15), logical);
 
 				// TODO: consider clashes.
 				// TODO: what if there's less than 4mb present?
@@ -904,9 +905,9 @@ class ConcreteMachine:
 
 					static bool log = false;
 
-					if(executor_.pc() == 0x0380214c) {
-						printf("");
-					}
+//					if(executor_.pc() == 0x0380214c) {
+//						printf("");
+//					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
 //					log |= executor_.pc() == 0x03811eb4;
 //					log |= (executor_.pc() > 0x03801000);
