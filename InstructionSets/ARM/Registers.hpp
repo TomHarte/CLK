@@ -153,18 +153,21 @@ struct Registers {
 			}
 
 			switch(type) {
-				case Exception::IRQ:
+				case Exception::IRQ: {
+					const auto r14 = pc_status(8);
 					set_mode(Mode::IRQ);
-					active_[14] = pc_status(8);
-				break;
-				case Exception::FIQ:
+					active_[14] = r14;
+				} break;
+				case Exception::FIQ: {
+					const auto r14 = pc_status(8);
 					set_mode(Mode::FIQ);
-					active_[14] = pc_status(8);
-				break;
-				default:
+					active_[14] = r14;
+				} break;
+				default: {
+					const auto r14 = pc_status(4);
 					set_mode(Mode::Supervisor);
-					active_[14] = pc_status(4);
-				break;
+					active_[14] = r14;
+				} break;
 			}
 
 			set_pc(uint32_t(type));
