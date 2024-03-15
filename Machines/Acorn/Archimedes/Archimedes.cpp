@@ -71,6 +71,119 @@ static_assert(BitMask<15, 14>::value == 49152);
 
 namespace Archimedes {
 
+/// Models a half-duplex serial link between two parties, framing bytes with one start bit and two stop bits.
+struct HalfDuplexSerial {
+	static constexpr uint16_t ShiftMask = 0b1111'1110'0000'0000;
+
+	/// Enqueues @c value for output.
+	void output(int party, uint8_t value) {
+		parties_[party].output_count = 11;
+		parties_[party].output = uint16_t((value << 1) | ShiftMask);
+	}
+
+	/// @returns The last observed input.
+	uint8_t input(int party) const {
+		return uint8_t(parties_[party].input >> 1);
+	}
+
+	static constexpr uint8_t Receive = 1 << 0;
+	static constexpr uint8_t Transmit = 1 << 1;
+
+	/// @returns A bitmask of events that occurred during the last shift.
+	uint8_t events(int party) {
+		const auto result = parties_[party].events;
+		parties_[party].events = 0;
+		return result;
+	}
+
+	bool is_outputting(int party) const {
+		return parties_[party].output_count != 11;
+	}
+
+	/// Updates the shifters on both sides of the serial link.
+	void shift() {
+		const uint16_t next = parties_[0].output & parties_[1].output & 1;
+
+		for(int c = 0; c < 2; c++) {
+			if(parties_[c].output_count) {
+				--parties_[c].output_count;
+				if(!parties_[c].output_count) {
+					parties_[c].events |= Transmit;
+					parties_[c].input_count = -1;
+				}
+				parties_[c].output = (parties_[c].output >> 1) | ShiftMask;
+			} else {
+				// Check for a start bit.
+				if(parties_[c].input_count == -1 && !next) {
+					parties_[c].input_count = 0;
+				}
+
+				// Shift in if currently observing.
+				if(parties_[c].input_count >= 0 && parties_[c].input_count < 11) {
+					parties_[c].input = uint16_t((parties_[c].input >> 1) | (next << 10));
+
+					++parties_[c].input_count;
+					if(parties_[c].input_count == 11) {
+						parties_[c].events |= Receive;
+						parties_[c].input_count = -1;
+					}
+				}
+			}
+		}
+	}
+
+private:
+	struct Party {
+		int output_count = 0;
+		int input_count = -1;
+		uint16_t output = 0xffff;
+		uint16_t input = 0;
+		uint8_t events = 0;
+	} parties_[2];
+};
+
+static constexpr int IOCParty = 0;
+static constexpr int KeyboardParty = 1;
+
+// Resource for the keyboard protocol: https://github.com/tmk/tmk_keyboard/wiki/ACORN-ARCHIMEDES-Keyboard
+struct Keyboard {
+	Keyboard(HalfDuplexSerial &serial) : serial_(serial) {}
+
+	void update() {
+		if(serial_.events(KeyboardParty) & HalfDuplexSerial::Receive) {
+			const uint8_t input = serial_.input(KeyboardParty);
+			switch(input) {
+				case HRST:
+					// TODO:
+				case RAK1:
+				case RAK2:
+					serial_.output(KeyboardParty, input);
+				break;
+
+				default: break;
+			}
+		}
+	}
+
+private:
+	HalfDuplexSerial &serial_;
+
+	static constexpr uint8_t HRST	= 0b1111'1111;	// Keyboard reset.
+	static constexpr uint8_t RAK1	= 0b1111'1110;	// Reset response #1.
+	static constexpr uint8_t RAK2	= 0b1111'1101;	// Reset response #2.
+
+	static constexpr uint8_t RQID	= 0b0010'0000;	// Request for keyboard ID.
+	static constexpr uint8_t RQMP	= 0b0010'0010;	// Request for mouse data.
+
+	static constexpr uint8_t BACK	= 0b0011'1111;	// Acknowledge for first keyboard data byte pair.
+	static constexpr uint8_t NACK	= 0b0011'0000;	// Acknowledge for last keyboard data byte pair, selects scan/mouse mode.
+	static constexpr uint8_t SACK	= 0b0011'0001;	// Last data byte acknowledge.
+	static constexpr uint8_t MACK	= 0b0011'0010;	// Last data byte acknowledge.
+	static constexpr uint8_t SMAK	= 0b0011'0011;	// Last data byte acknowledge.
+	static constexpr uint8_t PRST	= 0b0010'0001;	// Does nothing.
+
+};
+
 struct Video {
 	void write(uint32_t value) {
 		const auto target = (value >> 24) & 0xfc;
@@ -221,9 +334,24 @@ struct Interrupts {
 			switch(c) {
 				case 0:	return irq_a_.apply(IRQA::Timer0);
 				case 1:	return irq_a_.apply(IRQA::Timer1);
+				case 3: {
+					serial_.shift();
+					keyboard_.update();
+
+					const uint8_t events = serial_.events(IOCParty);
+					bool did_interrupt = false;
+					if(events & HalfDuplexSerial::Receive) {
+						did_interrupt |= irq_b_.apply(IRQB::KeyboardReceiveFull);
+					}
+					if(events & HalfDuplexSerial::Transmit) {
+						did_interrupt |= irq_b_.apply(IRQB::KeyboardTransmitEmpty);
+					}
+
+					return did_interrupt;
+				}
 				default: break;
 			}
-			// TODO: events for timers 2 (baud) and 3 (the keyboard).
+			// TODO: events for timers 2 (baud).
 		}
 
 		return false;
@@ -254,8 +382,8 @@ struct Interrupts {
 			return true;
 
 			case 0x3200004 & AddressMask:
-				logger.error().append("TODO: IOC keyboard receive");
-				value = 0;
+				value = serial_.input(IOCParty);
+				logger.error().append("IOC keyboard receive: %02x", value);
 			return true;
 
 			// IRQ A.
@@ -333,7 +461,8 @@ struct Interrupts {
 			return true;
 
 			case 0x320'0004 & AddressMask:
-				logger.error().append("TODO: IOC keyboard transmit %02x", value);
+				logger.error().append("IOC keyboard transmit %02x", value);
+				serial_.output(IOCParty, value);
 			return true;
 
 			case 0x320'0014 & AddressMask:
@@ -427,7 +556,7 @@ struct Interrupts {
 		return true;
 	}
 
-	Interrupts() {
+	Interrupts() : keyboard_(serial_) {
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
 		fiq_.status = 0x80;				// 'set always'.
@@ -455,6 +584,9 @@ private:
 		uint16_t output;
 	};
 	Counter counters_[4];
+
+	HalfDuplexSerial serial_;
+	Keyboard keyboard_;
 };
 
 /// Primarily models the MEMC.
