@@ -223,7 +223,7 @@ struct Interrupts {
 				case 1:	return irq_a_.apply(IRQA::Timer1);
 				default: break;
 			}
-			// TODO: events for timers 2 and 3.
+			// TODO: events for timers 2 (baud) and 3 (the keyboard).
 		}
 
 		return false;
@@ -254,7 +254,7 @@ struct Interrupts {
 			return true;
 
 			case 0x3200004 & AddressMask:
-				logger.error().append("TODO: IOC serial receive");
+				logger.error().append("TODO: IOC keyboard receive");
 				value = 0;
 			return true;
 
@@ -333,7 +333,7 @@ struct Interrupts {
 			return true;
 
 			case 0x320'0004 & AddressMask:
-				logger.error().append("TODO: IOC serial transmit %02x", value);
+				logger.error().append("TODO: IOC keyboard transmit %02x", value);
 			return true;
 
 			case 0x320'0014 & AddressMask:
