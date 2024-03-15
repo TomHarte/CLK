@@ -261,7 +261,7 @@ struct Interrupts {
 			// IRQ A.
 			case 0x3200010 & AddressMask:
 				value = irq_a_.status;
-				logger.error().append("IRQ A status is %02x", value);
+//				logger.error().append("IRQ A status is %02x", value);
 			return true;
 			case 0x3200014 & AddressMask:
 				value = irq_a_.request();
@@ -275,7 +275,7 @@ struct Interrupts {
 			// IRQ B.
 			case 0x3200020 & AddressMask:
 				value = irq_b_.status;
-				logger.error().append("IRQ B status is %02x", value);
+//				logger.error().append("IRQ B status is %02x", value);
 			return true;
 			case 0x3200024 & AddressMask:
 				value = irq_b_.request();
@@ -905,7 +905,7 @@ class ConcreteMachine:
 
 					static bool log = false;
 
-//					if(executor_.pc() == 0x0380214c) {
+//					if(executor_.pc() == 0x03810398) {
 //						printf("");
 //					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);

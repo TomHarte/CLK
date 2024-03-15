@@ -380,7 +380,11 @@ struct Executor {
 
 		uint32_t final_address;
 		if constexpr (!flags.add_offset()) {
-			final_address = address + total * 4;
+			// Decrementing mode; final_address is the value the base register should
+			// have after this operation if writeback is enabled, so it's below
+			// the original address. But also writes always occur from lowest address
+			// to highest, so push the current address to the bottom.
+			final_address = address - total * 4;
 			address = final_address;
 		} else {
 			final_address = address + total * 4;
