@@ -389,7 +389,7 @@ struct Interrupts {
 			// IRQ A.
 			case 0x3200010 & AddressMask:
 				value = irq_a_.status;
-				logger.error().append("IRQ A status is %02x", value);
+//				logger.error().append("IRQ A status is %02x", value);
 			return true;
 			case 0x3200014 & AddressMask:
 				value = irq_a_.request();
@@ -403,7 +403,7 @@ struct Interrupts {
 			// IRQ B.
 			case 0x3200020 & AddressMask:
 				value = irq_b_.status;
-				logger.error().append("IRQ B status is %02x", value);
+//				logger.error().append("IRQ B status is %02x", value);
 			return true;
 			case 0x3200024 & AddressMask:
 				value = irq_b_.request();
@@ -434,7 +434,7 @@ struct Interrupts {
 			case 0x3200060 & AddressMask:
 			case 0x3200070 & AddressMask:
 				value = counters_[(target >> 4) - 0x4].output & 0xff;
-				logger.error().append("%02x: Counter %d low is %02x", target, (target >> 4) - 0x4, value);
+//				logger.error().append("%02x: Counter %d low is %02x", target, (target >> 4) - 0x4, value);
 			return true;
 
 			case 0x3200044 & AddressMask:
@@ -442,7 +442,7 @@ struct Interrupts {
 			case 0x3200064 & AddressMask:
 			case 0x3200074 & AddressMask:
 				value = counters_[(target >> 4) - 0x4].output >> 8;
-				logger.error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
+//				logger.error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
 			return true;
 		}
 
@@ -1041,7 +1041,7 @@ class ConcreteMachine:
 //						printf("");
 //					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-					log |= executor_.pc() == 0x0381201c;
+//					log |= executor_.pc() == 0x0381201c;
 //					log = executor_.pc() == 0x0381202c;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= executor_.pc() != 0x03801a0c;
