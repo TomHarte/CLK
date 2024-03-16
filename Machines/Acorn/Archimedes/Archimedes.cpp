@@ -16,6 +16,7 @@
 
 #include "../../../InstructionSets/ARM/Executor.hpp"
 #include "../../../Outputs/Log.hpp"
+#include "../../../Components/I2C/I2C.hpp"
 
 #include <algorithm>
 #include <array>
@@ -385,7 +386,9 @@ struct Interrupts {
 
 			case 0x3200000 & AddressMask:
 				logger.error().append("TODO: IOC control read");
-				value = 0;
+				value = control_;
+				value &= ~(i2c_.clock() ? 2 : 0);
+				value &= ~(i2c_.data() ? 1 : 0);
 			return true;
 
 			case 0x3200004 & AddressMask:
@@ -465,6 +468,10 @@ struct Interrupts {
 			break;
 
 			case 0x320'0000 & AddressMask:
+				control_ = value;
+				i2c_.set_clock_data(!(value & 2), !(value & 1));
+
+				// TODO: rest relates to floppy control, maybe?
 				logger.error().append("TODO: IOC control write %02x", value);
 			return true;
 
@@ -572,6 +579,7 @@ struct Interrupts {
 	}
 
 private:
+	// IRQA, IRQB and FIQ states.
 	struct Interrupt {
 		uint8_t status, mask;
 		uint8_t request() const {
@@ -587,6 +595,7 @@ private:
 	};
 	Interrupt irq_a_, irq_b_, fiq_;
 
+	// The IOCs four counters.
 	struct Counter {
 		uint16_t value;
 		uint16_t reload;
@@ -594,8 +603,15 @@ private:
 	};
 	Counter counters_[4];
 
+	// The KART and keyboard beyond it.
 	HalfDuplexSerial serial_;
 	Keyboard keyboard_;
+
+	// The control register.
+	uint8_t control_ = 0xff;
+
+	// The I2C bus.
+	I2C::Bus i2c_;
 };
 
 /// Primarily models the MEMC.

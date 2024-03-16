@@ -55,6 +55,7 @@ set(CLK_SOURCES
 	Components/DiskII/DiskIIDrive.cpp
 	Components/DiskII/IWM.cpp
 	Components/DiskII/MacintoshDoubleDensityDrive.cpp
+	Components/I2C/I2C.cpp
 	Components/KonamiSCC/KonamiSCC.cpp
 	Components/OPx/OPLL.cpp
 	Components/RP5C01/RP5C01.cpp

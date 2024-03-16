@@ -215,6 +215,8 @@
 		4B228CDB24DA41890077EF25 /* ScanTarget.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CDA24DA41880077EF25 /* ScanTarget.metal */; };
 		4B2530F4244E6774007980BF /* fm.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B2530F3244E6773007980BF /* fm.json */; };
 		4B25B5F925BD083C00362C84 /* DiskIIDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B80CD6D2568A82600176FCC /* DiskIIDrive.cpp */; };
+		4B2A1CD52BA62066004496CE /* I2C.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A1CD32BA62066004496CE /* I2C.cpp */; };
+		4B2A1CD62BA62066004496CE /* I2C.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A1CD32BA62066004496CE /* I2C.cpp */; };
 		4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2A332B1DB86821002876E3 /* OricOptions.xib */; };
 		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
 		4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
@@ -1351,6 +1353,8 @@
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
 		4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PersonalityTraits.hpp; sourceTree = "<group>"; };
+		4B2A1CD32BA62066004496CE /* I2C.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = I2C.cpp; path = I2C/I2C.cpp; sourceTree = "<group>"; };
+		4B2A1CD42BA62066004496CE /* I2C.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = I2C.hpp; path = I2C/I2C.hpp; sourceTree = "<group>"; };
 		4B2A332C1DB86821002876E3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/OricOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B2A3B5A29993DFA007CE366 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
 		4B2A3B5B29995FF6007CE366 /* LineBuffer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineBuffer.hpp; sourceTree = "<group>"; };
@@ -4826,6 +4830,8 @@
 				4BF0BC6E2973318E00CCA2B5 /* RP5C01 */,
 				4B0ACBFF237756EC008902D0 /* Serial */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
+				4B2A1CD32BA62066004496CE /* I2C.cpp */,
+				4B2A1CD42BA62066004496CE /* I2C.hpp */,
 			);
 			name = Components;
 			path = ../../Components;
@@ -5874,6 +5880,7 @@
 				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
 				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
 				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
+				4B2A1CD62BA62066004496CE /* I2C.cpp in Sources */,
 				4B0F1C1D2604EA1000B85C66 /* Keyboard.cpp in Sources */,
 				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
 				4BB307BC235001C300457D33 /* 6850.cpp in Sources */,
@@ -6069,6 +6076,7 @@
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
 				4BCE0052227CE8CA000CA200 /* DiskIICard.cpp in Sources */,
 				4BF0BC68297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */,
+				4B2A1CD52BA62066004496CE /* I2C.cpp in Sources */,
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
 				4BD67DCB209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */,
 				4BB4BFB922A4372F0069048D /* StaticAnalyser.cpp in Sources */,
