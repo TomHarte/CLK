@@ -78,6 +78,7 @@ struct HalfDuplexSerial {
 	/// Enqueues @c value for output.
 	void output(int party, uint8_t value) {
 		parties_[party].output_count = 11;
+		parties_[party].input = 0x7ff;
 		parties_[party].output = uint16_t((value << 1) | ShiftMask);
 	}
 
@@ -374,7 +375,7 @@ struct Interrupts {
 
 	static constexpr uint32_t AddressMask = 0x1f'ffff;
 
-	bool read(uint32_t address, uint8_t &value) const {
+	bool read(uint32_t address, uint8_t &value) {
 		const auto target = address & AddressMask;
 		value = 0xff;
 		switch(target) {
@@ -389,6 +390,7 @@ struct Interrupts {
 
 			case 0x3200004 & AddressMask:
 				value = serial_.input(IOCParty);
+				irq_b_.clear(IRQB::KeyboardReceiveFull);
 				logger.error().append("IOC keyboard receive: %02x", value);
 			return true;
 
@@ -469,6 +471,7 @@ struct Interrupts {
 			case 0x320'0004 & AddressMask:
 				logger.error().append("IOC keyboard transmit %02x", value);
 				serial_.output(IOCParty, value);
+				irq_b_.clear(IRQB::KeyboardTransmitEmpty);
 			return true;
 
 			case 0x320'0014 & AddressMask:
