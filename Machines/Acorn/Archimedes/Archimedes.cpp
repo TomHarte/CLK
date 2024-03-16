@@ -160,7 +160,13 @@ struct Keyboard {
 					serial_.output(KeyboardParty, input);
 				break;
 
-				default: break;
+				case RQID:
+					serial_.output(KeyboardParty, 0x81);	// TODO: what keyboard type?
+				break;
+
+				default:
+					printf("Keyboard declines to respond to %02x\n", input);
+				break;
 			}
 		}
 	}

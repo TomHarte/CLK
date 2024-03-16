@@ -149,12 +149,12 @@ struct Registers {
 		void exception() {
 			switch(type) {
 				case Exception::IRQ: {
-					const auto r14 = pc_status(8);
+					const auto r14 = pc_status(0);
 					set_mode(Mode::IRQ);
 					active_[14] = r14;
 				} break;
 				case Exception::FIQ: {
-					const auto r14 = pc_status(8);
+					const auto r14 = pc_status(0);
 					set_mode(Mode::FIQ);
 					active_[14] = r14;
 				} break;
@@ -169,7 +169,6 @@ struct Registers {
 			if constexpr (type == Exception::Reset || type == Exception::FIQ) {
 				interrupt_flags_ |= ConditionCode::FIQDisable;
 			}
-
 			set_pc(uint32_t(type));
 		}
 
