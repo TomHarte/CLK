@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <unordered_map>
 
 namespace I2C {
@@ -34,6 +35,16 @@ private:
 	bool data_ = false;
 	bool clock_ = false;
 	std::unordered_map<int, Peripheral *> peripherals_;
+
+	uint16_t input_ = 0xffff;
+	int input_count_ = -1;
+
+	Peripheral *active_peripheral_ = nullptr;
+
+	enum class Phase {
+		AwaitingAddress,
+		CollectingData,
+	} phase_ = Phase::AwaitingAddress;
 };
 
 }
