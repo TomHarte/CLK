@@ -78,7 +78,7 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 					active_peripheral_ = pair->second;
 
 					peripheral_response_ = 0;
-					peripheral_bits_ = 2;
+					peripheral_bits_ = 1;
 					phase_ = Phase::AwaitingByte;
 					printf("Waiting for byte\n");
 				} else {
@@ -89,11 +89,11 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 		break;
 
 		case Phase::AwaitingByte:
-			if(data_ && clock_) {
+			// Run down the clock on the acknowledge bit.
+			if(!peripheral_bits_) {
 				printf("Beginning byte\n");
 				phase_ = Phase::CollectingByte;
 				input_count_ = 0;
-				input_ = 0;
 			}
 		break;
 
