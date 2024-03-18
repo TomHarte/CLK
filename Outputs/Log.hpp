@@ -31,6 +31,7 @@ enum class Source {
 	DirectAccessDevice,
 	Enterprise,
 	i8272,
+	I2C,
 	IntelligentKeyboard,
 	IWM,
 	M50740,
@@ -95,6 +96,7 @@ constexpr const char *prefix(Source source) {
 		case Source::DirectAccessDevice:		return "Direct Access Device";
 		case Source::Enterprise:				return "Enterprise";
 		case Source::i8272:						return "i8272";
+		case Source::I2C:						return "I2C";
 		case Source::IntelligentKeyboard:		return "IKYB";
 		case Source::IWM:						return "IWM";
 		case Source::M50740:					return "M50740";

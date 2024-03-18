@@ -389,10 +389,10 @@ struct Interrupts {
 			break;
 
 			case 0x3200000 & AddressMask:
-				logger.error().append("TODO: IOC control read");
-				value = control_;
+				value = control_ | 0xc0;
 				value &= ~(i2c_.clock() ? 2 : 0);
 				value &= ~(i2c_.data() ? 1 : 0);
+//				logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
 			return true;
 
 			case 0x3200004 & AddressMask:
@@ -472,11 +472,11 @@ struct Interrupts {
 			break;
 
 			case 0x320'0000 & AddressMask:
+				// TODO: does the rest of the control register relate to anything?
+//				logger.error().append("TODO: IOC control write: C:%d D:%d", !(value & 2), !(value & 1));
+
 				control_ = value;
 				i2c_.set_clock_data(!(value & 2), !(value & 1));
-
-				// TODO: rest relates to floppy control, maybe?
-				logger.error().append("TODO: IOC control write %02x", value);
 			return true;
 
 			case 0x320'0004 & AddressMask:

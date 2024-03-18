@@ -8,7 +8,15 @@
 
 #include "I2C.hpp"
 
+#include "../../Outputs/Log.hpp"
+
 using namespace I2C;
+
+namespace {
+
+Log::Logger<Log::Source::I2C> logger;
+
+}
 
 void Bus::set_data(bool pulled) {
 	set_clock_data(clock_, pulled);
@@ -34,6 +42,8 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 	clock_ = clock_pulled;
 	data_ = data_pulled;
 
+	logger.info().append("C:%d D:%d", clock_, data_);
+
 	// Advance peripheral input from peripheral if clock
 	// transitions from high to low.
 	if(peripheral_bits_ && prior_clock && !clock_) {
@@ -48,11 +58,18 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 		}
 	};
 
+	const auto await_byte = [&] {
+		peripheral_response_ = 0;
+		peripheral_bits_ = 2;
+		phase_ = Phase::AwaitingByte;
+		logger.info().append("Waiting for byte");
+	};
+
 	// Check for stop condition at any time.
 	// "A LOW-to-HIGH transition of the data line
 	// while the clock is HIGH is defined as the STOP condition".
 	if(prior_data && !data_ && !clock_) {
-		printf("Stopped\n");
+		logger.info().append("Stopped");
 		phase_ = Phase::AwaitingStart;
 	}
 
@@ -64,44 +81,44 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 				phase_ = Phase::CollectingAddress;
 				input_count_ = 0;
 				input_ = 0;
-				printf("Waiting for [remainder of] address\n");
+				logger.info().append("Waiting for [remainder of] address");
 			}
 		break;
 
 		case Phase::CollectingAddress:
 			capture_bit();
 			if(input_count_ == 8) {
-				printf("Addressed %02x?\n", uint8_t(input_));
+				logger.info().append("Addressed %02x with %s?", uint8_t(input_) & 0xfe, input_ & 1 ? "read" : "write");
 
-				auto pair = peripherals_.find(uint8_t(input_));
+				auto pair = peripherals_.find(uint8_t(input_) & 0xfe);
 				if(pair != peripherals_.end()) {
 					active_peripheral_ = pair->second;
 
-					peripheral_response_ = 0;
-					peripheral_bits_ = 1;
-					phase_ = Phase::AwaitingByte;
-					printf("Waiting for byte\n");
+					await_byte();
 				} else {
 					phase_ = Phase::AwaitingStart;
-					printf("No device\n");
+					logger.info().append("No device; not acknowledging");
 				}
 			}
 		break;
 
 		case Phase::AwaitingByte:
 			// Run down the clock on the acknowledge bit.
-			if(!peripheral_bits_) {
-				printf("Beginning byte\n");
-				phase_ = Phase::CollectingByte;
-				input_count_ = 0;
+			if(peripheral_bits_) {
+				return;
 			}
-		break;
+
+			logger.info().append("Beginning byte");
+			phase_ = Phase::CollectingByte;
+			input_count_ = 0;
+		[[fallthrough]];
 
 		case Phase::CollectingByte:
 			capture_bit();
 			if(input_count_ == 8) {
-				printf("Got byte %02x?\n", uint8_t(input_));
-				phase_ = Phase::AwaitingByte;
+				logger.info().append("Got byte %02x?", uint8_t(input_));
+
+				await_byte();
 			}
 		break;
 	}
