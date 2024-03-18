@@ -773,7 +773,7 @@ struct Memory {
 		}
 
 		source = 0;
-		return true;
+		return false;
 	}
 
 	bool tick_timers() {
@@ -1055,6 +1055,10 @@ class ConcreteMachine:
 				timer_divider_ -= run_length;
 
 				while(run_length--) {
+					if(executor_.pc() == 0x0207b3bc) {
+						printf("At %08x after last PC %08x\n", executor_.pc(), last_pc);
+					}
+
 					uint32_t instruction;
 					if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
 						logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
@@ -1069,11 +1073,8 @@ class ConcreteMachine:
 
 					static bool log = false;
 
-//					if(executor_.pc() == 0x03810398) {
-//						printf("");
-//					}
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-//					log |= executor_.pc() == 0x0381201c;
+					log |= executor_.pc() == 0x0207b3bc;	//0x397af9c
 //					log = executor_.pc() == 0x0381202c;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= executor_.pc() != 0x03801a0c;

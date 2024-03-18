@@ -147,23 +147,13 @@ struct Registers {
 		/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
 		template <Exception type>
 		void exception() {
+			const auto r14 = pc_status(4);
 			switch(type) {
-				case Exception::IRQ: {
-					const auto r14 = pc_status(0);
-					set_mode(Mode::IRQ);
-					active_[14] = r14;
-				} break;
-				case Exception::FIQ: {
-					const auto r14 = pc_status(0);
-					set_mode(Mode::FIQ);
-					active_[14] = r14;
-				} break;
-				default: {
-					const auto r14 = pc_status(4);
-					set_mode(Mode::Supervisor);
-					active_[14] = r14;
-				} break;
+				case Exception::IRQ:	set_mode(Mode::IRQ);		break;
+				case Exception::FIQ: 	set_mode(Mode::FIQ);		break;
+				default:				set_mode(Mode::Supervisor);	break;
 			}
+			active_[14] = r14;
 
 			interrupt_flags_ |= ConditionCode::IRQDisable;
 			if constexpr (type == Exception::Reset || type == Exception::FIQ) {
