@@ -40,11 +40,15 @@ private:
 	int input_count_ = -1;
 
 	Peripheral *active_peripheral_ = nullptr;
+	uint16_t peripheral_response_ = 0xffff;
+	int peripheral_bits_ = 0;
 
 	enum class Phase {
-		AwaitingAddress,
-		CollectingData,
-	} phase_ = Phase::AwaitingAddress;
+		AwaitingStart,
+		CollectingAddress,
+		AwaitingByte,
+		CollectingByte,
+	} phase_ = Phase::AwaitingStart;
 };
 
 }

@@ -72,6 +72,10 @@ static_assert(BitMask<15, 14>::value == 49152);
 
 namespace Archimedes {
 
+struct CMOSRAM: public I2C::Peripheral {
+
+};
+
 /// Models a half-duplex serial link between two parties, framing bytes with one start bit and two stop bits.
 struct HalfDuplexSerial {
 	static constexpr uint16_t ShiftMask = 0b1111'1110'0000'0000;
@@ -541,15 +545,15 @@ struct Interrupts {
 			return true;
 
 			case 0x335'0018 & AddressMask:
-				logger.error().append("TODO: latch B write");
+				logger.error().append("TODO: latch B write: %02x", value);
 			return true;
 
 			case 0x335'0040 & AddressMask:
-				logger.error().append("TODO: latch A write");
+				logger.error().append("TODO: latch A write: %02x", value);
 			return true;
 
 			case 0x335'0048 & AddressMask:
-				logger.error().append("TODO: latch C write");
+				logger.error().append("TODO: latch C write: %02x", value);
 			return true;
 
 			case 0x336'0000 & AddressMask:
@@ -576,6 +580,8 @@ struct Interrupts {
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
 		fiq_.status = 0x80;				// 'set always'.
+
+		i2c_.add_peripheral(&cmos_, 0xa0);
 	}
 
 private:
@@ -612,6 +618,7 @@ private:
 
 	// The I2C bus.
 	I2C::Bus i2c_;
+	CMOSRAM cmos_;
 };
 
 /// Primarily models the MEMC.
