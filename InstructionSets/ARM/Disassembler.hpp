@@ -15,6 +15,7 @@
 
 namespace InstructionSet::ARM {
 
+/// Holds a single ARM operand, whether a source/destination or immediate value, potentially including a shift.
 struct Operand {
 	enum class Type {
 		Immediate, Register, RegisterList, None
@@ -31,6 +32,8 @@ struct Operand {
 	}
 };
 
+/// Describes a single ARM instruction, suboptimally but such that all relevant detail has been extracted
+/// by the OperationMapper and is now easy to inspect or to turn into a string.
 struct Instruction {
 	Condition condition = Condition::AL;
 	enum class Operation {
@@ -125,6 +128,8 @@ struct Instruction {
 	}
 };
 
+/// A target for @c dispatch that merely captures a description of the decoded instruction, being
+/// able to vend it later via @c last().
 template <Model model>
 struct Disassembler {
 	Instruction last() {
