@@ -745,8 +745,9 @@ struct Memory {
 			} break;
 
 			case Zone::LowROM:
-				logger.error().append("TODO: Low ROM read from %08x", address);
-			break;
+//				logger.error().append("TODO: Low ROM read from %08x", address);
+				source = ~0;
+			return true;
 
 			case Zone::HighROM:
 				// Real test is: require A24=A25=0, then A25=1.
