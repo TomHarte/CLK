@@ -1051,7 +1051,7 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
 			static uint32_t last_pc = 0;
-			static bool log = true;
+			static bool log = false;
 
 			auto instructions = cycles.as<int>();
 
@@ -1086,7 +1086,7 @@ class ConcreteMachine:
 //					log = executor_.pc() == 0x0381202c;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= executor_.pc() != 0x03801a0c;
-//					log |= instr_count == 71259670 - 50;
+//					log |= instr_count == 71259625;
 
 //					if(executor_.pc() == 0x02000078) {
 //						if(!all.empty()) {

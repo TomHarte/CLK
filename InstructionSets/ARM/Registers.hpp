@@ -143,11 +143,52 @@ struct Registers {
 			/// The FIQ went low at least one cycle ago and ConditionCode::FIQDisable was not set.
 			FIQ = 0x1c,
 		};
+		static constexpr uint32_t pc_offset_during(Exception exception) {
+			// The below is somewhat convoluted by the assumed execution model:
+			//
+			//	*	exceptions occuring during execution of an instruction are taken
+			//		to occur after R15 has already been incremented by 4; but
+			//	*	exceptions occurring instead of execution of an isntruction are
+			//		taken to occur with R15 pointing to an instruction that hasn't begun.
+			//
+			// i.e. in net R15 always refers to the next instruction
+			// that has not yet started.
+			switch(exception) {
+				// "To return normally from FIQ use SUBS PC, R14_fiq, #4".
+				case Exception::FIQ:					return 0;
+
+				// "To return normally from IRQ use SUBS PC, R14_fiq, #4".
+				case Exception::IRQ:					return 0;
+
+				// "If a return is required from [address exception traps], use
+				// SUBS PC, R14_svc, #4. This will return to the instruction after
+				// the one causing the trap".
+				case Exception::Address:				return 4;
+
+				// "A Data Abort requires [work before a return], the return being
+				// done by SUBS PC, R14_svc, #8".
+				case Exception::DataAbort:				return 8;
+
+				// "To continue after a Prefetch Abort use SUBS PC, R14_svc #4".
+				case Exception::PrefetchAbort:			return 4;
+
+				// "To return from a SWI, use MOVS PC, R14_svc. This returns to the instruction
+				// following the SWI".
+				case Exception::SoftwareInterrupt:		return 0;
+
+				// "To return from [an undefined instruction trap] use MOVS PC, R14_svc.
+				// This returns to the instruction following the undefined instruction".
+				case Exception::UndefinedInstruction:	return 0;
+
+				// Unspecified; a guess.
+				case Exception::Reset:					return 0;
+			}
+		}
 
 		/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
 		template <Exception type>
 		void exception() {
-			const auto r14 = pc_status(4);
+			const auto r14 = pc_status(pc_offset_during(type));
 			switch(type) {
 				case Exception::IRQ:	set_mode(Mode::IRQ);		break;
 				case Exception::FIQ: 	set_mode(Mode::FIQ);		break;
