@@ -14,6 +14,7 @@
 #include "../../ScanProducer.hpp"
 #include "../../TimedMachine.hpp"
 
+#include "../../../InstructionSets/ARM/Disassembler.hpp"
 #include "../../../InstructionSets/ARM/Executor.hpp"
 #include "../../../Outputs/Log.hpp"
 #include "../../../Components/I2C/I2C.hpp"
@@ -1043,9 +1044,14 @@ class ConcreteMachine:
 			return Outputs::Display::ScanStatus();
 		}
 
+		std::array<uint32_t, 10> pc_history;
+		std::size_t pc_history_ptr = 0;
+		uint32_t instr_count = 0;
+
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
 			static uint32_t last_pc = 0;
+			static bool log = true;
 
 			auto instructions = cycles.as<int>();
 
@@ -1055,11 +1061,10 @@ class ConcreteMachine:
 				timer_divider_ -= run_length;
 
 				while(run_length--) {
-					if(executor_.pc() == 0x0207b3bc) {
-						printf("At %08x after last PC %08x\n", executor_.pc(), last_pc);
-					}
-
 					uint32_t instruction;
+					pc_history[pc_history_ptr] = executor_.pc();
+					pc_history_ptr = (pc_history_ptr + 1) % pc_history.size();
+//					pc_history.push_back(executor_.pc());
 					if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
 						logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
 						executor_.prefetch_abort();
@@ -1071,13 +1076,17 @@ class ConcreteMachine:
 					}
 					// TODO: pipeline prefetch?
 
-					static bool log = false;
+//					if(executor_.pc() == 0x03803194 || !instruction || instruction == 0xe49aa000) {
+//						printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
+//					}
 
+//					log |= executor_.registers()[12] == 0xe59ff114;
 //					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-					log |= executor_.pc() == 0x0207b3bc;	//0x397af9c
+//					log |= executor_.pc() == 0x0380ff4c;	//0x397af9c
 //					log = executor_.pc() == 0x0381202c;
 //					log |= (executor_.pc() > 0x03801000);
 //					log &= executor_.pc() != 0x03801a0c;
+//					log |= instr_count == 71259670 - 50;
 
 //					if(executor_.pc() == 0x02000078) {
 //						if(!all.empty()) {
@@ -1093,8 +1102,15 @@ class ConcreteMachine:
 //					}
 
 					if(log) {
+						InstructionSet::ARM::Disassembler<arm_model> disassembler;
+						InstructionSet::ARM::dispatch<arm_model>(instruction, disassembler);
+
 						auto info = logger.info();
-						info.append("%08x: %08x prior:[", executor_.pc(), instruction);
+						info.append("[%d] %08x: %08x\t\t%s\t prior:[",
+							instr_count,
+							executor_.pc(),
+							instruction,
+							disassembler.last().to_string(executor_.pc()).c_str());
 						for(uint32_t c = 0; c < 15; c++) {
 							info.append("r%d:%08x ", c, executor_.registers()[c]);
 						}
@@ -1102,6 +1118,7 @@ class ConcreteMachine:
 					}
 //					logger.info().append("%08x: %08x", executor_.pc(), instruction);
 					InstructionSet::ARM::execute(instruction, executor_);
+					++instr_count;
 
 //					if(
 //						executor_.pc() > 0x038021d0 &&
@@ -1130,6 +1147,10 @@ class ConcreteMachine:
 //						last_r10 = executor_.registers()[10];
 //						last_r1 = executor_.registers()[1];
 //					}
+				}
+
+				if(log) {
+					printf("");
 				}
 
 				if(!timer_divider_) {

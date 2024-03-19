@@ -1807,6 +1807,7 @@
 		4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MasterSystemVDPTests.mm; sourceTree = "<group>"; };
 		4BA9C3CF1D8164A9002DDB61 /* MediaTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MediaTarget.hpp; sourceTree = "<group>"; };
 		4BAA167B21582B1D008A3276 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4BAB1E522BA9D9950002C9B9 /* Disassembler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Disassembler.hpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
@@ -2776,6 +2777,7 @@
 				4B2005482B92697500420C5C /* Executor.hpp */,
 				4B2005402B804AA300420C5C /* OperationMapper.hpp */,
 				4B2005462B8BD7A500420C5C /* Registers.hpp */,
+				4BAB1E522BA9D9950002C9B9 /* Disassembler.hpp */,
 			);
 			path = ARM;
 			sourceTree = "<group>";
