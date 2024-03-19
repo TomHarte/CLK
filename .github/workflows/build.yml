@@ -53,7 +53,7 @@ jobs:
     name: SDL UI / scons / ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11, macos-12, macos-13, macos-14, ubuntu-latest]
+        os: [macos-14, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
