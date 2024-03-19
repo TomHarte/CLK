@@ -17,8 +17,8 @@ namespace InstructionSet::ARM {
 
 struct Operand {
 	enum class Type {
-		Immediate, Register, RegisterList,
-	} type = Type::Immediate;
+		Immediate, Register, RegisterList, None
+	} type = Type::None;
 	uint32_t value = 0;
 
 	// TODO: encode shifting
@@ -46,41 +46,46 @@ struct Instruction {
 	Operand destination, operand1, operand2;
 
 	std::string to_string(uint32_t address) const {
-		std::string result;
+		std::ostringstream result;
+
+		// Treat all nevers as nops.
+		if(condition == Condition::NV) {
+			return "nop";
+		}
 
 		// Print operation.
 		switch(operation) {
 			case Operation::Undefined:	return "undefined";
 			case Operation::SWI:		return "swi";
 
-			case Operation::B:		result += "b";		break;
-			case Operation::BL:		result += "bl";		break;
+			case Operation::B:		result << "b";		break;
+			case Operation::BL:		result << "bl";		break;
 
-			case Operation::AND:	result += "and";	break;
-			case Operation::EOR:	result += "eor";	break;
-			case Operation::SUB:	result += "sub";	break;
-			case Operation::RSB:	result += "rsb";	break;
-			case Operation::ADD:	result += "add";	break;
-			case Operation::ADC:	result += "adc";	break;
-			case Operation::SBC:	result += "sbc";	break;
-			case Operation::RSC:	result += "rsc";	break;
-			case Operation::TST:	result += "tst";	break;
-			case Operation::TEQ:	result += "teq";	break;
-			case Operation::CMP:	result += "cmp";	break;
-			case Operation::CMN:	result += "cmn";	break;
-			case Operation::ORR:	result += "orr";	break;
-			case Operation::MOV:	result += "mov";	break;
-			case Operation::BIC:	result += "bic";	break;
-			case Operation::MVN:	result += "mvn";	break;
+			case Operation::AND:	result << "and";	break;
+			case Operation::EOR:	result << "eor";	break;
+			case Operation::SUB:	result << "sub";	break;
+			case Operation::RSB:	result << "rsb";	break;
+			case Operation::ADD:	result << "add";	break;
+			case Operation::ADC:	result << "adc";	break;
+			case Operation::SBC:	result << "sbc";	break;
+			case Operation::RSC:	result << "rsc";	break;
+			case Operation::TST:	result << "tst";	break;
+			case Operation::TEQ:	result << "teq";	break;
+			case Operation::CMP:	result << "cmp";	break;
+			case Operation::CMN:	result << "cmn";	break;
+			case Operation::ORR:	result << "orr";	break;
+			case Operation::MOV:	result << "mov";	break;
+			case Operation::BIC:	result << "bic";	break;
+			case Operation::MVN:	result << "mvn";	break;
 		}
 
 		// If this is a branch, append the target and complete.
 		if(operation == Operation::B || operation == Operation::BL) {
-			result += " ";
-			
+			result << " 0x" << std::hex << ((address + 8 + operand1.value) & 0x3fffffc);
+			return result.str();
 		}
 
-		return result;
+		return result.str();
 	}
 };
 
@@ -91,6 +96,7 @@ struct Disassembler {
 	}
 
 	bool should_schedule(Condition condition) {
+		instruction_ = Instruction();
 		instruction_.condition = condition;
 		return true;
 	}
@@ -99,7 +105,14 @@ struct Disassembler {
 	template <Flags> void perform(Multiply) {}
 	template <Flags> void perform(SingleDataTransfer) {}
 	template <Flags> void perform(BlockDataTransfer) {}
-	template <Flags> void perform(Branch) {}
+	template <Flags f> void perform(Branch fields) {
+		constexpr BranchFlags flags(f);
+		instruction_.operation =
+			(flags.operation() == BranchFlags::Operation::BL) ?
+				Instruction::Operation::BL : Instruction::Operation::B;
+		instruction_.operand1.type = Operand::Type::Immediate;
+		instruction_.operand1.value = fields.offset();
+	}
 	template <Flags> void perform(CoprocessorRegisterTransfer) {}
 	template <Flags> void perform(CoprocessorDataOperation) {}
 	template <Flags> void perform(CoprocessorDataTransfer) {}
