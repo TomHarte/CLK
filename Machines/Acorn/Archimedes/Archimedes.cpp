@@ -62,7 +62,7 @@ class ConcreteMachine:
 			// 	* CPU: 24;
 			//	* video: 12;	[TODO]
 			//	* timers: 2;
-			//	* audio: 1.		[TODO]
+			//	* audio: 1.
 
 			tick_cpu();		tick_cpu();		tick_cpu();		tick_cpu();
 			tick_cpu();		tick_cpu();		tick_cpu();		tick_cpu();
