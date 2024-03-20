@@ -194,9 +194,56 @@ private:
 	static constexpr uint8_t MACK	= 0b0011'0010;	// Last data byte acknowledge.
 	static constexpr uint8_t SMAK	= 0b0011'0011;	// Last data byte acknowledge.
 	static constexpr uint8_t PRST	= 0b0010'0001;	// Does nothing.
-
 };
 
+struct Audio {
+	void set_next_end(uint32_t value) {
+		next_.end = value;
+	}
+
+	void set_next_start(uint32_t value) {
+		next_.start = value;
+		next_buffer_valid_ = true;
+	}
+
+	bool interrupt() const {
+		return !next_buffer_valid_;
+	}
+
+	void swap() {
+		current_.start = next_.start;
+		std::swap(current_.end, next_.end);
+		next_buffer_valid_ = false;
+		halted_ = false;
+	}
+
+	bool tick() {
+		if(halted_) {
+			return false;
+		}
+
+		current_.start += 16;
+		if(current_.start == current_.end) {
+			if(next_buffer_valid_) {
+				swap();
+				return true;
+			} else {
+				halted_ = true;
+				return false;
+			}
+		}
+		return false;
+	}
+
+private:
+	bool next_buffer_valid_ = false;
+	bool halted_ = true;				// This is a bit of a guess.
+
+	struct Buffer {
+		uint32_t start = 0, end = 0;
+	};
+	Buffer current_, next_;
+};
 struct Video {
 	void write(uint32_t value) {
 		const auto target = (value >> 24) & 0xfc;
@@ -327,7 +374,7 @@ namespace InterruptRequests {
 	static constexpr int FIQ = 0x02;
 };
 
-struct Interrupts {
+struct InputOutput {
 	int interrupt_mask() const {
 		return
 			((irq_a_.request() | irq_b_.request()) ? InterruptRequests::IRQ : 0) |
@@ -577,12 +624,33 @@ struct Interrupts {
 		return true;
 	}
 
-	Interrupts() : keyboard_(serial_) {
+	InputOutput() : keyboard_(serial_) {
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
 		fiq_.status = 0x80;				// 'set always'.
 
 		i2c_.add_peripheral(&cmos_, 0xa0);
+	}
+
+	Audio &audio() {
+		return audio_;
+	}
+
+	bool tick_audio() {
+		if(audio_.tick()) {
+			if(audio_.interrupt()) {
+				irq_b_.apply(IRQB::SoundBufferPointerUsed);
+			} else {
+				irq_b_.clear(IRQB::SoundBufferPointerUsed);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	void swap_audio() {
+		audio_.swap();
+		irq_b_.clear(IRQB::SoundBufferPointerUsed);
 	}
 
 private:
@@ -620,6 +688,9 @@ private:
 	// The I2C bus.
 	I2C::Bus i2c_;
 	CMOSRAM cmos_;
+
+	// Audio.
+	Audio audio_;
 };
 
 /// Primarily models the MEMC.
@@ -654,33 +725,66 @@ struct Memory {
 		}
 
 		switch(write_zones_[(address >> 21) & 31]) {
-			case Zone::DMAAndMEMC:
-				if((address & 0b1110'0000'0000'0000'0000) == 0b1110'0000'0000'0000'0000) {
-					// "The parameters are encoded into the processor address lines".
-					os_mode_ = address & (1 << 12);
-					sound_dma_enable_ = address & (1 << 11);
-					video_dma_enable_ = address & (1 << 10);
-					switch((address >> 8) & 3) {
-						default:
-							dynamic_ram_refresh_ = DynamicRAMRefresh::None;
-						break;
-						case 0b01:
-						case 0b11:
-							dynamic_ram_refresh_ = DynamicRAMRefresh((address >> 8) & 3);
-						break;
-					}
-					high_rom_access_time_ = ROMAccessTime((address >> 6) & 3);
-					low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
-					page_size_ = PageSize((address >> 2) & 3);
+			case Zone::DMAAndMEMC: {
+				const auto buffer_address = [](uint32_t source) -> uint32_t {
+					return (source & 0x1fffc0) << 2;
+				};
 
-					logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
-					map_dirty_ = true;
-
+				// The MEMC itself isn't on the data bus; all values below should be taken from `address`.
+				switch((address >> 17) & 0b111) {
+					case 0b000:
+						logger.error().append("TODO: DMA/MEMC Vinit = %04x", address & 0x1fffc0);
 					return true;
-				} else {
-					logger.error().append("TODO: DMA/MEMC %08x to %08x", source, address);
+
+					case 0b001:
+						logger.error().append("TODO: DMA/MEMC Vstart = %04x", address & 0x1fffc0);
+					return true;
+
+					case 0b010:
+						logger.error().append("TODO: DMA/MEMC Vend = %04x", address & 0x1fffc0);
+					return true;
+
+					case 0b011:
+						logger.error().append("TODO: DMA/MEMC Cinit = %04x", address & 0x1fffc0);
+					return true;
+
+					case 0b100:
+						logger.error().append("TODO: DMA/MEMC Sstart = %04x", address & 0x1fffc0);
+						ioc_.audio().set_next_start(buffer_address(address));
+					return true;
+
+					case 0b101:
+						logger.error().append("TODO: DMA/MEMC SendN = %04x", address & 0x1fffc0);
+						ioc_.audio().set_next_end(buffer_address(address));
+					return true;
+
+					case 0b110:
+						logger.error().append("TODO: DMA/MEMC Sptr");
+						ioc_.swap_audio();
+					return true;
+
+					case 0b111:
+						os_mode_ = address & (1 << 12);
+						audio_dma_enable_ = address & (1 << 11);
+						video_dma_enable_ = address & (1 << 10);
+						switch((address >> 8) & 3) {
+							default:
+								dynamic_ram_refresh_ = DynamicRAMRefresh::None;
+							break;
+							case 0b01:
+							case 0b11:
+								dynamic_ram_refresh_ = DynamicRAMRefresh((address >> 8) & 3);
+							break;
+						}
+						high_rom_access_time_ = ROMAccessTime((address >> 6) & 3);
+						low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
+						page_size_ = PageSize((address >> 2) & 3);
+
+						logger.info().append("MEMC Control: %08x -> OS:%d audio:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, audio_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
+						map_dirty_ = true;
+					return true;
 				}
-			break;
+			} break;
 
 			case Zone::LogicallyMappedRAM: {
 				const auto item = logical_ram<IntT, false>(address, mode);
@@ -784,11 +888,17 @@ struct Memory {
 		return ioc_.tick_timers();
 	}
 
+	bool tick_audio() {
+		// TODO: does disabling audio DMA pause output, or leave it ticking and merely
+		// stop allowing it to use the bus?
+		return ioc_.tick_audio();
+	}
+
 	private:
 		bool has_moved_rom_ = false;
 		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
-		Interrupts ioc_;
+		InputOutput ioc_;
 		Video vidc_;
 		IOCWriteDelegateT &ioc_write_delegate_;
 
@@ -810,7 +920,7 @@ struct Memory {
 
 		// Control register values.
 		bool os_mode_ = false;
-		bool sound_dma_enable_ = false;
+		bool audio_dma_enable_ = false;
 		bool video_dma_enable_ = false;	// "Unaffected" by reset, so here picked arbitrarily.
 
 		enum class DynamicRAMRefresh {
@@ -1009,12 +1119,60 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer
 {
-	// TODO: pick a sensible clock rate; this is just code for '24 MIPS, please'.
-	static constexpr int ClockRate = 24'000'000;
+	private:
+		// TODO: pick a sensible clock rate; this is just code for '24 MIPS, please'.
+		static constexpr int ClockRate = 24'000'000;
 
-	// Timers tick at 2Mhz, so figure out the proper divider for that.
-	static constexpr int TimerTarget = ClockRate / 2'000'000;
-	int timer_divider_ = TimerTarget;
+		// Runs for 24 cycles, distributing calls to the various ticking subsystems
+		// 'correctly' (i.e. correctly for the approximation in use).
+		//
+		// The implementation of this is coupled to the ClockRate above, hence its
+		// appearance here.
+		void macro_tick() {
+			macro_counter_ -= 24;
+
+			// This is a 24-cycle window, so at 24Mhz macro_tick() is called at 1Mhz.
+			// Hence, required ticks are:
+			//
+			// 	* CPU: 24;
+			//	* video: 12;	[TODO]
+			//	* timers: 2;
+			//	* audio: 1.		[TODO]
+
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_timers();
+
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_cpu();
+			tick_timers();
+			tick_audio();
+		}
+		int macro_counter_ = 0;
 
 	public:
 		ConcreteMachine(
@@ -1053,97 +1211,83 @@ class ConcreteMachine:
 
 		// MARK: - TimedMachine.
 		void run_for(Cycles cycles) override {
+			macro_counter_ += cycles.as<int>();
+
+			while(macro_counter_ > 0) {
+				macro_tick();
+			}
+		}
+
+		void tick_cpu() {
 			static uint32_t last_pc = 0;
 			static bool log = false;
 
-			auto instructions = cycles.as<int>();
+			uint32_t instruction;
+			pc_history[pc_history_ptr] = executor_.pc();
+			pc_history_ptr = (pc_history_ptr + 1) % pc_history.size();
+			if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
+				logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
+				executor_.prefetch_abort();
 
-			while(instructions) {
-				auto run_length = std::min(timer_divider_, instructions);
-				instructions -= run_length;
-				timer_divider_ -= run_length;
-
-				while(run_length--) {
-					uint32_t instruction;
-					pc_history[pc_history_ptr] = executor_.pc();
-					pc_history_ptr = (pc_history_ptr + 1) % pc_history.size();
-					if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
-						logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
-						executor_.prefetch_abort();
-
-						// TODO: does a double abort cause a reset?
-						executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
-					} else {
-						last_pc = executor_.pc();
-					}
-					// TODO: pipeline prefetch?
-
-					if(executor_.pc() == 0x03810bd8) {
-						printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
-					}
-
-					log = executor_.pc() == 0x03810bd8;
-
-					if(log) {
-						InstructionSet::ARM::Disassembler<arm_model> disassembler;
-						InstructionSet::ARM::dispatch<arm_model>(instruction, disassembler);
-
-						auto info = logger.info();
-						info.append("[%d] %08x: %08x\t\t%s\t prior:[",
-							instr_count,
-							executor_.pc(),
-							instruction,
-							disassembler.last().to_string(executor_.pc()).c_str());
-						for(uint32_t c = 0; c < 15; c++) {
-							info.append("r%d:%08x ", c, executor_.registers()[c]);
-						}
-						info.append("]");
-					}
-//					logger.info().append("%08x: %08x", executor_.pc(), instruction);
-					InstructionSet::ARM::execute(instruction, executor_);
-					++instr_count;
-
-//					if(
-//						executor_.pc() > 0x038021d0 &&
-//							last_r1 != executor_.registers()[1]
-//							 ||
-//						(
-//							last_link != executor_.registers()[14] ||
-//							last_r0 != executor_.registers()[0] ||
-//							last_r10 != executor_.registers()[10] ||
-//							last_r1 != executor_.registers()[1]
-//						)
-//					) {
-//						logger.info().append("%08x modified R14 to %08x; R0 to %08x; R10 to %08x; R1 to %08x",
-//							last_pc,
-//							executor_.registers()[14],
-//							executor_.registers()[0],
-//							executor_.registers()[10],
-//							executor_.registers()[1]
-//						);
-//						logger.info().append("%08x modified R1 to %08x",
-//							last_pc,
-//							executor_.registers()[1]
-//						);
-//						last_link = executor_.registers()[14];
-//						last_r0 = executor_.registers()[0];
-//						last_r10 = executor_.registers()[10];
-//						last_r1 = executor_.registers()[1];
-//					}
-				}
-
-				if(log) {
-					printf("");
-				}
-
-				if(!timer_divider_) {
-					timer_divider_ = TimerTarget;
-
-					if(executor_.bus.tick_timers()) {
-						test_interrupts();
-					}
-				}
+				// TODO: does a double abort cause a reset?
+				executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
+			} else {
+				last_pc = executor_.pc();
 			}
+			// TODO: pipeline prefetch?
+
+			if(executor_.pc() == 0x03810bd8) {
+				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
+			}
+
+			log = executor_.pc() == 0x03810bd8;
+
+			if(log) {
+				InstructionSet::ARM::Disassembler<arm_model> disassembler;
+				InstructionSet::ARM::dispatch<arm_model>(instruction, disassembler);
+
+				auto info = logger.info();
+				info.append("[%d] %08x: %08x\t\t%s\t prior:[",
+					instr_count,
+					executor_.pc(),
+					instruction,
+					disassembler.last().to_string(executor_.pc()).c_str());
+				for(uint32_t c = 0; c < 15; c++) {
+					info.append("r%d:%08x ", c, executor_.registers()[c]);
+				}
+				info.append("]");
+			}
+//			logger.info().append("%08x: %08x", executor_.pc(), instruction);
+			InstructionSet::ARM::execute(instruction, executor_);
+			++instr_count;
+
+//			if(
+//				executor_.pc() > 0x038021d0 &&
+//					last_r1 != executor_.registers()[1]
+//					 ||
+//				(
+//					last_link != executor_.registers()[14] ||
+//					last_r0 != executor_.registers()[0] ||
+//					last_r10 != executor_.registers()[10] ||
+//					last_r1 != executor_.registers()[1]
+//				)
+//			) {
+//				logger.info().append("%08x modified R14 to %08x; R0 to %08x; R10 to %08x; R1 to %08x",
+//					last_pc,
+//					executor_.registers()[14],
+//					executor_.registers()[0],
+//					executor_.registers()[10],
+//					executor_.registers()[1]
+//				);
+//				logger.info().append("%08x modified R1 to %08x",
+//					last_pc,
+//					executor_.registers()[1]
+//				);
+//				last_link = executor_.registers()[14];
+//				last_r0 = executor_.registers()[0];
+//				last_r10 = executor_.registers()[10];
+//				last_r1 = executor_.registers()[1];
+//			}
 		}
 
 		void test_interrupts() {
@@ -1155,6 +1299,18 @@ class ConcreteMachine:
 			}
 			if(requests & InterruptRequests::IRQ) {
 				executor_.registers().interrupt<Exception::IRQ>();
+			}
+		}
+
+		void tick_timers() {
+			if(executor_.bus.tick_timers()) {
+				test_interrupts();
+			}
+		}
+
+		void tick_audio() {
+			if(executor_.bus.tick_audio()) {
+				test_interrupts();
 			}
 		}
 
