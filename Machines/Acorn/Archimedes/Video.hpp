@@ -14,7 +14,11 @@
 
 namespace Archimedes {
 
+template <typename InterruptObserverT, typename SoundT>
 struct Video {
+	Video(InterruptObserverT &observer, SoundT &sound) :
+		observer_(observer), sound_(sound) {}
+
 	void write(uint32_t value) {
 		const auto target = (value >> 24) & 0xfc;
 
@@ -32,11 +36,6 @@ struct Video {
 
 			case 0x44:	case 0x48:	case 0x4c:
 				logger.error().append("TODO: Cursor colour %d to %03x", (target - 0x44) >> 2, value & 0x1fff);
-			break;
-
-			case 0x60:	case 0x64:	case 0x68:	case 0x6c:
-			case 0x70:	case 0x74:	case 0x78:	case 0x7c:
-				logger.error().append("TODO: Stereo image register %d to %03x", (target - 0x60) >> 2, value & 0x7);
 			break;
 
 			case 0x80:
@@ -89,13 +88,23 @@ struct Video {
 				logger.error().append("TODO: Video vertical cursor end: %d", (value >> 14) & 0x3ff);
 			break;
 
-			case 0xc0:
-				logger.error().append("TODO: Sound frequency: %d", value & 0x7f);
-			break;
-
 			case 0xe0:
 				logger.error().append("TODO: video control: %08x", value);
 			break;
+
+			//
+			// Sound parameters.
+			//
+			case 0x60:	case 0x64:	case 0x68:	case 0x6c:
+			case 0x70:	case 0x74:	case 0x78:	case 0x7c: {
+				const uint8_t channel = ((value >> 26) + 7) & 7;
+				sound_.set_stereo_image(channel, value & 7);
+			} break;
+
+			case 0xc0:
+				sound_.set_frequency(value & 0x7f);
+			break;
+
 
 			default:
 				logger.error().append("TODO: unrecognised VIDC write of %08x", value);
@@ -105,6 +114,8 @@ struct Video {
 
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
+	InterruptObserverT &observer_;
+	SoundT &sound_;
 };
 
 }

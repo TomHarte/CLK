@@ -10,6 +10,7 @@
 
 #include "InputOutputController.hpp"
 #include "Video.hpp"
+#include "Sound.hpp"
 
 #include "../../../InstructionSets/ARM/Registers.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -30,7 +31,8 @@ static_assert(BitMask<15, 14>::value == 49152);
 /// Models the MEMC, making this the Archimedes bus. Owns various other chips on the bus as a result.
 template <typename InterruptObserverT>
 struct MemoryController {
-	MemoryController(InterruptObserverT &delegate) : ioc_(delegate) {}
+	MemoryController(InterruptObserverT &observer) :
+		ioc_(observer), vidc_(observer, ioc_.sound()) {}
 
 	int interrupt_mask() const {
 		return ioc_.interrupt_mask();
@@ -251,7 +253,7 @@ struct MemoryController {
 		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
 		InputOutputController<InterruptObserverT> ioc_;
-		Video vidc_;
+		Video<InterruptObserverT, Sound<InputOutputController<InterruptObserverT>>> vidc_;
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
