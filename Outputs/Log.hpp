@@ -25,6 +25,9 @@ enum class Source {
 	AmigaBlitter,
 	AppleIISCSICard,
 	Archimedes,
+	ARMIOC,
+	ARMMEMC,
+	ARMVIDC,
 	AtariST,
 	AtariSTDMAController,
 	CommodoreStaticAnalyser,
@@ -90,6 +93,9 @@ constexpr const char *prefix(Source source) {
 		case Source::AmigaDisk:					return "Disk";
 		case Source::AppleIISCSICard:			return "SCSI card";
 		case Source::Archimedes:				return "Archimedes";
+		case Source::ARMIOC:					return "IOC";
+		case Source::ARMMEMC:					return "MEMC";
+		case Source::ARMVIDC:					return "VIDC";
 		case Source::AtariST:					return "AtariST";
 		case Source::AtariSTDMAController:		return "DMA";
 		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
