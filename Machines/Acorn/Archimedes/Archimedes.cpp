@@ -648,11 +648,12 @@ struct Memory {
 
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool) {
-		if(mode == InstructionSet::ARM::Mode::User && address >= 0x2000000) {
+		// User mode may only _write_ to logically-mapped RAM (subject to further testing below).
+		if(mode == InstructionSet::ARM::Mode::User && address >= 0x200'0000) {
 			return false;
 		}
 
-		switch (write_zones_[(address >> 21) & 31]) {
+		switch(write_zones_[(address >> 21) & 31]) {
 			case Zone::DMAAndMEMC:
 				if((address & 0b1110'0000'0000'0000'0000) == 0b1110'0000'0000'0000'0000) {
 					// "The parameters are encoded into the processor address lines".
@@ -721,7 +722,8 @@ struct Memory {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool) {
-		if(mode == InstructionSet::ARM::Mode::User && address >= 0x2000000) {
+		// User mode may only read logically-maped RAM and ROM.
+		if(mode == InstructionSet::ARM::Mode::User && address >= 0x200'0000 && address < 0x380'0000) {
 			return false;
 		}
 
@@ -746,7 +748,7 @@ struct Memory {
 
 			case Zone::LowROM:
 //				logger.error().append("TODO: Low ROM read from %08x", address);
-				source = ~0;
+				source = IntT(~0);
 			return true;
 
 			case Zone::HighROM:
@@ -1065,7 +1067,6 @@ class ConcreteMachine:
 					uint32_t instruction;
 					pc_history[pc_history_ptr] = executor_.pc();
 					pc_history_ptr = (pc_history_ptr + 1) % pc_history.size();
-//					pc_history.push_back(executor_.pc());
 					if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
 						logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
 						executor_.prefetch_abort();
@@ -1077,30 +1078,11 @@ class ConcreteMachine:
 					}
 					// TODO: pipeline prefetch?
 
-//					if(executor_.pc() == 0x03803194 || !instruction || instruction == 0xe49aa000) {
-//						printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
-//					}
+					if(executor_.pc() == 0x03810bd8) {
+						printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
+					}
 
-//					log |= executor_.registers()[12] == 0xe59ff114;
-//					log |= (executor_.pc() > 0x02000000 && executor_.pc() < 0x02000078);
-//					log |= executor_.pc() == 0x0380ff4c;	//0x397af9c
-//					log = executor_.pc() == 0x0381202c;
-//					log |= (executor_.pc() > 0x03801000);
-//					log &= executor_.pc() != 0x03801a0c;
-//					log |= instr_count == 71259625;
-
-//					if(executor_.pc() == 0x02000078) {
-//						if(!all.empty()) {
-//							int c = 0;
-//							for(auto instr: all) {
-//								printf("0x%08x, ", instr);
-//								++c;
-//								if(!(c&31)) printf("\n");
-//							}
-//							all.clear();
-//						}
-//						return;
-//					}
+					log = executor_.pc() == 0x03810bd8;
 
 					if(log) {
 						InstructionSet::ARM::Disassembler<arm_model> disassembler;
