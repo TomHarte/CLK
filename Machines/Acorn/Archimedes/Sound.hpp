@@ -34,42 +34,69 @@ struct Sound {
 		current_.start = next_.start;
 		std::swap(current_.end, next_.end);
 		set_buffer_valid(false);
-		halted_ = false;
+		set_halted(false);
 	}
 
 	void set_frequency(uint8_t frequency) {
 		divider_ = reload_ = frequency;
 	}
 
-	void set_stereo_image([[maybe_unused]] uint8_t channel, [[maybe_unused]] uint8_t value) {
-		// TODO.
+	void set_stereo_image(uint8_t channel, uint8_t value) {
+		if(!value) {
+			positions_[channel].left =
+			positions_[channel].right = 0;
+			return;
+		}
+
+		positions_[channel].right = value - 1;
+		positions_[channel].left = 6 - positions_[channel].right;
 	}
 
 	void tick() {
+		// Do nothing if not currently outputting.
 		if(halted_) {
 			return;
 		}
 
+		// Apply user-programmed clock divider.
 		--divider_;
 		if(divider_) return;
 		divider_ = reload_;
 
-		current_.start += 16;
-		if(current_.start == current_.end) {
-			if(next_buffer_valid_) {
-				swap();
-			} else {
-				halted_ = true;
+		// Grab a single byte from the FIFO.
+		// TODO: and convert to a linear value, apply stereo image, output.
+		++byte_;
+
+		// If the FIFO is exhausted, consider triggering a DMA request.
+		if(byte_ == 16) {
+			byte_ = 0;
+
+			current_.start += 16;
+			if(current_.start == current_.end) {
+				if(next_buffer_valid_) {
+					swap();
+				} else {
+					set_halted(true);
+				}
 			}
 		}
 	}
 
 private:
 	uint8_t divider_ = 0, reload_ = 0;
+	int byte_ = 0;
 
 	void set_buffer_valid(bool valid) {
 		next_buffer_valid_ = valid;
 		observer_.update_sound_interrupt();
+	}
+
+	void set_halted(bool halted) {
+		if(halted_ != halted && !halted) {
+			byte_ = 0;
+			divider_ = reload_;
+		}
+		halted_ = halted;
 	}
 
 	bool next_buffer_valid_ = false;
@@ -79,6 +106,11 @@ private:
 		uint32_t start = 0, end = 0;
 	};
 	Buffer current_, next_;
+
+	struct StereoPosition {
+		// These are maintained as sixths, i.e. a value of 6 means 100%.
+		int left, right;
+	} positions_[8];
 
 	InterruptObserverT &observer_;
 };
