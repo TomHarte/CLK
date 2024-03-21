@@ -68,21 +68,10 @@ struct MemoryController {
 
 				// The MEMC itself isn't on the data bus; all values below should be taken from `address`.
 				switch((address >> 17) & 0b111) {
-					case 0b000:
-						logger.error().append("TODO: DMA/MEMC Vinit = %04x", address & 0x1fffc0);
-					return true;
-
-					case 0b001:
-						logger.error().append("TODO: DMA/MEMC Vstart = %04x", address & 0x1fffc0);
-					return true;
-
-					case 0b010:
-						logger.error().append("TODO: DMA/MEMC Vend = %04x", address & 0x1fffc0);
-					return true;
-
-					case 0b011:
-						logger.error().append("TODO: DMA/MEMC Cinit = %04x", address & 0x1fffc0);
-					return true;
+					case 0b000:	ioc_.video().set_frame_start(buffer_address(address));	return true;
+					case 0b001:	ioc_.video().set_buffer_start(buffer_address(address));	return true;
+					case 0b010:	ioc_.video().set_buffer_end(buffer_address(address));	return true;
+					case 0b011: ioc_.video().set_cursor_start(buffer_address(address));	return true;
 
 					case 0b100:	ioc_.sound().set_next_start(buffer_address(address));	return true;
 					case 0b101:	ioc_.sound().set_next_end(buffer_address(address));		return true;
@@ -90,7 +79,7 @@ struct MemoryController {
 
 					case 0b111:
 						os_mode_ = address & (1 << 12);
-						audio_dma_enable_ = address & (1 << 11);
+						sound_dma_enable_ = address & (1 << 11);
 						video_dma_enable_ = address & (1 << 10);
 						switch((address >> 8) & 3) {
 							default:
@@ -105,7 +94,7 @@ struct MemoryController {
 						low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 						page_size_ = PageSize((address >> 2) & 3);
 
-						logger.info().append("MEMC Control: %08x -> OS:%d audio:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, audio_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
+						logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
 						map_dirty_ = true;
 					return true;
 				}
@@ -209,8 +198,8 @@ struct MemoryController {
 	}
 
 	void tick_timers() {	ioc_.tick_timers();		}
-	void tick_audio() {
-		// TODO: does disabling audio DMA pause output, or leave it ticking and merely
+	void tick_sound() {
+		// TODO: does disabling sound DMA pause output, or leave it ticking and merely
 		// stop allowing it to use the bus?
 		ioc_.sound().tick();
 	}
@@ -275,7 +264,7 @@ struct MemoryController {
 
 		// Control register values.
 		bool os_mode_ = false;
-		bool audio_dma_enable_ = false;
+		bool sound_dma_enable_ = false;
 		bool video_dma_enable_ = false;	// "Unaffected" by reset, so here picked arbitrarily.
 
 		enum class DynamicRAMRefresh {

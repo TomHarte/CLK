@@ -62,7 +62,7 @@ class ConcreteMachine:
 			// 	* CPU: 24;
 			//	* video: 12;
 			//	* timers: 2;
-			//	* audio: 1.
+			//	* sound: 1.
 
 			tick_cpu();		tick_cpu();		tick_video();
 			tick_cpu();		tick_cpu();		tick_video();
@@ -79,7 +79,7 @@ class ConcreteMachine:
 			tick_cpu();		tick_cpu();		tick_video();
 			tick_cpu();		tick_cpu();		tick_video();
 			tick_timers();
-			tick_audio();
+			tick_sound();
 		}
 		int macro_counter_ = 0;
 
@@ -208,7 +208,7 @@ class ConcreteMachine:
 		}
 
 		void tick_timers()	{	executor_.bus.tick_timers();	}
-		void tick_audio()	{	executor_.bus.tick_audio();		}
+		void tick_sound()	{	executor_.bus.tick_sound();		}
 		void tick_video()	{	executor_.bus.tick_video();		}
 
 		// MARK: - MediaTarget

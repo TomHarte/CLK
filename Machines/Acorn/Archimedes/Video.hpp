@@ -169,6 +169,11 @@ struct Video {
 		return interrupt;
 	}
 
+	void set_frame_start(uint32_t) {}
+	void set_buffer_start(uint32_t) {}
+	void set_buffer_end(uint32_t) {}
+	void set_cursor_start(uint32_t) {}
+
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
 	InterruptObserverT &observer_;
