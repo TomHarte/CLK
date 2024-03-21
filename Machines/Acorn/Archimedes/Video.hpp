@@ -108,6 +108,18 @@ struct Video {
 
 			case 0xe0:
 				logger.error().append("TODO: video control: %08x", value);
+
+				// Set pixel rate.
+				//
+				// TODO: possibly do this as a multiplier on position counts and a divider on pixels,
+				// to maintain a consistent CRT data clock?
+				switch(value & 0b11) {
+					case 0b00:	clock_divider_ = 12;	break;	// 4Mhz count.
+					case 0b01:	clock_divider_ = 8;		break;	// 6Mhz count.
+					case 0b10:	clock_divider_ = 6;		break;	// 8Mhz count.
+					case 0b11:	clock_divider_ = 4;		break;	// i.e. 48/4 = 12Mhz position counting clock.
+				}
+				sub_clock_ = 0;
 			break;
 
 			//
@@ -123,7 +135,6 @@ struct Video {
 				sound_.set_frequency(value & 0x7f);
 			break;
 
-
 			default:
 				logger.error().append("TODO: unrecognised VIDC write of %08x", value);
 			break;
@@ -131,6 +142,18 @@ struct Video {
 	}
 
 	void tick() {
+		// Apply clock divider to get 8, 12, 16 or 24 Mhz pixel rate as user-selected,
+		// which since all event positioning is at two-pixel boundaries means a
+		// 4, 6, 8 or 12 Mhz counting clock.
+		//
+		// tick() is called at 12Mhz.
+		sub_clock_ += 4;	// Count at 48 Mhz.
+		if(sub_clock_ < clock_divider_) {
+			return;
+		}
+		sub_clock_ -= clock_divider_;
+
+		// TODO: real output. For now, just count up to complete frames and pretend a retrace goes there.
 		++position_;
 		if(position_ >= horizontal_.period * vertical_.period) {
 			entered_sync_ = true;
@@ -152,7 +175,7 @@ private:
 	SoundT &sound_;
 
 	// TODO: real video output.
-	int position_ = 0;
+	uint32_t position_ = 0;
 
 	struct Dimension {
 		uint32_t period = 0;
@@ -166,6 +189,9 @@ private:
 	};
 	Dimension horizontal_, vertical_;
 	bool entered_sync_ = false;
+
+	int sub_clock_ = 0;
+	int clock_divider_ = 0;
 };
 
 }
