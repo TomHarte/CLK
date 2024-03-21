@@ -109,17 +109,14 @@ struct Video {
 			case 0xe0:
 				logger.error().append("TODO: video control: %08x", value);
 
-				// Set pixel rate.
-				//
-				// TODO: possibly do this as a multiplier on position counts and a divider on pixels,
-				// to maintain a consistent CRT data clock?
+				// Set pixel rate. This is the value that a 24Mhz clock should be divided
+				// by to get half the pixel rate.
 				switch(value & 0b11) {
-					case 0b00:	clock_divider_ = 12;	break;	// 4Mhz count.
-					case 0b01:	clock_divider_ = 8;		break;	// 6Mhz count.
-					case 0b10:	clock_divider_ = 6;		break;	// 8Mhz count.
-					case 0b11:	clock_divider_ = 4;		break;	// i.e. 48/4 = 12Mhz position counting clock.
+					case 0b00:	clock_divider_ = 6;	break;	// i.e. pixel clock = 8Mhz.
+					case 0b01:	clock_divider_ = 4;	break;	// 12Mhz.
+					case 0b10:	clock_divider_ = 3;	break;	// 16Mhz.
+					case 0b11:	clock_divider_ = 2;	break;	// 24Mhz.
 				}
-				sub_clock_ = 0;
 			break;
 
 			//
@@ -142,26 +139,16 @@ struct Video {
 	}
 
 	void tick() {
-		// Apply clock divider to get 8, 12, 16 or 24 Mhz pixel rate as user-selected,
-		// which since all event positioning is at two-pixel boundaries means a
-		// 4, 6, 8 or 12 Mhz counting clock.
-		//
-		// tick() is called at 12Mhz.
-		sub_clock_ += 4;	// Count at 48 Mhz.
-		if(sub_clock_ < clock_divider_) {
-			return;
-		}
-		sub_clock_ -= clock_divider_;
-
 		// TODO: real output. For now, just count up to complete frames and pretend a retrace goes there.
 		++position_;
-		if(position_ >= horizontal_.period * vertical_.period) {
+		if(position_ >= horizontal_.period * vertical_.period * clock_divider_) {
 			entered_sync_ = true;
 			position_ = 0;
 			observer_.update_interrupts();
 		}
 	}
 
+	/// @returns @c true if a vertical retrace interrupt has been signalled since the last call to @c interrupt(); @c false otherwise.
 	bool interrupt() {
 		// Guess: edge triggered?
 		const bool interrupt = entered_sync_;
@@ -169,10 +156,10 @@ struct Video {
 		return interrupt;
 	}
 
-	void set_frame_start(uint32_t) {}
-	void set_buffer_start(uint32_t) {}
-	void set_buffer_end(uint32_t) {}
-	void set_cursor_start(uint32_t) {}
+	void set_frame_start(uint32_t address) 	{	frame_start_ = address;		}
+	void set_buffer_start(uint32_t address)	{	buffer_start_ = address;	}
+	void set_buffer_end(uint32_t address)	{	buffer_end_ = address;		}
+	void set_cursor_start(uint32_t address)	{	cursor_start_ = address;	}
 
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
@@ -182,6 +169,13 @@ private:
 	// TODO: real video output.
 	uint32_t position_ = 0;
 
+	// Addresses.
+	uint32_t buffer_start_;
+	uint32_t buffer_end_;
+	uint32_t frame_start_;
+	uint32_t cursor_start_;
+
+	// Horizontal and vertical timing.
 	struct Dimension {
 		uint32_t period = 0;
 		uint32_t sync_width = 0;
@@ -193,10 +187,17 @@ private:
 		uint32_t cursor_end = 0;
 	};
 	Dimension horizontal_, vertical_;
+
+	// An interrupt flag; more closely related to the interface by which
+	// my implementation of the IOC picks up an interrupt request than
+	// to hardware.
 	bool entered_sync_ = false;
 
-	int sub_clock_ = 0;
-	int clock_divider_ = 0;
+	// The divider that would need to be applied to a 24Mhz clock to
+	// get half the current pixel clock; counting is in units of half
+	// the pixel clock because that's the fidelity at which the programmer
+	// places horizontal events — display start, end, sync period, etc.
+	uint32_t clock_divider_ = 0;
 };
 
 }
