@@ -13,6 +13,8 @@
 #include "CMOSRAM.hpp"
 #include "Keyboard.hpp"
 #include "Sound.hpp"
+#include "Video.hpp"
+
 
 namespace Archimedes {
 
@@ -312,26 +314,36 @@ struct InputOutputController {
 	InputOutputController(InterruptObserverT &observer) :
 		observer_(observer),
 		keyboard_(serial_),
-		sound_(*this)
+		sound_(*this),
+		video_(*this, sound_)
 	{
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
 		fiq_.status = 0x80;				// 'set always'.
 
 		i2c_.add_peripheral(&cmos_, 0xa0);
-		update_sound_interrupt();
+		update_interrupts();
 	}
 
 	Sound<InputOutputController> &sound() {
 		return sound_;
 	}
 
-	void update_sound_interrupt() {
+	Video<InputOutputController, Sound<InputOutputController>> &video() {
+		return video_;
+	}
+
+	void update_interrupts() {
 		if(sound_.interrupt()) {
 			irq_b_.set(IRQB::SoundBufferPointerUsed);
 		} else {
 			irq_b_.clear(IRQB::SoundBufferPointerUsed);
 		}
+
+		if(video_.interrupt()) {
+			irq_a_.set(IRQA::VerticalFlyback);
+		}
+
 		observer_.update_interrupts();
 	}
 
@@ -374,8 +386,9 @@ private:
 	I2C::Bus i2c_;
 	CMOSRAM cmos_;
 
-	// Audio.
+	// Audio and video.
 	Sound<InputOutputController> sound_;
+	Video<InputOutputController, Sound<InputOutputController>> video_;
 };
 
 }

@@ -32,7 +32,7 @@ static_assert(BitMask<15, 14>::value == 49152);
 template <typename InterruptObserverT>
 struct MemoryController {
 	MemoryController(InterruptObserverT &observer) :
-		ioc_(observer), vidc_(observer, ioc_.sound()) {}
+		ioc_(observer) {}
 
 	int interrupt_mask() const {
 		return ioc_.interrupt_mask();
@@ -127,7 +127,7 @@ struct MemoryController {
 
 			case Zone::VideoController:
 				// TODO: handle byte writes correctly.
-				vidc_.write(source);
+				ioc_.video().write(source);
 			break;
 
 			case Zone::PhysicallyMappedRAM:
@@ -214,6 +214,9 @@ struct MemoryController {
 		// stop allowing it to use the bus?
 		ioc_.sound().tick();
 	}
+	void tick_video() {
+		ioc_.video().tick();
+	}
 
 	private:
 		Log::Logger<Log::Source::ARMIOC> logger;
@@ -253,7 +256,6 @@ struct MemoryController {
 		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
 		InputOutputController<InterruptObserverT> ioc_;
-		Video<InterruptObserverT, Sound<InputOutputController<InterruptObserverT>>> vidc_;
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {

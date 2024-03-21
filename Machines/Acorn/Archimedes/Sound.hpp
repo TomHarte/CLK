@@ -88,7 +88,7 @@ private:
 
 	void set_buffer_valid(bool valid) {
 		next_buffer_valid_ = valid;
-		observer_.update_sound_interrupt();
+		observer_.update_interrupts();
 	}
 
 	void set_halted(bool halted) {
