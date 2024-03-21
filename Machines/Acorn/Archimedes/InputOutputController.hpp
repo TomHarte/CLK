@@ -133,6 +133,7 @@ struct InputOutputController {
 			case 0x3200004 & AddressMask:
 				value = serial_.input(IOCParty);
 				irq_b_.clear(IRQB::KeyboardReceiveFull);
+				observer_.update_interrupts();
 				logger.error().append("IOC keyboard receive: %02x", value);
 			return true;
 
@@ -218,6 +219,7 @@ struct InputOutputController {
 				logger.error().append("IOC keyboard transmit %02x", value);
 				serial_.output(IOCParty, value);
 				irq_b_.clear(IRQB::KeyboardTransmitEmpty);
+				observer_.update_interrupts();
 			return true;
 
 			case 0x320'0014 & AddressMask:
@@ -227,6 +229,7 @@ struct InputOutputController {
 				// b5: clear TM[0].
 				// b6: clear TM[1].
 				irq_a_.clear(value & 0x7c);
+				observer_.update_interrupts();
 			return true;
 
 			// Interrupts.
