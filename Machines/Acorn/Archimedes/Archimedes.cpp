@@ -122,7 +122,7 @@ class ConcreteMachine:
 		}
 
 		void update_clock_rates() {
-			printf("");
+			video_divider_ = executor_.bus.video().clock_divider();
 		}
 
 	private:
@@ -176,7 +176,7 @@ class ConcreteMachine:
 				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
 			}
 
-			log = executor_.pc() == 0x03810bd8;
+			log = executor_.pc() == 0x03808de0;
 
 			if(log) {
 				InstructionSet::ARM::Disassembler<arm_model> disassembler;
