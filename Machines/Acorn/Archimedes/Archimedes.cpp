@@ -116,10 +116,10 @@ class ConcreteMachine:
 	private:
 		// MARK: - ScanProducer.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			(void)scan_target;
+			executor_.bus.video().crt().set_scan_target(scan_target);
 		}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-			return Outputs::Display::ScanStatus();
+			return executor_.bus.video().crt().get_scaled_scan_status();
 		}
 
 		std::array<uint32_t, 10> pc_history;
@@ -208,8 +208,8 @@ class ConcreteMachine:
 		}
 
 		void tick_timers()	{	executor_.bus.tick_timers();	}
-		void tick_sound()	{	executor_.bus.tick_sound();		}
-		void tick_video()	{	executor_.bus.tick_video();		}
+		void tick_sound()	{	executor_.bus.sound().tick();	}
+		void tick_video()	{	executor_.bus.video().tick();	}
 
 		// MARK: - MediaTarget
 		bool insert_media(const Analyser::Static::Media &) override {

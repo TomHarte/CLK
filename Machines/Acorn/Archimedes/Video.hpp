@@ -9,6 +9,7 @@
 #pragma once
 
 #include "../../../Outputs/Log.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
 
 #include <cstdint>
 
@@ -17,7 +18,12 @@ namespace Archimedes {
 template <typename InterruptObserverT, typename SoundT>
 struct Video {
 	Video(InterruptObserverT &observer, SoundT &sound, const uint8_t *ram) :
-		observer_(observer), sound_(sound), ram_(ram) {}
+		observer_(observer),
+		sound_(sound),
+		ram_(ram),
+		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
+		set_clock_divider(2);
+	}
 
 	void write(uint32_t value) {
 		const auto target = (value >> 24) & 0xfc;
@@ -112,10 +118,10 @@ struct Video {
 				// Set pixel rate. This is the value that a 24Mhz clock should be divided
 				// by to get half the pixel rate.
 				switch(value & 0b11) {
-					case 0b00:	clock_divider_ = 6;	break;	// i.e. pixel clock = 8Mhz.
-					case 0b01:	clock_divider_ = 4;	break;	// 12Mhz.
-					case 0b10:	clock_divider_ = 3;	break;	// 16Mhz.
-					case 0b11:	clock_divider_ = 2;	break;	// 24Mhz.
+					case 0b00:	set_clock_divider(6);	break;	// i.e. pixel clock = 8Mhz.
+					case 0b01:	set_clock_divider(4);	break;	// 12Mhz.
+					case 0b10:	set_clock_divider(3);	break;	// 16Mhz.
+					case 0b11:	set_clock_divider(2);	break;	// 24Mhz.
 				}
 			break;
 
@@ -161,6 +167,9 @@ struct Video {
 	void set_buffer_end(uint32_t address)	{	buffer_end_ = address;		}
 	void set_cursor_start(uint32_t address)	{	cursor_start_ = address;	}
 
+	Outputs::CRT::CRT &crt() 				{ return crt_; }
+	const Outputs::CRT::CRT &crt() const	{ return crt_; }
+
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
 	InterruptObserverT &observer_;
@@ -169,6 +178,7 @@ private:
 	// In the current version of this code, video DMA occurrs costlessly,
 	// being deferred to the component itself.
 	const uint8_t *ram_ = nullptr;
+	Outputs::CRT::CRT crt_;
 
 	// TODO: real video output.
 	uint32_t position_ = 0;
@@ -202,6 +212,22 @@ private:
 	// the pixel clock because that's the fidelity at which the programmer
 	// places horizontal events — display start, end, sync period, etc.
 	uint32_t clock_divider_ = 0;
+
+	void set_clock_divider(uint32_t divider) {
+		if(divider == clock_divider_) {
+			return;
+		}
+
+		clock_divider_ = divider;
+		crt_.set_new_timing(
+			24'000'000 / (divider * 312 * 50),	/* Cycle per line. */
+			312,								/* Height of display. */
+			Outputs::Display::ColourSpace::YIQ,	/* Composite colour space. */
+			Outputs::CRT::PAL::ColourCycleNumerator,
+			Outputs::CRT::PAL::ColourCycleDenominator,
+			Outputs::CRT::PAL::VerticalSyncLength,
+			true);
+	}
 };
 
 }

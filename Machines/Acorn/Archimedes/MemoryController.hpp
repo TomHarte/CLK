@@ -197,15 +197,11 @@ struct MemoryController {
 		return false;
 	}
 
-	void tick_timers() {	ioc_.tick_timers();		}
-	void tick_sound() {
-		// TODO: does disabling sound DMA pause output, or leave it ticking and merely
-		// stop allowing it to use the bus?
-		ioc_.sound().tick();
-	}
-	void tick_video() {
-		ioc_.video().tick();
-	}
+	void tick_timers()			{	ioc_.tick_timers();		}
+	auto &sound() 				{	return ioc_.sound();	}
+	const auto &sound() const 	{	return ioc_.sound();	}
+	auto &video()				{	return ioc_.video();	}
+	const auto &video() const	{	return ioc_.video();	}
 
 	private:
 		Log::Logger<Log::Source::ARMIOC> logger;

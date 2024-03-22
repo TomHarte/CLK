@@ -117,7 +117,14 @@ void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displ
 		case Outputs::Display::Type::PAL50:
 		case Outputs::Display::Type::PAL60:
 			scan_target_modals_.intended_gamma = 2.8f;
-			set_new_timing(cycles_per_line, (displayType == Outputs::Display::Type::PAL50) ? 312 : 262, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);
+			set_new_timing(
+				cycles_per_line,
+				(displayType == Outputs::Display::Type::PAL50) ? 312 : 262,
+				Outputs::Display::ColourSpace::YUV,
+				PAL::ColourCycleNumerator,
+				PAL::ColourCycleDenominator,
+				PAL::VerticalSyncLength,
+				true);
 					// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
 		break;
 
@@ -176,6 +183,9 @@ CRT::CRT(int cycles_per_line,
 	set_new_timing(cycles_per_line, height_of_display, Outputs::Display::ColourSpace::YIQ, 1, 1, vertical_sync_half_lines, false);
 }
 
+// Use some from-thin-air arbitrary constants for default timing, otherwise passing
+// construction off to one of the other constructors.
+CRT::CRT(Outputs::Display::InputDataType data_type) : CRT(100, 1, 100, 1, data_type) {}
 
 // MARK: - Sync loop
 
