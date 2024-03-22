@@ -192,6 +192,7 @@ struct Video {
 			}
 
 			phase_ = new_phase;
+			time_in_phase_ = 0;
 		}
 	}
 
@@ -229,9 +230,9 @@ private:
 		uint32_t position = 0;
 		Phase phase = Phase::Sync;
 
-		void increment_position(int divider) {
+		void increment_position(uint32_t divider) {
 			++position;
-			if(position == 1024*divider) position = 0;
+			if(position == 1024 * divider) position = 0;
 		}
 	};
 	State horizontal_state_, vertical_state_;
