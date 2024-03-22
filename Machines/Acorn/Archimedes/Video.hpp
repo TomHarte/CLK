@@ -49,31 +49,31 @@ struct Video {
 
 			case 0x80:
 				logger.error().append("TODO: Video horizontal period: %d", (value >> 14) & 0x3ff);
-				horizontal_.period = timing_value(value);
+				horizontal_timing_.period = timing_value(value);
 			break;
 			case 0x84:
 				logger.error().append("TODO: Video horizontal sync width: %d", (value >> 14) & 0x3ff);
-				horizontal_.sync_width = timing_value(value);
+				horizontal_timing_.sync_width = timing_value(value);
 			break;
 			case 0x88:
 				logger.error().append("TODO: Video horizontal border start: %d", (value >> 14) & 0x3ff);
-				horizontal_.border_start = timing_value(value);
+				horizontal_timing_.border_start = timing_value(value);
 			break;
 			case 0x8c:
 				logger.error().append("TODO: Video horizontal display start: %d", (value >> 14) & 0x3ff);
-				horizontal_.display_start = timing_value(value);
+				horizontal_timing_.display_start = timing_value(value);
 			break;
 			case 0x90:
 				logger.error().append("TODO: Video horizontal display end: %d", (value >> 14) & 0x3ff);
-				horizontal_.display_end = timing_value(value);
+				horizontal_timing_.display_end = timing_value(value);
 			break;
 			case 0x94:
 				logger.error().append("TODO: Video horizontal border end: %d", (value >> 14) & 0x3ff);
-				horizontal_.border_end = timing_value(value);
+				horizontal_timing_.border_end = timing_value(value);
 			break;
 			case 0x98:
 				logger.error().append("TODO: Video horizontal cursor end: %d", (value >> 14) & 0x3ff);
-				horizontal_.cursor_end = timing_value(value);
+				horizontal_timing_.cursor_end = timing_value(value);
 			break;
 			case 0x9c:
 				logger.error().append("TODO: Video horizontal interlace: %d", (value >> 14) & 0x3ff);
@@ -81,35 +81,35 @@ struct Video {
 
 			case 0xa0:
 				logger.error().append("TODO: Video vertical period: %d", (value >> 14) & 0x3ff);
-				vertical_.period = timing_value(value);
+				vertical_timing_.period = timing_value(value);
 			break;
 			case 0xa4:
 				logger.error().append("TODO: Video vertical sync width: %d", (value >> 14) & 0x3ff);
-				vertical_.sync_width = timing_value(value);
+				vertical_timing_.sync_width = timing_value(value);
 			break;
 			case 0xa8:
 				logger.error().append("TODO: Video vertical border start: %d", (value >> 14) & 0x3ff);
-				vertical_.border_start = timing_value(value);
+				vertical_timing_.border_start = timing_value(value);
 			break;
 			case 0xac:
 				logger.error().append("TODO: Video vertical display start: %d", (value >> 14) & 0x3ff);
-				vertical_.display_start = timing_value(value);
+				vertical_timing_.display_start = timing_value(value);
 			break;
 			case 0xb0:
 				logger.error().append("TODO: Video vertical display end: %d", (value >> 14) & 0x3ff);
-				vertical_.display_end = timing_value(value);
+				vertical_timing_.display_end = timing_value(value);
 			break;
 			case 0xb4:
 				logger.error().append("TODO: Video vertical border end: %d", (value >> 14) & 0x3ff);
-				vertical_.border_end = timing_value(value);
+				vertical_timing_.border_end = timing_value(value);
 			break;
 			case 0xb8:
 				logger.error().append("TODO: Video vertical cursor start: %d", (value >> 14) & 0x3ff);
-				vertical_.cursor_start = timing_value(value);
+				vertical_timing_.cursor_start = timing_value(value);
 			break;
 			case 0xbc:
 				logger.error().append("TODO: Video vertical cursor end: %d", (value >> 14) & 0x3ff);
-				vertical_.cursor_end = timing_value(value);
+				vertical_timing_.cursor_end = timing_value(value);
 			break;
 
 			case 0xe0:
@@ -145,12 +145,53 @@ struct Video {
 	}
 
 	void tick() {
-		// TODO: real output. For now, just count up to complete frames and pretend a retrace goes there.
-		++position_;
-		if(position_ >= horizontal_.period * vertical_.period * clock_divider_) {
-			entered_sync_ = true;
-			position_ = 0;
-			observer_.update_interrupts();
+		// Pick new horizontal state, possibly rolling over into the vertical.
+		horizontal_state_.increment_position(clock_divider_);
+		horizontal_state_.phase =
+			horizontal_timing_.phase_after(
+				horizontal_state_.position,
+				horizontal_state_.phase,
+				clock_divider_);
+
+		if(horizontal_state_.position == horizontal_timing_.period * clock_divider_) {
+			vertical_state_.increment_position(1);
+			vertical_state_.phase =
+				vertical_timing_.phase_after(
+					vertical_state_.position,
+					vertical_state_.phase,
+					1);
+
+			if(vertical_state_.position == vertical_timing_.period) {
+				vertical_state_.position = 0;
+			}
+		}
+
+		// Accumulate total phase.
+		++time_in_phase_;
+		Phase new_phase;
+		switch(vertical_state_.phase) {
+			case Phase::Sync:	new_phase = Phase::Sync;	break;
+			case Phase::Blank:	new_phase = Phase::Blank;	break;
+			case Phase::Border:	new_phase = Phase::Border;	break;
+			case Phase::Display:
+				new_phase = horizontal_state_.phase;
+			break;
+		}
+
+		// Possibly output something. TODO: with actual pixels.
+		if(new_phase != phase_) {
+			const auto duration = static_cast<int>(time_in_phase_ / clock_divider_);
+
+			switch(phase_) {
+				case Phase::Sync:	crt_.output_sync(duration);		break;
+				case Phase::Blank:	crt_.output_blank(duration);	break;
+				case Phase::Display:	// TODO: pixels.
+				case Phase::Border:
+					crt_.output_level<uint16_t>(duration, 0xffff);
+				break;
+			}
+
+			phase_ = new_phase;
 		}
 	}
 
@@ -180,8 +221,22 @@ private:
 	const uint8_t *ram_ = nullptr;
 	Outputs::CRT::CRT crt_;
 
-	// TODO: real video output.
-	uint32_t position_ = 0;
+	// Current video state.
+	enum class Phase {
+		Sync, Blank, Border, Display,
+	};
+	struct State {
+		uint32_t position = 0;
+		Phase phase = Phase::Sync;
+
+		void increment_position(int divider) {
+			++position;
+			if(position == 1024*divider) position = 0;
+		}
+	};
+	State horizontal_state_, vertical_state_;
+	Phase phase_ = Phase::Sync;
+	uint32_t time_in_phase_ = 0;
 
 	// Addresses.
 	uint32_t buffer_start_;
@@ -190,7 +245,7 @@ private:
 	uint32_t cursor_start_;
 
 	// Horizontal and vertical timing.
-	struct Dimension {
+	struct Timing {
 		uint32_t period = 0;
 		uint32_t sync_width = 0;
 		uint32_t border_start = 0;
@@ -199,8 +254,18 @@ private:
 		uint32_t display_end = 0;
 		uint32_t cursor_start = 0;
 		uint32_t cursor_end = 0;
+
+		Phase phase_after(uint32_t position, Phase current_phase, uint32_t divider) {
+			if(position == sync_width * divider) return Phase::Blank;
+			if(position == border_start * divider) return Phase::Border;
+			if(position == display_start * divider) return Phase::Display;
+			if(position == display_end * divider) return Phase::Border;
+			if(position == border_end * divider) return Phase::Blank;
+			if(position == period * divider) return Phase::Sync;
+			return current_phase;
+		}
 	};
-	Dimension horizontal_, vertical_;
+	Timing horizontal_timing_, vertical_timing_;
 
 	// An interrupt flag; more closely related to the interface by which
 	// my implementation of the IOC picks up an interrupt request than
