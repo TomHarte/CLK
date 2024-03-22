@@ -11,6 +11,7 @@
 #include "../../../Outputs/Log.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 
@@ -47,7 +48,7 @@ struct Video {
 			case 0x10:	case 0x14:	case 0x18:	case 0x1c:
 			case 0x20:	case 0x24:	case 0x28:	case 0x2c:
 			case 0x30:	case 0x34:	case 0x38:	case 0x3c:
-				logger.error().append("TODO: Video palette logical colour %d to %03x", (target >> 2), value & 0x1fff);
+				colours_[target >> 2] = colour(value);
 			break;
 
 			case 0x40:	border_colour_ = colour(value);	break;
@@ -159,8 +160,21 @@ struct Video {
 			}
 
 			if(pixels_) {
-				*pixels_ = 0xffff & time_in_phase_;
-				++pixels_;
+				// Each tick in here is two ticks of the pixel clock, so:
+				//
+				//	8bpp mode: output two bytes;
+				//	4bpp mode: output one byte;
+				//	2bpp mode: output one byte every second tick;
+				//	1bpp mode: output one byte every fourth tick.
+
+				// TODO: don't assume 4bpp.
+				const uint8_t next = ram_[address_];
+				++address_;
+				if(address_ == buffer_end_) address_ = buffer_start_;
+
+				pixels_[0] = colours_[next & 0xf];
+				pixels_[1] = colours_[next >> 4];
+				pixels_ += 2;
 			}
 		}
 
@@ -279,6 +293,7 @@ private:
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
+	std::array<uint16_t, 16> colours_{};
 
 	// An interrupt flag; more closely related to the interface by which
 	// my implementation of the IOC picks up an interrupt request than
