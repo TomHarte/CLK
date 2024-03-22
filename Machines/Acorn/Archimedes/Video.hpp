@@ -12,6 +12,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 
 #include <cstdint>
+#include <cstring>
 
 namespace Archimedes {
 
@@ -31,8 +32,13 @@ struct Video {
 			return (value >> 14) & 0x3ff;
 		};
 		const auto colour = [](uint32_t value) -> uint16_t {
-			// TODO: convert to internal format.
-			return static_cast<uint16_t>(value & 0x1fff);
+			uint8_t packed[2];
+			packed[0] = value & 0xf;
+			packed[1] = (value & 0xf0) | ((value & 0xf00) >> 8);
+
+			uint16_t result;
+			memcpy(&result, packed, 2);
+			return result;
 		};
 
 		switch(target) {
@@ -122,6 +128,7 @@ struct Video {
 
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
+				address_ = frame_start_;
 			}
 		}
 
@@ -202,11 +209,14 @@ private:
 	Phase phase_ = Phase::Sync;
 	uint32_t time_in_phase_ = 0;
 
-	// Addresses.
-	uint32_t buffer_start_;
-	uint32_t buffer_end_;
-	uint32_t frame_start_;
-	uint32_t cursor_start_;
+	// Programmer-set addresses.
+	uint32_t buffer_start_ = 0;
+	uint32_t buffer_end_ = 0;
+	uint32_t frame_start_ = 0;
+	uint32_t cursor_start_ = 0;
+
+	// Ephemeral address state.
+	uint32_t address_ = 0;
 
 	// Horizontal and vertical timing.
 	struct Timing {
