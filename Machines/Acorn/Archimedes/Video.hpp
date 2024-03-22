@@ -136,6 +136,35 @@ struct Video {
 
 		// Accumulate total phase.
 		++time_in_phase_;
+
+		// Grab some more pixels if appropriate.
+		const auto flush_pixels = [&]() {
+			const auto duration = static_cast<int>(time_in_phase_);
+			crt_.output_data(duration, static_cast<size_t>(time_in_phase_));
+			time_in_phase_ = 0;
+			pixels_ = nullptr;
+		};
+
+		if(phase_ == Phase::Display) {
+			if(pixels_ && time_in_phase_ == PixelBufferSize) {
+				flush_pixels();
+			}
+
+			if(!pixels_) {
+				if(time_in_phase_) {
+					flush_pixels();
+				}
+
+				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
+			}
+
+			if(pixels_) {
+				*pixels_ = 0xffff & time_in_phase_;
+				++pixels_;
+			}
+		}
+
+		// Determine current output phase.
 		Phase new_phase;
 		switch(vertical_state_.phase) {
 			case Phase::Sync:	new_phase = Phase::Sync;	break;
@@ -148,23 +177,21 @@ struct Video {
 			break;
 		}
 
-		// Possibly output something. TODO: with actual pixels.
+		// Possibly output something.
 		if(new_phase != phase_) {
-			const auto duration = static_cast<int>(time_in_phase_);
+			if(time_in_phase_) {
+				const auto duration = static_cast<int>(time_in_phase_);
 
-			switch(phase_) {
-				case Phase::Sync:	crt_.output_sync(duration);		break;
-				case Phase::Blank:	crt_.output_blank(duration);	break;
-				case Phase::Display:	// TODO: pixels.
-					crt_.output_level<uint16_t>(duration, 0xf888);
-				break;
-				case Phase::Border:
-					crt_.output_level<uint16_t>(duration, border_colour_);
-				break;
+				switch(phase_) {
+					case Phase::Sync:		crt_.output_sync(duration);									break;
+					case Phase::Blank:		crt_.output_blank(duration);								break;
+					case Phase::Display:	flush_pixels();												break;
+					case Phase::Border:		crt_.output_level<uint16_t>(duration, border_colour_);		break;
+				}
+				time_in_phase_ = 0;
 			}
 
 			phase_ = new_phase;
-			time_in_phase_ = 0;
 		}
 	}
 
@@ -215,6 +242,8 @@ private:
 	State horizontal_state_, vertical_state_;
 	Phase phase_ = Phase::Sync;
 	uint32_t time_in_phase_ = 0;
+	uint16_t *pixels_ = nullptr;
+	static constexpr size_t PixelBufferSize = 320;
 
 	// Programmer-set addresses.
 	uint32_t buffer_start_ = 0;
