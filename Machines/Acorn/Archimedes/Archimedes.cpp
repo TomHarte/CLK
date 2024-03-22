@@ -53,6 +53,7 @@ class ConcreteMachine:
 		//
 		// The implementation of this is coupled to the ClockRate above, hence its
 		// appearance here.
+		template <int video_divider>
 		void macro_tick() {
 			macro_counter_ -= 24;
 
@@ -60,34 +61,41 @@ class ConcreteMachine:
 			// Hence, required ticks are:
 			//
 			// 	* CPU: 24;
-			//	* video: 12;
+			//	* video: 24 / video_divider;
 			//	* timers: 2;
 			//	* sound: 1.
 
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
+			tick_cpu_video<0, video_divider>();		tick_cpu_video<1, video_divider>();
+			tick_cpu_video<2, video_divider>();		tick_cpu_video<3, video_divider>();
+			tick_cpu_video<4, video_divider>();		tick_cpu_video<5, video_divider>();
+			tick_cpu_video<6, video_divider>();		tick_cpu_video<7, video_divider>();
+			tick_cpu_video<8, video_divider>();		tick_cpu_video<9, video_divider>();
+			tick_cpu_video<10, video_divider>();	tick_cpu_video<11, video_divider>();
 			tick_timers();
 
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
-			tick_cpu();		tick_cpu();		tick_video();
+			tick_cpu_video<12, video_divider>();	tick_cpu_video<13, video_divider>();
+			tick_cpu_video<14, video_divider>();	tick_cpu_video<15, video_divider>();
+			tick_cpu_video<16, video_divider>();	tick_cpu_video<17, video_divider>();
+			tick_cpu_video<18, video_divider>();	tick_cpu_video<19, video_divider>();
+			tick_cpu_video<20, video_divider>();	tick_cpu_video<21, video_divider>();
 			tick_timers();
 			tick_sound();
 		}
 		int macro_counter_ = 0;
 
+		template <int offset, int video_divider>
+		void tick_cpu_video() {
+			tick_cpu();
+			if constexpr (!(offset % video_divider)) {
+				tick_video();
+			}
+		}
+
 	public:
 		ConcreteMachine(
 			const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : executor_(*this) {
+		) : executor_(*this, *this) {
 			set_clock_rate(ClockRate);
 
 			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS319;
@@ -113,6 +121,10 @@ class ConcreteMachine:
 			}
 		}
 
+		void update_clock_rates() {
+			printf("");
+		}
+
 	private:
 		// MARK: - ScanProducer.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
@@ -131,9 +143,16 @@ class ConcreteMachine:
 			macro_counter_ += cycles.as<int>();
 
 			while(macro_counter_ > 0) {
-				macro_tick();
+				switch(video_divider_) {
+					default:	macro_tick<2>();	break;
+					case 3:		macro_tick<3>();	break;
+					case 4:		macro_tick<4>();	break;
+					case 6:		macro_tick<6>();	break;
+				}
+
 			}
 		}
+		int video_divider_ = 1;
 
 		void tick_cpu() {
 			static uint32_t last_pc = 0;
@@ -225,7 +244,7 @@ class ConcreteMachine:
 
 		// MARK: - ARM execution
 		static constexpr auto arm_model = InstructionSet::ARM::Model::ARMv2;
-		InstructionSet::ARM::Executor<arm_model, MemoryController<ConcreteMachine>> executor_;
+		InstructionSet::ARM::Executor<arm_model, MemoryController<ConcreteMachine, ConcreteMachine>> executor_;
 };
 
 }

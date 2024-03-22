@@ -58,7 +58,7 @@ namespace InterruptRequests {
 	static constexpr int FIQ = 0x02;
 };
 
-template <typename InterruptObserverT>
+template <typename InterruptObserverT, typename ClockRateObserverT>
 struct InputOutputController {
 	int interrupt_mask() const {
 		return
@@ -314,11 +314,11 @@ struct InputOutputController {
 		return true;
 	}
 
-	InputOutputController(InterruptObserverT &observer, const uint8_t *ram) :
+	InputOutputController(InterruptObserverT &observer, ClockRateObserverT &clock_observer, const uint8_t *ram) :
 		observer_(observer),
 		keyboard_(serial_),
 		sound_(*this, ram),
-		video_(*this, sound_, ram)
+		video_(*this, clock_observer, sound_, ram)
 	{
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
@@ -388,7 +388,7 @@ private:
 
 	// Audio and video.
 	Sound<InputOutputController> sound_;
-	Video<InputOutputController, Sound<InputOutputController>> video_;
+	Video<InputOutputController, ClockRateObserverT, Sound<InputOutputController>> video_;
 };
 
 }

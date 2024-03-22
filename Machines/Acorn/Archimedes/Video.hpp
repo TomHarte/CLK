@@ -16,10 +16,11 @@
 
 namespace Archimedes {
 
-template <typename InterruptObserverT, typename SoundT>
+template <typename InterruptObserverT, typename ClockRateObserverT, typename SoundT>
 struct Video {
-	Video(InterruptObserverT &observer, SoundT &sound, const uint8_t *ram) :
-		observer_(observer),
+	Video(InterruptObserverT &interrupt_observer, ClockRateObserverT &clock_rate_observer, SoundT &sound, const uint8_t *ram) :
+		interrupt_observer_(interrupt_observer),
+		clock_rate_observer_(clock_rate_observer),
 		sound_(sound),
 		ram_(ram),
 		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
@@ -109,26 +110,27 @@ struct Video {
 
 	void tick() {
 		// Pick new horizontal state, possibly rolling over into the vertical.
-		horizontal_state_.increment_position(clock_divider_);
+		horizontal_state_.increment_position();
 		horizontal_state_.phase =
 			horizontal_timing_.phase_after(
 				horizontal_state_.position,
-				horizontal_state_.phase,
-				clock_divider_);
+				horizontal_state_.phase);
 
-		if(horizontal_state_.position == horizontal_timing_.period * clock_divider_) {
+		if(horizontal_state_.position == horizontal_timing_.period ) {
 			horizontal_state_.position = 0;
 
-			vertical_state_.increment_position(1);
+			vertical_state_.increment_position();
 			vertical_state_.phase =
 				vertical_timing_.phase_after(
 					vertical_state_.position,
-					vertical_state_.phase,
-					1);
+					vertical_state_.phase);
 
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
 				address_ = frame_start_;
+
+				entered_sync_ = true;
+				interrupt_observer_.update_interrupts();
 			}
 		}
 
@@ -148,7 +150,7 @@ struct Video {
 
 		// Possibly output something. TODO: with actual pixels.
 		if(new_phase != phase_) {
-			const auto duration = static_cast<int>(time_in_phase_ / clock_divider_);
+			const auto duration = static_cast<int>(time_in_phase_);
 
 			switch(phase_) {
 				case Phase::Sync:	crt_.output_sync(duration);		break;
@@ -182,9 +184,14 @@ struct Video {
 	Outputs::CRT::CRT &crt() 				{ return crt_; }
 	const Outputs::CRT::CRT &crt() const	{ return crt_; }
 
+	int clock_divider() const {
+		return clock_divider_;
+	}
+
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
-	InterruptObserverT &observer_;
+	InterruptObserverT &interrupt_observer_;
+	ClockRateObserverT &clock_rate_observer_;
 	SoundT &sound_;
 
 	// In the current version of this code, video DMA occurrs costlessly,
@@ -200,9 +207,9 @@ private:
 		uint32_t position = 0;
 		Phase phase = Phase::Sync;
 
-		void increment_position(uint32_t divider) {
+		void increment_position() {
 			++position;
-			if(position == 1024 * divider) position = 0;
+			if(position == 1024) position = 0;
 		}
 	};
 	State horizontal_state_, vertical_state_;
@@ -229,13 +236,13 @@ private:
 		uint32_t cursor_start = 0;
 		uint32_t cursor_end = 0;
 
-		Phase phase_after(uint32_t position, Phase current_phase, uint32_t divider) {
-			if(position == sync_width * divider) return Phase::Blank;
-			if(position == border_start * divider) return Phase::Border;
-			if(position == display_start * divider) return Phase::Display;
-			if(position == display_end * divider) return Phase::Border;
-			if(position == border_end * divider) return Phase::Blank;
-			if(position == period * divider) return Phase::Sync;
+		Phase phase_after(uint32_t position, Phase current_phase) {
+			if(position == sync_width) return Phase::Blank;
+			if(position == border_start) return Phase::Border;
+			if(position == display_start) return Phase::Display;
+			if(position == display_end) return Phase::Border;
+			if(position == border_end) return Phase::Blank;
+			if(position == period) return Phase::Sync;
 			return current_phase;
 		}
 	};
@@ -270,6 +277,7 @@ private:
 			Outputs::CRT::PAL::ColourCycleDenominator,
 			Outputs::CRT::PAL::VerticalSyncLength,
 			Outputs::CRT::PAL::AlternatesPhase);
+		clock_rate_observer_.update_clock_rates();
 	}
 };
 

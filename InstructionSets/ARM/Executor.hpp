@@ -21,7 +21,7 @@ namespace InstructionSet::ARM {
 template <Model model, typename MemoryT>
 struct Executor {
 	template <typename... Args>
-	Executor(Args &&...args) : bus(std::forward<Args...>(args)...) {}
+	Executor(Args &&...args) : bus(std::forward<Args>(args)...) {}
 
 	/// @returns @c true if @c condition implies an appropriate perform call should be made for this instruction,
 	/// @c false otherwise.

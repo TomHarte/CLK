@@ -28,11 +28,12 @@ static_assert(BitMask<15, 15>::value == 32768);
 static_assert(BitMask<15, 0>::value == 0xffff);
 static_assert(BitMask<15, 14>::value == 49152);
 
+
 /// Models the MEMC, making this the Archimedes bus. Owns various other chips on the bus as a result.
-template <typename InterruptObserverT>
+template <typename InterruptObserverT, typename ClockRateObserverT>
 struct MemoryController {
-	MemoryController(InterruptObserverT &observer) :
-		ioc_(observer, ram_.data()) {}
+	MemoryController(InterruptObserverT &observer, ClockRateObserverT &clock_rate_observer) :
+		ioc_(observer, clock_rate_observer, ram_.data()) {}
 
 	int interrupt_mask() const {
 		return ioc_.interrupt_mask();
@@ -240,7 +241,7 @@ struct MemoryController {
 		bool has_moved_rom_ = false;
 		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
-		InputOutputController<InterruptObserverT> ioc_;
+		InputOutputController<InterruptObserverT, ClockRateObserverT> ioc_;
 
 		template <typename IntT>
 		IntT &physical_ram(uint32_t address) {
