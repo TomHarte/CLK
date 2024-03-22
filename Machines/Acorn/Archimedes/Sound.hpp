@@ -15,7 +15,7 @@ namespace Archimedes {
 /// Models the Archimedes sound output; in a real machine this is a joint efort between the VIDC and the MEMC.
 template <typename InterruptObserverT>
 struct Sound {
-	Sound(InterruptObserverT &observer) : observer_(observer) {}
+	Sound(InterruptObserverT &observer, const uint8_t *ram) : ram_(ram), observer_(observer) {}
 
 	void set_next_end(uint32_t value) {
 		next_.end = value;
@@ -83,6 +83,8 @@ struct Sound {
 	}
 
 private:
+	const uint8_t *ram_ = nullptr;
+
 	uint8_t divider_ = 0, reload_ = 0;
 	int byte_ = 0;
 

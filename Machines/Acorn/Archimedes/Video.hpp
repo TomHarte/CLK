@@ -16,8 +16,8 @@ namespace Archimedes {
 
 template <typename InterruptObserverT, typename SoundT>
 struct Video {
-	Video(InterruptObserverT &observer, SoundT &sound) :
-		observer_(observer), sound_(sound) {}
+	Video(InterruptObserverT &observer, SoundT &sound, const uint8_t *ram) :
+		observer_(observer), sound_(sound), ram_(ram) {}
 
 	void write(uint32_t value) {
 		const auto target = (value >> 24) & 0xfc;
@@ -165,6 +165,10 @@ private:
 	Log::Logger<Log::Source::ARMIOC> logger;
 	InterruptObserverT &observer_;
 	SoundT &sound_;
+
+	// In the current version of this code, video DMA occurrs costlessly,
+	// being deferred to the component itself.
+	const uint8_t *ram_ = nullptr;
 
 	// TODO: real video output.
 	uint32_t position_ = 0;

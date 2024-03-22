@@ -32,7 +32,7 @@ static_assert(BitMask<15, 14>::value == 49152);
 template <typename InterruptObserverT>
 struct MemoryController {
 	MemoryController(InterruptObserverT &observer) :
-		ioc_(observer) {}
+		ioc_(observer, ram_.data()) {}
 
 	int interrupt_mask() const {
 		return ioc_.interrupt_mask();

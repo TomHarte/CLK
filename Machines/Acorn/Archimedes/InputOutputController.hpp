@@ -314,11 +314,11 @@ struct InputOutputController {
 		return true;
 	}
 
-	InputOutputController(InterruptObserverT &observer) :
+	InputOutputController(InterruptObserverT &observer, const uint8_t *ram) :
 		observer_(observer),
 		keyboard_(serial_),
-		sound_(*this),
-		video_(*this, sound_)
+		sound_(*this, ram),
+		video_(*this, sound_, ram)
 	{
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
