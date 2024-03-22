@@ -222,11 +222,11 @@ private:
 		crt_.set_new_timing(
 			24'000'000 / (divider * 312 * 50),	/* Cycle per line. */
 			312,								/* Height of display. */
-			Outputs::Display::ColourSpace::YIQ,	/* Composite colour space. */
+			Outputs::CRT::PAL::ColourSpace,
 			Outputs::CRT::PAL::ColourCycleNumerator,
 			Outputs::CRT::PAL::ColourCycleDenominator,
 			Outputs::CRT::PAL::VerticalSyncLength,
-			true);
+			Outputs::CRT::PAL::AlternatesPhase);
 	}
 };
 

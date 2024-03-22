@@ -20,10 +20,25 @@ namespace Outputs::CRT {
 
 namespace PAL {
 
-// PAL: 283.7516 colour cycles per line; 2.5 lines = vertical sync.
+// 283.7516 colour cycles per line; 2.5 lines of vertical sync.
 static constexpr int ColourCycleNumerator = 709379;
 static constexpr int ColourCycleDenominator = 2500;
 static constexpr int VerticalSyncLength = 5;
+
+static constexpr auto ColourSpace = Outputs::Display::ColourSpace::YUV;
+static constexpr bool AlternatesPhase = true;
+
+}
+
+namespace NTSC {
+
+// 227.5 colour cycles per line; 3 lines of vertical sync.
+static constexpr int ColourCycleNumerator = 455;
+static constexpr int ColourCycleDenominator = 2;
+static constexpr int VerticalSyncLength = 6;
+
+static constexpr auto ColourSpace = Outputs::Display::ColourSpace::YIQ;
+static constexpr bool AlternatesPhase = false;
 
 }
 

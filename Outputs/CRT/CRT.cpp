@@ -120,17 +120,23 @@ void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displ
 			set_new_timing(
 				cycles_per_line,
 				(displayType == Outputs::Display::Type::PAL50) ? 312 : 262,
-				Outputs::Display::ColourSpace::YUV,
+				PAL::ColourSpace,
 				PAL::ColourCycleNumerator,
 				PAL::ColourCycleDenominator,
 				PAL::VerticalSyncLength,
-				true);
-					// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
+				PAL::AlternatesPhase);
 		break;
 
 		case Outputs::Display::Type::NTSC60:
 			scan_target_modals_.intended_gamma = 2.2f;
-			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);			// i.e. 227.5 colour cycles per line, 3 lines = vertical sync.
+			set_new_timing(
+				cycles_per_line,
+				262,
+				NTSC::ColourSpace,
+				NTSC::ColourCycleNumerator,
+				NTSC::ColourCycleDenominator,
+				NTSC::VerticalSyncLength,
+				NTSC::AlternatesPhase);
 		break;
 	}
 }
