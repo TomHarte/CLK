@@ -154,6 +154,8 @@ struct Video {
 				clock_divider_);
 
 		if(horizontal_state_.position == horizontal_timing_.period * clock_divider_) {
+			horizontal_state_.position = 0;
+
 			vertical_state_.increment_position(1);
 			vertical_state_.phase =
 				vertical_timing_.phase_after(
@@ -172,7 +174,9 @@ struct Video {
 		switch(vertical_state_.phase) {
 			case Phase::Sync:	new_phase = Phase::Sync;	break;
 			case Phase::Blank:	new_phase = Phase::Blank;	break;
-			case Phase::Border:	new_phase = Phase::Border;	break;
+			case Phase::Border:
+				new_phase = horizontal_state_.phase == Phase::Display ? Phase::Border : horizontal_state_.phase;
+			break;
 			case Phase::Display:
 				new_phase = horizontal_state_.phase;
 			break;
@@ -186,6 +190,8 @@ struct Video {
 				case Phase::Sync:	crt_.output_sync(duration);		break;
 				case Phase::Blank:	crt_.output_blank(duration);	break;
 				case Phase::Display:	// TODO: pixels.
+					crt_.output_level<uint16_t>(duration, 0xf888);
+				break;
 				case Phase::Border:
 					crt_.output_level<uint16_t>(duration, 0xffff);
 				break;
@@ -285,8 +291,9 @@ private:
 		}
 
 		clock_divider_ = divider;
+		const auto cycles_per_line = static_cast<int>(24'000'000 / (divider * 312 * 50));
 		crt_.set_new_timing(
-			24'000'000 / (divider * 312 * 50),	/* Cycle per line. */
+			cycles_per_line,
 			312,								/* Height of display. */
 			Outputs::CRT::PAL::ColourSpace,
 			Outputs::CRT::PAL::ColourCycleNumerator,
