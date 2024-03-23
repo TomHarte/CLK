@@ -11,6 +11,7 @@
 #include "HalfDuplexSerial.hpp"
 #include "InputOutputController.hpp"
 #include "Keyboard.hpp"
+#include "KeyboardMapper.hpp"
 #include "MemoryController.hpp"
 #include "Sound.hpp"
 
@@ -40,6 +41,7 @@ namespace Archimedes {
 
 class ConcreteMachine:
 	public Machine,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer
@@ -248,6 +250,18 @@ class ConcreteMachine:
 //			}
 //			return true;
 			return false;
+		}
+
+		// MARK: - MappedKeyboardMachine.
+		MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
+		}
+		Archimedes::KeyboardMapper keyboard_mapper_;
+
+		void set_key_state(uint16_t key, bool is_pressed) override {
+			const int row = Archimedes::KeyboardMapper::row(key);
+			const int column = Archimedes::KeyboardMapper::column(key);
+			executor_.bus.keyboard().set_key_state(row, column, is_pressed);
 		}
 
 		// MARK: - ARM execution

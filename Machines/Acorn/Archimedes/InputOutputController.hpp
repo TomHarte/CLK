@@ -328,10 +328,12 @@ struct InputOutputController {
 		update_interrupts();
 	}
 
-	auto &sound() 				{	return sound_;	}
-	const auto &sound() const	{	return sound_;	}
-	auto &video()			 	{	return video_;	}
-	const auto &video() const 	{	return video_;	}
+	auto &sound() 					{	return sound_;	}
+	const auto &sound() const		{	return sound_;	}
+	auto &video()			 		{	return video_;	}
+	const auto &video() const 		{	return video_;	}
+	auto &keyboard()			 	{	return keyboard_;	}
+	const auto &keyboard() const 	{	return keyboard_;	}
 
 	void update_interrupts() {
 		if(sound_.interrupt()) {

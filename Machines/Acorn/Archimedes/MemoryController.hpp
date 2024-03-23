@@ -199,10 +199,13 @@ struct MemoryController {
 	}
 
 	void tick_timers()			{	ioc_.tick_timers();		}
-	auto &sound() 				{	return ioc_.sound();	}
-	const auto &sound() const 	{	return ioc_.sound();	}
-	auto &video()				{	return ioc_.video();	}
-	const auto &video() const	{	return ioc_.video();	}
+
+	auto &sound() 					{	return ioc_.sound();	}
+	const auto &sound() const	 	{	return ioc_.sound();	}
+	auto &video()					{	return ioc_.video();	}
+	const auto &video() const		{	return ioc_.video();	}
+	auto &keyboard()				{	return ioc_.keyboard();	}
+	const auto &keyboard() const	{	return ioc_.keyboard();	}
 
 	private:
 		Log::Logger<Log::Source::ARMIOC> logger;

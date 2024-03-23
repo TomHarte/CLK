@@ -16,6 +16,10 @@ namespace Archimedes {
 struct Keyboard {
 	Keyboard(HalfDuplexSerial &serial) : serial_(serial) {}
 
+	void set_key_state([[maybe_unused]] int row, [[maybe_unused]] int column, [[maybe_unused]] bool is_pressed) {
+
+	}
+
 	void update() {
 		if(serial_.events(KeyboardParty) & HalfDuplexSerial::Receive) {
 			const uint8_t input = serial_.input(KeyboardParty);
