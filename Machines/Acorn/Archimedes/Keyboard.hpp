@@ -16,8 +16,11 @@ namespace Archimedes {
 struct Keyboard {
 	Keyboard(HalfDuplexSerial &serial) : serial_(serial) {}
 
-	void set_key_state([[maybe_unused]] int row, [[maybe_unused]] int column, [[maybe_unused]] bool is_pressed) {
-
+	void set_key_state(int row, int column, bool is_pressed) {
+		const uint8_t prefix = is_pressed ? 0b1100'0000 : 0b1101'0000;
+		queue_.push_back(static_cast<uint8_t>(prefix | row));
+		queue_.push_back(static_cast<uint8_t>(prefix | column));
+		dequeue_next();
 	}
 
 	void update() {
@@ -35,6 +38,10 @@ struct Keyboard {
 					serial_.output(KeyboardParty, 0x81);	// TODO: what keyboard type?
 				break;
 
+				case BACK:
+					dequeue_next();
+				break;
+
 				default:
 					printf("Keyboard declines to respond to %02x\n", input);
 				break;
@@ -44,6 +51,13 @@ struct Keyboard {
 
 private:
 	HalfDuplexSerial &serial_;
+
+	std::vector<uint8_t> queue_;
+	void dequeue_next() {
+		if(queue_.empty()) return;
+		serial_.output(KeyboardParty, queue_[0]);
+		queue_.erase(queue_.begin());
+	}
 
 	static constexpr uint8_t HRST	= 0b1111'1111;	// Keyboard reset.
 	static constexpr uint8_t RAK1	= 0b1111'1110;	// Reset response #1.
