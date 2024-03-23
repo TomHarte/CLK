@@ -175,6 +175,10 @@ struct Video {
 				pixels_[0] = colours_[next & 0xf];
 				pixels_[1] = colours_[next >> 4];
 				pixels_ += 2;
+			} else {
+				// TODO: don't assume 4bpp here either.
+				++address_;
+				if(address_ == buffer_end_) address_ = buffer_start_;
 			}
 		}
 
