@@ -148,17 +148,17 @@ struct Registers {
 			//
 			//	*	exceptions occuring during execution of an instruction are taken
 			//		to occur after R15 has already been incremented by 4; but
-			//	*	exceptions occurring instead of execution of an isntruction are
+			//	*	exceptions occurring instead of execution of an instruction are
 			//		taken to occur with R15 pointing to an instruction that hasn't begun.
 			//
 			// i.e. in net R15 always refers to the next instruction
 			// that has not yet started.
 			switch(exception) {
 				// "To return normally from FIQ use SUBS PC, R14_fiq, #4".
-				case Exception::FIQ:					return 0;
+				case Exception::FIQ:					return 4;
 
-				// "To return normally from IRQ use SUBS PC, R14_fiq, #4".
-				case Exception::IRQ:					return 0;
+				// "To return normally from IRQ use SUBS PC, R14_irq, #4".
+				case Exception::IRQ:					return 4;
 
 				// "If a return is required from [address exception traps], use
 				// SUBS PC, R14_svc, #4. This will return to the instruction after

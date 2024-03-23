@@ -117,6 +117,12 @@ class ConcreteMachine:
 				return;
 			}
 			if(requests & InterruptRequests::IRQ) {
+//				logger.info().append("[%d] IRQ at %08x prior:[r13:%08x r14:%08x]",
+//					instr_count,
+//					executor_.pc(),
+//					executor_.registers()[13],
+//					executor_.registers()[14]);
+
 				executor_.registers().interrupt<Exception::IRQ>();
 			}
 		}
@@ -134,7 +140,7 @@ class ConcreteMachine:
 			return executor_.bus.video().crt().get_scaled_scan_status();
 		}
 
-		std::array<uint32_t, 10> pc_history;
+		std::array<uint32_t, 750> pc_history;
 		std::size_t pc_history_ptr = 0;
 		uint32_t instr_count = 0;
 
@@ -158,6 +164,10 @@ class ConcreteMachine:
 			static uint32_t last_pc = 0;
 			static bool log = false;
 
+//			if(executor_.pc() == 0x03803400) {
+//				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
+//			}
+
 			uint32_t instruction;
 			pc_history[pc_history_ptr] = executor_.pc();
 			pc_history_ptr = (pc_history_ptr + 1) % pc_history.size();
@@ -172,11 +182,9 @@ class ConcreteMachine:
 			}
 			// TODO: pipeline prefetch?
 
-			if(executor_.pc() == 0x03810bd8) {
-				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
-			}
-
-			log = executor_.pc() == 0x03808de0;
+//			log |= executor_.pc() == 0x3961244;
+//			log |= instr_count == 72766815;
+//			log &= executor_.pc() != 0x000000a0;
 
 			if(log) {
 				InstructionSet::ARM::Disassembler<arm_model> disassembler;

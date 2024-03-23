@@ -402,7 +402,7 @@ struct Executor {
 		// Check whether access is forced ot the user bank; if so then switch
 		// to it now. Also keep track of the original mode to switch back at
 		// the end.
-		const Mode original_mode = registers_.mode();
+		Mode original_mode = registers_.mode();
 		const bool adopt_user_mode =
 			flags.load_psr() && (
 				flags.operation() == BlockDataTransferFlags::Operation::STM ||
@@ -519,6 +519,8 @@ struct Executor {
 				registers_.set_pc(value);
 				if constexpr (flags.load_psr()) {
 					registers_.set_status(value);
+					original_mode = registers_.mode();	// Avoid switching back to the wrong mode
+														// in case user registers were exposed.
 				}
 			}
 		}
