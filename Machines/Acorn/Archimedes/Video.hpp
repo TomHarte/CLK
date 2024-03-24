@@ -230,7 +230,7 @@ struct Video {
 	const Outputs::CRT::CRT &crt() const	{ return crt_; }
 
 	int clock_divider() const {
-		return clock_divider_;
+		return static_cast<int>(clock_divider_);
 	}
 
 private:
