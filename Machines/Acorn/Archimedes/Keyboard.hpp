@@ -17,9 +17,13 @@ struct Keyboard {
 	Keyboard(HalfDuplexSerial &serial) : serial_(serial) {}
 
 	void set_key_state(int row, int column, bool is_pressed) {
-//		if(!scan_keyboard_) return;
-		// TODO: scan_keyboard_ seems to end up in the wrong state. Investigate.
+		if(!scan_keyboard_) return;
 
+		// Don't waste bandwidth on repeating facts.
+		if(states_[row][column] == is_pressed) return;
+		states_[row][column] = is_pressed;
+
+		// Post new key event.
 		const uint8_t prefix = is_pressed ? 0b1100'0000 : 0b1101'0000;
 		enqueue(static_cast<uint8_t>(prefix | row), static_cast<uint8_t>(prefix | column));
 		consider_dequeue();
@@ -43,6 +47,14 @@ struct Keyboard {
 			}
 
 			switch(phase_) {
+				case Phase::ExpectingACK:
+					if(input != NACK && input != SMAK && input != MACK && input != SACK) {
+						reset();
+						break;
+					}
+					phase_ = Phase::Idle;
+					[[fallthrough]];
+
 				case Phase::Idle:
 					switch(input) {
 						case RQID:	// Post keyboard ID.
@@ -58,14 +70,29 @@ struct Keyboard {
 							enqueue(0, 0);
 						break;
 
+						case NACK:
+							scan_keyboard_ = scan_mouse_ = false;
+						break;
+						case SMAK:
+							scan_keyboard_ = scan_mouse_ = true;
+						break;
+						case MACK:
+							scan_keyboard_ = false;
+							scan_mouse_ = true;
+						break;
+						case SACK:
+							scan_keyboard_ = true;
+							scan_mouse_ = false;
+						break;
+
 						default:
 							if((input & 0b1111'0000) == 0b0100'0000) {
 								// RQPD; request to echo the low nibble.
 								serial_.output(KeyboardParty, 0b1110'0000 | (input & 0b1111));
-							}
-
-							if(!(input & 0b1111'1000)) {
+							} else if(!(input & 0b1111'1000)) {
 								// LEDS: should set LEd outputs.
+							} else {
+								reset();
 							}
 						break;
 					}
@@ -94,31 +121,8 @@ struct Keyboard {
 						reset();
 						break;
 					}
+					dequeue_next();
 					phase_ = Phase::ExpectingACK;
-				break;
-
-				case Phase::ExpectingACK:
-					switch(input) {
-						default:
-							reset();
-						break;
-
-						case NACK:
-							scan_keyboard_ = scan_mouse_ = false;
-						break;
-						case SMAK:
-							scan_keyboard_ = scan_mouse_ = true;
-						break;
-						case MACK:
-							scan_keyboard_ = false;
-							scan_mouse_ = true;
-						break;
-						case SACK:
-							scan_keyboard_ = true;
-							scan_mouse_ = false;
-						break;
-					}
-					phase_ = Phase::Idle;
 				break;
 			}
 
@@ -127,13 +131,15 @@ struct Keyboard {
 	}
 
 	void consider_dequeue() {
-		if(phase_ == Phase::Idle) {
-			dequeue_next();
+		if(phase_ == Phase::Idle && dequeue_next()) {
+			phase_ = Phase::ExpectingBACK;
 		}
 	}
 
 private:
 	HalfDuplexSerial &serial_;
+
+	bool states_[16][16]{};
 
 	bool scan_keyboard_ = false;
 	bool scan_mouse_ = false;
