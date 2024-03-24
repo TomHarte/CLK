@@ -111,20 +111,11 @@ struct Video {
 
 	void tick() {
 		// Pick new horizontal state, possibly rolling over into the vertical.
-		horizontal_state_.increment_position();
-		horizontal_state_.phase =
-			horizontal_timing_.phase_after(
-				horizontal_state_.position,
-				horizontal_state_.phase);
+		horizontal_state_.increment_position(horizontal_timing_);
 
-		if(horizontal_state_.position == horizontal_timing_.period ) {
+		if(horizontal_state_.position == horizontal_timing_.period) {
 			horizontal_state_.position = 0;
-
-			vertical_state_.increment_position();
-			vertical_state_.phase =
-				vertical_timing_.phase_after(
-					vertical_state_.position,
-					vertical_state_.phase);
+			vertical_state_.increment_position(vertical_timing_);
 
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
@@ -184,14 +175,14 @@ struct Video {
 
 		// Determine current output phase.
 		Phase new_phase;
-		switch(vertical_state_.phase) {
+		switch(vertical_state_.phase()) {
 			case Phase::Sync:	new_phase = Phase::Sync;	break;
 			case Phase::Blank:	new_phase = Phase::Blank;	break;
 			case Phase::Border:
-				new_phase = horizontal_state_.phase == Phase::Display ? Phase::Border : horizontal_state_.phase;
+				new_phase = horizontal_state_.phase() == Phase::Display ? Phase::Border : horizontal_state_.phase();
 			break;
 			case Phase::Display:
-				new_phase = horizontal_state_.phase;
+				new_phase = horizontal_state_.phase();
 			break;
 		}
 
@@ -244,17 +235,56 @@ private:
 	const uint8_t *ram_ = nullptr;
 	Outputs::CRT::CRT crt_;
 
+	// Horizontal and vertical timing.
+	struct Timing {
+		uint32_t period = 0;
+		uint32_t sync_width = 0;
+		uint32_t border_start = 0;
+		uint32_t border_end = 0;
+		uint32_t display_start = 0;
+		uint32_t display_end = 0;
+		uint32_t cursor_start = 0;
+		uint32_t cursor_end = 0;
+	};
+	Timing horizontal_timing_, vertical_timing_;
+
 	// Current video state.
 	enum class Phase {
 		Sync, Blank, Border, Display,
 	};
 	struct State {
 		uint32_t position = 0;
-		Phase phase = Phase::Sync;
 
-		void increment_position() {
+		void increment_position(const Timing &timing) {
 			++position;
 			if(position == 1024) position = 0;
+
+			if(position == timing.period) {
+				sync_active = timing.sync_width;
+				display_started = !timing.display_start;
+				display_ended = !timing.display_end;
+				border_started = !timing.border_start;
+				border_ended = !timing.border_end;
+			} else {
+				sync_active &= position != timing.sync_width;
+				display_started |= position == timing.display_start;
+				display_ended |= position == timing.display_end;
+				border_started |= position == timing.border_start;
+				border_ended |= position == timing.border_end;
+			}
+		}
+
+		bool sync_active = true;
+		bool border_started = false;
+		bool border_ended = false;
+		bool display_started = false;
+		bool display_ended = false;
+
+		Phase phase() const {
+			if(sync_active) return Phase::Sync;
+			if(display_started && !display_ended) return Phase::Display;
+			if(border_started && !border_ended) return Phase::Border;
+			return Phase::Blank;
 		}
 	};
 	State horizontal_state_, vertical_state_;
@@ -271,29 +301,6 @@ private:
 
 	// Ephemeral address state.
 	uint32_t address_ = 0;
-
-	// Horizontal and vertical timing.
-	struct Timing {
-		uint32_t period = 0;
-		uint32_t sync_width = 0;
-		uint32_t border_start = 0;
-		uint32_t border_end = 0;
-		uint32_t display_start = 0;
-		uint32_t display_end = 0;
-		uint32_t cursor_start = 0;
-		uint32_t cursor_end = 0;
-
-		Phase phase_after(uint32_t position, Phase current_phase) {
-			if(position == sync_width) return Phase::Blank;
-			if(position == border_start) return Phase::Border;
-			if(position == display_start) return Phase::Display;
-			if(position == display_end) return Phase::Border;
-			if(position == border_end) return Phase::Blank;
-			if(position == period) return Phase::Sync;
-			return current_phase;
-		}
-	};
-	Timing horizontal_timing_, vertical_timing_;
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
