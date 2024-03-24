@@ -144,7 +144,7 @@ struct InputOutputController {
 			return true;
 			case 0x3200014 & AddressMask:
 				value = irq_a_.request();
-				logger.error().append("IRQ A request is %02x", value);
+//				logger.error().append("IRQ A request is %02x", value);
 			return true;
 			case 0x3200018 & AddressMask:
 				value = irq_a_.mask;
@@ -158,7 +158,7 @@ struct InputOutputController {
 			return true;
 			case 0x3200024 & AddressMask:
 				value = irq_b_.request();
-				logger.error().append("IRQ B request is %02x", value);
+//				logger.error().append("IRQ B request is %02x", value);
 			return true;
 			case 0x3200028 & AddressMask:
 				value = irq_b_.mask;
