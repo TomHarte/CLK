@@ -166,10 +166,12 @@ struct Registers {
 				case Exception::Address:				return 4;
 
 				// "A Data Abort requires [work before a return], the return being
-				// done by SUBS PC, R14_svc, #8".
-				case Exception::DataAbort:				return 8;
+				// done by SUBS PC, R14_svc, #8" (and returning to the instruction
+				// that aborted).
+				case Exception::DataAbort:				return 4;
 
-				// "To continue after a Prefetch Abort use SUBS PC, R14_svc #4".
+				// "To continue after a Prefetch Abort use SUBS PC, R14_svc #4.
+				// This will attempt to re-execute the aborting instruction."
 				case Exception::PrefetchAbort:			return 4;
 
 				// "To return from a SWI, use MOVS PC, R14_svc. This returns to the instruction
