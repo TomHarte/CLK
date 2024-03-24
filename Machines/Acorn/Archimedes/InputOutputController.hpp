@@ -134,7 +134,7 @@ struct InputOutputController {
 				value = serial_.input(IOCParty);
 				irq_b_.clear(IRQB::KeyboardReceiveFull);
 				observer_.update_interrupts();
-				logger.error().append("IOC keyboard receive: %02x", value);
+//				logger.error().append("IOC keyboard receive: %02x", value);
 			return true;
 
 			// IRQ A.
@@ -148,7 +148,7 @@ struct InputOutputController {
 			return true;
 			case 0x3200018 & AddressMask:
 				value = irq_a_.mask;
-				logger.error().append("IRQ A mask is %02x", value);
+//				logger.error().append("IRQ A mask is %02x", value);
 			return true;
 
 			// IRQ B.
@@ -162,7 +162,7 @@ struct InputOutputController {
 			return true;
 			case 0x3200028 & AddressMask:
 				value = irq_b_.mask;
-				logger.error().append("IRQ B mask is %02x", value);
+//				logger.error().append("IRQ B mask is %02x", value);
 			return true;
 
 			// FIQ.
