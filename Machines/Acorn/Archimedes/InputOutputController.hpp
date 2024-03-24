@@ -209,14 +209,11 @@ struct InputOutputController {
 
 			case 0x320'0000 & AddressMask:
 				// TODO: does the rest of the control register relate to anything?
-//				logger.error().append("TODO: IOC control write: C:%d D:%d", !(value & 2), !(value & 1));
-
 				control_ = value;
 				i2c_.set_clock_data(!(value & 2), !(value & 1));
 			return true;
 
 			case 0x320'0004 & AddressMask:
-				logger.error().append("IOC keyboard transmit %02x", value);
 				serial_.output(IOCParty, value);
 				irq_b_.clear(IRQB::KeyboardTransmitEmpty);
 				observer_.update_interrupts();
