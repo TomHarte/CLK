@@ -33,33 +33,33 @@ struct Keyboard {
 		if(serial_.events(KeyboardParty) & HalfDuplexSerial::Receive) {
 			const auto reset = [&]() {
 				serial_.output(KeyboardParty, HRST);
-				phase_ = Phase::Idle;
+				state_ = State::Idle;
 			};
 
 			const uint8_t input = serial_.input(KeyboardParty);
 
 			// A reset command is always accepted, usurping any other state.
 			if(input == HRST) {
-				phase_ = Phase::ExpectingRAK1;
+				state_ = State::ExpectingRAK1;
 				event_queue_.clear();
 				serial_.output(KeyboardParty, HRST);
 				return;
 			}
 
-			switch(phase_) {
-				case Phase::ExpectingACK:
+			switch(state_) {
+				case State::ExpectingACK:
 					if(input != NACK && input != SMAK && input != MACK && input != SACK) {
 						reset();
 						break;
 					}
-					phase_ = Phase::Idle;
+					state_ = State::Idle;
 					[[fallthrough]];
 
-				case Phase::Idle:
+				case State::Idle:
 					switch(input) {
 						case RQID:	// Post keyboard ID.
 							serial_.output(KeyboardParty, 0x81);	// Declare this to be a UK keyboard.
-							phase_ = Phase::Idle;
+							state_ = State::Idle;
 						break;
 
 						case PRST:	// "1-byte command, does nothing."
@@ -98,31 +98,31 @@ struct Keyboard {
 					}
 				break;
 
-				case Phase::ExpectingRAK1:
+				case State::ExpectingRAK1:
 					if(input != RAK1) {
 						reset();
 						break;
 					}
 					serial_.output(KeyboardParty, input);
-					phase_ = Phase::ExpectingRAK2;
+					state_ = State::ExpectingRAK2;
 				break;
 
-				case Phase::ExpectingRAK2:
+				case State::ExpectingRAK2:
 					if(input != RAK2) {
 						reset();
 						break;
 					}
 					serial_.output(KeyboardParty, input);
-					phase_ = Phase::ExpectingACK;
+					state_ = State::ExpectingACK;
 				break;
 
-				case Phase::ExpectingBACK:
+				case State::ExpectingBACK:
 					if(input != BACK) {
 						reset();
 						break;
 					}
 					dequeue_next();
-					phase_ = Phase::ExpectingACK;
+					state_ = State::ExpectingACK;
 				break;
 			}
 
@@ -131,8 +131,8 @@ struct Keyboard {
 	}
 
 	void consider_dequeue() {
-		if(phase_ == Phase::Idle && dequeue_next()) {
-			phase_ = Phase::ExpectingBACK;
+		if(state_ == State::Idle && dequeue_next()) {
+			state_ = State::ExpectingBACK;
 		}
 	}
 
@@ -143,13 +143,16 @@ private:
 
 	bool scan_keyboard_ = false;
 	bool scan_mouse_ = false;
-	enum class Phase {
-		ExpectingRAK1,
-		ExpectingRAK2,
-		ExpectingBACK,
-		ExpectingACK,
-		Idle,
-	} phase_ = Phase::Idle;
+	enum class State {
+		ExpectingRAK1,	// Post a RAK1 and proceed to ExpectingRAK2 if RAK1 is received; otherwise request a reset.
+		ExpectingRAK2,	// Post a RAK2 and proceed to ExpectingACK if RAK2 is received; otherwise request a reset.
+		ExpectingACK,	// Process NACK, SACK, MACK or SMAK if received; otherwise request a reset.
+
+		Idle,			// Process any of: NACK, SACK, MACK, SMAK, RQID, RQMP, RQPD or LEDS if received; also
+						// unilaterally begin post a byte pair enqueued but not yet sent if any are waiting.
+
+		ExpectingBACK,	// Dequeue and post one further byte if BACK is received; otherwise request a reset.
+	} state_ = State::Idle;
 
 	std::vector<uint8_t> event_queue_;
 	void enqueue(uint8_t first, uint8_t second) {
@@ -173,10 +176,10 @@ private:
 	static constexpr uint8_t RQMP	= 0b0010'0010;	// Request for mouse data.
 
 	static constexpr uint8_t BACK	= 0b0011'1111;	// Acknowledge for first keyboard data byte pair.
-	static constexpr uint8_t NACK	= 0b0011'0000;	// Acknowledge for last keyboard data byte pair, selects scan/mouse mode.
-	static constexpr uint8_t SACK	= 0b0011'0001;	// Last data byte acknowledge.
-	static constexpr uint8_t MACK	= 0b0011'0010;	// Last data byte acknowledge.
-	static constexpr uint8_t SMAK	= 0b0011'0011;	// Last data byte acknowledge.
+	static constexpr uint8_t NACK	= 0b0011'0000;	// Acknowledge for last keyboard data byte pair, disables both scanning and mouse.
+	static constexpr uint8_t SACK	= 0b0011'0001;	// Last data byte acknowledge, enabling scanning but disabling mouse.
+	static constexpr uint8_t MACK	= 0b0011'0010;	// Last data byte acknowledge, disabling scanning but enabling mouse.
+	static constexpr uint8_t SMAK	= 0b0011'0011;	// Last data byte acknowledge, enabling scanning and mouse.
 	static constexpr uint8_t PRST	= 0b0010'0001;	// Does nothing.
 };
 
