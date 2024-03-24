@@ -47,7 +47,7 @@ struct Keyboard {
 					switch(input) {
 						case RQID:	// Post keyboard ID.
 							serial_.output(KeyboardParty, 0x81);	// Declare this to be a UK keyboard.
-							phase_ = Phase::ExpectingACK;
+							phase_ = Phase::Idle;
 						break;
 
 						case PRST:	// "1-byte command, does nothing."
