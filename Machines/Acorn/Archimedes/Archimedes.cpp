@@ -142,7 +142,7 @@ class ConcreteMachine:
 			return executor_.bus.video().crt().get_scaled_scan_status();
 		}
 
-		std::array<uint32_t, 750> pc_history;
+		std::array<uint32_t, 75> pc_history;
 		std::size_t pc_history_ptr = 0;
 		uint32_t instr_count = 0;
 
@@ -168,7 +168,7 @@ class ConcreteMachine:
 			static bool log = false;
 			static bool accumulate = false;
 
-//			if(executor_.pc() == 0x03803400) {
+//			if(executor_.pc() == 0x03801ed8 || executor_.registers()[9] == 0x00ff'0000) {
 //				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
 //			}
 
@@ -186,7 +186,7 @@ class ConcreteMachine:
 			}
 			// TODO: pipeline prefetch?
 
-//			log |= executor_.pc() == 0x3961244;
+//			log |= executor_.pc() == 0x03801ebc;
 //			log |= instr_count == 72766815;
 //			log &= executor_.pc() != 0x000000a0;
 

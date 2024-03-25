@@ -128,15 +128,16 @@ struct InputOutputController {
 		/// Access type.
 		enum class Type {
 			Sync = 0b00,
-			Fast = 0b01,
-			Medium = 0b10,
+			Fast = 0b10,
+			Medium = 0b01,
 			Slow = 0b11
 		} type;
 	};
 
-	bool read(uint32_t address, uint8_t &value) {
+	template <typename IntT>
+	bool read(uint32_t address, IntT &value) {
 		const Address target(address);
-		value = 0xff;
+		value = IntT(~0);
 
 		switch(target.bank) {
 			default:
@@ -217,13 +218,22 @@ struct InputOutputController {
 //						logger.error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
 					break;
 				}
-			return true;
+			break;
 		}
+
+//				if constexpr (std::is_same_v<IntT, uint8_t>) {
+//				} else {
+//					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
+//					uint8_t value;
+//					ioc_.read(address, value);
+//					source = value;
+//				}
 
 		return true;
 	}
 
-	bool write(uint32_t address, uint8_t value) {
+	template <typename IntT>
+	bool write(uint32_t address, IntT value) {
 		const Address target(address);
 		switch(target.bank) {
 			default:
@@ -238,13 +248,21 @@ struct InputOutputController {
 					break;
 
 					case 0x00:
-						// TODO: does the rest of the control register relate to anything?
-						control_ = value;
+						control_ = static_cast<uint8_t>(value);
 						i2c_.set_clock_data(!(value & 2), !(value & 1));
+
+						// Per the A500 documentation:
+						// b7: vertical sync/test input bit, so should be programmed high;
+						// b6: input for printer acknowledgement, so should be programmed high;
+						// b5: speaker mute; 1 = muted;
+						// b4: "Available on the auxiliary I/O connector"
+						// b3: "Programmed HIGH, unless Reset Mask is required."
+						// b2: Used as the floppy disk (READY) input and must be programmed high;
+						// b1 and b0: I2C connections as above.
 					break;
 
 					case 0x04:
-						serial_.output(IOCParty, value);
+						serial_.output(IOCParty, static_cast<uint8_t>(value));
 						irq_b_.clear(IRQB::KeyboardTransmitEmpty);
 						observer_.update_interrupts();
 					break;
@@ -260,9 +278,9 @@ struct InputOutputController {
 					break;
 
 					// Interrupts.
-					case 0x18:	irq_a_.mask = value;	break;
-					case 0x28:	irq_b_.mask = value;	break;
-					case 0x38:	fiq_.mask = value;		break;
+					case 0x18:	irq_a_.mask = static_cast<uint8_t>(value);	break;
+					case 0x28:	irq_b_.mask = static_cast<uint8_t>(value);	break;
+					case 0x38:	fiq_.mask = static_cast<uint8_t>(value);	break;
 
 					// Counters.
 					case 0x40:	case 0x50:	case 0x60:	case 0x70:
@@ -285,7 +303,48 @@ struct InputOutputController {
 						counters_[(target.offset >> 4) - 0x4].output = counters_[(target.offset >> 4) - 0x4].value;
 					break;
 				}
-				return true;
+			break;
+
+			// Bank 5: both the hard disk and the latches, depending on type.
+			case 5:
+				switch(target.type) {
+					default:
+						logger.error().append("Unrecognised IOC bank 5 type %d write; %02x to offset %02x", target.type, value, target.offset);
+					break;
+
+					case Address::Type::Fast:
+						switch(target.offset) {
+							default:
+								logger.error().append("Unrecognised IOC fast bank 5 write; %02x to offset %02x", value, target.offset);
+							break;
+						}
+					break;
+
+					// TODO, per the A500 documentation:
+					//
+					// Latch A:
+					//	b0, b1, b2, b3 = drive selects;
+					//	b4 = side select;
+					//	b5 = motor on/off
+					//	b6 = floppy in use (i.e. LED?);
+					//	b7 = "Not used."
+					//
+					// Latch B:
+					//	b0: ?
+					//	b1: double/single density; 0 = double.
+					//	b2: ?
+					// 	b3: floppy drive reset; 0 = reset.
+					//	b4: printer strobe
+					//	b5: ?
+					//	b6: ?
+					//	b7: HS3?
+					//
+					// Latch C:
+					//		(probably not present on earlier machines?)
+					//	b2/b3: sync polarity [b3 = V polarity, b2 = H?]
+					//	b0/b1: VIDC master clock; 00 = 24Mhz, 01 = 25.175Mhz; 10 = 36Mhz; 11 = reserved.
+				}
+			break;
 		}
 
 //			case 0x327'0000 & AddressMask:	// Bank 7

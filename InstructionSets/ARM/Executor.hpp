@@ -15,6 +15,20 @@
 
 namespace InstructionSet::ARM {
 
+/// Maps from a semantic ARM read of type @c SourceT to either the 8- or 32-bit value observed
+/// by watching the low 8 bits or all 32 bits of the data bus.
+template <typename DestinationT, typename SourceT>
+DestinationT read_bus(SourceT value) {
+	if constexpr (std::is_same_v<DestinationT, SourceT>) {
+		return value;
+	}
+	if constexpr (std::is_same_v<DestinationT, uint8_t>) {
+		return uint8_t(value);
+	} else {
+		return value | (value << 8) | (value << 16) | (value << 24);
+	}
+}
+
 /// A class compatible with the @c OperationMapper definition of a scheduler which applies all actions
 /// immediately, updating either a set of @c Registers or using the templated @c MemoryT to access
 /// memory. No hooks are currently provided for applying realistic timing.

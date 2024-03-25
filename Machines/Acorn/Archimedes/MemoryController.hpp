@@ -114,8 +114,7 @@ struct MemoryController {
 			} break;
 
 			case Zone::IOControllers:
-				// TODO: have I overrestricted the value type for the IOC area?
-				ioc_.write(address, uint8_t(source));
+				ioc_.template write<IntT>(address, source);
 			break;
 
 			case Zone::VideoController:
@@ -172,16 +171,9 @@ struct MemoryController {
 				source = high_rom<IntT>(address);
 			break;
 
-			case Zone::IOControllers:	{
-				if constexpr (std::is_same_v<IntT, uint8_t>) {
-					ioc_.read(address, source);
-				} else {
-					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
-					uint8_t value;
-					ioc_.read(address, value);
-					source = value;
-				}
-			} break;
+			case Zone::IOControllers:
+				ioc_.template read<IntT>(address, source);
+			break;
 
 			default:
 				logger.error().append("TODO: read from %08x", address);
