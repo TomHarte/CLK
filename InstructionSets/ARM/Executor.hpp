@@ -295,7 +295,10 @@ struct Executor {
 			return;
 		}
 
-		constexpr bool trans = !flags.pre_index() && flags.write_back_address();
+		// "... post-indexed data transfers always write back the modified base. The only use of the [write-back address]
+		// bit in a post-indexed data transfer is in non-user mode code, where setting the W bit forces the /TRANS pin
+		// to go LOW for the transfer"
+		const bool trans = (registers_.mode() == Mode::User) || (!flags.pre_index() && flags.write_back_address());
 		if constexpr (flags.operation() == SingleDataTransferFlags::Operation::STR) {
 			const uint32_t source =
 				transfer.source() == 15 ?
@@ -430,6 +433,7 @@ struct Executor {
 		}
 
 		bool address_error = false;
+		const bool trans = registers_.mode() == Mode::User;
 
 		// Keep track of whether all accesses succeeded in order potentially to
 		// throw a data abort later.
@@ -447,7 +451,7 @@ struct Executor {
 					// "If the abort occurs during a store multiple instruction, ARM takes little action until
 					// the instruction completes, whereupon it enters the data abort trap. The memory manager is
 					// responsible for preventing erroneous writes to the memory."
-					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), trans);
 				}
 			} else {
 				// When ARM detects a data abort during a load multiple instruction, it modifies the operation of
@@ -458,7 +462,7 @@ struct Executor {
 				//	*	The base register is restored, to its modified value if write-back was requested.
 				if(accesses_succeeded) {
 					const uint32_t replaced = value;
-					accesses_succeeded &= bus.template read<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 
 					// Update the last-modified slot if the access succeeded; otherwise
 					// undo the last modification if there was one, and undo the base
@@ -483,7 +487,7 @@ struct Executor {
 				} else {
 					// Implicitly: do the access anyway, but don't store the value. I think.
 					uint32_t throwaway;
-					bus.template read<uint32_t>(address, throwaway, registers_.mode(), false);
+					bus.template read<uint32_t>(address, throwaway, registers_.mode(), trans);
 				}
 			}
 

@@ -60,7 +60,7 @@ struct MemoryController {
 	}
 
 	template <typename IntT>
-	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool) {
+	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool trans) {
 		// User mode may only _write_ to logically-mapped RAM (subject to further testing below).
 		if(mode == InstructionSet::ARM::Mode::User && address >= 0x200'0000) {
 			return false;
@@ -107,7 +107,7 @@ struct MemoryController {
 			} break;
 
 			case Zone::LogicallyMappedRAM: {
-				const auto item = logical_ram<IntT, false>(address, mode);
+				const auto item = logical_ram<IntT, false>(address, trans);
 				if(!item) {
 					return false;
 				}
@@ -142,7 +142,7 @@ struct MemoryController {
 	}
 
 	template <typename IntT>
-	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool) {
+	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
 		// User mode may only read logically-maped RAM and ROM.
 		if(mode == InstructionSet::ARM::Mode::User && address >= 0x200'0000 && address < 0x380'0000) {
 			return false;
@@ -154,7 +154,7 @@ struct MemoryController {
 			break;
 
 			case Zone::LogicallyMappedRAM: {
-				const auto item = logical_ram<IntT, true>(address, mode);
+				const auto item = logical_ram<IntT, true>(address, trans);
 				if(!item) {
 					return false;
 				}
@@ -303,7 +303,7 @@ struct MemoryController {
 		bool map_dirty_ = true;
 
 		template <typename IntT, bool is_read>
-		IntT *logical_ram(uint32_t address, InstructionSet::ARM::Mode mode) {
+		IntT *logical_ram(uint32_t address, bool trans) {
 			// Possibly TODO: this recompute-if-dirty flag is supposed to ameliorate for an expensive
 			// mapping process. It can be eliminated when the process is improved.
 			if(map_dirty_) {
@@ -341,24 +341,25 @@ struct MemoryController {
 			}
 
 			// TODO: eliminate switch here.
-			// Top of my head idea: is_read, is_user and is_os_mode make three bits, so
+			// Top of my head idea: is_read, trans and os_mode_ make three bits, so
 			// keep a one-byte bitmap of permitted accesses rather than the raw protection
 			// level?
-			switch(mapping_[page].protection_level) {
-				case 0b00:	break;
-				case 0b01:
-					if(!is_read && mode == InstructionSet::ARM::Mode::User) {
-						return nullptr;
-					}
-				break;
-				default:
-					if(mode == InstructionSet::ARM::Mode::User) {
-						return nullptr;
-					}
-					if(!is_read && !os_mode_) {
-						return nullptr;
-					}
-				break;
+			if(trans) {
+				switch(mapping_[page].protection_level) {
+					case 0b00:	break;
+					case 0b01:
+						// Reject: writes, in user mode.
+						if(!is_read && !os_mode_) {
+							return nullptr;
+						}
+					break;
+					default:
+						// Reject: writes, and user mode.
+						if(!is_read || !os_mode_) {
+							return nullptr;
+						}
+					break;
+				}
 			}
 
 			return reinterpret_cast<IntT *>(mapping_[page].target + address);

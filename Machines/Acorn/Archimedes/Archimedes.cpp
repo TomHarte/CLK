@@ -90,10 +90,15 @@ class ConcreteMachine:
 
 		template <int offset, int video_divider>
 		void tick_cpu_video() {
-			tick_cpu();
 			if constexpr (!(offset % video_divider)) {
 				tick_video();
 			}
+
+#ifndef NDEBUG
+			// Debug mode: run CPU a lot slower.
+			if constexpr (offset & 15) return;
+#endif
+			tick_cpu();
 		}
 
 	public:
