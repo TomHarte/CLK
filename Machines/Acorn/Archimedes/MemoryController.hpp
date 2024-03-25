@@ -14,6 +14,7 @@
 
 #include "../../../InstructionSets/ARM/Registers.hpp"
 #include "../../../Outputs/Log.hpp"
+#include "../../../Activity/Observer.hpp"
 
 namespace Archimedes {
 
@@ -183,7 +184,10 @@ struct MemoryController {
 		return true;
 	}
 
-	void tick_timers()			{	ioc_.tick_timers();		}
+	//
+	// Expose various IOC-owned things.
+	//
+	void tick_timers()				{	ioc_.tick_timers();		}
 
 	auto &sound() 					{	return ioc_.sound();	}
 	const auto &sound() const	 	{	return ioc_.sound();	}
@@ -191,6 +195,10 @@ struct MemoryController {
 	const auto &video() const		{	return ioc_.video();	}
 	auto &keyboard()				{	return ioc_.keyboard();	}
 	const auto &keyboard() const	{	return ioc_.keyboard();	}
+
+	void set_activity_observer(Activity::Observer *observer) {
+		ioc_.set_activity_observer(observer);
+	}
 
 	private:
 		Log::Logger<Log::Source::ARMIOC> logger;

@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include "../../../Outputs/Log.hpp"
-
 #include "CMOSRAM.hpp"
 #include "Keyboard.hpp"
 #include "Sound.hpp"
 #include "Video.hpp"
 
+#include "../../../Outputs/Log.hpp"
+#include "../../../Activity/Observer.hpp"
 
 namespace Archimedes {
 
@@ -245,7 +245,7 @@ struct InputOutputController {
 	}
 
 	template <typename IntT>
-	bool write(uint32_t address, IntT value) {
+	bool write(uint32_t address, IntT bus_value) {
 		const Address target(address);
 
 		// Empirically, RISC OS 3.19:
@@ -266,19 +266,19 @@ struct InputOutputController {
 
 		switch(target.bank) {
 			default:
-				logger.error().append("Unrecognised IOC write of %02x to %08x i.e. bank %d / type %d", value, address, target.bank, target.type);
+				logger.error().append("Unrecognised IOC write of %02x to %08x i.e. bank %d / type %d", bus_value, address, target.bank, target.type);
 			break;
 
 			// Bank 0: internal registers.
 			case 0:
 				switch(target.offset) {
 					default:
-						logger.error().append("Unrecognised IOC bank 0 write; %02x to offset %02x", value, target.offset);
+						logger.error().append("Unrecognised IOC bank 0 write; %02x to offset %02x", bus_value, target.offset);
 					break;
 
 					case 0x00:
-						control_ = byte(value);
-						i2c_.set_clock_data(!(value & 2), !(value & 1));
+						control_ = byte(bus_value);
+						i2c_.set_clock_data(!(bus_value & 2), !(bus_value & 1));
 
 						// Per the A500 documentation:
 						// b7: vertical sync/test input bit, so should be programmed high;
@@ -291,7 +291,7 @@ struct InputOutputController {
 					break;
 
 					case 0x04:
-						serial_.output(IOCParty, byte(value));
+						serial_.output(IOCParty, byte(bus_value));
 						irq_b_.clear(IRQB::KeyboardTransmitEmpty);
 						observer_.update_interrupts();
 					break;
@@ -302,25 +302,25 @@ struct InputOutputController {
 						// b4: clear POR.
 						// b5: clear TM[0].
 						// b6: clear TM[1].
-						irq_a_.clear(byte(value) & 0x7c);
+						irq_a_.clear(byte(bus_value) & 0x7c);
 						observer_.update_interrupts();
 					break;
 
 					// Interrupts.
-					case 0x18:	irq_a_.mask = byte(value);	break;
-					case 0x28:	irq_b_.mask = byte(value);	break;
-					case 0x38:	fiq_.mask = byte(value);	break;
+					case 0x18:	irq_a_.mask = byte(bus_value);	break;
+					case 0x28:	irq_b_.mask = byte(bus_value);	break;
+					case 0x38:	fiq_.mask = byte(bus_value);	break;
 
 					// Counters.
 					case 0x40:	case 0x50:	case 0x60:	case 0x70:
 						counters_[(target.offset >> 4) - 0x4].reload = uint16_t(
-							(counters_[(target.offset >> 4) - 0x4].reload & 0xff00) | byte(value)
+							(counters_[(target.offset >> 4) - 0x4].reload & 0xff00) | byte(bus_value)
 						);
 					break;
 
 					case 0x44:	case 0x54:	case 0x64:	case 0x74:
 						counters_[(target.offset >> 4) - 0x4].reload = uint16_t(
-							(counters_[(target.offset >> 4) - 0x4].reload & 0x00ff) | (byte(value) << 8)
+							(counters_[(target.offset >> 4) - 0x4].reload & 0x00ff) | (byte(bus_value) << 8)
 						);
 					break;
 
@@ -338,29 +338,39 @@ struct InputOutputController {
 			case 5:
 				switch(target.type) {
 					default:
-						logger.error().append("Unrecognised IOC bank 5 type %d write; %02x to offset %02x", target.type, value, target.offset);
+						logger.error().append("Unrecognised IOC bank 5 type %d write; %02x to offset %02x", target.type, bus_value, target.offset);
 					break;
 
 					case Address::Type::Fast:
 						switch(target.offset) {
 							default:
-								logger.error().append("Unrecognised IOC fast bank 5 write; %02x to offset %02x", value, target.offset);
+								logger.error().append("Unrecognised IOC fast bank 5 write; %02x to offset %02x", bus_value, target.offset);
 							break;
 
 							case 0x00:
-								logger.error().append("TODO: printer data write; %02x", byte(value));
+								logger.error().append("TODO: printer data write; %02x", byte(bus_value));
 							break;
 
 							case 0x18:
-								logger.error().append("TODO: latch B write; %02x", byte(value));
+								logger.error().append("TODO: latch B write; %02x", byte(bus_value));
 							break;
 
-							case 0x40:
-								logger.error().append("TODO: latch A write; %02x", byte(value));
-							break;
+							case 0x40: {
+								const uint8_t value = byte(bus_value);
+								logger.error().append("TODO: latch A write; %02x", value);
+
+								// Set the floppy indicator on if any drive is selected,
+								// because this emulator is compressing them all into a
+								// single LED, and the machine has indicated 'in use'.
+								if(activity_observer_) {
+									activity_observer_->set_led_status(FloppyActivityLED,
+										!(value & 0x40) && ((value & 0xf) != 0xf)
+									);
+								}
+							} break;
 
 							case 0x48:
-								logger.error().append("TODO: latch C write; %02x", byte(value));
+								logger.error().append("TODO: latch C write; %02x", byte(bus_value));
 							break;
 						}
 					break;
@@ -453,9 +463,18 @@ struct InputOutputController {
 		observer_.update_interrupts();
 	}
 
+	void set_activity_observer(Activity::Observer *observer) {
+		activity_observer_ = observer;
+		if(activity_observer_) {
+			activity_observer_->register_led(FloppyActivityLED);
+		}
+	}
+
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
 	InterruptObserverT &observer_;
+	Activity::Observer *activity_observer_ = nullptr;
+	static inline const std::string FloppyActivityLED = "Drive";
 
 	// IRQA, IRQB and FIQ states.
 	struct Interrupt {

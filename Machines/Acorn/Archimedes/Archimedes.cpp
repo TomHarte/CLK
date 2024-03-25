@@ -21,6 +21,8 @@
 #include "../../ScanProducer.hpp"
 #include "../../TimedMachine.hpp"
 
+#include "../../../Activity/Source.hpp"
+
 #include "../../../InstructionSets/ARM/Disassembler.hpp"
 #include "../../../InstructionSets/ARM/Executor.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -44,7 +46,8 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer
+	public MachineTypes::ScanProducer,
+	public Activity::Source
 {
 	private:
 		// TODO: pick a sensible clock rate; this is just code for '24 MIPS, please'.
@@ -263,6 +266,11 @@ class ConcreteMachine:
 //			}
 //			return true;
 			return false;
+		}
+
+		// MARK: - Activity::Source.
+		void set_activity_observer(Activity::Observer *observer) final {
+			executor_.bus.set_activity_observer(observer);
 		}
 
 		// MARK: - MappedKeyboardMachine.
