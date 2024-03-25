@@ -69,14 +69,14 @@ struct MemoryController {
 
 				// The MEMC itself isn't on the data bus; all values below should be taken from `address`.
 				switch((address >> 17) & 0b111) {
-					case 0b000:	ioc_.video().set_frame_start(buffer_address(address));	return true;
-					case 0b001:	ioc_.video().set_buffer_start(buffer_address(address));	return true;
-					case 0b010:	ioc_.video().set_buffer_end(buffer_address(address));	return true;
-					case 0b011: ioc_.video().set_cursor_start(buffer_address(address));	return true;
+					case 0b000:	ioc_.video().set_frame_start(buffer_address(address));	break;
+					case 0b001:	ioc_.video().set_buffer_start(buffer_address(address));	break;
+					case 0b010:	ioc_.video().set_buffer_end(buffer_address(address));	break;
+					case 0b011: ioc_.video().set_cursor_start(buffer_address(address));	break;
 
-					case 0b100:	ioc_.sound().set_next_start(buffer_address(address));	return true;
-					case 0b101:	ioc_.sound().set_next_end(buffer_address(address));		return true;
-					case 0b110:	ioc_.sound().swap();									return true;
+					case 0b100:	ioc_.sound().set_next_start(buffer_address(address));	break;
+					case 0b101:	ioc_.sound().set_next_end(buffer_address(address));		break;
+					case 0b110:	ioc_.sound().swap();									break;
 
 					case 0b111:
 						os_mode_ = address & (1 << 12);
@@ -97,7 +97,7 @@ struct MemoryController {
 
 						logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
 						map_dirty_ = true;
-					return true;
+					break;
 				}
 			} break;
 
@@ -107,13 +107,12 @@ struct MemoryController {
 					return false;
 				}
 				*item = source;
-				return true;
 			} break;
 
 			case Zone::IOControllers:
 				// TODO: have I overrestricted the value type for the IOC area?
 				ioc_.write(address, uint8_t(source));
-			return true;
+			break;
 
 			case Zone::VideoController:
 				// TODO: handle byte writes correctly.
@@ -122,7 +121,7 @@ struct MemoryController {
 
 			case Zone::PhysicallyMappedRAM:
 				physical_ram<IntT>(address) = source;
-			return true;
+			break;
 
 			case Zone::AddressTranslator:
 //				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
@@ -131,7 +130,7 @@ struct MemoryController {
 			break;
 
 			default:
-//				printf("TODO: write of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
+				printf("TODO: write of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
 			break;
 		}
 
@@ -148,12 +147,12 @@ struct MemoryController {
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
 				source = physical_ram<IntT>(address);
-			return true;
+			break;
 
 			case Zone::LogicallyMappedRAM: {
 				if(!has_moved_rom_) {	// TODO: maintain this state in the zones table.
 					source = high_rom<IntT>(address);
-					return true;
+					break;
 				}
 
 				const auto item = logical_ram<IntT, true>(address, mode);
@@ -161,41 +160,37 @@ struct MemoryController {
 					return false;
 				}
 				source = *item;
-				return true;
 			} break;
 
 			case Zone::LowROM:
 //				logger.error().append("TODO: Low ROM read from %08x", address);
-				source = IntT(~0);
-			return true;
+				source = IntT(0);
+			break;
 
 			case Zone::HighROM:
 				// Real test is: require A24=A25=0, then A25=1.
 				// TODO: as above, move this test into the zones tables.
 				has_moved_rom_ = true;
 				source = high_rom<IntT>(address);
-			return true;
+			break;
 
 			case Zone::IOControllers:	{
 				if constexpr (std::is_same_v<IntT, uint8_t>) {
 					ioc_.read(address, source);
-					return true;
 				} else {
 					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
 					uint8_t value;
 					ioc_.read(address, value);
 					source = value;
-					return true;
 				}
-			}
+			} break;
 
 			default:
 				logger.error().append("TODO: read from %08x", address);
 			break;
 		}
 
-		source = 0;
-		return false;
+		return true;
 	}
 
 	void tick_timers()			{	ioc_.tick_timers();		}
