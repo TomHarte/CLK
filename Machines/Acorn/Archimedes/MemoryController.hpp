@@ -33,7 +33,11 @@ static_assert(BitMask<15, 14>::value == 49152);
 template <typename InterruptObserverT, typename ClockRateObserverT>
 struct MemoryController {
 	MemoryController(InterruptObserverT &observer, ClockRateObserverT &clock_rate_observer) :
-		ioc_(observer, clock_rate_observer, ram_.data()) {}
+		ioc_(observer, clock_rate_observer, ram_.data()) {
+		read_zones_[0] = Zone::HighROM;	// Temporarily put high ROM at address 0.
+										// TODO: could I just copy it in? Or, at least,
+										// could I detect at ROM loading time whether I can?
+	}
 
 	int interrupt_mask() const {
 		return ioc_.interrupt_mask();
@@ -150,11 +154,6 @@ struct MemoryController {
 			break;
 
 			case Zone::LogicallyMappedRAM: {
-				if(!has_moved_rom_) {	// TODO: maintain this state in the zones table.
-					source = high_rom<IntT>(address);
-					break;
-				}
-
 				const auto item = logical_ram<IntT, true>(address, mode);
 				if(!item) {
 					return false;
@@ -164,13 +163,12 @@ struct MemoryController {
 
 			case Zone::LowROM:
 //				logger.error().append("TODO: Low ROM read from %08x", address);
-				source = IntT(0);
+				source = IntT(~0);
 			break;
 
 			case Zone::HighROM:
 				// Real test is: require A24=A25=0, then A25=1.
-				// TODO: as above, move this test into the zones tables.
-				has_moved_rom_ = true;
+				read_zones_[0] = Zone::LogicallyMappedRAM;
 				source = high_rom<IntT>(address);
 			break;
 
@@ -254,7 +252,7 @@ struct MemoryController {
 			return *reinterpret_cast<IntT *>(&rom_[address & (rom_.size() - 1)]);
 		}
 
-		const std::array<Zone, 0x20> read_zones_ = zones(true);
+		std::array<Zone, 0x20> read_zones_ = zones(true);
 		const std::array<Zone, 0x20> write_zones_ = zones(false);
 
 		// Control register values.
