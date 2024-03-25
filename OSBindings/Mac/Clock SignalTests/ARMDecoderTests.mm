@@ -338,6 +338,18 @@ struct MemoryLedger {
 	}
 }
 
+- (void)testFlags {
+	Registers regs;
+
+	for(int c = 0; c < 256; c++) {
+		regs.set_mode(Mode::Supervisor);
+
+		const uint32_t status = ((c & 0xfc) << 26) | (c & 0x03);
+		regs.set_status(status);
+		XCTAssertEqual(status, regs.status());
+	}
+}
+
 - (void)testMessy {
 	NSData *const tests =
 		[NSData dataWithContentsOfGZippedFile:
@@ -425,7 +437,7 @@ struct MemoryLedger {
 					continue;
 				}
 
-				if(instruction == 0xe79ea10a && test_count == 1) {
+				if(instruction == 0xe92d8001 && test_count == 1) {
 					printf("");
 				}
 
