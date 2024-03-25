@@ -162,9 +162,11 @@ class ConcreteMachine:
 		}
 		int video_divider_ = 1;
 
+		std::set<uint32_t> opcodes;
 		void tick_cpu() {
 			static uint32_t last_pc = 0;
 			static bool log = false;
+			static bool accumulate = false;
 
 //			if(executor_.pc() == 0x03803400) {
 //				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
@@ -202,6 +204,9 @@ class ConcreteMachine:
 					info.append("r%d:%08x ", c, executor_.registers()[c]);
 				}
 				info.append("]");
+			}
+			if(accumulate) {
+				opcodes.insert(instruction);
 			}
 //			logger.info().append("%08x: %08x", executor_.pc(), instruction);
 			InstructionSet::ARM::execute(instruction, executor_);
