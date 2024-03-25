@@ -165,12 +165,20 @@ class ConcreteMachine:
 		std::set<uint32_t> opcodes;
 		void tick_cpu() {
 			static uint32_t last_pc = 0;
+//			static uint32_t last_r9 = 0;
 			static bool log = false;
 			static bool accumulate = false;
 
-//			if(executor_.pc() == 0x03801ed8 || executor_.registers()[9] == 0x00ff'0000) {
-//				printf("At %08x; after last PC %08x and %zu ago was %08x\n", executor_.pc(), pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()], pc_history.size(), pc_history[pc_history_ptr]);
+//			if(executor_.pc() == 0x03801ed8 || (executor_.registers()[9] == 0x00ff'0000 && executor_.registers()[9] != last_r9)) {
+//				printf("At %08x; after last PC %08x and %zu ago was %08x; r9 is %08x [%d]\n",
+//					executor_.pc(),
+//					pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()],
+//					pc_history.size(),
+//					pc_history[pc_history_ptr],
+//					executor_.registers()[9],
+//					executor_.registers()[9] != last_r9);
 //			}
+//			last_r9 = executor_.registers()[9];
 
 			uint32_t instruction;
 			pc_history[pc_history_ptr] = executor_.pc();

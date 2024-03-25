@@ -134,10 +134,22 @@ struct InputOutputController {
 		} type;
 	};
 
+	// Peripheral addresses on the A500:
+	//
+	//	fast/1	=	FDC
+	//	sync/2	=	econet
+	//	sync/3	= 	serial line
+	//
+	//	bank 4	=	podules
+	//
+	//	fast/5
+
 	template <typename IntT>
 	bool read(uint32_t address, IntT &value) {
 		const Address target(address);
 		value = IntT(~0);
+
+		// TODO: flatten the switch below, and the equivalent in `write`.
 
 		switch(target.bank) {
 			default:
@@ -155,7 +167,7 @@ struct InputOutputController {
 						value = control_ | 0xc0;
 						value &= ~(i2c_.clock() ? 2 : 0);
 						value &= ~(i2c_.data() ? 1 : 0);
-//						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
+						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
 					break;
 
 					case 0x04:
@@ -235,6 +247,23 @@ struct InputOutputController {
 	template <typename IntT>
 	bool write(uint32_t address, IntT value) {
 		const Address target(address);
+
+		// Empirically, RISC OS 3.19:
+		//	* at 03801e88 and 03801e8c loads R8 and R9 with 0xbe0000 and 0xff0000 respectively; and
+		//	* subsequently uses 32-bit strs (e.g. at 03801eac) to write those values to latch A.
+		//
+		// Given that 8-bit ARM writes duplicate the 8-bit value four times across the data bus,
+		// my conclusion is that the IOC is probably connected to data lines 15–23.
+		//
+		// Hence: use @c byte to get a current 8-bit value.
+		const auto byte = [](IntT original) -> uint8_t {
+			if constexpr (std::is_same_v<IntT, uint32_t>) {
+				return static_cast<uint8_t>(original >> 16);
+			} else {
+				return original;
+			}
+		};
+
 		switch(target.bank) {
 			default:
 				logger.error().append("Unrecognised IOC write of %02x to %08x i.e. bank %d / type %d", value, address, target.bank, target.type);
@@ -248,7 +277,7 @@ struct InputOutputController {
 					break;
 
 					case 0x00:
-						control_ = static_cast<uint8_t>(value);
+						control_ = byte(value);
 						i2c_.set_clock_data(!(value & 2), !(value & 1));
 
 						// Per the A500 documentation:
@@ -262,7 +291,7 @@ struct InputOutputController {
 					break;
 
 					case 0x04:
-						serial_.output(IOCParty, static_cast<uint8_t>(value));
+						serial_.output(IOCParty, byte(value));
 						irq_b_.clear(IRQB::KeyboardTransmitEmpty);
 						observer_.update_interrupts();
 					break;
@@ -273,25 +302,25 @@ struct InputOutputController {
 						// b4: clear POR.
 						// b5: clear TM[0].
 						// b6: clear TM[1].
-						irq_a_.clear(value & 0x7c);
+						irq_a_.clear(byte(value) & 0x7c);
 						observer_.update_interrupts();
 					break;
 
 					// Interrupts.
-					case 0x18:	irq_a_.mask = static_cast<uint8_t>(value);	break;
-					case 0x28:	irq_b_.mask = static_cast<uint8_t>(value);	break;
-					case 0x38:	fiq_.mask = static_cast<uint8_t>(value);	break;
+					case 0x18:	irq_a_.mask = byte(value);	break;
+					case 0x28:	irq_b_.mask = byte(value);	break;
+					case 0x38:	fiq_.mask = byte(value);	break;
 
 					// Counters.
 					case 0x40:	case 0x50:	case 0x60:	case 0x70:
 						counters_[(target.offset >> 4) - 0x4].reload = uint16_t(
-							(counters_[(target.offset >> 4) - 0x4].reload & 0xff00) | value
+							(counters_[(target.offset >> 4) - 0x4].reload & 0xff00) | byte(value)
 						);
 					break;
 
 					case 0x44:	case 0x54:	case 0x64:	case 0x74:
 						counters_[(target.offset >> 4) - 0x4].reload = uint16_t(
-							(counters_[(target.offset >> 4) - 0x4].reload & 0x00ff) | (value << 8)
+							(counters_[(target.offset >> 4) - 0x4].reload & 0x00ff) | (byte(value) << 8)
 						);
 					break;
 
@@ -316,6 +345,22 @@ struct InputOutputController {
 						switch(target.offset) {
 							default:
 								logger.error().append("Unrecognised IOC fast bank 5 write; %02x to offset %02x", value, target.offset);
+							break;
+
+							case 0x00:
+								logger.error().append("TODO: printer data write; %02x", byte(value));
+							break;
+
+							case 0x18:
+								logger.error().append("TODO: latch B write; %02x", byte(value));
+							break;
+
+							case 0x40:
+								logger.error().append("TODO: latch A write; %02x", byte(value));
+							break;
+
+							case 0x48:
+								logger.error().append("TODO: latch C write; %02x", byte(value));
 							break;
 						}
 					break;
@@ -353,22 +398,6 @@ struct InputOutputController {
 //
 //			case 0x331'0000 & AddressMask:
 //				logger.error().append("TODO: 1772 / disk write");
-//			return true;
-//
-//			case 0x335'0000 & AddressMask:
-//				logger.error().append("TODO: LS374 / printer data write");
-//			return true;
-//
-//			case 0x335'0018 & AddressMask:
-//				logger.error().append("TODO: latch B write: %02x", value);
-//			return true;
-//
-//			case 0x335'0040 & AddressMask:
-//				logger.error().append("TODO: latch A write: %02x", value);
-//			return true;
-//
-//			case 0x335'0048 & AddressMask:
-//				logger.error().append("TODO: latch C write: %02x", value);
 //			return true;
 //
 //			case 0x336'0000 & AddressMask:
