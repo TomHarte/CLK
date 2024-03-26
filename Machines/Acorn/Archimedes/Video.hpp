@@ -88,6 +88,9 @@ struct Video {
 					case 0b10:	set_clock_divider(3);	break;	// 16Mhz.
 					case 0b11:	set_clock_divider(2);	break;	// 24Mhz.
 				}
+
+				// Set colour depth.
+				colour_depth_ = Depth((value >> 2) & 0b11);
 			break;
 
 			//
@@ -116,6 +119,7 @@ struct Video {
 		if(horizontal_state_.position == horizontal_timing_.period) {
 			horizontal_state_.position = 0;
 			vertical_state_.increment_position(vertical_timing_);
+			pixel_count_ = 0;
 
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
@@ -150,6 +154,13 @@ struct Video {
 				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
 			}
 
+			const auto next_byte = [&]() -> uint8_t {
+				const auto next = ram_[address_];
+				++address_;
+				if(address_ == buffer_end_) address_ = buffer_start_;
+				return next;
+			};
+
 			if(pixels_) {
 				// Each tick in here is two ticks of the pixel clock, so:
 				//
@@ -157,20 +168,78 @@ struct Video {
 				//	4bpp mode: output one byte;
 				//	2bpp mode: output one byte every second tick;
 				//	1bpp mode: output one byte every fourth tick.
+				switch(colour_depth_) {
+					case Depth::EightBPP: {
+						// TODO: real 8bpp mapping here.
+						uint8_t next = next_byte();
+						pixels_[0] = colours_[next & 0xf];
 
-				// TODO: don't assume 4bpp.
-				const uint8_t next = ram_[address_];
-				++address_;
-				if(address_ == buffer_end_) address_ = buffer_start_;
+						next = next_byte();
+						pixels_[1] = colours_[next & 0xf];
 
-				pixels_[0] = colours_[next & 0xf];
-				pixels_[1] = colours_[next >> 4];
-				pixels_ += 2;
+						pixels_ += 2;
+					} break;
+
+					case Depth::FourBPP: {
+						const uint8_t next = next_byte();
+
+						pixels_[0] = colours_[next & 0xf];
+						pixels_[1] = colours_[next >> 4];
+						pixels_ += 2;
+					} break;
+
+					case Depth::TwoBPP: {
+						if(!(pixel_count_&1)) {
+							const uint8_t next = next_byte();
+
+							pixels_[0] = colours_[next & 3];
+							pixels_[1] = colours_[(next >> 2) & 3];
+							pixels_[2] = colours_[(next >> 4) & 3];
+							pixels_[3] = colours_[next >> 6];
+							pixels_ += 4;
+						}
+					} break;
+
+					case Depth::OneBPP: {
+						if(!(pixel_count_&3)) {
+							const uint8_t next = next_byte();
+
+							pixels_[0] = colours_[next & 1];
+							pixels_[1] = colours_[(next >> 1) & 1];
+							pixels_[2] = colours_[(next >> 2) & 1];
+							pixels_[3] = colours_[(next >> 3) & 1];
+							pixels_[4] = colours_[(next >> 4) & 1];
+							pixels_[5] = colours_[(next >> 5) & 1];
+							pixels_[6] = colours_[(next >> 6) & 1];
+							pixels_[7] = colours_[next >> 7];
+							pixels_ += 8;
+						}
+					} break;
+				}
 			} else {
 				// TODO: don't assume 4bpp here either.
-				++address_;
-				if(address_ == buffer_end_) address_ = buffer_start_;
+				switch(colour_depth_) {
+					case Depth::EightBPP:
+						next_byte();
+						next_byte();
+					break;
+					case Depth::FourBPP:
+						next_byte();
+					break;
+					case Depth::TwoBPP:
+						if(!(pixel_count_&1)) {
+							next_byte();
+						}
+					break;
+					case Depth::OneBPP:
+						if(!(pixel_count_&3)) {
+							next_byte();
+						}
+					break;
+				}
 			}
+
+			++pixel_count_;
 		}
 
 		// Determine current output phase.
@@ -290,6 +359,7 @@ private:
 	State horizontal_state_, vertical_state_;
 	Phase phase_ = Phase::Sync;
 	uint32_t time_in_phase_ = 0;
+	uint32_t pixel_count_ = 0;
 	uint16_t *pixels_ = nullptr;
 	static constexpr size_t PixelBufferSize = 320;
 
@@ -316,6 +386,13 @@ private:
 	// the pixel clock because that's the fidelity at which the programmer
 	// places horizontal events — display start, end, sync period, etc.
 	uint32_t clock_divider_ = 0;
+
+	enum class Depth {
+		OneBPP = 0b00,
+		TwoBPP = 0b01,
+		FourBPP = 0b10,
+		EightBPP = 0b11,
+	} colour_depth_;
 
 	void set_clock_divider(uint32_t divider) {
 		if(divider == clock_divider_) {
