@@ -95,8 +95,8 @@ class ConcreteMachine:
 			}
 
 #ifndef NDEBUG
-			// Debug mode: run CPU a lot slower.
-			if constexpr (offset & 15) return;
+			// Debug mode: run CPU a lot slower. Actually at close to original advertised MIPS speed.
+			if constexpr (offset & 7) return;
 #endif
 			tick_cpu();
 		}
