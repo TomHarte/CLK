@@ -77,7 +77,6 @@ constexpr bool is_enabled(Source source) {
 		case Source::NCR5380:
 		case Source::SCC:
 		case Source::SCSI:
-		case Source::I2C:
 			return false;
 	}
 }

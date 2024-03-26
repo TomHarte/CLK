@@ -43,6 +43,11 @@ private:
 	uint16_t peripheral_response_ = 0xffff;
 	int peripheral_bits_ = 0;
 
+	enum class Event {
+		Zero, One, Start, Stop,
+	};
+	void signal(Event);
+
 	enum class Phase {
 		AwaitingStart,
 		CollectingAddress,

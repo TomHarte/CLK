@@ -37,23 +37,48 @@ bool Bus::clock() {
 }
 
 void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
-	const bool prior_clock = clock_;
+	if(clock_pulled == clock_ && data_pulled == data_) {
+		return;
+	}
+
+	auto info = logger.info();
+	info.append("C:%d D:%d; ", clock_, data_);
+
 	const bool prior_data = data_;
 	clock_ = clock_pulled;
 	data_ = data_pulled;
 
-	logger.info().append("C:%d D:%d", clock_, data_);
-
-	// Advance peripheral input from peripheral if clock
-	// transitions from high to low.
-	if(peripheral_bits_ && prior_clock && !clock_) {
-		--peripheral_bits_;
-		peripheral_response_ <<= 1;
+	if(clock_) {
+		info.append("nothing");
+		return;
 	}
 
+	if(prior_data != data_) {
+		if(data_) {
+			info.append("start");
+			signal(Event::Start);
+		} else {
+			info.append("stop");
+			signal(Event::Stop);
+		}
+	} else {
+		--peripheral_bits_;
+		peripheral_response_ <<= 1;
+
+		if(data_) {
+			info.append("zero");
+			signal(Event::Zero);
+		} else {
+			info.append("one");
+			signal(Event::One);
+		}
+	}
+}
+
+void Bus::signal(Event event) {
 	const auto capture_bit = [&]() {
-		if(prior_clock && !clock_) {
-			input_ = uint16_t((input_ << 1) | (data_pulled ? 0 : 1));
+		if(event == Event::Zero || event == Event::One) {
+			input_ = uint16_t((input_ << 1) | (event == Event::Zero ? 0 : 1));
 			++input_count_;
 		}
 	};
@@ -68,7 +93,7 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 	// Check for stop condition at any time.
 	// "A LOW-to-HIGH transition of the data line
 	// while the clock is HIGH is defined as the STOP condition".
-	if(prior_data && !data_ && !clock_) {
+	if(event == Event::Stop) {
 		logger.info().append("Stopped");
 		phase_ = Phase::AwaitingStart;
 	}
@@ -77,7 +102,7 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 		case Phase::AwaitingStart:
 			// "A HIGH-to-LOW transition of the data line while
 			// the clock is HIGH is defined as the START condition"
-			if(!prior_data && data_ && !clock_) {
+			if(event == Event::Start) {
 				phase_ = Phase::CollectingAddress;
 				input_count_ = 0;
 				input_ = 0;
