@@ -60,9 +60,9 @@ struct MemoryController {
 	}
 
 	template <typename IntT>
-	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode mode, bool trans) {
+	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode, bool trans) {
 		// User mode may only _write_ to logically-mapped RAM (subject to further testing below).
-		if(mode == InstructionSet::ARM::Mode::User && address >= 0x200'0000) {
+		if(trans && address >= 0x200'0000) {
 			return false;
 		}
 
@@ -142,9 +142,9 @@ struct MemoryController {
 	}
 
 	template <typename IntT>
-	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode mode, bool trans) {
+	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode, bool trans) {
 		// User mode may only read logically-maped RAM and ROM.
-		if(mode == InstructionSet::ARM::Mode::User && address >= 0x200'0000 && address < 0x380'0000) {
+		if(trans && address >= 0x200'0000 && address < 0x380'0000) {
 			return false;
 		}
 
