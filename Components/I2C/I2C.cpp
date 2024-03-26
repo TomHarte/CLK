@@ -51,10 +51,10 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 
 	if(prior_data != data_) {
 		if(data_) {
-			logger.info().append("S");
+//			logger.info().append("S");
 			signal(Event::Start);
 		} else {
-			logger.info().append("P");
+//			logger.info().append("P");
 			signal(Event::Stop);
 		}
 	} else {
@@ -64,10 +64,10 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 		}
 
 		if(data_) {
-			logger.info().append("0");
+//			logger.info().append("0");
 			signal(Event::Zero);
 		} else {
-			logger.info().append("1");
+//			logger.info().append("1");
 			signal(Event::One);
 		}
 	}

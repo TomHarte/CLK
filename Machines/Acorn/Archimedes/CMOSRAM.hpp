@@ -25,6 +25,8 @@ struct CMOSRAM: public I2C::Peripheral {
 		if(expecting_address_) {
 			address_ = value;
 		} else {
+			printf("Write to %d\n", address_);
+			++address_;
 			// TODO: write to RAM.
 		}
 	}
