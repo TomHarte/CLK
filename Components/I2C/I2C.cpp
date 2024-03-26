@@ -93,7 +93,7 @@ void Bus::signal(Event event) {
 
 	const auto enqueue = [&](std::optional<uint8_t> next) {
 		if(next) {
-			peripheral_response_ = *next;
+			peripheral_response_ = static_cast<uint16_t>((*next) << 1);
 			peripheral_bits_ = 9;
 			set_state(State::PostingByte);
 		} else {
@@ -131,7 +131,9 @@ void Bus::signal(Event event) {
 					active_peripheral_->start(input_ & 1);
 
 					if(input_&1) {
-						enqueue(active_peripheral_->read());
+						acknowledge();
+						set_state(State::PostingByte);
+//						enqueue(active_peripheral_->read());
 					} else {
 						acknowledge();
 						set_state(State::ReceivingByte);
@@ -162,6 +164,7 @@ void Bus::signal(Event event) {
 				return;
 			}
 
+			// Add a new byte (including its acknowledge bit).
 			enqueue(active_peripheral_->read());
 		break;
 	}
