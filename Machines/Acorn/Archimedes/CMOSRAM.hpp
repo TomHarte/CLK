@@ -13,7 +13,25 @@
 namespace Archimedes {
 
 struct CMOSRAM: public I2C::Peripheral {
-	// All TODO.
+	void start(bool is_read) override {
+		expecting_address_ = !is_read;
+	}
+
+	std::optional<uint8_t> read() override {
+		return 0;
+	}
+
+	void write(uint8_t value) override {
+		if(expecting_address_) {
+			address_ = value;
+		} else {
+			// TODO: write to RAM.
+		}
+	}
+
+private:
+	bool expecting_address_ = false;
+	uint8_t address_;
 };
 
 }

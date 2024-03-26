@@ -9,14 +9,18 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 
 namespace I2C {
 
 /// Provides the virtual interface for an I2C peripheral; attaching this to a bus
 /// provides automatic protocol handling.
-class Peripheral {
-
+struct Peripheral {
+	virtual void start([[maybe_unused]] bool is_read) {}
+	virtual void stop() {}
+	virtual std::optional<uint8_t> read() { return std::nullopt; }
+	virtual void write(uint8_t) {}
 };
 
 class Bus {
@@ -48,12 +52,13 @@ private:
 	};
 	void signal(Event);
 
-	enum class Phase {
-		AwaitingStart,
+	enum class State {
+		AwaitingAddress,
 		CollectingAddress,
-		AwaitingByte,
-		CollectingByte,
-	} phase_ = Phase::AwaitingStart;
+
+		PostingByte,
+		ReceivingByte,
+	} state_ = State::AwaitingAddress;
 };
 
 }
