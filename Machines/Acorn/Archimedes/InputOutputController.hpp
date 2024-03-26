@@ -167,7 +167,7 @@ struct InputOutputController {
 						value = control_ | 0xc0;
 						value &= ~(i2c_.clock() ? 2 : 0);
 						value &= ~(i2c_.data() ? 1 : 0);
-						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
+//						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
 					break;
 
 					case 0x04:
@@ -352,12 +352,33 @@ struct InputOutputController {
 							break;
 
 							case 0x18:
+								// TODO, per the A500 documentation:
+								//
+								// Latch B:
+								//	b0: ?
+								//	b1: double/single density; 0 = double.
+								//	b2: ?
+								// 	b3: floppy drive reset; 0 = reset.
+								//	b4: printer strobe
+								//	b5: ?
+								//	b6: ?
+								//	b7: HS3?
+
 								logger.error().append("TODO: latch B write; %02x", byte(bus_value));
 							break;
 
 							case 0x40: {
+								// TODO, per the A500 documentation:
+								//
+								// Latch A:
+								//	b0, b1, b2, b3 = drive selects;
+								//	b4 = side select;
+								//	b5 = motor on/off
+								//	b6 = floppy in use (i.e. LED?);
+								//	b7 = "Not used."
+
 								const uint8_t value = byte(bus_value);
-								logger.error().append("TODO: latch A write; %02x", value);
+//								logger.error().append("TODO: latch A write; %02x", value);
 
 								// Set the floppy indicator on if any drive is selected,
 								// because this emulator is compressing them all into a
@@ -370,34 +391,17 @@ struct InputOutputController {
 							} break;
 
 							case 0x48:
+								// TODO, per the A500 documentation:
+								//
+								// Latch C:
+								//		(probably not present on earlier machines?)
+								//	b2/b3: sync polarity [b3 = V polarity, b2 = H?]
+								//	b0/b1: VIDC master clock; 00 = 24Mhz, 01 = 25.175Mhz; 10 = 36Mhz; 11 = reserved.
+
 								logger.error().append("TODO: latch C write; %02x", byte(bus_value));
 							break;
 						}
 					break;
-
-					// TODO, per the A500 documentation:
-					//
-					// Latch A:
-					//	b0, b1, b2, b3 = drive selects;
-					//	b4 = side select;
-					//	b5 = motor on/off
-					//	b6 = floppy in use (i.e. LED?);
-					//	b7 = "Not used."
-					//
-					// Latch B:
-					//	b0: ?
-					//	b1: double/single density; 0 = double.
-					//	b2: ?
-					// 	b3: floppy drive reset; 0 = reset.
-					//	b4: printer strobe
-					//	b5: ?
-					//	b6: ?
-					//	b7: HS3?
-					//
-					// Latch C:
-					//		(probably not present on earlier machines?)
-					//	b2/b3: sync polarity [b3 = V polarity, b2 = H?]
-					//	b0/b1: VIDC master clock; 00 = 24Mhz, 01 = 25.175Mhz; 10 = 36Mhz; 11 = reserved.
 				}
 			break;
 		}
