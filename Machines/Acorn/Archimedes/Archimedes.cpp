@@ -108,7 +108,7 @@ class ConcreteMachine:
 		) : executor_(*this, *this) {
 			set_clock_rate(ClockRate);
 
-			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS319;
+			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
 			ROM::Request request(risc_os);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
