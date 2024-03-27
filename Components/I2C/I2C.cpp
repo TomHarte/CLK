@@ -24,7 +24,7 @@ void Bus::set_data(bool pulled) {
 bool Bus::data() {
 	bool result = data_;
 	if(peripheral_bits_) {
-		result |= !(peripheral_response_ & 0x200);
+		result |= !(peripheral_response_ & 0x80);
 	}
 	return result;
 }
@@ -41,34 +41,51 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 		return;
 	}
 
+	const bool prior_clock = clock_;
 	const bool prior_data = data_;
 	clock_ = clock_pulled;
 	data_ = data_pulled;
 
-	if(clock_) {
+	if(peripheral_bits_) {
+		// Trailing edge of clock => bit has been consumed.
+		if(!prior_clock && clock_) {
+			logger.info().append("<< %d", (peripheral_response_ >> 7) & 1);
+			--peripheral_bits_;
+			peripheral_response_ <<= 1;
+
+			if(!peripheral_bits_) {
+				signal(Event::FinishedOutput);
+			}
+		}
 		return;
 	}
 
-	if(prior_data != data_) {
+	if(!clock_ && prior_data != data_) {
+		// Data transition outside of a clock cycle => start or stop.
+		in_bit_ = false;
 		if(data_) {
-//			logger.info().append("S");
+			logger.info().append("S");
 			signal(Event::Start);
 		} else {
-//			logger.info().append("P");
+			logger.info().append("W");
 			signal(Event::Stop);
 		}
-	} else {
-		if(peripheral_bits_) {
-			--peripheral_bits_;
-			peripheral_response_ <<= 1;
-		}
+	} else if(clock_ != prior_clock) {
+		// Bits: wait until the falling edge of the cycle.
+		if(!clock_) {
+			// Rising edge: clock period begins.
+			in_bit_ = true;
+		} else if(in_bit_) {
+			// Falling edge: clock period ends (assuming it began; otherwise this is prep, post-start bit).
+			in_bit_ = false;
 
-		if(data_) {
-//			logger.info().append("0");
-			signal(Event::Zero);
-		} else {
-//			logger.info().append("1");
-			signal(Event::One);
+			if(data_) {
+				logger.info().append("0");
+				signal(Event::Zero);
+			} else {
+				logger.info().append("1");
+				signal(Event::One);
+			}
 		}
 	}
 }
@@ -82,7 +99,7 @@ void Bus::signal(Event event) {
 	const auto acknowledge = [&]() {
 		// Post an acknowledgement bit.
 		peripheral_response_ = 0;
-		peripheral_bits_ = 2;
+		peripheral_bits_ = 1;
 	};
 
 	const auto set_state = [&](State state) {
@@ -93,11 +110,10 @@ void Bus::signal(Event event) {
 
 	const auto enqueue = [&](std::optional<uint8_t> next) {
 		if(next) {
-			peripheral_response_ = static_cast<uint16_t>((*next) << 1);
-			peripheral_bits_ = 9;
-			set_state(State::PostingByte);
+			peripheral_response_ = static_cast<uint16_t>(*next);
+			peripheral_bits_ = 8;
+			set_state(State::AwaitingByteAcknowledge);
 		} else {
-			acknowledge();
 			set_state(State::AwaitingAddress);
 		}
 	};
@@ -123,7 +139,6 @@ void Bus::signal(Event event) {
 
 		case State::CollectingAddress:
 			capture_bit();
-
 			if(input_count_ == 8) {
 				auto pair = peripherals_.find(uint8_t(input_) & 0xfe);
 				if(pair != peripherals_.end()) {
@@ -132,8 +147,7 @@ void Bus::signal(Event event) {
 
 					if(input_&1) {
 						acknowledge();
-						set_state(State::PostingByte);
-//						enqueue(active_peripheral_->read());
+						set_state(State::CompletingWriteAcknowledge);
 					} else {
 						acknowledge();
 						set_state(State::ReceivingByte);
@@ -145,11 +159,9 @@ void Bus::signal(Event event) {
 		break;
 
 		case State::ReceivingByte:
-			// Run down the clock on the acknowledge bit.
-			if(peripheral_bits_) {
+			if(event == Event::FinishedOutput) {
 				return;
 			}
-
 			capture_bit();
 			if(input_count_ == 8) {
 				active_peripheral_->write(static_cast<uint8_t>(input_));
@@ -158,13 +170,24 @@ void Bus::signal(Event event) {
 			}
 		break;
 
-		case State::PostingByte:
-			// Finish whatever is enqueued.
-			if(peripheral_bits_) {
-				return;
+		case State::CompletingWriteAcknowledge:
+			if(event != Event::FinishedOutput) {
+				break;
+			}
+			enqueue(active_peripheral_->read());
+		break;
+
+		case State::AwaitingByteAcknowledge:
+			if(event == Event::FinishedOutput) {
+				break;
+			}
+			if(event != Event::Zero) {
+				logger.info().append("Peripheral byte not acknowledged");
+				state_ = State::AwaitingAddress;
+				break;
 			}
 
-			// Add a new byte (including its acknowledge bit).
+			// Add a new byte if there is one.
 			enqueue(active_peripheral_->read());
 		break;
 	}

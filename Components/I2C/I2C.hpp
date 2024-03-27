@@ -38,6 +38,7 @@ public:
 private:
 	bool data_ = false;
 	bool clock_ = false;
+	bool in_bit_ = false;
 	std::unordered_map<int, Peripheral *> peripherals_;
 
 	uint16_t input_ = 0xffff;
@@ -48,7 +49,7 @@ private:
 	int peripheral_bits_ = 0;
 
 	enum class Event {
-		Zero, One, Start, Stop,
+		Zero, One, Start, Stop, FinishedOutput,
 	};
 	void signal(Event);
 
@@ -56,7 +57,9 @@ private:
 		AwaitingAddress,
 		CollectingAddress,
 
-		PostingByte,
+		CompletingWriteAcknowledge,
+		AwaitingByteAcknowledge,
+
 		ReceivingByte,
 	} state_ = State::AwaitingAddress;
 };
