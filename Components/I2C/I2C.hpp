@@ -17,10 +17,25 @@ namespace I2C {
 /// Provides the virtual interface for an I2C peripheral; attaching this to a bus
 /// provides automatic protocol handling.
 struct Peripheral {
+	/// Indicates that the host signalled the start condition and addressed this
+	/// peripheral, along with whether it indicated a read or write.
 	virtual void start([[maybe_unused]] bool is_read) {}
+
+	/// Indicates that the host signalled a stop.
 	virtual void stop() {}
+
+	/// Requests the next byte to serialise onto the I2C bus after this peripheral has
+	/// been started in read mode.
+	///
+	/// @returns A byte to serialise or std::nullopt if the peripheral declines to
+	/// continue to communicate.
 	virtual std::optional<uint8_t> read() { return std::nullopt; }
-	virtual void write(uint8_t) {}
+
+	/// Provides a byte received from the bus after this peripheral has been started
+	/// in write mode.
+	///
+	/// @returns @c true if the write should be acknowledged; @c false otherwise.
+	virtual bool write(uint8_t) { return false; }
 };
 
 class Bus {
@@ -57,7 +72,7 @@ private:
 		AwaitingAddress,
 		CollectingAddress,
 
-		CompletingWriteAcknowledge,
+		CompletingReadAcknowledge,
 		AwaitingByteAcknowledge,
 
 		ReceivingByte,

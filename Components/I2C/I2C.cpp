@@ -37,6 +37,7 @@ bool Bus::clock() {
 }
 
 void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
+	// Proceed only if changes are evidenced.
 	if(clock_pulled == clock_ && data_pulled == data_) {
 		return;
 	}
@@ -46,6 +47,8 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 	clock_ = clock_pulled;
 	data_ = data_pulled;
 
+	// If currently serialising from a peripheral then shift onwards on
+	// every clock trailing edge.
 	if(peripheral_bits_) {
 		// Trailing edge of clock => bit has been consumed.
 		if(!prior_clock && clock_) {
@@ -60,8 +63,9 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 		return;
 	}
 
+	// Not currently serialising implies listening.
 	if(!clock_ && prior_data != data_) {
-		// Data transition outside of a clock cycle => start or stop.
+		// A data transition outside of a clock cycle implies a start or stop.
 		in_bit_ = false;
 		if(data_) {
 			logger.info().append("S");
@@ -76,7 +80,8 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 			// Rising edge: clock period begins.
 			in_bit_ = true;
 		} else if(in_bit_) {
-			// Falling edge: clock period ends (assuming it began; otherwise this is prep, post-start bit).
+			// Falling edge: clock period ends (assuming it began; otherwise this is a preparatory
+			// clock transition only, immediately after a start bit).
 			in_bit_ = false;
 
 			if(data_) {
@@ -118,6 +123,11 @@ void Bus::signal(Event event) {
 		}
 	};
 
+	const auto stop = [&]() {
+		set_state(State::AwaitingAddress);
+		active_peripheral_ = nullptr;
+	};
+
 	// Allow start and stop conditions at any time.
 	if(event == Event::Start) {
 		set_state(State::CollectingAddress);
@@ -126,17 +136,21 @@ void Bus::signal(Event event) {
 	}
 
 	if(event == Event::Stop) {
-		set_state(State::AwaitingAddress);
 		if(active_peripheral_) {
 			active_peripheral_->stop();
 		}
-		active_peripheral_ = nullptr;
+		stop();
 		return;
 	}
 
 	switch(state_) {
+		// While waiting for an address, don't respond to anything other than a
+		// start bit, which is actually dealt with above.
 		case State::AwaitingAddress:	break;
 
+		// To collect an address: shift in eight bits, and if there's a device
+		// at that address then acknowledge the address and segue into a read
+		// or write loop.
 		case State::CollectingAddress:
 			capture_bit();
 			if(input_count_ == 8) {
@@ -147,7 +161,7 @@ void Bus::signal(Event event) {
 
 					if(input_&1) {
 						acknowledge();
-						set_state(State::CompletingWriteAcknowledge);
+						set_state(State::CompletingReadAcknowledge);
 					} else {
 						acknowledge();
 						set_state(State::ReceivingByte);
@@ -158,32 +172,46 @@ void Bus::signal(Event event) {
 			}
 		break;
 
+		// Receiving byte: wait until a scheduled acknowledgment has
+		// happened, then collect eight bits, then see whether the
+		// active peripheral will accept them. If so, acknowledge and repeat.
+		// Otherwise fall silent.
 		case State::ReceivingByte:
 			if(event == Event::FinishedOutput) {
 				return;
 			}
 			capture_bit();
 			if(input_count_ == 8) {
-				active_peripheral_->write(static_cast<uint8_t>(input_));
-				acknowledge();
-				set_state(State::ReceivingByte);
+				if(active_peripheral_->write(static_cast<uint8_t>(input_))) {
+					acknowledge();
+					set_state(State::ReceivingByte);
+				} else {
+					stop();
+				}
 			}
 		break;
 
-		case State::CompletingWriteAcknowledge:
+		// The initial state immediately after a peripheral has been started
+		// in read mode and the address-select acknowledgement is still
+		// being serialised.
+		//
+		// Once that is completed, enqueues the first byte from the peripheral.
+		case State::CompletingReadAcknowledge:
 			if(event != Event::FinishedOutput) {
 				break;
 			}
 			enqueue(active_peripheral_->read());
 		break;
 
+		// Repeating state during reading; waits until the previous byte has
+		// been fully serialised, and if the host acknowledged it then posts
+		// the next. If the host didn't acknowledge, stops the connection.
 		case State::AwaitingByteAcknowledge:
 			if(event == Event::FinishedOutput) {
 				break;
 			}
 			if(event != Event::Zero) {
-				logger.info().append("Peripheral byte not acknowledged");
-				state_ = State::AwaitingAddress;
+				stop();
 				break;
 			}
 

@@ -46,7 +46,7 @@ struct CMOSRAM: public I2C::Peripheral {
 		return result;
 	}
 
-	void write(uint8_t value) override {
+	bool write(uint8_t value) override {
 		if(expecting_address_) {
 			address_ = value;
 			expecting_address_ = false;
@@ -54,6 +54,7 @@ struct CMOSRAM: public I2C::Peripheral {
 			++address_;
 			// TODO: write.
 		}
+		return true;
 	}
 
 private:
