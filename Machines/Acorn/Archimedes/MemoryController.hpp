@@ -294,12 +294,20 @@ struct MemoryController {
 		// Physical to logical mapping.
 		std::array<uint32_t, 128> pages_{};
 
-		// Logical to physical mapping.
-		struct MappedPage {
-			uint8_t *target = nullptr;
-			uint8_t protection_level = 0;
-		};
-		std::array<MappedPage, 8192> mapping_;
+		// Logical to physical mapping; this is divided by 'access mode'
+		// (i.e. the combination of read/write, trans and OS mode flags,
+		// as multipliexed by the @c mapping() function) because mapping
+		// varies by mode — not just in terms of restricting access, but
+		// actually presenting different memory.
+		using MapTarget = std::array<uint8_t *, 8192>;
+		std::array<MapTarget, 6> mapping_;
+
+		template <bool is_read>
+		MapTarget &mapping(bool trans, bool os_mode) {
+			const size_t index = (is_read ? 1 : 0) | (os_mode ? 2 : 0) | ((trans && !os_mode) ? 4 : 0);
+			return mapping_[index];
+		}
+
 		bool map_dirty_ = true;
 
 		template <typename IntT, bool is_read>
@@ -310,7 +318,6 @@ struct MemoryController {
 				update_mapping();
 				map_dirty_ = false;
 			}
-
 			address = aligned<IntT>(address);
 			address &= 0x1ff'ffff;
 			size_t page;
@@ -336,33 +343,11 @@ struct MemoryController {
 				break;
 			}
 
-			if(!mapping_[page].target) {
+			const auto &map = mapping<is_read>(trans, os_mode_);
+			if(!map[page]) {
 				return nullptr;
 			}
-
-			// TODO: eliminate switch here.
-			// Top of my head idea: is_read, trans and os_mode_ make three bits, so
-			// keep a one-byte bitmap of permitted accesses rather than the raw protection
-			// level?
-			if(trans) {
-				switch(mapping_[page].protection_level) {
-					case 0b00:	break;
-					case 0b01:
-						// Reject: writes, in user mode.
-						if(!is_read && !os_mode_) {
-							return nullptr;
-						}
-					break;
-					default:
-						// Reject: writes, and user mode.
-						if(!is_read || !os_mode_) {
-							return nullptr;
-						}
-					break;
-				}
-			}
-
-			return reinterpret_cast<IntT *>(mapping_[page].target + address);
+			return reinterpret_cast<IntT *>(&map[page][address]);
 		}
 
 		void update_mapping() {
@@ -379,7 +364,9 @@ struct MemoryController {
 		template <PageSize size>
 		void update_mapping() {
 			// Clear all logical mappings.
-			std::fill(mapping_.begin(), mapping_.end(), MappedPage{});
+			for(auto &map: mapping_) {
+				std::fill(map.begin(), map.end(), nullptr);
+			}
 
 			// For each physical page, project it into logical space
 			// and store it.
@@ -445,8 +432,38 @@ struct MemoryController {
 
 				// TODO: consider clashes.
 				// TODO: what if there's less than 4mb present?
-				mapping_[logical].target = &ram_[physical];
-				mapping_[logical].protection_level = (page >> 8) & 3;
+				const auto target = &ram_[physical];
+
+				const auto set_supervisor = [&](bool read, bool write) {
+					if(read) mapping<true>(false, false)[logical] = target;
+					if(write) mapping<false>(false, false)[logical] = target;
+				};
+
+				const auto set_os = [&](bool read, bool write) {
+					if(read) mapping<true>(true, true)[logical] = target;
+					if(write) mapping<false>(true, true)[logical] = target;
+				};
+
+				const auto set_user = [&](bool read, bool write) {
+					if(read) mapping<true>(true, false)[logical] = target;
+					if(write) mapping<false>(true, false)[logical] = target;
+				};
+
+				set_supervisor(true, true);
+				switch((page >> 8) & 3) {
+					case 0b00:
+						set_os(true, true);
+						set_user(true, true);
+					break;
+					case 0b01:
+						set_os(true, true);
+						set_user(true, false);
+					break;
+					default:
+						set_os(true, false);
+						set_user(false, false);
+					break;
+				}
 			}
 		}
 };
