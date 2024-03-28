@@ -18,6 +18,30 @@
 
 namespace Outputs::CRT {
 
+namespace PAL {
+
+// 283.7516 colour cycles per line; 2.5 lines of vertical sync.
+static constexpr int ColourCycleNumerator = 709379;
+static constexpr int ColourCycleDenominator = 2500;
+static constexpr int VerticalSyncLength = 5;
+
+static constexpr auto ColourSpace = Outputs::Display::ColourSpace::YUV;
+static constexpr bool AlternatesPhase = true;
+
+}
+
+namespace NTSC {
+
+// 227.5 colour cycles per line; 3 lines of vertical sync.
+static constexpr int ColourCycleNumerator = 455;
+static constexpr int ColourCycleDenominator = 2;
+static constexpr int VerticalSyncLength = 6;
+
+static constexpr auto ColourSpace = Outputs::Display::ColourSpace::YIQ;
+static constexpr bool AlternatesPhase = false;
+
+}
+
 class CRT;
 
 class Delegate {
@@ -135,6 +159,11 @@ class CRT {
 			int minimum_cycles_per_pixel,
 			Outputs::Display::Type display_type,
 			Outputs::Display::InputDataType data_type);
+
+		/*!	Constructs a CRT with no guaranteed expectations as to input signal other than data type;
+			this allows for callers that intend to rely on @c set_new_timing.
+		*/
+		CRT(Outputs::Display::InputDataType data_type);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */

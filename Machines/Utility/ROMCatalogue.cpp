@@ -540,6 +540,9 @@ Description::Description(Name name) {
 			*this = Description(name, "Electron", "the Electron MOS ROM v1.00", "os.rom", 16*1024, 0xbf63fb1fu);
 		break;
 
+		case Name::AcornRISCOS311:
+			*this = Description(name, "Archimedes", "RISC OS v3.11", "ROM311", 2*1024*1024, 0x54c0c963u);
+		break;
 		case Name::AcornRISCOS319:
 			*this = Description(name, "Archimedes", "RISC OS v3.19", "ROM319", 2*1024*1024, 0x00c7a3d3u);
 		break;

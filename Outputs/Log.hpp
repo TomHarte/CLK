@@ -24,12 +24,17 @@ enum class Source {
 	AmigaChipset,
 	AmigaBlitter,
 	AppleIISCSICard,
+	Archimedes,
+	ARMIOC,
+	ARMMEMC,
+	ARMVIDC,
 	AtariST,
 	AtariSTDMAController,
 	CommodoreStaticAnalyser,
 	DirectAccessDevice,
 	Enterprise,
 	i8272,
+	I2C,
 	IntelligentKeyboard,
 	IWM,
 	M50740,
@@ -72,6 +77,7 @@ constexpr bool is_enabled(Source source) {
 		case Source::NCR5380:
 		case Source::SCC:
 		case Source::SCSI:
+		case Source::I2C:
 			return false;
 	}
 }
@@ -87,12 +93,17 @@ constexpr const char *prefix(Source source) {
 		case Source::AmigaCopper:				return "Copper";
 		case Source::AmigaDisk:					return "Disk";
 		case Source::AppleIISCSICard:			return "SCSI card";
+		case Source::Archimedes:				return "Archimedes";
+		case Source::ARMIOC:					return "IOC";
+		case Source::ARMMEMC:					return "MEMC";
+		case Source::ARMVIDC:					return "VIDC";
 		case Source::AtariST:					return "AtariST";
 		case Source::AtariSTDMAController:		return "DMA";
 		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
 		case Source::DirectAccessDevice:		return "Direct Access Device";
 		case Source::Enterprise:				return "Enterprise";
 		case Source::i8272:						return "i8272";
+		case Source::I2C:						return "I2C";
 		case Source::IntelligentKeyboard:		return "IKYB";
 		case Source::IWM:						return "IWM";
 		case Source::M50740:					return "M50740";

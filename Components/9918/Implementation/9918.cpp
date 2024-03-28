@@ -163,7 +163,7 @@ void Base<personality>::posit_sprite(int sprite_number, int sprite_position, uin
 	}
 
 	const auto sprite_row = uint8_t(screen_row - sprite_position);
-	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
+	if(sprite_row >= sprite_height_) return;	// The less-than-zero case is dealt with by the cast to unsigned.
 
 	if(fetch_sprite_buffer_->active_sprite_slot == mode_timing_.maximum_visible_sprites) {
 		status_ |= StatusSpriteOverflow;

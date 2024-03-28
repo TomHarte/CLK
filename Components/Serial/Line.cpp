@@ -161,9 +161,7 @@ void Line<include_clock>::update_delegate(bool level) {
 		// Forward as many bits as occur.
 		Storage::Time time_left(cycles_to_forward, int(clock_rate_.as_integral()));
 		const int bit = level ? 1 : 0;
-		int bits = 0;
 		while(time_left >= time_left_in_bit_) {
-			++bits;
 			if(!read_delegate_->serial_line_did_produce_bit(this, bit)) {
 				read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
 				if(bit) return;

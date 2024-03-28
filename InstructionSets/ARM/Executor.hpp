@@ -15,11 +15,30 @@
 
 namespace InstructionSet::ARM {
 
+/// Maps from a semantic ARM read of type @c SourceT to either the 8- or 32-bit value observed
+/// by watching the low 8 bits or all 32 bits of the data bus.
+template <typename DestinationT, typename SourceT>
+DestinationT read_bus(SourceT value) {
+	if constexpr (std::is_same_v<DestinationT, SourceT>) {
+		return value;
+	}
+	if constexpr (std::is_same_v<DestinationT, uint8_t>) {
+		return uint8_t(value);
+	} else {
+		return value | (value << 8) | (value << 16) | (value << 24);
+	}
+}
+
 /// A class compatible with the @c OperationMapper definition of a scheduler which applies all actions
 /// immediately, updating either a set of @c Registers or using the templated @c MemoryT to access
 /// memory. No hooks are currently provided for applying realistic timing.
 template <Model model, typename MemoryT>
 struct Executor {
+	template <typename... Args>
+	Executor(Args &&...args) : bus(std::forward<Args>(args)...) {}
+
+	/// @returns @c true if @c condition implies an appropriate perform call should be made for this instruction,
+	/// @c false otherwise.
 	bool should_schedule(Condition condition) {
 		return registers_.test(condition);
 	}
@@ -51,6 +70,10 @@ struct Executor {
 					fields.shift_register() == 15 ?
 						registers_.pc(4) :
 						registers_[fields.shift_register()];
+
+				// "The amount by which the register should be shifted may be contained in
+				// ... **the bottom byte** of another register".
+				shift_amount &= 0xff;
 
 				// A register shift amount of 0 has a different meaning than an in-instruction
 				// shift amount of 0.
@@ -98,13 +121,38 @@ struct Executor {
 			operand2 = fields.immediate();
 			if(fields.rotate()) {
 				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
+			} else {
+				// This is possibly clarified by later data sheets; take carry as if a rotate by 32
+				// had occurred.
+				if constexpr (shift_sets_carry) {
+					rotate_carry = operand2 & 0x8000'0000;
+				}
 			}
 		} else {
 			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
 		}
 
-		// Perform the data processing operation.
 		uint32_t conditions = 0;
+		const auto sub = [&](uint32_t lhs, uint32_t rhs) {
+			conditions = lhs - rhs;
+
+			if constexpr (flags.operation() == DataProcessingOperation::SBC || flags.operation() == DataProcessingOperation::RSC) {
+				conditions += registers_.c() - 1;
+			}
+
+			if constexpr (flags.set_condition_codes()) {
+				// "For a subtraction, including the comparison instruction CMP, C is set to 0 if
+				// the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise."
+				registers_.set_c(!Numeric::carried_out<false, 31>(lhs, rhs, conditions));
+				registers_.set_v(Numeric::overflow<false>(lhs, rhs, conditions));
+			}
+
+			if constexpr (!is_comparison(flags.operation())) {
+				destination = conditions;
+			}
+		};
+
+		// Perform the data processing operation.
 		switch(flags.operation()) {
 			// Logical operations.
 			case DataProcessingOperation::AND:	conditions = destination = operand1 & operand2;		break;
@@ -140,56 +188,25 @@ struct Executor {
 			case DataProcessingOperation::SUB:
 			case DataProcessingOperation::SBC:
 			case DataProcessingOperation::CMP:
-				conditions = operand1 - operand2;
-
-				if constexpr (flags.operation() == DataProcessingOperation::SBC) {
-					conditions -= registers_.c();
-				}
-
-				if constexpr (flags.set_condition_codes()) {
-					registers_.set_c(Numeric::carried_out<false, 31>(operand1, operand2, conditions));
-					registers_.set_v(Numeric::overflow<false>(operand1, operand2, conditions));
-				}
-
-				if constexpr (!is_comparison(flags.operation())) {
-					destination = conditions;
-				}
+				sub(operand1, operand2);
 			break;
 
 			case DataProcessingOperation::RSB:
 			case DataProcessingOperation::RSC:
-				conditions = operand2 - operand1;
-
-				if constexpr (flags.operation() == DataProcessingOperation::RSC) {
-					conditions -= registers_.c();
-				}
-
-				if constexpr (flags.set_condition_codes()) {
-					registers_.set_c(Numeric::carried_out<false, 31>(operand2, operand1, conditions));
-					registers_.set_v(Numeric::overflow<false>(operand2, operand1, conditions));
-				}
-
-				destination = conditions;
+				sub(operand2, operand1);
 			break;
 		}
 
+		if(!is_comparison(flags.operation()) && fields.destination() == 15) {
+			registers_.set_pc(pc_proxy);
+		}
 		if constexpr (flags.set_condition_codes()) {
-			// "When Rd is a register other than R15, the condition code flags in the PSR may be
-			// updated from the ALU flags as described above. When Rd is R15 and the S flag in
-			// the instruction is set, the PSR is overwritten by the corresponding ALU result.
-			//
-			// ... if the instruction is of a type which does not normally produce a result
-			// (CMP, CMN, TST, TEQ) but Rd is R15 and the S bit is set, the result will be used in
-			// this case to update those PSR flags which are not protected by virtue of the
-			// processor mode."
-
+			// "When Rd is R15 and the S flag in the instruction is set, the PSR is overwritten by the
+			// corresponding bits in the ALU result... [even] if the instruction is of a type that does not
+			// normally produce a result (CMP, CMN, TST, TEQ) ... the result will be used to update those
+			// PSR flags which are not protected by virtue of the processor mode"
 			if(fields.destination() == 15) {
-				if constexpr (is_comparison(flags.operation())) {
-					registers_.set_status(pc_proxy);
-				} else {
-					registers_.set_status(pc_proxy);
-					registers_.set_pc(pc_proxy);
-				}
+				registers_.set_status(conditions);
 			} else {
 				// Set N and Z in a unified way.
 				registers_.set_nz(conditions);
@@ -198,11 +215,6 @@ struct Executor {
 				if constexpr (shift_sets_carry) {
 					registers_.set_c(rotate_carry);
 				}
-			}
-		} else {
-			// "If the S flag is clear when Rd is R15, only the 24 PC bits of R15 will be written."
-			if(fields.destination() == 15) {
-				registers_.set_pc(pc_proxy);
 			}
 		}
 	}
@@ -238,7 +250,7 @@ struct Executor {
 		constexpr BranchFlags flags(f);
 
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
-			registers_[14] = registers_.pc(0);
+			registers_[14] = registers_.pc_status(0);
 		}
 		registers_.set_pc(registers_.pc(4) + branch.offset());
 	}
@@ -278,12 +290,15 @@ struct Executor {
 		}
 
 		// Check for an address exception.
-		if(address >= (1 << 26)) {
+		if(is_invalid_address(address)) {
 			registers_.exception<Registers::Exception::Address>();
 			return;
 		}
 
-		constexpr bool trans = !flags.pre_index() && flags.write_back_address();
+		// "... post-indexed data transfers always write back the modified base. The only use of the [write-back address]
+		// bit in a post-indexed data transfer is in non-user mode code, where setting the W bit forces the /TRANS pin
+		// to go LOW for the transfer"
+		const bool trans = (registers_.mode() == Mode::User) || (!flags.pre_index() && flags.write_back_address());
 		if constexpr (flags.operation() == SingleDataTransferFlags::Operation::STR) {
 			const uint32_t source =
 				transfer.source() == 15 ?
@@ -313,13 +328,18 @@ struct Executor {
 			} else {
 				did_read = bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 
-				// "An address offset from a word boundary will cause the data to be rotated into the
-				// register so that the addressed byte occuplies bits 0 to 7."
-				switch(address & 3) {
-					case 0:	break;
-					case 1:	value = (value >> 8) | (value << 24);	break;
-					case 2:	value = (value >> 16) | (value << 16);	break;
-					case 3:	value = (value >> 24) | (value << 8);	break;
+				if constexpr (model != Model::ARMv2with32bitAddressing) {
+					// "An address offset from a word boundary will cause the data to be rotated into the
+					// register so that the addressed byte occuplies bits 0 to 7."
+					//
+					// (though the test set that inspired 'ARMv2with32bitAddressing' appears not to honour this;
+					// test below assumes it went away by the version of ARM that set supports)
+					switch(address & 3) {
+						case 0:	break;
+						case 1:	value = (value >> 8) | (value << 24);	break;
+						case 2:	value = (value >> 16) | (value << 16);	break;
+						case 3:	value = (value >> 24) | (value << 8);	break;
+					}
 				}
 			}
 
@@ -337,10 +357,13 @@ struct Executor {
 
 		// If either postindexing or else with writeback, update base.
 		if constexpr (!flags.pre_index() || flags.write_back_address()) {
-			if(transfer.base() == 15) {
-				registers_.set_pc(offsetted_address);
-			} else {
-				registers_[transfer.base()] = offsetted_address;
+			// Empirically: I think writeback occurs before the access, so shouldn't overwrite on a load.
+			if(flags.operation() == SingleDataTransferFlags::Operation::STR || transfer.base() != transfer.destination()) {
+				if(transfer.base() == 15) {
+					registers_.set_pc(offsetted_address);
+				} else {
+					registers_[transfer.base()] = offsetted_address;
+				}
 			}
 		}
 	}
@@ -367,12 +390,18 @@ struct Executor {
 		// the base.
 
 		// TODO: use std::popcount when adopting C++20.
-		uint32_t total = ((list & 0xa) >> 1) + (list & 0x5);
-		total = ((list & 0xc) >> 2) + (list & 0x3);
+		uint32_t total = ((list & 0xaaaa) >> 1) + (list & 0x5555);
+		total = ((total & 0xcccc) >> 2) + (total & 0x3333);
+		total = ((total & 0xf0f0) >> 4) + (total & 0x0f0f);
+		total = ((total & 0xff00) >> 8) + (total & 0x00ff);
 
 		uint32_t final_address;
 		if constexpr (!flags.add_offset()) {
-			final_address = address + total * 4;
+			// Decrementing mode; final_address is the value the base register should
+			// have after this operation if writeback is enabled, so it's below
+			// the original address. But also writes always occur from lowest address
+			// to highest, so push the current address to the bottom.
+			final_address = address - total * 4;
 			address = final_address;
 		} else {
 			final_address = address + total * 4;
@@ -390,21 +419,21 @@ struct Executor {
 		// Check whether access is forced ot the user bank; if so then switch
 		// to it now. Also keep track of the original mode to switch back at
 		// the end.
-		const Mode original_mode = registers_.mode();
+		Mode original_mode = registers_.mode();
 		const bool adopt_user_mode =
-			(
-				flags.operation() == BlockDataTransferFlags::Operation::STM &&
-				flags.load_psr()
-			) ||
-			(
-				flags.operation() == BlockDataTransferFlags::Operation::LDM &&
-				!(list & (1 << 15))
+			flags.load_psr() && (
+				flags.operation() == BlockDataTransferFlags::Operation::STM ||
+				(
+					flags.operation() == BlockDataTransferFlags::Operation::LDM &&
+					!(list & (1 << 15))
+				)
 			);
 		if(adopt_user_mode) {
 			registers_.set_mode(Mode::User);
 		}
 
 		bool address_error = false;
+		const bool trans = registers_.mode() == Mode::User;
 
 		// Keep track of whether all accesses succeeded in order potentially to
 		// throw a data abort later.
@@ -422,7 +451,7 @@ struct Executor {
 					// "If the abort occurs during a store multiple instruction, ARM takes little action until
 					// the instruction completes, whereupon it enters the data abort trap. The memory manager is
 					// responsible for preventing erroneous writes to the memory."
-					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), trans);
 				}
 			} else {
 				// When ARM detects a data abort during a load multiple instruction, it modifies the operation of
@@ -433,7 +462,7 @@ struct Executor {
 				//	*	The base register is restored, to its modified value if write-back was requested.
 				if(accesses_succeeded) {
 					const uint32_t replaced = value;
-					accesses_succeeded &= bus.template read<uint32_t>(address, value, registers_.mode(), false);
+					accesses_succeeded &= bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 
 					// Update the last-modified slot if the access succeeded; otherwise
 					// undo the last modification if there was one, and undo the base
@@ -458,7 +487,7 @@ struct Executor {
 				} else {
 					// Implicitly: do the access anyway, but don't store the value. I think.
 					uint32_t throwaway;
-					bus.template read<uint32_t>(address, throwaway, registers_.mode(), false);
+					bus.template read<uint32_t>(address, throwaway, registers_.mode(), trans);
 				}
 			}
 
@@ -471,10 +500,10 @@ struct Executor {
 		};
 
 		// Check for an address exception.
-		address_error = address >= (1 << 26);
+		address_error = is_invalid_address(address);
 
 		// Write out registers 1 to 14.
-		for(int c = 0; c < 15; c++) {
+		for(uint32_t c = 0; c < 15; c++) {
 			if(list & (1 << c)) {
 				access(registers_[c]);
 
@@ -508,6 +537,8 @@ struct Executor {
 				registers_.set_pc(value);
 				if constexpr (flags.load_psr()) {
 					registers_.set_status(value);
+					original_mode = registers_.mode();	// Avoid switching back to the wrong mode
+														// in case user registers were exposed.
 				}
 			}
 		}
@@ -549,6 +580,17 @@ struct Executor {
 		return registers_;
 	}
 
+	// Included primarily for testing; my full opinion on this is still
+	// incompletely-formed.
+	Registers &registers() {
+		return registers_;
+	}
+
+	/// Indicates a prefetch abort exception.
+	void prefetch_abort() {
+		registers_.exception<Registers::Exception::PrefetchAbort>();
+	}
+
 	/// Sets the expected address of the instruction after whichever  is about to be executed.
 	/// So it's PC+4 compared to most other systems.
 	void set_pc(uint32_t pc) {
@@ -566,6 +608,13 @@ struct Executor {
 
 private:
 	Registers registers_;
+
+	static bool is_invalid_address(uint32_t address) {
+		if constexpr (model == Model::ARMv2with32bitAddressing) {
+			return false;
+		}
+		return address >= 1 << 26;
+	}
 };
 
 /// Executes the instruction @c instruction which should have been fetched from @c executor.pc(),

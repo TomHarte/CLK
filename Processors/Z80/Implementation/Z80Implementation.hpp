@@ -947,7 +947,6 @@ template <	class T,
 	target.instructions.resize(256, nullptr);
 
 	// Copy in all programs, recording where they go.
-	std::size_t destination = 0;
 	for(std::size_t c = 0; c < 256; c++) {
 		operation_indices.push_back(target.all_operations.size());
 		for(std::size_t t = 0; t < lengths[c];) {
@@ -974,7 +973,6 @@ template <	class T,
 				}
 			}
 			target.all_operations.emplace_back(table[c][t]);
-			destination++;
 			t++;
 		}
 	}

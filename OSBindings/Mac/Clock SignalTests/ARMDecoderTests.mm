@@ -8,8 +8,14 @@
 
 #import <XCTest/XCTest.h>
 
+#include "../../../InstructionSets/ARM/Disassembler.hpp"
 #include "../../../InstructionSets/ARM/Executor.hpp"
+
 #include "CSROMFetcher.hpp"
+#include "NSData+dataWithContentsOfGZippedFile.h"
+
+#include <map>
+#include <sstream>
 
 using namespace InstructionSet::ARM;
 
@@ -56,6 +62,63 @@ struct Memory {
 	private:
 		bool has_moved_rom_ = false;
 		std::array<uint8_t, 4*1024*1024> ram_{};
+};
+
+struct MemoryLedger {
+	template <typename IntT>
+	bool write(uint32_t address, IntT source, Mode, bool) {
+		const auto is_faulty = [&](uint32_t address) -> bool {
+			return
+				write_pointer == writes.size() ||
+				writes[write_pointer].size != sizeof(IntT) ||
+				writes[write_pointer].address != address ||
+				writes[write_pointer].value != source;
+		};
+
+		// The test set sometimes worries about write alignment, sometimes not...
+		if(is_faulty(address) && is_faulty(address & static_cast<uint32_t>(~3))) {
+			return false;
+		}
+		++write_pointer;
+		return true;
+	}
+
+	template <typename IntT>
+	bool read(uint32_t address, IntT &source, Mode, bool) {
+		const auto is_faulty = [&](uint32_t address) -> bool {
+			return
+				read_pointer == reads.size() ||
+				reads[read_pointer].size != sizeof(IntT) ||
+				reads[read_pointer].address != address;
+		};
+
+		// As per writes; the test set sometimes forces alignment on the record, sometimes not...
+		if(is_faulty(address) && is_faulty(address & static_cast<uint32_t>(~3))) {
+			return false;
+		}
+		source = reads[read_pointer].value;
+		++read_pointer;
+		return true;
+	}
+
+	struct Access {
+		size_t size;
+		uint32_t address;
+		uint32_t value;
+	};
+
+	template <typename IntT>
+	void add_access(bool is_read, uint32_t address, IntT value) {
+		auto &read = is_read ? reads.emplace_back() : writes.emplace_back();
+		read.address = address;
+		read.value = value;
+		read.size = sizeof(IntT);
+	}
+
+	std::vector<Access> reads;
+	std::vector<Access> writes;
+	size_t read_pointer = 0;
+	size_t write_pointer = 0;
 };
 
 }
@@ -210,26 +273,349 @@ struct Memory {
 	XCTAssertEqual(carry, 0);
 }
 
+- (void)testRegisterModes {
+	Registers r;
+
+	// Set all user mode registers to their indices.
+	r.set_mode(Mode::User);
+	for(int c = 0; c < 15; c++) {
+		r[c] = c;
+	}
+
+	// Set FIQ registers.
+	r.set_mode(Mode::FIQ);
+	for(int c = 8; c < 15; c++) {
+		r[c] = c | 0x100;
+	}
+
+	// Set IRQ registers.
+	r.set_mode(Mode::IRQ);
+	for(int c = 13; c < 15; c++) {
+		r[c] = c | 0x200;
+	}
+
+	// Set supervisor registers.
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::User);
+	r.set_mode(Mode::Supervisor);
+	for(int c = 13; c < 15; c++) {
+		r[c] = c | 0x300;
+	}
+
+	// Check all results.
+	r.set_mode(Mode::User);
+	r.set_mode(Mode::FIQ);
+	for(int c = 0; c < 8; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+	for(int c = 8; c < 15; c++) {
+		XCTAssertEqual(r[c], c | 0x100);
+	}
+
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::IRQ);
+	r.set_mode(Mode::User);
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::Supervisor);
+	for(int c = 0; c < 13; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+	for(int c = 13; c < 15; c++) {
+		XCTAssertEqual(r[c], c | 0x300);
+	}
+
+	r.set_mode(Mode::FIQ);
+	r.set_mode(Mode::User);
+	for(int c = 0; c < 15; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+
+	r.set_mode(Mode::Supervisor);
+	r.set_mode(Mode::IRQ);
+	for(int c = 0; c < 13; c++) {
+		XCTAssertEqual(r[c], c);
+	}
+	for(int c = 13; c < 15; c++) {
+		XCTAssertEqual(r[c], c | 0x200);
+	}
+}
+
+- (void)testFlags {
+	Registers regs;
+
+	for(int c = 0; c < 256; c++) {
+		regs.set_mode(Mode::Supervisor);
+
+		const uint32_t status = ((c & 0xfc) << 26) | (c & 0x03);
+		regs.set_status(status);
+		XCTAssertEqual(status, regs.status());
+	}
+}
+
+- (void)testMessy {
+	NSData *const tests =
+		[NSData dataWithContentsOfGZippedFile:
+			[[NSBundle bundleForClass:[self class]]
+				pathForResource:@"test"
+				ofType:@"txt.gz"
+				inDirectory:@"Messy ARM"]
+		];
+	const std::string text((char *)tests.bytes);
+	std::istringstream input(text);
+
+	input >> std::hex;
+
+	static constexpr auto model = Model::ARMv2with32bitAddressing;
+	using Exec = Executor<model, MemoryLedger>;
+	std::unique_ptr<Exec> test;
+
+	struct FailureRecord {
+		int count = 0;
+		int first = 0;
+		NSString *sample;
+	};
+	std::map<uint32_t, FailureRecord> failures;
+
+	uint32_t opcode = 0;
+	bool ignore_test = false;
+	uint32_t masks[16];
+	uint32_t test_pc_offset = 8;
+
+	int test_count = 0;
+	while(!input.eof()) {
+		std::string label;
+		input >> label;
+
+		if(label == "**") {
+			memset(masks, 0xff, sizeof(masks));
+			ignore_test = false;
+			test_pc_offset = 8;
+
+			input >> opcode;
+			test_count = 0;
+
+//			if(opcode == 0x01a0f000) {
+//				printf("");
+//			}
+
+			InstructionSet::ARM::Disassembler<model> disassembler;
+			InstructionSet::ARM::dispatch<model>(opcode, disassembler);
+			static constexpr uint32_t pc_address_mask = 0x03ff'fffc;
+
+			const auto instruction = disassembler.last();
+			switch(instruction.operation) {
+				case Instruction::Operation::BL:
+					// Tests don't multiplex flags into PC for storage to R14.
+					masks[14] = pc_address_mask;
+				break;
+
+				case Instruction::Operation::SWI:
+					// Tested CPU either doesn't switch into supervisor mode, or
+					// is sufficiently accurate in its pipeline that register
+					// changes haven't happened yet.
+					ignore_test = true;
+				break;
+
+				case Instruction::Operation::MOV:
+					// MOV from PC will pick up the address only in the test cases.
+					if(
+						instruction.operand2.type == Operand::Type::Register &&
+						instruction.operand2.value == 15
+					) {
+						masks[instruction.destination.value] = pc_address_mask;
+					}
+
+					// MOV to PC; there are both pipeline capture errors in the test
+					// set and its ARM won't change privilege level on a write to R15.
+					if(instruction.destination.value == 15) {
+						ignore_test = true;
+					}
+				break;
+
+				case Instruction::Operation::TEQ:
+				case Instruction::Operation::ORR:
+				case Instruction::Operation::BIC:
+					// Routinely used to change privilege level on an ARM2 but
+					// doesn't seem to have that effect on the ARM used to generate
+					// the test set.
+					if(instruction.destination.value == 15) {
+						ignore_test = true;
+					}
+				break;
+
+				default: break;
+			}
+
+			continue;
+		}
+
+		if(label == "Before:" || label == "After:") {
+			// Read register state.
+			uint32_t regs[16];
+			for(int c = 0; c < 16; c++) {
+				input >> regs[c];
+			}
+
+			switch(opcode) {
+				case 0xe090e00f:
+					// adds lr, r0, pc
+					// The test set comes from an ARM that doesn't multiplex flags
+					// and the PC.
+					masks[15] = 0;
+					regs[15] &= 0x03ff'fffc;
+				break;
+
+				case 0xee100f10:
+				case 0xee105f10:
+				case 0xee502110:
+					// MRCs; tests seem possibly to have a coprocessor?
+					ignore_test = true;
+				break;
+
+				// TODO:
+				//	* adds to R15: e090f00e, e090f00f; possibly to do with non-multiplexing original?
+				//	* movs to PC: e1b0f00e; as above?
+
+				default: break;
+			}
+
+			if(!test) test = std::make_unique<Exec>();
+			auto &registers = test->registers();
+			if(label == "Before:") {
+				// This is the start of a new test.
+
+				// Establish implicit register values.
+				for(uint32_t c = 0; c < 15; c++) {
+					registers.set_mode(Mode::FIQ);
+					registers[c] = 0x200 | c;
+
+					registers.set_mode(Mode::Supervisor);
+					registers[c] = 0x300 | c;
+
+					registers.set_mode(Mode::IRQ);
+					registers[c] = 0x400 | c;
+
+					registers.set_mode(Mode::User);
+					registers[c] = 0x100 | c;
+				}
+
+				// Apply provided state.
+				registers.set_mode(Mode::Supervisor);	// To make sure the actual mode is applied.
+				registers.set_pc(regs[15] - 8);
+				registers.set_status(regs[15]);
+				for(uint32_t c = 0; c < 15; c++) {
+					registers[c] = regs[c];
+				}
+			} else {
+				// Execute test and compare.
+				++test_count;
+				if(ignore_test) {
+					continue;
+				}
+
+				if(opcode == 0xe5abb010 && test_count == 1) {
+					printf("");
+				}
+
+				execute(opcode, *test);
+				NSMutableString *error = nil;
+
+				for(uint32_t c = 0; c < 15; c++) {
+					if((regs[c] & masks[c]) != (registers[c] & masks[c])) {
+						if(!error) error = [[NSMutableString alloc] init]; else [error appendString:@"; "];
+						[error appendFormat:@"R%d %08x v %08x", c, regs[c], registers[c]];
+					}
+				}
+				if((regs[15] & masks[15]) != (registers.pc_status(test_pc_offset) & masks[15])) {
+					if(!error) error = [[NSMutableString alloc] init]; else [error appendString:@"; "];
+					[error appendFormat:@"; PC/PSR %08x/%08x v %08x/%08x",
+						regs[15] & 0x03ff'fffc, regs[15] & ~0x03ff'fffc,
+						registers.pc(test_pc_offset), registers.status()];
+				}
+
+				if(error) {
+					++failures[opcode].count;
+					if(failures[opcode].count == 1) {
+						failures[opcode].first = test_count;
+						failures[opcode].sample = error;
+					}
+				}
+
+				test.reset();
+			}
+			continue;
+		}
+
+		// TODO: supply information below to ledger, and then use and test it.
+
+		uint32_t address;
+		uint32_t value;
+		input >> address >> value;
+
+		if(label == "r.b") {
+			// Capture a byte read for provision.
+			test->bus.add_access<uint8_t>(true, address, value);
+			continue;
+		}
+
+		if(label == "r.w") {
+			// Capture a word read for provision.
+			test->bus.add_access<uint32_t>(true, address, value);
+			continue;
+		}
+
+		if(label == "w.b") {
+			// Capture a byte write for comparison.
+			test->bus.add_access<uint8_t>(false, address, value);
+			continue;
+		}
+
+		if(label == "w.w") {
+			// Capture a word write for comparison.
+			test->bus.add_access<uint32_t>(false, address, value);
+			continue;
+		}
+	}
+
+	XCTAssertTrue(failures.empty());
+
+	if(!failures.empty()) {
+		NSLog(@"Failed %zu instructions; examples below", failures.size());
+		for(const auto &pair: failures) {
+			NSLog(@"%08x, %d total, test %d: %@", pair.first, pair.second.count, pair.second.first, pair.second.sample);
+		}
+	}
+
+
+	for(const auto &pair: failures) {
+		printf("%08x ", pair.first);
+	}
+}
+
 // TODO: turn the below into a trace-driven test case.
-//- (void)testROM319 {
-//	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
-//	ROM::Request request(rom_name);
-//	const auto roms = CSROMFetcher()(request);
-//
-//	auto executor = std::make_unique<Executor<Model::ARMv2, Memory>>();
-//	executor->bus.rom = roms.find(rom_name)->second;
-//
-//	for(int c = 0; c < 1000; c++) {
-//		uint32_t instruction;
-//		executor->bus.read(executor->pc(), instruction, executor->registers().mode(), false);
-//
-//		printf("%08x: %08x [", executor->pc(), instruction);
-//		for(int c = 0; c < 15; c++) {
-//			printf("r%d:%08x ", c, executor->registers()[c]);
-//		}
-//		printf("psr:%08x]\n", executor->registers().status());
-//		execute<Model::ARMv2>(instruction, *executor);
-//	}
-//}
+- (void)testROM319 {
+	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
+	ROM::Request request(rom_name);
+	const auto roms = CSROMFetcher()(request);
+
+	auto executor = std::make_unique<Executor<Model::ARMv2, Memory>>();
+	executor->bus.rom = roms.find(rom_name)->second;
+
+	for(int c = 0; c < 1000; c++) {
+		uint32_t instruction;
+		executor->bus.read(executor->pc(), instruction, executor->registers().mode(), false);
+
+		if(instruction == 0xe33ff343) {
+			printf("");
+		}
+
+		printf("%08x: %08x [", executor->pc(), instruction);
+		for(int c = 0; c < 15; c++) {
+			printf("r%d:%08x ", c, executor->registers()[c]);
+		}
+		printf("psr:%08x]\n", executor->registers().status());
+		execute<Model::ARMv2>(instruction, *executor);
+	}
+}
 
 @end
