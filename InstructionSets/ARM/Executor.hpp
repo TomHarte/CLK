@@ -295,6 +295,18 @@ struct Executor {
 			return;
 		}
 
+		// Decide whether to write back — when either postindexing or else write back is requested.
+		constexpr bool should_write_back = !flags.pre_index() || flags.write_back_address();
+
+		// STR: update prior to write.
+//		if constexpr (should_write_back && flags.operation() == SingleDataTransferFlags::Operation::STR) {
+//			if(transfer.base() == 15) {
+//				registers_.set_pc(offsetted_address);
+//			} else {
+//				registers_[transfer.base()] = offsetted_address;
+//			}
+//		}
+
 		// "... post-indexed data transfers always write back the modified base. The only use of the [write-back address]
 		// bit in a post-indexed data transfer is in non-user mode code, where setting the W bit forces the /TRANS pin
 		// to go LOW for the transfer"
@@ -355,8 +367,11 @@ struct Executor {
 			}
 		}
 
-		// If either postindexing or else with writeback, update base.
-		if constexpr (!flags.pre_index() || flags.write_back_address()) {
+		// LDR: write back after load, only if original wasn't overwritten.
+//		if constexpr (should_write_back && flags.operation() == SingleDataTransferFlags::Operation::LDR) {
+//			if(transfer.base() != transfer.destination()) {
+
+		if constexpr (should_write_back) {
 			// Empirically: I think writeback occurs before the access, so shouldn't overwrite on a load.
 			if(flags.operation() == SingleDataTransferFlags::Operation::STR || transfer.base() != transfer.destination()) {
 				if(transfer.base() == 15) {

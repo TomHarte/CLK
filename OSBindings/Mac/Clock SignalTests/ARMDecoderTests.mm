@@ -433,14 +433,29 @@ struct MemoryLedger {
 				break;
 
 				case Instruction::Operation::TEQ:
+				case Instruction::Operation::TST:
 				case Instruction::Operation::ORR:
 				case Instruction::Operation::BIC:
+				case Instruction::Operation::SUB:
+				case Instruction::Operation::ADD:
 					// Routinely used to change privilege level on an ARM2 but
 					// doesn't seem to have that effect on the ARM used to generate
 					// the test set.
-					if(instruction.destination.value == 15) {
+					if(instruction.destination.value == 15 || instruction.operand2.value == 15) {
 						ignore_test = true;
 					}
+				break;
+
+				case Instruction::Operation::STM:
+				case Instruction::Operation::LDM:
+					// If the PC is involved, just skip the test; PC/PSR differences abound.
+					ignore_test = instruction.operand1.value & (1 << 15);
+				break;
+
+				case Instruction::Operation::MCR:
+				case Instruction::Operation::MRC:
+					// The test case doesn't seem to throw on a missing coprocessor.
+					ignore_test = true;
 				break;
 
 				default: break;
@@ -454,29 +469,6 @@ struct MemoryLedger {
 			uint32_t regs[16];
 			for(int c = 0; c < 16; c++) {
 				input >> regs[c];
-			}
-
-			switch(opcode) {
-				case 0xe090e00f:
-					// adds lr, r0, pc
-					// The test set comes from an ARM that doesn't multiplex flags
-					// and the PC.
-					masks[15] = 0;
-					regs[15] &= 0x03ff'fffc;
-				break;
-
-				case 0xee100f10:
-				case 0xee105f10:
-				case 0xee502110:
-					// MRCs; tests seem possibly to have a coprocessor?
-					ignore_test = true;
-				break;
-
-				// TODO:
-				//	* adds to R15: e090f00e, e090f00f; possibly to do with non-multiplexing original?
-				//	* movs to PC: e1b0f00e; as above?
-
-				default: break;
 			}
 
 			if(!test) test = std::make_unique<Exec>();

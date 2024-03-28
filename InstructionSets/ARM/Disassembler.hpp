@@ -28,6 +28,22 @@ struct Operand {
 		switch(type) {
 			default:	return "";
 			case Type::Register:	return std::string("r") + std::to_string(value);
+			case Type::RegisterList: {
+				std::stringstream stream;
+				stream << '[';
+				bool first = true;
+				for(int c = 0; c < 16; c++) {
+					if(value & (1 << c)) {
+						if(!first) stream << ", ";
+						first = false;
+
+						stream << 'r' << c;
+					}
+				}
+				stream << ']';
+
+				return stream.str();
+			}
 		}
 	}
 };
@@ -43,16 +59,20 @@ struct Instruction {
 		ORR,	MOV,	BIC,	MVN,
 
 		LDR,	STR,
+		LDM,	STM,
 
 		B, BL,
 
 		SWI,
+
+		MRC, MCR,
 
 		Undefined,
 	} operation = Operation::Undefined;
 
 	Operand destination, operand1, operand2;
 	bool sets_flags = false;
+	bool is_byte = false;
 
 	std::string to_string(uint32_t address) const {
 		std::ostringstream result;
@@ -89,6 +109,11 @@ struct Instruction {
 
 			case Operation::LDR:	result << "ldr";	break;
 			case Operation::STR:	result << "str";	break;
+			case Operation::LDM:	result << "ldm";	break;
+			case Operation::STM:	result << "stm";	break;
+
+			case Operation::MRC:	result << "mrc";	break;
+			case Operation::MCR:	result << "mcr";	break;
 		}
 
 		// Append the sets-flags modifier if applicable.
@@ -118,10 +143,14 @@ struct Instruction {
 			result << " 0x" << std::hex << ((address + 8 + operand1.value) & 0x3fffffc);
 		}
 
-		if(operation == Operation::LDR || operation == Operation::STR) {
+		if(
+			operation == Operation::LDR || operation == Operation::STR ||
+			operation == Operation::LDM || operation == Operation::STM
+		) {
+			if(is_byte) result << 'b';
 			result << ' ' << static_cast<std::string>(destination);
 			result << ", [" << static_cast<std::string>(operand1) << "]";
-			// TODO: learn how ARM shifts/etc are normally represented.
+			// TODO: learn how ARM shifts/etc are normally presented.
 		}
 
 		return result.str();
@@ -197,7 +226,18 @@ struct Disassembler {
 		instruction_.operand1.type = Operand::Type::Register;
 		instruction_.operand1.value = fields.base();
 	}
-	template <Flags> void perform(BlockDataTransfer) {}
+	template <Flags f> void perform(BlockDataTransfer fields) {
+		constexpr BlockDataTransferFlags flags(f);
+		instruction_.operation =
+			(flags.operation() == BlockDataTransferFlags::Operation::STM) ?
+				Instruction::Operation::STM : Instruction::Operation::LDM;
+
+		instruction_.destination.type = Operand::Type::Register;
+		instruction_.destination.value = fields.base();
+
+		instruction_.operand1.type = Operand::Type::RegisterList;
+		instruction_.operand1.value = fields.register_list();
+	}
 	template <Flags f> void perform(Branch fields) {
 		constexpr BranchFlags flags(f);
 		instruction_.operation =
@@ -206,7 +246,12 @@ struct Disassembler {
 		instruction_.operand1.type = Operand::Type::Immediate;
 		instruction_.operand1.value = fields.offset();
 	}
-	template <Flags> void perform(CoprocessorRegisterTransfer) {}
+	template <Flags f> void perform(CoprocessorRegisterTransfer) {
+		constexpr CoprocessorRegisterTransferFlags flags(f);
+		instruction_.operation =
+			(flags.operation() == CoprocessorRegisterTransferFlags::Operation::MRC) ?
+				Instruction::Operation::MRC : Instruction::Operation::MCR;
+	}
 	template <Flags> void perform(CoprocessorDataOperation) {}
 	template <Flags> void perform(CoprocessorDataTransfer) {}
 
