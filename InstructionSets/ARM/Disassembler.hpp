@@ -145,11 +145,43 @@ struct Disassembler {
 	template <Flags f> void perform(DataProcessing fields) {
 		constexpr DataProcessingFlags flags(f);
 
-		//
 		instruction_.operand1.type = Operand::Type::Register;
 		instruction_.operand1.value = fields.operand1();
 
+		instruction_.destination.type = Operand::Type::Register;
+		instruction_.destination.value = fields.destination();
+
+		if(flags.operand2_is_immediate()) {
+			instruction_.operand2.type = Operand::Type::Immediate;
+//			instruction_.operand2.value = fields.immediate(), fields.rotate();
+			// TODO: decode immediate.
+
+		} else {
+			instruction_.operand2.type = Operand::Type::Register;
+			instruction_.operand2.value = fields.operand2();
+			// TODO: capture shift_type(), etc.
+		}
+
 		instruction_.sets_flags = flags.set_condition_codes();
+
+		switch(flags.operation()) {
+			case DataProcessingOperation::AND:	instruction_.operation = Instruction::Operation::AND;	break;
+			case DataProcessingOperation::EOR:	instruction_.operation = Instruction::Operation::EOR;	break;
+			case DataProcessingOperation::ORR:	instruction_.operation = Instruction::Operation::ORR;	break;
+			case DataProcessingOperation::BIC:	instruction_.operation = Instruction::Operation::BIC;	break;
+			case DataProcessingOperation::MOV:	instruction_.operation = Instruction::Operation::MOV;	break;
+			case DataProcessingOperation::MVN:	instruction_.operation = Instruction::Operation::MVN;	break;
+			case DataProcessingOperation::TST:	instruction_.operation = Instruction::Operation::TST;	break;
+			case DataProcessingOperation::TEQ:	instruction_.operation = Instruction::Operation::TEQ;	break;
+			case DataProcessingOperation::ADD:	instruction_.operation = Instruction::Operation::ADD;	break;
+			case DataProcessingOperation::ADC:	instruction_.operation = Instruction::Operation::ADC;	break;
+			case DataProcessingOperation::CMN:	instruction_.operation = Instruction::Operation::CMN;	break;
+			case DataProcessingOperation::SUB:	instruction_.operation = Instruction::Operation::SUB;	break;
+			case DataProcessingOperation::SBC:	instruction_.operation = Instruction::Operation::SBC;	break;
+			case DataProcessingOperation::CMP:	instruction_.operation = Instruction::Operation::CMP;	break;
+			case DataProcessingOperation::RSB:	instruction_.operation = Instruction::Operation::RSB;	break;
+			case DataProcessingOperation::RSC:	instruction_.operation = Instruction::Operation::RSC;	break;
+		}
 	}
 
 	template <Flags> void perform(Multiply) {}
