@@ -43,7 +43,7 @@ struct CMOSRAM: public I2C::Peripheral {
 
 		const uint8_t result = defaults[address_];
 		++address_;
-		return 0;//result;
+		return result;
 	}
 
 	bool write(uint8_t value) override {
