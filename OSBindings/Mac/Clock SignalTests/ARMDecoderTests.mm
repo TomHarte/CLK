@@ -377,7 +377,7 @@ struct MemoryLedger {
 	std::map<uint32_t, FailureRecord> failures;
 
 	uint32_t opcode = 0;
-	bool ignore_test = false;
+	bool ignore_opcode = false;
 	uint32_t masks[16];
 	uint32_t test_pc_offset = 8;
 
@@ -388,7 +388,7 @@ struct MemoryLedger {
 
 		if(label == "**") {
 			memset(masks, 0xff, sizeof(masks));
-			ignore_test = false;
+			ignore_opcode = false;
 			test_pc_offset = 8;
 
 			input >> opcode;
@@ -413,7 +413,7 @@ struct MemoryLedger {
 					// Tested CPU either doesn't switch into supervisor mode, or
 					// is sufficiently accurate in its pipeline that register
 					// changes haven't happened yet.
-					ignore_test = true;
+					ignore_opcode = true;
 				break;
 
 				case Instruction::Operation::MOV:
@@ -428,7 +428,7 @@ struct MemoryLedger {
 					// MOV to PC; there are both pipeline capture errors in the test
 					// set and its ARM won't change privilege level on a write to R15.
 					if(instruction.destination.value == 15) {
-						ignore_test = true;
+						ignore_opcode = true;
 					}
 				break;
 
@@ -442,20 +442,20 @@ struct MemoryLedger {
 					// doesn't seem to have that effect on the ARM used to generate
 					// the test set.
 					if(instruction.destination.value == 15 || instruction.operand2.value == 15) {
-						ignore_test = true;
+						ignore_opcode = true;
 					}
 				break;
 
 				case Instruction::Operation::STM:
 				case Instruction::Operation::LDM:
 					// If the PC is involved, just skip the test; PC/PSR differences abound.
-					ignore_test = instruction.operand1.value & (1 << 15);
+					ignore_opcode = instruction.operand1.value & (1 << 15);
 				break;
 
 				case Instruction::Operation::MCR:
 				case Instruction::Operation::MRC:
 					// The test case doesn't seem to throw on a missing coprocessor.
-					ignore_test = true;
+					ignore_opcode = true;
 				break;
 
 				default: break;
@@ -463,6 +463,8 @@ struct MemoryLedger {
 
 			continue;
 		}
+
+		if(ignore_opcode) continue;
 
 		if(label == "Before:" || label == "After:") {
 			// Read register state.
@@ -501,11 +503,8 @@ struct MemoryLedger {
 			} else {
 				// Execute test and compare.
 				++test_count;
-				if(ignore_test) {
-					continue;
-				}
 
-				if(opcode == 0xe5abb010 && test_count == 1) {
+				if(opcode == 0xe892000b && test_count == 1) {
 					printf("");
 				}
 
