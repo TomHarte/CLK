@@ -175,7 +175,7 @@ class ConcreteMachine:
 			static uint32_t last_pc = 0;
 //			static uint32_t last_r9 = 0;
 			static bool log = false;
-			static bool accumulate = false;
+			static bool accumulate = true;
 
 //			if(executor_.pc() == 0x03801ed8 || (executor_.registers()[9] == 0x00ff'0000 && executor_.registers()[9] != last_r9)) {
 //				printf("At %08x; after last PC %08x and %zu ago was %08x; r9 is %08x [%d]\n",
@@ -221,8 +221,15 @@ class ConcreteMachine:
 				}
 				info.append("]");
 			}
+			opcodes.insert(instruction);
 			if(accumulate) {
-				opcodes.insert(instruction);
+				int c = 0;
+				for(auto instr : opcodes) {
+					printf("0x%08x, ", instr);
+					++c;
+					if(!(c&15)) printf("\n");
+				}
+				accumulate = false;
 			}
 //			logger.info().append("%08x: %08x", executor_.pc(), instruction);
 			InstructionSet::ARM::execute(instruction, executor_);
