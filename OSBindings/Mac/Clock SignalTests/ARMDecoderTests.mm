@@ -427,7 +427,9 @@ struct MemoryLedger {
 
 					// MOV to PC; there are both pipeline capture errors in the test
 					// set and its ARM won't change privilege level on a write to R15.
-					if(instruction.destination.value == 15) {
+					// Similarly, if the PC is operand 2 then it'll also contain the
+					// PSR on an ARM2 but not in the test set.
+					if(instruction.destination.value == 15  || instruction.operand2.value == 15) {
 						ignore_opcode = true;
 					}
 				break;
@@ -510,7 +512,7 @@ struct MemoryLedger {
 				// Execute test and compare.
 				++test_count;
 
-				if(opcode == 0xe892000b && test_count == 1) {
+				if(opcode == 0xe1a0ae2f && test_count == 2) {
 					printf("");
 				}
 
