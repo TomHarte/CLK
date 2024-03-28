@@ -296,6 +296,14 @@ struct Executor {
 		}
 
 		// Decide whether to write back — when either postindexing or else write back is requested.
+		//
+		// Note to future self on write-back:
+		//
+		// It's currently unclear what to do in the case of e.g. `str r13, [r13, #0x10]!`. Is the value
+		// written r13 as modified or the original r13? If it's as modified, does that imply that
+		// write back has occurred regardless of a data abort?
+		//
+		// TODO: resolve uncertainty.
 		constexpr bool should_write_back = !flags.pre_index() || flags.write_back_address();
 
 		// STR: update prior to write.
