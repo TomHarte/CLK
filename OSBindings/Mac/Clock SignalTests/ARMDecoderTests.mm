@@ -446,6 +446,12 @@ struct MemoryLedger {
 					}
 				break;
 
+				case Instruction::Operation::STR:
+				case Instruction::Operation::LDR:
+					// Neither loads nor stores with R15 are matched to ARM2 behaviour by the test source.
+					ignore_opcode = instruction.destination.value == 15;
+				break;
+
 				case Instruction::Operation::STM:
 				case Instruction::Operation::LDM:
 					// If the PC is involved, just skip the test; PC/PSR differences abound.
