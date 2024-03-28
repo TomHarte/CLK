@@ -11,7 +11,6 @@
 #include "../../../InstructionSets/ARM/Disassembler.hpp"
 #include "../../../InstructionSets/ARM/Executor.hpp"
 
-#include "CSROMFetcher.hpp"
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <map>
@@ -20,49 +19,6 @@
 using namespace InstructionSet::ARM;
 
 namespace {
-
-struct Memory {
-	std::vector<uint8_t> rom;
-
-	template <typename IntT>
-	bool write(uint32_t address, IntT source, Mode mode, bool trans) {
-		(void)mode;
-		(void)trans;
-
-		printf("W of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
-
-		if(has_moved_rom_ && address < ram_.size()) {
-			*reinterpret_cast<IntT *>(&ram_[address]) = source;
-		}
-
-		return true;
-	}
-
-	template <typename IntT>
-	bool read(uint32_t address, IntT &source, Mode mode, bool trans) {
-		(void)mode;
-		(void)trans;
-
-		if(address >= 0x3800000) {
-			has_moved_rom_ = true;
-			source = *reinterpret_cast<const IntT *>(&rom[address - 0x3800000]);
-		} else if(!has_moved_rom_) {
-			// TODO: this is true only very transiently.
-			source = *reinterpret_cast<const IntT *>(&rom[address]);
-		} else if(address < ram_.size()) {
-			source = *reinterpret_cast<const IntT *>(&ram_[address]);
-		} else {
-			source = 0;
-			printf("Unknown read from %08x [%lu]\n", address, sizeof(IntT));
-		}
-
-		return true;
-	}
-
-	private:
-		bool has_moved_rom_ = false;
-		std::array<uint8_t, 4*1024*1024> ram_{};
-};
 
 struct MemoryLedger {
 	template <typename IntT>
@@ -394,10 +350,6 @@ struct MemoryLedger {
 			input >> opcode;
 			test_count = 0;
 
-//			if(opcode == 0x01a0f000) {
-//				printf("");
-//			}
-
 			InstructionSet::ARM::Disassembler<model> disassembler;
 			InstructionSet::ARM::dispatch<model>(opcode, disassembler);
 			static constexpr uint32_t pc_address_mask = 0x03ff'fffc;
@@ -588,32 +540,6 @@ struct MemoryLedger {
 
 	for(const auto &pair: failures) {
 		printf("%08x ", pair.first);
-	}
-}
-
-// TODO: turn the below into a trace-driven test case.
-- (void)testROM319 {
-	constexpr ROM::Name rom_name = ROM::Name::AcornRISCOS319;
-	ROM::Request request(rom_name);
-	const auto roms = CSROMFetcher()(request);
-
-	auto executor = std::make_unique<Executor<Model::ARMv2, Memory>>();
-	executor->bus.rom = roms.find(rom_name)->second;
-
-	for(int c = 0; c < 1000; c++) {
-		uint32_t instruction;
-		executor->bus.read(executor->pc(), instruction, executor->registers().mode(), false);
-
-		if(instruction == 0xe33ff343) {
-			printf("");
-		}
-
-		printf("%08x: %08x [", executor->pc(), instruction);
-		for(int c = 0; c < 15; c++) {
-			printf("r%d:%08x ", c, executor->registers()[c]);
-		}
-		printf("psr:%08x]\n", executor->registers().status());
-		execute<Model::ARMv2>(instruction, *executor);
 	}
 }
 
