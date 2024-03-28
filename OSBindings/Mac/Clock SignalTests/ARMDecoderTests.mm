@@ -8,7 +8,9 @@
 
 #import <XCTest/XCTest.h>
 
+#include "../../../InstructionSets/ARM/Disassembler.hpp"
 #include "../../../InstructionSets/ARM/Executor.hpp"
+
 #include "CSROMFetcher.hpp"
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
@@ -363,7 +365,8 @@ struct MemoryLedger {
 
 	input >> std::hex;
 
-	using Exec = Executor<Model::ARMv2with32bitAddressing, MemoryLedger>;
+	static constexpr auto model = Model::ARMv2with32bitAddressing;
+	using Exec = Executor<model, MemoryLedger>;
 	std::unique_ptr<Exec> test;
 
 	struct FailureRecord {
@@ -373,15 +376,76 @@ struct MemoryLedger {
 	};
 	std::map<uint32_t, FailureRecord> failures;
 
-	uint32_t instruction = 0;
+	uint32_t opcode = 0;
+	bool ignore_test = false;
+	uint32_t masks[16];
+	uint32_t test_pc_offset = 8;
+
 	int test_count = 0;
 	while(!input.eof()) {
 		std::string label;
 		input >> label;
 
 		if(label == "**") {
-			input >> instruction;
+			memset(masks, 0xff, sizeof(masks));
+			ignore_test = false;
+			test_pc_offset = 8;
+
+			input >> opcode;
 			test_count = 0;
+
+//			if(opcode == 0x01a0f000) {
+//				printf("");
+//			}
+
+			InstructionSet::ARM::Disassembler<model> disassembler;
+			InstructionSet::ARM::dispatch<model>(opcode, disassembler);
+			static constexpr uint32_t pc_address_mask = 0x03ff'fffc;
+
+			const auto instruction = disassembler.last();
+			switch(instruction.operation) {
+				case Instruction::Operation::BL:
+					// Tests don't multiplex flags into PC for storage to R14.
+					masks[14] = pc_address_mask;
+				break;
+
+				case Instruction::Operation::SWI:
+					// Tested CPU either doesn't switch into supervisor mode, or
+					// is sufficiently accurate in its pipeline that register
+					// changes haven't happened yet.
+					ignore_test = true;
+				break;
+
+				case Instruction::Operation::MOV:
+					// MOV from PC will pick up the address only in the test cases.
+					if(
+						instruction.operand2.type == Operand::Type::Register &&
+						instruction.operand2.value == 15
+					) {
+						masks[instruction.destination.value] = pc_address_mask;
+					}
+
+					// MOV to PC; there are both pipeline capture errors in the test
+					// set and its ARM won't change privilege level on a write to R15.
+					if(instruction.destination.value == 15) {
+						ignore_test = true;
+					}
+				break;
+
+				case Instruction::Operation::TEQ:
+				case Instruction::Operation::ORR:
+				case Instruction::Operation::BIC:
+					// Routinely used to change privilege level on an ARM2 but
+					// doesn't seem to have that effect on the ARM used to generate
+					// the test set.
+					if(instruction.destination.value == 15) {
+						ignore_test = true;
+					}
+				break;
+
+				default: break;
+			}
+
 			continue;
 		}
 
@@ -392,23 +456,21 @@ struct MemoryLedger {
 				input >> regs[c];
 			}
 
-			uint32_t r15_mask = 0xffff'ffff;
-			bool ignore_test = false;
-			switch(instruction) {
+			switch(opcode) {
 				case 0xe090e00f:
 					// adds lr, r0, pc
 					// The test set comes from an ARM that doesn't multiplex flags
 					// and the PC.
-					r15_mask = 0;
+					masks[15] = 0;
 					regs[15] &= 0x03ff'fffc;
 				break;
 
-				case 0xe33ff3c3:
-				case 0xe33ff343:
-				case 0xe33ef000:
-					// TEQs to R15; sometimes these change privilege mode, and the captures then refill
-					// the ARM pipeline, which doesn't match this interpreter's behaviour.
-				continue;
+				case 0xee100f10:
+				case 0xee105f10:
+				case 0xee502110:
+					// MRCs; tests seem possibly to have a coprocessor?
+					ignore_test = true;
+				break;
 
 				// TODO:
 				//	* adds to R15: e090f00e, e090f00f; possibly to do with non-multiplexing original?
@@ -421,7 +483,21 @@ struct MemoryLedger {
 			auto &registers = test->registers();
 			if(label == "Before:") {
 				// This is the start of a new test.
-				// TODO: establish implicit register values?
+
+				// Establish implicit register values.
+				for(uint32_t c = 0; c < 15; c++) {
+					registers.set_mode(Mode::FIQ);
+					registers[c] = 0x200 | c;
+
+					registers.set_mode(Mode::Supervisor);
+					registers[c] = 0x300 | c;
+
+					registers.set_mode(Mode::IRQ);
+					registers[c] = 0x400 | c;
+
+					registers.set_mode(Mode::User);
+					registers[c] = 0x100 | c;
+				}
 
 				// Apply provided state.
 				registers.set_mode(Mode::Supervisor);	// To make sure the actual mode is applied.
@@ -437,31 +513,31 @@ struct MemoryLedger {
 					continue;
 				}
 
-				if(instruction == 0xe92d8001 && test_count == 1) {
+				if(opcode == 0xe5abb010 && test_count == 1) {
 					printf("");
 				}
 
-				execute(instruction, *test);
+				execute(opcode, *test);
 				NSMutableString *error = nil;
 
 				for(uint32_t c = 0; c < 15; c++) {
-					if(regs[c] != registers[c]) {
+					if((regs[c] & masks[c]) != (registers[c] & masks[c])) {
 						if(!error) error = [[NSMutableString alloc] init]; else [error appendString:@"; "];
 						[error appendFormat:@"R%d %08x v %08x", c, regs[c], registers[c]];
 					}
 				}
-				if((regs[15] & r15_mask) != (registers.pc_status(8) & r15_mask)) {
+				if((regs[15] & masks[15]) != (registers.pc_status(test_pc_offset) & masks[15])) {
 					if(!error) error = [[NSMutableString alloc] init]; else [error appendString:@"; "];
 					[error appendFormat:@"; PC/PSR %08x/%08x v %08x/%08x",
 						regs[15] & 0x03ff'fffc, regs[15] & ~0x03ff'fffc,
-						registers.pc(8), registers.status()];
+						registers.pc(test_pc_offset), registers.status()];
 				}
 
 				if(error) {
-					++failures[instruction].count;
-					if(failures[instruction].count == 1) {
-						failures[instruction].first = test_count;
-						failures[instruction].sample = error;
+					++failures[opcode].count;
+					if(failures[opcode].count == 1) {
+						failures[opcode].first = test_count;
+						failures[opcode].sample = error;
 					}
 				}
 
@@ -508,6 +584,11 @@ struct MemoryLedger {
 		for(const auto &pair: failures) {
 			NSLog(@"%08x, %d total, test %d: %@", pair.first, pair.second.count, pair.second.first, pair.second.sample);
 		}
+	}
+
+
+	for(const auto &pair: failures) {
+		printf("%08x ", pair.first);
 	}
 }
 
