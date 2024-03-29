@@ -9,7 +9,9 @@
 #pragma once
 
 #include "../../../Components/I2C/I2C.hpp"
+#include "../../../Outputs/Log.hpp"
 
+#include <array>
 
 namespace Archimedes {
 
@@ -25,6 +27,10 @@ struct CMOSRAM: public I2C::Peripheral {
 	// TODO: first 16 addresses are registers, not RAM.
 
 	std::optional<uint8_t> read() override {
+		if(address_ < 16) {
+			logger.error().append("TODO: read at %d", address_);
+		}
+
 		const uint8_t result = ram_[address_];
 		++address_;
 		return result;
@@ -34,10 +40,16 @@ struct CMOSRAM: public I2C::Peripheral {
 		if(expecting_address_) {
 			address_ = value;
 			expecting_address_ = false;
-		} else {
-			ram_[address_] = value;
-			++address_;
+			return true;
 		}
+
+		if(address_ < 16) {
+			logger.error().append("TODO: write at %d", address_);
+			return true;
+		}
+
+		ram_[address_] = value;
+		++address_;
 		return true;
 	}
 
@@ -66,6 +78,8 @@ private:
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 	};
+
+	Log::Logger<Log::Source::CMOSRTC> logger;
 };
 
 }

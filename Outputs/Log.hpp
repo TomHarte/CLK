@@ -31,6 +31,7 @@ enum class Source {
 	AtariST,
 	AtariSTDMAController,
 	CommodoreStaticAnalyser,
+	CMOSRTC,
 	DirectAccessDevice,
 	Enterprise,
 	i8272,
@@ -100,6 +101,7 @@ constexpr const char *prefix(Source source) {
 		case Source::AtariST:					return "AtariST";
 		case Source::AtariSTDMAController:		return "DMA";
 		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
+		case Source::CMOSRTC:					return "CMOSRTC";
 		case Source::DirectAccessDevice:		return "Direct Access Device";
 		case Source::Enterprise:				return "Enterprise";
 		case Source::i8272:						return "i8272";
