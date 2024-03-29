@@ -145,9 +145,16 @@ struct InputOutputController {
 	//	fast/5
 
 	template <typename IntT>
-	bool read(uint32_t address, IntT &value) {
+	bool read(uint32_t address, IntT &destination) {
 		const Address target(address);
-		value = IntT(~0);
+
+		const auto set_byte = [&](uint8_t value) {
+			if constexpr (std::is_same_v<IntT, uint32_t>) {
+				destination = static_cast<uint32_t>((value << 16) | 0xff'00'ff'ff);
+			} else {
+				destination = value;
+			}
+		};
 
 		// TODO: flatten the switch below, and the equivalent in `write`.
 
@@ -163,15 +170,16 @@ struct InputOutputController {
 						logger.error().append("Unrecognised IOC bank 0 read; offset %02x", target.offset);
 					break;
 
-					case 0x00:
-						value = control_ | 0xc0;
+					case 0x00: {
+						uint8_t value = control_ | 0xc0;
 						value &= ~(i2c_.clock() ? 2 : 0);
 						value &= ~(i2c_.data() ? 1 : 0);
+						set_byte(value);
 //						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
-					break;
+					} break;
 
 					case 0x04:
-						value = serial_.input(IOCParty);
+						set_byte(serial_.input(IOCParty));
 						irq_b_.clear(IRQB::KeyboardReceiveFull);
 						observer_.update_interrupts();
 //						logger.error().append("IOC keyboard receive: %02x", value);
@@ -179,67 +187,59 @@ struct InputOutputController {
 
 					// IRQ A.
 					case 0x10:
-						value = irq_a_.status;
+						set_byte(irq_a_.status);
 //						logger.error().append("IRQ A status is %02x", value);
 					break;
 					case 0x14:
-						value = irq_a_.request();
+						set_byte(irq_a_.request());
 //						logger.error().append("IRQ A request is %02x", value);
 					break;
 					case 0x18:
-						value = irq_a_.mask;
+						set_byte(irq_a_.mask);
 //						logger.error().append("IRQ A mask is %02x", value);
 					break;
 
 					// IRQ B.
 					case 0x20:
-						value = irq_b_.status;
+						set_byte(irq_b_.status);
 //						logger.error().append("IRQ B status is %02x", value);
 					break;
 					case 0x24:
-						value = irq_b_.request();
+						set_byte(irq_b_.request());
 //						logger.error().append("IRQ B request is %02x", value);
 					break;
 					case 0x28:
-						value = irq_b_.mask;
+						set_byte(irq_b_.mask);
 //						logger.error().append("IRQ B mask is %02x", value);
 					break;
 
 					// FIQ.
 					case 0x30:
-						value = fiq_.status;
-						logger.error().append("FIQ status is %02x", value);
+						set_byte(fiq_.status);
+//						logger.error().append("FIQ status is %02x", value);
 					break;
 					case 0x34:
-						value = fiq_.request();
-						logger.error().append("FIQ request is %02x", value);
+						set_byte(fiq_.request());
+//						logger.error().append("FIQ request is %02x", value);
 					break;
 					case 0x38:
-						value = fiq_.mask;
-						logger.error().append("FIQ mask is %02x", value);
+						set_byte(fiq_.mask);
+//						logger.error().append("FIQ mask is %02x", value);
 					break;
 
 					// Counters.
 					case 0x40:	case 0x50:	case 0x60:	case 0x70:
-						value = counters_[(target.offset >> 4) - 0x4].output & 0xff;
+						set_byte(counters_[(target.offset >> 4) - 0x4].output & 0xff);
 //						logger.error().append("%02x: Counter %d low is %02x", target, (target >> 4) - 0x4, value);
 					break;
 
 					case 0x44:	case 0x54:	case 0x64:	case 0x74:
-						value = counters_[(target.offset >> 4) - 0x4].output >> 8;
+						set_byte(counters_[(target.offset >> 4) - 0x4].output >> 8);
 //						logger.error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
 					break;
 				}
 			break;
 		}
-
-//				if constexpr (std::is_same_v<IntT, uint8_t>) {
-//				} else {
-//					// TODO: generalise this adaptation of an 8-bit device to the 32-bit bus, which probably isn't right anyway.
-//					uint8_t value;
-//					ioc_.read(address, value);
-//					source = value;
-//				}
 
 		return true;
 	}
@@ -307,9 +307,18 @@ struct InputOutputController {
 					break;
 
 					// Interrupts.
-					case 0x18:	irq_a_.mask = byte(bus_value);	break;
-					case 0x28:	irq_b_.mask = byte(bus_value);	break;
-					case 0x38:	fiq_.mask = byte(bus_value);	break;
+					case 0x18:
+						irq_a_.mask = byte(bus_value);
+//						logger.error().append("IRQ A mask set to %02x", byte(bus_value));
+					break;
+					case 0x28:
+						irq_b_.mask = byte(bus_value);
+//						logger.error().append("IRQ B mask set to %02x", byte(bus_value));
+					break;
+					case 0x38:
+						fiq_.mask = byte(bus_value);
+//						logger.error().append("FIQ mask set to %02x", byte(bus_value));
+					break;
 
 					// Counters.
 					case 0x40:	case 0x50:	case 0x60:	case 0x70:
