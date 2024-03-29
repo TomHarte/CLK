@@ -449,7 +449,7 @@ struct InputOutputController {
 	{
 		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
-		fiq_.status = 0x80;				// 'set always'.
+		fiq_.status = FIQ::SetAlways;
 
 		i2c_.add_peripheral(&cmos_, 0xa0);
 		update_interrupts();
