@@ -177,6 +177,8 @@ class ConcreteMachine:
 				uint32_t address;
 				uint32_t regs[10];
 				uint32_t return_address;
+				std::string value_name;
+				std::string swi_name;
 			};
 			static std::vector<SWICall> swis;
 			static uint32_t last_pc = 0;
@@ -221,11 +223,67 @@ class ConcreteMachine:
 				(instruction & 0x0f00'0000) == 0x0f00'0000 &&
 				executor_.registers().test(InstructionSet::ARM::Condition(instruction >> 28))
 			) {
-				swis.emplace_back();
-				swis.back().opcode = instruction;
-				swis.back().address = executor_.pc();
-				swis.back().return_address = executor_.registers().pc(4);
-				for(int c = 0; c < 10; c++) swis.back().regs[c] = executor_.registers()[uint32_t(c)];
+				if(instruction & 0x2'0000) {
+					swis.emplace_back();
+					swis.back().opcode = instruction;
+					swis.back().address = executor_.pc();
+					swis.back().return_address = executor_.registers().pc(4);
+					for(int c = 0; c < 10; c++) swis.back().regs[c] = executor_.registers()[uint32_t(c)];
+
+					// Possibly capture more detail.
+					uint32_t pointer = 0;
+					switch(instruction & 0xfd'ffff) {
+						case 0x41501:
+							swis.back().swi_name = "MessageTrans_OpenFile";
+
+							// R0: pointer to file descriptor; R1: pointer to filename; R2: pointer to hold file data.
+							// (R0 and R1 are in the RMA if R2 = 0)
+							pointer = executor_.registers()[1];
+						break;
+
+						case 0x4028a:
+							swis.back().swi_name = "Podule_EnumerateChunksWithInfo";
+						break;
+
+						case 0x0d:
+							swis.back().swi_name = "OS_Find";
+						break;
+
+						case 0x23:
+							swis.back().swi_name = "OS_ReadVarVal";
+
+							// R0: pointer to variable name.
+							pointer = executor_.registers()[0];
+						break;
+
+						case 0x43057:
+							swis.back().swi_name = "Territory_LowerCaseTable";
+						break;
+						case 0x43058:
+							swis.back().swi_name = "Territory_UpperCaseTable";
+						break;
+
+						case 0x42fc1:
+							swis.back().swi_name = "Portable_Control";
+						break;
+					}
+
+					if(pointer) {
+						while(true) {
+							uint8_t next;
+							executor_.bus.template read<uint8_t>(pointer, next, InstructionSet::ARM::Mode::Supervisor, false);
+							++pointer;
+
+							if(next == '\0') break;
+							swis.back().value_name.push_back(static_cast<char>(next));
+						}
+					}
+
+				}
+
+				if(executor_.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
+					logger.error().append("SWI called with V set");
+				}
 			}
 			if(!swis.empty() && executor_.pc() == swis.back().return_address) {
 				// Overflow set => SWI failure.
@@ -233,12 +291,19 @@ class ConcreteMachine:
 				if(executor_.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
 					auto info = logger.info();
 
-					info.append("failed swi %x @ %08x ",
-						back.opcode & 0xfd'ffff,
-						back.address
-					);
+					info.append("failed swi ");
+					if(back.swi_name.empty()) {
+						info.append("&%x", back.opcode & 0xfd'ffff);
+					} else {
+						info.append("%s", back.swi_name.c_str());
+					}
+
+					info.append(" @ %08x ", back.address);
 					for(uint32_t c = 0; c < 10; c++) {
 						info.append("r%d:%08x ", c, back.regs[c]);
+					}
+					if(!back.value_name.empty()) {
+						info.append("for %s", back.value_name.c_str());
 					}
 				}
 
