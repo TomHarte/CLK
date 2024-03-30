@@ -172,6 +172,13 @@ class ConcreteMachine:
 
 		std::set<uint32_t> opcodes;
 		void tick_cpu() {
+			struct SWICall {
+				uint32_t opcode;
+				uint32_t address;
+				uint32_t regs[10];
+				uint32_t return_address;
+			};
+			static std::vector<SWICall> swis;
 			static uint32_t last_pc = 0;
 //			static uint32_t last_r9 = 0;
 			static bool log = false;
@@ -207,7 +214,36 @@ class ConcreteMachine:
 //			log &= executor_.pc() != 0x000000a0;
 
 //			log = (executor_.pc() == 0x038162afc) || (executor_.pc() == 0x03824b00);
-			log |= executor_.pc() == 0x03812014;
+//			log |= instruction & ;
+
+			// The following has the effect of logging all taken SWIs and their return codes.
+			if(
+				(instruction & 0x0f00'0000) == 0x0f00'0000 &&
+				executor_.registers().test(InstructionSet::ARM::Condition(instruction >> 28))
+			) {
+				swis.emplace_back();
+				swis.back().opcode = instruction;
+				swis.back().address = executor_.pc();
+				swis.back().return_address = executor_.registers().pc(4);
+				for(int c = 0; c < 10; c++) swis.back().regs[c] = executor_.registers()[uint32_t(c)];
+			}
+			if(!swis.empty() && executor_.pc() == swis.back().return_address) {
+				// Overflow set => SWI failure.
+				auto &back = swis.back();
+				if(executor_.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
+					auto info = logger.info();
+
+					info.append("failed swi %x @ %08x",
+						back.opcode & 0xff'ffff,
+						back.address
+					);
+					for(uint32_t c = 0; c < 10; c++) {
+						info.append("r%d:%08x ", c, back.regs[c]);
+					}
+				}
+
+				swis.pop_back();
+			}
 
 			if(log) {
 				InstructionSet::ARM::Disassembler<arm_model> disassembler;
