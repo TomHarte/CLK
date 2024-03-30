@@ -10,6 +10,8 @@
 
 #include "HalfDuplexSerial.hpp"
 
+#include "../../../Outputs/Log.hpp"
+
 namespace Archimedes {
 
 // Resource for the keyboard protocol: https://github.com/tmk/tmk_keyboard/wiki/ACORN-ARCHIMEDES-Keyboard
@@ -17,13 +19,17 @@ struct Keyboard {
 	Keyboard(HalfDuplexSerial &serial) : serial_(serial) {}
 
 	void set_key_state(int row, int column, bool is_pressed) {
-		if(!scan_keyboard_) return;
+		if(!scan_keyboard_) {
+			logger_.info().append("Ignored key event as key scanning disabled");
+			return;
+		}
 
 		// Don't waste bandwidth on repeating facts.
 		if(states_[row][column] == is_pressed) return;
 		states_[row][column] = is_pressed;
 
 		// Post new key event.
+		logger_.info().append("Posting row %d, column %d is now %s", row, column, is_pressed ? "pressed" : "released");
 		const uint8_t prefix = is_pressed ? 0b1100'0000 : 0b1101'0000;
 		enqueue(static_cast<uint8_t>(prefix | row), static_cast<uint8_t>(prefix | column));
 		consider_dequeue();
@@ -40,6 +46,7 @@ struct Keyboard {
 
 			// A reset command is always accepted, usurping any other state.
 			if(input == HRST) {
+				logger_.info().append("HRST; resetting");
 				state_ = State::ExpectingRAK1;
 				event_queue_.clear();
 				serial_.output(KeyboardParty, HRST);
@@ -49,6 +56,7 @@ struct Keyboard {
 			switch(state_) {
 				case State::ExpectingACK:
 					if(input != NACK && input != SMAK && input != MACK && input != SACK) {
+						logger_.error().append("No ack; requesting reset");
 						reset();
 						break;
 					}
@@ -59,40 +67,34 @@ struct Keyboard {
 					switch(input) {
 						case RQID:	// Post keyboard ID.
 							serial_.output(KeyboardParty, 0x81);	// Declare this to be a UK keyboard.
-							state_ = State::Idle;
+							logger_.info().append("RQID; responded with 0x81");
 						break;
 
 						case PRST:	// "1-byte command, does nothing."
+							logger_.info().append("PRST; ignored");
 						break;
 
 						case RQMP:
-							// TODO: real mouse data.
+							logger_.error().append("RQMP; TODO: respond something other than 0, 0");
 							enqueue(0, 0);
 						break;
 
-						case NACK:
-							scan_keyboard_ = scan_mouse_ = false;
-						break;
-						case SMAK:
-							scan_keyboard_ = scan_mouse_ = true;
-						break;
-						case MACK:
-							scan_keyboard_ = false;
-							scan_mouse_ = true;
-						break;
-						case SACK:
-							scan_keyboard_ = true;
-							scan_mouse_ = false;
+						case NACK:	case SMAK:	case MACK:	case SACK:
+							scan_keyboard_ = input & 1;
+							scan_mouse_ = input & 2;
+							logger_.info().append("ACK; keyboard:%d mouse:%d", scan_keyboard_, scan_mouse_);
 						break;
 
 						default:
 							if((input & 0b1111'0000) == 0b0100'0000) {
 								// RQPD; request to echo the low nibble.
 								serial_.output(KeyboardParty, 0b1110'0000 | (input & 0b1111));
+								logger_.info().append("RQPD; echoing %x", input & 0b1111);
 							} else if(!(input & 0b1111'1000)) {
-								// LEDS: should set LEd outputs.
+								// LEDS: should set LED outputs.
+								logger_.error().append("TODO: set LEDs %d%d%d", static_cast<bool>(input&4), static_cast<bool>(input&2), static_cast<bool>(input&1));
 							} else {
-								reset();
+								logger_.info().append("Ignoring unrecognised command %02x received in idle state", input);
 							}
 						break;
 					}
@@ -100,27 +102,33 @@ struct Keyboard {
 
 				case State::ExpectingRAK1:
 					if(input != RAK1) {
+						logger_.info().append("Didn't get RAK1; resetting");
 						reset();
 						break;
 					}
+					logger_.info().append("Got RAK1; echoing");
 					serial_.output(KeyboardParty, input);
 					state_ = State::ExpectingRAK2;
 				break;
 
 				case State::ExpectingRAK2:
 					if(input != RAK2) {
+						logger_.info().append("Didn't get RAK2; resetting");
 						reset();
 						break;
 					}
+					logger_.info().append("Got RAK2; echoing");
 					serial_.output(KeyboardParty, input);
 					state_ = State::ExpectingACK;
 				break;
 
 				case State::ExpectingBACK:
 					if(input != BACK) {
+						logger_.info().append("Didn't get BACK; resetting");
 						reset();
 						break;
 					}
+					logger_.info().append("Got BACK; posting next byte");
 					dequeue_next();
 					state_ = State::ExpectingACK;
 				break;
@@ -138,6 +146,7 @@ struct Keyboard {
 
 private:
 	HalfDuplexSerial &serial_;
+	Log::Logger<Log::Source::Keyboard> logger_;
 
 	bool states_[16][16]{};
 

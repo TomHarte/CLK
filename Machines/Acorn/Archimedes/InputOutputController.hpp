@@ -150,7 +150,7 @@ struct InputOutputController {
 
 		const auto set_byte = [&](uint8_t value) {
 			if constexpr (std::is_same_v<IntT, uint32_t>) {
-				destination = static_cast<uint32_t>((value << 16) | 0xff'00'ff'ff);
+				destination = static_cast<uint32_t>(value << 16) | 0xff'00'ff'ff;
 			} else {
 				destination = value;
 			}
@@ -216,15 +216,15 @@ struct InputOutputController {
 					// FIQ.
 					case 0x30:
 						set_byte(fiq_.status);
-//						logger.error().append("FIQ status is %02x", value);
+						logger.error().append("FIQ status is %02x", fiq_.status);
 					break;
 					case 0x34:
 						set_byte(fiq_.request());
-//						logger.error().append("FIQ request is %02x", value);
+						logger.error().append("FIQ request is %02x", fiq_.request());
 					break;
 					case 0x38:
 						set_byte(fiq_.mask);
-//						logger.error().append("FIQ mask is %02x", value);
+						logger.error().append("FIQ mask is %02x", fiq_.mask);
 					break;
 
 					// Counters.

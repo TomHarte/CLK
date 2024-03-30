@@ -36,8 +36,9 @@ enum class Source {
 	Enterprise,
 	i8272,
 	I2C,
-	IntelligentKeyboard,
+	IntelligentKeyboard,	// Could probably be subsumed into 'Keyboard'?
 	IWM,
+	Keyboard,
 	M50740,
 	Macintosh,
 	MasterSystem,
@@ -108,6 +109,7 @@ constexpr const char *prefix(Source source) {
 		case Source::I2C:						return "I2C";
 		case Source::IntelligentKeyboard:		return "IKYB";
 		case Source::IWM:						return "IWM";
+		case Source::Keyboard:					return "Keyboard";
 		case Source::M50740:					return "M50740";
 		case Source::Macintosh:					return "Macintosh";
 		case Source::MasterSystem:				return "SMS";

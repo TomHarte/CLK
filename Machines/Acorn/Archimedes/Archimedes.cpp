@@ -206,6 +206,9 @@ class ConcreteMachine:
 //			log |= instr_count == 72766815;
 //			log &= executor_.pc() != 0x000000a0;
 
+//			log = (executor_.pc() == 0x038162afc) || (executor_.pc() == 0x03824b00);
+			log |= executor_.pc() == 0x03812014;
+
 			if(log) {
 				InstructionSet::ARM::Disassembler<arm_model> disassembler;
 				InstructionSet::ARM::dispatch<arm_model>(instruction, disassembler);
