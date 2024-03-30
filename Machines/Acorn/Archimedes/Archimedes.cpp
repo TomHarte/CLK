@@ -233,8 +233,8 @@ class ConcreteMachine:
 				if(executor_.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
 					auto info = logger.info();
 
-					info.append("failed swi %x @ %08x",
-						back.opcode & 0xff'ffff,
+					info.append("failed swi %x @ %08x ",
+						back.opcode & 0xfd'ffff,
 						back.address
 					);
 					for(uint32_t c = 0; c < 10; c++) {
