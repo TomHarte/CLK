@@ -231,6 +231,8 @@ class ConcreteMachine:
 					for(int c = 0; c < 10; c++) swis.back().regs[c] = executor_.registers()[uint32_t(c)];
 
 					// Possibly capture more detail.
+					//
+					// Cf. http://productsdb.riscos.com/support/developers/prm_index/numswilist.html
 					uint32_t pointer = 0;
 					switch(instruction & 0xfd'ffff) {
 						case 0x41501:
