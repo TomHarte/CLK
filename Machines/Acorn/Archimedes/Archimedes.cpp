@@ -240,20 +240,83 @@ class ConcreteMachine:
 							// (R0 and R1 are in the RMA if R2 = 0)
 							pointer = executor_.registers()[1];
 						break;
+						case 0x41502:
+							swis.back().swi_name = "MessageTrans_Lookup";
+						break;
+						case 0x41506:
+							swis.back().swi_name = "MessageTrans_ErrorLookup";
+						break;
 
 						case 0x4028a:
 							swis.back().swi_name = "Podule_EnumerateChunksWithInfo";
 						break;
 
+						case 0x4000a:
+							swis.back().swi_name = "Econet_ReadLocalStationAndNet";
+						break;
+						case 0x4000e:
+							swis.back().swi_name = "Econet_SetProtection";
+						break;
+						case 0x40015:
+							swis.back().swi_name = "Econet_ClaimPort";
+						break;
+
+						case 0x40541:
+							swis.back().swi_name = "FileCore_Create";
+						break;
+
+						case 0x80156:
+						case 0x8015b:
+							swis.back().swi_name = "PDriver_MiscOpForDriver";
+						break;
+
+						case 0x05:
+							swis.back().swi_name = "OS_CLI";
+							pointer = executor_.registers()[0];
+						break;
 						case 0x0d:
 							swis.back().swi_name = "OS_Find";
 						break;
+						case 0x1d:
+							swis.back().swi_name = "OS_Heap";
+						break;
+						case 0x1e:
+							swis.back().swi_name = "OS_Module";
+						break;
 
+						case 0x20:
+							swis.back().swi_name = "OS_Release";
+						break;
+						case 0x21:
+							swis.back().swi_name = "OS_ReadUnsigned";
+						break;
 						case 0x23:
 							swis.back().swi_name = "OS_ReadVarVal";
 
 							// R0: pointer to variable name.
 							pointer = executor_.registers()[0];
+						break;
+						case 0x24:
+							swis.back().swi_name = "OS_SetVarVal";
+
+							// R0: pointer to variable name.
+							pointer = executor_.registers()[0];
+						break;
+						case 0x26:
+							swis.back().swi_name = "OS_GSRead";
+						break;
+						case 0x27:
+							swis.back().swi_name = "OS_GSTrans";
+						break;
+						case 0x29:
+							swis.back().swi_name = "OS_FSControl";
+						break;
+						case 0x2a:
+							swis.back().swi_name = "OS_ChangeDynamicArea";
+						break;
+
+						case 0x4c:
+							swis.back().swi_name = "OS_ReleaseDeviceVector";
 						break;
 
 						case 0x43057:
@@ -263,6 +326,9 @@ class ConcreteMachine:
 							swis.back().swi_name = "Territory_UpperCaseTable";
 						break;
 
+						case 0x42fc0:
+							swis.back().swi_name = "Portable_Speed";
+						break;
 						case 0x42fc1:
 							swis.back().swi_name = "Portable_Control";
 						break;
