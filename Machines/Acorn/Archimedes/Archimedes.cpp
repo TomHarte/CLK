@@ -313,7 +313,7 @@ private:
 	std::set<uint32_t> opcodes;
 };
 #else
-template <typename Executor>
+template <InstructionSet::ARM::Model model, typename Executor>
 struct HackyDebugger {
 	void notify(uint32_t, uint32_t, Executor &) {}
 };
