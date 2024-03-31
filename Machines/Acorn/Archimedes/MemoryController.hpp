@@ -45,10 +45,20 @@ struct MemoryController {
 	}
 
 	void set_rom(const std::vector<uint8_t> &rom) {
-		std::copy(
-			rom.begin(),
-			rom.begin() + static_cast<ptrdiff_t>(std::min(rom.size(), rom_.size())),
-			rom_.begin());
+		if(rom_.size() % rom.size() || rom.size() > rom_.size()) {
+			// TODO: throw.
+			return;
+		}
+
+		// Copy in as many times as it'll fit.
+		std::size_t base = 0;
+		while(base < rom_.size()) {
+			std::copy(
+				rom.begin(),
+				rom.end(),
+				rom_.begin() + base);
+			base += rom.size();
+		}
 	}
 
 	template <typename IntT>

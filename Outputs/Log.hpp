@@ -80,6 +80,7 @@ constexpr bool is_enabled(Source source) {
 		case Source::SCC:
 		case Source::SCSI:
 		case Source::I2C:
+		case Source::Keyboard:
 			return false;
 	}
 }

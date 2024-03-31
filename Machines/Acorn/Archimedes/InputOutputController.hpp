@@ -161,6 +161,7 @@ struct InputOutputController {
 		switch(target.bank) {
 			default:
 				logger.error().append("Unrecognised IOC read from %08x i.e. bank %d / type %d", address, target.bank, target.type);
+				destination = IntT(~0);
 			break;
 
 			// Bank 0: internal registers.

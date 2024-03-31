@@ -32,6 +32,8 @@ enum Name {
 	Acorn1770DFS,
 
 	// Acorn Archimedes.
+	AcornArthur030,
+	AcornRISCOS200,
 	AcornRISCOS311,
 	AcornRISCOS319,
 

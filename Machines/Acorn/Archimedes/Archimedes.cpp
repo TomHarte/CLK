@@ -108,7 +108,7 @@ class ConcreteMachine:
 		) : executor_(*this, *this) {
 			set_clock_rate(ClockRate);
 
-			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
+			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS319;
 			ROM::Request request(risc_os);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
@@ -278,6 +278,9 @@ class ConcreteMachine:
 						break;
 						case 0x0d:
 							swis.back().swi_name = "OS_Find";
+							if(executor_.registers()[0] >= 0x40) {
+								pointer = executor_.registers()[1];
+							}
 						break;
 						case 0x1d:
 							swis.back().swi_name = "OS_Heap";
@@ -309,6 +312,7 @@ class ConcreteMachine:
 						break;
 						case 0x27:
 							swis.back().swi_name = "OS_GSTrans";
+							pointer = executor_.registers()[0];
 						break;
 						case 0x29:
 							swis.back().swi_name = "OS_FSControl";
@@ -342,7 +346,7 @@ class ConcreteMachine:
 							executor_.bus.template read<uint8_t>(pointer, next, InstructionSet::ARM::Mode::Supervisor, false);
 							++pointer;
 
-							if(next == '\0') break;
+							if(next < 32) break;
 							swis.back().value_name.push_back(static_cast<char>(next));
 						}
 					}
@@ -366,12 +370,13 @@ class ConcreteMachine:
 						info.append("%s", back.swi_name.c_str());
 					}
 
+					if(!back.value_name.empty()) {
+						info.append(" %s", back.value_name.c_str());
+					}
+
 					info.append(" @ %08x ", back.address);
 					for(uint32_t c = 0; c < 10; c++) {
 						info.append("r%d:%08x ", c, back.regs[c]);
-					}
-					if(!back.value_name.empty()) {
-						info.append("for %s", back.value_name.c_str());
 					}
 				}
 
