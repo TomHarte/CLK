@@ -44,7 +44,6 @@ namespace Archimedes {
 #ifndef NDEBUG
 template <InstructionSet::ARM::Model model, typename Executor>
 struct HackyDebugger {
-
 	void notify(uint32_t address, uint32_t instruction, Executor &executor) {
 		pc_history[pc_history_ptr] = address;
 		pc_history_ptr = (pc_history_ptr + 1) % pc_history.size();
@@ -102,6 +101,7 @@ struct HackyDebugger {
 		) {
 			if(instruction & 0x2'0000) {
 				swis.emplace_back();
+				swis.back().count = swi_count++;
 				swis.back().opcode = instruction;
 				swis.back().address = executor.pc();
 				swis.back().return_address = executor.registers().pc(4);
@@ -240,7 +240,7 @@ struct HackyDebugger {
 			if(executor.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
 				auto info = logger.info();
 
-				info.append("failed swi ");
+				info.append("[%d] Failed swi ", back.count);
 				if(back.swi_name.empty()) {
 					info.append("&%x", back.opcode & 0xfd'ffff);
 				} else {
@@ -293,8 +293,10 @@ private:
 	std::array<uint32_t, 75> pc_history;
 	std::size_t pc_history_ptr = 0;
 	uint32_t instr_count = 0;
+	uint32_t swi_count = 0;
 
 	struct SWICall {
+		uint32_t count;
 		uint32_t opcode;
 		uint32_t address;
 		uint32_t regs[10];
