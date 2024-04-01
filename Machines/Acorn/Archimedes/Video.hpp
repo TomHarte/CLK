@@ -130,19 +130,16 @@ struct Video {
 			}
 		}
 
-		// Accumulate total phase.
-		++time_in_phase_;
-
 		// Grab some more pixels if appropriate.
 		const auto flush_pixels = [&]() {
 			const auto duration = static_cast<int>(time_in_phase_);
-			crt_.output_data(duration, static_cast<size_t>(time_in_phase_));
+			crt_.output_data(duration, static_cast<size_t>(time_in_phase_) * 2);
 			time_in_phase_ = 0;
 			pixels_ = nullptr;
 		};
 
 		if(phase_ == Phase::Display) {
-			if(pixels_ && time_in_phase_ == PixelBufferSize) {
+			if(pixels_ && time_in_phase_ == PixelBufferSize/2) {
 				flush_pixels();
 			}
 
@@ -241,6 +238,9 @@ struct Video {
 
 			++pixel_count_;
 		}
+
+		// Accumulate total phase.
+		++time_in_phase_;
 
 		// Determine current output phase.
 		Phase new_phase;
@@ -361,6 +361,8 @@ private:
 	uint32_t time_in_phase_ = 0;
 	uint32_t pixel_count_ = 0;
 	uint16_t *pixels_ = nullptr;
+
+	// It is elsewhere assumed that this size is a multiple of 8.
 	static constexpr size_t PixelBufferSize = 320;
 
 	// Programmer-set addresses.
