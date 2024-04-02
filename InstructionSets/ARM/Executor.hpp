@@ -120,13 +120,8 @@ struct Executor {
 			operand2 = fields.immediate();
 			if(fields.rotate()) {
 				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
-			} else {
-				// This is possibly clarified by later data sheets; take carry as if a rotate by 32
-				// had occurred.
-				if constexpr (shift_sets_carry) {
-					rotate_carry = operand2 & 0x8000'0000;
-				}
 			}
+			// Complete guess: carry is unaffected by an immediate value that doesn't rotate.
 		} else {
 			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
 		}
