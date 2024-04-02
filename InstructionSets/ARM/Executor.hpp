@@ -58,9 +58,11 @@ struct Executor {
 			operand2 = registers_[fields.operand2()];
 		}
 
-		uint32_t shift_amount;
+		// TODO: in C++20, a quick `if constexpr (requires` can eliminate the `allow_register` parameter.
 		if constexpr (allow_register) {
 			if(fields.shift_count_is_register()) {
+				uint32_t shift_amount;
+
 				// "When R15 appears in either of the Rn or Rs positions it will give the value
 				// of the PC alone, with the PSR bits replaced by zeroes. ...
 				//
@@ -77,17 +79,14 @@ struct Executor {
 
 				// A register shift amount of 0 has a different meaning than an in-instruction
 				// shift amount of 0.
-				if(!shift_amount) {
-					return operand2;
+				if(shift_amount) {
+					shift<set_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
 				}
-			} else {
-				shift_amount = fields.shift_amount();
+				return operand2;
 			}
-		} else {
-			shift_amount = fields.shift_amount();
 		}
 
-		shift<set_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
+		shift<set_carry>(fields.shift_type(), operand2, fields.shift_amount(), rotate_carry);
 		return operand2;
 	}
 
@@ -306,15 +305,6 @@ struct Executor {
 		// TODO: resolve uncertainty.
 		constexpr bool should_write_back = !flags.pre_index() || flags.write_back_address();
 
-		// STR: update prior to write.
-//		if constexpr (should_write_back && flags.operation() == SingleDataTransferFlags::Operation::STR) {
-//			if(transfer.base() == 15) {
-//				registers_.set_pc(offsetted_address);
-//			} else {
-//				registers_[transfer.base()] = offsetted_address;
-//			}
-//		}
-
 		// "... post-indexed data transfers always write back the modified base. The only use of the [write-back address]
 		// bit in a post-indexed data transfer is in non-user mode code, where setting the W bit forces the /TRANS pin
 		// to go LOW for the transfer"
@@ -374,10 +364,6 @@ struct Executor {
 				registers_[transfer.destination()] = value;
 			}
 		}
-
-		// LDR: write back after load, only if original wasn't overwritten.
-//		if constexpr (should_write_back && flags.operation() == SingleDataTransferFlags::Operation::LDR) {
-//			if(transfer.base() != transfer.destination()) {
 
 		if constexpr (should_write_back) {
 			// Empirically: I think writeback occurs before the access, so shouldn't overwrite on a load.
