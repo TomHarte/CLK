@@ -26,6 +26,7 @@ struct Video {
 		ram_(ram),
 		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
 		set_clock_divider(3);
+		crt_.set_visible_area(Outputs::Display::Rect(0.06f, 0.07f, 0.9f, 0.9f));
 	}
 
 	void write(uint32_t value) {
