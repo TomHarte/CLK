@@ -76,17 +76,12 @@ struct Executor {
 				// "The amount by which the register should be shifted may be contained in
 				// ... **the bottom byte** of another register".
 				shift_amount &= 0xff;
-
-				// A register shift amount of 0 has a different meaning than an in-instruction
-				// shift amount of 0.
-				if(shift_amount) {
-					shift<set_carry>(fields.shift_type(), operand2, shift_amount, rotate_carry);
-				}
+				shift<set_carry, false>(fields.shift_type(), operand2, shift_amount, rotate_carry);
 				return operand2;
 			}
 		}
 
-		shift<set_carry>(fields.shift_type(), operand2, fields.shift_amount(), rotate_carry);
+		shift<set_carry, true>(fields.shift_type(), operand2, fields.shift_amount(), rotate_carry);
 		return operand2;
 	}
 
@@ -118,10 +113,7 @@ struct Executor {
 		// Get operand 2.
 		if constexpr (flags.operand2_is_immediate()) {
 			operand2 = fields.immediate();
-			if(fields.rotate()) {
-				shift<ShiftType::RotateRight, shift_sets_carry>(operand2, fields.rotate(), rotate_carry);
-			}
-			// Complete guess: carry is unaffected by an immediate value that doesn't rotate.
+			shift<ShiftType::RotateRight, shift_sets_carry, false>(operand2, fields.rotate(), rotate_carry);
 		} else {
 			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
 		}
@@ -361,7 +353,8 @@ struct Executor {
 		}
 
 		if constexpr (should_write_back) {
-			// Empirically: I think writeback occurs before the access, so shouldn't overwrite on a load.
+			// Empirically: I think order of operations for a load is: (i) write back; (ii) store value from bus.
+			// So if this is a load, don't allow write back to overwrite what was loaded.
 			if(flags.operation() == SingleDataTransferFlags::Operation::STR || transfer.base() != transfer.destination()) {
 				if(transfer.base() == 15) {
 					registers_.set_pc(offsetted_address);
