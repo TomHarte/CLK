@@ -96,10 +96,12 @@ void shift(uint32_t &source, uint32_t amount, typename Carry<set_carry>::type ca
 			// "ROR by 32 has result equal to Rm, carry out equal to bit 31 ...
 			// [for] ROR by n where n is greater than 32 ... repeatedly subtract 32 from n
 			// until the amount is in the range 1 to 32"
-			amount = ((amount - 1) & 31) + 1;
-			if constexpr (set_carry) carry = source & (1 << (amount - 1));
-			if(amount != 32) {
+			amount &= 31;
+			if(amount) {
+				if constexpr (set_carry) carry = source & (1 << (amount - 1));
 				source = (source >> amount) | (source << (32 - amount));
+			} else {
+				if constexpr (set_carry) carry = source & 0x8000'0000;
 			}
 		} break;
 
