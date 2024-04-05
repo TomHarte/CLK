@@ -345,9 +345,8 @@ struct Registers {
 		/// @returns A reference to the register at @c offset. If @c force_user_mode is true,
 		/// this will the the user-mode register. Otherwise it'll be that for the current mode. These references
 		/// are guaranteed to remain valid only until the next mode change.
-		template <bool force_user_mode>
-		uint32_t &reg(uint32_t offset) {
-			if constexpr (!force_user_mode) {
+		uint32_t &reg(bool force_user_mode, uint32_t offset) {
+			if(!force_user_mode) {
 				return active_[offset];
 			}
 

@@ -76,19 +76,18 @@ struct HackyDebugger {
 //				last_r1 = executor_.registers()[1];
 //			}
 
-//			if(executor_.pc() == 0x03801ed8 || (executor_.registers()[9] == 0x00ff'0000 && executor_.registers()[9] != last_r9)) {
-//				printf("At %08x; after last PC %08x and %zu ago was %08x; r9 is %08x [%d]\n",
-//					executor_.pc(),
-//					pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()],
-//					pc_history.size(),
-//					pc_history[pc_history_ptr],
-//					executor_.registers()[9],
-//					executor_.registers()[9] != last_r9);
-//			}
+			if(instruction == 0xe8fd7fff) {//0x5f706f74) {
+				printf("At %08x [%d]; after last PC %08x and %zu ago was %08x\n",
+					address,
+					instr_count,
+					pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()],
+					pc_history.size(),
+					pc_history[pc_history_ptr]);
+			}
 //			last_r9 = executor_.registers()[9];
 
-//			log |= executor_.pc() == 0x03801ebc;
-//			log |= instr_count == 72766815;
+//			log |= address == 0x038031c4;
+//			log |= instr_count == 53552731 - 30;
 //			log &= executor_.pc() != 0x000000a0;
 
 //			log = (executor_.pc() == 0x038162afc) || (executor_.pc() == 0x03824b00);

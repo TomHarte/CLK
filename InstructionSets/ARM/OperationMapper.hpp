@@ -294,6 +294,17 @@ struct BlockDataTransfer: public WithShiftControlBits {
 
 	/// A bitfield indicating which registers to load or store.
 	uint16_t register_list() const		{	return static_cast<uint16_t>(opcode_);	}
+	uint32_t popcount() const {
+		const uint16_t list = register_list();
+
+		// TODO: just use std::popcount when adopting C++20.
+		uint32_t total = ((list & 0xaaaa) >> 1) + (list & 0x5555);
+		total = ((total & 0xcccc) >> 2) + (total & 0x3333);
+		total = ((total & 0xf0f0) >> 4) + (total & 0x0f0f);
+		total = ((total & 0xff00) >> 8) + (total & 0x00ff);
+
+		return total;
+	}
 };
 
 //

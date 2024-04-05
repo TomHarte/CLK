@@ -366,32 +366,72 @@ struct Executor {
 	}
 	template <Flags f> void perform(BlockDataTransfer transfer) {
 		constexpr BlockDataTransferFlags flags(f);
+		constexpr bool is_ldm = flags.operation() == BlockDataTransferFlags::Operation::LDM;
 
-		// Grab a copy of the list of registers to transfer.
-		const uint16_t list = transfer.register_list();
+		// Ensure that *base points to the base register if it can be written back;
+		// also set address to the base.
+		uint32_t *base = nullptr;
+		uint32_t address;
+		if(transfer.base() == 15) {
+			address = registers_.pc_status(4);
+		} else {
+			base = &registers_[transfer.base()];
+			address = *base;
+		}
+
+		// For an LDM pc_proxy will receive any read R15 value;
+		// for an STM it'll hold the value to be written.
+		uint32_t pc_proxy = 0;
 
 		// Read the base address and take a copy in case a data abort means that
-		// it has to be restored later, and to write that value rather than
-		// the final address if the base register is first in the write-out list.
-		uint32_t address = transfer.base() == 15 ?
-			registers_.pc_status(4) :
-			registers_[transfer.base()];
-		const uint32_t initial_address = address;
+		// it has to be restored later.
+		uint32_t initial_address = address;
 
-		// Figure out what the final address will be, since that's what'll be
-		// in the output if the base register is second or beyond in the
-		// write-out list.
+		// Grab the register list and decide whether user registers are being used.
+		const uint16_t list = transfer.register_list();
+		const bool adopt_user_mode = flags.load_psr() && (!is_ldm || !(list & (1 << 15)));
+
+		// Write back will prima facie occur if:
+		//	(i) the instruction asks for it; and
+		//	(ii) the write-back register isn't R15.
+		bool write_back = base && flags.write_back_address();
+
+		// Collate a transfer list; this is a very long-winded way of implementing STM
+		// and LDM but right now the objective is merely correctness.
+		//
+		// If this is LDM and it turns out that base is also in the transfer list,
+		// disable write back.
+		uint32_t *transfer_sources[16];
+		uint32_t total = 0;
+		for(uint32_t c = 0; c < 15; c++) {
+			if(list & (1 << c)) {
+				uint32_t *const next = &registers_.reg(adopt_user_mode, c);
+				if(is_ldm && next == base) write_back = false;
+				transfer_sources[total++] = next;
+			}
+		}
+
+		// If the last thing in the list is R15, redirect it to the PC proxy,
+		// possibly populating with a meaningful value.
+		if(list & (1 << 15)) {
+			if(!is_ldm) {
+				pc_proxy = registers_.pc_status(8);
+			}
+			transfer_sources[total++] = &pc_proxy;
+		}
+
+		// If this is STM and the first thing in the list is the same as base,
+		// point it at initial_address instead.
+		if(!is_ldm && total && transfer_sources[0] == base) {
+			transfer_sources[0] = &initial_address;
+		}
+
+		// Calculate final_address, which is what will be written back if required;
+		// update address to point to the low end of the transfer block.
 		//
 		// Writes are always ordered from lowest address to highest; adjust the
 		// start address if this write is supposed to fill memory downward from
 		// the base.
-
-		// TODO: use std::popcount when adopting C++20.
-		uint32_t total = ((list & 0xaaaa) >> 1) + (list & 0x5555);
-		total = ((total & 0xcccc) >> 2) + (total & 0x3333);
-		total = ((total & 0xf0f0) >> 4) + (total & 0x0f0f);
-		total = ((total & 0xff00) >> 8) + (total & 0x00ff);
-
 		uint32_t final_address;
 		if constexpr (!flags.add_offset()) {
 			// Decrementing mode; final_address is the value the base register should
@@ -404,53 +444,37 @@ struct Executor {
 			final_address = address + total * 4;
 		}
 
-		// For loads, keep a record of the value replaced by the last load and
-		// where it came from. A data abort cancels both the current load and
-		// the one before it, so this is used by this implementation to undo
-		// the previous load in that case.
-		struct {
-			uint32_t *target = nullptr;
-			uint32_t value;
-		} last_replacement;
-
-		// Check whether access is forced ot the user bank; if so then switch
-		// to it now. Also keep track of the original mode to switch back at
-		// the end.
-		Mode original_mode = registers_.mode();
-		const bool adopt_user_mode =
-			flags.load_psr() && (
-				flags.operation() == BlockDataTransferFlags::Operation::STM ||
-				(
-					flags.operation() == BlockDataTransferFlags::Operation::LDM &&
-					!(list & (1 << 15))
-				)
-			);
-		if(adopt_user_mode) {
-			registers_.set_mode(Mode::User);
+		// Write back if enabled.
+		if(write_back) {
+			*base = final_address;
 		}
 
-		bool address_error = false;
+		// Update address in advance for:
+		//	* pre-indexed upward stores; and
+		//	* post-indxed downward stores.
+		if constexpr (flags.pre_index() == flags.add_offset()) {
+			address += 4;
+		}
+
+		// Perform all memory accesses, tracking whether either kind of abort will be
+		// required.
 		const bool trans = registers_.mode() == Mode::User;
-
-		// Keep track of whether all accesses succeeded in order potentially to
-		// throw a data abort later.
+		const bool address_error = is_invalid_address(address);
 		bool accesses_succeeded = true;
-		const auto access = [&](uint32_t &value) {
-			// Update address in advance for:
-			//	* pre-indexed upward stores; and
-			//	* post-indxed downward stores.
-			if constexpr (flags.pre_index() == flags.add_offset()) {
-				address += 4;
-			}
 
-			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
-				if(!address_error) {
-					// "If the abort occurs during a store multiple instruction, ARM takes little action until
-					// the instruction completes, whereupon it enters the data abort trap. The memory manager is
-					// responsible for preventing erroneous writes to the memory."
-					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), trans);
-				}
-			} else {
+		if constexpr (is_ldm) {
+			// Keep a record of the value replaced by the last load and
+			// where it came from. A data abort cancels both the current load and
+			// the one before it, so this might be used by this implementation to
+			// undo the previous load.
+			struct {
+				uint32_t *target = nullptr;
+				uint32_t value;
+			} last_replacement;
+
+			for(uint32_t c = 0; c < total; c++) {
+				uint32_t &value = *transfer_sources[c];
+
 				// When ARM detects a data abort during a load multiple instruction, it modifies the operation of
 				// the instruction to ensure that recovery is possible.
 				//
@@ -466,18 +490,19 @@ struct Executor {
 					// address change.
 					if(accesses_succeeded) {
 						last_replacement.value = replaced;
-						last_replacement.target = &value;
+						last_replacement.target = transfer_sources[c];
 					} else {
 						if(last_replacement.target) {
 							*last_replacement.target = last_replacement.value;
 						}
 
-						// Also restore the base register.
-						if(transfer.base() != 15) {
-							if constexpr (flags.write_back_address()) {
-								registers_[transfer.base()] = final_address;
+						// Also restore the base register, including to its original value
+						// if write back was disabled.
+						if(base) {
+							if(write_back) {
+								*base = final_address;
 							} else {
-								registers_[transfer.base()] = initial_address;
+								*base = initial_address;
 							}
 						}
 					}
@@ -486,64 +511,28 @@ struct Executor {
 					uint32_t throwaway;
 					bus.template read<uint32_t>(address, throwaway, registers_.mode(), trans);
 				}
-			}
 
-			// Update address after the fact for:
-			//	* post-indexed upward stores; and
-			//	* pre-indxed downward stores.
-			if constexpr (flags.pre_index() != flags.add_offset()) {
+				// Advance.
 				address += 4;
 			}
-		};
+		} else {
+			for(uint32_t c = 0; c < total; c++) {
+				uint32_t &value = *transfer_sources[c];
 
-		// Check for an address exception.
-		address_error = is_invalid_address(address);
-
-		// Write out registers 1 to 14.
-		for(uint32_t c = 0; c < 15; c++) {
-			if(list & (1 << c)) {
-				access(registers_[c]);
-
-				// Modify base register after each write if writeback is enabled.
-				// This'll ensure the unmodified value goes out if it was the
-				// first-selected register only.
-				if constexpr (flags.write_back_address()) {
-					if(transfer.base() != 15) {
-						registers_[transfer.base()] = final_address;
-					}
+				if(!address_error) {
+					// "If the abort occurs during a store multiple instruction, ARM takes little action until
+					// the instruction completes, whereupon it enters the data abort trap. The memory manager is
+					// responsible for preventing erroneous writes to the memory."
+					accesses_succeeded &= bus.template write<uint32_t>(address, value, registers_.mode(), trans);
+				} else {
+					// Do a throwaway read.
+					uint32_t throwaway;
+					bus.template read<uint32_t>(address, throwaway, registers_.mode(), trans);
 				}
-			}
-		}
 
-		// Definitively write back, even if the earlier register list
-		// was empty.
-		if constexpr (flags.write_back_address()) {
-			if(transfer.base() != 15) {
-				registers_[transfer.base()] = final_address;
+				// Advance.
+				address += 4;
 			}
-		}
-
-		// Read or write the program counter as a special case if it was in the list.
-		if(list & (1 << 15)) {
-			uint32_t value;
-			if constexpr (flags.operation() == BlockDataTransferFlags::Operation::STM) {
-				value = registers_.pc_status(8);
-				access(value);
-			} else {
-				access(value);
-				registers_.set_pc(value);
-				if constexpr (flags.load_psr()) {
-					registers_.set_status(value);
-					original_mode = registers_.mode();	// Avoid switching back to the wrong mode
-														// in case user registers were exposed.
-				}
-			}
-		}
-
-		// If user mode was unnaturally forced, switch back to the actual
-		// current operating mode.
-		if(adopt_user_mode) {
-			registers_.set_mode(original_mode);
 		}
 
 		// Finally throw an exception if necessary.
@@ -551,6 +540,14 @@ struct Executor {
 			registers_.exception<Registers::Exception::Address>();
 		} else if(!accesses_succeeded) {
 			registers_.exception<Registers::Exception::DataAbort>();
+		} else {
+			// If this was an LDM to R15 then apply it appropriately.
+			if(is_ldm && list & (1 << 15)) {
+				registers_.set_pc(pc_proxy);
+				if constexpr (flags.load_psr()) {
+					registers_.set_status(pc_proxy);
+				}
+			}
 		}
 	}
 
