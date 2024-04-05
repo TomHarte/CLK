@@ -76,14 +76,14 @@ struct HackyDebugger {
 //				last_r1 = executor_.registers()[1];
 //			}
 
-			if(instruction == 0xe8fd7fff) {//0x5f706f74) {
-				printf("At %08x [%d]; after last PC %08x and %zu ago was %08x\n",
-					address,
-					instr_count,
-					pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()],
-					pc_history.size(),
-					pc_history[pc_history_ptr]);
-			}
+//			if(instruction == 0xe8fd7fff) {
+//				printf("At %08x [%d]; after last PC %08x and %zu ago was %08x\n",
+//					address,
+//					instr_count,
+//					pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()],
+//					pc_history.size(),
+//					pc_history[pc_history_ptr]);
+//			}
 //			last_r9 = executor_.registers()[9];
 
 //			log |= address == 0x038031c4;
@@ -93,8 +93,8 @@ struct HackyDebugger {
 //			log = (executor_.pc() == 0x038162afc) || (executor_.pc() == 0x03824b00);
 //			log |= instruction & ;
 
-			// The following has the effect of logging all taken SWIs and their return codes.
-		if(
+		// The following has the effect of logging all taken SWIs and their return codes.
+/*		if(
 			(instruction & 0x0f00'0000) == 0x0f00'0000 &&
 			executor.registers().test(InstructionSet::ARM::Condition(instruction >> 28))
 		) {
@@ -257,7 +257,7 @@ struct HackyDebugger {
 			}
 
 			swis.pop_back();
-		}
+		}*/
 
 		if(log) {
 			InstructionSet::ARM::Disassembler<model> disassembler;
@@ -274,16 +274,16 @@ struct HackyDebugger {
 			}
 			info.append("]");
 		}
-		opcodes.insert(instruction);
-		if(accumulate) {
-			int c = 0;
-			for(auto instr : opcodes) {
-				printf("0x%08x, ", instr);
-				++c;
-				if(!(c&15)) printf("\n");
-			}
-			accumulate = false;
-		}
+//		opcodes.insert(instruction);
+//		if(accumulate) {
+//			int c = 0;
+//			for(auto instr : opcodes) {
+//				printf("0x%08x, ", instr);
+//				++c;
+//				if(!(c&15)) printf("\n");
+//			}
+//			accumulate = false;
+//		}
 
 		++instr_count;
 	}
