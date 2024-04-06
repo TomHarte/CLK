@@ -56,7 +56,7 @@ struct Video {
 			case 0x40:	border_colour_ = colour(value);	break;
 
 			case 0x44:	case 0x48:	case 0x4c:
-				logger.error().append("TODO: Cursor colour %d to %03x", (target - 0x44) >> 2, value & 0x1fff);
+				cursor_colours_[(target - 0x44) >> 2] = colour(value);
 			break;
 
 			case 0x80:	horizontal_timing_.period = timing_value(value);		break;
@@ -65,7 +65,7 @@ struct Video {
 			case 0x8c:	horizontal_timing_.display_start = timing_value(value);	break;
 			case 0x90:	horizontal_timing_.display_end = timing_value(value);	break;
 			case 0x94:	horizontal_timing_.border_end = timing_value(value);	break;
-			case 0x98:	horizontal_timing_.cursor_end = timing_value(value);	break;
+			case 0x98:	horizontal_timing_.cursor_start = timing_value(value);	break;
 			case 0x9c:
 				logger.error().append("TODO: Video horizontal interlace: %d", (value >> 14) & 0x3ff);
 			break;
@@ -126,6 +126,7 @@ struct Video {
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
 				address_ = frame_start_;
+				cursor_address_ = cursor_start_;
 				entered_sync_ = true;
 				interrupt_observer_.update_interrupts();
 			}
@@ -354,6 +355,7 @@ private:
 		bool border_ended = false;
 		bool display_started = false;
 		bool display_ended = false;
+		bool cursor_active = false;
 
 		Phase phase() const {
 			if(sync_active) return Phase::Sync;
@@ -379,10 +381,12 @@ private:
 
 	// Ephemeral address state.
 	uint32_t address_ = 0;
+	uint32_t cursor_address_ = 0;
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
 	std::array<uint16_t, 16> colours_{};
+	std::array<uint16_t, 3> cursor_colours_{};
 
 	// An interrupt flag; more closely related to the interface by which
 	// my implementation of the IOC picks up an interrupt request than
