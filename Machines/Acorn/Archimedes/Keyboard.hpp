@@ -17,7 +17,7 @@ namespace Archimedes {
 
 // Resource for the keyboard protocol: https://github.com/tmk/tmk_keyboard/wiki/ACORN-ARCHIMEDES-Keyboard
 struct Keyboard {
-	Keyboard(HalfDuplexSerial &serial) : serial_(serial) {}
+	Keyboard(HalfDuplexSerial &serial) : serial_(serial), mouse_(*this) {}
 
 	void set_key_state(int row, int column, bool is_pressed) {
 		if(!scan_keyboard_) {
@@ -198,7 +198,27 @@ private:
 
 
 	struct Mouse: public Inputs::Mouse {
+		Mouse(Keyboard &keyboard): keyboard_(keyboard) {}
 
+		void move(int x, int y) override {
+			// For now: just clamp.
+			x = std::clamp(x, -0x3f, 0x3f);
+			y = std::clamp(-y, -0x3f, 0x3f);
+
+			keyboard_.enqueue(static_cast<uint8_t>(x) & 0x7f, static_cast<uint8_t>(y) & 0x7f);
+			keyboard_.consider_dequeue();
+		}
+
+		int get_number_of_buttons() override {
+			return 3;
+		}
+
+		virtual void set_button_pressed(int index, bool is_pressed) {
+			keyboard_.set_key_state(7, index, is_pressed);
+		}
+
+	private:
+		Keyboard &keyboard_;
 	};
 	Mouse mouse_;
 };
