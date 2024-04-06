@@ -213,7 +213,7 @@ private:
 			return 3;
 		}
 
-		virtual void set_button_pressed(int index, bool is_pressed) {
+		virtual void set_button_pressed(int index, bool is_pressed) override {
 			keyboard_.set_key_state(7, index, is_pressed);
 		}
 
