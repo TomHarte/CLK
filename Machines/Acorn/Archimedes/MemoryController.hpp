@@ -79,7 +79,7 @@ struct MemoryController {
 		switch(write_zones_[(address >> 21) & 31]) {
 			case Zone::DMAAndMEMC: {
 				const auto buffer_address = [](uint32_t source) -> uint32_t {
-					return (source & 0x1fffc0) << 2;
+					return (source & 0x1'fffc) << 2;
 				};
 
 				// The MEMC itself isn't on the data bus; all values below should be taken from `address`.

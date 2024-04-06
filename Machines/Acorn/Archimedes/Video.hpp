@@ -126,8 +126,6 @@ struct Video {
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
 				address_ = frame_start_;
-				if(address_ == buffer_end_) address_ = buffer_start_;
-
 				entered_sync_ = true;
 				interrupt_observer_.update_interrupts();
 			}
@@ -157,7 +155,12 @@ struct Video {
 			const auto next_byte = [&]() -> uint8_t {
 				const auto next = ram_[address_];
 				++address_;
-				if(address_ == buffer_end_) address_ = buffer_start_;
+
+				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
+				// the +16 here papers over the fact that I'm not accurately implementing DMA.
+				if(address_ == buffer_end_ + 16) {
+					address_ = buffer_start_;
+				}
 				return next;
 			};
 
@@ -284,10 +287,10 @@ struct Video {
 		return interrupt;
 	}
 
-	void set_frame_start(uint32_t address) 	{	frame_start_ = address & 0x7'ffff;	}
-	void set_buffer_start(uint32_t address)	{	buffer_start_ = address & 0x7'ffff;	}
-	void set_buffer_end(uint32_t address)	{	buffer_end_ = address & 0x7'ffff;	}
-	void set_cursor_start(uint32_t address)	{	cursor_start_ = address & 0x7'ffff;	}
+	void set_frame_start(uint32_t address) 	{	frame_start_ = address;		}
+	void set_buffer_start(uint32_t address)	{	buffer_start_ = address;	}
+	void set_buffer_end(uint32_t address)	{	buffer_end_ = address;		}
+	void set_cursor_start(uint32_t address)	{	cursor_start_ = address;	}
 
 	Outputs::CRT::CRT &crt() 				{ return crt_; }
 	const Outputs::CRT::CRT &crt() const	{ return crt_; }
