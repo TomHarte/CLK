@@ -18,6 +18,7 @@
 #include "../../AudioProducer.hpp"
 #include "../../KeyboardMachine.hpp"
 #include "../../MediaTarget.hpp"
+#include "../../MouseMachine.hpp"
 #include "../../ScanProducer.hpp"
 #include "../../TimedMachine.hpp"
 
@@ -322,6 +323,7 @@ class ConcreteMachine:
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
+	public MachineTypes::MouseMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public Activity::Source
@@ -483,6 +485,11 @@ class ConcreteMachine:
 			const int row = Archimedes::KeyboardMapper::row(key);
 			const int column = Archimedes::KeyboardMapper::column(key);
 			executor_.bus.keyboard().set_key_state(row, column, is_pressed);
+		}
+
+		// MARK: - MouseMachine.
+		Inputs::Mouse &get_mouse() override {
+			return executor_.bus.keyboard().mouse();
 		}
 
 		// MARK: - ARM execution

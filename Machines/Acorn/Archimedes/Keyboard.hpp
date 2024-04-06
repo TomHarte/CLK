@@ -11,6 +11,7 @@
 #include "HalfDuplexSerial.hpp"
 
 #include "../../../Outputs/Log.hpp"
+#include "../../../Inputs/Mouse.hpp"
 
 namespace Archimedes {
 
@@ -144,6 +145,10 @@ struct Keyboard {
 		}
 	}
 
+	Inputs::Mouse &mouse() {
+		return mouse_;
+	}
+
 private:
 	HalfDuplexSerial &serial_;
 	Log::Logger<Log::Source::Keyboard> logger_;
@@ -190,6 +195,12 @@ private:
 	static constexpr uint8_t MACK	= 0b0011'0010;	// Last data byte acknowledge, disabling scanning but enabling mouse.
 	static constexpr uint8_t SMAK	= 0b0011'0011;	// Last data byte acknowledge, enabling scanning and mouse.
 	static constexpr uint8_t PRST	= 0b0010'0001;	// Does nothing.
+
+
+	struct Mouse: public Inputs::Mouse {
+
+	};
+	Mouse mouse_;
 };
 
 }
