@@ -56,7 +56,7 @@ struct Video {
 			case 0x40:	border_colour_ = colour(value);	break;
 
 			case 0x44:	case 0x48:	case 0x4c:
-				cursor_colours_[(target - 0x44) >> 2] = colour(value);
+				cursor_colours_[(target - 0x40) >> 2] = colour(value);
 			break;
 
 			case 0x80:	horizontal_timing_.period = timing_value(value);		break;
@@ -65,7 +65,10 @@ struct Video {
 			case 0x8c:	horizontal_timing_.display_start = timing_value(value);	break;
 			case 0x90:	horizontal_timing_.display_end = timing_value(value);	break;
 			case 0x94:	horizontal_timing_.border_end = timing_value(value);	break;
-			case 0x98:	horizontal_timing_.cursor_start = timing_value(value);	break;
+			case 0x98:
+				horizontal_timing_.cursor_start = (value >> 13) & 0x7ff;
+				cursor_shift_ = (value >> 11) & 3;
+			break;
 			case 0x9c:
 				logger.error().append("TODO: Video horizontal interlace: %d", (value >> 14) & 0x3ff);
 			break;
@@ -130,6 +133,31 @@ struct Video {
 				entered_sync_ = true;
 				interrupt_observer_.update_interrupts();
 			}
+
+			// Determine which next 8 bytes will be the cursor image for this line.
+			// Pragmatically, updating cursor_address_ once per line avoids probable
+			// errors in getting it to appear appropriately over both pixels and border.
+			if(vertical_state_.cursor_active) {
+				uint8_t *cursor_pixel = cursor_image_.data();
+				for(int byte = 0; byte < 8; byte ++) {
+					cursor_pixel[0] = (ram_[cursor_address_] >> 0) & 3;
+					cursor_pixel[1] = (ram_[cursor_address_] >> 2) & 3;
+					cursor_pixel[2] = (ram_[cursor_address_] >> 4) & 3;
+					cursor_pixel[3] = (ram_[cursor_address_] >> 6) & 3;
+					cursor_pixel += 4;
+					++cursor_address_;
+				}
+			}
+			cursor_pixel_ = 32;
+		}
+
+		// Update cursor pixel counter if applicable; this might mean triggering it
+		// and it might just mean advancing it if it has already been triggered.
+		if(vertical_state_.cursor_active) {
+			const auto pixel_position = horizontal_state_.position << 1;
+			if(pixel_position <= horizontal_timing_.cursor_start && (pixel_position + 2) > horizontal_timing_.cursor_start) {
+				cursor_pixel_ = int(horizontal_timing_.cursor_start) - int(pixel_position);
+			}
 		}
 
 		// Grab some more pixels if appropriate.
@@ -189,6 +217,26 @@ struct Video {
 
 						pixels_[0] = colours_[next & 0xf];
 						pixels_[1] = colours_[next >> 4];
+
+						// Overlay cursor if applicable.
+						// TODO: have all BPP modes output only two pixels at a time, and pull this out of the loop.
+						// TODO: pull this so far out that the cursor can display over the border, too.
+						if(cursor_pixel_ < 32) {
+							if(cursor_pixel_ >= 0) {
+								const auto colour = cursor_image_[static_cast<size_t>(cursor_pixel_)];
+								if(colour) {
+									pixels_[0] = cursor_colours_[colour];
+								}
+							}
+							if(cursor_pixel_ < 31) {
+								const auto colour = cursor_image_[static_cast<size_t>(cursor_pixel_ + 1)];
+								if(colour) {
+									pixels_[1] = cursor_colours_[colour];
+								}
+							}
+							cursor_pixel_ += 2;
+						}
+
 						pixels_ += 2;
 					} break;
 
@@ -322,6 +370,7 @@ private:
 		uint32_t cursor_start = 0;
 		uint32_t cursor_end = 0;
 	};
+	uint32_t cursor_shift_ = 0;
 	Timing horizontal_timing_, vertical_timing_;
 
 	// Current video state.
@@ -341,12 +390,16 @@ private:
 				display_ended = !timing.display_end;
 				border_started = !timing.border_start;
 				border_ended = !timing.border_end;
+				cursor_active = !timing.cursor_start;
 			} else {
 				sync_active &= position != timing.sync_width;
 				display_started |= position == timing.display_start;
 				display_ended |= position == timing.display_end;
 				border_started |= position == timing.border_start;
 				border_ended |= position == timing.border_end;
+
+				cursor_active |= position == timing.cursor_start;
+				cursor_active &= position != timing.cursor_end;
 			}
 		}
 
@@ -381,12 +434,15 @@ private:
 
 	// Ephemeral address state.
 	uint32_t address_ = 0;
+
 	uint32_t cursor_address_ = 0;
+	int cursor_pixel_ = 0;
+	std::array<uint8_t, 32> cursor_image_;
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
 	std::array<uint16_t, 16> colours_{};
-	std::array<uint16_t, 3> cursor_colours_{};
+	std::array<uint16_t, 4> cursor_colours_{};
 
 	// An interrupt flag; more closely related to the interface by which
 	// my implementation of the IOC picks up an interrupt request than
