@@ -30,19 +30,28 @@ struct Video {
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	}
 
+	static constexpr uint16_t colour(uint32_t value) {
+		uint8_t packed[2]{};
+		packed[0] = value & 0xf;
+		packed[1] = (value & 0xf0) | ((value & 0xf00) >> 8);
+
+#if TARGET_RT_BIG_ENDIAN
+		return static_cast<uint16_t>(packed[1] | (packed[0] << 8));
+#else
+		return static_cast<uint16_t>(packed[0] | (packed[1] << 8));
+#endif
+	};
+	static constexpr uint16_t high_spread[] = {
+		colour(0b0000'0000'0000),	colour(0b0000'0000'1000),	colour(0b0000'0100'0000),	colour(0b0000'0100'1000),
+		colour(0b0000'1000'0000),	colour(0b0000'1000'1000),	colour(0b0000'1100'0000),	colour(0b0000'1100'1000),
+		colour(0b1000'0000'0000),	colour(0b1000'0000'1000),	colour(0b1000'0100'0000),	colour(0b1000'0100'1000),
+		colour(0b1000'1000'0000),	colour(0b1000'1000'1000),	colour(0b1000'1100'0000),	colour(0b1000'1100'1000),
+	};
+
 	void write(uint32_t value) {
 		const auto target = (value >> 24) & 0xfc;
 		const auto timing_value = [](uint32_t value) -> uint32_t {
 			return (value >> 14) & 0x3ff;
-		};
-		const auto colour = [](uint32_t value) -> uint16_t {
-			uint8_t packed[2];
-			packed[0] = value & 0xf;
-			packed[1] = (value & 0xf0) | ((value & 0xf00) >> 8);
-
-			uint16_t result;
-			memcpy(&result, packed, 2);
-			return result;
 		};
 
 		switch(target) {
@@ -202,14 +211,11 @@ struct Video {
 				//	1bpp mode: output one byte every fourth tick.
 				switch(colour_depth_) {
 					case Depth::EightBPP: {
-						// TODO: real 8bpp mapping here.
 						uint8_t next = next_byte();
-						pixels_[0] = colours_[next & 0xf];
+						pixels_[0] = (colours_[next & 0xf] & colour(0b0111'0011'0111)) | high_spread[next >> 4];
 
 						next = next_byte();
-						pixels_[1] = colours_[next & 0xf];
-
-						pixels_ += 2;
+						pixels_[1] = (colours_[next & 0xf] & colour(0b0111'0011'0111)) | high_spread[next >> 4];
 					} break;
 
 					case Depth::FourBPP: {
@@ -217,57 +223,49 @@ struct Video {
 
 						pixels_[0] = colours_[next & 0xf];
 						pixels_[1] = colours_[next >> 4];
-
-						// Overlay cursor if applicable.
-						// TODO: have all BPP modes output only two pixels at a time, and pull this out of the loop.
-						// TODO: pull this so far out that the cursor can display over the border, too.
-						if(cursor_pixel_ < 32) {
-							if(cursor_pixel_ >= 0) {
-								const auto colour = cursor_image_[static_cast<size_t>(cursor_pixel_)];
-								if(colour) {
-									pixels_[0] = cursor_colours_[colour];
-								}
-							}
-							if(cursor_pixel_ < 31) {
-								const auto colour = cursor_image_[static_cast<size_t>(cursor_pixel_ + 1)];
-								if(colour) {
-									pixels_[1] = cursor_colours_[colour];
-								}
-							}
-							cursor_pixel_ += 2;
-						}
-
-						pixels_ += 2;
 					} break;
 
 					case Depth::TwoBPP: {
 						if(!(pixel_count_&1)) {
-							const uint8_t next = next_byte();
-
-							pixels_[0] = colours_[next & 3];
-							pixels_[1] = colours_[(next >> 2) & 3];
-							pixels_[2] = colours_[(next >> 4) & 3];
-							pixels_[3] = colours_[next >> 6];
-							pixels_ += 4;
+							pixel_data_ = next_byte();
 						}
+
+						pixels_[0] = colours_[pixel_data_ & 3];
+						pixels_[1] = colours_[(pixel_data_ >> 2) & 3];
+						pixel_data_ >>= 4;
 					} break;
 
 					case Depth::OneBPP: {
 						if(!(pixel_count_&3)) {
-							const uint8_t next = next_byte();
-
-							pixels_[0] = colours_[next & 1];
-							pixels_[1] = colours_[(next >> 1) & 1];
-							pixels_[2] = colours_[(next >> 2) & 1];
-							pixels_[3] = colours_[(next >> 3) & 1];
-							pixels_[4] = colours_[(next >> 4) & 1];
-							pixels_[5] = colours_[(next >> 5) & 1];
-							pixels_[6] = colours_[(next >> 6) & 1];
-							pixels_[7] = colours_[next >> 7];
-							pixels_ += 8;
+							pixel_data_ = next_byte();
 						}
+
+						pixels_[0] = colours_[pixel_data_ & 1];
+						pixels_[1] = colours_[(pixel_data_ >> 1) & 1];
+						pixel_data_ >>= 2;
 					} break;
 				}
+
+				// Overlay cursor if applicable.
+				// TODO: have all BPP modes output only two pixels at a time, and pull this out of the loop.
+				// TODO: pull this so far out that the cursor can display over the border, too.
+				if(cursor_pixel_ < 32) {
+					if(cursor_pixel_ >= 0) {
+						const auto pixel = cursor_image_[static_cast<size_t>(cursor_pixel_)];
+						if(pixel) {
+							pixels_[0] = cursor_colours_[pixel];
+						}
+					}
+					if(cursor_pixel_ < 31) {
+						const auto pixel = cursor_image_[static_cast<size_t>(cursor_pixel_ + 1)];
+						if(pixel) {
+							pixels_[1] = cursor_colours_[pixel];
+						}
+					}
+					cursor_pixel_ += 2;
+				}
+
+				pixels_ += 2;
 			} else {
 				// TODO: don't assume 4bpp here either.
 				switch(colour_depth_) {
@@ -435,9 +433,13 @@ private:
 	// Ephemeral address state.
 	uint32_t address_ = 0;
 
+	// Horizontal cursor output state.
 	uint32_t cursor_address_ = 0;
 	int cursor_pixel_ = 0;
 	std::array<uint8_t, 32> cursor_image_;
+
+	// Ephemeral graphics data.
+	uint8_t pixel_data_ = 0;
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
