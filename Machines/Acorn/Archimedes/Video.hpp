@@ -247,7 +247,6 @@ struct Video {
 				}
 
 				// Overlay cursor if applicable.
-				// TODO: have all BPP modes output only two pixels at a time, and pull this out of the loop.
 				// TODO: pull this so far out that the cursor can display over the border, too.
 				if(cursor_pixel_ < 32) {
 					if(cursor_pixel_ >= 0) {
@@ -267,7 +266,6 @@ struct Video {
 
 				pixels_ += 2;
 			} else {
-				// TODO: don't assume 4bpp here either.
 				switch(colour_depth_) {
 					case Depth::EightBPP:
 						next_byte();
