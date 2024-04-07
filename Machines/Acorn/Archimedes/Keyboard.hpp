@@ -134,14 +134,29 @@ struct Keyboard {
 					state_ = State::ExpectingACK;
 				break;
 			}
-
-			consider_dequeue();
 		}
+
+		consider_dequeue();
 	}
 
 	void consider_dequeue() {
-		if(state_ == State::Idle && dequeue_next()) {
-			state_ = State::ExpectingBACK;
+		if(state_ == State::Idle) {
+			// If the key event queue is empty, grab as much mouse motion
+			// as available.
+			if(event_queue_.empty()) {
+				const int x = std::clamp(mouse_x_, -0x3f, 0x3f);
+				const int y = std::clamp(mouse_y_, -0x3f, 0x3f);
+				mouse_x_ -= x;
+				mouse_y_ -= y;
+
+				if(x || y) {
+					enqueue(static_cast<uint8_t>(x) & 0x7f, static_cast<uint8_t>(-y) & 0x7f);
+				}
+			}
+
+			if(dequeue_next()) {
+				state_ = State::ExpectingBACK;
+			}
 		}
 	}
 
@@ -201,12 +216,8 @@ private:
 		Mouse(Keyboard &keyboard): keyboard_(keyboard) {}
 
 		void move(int x, int y) override {
-			// For now: just clamp.
-			x = std::clamp(x, -0x3f, 0x3f);
-			y = std::clamp(-y, -0x3f, 0x3f);
-
-			keyboard_.enqueue(static_cast<uint8_t>(x) & 0x7f, static_cast<uint8_t>(y) & 0x7f);
-			keyboard_.consider_dequeue();
+			keyboard_.mouse_x_ += x;
+			keyboard_.mouse_y_ += y;
 		}
 
 		int get_number_of_buttons() override {
@@ -221,6 +232,9 @@ private:
 		Keyboard &keyboard_;
 	};
 	Mouse mouse_;
+
+	int mouse_x_ = 0;
+	int mouse_y_ = 0;
 };
 
 }
