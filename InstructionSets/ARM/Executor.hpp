@@ -29,11 +29,21 @@ DestinationT read_bus(SourceT value) {
 	}
 }
 
+struct NullStatusHandler {
+	void did_set_status() {}
+};
+
 /// A class compatible with the @c OperationMapper definition of a scheduler which applies all actions
 /// immediately, updating either a set of @c Registers or using the templated @c MemoryT to access
 /// memory. No hooks are currently provided for applying realistic timing.
-template <Model model, typename MemoryT>
+///
+/// If a StatusObserverT is specified, it'll receive calls to @c did_set_status() following every direct
+/// write to the status bits — i.e. any change that can affect mode or interrupt flags.
+template <Model model, typename MemoryT, typename StatusObserverT = NullStatusHandler>
 struct Executor {
+	template <typename... Args>
+	Executor(StatusObserverT &observer, Args &&...args) : status_observer_(observer), bus(std::forward<Args>(args)...) {}
+
 	template <typename... Args>
 	Executor(Args &&...args) : bus(std::forward<Args>(args)...) {}
 
@@ -193,6 +203,7 @@ struct Executor {
 			// PSR flags which are not protected by virtue of the processor mode"
 			if(fields.destination() == 15) {
 				registers_.set_status(conditions);
+				status_observer_.did_set_status();
 			} else {
 				// Set N and Z in a unified way.
 				registers_.set_nz(conditions);
@@ -546,6 +557,7 @@ struct Executor {
 				registers_.set_pc(pc_proxy);
 				if constexpr (flags.load_psr()) {
 					registers_.set_status(pc_proxy);
+					status_observer_.did_set_status();
 				}
 			}
 		}
@@ -601,6 +613,12 @@ struct Executor {
 	MemoryT bus;
 
 private:
+	using StatusObserverTStorage =
+		typename std::conditional<
+			std::is_same_v<StatusObserverT, NullStatusHandler>,
+			StatusObserverT,
+			StatusObserverT &>::type;
+	StatusObserverTStorage status_observer_;
 	Registers registers_;
 
 	static bool is_invalid_address(uint32_t address) {
@@ -613,8 +631,8 @@ private:
 
 /// Executes the instruction @c instruction which should have been fetched from @c executor.pc(),
 /// modifying @c executor.
-template <Model model, typename MemoryT>
-void execute(uint32_t instruction, Executor<model, MemoryT> &executor) {
+template <Model model, typename MemoryT, typename StatusObserverT>
+void execute(uint32_t instruction, Executor<model, MemoryT, StatusObserverT> &executor) {
 	executor.set_pc(executor.pc() + 4);
 	dispatch<model>(instruction, executor);
 }

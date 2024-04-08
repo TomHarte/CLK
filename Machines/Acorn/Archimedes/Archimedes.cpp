@@ -390,7 +390,7 @@ class ConcreteMachine:
 		ConcreteMachine(
 			const Analyser::Static::Target &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
-		) : executor_(*this, *this) {
+		) : executor_(*this, *this, *this) {
 			set_clock_rate(ClockRate);
 
 			constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
@@ -414,6 +414,10 @@ class ConcreteMachine:
 			if(requests & InterruptRequests::IRQ) {
 				executor_.registers().interrupt<Exception::IRQ>();
 			}
+		}
+
+		void did_set_status() {
+			update_interrupts();
 		}
 
 		void update_clock_rates() {
@@ -501,7 +505,7 @@ class ConcreteMachine:
 
 		// MARK: - ARM execution
 		static constexpr auto arm_model = InstructionSet::ARM::Model::ARMv2;
-		using Executor = InstructionSet::ARM::Executor<arm_model, MemoryController<ConcreteMachine, ConcreteMachine>>;
+		using Executor = InstructionSet::ARM::Executor<arm_model, MemoryController<ConcreteMachine, ConcreteMachine>, ConcreteMachine>;
 		Executor executor_;
 
 		// MARK: - Yucky, temporary junk.
