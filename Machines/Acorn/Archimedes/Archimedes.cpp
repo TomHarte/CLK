@@ -346,22 +346,28 @@ class ConcreteMachine:
 			//
 			// 	* CPU: 24;
 			//	* video: 24 / video_divider;
+			//	* floppy: 8;
 			//	* timers: 2;
 			//	* sound: 1.
 
 			tick_cpu_video<0, video_divider>();		tick_cpu_video<1, video_divider>();
-			tick_cpu_video<2, video_divider>();		tick_cpu_video<3, video_divider>();
-			tick_cpu_video<4, video_divider>();		tick_cpu_video<5, video_divider>();
+			tick_cpu_video<2, video_divider>();		tick_floppy();
+			tick_cpu_video<3, video_divider>();		tick_cpu_video<4, video_divider>();
+			tick_cpu_video<5, video_divider>();		tick_floppy();
 			tick_cpu_video<6, video_divider>();		tick_cpu_video<7, video_divider>();
-			tick_cpu_video<8, video_divider>();		tick_cpu_video<9, video_divider>();
-			tick_cpu_video<10, video_divider>();	tick_cpu_video<11, video_divider>();
+			tick_cpu_video<8, video_divider>();		tick_floppy();
+			tick_cpu_video<9, video_divider>();		tick_cpu_video<10, video_divider>();
+			tick_cpu_video<11, video_divider>();	tick_floppy();
 			tick_timers();
 
 			tick_cpu_video<12, video_divider>();	tick_cpu_video<13, video_divider>();
-			tick_cpu_video<14, video_divider>();	tick_cpu_video<15, video_divider>();
-			tick_cpu_video<16, video_divider>();	tick_cpu_video<17, video_divider>();
+			tick_cpu_video<14, video_divider>();	tick_floppy();
+			tick_cpu_video<15, video_divider>();	tick_cpu_video<16, video_divider>();
+			tick_cpu_video<17, video_divider>();	tick_floppy();
 			tick_cpu_video<18, video_divider>();	tick_cpu_video<19, video_divider>();
-			tick_cpu_video<20, video_divider>();	tick_cpu_video<21, video_divider>();
+			tick_cpu_video<20, video_divider>();	tick_floppy();
+			tick_cpu_video<21, video_divider>();	tick_cpu_video<22, video_divider>();
+			tick_cpu_video<23, video_divider>();	tick_floppy();
 			tick_timers();
 			tick_sound();
 		}
@@ -457,6 +463,7 @@ class ConcreteMachine:
 		void tick_timers()	{	executor_.bus.tick_timers();	}
 		void tick_sound()	{	executor_.bus.sound().tick();	}
 		void tick_video()	{	executor_.bus.video().tick();	}
+		void tick_floppy()	{	executor_.bus.tick_floppy();	}
 
 		// MARK: - MediaTarget
 		bool insert_media(const Analyser::Static::Media &) override {

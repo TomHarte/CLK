@@ -198,6 +198,7 @@ struct MemoryController {
 	// Expose various IOC-owned things.
 	//
 	void tick_timers()				{	ioc_.tick_timers();		}
+	void tick_floppy() 				{	ioc_.tick_floppy();		}
 
 	auto &sound() 					{	return ioc_.sound();	}
 	const auto &sound() const	 	{	return ioc_.sound();	}

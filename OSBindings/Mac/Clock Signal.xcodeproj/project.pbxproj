@@ -1816,6 +1816,7 @@
 		4BAB1E592BAB5CB90002C9B9 /* CMOSRAM.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CMOSRAM.hpp; sourceTree = "<group>"; };
 		4BAB1E5A2BAB5F400002C9B9 /* InputOutputController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = InputOutputController.hpp; sourceTree = "<group>"; };
 		4BAB1E5B2BAF59CB0002C9B9 /* KeyboardMapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMapper.hpp; sourceTree = "<group>"; };
+		4BAB1E5C2BC3727C0002C9B9 /* FloppyDisc.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FloppyDisc.hpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
@@ -4403,6 +4404,7 @@
 				4BB505842B9634F30031C43C /* Archimedes.cpp */,
 				4BB505852B9634F30031C43C /* Archimedes.hpp */,
 				4BAB1E592BAB5CB90002C9B9 /* CMOSRAM.hpp */,
+				4BAB1E5C2BC3727C0002C9B9 /* FloppyDisc.hpp */,
 				4BAB1E552BAB5B6D0002C9B9 /* HalfDuplexSerial.hpp */,
 				4BAB1E5A2BAB5F400002C9B9 /* InputOutputController.hpp */,
 				4BAB1E542BAB5B3F0002C9B9 /* Keyboard.hpp */,

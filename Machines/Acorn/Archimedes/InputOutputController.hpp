@@ -9,6 +9,7 @@
 #pragma once
 
 #include "CMOSRAM.hpp"
+#include "FloppyDisc.hpp"
 #include "Keyboard.hpp"
 #include "Sound.hpp"
 #include "Video.hpp"
@@ -20,7 +21,6 @@ namespace Archimedes {
 
 // IRQ A flags
 namespace IRQA {
-	// The first four of these are taken from the A500 documentation and may be inaccurate.
 	static constexpr uint8_t PrinterBusy		= 0x01;
 	static constexpr uint8_t SerialRinging		= 0x02;
 	static constexpr uint8_t PrinterAcknowledge	= 0x04;
@@ -28,17 +28,16 @@ namespace IRQA {
 	static constexpr uint8_t PowerOnReset		= 0x10;
 	static constexpr uint8_t Timer0				= 0x20;
 	static constexpr uint8_t Timer1				= 0x40;
-	static constexpr uint8_t SetAlways			= 0x80;
+	static constexpr uint8_t Force				= 0x80;
 }
 
 // IRQ B flags
 namespace IRQB {
-	// These are taken from the A3010 documentation.
 	static constexpr uint8_t PoduleFIQRequest		= 0x01;
 	static constexpr uint8_t SoundBufferPointerUsed	= 0x02;
 	static constexpr uint8_t SerialLine				= 0x04;
 	static constexpr uint8_t IDE					= 0x08;
-	static constexpr uint8_t FloppyDiscInterrupt	= 0x10;
+	static constexpr uint8_t FloppyDiscChanged		= 0x10;
 	static constexpr uint8_t PoduleIRQRequest		= 0x20;
 	static constexpr uint8_t KeyboardTransmitEmpty	= 0x40;
 	static constexpr uint8_t KeyboardReceiveFull	= 0x80;
@@ -46,11 +45,11 @@ namespace IRQB {
 
 // FIQ flags
 namespace FIQ {
-	// These are taken from the A3010 documentation.
 	static constexpr uint8_t FloppyDiscData			= 0x01;
-	static constexpr uint8_t SerialLine				= 0x10;
+	static constexpr uint8_t FloppyDiscInterrupt	= 0x02;
+	static constexpr uint8_t Econet					= 0x04;
 	static constexpr uint8_t PoduleFIQRequest		= 0x40;
-	static constexpr uint8_t SetAlways				= 0x80;
+	static constexpr uint8_t Force					= 0x80;
 }
 
 namespace InterruptRequests {
@@ -111,6 +110,10 @@ struct InputOutputController {
 		if(did_change_interrupts) {
 			observer_.update_interrupts();
 		}
+	}
+
+	void tick_floppy() {
+		floppy_.run_for(Cycles(1));
 	}
 
 	/// Decomposes an Archimedes bus address into bank, offset and type.
@@ -240,6 +243,12 @@ struct InputOutputController {
 					break;
 				}
 			break;
+
+			// Bank 1: the floppy disc controller.
+			case 1:
+				set_byte(floppy_.read(target.offset >> 2));
+//				logger.error().append("Floppy read; offset %02x", target.offset);
+			break;
 		}
 
 		return true;
@@ -344,6 +353,13 @@ struct InputOutputController {
 				}
 			break;
 
+			// Bank 1: the floppy disc controller.
+			case 1:
+//				logger.error().append("Floppy write; %02x to offset %02x", bus_value, target.offset);
+				floppy_.write(target.offset >> 2, byte(bus_value));
+//				set_byte(floppy_.read(target.offset >> 2));
+			break;
+
 			// Bank 5: both the hard disk and the latches, depending on type.
 			case 5:
 				switch(target.type) {
@@ -361,7 +377,7 @@ struct InputOutputController {
 								logger.error().append("TODO: printer data write; %02x", byte(bus_value));
 							break;
 
-							case 0x18:
+							case 0x18: {
 								// TODO, per the A500 documentation:
 								//
 								// Latch B:
@@ -372,23 +388,17 @@ struct InputOutputController {
 								//	b4: printer strobe
 								//	b5: ?
 								//	b6: ?
-								//	b7: HS3?
+								//	b7: Head select 3?
+								const uint8_t value = byte(bus_value);
 
-								logger.error().append("TODO: latch B write; %02x", byte(bus_value));
-							break;
+								floppy_.set_is_double_density(!(value & 0x2));
+								if(value & 0x08) floppy_.reset();
+//								logger.error().append("TODO: latch B write; %02x", byte(bus_value));
+							} break;
 
 							case 0x40: {
-								// TODO, per the A500 documentation:
-								//
-								// Latch A:
-								//	b0, b1, b2, b3 = drive selects;
-								//	b4 = side select;
-								//	b5 = motor on/off
-								//	b6 = floppy in use (i.e. LED?);
-								//	b7 = "Not used."
-
 								const uint8_t value = byte(bus_value);
-//								logger.error().append("TODO: latch A write; %02x", value);
+								floppy_.set_control(value);
 
 								// Set the floppy indicator on if any drive is selected,
 								// because this emulator is compressing them all into a
@@ -445,12 +455,13 @@ struct InputOutputController {
 	InputOutputController(InterruptObserverT &observer, ClockRateObserverT &clock_observer, const uint8_t *ram) :
 		observer_(observer),
 		keyboard_(serial_),
+		floppy_(*this),
 		sound_(*this, ram),
 		video_(*this, clock_observer, sound_, ram)
 	{
-		irq_a_.status = IRQA::SetAlways | IRQA::PowerOnReset;
+		irq_a_.status = IRQA::Force | IRQA::PowerOnReset;
 		irq_b_.status = 0x00;
-		fiq_.status = FIQ::SetAlways;
+		fiq_.status = FIQ::Force;
 
 		i2c_.add_peripheral(&cmos_, 0xa0);
 		update_interrupts();
@@ -473,6 +484,18 @@ struct InputOutputController {
 		if(video_.interrupt()) {
 			irq_a_.set(IRQA::VerticalFlyback);
 		}
+
+//		if(floppy_.get_interrupt_request_line()) {
+//			irq_b_.set(FIQ::FloppyDiscInterrupt);
+//		} else {
+//			irq_b_.clear(FIQ::FloppyDiscInterrupt);
+//		}
+//
+//		if(floppy_.get_data_request_line()) {
+//			irq_b_.set(FIQ::FloppyDiscData);
+//		} else {
+//			irq_b_.clear(FIQ::FloppyDiscData);
+//		}
 
 		observer_.update_interrupts();
 	}
@@ -520,6 +543,9 @@ private:
 
 	// The control register.
 	uint8_t control_ = 0xff;
+
+	// The floppy disc interface.
+	FloppyDisc<InputOutputController> floppy_;
 
 	// The I2C bus.
 	I2C::Bus i2c_;
