@@ -16,7 +16,7 @@ template <typename InterruptObserverT>
 class FloppyDisc: public WD::WD1770, public WD::WD1770::Delegate {
 public:
 	FloppyDisc(InterruptObserverT &observer) : WD::WD1770(P1772), observer_(observer) {
-		emplace_drives(1, 8000000, 300, 2);
+		emplace_drives(4, 8000000, 300, 2);
 		set_delegate(this);
 	}
 
@@ -31,7 +31,9 @@ public:
 		//	b5 = motor on/off
 		//	b6 = floppy in use (i.e. LED?);
 		//	b7 = disc eject/change reset.
+		set_drive((value & 0xf) ^ 0xf);
 		get_drive().set_head(1 ^ ((value >> 4) & 1));
+		get_drive().set_motor_on(!(value & 0x20));
 	}
 	void reset() {}
 
