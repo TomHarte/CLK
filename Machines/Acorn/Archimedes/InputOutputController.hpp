@@ -319,15 +319,15 @@ struct InputOutputController {
 					// Interrupts.
 					case 0x18:
 						irq_a_.mask = byte(bus_value);
-//						logger.error().append("IRQ A mask set to %02x", byte(bus_value));
+						logger.error().append("IRQ A mask set to %02x", byte(bus_value));
 					break;
 					case 0x28:
 						irq_b_.mask = byte(bus_value);
-//						logger.error().append("IRQ B mask set to %02x", byte(bus_value));
+						logger.error().append("IRQ B mask set to %02x", byte(bus_value));
 					break;
 					case 0x38:
 						fiq_.mask = byte(bus_value);
-//						logger.error().append("FIQ mask set to %02x", byte(bus_value));
+						logger.error().append("FIQ mask set to %02x", byte(bus_value));
 					break;
 
 					// Counters.
@@ -430,10 +430,6 @@ struct InputOutputController {
 //				logger.error().append("TODO: exteded external podule space");
 //			return true;
 //
-//			case 0x331'0000 & AddressMask:
-//				logger.error().append("TODO: 1772 / disk write");
-//			return true;
-//
 //			case 0x336'0000 & AddressMask:
 //				logger.error().append("TODO: podule interrupt request");
 //			return true;
@@ -475,27 +471,21 @@ struct InputOutputController {
 	const auto &keyboard() const 	{	return keyboard_;	}
 
 	void update_interrupts() {
-		if(sound_.interrupt()) {
-			irq_b_.set(IRQB::SoundBufferPointerUsed);
-		} else {
-			irq_b_.clear(IRQB::SoundBufferPointerUsed);
-		}
+		const auto set = [&](Interrupt &target, uint8_t flag, bool set) {
+			if(set) {
+				target.set(flag);
+			} else {
+				target.clear(flag);
+			}
+		};
+
+		set(irq_b_, IRQB::SoundBufferPointerUsed, sound_.interrupt());
+		set(fiq_, FIQ::FloppyDiscInterrupt, floppy_.get_interrupt_request_line());
+		set(fiq_, FIQ::FloppyDiscData, floppy_.get_data_request_line());
 
 		if(video_.interrupt()) {
 			irq_a_.set(IRQA::VerticalFlyback);
 		}
-
-//		if(floppy_.get_interrupt_request_line()) {
-//			irq_b_.set(FIQ::FloppyDiscInterrupt);
-//		} else {
-//			irq_b_.clear(FIQ::FloppyDiscInterrupt);
-//		}
-//
-//		if(floppy_.get_data_request_line()) {
-//			irq_b_.set(FIQ::FloppyDiscData);
-//		} else {
-//			irq_b_.clear(FIQ::FloppyDiscData);
-//		}
 
 		observer_.update_interrupts();
 	}
@@ -515,7 +505,7 @@ private:
 
 	// IRQA, IRQB and FIQ states.
 	struct Interrupt {
-		uint8_t status, mask;
+		uint8_t status = 0x00, mask = 0x00;
 		uint8_t request() const {
 			return status & mask;
 		}
@@ -531,9 +521,9 @@ private:
 
 	// The IOCs four counters.
 	struct Counter {
-		uint16_t value;
-		uint16_t reload;
-		uint16_t output;
+		uint16_t value = 0;
+		uint16_t reload = 0;
+		uint16_t output = 0;
 	};
 	Counter counters_[4];
 
