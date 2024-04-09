@@ -87,19 +87,45 @@ Accuracy is a user-experience issue; the more accurate an emulator, the more lik
 This emulator attempts cycle-accurate emulation of all supported machines. In some cases it succeeds.
 
 ## Additional Screenshots
-|<div style="width:50%">&nbsp;</div>                                              |<div style="width:50%">&nbsp;</div>                                              |
-|---------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-|![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png)            |![Archimedes Star Fighter 3000](READMEImages/StarFighter3000.png)
-|![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)                       |![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
-|![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png)                         |![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png)
-|![Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png)                             |![MSX 2 Space Manbow](READMEImages/MSX2SpaceManbow.png)
-|![Amiga James Pond II](READMEImages/AmigaJamesPondII.png)                        |![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
-|![Enterprise HERO](READMEImages/EnterpriseHERO.png)                              |![Microsoft Flight Simulator](READMEImages/PCFlightSimulator.png)
-|![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png)                  |![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)
-|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png)                        |![ZX80 Kong](READMEImages/ZX80Kong.png)
-|![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png)                           |![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
-|![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png)                             |![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
-|![MS-DOS Prompt](READMEImages/MSDOSPrompt.png)                                   |![RISC OS](READMEImages/RISCOS.png)
+<table style="border:none;">
+	<tbody>
+	<tr>
+		<td width=50%><img alt="Apple IIe Prince of Persia" src="READMEImages/AppleIIPrinceOfPersia.png"></td>
+		<td width=50%><img alt="Archimedes Star Fighter 3000" src="READMEImages/StarFighter3000.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Apple Macintosh MusicWorks" src="READMEImages/MusicWorks.png"></td>
+		<td width=50%><img alt="Atari ST Stunt Car Racer" src="READMEImages/STStuntCarRacer.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Amiga Indianapolis 500" src="READMEImages/AmigaIndy500.png"></td>
+		<td width=50%><img alt="Acorn Electron Chuckie Egg" src="READMEImages/ElectronChuckieEgg.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Amstrad CPC Chase HQ" src="READMEImages/CPCChaseHQ.png"></td>
+		<td width=50%><img alt="MSX 2 Space Manbow" src="READMEImages/MSX2SpaceManbow.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Amiga James Pond II" src="READMEImages/AmigaJamesPondII.png"></td>
+		<td width=50%><img alt="Atari 2600 Solaris" src="READMEImages/Atari2600Solaris.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Enterprise HERO" src="READMEImages/EnterpriseHERO.png"></td>
+		<td width=50%><img alt="Microsoft Flight Simulator" src="READMEImages/PCFlightSimulator.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="ColecoVision Galaxian" src="READMEImages/ColecoVisionGalaxian.png"></td>
+		<td width=50%><img alt="SG1000 Chack'n'Pop" src="READMEImages/SGChackNPop.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="ZX81 3D Monster Maze" src="READMEImages/ZX81MonsterMaze.png"></td>
+		<td width=50%><img alt="ZX80 Kong" src="READMEImages/ZX80Kong.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Vic-20 Gridrunner" src="READMEImages/Vic20Gridrunner.png"></td>
+		<td width=50%><img alt="ZX Spectrum Chromatrons Attack" src="READMEImages/ZXSpectrumChromatronsAttack.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="ZX Spectrum Menu" src="READMEImages/ZXSpectrumMenu.png"></td>
+		<td width=50%><img alt="VIC-20 BASIC" src="READMEImages/Vic20BASIC.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="MS-DOS Prompt" src="READMEImages/MSDOSPrompt.png"></td>
+		<td width=50%><img alt="RISC OS" src="READMEImages/RISCOS.png"></td>
+	</tr>
+	</tbody>
+</table>
+
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
