@@ -89,8 +89,8 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 ## Additional Screenshots
 |                                                                                 |                                                                                 |
 |---------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-|![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png)            |![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
-|![Archimedes Star Fighter 3000](READMEImages/StarFighter3000.png)                |![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
+|![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png)            |![Archimedes Star Fighter 3000](READMEImages/StarFighter3000.png)
+|![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)                       |![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
 |![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png)                         |![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png)
 |![Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png)                             |![MSX 2 Space Manbow](READMEImages/MSX2SpaceManbow.png)
 |![Amiga James Pond II](READMEImages/AmigaJamesPondII.png)                        |![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
