@@ -31,6 +31,7 @@ It currently contains emulations of the:
 
 Also present but very much upcoming are the:
 
+* Acorn Archimedes;
 * Commodore Amiga; and
 * early PC compatible.
 
@@ -89,15 +90,16 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 | | |
 |---|---|
 |![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png) | ![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
-|![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png) | ![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
+|![Archimedes Star Fighter 3000](READMEImages/StarFighter3000.png) | ![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
+|![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png) | ![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png)
 |![Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png) | ![MSX 2 Space Manbow](READMEImages/MSX2SpaceManbow.png)
 |![Amiga James Pond II](READMEImages/AmigaJamesPondII.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
-|![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png) | ![Enterprise HERO](READMEImages/EnterpriseHERO.png)
+|![Enterprise HERO](READMEImages/EnterpriseHERO.png) | ![Microsoft Flight Simulator](READMEImages/PCFlightSimulator.png)
 |![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png) | ![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)
-|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![Microsoft Flight Simulator](READMEImages/PCFlightSimulator.png)
+|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
 |![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
 |![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
-|![MS-DOS Prompt](READMEImages/MSDOSPrompt.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
+|![MS-DOS Prompt](READMEImages/MSDOSPrompt.png) | ![RISC OS](READMEImages/RISCOS.png)
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
