@@ -87,7 +87,7 @@ Accuracy is a user-experience issue; the more accurate an emulator, the more lik
 This emulator attempts cycle-accurate emulation of all supported machines. In some cases it succeeds.
 
 ## Additional Screenshots
-|                                                                                 |                                                                                 |
+|<div style="width:50%">                                                          |                                                                                 |
 |---------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 |![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png)            |![Archimedes Star Fighter 3000](READMEImages/StarFighter3000.png)
 |![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)                       |![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
