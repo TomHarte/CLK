@@ -37,6 +37,10 @@ public:
 	}
 	void reset() {}
 
+	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
+		get_drive(drive).set_disk(disk);
+	}
+
 private:
 	InterruptObserverT &observer_;
 };

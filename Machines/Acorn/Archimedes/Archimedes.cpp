@@ -470,15 +470,14 @@ class ConcreteMachine:
 		void tick_floppy()	{	executor_.bus.tick_floppy();	}
 
 		// MARK: - MediaTarget
-		bool insert_media(const Analyser::Static::Media &) override {
-//			int c = 0;
-//			for(auto &disk : media.disks) {
-//				fdc_.set_disk(disk, c);
-//				c++;
-//				if(c == 4) break;
-//			}
-//			return true;
-			return false;
+		bool insert_media(const Analyser::Static::Media &media) override {
+			int c = 0;
+			for(auto &disk : media.disks) {
+				executor_.bus.set_disk(disk, c);
+				c++;
+				if(c == 4) break;
+			}
+			return true;
 		}
 
 		// MARK: - Activity::Source.

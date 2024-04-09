@@ -116,6 +116,10 @@ struct InputOutputController {
 		floppy_.run_for(Cycles(1));
 	}
 
+	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
+		floppy_.set_disk(disk, drive);
+	}
+
 	/// Decomposes an Archimedes bus address into bank, offset and type.
 	struct Address {
 		constexpr Address(uint32_t bus_address) noexcept {
