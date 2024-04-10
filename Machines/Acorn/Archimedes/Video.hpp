@@ -327,6 +327,10 @@ struct Video {
 		return interrupt;
 	}
 
+	bool vsync_active() const {
+		return vertical_state_.phase() == Phase::Sync;
+	}
+
 	void set_frame_start(uint32_t address) 	{	frame_start_ = address;		}
 	void set_buffer_start(uint32_t address)	{	buffer_start_ = address;	}
 	void set_buffer_end(uint32_t address)	{	buffer_end_ = address;		}

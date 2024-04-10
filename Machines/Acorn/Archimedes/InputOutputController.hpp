@@ -180,8 +180,9 @@ struct InputOutputController {
 
 					case 0x00: {
 						uint8_t value = control_ | 0xc0;
-						value &= ~(i2c_.clock() ? 2 : 0);
-						value &= ~(i2c_.data() ? 1 : 0);
+						value &= ~(i2c_.clock() ? 0x02 : 0x00);
+						value &= ~(i2c_.data() ? 0x01 : 0x00);
+						value &= ~(video_.vsync_active() ? 0x80 : 0x00);
 						set_byte(value);
 //						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
 					} break;
