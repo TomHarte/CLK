@@ -132,15 +132,23 @@ struct Video {
 
 		if(horizontal_state_.position == horizontal_timing_.period) {
 			horizontal_state_.position = 0;
+
+			const auto old_phase = vertical_state_.phase();
 			vertical_state_.increment_position(vertical_timing_);
 			pixel_count_ = 0;
-
 			if(vertical_state_.position == vertical_timing_.period) {
 				vertical_state_.position = 0;
-				address_ = frame_start_;
-				cursor_address_ = cursor_start_;
 				entered_sync_ = true;
 				interrupt_observer_.update_interrupts();
+			}
+
+			// I don't have good information on this; first guess: copy frame and
+			// cursor start addresses into counters at the start of the first vertical
+			// display line.
+			const auto phase = vertical_state_.phase();
+			if(phase != old_phase && phase == Phase::Display) {
+				address_ = frame_start_;
+				cursor_address_ = cursor_start_;
 			}
 
 			// Determine which next 8 bytes will be the cursor image for this line.
