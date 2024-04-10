@@ -130,14 +130,11 @@ struct Video {
 		// Pick new horizontal state, possibly rolling over into the vertical.
 		horizontal_state_.increment_position(horizontal_timing_);
 
-		if(horizontal_state_.position == horizontal_timing_.period) {
-			horizontal_state_.position = 0;
-
+		if(horizontal_state_.did_restart()) {
 			const auto old_phase = vertical_state_.phase();
 			vertical_state_.increment_position(vertical_timing_);
 			pixel_count_ = 0;
-			if(vertical_state_.position == vertical_timing_.period) {
-				vertical_state_.position = 0;
+			if(vertical_state_.did_restart()) {
 				entered_sync_ = true;
 				interrupt_observer_.update_interrupts();
 			}
@@ -168,6 +165,45 @@ struct Video {
 			cursor_pixel_ = 32;
 		}
 
+		// Accumulate total phase.
+		++time_in_phase_;
+
+		// Determine current output phase.
+		Phase new_phase;
+		switch(vertical_state_.phase()) {
+			case Phase::Sync:	new_phase = Phase::Sync;	break;
+			case Phase::Blank:	new_phase = Phase::Blank;	break;
+			case Phase::Border:
+				new_phase = horizontal_state_.phase() == Phase::Display ? Phase::Border : horizontal_state_.phase();
+			break;
+			case Phase::Display:
+				new_phase = horizontal_state_.phase();
+			break;
+		}
+
+		const auto flush_pixels = [&]() {
+			const auto duration = static_cast<int>(time_in_phase_);
+			crt_.output_data(duration, static_cast<size_t>(time_in_phase_) * 2);
+			time_in_phase_ = 0;
+			pixels_ = nullptr;
+		};
+
+		// Possibly output something.
+		if(new_phase != phase_) {
+			if(time_in_phase_) {
+				const auto duration = static_cast<int>(time_in_phase_);
+
+				switch(phase_) {
+					case Phase::Sync:		crt_.output_sync(duration);									break;
+					case Phase::Blank:		crt_.output_blank(duration);								break;
+					case Phase::Display:	flush_pixels();												break;
+					case Phase::Border:		crt_.output_level<uint16_t>(duration, border_colour_);		break;
+				}
+				time_in_phase_ = 0;
+			}
+			phase_ = new_phase;
+		}
+
 		// Update cursor pixel counter if applicable; this might mean triggering it
 		// and it might just mean advancing it if it has already been triggered.
 		if(vertical_state_.cursor_active) {
@@ -178,12 +214,39 @@ struct Video {
 		}
 
 		// Grab some more pixels if appropriate.
-		const auto flush_pixels = [&]() {
-			const auto duration = static_cast<int>(time_in_phase_);
-			crt_.output_data(duration, static_cast<size_t>(time_in_phase_) * 2);
-			time_in_phase_ = 0;
-			pixels_ = nullptr;
-		};
+		if(vertical_state_.display_active() && horizontal_state_.display_active()) {
+			const auto next_byte = [&]() -> uint8_t {
+				const auto next = ram_[address_];
+				++address_;
+
+				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
+				// the +16 here papers over the fact that I'm not accurately implementing DMA.
+				if(address_ == buffer_end_ + 16) {
+					address_ = buffer_start_;
+				}
+				return next;
+			};
+
+			switch(colour_depth_) {
+				case Depth::EightBPP:
+					pixel_data_[0] = next_byte();
+					pixel_data_[1] = next_byte();
+				break;
+				case Depth::FourBPP:
+					pixel_data_[0] = next_byte();
+				break;
+				case Depth::TwoBPP:
+					if(!(pixel_count_&1)) {
+						pixel_data_[0] = next_byte();
+					}
+				break;
+				case Depth::OneBPP:
+					if(!(pixel_count_&3)) {
+						pixel_data_[0] = next_byte();
+					}
+				break;
+			}
+		}
 
 		if(phase_ == Phase::Display) {
 			if(pixels_ && time_in_phase_ == PixelBufferSize/2) {
@@ -198,17 +261,6 @@ struct Video {
 				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
 			}
 
-			const auto next_byte = [&]() -> uint8_t {
-				const auto next = ram_[address_];
-				++address_;
-
-				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
-				// the +16 here papers over the fact that I'm not accurately implementing DMA.
-				if(address_ == buffer_end_ + 16) {
-					address_ = buffer_start_;
-				}
-				return next;
-			};
 
 			if(pixels_) {
 				// Each tick in here is two ticks of the pixel clock, so:
@@ -218,40 +270,27 @@ struct Video {
 				//	2bpp mode: output one byte every second tick;
 				//	1bpp mode: output one byte every fourth tick.
 				switch(colour_depth_) {
-					case Depth::EightBPP: {
-						uint8_t next = next_byte();
-						pixels_[0] = (colours_[next & 0xf] & colour(0b0111'0011'0111)) | high_spread[next >> 4];
+					case Depth::EightBPP:
+						pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
+						pixels_[1] = (colours_[pixel_data_[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[1] >> 4];
+					break;
 
-						next = next_byte();
-						pixels_[1] = (colours_[next & 0xf] & colour(0b0111'0011'0111)) | high_spread[next >> 4];
-					} break;
+					case Depth::FourBPP:
+						pixels_[0] = colours_[pixel_data_[0] & 0xf];
+						pixels_[1] = colours_[pixel_data_[0] >> 4];
+					break;
 
-					case Depth::FourBPP: {
-						const uint8_t next = next_byte();
+					case Depth::TwoBPP:
+						pixels_[0] = colours_[pixel_data_[0] & 3];
+						pixels_[1] = colours_[(pixel_data_[0] >> 2) & 3];
+						pixel_data_[0] >>= 4;
+					break;
 
-						pixels_[0] = colours_[next & 0xf];
-						pixels_[1] = colours_[next >> 4];
-					} break;
-
-					case Depth::TwoBPP: {
-						if(!(pixel_count_&1)) {
-							pixel_data_ = next_byte();
-						}
-
-						pixels_[0] = colours_[pixel_data_ & 3];
-						pixels_[1] = colours_[(pixel_data_ >> 2) & 3];
-						pixel_data_ >>= 4;
-					} break;
-
-					case Depth::OneBPP: {
-						if(!(pixel_count_&3)) {
-							pixel_data_ = next_byte();
-						}
-
-						pixels_[0] = colours_[pixel_data_ & 1];
-						pixels_[1] = colours_[(pixel_data_ >> 1) & 1];
-						pixel_data_ >>= 2;
-					} break;
+					case Depth::OneBPP:
+						pixels_[0] = colours_[pixel_data_[0] & 1];
+						pixels_[1] = colours_[(pixel_data_[0] >> 1) & 1];
+						pixel_data_[0] >>= 2;
+					break;
 				}
 
 				// Overlay cursor if applicable.
@@ -269,68 +308,16 @@ struct Video {
 							pixels_[1] = cursor_colours_[pixel];
 						}
 					}
-					cursor_pixel_ += 2;
 				}
 
 				pixels_ += 2;
-			} else {
-				switch(colour_depth_) {
-					case Depth::EightBPP:
-						next_byte();
-						next_byte();
-					break;
-					case Depth::FourBPP:
-						next_byte();
-					break;
-					case Depth::TwoBPP:
-						if(!(pixel_count_&1)) {
-							next_byte();
-						}
-					break;
-					case Depth::OneBPP:
-						if(!(pixel_count_&3)) {
-							next_byte();
-						}
-					break;
-				}
 			}
 
 			++pixel_count_;
 		}
 
-		// Accumulate total phase.
-		++time_in_phase_;
-
-		// Determine current output phase.
-		Phase new_phase;
-		switch(vertical_state_.phase()) {
-			case Phase::Sync:	new_phase = Phase::Sync;	break;
-			case Phase::Blank:	new_phase = Phase::Blank;	break;
-			case Phase::Border:
-				new_phase = horizontal_state_.phase() == Phase::Display ? Phase::Border : horizontal_state_.phase();
-			break;
-			case Phase::Display:
-				new_phase = horizontal_state_.phase();
-			break;
-		}
-
-		// Possibly output something.
-		if(new_phase != phase_) {
-			if(time_in_phase_) {
-				const auto duration = static_cast<int>(time_in_phase_);
-
-				switch(phase_) {
-					case Phase::Sync:		crt_.output_sync(duration);									break;
-					case Phase::Blank:		crt_.output_blank(duration);								break;
-					case Phase::Display:	flush_pixels();												break;
-					case Phase::Border:		crt_.output_level<uint16_t>(duration, border_colour_);		break;
-				}
-				time_in_phase_ = 0;
-			}
-
-			phase_ = new_phase;
-		}
-	}
+		// Advance cursor position.
+		if(cursor_pixel_ < 32) cursor_pixel_ += 2;	}
 
 	/// @returns @c true if a vertical retrace interrupt has been signalled since the last call to @c interrupt(); @c false otherwise.
 	bool interrupt() {
@@ -389,36 +376,52 @@ private:
 			if(position == 1024) position = 0;
 
 			if(position == timing.period) {
-				sync_active = timing.sync_width;
-				display_started = !timing.display_start;
-				display_ended = !timing.display_end;
-				border_started = !timing.border_start;
-				border_ended = !timing.border_end;
-				cursor_active = !timing.cursor_start;
-			} else {
-				sync_active &= position != timing.sync_width;
-				display_started |= position == timing.display_start;
-				display_ended |= position == timing.display_end;
-				border_started |= position == timing.border_start;
-				border_ended |= position == timing.border_end;
-
-				cursor_active |= position == timing.cursor_start;
-				cursor_active &= position != timing.cursor_end;
+				state = DidRestart;
+				position = 0;
 			}
+
+			if(position == timing.sync_width)		state |= SyncEnded;
+			if(position == timing.display_start)	state |= DisplayStarted;
+			if(position == timing.display_end)		state |= DisplayEnded;
+			if(position == timing.border_start)		state |= BorderStarted;
+			if(position == timing.border_end)		state |= BorderEnded;
+
+			cursor_active |= position == timing.cursor_start;
+			cursor_active &= position != timing.cursor_end;
 		}
 
-		bool sync_active = true;
-		bool border_started = false;
-		bool border_ended = false;
-		bool display_started = false;
-		bool display_ended = false;
+		static constexpr uint8_t SyncEnded = 0x1;
+		static constexpr uint8_t BorderStarted = 0x2;
+		static constexpr uint8_t BorderEnded = 0x4;
+		static constexpr uint8_t DisplayStarted = 0x8;
+		static constexpr uint8_t DisplayEnded = 0x10;
+		static constexpr uint8_t DidRestart = 0x20;
+		uint8_t state = 0;
+
 		bool cursor_active = false;
 
+		bool did_restart() {
+			const bool result = state & DidRestart;
+			state &= ~DidRestart;
+			return result;
+		}
+
+		bool display_active() const {
+			return (state & DisplayStarted) && !(state & DisplayEnded);
+		}
+
 		Phase phase() const {
-			if(sync_active) return Phase::Sync;
-			if(display_started && !display_ended) return Phase::Display;
-			if(border_started && !border_ended) return Phase::Border;
-			return Phase::Blank;
+			// TODO: turn the following logic into a 32-entry lookup table.
+			if(!(state & SyncEnded)) {
+				return Phase::Sync;
+			}
+			if(!(state & BorderStarted) || (state & BorderEnded)) {
+				return Phase::Blank;
+			}
+			if(!(state & DisplayStarted) || (state & DisplayEnded)) {
+				return Phase::Border;
+			}
+			return Phase::Display;
 		}
 	};
 	State horizontal_state_, vertical_state_;
@@ -445,7 +448,7 @@ private:
 	std::array<uint8_t, 32> cursor_image_;
 
 	// Ephemeral graphics data.
-	uint8_t pixel_data_ = 0;
+	uint8_t pixel_data_[2]{};
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
