@@ -16,6 +16,7 @@
 
 #include "../../../Outputs/Log.hpp"
 #include "../../../Activity/Observer.hpp"
+#include "../../../ClockReceiver/ClockingHintSource.hpp"
 
 namespace Archimedes {
 
@@ -58,7 +59,24 @@ namespace InterruptRequests {
 };
 
 template <typename InterruptObserverT, typename ClockRateObserverT>
-struct InputOutputController {
+struct InputOutputController: public ClockingHint::Observer {
+	InputOutputController(InterruptObserverT &observer, ClockRateObserverT &clock_observer, const uint8_t *ram) :
+		observer_(observer),
+		keyboard_(serial_),
+		floppy_(*this),
+		sound_(*this, ram),
+		video_(*this, clock_observer, sound_, ram)
+	{
+		irq_a_.status = IRQA::Force | IRQA::PowerOnReset;
+		irq_b_.status = 0x00;
+		fiq_.status = FIQ::Force;
+
+		floppy_.set_clocking_hint_observer(this);
+
+		i2c_.add_peripheral(&cmos_, 0xa0);
+		update_interrupts();
+	}
+
 	int interrupt_mask() const {
 		return
 			((irq_a_.request() | irq_b_.request()) ? InterruptRequests::IRQ : 0) |
@@ -113,7 +131,9 @@ struct InputOutputController {
 	}
 
 	void tick_floppy() {
-		floppy_.run_for(Cycles(1));
+		if(floppy_clocking_ != ClockingHint::Preference::None) {
+			floppy_.run_for(Cycles(1));
+		}
 	}
 
 	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
@@ -453,21 +473,6 @@ struct InputOutputController {
 		return true;
 	}
 
-	InputOutputController(InterruptObserverT &observer, ClockRateObserverT &clock_observer, const uint8_t *ram) :
-		observer_(observer),
-		keyboard_(serial_),
-		floppy_(*this),
-		sound_(*this, ram),
-		video_(*this, clock_observer, sound_, ram)
-	{
-		irq_a_.status = IRQA::Force | IRQA::PowerOnReset;
-		irq_b_.status = 0x00;
-		fiq_.status = FIQ::Force;
-
-		i2c_.add_peripheral(&cmos_, 0xa0);
-		update_interrupts();
-	}
-
 	auto &sound() 					{	return sound_;	}
 	const auto &sound() const		{	return sound_;	}
 	auto &video()			 		{	return video_;	}
@@ -541,6 +546,10 @@ private:
 
 	// The floppy disc interface.
 	FloppyDisc<InputOutputController> floppy_;
+	ClockingHint::Preference floppy_clocking_ = ClockingHint::Preference::None;
+	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) override {
+		floppy_clocking_ = clocking;
+	}
 
 	// The I2C bus.
 	I2C::Bus i2c_;
