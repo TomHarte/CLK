@@ -246,6 +246,7 @@ struct Video {
 					}
 				break;
 			}
+			++pixel_count_;
 		}
 
 		if(phase_ == Phase::Display) {
@@ -260,7 +261,6 @@ struct Video {
 
 				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
 			}
-
 
 			if(pixels_) {
 				// Each tick in here is two ticks of the pixel clock, so:
@@ -312,8 +312,6 @@ struct Video {
 
 				pixels_ += 2;
 			}
-
-			++pixel_count_;
 		}
 
 		// Advance cursor position.
