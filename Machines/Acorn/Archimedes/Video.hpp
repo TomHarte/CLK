@@ -317,7 +317,8 @@ struct Video {
 		}
 
 		// Advance cursor position.
-		if(cursor_pixel_ < 32) cursor_pixel_ += 2;	}
+		if(cursor_pixel_ < 32) cursor_pixel_ += 2;
+	}
 
 	/// @returns @c true if a vertical retrace interrupt has been signalled since the last call to @c interrupt(); @c false otherwise.
 	bool interrupt() {
