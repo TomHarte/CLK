@@ -224,15 +224,15 @@ struct InputOutputController {
 					// FIQ.
 					case 0x30:
 						set_byte(fiq_.status);
-						logger.error().append("FIQ status is %02x", fiq_.status);
+//						logger.error().append("FIQ status is %02x", fiq_.status);
 					break;
 					case 0x34:
 						set_byte(fiq_.request());
-						logger.error().append("FIQ request is %02x", fiq_.request());
+//						logger.error().append("FIQ request is %02x", fiq_.request());
 					break;
 					case 0x38:
 						set_byte(fiq_.mask);
-						logger.error().append("FIQ mask is %02x", fiq_.mask);
+//						logger.error().append("FIQ mask is %02x", fiq_.mask);
 					break;
 
 					// Counters.
@@ -323,15 +323,15 @@ struct InputOutputController {
 					// Interrupts.
 					case 0x18:
 						irq_a_.mask = byte(bus_value);
-						logger.error().append("IRQ A mask set to %02x", byte(bus_value));
+//						logger.error().append("IRQ A mask set to %02x", byte(bus_value));
 					break;
 					case 0x28:
 						irq_b_.mask = byte(bus_value);
-						logger.error().append("IRQ B mask set to %02x", byte(bus_value));
+//						logger.error().append("IRQ B mask set to %02x", byte(bus_value));
 					break;
 					case 0x38:
 						fiq_.mask = byte(bus_value);
-						logger.error().append("FIQ mask set to %02x", byte(bus_value));
+//						logger.error().append("FIQ mask set to %02x", byte(bus_value));
 					break;
 
 					// Counters.
