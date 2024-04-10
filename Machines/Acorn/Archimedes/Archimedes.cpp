@@ -430,7 +430,7 @@ class ConcreteMachine:
 			executor_.bus.video().crt().set_scan_target(scan_target);
 		}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-			return executor_.bus.video().crt().get_scaled_scan_status();
+			return executor_.bus.video().crt().get_scaled_scan_status() * video_divider_;
 		}
 
 		// MARK: - TimedMachine.
@@ -471,7 +471,7 @@ class ConcreteMachine:
 
 		// MARK: - MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) override {
-			int c = 0;
+			size_t c = 0;
 			for(auto &disk : media.disks) {
 				executor_.bus.set_disk(disk, c);
 				c++;
