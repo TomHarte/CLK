@@ -134,18 +134,20 @@ struct Video {
 			const auto old_phase = vertical_state_.phase();
 			vertical_state_.increment_position(vertical_timing_);
 			pixel_count_ = 0;
-			if(vertical_state_.did_restart()) {
-				entered_sync_ = true;
-				interrupt_observer_.update_interrupts();
-			}
 
-			// I don't have good information on this; first guess: copy frame and
-			// cursor start addresses into counters at the start of the first vertical
-			// display line.
 			const auto phase = vertical_state_.phase();
-			if(phase != old_phase && phase == Phase::Display) {
-				address_ = frame_start_;
-				cursor_address_ = cursor_start_;
+			if(phase != old_phase) {
+				// I don't have good information on this; first guess: copy frame and
+				// cursor start addresses into counters at the start of the first vertical
+				// display line.
+				if(phase == Phase::Display) {
+					address_ = frame_start_;
+					cursor_address_ = cursor_start_;
+				}
+				if(old_phase == Phase::Display) {
+					entered_flyback_ = true;
+					interrupt_observer_.update_interrupts();
+				}
 			}
 
 			// Determine which next 8 bytes will be the cursor image for this line.
@@ -321,13 +323,13 @@ struct Video {
 	/// @returns @c true if a vertical retrace interrupt has been signalled since the last call to @c interrupt(); @c false otherwise.
 	bool interrupt() {
 		// Guess: edge triggered?
-		const bool interrupt = entered_sync_;
-		entered_sync_ = false;
+		const bool interrupt = entered_flyback_;
+		entered_flyback_ = false;
 		return interrupt;
 	}
 
-	bool vsync_active() const {
-		return vertical_state_.phase() == Phase::Sync;
+	bool flyback_active() const {
+		return vertical_state_.phase() != Phase::Display;
 	}
 
 	void set_frame_start(uint32_t address) 	{	frame_start_ = address;		}
@@ -461,7 +463,7 @@ private:
 	// An interrupt flag; more closely related to the interface by which
 	// my implementation of the IOC picks up an interrupt request than
 	// to hardware.
-	bool entered_sync_ = false;
+	bool entered_flyback_ = false;
 
 	// The divider that would need to be applied to a 24Mhz clock to
 	// get half the current pixel clock; counting is in units of half
