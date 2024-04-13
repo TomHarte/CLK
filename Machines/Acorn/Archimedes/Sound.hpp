@@ -20,7 +20,7 @@ template <typename InterruptObserverT>
 struct Sound {
 	Sound(InterruptObserverT &observer, const uint8_t *ram) : ram_(ram), observer_(observer) {
 		speaker_.set_input_rate(1'000'000);
-		speaker_.set_high_frequency_cutoff(10'000.0f);	// Complete guess as to frequency.
+		speaker_.set_high_frequency_cutoff(2'200.0f);
 	}
 
 	void set_next_end(uint32_t value) {
