@@ -96,6 +96,7 @@ struct MemoryController {
 					case 0b111:
 						os_mode_ = address & (1 << 12);
 						sound_dma_enable_ = address & (1 << 11);
+						ioc_.sound().set_dma_enabled(sound_dma_enable_);
 						video_dma_enable_ = address & (1 << 10);
 						switch((address >> 8) & 3) {
 							default:
@@ -201,6 +202,10 @@ struct MemoryController {
 	void tick_floppy() 				{	ioc_.tick_floppy();		}
 	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 		ioc_.set_disk(disk, drive);
+	}
+
+	Outputs::Speaker::Speaker *speaker() {
+		return ioc_.sound().speaker();
 	}
 
 	auto &sound() 					{	return ioc_.sound();	}

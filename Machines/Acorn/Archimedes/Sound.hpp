@@ -61,6 +61,9 @@ struct Sound: private SoundLevels {
 	void set_next_start(uint32_t value) {
 		next_.start = value;
 		set_buffer_valid(true);	// My guess: this is triggered on next buffer start write.
+
+		// Definitely wrong; testing.
+//		set_halted(false);
 	}
 
 	bool interrupt() const {
@@ -89,9 +92,20 @@ struct Sound: private SoundLevels {
 		positions_[channel].left = 6 - positions_[channel].right;
 	}
 
+	void set_dma_enabled(bool enabled) {
+		dma_enabled_ = enabled;
+	}
+
 	void tick() {
-		// Do nothing if not currently outputting.
-		if(halted_) {
+		// Write silence if not currently outputting.
+		if(halted_ || !dma_enabled_) {
+			samples_[byte_].left = samples_[byte_].right = 0;
+			++byte_;
+			if(byte_ == 16) {
+				speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), 16);
+				byte_ = 0;
+			}
+
 			return;
 		}
 
@@ -101,11 +115,15 @@ struct Sound: private SoundLevels {
 		divider_ = reload_;
 
 		// Grab a single byte from the FIFO.
-		// TODO: and convert to a linear value, apply stereo image, output.
+		const uint8_t raw = ram_[current_.start + byte_];
+		// TODO: volume, pan.
+		samples_[byte_].left = levels[raw];
+		samples_[byte_].right = 0;
 		++byte_;
 
 		// If the FIFO is exhausted, consider triggering a DMA request.
 		if(byte_ == 16) {
+			speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), 16);
 			byte_ = 0;
 
 			current_.start += 16;
@@ -117,6 +135,10 @@ struct Sound: private SoundLevels {
 				}
 			}
 		}
+	}
+
+	Outputs::Speaker::Speaker *speaker() {
+		return &speaker_;
 	}
 
 private:
@@ -132,6 +154,7 @@ private:
 
 	void set_halted(bool halted) {
 		if(halted_ != halted && !halted) {
+			speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), byte_);
 			byte_ = 0;
 			divider_ = reload_;
 		}
@@ -140,6 +163,7 @@ private:
 
 	bool next_buffer_valid_ = false;
 	bool halted_ = true;				// This is a bit of a guess.
+	bool dma_enabled_ = false;
 
 	struct Buffer {
 		uint32_t start = 0, end = 0;
@@ -154,6 +178,7 @@ private:
 	InterruptObserverT &observer_;
 	Outputs::Speaker::PushLowpass<true> speaker_;
 	Concurrency::AsyncTaskQueue<true> queue_;
+	std::array<Outputs::Speaker::StereoSample, 16> samples_;
 };
 
 }

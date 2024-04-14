@@ -321,6 +321,7 @@ struct HackyDebugger {
 
 class ConcreteMachine:
 	public Machine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
@@ -478,6 +479,11 @@ class ConcreteMachine:
 				if(c == 4) break;
 			}
 			return true;
+		}
+
+		// MARK: - AudioProducer
+		Outputs::Speaker::Speaker *get_speaker() override {
+			return executor_.bus.speaker();
 		}
 
 		// MARK: - Activity::Source.
