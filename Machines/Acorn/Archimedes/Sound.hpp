@@ -11,13 +11,44 @@
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace Archimedes {
 
+// Generate lookup table for sound output levels, and hold it only once regardless
+// of how many template instantiations there are of @c Sound.
+static constexpr std::array<int16_t, 256> generate_levels() {
+	std::array<int16_t, 256> result{};
+
+	// There are 8 segments of 16 steps; each segment is a linear
+	// interpolation from its start level to its end level and
+	// each level is double the previous.
+	//
+	// Bit 7 provides a sign.
+
+	for(size_t c = 0; c < 256; c++) {
+		const bool is_negative = c & 128;
+		const auto point = static_cast<int>(c & 0xf);
+		const auto chord = static_cast<int>((c >> 4) & 7);
+
+		const int start = (1 << chord) - 1;
+		const int end = (chord == 7) ? 247 : ((start << 1) + 1);
+
+		const int level = start * (16 - point) + end * point;
+		result[c] = static_cast<int16_t>((level * 32767) / 3832);
+		if(is_negative) result[c] = -result[c];
+	}
+
+	return result;
+}
+struct SoundLevels {
+	static constexpr auto levels = generate_levels();
+};
+
 /// Models the Archimedes sound output; in a real machine this is a joint efort between the VIDC and the MEMC.
 template <typename InterruptObserverT>
-struct Sound {
+struct Sound: private SoundLevels {
 	Sound(InterruptObserverT &observer, const uint8_t *ram) : ram_(ram), observer_(observer) {
 		speaker_.set_input_rate(1'000'000);
 		speaker_.set_high_frequency_cutoff(2'200.0f);
