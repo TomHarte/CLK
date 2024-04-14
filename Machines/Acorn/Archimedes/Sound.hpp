@@ -99,42 +99,38 @@ struct Sound: private SoundLevels {
 	void tick() {
 		// Write silence if not currently outputting.
 		if(halted_ || !dma_enabled_) {
-			samples_[byte_].left = samples_[byte_].right = 0;
-			++byte_;
-			if(byte_ == 16) {
-				speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), 16);
-				byte_ = 0;
-			}
-
+			post_sample(Outputs::Speaker::StereoSample());
 			return;
 		}
 
 		// Apply user-programmed clock divider.
 		--divider_;
-		if(divider_) return;
-		divider_ = reload_;
+		if(!divider_) {
+			divider_ = reload_;
 
-		// Grab a single byte from the FIFO.
-		const uint8_t raw = ram_[current_.start + byte_];
-		// TODO: volume, pan.
-		samples_[byte_].left = levels[raw];
-		samples_[byte_].right = 0;
-		++byte_;
+			// Grab a single byte from the FIFO.
+			const uint8_t raw = ram_[static_cast<std::size_t>(current_.start + byte_)];
+			sample_ = Outputs::Speaker::StereoSample(	// TODO: pan, volume.
+				levels[raw],
+				levels[raw]
+			);
+			++byte_;
 
-		// If the FIFO is exhausted, consider triggering a DMA request.
-		if(byte_ == 16) {
-			speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), 16);
-			byte_ = 0;
+			// If the FIFO is exhausted, consider triggering a DMA request.
+			if(byte_ == 16) {
+				byte_ = 0;
 
-			current_.start += 16;
-			if(current_.start == current_.end) {
-				if(next_buffer_valid_) {
-					swap();
-				} else {
-					set_halted(true);
+				current_.start += 16;
+				if(current_.start == current_.end) {
+					if(next_buffer_valid_) {
+						swap();
+					} else {
+						set_halted(true);
+					}
 				}
 			}
 		}
+		post_sample(sample_);
 	}
 
 	Outputs::Speaker::Speaker *speaker() {
@@ -154,7 +150,6 @@ private:
 
 	void set_halted(bool halted) {
 		if(halted_ != halted && !halted) {
-			speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), byte_);
 			byte_ = 0;
 			divider_ = reload_;
 		}
@@ -178,7 +173,19 @@ private:
 	InterruptObserverT &observer_;
 	Outputs::Speaker::PushLowpass<true> speaker_;
 	Concurrency::AsyncTaskQueue<true> queue_;
-	std::array<Outputs::Speaker::StereoSample, 16> samples_;
+
+	// TODO: thread this stuff up properly.
+	void post_sample(Outputs::Speaker::StereoSample sample) {
+		(void)sample;
+		samples_[sample_pointer_++] = Outputs::Speaker::StereoSample(sample_pointer_ & 512 ? 32767 : 0, 0);
+		if(sample_pointer_ == samples_.size()) {
+			speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), samples_.size());
+			sample_pointer_ = 0;
+		}
+	}
+	std::size_t sample_pointer_ = 0;
+	std::array<Outputs::Speaker::StereoSample, 1024> samples_;
+	Outputs::Speaker::StereoSample sample_;
 };
 
 }
