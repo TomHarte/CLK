@@ -384,6 +384,7 @@ class ConcreteMachine:
 			// Debug mode: run CPU a lot slower. Actually at close to original advertised MIPS speed.
 			if constexpr (offset & 7) return;
 #endif
+			if constexpr (offset & 1) return;
 			tick_cpu();
 		}
 
