@@ -58,6 +58,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	vertical_flywheel_output_divider_ = (real_clock_scan_period + 65534) / 65535;
 
 	// Communicate relevant fields to the scan target.
+	scan_target_modals_.cycles_per_line = cycles_per_line;
 	scan_target_modals_.output_scale.x = uint16_t(horizontal_flywheel_->get_scan_period());
 	scan_target_modals_.output_scale.y = uint16_t(real_clock_scan_period / vertical_flywheel_output_divider_);
 	scan_target_modals_.expected_vertical_lines = height_of_display;
@@ -117,13 +118,26 @@ void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displ
 		case Outputs::Display::Type::PAL50:
 		case Outputs::Display::Type::PAL60:
 			scan_target_modals_.intended_gamma = 2.8f;
-			set_new_timing(cycles_per_line, (displayType == Outputs::Display::Type::PAL50) ? 312 : 262, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);
-					// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
+			set_new_timing(
+				cycles_per_line,
+				(displayType == Outputs::Display::Type::PAL50) ? 312 : 262,
+				PAL::ColourSpace,
+				PAL::ColourCycleNumerator,
+				PAL::ColourCycleDenominator,
+				PAL::VerticalSyncLength,
+				PAL::AlternatesPhase);
 		break;
 
 		case Outputs::Display::Type::NTSC60:
 			scan_target_modals_.intended_gamma = 2.2f;
-			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);			// i.e. 227.5 colour cycles per line, 3 lines = vertical sync.
+			set_new_timing(
+				cycles_per_line,
+				262,
+				NTSC::ColourSpace,
+				NTSC::ColourCycleNumerator,
+				NTSC::ColourCycleDenominator,
+				NTSC::VerticalSyncLength,
+				NTSC::AlternatesPhase);
 		break;
 	}
 }
@@ -150,7 +164,6 @@ CRT::CRT(	int cycles_per_line,
 			bool should_alternate,
 			Outputs::Display::InputDataType data_type) {
 	scan_target_modals_.input_data_type = data_type;
-	scan_target_modals_.cycles_per_line = cycles_per_line;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
@@ -160,7 +173,6 @@ CRT::CRT(	int cycles_per_line,
 			Outputs::Display::Type display_type,
 			Outputs::Display::InputDataType data_type) {
 	scan_target_modals_.input_data_type = data_type;
-	scan_target_modals_.cycles_per_line = cycles_per_line;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_display_type(cycles_per_line, display_type);
 }
@@ -171,11 +183,13 @@ CRT::CRT(int cycles_per_line,
 	int vertical_sync_half_lines,
 	Outputs::Display::InputDataType data_type) {
 	scan_target_modals_.input_data_type = data_type;
-	scan_target_modals_.cycles_per_line = cycles_per_line;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(cycles_per_line, height_of_display, Outputs::Display::ColourSpace::YIQ, 1, 1, vertical_sync_half_lines, false);
 }
 
+// Use some from-thin-air arbitrary constants for default timing, otherwise passing
+// construction off to one of the other constructors.
+CRT::CRT(Outputs::Display::InputDataType data_type) : CRT(100, 1, 100, 1, data_type) {}
 
 // MARK: - Sync loop
 

@@ -31,6 +31,7 @@ It currently contains emulations of the:
 
 Also present but very much upcoming are the:
 
+* Acorn Archimedes;
 * Commodore Amiga; and
 * early PC compatible.
 
@@ -59,19 +60,48 @@ Similar effort is put into audio generation. If the real machine normally genera
 
 ### Samples
 
-| 1:1 Pixel Copying | Composite Decoded |
-|---|---|
-|![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png)|![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)|
-|![Repton 3 in game, with a classic 1:1 pixel emulation](READMEImages/NaiveRepton3.png)|![Repton 3 in game, decoded from an interlaced composite feed](READMEImages/CompositeRepton3.png)|
-|![Stormlord with a classic 1:1 pixel emulation](READMEImages/NaiveStormlord.png)|![Stormlord decoded from a composite feed](READMEImages/CompositeStormlord.png)|
-|![Road Fighter with a classic 1:1 pixel emulation](READMEImages/NaiveRoadFighter.png)|![Road Fighter decoded from a composite feed](READMEImages/CompositeRoadFighter.png)|
-|![A segment of the ColecoVision Donkey Kong title screen with a classic 1:1 pixel emulation](READMEImages/NaivePresentsDonkeyKong.png)|![A segment of the ColecoVision Donkey Kong title screen decoded from a composite feed](READMEImages/CompositePresentsDonkeyKong.png)|
-|![Sonic the Hedgehog with a classic 1:1 pixel emulation](READMEImages/NaiveSonic.jpeg)|![Sonic the Hedgehog screen PAL decoded from a composite feed](READMEImages/CompositeSonic.png)|
+<table>
+	<tbody>
+	<tr>
+		<th>1:1 Pixel Copying</th>
+		<th>Composite Decoded</th>
+	</tr><tr>
+		<td width=50%><img alt="The Electron start screen, with a classic 1:1 pixel emulation" src="READMEImages/NaiveElectron.png"></td>
+		<td width=50%><img alt="The Electron start screen, decoded from an interlaced composite feed" src="READMEImages/CompositeElectron.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Repton 3 in game, with a classic 1:1 pixel emulation" src="READMEImages/NaiveRepton3.png"></td>
+		<td width=50%><img alt="Repton 3 in game, decoded from an interlaced composite feed" src="READMEImages/CompositeRepton3.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Stormlord with a classic 1:1 pixel emulation" src="READMEImages/NaiveStormlord.png"></td>
+		<td width=50%><img alt="Stormlord decoded from a composite feed" src="READMEImages/CompositeStormlord.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Road Fighter with a classic 1:1 pixel emulation" src="READMEImages/NaiveRoadFighter.png"></td>
+		<td width=50%><img alt="Road Fighter decoded from a composite feed" src="READMEImages/CompositeRoadFighter.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="A segment of the ColecoVision Donkey Kong title screen with a classic 1:1 pixel emulation" src="READMEImages/NaivePresentsDonkeyKong.png"></td>
+		<td width=50%><img alt="A segment of the ColecoVision Donkey Kong title screen decoded from a composite feed" src="READMEImages/CompositePresentsDonkeyKong.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Sonic the Hedgehog with a classic 1:1 pixel emulation" src="READMEImages/NaiveSonic.jpeg"></td>
+		<td width=50%><img alt="Sonic the Hedgehog screen PAL decoded from a composite feed" src="READMEImages/CompositeSonic.png"></td>
+	</tr>
+	</tbody>
+</table>
 
-| 1:1 Pixel Copying | Correct Aspect Ratio, Filtered |
-|---|---|
-|![Amstrad text, with a classic 1:1 pixel emulation](READMEImages/NaiveCPC.png)|![Amstrad text, with correct aspect ratio and subject to a lowpass filter](READMEImages/FilteredCPC.png)|
-|![The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation](READMEImages/NaiveCPCStormlord.png)|![The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter](READMEImages/CPCStormlord.png)|
+<table>
+	<tbody>
+	<tr>
+		<th>1:1 Pixel Copying</th>
+		<th>Correct Aspect Ratio, Filtered</th>
+	</tr><tr>
+		<td width=50%><img alt="Amstrad text, with a classic 1:1 pixel emulation" src="READMEImages/NaiveCPC.png"></td>
+		<td width=50%><img alt="Amstrad text, with correct aspect ratio and subject to a lowpass filter" src="READMEImages/FilteredCPC.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation" src="READMEImages/NaiveCPCStormlord.png"></td>
+		<td width=50%><img alt="The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter" src="READMEImages/CPCStormlord.png"></td>
+	</tr>
+	</tbody>
+</table>
+
 
 ## Low Latency
 
@@ -86,18 +116,45 @@ Accuracy is a user-experience issue; the more accurate an emulator, the more lik
 This emulator attempts cycle-accurate emulation of all supported machines. In some cases it succeeds.
 
 ## Additional Screenshots
-| | |
-|---|---|
-|![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png) | ![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
-|![Amiga Indianapolis 500](READMEImages/AmigaIndy500.png) | ![Atari ST Stunt Car Racer](READMEImages/STStuntCarRacer.png)
-|![Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png) | ![MSX 2 Space Manbow](READMEImages/MSX2SpaceManbow.png)
-|![Amiga James Pond II](READMEImages/AmigaJamesPondII.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
-|![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png) | ![Enterprise HERO](READMEImages/EnterpriseHERO.png)
-|![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png) | ![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)
-|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![Microsoft Flight Simulator](READMEImages/PCFlightSimulator.png)
-|![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
-|![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
-|![MS-DOS Prompt](READMEImages/MSDOSPrompt.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
+<table>
+	<tbody>
+	<tr>
+		<td width=50%><img alt="Apple IIe Prince of Persia" src="READMEImages/AppleIIPrinceOfPersia.png"></td>
+		<td width=50%><img alt="Archimedes Star Fighter 3000" src="READMEImages/StarFighter3000.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Apple Macintosh MusicWorks" src="READMEImages/MusicWorks.png"></td>
+		<td width=50%><img alt="Atari ST Stunt Car Racer" src="READMEImages/STStuntCarRacer.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Amiga Indianapolis 500" src="READMEImages/AmigaIndy500.png"></td>
+		<td width=50%><img alt="Acorn Electron Chuckie Egg" src="READMEImages/ElectronChuckieEgg.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Amstrad CPC Chase HQ" src="READMEImages/CPCChaseHQ.png"></td>
+		<td width=50%><img alt="MSX 2 Space Manbow" src="READMEImages/MSX2SpaceManbow.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Amiga James Pond II" src="READMEImages/AmigaJamesPondII.png"></td>
+		<td width=50%><img alt="Atari 2600 Solaris" src="READMEImages/Atari2600Solaris.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Enterprise HERO" src="READMEImages/EnterpriseHERO.png"></td>
+		<td width=50%><img alt="Microsoft Flight Simulator" src="READMEImages/PCFlightSimulator.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="ColecoVision Galaxian" src="READMEImages/ColecoVisionGalaxian.png"></td>
+		<td width=50%><img alt="SG1000 Chack'n'Pop" src="READMEImages/SGChackNPop.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="ZX81 3D Monster Maze" src="READMEImages/ZX81MonsterMaze.png"></td>
+		<td width=50%><img alt="ZX80 Kong" src="READMEImages/ZX80Kong.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Vic-20 Gridrunner" src="READMEImages/Vic20Gridrunner.png"></td>
+		<td width=50%><img alt="ZX Spectrum Chromatrons Attack" src="READMEImages/ZXSpectrumChromatronsAttack.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="ZX Spectrum Menu" src="READMEImages/ZXSpectrumMenu.png"></td>
+		<td width=50%><img alt="VIC-20 BASIC" src="READMEImages/Vic20BASIC.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="MS-DOS Prompt" src="READMEImages/MSDOSPrompt.png"></td>
+		<td width=50%><img alt="RISC OS" src="READMEImages/RISCOS.png"></td>
+	</tr>
+	</tbody>
+</table>
+
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)

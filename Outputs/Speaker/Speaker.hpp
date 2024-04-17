@@ -30,6 +30,13 @@ struct StereoSample {
 	StereoSample(MonoSample value) {
 		left = right = value;
 	}
+	StereoSample(int16_t left, int16_t right) : left(left), right(right) {}
+
+	StereoSample &operator =(const StereoSample &rhs) {
+		left = rhs.left;
+		right = rhs.right;
+		return *this;
+	}
 
 	StereoSample &operator +=(const StereoSample &rhs) {
 		left += rhs.left;

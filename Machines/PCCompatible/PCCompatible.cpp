@@ -1198,7 +1198,6 @@ class ConcreteMachine:
 
 using namespace PCCompatible;
 
-// See header; constructs and returns an instance of the Amstrad CPC.
 std::unique_ptr<Machine> Machine::PCCompatible(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	const Target *const pc_target = dynamic_cast<const Target *>(target);
 

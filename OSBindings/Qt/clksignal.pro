@@ -71,11 +71,12 @@ SOURCES += \
 	$$SRC/Components/AudioToggle/*.cpp \
 	$$SRC/Components/AY38910/*.cpp \
 	$$SRC/Components/DiskII/*.cpp \
+	$$SRC/Components/I2C/*.cpp \
 	$$SRC/Components/KonamiSCC/*.cpp \
 	$$SRC/Components/OPx/*.cpp \
-	$$SRC/Components/SN76489/*.cpp \
-	$$SRC/Components/Serial/*.cpp \
 	$$SRC/Components/RP5C01/*.cpp \
+	$$SRC/Components/Serial/*.cpp \
+	$$SRC/Components/SN76489/*.cpp \
 \
 	$$SRC/Inputs/*.cpp \
 \
@@ -85,6 +86,7 @@ SOURCES += \
 	$$SRC/InstructionSets/x86/*.cpp \
 \
 	$$SRC/Machines/*.cpp \
+	$$SRC/Machines/Acorn/Archimedes/*.cpp \
 	$$SRC/Machines/Acorn/Electron/*.cpp \
 	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
@@ -201,12 +203,13 @@ HEADERS += \
 	$$SRC/Components/AudioToggle/*.hpp \
 	$$SRC/Components/AY38910/*.hpp \
 	$$SRC/Components/DiskII/*.hpp \
+	$$SRC/Components/I2C/*.hpp \
 	$$SRC/Components/KonamiSCC/*.hpp \
 	$$SRC/Components/OPx/*.hpp \
 	$$SRC/Components/OPx/Implementation/*.hpp \
+	$$SRC/Components/RP5C01/*.hpp \
 	$$SRC/Components/Serial/*.hpp \
 	$$SRC/Components/SN76489/*.hpp \
-	$$SRC/Components/RP5C01/*.hpp \
 \
 	$$SRC/Concurrency/*.hpp \
 \
