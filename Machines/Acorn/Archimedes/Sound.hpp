@@ -109,10 +109,10 @@ struct Sound: private SoundLevels {
 			divider_ = reload_;
 
 			// Grab a single byte from the FIFO.
-			const uint8_t raw = ram_[static_cast<std::size_t>(current_.start + byte_)];
+			const uint8_t raw = ram_[static_cast<std::size_t>(current_.start) + static_cast<std::size_t>(byte_)];
 			sample_ = Outputs::Speaker::StereoSample(	// TODO: pan, volume.
-				levels[raw],
-				levels[raw]
+				static_cast<int16_t>((levels[raw] * positions_[byte_ & 7].left) / 6),
+				static_cast<int16_t>((levels[raw] * positions_[byte_ & 7].right) / 6)
 			);
 			++byte_;
 
@@ -135,6 +135,10 @@ struct Sound: private SoundLevels {
 
 	Outputs::Speaker::Speaker *speaker() {
 		return &speaker_;
+	}
+
+	~Sound() {
+		while(is_posting_.test_and_set());
 	}
 
 private:
@@ -174,18 +178,27 @@ private:
 	Outputs::Speaker::PushLowpass<true> speaker_;
 	Concurrency::AsyncTaskQueue<true> queue_;
 
-	// TODO: thread this stuff up properly.
 	void post_sample(Outputs::Speaker::StereoSample sample) {
-		(void)sample;
-		samples_[sample_pointer_++] = Outputs::Speaker::StereoSample(sample_pointer_ & 512 ? 32767 : 0, 0);
-		if(sample_pointer_ == samples_.size()) {
-			speaker_.push(reinterpret_cast<int16_t *>(samples_.data()), samples_.size());
+		samples_[sample_target_][sample_pointer_++] = sample;
+		if(sample_pointer_ == samples_[0].size()) {
+			while(is_posting_.test_and_set());
+
+			const auto post_source = sample_target_;
+			sample_target_ ^= 1;
 			sample_pointer_ = 0;
+			queue_.enqueue([this, post_source]() {
+				speaker_.push(reinterpret_cast<int16_t *>(samples_[post_source].data()), samples_[post_source].size());
+				is_posting_.clear();
+			});
 		}
 	}
 	std::size_t sample_pointer_ = 0;
-	std::array<Outputs::Speaker::StereoSample, 1024> samples_;
+	std::size_t sample_target_ = 0;
 	Outputs::Speaker::StereoSample sample_;
+
+	using SampleBuffer = std::array<Outputs::Speaker::StereoSample, 4096>;
+	std::array<SampleBuffer, 2> samples_;
+	std::atomic_flag is_posting_ = ATOMIC_FLAG_INIT;
 };
 
 }
