@@ -300,8 +300,8 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		using BaseT::process;
 
 		std::atomic<int> scale_ = 65536;
-		int get_scale() {
-			return scale_;
+		int get_scale() const {
+			return scale_.load(std::memory_order::memory_order_relaxed);
 		}
 
 		const int16_t *buffer_ = nullptr;
