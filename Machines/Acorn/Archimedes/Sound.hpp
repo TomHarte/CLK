@@ -28,9 +28,16 @@ static constexpr std::array<int16_t, 256> generate_levels() {
 	// Bit 7 provides a sign.
 
 	for(size_t c = 0; c < 256; c++) {
-		const bool is_negative = c & 128;
-		const auto point = static_cast<int>(c & 0xf);
-		const auto chord = static_cast<int>((c >> 4) & 7);
+		// This is the VIDC1 rule.
+//		const bool is_negative = c & 128;
+//		const auto point = static_cast<int>(c & 0xf);
+//		const auto chord = static_cast<int>((c >> 4) & 7);
+
+		// VIDC2 rule, which seems to be effective. I've yet to spot the rule by which
+		// VIDC1/2 is detected.
+		const bool is_negative = c & 1;
+		const auto point = static_cast<int>((c >> 1) & 0xf);
+		const auto chord = static_cast<int>((c >> 5) & 7);
 
 		const int start = (1 << chord) - 1;
 		const int end = (chord == 7) ? 247 : ((start << 1) + 1);
@@ -106,7 +113,7 @@ struct Sound: private SoundLevels {
 		// Apply user-programmed clock divider.
 		--divider_;
 		if(!divider_) {
-			divider_ = reload_;
+			divider_ = reload_ + 2;
 
 			// Grab a single byte from the FIFO.
 			const uint8_t raw = ram_[static_cast<std::size_t>(current_.start) + static_cast<std::size_t>(byte_)];
