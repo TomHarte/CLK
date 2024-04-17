@@ -60,19 +60,48 @@ Similar effort is put into audio generation. If the real machine normally genera
 
 ### Samples
 
-| 1:1 Pixel Copying | Composite Decoded |
-|---|---|
-|![The Electron start screen, with a classic 1:1 pixel emulation](READMEImages/NaiveElectron.png)|![The Electron start screen, decoded from an interlaced composite feed](READMEImages/CompositeElectron.png)|
-|![Repton 3 in game, with a classic 1:1 pixel emulation](READMEImages/NaiveRepton3.png)|![Repton 3 in game, decoded from an interlaced composite feed](READMEImages/CompositeRepton3.png)|
-|![Stormlord with a classic 1:1 pixel emulation](READMEImages/NaiveStormlord.png)|![Stormlord decoded from a composite feed](READMEImages/CompositeStormlord.png)|
-|![Road Fighter with a classic 1:1 pixel emulation](READMEImages/NaiveRoadFighter.png)|![Road Fighter decoded from a composite feed](READMEImages/CompositeRoadFighter.png)|
-|![A segment of the ColecoVision Donkey Kong title screen with a classic 1:1 pixel emulation](READMEImages/NaivePresentsDonkeyKong.png)|![A segment of the ColecoVision Donkey Kong title screen decoded from a composite feed](READMEImages/CompositePresentsDonkeyKong.png)|
-|![Sonic the Hedgehog with a classic 1:1 pixel emulation](READMEImages/NaiveSonic.jpeg)|![Sonic the Hedgehog screen PAL decoded from a composite feed](READMEImages/CompositeSonic.png)|
+<table>
+	<tbody>
+	<tr>
+		<th>1:1 Pixel Copying</th>
+		<th>Composite Decoded</th>
+	</tr><tr>
+		<td width=50%><img alt="The Electron start screen, with a classic 1:1 pixel emulation" src="READMEImages/NaiveElectron.png"></td>
+		<td width=50%><img alt="The Electron start screen, decoded from an interlaced composite feed" src="READMEImages/CompositeElectron.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Repton 3 in game, with a classic 1:1 pixel emulation" src="READMEImages/NaiveRepton3.png"></td>
+		<td width=50%><img alt="Repton 3 in game, decoded from an interlaced composite feed" src="READMEImages/CompositeRepton3.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Stormlord with a classic 1:1 pixel emulation" src="READMEImages/NaiveStormlord.png"></td>
+		<td width=50%><img alt="Stormlord decoded from a composite feed" src="READMEImages/CompositeStormlord.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Road Fighter with a classic 1:1 pixel emulation" src="READMEImages/NaiveRoadFighter.png"></td>
+		<td width=50%><img alt="Road Fighter decoded from a composite feed" src="READMEImages/CompositeRoadFighter.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="A segment of the ColecoVision Donkey Kong title screen with a classic 1:1 pixel emulation" src="READMEImages/NaivePresentsDonkeyKong.png"></td>
+		<td width=50%><img alt="A segment of the ColecoVision Donkey Kong title screen decoded from a composite feed" src="READMEImages/CompositePresentsDonkeyKong.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="Sonic the Hedgehog with a classic 1:1 pixel emulation" src="READMEImages/NaiveSonic.jpeg"></td>
+		<td width=50%><img alt="Sonic the Hedgehog screen PAL decoded from a composite feed" src="READMEImages/CompositeSonic.png"></td>
+	</tr>
+	</tbody>
+</table>
 
-| 1:1 Pixel Copying | Correct Aspect Ratio, Filtered |
-|---|---|
-|![Amstrad text, with a classic 1:1 pixel emulation](READMEImages/NaiveCPC.png)|![Amstrad text, with correct aspect ratio and subject to a lowpass filter](READMEImages/FilteredCPC.png)|
-|![The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation](READMEImages/NaiveCPCStormlord.png)|![The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter](READMEImages/CPCStormlord.png)|
+<table>
+	<tbody>
+	<tr>
+		<th>1:1 Pixel Copying</th>
+		<th>Correct Aspect Ratio, Filtered</th>
+	</tr><tr>
+		<td width=50%><img alt="Amstrad text, with a classic 1:1 pixel emulation" src="READMEImages/NaiveCPC.png"></td>
+		<td width=50%><img alt="Amstrad text, with correct aspect ratio and subject to a lowpass filter" src="READMEImages/FilteredCPC.png"></td>
+	</tr><tr>
+		<td width=50%><img alt="The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation" src="READMEImages/NaiveCPCStormlord.png"></td>
+		<td width=50%><img alt="The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter" src="READMEImages/CPCStormlord.png"></td>
+	</tr>
+	</tbody>
+</table>
+
 
 ## Low Latency
 
@@ -87,7 +116,7 @@ Accuracy is a user-experience issue; the more accurate an emulator, the more lik
 This emulator attempts cycle-accurate emulation of all supported machines. In some cases it succeeds.
 
 ## Additional Screenshots
-<table style="border:none;">
+<table>
 	<tbody>
 	<tr>
 		<td width=50%><img alt="Apple IIe Prince of Persia" src="READMEImages/AppleIIPrinceOfPersia.png"></td>
