@@ -110,7 +110,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
-		if(dfs_catalogue || (adfs_catalogue && adfs_catalogue->is_hugo)) {
+		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
 			target8bit->media.disks = media.disks;

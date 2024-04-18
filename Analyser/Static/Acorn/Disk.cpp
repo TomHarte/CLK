@@ -88,30 +88,41 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	// Grab the second half of the free-space map because it has the boot option in it.
-	const Storage::Encodings::MFM::Sector *const free_space_map_second_half = parser.sector(0, 0, 1);
+	const Storage::Encodings::MFM::Sector *free_space_map_second_half = parser.sector(0, 0, 1);
 	if(!free_space_map_second_half) return nullptr;
+	catalogue->has_large_sectors = free_space_map_second_half->samples[0].size() == 1024;
 
-	const bool has_large_sectors = free_space_map_second_half->samples[0].size() == 1024;
+	// Possibility: this is a large-sector disk with an old-style free space map. In which
+	// case the above just read the start of the root directory.
+	uint8_t first_directory_sector = 2;
+	if(catalogue->has_large_sectors && !memcmp(&free_space_map_second_half->samples[0][1], "Hugo", 4)) {
+		free_space_map_second_half = parser.sector(0, 0, 0);
+		if(!free_space_map_second_half) return nullptr;
+		first_directory_sector = 1;
+	}
+
 	std::vector<uint8_t> root_directory;
-	root_directory.reserve((has_large_sectors ? 5 : 8) * 256);
+	root_directory.reserve(catalogue->has_large_sectors ? 2*1024 : 5*256);
 
-	for(uint8_t c = 2; c < (has_large_sectors ? 4 : 7); c++) {
+	for(uint8_t c = first_directory_sector; c < first_directory_sector + (catalogue->has_large_sectors ? 2 : 5); c++) {
 		const Storage::Encodings::MFM::Sector *const sector = parser.sector(0, 0, c);
 		if(!sector) return nullptr;
 		root_directory.insert(root_directory.end(), sector->samples[0].begin(), sector->samples[0].end());
 	}
 
 	// Check for end of directory marker.
-	if(root_directory[has_large_sectors ? 0x7d7 : 0x4cb]) return nullptr;
+	if(root_directory[catalogue->has_large_sectors ? 0x7d7 : 0x4cb]) return nullptr;
 
 	// Check for both directory identifiers.
-	catalogue->is_hugo = !memcmp(&root_directory[1], "Hugo", 4) && !memcmp(&root_directory[0x4fb], "Hugo", 4);
-	const bool is_nick = !memcmp(&root_directory[1], "Nick", 4) && !memcmp(&root_directory[0x7fb], "Nick", 4);
+	const uint8_t *const start_id = &root_directory[1];
+	const uint8_t *const end_id = &root_directory[root_directory.size() - 5];
+	catalogue->is_hugo = !memcmp(start_id, "Hugo", 4) && !memcmp(end_id, "Hugo", 4);
+	const bool is_nick = !memcmp(start_id, "Nick", 4) && !memcmp(end_id, "Nick", 4);
 	if(!catalogue->is_hugo && !is_nick) {
 		return nullptr;
 	}
 
-	if(!has_large_sectors) {
+	if(!catalogue->has_large_sectors) {
 		// TODO: I don't know where the boot option rests with large sectors.
 		switch(free_space_map_second_half->samples[0][0xfd]) {
 			default: catalogue->bootOption = Catalogue::BootOption::None;		break;
@@ -122,7 +133,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 	}
 
 	// Parse the root directory, at least.
-	for(std::size_t file_offset = 0x005; file_offset < (has_large_sectors ? 0x7d7 : 0x4cb); file_offset += 0x1a) {
+	for(std::size_t file_offset = 0x005; file_offset < (catalogue->has_large_sectors ? 0x7d7 : 0x4cb); file_offset += 0x1a) {
 		// Obtain the name, which will be at most ten characters long, and will
 		// be terminated by either a NULL character or a \r.
 		char name[11]{};
