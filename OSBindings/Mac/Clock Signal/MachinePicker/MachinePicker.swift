@@ -309,9 +309,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				let memorySize = Kilobytes(appleIIgsMemorySizeButton.selectedTag())
 				return CSStaticAnalyser(appleIIgsModel: model, memorySize: memorySize)
 
+			case "archimedes":
+				return CSStaticAnalyser(archimedesModel: .firstGeneration)
+
 			case "atarist":
 				let memorySize = Kilobytes(atariSTMemorySizeButton.selectedTag())
-				return CSStaticAnalyser(atariSTModel: .model512k, memorySize: memorySize)
+				return CSStaticAnalyser(atariSTMemorySize: memorySize)
 
 			case "cpc":
 				switch cpcModelTypeButton.selectedTag() {
