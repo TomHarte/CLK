@@ -16,6 +16,7 @@ namespace Analyser::Static::Acorn {
 /// Describes a DFS- or ADFS-format catalogue(/directory): the list of files available and the catalogue's boot option.
 struct Catalogue {
 	bool is_hugo = false;
+	bool has_large_sectors = false;
 	std::string name;
 	std::vector<File> files;
 	enum class BootOption {
