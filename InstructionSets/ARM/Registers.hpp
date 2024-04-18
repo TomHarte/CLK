@@ -352,6 +352,7 @@ struct Registers {
 			}
 
 			switch(mode_) {
+				default:
 				case Mode::User: return active_[offset];
 
 				case Mode::Supervisor:
