@@ -71,13 +71,10 @@ struct MemoryController {
 
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode, bool trans) {
-		// User mode may only _write_ to logically-mapped RAM (subject to further testing below).
-		if(trans && address >= 0x200'0000) {
-			return false;
-		}
-
 		switch(write_zones_[(address >> 21) & 31]) {
 			case Zone::DMAAndMEMC: {
+				if(trans) return false;
+
 				const auto buffer_address = [](uint32_t source) -> uint32_t {
 					return (source & 0x1'fffc) << 2;
 				};
@@ -126,19 +123,23 @@ struct MemoryController {
 			} break;
 
 			case Zone::IOControllers:
+				if(trans) return false;
 				ioc_.template write<IntT>(address, source);
 			break;
 
 			case Zone::VideoController:
+				if(trans) return false;
 				// TODO: handle byte writes correctly.
 				ioc_.video().write(source);
 			break;
 
 			case Zone::PhysicallyMappedRAM:
+				if(trans) return false;
 				physical_ram<IntT>(address) = source;
 			break;
 
 			case Zone::AddressTranslator:
+				if(trans) return false;
 //				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
 				pages_[address & 0x7f] = address;
 				map_dirty_ = true;
@@ -154,13 +155,9 @@ struct MemoryController {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode, bool trans) {
-		// User mode may only read logically-maped RAM and ROM.
-		if(trans && address >= 0x200'0000 && address < 0x380'0000) {
-			return false;
-		}
-
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
+				if(trans) return false;
 				source = physical_ram<IntT>(address);
 			break;
 
@@ -184,6 +181,7 @@ struct MemoryController {
 			break;
 
 			case Zone::IOControllers:
+				if(trans) return false;
 				ioc_.template read<IntT>(address, source);
 			break;
 
