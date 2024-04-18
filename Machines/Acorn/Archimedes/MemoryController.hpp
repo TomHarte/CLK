@@ -71,13 +71,10 @@ struct MemoryController {
 
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode, bool trans) {
-		// User mode may only _write_ to logically-mapped RAM (subject to further testing below).
-		if(trans && address >= 0x200'0000) {
-			return false;
-		}
-
 		switch(write_zones_[(address >> 21) & 31]) {
 			case Zone::DMAAndMEMC: {
+				if(trans) return false;
+
 				const auto buffer_address = [](uint32_t source) -> uint32_t {
 					return (source & 0x1'fffc) << 2;
 				};
@@ -110,6 +107,25 @@ struct MemoryController {
 						high_rom_access_time_ = ROMAccessTime((address >> 6) & 3);
 						low_rom_access_time_ = ROMAccessTime((address >> 4) & 3);
 						page_size_ = PageSize((address >> 2) & 3);
+						switch(page_size_) {
+							default:
+							case PageSize::kb4:
+								page_address_shift_ = 12;
+								page_adddress_mask_ = 0x0fff;
+							break;
+							case PageSize::kb8:
+								page_address_shift_ = 13;
+								page_adddress_mask_ = 0x1fff;
+							break;
+							case PageSize::kb16:
+								page_address_shift_ = 14;
+								page_adddress_mask_ = 0x3fff;
+							break;
+							case PageSize::kb32:
+								page_address_shift_ = 15;
+								page_adddress_mask_ = 0x7fff;
+							break;
+						}
 
 						logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
 						map_dirty_ = true;
@@ -126,19 +142,23 @@ struct MemoryController {
 			} break;
 
 			case Zone::IOControllers:
+				if(trans) return false;
 				ioc_.template write<IntT>(address, source);
 			break;
 
 			case Zone::VideoController:
+				if(trans) return false;
 				// TODO: handle byte writes correctly.
 				ioc_.video().write(source);
 			break;
 
 			case Zone::PhysicallyMappedRAM:
+				if(trans) return false;
 				physical_ram<IntT>(address) = source;
 			break;
 
 			case Zone::AddressTranslator:
+				if(trans) return false;
 //				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
 				pages_[address & 0x7f] = address;
 				map_dirty_ = true;
@@ -154,13 +174,9 @@ struct MemoryController {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode, bool trans) {
-		// User mode may only read logically-maped RAM and ROM.
-		if(trans && address >= 0x200'0000 && address < 0x380'0000) {
-			return false;
-		}
-
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
+				if(trans) return false;
 				source = physical_ram<IntT>(address);
 			break;
 
@@ -184,6 +200,7 @@ struct MemoryController {
 			break;
 
 			case Zone::IOControllers:
+				if(trans) return false;
 				ioc_.template read<IntT>(address, source);
 			break;
 
@@ -298,6 +315,8 @@ struct MemoryController {
 			kb16 = 0b10,
 			kb32 = 0b11,
 		} page_size_ = PageSize::kb4;
+		int page_address_shift_ = 12;
+		uint32_t page_adddress_mask_ = 0xffff;
 
 		// Address translator.
 		//
@@ -339,33 +358,14 @@ struct MemoryController {
 			}
 			address = aligned<IntT>(address);
 			address &= 0x1ff'ffff;
-			size_t page;
-
-			// TODO: eliminate switch here.
-			switch(page_size_) {
-				default:
-				case PageSize::kb4:
-					page = address >> 12;
-					address &= 0x0fff;
-				break;
-				case PageSize::kb8:
-					page = address >> 13;
-					address &= 0x1fff;
-				break;
-				case PageSize::kb16:
-					page = address >> 14;
-					address &= 0x3fff;
-				break;
-				case PageSize::kb32:
-					page = address >> 15;
-					address &= 0x7fff;
-				break;
-			}
+			const size_t page = address >> page_address_shift_;
 
 			const auto &map = mapping<is_read>(trans, os_mode_);
 			if(!map[page]) {
 				return nullptr;
 			}
+
+			address &= page_adddress_mask_;
 			return reinterpret_cast<IntT *>(&map[page][address]);
 		}
 

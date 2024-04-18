@@ -272,6 +272,7 @@ struct Registers {
 				case Condition::GT:	return !le();
 				case Condition::LE:	return le();
 
+				default:
 				case Condition::AL:	return true;
 				case Condition::NV:	return false;
 			}
@@ -351,6 +352,7 @@ struct Registers {
 			}
 
 			switch(mode_) {
+				default:
 				case Mode::User: return active_[offset];
 
 				case Mode::Supervisor:
