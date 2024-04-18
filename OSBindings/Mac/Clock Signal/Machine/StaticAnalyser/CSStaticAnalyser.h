@@ -35,8 +35,8 @@ typedef NS_ENUM(NSInteger, CSMachineAppleIIgsModel) {
 	CSMachineAppleIIgsModelROM03,
 };
 
-typedef NS_ENUM(NSInteger, CSMachineAtariSTModel) {
-	CSMachineAtariSTModel512k,
+typedef NS_ENUM(NSInteger, CSMachineArchimedesModel) {
+	CSMachineArchimedesModelFirstGeneration,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
@@ -143,7 +143,8 @@ typedef int Kilobytes;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController hasMockingboard:(BOOL)hasMockingboard;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
-- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model memorySize:(Kilobytes)memorySize;
+- (instancetype)initWithArchimedesModel:(CSMachineArchimedesModel)model;
+- (instancetype)initWithAtariSTMemorySize:(Kilobytes)memorySize;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
 - (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
