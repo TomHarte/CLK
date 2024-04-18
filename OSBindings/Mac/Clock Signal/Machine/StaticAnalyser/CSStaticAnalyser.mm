@@ -137,7 +137,16 @@
 }
 
 
-- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model memorySize:(Kilobytes)memorySize {
+- (instancetype)initWithArchimedesModel:(CSMachineArchimedesModel)model {
+	self = [super init];
+	if(self) {
+		auto target = std::make_unique<Analyser::Static::Target>(Analyser::Machine::Archimedes);
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithAtariSTMemorySize:(Kilobytes)memorySize {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AtariST::Target;
