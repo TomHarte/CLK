@@ -31,6 +31,7 @@ DestinationT read_bus(SourceT value) {
 
 struct NullStatusHandler {
 	void did_set_status() {}
+	void did_set_pc() {}
 };
 
 /// A class compatible with the @c OperationMapper definition of a scheduler which applies all actions
@@ -195,6 +196,7 @@ struct Executor {
 
 		if(!is_comparison(flags.operation()) && fields.destination() == 15) {
 			registers_.set_pc(pc_proxy);
+			status_observer_.did_set_pc();
 		}
 		if constexpr (flags.set_condition_codes()) {
 			// "When Rd is R15 and the S flag in the instruction is set, the PSR is overwritten by the
@@ -250,6 +252,7 @@ struct Executor {
 			registers_[14] = registers_.pc_status(0);
 		}
 		registers_.set_pc(registers_.pc(4) + branch.offset());
+		status_observer_.did_set_pc();
 	}
 
 	template <Flags f> void perform(SingleDataTransfer transfer) {
@@ -358,6 +361,7 @@ struct Executor {
 
 			if(transfer.destination() == 15) {
 				registers_.set_pc(value);
+				status_observer_.did_set_pc();
 			} else {
 				registers_[transfer.destination()] = value;
 			}
@@ -369,6 +373,7 @@ struct Executor {
 			if(flags.operation() == SingleDataTransferFlags::Operation::STR || transfer.base() != transfer.destination()) {
 				if(transfer.base() == 15) {
 					registers_.set_pc(offsetted_address);
+					status_observer_.did_set_pc();
 				} else {
 					registers_[transfer.base()] = offsetted_address;
 				}
@@ -555,6 +560,7 @@ struct Executor {
 			// If this was an LDM to R15 then apply it appropriately.
 			if(is_ldm && list & (1 << 15)) {
 				registers_.set_pc(pc_proxy);
+				status_observer_.did_set_pc();
 				if constexpr (flags.load_psr()) {
 					registers_.set_status(pc_proxy);
 					status_observer_.did_set_status();
