@@ -42,7 +42,7 @@ struct NullStatusHandler {
 template <Model model, typename MemoryT, typename StatusObserverT = NullStatusHandler>
 struct Executor {
 	template <typename... Args>
-	Executor(StatusObserverT &observer, Args &&...args) : status_observer_(observer), bus(std::forward<Args>(args)...) {}
+	Executor(StatusObserverT &observer, Args &&...args) : bus(std::forward<Args>(args)...), status_observer_(observer) {}
 
 	template <typename... Args>
 	Executor(Args &&...args) : bus(std::forward<Args>(args)...) {}
@@ -327,7 +327,7 @@ struct Executor {
 			}
 		} else {
 			bool did_read;
-			uint32_t value;
+			uint32_t value = 0;
 
 			if constexpr (flags.transfer_byte()) {
 				uint8_t target;
@@ -480,7 +480,7 @@ struct Executor {
 			// undo the previous load.
 			struct {
 				uint32_t *target = nullptr;
-				uint32_t value;
+				uint32_t value = 0;
 			} last_replacement;
 
 			for(uint32_t c = 0; c < total; c++) {

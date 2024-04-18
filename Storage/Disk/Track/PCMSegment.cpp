@@ -31,13 +31,20 @@ PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegment &segment) :
 }
 
 PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegmentEventSource &original) {
+	*this = original;
+}
+
+PCMSegmentEventSource &PCMSegmentEventSource::operator =(const PCMSegmentEventSource &original) {
 	// share underlying data with the original
 	segment_ = original.segment_;
 
 	// load up the clock rate and set initial conditions
 	next_event_.length.clock_rate = segment_->length_of_a_bit.clock_rate;
 	reset();
+
+	return *this;
 }
+
 
 void PCMSegmentEventSource::reset() {
 	// start with the first bit to be considered the zeroth, and assume that it'll be

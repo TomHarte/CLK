@@ -163,6 +163,7 @@ class PCMSegmentEventSource {
 			but a unique pointer into it.
 		*/
 		PCMSegmentEventSource(const PCMSegmentEventSource &);
+		PCMSegmentEventSource &operator =(const PCMSegmentEventSource &);
 
 		/*!
 			@returns the next event that will occur in this event stream.

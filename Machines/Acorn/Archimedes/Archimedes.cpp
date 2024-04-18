@@ -34,15 +34,13 @@
 #include <set>
 #include <vector>
 
-namespace {
-
-Log::Logger<Log::Source::Archimedes> logger;
-
-}
-
 namespace Archimedes {
 
 #ifndef NDEBUG
+namespace {
+Log::Logger<Log::Source::Archimedes> logger;
+}
+
 template <InstructionSet::ARM::Model model, typename Executor>
 struct HackyDebugger {
 	void notify(uint32_t address, uint32_t instruction, Executor &executor) {
@@ -452,7 +450,7 @@ class ConcreteMachine:
 		int video_divider_ = 1;
 
 		void tick_cpu() {
-			uint32_t instruction;
+			uint32_t instruction = 0;
 			if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
 //				logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
 				executor_.prefetch_abort();
