@@ -255,7 +255,7 @@ struct Disassembler {
 	template <Flags> void perform(CoprocessorDataOperation) {}
 	template <Flags> void perform(CoprocessorDataTransfer) {}
 
-	void software_interrupt() {
+	void software_interrupt(SoftwareInterrupt) {
 		instruction_.operation = Instruction::Operation::SWI;
 	}
 	void unknown() {
