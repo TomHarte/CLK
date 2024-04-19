@@ -29,21 +29,28 @@ DestinationT read_bus(SourceT value) {
 	}
 }
 
-struct NullStatusHandler {
+struct NullControlFlowHandler {
+	/// Indicates that a potential pipeline-affecting status flag change occurred,
+	/// i.e. a change to processor mode or interrupt flags.
 	void did_set_status() {}
+
+	/// Indicates that the PC was altered by the instruction.
 	void did_set_pc() {}
+
+	/// Provides notification that an SWI is about to happen along with the option of skipping it; this gives handlers the
+	/// chance to substitute a high-level reimplementation of the service call.
+	bool should_swi([[maybe_unused]] uint32_t comment) { return true; }
 };
 
 /// A class compatible with the @c OperationMapper definition of a scheduler which applies all actions
 /// immediately, updating either a set of @c Registers or using the templated @c MemoryT to access
 /// memory. No hooks are currently provided for applying realistic timing.
 ///
-/// If a StatusObserverT is specified, it'll receive calls to @c did_set_status() following every direct
-/// write to the status bits — i.e. any change that can affect mode or interrupt flags.
-template <Model model, typename MemoryT, typename StatusObserverT = NullStatusHandler>
+/// If a ControlFlowHandlerT is specified, it'll receive calls as defined in the NullControlFlowHandler above.
+template <Model model, typename MemoryT, typename ControlFlowHandlerT = NullControlFlowHandler>
 struct Executor {
 	template <typename... Args>
-	Executor(StatusObserverT &observer, Args &&...args) : bus(std::forward<Args>(args)...), status_observer_(observer) {}
+	Executor(ControlFlowHandlerT &handler, Args &&...args) : bus(std::forward<Args>(args)...), control_flow_handler_(handler) {}
 
 	template <typename... Args>
 	Executor(Args &&...args) : bus(std::forward<Args>(args)...) {}
@@ -195,8 +202,7 @@ struct Executor {
 		}
 
 		if(!is_comparison(flags.operation()) && fields.destination() == 15) {
-			registers_.set_pc(pc_proxy);
-			status_observer_.did_set_pc();
+			set_pc<true>(pc_proxy);
 		}
 		if constexpr (flags.set_condition_codes()) {
 			// "When Rd is R15 and the S flag in the instruction is set, the PSR is overwritten by the
@@ -204,8 +210,7 @@ struct Executor {
 			// normally produce a result (CMP, CMN, TST, TEQ) ... the result will be used to update those
 			// PSR flags which are not protected by virtue of the processor mode"
 			if(fields.destination() == 15) {
-				registers_.set_status(conditions);
-				status_observer_.did_set_status();
+				set_status(conditions);
 			} else {
 				// Set N and Z in a unified way.
 				registers_.set_nz(conditions);
@@ -251,8 +256,7 @@ struct Executor {
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
 			registers_[14] = registers_.pc_status(0);
 		}
-		registers_.set_pc(registers_.pc(4) + branch.offset());
-		status_observer_.did_set_pc();
+		set_pc<true>(registers_.pc(4) + branch.offset());
 	}
 
 	template <Flags f> void perform(SingleDataTransfer transfer) {
@@ -291,7 +295,7 @@ struct Executor {
 
 		// Check for an address exception.
 		if(is_invalid_address(address)) {
-			registers_.exception<Registers::Exception::Address>();
+			exception<Registers::Exception::Address>();
 			return;
 		}
 
@@ -325,7 +329,7 @@ struct Executor {
 			}
 
 			if(!did_write) {
-				registers_.exception<Registers::Exception::DataAbort>();
+				exception<Registers::Exception::DataAbort>();
 				return;
 			}
 		} else {
@@ -355,13 +359,12 @@ struct Executor {
 			}
 
 			if(!did_read) {
-				registers_.exception<Registers::Exception::DataAbort>();
+				exception<Registers::Exception::DataAbort>();
 				return;
 			}
 
 			if(transfer.destination() == 15) {
-				registers_.set_pc(value);
-				status_observer_.did_set_pc();
+				set_pc<true>(value);
 			} else {
 				registers_[transfer.destination()] = value;
 			}
@@ -372,8 +375,7 @@ struct Executor {
 			// So if this is a load, don't allow write back to overwrite what was loaded.
 			if(flags.operation() == SingleDataTransferFlags::Operation::STR || transfer.base() != transfer.destination()) {
 				if(transfer.base() == 15) {
-					registers_.set_pc(offsetted_address);
-					status_observer_.did_set_pc();
+					set_pc<true>(offsetted_address);
 				} else {
 					registers_[transfer.base()] = offsetted_address;
 				}
@@ -553,38 +555,38 @@ struct Executor {
 
 		// Finally throw an exception if necessary.
 		if(address_error) {
-			registers_.exception<Registers::Exception::Address>();
+			exception<Registers::Exception::Address>();
 		} else if(!accesses_succeeded) {
-			registers_.exception<Registers::Exception::DataAbort>();
+			exception<Registers::Exception::DataAbort>();
 		} else {
 			// If this was an LDM to R15 then apply it appropriately.
 			if(is_ldm && list & (1 << 15)) {
-				registers_.set_pc(pc_proxy);
-				status_observer_.did_set_pc();
+				set_pc<true>(pc_proxy);
 				if constexpr (flags.load_psr()) {
-					registers_.set_status(pc_proxy);
-					status_observer_.did_set_status();
+					set_status(pc_proxy);
 				}
 			}
 		}
 	}
 
-	void software_interrupt() {
-		registers_.exception<Registers::Exception::SoftwareInterrupt>();
+	void software_interrupt(SoftwareInterrupt swi) {
+		if(control_flow_handler_.should_swi(swi.comment())) {
+			exception<Registers::Exception::SoftwareInterrupt>();
+		}
 	}
 	void unknown() {
-		registers_.exception<Registers::Exception::UndefinedInstruction>();
+		exception<Registers::Exception::UndefinedInstruction>();
 	}
 
 	// Act as if no coprocessors present.
 	template <Flags> void perform(CoprocessorRegisterTransfer) {
-		registers_.exception<Registers::Exception::UndefinedInstruction>();
+		exception<Registers::Exception::UndefinedInstruction>();
 	}
 	template <Flags> void perform(CoprocessorDataOperation) {
-		registers_.exception<Registers::Exception::UndefinedInstruction>();
+		exception<Registers::Exception::UndefinedInstruction>();
 	}
 	template <Flags> void perform(CoprocessorDataTransfer) {
-		registers_.exception<Registers::Exception::UndefinedInstruction>();
+		exception<Registers::Exception::UndefinedInstruction>();
 	}
 
 	/// @returns The current registers state.
@@ -600,13 +602,19 @@ struct Executor {
 
 	/// Indicates a prefetch abort exception.
 	void prefetch_abort() {
-		registers_.exception<Registers::Exception::PrefetchAbort>();
+		exception<Registers::Exception::PrefetchAbort>();
 	}
 
 	/// Sets the expected address of the instruction after whichever  is about to be executed.
 	/// So it's PC+4 compared to most other systems.
+	///
+	/// By default this is not forwarded to the control-flow handler.
+	template <bool notify = false>
 	void set_pc(uint32_t pc) {
 		registers_.set_pc(pc);
+		if constexpr (notify) {
+			control_flow_handler_.did_set_pc();
+		}
 	}
 
 	/// @returns The address of the instruction that should be fetched next. So as execution of each instruction
@@ -619,12 +627,23 @@ struct Executor {
 	MemoryT bus;
 
 private:
-	using StatusObserverTStorage =
+	template <Registers::Exception type>
+	void exception() {
+		registers_.exception<type>();
+		control_flow_handler_.did_set_pc();
+	}
+
+	void set_status(uint32_t status) {
+		registers_.set_status(status);
+		control_flow_handler_.did_set_status();
+	}
+
+	using ControlFlowHandlerTStorage =
 		typename std::conditional<
-			std::is_same_v<StatusObserverT, NullStatusHandler>,
-			StatusObserverT,
-			StatusObserverT &>::type;
-	StatusObserverTStorage status_observer_;
+			std::is_same_v<ControlFlowHandlerT, NullControlFlowHandler>,
+			ControlFlowHandlerT,
+			ControlFlowHandlerT &>::type;
+	ControlFlowHandlerTStorage control_flow_handler_;
 	Registers registers_;
 
 	static bool is_invalid_address(uint32_t address) {
