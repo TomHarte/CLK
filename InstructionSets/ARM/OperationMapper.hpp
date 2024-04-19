@@ -388,6 +388,19 @@ private:
 	uint8_t flags_;
 };
 
+//
+// Software interrupt.
+//
+struct SoftwareInterrupt {
+	constexpr SoftwareInterrupt(uint32_t opcode) noexcept : opcode_(opcode) {}
+
+	/// The 24-bit comment field, often decoded by the receiver of an SWI.
+	uint32_t comment() const				{	return opcode_ & 0xff'ffff;	}
+
+private:
+	uint32_t opcode_;
+};
+
 struct CoprocessorDataTransfer {
 	constexpr CoprocessorDataTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
 
@@ -461,7 +474,7 @@ struct OperationMapper {
 
 		// Software interreupt; cf. p.35.
 		if constexpr (((partial >> 24) & 0b1111) == 0b1111) {
-			scheduler.software_interrupt();
+			scheduler.software_interrupt(SoftwareInterrupt(instruction));
 			return;
 		}
 
@@ -517,7 +530,7 @@ struct SampleScheduler {
 	template <Flags> void perform(CoprocessorDataTransfer);
 
 	// Irregular operations.
-	void software_interrupt();
+	void software_interrupt(SoftwareInterrupt);
 	void unknown();
 };
 

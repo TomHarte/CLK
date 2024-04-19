@@ -420,6 +420,13 @@ class ConcreteMachine:
 			update_interrupts();
 		}
 
+		void did_set_pc() {
+		}
+
+		bool should_swi(uint32_t) {
+			return true;
+		}
+
 		void update_clock_rates() {
 			video_divider_ = executor_.bus.video().clock_divider();
 		}
