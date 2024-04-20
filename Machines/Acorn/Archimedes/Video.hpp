@@ -117,7 +117,7 @@ struct Video {
 			} break;
 
 			case 0xc0:
-				sound_.set_frequency(value & 0x7f);
+				sound_.set_frequency(value & 0xff);
 			break;
 
 			default:

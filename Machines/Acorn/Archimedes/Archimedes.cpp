@@ -402,29 +402,60 @@ class ConcreteMachine:
 
 			executor_.bus.set_rom(roms.find(risc_os)->second);
 			insert_media(target.media);
+
+			fill_pipeline(0);
 		}
 
 		void update_interrupts() {
 			using Exception = InstructionSet::ARM::Registers::Exception;
 
 			const int requests = executor_.bus.interrupt_mask();
-			if((requests & InterruptRequests::FIQ) && executor_.registers().interrupt<Exception::FIQ>()) {
+			if((requests & InterruptRequests::FIQ) && executor_.registers().would_interrupt<Exception::FIQ>()) {
+				pipeline_.reschedule(Pipeline::SWISubversion::FIQ);
 				return;
 			}
-			if(requests & InterruptRequests::IRQ) {
-				executor_.registers().interrupt<Exception::IRQ>();
+			if((requests & InterruptRequests::IRQ) && executor_.registers().would_interrupt<Exception::IRQ>()) {
+				pipeline_.reschedule(Pipeline::SWISubversion::IRQ);
 			}
 		}
 
 		void did_set_status() {
+			// This might have been a change of mode, so...
+			fill_pipeline(executor_.pc());
 			update_interrupts();
 		}
 
 		void did_set_pc() {
+			fill_pipeline(executor_.pc());
 		}
 
 		bool should_swi(uint32_t) {
-			return true;
+			using Exception = InstructionSet::ARM::Registers::Exception;
+			using SWISubversion = Pipeline::SWISubversion;
+
+			switch(pipeline_.swi_subversion()) {
+				case Pipeline::SWISubversion::None:
+				return true;
+
+				case SWISubversion::DataAbort:
+//					executor_.set_pc(executor_.pc() - 4);
+					executor_.registers().exception<Exception::DataAbort>();
+				break;
+
+				// FIQ and IRQ decrement the PC because their apperance in the pipeline causes
+				// it to look as though they were fetched, but they weren't.
+				case SWISubversion::FIQ:
+					executor_.set_pc(executor_.pc() - 4);
+					executor_.registers().exception<Exception::FIQ>();
+				break;
+				case SWISubversion::IRQ:
+					executor_.set_pc(executor_.pc() - 4);
+					executor_.registers().exception<Exception::IRQ>();
+				break;
+			}
+
+			did_set_pc();
+			return false;
 		}
 
 		void update_clock_rates() {
@@ -457,16 +488,7 @@ class ConcreteMachine:
 		int video_divider_ = 1;
 
 		void tick_cpu() {
-			uint32_t instruction = 0;
-			if(!executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false)) {
-//				logger.info().append("Prefetch abort at %08x; last good was at %08x", executor_.pc(), last_pc);
-				executor_.prefetch_abort();
-
-				// TODO: does a double abort cause a reset?
-				executor_.bus.read(executor_.pc(), instruction, executor_.registers().mode(), false);
-			}
-			// TODO: pipeline prefetch?
-
+			const uint32_t instruction = advance_pipeline(executor_.pc() + 8);
 			debugger_.notify(executor_.pc(), instruction, executor_);
 			InstructionSet::ARM::execute(instruction, executor_);
 		}
@@ -514,10 +536,74 @@ class ConcreteMachine:
 			return executor_.bus.keyboard().mouse();
 		}
 
-		// MARK: - ARM execution
+		// MARK: - ARM execution.
 		static constexpr auto arm_model = InstructionSet::ARM::Model::ARMv2;
 		using Executor = InstructionSet::ARM::Executor<arm_model, MemoryController<ConcreteMachine, ConcreteMachine>, ConcreteMachine>;
 		Executor executor_;
+
+		void fill_pipeline(uint32_t pc) {
+			if(pipeline_.interrupt_next()) return;
+			advance_pipeline(pc);
+			advance_pipeline(pc + 4);
+		}
+
+		uint32_t advance_pipeline(uint32_t pc) {
+			uint32_t instruction;
+			const bool did_read = executor_.bus.read(pc, instruction, executor_.registers().mode(), false);
+			return pipeline_.exchange(
+				instruction,
+				did_read ? Pipeline::SWISubversion::None : Pipeline::SWISubversion::DataAbort);
+		}
+
+		struct Pipeline {
+			enum SWISubversion: uint8_t {
+				None,
+				DataAbort,
+				IRQ,
+				FIQ,
+			};
+
+			uint32_t exchange(uint32_t next, SWISubversion subversion) {
+				const uint32_t result = upcoming_[active_].opcode;
+				latched_subversion_ = upcoming_[active_].subversion;
+
+				upcoming_[active_].opcode = next;
+				upcoming_[active_].subversion = subversion;
+				active_ ^= 1;
+
+				return result;
+			}
+
+			SWISubversion swi_subversion() const {
+				return latched_subversion_;
+			}
+
+			// TODO: one day, possibly: schedule the subversion one slot further into the future
+			// (i.e. active_ ^ 1) to allow one further instruction to occur as usual before the
+			// action paplies. That is, if interrupts take effect one instruction later after a flags
+			// change, which I don't yet know.
+			//
+			// In practice I got into a bit of a race condition between interrupt scheduling and
+			// flags changes, so have backed off for now.
+			void reschedule(SWISubversion subversion) {
+				upcoming_[active_].opcode = 0xef'000000;
+				upcoming_[active_].subversion = subversion;
+			}
+
+			bool interrupt_next() const {
+				return upcoming_[active_].subversion == SWISubversion::IRQ || upcoming_[active_].subversion == SWISubversion::FIQ;
+			}
+
+		private:
+			struct Stage {
+				uint32_t opcode;
+				SWISubversion subversion = SWISubversion::None;
+			};
+			Stage upcoming_[2];
+			int active_ = 0;
+
+			SWISubversion latched_subversion_;
+		} pipeline_;
 
 		// MARK: - Yucky, temporary junk.
 		HackyDebugger<arm_model, Executor> debugger_;
