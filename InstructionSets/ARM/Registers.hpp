@@ -209,7 +209,9 @@ struct Registers {
 		/// Otherwise returns @c false.
 		template <Exception type>
 		bool interrupt() {
-			if(!would_interrupt<type>()) return false;
+			if(!would_interrupt<type>()) {
+				return false;
+			}
 			exception<type>();
 			return true;
 		}

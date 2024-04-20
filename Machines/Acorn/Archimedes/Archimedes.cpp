@@ -410,13 +410,23 @@ class ConcreteMachine:
 			using Exception = InstructionSet::ARM::Registers::Exception;
 
 			const int requests = executor_.bus.interrupt_mask();
-			if((requests & InterruptRequests::FIQ) && executor_.registers().would_interrupt<Exception::FIQ>()) {
-				pipeline_.reschedule(Pipeline::SWISubversion::FIQ);
+			if((requests & InterruptRequests::FIQ) && executor_.registers().interrupt<Exception::FIQ>()) {
+				did_set_pc();
 				return;
 			}
-			if((requests & InterruptRequests::IRQ) && executor_.registers().would_interrupt<Exception::IRQ>()) {
-				pipeline_.reschedule(Pipeline::SWISubversion::IRQ);
+			if((requests & InterruptRequests::IRQ) && executor_.registers().interrupt<Exception::IRQ>()) {
+				did_set_pc();
+				return;
 			}
+
+//			const int requests = executor_.bus.interrupt_mask();
+//			if((requests & InterruptRequests::FIQ) && executor_.registers().would_interrupt<Exception::FIQ>()) {
+//				pipeline_.reschedule(Pipeline::SWISubversion::FIQ);
+//				return;
+//			}
+//			if((requests & InterruptRequests::IRQ) && executor_.registers().would_interrupt<Exception::IRQ>()) {
+//				pipeline_.reschedule(Pipeline::SWISubversion::IRQ);
+//			}
 		}
 
 		void did_set_status() {
@@ -441,14 +451,14 @@ class ConcreteMachine:
 //					executor_.set_pc(executor_.pc() - 4);
 					executor_.registers().interrupt<Exception::DataAbort>();
 				break;
-				case SWISubversion::FIQ:
-					executor_.set_pc(executor_.pc() - 4);
-					executor_.registers().interrupt<Exception::FIQ>();
-				break;
-				case SWISubversion::IRQ:
-					executor_.set_pc(executor_.pc() - 4);
-					executor_.registers().interrupt<Exception::IRQ>();
-				break;
+//				case SWISubversion::FIQ:
+//					executor_.set_pc(executor_.pc() - 4);
+//					executor_.registers().interrupt<Exception::FIQ>();
+//				break;
+//				case SWISubversion::IRQ:
+//					executor_.set_pc(executor_.pc() - 4);
+//					executor_.registers().interrupt<Exception::IRQ>();
+//				break;
 			}
 
 			did_set_pc();
@@ -539,6 +549,7 @@ class ConcreteMachine:
 		Executor executor_;
 
 		void fill_pipeline(uint32_t pc) {
+//			if(pipeline_.interrupt_next()) return;
 			advance_pipeline(pc);
 			advance_pipeline(pc + 4);
 		}
@@ -555,8 +566,8 @@ class ConcreteMachine:
 			enum SWISubversion: uint8_t {
 				None,
 				DataAbort,
-				IRQ,
-				FIQ,
+//				IRQ,
+//				FIQ,
 			};
 
 			uint32_t exchange(uint32_t next, SWISubversion subversion) {
@@ -570,19 +581,23 @@ class ConcreteMachine:
 				return result;
 			}
 
-			void reschedule(SWISubversion subversion) {
-				upcoming_[active_ ^ 1].opcode = 0xef'000000;
-				upcoming_[active_ ^ 1].subversion = subversion;
-			}
+//			void reschedule(SWISubversion subversion) {
+//				upcoming_[active_ ^ 1].opcode = 0xef'000000;
+//				upcoming_[active_ ^ 1].subversion = subversion;
+//			}
 
 			SWISubversion swi_subversion() const {
 				return latched_subversion_;
 			}
 
+//			bool interrupt_next() const {
+//				return upcoming_[active_].subversion == SWISubversion::IRQ || upcoming_[active_].subversion == SWISubversion::FIQ;
+//			}
+
 		private:
 			struct Stage {
 				uint32_t opcode;
-				SWISubversion subversion;
+				SWISubversion subversion = SWISubversion::None;
 			};
 			Stage upcoming_[2];
 			int active_ = 0;
