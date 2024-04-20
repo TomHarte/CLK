@@ -205,17 +205,8 @@ struct Registers {
 			set_pc(uint32_t(type));
 		}
 
-		/// Applies an exception of @c type and returns @c true if: (i) it is IRQ or FIQ; (ii) the processor is currently accepting such interrupts.
+		/// Returns @c true if: (i) the exception type is IRQ or FIQ; and (ii) the processor is currently accepting such interrupts.
 		/// Otherwise returns @c false.
-		template <Exception type>
-		bool interrupt() {
-			if(!would_interrupt<type>()) {
-				return false;
-			}
-			exception<type>();
-			return true;
-		}
-
 		template <Exception type>
 		bool would_interrupt() {
 			switch(type) {

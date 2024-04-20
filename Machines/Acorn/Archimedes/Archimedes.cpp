@@ -410,23 +410,13 @@ class ConcreteMachine:
 			using Exception = InstructionSet::ARM::Registers::Exception;
 
 			const int requests = executor_.bus.interrupt_mask();
-			if((requests & InterruptRequests::FIQ) && executor_.registers().interrupt<Exception::FIQ>()) {
-				did_set_pc();
+			if((requests & InterruptRequests::FIQ) && executor_.registers().would_interrupt<Exception::FIQ>()) {
+				pipeline_.reschedule(Pipeline::SWISubversion::FIQ);
 				return;
 			}
-			if((requests & InterruptRequests::IRQ) && executor_.registers().interrupt<Exception::IRQ>()) {
-				did_set_pc();
-				return;
+			if((requests & InterruptRequests::IRQ) && executor_.registers().would_interrupt<Exception::IRQ>()) {
+				pipeline_.reschedule(Pipeline::SWISubversion::IRQ);
 			}
-
-//			const int requests = executor_.bus.interrupt_mask();
-//			if((requests & InterruptRequests::FIQ) && executor_.registers().would_interrupt<Exception::FIQ>()) {
-//				pipeline_.reschedule(Pipeline::SWISubversion::FIQ);
-//				return;
-//			}
-//			if((requests & InterruptRequests::IRQ) && executor_.registers().would_interrupt<Exception::IRQ>()) {
-//				pipeline_.reschedule(Pipeline::SWISubversion::IRQ);
-//			}
 		}
 
 		void did_set_status() {
@@ -449,16 +439,19 @@ class ConcreteMachine:
 
 				case SWISubversion::DataAbort:
 //					executor_.set_pc(executor_.pc() - 4);
-					executor_.registers().interrupt<Exception::DataAbort>();
+					executor_.registers().exception<Exception::DataAbort>();
 				break;
-//				case SWISubversion::FIQ:
-//					executor_.set_pc(executor_.pc() - 4);
-//					executor_.registers().interrupt<Exception::FIQ>();
-//				break;
-//				case SWISubversion::IRQ:
-//					executor_.set_pc(executor_.pc() - 4);
-//					executor_.registers().interrupt<Exception::IRQ>();
-//				break;
+
+				// FIQ and IRQ decrement the PC because their apperance in the pipeline causes
+				// it to look as though they were fetched, but they weren't.
+				case SWISubversion::FIQ:
+					executor_.set_pc(executor_.pc() - 4);
+					executor_.registers().exception<Exception::FIQ>();
+				break;
+				case SWISubversion::IRQ:
+					executor_.set_pc(executor_.pc() - 4);
+					executor_.registers().exception<Exception::IRQ>();
+				break;
 			}
 
 			did_set_pc();
@@ -549,7 +542,7 @@ class ConcreteMachine:
 		Executor executor_;
 
 		void fill_pipeline(uint32_t pc) {
-//			if(pipeline_.interrupt_next()) return;
+			if(pipeline_.interrupt_next()) return;
 			advance_pipeline(pc);
 			advance_pipeline(pc + 4);
 		}
@@ -566,8 +559,8 @@ class ConcreteMachine:
 			enum SWISubversion: uint8_t {
 				None,
 				DataAbort,
-//				IRQ,
-//				FIQ,
+				IRQ,
+				FIQ,
 			};
 
 			uint32_t exchange(uint32_t next, SWISubversion subversion) {
@@ -581,18 +574,25 @@ class ConcreteMachine:
 				return result;
 			}
 
-//			void reschedule(SWISubversion subversion) {
-//				upcoming_[active_ ^ 1].opcode = 0xef'000000;
-//				upcoming_[active_ ^ 1].subversion = subversion;
-//			}
-
 			SWISubversion swi_subversion() const {
 				return latched_subversion_;
 			}
 
-//			bool interrupt_next() const {
-//				return upcoming_[active_].subversion == SWISubversion::IRQ || upcoming_[active_].subversion == SWISubversion::FIQ;
-//			}
+			// TODO: one day, possibly: schedule the subversion one slot further into the future
+			// (i.e. active_ ^ 1) to allow one further instruction to occur as usual before the
+			// action paplies. That is, if interrupts take effect one instruction later after a flags
+			// change, which I don't yet know.
+			//
+			// In practice I got into a bit of a race condition between interrupt scheduling and
+			// flags changes, so have backed off for now.
+			void reschedule(SWISubversion subversion) {
+				upcoming_[active_].opcode = 0xef'000000;
+				upcoming_[active_].subversion = subversion;
+			}
+
+			bool interrupt_next() const {
+				return upcoming_[active_].subversion == SWISubversion::IRQ || upcoming_[active_].subversion == SWISubversion::FIQ;
+			}
 
 		private:
 			struct Stage {
