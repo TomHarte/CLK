@@ -209,6 +209,13 @@ struct Registers {
 		/// Otherwise returns @c false.
 		template <Exception type>
 		bool interrupt() {
+			if(!would_interrupt<type>()) return false;
+			exception<type>();
+			return true;
+		}
+
+		template <Exception type>
+		bool would_interrupt() {
 			switch(type) {
 				case Exception::IRQ:
 					if(interrupt_flags_ & ConditionCode::IRQDisable) {
@@ -224,8 +231,6 @@ struct Registers {
 
 				default: return false;
 			}
-
-			exception<type>();
 			return true;
 		}
 
