@@ -339,7 +339,9 @@ struct Executor {
 			if constexpr (flags.transfer_byte()) {
 				uint8_t target;
 				did_read = bus.template read<uint8_t>(address, target, registers_.mode(), trans);
-				value = target;
+				if(did_read) {
+					value = target;
+				}
 			} else {
 				did_read = bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 
