@@ -551,7 +551,7 @@ class ConcreteMachine:
 			uint32_t instruction;
 			const bool did_read = executor_.bus.read(pc, instruction, executor_.registers().mode(), false);
 			return pipeline_.exchange(
-				instruction,
+				did_read ? instruction : Pipeline::SWI,
 				did_read ? Pipeline::SWISubversion::None : Pipeline::SWISubversion::DataAbort);
 		}
 
@@ -562,6 +562,8 @@ class ConcreteMachine:
 				IRQ,
 				FIQ,
 			};
+
+			static constexpr uint32_t SWI = 0xef'000000;
 
 			uint32_t exchange(uint32_t next, SWISubversion subversion) {
 				const uint32_t result = upcoming_[active_].opcode;
@@ -586,7 +588,7 @@ class ConcreteMachine:
 			// In practice I got into a bit of a race condition between interrupt scheduling and
 			// flags changes, so have backed off for now.
 			void reschedule(SWISubversion subversion) {
-				upcoming_[active_].opcode = 0xef'000000;
+				upcoming_[active_].opcode = SWI;
 				upcoming_[active_].subversion = subversion;
 			}
 
