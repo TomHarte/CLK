@@ -185,6 +185,7 @@ struct Registers {
 				// Unspecified; a guess.
 				case Exception::Reset:					return 0;
 			}
+			return 4;
 		}
 
 		/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
@@ -270,10 +271,11 @@ struct Registers {
 				case Condition::GT:	return !le();
 				case Condition::LE:	return le();
 
-				default:
 				case Condition::AL:	return true;
 				case Condition::NV:	return false;
 			}
+
+			return false;
 		}
 
 		/// Sets current execution mode.
@@ -345,23 +347,19 @@ struct Registers {
 		/// this will the the user-mode register. Otherwise it'll be that for the current mode. These references
 		/// are guaranteed to remain valid only until the next mode change.
 		uint32_t &reg(bool force_user_mode, uint32_t offset) {
-			if(!force_user_mode) {
-				return active_[offset];
-			}
-
 			switch(mode_) {
 				default:
 				case Mode::User: return active_[offset];
 
 				case Mode::Supervisor:
 				case Mode::IRQ:
-					if(offset == 13 || offset == 14) {
+					if(force_user_mode && (offset == 13 || offset == 14)) {
 						return user_registers_[offset - 8];
 					}
 					return active_[offset];
 
 				case Mode::FIQ:
-					if(offset >= 8 && offset < 15) {
+					if(force_user_mode && (offset >= 8 && offset < 15)) {
 						return user_registers_[offset - 8];
 					}
 					return active_[offset];
