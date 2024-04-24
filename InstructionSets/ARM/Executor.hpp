@@ -337,9 +337,11 @@ struct Executor {
 			uint32_t value = 0;
 
 			if constexpr (flags.transfer_byte()) {
-				uint8_t target;
+				uint8_t target = 0;	// Value should never be used; this avoids a spurious GCC warning.
 				did_read = bus.template read<uint8_t>(address, target, registers_.mode(), trans);
-				value = target;
+				if(did_read) {
+					value = target;
+				}
 			} else {
 				did_read = bus.template read<uint32_t>(address, value, registers_.mode(), trans);
 

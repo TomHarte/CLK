@@ -1869,6 +1869,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					SetupDataAccess(0, Operation::SelectWord);
 				MoveToStateSpecific(StoreOperand_l);
 
+				default:	// Convince GCC that nothing here is amiss.
 				case InstructionSet::M68k::DataSize::Word:
 					SetupDataAccess(0, Operation::SelectWord);
 				MoveToStateSpecific(StoreOperand_bw);

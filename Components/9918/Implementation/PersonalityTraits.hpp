@@ -38,6 +38,7 @@ constexpr size_t memory_size(Personality p) {
 		case TI::TMS::V9938:	return 128 * 1024;
 		case TI::TMS::V9958:	return 192 * 1024;
 	}
+	return 0;
 }
 
 constexpr size_t memory_mask(Personality p) {
