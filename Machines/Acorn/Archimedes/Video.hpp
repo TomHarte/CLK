@@ -191,19 +191,20 @@ struct Video {
 		};
 
 		// Possibly output something.
-		if(new_phase != phase_) {
+		if(new_phase != phase_ || (phase_ == Phase::Border && phased_border_colour_ != border_colour_)) {
 			if(time_in_phase_) {
 				const auto duration = static_cast<int>(time_in_phase_);
 
 				switch(phase_) {
-					case Phase::Sync:		crt_.output_sync(duration);									break;
-					case Phase::Blank:		crt_.output_blank(duration);								break;
-					case Phase::Display:	flush_pixels();												break;
-					case Phase::Border:		crt_.output_level<uint16_t>(duration, border_colour_);		break;
+					case Phase::Sync:		crt_.output_sync(duration);										break;
+					case Phase::Blank:		crt_.output_blank(duration);									break;
+					case Phase::Display:	flush_pixels();													break;
+					case Phase::Border:		crt_.output_level<uint16_t>(duration, phased_border_colour_);	break;
 				}
 				time_in_phase_ = 0;
 			}
 			phase_ = new_phase;
+			phased_border_colour_ = border_colour_;
 		}
 
 		// Update cursor pixel counter if applicable; this might mean triggering it
@@ -373,18 +374,11 @@ private:
 	enum class Phase {
 		Sync, Blank, Border, Display,
 	};
+	template <bool is_vertical>
 	struct State {
 		uint32_t position = 0;
 
 		void increment_position(const Timing &timing) {
-			++position;
-			if(position == 1024) position = 0;
-
-			if(position == timing.period) {
-				state = DidRestart;
-				position = 0;
-			}
-
 			if(position == timing.sync_width)		state |= SyncEnded;
 			if(position == timing.display_start)	state |= DisplayStarted;
 			if(position == timing.display_end)		state |= DisplayEnded;
@@ -393,6 +387,14 @@ private:
 
 			cursor_active |= position == timing.cursor_start;
 			cursor_active &= position != timing.cursor_end;
+
+			if(position == timing.period) {
+				state = DidRestart;
+				position = 0;
+			} else {
+				++position;
+				if(position == 1024) position = 0;
+			}
 		}
 
 		static constexpr uint8_t SyncEnded = 0x1;
@@ -429,11 +431,13 @@ private:
 			return Phase::Display;
 		}
 	};
-	State horizontal_state_, vertical_state_;
+	State<false> horizontal_state_;
+	State<true> vertical_state_;
 	Phase phase_ = Phase::Sync;
 	uint32_t time_in_phase_ = 0;
 	uint32_t pixel_count_ = 0;
 	uint16_t *pixels_ = nullptr;
+	uint16_t phased_border_colour_;
 
 	// It is elsewhere assumed that this size is a multiple of 8.
 	static constexpr size_t PixelBufferSize = 320;
