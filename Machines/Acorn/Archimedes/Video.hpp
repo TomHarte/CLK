@@ -26,7 +26,7 @@ struct Video {
 		ram_(ram),
 		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
 		set_clock_divider(3);
-		crt_.set_visible_area(Outputs::Display::Rect(0.06f, 0.07f, 0.9f, 0.9f));
+//		crt_.set_visible_area(Outputs::Display::Rect(0.06f, 0.07f, 0.9f, 0.9f));
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	}
 
@@ -131,9 +131,10 @@ struct Video {
 		horizontal_state_.increment_position(horizontal_timing_);
 
 		if(horizontal_state_.did_restart()) {
+			end_horizontal();
+
 			const auto old_phase = vertical_state_.phase();
 			vertical_state_.increment_position(vertical_timing_);
-			pixel_count_ = 0;
 
 			const auto phase = vertical_state_.phase();
 			if(phase != old_phase) {
@@ -167,158 +168,14 @@ struct Video {
 			cursor_pixel_ = 32;
 		}
 
-		// Accumulate total phase.
-		++time_in_phase_;
-
-		// Determine current output phase.
-		Phase new_phase;
+		// Move along line.
 		switch(vertical_state_.phase()) {
-			case Phase::Sync:	new_phase = Phase::Sync;	break;
-			case Phase::Blank:	new_phase = Phase::Blank;	break;
-			case Phase::Border:
-				new_phase = horizontal_state_.phase() == Phase::Display ? Phase::Border : horizontal_state_.phase();
-			break;
-			case Phase::Display:
-				new_phase = horizontal_state_.phase();
-			break;
+			case Phase::Sync:		tick_horizontal<Phase::Sync>();		break;
+			case Phase::Blank:		tick_horizontal<Phase::Blank>();	break;
+			case Phase::Border:		tick_horizontal<Phase::Border>();	break;
+			case Phase::Display:	tick_horizontal<Phase::Display>();	break;
 		}
-
-		const auto flush_pixels = [&]() {
-			const auto duration = static_cast<int>(time_in_phase_);
-			crt_.output_data(duration, static_cast<size_t>(time_in_phase_) * 2);
-			time_in_phase_ = 0;
-			pixels_ = nullptr;
-		};
-
-		// Possibly output something.
-		if(new_phase != phase_ || (phase_ == Phase::Border && phased_border_colour_ != border_colour_)) {
-			if(time_in_phase_) {
-				const auto duration = static_cast<int>(time_in_phase_);
-
-				switch(phase_) {
-					case Phase::Sync:		crt_.output_sync(duration);										break;
-					case Phase::Blank:		crt_.output_blank(duration);									break;
-					case Phase::Display:	flush_pixels();													break;
-					case Phase::Border:		crt_.output_level<uint16_t>(duration, phased_border_colour_);	break;
-				}
-				time_in_phase_ = 0;
-			}
-			phase_ = new_phase;
-			phased_border_colour_ = border_colour_;
-		}
-
-		// Update cursor pixel counter if applicable; this might mean triggering it
-		// and it might just mean advancing it if it has already been triggered.
-		if(vertical_state_.cursor_active) {
-			const auto pixel_position = horizontal_state_.position << 1;
-			if(pixel_position <= horizontal_timing_.cursor_start && (pixel_position + 2) > horizontal_timing_.cursor_start) {
-				cursor_pixel_ = int(horizontal_timing_.cursor_start) - int(pixel_position);
-			}
-		}
-
-		// Grab some more pixels if appropriate.
-		if(vertical_state_.display_active() && horizontal_state_.display_active()) {
-			const auto next_byte = [&]() -> uint8_t {
-				const auto next = ram_[address_];
-				++address_;
-
-				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
-				// the +16 here papers over the fact that I'm not accurately implementing DMA.
-				if(address_ == buffer_end_ + 16) {
-					address_ = buffer_start_;
-				}
-				return next;
-			};
-
-			switch(colour_depth_) {
-				case Depth::EightBPP:
-					pixel_data_[0] = next_byte();
-					pixel_data_[1] = next_byte();
-				break;
-				case Depth::FourBPP:
-					pixel_data_[0] = next_byte();
-				break;
-				case Depth::TwoBPP:
-					if(!(pixel_count_&1)) {
-						pixel_data_[0] = next_byte();
-					}
-				break;
-				case Depth::OneBPP:
-					if(!(pixel_count_&3)) {
-						pixel_data_[0] = next_byte();
-					}
-				break;
-			}
-			++pixel_count_;
-		}
-
-		if(phase_ == Phase::Display) {
-			if(pixels_ && time_in_phase_ == PixelBufferSize/2) {
-				flush_pixels();
-			}
-
-			if(!pixels_) {
-				if(time_in_phase_) {
-					flush_pixels();
-				}
-
-				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
-			}
-
-			if(pixels_) {
-				// Each tick in here is two ticks of the pixel clock, so:
-				//
-				//	8bpp mode: output two bytes;
-				//	4bpp mode: output one byte;
-				//	2bpp mode: output one byte every second tick;
-				//	1bpp mode: output one byte every fourth tick.
-				switch(colour_depth_) {
-					case Depth::EightBPP:
-						pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
-						pixels_[1] = (colours_[pixel_data_[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[1] >> 4];
-					break;
-
-					case Depth::FourBPP:
-						pixels_[0] = colours_[pixel_data_[0] & 0xf];
-						pixels_[1] = colours_[pixel_data_[0] >> 4];
-					break;
-
-					case Depth::TwoBPP:
-						pixels_[0] = colours_[pixel_data_[0] & 3];
-						pixels_[1] = colours_[(pixel_data_[0] >> 2) & 3];
-						pixel_data_[0] >>= 4;
-					break;
-
-					case Depth::OneBPP:
-						pixels_[0] = colours_[pixel_data_[0] & 1];
-						pixels_[1] = colours_[(pixel_data_[0] >> 1) & 1];
-						pixel_data_[0] >>= 2;
-					break;
-				}
-
-				// Overlay cursor if applicable.
-				// TODO: pull this so far out that the cursor can display over the border, too.
-				if(cursor_pixel_ < 32) {
-					if(cursor_pixel_ >= 0) {
-						const auto pixel = cursor_image_[static_cast<size_t>(cursor_pixel_)];
-						if(pixel) {
-							pixels_[0] = cursor_colours_[pixel];
-						}
-					}
-					if(cursor_pixel_ < 31) {
-						const auto pixel = cursor_image_[static_cast<size_t>(cursor_pixel_ + 1)];
-						if(pixel) {
-							pixels_[1] = cursor_colours_[pixel];
-						}
-					}
-				}
-
-				pixels_ += 2;
-			}
-		}
-
-		// Advance cursor position.
-		if(cursor_pixel_ < 32) cursor_pixel_ += 2;
+		++time_in_phase_;
 	}
 
 	/// @returns @c true if a vertical retrace interrupt has been signalled since the last call to @c interrupt(); @c false otherwise.
@@ -433,14 +290,16 @@ private:
 	};
 	State<false> horizontal_state_;
 	State<true> vertical_state_;
-	Phase phase_ = Phase::Sync;
-	uint32_t time_in_phase_ = 0;
-	uint32_t pixel_count_ = 0;
-	uint16_t *pixels_ = nullptr;
+
+	int time_in_phase_ = 0;
+	Phase phase_;
 	uint16_t phased_border_colour_;
 
+	uint32_t pixel_count_ = 0;
+	uint16_t *pixels_ = nullptr;
+
 	// It is elsewhere assumed that this size is a multiple of 8.
-	static constexpr size_t PixelBufferSize = 320;
+	static constexpr size_t PixelBufferSize = 256;
 
 	// Programmer-set addresses.
 	uint32_t buffer_start_ = 0;
@@ -499,6 +358,196 @@ private:
 			Outputs::CRT::PAL::AlternatesPhase);
 		clock_rate_observer_.update_clock_rates();
 	}
+
+	void flush_pixels() {
+		crt_.output_data(time_in_phase_, static_cast<size_t>(pixel_count_));
+		time_in_phase_ = 0;
+		pixel_count_ = 0;
+		pixels_ = nullptr;
+	}
+
+	void set_phase(Phase phase) {
+		if(time_in_phase_) {
+			switch(phase_) {
+				case Phase::Sync:		crt_.output_sync(time_in_phase_);									break;
+				case Phase::Blank:		crt_.output_blank(time_in_phase_);									break;
+				case Phase::Border:		crt_.output_level<uint16_t>(time_in_phase_, phased_border_colour_);	break;
+				case Phase::Display:	flush_pixels();														break;
+			}
+		}
+
+		phase_ = phase;
+		time_in_phase_ = 0;
+		phased_border_colour_ = border_colour_;
+		pixel_count_ = 0;
+	}
+
+	void end_horizontal() {
+		set_phase(Phase::Sync);
+	}
+
+	template <Phase vertical_phase> void tick_horizontal() {
+		// Sync lines: obey nothing. All sync, all the time.
+		if constexpr (vertical_phase == Phase::Sync) {
+			return;
+		}
+
+		// Blank lines: obey only the transition from sync to non-sync.
+		if constexpr (vertical_phase == Phase::Blank) {
+			if(phase_ == Phase::Sync && horizontal_state_.phase() != Phase::Sync) {
+				set_phase(Phase::Blank);
+			}
+			return;
+		}
+
+		// Border lines: ignore display phases; also  reset the border phase if the colour changes.
+		const auto horizontal_phase = horizontal_state_.phase();
+		const auto phase = horizontal_phase != Phase::Display ? horizontal_phase : Phase::Border;
+
+		if(phase != phase_ || (phase_ == Phase::Border && border_colour_ != phased_border_colour_)) {
+			set_phase(phase);
+		}
+	}
+
+	template <>
+	void tick_horizontal<Phase::Display>() {
+		// Some timing facts, to explain what would otherwise be magic constants.
+		static constexpr int CursorDelay = 6;	// The cursor will appear six pixels after its programmed trigger point.
+//		static constexpr int Delay1bpp = 19;
+//		static constexpr int Delay2bpp = 11;
+//		static constexpr int Delay4bpp = 7;
+//		static constexpr int Delay8bpp = 7;
+
+		// Deal with sync and blank via set_phase(); collapse display and border into Phase::Display.
+		const auto horizontal_phase = horizontal_state_.phase();
+		const auto phase = horizontal_phase == Phase::Border ? Phase::Display : horizontal_phase;
+		if(phase != phase_) set_phase(phase);
+
+		// Update cursor pixel counter if applicable; this might mean triggering it
+		// and it might just mean advancing it if it has already been triggered.
+		if(vertical_state_.cursor_active) {
+			const auto pixel_position = horizontal_state_.position << 1;
+			if(pixel_position <= horizontal_timing_.cursor_start && (pixel_position + 2) > horizontal_timing_.cursor_start) {
+				cursor_pixel_ = int(horizontal_timing_.cursor_start) - int(pixel_position) - CursorDelay;
+			}
+		}
+
+		// TODO: if in the display phase, do some fetching.
+
+		// If this is not [collapsed] Phase::Display, just stop here.
+		if(phase_ != Phase::Display) return;
+
+		// Display phase: maintain an output buffer (if available).
+		if(pixel_count_ == PixelBufferSize)	flush_pixels();
+		if(!pixel_count_)					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
+
+		// TOOD: proper here.
+		if(pixels_) {
+			pixels_[0] = border_colour_;
+			pixels_[1] = border_colour_;
+
+			// Overlay cursor if applicable.
+			if(cursor_pixel_ < 32) {
+				if(cursor_pixel_ >= 0) {
+					const auto pixel = cursor_image_[static_cast<size_t>(cursor_pixel_)];
+					if(pixel) {
+						pixels_[0] = cursor_colours_[pixel];
+					}
+				}
+				if(cursor_pixel_ >= -1 && cursor_pixel_ < 31) {
+					const auto pixel = cursor_image_[static_cast<size_t>(cursor_pixel_ + 1)];
+					if(pixel) {
+						pixels_[1] = cursor_colours_[pixel];
+					}
+				}
+			}
+
+			pixels_ += 2;
+		}
+
+		cursor_pixel_ += 2;
+		pixel_count_ += 2;
+	}
+
+//		// Grab some more pixels if appropriate.
+//		if(vertical_state_.display_active() && horizontal_state_.display_active()) {
+//			const auto next_byte = [&]() -> uint8_t {
+//				const auto next = ram_[address_];
+//				++address_;
+//
+//				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
+//				// the +16 here papers over the fact that I'm not accurately implementing DMA.
+//				if(address_ == buffer_end_ + 16) {
+//					address_ = buffer_start_;
+//				}
+//				return next;
+//			};
+//
+//			switch(colour_depth_) {
+//				case Depth::EightBPP:
+//					pixel_data_[0] = next_byte();
+//					pixel_data_[1] = next_byte();
+//				break;
+//				case Depth::FourBPP:
+//					pixel_data_[0] = next_byte();
+//				break;
+//				case Depth::TwoBPP:
+//					if(!(pixel_count_&1)) {
+//						pixel_data_[0] = next_byte();
+//					}
+//				break;
+//				case Depth::OneBPP:
+//					if(!(pixel_count_&3)) {
+//						pixel_data_[0] = next_byte();
+//					}
+//				break;
+//			}
+//			++pixel_count_;
+//		}
+//
+//		if(phase_ == Phase::Display) {
+//			if(pixels_ && time_in_phase_ == PixelBufferSize/2) {
+//				flush_pixels();
+//			}
+//
+//			if(!pixels_) {
+//				if(time_in_phase_) {
+//					flush_pixels();
+//				}
+//
+//				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
+//			}
+//
+//			if(pixels_) {
+//				// Each tick in here is two ticks of the pixel clock, so:
+//				//
+//				//	8bpp mode: output two bytes;
+//				//	4bpp mode: output one byte;
+//				//	2bpp mode: output one byte every second tick;
+//				//	1bpp mode: output one byte every fourth tick.
+//				switch(colour_depth_) {
+//					case Depth::EightBPP:
+//						pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
+//						pixels_[1] = (colours_[pixel_data_[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[1] >> 4];
+//					break;
+//
+//					case Depth::FourBPP:
+//						pixels_[0] = colours_[pixel_data_[0] & 0xf];
+//						pixels_[1] = colours_[pixel_data_[0] >> 4];
+//					break;
+//
+//					case Depth::TwoBPP:
+//						pixels_[0] = colours_[pixel_data_[0] & 3];
+//						pixels_[1] = colours_[(pixel_data_[0] >> 2) & 3];
+//						pixel_data_[0] >>= 4;
+//					break;
+//
+//					case Depth::OneBPP:
+//						pixels_[0] = colours_[pixel_data_[0] & 1];
+//						pixels_[1] = colours_[(pixel_data_[0] >> 1) & 1];
+//						pixel_data_[0] >>= 2;
+//					break;
+//				}
 };
 
 }
