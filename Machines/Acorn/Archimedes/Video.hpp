@@ -295,7 +295,8 @@ private:
 	Phase phase_;
 	uint16_t phased_border_colour_;
 
-	uint32_t pixel_count_ = 0;
+	int pixel_count_ = 0;
+	int display_area_start_ = 0;
 	uint16_t *pixels_ = nullptr;
 
 	// It is elsewhere assumed that this size is a multiple of 8.
@@ -314,9 +315,6 @@ private:
 	uint32_t cursor_address_ = 0;
 	int cursor_pixel_ = 0;
 	std::array<uint8_t, 32> cursor_image_;
-
-	// Ephemeral graphics data.
-	uint8_t pixel_data_[2]{};
 
 	// Colour palette, converted to internal format.
 	uint16_t border_colour_;
@@ -384,6 +382,8 @@ private:
 
 	void end_horizontal() {
 		set_phase(Phase::Sync);
+		display_area_start_ = -1;
+		bitmap_queue_write_pointer_ = bitmap_queue_read_pointer_ = display_count_ = 0;
 	}
 
 	template <Phase vertical_phase> void tick_horizontal() {
@@ -409,6 +409,11 @@ private:
 		}
 	}
 
+	uint8_t bitmap_queue_[8];
+	int bitmap_queue_write_pointer_ = 0;
+	int bitmap_queue_read_pointer_ = 0;
+	int display_count_ = 0;
+
 	template <>
 	void tick_horizontal<Phase::Display>() {
 		// Some timing facts, to explain what would otherwise be magic constants.
@@ -416,7 +421,7 @@ private:
 //		static constexpr int Delay1bpp = 19;
 //		static constexpr int Delay2bpp = 11;
 //		static constexpr int Delay4bpp = 7;
-//		static constexpr int Delay8bpp = 7;
+//		static constexpr int Delay8bpp = 5;
 
 		// Deal with sync and blank via set_phase(); collapse display and border into Phase::Display.
 		const auto horizontal_phase = horizontal_state_.phase();
@@ -432,7 +437,31 @@ private:
 			}
 		}
 
-		// TODO: if in the display phase, do some fetching.
+		// If in the display phase, do some fetching.
+		// TODO: probably pull this out so that it can test raw vertical state, including display-under-blank?
+		if(horizontal_state_.display_active()) {
+			const auto next_byte = [&]() {
+				const auto next = ram_[address_];
+				++address_;
+
+				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
+				// the +16 here papers over the fact that I'm not accurately implementing DMA.
+				if(address_ == buffer_end_ + 16) {
+					address_ = buffer_start_;
+				}
+				bitmap_queue_[bitmap_queue_write_pointer_ & 7] = next;
+				++bitmap_queue_write_pointer_;
+			};
+
+			switch(colour_depth_) {
+				case Depth::EightBPP:		next_byte();	next_byte();		break;
+				case Depth::FourBPP:		next_byte();						break;
+				case Depth::TwoBPP:			if(!(pixel_count_&1)) next_byte();	break;
+				case Depth::OneBPP:			if(!(pixel_count_&3)) next_byte();	break;
+			}
+
+			++display_count_;
+		}
 
 		// If this is not [collapsed] Phase::Display, just stop here.
 		if(phase_ != Phase::Display) return;
@@ -441,10 +470,49 @@ private:
 		if(pixel_count_ == PixelBufferSize)	flush_pixels();
 		if(!pixel_count_)					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
 
-		// TOOD: proper here.
+		// Output.
+		// TODO: below isn't correct because the read pointers don't advance unless pixels are making it all
+		// the way to the display. I also don't think it quite correctly models any reasonable interpretation of
+		// what might happen if colour depth were changed during the line. Hmmm.
 		if(pixels_) {
-			pixels_[0] = border_colour_;
-			pixels_[1] = border_colour_;
+			// Paint the border colour for potential painting over.
+			pixels_[0] = pixels_[1] = border_colour_;
+
+			switch(colour_depth_) {
+				case Depth::EightBPP:
+					// A five pixel delay applies. So that means at least three display counts must have happened.
+//					pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
+//					pixels_[1] = (colours_[pixel_data_[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[1] >> 4];
+				break;
+
+				case Depth::FourBPP:
+					// A 7-pixel delay applies.
+					// So that means at least three display counts must have happened, accumating 8 pixels.
+					if(display_count_ < 3 || bitmap_queue_read_pointer_ == bitmap_queue_write_pointer_+1) {
+						break;
+					}
+
+					pixels_[0] =
+						bitmap_queue_read_pointer_ ?
+							colours_[bitmap_queue_[(bitmap_queue_read_pointer_ - 1) & 7] >> 4] : border_colour_;
+					pixels_[1] =
+						bitmap_queue_read_pointer_ != bitmap_queue_write_pointer_ ?
+							colours_[bitmap_queue_[bitmap_queue_read_pointer_ & 7] & 0xf] : border_colour_;
+					++bitmap_queue_read_pointer_;
+				break;
+
+				case Depth::TwoBPP:
+//					pixels_[0] = colours_[pixel_data_[0] & 3];
+//					pixels_[1] = colours_[(pixel_data_[0] >> 2) & 3];
+//					pixel_data_[0] >>= 4;
+				break;
+
+				case Depth::OneBPP:
+//					pixels_[0] = colours_[pixel_data_[0] & 1];
+//					pixels_[1] = colours_[(pixel_data_[0] >> 1) & 1];
+//					pixel_data_[0] >>= 2;
+				break;
+			}
 
 			// Overlay cursor if applicable.
 			if(cursor_pixel_ < 32) {
@@ -469,62 +537,6 @@ private:
 		pixel_count_ += 2;
 	}
 
-//		// Grab some more pixels if appropriate.
-//		if(vertical_state_.display_active() && horizontal_state_.display_active()) {
-//			const auto next_byte = [&]() -> uint8_t {
-//				const auto next = ram_[address_];
-//				++address_;
-//
-//				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
-//				// the +16 here papers over the fact that I'm not accurately implementing DMA.
-//				if(address_ == buffer_end_ + 16) {
-//					address_ = buffer_start_;
-//				}
-//				return next;
-//			};
-//
-//			switch(colour_depth_) {
-//				case Depth::EightBPP:
-//					pixel_data_[0] = next_byte();
-//					pixel_data_[1] = next_byte();
-//				break;
-//				case Depth::FourBPP:
-//					pixel_data_[0] = next_byte();
-//				break;
-//				case Depth::TwoBPP:
-//					if(!(pixel_count_&1)) {
-//						pixel_data_[0] = next_byte();
-//					}
-//				break;
-//				case Depth::OneBPP:
-//					if(!(pixel_count_&3)) {
-//						pixel_data_[0] = next_byte();
-//					}
-//				break;
-//			}
-//			++pixel_count_;
-//		}
-//
-//		if(phase_ == Phase::Display) {
-//			if(pixels_ && time_in_phase_ == PixelBufferSize/2) {
-//				flush_pixels();
-//			}
-//
-//			if(!pixels_) {
-//				if(time_in_phase_) {
-//					flush_pixels();
-//				}
-//
-//				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
-//			}
-//
-//			if(pixels_) {
-//				// Each tick in here is two ticks of the pixel clock, so:
-//				//
-//				//	8bpp mode: output two bytes;
-//				//	4bpp mode: output one byte;
-//				//	2bpp mode: output one byte every second tick;
-//				//	1bpp mode: output one byte every fourth tick.
 //				switch(colour_depth_) {
 //					case Depth::EightBPP:
 //						pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
