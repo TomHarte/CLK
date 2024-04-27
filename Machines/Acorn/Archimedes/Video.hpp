@@ -26,7 +26,7 @@ struct Video {
 		ram_(ram),
 		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
 		set_clock_divider(3);
-//		crt_.set_visible_area(Outputs::Display::Rect(0.06f, 0.07f, 0.9f, 0.9f));
+		crt_.set_visible_area(Outputs::Display::Rect(0.041f, 0.04f, 0.95f, 0.95f));
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	}
 
@@ -138,9 +138,8 @@ struct Video {
 
 			const auto phase = vertical_state_.phase();
 			if(phase != old_phase) {
-				// I don't have good information on this; first guess: copy frame and
-				// cursor start addresses into counters at the start of the first vertical
-				// display line.
+				// Copy frame and cursor start addresses into counters at the
+				// start of the first vertical display line.
 				if(phase == Phase::Display) {
 					address_ = frame_start_;
 					cursor_address_ = cursor_start_;
@@ -166,6 +165,31 @@ struct Video {
 				}
 			}
 			cursor_pixel_ = 32;
+		}
+
+		// Fetch if relevant display signals are active.
+		if(vertical_state_.display_active() && horizontal_state_.display_active()) {
+			const auto next_byte = [&]() {
+				const auto next = ram_[address_];
+				++address_;
+
+				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
+				// the +16 here papers over the fact that I'm not accurately implementing DMA.
+				if(address_ == buffer_end_ + 16) {
+					address_ = buffer_start_;
+				}
+				bitmap_queue_[bitmap_queue_write_pointer_ & 7] = next;
+				++bitmap_queue_write_pointer_;
+			};
+
+			switch(colour_depth_) {
+				case Depth::EightBPP:		next_byte();	next_byte();		break;
+				case Depth::FourBPP:		next_byte();						break;
+				case Depth::TwoBPP:			if(!(pixel_count_&1)) next_byte();	break;
+				case Depth::OneBPP:			if(!(pixel_count_&3)) next_byte();	break;
+			}
+
+			++display_count_;
 		}
 
 		// Move along line.
@@ -430,37 +454,12 @@ private:
 
 		// Update cursor pixel counter if applicable; this might mean triggering it
 		// and it might just mean advancing it if it has already been triggered.
+		cursor_pixel_ += 2;
 		if(vertical_state_.cursor_active) {
 			const auto pixel_position = horizontal_state_.position << 1;
 			if(pixel_position <= horizontal_timing_.cursor_start && (pixel_position + 2) > horizontal_timing_.cursor_start) {
 				cursor_pixel_ = int(horizontal_timing_.cursor_start) - int(pixel_position) - CursorDelay;
 			}
-		}
-
-		// If in the display phase, do some fetching.
-		// TODO: probably pull this out so that it can test raw vertical state, including display-under-blank?
-		if(horizontal_state_.display_active()) {
-			const auto next_byte = [&]() {
-				const auto next = ram_[address_];
-				++address_;
-
-				// `buffer_end_` is the final address that a 16-byte block will be fetched from;
-				// the +16 here papers over the fact that I'm not accurately implementing DMA.
-				if(address_ == buffer_end_ + 16) {
-					address_ = buffer_start_;
-				}
-				bitmap_queue_[bitmap_queue_write_pointer_ & 7] = next;
-				++bitmap_queue_write_pointer_;
-			};
-
-			switch(colour_depth_) {
-				case Depth::EightBPP:		next_byte();	next_byte();		break;
-				case Depth::FourBPP:		next_byte();						break;
-				case Depth::TwoBPP:			if(!(pixel_count_&1)) next_byte();	break;
-				case Depth::OneBPP:			if(!(pixel_count_&3)) next_byte();	break;
-			}
-
-			++display_count_;
 		}
 
 		// If this is not [collapsed] Phase::Display, just stop here.
@@ -533,7 +532,6 @@ private:
 			pixels_ += 2;
 		}
 
-		cursor_pixel_ += 2;
 		pixel_count_ += 2;
 	}
 
