@@ -12,6 +12,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 
@@ -92,8 +93,6 @@ struct Video {
 			case 0xbc:	vertical_timing_.cursor_end = timing_value(value);		break;
 
 			case 0xe0:
-				logger.error().append("TODO: video control: %08x", value);
-
 				// Set pixel rate. This is the value that a 24Mhz clock should be divided
 				// by to get half the pixel rate.
 				switch(value & 0b11) {
@@ -387,6 +386,11 @@ private:
 	uint32_t clock_divider_ = 0;
 	Depth colour_depth_;
 
+	// A temporary buffer that holds video contents during the latency
+	// period between their generation and their output.
+	uint8_t bitmap_queue_[8];
+	int bitmap_queue_pointer_ = 0;
+
 	void set_clock_divider(uint32_t divider) {
 		if(divider == clock_divider_) {
 			return;
@@ -449,17 +453,19 @@ private:
 		}
 
 		// Border lines: ignore display phases; also  reset the border phase if the colour changes.
-		const auto phase = horizontal_state_.phase(Phase::Border);
-		if(phase != phase_ || (phase_ == Phase::Border && border_colour_ != phased_border_colour_)) {
-			set_phase(phase);
+		if constexpr (vertical_phase == Phase::Border) {
+			const auto phase = horizontal_state_.phase(Phase::Border);
+			if(phase != phase_ || (phase_ == Phase::Border && border_colour_ != phased_border_colour_)) {
+				set_phase(phase);
+			}
+			return;
 		}
-	}
 
-	uint8_t bitmap_queue_[8];
-	int bitmap_queue_pointer_ = 0;
+		if constexpr (vertical_phase != Phase::Display) {
+			// Should be impossible.
+			assert(false);
+		}
 
-	template <>
-	void tick_horizontal<Phase::Display>() {
 		// Some timing facts, to explain what would otherwise be magic constants.
 		static constexpr int CursorDelay = 5;	// The cursor will appear six pixels after its programmed trigger point.
 												// ... BUT! Border and display are currently a pixel early. So move the
