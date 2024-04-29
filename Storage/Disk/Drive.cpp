@@ -203,8 +203,9 @@ void Drive::advance(const Cycles cycles) {
 }
 
 void Drive::run_for(const Cycles cycles) {
-	// Assumed: the index pulse pulses even if the drive has stopped spinning.
-	index_pulse_remaining_ = std::max(index_pulse_remaining_ - cycles, Cycles(0));
+	// Assumed: the index pulse will end even if the drive has stopped spinning.
+	// Also: because the count here is a 64-bit integer, the std::max can be ignored.
+	index_pulse_remaining_ -= cycles;// std::max(index_pulse_remaining_ - cycles, Cycles(0));
 
 	if(time_until_motor_transition > Cycles(0)) {
 		if(time_until_motor_transition > cycles) {
