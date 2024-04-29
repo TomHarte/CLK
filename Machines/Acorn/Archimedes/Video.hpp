@@ -178,18 +178,16 @@ struct Video {
 				if(address_ == buffer_end_ + 16) {
 					address_ = buffer_start_;
 				}
-				bitmap_queue_[bitmap_queue_write_pointer_ & 7] = next;
-				++bitmap_queue_write_pointer_;
+				bitmap_queue_[bitmap_queue_pointer_ & 7] = next;
+				++bitmap_queue_pointer_;
 			};
 
 			switch(colour_depth_) {
 				case Depth::EightBPP:		next_byte();	next_byte();		break;
 				case Depth::FourBPP:		next_byte();						break;
-				case Depth::TwoBPP:			if(!(pixel_count_&1)) next_byte();	break;
-				case Depth::OneBPP:			if(!(pixel_count_&3)) next_byte();	break;
+				case Depth::TwoBPP:			if(!(pixel_count_&3)) next_byte();	break;
+				case Depth::OneBPP:			if(!(pixel_count_&7)) next_byte();	break;
 			}
-
-			++display_count_;
 		}
 
 		// Move along line.
@@ -251,6 +249,13 @@ private:
 	uint32_t cursor_shift_ = 0;
 	Timing horizontal_timing_, vertical_timing_;
 
+	enum class Depth {
+		OneBPP = 0b00,
+		TwoBPP = 0b01,
+		FourBPP = 0b10,
+		EightBPP = 0b11,
+	};
+
 	// Current video state.
 	enum class Phase {
 		Sync, Blank, Border, Display,
@@ -258,11 +263,13 @@ private:
 	template <bool is_vertical>
 	struct State {
 		uint32_t position = 0;
+		uint32_t display_start = 0;
+		uint32_t display_end = 0;
 
 		void increment_position(const Timing &timing) {
 			if(position == timing.sync_width)		state |= SyncEnded;
-			if(position == timing.display_start)	state |= DisplayStarted;
-			if(position == timing.display_end)		state |= DisplayEnded;
+			if(position == timing.display_start)	{ state |= DisplayStarted; display_start = position; }
+			if(position == timing.display_end)		{ state |= DisplayEnded; display_end = position; }
 			if(position == timing.border_start)		state |= BorderStarted;
 			if(position == timing.border_end)		state |= BorderEnded;
 
@@ -272,11 +279,30 @@ private:
 			if(position == timing.period) {
 				state = DidRestart;
 				position = 0;
+
+				// Both display start and end need to be seeded as bigger than can be reached,
+				// while having some overhead for addition.
+				display_end = display_start = std::numeric_limits<uint32_t>::max() >> 1;
 			} else {
 				++position;
 				if(position == 1024) position = 0;
 			}
 		}
+
+		bool is_outputting(Depth depth) const {
+			return position >= display_start + output_latencies[static_cast<uint32_t>(depth)] && position < display_end + output_latencies[static_cast<uint32_t>(depth)];
+		}
+
+		uint32_t output_cycle(Depth depth) const {
+			return position - display_start - output_latencies[static_cast<uint32_t>(depth)];
+		}
+
+		static constexpr uint32_t output_latencies[] = {
+			19 >> 1,		// 1 bpp.
+			11 >> 1,		// 2 bpp.
+			7 >> 1,			// 4 bpp.
+			5 >> 1			// 8 bpp.
+		};
 
 		static constexpr uint8_t SyncEnded = 0x1;
 		static constexpr uint8_t BorderStarted = 0x2;
@@ -298,14 +324,18 @@ private:
 			return (state & DisplayStarted) && !(state & DisplayEnded);
 		}
 
-		Phase phase() const {
-			// TODO: turn the following logic into a 32-entry lookup table.
+		Phase phase(Phase horizontal_fallback = Phase::Border) const {
+			// TODO: turn the following logic into a lookup table.
 			if(!(state & SyncEnded)) {
 				return Phase::Sync;
 			}
 			if(!(state & BorderStarted) || (state & BorderEnded)) {
 				return Phase::Blank;
 			}
+			if constexpr (!is_vertical) {
+				return horizontal_fallback;
+			}
+
 			if(!(state & DisplayStarted) || (state & DisplayEnded)) {
 				return Phase::Border;
 			}
@@ -355,13 +385,7 @@ private:
 	// the pixel clock because that's the fidelity at which the programmer
 	// places horizontal events — display start, end, sync period, etc.
 	uint32_t clock_divider_ = 0;
-
-	enum class Depth {
-		OneBPP = 0b00,
-		TwoBPP = 0b01,
-		FourBPP = 0b10,
-		EightBPP = 0b11,
-	} colour_depth_;
+	Depth colour_depth_;
 
 	void set_clock_divider(uint32_t divider) {
 		if(divider == clock_divider_) {
@@ -407,7 +431,7 @@ private:
 	void end_horizontal() {
 		set_phase(Phase::Sync);
 		display_area_start_ = -1;
-		bitmap_queue_write_pointer_ = bitmap_queue_read_pointer_ = display_count_ = 0;
+		bitmap_queue_pointer_ = 0;
 	}
 
 	template <Phase vertical_phase> void tick_horizontal() {
@@ -425,31 +449,24 @@ private:
 		}
 
 		// Border lines: ignore display phases; also  reset the border phase if the colour changes.
-		const auto horizontal_phase = horizontal_state_.phase();
-		const auto phase = horizontal_phase != Phase::Display ? horizontal_phase : Phase::Border;
-
+		const auto phase = horizontal_state_.phase(Phase::Border);
 		if(phase != phase_ || (phase_ == Phase::Border && border_colour_ != phased_border_colour_)) {
 			set_phase(phase);
 		}
 	}
 
 	uint8_t bitmap_queue_[8];
-	int bitmap_queue_write_pointer_ = 0;
-	int bitmap_queue_read_pointer_ = 0;
-	int display_count_ = 0;
+	int bitmap_queue_pointer_ = 0;
 
 	template <>
 	void tick_horizontal<Phase::Display>() {
 		// Some timing facts, to explain what would otherwise be magic constants.
-		static constexpr int CursorDelay = 6;	// The cursor will appear six pixels after its programmed trigger point.
-//		static constexpr int Delay1bpp = 19;
-//		static constexpr int Delay2bpp = 11;
-//		static constexpr int Delay4bpp = 7;
-//		static constexpr int Delay8bpp = 5;
+		static constexpr int CursorDelay = 5;	// The cursor will appear six pixels after its programmed trigger point.
+												// ... BUT! Border and display are currently a pixel early. So move the
+												// cursor for alignment.
 
 		// Deal with sync and blank via set_phase(); collapse display and border into Phase::Display.
-		const auto horizontal_phase = horizontal_state_.phase();
-		const auto phase = horizontal_phase == Phase::Border ? Phase::Display : horizontal_phase;
+		const auto phase = horizontal_state_.phase(Phase::Display);
 		if(phase != phase_) set_phase(phase);
 
 		// Update cursor pixel counter if applicable; this might mean triggering it
@@ -470,47 +487,41 @@ private:
 		if(!pixel_count_)					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelBufferSize));
 
 		// Output.
-		// TODO: below isn't correct because the read pointers don't advance unless pixels are making it all
-		// the way to the display. I also don't think it quite correctly models any reasonable interpretation of
-		// what might happen if colour depth were changed during the line. Hmmm.
 		if(pixels_) {
 			// Paint the border colour for potential painting over.
-			pixels_[0] = pixels_[1] = border_colour_;
 
-			switch(colour_depth_) {
-				case Depth::EightBPP:
-					// A five pixel delay applies. So that means at least three display counts must have happened.
-//					pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
-//					pixels_[1] = (colours_[pixel_data_[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[1] >> 4];
-				break;
+			if(horizontal_state_.is_outputting(colour_depth_)) {
+				const auto source = horizontal_state_.output_cycle(colour_depth_);
 
-				case Depth::FourBPP:
-					// A 7-pixel delay applies.
-					// So that means at least three display counts must have happened, accumating 8 pixels.
-					if(display_count_ < 3 || bitmap_queue_read_pointer_ == bitmap_queue_write_pointer_+1) {
-						break;
-					}
+				// TODO: all below should be delayed an extra pixel. As should the border, actually. Fix up externally?
+				switch(colour_depth_) {
+					case Depth::EightBPP: {
+						const uint8_t *bitmap = &bitmap_queue_[(source << 1) & 7];
+						pixels_[0] = (colours_[bitmap[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[bitmap[0] >> 4];
+						pixels_[1] = (colours_[bitmap[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[bitmap[1] >> 4];
+					} break;
 
-					pixels_[0] =
-						bitmap_queue_read_pointer_ ?
-							colours_[bitmap_queue_[(bitmap_queue_read_pointer_ - 1) & 7] >> 4] : border_colour_;
-					pixels_[1] =
-						bitmap_queue_read_pointer_ != bitmap_queue_write_pointer_ ?
-							colours_[bitmap_queue_[bitmap_queue_read_pointer_ & 7] & 0xf] : border_colour_;
-					++bitmap_queue_read_pointer_;
-				break;
+					case Depth::FourBPP:
+						pixels_[0] = colours_[bitmap_queue_[source & 7] & 0xf];
+						pixels_[1] = colours_[bitmap_queue_[source & 7] >> 4];
+					break;
 
-				case Depth::TwoBPP:
-//					pixels_[0] = colours_[pixel_data_[0] & 3];
-//					pixels_[1] = colours_[(pixel_data_[0] >> 2) & 3];
-//					pixel_data_[0] >>= 4;
-				break;
+					case Depth::TwoBPP: {
+						uint8_t &bitmap = bitmap_queue_[(source >> 1) & 7];
+						pixels_[0] = colours_[bitmap & 3];
+						pixels_[1] = colours_[(bitmap >> 2) & 3];
+						bitmap >>= 4;
+					} break;
 
-				case Depth::OneBPP:
-//					pixels_[0] = colours_[pixel_data_[0] & 1];
-//					pixels_[1] = colours_[(pixel_data_[0] >> 1) & 1];
-//					pixel_data_[0] >>= 2;
-				break;
+					case Depth::OneBPP: {
+						uint8_t &bitmap = bitmap_queue_[(source >> 2) & 7];
+						pixels_[0] = colours_[bitmap & 1];
+						pixels_[1] = colours_[(bitmap >> 1) & 1];
+						bitmap >>= 2;
+					} break;
+				}
+			} else {
+				pixels_[0] = pixels_[1] = border_colour_;
 			}
 
 			// Overlay cursor if applicable.
@@ -534,30 +545,6 @@ private:
 
 		pixel_count_ += 2;
 	}
-
-//				switch(colour_depth_) {
-//					case Depth::EightBPP:
-//						pixels_[0] = (colours_[pixel_data_[0] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[0] >> 4];
-//						pixels_[1] = (colours_[pixel_data_[1] & 0xf] & colour(0b0111'0011'0111)) | high_spread[pixel_data_[1] >> 4];
-//					break;
-//
-//					case Depth::FourBPP:
-//						pixels_[0] = colours_[pixel_data_[0] & 0xf];
-//						pixels_[1] = colours_[pixel_data_[0] >> 4];
-//					break;
-//
-//					case Depth::TwoBPP:
-//						pixels_[0] = colours_[pixel_data_[0] & 3];
-//						pixels_[1] = colours_[(pixel_data_[0] >> 2) & 3];
-//						pixel_data_[0] >>= 4;
-//					break;
-//
-//					case Depth::OneBPP:
-//						pixels_[0] = colours_[pixel_data_[0] & 1];
-//						pixels_[1] = colours_[(pixel_data_[0] >> 1) & 1];
-//						pixel_data_[0] >>= 2;
-//					break;
-//				}
 };
 
 }
