@@ -173,7 +173,7 @@ struct MemoryController {
 	}
 
 	template <typename IntT>
-	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode, bool trans) {
+	bool read(uint32_t address, IntT &source, bool trans) {
 		switch (read_zones_[(address >> 21) & 31]) {
 			case Zone::PhysicallyMappedRAM:
 				if(trans) return false;
@@ -210,6 +210,11 @@ struct MemoryController {
 		}
 
 		return true;
+	}
+
+	template <typename IntT>
+	bool read(uint32_t address, IntT &source, InstructionSet::ARM::Mode, bool trans) {
+		return read(address, source, trans);
 	}
 
 	//
