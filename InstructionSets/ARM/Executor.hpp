@@ -58,7 +58,9 @@ struct Executor {
 	/// @returns @c true if @c condition implies an appropriate perform call should be made for this instruction,
 	/// @c false otherwise.
 	bool should_schedule(Condition condition) {
-		return registers_.test(condition);
+		// This short-circuit of registers_.test provides the necessary compiler clue that
+		// Condition::AL is not only [[likely]] but [[exceedingly likely]].
+		return condition == Condition::AL ? true : registers_.test(condition);
 	}
 
 	template <bool allow_register, bool set_carry, typename FieldsT>
