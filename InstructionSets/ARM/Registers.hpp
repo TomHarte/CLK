@@ -231,7 +231,7 @@ struct Registers {
 		// MARK: - Condition tests.
 
 		/// @returns @c true if @c condition tests as true; @c false otherwise.
-		bool test(Condition condition) {
+		bool test(Condition condition) const {
 			const auto ne = [&]() -> bool {
 				return zero_result_;
 			};

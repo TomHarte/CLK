@@ -549,7 +549,7 @@ class ConcreteMachine:
 
 		uint32_t advance_pipeline(uint32_t pc) {
 			uint32_t instruction = 0;	// Value should never be used; this avoids a spurious GCC warning.
-			const bool did_read = executor_.bus.read(pc, instruction, executor_.registers().mode(), false);
+			const bool did_read = executor_.bus.read(pc, instruction,  executor_.registers().mode() == InstructionSet::ARM::Mode::User);
 			return pipeline_.exchange(
 				did_read ? instruction : Pipeline::SWI,
 				did_read ? Pipeline::SWISubversion::None : Pipeline::SWISubversion::DataAbort);
