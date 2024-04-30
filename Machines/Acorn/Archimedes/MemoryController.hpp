@@ -35,9 +35,9 @@ template <typename InterruptObserverT, typename ClockRateObserverT>
 struct MemoryController {
 	MemoryController(InterruptObserverT &observer, ClockRateObserverT &clock_rate_observer) :
 		ioc_(observer, clock_rate_observer, ram_.data()) {
-		read_zones_[0] = Zone::HighROM;	// Temporarily put high ROM at address 0.
-										// TODO: could I just copy it in? Or, at least,
-										// could I detect at ROM loading time whether I can?
+		read_zones_[0] = ReadZone::HighROM;	// Temporarily put high ROM at address 0.
+											// TODO: could I just copy it in? Or, at least,
+											// could I detect at ROM loading time whether I can?
 	}
 
 	int interrupt_mask() const {
@@ -72,7 +72,20 @@ struct MemoryController {
 	template <typename IntT>
 	bool write(uint32_t address, IntT source, InstructionSet::ARM::Mode, bool trans) {
 		switch(write_zones_[(address >> 21) & 31]) {
-			case Zone::DMAAndMEMC: {
+			case WriteZone::LogicallyMappedRAM: {
+				const auto item = logical_ram<IntT, false>(address, trans);
+				if(item < reinterpret_cast<IntT *>(ram_.data())) {
+					return false;
+				}
+				*item = source;
+			} break;
+
+			case WriteZone::PhysicallyMappedRAM:
+				if(trans) return false;
+				physical_ram<IntT>(address) = source;
+			break;
+
+			case WriteZone::DMAAndMEMC: {
 				if(trans) return false;
 
 				const auto buffer_address = [](uint32_t source) -> uint32_t {
@@ -133,39 +146,22 @@ struct MemoryController {
 				}
 			} break;
 
-			case Zone::LogicallyMappedRAM: {
-				const auto item = logical_ram<IntT, false>(address, trans);
-				if(!item) {
-					return false;
-				}
-				*item = source;
-			} break;
-
-			case Zone::IOControllers:
+			case WriteZone::IOControllers:
 				if(trans) return false;
 				ioc_.template write<IntT>(address, source);
 			break;
 
-			case Zone::VideoController:
+			case WriteZone::VideoController:
 				if(trans) return false;
 				// TODO: handle byte writes correctly.
 				ioc_.video().write(source);
 			break;
 
-			case Zone::PhysicallyMappedRAM:
-				if(trans) return false;
-				physical_ram<IntT>(address) = source;
-			break;
-
-			case Zone::AddressTranslator:
+			case WriteZone::AddressTranslator:
 				if(trans) return false;
 //				printf("Translator write at %08x; replaces %08x\n", address, pages_[address & 0x7f]);
 				pages_[address & 0x7f] = address;
 				map_dirty_ = true;
-			break;
-
-			default:
-				printf("TODO: write of %08x to %08x [%lu]\n", source, address, sizeof(IntT));
 			break;
 		}
 
@@ -174,38 +170,34 @@ struct MemoryController {
 
 	template <typename IntT>
 	bool read(uint32_t address, IntT &source, bool trans) {
-		switch (read_zones_[(address >> 21) & 31]) {
-			case Zone::PhysicallyMappedRAM:
-				if(trans) return false;
-				source = physical_ram<IntT>(address);
-			break;
-
-			case Zone::LogicallyMappedRAM: {
+		switch(read_zones_[(address >> 21) & 31]) {
+			case ReadZone::LogicallyMappedRAM: {
 				const auto item = logical_ram<IntT, true>(address, trans);
-				if(!item) {
+				if(item < reinterpret_cast<IntT *>(ram_.data())) {
 					return false;
 				}
 				source = *item;
 			} break;
 
-			case Zone::LowROM:
+			case ReadZone::HighROM:
+				// Real test is: require A24=A25=0, then A25=1.
+				read_zones_[0] = ReadZone::LogicallyMappedRAM;
+				source = high_rom<IntT>(address);
+			break;
+
+			case ReadZone::PhysicallyMappedRAM:
+				if(trans) return false;
+				source = physical_ram<IntT>(address);
+			break;
+
+			case ReadZone::LowROM:
 //				logger.error().append("TODO: Low ROM read from %08x", address);
 				source = IntT(~0);
 			break;
 
-			case Zone::HighROM:
-				// Real test is: require A24=A25=0, then A25=1.
-				read_zones_[0] = Zone::LogicallyMappedRAM;
-				source = high_rom<IntT>(address);
-			break;
-
-			case Zone::IOControllers:
+			case ReadZone::IOControllers:
 				if(trans) return false;
 				ioc_.template read<IntT>(address, source);
-			break;
-
-			default:
-				logger.error().append("TODO: read from %08x", address);
 			break;
 		}
 
@@ -244,40 +236,61 @@ struct MemoryController {
 	private:
 		Log::Logger<Log::Source::ARMIOC> logger;
 
-		enum class Zone {
+		enum class ReadZone {
 			LogicallyMappedRAM,
 			PhysicallyMappedRAM,
 			IOControllers,
 			LowROM,
 			HighROM,
+		};
+		enum class WriteZone {
+			LogicallyMappedRAM,
+			PhysicallyMappedRAM,
+			IOControllers,
 			VideoController,
 			DMAAndMEMC,
 			AddressTranslator,
 		};
-		static std::array<Zone, 0x20> zones(bool is_read) {
-			std::array<Zone, 0x20> zones{};
+		template <bool is_read>
+		using Zone = std::conditional_t<is_read, ReadZone, WriteZone>;
+
+		template <bool is_read>
+		static std::array<Zone<is_read>, 0x20> zones() {
+			std::array<Zone<is_read>, 0x20> zones{};
 			for(size_t c = 0; c < zones.size(); c++) {
 				const auto address = c << 21;
 				if(address < 0x200'0000) {
-					zones[c] = Zone::LogicallyMappedRAM;
+					zones[c] = Zone<is_read>::LogicallyMappedRAM;
 				} else if(address < 0x300'0000) {
-					zones[c] = Zone::PhysicallyMappedRAM;
+					zones[c] = Zone<is_read>::PhysicallyMappedRAM;
 				} else if(address < 0x340'0000) {
-					zones[c] = Zone::IOControllers;
+					zones[c] = Zone<is_read>::IOControllers;
 				} else if(address < 0x360'0000) {
-					zones[c] = is_read ? Zone::LowROM : Zone::VideoController;
+					if constexpr (is_read) {
+						zones[c] = Zone<is_read>::LowROM;
+					} else {
+						zones[c] = Zone<is_read>::VideoController;
+					}
 				} else if(address < 0x380'0000) {
-					zones[c] = is_read ? Zone::LowROM : Zone::DMAAndMEMC;
+					if constexpr (is_read) {
+						zones[c] = Zone<is_read>::LowROM;
+					} else {
+						zones[c] = Zone<is_read>::DMAAndMEMC;
+					}
 				} else {
-					zones[c] = is_read ? Zone::HighROM : Zone::AddressTranslator;
+					if constexpr (is_read) {
+						zones[c] = Zone<is_read>::HighROM;
+					} else {
+						zones[c] = Zone<is_read>::AddressTranslator;
+					}
 				}
 			}
 			return zones;
 		}
 
 		bool has_moved_rom_ = false;
-		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
+		std::array<uint8_t, 4*1024*1024> ram_{};
 		InputOutputController<InterruptObserverT, ClockRateObserverT> ioc_;
 
 		template <typename IntT>
@@ -293,8 +306,8 @@ struct MemoryController {
 			return *reinterpret_cast<IntT *>(&rom_[address & (rom_.size() - 1)]);
 		}
 
-		std::array<Zone, 0x20> read_zones_ = zones(true);
-		const std::array<Zone, 0x20> write_zones_ = zones(false);
+		std::array<ReadZone, 0x20> read_zones_ = zones<true>();
+		const std::array<WriteZone, 0x20> write_zones_ = zones<false>();
 
 		// Control register values.
 		bool os_mode_ = false;
@@ -353,6 +366,7 @@ struct MemoryController {
 
 		bool map_dirty_ = true;
 
+		/// @returns A pointer to somewhere in @c ram_ if RAM is mapped to this area, or a pointer to somewhere lower than @c ram_.data() otherwise.
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, bool trans) {
 			// Possibly TODO: this recompute-if-dirty flag is supposed to ameliorate for an expensive
@@ -366,10 +380,6 @@ struct MemoryController {
 			const size_t page = address >> page_address_shift_;
 
 			const auto &map = mapping<is_read>(trans, os_mode_);
-			if(!map[page]) {
-				return nullptr;
-			}
-
 			address &= page_adddress_mask_;
 			return reinterpret_cast<IntT *>(&map[page][address]);
 		}
@@ -389,7 +399,9 @@ struct MemoryController {
 		void update_mapping() {
 			// Clear all logical mappings.
 			for(auto &map: mapping_) {
-				std::fill(map.begin(), map.end(), nullptr);
+				// Seed all pointers to an address sufficiently far lower than the beginning of RAM as to mark
+				// the entire page as unmapped no matter what offset is added.
+				std::fill(map.begin(), map.end(), ram_.data() - 32768);
 			}
 
 			// For each physical page, project it into logical space

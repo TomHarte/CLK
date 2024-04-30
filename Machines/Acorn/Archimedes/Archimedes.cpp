@@ -421,6 +421,7 @@ class ConcreteMachine:
 
 		void did_set_status() {
 			// This might have been a change of mode, so...
+			trans_ = executor_.registers().mode() == InstructionSet::ARM::Mode::User;
 			fill_pipeline(executor_.pc());
 			update_interrupts();
 		}
@@ -540,6 +541,7 @@ class ConcreteMachine:
 		static constexpr auto arm_model = InstructionSet::ARM::Model::ARMv2;
 		using Executor = InstructionSet::ARM::Executor<arm_model, MemoryController<ConcreteMachine, ConcreteMachine>, ConcreteMachine>;
 		Executor executor_;
+		bool trans_ = false;
 
 		void fill_pipeline(uint32_t pc) {
 			if(pipeline_.interrupt_next()) return;
@@ -549,7 +551,7 @@ class ConcreteMachine:
 
 		uint32_t advance_pipeline(uint32_t pc) {
 			uint32_t instruction = 0;	// Value should never be used; this avoids a spurious GCC warning.
-			const bool did_read = executor_.bus.read(pc, instruction,  executor_.registers().mode() == InstructionSet::ARM::Mode::User);
+			const bool did_read = executor_.bus.read(pc, instruction, trans_);
 			return pipeline_.exchange(
 				did_read ? instruction : Pipeline::SWI,
 				did_read ? Pipeline::SWISubversion::None : Pipeline::SWISubversion::DataAbort);
