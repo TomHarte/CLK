@@ -135,7 +135,7 @@ struct MemoryController {
 
 			case Zone::LogicallyMappedRAM: {
 				const auto item = logical_ram<IntT, false>(address, trans);
-				if(!item) {
+				if(item < reinterpret_cast<IntT *>(ram_.data())) {
 					return false;
 				}
 				*item = source;
@@ -182,7 +182,7 @@ struct MemoryController {
 
 			case Zone::LogicallyMappedRAM: {
 				const auto item = logical_ram<IntT, true>(address, trans);
-				if(!item) {
+				if(item < reinterpret_cast<IntT *>(ram_.data())) {
 					return false;
 				}
 				source = *item;
@@ -276,8 +276,8 @@ struct MemoryController {
 		}
 
 		bool has_moved_rom_ = false;
-		std::array<uint8_t, 4*1024*1024> ram_{};
 		std::array<uint8_t, 2*1024*1024> rom_;
+		std::array<uint8_t, 4*1024*1024> ram_{};
 		InputOutputController<InterruptObserverT, ClockRateObserverT> ioc_;
 
 		template <typename IntT>
@@ -353,6 +353,7 @@ struct MemoryController {
 
 		bool map_dirty_ = true;
 
+		/// @returns A pointer to somewhere in @c ram_ if RAM is mapped to this area, or a pointer to somewhere lower than @c ram_.data() otherwise.
 		template <typename IntT, bool is_read>
 		IntT *logical_ram(uint32_t address, bool trans) {
 			// Possibly TODO: this recompute-if-dirty flag is supposed to ameliorate for an expensive
@@ -366,10 +367,6 @@ struct MemoryController {
 			const size_t page = address >> page_address_shift_;
 
 			const auto &map = mapping<is_read>(trans, os_mode_);
-			if(!map[page]) {
-				return nullptr;
-			}
-
 			address &= page_adddress_mask_;
 			return reinterpret_cast<IntT *>(&map[page][address]);
 		}
@@ -389,7 +386,9 @@ struct MemoryController {
 		void update_mapping() {
 			// Clear all logical mappings.
 			for(auto &map: mapping_) {
-				std::fill(map.begin(), map.end(), nullptr);
+				// Seed all pointers to an address sufficiently far lower than the beginning of RAM as to mark
+				// the entire page as unmapped no matter what offset is added.
+				std::fill(map.begin(), map.end(), ram_.data() - 32768);
 			}
 
 			// For each physical page, project it into logical space
