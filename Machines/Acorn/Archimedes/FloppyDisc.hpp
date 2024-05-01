@@ -16,7 +16,7 @@ template <typename InterruptObserverT>
 class FloppyDisc: public WD::WD1770, public WD::WD1770::Delegate {
 public:
 	FloppyDisc(InterruptObserverT &observer) : WD::WD1770(P1772), observer_(observer) {
-		emplace_drives(1, 8000000, 300, 2, Storage::Disk::Drive::ReadyType::IBMRDY);	// A guess at RDY type.
+		emplace_drives(1, 8000000, 300, 2, Storage::Disk::Drive::ReadyType::ShugartModifiedRDY);	// A guess at RDY type.
 		set_delegate(this);
 	}
 

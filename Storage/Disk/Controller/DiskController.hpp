@@ -122,6 +122,9 @@ class Controller:
 		Drive &get_drive(size_t index) {
 			return *drives_[index];
 		}
+		const Drive &get_drive(size_t index) const {
+			return *drives_[index];
+		}
 
 		void for_all_drives(const std::function<void(Drive &, size_t)> &func) {
 			size_t index = 0;
