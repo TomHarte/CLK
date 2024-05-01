@@ -117,6 +117,7 @@ class Controller:
 			made about the lifetime or the exclusivity of the invented drive.
 		*/
 		Drive &get_drive();
+		const Drive &get_drive() const;
 
 		Drive &get_drive(size_t index) {
 			return *drives_[index];

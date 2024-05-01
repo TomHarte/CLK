@@ -50,6 +50,10 @@ Drive &Controller::get_drive() {
 	return *drive_;
 }
 
+const Drive &Controller::get_drive() const {
+	return *drive_;
+}
+
 // MARK: - Drive::EventDelegate
 
 void Controller::process_event(const Drive::Event &event) {

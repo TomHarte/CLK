@@ -200,8 +200,9 @@ struct InputOutputController: public ClockingHint::Observer {
 
 					case 0x00: {
 						uint8_t value = control_ | 0xc0;
-						value &= ~(i2c_.clock() ? 0x02 : 0x00);
 						value &= ~(i2c_.data() ? 0x01 : 0x00);
+						value &= ~(i2c_.clock() ? 0x02 : 0x00);
+						value &= ~(floppy_.ready() ? 0x04 : 0x00);
 						value &= ~(video_.flyback_active() ? 0x00 : 0x80);	// i.e. high during flyback.
 						set_byte(value);
 //						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
