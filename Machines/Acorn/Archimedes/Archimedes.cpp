@@ -336,7 +336,7 @@ class ConcreteMachine:
 		//
 		// The implementation of this is coupled to the ClockRate above, hence its
 		// appearance here.
-		template <int video_divider>
+		template <int video_divider, bool original_speed>
 		void macro_tick() {
 			macro_counter_ -= 24;
 
@@ -349,39 +349,37 @@ class ConcreteMachine:
 			//	* timers: 2;
 			//	* sound: 1.
 
-			tick_cpu_video<0, video_divider>();		tick_cpu_video<1, video_divider>();
-			tick_cpu_video<2, video_divider>();		tick_floppy();
-			tick_cpu_video<3, video_divider>();		tick_cpu_video<4, video_divider>();
-			tick_cpu_video<5, video_divider>();		tick_floppy();
-			tick_cpu_video<6, video_divider>();		tick_cpu_video<7, video_divider>();
-			tick_cpu_video<8, video_divider>();		tick_floppy();
-			tick_cpu_video<9, video_divider>();		tick_cpu_video<10, video_divider>();
-			tick_cpu_video<11, video_divider>();	tick_floppy();
+			tick_cpu_video<0, video_divider, original_speed>();		tick_cpu_video<1, video_divider, original_speed>();
+			tick_cpu_video<2, video_divider, original_speed>();		tick_floppy();
+			tick_cpu_video<3, video_divider, original_speed>();		tick_cpu_video<4, video_divider, original_speed>();
+			tick_cpu_video<5, video_divider, original_speed>();		tick_floppy();
+			tick_cpu_video<6, video_divider, original_speed>();		tick_cpu_video<7, video_divider, original_speed>();
+			tick_cpu_video<8, video_divider, original_speed>();		tick_floppy();
+			tick_cpu_video<9, video_divider, original_speed>();		tick_cpu_video<10, video_divider, original_speed>();
+			tick_cpu_video<11, video_divider, original_speed>();	tick_floppy();
 			tick_timers();
 
-			tick_cpu_video<12, video_divider>();	tick_cpu_video<13, video_divider>();
-			tick_cpu_video<14, video_divider>();	tick_floppy();
-			tick_cpu_video<15, video_divider>();	tick_cpu_video<16, video_divider>();
-			tick_cpu_video<17, video_divider>();	tick_floppy();
-			tick_cpu_video<18, video_divider>();	tick_cpu_video<19, video_divider>();
-			tick_cpu_video<20, video_divider>();	tick_floppy();
-			tick_cpu_video<21, video_divider>();	tick_cpu_video<22, video_divider>();
-			tick_cpu_video<23, video_divider>();	tick_floppy();
+			tick_cpu_video<12, video_divider, original_speed>();	tick_cpu_video<13, video_divider, original_speed>();
+			tick_cpu_video<14, video_divider, original_speed>();	tick_floppy();
+			tick_cpu_video<15, video_divider, original_speed>();	tick_cpu_video<16, video_divider, original_speed>();
+			tick_cpu_video<17, video_divider, original_speed>();	tick_floppy();
+			tick_cpu_video<18, video_divider, original_speed>();	tick_cpu_video<19, video_divider, original_speed>();
+			tick_cpu_video<20, video_divider, original_speed>();	tick_floppy();
+			tick_cpu_video<21, video_divider, original_speed>();	tick_cpu_video<22, video_divider, original_speed>();
+			tick_cpu_video<23, video_divider, original_speed>();	tick_floppy();
 			tick_timers();
 			tick_sound();
 		}
 		int macro_counter_ = 0;
 
-		template <int offset, int video_divider>
+		template <int offset, int video_divider, bool original_speed>
 		void tick_cpu_video() {
 			if constexpr (!(offset % video_divider)) {
 				tick_video();
 			}
 
-#ifndef NDEBUG
 			// Debug mode: run CPU a lot slower. Actually at close to original advertised MIPS speed.
-			if constexpr (offset & 7) return;
-#endif
+			if constexpr (original_speed && (offset & 7)) return;
 			if constexpr (offset & 1) return;
 			tick_cpu();
 		}
@@ -473,20 +471,36 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
+		int video_divider_ = 1;
 		void run_for(Cycles cycles) override {
+#ifndef NDEBUG
+			// Debug mode: always run 'slowly' because that's less of a burden, and
+			// because it allows me to peer at problems with greater leisure.
+			const bool use_original_speed = true;
+#else
+			// As a first, blunt implementation: try to model something close
+			// to original speed if there have been 10 frame rate overages in total.
+			const bool use_original_speed = executor_.bus.video().frame_rate_overages() > 10;
+#endif
+
+			if(use_original_speed) run_for<true>(cycles);
+			else run_for<false>(cycles);
+		}
+
+		template <bool original_speed>
+		void run_for(Cycles cycles) {
 			macro_counter_ += cycles.as<int>();
 
 			while(macro_counter_ > 0) {
 				switch(video_divider_) {
-					default:	macro_tick<2>();	break;
-					case 3:		macro_tick<3>();	break;
-					case 4:		macro_tick<4>();	break;
-					case 6:		macro_tick<6>();	break;
+					default:	macro_tick<2, original_speed>();	break;
+					case 3:		macro_tick<3, original_speed>();	break;
+					case 4:		macro_tick<4, original_speed>();	break;
+					case 6:		macro_tick<6, original_speed>();	break;
 				}
 
 			}
 		}
-		int video_divider_ = 1;
 
 		void tick_cpu() {
 			const uint32_t instruction = advance_pipeline(executor_.pc() + 8);
