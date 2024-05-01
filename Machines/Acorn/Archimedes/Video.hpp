@@ -202,10 +202,12 @@ struct Video {
 
 		// Move along line.
 		switch(vertical_state_.phase()) {
-			case Phase::Sync:		tick_horizontal<Phase::Sync>();		break;
-			case Phase::Blank:		tick_horizontal<Phase::Blank>();	break;
-			case Phase::Border:		tick_horizontal<Phase::Border>();	break;
-			case Phase::Display:	tick_horizontal<Phase::Display>();	break;
+			case Phase::Sync:					tick_horizontal<Phase::Sync>();						break;
+			case Phase::Blank:					tick_horizontal<Phase::Blank>();					break;
+			case Phase::Border:					tick_horizontal<Phase::Border>();					break;
+			case Phase::Display:				tick_horizontal<Phase::Display>();					break;
+			case Phase::StartInterlacedSync:	tick_horizontal<Phase::StartInterlacedSync>();		break;
+			case Phase::EndInterlacedSync:		tick_horizontal<Phase::EndInterlacedSync>();		break;
 		}
 		++time_in_phase_;
 	}
@@ -500,6 +502,7 @@ private:
 			if(phase_ == Phase::Blank && horizontal_state_.position == horizontal_timing_.interlace_sync_position) {
 				set_phase(Phase::Sync);
 			}
+			return;
 		}
 
 		// End interlaced sync lines: do sync up to the programmed cutoff, then do blank.
@@ -507,6 +510,7 @@ private:
 			if(phase_ == Phase::Sync && horizontal_state_.position == horizontal_timing_.interlace_sync_position) {
 				set_phase(Phase::Blank);
 			}
+			return;
 		}
 
 		// Blank lines: obey only the transition from sync to non-sync.
