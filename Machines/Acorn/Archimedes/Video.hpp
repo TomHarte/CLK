@@ -79,9 +79,7 @@ struct Video {
 				horizontal_timing_.cursor_start = (value >> 13) & 0x7ff;
 				cursor_shift_ = (value >> 11) & 3;
 			break;
-			case 0x9c:
-				logger.error().append("TODO: Video horizontal interlace: %d", (value >> 14) & 0x3ff);
-			break;
+			case 0x9c:	horizontal_timing_.interlace_sync_position = timing_value(value);	break;
 
 			case 0xa0:	vertical_timing_.period = timing_value(value);			break;
 			case 0xa4:	vertical_timing_.sync_width = timing_value(value);		break;
@@ -104,6 +102,9 @@ struct Video {
 
 				// Set colour depth.
 				colour_depth_ = Depth((value >> 2) & 0b11);
+
+				// Crib interlace-enable.
+				vertical_timing_.is_interlaced = value & (1 << 6);
 			break;
 
 			//
@@ -244,6 +245,9 @@ private:
 		uint32_t display_end = 0;
 		uint32_t cursor_start = 0;
 		uint32_t cursor_end = 0;
+
+		uint32_t interlace_sync_position = 0;
+		bool is_interlaced = false;
 	};
 	uint32_t cursor_shift_ = 0;
 	Timing horizontal_timing_, vertical_timing_;
@@ -257,7 +261,7 @@ private:
 
 	// Current video state.
 	enum class Phase {
-		Sync, Blank, Border, Display,
+		Sync, Blank, Border, Display, StartInterlacedSync, EndInterlacedSync,
 	};
 	template <bool is_vertical>
 	struct State {
@@ -265,8 +269,20 @@ private:
 		uint32_t display_start = 0;
 		uint32_t display_end = 0;
 
+		bool is_odd_iteration_ = false;
+
 		void increment_position(const Timing &timing) {
-			if(position == timing.sync_width)		state |= SyncEnded;
+			const auto previous_override = interlace_override_;
+			if constexpr (is_vertical) {
+				interlace_override_ = Phase::Sync;	// i.e. no override.
+			}
+			if(position == timing.sync_width)		{
+				state |= SyncEnded;
+				if(is_vertical && timing.is_interlaced && is_odd_iteration_ && previous_override == Phase::Sync) {
+					--position;
+					interlace_override_ = Phase::EndInterlacedSync;
+				}
+			}
 			if(position == timing.display_start)	{ state |= DisplayStarted; display_start = position; }
 			if(position == timing.display_end)		{ state |= DisplayEnded; display_end = position; }
 			if(position == timing.border_start)		state |= BorderStarted;
@@ -278,10 +294,16 @@ private:
 			if(position == timing.period) {
 				state = DidRestart;
 				position = 0;
+				is_odd_iteration_ ^= true;
 
 				// Both display start and end need to be seeded as bigger than can be reached,
 				// while having some overhead for addition.
 				display_end = display_start = std::numeric_limits<uint32_t>::max() >> 1;
+
+				// Possibly label the next as a start-of-interlaced-sync.
+				if(is_vertical && timing.is_interlaced && is_odd_iteration_) {
+					interlace_override_ = Phase::StartInterlacedSync;
+				}
 			} else {
 				++position;
 				if(position == 1024) position = 0;
@@ -310,6 +332,7 @@ private:
 		static constexpr uint8_t DisplayEnded = 0x10;
 		static constexpr uint8_t DidRestart = 0x20;
 		uint8_t state = 0;
+		Phase interlace_override_ = Phase::Sync;
 
 		bool cursor_active = false;
 
@@ -324,6 +347,9 @@ private:
 		}
 
 		Phase phase(Phase horizontal_fallback = Phase::Border) const {
+			if(is_vertical && interlace_override_ != Phase::Sync) {
+				return interlace_override_;
+			}
 			// TODO: turn the following logic into a lookup table.
 			if(!(state & SyncEnded)) {
 				return Phase::Sync;
@@ -442,6 +468,24 @@ private:
 		// Sync lines: obey nothing. All sync, all the time.
 		if constexpr (vertical_phase == Phase::Sync) {
 			return;
+		}
+
+		// Start interlaced sync lines: do blank from horizontal sync up to the programmed
+		// cutoff, then do sync.
+		if constexpr (vertical_phase == Phase::StartInterlacedSync) {
+			if(phase_ == Phase::Sync && horizontal_state_.phase() != Phase::Sync) {
+				set_phase(Phase::Blank);
+			}
+			if(phase_ == Phase::Blank && horizontal_state_.position == horizontal_timing_.interlace_sync_position) {
+				set_phase(Phase::Sync);
+			}
+		}
+
+		// End interlaced sync lines: do sync up to the programmed cutoff, then do blank.
+		if constexpr (vertical_phase == Phase::EndInterlacedSync) {
+			if(phase_ == Phase::Sync && horizontal_state_.position == horizontal_timing_.interlace_sync_position) {
+				set_phase(Phase::Blank);
+			}
 		}
 
 		// Blank lines: obey only the transition from sync to non-sync.
