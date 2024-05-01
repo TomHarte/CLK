@@ -143,6 +143,16 @@ struct Video {
 				if(phase == Phase::Display) {
 					address_ = frame_start_;
 					cursor_address_ = cursor_start_;
+
+					// Accumulate a count of how many times the processor has tried
+					// to update the visible buffer more than once in a frame; this
+					// will usually indicate that the software being run isn't properly
+					// synchronised to actual machine speed.
+					++frame_starts_;
+					if(frame_start_sets_ > 10) {
+						overages_ += frame_start_sets_ > frame_starts_;
+						frame_start_sets_ = frame_starts_ = 0;
+					}
 				}
 				if(old_phase == Phase::Display) {
 					entered_flyback_ = true;
@@ -212,7 +222,10 @@ struct Video {
 		return vertical_state_.phase() != Phase::Display;
 	}
 
-	void set_frame_start(uint32_t address) 	{	frame_start_ = address;		}
+	void set_frame_start(uint32_t address) 	{
+		frame_start_ = address;
+		++frame_start_sets_;
+	}
 	void set_buffer_start(uint32_t address)	{	buffer_start_ = address;	}
 	void set_buffer_end(uint32_t address)	{	buffer_end_ = address;		}
 	void set_cursor_start(uint32_t address)	{	cursor_start_ = address;	}
@@ -222,6 +235,10 @@ struct Video {
 
 	int clock_divider() const {
 		return static_cast<int>(clock_divider_);
+	}
+
+	int frame_rate_overages() const {
+		return overages_;
 	}
 
 private:
@@ -386,6 +403,10 @@ private:
 	uint32_t buffer_end_ = 0;
 	uint32_t frame_start_ = 0;
 	uint32_t cursor_start_ = 0;
+
+	int frame_start_sets_ = 0;
+	int frame_starts_ = 0;
+	int overages_ = 0;
 
 	// Ephemeral address state.
 	uint32_t address_ = 0;
