@@ -16,7 +16,7 @@ template <typename InterruptObserverT>
 class FloppyDisc: public WD::WD1770, public WD::WD1770::Delegate {
 public:
 	FloppyDisc(InterruptObserverT &observer) : WD::WD1770(P1772), observer_(observer) {
-		emplace_drives(1, 8000000, 300, 2);
+		emplace_drives(1, 8000000, 300, 2, Storage::Disk::Drive::ReadyType::IBMRDY);	// A guess at RDY type.
 		set_delegate(this);
 	}
 
@@ -38,6 +38,10 @@ public:
 
 	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 		get_drive(drive).set_disk(disk);
+	}
+
+	bool ready() const {
+		return get_drive().get_is_ready();
 	}
 
 private:
