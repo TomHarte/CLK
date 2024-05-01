@@ -468,7 +468,7 @@ private:
 	void set_phase(Phase phase) {
 		if(time_in_phase_) {
 			switch(phase_) {
-				case Phase::Sync:		crt_.output_sync(time_in_phase_);									break;
+				default:				crt_.output_sync(time_in_phase_);									break;
 				case Phase::Blank:		crt_.output_blank(time_in_phase_);									break;
 				case Phase::Border:		crt_.output_level<uint16_t>(time_in_phase_, phased_border_colour_);	break;
 				case Phase::Display:	flush_pixels();														break;
