@@ -8,60 +8,109 @@
 
 #include "SWIIndex.hpp"
 
+#include <cstdio>
+#include <set>
+
 using namespace Analyser::Static::Acorn;
 
-const SWIDescription &Analyser::Static::Acorn::describe_swi(uint32_t comment) {
-	static SWIDescription none;
+SWIDescription::SWIDescription(uint32_t comment) {
+	chunk_offset = comment & 0b111111;
+	chunk_number = (comment >> 6) & 0b11111111111;
+	error_flag = comment & (1 << 17);
+	swi_group = SWIGroup((comment >> 18) & 0b11);
+	os_flag = (comment >> 20) & 0b1111;
 
-	(void)comment;
-	return none;
+	static std::set<uint32_t> encountered;
+
+	const uint32_t number = comment & uint32_t(~(1 << 17));
+	switch(number) {
+		case 0x00:
+			name = "OS_WriteC";
+			registers[0].type = Register::Type::Character;
+		break;
+		case 0x01:
+			name = "OS_WriteS";
+			registers[0].type = Register::Type::FollowingString;
+		break;
+		case 0x02:
+			name = "OS_Write0";
+			registers[0].type = Register::Type::PointerToString;
+		break;
+		case 0x03:
+			name = "OS_NewLine";
+		break;
+		case 0x04:
+			name = "OS_ReadC";
+		break;
+		case 0x05:
+			name = "OS_CLI";
+			registers[0].type = Register::Type::PointerToString;
+		break;
+		case 0x06:
+			name = "OS_Byte";
+			registers[0].type = Register::Type::ReasonCode;
+			registers[1].type = Register::Type::ReasonCodeDependent;
+			registers[2].type = Register::Type::ReasonCodeDependent;
+		break;
+		case 0x07:
+			name = "OS_Word";
+			registers[0].type = Register::Type::ReasonCode;
+			registers[1].type = Register::Type::Pointer;
+		break;
+		case 0x08:
+			name = "OS_File";
+			registers[0].type = Register::Type::ReasonCode;
+		break;
+		case 0x09:
+			name = "OS_Args";
+			registers[0].type = Register::Type::ReasonCode;
+			registers[1].type = Register::Type::Pointer;
+			registers[2].type = Register::Type::ReasonCodeDependent;
+		break;
+		case 0x0c:
+			name = "OS_GBPB";
+			registers[0].type = Register::Type::ReasonCode;
+		break;
+		case 0x0d:
+			name = "OS_Find";
+			registers[0].type = Register::Type::ReasonCode;
+		break;
+		case 0x0f:
+			name = "OS_Control";
+			registers[0].type = Register::Type::Pointer;
+			registers[1].type = Register::Type::Pointer;
+			registers[2].type = Register::Type::Pointer;
+			registers[3].type = Register::Type::Pointer;
+		break;
+		case 0x1d:
+			name = "OS_Heap";
+			registers[0].type = Register::Type::ReasonCode;
+			registers[1].type = Register::Type::Pointer;
+			registers[2].type = Register::Type::Pointer;
+			registers[3].type = Register::Type::ReasonCodeDependent;
+		break;
+		case 0x3a:
+			name = "OS_ValidateAddress";
+			registers[0].type = Register::Type::Pointer;
+			registers[1].type = Register::Type::Pointer;
+		break;
+
+		case 0x400e2:
+			name = "Wimp_PlotIcon";
+			registers[1].type = Register::Type::Pointer;
+		break;
+
+
+		default:
+			if(encountered.find(number) == encountered.end()) {
+				encountered.insert(number);
+				printf("SWI: %08x\n", number);
+			}
+		break;
+	}
 }
 
 
-//			if(
-//				executor_.pc() > 0x038021d0 &&
-//					last_r1 != executor_.registers()[1]
-//					 ||
-//				(
-//					last_link != executor_.registers()[14] ||
-//					last_r0 != executor_.registers()[0] ||
-//					last_r10 != executor_.registers()[10] ||
-//					last_r1 != executor_.registers()[1]
-//				)
-//			) {
-//				logger.info().append("%08x modified R14 to %08x; R0 to %08x; R10 to %08x; R1 to %08x",
-//					last_pc,
-//					executor_.registers()[14],
-//					executor_.registers()[0],
-//					executor_.registers()[10],
-//					executor_.registers()[1]
-//				);
-//				logger.info().append("%08x modified R1 to %08x",
-//					last_pc,
-//					executor_.registers()[1]
-//				);
-//				last_link = executor_.registers()[14];
-//				last_r0 = executor_.registers()[0];
-//				last_r10 = executor_.registers()[10];
-//				last_r1 = executor_.registers()[1];
-//			}
-
-//			if(instruction == 0xe8fd7fff) {
-//				printf("At %08x [%d]; after last PC %08x and %zu ago was %08x\n",
-//					address,
-//					instr_count,
-//					pc_history[(pc_history_ptr - 2 + pc_history.size()) % pc_history.size()],
-//					pc_history.size(),
-//					pc_history[pc_history_ptr]);
-//			}
-//			last_r9 = executor_.registers()[9];
-
-//			log |= address == 0x038031c4;
-//			log |= instr_count == 53552731 - 30;
-//			log &= executor_.pc() != 0x000000a0;
-
-//			log = (executor_.pc() == 0x038162afc) || (executor_.pc() == 0x03824b00);
-//			log |= instruction & ;
 
 		// The following has the effect of logging all taken SWIs and their return codes.
 /*		if(
@@ -118,19 +167,6 @@ const SWIDescription &Analyser::Static::Acorn::describe_swi(uint32_t comment) {
 						swis.back().swi_name = "PDriver_MiscOpForDriver";
 					break;
 
-					case 0x05:
-						swis.back().swi_name = "OS_CLI";
-						pointer = executor.registers()[0];
-					break;
-					case 0x0d:
-						swis.back().swi_name = "OS_Find";
-						if(executor.registers()[0] >= 0x40) {
-							pointer = executor.registers()[1];
-						}
-					break;
-					case 0x1d:
-						swis.back().swi_name = "OS_Heap";
-					break;
 					case 0x1e:
 						swis.back().swi_name = "OS_Module";
 					break;
@@ -186,45 +222,5 @@ const SWIDescription &Analyser::Static::Acorn::describe_swi(uint32_t comment) {
 					break;
 				}
 
-				if(pointer) {
-					while(true) {
-						uint8_t next;
-						executor.bus.template read<uint8_t>(pointer, next, InstructionSet::ARM::Mode::Supervisor, false);
-						++pointer;
-
-						if(next < 32) break;
-						swis.back().value_name.push_back(static_cast<char>(next));
-					}
-				}
-
-			}
-
-			if(executor.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
-				logger.error().append("SWI called with V set");
-			}
-		}
-		if(!swis.empty() && executor.pc() == swis.back().return_address) {
-			// Overflow set => SWI failure.
-			auto &back = swis.back();
-			if(executor.registers().pc_status(0) & InstructionSet::ARM::ConditionCode::Overflow) {
-				auto info = logger.info();
-
-				info.append("[%d] Failed swi ", back.count);
-				if(back.swi_name.empty()) {
-					info.append("&%x", back.opcode & 0xfd'ffff);
-				} else {
-					info.append("%s", back.swi_name.c_str());
-				}
-
-				if(!back.value_name.empty()) {
-					info.append(" %s", back.value_name.c_str());
-				}
-
-				info.append(" @ %08x ", back.address);
-				for(uint32_t c = 0; c < 10; c++) {
-					info.append("r%d:%08x ", c, back.regs[c]);
-				}
-			}
-
-			swis.pop_back();
+	
 		}*/

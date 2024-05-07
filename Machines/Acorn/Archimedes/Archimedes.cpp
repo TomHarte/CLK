@@ -34,6 +34,8 @@
 #include <set>
 #include <vector>
 
+#include "../../../Analyser/Static/Acorn/SWIIndex.hpp"
+
 namespace Archimedes {
 
 class ConcreteMachine:
@@ -149,13 +151,72 @@ class ConcreteMachine:
 			fill_pipeline(executor_.pc());
 		}
 
-		bool should_swi(uint32_t) {
+		bool should_swi(uint32_t comment) {
 			using Exception = InstructionSet::ARM::Registers::Exception;
 			using SWISubversion = Pipeline::SWISubversion;
 
 			switch(pipeline_.swi_subversion()) {
-				case Pipeline::SWISubversion::None:
-				return true;
+				case Pipeline::SWISubversion::None: {
+					[[maybe_unused]] Analyser::Static::Acorn::SWIDescription description(comment);
+
+					// TODO: 400C1 to intercept create window 400C1 and positioning; then
+					// plot icon 400e2 to listen for icons in window. That'll give a click area.
+					// Probably also 400c2 which seems to be used to add icons to the icon bar.
+					//
+					// 400D4 for menus?
+
+					const auto get_string = [&](uint32_t address, bool indirect) -> std::string {
+						std::string desc;
+						if(indirect) {
+							executor_.bus.read(address, address, false);
+						}
+						while(true) {
+							uint8_t next;
+							executor_.bus.read(address, next, false);
+							if(next < 0x20) break;
+							desc.push_back(static_cast<char>(next));
+							++address;
+						}
+						return desc;
+					};
+
+					switch(comment & static_cast<uint32_t>(~(1 << 17))) {
+						case 0x400d4: {
+							uint32_t address = executor_.registers()[1] + 28;
+
+							printf("Menu:\n");
+							while(true) {
+								uint32_t icon_flags;
+								uint32_t item_flags;
+								executor_.bus.read(address, item_flags, false);
+								executor_.bus.read(address + 8, icon_flags, false);
+								auto desc = get_string(address + 12, icon_flags & (1 << 8));
+								printf("%s\n", desc.c_str());
+								address += 24;
+								if(item_flags & (1 << 7)) break;
+							}
+						} break;
+
+//						case 0x400c2:
+						case 0x400e2: {
+							// Wimp_PlotIcon; try to determine what's on-screen next.
+							const uint32_t address = executor_.registers()[1];
+							uint32_t x1, y1, x2, y2, flags;
+							executor_.bus.read(address + 0, x1, false);
+							executor_.bus.read(address + 4, y1, false);
+							executor_.bus.read(address + 8, x2, false);
+							executor_.bus.read(address + 12, y2, false);
+							executor_.bus.read(address + 16, flags, false);
+
+							std::string desc;
+							if(flags & 1) {
+								desc = get_string(address + 20, flags & (1 << 8));
+							}
+
+							printf("Wimp_PlotIcon: %d, %d -> %d, %d; flags %08x; icon data: %s\n", x1, y1, x2, y2, flags, desc.c_str());
+						} break;
+					}
+				} return true;
 
 				case SWISubversion::DataAbort:
 //					executor_.set_pc(executor_.pc() - 4);
