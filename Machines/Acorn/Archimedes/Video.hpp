@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 namespace Archimedes {
 
@@ -243,6 +244,30 @@ struct Video {
 		return overages_;
 	}
 
+	void set_dma_enabled(bool dma_enabled) {
+		dma_enabled_ = dma_enabled;
+	}
+
+	//
+	// The following is provided for input automation;
+	// it does not correlate with real hardware functionality.
+	//
+	std::optional<std::pair<uint32_t, uint32_t>> cursor_location() {
+		if(
+			!dma_enabled_ ||
+			vertical_timing_.cursor_end <= vertical_timing_.cursor_start ||
+			horizontal_timing_.cursor_start >= (horizontal_timing_.period * 2)
+
+		) {
+			return std::nullopt;
+		}
+
+		const auto horizontal_start = horizontal_timing_.display_start + horizontal_state_.output_latency(colour_depth_);
+		return std::make_pair(
+			horizontal_timing_.cursor_start + 6 - (horizontal_start * 2),
+			vertical_timing_.cursor_start - vertical_timing_.display_start);
+	}
+
 private:
 	Log::Logger<Log::Source::ARMIOC> logger;
 	InterruptObserverT &interrupt_observer_;
@@ -253,6 +278,7 @@ private:
 	// being deferred to the component itself.
 	const uint8_t *ram_ = nullptr;
 	Outputs::CRT::CRT crt_;
+	bool dma_enabled_ = false;
 
 	// Horizontal and vertical timing.
 	struct Timing {
@@ -330,11 +356,12 @@ private:
 		}
 
 		bool is_outputting(Depth depth) const {
-			return position >= display_start + output_latencies[static_cast<uint32_t>(depth)] && position < display_end + output_latencies[static_cast<uint32_t>(depth)];
+			const auto latency = output_latency(depth);
+			return position >= display_start + latency && position < display_end + latency;
 		}
 
 		uint32_t output_cycle(Depth depth) const {
-			return position - display_start - output_latencies[static_cast<uint32_t>(depth)];
+			return position - display_start - output_latency(depth);
 		}
 
 		static constexpr uint32_t output_latencies[] = {
@@ -343,6 +370,9 @@ private:
 			7 >> 1,			// 4 bpp.
 			5 >> 1			// 8 bpp.
 		};
+		uint32_t output_latency(Depth depth) const {
+			return output_latencies[static_cast<uint32_t>(depth)];
+		}
 
 		static constexpr uint8_t SyncEnded = 0x1;
 		static constexpr uint8_t BorderStarted = 0x2;
