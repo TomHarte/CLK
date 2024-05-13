@@ -252,7 +252,7 @@ struct Video {
 	// The following is provided for input automation;
 	// it does not correlate with real hardware functionality.
 	//
-	std::optional<std::pair<uint32_t, uint32_t>> cursor_location() {
+	std::optional<std::pair<int, int>> cursor_location() {
 		if(
 			!dma_enabled_ ||
 			vertical_timing_.cursor_end <= vertical_timing_.cursor_start ||
@@ -264,8 +264,8 @@ struct Video {
 
 		const auto horizontal_start = horizontal_timing_.display_start + horizontal_state_.output_latency(colour_depth_);
 		return std::make_pair(
-			horizontal_timing_.cursor_start + 6 - (horizontal_start * 2),
-			vertical_timing_.cursor_start - vertical_timing_.display_start);
+			int(horizontal_timing_.cursor_start) + 6 - int(horizontal_start * 2),
+			int(vertical_timing_.cursor_start) - int(vertical_timing_.display_start));
 	}
 
 private:

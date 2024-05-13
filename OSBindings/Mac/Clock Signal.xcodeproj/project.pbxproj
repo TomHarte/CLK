@@ -971,8 +971,6 @@
 		4BB505862B9634F30031C43C /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
 		4BB505872B9634F30031C43C /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
 		4BB505892B9C0E6F0031C43C /* Messy ARM in Resources */ = {isa = PBXBuildFile; fileRef = 4BB505882B9C0E6F0031C43C /* Messy ARM */; };
-		4BB508672BE816E8000ACC9F /* SWIIndex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB508652BE816E8000ACC9F /* SWIIndex.cpp */; };
-		4BB508682BE816E8000ACC9F /* SWIIndex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB508652BE816E8000ACC9F /* SWIIndex.cpp */; };
 		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
@@ -2124,8 +2122,6 @@
 		4BB505842B9634F30031C43C /* Archimedes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Archimedes.cpp; sourceTree = "<group>"; };
 		4BB505852B9634F30031C43C /* Archimedes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Archimedes.hpp; sourceTree = "<group>"; };
 		4BB505882B9C0E6F0031C43C /* Messy ARM */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Messy ARM"; sourceTree = "<group>"; };
-		4BB508652BE816E8000ACC9F /* SWIIndex.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SWIIndex.cpp; sourceTree = "<group>"; };
-		4BB508662BE816E8000ACC9F /* SWIIndex.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SWIIndex.hpp; sourceTree = "<group>"; };
 		4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4BB5B996281B1E3F00522DA9 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4BB5B997281B1F7B00522DA9 /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
@@ -3689,8 +3685,6 @@
 				4B8944ED201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B8944EF201967B4007DE474 /* Tape.hpp */,
 				4BE32313205327D7006EF799 /* Target.hpp */,
-				4BB508652BE816E8000ACC9F /* SWIIndex.cpp */,
-				4BB508662BE816E8000ACC9F /* SWIIndex.hpp */,
 			);
 			path = Acorn;
 			sourceTree = "<group>";
@@ -5933,7 +5927,6 @@
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4BC890D4230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
-				4BB508682BE816E8000ACC9F /* SWIIndex.cpp in Sources */,
 				4B2E86C925D892EF0024F1E9 /* DAT.cpp in Sources */,
 				4B6AAEAE230E40250078E864 /* Target.cpp in Sources */,
 				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
@@ -6300,7 +6293,6 @@
 				4BDB61EB2032806E0048AF91 /* CSAtari2600.mm in Sources */,
 				4BFDD78C1F7F2DB4008579B9 /* ImplicitSectors.cpp in Sources */,
 				4B894526201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
-				4BB508672BE816E8000ACC9F /* SWIIndex.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
 				4B051CB62680158600CA44E8 /* EXDos.cpp in Sources */,
 				4BB505782B962DDF0031C43C /* SoundGenerator.cpp in Sources */,

@@ -124,6 +124,10 @@ class ConcreteMachine:
 			executor_.bus.set_rom(roms.find(risc_os)->second);
 			insert_media(target.media);
 
+			if(!target.media.disks.empty()) {
+				autoload_phase_ = AutoloadPhase::WaitingForStartup;
+			}
+
 			fill_pipeline(0);
 		}
 
@@ -197,7 +201,31 @@ class ConcreteMachine:
 							}
 						} break;
 
-//						case 0x400c2:
+						case 0x400c5: {
+							const uint32_t address = executor_.registers()[1];
+							uint32_t x1, y1, x2, y2;
+							executor_.bus.read(address + 4, x1, false);
+							executor_.bus.read(address + 8, y1, false);
+							executor_.bus.read(address + 12, x2, false);
+							executor_.bus.read(address + 16, y2, false);
+
+							printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
+						} break;
+
+						case 0x400c2:
+							if(autoload_phase_ == AutoloadPhase::WaitingForStartup) {
+								// Wait a further second, mouse down to (32, 240), left click.
+								// That'll trigger disk access.
+								cursor_actions_.push_back(CursorAction::wait(24'000'000));
+								cursor_actions_.push_back(CursorAction::move_to(32, 240));
+								cursor_actions_.push_back(CursorAction::button(0, true));
+								cursor_actions_.push_back(CursorAction::wait(12'000'000));
+								cursor_actions_.push_back(CursorAction::button(0, false));
+								autoload_phase_ = AutoloadPhase::OpeningDisk;
+							}
+
+							printf("!!");
+						[[fallthrough]];
 						case 0x400e2: {
 							// Wimp_PlotIcon; try to determine what's on-screen next.
 							const uint32_t address = executor_.registers()[1];
@@ -265,6 +293,64 @@ class ConcreteMachine:
 			const bool use_original_speed = executor_.bus.video().frame_rate_overages() > 10;
 #endif
 
+			//
+			// Mouse scripting.
+			//
+			if(!cursor_actions_.empty()) {
+				const auto move_to_next = [&]() {
+					cursor_action_waited_ = 0;
+					cursor_actions_.erase(cursor_actions_.begin());
+				};
+
+				const auto &action = cursor_actions_.front();
+				switch(action.type) {
+					case CursorAction::Type::MoveTo: {
+						// A measure of where within the tip lies within
+						// the default RISC OS cursor.
+						constexpr int ActionPointOffset = 20;
+						constexpr int MaxStep = 8;
+
+						const auto position = executor_.bus.video().cursor_location();
+						if(!position) break;
+						const auto [x, y] = *position;
+
+						auto x_diff = action.value.move_to.x - (x + ActionPointOffset);
+						auto y_diff = action.value.move_to.y - y;
+
+						if(abs(x_diff) < 2 && abs(y_diff) < 2) {
+							move_to_next();
+							break;
+						}
+
+						if(abs(y_diff) > MaxStep || abs(x_diff) > MaxStep) {
+							if(abs(y_diff) > abs(x_diff)) {
+								x_diff = (x_diff * MaxStep + abs(y_diff) - 1) / abs(y_diff);
+								y_diff = std::clamp(y_diff, -MaxStep, MaxStep);
+							} else {
+								y_diff = (y_diff * MaxStep + abs(x_diff) - 1) / abs(x_diff);
+								x_diff = std::clamp(x_diff, -MaxStep, MaxStep);
+							}
+						}
+						get_mouse().move(x_diff, y_diff);
+					} break;
+					case CursorAction::Type::Wait:
+						cursor_action_waited_ += cycles.as<int>();
+						if(cursor_action_waited_ >= action.value.wait.duration) {
+							move_to_next();
+						}
+					break;
+					case CursorAction::Type::Button:
+						get_mouse().set_button_pressed(action.value.button.button, action.value.button.down);
+						move_to_next();
+					break;
+				}
+			}
+
+			//
+			// Execution proper.
+			//
+			// TODO: divide up the following if necessary to put scripted mouse actions
+			// at predictably-regular steps.
 			if(use_original_speed) run_for<true>(cycles);
 			else run_for<false>(cycles);
 		}
@@ -280,7 +366,6 @@ class ConcreteMachine:
 					case 4:		macro_tick<4, original_speed>();	break;
 					case 6:		macro_tick<6, original_speed>();	break;
 				}
-
 			}
 		}
 
@@ -403,6 +488,57 @@ class ConcreteMachine:
 
 			SWISubversion latched_subversion_;
 		} pipeline_;
+
+		struct CursorAction {
+			enum class Type {
+				MoveTo,
+				Button,
+				Wait,
+			} type;
+
+			union {
+				struct {
+					int x, y;
+				} move_to;
+				struct {
+					int duration;
+				} wait;
+				struct {
+					int button;
+					bool down;
+				} button;
+			} value;
+
+			static CursorAction move_to(int x, int y) {
+				CursorAction action;
+				action.type = Type::MoveTo;
+				action.value.move_to.x = x;
+				action.value.move_to.y = y;
+				return action;
+			}
+			static CursorAction wait(int duration) {
+				CursorAction action;
+				action.type = Type::Wait;
+				action.value.wait.duration = duration;
+				return action;
+			}
+			static CursorAction button(int button, bool down) {
+				CursorAction action;
+				action.type = Type::Button;
+				action.value.button.button = button;
+				action.value.button.down = down;
+				return action;
+			}
+		};
+		std::vector<CursorAction> cursor_actions_;
+		int cursor_action_waited_ = 0;
+
+		enum class AutoloadPhase {
+			WaitingForStartup,
+			OpeningDisk,
+			Ended,
+		};
+		AutoloadPhase autoload_phase_ = AutoloadPhase::Ended;
 };
 
 }
