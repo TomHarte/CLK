@@ -136,11 +136,10 @@
 	return self;
 }
 
-
 - (instancetype)initWithArchimedesModel:(CSMachineArchimedesModel)model {
 	self = [super init];
 	if(self) {
-		auto target = std::make_unique<Analyser::Static::Target>(Analyser::Machine::Archimedes);
+		auto target = std::make_unique<Analyser::Static::Acorn::ArchimedesTarget>();
 		_targets.push_back(std::move(target));
 	}
 	return self;
@@ -164,8 +163,7 @@
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Acorn::Target;
-		auto target = std::make_unique<Target>();
+		auto target = std::make_unique<Analyser::Static::Acorn::ElectronTarget>();
 		target->has_dfs = dfs;
 		target->has_pres_adfs = adfs;
 		target->has_ap6_rom = ap6;

@@ -60,8 +60,8 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 }
 
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
-	auto target8bit = std::make_unique<Target>();
-	auto targetArchimedes = std::make_unique<Analyser::Static::Target>(Machine::Archimedes);
+	auto target8bit = std::make_unique<ElectronTarget>();
+	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 
 	// Copy appropriate cartridges to the 8-bit target.
 	target8bit->media.cartridges = AcornCartridgesFrom(media.cartridges);

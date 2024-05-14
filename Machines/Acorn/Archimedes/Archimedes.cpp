@@ -29,12 +29,12 @@
 #include "../../../Outputs/Log.hpp"
 #include "../../../Components/I2C/I2C.hpp"
 
+#include "../../../Analyser/Static/Acorn/Target.hpp"
+
 #include <algorithm>
 #include <array>
 #include <set>
 #include <vector>
-
-#include "../../../Analyser/Static/Acorn/SWIIndex.hpp"
 
 namespace Archimedes {
 
@@ -109,7 +109,7 @@ class ConcreteMachine:
 
 	public:
 		ConcreteMachine(
-			const Analyser::Static::Target &target,
+			const Analyser::Static::Acorn::ArchimedesTarget &target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		) : executor_(*this, *this, *this) {
 			set_clock_rate(ClockRate);
@@ -161,8 +161,6 @@ class ConcreteMachine:
 
 			switch(pipeline_.swi_subversion()) {
 				case Pipeline::SWISubversion::None: {
-					[[maybe_unused]] Analyser::Static::Acorn::SWIDescription description(comment);
-
 					// TODO: 400C1 to intercept create window 400C1 and positioning; then
 					// plot icon 400e2 to listen for icons in window. That'll give a click area.
 					// Probably also 400c2 which seems to be used to add icons to the icon bar.
@@ -546,5 +544,6 @@ class ConcreteMachine:
 using namespace Archimedes;
 
 std::unique_ptr<Machine> Machine::Archimedes(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return std::make_unique<ConcreteMachine>(*target, rom_fetcher);
+	const auto archimedes_target = dynamic_cast<const Analyser::Static::Acorn::ArchimedesTarget *>(target);
+	return std::make_unique<ConcreteMachine>(*archimedes_target, rom_fetcher);
 }

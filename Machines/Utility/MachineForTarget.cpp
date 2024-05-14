@@ -252,7 +252,8 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(AppleIIgs);
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Archimedes), new Analyser::Static::Target(Analyser::Machine::Archimedes)));
 	Add(AtariST);
-	AddMapped(Electron, Acorn);
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), new Analyser::Static::Acorn::ElectronTarget));
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::Archimedes), new Analyser::Static::Acorn::ArchimedesTarget);
 	Add(Enterprise);
 	Add(Macintosh);
 	Add(MSX);
