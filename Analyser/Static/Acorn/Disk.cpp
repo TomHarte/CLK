@@ -145,8 +145,9 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 		}
 		name[c] = '\0';
 
-		// Skip if the name is empty.
-		if(name[0] == '\0') continue;
+		// An empty name implies the directory has ended; files are always listed in case-insensitive
+		// sorted order, with that list being terminated by a '\0'.
+		if(name[0] == '\0') break;
 
 		// Populate a file then.
 		File new_file;

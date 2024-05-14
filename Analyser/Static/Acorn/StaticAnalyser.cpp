@@ -102,14 +102,14 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	}
 
 	if(!media.disks.empty()) {
-		// TODO: below requires an [8-bit compatible] 'Hugo' ADFS catalogue, disallowing
-		// [Archimedes-exclusive] 'Nick' catalogues.
-		//
-		// Would be better to form the appropriate target in the latter case.
 		std::shared_ptr<Storage::Disk::Disk> disk = media.disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
+
+		// Get any sort of catalogue that can be found.
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
+
+		// 8-bit options: DFS and Hugo-style ADFS.
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
@@ -144,7 +144,36 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 				}
 			}
 		} else if(adfs_catalogue) {
+			// Archimedes options, implicitly: ADFS, non-Hugo.
 			targetArchimedes->media.disks = media.disks;
+
+			// Always try a shift-restart; it's worth a go.
+			targetArchimedes->should_shift_restart = true;
+
+			// Also look for the best possible startup program name, if it can be discerned.
+			for(const auto &file: adfs_catalogue->files) {
+				// Skip files that would have been caught by shift-restart if suitable.
+				if(file.name == "!System" || file.name == "!Boot") continue;
+
+				// Skip non-Pling files.
+				if(file.name[0] != '!') continue;
+
+				// Take whatever else comes with a preference for things that don't
+				// have 'read' in them (which will tend to be read_me or read_this or similar).
+				constexpr char read[] = "read";
+				const auto has_read =
+					std::search(
+						file.name.begin(), file.name.end(),
+						std::begin(read), std::end(read) - 1,	// i.e. don't compare the trailing NULL.
+						[](char lhs, char rhs) {
+							return std::tolower(lhs) == rhs;
+						}
+					) != file.name.end();
+
+				if(targetArchimedes->main_program.empty() || !has_read) {
+					targetArchimedes->main_program = file.name;
+				}
+			}
 		}
 	}
 
