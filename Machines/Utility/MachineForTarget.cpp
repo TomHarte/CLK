@@ -217,7 +217,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
 
 #define Emplace(machine, class)	\
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::machine), std::make_unique<class::Options>(Configurable::OptionsType::UserFriendly)));
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::machine), std::make_unique<class::Options>(Configurable::OptionsType::UserFriendly))
 
 	Emplace(AmstradCPC, AmstradCPC::Machine);
 	Emplace(AppleII, Apple::II::Machine);
@@ -243,17 +243,16 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> options;
 
 #define AddMapped(Name, TargetNamespace)	\
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Name), new Analyser::Static::TargetNamespace::Target));
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::Name), std::make_unique<Analyser::Static::TargetNamespace::Target>());
 #define Add(Name)	AddMapped(Name, Name)
 
 	Add(Amiga);
 	Add(AmstradCPC);
 	Add(AppleII);
 	Add(AppleIIgs);
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Archimedes), new Analyser::Static::Target(Analyser::Machine::Archimedes)));
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::Archimedes), std::make_unique<Analyser::Static::Acorn::ArchimedesTarget>());
 	Add(AtariST);
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), new Analyser::Static::Acorn::ElectronTarget));
-	options.emplace(LongNameForTargetMachine(Analyser::Machine::Archimedes), new Analyser::Static::Acorn::ArchimedesTarget);
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::Electron), std::make_unique<Analyser::Static::Acorn::ElectronTarget>());
 	Add(Enterprise);
 	Add(Macintosh);
 	Add(MSX);
@@ -265,7 +264,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 
 	if(!meaningful_without_media_only) {
 		Add(Atari2600);
-		options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), new Analyser::Static::Target(Analyser::Machine::ColecoVision)));
+		options.emplace(LongNameForTargetMachine(Analyser::Machine::ColecoVision), std::make_unique<Analyser::Static::Target>(Analyser::Machine::ColecoVision));
 		AddMapped(MasterSystem, Sega);
 	}
 
