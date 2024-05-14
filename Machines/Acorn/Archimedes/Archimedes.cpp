@@ -322,10 +322,10 @@ class ConcreteMachine:
 
 						if(abs(y_diff) > MaxStep || abs(x_diff) > MaxStep) {
 							if(abs(y_diff) > abs(x_diff)) {
-								x_diff = (x_diff * MaxStep + abs(y_diff) - 1) / abs(y_diff);
+								x_diff = (x_diff * MaxStep + (abs(y_diff) >> 1)) / abs(y_diff);
 								y_diff = std::clamp(y_diff, -MaxStep, MaxStep);
 							} else {
-								y_diff = (y_diff * MaxStep + abs(x_diff) - 1) / abs(x_diff);
+								y_diff = (y_diff * MaxStep + (abs(x_diff) >> 1)) / abs(x_diff);
 								x_diff = std::clamp(x_diff, -MaxStep, MaxStep);
 							}
 						}
