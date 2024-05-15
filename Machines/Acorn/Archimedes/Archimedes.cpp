@@ -126,6 +126,7 @@ class ConcreteMachine:
 
 			if(!target.media.disks.empty()) {
 				autoload_phase_ = AutoloadPhase::WaitingForStartup;
+				target_program_ = target.main_program;
 			}
 
 			fill_pipeline(0);
@@ -199,47 +200,86 @@ class ConcreteMachine:
 							}
 						} break;
 
+						// Wimp_OpenWindow.
 						case 0x400c5: {
-							const uint32_t address = executor_.registers()[1];
-							uint32_t x1, y1, x2, y2;
-							executor_.bus.read(address + 4, x1, false);
-							executor_.bus.read(address + 8, y1, false);
-							executor_.bus.read(address + 12, x2, false);
-							executor_.bus.read(address + 16, y2, false);
+							if(autoload_phase_ == AutoloadPhase::WaitingForDiskContents) {
+								autoload_phase_ = AutoloadPhase::WaitingForTargetIcon;
 
-							printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
+								const uint32_t address = executor_.registers()[1];
+								uint32_t x1, y1, x2, y2;
+								executor_.bus.read(address + 4, x1, false);
+								executor_.bus.read(address + 8, y1, false);
+								executor_.bus.read(address + 12, x2, false);
+								executor_.bus.read(address + 16, y2, false);
+
+								// Crib top left of window content.
+								target_window_[0] = static_cast<int32_t>(x1);
+								target_window_[1] = static_cast<int32_t>(y2);
+								printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
+							}
+
 						} break;
 
+						// Wimp_CreateIcon, which also adds to the icon bar.
 						case 0x400c2:
+							// Creation of any icon is used to spot that RISC OS has started up.
 							if(autoload_phase_ == AutoloadPhase::WaitingForStartup) {
+								autoload_phase_ = AutoloadPhase::OpeningDisk;
+
 								// Wait a further second, mouse down to (32, 240), left click.
-								// That'll trigger disk access.
+								// That'll trigger disk access. Then move up to the top left,
+								// in anticipation of the appearance of a window.
 								cursor_actions_.push_back(CursorAction::wait(24'000'000));
 								cursor_actions_.push_back(CursorAction::move_to(32, 240));
 								cursor_actions_.push_back(CursorAction::button(0, true));
 								cursor_actions_.push_back(CursorAction::wait(12'000'000));
 								cursor_actions_.push_back(CursorAction::button(0, false));
-								autoload_phase_ = AutoloadPhase::OpeningDisk;
+								cursor_actions_.push_back(CursorAction::move_to(64, 32));
+								cursor_actions_.push_back(CursorAction::set_phase(
+									target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents)
+								);
 							}
 
-							printf("!!");
-						[[fallthrough]];
+							// TODO: spot potential addition of extra program icon.
+						break;
+
+						// Wimp_PlotIcon.
 						case 0x400e2: {
-							// Wimp_PlotIcon; try to determine what's on-screen next.
-							const uint32_t address = executor_.registers()[1];
-							uint32_t x1, y1, x2, y2, flags;
-							executor_.bus.read(address + 0, x1, false);
-							executor_.bus.read(address + 4, y1, false);
-							executor_.bus.read(address + 8, x2, false);
-							executor_.bus.read(address + 12, y2, false);
-							executor_.bus.read(address + 16, flags, false);
+							if(autoload_phase_ == AutoloadPhase::WaitingForTargetIcon) {
+								const uint32_t address = executor_.registers()[1];
+								uint32_t flags;
+								executor_.bus.read(address + 16, flags, false);
 
-							std::string desc;
-							if(flags & 1) {
-								desc = get_string(address + 20, flags & (1 << 8));
+								std::string desc;
+								if(flags & 1) {
+									desc = get_string(address + 20, flags & (1 << 8));
+								}
+
+								if(desc == target_program_) {
+									uint32_t x1, y1, x2, y2;
+									executor_.bus.read(address + 0, x1, false);
+									executor_.bus.read(address + 4, y1, false);
+									executor_.bus.read(address + 8, x2, false);
+									executor_.bus.read(address + 12, y2, false);
+
+									autoload_phase_ = AutoloadPhase::OpeningProgram;
+
+									// Some default icon sizing assumptions are baked in here.
+									const auto x_target = target_window_[0] + static_cast<int32_t>(x1) + 200;
+									const auto y_target = target_window_[1] + static_cast<int32_t>(y1) + 24;
+									cursor_actions_.push_back(CursorAction::move_to(
+										x_target >> 2,
+										256 - (y_target >> 2)
+									));
+									cursor_actions_.push_back(CursorAction::button(0, true));
+									cursor_actions_.push_back(CursorAction::wait(6'000'000));
+									cursor_actions_.push_back(CursorAction::button(0, false));
+									cursor_actions_.push_back(CursorAction::wait(6'000'000));
+									cursor_actions_.push_back(CursorAction::button(0, true));
+									cursor_actions_.push_back(CursorAction::wait(6'000'000));
+									cursor_actions_.push_back(CursorAction::button(0, false));
+								}
 							}
-
-							printf("Wimp_PlotIcon: %d, %d -> %d, %d; flags %08x; icon data: %s\n", x1, y1, x2, y2, flags, desc.c_str());
 						} break;
 					}
 				} return true;
@@ -339,6 +379,10 @@ class ConcreteMachine:
 					break;
 					case CursorAction::Type::Button:
 						get_mouse().set_button_pressed(action.value.button.button, action.value.button.down);
+						move_to_next();
+					break;
+					case CursorAction::Type::SetPhase:
+						autoload_phase_ = action.value.set_phase.phase;
 						move_to_next();
 					break;
 				}
@@ -487,11 +531,25 @@ class ConcreteMachine:
 			SWISubversion latched_subversion_;
 		} pipeline_;
 
+		// MARK: - Autoload, including cursor scripting.
+
+		enum class AutoloadPhase {
+			WaitingForStartup,
+			OpeningDisk,
+			WaitingForDiskContents,
+			WaitingForTargetIcon,
+			OpeningProgram,
+			Ended,
+		};
+		AutoloadPhase autoload_phase_ = AutoloadPhase::Ended;
+		std::string target_program_;
+
 		struct CursorAction {
 			enum class Type {
 				MoveTo,
 				Button,
 				Wait,
+				SetPhase,
 			} type;
 
 			union {
@@ -505,6 +563,9 @@ class ConcreteMachine:
 					int button;
 					bool down;
 				} button;
+				struct {
+					AutoloadPhase phase;
+				} set_phase;
 			} value;
 
 			static CursorAction move_to(int x, int y) {
@@ -527,16 +588,16 @@ class ConcreteMachine:
 				action.value.button.down = down;
 				return action;
 			}
+			static CursorAction set_phase(AutoloadPhase phase) {
+				CursorAction action;
+				action.type = Type::SetPhase;
+				action.value.set_phase.phase = phase;
+				return action;
+			}
 		};
 		std::vector<CursorAction> cursor_actions_;
 		int cursor_action_waited_ = 0;
-
-		enum class AutoloadPhase {
-			WaitingForStartup,
-			OpeningDisk,
-			Ended,
-		};
-		AutoloadPhase autoload_phase_ = AutoloadPhase::Ended;
+		int32_t target_window_[2];
 };
 
 }
