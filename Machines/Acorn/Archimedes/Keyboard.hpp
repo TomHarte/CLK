@@ -20,19 +20,18 @@ struct Keyboard {
 	Keyboard(HalfDuplexSerial &serial) : serial_(serial), mouse_(*this) {}
 
 	void set_key_state(int row, int column, bool is_pressed) {
+		states_[row][column] = is_pressed;
+
 		if(!scan_keyboard_) {
 			logger_.info().append("Ignored key event as key scanning disabled");
 			return;
 		}
 
 		// Don't waste bandwidth on repeating facts.
-		if(states_[row][column] == is_pressed) return;
-		states_[row][column] = is_pressed;
+		if(posted_states_[row][column] == is_pressed) return;
 
 		// Post new key event.
-		logger_.info().append("Posting row %d, column %d is now %s", row, column, is_pressed ? "pressed" : "released");
-		const uint8_t prefix = is_pressed ? 0b1100'0000 : 0b1101'0000;
-		enqueue(static_cast<uint8_t>(prefix | row), static_cast<uint8_t>(prefix | column));
+		enqueue_key_event(row, column, is_pressed);
 		consider_dequeue();
 	}
 
@@ -141,7 +140,17 @@ struct Keyboard {
 
 	void consider_dequeue() {
 		if(state_ == State::Idle) {
-			// If the key event queue is empty, grab as much mouse motion
+			// If the key event queue is empty but keyboard scanning is enabled, check for
+			// any disparity between posted keys states and actuals.
+			for(int row = 0; row < 16 && event_queue_.empty(); row++) {
+				for(int column = 0; column < 16 && event_queue_.empty(); column++) {
+					if(posted_states_[row][column] != states_[row][column]) {
+						enqueue_key_event(row, column, states_[row][column]);
+					}
+				}
+			}
+
+			// If the key event queue is _still_ empty, grab as much mouse motion
 			// as available.
 			if(event_queue_.empty()) {
 				const int x = std::clamp(mouse_x_, -0x3f, 0x3f);
@@ -169,6 +178,7 @@ private:
 	Log::Logger<Log::Source::Keyboard> logger_;
 
 	bool states_[16][16]{};
+	bool posted_states_[16][16]{};
 
 	bool scan_keyboard_ = false;
 	bool scan_mouse_ = false;
@@ -195,6 +205,12 @@ private:
 		serial_.output(KeyboardParty, event_queue_[0]);
 		event_queue_.erase(event_queue_.begin());
 		return true;
+	}
+	void enqueue_key_event(int row, int column, bool is_pressed) {
+		logger_.info().append("Posting row %d, column %d is now %s", row, column, is_pressed ? "pressed" : "released");
+		posted_states_[row][column] = is_pressed;
+		const uint8_t prefix = is_pressed ? 0b1100'0000 : 0b1101'0000;
+		enqueue(static_cast<uint8_t>(prefix | row), static_cast<uint8_t>(prefix | column));
 	}
 
 	static constexpr uint8_t HRST	= 0b1111'1111;	// Keyboard reset.
