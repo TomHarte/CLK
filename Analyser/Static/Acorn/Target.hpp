@@ -35,7 +35,6 @@ struct ElectronTarget: public ::Analyser::Static::Target, public Reflection::Str
 };
 
 struct ArchimedesTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<ArchimedesTarget> {
-	bool should_shift_restart = false;
 	std::string main_program;
 
 	ArchimedesTarget() : Analyser::Static::Target(Machine::Archimedes) {}

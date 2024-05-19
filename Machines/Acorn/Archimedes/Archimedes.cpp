@@ -127,6 +127,8 @@ class ConcreteMachine:
 			if(!target.media.disks.empty()) {
 				autoload_phase_ = AutoloadPhase::WaitingForStartup;
 				target_program_ = target.main_program;
+
+				printf("Will seek %s?\n", target_program_.c_str());
 			}
 
 			fill_pipeline(0);
@@ -234,10 +236,10 @@ class ConcreteMachine:
 								cursor_actions_.push_back(CursorAction::button(0, true));
 								cursor_actions_.push_back(CursorAction::wait(12'000'000));
 								cursor_actions_.push_back(CursorAction::button(0, false));
-								cursor_actions_.push_back(CursorAction::move_to(64, 32));
 								cursor_actions_.push_back(CursorAction::set_phase(
 									target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents)
 								);
+								cursor_actions_.push_back(CursorAction::move_to(64, 36));
 							}
 
 							// TODO: spot potential addition of extra program icon.
@@ -255,6 +257,7 @@ class ConcreteMachine:
 									desc = get_string(address + 20, flags & (1 << 8));
 								}
 
+								printf("%s == %s?\n", desc.c_str(), target_program_.c_str());
 								if(desc == target_program_) {
 									uint32_t x1, y1, x2, y2;
 									executor_.bus.read(address + 0, x1, false);
@@ -265,10 +268,10 @@ class ConcreteMachine:
 									autoload_phase_ = AutoloadPhase::OpeningProgram;
 
 									// Some default icon sizing assumptions are baked in here.
-									const auto x_target = target_window_[0] + static_cast<int32_t>(x1) + 200;
+									const auto x_target = target_window_[0] + (static_cast<int32_t>(x1) + static_cast<int32_t>(x2)) / 2;
 									const auto y_target = target_window_[1] + static_cast<int32_t>(y1) + 24;
 									cursor_actions_.push_back(CursorAction::move_to(
-										x_target >> 2,
+										x_target >> 1,
 										256 - (y_target >> 2)
 									));
 									cursor_actions_.push_back(CursorAction::button(0, true));
@@ -346,7 +349,7 @@ class ConcreteMachine:
 						// A measure of where within the tip lies within
 						// the default RISC OS cursor.
 						constexpr int ActionPointOffset = 20;
-						constexpr int MaxStep = 8;
+						constexpr int MaxStep = 24;
 
 						const auto position = executor_.bus.video().cursor_location();
 						if(!position) break;
@@ -449,9 +452,7 @@ class ConcreteMachine:
 		Archimedes::KeyboardMapper keyboard_mapper_;
 
 		void set_key_state(uint16_t key, bool is_pressed) override {
-			const int row = Archimedes::KeyboardMapper::row(key);
-			const int column = Archimedes::KeyboardMapper::column(key);
-			executor_.bus.keyboard().set_key_state(row, column, is_pressed);
+			executor_.bus.keyboard().set_key_state(key, is_pressed);
 		}
 
 		// MARK: - MouseMachine.

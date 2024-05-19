@@ -147,9 +147,6 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 			// Archimedes options, implicitly: ADFS, non-Hugo.
 			targetArchimedes->media.disks = media.disks;
 
-			// Always try a shift-restart; it's worth a go.
-			targetArchimedes->should_shift_restart = true;
-
 			// Also look for the best possible startup program name, if it can be discerned.
 			for(const auto &file: adfs_catalogue->files) {
 				// Skip files that would have been caught by shift-restart if suitable.
