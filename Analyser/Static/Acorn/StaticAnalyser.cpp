@@ -62,7 +62,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
 	auto target8bit = std::make_unique<ElectronTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 
@@ -152,6 +152,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 
 			// Also look for the best possible startup program name, if it can be discerned.
 			std::map<double, std::string, std::greater<double>> options;
+			const std::string &disk_title =
+				(adfs_catalogue->name.empty() || adfs_catalogue->name == "$") ? file_name : adfs_catalogue->name;
 			for(const auto &file: adfs_catalogue->files) {
 				// Skip non-Pling files.
 				if(file.name[0] != '!') continue;
@@ -168,7 +170,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 						}
 					) != file.name.end();
 
-				const auto probability = Numeric::similarity(file.name, adfs_catalogue->name) * (has_read ? 0.5 : 1.0);
+				const auto probability = Numeric::similarity(file.name, disk_title) - (has_read ? 0.2 : 0.0);
 				options.emplace(probability, file.name);
 			}
 

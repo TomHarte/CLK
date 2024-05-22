@@ -202,13 +202,19 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 	}
 
 	// Include the directory title.
-	const uint8_t *title;
+	const char *title, *name;
 	if(catalogue->has_large_sectors) {
-		title = &root_directory[0x7dd];
+		title = reinterpret_cast<const char *>(&root_directory[0x7dd]);
+		name = reinterpret_cast<const char *>(&root_directory[0x7f0]);
 	} else {
-		title = &root_directory[0x4d9];
+		title = reinterpret_cast<const char *>(&root_directory[0x4d9]);
+		name = reinterpret_cast<const char *>(&root_directory[0x4cc]);
 	}
-	catalogue->name = std::string(reinterpret_cast<const char *>(title), 19);
+
+	catalogue->name = std::string(title, strnlen(title, 19));
+	if(catalogue->name.empty() || catalogue->name == "$") {
+		catalogue->name = std::string(name, strnlen(name, 10));
+	}
 
 	return catalogue;
 }
