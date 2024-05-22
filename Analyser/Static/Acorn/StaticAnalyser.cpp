@@ -151,7 +151,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 			targetArchimedes->media.disks = media.disks;
 
 			// Also look for the best possible startup program name, if it can be discerned.
-			std::map<double, std::string, std::greater<double>> options;
+			std::multimap<double, std::string, std::greater<double>> options;
 			const std::string &disk_title =
 				(adfs_catalogue->name.empty() || adfs_catalogue->name == "$") ? file_name : adfs_catalogue->name;
 			for(const auto &file: adfs_catalogue->files) {
@@ -159,18 +159,23 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 				if(file.name[0] != '!') continue;
 
 				// Take whatever else comes with a preference for things that don't
-				// have 'read' in them (which will tend to be read_me or read_this or similar).
+				// have 'boot' or 'read' in them (the latter of which will tend to be
+				// read_me or read_this or similar).
 				constexpr char read[] = "read";
-				const auto has_read =
-					std::search(
+				constexpr char boot[] = "boot";
+				const auto has = [&](const char *begin, const char *end) {
+					return  std::search(
 						file.name.begin(), file.name.end(),
-						std::begin(read), std::end(read) - 1,	// i.e. don't compare the trailing NULL.
+						begin, end - 1, // i.e. don't compare the trailing NULL.
 						[](char lhs, char rhs) {
 							return std::tolower(lhs) == rhs;
 						}
 					) != file.name.end();
+				};
+				const auto has_read = has(std::begin(read), std::end(read));
+				const auto has_boot = has(std::begin(boot), std::end(boot));
 
-				const auto probability = Numeric::similarity(file.name, disk_title) - (has_read ? 0.2 : 0.0);
+				const auto probability = Numeric::similarity(file.name, disk_title) - ((has_read || has_boot) ? 0.2 : 0.0);
 				options.emplace(probability, file.name);
 			}
 
