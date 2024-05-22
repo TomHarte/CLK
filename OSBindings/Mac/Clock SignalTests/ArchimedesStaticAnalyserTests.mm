@@ -23,10 +23,21 @@ static NSDictionary<NSString *, NSString *> *mainProgramsBySHA1 = @{
 	@"2e1cb15cde588e22f50518b6ffa47a8df89b14c0": @"!Fire_Ice",
 	@"069592c0b90a0b9112daf014b7e19b4a51f9653b": @"!UIM",
 	@"14c3785b3bc3f7e2d4a81e92ff06e11656e6b76c": @"!UIM",
+	@"93b67127286d861e4df31cac27e78e623a1e852f": @"!FineRacer",
+	@"53f95c169bbe9cfa7252d90d6181ced31086f1a5": @"!adventure",
+	@"4168bb21f6df0976ce227a20f9fa4eb240289f3b": @"!BigBang",
+	@"8fcad522ea22b75b393ceb334cfef3f324b248ee": @"!E-TYPE",
+	@"8ca4289ac423d4878129cb17d6177123b321108f": @"!StrtWrite",
+	@"4f92efecfc1e3a510a816f570ccb7082f0154e37": @"!HeroQuest",
 
 	// Various things that are not the first disk.
 	@"2cff99237837e2291b845eb63977362ad9b4f040": @"",
 	@"3615bcb8a953fbba3d56a956243341a022208101": @"",
+	@"03672244691b292d6b4816aa592b312ea6297b22": @"",
+	@"b7139d9bd927b8e4d933fd8aa3080a7249117495": @"",
+	@"66a82651f86d9cf0aa5b54c55bcaa8fefd3901da": @"",
+	@"c3d3cd9e28f5e7499fd70057f820c75219538c69": @"",
+
 };
 #undef Record
 
@@ -51,6 +62,10 @@ static NSDictionary<NSString *, NSString *> *mainProgramsBySHA1 = @{
 		NSString *const mainProgram = mainProgramsBySHA1[sha1];
 		if(!mainProgram) {
 			NSLog(@"Not checking %@ with SHA1 %@", testFile, sha1);
+			continue;
+		}
+
+		if(![mainProgram length]) {
 			continue;
 		}
 

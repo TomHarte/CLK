@@ -152,8 +152,6 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 
 			// Also look for the best possible startup program name, if it can be discerned.
 			std::multimap<double, std::string, std::greater<double>> options;
-			const std::string &disk_title =
-				(adfs_catalogue->name.empty() || adfs_catalogue->name == "$") ? file_name : adfs_catalogue->name;
 			for(const auto &file: adfs_catalogue->files) {
 				// Skip non-Pling files.
 				if(file.name[0] != '!') continue;
@@ -175,7 +173,10 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 				const auto has_read = has(std::begin(read), std::end(read));
 				const auto has_boot = has(std::begin(boot), std::end(boot));
 
-				const auto probability = Numeric::similarity(file.name, disk_title) - ((has_read || has_boot) ? 0.2 : 0.0);
+				const auto probability =
+					Numeric::similarity(file.name, adfs_catalogue->name) +
+					Numeric::similarity(file.name, file_name) -
+					((has_read || has_boot) ? 0.2 : 0.0);
 				options.emplace(probability, file.name);
 			}
 
