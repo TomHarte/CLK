@@ -12,7 +12,10 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
+#include "../../../Numeric/StringSimilarity.hpp"
+
 #include <algorithm>
+#include <map>
 
 using namespace Analyser::Static::Acorn;
 
@@ -148,10 +151,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 			targetArchimedes->media.disks = media.disks;
 
 			// Also look for the best possible startup program name, if it can be discerned.
+			std::map<double, std::string, std::greater<double>> options;
 			for(const auto &file: adfs_catalogue->files) {
-				// Skip files that would have been caught by shift-restart if suitable.
-				if(file.name == "!System" || file.name == "!Boot") continue;
-
 				// Skip non-Pling files.
 				if(file.name[0] != '!') continue;
 
@@ -167,9 +168,12 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 						}
 					) != file.name.end();
 
-				if(targetArchimedes->main_program.empty() || !has_read) {
-					targetArchimedes->main_program = file.name;
-				}
+				const auto probability = Numeric::similarity(file.name, adfs_catalogue->name) * (has_read ? 0.5 : 1.0);
+				options.emplace(probability, file.name);
+			}
+
+			if(!options.empty()) {
+				targetArchimedes->main_program = options.begin()->second;
 			}
 		}
 	}

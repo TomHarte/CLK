@@ -201,5 +201,14 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 		catalogue->files.push_back(std::move(new_file));
 	}
 
+	// Include the directory title.
+	const uint8_t *title;
+	if(catalogue->has_large_sectors) {
+		title = &root_directory[0x7dd];
+	} else {
+		title = &root_directory[0x4d9];
+	}
+	catalogue->name = std::string(reinterpret_cast<const char *>(title), 19);
+
 	return catalogue;
 }
