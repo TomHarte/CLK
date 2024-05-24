@@ -19,7 +19,7 @@ namespace Numeric {
 ///
 /// @returns A number in the range 0.0 to 1.0 indicating the similarity between two strings;
 /// 1.0 is most similar, 0.0 is least.
-double similarity(std::string_view first, std::string_view second) {
+inline double similarity(std::string_view first, std::string_view second) {
 	if(first.size() < 2 || second.size() < 2) {
 		return 0.0;
 	}
