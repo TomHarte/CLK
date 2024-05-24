@@ -29,6 +29,11 @@ static NSDictionary<NSString *, NSString *> *mainProgramsBySHA1 = @{
 	@"8fcad522ea22b75b393ceb334cfef3f324b248ee": @"!E-TYPE",
 	@"8ca4289ac423d4878129cb17d6177123b321108f": @"!StrtWrite",
 	@"4f92efecfc1e3a510a816f570ccb7082f0154e37": @"!HeroQuest",
+	@"9bd6d2514c04ce02fcf8ef214815229b28be56d8": @"!adventure",
+	@"d3493850e8ed91ae0a55a53866139781ad65e63d": @"!Nebulus",
+	@"ba655bd8936859a33bab5fde447e33486c3b0d3e": @"!Attack",
+	@"a6502faf15ddb4acaed2ca859cedc1225e7fa762": @"!Wolf",
+//	@"04f588f87facd507e043b06f512e9bdb6fe996c0":	// TODO: should decline to pick.
 
 	// Various things that are not the first disk.
 	@"2cff99237837e2291b845eb63977362ad9b4f040": @"",
@@ -37,7 +42,8 @@ static NSDictionary<NSString *, NSString *> *mainProgramsBySHA1 = @{
 	@"b7139d9bd927b8e4d933fd8aa3080a7249117495": @"",
 	@"66a82651f86d9cf0aa5b54c55bcaa8fefd3901da": @"",
 	@"c3d3cd9e28f5e7499fd70057f820c75219538c69": @"",
-
+	@"81bfd4ab92c538f5b15ad64bba625aac2ffb243d": @"",
+	@"39318695b6e64c9d7270f2b6d8213a7d4b0b0c43": @"",
 };
 #undef Record
 

@@ -185,7 +185,19 @@ class ConcreteMachine:
 						return desc;
 					};
 
-					switch(comment & static_cast<uint32_t>(~(1 << 17))) {
+					const uint32_t swi_code = comment & static_cast<uint32_t>(~(1 << 17));
+					switch(swi_code) {
+						// To consider: catching VDU 22, though that means parsing the output stream
+						// via OS_WriteC, SWI &00, sufficiently to be able to spot VDUs.
+
+						case 0x400e3:	// Wimp_SetMode
+						case 0x65:		// OS_ScreenMode
+						case 0x3f:		// OS_CheckModeValid
+							if(autoload_phase_ == AutoloadPhase::OpeningProgram) {
+								autoload_phase_ = AutoloadPhase::Ended;
+							}
+						break;
+
 						case 0x400d4: {
 							uint32_t address = executor_.registers()[1] + 28;
 
@@ -270,6 +282,7 @@ class ConcreteMachine:
 									// Some default icon sizing assumptions are baked in here.
 									const auto x_target = target_window_[0] + (static_cast<int32_t>(x1) + static_cast<int32_t>(x2)) / 2;
 									const auto y_target = target_window_[1] + static_cast<int32_t>(y1) + 24;
+									cursor_actions_.clear();
 									cursor_actions_.push_back(CursorAction::move_to(
 										x_target >> 1,
 										256 - (y_target >> 2)
