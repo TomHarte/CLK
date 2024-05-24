@@ -51,7 +51,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 	public SCSI::Bus::Observer,
 	public ClockingHint::Observer {
 	public:
-		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+		ConcreteMachine(const Analyser::Static::Acorn::ElectronTarget &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
 				scsi_bus_(4'000'000),
 				hard_drive_(scsi_bus_, 0),
@@ -787,7 +787,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 using namespace Electron;
 
 std::unique_ptr<Machine> Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	using Target = Analyser::Static::Acorn::Target;
+	using Target = Analyser::Static::Acorn::ElectronTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 
 	if(acorn_target->media.mass_storage_devices.empty()) {

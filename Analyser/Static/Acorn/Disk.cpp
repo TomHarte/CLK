@@ -145,8 +145,9 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 		}
 		name[c] = '\0';
 
-		// Skip if the name is empty.
-		if(name[0] == '\0') continue;
+		// An empty name implies the directory has ended; files are always listed in case-insensitive
+		// sorted order, with that list being terminated by a '\0'.
+		if(name[0] == '\0') break;
 
 		// Populate a file then.
 		File new_file;
@@ -198,6 +199,21 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 		}
 
 		catalogue->files.push_back(std::move(new_file));
+	}
+
+	// Include the directory title.
+	const char *title, *name;
+	if(catalogue->has_large_sectors) {
+		title = reinterpret_cast<const char *>(&root_directory[0x7dd]);
+		name = reinterpret_cast<const char *>(&root_directory[0x7f0]);
+	} else {
+		title = reinterpret_cast<const char *>(&root_directory[0x4d9]);
+		name = reinterpret_cast<const char *>(&root_directory[0x4cc]);
+	}
+
+	catalogue->name = std::string(title, strnlen(title, 19));
+	if(catalogue->name.empty() || catalogue->name == "$") {
+		catalogue->name = std::string(name, strnlen(name, 10));
 	}
 
 	return catalogue;

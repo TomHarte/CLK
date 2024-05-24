@@ -12,7 +12,10 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
+#include "../../../Numeric/StringSimilarity.hpp"
+
 #include <algorithm>
+#include <map>
 
 using namespace Analyser::Static::Acorn;
 
@@ -59,9 +62,9 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
-	auto target8bit = std::make_unique<Target>();
-	auto targetArchimedes = std::make_unique<Analyser::Static::Target>(Machine::Archimedes);
+Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
+	auto target8bit = std::make_unique<ElectronTarget>();
+	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 
 	// Copy appropriate cartridges to the 8-bit target.
 	target8bit->media.cartridges = AcornCartridgesFrom(media.cartridges);
@@ -102,14 +105,14 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	}
 
 	if(!media.disks.empty()) {
-		// TODO: below requires an [8-bit compatible] 'Hugo' ADFS catalogue, disallowing
-		// [Archimedes-exclusive] 'Nick' catalogues.
-		//
-		// Would be better to form the appropriate target in the latter case.
 		std::shared_ptr<Storage::Disk::Disk> disk = media.disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
+
+		// Get any sort of catalogue that can be found.
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
+
+		// 8-bit options: DFS and Hugo-style ADFS.
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
@@ -144,7 +147,42 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 				}
 			}
 		} else if(adfs_catalogue) {
+			// Archimedes options, implicitly: ADFS, non-Hugo.
 			targetArchimedes->media.disks = media.disks;
+
+			// Also look for the best possible startup program name, if it can be discerned.
+			std::multimap<double, std::string, std::greater<double>> options;
+			for(const auto &file: adfs_catalogue->files) {
+				// Skip non-Pling files.
+				if(file.name[0] != '!') continue;
+
+				// Take whatever else comes with a preference for things that don't
+				// have 'boot' or 'read' in them (the latter of which will tend to be
+				// read_me or read_this or similar).
+				constexpr char read[] = "read";
+				constexpr char boot[] = "boot";
+				const auto has = [&](const char *begin, const char *end) {
+					return  std::search(
+						file.name.begin(), file.name.end(),
+						begin, end - 1, // i.e. don't compare the trailing NULL.
+						[](char lhs, char rhs) {
+							return std::tolower(lhs) == rhs;
+						}
+					) != file.name.end();
+				};
+				const auto has_read = has(std::begin(read), std::end(read));
+				const auto has_boot = has(std::begin(boot), std::end(boot));
+
+				const auto probability =
+					Numeric::similarity(file.name, adfs_catalogue->name) +
+					Numeric::similarity(file.name, file_name) -
+					((has_read || has_boot) ? 0.2 : 0.0);
+				options.emplace(probability, file.name);
+			}
+
+			if(!options.empty()) {
+				targetArchimedes->main_program = options.begin()->second;
+			}
 		}
 	}
 

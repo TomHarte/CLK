@@ -14,7 +14,7 @@
 
 namespace Analyser::Static::Acorn {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct ElectronTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<ElectronTarget> {
 	bool has_acorn_adfs = false;
 	bool has_pres_adfs = false;
 	bool has_dfs = false;
@@ -23,7 +23,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	bool should_shift_restart = false;
 	std::string loading_command;
 
-	Target() : Analyser::Static::Target(Machine::Electron) {
+	ElectronTarget() : Analyser::Static::Target(Machine::Electron) {
 		if(needs_declare()) {
 			DeclareField(has_pres_adfs);
 			DeclareField(has_acorn_adfs);
@@ -32,6 +32,12 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 			DeclareField(has_sideways_ram);
 		}
 	}
+};
+
+struct ArchimedesTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<ArchimedesTarget> {
+	std::string main_program;
+
+	ArchimedesTarget() : Analyser::Static::Target(Machine::Archimedes) {}
 };
 
 }

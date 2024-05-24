@@ -34,7 +34,7 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 using Flags = InstructionSet::x86::Flags;
 struct Registers {
 	public:
-		static constexpr bool is_32bit = false;
+//		static constexpr bool is_32bit = false;
 
 		uint8_t &al()	{	return ax_.halves.low;	}
 		uint8_t &ah()	{	return ax_.halves.high;	}

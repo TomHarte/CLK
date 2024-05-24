@@ -106,8 +106,9 @@ struct MemoryController {
 					case 0b111:
 						os_mode_ = address & (1 << 12);
 						sound_dma_enable_ = address & (1 << 11);
-						ioc_.sound().set_dma_enabled(sound_dma_enable_);
 						video_dma_enable_ = address & (1 << 10);
+						ioc_.sound().set_dma_enabled(sound_dma_enable_);
+						ioc_.video().set_dma_enabled(video_dma_enable_);
 						switch((address >> 8) & 3) {
 							default:
 								dynamic_ram_refresh_ = DynamicRAMRefresh::None;
