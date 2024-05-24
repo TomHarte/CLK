@@ -176,7 +176,7 @@ class ConcreteMachine:
 							executor_.bus.read(address, address, false);
 						}
 						while(true) {
-							uint8_t next;
+							uint8_t next = 0;
 							executor_.bus.read(address, next, false);
 							if(next < 0x20) break;
 							desc.push_back(static_cast<char>(next) & 0x7f);
