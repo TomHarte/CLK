@@ -199,18 +199,35 @@ class ConcreteMachine:
 						break;
 
 						case 0x400d4: {
-							uint32_t address = executor_.registers()[1] + 28;
+							if(autoload_phase_ == AutoloadPhase::TestingMenu) {
+								autoload_phase_ = AutoloadPhase::Ended;
 
-							printf("Menu:\n");
-							while(true) {
-								uint32_t icon_flags;
-								uint32_t item_flags;
-								executor_.bus.read(address, item_flags, false);
-								executor_.bus.read(address + 8, icon_flags, false);
-								auto desc = get_string(address + 12, icon_flags & (1 << 8));
-								printf("%s\n", desc.c_str());
-								address += 24;
-								if(item_flags & (1 << 7)) break;
+								uint32_t address = executor_.registers()[1] + 28;
+								bool should_left_click = true;
+
+								while(true) {
+									uint32_t icon_flags;
+									uint32_t item_flags;
+									executor_.bus.read(address, item_flags, false);
+									executor_.bus.read(address + 8, icon_flags, false);
+									auto desc = get_string(address + 12, icon_flags & (1 << 8));
+
+									should_left_click &=
+										(desc == "Info") ||
+										(desc == "Quit");
+
+									address += 24;
+									if(item_flags & (1 << 7)) break;
+								}
+
+								if(should_left_click) {
+									cursor_actions_.push_back(CursorAction::button(1, true));
+									cursor_actions_.push_back(CursorAction::wait(12'000'000));
+									cursor_actions_.push_back(CursorAction::button(1, false));
+									cursor_actions_.push_back(CursorAction::button(0, true));
+									cursor_actions_.push_back(CursorAction::wait(12'000'000));
+									cursor_actions_.push_back(CursorAction::button(0, false));
+								}
 							}
 						} break;
 
@@ -236,25 +253,45 @@ class ConcreteMachine:
 
 						// Wimp_CreateIcon, which also adds to the icon bar.
 						case 0x400c2:
-							// Creation of any icon is used to spot that RISC OS has started up.
-							if(autoload_phase_ == AutoloadPhase::WaitingForStartup) {
-								autoload_phase_ = AutoloadPhase::OpeningDisk;
+							switch(autoload_phase_) {
+								case AutoloadPhase::WaitingForStartup:
+									// Creation of any icon is used to spot that RISC OS has started up.
+									//
+									// Wait a further second, mouse down to (32, 240), left click.
+									// That'll trigger disk access. Then move up to the top left,
+									// in anticipation of the appearance of a window.
+									cursor_actions_.push_back(CursorAction::wait(24'000'000));
+									cursor_actions_.push_back(CursorAction::move_to(32, 240));
+									cursor_actions_.push_back(CursorAction::button(0, true));
+									cursor_actions_.push_back(CursorAction::wait(12'000'000));
+									cursor_actions_.push_back(CursorAction::button(0, false));
+									cursor_actions_.push_back(CursorAction::set_phase(
+										target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents)
+									);
+									cursor_actions_.push_back(CursorAction::move_to(64, 36));
 
-								// Wait a further second, mouse down to (32, 240), left click.
-								// That'll trigger disk access. Then move up to the top left,
-								// in anticipation of the appearance of a window.
-								cursor_actions_.push_back(CursorAction::wait(24'000'000));
-								cursor_actions_.push_back(CursorAction::move_to(32, 240));
-								cursor_actions_.push_back(CursorAction::button(0, true));
-								cursor_actions_.push_back(CursorAction::wait(12'000'000));
-								cursor_actions_.push_back(CursorAction::button(0, false));
-								cursor_actions_.push_back(CursorAction::set_phase(
-									target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents)
-								);
-								cursor_actions_.push_back(CursorAction::move_to(64, 36));
+									autoload_phase_ = AutoloadPhase::OpeningDisk;
+								break;
+
+								case AutoloadPhase::OpeningProgram: {
+									const uint32_t address = executor_.registers()[1];
+									uint32_t handle;
+									executor_.bus.read(address, handle, false);
+
+									// Test whether the program has added an icon on the right.
+									if(static_cast<int32_t>(handle) == -1) {
+										cursor_actions_.clear();
+										cursor_actions_.push_back(CursorAction::move_to(536, 240));
+										cursor_actions_.push_back(CursorAction::button(1, true));
+										cursor_actions_.push_back(CursorAction::wait(12'000'000));
+										cursor_actions_.push_back(CursorAction::button(1, false));
+
+										autoload_phase_ = AutoloadPhase::TestingMenu;
+									}
+								} break;
+
+								default: break;
 							}
-
-							// TODO: spot potential addition of extra program icon.
 						break;
 
 						// Wimp_PlotIcon.
@@ -269,7 +306,6 @@ class ConcreteMachine:
 									desc = get_string(address + 20, flags & (1 << 8));
 								}
 
-								printf("%s == %s?\n", desc.c_str(), target_program_.c_str());
 								if(desc == target_program_) {
 									uint32_t x1, y1, x2, y2;
 									executor_.bus.read(address + 0, x1, false);
@@ -553,6 +589,7 @@ class ConcreteMachine:
 			WaitingForDiskContents,
 			WaitingForTargetIcon,
 			OpeningProgram,
+			TestingMenu,
 			Ended,
 		};
 		AutoloadPhase autoload_phase_ = AutoloadPhase::Ended;
