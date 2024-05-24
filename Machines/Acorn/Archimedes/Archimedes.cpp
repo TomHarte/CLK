@@ -221,57 +221,83 @@ class ConcreteMachine:
 								}
 
 								if(should_left_click) {
-									cursor_actions_.push_back(CursorAction::button(1, true));
-									cursor_actions_.push_back(CursorAction::wait(12'000'000));
-									cursor_actions_.push_back(CursorAction::button(1, false));
-									cursor_actions_.push_back(CursorAction::button(0, true));
-									cursor_actions_.push_back(CursorAction::wait(12'000'000));
-									cursor_actions_.push_back(CursorAction::button(0, false));
+									// Exit the application menu, then click once further to launch.
+									CursorActionBuilder(cursor_actions_)
+										.move_to(IconBarProgramX - 128, IconBarY - 32)
+										.click(0)
+										.move_to(IconBarProgramX, IconBarY)
+										.click(0);
 								}
 							}
 						} break;
 
 						// Wimp_OpenWindow.
 						case 0x400c5: {
-							if(autoload_phase_ == AutoloadPhase::WaitingForDiskContents) {
-								autoload_phase_ = AutoloadPhase::WaitingForTargetIcon;
+							const uint32_t address = executor_.registers()[1];
+							uint32_t x1, y1, x2, y2;
+							executor_.bus.read(address + 4, x1, false);
+							executor_.bus.read(address + 8, y1, false);
+							executor_.bus.read(address + 12, x2, false);
+							executor_.bus.read(address + 16, y2, false);
 
-								const uint32_t address = executor_.registers()[1];
-								uint32_t x1, y1, x2, y2;
-								executor_.bus.read(address + 4, x1, false);
-								executor_.bus.read(address + 8, y1, false);
-								executor_.bus.read(address + 12, x2, false);
-								executor_.bus.read(address + 16, y2, false);
+							switch(autoload_phase_) {
 
-								// Crib top left of window content.
-								target_window_[0] = static_cast<int32_t>(x1);
-								target_window_[1] = static_cast<int32_t>(y2);
-								printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
+								default: break;
+
+								case AutoloadPhase::WaitingForDiskContents: {
+									autoload_phase_ = AutoloadPhase::WaitingForTargetIcon;
+
+									// Crib top left of window content.
+									target_window_[0] = static_cast<int32_t>(x1);
+									target_window_[1] = static_cast<int32_t>(y2);
+								} break;
+
+								case AutoloadPhase::WaitingForStartup:
+									printf("%d %d %d %d\n", x1, y1, x2, y2);
+									if(static_cast<int32_t>(y1) == -268435472) {		// VERY TEMPORARY. TODO: find better trigger.
+										// Creation of any icon is used to spot that RISC OS has started up.
+										//
+										// Wait a further second, mouse down to (32, 240), left click.
+										// That'll trigger disk access. Then move up to the top left,
+										// in anticipation of the appearance of a window.
+										CursorActionBuilder(cursor_actions_)
+//											.wait(5 * 24'000'000)
+											.move_to(IconBarDriveX, IconBarY)
+											.click(0)
+											.set_phase(
+												target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents
+											)
+											.move_to(IconBarDriveX, 36);	// Just a guess of 'close' to where the program to launch
+																			// will probably be, to have the cursor already nearby.
+
+										autoload_phase_ = AutoloadPhase::OpeningDisk;
+									}
+								break;
+//								printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
 							}
-
 						} break;
 
 						// Wimp_CreateIcon, which also adds to the icon bar.
 						case 0x400c2:
 							switch(autoload_phase_) {
-								case AutoloadPhase::WaitingForStartup:
-									// Creation of any icon is used to spot that RISC OS has started up.
-									//
-									// Wait a further second, mouse down to (32, 240), left click.
-									// That'll trigger disk access. Then move up to the top left,
-									// in anticipation of the appearance of a window.
-									cursor_actions_.push_back(CursorAction::wait(24'000'000));
-									cursor_actions_.push_back(CursorAction::move_to(32, 240));
-									cursor_actions_.push_back(CursorAction::button(0, true));
-									cursor_actions_.push_back(CursorAction::wait(12'000'000));
-									cursor_actions_.push_back(CursorAction::button(0, false));
-									cursor_actions_.push_back(CursorAction::set_phase(
-										target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents)
-									);
-									cursor_actions_.push_back(CursorAction::move_to(64, 36));
-
-									autoload_phase_ = AutoloadPhase::OpeningDisk;
-								break;
+//								case AutoloadPhase::WaitingForStartup:
+//									// Creation of any icon is used to spot that RISC OS has started up.
+//									//
+//									// Wait a further second, mouse down to (32, 240), left click.
+//									// That'll trigger disk access. Then move up to the top left,
+//									// in anticipation of the appearance of a window.
+//									CursorActionBuilder(cursor_actions_)
+//										.wait(24'000'000)
+//										.move_to(IconBarDriveX, IconBarY)
+//										.click(0)
+//										.set_phase(
+//											target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents
+//										)
+//										.move_to(IconBarDriveX, 36);	// Just a guess of 'close' to where the program to launch
+//																		// will probably be, to have the cursor already nearby.
+//
+//									autoload_phase_ = AutoloadPhase::OpeningDisk;
+//								break;
 
 								case AutoloadPhase::OpeningProgram: {
 									const uint32_t address = executor_.registers()[1];
@@ -280,12 +306,9 @@ class ConcreteMachine:
 
 									// Test whether the program has added an icon on the right.
 									if(static_cast<int32_t>(handle) == -1) {
-										cursor_actions_.clear();
-										cursor_actions_.push_back(CursorAction::move_to(536, 240));
-										cursor_actions_.push_back(CursorAction::button(1, true));
-										cursor_actions_.push_back(CursorAction::wait(12'000'000));
-										cursor_actions_.push_back(CursorAction::button(1, false));
-
+										CursorActionBuilder(cursor_actions_)
+											.move_to(IconBarProgramX, IconBarY)
+											.click(1);
 										autoload_phase_ = AutoloadPhase::TestingMenu;
 									}
 								} break;
@@ -318,18 +341,9 @@ class ConcreteMachine:
 									// Some default icon sizing assumptions are baked in here.
 									const auto x_target = target_window_[0] + (static_cast<int32_t>(x1) + static_cast<int32_t>(x2)) / 2;
 									const auto y_target = target_window_[1] + static_cast<int32_t>(y1) + 24;
-									cursor_actions_.clear();
-									cursor_actions_.push_back(CursorAction::move_to(
-										x_target >> 1,
-										256 - (y_target >> 2)
-									));
-									cursor_actions_.push_back(CursorAction::button(0, true));
-									cursor_actions_.push_back(CursorAction::wait(6'000'000));
-									cursor_actions_.push_back(CursorAction::button(0, false));
-									cursor_actions_.push_back(CursorAction::wait(6'000'000));
-									cursor_actions_.push_back(CursorAction::button(0, true));
-									cursor_actions_.push_back(CursorAction::wait(6'000'000));
-									cursor_actions_.push_back(CursorAction::button(0, false));
+									CursorActionBuilder(cursor_actions_)
+										.move_to(x_target >> 1, 256 - (y_target >> 2))
+										.double_click(0);
 								}
 							}
 						} break;
@@ -383,70 +397,89 @@ class ConcreteMachine:
 			const bool use_original_speed = executor_.bus.video().frame_rate_overages() > 10;
 #endif
 
+			const auto run = [&](Cycles cycles) {
+				if(use_original_speed) run_for<true>(cycles);
+				else run_for<false>(cycles);
+			};
+
 			//
-			// Mouse scripting.
+			// Short-circuit: no cursor actions means **just run**.
 			//
-			if(!cursor_actions_.empty()) {
-				const auto move_to_next = [&]() {
-					cursor_action_waited_ = 0;
-					cursor_actions_.erase(cursor_actions_.begin());
-				};
-
-				const auto &action = cursor_actions_.front();
-				switch(action.type) {
-					case CursorAction::Type::MoveTo: {
-						// A measure of where within the tip lies within
-						// the default RISC OS cursor.
-						constexpr int ActionPointOffset = 20;
-						constexpr int MaxStep = 24;
-
-						const auto position = executor_.bus.video().cursor_location();
-						if(!position) break;
-						const auto [x, y] = *position;
-
-						auto x_diff = action.value.move_to.x - (x + ActionPointOffset);
-						auto y_diff = action.value.move_to.y - y;
-
-						if(abs(x_diff) < 2 && abs(y_diff) < 2) {
-							move_to_next();
-							break;
-						}
-
-						if(abs(y_diff) > MaxStep || abs(x_diff) > MaxStep) {
-							if(abs(y_diff) > abs(x_diff)) {
-								x_diff = (x_diff * MaxStep + (abs(y_diff) >> 1)) / abs(y_diff);
-								y_diff = std::clamp(y_diff, -MaxStep, MaxStep);
-							} else {
-								y_diff = (y_diff * MaxStep + (abs(x_diff) >> 1)) / abs(x_diff);
-								x_diff = std::clamp(x_diff, -MaxStep, MaxStep);
-							}
-						}
-						get_mouse().move(x_diff, y_diff);
-					} break;
-					case CursorAction::Type::Wait:
-						cursor_action_waited_ += cycles.as<int>();
-						if(cursor_action_waited_ >= action.value.wait.duration) {
-							move_to_next();
-						}
-					break;
-					case CursorAction::Type::Button:
-						get_mouse().set_button_pressed(action.value.button.button, action.value.button.down);
-						move_to_next();
-					break;
-					case CursorAction::Type::SetPhase:
-						autoload_phase_ = action.value.set_phase.phase;
-						move_to_next();
-					break;
-				}
+			if(cursor_actions_.empty()) {
+				run(cycles);
+				return;
 			}
 
 			//
-			// Execution proper.
+			// Mouse scripting; tick at a minimum of frame length.
 			//
-			// TODO: divide up the following if necessary to put scripted mouse actions
-			// at predictably-regular steps.
-			if(use_original_speed) run_for<true>(cycles);
-			else run_for<false>(cycles);
+			static constexpr int TickFrequency = 24'000'000 / 50;
+			cursor_action_subcycle_ += cycles;
+			auto segments = cursor_action_subcycle_.divide(Cycles(TickFrequency)).as<int>();
+			while(segments--) {
+				Cycles next = Cycles(TickFrequency);
+				if(next > cycles) next = cycles;
+				cycles -= next;
+
+				if(!cursor_actions_.empty()) {
+					const auto move_to_next = [&]() {
+						cursor_action_waited_ = 0;
+						cursor_actions_.erase(cursor_actions_.begin());
+					};
+
+					const auto &action = cursor_actions_.front();
+					switch(action.type) {
+						case CursorAction::Type::MoveTo: {
+							// A measure of where within the tip lies within
+							// the default RISC OS cursor.
+							constexpr int ActionPointOffset = 20;
+							constexpr int MaxStep = 24;
+
+							const auto position = executor_.bus.video().cursor_location();
+							if(!position) break;
+							const auto [x, y] = *position;
+
+							auto x_diff = action.value.move_to.x - (x + ActionPointOffset);
+							auto y_diff = action.value.move_to.y - y;
+
+							if(abs(x_diff) < 2 && abs(y_diff) < 2) {
+								move_to_next();
+								break;
+							}
+
+							if(abs(y_diff) > MaxStep || abs(x_diff) > MaxStep) {
+								if(abs(y_diff) > abs(x_diff)) {
+									x_diff = (x_diff * MaxStep + (abs(y_diff) >> 1)) / abs(y_diff);
+									y_diff = std::clamp(y_diff, -MaxStep, MaxStep);
+								} else {
+									y_diff = (y_diff * MaxStep + (abs(x_diff) >> 1)) / abs(x_diff);
+									x_diff = std::clamp(x_diff, -MaxStep, MaxStep);
+								}
+							}
+							get_mouse().move(x_diff, y_diff);
+						} break;
+						case CursorAction::Type::Wait:
+							cursor_action_waited_ += next.as<int>();
+							if(cursor_action_waited_ >= action.value.wait.duration) {
+								move_to_next();
+							}
+						break;
+						case CursorAction::Type::Button:
+							get_mouse().set_button_pressed(action.value.button.button, action.value.button.down);
+							move_to_next();
+						break;
+						case CursorAction::Type::SetPhase:
+							autoload_phase_ = action.value.set_phase.phase;
+							move_to_next();
+						break;
+					}
+				}
+
+				//
+				// Execution proper.
+				//
+				run(next);
+			}
 		}
 
 		template <bool original_speed>
@@ -646,8 +679,57 @@ class ConcreteMachine:
 				return action;
 			}
 		};
+
 		std::vector<CursorAction> cursor_actions_;
-		int cursor_action_waited_ = 0;
+
+		struct CursorActionBuilder {
+			CursorActionBuilder(std::vector<CursorAction> &actions) : actions_(actions) {
+				actions_.clear();
+			}
+
+			CursorActionBuilder &wait(int duration) {
+				actions_.push_back(CursorAction::wait(duration));
+				return *this;
+			}
+
+			CursorActionBuilder &move_to(int x, int y) {
+				actions_.push_back(CursorAction::move_to(x, y));
+				return *this;
+			}
+
+			CursorActionBuilder &click(int button) {
+				actions_.push_back(CursorAction::button(button, true));
+				actions_.push_back(CursorAction::wait(12'000'000));
+				actions_.push_back(CursorAction::button(button, false));
+				return *this;
+			}
+
+			CursorActionBuilder &double_click(int button) {
+				actions_.push_back(CursorAction::button(button, true));
+				actions_.push_back(CursorAction::wait(6'000'000));
+				actions_.push_back(CursorAction::button(button, false));
+				actions_.push_back(CursorAction::wait(6'000'000));
+				actions_.push_back(CursorAction::button(button, true));
+				actions_.push_back(CursorAction::wait(6'000'000));
+				actions_.push_back(CursorAction::button(button, false));
+				return *this;
+			}
+
+			CursorActionBuilder &set_phase(AutoloadPhase phase) {
+				actions_.push_back(CursorAction::set_phase(phase));
+				return *this;
+			}
+
+			std::vector<CursorAction> &actions_;
+		};
+		static constexpr int IconBarY = 240;
+		static constexpr int IconBarProgramX = 532;
+		static constexpr int IconBarDriveX = 32;
+
+		std::vector<CursorAction> &begin();
+
+		Cycles cursor_action_subcycle_;
+		int cursor_action_waited_;
 		int32_t target_window_[2];
 };
 
