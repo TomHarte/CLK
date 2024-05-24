@@ -179,7 +179,7 @@ class ConcreteMachine:
 							uint8_t next;
 							executor_.bus.read(address, next, false);
 							if(next < 0x20) break;
-							desc.push_back(static_cast<char>(next));
+							desc.push_back(static_cast<char>(next) & 0x7f);
 							++address;
 						}
 						return desc;
