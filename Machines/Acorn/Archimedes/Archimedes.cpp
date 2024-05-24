@@ -683,9 +683,7 @@ class ConcreteMachine:
 		std::vector<CursorAction> cursor_actions_;
 
 		struct CursorActionBuilder {
-			CursorActionBuilder(std::vector<CursorAction> &actions) : actions_(actions) {
-				actions_.clear();
-			}
+			CursorActionBuilder(std::vector<CursorAction> &actions) : actions_(actions) {}
 
 			CursorActionBuilder &wait(int duration) {
 				actions_.push_back(CursorAction::wait(duration));
@@ -693,13 +691,21 @@ class ConcreteMachine:
 			}
 
 			CursorActionBuilder &move_to(int x, int y) {
+				// Special case: if this sets a move_to when one is in progress,
+				// just update the target.
+				if(!actions_.empty() && actions_.back().type == CursorAction::Type::MoveTo) {
+					actions_.back().value.move_to.x = x;
+					actions_.back().value.move_to.y = y;
+					return *this;
+				}
+
 				actions_.push_back(CursorAction::move_to(x, y));
 				return *this;
 			}
 
 			CursorActionBuilder &click(int button) {
 				actions_.push_back(CursorAction::button(button, true));
-				actions_.push_back(CursorAction::wait(12'000'000));
+				actions_.push_back(CursorAction::wait(6'000'000));
 				actions_.push_back(CursorAction::button(button, false));
 				return *this;
 			}
