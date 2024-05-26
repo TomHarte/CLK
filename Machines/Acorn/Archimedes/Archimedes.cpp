@@ -187,8 +187,9 @@ class ConcreteMachine:
 
 					const uint32_t swi_code = comment & static_cast<uint32_t>(~(1 << 17));
 					switch(swi_code) {
-						// To consider: catching VDU 22, though that means parsing the output stream
-						// via OS_WriteC, SWI &00, sufficiently to be able to spot VDUs.
+						//
+						// Passive monitoring traps, for automatic loading.
+						//
 
 						case 0x400e3:	// Wimp_SetMode
 						case 0x65:		// OS_ScreenMode
@@ -280,25 +281,6 @@ class ConcreteMachine:
 						// Wimp_CreateIcon, which also adds to the icon bar.
 						case 0x400c2:
 							switch(autoload_phase_) {
-//								case AutoloadPhase::WaitingForStartup:
-//									// Creation of any icon is used to spot that RISC OS has started up.
-//									//
-//									// Wait a further second, mouse down to (32, 240), left click.
-//									// That'll trigger disk access. Then move up to the top left,
-//									// in anticipation of the appearance of a window.
-//									CursorActionBuilder(cursor_actions_)
-//										.wait(24'000'000)
-//										.move_to(IconBarDriveX, IconBarY)
-//										.click(0)
-//										.set_phase(
-//											target_program_.empty() ? AutoloadPhase::Ended : AutoloadPhase::WaitingForDiskContents
-//										)
-//										.move_to(IconBarDriveX, 36);	// Just a guess of 'close' to where the program to launch
-//																		// will probably be, to have the cursor already nearby.
-//
-//									autoload_phase_ = AutoloadPhase::OpeningDisk;
-//								break;
-
 								case AutoloadPhase::OpeningProgram: {
 									const uint32_t address = executor_.registers()[1];
 									uint32_t handle;
