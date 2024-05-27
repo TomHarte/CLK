@@ -243,7 +243,6 @@ class ConcreteMachine:
 							executor_.bus.read(address + 16, y2, false);
 
 							switch(autoload_phase_) {
-
 								default: break;
 
 								case AutoloadPhase::WaitingForDiskContents: {
@@ -266,15 +265,12 @@ class ConcreteMachine:
 											.click(0);
 
 										if(target_program_.empty()) {
-											builder.set_phase(AutoloadPhase::Ended);
+											autoload_phase_ = AutoloadPhase::Ended;
 										} else {
-											builder
-												.set_phase(AutoloadPhase::WaitingForDiskContents)
-												.move_to(IconBarDriveX, 80);	// Just a guess of 'close' to where the program to launch
+											autoload_phase_ = AutoloadPhase::WaitingForDiskContents;
+											builder.move_to(IconBarDriveX, 80);	// Just a guess of 'close' to where the program to launch
 																				// will probably be, to have the cursor broadly nearby.
 										}
-
-										autoload_phase_ = AutoloadPhase::OpeningDisk;
 									}
 								break;
 							}
@@ -623,7 +619,6 @@ class ConcreteMachine:
 
 		enum class AutoloadPhase {
 			WaitingForStartup,
-			OpeningDisk,
 			WaitingForDiskContents,
 			WaitingForTargetIcon,
 			OpeningProgram,
