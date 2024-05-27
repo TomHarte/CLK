@@ -191,7 +191,8 @@ class MachineDocument:
 
 			// Attach an options panel if one is available.
 			if let optionsNibName = self.machineDescription?.optionsNibName {
-				Bundle.main.loadNibNamed(optionsNibName, owner: self, topLevelObjects: nil)
+				let didLoad = Bundle.main.loadNibNamed(optionsNibName, owner: self, topLevelObjects: nil)
+				assert(didLoad)
 				if let optionsController = self.optionsController {
 					optionsController.machine = machine
 					optionsController.establishStoredOptions()

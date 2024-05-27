@@ -15,6 +15,8 @@
 #include "MemoryController.hpp"
 #include "Sound.hpp"
 
+#include "../../../Configurable/Configurable.hpp"
+
 #include "../../AudioProducer.hpp"
 #include "../../KeyboardMachine.hpp"
 #include "../../MediaTarget.hpp"
@@ -46,7 +48,8 @@ class ConcreteMachine:
 	public MachineTypes::MouseMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
-	public Activity::Source
+	public Activity::Source,
+	public Configurable::Device
 {
 	private:
 		Log::Logger<Log::Source::Archimedes> logger;
@@ -187,6 +190,24 @@ class ConcreteMachine:
 
 					const uint32_t swi_code = comment & static_cast<uint32_t>(~(1 << 17));
 					switch(swi_code) {
+						//
+						// Optional high-level reimplementations, for fast loading.
+						//
+
+						case 0x40240: {	// ADFS_DiscOp
+							const uint32_t function = executor_.registers()[1] & 0xf;
+							switch(function) {
+								default: break;
+
+								case 0x1:	// Read sectors.
+									printf("Read sectors from %d for %d bytes into %08x\n",
+										executor_.registers()[2],
+										executor_.registers()[4],
+										executor_.registers()[3]);
+								break;
+							}
+						} break;
+
 						//
 						// Passive monitoring traps, for automatic loading.
 						//
@@ -367,20 +388,23 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
-		int video_divider_ = 1;
-		void run_for(Cycles cycles) override {
+		bool use_original_speed() const {
 #ifndef NDEBUG
 			// Debug mode: always run 'slowly' because that's less of a burden, and
 			// because it allows me to peer at problems with greater leisure.
-			const bool use_original_speed = true;
+			return true;
 #else
 			// As a first, blunt implementation: try to model something close
 			// to original speed if there have been 10 frame rate overages in total.
-			const bool use_original_speed = executor_.bus.video().frame_rate_overages() > 10;
+			return executor_.bus.video().frame_rate_overages() > 10;
 #endif
+		}
 
+
+		int video_divider_ = 1;
+		void run_for(Cycles cycles) override {
 			const auto run = [&](Cycles cycles) {
-				if(use_original_speed) run_for<true>(cycles);
+				if(use_original_speed()) run_for<true>(cycles);
 				else run_for<false>(cycles);
 			};
 
@@ -486,7 +510,13 @@ class ConcreteMachine:
 		void tick_timers()	{	executor_.bus.tick_timers();	}
 		void tick_sound()	{	executor_.bus.sound().tick();	}
 		void tick_video()	{	executor_.bus.video().tick();	}
-		void tick_floppy()	{	executor_.bus.tick_floppy();	}
+
+		bool accelerate_loading_ = true;
+		void tick_floppy()	{
+			executor_.bus.tick_floppy(
+				accelerate_loading_ ? (use_original_speed() ? 12 : 18) : 1
+			);
+		}
 
 		// MARK: - MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) override {
@@ -497,6 +527,18 @@ class ConcreteMachine:
 				if(c == 4) break;
 			}
 			return true;
+		}
+
+		// MARK: - Configuration options.
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->quickload = accelerate_loading_;
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			accelerate_loading_ = options->quickload;
 		}
 
 		// MARK: - AudioProducer

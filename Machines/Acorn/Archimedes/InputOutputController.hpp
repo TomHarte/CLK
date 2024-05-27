@@ -130,9 +130,9 @@ struct InputOutputController: public ClockingHint::Observer {
 		}
 	}
 
-	void tick_floppy() {
+	void tick_floppy(int clock_multiplier) {
 		if(floppy_clocking_ != ClockingHint::Preference::None) {
-			floppy_.run_for(Cycles(1));
+			floppy_.run_for(Cycles(clock_multiplier));
 		}
 	}
 
