@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22690"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="optionsController" destination="cWS-AS-crO" id="KeQ-V1-s46"/>
-                <outlet property="optionsView" destination="e1J-pw-zGw" id="ALr-SV-afm"/>
+                <outlet property="optionsView" destination="tpZ-0B-QQu" id="Hhq-RT-HTv"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <visualEffectView wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="tpZ-0B-QQu">
+        <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="tpZ-0B-QQu">
             <rect key="frame" x="0.0" y="0.0" width="200" height="44"/>
             <subviews>
                 <button translatesAutoresizingMaskIntoConstraints="NO" id="e1J-pw-zGw">

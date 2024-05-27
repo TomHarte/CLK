@@ -214,7 +214,9 @@ struct MemoryController {
 	// Expose various IOC-owned things.
 	//
 	void tick_timers()				{	ioc_.tick_timers();		}
-	void tick_floppy() 				{	ioc_.tick_floppy();		}
+	void tick_floppy(int clock_multiplier) {
+		ioc_.tick_floppy(clock_multiplier);
+	}
 	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 		ioc_.set_disk(disk, drive);
 	}

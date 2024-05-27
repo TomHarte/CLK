@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "../../../Configurable/Configurable.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../ROMMachine.hpp"
 
@@ -22,6 +24,17 @@ class Machine {
 			const Analyser::Static::Target *target,
 			const ROMMachine::ROMFetcher &rom_fetcher
 		);
+
+		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
+			friend Configurable::QuickloadOption<Options>;
+			public:
+				Options(Configurable::OptionsType type) :
+					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
+					if(needs_declare()) {
+						declare_quickload_option();
+					}
+				}
+		};
 };
 
 }

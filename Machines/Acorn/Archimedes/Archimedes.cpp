@@ -15,6 +15,8 @@
 #include "MemoryController.hpp"
 #include "Sound.hpp"
 
+#include "../../../Configurable/Configurable.hpp"
+
 #include "../../AudioProducer.hpp"
 #include "../../KeyboardMachine.hpp"
 #include "../../MediaTarget.hpp"
@@ -46,7 +48,8 @@ class ConcreteMachine:
 	public MachineTypes::MouseMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
-	public Activity::Source
+	public Activity::Source,
+	public Configurable::Device
 {
 	private:
 		Log::Logger<Log::Source::Archimedes> logger;
@@ -127,8 +130,6 @@ class ConcreteMachine:
 			if(!target.media.disks.empty()) {
 				autoload_phase_ = AutoloadPhase::WaitingForStartup;
 				target_program_ = target.main_program;
-
-				printf("Will seek %s?\n", target_program_.c_str());
 			}
 
 			fill_pipeline(0);
@@ -254,7 +255,6 @@ class ConcreteMachine:
 								} break;
 
 								case AutoloadPhase::WaitingForStartup:
-									printf("%d %d %d %d\n", x1, y1, x2, y2);
 									if(static_cast<int32_t>(y1) == -268435472) {		// VERY TEMPORARY. TODO: find better trigger.
 										// Creation of any icon is used to spot that RISC OS has started up.
 										//
@@ -274,7 +274,6 @@ class ConcreteMachine:
 										autoload_phase_ = AutoloadPhase::OpeningDisk;
 									}
 								break;
-//								printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
 							}
 						} break;
 
@@ -367,20 +366,23 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
-		int video_divider_ = 1;
-		void run_for(Cycles cycles) override {
+		bool use_original_speed() const {
 #ifndef NDEBUG
 			// Debug mode: always run 'slowly' because that's less of a burden, and
 			// because it allows me to peer at problems with greater leisure.
-			const bool use_original_speed = true;
+			return true;
 #else
 			// As a first, blunt implementation: try to model something close
 			// to original speed if there have been 10 frame rate overages in total.
-			const bool use_original_speed = executor_.bus.video().frame_rate_overages() > 10;
+			return executor_.bus.video().frame_rate_overages() > 10;
 #endif
+		}
 
+
+		int video_divider_ = 1;
+		void run_for(Cycles cycles) override {
 			const auto run = [&](Cycles cycles) {
-				if(use_original_speed) run_for<true>(cycles);
+				if(use_original_speed()) run_for<true>(cycles);
 				else run_for<false>(cycles);
 			};
 
@@ -486,7 +488,13 @@ class ConcreteMachine:
 		void tick_timers()	{	executor_.bus.tick_timers();	}
 		void tick_sound()	{	executor_.bus.sound().tick();	}
 		void tick_video()	{	executor_.bus.video().tick();	}
-		void tick_floppy()	{	executor_.bus.tick_floppy();	}
+
+		bool accelerate_loading_ = true;
+		void tick_floppy()	{
+			executor_.bus.tick_floppy(
+				accelerate_loading_ ? (use_original_speed() ? 12 : 18) : 1
+			);
+		}
 
 		// MARK: - MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) override {
@@ -497,6 +505,18 @@ class ConcreteMachine:
 				if(c == 4) break;
 			}
 			return true;
+		}
+
+		// MARK: - Configuration options.
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->quickload = accelerate_loading_;
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			accelerate_loading_ = options->quickload;
 		}
 
 		// MARK: - AudioProducer
