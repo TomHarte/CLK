@@ -130,8 +130,6 @@ class ConcreteMachine:
 			if(!target.media.disks.empty()) {
 				autoload_phase_ = AutoloadPhase::WaitingForStartup;
 				target_program_ = target.main_program;
-
-				printf("Will seek %s?\n", target_program_.c_str());
 			}
 
 			fill_pipeline(0);
@@ -190,24 +188,6 @@ class ConcreteMachine:
 
 					const uint32_t swi_code = comment & static_cast<uint32_t>(~(1 << 17));
 					switch(swi_code) {
-						//
-						// Optional high-level reimplementations, for fast loading.
-						//
-
-						case 0x40240: {	// ADFS_DiscOp
-							const uint32_t function = executor_.registers()[1] & 0xf;
-							switch(function) {
-								default: break;
-
-								case 0x1:	// Read sectors.
-									printf("Read sectors from %d for %d bytes into %08x\n",
-										executor_.registers()[2],
-										executor_.registers()[4],
-										executor_.registers()[3]);
-								break;
-							}
-						} break;
-
 						//
 						// Passive monitoring traps, for automatic loading.
 						//
@@ -275,7 +255,6 @@ class ConcreteMachine:
 								} break;
 
 								case AutoloadPhase::WaitingForStartup:
-									printf("%d %d %d %d\n", x1, y1, x2, y2);
 									if(static_cast<int32_t>(y1) == -268435472) {		// VERY TEMPORARY. TODO: find better trigger.
 										// Creation of any icon is used to spot that RISC OS has started up.
 										//
@@ -295,7 +274,6 @@ class ConcreteMachine:
 										autoload_phase_ = AutoloadPhase::OpeningDisk;
 									}
 								break;
-//								printf("Wimp_OpenWindow: %d, %d -> %d, %d\n", x1, y1, x2, y2);
 							}
 						} break;
 
