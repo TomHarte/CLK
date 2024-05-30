@@ -27,7 +27,7 @@ Audio::Audio(Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_
 void Audio::post_sample(uint8_t sample) {
 	// Store sample directly indexed by current write pointer; this ensures that collected samples
 	// directly map to volume and enabled/disabled states.
-	sample_queue_.buffer[sample_queue_.write_pointer].store(sample, std::memory_order::memory_order_relaxed);
+	sample_queue_.buffer[sample_queue_.write_pointer].store(sample, std::memory_order_relaxed);
 	sample_queue_.write_pointer = (sample_queue_.write_pointer + 1) % sample_queue_.buffer.size();
 }
 
@@ -82,7 +82,7 @@ void Audio::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoS
 		const auto cycles_left_in_sample = std::min(number_of_samples, sample_length - subcycle_offset_);
 
 		// Determine the output level, and output that many samples.
-		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer].load(std::memory_order::memory_order_relaxed)) - 128);
+		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer].load(std::memory_order_relaxed)) - 128);
 		Outputs::Speaker::fill<action>(target, target + cycles_left_in_sample, output_level);
 		target += cycles_left_in_sample;
 
