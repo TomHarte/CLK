@@ -20,7 +20,7 @@ Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rat
 
 	// Mark all buffers as available.
 	for(auto &flag: buffer_available_) {
-		flag.store(true, std::memory_order::memory_order_relaxed);
+		flag.store(true, std::memory_order_relaxed);
 	}
 
 	speaker_.set_input_rate(output_rate);
@@ -130,7 +130,7 @@ void Audio::output() {
 	// Spin until the next buffer is available if just entering it for the first time.
 	// Contention here should be essentially non-existent.
 	if(!sample_pointer_) {
-		while(!buffer_available_[buffer_pointer_].load(std::memory_order::memory_order_relaxed));
+		while(!buffer_available_[buffer_pointer_].load(std::memory_order_relaxed));
 	}
 
 	// Left.
@@ -155,10 +155,10 @@ void Audio::output() {
 		const auto &buffer = buffer_[buffer_pointer_];
 		auto &flag = buffer_available_[buffer_pointer_];
 
-		flag.store(false, std::memory_order::memory_order_release);
+		flag.store(false, std::memory_order_release);
 		queue_.enqueue([this, &buffer, &flag] {
 			speaker_.push(buffer.data(), buffer.size() >> 1);
-			flag.store(true, std::memory_order::memory_order_relaxed);
+			flag.store(true, std::memory_order_relaxed);
 		});
 
 		buffer_pointer_ = (buffer_pointer_ + 1) % BufferCount;

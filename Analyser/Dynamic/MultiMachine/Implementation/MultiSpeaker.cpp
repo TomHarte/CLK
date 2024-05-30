@@ -61,7 +61,7 @@ void MultiSpeaker::set_output_volume(float volume) {
 }
 
 void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) {
-	auto delegate = delegate_.load(std::memory_order::memory_order_relaxed);
+	auto delegate = delegate_.load(std::memory_order_relaxed);
 	if(!delegate) return;
 	{
 		std::lock_guard lock_guard(front_speaker_mutex_);
@@ -71,7 +71,7 @@ void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vec
 }
 
 void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
-	auto delegate = delegate_.load(std::memory_order::memory_order_relaxed);
+	auto delegate = delegate_.load(std::memory_order_relaxed);
 	if(!delegate) return;
 	{
 		std::lock_guard lock_guard(front_speaker_mutex_);
@@ -85,7 +85,7 @@ void MultiSpeaker::set_new_front_machine(::Machine::DynamicMachine *machine) {
 		std::lock_guard lock_guard(front_speaker_mutex_);
 		front_speaker_ = machine->audio_producer()->get_speaker();
 	}
-	auto delegate = delegate_.load(std::memory_order::memory_order_relaxed);
+	auto delegate = delegate_.load(std::memory_order_relaxed);
 	if(delegate) {
 		delegate->speaker_did_change_input_clock(this);
 	}

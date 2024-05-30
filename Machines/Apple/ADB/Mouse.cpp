@@ -25,15 +25,15 @@ void Mouse::perform_command(const Command &command) {
 		// There's some small chance of creating negative feedback here — taking too much off delta_x_ or delta_y_
 		// due to a change in the underlying value between the load and the arithmetic. But if that occurs it means
 		// the user moved the mouse again in the interim, so it'll just play out as very slight latency.
-		auto delta_x = delta_x_.load(std::memory_order::memory_order_relaxed);
-		auto delta_y = delta_y_.load(std::memory_order::memory_order_relaxed);
+		auto delta_x = delta_x_.load(std::memory_order_relaxed);
+		auto delta_y = delta_y_.load(std::memory_order_relaxed);
 		if(abs(delta_x) > max_delta || abs(delta_y) > max_delta) {
 			int max = std::max(abs(delta_x), abs(delta_y));
 			delta_x = delta_x * max_delta / max;
 			delta_y = delta_y * max_delta / max;
 		}
 
-		const int buttons = button_flags_.load(std::memory_order::memory_order_relaxed);
+		const int buttons = button_flags_.load(std::memory_order_relaxed);
 		delta_x_ -= delta_x;
 		delta_y_ -= delta_y;
 

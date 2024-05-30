@@ -35,7 +35,7 @@ void GLU::set_data(uint8_t data) {
 		write.address = address_;
 		write.value = data;
 		write.time = pending_store_write_time_;
-		pending_stores_[pending_store_write_].store(write, std::memory_order::memory_order_release);
+		pending_stores_[pending_store_write_].store(write, std::memory_order_release);
 
 		pending_store_write_ = (pending_store_write_ + 1) % (StoreBufferSize - 1);
 	} else {
@@ -174,15 +174,15 @@ template void GLU::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, 
 //	skip_audio(remote_, number_of_samples);
 //
 //	// Apply any pending stores.
-//	std::atomic_thread_fence(std::memory_order::memory_order_acquire);
+//	std::atomic_thread_fence(std::memory_order_acquire);
 //	const uint32_t final_time = pending_store_read_time_ + uint32_t(number_of_samples);
 //	while(true) {
-//		auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::memory_order_acquire);
+//		auto next_store = pending_stores_[pending_store_read_].load(std::memory_order_acquire);
 //		if(!next_store.enabled) break;
 //		if(next_store.time >= final_time) break;
 //		remote_.ram_[next_store.address] = next_store.value;
 //		next_store.enabled = false;
-//		pending_stores_[pending_store_read_].store(next_store, std::memory_order::memory_order_relaxed);
+//		pending_stores_[pending_store_read_].store(next_store, std::memory_order_relaxed);
 //
 //		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
 //	}
@@ -263,7 +263,7 @@ void GLU::skip_audio(EnsoniqState &state, size_t number_of_samples) {
 
 template <Outputs::Speaker::Action action>
 void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
-	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::memory_order_acquire);
+	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order_acquire);
 	uint8_t next_amplitude = 255;
 	for(size_t sample = 0; sample < number_of_samples; sample++) {
 
@@ -344,7 +344,7 @@ void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample 
 		if(next_store.time != pending_store_read_time_) continue;
 		remote_.ram_[next_store.address] = next_store.value;
 		next_store.enabled = false;
-		pending_stores_[pending_store_read_].store(next_store, std::memory_order::memory_order_relaxed);
+		pending_stores_[pending_store_read_].store(next_store, std::memory_order_relaxed);
 		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
 	}
 }
