@@ -294,7 +294,7 @@ template <typename Owner> class StructImpl: public Struct {
 			}
 			va_end(list);
 
-			permitted_enum_values_.emplace(std::make_pair(name, permitted_values));
+			permitted_enum_values_.emplace(name, permitted_values);
 		}
 
 		/*!

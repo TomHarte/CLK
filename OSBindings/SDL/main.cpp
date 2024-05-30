@@ -246,7 +246,7 @@ class ActivityObserver: public Activity::Observer {
 			const float right_x = 1.0f - 2.0f * width;
 			float y = 1.0f - 2.0f * height;
 			for(const auto &drive: drives_) {
-				lights_.emplace(std::make_pair(drive, std::make_unique<Outputs::Display::OpenGL::Rectangle>(right_x, y, width, height)));
+				lights_.emplace(drive, std::make_unique<Outputs::Display::OpenGL::Rectangle>(right_x, y, width, height));
 				y -= height * 2.0f;
 			}
 
@@ -257,7 +257,7 @@ class ActivityObserver: public Activity::Observer {
 				const float left_x = -1.0f + 2.0f * width;
 				y = 1.0f - 2.0f * height;
 				for(const auto &led: leds_) {
-					lights_.emplace(std::make_pair(led, std::make_unique<OpenGL::Rectangle>(left_x, y, width, height)));
+					lights_.emplace(led, std::make_unique<OpenGL::Rectangle>(left_x, y, width, height));
 					y -= height * 2.0f;
 				}
 			*/
