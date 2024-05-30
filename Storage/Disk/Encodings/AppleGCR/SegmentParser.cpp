@@ -317,14 +317,14 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					// Potentially this is a Macintosh sector.
 					auto macintosh_sector = decode_macintosh_sector(had_header ? &header : nullptr, sector);
 					if(macintosh_sector) {
-						result.insert(std::make_pair(sector_location, std::move(*macintosh_sector)));
+						result.insert({sector_location, std::move(*macintosh_sector)});
 						continue;
 					}
 
 					// Apple II then?
 					auto appleii_sector = decode_appleii_sector(had_header ? &header : nullptr, sector, is_five_and_three);
 					if(appleii_sector) {
-						result.insert(std::make_pair(sector_location, std::move(*appleii_sector)));
+						result.insert({sector_location, std::move(*appleii_sector)});
 					}
 				} else {
 					new_sector->data.push_back(value);

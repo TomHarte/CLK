@@ -72,8 +72,8 @@ class Enum {
 				result.emplace_back(std::string(start, size_t(d_ptr - start)));
 			}
 
-			members_by_type_.emplace(std::make_pair(std::type_index(typeid(Type)), result));
-			names_by_type_.emplace(std::make_pair(std::type_index(typeid(Type)), std::string(name)));
+			members_by_type_.emplace(std::type_index(typeid(Type)), result);
+			names_by_type_.emplace(std::type_index(typeid(Type)), std::string(name));
 		}
 
 		/*!
