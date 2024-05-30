@@ -1114,7 +1114,7 @@ void MainWindow::start_atariST() {
 }
 
 void MainWindow::start_electron() {
-	using Target = Analyser::Static::Acorn::Target;
+	using Target = Analyser::Static::Acorn::ElectronTarget;
 	auto target = std::make_unique<Target>();
 
 	target->has_dfs = ui->electronDFSCheckBox->isChecked();
