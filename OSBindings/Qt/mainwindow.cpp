@@ -441,6 +441,10 @@ void MainWindow::launchMachine() {
 			addAtari2600Menu();
 		break;
 
+		case Analyser::Machine::Archimedes:
+			addEnhancementsMenu(settingsPrefix, true, false);
+		break;
+
 		case Analyser::Machine::AtariST:
 			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
 		break;
@@ -1010,6 +1014,7 @@ void MainWindow::startMachine() {
 	TEST(appleII);
 	TEST(appleIIgs);
 	TEST(amstradCPC);
+	TEST(archimedes);
 	TEST(atariST);
 	TEST(electron);
 	TEST(enterprise);
@@ -1097,6 +1102,12 @@ void MainWindow::start_amstradCPC() {
 		case 2:		target->model = Target::Model::CPC6128;	break;
 	}
 
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_archimedes() {
+	using Target = Analyser::Static::Acorn::ArchimedesTarget;
+	auto target = std::make_unique<Target>();
 	launchTarget(std::move(target));
 }
 

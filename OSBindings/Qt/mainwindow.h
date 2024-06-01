@@ -99,6 +99,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_appleII();
 		void start_appleIIgs();
 		void start_amstradCPC();
+		void start_archimedes();
 		void start_atariST();
 		void start_electron();
 		void start_enterprise();

@@ -221,6 +221,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 
 	Emplace(AmstradCPC, AmstradCPC::Machine);
 	Emplace(AppleII, Apple::II::Machine);
+	Emplace(Archimedes, Archimedes::Machine);
 	Emplace(AtariST, Atari::ST::Machine);
 	Emplace(ColecoVision, Coleco::Vision::Machine);
 	Emplace(Electron, Electron::Machine);

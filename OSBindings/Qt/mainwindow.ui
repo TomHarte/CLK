@@ -345,6 +345,28 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="archimedesTab">
+       <attribute name="title">
+        <string>Archimedes</string>
+       </attribute>
+       <layout class="QVBoxLayout">
+        <item>
+         <layout class="QHBoxLayout">
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel">
+              <property name="text">
+               <string>At present only a 4mb 26-bit Archimedes is available.</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="atariSTTab">
        <attribute name="title">
         <string>Atari ST</string>
