@@ -177,16 +177,16 @@ template <class BusHandler> class MOS6560 {
 				int previous_vertical_counter = vertical_counter_;
 
 				// keep track of internal time relative to this scanline
-				horizontal_counter_++;
+				++horizontal_counter_;
 				if(horizontal_counter_ == timing_.cycles_per_line) {
 					if(horizontal_drawing_latch_) {
-						current_character_row_++;
+						++current_character_row_;
 						if(
 							(current_character_row_ == 16) ||
 							(current_character_row_ == 8 && !registers_.tall_characters)
 						) {
 							current_character_row_ = 0;
-							current_row_++;
+							++current_row_;
 						}
 
 						pixel_line_cycle_ = -1;
@@ -198,7 +198,7 @@ template <class BusHandler> class MOS6560 {
 					if(output_mode_ == OutputMode::PAL) is_odd_line_ ^= true;
 					horizontal_drawing_latch_ = false;
 
-					vertical_counter_ ++;
+					++vertical_counter_;
 					if(vertical_counter_ == lines_this_field()) {
 						vertical_counter_ = 0;
 
@@ -215,7 +215,7 @@ template <class BusHandler> class MOS6560 {
 				vertical_drawing_latch_ |= registers_.first_row_location == (previous_vertical_counter >> 1);
 				horizontal_drawing_latch_ |= vertical_drawing_latch_ && (horizontal_counter_ == registers_.first_column_location);
 
-				if(pixel_line_cycle_ >= 0) pixel_line_cycle_++;
+				if(pixel_line_cycle_ >= 0) ++pixel_line_cycle_;
 				switch(pixel_line_cycle_) {
 					case -1:
 						if(horizontal_drawing_latch_) {
@@ -234,7 +234,7 @@ template <class BusHandler> class MOS6560 {
 						fetch_address = registers_.character_cell_start_address + (character_code_*(registers_.tall_characters ? 16 : 8)) + current_character_row_;
 					} else {
 						fetch_address = uint16_t(registers_.video_matrix_start_address + video_matrix_address_counter_);
-						video_matrix_address_counter_++;
+						++video_matrix_address_counter_;
 						if(
 							(current_character_row_ == 15) ||
 							(current_character_row_ == 7 && !registers_.tall_characters)
@@ -254,10 +254,11 @@ template <class BusHandler> class MOS6560 {
 				// divide the byte it is set for 3:1 and then continue as usual.
 
 				// determine output state; colour burst and sync timing are currently a guess
-				if(horizontal_counter_ > timing_.cycles_per_line-4) this_state_ = State::ColourBurst;
-				else if(horizontal_counter_ > timing_.cycles_per_line-7) this_state_ = State::Sync;
+				State this_state;
+				if(horizontal_counter_ > timing_.cycles_per_line-4) this_state = State::ColourBurst;
+				else if(horizontal_counter_ > timing_.cycles_per_line-7) this_state = State::Sync;
 				else {
-					this_state_ = (column_counter_ >= 0 && column_counter_ < columns_this_line_*2) ? State::Pixels : State::Border;
+					this_state = (column_counter_ >= 0 && column_counter_ < columns_this_line_*2) ? State::Pixels : State::Border;
 				}
 
 				// apply vertical sync
@@ -270,17 +271,17 @@ template <class BusHandler> class MOS6560 {
 							(vertical_counter_ == 3 && horizontal_counter_ <= 32)
 						)
 					))
-					this_state_ = State::Sync;
+					this_state = State::Sync;
 
 				// update the CRT
-				if(this_state_ != output_state_) {
+				if(this_state != output_state_) {
 					switch(output_state_) {
 						case State::Sync:			crt_.output_sync(cycles_in_state_ * 4);														break;
 						case State::ColourBurst:	crt_.output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);	break;
-						case State::Border:			crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.borderColour);					break;
+						case State::Border:			crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.border_colour);				break;
 						case State::Pixels:			crt_.output_data(cycles_in_state_ * 4);														break;
 					}
-					output_state_ = this_state_;
+					output_state_ = this_state;
 					cycles_in_state_ = 0;
 
 					pixel_pointer = nullptr;
@@ -288,9 +289,9 @@ template <class BusHandler> class MOS6560 {
 						pixel_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(260));
 					}
 				}
-				cycles_in_state_++;
+				++cycles_in_state_;
 
-				if(this_state_ == State::Pixels) {
+				if(output_state_ == State::Pixels) {
 					// TODO: palette changes can happen within half-characters; the below needs to be divided.
 					// Also: a perfect opportunity to rearrange this inner loop for no longer needing to be
 					// two parts with a cooperative owner?
@@ -303,9 +304,9 @@ template <class BusHandler> class MOS6560 {
 								uint16_t colours[2];
 								if(registers_.invertedCells) {
 									colours[0] = cell_colour;
-									colours[1] = registers_.backgroundColour;
+									colours[1] = registers_.background_colour;
 								} else {
-									colours[0] = registers_.backgroundColour;
+									colours[0] = registers_.background_colour;
 									colours[1] = cell_colour;
 								}
 								pixel_pointer[0] = colours[(character_value_ >> 7)&1];
@@ -317,7 +318,7 @@ template <class BusHandler> class MOS6560 {
 								pixel_pointer[6] = colours[(character_value_ >> 1)&1];
 								pixel_pointer[7] = colours[(character_value_ >> 0)&1];
 							} else {
-								uint16_t colours[4] = {registers_.backgroundColour, registers_.borderColour, cell_colour, registers_.auxiliary_colour};
+								uint16_t colours[4] = {registers_.background_colour, registers_.border_colour, cell_colour, registers_.auxiliary_colour};
 								pixel_pointer[0] =
 								pixel_pointer[1] = colours[(character_value_ >> 6)&3];
 								pixel_pointer[2] =
@@ -338,7 +339,7 @@ template <class BusHandler> class MOS6560 {
 
 				// Keep counting columns even if sync or the colour burst have interceded.
 				if(column_counter_ >= 0 && column_counter_ < columns_this_line_*2) {
-					column_counter_++;
+					++column_counter_;
 				}
 			}
 		}
@@ -397,14 +398,16 @@ template <class BusHandler> class MOS6560 {
 				break;
 
 				case 0xf: {
-					uint16_t new_border_colour = colours_[value & 0x07];
-					if(this_state_ == State::Border && new_border_colour != registers_.borderColour) {
-						crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.borderColour);
-						cycles_in_state_ = 0;
+					const uint16_t new_border_colour = colours_[value & 0x07];
+					if(new_border_colour != registers_.border_colour) {
+						if(output_state_ == State::Border) {
+							crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.border_colour);
+							cycles_in_state_ = 0;
+						}
+						registers_.border_colour = new_border_colour;
 					}
 					registers_.invertedCells = !((value >> 3)&1);
-					registers_.borderColour = new_border_colour;
-					registers_.backgroundColour = colours_[value >> 4];
+					registers_.background_colour = colours_[value >> 4];
 				}
 				break;
 
@@ -446,16 +449,18 @@ template <class BusHandler> class MOS6560 {
 			uint8_t first_column_location = 0, first_row_location = 0;
 			uint8_t number_of_columns = 0, number_of_rows = 0;
 			uint16_t character_cell_start_address = 0, video_matrix_start_address = 0;
-			uint16_t backgroundColour = 0, borderColour = 0, auxiliary_colour = 0;
+			uint16_t border_colour = 0;
+			uint16_t background_colour = 0;
+			uint16_t auxiliary_colour = 0;
 			bool invertedCells = false;
 
-			uint8_t direct_values[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+			uint8_t direct_values[16]{};
 		} registers_;
 
 		// output state
 		enum State {
 			Sync, ColourBurst, Border, Pixels
-		} this_state_ = State::Sync, output_state_ = State::Sync;
+		} output_state_ = State::Sync;
 		int cycles_in_state_ = 0;
 
 		// counters that cover an entire field

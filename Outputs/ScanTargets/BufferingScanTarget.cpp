@@ -264,9 +264,6 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			write_pointers_ = submit_pointers_.load(std::memory_order_relaxed);
 			frame_is_complete_ &= !allocation_has_failed_;
 		}
-
-		// Don't permit anything to be allocated on invisible areas.
-		allocation_has_failed_ = true;
 	}
 }
 
