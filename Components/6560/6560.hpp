@@ -278,7 +278,7 @@ template <class BusHandler> class MOS6560 {
 					switch(output_state_) {
 						case State::Sync:			crt_.output_sync(cycles_in_state_ * 4);														break;
 						case State::ColourBurst:	crt_.output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);	break;
-						case State::Border:			crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.borderColour);					break;
+						case State::Border:			crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.border_colour);				break;
 						case State::Pixels:			crt_.output_data(cycles_in_state_ * 4);														break;
 					}
 					output_state_ = this_state;
@@ -304,9 +304,9 @@ template <class BusHandler> class MOS6560 {
 								uint16_t colours[2];
 								if(registers_.invertedCells) {
 									colours[0] = cell_colour;
-									colours[1] = registers_.backgroundColour;
+									colours[1] = registers_.background_colour;
 								} else {
-									colours[0] = registers_.backgroundColour;
+									colours[0] = registers_.background_colour;
 									colours[1] = cell_colour;
 								}
 								pixel_pointer[0] = colours[(character_value_ >> 7)&1];
@@ -318,7 +318,7 @@ template <class BusHandler> class MOS6560 {
 								pixel_pointer[6] = colours[(character_value_ >> 1)&1];
 								pixel_pointer[7] = colours[(character_value_ >> 0)&1];
 							} else {
-								uint16_t colours[4] = {registers_.backgroundColour, registers_.borderColour, cell_colour, registers_.auxiliary_colour};
+								uint16_t colours[4] = {registers_.background_colour, registers_.border_colour, cell_colour, registers_.auxiliary_colour};
 								pixel_pointer[0] =
 								pixel_pointer[1] = colours[(character_value_ >> 6)&3];
 								pixel_pointer[2] =
@@ -398,16 +398,16 @@ template <class BusHandler> class MOS6560 {
 				break;
 
 				case 0xf: {
-					uint16_t new_border_colour = colours_[value & 0x07];
-					if(new_border_colour != registers_.borderColour) {
+					const uint16_t new_border_colour = colours_[value & 0x07];
+					if(new_border_colour != registers_.border_colour) {
 						if(output_state_ == State::Border) {
-							crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.borderColour);
+							crt_.output_level<uint16_t>(cycles_in_state_ * 4, registers_.border_colour);
 							cycles_in_state_ = 0;
 						}
+						registers_.border_colour = new_border_colour;
 					}
 					registers_.invertedCells = !((value >> 3)&1);
-					registers_.borderColour = new_border_colour;
-					registers_.backgroundColour = colours_[value >> 4];
+					registers_.background_colour = colours_[value >> 4];
 				}
 				break;
 
@@ -449,10 +449,12 @@ template <class BusHandler> class MOS6560 {
 			uint8_t first_column_location = 0, first_row_location = 0;
 			uint8_t number_of_columns = 0, number_of_rows = 0;
 			uint16_t character_cell_start_address = 0, video_matrix_start_address = 0;
-			uint16_t backgroundColour = 0, borderColour = 0, auxiliary_colour = 0;
+			uint16_t border_colour = 0;
+			uint16_t background_colour = 0;
+			uint16_t auxiliary_colour = 0;
 			bool invertedCells = false;
 
-			uint8_t direct_values[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+			uint8_t direct_values[16]{};
 		} registers_;
 
 		// output state
