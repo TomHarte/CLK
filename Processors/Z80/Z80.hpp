@@ -10,8 +10,8 @@
 
 #include <algorithm>
 #include <cassert>
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -42,7 +42,12 @@ enum class Register {
 
 	IFF1,	IFF2,	IM,
 
-	MemPtr
+	MemPtr,
+
+	/// Obscure, and related to status bits 3 & 5 upon an SCF or CCF; this
+	/// is a single bit indicating whether an immediately-following [S/C]CF
+	/// can only set bits 3 & 5 or may also reset them.
+	DidChangeFlags,
 };
 
 /*
@@ -151,19 +156,27 @@ struct PartialMachineCycle {
 		return operation <= Operation::Write;
 	}
 
-	enum Line {
-		CLK = 1 << 0,
+	using LineStateT = uint16_t;
+	struct Line {
+		static constexpr LineStateT CLK = 1 << 0;
 
-		MREQ = 1 << 1,
-		IOREQ = 1 << 2,
+		static constexpr LineStateT MREQ = 1 << 1;
+		static constexpr LineStateT IOREQ = 1 << 2;
 
-		RD = 1 << 3,
-		WR = 1 << 4,
-		RFSH = 1 << 5,
+		static constexpr LineStateT RD = 1 << 3;
+		static constexpr LineStateT WR = 1 << 4;
+		static constexpr LineStateT RFSH = 1 << 5;
 
-		M1 = 1 << 6,
+		static constexpr LineStateT M1 = 1 << 6;
 
-		BUSACK = 1 << 7,
+		static constexpr LineStateT BUSACK = 1 << 7;
+
+		static constexpr LineStateT DataActive = 1 << 8;
+		static constexpr LineStateT AddressActive = 1 << 9;
+	};
+
+	enum class SampleType {
+		Instant, Period
 	};
 
 	/// @returns A C-style array of the bus state at the beginning of each half cycle in this
@@ -171,7 +184,37 @@ struct PartialMachineCycle {
 	/// bit set means line active, bit clear means line inactive. For the CLK line set means high.
 	///
 	/// @discussion This discrete sampling is prone to aliasing errors. Beware.
-	const uint8_t *bus_state() const {
+	///
+	///	@c sample_type indicates whether to describe bus activity:
+	/// 	(i)	as a series of instantaneous samples indicating levels at the
+	/// 		immediate start of the time period; or
+	/// 	(ii)	as windowed samples, indicating active if the signal is active
+	/// 		at any time during this time period.
+	///
+	template <SampleType sample_type> const LineStateT *bus_state() const {
+		struct BusStateDecomposer {
+			static constexpr LineStateT state(const char *source) {
+				LineStateT result = 0;
+				while(*source) {
+					switch(*source) {
+						default: 									break;
+						case 'C':	result |= Line::CLK;			break;
+						case 'M':	result |= Line::MREQ;			break;
+						case 'I':	result |= Line::IOREQ;			break;
+						case 'R':	result |= Line::RD;				break;
+						case 'W':	result |= Line::WR;				break;
+						case 'F':	result |= Line::RFSH;			break;
+						case '1':	result |= Line::M1;				break;
+						case 'K':	result |= Line::BUSACK;			break;
+						case 'D':	result |= Line::DataActive;		break;
+						case 'A':	result |= Line::AddressActive;	break;
+					}
+					++source;
+				}
+				return result;
+			}
+		};
+
 		switch(operation) {
 
 			//
@@ -179,25 +222,30 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::ReadOpcodeStart: {
-				static constexpr uint8_t states[] = {
-					Line::CLK |	Line::M1,
-								Line::M1 |	Line::MREQ |	Line::RD,
-					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				static constexpr LineStateT period_states[] = {
+					BusStateDecomposer::state("C 1__ A"),
+					BusStateDecomposer::state("_ 1MR A"),
+					BusStateDecomposer::state("C 1MR A"),
 				};
-				return states;
+				static constexpr LineStateT instant_states[] = {
+					BusStateDecomposer::state("C ___ _"),
+					BusStateDecomposer::state("_ 1M_ A"),
+					BusStateDecomposer::state("C 1MR A"),
+				};
+				return sample_type == SampleType::Period ? period_states : instant_states;
 			}
 
 			case Operation::ReadOpcode:
 			case Operation::ReadOpcodeWait: {
-				static constexpr uint8_t states[] = {
-								Line::M1 |	Line::MREQ |	Line::RD,
-					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				static constexpr LineStateT states[] = {
+					BusStateDecomposer::state("_ 1MR A"),
+					BusStateDecomposer::state("C 1MR A"),
 				};
 				return states;
 			}
 
 			case Operation::Refresh: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK |	Line::RFSH |	Line::MREQ,
 								Line::RFSH,
 					Line::CLK |	Line::RFSH |	Line::MREQ,
@@ -215,7 +263,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::ReadStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								Line::RD |	Line::MREQ,
 					Line::CLK |	Line::RD |	Line::MREQ,
@@ -224,7 +272,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::ReadWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ |	Line::RD,
 					Line::CLK |	Line::MREQ |	Line::RD,
 								Line::MREQ |	Line::RD,
@@ -236,7 +284,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Read: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ |	Line::RD,
 					Line::CLK |	Line::MREQ |	Line::RD,
 								0,
@@ -249,7 +297,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::WriteStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								Line::MREQ,
 					Line::CLK |	Line::MREQ,
@@ -258,7 +306,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::WriteWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ,
 					Line::CLK |	Line::MREQ,
 								Line::MREQ,
@@ -270,7 +318,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Write: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ |	Line::WR,
 					Line::CLK |	Line::MREQ |	Line::WR,
 								0,
@@ -283,7 +331,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::InputStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								0,
 					Line::CLK |	Line::IOREQ |	Line::RD,
@@ -292,7 +340,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::InputWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::RD,
 					Line::CLK |	Line::IOREQ |	Line::RD,
 				};
@@ -300,7 +348,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Input: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::RD,
 					Line::CLK |	Line::IOREQ |	Line::RD,
 								0,
@@ -313,7 +361,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::OutputStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								0,
 					Line::CLK |	Line::IOREQ |	Line::WR,
@@ -322,7 +370,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::OutputWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::WR,
 					Line::CLK |	Line::IOREQ |	Line::WR,
 				};
@@ -330,7 +378,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Output: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::WR,
 					Line::CLK |	Line::IOREQ |	Line::WR,
 								0,
@@ -347,7 +395,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::BusAcknowledge: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK |	Line::BUSACK,
 								Line::BUSACK,
 				};
@@ -359,7 +407,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::Internal: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK, 0,
 					Line::CLK, 0,
 					Line::CLK, 0,
@@ -530,7 +578,7 @@ template <class T, bool uses_bus_request, bool uses_wait_line> class Processor: 
 	private:
 		T &bus_handler_;
 
-		void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets);
+		void assemble_page(InstructionPage &target, const InstructionTable &table, bool add_offsets);
 		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination);
 };
 

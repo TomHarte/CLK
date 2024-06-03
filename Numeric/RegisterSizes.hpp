@@ -18,7 +18,7 @@
 namespace CPU {
 
 /// Provides access to all intermediate parts of a larger int.
-template <typename Full, typename Half> union alignas(Full) alignas(Half) RegisterPair {
+template <typename Full, typename Half> union alignas(alignof(Full)) RegisterPair {
 	RegisterPair(Full v) : full(v) {}
 	RegisterPair() = default;
 

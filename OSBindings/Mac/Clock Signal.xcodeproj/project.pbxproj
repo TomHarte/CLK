@@ -180,6 +180,7 @@
 		4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
+		4B11D49028D8F60300070EA7 /* Z80JSMooTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B11D48F28D8F60300070EA7 /* Z80JSMooTests.mm */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
 		4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
 		4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
@@ -242,6 +243,7 @@
 		4B302185208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
 		4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322E031F5A2E3C004EB04C /* Z80Base.cpp */; };
+		4B32DBD128E3DB3200F4A16A /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */; };
 		4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
 		4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */; };
@@ -1305,6 +1307,7 @@
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
+		4B11D48F28D8F60300070EA7 /* Z80JSMooTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Z80JSMooTests.mm; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
@@ -4576,6 +4579,7 @@
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
 				4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */,
 				4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */,
+				4B11D48F28D8F60300070EA7 /* Z80JSMooTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
@@ -6352,6 +6356,7 @@
 				4B778F4223A5F1A70000D260 /* MemoryFuzzer.cpp in Sources */,
 				4B778F0123A5EBA00000D260 /* MacintoshIMG.cpp in Sources */,
 				4B7752AD28217E770073E2C5 /* AmigaADF.cpp in Sources */,
+				4B32DBD128E3DB3200F4A16A /* MacintoshVolume.cpp in Sources */,
 				4BFF1D3D2235C3C100838EA1 /* EmuTOSTests.mm in Sources */,
 				4B3F76B925A1635300178AEC /* PowerPCDecoderTests.mm in Sources */,
 				4B778F0A23A5EC150000D260 /* TapePRG.cpp in Sources */,
@@ -6385,6 +6390,7 @@
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
 				4B90467622C6FD6E000E2074 /* 68000ArithmeticTests.mm in Sources */,
 				4B778F3423A5F1040000D260 /* DirectAccessDevice.cpp in Sources */,
+				4B11D49028D8F60300070EA7 /* Z80JSMooTests.mm in Sources */,
 				4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */,
 				4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */,
 				4B778F5923A5F2D00000D260 /* Z80.cpp in Sources */,
