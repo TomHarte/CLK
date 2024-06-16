@@ -180,6 +180,9 @@
 		4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
+		4B1082C32C1A87CA00B07C5D /* CSL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1082C02C1A87CA00B07C5D /* CSL.cpp */; };
+		4B1082C42C1F5E7D00B07C5D /* CSL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1082C02C1A87CA00B07C5D /* CSL.cpp */; };
+		4B1082C52C1F60A900B07C5D /* CSL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1082C02C1A87CA00B07C5D /* CSL.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
 		4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
 		4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
@@ -1305,6 +1308,8 @@
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
+		4B1082C02C1A87CA00B07C5D /* CSL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSL.cpp; sourceTree = "<group>"; };
+		4B1082C12C1A87CA00B07C5D /* CSL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CSL.hpp; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
@@ -2688,6 +2693,15 @@
 			path = Keyboard;
 			sourceTree = "<group>";
 		};
+		4B1082C22C1A87CA00B07C5D /* Automation */ = {
+			isa = PBXGroup;
+			children = (
+				4B1082C02C1A87CA00B07C5D /* CSL.cpp */,
+				4B1082C12C1A87CA00B07C5D /* CSL.hpp */,
+			);
+			path = Automation;
+			sourceTree = "<group>";
+		};
 		4B1414561B58879D00E04248 /* 6502 */ = {
 			isa = PBXGroup;
 			children = (
@@ -3326,6 +3340,7 @@
 				4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */,
 				4BF4A2D91F534DB300B171F4 /* TargetPlatforms.hpp */,
 				4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */,
+				4B1082C22C1A87CA00B07C5D /* Automation */,
 				4BEE0A691D72496600532C7B /* Cartridge */,
 				4B8805F81DCFF6CD003085B1 /* Data */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
@@ -5918,6 +5933,7 @@
 				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
 				4BB307BC235001C300457D33 /* 6850.cpp in Sources */,
 				4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */,
+				4B1082C52C1F60A900B07C5D /* CSL.cpp in Sources */,
 				4B89451D201967B4007DE474 /* Disk.cpp in Sources */,
 				4BFEA2F02682A7B900EBF94C /* Dave.cpp in Sources */,
 				4B4C81C628B3C5CD00F84AE9 /* SCSICard.cpp in Sources */,
@@ -6084,6 +6100,7 @@
 				4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */,
+				4B1082C42C1F5E7D00B07C5D /* CSL.cpp in Sources */,
 				4B0ACC3023775819008902D0 /* TIASound.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
@@ -6372,6 +6389,7 @@
 				4B778F4A23A5F1FB0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B7752AB28217E560073E2C5 /* SZX.cpp in Sources */,
 				4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */,
+				4B1082C32C1A87CA00B07C5D /* CSL.cpp in Sources */,
 				4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */,
 				4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */,
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
