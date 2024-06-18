@@ -254,12 +254,10 @@ class CGA {
 			}
 
 			void serialise_pixels(const Motorola::CRTC::BusState &state) {
-				// This is what I think is happenings:
+				// Refresh address is shifted left and two bytes are fetched, just as if the fetch were for
+				// character code + attributes, but producing two bytes worth of graphics.
 				//
-				// Refresh address is still shifted left one and two bytes are fetched, just as if it were
-				// character code + attributes except that these are two bytes worth of graphics.
-				//
-				// Meanwhile, row address is used to invent a 15th address line.
+				// Meanwhile, row address is used as a substitute 14th address line.
 				const auto base_address =
 					((state.refresh_address & 0xfff) << 1) +
 					((state.row_address & 1) << 13);
