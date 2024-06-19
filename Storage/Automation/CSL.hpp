@@ -8,65 +8,85 @@
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-namespace Storage::Automation {
+namespace Storage::Automation::CSL {
 
-struct CSL {
-	CSL(const std::string &file_name);
-
-	enum Errors {
-		InvalidKeyword,
-		InvalidArgument,
-	};
-
-	private:
-		enum ResetType {
-			Hard, Soft
-		};
-
-		struct Instruction {
-			enum class Type {
-				Version,
-				Reset,
-				CRTCSelect,
-				LoadCSL,
-
-				DiskInsert,
-				SetDiskDir,
-
-				TapeInsert,
-				SetTapeDir,
-				TapePlay,
-				TapeStop,
-				TapeRewind,
-
-				SetSnapshotDir,
-				SnapshotLoad,
-				SetSnapshotName,
-				Snapshot,
-
-				KeyDelay,
-				KeyOutput,
-				KeyFromFile,
-
-				Wait,
-				WaitDriveOnOff,
-				WaitVsyncOnOff,
-				WaitSSM0000,
-
-				SetScreenshotName,
-				SetScreenshotDir,
-				Screenshot,
-			} type;
-
-			std::variant<std::monostate, ResetType, std::string, uint64_t> argument;
-		};
-
-		std::vector<Instruction> instructions;
-		std::optional<Instruction> next();
+enum Reset {
+	Hard, Soft
 };
+struct DiskInsert {
+	int drive = 0;
+	std::string file;
+};
+enum ScreenshotOrSnapshot {
+	WaitForVSync, Now,
+};
+struct KeyDelay {
+	uint64_t press_delay;
+	uint64_t interpress_delay;
+	std::optional<uint64_t> carriage_return_delay;
+};
+struct KeyEvent {
+	bool down;
+	uint16_t key;
+};
+
+struct Instruction {
+	enum class Type {
+		Version,
+		Reset,
+		CRTCSelect,
+		LoadCSL,
+
+		DiskInsert,
+		SetDiskDir,
+
+		TapeInsert,
+		SetTapeDir,
+		TapePlay,
+		TapeStop,
+		TapeRewind,
+
+		SetSnapshotDir,
+		LoadSnapshot,
+		SetSnapshotName,
+		Snapshot,
+
+		KeyDelay,
+		KeyOutput,
+		KeyFromFile,
+
+		Wait,
+		WaitDriveOnOff,
+		WaitVsyncOnOff,
+		WaitSSM0000,
+
+		SetScreenshotName,
+		SetScreenshotDir,
+		Screenshot,
+	} type;
+
+	std::variant<
+		std::monostate,
+		DiskInsert,
+		Reset,
+		ScreenshotOrSnapshot,
+		KeyDelay,
+		std::string,
+		std::vector<KeyEvent>,
+		uint64_t
+	> argument;
+};
+
+
+enum Errors {
+	InvalidKeyword,
+	InvalidArgument,
+};
+std::vector<Instruction> parse(const std::string &file_name);
 
 }

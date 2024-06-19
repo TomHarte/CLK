@@ -8,26 +8,26 @@
 
 #include "CSL.hpp"
 
+#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
 #include <set>
 
-using namespace Storage::Automation;
+#include "../../Machines/AmstradCPC/Keyboard.hpp"
 
+using namespace Storage::Automation;
 
 struct CSLTest {
 	CSLTest() {
-		CSL c("/Users/thomasharte/Downloads/Shaker_CSL/MODULE A/SHAKE26A-4.CSL");
+		CSL::parse("/Users/thomasharte/Downloads/Shaker_CSL/MODULE A/SHAKE26A-4.CSL");
 	}
 
 };
 CSLTest test;
 
-CSL::CSL(const std::string &file_name) {
-	// Parse the entire file ahead of time; this isn't necessary but introduces
-	// little significant overhead and greatly simplifies my debugging.
-
+std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
+	std::vector<Instruction> instructions;
 	std::ifstream file;
 	file.open(file_name);
 
@@ -43,7 +43,7 @@ CSL::CSL(const std::string &file_name) {
 		{"tape_play", Type::TapeInsert},
 		{"tape_stop", Type::TapeStop},
 		{"tape_rewind", Type::TapeRewind},
-		{"snapshot_load", Type::SnapshotLoad},
+		{"snapshot_load", Type::LoadSnapshot},
 		{"snapshot_dir", Type::SetSnapshotDir},
 		{"key_delay", Type::KeyDelay},
 		{"key_output", Type::KeyOutput},
@@ -59,14 +59,19 @@ CSL::CSL(const std::string &file_name) {
 	};
 
 	for(std::string line; std::getline(file, line); ) {
-		// Ignore comments.
-		if(line[0] == ';') {
+		// Ignore comments and empty lines.
+		if(line.empty() || line[0] == ';') {
 			continue;
 		}
 
 		std::istringstream stream(line);
 		std::string keyword;
 		stream >> keyword;
+
+		// Second way for a line to be empty: purely whitespace.
+		if(keyword.empty()) {
+			continue;
+		}
 
 		const auto key_pair = keywords.find(keyword);
 		if(key_pair == keywords.end()) {
@@ -76,22 +81,77 @@ CSL::CSL(const std::string &file_name) {
 		Instruction instruction;
 		instruction.type = key_pair->second;
 
+		// TODO: strings are encoded specially in order to capture whitespace.
+		// They're surrounded in single quotes with some special keys escaped.
 		const auto require = [&](auto &&target) {
 			stream >> target;
-			if(!stream.good()) {
+			if(stream.fail()) {
 				throw InvalidArgument;
 			}
 		};
 
 		switch(instruction.type) {
-			// Keywords with a single string mandatory argument.
+			// Keywords with no argument.
+			case Type::TapePlay:
+			case Type::TapeStop:
+			case Type::TapeRewind:
+			case Type::WaitVsyncOnOff:
+			case Type::WaitSSM0000:
+			break;
+
+			// Keywords with a single string mandatory argument
+			// that can be directly captured as a string.
 			case Type::Version: {
 				std::string argument;
 				require(argument);
 				instruction.argument = argument;
 			} break;
 
+			// Keywords with a single string mandatory argument
+			// that is within quotes but otherwise directly usable
+			// as a string.
+			case Type::LoadCSL:
+			case Type::SetScreenshotDir:
+			case Type::SetScreenshotName:
+			case Type::SetSnapshotDir:
+			case Type::SetSnapshotName:
+			case Type::LoadSnapshot:
+			case Type::SetTapeDir:
+			case Type::TapeInsert:
+			case Type::SetDiskDir:
+			case Type::KeyFromFile: {
+				std::string argument;
+
+				char next;
+				stream >> next;
+				if(next != '\'') {
+					throw InvalidArgument;
+				}
+
+				while(true) {
+					next = stream.get();
+
+					// Take a bit of a random guess about what's escaped
+					// in regular string arguments.
+					if(next == '\\' && stream.peek() == '(') {
+						stream.get();
+						if(stream.peek() != '\'') {
+							argument.push_back('\\');
+							argument.push_back('(');
+							continue;
+						}
+					}
+
+					if(next == '\'') {
+						break;
+					}
+					argument.push_back(next);
+				}
+				instruction.argument = argument;
+			} break;
+
 			// Keywords with a single number mandatory argument.
+			case Type::WaitDriveOnOff:
 			case Type::Wait: {
 				uint64_t argument;
 				require(argument);
@@ -99,14 +159,28 @@ CSL::CSL(const std::string &file_name) {
 			} break;
 
 			// Miscellaneous:
+			case Type::Snapshot:
+			case Type::Screenshot: {
+				std::string vsync;
+				stream >> vsync;
+				if(stream.fail()) {
+					instruction.argument = ScreenshotOrSnapshot::Now;
+					break;
+				}
+				if(vsync != "vsync") {
+					throw InvalidArgument;
+				}
+				instruction.argument = ScreenshotOrSnapshot::WaitForVSync;
+			} break;
+
 			case Type::Reset: {
 				std::string type;
 				stream >> type;
-				if(stream.good()) {
+				if(!stream.fail()) {
 					if(type != "soft" && type != "hard") {
 						throw InvalidArgument;
 					}
-					instruction.argument = (type == "soft") ? ResetType::Soft : ResetType::Hard;
+					instruction.argument = (type == "soft") ? Reset::Soft : Reset::Hard;
 				}
 			} break;
 
@@ -124,11 +198,140 @@ CSL::CSL(const std::string &file_name) {
 				instruction.argument = static_cast<uint64_t>(std::stoi(type));
 			} break;
 
-			default:
-				printf("");
-			break;
+			case Type::DiskInsert: {
+				std::string name;
+				require(name);
+
+				DiskInsert argument;
+				if(name.size() == 1) {
+					argument.drive = toupper(name[0]) - 'A';
+					require(name);
+				}
+
+				argument.file = name;
+				instruction.argument = argument;
+			} break;
+
+			case Type::KeyOutput: {
+				std::vector<KeyEvent> argument;
+
+				char next;
+				stream >> next;
+				if(next != '\'') {
+					throw InvalidArgument;
+				}
+
+				const auto press = [&](uint16_t key) {
+					KeyEvent event;
+					event.key = key;
+					event.down = true;
+					argument.push_back(event);
+					event.down = false;
+					argument.push_back(event);
+				};
+				const auto shift = [&](uint16_t key) {
+					KeyEvent event;
+					event.key = AmstradCPC::Key::KeyShift;
+					event.down = true;
+					argument.push_back(event);
+					press(key);
+					event.down = false;
+					argument.push_back(event);
+				};
+
+				bool done = false;
+				while(!done) {
+					next = stream.get();
+
+					switch(next) {
+						default: throw InvalidArgument;
+						case '\'':
+							done = true;
+						break;
+
+						case 'A':	press(AmstradCPC::Key::KeyA);		break;
+						case 'B':	press(AmstradCPC::Key::KeyB);		break;
+						case 'C':	press(AmstradCPC::Key::KeyC);		break;
+						case 'D':	press(AmstradCPC::Key::KeyD);		break;
+						case 'E':	press(AmstradCPC::Key::KeyE);		break;
+						case 'F':	press(AmstradCPC::Key::KeyF);		break;
+						case 'G':	press(AmstradCPC::Key::KeyG);		break;
+						case 'H':	press(AmstradCPC::Key::KeyH);		break;
+						case 'I':	press(AmstradCPC::Key::KeyI);		break;
+						case 'J':	press(AmstradCPC::Key::KeyJ);		break;
+						case 'K':	press(AmstradCPC::Key::KeyK);		break;
+						case 'L':	press(AmstradCPC::Key::KeyL);		break;
+						case 'M':	press(AmstradCPC::Key::KeyM);		break;
+						case 'N':	press(AmstradCPC::Key::KeyN);		break;
+						case 'O':	press(AmstradCPC::Key::KeyO);		break;
+						case 'P':	press(AmstradCPC::Key::KeyP);		break;
+						case 'Q':	press(AmstradCPC::Key::KeyQ);		break;
+						case 'R':	press(AmstradCPC::Key::KeyR);		break;
+						case 'S':	press(AmstradCPC::Key::KeyS);		break;
+						case 'T':	press(AmstradCPC::Key::KeyT);		break;
+						case 'U':	press(AmstradCPC::Key::KeyU);		break;
+						case 'V':	press(AmstradCPC::Key::KeyV);		break;
+						case 'W':	press(AmstradCPC::Key::KeyW);		break;
+						case 'X':	press(AmstradCPC::Key::KeyX);		break;
+						case 'Y':	press(AmstradCPC::Key::KeyY);		break;
+						case 'Z':	press(AmstradCPC::Key::KeyZ);		break;
+						case ' ':	press(AmstradCPC::Key::KeySpace);	break;
+						case '0':	press(AmstradCPC::Key::Key0);		break;
+						case '1':	press(AmstradCPC::Key::Key1);		break;
+						case '2':	press(AmstradCPC::Key::Key2);		break;
+						case '3':	press(AmstradCPC::Key::Key3);		break;
+						case '4':	press(AmstradCPC::Key::Key4);		break;
+						case '5':	press(AmstradCPC::Key::Key5);		break;
+						case '6':	press(AmstradCPC::Key::Key6);		break;
+						case '7':	press(AmstradCPC::Key::Key7);		break;
+						case '8':	press(AmstradCPC::Key::Key8);		break;
+						case '9':	press(AmstradCPC::Key::Key9);		break;
+
+						case '"':	shift(AmstradCPC::Key::Key2);		break;
+
+						case '\\': {
+							if(stream.peek() != '(') {
+								press(AmstradCPC::Key::KeyBackSlash);
+								break;
+							}
+							stream.get();
+
+							std::string name;
+							while(stream.peek() != ')') {
+								name.push_back(char(stream.get()));
+							}
+							stream.get();
+
+							if(name == "ESC") {
+								press(AmstradCPC::Key::KeyEscape);
+							} else if(name == "TAB") {
+								press(AmstradCPC::Key::KeyTab);
+							} else if(name == "RET") {
+								press(AmstradCPC::Key::KeyEnter);
+							}
+
+						} break;
+					}
+				}
+				instruction.argument = argument;
+			} break;
+
+			case Type::KeyDelay: {
+				KeyDelay argument;
+				require(argument.press_delay);
+				require(argument.interpress_delay);
+
+				uint64_t carriage_return_delay;
+				stream >> carriage_return_delay;
+				if(!stream.fail()) {
+					argument.carriage_return_delay = carriage_return_delay;
+				}
+				instruction.argument = argument;
+			} break;
 		}
 
 		instructions.push_back(std::move(instruction));
 	}
+
+	return instructions;
 }
