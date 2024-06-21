@@ -18,6 +18,8 @@
 
 using namespace Storage::Automation;
 
+namespace {
+
 struct CSLTest {
 	CSLTest() {
 		CSL::parse("/Users/thomasharte/Downloads/Shaker_CSL/MODULE A/SHAKE26A-4.CSL");
@@ -25,6 +27,131 @@ struct CSLTest {
 
 };
 CSLTest test;
+
+bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::vector<Storage::Automation::CSL::KeyEvent> &up, std::istringstream &stream) {
+	const auto press = [&](uint16_t key) {
+		CSL::KeyEvent event;
+		event.key = key;
+		event.down = true;
+		down.push_back(event);
+		event.down = false;
+		up.push_back(event);
+	};
+
+	const auto shift = [&](uint16_t key) {
+		CSL::KeyEvent event;
+		event.key = AmstradCPC::Key::KeyShift;
+		event.down = true;
+		down.push_back(event);
+		press(key);
+		event.down = false;
+		up.push_back(event);
+	};
+
+	const auto next = stream.get();
+	if(stream.eof()) return false;
+
+	switch(next) {
+		default: throw CSL::InvalidArgument;
+		case '\'': return false;
+		case '}': return false;
+
+		case 'A':	press(AmstradCPC::Key::KeyA);		break;
+		case 'B':	press(AmstradCPC::Key::KeyB);		break;
+		case 'C':	press(AmstradCPC::Key::KeyC);		break;
+		case 'D':	press(AmstradCPC::Key::KeyD);		break;
+		case 'E':	press(AmstradCPC::Key::KeyE);		break;
+		case 'F':	press(AmstradCPC::Key::KeyF);		break;
+		case 'G':	press(AmstradCPC::Key::KeyG);		break;
+		case 'H':	press(AmstradCPC::Key::KeyH);		break;
+		case 'I':	press(AmstradCPC::Key::KeyI);		break;
+		case 'J':	press(AmstradCPC::Key::KeyJ);		break;
+		case 'K':	press(AmstradCPC::Key::KeyK);		break;
+		case 'L':	press(AmstradCPC::Key::KeyL);		break;
+		case 'M':	press(AmstradCPC::Key::KeyM);		break;
+		case 'N':	press(AmstradCPC::Key::KeyN);		break;
+		case 'O':	press(AmstradCPC::Key::KeyO);		break;
+		case 'P':	press(AmstradCPC::Key::KeyP);		break;
+		case 'Q':	press(AmstradCPC::Key::KeyQ);		break;
+		case 'R':	press(AmstradCPC::Key::KeyR);		break;
+		case 'S':	press(AmstradCPC::Key::KeyS);		break;
+		case 'T':	press(AmstradCPC::Key::KeyT);		break;
+		case 'U':	press(AmstradCPC::Key::KeyU);		break;
+		case 'V':	press(AmstradCPC::Key::KeyV);		break;
+		case 'W':	press(AmstradCPC::Key::KeyW);		break;
+		case 'X':	press(AmstradCPC::Key::KeyX);		break;
+		case 'Y':	press(AmstradCPC::Key::KeyY);		break;
+		case 'Z':	press(AmstradCPC::Key::KeyZ);		break;
+		case ' ':	press(AmstradCPC::Key::KeySpace);	break;
+		case '0':	press(AmstradCPC::Key::Key0);		break;
+		case '1':	press(AmstradCPC::Key::Key1);		break;
+		case '2':	press(AmstradCPC::Key::Key2);		break;
+		case '3':	press(AmstradCPC::Key::Key3);		break;
+		case '4':	press(AmstradCPC::Key::Key4);		break;
+		case '5':	press(AmstradCPC::Key::Key5);		break;
+		case '6':	press(AmstradCPC::Key::Key6);		break;
+		case '7':	press(AmstradCPC::Key::Key7);		break;
+		case '8':	press(AmstradCPC::Key::Key8);		break;
+		case '9':	press(AmstradCPC::Key::Key9);		break;
+
+		case '"':	shift(AmstradCPC::Key::Key2);		break;
+
+		case '\\': {
+			if(stream.peek() != '(') {
+				press(AmstradCPC::Key::KeyBackSlash);
+				break;
+			}
+			stream.get();
+
+			std::string name;
+			while(stream.peek() != ')') {
+				name.push_back(char(stream.get()));
+			}
+			stream.get();
+
+			static const std::unordered_map<std::string, uint16_t> names = {
+				{"ESC", AmstradCPC::Key::KeyEscape},
+				{"TAB", AmstradCPC::Key::KeyTab},
+				{"CAP", AmstradCPC::Key::KeyCapsLock},
+				{"SHI", AmstradCPC::Key::KeyShift},
+				{"CTR", AmstradCPC::Key::KeyControl},
+				{"COP", AmstradCPC::Key::KeyCopy},
+				{"CLR", AmstradCPC::Key::KeyClear},
+				{"DEL", AmstradCPC::Key::KeyDelete},
+				{"RET", AmstradCPC::Key::KeyReturn},
+				{"ENT", AmstradCPC::Key::KeyEnter},
+				{"ARL", AmstradCPC::Key::KeyLeft},
+				{"ARR", AmstradCPC::Key::KeyRight},
+				{"ARU", AmstradCPC::Key::KeyUp},
+				{"ARD", AmstradCPC::Key::KeyDown},
+				{"FN0", AmstradCPC::Key::KeyF0},
+				{"FN1", AmstradCPC::Key::KeyF1},
+				{"FN2", AmstradCPC::Key::KeyF2},
+				{"FN3", AmstradCPC::Key::KeyF3},
+				{"FN4", AmstradCPC::Key::KeyF4},
+				{"FN5", AmstradCPC::Key::KeyF5},
+				{"FN6", AmstradCPC::Key::KeyF6},
+				{"FN7", AmstradCPC::Key::KeyF7},
+				{"FN8", AmstradCPC::Key::KeyF8},
+				{"FN9", AmstradCPC::Key::KeyF9},
+				//TODO: { } \ ' KOF
+			};
+			const auto name_pair = names.find(name);
+			if(name_pair == names.end()) {
+				throw CSL::InvalidArgument;
+			}
+			press(name_pair->second);
+		} break;
+
+		case '{':
+			while(append_typed(down, up, stream));
+		break;
+	}
+
+	return true;
+}
+
+}
 
 std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
 	std::vector<Instruction> instructions;
@@ -129,7 +256,8 @@ std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
 				}
 
 				while(true) {
-					next = stream.get();
+					next = static_cast<char>(stream.get());
+					if(stream.eof()) break;
 
 					// Take a bit of a random guess about what's escaped
 					// in regular string arguments.
@@ -221,97 +349,13 @@ std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
 					throw InvalidArgument;
 				}
 
-				const auto press = [&](uint16_t key) {
-					KeyEvent event;
-					event.key = key;
-					event.down = true;
-					argument.push_back(event);
-					event.down = false;
-					argument.push_back(event);
-				};
-				const auto shift = [&](uint16_t key) {
-					KeyEvent event;
-					event.key = AmstradCPC::Key::KeyShift;
-					event.down = true;
-					argument.push_back(event);
-					press(key);
-					event.down = false;
-					argument.push_back(event);
-				};
-
-				bool done = false;
-				while(!done) {
-					next = stream.get();
-
-					switch(next) {
-						default: throw InvalidArgument;
-						case '\'':
-							done = true;
-						break;
-
-						case 'A':	press(AmstradCPC::Key::KeyA);		break;
-						case 'B':	press(AmstradCPC::Key::KeyB);		break;
-						case 'C':	press(AmstradCPC::Key::KeyC);		break;
-						case 'D':	press(AmstradCPC::Key::KeyD);		break;
-						case 'E':	press(AmstradCPC::Key::KeyE);		break;
-						case 'F':	press(AmstradCPC::Key::KeyF);		break;
-						case 'G':	press(AmstradCPC::Key::KeyG);		break;
-						case 'H':	press(AmstradCPC::Key::KeyH);		break;
-						case 'I':	press(AmstradCPC::Key::KeyI);		break;
-						case 'J':	press(AmstradCPC::Key::KeyJ);		break;
-						case 'K':	press(AmstradCPC::Key::KeyK);		break;
-						case 'L':	press(AmstradCPC::Key::KeyL);		break;
-						case 'M':	press(AmstradCPC::Key::KeyM);		break;
-						case 'N':	press(AmstradCPC::Key::KeyN);		break;
-						case 'O':	press(AmstradCPC::Key::KeyO);		break;
-						case 'P':	press(AmstradCPC::Key::KeyP);		break;
-						case 'Q':	press(AmstradCPC::Key::KeyQ);		break;
-						case 'R':	press(AmstradCPC::Key::KeyR);		break;
-						case 'S':	press(AmstradCPC::Key::KeyS);		break;
-						case 'T':	press(AmstradCPC::Key::KeyT);		break;
-						case 'U':	press(AmstradCPC::Key::KeyU);		break;
-						case 'V':	press(AmstradCPC::Key::KeyV);		break;
-						case 'W':	press(AmstradCPC::Key::KeyW);		break;
-						case 'X':	press(AmstradCPC::Key::KeyX);		break;
-						case 'Y':	press(AmstradCPC::Key::KeyY);		break;
-						case 'Z':	press(AmstradCPC::Key::KeyZ);		break;
-						case ' ':	press(AmstradCPC::Key::KeySpace);	break;
-						case '0':	press(AmstradCPC::Key::Key0);		break;
-						case '1':	press(AmstradCPC::Key::Key1);		break;
-						case '2':	press(AmstradCPC::Key::Key2);		break;
-						case '3':	press(AmstradCPC::Key::Key3);		break;
-						case '4':	press(AmstradCPC::Key::Key4);		break;
-						case '5':	press(AmstradCPC::Key::Key5);		break;
-						case '6':	press(AmstradCPC::Key::Key6);		break;
-						case '7':	press(AmstradCPC::Key::Key7);		break;
-						case '8':	press(AmstradCPC::Key::Key8);		break;
-						case '9':	press(AmstradCPC::Key::Key9);		break;
-
-						case '"':	shift(AmstradCPC::Key::Key2);		break;
-
-						case '\\': {
-							if(stream.peek() != '(') {
-								press(AmstradCPC::Key::KeyBackSlash);
-								break;
-							}
-							stream.get();
-
-							std::string name;
-							while(stream.peek() != ')') {
-								name.push_back(char(stream.get()));
-							}
-							stream.get();
-
-							if(name == "ESC") {
-								press(AmstradCPC::Key::KeyEscape);
-							} else if(name == "TAB") {
-								press(AmstradCPC::Key::KeyTab);
-							} else if(name == "RET") {
-								press(AmstradCPC::Key::KeyEnter);
-							}
-
-						} break;
-					}
+				std::vector<KeyEvent> down;
+				std::vector<KeyEvent> up;
+				while(append_typed(down, up, stream)) {
+					std::copy(down.begin(), down.end(), std::back_inserter(argument));
+					std::copy(up.begin(), up.end(), std::back_inserter(argument));
+					down.clear();
+					up.clear();
 				}
 				instruction.argument = argument;
 			} break;
