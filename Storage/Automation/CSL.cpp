@@ -20,14 +20,6 @@ using namespace Storage::Automation;
 
 namespace {
 
-struct CSLTest {
-	CSLTest() {
-		CSL::parse("/Users/thomasharte/Downloads/Shaker_CSL/MODULE A/SHAKE26A-4.CSL");
-	}
-
-};
-CSLTest test;
-
 bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::vector<Storage::Automation::CSL::KeyEvent> &up, std::istringstream &stream) {
 	const auto press = [&](uint16_t key) {
 		CSL::KeyEvent event;
