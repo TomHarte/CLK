@@ -1,0 +1,238 @@
+;
+; Fichier de script CSL 
+; Execution du module SHAKE26D du DSK SHAKER26.DSK en CRTC 1
+; Le module genere des instructions au format SSM
+;
+csl_version 1.0
+crtc_select 1
+reset
+wait 3000000
+disk_insert 'shaker26.dsk'
+key_delay 70000 70000 400000
+key_output 'RUN"SHAKE26D"\(RET)'
+wait 10000000
+;
+; SHAKER KILLER 2 
+key_output 'I'
+wait 2000000		; 2e3 ecran bleu
+key_output ' ' 
+wait 2000000		; 2e4
+key_output ' ' 
+wait 2000000		; 2e5
+key_output ' ' 
+wait 2000000		; 2e6
+key_output ' ' 
+wait 2000000		; 2e7
+key_output ' ' 
+wait 2000000		; 2e8
+key_output ' '
+wait 2000000		; 2e9
+key_output ' '
+wait 1000000 ; menu
+
+; VSYNC TORTURE (LOCK MECHANISM)
+; Eventuellement ajouter des SS sur les 3 tests desync crtc 0
+key_output 'R'
+wait 22000000		; 2ea
+key_output ' '
+wait 1000000 ; menu
+
+; VSYNC/CSYNC GATE ARRAY
+key_output 'T'
+wait 800000		; 2eb
+key_output ' '
+wait 2000000	; 2ec
+key_output ' '
+wait 2000000	; 2ed
+key_output ' '
+wait 2000000	; 2ee
+key_output ' '
+wait 2000000	; 2ef
+key_output ' '
+wait 2000000	; 2ef
+key_output ' '
+wait 2000000	; 2f0
+key_output ' '
+wait 2000000	; 2f1
+key_output ' '
+wait 2000000	; 2f2
+key_output ' '
+wait 2000000	; 2f3
+key_output ' '
+wait 2000000	; 2f4
+key_output ' '
+wait 2000000	; 2f5
+key_output ' '
+wait 2000000	; 2fb
+key_output ' '
+wait 8000000	; 2fc 2fd
+key_output ' '
+wait 4000000	; 2fe
+key_output ' '
+wait 4000000	; 2ff
+key_output ' '
+wait 4000000	; 300
+key_output ' '
+wait 4000000	; 301
+key_output ' '
+wait 1000000
+key_delay 90000
+key_output '                                                '
+key_output '                                                '
+wait 1000000 ; menu
+
+; HSYNC CSYNC GATE ARRAY
+key_output 'H'
+wait 1000000		; 306
+key_output ' '
+wait 1200000		; 307
+key_output ' '
+wait 1200000		; 308
+key_output ' '
+wait 1200000		; 309
+key_output ' '
+wait 1200000		; 30A
+key_output ' '
+wait 1200000		; 30B
+key_output ' '
+wait 1200000		; 30C
+key_output ' '
+wait 1200000		; 30D
+key_output ' '
+wait 1200000		; 30E
+key_output ' '
+wait 1200000		; 30F
+key_output ' '
+wait 1000000 ; menu
+
+; CSYNC4 VS 2XCSYNC2
+;
+key_output '1'
+wait 4600000 ; 310
+wait 4000000 ; 311
+wait 8000000
+key_output ' '
+wait 1000000 ; menu
+
+; R2JIT >> NO CSYNC UPD
+;
+key_output '2'
+wait 4500000		; 312
+wait 4000000		; 313
+wait 4000000
+key_output ' '
+wait 10000000
+key_output ' '
+wait 1000000
+
+; 2 CSYNC RELATIVE; 
+key_output '3'
+wait 1000000  
+key_output '                                                  '	
+wait 1000000
+key_output '                                                  '	
+wait 1000000
+key_output '                                                  '	
+wait 1000000
+key_output '                                                  '	
+wait 1000000
+key_output '                                                  '	
+wait 1000000
+
+; CSYNC MULTIPLES
+key_output '4'
+wait 1000000		; 37f
+key_output ' '
+wait 3000000	; 380
+key_output ' '
+wait 1000000
+
+; Hardware scroll 1 pixel mode 1/0 (no buffering)
+key_output '6'
+wait 10000000	; 381
+key_output ' '
+wait 10000000	; 382
+key_output ' '
+wait 1000000
+
+;
+; R2 oscillation story;
+key_output '7'
+wait 10000000	; 383
+key_output ' '
+wait 4000000	; 384
+key_output ' '
+wait 4000000	; 385
+key_output ' '
+wait 4000000	; 386
+key_output ' '
+wait 4000000	; 387
+key_output ' '
+wait 4000000	; 388
+key_output ' '
+wait 4000000	; 389
+key_output ' '
+wait 4000000	; 38a
+key_output ' '
+wait 4000000	; 38b
+key_output ' '
+wait 4000000	; 38c
+key_output ' '
+wait 1000000		; menu
+;
+; no hsync for xx line
+key_output '8'
+wait 3000000		; 38d
+key_output ' '
+wait 3000000		; 38e
+key_output ' '
+wait 3000000		; 38f
+key_output ' '
+wait 3000000		; 390
+key_output ' '
+wait 3000000		; 391
+key_output ' '
+wait 3000000		; 392
+key_output ' '
+
+; rfd round 2
+;
+key_output '9'
+wait 2000000	; 393, 3f7
+key_output ' '
+wait 2000000	; 394, 3f8
+key_output ' '
+wait 2000000	; 395, 3f9
+key_output ' '
+wait 2000000	; 396
+key_output ' '
+wait 2000000	; 397
+key_output ' '
+wait 2000000	; 398
+key_output ' '
+wait 2000000	; 399
+key_output ' '
+wait 2000000	; 39a
+key_output ' '
+wait 2000000	; 39b
+key_output ' '
+wait 1000000  ; menu
+
+; ofs upd in add managment
+;
+key_output 'E'
+wait 1000000	; 3ae
+key_output ' '
+wait 1000000	; 3af
+key_output ' '
+wait 1000000	; 3b4
+key_output ' '
+wait 1000000	; 3b5
+key_output ' '
+wait 1000000	; 3b6
+key_output ' '
+wait 1000000	; 3b7
+key_output ' '
+wait 1000000  ; menu
+
+csl_load 'SHAKE26D-2'

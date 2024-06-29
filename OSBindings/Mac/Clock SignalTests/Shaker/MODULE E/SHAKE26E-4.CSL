@@ -1,0 +1,28 @@
+;
+; Fichier de script CSL 
+; Execution du module SHAKE26E du DSK SHAKER26.DSK en CRTC 4
+; Le module genere des instructions au format SSM
+;
+csl_version 1.0
+crtc_select 4
+reset
+wait 3000000
+disk_insert 'shaker26.dsk'
+key_delay 70000 70000 400000
+key_output 'RUN"SHAKE26E"\(RET)'
+wait 10000000
+;
+; R5 STORIES 2ND ROUND 
+key_output '1'
+wait 2000000		; 3fa
+key_output ' ' 
+wait 2000000		; 3fb
+key_output ' ' 
+wait 2000000		; 3fc
+key_output ' ' 
+wait 2000000		; 3fd
+key_output ' ' 
+;
+;
+;
+csl_load 'SHAKE26E-3'

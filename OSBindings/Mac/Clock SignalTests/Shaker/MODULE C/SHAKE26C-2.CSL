@@ -1,0 +1,154 @@
+;
+; Fichier de script CSL 
+; Execution du module SHAKE26C du DSK SHAKER26.DSK en CRTC 2
+; Le module genere des instructions au format SSM
+;
+csl_version 1.0
+crtc_select 2
+reset
+wait 3000000
+disk_insert 'shaker26.dsk'
+key_delay 70000 70000 400000
+key_output 'RUN"SHAKE26C"\(RET)'
+wait 10000000
+;
+; test 5 Parity Check Select CRTC 0, 2
+key_output '5'
+wait 10000000		
+key_output ' '
+wait 1000000 ; menu  
+
+; C9 IVM Switch
+key_output '6'
+wait 1200000		; 29f
+key_output ' '
+wait 1200000		; 2a4
+key_output ' '
+wait 1200000		; 2a5
+key_output ' '
+wait 1200000		; 2a6
+key_output ' '
+wait 1200000		; 2a7
+key_output ' '
+wait 1200000		; 2ac
+key_output ' '
+wait 1200000		; 2ad
+key_output ' '
+wait 1200000		; 2ae
+key_output ' '
+wait 1200000		; 2af
+key_output ' '
+wait 1200000		; 2b4
+key_output ' '
+wait 1200000		; 2b5
+key_output ' '
+wait 1200000		; 2b6
+key_output ' '
+wait 1200000		; 2b7
+key_output ' '
+wait 1200000		; 2bc
+key_output ' '
+wait 1200000		; 2bd
+key_output ' '
+wait 1200000		; 2be
+key_output ' ' 
+wait 1000000 ; menu 
+
+
+; test prevu pour CRTC 2 mais disp autre crc  Last Line cond
+key_output '7'
+wait 64000000
+key_output ' ' 
+wait 1000000 ; menu 
+;
+; add line on parity bug
+key_output '8'
+wait 2000000		; 2c0
+key_output ' '
+wait 2000000		; 2c1
+key_output ' '
+wait 2000000		; 2c2
+key_output ' '
+wait 2000000		; 2c3
+key_output ' '
+wait 2000000		; 2c4
+key_output ' '
+wait 2000000		; 2c5
+key_output ' '
+wait 2000000		; 2c6
+key_output ' '
+wait 1000000 ; menu 
+
+; add line rq & trigger
+key_output '9'
+wait 2000000		; 2c7
+key_output ' '
+wait 300000000
+key_output ' '
+
+; test crtc 2 vma' sur R1=0
+key_output 'T'
+wait 1100000
+key_output ' ' 
+wait 1200000
+key_output ' ' 
+wait 1200000
+key_output ' ' 
+wait 1200000
+key_output ' ' 
+wait 1000000 ; menu
+
+; crtc 2 ghost vsync vs Last Line (others crtc welcome)
+key_output '\(RET)'
+wait 5000000
+key_output ' '
+wait 2000000
+key_output ' '
+wait 1000000 ; menu
+
+; Add Line R5 on last line
+key_output 'E'
+wait 20000000
+key_output ' '
+wait 10000000
+key_output ' '
+wait 1000000 ; menu
+
+; Add line R8
+key_output 'P'
+wait 20000000
+key_output ' '
+wait 1000000 ; menu
+
+; r5 additional line in interlace mode
+key_output 'S'
+wait 2000000
+key_output ' '
+wait 1000000 ; menu
+
+; CRTC 2 Interlace vsync nightmare (2 1er test uniqu CRTC1)
+key_output 'O'
+wait 6000000	; cvstot
+key_output ' '
+wait 2000000	; parity00 2d8
+wait 8000000	; 2d9
+key_output ' '
+wait 10000000	; cvms_a	; 2da
+key_output ' '
+wait 10000000	; cvms_b  ; 2db
+key_output ' '
+wait 10000000	; cvms_b  ; 2dc
+key_output ' '
+wait 10000000	; cvms_c  ; 2dd
+key_output ' '
+wait 10000000	; cvms_c  ; 2de
+key_output ' '
+wait 10000000	; menu
+
+; R9/R4 UPD LAST LIMIT
+key_output 'R'
+wait 5000000		; 3ad
+key_output ' '
+wait 10000000	; menu
+
+cls_load 'SHAKE26C-4'
