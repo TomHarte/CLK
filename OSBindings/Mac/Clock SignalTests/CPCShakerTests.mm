@@ -13,6 +13,9 @@
 
 #include "CSL.hpp"
 
+//
+// Runs a local capture of the test cases found at https://shaker.logonsystem.eu
+//
 @interface CPCShakerTests : XCTestCase
 @end
 
