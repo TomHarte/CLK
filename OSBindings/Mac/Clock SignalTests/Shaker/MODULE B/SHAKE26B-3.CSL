@@ -1,0 +1,242 @@
+;
+; Fichier de script CSL 
+; Execution du module SHAKE26B du DSK SHAKER26.DSK en CRTC 3
+; Le module genere des instructions au format SSM
+;
+csl_version 1.0
+crtc_select 3
+reset
+wait 3000000
+disk_insert 'shaker26.dsk'
+key_delay 70000 70000 400000
+key_output 'RUN"SHAKE26B"\(RET)'
+wait 10000000
+;
+; test 1 interlace c4/c9 counters R9 base=07 
+key_output '1'
+wait 5000000		; Ecran settings, ecran intermediaire
+wait 7000000		; 1er ecran
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000		; menu
+;
+key_output 'Z'	; Passe sur R9 BASE=6
+wait 300000
+;
+key_output '1'
+wait 5000000		; Ecran settings, ecran intermediaire
+wait 7000000		; 1er ecran
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000	; 5251584
+key_output ' ' 
+wait 7000000		; menu
+;
+; test 9 (garder la foi tu dois, mecreant)
+key_output '9'	
+wait 20000000		; 
+key_output ' ' 
+wait 20000000
+key_output ' '
+wait 1000000
+;
+key_output 'Y'		; Repasser en Even
+wait 100000
+key_output '9'		; En even
+wait 20000000		; 
+key_output ' ' 
+wait 20000000
+key_output ' '
+wait 1000000
+;
+key_output '0' ; vertical sub pixel scroll
+wait 1000000	; 816677 1/8
+key_output ' '
+wait 1000000	; 890842 1/16
+key_output ' '
+wait 1000000	; 830950 1/32
+key_output ' '
+wait 1000000	; 870899 1/64
+key_output ' '
+wait 1000000	; 830965 1/128
+key_output ' '
+wait 1000000 ; menu
+;
+key_output '4' ; 
+wait 2000000	; 1913669
+wait 900000		; 730624
+key_output ' '
+wait 900000		; 730624
+key_output ' '
+wait 900000		; 730624
+key_output ' '
+wait 900000		; 730624
+key_output ' '
+wait 900000		; 730624
+key_output ' '
+wait 900000		; 730624
+key_output ' '
+wait 900000		; 730624
+key_output ' '
+wait 1000000	; 
+key_output ' '
+wait 1000000	; menu
+;
+key_output '5' ; rlal crtc 2 (tous crtc)
+wait 900000
+key_output ' '
+wait 2000000
+key_output ' '	; Menu
+wait 1000000
+;
+;
+key_output '\(RET)'
+wait 800000		; 632429
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+key_output ' '
+wait 800000		; 647344
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+key_output ' '
+wait 800000		; 667312
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+wait 6000000	; 5111808
+key_output ' '
+wait 1000000
+;
+;Test Bounga 
+key_output '\(FN0)'
+wait 30000000		; ???	
+key_output ' '
+wait 1000000
+;
+; Test RVNI LTD
+;
+key_output '\(CAP)'
+wait 6000000	; 753563	
+key_output ' '
+wait 6000000	; 727728
+key_output ' '
+wait 6000000	; 728880
+key_output ' '
+wait 6000000
+;	
+; Shaker Killer Don't be afraid
+;
+key_output 'R'	
+wait 5000000	; 2615301 z80aintb
+key_output ' '
+wait 6000000	; 4692484 r52Reset
+key_output ' '
+wait 9000000	; 7867387 Inter Test IM1
+key_output ' '
+wait 9000000	; 6888966 Inter Test IM2
+key_output ' '
+wait 3000000	; 1711766 R52 Incr
+key_output ' '
+wait 900000	; 486262 Otir Zone
+key_output ' '
+wait 1000000 ; menu 
+;
+; R3 JIT
+key_output 'I'	
+wait 1000000	; 474622
+key_output ' '	
+wait 1000000	; 519168
+key_output ' '	
+wait 1000000	; 519168
+key_output ' '	
+wait 1000000	; 499200
+key_output ' '	
+wait 1000000	; 619008
+key_output ' '	
+wait 1000000	; 619008
+key_output ' '	
+wait 1000000	; 619008
+key_output ' '	
+wait 1000000	; 599040
+key_output ' '	
+wait 1000000	; Menu
+;
+;
+; test crtc 1 , ouvert aux autres CRTCs
+;
+key_output '6'
+wait 2000000	; 1676617
+key_output ' '	
+wait 1000000
+
+;
+; Test Analyzer des premieres heures
+;
+key_output 'P'
+wait 100000000	; 12828735+638976
+key_output ' '
+wait 100000000	; 5440000+638976
+key_output ' '
+wait 100000000	; 11637760+638976
+key_output ' '
+wait 100000000	; 13560624+638976
+key_output ' '
+wait 1000000
+;
+reset
+;

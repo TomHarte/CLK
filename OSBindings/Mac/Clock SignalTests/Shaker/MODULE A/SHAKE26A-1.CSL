@@ -1,0 +1,297 @@
+;
+; Fichier de script CSL 
+; Execution du module SHAKE26A du DSK SHAKER26.DSK en CRTC 1
+; Le module genere des instructions au format SSM
+;
+csl_version 1.0
+crtc_select 1
+reset
+wait 3000000 
+disk_insert 'shaker26.dsk'
+key_delay 70000 70000 400000
+key_output 'RUN"SHAKE26A"\(RET)'
+wait 10000000
+;
+; test 1
+key_output '1'		
+wait 800000			; fin affichage 1er ecran & ssm 595215
+key_output ' ' 
+wait 800000			; fin affichage 2nd ecran & ssm 659451
+key_output ' '
+wait 800000			; fin affichage 3eme ecran & ssm 627963
+key_output ' '
+wait 800000			; fin affichage 4eme ecran & ssm 698883
+key_output ' '
+wait 800000			; fin affichage 5eme ecran & ssm 551415
+key_output ' '
+wait 1000000		; retour menu
+; 
+; test 2
+key_output '2'	
+wait 800000			; 519961 crt 0 1 ecran 
+wait 800000 		; 2 ecrans 
+key_output ' '  
+wait 800000			;
+key_output ' '  
+wait 800000			; 723923
+key_output ' '
+wait 800000			; 599040
+key_output ' '
+wait 1000000		; retour menu
+;
+; test 3
+key_output '3'
+wait 800000		; 596058
+wait 1500000	; 1337856
+key_output ' ' 
+wait 800000		; 730624
+wait 1500000	; 1337856
+key_output ' ' 
+wait 800000		; 750685
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 750592
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 750592
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 750592
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 710656
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 726016
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 726952
+wait 800000	  ; 698880
+key_output ' ' 
+wait 1000000	; 845824
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 666112
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 666112
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 706048
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 610816
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 610816
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 610816
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 730624
+wait 800000	  ; 698880
+key_output ' ' 
+wait 900000		; 745984
+wait 800000	  ; 698880
+key_output ' ' 
+wait 900000		; 805888
+wait 800000	  ; 698880
+key_output ' ' 
+wait 1000000	; 865792
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 686080
+wait 800000	  ; 698880
+key_output ' ' 
+wait 800000		; 686080
+wait 800000	  ; 698880
+key_output ' ' 
+wait 10000000
+;
+key_output '4' 
+wait 8000000	; 6743019
+key_output ' ' 
+wait 1000000
+;
+key_output '5'
+wait 800000		; 434016
+key_output ' ' 
+wait 800000		; 547328
+key_output ' ' 
+wait 800000		; 567296
+key_output ' ' 
+wait 800000		; 587264
+key_output ' ' 
+wait 800000		; 607232
+key_output ' ' 
+wait 1000000
+;
+key_output '6'
+wait 800000	; 473960
+key_output ' ' 
+wait 800000	; 607232
+key_output ' ' 
+wait 800000	; 627200
+key_output ' ' 
+wait 800000	; 647168
+key_output ' ' 
+wait 800000	; 667136
+key_output ' ' 
+wait 1000000
+;
+key_output '7'
+wait 800000		; 473957
+key_output ' ' 
+wait 800000		; 667072
+key_output ' ' 
+wait 800000		; 527296
+key_output ' ' 
+wait 800000		; 547264
+key_output ' ' 
+wait 800000		; 567232
+key_output ' ' 
+wait 1000000
+;
+key_output '8'
+wait 800000		; 431083
+key_output ' ' 
+wait 1000000
+;
+key_output '9'
+wait 800000		; 474048
+key_output ' ' 
+wait 800000		; 559104
+key_output ' ' 
+wait 800000		; 598363
+key_output ' ' 
+wait 1000000
+;
+key_output 'E'
+wait 800000		; 514468
+key_output ' ' 
+wait 1000000
+;
+key_output 'R'
+wait 800000		; 592695
+wait 1200000	; 998400
+key_output ' ' 
+wait 800000		; 599040
+wait 1200000  ; 998400
+key_output ' ' 
+wait 800000		; 658944
+wait 1200000  ; 998400
+key_output ' ' 
+wait 1000000
+;
+key_output 'T'
+wait 800000		; 531832
+key_output ' ' 
+wait 800000		; 579072
+key_output ' ' 
+wait 800000		; 579072
+key_output ' ' 
+wait 800000		; 579072
+key_output ' ' 
+wait 800000		; 579072
+key_output ' ' 
+wait 800000		; 638976
+key_output ' ' 
+wait 1000000
+;
+key_output 'Y'
+wait 800000		; 511931
+key_output ' ' 
+wait 800000		; 619008
+key_output ' ' 
+wait 800000		; 619008
+key_output ' ' 
+wait 800000		; 619008
+key_output ' ' 
+wait 800000		; 619008
+key_output ' ' 
+wait 800000		; 619008
+key_output ' ' 
+wait 800000		; 619008
+key_output ' ' 
+wait 800000	; ???
+key_output ' ' 
+wait 1000000
+;
+key_output 'U'
+wait 14000000	; 11803953+1007210
+key_output ' '
+wait 1000000
+;
+key_output 'I'
+wait 2200000	; 2013010
+key_output ' '
+wait 2200000	; 2315008
+key_output ' '
+wait 5000000	; 4233216
+key_output ' '
+wait 35000000	; 31301630
+key_output ' '
+wait 2000000	; 1557507
+key_output ' '
+wait 1000000
+;
+key_output 'O'
+wait 800000		; 576098
+key_output ' '
+wait 800000		; 698880
+key_output ' '
+wait 800000		; 698880
+key_output ' '
+wait 800000		; 599040
+key_output ' '
+wait 800000		; 497671
+key_output ' '
+wait 800000		; 469504
+key_output ' '
+wait 800000		; 522696
+key_output ' '
+wait 800000		; 547978
+key_output ' '
+wait 800000		; 579072
+; crtc 1
+;key_output ' '
+;wait 800000		; 482251
+;key_output ' '
+;wait 800000		; 599552
+;key_output ' '
+;wait 800000		; 599552
+;key_output ' '
+;wait 800000		; 599552
+;key_output ' '
+;wait 800000		; 519680
+key_output ' '
+wait 1000000
+;
+key_output 'P'
+wait 450000		; 427222
+wait 5200000	; 5111808
+key_output ' '
+wait 800000		; 529408
+key_output ' '
+wait 800000		; 489472
+key_output ' '
+wait 800000		; 449536
+key_output ' '
+wait 800000		; 509440
+key_output ' '
+wait 800000		; 587307
+key_output ' '
+wait 800000		; 479104
+key_output ' '
+wait 800000		; 479360
+key_output ' '
+wait 800000		; 490944
+key_output ' '
+wait 800000		; 638464
+key_output ' '
+wait 800000		; 619008
+key_output ' '
+wait 1000000
+
+csl_load 'SHAKE26A-2'
