@@ -946,14 +946,29 @@ class ConcreteMachine:
 
 					if constexpr (catches_ssm) {
 						ssm_code_ = (ssm_code_ << 8) | read_pointers_[address >> 14][address & 16383];
-						if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
-							if(ssm_delegate_) {
-								ssm_delegate_->perform(
-									uint16_t(
-										(ssm_code_ & 0xff) | ((ssm_code_ >> 8) & 0xff00)
-									));
+						if(ssm_delegate_) {
+							if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
+								const auto code = uint16_t(
+									(ssm_code_ & 0xff) | ((ssm_code_ >> 8) & 0xff00)
+								);
+								ssm_code_ = 0;
+
+								if(
+									(code <= 0x3f3f) ||
+									(code >= 0x7f7f && code <= 0x9f9f) ||
+									(code >= 0xa4a4 && code <= 0xa7a7) ||
+									(code >= 0xacac && code <= 0xafaf) ||
+									(code >= 0xb4b4 && code <= 0xb7b7) ||
+									(code >= 0xbcbc && code <= 0xbfbf) ||
+									(code >= 0xc0c0 && code <= 0xfdfd)
+								) {
+									ssm_delegate_->perform(code);
+								}
 							}
-							ssm_code_ = 0;
+						} else if((ssm_code_ & 0xffff) == 0xedfe) {
+							ssm_delegate_->perform(0xfffe);
+						} else if((ssm_code_ & 0xffff) == 0xedff) {
+							ssm_delegate_->perform(0xffff);
 						}
 					}
 				[[fallthrough]];

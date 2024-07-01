@@ -21,8 +21,10 @@
 #include "KeyboardMachine.hpp"
 #include "MachineForTarget.hpp"
 
-struct CSLPerformer {
-
+struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
+	void perform(uint16_t code) {
+		NSLog(@"SSM %04x", code);
+	}
 };
 
 //
@@ -31,23 +33,27 @@ struct CSLPerformer {
 @interface CPCShakerTests : XCTestCase
 @end
 
-@implementation CPCShakerTests {
-}
+@implementation CPCShakerTests {}
 
 - (void)testCSLPath:(NSString *)path name:(NSString *)name {
 	using namespace Storage::Automation;
 	const auto steps = CSL::parse([[path stringByAppendingPathComponent:name] UTF8String]);
+
+	SSMDelegate ssm_delegate;
 
 	std::unique_ptr<Machine::DynamicMachine> lazy_machine;
 	CSL::KeyDelay key_delay;
 	using Target = Analyser::Static::AmstradCPC::Target;
 	Target target;
 	target.catch_ssm_codes = true;
+	target.model = Target::Model::CPC6128;
 
 	const auto machine = [&]() -> Machine::DynamicMachine& {
 		if(!lazy_machine) {
 			Machine::Error error;
 			lazy_machine = Machine::MachineForTarget(&target, CSROMFetcher(), error);
+			reinterpret_cast<AmstradCPC::Machine *>(lazy_machine->raw_pointer())
+				->set_ssm_delegate(&ssm_delegate);
 		}
 		return *lazy_machine;
 	};
@@ -56,7 +62,6 @@ struct CSLPerformer {
 	};
 
 	using Type = CSL::Instruction::Type;
-	int c = 0;
 	for(const auto &step: steps) {
 		switch(step.type) {
 			case Type::Version:
