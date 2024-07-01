@@ -322,6 +322,10 @@ std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
 				std::string name;
 				require(name);
 
+				// Crop the assumed opening and closing quotes.
+				name.erase(name.end() - 1);
+				name.erase(name.begin());
+
 				DiskInsert argument;
 				if(name.size() == 1) {
 					argument.drive = toupper(name[0]) - 'A';

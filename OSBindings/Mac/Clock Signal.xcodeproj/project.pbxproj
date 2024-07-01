@@ -542,6 +542,8 @@
 		4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F91DCFF807003085B1 /* Oric.cpp */; };
 		4B882F592C2F9C6A00D84031 /* CPCShakerTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B882F582C2F9C6900D84031 /* CPCShakerTests.mm */; };
 		4B882F5B2C2F9C7700D84031 /* Shaker in Resources */ = {isa = PBXBuildFile; fileRef = 4B882F5A2C2F9C7700D84031 /* Shaker */; };
+		4B882F5C2C32199400D84031 /* MachineForTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */; };
+		4B882F5D2C3219A400D84031 /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
 		4B89449520194CB3007DE474 /* MachineForTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */; };
 		4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944E6201967B4007DE474 /* ConfidenceCounter.cpp */; };
 		4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944E6201967B4007DE474 /* ConfidenceCounter.cpp */; };
@@ -6439,6 +6441,7 @@
 				4B75F979280D7C5100121055 /* 68000DecoderTests.mm in Sources */,
 				4B778F2C23A5EF0F0000D260 /* ZX8081.cpp in Sources */,
 				4B778F3023A5F0C50000D260 /* Macintosh.cpp in Sources */,
+				4B882F5C2C32199400D84031 /* MachineForTarget.cpp in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */,
 				4B778F4623A5F1D80000D260 /* StaticAnalyser.cpp in Sources */,
 				4B778F1323A5EC890000D260 /* Z80Base.cpp in Sources */,
@@ -6562,6 +6565,7 @@
 				4BDA7F8329C4EA28007A10A5 /* 6809OperationMapperTests.mm in Sources */,
 				4B778F5723A5F2BB0000D260 /* ZX8081.cpp in Sources */,
 				4B778F2F23A5F0B10000D260 /* ScanTarget.cpp in Sources */,
+				4B882F5D2C3219A400D84031 /* AmstradCPC.cpp in Sources */,
 				4B69DEB72AB79E4F0055B217 /* Instruction.cpp in Sources */,
 				4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */,
 				4B4F478A25367EDC004245B8 /* 65816AddressingTests.swift in Sources */,
