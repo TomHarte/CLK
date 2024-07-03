@@ -949,7 +949,7 @@ class ConcreteMachine:
 						if(ssm_delegate_) {
 							if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
 								const auto code = uint16_t(
-									(ssm_code_ & 0xff) | ((ssm_code_ >> 8) & 0xff00)
+									((ssm_code_ << 8) & 0xff00) | ((ssm_code_ >> 16) & 0x00ff)
 								);
 								ssm_code_ = 0;
 
