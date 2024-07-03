@@ -725,7 +725,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 						} else {
 							scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoNotBBRBBS)];
 						}
-					} break;
+					} continue;
 
 // MARK: - Transfers
 
