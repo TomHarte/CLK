@@ -269,18 +269,35 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 
 		/* 0x105: Do BBR or BBS. */
 		Program(
-			CycleFetchOperand,				// Fetch offset.
+			CycleFetchOperand,					// Fetch offset, and increment PC.
 			OperationIncrementPC,
-			CycleFetchFromHalfUpdatedPC,
-			OperationAddSignedOperandToPC16
+
+			OperationAddSignedOperandToPC16,	// Calculate target PC, leaving old PC in next_address_
+												// and possibly skipping the next instruction.
+
+			CycleFetchFromNextAddress,
+			CycleFetchFromNextAddress
 		),
+		// Six or seven cycles total are:
+		//	(1) operation;
+		//	(2) zero page address as operand;
+		//	(3) zero page address;
+		//	(4) duplicate of (3);
+		//	(5) further operand;
+		//	(6) read from next PC;
+		//	(7) repeat read from next PC if 16-bit arithmetic was required.
 
 		/* 0x106: Complete BBR or BBS without branching. */
 		Program(
-			CycleFetchOperand,
-			OperationIncrementPC,
-			CycleFetchFromHalfUpdatedPC
+			CycleFetchOperand,				// Fetch offset.
+			OperationIncrementPC
 		)
+		// Five cycles total are:
+		//	(1) operation;
+		//	(2) zero page address as operand;
+		//	(3) zero page address;
+		//	(4) duplicate of (3);
+		//	(5) further operand, which goes unused.
 	};
 
 	static_assert(sizeof(operations_6502) == sizeof(operations_));
@@ -408,15 +425,25 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		// 0xc7, 0xcb, 0xcf, 0xd7, 0xdb, 0xdf,
 		// 0xe7, 0xef, 0xf7, 0xff
 		if(has_bbrbbsrmbsmb(personality)) {
-			// Add BBS and BBR. These take five cycles. My guessed breakdown is:
+			// Add BBS and BBR. These take five, six or seven cycles. First five:
 			// 1. read opcode
-			// 2. read operand
+			// 2. read first operand (i.e. zero-page address)
 			// 3. read zero page
-			// 4. read second operand
-			// 5. read from PC without top byte fixed yet
-			// ... with the caveat that (3) and (4) could be the other way around.
+			// 4. reread zero page	(presumably as a stall, to make a decision on the above)
+			// 5. read second operand (i.e. branch offset)
+			//
+			// ... and then, if the branch is taken:
+			//
+			// 6. read from where next instruction would have been
+			// 7. reread, if a further stall is necessary to cover up for a 16-bit address change.
 			for(int location = 0x0f; location <= 0xff; location += 0x10) {
-				Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
+				Install(location, Program(
+					OperationLoadAddressZeroPage,
+					CycleFetchOperandFromAddress,	// (cycle 3)
+					CycleFetchOperandFromAddress,	// (cycle 4)
+					OperationBBRBBS	// Branches to either OperationsSlot::DoBBRBBS, or to
+									// OperationSlot::DoNotBBRBBS, depending on data read.
+				));
 			}
 
 			// Add RMB and SMB.
