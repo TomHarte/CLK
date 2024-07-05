@@ -708,12 +708,23 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 					continue;
 
 					case CycleFetchFromHalfUpdatedPC: {
-						uint16_t halfUpdatedPc = uint16_t(((pc_.halves.low + int8_t(operand_)) & 0xff) | (pc_.halves.high << 8));
-						throwaway_read(halfUpdatedPc);
+						uint16_t half_updated_pc = uint16_t(((pc_.halves.low + int8_t(operand_)) & 0xff) | (pc_.halves.high << 8));
+						throwaway_read(half_updated_pc);
 					} break;
 
+					case CycleFetchFromNextAddress:
+						throwaway_read(next_address_.full);
+					break;
+
 					case OperationAddSignedOperandToPC16:
+						next_address_ = pc_.full;
 						pc_.full = uint16_t(pc_.full + int8_t(operand_));
+
+						// Skip a step if 8-bit arithmetic would have been sufficient;
+						// in practise this operation is used only by BBS/BBR.
+						if(pc_.halves.high == next_address_.halves.high) {
+							++scheduled_program_counter_;
+						}
 					continue;
 
 					case OperationBBRBBS: {

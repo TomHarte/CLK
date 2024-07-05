@@ -186,7 +186,9 @@ class ProcessorStorage {
 
 			CycleFetchFromHalfUpdatedPC,		// performs a throwaway read from (PC + (signed)operand).l combined with PC.h
 			CycleAddSignedOperandToPC,			// sets next_address to PC + (signed)operand. If the high byte of next_address differs from the PC, schedules a throwaway read from the half-updated PC. 65C02 specific: if the top two bytes are the same, proceeds directly to fetch-decode-execute, ignoring any pending interrupts.
-			OperationAddSignedOperandToPC16,	// adds (signed)operand into the PC
+			OperationAddSignedOperandToPC16,	// adds (signed)operand into the PC, leaving old PC in next_address_ and skipping a program step if there was no carry from low to high byte
+
+			CycleFetchFromNextAddress, 			// performs a throwaway fetch from next_address_
 
 			OperationSetFlagsFromOperand,			// sets all flags based on operand_
 			OperationSetOperandFromFlagsWithBRKSet,	// sets operand_ to the value of all flags, with the break flag set
