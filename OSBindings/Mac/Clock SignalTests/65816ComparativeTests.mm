@@ -29,6 +29,16 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	std::unordered_map<AddressType, uint8_t> inventions;
 
 	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, AddressType address, uint8_t *value) {
+		// Check for a JAM; if one is found then record just five more bus cycles, arbitrarily.
+		if(jam_count) {
+			--jam_count;
+			if(!jam_count) {
+				throw StopException();
+			}
+		} else if(processor.is_jammed()) {
+			jam_count = 5;
+		}
+
 		// Record the basics of the operation.
 		auto &cycle = cycles.emplace_back();
 		cycle.operation = operation;
@@ -110,6 +120,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	int pc_overshoot = 0;
 	std::optional<AddressType> initial_pc;
 	bool allow_pc_repetition = false;
+	int jam_count = 0;
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
