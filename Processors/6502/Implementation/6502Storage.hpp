@@ -198,9 +198,12 @@ class ProcessorStorage {
 			OperationSetFlagsFromX,		// sets the zero and negative flags based on the value of x
 			OperationSetFlagsFromY,		// sets the zero and negative flags based on the value of y
 
-			OperationScheduleJam,		// schedules the program for operation F2
-			OperationScheduleWait,		// puts the processor into WAI mode (i.e. it'll do nothing until an interrupt is received)
-			OperationScheduleStop,		// puts the processor into STP mode (i.e. it'll do nothing until a reset is received)
+			OperationScheduleWait,			// puts the processor into WAI mode (i.e. it'll do nothing until an interrupt is received)
+			OperationScheduleStop,			// puts the processor into STP mode (i.e. it'll do nothing until a reset is received)
+
+			CycleFetchFFFE,			// perform a throwaway read from $FFFE
+			CycleFetchFFFF,			// perform a throwaway read from $FFFF
+			OperationSetJAMmed,		// decrements the micro-operation program counter back to the operation before this one, marking the CPU as jammed
 		};
 
 		using InstructionList = MicroOp[12];

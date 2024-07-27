@@ -59,10 +59,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 	};
 
 	const auto throwaway_read = [&](uint16_t address) {
-		next_bus_operation_ = BusOperation::Read;
-		bus_address_ = address;
-		bus_value_ = &bus_throwaway_;
-		bus_throwaway_ = 0xff;
+		read_mem(bus_throwaway_, address);
 	};
 
 	const auto write_mem = [&](uint8_t &val, uint16_t address) {
@@ -232,10 +229,13 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
 // MARK: - JAM, WAI, STP
 
-					case OperationScheduleJam: {
+					case OperationSetJAMmed:
 						is_jammed_ = true;
-						scheduled_program_counter_ = operations_[CPU::MOS6502::JamOpcode];
-					} continue;
+						scheduled_program_counter_ -= 2;
+					continue;
+
+					case CycleFetchFFFE:	read_mem(bus_throwaway_, 0xfffe);	break;
+					case CycleFetchFFFF:	read_mem(bus_throwaway_, 0xffff);	break;
 
 					case OperationScheduleStop:
 						stop_is_active_ = true;
@@ -804,6 +804,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 void ProcessorBase::set_reset_line(bool active) {
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
+	if(is_jammed_) {
+		restart_operation_fetch();
+	}
 }
 
 bool ProcessorBase::get_is_resetting() const {
@@ -870,6 +873,7 @@ void ProcessorBase::set_value_of(Register r, uint16_t value) {
 }
 
 void ProcessorBase::restart_operation_fetch() {
+	is_jammed_ = false;
 	scheduled_program_counter_ = nullptr;
 	next_bus_operation_ = BusOperation::None;
 }
