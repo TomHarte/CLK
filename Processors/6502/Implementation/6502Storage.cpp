@@ -73,7 +73,7 @@ using namespace CPU::MOS6502;
 #define ImpliedNop()						{OperationMoveToNextProgram}
 #define ImmediateNop()						Program(OperationIncrementPC)
 
-#define JAM									{CycleFetchOperand, OperationScheduleJam}
+#define JAM									{CycleFetchFFFF, CycleFetchFFFE, CycleFetchFFFE, CycleFetchFFFF, OperationSetJAMmed}
 
 ProcessorStorage::ProcessorStorage(Personality personality) {
 	const InstructionList operations_6502[] = {
