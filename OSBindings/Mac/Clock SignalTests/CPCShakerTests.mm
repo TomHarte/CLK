@@ -15,16 +15,106 @@
 #include "AmstradCPC.hpp"
 #include "../../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../../Machines/AmstradCPC/Keyboard.hpp"
+#include "../../../Outputs/ScanTarget.hpp"
 #include "CSROMFetcher.hpp"
 #include "TimedMachine.hpp"
 #include "MediaTarget.hpp"
 #include "KeyboardMachine.hpp"
 #include "MachineForTarget.hpp"
 
-struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
-	void perform(uint16_t code) {
-		NSLog(@"SSM %04x", code);
+struct ScanTarget: public Outputs::Display::ScanTarget {
+	void set_modals(Modals modals) override {
+		modals_ = modals;
 	}
+	Scan *begin_scan() override {
+		return &scan_;
+	}
+	uint8_t *begin_data(size_t, size_t) override {
+		return data_.data();
+	}
+
+
+	void end_scan() override {
+		// Empirical, CPC-specific observation: x positions end up
+		// being multiplied by 61 compared to a 1:1 pixel sampling at
+		// the CPC's highest resolution.
+		const int WidthDivider = 61;
+
+		const int src_pixels = scan_.end_points[1].data_offset - scan_.end_points[0].data_offset;
+		const int dst_pixels = (scan_.end_points[1].x - scan_.end_points[0].x) / WidthDivider;
+
+		const int step = (src_pixels << 16) / dst_pixels;
+		int position = 0;
+
+		for(int x = scan_.end_points[0].x / WidthDivider; x < scan_.end_points[1].x / WidthDivider; x++) {
+			raw_image_[line_ * ImageWidth + x] = data_[position >> 16];
+			position += step;
+		}
+	}
+	void announce(Event event, bool, const Scan::EndPoint &, uint8_t) override {
+		switch(event) {
+			case Event::EndHorizontalRetrace:	++line_;	break;
+			case Event::EndVerticalRetrace:		line_ = 0;	break;
+			default: break;
+		}
+	}
+
+	NSBitmapImageRep *image_representation() {
+		NSBitmapImageRep *const result =
+			[[NSBitmapImageRep alloc]
+				initWithBitmapDataPlanes:NULL
+				pixelsWide:ImageWidth
+				pixelsHigh:ImageHeight
+				bitsPerSample:8
+				samplesPerPixel:4
+				hasAlpha:YES
+				isPlanar:NO
+				colorSpaceName:NSDeviceRGBColorSpace
+				bytesPerRow:4 * ImageWidth
+				bitsPerPixel:0];
+		uint8_t *const data = result.bitmapData;
+
+		for(int c = 0; c < ImageWidth * ImageHeight; c++) {
+			data[c * 4 + 0] = ((raw_image_[c] >> 4) & 3) * 127;
+			data[c * 4 + 1] = ((raw_image_[c] >> 2) & 3) * 127;
+			data[c * 4 + 2] = ((raw_image_[c] >> 0) & 3) * 127;
+			data[c * 4 + 3] = 0xff;
+		}
+
+		return result;
+	}
+
+
+private:
+	Modals modals_;
+	Scan scan_;
+	std::array<uint8_t, 2048> data_;
+	int line_ = 0;
+
+	static constexpr int ImageWidth = 914;
+	static constexpr int ImageHeight = 312;
+	std::array<uint8_t, ImageWidth*ImageHeight> raw_image_;
+};
+
+struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
+	SSMDelegate(ScanTarget &scan_target) : scan_target_(scan_target) {
+		temp_dir_ = NSTemporaryDirectory();
+		NSLog(@"Outputting to %@", temp_dir_);
+	}
+
+	void perform(uint16_t code) {
+		NSData *const data =
+			[scan_target_.image_representation() representationUsingType:NSPNGFileType properties:@{}];
+		NSString *const name = [temp_dir_ stringByAppendingPathComponent:[NSString stringWithFormat:@"%d.png", code]];
+		[data
+			writeToFile:name
+			atomically:NO];
+		NSLog(@"Wrote %@", name);
+	}
+
+private:
+	ScanTarget &scan_target_;
+	NSString *temp_dir_;
 };
 
 //
@@ -39,7 +129,8 @@ struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
 	using namespace Storage::Automation;
 	const auto steps = CSL::parse([[path stringByAppendingPathComponent:name] UTF8String]);
 
-	SSMDelegate ssm_delegate;
+	ScanTarget scan_target;
+	SSMDelegate ssm_delegate(scan_target);
 
 	std::unique_ptr<Machine::DynamicMachine> lazy_machine;
 	CSL::KeyDelay key_delay;
@@ -54,6 +145,7 @@ struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
 			lazy_machine = Machine::MachineForTarget(&target, CSROMFetcher(), error);
 			reinterpret_cast<AmstradCPC::Machine *>(lazy_machine->raw_pointer())
 				->set_ssm_delegate(&ssm_delegate);
+			lazy_machine->scan_producer()->set_scan_target(&scan_target);
 		}
 		return *lazy_machine;
 	};
