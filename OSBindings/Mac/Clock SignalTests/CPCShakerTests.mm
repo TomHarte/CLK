@@ -46,15 +46,37 @@ struct ScanTarget: public Outputs::Display::ScanTarget {
 		const int step = (src_pixels << 16) / dst_pixels;
 		int position = 0;
 
-		for(int x = scan_.end_points[0].x / WidthDivider; x < scan_.end_points[1].x / WidthDivider; x++) {
-			raw_image_[line_ * ImageWidth + x] = data_[position >> 16];
+		const auto x1 = scan_.end_points[0].x / WidthDivider;
+		const auto x2 = scan_.end_points[1].x / WidthDivider;
+
+		uint8_t *const line = &raw_image_[line_ * ImageWidth];
+		if(x_ < x1) {
+			std::fill(&line[x_], &line[x1], 0);
+		}
+		for(int x = x1; x < x2; x++) {
+			line[x] = data_[position >> 16];
 			position += step;
 		}
+		x_ = x2;
 	}
 	void announce(Event event, bool, const Scan::EndPoint &, uint8_t) override {
 		switch(event) {
-			case Event::EndHorizontalRetrace:	++line_;	break;
-			case Event::EndVerticalRetrace:		line_ = 0;	break;
+			case Event::EndHorizontalRetrace: {
+				if(line_ == ImageHeight - 1) break;
+
+				if(x_ < ImageWidth) {
+					uint8_t *const line = &raw_image_[line_ * ImageWidth];
+					std::fill(&line[x_], &line[ImageWidth], 0);
+				}
+
+				++line_;
+				x_ = 0;
+			} break;
+			case Event::EndVerticalRetrace:
+				std::fill(&raw_image_[line_ * ImageWidth], &raw_image_[ImageHeight * ImageWidth], 0);
+				line_ = 0;
+				x_ = 0;
+			break;
 			default: break;
 		}
 	}
@@ -90,6 +112,7 @@ private:
 	Scan scan_;
 	std::array<uint8_t, 2048> data_;
 	int line_ = 0;
+	int x_ = 0;
 
 	static constexpr int ImageWidth = 914;
 	static constexpr int ImageHeight = 312;
