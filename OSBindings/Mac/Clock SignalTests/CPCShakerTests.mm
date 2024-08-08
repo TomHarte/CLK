@@ -125,10 +125,20 @@ struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
 		NSLog(@"Outputting to %@", temp_dir_);
 	}
 
+	void set_crtc(int number) {
+		crtc_ = number;
+	}
+
 	void perform(uint16_t code) {
+		if(!code) {
+			// A code of 0000 is supposed to end a wait0000 command; at present
+			// there seem to be no wait0000 commands to unblock.
+			return;
+		}
+
 		NSData *const data =
 			[scan_target_.image_representation() representationUsingType:NSPNGFileType properties:@{}];
-		NSString *const name = [temp_dir_ stringByAppendingPathComponent:[NSString stringWithFormat:@"%d.png", code]];
+		NSString *const name = [temp_dir_ stringByAppendingPathComponent:[NSString stringWithFormat:@"CLK_%d_%04x.png", crtc_, code]];
 		[data
 			writeToFile:name
 			atomically:NO];
@@ -138,6 +148,7 @@ struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
 private:
 	ScanTarget &scan_target_;
 	NSString *temp_dir_;
+	int crtc_ = 0;
 };
 
 //
@@ -162,6 +173,7 @@ private:
 	target.catch_ssm_codes = true;
 	target.model = Target::Model::CPC6128;
 
+	NSString *diskPath;
 	const auto machine = [&]() -> Machine::DynamicMachine& {
 		if(!lazy_machine) {
 			Machine::Error error;
@@ -169,6 +181,11 @@ private:
 			reinterpret_cast<AmstradCPC::Machine *>(lazy_machine->raw_pointer())
 				->set_ssm_delegate(&ssm_delegate);
 			lazy_machine->scan_producer()->set_scan_target(&scan_target);
+
+			if(diskPath) {
+				const auto media = Analyser::Static::GetMedia(diskPath.UTF8String);
+				lazy_machine->media_target()->insert_media(media);
+			}
 		}
 		return *lazy_machine;
 	};
@@ -186,17 +203,21 @@ private:
 			break;
 
 			case Type::CRTCSelect: {
-				switch(std::get<uint64_t>(step.argument)) {
-					default: break;
+				const auto argument = static_cast<int>(std::get<uint64_t>(step.argument));
+				switch(argument) {
+					default:
+						NSLog(@"Unrecognised CRTC type %d", argument);
+					break;
 					case 0:	target.crtc_type = Target::CRTCType::Type0;	break;
 					case 1:	target.crtc_type = Target::CRTCType::Type1;	break;
 					case 2:	target.crtc_type = Target::CRTCType::Type2;	break;
 					case 3:	target.crtc_type = Target::CRTCType::Type3;	break;
 				}
+				ssm_delegate.set_crtc(argument);
 			} break;
 
 			case Type::Reset:
-				// Temporarily a no-op.
+				lazy_machine.reset();
 			break;
 
 			case Type::Wait:
@@ -208,14 +229,15 @@ private:
 				XCTAssertEqual(disk.drive, 0);	// Only drive 0 is supported for now.
 
 				NSString *diskName = [NSString stringWithUTF8String:disk.file.c_str()];
-				NSString *const diskPath =
+				diskPath =
 					[[NSBundle bundleForClass:[self class]]
 						pathForResource:diskName ofType:nil inDirectory:@"Shaker"];
-
 				XCTAssertNotNil(diskPath);
 
-				const auto media = Analyser::Static::GetMedia(diskPath.UTF8String);
-				machine().media_target()->insert_media(media);
+				if(lazy_machine) {
+					const auto media = Analyser::Static::GetMedia(diskPath.UTF8String);
+					machine().media_target()->insert_media(media);
+				}
 			} break;
 
 			case Type::KeyDelay:
@@ -271,10 +293,40 @@ private:
 	[self testCSLPath:[basePath stringByAppendingPathComponent:path] name:name];
 }
 
-- (void)testModuleA {	[self testModulePath:@"MODULE A" name:@"SHAKE26A-0.CSL"];	}
-- (void)testModuleB {	[self testModulePath:@"MODULE B" name:@"SHAKE26B-0.CSL"];	}
-- (void)testModuleC {	[self testModulePath:@"MODULE C" name:@"SHAKE26C-0.CSL"];	}
-- (void)testModuleD {	[self testModulePath:@"MODULE D" name:@"SHAKE26D-0.CSL"];	}
-- (void)testModuleE {	[self testModulePath:@"MODULE E" name:@"SHAKE26E-0.CSL"];	}
+- (void)testModuleA {
+	[self testModulePath:@"MODULE A" name:@"SHAKE26A-0.CSL"];
+	[self testModulePath:@"MODULE A" name:@"SHAKE26A-1.CSL"];
+	[self testModulePath:@"MODULE A" name:@"SHAKE26A-2.CSL"];
+	[self testModulePath:@"MODULE A" name:@"SHAKE26A-3.CSL"];
+	[self testModulePath:@"MODULE A" name:@"SHAKE26A-4.CSL"];
+}
+- (void)testModuleB {
+	[self testModulePath:@"MODULE B" name:@"SHAKE26B-0.CSL"];
+	[self testModulePath:@"MODULE B" name:@"SHAKE26B-1.CSL"];
+	[self testModulePath:@"MODULE B" name:@"SHAKE26B-2.CSL"];
+	[self testModulePath:@"MODULE B" name:@"SHAKE26B-3.CSL"];
+	[self testModulePath:@"MODULE B" name:@"SHAKE26B-4.CSL"];
+}
+- (void)testModuleC {
+	[self testModulePath:@"MODULE C" name:@"SHAKE26C-0.CSL"];
+	[self testModulePath:@"MODULE C" name:@"SHAKE26C-1.CSL"];
+	[self testModulePath:@"MODULE C" name:@"SHAKE26C-2.CSL"];
+	[self testModulePath:@"MODULE C" name:@"SHAKE26C-3.CSL"];
+	[self testModulePath:@"MODULE C" name:@"SHAKE26C-4.CSL"];
+}
+- (void)testModuleD {
+	[self testModulePath:@"MODULE D" name:@"SHAKE26D-0.CSL"];
+	[self testModulePath:@"MODULE D" name:@"SHAKE26D-1.CSL"];
+	[self testModulePath:@"MODULE D" name:@"SHAKE26D-2.CSL"];
+	[self testModulePath:@"MODULE D" name:@"SHAKE26D-3.CSL"];
+	[self testModulePath:@"MODULE D" name:@"SHAKE26D-4.CSL"];
+}
+- (void)testModuleE {
+	[self testModulePath:@"MODULE E" name:@"SHAKE26E-0.CSL"];
+	[self testModulePath:@"MODULE E" name:@"SHAKE26E-1.CSL"];
+	[self testModulePath:@"MODULE E" name:@"SHAKE26E-2.CSL"];
+	[self testModulePath:@"MODULE E" name:@"SHAKE26E-3.CSL"];
+	[self testModulePath:@"MODULE E" name:@"SHAKE26E-4.CSL"];
+}
 
 @end
