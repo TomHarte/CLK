@@ -301,17 +301,17 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						}
 					} else {
 						line_counter_ = (line_counter_ + 1) & 0x7f;
+					}
 
-						// Check for start of vertical sync.
-						if(line_counter_ == layout_.vertical.start_sync) {
-							bus_state_.vsync = true;
-							vsync_counter_ = 0;
-						}
+					// Check for start of vertical sync.
+					if(line_counter_ == layout_.vertical.start_sync) {
+						bus_state_.vsync = true;
+						vsync_counter_ = 0;
+					}
 
-						// Check for end of visible lines.
-						if(line_counter_ == layout_.vertical.displayed) {
-							line_is_visible_ = false;
-						}
+					// Check for end of visible lines.
+					if(line_counter_ == layout_.vertical.displayed) {
+						line_is_visible_ = false;
 					}
 				} else {
 					bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
