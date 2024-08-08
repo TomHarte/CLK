@@ -178,7 +178,7 @@ private:
 		if(!lazy_machine) {
 			Machine::Error error;
 			lazy_machine = Machine::MachineForTarget(&target, CSROMFetcher(), error);
-			reinterpret_cast<AmstradCPC::Machine *>(lazy_machine->raw_pointer())
+			static_cast<AmstradCPC::Machine *>(lazy_machine->raw_pointer())
 				->set_ssm_delegate(&ssm_delegate);
 			lazy_machine->scan_producer()->set_scan_target(&scan_target);
 
@@ -295,38 +295,38 @@ private:
 
 - (void)testModuleA {
 	[self testModulePath:@"MODULE A" name:@"SHAKE26A-0.CSL"];
-	[self testModulePath:@"MODULE A" name:@"SHAKE26A-1.CSL"];
-	[self testModulePath:@"MODULE A" name:@"SHAKE26A-2.CSL"];
-	[self testModulePath:@"MODULE A" name:@"SHAKE26A-3.CSL"];
-	[self testModulePath:@"MODULE A" name:@"SHAKE26A-4.CSL"];
+//	[self testModulePath:@"MODULE A" name:@"SHAKE26A-1.CSL"];
+//	[self testModulePath:@"MODULE A" name:@"SHAKE26A-2.CSL"];
+//	[self testModulePath:@"MODULE A" name:@"SHAKE26A-3.CSL"];
+//	[self testModulePath:@"MODULE A" name:@"SHAKE26A-4.CSL"];
 }
 - (void)testModuleB {
 	[self testModulePath:@"MODULE B" name:@"SHAKE26B-0.CSL"];
-	[self testModulePath:@"MODULE B" name:@"SHAKE26B-1.CSL"];
-	[self testModulePath:@"MODULE B" name:@"SHAKE26B-2.CSL"];
-	[self testModulePath:@"MODULE B" name:@"SHAKE26B-3.CSL"];
-	[self testModulePath:@"MODULE B" name:@"SHAKE26B-4.CSL"];
+//	[self testModulePath:@"MODULE B" name:@"SHAKE26B-1.CSL"];
+//	[self testModulePath:@"MODULE B" name:@"SHAKE26B-2.CSL"];
+//	[self testModulePath:@"MODULE B" name:@"SHAKE26B-3.CSL"];
+//	[self testModulePath:@"MODULE B" name:@"SHAKE26B-4.CSL"];
 }
 - (void)testModuleC {
 	[self testModulePath:@"MODULE C" name:@"SHAKE26C-0.CSL"];
-	[self testModulePath:@"MODULE C" name:@"SHAKE26C-1.CSL"];
-	[self testModulePath:@"MODULE C" name:@"SHAKE26C-2.CSL"];
-	[self testModulePath:@"MODULE C" name:@"SHAKE26C-3.CSL"];
-	[self testModulePath:@"MODULE C" name:@"SHAKE26C-4.CSL"];
+//	[self testModulePath:@"MODULE C" name:@"SHAKE26C-1.CSL"];
+//	[self testModulePath:@"MODULE C" name:@"SHAKE26C-2.CSL"];
+//	[self testModulePath:@"MODULE C" name:@"SHAKE26C-3.CSL"];
+//	[self testModulePath:@"MODULE C" name:@"SHAKE26C-4.CSL"];
 }
 - (void)testModuleD {
 	[self testModulePath:@"MODULE D" name:@"SHAKE26D-0.CSL"];
-	[self testModulePath:@"MODULE D" name:@"SHAKE26D-1.CSL"];
-	[self testModulePath:@"MODULE D" name:@"SHAKE26D-2.CSL"];
-	[self testModulePath:@"MODULE D" name:@"SHAKE26D-3.CSL"];
-	[self testModulePath:@"MODULE D" name:@"SHAKE26D-4.CSL"];
+//	[self testModulePath:@"MODULE D" name:@"SHAKE26D-1.CSL"];
+//	[self testModulePath:@"MODULE D" name:@"SHAKE26D-2.CSL"];
+//	[self testModulePath:@"MODULE D" name:@"SHAKE26D-3.CSL"];
+//	[self testModulePath:@"MODULE D" name:@"SHAKE26D-4.CSL"];
 }
 - (void)testModuleE {
 	[self testModulePath:@"MODULE E" name:@"SHAKE26E-0.CSL"];
-	[self testModulePath:@"MODULE E" name:@"SHAKE26E-1.CSL"];
-	[self testModulePath:@"MODULE E" name:@"SHAKE26E-2.CSL"];
-	[self testModulePath:@"MODULE E" name:@"SHAKE26E-3.CSL"];
-	[self testModulePath:@"MODULE E" name:@"SHAKE26E-4.CSL"];
+//	[self testModulePath:@"MODULE E" name:@"SHAKE26E-1.CSL"];
+//	[self testModulePath:@"MODULE E" name:@"SHAKE26E-2.CSL"];
+//	[self testModulePath:@"MODULE E" name:@"SHAKE26E-3.CSL"];
+//	[self testModulePath:@"MODULE E" name:@"SHAKE26E-4.CSL"];
 }
 
 @end

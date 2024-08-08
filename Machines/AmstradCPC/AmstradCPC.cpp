@@ -951,18 +951,23 @@ class ConcreteMachine:
 								const auto code = uint16_t(
 									((ssm_code_ << 8) & 0xff00) | ((ssm_code_ >> 16) & 0x00ff)
 								);
-								ssm_code_ = 0;
+
+								const auto is_valid = [](uint8_t digit) {
+									return
+										(digit <= 0x3f) ||
+										(digit >= 0x7f && digit <= 0x9f) ||
+										(digit >= 0xa4 && digit <= 0xa7) ||
+										(digit >= 0xac && digit <= 0xaf) ||
+										(digit >= 0xb4 && digit <= 0xb7) ||
+										(digit >= 0xbc && digit <= 0xbf) ||
+										(digit >= 0xc0 && digit <= 0xfd);
+								};
 
 								if(
-									(code <= 0x3f3f) ||
-									(code >= 0x7f7f && code <= 0x9f9f) ||
-									(code >= 0xa4a4 && code <= 0xa7a7) ||
-									(code >= 0xacac && code <= 0xafaf) ||
-									(code >= 0xb4b4 && code <= 0xb7b7) ||
-									(code >= 0xbcbc && code <= 0xbfbf) ||
-									(code >= 0xc0c0 && code <= 0xfdfd)
+									is_valid(static_cast<uint8_t>(code)) && is_valid(static_cast<uint8_t>(code >> 8))
 								) {
 									ssm_delegate_->perform(code);
+									ssm_code_ = 0;
 								}
 							}
 						} else if((ssm_code_ & 0xffff) == 0xedfe) {
