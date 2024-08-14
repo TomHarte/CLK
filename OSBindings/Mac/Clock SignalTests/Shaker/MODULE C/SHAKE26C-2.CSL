@@ -151,4 +151,4 @@ wait 5000000		; 3ad
 key_output ' '
 wait 10000000	; menu
 
-cls_load 'SHAKE26C-4'
+csl_load 'SHAKE26C-4'	; corrected from cls_load
