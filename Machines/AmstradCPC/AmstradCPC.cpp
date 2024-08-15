@@ -752,7 +752,8 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 /*!
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
-template <bool has_fdc> class ConcreteMachine:
+template <bool has_fdc, bool catches_ssm>
+class ConcreteMachine:
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::TimedMachine,
@@ -942,6 +943,39 @@ template <bool has_fdc> class ConcreteMachine:
 						*cycle.value = 0xc9;
 						break;
 					}
+
+					if constexpr (catches_ssm) {
+						ssm_code_ = (ssm_code_ << 8) | read_pointers_[address >> 14][address & 16383];
+						if(ssm_delegate_) {
+							if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
+								const auto code = uint16_t(
+									((ssm_code_ << 8) & 0xff00) | ((ssm_code_ >> 16) & 0x00ff)
+								);
+
+								const auto is_valid = [](uint8_t digit) {
+									return
+										(digit <= 0x3f) ||
+										(digit >= 0x7f && digit <= 0x9f) ||
+										(digit >= 0xa4 && digit <= 0xa7) ||
+										(digit >= 0xac && digit <= 0xaf) ||
+										(digit >= 0xb4 && digit <= 0xb7) ||
+										(digit >= 0xbc && digit <= 0xbf) ||
+										(digit >= 0xc0 && digit <= 0xfd);
+								};
+
+								if(
+									is_valid(static_cast<uint8_t>(code)) && is_valid(static_cast<uint8_t>(code >> 8))
+								) {
+									ssm_delegate_->perform(code);
+									ssm_code_ = 0;
+								}
+							}
+						} else if((ssm_code_ & 0xffff) == 0xedfe) {
+							ssm_delegate_->perform(0xfffe);
+						} else if((ssm_code_ & 0xffff) == 0xedff) {
+							ssm_delegate_->perform(0xffff);
+						}
+					}
 				[[fallthrough]];
 
 				case CPU::Z80::PartialMachineCycle::Read:
@@ -1115,6 +1149,10 @@ template <bool has_fdc> class ConcreteMachine:
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
+		void set_ssm_delegate(SSMDelegate *delegate) final {
+			ssm_delegate_ = delegate;
+		}
+
 		// MARK: - Keyboard
 		void type_string(const std::string &string) final {
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
@@ -1276,6 +1314,9 @@ template <bool has_fdc> class ConcreteMachine:
 		KeyboardState key_state_;
 		AmstradCPC::KeyboardMapper keyboard_mapper_;
 
+		SSMDelegate *ssm_delegate_ = nullptr;
+		uint32_t ssm_code_ = 0;
+
 		bool has_run_ = false;
 		uint8_t ram_[128 * 1024];
 };
@@ -1284,12 +1325,26 @@ template <bool has_fdc> class ConcreteMachine:
 
 using namespace AmstradCPC;
 
+namespace {
+
+template <bool catch_ssm>
+std::unique_ptr<Machine> machine(const Analyser::Static::AmstradCPC::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	using Model = Analyser::Static::AmstradCPC::Target::Model;
+	switch(target.model) {
+		default:			return std::make_unique<AmstradCPC::ConcreteMachine<true, catch_ssm>>(target, rom_fetcher);
+		case Model::CPC464:	return std::make_unique<AmstradCPC::ConcreteMachine<false, catch_ssm>>(target, rom_fetcher);
+	}
+}
+
+}
+
 // See header; constructs and returns an instance of the Amstrad CPC.
 std::unique_ptr<Machine> Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AmstradCPC::Target;
 	const Target *const cpc_target = dynamic_cast<const Target *>(target);
-	switch(cpc_target->model) {
-		default:					return std::make_unique<AmstradCPC::ConcreteMachine<true>>(*cpc_target, rom_fetcher);
-		case Target::Model::CPC464:	return std::make_unique<AmstradCPC::ConcreteMachine<false>>(*cpc_target, rom_fetcher);
+	if(cpc_target->catch_ssm_codes) {
+		return machine<true>(*cpc_target, rom_fetcher);
+	} else {
+		return machine<false>(*cpc_target, rom_fetcher);
 	}
 }

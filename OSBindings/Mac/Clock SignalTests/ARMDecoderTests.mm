@@ -15,6 +15,7 @@
 
 #include <map>
 #include <sstream>
+#include <vector>
 
 using namespace InstructionSet::ARM;
 
