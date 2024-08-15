@@ -359,7 +359,12 @@ std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
 			case Type::KeyDelay: {
 				KeyDelay argument;
 				require(argument.press_delay);
-				require(argument.interpress_delay);
+
+				uint64_t interpress_delay;
+				stream >> interpress_delay;
+				if(!stream.fail()) {
+					argument.interpress_delay = argument.press_delay;
+				}
 
 				uint64_t carriage_return_delay;
 				stream >> carriage_return_delay;
