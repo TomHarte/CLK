@@ -8,6 +8,7 @@
 
 #include "StaticAnalyser.hpp"
 
+#include "../../../Storage/Disk/Parsers/CPM.hpp"
 #include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
 #include "../../../Storage/Tape/Parsers/Spectrum.hpp"
 
@@ -37,21 +38,72 @@ bool IsSpectrumTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
-	// Get logical sector 1; the Spectrum appears to support various physical
-	// sectors as sector 1.
-	const Storage::Encodings::MFM::Sector *boot_sector = nullptr;
-	uint8_t sector_mask = 0;
-	while(!boot_sector) {
-		boot_sector = parser.sector(0, 0, sector_mask + 1);
-		sector_mask += 0x40;
-		if(!sector_mask) break;
-	}
+	// Grab absolutely any sector from the first track to determine general encoding.
+	const Storage::Encodings::MFM::Sector *any_sector = parser.any_sector(0, 0);
+	if(!any_sector) return false;
+
+	// Determine the sector base and get logical sector 1.
+	const uint8_t sector_base = any_sector->address.sector & 0xc0;
+	const Storage::Encodings::MFM::Sector *boot_sector = parser.sector(0, 0, sector_base + 1);
 	if(!boot_sector) return false;
 
-	// Test that the contents of the boot sector sum to 3, modulo 256.
+	Storage::Disk::CPM::ParameterBlock cpm_format{};
+	switch(sector_base) {
+		case 0x40:	cpm_format = Storage::Disk::CPM::ParameterBlock::cpc_system_format();	break;
+		case 0xc0:	cpm_format = Storage::Disk::CPM::ParameterBlock::cpc_data_format();		break;
+
+		default: {
+			// Check the first ten bytes of the first sector for the disk format; if these are all
+			// the same value then instead substitute a default format.
+			std::array<uint8_t, 10> format;
+			std::copy(boot_sector->samples[0].begin(), boot_sector->samples[0].begin() + 10, format.begin());
+			if(std::all_of(format.begin(), format.end(), [&](const uint8_t v) { return v == format[0]; })) {
+				format = {0x00, 0x00, 0x28, 0x09, 0x02, 0x01, 0x03, 0x02, 0x2a, 0x52};
+			}
+
+			// Parse those ten bytes as:
+			//
+			// Byte 0: disc type
+			// Byte 1: sidedness
+			//		bits 0-6: arrangement
+			//			0 => single sided
+			//			1 => double sided, flip sides
+			//			2 => double sided, up and over
+			//		bit 7: double-track
+			// Byte 2: number of tracks per side
+			// Byte 3: number of sectors per track
+			// Byte 4: Log2(sector size) - 7
+			// Byte 5: number of reserved tracks
+			// Byte 6: Log2(block size) - 7
+			// Byte 7: number of directory blocks
+			// Byte 8: gap length (read/write)
+			// Byte 9: gap length(format)
+			cpm_format.sectors_per_track = format[3];
+			cpm_format.tracks = format[2];
+			cpm_format.block_size = 128 << format[6];
+			cpm_format.first_sector = sector_base + 1;
+			cpm_format.reserved_tracks = format[5];
+
+			// i.e. bits set downward from 0x4000 for as many blocks as form the catalogue.
+			cpm_format.catalogue_allocation_bitmap = 0x8000 - (0x8000 >> format[7]);
+		} break;
+	}
+
+	// If the boot sector sums to 3 modulo 256 then this is a Spectrum disk.
 	const auto byte_sum = static_cast<uint8_t>(
 		std::accumulate(boot_sector->samples[0].begin(), boot_sector->samples[0].end(), 0));
-	return byte_sum == 3;
+	if(byte_sum == 3) {
+		return true;
+	}
+
+	// ... otherwise read a CPM directory and look for a BASIC program called "DISK".
+	const auto catalogue = Storage::Disk::CPM::GetCatalogue(disk, cpm_format);
+	if(!catalogue) return false;
+	const auto file = std::find_if(catalogue->files.begin(), catalogue->files.end(), [](const auto &file) { return file.name == "DISK    "; });
+	if(file == catalogue->files.end()) return false;
+
+	// TODO: check out contents of "DISK"
+	return true;
 }
 
 }
