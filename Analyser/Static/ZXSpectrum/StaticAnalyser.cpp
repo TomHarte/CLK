@@ -13,6 +13,8 @@
 
 #include "Target.hpp"
 
+#include <algorithm>
+
 namespace {
 
 bool IsSpectrumTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
@@ -47,10 +49,8 @@ bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	if(!boot_sector) return false;
 
 	// Test that the contents of the boot sector sum to 3, modulo 256.
-	uint8_t byte_sum = 0;
-	for(auto byte: boot_sector->samples[0]) {
-		byte_sum += byte;
-	}
+	const auto byte_sum = static_cast<uint8_t>(
+		std::accumulate(boot_sector->samples[0].begin(), boot_sector->samples[0].end(), 0));
 	return byte_sum == 3;
 }
 
