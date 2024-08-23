@@ -60,6 +60,8 @@ struct File {
 
 struct Catalogue {
 	std::vector<File> files;
+
+	bool is_zx_spectrum_booter();
 };
 
 std::unique_ptr<Catalogue> GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters);
