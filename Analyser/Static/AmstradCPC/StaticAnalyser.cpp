@@ -228,26 +228,13 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Medi
 	}
 
 	if(!media.disks.empty()) {
-		Storage::Disk::CPM::ParameterBlock data_format;
-		data_format.sectors_per_track = 9;
-		data_format.tracks = 40;
-		data_format.block_size = 1024;
-		data_format.first_sector = 0xc1;
-		data_format.catalogue_allocation_bitmap = 0xc000;
-		data_format.reserved_tracks = 0;
-
-		Storage::Disk::CPM::ParameterBlock system_format;
-		system_format.sectors_per_track = 9;
-		system_format.tracks = 40;
-		system_format.block_size = 1024;
-		system_format.first_sector = 0x41;
-		system_format.catalogue_allocation_bitmap = 0xc000;
-		system_format.reserved_tracks = 2;
+		const auto data_format = Storage::Disk::CPM::ParameterBlock::cpc_data_format();
+		const auto system_format = Storage::Disk::CPM::ParameterBlock::cpc_system_format();
 
 		for(auto &disk: media.disks) {
-			// Check for an ordinary catalogue.
+			// Check for an ordinary catalogue, making sure this isn't actually a ZX Spectrum disk.
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(disk, data_format);
-			if(data_catalogue) {
+			if(data_catalogue && !data_catalogue->is_zx_spectrum_booter()) {
 				InspectCatalogue(*data_catalogue, target);
 				target->media.disks.push_back(disk);
 				continue;
@@ -261,7 +248,7 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Medi
 
 			// Failing that check for a system catalogue.
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(disk, system_format);
-			if(system_catalogue) {
+			if(system_catalogue && !system_catalogue->is_zx_spectrum_booter()) {
 				InspectCatalogue(*system_catalogue, target);
 				target->media.disks.push_back(disk);
 				continue;

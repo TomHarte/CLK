@@ -158,3 +158,13 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 
 	return result;
 }
+
+bool Catalogue::is_zx_spectrum_booter() {
+	// Check for a file called 'DISK'.
+	const auto file = std::find_if(files.begin(), files.end(), [](const auto &file) { return file.name == "DISK    "; });
+	if(file == files.end()) return false;
+
+	// TODO: check the file is valid ZX Spectrum BASIC.
+
+	return true;
+}

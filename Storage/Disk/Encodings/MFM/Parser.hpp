@@ -37,6 +37,14 @@ class Parser {
 		*/
 		const Storage::Encodings::MFM::Sector *sector(int head, int track, uint8_t sector);
 
+
+		/*!
+			Seeks to the physical track at @c head and @c track. Searches on it for any sector.
+
+			@returns a sector if one was found; @c nullptr otherwise.
+		*/
+		const Storage::Encodings::MFM::Sector *any_sector(int head, int track);
+
 		// TODO: set_sector.
 
 	private:
