@@ -237,18 +237,27 @@ void VideoOutput::run_for(const Cycles cycles) {
 	const auto start_position = output_position_;
 	output_position_ = (output_position_ + number_of_cycles) % cycles_per_frame;
 
-	if(
-		(start_position < real_time_clock_interrupt_1 && output_position_ >= real_time_clock_interrupt_1) ||
-		(start_position < real_time_clock_interrupt_2 && output_position_ >= real_time_clock_interrupt_2)
-	) {
-		interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::RealTimeClock);
-	}
+	const auto test_range = [&](int start, int end) {
+		if(
+			(start < real_time_clock_interrupt_1 && end >= real_time_clock_interrupt_1) ||
+			(start < real_time_clock_interrupt_2 && end >= real_time_clock_interrupt_2)
+		) {
+			interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::RealTimeClock);
+		}
 
-	if(
-		(start_position < display_end_interrupt_1 && output_position_ >= display_end_interrupt_1) ||
-		(start_position < display_end_interrupt_2 && output_position_ >= display_end_interrupt_2)
-	) {
-		interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::DisplayEnd);
+		if(
+			(start < display_end_interrupt_1 && end >= display_end_interrupt_1) ||
+			(start < display_end_interrupt_2 && end >= display_end_interrupt_2)
+		) {
+			interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::DisplayEnd);
+		}
+	};
+
+	if(output_position_ >= start_position) {
+		test_range(start_position, output_position_);
+	} else {
+		test_range(start_position, cycles_per_frame);
+		test_range(0, output_position_);
 	}
 
 	while(number_of_cycles) {
