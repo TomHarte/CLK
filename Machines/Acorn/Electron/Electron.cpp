@@ -687,6 +687,9 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		}
 
 		inline void signal_interrupt(Interrupt interrupt) {
+			if(!interrupt) {
+				return;
+			}
 			interrupt_status_ |= interrupt;
 			evaluate_interrupts();
 		}
