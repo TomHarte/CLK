@@ -310,7 +310,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 			output_ = stage;
 
 			if(stage == OutputStage::Pixels) {
-				initial_output_target_ = current_output_target_ = crt_.begin_data(mode_40 ? 320 : 640);
+				initial_output_target_ = current_output_target_ = crt_.begin_data(640);//crt_.begin_data(mode_40 ? 320 : 640);
 			}
 		}
 		++output_length_;
@@ -352,14 +352,14 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 void VideoOutput::write(int address, uint8_t value) {
 	switch(address & 0xf) {
 		case 0x02:
-		screen_base = 
-			(screen_base & 0b0111'1110'0000'0000) |
-			((value << 1) & 0b0000'0001'1100'0000);
-		break;
-		case 0x03:
 			screen_base =
 				(screen_base & 0b0111'1110'0000'0000) |
 				((value << 1) & 0b0000'0001'1100'0000);
+		break;
+		case 0x03:
+			screen_base =
+				((value << 9) & 0b0111'1110'0000'0000) |
+				(screen_base & 0b0000'0001'1100'0000);
 		break;
 		case 0x07: {
 			uint8_t mode = (value >> 3)&7;

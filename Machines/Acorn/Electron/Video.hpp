@@ -59,7 +59,7 @@ class VideoOutput {
 		/// RAM access that is first signalled in the upcoming cycle.
 		Cycles ram_delay() {
 			if(!mode_40 && !in_blank()) {
-				return 2 + h_active - h_count;
+				return 2 + ((h_active - h_count) >> 3);
 			}
 			return io_delay();
 		}
