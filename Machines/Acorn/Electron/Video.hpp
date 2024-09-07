@@ -85,6 +85,7 @@ class VideoOutput {
 		};
 		OutputStage output_;
 		int output_length_ = 0;
+		int screen_pitch_ = 0;
 
 		uint8_t *current_output_target_ = nullptr;
 		uint8_t *initial_output_target_ = nullptr;
@@ -102,7 +103,7 @@ class VideoOutput {
 		bool mode_40 = true;
 		bool mode_text = false;
 		enum class Bpp {
-			One, Two, Four
+			One = 1, Two = 2, Four = 4
 		} mode_bpp = Bpp::One;
 
 		// Frame position.

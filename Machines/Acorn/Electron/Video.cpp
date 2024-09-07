@@ -283,15 +283,17 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 		// Determine current output item.
 		OutputStage stage;
+		int screen_pitch = screen_pitch_;
 		if(vsync_int || hsync_int) {
 			stage = OutputStage::Sync;
 		} else if(in_blank()) {
 			stage = OutputStage::Blank;
 		} else {
 			stage = OutputStage::Pixels;
+			screen_pitch = (mode_40 ? 320 : 640) / static_cast<int>(mode_bpp);
 		}
 
-		if(stage != output_) {
+		if(stage != output_ || screen_pitch != screen_pitch_) {
 			switch(output_) {
 				case OutputStage::Sync:		crt_.output_sync(output_length_);					break;
 				case OutputStage::Blank:	crt_.output_blank(output_length_);					break;
@@ -308,24 +310,41 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 			}
 			output_length_ = 0;
 			output_ = stage;
+			screen_pitch_ = screen_pitch;
 
 			if(stage == OutputStage::Pixels) {
-				initial_output_target_ = current_output_target_ = crt_.begin_data(640);//crt_.begin_data(mode_40 ? 320 : 640);
+				initial_output_target_ = current_output_target_ = crt_.begin_data(static_cast<size_t>(screen_pitch_));
 			}
 		}
 		++output_length_;
 		if(output_ == OutputStage::Pixels && (!mode_40 || h_count & 8) && current_output_target_) {
 			const uint8_t data = ram_[byte_addr | char_row];
 
-			current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
-			current_output_target_[1] = (data & 0x40) ? 0xff : 0x00;
-			current_output_target_[2] = (data & 0x20) ? 0xff : 0x00;
-			current_output_target_[3] = (data & 0x10) ? 0xff : 0x00;
-			current_output_target_[4] = (data & 0x08) ? 0xff : 0x00;
-			current_output_target_[5] = (data & 0x04) ? 0xff : 0x00;
-			current_output_target_[6] = (data & 0x02) ? 0xff : 0x00;
-			current_output_target_[7] = (data & 0x01) ? 0xff : 0x00;
-			current_output_target_ += 8;
+			switch(mode_bpp) {
+				case Bpp::One:
+					current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
+					current_output_target_[1] = (data & 0x40) ? 0xff : 0x00;
+					current_output_target_[2] = (data & 0x20) ? 0xff : 0x00;
+					current_output_target_[3] = (data & 0x10) ? 0xff : 0x00;
+					current_output_target_[4] = (data & 0x08) ? 0xff : 0x00;
+					current_output_target_[5] = (data & 0x04) ? 0xff : 0x00;
+					current_output_target_[6] = (data & 0x02) ? 0xff : 0x00;
+					current_output_target_[7] = (data & 0x01) ? 0xff : 0x00;
+					current_output_target_ += 8;
+				break;
+				case Bpp::Two:
+					current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
+					current_output_target_[1] = (data & 0x20) ? 0xff : 0x00;
+					current_output_target_[2] = (data & 0x08) ? 0xff : 0x00;
+					current_output_target_[3] = (data & 0x02) ? 0xff : 0x00;
+					current_output_target_ += 4;
+				break;
+				case Bpp::Four:
+					current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
+					current_output_target_[1] = (data & 0x08) ? 0xff : 0x00;
+					current_output_target_ += 2;
+				break;
+			}
 		}
 
 		// Increment the byte address across the line.
