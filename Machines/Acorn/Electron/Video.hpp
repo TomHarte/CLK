@@ -83,7 +83,7 @@ class VideoOutput {
 		enum class OutputStage {
 			Sync, Blank, Pixels
 		};
-		OutputStage output_;
+		OutputStage output_ = OutputStage::Blank;
 		int output_length_ = 0;
 		int screen_pitch_ = 0;
 
@@ -93,10 +93,10 @@ class VideoOutput {
 		Outputs::CRT::CRT crt_;
 
 		// Palettes.
-		uint8_t palette_[8];
-		uint8_t palette1bpp_[2];
-		uint8_t palette2bpp_[4];
-		uint8_t palette4bpp_[16];
+		uint8_t palette_[8]{};
+		uint8_t palette1bpp_[2]{};
+		uint8_t palette2bpp_[4]{};
+		uint8_t palette4bpp_[16]{};
 
 		template <int index, int source_bit, int target_bit>
 		uint8_t channel() {
@@ -113,7 +113,7 @@ class VideoOutput {
 		}
 
 		// User-selected base address; constrained to a 64-byte boundary by the setter.
-		uint16_t screen_base;
+		uint16_t screen_base = 0;
 
 		// Parameters implied by mode selection.
 		uint16_t mode_base = 0;

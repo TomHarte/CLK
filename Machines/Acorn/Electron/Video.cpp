@@ -20,10 +20,13 @@ VideoOutput::VideoOutput(const uint8_t *memory) :
 		1,
 		Outputs::Display::Type::PAL50,
 		Outputs::Display::InputDataType::Red1Green1Blue1) {
-	memset(palette_, 0xf, sizeof(palette_));
-
-	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
-//	crt_.set_visible_area(crt_.get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(
+		312 - vsync_end,
+		256,
+		(h_total - hsync_end) >> 3,
+		80,
+		4.0f / 3.0f
+	));
 }
 
 void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
