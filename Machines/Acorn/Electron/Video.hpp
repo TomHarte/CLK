@@ -92,8 +92,25 @@ class VideoOutput {
 		int current_output_divider_ = 1;
 		Outputs::CRT::CRT crt_;
 
-		// Palette.
-		uint8_t palette_[16];
+		// Palettes.
+		uint8_t palette_[8];
+		uint8_t palette1bpp_[2];
+		uint8_t palette2bpp_[4];
+		uint8_t palette4bpp_[16];
+
+		template <int index, int source_bit, int target_bit>
+		uint8_t channel() {
+			if constexpr (source_bit < target_bit) {
+				return (palette_[index] << (target_bit - source_bit)) & (1 << target_bit);
+			} else {
+				return (palette_[index] >> (source_bit - target_bit)) & (1 << target_bit);
+			}
+		}
+
+		template <int r_index, int r_bit, int g_index, int g_bit, int b_index, int b_bit>
+		uint8_t palette_entry() {
+			return channel<r_index, r_bit, 2>() | channel<g_index, g_bit, 1>() | channel<b_index, b_bit, 0>();
+		}
 
 		// User-selected base address; constrained to a 64-byte boundary by the setter.
 		uint16_t screen_base;

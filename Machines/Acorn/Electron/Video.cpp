@@ -31,7 +31,7 @@ void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
-	return crt_.get_scaled_scan_status();// / float(crt_cycles_multiplier);
+	return crt_.get_scaled_scan_status();
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
@@ -41,170 +41,6 @@ void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 Outputs::Display::DisplayType VideoOutput::get_display_type() const {
 	return crt_.get_display_type();
 }
-
-// MARK: - Display update methods
-
-//void VideoOutput::start_pixel_line() {
-//	current_pixel_line_ = (current_pixel_line_+1)&255;
-//	if(!current_pixel_line_) {
-//		start_line_address_ = start_screen_address_;
-//		current_character_row_ = 0;
-//		is_blank_line_ = false;
-//	} else {
-//		bool mode_has_blank_lines = (screen_mode_ == 6) || (screen_mode_ == 3);
-//		is_blank_line_ = (mode_has_blank_lines && ((current_character_row_ > 7 && current_character_row_ < 10) || (current_pixel_line_ > 249)));
-//
-//		if(!is_blank_line_) {
-//			start_line_address_++;
-//
-//			if(current_character_row_ > 7) {
-//				start_line_address_ += ((screen_mode_ < 4) ? 80 : 40) * 8 - 8;
-//				current_character_row_ = 0;
-//			}
-//		}
-//	}
-//	current_screen_address_ = start_line_address_;
-//	current_pixel_column_ = 0;
-//	initial_output_target_ = current_output_target_ = nullptr;
-//}
-//
-//void VideoOutput::end_pixel_line() {
-//	const int data_length = int(current_output_target_ - initial_output_target_);
-//	if(data_length) {
-//		crt_.output_data(data_length * current_output_divider_, size_t(data_length));
-//	}
-//	current_character_row_++;
-//}
-//
-//void VideoOutput::output_pixels(int number_of_cycles) {
-//	if(!number_of_cycles) return;
-//
-//	if(is_blank_line_) {
-//		crt_.output_blank(number_of_cycles * crt_cycles_multiplier);
-//	} else {
-//		int divider = 1;
-//		switch(screen_mode_) {
-//			case 0: case 3: divider = 1; break;
-//			case 1: case 4: case 6: divider = 2; break;
-//			case 2: case 5: divider = 4; break;
-//		}
-//
-//		if(!initial_output_target_ || divider != current_output_divider_) {
-//			const int data_length = int(current_output_target_ - initial_output_target_);
-//			if(data_length) {
-//				crt_.output_data(data_length * current_output_divider_, size_t(data_length));
-//			}
-//			current_output_divider_ = divider;
-//			initial_output_target_ = current_output_target_ = crt_.begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
-//		}
-//
-//#define get_pixel()	\
-//				if(current_screen_address_&32768) {\
-//					current_screen_address_ = (screen_mode_base_address_ + current_screen_address_)&32767;\
-//				}\
-//				last_pixel_byte_ = ram_[current_screen_address_];\
-//				current_screen_address_ = current_screen_address_+8
-//
-//		switch(screen_mode_) {
-//			case 0: case 3:
-//				if(initial_output_target_) {
-//					while(number_of_cycles--) {
-//						get_pixel();
-//						*reinterpret_cast<uint64_t *>(current_output_target_) = palette_tables_.eighty1bpp[last_pixel_byte_];
-//						current_output_target_ += 8;
-//						current_pixel_column_++;
-//					}
-//				} else current_output_target_ += 8*number_of_cycles;
-//			break;
-//
-//			case 1:
-//				if(initial_output_target_) {
-//					while(number_of_cycles--) {
-//						get_pixel();
-//						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.eighty2bpp[last_pixel_byte_];
-//						current_output_target_ += 4;
-//						current_pixel_column_++;
-//					}
-//				} else current_output_target_ += 4*number_of_cycles;
-//			break;
-//
-//			case 2:
-//				if(initial_output_target_) {
-//					while(number_of_cycles--) {
-//						get_pixel();
-//						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.eighty4bpp[last_pixel_byte_];
-//						current_output_target_ += 2;
-//						current_pixel_column_++;
-//					}
-//				} else current_output_target_ += 2*number_of_cycles;
-//			break;
-//
-//			case 4: case 6:
-//				if(initial_output_target_) {
-//					if(current_pixel_column_&1) {
-//						last_pixel_byte_ <<= 4;
-//						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-//						current_output_target_ += 4;
-//
-//						number_of_cycles--;
-//						current_pixel_column_++;
-//					}
-//					while(number_of_cycles > 1) {
-//						get_pixel();
-//						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-//						current_output_target_ += 4;
-//
-//						last_pixel_byte_ <<= 4;
-//						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-//						current_output_target_ += 4;
-//
-//						number_of_cycles -= 2;
-//						current_pixel_column_+=2;
-//					}
-//					if(number_of_cycles) {
-//						get_pixel();
-//						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-//						current_output_target_ += 4;
-//						current_pixel_column_++;
-//					}
-//				} else current_output_target_ += 4 * number_of_cycles;
-//			break;
-//
-//			case 5:
-//				if(initial_output_target_) {
-//					if(current_pixel_column_&1) {
-//						last_pixel_byte_ <<= 2;
-//						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
-//						current_output_target_ += 2;
-//
-//						number_of_cycles--;
-//						current_pixel_column_++;
-//					}
-//					while(number_of_cycles > 1) {
-//						get_pixel();
-//						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
-//						current_output_target_ += 2;
-//
-//						last_pixel_byte_ <<= 2;
-//						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
-//						current_output_target_ += 2;
-//
-//						number_of_cycles -= 2;
-//						current_pixel_column_+=2;
-//					}
-//					if(number_of_cycles) {
-//						get_pixel();
-//						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
-//						current_output_target_ += 2;
-//						current_pixel_column_++;
-//					}
-//				} else current_output_target_ += 2*number_of_cycles;
-//			break;
-//		}
-//
-//#undef get_pixel
-//	}
-//}
 
 uint8_t VideoOutput::run_for(const Cycles cycles) {
 	uint8_t interrupts{};
@@ -322,26 +158,26 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 			switch(mode_bpp) {
 				case Bpp::One:
-					current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
-					current_output_target_[1] = (data & 0x40) ? 0xff : 0x00;
-					current_output_target_[2] = (data & 0x20) ? 0xff : 0x00;
-					current_output_target_[3] = (data & 0x10) ? 0xff : 0x00;
-					current_output_target_[4] = (data & 0x08) ? 0xff : 0x00;
-					current_output_target_[5] = (data & 0x04) ? 0xff : 0x00;
-					current_output_target_[6] = (data & 0x02) ? 0xff : 0x00;
-					current_output_target_[7] = (data & 0x01) ? 0xff : 0x00;
+					current_output_target_[0] = palette1bpp_[(data >> 7) & 1];
+					current_output_target_[1] = palette1bpp_[(data >> 6) & 1];
+					current_output_target_[2] = palette1bpp_[(data >> 5) & 1];
+					current_output_target_[3] = palette1bpp_[(data >> 4) & 1];
+					current_output_target_[4] = palette1bpp_[(data >> 3) & 1];
+					current_output_target_[5] = palette1bpp_[(data >> 2) & 1];
+					current_output_target_[6] = palette1bpp_[(data >> 1) & 1];
+					current_output_target_[7] = palette1bpp_[(data >> 0) & 1];
 					current_output_target_ += 8;
 				break;
 				case Bpp::Two:
-					current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
-					current_output_target_[1] = (data & 0x20) ? 0xff : 0x00;
-					current_output_target_[2] = (data & 0x08) ? 0xff : 0x00;
-					current_output_target_[3] = (data & 0x02) ? 0xff : 0x00;
+					current_output_target_[0] = palette2bpp_[((data >> 6) & 2) | ((data >> 3) & 1)];
+					current_output_target_[1] = palette2bpp_[((data >> 5) & 2) | ((data >> 2) & 1)];
+					current_output_target_[2] = palette2bpp_[((data >> 4) & 2) | ((data >> 1) & 1)];
+					current_output_target_[3] = palette2bpp_[((data >> 3) & 2) | ((data >> 0) & 1)];
 					current_output_target_ += 4;
 				break;
 				case Bpp::Four:
-					current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
-					current_output_target_[1] = (data & 0x08) ? 0xff : 0x00;
+					current_output_target_[0] = palette4bpp_[((data >> 4) & 8) | ((data >> 3) & 4) | ((data >> 2) & 2) | ((data >> 1) & 1)];
+					current_output_target_[1] = palette4bpp_[((data >> 3) & 8) | ((data >> 2) & 4) | ((data >> 1) & 2) | ((data >> 0) & 1)];
 					current_output_target_ += 2;
 				break;
 			}
@@ -369,7 +205,8 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 // MARK: - Register hub
 
 void VideoOutput::write(int address, uint8_t value) {
-	switch(address & 0xf) {
+	address &= 0xf;
+	switch(address) {
 		case 0x02:
 			screen_base =
 				(screen_base & 0b0111'1110'0000'0000) |
@@ -403,65 +240,37 @@ void VideoOutput::write(int address, uint8_t value) {
 		} break;
 		case 0x08: case 0x09: case 0x0a: case 0x0b:
 		case 0x0c: case 0x0d: case 0x0e: case 0x0f: {
-//			constexpr int registers[4][4] = {
-//				{10, 8, 2, 0},
-//				{14, 12, 6, 4},
-//				{15, 13, 7, 5},
-//				{11, 9, 3, 1},
-//			};
-//			const int index = (address >> 1)&3;
-//			const uint8_t colour = ~value;
-//			if(address&1) {
-//				palette_[registers[index][0]]	= (palette_[registers[index][0]]&3)	| ((colour >> 1)&4);
-//				palette_[registers[index][1]]	= (palette_[registers[index][1]]&3)	| ((colour >> 0)&4);
-//				palette_[registers[index][2]]	= (palette_[registers[index][2]]&3)	| ((colour << 1)&4);
-//				palette_[registers[index][3]]	= (palette_[registers[index][3]]&3)	| ((colour << 2)&4);
-//
-//				palette_[registers[index][2]]	= (palette_[registers[index][2]]&5)	| ((colour >> 4)&2);
-//				palette_[registers[index][3]]	= (palette_[registers[index][3]]&5)	| ((colour >> 3)&2);
-//			} else {
-//				palette_[registers[index][0]]	= (palette_[registers[index][0]]&6)	| ((colour >> 7)&1);
-//				palette_[registers[index][1]]	= (palette_[registers[index][1]]&6)	| ((colour >> 6)&1);
-//				palette_[registers[index][2]]	= (palette_[registers[index][2]]&6)	| ((colour >> 5)&1);
-//				palette_[registers[index][3]]	= (palette_[registers[index][3]]&6)	| ((colour >> 4)&1);
-//
-//				palette_[registers[index][0]]	= (palette_[registers[index][0]]&5)	| ((colour >> 2)&2);
-//				palette_[registers[index][1]]	= (palette_[registers[index][1]]&5)	| ((colour >> 1)&2);
-//			}
-//
-//			// regenerate all palette tables for now
-//			for(int byte = 0; byte < 256; byte++) {
-//				uint8_t *target = reinterpret_cast<uint8_t *>(&palette_tables_.forty1bpp[byte]);
-//				target[0] = palette_[(byte&0x80) >> 4];
-//				target[1] = palette_[(byte&0x40) >> 3];
-//				target[2] = palette_[(byte&0x20) >> 2];
-//				target[3] = palette_[(byte&0x10) >> 1];
-//
-//				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty2bpp[byte]);
-//				target[0] = palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)];
-//				target[1] = palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)];
-//				target[2] = palette_[((byte&0x20) >> 2) | ((byte&0x02) >> 0)];
-//				target[3] = palette_[((byte&0x10) >> 1) | ((byte&0x01) << 1)];
-//
-//				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty1bpp[byte]);
-//				target[0] = palette_[(byte&0x80) >> 4];
-//				target[1] = palette_[(byte&0x40) >> 3];
-//				target[2] = palette_[(byte&0x20) >> 2];
-//				target[3] = palette_[(byte&0x10) >> 1];
-//				target[4] = palette_[(byte&0x08) >> 0];
-//				target[5] = palette_[(byte&0x04) << 1];
-//				target[6] = palette_[(byte&0x02) << 2];
-//				target[7] = palette_[(byte&0x01) << 3];
-//
-//				target = reinterpret_cast<uint8_t *>(&palette_tables_.forty2bpp[byte]);
-//				target[0] = palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)];
-//				target[1] = palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)];
-//
-//				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty4bpp[byte]);
-//				target[0] = palette_[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)];
-//				target[1] = palette_[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)];
-//			}
+			palette_[address - 8] = ~value;
+
+			if(address <= 0x09) {
+				palette1bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
+				palette1bpp_[1] = palette_entry<1, 2, 0, 6, 0, 2>();
+
+				palette2bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
+				palette2bpp_[1] = palette_entry<1, 1, 1, 5, 0, 5>();
+				palette2bpp_[2] = palette_entry<1, 2, 0, 6, 0, 2>();
+				palette2bpp_[3] = palette_entry<1, 3, 0, 3, 0, 7>();
+			}
+
+			palette4bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
+			palette4bpp_[2] = palette_entry<1, 1, 1, 5, 0, 5>();
+			palette4bpp_[8] = palette_entry<1, 2, 0, 6, 0, 2>();
+			palette4bpp_[10] = palette_entry<1, 3, 0, 3, 0, 7>();
+
+			palette4bpp_[4] = palette_entry<3, 0, 3, 4, 2, 4>();
+			palette4bpp_[6] = palette_entry<3, 1, 3, 5, 2, 5>();
+			palette4bpp_[12] = palette_entry<3, 2, 2, 6, 2, 2>();
+			palette4bpp_[14] = palette_entry<3, 3, 2, 3, 2, 7>();
+
+			palette4bpp_[1] = palette_entry<5, 0, 5, 4, 4, 4>();
+			palette4bpp_[3] = palette_entry<5, 1, 5, 5, 4, 5>();
+			palette4bpp_[9] = palette_entry<5, 2, 4, 6, 4, 2>();
+			palette4bpp_[11] = palette_entry<5, 3, 4, 3, 4, 7>();
+
+			palette4bpp_[1] = palette_entry<7, 0, 7, 4, 6, 4>();
+			palette4bpp_[3] = palette_entry<7, 1, 7, 5, 6, 5>();
+			palette4bpp_[9] = palette_entry<7, 2, 6, 6, 6, 2>();
+			palette4bpp_[11] = palette_entry<7, 3, 6, 3, 6, 7>();
 		} break;
 	}
 }
-
