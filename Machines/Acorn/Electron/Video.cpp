@@ -248,28 +248,28 @@ void VideoOutput::write(int address, uint8_t value) {
 
 				palette2bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
 				palette2bpp_[1] = palette_entry<1, 1, 1, 5, 0, 5>();
-				palette2bpp_[2] = palette_entry<1, 2, 0, 6, 0, 2>();
+				palette2bpp_[2] = palette_entry<1, 2, 0, 2, 0, 6>();
 				palette2bpp_[3] = palette_entry<1, 3, 0, 3, 0, 7>();
 			}
 
 			palette4bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
 			palette4bpp_[2] = palette_entry<1, 1, 1, 5, 0, 5>();
-			palette4bpp_[8] = palette_entry<1, 2, 0, 6, 0, 2>();
+			palette4bpp_[8] = palette_entry<1, 2, 0, 2, 0, 6>();
 			palette4bpp_[10] = palette_entry<1, 3, 0, 3, 0, 7>();
 
 			palette4bpp_[4] = palette_entry<3, 0, 3, 4, 2, 4>();
 			palette4bpp_[6] = palette_entry<3, 1, 3, 5, 2, 5>();
-			palette4bpp_[12] = palette_entry<3, 2, 2, 6, 2, 2>();
+			palette4bpp_[12] = palette_entry<3, 2, 2, 2, 2, 6>();
 			palette4bpp_[14] = palette_entry<3, 3, 2, 3, 2, 7>();
 
-			palette4bpp_[1] = palette_entry<5, 0, 5, 4, 4, 4>();
-			palette4bpp_[3] = palette_entry<5, 1, 5, 5, 4, 5>();
-			palette4bpp_[9] = palette_entry<5, 2, 4, 6, 4, 2>();
-			palette4bpp_[11] = palette_entry<5, 3, 4, 3, 4, 7>();
+			palette4bpp_[5] = palette_entry<5, 0, 5, 4, 4, 4>();
+			palette4bpp_[7] = palette_entry<5, 1, 5, 5, 4, 5>();
+			palette4bpp_[13] = palette_entry<5, 2, 4, 2, 4, 6>();
+			palette4bpp_[15] = palette_entry<5, 3, 4, 3, 4, 7>();
 
 			palette4bpp_[1] = palette_entry<7, 0, 7, 4, 6, 4>();
 			palette4bpp_[3] = palette_entry<7, 1, 7, 5, 6, 5>();
-			palette4bpp_[9] = palette_entry<7, 2, 6, 6, 6, 2>();
+			palette4bpp_[9] = palette_entry<7, 2, 6, 2, 6, 6>();
 			palette4bpp_[11] = palette_entry<7, 3, 6, 3, 6, 7>();
 		} break;
 	}
