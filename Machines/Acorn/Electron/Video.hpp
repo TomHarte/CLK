@@ -47,7 +47,7 @@ class VideoOutput {
 		/// Produces the next @c cycles of video output.
 		///
 		/// @returns a bit mask of all interrupts triggered.
-		Electron::Interrupt run_for(const Cycles cycles);
+		uint8_t run_for(const Cycles cycles);
 
 		/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 		/// IO [/1Mhz] access that is first signalled in the upcoming cycle.

@@ -230,54 +230,97 @@ Outputs::Display::DisplayType VideoOutput::get_display_type() const {
 //	}
 //}
 
-Electron::Interrupt VideoOutput::run_for(const Cycles cycles) {
-	Electron::Interrupt interrupts{};
-//	int number_of_cycles = int(cycles.as_integral());
-//	const auto start_position = output_position_;
-//	output_position_ = (output_position_ + number_of_cycles) % cycles_per_frame;
-//
-//	const auto test_range = [&](int start, int end) {
-//		if(
-//			(start < real_time_clock_interrupt_1 && end >= real_time_clock_interrupt_1) ||
-//			(start < real_time_clock_interrupt_2 && end >= real_time_clock_interrupt_2)
-//		) {
-//			interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::RealTimeClock);
-//		}
-//
-//		if(
-//			(start < display_end_interrupt_1 && end >= display_end_interrupt_1) ||
-//			(start < display_end_interrupt_2 && end >= display_end_interrupt_2)
-//		) {
-//			interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::DisplayEnd);
-//		}
-//	};
-//
-//	if(output_position_ >= start_position) {
-//		test_range(start_position, output_position_);
-//	} else {
-//		test_range(start_position, cycles_per_frame);
-//		test_range(0, output_position_);
-//	}
-//
-//	while(number_of_cycles) {
-//		int draw_action_length = screen_map_[screen_map_pointer_].length;
-//		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
-//		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels(time_left_in_action);
-//
-//		number_of_cycles -= time_left_in_action;
-//		cycles_into_draw_action_ += time_left_in_action;
-//		if(cycles_into_draw_action_ == draw_action_length) {
-//			switch(screen_map_[screen_map_pointer_].type) {
-//				case DrawAction::Sync:			crt_.output_sync(draw_action_length * crt_cycles_multiplier);					break;
-//				case DrawAction::ColourBurst:	crt_.output_default_colour_burst(draw_action_length * crt_cycles_multiplier);	break;
-//				case DrawAction::Blank:			crt_.output_blank(draw_action_length * crt_cycles_multiplier);					break;
-//				case DrawAction::Pixels:		end_pixel_line();																break;
-//			}
-//			screen_map_pointer_ = (screen_map_pointer_ + 1) % screen_map_.size();
-//			cycles_into_draw_action_ = 0;
-//			if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) start_pixel_line();
-//		}
-//	}
+uint8_t VideoOutput::run_for(const Cycles cycles) {
+	uint8_t interrupts{};
+
+	int number_of_cycles = cycles.as<int>();
+	while(number_of_cycles--) {
+		// Horizontal and vertical counter updates.
+		const bool is_v_end = v_count == v_total();
+		h_count += 8;
+		if(h_count == h_total) {
+			h_count = 0;
+			++v_count;
+
+			if(is_v_end) {
+				v_count = 0;
+				field = !field;
+			}
+		}
+
+		// Test for interrupts.
+		if(v_count == v_rtc && ((!field && !h_count) || (field && h_count == h_half))) {
+			interrupts |= static_cast<uint8_t>(Interrupt::RealTimeClock);
+		}
+		if(h_count == hsync_start && ((v_count == v_disp_gph && !mode_text) or (v_count == v_disp_txt && mode_text))) {
+			interrupts |= static_cast<uint8_t>(Interrupt::DisplayEnd);
+		}
+
+		// Update syncs.
+		if(!field) {
+			if(!h_count && v_count == vsync_start) {
+				vsync_int = true;
+			} else if(h_count == h_half && v_count == vsync_end) {
+				vsync_int = false;
+			}
+		} else {
+			if(h_count == h_half && v_count == vsync_start) {
+				vsync_int = true;
+			} else if(!h_count && v_count == vsync_end + 1) {
+				vsync_int = false;
+			}
+		}
+		
+		const auto h_sync_last = hsync_int;
+		if(h_count == hsync_start) {
+			hsync_int = true;
+		} else if(h_count == hsync_end) {
+			hsync_int = false;
+		}
+		
+		// Update character row on the trailing edge of hsync.
+		if(h_count == hsync_end) {
+			if(is_v_end) {
+				char_row = 0;
+			} else {
+				char_row = last_line() ? 0 : char_row + 1;
+			}
+		}
+
+		// Disable the top bit of the char_row counter outside of text mode.
+		if(!mode_text) {
+			char_row &= 7;
+		}
+
+		// Latch video address at frame start.
+		if(h_count == h_reset_addr && is_v_end) {
+			row_addr = byte_addr = screen_base;
+		}
+		
+		// Copy byte_addr back into row_addr if a new character row has begun.
+		if(hsync_int) {
+			if(last_line()) {
+				row_addr = byte_addr;
+			} else {
+				byte_addr = row_addr;
+			}
+		}
+
+		// Increment the byte address across the line.
+		// (slghtly pained logic here because the input clock is still at the pixel rate, not the byte rate)
+		if(h_count < h_active) {
+			if(
+				(!mode_40 && !(h_count & 0x7)) ||
+				(mode_40 && ((h_count & 0xf) == 0x8))
+			) {
+				byte_addr += 8;
+
+				if(!(byte_addr & 0b0111'1000'0000'0000)) {
+					byte_addr = mode_base | (byte_addr & 0x0000'0111'1111'1111);
+				}
+			}
+		}	
+	}
 
 	return interrupts;
 }

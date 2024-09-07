@@ -683,7 +683,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(SoundGenerator::clock_rate_divider)));
 		}
 
-		inline void signal_interrupt(Interrupt interrupt) {
+		inline void signal_interrupt(uint8_t interrupt) {
 			if(!interrupt) {
 				return;
 			}
