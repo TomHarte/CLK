@@ -12,42 +12,18 @@
 
 using namespace Electron;
 
-#define graphics_line(v)	((((v) >> 7) - first_graphics_line + field_divider_line) % field_divider_line)
-#define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
-
-namespace {
-	constexpr int cycles_per_line = 128;
-	constexpr int lines_per_frame = 625;
-	constexpr int cycles_per_frame = lines_per_frame * cycles_per_line;
-	constexpr int crt_cycles_multiplier = 8;
-	constexpr int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
-
-	constexpr int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
-											// the first line with pixels in field 1 is the 20th in the frame, the first line
-											// with pixels in field 2 will be 20+field_divider_line
-	constexpr int first_graphics_line = 31;
-	constexpr int first_graphics_cycle = 33;
-
-	constexpr int display_end_interrupt_line = 256;
-
-	constexpr int real_time_clock_interrupt_1 = 16704;
-	constexpr int real_time_clock_interrupt_2 = 56704;
-	constexpr int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
-	constexpr int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
-}
-
 // MARK: - Lifecycle
 
 VideoOutput::VideoOutput(const uint8_t *memory) :
 	ram_(memory),
-	crt_(crt_cycles_per_line,
+	crt_(128,
 		1,
 		Outputs::Display::Type::PAL50,
 		Outputs::Display::InputDataType::Red1Green1Blue1) {
 	memset(palette_, 0xf, sizeof(palette_));
 
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
-	crt_.set_visible_area(crt_.get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
+//	crt_.set_visible_area(crt_.get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }
 
 void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -55,7 +31,7 @@ void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
-	return crt_.get_scaled_scan_status() / float(crt_cycles_multiplier);
+	return crt_.get_scaled_scan_status();// / float(crt_cycles_multiplier);
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
@@ -271,7 +247,6 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 			}
 		}
 		
-		const auto h_sync_last = hsync_int;
 		if(h_count == hsync_start) {
 			hsync_int = true;
 		} else if(h_count == hsync_end) {
@@ -306,6 +281,53 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 			}
 		}
 
+		// Determine current output item.
+		OutputStage stage;
+		if(vsync_int || hsync_int) {
+			stage = OutputStage::Sync;
+		} else if(in_blank()) {
+			stage = OutputStage::Blank;
+		} else {
+			stage = OutputStage::Pixels;
+		}
+
+		if(stage != output_) {
+			switch(output_) {
+				case OutputStage::Sync:		crt_.output_sync(output_length_);					break;
+				case OutputStage::Blank:	crt_.output_blank(output_length_);					break;
+				case OutputStage::Pixels:
+					if(current_output_target_) {
+						crt_.output_data(
+							output_length_,
+							static_cast<size_t>(current_output_target_ - initial_output_target_)
+						);
+					} else {
+						crt_.output_data(output_length_);
+					}
+				break;
+			}
+			output_length_ = 0;
+			output_ = stage;
+
+			if(stage == OutputStage::Pixels) {
+				initial_output_target_ = current_output_target_ = crt_.begin_data(mode_40 ? 320 : 640);
+			}
+		}
+		++output_length_;
+		if(output_ == OutputStage::Pixels && (!mode_40 || h_count & 8) && current_output_target_) {
+			const uint8_t data = ram_[byte_addr | char_row];
+
+			current_output_target_[0] = (data & 0x80) ? 0xff : 0x00;
+			current_output_target_[1] = (data & 0x40) ? 0xff : 0x00;
+			current_output_target_[2] = (data & 0x20) ? 0xff : 0x00;
+			current_output_target_[3] = (data & 0x10) ? 0xff : 0x00;
+			current_output_target_[4] = (data & 0x08) ? 0xff : 0x00;
+			current_output_target_[5] = (data & 0x04) ? 0xff : 0x00;
+			current_output_target_[6] = (data & 0x02) ? 0xff : 0x00;
+			current_output_target_[7] = (data & 0x01) ? 0xff : 0x00;
+			current_output_target_ += 8;
+		}
+
 		// Increment the byte address across the line.
 		// (slghtly pained logic here because the input clock is still at the pixel rate, not the byte rate)
 		if(h_count < h_active) {
@@ -319,7 +341,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 					byte_addr = mode_base | (byte_addr & 0x0000'0111'1111'1111);
 				}
 			}
-		}	
+		}
 	}
 
 	return interrupts;

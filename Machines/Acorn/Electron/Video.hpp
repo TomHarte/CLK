@@ -80,6 +80,12 @@ class VideoOutput {
 		const uint8_t *ram_ = nullptr;
 
 		// CRT output
+		enum class OutputStage {
+			Sync, Blank, Pixels
+		};
+		OutputStage output_;
+		int output_length_ = 0;
+
 		uint8_t *current_output_target_ = nullptr;
 		uint8_t *initial_output_target_ = nullptr;
 		int current_output_divider_ = 1;
