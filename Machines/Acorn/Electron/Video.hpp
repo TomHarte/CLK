@@ -171,5 +171,10 @@ class VideoOutput {
 
 		bool in_blank() const {
 			return h_count_ >= h_active || (mode_text_ && v_count_ >= v_active_txt) || (!mode_text_ && v_count_ >= v_active_gph) || char_row_ >= 8;
-		}};
+		}
+
+		bool is_v_end() const {
+			return v_count_ == v_total();
+		}
+};
 }

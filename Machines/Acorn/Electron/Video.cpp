@@ -16,15 +16,15 @@ using namespace Electron;
 
 VideoOutput::VideoOutput(const uint8_t *memory) :
 	ram_(memory),
-	crt_(128,
+	crt_(h_total,
 		1,
 		Outputs::Display::Type::PAL50,
 		Outputs::Display::InputDataType::Red1Green1Blue1) {
 	crt_.set_visible_area(crt_.get_rect_for_area(
 		312 - vsync_end,
 		256,
-		(h_total - hsync_end) >> 3,
-		80,
+		h_total - hsync_end,
+		80 * 8,
 		4.0f / 3.0f
 	));
 }
@@ -56,8 +56,8 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 		// reverse-engineering of the Electron ULA. It should therefore be as accurate to the
 		// original hardware as my comprehension of VHDL and adaptation into sequential code allows.
 
-		// Horizontal and vertical counter updates.
-		const bool is_v_end = v_count_ == v_total();
+		// Horizontal and vertical counter updates; code below should act 
+		const bool is_v_end = this->is_v_end();
 		h_count_ += 8;
 		if(h_count_ == h_total) {
 			h_count_ = 0;
@@ -161,7 +161,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 				initial_output_target_ = current_output_target_ = crt_.begin_data(static_cast<size_t>(screen_pitch_));
 			}
 		}
-		++output_length_;
+		output_length_ += 8;
 		if(output_ == OutputStage::Pixels && (!mode_40_ || h_count_ & 8) && current_output_target_) {
 			const uint8_t data = ram_[byte_addr_ | char_row_];
 
