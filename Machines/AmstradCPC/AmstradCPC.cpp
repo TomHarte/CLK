@@ -969,11 +969,11 @@ class ConcreteMachine:
 									ssm_delegate_->perform(code);
 									ssm_code_ = 0;
 								}
+							} else if((ssm_code_ & 0xffff) == 0xedfe) {
+								ssm_delegate_->perform(0xfffe);
+							} else if((ssm_code_ & 0xffff) == 0xedff) {
+								ssm_delegate_->perform(0xffff);
 							}
-						} else if((ssm_code_ & 0xffff) == 0xedfe) {
-							ssm_delegate_->perform(0xfffe);
-						} else if((ssm_code_ & 0xffff) == 0xedff) {
-							ssm_delegate_->perform(0xffff);
 						}
 					}
 				[[fallthrough]];
