@@ -81,7 +81,7 @@ class VideoOutput {
 
 		// CRT output
 		enum class OutputStage {
-			Sync, Blank, Pixels
+			Sync, Blank, Pixels, ColourBurst,
 		};
 		OutputStage output_ = OutputStage::Blank;
 		int output_length_ = 0;
@@ -148,7 +148,10 @@ class VideoOutput {
 												// _after_ position increment rather than before/instead.
 												// So it needs to be one higher. Which is baked into
 												// the constant to emphasise the all-divisible-by-8 property.
+
 		static constexpr int h_half = h_total / 2;
+		static constexpr int hburst_start = 856;
+		static constexpr int hburst_end = 896;
 
 		// Vertical timing parameters; all in terms of lines. As per the horizontal parameters above,
 		// lines begin with their first visible pixel (or the equivalent position).

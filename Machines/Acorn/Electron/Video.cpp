@@ -124,7 +124,11 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 		if(vsync_int_ || hsync_int_) {
 			stage = OutputStage::Sync;
 		} else if(in_blank()) {
-			stage = OutputStage::Blank;
+			if(h_count_ >= hburst_start && h_count_ < hburst_end) {
+				stage = OutputStage::ColourBurst;
+			} else {
+				stage = OutputStage::Blank;
+			}
 		} else {
 			stage = OutputStage::Pixels;
 			screen_pitch = (mode_40_ ? 320 : 640) / static_cast<int>(mode_bpp_);
@@ -132,8 +136,9 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 		if(stage != output_ || screen_pitch != screen_pitch_) {
 			switch(output_) {
-				case OutputStage::Sync:		crt_.output_sync(output_length_);					break;
-				case OutputStage::Blank:	crt_.output_blank(output_length_);					break;
+				case OutputStage::Sync:			crt_.output_sync(output_length_);					break;
+				case OutputStage::Blank:		crt_.output_blank(output_length_);					break;
+				case OutputStage::ColourBurst:	crt_.output_default_colour_burst(output_length_);	break;
 				case OutputStage::Pixels:
 					if(current_output_target_) {
 						crt_.output_data(
