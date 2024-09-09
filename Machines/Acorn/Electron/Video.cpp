@@ -23,7 +23,7 @@ VideoOutput::VideoOutput(const uint8_t *memory) :
 	crt_.set_visible_area(crt_.get_rect_for_area(
 		312 - vsync_end,
 		256,
-		h_total - hsync_end,
+		h_total - hsync_start,
 		80 * 8,
 		4.0f / 3.0f
 	));
@@ -56,18 +56,10 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 		// reverse-engineering of the Electron ULA. It should therefore be as accurate to the
 		// original hardware as my comprehension of VHDL and adaptation into sequential code allows.
 
-		// Horizontal and vertical counter updates; code below should act 
-		const bool is_v_end = this->is_v_end();
-		h_count_ += 8;
-		if(h_count_ == h_total) {
-			h_count_ = 0;
-			++v_count_;
-
-			if(is_v_end) {
-				v_count_ = 0;
-				field_ = !field_;
-			}
-		}
+		// In this, the sequential world of C++, all tests below should assume that the position
+		// named by (h_count_, v_count_) is the one that was active **prior to this cycle**.
+		//
+		// So this cycle spans the period from (h_count_, v_count_) to (h_count_, v_count_)+1.
 
 		// Test for interrupts.
 		if(v_count_ == v_rtc && ((!field_ && !h_count_) || (field_ && h_count_ == h_half))) {
@@ -100,7 +92,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 		
 		// Update character row on the trailing edge of hsync.
 		if(h_count_ == hsync_end) {
-			if(is_v_end) {
+			if(is_v_end()) {
 				char_row_ = 0;
 			} else {
 				char_row_ = last_line() ? 0 : char_row_ + 1;
@@ -113,7 +105,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 		}
 
 		// Latch video address at frame start.
-		if(h_count_ == h_reset_addr && is_v_end) {
+		if(h_count_ == h_reset_addr && is_v_end()) {
 			row_addr_ = byte_addr_ = screen_base_;
 		}
 		
@@ -204,6 +196,19 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 				if(!(byte_addr_ & 0b0111'1000'0000'0000)) {
 					byte_addr_ = mode_base_ | (byte_addr_ & 0x0000'0111'1111'1111);
 				}
+			}
+		}
+
+		// Horizontal and vertical counter updates; code below should act
+		h_count_ += 8;
+		if(h_count_ == h_total) {
+			h_count_ = 0;
+
+			if(is_v_end()) {
+				v_count_ = 0;
+				field_ = !field_;
+			} else {
+				++v_count_;
 			}
 		}
 	}
