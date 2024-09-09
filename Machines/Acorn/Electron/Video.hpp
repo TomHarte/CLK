@@ -52,14 +52,14 @@ class VideoOutput {
 		/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 		/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
 		Cycles io_delay() {
-			return 2 + ((h_count >> 3)&1);
+			return 2 + ((h_count_ >> 3)&1);
 		}
 
 		/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 		/// RAM access that is first signalled in the upcoming cycle.
 		Cycles ram_delay() {
-			if(!mode_40 && !in_blank()) {
-				return 2 + ((h_active - h_count) >> 3);
+			if(!mode_40_ && !in_blank()) {
+				return 2 + ((h_active - h_count_) >> 3);
 			}
 			return io_delay();
 		}
@@ -113,29 +113,29 @@ class VideoOutput {
 		}
 
 		// User-selected base address; constrained to a 64-byte boundary by the setter.
-		uint16_t screen_base = 0;
+		uint16_t screen_base_ = 0;
 
 		// Parameters implied by mode selection.
-		uint16_t mode_base = 0;
-		bool mode_40 = true;
-		bool mode_text = false;
+		uint16_t mode_base_ = 0;
+		bool mode_40_ = true;
+		bool mode_text_ = false;
 		enum class Bpp {
 			One = 1, Two = 2, Four = 4
-		} mode_bpp = Bpp::One;
+		} mode_bpp_ = Bpp::One;
 
 		// Frame position.
-		int v_count = 0;
-		int h_count = 0;
-		bool field = false;
+		int v_count_ = 0;
+		int h_count_ = 0;
+		bool field_ = true;
 
 		// Current working address.
-		uint16_t row_addr = 0;	// Address, sans character row, adopted at the start of a row.
-		uint16_t byte_addr = 0;	// Current working address, incremented as the raster moves across the line.
-		int char_row = 0;		// Character row; 0–9 in text mode, 0–7 in graphics.
+		uint16_t row_addr_ = 0;	// Address, sans character row, adopted at the start of a row.
+		uint16_t byte_addr_ = 0;	// Current working address, incremented as the raster moves across the line.
+		int char_row_ = 0;		// Character row; 0–9 in text mode, 0–7 in graphics.
 
 		// Sync states.
-		bool vsync_int = false;	// True => vsync active.
-		bool hsync_int = false;	// True => hsync active.
+		bool vsync_int_ = false;	// True => vsync active.
+		bool hsync_int_ = false;	// True => hsync active.
 
 		// Horizontal timing parameters; all in terms of the 16Mhz pixel clock but conveniently all
 		// divisible by 8, so it's safe to count time with a 2Mhz input.
@@ -162,14 +162,14 @@ class VideoOutput {
 
 		// Various signals that it was convenient to factor out.
 		int v_total() const {
-			return field ? 312 : 311;
+			return field_ ? 312 : 311;
 		}
 
 		bool last_line() const {
-			return char_row == (mode_text ? 9 : 7);
+			return char_row_ == (mode_text_ ? 9 : 7);
 		}
 
 		bool in_blank() const {
-			return h_count >= h_active || (mode_text && v_count >= v_active_txt) || (!mode_text && v_count >= v_active_gph) || char_row >= 8;
+			return h_count_ >= h_active || (mode_text_ && v_count_ >= v_active_txt) || (!mode_text_ && v_count_ >= v_active_gph) || char_row_ >= 8;
 		}};
 }
