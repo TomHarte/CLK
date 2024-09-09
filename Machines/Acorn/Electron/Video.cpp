@@ -50,6 +50,12 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 	int number_of_cycles = cycles.as<int>();
 	while(number_of_cycles--) {
+		// The below is my attempt at transcription of the equivalent VHDL code in moogway82's
+		// JamSoftElectronULA — https://github.com/moogway82/JamSoftElectronULA — which is itself
+		// derived from hoglet67's https://github.com/hoglet67/ElectronFpga and that author's
+		// reverse-engineering of the Electron ULA. It should therefore be as accurate to the
+		// original hardware as my comprehension of VHDL and adaptation into sequential code allows.
+
 		// Horizontal and vertical counter updates.
 		const bool is_v_end = v_count_ == v_total();
 		h_count_ += 8;
