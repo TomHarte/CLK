@@ -24,6 +24,8 @@ class VideoOutput {
 
 		void run_for(const Cycles cycles);
 
+		bool vsync();
+
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void set_display_type(Outputs::Display::DisplayType display_type);
 		Outputs::Display::DisplayType get_display_type() const;
