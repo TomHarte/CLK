@@ -576,7 +576,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 				break;
 			}
 
-			video_ += Cycles(1);
+			if(video_ += Cycles(1)) {
+				set_via_port_b_input();
+			}
 			return Cycles(1);
 		}
 
@@ -621,9 +623,18 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		}
 
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) final {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *) final {
+			set_via_port_b_input();
+		}
+
+		void set_via_port_b_input() {
 			// set CB1
-			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, !tape_player->get_input());
+			via_.set_control_line_input(
+				MOS::MOS6522::Port::B, MOS::MOS6522::Line::One,
+				tape_player_.get_motor_control() ?
+					!tape_player_.get_input() :
+					!video_->vsync()
+			);
 		}
 
 		// for Utility::TypeRecipient::Delegate
