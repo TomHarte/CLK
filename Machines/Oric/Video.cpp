@@ -17,10 +17,10 @@ using namespace Oric;
 namespace {
 	const unsigned int PAL50VSyncStartPosition = 256*64;
 	const unsigned int PAL60VSyncStartPosition = 234*64;
-	const unsigned int PAL50VSyncEndPosition = 259*64;
+	const unsigned int PAL50VSyncEndPosition = 259*64;	// 19966
 	const unsigned int PAL60VSyncEndPosition = 238*64;
 	const unsigned int PAL50Period = 312*64;
-	const unsigned int PAL60Period = 262*64;
+	const unsigned int PAL60Period = 264*64;
 }
 
 VideoOutput::VideoOutput(uint8_t *memory) :
