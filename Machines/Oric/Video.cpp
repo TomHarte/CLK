@@ -17,10 +17,10 @@ using namespace Oric;
 namespace {
 	const unsigned int PAL50VSyncStartPosition = 256*64;
 	const unsigned int PAL60VSyncStartPosition = 234*64;
-	const unsigned int PAL50VSyncEndPosition = 259*64;
+	const unsigned int PAL50VSyncEndPosition = 259*64;	// 19966
 	const unsigned int PAL60VSyncEndPosition = 238*64;
 	const unsigned int PAL50Period = 312*64;
-	const unsigned int PAL60Period = 262*64;
+	const unsigned int PAL60Period = 264*64;
 }
 
 VideoOutput::VideoOutput(uint8_t *memory) :
@@ -111,6 +111,25 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 //	}
 }
 
+bool VideoOutput::vsync() {
+	return counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_;
+}
+
+Cycles VideoOutput::next_sequence_point() const {
+	if(counter_ < v_sync_start_position_) {
+		return Cycles(v_sync_start_position_ - counter_);
+	} else if(counter_ < v_sync_end_position_) {
+		return Cycles(v_sync_end_position_ - counter_);
+	} else {
+		// After vsync the length of the next frame is baked in, so this is safe
+		// (but should probably be factored out).
+		return Cycles(
+			counter_period_ + static_cast<int>(next_frame_is_sixty_hertz_ ? PAL60VSyncStartPosition : PAL50VSyncStartPosition)
+			- counter_
+		);
+	}
+}
+
 void VideoOutput::run_for(const Cycles cycles) {
 	// Horizontal: 0-39: pixels; otherwise blank; 48-53 sync, 54-56 colour burst.
 	// Vertical: 0-223: pixels; otherwise blank; 256-259 (50Hz) or 234-238 (60Hz) sync.
@@ -123,7 +142,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 		int h_counter = counter_ & 63;
 		int cycles_run_for = 0;
 
-		if(counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_) {
+		if(vsync()) {
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
 			clamp(crt_.output_sync((v_sync_end_position_ - v_sync_start_position_) * 6));

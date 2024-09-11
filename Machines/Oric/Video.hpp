@@ -23,6 +23,9 @@ class VideoOutput {
 		void set_colour_rom(const std::vector<uint8_t> &colour_rom);
 
 		void run_for(const Cycles cycles);
+		Cycles next_sequence_point() const;
+
+		bool vsync();
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void set_display_type(Outputs::Display::DisplayType display_type);

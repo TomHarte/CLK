@@ -57,16 +57,18 @@ class Joystick: public Inputs::ConcreteJoystick {
 			}) {}
 
 		void did_set_input(const Input &digital_input, bool is_active) final {
-#define APPLY(b)	if(is_active) state_ &= ~b; else state_ |= b;
+			const auto apply = [&](uint8_t bit) {
+				if(is_active) state_ &= ~bit; else state_ |= bit;
+			};
+
 			switch(digital_input.type) {
 				default: return;
-				case Input::Right:	APPLY(0x02);	break;
-				case Input::Left:	APPLY(0x01);	break;
-				case Input::Down:	APPLY(0x08);	break;
-				case Input::Up:		APPLY(0x10);	break;
-				case Input::Fire:	APPLY(0x20);	break;
+				case Input::Right:	apply(0x02);	break;
+				case Input::Left:	apply(0x01);	break;
+				case Input::Down:	apply(0x08);	break;
+				case Input::Up:		apply(0x10);	break;
+				case Input::Fire:	apply(0x20);	break;
 			}
-#undef APPLY
 		}
 
 		uint8_t get_state() {
@@ -574,7 +576,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 				break;
 			}
 
-			video_ += Cycles(1);
+			if(video_ += Cycles(1)) {
+				set_via_port_b_input();
+			}
 			return Cycles(1);
 		}
 
@@ -619,9 +623,18 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		}
 
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) final {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *) final {
+			set_via_port_b_input();
+		}
+
+		void set_via_port_b_input() {
 			// set CB1
-			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, !tape_player->get_input());
+			via_.set_control_line_input(
+				MOS::MOS6522::Port::B, MOS::MOS6522::Line::One,
+				tape_player_.get_motor_control() ?
+					!tape_player_.get_input() :
+					!video_->vsync()
+			);
 		}
 
 		// for Utility::TypeRecipient::Delegate
@@ -795,24 +808,27 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 
 using namespace Oric;
 
+namespace {
+
+template <CPU::MOS6502Esque::Type processor> std::unique_ptr<Machine> machine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	switch(target.disk_interface) {
+		default:						return std::make_unique<ConcreteMachine<DiskInterface::None, processor>>(target, rom_fetcher);
+		case DiskInterface::Microdisc:	return std::make_unique<ConcreteMachine<DiskInterface::Microdisc, processor>>(target, rom_fetcher);
+		case DiskInterface::Pravetz:	return std::make_unique<ConcreteMachine<DiskInterface::Pravetz, processor>>(target, rom_fetcher);
+		case DiskInterface::Jasmin:		return std::make_unique<ConcreteMachine<DiskInterface::Jasmin, processor>>(target, rom_fetcher);
+		case DiskInterface::BD500:		return std::make_unique<ConcreteMachine<DiskInterface::BD500, processor>>(target, rom_fetcher);
+	}
+}
+
+}
+
 std::unique_ptr<Machine> Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
 
-#define DiskInterfaceSwitch(processor) \
-	switch(oric_target->disk_interface) {	\
-		default:						return std::make_unique<ConcreteMachine<DiskInterface::None, processor>>(*oric_target, rom_fetcher);		\
-		case DiskInterface::Microdisc:	return std::make_unique<ConcreteMachine<DiskInterface::Microdisc, processor>>(*oric_target, rom_fetcher);	\
-		case DiskInterface::Pravetz:	return std::make_unique<ConcreteMachine<DiskInterface::Pravetz, processor>>(*oric_target, rom_fetcher);	\
-		case DiskInterface::Jasmin:		return std::make_unique<ConcreteMachine<DiskInterface::Jasmin, processor>>(*oric_target, rom_fetcher);	\
-		case DiskInterface::BD500:		return std::make_unique<ConcreteMachine<DiskInterface::BD500, processor>>(*oric_target, rom_fetcher);		\
-	}
-
 	switch(oric_target->processor) {
-		case Processor::WDC65816:	DiskInterfaceSwitch(CPU::MOS6502Esque::Type::TWDC65816);
-		case Processor::MOS6502:	DiskInterfaceSwitch(CPU::MOS6502Esque::Type::T6502);
+		case Processor::WDC65816:	return machine<CPU::MOS6502Esque::Type::TWDC65816>(*oric_target, rom_fetcher);
+		case Processor::MOS6502:	return machine<CPU::MOS6502Esque::Type::T6502>(*oric_target, rom_fetcher);
 	}
-
-#undef DiskInterfaceSwitch
 
 	return nullptr;
 }
