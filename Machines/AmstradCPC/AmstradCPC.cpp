@@ -310,7 +310,7 @@ class CRTCBusHandler {
 			}
 
 			// Check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change modes.
-			if(!was_hsync_ && state.hsync) {
+			if(was_hsync_ && !state.hsync) {
 				if(mode_ != next_mode_) {
 					mode_ = next_mode_;
 					switch(mode_) {
