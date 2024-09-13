@@ -305,12 +305,12 @@ class CRTCBusHandler {
 			// Per Interrupts in the CPC: "to be confirmed: does gate array count positive or negative edge transitions of HSYNC signal?";
 			// if you take it as given that display mode is latched as a result of hsync then Pipe Mania seems to imply that the count
 			// occurs on a leading edge and the mode lock on a trailing.
-			if(was_hsync_ && !state.hsync) {
+			if(!was_hsync_ && state.hsync) {
 				interrupt_timer_.signal_hsync();
 			}
 
 			// Check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change modes.
-			if(!was_hsync_ && state.hsync) {
+			if(was_hsync_ && !state.hsync) {
 				if(mode_ != next_mode_) {
 					mode_ = next_mode_;
 					switch(mode_) {
