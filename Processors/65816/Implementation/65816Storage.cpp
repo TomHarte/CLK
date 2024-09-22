@@ -493,7 +493,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void direct_indirect_indexed_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);					// DO.
 
-		target(OperationConstructDirect);
+		target(OperationConstructDirectLong);
 		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
