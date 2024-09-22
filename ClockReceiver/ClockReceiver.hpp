@@ -140,6 +140,19 @@ template <class T> class WrappedInt {
 
 		/// @returns The underlying int, converted to an integral type of your choosing, clamped to that int's range.
 		template<typename Type = IntType> forceinline constexpr Type as() const {
+			if constexpr (sizeof(Type) == sizeof(IntType)) {
+				if constexpr (std::is_same_v<Type, IntType>) {
+					return length_;
+				} else if constexpr (std::is_signed_v<Type>) {
+					// Both integers are the same size, but a signed result is being asked for
+					// from an unsigned original.
+					return length_ > Type(std::numeric_limits<Type>::max()) ? Type(std::numeric_limits<Type>::max()) : Type(length_);
+				} else {
+					// An unsigned result is being asked for from a signed original.
+					return length_ < 0 ? 0 : Type(length_);
+				}
+			}
+
 			const auto clamped = std::clamp(length_, IntType(std::numeric_limits<Type>::min()), IntType(std::numeric_limits<Type>::max()));
 			return Type(clamped);
 		}
