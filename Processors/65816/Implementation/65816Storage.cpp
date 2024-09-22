@@ -667,8 +667,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationPerform);
 	}
 
-	// 22b(ii). Stack; s, PLx, ignoring emulation mode. I.e. PLD.
-	static void stack_pld(AccessType, bool, const std::function<void(MicroOp)> &target) {
+	// 22b(ii). Stack; s, PLx, ignoring emulation mode. I.e. PLD and PLB.
+	static void stack_pld_plb(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPCThrowaway);	// IO.
 		target(CycleFetchPCThrowaway);	// IO.
 
@@ -873,7 +873,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x28 PLP s */			op(stack_pull, PLP, AccessMode::Always8Bit);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pld, PLD);
+	/* 0x2b PLD s */			op(stack_pld_plb, PLD);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
@@ -1009,7 +1009,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa8 TAY i */			op(implied, TAY);
 	/* 0xa9 LDA # */			op(immediate, LDA);
 	/* 0xaa TAX i */			op(implied, TAX);
-	/* 0xab PLB s */			op(stack_pull, PLB, AccessMode::Always8Bit);
+	/* 0xab PLB s */			op(stack_pld_plb, PLB, AccessMode::Always8Bit);
 	/* 0xac LDY a */			op(absolute, LDY);
 	/* 0xad LDA a */			op(absolute, LDA);
 	/* 0xae LDX a */			op(absolute, LDX);
