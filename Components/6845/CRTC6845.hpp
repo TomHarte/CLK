@@ -185,55 +185,102 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			status_ |= 0x40;
 		}
 
+		bool eof_latched_ = false;
+		bool extra_scanline_ = false;
+		uint8_t next_line_counter_ = 0;
+		bool adjustment_in_progress_ = false;
+		uint16_t next_row_address_ = 0;
+
 		void run_for(Cycles cycles) {
 			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
-				// Check for end of visible characters.
-				if(character_counter_ == layout_.horizontal.displayed) {
-					// TODO: consider skew in character_is_visible_. Or maybe defer until perform_bus_cycle?
-					character_is_visible_ = false;
-					end_of_line_address_ = bus_state_.refresh_address;
-				}
+				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
+				const bool new_frame = character_total_hit && eof_latched_ && (layout_.interlace_mode_ == InterlaceMode::Off || !(bus_state_.field_count&1) || extra_scanline_);
+
+				//
+				// Horizontal.
+				//
+
+					// Check for end-of-line.
+					if(character_total_hit) {
+						character_counter_ = 0;
+						character_is_visible_ = true;
+					} else {
+						character_counter_++;
+					}
+
+					// Check for end of visible characters.
+					if(character_counter_ == layout_.horizontal.displayed) {
+						character_is_visible_ = false;
+					}
+
+					// Update horizontal sync.
+					if(bus_state_.hsync) {
+						++hsync_counter_;
+						bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
+					}
+					if(character_counter_ == layout_.horizontal.start_sync) {
+						hsync_counter_ = 0;
+						bus_state_.hsync = true;
+					}
+
+
+				//
+				// Vertical.
+				//
+					const bool line_total_hit = line_counter_ == layout_.vertical.displayed && !adjustment_in_progress_;
+
+					// Line counter.
+					if(new_frame) {
+						line_counter_ = 0;
+					} else if(character_total_hit) {
+						line_counter_ = next_line_counter_;
+					}
+
+					if(line_total_hit) {
+						next_line_counter_ = 0;
+					} else if(layout_.interlace_mode_ != InterlaceMode::InterlaceSyncAndVideo || adjustment_in_progress_) {
+						next_line_counter_ = line_counter_ + 1;
+					} else {
+						next_line_counter_ = (line_counter_ + 2) & ~1;
+					}
+
+					// Row counter.
+					bus_state_.row_address = next_row_address_;
+					if(new_frame) {
+						next_row_address_ = 0;
+					} else if(line_total_hit && character_total_hit) {
+						next_row_address_ = bus_state_.row_address + 1;
+					} else {
+						next_row_address_ = bus_state_.row_address;
+					}
+
+					// Sync. [TODO]
+					const bool vsync_hit = line_counter_ == layout_.vertical.start_sync;
+					if(character_total_hit) {
+						if(vsync_hit) {
+							vsync_counter_ = 0;
+						} else {
+							++vsync_counter_;
+						}
+					}
+
+
+				//
+				// Addressing.
+				//
+
+					if(new_frame) {
+
+					}
+
+				// Do bus work.
+//				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
+//
+//				bus_state_.cursor = is_cursor_line_ &&
+//					bus_state_.refresh_address == layout_.cursor_address;
 
 				perform_bus_cycle_phase1();
-				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
-
-				bus_state_.cursor = is_cursor_line_ &&
-					bus_state_.refresh_address == layout_.cursor_address;
-
-				// Check for end-of-line.
-				if(character_counter_ == layout_.horizontal.total) {
-					character_counter_ = 0;
-					do_end_of_line();
-					character_is_visible_ = true;
-				} else {
-					// Increment counter.
-					character_counter_++;
-				}
-
-				// Check for start of horizontal sync.
-				if(character_counter_ == layout_.horizontal.start_sync) {
-					hsync_counter_ = 0;
-					bus_state_.hsync = true;
-				}
-
-				// Check for end of horizontal sync; note that a sync time of zero will result in an immediate
-				// cancellation of the plan to perform sync if this is an HD6845S or UM6845R; otherwise zero
-				// will end up counting as 16 as it won't be checked until after overflow.
-				if(bus_state_.hsync) {
-					switch(personality) {
-						case Personality::HD6845S:
-						case Personality::UM6845R:
-							bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
-							hsync_counter_ = (hsync_counter_ + 1) & 15;
-						break;
-						default:
-							hsync_counter_ = (hsync_counter_ + 1) & 15;
-							bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
-						break;
-					}
-				}
-
 				perform_bus_cycle_phase2();
 			}
 		}
@@ -256,100 +303,100 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			bus_handler_.perform_bus_cycle_phase2(bus_state_);
 		}
 
-		inline void do_end_of_line() {
-			if constexpr (cursor_type != CursorType::None) {
-				// Check for cursor disable.
-				// TODO: this is handled differently on the EGA, should I ever implement that.
-				is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
-			}
-
-			// Check for end of vertical sync.
-			if(bus_state_.vsync) {
-				vsync_counter_ = (vsync_counter_ + 1) & 15;
-				// On the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
-				// always use a vertical sync count of 16.
-				switch(personality) {
-					case Personality::HD6845S:
-					case Personality::AMS40226:
-						bus_state_.vsync = vsync_counter_ != layout_.vertical.sync_lines;
-					break;
-					default:
-						bus_state_.vsync = vsync_counter_ != 0;
-					break;
-				}
-			}
-
-			if(is_in_adjustment_period_) {
-				line_counter_++;
-				if(line_counter_ == layout_.vertical.adjust) {
-					is_in_adjustment_period_ = false;
-					do_end_of_frame();
-				}
-			} else {
-				// Advance vertical counter.
-				if(bus_state_.row_address == layout_.vertical.end_row) {
-					bus_state_.row_address = 0;
-					line_address_ = end_of_line_address_;
-
-					// Check for entry into the overflow area.
-					if(line_counter_ == layout_.vertical.total) {
-						if(layout_.vertical.adjust) {
-							line_counter_ = 0;
-							is_in_adjustment_period_ = true;
-						} else {
-							do_end_of_frame();
-						}
-					} else {
-						line_counter_ = (line_counter_ + 1) & 0x7f;
-					}
-
-					// Check for start of vertical sync.
-					if(line_counter_ == layout_.vertical.start_sync) {
-						bus_state_.vsync = true;
-						vsync_counter_ = 0;
-					}
-
-					// Check for end of visible lines.
-					if(line_counter_ == layout_.vertical.displayed) {
-						line_is_visible_ = false;
-					}
-				} else {
-					bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
-				}
-			}
-
-			bus_state_.refresh_address = line_address_;
-			character_counter_ = 0;
-			character_is_visible_ = (layout_.horizontal.displayed != 0);
-
-			if constexpr (cursor_type != CursorType::None) {
-				// Check for cursor enable.
-				is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
-
-				switch(cursor_type) {
-					// MDA-style blinking.
-					// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
-					// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
-					case CursorType::MDA:
-						switch(layout_.cursor_flags) {
-							case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
-							case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
-							case 0b01: is_cursor_line_ = false;								break;
-							case 0b10: is_cursor_line_ = true;								break;
-							default: break;
-						}
-					break;
-				}
-			}
-		}
-
-		inline void do_end_of_frame() {
-			line_counter_ = 0;
-			line_is_visible_ = true;
-			line_address_ = layout_.start_address;
-			bus_state_.refresh_address = line_address_;
-			++bus_state_.field_count;
-		}
+//		inline void do_end_of_line() {
+//			if constexpr (cursor_type != CursorType::None) {
+//				// Check for cursor disable.
+//				// TODO: this is handled differently on the EGA, should I ever implement that.
+//				is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
+//			}
+//
+//			// Check for end of vertical sync.
+//			if(bus_state_.vsync) {
+//				vsync_counter_ = (vsync_counter_ + 1) & 15;
+//				// On the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
+//				// always use a vertical sync count of 16.
+//				switch(personality) {
+//					case Personality::HD6845S:
+//					case Personality::AMS40226:
+//						bus_state_.vsync = vsync_counter_ != layout_.vertical.sync_lines;
+//					break;
+//					default:
+//						bus_state_.vsync = vsync_counter_ != 0;
+//					break;
+//				}
+//			}
+//
+//			if(is_in_adjustment_period_) {
+//				line_counter_++;
+//				if(line_counter_ == layout_.vertical.adjust) {
+//					is_in_adjustment_period_ = false;
+//					do_end_of_frame();
+//				}
+//			} else {
+//				// Advance vertical counter.
+//				if(bus_state_.row_address == layout_.end_row()) {
+//					bus_state_.row_address = 0;
+//					line_address_ = end_of_line_address_;
+//
+//					// Check for entry into the overflow area.
+//					if(line_counter_ == layout_.vertical.total) {
+//						if(layout_.vertical.adjust) {
+//							line_counter_ = 0;
+//							is_in_adjustment_period_ = true;
+//						} else {
+//							do_end_of_frame();
+//						}
+//					} else {
+//						line_counter_ = (line_counter_ + 1) & 0x7f;
+//					}
+//
+//					// Check for start of vertical sync.
+//					if(line_counter_ == layout_.vertical.start_sync) {
+//						bus_state_.vsync = true;
+//						vsync_counter_ = 0;
+//					}
+//
+//					// Check for end of visible lines.
+//					if(line_counter_ == layout_.vertical.displayed) {
+//						line_is_visible_ = false;
+//					}
+//				} else {
+//					bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
+//				}
+//			}
+//
+//			bus_state_.refresh_address = line_address_;
+//			character_counter_ = 0;
+//			character_is_visible_ = (layout_.horizontal.displayed != 0);
+//
+//			if constexpr (cursor_type != CursorType::None) {
+//				// Check for cursor enable.
+//				is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
+//
+//				switch(cursor_type) {
+//					// MDA-style blinking.
+//					// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+//					// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
+//					case CursorType::MDA:
+//						switch(layout_.cursor_flags) {
+//							case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
+//							case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
+//							case 0b01: is_cursor_line_ = false;								break;
+//							case 0b10: is_cursor_line_ = true;								break;
+//							default: break;
+//						}
+//					break;
+//				}
+//			}
+//		}
+//
+//		inline void do_end_of_frame() {
+//			line_counter_ = 0;
+//			line_is_visible_ = true;
+//			line_address_ = layout_.start_address;
+//			bus_state_.refresh_address = line_address_;
+//			++bus_state_.field_count;
+//		}
 
 		BusHandlerT &bus_handler_;
 		BusState bus_state_;
@@ -383,6 +430,10 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			} vertical;
 
 			InterlaceMode interlace_mode_ = InterlaceMode::Off;
+			uint8_t end_row() const {
+				return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? vertical.end_row & ~1 : vertical.end_row;
+			}
+
 			uint16_t start_address;
 			uint16_t cursor_address;
 			uint16_t light_pen_address;
