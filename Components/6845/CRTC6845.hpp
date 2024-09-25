@@ -271,14 +271,24 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				//
 
 					if(new_frame) {
+						line_address_ = layout_.start_address;
+					} else if(character_counter_ == layout_.horizontal.displayed && line_total_hit) {
+						line_address_ = bus_state_.refresh_address;
+					}
 
+					if(new_frame) {
+						bus_state_.refresh_address = layout_.start_address;
+					} else if(character_total_hit) {
+						layout_.start_address = line_address_;
+					} else {
+						layout_.start_address = (layout_.start_address + 1) & RefreshMask;
 					}
 
 				// Do bus work.
-//				bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
-//
 //				bus_state_.cursor = is_cursor_line_ &&
 //					bus_state_.refresh_address == layout_.cursor_address;
+
+				bus_state_.display_enable = character_is_visible_;
 
 				perform_bus_cycle_phase1();
 				perform_bus_cycle_phase2();
