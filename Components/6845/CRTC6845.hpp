@@ -194,20 +194,35 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		void run_for(Cycles cycles) {
 			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
+				// Intention of code below: all conditionals are evaluated as if functional; they should be
+				// ordered so that whatever assignments result don't affect any subsequent conditionals
+
+
+				// Do bus work.
+//				bus_state_.cursor = is_cursor_line_ &&
+//					bus_state_.refresh_address == layout_.cursor_address;
+
+				bus_state_.display_enable = character_is_visible_;
+
+				// TODO: considate the two below.
+				perform_bus_cycle_phase1();
+				perform_bus_cycle_phase2();
+
+				//
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
-				const bool new_frame = character_total_hit && eof_latched_ && (layout_.interlace_mode_ == InterlaceMode::Off || !(bus_state_.field_count&1) || extra_scanline_);
+				const uint8_t lines_per_row = layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
+				const bool line_total_hit = line_counter_ == lines_per_row && !adjustment_in_progress_;
+				const bool new_frame =
+					character_total_hit && eof_latched_ &&
+					(
+						layout_.interlace_mode_ == InterlaceMode::Off ||
+						!(bus_state_.field_count&1) ||
+						extra_scanline_
+					);
 
 				//
 				// Horizontal.
 				//
-
-					// Check for end-of-line.
-					if(character_total_hit) {
-						character_counter_ = 0;
-						character_is_visible_ = true;
-					} else {
-						character_counter_++;
-					}
 
 					// Check for end of visible characters.
 					if(character_counter_ == layout_.horizontal.displayed) {
@@ -224,11 +239,17 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						bus_state_.hsync = true;
 					}
 
+					// Check for end-of-line.
+					if(character_total_hit) {
+						character_counter_ = 0;
+						character_is_visible_ = true;
+					} else {
+						character_counter_++;
+					}
 
 				//
 				// Vertical.
 				//
-					const bool line_total_hit = line_counter_ == layout_.vertical.displayed && !adjustment_in_progress_;
 
 					// Line counter.
 					if(new_frame) {
@@ -283,15 +304,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					} else {
 						layout_.start_address = (layout_.start_address + 1) & RefreshMask;
 					}
-
-				// Do bus work.
-//				bus_state_.cursor = is_cursor_line_ &&
-//					bus_state_.refresh_address == layout_.cursor_address;
-
-				bus_state_.display_enable = character_is_visible_;
-
-				perform_bus_cycle_phase1();
-				perform_bus_cycle_phase2();
 			}
 		}
 
@@ -304,8 +316,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 		inline void perform_bus_cycle_phase1() {
 			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
-			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | unsigned(character_is_visible_);
-			bus_state_.display_enable = (int(character_is_visible_shifter_) & display_skew_mask_) && line_is_visible_;
+//			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | unsigned(character_is_visible_);
+//			bus_state_.display_enable = (int(character_is_visible_shifter_) & display_skew_mask_) && line_is_visible_;
 			bus_handler_.perform_bus_cycle_phase1(bus_state_);
 		}
 
