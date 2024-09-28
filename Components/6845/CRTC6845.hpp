@@ -221,6 +221,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						extra_scanline_
 					);
 
+					// TODO: eof_latched_
+
 				//
 				// Horizontal.
 				//
@@ -272,7 +274,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					if(new_frame) {
 						next_row_address_ = 0;
 					} else if(line_total_hit && character_total_hit) {
-						next_row_address_ = bus_state_.row_address + 1;
+						next_row_address_ = (bus_state_.row_address + 1) & 31;
 					} else {
 						next_row_address_ = bus_state_.row_address;
 					}
@@ -308,9 +310,9 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					if(new_frame) {
 						bus_state_.refresh_address = layout_.start_address;
 					} else if(character_total_hit) {
-						layout_.start_address = line_address_;
+						bus_state_.refresh_address = line_address_;
 					} else {
-						layout_.start_address = (layout_.start_address + 1) & RefreshMask;
+						bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
 					}
 			}
 		}
