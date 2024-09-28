@@ -190,6 +190,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		uint8_t next_line_counter_ = 0;
 		bool adjustment_in_progress_ = false;
 		uint16_t next_row_address_ = 0;
+		bool odd_field_ = false;
 
 		void run_for(Cycles cycles) {
 			auto cyles_remaining = cycles.as_integral();
@@ -276,13 +277,20 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						next_row_address_ = bus_state_.row_address;
 					}
 
-					// Sync. [TODO]
-					const bool vsync_hit = line_counter_ == layout_.vertical.start_sync;
-					if(character_total_hit) {
-						if(vsync_hit) {
-							vsync_counter_ = 0;
+					// Sync.
+					const bool vsync_horizontal =
+						(!odd_field_ && !character_counter_) ||
+						(odd_field_ && character_counter_ == (layout_.horizontal.total >> 1));
+					if(vsync_horizontal) {
+						if(line_counter_ == layout_.vertical.start_sync || bus_state_.vsync) {
+							bus_state_.vsync = true;
+							vsync_counter_ = (vsync_counter_ + 1) & 0xf;
 						} else {
-							++vsync_counter_;
+							vsync_counter_ = 0;
+						}
+
+						if(vsync_counter_ == layout_.vertical.sync_lines) {
+							bus_state_.vsync = false;
 						}
 					}
 
