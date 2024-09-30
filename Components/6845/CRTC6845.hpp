@@ -203,7 +203,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 //				bus_state_.cursor = is_cursor_line_ &&
 //					bus_state_.refresh_address == layout_.cursor_address;
 
-				bus_state_.display_enable = character_is_visible_; // TODO: && row_visible_ or somesuch
+				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
 
 				// TODO: considate the two below.
 				perform_bus_cycle_phase1();
@@ -279,8 +279,10 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					row_counter_ = next_row_counter_;
 					if(new_frame) {
 						next_row_counter_ = 0;
+						is_first_scanline_ = true;
 					} else {
 						next_row_counter_ = row_end_hit && character_total_hit ? (next_row_counter_ + 1) : next_row_counter_;
+						is_first_scanline_ &= !row_end_hit;
 					}
 
 					// Sync.
@@ -298,6 +300,13 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						if(vsync_counter_ == layout_.vertical.sync_lines) {
 							bus_state_.vsync = false;
 						}
+					}
+
+					if(is_first_scanline_) {
+						line_is_visible_ = true;
+					} else if(line_is_visible_ && row_counter_ == layout_.vertical.displayed) {
+						line_is_visible_ = false;
+//						++field_counter_;
 					}
 
 				//
@@ -482,7 +491,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		uint8_t character_counter_ = 0;
 		uint8_t row_counter_ = 0, next_row_counter_ = 0;;
 
-		bool character_is_visible_ = false, line_is_visible_ = false;
+		bool character_is_visible_ = false, line_is_visible_ = false, is_first_scanline_ = false;
 
 		int hsync_counter_ = 0;
 		int vsync_counter_ = 0;
