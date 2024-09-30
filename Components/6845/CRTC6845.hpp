@@ -239,7 +239,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						hsync_counter_ = 0;
 						bus_state_.hsync = true;
 
-						printf("Row:%d line:%d refresh:%04x\n", bus_state_.row_address, row_counter_, bus_state_.refresh_address);
+						printf("Row:%d line:%d refresh:%04x; eom:%d eof:%d newf:%d\n", bus_state_.row_address, row_counter_, bus_state_.refresh_address, eom_latched_, eof_latched_, new_frame);
 					}
 
 					// Check for end-of-line.
@@ -251,17 +251,26 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					}
 
 				//
+				// End-of-frame.
+				//
+
+					if(new_frame) {
+						eom_latched_ = eof_latched_ = false;
+					} else {
+						eom_latched_ |= character_counter_ == 1 && row_end_hit && row_counter_ == layout_.vertical.total;
+						eof_latched_ |= character_counter_ == 2 && eom_latched_ && !adjustment_in_progress_;
+					}
+
+				//
 				// Vertical.
 				//
 
 					if(character_total_hit) {
 						if(eof_latched_ ) {
 							bus_state_.row_address = 0;
-
 							eof_latched_ = eom_latched_ = false;
 						} else if(row_end_hit) {
 							bus_state_.row_address = 0;
-							++row_counter_;
 						} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
 							bus_state_.row_address = (bus_state_.row_address + 2) & ~1 & 31;
 						} else {
@@ -269,23 +278,12 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						}
 					}
 
-					// Row counter.
-//					if(new_frame) {
-//						bus_state_.row_address = 0;
-//						row_counter_ = 0;
-//					} else if(row_total_hit && character_total_hit) {
-//						++row_counter_;
-//					} else if(character_total_hit) {
-//						bus_state_.row_address = next_row_address_;
-//					}
-//
-//					if(row_total_hit) {
-//						bus_state_.row_address = 0;
-//					} else if(layout_.interlace_mode_ != InterlaceMode::InterlaceSyncAndVideo || adjustment_in_progress_) {
-//						next_row_address_ = (bus_state_.row_address + 1) & 31;
-//					} else {
-//						next_row_address_ = (bus_state_.row_address + 2) & ~1 & 31;
-//					}
+					row_counter_ = next_row_counter_;
+					if(new_frame) {
+						next_row_counter_ = 0;
+					} else {
+						next_row_counter_ = row_end_hit && character_total_hit ? (next_row_counter_ + 1) : next_row_counter_;
+					}
 
 					// Sync.
 					const bool vsync_horizontal =
@@ -304,13 +302,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 							bus_state_.vsync = false;
 						}
 					}
-
-				//
-				// End-of-frame.
-				//
-
-					eom_latched_ = !new_frame && character_counter_ == 1 && row_end_hit && row_counter_ == layout_.vertical.total;
-					eof_latched_ = !new_frame && character_counter_ == 2 && eom_latched_ && !adjustment_in_progress_;
 
 				//
 				// Addressing.
@@ -492,7 +483,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		int selected_register_ = 0;
 
 		uint8_t character_counter_ = 0;
-		uint8_t row_counter_ = 0;
+		uint8_t row_counter_ = 0, next_row_counter_ = 0;;
 
 		bool character_is_visible_ = false, line_is_visible_ = false;
 
