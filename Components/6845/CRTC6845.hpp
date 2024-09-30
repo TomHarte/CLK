@@ -225,11 +225,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				// Horizontal.
 				//
 
-					// Check for end of visible characters.
-					if(character_counter_ == layout_.horizontal.displayed) {
-						character_is_visible_ = false;
-					}
-
 					// Update horizontal sync.
 					if(bus_state_.hsync) {
 						++hsync_counter_;
@@ -238,8 +233,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					if(character_counter_ == layout_.horizontal.start_sync) {
 						hsync_counter_ = 0;
 						bus_state_.hsync = true;
-
-						printf("Row:%d line:%d refresh:%04x; eom:%d eof:%d newf:%d\n", bus_state_.row_address, row_counter_, bus_state_.refresh_address, eom_latched_, eof_latched_, new_frame);
 					}
 
 					// Check for end-of-line.
@@ -248,6 +241,11 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						character_is_visible_ = true;
 					} else {
 						character_counter_++;
+					}
+
+					// Check for end of visible characters.
+					if(character_counter_ == layout_.horizontal.displayed) {
+						character_is_visible_ = false;
 					}
 
 				//
@@ -298,7 +296,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						}
 
 						if(vsync_counter_ == layout_.vertical.sync_lines) {
-							printf("\n\n===\n");
 							bus_state_.vsync = false;
 						}
 					}
@@ -308,17 +305,17 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				//
 
 					if(new_frame) {
-						line_address_ = layout_.start_address;
-					} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
-						line_address_ = bus_state_.refresh_address;
-					}
-
-					if(new_frame) {
 						bus_state_.refresh_address = layout_.start_address;
 					} else if(character_total_hit) {
 						bus_state_.refresh_address = line_address_;
 					} else {
 						bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
+					}
+
+					if(new_frame) {
+						line_address_ = layout_.start_address;
+					} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
+						line_address_ = bus_state_.refresh_address;
 					}
 			}
 		}
