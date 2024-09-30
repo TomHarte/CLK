@@ -186,10 +186,10 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		}
 
 		bool eof_latched_ = false;
+		bool eom_latched_ = false;
 		bool extra_scanline_ = false;
-		uint8_t next_line_counter_ = 0;
-		bool adjustment_in_progress_ = false;
 		uint16_t next_row_address_ = 0;
+		bool adjustment_in_progress_ = false;
 		bool odd_field_ = false;
 
 		void run_for(Cycles cycles) {
@@ -203,7 +203,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 //				bus_state_.cursor = is_cursor_line_ &&
 //					bus_state_.refresh_address == layout_.cursor_address;
 
-				bus_state_.display_enable = character_is_visible_;
+				bus_state_.display_enable = character_is_visible_; // TODO: && row_visible_ or somesuch
 
 				// TODO: considate the two below.
 				perform_bus_cycle_phase1();
@@ -212,7 +212,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				//
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
 				const uint8_t lines_per_row = layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
-				const bool line_total_hit = line_counter_ == lines_per_row && !adjustment_in_progress_;
+				const bool row_end_hit = bus_state_.row_address == lines_per_row && !adjustment_in_progress_;
 				const bool new_frame =
 					character_total_hit && eof_latched_ &&
 					(
@@ -220,8 +220,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						!(bus_state_.field_count&1) ||
 						extra_scanline_
 					);
-
-					// TODO: eof_latched_
 
 				//
 				// Horizontal.
@@ -240,6 +238,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					if(character_counter_ == layout_.horizontal.start_sync) {
 						hsync_counter_ = 0;
 						bus_state_.hsync = true;
+
+						printf("Row:%d line:%d refresh:%04x\n", bus_state_.row_address, row_counter_, bus_state_.refresh_address);
 					}
 
 					// Check for end-of-line.
@@ -254,37 +254,45 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				// Vertical.
 				//
 
-					// Line counter.
-					if(new_frame) {
-						line_counter_ = 0;
-					} else if(character_total_hit) {
-						line_counter_ = next_line_counter_;
-					}
+					if(character_total_hit) {
+						if(eof_latched_ ) {
+							bus_state_.row_address = 0;
 
-					if(line_total_hit) {
-						next_line_counter_ = 0;
-					} else if(layout_.interlace_mode_ != InterlaceMode::InterlaceSyncAndVideo || adjustment_in_progress_) {
-						next_line_counter_ = line_counter_ + 1;
-					} else {
-						next_line_counter_ = (line_counter_ + 2) & ~1;
+							eof_latched_ = eom_latched_ = false;
+						} else if(row_end_hit) {
+							bus_state_.row_address = 0;
+							++row_counter_;
+						} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
+							bus_state_.row_address = (bus_state_.row_address + 2) & ~1 & 31;
+						} else {
+							bus_state_.row_address = (bus_state_.row_address + 1) & 31;
+						}
 					}
 
 					// Row counter.
-					bus_state_.row_address = next_row_address_;
-					if(new_frame) {
-						next_row_address_ = 0;
-					} else if(line_total_hit && character_total_hit) {
-						next_row_address_ = (bus_state_.row_address + 1) & 31;
-					} else {
-						next_row_address_ = bus_state_.row_address;
-					}
+//					if(new_frame) {
+//						bus_state_.row_address = 0;
+//						row_counter_ = 0;
+//					} else if(row_total_hit && character_total_hit) {
+//						++row_counter_;
+//					} else if(character_total_hit) {
+//						bus_state_.row_address = next_row_address_;
+//					}
+//
+//					if(row_total_hit) {
+//						bus_state_.row_address = 0;
+//					} else if(layout_.interlace_mode_ != InterlaceMode::InterlaceSyncAndVideo || adjustment_in_progress_) {
+//						next_row_address_ = (bus_state_.row_address + 1) & 31;
+//					} else {
+//						next_row_address_ = (bus_state_.row_address + 2) & ~1 & 31;
+//					}
 
 					// Sync.
 					const bool vsync_horizontal =
 						(!odd_field_ && !character_counter_) ||
 						(odd_field_ && character_counter_ == (layout_.horizontal.total >> 1));
 					if(vsync_horizontal) {
-						if(line_counter_ == layout_.vertical.start_sync || bus_state_.vsync) {
+						if(row_counter_ == layout_.vertical.start_sync || bus_state_.vsync) {
 							bus_state_.vsync = true;
 							vsync_counter_ = (vsync_counter_ + 1) & 0xf;
 						} else {
@@ -292,10 +300,17 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						}
 
 						if(vsync_counter_ == layout_.vertical.sync_lines) {
+							printf("\n\n===\n");
 							bus_state_.vsync = false;
 						}
 					}
 
+				//
+				// End-of-frame.
+				//
+
+					eom_latched_ = !new_frame && character_counter_ == 1 && row_end_hit && row_counter_ == layout_.vertical.total;
+					eof_latched_ = !new_frame && character_counter_ == 2 && eom_latched_ && !adjustment_in_progress_;
 
 				//
 				// Addressing.
@@ -303,7 +318,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 					if(new_frame) {
 						line_address_ = layout_.start_address;
-					} else if(character_counter_ == layout_.horizontal.displayed && line_total_hit) {
+					} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
 						line_address_ = bus_state_.refresh_address;
 					}
 
@@ -477,7 +492,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		int selected_register_ = 0;
 
 		uint8_t character_counter_ = 0;
-		uint8_t line_counter_ = 0;
+		uint8_t row_counter_ = 0;
 
 		bool character_is_visible_ = false, line_is_visible_ = false;
 
