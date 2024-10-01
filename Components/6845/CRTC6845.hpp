@@ -189,7 +189,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		bool eom_latched_ = false;
 		bool extra_scanline_ = false;
 		uint16_t next_row_address_ = 0;
-		bool adjustment_in_progress_ = false;
 		bool odd_field_ = false;
 
 		void run_for(Cycles cycles) {
@@ -212,7 +211,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				//
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
 				const uint8_t lines_per_row = layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
-				const bool row_end_hit = bus_state_.row_address == lines_per_row && !adjustment_in_progress_;
+				const bool row_end_hit = bus_state_.row_address == lines_per_row && !is_in_adjustment_period_;
 				const bool new_frame =
 					character_total_hit && eof_latched_ &&
 					(
@@ -253,10 +252,23 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				//
 
 					if(new_frame) {
-						eom_latched_ = eof_latched_ = false;
+						is_in_adjustment_period_ = eom_latched_ = eof_latched_ = false;
 					} else {
 						eom_latched_ |= character_counter_ == 1 && row_end_hit && row_counter_ == layout_.vertical.total;
-						eof_latched_ |= character_counter_ == 2 && eom_latched_ && !adjustment_in_progress_;
+
+						if(eom_latched_ && character_counter_ == 2) {
+							eof_latched_ |= adjustment_counter_ == layout_.vertical.adjust;
+							is_in_adjustment_period_ |= eom_latched_ && !eof_latched_;
+						}
+					}
+
+					if(character_total_hit) {
+						if(is_in_adjustment_period_) {
+							adjustment_counter_ = (adjustment_counter_ + 1) & 31;
+						} else if(eof_latched_) {
+							is_in_adjustment_period_ = false;
+							adjustment_counter_ = 0;
+						}
 					}
 
 				//
@@ -306,7 +318,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						line_is_visible_ = true;
 					} else if(line_is_visible_ && row_counter_ == layout_.vertical.displayed) {
 						line_is_visible_ = false;
-//						++field_counter_;
+						++bus_state_.field_count;
 					}
 
 				//
@@ -346,101 +358,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		inline void perform_bus_cycle_phase2() {
 			bus_handler_.perform_bus_cycle_phase2(bus_state_);
 		}
-
-//		inline void do_end_of_line() {
-//			if constexpr (cursor_type != CursorType::None) {
-//				// Check for cursor disable.
-//				// TODO: this is handled differently on the EGA, should I ever implement that.
-//				is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
-//			}
-//
-//			// Check for end of vertical sync.
-//			if(bus_state_.vsync) {
-//				vsync_counter_ = (vsync_counter_ + 1) & 15;
-//				// On the UM6845R and AMS40226, honour the programmed vertical sync time; on the other CRTCs
-//				// always use a vertical sync count of 16.
-//				switch(personality) {
-//					case Personality::HD6845S:
-//					case Personality::AMS40226:
-//						bus_state_.vsync = vsync_counter_ != layout_.vertical.sync_lines;
-//					break;
-//					default:
-//						bus_state_.vsync = vsync_counter_ != 0;
-//					break;
-//				}
-//			}
-//
-//			if(is_in_adjustment_period_) {
-//				line_counter_++;
-//				if(line_counter_ == layout_.vertical.adjust) {
-//					is_in_adjustment_period_ = false;
-//					do_end_of_frame();
-//				}
-//			} else {
-//				// Advance vertical counter.
-//				if(bus_state_.row_address == layout_.end_row()) {
-//					bus_state_.row_address = 0;
-//					line_address_ = end_of_line_address_;
-//
-//					// Check for entry into the overflow area.
-//					if(line_counter_ == layout_.vertical.total) {
-//						if(layout_.vertical.adjust) {
-//							line_counter_ = 0;
-//							is_in_adjustment_period_ = true;
-//						} else {
-//							do_end_of_frame();
-//						}
-//					} else {
-//						line_counter_ = (line_counter_ + 1) & 0x7f;
-//					}
-//
-//					// Check for start of vertical sync.
-//					if(line_counter_ == layout_.vertical.start_sync) {
-//						bus_state_.vsync = true;
-//						vsync_counter_ = 0;
-//					}
-//
-//					// Check for end of visible lines.
-//					if(line_counter_ == layout_.vertical.displayed) {
-//						line_is_visible_ = false;
-//					}
-//				} else {
-//					bus_state_.row_address = (bus_state_.row_address + 1) & 0x1f;
-//				}
-//			}
-//
-//			bus_state_.refresh_address = line_address_;
-//			character_counter_ = 0;
-//			character_is_visible_ = (layout_.horizontal.displayed != 0);
-//
-//			if constexpr (cursor_type != CursorType::None) {
-//				// Check for cursor enable.
-//				is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
-//
-//				switch(cursor_type) {
-//					// MDA-style blinking.
-//					// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
-//					// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
-//					case CursorType::MDA:
-//						switch(layout_.cursor_flags) {
-//							case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
-//							case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
-//							case 0b01: is_cursor_line_ = false;								break;
-//							case 0b10: is_cursor_line_ = true;								break;
-//							default: break;
-//						}
-//					break;
-//				}
-//			}
-//		}
-//
-//		inline void do_end_of_frame() {
-//			line_counter_ = 0;
-//			line_is_visible_ = true;
-//			line_address_ = layout_.start_address;
-//			bus_state_.refresh_address = line_address_;
-//			++bus_state_.field_count;
-//		}
 
 		BusHandlerT &bus_handler_;
 		BusState bus_state_;
@@ -489,7 +406,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		int selected_register_ = 0;
 
 		uint8_t character_counter_ = 0;
-		uint8_t row_counter_ = 0, next_row_counter_ = 0;;
+		uint8_t row_counter_ = 0, next_row_counter_ = 0;
+		uint8_t adjustment_counter_ = 0;
 
 		bool character_is_visible_ = false, line_is_visible_ = false, is_first_scanline_ = false;
 
