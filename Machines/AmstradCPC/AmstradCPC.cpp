@@ -585,7 +585,7 @@ class CRTCBusHandler {
 };
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
-	Motorola::CRTC::Personality::HD6845S,
+	Motorola::CRTC::Personality::UM6845R,
 	Motorola::CRTC::CursorType::None>;
 
 /*!
