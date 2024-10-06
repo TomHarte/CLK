@@ -104,13 +104,15 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		void set_register(uint8_t value) {
 			static constexpr bool is_ega = is_egavga(personality);
 
-			auto load_low = [value](uint16_t &target) {
+			const auto load_low = [value](uint16_t &target) {
 				target = (target & 0xff00) | value;
 			};
-			auto load_high = [value](uint16_t &target) {
+			const auto load_high = [value](uint16_t &target) {
 				constexpr uint8_t mask = RefreshMask >> 8;
 				target = uint16_t((target & 0x00ff) | ((value & mask) << 8));
 			};
+
+//			printf("%d/[%d/%d]: %d -> %02x\n", character_counter_, row_counter_, bus_state_.row_address, selected_register_, value);
 
 			switch(selected_register_) {
 				case 0:	layout_.horizontal.total = value;		break;

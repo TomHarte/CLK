@@ -55,6 +55,8 @@ class InterruptTimer {
 			trailing edge because it is active high.
 		*/
 		inline void signal_hsync() {
+//			printf("count h: %d/%d [%d]\n", timer_, reset_counter_, interrupt_request_);
+
 			// Increment the timer and if it has hit 52 then reset it and
 			// set the interrupt request line to true.
 			++timer_;
@@ -79,11 +81,13 @@ class InterruptTimer {
 
 		/// Indicates the leading edge of a new vertical sync.
 		inline void signal_vsync() {
+//			printf("count v\n");
 			reset_counter_ = 2;
 		}
 
 		/// Indicates that an interrupt acknowledge has been received from the Z80.
 		inline void signal_interrupt_acknowledge() {
+//			printf("count IRQA\n");
 			interrupt_request_ = false;
 			timer_ &= ~32;
 		}
@@ -93,13 +97,14 @@ class InterruptTimer {
 			return last_interrupt_request_ = interrupt_request_;
 		}
 
-		/// Asks whether the interrupt status has changed.
+		/// Asks whether the interrupt status has changed since the last call to @c get_request().
 		inline bool request_has_changed() {
 			return last_interrupt_request_ != interrupt_request_;
 		}
 
 		/// Resets the timer.
 		inline void reset_count() {
+//			printf("count reset\n");
 			timer_ = 0;
 			interrupt_request_ = false;
 		}
@@ -855,14 +860,14 @@ class ConcreteMachine:
 
 		/// The entry point for performing a partial Z80 machine cycle.
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			// Amstrad CPC timing scheme: assert WAIT for three out of four cycles
+			// Amstrad CPC timing scheme: assert WAIT for three out of four cycles.
 			clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 			z80_.set_wait_line(clock_offset_ >= HalfCycles(2));
 
 			// Update the CRTC once every eight half cycles; aiming for half-cycle 4 as
 			// per the initial seed to the crtc_counter_, but any time in the final four
 			// will do as it's safe to conclude that nobody else has touched video RAM
-			// during that whole window
+			// during that whole window.
 			crtc_counter_ += cycle.length;
 			const Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
 			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
@@ -872,18 +877,18 @@ class ConcreteMachine:
 			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
-			// run_for as HalfCycles
+			// run_for as HalfCycles.
 			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
 
-			// Pump the AY
+			// Pump the AY.
 			ay_.run_for(cycle.length);
 
 			if constexpr (has_fdc) {
-				// Clock the FDC, if connected, using a lazy scale by two
+				// Clock the FDC, if connected, using a lazy scale by two.
 				time_since_fdc_update_ += cycle.length;
 			}
 
-			// Update typing activity
+			// Update typing activity.
 			if(typer_) typer_->run_for(cycle.length);
 
 			// Stop now if no action is strictly required.
