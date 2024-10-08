@@ -262,8 +262,9 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					}
 
 					if(character_reset_history_ & 4 && eom_latched_) {
-						is_in_adjustment_period_ |= adjustment_counter_ != (layout_.vertical.adjust + (odd_field_ ? 1 : 0));
-						eof_latched_ |= adjustment_counter_ == layout_.vertical.adjust;
+						const auto adjust_length = layout_.vertical.adjust + (layout_.interlace_mode_ != InterlaceMode::Off && odd_field_ ? 1 : 0);
+						is_in_adjustment_period_ |= adjustment_counter_ != adjust_length;
+						eof_latched_ |= adjustment_counter_ == adjust_length;
 					}
 
 				//
