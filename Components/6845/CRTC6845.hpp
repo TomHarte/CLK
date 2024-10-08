@@ -193,9 +193,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 
 				// Do bus work.
-//				bus_state_.cursor = is_cursor_line_ &&
-//					bus_state_.refresh_address == layout_.cursor_address;
-
+				bus_state_.cursor = is_cursor_line_ &&
+					bus_state_.refresh_address == layout_.cursor_address;
 				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
 
 				// TODO: considate the two below.
@@ -203,16 +202,18 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				perform_bus_cycle_phase2();
 
 				//
-				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
-				const uint8_t lines_per_row = layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
-				const bool row_end_hit = bus_state_.row_address == lines_per_row && !is_in_adjustment_period_;
-				const bool new_frame =
-					character_total_hit && eof_latched_ &&
-					(
-						layout_.interlace_mode_ == InterlaceMode::Off ||
-						!(bus_state_.field_count&1) ||
-						extra_scanline_
-					);
+				// Shared, stateless signals.
+				//
+					const bool character_total_hit = character_counter_ == layout_.horizontal.total;
+					const uint8_t lines_per_row = layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
+					const bool row_end_hit = bus_state_.row_address == lines_per_row && !is_in_adjustment_period_;
+					const bool new_frame =
+						character_total_hit && eof_latched_ &&
+						(
+							layout_.interlace_mode_ == InterlaceMode::Off ||
+							!(bus_state_.field_count&1) ||
+							extra_scanline_
+						);
 
 				//
 				// Horizontal.
@@ -317,6 +318,29 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						line_is_visible_ = false;
 						++bus_state_.field_count;
 						odd_field_ ^= true;
+					}
+
+
+					// Cursor.
+					if constexpr (cursor_type != CursorType::None) {
+						// Check for cursor enable.
+						is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
+						is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
+
+						switch(cursor_type) {
+							// MDA-style blinking.
+							// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+							// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
+							case CursorType::MDA:
+								switch(layout_.cursor_flags) {
+									case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
+									case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
+									case 0b01: is_cursor_line_ = false;								break;
+									case 0b10: is_cursor_line_ = true;								break;
+									default: break;
+								}
+							break;
+						}
 					}
 
 				//
