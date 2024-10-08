@@ -112,8 +112,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				target = uint16_t((target & 0x00ff) | ((value & mask) << 8));
 			};
 
-//			printf("%d/[%d/%d]: %d -> %02x\n", character_counter_, row_counter_, bus_state_.row_address, selected_register_, value);
-
 			switch(selected_register_) {
 				case 0:	layout_.horizontal.total = value;		break;
 				case 1: layout_.horizontal.displayed = value;	break;
@@ -187,12 +185,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 			status_ |= 0x40;
 		}
 
-		bool eof_latched_ = false;
-		bool eom_latched_ = false;
-		bool extra_scanline_ = false;
-		uint16_t next_row_address_ = 0;
-		bool odd_field_ = false;
-
 		void run_for(Cycles cycles) {
 			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
@@ -234,13 +226,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					if(character_counter_ == layout_.horizontal.start_sync) {
 						hsync_counter_ = 0;
 						bus_state_.hsync = true;
-
-//						printf("%d / %d [%d] + %d [v %d] => m:%d f:%d a:%d [sync: %d %d as %d]\n",
-//							row_counter_, bus_state_.row_address, row_end_hit,
-//							adjustment_counter_, layout_.vertical.adjust,
-//							eom_latched_, eof_latched_, is_in_adjustment_period_,
-//							bus_state_.hsync, bus_state_.vsync,
-//							layout_.vertical.start_sync);
 					}
 
 					// Check for end-of-line.
@@ -276,7 +261,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					}
 
 					if(character_reset_history_ & 4 && eom_latched_) {
-						is_in_adjustment_period_ |= adjustment_counter_ != layout_.vertical.adjust;
+						is_in_adjustment_period_ |= adjustment_counter_ != (layout_.vertical.adjust + (odd_field_ ? 1 : 0));
 						eof_latched_ |= adjustment_counter_ == layout_.vertical.adjust;
 					}
 
@@ -331,6 +316,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					} else if(line_is_visible_ && row_counter_ == layout_.vertical.displayed) {
 						line_is_visible_ = false;
 						++bus_state_.field_count;
+						odd_field_ ^= true;
 					}
 
 				//
@@ -422,20 +408,26 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 		uint8_t row_counter_ = 0, next_row_counter_ = 0;
 		uint8_t adjustment_counter_ = 0;
 
-		bool character_is_visible_ = false, line_is_visible_ = false, is_first_scanline_ = false;
+		bool character_is_visible_ = false;
+		bool line_is_visible_ = false;
+		bool is_first_scanline_ = false;
+		bool is_cursor_line_ = false;
 
 		int hsync_counter_ = 0;
 		int vsync_counter_ = 0;
 		bool is_in_adjustment_period_ = false;
 
 		uint16_t line_address_ = 0;
-		uint16_t end_of_line_address_ = 0;
 		uint8_t status_ = 0;
 
 		int display_skew_mask_ = 1;
 		unsigned int character_is_visible_shifter_ = 0;
 
-		bool is_cursor_line_ = false;
+		bool eof_latched_ = false;
+		bool eom_latched_ = false;
+		bool extra_scanline_ = false;
+		uint16_t next_row_address_ = 0;
+		bool odd_field_ = false;
 };
 
 }
