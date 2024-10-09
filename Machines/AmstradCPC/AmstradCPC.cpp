@@ -189,7 +189,7 @@ class CRTCBusHandler {
 			The CRTC entry function for the main part of each clock cycle; takes the current
 			bus state and determines what output to produce based on the current palette and mode.
 		*/
-		forceinline void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
+		forceinline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 			// The gate array waits 2us to react to the CRTC's vsync signal, and then
 			// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 			// respectively.
@@ -299,13 +299,7 @@ class CRTCBusHandler {
 					}
 				}
 			}
-		}
 
-		/*!
-			The CRTC entry function for phase 2 of each bus cycle, in which the next sync line state becomes
-			visible early. The CPC uses changes in sync to clock the interrupt timer.
-		*/
-		void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &state) {
 			// Notify a leading hsync edge to the interrupt timer.
 			// Per Interrupts in the CPC: "to be confirmed: does gate array count positive or negative edge transitions of HSYNC signal?";
 			// if you take it as given that display mode is latched as a result of hsync then Pipe Mania seems to imply that the count

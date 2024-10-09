@@ -104,7 +104,7 @@ class MDA {
 				return control_;
 			}
 
-			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
+			void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 				// Determine new output state.
 				const OutputState new_state =
 					(state.hsync | state.vsync) ? OutputState::Sync :
@@ -207,7 +207,6 @@ class MDA {
 					pixels = pixel_pointer = nullptr;
 				}
 			}
-			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
 
 			Outputs::CRT::CRT crt;
 

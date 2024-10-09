@@ -30,19 +30,7 @@ struct BusState {
 
 class BusHandler {
 	public:
-		/*!
-			Performs the first phase of a 6845 bus cycle; this is the phase in which it is intended that
-			systems using the 6845 respect the bus state and produce pixels, sync or whatever they require.
-		*/
-		void perform_bus_cycle_phase1(const BusState &) {}
-
-		/*!
-			Performs the second phase of a 6845 bus cycle. Some bus state, including sync, is updated
-			directly after phase 1 and hence is visible to an observer during phase 2. Handlers may therefore
-			implement @c perform_bus_cycle_phase2 to be notified of the availability of that state without
-			having to wait until the next cycle has begun.
-		*/
-		void perform_bus_cycle_phase2(const BusState &) {}
+		void perform_bus_cycle(const BusState &) {}
 };
 
 enum class Personality {
@@ -196,10 +184,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				bus_state_.cursor = is_cursor_line_ &&
 					bus_state_.refresh_address == layout_.cursor_address;
 				bus_state_.display_enable = character_is_visible_ && line_is_visible_;
-
-				// TODO: considate the two below.
-				perform_bus_cycle_phase1();
-				perform_bus_cycle_phase2();
+				bus_handler_.perform_bus_cycle(bus_state_);
 
 				//
 				// Shared, stateless signals.
@@ -212,7 +197,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						character_total_hit && was_eof &&
 						(
 							layout_.interlace_mode_ == InterlaceMode::Off ||
-							!(bus_state_.field_count&1)
+							!odd_field_
 						);
 
 				//
@@ -372,17 +357,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 	private:
 		static constexpr uint16_t RefreshMask = (personality >= Personality::EGA) ? 0xffff : 0x3fff;
-
-		inline void perform_bus_cycle_phase1() {
-			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
-//			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | unsigned(character_is_visible_);
-//			bus_state_.display_enable = (int(character_is_visible_shifter_) & display_skew_mask_) && line_is_visible_;
-			bus_handler_.perform_bus_cycle_phase1(bus_state_);
-		}
-
-		inline void perform_bus_cycle_phase2() {
-			bus_handler_.perform_bus_cycle_phase2(bus_state_);
-		}
 
 		BusHandlerT &bus_handler_;
 		BusState bus_state_;

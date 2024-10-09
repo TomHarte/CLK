@@ -173,7 +173,7 @@ class CGA {
 				return new_state;
 			}
 
-			void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
+			void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 				// Determine new output state.
 				update_hsync(state.hsync);
 				const OutputState new_state = implied_state(state);
@@ -246,7 +246,6 @@ class CGA {
 					count = 0;
 				}
 			}
-			void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &) {}
 
 			void flush_pixels() {
 				crt.output_data(count * active_clock_divider, size_t((count * active_pixels_per_tick) / 8));
