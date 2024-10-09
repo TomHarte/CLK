@@ -207,8 +207,9 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					const bool character_total_hit = character_counter_ == layout_.horizontal.total;
 					const uint8_t lines_per_row = layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
 					const bool row_end_hit = bus_state_.row_address == lines_per_row && !is_in_adjustment_period_;
+					const bool was_eof = eof_latched_;
 					const bool new_frame =
-						character_total_hit && eof_latched_ &&
+						character_total_hit && was_eof &&
 						(
 							layout_.interlace_mode_ == InterlaceMode::Off ||
 							!(bus_state_.field_count&1) ||
@@ -249,7 +250,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 				//
 
 					if(character_total_hit) {
-						if(eof_latched_) {
+						if(was_eof) {
 							eof_latched_ = eom_latched_ = is_in_adjustment_period_ = false;
 							adjustment_counter_ = 0;
 						} else if(is_in_adjustment_period_) {
@@ -290,7 +291,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 					// Row address.
 					if(character_total_hit) {
-						if(eof_latched_ ) {
+						if(was_eof) {
 							bus_state_.row_address = 0;
 							eof_latched_ = eom_latched_ = false;
 						} else if(row_end_hit) {
