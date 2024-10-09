@@ -15,7 +15,7 @@
 
 using namespace Storage::Disk::CPM;
 
-std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters) {
+std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters, bool with_contents) {
 	Storage::Encodings::MFM::Parser parser(Encodings::MFM::Density::Double, disk);
 
 	// Assemble the actual bytes of the catalogue.
@@ -87,38 +87,42 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 
 	// Sort the catalogue entries and then map to files.
 	std::sort(catalogue_entries.begin(), catalogue_entries.end());
-
-	std::unique_ptr<Catalogue> result(new Catalogue);
+	auto result = std::make_unique<Catalogue>();
 
 	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * int(sector_size) / parameters.block_size) >= 256;
 	std::size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * size_t(parameters.block_size);
 	int sectors_per_block = parameters.block_size / int(sector_size);
 	int records_per_sector = int(sector_size) / 128;
 
+	result->files.reserve(catalogue_entries.size());
 	auto entry = catalogue_entries.begin();
 	while(entry != catalogue_entries.end()) {
-		// Find final catalogue entry that relates to the same file.
-		auto final_entry = entry + 1;
-		while(final_entry != catalogue_entries.end() && final_entry->is_same_file(*entry)) {
-			final_entry++;
-		}
-		final_entry--;
+		// Find first catalogue entry that relates to a different file.
+		auto final_entry = entry;
+		do {
+			++final_entry;
+		} while(final_entry != catalogue_entries.end() && final_entry->is_same_file(*entry));
 
 		// Create file.
-		result->files.emplace_back();
-		File &new_file = result->files.back();
+		File &new_file = result->files.emplace_back();
 		new_file.user_number = entry->user_number;
 		new_file.name = std::move(entry->name);
 		new_file.type = std::move(entry->type);
 		new_file.read_only = entry->read_only;
 		new_file.system = entry->system;
 
+		// Skip contents if not required.
+		if(!with_contents) {
+			entry = final_entry;
+			continue;
+		}
+
 		// Create storage for data.
 		std::size_t required_size = final_entry->extent * bytes_per_catalogue_entry + size_t(final_entry->number_of_records) * 128;
 		new_file.data.resize(required_size);
 
 		// Accumulate all data.
-		while(entry <= final_entry) {
+		while(entry != final_entry) {
 			int record = 0;
 			int number_of_records = (entry->number_of_records != 0x80) ? entry->number_of_records : (has_long_allocation_units ? 8 : 16);
 			for(std::size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < number_of_records; block++) {
@@ -152,7 +156,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 				}
 			}
 
-			entry++;
+			++entry;
 		}
 	}
 
@@ -164,7 +168,7 @@ bool Catalogue::is_zx_spectrum_booter() {
 	const auto file = std::find_if(files.begin(), files.end(), [](const auto &file) { return file.name == "DISK    "; });
 	if(file == files.end()) return false;
 
-	// TODO: check the file is valid ZX Spectrum BASIC.
+	// TODO: check the file is valid ZX Spectrum BASIC if it has contents.
 
 	return true;
 }
