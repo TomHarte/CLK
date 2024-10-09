@@ -97,7 +97,7 @@ bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	}
 
 	// ... otherwise read a CPM directory and look for a BASIC program called "DISK".
-	const auto catalogue = Storage::Disk::CPM::GetCatalogue(disk, cpm_format);
+	const auto catalogue = Storage::Disk::CPM::GetCatalogue(disk, cpm_format, false);
 	return catalogue && catalogue->is_zx_spectrum_booter();
 }
 
