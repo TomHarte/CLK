@@ -212,8 +212,7 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 						character_total_hit && was_eof &&
 						(
 							layout_.interlace_mode_ == InterlaceMode::Off ||
-							!(bus_state_.field_count&1) ||
-							extra_scanline_
+							!(bus_state_.field_count&1)
 						);
 
 				//
@@ -451,7 +450,6 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 
 		bool eof_latched_ = false;
 		bool eom_latched_ = false;
-		bool extra_scanline_ = false;
 		uint16_t next_row_address_ = 0;
 		bool odd_field_ = false;
 };
