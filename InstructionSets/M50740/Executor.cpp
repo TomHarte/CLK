@@ -380,8 +380,18 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	// a write is valid [if required].
 
 	unsigned int address;
-#define next8()		memory_[(program_counter_ + 1) & 0x1fff]
-#define next16()	uint16_t(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
+	const auto next8 = [&]() -> uint8_t& {
+		return memory_[(program_counter_ + 1) & 0x1fff];
+	};
+	const auto next16 = [&] {
+		return uint16_t(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8));
+	};
+	const auto bcc = [&](auto condition) {
+		if(condition) {
+			set_program_counter(uint16_t(address));
+			subtract_duration(2);
+		}
+	};
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -487,8 +497,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				assert(false);
 	}
 
-#undef next16
-#undef next8
 	program_counter_ += 1 + size(addressing_mode);
 
 	// Check for a branch; those don't go through the memory accesses below.
@@ -505,16 +513,14 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 			set_program_counter(uint16_t(address));
 		} return;
 
-#define Bcc(c)	if(c) { set_program_counter(uint16_t(address)); subtract_duration(2); } return
-		case Operation::BPL:	Bcc(!(negative_result_&0x80));
-		case Operation::BMI:	Bcc(negative_result_&0x80);
-		case Operation::BEQ:	Bcc(!zero_result_);
-		case Operation::BNE:	Bcc(zero_result_);
-		case Operation::BCS:	Bcc(carry_flag_);
-		case Operation::BCC:	Bcc(!carry_flag_);
-		case Operation::BVS:	Bcc(overflow_result_ & 0x80);
-		case Operation::BVC:	Bcc(!(overflow_result_ & 0x80));
-#undef Bcc
+		case Operation::BPL:	bcc(!(negative_result_&0x80));		return;
+		case Operation::BMI:	bcc(negative_result_&0x80);			return;
+		case Operation::BEQ:	bcc(!zero_result_);					return;
+		case Operation::BNE:	bcc(zero_result_);					return;
+		case Operation::BCS:	bcc(carry_flag_);					return;
+		case Operation::BCC:	bcc(!carry_flag_);					return;
+		case Operation::BVS:	bcc(overflow_result_ & 0x80);		return;
+		case Operation::BVC:	bcc(!(overflow_result_ & 0x80));	return;
 
 		default: break;
 	}
@@ -538,8 +544,10 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
+	const auto set_nz = [&](uint8_t result) {
+		negative_result_ = zero_result_ = result;
+	};
 
-#define set_nz(a)	negative_result_ = zero_result_ = (a)
 	switch(operation) {
 		case Operation::LDA:
 			if(index_mode_) {
@@ -781,7 +789,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			logger.error().append("Unimplemented operation: %d", operation);
 			assert(false);
 	}
-#undef set_nz
 }
 
 inline void Executor::subtract_duration(int duration) {
