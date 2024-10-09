@@ -262,6 +262,8 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					}
 
 					if(character_reset_history_ & 4 && eom_latched_) {
+						// TODO: I don't believe the "add 1 for interlaced" test here is accurate; others represent the extra scanline as
+						// additional state, presumably because adjust total might be reprogrammed at any time.
 						const auto adjust_length = layout_.vertical.adjust + (layout_.interlace_mode_ != InterlaceMode::Off && odd_field_ ? 1 : 0);
 						is_in_adjustment_period_ |= adjustment_counter_ != adjust_length;
 						eof_latched_ |= adjustment_counter_ == adjust_length;
@@ -315,10 +317,10 @@ template <class BusHandlerT, Personality personality, CursorType cursor_type> cl
 					// Vertical display enable.
 					if(is_first_scanline_) {
 						line_is_visible_ = true;
+						odd_field_ = bus_state_.field_count & 1;
 					} else if(line_is_visible_ && row_counter_ == layout_.vertical.displayed) {
 						line_is_visible_ = false;
 						++bus_state_.field_count;
-						odd_field_ ^= true;
 					}
 
 
