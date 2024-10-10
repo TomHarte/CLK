@@ -553,6 +553,16 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		carry_flag_ = (~temp16 >> 8)&1;
 	};
 
+	const auto index = [&](auto op) {
+		if(index_mode_) {
+			uint8_t t = read(x_);
+			op(t);
+			write(x_, t);
+		} else {
+			op(a_);
+		}
+	};
+
 	switch(operation) {
 		case Operation::LDA:
 			if(index_mode_) {
@@ -684,35 +694,24 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
 	*/
 
-#define index(op)					\
-		if(index_mode_) {			\
-			uint8_t t = read(x_);	\
-			op(t);					\
-			write(x_, t);			\
-		} else {					\
-			op(a_);					\
-		}
-
 		case Operation::ORA: {
-			const auto op_ora = [&](uint8_t x) {
+			const auto op_ora = [&](uint8_t &x) {
 				set_nz(x |= *operand);
 			};
 			index(op_ora);
 		} break;
 		case Operation::AND: {
-			const auto op_and = [&](uint8_t x) {
+			const auto op_and = [&](uint8_t &x) {
 				set_nz(x &= *operand);
 			};
 			index(op_and);
 		} break;
 		case Operation::EOR: {
-			const auto op_eor = [&](uint8_t x) {
+			const auto op_eor = [&](uint8_t &x) {
 				set_nz(x ^= *operand);
 			};
 			index(op_eor);
 		} break;
-
-#undef index
 
 		case Operation::CMP:
 			if(index_mode_) {
