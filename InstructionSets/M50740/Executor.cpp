@@ -547,6 +547,11 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 	const auto set_nz = [&](uint8_t result) {
 		negative_result_ = zero_result_ = result;
 	};
+	const auto op_cmp = [&](uint8_t x) {
+		const uint16_t temp16 = x - *operand;
+		set_nz(uint8_t(temp16));
+		carry_flag_ = (~temp16 >> 8)&1;
+	};
 
 	switch(operation) {
 		case Operation::LDA:
@@ -688,22 +693,27 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			op(a_);					\
 		}
 
-#define op_ora(x)	set_nz(x |= *operand)
-#define op_and(x)	set_nz(x &= *operand)
-#define op_eor(x)	set_nz(x ^= *operand)
-		case Operation::ORA:	index(op_ora);		break;
-		case Operation::AND:	index(op_and);		break;
-		case Operation::EOR:	index(op_eor);		break;
-#undef op_eor
-#undef op_and
-#undef op_ora
+		case Operation::ORA: {
+			const auto op_ora = [&](uint8_t x) {
+				set_nz(x |= *operand);
+			};
+			index(op_ora);
+		} break;
+		case Operation::AND: {
+			const auto op_and = [&](uint8_t x) {
+				set_nz(x &= *operand);
+			};
+			index(op_and);
+		} break;
+		case Operation::EOR: {
+			const auto op_eor = [&](uint8_t x) {
+				set_nz(x ^= *operand);
+			};
+			index(op_eor);
+		} break;
+
 #undef index
 
-#define op_cmp(x)	{								\
-			const uint16_t temp16 = x - *operand;	\
-			set_nz(uint8_t(temp16));				\
-			carry_flag_ = (~temp16 >> 8)&1;			\
-		}
 		case Operation::CMP:
 			if(index_mode_) {
 				op_cmp(read(x_));
@@ -713,7 +723,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		break;
 		case Operation::CPX:	op_cmp(x_);			break;
 		case Operation::CPY:	op_cmp(y_);			break;
-#undef op_cmp
 
 		case Operation::SBC:
 		case Operation::ADC: {
