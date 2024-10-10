@@ -724,15 +724,14 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 					uint16_t partials = 0;
 					int result = carry_flag_;
 
-#define nibble(mask, limit, adjustment, carry)		\
-	result += (a & mask) + (*operand & mask);		\
-	partials += result & mask;						\
-	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
+					const auto nibble = [&](uint16_t mask, uint16_t limit, uint16_t adjustment, uint16_t carry) {
+						result += (a & mask) + (*operand & mask);
+						partials += result & mask;
+						if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
+					};
 
 					nibble(0x000f, 0x000a, 0x0006, 0x00010);
 					nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
-
-#undef nibble
 
 					overflow_result_ = uint8_t((partials ^ a) & (partials ^ *operand));
 					set_nz(uint8_t(result));
@@ -742,16 +741,15 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 					unsigned int borrow = carry_flag_ ^ 1;
 					const uint16_t decimal_result = uint16_t(a - *operand - borrow);
 
-#define nibble(mask, adjustment, carry)					\
-	result += (a & mask) - (*operand & mask) - borrow;	\
-	if(result > mask) result -= adjustment;				\
-	borrow = (result > mask) ? carry : 0;				\
-	result &= (carry - 1);
+					const auto nibble = [&](uint16_t mask, uint16_t adjustment, uint16_t carry) {
+						result += (a & mask) - (*operand & mask) - borrow;
+						if(result > mask) result -= adjustment;
+						borrow = (result > mask) ? carry : 0;
+						result &= (carry - 1);
+					};
 
 					nibble(0x000f, 0x0006, 0x00010);
 					nibble(0x00f0, 0x0060, 0x00100);
-
-#undef nibble
 
 					overflow_result_ = uint8_t((decimal_result ^ a) & (~decimal_result ^ *operand));
 					set_nz(uint8_t(result));
