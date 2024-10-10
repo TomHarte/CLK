@@ -380,8 +380,18 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	// a write is valid [if required].
 
 	unsigned int address;
-#define next8()		memory_[(program_counter_ + 1) & 0x1fff]
-#define next16()	uint16_t(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
+	const auto next8 = [&]() -> uint8_t& {
+		return memory_[(program_counter_ + 1) & 0x1fff];
+	};
+	const auto next16 = [&] {
+		return uint16_t(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8));
+	};
+	const auto bcc = [&](auto condition) {
+		if(condition) {
+			set_program_counter(uint16_t(address));
+			subtract_duration(2);
+		}
+	};
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -487,8 +497,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				assert(false);
 	}
 
-#undef next16
-#undef next8
 	program_counter_ += 1 + size(addressing_mode);
 
 	// Check for a branch; those don't go through the memory accesses below.
@@ -505,16 +513,14 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 			set_program_counter(uint16_t(address));
 		} return;
 
-#define Bcc(c)	if(c) { set_program_counter(uint16_t(address)); subtract_duration(2); } return
-		case Operation::BPL:	Bcc(!(negative_result_&0x80));
-		case Operation::BMI:	Bcc(negative_result_&0x80);
-		case Operation::BEQ:	Bcc(!zero_result_);
-		case Operation::BNE:	Bcc(zero_result_);
-		case Operation::BCS:	Bcc(carry_flag_);
-		case Operation::BCC:	Bcc(!carry_flag_);
-		case Operation::BVS:	Bcc(overflow_result_ & 0x80);
-		case Operation::BVC:	Bcc(!(overflow_result_ & 0x80));
-#undef Bcc
+		case Operation::BPL:	bcc(!(negative_result_&0x80));		return;
+		case Operation::BMI:	bcc(negative_result_&0x80);			return;
+		case Operation::BEQ:	bcc(!zero_result_);					return;
+		case Operation::BNE:	bcc(zero_result_);					return;
+		case Operation::BCS:	bcc(carry_flag_);					return;
+		case Operation::BCC:	bcc(!carry_flag_);					return;
+		case Operation::BVS:	bcc(overflow_result_ & 0x80);		return;
+		case Operation::BVC:	bcc(!(overflow_result_ & 0x80));	return;
 
 		default: break;
 	}
@@ -538,8 +544,25 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
+	const auto set_nz = [&](uint8_t result) {
+		negative_result_ = zero_result_ = result;
+	};
+	const auto op_cmp = [&](uint8_t x) {
+		const uint16_t temp16 = x - *operand;
+		set_nz(uint8_t(temp16));
+		carry_flag_ = (~temp16 >> 8)&1;
+	};
 
-#define set_nz(a)	negative_result_ = zero_result_ = (a)
+	const auto index = [&](auto op) {
+		if(index_mode_) {
+			uint8_t t = read(x_);
+			op(t);
+			write(x_, t);
+		} else {
+			op(a_);
+		}
+	};
+
 	switch(operation) {
 		case Operation::LDA:
 			if(index_mode_) {
@@ -671,31 +694,25 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
 	*/
 
-#define index(op)					\
-		if(index_mode_) {			\
-			uint8_t t = read(x_);	\
-			op(t);					\
-			write(x_, t);			\
-		} else {					\
-			op(a_);					\
-		}
+		case Operation::ORA: {
+			const auto op_ora = [&](uint8_t &x) {
+				set_nz(x |= *operand);
+			};
+			index(op_ora);
+		} break;
+		case Operation::AND: {
+			const auto op_and = [&](uint8_t &x) {
+				set_nz(x &= *operand);
+			};
+			index(op_and);
+		} break;
+		case Operation::EOR: {
+			const auto op_eor = [&](uint8_t &x) {
+				set_nz(x ^= *operand);
+			};
+			index(op_eor);
+		} break;
 
-#define op_ora(x)	set_nz(x |= *operand)
-#define op_and(x)	set_nz(x &= *operand)
-#define op_eor(x)	set_nz(x ^= *operand)
-		case Operation::ORA:	index(op_ora);		break;
-		case Operation::AND:	index(op_and);		break;
-		case Operation::EOR:	index(op_eor);		break;
-#undef op_eor
-#undef op_and
-#undef op_ora
-#undef index
-
-#define op_cmp(x)	{								\
-			const uint16_t temp16 = x - *operand;	\
-			set_nz(uint8_t(temp16));				\
-			carry_flag_ = (~temp16 >> 8)&1;			\
-		}
 		case Operation::CMP:
 			if(index_mode_) {
 				op_cmp(read(x_));
@@ -705,7 +722,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		break;
 		case Operation::CPX:	op_cmp(x_);			break;
 		case Operation::CPY:	op_cmp(y_);			break;
-#undef op_cmp
 
 		case Operation::SBC:
 		case Operation::ADC: {
@@ -716,15 +732,14 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 					uint16_t partials = 0;
 					int result = carry_flag_;
 
-#define nibble(mask, limit, adjustment, carry)		\
-	result += (a & mask) + (*operand & mask);		\
-	partials += result & mask;						\
-	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
+					const auto nibble = [&](uint16_t mask, uint16_t limit, uint16_t adjustment, uint16_t carry) {
+						result += (a & mask) + (*operand & mask);
+						partials += result & mask;
+						if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
+					};
 
 					nibble(0x000f, 0x000a, 0x0006, 0x00010);
 					nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
-
-#undef nibble
 
 					overflow_result_ = uint8_t((partials ^ a) & (partials ^ *operand));
 					set_nz(uint8_t(result));
@@ -734,16 +749,15 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 					unsigned int borrow = carry_flag_ ^ 1;
 					const uint16_t decimal_result = uint16_t(a - *operand - borrow);
 
-#define nibble(mask, adjustment, carry)					\
-	result += (a & mask) - (*operand & mask) - borrow;	\
-	if(result > mask) result -= adjustment;				\
-	borrow = (result > mask) ? carry : 0;				\
-	result &= (carry - 1);
+					const auto nibble = [&](uint16_t mask, uint16_t adjustment, uint16_t carry) {
+						result += (a & mask) - (*operand & mask) - borrow;
+						if(result > mask) result -= adjustment;
+						borrow = (result > mask) ? carry : 0;
+						result &= (carry - 1);
+					};
 
 					nibble(0x000f, 0x0006, 0x00010);
 					nibble(0x00f0, 0x0060, 0x00100);
-
-#undef nibble
 
 					overflow_result_ = uint8_t((decimal_result ^ a) & (~decimal_result ^ *operand));
 					set_nz(uint8_t(result));
@@ -781,7 +795,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			logger.error().append("Unimplemented operation: %d", operation);
 			assert(false);
 	}
-#undef set_nz
 }
 
 inline void Executor::subtract_duration(int duration) {
