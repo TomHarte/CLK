@@ -45,12 +45,12 @@ void Executor<model, BusHandler>::reset() {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t address) {
+void Executor<model, BusHandler>::signal_bus_error(const FunctionCode code, const uint32_t address) {
 	throw AccessException(code, address, Exception::AccessFault);
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::set_interrupt_level(int level) {
+void Executor<model, BusHandler>::set_interrupt_level(const int level) {
 	state_.interrupt_input_ = level;
 	state_.stopped &= !state_.status.would_accept_interrupt(level);
 }
@@ -147,7 +147,7 @@ void Executor<model, BusHandler>::set_state(const RegisterSet &state) {
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-IntT Executor<model, BusHandler>::State::read(uint32_t address, bool is_from_pc) {
+IntT Executor<model, BusHandler>::State::read(const uint32_t address, const bool is_from_pc) {
 	const auto code = FunctionCode((active_stack_pointer << 2) | 1 << int(is_from_pc));
 	if(model == Model::M68000 && sizeof(IntT) > 1 && address & 1) {
 		throw AccessException(code, address, Exception::AddressError | (int(is_from_pc) << 3) | (1 << 4));
@@ -158,7 +158,7 @@ IntT Executor<model, BusHandler>::State::read(uint32_t address, bool is_from_pc)
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::State::write(uint32_t address, IntT value) {
+void Executor<model, BusHandler>::State::write(const uint32_t address, const IntT value) {
 	const auto code = FunctionCode((active_stack_pointer << 2) | 1);
 	if(model == Model::M68000 && sizeof(IntT) > 1 && address & 1) {
 		throw AccessException(code, address, Exception::AddressError);
@@ -168,7 +168,7 @@ void Executor<model, BusHandler>::State::write(uint32_t address, IntT value) {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::read(DataSize size, uint32_t address, CPU::SlicedInt32 &value) {
+void Executor<model, BusHandler>::State::read(const DataSize size, const uint32_t address, CPU::SlicedInt32 &value) {
 	switch(size) {
 		case DataSize::Byte:		value.b = read<uint8_t>(address);	break;
 		case DataSize::Word:		value.w = read<uint16_t>(address);	break;
@@ -177,7 +177,7 @@ void Executor<model, BusHandler>::State::read(DataSize size, uint32_t address, C
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::write(DataSize size, uint32_t address, CPU::SlicedInt32 value) {
+void Executor<model, BusHandler>::State::write(const DataSize size, const uint32_t address, CPU::SlicedInt32 value) {
 	switch(size) {
 		case DataSize::Byte:		write<uint8_t>(address, value.b);	break;
 		case DataSize::Word:		write<uint16_t>(address, value.w);	break;
@@ -266,7 +266,7 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t bas
 
 template <Model model, typename BusHandler>
 typename Executor<model, BusHandler>::State::EffectiveAddress
-Executor<model, BusHandler>::State::calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index) {
+Executor<model, BusHandler>::State::calculate_effective_address(const Preinstruction instruction, const uint16_t opcode, const int index) {
 	EffectiveAddress ea;
 
 	switch(instruction.mode(index)) {
@@ -474,7 +474,7 @@ void Executor<model, BusHandler>::State::run(int &count) {
 
 template <Model model, typename BusHandler>
 template <bool use_current_instruction_pc>
-void Executor<model, BusHandler>::State::raise_exception(int index) {
+void Executor<model, BusHandler>::State::raise_exception(const int index) {
 	const uint32_t address = index << 2;
 
 	// Grab the status to store, then switch into supervisor mode
@@ -519,40 +519,40 @@ void Executor<model, BusHandler>::State::reset() {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::jmp(uint32_t address) {
+void Executor<model, BusHandler>::State::jmp(const uint32_t address) {
 	program_counter.l = address;
 }
 
 template <Model model, typename BusHandler>
-template <typename IntT> void Executor<model, BusHandler>::State::complete_bcc(bool branch, IntT offset) {
+template <typename IntT> void Executor<model, BusHandler>::State::complete_bcc(const bool branch, const IntT offset) {
 	if(branch) {
 		program_counter.l = instruction_address + offset + 2;
 	}
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::complete_dbcc(bool matched_condition, bool overflowed, int16_t offset) {
+void Executor<model, BusHandler>::State::complete_dbcc(const bool matched_condition, const bool overflowed, const int16_t offset) {
 	if(!matched_condition && !overflowed) {
 		program_counter.l = instruction_address + offset + 2;
 	}
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::bsr(uint32_t offset) {
+void Executor<model, BusHandler>::State::bsr(const uint32_t offset) {
 	sp.l -= 4;
 	write<uint32_t>(sp.l, program_counter.l);
 	program_counter.l = instruction_address + offset + 2;
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::jsr(uint32_t address) {
+void Executor<model, BusHandler>::State::jsr(const uint32_t address) {
 	sp.l -= 4;
 	write<uint32_t>(sp.l, program_counter.l);
 	program_counter.l = address;
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::link(Preinstruction instruction, uint32_t offset) {
+void Executor<model, BusHandler>::State::link(const Preinstruction instruction, const uint32_t offset) {
 	const auto reg = 8 + instruction.reg<0>();
 
 	sp.l -= 4;
@@ -569,7 +569,7 @@ void Executor<model, BusHandler>::State::unlink(uint32_t &address) {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::pea(uint32_t address) {
+void Executor<model, BusHandler>::State::pea(const uint32_t address) {
 	sp.l -= 4;
 	write<uint32_t>(sp.l, address);
 }
@@ -595,7 +595,7 @@ void Executor<model, BusHandler>::State::rts() {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::tas(Preinstruction instruction, uint32_t address) {
+void Executor<model, BusHandler>::State::tas(const Preinstruction instruction, const uint32_t address) {
 	uint8_t value;
 	if(instruction.mode<0>() != AddressingMode::DataRegisterDirect) {
 		value = read<uint8_t>(address);
@@ -611,7 +611,7 @@ void Executor<model, BusHandler>::State::tas(Preinstruction instruction, uint32_
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::move_to_usp(uint32_t address) {
+void Executor<model, BusHandler>::State::move_to_usp(const uint32_t address) {
 	stack_pointers[0].l = address;
 }
 
@@ -622,7 +622,7 @@ void Executor<model, BusHandler>::State::move_from_usp(uint32_t &address) {
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::State::movep(Preinstruction instruction, uint32_t source, uint32_t dest) {
+void Executor<model, BusHandler>::State::movep(const Preinstruction instruction, const uint32_t source, const uint32_t dest) {
 	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
 		// Move register to memory.
 		const uint32_t reg = source;
@@ -664,7 +664,7 @@ void Executor<model, BusHandler>::State::movep(Preinstruction instruction, uint3
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::State::movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest) {
+void Executor<model, BusHandler>::State::movem_toM(const Preinstruction instruction, uint32_t source, uint32_t dest) {
 	// Move registers to memory. This is the only permitted use of the predecrement mode,
 	// which reverses output order.
 
@@ -711,7 +711,7 @@ void Executor<model, BusHandler>::State::movem_toM(Preinstruction instruction, u
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::State::movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest) {
+void Executor<model, BusHandler>::State::movem_toR(const Preinstruction instruction, uint32_t source, uint32_t dest) {
 	// Move memory to registers.
 	//
 	// A 68000 convention has been broken here; the instruction form is:

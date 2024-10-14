@@ -239,7 +239,7 @@ template <Operation t_operation = Operation::Undefined>
 constexpr DataSize operand_size(Operation operation = Operation::Undefined);
 
 template <Operation t_op = Operation::Undefined>
-constexpr uint32_t quick(uint16_t instruction, Operation r_op = Operation::Undefined) {
+constexpr uint32_t quick(const uint16_t instruction, const Operation r_op = Operation::Undefined) {
 	switch((t_op != Operation::Undefined) ? t_op : r_op) {
 		case Operation::Bccb:
 		case Operation::BSRb:
@@ -385,7 +385,7 @@ class Preinstruction {
 		// if using the runtime versions then results for indices
 		// other than 0 and 1 are undefined.
 
-		AddressingMode mode(int index) const {
+		AddressingMode mode(const int index) const {
 			return AddressingMode(operands_[index] >> 3);
 		}
 		template <int index> AddressingMode mode() const {
@@ -394,7 +394,7 @@ class Preinstruction {
 			}
 			return mode(index);
 		}
-		int reg(int index) const {
+		int reg(const int index) const {
 			return operands_[index] & 7;
 		}
 		template <int index> int reg() const {
@@ -407,7 +407,7 @@ class Preinstruction {
 		/// @returns 0–7 to indicate data registers 0 to 7, or 8–15 to indicate address registers 0 to 7 respectively.
 		/// Provides undefined results if the addressing mode is not either @c DataRegisterDirect or
 		/// @c AddressRegisterDirect.
-		int lreg(int index) const {
+		int lreg(const int index) const {
 			return operands_[index] & 0xf;
 		}
 
@@ -415,6 +415,7 @@ class Preinstruction {
 		bool requires_supervisor() const {
 			return flags_ & Flags::IsSupervisor;
 		}
+
 		/// @returns @c true if this instruction will require further fetching than can be encoded in a
 		/// @c Preinstruction. In practice this means it is one of a very small quantity of 68020+
 		/// instructions; those that can rationalise extension words into one of the two operands will
@@ -425,14 +426,17 @@ class Preinstruction {
 		bool requires_further_extension() const {
 			return flags_ & Flags::RequiresFurtherExtension;
 		}
+
 		/// @returns The number of additional extension words required, beyond those encoded as operands.
 		int additional_extension_words() const {
 			return flags_ & Flags::RequiresFurtherExtension ? (flags_ & Flags::ConditionMask) >> Flags::ConditionShift : 0;
 		}
+
 		/// @returns The @c DataSize used for operands of this instruction, i.e. byte, word or longword.
 		DataSize operand_size() const {
 			return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
 		}
+
 		/// @returns The condition code evaluated by this instruction if applicable. If this instruction is not
 		/// conditional, the result is undefined.
 		Condition condition() const {

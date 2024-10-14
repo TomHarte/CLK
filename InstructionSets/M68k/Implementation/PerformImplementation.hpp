@@ -18,10 +18,10 @@
 namespace InstructionSet::M68k {
 
 /// Sign-extend @c x to 32 bits and return as an unsigned 32-bit int.
-inline uint32_t u_extend16(uint16_t x)	{	return uint32_t(int16_t(x));	}
+inline uint32_t u_extend16(const uint16_t x)	{	return uint32_t(int16_t(x));	}
 
 /// Sign-extend @c x to 32 bits and return as a signed 32-bit int.
-inline int32_t s_extend16(uint16_t x)	{	return int32_t(int16_t(x));		}
+inline int32_t s_extend16(const uint16_t x)		{	return int32_t(int16_t(x));		}
 
 namespace Primitive {
 
@@ -29,7 +29,7 @@ namespace Primitive {
 /// updating @c status. @c is_extend indicates whether this is an extend operation (e.g. ADDX)
 /// or a plain one (e.g. ADD).
 template <bool is_add, bool is_extend, typename IntT>
-static void add_sub(IntT source, IntT &destination, Status &status) {
+static void add_sub(const IntT source, IntT &destination, Status &status) {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
 
 	IntT result = is_add ?
@@ -67,7 +67,7 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 ///
 /// @discussion The slightly awkward abandonment of source, destination permits the use of this for both
 /// SBCD and NBCD.
-inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status) {
+inline void sbcd(const uint8_t rhs, const uint8_t lhs, uint8_t &destination, Status &status) {
 	const int extend = (status.extend_flag ? 1 : 0);
 	const int unadjusted_result = lhs - rhs - extend;
 
@@ -92,7 +92,7 @@ inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status)
 /// Perform the bitwise operation defined by @c operation on @c source and @c destination and update @c status.
 /// Bitwise operations are any of the byte, word or long versions of AND, OR and EOR.
 template <Operation operation, typename IntT>
-void bitwise(IntT source, IntT &destination, Status &status) {
+void bitwise(const IntT source, IntT &destination, Status &status) {
 	static_assert(
 		operation == Operation::ANDb ||	operation == Operation::ANDw || operation == Operation::ANDl ||
 		operation == Operation::ORb ||	operation == Operation::ORw || operation == Operation::ORl ||
@@ -117,7 +117,7 @@ void bitwise(IntT source, IntT &destination, Status &status) {
 
 /// Compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
 template <typename IntT>
-void compare(IntT source, IntT destination, Status &status) {
+void compare(const IntT source, const IntT destination, Status &status) {
 	const IntT result = destination - source;
 	status.carry_flag = result > destination;
 	status.set_neg_zero(result);
@@ -126,14 +126,14 @@ void compare(IntT source, IntT destination, Status &status) {
 
 /// @returns the name of the bit to be used as a mask for BCLR, BCHG, BSET or BTST for
 /// @c instruction given @c source.
-inline uint32_t mask_bit(const Preinstruction &instruction, uint32_t source) {
+inline uint32_t mask_bit(const Preinstruction &instruction, const uint32_t source) {
 	return source & (instruction.mode<1>() == AddressingMode::DataRegisterDirect ? 31 : 7);
 }
 
 /// Perform a BCLR, BCHG or BSET as specified by @c operation and described by @c instruction, @c source and @c destination, updating @c destination and @c status.
 /// Also makes an appropriate notification to the @c flow_controller.
 template <Operation operation, typename FlowController>
-void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+void bit_manipulate(const Preinstruction &instruction, const uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::BCLR ||
 		operation == Operation::BCHG ||
@@ -157,7 +157,7 @@ template <typename IntT> void clear(IntT &destination, Status &status) {
 
 /// Perform an ANDI, EORI or ORI to either SR or CCR, notifying @c flow_controller if appropriate.
 template <Operation operation, typename FlowController>
-void apply_sr_ccr(uint16_t source, Status &status, FlowController &flow_controller) {
+void apply_sr_ccr(const uint16_t source, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ANDItoSR ||	operation == Operation::ANDItoCCR ||
 		operation == Operation::EORItoSR ||	operation == Operation::EORItoCCR ||
@@ -195,7 +195,7 @@ void apply_sr_ccr(uint16_t source, Status &status, FlowController &flow_controll
 
 /// Perform a MULU or MULS between @c source and @c destination, updating @c status and notifying @c flow_controller.
 template <bool is_mulu, typename FlowController>
-void multiply(uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+void multiply(const uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
 	if constexpr (is_mulu) {
 		destination = source * uint16_t(destination);
 	} else {
@@ -213,7 +213,7 @@ void multiply(uint16_t source, uint32_t &destination, Status &status, FlowContro
 
 /// Announce a DIVU or DIVS to @c flow_controller.
 template <bool is_divu, bool did_overflow, typename IntT, typename FlowController>
-void did_divide(IntT dividend, IntT divisor, FlowController &flow_controller) {
+void did_divide(const IntT dividend, const IntT divisor, FlowController &flow_controller) {
 	if constexpr (is_divu) {
 		flow_controller.template did_divu<did_overflow>(dividend, divisor);
 	} else {
@@ -223,7 +223,7 @@ void did_divide(IntT dividend, IntT divisor, FlowController &flow_controller) {
 
 /// Perform a DIVU or DIVS between @c source and @c destination, updating @c status and notifying @c flow_controller.
 template <bool is_divu, typename Int16, typename Int32, typename FlowController>
-void divide(uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+void divide(const uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
 	status.carry_flag = 0;
 
 	const auto dividend = Int32(destination);
@@ -254,7 +254,7 @@ void divide(uint16_t source, uint32_t &destination, Status &status, FlowControll
 }
 
 /// Move @c source to @c destination, updating @c status.
-template <typename IntT> void move(IntT source, IntT &destination, Status &status) {
+template <typename IntT> void move(const IntT source, IntT &destination, Status &status) {
 	destination = source;
 	status.set_neg_zero(destination);
 	status.overflow_flag = status.carry_flag = 0;
@@ -277,20 +277,20 @@ template <bool is_extend, typename IntT> void negative(IntT &source, Status &sta
 }
 
 /// Perform TST.[b/l/w] with @c source, updating @c status.
-template <typename IntT> void test(IntT source, Status &status) {
+template <typename IntT> void test(const IntT source, Status &status) {
 	status.carry_flag = status.overflow_flag = 0;
 	status.set_neg_zero(source);
 }
 
 /// Decodes the proper shift distance from @c source, notifying the @c flow_controller.
-template <typename IntT, typename FlowController> int shift_count(uint8_t source, FlowController &flow_controller) {
+template <typename IntT, typename FlowController> int shift_count(const uint8_t source, FlowController &flow_controller) {
 	const int count = source & 63;
 	flow_controller.template did_shift<IntT>(count);
 	return count;
 }
 
 /// Perform an arithmetic or logical shift, i.e. any of LSL, LSR, ASL or ASR.
-template <Operation operation, typename IntT, typename FlowController> void shift(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+template <Operation operation, typename IntT, typename FlowController> void shift(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ASLb || operation == Operation::ASLw || operation == Operation::ASLl ||
 		operation == Operation::ASRb || operation == Operation::ASRw || operation == Operation::ASRl ||
@@ -384,7 +384,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 }
 
 /// Perform a rotate without extend, i.e. any of RO[L/R].[b/w/l].
-template <Operation operation, typename IntT, typename FlowController> void rotate(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+template <Operation operation, typename IntT, typename FlowController> void rotate(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ROLb || operation == Operation::ROLw || operation == Operation::ROLl ||
 		operation == Operation::RORb || operation == Operation::RORw || operation == Operation::RORl
@@ -425,7 +425,7 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 }
 
 /// Perform a rotate-through-extend, i.e. any of ROX[L/R].[b/w/l].
-template <Operation operation, typename IntT, typename FlowController> void rox(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+template <Operation operation, typename IntT, typename FlowController> void rox(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ROXLb || operation == Operation::ROXLw || operation == Operation::ROXLl ||
 		operation == Operation::ROXRb || operation == Operation::ROXRw || operation == Operation::ROXRl
@@ -496,7 +496,7 @@ template <
 	Model model,
 	typename FlowController,
 	Operation operation = Operation::Undefined
-> void perform(Preinstruction instruction, CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
+> void perform(const Preinstruction instruction, CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
 
 	switch((operation != Operation::Undefined) ? operation : instruction.operation) {
 		/*

@@ -27,7 +27,7 @@ constexpr AddressingMode extended_modes[] = {
 
 /// @returns The @c AddressingMode given the specified mode and reg, subject to potential
 ///		aliasing on the '020+ as described above the @c AddressingMode enum.
-constexpr AddressingMode combined_mode(int mode, int reg) {
+constexpr AddressingMode combined_mode(const int mode, const int reg) {
 	assert(mode >= 0 && mode < 8);
 	assert(reg >= 0 && reg < 8);
 
@@ -55,7 +55,7 @@ struct NoOperandMask {
 	static constexpr uint32_t value = OneOperandMask<NoOperand>::value;
 };
 
-uint32_t operand_mask(AddressingMode mode1, AddressingMode mode2) {
+uint32_t operand_mask(const AddressingMode mode1, const AddressingMode mode2) {
 	return uint32_t((0x1'0000 << int(mode1)) | (0x0'0001 << int(mode2)));
 }
 
@@ -70,7 +70,7 @@ uint32_t operand_mask(AddressingMode mode1, AddressingMode mode2) {
 /// a Preinstruction with an operation of AND, the former just happens to specify an
 /// immediate operand.
 template <Model model>
-constexpr Operation Predecoder<model>::operation(OpT op) {
+constexpr Operation Predecoder<model>::operation(const OpT op) {
 	if(op <= OpMax) {
 		return Operation(op);
 	}
@@ -621,10 +621,10 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
 template <Model model>
 template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::validated(
-	AddressingMode op1_mode, int op1_reg,
-	AddressingMode op2_mode, int op2_reg,
-	Condition condition,
-	int additional_extension_words
+	const AddressingMode op1_mode, const int op1_reg,
+	const AddressingMode op2_mode, const int op2_reg,
+	const Condition condition,
+	const int additional_extension_words
 ) {
 	constexpr auto operation = Predecoder<model>::operation(op);
 
@@ -656,7 +656,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
 /// decoded. Optionally applies validation
 template <Model model>
-template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::decode(uint16_t instruction) {
+template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::decode(const uint16_t instruction) {
 	// Fields used pervasively below.
 	//
 	// Underlying assumption: the compiler will discard whatever of these
@@ -1273,7 +1273,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 #define DecodeReq(x, y)	if constexpr (x) Decode(y); break;
 
 template <Model model>
-Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode0(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xfff) {
@@ -1386,7 +1386,7 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode1(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode1(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
@@ -1394,7 +1394,7 @@ Preinstruction Predecoder<model>::decode1(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode2(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode2(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
@@ -1405,7 +1405,7 @@ Preinstruction Predecoder<model>::decode2(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode3(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode3(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
@@ -1416,7 +1416,7 @@ Preinstruction Predecoder<model>::decode3(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode4(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xfff) {
@@ -1539,7 +1539,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode5(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f8) {
@@ -1617,7 +1617,7 @@ Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode6(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xf00) {
@@ -1649,7 +1649,7 @@ Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode7(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode7(const uint16_t instruction) {
 	// 4-134 (p238)
 	if(!(instruction & 0x100)) {
 		Decode(MOVEQ);
@@ -1659,7 +1659,7 @@ Preinstruction Predecoder<model>::decode7(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode8(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f0) {
@@ -1689,7 +1689,7 @@ Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode9(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode9(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f0) {
@@ -1721,12 +1721,12 @@ Preinstruction Predecoder<model>::decode9(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeA(uint16_t) {
+Preinstruction Predecoder<model>::decodeA(const uint16_t) {
 	return Preinstruction();
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
+Preinstruction Predecoder<model>::decodeB(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f8) {
@@ -1760,7 +1760,7 @@ Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
+Preinstruction Predecoder<model>::decodeC(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-105 (p209)
@@ -1795,7 +1795,7 @@ Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeD(uint16_t instruction) {
+Preinstruction Predecoder<model>::decodeD(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f0) {
@@ -1827,7 +1827,7 @@ Preinstruction Predecoder<model>::decodeD(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
+Preinstruction Predecoder<model>::decodeE(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xfc0) {
@@ -1900,7 +1900,7 @@ Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeF(uint16_t) {
+Preinstruction Predecoder<model>::decodeF(const uint16_t) {
 	return Preinstruction();
 }
 
@@ -1910,7 +1910,7 @@ Preinstruction Predecoder<model>::decodeF(uint16_t) {
 // MARK: - Main decoder.
 
 template <Model model>
-Preinstruction Predecoder<model>::decode(uint16_t instruction) {
+Preinstruction Predecoder<model>::decode(const uint16_t instruction) {
 	// Divide first based on line.
 	switch(instruction & 0xf000) {
 		case 0x0000:	return decode0(instruction);
