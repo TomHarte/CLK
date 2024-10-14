@@ -140,13 +140,13 @@ struct NullFlowController {
 	/// The receiver is responsible for updating the address register if applicable.
 	///
 	/// @c IntT may be either uint16_t or uint32_t.
-	template <typename IntT> void movem_toR(Preinstruction instruction, uint32_t mask, uint32_t address);
+	template <typename IntT> void movem_toR(Preinstruction, uint32_t mask, uint32_t address);
 
 	/// Raises a short-form exception using @c vector. If @c use_current_instruction_pc is @c true,
 	/// the program counter for the current instruction is included in the resulting stack frame. Otherwise the program
 	/// counter for the next instruction is used.
 	template <bool use_current_instruction_pc = true>
-	void raise_exception([[maybe_unused]] int vector);
+	void raise_exception(int vector);
 };
 
 /// Performs @c instruction using @c source and @c dest (one or both of which may be ignored as per

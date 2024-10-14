@@ -53,13 +53,13 @@ struct Status {
 	FlagT negative_flag = 0;	// The negative flag is set if and only this value is non-zero.
 
 	/// Sets the negative flag per @c value
-	template <typename IntT> void set_negative(IntT value) {
+	template <typename IntT> void set_negative(const IntT value) {
 		constexpr auto top_bit = IntT(1 << ((sizeof(IntT) * 8) - 1));
 		negative_flag = value & top_bit;
 	}
 
 	/// Sets both the negative and zero flags according to @c value.
-	template <typename IntT> void set_neg_zero(IntT value) {
+	template <typename IntT> void set_neg_zero(const IntT value) {
 		zero_result = value;
 		set_negative(value);
 	}
@@ -75,7 +75,7 @@ struct Status {
 	}
 
 	/// Sets the current condition codes.
-	constexpr void set_ccr(uint16_t ccr) {
+	constexpr void set_ccr(const uint16_t ccr) {
 		carry_flag		= ccr & ConditionCode::Carry;
 		overflow_flag	= ccr & ConditionCode::Overflow;
 		zero_result		= ~ccr & ConditionCode::Zero;
@@ -95,7 +95,7 @@ struct Status {
 
 	/// Sets the current value of the status register;
 	/// @returns @c true if the processor finishes in supervisor mode; @c false otherwise.
-	constexpr bool set_status(uint16_t status) {
+	constexpr bool set_status(const uint16_t status) {
 		set_ccr(status);
 
 		interrupt_level	= (status >> 8) & 7;
@@ -110,7 +110,7 @@ struct Status {
 	/// interrupt level.
 	///
 	/// @returns The status prior to those changes.
-	uint16_t begin_exception(int new_interrupt_level = -1) {
+	uint16_t begin_exception(const int new_interrupt_level = -1) {
 		const uint16_t initial_status = status();
 
 		if(new_interrupt_level >= 0) {
@@ -123,7 +123,7 @@ struct Status {
 	}
 
 	/// Evaluates @c condition.
-	constexpr bool evaluate_condition(Condition condition) const {
+	constexpr bool evaluate_condition(const Condition condition) const {
 		switch(condition) {
 			default:
 			case Condition::True:			return true;
@@ -150,7 +150,7 @@ struct Status {
 	}
 
 	/// @returns @c true if an interrupt at level @c level should be accepted; @c false otherwise.
-	constexpr bool would_accept_interrupt(int level) const {
+	constexpr bool would_accept_interrupt(const int level) const {
 		// TODO: is level seven really non-maskable? If so then what mechanism prevents
 		// rapid stack overflow upon a level-seven interrupt?
 		return level > interrupt_level;
