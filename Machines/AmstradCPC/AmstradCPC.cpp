@@ -55,8 +55,6 @@ class InterruptTimer {
 			trailing edge because it is active high.
 		*/
 		inline void signal_hsync() {
-//			printf("count h: %d/%d [%d]\n", timer_, reset_counter_, interrupt_request_);
-
 			// Increment the timer and if it has hit 52 then reset it and
 			// set the interrupt request line to true.
 			++timer_;
@@ -81,13 +79,11 @@ class InterruptTimer {
 
 		/// Indicates the leading edge of a new vertical sync.
 		inline void signal_vsync() {
-//			printf("count v\n");
 			reset_counter_ = 2;
 		}
 
 		/// Indicates that an interrupt acknowledge has been received from the Z80.
 		inline void signal_interrupt_acknowledge() {
-//			printf("count IRQA\n");
 			interrupt_request_ = false;
 			timer_ &= ~32;
 		}
@@ -104,7 +100,6 @@ class InterruptTimer {
 
 		/// Resets the timer.
 		inline void reset_count() {
-//			printf("count reset\n");
 			timer_ = 0;
 			interrupt_request_ = false;
 		}
@@ -240,10 +235,10 @@ class CRTCBusHandler {
 				previous_output_mode_ = output_mode;
 			}
 
-			// increment cycles since state changed
+			// Increment cycles since state changed.
 			cycles_++;
 
-			// collect some more pixels if output is ongoing
+			// Collect some more pixels if output is ongoing.
 			if(previous_output_mode_ == OutputMode::Pixels) {
 				if(!pixel_data_) {
 					pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
@@ -300,34 +295,28 @@ class CRTCBusHandler {
 				}
 			}
 
-			// Notify a leading hsync edge to the interrupt timer.
-			// Per Interrupts in the CPC: "to be confirmed: does gate array count positive or negative edge transitions of HSYNC signal?";
-			// if you take it as given that display mode is latched as a result of hsync then Pipe Mania seems to imply that the count
-			// occurs on a leading edge and the mode lock on a trailing.
-			if(!was_hsync_ && state.hsync) {
-				interrupt_timer_.signal_hsync();
-			}
-
-			// Check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change modes.
-			if(was_hsync_ && !state.hsync) {
-				if(mode_ != next_mode_) {
-					mode_ = next_mode_;
-					switch(mode_) {
-						default:
-						case 0:		pixel_divider_ = 4;	break;
-						case 1:		pixel_divider_ = 2;	break;
-						case 2:		pixel_divider_ = 1;	break;
-					}
-					build_mode_table();
+			// Latch mode four cycles after HSYNC was signalled, if still active.
+			if(cycles_into_hsync_ == 4 && mode_ != next_mode_) {
+				mode_ = next_mode_;
+				switch(mode_) {
+					default:
+					case 0:		pixel_divider_ = 4;	break;
+					case 1:		pixel_divider_ = 2;	break;
+					case 2:		pixel_divider_ = 1;	break;
 				}
+				build_mode_table();
 			}
 
-			// check for a leading vsync; that also needs to be communicated to the interrupt timer
+			// For the interrupt timer: notify the leading edge of vertical sync and the
+			// trailing edge of horizontal sync.
 			if(!was_vsync_ && state.vsync) {
 				interrupt_timer_.signal_vsync();
 			}
+			if(was_hsync_ && !state.hsync) {
+				interrupt_timer_.signal_hsync();
+			}
 
-			// update current state for edge detection next time around
+			// Update current state for edge detection next time around.
 			was_vsync_ = state.vsync;
 			was_hsync_ = state.hsync;
 		}
