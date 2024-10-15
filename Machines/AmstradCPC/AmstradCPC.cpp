@@ -1064,12 +1064,12 @@ class ConcreteMachine:
 
 					default: break;
 				}
+
+				// Check whether the interrupt signal has changed due to CPU intervention.
+				if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
 			}
 
 			update_subsystems();
-
-			// Check whether the interrupt signal has changed the other way.
-			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
 
 			// This implementation doesn't use time-stuffing; once in-phase waits won't be longer
 			// than a single cycle so there's no real performance benefit to trying to find the
