@@ -847,220 +847,226 @@ class ConcreteMachine:
 			clock_offset_ = (clock_offset_ + cycle.length) & HalfCycles(7);
 			z80_.set_wait_line(clock_offset_ >= HalfCycles(2));
 
-			// Update the CRTC once every eight half cycles; aiming for half-cycle 4 as
-			// per the initial seed to the crtc_counter_, but any time in the final four
-			// will do as it's safe to conclude that nobody else has touched video RAM
-			// during that whole window.
-			crtc_counter_ += cycle.length;
-			const Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
-			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
+			// Float this out as a lambda to allow easy repositioning relative to the CPU activity;
+			// for now this is largely experimental.
+			const auto update_subsystems = [&] {
+				// Update the CRTC once every eight half cycles; aiming for half-cycle 4 as
+				// per the initial seed to the crtc_counter_, but any time in the final four
+				// will do as it's safe to conclude that nobody else has touched video RAM
+				// during that whole window.
+				crtc_counter_ += cycle.length;
+				const Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
+				if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
 
-			// Check whether that prompted a change in the interrupt line. If so then date
-			// it to whenever the cycle was triggered.
-			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
+				// Check whether that prompted a change in the interrupt line. If so then date
+				// it to whenever the cycle was triggered.
+				if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
 
-			// TODO (in the player, not here): adapt it to accept an input clock rate and
-			// run_for as HalfCycles.
-			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
+				// TODO (in the player, not here): adapt it to accept an input clock rate and
+				// run_for as HalfCycles.
+				if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
 
-			// Pump the AY.
-			ay_.run_for(cycle.length);
+				// Pump the AY.
+				ay_.run_for(cycle.length);
 
-			if constexpr (has_fdc) {
-				// Clock the FDC, if connected, using a lazy scale by two.
-				time_since_fdc_update_ += cycle.length;
-			}
+				if constexpr (has_fdc) {
+					// Clock the FDC, if connected, using a lazy scale by two.
+					time_since_fdc_update_ += cycle.length;
+				}
 
-			// Update typing activity.
-			if(typer_) typer_->run_for(cycle.length);
+				// Update typing activity.
+				if(typer_) typer_->run_for(cycle.length);
+			};
 
-			// Stop now if no action is strictly required.
-			if(!cycle.is_terminal()) return HalfCycles(0);
+			// Continue only if action strictly required.
+			if(cycle.is_terminal()) {
+				uint16_t address = cycle.address ? *cycle.address : 0x0000;
+				switch(cycle.operation) {
+					case CPU::Z80::PartialMachineCycle::ReadOpcode:
 
-			uint16_t address = cycle.address ? *cycle.address : 0x0000;
-			switch(cycle.operation) {
-				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+						// TODO: just capturing byte reads as below doesn't seem to do that much in terms of acceleration;
+						// I'm not immediately clear whether that's just because the machine still has to sit through
+						// pilot tone in real time, or just that almost no software uses the ROM loader.
+						if(use_fast_tape_hack_ && address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
+							using Parser = Storage::Tape::ZXSpectrum::Parser;
+							Parser parser(Parser::MachineType::AmstradCPC);
 
-					// TODO: just capturing byte reads as below doesn't seem to do that much in terms of acceleration;
-					// I'm not immediately clear whether that's just because the machine still has to sit through
-					// pilot tone in real time, or just that almost no software uses the ROM loader.
-					if(use_fast_tape_hack_ && address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
-						using Parser = Storage::Tape::ZXSpectrum::Parser;
-						Parser parser(Parser::MachineType::AmstradCPC);
+							const auto speed = read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
+							parser.set_cpc_read_speed(speed);
 
-						const auto speed = read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
-						parser.set_cpc_read_speed(speed);
+							// Seed with the current pulse; the CPC will have finished the
+							// preceding symbol and be a short way into the pulse that should determine the
+							// first bit of this byte.
+							parser.process_pulse(tape_player_.get_current_pulse());
+							const auto byte = parser.get_byte(tape_player_.get_tape());
+							auto flags = z80_.value_of(CPU::Z80::Register::Flags);
 
-						// Seed with the current pulse; the CPC will have finished the
-						// preceding symbol and be a short way into the pulse that should determine the
-						// first bit of this byte.
-						parser.process_pulse(tape_player_.get_current_pulse());
-						const auto byte = parser.get_byte(tape_player_.get_tape());
-						auto flags = z80_.value_of(CPU::Z80::Register::Flags);
+							if(byte) {
+								// In A ROM-esque fashion, begin the first pulse after the final one
+								// that was just consumed.
+								tape_player_.complete_pulse();
 
-						if(byte) {
-							// In A ROM-esque fashion, begin the first pulse after the final one
-							// that was just consumed.
-							tape_player_.complete_pulse();
+								// Update in-memory CRC.
+								auto crc_value =
+									uint16_t(
+										read_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] |
+										(read_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] << 8)
+									);
 
-							// Update in-memory CRC.
-							auto crc_value =
-								uint16_t(
-									read_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] |
-									(read_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] << 8)
-								);
+								tape_crc_.set_value(crc_value);
+								tape_crc_.add(*byte);
+								crc_value = tape_crc_.get_value();
 
-							tape_crc_.set_value(crc_value);
-							tape_crc_.add(*byte);
-							crc_value = tape_crc_.get_value();
+								write_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] = uint8_t(crc_value);
+								write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] = uint8_t(crc_value >> 8);
 
-							write_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] = uint8_t(crc_value);
-							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] = uint8_t(crc_value >> 8);
+								// Indicate successful byte read.
+								z80_.set_value_of(CPU::Z80::Register::A, *byte);
+								flags |= CPU::Z80::Flag::Carry;
+							} else {
+								// TODO: return tape player to previous state and decline to serve.
+								z80_.set_value_of(CPU::Z80::Register::A, 0);
+								flags &= ~CPU::Z80::Flag::Carry;
+							}
+							z80_.set_value_of(CPU::Z80::Register::Flags, flags);
 
-							// Indicate successful byte read.
-							z80_.set_value_of(CPU::Z80::Register::A, *byte);
-							flags |= CPU::Z80::Flag::Carry;
-						} else {
-							// TODO: return tape player to previous state and decline to serve.
-							z80_.set_value_of(CPU::Z80::Register::A, 0);
-							flags &= ~CPU::Z80::Flag::Carry;
+							// RET.
+							*cycle.value = 0xc9;
+							break;
 						}
-						z80_.set_value_of(CPU::Z80::Register::Flags, flags);
 
-						// RET.
-						*cycle.value = 0xc9;
-						break;
-					}
+						if constexpr (catches_ssm) {
+							ssm_code_ = (ssm_code_ << 8) | read_pointers_[address >> 14][address & 16383];
+							if(ssm_delegate_) {
+								if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
+									const auto code = uint16_t(
+										((ssm_code_ << 8) & 0xff00) | ((ssm_code_ >> 16) & 0x00ff)
+									);
 
-					if constexpr (catches_ssm) {
-						ssm_code_ = (ssm_code_ << 8) | read_pointers_[address >> 14][address & 16383];
-						if(ssm_delegate_) {
-							if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
-								const auto code = uint16_t(
-									((ssm_code_ << 8) & 0xff00) | ((ssm_code_ >> 16) & 0x00ff)
-								);
+									const auto is_valid = [](uint8_t digit) {
+										return
+											(digit <= 0x3f) ||
+											(digit >= 0x7f && digit <= 0x9f) ||
+											(digit >= 0xa4 && digit <= 0xa7) ||
+											(digit >= 0xac && digit <= 0xaf) ||
+											(digit >= 0xb4 && digit <= 0xb7) ||
+											(digit >= 0xbc && digit <= 0xbf) ||
+											(digit >= 0xc0 && digit <= 0xfd);
+									};
 
-								const auto is_valid = [](uint8_t digit) {
-									return
-										(digit <= 0x3f) ||
-										(digit >= 0x7f && digit <= 0x9f) ||
-										(digit >= 0xa4 && digit <= 0xa7) ||
-										(digit >= 0xac && digit <= 0xaf) ||
-										(digit >= 0xb4 && digit <= 0xb7) ||
-										(digit >= 0xbc && digit <= 0xbf) ||
-										(digit >= 0xc0 && digit <= 0xfd);
-								};
-
-								if(
-									is_valid(static_cast<uint8_t>(code)) && is_valid(static_cast<uint8_t>(code >> 8))
-								) {
-									ssm_delegate_->perform(code);
-									ssm_code_ = 0;
+									if(
+										is_valid(static_cast<uint8_t>(code)) && is_valid(static_cast<uint8_t>(code >> 8))
+									) {
+										ssm_delegate_->perform(code);
+										ssm_code_ = 0;
+									}
+								} else if((ssm_code_ & 0xffff) == 0xedfe) {
+									ssm_delegate_->perform(0xfffe);
+								} else if((ssm_code_ & 0xffff) == 0xedff) {
+									ssm_delegate_->perform(0xffff);
 								}
-							} else if((ssm_code_ & 0xffff) == 0xedfe) {
-								ssm_delegate_->perform(0xfffe);
-							} else if((ssm_code_ & 0xffff) == 0xedff) {
-								ssm_delegate_->perform(0xffff);
 							}
 						}
-					}
-				[[fallthrough]];
+					[[fallthrough]];
 
-				case CPU::Z80::PartialMachineCycle::Read:
-					*cycle.value = read_pointers_[address >> 14][address & 16383];
-				break;
+					case CPU::Z80::PartialMachineCycle::Read:
+						*cycle.value = read_pointers_[address >> 14][address & 16383];
+					break;
 
-				case CPU::Z80::PartialMachineCycle::Write:
-					write_pointers_[address >> 14][address & 16383] = *cycle.value;
-				break;
+					case CPU::Z80::PartialMachineCycle::Write:
+						write_pointers_[address >> 14][address & 16383] = *cycle.value;
+					break;
 
-				case CPU::Z80::PartialMachineCycle::Output:
-					// Check for a gate array access.
-					if((address & 0xc000) == 0x4000) {
-						write_to_gate_array(*cycle.value);
-					}
-
-					// Check for an upper ROM selection
-					if constexpr (has_fdc) {
-						if(!(address&0x2000)) {
-							upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : ROMType::BASIC;
-							if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
+					case CPU::Z80::PartialMachineCycle::Output:
+						// Check for a gate array access.
+						if((address & 0xc000) == 0x4000) {
+							write_to_gate_array(*cycle.value);
 						}
-					}
 
-					// Check for a CRTC access
-					if(!(address & 0x4000)) {
-						switch((address >> 8) & 3) {
-							case 0:	crtc_.select_register(*cycle.value);	break;
-							case 1:	crtc_.set_register(*cycle.value);		break;
-							default: break;
+						// Check for an upper ROM selection
+						if constexpr (has_fdc) {
+							if(!(address&0x2000)) {
+								upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : ROMType::BASIC;
+								if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
+							}
 						}
-					}
 
-					// Check for an 8255 PIO access
-					if(!(address & 0x800)) {
-						i8255_.write((address >> 8) & 3, *cycle.value);
-					}
+						// Check for a CRTC access
+						if(!(address & 0x4000)) {
+							switch((address >> 8) & 3) {
+								case 0:	crtc_.select_register(*cycle.value);	break;
+								case 1:	crtc_.set_register(*cycle.value);		break;
+								default: break;
+							}
+						}
 
-					if constexpr (has_fdc) {
+						// Check for an 8255 PIO access
+						if(!(address & 0x800)) {
+							i8255_.write((address >> 8) & 3, *cycle.value);
+						}
+
+						if constexpr (has_fdc) {
+							// Check for an FDC access
+							if((address & 0x580) == 0x100) {
+								flush_fdc();
+								fdc_.write(address & 1, *cycle.value);
+							}
+
+							// Check for a disk motor access
+							if(!(address & 0x580)) {
+								flush_fdc();
+								fdc_.set_motor_on(!!(*cycle.value));
+							}
+						}
+					break;
+
+					case CPU::Z80::PartialMachineCycle::Input:
+						// Default to nothing answering
+						*cycle.value = 0xff;
+
+						// Check for a PIO access
+						if(!(address & 0x800)) {
+							*cycle.value &= i8255_.read((address >> 8) & 3);
+						}
+
 						// Check for an FDC access
-						if((address & 0x580) == 0x100) {
-							flush_fdc();
-							fdc_.write(address & 1, *cycle.value);
+						if constexpr (has_fdc) {
+							if((address & 0x580) == 0x100) {
+								flush_fdc();
+								*cycle.value &= fdc_.read(address & 1);
+							}
 						}
 
-						// Check for a disk motor access
-						if(!(address & 0x580)) {
-							flush_fdc();
-							fdc_.set_motor_on(!!(*cycle.value));
+						// Check for a CRTC access; the below is not a typo, the CRTC can be selected
+						// for writing via an input, and will sample whatever happens to be available
+						if(!(address & 0x4000)) {
+							switch((address >> 8) & 3) {
+								case 0:	crtc_.select_register(*cycle.value);	break;
+								case 1:	crtc_.set_register(*cycle.value);		break;
+								case 2: *cycle.value &= crtc_.get_status();		break;
+								case 3:	*cycle.value &= crtc_.get_register();	break;
+							}
 						}
-					}
-				break;
 
-				case CPU::Z80::PartialMachineCycle::Input:
-					// Default to nothing answering
-					*cycle.value = 0xff;
-
-					// Check for a PIO access
-					if(!(address & 0x800)) {
-						*cycle.value &= i8255_.read((address >> 8) & 3);
-					}
-
-					// Check for an FDC access
-					if constexpr (has_fdc) {
-						if((address & 0x580) == 0x100) {
-							flush_fdc();
-							*cycle.value &= fdc_.read(address & 1);
+						// As with the CRTC, the gate array will sample the bus if the address decoding
+						// implies that it should, unaware of data direction
+						if((address & 0xc000) == 0x4000) {
+							write_to_gate_array(*cycle.value);
 						}
-					}
+					break;
 
-					// Check for a CRTC access; the below is not a typo, the CRTC can be selected
-					// for writing via an input, and will sample whatever happens to be available
-					if(!(address & 0x4000)) {
-						switch((address >> 8) & 3) {
-							case 0:	crtc_.select_register(*cycle.value);	break;
-							case 1:	crtc_.set_register(*cycle.value);		break;
-							case 2: *cycle.value &= crtc_.get_status();		break;
-							case 3:	*cycle.value &= crtc_.get_register();	break;
-						}
-					}
+					case CPU::Z80::PartialMachineCycle::Interrupt:
+						// Nothing is loaded onto the bus during an interrupt acknowledge, but
+						// the fact of the acknowledge needs to be posted on to the interrupt timer.
+						*cycle.value = 0xff;
+						interrupt_timer_.signal_interrupt_acknowledge();
+					break;
 
-					// As with the CRTC, the gate array will sample the bus if the address decoding
-					// implies that it should, unaware of data direction
-					if((address & 0xc000) == 0x4000) {
-						write_to_gate_array(*cycle.value);
-					}
-				break;
-
-				case CPU::Z80::PartialMachineCycle::Interrupt:
-					// Nothing is loaded onto the bus during an interrupt acknowledge, but
-					// the fact of the acknowledge needs to be posted on to the interrupt timer.
-					*cycle.value = 0xff;
-					interrupt_timer_.signal_interrupt_acknowledge();
-				break;
-
-				default: break;
+					default: break;
+				}
 			}
+
+			update_subsystems();
 
 			// Check whether the interrupt signal has changed the other way.
 			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
