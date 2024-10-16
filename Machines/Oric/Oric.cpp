@@ -36,6 +36,7 @@
 
 #include "../../ClockReceiver/JustInTime.hpp"
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -284,7 +285,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 	public:
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
-				video_(ram_),
+				video_(ram_.data()),
 				ay8910_(GI::AY38910::Personality::AY38910, audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
@@ -301,9 +302,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			// sort of assumes it, but also the BD-500 never explicitly sets PAL mode
 			// so I can't have any switch-to-NTSC bytes in the display area. Hence:
 			// disallow all atributes.
-			Memory::Fuzz(ram_, sizeof(ram_));
-			for(size_t c = 0; c < sizeof(ram_); ++c) {
-				ram_[c] |= 0x40;
+			Memory::Fuzz(ram_);
+			for(auto &c: ram_) {
+				c |= 0x40;
 			}
 
 			::ROM::Request request = ::ROM::Request(::ROM::Name::OricColourROM, true);
@@ -715,7 +716,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 
 		// RAM and ROM
 		std::vector<uint8_t> rom_, disk_rom_;
-		uint8_t ram_[65536];
+		std::array<uint8_t, 65536> ram_{};
 
 		// ROM bookkeeping
 		uint16_t tape_get_byte_address_ = 0, tape_speed_address_ = 0;

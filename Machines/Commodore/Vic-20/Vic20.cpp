@@ -233,8 +233,8 @@ class Vic6560BusHandler {
 		}
 
 		// It is assumed that these pointers have been filled in by the machine.
-		uint8_t *video_memory_map[16];	// Segments video memory into 1kb portions.
-		uint8_t *colour_memory;			// Colour memory must be contiguous.
+		uint8_t *video_memory_map[16]{};	// Segments video memory into 1kb portions.
+		uint8_t *colour_memory{};			// Colour memory must be contiguous.
 };
 
 /*!
