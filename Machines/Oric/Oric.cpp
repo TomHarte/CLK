@@ -36,6 +36,7 @@
 
 #include "../../ClockReceiver/JustInTime.hpp"
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -715,7 +716,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 
 		// RAM and ROM
 		std::vector<uint8_t> rom_, disk_rom_;
-		uint8_t ram_[65536];
+		std::array<uint8_t, 65536> ram_{};
 
 		// ROM bookkeeping
 		uint16_t tape_get_byte_address_ = 0, tape_speed_address_ = 0;
