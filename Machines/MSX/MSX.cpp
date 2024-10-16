@@ -198,10 +198,10 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
-			i8255_(i8255_port_handler_),
 			tape_player_(3579545 * 2),
 			i8255_port_handler_(*this, speaker_.audio_toggle, tape_player_),
 			ay_port_handler_(tape_player_),
+			i8255_(i8255_port_handler_),
 			memory_slots_{{*this}, {*this}, {*this}, {*this}},
 			clock_(ClockRate) {
 			set_clock_rate(ClockRate);
@@ -913,7 +913,6 @@ class ConcreteMachine:
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<TI::TMS::TMS9918<vdp_model()>> vdp_;
-		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_player_is_sleeping_ = false;
@@ -931,6 +930,8 @@ class ConcreteMachine:
 		i8255PortHandler i8255_port_handler_;
 		Speaker<has_opll> speaker_;
 		AYPortHandler ay_port_handler_;
+
+		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		/// The current primary and secondary slot selections; the former retains whatever was written
 		/// last to the 8255 PPI via port A8 and the latter — if enabled — captures 0xffff on a per-slot basis.

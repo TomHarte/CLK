@@ -91,8 +91,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_(*this),
 			iwm_(CLOCK_RATE),
 			video_(audio_, drive_speed_accumulator_),
-			via_(via_port_handler_),
 			via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
+			via_(via_port_handler_),
 			scsi_bus_(CLOCK_RATE * 2),
 			scsi_(scsi_bus_, CLOCK_RATE * 2),
 			hard_drive_(scsi_bus_, 6 /* SCSI ID */),
@@ -760,8 +760,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		Apple::Clock::SerialClock clock_;
 		Keyboard keyboard_;
 
-		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
 		VIAPortHandler via_port_handler_;
+		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
 
 		Zilog::SCC::z8530 scc_;
 		SCSI::Bus scsi_bus_;
