@@ -444,7 +444,12 @@ std::string final_path_component(const std::string &path) {
 	Executes @c command and returns its STDOUT.
 */
 std::string system_get(const char *command) {
-	std::unique_ptr<FILE, decltype((pclose))> pipe(popen(command, "r"), pclose);
+	struct pcloser {
+		void operator()(FILE *file) {
+			pclose(dir);
+		}
+	};
+	std::unique_ptr<FILE, pcloser> pipe(popen(command, "r"));
 	if(!pipe) return "";
 
 	std::string result;
