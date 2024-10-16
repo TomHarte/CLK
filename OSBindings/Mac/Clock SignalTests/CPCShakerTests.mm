@@ -43,9 +43,6 @@ struct ScanTarget: public Outputs::Display::ScanTarget {
 		const int src_pixels = scan_.end_points[1].data_offset - scan_.end_points[0].data_offset;
 		const int dst_pixels = (scan_.end_points[1].x - scan_.end_points[0].x) / WidthDivider;
 
-		const int step = (src_pixels << 16) / dst_pixels;
-		int position = 0;
-
 		const auto x1 = scan_.end_points[0].x / WidthDivider;
 		const auto x2 = scan_.end_points[1].x / WidthDivider;
 
@@ -53,9 +50,15 @@ struct ScanTarget: public Outputs::Display::ScanTarget {
 		if(x_ < x1) {
 			std::fill(&line[x_], &line[x1], 0);
 		}
-		for(int x = x1; x < x2; x++) {
-			line[x] = data_[position >> 16];
-			position += step;
+
+		if(x2 != x1) {
+			const int step = (src_pixels << 16) / dst_pixels;
+			int position = 0;
+
+			for(int x = x1; x < x2; x++) {
+				line[x] = data_[position >> 16];
+				position += step;
+			}
 		}
 		x_ = x2;
 	}
