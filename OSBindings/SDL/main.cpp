@@ -446,7 +446,7 @@ std::string final_path_component(const std::string &path) {
 std::string system_get(const char *command) {
 	struct pcloser {
 		void operator()(FILE *file) {
-			pclose(dir);
+			pclose(file);
 		}
 	};
 	std::unique_ptr<FILE, pcloser> pipe(popen(command, "r"));
