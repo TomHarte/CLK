@@ -76,7 +76,7 @@ struct ScanTarget: public Outputs::Display::ScanTarget {
 				x_ = 0;
 			} break;
 			case Event::EndVerticalRetrace:
-				std::fill(&raw_image_[line_ * ImageWidth], &raw_image_[ImageHeight * ImageWidth], 0);
+				std::fill(raw_image_.begin() + (line_ * ImageWidth), raw_image_.end(), 0);
 				line_ = 0;
 				x_ = 0;
 			break;
