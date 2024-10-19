@@ -78,8 +78,8 @@ class InterruptTimer {
 		}
 
 		/// Indicates the leading edge of a new vertical sync.
-		inline void signal_vsync() {
-			reset_counter_ = 2;
+		inline void set_vsync(bool active) {
+			reset_counter_ = active ? 2 : 0;
 		}
 
 		/// Indicates that an interrupt acknowledge has been received from the Z80.
@@ -311,8 +311,8 @@ class CRTCBusHandler {
 
 			// For the interrupt timer: notify the leading edge of vertical sync and the
 			// trailing edge of horizontal sync.
-			if(!was_vsync_ && state.vsync) {
-				interrupt_timer_.signal_vsync();
+			if(was_vsync_ != state.vsync) {
+				interrupt_timer_.set_vsync(state.vsync);
 			}
 			if(was_hsync_ && !state.hsync) {
 				interrupt_timer_.signal_hsync();
@@ -575,7 +575,7 @@ class CRTCBusHandler {
 };
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
-	Motorola::CRTC::Personality::UM6845R,
+	Motorola::CRTC::Personality::HD6845S,
 	Motorola::CRTC::CursorType::None>;
 
 /*!
