@@ -13,7 +13,10 @@
 
 using namespace Analyser::Dynamic;
 
-ConfidenceSummary::ConfidenceSummary(const std::vector<ConfidenceSource *> &sources, const std::vector<float> &weights) :
+ConfidenceSummary::ConfidenceSummary(
+	const std::vector<ConfidenceSource *> &sources,
+	const std::vector<float> &weights
+) :
 	sources_(sources), weights_(weights) {
 	assert(weights.size() == sources.size());
 	weight_sum_ = std::accumulate(weights.begin(), weights.end(), 0.0f);

@@ -28,7 +28,7 @@ MultiSpeaker::MultiSpeaker(const std::vector<Outputs::Speaker::Speaker *> &speak
 	}
 }
 
-float MultiSpeaker::get_ideal_clock_rate_in_range(float minimum, float maximum) {
+float MultiSpeaker::get_ideal_clock_rate_in_range(const float minimum, const float maximum) {
 	float ideal = 0.0f;
 	for(const auto &speaker: speakers_) {
 		ideal += speaker->get_ideal_clock_rate_in_range(minimum, maximum);
@@ -37,7 +37,7 @@ float MultiSpeaker::get_ideal_clock_rate_in_range(float minimum, float maximum) 
 	return ideal / float(speakers_.size());
 }
 
-void MultiSpeaker::set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) {
+void MultiSpeaker::set_computed_output_rate(const float cycles_per_second, const int buffer_size, const bool stereo) {
 	stereo_output_ = stereo;
 	for(const auto &speaker: speakers_) {
 		speaker->set_computed_output_rate(cycles_per_second, buffer_size, stereo);
@@ -54,13 +54,13 @@ bool MultiSpeaker::get_is_stereo() {
 	return false;
 }
 
-void MultiSpeaker::set_output_volume(float volume) {
+void MultiSpeaker::set_output_volume(const float volume) {
 	for(const auto &speaker: speakers_) {
 		speaker->set_output_volume(volume);
 	}
 }
 
-void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) {
+void MultiSpeaker::speaker_did_complete_samples(Speaker *const speaker, const std::vector<int16_t> &buffer) {
 	auto delegate = delegate_.load(std::memory_order_relaxed);
 	if(!delegate) return;
 	{
@@ -70,7 +70,7 @@ void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vec
 	did_complete_samples(this, buffer, stereo_output_);
 }
 
-void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
+void MultiSpeaker::speaker_did_change_input_clock(Speaker *const speaker) {
 	auto delegate = delegate_.load(std::memory_order_relaxed);
 	if(!delegate) return;
 	{
@@ -80,7 +80,7 @@ void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
 	delegate->speaker_did_change_input_clock(this);
 }
 
-void MultiSpeaker::set_new_front_machine(::Machine::DynamicMachine *machine) {
+void MultiSpeaker::set_new_front_machine(::Machine::DynamicMachine *const machine) {
 	{
 		std::lock_guard lock_guard(front_speaker_mutex_);
 		front_speaker_ = machine->audio_producer()->get_speaker();

@@ -27,7 +27,8 @@ MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machin
 	audio_producer_(machines_, machines_mutex_),
 	joystick_machine_(machines_),
 	keyboard_machine_(machines_),
-	media_target_(machines_) {
+	media_target_(machines_)
+{
 	timed_machine_.set_delegate(this);
 }
 
@@ -35,13 +36,13 @@ Activity::Source *MultiMachine::activity_source() {
 	return nullptr; // TODO
 }
 
-#define Provider(type, name, member)	\
-	type *MultiMachine::name() {	\
-		if(has_picked_) {	\
+#define Provider(type, name, member)			\
+	type *MultiMachine::name() {				\
+		if(has_picked_) {						\
 			return machines_.front()->name();	\
-		} else {	\
-			return &member;	\
-		}	\
+		} else {								\
+			return &member;						\
+		}										\
 	}
 
 Provider(Configurable::Device, configurable_device, configurable_)

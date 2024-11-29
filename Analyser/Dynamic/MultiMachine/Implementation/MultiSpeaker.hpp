@@ -25,32 +25,32 @@ namespace Analyser::Dynamic {
 	abreast of the current frontmost machine.
 */
 class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker::Delegate {
-	public:
-		/*!
-			Provides a construction mechanism that may return nullptr, in the case that all included
-			machines return nullptr as their speaker.
-		*/
-		static MultiSpeaker *create(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
+public:
+	/*!
+		Provides a construction mechanism that may return nullptr, in the case that all included
+		machines return nullptr as their speaker.
+	*/
+	static MultiSpeaker *create(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &);
 
-		/// This class requires the caller to nominate changes in the frontmost machine.
-		void set_new_front_machine(::Machine::DynamicMachine *machine);
+	/// This class requires the caller to nominate changes in the frontmost machine.
+	void set_new_front_machine(::Machine::DynamicMachine *);
 
-		// Below is the standard Outputs::Speaker::Speaker interface; see there for documentation.
-		float get_ideal_clock_rate_in_range(float minimum, float maximum) override;
-		void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) override;
-		bool get_is_stereo() override;
-		void set_output_volume(float) override;
+	// Below is the standard Outputs::Speaker::Speaker interface; see there for documentation.
+	float get_ideal_clock_rate_in_range(float minimum, float maximum) override;
+	void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) override;
+	bool get_is_stereo() override;
+	void set_output_volume(float) override;
 
-	private:
-		void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) final;
-		void speaker_did_change_input_clock(Speaker *speaker) final;
-		MultiSpeaker(const std::vector<Outputs::Speaker::Speaker *> &speakers);
+private:
+	void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) final;
+	void speaker_did_change_input_clock(Speaker *speaker) final;
+	MultiSpeaker(const std::vector<Outputs::Speaker::Speaker *> &speakers);
 
-		std::vector<Outputs::Speaker::Speaker *> speakers_;
-		Outputs::Speaker::Speaker *front_speaker_ = nullptr;
-		std::mutex front_speaker_mutex_;
+	std::vector<Outputs::Speaker::Speaker *> speakers_;
+	Outputs::Speaker::Speaker *front_speaker_ = nullptr;
+	std::mutex front_speaker_mutex_;
 
-		bool stereo_output_ = false;
+	bool stereo_output_ = false;
 };
 
 }

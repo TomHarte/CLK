@@ -15,52 +15,52 @@ using namespace Analyser::Dynamic;
 namespace {
 
 class MultiJoystick: public Inputs::Joystick {
-	public:
-		MultiJoystick(std::vector<MachineTypes::JoystickMachine *> &machines, std::size_t index) {
-			for(const auto &machine: machines) {
-				const auto &joysticks = machine->get_joysticks();
-				if(joysticks.size() >= index) {
-					joysticks_.push_back(joysticks[index].get());
-				}
+public:
+	MultiJoystick(std::vector<MachineTypes::JoystickMachine *> &machines, const std::size_t index) {
+		for(const auto &machine: machines) {
+			const auto &joysticks = machine->get_joysticks();
+			if(joysticks.size() >= index) {
+				joysticks_.push_back(joysticks[index].get());
 			}
 		}
+	}
 
-		const std::vector<Input> &get_inputs() final {
-			if(inputs.empty()) {
-				for(const auto &joystick: joysticks_) {
-					std::vector<Input> joystick_inputs = joystick->get_inputs();
-					for(const auto &input: joystick_inputs) {
-						if(std::find(inputs.begin(), inputs.end(), input) != inputs.end()) {
-							inputs.push_back(input);
-						}
+	const std::vector<Input> &get_inputs() final {
+		if(inputs.empty()) {
+			for(const auto &joystick: joysticks_) {
+				std::vector<Input> joystick_inputs = joystick->get_inputs();
+				for(const auto &input: joystick_inputs) {
+					if(std::find(inputs.begin(), inputs.end(), input) != inputs.end()) {
+						inputs.push_back(input);
 					}
 				}
 			}
-
-			return inputs;
 		}
 
-		void set_input(const Input &digital_input, bool is_active) final {
-			for(const auto &joystick: joysticks_) {
-				joystick->set_input(digital_input, is_active);
-			}
-		}
+		return inputs;
+	}
 
-		void set_input(const Input &digital_input, float value) final {
-			for(const auto &joystick: joysticks_) {
-				joystick->set_input(digital_input, value);
-			}
+	void set_input(const Input &digital_input, const bool is_active) final {
+		for(const auto &joystick: joysticks_) {
+			joystick->set_input(digital_input, is_active);
 		}
+	}
 
-		void reset_all_inputs() final {
-			for(const auto &joystick: joysticks_) {
-				joystick->reset_all_inputs();
-			}
+	void set_input(const Input &digital_input, const float value) final {
+		for(const auto &joystick: joysticks_) {
+			joystick->set_input(digital_input, value);
 		}
+	}
 
-	private:
-		std::vector<Input> inputs;
-		std::vector<Inputs::Joystick *> joysticks_;
+	void reset_all_inputs() final {
+		for(const auto &joystick: joysticks_) {
+			joystick->reset_all_inputs();
+		}
+	}
+
+private:
+	std::vector<Input> inputs;
+	std::vector<Inputs::Joystick *> joysticks_;
 };
 
 }
