@@ -41,7 +41,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles
 											// after corresponding data read.
 
-	static constexpr uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
+	static constexpr uint32_t palette_pack(const uint8_t r, const uint8_t g, const uint8_t b) {
 		#if TARGET_RT_BIG_ENDIAN
 			return uint32_t((r << 24) | (g << 16) | (b << 8));
 		#else
@@ -85,7 +85,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	/// Mutates @c target such that @c source replaces the @c length bits that currently start
 	/// at bit @c shift . Subsequently ensures @c target is constrained by the
 	/// applicable @c memory_mask.
-	template <int shift, int length = 8> void install_field(AddressT &target, uint8_t source) {
+	template <int shift, int length = 8> void install_field(AddressT &target, const uint8_t source) {
 		static_assert(length > 0 && length <= 8);
 		constexpr auto source_mask = (1 << length) - 1;
 		constexpr auto mask = AddressT(~(source_mask << shift));
@@ -302,11 +302,11 @@ template <Personality personality> struct Base: public Storage<personality> {
 		return ScreenMode::Blank;
 	}
 
-	static AddressT rotate(AddressT address) {
+	static AddressT rotate(const AddressT address) {
 		return AddressT((address >> 1) | (address << 16)) & memory_mask(personality);
 	}
 
-	AddressT command_address(Vector location, bool expansion) const {
+	AddressT command_address(const Vector location, const bool expansion) const {
 		if constexpr (is_yamaha_vdp(personality)) {
 			switch(this->underlying_mode_) {
 				default:
@@ -345,7 +345,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 		}
 	}
 
-	uint8_t extract_colour(uint8_t byte, Vector location) const {
+	uint8_t extract_colour(const uint8_t byte, const Vector location) const {
 		switch(this->screen_mode_) {
 			default:
 			case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
@@ -360,7 +360,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 		}
 	}
 
-	std::pair<uint8_t, uint8_t> command_colour_mask(Vector location) const {
+	std::pair<uint8_t, uint8_t> command_colour_mask(const Vector location) const {
 		if constexpr (is_yamaha_vdp(personality)) {
 			auto &context = Storage<personality>::command_context_;
 			auto colour = context.latched_colour.has_value() ? context.latched_colour : context.colour;
@@ -394,7 +394,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 		}
 	}
 
-	void do_external_slot(int access_column) {
+	void do_external_slot(const int access_column) {
 		// Don't do anything if the required time for the access to become executable
 		// has yet to pass.
 		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
@@ -588,7 +588,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	///
 	/// i.e. it provides standard glue to enter a fetch sequence at any point, while the fetches themselves are templated on the cycle
 	/// at which they appear for neater expression.
-	template<bool use_end, typename Fetcher> void dispatch(Fetcher &fetcher, int start, int end);
+	template<bool use_end, typename Fetcher> void dispatch(Fetcher &, int start, int end);
 
 	// Various fetchers.
 	template<bool use_end> void fetch_tms_refresh(uint8_t y, int start, int end);
@@ -616,7 +616,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template<ScreenMode mode> void draw_yamaha(uint8_t y, int start, int end);
 	void draw_yamaha(uint8_t y, int start, int end);
 
-	template <SpriteMode mode, bool double_width> void draw_sprites(uint8_t y, int start, int end, const std::array<uint32_t, 16> &palette, int *colour_buffer = nullptr);
+	template <SpriteMode mode, bool double_width>
+	void draw_sprites(
+		uint8_t y,
+		int start,
+		int end,
+		const std::array<uint32_t, 16> &palette,
+		int *colour_buffer = nullptr
+	);
 };
 
 }

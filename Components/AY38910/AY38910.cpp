@@ -22,7 +22,11 @@ using namespace GI::AY38910;
 // programmatic volume 15, envelope level 29 as equal to programmatic 14, etc.
 
 template <bool is_stereo>
-AY38910SampleSource<is_stereo>::AY38910SampleSource(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {
+AY38910SampleSource<is_stereo>::AY38910SampleSource(
+	Personality personality,
+	Concurrency::AsyncTaskQueue<false> &task_queue)
+		: task_queue_(task_queue)
+{
 	// Don't use the low bit of the envelope position if this is an AY.
 	envelope_position_mask_ |= personality == Personality::AY38910;
 
@@ -82,7 +86,7 @@ AY38910SampleSource<is_stereo>::AY38910SampleSource(Personality personality, Con
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_sample_volume_range(std::int16_t range) {
+void AY38910SampleSource<is_stereo>::set_sample_volume_range(const std::int16_t range) {
 	// Set up volume lookup table; the function below is based on a combination of the graph
 	// from the YM's datasheet, showing a clear power curve, and fitting that to observed
 	// values reported elsewhere.
@@ -101,7 +105,14 @@ void AY38910SampleSource<is_stereo>::set_sample_volume_range(std::int16_t range)
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_output_mixing(float a_left, float b_left, float c_left, float a_right, float b_right, float c_right) {
+void AY38910SampleSource<is_stereo>::set_output_mixing(
+	const float a_left,
+	const float b_left,
+	const float c_left,
+	const float a_right,
+	const float b_right,
+	const float c_right
+) {
 	a_left_ = uint8_t(a_left * 255.0f);
 	b_left_ = uint8_t(b_left * 255.0f);
 	c_left_ = uint8_t(c_left * 255.0f);
@@ -223,12 +234,12 @@ bool AY38910SampleSource<is_stereo>::is_zero_level() const {
 // MARK: - Register manipulation
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::select_register(uint8_t r) {
+void AY38910SampleSource<is_stereo>::select_register(const uint8_t r) {
 	selected_register_ = r;
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_register_value(uint8_t value) {
+void AY38910SampleSource<is_stereo>::set_register_value(const uint8_t value) {
 	// There are only 16 registers.
 	if(selected_register_ > 15) return;
 
@@ -298,7 +309,7 @@ void AY38910SampleSource<is_stereo>::set_register_value(uint8_t value) {
 }
 
 template <bool is_stereo>
-uint8_t AY38910SampleSource<is_stereo>::get_register_value() {
+uint8_t AY38910SampleSource<is_stereo>::get_register_value() const {
 	// This table ensures that bits that aren't defined within the AY are returned as 0s
 	// when read, conforming to CPC-sourced unit tests.
 	const uint8_t register_masks[16] = {
@@ -313,27 +324,27 @@ uint8_t AY38910SampleSource<is_stereo>::get_register_value() {
 // MARK: - Port querying
 
 template <bool is_stereo>
-uint8_t AY38910SampleSource<is_stereo>::get_port_output(bool port_b) {
+uint8_t AY38910SampleSource<is_stereo>::get_port_output(const bool port_b) const {
 	return registers_[port_b ? 15 : 14];
 }
 
 // MARK: - Bus handling
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_port_handler(PortHandler *handler) {
+void AY38910SampleSource<is_stereo>::set_port_handler(PortHandler *const handler) {
 	port_handler_ = handler;
 	set_port_output(true);
 	set_port_output(false);
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_data_input(uint8_t r) {
+void AY38910SampleSource<is_stereo>::set_data_input(const uint8_t r) {
 	data_input_ = r;
 	update_bus();
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_port_output(bool port_b) {
+void AY38910SampleSource<is_stereo>::set_port_output(const bool port_b) {
 	// Per the data sheet: "each [IO] pin is provided with an on-chip pull-up resistor,
 	// so that when in the "input" mode, all pins will read normally high". Therefore,
 	// report programmer selection of input mode as creating an output of 0xff.
@@ -344,7 +355,7 @@ void AY38910SampleSource<is_stereo>::set_port_output(bool port_b) {
 }
 
 template <bool is_stereo>
-uint8_t AY38910SampleSource<is_stereo>::get_data_output() {
+uint8_t AY38910SampleSource<is_stereo>::get_data_output() const {
 	if(control_state_ == Read && selected_register_ >= 14 && selected_register_ < 16) {
 		// Per http://cpctech.cpc-live.com/docs/psgnotes.htm if a port is defined as output then the
 		// value returned to the CPU when reading it is the and of the output value and any input.
@@ -361,7 +372,7 @@ uint8_t AY38910SampleSource<is_stereo>::get_data_output() {
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_control_lines(ControlLines control_lines) {
+void AY38910SampleSource<is_stereo>::set_control_lines(const ControlLines control_lines) {
 	switch(int(control_lines)) {
 		default:					control_state_ = Inactive;		break;
 
@@ -377,7 +388,7 @@ void AY38910SampleSource<is_stereo>::set_control_lines(ControlLines control_line
 }
 
 template <bool is_stereo>
-void AY38910SampleSource<is_stereo>::set_reset(bool active) {
+void AY38910SampleSource<is_stereo>::set_reset(const bool active) {
 	if(active == reset_) return;
 	reset_ = active;
 

@@ -18,7 +18,7 @@
 
 using namespace Apple::Macintosh;
 
-DoubleDensityDrive::DoubleDensityDrive(int input_clock_rate, bool is_800k) :
+DoubleDensityDrive::DoubleDensityDrive(const int input_clock_rate, const bool is_800k) :
 	IWMDrive(input_clock_rate, is_800k ? 2 : 1),	// Only 800kb drives are double sided.
 	is_800k_(is_800k) {
 	// Start with a valid rotation speed.
@@ -29,7 +29,7 @@ DoubleDensityDrive::DoubleDensityDrive(int input_clock_rate, bool is_800k) :
 
 // MARK: - Speed Selection
 
-void DoubleDensityDrive::did_step(Storage::Disk::HeadPosition to_position) {
+void DoubleDensityDrive::did_step(const Storage::Disk::HeadPosition to_position) {
 	// The 800kb drive automatically selects rotation speed as a function of
 	// head position; the 400kb drive doesn't do so.
 	if(is_800k_) {
@@ -60,7 +60,7 @@ void DoubleDensityDrive::did_step(Storage::Disk::HeadPosition to_position) {
 	}
 }
 
-void DoubleDensityDrive::set_rotation_speed(float revolutions_per_minute) {
+void DoubleDensityDrive::set_rotation_speed(const float revolutions_per_minute) {
 	if(!is_800k_) {
 		// Don't allow drive speeds to drop below 10 RPM, as a temporary sop
 		// to sanity.
@@ -70,12 +70,12 @@ void DoubleDensityDrive::set_rotation_speed(float revolutions_per_minute) {
 
 // MARK: - Control input/output.
 
-void DoubleDensityDrive::set_enabled(bool enabled) {
+void DoubleDensityDrive::set_enabled(const bool enabled) {
 	// Disabling a drive also stops its motor.
 	if(!enabled) set_motor_on(false);
 }
 
-void DoubleDensityDrive::set_control_lines(int lines) {
+void DoubleDensityDrive::set_control_lines(const int lines) {
 	const auto old_state = control_state_;
 	control_state_ = lines;
 

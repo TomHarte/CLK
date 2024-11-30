@@ -36,7 +36,7 @@ enum class ScreenMode {
 	YamahaGraphics2 = Graphics,
 };
 
-constexpr int pixels_per_byte(ScreenMode mode) {
+constexpr int pixels_per_byte(const ScreenMode mode) {
 	switch(mode) {
 		default:
 		case ScreenMode::Blank:				return 1;
@@ -54,7 +54,7 @@ constexpr int pixels_per_byte(ScreenMode mode) {
 	}
 }
 
-constexpr int width(ScreenMode mode) {
+constexpr int width(const ScreenMode mode) {
 	switch(mode) {
 		default:
 		case ScreenMode::Blank:				return 0;
@@ -72,11 +72,11 @@ constexpr int width(ScreenMode mode) {
 	}
 }
 
-constexpr bool interleaves_banks(ScreenMode mode) {
+constexpr bool interleaves_banks(const ScreenMode mode) {
 	return mode == ScreenMode::YamahaGraphics6 || mode == ScreenMode::YamahaGraphics7;
 }
 
-constexpr bool is_text(ScreenMode mode) {
+constexpr bool is_text(const ScreenMode mode) {
 	return mode == ScreenMode::Text || mode == ScreenMode::YamahaText80;
 }
 

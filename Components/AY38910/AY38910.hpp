@@ -24,23 +24,23 @@ namespace GI::AY38910 {
 	instead use AY38910.get_port_output.
 */
 class PortHandler {
-	public:
-		/*!
-			Requests the current input on an AY port.
+public:
+	/*!
+		Requests the current input on an AY port.
 
-			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
-		*/
-		virtual uint8_t get_port_input([[maybe_unused]] bool port_b) {
-			return 0xff;
-		}
+		@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
+	*/
+	virtual uint8_t get_port_input([[maybe_unused]] bool port_b) {
+		return 0xff;
+	}
 
-		/*!
-			Sets the current output on an AY port.
+	/*!
+		Sets the current output on an AY port.
 
-			@param port_b @c true if the output being posted is Port B. @c false if it is Port A.
-			@param value the value now being output.
-		*/
-		virtual void set_port_output([[maybe_unused]] bool port_b, [[maybe_unused]] uint8_t value) {}
+		@param port_b @c true if the output being posted is Port B. @c false if it is Port A.
+		@param value the value now being output.
+	*/
+	virtual void set_port_output([[maybe_unused]] bool port_b, [[maybe_unused]] uint8_t value) {}
 };
 
 /*!
@@ -67,110 +67,110 @@ enum class Personality {
 	This AY has an attached mono or stereo mixer.
 */
 template <bool stereo> class AY38910SampleSource {
-	public:
-		/// Creates a new AY38910.
-		AY38910SampleSource(Personality, Concurrency::AsyncTaskQueue<false> &);
-		AY38910SampleSource(const AY38910SampleSource &) = delete;
+public:
+	/// Creates a new AY38910.
+	AY38910SampleSource(Personality, Concurrency::AsyncTaskQueue<false> &);
+	AY38910SampleSource(const AY38910SampleSource &) = delete;
 
-		/// Sets the value the AY would read from its data lines if it were not outputting.
-		void set_data_input(uint8_t r);
+	/// Sets the value the AY would read from its data lines if it were not outputting.
+	void set_data_input(uint8_t r);
 
-		/// Gets the value that would appear on the data lines if only the AY is outputting.
-		uint8_t get_data_output();
+	/// Gets the value that would appear on the data lines if only the AY is outputting.
+	uint8_t get_data_output() const;
 
-		/// Sets the current control line state, as a bit field.
-		void set_control_lines(ControlLines control_lines);
+	/// Sets the current control line state, as a bit field.
+	void set_control_lines(ControlLines control_lines);
 
-		/// Strobes the reset line.
-		void reset();
+	/// Strobes the reset line.
+	void reset();
 
-		/// Sets the current value of the reset line.
-		void set_reset(bool reset);
+	/// Sets the current value of the reset line.
+	void set_reset(bool reset);
 
-		/*!
-			Gets the value that would appear on the requested interface port if it were in output mode.
-			@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
-		*/
-		uint8_t get_port_output(bool port_b);
+	/*!
+		Gets the value that would appear on the requested interface port if it were in output mode.
+		@parameter port_b @c true to get the value for Port B, @c false to get the value for Port A.
+	*/
+	uint8_t get_port_output(bool port_b) const;
 
-		/*!
-			Sets the port handler, which will receive a call every time the AY either wants to sample
-			input or else declare new output. As a convenience, current port output can be obtained
-			without installing a port handler via get_port_output.
-		*/
-		void set_port_handler(PortHandler *);
+	/*!
+		Sets the port handler, which will receive a call every time the AY either wants to sample
+		input or else declare new output. As a convenience, current port output can be obtained
+		without installing a port handler via get_port_output.
+	*/
+	void set_port_handler(PortHandler *);
 
-		/*!
-			Enables or disables stereo output; if stereo output is enabled then also sets the weight of each of the AY's
-			channels in each of the output channels.
+	/*!
+		Enables or disables stereo output; if stereo output is enabled then also sets the weight of each of the AY's
+		channels in each of the output channels.
 
-			If a_left_ = b_left = c_left = a_right = b_right = c_right = 1.0 then you'll get output that's effectively mono.
+		If a_left_ = b_left = c_left = a_right = b_right = c_right = 1.0 then you'll get output that's effectively mono.
 
-			a_left = 0.0, a_right = 1.0 will make A full volume on the right output, and silent on the left.
+		a_left = 0.0, a_right = 1.0 will make A full volume on the right output, and silent on the left.
 
-			a_left = 0.5, a_right = 0.5 will make A half volume on both outputs.
-		*/
-		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
+		a_left = 0.5, a_right = 0.5 will make A half volume on both outputs.
+	*/
+	void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
-		// Sample generation.
-		typename Outputs::Speaker::SampleT<stereo>::type level() const;
-		void advance();
-		bool is_zero_level() const;
-		void set_sample_volume_range(std::int16_t range);
+	// Sample generation.
+	typename Outputs::Speaker::SampleT<stereo>::type level() const;
+	void advance();
+	bool is_zero_level() const;
+	void set_sample_volume_range(std::int16_t range);
 
-	private:
-		Concurrency::AsyncTaskQueue<false> &task_queue_;
+private:
+	Concurrency::AsyncTaskQueue<false> &task_queue_;
 
-		bool reset_ = false;
+	bool reset_ = false;
 
-		int selected_register_ = 0;
-		uint8_t registers_[16]{};
-		uint8_t output_registers_[16]{};
+	int selected_register_ = 0;
+	uint8_t registers_[16]{};
+	uint8_t output_registers_[16]{};
 
-		int tone_periods_[3]{};
-		int tone_counters_[3]{};
-		int tone_outputs_[3]{};
+	int tone_periods_[3]{};
+	int tone_counters_[3]{};
+	int tone_outputs_[3]{};
 
-		int noise_period_ = 0;
-		int noise_counter_ = 0;
-		int noise_shift_register_ = 0xffff;
-		int noise_output_ = 0;
+	int noise_period_ = 0;
+	int noise_counter_ = 0;
+	int noise_shift_register_ = 0xffff;
+	int noise_output_ = 0;
 
-		int envelope_period_ = 0;
-		int envelope_divider_ = 0;
-		int envelope_position_ = 0, envelope_position_mask_ = 0;
-		int envelope_shapes_[16][64];
-		int envelope_overflow_masks_[16];
+	int envelope_period_ = 0;
+	int envelope_divider_ = 0;
+	int envelope_position_ = 0, envelope_position_mask_ = 0;
+	int envelope_shapes_[16][64];
+	int envelope_overflow_masks_[16];
 
-		int volumes_[32];
+	int volumes_[32];
 
-		enum ControlState {
-			Inactive,
-			LatchAddress,
-			Read,
-			Write
-		} control_state_;
+	enum ControlState {
+		Inactive,
+		LatchAddress,
+		Read,
+		Write
+	} control_state_;
 
-		void select_register(uint8_t r);
-		void set_register_value(uint8_t value);
-		uint8_t get_register_value();
+	void select_register(uint8_t r);
+	void set_register_value(uint8_t value);
+	uint8_t get_register_value() const;
 
-		uint8_t data_input_, data_output_;
+	uint8_t data_input_, data_output_;
 
-		typename Outputs::Speaker::SampleT<stereo>::type output_volume_;
+	typename Outputs::Speaker::SampleT<stereo>::type output_volume_;
 
-		void update_bus();
-		PortHandler *port_handler_ = nullptr;
-		void set_port_output(bool port_b);
+	void update_bus();
+	PortHandler *port_handler_ = nullptr;
+	void set_port_output(bool port_b);
 
-		void evaluate_output_volume();
+	void evaluate_output_volume();
 
-		// Output mixing control.
-		uint8_t a_left_ = 255, a_right_ = 255;
-		uint8_t b_left_ = 255, b_right_ = 255;
-		uint8_t c_left_ = 255, c_right_ = 255;
+	// Output mixing control.
+	uint8_t a_left_ = 255, a_right_ = 255;
+	uint8_t b_left_ = 255, b_right_ = 255;
+	uint8_t c_left_ = 255, c_right_ = 255;
 
-		friend struct State;
+	friend struct State;
 };
 
 /// Defines a default AY to be the sample source with a master divider of 4;
@@ -193,7 +193,9 @@ template <bool stereo> struct AY38910:
 */
 struct Utility {
 	template <typename AY> static void write(AY &ay, bool is_data_write, uint8_t data) {
-		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | (is_data_write ? 0 : GI::AY38910::BC1)));
+		ay.set_control_lines(
+			GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | (is_data_write ? 0 : GI::AY38910::BC1))
+		);
 		ay.set_data_input(data);
 		ay.set_control_lines(GI::AY38910::ControlLines(0));
 	}

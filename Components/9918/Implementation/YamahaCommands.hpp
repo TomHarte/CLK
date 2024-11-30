@@ -17,13 +17,13 @@ namespace TI::TMS {
 struct Vector {
 	int v[2]{};
 
-	template <int offset, bool high> void set(uint8_t value) {
+	template <int offset, bool high> void set(const uint8_t value) {
 		constexpr uint8_t mask = high ? (offset ? 0x3 : 0x1) : 0xff;
 		constexpr int shift = high ? 8 : 0;
 		v[offset] = (v[offset] & ~(mask << shift)) | ((value & mask) << shift);
 	}
 
-	template <int offset> void add(int amount) {
+	template <int offset> void add(const int amount) {
 		v[offset] += amount;
 
 		if constexpr (offset == 1) {
@@ -41,7 +41,7 @@ struct Vector {
 };
 
 struct Colour {
-	void set(uint8_t value) {
+	void set(const uint8_t value) {
 		colour = value;
 		colour4bpp = uint8_t((value & 0xf) | (value << 4));
 		colour2bpp = uint8_t((colour4bpp & 0x33) | ((colour4bpp & 0x33) << 2));
@@ -131,7 +131,8 @@ struct Command {
 	/// Current command parameters.
 	CommandContext &context;
 	ModeDescription &mode_description;
-	Command(CommandContext &context, ModeDescription &mode_description) : context(context), mode_description(mode_description) {}
+	Command(CommandContext &context, ModeDescription &mode_description) :
+		context(context), mode_description(mode_description) {}
 	virtual ~Command() = default;
 
 	/// @returns @c true if all output from this command is done; @c false otherwise.
@@ -142,7 +143,7 @@ struct Command {
 	virtual void advance() = 0;
 
 	protected:
-		template <int axis, bool include_source> void advance_axis(int offset = 1) {
+		template <int axis, bool include_source> void advance_axis(const int offset = 1) {
 			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
 			if constexpr (include_source) {
 				context.source.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
@@ -161,58 +162,58 @@ namespace Commands {
 ///	* 88 cycles between every pixel plot;
 ///	* plus an additional 32 cycles if a step along the minor axis is taken.
 struct Line: public Command {
-	public:
-		Line(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
-			// context.destination = start position;
-			// context.size.v[0] = long side dots;
-			// context.size.v[1] = short side dots;
-			// context.arguments => direction
+public:
+	Line(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
+		// context.destination = start position;
+		// context.size.v[0] = long side dots;
+		// context.size.v[1] = short side dots;
+		// context.arguments => direction
 
-			position_ = context.size.v[1];
-			numerator_ = position_ << 1;
-			denominator_ = context.size.v[0] << 1;
+		position_ = context.size.v[1];
+		numerator_ = position_ << 1;
+		denominator_ = context.size.v[0] << 1;
 
-			cycles = 32;
-			access = AccessType::PlotPoint;
+		cycles = 32;
+		access = AccessType::PlotPoint;
+	}
+
+	bool done() final {
+		return !context.size.v[0];
+	}
+
+	void advance() final {
+		--context.size.v[0];
+		cycles = 88;
+
+		// b0:	1 => long direction is y;
+		//		0 => long direction is x.
+		//
+		// b2:	1 => x direction is left;
+		//		0 => x direction is right.
+		//
+		// b3:	1 => y direction is up;
+		//		0 => y direction is down.
+		if(context.arguments & 0x1) {
+			advance_axis<1, false>();
+		} else {
+			advance_axis<0, false>();
 		}
 
-		bool done() final {
-			return !context.size.v[0];
-		}
+		position_ -= numerator_;
+		if(position_ < 0) {
+			position_ += denominator_;
+			cycles += 32;
 
-		void advance() final {
-			--context.size.v[0];
-			cycles = 88;
-
-			// b0:	1 => long direction is y;
-			//		0 => long direction is x.
-			//
-			// b2:	1 => x direction is left;
-			//		0 => x direction is right.
-			//
-			// b3:	1 => y direction is up;
-			//		0 => y direction is down.
 			if(context.arguments & 0x1) {
-				advance_axis<1, false>();
-			} else {
 				advance_axis<0, false>();
-			}
-
-			position_ -= numerator_;
-			if(position_ < 0) {
-				position_ += denominator_;
-				cycles += 32;
-
-				if(context.arguments & 0x1) {
-					advance_axis<0, false>();
-				} else {
-					advance_axis<1, false>();
-				}
+			} else {
+				advance_axis<1, false>();
 			}
 		}
+	}
 
-	private:
-		int position_, numerator_, denominator_;
+private:
+	int position_, numerator_, denominator_;
 };
 
 // MARK: - Single pixel manipulation.
@@ -221,88 +222,90 @@ struct Line: public Command {
 ///
 /// No timings are documented, so this'll output or input as quickly as possible.
 template <bool is_read> struct Point: public Command {
-	public:
-		Point(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
-			cycles = 0;	// TODO.
-			access = is_read ? AccessType::ReadPoint : AccessType::PlotPoint;
-		}
+public:
+	Point(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
+		cycles = 0;	// TODO.
+		access = is_read ? AccessType::ReadPoint : AccessType::PlotPoint;
+	}
 
-		bool done() final {
-			return done_;
-		}
+	bool done() final {
+		return done_;
+	}
 
-		void advance() final {
-			done_ = true;
-		}
+	void advance() final {
+		done_ = true;
+	}
 
-	private:
-		bool done_ = false;
+private:
+	bool done_ = false;
 };
 
 // MARK: - Rectangular base.
 
 /// Useful base class for anything that does logical work in a rectangle.
 template <bool logical, bool include_source> struct Rectangle: public Command {
-	public:
-		Rectangle(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
-			if constexpr (include_source) {
-				start_x_[0] = context.source.v[0];
-			}
-			start_x_[1] = context.destination.v[0];
-			width_ = context.size.v[0];
+public:
+	Rectangle(CommandContext &context, ModeDescription &mode_description) : Command(context, mode_description) {
+		if constexpr (include_source) {
+			start_x_[0] = context.source.v[0];
+		}
+		start_x_[1] = context.destination.v[0];
+		width_ = context.size.v[0];
 
-			if(!width_) {
-				// Width = 0 => maximal width for this mode.
-				// (aside: it's still unclear to me whether commands are
-				// automatically clipped to the display; I think so but
-				// don't want to spend any time on it until I'm certain)
+		if(!width_) {
+			// Width = 0 => maximal width for this mode.
+			// (aside: it's still unclear to me whether commands are
+			// automatically clipped to the display; I think so but
+			// don't want to spend any time on it until I'm certain)
 //				context.size.v[0] = width_ = mode_description.width;
+		}
+	}
+
+	/// Advances the current destination and, if @c include_source is @c true also the source;
+	/// @returns @c true if a new row was started; @c false otherwise.
+	bool advance_pixel() {
+		if constexpr (logical) {
+			advance_axis<0, include_source>();
+			--context.size.v[0];
+
+			if(context.size.v[0]) {
+				return false;
+			}
+		} else {
+			advance_axis<0, include_source>(mode_description.pixels_per_byte);
+			context.size.v[0] -= mode_description.pixels_per_byte;
+
+			if(context.size.v[0] & ~(mode_description.pixels_per_byte - 1)) {
+				return false;
 			}
 		}
 
-		/// Advances the current destination and, if @c include_source is @c true also the source;
-		/// @returns @c true if a new row was started; @c false otherwise.
-		bool advance_pixel() {
-			if constexpr (logical) {
-				advance_axis<0, include_source>();
-				--context.size.v[0];
-
-				if(context.size.v[0]) {
-					return false;
-				}
-			} else {
-				advance_axis<0, include_source>(mode_description.pixels_per_byte);
-				context.size.v[0] -= mode_description.pixels_per_byte;
-
-				if(context.size.v[0] & ~(mode_description.pixels_per_byte - 1)) {
-					return false;
-				}
-			}
-
-			context.size.v[0] = width_;
-			if constexpr (include_source) {
-				context.source.v[0] = start_x_[0];
-			}
-			context.destination.v[0] = start_x_[1];
-
-			advance_axis<1, include_source>();
-			--context.size.v[1];
-
-			return true;
+		context.size.v[0] = width_;
+		if constexpr (include_source) {
+			context.source.v[0] = start_x_[0];
 		}
+		context.destination.v[0] = start_x_[1];
 
-		bool done() final {
-			return !context.size.v[1] || !width_;
-		}
+		advance_axis<1, include_source>();
+		--context.size.v[1];
 
-	private:
-		int start_x_[2]{}, width_ = 0;
+		return true;
+	}
+
+	bool done() final {
+		return !context.size.v[1] || !width_;
+	}
+
+private:
+	int start_x_[2]{}, width_ = 0;
 };
 
 // MARK: - Rectangular moves to/from CPU.
 
 template <bool logical> struct MoveFromCPU: public Rectangle<logical, false> {
-	MoveFromCPU(CommandContext &context, ModeDescription &mode_description) : Rectangle<logical, false>(context, mode_description) {
+	MoveFromCPU(CommandContext &context, ModeDescription &mode_description) :
+		Rectangle<logical, false>(context, mode_description)
+	{
 		Command::is_cpu_transfer = true;
 
 		// This command is started with the first colour ready to transfer.
