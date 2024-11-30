@@ -13,7 +13,11 @@
 #include <algorithm>
 #include <cstring>
 
-Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(
+	const Media &media,
+	const std::string &file_name,
+	TargetPlatform::IntType
+) {
 	if(media.cartridges.empty())
 		return {};
 
@@ -54,7 +58,8 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &med
 					if(lowercase_name.find("(jp)") == std::string::npos) {
 						target->region =
 							(lowercase_name.find("(us)") == std::string::npos &&
-							lowercase_name.find("(ntsc)") == std::string::npos) ? Target::Region::Europe : Target::Region::USA;
+							lowercase_name.find("(ntsc)") == std::string::npos) ?
+								Target::Region::Europe : Target::Region::USA;
 					}
 				} break;
 			}
@@ -63,9 +68,9 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &med
 			// If one is found, set the paging scheme appropriately.
 			const uint16_t inverse_checksum = uint16_t(0x10000 - (data[0x7fe6] | (data[0x7fe7] << 8)));
 			if(
-				data[0x7fe3] >= 0x87 && data[0x7fe3] < 0x96 &&									// i.e. game is dated between 1987 and 1996
+				data[0x7fe3] >= 0x87 && data[0x7fe3] < 0x96 &&		// i.e. game is dated between 1987 and 1996
 				(inverse_checksum&0xff) == data[0x7fe8] &&
-				(inverse_checksum >> 8) == data[0x7fe9] &&										// i.e. the standard checksum appears to be present
+				(inverse_checksum >> 8) == data[0x7fe9] &&			// i.e. the standard checksum appears to be present.
 				!data[0x7fea] && !data[0x7feb] && !data[0x7fec] && !data[0x7fed] && !data[0x7fee] && !data[0x7fef]
 			) {
 				target->paging_scheme = Target::PagingScheme::Codemasters;

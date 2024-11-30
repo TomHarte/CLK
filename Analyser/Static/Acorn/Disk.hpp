@@ -27,7 +27,7 @@ struct Catalogue {
 	} bootOption;
 };
 
-std::unique_ptr<Catalogue> GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk);
-std::unique_ptr<Catalogue> GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk);
+std::unique_ptr<Catalogue> GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &);
+std::unique_ptr<Catalogue> GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &);
 
 }

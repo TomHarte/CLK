@@ -104,14 +104,14 @@ std::string get_extension(const std::string &name) {
 }
 
 class MediaAccumulator {
-	public:
+public:
 	MediaAccumulator(const std::string &file_name, TargetPlatform::IntType &potential_platforms) :
 		file_name_(file_name), potential_platforms_(potential_platforms), extension_(get_extension(file_name)) {}
 
 	/// Adds @c instance to the media collection and adds @c platforms to the set of potentials.
 	/// If @c instance is an @c TargetPlatform::TypeDistinguisher then it is given an opportunity to restrict the set of potentials.
 	template <typename InstanceT>
-	void insert(TargetPlatform::IntType platforms, std::shared_ptr<InstanceT> instance) {
+	void insert(const TargetPlatform::IntType platforms, std::shared_ptr<InstanceT> instance) {
 		if constexpr (std::is_base_of_v<Storage::Disk::Disk, InstanceT>) {
 			media.disks.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::Tape::Tape, InstanceT>) {
@@ -134,13 +134,13 @@ class MediaAccumulator {
 
 	/// Concstructs a new instance of @c InstanceT supplying @c args and adds it to the back of @c list using @c insert_instance.
 	template <typename InstanceT, typename... Args>
-	void insert(TargetPlatform::IntType platforms, Args &&... args) {
+	void insert(const TargetPlatform::IntType platforms, Args &&... args) {
 		insert(platforms, std::make_shared<InstanceT>(std::forward<Args>(args)...));
 	}
 
 	/// Calls @c insert with the specified parameters, ignoring any exceptions thrown.
 	template <typename InstanceT, typename... Args>
-	void try_insert(TargetPlatform::IntType platforms, Args &&... args) {
+	void try_insert(const TargetPlatform::IntType platforms, Args &&... args) {
 		try {
 			insert<InstanceT>(platforms, std::forward<Args>(args)...);
 		} catch(...) {}
@@ -149,22 +149,22 @@ class MediaAccumulator {
 	/// Performs a @c try_insert for an object of @c InstanceT if @c extension matches that of the file name,
 	/// providing the file name as the only construction argument.
 	template <typename InstanceT>
-	void try_standard(TargetPlatform::IntType platforms, const char *extension) {
+	void try_standard(const TargetPlatform::IntType platforms, const char *extension) {
 		if(name_matches(extension))	{
 			try_insert<InstanceT>(platforms, file_name_);
 		}
 	}
 
-	bool name_matches(const char *extension) {
+	bool name_matches(const char *const extension) {
 		return extension_ == extension;
 	}
 
 	Media media;
 
-	private:
-		const std::string &file_name_;
-		TargetPlatform::IntType &potential_platforms_;
-		const std::string extension_;
+private:
+	const std::string &file_name_;
+	TargetPlatform::IntType &potential_platforms_;
+	const std::string extension_;
 };
 
 }
@@ -227,7 +227,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<MassStorage::HDV>(TargetPlatform::AppleII, "hdv");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::HFE>>(
-		TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum,
+		TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore |
+		TargetPlatform::Oric | TargetPlatform::ZXSpectrum,
 		"hfe");	// TODO: switch to AllDisk once the MSX stops being so greedy.
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::PCCompatible, "ima");

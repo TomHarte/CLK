@@ -9,7 +9,11 @@
 #include "StaticAnalyser.hpp"
 #include "Target.hpp"
 
-Analyser::Static::TargetList Analyser::Static::AppleIIgs::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::AppleIIgs::GetTargets(
+	const Media &media,
+	const std::string &,
+	TargetPlatform::IntType
+) {
 	auto target = std::make_unique<Target>();
 	target->media = media;
 

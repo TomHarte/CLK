@@ -47,7 +47,11 @@ Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector 
 
 }
 
-Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(
+	const Media &media,
+	const std::string &,
+	TargetPlatform::IntType
+) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 
@@ -62,7 +66,8 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	}
 
 	// Grab track 0, sector 0: the boot sector.
-	const auto track_zero = disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
+	const auto track_zero =
+		disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
 	const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 		Storage::Disk::track_serialisation(*track_zero, Storage::Time(1, 50000)));
 
@@ -89,7 +94,8 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	// If the boot sector looks like it's intended for the Oric, create an Oric.
 	// Otherwise go with the Apple II.
 
-	const auto disassembly = Analyser::Static::MOS6502::Disassemble(sector_zero->data, Analyser::Static::Disassembler::OffsetMapper(0xb800), {0xb800});
+	const auto disassembly = Analyser::Static::MOS6502::Disassemble(
+		sector_zero->data, Analyser::Static::Disassembler::OffsetMapper(0xb800), {0xb800});
 
 	bool did_read_shift_register = false;
 	bool is_oric = false;

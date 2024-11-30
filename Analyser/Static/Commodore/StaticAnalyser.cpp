@@ -22,7 +22,7 @@
 using namespace Analyser::Static::Commodore;
 
 static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
 
 	for(const auto &cartridge : cartridges) {
@@ -42,7 +42,11 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
+	const Media &media,
+	const std::string &file_name,
+	TargetPlatform::IntType
+) {
 	TargetList destination;
 
 	auto target = std::make_unique<Target>();
@@ -93,7 +97,8 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
 			default:
-				Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append("Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
+				Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append(
+					"Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
 				[[fallthrough]];
 			case 0x1001:
 				memory_model = Target::MemoryModel::Unexpanded;
@@ -142,7 +147,8 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 				// region 0x0400 to 0x1000 is touched and this is an unexpanded machine, mark as 3kb.
 //				if(starting_address + file_size > 0x2000)
 //					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
-//				else if(target->memory_model == Target::MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
+//				else if(target->memory_model == Target::MemoryModel::Unexpanded &&
+//					!(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
 //					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
 //			}
 //		}
