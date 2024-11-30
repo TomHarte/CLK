@@ -50,7 +50,7 @@ class VideoBase: public VideoSwitches<Cycles> {
 		/// Sets whether the current CRT should be recalibrated away from normative NTSC
 		/// to produce square pixels in 40-column text mode.
 		void set_use_square_pixels(bool);
-		bool get_use_square_pixels();
+		bool get_use_square_pixels() const;
 
 	protected:
 		Outputs::CRT::CRT crt_;

@@ -27,7 +27,7 @@ class Mouse: public Inputs::Mouse, public MouseJoystickInput {
 		uint8_t get_cia_button() const final;
 
 	private:
-		int get_number_of_buttons() final;
+		int get_number_of_buttons() const final;
 		void set_button_pressed(int, bool) final;
 		void reset_all_buttons() final;
 		void move(int, int) final;

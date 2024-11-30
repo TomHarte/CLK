@@ -26,37 +26,37 @@ ReflectableEnum(Display,
 //===
 
 template <typename Owner> class DisplayOption {
-	public:
-		Configurable::Display output;
-		DisplayOption(Configurable::Display output) : output(output) {}
+public:
+	Configurable::Display output;
+	DisplayOption(Configurable::Display output) : output(output) {}
 
-	protected:
-		void declare_display_option() {
-			static_cast<Owner *>(this)->declare(&output, "output");
-			AnnounceEnumNS(Configurable, Display);
-		}
+protected:
+	void declare_display_option() {
+		static_cast<Owner *>(this)->declare(&output, "output");
+		AnnounceEnumNS(Configurable, Display);
+	}
 };
 
 template <typename Owner> class QuickloadOption {
-	public:
-		bool quickload;
-		QuickloadOption(bool quickload) : quickload(quickload) {}
+public:
+	bool quickload;
+	QuickloadOption(bool quickload) : quickload(quickload) {}
 
-	protected:
-		void declare_quickload_option() {
-			static_cast<Owner *>(this)->declare(&quickload, "quickload");
-		}
+protected:
+	void declare_quickload_option() {
+		static_cast<Owner *>(this)->declare(&quickload, "quickload");
+	}
 };
 
 template <typename Owner> class QuickbootOption {
-	public:
-		bool quickboot;
-		QuickbootOption(bool quickboot) : quickboot(quickboot) {}
+public:
+	bool quickboot;
+	QuickbootOption(bool quickboot) : quickboot(quickboot) {}
 
-	protected:
-		void declare_quickboot_option() {
-			static_cast<Owner *>(this)->declare(&quickboot, "quickboot");
-		}
+protected:
+	void declare_quickboot_option() {
+		static_cast<Owner *>(this)->declare(&quickboot, "quickboot");
+	}
 };
 
 }

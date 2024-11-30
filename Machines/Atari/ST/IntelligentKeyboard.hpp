@@ -105,7 +105,7 @@ class IntelligentKeyboard:
 
 		// Inputs::Mouse.
 		void move(int x, int y) final;
-		int get_number_of_buttons() final;
+		int get_number_of_buttons() const final;
 		void set_button_pressed(int index, bool is_pressed) final;
 		void reset_all_buttons() final;
 

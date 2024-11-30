@@ -507,7 +507,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options() final {
+		std::unique_ptr<Reflection::Struct> get_options() const final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->quickload = accelerate_loading_;
 			return options;

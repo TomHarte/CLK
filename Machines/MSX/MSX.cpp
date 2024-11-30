@@ -812,7 +812,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options() final {
+		std::unique_ptr<Reflection::Struct> get_options() const final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
 			options->quickload = allow_fast_tape_;

@@ -21,7 +21,7 @@ class Mouse: public ReactiveDevice, public Inputs::Mouse {
 		void perform_command(const Command &command) override;
 
 		void move(int x, int y) override;
-		int get_number_of_buttons() override;
+		int get_number_of_buttons() const override;
 		void set_button_pressed(int index, bool is_pressed) override;
 		void reset_all_buttons() override;
 

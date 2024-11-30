@@ -677,7 +677,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options() final {
+		std::unique_ptr<Reflection::Struct> get_options() const final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
 			options->quickload = use_fast_tape_hack_;

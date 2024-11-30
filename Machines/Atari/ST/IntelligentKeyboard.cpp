@@ -427,7 +427,7 @@ void IntelligentKeyboard::move(int x, int y) {
 	mouse_movement_[1] += y;
 }
 
-int IntelligentKeyboard::get_number_of_buttons() {
+int IntelligentKeyboard::get_number_of_buttons() const {
 	return 2;
 }
 

@@ -21,7 +21,7 @@ Keyboard::Keyboard(const std::set<Key> &essential_modifiers) : essential_modifie
 Keyboard::Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers) :
 	observed_keys_(observed_keys), essential_modifiers_(essential_modifiers), is_exclusive_(false) {}
 
-bool Keyboard::set_key_pressed(Key key, char, bool is_pressed, bool) {
+bool Keyboard::set_key_pressed(const Key key, const char, const bool is_pressed, bool) {
 	const size_t key_offset = size_t(key);
 	if(key_offset >= key_states_.size()) {
 		key_states_.resize(key_offset+1, false);
@@ -41,7 +41,7 @@ void Keyboard::reset_all_keys() {
 	if(delegate_) delegate_->reset_all_keys(this);
 }
 
-void Keyboard::set_delegate(Delegate *delegate) {
+void Keyboard::set_delegate(Delegate *const delegate) {
 	delegate_ = delegate;
 }
 

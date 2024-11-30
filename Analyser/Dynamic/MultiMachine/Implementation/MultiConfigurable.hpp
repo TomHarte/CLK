@@ -28,7 +28,7 @@ public:
 
 	// Below is the standard Configurable::Device interface; see there for documentation.
 	void set_options(const std::unique_ptr<Reflection::Struct> &) final;
-	std::unique_ptr<Reflection::Struct> get_options() final;
+	std::unique_ptr<Reflection::Struct> get_options() const final;
 
 private:
 	std::vector<Configurable::Device *> devices_;

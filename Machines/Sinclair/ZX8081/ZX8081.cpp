@@ -383,7 +383,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// MARK: - Configuration options.
 
-		std::unique_ptr<Reflection::Struct> get_options() final {
+		std::unique_ptr<Reflection::Struct> get_options() const final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
 			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
 			options->quickload = allow_fast_tape_hack_;

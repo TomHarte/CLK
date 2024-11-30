@@ -65,126 +65,126 @@ template <> struct TaskQueueStorage<void> {
 	called once per action.
 */
 template <bool perform_automatically, bool start_immediately = true, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
-	public:
-		template <typename... Args> AsyncTaskQueue(Args&&... args) :
-			TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
-			if constexpr (start_immediately) {
-				start();
-			}
+public:
+	template <typename... Args> AsyncTaskQueue(Args&&... args) :
+		TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
+		if constexpr (start_immediately) {
+			start();
 		}
+	}
 
-		/// Enqueus @c post_action to be performed asynchronously at some point
-		/// in the future. If @c perform_automatically is @c true then the action
-		/// will be performed as soon as possible. Otherwise it will sit unsheculed until
-		/// a call to @c perform().
-		///
-		/// Actions may be elided.
-		///
-		/// If this TaskQueue has a @c Performer then the action will be performed
-		/// on the same thread as the performer, after the performer has been updated
-		/// to 'now'.
-		void enqueue(const std::function<void(void)> &post_action) {
-			std::lock_guard guard(condition_mutex_);
-			actions_.push_back(post_action);
+	/// Enqueus @c post_action to be performed asynchronously at some point
+	/// in the future. If @c perform_automatically is @c true then the action
+	/// will be performed as soon as possible. Otherwise it will sit unsheculed until
+	/// a call to @c perform().
+	///
+	/// Actions may be elided.
+	///
+	/// If this TaskQueue has a @c Performer then the action will be performed
+	/// on the same thread as the performer, after the performer has been updated
+	/// to 'now'.
+	void enqueue(const std::function<void(void)> &post_action) {
+		std::lock_guard guard(condition_mutex_);
+		actions_.push_back(post_action);
 
-			if constexpr (perform_automatically) {
-				condition_.notify_all();
-			}
-		}
-
-		/// Causes any enqueued actions that are not yet scheduled to be scheduled.
-		void perform() {
-			if(actions_.empty()) {
-				return;
-			}
+		if constexpr (perform_automatically) {
 			condition_.notify_all();
 		}
+	}
 
-		/// Permanently stops this task queue, blocking until that has happened.
-		/// All pending actions will be performed first.
-		///
-		/// The queue cannot be restarted; this is a destructive action.
-		void stop() {
-			if(thread_.joinable()) {
-				should_quit_ = true;
-				enqueue([] {});
-				if constexpr (!perform_automatically) {
-					perform();
-				}
-				thread_.join();
-			}
+	/// Causes any enqueued actions that are not yet scheduled to be scheduled.
+	void perform() {
+		if(actions_.empty()) {
+			return;
 		}
+		condition_.notify_all();
+	}
 
-		/// Starts the queue if it has never been started before.
-		///
-		/// This is not guaranteed safely to restart a stopped queue.
-		void start() {
-			thread_ = std::thread{
-				[this] {
-					ActionVector actions;
-
-					// Continue until told to quit.
-					while(!should_quit_) {
-						// Wait for new actions to be signalled, and grab them.
-						std::unique_lock lock(condition_mutex_);
-						while(actions_.empty() && !should_quit_) {
-							condition_.wait(lock);
-						}
-						std::swap(actions, actions_);
-						lock.unlock();
-
-						// Update to now (which is possibly a no-op).
-						TaskQueueStorage<Performer>::update();
-
-						// Perform the actions and destroy them.
-						for(const auto &action: actions) {
-							action();
-						}
-						actions.clear();
-					}
-				}
-			};
-		}
-
-		/// Schedules any remaining unscheduled work, then blocks synchronously
-		/// until all scheduled work has been performed.
-		void flush() {
-			std::mutex flush_mutex;
-			std::condition_variable flush_condition;
-			bool has_run = false;
-			std::unique_lock lock(flush_mutex);
-
-			enqueue([&flush_mutex, &flush_condition, &has_run] () {
-				std::unique_lock inner_lock(flush_mutex);
-				has_run = true;
-				flush_condition.notify_all();
-			});
-
+	/// Permanently stops this task queue, blocking until that has happened.
+	/// All pending actions will be performed first.
+	///
+	/// The queue cannot be restarted; this is a destructive action.
+	void stop() {
+		if(thread_.joinable()) {
+			should_quit_ = true;
+			enqueue([] {});
 			if constexpr (!perform_automatically) {
 				perform();
 			}
+			thread_.join();
+		}
+	}
 
-			flush_condition.wait(lock, [&has_run] { return has_run; });
+	/// Starts the queue if it has never been started before.
+	///
+	/// This is not guaranteed safely to restart a stopped queue.
+	void start() {
+		thread_ = std::thread{
+			[this] {
+				ActionVector actions;
+
+				// Continue until told to quit.
+				while(!should_quit_) {
+					// Wait for new actions to be signalled, and grab them.
+					std::unique_lock lock(condition_mutex_);
+					while(actions_.empty() && !should_quit_) {
+						condition_.wait(lock);
+					}
+					std::swap(actions, actions_);
+					lock.unlock();
+
+					// Update to now (which is possibly a no-op).
+					TaskQueueStorage<Performer>::update();
+
+					// Perform the actions and destroy them.
+					for(const auto &action: actions) {
+						action();
+					}
+					actions.clear();
+				}
+			}
+		};
+	}
+
+	/// Schedules any remaining unscheduled work, then blocks synchronously
+	/// until all scheduled work has been performed.
+	void flush() {
+		std::mutex flush_mutex;
+		std::condition_variable flush_condition;
+		bool has_run = false;
+		std::unique_lock lock(flush_mutex);
+
+		enqueue([&flush_mutex, &flush_condition, &has_run] () {
+			std::unique_lock inner_lock(flush_mutex);
+			has_run = true;
+			flush_condition.notify_all();
+		});
+
+		if constexpr (!perform_automatically) {
+			perform();
 		}
 
-		~AsyncTaskQueue() {
-			stop();
-		}
+		flush_condition.wait(lock, [&has_run] { return has_run; });
+	}
 
-	private:
-		// The list of actions waiting be performed. These will be elided,
-		// increasing their latency, if the emulation thread falls behind.
-		using ActionVector = std::vector<std::function<void(void)>>;
-		ActionVector actions_;
+	~AsyncTaskQueue() {
+		stop();
+	}
 
-		// Necessary synchronisation parts.
-		std::atomic<bool> should_quit_ = false;
-		std::mutex condition_mutex_;
-		std::condition_variable condition_;
+private:
+	// The list of actions waiting be performed. These will be elided,
+	// increasing their latency, if the emulation thread falls behind.
+	using ActionVector = std::vector<std::function<void(void)>>;
+	ActionVector actions_;
 
-		// Ensure the thread isn't constructed until after the mutex
-		// and condition variable.
-		std::thread thread_;
+	// Necessary synchronisation parts.
+	std::atomic<bool> should_quit_ = false;
+	std::mutex condition_mutex_;
+	std::condition_variable condition_;
+
+	// Ensure the thread isn't constructed until after the mutex
+	// and condition variable.
+	std::thread thread_;
 };
 
 }

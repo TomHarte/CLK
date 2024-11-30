@@ -1118,7 +1118,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options() override {
+		std::unique_ptr<Reflection::Struct> get_options() const override {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
 			return options;

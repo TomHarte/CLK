@@ -1043,7 +1043,7 @@ template <Analyser::Static::AppleII::Target::Model model, bool has_mockingboard>
 		}
 
 		// MARK:: Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options() final {
+		std::unique_ptr<Reflection::Struct> get_options() const final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
 			options->use_square_pixels = video_.get_use_square_pixels();

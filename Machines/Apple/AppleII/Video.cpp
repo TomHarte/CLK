@@ -55,10 +55,9 @@ void VideoBase::set_use_square_pixels(bool use_square_pixels) {
 		crt_.set_aspect_ratio(4.0f / 3.0f);
 	}
 }
-bool VideoBase::get_use_square_pixels() {
+bool VideoBase::get_use_square_pixels() const {
 	return use_square_pixels_;
 }
-
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
