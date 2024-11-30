@@ -66,66 +66,66 @@ enum class Status3: uint8_t {
 };
 
 class Status {
-	public:
-		Status() {
-			reset();
+public:
+	Status() {
+		reset();
+	}
+
+	void reset() {
+		main_status_ = 0;
+		set(MainStatus::DataReady, true);
+		status_[0] = status_[1] = status_[2] = 0;
+	}
+
+	/// @returns The main status register value.
+	uint8_t main() const {
+		return main_status_;
+	}
+	uint8_t operator [](const int index) const {
+		return status_[index];
+	}
+
+	//
+	// Flag setters.
+	//
+	void set(const MainStatus flag, const bool value) {
+		set(uint8_t(flag), value, main_status_);
+	}
+	void start_seek(const int drive) 	{	main_status_ |= 1 << drive;	}
+	void set(const Status0 flag)		{	set(uint8_t(flag), true, status_[0]);	}
+	void set(const Status1 flag)	 	{	set(uint8_t(flag), true, status_[1]);	}
+	void set(const Status2 flag)		{	set(uint8_t(flag), true, status_[2]);	}
+
+	void set_status0(uint8_t value)	{	status_[0] = value;	}
+
+	//
+	// Flag getters.
+	//
+	bool get(const MainStatus flag)	{	return main_status_ & uint8_t(flag);	}
+	bool get(const Status2 flag)	{	return status_[2] & uint8_t(flag);		}
+
+	/// Begin execution of whatever @c CommandDecoder currently describes, setting internal
+	/// state appropriately.
+	void begin(const CommandDecoder &command) {
+		set(MainStatus::DataReady, false);
+		set(MainStatus::CommandInProgress, true);
+
+		if(command.is_access()) {
+			status_[0] = command.drive_head();
 		}
+	}
 
-		void reset() {
-			main_status_ = 0;
-			set(MainStatus::DataReady, true);
-			status_[0] = status_[1] = status_[2] = 0;
+private:
+	void set(const uint8_t flag, const bool value, uint8_t &target) {
+		if(value) {
+			target |= flag;
+		} else {
+			target &= ~flag;
 		}
+	}
 
-		/// @returns The main status register value.
-		uint8_t main() const {
-			return main_status_;
-		}
-		uint8_t operator [](int index) const {
-			return status_[index];
-		}
-
-		//
-		// Flag setters.
-		//
-		void set(MainStatus flag, bool value) {
-			set(uint8_t(flag), value, main_status_);
-		}
-		void start_seek(int drive) 	{	main_status_ |= 1 << drive;	}
-		void set(Status0 flag) {	set(uint8_t(flag), true, status_[0]);	}
-		void set(Status1 flag) {	set(uint8_t(flag), true, status_[1]);	}
-		void set(Status2 flag) {	set(uint8_t(flag), true, status_[2]);	}
-
-		void set_status0(uint8_t value)	{	status_[0] = value;	}
-
-		//
-		// Flag getters.
-		//
-		bool get(MainStatus flag)	{	return main_status_ & uint8_t(flag);	}
-		bool get(Status2 flag)		{	return status_[2] & uint8_t(flag);		}
-
-		/// Begin execution of whatever @c CommandDecoder currently describes, setting internal
-		/// state appropriately.
-		void begin(const CommandDecoder &command) {
-			set(MainStatus::DataReady, false);
-			set(MainStatus::CommandInProgress, true);
-
-			if(command.is_access()) {
-				status_[0] = command.drive_head();
-			}
-		}
-
-	private:
-		void set(uint8_t flag, bool value, uint8_t &target) {
-			if(value) {
-				target |= flag;
-			} else {
-				target &= ~flag;
-			}
-		}
-
-		uint8_t main_status_;
-		uint8_t status_[3];
+	uint8_t main_status_;
+	uint8_t status_[3];
 };
 
 }

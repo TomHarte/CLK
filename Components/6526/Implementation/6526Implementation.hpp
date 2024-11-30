@@ -33,7 +33,7 @@ template <int port> uint8_t MOS6526<BusHandlerT, personality>::get_port_input() 
 }
 
 template <typename BusHandlerT, Personality personality>
-void MOS6526<BusHandlerT, personality>::posit_interrupt(uint8_t mask) {
+void MOS6526<BusHandlerT, personality>::posit_interrupt(const uint8_t mask) {
 	if(!mask) {
 		return;
 	}
@@ -54,13 +54,13 @@ bool MOS6526<BusHandlerT, personality>::get_interrupt_line() {
 }
 
 template <typename BusHandlerT, Personality personality>
-void MOS6526<BusHandlerT, personality>::set_cnt_input(bool active) {
+void MOS6526<BusHandlerT, personality>::set_cnt_input(const bool active) {
 	cnt_edge_ = active && !cnt_state_;
 	cnt_state_ = active;
 }
 
 template <typename BusHandlerT, Personality personality>
-void MOS6526<BusHandlerT, personality>::set_flag_input(bool low) {
+void MOS6526<BusHandlerT, personality>::set_flag_input(const bool low) {
 	if(low && !flag_state_) {
 		posit_interrupt(Interrupts::Flag);
 	}
@@ -68,7 +68,7 @@ void MOS6526<BusHandlerT, personality>::set_flag_input(bool low) {
 }
 
 template <typename BusHandlerT, Personality personality>
-void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
+void MOS6526<BusHandlerT, personality>::write(int address, const uint8_t value) {
 	address &= 0xf;
 	switch(address) {
 		// Port output.
@@ -204,7 +204,7 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 }
 
 template <typename BusHandlerT, Personality personality>
-void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
+void MOS6526<BusHandlerT, personality>::advance_tod(const int count) {
 	if(!count) return;
 	if(tod_.advance(count)) {
 		posit_interrupt(Interrupts::Alarm);
@@ -212,7 +212,7 @@ void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
 }
 
 template <typename BusHandlerT, Personality personality>
-bool MOS6526<BusHandlerT, personality>::serial_line_did_produce_bit(Serial::Line<true> *, int bit) {
+bool MOS6526<BusHandlerT, personality>::serial_line_did_produce_bit(Serial::Line<true> *, const int bit) {
 	// TODO: post CNT change; might affect timer.
 
 	if(!shifter_is_output_) {

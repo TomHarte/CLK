@@ -31,26 +31,26 @@ enum Line {
 	6522 and a subclass of PortHandler in order to reproduce a 6522 and its original bus wiring.
 */
 class PortHandler {
-	public:
-		/// Requests the current input value of @c port from the port handler.
-		uint8_t get_port_input([[maybe_unused]] Port port) {
-			return 0xff;
-		}
+public:
+	/// Requests the current input value of the named port from the port handler.
+	uint8_t get_port_input(Port) {
+		return 0xff;
+	}
 
-		/// Sets the current output value of @c port and provides @c direction_mask, indicating which pins are marked as output.
-		void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask) {}
+	/// Sets the current output value of the named oprt and provides @c direction_mask, indicating which pins are marked as output.
+	void set_port_output(Port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask) {}
 
-		/// Sets the current logical output level for line @c line on port @c port.
-		void set_control_line_output([[maybe_unused]] Port port, [[maybe_unused]] Line line, [[maybe_unused]] bool value) {}
+	/// Sets the current logical output level for the named line on the specified  port.
+	void set_control_line_output(Port, Line, [[maybe_unused]] bool value) {}
 
-		/// Sets the current logical value of the interrupt line.
-		void set_interrupt_status([[maybe_unused]] bool status) {}
+	/// Sets the current logical value of the interrupt line.
+	void set_interrupt_status([[maybe_unused]] bool status) {}
 
-		/// Provides a measure of time elapsed between other calls.
-		void run_for([[maybe_unused]] HalfCycles duration) {}
+	/// Provides a measure of time elapsed between other calls.
+	void run_for(HalfCycles) {}
 
-		/// Receives passed-on flush() calls from the 6522.
-		void flush() {}
+	/// Receives passed-on flush() calls from the 6522.
+	void flush() {}
 };
 
 /*!
@@ -58,21 +58,21 @@ class PortHandler {
 	a virtual level of indirection for receiving changes to the interrupt line.
 */
 class IRQDelegatePortHandler: public PortHandler {
-	public:
-		class Delegate {
-			public:
-				/// Indicates that the interrupt status has changed for the IRQDelegatePortHandler provided.
-				virtual void mos6522_did_change_interrupt_status(void *irq_delegate) = 0;
-		};
+public:
+	class Delegate {
+		public:
+			/// Indicates that the interrupt status has changed for the IRQDelegatePortHandler provided.
+			virtual void mos6522_did_change_interrupt_status(void *irq_delegate) = 0;
+	};
 
-		/// Sets the delegate that will receive notification of changes in the interrupt line.
-		void set_interrupt_delegate(Delegate *delegate);
+	/// Sets the delegate that will receive notification of changes in the interrupt line.
+	void set_interrupt_delegate(Delegate *);
 
-		/// Overrides @c PortHandler::set_interrupt_status, notifying the delegate if one is set.
-		void set_interrupt_status(bool new_status);
+	/// Overrides @c PortHandler::set_interrupt_status, notifying the delegate if one is set.
+	void set_interrupt_status(bool);
 
-	private:
-		Delegate *delegate_ = nullptr;
+private:
+	Delegate *delegate_ = nullptr;
 };
 
 /*!
@@ -87,53 +87,53 @@ class IRQDelegatePortHandler: public PortHandler {
 	implementing bus communications as required.
 */
 template <class BusHandlerT> class MOS6522: public MOS6522Storage {
-	public:
-		MOS6522(BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
-		MOS6522(const MOS6522 &) = delete;
+public:
+	MOS6522(BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
+	MOS6522(const MOS6522 &) = delete;
 
-		/*! Sets a register value. */
-		void write(int address, uint8_t value);
+	/*! Sets a register value. */
+	void write(int address, uint8_t value);
 
-		/*! Gets a register value. */
-		uint8_t read(int address);
+	/*! Gets a register value. */
+	uint8_t read(int address);
 
-		/*! @returns the bus handler. */
-		BusHandlerT &bus_handler();
+	/*! @returns the bus handler. */
+	BusHandlerT &bus_handler();
 
-		/// Sets the input value of line @c line on port @c port.
-		void set_control_line_input(Port port, Line line, bool value);
+	/// Sets the input value of the named line and port.
+	void set_control_line_input(Port, Line, bool value);
 
-		/// Runs for a specified number of half cycles.
-		void run_for(const HalfCycles half_cycles);
+	/// Runs for a specified number of half cycles.
+	void run_for(const HalfCycles);
 
-		/// Runs for a specified number of cycles.
-		void run_for(const Cycles cycles);
+	/// Runs for a specified number of cycles.
+	void run_for(const Cycles);
 
-		/// @returns @c true if the IRQ line is currently active; @c false otherwise.
-		bool get_interrupt_line() const;
+	/// @returns @c true if the IRQ line is currently active; @c false otherwise.
+	bool get_interrupt_line() const;
 
-		/// Updates the port handler to the current time and then requests that it flush.
-		void flush();
+	/// Updates the port handler to the current time and then requests that it flush.
+	void flush();
 
-	private:
-		void do_phase1();
-		void do_phase2();
-		void shift_in();
-		void shift_out();
+private:
+	void do_phase1();
+	void do_phase2();
+	void shift_in();
+	void shift_out();
 
-		BusHandlerT &bus_handler_;
-		HalfCycles time_since_bus_handler_call_;
+	BusHandlerT &bus_handler_;
+	HalfCycles time_since_bus_handler_call_;
 
-		void access(int address);
+	void access(int address);
 
-		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask);
-		inline void reevaluate_interrupts();
+	uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask);
+	inline void reevaluate_interrupts();
 
-		/// Sets the current intended output value for the port and line;
-		/// if this affects the visible output, it will be passed to the handler.
-		void set_control_line_output(Port port, Line line, LineState value);
-		void evaluate_cb2_output();
-		void evaluate_port_b_output();
+	/// Sets the current intended output value for the port and line;
+	/// if this affects the visible output, it will be passed to the handler.
+	void set_control_line_output(Port port, Line line, LineState value);
+	void evaluate_cb2_output();
+	void evaluate_port_b_output();
 };
 
 }

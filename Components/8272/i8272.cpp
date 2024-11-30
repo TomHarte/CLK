@@ -18,7 +18,7 @@ Log::Logger<Log::Source::i8272> logger;
 
 using namespace Intel::i8272;
 
-i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
+i8272::i8272(BusHandler &bus_handler, const Cycles clock_rate) :
 	Storage::Disk::MFMController(clock_rate),
 	bus_handler_(bus_handler) {
 	posit_event(int(Event8272::CommandByte));
@@ -34,7 +34,7 @@ ClockingHint::Preference i8272::preferred_clocking() const {
 	return is_sleeping_ ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
-void i8272::run_for(Cycles cycles) {
+void i8272::run_for(const Cycles cycles) {
 	Storage::Disk::MFMController::run_for(cycles);
 
 	if(is_sleeping_) return;
@@ -109,7 +109,7 @@ void i8272::run_for(Cycles cycles) {
 	if(is_sleeping_) update_clocking_observer();
 }
 
-void i8272::write(int address, uint8_t value) {
+void i8272::write(const int address, const uint8_t value) {
 	// don't consider attempted sets to the status register
 	if(!address) return;
 
@@ -127,7 +127,7 @@ void i8272::write(int address, uint8_t value) {
 	}
 }
 
-uint8_t i8272::read(int address) {
+uint8_t i8272::read(const int address) {
 	if(address) {
 		if(result_stack_.empty()) return 0xff;
 		uint8_t result = result_stack_.back();
@@ -208,7 +208,7 @@ uint8_t i8272::read(int address) {
 		drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);\
 	}
 
-void i8272::posit_event(int event_type) {
+void i8272::posit_event(const int event_type) {
 	if(event_type == int(Event::IndexHole)) index_hole_count_++;
 	if(event_type == int(Event8272::NoLongerReady)) {
 		status_.set(Status0::NotReady);

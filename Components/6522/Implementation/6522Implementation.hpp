@@ -14,7 +14,7 @@
 
 namespace MOS::MOS6522 {
 
-template <typename T> void MOS6522<T>::access(int address) {
+template <typename T> void MOS6522<T>::access(const int address) {
 	switch(address) {
 		case 0x0:
 			// In both handshake and pulse modes, CB2 goes low on any read or write of Port B.
@@ -33,7 +33,7 @@ template <typename T> void MOS6522<T>::access(int address) {
 	}
 }
 
-template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
+template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 	address &= 0xf;
 	access(address);
 	switch(address) {
@@ -44,7 +44,10 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			evaluate_port_b_output();
 
-			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
+			registers_.interrupt_flags &= ~(
+				InterruptFlag::CB1ActiveEdge |
+				((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge)
+			);
 			reevaluate_interrupts();
 		break;
 		case 0xf:
@@ -58,7 +61,10 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 				set_control_line_output(Port::A, Line::Two, LineState::Off);
 			}
 
-			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
+			registers_.interrupt_flags &= ~(
+				InterruptFlag::CA1ActiveEdge |
+				((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge)
+			);
 			reevaluate_interrupts();
 		break;
 
@@ -230,7 +236,12 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 	return 0xff;
 }
 
-template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask) {
+template <typename T> uint8_t MOS6522<T>::get_port_input(
+	const Port port,
+	const uint8_t output_mask,
+	uint8_t output,
+	const uint8_t timer_mask
+) {
 	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 	const uint8_t input = bus_handler_.get_port_input(port);
 	output = (output & ~timer_mask) | (registers_.timer_port_b_output & timer_mask);
@@ -252,7 +263,7 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 	}
 }
 
-template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line line, bool value) {
+template <typename T> void MOS6522<T>::set_control_line_input(const Port port, const Line line, const bool value) {
 	switch(line) {
 		case Line::One:
 			if(value != control_inputs_[port].lines[line]) {
@@ -448,7 +459,8 @@ template <typename T> void MOS6522<T>::evaluate_cb2_output() {
 	}
 }
 
-template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line line, LineState value) {
+template <typename T>
+void MOS6522<T>::set_control_line_output(const Port port, const Line line, const LineState value) {
 	if(port == Port::B && line == Line::Two) {
 		control_outputs_[port].lines[line] = value;
 		evaluate_cb2_output();

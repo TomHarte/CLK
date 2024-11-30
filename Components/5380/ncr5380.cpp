@@ -21,7 +21,7 @@ Log::Logger<Log::Source::NCR5380> logger;
 using namespace NCR::NCR5380;
 using SCSI::Line;
 
-NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
+NCR5380::NCR5380(SCSI::Bus &bus, const int clock_rate) :
 	bus_(bus),
 	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
@@ -33,7 +33,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 	(void)expected_phase_;
 }
 
-void NCR5380::write(int address, uint8_t value, bool) {
+void NCR5380::write(const int address, const uint8_t value, bool) {
 	switch(address & 7) {
 		case 0:
 			logger.info().append("[0] Set current SCSI bus state to %02x", value);
@@ -101,11 +101,11 @@ void NCR5380::write(int address, uint8_t value, bool) {
 			update_control_output();
 		break;
 
-		case 3: {
+		case 3:
 			logger.info().append("[3] Set target command: %02x", value);
 			target_command_ = value;
 			update_control_output();
-		} break;
+		break;
 
 		case 4:
 			logger.info().append("[4] Set select enabled: %02x", value);
@@ -143,7 +143,7 @@ void NCR5380::write(int address, uint8_t value, bool) {
 	}
 }
 
-uint8_t NCR5380::read(int address, bool) {
+uint8_t NCR5380::read(const int address, bool) {
 	switch(address & 7) {
 		case 0:
 			logger.info().append("[0] Get current SCSI bus state: %02x", (bus_.get_state() & 0xff));
@@ -154,7 +154,10 @@ uint8_t NCR5380::read(int address, bool) {
 		return uint8_t(bus_.get_state());
 
 		case 1:
-			logger.info().append("[1] Initiator command register get: %c%c", arbitration_in_progress_ ? 'p' : '-', lost_arbitration_ ? 'l' : '-');
+			logger.info().append(
+				"[1] Initiator command register get: %c%c",
+				arbitration_in_progress_ ? 'p' : '-',
+				lost_arbitration_ ? 'l' : '-');
 		return
 			// Bits repeated as they were set.
 			(initiator_command_ & ~0x60) |
@@ -239,7 +242,7 @@ void NCR5380::update_control_output() {
 	}
 }
 
-void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) {
+void NCR5380::scsi_bus_did_change(SCSI::Bus *, const SCSI::BusState new_state, const double time_since_change) {
 	/*
 		When connected as an Initiator with DMA Mode True,
 		if the phase lines I//O, C//D, and /MSG do not match the
@@ -333,7 +336,7 @@ void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double 
 	}
 }
 
-void NCR5380::set_execution_state(ExecutionState state) {
+void NCR5380::set_execution_state(const ExecutionState state) {
 	state_ = state;
 	if(state != ExecutionState::PerformingDMA) dma_operation_ = DMAOperation::Ready;
 }
@@ -357,7 +360,7 @@ uint8_t NCR5380::dma_acknowledge() {
 	return bus_state;
 }
 
-void NCR5380::dma_acknowledge(uint8_t value) {
+void NCR5380::dma_acknowledge(const uint8_t value) {
 	data_bus_ = value;
 
 	dma_acknowledge_ = true;

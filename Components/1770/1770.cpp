@@ -17,7 +17,7 @@ Log::Logger<Log::Source::WDFDC> logger;
 
 using namespace WD;
 
-WD1770::WD1770(Personality p) :
+WD1770::WD1770(const Personality p) :
 		Storage::Disk::MFMController(8000000),
 		personality_(p),
 		interesting_event_mask_(int(Event1770::Command)) {
@@ -25,7 +25,7 @@ WD1770::WD1770(Personality p) :
 	posit_event(int(Event1770::Command));
 }
 
-void WD1770::write(int address, uint8_t value) {
+void WD1770::write(const int address, const uint8_t value) {
 	switch(address&3) {
 		case 0: {
 			if((value&0xf0) == 0xd0) {
@@ -56,7 +56,7 @@ void WD1770::write(int address, uint8_t value) {
 	}
 }
 
-uint8_t WD1770::read(int address) {
+uint8_t WD1770::read(const int address) {
 	switch(address&3) {
 		default: {
 			update_status([] (Status &status) {
@@ -177,7 +177,7 @@ void WD1770::run_for(const Cycles cycles) {
 // !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
 // +--------+----------+-------------------------+
 
-void WD1770::posit_event(int new_event_type) {
+void WD1770::posit_event(const int new_event_type) {
 	if(new_event_type == int(Event::IndexHole)) {
 		index_hole_count_++;
 		if(index_hole_count_target_ == index_hole_count_) {
@@ -809,7 +809,7 @@ void WD1770::posit_event(int new_event_type) {
 	END_SECTION()
 }
 
-void WD1770::update_status(std::function<void(Status &)> updater) {
+void WD1770::update_status(const std::function<void(Status &)> updater) {
 	const Status old_status = status_;
 
 	if(delegate_) {
@@ -827,7 +827,7 @@ void WD1770::update_status(std::function<void(Status &)> updater) {
 void WD1770::set_head_load_request(bool) {}
 void WD1770::set_motor_on(bool) {}
 
-void WD1770::set_head_loaded(bool head_loaded) {
+void WD1770::set_head_loaded(const bool head_loaded) {
 	head_is_loaded_ = head_loaded;
 	if(head_loaded) posit_event(int(Event1770::HeadLoad));
 }

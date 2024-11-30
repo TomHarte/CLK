@@ -16,161 +16,161 @@
 namespace MOS::MOS6526 {
 
 class TODBase {
-	public:
-		template <bool is_timer2> void set_control(uint8_t value) {
-			if constexpr (is_timer2) {
-				write_alarm = value & 0x80;
-			} else {
-				is_50Hz = value & 0x80;
-			}
+public:
+	template <bool is_timer2> void set_control(const uint8_t value) {
+		if constexpr (is_timer2) {
+			write_alarm = value & 0x80;
+		} else {
+			is_50Hz = value & 0x80;
 		}
+	}
 
-	protected:
-		bool write_alarm = false, is_50Hz = false;
+protected:
+	bool write_alarm = false, is_50Hz = false;
 };
 
 template <bool is_8250> class TODStorage {};
 
 template <> class TODStorage<false>: public TODBase {
-	private:
-		bool increment_ = true, latched_ = false;
-		int divider_ = 0;
-		std::array<uint8_t, 4> value_;
-		std::array<uint8_t, 4> latch_;
-		std::array<uint8_t, 4> alarm_;
+private:
+	bool increment_ = true, latched_ = false;
+	int divider_ = 0;
+	std::array<uint8_t, 4> value_;
+	std::array<uint8_t, 4> latch_;
+	std::array<uint8_t, 4> alarm_;
 
-		static constexpr uint8_t masks[4] = {0xf, 0x3f, 0x3f, 0x1f};
+	static constexpr uint8_t masks[4] = {0xf, 0x3f, 0x3f, 0x1f};
 
-		void bcd_increment(uint8_t &value) {
-			++value;
-			if((value&0x0f) > 0x09) value += 0x06;
-		}
+	void bcd_increment(uint8_t &value) {
+		++value;
+		if((value&0x0f) > 0x09) value += 0x06;
+	}
 
-	public:
-		template <int byte> void write(uint8_t v) {
-			if(write_alarm) {
-				alarm_[byte] = v & masks[byte];
-			} else {
-				value_[byte] = v & masks[byte];
-
-				if constexpr (byte == 0) {
-					increment_ = true;
-				}
-				if constexpr (byte == 3) {
-					increment_ = false;
-				}
-			}
-		}
-
-		template <int byte> uint8_t read() {
-			if(latched_) {
-				const uint8_t result = latch_[byte];
-				if constexpr (byte == 0) {
-					latched_ = false;
-				}
-				return result;
-			}
-
-			if constexpr (byte == 3) {
-				latched_ = true;
-				latch_ = value_;
-			}
-			return value_[byte];
-		}
-
-		bool advance(int count) {
-			if(!increment_) {
-				return false;
-			}
-
-			while(count--) {
-				// Increment the pre-10ths divider.
-				++divider_;
-				if(divider_ < 5) continue;
-				if(divider_ < 6 && !is_50Hz) continue;
-				divider_ = 0;
-
-				// Increments 10ths of a second. One BCD digit.
-				++value_[0];
-				if(value_[0] < 10) {
-					continue;
-				}
-
-				// Increment seconds. Actual BCD needed from here onwards.
-				bcd_increment(value_[1]);
-				if(value_[1] != 60) {
-					continue;
-				}
-				value_[1] = 0;
-
-				// Increment minutes.
-				bcd_increment(value_[2]);
-				if(value_[2] != 60) {
-					continue;
-				}
-				value_[2] = 0;
-
-				// TODO: increment hours, keeping AM/PM separate?
-			}
-
-			return false;	// TODO: test against alarm.
-		}
-};
-
-template <> class TODStorage<true>: public TODBase {
-	private:
-		uint32_t increment_mask_ = uint32_t(~0);
-		uint32_t latch_ = 0;
-		uint32_t value_ = 0;
-		uint32_t alarm_ = 0xff'ffff;
-
-	public:
-		template <int byte> void write(uint8_t v) {
-			if constexpr (byte == 3) {
-				return;
-			}
-			constexpr int shift = byte << 3;
-
-			// Write to either the alarm or the current value as directed;
-			// writing to any part of the current value other than the LSB
-			// pauses incrementing until the LSB is written.
-			const uint32_t mask = uint32_t(~(0xff << shift));
-			if(write_alarm) {
-				alarm_ = (alarm_ & mask) | uint32_t(v << shift);
-			} else {
-				value_ = (value_ & mask) | uint32_t(v << shift);
-				increment_mask_ = (byte == 0) ? uint32_t(~0) : 0;
-			}
-		}
-
-		template <int byte> uint8_t read() {
-			if constexpr (byte == 3) {
-				return 0xff;	// Assumed. Just a guess.
-			}
-			constexpr int shift = byte << 3;
-
-			if constexpr (byte == 2) {
-				latch_ = value_ | 0xff00'0000;
-			}
-
-			const uint32_t source = latch_ ? latch_ : value_;
-			const uint8_t result = uint8_t((source >> shift) & 0xff);
+public:
+	template <int byte> void write(const uint8_t v) {
+		if(write_alarm) {
+			alarm_[byte] = v & masks[byte];
+		} else {
+			value_[byte] = v & masks[byte];
 
 			if constexpr (byte == 0) {
-				latch_ = 0;
+				increment_ = true;
 			}
+			if constexpr (byte == 3) {
+				increment_ = false;
+			}
+		}
+	}
 
+	template <int byte> uint8_t read() {
+		if(latched_) {
+			const uint8_t result = latch_[byte];
+			if constexpr (byte == 0) {
+				latched_ = false;
+			}
 			return result;
 		}
 
-		bool advance(int count) {
-			// The 8250 uses a simple binary counter to replace the
-			// 6526's time-of-day clock. So this is easy.
-			const uint32_t distance_to_alarm = (alarm_ - value_) & 0xff'ffff;
-			const auto increment = uint32_t(count) & increment_mask_;
-			value_ = (value_ + increment) & 0xff'ffff;
-			return distance_to_alarm <= increment;
+		if constexpr (byte == 3) {
+			latched_ = true;
+			latch_ = value_;
 		}
+		return value_[byte];
+	}
+
+	bool advance(int count) {
+		if(!increment_) {
+			return false;
+		}
+
+		while(count--) {
+			// Increment the pre-10ths divider.
+			++divider_;
+			if(divider_ < 5) continue;
+			if(divider_ < 6 && !is_50Hz) continue;
+			divider_ = 0;
+
+			// Increments 10ths of a second. One BCD digit.
+			++value_[0];
+			if(value_[0] < 10) {
+				continue;
+			}
+
+			// Increment seconds. Actual BCD needed from here onwards.
+			bcd_increment(value_[1]);
+			if(value_[1] != 60) {
+				continue;
+			}
+			value_[1] = 0;
+
+			// Increment minutes.
+			bcd_increment(value_[2]);
+			if(value_[2] != 60) {
+				continue;
+			}
+			value_[2] = 0;
+
+			// TODO: increment hours, keeping AM/PM separate?
+		}
+
+		return false;	// TODO: test against alarm.
+	}
+};
+
+template <> class TODStorage<true>: public TODBase {
+private:
+	uint32_t increment_mask_ = uint32_t(~0);
+	uint32_t latch_ = 0;
+	uint32_t value_ = 0;
+	uint32_t alarm_ = 0xff'ffff;
+
+public:
+	template <int byte> void write(uint8_t v) {
+		if constexpr (byte == 3) {
+			return;
+		}
+		constexpr int shift = byte << 3;
+
+		// Write to either the alarm or the current value as directed;
+		// writing to any part of the current value other than the LSB
+		// pauses incrementing until the LSB is written.
+		const uint32_t mask = uint32_t(~(0xff << shift));
+		if(write_alarm) {
+			alarm_ = (alarm_ & mask) | uint32_t(v << shift);
+		} else {
+			value_ = (value_ & mask) | uint32_t(v << shift);
+			increment_mask_ = (byte == 0) ? uint32_t(~0) : 0;
+		}
+	}
+
+	template <int byte> uint8_t read() {
+		if constexpr (byte == 3) {
+			return 0xff;	// Assumed. Just a guess.
+		}
+		constexpr int shift = byte << 3;
+
+		if constexpr (byte == 2) {
+			latch_ = value_ | 0xff00'0000;
+		}
+
+		const uint32_t source = latch_ ? latch_ : value_;
+		const uint8_t result = uint8_t((source >> shift) & 0xff);
+
+		if constexpr (byte == 0) {
+			latch_ = 0;
+		}
+
+		return result;
+	}
+
+	bool advance(int count) {
+		// The 8250 uses a simple binary counter to replace the
+		// 6526's time-of-day clock. So this is easy.
+		const uint32_t distance_to_alarm = (alarm_ - value_) & 0xff'ffff;
+		const auto increment = uint32_t(count) & increment_mask_;
+		value_ = (value_ + increment) & 0xff'ffff;
+		return distance_to_alarm <= increment;
+	}
 };
 
 struct MOS6526Storage {
@@ -306,23 +306,23 @@ struct MOS6526Storage {
 			return should_reload;
 		}
 
-		private:
-			int pending = 0;
+	private:
+		int pending = 0;
 
-			static constexpr int ReloadInOne = 1 << 0;
-			static constexpr int ReloadNow = 1 << 1;
+		static constexpr int ReloadInOne = 1 << 0;
+		static constexpr int ReloadNow = 1 << 1;
 
-			static constexpr int OneShotInOne = 1 << 2;
-			static constexpr int OneShotNow = 1 << 3;
+		static constexpr int OneShotInOne = 1 << 2;
+		static constexpr int OneShotNow = 1 << 3;
 
-			static constexpr int ApplyClockInTwo = 1 << 4;
-			static constexpr int ApplyClockInOne = 1 << 5;
-			static constexpr int ApplyClockNow = 1 << 6;
+		static constexpr int ApplyClockInTwo = 1 << 4;
+		static constexpr int ApplyClockInOne = 1 << 5;
+		static constexpr int ApplyClockNow = 1 << 6;
 
-			static constexpr int TestInputInOne = 1 << 7;
-			static constexpr int TestInputNow = 1 << 8;
+		static constexpr int TestInputInOne = 1 << 7;
+		static constexpr int TestInputNow = 1 << 8;
 
-			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
+		static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
 	} counter_[2];
 
 	static constexpr int InterruptInOne = 1 << 0;
