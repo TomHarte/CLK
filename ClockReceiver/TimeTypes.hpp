@@ -16,7 +16,9 @@ typedef double Seconds;
 typedef int64_t Nanos;
 
 inline Nanos nanos_now() {
-	return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+	return std::chrono::duration_cast<std::chrono::nanoseconds>(
+		std::chrono::high_resolution_clock::now().time_since_epoch()
+	).count();
 }
 
 inline Seconds seconds(Nanos nanos) {
