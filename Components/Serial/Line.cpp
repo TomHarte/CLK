@@ -87,7 +87,7 @@ template <bool include_clock>
 template <bool lsb_first, typename IntT> void Line<include_clock>::write_internal(
 	const HalfCycles cycles,
 	int count,
-	const IntT levels
+	IntT levels
 ) {
 	remaining_delays_ += count * cycles.as_integral();
 
