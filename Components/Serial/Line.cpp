@@ -14,7 +14,7 @@
 using namespace Serial;
 
 template <bool include_clock>
-void Line<include_clock>::set_writer_clock_rate(HalfCycles clock_rate) {
+void Line<include_clock>::set_writer_clock_rate(const HalfCycles clock_rate) {
 	clock_rate_ = clock_rate;
 }
 
@@ -73,7 +73,7 @@ void Line<include_clock>::advance_writer(HalfCycles cycles) {
 }
 
 template <bool include_clock>
-void Line<include_clock>::write(bool level) {
+void Line<include_clock>::write(const bool level) {
 	if(!events_.empty()) {
 		events_.emplace_back();
 		events_.back().type = level ? Event::SetHigh : Event::SetLow;
@@ -84,7 +84,11 @@ void Line<include_clock>::write(bool level) {
 }
 
 template <bool include_clock>
-template <bool lsb_first, typename IntT> void Line<include_clock>::write_internal(HalfCycles cycles, int count, IntT levels) {
+template <bool lsb_first, typename IntT> void Line<include_clock>::write_internal(
+	const HalfCycles cycles,
+	int count,
+	const IntT levels
+) {
 	remaining_delays_ += count * cycles.as_integral();
 
 	auto event = events_.size();
@@ -108,12 +112,12 @@ template <bool lsb_first, typename IntT> void Line<include_clock>::write_interna
 }
 
 template <bool include_clock>
-void Line<include_clock>::write(HalfCycles cycles, int count, int levels) {
+void Line<include_clock>::write(const HalfCycles cycles, const int count, const int levels) {
 	write_internal<true, int>(cycles, count, levels);
 }
 
 template <bool include_clock>
-template <bool lsb_first, typename IntT> void Line<include_clock>::write(HalfCycles cycles, IntT value) {
+template <bool lsb_first, typename IntT> void Line<include_clock>::write(const HalfCycles cycles, const IntT value) {
 	write_internal<lsb_first, IntT>(cycles, 8 * sizeof(IntT), value);
 }
 
@@ -129,7 +133,10 @@ bool Line<include_clock>::read() const {
 }
 
 template <bool include_clock>
-void Line<include_clock>::set_read_delegate(ReadDelegate *delegate, [[maybe_unused]] Storage::Time bit_length) {
+void Line<include_clock>::set_read_delegate(
+	ReadDelegate *const delegate,
+	[[maybe_unused]] const Storage::Time bit_length
+) {
 	read_delegate_ = delegate;
 	if constexpr (!include_clock) {
 		assert(bit_length > Storage::Time(0));
@@ -140,7 +147,7 @@ void Line<include_clock>::set_read_delegate(ReadDelegate *delegate, [[maybe_unus
 }
 
 template <bool include_clock>
-void Line<include_clock>::update_delegate(bool level) {
+void Line<include_clock>::update_delegate(const bool level) {
 	// Exit early if there's no delegate, or if the delegate is waiting for
 	// zero and this isn't zero.
 	if(!read_delegate_) return;

@@ -41,10 +41,10 @@ struct Peripheral {
 class Bus {
 public:
 	void set_data(bool pulled);
-	bool data();
+	bool data() const;
 
 	void set_clock(bool pulled);
-	bool clock();
+	bool clock() const;
 
 	void set_clock_data(bool clock_pulled, bool data_pulled);
 

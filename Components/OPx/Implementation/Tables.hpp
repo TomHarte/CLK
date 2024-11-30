@@ -32,12 +32,12 @@ struct LogSign {
 		sign = 1;
 	}
 
-	LogSign &operator +=(int attenuation) {
+	LogSign &operator +=(const int attenuation) {
 		log += attenuation;
 		return *this;
 	}
 
-	LogSign &operator +=(LogSign log_sign) {
+	LogSign &operator +=(const LogSign log_sign) {
 		log += log_sign.log;
 		sign *= log_sign.sign;
 		return *this;
@@ -49,7 +49,7 @@ struct LogSign {
 /*!
 	@returns Negative log sin of x, assuming a 1024-unit circle.
 */
-constexpr LogSign negative_log_sin(int x) {
+constexpr LogSign negative_log_sin(const int x) {
 	/// Defines the first quadrant of 1024-unit negative log to the base two of sine (that conveniently misses sin(0)).
 	///
 	/// Expected branchless usage for a full 1024 unit output:
@@ -107,7 +107,7 @@ constexpr LogSign negative_log_sin(int x) {
 	Computes the linear value represented by the log-sign @c ls, shifted left by @c fractional prior
 	to loss of precision.
 */
-constexpr int power_two(LogSign ls, int fractional = 0) {
+constexpr int power_two(const LogSign ls, const int fractional = 0) {
 	/// A derivative of the exponent table in a real OPL2; mapped_exp[x] = (source[c ^ 0xff] << 1) | 0x800.
 	///
 	/// The ahead-of-time transformation represents fixed work the OPL2 does when reading its table
@@ -215,7 +215,7 @@ constexpr uint8_t percussion_patch_set[] = {
 };
 
 
-inline int LogSign::level(int fractional) const {
+inline int LogSign::level(const int fractional) const {
 	return power_two(*this, fractional);
 }
 

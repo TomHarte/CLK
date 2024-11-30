@@ -12,7 +12,7 @@
 
 using namespace Yamaha::OPL;
 
-OPLL::OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, int audio_divider, bool is_vrc7):
+OPLL::OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, const int audio_divider, const bool is_vrc7):
 	OPLBase(task_queue), audio_divider_(audio_divider), is_vrc7_(is_vrc7) {
 	// Due to the way that sound mixing works on the OPLL, the audio divider may not
 	// be larger than 4.
@@ -71,7 +71,7 @@ OPLL::OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, int audio_divider, bo
 
 // MARK: - Machine-facing programmatic input.
 
-void OPLL::write_register(uint8_t address, uint8_t value) {
+void OPLL::write_register(const uint8_t address, const uint8_t value) {
 	// The OPLL doesn't have timers or other non-audio functions, so all writes
 	// go to the audio queue.
 	task_queue_.enqueue([this, address, value] {
@@ -172,7 +172,7 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 	});
 }
 
-void OPLL::set_channel_period(int channel) {
+void OPLL::set_channel_period(const int channel) {
 	phase_generators_[channel + 0].set_period(channels_[channel].period, channels_[channel].octave);
 	phase_generators_[channel + 9].set_period(channels_[channel].period, channels_[channel].octave);
 
@@ -183,7 +183,7 @@ void OPLL::set_channel_period(int channel) {
 	key_level_scalers_[channel + 9].set_period(channels_[channel].period, channels_[channel].octave);
 }
 
-const uint8_t *OPLL::instrument_definition(int instrument, int channel) {
+const uint8_t *OPLL::instrument_definition(const int instrument, const int channel) const {
 	// Divert to the appropriate rhythm instrument if in rhythm mode.
 	if(channel >= 6 && rhythm_mode_enabled_) {
 		return &percussion_patch_set[(channel - 6) * 8];
@@ -197,7 +197,7 @@ const uint8_t *OPLL::instrument_definition(int instrument, int channel) {
 	return is_vrc7_ ? &vrc7_patch_set[index] : &opll_patch_set[index];
 }
 
-void OPLL::install_instrument(int channel) {
+void OPLL::install_instrument(const int channel) {
 	auto &carrier_envelope = envelope_generators_[channel + 0];
 	auto &carrier_phase = phase_generators_[channel + 0];
 	auto &carrier_scaler = key_level_scalers_[channel + 0];
@@ -266,7 +266,7 @@ void OPLL::install_instrument(int channel) {
 	carrier_envelope.set_sustain_level(instrument[7] >> 4);
 }
 
-void OPLL::set_use_sustain(int channel) {
+void OPLL::set_use_sustain(const int channel) {
 	const uint8_t *const instrument = instrument_definition(channels_[channel].instrument, channel);
 	envelope_generators_[channel + 0].set_use_sustain_level((instrument[1] & 0x20) || channels_[channel].use_sustain);
 	envelope_generators_[channel + 9].set_use_sustain_level((instrument[0] & 0x20) || channels_[channel].use_sustain);
@@ -274,7 +274,7 @@ void OPLL::set_use_sustain(int channel) {
 
 // MARK: - Output generation.
 
-void OPLL::set_sample_volume_range(std::int16_t range) {
+void OPLL::set_sample_volume_range(const std::int16_t range) {
 	total_volume_ = range;
 }
 
@@ -387,7 +387,7 @@ void OPLL::update_all_channels() {
 
 #define ATTENUATION(x)	((x) << 7)
 
-int OPLL::melodic_output(int channel) {
+int OPLL::melodic_output(const int channel) {
 	// The modulator always updates after the carrier, oddly enough. So calculate actual output first, based on the modulator's last value.
 	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), channels_[channel].modulator_output);
 	carrier += envelope_generators_[channel].attenuation() + ATTENUATION(channels_[channel].attenuation) + key_level_scalers_[channel].attenuation();
@@ -403,7 +403,7 @@ int OPLL::melodic_output(int channel) {
 	return carrier.level();
 }
 
-int OPLL::bass_drum() {
+int OPLL::bass_drum() const {
 	// Use modulator 6 and carrier 6, attenuated as per the bass-specific envelope generators and the attenuation level for channel 6.
 	auto modulation = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[6 + 9].phase());
 	modulation += rhythm_envelope_generators_[RhythmIndices::BassModulator].attenuation();
@@ -413,7 +413,7 @@ int OPLL::bass_drum() {
 	return carrier.level();
 }
 
-int OPLL::tom_tom() {
+int OPLL::tom_tom() const {
 	// Use modulator 8 and the 'instrument' selection for channel 8 as an attenuation.
 	auto tom_tom = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[8 + 9].phase());
 	tom_tom += rhythm_envelope_generators_[RhythmIndices::TomTom].attenuation();
@@ -421,7 +421,7 @@ int OPLL::tom_tom() {
 	return tom_tom.level();
 }
 
-int OPLL::snare_drum() {
+int OPLL::snare_drum() const {
 	// Use modulator 7 and the carrier attenuation level for channel 7.
 	LogSign snare = WaveformGenerator<period_precision>::snare(oscillator_, phase_generators_[7 + 9].phase());
 	snare += rhythm_envelope_generators_[RhythmIndices::Snare].attenuation();
@@ -429,7 +429,7 @@ int OPLL::snare_drum() {
 	return snare.level();
 }
 
-int OPLL::cymbal() {
+int OPLL::cymbal() const {
 	// Use modulator 7, carrier 8 and the attenuation level for channel 8.
 	LogSign cymbal = WaveformGenerator<period_precision>::cymbal(phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	cymbal += rhythm_envelope_generators_[RhythmIndices::Cymbal].attenuation();
@@ -437,7 +437,7 @@ int OPLL::cymbal() {
 	return cymbal.level();
 }
 
-int OPLL::high_hat() {
+int OPLL::high_hat() const {
 	// Use modulator 7, carrier 8 a and the 'instrument' selection for channel 7 as an attenuation.
 	LogSign high_hat = WaveformGenerator<period_precision>::high_hat(oscillator_, phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	high_hat += rhythm_envelope_generators_[RhythmIndices::HighHat].attenuation();

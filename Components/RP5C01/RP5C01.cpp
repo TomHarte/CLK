@@ -31,7 +31,7 @@ RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {
 	leap_year_ = time_date->tm_year % 4;
 }
 
-void RP5C01::run_for(HalfCycles cycles) {
+void RP5C01::run_for(const HalfCycles cycles) {
 	sub_seconds_ += cycles;
 
 	// Guess: this happens so rarely (i.e. once a second, ordinarily) that
@@ -96,13 +96,13 @@ void RP5C01::run_for(HalfCycles cycles) {
 
 namespace {
 
-constexpr int Reg(int mode, int address) {
+constexpr int Reg(const int mode, const int address) {
 	return address | mode << 4;
 }
 
 constexpr int PM = 1 << 4;
 
-constexpr int twenty_four_to_twelve(int hours) {
+constexpr int twenty_four_to_twelve(const int hours) {
 	switch(hours) {
 		default:	return (hours % 12) + (hours > 12 ? PM : 0);
 		case 0:		return 12;

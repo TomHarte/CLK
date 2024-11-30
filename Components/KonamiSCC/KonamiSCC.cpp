@@ -20,7 +20,7 @@ bool SCC::is_zero_level() const {
 }
 
 template <Outputs::Speaker::Action action>
-void SCC::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+void SCC::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::MonoSample *const target) {
 	if(is_zero_level()) {
 		Outputs::Speaker::fill<action>(target, target + number_of_samples, Outputs::Speaker::MonoSample());
 		return;
@@ -55,7 +55,7 @@ template void SCC::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Out
 template void SCC::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
 template void SCC::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
 
-void SCC::write(uint16_t address, uint8_t value) {
+void SCC::write(uint16_t address, const uint8_t value) {
 	address &= 0xff;
 	if(address < 0x80) ram_[address] = value;
 
@@ -108,7 +108,7 @@ void SCC::set_sample_volume_range(std::int16_t range) {
 	evaluate_output_volume();
 }
 
-uint8_t SCC::read(uint16_t address) {
+uint8_t SCC::read(uint16_t address) const {
 	address &= 0xff;
 	if(address < 0x80) {
 		return ram_[address];

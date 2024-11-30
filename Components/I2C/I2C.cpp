@@ -18,10 +18,10 @@ Log::Logger<Log::Source::I2C> logger;
 
 }
 
-void Bus::set_data(bool pulled) {
+void Bus::set_data(const bool pulled) {
 	set_clock_data(clock_, pulled);
 }
-bool Bus::data() {
+bool Bus::data() const {
 	bool result = data_;
 	if(peripheral_bits_) {
 		result |= !(peripheral_response_ & 0x80);
@@ -29,14 +29,14 @@ bool Bus::data() {
 	return result;
 }
 
-void Bus::set_clock(bool pulled) {
+void Bus::set_clock(const bool pulled) {
 	set_clock_data(pulled, data_);
 }
-bool Bus::clock() {
+bool Bus::clock() const {
 	return clock_;
 }
 
-void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
+void Bus::set_clock_data(const bool clock_pulled, const bool data_pulled) {
 	// Proceed only if changes are evidenced.
 	if(clock_pulled == clock_ && data_pulled == data_) {
 		return;
@@ -95,7 +95,7 @@ void Bus::set_clock_data(bool clock_pulled, bool data_pulled) {
 	}
 }
 
-void Bus::signal(Event event) {
+void Bus::signal(const Event event) {
 	const auto capture_bit = [&]() {
 		input_ = uint16_t((input_ << 1) | (event == Event::Zero ? 0 : 1));
 		++input_count_;
@@ -221,6 +221,6 @@ void Bus::signal(Event event) {
 	}
 }
 
-void Bus::add_peripheral(Peripheral *peripheral, int address) {
+void Bus::add_peripheral(Peripheral *const peripheral, const int address) {
 	peripherals_[address] = peripheral;
 }

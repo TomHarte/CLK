@@ -26,7 +26,7 @@ class OPLL: public OPLBase<OPLL, false> {
 
 		/// As per ::SampleSource; provides audio output.
 		template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
+		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *);
 		void set_sample_volume_range(std::int16_t range);
 		bool is_zero_level() const { return false; }	// TODO.
 
@@ -49,11 +49,11 @@ class OPLL: public OPLBase<OPLL, false> {
 		void update_all_channels();
 
 		int melodic_output(int channel);
-		int bass_drum();
-		int tom_tom();
-		int snare_drum();
-		int cymbal();
-		int high_hat();
+		int bass_drum() const;
+		int tom_tom() const;
+		int snare_drum() const;
+		int cymbal() const;
+		int high_hat() const;
 
 		static constexpr int period_precision = 9;
 		static constexpr int envelope_precision = 7;
@@ -122,7 +122,7 @@ class OPLL: public OPLBase<OPLL, false> {
 		void set_use_sustain(int channel);
 
 		/// @returns The 8-byte definition of instrument @c instrument.
-		const uint8_t *instrument_definition(int instrument, int channel);
+		const uint8_t *instrument_definition(int instrument, int channel) const;
 };
 
 }
