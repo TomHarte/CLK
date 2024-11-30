@@ -16,7 +16,7 @@ namespace Analyser::Static::Disassembler {
 	Provides an address mapper that relocates a chunk of memory so that it starts at
 	address @c start_address.
 */
-template <typename T> std::function<std::size_t(T)> OffsetMapper(T start_address) {
+template <typename T> std::function<std::size_t(T)> OffsetMapper(const T start_address) {
 	return [start_address](T argument) {
 		return size_t(argument - start_address);
 	};

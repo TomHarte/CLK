@@ -15,7 +15,10 @@
 
 using namespace Analyser::Static::Acorn;
 
-static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::Tape::Tape> &tape, Storage::Tape::Acorn::Parser &parser) {
+static std::unique_ptr<File::Chunk> GetNextChunk(
+	const std::shared_ptr<Storage::Tape::Tape> &tape,
+	Storage::Tape::Acorn::Parser &parser
+) {
 	auto new_chunk = std::make_unique<File::Chunk>();
 	int shift_register = 0;
 
@@ -56,7 +59,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 	new_chunk->block_flag = uint8_t(parser.get_next_byte(tape));
 	new_chunk->next_address = uint32_t(parser.get_next_word(tape));
 
-	uint16_t calculated_header_crc = parser.get_crc();
+	const uint16_t calculated_header_crc = parser.get_crc();
 	uint16_t stored_header_crc = uint16_t(parser.get_next_short(tape));
 	stored_header_crc = uint16_t((stored_header_crc >> 8) | (stored_header_crc << 8));
 	new_chunk->header_crc_matched = stored_header_crc == calculated_header_crc;

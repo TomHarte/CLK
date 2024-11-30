@@ -9,7 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		ColecoCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+ColecoCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> coleco_cartridges;
 
 	for(const auto &cartridge : cartridges) {
@@ -52,7 +52,11 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return coleco_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(
+	const Media &media,
+	const std::string &,
+	TargetPlatform::IntType
+) {
 	TargetList targets;
 	auto target = std::make_unique<Target>(Machine::ColecoVision);
 	target->confidence = 1.0f - 1.0f / 32768.0f;

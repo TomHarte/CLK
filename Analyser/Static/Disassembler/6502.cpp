@@ -17,7 +17,12 @@ using PartialDisassembly = Analyser::Static::Disassembly::PartialDisassembly<Dis
 
 struct MOS6502Disassembler {
 
-static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, uint16_t entry_point) {
+static void AddToDisassembly(
+	PartialDisassembly &disassembly,
+	const std::vector<uint8_t> &memory,
+	const std::function<std::size_t(uint16_t)> &address_mapper,
+	uint16_t entry_point
+) {
 	disassembly.disassembly.internal_calls.insert(entry_point);
 	uint16_t address = entry_point;
 	while(true) {
@@ -75,23 +80,25 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		}
 
 		// Decode operation.
-#define RM_INSTRUCTION(base, op)	\
-	case base+0x09: case base+0x05: case base+0x15: case base+0x01: case base+0x11: case base+0x0d: case base+0x1d: case base+0x19:	\
-		instruction.operation = op;	\
+#define RM_INSTRUCTION(base, op)									\
+	case base+0x09: case base+0x05: case base+0x15: case base+0x01:	\
+	case base+0x11: case base+0x0d: case base+0x1d: case base+0x19:	\
+		instruction.operation = op;									\
 	break;
 
-#define URM_INSTRUCTION(base, op)	\
+#define URM_INSTRUCTION(base, op)																					\
 	case base+0x07: case base+0x17: case base+0x03: case base+0x13: case base+0x0f: case base+0x1f: case base+0x1b:	\
-		instruction.operation = op;	\
+		instruction.operation = op;																					\
 	break;
 
-#define M_INSTRUCTION(base, op)	\
+#define M_INSTRUCTION(base, op)														\
 	case base+0x0a: case base+0x06: case base+0x16: case base+0x0e: case base+0x1e:	\
-		instruction.operation = op;	\
+		instruction.operation = op;													\
 	break;
 
-#define IM_INSTRUCTION(base, op)	\
+#define IM_INSTRUCTION(base, op)					\
 	case base:	instruction.operation = op; break;
+
 		switch(operation) {
 			default:
 				instruction.operation = Instruction::KIL;
@@ -259,7 +266,10 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 		disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
 		// TODO: something wider-ranging than this
-		if(instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage) {
+		if(
+			instruction.addressing_mode == Instruction::Absolute ||
+			instruction.addressing_mode == Instruction::ZeroPage
+		) {
 			const size_t mapped_address = address_mapper(instruction.operand);
 			const bool is_external = mapped_address >= memory.size();
 
@@ -272,20 +282,23 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 				case Instruction::ADC: case Instruction::SBC:
 				case Instruction::LAS:
 				case Instruction::CMP: case Instruction::CPX: case Instruction::CPY:
-					(is_external ? disassembly.disassembly.external_loads : disassembly.disassembly.internal_loads).insert(instruction.operand);
+					(is_external ? disassembly.disassembly.external_loads : disassembly.disassembly.internal_loads)
+						.insert(instruction.operand);
 				break;
 
 				case Instruction::STY: case Instruction::STX: case Instruction::STA:
 				case Instruction::AXS: case Instruction::AHX: case Instruction::SHX: case Instruction::SHY:
 				case Instruction::TAS:
-					(is_external ? disassembly.disassembly.external_stores : disassembly.disassembly.internal_stores).insert(instruction.operand);
+					(is_external ? disassembly.disassembly.external_stores : disassembly.disassembly.internal_stores)
+						.insert(instruction.operand);
 				break;
 
 				case Instruction::SLO: case Instruction::RLA: case Instruction::SRE: case Instruction::RRA:
 				case Instruction::DCP: case Instruction::ISC:
 				case Instruction::INC: case Instruction::DEC:
 				case Instruction::ASL: case Instruction::ROL: case Instruction::LSR: case Instruction::ROR:
-					(is_external ? disassembly.disassembly.external_modifies : disassembly.disassembly.internal_modifies).insert(instruction.operand);
+					(is_external ? disassembly.disassembly.external_modifies : disassembly.disassembly.internal_modifies)
+						.insert(instruction.operand);
 				break;
 			}
 		}
@@ -330,5 +343,10 @@ Disassembly Analyser::Static::MOS6502::Disassemble(
 	const std::vector<uint8_t> &memory,
 	const std::function<std::size_t(uint16_t)> &address_mapper,
 	std::vector<uint16_t> entry_points) {
-	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(memory, address_mapper, entry_points, false);
+	return Analyser::Static::Disassembly::Disassemble<Disassembly, uint16_t, MOS6502Disassembler>(
+		memory,
+		address_mapper,
+		entry_points,
+		false
+	);
 }

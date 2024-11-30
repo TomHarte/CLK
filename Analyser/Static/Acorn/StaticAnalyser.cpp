@@ -20,7 +20,7 @@
 using namespace Analyser::Static::Acorn;
 
 static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
-		AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> acorn_cartridges;
 
 	for(const auto &cartridge : cartridges) {
@@ -62,7 +62,11 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
+	const Media &media,
+	const std::string &file_name,
+	TargetPlatform::IntType
+) {
 	auto target8bit = std::make_unique<ElectronTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 
@@ -121,7 +125,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 			target8bit->has_pres_adfs = bool(adfs_catalogue);
 
 			// Check whether a simple shift+break will do for loading this disk.
-			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
+			const auto bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None) {
 				target8bit->should_shift_restart = true;
 			} else {

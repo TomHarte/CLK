@@ -10,7 +10,7 @@
 
 using namespace MOS::MOS6522;
 
-void IRQDelegatePortHandler::set_interrupt_delegate(Delegate *delegate) {
+void IRQDelegatePortHandler::set_interrupt_delegate(Delegate *const delegate) {
 	delegate_ = delegate;
 }
 

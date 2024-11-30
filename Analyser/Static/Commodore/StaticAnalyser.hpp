@@ -14,6 +14,6 @@
 
 namespace Analyser::Static::Commodore {
 
-TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
+TargetList GetTargets(const Media &, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }

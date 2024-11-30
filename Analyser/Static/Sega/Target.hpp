@@ -45,7 +45,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	}
 };
 
-constexpr bool is_master_system(Analyser::Static::Sega::Target::Model model) {
+constexpr bool is_master_system(const Analyser::Static::Sega::Target::Model model) {
 	return model >= Analyser::Static::Sega::Target::Model::MasterSystem;
 }
 

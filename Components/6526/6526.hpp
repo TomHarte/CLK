@@ -41,49 +41,49 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 	private MOS6526Storage,
 	private Serial::Line<true>::ReadDelegate
 {
-	public:
-		MOS6526(PortHandlerT &port_handler) noexcept : port_handler_(port_handler) {
-			serial_input.set_read_delegate(this);
-		}
-		MOS6526(const MOS6526 &) = delete;
+public:
+	MOS6526(PortHandlerT &port_handler) noexcept : port_handler_(port_handler) {
+		serial_input.set_read_delegate(this);
+	}
+	MOS6526(const MOS6526 &) = delete;
 
-		/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
-		void write(int address, uint8_t value);
+	/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
+	void write(int address, uint8_t value);
 
-		/// Fetches the value of the register @c address. Only the low two bits of the address are decoded.
-		uint8_t read(int address);
+	/// Fetches the value of the register @c address. Only the low two bits of the address are decoded.
+	uint8_t read(int address);
 
-		/// Pulses Phi2 to advance by the specified number of half cycles.
-		void run_for(const HalfCycles half_cycles);
+	/// Pulses Phi2 to advance by the specified number of half cycles.
+	void run_for(const HalfCycles);
 
-		/// Pulses the TOD input the specified number of times.
-		void advance_tod(int count);
+	/// Pulses the TOD input the specified number of times.
+	void advance_tod(int count);
 
-		/// @returns @c true if the interrupt output is active, @c false otherwise.
-		bool get_interrupt_line();
+	/// @returns @c true if the interrupt output is active, @c false otherwise.
+	bool get_interrupt_line();
 
-		/// Sets the current state of the CNT input.
-		void set_cnt_input(bool active);
+	/// Sets the current state of the CNT input.
+	void set_cnt_input(bool);
 
-		/// Provides both the serial input bit and an additional source of CNT.
-		Serial::Line<true> serial_input;
+	/// Provides both the serial input bit and an additional source of CNT.
+	Serial::Line<true> serial_input;
 
-		/// Sets the current state of the FLG input.
-		void set_flag_input(bool low);
+	/// Sets the current state of the FLG input.
+	void set_flag_input(bool);
 
-	private:
-		PortHandlerT &port_handler_;
-		TODStorage<personality == Personality::P8250> tod_;
+private:
+	PortHandlerT &port_handler_;
+	TODStorage<personality == Personality::P8250> tod_;
 
-		template <int port> void set_port_output();
-		template <int port> uint8_t get_port_input();
-		void update_interrupts();
-		void posit_interrupt(uint8_t mask);
-		void advance_counters(int);
+	template <int port> void set_port_output();
+	template <int port> uint8_t get_port_input();
+	void update_interrupts();
+	void posit_interrupt(uint8_t mask);
+	void advance_counters(int);
 
-		bool serial_line_did_produce_bit(Serial::Line<true> *line, int bit) final;
+	bool serial_line_did_produce_bit(Serial::Line<true> *line, int bit) final;
 
-		Log::Logger<Log::Source::MOS6526> log;
+	Log::Logger<Log::Source::MOS6526> log;
 };
 
 }

@@ -9,7 +9,11 @@
 #include "StaticAnalyser.hpp"
 #include "Target.hpp"
 
-Analyser::Static::TargetList Analyser::Static::AtariST::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::AtariST::GetTargets(
+	const Media &media,
+	const std::string &,
+	TargetPlatform::IntType
+) {
 	// This analyser can comprehend disks and mass-storage devices only.
 	if(media.disks.empty()) return {};
 

@@ -27,7 +27,8 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	std::vector<Storage::Cartridge::Cartridge::Segment> output_segments;
 	if(segment.data.size() & 0x1fff) {
 		std::vector<uint8_t> truncated_data;
-		std::vector<uint8_t>::difference_type truncated_size = std::vector<uint8_t>::difference_type(segment.data.size()) & ~0x1fff;
+		const auto truncated_size =
+			std::vector<uint8_t>::difference_type(segment.data.size()) & ~0x1fff;
 		truncated_data.insert(truncated_data.begin(), segment.data.begin(), segment.data.begin() + truncated_size);
 		output_segments.emplace_back(start_address, truncated_data);
 	} else {
@@ -82,7 +83,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		if(segments.size() != 1) continue;
 
 		// Which must be no more than 63 bytes larger than a multiple of 8 kb in size.
-		Storage::Cartridge::Cartridge::Segment segment = segments.front();
+		const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
 		const size_t data_size = segment.data.size();
 		if(data_size < 0x2000 || (data_size & 0x1fff) > 64) continue;
 
@@ -101,7 +102,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		// Reject cartridge if the ROM header wasn't found.
 		if(!found_start) continue;
 
-		uint16_t init_address = uint16_t(segment.data[2] | (segment.data[3] << 8));
+		const uint16_t init_address = uint16_t(segment.data[2] | (segment.data[3] << 8));
 		// TODO: check for a rational init address?
 
 		// If this ROM is less than 48kb in size then it's an ordinary ROM. Just emplace it and move on.
@@ -137,10 +138,12 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		}
 
 		// Weight confidences by number of observed hits; if any is above 60% confidence, just use it.
-		const auto ascii_8kb_total = address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800];
+		const auto ascii_8kb_total =
+			address_counts[0x6000] + address_counts[0x6800] + address_counts[0x7000] + address_counts[0x7800];
 		const auto ascii_16kb_total = address_counts[0x6000] + address_counts[0x7000] + address_counts[0x77ff];
 		const auto konami_total = address_counts[0x6000] + address_counts[0x8000] + address_counts[0xa000];
-		const auto konami_with_scc_total = address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000];
+		const auto konami_with_scc_total =
+			address_counts[0x5000] + address_counts[0x7000] + address_counts[0x9000] + address_counts[0xb000];
 
 		const auto total_hits = ascii_8kb_total + ascii_16kb_total + konami_total + konami_with_scc_total;
 
@@ -182,7 +185,11 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 	return targets;
 }
 
-Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(
+	const Media &media,
+	const std::string &,
+	TargetPlatform::IntType
+) {
 	TargetList destination;
 
 	// Append targets for any cartridges that look correct.
@@ -194,7 +201,7 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 
 	// Check tapes for loadable files.
 	for(auto &tape : media.tapes) {
-		std::vector<File> files_on_tape = GetFiles(tape);
+		const std::vector<File> files_on_tape = GetFiles(tape);
 		if(!files_on_tape.empty()) {
 			switch(files_on_tape.front().type) {
 				case File::Type::ASCII:				target->loading_command = "RUN\"CAS:\r";		break;

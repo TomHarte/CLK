@@ -16,21 +16,21 @@ AudioGenerator::AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue) 
 	audio_queue_(audio_queue) {}
 
 
-void AudioGenerator::set_volume(uint8_t volume) {
+void AudioGenerator::set_volume(const uint8_t volume) {
 	audio_queue_.enqueue([this, volume]() {
 		volume_ = int16_t(volume) * range_multiplier_;
 		dc_offset_ = volume_ >> 4;
 	});
 }
 
-void AudioGenerator::set_control(int channel, uint8_t value) {
+void AudioGenerator::set_control(const int channel, const uint8_t value) {
 	audio_queue_.enqueue([this, channel, value]() {
 		control_registers_[channel] = value;
 	});
 }
 
 // Source: VICE. Not original.
-static uint8_t noise_pattern[] = {
+constexpr uint8_t noise_pattern[] = {
 	0x07, 0x1e, 0x1e, 0x1c, 0x1c, 0x3e, 0x3c, 0x38, 0x78, 0xf8, 0x7c, 0x1e, 0x1f, 0x8f, 0x07, 0x07,
 	0xc1, 0xc0, 0xe0, 0xf1, 0xe0, 0xf0, 0xe3, 0xe1, 0xc0, 0xe0, 0x78, 0x7e, 0x3c, 0x38, 0xe0, 0xe1,
 	0xc3, 0xc3, 0x87, 0xc7, 0x07, 0x1e, 0x1c, 0x1f, 0x0e, 0x0e, 0x1e, 0x0e, 0x0f, 0x0f, 0xc3, 0xc3,
@@ -97,17 +97,19 @@ static uint8_t noise_pattern[] = {
 	0xf0, 0xe1, 0xe0, 0x78, 0x70, 0x38, 0x3c, 0x3e, 0x1e, 0x3c, 0x1e, 0x1c, 0x70, 0x3c, 0x38, 0x3f,
 };
 
-#define shift(r) shift_registers_[r] = (shift_registers_[r] << 1) | (((shift_registers_[r]^0x80)&control_registers_[r]) >> 7)
+#define shift(r) shift_registers_[r] = \
+	(shift_registers_[r] << 1) | (((shift_registers_[r]^0x80)&control_registers_[r]) >> 7)
 #define increment(r) shift_registers_[r] = (shift_registers_[r]+1)%8191
-#define update(r, m, up) counters_[r]++; if((counters_[r] >> m) == 0x80) { up(r); counters_[r] = unsigned(control_registers_[r]&0x7f) << m; }
-// Note on slightly askew test: as far as I can make out, if the value in the register is 0x7f then what's supposed to happen
-// is that the 0x7f is loaded, on the next clocked cycle the Vic spots a 0x7f, pumps the output, reloads, etc. No increment
-// ever occurs. It's conditional. I don't really want two conditionals if I can avoid it so I'm incrementing regardless and
-// testing against 0x80. The effect should be the same: loading with 0x7f means an output update every cycle, loading with 0x7e
-// means every second cycle, etc.
+#define update(r, m, up) \
+	counters_[r]++; if((counters_[r] >> m) == 0x80) { up(r); counters_[r] = unsigned(control_registers_[r]&0x7f) << m; }
+// Note on slightly askew test: as far as I can make out, if the value in the register is 0x7f then what's supposed to
+// happen is that the 0x7f is loaded, on the next clocked cycle the Vic spots a 0x7f, pumps the output, reloads, etc. No
+// increment ever occurs. It's conditional. I don't really want two conditionals if I can avoid it so I'm incrementing
+// regardless and testing against 0x80. The effect should be the same: loading with 0x7f means an output update every
+// cycle, loading with 0x7e means every second cycle, etc.
 
 template <Outputs::Speaker::Action action>
-void AudioGenerator::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+void AudioGenerator::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::MonoSample *const target) {
 	for(unsigned int c = 0; c < number_of_samples; ++c) {
 		update(0, 2, shift);
 		update(1, 1, shift);
@@ -129,9 +131,12 @@ void AudioGenerator::apply_samples(std::size_t number_of_samples, Outputs::Speak
 			));
 	}
 }
-template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
-template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
-template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
+template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Mix>(
+	std::size_t, Outputs::Speaker::MonoSample *);
+template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Store>(
+	std::size_t, Outputs::Speaker::MonoSample *);
+template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Ignore>(
+	std::size_t, Outputs::Speaker::MonoSample *);
 
 void AudioGenerator::set_sample_volume_range(std::int16_t range) {
 	range_multiplier_ = int16_t(range / 64);

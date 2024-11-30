@@ -16,7 +16,11 @@
 #include "../../../Storage/Disk/Encodings/MFM/SegmentParser.hpp"
 
 
-Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType platforms) {
+Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
+	const Media &media,
+	const std::string &file_name,
+	TargetPlatform::IntType platforms
+) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 
@@ -39,7 +43,8 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(const Media &me
 	}
 
 	// Attempt to grab MFM track 0, sector 1: the boot sector.
-	const auto track_zero = disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
+	const auto track_zero =
+		disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
 	const auto sector_map = Storage::Encodings::MFM::sectors_from_segment(
 			Storage::Disk::track_serialisation(
 				*track_zero,

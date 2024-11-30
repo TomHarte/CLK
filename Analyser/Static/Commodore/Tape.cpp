@@ -55,7 +55,9 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 					new_file.starting_address = header->starting_address;
 					new_file.ending_address = header->ending_address;
 					new_file.data.swap(data->data);
-					new_file.type = (header->type == Storage::Tape::Commodore::Header::RelocatableProgram) ? File::RelocatableProgram : File::NonRelocatableProgram;
+					new_file.type =
+						header->type == Storage::Tape::Commodore::Header::RelocatableProgram
+							? File::RelocatableProgram : File::NonRelocatableProgram;
 
 					file_list.push_back(new_file);
 				}

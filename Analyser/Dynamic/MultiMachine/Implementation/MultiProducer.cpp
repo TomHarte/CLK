@@ -53,7 +53,7 @@ void MultiInterface<MachineType>::perform_serial(const std::function<void(Machin
 }
 
 // MARK: - MultiScanProducer
-void MultiScanProducer::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+void MultiScanProducer::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 	scan_target_ = scan_target;
 
 	std::lock_guard machines_lock(machines_mutex_);
@@ -80,7 +80,12 @@ void MultiScanProducer::did_change_machine_order() {
 }
 
 // MARK: - MultiAudioProducer
-MultiAudioProducer::MultiAudioProducer(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::recursive_mutex &machines_mutex) : MultiInterface(machines, machines_mutex) {
+MultiAudioProducer::MultiAudioProducer(
+	const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines,
+	std::recursive_mutex &machines_mutex
+) :
+	MultiInterface(machines, machines_mutex)
+{
 	speaker_ = MultiSpeaker::create(machines);
 }
 
@@ -96,7 +101,7 @@ void MultiAudioProducer::did_change_machine_order() {
 
 // MARK: - MultiTimedMachine
 
-void MultiTimedMachine::run_for(Time::Seconds duration) {
+void MultiTimedMachine::run_for(const Time::Seconds duration) {
 	perform_parallel([duration](::MachineTypes::TimedMachine *machine) {
 		if(machine->get_confidence() >= 0.01f) machine->run_for(duration);
 	});

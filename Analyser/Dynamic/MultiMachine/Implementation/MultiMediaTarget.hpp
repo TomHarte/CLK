@@ -23,14 +23,14 @@ namespace Analyser::Dynamic {
 	order of delivered messages.
 */
 struct MultiMediaTarget: public MachineTypes::MediaTarget {
-	public:
-		MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
+public:
+	MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &);
 
-		// Below is the standard MediaTarget::Machine interface; see there for documentation.
-		bool insert_media(const Analyser::Static::Media &media) final;
+	// Below is the standard MediaTarget::Machine interface; see there for documentation.
+	bool insert_media(const Analyser::Static::Media &) final;
 
-	private:
-		std::vector<MachineTypes::MediaTarget *> targets_;
+private:
+	std::vector<MachineTypes::MediaTarget *> targets_;
 };
 
 }

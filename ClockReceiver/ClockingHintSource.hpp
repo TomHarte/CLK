@@ -58,28 +58,28 @@ struct Observer {
 	The hint provided is just that: a hint. Owners may perform ::run_for at a greater frequency.
 */
 class Source {
-	public:
-		/// Registers @c observer as the new clocking observer.
-		void set_clocking_hint_observer(Observer *observer) {
-			observer_ = observer;
-			update_clocking_observer();
-		}
+public:
+	/// Registers @c observer as the new clocking observer.
+	void set_clocking_hint_observer(Observer *observer) {
+		observer_ = observer;
+		update_clocking_observer();
+	}
 
-		/// @returns the current preferred clocking strategy.
-		virtual Preference preferred_clocking() const = 0;
+	/// @returns the current preferred clocking strategy.
+	virtual Preference preferred_clocking() const = 0;
 
-	private:
-		Observer *observer_ = nullptr;
+private:
+	Observer *observer_ = nullptr;
 
-	protected:
-		/*!
-			Provided for subclasses; call this whenever the clocking preference might have changed.
-			This will notify the observer if there is one.
-		*/
-		void update_clocking_observer() {
-			if(!observer_) return;
-			observer_->set_component_prefers_clocking(this, preferred_clocking());
-		}
+protected:
+	/*!
+		Provided for subclasses; call this whenever the clocking preference might have changed.
+		This will notify the observer if there is one.
+	*/
+	void update_clocking_observer() {
+		if(!observer_) return;
+		observer_->set_component_prefers_clocking(this, preferred_clocking());
+	}
 };
 
 }

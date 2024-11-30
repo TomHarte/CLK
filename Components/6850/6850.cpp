@@ -21,7 +21,7 @@ ACIA::ACIA(HalfCycles transmit_clock_rate, HalfCycles receive_clock_rate) :
 	request_to_send.set_writer_clock_rate(transmit_clock_rate);
 }
 
-uint8_t ACIA::read(int address) {
+uint8_t ACIA::read(const int address) {
 	if(address&1) {
 		overran_ = false;
 		received_data_ |= NoValueMask;
@@ -46,7 +46,7 @@ void ACIA::reset() {
 	assert(!interrupt_line_);
 }
 
-void ACIA::write(int address, uint8_t value) {
+void ACIA::write(const int address, const uint8_t value) {
 	if(address&1) {
 		next_transmission_ = value;
 		consider_transmission();
@@ -148,7 +148,7 @@ uint8_t ACIA::parity(uint8_t value) {
 	return value ^ (parity_ == Parity::Even);
 }
 
-bool ACIA::serial_line_did_produce_bit(Serial::Line<false> *, int bit) {
+bool ACIA::serial_line_did_produce_bit(Serial::Line<false> *, const int bit) {
 	// Shift this bit into the 11-bit input register; this is big enough to hold
 	// the largest transmission symbol.
 	++bits_received_;
@@ -172,7 +172,7 @@ bool ACIA::serial_line_did_produce_bit(Serial::Line<false> *, int bit) {
 	return true;
 }
 
-void ACIA::set_interrupt_delegate(InterruptDelegate *delegate) {
+void ACIA::set_interrupt_delegate(InterruptDelegate *const delegate) {
 	interrupt_delegate_ = delegate;
 }
 

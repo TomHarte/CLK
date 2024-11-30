@@ -22,14 +22,14 @@ namespace Analyser::Dynamic {
 	order of delivered messages.
 */
 class MultiJoystickMachine: public MachineTypes::JoystickMachine {
-	public:
-		MultiJoystickMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
+public:
+	MultiJoystickMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &);
 
-		// Below is the standard JoystickMachine::Machine interface; see there for documentation.
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final;
+	// Below is the standard JoystickMachine::Machine interface; see there for documentation.
+	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final;
 
-	private:
-		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+private:
+	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
 }

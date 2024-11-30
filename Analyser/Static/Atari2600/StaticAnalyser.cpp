@@ -33,11 +33,13 @@ static void DeterminePagingFor2kCartridge(Target &target, const Storage::Cartrid
 	// Assume that any kind of store that looks likely to be intended for large amounts of memory implies
 	// large amounts of memory.
 	bool has_wide_area_store = false;
-	for(std::map<uint16_t, Analyser::Static::MOS6502::Instruction>::value_type &entry : high_location_disassembly.instructions_by_address) {
+	for(const auto &entry : high_location_disassembly.instructions_by_address) {
+		using Instruction = Analyser::Static::MOS6502::Instruction;
 		if(entry.second.operation == Analyser::Static::MOS6502::Instruction::STA) {
-			has_wide_area_store |= entry.second.addressing_mode == Analyser::Static::MOS6502::Instruction::Indirect;
-			has_wide_area_store |= entry.second.addressing_mode == Analyser::Static::MOS6502::Instruction::IndexedIndirectX;
-			has_wide_area_store |= entry.second.addressing_mode == Analyser::Static::MOS6502::Instruction::IndirectIndexedY;
+			has_wide_area_store |=
+				entry.second.addressing_mode == Instruction::Indirect ||
+				entry.second.addressing_mode == Instruction::IndexedIndirectX ||
+				entry.second.addressing_mode == Instruction::IndirectIndexedY;
 
 			if(has_wide_area_store) break;
 		}
@@ -50,13 +52,21 @@ static void DeterminePagingFor2kCartridge(Target &target, const Storage::Cartrid
 	if(has_wide_area_store) target.paging_model = Target::PagingModel::CommaVid;
 }
 
-static void DeterminePagingFor8kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+static void DeterminePagingFor8kCartridge(
+	Target &target,
+	const Storage::Cartridge::Cartridge::Segment &segment,
+	const Analyser::Static::MOS6502::Disassembly &disassembly
+) {
 	// Activision stack titles have their vectors at the top of the low 4k, not the top, and
 	// always list 0xf000 as both vectors; they do not repeat them, and, inexplicably, they all
 	// issue an SEI as their first instruction (maybe some sort of relic of the development environment?).
 	if(
-		segment.data[4095] == 0xf0 && segment.data[4093] == 0xf0 && segment.data[4094] == 0x00 && segment.data[4092] == 0x00 &&
-		(segment.data[8191] != 0xf0 || segment.data[8189] != 0xf0 || segment.data[8190] != 0x00 || segment.data[8188] != 0x00) &&
+		segment.data[4095] == 0xf0 && segment.data[4093] == 0xf0 &&
+		segment.data[4094] == 0x00 && segment.data[4092] == 0x00 &&
+		(
+			segment.data[8191] != 0xf0 || segment.data[8189] != 0xf0 ||
+			segment.data[8190] != 0x00 || segment.data[8188] != 0x00
+		) &&
 		segment.data[0] == 0x78
 	) {
 		target.paging_model = Target::PagingModel::ActivisionStack;
@@ -88,7 +98,11 @@ static void DeterminePagingFor8kCartridge(Target &target, const Storage::Cartrid
 	else if(tigervision_access_count > atari_access_count) target.paging_model = Target::PagingModel::Tigervision;
 }
 
-static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+static void DeterminePagingFor16kCartridge(
+	Target &target,
+	const Storage::Cartridge::Cartridge::Segment &,
+	const Analyser::Static::MOS6502::Disassembly &disassembly
+) {
 	// Make an assumption that this is the Atari paging model.
 	target.paging_model = Target::PagingModel::Atari16k;
 
@@ -108,7 +122,11 @@ static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartri
 	if(mnetwork_access_count > atari_access_count) target.paging_model = Target::PagingModel::MNetwork;
 }
 
-static void DeterminePagingFor64kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+static void DeterminePagingFor64kCartridge(
+	Target &target,
+	const Storage::Cartridge::Cartridge::Segment &,
+	const Analyser::Static::MOS6502::Disassembly &disassembly
+) {
 	// Make an assumption that this is a Tigervision if there is a write to 3F.
 	target.paging_model =
 		(disassembly.external_stores.find(0x3f) != disassembly.external_stores.end()) ?
@@ -121,8 +139,12 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 		return;
 	}
 
-	const uint16_t entry_address = uint16_t(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
-	const uint16_t break_address = uint16_t(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
+	const auto word = [](const uint8_t low, const uint8_t high) {
+		return uint16_t(low | (high << 8));
+	};
+
+	const auto entry_address = word(segment.data[segment.data.size() - 4], segment.data[segment.data.size() - 3]);
+	const auto break_address = word(segment.data[segment.data.size() - 2], segment.data[segment.data.size() - 1]);
 
 	std::function<std::size_t(uint16_t address)> address_mapper = [](uint16_t address) {
 		if(!(address & 0x1000)) return size_t(-1);
@@ -130,27 +152,16 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 	};
 
 	const std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());
-	Analyser::Static::MOS6502::Disassembly disassembly = Analyser::Static::MOS6502::Disassemble(final_4k, address_mapper, {entry_address, break_address});
+	const auto disassembly =
+		Analyser::Static::MOS6502::Disassemble(final_4k, address_mapper, {entry_address, break_address});
 
 	switch(segment.data.size()) {
-		case 8192:
-			DeterminePagingFor8kCartridge(target, segment, disassembly);
-		break;
-		case 10495:
-			target.paging_model = Target::PagingModel::Pitfall2;
-		break;
-		case 12288:
-			target.paging_model = Target::PagingModel::CBSRamPlus;
-		break;
-		case 16384:
-			DeterminePagingFor16kCartridge(target, segment, disassembly);
-		break;
-		case 32768:
-			target.paging_model = Target::PagingModel::Atari32k;
-		break;
-		case 65536:
-			DeterminePagingFor64kCartridge(target, segment, disassembly);
-		break;
+		case 8192:		DeterminePagingFor8kCartridge(target, segment, disassembly);	break;
+		case 10495:		target.paging_model = Target::PagingModel::Pitfall2;			break;
+		case 12288:		target.paging_model = Target::PagingModel::CBSRamPlus;			break;
+		case 16384:		DeterminePagingFor16kCartridge(target, segment, disassembly);	break;
+		case 32768:		target.paging_model = Target::PagingModel::Atari32k;			break;
+		case 65536:		DeterminePagingFor64kCartridge(target, segment, disassembly);	break;
 		default:
 		break;
 	}
@@ -177,7 +188,11 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 	}
 }
 
-Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(
+	const Media &media,
+	const std::string &,
+	TargetPlatform::IntType
+) {
 	// TODO: sanity checking; is this image really for an Atari 2600?
 	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;

@@ -39,7 +39,7 @@ bool z8530::get_interrupt_line() const {
 	A1 = C/D		(i.e. control or data)
 */
 
-std::uint8_t z8530::read(int address) {
+std::uint8_t z8530::read(const int address) {
 	if(address & 2) {
 		// Read data register for channel.
 		return channels_[address & 1].read(true, pointer_);
@@ -89,7 +89,7 @@ std::uint8_t z8530::read(int address) {
 	return 0x00;
 }
 
-void z8530::write(int address, std::uint8_t value) {
+void z8530::write(const int address, const std::uint8_t value) {
 	if(address & 2) {
 		// Write data register for channel. This is completely independent
 		// of whatever is going on over in the control realm.
@@ -140,14 +140,14 @@ void z8530::write(int address, std::uint8_t value) {
 	update_delegate();
 }
 
-void z8530::set_dcd(int port, bool level) {
+void z8530::set_dcd(const int port, const bool level) {
 	channels_[port].set_dcd(level);
 	update_delegate();
 }
 
 // MARK: - Channel implementations
 
-uint8_t z8530::Channel::read(bool data, uint8_t pointer) {
+uint8_t z8530::Channel::read(const bool data, const uint8_t pointer) {
 	// If this is a data read, just return it.
 	if(data) {
 		return data_;
@@ -232,7 +232,7 @@ uint8_t z8530::Channel::read(bool data, uint8_t pointer) {
 	return 0x00;
 }
 
-void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
+void z8530::Channel::write(const bool data, const uint8_t pointer, const uint8_t value) {
 	if(data) {
 		data_ = value;
 		return;
@@ -400,7 +400,7 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 	}
 }
 
-void z8530::Channel::set_dcd(bool level) {
+void z8530::Channel::set_dcd(const bool level) {
 	if(dcd_ == level) return;
 	dcd_ = level;
 

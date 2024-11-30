@@ -16,44 +16,48 @@ namespace {
 using PartialDisassembly = Analyser::Static::Disassembly::PartialDisassembly<Disassembly, uint16_t>;
 
 class Accessor {
-	public:
-		Accessor(const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, uint16_t address) :
-			memory_(memory), address_mapper_(address_mapper), address_(address) {}
+public:
+	Accessor(
+		const std::vector<uint8_t> &memory,
+		const std::function<std::size_t(uint16_t)> &address_mapper,
+		uint16_t address
+	) :
+		memory_(memory), address_mapper_(address_mapper), address_(address) {}
 
-		uint8_t byte() {
-			std::size_t mapped_address = address_mapper_(address_);
-			address_++;
-			if(mapped_address >= memory_.size()) {
-				overrun_ = true;
-				return 0xff;
-			}
-			return memory_[mapped_address];
+	uint8_t byte() {
+		std::size_t mapped_address = address_mapper_(address_);
+		++address_;
+		if(mapped_address >= memory_.size()) {
+			overrun_ = true;
+			return 0xff;
 		}
+		return memory_[mapped_address];
+	}
 
-		uint16_t word() {
-			uint8_t low = byte();
-			uint8_t high = byte();
-			return uint16_t(low | (high << 8));
-		}
+	uint16_t word() {
+		uint8_t low = byte();
+		uint8_t high = byte();
+		return uint16_t(low | (high << 8));
+	}
 
-		bool overrun() {
-			return overrun_;
-		}
+	bool overrun() const {
+		return overrun_;
+	}
 
-		bool at_end() {
-			std::size_t mapped_address = address_mapper_(address_);
-			return mapped_address >= memory_.size();
-		}
+	bool at_end() const {
+		std::size_t mapped_address = address_mapper_(address_);
+		return mapped_address >= memory_.size();
+	}
 
-		uint16_t address() {
-			return address_;
-		}
+	uint16_t address() const {
+		return address_;
+	}
 
-	private:
-		const std::vector<uint8_t> &memory_;
-		const std::function<std::size_t(uint16_t)> &address_mapper_;
-		uint16_t address_;
-		bool overrun_ = false;
+private:
+	const std::vector<uint8_t> &memory_;
+	const std::function<std::size_t(uint16_t)> &address_mapper_;
+	uint16_t address_;
+	bool overrun_ = false;
 };
 
 constexpr uint8_t x(uint8_t v) { return v >> 6; }
@@ -83,8 +87,12 @@ Instruction::Location register_pair_table2[] = {
 	Instruction::Location::AF
 };
 
-Instruction::Location RegisterTableEntry(int offset, Accessor &accessor, Instruction &instruction, bool needs_indirect_offset) {
-	Instruction::Location register_table[] = {
+Instruction::Location RegisterTableEntry(
+	const int offset, Accessor &accessor,
+	Instruction &instruction,
+	const bool needs_indirect_offset
+) {
+	constexpr Instruction::Location register_table[] = {
 		Instruction::Location::B,	Instruction::Location::C,
 		Instruction::Location::D,	Instruction::Location::E,
 		Instruction::Location::H,	Instruction::Location::L,
@@ -92,7 +100,7 @@ Instruction::Location RegisterTableEntry(int offset, Accessor &accessor, Instruc
 		Instruction::Location::A
 	};
 
-	Instruction::Location location = register_table[offset];
+	const Instruction::Location location = register_table[offset];
 	if(location == Instruction::Location::HL_Indirect && needs_indirect_offset) {
 		instruction.offset = accessor.byte() - 128;
 	}
@@ -100,7 +108,7 @@ Instruction::Location RegisterTableEntry(int offset, Accessor &accessor, Instruc
 	return location;
 }
 
-Instruction::Operation alu_table[] = {
+constexpr Instruction::Operation alu_table[] = {
 	Instruction::Operation::ADD,
 	Instruction::Operation::ADC,
 	Instruction::Operation::SUB,
@@ -111,7 +119,7 @@ Instruction::Operation alu_table[] = {
 	Instruction::Operation::CP
 };
 
-Instruction::Operation rotation_table[] = {
+constexpr Instruction::Operation rotation_table[] = {
 	Instruction::Operation::RLC,
 	Instruction::Operation::RRC,
 	Instruction::Operation::RL,
@@ -122,19 +130,32 @@ Instruction::Operation rotation_table[] = {
 	Instruction::Operation::SRL
 };
 
-Instruction::Operation block_table[][4] = {
-	{Instruction::Operation::LDI, Instruction::Operation::CPI, Instruction::Operation::INI, Instruction::Operation::OUTI},
-	{Instruction::Operation::LDD, Instruction::Operation::CPD, Instruction::Operation::IND, Instruction::Operation::OUTD},
-	{Instruction::Operation::LDIR, Instruction::Operation::CPIR, Instruction::Operation::INIR, Instruction::Operation::OTIR},
-	{Instruction::Operation::LDDR, Instruction::Operation::CPDR, Instruction::Operation::INDR, Instruction::Operation::OTDR},
+constexpr Instruction::Operation block_table[][4] = {
+	{
+		Instruction::Operation::LDI, Instruction::Operation::CPI,
+		Instruction::Operation::INI, Instruction::Operation::OUTI
+	},
+	{
+		Instruction::Operation::LDD, Instruction::Operation::CPD,
+		Instruction::Operation::IND, Instruction::Operation::OUTD
+	},
+	{
+		Instruction::Operation::LDIR, Instruction::Operation::CPIR,
+		Instruction::Operation::INIR, Instruction::Operation::OTIR
+	},
+	{
+		Instruction::Operation::LDDR, Instruction::Operation::CPDR,
+		Instruction::Operation::INDR, Instruction::Operation::OTDR
+	},
 };
 
-void DisassembleCBPage(Accessor &accessor, Instruction &instruction, bool needs_indirect_offset) {
+void DisassembleCBPage(Accessor &accessor, Instruction &instruction, const bool needs_indirect_offset) {
 	const uint8_t operation = accessor.byte();
 
 	if(!x(operation)) {
 		instruction.operation = rotation_table[y(operation)];
-		instruction.source = instruction.destination = RegisterTableEntry(z(operation), accessor, instruction, needs_indirect_offset);
+		instruction.source = instruction.destination =
+			RegisterTableEntry(z(operation), accessor, instruction, needs_indirect_offset);
 	} else {
 		instruction.destination = RegisterTableEntry(z(operation), accessor, instruction, needs_indirect_offset);
 		instruction.source = Instruction::Location::Operand;
@@ -148,7 +169,7 @@ void DisassembleCBPage(Accessor &accessor, Instruction &instruction, bool needs_
 	}
 }
 
-void DisassembleEDPage(Accessor &accessor, Instruction &instruction, bool needs_indirect_offset) {
+void DisassembleEDPage(Accessor &accessor, Instruction &instruction, const bool needs_indirect_offset) {
 	const uint8_t operation = accessor.byte();
 
 	switch(x(operation)) {
@@ -170,7 +191,8 @@ void DisassembleEDPage(Accessor &accessor, Instruction &instruction, bool needs_
 					if(y(operation) == 6) {
 						instruction.destination = Instruction::Location::None;
 					} else {
-						instruction.destination = RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
+						instruction.destination =
+							RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
 					}
 				break;
 				case 1:
@@ -179,7 +201,8 @@ void DisassembleEDPage(Accessor &accessor, Instruction &instruction, bool needs_
 					if(y(operation) == 6) {
 						instruction.source = Instruction::Location::None;
 					} else {
-						instruction.source = RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
+						instruction.source =
+							RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
 					}
 				break;
 				case 2:
@@ -190,11 +213,13 @@ void DisassembleEDPage(Accessor &accessor, Instruction &instruction, bool needs_
 				case 3:
 					instruction.operation = Instruction::Operation::LD;
 					if(q(operation)) {
-						instruction.destination = RegisterTableEntry(p(operation), accessor, instruction, needs_indirect_offset);
+						instruction.destination =
+							RegisterTableEntry(p(operation), accessor, instruction, needs_indirect_offset);
 						instruction.source = Instruction::Location::Operand_Indirect;
 					} else {
 						instruction.destination = Instruction::Location::Operand_Indirect;
-						instruction.source = RegisterTableEntry(p(operation), accessor, instruction, needs_indirect_offset);
+						instruction.source =
+							RegisterTableEntry(p(operation), accessor, instruction, needs_indirect_offset);
 					}
 					instruction.operand = accessor.word();
 				break;
@@ -202,7 +227,8 @@ void DisassembleEDPage(Accessor &accessor, Instruction &instruction, bool needs_
 					instruction.operation = Instruction::Operation::NEG;
 				break;
 				case 5:
-					instruction.operation = (y(operation) == 1) ? Instruction::Operation::RETI : Instruction::Operation::RETN;
+					instruction.operation =
+						y(operation) == 1 ? Instruction::Operation::RETI : Instruction::Operation::RETN;
 				break;
 				case 6:
 					instruction.operation = Instruction::Operation::IM;
@@ -253,7 +279,7 @@ void DisassembleMainPage(Accessor &accessor, Instruction &instruction) {
 	} hl_substitution = None;
 
 	while(true) {
-		uint8_t operation = accessor.byte();
+		const uint8_t operation = accessor.byte();
 
 		switch(x(operation)) {
 			case 0:
@@ -343,15 +369,18 @@ void DisassembleMainPage(Accessor &accessor, Instruction &instruction) {
 					break;
 					case 4:
 						instruction.operation = Instruction::Operation::INC;
-						instruction.source = instruction.destination = RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
+						instruction.source = instruction.destination =
+							RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
 					break;
 					case 5:
 						instruction.operation = Instruction::Operation::DEC;
-						instruction.source = instruction.destination = RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
+						instruction.source = instruction.destination =
+							RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
 					break;
 					case 6:
 						instruction.operation = Instruction::Operation::LD;
-						instruction.destination = RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
+						instruction.destination =
+							RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
 						instruction.source = Instruction::Location::Operand;
 						instruction.operand = accessor.byte();
 					break;
@@ -374,8 +403,10 @@ void DisassembleMainPage(Accessor &accessor, Instruction &instruction) {
 					instruction.operation = Instruction::Operation::HALT;
 				} else {
 					instruction.operation = Instruction::Operation::LD;
-					instruction.source = RegisterTableEntry(z(operation), accessor, instruction, needs_indirect_offset);
-					instruction.destination = RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
+					instruction.source =
+						RegisterTableEntry(z(operation), accessor, instruction, needs_indirect_offset);
+					instruction.destination =
+						RegisterTableEntry(y(operation), accessor, instruction, needs_indirect_offset);
 				}
 			break;
 			case 2:
@@ -517,10 +548,14 @@ void DisassembleMainPage(Accessor &accessor, Instruction &instruction) {
 			instruction.destination == Instruction::Location::HL_Indirect) {
 
 			if(instruction.source == Instruction::Location::HL_Indirect) {
-				instruction.source = (hl_substitution == IX) ? Instruction::Location::IX_Indirect_Offset : Instruction::Location::IY_Indirect_Offset;
+				instruction.source =
+					hl_substitution == IX ?
+						Instruction::Location::IX_Indirect_Offset : Instruction::Location::IY_Indirect_Offset;
 			}
 			if(instruction.destination == Instruction::Location::HL_Indirect) {
-				instruction.destination = (hl_substitution == IX) ? Instruction::Location::IX_Indirect_Offset : Instruction::Location::IY_Indirect_Offset;
+				instruction.destination =
+					hl_substitution == IX ?
+						Instruction::Location::IX_Indirect_Offset : Instruction::Location::IY_Indirect_Offset;
 			}
 			return;
 		}
@@ -542,7 +577,12 @@ void DisassembleMainPage(Accessor &accessor, Instruction &instruction) {
 }
 
 struct Z80Disassembler {
-	static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<uint8_t> &memory, const std::function<std::size_t(uint16_t)> &address_mapper, uint16_t entry_point) {
+	static void AddToDisassembly(
+		PartialDisassembly &disassembly,
+		const std::vector<uint8_t> &memory,
+		const std::function<std::size_t(uint16_t)> &address_mapper,
+		const uint16_t entry_point
+	) {
 		disassembly.disassembly.internal_calls.insert(entry_point);
 		Accessor accessor(memory, address_mapper, entry_point);
 

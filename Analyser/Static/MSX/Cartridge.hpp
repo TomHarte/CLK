@@ -26,7 +26,7 @@ struct Cartridge: public ::Storage::Cartridge::Cartridge {
 	};
 	const Type type;
 
-	Cartridge(const std::vector<Segment> &segments, Type type) :
+	Cartridge(const std::vector<Segment> &segments, const Type type) :
 		Storage::Cartridge::Cartridge(segments), type(type) {}
 };
 
