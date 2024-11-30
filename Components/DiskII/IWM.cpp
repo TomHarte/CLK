@@ -21,7 +21,8 @@ namespace {
 	constexpr int DRIVESEL	= 1 << 5;	/* This means drive select, like on the original Disk II. */
 	constexpr int Q6		= 1 << 6;
 	constexpr int Q7		= 1 << 7;
-	constexpr int SEL		= 1 << 8;	/* This is an additional input, not available on a Disk II, with a confusingly-similar name to SELECT but a distinct purpose. */
+	constexpr int SEL		= 1 << 8;	/*	This is an additional input, not available on a Disk II, with a
+											confusingly-similar name to SELECT but a distinct purpose. */
 
 	Log::Logger<Log::Source::IWM> logger;
 }
@@ -31,7 +32,7 @@ IWM::IWM(int clock_rate) :
 
 // MARK: - Bus accessors
 
-uint8_t IWM::read(int address) {
+uint8_t IWM::read(const int address) {
 	access(address);
 
 	// Per Inside Macintosh:
@@ -103,7 +104,7 @@ uint8_t IWM::read(int address) {
 	return 0xff;
 }
 
-void IWM::write(int address, uint8_t input) {
+void IWM::write(const int address, const uint8_t input) {
 	access(address);
 
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
@@ -205,7 +206,7 @@ void IWM::access(int address) {
 	}
 }
 
-void IWM::set_select(bool enabled) {
+void IWM::set_select(const bool enabled) {
 	// Store SEL as an extra state bit.
 	if(enabled) state_ |= SEL;
 	else state_ &= ~SEL;
@@ -367,7 +368,7 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 	}
 }
 
-void IWM::propose_shift(uint8_t bit) {
+void IWM::propose_shift(const uint8_t bit) {
 	// TODO: synchronous mode.
 
 //	logger.info().append("Shifting at %d", cycles_since_shift_.as<int>());
@@ -397,7 +398,7 @@ void IWM::propose_shift(uint8_t bit) {
 		cycles_since_shift_ -= bit_length_;
 }
 
-void IWM::set_drive(int slot, IWMDrive *drive) {
+void IWM::set_drive(const int slot, IWMDrive *const drive) {
 	drives_[slot] = drive;
 	if(drive) {
 		drive->set_event_delegate(this);
@@ -407,7 +408,10 @@ void IWM::set_drive(int slot, IWMDrive *drive) {
 	}
 }
 
-void IWM::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
+void IWM::set_component_prefers_clocking(
+	ClockingHint::Source *const component,
+	const ClockingHint::Preference clocking
+) {
 	const bool is_rotating = clocking != ClockingHint::Preference::None;
 
 	if(drives_[0] && component == static_cast<ClockingHint::Source *>(drives_[0])) {
@@ -417,7 +421,7 @@ void IWM::set_component_prefers_clocking(ClockingHint::Source *component, Clocki
 	}
 }
 
-void IWM::set_activity_observer(Activity::Observer *observer) {
+void IWM::set_activity_observer(Activity::Observer *const observer) {
 	if(drives_[0]) drives_[0]->set_activity_observer(observer, "Internal Floppy", true);
 	if(drives_[1]) drives_[1]->set_activity_observer(observer, "External Floppy", true);
 }

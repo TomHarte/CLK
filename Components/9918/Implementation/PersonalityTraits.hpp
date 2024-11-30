@@ -11,16 +11,16 @@
 namespace TI::TMS {
 
 // Genus determinants for the various personalityes.
-constexpr bool is_sega_vdp(Personality p) {
+constexpr bool is_sega_vdp(const Personality p) {
 	return p >= Personality::SMSVDP;
 }
 
-constexpr bool is_yamaha_vdp(Personality p) {
+constexpr bool is_yamaha_vdp(const Personality p) {
 	return p == Personality::V9938 || p == Personality::V9958;
 }
 
 // i.e. one with the original internal timings.
-constexpr bool is_classic_vdp(Personality p) {
+constexpr bool is_classic_vdp(const Personality p) {
 	return
 		p == Personality::TMS9918A ||
 		p == Personality::SMSVDP ||
@@ -28,7 +28,7 @@ constexpr bool is_classic_vdp(Personality p) {
 		p == Personality::GGVDP;
 }
 
-constexpr size_t memory_size(Personality p) {
+constexpr size_t memory_size(const Personality p) {
 	switch(p) {
 		case TI::TMS::TMS9918A:
 		case TI::TMS::SMSVDP:
@@ -41,7 +41,7 @@ constexpr size_t memory_size(Personality p) {
 	return 0;
 }
 
-constexpr size_t memory_mask(Personality p) {
+constexpr size_t memory_mask(const Personality p) {
 	return memory_size(p) - 1;
 }
 

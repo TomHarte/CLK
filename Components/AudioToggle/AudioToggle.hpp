@@ -17,29 +17,29 @@ namespace Audio {
 	Provides a sample source that can programmatically be set to one of two values.
 */
 class Toggle: public Outputs::Speaker::BufferSource<Toggle, false> {
-	public:
-		Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue);
+public:
+	Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
-		template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
-			Outputs::Speaker::fill<action>(target, target + number_of_samples, level_);
-		}
-		void set_sample_volume_range(std::int16_t range);
-		bool is_zero_level() const {
-			return !level_;
-		}
+	template <Outputs::Speaker::Action action>
+	void apply_samples(const std::size_t number_of_samples, Outputs::Speaker::MonoSample *const target) {
+		Outputs::Speaker::fill<action>(target, target + number_of_samples, level_);
+	}
+	void set_sample_volume_range(const std::int16_t range);
+	bool is_zero_level() const {
+		return !level_;
+	}
 
-		void set_output(bool enabled);
-		bool get_output() const;
+	void set_output(bool enabled);
+	bool get_output() const;
 
-	private:
-		// Accessed on the calling thread.
-		bool is_enabled_ = false;
-		Concurrency::AsyncTaskQueue<false> &audio_queue_;
+private:
+	// Accessed on the calling thread.
+	bool is_enabled_ = false;
+	Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
-		// Accessed on the audio thread.
-		int16_t level_ = 0, volume_ = 0;
-		bool level_active_ = false;
+	// Accessed on the audio thread.
+	int16_t level_ = 0, volume_ = 0;
+	bool level_active_ = false;
 };
 
 }

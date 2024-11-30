@@ -19,7 +19,7 @@ namespace {
 	const uint8_t input_flux = 0x1;
 }
 
-DiskII::DiskII(int clock_rate) :
+DiskII::DiskII(const int clock_rate) :
 	clock_rate_(clock_rate),
 	inputs_(input_command),
 	drives_{
@@ -38,7 +38,7 @@ DiskII::DiskII(int clock_rate) :
 	drives_[active_drive_].set_event_delegate(this);
 }
 
-void DiskII::set_control(Control control, bool on) {
+void DiskII::set_control(const Control control, const bool on) {
 	int previous_stepper_mask = stepper_mask_;
 	switch(control) {
 		case Control::P0: stepper_mask_ = (stepper_mask_ & 0xe) | (on ? 0x1 : 0x0);	break;
@@ -76,7 +76,7 @@ void DiskII::set_control(Control control, bool on) {
 	}
 }
 
-void DiskII::select_drive(int drive) {
+void DiskII::select_drive(const int drive) {
 	if((drive&1) == active_drive_) return;
 
 	drives_[active_drive_].set_event_delegate(this);
@@ -152,7 +152,7 @@ void DiskII::run_for(const Cycles cycles) {
 }
 
 void DiskII::decide_clocking_preference() {
-	ClockingHint::Preference prior_preference = clocking_preference_;
+	const ClockingHint::Preference prior_preference = clocking_preference_;
 
 	// If in read mode, clocking is either:
 	//
@@ -183,7 +183,7 @@ void DiskII::decide_clocking_preference() {
 		update_clocking_observer();
 }
 
-bool DiskII::is_write_protected() {
+bool DiskII::is_write_protected() const {
 	return (stepper_mask_ & 2) || drives_[active_drive_].get_is_read_only();
 }
 

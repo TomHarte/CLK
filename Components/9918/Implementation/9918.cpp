@@ -86,7 +86,7 @@ TMS9918<personality>::TMS9918() {
 }
 
 template <Personality personality>
-void TMS9918<personality>::set_tv_standard(TVStandard standard) {
+void TMS9918<personality>::set_tv_standard(const TVStandard standard) {
 	// TODO: the Yamaha is programmable on this at runtime.
 	this->tv_standard_ = standard;
 	switch(standard) {
@@ -104,7 +104,7 @@ void TMS9918<personality>::set_tv_standard(TVStandard standard) {
 }
 
 template <Personality personality>
-void TMS9918<personality>::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+void TMS9918<personality>::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 	this->crt_.set_scan_target(scan_target);
 }
 
@@ -118,7 +118,7 @@ Outputs::Display::ScanStatus TMS9918<personality>::get_scaled_scan_status() cons
 }
 
 template <Personality personality>
-void TMS9918<personality>::set_display_type(Outputs::Display::DisplayType display_type) {
+void TMS9918<personality>::set_display_type(const Outputs::Display::DisplayType display_type) {
 	this->crt_.set_display_type(display_type);
 }
 
@@ -137,7 +137,7 @@ void SpriteBuffer::reset_sprite_collection() {
 }
 
 template <Personality personality>
-void Base<personality>::posit_sprite(int sprite_number, int sprite_position, uint8_t screen_row) {
+void Base<personality>::posit_sprite(const int sprite_number, const int sprite_position, const uint8_t screen_row) {
 	// Evaluation of visibility of sprite 0 is always the first step in
 	// populating a sprite buffer; so use it to uncork a new one.
 	if(!sprite_number) {
@@ -661,7 +661,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 }
 
 template <Personality personality>
-void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram_dot) {
+void Base<personality>::output_border(int cycles, [[maybe_unused]] const uint32_t cram_dot) {
 	cycles = from_internal<personality, Clock::CRT>(cycles);
 
 	uint32_t border_colour;
@@ -694,7 +694,7 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram
 // MARK: - External interface.
 
 template <Personality personality>
-int Base<personality>::masked_address(int address) const {
+int Base<personality>::masked_address(const int address) const {
 	if constexpr (is_yamaha_vdp(personality)) {
 		return address & 3;
 	} else {
@@ -703,7 +703,7 @@ int Base<personality>::masked_address(int address) const {
 }
 
 template <Personality personality>
-void Base<personality>::write_vram(uint8_t value) {
+void Base<personality>::write_vram(const uint8_t value) {
 	write_phase_ = false;
 
 	// Enqueue the write to occur at the next available slot.
@@ -713,7 +713,7 @@ void Base<personality>::write_vram(uint8_t value) {
 }
 
 template <Personality personality>
-void Base<personality>::commit_register(int reg, uint8_t value) {
+void Base<personality>::commit_register(int reg, const uint8_t value) {
 	if constexpr (is_yamaha_vdp(personality)) {
 		reg &= 0x3f;
 	} else if constexpr (is_sega_vdp(personality)) {
@@ -1017,7 +1017,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 }
 
 template <Personality personality>
-void Base<personality>::write_register(uint8_t value) {
+void Base<personality>::write_register(const uint8_t value) {
 	// Writes to address 1 are performed in pairs; if this is the
 	// low byte of a value, store it and wait for the high byte.
 	if(!write_phase_) {
@@ -1068,7 +1068,7 @@ void Base<personality>::write_register(uint8_t value) {
 }
 
 template <Personality personality>
-void Base<personality>::write_palette(uint8_t value) {
+void Base<personality>::write_palette(const uint8_t value) {
 	if constexpr (is_yamaha_vdp(personality)) {
 		if(!Storage<personality>::palette_write_phase_) {
 			Storage<personality>::new_colour_ = value;
@@ -1091,7 +1091,7 @@ void Base<personality>::write_palette(uint8_t value) {
 }
 
 template <Personality personality>
-void Base<personality>::write_register_indirect([[maybe_unused]] uint8_t value) {
+void Base<personality>::write_register_indirect([[maybe_unused]] const uint8_t value) {
 	if constexpr (is_yamaha_vdp(personality)) {
 		// Register 17 cannot be written to indirectly.
 		if(Storage<personality>::indirect_register_ != 17) {
@@ -1188,7 +1188,7 @@ uint8_t Base<personality>::read_register() {
 }
 
 template <Personality personality>
-uint8_t TMS9918<personality>::read(int address) {
+uint8_t TMS9918<personality>::read(const int address) {
 	const int target = this->masked_address(address);
 
 	if(target < 2) {

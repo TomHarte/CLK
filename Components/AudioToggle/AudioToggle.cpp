@@ -15,12 +15,12 @@ using namespace Audio;
 Audio::Toggle::Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
-void Toggle::set_sample_volume_range(std::int16_t range) {
+void Toggle::set_sample_volume_range(const std::int16_t range) {
 	volume_ = range;
 	level_ = level_active_ ? volume_ : 0;
 }
 
-void Toggle::set_output(bool enabled) {
+void Toggle::set_output(const bool enabled) {
 	if(is_enabled_ == enabled) return;
 	is_enabled_ = enabled;
 	audio_queue_.enqueue([this, enabled] {

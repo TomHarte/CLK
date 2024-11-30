@@ -45,77 +45,77 @@ struct IWMDrive: public Storage::Disk::Drive {
 class IWM:
 	public Storage::Disk::Drive::EventDelegate,
 	public ClockingHint::Observer {
-	public:
-		IWM(int clock_rate);
+public:
+	IWM(int clock_rate);
 
-		/// Sets the current external value of the data bus.
-		void write(int address, uint8_t value);
+	/// Sets the current external value of the data bus.
+	void write(int address, uint8_t value);
 
-		/*!
-			Submits an access to address @c address.
+	/*!
+		Submits an access to address @c address.
 
-			@returns The 8-bit value loaded to the data bus by the IWM.
-		*/
-		uint8_t read(int address);
+		@returns The 8-bit value loaded to the data bus by the IWM.
+	*/
+	uint8_t read(int address);
 
-		/*!
-			Sets the current input of the IWM's SEL line.
-		*/
-		void set_select(bool enabled);
+	/*!
+		Sets the current input of the IWM's SEL line.
+	*/
+	void set_select(bool);
 
-		/// Advances the controller by @c cycles.
-		void run_for(const Cycles cycles);
+	/// Advances the controller.
+	void run_for(const Cycles);
 
-		/// Connects a drive to the IWM.
-		void set_drive(int slot, IWMDrive *drive);
+	/// Connects a drive to the IWM.
+	void set_drive(int slot, IWMDrive *);
 
-		/// Registers the currently-connected drives as @c Activity::Sources ;
-		/// the first will be declared 'Internal', the second 'External'.
-		void set_activity_observer(Activity::Observer *observer);
+	/// Registers the currently-connected drives as @c Activity::Sources ;
+	/// the first will be declared 'Internal', the second 'External'.
+	void set_activity_observer(Activity::Observer *);
 
-	private:
-		// Storage::Disk::Drive::EventDelegate.
-		void process_event(const Storage::Disk::Drive::Event &event) final;
+private:
+	// Storage::Disk::Drive::EventDelegate.
+	void process_event(const Storage::Disk::Drive::Event &) final;
 
-		const int clock_rate_;
+	const int clock_rate_;
 
-		uint8_t data_register_ = 0;
-		uint8_t mode_ = 0;
-		// These related to functionality not-yet implemented.
-		// bool read_write_ready_ = true;
-		// bool write_overran_ = false;
+	uint8_t data_register_ = 0;
+	uint8_t mode_ = 0;
+	// These related to functionality not-yet implemented.
+	// bool read_write_ready_ = true;
+	// bool write_overran_ = false;
 
-		int state_ = 0;
+	int state_ = 0;
 
-		int active_drive_ = 0;
-		IWMDrive *drives_[2] = {nullptr, nullptr};
-		bool drive_is_rotating_[2] = {false, false};
+	int active_drive_ = 0;
+	IWMDrive *drives_[2] = {nullptr, nullptr};
+	bool drive_is_rotating_[2] = {false, false};
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
+	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 
-		Cycles cycles_until_disable_;
-		uint8_t write_handshake_ = 0x80;
+	Cycles cycles_until_disable_;
+	uint8_t write_handshake_ = 0x80;
 
-		void access(int address);
+	void access(int address);
 
-		uint8_t shift_register_ = 0;
-		uint8_t next_output_ = 0;
-		int output_bits_remaining_ = 0;
+	uint8_t shift_register_ = 0;
+	uint8_t next_output_ = 0;
+	int output_bits_remaining_ = 0;
 
-		void propose_shift(uint8_t bit);
-		Cycles cycles_since_shift_;
-		Cycles bit_length_ = Cycles(16);
+	void propose_shift(uint8_t bit);
+	Cycles cycles_since_shift_;
+	Cycles bit_length_ = Cycles(16);
 
-		void push_drive_state();
+	void push_drive_state();
 
-		enum class ShiftMode {
-			Reading,
-			Writing,
-			CheckingWriteProtect
-		} shift_mode_;
+	enum class ShiftMode {
+		Reading,
+		Writing,
+		CheckingWriteProtect
+	} shift_mode_;
 
-		uint8_t sense();
-		void select_shift_mode();
+	uint8_t sense();
+	void select_shift_mode();
 };
 
 }

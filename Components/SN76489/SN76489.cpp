@@ -13,7 +13,11 @@
 
 using namespace TI;
 
-SN76489::SN76489(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue, int additional_divider) : task_queue_(task_queue) {
+SN76489::SN76489(
+	const Personality personality,
+	Concurrency::AsyncTaskQueue<false> &task_queue,
+	const int additional_divider
+) : task_queue_(task_queue) {
 	set_sample_volume_range(0);
 
 	switch(personality) {
@@ -36,7 +40,7 @@ SN76489::SN76489(Personality personality, Concurrency::AsyncTaskQueue<false> &ta
 	master_divider_period_ /= additional_divider;
 }
 
-void SN76489::set_sample_volume_range(std::int16_t range) {
+void SN76489::set_sample_volume_range(const std::int16_t range) {
 	// Build a volume table.
 	double multiplier = pow(10.0, -0.1);
 	double volume = float(range) / 4.0f;	// As there are four channels.
@@ -48,7 +52,7 @@ void SN76489::set_sample_volume_range(std::int16_t range) {
 	evaluate_output_volume();
 }
 
-void SN76489::write(uint8_t value) {
+void SN76489::write(const uint8_t value) {
 	task_queue_.enqueue([value, this] () {
 		if(value & 0x80) {
 			active_register_ = value;
@@ -87,7 +91,11 @@ void SN76489::write(uint8_t value) {
 }
 
 bool SN76489::is_zero_level() const {
-	return channels_[0].volume == 0xf && channels_[1].volume == 0xf && channels_[2].volume == 0xf && channels_[3].volume == 0xf;
+	return
+		channels_[0].volume == 0xf &&
+		channels_[1].volume == 0xf &&
+		channels_[2].volume == 0xf &&
+		channels_[3].volume == 0xf;
 }
 
 void SN76489::evaluate_output_volume() {
@@ -100,7 +108,7 @@ void SN76489::evaluate_output_volume() {
 }
 
 template <Outputs::Speaker::Action action>
-void SN76489::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+void SN76489::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::MonoSample *const target) {
 	std::size_t c = 0;
 	while((master_divider_& (master_divider_period_ - 1)) && c < number_of_samples) {
 		Outputs::Speaker::apply<action>(target[c], output_volume_);

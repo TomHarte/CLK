@@ -10,16 +10,16 @@
 
 using namespace Apple::Disk;
 
-DiskIIDrive::DiskIIDrive(int input_clock_rate) :
+DiskIIDrive::DiskIIDrive(const int input_clock_rate) :
 	IWMDrive(input_clock_rate, 1) {
 	Drive::set_rotation_speed(300.0f);
 }
 
-void DiskIIDrive::set_enabled(bool enabled) {
+void DiskIIDrive::set_enabled(const bool enabled) {
 	set_motor_on(enabled);
 }
 
-void DiskIIDrive::set_control_lines(int lines) {
+void DiskIIDrive::set_control_lines(const int lines) {
 	// If the stepper magnet selections have changed, and any is on, see how
 	// that moves the head.
 	if(lines ^ stepper_mask_ && lines) {

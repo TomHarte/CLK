@@ -74,7 +74,7 @@ uint8_t MFP68901::read(int address) {
 	return 0x00;
 }
 
-void MFP68901::write(int address, uint8_t value) {
+void MFP68901::write(int address, const uint8_t value) {
 	address &= 0x1f;
 
 	// Interrupt block: enabled and masked interrupts can be set; pending and in-service interrupts can be masked.
@@ -181,7 +181,7 @@ void MFP68901::write(int address, uint8_t value) {
 }
 
 template <int timer>
-void MFP68901::run_timer_for(int cycles) {
+void MFP68901::run_timer_for(const int cycles) {
 	if(timers_[timer].mode >= TimerMode::Delay) {
 		// This code applies the timer prescaling only. prescale_count is used to count
 		// upwards rather than downwards for simplicity, but on the real hardware it's
@@ -202,7 +202,7 @@ void MFP68901::run_timer_for(int cycles) {
 	}
 }
 
-void MFP68901::run_for(HalfCycles time) {
+void MFP68901::run_for(const HalfCycles time) {
 	cycles_left_ += time;
 
 	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
@@ -220,7 +220,7 @@ HalfCycles MFP68901::next_sequence_point() {
 
 // MARK: - Timers
 
-void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool reset_timer) {
+void MFP68901::set_timer_mode(const int timer, const TimerMode mode, const int prescale, const bool reset_timer) {
 	logger.error().append("Timer %d mode set: %d; prescale: %d", timer, mode, prescale);
 	timers_[timer].mode = mode;
 	if(reset_timer) {
@@ -236,19 +236,19 @@ void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool rese
 	timers_[timer].prescale = prescale;
 }
 
-void MFP68901::set_timer_data(int timer, uint8_t value) {
+void MFP68901::set_timer_data(const int timer, const uint8_t value) {
 	if(timers_[timer].mode == TimerMode::Stopped) {
 		timers_[timer].value = value;
 	}
 	timers_[timer].reload_value = value;
 }
 
-uint8_t MFP68901::get_timer_data(int timer) {
+uint8_t MFP68901::get_timer_data(const int timer) {
 	return timers_[timer].value;
 }
 
 template <int channel>
-void MFP68901::set_timer_event_input(bool value) {
+void MFP68901::set_timer_event_input(const bool value) {
 	if(timers_[channel].event_input == value) return;
 
 	timers_[channel].event_input = value;
@@ -316,7 +316,7 @@ void MFP68901::decrement_timer(int amount) {
 }
 
 // MARK: - GPIP
-void MFP68901::set_port_input(uint8_t input) {
+void MFP68901::set_port_input(const uint8_t input) {
 	gpip_input_ = input;
 	reevaluate_gpip_interrupts();
 }
@@ -342,12 +342,12 @@ void MFP68901::reevaluate_gpip_interrupts() {
 
 // MARK: - Interrupts
 
-void MFP68901::begin_interrupts(int interrupt) {
+void MFP68901::begin_interrupts(const int interrupt) {
 	interrupt_pending_ |= interrupt & interrupt_enable_;
 	update_interrupts();
 }
 
-void MFP68901::end_interrupts(int interrupt) {
+void MFP68901::end_interrupts(const int interrupt) {
 	interrupt_pending_ &= ~interrupt;
 	update_interrupts();
 }
@@ -403,6 +403,6 @@ int MFP68901::acknowledge_interrupt() {
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 
-void MFP68901::set_interrupt_delegate(InterruptDelegate *delegate) {
+void MFP68901::set_interrupt_delegate(InterruptDelegate *const delegate) {
 	interrupt_delegate_ = delegate;
 }
