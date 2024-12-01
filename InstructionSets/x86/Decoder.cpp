@@ -15,7 +15,10 @@
 using namespace InstructionSet::x86;
 
 template <Model model>
-std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, std::size_t length) {
+std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
+	const uint8_t *source,
+	const std::size_t length
+) {
 	// Instruction length limits:
 	//
 	//	8086/80186: none*
@@ -1124,6 +1127,6 @@ template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;
 
-std::pair<int, Instruction<false>> Decoder8086::decode(const uint8_t *source, std::size_t length) {
+std::pair<int, Instruction<false>> Decoder8086::decode(const uint8_t *const source, const std::size_t length) {
 	return decoder.decode(source, length);
 }

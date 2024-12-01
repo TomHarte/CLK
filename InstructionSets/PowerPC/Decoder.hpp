@@ -21,15 +21,15 @@ enum class Model {
 	MPC620,
 };
 
-constexpr bool is64bit(Model model) {
+constexpr bool is64bit(const Model model) {
 	return model == Model::MPC620;
 }
 
-constexpr bool is32bit(Model model) {
+constexpr bool is32bit(const Model model) {
 	return !is64bit(model);
 }
 
-constexpr bool is601(Model model) {
+constexpr bool is601(const Model model) {
 	return model == Model::MPC601;
 }
 
@@ -45,7 +45,7 @@ constexpr bool is601(Model model) {
 	TODO: determine what specific models of PowerPC do re: reserved bits.
 */
 template <Model model, bool validate_reserved_bits = false> struct Decoder {
-	Instruction decode(uint32_t opcode);
+	Instruction decode(uint32_t);
 };
 
 }

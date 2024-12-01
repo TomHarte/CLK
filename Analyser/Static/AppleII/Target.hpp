@@ -50,7 +50,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	}
 };
 
-constexpr bool is_iie(Target::Model model) {
+constexpr bool is_iie(const Target::Model model) {
 	return model == Target::Model::IIe || model == Target::Model::EnhancedIIe;
 }
 

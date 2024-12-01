@@ -14,7 +14,7 @@ namespace InstructionSet::x86::Primitive {
 
 template <typename IntT, typename ContextT>
 void out(
-	uint16_t port,
+	const uint16_t port,
 	read_t<IntT> value,
 	ContextT &context
 ) {
@@ -23,7 +23,7 @@ void out(
 
 template <typename IntT, typename ContextT>
 void in(
-	uint16_t port,
+	const uint16_t port,
 	write_t<IntT> value,
 	ContextT &context
 ) {

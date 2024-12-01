@@ -115,7 +115,7 @@ class ProcessorStorage {
 			void *destination = nullptr;
 			PartialMachineCycle machine_cycle{};
 		};
-		static constexpr bool is_terminal(MicroOp::Type type) {
+		static constexpr bool is_terminal(const MicroOp::Type type) {
 			return type == MicroOp::MoveToNextProgram || type == MicroOp::DecodeOperation;
 		}
 

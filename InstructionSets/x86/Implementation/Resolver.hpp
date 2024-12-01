@@ -21,9 +21,9 @@ namespace InstructionSet::x86 {
 /// is copied to @c *immediate and @c immediate is returned.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 typename Accessor<IntT, access>::type resolve(
-	InstructionT &instruction,
-	Source source,
-	DataPointer pointer,
+	const InstructionT &instruction,
+	const Source source,
+	const DataPointer pointer,
 	ContextT &context,
 	IntT *none = nullptr,
 	IntT *immediate = nullptr
@@ -66,8 +66,9 @@ IntT *register_(ContextT &context) {
 		case Source::eAX:
 			// Slightly contorted if chain here and below:
 			//
-			//	(i) does the `constexpr` version of a `switch`; and
-			//	(i) ensures .eax() etc aren't called on @c registers for 16-bit processors, so they need not implement 32-bit storage.
+			//	(i)	does the `constexpr` version of a `switch`; and
+			//	(i)	ensures .eax() etc aren't called on @c registers for 16-bit processors,
+			//		so they need not implement 32-bit storage.
 			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.eax();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.ax();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.al();		}
@@ -150,12 +151,12 @@ uint32_t address(
 // See forward declaration, above, for details.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 typename Accessor<IntT, access>::type resolve(
-	InstructionT &instruction,
-	Source source,
-	DataPointer pointer,
+	const InstructionT &instruction,
+	const Source source,
+	const DataPointer pointer,
 	ContextT &context,
 	IntT *none,
-	IntT *immediate
+	IntT *const immediate
 ) {
 	// Rules:
 	//

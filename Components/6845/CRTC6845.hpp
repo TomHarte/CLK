@@ -43,7 +43,7 @@ enum class Personality {
 	EGA,		// Extended EGA-style CRTC; uses 16-bit addressing throughout.
 };
 
-constexpr bool is_egavga(Personality p) {
+constexpr bool is_egavga(const Personality p) {
 	return p >= Personality::EGA;
 }
 

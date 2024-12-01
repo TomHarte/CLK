@@ -99,7 +99,7 @@ void cbw(
 template <typename IntT>
 void cwd(
 	IntT &dx,
-	IntT ax
+	const IntT ax
 ) {
 	dx = ax & Numeric::top_bit<IntT>() ? IntT(~0) : IntT(0);
 }

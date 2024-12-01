@@ -19,7 +19,7 @@ enum class Model {
 	i80386,
 };
 
-static constexpr bool is_32bit(Model model) { return model >= Model::i80386; }
+static constexpr bool is_32bit(const Model model) { return model >= Model::i80386; }
 
 template <bool is_32bit> struct AddressT { using type = uint16_t; };
 template <> struct AddressT<true> { using type = uint32_t; };
