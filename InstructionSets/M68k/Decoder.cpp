@@ -1006,7 +1006,8 @@ constexpr Preinstruction Predecoder<model>::decode(
 		// MARK: ASR, LSR, ROXR, ROR, ASL, LSL, ROXL, ROL
 		//
 		// b0–b2:	a register to shift (the source here, for consistency with the memory operations);
-		// b8:		0 => b9–b11 are a direct count of bits to shift; 1 => b9–b11 identify a register containing the shift count;
+		// b8:		0 => b9–b11 are a direct count of bits to shift;
+		//			1 => b9–b11 identify register containing the shift count;
 		// b9–b11:	either a quick value or a register.
 		//
 		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
@@ -1851,9 +1852,11 @@ constexpr Preinstruction Predecoder<model>::decodeE(const uint16_t instruction) 
 		case 0xac0: DecodeReq(model >= Model::M68020, Op::BFCHG);	// 4-33 (p137)
 		case 0xbc0: DecodeReq(model >= Model::M68020, Op::BFEXTS);	// 4-37 (p141)
 		case 0xcc0: DecodeReq(model >= Model::M68020, Op::BFCLR);	// 4-35 (p139)
-		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)	[though the given opcode is wrong; listed same as BFEXTU]
+		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)*
 		case 0xec0: DecodeReq(model >= Model::M68020, Op::BFSET);	// 4-49 (p153)
 		case 0xfc0: DecodeReq(model >= Model::M68020, Op::BFINS);	// 4-46 (p150)
+
+		// * [though the given opcode is wrong; listed same as BFEXTU]
 
 		default:	break;
 	}

@@ -130,10 +130,18 @@ inline uint32_t mask_bit(const Preinstruction &instruction, const uint32_t sourc
 	return source & (instruction.mode<1>() == AddressingMode::DataRegisterDirect ? 31 : 7);
 }
 
-/// Perform a BCLR, BCHG or BSET as specified by @c operation and described by @c instruction, @c source and @c destination, updating @c destination and @c status.
+/// Perform a BCLR, BCHG or BSET as specified by @c operation and described by @c instruction, @c source
+/// and @c destination, updating @c destination and @c status.
+///
 /// Also makes an appropriate notification to the @c flow_controller.
 template <Operation operation, typename FlowController>
-void bit_manipulate(const Preinstruction &instruction, const uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+void bit_manipulate(
+	const Preinstruction &instruction,
+	const uint32_t source,
+	uint32_t &destination,
+	Status &status,
+	FlowController &flow_controller
+) {
 	static_assert(
 		operation == Operation::BCLR ||
 		operation == Operation::BCHG ||
@@ -283,14 +291,18 @@ template <typename IntT> void test(const IntT source, Status &status) {
 }
 
 /// Decodes the proper shift distance from @c source, notifying the @c flow_controller.
-template <typename IntT, typename FlowController> int shift_count(const uint8_t source, FlowController &flow_controller) {
+template <typename IntT, typename FlowController> int shift_count(
+	const uint8_t source,
+	FlowController &flow_controller
+) {
 	const int count = source & 63;
 	flow_controller.template did_shift<IntT>(count);
 	return count;
 }
 
 /// Perform an arithmetic or logical shift, i.e. any of LSL, LSR, ASL or ASR.
-template <Operation operation, typename IntT, typename FlowController> void shift(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+template <Operation operation, typename IntT, typename FlowController>
+void shift(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ASLb || operation == Operation::ASLw || operation == Operation::ASLl ||
 		operation == Operation::ASRb || operation == Operation::ASRw || operation == Operation::ASRl ||
@@ -347,7 +359,9 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 						);	// e.g. shift = 1 => ~((0x80 >> 1) - 1) = ~(0x40 - 1) = ~0x3f = 0xc0, i.e. if shift is
 							// 1 then the top two bits are relevant to whether there was overflow. If they have the
 							// same value, i.e. are both 0 or are both 1, then there wasn't. Otherwise there was.
-						status.overflow_flag = (destination & affected_bits) && (destination & affected_bits) != affected_bits;
+						status.overflow_flag =
+							(destination & affected_bits) &&
+							(destination & affected_bits) != affected_bits;
 					}
 				}
 
@@ -384,7 +398,8 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 }
 
 /// Perform a rotate without extend, i.e. any of RO[L/R].[b/w/l].
-template <Operation operation, typename IntT, typename FlowController> void rotate(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+template <Operation operation, typename IntT, typename FlowController>
+void rotate(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ROLb || operation == Operation::ROLw || operation == Operation::ROLl ||
 		operation == Operation::RORb || operation == Operation::RORw || operation == Operation::RORl
@@ -425,7 +440,8 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 }
 
 /// Perform a rotate-through-extend, i.e. any of ROX[L/R].[b/w/l].
-template <Operation operation, typename IntT, typename FlowController> void rox(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+template <Operation operation, typename IntT, typename FlowController>
+void rox(const uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
 		operation == Operation::ROXLb || operation == Operation::ROXLw || operation == Operation::ROXLl ||
 		operation == Operation::ROXRb || operation == Operation::ROXRw || operation == Operation::ROXRl
@@ -496,8 +512,13 @@ template <
 	Model model,
 	typename FlowController,
 	Operation operation = Operation::Undefined
-> void perform(const Preinstruction instruction, CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
-
+> void perform(
+	const Preinstruction instruction,
+	CPU::SlicedInt32 &src,
+	CPU::SlicedInt32 &dest,
+	Status &status,
+	FlowController &flow_controller
+) {
 	switch((operation != Operation::Undefined) ? operation : instruction.operation) {
 		/*
 			ABCD adds the lowest bytes from the source and destination using BCD arithmetic,
@@ -554,9 +575,15 @@ template <
 		case Operation::BTST:
 			status.zero_result = dest.l & (1 << Primitive::mask_bit(instruction, src.l));
 		break;
-		case Operation::BCLR:	Primitive::bit_manipulate<Operation::BCLR>(instruction, src.l, dest.l, status, flow_controller);	break;
-		case Operation::BCHG:	Primitive::bit_manipulate<Operation::BCHG>(instruction, src.l, dest.l, status, flow_controller);	break;
-		case Operation::BSET:	Primitive::bit_manipulate<Operation::BSET>(instruction, src.l, dest.l, status, flow_controller);	break;
+		case Operation::BCLR:
+			Primitive::bit_manipulate<Operation::BCLR>(instruction, src.l, dest.l, status, flow_controller);
+		break;
+		case Operation::BCHG:
+			Primitive::bit_manipulate<Operation::BCHG>(instruction, src.l, dest.l, status, flow_controller);
+		break;
+		case Operation::BSET:
+			Primitive::bit_manipulate<Operation::BSET>(instruction, src.l, dest.l, status, flow_controller);
+		break;
 
 		case Operation::Bccb:
 			flow_controller.template complete_bcc<int8_t>(
@@ -703,12 +730,24 @@ template <
 			status.set_neg_zero(src.l);
 		break;
 
-		case Operation::ANDItoSR:	Primitive::apply_sr_ccr<Operation::ANDItoSR>(src.w, status, flow_controller);	break;
-		case Operation::EORItoSR:	Primitive::apply_sr_ccr<Operation::EORItoSR>(src.w, status, flow_controller);	break;
-		case Operation::ORItoSR:	Primitive::apply_sr_ccr<Operation::ORItoSR>(src.w, status, flow_controller);	break;
-		case Operation::ANDItoCCR:	Primitive::apply_sr_ccr<Operation::ANDItoCCR>(src.w, status, flow_controller);	break;
-		case Operation::EORItoCCR:	Primitive::apply_sr_ccr<Operation::EORItoCCR>(src.w, status, flow_controller);	break;
-		case Operation::ORItoCCR:	Primitive::apply_sr_ccr<Operation::ORItoCCR>(src.w, status, flow_controller);	break;
+		case Operation::ANDItoSR:
+			Primitive::apply_sr_ccr<Operation::ANDItoSR>(src.w, status, flow_controller);
+		break;
+		case Operation::EORItoSR:
+			Primitive::apply_sr_ccr<Operation::EORItoSR>(src.w, status, flow_controller);
+		break;
+		case Operation::ORItoSR:
+			Primitive::apply_sr_ccr<Operation::ORItoSR>(src.w, status, flow_controller);
+		break;
+		case Operation::ANDItoCCR:
+			Primitive::apply_sr_ccr<Operation::ANDItoCCR>(src.w, status, flow_controller);
+		break;
+		case Operation::EORItoCCR:
+			Primitive::apply_sr_ccr<Operation::EORItoCCR>(src.w, status, flow_controller);
+		break;
+		case Operation::ORItoCCR:
+			Primitive::apply_sr_ccr<Operation::ORItoCCR>(src.w, status, flow_controller);
+		break;
 
 		/*
 			Multiplications.
@@ -721,8 +760,12 @@ template <
 			Divisions.
 		*/
 
-		case Operation::DIVUw:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::DIVSw:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
+		case Operation::DIVUw:
+			Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);
+		break;
+		case Operation::DIVSw:
+			Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);
+		break;
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:

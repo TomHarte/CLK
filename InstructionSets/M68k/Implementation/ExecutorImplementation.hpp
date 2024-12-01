@@ -266,7 +266,11 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t bas
 
 template <Model model, typename BusHandler>
 typename Executor<model, BusHandler>::State::EffectiveAddress
-Executor<model, BusHandler>::State::calculate_effective_address(const Preinstruction instruction, const uint16_t opcode, const int index) {
+Executor<model, BusHandler>::State::calculate_effective_address(
+	const Preinstruction instruction,
+	const uint16_t opcode,
+	const int index
+) {
 	EffectiveAddress ea;
 
 	switch(instruction.mode(index)) {
@@ -531,7 +535,11 @@ template <typename IntT> void Executor<model, BusHandler>::State::complete_bcc(c
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::complete_dbcc(const bool matched_condition, const bool overflowed, const int16_t offset) {
+void Executor<model, BusHandler>::State::complete_dbcc(
+	const bool matched_condition,
+	const bool overflowed,
+	const int16_t offset
+) {
 	if(!matched_condition && !overflowed) {
 		program_counter.l = instruction_address + offset + 2;
 	}
@@ -622,7 +630,11 @@ void Executor<model, BusHandler>::State::move_from_usp(uint32_t &address) {
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::State::movep(const Preinstruction instruction, const uint32_t source, const uint32_t dest) {
+void Executor<model, BusHandler>::State::movep(
+	const Preinstruction instruction,
+	const uint32_t source,
+	const uint32_t dest
+) {
 	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
 		// Move register to memory.
 		const uint32_t reg = source;
