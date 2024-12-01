@@ -119,12 +119,12 @@ template <
 	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
 	// i.e. AX split into high and low parts.
 	const auto pair_high = [&]() -> IntT& {
-		if constexpr (data_size == DataSize::Byte) 			return context.registers.ah();
+		if constexpr (data_size == DataSize::Byte)			return context.registers.ah();
 		else if constexpr (data_size == DataSize::Word)		return context.registers.dx();
 		else if constexpr (data_size == DataSize::DWord)	return context.registers.edx();
 	};
 	const auto pair_low = [&]() -> IntT& {
-		if constexpr (data_size == DataSize::Byte) 			return context.registers.al();
+		if constexpr (data_size == DataSize::Byte)			return context.registers.al();
 		else if constexpr (data_size == DataSize::Word)		return context.registers.ax();
 		else if constexpr (data_size == DataSize::DWord)	return context.registers.eax();
 	};

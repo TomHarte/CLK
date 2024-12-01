@@ -1039,13 +1039,13 @@ std::unique_ptr<Machine> Machine::MSX(const Analyser::Static::Target *target, co
 	const auto msx_target = dynamic_cast<const Target *>(target);
 	if(msx_target->has_msx_music) {
 		switch(msx_target->model) {
-			default: 					return nullptr;
+			default:					return nullptr;
 			case Target::Model::MSX1:	return std::make_unique<ConcreteMachine<Target::Model::MSX1, true>>(*msx_target, rom_fetcher);
 			case Target::Model::MSX2:	return std::make_unique<ConcreteMachine<Target::Model::MSX2, true>>(*msx_target, rom_fetcher);
 		}
 	} else {
 		switch(msx_target->model) {
-			default: 					return nullptr;
+			default:					return nullptr;
 			case Target::Model::MSX1:	return std::make_unique<ConcreteMachine<Target::Model::MSX1, false>>(*msx_target, rom_fetcher);
 			case Target::Model::MSX2:	return std::make_unique<ConcreteMachine<Target::Model::MSX2, false>>(*msx_target, rom_fetcher);
 		}

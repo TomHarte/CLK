@@ -323,7 +323,7 @@ struct CoprocessorDataOperation {
 	constexpr CoprocessorDataOperation(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	uint32_t operand1() const		{ return (opcode_ >> 16) & 0xf;	}
-	uint32_t operand2() const		{ return opcode_ & 0xf; 		}
+	uint32_t operand2() const		{ return opcode_ & 0xf;			}
 	uint32_t destination() const	{ return (opcode_ >> 12) & 0xf;	}
 	uint32_t coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
 	uint32_t information() const	{ return (opcode_ >> 5) & 0x7;	}
@@ -356,7 +356,7 @@ struct CoprocessorRegisterTransfer {
 	constexpr CoprocessorRegisterTransfer(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	uint32_t operand1() const		{ return (opcode_ >> 16) & 0xf;	}
-	uint32_t operand2() const		{ return opcode_ & 0xf; 		}
+	uint32_t operand2() const		{ return opcode_ & 0xf;			}
 	uint32_t destination() const	{ return (opcode_ >> 12) & 0xf;	}
 	uint32_t coprocessor() const	{ return (opcode_ >> 8) & 0xf;	}
 	uint32_t information() const	{ return (opcode_ >> 5) & 0x7;	}

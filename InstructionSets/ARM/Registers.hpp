@@ -194,7 +194,7 @@ struct Registers {
 			const auto r14 = pc_status(pc_offset_during(type));
 			switch(type) {
 				case Exception::IRQ:	set_mode(Mode::IRQ);		break;
-				case Exception::FIQ: 	set_mode(Mode::FIQ);		break;
+				case Exception::FIQ:	set_mode(Mode::FIQ);		break;
 				default:				set_mode(Mode::Supervisor);	break;
 			}
 			active_[14] = r14;

@@ -165,7 +165,7 @@ struct InputOutputController: public ClockingHint::Observer {
 	//
 	//	fast/1	=	FDC
 	//	sync/2	=	econet
-	//	sync/3	= 	serial line
+	//	sync/3	=	serial line
 	//
 	//	bank 4	=	podules
 	//
@@ -410,7 +410,7 @@ struct InputOutputController: public ClockingHint::Observer {
 								//	b0: ?
 								//	b1: double/single density; 0 = double.
 								//	b2: ?
-								// 	b3: floppy drive reset; 0 = reset.
+								//	b3: floppy drive reset; 0 = reset.
 								//	b4: printer strobe
 								//	b5: ?
 								//	b6: ?
@@ -474,12 +474,12 @@ struct InputOutputController: public ClockingHint::Observer {
 		return true;
 	}
 
-	auto &sound() 					{	return sound_;	}
+	auto &sound()					{	return sound_;	}
 	const auto &sound() const		{	return sound_;	}
-	auto &video()			 		{	return video_;	}
-	const auto &video() const 		{	return video_;	}
-	auto &keyboard()			 	{	return keyboard_;	}
-	const auto &keyboard() const 	{	return keyboard_;	}
+	auto &video()					{	return video_;	}
+	const auto &video() const		{	return video_;	}
+	auto &keyboard()				{	return keyboard_;	}
+	const auto &keyboard() const	{	return keyboard_;	}
 
 	void update_interrupts() {
 		const auto set = [&](Interrupt &target, uint8_t flag, bool set) {

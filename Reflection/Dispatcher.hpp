@@ -56,10 +56,10 @@ static constexpr int switch_max = 2048;
 
 /// Provides glue for a run of calls like:
 ///
-/// 	SequencerT.perform<0>(...)
-/// 	SequencerT.perform<1>(...)
-/// 	SequencerT.perform<2>(...)
-/// 	...etc...
+///		SequencerT.perform<0>(...)
+///		SequencerT.perform<1>(...)
+///		SequencerT.perform<2>(...)
+///		...etc...
 ///
 /// Allowing the caller to execute any subrange of the calls.
 template <typename SequencerT>

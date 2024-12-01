@@ -225,7 +225,7 @@ struct Video {
 		return vertical_state_.phase() != Phase::Display;
 	}
 
-	void set_frame_start(uint32_t address) 	{
+	void set_frame_start(uint32_t address) {
 		frame_start_ = address;
 		++frame_start_sets_;
 	}
@@ -233,7 +233,7 @@ struct Video {
 	void set_buffer_end(uint32_t address)	{	buffer_end_ = address;		}
 	void set_cursor_start(uint32_t address)	{	cursor_start_ = address;	}
 
-	Outputs::CRT::CRT &crt() 				{ return crt_; }
+	Outputs::CRT::CRT &crt()				{ return crt_; }
 	const Outputs::CRT::CRT &crt() const	{ return crt_; }
 
 	int clock_divider() const {

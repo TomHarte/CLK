@@ -225,8 +225,8 @@ struct MemoryController {
 		return ioc_.sound().speaker();
 	}
 
-	auto &sound() 					{	return ioc_.sound();	}
-	const auto &sound() const	 	{	return ioc_.sound();	}
+	auto &sound()					{	return ioc_.sound();	}
+	const auto &sound() const		{	return ioc_.sound();	}
 	auto &video()					{	return ioc_.video();	}
 	const auto &video() const		{	return ioc_.video();	}
 	auto &keyboard()				{	return ioc_.keyboard();	}
