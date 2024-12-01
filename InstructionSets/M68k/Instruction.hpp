@@ -367,133 +367,133 @@ static constexpr int AddressingModeCount = 0b10'110;
 		the notes on @c AddressingMode for potential aliasing.
 */
 class Preinstruction {
-	public:
-		Operation operation = Operation::Undefined;
+public:
+	Operation operation = Operation::Undefined;
 
-		// Instructions come with 0, 1 or 2 operands;
-		// the getters below act to provide a list of operands
-		// that is terminated by an AddressingMode::None.
-		//
-		// For two-operand instructions, argument 0 is a source
-		// and argument 1 is a destination.
-		//
-		// For one-operand instructions, only argument 0 will
-		// be provided, and will be a source and/or destination as
-		// per the semantics of the operation.
-		//
-		// The versions templated on index do a range check;
-		// if using the runtime versions then results for indices
-		// other than 0 and 1 are undefined.
+	// Instructions come with 0, 1 or 2 operands;
+	// the getters below act to provide a list of operands
+	// that is terminated by an AddressingMode::None.
+	//
+	// For two-operand instructions, argument 0 is a source
+	// and argument 1 is a destination.
+	//
+	// For one-operand instructions, only argument 0 will
+	// be provided, and will be a source and/or destination as
+	// per the semantics of the operation.
+	//
+	// The versions templated on index do a range check;
+	// if using the runtime versions then results for indices
+	// other than 0 and 1 are undefined.
 
-		AddressingMode mode(const int index) const {
-			return AddressingMode(operands_[index] >> 3);
+	AddressingMode mode(const int index) const {
+		return AddressingMode(operands_[index] >> 3);
+	}
+	template <int index> AddressingMode mode() const {
+		if constexpr (index > 1) {
+			return AddressingMode::None;
 		}
-		template <int index> AddressingMode mode() const {
-			if constexpr (index > 1) {
-				return AddressingMode::None;
-			}
-			return mode(index);
+		return mode(index);
+	}
+	int reg(const int index) const {
+		return operands_[index] & 7;
+	}
+	template <int index> int reg() const {
+		if constexpr (index > 1) {
+			return 0;
 		}
-		int reg(const int index) const {
-			return operands_[index] & 7;
-		}
-		template <int index> int reg() const {
-			if constexpr (index > 1) {
-				return 0;
-			}
-			return reg(index);
-		}
+		return reg(index);
+	}
 
-		/// @returns 0–7 to indicate data registers 0 to 7, or 8–15 to indicate address registers 0 to 7 respectively.
-		/// Provides undefined results if the addressing mode is not either @c DataRegisterDirect or
-		/// @c AddressRegisterDirect.
-		int lreg(const int index) const {
-			return operands_[index] & 0xf;
-		}
+	/// @returns 0–7 to indicate data registers 0 to 7, or 8–15 to indicate address registers 0 to 7 respectively.
+	/// Provides undefined results if the addressing mode is not either @c DataRegisterDirect or
+	/// @c AddressRegisterDirect.
+	int lreg(const int index) const {
+		return operands_[index] & 0xf;
+	}
 
-		/// @returns @c true if this instruction requires supervisor privileges; @c false otherwise.
-		bool requires_supervisor() const {
-			return flags_ & Flags::IsSupervisor;
-		}
+	/// @returns @c true if this instruction requires supervisor privileges; @c false otherwise.
+	bool requires_supervisor() const {
+		return flags_ & Flags::IsSupervisor;
+	}
 
-		/// @returns @c true if this instruction will require further fetching than can be encoded in a
-		/// @c Preinstruction. In practice this means it is one of a very small quantity of 68020+
-		/// instructions; those that can rationalise extension words into one of the two operands will
-		/// do so. Use the free function @c extension_words(instruction.operation) to
-		/// look up the number of additional words required.
-		///
-		/// (specifically affected, at least: PACK, UNPK, CAS, CAS2)
-		bool requires_further_extension() const {
-			return flags_ & Flags::RequiresFurtherExtension;
-		}
+	/// @returns @c true if this instruction will require further fetching than can be encoded in a
+	/// @c Preinstruction. In practice this means it is one of a very small quantity of 68020+
+	/// instructions; those that can rationalise extension words into one of the two operands will
+	/// do so. Use the free function @c extension_words(instruction.operation) to
+	/// look up the number of additional words required.
+	///
+	/// (specifically affected, at least: PACK, UNPK, CAS, CAS2)
+	bool requires_further_extension() const {
+		return flags_ & Flags::RequiresFurtherExtension;
+	}
 
-		/// @returns The number of additional extension words required, beyond those encoded as operands.
-		int additional_extension_words() const {
-			return flags_ & Flags::RequiresFurtherExtension ? (flags_ & Flags::ConditionMask) >> Flags::ConditionShift : 0;
-		}
+	/// @returns The number of additional extension words required, beyond those encoded as operands.
+	int additional_extension_words() const {
+		return flags_ & Flags::RequiresFurtherExtension ? (flags_ & Flags::ConditionMask) >> Flags::ConditionShift : 0;
+	}
 
-		/// @returns The @c DataSize used for operands of this instruction, i.e. byte, word or longword.
-		DataSize operand_size() const {
-			return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
-		}
+	/// @returns The @c DataSize used for operands of this instruction, i.e. byte, word or longword.
+	DataSize operand_size() const {
+		return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
+	}
 
-		/// @returns The condition code evaluated by this instruction if applicable. If this instruction is not
-		/// conditional, the result is undefined.
-		Condition condition() const {
-			return Condition((flags_ & Flags::ConditionMask) >> Flags::ConditionShift);
-		}
+	/// @returns The condition code evaluated by this instruction if applicable. If this instruction is not
+	/// conditional, the result is undefined.
+	Condition condition() const {
+		return Condition((flags_ & Flags::ConditionMask) >> Flags::ConditionShift);
+	}
 
-	private:
-		uint8_t operands_[2] = { uint8_t(AddressingMode::None), uint8_t(AddressingMode::None)};
-		uint8_t flags_ = 0;
+private:
+	uint8_t operands_[2] = { uint8_t(AddressingMode::None), uint8_t(AddressingMode::None)};
+	uint8_t flags_ = 0;
 
-		std::string operand_description(int index, int opcode) const;
+	std::string operand_description(int index, int opcode) const;
 
-	public:
-		Preinstruction(
-			Operation operation,
-			AddressingMode op1_mode,	int op1_reg,
-			AddressingMode op2_mode,	int op2_reg,
-			bool is_supervisor,
-			int extension_words,
-			DataSize size,
-			Condition condition) : operation(operation)
-		{
-			operands_[0] = uint8_t((uint8_t(op1_mode) << 3) | op1_reg);
-			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
-			flags_ = uint8_t(
-				(is_supervisor ? Flags::IsSupervisor : 0x00) |
-				(extension_words ? Flags::RequiresFurtherExtension : 0x00) |
-				(int(condition) << Flags::ConditionShift) |
-				(extension_words << Flags::ConditionShift) |
-				(int(size) << Flags::SizeShift)
-			);
-		}
+public:
+	Preinstruction(
+		Operation operation,
+		AddressingMode op1_mode,	int op1_reg,
+		AddressingMode op2_mode,	int op2_reg,
+		bool is_supervisor,
+		int extension_words,
+		DataSize size,
+		Condition condition) : operation(operation)
+	{
+		operands_[0] = uint8_t((uint8_t(op1_mode) << 3) | op1_reg);
+		operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
+		flags_ = uint8_t(
+			(is_supervisor ? Flags::IsSupervisor : 0x00) |
+			(extension_words ? Flags::RequiresFurtherExtension : 0x00) |
+			(int(condition) << Flags::ConditionShift) |
+			(extension_words << Flags::ConditionShift) |
+			(int(size) << Flags::SizeShift)
+		);
+	}
 
-		struct Flags {
-			static constexpr uint8_t IsSupervisor				= 0b1000'0000;
-			static constexpr uint8_t RequiresFurtherExtension	= 0b0100'0000;
-			static constexpr uint8_t ConditionMask				= 0b0011'1100;
-			static constexpr uint8_t SizeMask					= 0b0000'0011;
+	struct Flags {
+		static constexpr uint8_t IsSupervisor				= 0b1000'0000;
+		static constexpr uint8_t RequiresFurtherExtension	= 0b0100'0000;
+		static constexpr uint8_t ConditionMask				= 0b0011'1100;
+		static constexpr uint8_t SizeMask					= 0b0000'0011;
 
-			static constexpr int IsSupervisorShift				= 7;
-			static constexpr int RequiresFurtherExtensionShift	= 6;
-			static constexpr int ConditionShift					= 2;
-			static constexpr int SizeShift						= 0;
-		};
+		static constexpr int IsSupervisorShift				= 7;
+		static constexpr int RequiresFurtherExtensionShift	= 6;
+		static constexpr int ConditionShift					= 2;
+		static constexpr int SizeShift						= 0;
+	};
 
-		Preinstruction() = default;
+	Preinstruction() = default;
 
-		/// Produces a string description of this instruction; if @c opcode
-		/// is supplied then any quick fields in this instruction will be decoded;
-		/// otherwise they'll be printed as just 'Q'.
-		std::string to_string(int opcode = -1) const;
+	/// Produces a string description of this instruction; if @c opcode
+	/// is supplied then any quick fields in this instruction will be decoded;
+	/// otherwise they'll be printed as just 'Q'.
+	std::string to_string(int opcode = -1) const;
 
-		/// Produces a slightly-more-idiomatic version of the operation name than
-		/// a direct to_string(instruction.operation) would, given that this decoder
-		/// sometimes aliases operations, disambiguating based on addressing mode
-		/// (e.g. MOVEQ is MOVE.l with the Q addressing mode).
-		const char *operation_string() const;
+	/// Produces a slightly-more-idiomatic version of the operation name than
+	/// a direct to_string(instruction.operation) would, given that this decoder
+	/// sometimes aliases operations, disambiguating based on addressing mode
+	/// (e.g. MOVEQ is MOVE.l with the Q addressing mode).
+	const char *operation_string() const;
 };
 
 }

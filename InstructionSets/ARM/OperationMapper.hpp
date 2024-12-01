@@ -35,7 +35,7 @@ static constexpr int FlagsStartBit = 20;
 using Flags = uint8_t;
 
 template <int position>
-constexpr bool flag_bit(uint8_t flags) {
+constexpr bool flag_bit(const uint8_t flags) {
 	static_assert(position >= 20 && position < 28);
 	return flags & (1 << (position - FlagsStartBit));
 }
@@ -44,7 +44,7 @@ constexpr bool flag_bit(uint8_t flags) {
 // Methods common to data processing and data transfer.
 //
 struct WithShiftControlBits {
-	constexpr WithShiftControlBits(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr WithShiftControlBits(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The operand 2 register index if @c operand2_is_immediate() is @c false; meaningless otherwise.
 	uint32_t operand2() const				{	return opcode_ & 0xf;					}
@@ -65,7 +65,7 @@ protected:
 // Branch (i.e. B and BL).
 //
 struct BranchFlags {
-	constexpr BranchFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr BranchFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	enum class Operation {
 		B,		/// Add offset to PC; programmer allows for PC being two words ahead.
@@ -82,7 +82,7 @@ private:
 };
 
 struct Branch {
-	constexpr Branch(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr Branch(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The 26-bit offset to add to the PC.
 	uint32_t offset() const				{	return (opcode_ & 0xff'ffff) << 2;	}
@@ -113,7 +113,7 @@ enum class DataProcessingOperation {
 	MVN,	/// Rd = NOT Op2.
 };
 
-constexpr bool is_logical(DataProcessingOperation operation) {
+constexpr bool is_logical(const DataProcessingOperation operation) {
 	switch(operation) {
 		case DataProcessingOperation::AND:
 		case DataProcessingOperation::EOR:
@@ -129,7 +129,7 @@ constexpr bool is_logical(DataProcessingOperation operation) {
 	}
 }
 
-constexpr bool is_comparison(DataProcessingOperation operation) {
+constexpr bool is_comparison(const DataProcessingOperation operation) {
 	switch(operation) {
 		case DataProcessingOperation::TST:
 		case DataProcessingOperation::TEQ:
@@ -142,7 +142,7 @@ constexpr bool is_comparison(DataProcessingOperation operation) {
 }
 
 struct DataProcessingFlags {
-	constexpr DataProcessingFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr DataProcessingFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	/// @returns The operation to apply.
 	constexpr DataProcessingOperation operation() const {
@@ -183,7 +183,7 @@ struct DataProcessing: public WithShiftControlBits {
 // MUL and MLA.
 //
 struct MultiplyFlags {
-	constexpr MultiplyFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr MultiplyFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	/// @c true if the status register should be updated; @c false otherwise.
 	constexpr bool set_condition_codes() const	{	return flag_bit<20>(flags_);	}
@@ -203,7 +203,7 @@ private:
 };
 
 struct Multiply {
-	constexpr Multiply(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr Multiply(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The destination register index. i.e. 'Rd'.
 	uint32_t destination() const	{	return (opcode_ >> 16) & 0xf;	}
@@ -225,7 +225,7 @@ private:
 // Single data transfer (LDR, STR).
 //
 struct SingleDataTransferFlags {
-	constexpr SingleDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr SingleDataTransferFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	enum class Operation {
 		LDR,	/// Read single byte or word from [base + offset], possibly mutating the base.
@@ -266,7 +266,7 @@ struct SingleDataTransfer: public WithShiftControlBits {
 // Block data transfer (LDR, STR).
 //
 struct BlockDataTransferFlags {
-	constexpr BlockDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr BlockDataTransferFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	enum class Operation {
 		LDM,	/// Read 1–16 words from [base], possibly mutating it.
@@ -311,7 +311,7 @@ struct BlockDataTransfer: public WithShiftControlBits {
 // Coprocessor data operation.
 //
 struct CoprocessorDataOperationFlags {
-	constexpr CoprocessorDataOperationFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr CoprocessorDataOperationFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	constexpr int coprocessor_operation() const		{	return (flags_ >> (FlagsStartBit - 20)) & 0xf;	}
 
@@ -320,7 +320,7 @@ private:
 };
 
 struct CoprocessorDataOperation {
-	constexpr CoprocessorDataOperation(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr CoprocessorDataOperation(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	uint32_t operand1() const		{ return (opcode_ >> 16) & 0xf;	}
 	uint32_t operand2() const		{ return opcode_ & 0xf; 		}
@@ -336,7 +336,7 @@ private:
 // Coprocessor register transfer.
 //
 struct CoprocessorRegisterTransferFlags {
-	constexpr CoprocessorRegisterTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr CoprocessorRegisterTransferFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	enum class Operation {
 		MRC,	///	Move from coprocessor register to ARM register.
@@ -353,7 +353,7 @@ private:
 };
 
 struct CoprocessorRegisterTransfer {
-	constexpr CoprocessorRegisterTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr CoprocessorRegisterTransfer(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	uint32_t operand1() const		{ return (opcode_ >> 16) & 0xf;	}
 	uint32_t operand2() const		{ return opcode_ & 0xf; 		}
@@ -369,7 +369,7 @@ private:
 // Coprocessor data transfer.
 //
 struct CoprocessorDataTransferFlags {
-	constexpr CoprocessorDataTransferFlags(uint8_t flags) noexcept : flags_(flags) {}
+	constexpr CoprocessorDataTransferFlags(const uint8_t flags) noexcept : flags_(flags) {}
 
 	enum class Operation {
 		LDC,	/// Coprocessor data transfer load.
@@ -392,7 +392,7 @@ private:
 // Software interrupt.
 //
 struct SoftwareInterrupt {
-	constexpr SoftwareInterrupt(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr SoftwareInterrupt(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	/// The 24-bit comment field, often decoded by the receiver of an SWI.
 	uint32_t comment() const				{	return opcode_ & 0xff'ffff;	}
@@ -402,7 +402,7 @@ private:
 };
 
 struct CoprocessorDataTransfer {
-	constexpr CoprocessorDataTransfer(uint32_t opcode) noexcept : opcode_(opcode) {}
+	constexpr CoprocessorDataTransfer(const uint32_t opcode) noexcept : opcode_(opcode) {}
 
 	int base() const		{ return (opcode_ >> 16) & 0xf;	}
 
@@ -419,12 +419,12 @@ private:
 /// Operation mapper; use the free function @c dispatch as defined below.
 template <Model>
 struct OperationMapper {
-	static Condition condition(uint32_t instruction) {
+	static Condition condition(const uint32_t instruction) {
 		return Condition(instruction >> 28);
 	}
 
 	template <int i, typename SchedulerT>
-	static void dispatch(uint32_t instruction, SchedulerT &scheduler) {
+	static void dispatch(const uint32_t instruction, SchedulerT &scheduler) {
 		// Put the 8-bit segment of instruction back into its proper place;
 		// this allows all the tests below to be written so as to coordinate
 		// properly with the data sheet, and since it's all compile-time work
@@ -507,7 +507,7 @@ struct OperationMapper {
 struct SampleScheduler {
 	/// @returns @c true if the rest of the instruction should be decoded and supplied
 	/// to the scheduler as defined below; @c false otherwise.
-	bool should_schedule(Condition condition);
+	bool should_schedule(Condition);
 
 	// Template argument:
 	//
@@ -537,7 +537,7 @@ struct SampleScheduler {
 /// Decodes @c instruction, making an appropriate call into @c scheduler.
 ///
 /// In lieu of C++20, see the sample definition of SampleScheduler above for the expected interface.
-template <Model model, typename SchedulerT> void dispatch(uint32_t instruction, SchedulerT &scheduler) {
+template <Model model, typename SchedulerT> void dispatch(const uint32_t instruction, SchedulerT &scheduler) {
 	OperationMapper<model> mapper;
 
 	// Test condition.

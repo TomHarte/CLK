@@ -101,7 +101,7 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 }
 
 template <Model model, typename BusHandler>
-RegisterSet Executor<model, BusHandler>::get_state() {
+RegisterSet Executor<model, BusHandler>::get_state() const {
 	RegisterSet result;
 
 	for(int c = 0; c < 8; c++) {
