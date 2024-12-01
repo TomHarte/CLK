@@ -25,7 +25,7 @@ struct Device {
 	virtual void set_options(const std::unique_ptr<Reflection::Struct> &options) = 0;
 
 	/// @returns An options object
-	virtual std::unique_ptr<Reflection::Struct> get_options() = 0;
+	virtual std::unique_ptr<Reflection::Struct> get_options() const = 0;
 };
 
 /*!

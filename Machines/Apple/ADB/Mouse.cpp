@@ -58,7 +58,7 @@ void Mouse::move(int x, int y) {
 	post_service_request();
 }
 
-int Mouse::get_number_of_buttons() {
+int Mouse::get_number_of_buttons() const {
 	return 2;
 }
 

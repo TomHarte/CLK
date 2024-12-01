@@ -115,6 +115,6 @@ void MultiConfigurable::set_options(const std::unique_ptr<Reflection::Struct> &s
 	options->apply();
 }
 
-std::unique_ptr<Reflection::Struct> MultiConfigurable::get_options() {
+std::unique_ptr<Reflection::Struct> MultiConfigurable::get_options() const {
 	return std::make_unique<MultiStruct>(devices_);
 }

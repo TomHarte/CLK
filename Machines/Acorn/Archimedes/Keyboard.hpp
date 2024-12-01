@@ -314,7 +314,7 @@ private:
 			keyboard_.mouse_y_ += y;
 		}
 
-		int get_number_of_buttons() override {
+		int get_number_of_buttons() const override {
 			return 3;
 		}
 

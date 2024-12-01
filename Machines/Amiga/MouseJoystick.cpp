@@ -14,7 +14,7 @@ using namespace Amiga;
 
 // MARK: - Mouse.
 
-int Mouse::get_number_of_buttons() {
+int Mouse::get_number_of_buttons() const {
 	return 2;
 }
 
