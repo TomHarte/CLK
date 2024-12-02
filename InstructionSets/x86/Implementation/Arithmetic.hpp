@@ -240,7 +240,8 @@ void idiv(
 		IF OperandSize = 8 (* word/byte operation *)
 			THEN
 				temp ← AX / SRC; (* signed division *)
-				IF (temp > 7FH) OR (temp < 80H) (* if a positive result is greater than 7FH or a negative result is less than 80H *)
+				IF (temp > 7FH) OR (temp < 80H)		(* if a positive result is greater than
+													7FH or a negative result is less than 80H *)
 					THEN #DE; (* divide error *) ;
 					ELSE
 						AL ← temp;
@@ -250,7 +251,8 @@ void idiv(
 			IF OperandSize = 16 (* doubleword/word operation *)
 				THEN
 					temp ← DX:AX / SRC; (* signed division *)
-					IF (temp > 7FFFH) OR (temp < 8000H) (* if a positive result is greater than 7FFFH or a negative result is less than 8000H *)
+					IF (temp > 7FFFH) OR (temp < 8000H)		(* if a positive result is greater than 7FFFH or a
+															negative result is less than 8000H *)
 						THEN #DE; (* divide error *) ;
 						ELSE
 							AX ← temp;
@@ -258,7 +260,8 @@ void idiv(
 					FI;
 				ELSE (* quadword/doubleword operation *)
 					temp ← EDX:EAX / SRC; (* signed division *)
-					IF (temp > 7FFFFFFFH) OR (temp < 80000000H) (* if a positive result is greater than 7FFFFFFFH or a negative result is less than 80000000H *)
+					IF (temp > 7FFFFFFFH) OR (temp < 80000000H) 	(* if a positive result is greater than 7FFFFFFFH
+																	or a negative result is less than 80000000H *)
 						THEN #DE; (* divide error *) ;
 						ELSE
 							EAX ← temp;
@@ -350,7 +353,11 @@ void neg(
 		The CF flag cleared to 0 if the source operand is 0; otherwise it is set to 1.
 		The OF, SF, ZF, AF, and PF flags are set according to the result.
 	*/
-	context.flags.template set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(IntT(0), destination, IntT(-destination)));
+	context.flags.template set_from<Flag::AuxiliaryCarry>(Numeric::carried_in<4>(
+		IntT(0),
+		destination,
+		IntT(-destination))
+	);
 
 	destination = -destination;
 

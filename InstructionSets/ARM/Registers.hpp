@@ -52,12 +52,12 @@ struct Registers {
 		Registers() = default;
 
 		/// Sets the N and Z flags according to the value of @c result.
-		void set_nz(uint32_t value) {
+		void set_nz(const uint32_t value) {
 			zero_result_ = negative_flag_ = value;
 		}
 
 		/// Sets C if @c value is non-zero; resets it otherwise.
-		void set_c(uint32_t value) {
+		void set_c(const uint32_t value) {
 			carry_flag_ = value;
 		}
 
@@ -67,7 +67,7 @@ struct Registers {
 		}
 
 		/// Sets V if the highest bit of @c value is set; resets it otherwise.
-		void set_v(uint32_t value) {
+		void set_v(const uint32_t value) {
 			overflow_flag_ = value;
 		}
 
@@ -83,14 +83,14 @@ struct Registers {
 		}
 
 		/// @returns The full PC + status bits.
-		uint32_t pc_status(uint32_t offset) const {
+		uint32_t pc_status(const uint32_t offset) const {
 			return
 				((active_[15] + offset) & ConditionCode::Address) |
 				status();
 		}
 
 		/// Sets status bits only, subject to mode.
-		void set_status(uint32_t status) {
+		void set_status(const uint32_t status) {
 			// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
 			// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
 			// 1 and 0 of the result respectively.
@@ -112,12 +112,12 @@ struct Registers {
 		}
 
 		/// Sets a new PC.
-		void set_pc(uint32_t value) {
+		void set_pc(const uint32_t value) {
 			active_[15] = value & ConditionCode::Address;
 		}
 
 		/// @returns The stored PC plus @c offset limited to 26 bits.
-		uint32_t pc(uint32_t offset) const {
+		uint32_t pc(const uint32_t offset) const {
 			return (active_[15] + offset) & ConditionCode::Address;
 		}
 
@@ -143,7 +143,7 @@ struct Registers {
 			/// The FIQ went low at least one cycle ago and ConditionCode::FIQDisable was not set.
 			FIQ = 0x1c,
 		};
-		static constexpr uint32_t pc_offset_during(Exception exception) {
+		static constexpr uint32_t pc_offset_during(const Exception exception) {
 			// The below is somewhat convoluted by the assumed execution model:
 			//
 			//	*	exceptions occuring during execution of an instruction are taken
@@ -194,7 +194,7 @@ struct Registers {
 			const auto r14 = pc_status(pc_offset_during(type));
 			switch(type) {
 				case Exception::IRQ:	set_mode(Mode::IRQ);		break;
-				case Exception::FIQ: 	set_mode(Mode::FIQ);		break;
+				case Exception::FIQ:	set_mode(Mode::FIQ);		break;
 				default:				set_mode(Mode::Supervisor);	break;
 			}
 			active_[14] = r14;
@@ -231,7 +231,7 @@ struct Registers {
 		// MARK: - Condition tests.
 
 		/// @returns @c true if @c condition tests as true; @c false otherwise.
-		bool test(Condition condition) const {
+		bool test(const Condition condition) const {
 			const auto ne = [&]() -> bool {
 				return zero_result_;
 			};
@@ -279,7 +279,7 @@ struct Registers {
 		}
 
 		/// Sets current execution mode.
-		void set_mode(Mode target_mode) {
+		void set_mode(const Mode target_mode) {
 			if(mode_ == target_mode) {
 				return;
 			}
@@ -335,18 +335,18 @@ struct Registers {
 			mode_ = target_mode;
 		}
 
-		uint32_t &operator[](uint32_t offset) {
+		uint32_t &operator[](const uint32_t offset) {
 			return active_[static_cast<size_t>(offset)];
 		}
 
-		uint32_t operator[](uint32_t offset) const {
+		uint32_t operator[](const uint32_t offset) const {
 			return active_[static_cast<size_t>(offset)];
 		}
 
 		/// @returns A reference to the register at @c offset. If @c force_user_mode is true,
 		/// this will the the user-mode register. Otherwise it'll be that for the current mode. These references
 		/// are guaranteed to remain valid only until the next mode change.
-		uint32_t &reg(bool force_user_mode, uint32_t offset) {
+		uint32_t &reg(const bool force_user_mode, const uint32_t offset) {
 			switch(mode_) {
 				default:
 				case Mode::User: return active_[offset];

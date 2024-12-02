@@ -21,9 +21,9 @@ namespace InstructionSet::x86 {
 /// is copied to @c *immediate and @c immediate is returned.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 typename Accessor<IntT, access>::type resolve(
-	InstructionT &instruction,
-	Source source,
-	DataPointer pointer,
+	const InstructionT &instruction,
+	const Source source,
+	const DataPointer pointer,
 	ContextT &context,
 	IntT *none = nullptr,
 	IntT *immediate = nullptr
@@ -66,44 +66,45 @@ IntT *register_(ContextT &context) {
 		case Source::eAX:
 			// Slightly contorted if chain here and below:
 			//
-			//	(i) does the `constexpr` version of a `switch`; and
-			//	(i) ensures .eax() etc aren't called on @c registers for 16-bit processors, so they need not implement 32-bit storage.
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.eax();	}
+			//	(i)	does the `constexpr` version of a `switch`; and
+			//	(i)	ensures .eax() etc aren't called on @c registers for 16-bit processors,
+			//		so they need not implement 32-bit storage.
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.eax();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.ax();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.al();		}
-			else 																{	return nullptr;						}
+			else																{	return nullptr;						}
 		case Source::eCX:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.ecx();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.ecx();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.cx();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.cl();		}
-			else 																{	return nullptr;						}
+			else																{	return nullptr;						}
 		case Source::eDX:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.edx();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.edx();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.dx();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.dl();		}
 			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;						}
 		case Source::eBX:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.ebx();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.ebx();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.bx();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.bl();		}
 			else if constexpr (std::is_same_v<IntT, uint32_t>)					{	return nullptr;						}
 		case Source::eSPorAH:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.esp();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.esp();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.sp();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.ah();		}
 			else																{	return nullptr;						}
 		case Source::eBPorCH:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.ebp();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.ebp();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.bp();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.ch();		}
-			else 																{	return nullptr;						}
+			else																{	return nullptr;						}
 		case Source::eSIorDH:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.esi();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.esi();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.si();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.dh();		}
-			else 																{	return nullptr;						}
+			else																{	return nullptr;						}
 		case Source::eDIorBH:
-			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>) 	{	return &context.registers.edi();	}
+			if constexpr (supports_dword && std::is_same_v<IntT, uint32_t>)		{	return &context.registers.edi();	}
 			else if constexpr (std::is_same_v<IntT, uint16_t>)					{	return &context.registers.di();		}
 			else if constexpr (std::is_same_v<IntT, uint8_t>)					{	return &context.registers.bh();		}
 			else																{	return nullptr;						}
@@ -150,12 +151,12 @@ uint32_t address(
 // See forward declaration, above, for details.
 template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
 typename Accessor<IntT, access>::type resolve(
-	InstructionT &instruction,
-	Source source,
-	DataPointer pointer,
+	const InstructionT &instruction,
+	const Source source,
+	const DataPointer pointer,
 	ContextT &context,
 	IntT *none,
-	IntT *immediate
+	IntT *const immediate
 ) {
 	// Rules:
 	//

@@ -116,7 +116,7 @@ class MDA {
 					if(count) {
 						switch(output_state) {
 							case OutputState::Sync:		crt.output_sync(count);		break;
-							case OutputState::Border: 	crt.output_blank(count);	break;
+							case OutputState::Border:	crt.output_blank(count);	break;
 							case OutputState::Pixels:
 								crt.output_data(count);
 								pixels = pixel_pointer = nullptr;

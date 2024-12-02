@@ -38,7 +38,7 @@ enum class Status0: uint8_t {
 
 enum class Status1: uint8_t {
 	EndOfCylinder		= 0x80,
-	DataError 			= 0x20,
+	DataError			= 0x20,
 	OverRun				= 0x10,
 	NoData				= 0x04,
 	NotWriteable		= 0x02,
@@ -47,7 +47,7 @@ enum class Status1: uint8_t {
 
 enum class Status2: uint8_t {
 	DeletedControlMark		= 0x40,
-	DataCRCError 			= 0x20,
+	DataCRCError			= 0x20,
 	WrongCyinder			= 0x10,
 	ScanEqualHit			= 0x08,
 	ScanNotSatisfied		= 0x04,
@@ -57,7 +57,7 @@ enum class Status2: uint8_t {
 
 enum class Status3: uint8_t {
 	Fault				= 0x80,
-	WriteProtected 		= 0x40,
+	WriteProtected		= 0x40,
 	Ready				= 0x20,
 	Track0				= 0x10,
 	TwoSided			= 0x08,
@@ -91,9 +91,9 @@ public:
 	void set(const MainStatus flag, const bool value) {
 		set(uint8_t(flag), value, main_status_);
 	}
-	void start_seek(const int drive) 	{	main_status_ |= 1 << drive;	}
+	void start_seek(const int drive)	{	main_status_ |= 1 << drive;	}
 	void set(const Status0 flag)		{	set(uint8_t(flag), true, status_[0]);	}
-	void set(const Status1 flag)	 	{	set(uint8_t(flag), true, status_[1]);	}
+	void set(const Status1 flag)		{	set(uint8_t(flag), true, status_[1]);	}
 	void set(const Status2 flag)		{	set(uint8_t(flag), true, status_[2]);	}
 
 	void set_status0(uint8_t value)	{	status_[0] = value;	}

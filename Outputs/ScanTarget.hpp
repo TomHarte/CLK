@@ -50,7 +50,7 @@ enum class DisplayType {
 	CompositeMonochrome
 };
 
-constexpr bool is_composite(DisplayType type) {
+constexpr bool is_composite(const DisplayType type) {
 	return type == DisplayType::CompositeColour || type == DisplayType::CompositeMonochrome;
 }
 

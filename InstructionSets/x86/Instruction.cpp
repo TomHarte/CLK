@@ -487,7 +487,7 @@ std::string InstructionSet::x86::to_string(
 		case Operation::OUTS:
 		case Operation::OUTS_REP:
 			switch(instruction.second.data_segment()) {
-				default: 								break;
+				default:								break;
 				case Source::ES:	operation += "es ";	break;
 				case Source::CS:	operation += "cs ";	break;
 				case Source::DS:	operation += "ds ";	break;

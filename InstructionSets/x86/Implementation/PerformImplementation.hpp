@@ -119,12 +119,12 @@ template <
 	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
 	// i.e. AX split into high and low parts.
 	const auto pair_high = [&]() -> IntT& {
-		if constexpr (data_size == DataSize::Byte) 			return context.registers.ah();
+		if constexpr (data_size == DataSize::Byte)			return context.registers.ah();
 		else if constexpr (data_size == DataSize::Word)		return context.registers.dx();
 		else if constexpr (data_size == DataSize::DWord)	return context.registers.edx();
 	};
 	const auto pair_low = [&]() -> IntT& {
-		if constexpr (data_size == DataSize::Byte) 			return context.registers.al();
+		if constexpr (data_size == DataSize::Byte)			return context.registers.al();
 		else if constexpr (data_size == DataSize::Word)		return context.registers.ax();
 		else if constexpr (data_size == DataSize::DWord)	return context.registers.eax();
 	};
@@ -176,8 +176,12 @@ template <
 		case Operation::ESC:
 		case Operation::NOP:	return;
 
-		case Operation::AAM:	Primitive::aam(context.registers.axp(), uint8_t(instruction.operand()), context);	return;
-		case Operation::AAD:	Primitive::aad(context.registers.axp(), uint8_t(instruction.operand()), context);	return;
+		case Operation::AAM:
+			Primitive::aam(context.registers.axp(), uint8_t(instruction.operand()), context);
+		return;
+		case Operation::AAD:
+			Primitive::aad(context.registers.axp(), uint8_t(instruction.operand()), context);
+		return;
 		case Operation::AAA:	Primitive::aaas<true>(context.registers.axp(), context);					return;
 		case Operation::AAS:	Primitive::aaas<false>(context.registers.axp(), context);					return;
 		case Operation::DAA:	Primitive::daas<true>(context.registers.al(), context);						return;
@@ -236,8 +240,8 @@ template <
 		case Operation::CALLrel:
 			Primitive::call_relative<AddressT>(instruction.displacement(), context);
 		return;
-		case Operation::CALLabs:	Primitive::call_absolute<IntT, AddressT>(destination_r(), context);					return;
-		case Operation::CALLfar:	Primitive::call_far<AddressT>(instruction, context);									return;
+		case Operation::CALLabs:	Primitive::call_absolute<IntT, AddressT>(destination_r(), context);			return;
+		case Operation::CALLfar:	Primitive::call_far<AddressT>(instruction, context);						return;
 
 		case Operation::JMPrel:	jcc(true);														return;
 		case Operation::JMPabs:	Primitive::jump_absolute<IntT>(destination_r(), context);		return;
@@ -417,10 +421,12 @@ template <
 		break;
 
 		case Operation::OUTS:
-			Primitive::outs<IntT, AddressT, Repetition::None>(instruction, eCX(), context.registers.dx(), eSI(), context);
+			Primitive::outs<IntT, AddressT, Repetition::None>(
+				instruction, eCX(), context.registers.dx(), eSI(), context);
 		return;
 		case Operation::OUTS_REP:
-			Primitive::outs<IntT, AddressT, Repetition::Rep>(instruction, eCX(), context.registers.dx(), eSI(), context);
+			Primitive::outs<IntT, AddressT, Repetition::Rep>(
+				instruction, eCX(), context.registers.dx(), eSI(), context);
 		return;
 
 		case Operation::INS:
@@ -453,7 +459,7 @@ template <
 	const InstructionT &instruction,
 	ContextT &context
 ) {
-	auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
+	const auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
 		return int(operation_size) + (int(address_size) << 2);
 	};
 
@@ -508,7 +514,7 @@ template <
 template <
 	typename ContextT
 > void interrupt(
-	int index,
+	const int index,
 	ContextT &context
 ) {
 	const uint32_t address = static_cast<uint32_t>(index) << 2;

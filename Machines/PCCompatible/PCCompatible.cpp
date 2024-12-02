@@ -362,7 +362,7 @@ class KeyboardController {
 			const auto last_mode = mode_;
 			mode_ = Mode(mode);
 			switch(mode_) {
-				case Mode::NormalOperation: 	break;
+				case Mode::NormalOperation:		break;
 				case Mode::NoIRQsIgnoreInput:
 					pic_.apply_edge<1>(false);
 				break;
@@ -932,7 +932,7 @@ class ConcreteMachine:
 		void run_for(const Cycles duration) override {
 			switch(speed_) {
 				case Target::Speed::ApproximatelyOriginal:	run_for<Target::Speed::ApproximatelyOriginal>(duration);	break;
-				case Target::Speed::Fast: 					run_for<Target::Speed::Fast>(duration);						break;
+				case Target::Speed::Fast:					run_for<Target::Speed::Fast>(duration);						break;
 			}
 		}
 

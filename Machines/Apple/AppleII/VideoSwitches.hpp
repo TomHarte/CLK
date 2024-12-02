@@ -25,8 +25,8 @@ enum class GraphicsMode {
 	/// Fat low res mode is regular low res mode, but clocked out at 7Mhz rather than 14, leading to improper colours.
 	FatLowRes
 };
-constexpr bool is_text_mode(GraphicsMode m) { return m <= GraphicsMode::DoubleText; }
-constexpr bool is_double_mode(GraphicsMode m) { return int(m) & 1; }
+constexpr bool is_text_mode(const GraphicsMode m) { return m <= GraphicsMode::DoubleText; }
+constexpr bool is_double_mode(const GraphicsMode m) { return int(m) & 1; }
 
 template <typename TimeUnit> class VideoSwitches {
 	public:

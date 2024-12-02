@@ -74,7 +74,7 @@ struct Instruction {
 	bool sets_flags = false;
 	bool is_byte = false;
 
-	std::string to_string(uint32_t address) const {
+	std::string to_string(const uint32_t address) const {
 		std::ostringstream result;
 
 		// Treat all nevers as nops.
@@ -161,17 +161,17 @@ struct Instruction {
 /// able to vend it later via @c last().
 template <Model model>
 struct Disassembler {
-	Instruction last() {
+	Instruction last() const {
 		return instruction_;
 	}
 
-	bool should_schedule(Condition condition) {
+	bool should_schedule(const Condition condition) {
 		instruction_ = Instruction();
 		instruction_.condition = condition;
 		return true;
 	}
 
-	template <Flags f> void perform(DataProcessing fields) {
+	template <Flags f> void perform(const DataProcessing fields) {
 		constexpr DataProcessingFlags flags(f);
 
 		instruction_.operand1.type = Operand::Type::Register;
@@ -214,7 +214,7 @@ struct Disassembler {
 	}
 
 	template <Flags> void perform(Multiply) {}
-	template <Flags f> void perform(SingleDataTransfer fields) {
+	template <Flags f> void perform(const SingleDataTransfer fields) {
 		constexpr SingleDataTransferFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == SingleDataTransferFlags::Operation::STR) ?
@@ -226,7 +226,7 @@ struct Disassembler {
 		instruction_.operand1.type = Operand::Type::Register;
 		instruction_.operand1.value = fields.base();
 	}
-	template <Flags f> void perform(BlockDataTransfer fields) {
+	template <Flags f> void perform(const BlockDataTransfer fields) {
 		constexpr BlockDataTransferFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == BlockDataTransferFlags::Operation::STM) ?
@@ -238,7 +238,7 @@ struct Disassembler {
 		instruction_.operand1.type = Operand::Type::RegisterList;
 		instruction_.operand1.value = fields.register_list();
 	}
-	template <Flags f> void perform(Branch fields) {
+	template <Flags f> void perform(const Branch fields) {
 		constexpr BranchFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == BranchFlags::Operation::BL) ?
@@ -264,7 +264,6 @@ struct Disassembler {
 
 private:
 	Instruction instruction_;
-
 };
 
 }

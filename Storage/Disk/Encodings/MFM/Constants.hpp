@@ -16,7 +16,7 @@ enum class Density {
 	Single, Double, High
 };
 
-constexpr bool is_mfm(Density density) {
+constexpr bool is_mfm(const Density density) {
 	return density != Density::Single;
 }
 

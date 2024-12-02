@@ -15,7 +15,7 @@
 namespace InstructionSet::M50740 {
 
 template<typename Target, bool include_entries_and_accesses> struct Parser {
-	void parse(Target &target, const uint8_t *storage, uint16_t start, uint16_t closing_bound) {
+	void parse(Target &target, const uint8_t *storage, uint16_t start, const uint16_t closing_bound) {
 		Decoder decoder;
 
 		while(start <= closing_bound) {
@@ -97,7 +97,10 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 					// Provide any fixed address accesses.
 					switch(next.second.addressing_mode) {
 						case AddressingMode::Absolute:
-							target.add_access(uint16_t(storage[start + 1] | (storage[start + 2] << 8)), access_type(next.second.operation));
+							target.add_access(
+								uint16_t(storage[start + 1] | (storage[start + 2] << 8)),
+								access_type(next.second.operation)
+							);
 						break;
 						case AddressingMode::ZeroPage:	case AddressingMode::ZeroPageRelative:
 							target.add_access(storage[start + 1], access_type(next.second.operation));

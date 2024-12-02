@@ -69,7 +69,7 @@ class ConcreteMachine:
 			// This is a 24-cycle window, so at 24Mhz macro_tick() is called at 1Mhz.
 			// Hence, required ticks are:
 			//
-			// 	* CPU: 24;
+			//	* CPU: 24;
 			//	* video: 24 / video_divider;
 			//	* floppy: 8;
 			//	* timers: 2;

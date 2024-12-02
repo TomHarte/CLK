@@ -52,7 +52,7 @@ public:
 	}
 
 	/// @returns @c true if all result bytes are exhausted; @c false otherwise.
-	bool empty() const 	{	return result_.empty();	}
+	bool empty() const	{	return result_.empty();	}
 
 	/// @returns The next byte of the result.
 	uint8_t next() {

@@ -38,10 +38,10 @@ enum Personality {
 	PWDC65C02,			// like the Rockwell, but with STP and WAI
 };
 
-constexpr bool has_decimal_mode(Personality p)	{	return p >= Personality::P6502;				}
-constexpr bool is_65c02(Personality p)			{	return p >= Personality::PSynertek65C02;	}
-constexpr bool has_bbrbbsrmbsmb(Personality p)	{	return p >= Personality::PRockwell65C02;	}
-constexpr bool has_stpwai(Personality p)		{	return p >= Personality::PWDC65C02;			}
+constexpr bool has_decimal_mode(const Personality p)	{	return p >= Personality::P6502;				}
+constexpr bool is_65c02(const Personality p)			{	return p >= Personality::PSynertek65C02;	}
+constexpr bool has_bbrbbsrmbsmb(const Personality p)	{	return p >= Personality::PRockwell65C02;	}
+constexpr bool has_stpwai(const Personality p)			{	return p >= Personality::PWDC65C02;			}
 
 /*!
 	An opcode that is guaranteed to cause a 6502 to jam.

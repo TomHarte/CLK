@@ -86,7 +86,9 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 			DoubleHighResMono,
 			SuperHighRes
 		};
-		constexpr bool is_colour_ntsc(GraphicsMode m) { return m >= GraphicsMode::HighRes && m <= GraphicsMode::FatLowRes; }
+		constexpr bool is_colour_ntsc(const GraphicsMode m) {
+			return m >= GraphicsMode::HighRes && m <= GraphicsMode::FatLowRes;
+		}
 
 		GraphicsMode graphics_mode(int row) const {
 			if(new_video_ & 0x80) {

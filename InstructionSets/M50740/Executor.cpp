@@ -49,7 +49,7 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	reset();
 }
 
-void Executor::run_for(Cycles cycles) {
+void Executor::run_for(const Cycles cycles) {
 	// The incoming clock is divided by four; the local cycles_ count
 	// ensures that fractional parts are kept track of.
 	cycles_ += cycles;
@@ -61,7 +61,7 @@ void Executor::reset() {
 	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)));
 }
 
-void Executor::set_interrupt_line(bool line) {
+void Executor::set_interrupt_line(const bool line) {
 	// Super hack: interrupt now, if permitted. Otherwise do nothing.
 	// So this will fail to catch enabling of interrupts while the line
 	// is active, amongst other things.
@@ -117,12 +117,12 @@ uint8_t Executor::read(uint16_t address) {
 	}
 }
 
-void Executor::set_port_output(int port) {
+void Executor::set_port_output(const int port) {
 	// Force 'output' to a 1 anywhere that a bit is set as input.
 	port_handler_.set_port_output(port, port_outputs_[port] | ~port_directions_[port]);
 }
 
-void Executor::write(uint16_t address, uint8_t value) {
+void Executor::write(uint16_t address, const uint8_t value) {
 	address &= 0x1fff;
 
 	// RAM writes are easy.
@@ -182,7 +182,7 @@ void Executor::write(uint16_t address, uint8_t value) {
 	}
 }
 
-void Executor::push(uint8_t value) {
+void Executor::push(const uint8_t value) {
 	write(s_, value);
 	--s_;
 }
@@ -192,7 +192,7 @@ uint8_t Executor::pull() {
 	return read(s_);
 }
 
-void Executor::set_flags(uint8_t flags) {
+void Executor::set_flags(const uint8_t flags) {
 	negative_result_ = flags;
 	overflow_result_ = uint8_t(flags << 1);
 	index_mode_ = flags & 0x20;
@@ -213,7 +213,7 @@ uint8_t Executor::flags() {
 		carry_flag_;
 }
 
-template<bool is_brk> inline void Executor::perform_interrupt(uint16_t vector) {
+template<bool is_brk> inline void Executor::perform_interrupt(const uint16_t vector) {
 	// BRK has an unused operand.
 	++program_counter_;
 	push(uint8_t(program_counter_ >> 8));
@@ -222,7 +222,7 @@ template<bool is_brk> inline void Executor::perform_interrupt(uint16_t vector) {
 	set_program_counter(uint16_t(memory_[vector] | (memory_[vector+1] << 8)));
 }
 
-void Executor::set_interrupt_request(uint8_t &reg, uint8_t value, uint16_t vector) {
+void Executor::set_interrupt_request(uint8_t &reg, const uint8_t value, const uint16_t vector) {
 	// TODO: this allows interrupts through only if fully enabled at the time they
 	// signal. Which isn't quite correct, albeit that it seems sufficient for the
 	// IIgs ADB controller.
@@ -797,7 +797,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 	}
 }
 
-inline void Executor::subtract_duration(int duration) {
+inline void Executor::subtract_duration(const int duration) {
 	// Pass along.
 	CachingExecutor::subtract_duration(duration);
 
@@ -846,7 +846,7 @@ inline void Executor::subtract_duration(int duration) {
 	}
 }
 
-inline int Executor::update_timer(Timer &timer, int count) {
+inline int Executor::update_timer(Timer &timer, const int count) {
 	const int next_value = timer.value - count;
 	if(next_value < 0) {
 		// Determine how many reloads were required to get above zero.
@@ -859,6 +859,6 @@ inline int Executor::update_timer(Timer &timer, int count) {
 	return 0;
 }
 
-uint8_t Executor::get_output_mask(int port) {
+uint8_t Executor::get_output_mask(const int port) {
 	return port_directions_[port];
 }

@@ -13,8 +13,8 @@
 namespace Numeric {
 
 /// @returns @c true if from @c bit there was:
-/// 	• carry after calculating @c lhs + @c rhs if @c is_add is true; or
-/// 	• borrow after calculating @c lhs - @c rhs if @c is_add is false;
+///		• carry after calculating @c lhs + @c rhs if @c is_add is true; or
+///		• borrow after calculating @c lhs - @c rhs if @c is_add is false;
 /// producing @c result.
 template <bool is_add, int bit, typename IntT> bool carried_out(IntT lhs, IntT rhs, IntT result) {
 	// Additive:
@@ -40,8 +40,8 @@ template <bool is_add, int bit, typename IntT> bool carried_out(IntT lhs, IntT r
 }
 
 /// @returns @c true if there was carry into @c bit when computing either:
-/// 	• @c lhs + @c rhs; or
-/// 	• @c lhs - @c rhs;
+///		• @c lhs + @c rhs; or
+///		• @c lhs - @c rhs;
 ///	producing @c result.
 template <int bit, typename IntT> bool carried_in(IntT lhs, IntT rhs, IntT result) {
 	// 0 and 0 or 1 and 1 => did if 1.

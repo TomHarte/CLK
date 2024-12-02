@@ -38,7 +38,7 @@ void aaas(
 template <typename ContextT>
 void aad(
 	CPU::RegisterPair16 &ax,
-	uint8_t imm,
+	const uint8_t imm,
 	ContextT &context
 ) {
 	/*
@@ -59,7 +59,7 @@ void aad(
 template <typename ContextT>
 void aam(
 	CPU::RegisterPair16 &ax,
-	uint8_t imm,
+	const uint8_t imm,
 	ContextT &context
 ) {
 	/*

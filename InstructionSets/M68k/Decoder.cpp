@@ -140,7 +140,8 @@ constexpr Operation Predecoder<model>::operation(const OpT op) {
 }
 
 template <Model model>
-template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invalid_operands() {
+template <typename Predecoder<model>::OpT op>
+constexpr uint32_t Predecoder<model>::invalid_operands() {
 	constexpr auto Dn		= Mask< AddressingMode::DataRegisterDirect >::value;
 	constexpr auto An		= Mask< AddressingMode::AddressRegisterDirect >::value;
 	constexpr auto Ind		= Mask< AddressingMode::AddressRegisterIndirect >::value;
@@ -162,24 +163,25 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 	//
 	// All modes: the complete set (other than Quick).
 	//
-	static constexpr auto AllModes		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | Imm | d16PC | d8PCXn;
-	static constexpr auto AllModesNoAn	= AllModes & ~An;
+	constexpr auto AllModes		=	Dn | An | Ind | PostInc | PreDec | d16An |
+									d8AnXn | XXXw | XXXl | Imm | d16PC | d8PCXn;
+	constexpr auto AllModesNoAn	= AllModes & ~An;
 
 	//
 	// Alterable addressing modes (with and without AddressRegisterDirect).
 	//
-	static constexpr auto AlterableAddressingModes		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
-	static constexpr auto AlterableAddressingModesNoAn	= AlterableAddressingModes & ~An;
+	constexpr auto AlterableAddressingModes		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
+	constexpr auto AlterableAddressingModesNoAn	= AlterableAddressingModes & ~An;
 
 	//
 	// Control [flow] addressing modes.
 	//
-	static constexpr auto ControlAddressingModes	= Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
+	constexpr auto ControlAddressingModes	= Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
 
 	//
 	// An invalid response, used as the default case.
 	//
-	static constexpr auto InvalidOperands			= uint32_t(~0);
+	constexpr auto InvalidOperands			= uint32_t(~0);
 
 	switch(op) {
 		default: break;
@@ -620,7 +622,8 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
 template <Model model>
-template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::validated(
+template <typename Predecoder<model>::OpT op, bool validate>
+constexpr Preinstruction Predecoder<model>::validated(
 	const AddressingMode op1_mode, const int op1_reg,
 	const AddressingMode op2_mode, const int op2_reg,
 	const Condition condition,
@@ -656,7 +659,10 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
 /// decoded. Optionally applies validation
 template <Model model>
-template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::decode(const uint16_t instruction) {
+template <typename Predecoder<model>::OpT op, bool validate>
+constexpr Preinstruction Predecoder<model>::decode(
+	const uint16_t instruction
+) {
 	// Fields used pervasively below.
 	//
 	// Underlying assumption: the compiler will discard whatever of these
@@ -1000,7 +1006,8 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		// MARK: ASR, LSR, ROXR, ROR, ASL, LSL, ROXL, ROL
 		//
 		// b0–b2:	a register to shift (the source here, for consistency with the memory operations);
-		// b8:		0 => b9–b11 are a direct count of bits to shift; 1 => b9–b11 identify a register containing the shift count;
+		// b8:		0 => b9–b11 are a direct count of bits to shift;
+		//			1 => b9–b11 identify register containing the shift count;
 		// b9–b11:	either a quick value or a register.
 		//
 		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
@@ -1269,11 +1276,11 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 
 // MARK: - Page decoders.
 
-#define Decode(y)	return decode<OpT(y)>(instruction)
+#define Decode(y)		return decode<OpT(y)>(instruction)
 #define DecodeReq(x, y)	if constexpr (x) Decode(y); break;
 
 template <Model model>
-Preinstruction Predecoder<model>::decode0(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode0(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xfff) {
@@ -1386,7 +1393,7 @@ Preinstruction Predecoder<model>::decode0(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode1(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode1(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
@@ -1394,7 +1401,7 @@ Preinstruction Predecoder<model>::decode1(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode2(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode2(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
@@ -1405,7 +1412,7 @@ Preinstruction Predecoder<model>::decode2(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode3(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode3(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
@@ -1416,7 +1423,7 @@ Preinstruction Predecoder<model>::decode3(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode4(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode4(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xfff) {
@@ -1539,7 +1546,7 @@ Preinstruction Predecoder<model>::decode4(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode5(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode5(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f8) {
@@ -1617,7 +1624,7 @@ Preinstruction Predecoder<model>::decode5(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode6(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode6(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xf00) {
@@ -1649,7 +1656,7 @@ Preinstruction Predecoder<model>::decode6(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode7(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode7(const uint16_t instruction) {
 	// 4-134 (p238)
 	if(!(instruction & 0x100)) {
 		Decode(MOVEQ);
@@ -1659,7 +1666,7 @@ Preinstruction Predecoder<model>::decode7(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode8(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode8(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f0) {
@@ -1689,7 +1696,7 @@ Preinstruction Predecoder<model>::decode8(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decode9(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decode9(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f0) {
@@ -1721,12 +1728,12 @@ Preinstruction Predecoder<model>::decode9(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeA(const uint16_t) {
+constexpr Preinstruction Predecoder<model>::decodeA(const uint16_t) {
 	return Preinstruction();
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeB(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decodeB(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f8) {
@@ -1760,7 +1767,7 @@ Preinstruction Predecoder<model>::decodeB(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeC(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decodeC(const uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-105 (p209)
@@ -1795,7 +1802,7 @@ Preinstruction Predecoder<model>::decodeC(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeD(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decodeD(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0x1f0) {
@@ -1827,7 +1834,7 @@ Preinstruction Predecoder<model>::decodeD(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeE(const uint16_t instruction) {
+constexpr Preinstruction Predecoder<model>::decodeE(const uint16_t instruction) {
 	using Op = Operation;
 
 	switch(instruction & 0xfc0) {
@@ -1845,9 +1852,11 @@ Preinstruction Predecoder<model>::decodeE(const uint16_t instruction) {
 		case 0xac0: DecodeReq(model >= Model::M68020, Op::BFCHG);	// 4-33 (p137)
 		case 0xbc0: DecodeReq(model >= Model::M68020, Op::BFEXTS);	// 4-37 (p141)
 		case 0xcc0: DecodeReq(model >= Model::M68020, Op::BFCLR);	// 4-35 (p139)
-		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)	[though the given opcode is wrong; listed same as BFEXTU]
+		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)*
 		case 0xec0: DecodeReq(model >= Model::M68020, Op::BFSET);	// 4-49 (p153)
 		case 0xfc0: DecodeReq(model >= Model::M68020, Op::BFINS);	// 4-46 (p150)
+
+		// * [though the given opcode is wrong; listed same as BFEXTU]
 
 		default:	break;
 	}
@@ -1900,7 +1909,7 @@ Preinstruction Predecoder<model>::decodeE(const uint16_t instruction) {
 }
 
 template <Model model>
-Preinstruction Predecoder<model>::decodeF(const uint16_t) {
+constexpr Preinstruction Predecoder<model>::decodeF(const uint16_t) {
 	return Preinstruction();
 }
 

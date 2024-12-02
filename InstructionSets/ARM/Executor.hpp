@@ -18,7 +18,7 @@ namespace InstructionSet::ARM {
 /// Maps from a semantic ARM read of type @c SourceT to either the 8- or 32-bit value observed
 /// by watching the low 8 bits or all 32 bits of the data bus.
 template <typename DestinationT, typename SourceT>
-DestinationT read_bus(SourceT value) {
+DestinationT read_bus(const SourceT value) {
 	if constexpr (std::is_same_v<DestinationT, SourceT>) {
 		return value;
 	}
@@ -57,14 +57,14 @@ struct Executor {
 
 	/// @returns @c true if @c condition implies an appropriate perform call should be made for this instruction,
 	/// @c false otherwise.
-	bool should_schedule(Condition condition) {
+	bool should_schedule(const Condition condition) {
 		// This short-circuit of registers_.test provides the necessary compiler clue that
 		// Condition::AL is not only [[likely]] but [[exceedingly likely]].
 		return condition == Condition::AL ? true : registers_.test(condition);
 	}
 
 	template <bool allow_register, bool set_carry, typename FieldsT>
-	uint32_t decode_shift(FieldsT fields, uint32_t &rotate_carry, uint32_t pc_offset) {
+	uint32_t decode_shift(const FieldsT fields, uint32_t &rotate_carry, const uint32_t pc_offset) {
 		// "When R15 appears in the Rm position it will give the value of the PC together
 		// with the PSR flags to the barrel shifter. ...
 		//
@@ -105,7 +105,7 @@ struct Executor {
 		return operand2;
 	}
 
-	template <Flags f> void perform(DataProcessing fields) {
+	template <Flags f> void perform(const DataProcessing fields) {
 		constexpr DataProcessingFlags flags(f);
 		const bool shift_by_register = !flags.operand2_is_immediate() && fields.shift_count_is_register();
 
@@ -142,7 +142,10 @@ struct Executor {
 		const auto sub = [&](uint32_t lhs, uint32_t rhs) {
 			conditions = lhs - rhs;
 
-			if constexpr (flags.operation() == DataProcessingOperation::SBC || flags.operation() == DataProcessingOperation::RSC) {
+			if constexpr (
+				flags.operation() == DataProcessingOperation::SBC ||
+				flags.operation() == DataProcessingOperation::RSC
+			) {
 				conditions += registers_.c() - 1;
 			}
 
@@ -225,7 +228,7 @@ struct Executor {
 		}
 	}
 
-	template <Flags f> void perform(Multiply fields) {
+	template <Flags f> void perform(const Multiply fields) {
 		constexpr MultiplyFlags flags(f);
 
 		// R15 rules:
@@ -252,7 +255,7 @@ struct Executor {
 		}
 	}
 
-	template <Flags f> void perform(Branch branch) {
+	template <Flags f> void perform(const Branch branch) {
 		constexpr BranchFlags flags(f);
 
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
@@ -261,7 +264,7 @@ struct Executor {
 		set_pc<true>(registers_.pc(4) + branch.offset());
 	}
 
-	template <Flags f> void perform(SingleDataTransfer transfer) {
+	template <Flags f> void perform(const SingleDataTransfer transfer) {
 		constexpr SingleDataTransferFlags flags(f);
 
 		// Calculate offset.
@@ -386,7 +389,7 @@ struct Executor {
 			}
 		}
 	}
-	template <Flags f> void perform(BlockDataTransfer transfer) {
+	template <Flags f> void perform(const BlockDataTransfer transfer) {
 		constexpr BlockDataTransferFlags flags(f);
 		constexpr bool is_ldm = flags.operation() == BlockDataTransferFlags::Operation::LDM;
 
@@ -573,7 +576,7 @@ struct Executor {
 		}
 	}
 
-	void software_interrupt(SoftwareInterrupt swi) {
+	void software_interrupt(const SoftwareInterrupt swi) {
 		if(control_flow_handler_.should_swi(swi.comment())) {
 			exception<Registers::Exception::SoftwareInterrupt>();
 		}
@@ -614,7 +617,7 @@ struct Executor {
 	///
 	/// By default this is not forwarded to the control-flow handler.
 	template <bool notify = false>
-	void set_pc(uint32_t pc) {
+	void set_pc(const uint32_t pc) {
 		registers_.set_pc(pc);
 		if constexpr (notify) {
 			control_flow_handler_.did_set_pc();
@@ -637,7 +640,7 @@ private:
 		control_flow_handler_.did_set_pc();
 	}
 
-	void set_status(uint32_t status) {
+	void set_status(const uint32_t status) {
 		registers_.set_status(status);
 		control_flow_handler_.did_set_status();
 	}
@@ -650,7 +653,7 @@ private:
 	ControlFlowHandlerTStorage control_flow_handler_;
 	Registers registers_;
 
-	static bool is_invalid_address(uint32_t address) {
+	static bool is_invalid_address(const uint32_t address) {
 		if constexpr (model == Model::ARMv2with32bitAddressing) {
 			return false;
 		}
@@ -661,7 +664,7 @@ private:
 /// Executes the instruction @c instruction which should have been fetched from @c executor.pc(),
 /// modifying @c executor.
 template <Model model, typename MemoryT, typename StatusObserverT>
-void execute(uint32_t instruction, Executor<model, MemoryT, StatusObserverT> &executor) {
+void execute(const uint32_t instruction, Executor<model, MemoryT, StatusObserverT> &executor) {
 	executor.set_pc(executor.pc() + 4);
 	dispatch<model>(instruction, executor);
 }

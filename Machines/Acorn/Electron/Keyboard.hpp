@@ -35,7 +35,7 @@ enum Key: uint16_t {
 	KeyBreak		= 0xfffd,
 };
 
-constexpr bool is_modifier(Key key) {
+constexpr bool is_modifier(const Key key) {
 	return (key == KeyShift) || (key == KeyControl) || (key == KeyFunc);
 }
 

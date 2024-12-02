@@ -163,7 +163,7 @@ template <
 	Model model,
 	typename FlowController,
 	Operation operation = Operation::Undefined
-> void perform(Preinstruction instruction, CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
+> void perform(Preinstruction, CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &, FlowController &);
 
 }
 

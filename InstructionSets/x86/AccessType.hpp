@@ -30,24 +30,24 @@ enum class AccessType {
 	PreauthorisedRead,
 };
 
-constexpr bool is_writeable(AccessType type) {
+constexpr bool is_writeable(const AccessType type) {
 	return type == AccessType::ReadModifyWrite || type == AccessType::Write;
 }
 
 template <typename IntT, AccessType type> struct Accessor;
 
 // Reads: return a value directly.
-template <typename IntT> struct Accessor<IntT, AccessType::Read> { using type = IntT; };
-template <typename IntT> struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
+template <typename IntT> struct Accessor<IntT, AccessType::Read> { using type = const IntT; };
+template <typename IntT> struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = const IntT; };
 
 // Writes: return a custom type that can be written but not read.
 template <typename IntT>
 class Writeable {
-	public:
-		Writeable(IntT &target) : target_(target) {}
-		IntT operator=(IntT value) { return target_ = value; }
-	private:
-		IntT &target_;
+public:
+	Writeable(IntT &target) : target_(target) {}
+	IntT operator=(IntT value) { return target_ = value; }
+private:
+	IntT &target_;
 };
 template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = Writeable<IntT>; };
 

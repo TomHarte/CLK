@@ -31,7 +31,7 @@ enum class AddressingMode {
 static constexpr auto MaxAddressingMode = int(AddressingMode::ZeroPageRelative);
 static constexpr auto MinAddressingMode = int(AddressingMode::Implied);
 
-constexpr int size(AddressingMode mode) {
+constexpr int size(const AddressingMode mode) {
 	// This is coupled to the AddressingMode list above; be careful!
 	constexpr int sizes[] = {
 		0, 0, 1,
@@ -92,14 +92,14 @@ enum class Operation: uint8_t {
 static constexpr auto MaxOperation = int(Operation::STY);
 static constexpr auto MinOperation = int(Operation::BBC0);
 
-constexpr AccessType access_type(Operation operation) {
+constexpr AccessType access_type(const Operation operation) {
 	if(operation < Operation::ADC)	return AccessType::None;
 	if(operation < Operation::ASL)	return AccessType::Read;
 	if(operation < Operation::LDM)	return AccessType::ReadModifyWrite;
 	return AccessType::Write;
 }
 
-constexpr bool uses_index_mode(Operation operation) {
+constexpr bool uses_index_mode(const Operation operation) {
 	return
 		operation == Operation::ADC || operation == Operation::AND ||
 		operation == Operation::CMP || operation == Operation::EOR ||
@@ -110,7 +110,7 @@ constexpr bool uses_index_mode(Operation operation) {
 /*!
 	@returns The name of @c operation.
 */
-inline constexpr const char *operation_name(Operation operation) {
+inline constexpr const char *operation_name(const Operation operation) {
 #define MAP(x)	case Operation::x: return #x;
 	switch(operation) {
 		default: break;
@@ -133,7 +133,7 @@ inline constexpr const char *operation_name(Operation operation) {
 	return "???";
 }
 
-inline std::ostream &operator <<(std::ostream &stream, Operation operation) {
+inline std::ostream &operator <<(std::ostream &stream, const Operation operation) {
 	stream << operation_name(operation);
 	return stream;
 }
@@ -141,7 +141,7 @@ inline std::ostream &operator <<(std::ostream &stream, Operation operation) {
 /*!
 	@returns The name of @c addressing_mode.
 */
-inline constexpr const char *addressing_mode_name(AddressingMode addressing_mode) {
+inline constexpr const char *addressing_mode_name(const AddressingMode addressing_mode) {
 	switch(addressing_mode) {
 		default: break;
 		case AddressingMode::Implied:				return "";
@@ -167,7 +167,7 @@ inline constexpr const char *addressing_mode_name(AddressingMode addressing_mode
 	return "???";
 }
 
-inline std::ostream &operator <<(std::ostream &stream, AddressingMode mode) {
+inline std::ostream &operator <<(std::ostream &stream, const AddressingMode mode) {
 	stream << addressing_mode_name(mode);
 	return stream;
 }
@@ -177,7 +177,11 @@ inline std::ostream &operator <<(std::ostream &stream, AddressingMode mode) {
 		would appear in an assembler. E.g. '$5a' for that zero page address, or '$5a, x' for zero-page indexed from $5a. This function
 		may access up to three bytes from @c operation onwards.
 */
-inline std::string address(AddressingMode addressing_mode, const uint8_t *operation, uint16_t program_counter) {
+inline std::string address(
+	const AddressingMode addressing_mode,
+	const uint8_t *operation,
+	const uint16_t program_counter
+) {
 	std::stringstream output;
 	output << std::hex;
 
@@ -220,7 +224,8 @@ struct Instruction {
 	AddressingMode addressing_mode = AddressingMode::Implied;
 	uint8_t opcode = 0;
 
-	Instruction(Operation operation, AddressingMode addressing_mode, uint8_t opcode) : operation(operation), addressing_mode(addressing_mode), opcode(opcode) {}
+	Instruction(const Operation operation, const AddressingMode addressing_mode, const uint8_t opcode) :
+		operation(operation), addressing_mode(addressing_mode), opcode(opcode) {}
 	Instruction(uint8_t opcode) : opcode(opcode) {}
 	Instruction() = default;
 };

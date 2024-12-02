@@ -31,7 +31,7 @@ template <> struct Carry<false> {
 ///
 /// Shift amounts of 0 are given the meaning attributed to them for immediate shift counts.
 template <ShiftType type, bool set_carry, bool is_immediate_shift>
-void shift(uint32_t &source, uint32_t amount, typename Carry<set_carry>::type carry) {
+void shift(uint32_t &source, uint32_t amount, const typename Carry<set_carry>::type carry) {
 	switch(type) {
 		case ShiftType::LogicalLeft:
 			if(amount > 32) {
@@ -113,7 +113,7 @@ void shift(uint32_t &source, uint32_t amount, typename Carry<set_carry>::type ca
 
 /// Acts as per @c shift above, but applies runtime shift-type selection.
 template <bool set_carry, bool is_immediate_shift>
-void shift(ShiftType type, uint32_t &source, uint32_t amount, typename Carry<set_carry>::type carry) {
+void shift(const ShiftType type, uint32_t &source, const uint32_t amount, const typename Carry<set_carry>::type carry) {
 	switch(type) {
 		case ShiftType::LogicalLeft:
 			shift<ShiftType::LogicalLeft, set_carry, is_immediate_shift>(source, amount, carry);
