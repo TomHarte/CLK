@@ -18,8 +18,8 @@ namespace Storage::MassStorage {
 	in 512-byte blocks.
 */
 class DSK: public RawSectorDump<512> {
-	public:
-		DSK(const std::string &file_name);
+public:
+	DSK(const std::string &file_name);
 };
 
 }

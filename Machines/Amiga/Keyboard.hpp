@@ -77,42 +77,42 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 };
 
 class Keyboard {
-	public:
-		Keyboard(Serial::Line<true> &output);
+public:
+	Keyboard(Serial::Line<true> &output);
 
-//		enum Lines: uint8_t {
-//			Data = (1 << 0),
-//			Clock = (1 << 1),
-//		};
+//	enum Lines: uint8_t {
+//		Data = (1 << 0),
+//		Clock = (1 << 1),
+//	};
 //
-//		uint8_t update(uint8_t);
+//	uint8_t update(uint8_t);
 
-		void set_key_state(uint16_t, bool);
-		void clear_all_keys();
+	void set_key_state(uint16_t, bool);
+	void clear_all_keys();
 
-		void run_for(HalfCycles duration) {
-			output_.advance_writer(duration);
-		}
+	void run_for(HalfCycles duration) {
+		output_.advance_writer(duration);
+	}
 
-	private:
-//		enum class ShiftState {
-//			Shifting,
-//			AwaitingHandshake,
-//			Idle,
-//		} shift_state_ = ShiftState::Idle;
+private:
+//	enum class ShiftState {
+//		Shifting,
+//		AwaitingHandshake,
+//		Idle,
+//	} shift_state_ = ShiftState::Idle;
+//
+//	enum class State {
+//		Startup,
+//	} state_ = State::Startup;
+//
+//	int bit_phase_ = 0;
+//	uint32_t shift_sequence_ = 0;
+//	int bits_remaining_ = 0;
+//
+//	uint8_t lines_ = 0;
 
-//		enum class State {
-//			Startup,
-//		} state_ = State::Startup;
-
-//		int bit_phase_ = 0;
-//		uint32_t shift_sequence_ = 0;
-//		int bits_remaining_ = 0;
-
-//		uint8_t lines_ = 0;
-
-		Serial::Line<true> &output_;
-		std::array<bool, 128> pressed_{};
+	Serial::Line<true> &output_;
+	std::array<bool, 128> pressed_{};
 };
 
 }

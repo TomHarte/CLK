@@ -285,14 +285,14 @@ private:
 	automatically to gain run_for(HalfCycles).
 */
 template <class T> class HalfClockReceiver: public T {
-	public:
-		using T::T;
+public:
+	using T::T;
 
-		forceinline void run_for(const HalfCycles half_cycles) {
-			half_cycles_ += half_cycles;
-			T::run_for(half_cycles_.flush<Cycles>());
-		}
+	forceinline void run_for(const HalfCycles half_cycles) {
+		half_cycles_ += half_cycles;
+		T::run_for(half_cycles_.flush<Cycles>());
+	}
 
-	private:
-		HalfCycles half_cycles_;
+private:
+	HalfCycles half_cycles_;
 };

@@ -21,36 +21,36 @@ namespace Storage::Tape {
 	header and data blocks.
 */
 class ZXSpectrumTAP: public Tape {
-	public:
-		/*!
-			Constructs a @c ZXSpectrumTAP containing content from the file with name @c file_name.
+public:
+	/*!
+		Constructs a @c ZXSpectrumTAP containing content from the file with name @c file_name.
 
-			@throws ErrorNotZXSpectrumTAP if this file could not be opened and recognised as a valid Spectrum-format TAP.
-		*/
-		ZXSpectrumTAP(const std::string &file_name);
+		@throws ErrorNotZXSpectrumTAP if this file could not be opened and recognised as a valid Spectrum-format TAP.
+	*/
+	ZXSpectrumTAP(const std::string &file_name);
 
-		enum {
-			ErrorNotZXSpectrumTAP
-		};
+	enum {
+		ErrorNotZXSpectrumTAP
+	};
 
-	private:
-		Storage::FileHolder file_;
+private:
+	Storage::FileHolder file_;
 
-		uint16_t block_length_ = 0;
-		uint8_t block_type_ = 0;
-		uint8_t data_byte_ = 0;
-		enum Phase {
-			PilotTone,
-			Data,
-			Gap
-		} phase_ = Phase::PilotTone;
-		int distance_into_phase_ = 0;
-		void read_next_block();
+	uint16_t block_length_ = 0;
+	uint8_t block_type_ = 0;
+	uint8_t data_byte_ = 0;
+	enum Phase {
+		PilotTone,
+		Data,
+		Gap
+	} phase_ = Phase::PilotTone;
+	int distance_into_phase_ = 0;
+	void read_next_block();
 
-		// Implemented to satisfy @c Tape.
-		bool is_at_end() override;
-		void virtual_reset() override;
-		Pulse virtual_get_next_pulse() override;
+	// Implemented to satisfy @c Tape.
+	bool is_at_end() override;
+	void virtual_reset() override;
+	Pulse virtual_get_next_pulse() override;
 };
 
 }

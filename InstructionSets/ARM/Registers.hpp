@@ -45,344 +45,344 @@ enum class Mode {
 /// Appropriate prefetch offsets are left to other code to handle.
 /// This is to try to keep this structure independent of a specific ARM implementation.
 struct Registers {
-	public:
-		// Don't allow copying.
-		Registers(const Registers &) = delete;
-		Registers &operator =(const Registers &) = delete;
-		Registers() = default;
+public:
+	// Don't allow copying.
+	Registers(const Registers &) = delete;
+	Registers &operator =(const Registers &) = delete;
+	Registers() = default;
 
-		/// Sets the N and Z flags according to the value of @c result.
-		void set_nz(const uint32_t value) {
-			zero_result_ = negative_flag_ = value;
+	/// Sets the N and Z flags according to the value of @c result.
+	void set_nz(const uint32_t value) {
+		zero_result_ = negative_flag_ = value;
+	}
+
+	/// Sets C if @c value is non-zero; resets it otherwise.
+	void set_c(const uint32_t value) {
+		carry_flag_ = value;
+	}
+
+	/// @returns @c 1 if carry is set; @c 0 otherwise.
+	uint32_t c() const {
+		return carry_flag_ ? 1 : 0;
+	}
+
+	/// Sets V if the highest bit of @c value is set; resets it otherwise.
+	void set_v(const uint32_t value) {
+		overflow_flag_ = value;
+	}
+
+	/// @returns The current status bits, separate from the PC — mode, NVCZ and the two interrupt flags.
+	uint32_t status() const {
+		return
+			uint32_t(mode_) |
+			(negative_flag_ & ConditionCode::Negative) |
+			(zero_result_ ? 0 : ConditionCode::Zero) |
+			(carry_flag_ ? ConditionCode::Carry : 0) |
+			((overflow_flag_ >> 3) & ConditionCode::Overflow) |
+			interrupt_flags_;
+	}
+
+	/// @returns The full PC + status bits.
+	uint32_t pc_status(const uint32_t offset) const {
+		return
+			((active_[15] + offset) & ConditionCode::Address) |
+			status();
+	}
+
+	/// Sets status bits only, subject to mode.
+	void set_status(const uint32_t status) {
+		// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
+		// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
+		// 1 and 0 of the result respectively.
+
+		negative_flag_ = status;
+		overflow_flag_ = status << 3;
+		carry_flag_ = status & ConditionCode::Carry;
+		zero_result_ = ~status & ConditionCode::Zero;
+
+		if(mode_ != Mode::User) {
+			set_mode(Mode(status & 3));
+			interrupt_flags_ = status & (ConditionCode::IRQDisable | ConditionCode::FIQDisable);
 		}
+	}
 
-		/// Sets C if @c value is non-zero; resets it otherwise.
-		void set_c(const uint32_t value) {
-			carry_flag_ = value;
+	/// @returns The current mode.
+	Mode mode() const {
+		return mode_;
+	}
+
+	/// Sets a new PC.
+	void set_pc(const uint32_t value) {
+		active_[15] = value & ConditionCode::Address;
+	}
+
+	/// @returns The stored PC plus @c offset limited to 26 bits.
+	uint32_t pc(const uint32_t offset) const {
+		return (active_[15] + offset) & ConditionCode::Address;
+	}
+
+	// MARK: - Exceptions.
+
+	enum class Exception {
+		/// Reset line went from high to low.
+		Reset = 0x00,
+		/// Either an undefined instruction or a coprocessor instruction for which no coprocessor was found.
+		UndefinedInstruction = 0x04,
+		/// Code executed a software interrupt.
+		SoftwareInterrupt = 0x08,
+		/// The memory subsystem indicated an abort during prefetch and that instruction has now come to the head of the queue.
+		PrefetchAbort = 0x0c,
+		/// The memory subsystem indicated an abort during an instruction; if it is an LDR or STR then this should be signalled
+		/// before any instruction execution. If it was an LDM then loading stops upon a data abort but both an LDM and STM
+		/// otherwise complete, including pointer writeback.
+		DataAbort = 0x10,
+		/// The first data transfer attempted within an instruction was above address 0x3ff'ffff.
+		Address = 0x14,
+		/// The IRQ line was low at the end of an instruction and ConditionCode::IRQDisable was not set.
+		IRQ = 0x18,
+		/// The FIQ went low at least one cycle ago and ConditionCode::FIQDisable was not set.
+		FIQ = 0x1c,
+	};
+	static constexpr uint32_t pc_offset_during(const Exception exception) {
+		// The below is somewhat convoluted by the assumed execution model:
+		//
+		//	*	exceptions occuring during execution of an instruction are taken
+		//		to occur after R15 has already been incremented by 4; but
+		//	*	exceptions occurring instead of execution of an instruction are
+		//		taken to occur with R15 pointing to an instruction that hasn't begun.
+		//
+		// i.e. in net R15 always refers to the next instruction
+		// that has not yet started.
+		switch(exception) {
+			// "To return normally from FIQ use SUBS PC, R14_fiq, #4".
+			case Exception::FIQ:					return 4;
+
+			// "To return normally from IRQ use SUBS PC, R14_irq, #4".
+			case Exception::IRQ:					return 4;
+
+			// "If a return is required from [address exception traps], use
+			// SUBS PC, R14_svc, #4. This will return to the instruction after
+			// the one causing the trap".
+			case Exception::Address:				return 4;
+
+			// "A Data Abort requires [work before a return], the return being
+			// done by SUBS PC, R14_svc, #8" (and returning to the instruction
+			// that aborted).
+			case Exception::DataAbort:				return 4;
+
+			// "To continue after a Prefetch Abort use SUBS PC, R14_svc #4.
+			// This will attempt to re-execute the aborting instruction."
+			case Exception::PrefetchAbort:			return 4;
+
+			// "To return from a SWI, use MOVS PC, R14_svc. This returns to the instruction
+			// following the SWI".
+			case Exception::SoftwareInterrupt:		return 0;
+
+			// "To return from [an undefined instruction trap] use MOVS PC, R14_svc.
+			// This returns to the instruction following the undefined instruction".
+			case Exception::UndefinedInstruction:	return 0;
+
+			// Unspecified; a guess.
+			case Exception::Reset:					return 0;
 		}
+		return 4;
+	}
 
-		/// @returns @c 1 if carry is set; @c 0 otherwise.
-		uint32_t c() const {
-			return carry_flag_ ? 1 : 0;
+	/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
+	template <Exception type>
+	void exception() {
+		const auto r14 = pc_status(pc_offset_during(type));
+		switch(type) {
+			case Exception::IRQ:	set_mode(Mode::IRQ);		break;
+			case Exception::FIQ:	set_mode(Mode::FIQ);		break;
+			default:				set_mode(Mode::Supervisor);	break;
 		}
+		active_[14] = r14;
 
-		/// Sets V if the highest bit of @c value is set; resets it otherwise.
-		void set_v(const uint32_t value) {
-			overflow_flag_ = value;
+		interrupt_flags_ |= ConditionCode::IRQDisable;
+		if constexpr (type == Exception::Reset || type == Exception::FIQ) {
+			interrupt_flags_ |= ConditionCode::FIQDisable;
 		}
+		set_pc(uint32_t(type));
+	}
 
-		/// @returns The current status bits, separate from the PC — mode, NVCZ and the two interrupt flags.
-		uint32_t status() const {
-			return
-				uint32_t(mode_) |
-				(negative_flag_ & ConditionCode::Negative) |
-				(zero_result_ ? 0 : ConditionCode::Zero) |
-				(carry_flag_ ? ConditionCode::Carry : 0) |
-				((overflow_flag_ >> 3) & ConditionCode::Overflow) |
-				interrupt_flags_;
+	/// Returns @c true if: (i) the exception type is IRQ or FIQ; and (ii) the processor is currently accepting such interrupts.
+	/// Otherwise returns @c false.
+	template <Exception type>
+	bool would_interrupt() {
+		switch(type) {
+			case Exception::IRQ:
+				if(interrupt_flags_ & ConditionCode::IRQDisable) {
+					return false;
+				}
+			break;
+
+			case Exception::FIQ:
+				if(interrupt_flags_ & ConditionCode::FIQDisable) {
+					return false;
+				}
+			break;
+
+			default: return false;
 		}
+		return true;
+	}
 
-		/// @returns The full PC + status bits.
-		uint32_t pc_status(const uint32_t offset) const {
-			return
-				((active_[15] + offset) & ConditionCode::Address) |
-				status();
-		}
+	// MARK: - Condition tests.
 
-		/// Sets status bits only, subject to mode.
-		void set_status(const uint32_t status) {
-			// ... in user mode the other flags (I, F, M1, M0) are protected from direct change
-			// but in non-user modes these will also be affected, accepting copies of bits 27, 26,
-			// 1 and 0 of the result respectively.
-
-			negative_flag_ = status;
-			overflow_flag_ = status << 3;
-			carry_flag_ = status & ConditionCode::Carry;
-			zero_result_ = ~status & ConditionCode::Zero;
-
-			if(mode_ != Mode::User) {
-				set_mode(Mode(status & 3));
-				interrupt_flags_ = status & (ConditionCode::IRQDisable | ConditionCode::FIQDisable);
-			}
-		}
-
-		/// @returns The current mode.
-		Mode mode() const {
-			return mode_;
-		}
-
-		/// Sets a new PC.
-		void set_pc(const uint32_t value) {
-			active_[15] = value & ConditionCode::Address;
-		}
-
-		/// @returns The stored PC plus @c offset limited to 26 bits.
-		uint32_t pc(const uint32_t offset) const {
-			return (active_[15] + offset) & ConditionCode::Address;
-		}
-
-		// MARK: - Exceptions.
-
-		enum class Exception {
-			/// Reset line went from high to low.
-			Reset = 0x00,
-			/// Either an undefined instruction or a coprocessor instruction for which no coprocessor was found.
-			UndefinedInstruction = 0x04,
-			/// Code executed a software interrupt.
-			SoftwareInterrupt = 0x08,
-			/// The memory subsystem indicated an abort during prefetch and that instruction has now come to the head of the queue.
-			PrefetchAbort = 0x0c,
-			/// The memory subsystem indicated an abort during an instruction; if it is an LDR or STR then this should be signalled
-			/// before any instruction execution. If it was an LDM then loading stops upon a data abort but both an LDM and STM
-			/// otherwise complete, including pointer writeback.
-			DataAbort = 0x10,
-			/// The first data transfer attempted within an instruction was above address 0x3ff'ffff.
-			Address = 0x14,
-			/// The IRQ line was low at the end of an instruction and ConditionCode::IRQDisable was not set.
-			IRQ = 0x18,
-			/// The FIQ went low at least one cycle ago and ConditionCode::FIQDisable was not set.
-			FIQ = 0x1c,
+	/// @returns @c true if @c condition tests as true; @c false otherwise.
+	bool test(const Condition condition) const {
+		const auto ne = [&]() -> bool {
+			return zero_result_;
 		};
-		static constexpr uint32_t pc_offset_during(const Exception exception) {
-			// The below is somewhat convoluted by the assumed execution model:
-			//
-			//	*	exceptions occuring during execution of an instruction are taken
-			//		to occur after R15 has already been incremented by 4; but
-			//	*	exceptions occurring instead of execution of an instruction are
-			//		taken to occur with R15 pointing to an instruction that hasn't begun.
-			//
-			// i.e. in net R15 always refers to the next instruction
-			// that has not yet started.
-			switch(exception) {
-				// "To return normally from FIQ use SUBS PC, R14_fiq, #4".
-				case Exception::FIQ:					return 4;
+		const auto cs = [&]() -> bool {
+			return carry_flag_;
+		};
+		const auto mi = [&]() -> bool {
+			return negative_flag_ & ConditionCode::Negative;
+		};
+		const auto vs = [&]() -> bool {
+			return overflow_flag_ & ConditionCode::Negative;
+		};
+		const auto hi = [&]() -> bool {
+			return carry_flag_ && zero_result_;
+		};
+		const auto lt = [&]() -> bool {
+			return (negative_flag_ ^ overflow_flag_) & ConditionCode::Negative;
+		};
+		const auto le = [&]() -> bool {
+			return !zero_result_ || lt();
+		};
 
-				// "To return normally from IRQ use SUBS PC, R14_irq, #4".
-				case Exception::IRQ:					return 4;
+		switch(condition) {
+			case Condition::EQ:	return !ne();
+			case Condition::NE:	return ne();
+			case Condition::CS:	return cs();
+			case Condition::CC:	return !cs();
+			case Condition::MI:	return mi();
+			case Condition::PL:	return !mi();
+			case Condition::VS:	return vs();
+			case Condition::VC:	return !vs();
 
-				// "If a return is required from [address exception traps], use
-				// SUBS PC, R14_svc, #4. This will return to the instruction after
-				// the one causing the trap".
-				case Exception::Address:				return 4;
+			case Condition::HI:	return hi();
+			case Condition::LS:	return !hi();
+			case Condition::GE:	return !lt();
+			case Condition::LT:	return lt();
+			case Condition::GT:	return !le();
+			case Condition::LE:	return le();
 
-				// "A Data Abort requires [work before a return], the return being
-				// done by SUBS PC, R14_svc, #8" (and returning to the instruction
-				// that aborted).
-				case Exception::DataAbort:				return 4;
-
-				// "To continue after a Prefetch Abort use SUBS PC, R14_svc #4.
-				// This will attempt to re-execute the aborting instruction."
-				case Exception::PrefetchAbort:			return 4;
-
-				// "To return from a SWI, use MOVS PC, R14_svc. This returns to the instruction
-				// following the SWI".
-				case Exception::SoftwareInterrupt:		return 0;
-
-				// "To return from [an undefined instruction trap] use MOVS PC, R14_svc.
-				// This returns to the instruction following the undefined instruction".
-				case Exception::UndefinedInstruction:	return 0;
-
-				// Unspecified; a guess.
-				case Exception::Reset:					return 0;
-			}
-			return 4;
+			case Condition::AL:	return true;
+			case Condition::NV:	return false;
 		}
 
-		/// Updates the program counter, interupt flags and link register if applicable to begin @c exception.
-		template <Exception type>
-		void exception() {
-			const auto r14 = pc_status(pc_offset_during(type));
-			switch(type) {
-				case Exception::IRQ:	set_mode(Mode::IRQ);		break;
-				case Exception::FIQ:	set_mode(Mode::FIQ);		break;
-				default:				set_mode(Mode::Supervisor);	break;
-			}
-			active_[14] = r14;
+		return false;
+	}
 
-			interrupt_flags_ |= ConditionCode::IRQDisable;
-			if constexpr (type == Exception::Reset || type == Exception::FIQ) {
-				interrupt_flags_ |= ConditionCode::FIQDisable;
-			}
-			set_pc(uint32_t(type));
+	/// Sets current execution mode.
+	void set_mode(const Mode target_mode) {
+		if(mode_ == target_mode) {
+			return;
 		}
 
-		/// Returns @c true if: (i) the exception type is IRQ or FIQ; and (ii) the processor is currently accepting such interrupts.
-		/// Otherwise returns @c false.
-		template <Exception type>
-		bool would_interrupt() {
-			switch(type) {
-				case Exception::IRQ:
-					if(interrupt_flags_ & ConditionCode::IRQDisable) {
-						return false;
-					}
-				break;
+		// For outgoing modes other than FIQ, only save the final two registers for now;
+		// if the incoming mode is FIQ then the other five will be saved in the next switch.
+		// For FIQ, save all seven up front.
+		switch(mode_) {
+			// FIQ outgoing: save R8 to R14.
+			case Mode::FIQ:
+				std::copy(active_.begin() + 8, active_.begin() + 15, fiq_registers_.begin());
+			break;
 
-				case Exception::FIQ:
-					if(interrupt_flags_ & ConditionCode::FIQDisable) {
-						return false;
-					}
-				break;
-
-				default: return false;
-			}
-			return true;
+			// Non-FIQ outgoing: save R13 and R14. If saving to the user registers,
+			// use only the final two slots.
+			case Mode::User:
+				std::copy(active_.begin() + 13, active_.begin() + 15, user_registers_.begin() + 5);
+			break;
+			case Mode::Supervisor:
+				std::copy(active_.begin() + 13, active_.begin() + 15, supervisor_registers_.begin());
+			break;
+			case Mode::IRQ:
+				std::copy(active_.begin() + 13, active_.begin() + 15, irq_registers_.begin());
+			break;
 		}
 
-		// MARK: - Condition tests.
+		// For all modes except FIQ: restore the final two registers to their appropriate values.
+		// For FIQ: save an additional five, then overwrite seven.
+		switch(target_mode) {
+			case Mode::FIQ:
+				// FIQ is incoming, so save registers 8 to 12 to the first five slots of the user registers.
+				std::copy(active_.begin() + 8, active_.begin() + 13, user_registers_.begin());
 
-		/// @returns @c true if @c condition tests as true; @c false otherwise.
-		bool test(const Condition condition) const {
-			const auto ne = [&]() -> bool {
-				return zero_result_;
-			};
-			const auto cs = [&]() -> bool {
-				return carry_flag_;
-			};
-			const auto mi = [&]() -> bool {
-				return negative_flag_ & ConditionCode::Negative;
-			};
-			const auto vs = [&]() -> bool {
-				return overflow_flag_ & ConditionCode::Negative;
-			};
-			const auto hi = [&]() -> bool {
-				return carry_flag_ && zero_result_;
-			};
-			const auto lt = [&]() -> bool {
-				return (negative_flag_ ^ overflow_flag_) & ConditionCode::Negative;
-			};
-			const auto le = [&]() -> bool {
-				return !zero_result_ || lt();
-			};
-
-			switch(condition) {
-				case Condition::EQ:	return !ne();
-				case Condition::NE:	return ne();
-				case Condition::CS:	return cs();
-				case Condition::CC:	return !cs();
-				case Condition::MI:	return mi();
-				case Condition::PL:	return !mi();
-				case Condition::VS:	return vs();
-				case Condition::VC:	return !vs();
-
-				case Condition::HI:	return hi();
-				case Condition::LS:	return !hi();
-				case Condition::GE:	return !lt();
-				case Condition::LT:	return lt();
-				case Condition::GT:	return !le();
-				case Condition::LE:	return le();
-
-				case Condition::AL:	return true;
-				case Condition::NV:	return false;
-			}
-
-			return false;
+				// Replace R8 to R14.
+				std::copy(fiq_registers_.begin(), fiq_registers_.end(), active_.begin() + 8);
+			break;
+			case Mode::User:
+				std::copy(user_registers_.begin() + 5, user_registers_.end(), active_.begin() + 13);
+			break;
+			case Mode::Supervisor:
+				std::copy(supervisor_registers_.begin(), supervisor_registers_.end(), active_.begin() + 13);
+			break;
+			case Mode::IRQ:
+				std::copy(irq_registers_.begin(), irq_registers_.end(), active_.begin() + 13);
+			break;
 		}
 
-		/// Sets current execution mode.
-		void set_mode(const Mode target_mode) {
-			if(mode_ == target_mode) {
-				return;
-			}
-
-			// For outgoing modes other than FIQ, only save the final two registers for now;
-			// if the incoming mode is FIQ then the other five will be saved in the next switch.
-			// For FIQ, save all seven up front.
-			switch(mode_) {
-				// FIQ outgoing: save R8 to R14.
-				case Mode::FIQ:
-					std::copy(active_.begin() + 8, active_.begin() + 15, fiq_registers_.begin());
-				break;
-
-				// Non-FIQ outgoing: save R13 and R14. If saving to the user registers,
-				// use only the final two slots.
-				case Mode::User:
-					std::copy(active_.begin() + 13, active_.begin() + 15, user_registers_.begin() + 5);
-				break;
-				case Mode::Supervisor:
-					std::copy(active_.begin() + 13, active_.begin() + 15, supervisor_registers_.begin());
-				break;
-				case Mode::IRQ:
-					std::copy(active_.begin() + 13, active_.begin() + 15, irq_registers_.begin());
-				break;
-			}
-
-			// For all modes except FIQ: restore the final two registers to their appropriate values.
-			// For FIQ: save an additional five, then overwrite seven.
-			switch(target_mode) {
-				case Mode::FIQ:
-					// FIQ is incoming, so save registers 8 to 12 to the first five slots of the user registers.
-					std::copy(active_.begin() + 8, active_.begin() + 13, user_registers_.begin());
-
-					// Replace R8 to R14.
-					std::copy(fiq_registers_.begin(), fiq_registers_.end(), active_.begin() + 8);
-				break;
-				case Mode::User:
-					std::copy(user_registers_.begin() + 5, user_registers_.end(), active_.begin() + 13);
-				break;
-				case Mode::Supervisor:
-					std::copy(supervisor_registers_.begin(), supervisor_registers_.end(), active_.begin() + 13);
-				break;
-				case Mode::IRQ:
-					std::copy(irq_registers_.begin(), irq_registers_.end(), active_.begin() + 13);
-				break;
-			}
-
-			// If FIQ is outgoing then there's another five registers to restore.
-			if(mode_ == Mode::FIQ) {
-				std::copy(user_registers_.begin(), user_registers_.begin() + 5, active_.begin() + 8);
-			}
-
-			mode_ = target_mode;
+		// If FIQ is outgoing then there's another five registers to restore.
+		if(mode_ == Mode::FIQ) {
+			std::copy(user_registers_.begin(), user_registers_.begin() + 5, active_.begin() + 8);
 		}
 
-		uint32_t &operator[](const uint32_t offset) {
-			return active_[static_cast<size_t>(offset)];
+		mode_ = target_mode;
+	}
+
+	uint32_t &operator[](const uint32_t offset) {
+		return active_[static_cast<size_t>(offset)];
+	}
+
+	uint32_t operator[](const uint32_t offset) const {
+		return active_[static_cast<size_t>(offset)];
+	}
+
+	/// @returns A reference to the register at @c offset. If @c force_user_mode is true,
+	/// this will the the user-mode register. Otherwise it'll be that for the current mode. These references
+	/// are guaranteed to remain valid only until the next mode change.
+	uint32_t &reg(const bool force_user_mode, const uint32_t offset) {
+		switch(mode_) {
+			default:
+			case Mode::User: return active_[offset];
+
+			case Mode::Supervisor:
+			case Mode::IRQ:
+				if(force_user_mode && (offset == 13 || offset == 14)) {
+					return user_registers_[offset - 8];
+				}
+				return active_[offset];
+
+			case Mode::FIQ:
+				if(force_user_mode && (offset >= 8 && offset < 15)) {
+					return user_registers_[offset - 8];
+				}
+				return active_[offset];
 		}
+	}
 
-		uint32_t operator[](const uint32_t offset) const {
-			return active_[static_cast<size_t>(offset)];
-		}
+private:
+	Mode mode_ = Mode::Supervisor;
 
-		/// @returns A reference to the register at @c offset. If @c force_user_mode is true,
-		/// this will the the user-mode register. Otherwise it'll be that for the current mode. These references
-		/// are guaranteed to remain valid only until the next mode change.
-		uint32_t &reg(const bool force_user_mode, const uint32_t offset) {
-			switch(mode_) {
-				default:
-				case Mode::User: return active_[offset];
+	uint32_t zero_result_ = 1;
+	uint32_t negative_flag_ = 0;
+	uint32_t interrupt_flags_ = ConditionCode::IRQDisable | ConditionCode::FIQDisable;
+	uint32_t carry_flag_ = 0;
+	uint32_t overflow_flag_ = 0;
 
-				case Mode::Supervisor:
-				case Mode::IRQ:
-					if(force_user_mode && (offset == 13 || offset == 14)) {
-						return user_registers_[offset - 8];
-					}
-					return active_[offset];
+	// Various shadow registers.
+	std::array<uint32_t, 7> user_registers_{};
+	std::array<uint32_t, 7> fiq_registers_{};
+	std::array<uint32_t, 2> irq_registers_{};
+	std::array<uint32_t, 2> supervisor_registers_{};
 
-				case Mode::FIQ:
-					if(force_user_mode && (offset >= 8 && offset < 15)) {
-						return user_registers_[offset - 8];
-					}
-					return active_[offset];
-			}
-		}
-
-	private:
-		Mode mode_ = Mode::Supervisor;
-
-		uint32_t zero_result_ = 1;
-		uint32_t negative_flag_ = 0;
-		uint32_t interrupt_flags_ = ConditionCode::IRQDisable | ConditionCode::FIQDisable;
-		uint32_t carry_flag_ = 0;
-		uint32_t overflow_flag_ = 0;
-
-		// Various shadow registers.
-		std::array<uint32_t, 7> user_registers_{};
-		std::array<uint32_t, 7> fiq_registers_{};
-		std::array<uint32_t, 2> irq_registers_{};
-		std::array<uint32_t, 2> supervisor_registers_{};
-
-		// The active register set.
-		std::array<uint32_t, 16> active_{};
+	// The active register set.
+	std::array<uint32_t, 16> active_{};
 };
 
 }

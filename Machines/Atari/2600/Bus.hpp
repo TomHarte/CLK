@@ -20,49 +20,49 @@
 namespace Atari2600 {
 
 class Bus {
-	public:
-		Bus() :
-			tia_sound_(audio_queue_),
-			speaker_(tia_sound_) {}
+public:
+	Bus() :
+		tia_sound_(audio_queue_),
+		speaker_(tia_sound_) {}
 
-		virtual ~Bus() {
-			audio_queue_.flush();
-		}
+	virtual ~Bus() {
+		audio_queue_.flush();
+	}
 
-		virtual void run_for(const Cycles cycles) = 0;
-		virtual void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) = 0;
-		virtual void set_reset_line(bool state) = 0;
-		virtual void flush() = 0;
+	virtual void run_for(const Cycles cycles) = 0;
+	virtual void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) = 0;
+	virtual void set_reset_line(bool state) = 0;
+	virtual void flush() = 0;
 
-		// the RIOT, TIA and speaker
-		PIA mos6532_;
-		TIA tia_;
+	// the RIOT, TIA and speaker
+	PIA mos6532_;
+	TIA tia_;
 
-		Concurrency::AsyncTaskQueue<false> audio_queue_;
-		TIASound tia_sound_;
-		Outputs::Speaker::PullLowpass<TIASound> speaker_;
+	Concurrency::AsyncTaskQueue<false> audio_queue_;
+	TIASound tia_sound_;
+	Outputs::Speaker::PullLowpass<TIASound> speaker_;
 
-		// joystick state
-		uint8_t tia_input_value_[2] = {0xff, 0xff};
+	// joystick state
+	uint8_t tia_input_value_[2] = {0xff, 0xff};
 
-	protected:
-		// speaker backlog accumlation counter
-		Cycles cycles_since_speaker_update_;
-		inline void update_audio() {
-			speaker_.run_for(audio_queue_, cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
-		}
+protected:
+	// speaker backlog accumlation counter
+	Cycles cycles_since_speaker_update_;
+	inline void update_audio() {
+		speaker_.run_for(audio_queue_, cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
+	}
 
-		// video backlog accumulation counter
-		Cycles cycles_since_video_update_;
-		inline void update_video() {
-			tia_.run_for(cycles_since_video_update_.flush<Cycles>());
-		}
+	// video backlog accumulation counter
+	Cycles cycles_since_video_update_;
+	inline void update_video() {
+		tia_.run_for(cycles_since_video_update_.flush<Cycles>());
+	}
 
-		// RIOT backlog accumulation counter
-		Cycles cycles_since_6532_update_;
-		inline void update_6532() {
-			mos6532_.run_for(cycles_since_6532_update_.flush<Cycles>());
-		}
+	// RIOT backlog accumulation counter
+	Cycles cycles_since_6532_update_;
+	inline void update_6532() {
+		mos6532_.run_for(cycles_since_6532_update_.flush<Cycles>());
+	}
 };
 
 }

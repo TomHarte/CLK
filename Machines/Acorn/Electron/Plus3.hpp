@@ -14,19 +14,19 @@
 namespace Electron {
 
 class Plus3 final : public WD::WD1770 {
-	public:
-		Plus3();
+public:
+	Plus3();
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
-		void set_control_register(uint8_t control);
-		void set_activity_observer(Activity::Observer *observer);
+	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
+	void set_control_register(uint8_t control);
+	void set_activity_observer(Activity::Observer *);
 
-	private:
-		void set_control_register(uint8_t control, uint8_t changes);
-		uint8_t last_control_ = 0;
+private:
+	void set_control_register(uint8_t control, uint8_t changes);
+	uint8_t last_control_ = 0;
 
-		void set_motor_on(bool on) override;
-		std::string drive_name(size_t drive);
+	void set_motor_on(bool) override;
+	std::string drive_name(size_t);
 };
 
 }

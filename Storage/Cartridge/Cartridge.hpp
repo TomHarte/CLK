@@ -24,59 +24,59 @@ namespace Storage::Cartridge {
 	making the base class 100% descriptive.
 */
 class Cartridge {
-	public:
-		struct Segment {
-			Segment(size_t start_address, size_t end_address, std::vector<uint8_t> &&data) :
-				start_address(start_address), end_address(end_address), data(data) {}
+public:
+	struct Segment {
+		Segment(size_t start_address, size_t end_address, std::vector<uint8_t> &&data) :
+			start_address(start_address), end_address(end_address), data(data) {}
 
-			Segment(size_t start_address, size_t end_address, const std::vector<uint8_t> &data) :
-				start_address(start_address), end_address(end_address), data(data) {}
+		Segment(size_t start_address, size_t end_address, const std::vector<uint8_t> &data) :
+			start_address(start_address), end_address(end_address), data(data) {}
 
-			Segment(size_t start_address, std::vector<uint8_t> &&data) :
-				Segment(start_address, start_address + data.size(), data) {}
+		Segment(size_t start_address, std::vector<uint8_t> &&data) :
+			Segment(start_address, start_address + data.size(), data) {}
 
-			Segment(size_t start_address, const std::vector<uint8_t> &data) :
-				Segment(start_address, start_address + data.size(), data) {}
+		Segment(size_t start_address, const std::vector<uint8_t> &data) :
+			Segment(start_address, start_address + data.size(), data) {}
 
-			Segment(Segment &&segment) :
-				start_address(segment.start_address),
-				end_address(segment.end_address),
-				data(std::move(segment.data)) {}
+		Segment(Segment &&segment) :
+			start_address(segment.start_address),
+			end_address(segment.end_address),
+			data(std::move(segment.data)) {}
 
-			Segment(const Segment &segment) :
-				start_address(segment.start_address),
-				end_address(segment.end_address),
-				data(segment.data) {}
+		Segment(const Segment &segment) :
+			start_address(segment.start_address),
+			end_address(segment.end_address),
+			data(segment.data) {}
 
-			/// Indicates that an address is unknown.
-			static const size_t UnknownAddress;
+		/// Indicates that an address is unknown.
+		static const size_t UnknownAddress;
 
-			/// The initial CPU-exposed starting address for this segment; may be @c UnknownAddress.
-			size_t start_address;
-			/*!
-				The initial CPU-exposed ending address for this segment; may be @c UnknownAddress. Not necessarily equal
-				to start_address + data_length due to potential paging.
-			*/
-			size_t end_address;
+		/// The initial CPU-exposed starting address for this segment; may be @c UnknownAddress.
+		size_t start_address;
+		/*!
+			The initial CPU-exposed ending address for this segment; may be @c UnknownAddress. Not necessarily equal
+			to start_address + data_length due to potential paging.
+		*/
+		size_t end_address;
 
-			/*!
-				The data contents for this segment. If @c start_address and @c end_address are suppled then
-				the first end_address - start_address bytes will be those initially visible. The size will
-				not necessarily be the same as @c end_address - @c start_address due to potential paging.
-			*/
-			std::vector<uint8_t> data;
-		};
+		/*!
+			The data contents for this segment. If @c start_address and @c end_address are suppled then
+			the first end_address - start_address bytes will be those initially visible. The size will
+			not necessarily be the same as @c end_address - @c start_address due to potential paging.
+		*/
+		std::vector<uint8_t> data;
+	};
 
-		const std::vector<Segment> &get_segments() const {
-			return segments_;
-		}
-		virtual ~Cartridge() = default;
+	const std::vector<Segment> &get_segments() const {
+		return segments_;
+	}
+	virtual ~Cartridge() = default;
 
-		Cartridge() = default;
-		Cartridge(const std::vector<Segment> &segments) : segments_(segments) {}
+	Cartridge() = default;
+	Cartridge(const std::vector<Segment> &segments) : segments_(segments) {}
 
-	protected:
-		std::vector<Segment> segments_;
+protected:
+	std::vector<Segment> segments_;
 };
 
 }

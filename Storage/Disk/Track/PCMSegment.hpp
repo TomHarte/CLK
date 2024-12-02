@@ -151,55 +151,55 @@ struct PCMSegment {
 	Provides a stream of events by inspecting a PCMSegment.
 */
 class PCMSegmentEventSource {
-	public:
-		/*!
-			Constructs a @c PCMSegmentEventSource that will derive events from @c segment.
-			The event source is initially @c reset.
-		*/
-		PCMSegmentEventSource(const PCMSegment &);
+public:
+	/*!
+		Constructs a @c PCMSegmentEventSource that will derive events from @c segment.
+		The event source is initially @c reset.
+	*/
+	PCMSegmentEventSource(const PCMSegment &);
 
-		/*!
-			Copy constructor; produces a segment event source with the same underlying segment
-			but a unique pointer into it.
-		*/
-		PCMSegmentEventSource(const PCMSegmentEventSource &);
-		PCMSegmentEventSource &operator =(const PCMSegmentEventSource &);
+	/*!
+		Copy constructor; produces a segment event source with the same underlying segment
+		but a unique pointer into it.
+	*/
+	PCMSegmentEventSource(const PCMSegmentEventSource &);
+	PCMSegmentEventSource &operator =(const PCMSegmentEventSource &);
 
-		/*!
-			@returns the next event that will occur in this event stream.
-		*/
-		Track::Event get_next_event();
+	/*!
+		@returns the next event that will occur in this event stream.
+	*/
+	Track::Event get_next_event();
 
-		/*!
-			Resets the event source to the beginning of its event stream, exactly as if
-			it has just been constructed.
-		*/
-		void reset();
+	/*!
+		Resets the event source to the beginning of its event stream, exactly as if
+		it has just been constructed.
+	*/
+	void reset();
 
-		/*!
-			Seeks as close to @c time_from_start as the event source can manage while not
-			exceeding it.
+	/*!
+		Seeks as close to @c time_from_start as the event source can manage while not
+		exceeding it.
 
-			@returns the time the source is now at.
-		*/
-		float seek_to(float time_from_start);
+		@returns the time the source is now at.
+	*/
+	float seek_to(float time_from_start);
 
-		/*!
-			@returns the total length of the stream of data that the source will provide.
-		*/
-		Time get_length();
+	/*!
+		@returns the total length of the stream of data that the source will provide.
+	*/
+	Time get_length();
 
-		/*!
-			@returns a reference to the underlying segment.
-		*/
-		const PCMSegment &segment() const;
-		PCMSegment &segment();
+	/*!
+		@returns a reference to the underlying segment.
+	*/
+	const PCMSegment &segment() const;
+	PCMSegment &segment();
 
-	private:
-		std::shared_ptr<PCMSegment> segment_;
-		std::size_t bit_pointer_;
-		Track::Event next_event_;
-		Numeric::LFSR<uint64_t> lfsr_;
+private:
+	std::shared_ptr<PCMSegment> segment_;
+	std::size_t bit_pointer_;
+	Track::Event next_event_;
+	Numeric::LFSR<uint64_t> lfsr_;
 };
 
 }

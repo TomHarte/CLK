@@ -112,8 +112,8 @@ struct TestProcessor: public CPU::MC68000::BusHandler {
 		}
 	}
 
-	private:
-		int instructions_remaining_;
+private:
+	int instructions_remaining_;
 };
 
 }

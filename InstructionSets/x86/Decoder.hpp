@@ -233,11 +233,11 @@ private:
 //
 // So here's a thin non-templated shim to unblock initial PC Compatible development.
 class Decoder8086 {
-	public:
-		std::pair<int, Instruction<false>> decode(const uint8_t *source, std::size_t length);
+public:
+	std::pair<int, Instruction<false>> decode(const uint8_t *source, std::size_t length);
 
-	private:
-		Decoder<Model::i8086> decoder;
+private:
+	Decoder<Model::i8086> decoder;
 };
 
 }

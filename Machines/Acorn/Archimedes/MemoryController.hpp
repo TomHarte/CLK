@@ -236,275 +236,275 @@ struct MemoryController {
 		ioc_.set_activity_observer(observer);
 	}
 
-	private:
-		Log::Logger<Log::Source::ARMIOC> logger;
+private:
+	Log::Logger<Log::Source::ARMIOC> logger;
 
-		enum class ReadZone {
-			LogicallyMappedRAM,
-			PhysicallyMappedRAM,
-			IOControllers,
-			LowROM,
-			HighROM,
-		};
-		enum class WriteZone {
-			LogicallyMappedRAM,
-			PhysicallyMappedRAM,
-			IOControllers,
-			VideoController,
-			DMAAndMEMC,
-			AddressTranslator,
-		};
-		template <bool is_read>
-		using Zone = std::conditional_t<is_read, ReadZone, WriteZone>;
+	enum class ReadZone {
+		LogicallyMappedRAM,
+		PhysicallyMappedRAM,
+		IOControllers,
+		LowROM,
+		HighROM,
+	};
+	enum class WriteZone {
+		LogicallyMappedRAM,
+		PhysicallyMappedRAM,
+		IOControllers,
+		VideoController,
+		DMAAndMEMC,
+		AddressTranslator,
+	};
+	template <bool is_read>
+	using Zone = std::conditional_t<is_read, ReadZone, WriteZone>;
 
-		template <bool is_read>
-		static std::array<Zone<is_read>, 0x20> zones() {
-			std::array<Zone<is_read>, 0x20> zones{};
-			for(size_t c = 0; c < zones.size(); c++) {
-				const auto address = c << 21;
-				if(address < 0x200'0000) {
-					zones[c] = Zone<is_read>::LogicallyMappedRAM;
-				} else if(address < 0x300'0000) {
-					zones[c] = Zone<is_read>::PhysicallyMappedRAM;
-				} else if(address < 0x340'0000) {
-					zones[c] = Zone<is_read>::IOControllers;
-				} else if(address < 0x360'0000) {
-					if constexpr (is_read) {
-						zones[c] = Zone<is_read>::LowROM;
-					} else {
-						zones[c] = Zone<is_read>::VideoController;
-					}
-				} else if(address < 0x380'0000) {
-					if constexpr (is_read) {
-						zones[c] = Zone<is_read>::LowROM;
-					} else {
-						zones[c] = Zone<is_read>::DMAAndMEMC;
-					}
+	template <bool is_read>
+	static std::array<Zone<is_read>, 0x20> zones() {
+		std::array<Zone<is_read>, 0x20> zones{};
+		for(size_t c = 0; c < zones.size(); c++) {
+			const auto address = c << 21;
+			if(address < 0x200'0000) {
+				zones[c] = Zone<is_read>::LogicallyMappedRAM;
+			} else if(address < 0x300'0000) {
+				zones[c] = Zone<is_read>::PhysicallyMappedRAM;
+			} else if(address < 0x340'0000) {
+				zones[c] = Zone<is_read>::IOControllers;
+			} else if(address < 0x360'0000) {
+				if constexpr (is_read) {
+					zones[c] = Zone<is_read>::LowROM;
 				} else {
-					if constexpr (is_read) {
-						zones[c] = Zone<is_read>::HighROM;
-					} else {
-						zones[c] = Zone<is_read>::AddressTranslator;
-					}
+					zones[c] = Zone<is_read>::VideoController;
+				}
+			} else if(address < 0x380'0000) {
+				if constexpr (is_read) {
+					zones[c] = Zone<is_read>::LowROM;
+				} else {
+					zones[c] = Zone<is_read>::DMAAndMEMC;
+				}
+			} else {
+				if constexpr (is_read) {
+					zones[c] = Zone<is_read>::HighROM;
+				} else {
+					zones[c] = Zone<is_read>::AddressTranslator;
 				}
 			}
-			return zones;
+		}
+		return zones;
+	}
+
+	bool has_moved_rom_ = false;
+	std::array<uint8_t, 2*1024*1024> rom_;
+	std::array<uint8_t, 4*1024*1024> ram_{};
+	InputOutputController<InterruptObserverT, ClockRateObserverT> ioc_;
+
+	template <typename IntT>
+	IntT &physical_ram(uint32_t address) {
+		address = aligned<IntT>(address);
+		address &= (ram_.size() - 1);
+		return *reinterpret_cast<IntT *>(&ram_[address]);
+	}
+
+	template <typename IntT>
+	IntT &high_rom(uint32_t address) {
+		address = aligned<IntT>(address);
+		return *reinterpret_cast<IntT *>(&rom_[address & (rom_.size() - 1)]);
+	}
+
+	std::array<ReadZone, 0x20> read_zones_ = zones<true>();
+	const std::array<WriteZone, 0x20> write_zones_ = zones<false>();
+
+	// Control register values.
+	bool os_mode_ = false;
+	bool sound_dma_enable_ = false;
+	bool video_dma_enable_ = false;	// "Unaffected" by reset, so here picked arbitrarily.
+
+	enum class DynamicRAMRefresh {
+		None = 0b00,
+		DuringFlyback = 0b01,
+		Continuous = 0b11,
+	} dynamic_ram_refresh_ = DynamicRAMRefresh::None;	// State at reset is undefined; constrain to a valid enum value.
+
+	enum class ROMAccessTime {
+		ns450 = 0b00,
+		ns325 = 0b01,
+		ns200 = 0b10,
+		ns200with60nsNibble = 0b11,
+	} high_rom_access_time_ = ROMAccessTime::ns450, low_rom_access_time_ = ROMAccessTime::ns450;
+
+	enum class PageSize {
+		kb4 = 0b00,
+		kb8 = 0b01,
+		kb16 = 0b10,
+		kb32 = 0b11,
+	} page_size_ = PageSize::kb4;
+	int page_address_shift_ = 12;
+	uint32_t page_adddress_mask_ = 0xffff;
+
+	// Address translator.
+	//
+	// MEMC contains one entry per a physical page number, indicating where it goes logically.
+	// Any logical access is tested against all 128 mappings. So that's backwards compared to
+	// the ideal for an emulator, which would map from logical to physical, even if a lot more
+	// compact — there are always 128 physical pages; there are up to 8192 logical pages.
+	//
+	// So captured here are both the physical -> logical map as representative of the real
+	// hardware, and the reverse logical -> physical map, which is built (and rebuilt, and rebuilt)
+	// from the other.
+
+	// Physical to logical mapping.
+	std::array<uint32_t, 128> pages_{};
+
+	// Logical to physical mapping; this is divided by 'access mode'
+	// (i.e. the combination of read/write, trans and OS mode flags,
+	// as multipliexed by the @c mapping() function) because mapping
+	// varies by mode — not just in terms of restricting access, but
+	// actually presenting different memory.
+	using MapTarget = std::array<uint8_t *, 8192>;
+	std::array<MapTarget, 6> mapping_;
+
+	template <bool is_read>
+	MapTarget &mapping(bool trans, bool os_mode) {
+		const size_t index = (is_read ? 1 : 0) | (os_mode ? 2 : 0) | ((trans && !os_mode) ? 4 : 0);
+		return mapping_[index];
+	}
+
+	bool map_dirty_ = true;
+
+	/// @returns A pointer to somewhere in @c ram_ if RAM is mapped to this area, or a pointer to somewhere lower than @c ram_.data() otherwise.
+	template <typename IntT, bool is_read>
+	IntT *logical_ram(uint32_t address, bool trans) {
+		// Possibly TODO: this recompute-if-dirty flag is supposed to ameliorate for an expensive
+		// mapping process. It can be eliminated when the process is improved.
+		if(map_dirty_) {
+			update_mapping();
+			map_dirty_ = false;
+		}
+		address = aligned<IntT>(address);
+		address &= 0x1ff'ffff;
+		const size_t page = address >> page_address_shift_;
+
+		const auto &map = mapping<is_read>(trans, os_mode_);
+		address &= page_adddress_mask_;
+		return reinterpret_cast<IntT *>(&map[page][address]);
+	}
+
+	void update_mapping() {
+		// For each physical page, project it into logical space.
+		switch(page_size_) {
+			default:
+			case PageSize::kb4:		update_mapping<PageSize::kb4>();	break;
+			case PageSize::kb8:		update_mapping<PageSize::kb8>();	break;
+			case PageSize::kb16:	update_mapping<PageSize::kb16>();	break;
+			case PageSize::kb32:	update_mapping<PageSize::kb32>();	break;
+		}
+	}
+
+	template <PageSize size>
+	void update_mapping() {
+		// Clear all logical mappings.
+		for(auto &map: mapping_) {
+			// Seed all pointers to an address sufficiently far lower than the beginning of RAM as to mark
+			// the entire page as unmapped no matter what offset is added.
+			std::fill(map.begin(), map.end(), ram_.data() - 32768);
 		}
 
-		bool has_moved_rom_ = false;
-		std::array<uint8_t, 2*1024*1024> rom_;
-		std::array<uint8_t, 4*1024*1024> ram_{};
-		InputOutputController<InterruptObserverT, ClockRateObserverT> ioc_;
+		// For each physical page, project it into logical space
+		// and store it.
+		for(const auto page: pages_) {
+			uint32_t physical, logical;
 
-		template <typename IntT>
-		IntT &physical_ram(uint32_t address) {
-			address = aligned<IntT>(address);
-			address &= (ram_.size() - 1);
-			return *reinterpret_cast<IntT *>(&ram_[address]);
-		}
+			switch(size) {
+				case PageSize::kb4:
+					// 4kb:
+					//		A[6:0] -> PPN[6:0]
+					//		A[11:10] -> LPN[12:11];	A[22:12] -> LPN[10:0]	i.e. 8192 logical pages
+					physical = page & BitMask<6, 0>::value;
 
-		template <typename IntT>
-		IntT &high_rom(uint32_t address) {
-			address = aligned<IntT>(address);
-			return *reinterpret_cast<IntT *>(&rom_[address & (rom_.size() - 1)]);
-		}
+					physical <<= 12;
 
-		std::array<ReadZone, 0x20> read_zones_ = zones<true>();
-		const std::array<WriteZone, 0x20> write_zones_ = zones<false>();
+					logical = (page & BitMask<11, 10>::value) << 1;
+					logical |= (page & BitMask<22, 12>::value) >> 12;
+				break;
 
-		// Control register values.
-		bool os_mode_ = false;
-		bool sound_dma_enable_ = false;
-		bool video_dma_enable_ = false;	// "Unaffected" by reset, so here picked arbitrarily.
+				case PageSize::kb8:
+					// 8kb:
+					//		A[0] -> PPN[6]; A[6:1] -> PPN[5:0]
+					//		A[11:10] -> LPN[11:10];	A[22:13] -> LPN[9:0]	i.e. 4096 logical pages
+					physical = (page & BitMask<0, 0>::value) << 6;
+					physical |= (page & BitMask<6, 1>::value) >> 1;
 
-		enum class DynamicRAMRefresh {
-			None = 0b00,
-			DuringFlyback = 0b01,
-			Continuous = 0b11,
-		} dynamic_ram_refresh_ = DynamicRAMRefresh::None;	// State at reset is undefined; constrain to a valid enum value.
+					physical <<= 13;
 
-		enum class ROMAccessTime {
-			ns450 = 0b00,
-			ns325 = 0b01,
-			ns200 = 0b10,
-			ns200with60nsNibble = 0b11,
-		} high_rom_access_time_ = ROMAccessTime::ns450, low_rom_access_time_ = ROMAccessTime::ns450;
+					logical = page & BitMask<11, 10>::value;
+					logical |= (page & BitMask<22, 13>::value) >> 13;
+				break;
 
-		enum class PageSize {
-			kb4 = 0b00,
-			kb8 = 0b01,
-			kb16 = 0b10,
-			kb32 = 0b11,
-		} page_size_ = PageSize::kb4;
-		int page_address_shift_ = 12;
-		uint32_t page_adddress_mask_ = 0xffff;
+				case PageSize::kb16:
+					// 16kb:
+					//		A[1:0] -> PPN[6:5]; A[6:2] -> PPN[4:0]
+					//		A[11:10] -> LPN[10:9];	A[22:14] -> LPN[8:0]	i.e. 2048 logical pages
+					physical = (page & BitMask<1, 0>::value) << 5;
+					physical |= (page & BitMask<6, 2>::value) >> 2;
 
-		// Address translator.
-		//
-		// MEMC contains one entry per a physical page number, indicating where it goes logically.
-		// Any logical access is tested against all 128 mappings. So that's backwards compared to
-		// the ideal for an emulator, which would map from logical to physical, even if a lot more
-		// compact — there are always 128 physical pages; there are up to 8192 logical pages.
-		//
-		// So captured here are both the physical -> logical map as representative of the real
-		// hardware, and the reverse logical -> physical map, which is built (and rebuilt, and rebuilt)
-		// from the other.
+					physical <<= 14;
 
-		// Physical to logical mapping.
-		std::array<uint32_t, 128> pages_{};
+					logical = (page & BitMask<11, 10>::value) >> 1;
+					logical |= (page & BitMask<22, 14>::value) >> 14;
+				break;
 
-		// Logical to physical mapping; this is divided by 'access mode'
-		// (i.e. the combination of read/write, trans and OS mode flags,
-		// as multipliexed by the @c mapping() function) because mapping
-		// varies by mode — not just in terms of restricting access, but
-		// actually presenting different memory.
-		using MapTarget = std::array<uint8_t *, 8192>;
-		std::array<MapTarget, 6> mapping_;
+				case PageSize::kb32:
+					// 32kb:
+					//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[3:0]
+					//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]	i.e. 1024 logical pages
+					physical = (page & BitMask<1, 1>::value) << 5;
+					physical |= (page & BitMask<2, 2>::value) << 3;
+					physical |= (page & BitMask<0, 0>::value) << 4;
+					physical |= (page & BitMask<6, 3>::value) >> 3;
 
-		template <bool is_read>
-		MapTarget &mapping(bool trans, bool os_mode) {
-			const size_t index = (is_read ? 1 : 0) | (os_mode ? 2 : 0) | ((trans && !os_mode) ? 4 : 0);
-			return mapping_[index];
-		}
+					physical <<= 15;
 
-		bool map_dirty_ = true;
-
-		/// @returns A pointer to somewhere in @c ram_ if RAM is mapped to this area, or a pointer to somewhere lower than @c ram_.data() otherwise.
-		template <typename IntT, bool is_read>
-		IntT *logical_ram(uint32_t address, bool trans) {
-			// Possibly TODO: this recompute-if-dirty flag is supposed to ameliorate for an expensive
-			// mapping process. It can be eliminated when the process is improved.
-			if(map_dirty_) {
-				update_mapping();
-				map_dirty_ = false;
+					logical = (page & BitMask<11, 10>::value) >> 2;
+					logical |= (page & BitMask<22, 15>::value) >> 15;
+				break;
 			}
-			address = aligned<IntT>(address);
-			address &= 0x1ff'ffff;
-			const size_t page = address >> page_address_shift_;
-
-			const auto &map = mapping<is_read>(trans, os_mode_);
-			address &= page_adddress_mask_;
-			return reinterpret_cast<IntT *>(&map[page][address]);
-		}
-
-		void update_mapping() {
-			// For each physical page, project it into logical space.
-			switch(page_size_) {
-				default:
-				case PageSize::kb4:		update_mapping<PageSize::kb4>();	break;
-				case PageSize::kb8:		update_mapping<PageSize::kb8>();	break;
-				case PageSize::kb16:	update_mapping<PageSize::kb16>();	break;
-				case PageSize::kb32:	update_mapping<PageSize::kb32>();	break;
-			}
-		}
-
-		template <PageSize size>
-		void update_mapping() {
-			// Clear all logical mappings.
-			for(auto &map: mapping_) {
-				// Seed all pointers to an address sufficiently far lower than the beginning of RAM as to mark
-				// the entire page as unmapped no matter what offset is added.
-				std::fill(map.begin(), map.end(), ram_.data() - 32768);
-			}
-
-			// For each physical page, project it into logical space
-			// and store it.
-			for(const auto page: pages_) {
-				uint32_t physical, logical;
-
-				switch(size) {
-					case PageSize::kb4:
-						// 4kb:
-						//		A[6:0] -> PPN[6:0]
-						//		A[11:10] -> LPN[12:11];	A[22:12] -> LPN[10:0]	i.e. 8192 logical pages
-						physical = page & BitMask<6, 0>::value;
-
-						physical <<= 12;
-
-						logical = (page & BitMask<11, 10>::value) << 1;
-						logical |= (page & BitMask<22, 12>::value) >> 12;
-					break;
-
-					case PageSize::kb8:
-						// 8kb:
-						//		A[0] -> PPN[6]; A[6:1] -> PPN[5:0]
-						//		A[11:10] -> LPN[11:10];	A[22:13] -> LPN[9:0]	i.e. 4096 logical pages
-						physical = (page & BitMask<0, 0>::value) << 6;
-						physical |= (page & BitMask<6, 1>::value) >> 1;
-
-						physical <<= 13;
-
-						logical = page & BitMask<11, 10>::value;
-						logical |= (page & BitMask<22, 13>::value) >> 13;
-					break;
-
-					case PageSize::kb16:
-						// 16kb:
-						//		A[1:0] -> PPN[6:5]; A[6:2] -> PPN[4:0]
-						//		A[11:10] -> LPN[10:9];	A[22:14] -> LPN[8:0]	i.e. 2048 logical pages
-						physical = (page & BitMask<1, 0>::value) << 5;
-						physical |= (page & BitMask<6, 2>::value) >> 2;
-
-						physical <<= 14;
-
-						logical = (page & BitMask<11, 10>::value) >> 1;
-						logical |= (page & BitMask<22, 14>::value) >> 14;
-					break;
-
-					case PageSize::kb32:
-						// 32kb:
-						//		A[1] -> PPN[6]; A[2] -> PPN[5]; A[0] -> PPN[4]; A[6:3] -> PPN[3:0]
-						//		A[11:10] -> LPN[9:8];	A[22:15] -> LPN[7:0]	i.e. 1024 logical pages
-						physical = (page & BitMask<1, 1>::value) << 5;
-						physical |= (page & BitMask<2, 2>::value) << 3;
-						physical |= (page & BitMask<0, 0>::value) << 4;
-						physical |= (page & BitMask<6, 3>::value) >> 3;
-
-						physical <<= 15;
-
-						logical = (page & BitMask<11, 10>::value) >> 2;
-						logical |= (page & BitMask<22, 15>::value) >> 15;
-					break;
-				}
 
 //				printf("%08x => physical %d -> logical %d\n", page, (physical >> 15), logical);
 
-				// TODO: consider clashes.
-				// TODO: what if there's less than 4mb present?
-				const auto target = &ram_[physical];
+			// TODO: consider clashes.
+			// TODO: what if there's less than 4mb present?
+			const auto target = &ram_[physical];
 
-				const auto set_supervisor = [&](bool read, bool write) {
-					if(read) mapping<true>(false, false)[logical] = target;
-					if(write) mapping<false>(false, false)[logical] = target;
-				};
+			const auto set_supervisor = [&](bool read, bool write) {
+				if(read) mapping<true>(false, false)[logical] = target;
+				if(write) mapping<false>(false, false)[logical] = target;
+			};
 
-				const auto set_os = [&](bool read, bool write) {
-					if(read) mapping<true>(true, true)[logical] = target;
-					if(write) mapping<false>(true, true)[logical] = target;
-				};
+			const auto set_os = [&](bool read, bool write) {
+				if(read) mapping<true>(true, true)[logical] = target;
+				if(write) mapping<false>(true, true)[logical] = target;
+			};
 
-				const auto set_user = [&](bool read, bool write) {
-					if(read) mapping<true>(true, false)[logical] = target;
-					if(write) mapping<false>(true, false)[logical] = target;
-				};
+			const auto set_user = [&](bool read, bool write) {
+				if(read) mapping<true>(true, false)[logical] = target;
+				if(write) mapping<false>(true, false)[logical] = target;
+			};
 
-				set_supervisor(true, true);
-				switch((page >> 8) & 3) {
-					case 0b00:
-						set_os(true, true);
-						set_user(true, true);
-					break;
-					case 0b01:
-						set_os(true, true);
-						set_user(true, false);
-					break;
-					default:
-						set_os(true, false);
-						set_user(false, false);
-					break;
-				}
+			set_supervisor(true, true);
+			switch((page >> 8) & 3) {
+				case 0b00:
+					set_os(true, true);
+					set_user(true, true);
+				break;
+				case 0b01:
+					set_os(true, true);
+					set_user(true, false);
+				break;
+				default:
+					set_os(true, false);
+					set_user(false, false);
+				break;
 			}
 		}
+	}
 };
 
 }

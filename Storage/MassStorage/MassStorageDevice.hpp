@@ -26,31 +26,31 @@ namespace Storage::MassStorage {
 	linearly-addressed store.
 */
 class MassStorageDevice {
-	public:
-		virtual ~MassStorageDevice() = default;
+public:
+	virtual ~MassStorageDevice() = default;
 
-		/*!
-			@returns The size of each individual block.
-		*/
-		virtual size_t get_block_size() = 0;
+	/*!
+		@returns The size of each individual block.
+	*/
+	virtual size_t get_block_size() = 0;
 
-		/*!
-			Block addresses run from 0 to n. The total number of blocks, n,
-			therefore provides the range of valid addresses.
+	/*!
+		Block addresses run from 0 to n. The total number of blocks, n,
+		therefore provides the range of valid addresses.
 
-			@returns The total number of blocks on the device.
-		*/
-		virtual size_t get_number_of_blocks() = 0;
+		@returns The total number of blocks on the device.
+	*/
+	virtual size_t get_number_of_blocks() = 0;
 
-		/*!
-			@returns The current contents of the block at @c address.
-		*/
-		virtual std::vector<uint8_t> get_block(size_t address) = 0;
+	/*!
+		@returns The current contents of the block at @c address.
+	*/
+	virtual std::vector<uint8_t> get_block(size_t address) = 0;
 
-		/*!
-			Sets new contents for the block at @c address.
-		*/
-		virtual void set_block([[maybe_unused]] size_t address, const std::vector<uint8_t> &) {}
+	/*!
+		Sets new contents for the block at @c address.
+	*/
+	virtual void set_block([[maybe_unused]] size_t address, const std::vector<uint8_t> &) {}
 };
 
 }

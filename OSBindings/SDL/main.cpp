@@ -93,85 +93,85 @@ struct MachineRunner {
 	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
 
-	private:
-		SDL_TimerID timer_ = 0;
-		Time::Nanos last_time_ = 0;
-		std::atomic<Time::Nanos> vsync_time_;
-		std::atomic_flag frame_lock_;
+private:
+	SDL_TimerID timer_ = 0;
+	Time::Nanos last_time_ = 0;
+	std::atomic<Time::Nanos> vsync_time_;
+	std::atomic_flag frame_lock_;
 
-		enum class State {
-			Running,
-			Stopping,
-			Stopped
-		};
-		std::atomic<State> state_{State::Running};
+	enum class State {
+		Running,
+		Stopping,
+		Stopped
+	};
+	std::atomic<State> state_{State::Running};
 
-		Time::ScanSynchroniser scan_synchroniser_;
+	Time::ScanSynchroniser scan_synchroniser_;
 
-		// A slightly clumsy means of trying to derive frame rate from calls to
-		// signal_vsync(); SDL_DisplayMode provides only an integral quantity
-		// whereas, empirically, it's fairly common for monitors to run at the
-		// NTSC-esque frame rates of 59.94Hz.
-		std::array<Time::Nanos, 32> frame_times_;
-		Time::Nanos frame_time_average_ = 0;
-		size_t frame_time_pointer_ = 0;
-		std::atomic<double> _frame_period;
+	// A slightly clumsy means of trying to derive frame rate from calls to
+	// signal_vsync(); SDL_DisplayMode provides only an integral quantity
+	// whereas, empirically, it's fairly common for monitors to run at the
+	// NTSC-esque frame rates of 59.94Hz.
+	std::array<Time::Nanos, 32> frame_times_;
+	Time::Nanos frame_time_average_ = 0;
+	size_t frame_time_pointer_ = 0;
+	std::atomic<double> _frame_period;
 
-		static constexpr Uint32 timer_period = 4;
-		static Uint32 sdl_callback(Uint32, void *param) {
-			reinterpret_cast<MachineRunner *>(param)->update();
-			return timer_period;
+	static constexpr Uint32 timer_period = 4;
+	static Uint32 sdl_callback(Uint32, void *param) {
+		reinterpret_cast<MachineRunner *>(param)->update();
+		return timer_period;
+	}
+
+	void update() {
+		// If a shutdown is in progress, signal stoppage and do nothing.
+		if(state_ != State::Running) {
+			state_ = State::Stopped;
+			return;
 		}
 
-		void update() {
-			// If a shutdown is in progress, signal stoppage and do nothing.
-			if(state_ != State::Running) {
-				state_ = State::Stopped;
-				return;
-			}
-
-			// Get time now and determine how long it has been since the last time this
-			// function was called. If it's more than half a second then forego any activity
-			// now, as there's obviously been some sort of substantial time glitch.
-			const auto time_now = Time::nanos_now();
-			if(time_now - last_time_ > Time::Nanos(500'000'000)) {
-				last_time_ = time_now - Time::Nanos(500'000'000);
-			}
-
-			const auto vsync_time = vsync_time_.load();
-
-			std::unique_lock lock_guard(*machine_mutex);
-			const auto scan_producer = machine->scan_producer();
-			const auto timed_machine = machine->timed_machine();
-
-			bool split_and_sync = false;
-			if(last_time_ < vsync_time && time_now >= vsync_time) {
-				split_and_sync = scan_synchroniser_.can_synchronise(scan_producer->get_scan_status(), _frame_period);
-			}
-
-			if(split_and_sync) {
-				timed_machine->run_for(double(vsync_time - last_time_) / 1e9);
-				timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
-				timed_machine->set_speed_multiplier(
-					scan_synchroniser_.next_speed_multiplier(scan_producer->get_scan_status())
-				);
-
-				// This is a bit of an SDL ugliness; wait here until the next frame is drawn.
-				// That is, unless and until I can think of a good way of running background
-				// updates via a share group — possibly an extra intermediate buffer is needed?
-				lock_guard.unlock();
-				while(frame_lock_.test_and_set());
-				lock_guard.lock();
-
-				timed_machine->run_for(double(time_now - vsync_time) / 1e9);
-				timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
-			} else {
-				timed_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
-				timed_machine->run_for(double(time_now - last_time_) / 1e9);
-				timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
-			}
-			last_time_ = time_now;
+		// Get time now and determine how long it has been since the last time this
+		// function was called. If it's more than half a second then forego any activity
+		// now, as there's obviously been some sort of substantial time glitch.
+		const auto time_now = Time::nanos_now();
+		if(time_now - last_time_ > Time::Nanos(500'000'000)) {
+			last_time_ = time_now - Time::Nanos(500'000'000);
 		}
+
+		const auto vsync_time = vsync_time_.load();
+
+		std::unique_lock lock_guard(*machine_mutex);
+		const auto scan_producer = machine->scan_producer();
+		const auto timed_machine = machine->timed_machine();
+
+		bool split_and_sync = false;
+		if(last_time_ < vsync_time && time_now >= vsync_time) {
+			split_and_sync = scan_synchroniser_.can_synchronise(scan_producer->get_scan_status(), _frame_period);
+		}
+
+		if(split_and_sync) {
+			timed_machine->run_for(double(vsync_time - last_time_) / 1e9);
+			timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
+			timed_machine->set_speed_multiplier(
+				scan_synchroniser_.next_speed_multiplier(scan_producer->get_scan_status())
+			);
+
+			// This is a bit of an SDL ugliness; wait here until the next frame is drawn.
+			// That is, unless and until I can think of a good way of running background
+			// updates via a share group — possibly an extra intermediate buffer is needed?
+			lock_guard.unlock();
+			while(frame_lock_.test_and_set());
+			lock_guard.lock();
+
+			timed_machine->run_for(double(time_now - vsync_time) / 1e9);
+			timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
+		} else {
+			timed_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
+			timed_machine->run_for(double(time_now - last_time_) / 1e9);
+			timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
+		}
+		last_time_ = time_now;
+	}
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
@@ -214,92 +214,92 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 };
 
 class ActivityObserver: public Activity::Observer {
-	public:
-		ActivityObserver(Activity::Source *source, float aspect_ratio) {
-			// Get the suorce to supply all LEDs and drives.
-			source->set_activity_observer(this);
+public:
+	ActivityObserver(Activity::Source *source, float aspect_ratio) {
+		// Get the suorce to supply all LEDs and drives.
+		source->set_activity_observer(this);
 
-			// The objective is to display drives on one side of the screen, other LEDs on the other. Drives
-			// may or may not have LEDs and this code intends to display only those which do; so a quick
-			// comparative processing of the two lists is called for.
+		// The objective is to display drives on one side of the screen, other LEDs on the other. Drives
+		// may or may not have LEDs and this code intends to display only those which do; so a quick
+		// comparative processing of the two lists is called for.
 
-			// Strip the list of drives to only those which have LEDs. Thwy're the ones that'll be displayed.
-			drives_.resize(std::remove_if(drives_.begin(), drives_.end(), [this](const std::string &string) {
-				return std::find(leds_.begin(), leds_.end(), string) == leds_.end();
-			}) - drives_.begin());
+		// Strip the list of drives to only those which have LEDs. Thwy're the ones that'll be displayed.
+		drives_.resize(std::remove_if(drives_.begin(), drives_.end(), [this](const std::string &string) {
+			return std::find(leds_.begin(), leds_.end(), string) == leds_.end();
+		}) - drives_.begin());
 
-			// Remove from the list of LEDs any which are drives. Those will be represented separately.
-			leds_.resize(std::remove_if(leds_.begin(), leds_.end(), [this](const std::string &string) {
-				return std::find(drives_.begin(), drives_.end(), string) != drives_.end();
-			}) - leds_.begin());
+		// Remove from the list of LEDs any which are drives. Those will be represented separately.
+		leds_.resize(std::remove_if(leds_.begin(), leds_.end(), [this](const std::string &string) {
+			return std::find(drives_.begin(), drives_.end(), string) != drives_.end();
+		}) - leds_.begin());
 
-			set_aspect_ratio(aspect_ratio);
+		set_aspect_ratio(aspect_ratio);
+	}
+
+	void set_aspect_ratio(float aspect_ratio) {
+		std::lock_guard lock_guard(mutex);
+		lights_.clear();
+
+		// Generate a bunch of LEDs for connected drives.
+		constexpr float height = 0.05f;
+		const float width = height / aspect_ratio;
+		const float right_x = 1.0f - 2.0f * width;
+		float y = 1.0f - 2.0f * height;
+		for(const auto &drive: drives_) {
+			lights_.emplace(drive, std::make_unique<Outputs::Display::OpenGL::Rectangle>(right_x, y, width, height));
+			y -= height * 2.0f;
 		}
 
-		void set_aspect_ratio(float aspect_ratio) {
-			std::lock_guard lock_guard(mutex);
-			lights_.clear();
+		/*
+			This would generate LEDs for things other than drives; I'm declining for now
+			due to the inexpressiveness of just painting a rectangle.
 
-			// Generate a bunch of LEDs for connected drives.
-			constexpr float height = 0.05f;
-			const float width = height / aspect_ratio;
-			const float right_x = 1.0f - 2.0f * width;
-			float y = 1.0f - 2.0f * height;
-			for(const auto &drive: drives_) {
-				lights_.emplace(drive, std::make_unique<Outputs::Display::OpenGL::Rectangle>(right_x, y, width, height));
+			const float left_x = -1.0f + 2.0f * width;
+			y = 1.0f - 2.0f * height;
+			for(const auto &led: leds_) {
+				lights_.emplace(led, std::make_unique<OpenGL::Rectangle>(left_x, y, width, height));
 				y -= height * 2.0f;
 			}
+		*/
+	}
 
-			/*
-				This would generate LEDs for things other than drives; I'm declining for now
-				due to the inexpressiveness of just painting a rectangle.
-
-				const float left_x = -1.0f + 2.0f * width;
-				y = 1.0f - 2.0f * height;
-				for(const auto &led: leds_) {
-					lights_.emplace(led, std::make_unique<OpenGL::Rectangle>(left_x, y, width, height));
-					y -= height * 2.0f;
-				}
-			*/
+	void draw() {
+		std::lock_guard lock_guard(mutex);
+		for(const auto &lit_led: lit_leds_) {
+			if(blinking_leds_.find(lit_led) == blinking_leds_.end() && lights_.find(lit_led) != lights_.end())
+				lights_[lit_led]->draw(0.0, 0.8, 0.0);
 		}
+		blinking_leds_.clear();
+	}
 
-		void draw() {
-			std::lock_guard lock_guard(mutex);
-			for(const auto &lit_led: lit_leds_) {
-				if(blinking_leds_.find(lit_led) == blinking_leds_.end() && lights_.find(lit_led) != lights_.end())
-					lights_[lit_led]->draw(0.0, 0.8, 0.0);
-			}
-			blinking_leds_.clear();
-		}
+private:
+	std::vector<std::string> leds_;
+	void register_led(const std::string &name, uint8_t) final {
+		std::lock_guard lock_guard(mutex);
+		leds_.push_back(name);
+	}
 
-	private:
-		std::vector<std::string> leds_;
-		void register_led(const std::string &name, uint8_t) final {
-			std::lock_guard lock_guard(mutex);
-			leds_.push_back(name);
-		}
+	std::vector<std::string> drives_;
+	void register_drive(const std::string &name) final {
+		std::lock_guard lock_guard(mutex);
+		drives_.push_back(name);
+	}
 
-		std::vector<std::string> drives_;
-		void register_drive(const std::string &name) final {
-			std::lock_guard lock_guard(mutex);
-			drives_.push_back(name);
-		}
+	void set_led_status(const std::string &name, bool lit) final {
+		std::lock_guard lock_guard(mutex);
+		if(lit) lit_leds_.insert(name);
+		else lit_leds_.erase(name);
+	}
 
-		void set_led_status(const std::string &name, bool lit) final {
-			std::lock_guard lock_guard(mutex);
-			if(lit) lit_leds_.insert(name);
-			else lit_leds_.erase(name);
-		}
+	void announce_drive_event(const std::string &name, DriveEvent) final {
+		std::lock_guard lock_guard(mutex);
+		blinking_leds_.insert(name);
+	}
 
-		void announce_drive_event(const std::string &name, DriveEvent) final {
-			std::lock_guard lock_guard(mutex);
-			blinking_leds_.insert(name);
-		}
-
-		std::map<std::string, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>> lights_;
-		std::set<std::string> lit_leds_;
-		std::set<std::string> blinking_leds_;
-		std::mutex mutex;
+	std::map<std::string, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>> lights_;
+	std::set<std::string> lit_leds_;
+	std::set<std::string> blinking_leds_;
+	std::mutex mutex;
 };
 
 bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key) {
@@ -465,31 +465,31 @@ std::string system_get(const char *command) {
 	Maintains a communicative window title.
 */
 class DynamicWindowTitler {
-	public:
-		DynamicWindowTitler(SDL_Window *window) : window_(window), file_name_(SDL_GetWindowTitle(window)) {}
+public:
+	DynamicWindowTitler(SDL_Window *window) : window_(window), file_name_(SDL_GetWindowTitle(window)) {}
 
-		std::string window_title() {
-			if(!mouse_is_captured_) return file_name_;
-			return file_name_ + " (press control+escape to release mouse)";
-		}
+	std::string window_title() {
+		if(!mouse_is_captured_) return file_name_;
+		return file_name_ + " (press control+escape to release mouse)";
+	}
 
-		void set_mouse_is_captured(bool is_captured) {
-			mouse_is_captured_ = is_captured;
-			update_window_title();
-		}
+	void set_mouse_is_captured(bool is_captured) {
+		mouse_is_captured_ = is_captured;
+		update_window_title();
+	}
 
-		void set_file_name(const std::string &name) {
-			file_name_ = name;
-			update_window_title();
-		}
+	void set_file_name(const std::string &name) {
+		file_name_ = name;
+		update_window_title();
+	}
 
-	private:
-		void update_window_title() {
-			SDL_SetWindowTitle(window_, window_title().c_str());
-		}
-		bool mouse_is_captured_ = false;
-		SDL_Window *window_ = nullptr;
-		std::string file_name_;
+private:
+	void update_window_title() {
+		SDL_SetWindowTitle(window_, window_title().c_str());
+	}
+	bool mouse_is_captured_ = false;
+	SDL_Window *window_ = nullptr;
+	std::string file_name_;
 };
 
 /*!
@@ -497,37 +497,37 @@ class DynamicWindowTitler {
 	of historic hat values.
 */
 class SDLJoystick {
-	public:
-		SDLJoystick(SDL_Joystick *joystick) : joystick_(joystick) {
-			hat_values_.resize(SDL_JoystickNumHats(joystick));
-		}
+public:
+	SDLJoystick(SDL_Joystick *joystick) : joystick_(joystick) {
+		hat_values_.resize(SDL_JoystickNumHats(joystick));
+	}
 
-		~SDLJoystick() {
-			SDL_JoystickClose(joystick_);
-		}
+	~SDLJoystick() {
+		SDL_JoystickClose(joystick_);
+	}
 
-		/// @returns The underlying SDL_Joystick.
-		SDL_Joystick *get() {
-			return joystick_;
-		}
+	/// @returns The underlying SDL_Joystick.
+	SDL_Joystick *get() {
+		return joystick_;
+	}
 
-		/// @returns A reference to the storage for the previous state of hat @c c.
-		Uint8 &last_hat_value(int c) {
-			return hat_values_[c];
-		}
+	/// @returns A reference to the storage for the previous state of hat @c c.
+	Uint8 &last_hat_value(int c) {
+		return hat_values_[c];
+	}
 
-		/// @returns The logic OR of all stored hat states.
-		Uint8 hat_values() {
-			Uint8 value = 0;
-			for(const auto hat_value: hat_values_) {
-				value |= hat_value;
-			}
-			return value;
+	/// @returns The logic OR of all stored hat states.
+	Uint8 hat_values() {
+		Uint8 value = 0;
+		for(const auto hat_value: hat_values_) {
+			value |= hat_value;
 		}
+		return value;
+	}
 
-	private:
-		SDL_Joystick *joystick_;
-		std::vector<Uint8> hat_values_;
+private:
+	SDL_Joystick *joystick_;
+	std::vector<Uint8> hat_values_;
 };
 
 }

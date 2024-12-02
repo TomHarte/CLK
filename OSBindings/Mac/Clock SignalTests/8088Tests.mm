@@ -34,377 +34,377 @@ constexpr char TestSuiteHome[] = "/Users/tharte/Projects/ProcessorTests/8088/v1"
 
 using Flags = InstructionSet::x86::Flags;
 struct Registers {
-	public:
-//		static constexpr bool is_32bit = false;
+public:
+//	static constexpr bool is_32bit = false;
 
-		uint8_t &al()	{	return ax_.halves.low;	}
-		uint8_t &ah()	{	return ax_.halves.high;	}
-		uint16_t &ax()	{	return ax_.full;		}
+	uint8_t &al()	{	return ax_.halves.low;	}
+	uint8_t &ah()	{	return ax_.halves.high;	}
+	uint16_t &ax()	{	return ax_.full;		}
 
-		CPU::RegisterPair16 &axp()	{	return ax_;	}
+	CPU::RegisterPair16 &axp()	{	return ax_;	}
 
-		uint8_t &cl()	{	return cx_.halves.low;	}
-		uint8_t &ch()	{	return cx_.halves.high;	}
-		uint16_t &cx()	{	return cx_.full;		}
+	uint8_t &cl()	{	return cx_.halves.low;	}
+	uint8_t &ch()	{	return cx_.halves.high;	}
+	uint16_t &cx()	{	return cx_.full;		}
 
-		uint8_t &dl()	{	return dx_.halves.low;	}
-		uint8_t &dh()	{	return dx_.halves.high;	}
-		uint16_t &dx()	{	return dx_.full;		}
+	uint8_t &dl()	{	return dx_.halves.low;	}
+	uint8_t &dh()	{	return dx_.halves.high;	}
+	uint16_t &dx()	{	return dx_.full;		}
 
-		uint8_t &bl()	{	return bx_.halves.low;	}
-		uint8_t &bh()	{	return bx_.halves.high;	}
-		uint16_t &bx()	{	return bx_.full;		}
+	uint8_t &bl()	{	return bx_.halves.low;	}
+	uint8_t &bh()	{	return bx_.halves.high;	}
+	uint16_t &bx()	{	return bx_.full;		}
 
-		uint16_t &sp()	{	return sp_;				}
-		uint16_t &bp()	{	return bp_;				}
-		uint16_t &si()	{	return si_;				}
-		uint16_t &di()	{	return di_;				}
+	uint16_t &sp()	{	return sp_;				}
+	uint16_t &bp()	{	return bp_;				}
+	uint16_t &si()	{	return si_;				}
+	uint16_t &di()	{	return di_;				}
 
-		uint16_t &ip()	{	return ip_;				}
+	uint16_t &ip()	{	return ip_;				}
 
-		uint16_t &es()	{	return es_;				}
-		uint16_t &cs()	{	return cs_;				}
-		uint16_t &ds()	{	return ds_;				}
-		uint16_t &ss()	{	return ss_;				}
+	uint16_t &es()	{	return es_;				}
+	uint16_t &cs()	{	return cs_;				}
+	uint16_t &ds()	{	return ds_;				}
+	uint16_t &ss()	{	return ss_;				}
 
-		const uint16_t es() const	{	return es_;				}
-		const uint16_t cs() const	{	return cs_;				}
-		const uint16_t ds() const	{	return ds_;				}
-		const uint16_t ss() const	{	return ss_;				}
+	const uint16_t es() const	{	return es_;				}
+	const uint16_t cs() const	{	return cs_;				}
+	const uint16_t ds() const	{	return ds_;				}
+	const uint16_t ss() const	{	return ss_;				}
 
-		bool operator ==(const Registers &rhs) const {
-			return
-				ax_.full == rhs.ax_.full &&
-				cx_.full == rhs.cx_.full &&
-				dx_.full == rhs.dx_.full &&
-				bx_.full == rhs.bx_.full &&
-				sp_ == rhs.sp_ &&
-				bp_ == rhs.bp_ &&
-				si_ == rhs.si_ &&
-				di_ == rhs.di_ &&
-				es_ == rhs.es_ &&
-				cs_ == rhs.cs_ &&
-				ds_ == rhs.ds_ &&
-				si_ == rhs.si_ &&
-				ip_ == rhs.ip_;
-		}
+	bool operator ==(const Registers &rhs) const {
+		return
+			ax_.full == rhs.ax_.full &&
+			cx_.full == rhs.cx_.full &&
+			dx_.full == rhs.dx_.full &&
+			bx_.full == rhs.bx_.full &&
+			sp_ == rhs.sp_ &&
+			bp_ == rhs.bp_ &&
+			si_ == rhs.si_ &&
+			di_ == rhs.di_ &&
+			es_ == rhs.es_ &&
+			cs_ == rhs.cs_ &&
+			ds_ == rhs.ds_ &&
+			si_ == rhs.si_ &&
+			ip_ == rhs.ip_;
+	}
 
-	private:
-		CPU::RegisterPair16 ax_;
-		CPU::RegisterPair16 cx_;
-		CPU::RegisterPair16 dx_;
-		CPU::RegisterPair16 bx_;
+private:
+	CPU::RegisterPair16 ax_;
+	CPU::RegisterPair16 cx_;
+	CPU::RegisterPair16 dx_;
+	CPU::RegisterPair16 bx_;
 
-		uint16_t sp_;
-		uint16_t bp_;
-		uint16_t si_;
-		uint16_t di_;
-		uint16_t es_, cs_, ds_, ss_;
-		uint16_t ip_;
+	uint16_t sp_;
+	uint16_t bp_;
+	uint16_t si_;
+	uint16_t di_;
+	uint16_t es_, cs_, ds_, ss_;
+	uint16_t ip_;
 };
 class Segments {
-	public:
-		Segments(const Registers &registers) : registers_(registers) {}
+public:
+	Segments(const Registers &registers) : registers_(registers) {}
 
-		using Source = InstructionSet::x86::Source;
+	using Source = InstructionSet::x86::Source;
 
-		/// Posted by @c perform after any operation which *might* have affected a segment register.
-		void did_update(Source segment) {
-			switch(segment) {
-				default: break;
-				case Source::ES:	es_base_ = registers_.es() << 4;	break;
-				case Source::CS:	cs_base_ = registers_.cs() << 4;	break;
-				case Source::DS:	ds_base_ = registers_.ds() << 4;	break;
-				case Source::SS:	ss_base_ = registers_.ss() << 4;	break;
-			}
+	/// Posted by @c perform after any operation which *might* have affected a segment register.
+	void did_update(Source segment) {
+		switch(segment) {
+			default: break;
+			case Source::ES:	es_base_ = registers_.es() << 4;	break;
+			case Source::CS:	cs_base_ = registers_.cs() << 4;	break;
+			case Source::DS:	ds_base_ = registers_.ds() << 4;	break;
+			case Source::SS:	ss_base_ = registers_.ss() << 4;	break;
 		}
+	}
 
-		void reset() {
-			did_update(Source::ES);
-			did_update(Source::CS);
-			did_update(Source::DS);
-			did_update(Source::SS);
-		}
+	void reset() {
+		did_update(Source::ES);
+		did_update(Source::CS);
+		did_update(Source::DS);
+		did_update(Source::SS);
+	}
 
-		uint32_t es_base_, cs_base_, ds_base_, ss_base_;
+	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
 
-		bool operator ==(const Segments &rhs) const {
-			return
-				es_base_ == rhs.es_base_ &&
-				cs_base_ == rhs.cs_base_ &&
-				ds_base_ == rhs.ds_base_ &&
-				ss_base_ == rhs.ss_base_;
-		}
+	bool operator ==(const Segments &rhs) const {
+		return
+			es_base_ == rhs.es_base_ &&
+			cs_base_ == rhs.cs_base_ &&
+			ds_base_ == rhs.ds_base_ &&
+			ss_base_ == rhs.ss_base_;
+	}
 
-	private:
-		const Registers &registers_;
+private:
+	const Registers &registers_;
 };
 struct Memory {
-	public:
-		using AccessType = InstructionSet::x86::AccessType;
+public:
+	using AccessType = InstructionSet::x86::AccessType;
 
-		// Constructor.
-		Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
-			memory.resize(1024*1024);
+	// Constructor.
+	Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
+		memory.resize(1024*1024);
+	}
+
+	// Initialisation.
+	void clear() {
+		tags.clear();
+	}
+
+	void seed(uint32_t address, uint8_t value) {
+		memory[address] = value;
+		tags[address] = Tag::Seeded;
+	}
+
+	void touch(uint32_t address) {
+		tags[address] = Tag::AccessExpected;
+	}
+
+	//
+	// Preauthorisation call-ins.
+	//
+	void preauthorise_stack_write(uint32_t length) {
+		uint16_t sp = registers_.sp();
+		while(length--) {
+			--sp;
+			preauthorise(InstructionSet::x86::Source::SS, sp);
 		}
-
-		// Initialisation.
-		void clear() {
-			tags.clear();
+	}
+	void preauthorise_stack_read(uint32_t length) {
+		uint16_t sp = registers_.sp();
+		while(length--) {
+			preauthorise(InstructionSet::x86::Source::SS, sp);
+			++sp;
 		}
-
-		void seed(uint32_t address, uint8_t value) {
-			memory[address] = value;
-			tags[address] = Tag::Seeded;
+	}
+	void preauthorise_read(InstructionSet::x86::Source segment, uint16_t start, uint32_t length) {
+		while(length--) {
+			preauthorise(segment, start);
+			++start;
 		}
-
-		void touch(uint32_t address) {
-			tags[address] = Tag::AccessExpected;
+	}
+	void preauthorise_read(uint32_t start, uint32_t length) {
+		while(length--) {
+			preauthorise(start);
+			++start;
 		}
+	}
 
-		//
-		// Preauthorisation call-ins.
-		//
-		void preauthorise_stack_write(uint32_t length) {
-			uint16_t sp = registers_.sp();
-			while(length--) {
-				--sp;
-				preauthorise(InstructionSet::x86::Source::SS, sp);
+	//
+	// Access call-ins.
+	//
+
+	// Accesses an address based on segment:offset.
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
+		return access<IntT, type>(segment, offset, Tag::Accessed);
+	}
+
+	// Accesses an address based on physical location.
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
+		return access<IntT, type>(address, Tag::Accessed);
+	}
+
+	template <typename IntT>
+	void write_back() {
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			if(write_back_address_[0] != NoWriteBack) {
+				memory[write_back_address_[0]] = write_back_value_ & 0xff;
+				memory[write_back_address_[1]] = write_back_value_ >> 8;
+				write_back_address_[0]  = 0;
 			}
 		}
-		void preauthorise_stack_read(uint32_t length) {
-			uint16_t sp = registers_.sp();
-			while(length--) {
-				preauthorise(InstructionSet::x86::Source::SS, sp);
-				++sp;
-			}
-		}
-		void preauthorise_read(InstructionSet::x86::Source segment, uint16_t start, uint32_t length) {
-			while(length--) {
-				preauthorise(segment, start);
-				++start;
-			}
-		}
-		void preauthorise_read(uint32_t start, uint32_t length) {
-			while(length--) {
-				preauthorise(start);
-				++start;
-			}
+	}
+
+	//
+	// Direct write.
+	//
+	template <typename IntT>
+	void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
+		if(!test_preauthorisation(address(segment, offset))) {
+			printf("Non-preauthorised access\n");
 		}
 
-		//
-		// Access call-ins.
-		//
-
-		// Accesses an address based on segment:offset.
-		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
-			return access<IntT, type>(segment, offset, Tag::Accessed);
+		// Bytes can be written without further ado.
+		if constexpr (std::is_same_v<IntT, uint8_t>) {
+			memory[address(segment, offset) & 0xf'ffff] = value;
+			return;
 		}
 
-		// Accesses an address based on physical location.
-		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
-			return access<IntT, type>(address, Tag::Accessed);
+		// Words that straddle the segment end must be split in two.
+		if(offset == 0xffff) {
+			memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
+			memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
+			return;
 		}
 
-		template <typename IntT>
-		void write_back() {
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				if(write_back_address_[0] != NoWriteBack) {
-					memory[write_back_address_[0]] = write_back_value_ & 0xff;
-					memory[write_back_address_[1]] = write_back_value_ >> 8;
-					write_back_address_[0]  = 0;
-				}
-			}
+		const uint32_t target = address(segment, offset) & 0xf'ffff;
+
+		// Words that straddle the end of physical RAM must also be split in two.
+		if(target == 0xf'ffff) {
+			memory[0xf'ffff] = value & 0xff;
+			memory[0x0'0000] = value >> 8;
+			return;
 		}
 
-		//
-		// Direct write.
-		//
-		template <typename IntT>
-		void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
-			if(!test_preauthorisation(address(segment, offset))) {
-				printf("Non-preauthorised access\n");
-			}
+		// It's safe just to write then.
+		*reinterpret_cast<uint16_t *>(&memory[target]) = value;
+	}
 
-			// Bytes can be written without further ado.
-			if constexpr (std::is_same_v<IntT, uint8_t>) {
-				memory[address(segment, offset) & 0xf'ffff] = value;
-				return;
-			}
+private:
+	enum class Tag {
+		Seeded,
+		AccessExpected,
+		Accessed,
+	};
 
-			// Words that straddle the segment end must be split in two.
+	std::unordered_set<uint32_t> preauthorisations;
+	std::unordered_map<uint32_t, Tag> tags;
+	std::vector<uint8_t> memory;
+	Registers &registers_;
+	const Segments &segments_;
+
+	void preauthorise(uint32_t address) {
+		preauthorisations.insert(address);
+	}
+	void preauthorise(InstructionSet::x86::Source segment, uint16_t address) {
+		preauthorise((segment_base(segment) + address) & 0xf'ffff);
+	}
+	bool test_preauthorisation(uint32_t address) {
+		auto authorisation = preauthorisations.find(address);
+		if(authorisation == preauthorisations.end()) {
+			return false;
+		}
+		preauthorisations.erase(authorisation);
+		return true;
+	}
+
+	uint32_t segment_base(InstructionSet::x86::Source segment) {
+		using Source = InstructionSet::x86::Source;
+		switch(segment) {
+			default:			return segments_.ds_base_;
+			case Source::ES:	return segments_.es_base_;
+			case Source::CS:	return segments_.cs_base_;
+			case Source::SS:	return segments_.ss_base_;
+		}
+	}
+
+	uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
+		return (segment_base(segment) + offset) & 0xf'ffff;
+	}
+
+
+	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
+	// so that defined-flag-only masks can be applied while verifying RAM contents.
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
+		const uint32_t physical_address = address(segment, offset);
+
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
+			// to the start. So the 16-bit value will need to be a local cache.
 			if(offset == 0xffff) {
-				memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
-				memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
-				return;
-			}
-
-			const uint32_t target = address(segment, offset) & 0xf'ffff;
-
-			// Words that straddle the end of physical RAM must also be split in two.
-			if(target == 0xf'ffff) {
-				memory[0xf'ffff] = value & 0xff;
-				memory[0x0'0000] = value >> 8;
-				return;
-			}
-
-			// It's safe just to write then.
-			*reinterpret_cast<uint16_t *>(&memory[target]) = value;
-		}
-
-	private:
-		enum class Tag {
-			Seeded,
-			AccessExpected,
-			Accessed,
-		};
-
-		std::unordered_set<uint32_t> preauthorisations;
-		std::unordered_map<uint32_t, Tag> tags;
-		std::vector<uint8_t> memory;
-		Registers &registers_;
-		const Segments &segments_;
-
-		void preauthorise(uint32_t address) {
-			preauthorisations.insert(address);
-		}
-		void preauthorise(InstructionSet::x86::Source segment, uint16_t address) {
-			preauthorise((segment_base(segment) + address) & 0xf'ffff);
-		}
-		bool test_preauthorisation(uint32_t address) {
-			auto authorisation = preauthorisations.find(address);
-			if(authorisation == preauthorisations.end()) {
-				return false;
-			}
-			preauthorisations.erase(authorisation);
-			return true;
-		}
-
-		uint32_t segment_base(InstructionSet::x86::Source segment) {
-			using Source = InstructionSet::x86::Source;
-			switch(segment) {
-				default:			return segments_.ds_base_;
-				case Source::ES:	return segments_.es_base_;
-				case Source::CS:	return segments_.cs_base_;
-				case Source::SS:	return segments_.ss_base_;
+				return split_word<type>(physical_address, address(segment, 0), tag);
 			}
 		}
 
-		uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
-			return (segment_base(segment) + offset) & 0xf'ffff;
-		}
+		return access<IntT, type>(physical_address, tag);
+	}
 
-
-		// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
-		// so that defined-flag-only masks can be applied while verifying RAM contents.
-		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
-			const uint32_t physical_address = address(segment, offset);
-
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
-				// to the start. So the 16-bit value will need to be a local cache.
-				if(offset == 0xffff) {
-					return split_word<type>(physical_address, address(segment, 0), tag);
-				}
-			}
-
-			return access<IntT, type>(physical_address, tag);
-		}
-
-		// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
-		// to a segment, they're just at an absolute location.
-		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
-			if constexpr (type == AccessType::PreauthorisedRead) {
-				if(!test_preauthorisation(address)) {
-					printf("Non preauthorised access\n");
-				}
-			}
-
-			for(size_t c = 0; c < sizeof(IntT); c++) {
-				tags[(address + c) & 0xf'ffff] = tag;
-			}
-
-			// Dispense with the single-byte case trivially.
-			if constexpr (std::is_same_v<IntT, uint8_t>) {
-				return memory[address];
-			} else if(address != 0xf'ffff) {
-				return *reinterpret_cast<IntT *>(&memory[address]);
-			} else {
-				return split_word<type>(address, 0, tag);
+	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
+	// to a segment, they're just at an absolute location.
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
+		if constexpr (type == AccessType::PreauthorisedRead) {
+			if(!test_preauthorisation(address)) {
+				printf("Non preauthorised access\n");
 			}
 		}
 
-		template <AccessType type>
-		typename InstructionSet::x86::Accessor<uint16_t, type>::type
-		split_word(uint32_t low_address, uint32_t high_address, Tag tag) {
-			if constexpr (is_writeable(type)) {
-				write_back_address_[0] = low_address;
-				write_back_address_[1] = high_address;
-				tags[low_address] = tag;
-				tags[high_address] = tag;
-
-				// Prepopulate only if this is a modify.
-				if constexpr (type == AccessType::ReadModifyWrite) {
-					write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
-				}
-
-				return write_back_value_;
-			} else {
-				return memory[low_address] | (memory[high_address] << 8);
-			}
+		for(size_t c = 0; c < sizeof(IntT); c++) {
+			tags[(address + c) & 0xf'ffff] = tag;
 		}
 
-		static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
-		uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
-		uint16_t write_back_value_;
+		// Dispense with the single-byte case trivially.
+		if constexpr (std::is_same_v<IntT, uint8_t>) {
+			return memory[address];
+		} else if(address != 0xf'ffff) {
+			return *reinterpret_cast<IntT *>(&memory[address]);
+		} else {
+			return split_word<type>(address, 0, tag);
+		}
+	}
+
+	template <AccessType type>
+	typename InstructionSet::x86::Accessor<uint16_t, type>::type
+	split_word(uint32_t low_address, uint32_t high_address, Tag tag) {
+		if constexpr (is_writeable(type)) {
+			write_back_address_[0] = low_address;
+			write_back_address_[1] = high_address;
+			tags[low_address] = tag;
+			tags[high_address] = tag;
+
+			// Prepopulate only if this is a modify.
+			if constexpr (type == AccessType::ReadModifyWrite) {
+				write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
+			}
+
+			return write_back_value_;
+		} else {
+			return memory[low_address] | (memory[high_address] << 8);
+		}
+	}
+
+	static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
+	uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
+	uint16_t write_back_value_;
 };
 struct IO {
 	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
 	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) { return IntT(~0); }
 };
 class FlowController {
-	public:
-		FlowController(Registers &registers, Segments &segments) :
-			registers_(registers), segments_(segments) {}
+public:
+	FlowController(Registers &registers, Segments &segments) :
+		registers_(registers), segments_(segments) {}
 
-		// Requirements for perform.
-		template <typename AddressT>
-		void jump(AddressT address) {
-			static_assert(std::is_same_v<AddressT, uint16_t>);
-			registers_.ip() = address;
-		}
+	// Requirements for perform.
+	template <typename AddressT>
+	void jump(AddressT address) {
+		static_assert(std::is_same_v<AddressT, uint16_t>);
+		registers_.ip() = address;
+	}
 
-		template <typename AddressT>
-		void jump(uint16_t segment, AddressT address) {
-			static_assert(std::is_same_v<AddressT, uint16_t>);
-			registers_.cs() = segment;
-			segments_.did_update(Segments::Source::CS);
-			registers_.ip() = address;
-		}
+	template <typename AddressT>
+	void jump(uint16_t segment, AddressT address) {
+		static_assert(std::is_same_v<AddressT, uint16_t>);
+		registers_.cs() = segment;
+		segments_.did_update(Segments::Source::CS);
+		registers_.ip() = address;
+	}
 
-		void halt() {}
-		void wait() {}
+	void halt() {}
+	void wait() {}
 
-		void repeat_last() {
-			should_repeat_ = true;
-		}
+	void repeat_last() {
+		should_repeat_ = true;
+	}
 
-		// Other actions.
-		void begin_instruction() {
-			should_repeat_ = false;
-		}
-		bool should_repeat() const {
-			return should_repeat_;
-		}
+	// Other actions.
+	void begin_instruction() {
+		should_repeat_ = false;
+	}
+	bool should_repeat() const {
+		return should_repeat_;
+	}
 
-	private:
-		Registers &registers_;
-		Segments &segments_;
-		bool should_repeat_ = false;
+private:
+	Registers &registers_;
+	Segments &segments_;
+	bool should_repeat_ = false;
 };
 
 struct ExecutionSupport {

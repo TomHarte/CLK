@@ -80,8 +80,8 @@ struct RangeDispatcher {
 		}
 	}
 
-	private:
-		template <bool use_end, typename... Args> static void dispatch(SequencerT &target, int begin, int end, Args&&... args) {
+private:
+	template <bool use_end, typename... Args> static void dispatch(SequencerT &target, int begin, int end, Args&&... args) {
 #define index(n)											\
 	case n:													\
 		if constexpr (n <= SequencerT::max) {				\
@@ -140,18 +140,18 @@ struct SubrangeDispatcher {
 #undef index
 	}
 
-	private:
-		static constexpr int find_begin(int n) {
-			const auto type = ClassifierT::region(n);
-			while(n && ClassifierT::region(n - 1) == type) --n;
-			return n;
-		}
+private:
+	static constexpr int find_begin(int n) {
+		const auto type = ClassifierT::region(n);
+		while(n && ClassifierT::region(n - 1) == type) --n;
+		return n;
+	}
 
-		static constexpr int find_end(int n) {
-			const auto type = ClassifierT::region(n);
-			while(n < ClassifierT::max && ClassifierT::region(n) == type) ++n;
-			return n;
-		}
+	static constexpr int find_end(int n) {
+		const auto type = ClassifierT::region(n);
+		while(n < ClassifierT::max && ClassifierT::region(n) == type) ++n;
+		return n;
+	}
 };
 
 #undef switch_indices

@@ -15,12 +15,12 @@
 namespace Storage::Cartridge {
 
 class PRG : public Cartridge {
-	public:
-		PRG(const std::string &file_name);
+public:
+	PRG(const std::string &file_name);
 
-		enum {
-			ErrorNotROM
-		};
+	enum {
+		ErrorNotROM
+	};
 };
 
 }

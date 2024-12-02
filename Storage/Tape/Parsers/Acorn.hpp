@@ -15,28 +15,27 @@
 namespace Storage::Tape::Acorn {
 
 class Shifter {
-	public:
-		Shifter();
+public:
+	Shifter();
 
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
+	void process_pulse(const Storage::Tape::Tape::Pulse &);
 
-		class Delegate {
-			public:
-				virtual void acorn_shifter_output_bit(int value) = 0;
-		};
-		void set_delegate(Delegate *delegate) {
-			delegate_ = delegate;
-		}
+	struct Delegate {
+		virtual void acorn_shifter_output_bit(int value) = 0;
+	};
+	void set_delegate(Delegate *delegate) {
+		delegate_ = delegate;
+	}
 
-		void digital_phase_locked_loop_output_bit(int value);
+	void digital_phase_locked_loop_output_bit(int value);
 
-	private:
-		Storage::DigitalPhaseLockedLoop<Shifter, 15> pll_;
-		bool was_high_;
+private:
+	Storage::DigitalPhaseLockedLoop<Shifter, 15> pll_;
+	bool was_high_;
 
-		unsigned int input_pattern_;
+	unsigned int input_pattern_;
 
-		Delegate *delegate_;
+	Delegate *delegate_;
 };
 
 enum class SymbolType {
@@ -44,23 +43,23 @@ enum class SymbolType {
 };
 
 class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate {
-	public:
-		Parser();
+public:
+	Parser();
 
-		int get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape);
-		int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
-		unsigned int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape);
-		unsigned int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape);
-		void reset_crc();
-		uint16_t get_crc() const;
+	int get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &);
+	int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &);
+	unsigned int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &);
+	unsigned int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &);
+	void reset_crc();
+	uint16_t get_crc() const;
 
-	private:
-		void acorn_shifter_output_bit(int value) override;
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+private:
+	void acorn_shifter_output_bit(int value) override;
+	void process_pulse(const Storage::Tape::Tape::Pulse &) override;
 
-		bool did_update_shifter(int new_value, int length);
-		CRC::Generator<uint16_t, 0x0000, 0x0000, false, false> crc_;
-		Shifter shifter_;
+	bool did_update_shifter(int new_value, int length);
+	CRC::Generator<uint16_t, 0x0000, 0x0000, false, false> crc_;
+	Shifter shifter_;
 };
 
 }

@@ -179,13 +179,13 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		return contentions_48k_;
 	}
 
-	private:
-		CPU::Z80::Processor<CapturingZ80, false, false> z80_;
-		uint8_t ram_[65536];
-		uint16_t code_length_ = 0;
+private:
+	CPU::Z80::Processor<CapturingZ80, false, false> z80_;
+	uint8_t ram_[65536];
+	uint16_t code_length_ = 0;
 
-		std::vector<BusRecord> bus_records_;
-		std::vector<ContentionCheck> contentions_48k_;
+	std::vector<BusRecord> bus_records_;
+	std::vector<ContentionCheck> contentions_48k_;
 };
 
 }

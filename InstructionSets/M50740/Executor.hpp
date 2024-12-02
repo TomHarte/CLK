@@ -76,37 +76,37 @@ private:
 		Provides dynamic lookup of @c perform(Executor*).
 	*/
 	class PerformerLookup {
-		public:
-			PerformerLookup() {
-				fill<int(MinOperation)>(performers_);
+	public:
+		PerformerLookup() {
+			fill<int(MinOperation)>(performers_);
+		}
+
+		Performer performer(const Operation operation, const AddressingMode addressing_mode) {
+			const auto index =
+				(int(operation) - MinOperation) * (1 + MaxAddressingMode - MinAddressingMode) +
+				(int(addressing_mode) - MinAddressingMode);
+			return performers_[index];
+		}
+
+	private:
+		Performer performers_[(1 + MaxAddressingMode - MinAddressingMode) * (1 + MaxOperation - MinOperation)];
+
+		template<int operation, int addressing_mode> void fill_operation(Performer *target) {
+			*target = &Executor::perform<Operation(operation), AddressingMode(addressing_mode)>;
+
+			if constexpr (addressing_mode+1 <= MaxAddressingMode) {
+				fill_operation<operation, addressing_mode+1>(target + 1);
 			}
+		}
 
-			Performer performer(const Operation operation, const AddressingMode addressing_mode) {
-				const auto index =
-					(int(operation) - MinOperation) * (1 + MaxAddressingMode - MinAddressingMode) +
-					(int(addressing_mode) - MinAddressingMode);
-				return performers_[index];
+		template<int operation> void fill(Performer *target) {
+			fill_operation<operation, int(MinAddressingMode)>(target);
+			target += 1 + MaxAddressingMode - MinAddressingMode;
+
+			if constexpr (operation+1 <= MaxOperation) {
+				fill<operation+1>(target);
 			}
-
-		private:
-			Performer performers_[(1 + MaxAddressingMode - MinAddressingMode) * (1 + MaxOperation - MinOperation)];
-
-			template<int operation, int addressing_mode> void fill_operation(Performer *target) {
-				*target = &Executor::perform<Operation(operation), AddressingMode(addressing_mode)>;
-
-				if constexpr (addressing_mode+1 <= MaxAddressingMode) {
-					fill_operation<operation, addressing_mode+1>(target + 1);
-				}
-			}
-
-			template<int operation> void fill(Performer *target) {
-				fill_operation<operation, int(MinAddressingMode)>(target);
-				target += 1 + MaxAddressingMode - MinAddressingMode;
-
-				if constexpr (operation+1 <= MaxOperation) {
-					fill<operation+1>(target);
-				}
-			}
+		}
 	};
 	inline static PerformerLookup performer_lookup_;
 

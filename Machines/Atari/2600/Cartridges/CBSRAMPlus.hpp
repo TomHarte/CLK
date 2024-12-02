@@ -13,26 +13,31 @@
 namespace Atari2600::Cartridge {
 
 class CBSRAMPlus: public BusExtender {
-	public:
-		CBSRAMPlus(uint8_t *rom_base, std::size_t rom_size) : BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
+public:
+	CBSRAMPlus(const uint8_t *const rom_base, std::size_t rom_size) :
+		BusExtender(rom_base, rom_size), rom_ptr_(rom_base) {}
 
-		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-			address &= 0x1fff;
-			if(!(address & 0x1000)) return;
+	void perform_bus_operation(
+		const CPU::MOS6502::BusOperation operation,
+		uint16_t address,
+		uint8_t *const value
+	) {
+		address &= 0x1fff;
+		if(!(address & 0x1000)) return;
 
-			if(address >= 0x1ff8 && address <= 0x1ffa) rom_ptr_ = rom_base_ + (address - 0x1ff8) * 4096;
+		if(address >= 0x1ff8 && address <= 0x1ffa) rom_ptr_ = rom_base_ + (address - 0x1ff8) * 4096;
 
-			if(isReadOperation(operation)) {
-				*value = rom_ptr_[address & 4095];
-			}
-
-			if(address < 0x1100) ram_[address & 0xff] = *value;
-			else if(address < 0x1200 && isReadOperation(operation)) *value = ram_[address & 0xff];
+		if(isReadOperation(operation)) {
+			*value = rom_ptr_[address & 4095];
 		}
 
-	private:
-		uint8_t *rom_ptr_;
-		uint8_t ram_[256];
+		if(address < 0x1100) ram_[address & 0xff] = *value;
+		else if(address < 0x1200 && isReadOperation(operation)) *value = ram_[address & 0xff];
+	}
+
+private:
+	const uint8_t *rom_ptr_;
+	uint8_t ram_[256];
 };
 
 }

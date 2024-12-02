@@ -138,7 +138,7 @@ class ConcreteMachine:
 			}
 		}
 
-		bool get_switch_is_enabled(Atari2600Switch input) final {
+		bool get_switch_is_enabled(Atari2600Switch input) const final {
 			uint8_t port_input = bus_->mos6532_.get_port_input(1);
 			switch(input) {
 				case Atari2600SwitchReset:					return !!(port_input & 0x01);

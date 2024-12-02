@@ -27,18 +27,18 @@ private:
 	std::vector<MachineTypes::KeyboardMachine *> machines_;
 
 	class MultiKeyboard: public Inputs::Keyboard {
-		public:
-			MultiKeyboard(const std::vector<MachineTypes::KeyboardMachine *> &);
+	public:
+		MultiKeyboard(const std::vector<MachineTypes::KeyboardMachine *> &);
 
-			bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final;
-			void reset_all_keys() final;
-			const std::set<Key> &observed_keys() const final;
-			bool is_exclusive() const final;
+		bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final;
+		void reset_all_keys() final;
+		const std::set<Key> &observed_keys() const final;
+		bool is_exclusive() const final;
 
-		private:
-			const std::vector<MachineTypes::KeyboardMachine *> &machines_;
-			std::set<Key> observed_keys_;
-			bool is_exclusive_ = false;
+	private:
+		const std::vector<MachineTypes::KeyboardMachine *> &machines_;
+		std::set<Key> observed_keys_;
+		bool is_exclusive_ = false;
 	};
 	std::unique_ptr<MultiKeyboard> keyboard_;
 

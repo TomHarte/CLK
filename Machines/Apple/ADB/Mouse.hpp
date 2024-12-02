@@ -14,20 +14,20 @@
 namespace Apple::ADB {
 
 class Mouse: public ReactiveDevice, public Inputs::Mouse {
-	public:
-		Mouse(Bus &);
+public:
+	Mouse(Bus &);
 
-	private:
-		void perform_command(const Command &command) override;
+private:
+	void perform_command(const Command &command) override;
 
-		void move(int x, int y) override;
-		int get_number_of_buttons() const override;
-		void set_button_pressed(int index, bool is_pressed) override;
-		void reset_all_buttons() override;
+	void move(int x, int y) override;
+	int get_number_of_buttons() const override;
+	void set_button_pressed(int index, bool is_pressed) override;
+	void reset_all_buttons() override;
 
-		std::atomic<int16_t> delta_x_, delta_y_;
-		std::atomic<int> button_flags_ = 0;
-		uint16_t last_posted_reg0_ = 0;
+	std::atomic<int16_t> delta_x_, delta_y_;
+	std::atomic<int> button_flags_ = 0;
+	uint16_t last_posted_reg0_ = 0;
 };
 
 }

@@ -24,26 +24,26 @@ namespace Storage::Tape {
 	virtual, giving subclasses a chance to provide the next batch of pulses.
 */
 class PulseQueuedTape: public Tape {
-	public:
-		PulseQueuedTape();
-		bool is_at_end();
+public:
+	PulseQueuedTape();
+	bool is_at_end();
 
-	protected:
-		void emplace_back(Tape::Pulse::Type type, Time length);
-		void emplace_back(const Tape::Pulse &&pulse);
-		void clear();
-		bool empty();
+protected:
+	void emplace_back(Tape::Pulse::Type type, Time length);
+	void emplace_back(const Tape::Pulse &&pulse);
+	void clear();
+	bool empty();
 
-		void set_is_at_end(bool);
-		virtual void get_next_pulses() = 0;
+	void set_is_at_end(bool);
+	virtual void get_next_pulses() = 0;
 
-	private:
-		Pulse virtual_get_next_pulse();
-		Pulse silence();
+private:
+	Pulse virtual_get_next_pulse();
+	Pulse silence();
 
-		std::vector<Pulse> queued_pulses_;
-		std::size_t pulse_pointer_;
-		bool is_at_end_;
+	std::vector<Pulse> queued_pulses_;
+	std::size_t pulse_pointer_;
+	bool is_at_end_;
 };
 
 }

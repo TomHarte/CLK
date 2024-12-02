@@ -30,8 +30,8 @@ using DriveType = Storage::MassStorage::Encodings::Apple::DriveType;
 	impersonate different types of Macintosh drive.
 */
 class Volume {
-	public:
-		virtual void set_drive_type(DriveType type) = 0;
+public:
+	virtual void set_drive_type(DriveType type) = 0;
 };
 
 struct VolumeProvider {
