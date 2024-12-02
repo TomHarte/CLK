@@ -85,79 +85,79 @@ public:
 
 private:
 	class State: public NullFlowController {
-		public:
-			State(BusHandler &handler) : bus_handler_(handler) {}
+	public:
+		State(BusHandler &handler) : bus_handler_(handler) {}
 
-			void run(int &);
-			bool stopped = false;
+		void run(int &);
+		bool stopped = false;
 
-			void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
-			void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);
-			template <typename IntT> IntT read(uint32_t address, bool is_from_pc = false);
-			template <typename IntT> void write(uint32_t address, IntT value);
+		void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
+		void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);
+		template <typename IntT> IntT read(uint32_t address, bool is_from_pc = false);
+		template <typename IntT> void write(uint32_t address, IntT value);
 
-			template <typename IntT> IntT read_pc();
+		template <typename IntT> IntT read_pc();
 
-			// Processor state.
-			Status status;
-			CPU::SlicedInt32 program_counter;
-			CPU::SlicedInt32 registers[16];		// D0–D7 followed by A0–A7.
-			CPU::SlicedInt32 stack_pointers[2];
-			uint32_t instruction_address;
-			uint16_t instruction_opcode;
+		// Processor state.
+		Status status;
+		CPU::SlicedInt32 program_counter;
+		CPU::SlicedInt32 registers[16];		// D0–D7 followed by A0–A7.
+		CPU::SlicedInt32 stack_pointers[2];
+		uint32_t instruction_address;
+		uint16_t instruction_opcode;
 
-			// Things that are ephemerally duplicative of Status.
-			int active_stack_pointer = 0;
-			Status::FlagT should_trace = 0;
+		// Things that are ephemerally duplicative of Status.
+		int active_stack_pointer = 0;
+		Status::FlagT should_trace = 0;
 
-			// Bus state.
-			int interrupt_input = 0;
+		// Bus state.
+		int interrupt_input = 0;
 
-			// A lookup table to ensure that A7 is adjusted by 2 rather than 1 in
-			// postincrement and predecrement mode.
-			static constexpr uint32_t byte_increments[] = {
-				1, 1, 1, 1, 1, 1, 1, 2
-			};
+		// A lookup table to ensure that A7 is adjusted by 2 rather than 1 in
+		// postincrement and predecrement mode.
+		static constexpr uint32_t byte_increments[] = {
+			1, 1, 1, 1, 1, 1, 1, 2
+		};
 
-			// Flow control; Cf. Perform.hpp.
-			template <bool use_current_instruction_pc = true> void raise_exception(int);
+		// Flow control; Cf. Perform.hpp.
+		template <bool use_current_instruction_pc = true> void raise_exception(int);
 
-			void did_update_status();
+		void did_update_status();
 
-			template <typename IntT> void complete_bcc(bool matched_condition, IntT offset);
-			void complete_dbcc(bool matched_condition, bool overflowed, int16_t offset);
-			void bsr(uint32_t offset);
-			void jmp(uint32_t);
-			void jsr(uint32_t offset);
-			void rtr();
-			void rts();
-			void rte();
-			void stop();
-			void reset();
+		template <typename IntT> void complete_bcc(bool matched_condition, IntT offset);
+		void complete_dbcc(bool matched_condition, bool overflowed, int16_t offset);
+		void bsr(uint32_t offset);
+		void jmp(uint32_t);
+		void jsr(uint32_t offset);
+		void rtr();
+		void rts();
+		void rte();
+		void stop();
+		void reset();
 
-			void link(Preinstruction instruction, uint32_t offset);
-			void unlink(uint32_t &address);
-			void pea(uint32_t address);
+		void link(Preinstruction instruction, uint32_t offset);
+		void unlink(uint32_t &address);
+		void pea(uint32_t address);
 
-			void move_to_usp(uint32_t address);
-			void move_from_usp(uint32_t &address);
+		void move_to_usp(uint32_t address);
+		void move_from_usp(uint32_t &address);
 
-			template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
-			template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
-			template <typename IntT> void movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest);
+		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
+		template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
+		template <typename IntT> void movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest);
 
-			void tas(Preinstruction instruction, uint32_t address);
+		void tas(Preinstruction instruction, uint32_t address);
 
-		private:
-			BusHandler &bus_handler_;
-			Predecoder<model> decoder_;
+	private:
+		BusHandler &bus_handler_;
+		Predecoder<model> decoder_;
 
-			struct EffectiveAddress {
-				CPU::SlicedInt32 value;
-				bool requires_fetch;
-			};
-			EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
-			uint32_t index_8bitdisplacement(uint32_t);
+		struct EffectiveAddress {
+			CPU::SlicedInt32 value;
+			bool requires_fetch;
+		};
+		EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
+		uint32_t index_8bitdisplacement(uint32_t);
 	} state_;
 };
 

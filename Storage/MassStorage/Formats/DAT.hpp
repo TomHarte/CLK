@@ -18,8 +18,8 @@ namespace Storage::MassStorage {
 	in 256-byte blocks.
 */
 class DAT: public RawSectorDump<256> {
-	public:
-		DAT(const std::string &file_name);
+public:
+	DAT(const std::string &file_name);
 };
 
 }

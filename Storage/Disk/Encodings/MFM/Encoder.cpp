@@ -80,103 +80,103 @@ enum class SurfaceItem {
 };
 
 class MFMEncoder: public Encoder {
-	public:
-		MFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
-		virtual ~MFMEncoder() = default;
+public:
+	MFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
+	virtual ~MFMEncoder() = default;
 
-		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
-			crc_generator_.add(input);
-			const uint16_t spread_value = Numeric::spread_bits(input);
-			const uint16_t spread_mask = Numeric::spread_bits(fuzzy_mask);
-			const uint16_t or_bits = uint16_t((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
-			const uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
+	void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
+		crc_generator_.add(input);
+		const uint16_t spread_value = Numeric::spread_bits(input);
+		const uint16_t spread_mask = Numeric::spread_bits(fuzzy_mask);
+		const uint16_t or_bits = uint16_t((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
+		const uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
 
-			output_short(output, spread_mask);
+		output_short(output, spread_mask);
+	}
+
+	void add_index_address_mark() final {
+		for(int c = 0; c < 3; c++) output_short(MFMIndexSync);
+		add_byte(IndexAddressByte);
+	}
+
+	void add_ID_address_mark() final {
+		output_sync();
+		add_byte(IDAddressByte);
+	}
+
+	void add_data_address_mark() final {
+		output_sync();
+		add_byte(DataAddressByte);
+	}
+
+	void add_deleted_data_address_mark() final {
+		output_sync();
+		add_byte(DeletedDataAddressByte);
+	}
+
+	size_t item_size(SurfaceItem item) {
+		switch(item) {
+			case SurfaceItem::Mark: return 8;	// Three syncs plus the mark type.
+			case SurfaceItem::Data: return 2;	// Just a single encoded byte.
+			default: assert(false);
 		}
+		return 0;	// Should be impossible to reach in debug builds.
+	}
 
-		void add_index_address_mark() final {
-			for(int c = 0; c < 3; c++) output_short(MFMIndexSync);
-			add_byte(IndexAddressByte);
-		}
+private:
+	uint16_t last_output_;
+	void output_short(uint16_t value, uint16_t fuzzy_mask = 0) final {
+		last_output_ = value;
+		Encoder::output_short(value, fuzzy_mask);
+	}
 
-		void add_ID_address_mark() final {
-			output_sync();
-			add_byte(IDAddressByte);
-		}
-
-		void add_data_address_mark() final {
-			output_sync();
-			add_byte(DataAddressByte);
-		}
-
-		void add_deleted_data_address_mark() final {
-			output_sync();
-			add_byte(DeletedDataAddressByte);
-		}
-
-		size_t item_size(SurfaceItem item) {
-			switch(item) {
-				case SurfaceItem::Mark: return 8;	// Three syncs plus the mark type.
-				case SurfaceItem::Data: return 2;	// Just a single encoded byte.
-				default: assert(false);
-			}
-			return 0;	// Should be impossible to reach in debug builds.
-		}
-
-	private:
-		uint16_t last_output_;
-		void output_short(uint16_t value, uint16_t fuzzy_mask = 0) final {
-			last_output_ = value;
-			Encoder::output_short(value, fuzzy_mask);
-		}
-
-		void output_sync() {
-			for(int c = 0; c < 3; c++) output_short(MFMSync);
-			crc_generator_.set_value(MFMPostSyncCRCValue);
-		}
+	void output_sync() {
+		for(int c = 0; c < 3; c++) output_short(MFMSync);
+		crc_generator_.set_value(MFMPostSyncCRCValue);
+	}
 };
 
 class FMEncoder: public Encoder {
-	// encodes each 16-bit part as clock, data, clock, data [...]
-	public:
-		FMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
+// encodes each 16-bit part as clock, data, clock, data [...]
+public:
+	FMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
 
-		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
-			crc_generator_.add(input);
-			output_short(
-				Numeric::spread_bits(input) | 0xaaaa,
-				Numeric::spread_bits(fuzzy_mask)
-			);
-		}
+	void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
+		crc_generator_.add(input);
+		output_short(
+			Numeric::spread_bits(input) | 0xaaaa,
+			Numeric::spread_bits(fuzzy_mask)
+		);
+	}
 
-		void add_index_address_mark() final {
-			crc_generator_.reset();
-			crc_generator_.add(IndexAddressByte);
-			output_short(FMIndexAddressMark);
-		}
+	void add_index_address_mark() final {
+		crc_generator_.reset();
+		crc_generator_.add(IndexAddressByte);
+		output_short(FMIndexAddressMark);
+	}
 
-		void add_ID_address_mark() final {
-			crc_generator_.reset();
-			crc_generator_.add(IDAddressByte);
-			output_short(FMIDAddressMark);
-		}
+	void add_ID_address_mark() final {
+		crc_generator_.reset();
+		crc_generator_.add(IDAddressByte);
+		output_short(FMIDAddressMark);
+	}
 
-		void add_data_address_mark() final {
-			crc_generator_.reset();
-			crc_generator_.add(DataAddressByte);
-			output_short(FMDataAddressMark);
-		}
+	void add_data_address_mark() final {
+		crc_generator_.reset();
+		crc_generator_.add(DataAddressByte);
+		output_short(FMDataAddressMark);
+	}
 
-		void add_deleted_data_address_mark() final {
-			crc_generator_.reset();
-			crc_generator_.add(DeletedDataAddressByte);
-			output_short(FMDeletedDataAddressMark);
-		}
+	void add_deleted_data_address_mark() final {
+		crc_generator_.reset();
+		crc_generator_.add(DeletedDataAddressByte);
+		output_short(FMDeletedDataAddressMark);
+	}
 
-		size_t item_size(SurfaceItem) {
-			// Marks are just slightly-invalid bytes, so everything is the same length.
-			return 2;
-		}
+	size_t item_size(SurfaceItem) {
+		// Marks are just slightly-invalid bytes, so everything is the same length.
+		return 2;
+	}
 };
 
 template<class T> std::shared_ptr<Storage::Disk::Track>

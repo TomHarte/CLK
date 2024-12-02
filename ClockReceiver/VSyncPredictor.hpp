@@ -104,40 +104,40 @@ public:
 
 private:
 	class VarianceCollector {
-		public:
-			VarianceCollector(Time::Nanos default_value) {
-				sum_ = default_value * 128;
-				for(int c = 0; c < 128; ++c) {
-					history_[c] = default_value;
-				}
+	public:
+		VarianceCollector(Time::Nanos default_value) {
+			sum_ = default_value * 128;
+			for(int c = 0; c < 128; ++c) {
+				history_[c] = default_value;
 			}
+		}
 
-			void post(Time::Nanos value) {
-				sum_ -= history_[write_pointer_];
-				sum_ += value;
-				history_[write_pointer_] = value;
-				write_pointer_ = (write_pointer_ + 1) & 127;
+		void post(Time::Nanos value) {
+			sum_ -= history_[write_pointer_];
+			sum_ += value;
+			history_[write_pointer_] = value;
+			write_pointer_ = (write_pointer_ + 1) & 127;
+		}
+
+		Time::Nanos mean() {
+			return sum_ / 128;
+		}
+
+		Time::Nanos variance() {
+			// I haven't yet come up with a better solution that calculating this
+			// in whole every time, given the way that the mean mutates.
+			Time::Nanos variance = 0;
+			for(int c = 0; c < 128; ++c) {
+				const auto difference = ((history_[c] * 128) - sum_) / 128;
+				variance += (difference * difference);
 			}
+			return variance / 128;
+		}
 
-			Time::Nanos mean() {
-				return sum_ / 128;
-			}
-
-			Time::Nanos variance() {
-				// I haven't yet come up with a better solution that calculating this
-				// in whole every time, given the way that the mean mutates.
-				Time::Nanos variance = 0;
-				for(int c = 0; c < 128; ++c) {
-					const auto difference = ((history_[c] * 128) - sum_) / 128;
-					variance += (difference * difference);
-				}
-				return variance / 128;
-			}
-
-		private:
-			Time::Nanos sum_;
-			Time::Nanos history_[128];
-			size_t write_pointer_ = 0;
+	private:
+		Time::Nanos sum_;
+		Time::Nanos history_[128];
+		size_t write_pointer_ = 0;
 	};
 
 	Nanos redraw_begin_time_ = 0;

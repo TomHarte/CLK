@@ -28,9 +28,10 @@ namespace Storage::Disk {
 */
 
 class Disk2MG {
-	public:
-		using DiskOrMassStorageDevice = std::variant<std::nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
-		static DiskOrMassStorageDevice open(const std::string &file_name);
+public:
+	using DiskOrMassStorageDevice =
+		std::variant<std::nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
+	static DiskOrMassStorageDevice open(const std::string &file_name);
 };
 
 }

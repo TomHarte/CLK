@@ -22,23 +22,23 @@
 namespace Apple::II {
 
 class DiskIICard: public Card, public ClockingHint::Observer {
-	public:
-		static ROM::Request rom_request(bool is_16_sector);
-		DiskIICard(ROM::Map &, bool is_16_sector);
+public:
+	static ROM::Request rom_request(bool is_16_sector);
+	DiskIICard(ROM::Map &, bool is_16_sector);
 
-		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final;
-		void run_for(Cycles cycles, int stretches) final;
+	void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final;
+	void run_for(Cycles cycles, int stretches) final;
 
-		void set_activity_observer(Activity::Observer *observer) final;
+	void set_activity_observer(Activity::Observer *observer) final;
 
-		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
-		Storage::Disk::Drive &get_drive(int drive);
+	void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
+	Storage::Disk::Drive &get_drive(int drive);
 
-	private:
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
-		std::vector<uint8_t> boot_;
-		Apple::DiskII diskii_;
-		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
+private:
+	void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
+	std::vector<uint8_t> boot_;
+	Apple::DiskII diskii_;
+	ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
 };
 
 }

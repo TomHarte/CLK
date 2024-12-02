@@ -51,81 +51,81 @@ struct Block {
 };
 
 class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolType> {
-	public:
-		enum class MachineType {
-			ZXSpectrum,
-			Enterprise,
-			SAMCoupe,
-			AmstradCPC
-		};
-		Parser(MachineType);
+public:
+	enum class MachineType {
+		ZXSpectrum,
+		Enterprise,
+		SAMCoupe,
+		AmstradCPC
+	};
+	Parser(MachineType);
 
-		/*!
-			Calibrates the expected data speed using a value in the CPC's native tape-speed measurement scale.
-		*/
-		void set_cpc_read_speed(uint8_t);
+	/*!
+		Calibrates the expected data speed using a value in the CPC's native tape-speed measurement scale.
+	*/
+	void set_cpc_read_speed(uint8_t);
 
-		/*!
-			Finds the next block from the tape, if any.
+	/*!
+		Finds the next block from the tape, if any.
 
-			Following this call the tape will be positioned immediately after the byte that indicated the block type —
-			in Spectrum-world this seems to be called the flag byte. This call can therefore be followed up with one
-			of the get_ methods.
-		*/
-		std::optional<Block> find_block(const std::shared_ptr<Storage::Tape::Tape> &tape);
+		Following this call the tape will be positioned immediately after the byte that indicated the block type —
+		in Spectrum-world this seems to be called the flag byte. This call can therefore be followed up with one
+		of the get_ methods.
+	*/
+	std::optional<Block> find_block(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-		/*!
-			Reads the contents of the rest of this block, until the next gap.
-		*/
-		std::vector<uint8_t> get_block_body(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	/*!
+		Reads the contents of the rest of this block, until the next gap.
+	*/
+	std::vector<uint8_t> get_block_body(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-		/*!
-			Reads a single byte from the tape, if there is one left, updating the internal checksum.
+	/*!
+		Reads a single byte from the tape, if there is one left, updating the internal checksum.
 
-			The checksum is computed as an exclusive OR of all bytes read.
-		*/
-		std::optional<uint8_t> get_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
+		The checksum is computed as an exclusive OR of all bytes read.
+	*/
+	std::optional<uint8_t> get_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
 
-		/*!
-			Seeds the internal checksum.
-		*/
-		void seed_checksum(uint8_t value = 0x00);
+	/*!
+		Seeds the internal checksum.
+	*/
+	void seed_checksum(uint8_t value = 0x00);
 
-		/*!
-			Push a pulse; primarily provided for Storage::Tape::PulseClassificationParser but also potentially useful
-			for picking up fast loading from an ongoing tape.
-		*/
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+	/*!
+		Push a pulse; primarily provided for Storage::Tape::PulseClassificationParser but also potentially useful
+		for picking up fast loading from an ongoing tape.
+	*/
+	void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
 
-	private:
-		const MachineType machine_type_;
-		constexpr bool should_flip_bytes() {
-			return machine_type_ == MachineType::Enterprise;
-		}
-		constexpr bool should_detect_speed() {
-			return machine_type_ != MachineType::ZXSpectrum;
-		}
+private:
+	const MachineType machine_type_;
+	constexpr bool should_flip_bytes() {
+		return machine_type_ == MachineType::Enterprise;
+	}
+	constexpr bool should_detect_speed() {
+		return machine_type_ != MachineType::ZXSpectrum;
+	}
 
-		void inspect_waves(const std::vector<WaveType> &waves) override;
+	void inspect_waves(const std::vector<WaveType> &waves) override;
 
-		uint8_t checksum_ = 0;
+	uint8_t checksum_ = 0;
 
-		enum class SpeedDetectionPhase {
-			WaitingForGap,
-			WaitingForPilot,
-			CalibratingPilot,
-			Done
-		} speed_phase_ = SpeedDetectionPhase::Done;
+	enum class SpeedDetectionPhase {
+		WaitingForGap,
+		WaitingForPilot,
+		CalibratingPilot,
+		Done
+	} speed_phase_ = SpeedDetectionPhase::Done;
 
-		float too_long_ = 2600.0f;
-		float too_short_ = 600.0f;
-		float is_pilot_ = 1939.0f;
-		float is_one_ = 1282.0f;
+	float too_long_ = 2600.0f;
+	float too_short_ = 600.0f;
+	float is_pilot_ = 1939.0f;
+	float is_one_ = 1282.0f;
 
-		std::array<float, 8> calibration_pulses_;
-		size_t calibration_pulse_pointer_ = 0;
+	std::array<float, 8> calibration_pulses_;
+	size_t calibration_pulse_pointer_ = 0;
 
-		void set_cpc_one_zero_boundary(float);
+	void set_cpc_one_zero_boundary(float);
 };
 
 }

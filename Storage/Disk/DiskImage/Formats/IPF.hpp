@@ -25,62 +25,62 @@ namespace Storage::Disk {
 	close in size to more primitive formats).
 */
 class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
-	public:
-		/*!
-			Construct an @c IPF containing content from the file with name @c file_name.
+public:
+	/*!
+		Construct an @c IPF containing content from the file with name @c file_name.
 
-			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
-			@throws Error::InvalidFormat if the file doesn't appear to contain an .HFE format image.
-			@throws Error::UnknownVersion if the file looks correct but is an unsupported version.
-		*/
-		IPF(const std::string &file_name);
+		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+		@throws Error::InvalidFormat if the file doesn't appear to contain an .HFE format image.
+		@throws Error::UnknownVersion if the file looks correct but is an unsupported version.
+	*/
+	IPF(const std::string &file_name);
 
-		// implemented to satisfy @c Disk
-		HeadPosition get_maximum_head_position() final;
-		int get_head_count() final;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
+	// implemented to satisfy @c Disk
+	HeadPosition get_maximum_head_position() final;
+	int get_head_count() final;
+	std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
 
-	private:
-		Storage::FileHolder file_;
-		uint16_t seek_track(Track::Address address);
+private:
+	Storage::FileHolder file_;
+	uint16_t seek_track(Track::Address address);
 
-		struct TrackDescription {
-			long file_offset = 0;
-			enum class Density {
-				Unknown,
-				Noise,
-				Auto,
-				CopylockAmiga,
-				CopylockAmigaNew,
-				CopylockST,
-				SpeedlockAmiga,
-				OldSpeedlockAmiga,
-				AdamBrierleyAmiga,
-				AdamBrierleyDensityKeyAmiga,
+	struct TrackDescription {
+		long file_offset = 0;
+		enum class Density {
+			Unknown,
+			Noise,
+			Auto,
+			CopylockAmiga,
+			CopylockAmigaNew,
+			CopylockST,
+			SpeedlockAmiga,
+			OldSpeedlockAmiga,
+			AdamBrierleyAmiga,
+			AdamBrierleyDensityKeyAmiga,
 
-				Max = AdamBrierleyDensityKeyAmiga
-			} density = Density::Unknown;
-			uint32_t start_bit_pos = 0;
-			uint32_t data_bits = 0;
-			uint32_t gap_bits = 0;
-			uint32_t block_count;
-			bool has_fuzzy_bits = false;
-		};
+			Max = AdamBrierleyDensityKeyAmiga
+		} density = Density::Unknown;
+		uint32_t start_bit_pos = 0;
+		uint32_t data_bits = 0;
+		uint32_t gap_bits = 0;
+		uint32_t block_count;
+		bool has_fuzzy_bits = false;
+	};
 
-		int head_count_;
-		int track_count_;
-		std::map<Track::Address, TrackDescription> tracks_;
-		bool is_sps_format_ = false;
+	int head_count_;
+	int track_count_;
+	std::map<Track::Address, TrackDescription> tracks_;
+	bool is_sps_format_ = false;
 
-		TargetPlatform::Type target_platform_type() final {
-			return TargetPlatform::Type(platform_type_);
-		}
-		TargetPlatform::IntType platform_type_ = TargetPlatform::Amiga;
+	TargetPlatform::Type target_platform_type() final {
+		return TargetPlatform::Type(platform_type_);
+	}
+	TargetPlatform::IntType platform_type_ = TargetPlatform::Amiga;
 
-		Time bit_length(TrackDescription::Density, int block);
-		void add_gap(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits, uint32_t value);
-		void add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
-		void add_raw_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
+	Time bit_length(TrackDescription::Density, int block);
+	void add_gap(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits, uint32_t value);
+	void add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
+	void add_raw_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
 };
 
 }

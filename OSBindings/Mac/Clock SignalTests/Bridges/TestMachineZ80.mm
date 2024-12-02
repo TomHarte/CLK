@@ -20,15 +20,15 @@
 #pragma mark - C++ delegate handlers
 
 class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegate {
-	public:
-		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
+public:
+	BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
 
-		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, HalfCycles time_stamp) {
-			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
-		}
+	void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, HalfCycles time_stamp) {
+		[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
+	}
 
-	private:
-		CSTestMachineZ80 *target_;
+private:
+	CSTestMachineZ80 *target_;
 };
 
 #pragma mark - Register enum map

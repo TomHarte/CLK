@@ -23,73 +23,73 @@ namespace SignalProcessing {
 	that converts from an input clock of 1200 to an output clock of 2 will first fire on cycle 600.
 */
 class Stepper {
-	public:
-		/*!
-			Establishes a stepper with a one-to-one conversion rate.
-		*/
-		Stepper() : Stepper(1,1) {}
+public:
+	/*!
+		Establishes a stepper with a one-to-one conversion rate.
+	*/
+	Stepper() : Stepper(1,1) {}
 
-		/*!
-			Establishes a stepper that will receive steps at the @c input_rate and dictate the number
-			of steps that should be taken at the @c output_rate.
-		*/
-		Stepper(uint64_t output_rate, uint64_t input_rate) :
-			accumulated_error_(-(int64_t(input_rate) << 1)),
-			input_rate_(input_rate),
-			output_rate_(output_rate),
-			whole_step_(output_rate / input_rate),
-			adjustment_up_(int64_t(output_rate % input_rate) << 1),
-			adjustment_down_(int64_t(input_rate) << 1) {}
+	/*!
+		Establishes a stepper that will receive steps at the @c input_rate and dictate the number
+		of steps that should be taken at the @c output_rate.
+	*/
+	Stepper(uint64_t output_rate, uint64_t input_rate) :
+		accumulated_error_(-(int64_t(input_rate) << 1)),
+		input_rate_(input_rate),
+		output_rate_(output_rate),
+		whole_step_(output_rate / input_rate),
+		adjustment_up_(int64_t(output_rate % input_rate) << 1),
+		adjustment_down_(int64_t(input_rate) << 1) {}
 
-		/*!
-			Advances one step at the input rate.
+	/*!
+		Advances one step at the input rate.
 
-			@returns the number of output steps.
-		*/
-		inline uint64_t step() {
-			uint64_t update = whole_step_;
-			accumulated_error_ += adjustment_up_;
-			if(accumulated_error_ > 0) {
-				update++;
-				accumulated_error_ -= adjustment_down_;
-			}
-			return update;
+		@returns the number of output steps.
+	*/
+	inline uint64_t step() {
+		uint64_t update = whole_step_;
+		accumulated_error_ += adjustment_up_;
+		if(accumulated_error_ > 0) {
+			update++;
+			accumulated_error_ -= adjustment_down_;
 		}
+		return update;
+	}
 
-		/*!
-			Advances by @c number_of_steps steps at the input rate.
+	/*!
+		Advances by @c number_of_steps steps at the input rate.
 
-			@returns the number of output steps.
-		*/
-		inline uint64_t step(uint64_t number_of_steps) {
-			uint64_t update = whole_step_ * number_of_steps;
-			accumulated_error_ += adjustment_up_ * int64_t(number_of_steps);
-			if(accumulated_error_ > 0) {
-				update += 1 + uint64_t(accumulated_error_ / adjustment_down_);
-				accumulated_error_ = (accumulated_error_ % adjustment_down_) - adjustment_down_;
-			}
-			return update;
+		@returns the number of output steps.
+	*/
+	inline uint64_t step(uint64_t number_of_steps) {
+		uint64_t update = whole_step_ * number_of_steps;
+		accumulated_error_ += adjustment_up_ * int64_t(number_of_steps);
+		if(accumulated_error_ > 0) {
+			update += 1 + uint64_t(accumulated_error_ / adjustment_down_);
+			accumulated_error_ = (accumulated_error_ % adjustment_down_) - adjustment_down_;
 		}
+		return update;
+	}
 
-		/*!
-			@returns the output rate.
-		*/
-		inline uint64_t get_output_rate() {
-			return output_rate_;
-		}
+	/*!
+		@returns the output rate.
+	*/
+	inline uint64_t get_output_rate() const {
+		return output_rate_;
+	}
 
-		/*!
-			@returns the input rate.
-		*/
-		inline uint64_t get_input_rate() {
-			return input_rate_;
-		}
+	/*!
+		@returns the input rate.
+	*/
+	inline uint64_t get_input_rate() const {
+		return input_rate_;
+	}
 
-	private:
-		int64_t accumulated_error_;
-		uint64_t input_rate_, output_rate_;
-		uint64_t whole_step_;
-		int64_t adjustment_up_, adjustment_down_;
+private:
+	int64_t accumulated_error_;
+	uint64_t input_rate_, output_rate_;
+	uint64_t whole_step_;
+	int64_t adjustment_up_, adjustment_down_;
 };
 
 }

@@ -22,28 +22,28 @@ namespace Storage::MassStorage {
 	the HFS volume of a Macintosh drive that is not the correct size to be a floppy disk.
 */
 class HFV: public MassStorageDevice, public Encodings::Macintosh::Volume {
-	public:
-		/*!
-			Constructs an HFV with the contents of the file named @c file_name.
-			Raises an exception if the file name doesn't appear to identify a valid
-			Macintosh mass storage image.
-		*/
-		HFV(const std::string &file_name);
+public:
+	/*!
+		Constructs an HFV with the contents of the file named @c file_name.
+		Raises an exception if the file name doesn't appear to identify a valid
+		Macintosh mass storage image.
+	*/
+	HFV(const std::string &file_name);
 
-	private:
-		FileHolder file_;
-		Encodings::Macintosh::Mapper mapper_;
+private:
+	FileHolder file_;
+	Encodings::Macintosh::Mapper mapper_;
 
-		/* MassStorageDevices overrides. */
-		size_t get_block_size() final;
-		size_t get_number_of_blocks() final;
-		std::vector<uint8_t> get_block(size_t address) final;
-		void set_block(size_t address, const std::vector<uint8_t> &) final;
+	/* MassStorageDevices overrides. */
+	size_t get_block_size() final;
+	size_t get_number_of_blocks() final;
+	std::vector<uint8_t> get_block(size_t address) final;
+	void set_block(size_t address, const std::vector<uint8_t> &) final;
 
-		/* Encodings::Macintosh::Volume overrides. */
-		void set_drive_type(Encodings::Macintosh::DriveType) final;
+	/* Encodings::Macintosh::Volume overrides. */
+	void set_drive_type(Encodings::Macintosh::DriveType) final;
 
-		std::map<size_t, std::vector<uint8_t>> writes_;
+	std::map<size_t, std::vector<uint8_t>> writes_;
 };
 
 }

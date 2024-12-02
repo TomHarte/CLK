@@ -32,40 +32,40 @@ class DMADeviceBase {
 };
 
 template <size_t num_addresses, size_t num_modulos = 0> class DMADevice: public DMADeviceBase {
-	public:
-		using DMADeviceBase::DMADeviceBase;
+public:
+	using DMADeviceBase::DMADeviceBase;
 
-		/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
-		template <int id, int shift> void set_pointer(uint16_t value) {
-			static_assert(id < num_addresses);
-			static_assert(shift == 0 || shift == 16);
+	/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
+	template <int id, int shift> void set_pointer(uint16_t value) {
+		static_assert(id < num_addresses);
+		static_assert(shift == 0 || shift == 16);
 
-			byte_pointer_[id] = (byte_pointer_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
-			pointer_[id] = byte_pointer_[id] >> 1;
-		}
+		byte_pointer_[id] = (byte_pointer_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+		pointer_[id] = byte_pointer_[id] >> 1;
+	}
 
-		/// Writes the word @c value to the modulo register @c id, shifting it by @c shift (0 or 16) first.
-		template <int id> void set_modulo(uint16_t value) {
-			static_assert(id < num_modulos);
+	/// Writes the word @c value to the modulo register @c id, shifting it by @c shift (0 or 16) first.
+	template <int id> void set_modulo(uint16_t value) {
+		static_assert(id < num_modulos);
 
-			// Convert by sign extension.
-			modulos_[id] = uint32_t(int16_t(value) >> 1);
-		}
+		// Convert by sign extension.
+		modulos_[id] = uint32_t(int16_t(value) >> 1);
+	}
 
-		template <int id, int shift> uint16_t get_pointer() {
-			// Restore the original least-significant bit.
-			const uint32_t source = (pointer_[id] << 1) | (byte_pointer_[id] & 1);
-			return uint16_t(source >> shift);
-		}
+	template <int id, int shift> uint16_t get_pointer() {
+		// Restore the original least-significant bit.
+		const uint32_t source = (pointer_[id] << 1) | (byte_pointer_[id] & 1);
+		return uint16_t(source >> shift);
+	}
 
-	protected:
-		// These are shifted right one to provide word-indexing pointers;
-		// subclasses should use e.g. ram_[pointer_[0] & ram_mask_] directly.
-		std::array<uint32_t, num_addresses> pointer_{};
-		std::array<uint32_t, num_modulos> modulos_{};
+protected:
+	// These are shifted right one to provide word-indexing pointers;
+	// subclasses should use e.g. ram_[pointer_[0] & ram_mask_] directly.
+	std::array<uint32_t, num_addresses> pointer_{};
+	std::array<uint32_t, num_modulos> modulos_{};
 
-	private:
-		std::array<uint32_t, num_addresses> byte_pointer_{};
+private:
+	std::array<uint32_t, num_addresses> byte_pointer_{};
 };
 
 }

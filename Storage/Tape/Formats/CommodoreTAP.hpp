@@ -20,31 +20,31 @@ namespace Storage::Tape {
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
 */
 class CommodoreTAP: public Tape {
-	public:
-		/*!
-			Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
+public:
+	/*!
+		Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
 
-			@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
-		*/
-		CommodoreTAP(const std::string &file_name);
+		@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
+	*/
+	CommodoreTAP(const std::string &file_name);
 
-		enum {
-			ErrorNotCommodoreTAP
-		};
+	enum {
+		ErrorNotCommodoreTAP
+	};
 
-		// implemented to satisfy @c Tape
-		bool is_at_end();
+	// implemented to satisfy @c Tape
+	bool is_at_end();
 
-	private:
-		Storage::FileHolder file_;
-		void virtual_reset();
-		Pulse virtual_get_next_pulse();
+private:
+	Storage::FileHolder file_;
+	void virtual_reset();
+	Pulse virtual_get_next_pulse();
 
-		bool updated_layout_;
-		uint32_t file_size_;
+	bool updated_layout_;
+	uint32_t file_size_;
 
-		Pulse current_pulse_;
-		bool is_at_end_ = false;
+	Pulse current_pulse_;
+	bool is_at_end_ = false;
 };
 
 }

@@ -49,8 +49,8 @@ enum Type: IntType {
 };
 
 class TypeDistinguisher {
-	public:
-		virtual Type target_platform_type() = 0;
+public:
+	virtual Type target_platform_type() = 0;
 };
 
 }

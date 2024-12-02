@@ -22,20 +22,20 @@ namespace Atari2600 {
 	Models an Atari 2600.
 */
 class Machine {
-	public:
-		virtual ~Machine() = default;
+public:
+	virtual ~Machine() = default;
 
-		/// Creates and returns an Atari 2600 on the heap.
-		static std::unique_ptr<Machine> Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+	/// Creates and returns an Atari 2600 on the heap.
+	static std::unique_ptr<Machine> Atari2600(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
-		/// Sets the switch @c input to @c state.
-		virtual void set_switch_is_enabled(Atari2600Switch input, bool state) = 0;
+	/// Sets the switch @c input to @c state.
+	virtual void set_switch_is_enabled(Atari2600Switch, bool) = 0;
 
-		/// Gets the state of switch @c input.
-		virtual bool get_switch_is_enabled(Atari2600Switch input) = 0;
+	/// Gets the state of switch @c input.
+	virtual bool get_switch_is_enabled(Atari2600Switch) const = 0;
 
-		// Presses or releases the reset button.
-		virtual void set_reset_switch(bool state) = 0;
+	// Presses or releases the reset button.
+	virtual void set_reset_switch(bool) = 0;
 };
 
 }

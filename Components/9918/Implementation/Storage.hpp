@@ -439,12 +439,12 @@ struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>>:
 		}
 	}
 
-	private:
-		static constexpr auto refresh_events = events<RefreshGenerator>();
-		static constexpr auto no_sprites_events = events<BitmapGenerator<false>>();
-		static constexpr auto sprites_events = events<BitmapGenerator<true>>();
-		static constexpr auto text_events = events<TextGenerator>();
-		static constexpr auto character_events = events<CharacterGenerator>();
+private:
+	static constexpr auto refresh_events = events<RefreshGenerator>();
+	static constexpr auto no_sprites_events = events<BitmapGenerator<false>>();
+	static constexpr auto sprites_events = events<BitmapGenerator<true>>();
+	static constexpr auto text_events = events<TextGenerator>();
+	static constexpr auto character_events = events<CharacterGenerator>();
 };
 
 // Master System-specific storage.

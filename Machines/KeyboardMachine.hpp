@@ -112,43 +112,43 @@ class KeyboardMachine: public KeyActions {
 	allowing automatic mapping from keyboard inputs to KeyActions.
 */
 class MappedKeyboardMachine: public Inputs::Keyboard::Delegate, public KeyboardMachine {
-	public:
-		MappedKeyboardMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers = {});
+public:
+	MappedKeyboardMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers = {});
 
-		/*!
-			A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.
-			See the character mapper for logical mapping.
-		*/
-		class KeyboardMapper {
-			public:
-				virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const = 0;
-		};
+	/*!
+		A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.
+		See the character mapper for logical mapping.
+	*/
+	class KeyboardMapper {
+		public:
+			virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const = 0;
+	};
 
-		/// Terminates a key sequence from the character mapper.
-		static constexpr uint16_t KeyEndSequence = 0xffff;
+	/// Terminates a key sequence from the character mapper.
+	static constexpr uint16_t KeyEndSequence = 0xffff;
 
-		/*!
-			Indicates that a key is not mapped (for the keyboard mapper) or that a
-			character cannot be typed (for the character mapper).
-		*/
-		static constexpr uint16_t KeyNotMapped = 0xfffe;
+	/*!
+		Indicates that a key is not mapped (for the keyboard mapper) or that a
+		character cannot be typed (for the character mapper).
+	*/
+	static constexpr uint16_t KeyNotMapped = 0xfffe;
 
-		/*!
-			Allows individual machines to provide the mapping between host keys
-			as per Inputs::Keyboard and their native scheme.
-		*/
-		virtual KeyboardMapper *get_keyboard_mapper();
+	/*!
+		Allows individual machines to provide the mapping between host keys
+		as per Inputs::Keyboard and their native scheme.
+	*/
+	virtual KeyboardMapper *get_keyboard_mapper();
 
-		/*!
-			Provides a keyboard that obtains this machine's keyboard mapper, maps
-			the key and supplies it via the KeyActions.
-		*/
-		virtual Inputs::Keyboard &get_keyboard() override;
+	/*!
+		Provides a keyboard that obtains this machine's keyboard mapper, maps
+		the key and supplies it via the KeyActions.
+	*/
+	virtual Inputs::Keyboard &get_keyboard() override;
 
-	private:
-		bool keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;
-		void reset_all_keys(Inputs::Keyboard *keyboard) override;
-		Inputs::Keyboard keyboard_;
+private:
+	bool keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;
+	void reset_all_keys(Inputs::Keyboard *keyboard) override;
+	Inputs::Keyboard keyboard_;
 };
 
 }

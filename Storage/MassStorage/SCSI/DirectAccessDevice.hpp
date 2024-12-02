@@ -16,22 +16,22 @@
 namespace SCSI {
 
 class DirectAccessDevice: public Target::Executor {
-	public:
+public:
 
-		/*!
-			Sets the backing storage exposed by this direct-access device.
-		*/
-		void set_storage(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device);
+	/*!
+		Sets the backing storage exposed by this direct-access device.
+	*/
+	void set_storage(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device);
 
-		/* SCSI commands. */
-		bool read(const Target::CommandState &, Target::Responder &);
-		bool write(const Target::CommandState &, Target::Responder &);
-		Inquiry inquiry_values();
-		bool read_capacity(const Target::CommandState &, Target::Responder &);
-		bool format_unit(const Target::CommandState &, Target::Responder &);
+	/* SCSI commands. */
+	bool read(const Target::CommandState &, Target::Responder &);
+	bool write(const Target::CommandState &, Target::Responder &);
+	Inquiry inquiry_values();
+	bool read_capacity(const Target::CommandState &, Target::Responder &);
+	bool format_unit(const Target::CommandState &, Target::Responder &);
 
-	private:
-		std::shared_ptr<Storage::MassStorage::MassStorageDevice> device_;
+private:
+	std::shared_ptr<Storage::MassStorage::MassStorageDevice> device_;
 };
 
 }

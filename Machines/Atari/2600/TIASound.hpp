@@ -18,32 +18,32 @@ namespace Atari2600 {
 constexpr int CPUTicksPerAudioTick = 2;
 
 class TIASound: public Outputs::Speaker::BufferSource<TIASound, false> {
-	public:
-		TIASound(Concurrency::AsyncTaskQueue<false> &audio_queue);
+public:
+	TIASound(Concurrency::AsyncTaskQueue<false> &);
 
-		void set_volume(int channel, uint8_t volume);
-		void set_divider(int channel, uint8_t divider);
-		void set_control(int channel, uint8_t control);
+	void set_volume(int channel, uint8_t volume);
+	void set_divider(int channel, uint8_t divider);
+	void set_control(int channel, uint8_t control);
 
-		// To satisfy ::SampleSource.
-		template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
-		void set_sample_volume_range(std::int16_t range);
+	// To satisfy ::SampleSource.
+	template <Outputs::Speaker::Action action>
+	void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *);
+	void set_sample_volume_range(std::int16_t range);
 
-	private:
-		Concurrency::AsyncTaskQueue<false> &audio_queue_;
+private:
+	Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
-		uint8_t volume_[2];
-		uint8_t divider_[2];
-		uint8_t control_[2];
+	uint8_t volume_[2];
+	uint8_t divider_[2];
+	uint8_t control_[2];
 
-		int poly4_counter_[2];
-		int poly5_counter_[2];
-		int poly9_counter_[2];
-		int output_state_[2];
+	int poly4_counter_[2];
+	int poly5_counter_[2];
+	int poly9_counter_[2];
+	int output_state_[2];
 
-		int divider_counter_[2];
-		int16_t per_channel_volume_ = 0;
+	int divider_counter_[2];
+	int16_t per_channel_volume_ = 0;
 };
 
 }

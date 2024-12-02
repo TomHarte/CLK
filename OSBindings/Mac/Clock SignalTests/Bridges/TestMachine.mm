@@ -17,15 +17,15 @@
 #pragma mark - C++ delegate handlers
 
 class MachineTrapHandler: public CPU::AllRAMProcessor::TrapHandler {
-	public:
-		MachineTrapHandler(CSTestMachine *targetMachine) : target_(targetMachine) {}
+public:
+	MachineTrapHandler(CSTestMachine *targetMachine) : target_(targetMachine) {}
 
-		void processor_did_trap(CPU::AllRAMProcessor &, uint16_t address) {
-			[target_ testMachineDidTrapAtAddress:address];
-		}
+	void processor_did_trap(CPU::AllRAMProcessor &, uint16_t address) {
+		[target_ testMachineDidTrapAtAddress:address];
+	}
 
-	private:
-		CSTestMachine *target_;
+private:
+	CSTestMachine *target_;
 };
 
 #pragma mark - The test machine

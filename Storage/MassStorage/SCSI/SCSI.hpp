@@ -102,67 +102,67 @@ constexpr uint8_t data_lines(BusState state) {
 #undef us
 
 class Bus: public ClockingHint::Source, public Activity::Source {
-	public:
-		Bus(HalfCycles clock_rate);
+public:
+	Bus(HalfCycles clock_rate);
 
-		/*!
-			Adds a device to the bus, returning the index it should use
-			to refer to itself in subsequent calls to set_device_output.
-		*/
-		size_t add_device();
+	/*!
+		Adds a device to the bus, returning the index it should use
+		to refer to itself in subsequent calls to set_device_output.
+	*/
+	size_t add_device();
 
-		/*!
-			Sets the current output for @c device.
-		*/
-		void set_device_output(size_t device, BusState output);
+	/*!
+		Sets the current output for @c device.
+	*/
+	void set_device_output(size_t device, BusState output);
 
-		/*!
-			@returns the current state of the bus.
-		*/
-		BusState get_state() const;
+	/*!
+		@returns the current state of the bus.
+	*/
+	BusState get_state() const;
 
-		struct Observer {
-			/// Reports to an observer that the bus changed from a previous state to @c new_state,
-			/// along with the time since that change was observed. The time is in seconds, and is
-			/// intended for comparison with the various constants defined at namespace scope:
-			/// ArbitrationDelay et al. Observers will be notified each time one of the thresholds
-			/// defined by those constants is crossed.
-			virtual void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) = 0;
-		};
-		/*!
-			Adds an observer.
-		*/
-		void add_observer(Observer *);
+	struct Observer {
+		/// Reports to an observer that the bus changed from a previous state to @c new_state,
+		/// along with the time since that change was observed. The time is in seconds, and is
+		/// intended for comparison with the various constants defined at namespace scope:
+		/// ArbitrationDelay et al. Observers will be notified each time one of the thresholds
+		/// defined by those constants is crossed.
+		virtual void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) = 0;
+	};
+	/*!
+		Adds an observer.
+	*/
+	void add_observer(Observer *);
 
-		/*!
-			SCSI buses don't have a clock. But devices on the bus are concerned with time-based factors,
-			and `run_for` is the way that time propagates within this emulator. So please permit this
-			fiction.
-		*/
-		void run_for(HalfCycles);
+	/*!
+		SCSI buses don't have a clock. But devices on the bus are concerned with time-based factors,
+		and `run_for` is the way that time propagates within this emulator. So please permit this
+		fiction.
+	*/
+	void run_for(HalfCycles);
 
-		/*!
-			Forces a `scsi_bus_did_change` propagation now.
-		*/
-		void update_observers();
+	/*!
+		Forces a `scsi_bus_did_change` propagation now.
+	*/
+	void update_observers();
 
-		// As per ClockingHint::Source.
-		ClockingHint::Preference preferred_clocking() const final;
+	// As per ClockingHint::Source.
+	ClockingHint::Preference preferred_clocking() const final;
 
-		// Fulfilling public Activity::Source.
-		void set_activity_observer(Activity::Observer *observer) final;
+	// Fulfilling public Activity::Source.
+	void set_activity_observer(Activity::Observer *observer) final;
 
-	private:
-		HalfCycles time_in_state_;
-		double cycles_to_time_ = 1.0;
-		size_t dispatch_index_ = 0;
-		std::array<Cycles::IntType, 8> dispatch_times_;
+private:
+	HalfCycles time_in_state_;
+	double cycles_to_time_ = 1.0;
+	size_t dispatch_index_ = 0;
+	std::array<Cycles::IntType, 8> dispatch_times_;
 
-		std::vector<BusState> device_states_;
-		BusState state_ = DefaultBusState;
-		std::vector<Observer *> observers_;
+	std::vector<BusState> device_states_;
+	BusState state_ = DefaultBusState;
+	std::vector<Observer *> observers_;
 
-		Activity::Observer *activity_observer_ = nullptr;
+	Activity::Observer *activity_observer_ = nullptr;
 };
 
 }

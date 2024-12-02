@@ -15,52 +15,52 @@
 namespace Amiga {
 
 class Sprite: public DMADevice<1> {
-	public:
-		using DMADevice::DMADevice;
+public:
+	using DMADevice::DMADevice;
 
-		void set_start_position(uint16_t value);
-		void set_stop_and_control(uint16_t value);
-		void set_image_data(int slot, uint16_t value);
+	void set_start_position(uint16_t value);
+	void set_stop_and_control(uint16_t value);
+	void set_image_data(int slot, uint16_t value);
 
-		bool advance_dma(int offset, int y, bool is_first_line);
+	bool advance_dma(int offset, int y, bool is_first_line);
 
-		uint16_t data[2]{};
-		bool attached = false;
-		bool visible = false;
-		uint16_t h_start = 0;
+	uint16_t data[2]{};
+	bool attached = false;
+	bool visible = false;
+	uint16_t h_start = 0;
 
-	private:
-		uint16_t v_start_ = 0, v_stop_ = 0;
+private:
+	uint16_t v_start_ = 0, v_stop_ = 0;
 };
 
 class TwoSpriteShifter {
-	public:
-		/// Installs new pixel data for @c sprite (either 0 or 1),
-		/// with @c delay being either 0 or 1 to indicate whether
-		/// output should begin now or in one pixel's time.
-		template <int sprite> void load(
-			uint16_t lsb,
-			uint16_t msb,
-			int delay);
+public:
+	/// Installs new pixel data for @c sprite (either 0 or 1),
+	/// with @c delay being either 0 or 1 to indicate whether
+	/// output should begin now or in one pixel's time.
+	template <int sprite> void load(
+		uint16_t lsb,
+		uint16_t msb,
+		int delay);
 
-		/// Shifts two pixels.
-		void shift() {
-			data_ <<= 8;
-			data_ |= overflow_;
-			overflow_ = 0;
-		}
+	/// Shifts two pixels.
+	void shift() {
+		data_ <<= 8;
+		data_ |= overflow_;
+		overflow_ = 0;
+	}
 
-		/// @returns The next two pixels to output, formulated as
-		/// abcd efgh where ab and ef are two pixels of the first sprite
-		/// and cd and gh are two pixels of the second. In each case the
-		/// more significant two are output first.
-		uint8_t get() {
-			return uint8_t(data_ >> 56);
-		}
+	/// @returns The next two pixels to output, formulated as
+	/// abcd efgh where ab and ef are two pixels of the first sprite
+	/// and cd and gh are two pixels of the second. In each case the
+	/// more significant two are output first.
+	uint8_t get() {
+		return uint8_t(data_ >> 56);
+	}
 
-	private:
-		uint64_t data_;
-		uint8_t overflow_;
+private:
+	uint64_t data_;
+	uint8_t overflow_;
 };
 
 }

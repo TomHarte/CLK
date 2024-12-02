@@ -192,111 +192,111 @@ constexpr SpriteMode sprite_mode(ScreenMode screen_mode) {
 // TODO: should this be extended to include Master System sprites?
 template <Personality personality, SpriteMode mode>
 class SpriteFetcher {
-	public:
-		using AddressT = typename Base<personality>::AddressT;
+public:
+	using AddressT = typename Base<personality>::AddressT;
 
-		// The Yamaha VDP adds an additional table when in Sprite Mode 2, the sprite colour
-		// table, which is intended to fill the 512 bytes before the programmer-located sprite
-		// attribute table.
-		//
-		// It partially enforces this proximity by forcing bits 7 and 8 to 0 in the address of
-		// the attribute table, and forcing them to 1 but masking out bit 9 for the colour table.
-		//
-		// AttributeAddressMask is used to enable or disable that behaviour.
-		static constexpr AddressT AttributeAddressMask = (mode == SpriteMode::Mode2) ? AddressT(~0x180) : AddressT(~0x000);
+	// The Yamaha VDP adds an additional table when in Sprite Mode 2, the sprite colour
+	// table, which is intended to fill the 512 bytes before the programmer-located sprite
+	// attribute table.
+	//
+	// It partially enforces this proximity by forcing bits 7 and 8 to 0 in the address of
+	// the attribute table, and forcing them to 1 but masking out bit 9 for the colour table.
+	//
+	// AttributeAddressMask is used to enable or disable that behaviour.
+	static constexpr AddressT AttributeAddressMask = (mode == SpriteMode::Mode2) ? AddressT(~0x180) : AddressT(~0x000);
 
-		SpriteFetcher(Base<personality> *base, uint8_t y) :
-			base(base),
-			y(y) {}
+	SpriteFetcher(Base<personality> *base, uint8_t y) :
+		base(base),
+		y(y) {}
 
-		void fetch_location(int slot) {
-			fetch_xy(slot);
+	void fetch_location(int slot) {
+		fetch_xy(slot);
 
-			if constexpr (mode == SpriteMode::Mode2) {
-				fetch_xy(slot + 1);
+		if constexpr (mode == SpriteMode::Mode2) {
+			fetch_xy(slot + 1);
 
-				base->name_[0] = name(slot);
-				base->name_[1] = name(slot + 1);
-			}
+			base->name_[0] = name(slot);
+			base->name_[1] = name(slot + 1);
 		}
+	}
 
-		void fetch_pattern(int slot) {
-			switch(mode) {
-				case SpriteMode::Mode1:
-					fetch_image(slot, name(slot));
-				break;
+	void fetch_pattern(int slot) {
+		switch(mode) {
+			case SpriteMode::Mode1:
+				fetch_image(slot, name(slot));
+			break;
 
-				case SpriteMode::Mode2:
-					fetch_image(slot, base->name_[0]);
-					fetch_image(slot + 1, base->name_[1]);
-				break;
-			}
+			case SpriteMode::Mode2:
+				fetch_image(slot, base->name_[0]);
+				fetch_image(slot + 1, base->name_[1]);
+			break;
 		}
+	}
 
-		void fetch_y(int sprite) {
-			const AddressT address = base->sprite_attribute_table_address_ & AttributeAddressMask & bits<7>(AddressT(sprite << 2));
-			const uint8_t sprite_y = base->ram_[address];
-			base->posit_sprite(sprite, sprite_y, y);
-		}
+	void fetch_y(int sprite) {
+		const AddressT address = base->sprite_attribute_table_address_ & AttributeAddressMask & bits<7>(AddressT(sprite << 2));
+		const uint8_t sprite_y = base->ram_[address];
+		base->posit_sprite(sprite, sprite_y, y);
+	}
 
-	private:
-		void fetch_xy(int slot) {
-			auto &buffer = *base->fetch_sprite_buffer_;
-			buffer.active_sprites[slot].x =
-				base->ram_[
-					base->sprite_attribute_table_address_ & AttributeAddressMask & bits<7>(AddressT((buffer.active_sprites[slot].index << 2) | 1))
+private:
+	void fetch_xy(int slot) {
+		auto &buffer = *base->fetch_sprite_buffer_;
+		buffer.active_sprites[slot].x =
+			base->ram_[
+				base->sprite_attribute_table_address_ & AttributeAddressMask & bits<7>(AddressT((buffer.active_sprites[slot].index << 2) | 1))
+			];
+	}
+
+	uint8_t name(int slot) {
+		auto &buffer = *base->fetch_sprite_buffer_;
+		const AddressT address =
+			base->sprite_attribute_table_address_ &
+			AttributeAddressMask &
+			bits<7>(AddressT((buffer.active_sprites[slot].index << 2) | 2));
+		const uint8_t name = base->ram_[address] & (base->sprites_16x16_ ? ~3 : ~0);
+		return name;
+	}
+
+	void fetch_image(int slot, uint8_t name) {
+		uint8_t colour = 0;
+		auto &sprite = base->fetch_sprite_buffer_->active_sprites[slot];
+		switch(mode) {
+			case SpriteMode::Mode1:
+				// Fetch colour from the attribute table, per this sprite's slot.
+				colour = base->ram_[
+					base->sprite_attribute_table_address_ & bits<7>(AddressT((sprite.index << 2) | 3))
 				];
+			break;
+
+			case SpriteMode::Mode2: {
+				// Fetch colour from the colour table, per this sprite's slot and row.
+				const AddressT colour_table_address = (base->sprite_attribute_table_address_ | ~AttributeAddressMask) & AddressT(~0x200);
+				colour = base->ram_[
+					colour_table_address &
+					bits<9>(
+						AddressT(sprite.index << 4) |
+						AddressT(sprite.row)
+					)
+				];
+			} break;
 		}
+		sprite.image[2] = colour;
+		sprite.x -= sprite.early_clock();
 
-		uint8_t name(int slot) {
-			auto &buffer = *base->fetch_sprite_buffer_;
-			const AddressT address =
-				base->sprite_attribute_table_address_ &
-				AttributeAddressMask &
-				bits<7>(AddressT((buffer.active_sprites[slot].index << 2) | 2));
-			const uint8_t name = base->ram_[address] & (base->sprites_16x16_ ? ~3 : ~0);
-			return name;
-		}
+		const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
+		sprite.image[0] = base->ram_[graphic_location];
+		sprite.image[1] = base->ram_[graphic_location+16];
 
-		void fetch_image(int slot, uint8_t name) {
-			uint8_t colour = 0;
-			auto &sprite = base->fetch_sprite_buffer_->active_sprites[slot];
-			switch(mode) {
-				case SpriteMode::Mode1:
-					// Fetch colour from the attribute table, per this sprite's slot.
-					colour = base->ram_[
-						base->sprite_attribute_table_address_ & bits<7>(AddressT((sprite.index << 2) | 3))
-					];
-				break;
-
-				case SpriteMode::Mode2: {
-					// Fetch colour from the colour table, per this sprite's slot and row.
-					const AddressT colour_table_address = (base->sprite_attribute_table_address_ | ~AttributeAddressMask) & AddressT(~0x200);
-					colour = base->ram_[
-						colour_table_address &
-						bits<9>(
-							AddressT(sprite.index << 4) |
-							AddressT(sprite.row)
-						)
-					];
-				} break;
-			}
-			sprite.image[2] = colour;
-			sprite.x -= sprite.early_clock();
-
-			const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
-			sprite.image[0] = base->ram_[graphic_location];
-			sprite.image[1] = base->ram_[graphic_location+16];
-
-			if constexpr (SpriteBuffer::test_is_filling) {
-				if(slot == ((mode == SpriteMode::Mode2) ? 7 : 3)) {
-					base->fetch_sprite_buffer_->is_filling = false;
-				}
+		if constexpr (SpriteBuffer::test_is_filling) {
+			if(slot == ((mode == SpriteMode::Mode2) ? 7 : 3)) {
+				base->fetch_sprite_buffer_->is_filling = false;
 			}
 		}
+	}
 
-		Base<personality> *const base;
-		const uint8_t y;
+	Base<personality> *const base;
+	const uint8_t y;
 };
 
 template <Personality personality>

@@ -563,60 +563,60 @@ constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 ///
 /// It cannot natively describe a base of ::None.
 class ScaleIndexBase {
-	public:
-		constexpr ScaleIndexBase() noexcept = default;
-		constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
-		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
-			sib_(uint8_t(
-				scale << 6 |
-				(int(index != Source::None ? index : Source::eSP) << 3) |
-				int(base)
-			)) {}
-		constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}
-		constexpr explicit ScaleIndexBase(Source base) noexcept : ScaleIndexBase(0, Source::None, base) {}
+public:
+	constexpr ScaleIndexBase() noexcept = default;
+	constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
+	constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
+		sib_(uint8_t(
+			scale << 6 |
+			(int(index != Source::None ? index : Source::eSP) << 3) |
+			int(base)
+		)) {}
+	constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}
+	constexpr explicit ScaleIndexBase(Source base) noexcept : ScaleIndexBase(0, Source::None, base) {}
 
-		/// @returns the power of two by which to multiply @c index() before adding it to @c base().
-		constexpr int scale() const {
-			return sib_ >> 6;
-		}
+	/// @returns the power of two by which to multiply @c index() before adding it to @c base().
+	constexpr int scale() const {
+		return sib_ >> 6;
+	}
 
-		/// @returns the @c index for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, None, eBP, eSI or eDI.
-		constexpr Source index() const {
-			constexpr Source sources[] = {
-				Source::eAX, Source::eCX, Source::eDX, Source::eBX, Source::None, Source::eBP, Source::eSI, Source::eDI,
-			};
-			static_assert(sizeof(sources) == 8);
-			return sources[(sib_ >> 3) & 0x7];
-		}
+	/// @returns the @c index for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, None, eBP, eSI or eDI.
+	constexpr Source index() const {
+		constexpr Source sources[] = {
+			Source::eAX, Source::eCX, Source::eDX, Source::eBX, Source::None, Source::eBP, Source::eSI, Source::eDI,
+		};
+		static_assert(sizeof(sources) == 8);
+		return sources[(sib_ >> 3) & 0x7];
+	}
 
-		/// @returns the @c base for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, eSP, eBP, eSI or eDI.
-		constexpr Source base() const {
-			return Source(sib_ & 0x7);
-		}
+	/// @returns the @c base for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, eSP, eBP, eSI or eDI.
+	constexpr Source base() const {
+		return Source(sib_ & 0x7);
+	}
 
-		constexpr uint8_t without_base() const {
-			return sib_ & ~0x3;
-		}
+	constexpr uint8_t without_base() const {
+		return sib_ & ~0x3;
+	}
 
-		bool operator ==(const ScaleIndexBase &rhs) const {
-			// Permit either exact equality or index and base being equal
-			// but transposed with a scale of 1.
-			return
-				(sib_ == rhs.sib_) ||
-				(
-					!scale() &&	!rhs.scale() &&
-					rhs.index() == base() &&
-					rhs.base() == index()
-				);
-		}
+	bool operator ==(const ScaleIndexBase &rhs) const {
+		// Permit either exact equality or index and base being equal
+		// but transposed with a scale of 1.
+		return
+			(sib_ == rhs.sib_) ||
+			(
+				!scale() &&	!rhs.scale() &&
+				rhs.index() == base() &&
+				rhs.base() == index()
+			);
+	}
 
-		operator uint8_t() const {
-			return sib_;
-		}
+	operator uint8_t() const {
+		return sib_;
+	}
 
-	private:
-		// Data is stored directly as an 80386 SIB byte.
-		uint8_t sib_ = 0;
+private:
+	// Data is stored directly as an 80386 SIB byte.
+	uint8_t sib_ = 0;
 };
 static_assert(sizeof(ScaleIndexBase) == 1);
 static_assert(alignof(ScaleIndexBase) == 1);
@@ -632,69 +632,69 @@ static_assert(alignof(ScaleIndexBase) == 1);
 ///
 /// In all cases, the applicable segment is indicated by the instruction.
 class DataPointer {
-	public:
-		/// Constricts a DataPointer referring to the given source; it shouldn't be ::Indirect.
-		constexpr DataPointer(Source source) noexcept : source_(source) {}
+public:
+	/// Constricts a DataPointer referring to the given source; it shouldn't be ::Indirect.
+	constexpr DataPointer(Source source) noexcept : source_(source) {}
 
-		/// Constricts a DataPointer with a source of ::Indirect and the specified sib.
-		constexpr DataPointer(ScaleIndexBase sib) noexcept : sib_(sib) {}
+	/// Constricts a DataPointer with a source of ::Indirect and the specified sib.
+	constexpr DataPointer(ScaleIndexBase sib) noexcept : sib_(sib) {}
 
-		/// Constructs a DataPointer with a source and SIB; use the source to indicate
-		/// whether the base field of the SIB is effective.
-		constexpr DataPointer(Source source, ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
+	/// Constructs a DataPointer with a source and SIB; use the source to indicate
+	/// whether the base field of the SIB is effective.
+	constexpr DataPointer(Source source, ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
 
-		/// Constructs an indirect DataPointer referencing the given base, index and scale.
-		/// Automatically maps Source::Indirect to Source::IndirectNoBase if base is Source::None.
-		constexpr DataPointer(Source base, Source index, int scale) noexcept :
-			source_(base != Source::None ? Source::Indirect : Source::IndirectNoBase),
-			sib_(scale, index, base) {}
+	/// Constructs an indirect DataPointer referencing the given base, index and scale.
+	/// Automatically maps Source::Indirect to Source::IndirectNoBase if base is Source::None.
+	constexpr DataPointer(Source base, Source index, int scale) noexcept :
+		source_(base != Source::None ? Source::Indirect : Source::IndirectNoBase),
+		sib_(scale, index, base) {}
 
-		constexpr bool operator ==(const DataPointer &rhs) const {
-			// Require a SIB match only if source_ is ::Indirect or ::IndirectNoBase.
-			return
-				source_ == rhs.source_ && (
-					source_ < Source::IndirectNoBase ||
-					(source_ == Source::Indirect && sib_ == rhs.sib_) ||
-					(source_ == Source::IndirectNoBase && sib_.without_base() == rhs.sib_.without_base())
-				);
+	constexpr bool operator ==(const DataPointer &rhs) const {
+		// Require a SIB match only if source_ is ::Indirect or ::IndirectNoBase.
+		return
+			source_ == rhs.source_ && (
+				source_ < Source::IndirectNoBase ||
+				(source_ == Source::Indirect && sib_ == rhs.sib_) ||
+				(source_ == Source::IndirectNoBase && sib_.without_base() == rhs.sib_.without_base())
+			);
+	}
+
+	constexpr Source source() const {
+		return source_;
+	}
+
+	constexpr int scale() const {
+		return sib_.scale();
+	}
+
+	constexpr Source index() const {
+		return sib_.index();
+	}
+
+	/// @returns The default segment to use for this access.
+	constexpr Source default_segment() const {
+		switch(source_) {
+			default:
+			case Source::IndirectNoBase:
+				return Source::None;
+
+			case Source::Indirect:
+				switch(base()) {
+					default:			return Source::DS;
+					case Source::eBP:
+					case Source::eSP:	return Source::SS;
+					case Source::eDI:	return Source::ES;
+				}
 		}
+	}
 
-		constexpr Source source() const {
-			return source_;
-		}
+	constexpr Source base() const {
+		return sib_.base();
+	}
 
-		constexpr int scale() const {
-			return sib_.scale();
-		}
-
-		constexpr Source index() const {
-			return sib_.index();
-		}
-
-		/// @returns The default segment to use for this access.
-		constexpr Source default_segment() const {
-			switch(source_) {
-				default:
-				case Source::IndirectNoBase:
-					return Source::None;
-
-				case Source::Indirect:
-					switch(base()) {
-						default:			return Source::DS;
-						case Source::eBP:
-						case Source::eSP:	return Source::SS;
-						case Source::eDI:	return Source::ES;
-					}
-			}
-		}
-
-		constexpr Source base() const {
-			return sib_.base();
-		}
-
-	private:
-		Source source_ = Source::Indirect;
-		ScaleIndexBase sib_;
+private:
+	Source source_ = Source::Indirect;
+	ScaleIndexBase sib_;
 };
 
 template<bool is_32bit> class Instruction {

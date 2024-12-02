@@ -30,48 +30,48 @@ enum class Error {
 	if it matches the media.
 */
 class DiskImage {
-	public:
-		virtual ~DiskImage() = default;
+public:
+	virtual ~DiskImage() = default;
 
-		/*!
-			@returns the distance at which there stops being any further content.
+	/*!
+		@returns the distance at which there stops being any further content.
 
-			This is not necessarily a track count. There is no implicit guarantee that every position will
-			return a distinct track, or, e.g. if the media is holeless, will return any track at all.
-		*/
-		virtual HeadPosition get_maximum_head_position() = 0;
+		This is not necessarily a track count. There is no implicit guarantee that every position will
+		return a distinct track, or, e.g. if the media is holeless, will return any track at all.
+	*/
+	virtual HeadPosition get_maximum_head_position() = 0;
 
-		/*!
-			@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
-		*/
-		virtual int get_head_count() { return 1; }
+	/*!
+		@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
+	*/
+	virtual int get_head_count() { return 1; }
 
-		/*!
-			@returns the @c Track at @c position underneath @c head if there are any detectable events there;
-			returns @c nullptr otherwise.
-		*/
-		virtual std::shared_ptr<Track> get_track_at_position(Track::Address address) = 0;
+	/*!
+		@returns the @c Track at @c position underneath @c head if there are any detectable events there;
+		returns @c nullptr otherwise.
+	*/
+	virtual std::shared_ptr<Track> get_track_at_position(Track::Address address) = 0;
 
-		/*!
-			Replaces the Tracks indicated by the map, that maps from physical address to track content.
-		*/
-		virtual void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &) {}
+	/*!
+		Replaces the Tracks indicated by the map, that maps from physical address to track content.
+	*/
+	virtual void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &) {}
 
-		/*!
-			Communicates that it is likely to be a while before any more tracks are written.
-		*/
-		virtual void flush_tracks() {}
+	/*!
+		Communicates that it is likely to be a while before any more tracks are written.
+	*/
+	virtual void flush_tracks() {}
 
-		/*!
-			@returns whether the disk image is read only. Defaults to @c true if not overridden.
-		*/
-		virtual bool get_is_read_only() { return true; }
+	/*!
+		@returns whether the disk image is read only. Defaults to @c true if not overridden.
+	*/
+	virtual bool get_is_read_only() { return true; }
 
-		/*!
-			@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
-				This can avoid some degree of work when disk images offer sub-head-position precision.
-		*/
-		virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs != rhs; }
+	/*!
+		@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
+			This can avoid some degree of work when disk images offer sub-head-position precision.
+	*/
+	virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs != rhs; }
 };
 
 class DiskImageHolderBase: public Disk {
@@ -90,29 +90,29 @@ class DiskImageHolderBase: public Disk {
 	the underlying image doesn't implement TypeDistinguisher, or else to pass the call along.
 */
 template <typename T> class DiskImageHolder: public DiskImageHolderBase, public TargetPlatform::TypeDistinguisher {
-	public:
-		template <typename... Ts> DiskImageHolder(Ts&&... args) :
-			disk_image_(args...) {}
-		~DiskImageHolder();
+public:
+	template <typename... Ts> DiskImageHolder(Ts&&... args) :
+		disk_image_(args...) {}
+	~DiskImageHolder();
 
-		HeadPosition get_maximum_head_position();
-		int get_head_count();
-		std::shared_ptr<Track> get_track_at_position(Track::Address address);
-		void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
-		void flush_tracks();
-		bool get_is_read_only();
-		bool tracks_differ(Track::Address lhs, Track::Address rhs);
+	HeadPosition get_maximum_head_position();
+	int get_head_count();
+	std::shared_ptr<Track> get_track_at_position(Track::Address address);
+	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
+	void flush_tracks();
+	bool get_is_read_only();
+	bool tracks_differ(Track::Address lhs, Track::Address rhs);
 
-	private:
-		T disk_image_;
+private:
+	T disk_image_;
 
-		TargetPlatform::Type target_platform_type() final {
-			if constexpr (std::is_base_of<TargetPlatform::TypeDistinguisher, T>::value) {
-				return static_cast<TargetPlatform::TypeDistinguisher *>(&disk_image_)->target_platform_type();
-			} else {
-				return TargetPlatform::Type(~0);
-			}
+	TargetPlatform::Type target_platform_type() final {
+		if constexpr (std::is_base_of<TargetPlatform::TypeDistinguisher, T>::value) {
+			return static_cast<TargetPlatform::TypeDistinguisher *>(&disk_image_)->target_platform_type();
+		} else {
+			return TargetPlatform::Type(~0);
 		}
+	}
 };
 
 #include "DiskImageImplementation.hpp"

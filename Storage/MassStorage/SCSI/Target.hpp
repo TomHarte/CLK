@@ -22,63 +22,63 @@ namespace SCSI::Target {
 	the command phase plus any other data read since then.
 */
 class CommandState {
-	public:
-		CommandState(const std::vector<uint8_t> &command, const std::vector<uint8_t> &received);
+public:
+	CommandState(const std::vector<uint8_t> &command, const std::vector<uint8_t> &received);
 
-		// For read and write commands.
-		struct ReadWrite {
-			uint32_t address, number_of_blocks;
-		};
-		ReadWrite read_write_specs() const;
+	// For read and write commands.
+	struct ReadWrite {
+		uint32_t address, number_of_blocks;
+	};
+	ReadWrite read_write_specs() const;
 
-		// For inquiry commands.
-		size_t allocated_inquiry_bytes() const;
+	// For inquiry commands.
+	size_t allocated_inquiry_bytes() const;
 
-		// For mode sense commands.
-		struct ModeSense {
-			bool exclude_block_descriptors = false;
-			enum class PageControlValues {
-				Current = 0,
-				Changeable = 1,
-				Default = 2,
-				Saved = 3
-			} page_control_values = PageControlValues::Current;
-			uint8_t page_code;
-			uint8_t subpage_code;
-			uint16_t allocated_bytes;
-		};
-		ModeSense mode_sense_specs() const;
+	// For mode sense commands.
+	struct ModeSense {
+		bool exclude_block_descriptors = false;
+		enum class PageControlValues {
+			Current = 0,
+			Changeable = 1,
+			Default = 2,
+			Saved = 3
+		} page_control_values = PageControlValues::Current;
+		uint8_t page_code;
+		uint8_t subpage_code;
+		uint16_t allocated_bytes;
+	};
+	ModeSense mode_sense_specs() const;
 
-		struct ModeSelect {
-			bool content_is_vendor_specific = true;
-			bool revert_to_default = false;
-			bool save_pages = false;
-			uint16_t parameter_list_length = 0;
-		};
-		ModeSelect mode_select_specs() const;
+	struct ModeSelect {
+		bool content_is_vendor_specific = true;
+		bool revert_to_default = false;
+		bool save_pages = false;
+		uint16_t parameter_list_length = 0;
+	};
+	ModeSelect mode_select_specs() const;
 
-		struct ReadBuffer {
-			enum class Mode {
-				CombinedHeaderAndData = 0,
-				VendorSpecific = 1,
-				Data = 2,
-				Descriptor = 3,
-				Reserved = 4
-			} mode = Mode::CombinedHeaderAndData;
-			uint8_t buffer_id = 0;
-			uint32_t buffer_offset = 0, buffer_length = 0;
-		};
-		ReadBuffer read_buffer_specs() const;
+	struct ReadBuffer {
+		enum class Mode {
+			CombinedHeaderAndData = 0,
+			VendorSpecific = 1,
+			Data = 2,
+			Descriptor = 3,
+			Reserved = 4
+		} mode = Mode::CombinedHeaderAndData;
+		uint8_t buffer_id = 0;
+		uint32_t buffer_offset = 0, buffer_length = 0;
+	};
+	ReadBuffer read_buffer_specs() const;
 
-		const std::vector<uint8_t> &received_data() const {
-			return received_;
-		}
+	const std::vector<uint8_t> &received_data() const {
+		return received_;
+	}
 
-	private:
-		uint32_t address() const;
-		uint16_t number_of_blocks() const;
-		const std::vector<uint8_t> &data_;
-		const std::vector<uint8_t> &received_;
+private:
+	uint32_t address() const;
+	uint16_t number_of_blocks() const;
+	const std::vector<uint8_t> &data_;
+	const std::vector<uint8_t> &received_;
 };
 
 /*!
@@ -332,65 +332,65 @@ struct Executor {
 	as Executors.
 */
 template <typename Executor> class Target: public Bus::Observer, public Responder {
-	public:
-		/*!
-			Instantiates a target attached to @c bus,
-			with SCSI ID @c scsi_id — a number in the range 0 to 7.
+public:
+	/*!
+		Instantiates a target attached to @c bus,
+		with SCSI ID @c scsi_id — a number in the range 0 to 7.
 
-			Received commands will be handed to the Executor to perform.
-		*/
-		Target(Bus &bus, int scsi_id);
+		Received commands will be handed to the Executor to perform.
+	*/
+	Target(Bus &bus, int scsi_id);
 
-		inline Executor *operator->() {
-			return &executor_;
-		}
+	inline Executor *operator->() {
+		return &executor_;
+	}
 
-	private:
-		Executor executor_;
-		Log::Logger<Log::Source::SCSI> log_;
+private:
+	Executor executor_;
+	Log::Logger<Log::Source::SCSI> log_;
 
-		// Bus::Observer.
-		void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) final;
+	// Bus::Observer.
+	void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) final;
 
-		// Responder
-		void send_data(std::vector<uint8_t> &&data, continuation next) final;
-		void receive_data(size_t length, continuation next) final;
-		void send_status(Status, continuation next) final;
-		void send_message(Message, continuation next) final;
-		void end_command() final;
+	// Responder
+	void send_data(std::vector<uint8_t> &&data, continuation next) final;
+	void receive_data(size_t length, continuation next) final;
+	void send_status(Status, continuation next) final;
+	void send_message(Message, continuation next) final;
+	void end_command() final;
 
-		// Instance storage.
-		Bus &bus_;
-		const BusState scsi_id_mask_;
-		const size_t scsi_bus_device_id_;
+	// Instance storage.
+	Bus &bus_;
+	const BusState scsi_id_mask_;
+	const size_t scsi_bus_device_id_;
 
-		enum class Phase {
-			AwaitingSelection,
-			Command,
-			ReceivingData,
-			SendingData,
-			SendingStatus,
-			SendingMessage
-		} phase_ = Phase::AwaitingSelection;
-		BusState bus_state_ = DefaultBusState;
+	enum class Phase {
+		AwaitingSelection,
+		Command,
+		ReceivingData,
+		SendingData,
+		SendingStatus,
+		SendingMessage
+	} phase_ = Phase::AwaitingSelection;
+	BusState bus_state_ = DefaultBusState;
 
-		void set_device_output(BusState state) {
-			expected_control_state_ = state & (Line::Control | Line::Input | Line::Message);
-			bus_.set_device_output(scsi_bus_device_id_, state);
-		}
-		BusState expected_control_state_ = DefaultBusState;
+	void set_device_output(BusState state) {
+		expected_control_state_ = state & (Line::Control | Line::Input | Line::Message);
+		bus_.set_device_output(scsi_bus_device_id_, state);
+	}
+	BusState expected_control_state_ = DefaultBusState;
 
-		void begin_command(uint8_t first_byte);
-		std::vector<uint8_t> command_;
-		Status status_;
-		Message message_;
-		size_t command_pointer_ = 0;
-		bool dispatch_command();
+	void begin_command(uint8_t first_byte);
+	std::vector<uint8_t> command_;
+	Status status_;
+	Message message_;
+	size_t command_pointer_ = 0;
+	bool dispatch_command();
 
-		std::vector<uint8_t> data_;
-		size_t data_pointer_ = 0;
+	std::vector<uint8_t> data_;
+	size_t data_pointer_ = 0;
 
-		continuation next_function_;
+	continuation next_function_;
 };
 
 #include "TargetImplementation.hpp"

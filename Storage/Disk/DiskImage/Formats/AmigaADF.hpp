@@ -19,23 +19,23 @@ namespace Storage::Disk {
 	but the Amiga doesn't use IBM-style sector demarcation.
 */
 class AmigaADF: public DiskImage {
-	public:
-		/*!
-			Construct an @c AmigaADF containing content from the file with name @c file_name.
+public:
+	/*!
+		Construct an @c AmigaADF containing content from the file with name @c file_name.
 
-			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
-			@throws Error::InvalidFormat if the file doesn't appear to contain an .ADF format image.
-		*/
-		AmigaADF(const std::string &file_name);
+		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+		@throws Error::InvalidFormat if the file doesn't appear to contain an .ADF format image.
+	*/
+	AmigaADF(const std::string &file_name);
 
-		// implemented to satisfy @c Disk
-		HeadPosition get_maximum_head_position() final;
-		int get_head_count() final;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
+	// implemented to satisfy @c Disk
+	HeadPosition get_maximum_head_position() final;
+	int get_head_count() final;
+	std::shared_ptr<Track> get_track_at_position(Track::Address) final;
 
-	private:
-		Storage::FileHolder file_;
-		long get_file_offset_for_position(Track::Address address);
+private:
+	Storage::FileHolder file_;
+	long get_file_offset_for_position(Track::Address);
 
 };
 

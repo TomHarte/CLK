@@ -93,75 +93,75 @@ inline Command decode_command(uint8_t code) {
 		update @c set_device_output.
 */
 class Bus {
-	public:
-		Bus(HalfCycles clock_speed);
+public:
+	Bus(HalfCycles clock_speed);
 
-		/*!
-			Advances time; ADB is a clocked serial signal.
-		*/
-		void run_for(HalfCycles);
+	/*!
+		Advances time; ADB is a clocked serial signal.
+	*/
+	void run_for(HalfCycles);
 
-		/*!
-			Adds a device to the bus, returning the index it should use
-			to refer to itself in subsequent calls to set_device_output.
-		*/
-		size_t add_device();
+	/*!
+		Adds a device to the bus, returning the index it should use
+		to refer to itself in subsequent calls to set_device_output.
+	*/
+	size_t add_device();
 
-		/*!
-			Sets the current data line output for @c device.
-		*/
-		void set_device_output(size_t device_id, bool output);
+	/*!
+		Sets the current data line output for @c device.
+	*/
+	void set_device_output(size_t device_id, bool output);
 
-		/*!
-			@returns The current state of the ADB data line.
-		*/
-		bool get_state() const;
+	/*!
+		@returns The current state of the ADB data line.
+	*/
+	bool get_state() const;
 
-		enum class Event {
-			Reset,
-			Attention,
-			Byte,
-			ServiceRequest,
+	enum class Event {
+		Reset,
+		Attention,
+		Byte,
+		ServiceRequest,
 
-			Unrecognised
-		};
+		Unrecognised
+	};
 
-		struct Device {
-			/// Reports to an observer that @c event was observed in the activity
-			/// observed on this bus. If this was a byte event, that byte's value is given as @c value.
-			virtual void adb_bus_did_observe_event(Event event, uint8_t value = 0xff) = 0;
+	struct Device {
+		/// Reports to an observer that @c event was observed in the activity
+		/// observed on this bus. If this was a byte event, that byte's value is given as @c value.
+		virtual void adb_bus_did_observe_event(Event event, uint8_t value = 0xff) = 0;
 
-			/// Requests that the device update itself @c microseconds and, if necessary, post a
-			/// new value ot @c set_device_output. This will be called only when the bus needs
-			/// to reevaluate its current level. It cannot reliably be used to track the timing between
-			/// observed events.
-			virtual void advance_state(double microseconds, bool current_level) = 0;
-		};
-		/*!
-			Adds a device.
-		*/
-		size_t add_device(Device *);
+		/// Requests that the device update itself @c microseconds and, if necessary, post a
+		/// new value ot @c set_device_output. This will be called only when the bus needs
+		/// to reevaluate its current level. It cannot reliably be used to track the timing between
+		/// observed events.
+		virtual void advance_state(double microseconds, bool current_level) = 0;
+	};
+	/*!
+		Adds a device.
+	*/
+	size_t add_device(Device *);
 
-	private:
-		HalfCycles time_in_state_;
-		mutable HalfCycles time_since_get_state_;
+private:
+	HalfCycles time_in_state_;
+	mutable HalfCycles time_since_get_state_;
 
-		double half_cycles_to_microseconds_ = 1.0;
-		std::vector<Device *> devices_;
-		unsigned int shift_register_ = 0;
-		unsigned int start_target_ = 8;
-		bool data_level_ = true;
+	double half_cycles_to_microseconds_ = 1.0;
+	std::vector<Device *> devices_;
+	unsigned int shift_register_ = 0;
+	unsigned int start_target_ = 8;
+	bool data_level_ = true;
 
-		// ADB addressing supports at most 16 devices but that doesn't include
-		// the controller. So assume a maximum of 17 connected devices.
-		std::bitset<17> bus_state_{0xffffffff};
-		size_t next_device_id_ = 0;
+	// ADB addressing supports at most 16 devices but that doesn't include
+	// the controller. So assume a maximum of 17 connected devices.
+	std::bitset<17> bus_state_{0xffffffff};
+	size_t next_device_id_ = 0;
 
-		inline void shift(unsigned int);
-		enum class Phase {
-			PacketCapture,
-			AttentionCapture
-		} phase_ = Phase::AttentionCapture;
+	inline void shift(unsigned int);
+	enum class Phase {
+		PacketCapture,
+		AttentionCapture
+	} phase_ = Phase::AttentionCapture;
 };
 
 }

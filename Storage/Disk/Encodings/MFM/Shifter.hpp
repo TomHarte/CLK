@@ -43,38 +43,38 @@ namespace Storage::Encodings::MFM {
 	A specific instance of the CRC generator can be supplied at construction if preferred.
 */
 class Shifter {
-	public:
-		Shifter();
-		Shifter(CRC::CCITT *crc_generator);
+public:
+	Shifter();
+	Shifter(CRC::CCITT *crc_generator);
 
-		void set_is_mfm(bool is_mfm);
-		void set_should_obey_syncs(bool should_obey_syncs);
-		void add_input_bit(int bit);
+	void set_is_mfm(bool is_mfm);
+	void set_should_obey_syncs(bool should_obey_syncs);
+	void add_input_bit(int bit);
 
-		enum Token {
-			Index, ID, Data, DeletedData, Sync, Byte, None
-		};
-		uint8_t get_byte() const;
-		Token get_token() const {
-			return token_;
-		}
-		CRC::CCITT &get_crc_generator() {
-			return *crc_generator_;
-		}
+	enum Token {
+		Index, ID, Data, DeletedData, Sync, Byte, None
+	};
+	uint8_t get_byte() const;
+	Token get_token() const {
+		return token_;
+	}
+	CRC::CCITT &get_crc_generator() {
+		return *crc_generator_;
+	}
 
-	private:
-		// Bit stream input state.
-		int bits_since_token_ = 0;
-		unsigned int shift_register_ = 0;
-		bool is_awaiting_marker_value_ = false;
-		bool should_obey_syncs_ = true;
-		Token token_ = None;
+private:
+	// Bit stream input state.
+	int bits_since_token_ = 0;
+	unsigned int shift_register_ = 0;
+	bool is_awaiting_marker_value_ = false;
+	bool should_obey_syncs_ = true;
+	Token token_ = None;
 
-		// Input configuration.
-		bool is_mfm_ = false;
+	// Input configuration.
+	bool is_mfm_ = false;
 
-		std::unique_ptr<CRC::CCITT> owned_crc_generator_;
-		CRC::CCITT *crc_generator_;
+	std::unique_ptr<CRC::CCITT> owned_crc_generator_;
+	CRC::CCITT *crc_generator_;
 };
 
 }

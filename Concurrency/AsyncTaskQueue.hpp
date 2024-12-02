@@ -26,15 +26,15 @@ template <typename Performer> struct TaskQueueStorage {
 
 	Performer performer;
 
-	protected:
-		void update() {
-			auto time_now = Time::nanos_now();
-			performer.perform(time_now - last_fired_);
-			last_fired_ = time_now;
-		}
+protected:
+	void update() {
+		auto time_now = Time::nanos_now();
+		performer.perform(time_now - last_fired_);
+		last_fired_ = time_now;
+	}
 
-	private:
-		Time::Nanos last_fired_;
+private:
+	Time::Nanos last_fired_;
 };
 
 /// An implementation detail; provides a no-op implementation of time advances for TaskQueues without a Performer.

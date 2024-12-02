@@ -435,11 +435,11 @@ struct ArrayReceiver: public Reflection::Struct {
 		return nullptr;
 	}
 
-	private:
-		Reflection::Struct *target_;
-		const std::type_info *type_;
-		std::string key_;
-		size_t count_;
+private:
+	Reflection::Struct *target_;
+	const std::type_info *type_;
+	std::string key_;
+	size_t count_;
 };
 
 }
