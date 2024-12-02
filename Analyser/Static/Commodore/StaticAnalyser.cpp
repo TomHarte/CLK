@@ -109,6 +109,10 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 			case 0x0401:
 				memory_model = Target::MemoryModel::EightKB;
 			break;
+
+			case 0x1c01:
+				Log::Logger<Log::Source::CommodoreStaticAnalyser>().info().append("Unimplemented: C128");
+			break;
 		}
 
 		target->set_memory_model(memory_model);

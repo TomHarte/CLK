@@ -405,6 +405,7 @@
 		4B670AB12401CB8400D4E002 /* z80docflags.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A9A2401CB8400D4E002 /* z80docflags.tap */; };
 		4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */; };
 		4B680CE423A555CA00451D43 /* 68000 Comparative Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B680CE323A555CA00451D43 /* 68000 Comparative Tests */; };
+		4B6823A42CFE45B800276DA6 /* CommodoreStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B6823A32CFE45B800276DA6 /* CommodoreStaticAnalyserTests.mm */; };
 		4B683B012727BE700043E541 /* Amiga Blitter Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B683B002727BE6F0043E541 /* Amiga Blitter Tests */; };
 		4B69DEB62AB79E4F0055B217 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69DEB52AB79E4F0055B217 /* Instruction.cpp */; };
 		4B69DEB72AB79E4F0055B217 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69DEB52AB79E4F0055B217 /* Instruction.cpp */; };
@@ -1626,6 +1627,7 @@
 		4B670A9A2401CB8400D4E002 /* z80docflags.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80docflags.tap; sourceTree = "<group>"; };
 		4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000ComparativeTests.mm; sourceTree = "<group>"; };
 		4B680CE323A555CA00451D43 /* 68000 Comparative Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Comparative Tests"; sourceTree = "<group>"; };
+		4B6823A32CFE45B800276DA6 /* CommodoreStaticAnalyserTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CommodoreStaticAnalyserTests.mm; sourceTree = "<group>"; };
 		4B683B002727BE6F0043E541 /* Amiga Blitter Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Amiga Blitter Tests"; sourceTree = "<group>"; };
 		4B698D1A1FE768A100696C91 /* BufferSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BufferSource.hpp; sourceTree = "<group>"; };
 		4B69DEB52AB79E4F0055B217 /* Instruction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Instruction.cpp; sourceTree = "<group>"; };
@@ -4653,6 +4655,7 @@
 				4B2005422B804D6400420C5C /* ARMDecoderTests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BE34437238389E10058E78F /* AtariSTVideoTests.mm */,
+				4B6823A32CFE45B800276DA6 /* CommodoreStaticAnalyserTests.mm */,
 				4B882F582C2F9C6900D84031 /* CPCShakerTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
 				4BB0CAA627E51B6300672A88 /* DingusdevPowerPCTests.mm */,
@@ -6465,6 +6468,7 @@
 				4B778F0A23A5EC150000D260 /* TapePRG.cpp in Sources */,
 				4B778F0823A5EC150000D260 /* CSW.cpp in Sources */,
 				4BA6B6AE284EDAC100A3B7A8 /* 68000OldVsNew.mm in Sources */,
+				4B6823A42CFE45B800276DA6 /* CommodoreStaticAnalyserTests.mm in Sources */,
 				4B778F5323A5F23F0000D260 /* SerialBus.cpp in Sources */,
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
 				4B7752BA28217F160073E2C5 /* Bitplanes.cpp in Sources */,
