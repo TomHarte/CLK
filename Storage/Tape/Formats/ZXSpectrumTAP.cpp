@@ -19,19 +19,20 @@ using namespace Storage::Tape;
 */
 
 ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) :
-	file_(file_name)
+	file_(file_name, FileHolder::FileMode::Read)
 {
 	// Check for a continuous series of blocks through to
 	// exactly file end.
 	//
 	// To consider: could also check those blocks of type 0
 	// and type ff for valid checksums?
-	while(true) {
+	while(file_.tell() != file_.stats().st_size) {
 		const uint16_t block_length = file_.get16le();
-		if(file_.eof()) throw ErrorNotZXSpectrumTAP;
+		if(file_.eof() || file_.tell() + block_length >= file_.stats().st_size) {
+			throw ErrorNotZXSpectrumTAP;
+		}
 
 		file_.seek(block_length, SEEK_CUR);
-		if(file_.tell() == file_.stats().st_size) break;
 	}
 
 	virtual_reset();
