@@ -60,7 +60,7 @@ namespace {
 }
 
 CAS::CAS(const std::string &file_name) {
-	Storage::FileHolder file(file_name);
+	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
 	enum class Mode {
 		Seeking,

@@ -13,7 +13,7 @@
 using namespace Storage::Tape;
 
 OricTAP::OricTAP(const std::string &file_name) :
-	file_(file_name)
+	file_(file_name, FileHolder::FileMode::Read)
 {
 	// Check for a sequence of at least three 0x16s followed by a 0x24.
 	while(true) {

@@ -12,7 +12,7 @@
 using namespace Storage::Tape;
 
 ZX80O81P::ZX80O81P(const std::string &file_name) {
-	Storage::FileHolder file(file_name);
+	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
 	// Grab the actual file contents
 	data_.resize(size_t(file.stats().st_size));

@@ -22,7 +22,7 @@ Log::Logger<Log::Source::TZX> logger;
 }
 
 TZX::TZX(const std::string &file_name) :
-	file_(file_name),
+	file_(file_name, FileHolder::FileMode::Read),
 	current_level_(false) {
 
 	// Check for signature followed by a 0x1a
