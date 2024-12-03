@@ -158,6 +158,6 @@ Tape::Pulse OricTAP::virtual_get_next_pulse() {
 	return pulse;
 }
 
-bool OricTAP::is_at_end() {
+bool OricTAP::is_at_end() const {
 	return phase_ == End;
 }

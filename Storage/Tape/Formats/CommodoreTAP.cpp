@@ -45,7 +45,7 @@ void CommodoreTAP::virtual_reset() {
 	is_at_end_ = false;
 }
 
-bool CommodoreTAP::is_at_end() {
+bool CommodoreTAP::is_at_end() const {
 	return is_at_end_;
 }
 

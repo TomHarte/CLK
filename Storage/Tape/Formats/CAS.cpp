@@ -168,7 +168,7 @@ CAS::CAS(const std::string &file_name) {
 	}
 }
 
-bool CAS::is_at_end() {
+bool CAS::is_at_end() const {
 	return phase_ == Phase::EndOfFile;
 }
 

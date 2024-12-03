@@ -48,7 +48,7 @@ private:
 	void read_next_block();
 
 	// Implemented to satisfy @c Tape.
-	bool is_at_end() override;
+	bool is_at_end() const override;
 	void virtual_reset() override;
 	Pulse virtual_get_next_pulse() override;
 };

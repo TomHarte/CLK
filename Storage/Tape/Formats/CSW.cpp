@@ -114,7 +114,7 @@ void CSW::invert_pulse() {
 	pulse_.type = (pulse_.type == Pulse::High) ? Pulse::Low : Pulse::High;
 }
 
-bool CSW::is_at_end() {
+bool CSW::is_at_end() const {
 	return source_data_pointer_ == source_data_.size();
 }
 

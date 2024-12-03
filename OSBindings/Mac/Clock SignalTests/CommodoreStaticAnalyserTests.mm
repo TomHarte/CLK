@@ -46,7 +46,6 @@ struct HitRate {
 			continue;
 		}
 
-		NSLog(@"%@", diskItem);
 		const auto list = Analyser::Static::GetTargets([path stringByAppendingPathComponent:diskItem].UTF8String);
 		if(list.empty()) {
 			continue;

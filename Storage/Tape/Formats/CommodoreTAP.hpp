@@ -33,12 +33,12 @@ public:
 	};
 
 	// implemented to satisfy @c Tape
-	bool is_at_end();
+	bool is_at_end() const override;
 
 private:
 	Storage::FileHolder file_;
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
+	void virtual_reset() override;
+	Pulse virtual_get_next_pulse() override;
 
 	bool updated_layout_;
 	uint32_t file_size_;

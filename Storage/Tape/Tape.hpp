@@ -54,14 +54,14 @@ public:
 	void reset();
 
 	/// @returns @c true if the tape has progressed beyond all recorded content; @c false otherwise.
-	virtual bool is_at_end() = 0;
+	virtual bool is_at_end() const = 0;
 
 	/*!
 		Returns a numerical representation of progression into the tape. Precision is arbitrary but
 		required to be at least to the whole pulse. Greater numbers are later than earlier numbers,
 		but not necessarily continuous.
 	*/
-	virtual uint64_t get_offset();
+	virtual uint64_t get_offset() const;
 
 	/*!
 		Moves the tape to the first time at which the specified offset would be returned by get_offset.

@@ -34,12 +34,12 @@ public:
 	};
 
 	// implemented to satisfy @c Tape
-	bool is_at_end();
+	bool is_at_end() const override;
 
 private:
 	FileHolder file_;
-	Pulse virtual_get_next_pulse();
-	void virtual_reset();
+	Pulse virtual_get_next_pulse() override;
+	void virtual_reset() override;
 
 	uint16_t load_address_;
 	uint16_t length_;

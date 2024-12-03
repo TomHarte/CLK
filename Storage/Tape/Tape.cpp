@@ -49,7 +49,7 @@ Tape::Pulse Tape::get_next_pulse() {
 	return pulse_;
 }
 
-uint64_t Tape::get_offset() {
+uint64_t Tape::get_offset() const {
 	return offset_;
 }
 

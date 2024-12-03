@@ -37,15 +37,15 @@ public:
 
 private:
 	// implemented to satisfy @c Tape
-	bool is_at_end();
+	bool is_at_end() const override;
 
 	// implemented to satisfy TargetPlatform::TypeDistinguisher
-	TargetPlatform::Type target_platform_type();
+	TargetPlatform::Type target_platform_type() override;
 	TargetPlatform::Type platform_type_;
 
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
-	bool has_finished_data();
+	void virtual_reset() override;
+	Pulse virtual_get_next_pulse() override;
+	bool has_finished_data() const;
 
 	uint8_t byte_;
 	int bit_pointer_;

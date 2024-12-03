@@ -38,7 +38,7 @@ ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) :
 	virtual_reset();
 }
 
-bool ZXSpectrumTAP::is_at_end() {
+bool ZXSpectrumTAP::is_at_end() const {
 	return file_.tell() == file_.stats().st_size && phase_ == Phase::Gap;
 }
 

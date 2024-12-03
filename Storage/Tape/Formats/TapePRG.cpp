@@ -95,7 +95,7 @@ void PRG::virtual_reset() {
 	copy_mask_ = 0x80;
 }
 
-bool PRG::is_at_end() {
+bool PRG::is_at_end() const {
 	return file_phase_ == FilePhaseAtEnd;
 }
 

@@ -34,11 +34,11 @@ public:
 	};
 
 	// implemented to satisfy @c Tape
-	bool is_at_end();
+	bool is_at_end() const override;
 
 private:
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
+	void virtual_reset() override;
+	Pulse virtual_get_next_pulse() override;
 
 	// Storage for the array of data blobs to transcribe into audio;
 	// each chunk is preceded by a header which may be long, and is optionally

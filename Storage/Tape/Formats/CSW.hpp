@@ -43,11 +43,11 @@ public:
 	};
 
 	// implemented to satisfy @c Tape
-	bool is_at_end();
+	bool is_at_end() const override;
 
 private:
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
+	void virtual_reset() override;
+	Pulse virtual_get_next_pulse() override;
 
 	Pulse pulse_;
 	CompressionType compression_type_;

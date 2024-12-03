@@ -115,7 +115,7 @@ void TZX::get_csw_recording_block() {
 	while(!csw.is_at_end()) {
 		Tape::Pulse next_pulse = csw.get_next_pulse();
 		current_level_ = (next_pulse.type == Tape::Pulse::High);
-		emplace_back(std::move(next_pulse));
+		push_back(next_pulse);
 	}
 
 	(void)number_of_compressed_pulses;

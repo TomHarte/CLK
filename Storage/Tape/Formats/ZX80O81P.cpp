@@ -42,11 +42,11 @@ void ZX80O81P::virtual_reset() {
 	bit_pointer_ = wave_pointer_ = 0;
 }
 
-bool ZX80O81P::has_finished_data() {
+bool ZX80O81P::has_finished_data() const {
 	return (data_pointer_ == data_.size()) && !wave_pointer_ && !bit_pointer_;
 }
 
-bool ZX80O81P::is_at_end() {
+bool ZX80O81P::is_at_end() const {
 	return has_finished_data() && has_ended_final_byte_;
 }
 
