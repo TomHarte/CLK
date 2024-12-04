@@ -38,7 +38,7 @@ private:
 		Serialiser(const std::string &file_name);
 	private:
 		bool is_at_end() const override;
-		Pulse get_next_pulse() override;
+		Pulse next_pulse() override;
 		void reset() override;
 
 		FileHolder file_;

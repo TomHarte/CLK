@@ -35,7 +35,7 @@ void PulseQueuedSerialiser::push_back(const Pulse pulse) {
 	queued_pulses_.push_back(pulse);
 }
 
-Pulse PulseQueuedSerialiser::get_next_pulse() {
+Pulse PulseQueuedSerialiser::next_pulse() {
 	const auto silence = [] {
 		return Pulse(Pulse::Type::Zero, Storage::Time(1, 1));
 	};
@@ -46,7 +46,7 @@ Pulse PulseQueuedSerialiser::get_next_pulse() {
 
 	if(pulse_pointer_ == queued_pulses_.size()) {
 		clear();
-		get_next_pulses();
+		push_next_pulses();
 
 		if(is_at_end_ || pulse_pointer_ == queued_pulses_.size()) {
 			return silence();

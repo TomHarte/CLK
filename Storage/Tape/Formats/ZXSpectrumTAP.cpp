@@ -49,7 +49,7 @@ void ZXSpectrumTAP::Serialiser::reset() {
 	read_next_block();
 }
 
-Pulse ZXSpectrumTAP::Serialiser::get_next_pulse() {
+Pulse ZXSpectrumTAP::Serialiser::next_pulse() {
 	// Adopt a general pattern of high then low.
 	Pulse pulse;
 	pulse.type = (distance_into_phase_ & 1) ? Pulse::Type::High : Pulse::Type::Low;

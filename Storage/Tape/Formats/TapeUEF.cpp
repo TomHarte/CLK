@@ -28,8 +28,7 @@ float gzgetfloat(gzFile file) {
 	was the first byte read from the UEF, Float[1] the second, etc */
 
 	/* decode mantissa */
-	int mantissa;
-	mantissa = bytes[0] | (bytes[1] << 8) | ((bytes[2]&0x7f)|0x80) << 16;
+	const int mantissa = bytes[0] | (bytes[1] << 8) | ((bytes[2]&0x7f)|0x80) << 16;
 
 	float result = float(mantissa);
 	result = float(ldexp(result, -23));
@@ -82,7 +81,7 @@ UEF::Serialiser::Serialiser(const std::string &file_name) {
 	file_ = gzopen(file_name.c_str(), "rb");
 
 	char identifier[10];
-	int bytes_read = gzread(file_, identifier, 10);
+	const int bytes_read = gzread(file_, identifier, 10);
 	if(bytes_read < 10 || std::strcmp(identifier, "UEF File!")) {
 		throw ErrorNotUEF;
 	}
@@ -127,7 +126,7 @@ bool UEF::Serialiser::get_next_chunk(Chunk &result) {
 	return true;
 }
 
-void UEF::Serialiser::get_next_pulses() {
+void UEF::Serialiser::push_next_pulses() {
 	while(empty()) {
 		// read chunk details
 		Chunk next_chunk;

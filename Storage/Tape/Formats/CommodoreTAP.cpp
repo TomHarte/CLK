@@ -51,14 +51,14 @@ bool CommodoreTAP::Serialiser::is_at_end() const {
 	return is_at_end_;
 }
 
-Storage::Tape::Pulse CommodoreTAP::Serialiser::get_next_pulse() {
+Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 	if(is_at_end_) {
 		return current_pulse_;
 	}
 
 	if(current_pulse_.type == Pulse::High) {
 		uint32_t next_length;
-		uint8_t next_byte = file_.get8();
+		const uint8_t next_byte = file_.get8();
 		if(!updated_layout_ || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {

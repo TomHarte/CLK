@@ -29,7 +29,7 @@ public:
 	*/
 	SymbolType get_next_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 		while(!has_next_symbol_ && !tape->is_at_end()) {
-			process_pulse(tape->get_next_pulse());
+			process_pulse(tape->next_pulse());
 		}
 		if(!has_next_symbol_ && tape->is_at_end()) mark_end();
 		has_next_symbol_ = false;

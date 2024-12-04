@@ -721,7 +721,7 @@ public:
 			case 0: return ay_.ay().get_data_output();	// Port A is wired to the AY
 			case 1:	return
 				(crtc_.get_bus_state().vsync ? 0x01 : 0x00) |	// Bit 0 returns CRTC vsync.
-				(tape_player_.get_input() ? 0x80 : 0x00) |		// Bit 7 returns cassette input.
+				(tape_player_.input() ? 0x80 : 0x00) |			// Bit 7 returns cassette input.
 				0x7e;	// Bits unimplemented:
 						//
 						//	Bit 6: printer ready (1 = not)
@@ -899,8 +899,8 @@ public:
 						// Seed with the current pulse; the CPC will have finished the
 						// preceding symbol and be a short way into the pulse that should determine the
 						// first bit of this byte.
-						parser.process_pulse(tape_player_.get_current_pulse());
-						const auto byte = parser.get_byte(tape_player_.get_tape());
+						parser.process_pulse(tape_player_.current_pulse());
+						const auto byte = parser.get_byte(tape_player_.tape());
 						auto flags = z80_.value_of(CPU::Z80::Register::Flags);
 
 						if(byte) {

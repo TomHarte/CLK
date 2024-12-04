@@ -39,7 +39,7 @@ private:
 		Storage::FileHolder file_;
 
 		void reset() override;
-		void get_next_pulses() override;
+		void push_next_pulses() override;
 
 		bool current_level_;
 

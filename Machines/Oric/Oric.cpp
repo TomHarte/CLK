@@ -168,7 +168,7 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 			@returns The next byte from the tape.
 		*/
 		uint8_t get_next_byte(bool use_fast_encoding) {
-			return uint8_t(parser_.get_next_byte(get_tape(), use_fast_encoding));
+			return uint8_t(parser_.get_next_byte(tape(), use_fast_encoding));
 		}
 
 	private:
@@ -469,7 +469,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					use_fast_tape_hack_ &&
 					operation == CPU::MOS6502::BusOperation::ReadOpcode &&
 					tape_player_.has_tape() &&
-					!tape_player_.get_tape()->is_at_end()) {
+					!tape_player_.tape()->is_at_end()) {
 
 					uint8_t next_byte = tape_player_.get_next_byte(!ram_[tape_speed_address_]);
 					m6502_.set_value_of(CPU::MOS6502Esque::A, next_byte);
@@ -632,8 +632,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			// set CB1
 			via_.set_control_line_input(
 				MOS::MOS6522::Port::B, MOS::MOS6522::Line::One,
-				tape_player_.get_motor_control() ?
-					!tape_player_.get_input() :
+				tape_player_.motor_control() ?
+					!tape_player_.input() :
 					!video_->vsync()
 			);
 		}

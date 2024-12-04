@@ -44,7 +44,7 @@ void OricTAP::Serialiser::reset() {
 	pulse_counter_ = 0;
 }
 
-Pulse OricTAP::Serialiser::get_next_pulse() {
+Pulse OricTAP::Serialiser::next_pulse() {
 	// Each byte byte is written as 13 bits: 0, eight bits of data, parity, three 1s.
 	if(bit_count_ == 13) {
 		if(next_phase_ != phase_) {

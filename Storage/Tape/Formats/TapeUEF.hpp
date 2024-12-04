@@ -60,7 +60,7 @@ private:
 		};
 
 		bool get_next_chunk(Chunk &);
-		void get_next_pulses() override;
+		void push_next_pulses() override;
 
 		void queue_implicit_bit_pattern(uint32_t length);
 		void queue_explicit_bit_pattern(uint32_t length);

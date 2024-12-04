@@ -40,7 +40,7 @@ private:
 	private:
 		bool is_at_end() const override;
 		void reset() override;
-		Pulse get_next_pulse() override;
+		Pulse next_pulse() override;
 
 		// Storage for the array of data blobs to transcribe into audio;
 		// each chunk is preceded by a header which may be long, and is optionally

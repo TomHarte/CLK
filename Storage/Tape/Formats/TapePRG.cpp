@@ -65,7 +65,7 @@ PRG::Serialiser::Serialiser(const std::string &file_name) :
 		throw ErrorBadFormat;
 }
 
-Storage::Tape::Pulse PRG::Serialiser::get_next_pulse() {
+Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
 	// these are all microseconds per pole
 	constexpr unsigned int leader_zero_length = 179;
 	constexpr unsigned int zero_length = 169;
@@ -126,9 +126,9 @@ void PRG::Serialiser::get_next_output_token() {
 	}
 
 	// determine whether a new byte needs to be queued up
-	int block_offset = phase_offset_ - block_leadin_length;
-	int bit_offset = block_offset % 10;
-	int byte_offset = block_offset / 10;
+	const int block_offset = phase_offset_ - block_leadin_length;
+	const int bit_offset = block_offset % 10;
+	const int byte_offset = block_offset / 10;
 	phase_offset_++;
 
 	if(!bit_offset &&

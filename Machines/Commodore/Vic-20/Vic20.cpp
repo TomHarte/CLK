@@ -526,9 +526,9 @@ class ConcreteMachine:
 						// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
 						// So cancel that via a double NOP and fill in the next header programmatically.
 						Storage::Tape::Commodore::Parser parser;
-						std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->get_tape());
+						std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->tape());
 
-						const uint64_t tape_position = tape_->get_tape()->get_offset();
+						const auto tape_position = tape_->tape()->offset();
 						if(header) {
 							// serialise to wherever b2:b3 points
 							const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
@@ -537,7 +537,7 @@ class ConcreteMachine:
 							logger.info().append("Found header");
 						} else {
 							// no header found, so pretend this hack never interceded
-							tape_->get_tape()->set_offset(tape_position);
+							tape_->tape()->set_offset(tape_position);
 							hold_tape_ = false;
 							logger.info().append("Didn't find header");
 						}
@@ -551,8 +551,8 @@ class ConcreteMachine:
 						uint8_t x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
-							const uint64_t tape_position = tape_->get_tape()->get_offset();
-							const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
+							const auto tape_position = tape_->tape()->offset();
+							const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->tape());
 							if(data) {
 								uint16_t start_address, end_address;
 								start_address = uint16_t(ram_[0xc1] | (ram_[0xc2] << 8));
@@ -582,7 +582,7 @@ class ConcreteMachine:
 								hold_tape_ = true;
 								logger.info().append("Found data");
 							} else {
-								tape_->get_tape()->set_offset(tape_position);
+								tape_->tape()->set_offset(tape_position);
 								hold_tape_ = false;
 								logger.info().append("Didn't find data");
 							}
@@ -670,7 +670,7 @@ class ConcreteMachine:
 		}
 
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {
-			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
+			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->input());
 		}
 
 		KeyboardMapper *get_keyboard_mapper() final {

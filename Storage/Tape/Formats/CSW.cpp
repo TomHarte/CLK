@@ -21,8 +21,7 @@ CSW::CSW(const std::vector<uint8_t> &&data, CompressionType type, bool initial_l
 	serialiser_(std::move(data), type, initial_level, sampling_rate) {}
 
 
-CSW::Serialiser::Serialiser(const std::string &file_name) :
-	source_data_pointer_(0) {
+CSW::Serialiser::Serialiser(const std::string &file_name) : source_data_pointer_(0) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
 
@@ -35,8 +34,8 @@ CSW::Serialiser::Serialiser(const std::string &file_name) :
 	if(file.get8() != 0x1a) throw ErrorNotCSW;
 
 	// Get version file number.
-	uint8_t major_version = file.get8();
-	uint8_t minor_version = file.get8();
+	const uint8_t major_version = file.get8();
+	const uint8_t minor_version = file.get8();
 
 	// Reject if this is an unknown version.
 	if(major_version > 2 || !major_version || minor_version > 1) throw ErrorNotCSW;
@@ -70,7 +69,7 @@ CSW::Serialiser::Serialiser(const std::string &file_name) :
 
 	// Grab all data remaining in the file.
 	std::vector<uint8_t> file_data;
-	std::size_t remaining_data = size_t(file.stats().st_size) - size_t(file.tell());
+	const std::size_t remaining_data = size_t(file.stats().st_size) - size_t(file.tell());
 	file_data.resize(remaining_data);
 	file.read(file_data.data(), remaining_data);
 
@@ -93,7 +92,12 @@ CSW::Serialiser::Serialiser(const std::string &file_name) :
 	invert_pulse();
 }
 
-CSW::Serialiser::Serialiser(const std::vector<uint8_t> &&data, CompressionType compression_type, bool initial_level, uint32_t sampling_rate) : compression_type_(compression_type) {
+CSW::Serialiser::Serialiser(
+	const std::vector<uint8_t> &&data,
+	CompressionType compression_type,
+	bool initial_level,
+	uint32_t sampling_rate
+) : compression_type_(compression_type) {
 	pulse_.length.clock_rate = sampling_rate;
 	pulse_.type = initial_level ? Pulse::High : Pulse::Low;
 	source_data_ = std::move(data);
@@ -101,14 +105,16 @@ CSW::Serialiser::Serialiser(const std::vector<uint8_t> &&data, CompressionType c
 
 uint8_t CSW::Serialiser::get_next_byte() {
 	if(source_data_pointer_ == source_data_.size()) return 0xff;
-	uint8_t result = source_data_[source_data_pointer_];
+
+	const uint8_t result = source_data_[source_data_pointer_];
 	source_data_pointer_++;
 	return result;
 }
 
 uint32_t CSW::Serialiser::get_next_int32le() {
 	if(source_data_pointer_ > source_data_.size() - 4) return 0xffff;
-	uint32_t result = uint32_t(
+
+	const uint32_t result = uint32_t(
 		(source_data_[source_data_pointer_ + 0] << 0) |
 		(source_data_[source_data_pointer_ + 1] << 8) |
 		(source_data_[source_data_pointer_ + 2] << 16) |
@@ -129,7 +135,7 @@ void CSW::Serialiser::reset() {
 	source_data_pointer_ = 0;
 }
 
-Pulse CSW::Serialiser::get_next_pulse() {
+Pulse CSW::Serialiser::next_pulse() {
 	invert_pulse();
 	pulse_.length.length = get_next_byte();
 	if(!pulse_.length.length) pulse_.length.length = get_next_int32le();

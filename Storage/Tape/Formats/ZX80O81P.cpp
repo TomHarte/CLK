@@ -52,7 +52,7 @@ bool ZX80O81P::Serialiser::is_at_end() const {
 	return has_finished_data() && has_ended_final_byte_;
 }
 
-Pulse ZX80O81P::Serialiser::get_next_pulse() {
+Pulse ZX80O81P::Serialiser::next_pulse() {
 	Pulse pulse;
 
 	// Start with 1 second of silence.

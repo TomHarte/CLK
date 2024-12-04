@@ -181,7 +181,7 @@ void CAS::Serialiser::reset() {
 	distance_into_bit_ = 0;
 }
 
-Pulse CAS::Serialiser::get_next_pulse() {
+Pulse CAS::Serialiser::next_pulse() {
 	Pulse pulse;
 	pulse.length.clock_rate = 9600;
 	// Clock rate is four times the baud rate (of 2400), because the quickest thing that might need
