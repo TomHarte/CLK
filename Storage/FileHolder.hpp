@@ -144,13 +144,13 @@ public:
 	void seek(long offset, int whence);
 
 	/*! @returns The current cursor position within this file. */
-	long tell();
+	long tell() const;
 
 	/*! Flushes any queued content that has not yet been written to disk. */
 	void flush();
 
 	/*! @returns @c true if the end-of-file indicator is set, @c false otherwise. */
-	bool eof();
+	bool eof() const;
 
 	class BitStream {
 	public:
@@ -214,7 +214,7 @@ public:
 		Determines and returns the file extension: everything from the final character
 		back to the first dot. The string is converted to lowercase before being returned.
 	*/
-	std::string extension();
+	std::string extension() const;
 
 	/*!
 		Ensures the file is at least @c length bytes long, appending 0s until it is
@@ -225,12 +225,12 @@ public:
 	/*!
 		@returns @c true if an attempt was made to read this file in ReadWrite mode but it could be opened only for reading; @c false otherwise.
 	*/
-	bool get_is_known_read_only();
+	bool get_is_known_read_only() const;
 
 	/*!
 		@returns the stat struct describing this file.
 	*/
-	struct stat &stats();
+	const struct stat &stats() const;
 
 	/*!
 		@returns a mutex owned by the file that can be used to serialise file access.

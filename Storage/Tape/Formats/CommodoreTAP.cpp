@@ -12,8 +12,10 @@
 
 using namespace Storage::Tape;
 
-CommodoreTAP::CommodoreTAP(const std::string &file_name) :
-	file_(file_name)
+CommodoreTAP::CommodoreTAP(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+
+CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
+	file_(file_name, FileHolder::FileMode::Read)
 {
 	if(!file_.check_signature("C64-TAPE-RAW"))
 		throw ErrorNotCommodoreTAP;
@@ -39,24 +41,24 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) :
 	current_pulse_.type = Pulse::High;
 }
 
-void CommodoreTAP::virtual_reset() {
+void CommodoreTAP::Serialiser::reset() {
 	file_.seek(0x14, SEEK_SET);
 	current_pulse_.type = Pulse::High;
 	is_at_end_ = false;
 }
 
-bool CommodoreTAP::is_at_end() {
+bool CommodoreTAP::Serialiser::is_at_end() const {
 	return is_at_end_;
 }
 
-Storage::Tape::Tape::Pulse CommodoreTAP::virtual_get_next_pulse() {
+Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 	if(is_at_end_) {
 		return current_pulse_;
 	}
 
 	if(current_pulse_.type == Pulse::High) {
 		uint32_t next_length;
-		uint8_t next_byte = file_.get8();
+		const uint8_t next_byte = file_.get8();
 		if(!updated_layout_ || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {

@@ -43,10 +43,10 @@ public:
 	inline void set_is_enabled(bool is_enabled) { is_enabled_ = is_enabled; }
 	void set_is_in_input_mode(bool is_in_input_mode);
 
-	void acorn_shifter_output_bit(int value);
+	void acorn_shifter_output_bit(int value) override;
 
 private:
-	void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse);
+	void process(const Storage::Tape::Pulse &pulse) override;
 	inline void push_tape_bit(uint16_t bit);
 	inline void get_next_tape_pulse();
 

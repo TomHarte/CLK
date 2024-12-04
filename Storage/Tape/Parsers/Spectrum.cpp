@@ -25,8 +25,8 @@ using namespace Storage::Tape::ZXSpectrum;
 Parser::Parser(MachineType machine_type) :
 	machine_type_(machine_type) {}
 
-void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
-	if(pulse.type == Storage::Tape::Tape::Pulse::Type::Zero) {
+void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
+	if(pulse.type == Storage::Tape::Pulse::Type::Zero) {
 		push_wave(WaveType::Gap);
 		return;
 	}

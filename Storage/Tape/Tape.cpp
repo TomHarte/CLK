@@ -16,23 +16,25 @@ TapePlayer::TapePlayer(int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
+Tape::Tape(TapeSerialiser &serialiser) : serialiser_(serialiser) {}
+
 // MARK: - Seeking
 
-void Storage::Tape::Tape::seek(Time &seek_time) {
+void Storage::Tape::Tape::seek(const Time seek_time) {
 	Time next_time(0);
 	reset();
 	while(next_time <= seek_time) {
-		get_next_pulse();
+		next_pulse();
 		next_time += pulse_.length;
 	}
 }
 
-Storage::Time Tape::get_current_time() {
+Storage::Time Tape::current_time() {
 	Time time(0);
-	uint64_t steps = get_offset();
+	uint64_t steps = offset();
 	reset();
 	while(steps--) {
-		get_next_pulse();
+		next_pulse();
 		time += pulse_.length;
 	}
 	return time;
@@ -40,16 +42,16 @@ Storage::Time Tape::get_current_time() {
 
 void Storage::Tape::Tape::reset() {
 	offset_ = 0;
-	virtual_reset();
+	serialiser_.reset();
 }
 
-Tape::Pulse Tape::get_next_pulse() {
-	pulse_ = virtual_get_next_pulse();
+Pulse Tape::next_pulse() {
+	pulse_ = serialiser_.next_pulse();
 	offset_++;
 	return pulse_;
 }
 
-uint64_t Tape::get_offset() {
+uint64_t Tape::offset() const {
 	return offset_;
 }
 
@@ -59,8 +61,13 @@ void Tape::set_offset(uint64_t offset) {
 		reset();
 	}
 	offset -= offset_;
-	while(offset--) get_next_pulse();
+	while(offset--) next_pulse();
 }
+
+bool Tape::is_at_end() const {
+	return serialiser_.is_at_end();
+}
+
 
 // MARK: - Player
 
@@ -71,33 +78,33 @@ ClockingHint::Preference TapePlayer::preferred_clocking() const {
 void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape) {
 	tape_ = tape;
 	reset_timer();
-	get_next_pulse();
+	next_pulse();
 	update_clocking_observer();
 }
 
-std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape() {
+std::shared_ptr<Storage::Tape::Tape> TapePlayer::tape() {
 	return tape_;
 }
 
-bool TapePlayer::has_tape() {
+bool TapePlayer::has_tape() const {
 	return bool(tape_);
 }
 
-void TapePlayer::get_next_pulse() {
+void TapePlayer::next_pulse() {
 	// get the new pulse
 	if(tape_) {
-		current_pulse_ = tape_->get_next_pulse();
+		current_pulse_ = tape_->next_pulse();
 		if(tape_->is_at_end()) update_clocking_observer();
 	} else {
 		current_pulse_.length.length = 1;
 		current_pulse_.length.clock_rate = 1;
-		current_pulse_.type = Tape::Pulse::Zero;
+		current_pulse_.type = Pulse::Zero;
 	}
 
 	set_next_event_time_interval(current_pulse_.length);
 }
 
-Tape::Pulse TapePlayer::get_current_pulse() {
+Pulse TapePlayer::current_pulse() const {
 	return current_pulse_;
 }
 
@@ -116,8 +123,8 @@ void TapePlayer::run_for_input_pulse() {
 }
 
 void TapePlayer::process_next_event() {
-	process_input_pulse(current_pulse_);
-	get_next_pulse();
+	process(current_pulse_);
+	next_pulse();
 }
 
 // MARK: - Binary Player
@@ -150,7 +157,7 @@ void BinaryTapePlayer::set_activity_observer(Activity::Observer *observer) {
 	}
 }
 
-bool BinaryTapePlayer::get_motor_control() const {
+bool BinaryTapePlayer::motor_control() const {
 	return motor_is_running_;
 }
 
@@ -158,7 +165,7 @@ void BinaryTapePlayer::set_tape_output(bool) {
 	// TODO
 }
 
-bool BinaryTapePlayer::get_input() const {
+bool BinaryTapePlayer::input() const {
 	return motor_is_running_ && input_level_;
 }
 
@@ -170,8 +177,8 @@ void BinaryTapePlayer::set_delegate(Delegate *delegate) {
 	delegate_ = delegate;
 }
 
-void BinaryTapePlayer::process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) {
-	bool new_input_level = pulse.type == Tape::Pulse::High;
+void BinaryTapePlayer::process(const Storage::Tape::Pulse &pulse) {
+	bool new_input_level = pulse.type == Pulse::High;
 	if(input_level_ != new_input_level) {
 		input_level_ = new_input_level;
 		if(delegate_) delegate_->tape_did_change_input(this);

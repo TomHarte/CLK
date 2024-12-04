@@ -95,7 +95,7 @@ public:
 		Push a pulse; primarily provided for Storage::Tape::PulseClassificationParser but also potentially useful
 		for picking up fast loading from an ongoing tape.
 	*/
-	void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+	void process_pulse(const Storage::Tape::Pulse &pulse) override;
 
 private:
 	const MachineType machine_type_;

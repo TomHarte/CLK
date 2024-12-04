@@ -33,36 +33,39 @@ public:
 		ErrorNotCAS
 	};
 
-	// implemented to satisfy @c Tape
-	bool is_at_end();
-
 private:
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
 
-	// Storage for the array of data blobs to transcribe into audio;
-	// each chunk is preceded by a header which may be long, and is optionally
-	// also preceded by a gap.
-	struct Chunk {
-		bool has_gap;
-		bool long_header;
-		std::vector<std::uint8_t> data;
+	private:
+		bool is_at_end() const override;
+		void reset() override;
+		Pulse next_pulse() override;
 
-		Chunk(bool has_gap, bool long_header, const std::vector<std::uint8_t> &data) :
-			has_gap(has_gap), long_header(long_header), data(std::move(data)) {}
-	};
-	std::vector<Chunk> chunks_;
+		// Storage for the array of data blobs to transcribe into audio;
+		// each chunk is preceded by a header which may be long, and is optionally
+		// also preceded by a gap.
+		struct Chunk {
+			bool has_gap;
+			bool long_header;
+			std::vector<std::uint8_t> data;
 
-	// Tracker for active state within the file list.
-	std::size_t chunk_pointer_ = 0;
-	enum class Phase {
-		Header,
-		Bytes,
-		Gap,
-		EndOfFile
-	} phase_ = Phase::Header;
-	std::size_t distance_into_phase_ = 0;
-	std::size_t distance_into_bit_ = 0;
+			Chunk(bool has_gap, bool long_header, const std::vector<std::uint8_t> &data) :
+				has_gap(has_gap), long_header(long_header), data(std::move(data)) {}
+		};
+		std::vector<Chunk> chunks_;
+
+		// Tracker for active state within the file list.
+		std::size_t chunk_pointer_ = 0;
+		enum class Phase {
+			Header,
+			Bytes,
+			Gap,
+			EndOfFile
+		} phase_ = Phase::Header;
+		std::size_t distance_into_phase_ = 0;
+		std::size_t distance_into_bit_ = 0;
+	} serialiser_;
 };
 
 }

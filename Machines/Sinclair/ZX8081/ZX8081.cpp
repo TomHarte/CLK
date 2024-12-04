@@ -185,7 +185,7 @@ template<bool is_zx81> class ConcreteMachine:
 						if(!nmi_is_enabled_) set_vsync(true);
 
 						value &= keyboard_.read(address);
-						value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
+						value &= ~(tape_player_.input() ? 0x00 : 0x80);
 					}
 
 					// The below emulates the ZonX AY expansion device.
@@ -232,8 +232,8 @@ template<bool is_zx81> class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 					// Check for use of the fast tape hack.
 					if(use_fast_tape_hack_ && address == tape_trap_address_) {
-						const uint64_t prior_offset = tape_player_.get_tape()->get_offset();
-						const int next_byte = parser_.get_next_byte(tape_player_.get_tape());
+						const uint64_t prior_offset = tape_player_.tape()->offset();
+						const int next_byte = parser_.get_next_byte(tape_player_.tape());
 						if(next_byte != -1) {
 							const uint16_t hl = z80_.value_of(CPU::Z80::Register::HL);
 							ram_[hl & ram_mask_] = uint8_t(next_byte);
@@ -246,7 +246,7 @@ template<bool is_zx81> class ConcreteMachine:
 							tape_advance_delay_ = 1000;
 							return 0;
 						} else {
-							tape_player_.get_tape()->set_offset(prior_offset);
+							tape_player_.tape()->set_offset(prior_offset);
 						}
 					}
 
@@ -365,7 +365,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		bool get_tape_is_playing() final {
-			return tape_player_.get_motor_control();
+			return tape_player_.motor_control();
 		}
 
 		// MARK: - Typer timing

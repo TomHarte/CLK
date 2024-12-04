@@ -541,7 +541,7 @@ template<Model model> class ConcreteMachine:
 						// b6: tape input
 
 						*cycle.value &= keyboard_.read(address);
-						*cycle.value &= tape_player_.get_input() ? 0xbf : 0xff;
+						*cycle.value &= tape_player_.input() ? 0xbf : 0xff;
 
 						// Add Joystick input on top.
 						if(!(address&0x1000)) *cycle.value &= static_cast<Joystick *>(joysticks_[0].get())->get_sinclair(0);
@@ -716,7 +716,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		bool get_tape_is_playing() final {
-			return tape_player_.get_motor_control();
+			return tape_player_.motor_control();
 		}
 
 		// MARK: - Configuration options.
@@ -921,7 +921,7 @@ template<Model model> class ConcreteMachine:
 			if(!(flags & 1)) return false;
 
 			const uint8_t block_type = uint8_t(z80_.value_of(Register::ADash));
-			const auto block = parser.find_block(tape_player_.get_tape());
+			const auto block = parser.find_block(tape_player_.tape());
 			if(!block || block_type != (*block).type) return false;
 
 			uint16_t length = z80_.value_of(Register::DE);
@@ -930,7 +930,7 @@ template<Model model> class ConcreteMachine:
 			flags = 0x93;
 			uint8_t parity = 0x00;
 			while(length--) {
-				auto next = parser.get_byte(tape_player_.get_tape());
+				auto next = parser.get_byte(tape_player_.tape());
 				if(!next) {
 					flags &= ~1;
 					break;
@@ -941,7 +941,7 @@ template<Model model> class ConcreteMachine:
 				++target;
 			}
 
-			auto stored_parity = parser.get_byte(tape_player_.get_tape());
+			auto stored_parity = parser.get_byte(tape_player_.tape());
 			if(!stored_parity) {
 				flags &= ~1;
 			} else {

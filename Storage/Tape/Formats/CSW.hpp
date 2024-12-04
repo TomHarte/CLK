@@ -21,6 +21,11 @@ namespace Storage::Tape {
 */
 class CSW: public Tape {
 public:
+	enum class CompressionType {
+		RLE,
+		ZRLE
+	};
+
 	/*!
 		Constructs a @c CSW containing content from the file with name @c file_name.
 
@@ -28,36 +33,36 @@ public:
 	*/
 	CSW(const std::string &file_name);
 
-	enum class CompressionType {
-		RLE,
-		ZRLE
-	};
-
 	/*!
 		Constructs a @c CSW containing content as specified. Does not throw.
 	*/
-	CSW(const std::vector<uint8_t> &&data, CompressionType compression_type, bool initial_level, uint32_t sampling_rate);
+	CSW(const std::vector<uint8_t> &&data, CompressionType, bool initial_level, uint32_t sampling_rate);
 
 	enum {
 		ErrorNotCSW
 	};
 
-	// implemented to satisfy @c Tape
-	bool is_at_end();
-
 private:
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
+		Serialiser(const std::vector<uint8_t> &&data, CompressionType, bool initial_level, uint32_t sampling_rate);
 
-	Pulse pulse_;
-	CompressionType compression_type_;
+	private:
+		// implemented to satisfy @c Tape
+		bool is_at_end() const override;
+		void reset() override;
+		Pulse next_pulse() override;
 
-	uint8_t get_next_byte();
-	uint32_t get_next_int32le();
-	void invert_pulse();
+		Pulse pulse_;
+		CompressionType compression_type_;
 
-	std::vector<uint8_t> source_data_;
-	std::size_t source_data_pointer_;
+		uint8_t get_next_byte();
+		uint32_t get_next_int32le();
+		void invert_pulse();
+
+		std::vector<uint8_t> source_data_;
+		std::size_t source_data_pointer_;
+	} serialiser_;
 };
 
 }

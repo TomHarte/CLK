@@ -33,39 +33,42 @@ public:
 		ErrorBadFormat
 	};
 
-	// implemented to satisfy @c Tape
-	bool is_at_end();
-
 private:
-	FileHolder file_;
-	Pulse virtual_get_next_pulse();
-	void virtual_reset();
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
+	private:
+		bool is_at_end() const override;
+		Pulse next_pulse() override;
+		void reset() override;
 
-	uint16_t load_address_;
-	uint16_t length_;
+		FileHolder file_;
 
-	enum FilePhase {
-		FilePhaseLeadIn,
-		FilePhaseHeader,
-		FilePhaseHeaderDataGap,
-		FilePhaseData,
-		FilePhaseAtEnd
-	} file_phase_ = FilePhaseLeadIn;
-	int phase_offset_ = 0;
+		uint16_t load_address_;
+		uint16_t length_;
 
-	int bit_phase_ = 3;
-	enum OutputToken {
-		Leader,
-		Zero,
-		One,
-		WordMarker,
-		EndOfBlock,
-		Silence
-	} output_token_;
-	void get_next_output_token();
-	uint8_t output_byte_;
-	uint8_t check_digit_;
-	uint8_t copy_mask_ = 0x80;
+		enum FilePhase {
+			FilePhaseLeadIn,
+			FilePhaseHeader,
+			FilePhaseHeaderDataGap,
+			FilePhaseData,
+			FilePhaseAtEnd
+		} file_phase_ = FilePhaseLeadIn;
+		int phase_offset_ = 0;
+
+		int bit_phase_ = 3;
+		enum OutputToken {
+			Leader,
+			Zero,
+			One,
+			WordMarker,
+			EndOfBlock,
+			Silence
+		} output_token_;
+		void get_next_output_token();
+		uint8_t output_byte_;
+		uint8_t check_digit_;
+		uint8_t copy_mask_ = 0x80;
+	} serialiser_;
 };
 
 }

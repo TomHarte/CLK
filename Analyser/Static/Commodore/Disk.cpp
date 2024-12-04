@@ -216,34 +216,36 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 		}
 		new_file.name = Storage::Data::Commodore::petscii_from_bytes(&new_file.raw_name[0], 16, false);
 
-		std::size_t number_of_sectors =
+		const std::size_t number_of_sectors =
 			size_t(directory[header_pointer + 0x1e]) +
 			(size_t(directory[header_pointer + 0x1f]) << 8);
-		new_file.data.reserve((number_of_sectors - 1) * 254 + 252);
+		if(number_of_sectors) {
+			new_file.data.reserve((number_of_sectors - 1) * 254 + 252);
 
-		bool is_first_sector = true;
-		while(next_track) {
-			sector = parser.sector(next_track, next_sector);
-			if(!sector) break;
+			bool is_first_sector = true;
+			while(next_track) {
+				sector = parser.sector(next_track, next_sector);
+				if(!sector) break;
 
-			next_track = sector->data[0];
-			next_sector = sector->data[1];
+				next_track = sector->data[0];
+				next_sector = sector->data[1];
 
-			if(is_first_sector) new_file.starting_address = uint16_t(sector->data[2]) | uint16_t(sector->data[3] << 8);
-			if(next_track)
-				new_file.data.insert(
-					new_file.data.end(),
-					sector->data.begin() + (is_first_sector ? 4 : 2),
-					sector->data.end()
-				);
-			else
-				new_file.data.insert(
-					new_file.data.end(),
-					sector->data.begin() + 2,
-					sector->data.begin() + next_sector
-				);
+				if(is_first_sector) new_file.starting_address = uint16_t(sector->data[2]) | uint16_t(sector->data[3] << 8);
+				if(next_track)
+					new_file.data.insert(
+						new_file.data.end(),
+						sector->data.begin() + (is_first_sector ? 4 : 2),
+						sector->data.end()
+					);
+				else
+					new_file.data.insert(
+						new_file.data.end(),
+						sector->data.begin() + 2,
+						sector->data.begin() + next_sector
+					);
 
-			is_first_sector = false;
+				is_first_sector = false;
+			}
 		}
 
 		if(!next_track) files.push_back(new_file);

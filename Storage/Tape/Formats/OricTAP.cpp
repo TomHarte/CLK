@@ -12,8 +12,11 @@
 
 using namespace Storage::Tape;
 
-OricTAP::OricTAP(const std::string &file_name) :
-	file_(file_name)
+OricTAP::OricTAP(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+
+
+OricTAP::Serialiser::Serialiser(const std::string &file_name) :
+	file_(file_name, FileHolder::FileMode::Read)
 {
 	// Check for a sequence of at least three 0x16s followed by a 0x24.
 	while(true) {
@@ -29,11 +32,11 @@ OricTAP::OricTAP(const std::string &file_name) :
 		}
 	}
 
-	// then rewind and start again
-	virtual_reset();
+	// Rewind and start again.
+	reset();
 }
 
-void OricTAP::virtual_reset() {
+void OricTAP::Serialiser::reset() {
 	file_.seek(0, SEEK_SET);
 	bit_count_ = 13;
 	phase_ = next_phase_ = LeadIn;
@@ -41,7 +44,7 @@ void OricTAP::virtual_reset() {
 	pulse_counter_ = 0;
 }
 
-Tape::Pulse OricTAP::virtual_get_next_pulse() {
+Pulse OricTAP::Serialiser::next_pulse() {
 	// Each byte byte is written as 13 bits: 0, eight bits of data, parity, three 1s.
 	if(bit_count_ == 13) {
 		if(next_phase_ != phase_) {
@@ -122,7 +125,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse() {
 	// In slow mode, a 0 is 4 periods of 1200 Hz, a 1 is 8 periods at 2400 Hz.
 	// In fast mode, a 1 is a single period of 2400 Hz, a 0 is a 2400 Hz pulse followed by a 1200 Hz pulse.
 	// This code models fast mode.
-	Tape::Pulse pulse;
+	Pulse pulse;
 	pulse.length.clock_rate = 4800;
 	int next_bit;
 
@@ -158,6 +161,6 @@ Tape::Pulse OricTAP::virtual_get_next_pulse() {
 	return pulse;
 }
 
-bool OricTAP::is_at_end() {
+bool OricTAP::Serialiser::is_at_end() const {
 	return phase_ == End;
 }

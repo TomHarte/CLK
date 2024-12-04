@@ -82,7 +82,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 				return
 					(static_cast<Joystick *>(joysticks_[selected_joystick_].get())->get_state() & 0x3f) |
 					0x40 |
-					(tape_player_.get_input() ? 0x00 : 0x80);
+					(tape_player_.input() ? 0x00 : 0x80);
 			}
 			return 0xff;
 		}
@@ -893,7 +893,7 @@ class ConcreteMachine:
 					activity_observer_ = observer;
 					if(activity_observer_) {
 						activity_observer_->register_led("Tape motor");
-						activity_observer_->set_led_status("Tape motor", tape_player_.get_motor_control());
+						activity_observer_->set_led_status("Tape motor", tape_player_.motor_control());
 					}
 				}
 

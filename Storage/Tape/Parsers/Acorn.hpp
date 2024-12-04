@@ -18,7 +18,7 @@ class Shifter {
 public:
 	Shifter();
 
-	void process_pulse(const Storage::Tape::Tape::Pulse &);
+	void process_pulse(const Storage::Tape::Pulse &);
 
 	struct Delegate {
 		virtual void acorn_shifter_output_bit(int value) = 0;
@@ -55,7 +55,7 @@ public:
 
 private:
 	void acorn_shifter_output_bit(int value) override;
-	void process_pulse(const Storage::Tape::Tape::Pulse &) override;
+	void process_pulse(const Storage::Tape::Pulse &) override;
 
 	bool did_update_shifter(int new_value, int length);
 	CRC::Generator<uint16_t, 0x0000, 0x0000, false, false> crc_;

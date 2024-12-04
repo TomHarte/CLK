@@ -32,19 +32,23 @@ public:
 		ErrorNotCommodoreTAP
 	};
 
-	// implemented to satisfy @c Tape
-	bool is_at_end();
-
 private:
-	Storage::FileHolder file_;
-	void virtual_reset();
-	Pulse virtual_get_next_pulse();
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
 
-	bool updated_layout_;
-	uint32_t file_size_;
+	private:
+		bool is_at_end() const override;
+		void reset() override;
+		Pulse next_pulse() override;
 
-	Pulse current_pulse_;
-	bool is_at_end_ = false;
+		Storage::FileHolder file_;
+
+		bool updated_layout_;
+		uint32_t file_size_;
+
+		Pulse current_pulse_;
+		bool is_at_end_ = false;
+	} serialiser_;
 };
 
 }

@@ -48,8 +48,10 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const std::string &file_name) :
-	file_(file_name)
+PRG::PRG(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+
+PRG::Serialiser::Serialiser(const std::string &file_name) :
+	file_(file_name, FileHolder::FileMode::Read)
 {
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
@@ -63,7 +65,7 @@ PRG::PRG(const std::string &file_name) :
 		throw ErrorBadFormat;
 }
 
-Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse() {
+Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
 	// these are all microseconds per pole
 	constexpr unsigned int leader_zero_length = 179;
 	constexpr unsigned int zero_length = 169;
@@ -73,21 +75,21 @@ Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse() {
 	bit_phase_ = (bit_phase_+1)&3;
 	if(!bit_phase_) get_next_output_token();
 
-	Tape::Pulse pulse;
+	Pulse pulse;
 	pulse.length.clock_rate = 1000000;
-	pulse.type = (bit_phase_&1) ? Tape::Pulse::High : Tape::Pulse::Low;
+	pulse.type = (bit_phase_&1) ? Pulse::High : Pulse::Low;
 	switch(output_token_) {
 		case Leader:		pulse.length.length = leader_zero_length;							break;
-		case Zero:			pulse.length.length = (bit_phase_&2) ? one_length : zero_length;		break;
-		case One:			pulse.length.length = (bit_phase_&2) ? zero_length : one_length;		break;
+		case Zero:			pulse.length.length = (bit_phase_&2) ? one_length : zero_length;	break;
+		case One:			pulse.length.length = (bit_phase_&2) ? zero_length : one_length;	break;
 		case WordMarker:	pulse.length.length = (bit_phase_&2) ? one_length : marker_length;	break;
 		case EndOfBlock:	pulse.length.length = (bit_phase_&2) ? zero_length : marker_length;	break;
-		case Silence:		pulse.type = Tape::Pulse::Zero; pulse.length.length = 5000;			break;
+		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;				break;
 	}
 	return pulse;
 }
 
-void PRG::virtual_reset() {
+void PRG::Serialiser::reset() {
 	bit_phase_ = 3;
 	file_.seek(2, SEEK_SET);
 	file_phase_ = FilePhaseLeadIn;
@@ -95,11 +97,11 @@ void PRG::virtual_reset() {
 	copy_mask_ = 0x80;
 }
 
-bool PRG::is_at_end() {
+bool PRG::Serialiser::is_at_end() const {
 	return file_phase_ == FilePhaseAtEnd;
 }
 
-void PRG::get_next_output_token() {
+void PRG::Serialiser::get_next_output_token() {
 	constexpr int block_length = 192;	// not counting the checksum
 	constexpr int countdown_bytes = 9;
 	constexpr int leadin_length = 20000;
@@ -124,9 +126,9 @@ void PRG::get_next_output_token() {
 	}
 
 	// determine whether a new byte needs to be queued up
-	int block_offset = phase_offset_ - block_leadin_length;
-	int bit_offset = block_offset % 10;
-	int byte_offset = block_offset / 10;
+	const int block_offset = phase_offset_ - block_leadin_length;
+	const int bit_offset = block_offset % 10;
+	const int byte_offset = block_offset / 10;
 	phase_offset_++;
 
 	if(!bit_offset &&

@@ -230,12 +230,12 @@ uint16_t Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape
 	indicates a high to low transition, inspects the time since the last transition, to produce
 	a long, medium, short or unrecognised wave period.
 */
-void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	// The Complete Commodore Inner Space Anthology, P 97, gives half-cycle lengths of:
 	// short: 182us		=>	0.000364s cycle
 	// medium: 262us	=>	0.000524s cycle
 	// long: 342us		=>	0.000684s cycle
-	const bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!is_high && previous_was_high_) {
 		if(wave_period_ >= 0.000764)		push_wave(WaveType::Unrecognised);
 		else if(wave_period_ >= 0.000604)	push_wave(WaveType::Long);

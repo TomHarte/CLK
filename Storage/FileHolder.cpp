@@ -133,7 +133,7 @@ void FileHolder::seek(long offset, int whence) {
 	std::fseek(file_, offset, whence);
 }
 
-long FileHolder::tell() {
+long FileHolder::tell() const {
 	return std::ftell(file_);
 }
 
@@ -141,7 +141,7 @@ void FileHolder::flush() {
 	std::fflush(file_);
 }
 
-bool FileHolder::eof() {
+bool FileHolder::eof() const {
 	return std::feof(file_);
 }
 
@@ -159,7 +159,7 @@ bool FileHolder::check_signature(const char *signature, std::size_t length) {
 	return true;
 }
 
-std::string FileHolder::extension() {
+std::string FileHolder::extension() const {
 	std::size_t pointer = name_.size() - 1;
 	while(pointer > 0 && name_[pointer] != '.') pointer--;
 	if(name_[pointer] == '.') pointer++;
@@ -178,11 +178,11 @@ void FileHolder::ensure_is_at_least_length(long length) {
 	}
 }
 
-bool FileHolder::get_is_known_read_only() {
+bool FileHolder::get_is_known_read_only() const {
 	return is_read_only_;
 }
 
-struct stat &FileHolder::stats() {
+const struct stat &FileHolder::stats() const {
 	return file_stats_;
 }
 
