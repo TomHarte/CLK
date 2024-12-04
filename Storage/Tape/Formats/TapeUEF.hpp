@@ -36,10 +36,10 @@ public:
 	};
 
 private:
-	void virtual_reset();
+	void virtual_reset() override;
 
 	void set_platform_type();
-	TargetPlatform::Type target_platform_type();
+	TargetPlatform::Type target_platform_type() override;
 	TargetPlatform::Type platform_type_ = TargetPlatform::Acorn;
 
 	gzFile file_;
@@ -53,7 +53,7 @@ private:
 	};
 
 	bool get_next_chunk(Chunk &);
-	void get_next_pulses();
+	void get_next_pulses() override;
 
 	void queue_implicit_bit_pattern(uint32_t length);
 	void queue_explicit_bit_pattern(uint32_t length);

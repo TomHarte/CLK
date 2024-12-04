@@ -34,8 +34,8 @@ public:
 private:
 	Storage::FileHolder file_;
 
-	void virtual_reset();
-	void get_next_pulses();
+	void virtual_reset() override;
+	void get_next_pulses() override;
 
 	bool current_level_;
 
