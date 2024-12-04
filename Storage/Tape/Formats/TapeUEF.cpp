@@ -178,7 +178,7 @@ void UEF::Serialiser::queue_implicit_bit_pattern(uint32_t length) {
 	}
 }
 
-void UEF::Serialiser::queue_explicit_bit_pattern(uint32_t length) {
+void UEF::Serialiser::queue_explicit_bit_pattern(const uint32_t length) {
 	const std::size_t length_in_bits = (length << 3) - size_t(gzget8(file_));
 	uint8_t current_byte = 0;
 	for(std::size_t bit = 0; bit < length_in_bits; bit++) {
@@ -298,7 +298,7 @@ void UEF::Serialiser::queue_implicit_byte(uint8_t byte) {
 	queue_bit(1);
 }
 
-void UEF::Serialiser::queue_bit(int bit) {
+void UEF::Serialiser::queue_bit(const int bit) {
 	int number_of_cycles;
 	Time duration;
 	duration.clock_rate = time_base_ * 4;

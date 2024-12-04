@@ -113,7 +113,12 @@ void TZX::Serialiser::get_csw_recording_block() {
 
 	std::vector<uint8_t> raw_block = file_.read(block_length - 10);
 
-	CSW csw(std::move(raw_block), (compression_type == 2) ? CSW::CompressionType::ZRLE : CSW::CompressionType::RLE, current_level_, sampling_rate);
+	CSW csw(
+		std::move(raw_block),
+		(compression_type == 2) ? CSW::CompressionType::ZRLE : CSW::CompressionType::RLE,
+		current_level_,
+		sampling_rate
+	);
 	while(!csw.is_at_end()) {
 		Pulse next_pulse = csw.next_pulse();
 		current_level_ = (next_pulse.type == Pulse::High);
@@ -146,10 +151,10 @@ void TZX::Serialiser::get_generalised_data_block() {
 }
 
 void TZX::Serialiser::get_generalised_segment(
-	uint32_t output_symbols,
-	uint8_t max_pulses_per_symbol,
-	uint8_t number_of_symbols,
-	bool is_data
+	const uint32_t output_symbols,
+	const uint8_t max_pulses_per_symbol,
+	const uint8_t number_of_symbols,
+	const bool is_data
 ) {
 	if(!output_symbols) return;
 
@@ -402,15 +407,15 @@ void TZX::Serialiser::get_kansas_city_block() {
 
 // MARK: - Output
 
-void TZX::Serialiser::post_pulses(unsigned int count, unsigned int length) {
+void TZX::Serialiser::post_pulses(unsigned int count, const unsigned int length) {
 	while(count--) post_pulse(length);
 }
 
-void TZX::Serialiser::post_pulse(unsigned int length) {
+void TZX::Serialiser::post_pulse(const unsigned int length) {
 	post_pulse(Storage::Time(length, StandardTZXClock));
 }
 
-void TZX::Serialiser::post_gap(unsigned int milliseconds) {
+void TZX::Serialiser::post_gap(const unsigned int milliseconds) {
 	if(!milliseconds) return;
 	if(milliseconds > 1 && !current_level_) {
 		post_pulse(Storage::Time(TZXClockMSMultiplier, StandardTZXClock));

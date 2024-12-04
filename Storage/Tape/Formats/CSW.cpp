@@ -94,9 +94,9 @@ CSW::Serialiser::Serialiser(const std::string &file_name) : source_data_pointer_
 
 CSW::Serialiser::Serialiser(
 	const std::vector<uint8_t> &&data,
-	CompressionType compression_type,
-	bool initial_level,
-	uint32_t sampling_rate
+	const CompressionType compression_type,
+	const bool initial_level,
+	const uint32_t sampling_rate
 ) : compression_type_(compression_type) {
 	pulse_.length.clock_rate = sampling_rate;
 	pulse_.type = initial_level ? Pulse::High : Pulse::Low;
