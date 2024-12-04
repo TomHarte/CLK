@@ -46,7 +46,7 @@ public:
 	void acorn_shifter_output_bit(int value);
 
 private:
-	void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse);
+	void process_input_pulse(const Storage::Tape::Pulse &pulse);
 	inline void push_tape_bit(uint16_t bit);
 	inline void get_next_tape_pulse();
 

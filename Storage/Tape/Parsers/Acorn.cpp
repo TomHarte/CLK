@@ -61,7 +61,7 @@ void Parser::acorn_shifter_output_bit(int value) {
 	push_symbol(value ? SymbolType::One : SymbolType::Zero);
 }
 
-void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	shifter_.process_pulse(pulse);
 }
 
@@ -72,10 +72,10 @@ Shifter::Shifter() :
 	input_pattern_(0),
 	delegate_(nullptr) {}
 
-void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+void Shifter::process_pulse(const Storage::Tape::Pulse &pulse) {
 	pll_.run_for(Cycles(int(float(PLLClockRate) * pulse.length.get<float>())));
 
-	const bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(is_high != was_high_) {
 		pll_.add_pulse();
 	}

@@ -14,7 +14,14 @@
 
 using namespace Storage::Tape;
 
-CSW::CSW(const std::string &file_name) :
+CSW::CSW(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+
+CSW::CSW(const std::vector<uint8_t> &&data, CompressionType type, bool initial_level, uint32_t sampling_rate) :
+	Tape(serialiser_),
+	serialiser_(std::move(data), type, initial_level, sampling_rate) {}
+
+
+CSW::Serialiser::Serialiser(const std::string &file_name) :
 	source_data_pointer_(0) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
@@ -86,20 +93,20 @@ CSW::CSW(const std::string &file_name) :
 	invert_pulse();
 }
 
-CSW::CSW(const std::vector<uint8_t> &&data, CompressionType compression_type, bool initial_level, uint32_t sampling_rate) : compression_type_(compression_type) {
+CSW::Serialiser::Serialiser(const std::vector<uint8_t> &&data, CompressionType compression_type, bool initial_level, uint32_t sampling_rate) : compression_type_(compression_type) {
 	pulse_.length.clock_rate = sampling_rate;
 	pulse_.type = initial_level ? Pulse::High : Pulse::Low;
 	source_data_ = std::move(data);
 }
 
-uint8_t CSW::get_next_byte() {
+uint8_t CSW::Serialiser::get_next_byte() {
 	if(source_data_pointer_ == source_data_.size()) return 0xff;
 	uint8_t result = source_data_[source_data_pointer_];
 	source_data_pointer_++;
 	return result;
 }
 
-uint32_t CSW::get_next_int32le() {
+uint32_t CSW::Serialiser::get_next_int32le() {
 	if(source_data_pointer_ > source_data_.size() - 4) return 0xffff;
 	uint32_t result = uint32_t(
 		(source_data_[source_data_pointer_ + 0] << 0) |
@@ -110,19 +117,19 @@ uint32_t CSW::get_next_int32le() {
 	return result;
 }
 
-void CSW::invert_pulse() {
+void CSW::Serialiser::invert_pulse() {
 	pulse_.type = (pulse_.type == Pulse::High) ? Pulse::Low : Pulse::High;
 }
 
-bool CSW::is_at_end() const {
+bool CSW::Serialiser::is_at_end() const {
 	return source_data_pointer_ == source_data_.size();
 }
 
-void CSW::virtual_reset() {
+void CSW::Serialiser::reset() {
 	source_data_pointer_ = 0;
 }
 
-Tape::Pulse CSW::virtual_get_next_pulse() {
+Pulse CSW::Serialiser::get_next_pulse() {
 	invert_pulse();
 	pulse_.length.length = get_next_byte();
 	if(!pulse_.length.length) pulse_.length.length = get_next_int32le();

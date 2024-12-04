@@ -117,7 +117,7 @@ private:
 		indicates a high to low transition, inspects the time since the last transition, to produce
 		a long, medium, short or unrecognised wave period.
 	*/
-	void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+	void process_pulse(const Storage::Tape::Pulse &pulse) override;
 	bool previous_was_high_ = false;
 	float wave_period_ = 0.0f;
 

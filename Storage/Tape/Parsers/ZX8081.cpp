@@ -12,10 +12,10 @@ using namespace Storage::Tape::ZX8081;
 
 Parser::Parser() : pulse_was_high_(false), pulse_time_(0) {}
 
-void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	// If this is anything other than a transition from low to high, just add it to the
 	// count of time.
-	const bool pulse_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool pulse_is_high = pulse.type == Storage::Tape::Pulse::High;
 	const bool pulse_did_change = pulse_is_high != pulse_was_high_;
 	pulse_was_high_ = pulse_is_high;
 	if(!pulse_did_change || !pulse_is_high) {

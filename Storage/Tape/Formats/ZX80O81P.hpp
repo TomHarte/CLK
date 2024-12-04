@@ -36,25 +36,30 @@ public:
 	};
 
 private:
-	// implemented to satisfy @c Tape
-	bool is_at_end() const override;
-
-	// implemented to satisfy TargetPlatform::TypeDistinguisher
+	// TargetPlatform::TypeDistinguisher.
 	TargetPlatform::Type target_platform_type() override;
-	TargetPlatform::Type platform_type_;
 
-	void virtual_reset() override;
-	Pulse virtual_get_next_pulse() override;
-	bool has_finished_data() const;
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
+		TargetPlatform::Type target_platform_type();
 
-	uint8_t byte_;
-	int bit_pointer_;
-	int wave_pointer_;
-	bool is_past_silence_, has_ended_final_byte_;
-	bool is_high_;
+	private:
+		bool is_at_end() const override;
+		void reset() override;
+		Pulse get_next_pulse() override;
+		bool has_finished_data() const;
 
-	std::vector<uint8_t> data_;
-	std::size_t data_pointer_;
+		TargetPlatform::Type platform_type_;
+
+		uint8_t byte_;
+		int bit_pointer_;
+		int wave_pointer_;
+		bool is_past_silence_, has_ended_final_byte_;
+		bool is_high_;
+
+		std::vector<uint8_t> data_;
+		std::size_t data_pointer_;
+	} serialiser_;
 };
 
 }

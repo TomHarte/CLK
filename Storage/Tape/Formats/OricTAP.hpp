@@ -32,24 +32,28 @@ public:
 		ErrorNotOricTAP
 	};
 
-	// implemented to satisfy @c Tape
-	bool is_at_end() const override;
-
 private:
-	Storage::FileHolder file_;
-	void virtual_reset() override;
-	Pulse virtual_get_next_pulse() override;
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
 
-	// byte serialisation and output
-	uint16_t current_value_;
-	int bit_count_;
-	int pulse_counter_;
+	private:
+		bool is_at_end() const override;
+		void reset() override;
+		Pulse get_next_pulse() override;
 
-	enum Phase {
-		LeadIn, Header, Data, Gap, End
-	} phase_, next_phase_;
-	int phase_counter_;
-	uint16_t data_end_address_, data_start_address_;
+		Storage::FileHolder file_;
+
+		// byte serialisation and output
+		uint16_t current_value_;
+		int bit_count_;
+		int pulse_counter_;
+
+		enum Phase {
+			LeadIn, Header, Data, Gap, End
+		} phase_, next_phase_;
+		int phase_counter_;
+		uint16_t data_end_address_, data_start_address_;
+	} serialiser_;
 };
 
 }

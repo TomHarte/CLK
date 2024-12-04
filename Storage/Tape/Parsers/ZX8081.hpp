@@ -47,7 +47,7 @@ private:
 	Time pulse_time_;
 	void post_pulse();
 
-	void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+	void process_pulse(const Storage::Tape::Pulse &pulse) override;
 	void mark_end() override;
 	void inspect_waves(const std::vector<WaveType> &waves) override;
 

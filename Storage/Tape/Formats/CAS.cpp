@@ -59,7 +59,9 @@ namespace {
 	const uint8_t ascii_signature[] = TenX(0xea);
 }
 
-CAS::CAS(const std::string &file_name) {
+CAS::CAS(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+
+CAS::Serialiser::Serialiser(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
 	enum class Mode {
@@ -168,18 +170,18 @@ CAS::CAS(const std::string &file_name) {
 	}
 }
 
-bool CAS::is_at_end() const {
+bool CAS::Serialiser::is_at_end() const {
 	return phase_ == Phase::EndOfFile;
 }
 
-void CAS::virtual_reset() {
+void CAS::Serialiser::reset() {
 	phase_ = Phase::Header;
 	chunk_pointer_ = 0;
 	distance_into_phase_ = 0;
 	distance_into_bit_ = 0;
 }
 
-Tape::Pulse CAS::virtual_get_next_pulse() {
+Pulse CAS::Serialiser::get_next_pulse() {
 	Pulse pulse;
 	pulse.length.clock_rate = 9600;
 	// Clock rate is four times the baud rate (of 2400), because the quickest thing that might need

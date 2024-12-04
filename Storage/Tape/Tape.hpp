@@ -8,16 +8,35 @@
 
 #pragma once
 
-#include <memory>
-
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 
 #include "../TimedEventLoop.hpp"
 
 #include "../../Activity/Source.hpp"
+#include "../TargetPlatforms.hpp"
+
+#include <memory>
+#include <optional>
 
 namespace Storage::Tape {
+
+struct Pulse {
+	enum Type {
+		High, Low, Zero
+	} type;
+	Time length;
+
+	Pulse(Type type, Time length) : type(type), length(length) {}
+	Pulse() = default;
+};
+
+class TapeSerialiser {
+public:
+	virtual Pulse get_next_pulse() = 0;
+	virtual void reset() = 0;
+	virtual bool is_at_end() const = 0;
+};
 
 /*!
 	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
@@ -32,15 +51,6 @@ namespace Storage::Tape {
 */
 class Tape {
 public:
-	struct Pulse {
-		enum Type {
-			High, Low, Zero
-		} type;
-		Time length;
-
-		Pulse(Type type, Time length) : type(type), length(length) {}
-		Pulse() = default;
-	};
 
 	/*!
 		If at the start of the tape returns the first stored pulse. Otherwise advances past
@@ -54,38 +64,37 @@ public:
 	void reset();
 
 	/// @returns @c true if the tape has progressed beyond all recorded content; @c false otherwise.
-	virtual bool is_at_end() const = 0;
+	bool is_at_end() const;
 
 	/*!
 		Returns a numerical representation of progression into the tape. Precision is arbitrary but
 		required to be at least to the whole pulse. Greater numbers are later than earlier numbers,
 		but not necessarily continuous.
 	*/
-	virtual uint64_t get_offset() const;
+	uint64_t get_offset() const;
 
 	/*!
 		Moves the tape to the first time at which the specified offset would be returned by get_offset.
 	*/
-	virtual void set_offset(uint64_t);
+	void set_offset(uint64_t);
 
 	/*!
 		Calculates and returns the amount of time that has elapsed since the time began. Potentially expensive.
 	*/
-	virtual Time get_current_time();
+	Time get_current_time();
 
 	/*!
 		Seeks to @c time. Potentially expensive.
 	*/
-	virtual void seek(Time &time);
+	void seek(Time);
 
+	Tape(TapeSerialiser &);
 	virtual ~Tape() = default;
 
 private:
 	uint64_t offset_;
-	Tape::Pulse pulse_;
-
-	virtual Pulse virtual_get_next_pulse() = 0;
-	virtual void virtual_reset() = 0;
+	Pulse pulse_;
+	TapeSerialiser &serialiser_;
 };
 
 /*!
@@ -101,7 +110,7 @@ public:
 	virtual ~TapePlayer() = default;
 
 	void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
-	bool has_tape();
+	bool has_tape() const;
 	std::shared_ptr<Storage::Tape::Tape> get_tape();
 
 	void run_for(const Cycles cycles);
@@ -110,18 +119,18 @@ public:
 
 	ClockingHint::Preference preferred_clocking() const override;
 
-	Tape::Pulse get_current_pulse();
+	Pulse get_current_pulse() const;
 	void complete_pulse();
 
 protected:
 	virtual void process_next_event() override;
-	virtual void process_input_pulse(const Tape::Pulse &pulse) = 0;
+	virtual void process_input_pulse(const Pulse &pulse) = 0;
 
 private:
 	inline void get_next_pulse();
 
 	std::shared_ptr<Storage::Tape::Tape> tape_;
-	Tape::Pulse current_pulse_;
+	Pulse current_pulse_;
 };
 
 /*!
@@ -154,7 +163,7 @@ public:
 
 protected:
 	Delegate *delegate_ = nullptr;
-	void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) final;
+	void process_input_pulse(const Storage::Tape::Pulse &pulse) final;
 	bool input_level_ = false;
 	bool motor_is_running_ = false;
 

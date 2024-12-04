@@ -23,26 +23,23 @@ namespace Storage::Tape {
 	anything there, and otherwise calls get_next_pulses(). get_next_pulses() is
 	virtual, giving subclasses a chance to provide the next batch of pulses.
 */
-class PulseQueuedTape: public Tape {
+class PulseQueuedSerialiser: public TapeSerialiser {
 public:
-	PulseQueuedTape();
-	bool is_at_end() const override;
-
-protected:
-	void emplace_back(Tape::Pulse::Type type, Time length);
-	void push_back(Tape::Pulse);
+	void emplace_back(Pulse::Type, Time);
+	void push_back(Pulse);
 	void clear();
 	bool empty() const;
 
 	void set_is_at_end(bool);
+	Pulse get_next_pulse() override;
+	bool is_at_end() const override;
+
 	virtual void get_next_pulses() = 0;
 
 private:
-	Pulse virtual_get_next_pulse() override;
-
 	std::vector<Pulse> queued_pulses_;
-	std::size_t pulse_pointer_;
-	bool is_at_end_;
+	std::size_t pulse_pointer_ = 0;
+	bool is_at_end_ = false;
 };
 
 }

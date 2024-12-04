@@ -40,12 +40,12 @@ bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Ta
 	return false;
 }
 
-void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
+void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	constexpr float maximum_short_length = 0.000512f;
 	constexpr float maximum_medium_length = 0.000728f;
 	constexpr float maximum_long_length = 0.001456f;
 
-	const bool wave_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool wave_is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!wave_was_high_ && wave_is_high != wave_was_high_) {
 		if(cycle_length_ < maximum_short_length) push_wave(WaveType::Short);
 		else if(cycle_length_ < maximum_medium_length) push_wave(WaveType::Medium);

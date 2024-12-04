@@ -16,9 +16,11 @@ TapePlayer::TapePlayer(int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
+Tape::Tape(TapeSerialiser &serialiser) : serialiser_(serialiser) {}
+
 // MARK: - Seeking
 
-void Storage::Tape::Tape::seek(Time &seek_time) {
+void Storage::Tape::Tape::seek(const Time seek_time) {
 	Time next_time(0);
 	reset();
 	while(next_time <= seek_time) {
@@ -40,11 +42,11 @@ Storage::Time Tape::get_current_time() {
 
 void Storage::Tape::Tape::reset() {
 	offset_ = 0;
-	virtual_reset();
+	serialiser_.reset();
 }
 
-Tape::Pulse Tape::get_next_pulse() {
-	pulse_ = virtual_get_next_pulse();
+Pulse Tape::get_next_pulse() {
+	pulse_ = serialiser_.get_next_pulse();
 	offset_++;
 	return pulse_;
 }
@@ -61,6 +63,11 @@ void Tape::set_offset(uint64_t offset) {
 	offset -= offset_;
 	while(offset--) get_next_pulse();
 }
+
+bool Tape::is_at_end() const {
+	return serialiser_.is_at_end();
+}
+
 
 // MARK: - Player
 
@@ -79,7 +86,7 @@ std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape() {
 	return tape_;
 }
 
-bool TapePlayer::has_tape() {
+bool TapePlayer::has_tape() const {
 	return bool(tape_);
 }
 
@@ -91,13 +98,13 @@ void TapePlayer::get_next_pulse() {
 	} else {
 		current_pulse_.length.length = 1;
 		current_pulse_.length.clock_rate = 1;
-		current_pulse_.type = Tape::Pulse::Zero;
+		current_pulse_.type = Pulse::Zero;
 	}
 
 	set_next_event_time_interval(current_pulse_.length);
 }
 
-Tape::Pulse TapePlayer::get_current_pulse() {
+Pulse TapePlayer::get_current_pulse() const {
 	return current_pulse_;
 }
 
@@ -170,8 +177,8 @@ void BinaryTapePlayer::set_delegate(Delegate *delegate) {
 	delegate_ = delegate;
 }
 
-void BinaryTapePlayer::process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) {
-	bool new_input_level = pulse.type == Tape::Pulse::High;
+void BinaryTapePlayer::process_input_pulse(const Storage::Tape::Pulse &pulse) {
+	bool new_input_level = pulse.type == Pulse::High;
 	if(input_level_ != new_input_level) {
 		input_level_ = new_input_level;
 		if(delegate_) delegate_->tape_did_change_input(this);

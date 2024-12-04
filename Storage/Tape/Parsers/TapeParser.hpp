@@ -69,7 +69,7 @@ protected:
 	/*!
 		Should be implemented by subclasses. Consumes @c pulse.
 	*/
-	virtual void process_pulse(const Storage::Tape::Tape::Pulse &pulse) = 0;
+	virtual void process_pulse(const Storage::Tape::Pulse &pulse) = 0;
 
 	/*!
 		An optional implementation for subclasses; called to announce that the tape has ended: that
@@ -104,7 +104,7 @@ protected:
 */
 template <typename WaveType, typename SymbolType> class PulseClassificationParser: public Parser<SymbolType> {
 public:
-	virtual void process_pulse(const Storage::Tape::Tape::Pulse &pulse) = 0;
+	virtual void process_pulse(const Storage::Tape::Pulse &pulse) = 0;
 
 	/*
 		process_pulse should either call @c push_wave or to take no action.

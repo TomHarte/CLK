@@ -34,23 +34,27 @@ public:
 	};
 
 private:
-	Storage::FileHolder file_;
+	struct Serialiser: public TapeSerialiser {
+		Serialiser(const std::string &file_name);
+	private:
+		Storage::FileHolder file_;
 
-	uint16_t block_length_ = 0;
-	uint8_t block_type_ = 0;
-	uint8_t data_byte_ = 0;
-	enum Phase {
-		PilotTone,
-		Data,
-		Gap
-	} phase_ = Phase::PilotTone;
-	int distance_into_phase_ = 0;
-	void read_next_block();
+		uint16_t block_length_ = 0;
+		uint8_t block_type_ = 0;
+		uint8_t data_byte_ = 0;
+		enum Phase {
+			PilotTone,
+			Data,
+			Gap
+		} phase_ = Phase::PilotTone;
+		int distance_into_phase_ = 0;
+		void read_next_block();
 
-	// Implemented to satisfy @c Tape.
-	bool is_at_end() const override;
-	void virtual_reset() override;
-	Pulse virtual_get_next_pulse() override;
+		// Implemented to satisfy @c Tape.
+		bool is_at_end() const override;
+		void reset() override;
+		Pulse get_next_pulse() override;
+	} serialiser_;
 };
 
 }
