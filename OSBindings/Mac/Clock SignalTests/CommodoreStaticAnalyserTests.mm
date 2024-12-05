@@ -46,6 +46,7 @@ struct HitRate {
 			continue;
 		}
 
+		NSLog(@"%@", diskItem);
 		const auto list = Analyser::Static::GetTargets([path stringByAppendingPathComponent:diskItem].UTF8String);
 		if(list.empty()) {
 			continue;
@@ -58,6 +59,11 @@ struct HitRate {
 
 		const auto &first = *list.begin();
 		hits.matches += first->machine == machine;
+
+//		if(!(hits.files % 100)) {
+			NSLog(@"Currently %d in %d, i.e. %0.2f",
+				hits.matches, hits.files, float(hits.matches) / float(hits.files));
+//		}
 	}
 
 	return hits;
