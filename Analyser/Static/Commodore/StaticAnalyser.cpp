@@ -84,6 +84,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 	// a machine code entry point.
 
 	BASICAnalysis analysis;
+	std::set<uint16_t> visited_lines;
 	while(true) {
 		// Analysis has failed if there isn't at least one complete BASIC line from here.
 		if(size_t(line_address - file.starting_address) + 5 >= file.data.size()) {
@@ -120,7 +121,10 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 			}
 		}
 
-		if(!next_line_address) {
+		// Exit if a formal end of the program has been declared or if, as some copy protections do,
+		// the linked list of line contents has been made circular.
+		visited_lines.insert(line_number);
+		if(!next_line_address || visited_lines.find(next_line_address) != visited_lines.end()) {
 			break;
 		}
 
@@ -182,14 +186,25 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		if(analysis && !analysis->machine_code_addresses.empty()) {
 			string_stream << "1";
 
+			// Disassemble.
 			const auto disassembly = Analyser::Static::MOS6502::Disassemble(
 				file.data,
 				Analyser::Static::Disassembler::OffsetMapper(file.starting_address),
 				analysis->machine_code_addresses
 			);
-			// TODO: disassemble.
 
-			printf("");
+			// Very dumb check: if FF3E or FF3F were touched, this is for the +4.
+			for(const auto address: {0xff3e, 0xff3f}) {
+				for(const auto &collection: {
+					disassembly.external_loads,
+					disassembly.external_stores,
+					disassembly.external_modifies
+				}) {
+					if(collection.find(uint16_t(address)) != collection.end()) {
+						target->machine = Machine::Plus4;	// TODO: use a better target?
+					}
+				}
+			}
 		}
 
 		string_stream << "\nRUN\n";
