@@ -179,7 +179,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
 
 		const auto analysis = analyse(file);
-		if(!analysis->machine_code_addresses.empty()) {
+		if(analysis && !analysis->machine_code_addresses.empty()) {
 			string_stream << "1";
 
 			const auto disassembly = Analyser::Static::MOS6502::Disassemble(
