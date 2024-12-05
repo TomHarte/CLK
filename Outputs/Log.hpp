@@ -137,31 +137,31 @@ public:
 	static constexpr bool enabled = is_enabled(source);
 
 	struct LogLine {
-		public:
-			LogLine(FILE *const stream) : stream_(stream) {
-				if constexpr (!enabled) return;
+	public:
+		LogLine(FILE *const stream) : stream_(stream) {
+			if constexpr (!enabled) return;
 
-				const auto source_prefix = prefix(source);
-				if(source_prefix) {
-					fprintf(stream_, "[%s] ", source_prefix);
-				}
+			const auto source_prefix = prefix(source);
+			if(source_prefix) {
+				fprintf(stream_, "[%s] ", source_prefix);
 			}
+		}
 
-			~LogLine() {
-				if constexpr (!enabled) return;
-				fprintf(stream_, "\n");
-			}
+		~LogLine() {
+			if constexpr (!enabled) return;
+			fprintf(stream_, "\n");
+		}
 
-			void append(const char *const format, ...) {
-				if constexpr (!enabled) return;
-				va_list args;
-				va_start(args, format);
-				vfprintf(stream_, format, args);
-				va_end(args);
-			}
+		void append(const char *const format, ...) {
+			if constexpr (!enabled) return;
+			va_list args;
+			va_start(args, format);
+			vfprintf(stream_, format, args);
+			va_end(args);
+		}
 
-		private:
-			FILE *stream_;
+	private:
+		FILE *stream_;
 	};
 
 	LogLine info()	{	return LogLine(stdout);		}

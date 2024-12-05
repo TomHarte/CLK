@@ -34,58 +34,58 @@ enum ExtendedBusOutput {
 #include "Implementation/65816Storage.hpp"
 
 class ProcessorBase: protected ProcessorStorage {
-	public:
-		inline void set_power_on(bool);
-		inline void set_irq_line(bool);
-		inline void set_nmi_line(bool);
-		inline void set_reset_line(bool);
-		inline void set_abort_line(bool);
-		inline bool get_is_resetting() const;
+public:
+	inline void set_power_on(bool);
+	inline void set_irq_line(bool);
+	inline void set_nmi_line(bool);
+	inline void set_reset_line(bool);
+	inline void set_abort_line(bool);
+	inline bool get_is_resetting() const;
 
-		/*!
-			Returns the current state of all lines not ordinarily pushed to the BusHandler,
-			as listed in the ExtendedBusOutput enum.
-		*/
-		inline int get_extended_bus_output();
+	/*!
+		Returns the current state of all lines not ordinarily pushed to the BusHandler,
+		as listed in the ExtendedBusOutput enum.
+	*/
+	inline int get_extended_bus_output();
 
-		/*!
-			Provided for symmetry with the 6502; a 65816 is never jammed.
-		*/
-		inline bool is_jammed() const;
+	/*!
+		Provided for symmetry with the 6502; a 65816 is never jammed.
+	*/
+	inline bool is_jammed() const;
 
-		/*!
-			FOR TESTING PURPOSES ONLY: forces the processor into a state where
-			the next thing it intends to do is fetch a new opcode.
-		*/
-		inline void restart_operation_fetch();
+	/*!
+		FOR TESTING PURPOSES ONLY: forces the processor into a state where
+		the next thing it intends to do is fetch a new opcode.
+	*/
+	inline void restart_operation_fetch();
 
-		void set_value_of(Register r, uint16_t value);
-		uint16_t value_of(Register r) const;
+	void set_value_of(Register r, uint16_t value);
+	uint16_t value_of(Register r) const;
 };
 
 template <typename BusHandler, bool uses_ready_line> class Processor: public ProcessorBase {
-	public:
-		/*!
-			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
-		*/
-		Processor(BusHandler &bus_handler) : bus_handler_(bus_handler) {}
+public:
+	/*!
+		Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
+	*/
+	Processor(BusHandler &bus_handler) : bus_handler_(bus_handler) {}
 
-		/*!
-			Runs the 6502 for a supplied number of cycles.
+	/*!
+		Runs the 6502 for a supplied number of cycles.
 
-			@param cycles The number of cycles to run the 6502 for.
-		*/
-		void run_for(const Cycles cycles);
+		@param cycles The number of cycles to run the 6502 for.
+	*/
+	void run_for(const Cycles);
 
-		/*!
-			Sets the current level of the RDY line.
+	/*!
+		Sets the current level of the RDY line.
 
-			@param active @c true if the line is logically active; @c false otherwise.
-		*/
-		void set_ready_line(bool active);
+		@param active @c true if the line is logically active; @c false otherwise.
+	*/
+	void set_ready_line(bool active);
 
-	private:
-		BusHandler &bus_handler_;
+private:
+	BusHandler &bus_handler_;
 };
 
 #include "Implementation/65816Implementation.hpp"
