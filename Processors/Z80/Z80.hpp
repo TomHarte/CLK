@@ -376,7 +376,7 @@ struct PartialMachineCycle {
 	}
 
 	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept;
-	PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) noexcept;
+	PartialMachineCycle(Operation, HalfCycles, uint16_t *address, uint8_t *value, bool was_requested) noexcept;
 	PartialMachineCycle() noexcept;
 };
 
@@ -386,18 +386,18 @@ struct PartialMachineCycle {
 	handler.
 */
 class BusHandler {
-	public:
-		/*!
-			Announces that the Z80 has performed the partial machine cycle defined by @c cycle.
+public:
+	/*!
+		Announces that the Z80 has performed the partial machine cycle defined by @c cycle.
 
-			@returns The number of additional HalfCycles that passed in objective time while this Z80 operation was ongoing.
-			On an archetypal machine this will be HalfCycles(0) but some architectures may choose not to clock the Z80
-			during some periods or may impose wait states so predictably that it's more efficient just to add them
-			via this mechanism.
-		*/
-		HalfCycles perform_machine_cycle([[maybe_unused]] const PartialMachineCycle &cycle) {
-			return HalfCycles(0);
-		}
+		@returns The number of additional HalfCycles that passed in objective time while this Z80 operation was ongoing.
+		On an archetypal machine this will be HalfCycles(0) but some architectures may choose not to clock the Z80
+		during some periods or may impose wait states so predictably that it's more efficient just to add them
+		via this mechanism.
+	*/
+	HalfCycles perform_machine_cycle([[maybe_unused]] const PartialMachineCycle &) {
+		return HalfCycles(0);
+	}
 };
 
 #include "Implementation/Z80Storage.hpp"
@@ -406,82 +406,82 @@ class BusHandler {
 	A base class from which the Z80 descends; separated for implementation reasons only.
 */
 class ProcessorBase: public ProcessorStorage {
-	public:
-		/*!
-			Gets the value of a register.
+public:
+	/*!
+		Gets the value of a register.
 
-			@see set_value_of
+		@see set_value_of
 
-			@param r The register to set.
-			@returns The value of the register. 8-bit registers will be returned as unsigned.
-		*/
-		uint16_t value_of(Register r) const;
+		@param r The register to set.
+		@returns The value of the register. 8-bit registers will be returned as unsigned.
+	*/
+	uint16_t value_of(Register r) const;
 
-		/*!
-			Sets the value of a register.
+	/*!
+		Sets the value of a register.
 
-			@see value_of
+		@see value_of
 
-			@param r The register to set.
-			@param value The value to set. If the register is only 8 bit, the value will be truncated.
-		*/
-		void set_value_of(Register r, uint16_t value);
+		@param r The register to set.
+		@param value The value to set. If the register is only 8 bit, the value will be truncated.
+	*/
+	void set_value_of(Register r, uint16_t value);
 
-		/*!
-			Gets the value of the HALT output line.
-		*/
-		inline bool get_halt_line() const;
+	/*!
+		Gets the value of the HALT output line.
+	*/
+	inline bool get_halt_line() const;
 
-		/*!
-			Sets the logical value of the interrupt line.
+	/*!
+		Sets the logical value of the interrupt line.
 
-			@param offset If called while within perform_machine_cycle this may be a value indicating
-			how many cycles before now the line changed state. The value may not be longer than the
-			current machine cycle. If called at any other time, this must be zero.
-		*/
-		inline void set_interrupt_line(bool value, HalfCycles offset = 0);
+		@param offset If called while within perform_machine_cycle this may be a value indicating
+		how many cycles before now the line changed state. The value may not be longer than the
+		current machine cycle. If called at any other time, this must be zero.
+	*/
+	inline void set_interrupt_line(bool, HalfCycles offset = 0);
 
-		/*!
-			Gets the value of the interrupt line.
-		*/
-		inline bool get_interrupt_line() const;
+	/*!
+		Gets the value of the interrupt line.
+	*/
+	inline bool get_interrupt_line() const;
 
-		/*!
-			Sets the logical value of the non-maskable interrupt line.
+	/*!
+		Sets the logical value of the non-maskable interrupt line.
 
-			@param offset See discussion in set_interrupt_line.
-		*/
-		inline void set_non_maskable_interrupt_line(bool value, HalfCycles offset = 0);
+		@param offset See discussion in set_interrupt_line.
+	*/
+	inline void set_non_maskable_interrupt_line(bool, HalfCycles offset = 0);
 
-		/*!
-			Gets the value of the non-maskable interrupt line.
-		*/
-		inline bool get_non_maskable_interrupt_line() const;
+	/*!
+		Gets the value of the non-maskable interrupt line.
+	*/
+	inline bool get_non_maskable_interrupt_line() const;
 
-		/*!
-			Sets the logical value of the reset line.
-		*/
-		inline void set_reset_line(bool value);
+	/*!
+		Sets the logical value of the reset line.
+	*/
+	inline void set_reset_line(bool);
 
-		/*!
-			Gets whether the Z80 would reset at the next opportunity.
+	/*!
+		Gets whether the Z80 would reset at the next opportunity.
 
-			@returns @c true if the line is logically active; @c false otherwise.
-		*/
-		bool get_is_resetting() const;
+		@returns @c true if the line is logically active; @c false otherwise.
+	*/
+	bool get_is_resetting() const;
 
-		/*!
-			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
-			reset at the first opportunity. Use @c reset_power_on to disable that behaviour.
-		*/
-		void reset_power_on();
+	/*!
+		This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
+		reset at the first opportunity. Use @c reset_power_on to disable that behaviour.
+	*/
+	void reset_power_on();
 
-		/*!
-			@returns @c true if the Z80 is currently beginning to fetch a new instruction; @c false otherwise.
+	/*!
+		@returns @c true if the Z80 is currently beginning to fetch a new instruction; @c false otherwise.
 
-			This is not a speedy operation.
-		*/
-		bool is_starting_new_instruction() const;
+		This is not a speedy operation.
+	*/
+	bool is_starting_new_instruction() const;
 };
 
 /*!
@@ -493,45 +493,45 @@ class ProcessorBase: public ProcessorStorage {
 	support either can produce a minor runtime performance improvement.
 */
 template <class T, bool uses_bus_request, bool uses_wait_line> class Processor: public ProcessorBase {
-	public:
-		Processor(T &bus_handler);
+public:
+	Processor(T &bus_handler);
 
-		/*!
-			Runs the Z80 for a supplied number of cycles.
+	/*!
+		Runs the Z80 for a supplied number of cycles.
 
-			@discussion Subclasses must implement @c perform_machine_cycle(const PartialMachineCycle &cycle) .
+		@discussion Subclasses must implement @c perform_machine_cycle(const PartialMachineCycle &cycle) .
 
-			If it is a read operation then @c value will be seeded with the value 0xff.
+		If it is a read operation then @c value will be seeded with the value 0xff.
 
-			@param cycles The number of cycles to run for.
-		*/
-		void run_for(const HalfCycles cycles);
+		@param cycles The number of cycles to run for.
+	*/
+	void run_for(const HalfCycles);
 
-		/*!
-			Sets the logical value of the bus request line, having asserted that this Z80 supports the bus request line.
-		*/
-		void set_bus_request_line(bool value);
+	/*!
+		Sets the logical value of the bus request line, having asserted that this Z80 supports the bus request line.
+	*/
+	void set_bus_request_line(bool);
 
-		/*!
-			Gets the logical value of the bus request line.
-		*/
-		bool get_bus_request_line() const;
+	/*!
+		Gets the logical value of the bus request line.
+	*/
+	bool get_bus_request_line() const;
 
-		/*!
-			Sets the logical value of the wait line, having asserted that this Z80 supports the wait line.
-		*/
-		void set_wait_line(bool value);
+	/*!
+		Sets the logical value of the wait line, having asserted that this Z80 supports the wait line.
+	*/
+	void set_wait_line(bool);
 
-		/*!
-			Gets the logical value of the bus request line.
-		*/
-		bool get_wait_line() const;
+	/*!
+		Gets the logical value of the bus request line.
+	*/
+	bool get_wait_line() const;
 
-	private:
-		T &bus_handler_;
+private:
+	T &bus_handler_;
 
-		void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets);
-		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination);
+	void assemble_page(InstructionPage &, InstructionTable &, bool add_offsets);
+	void copy_program(const MicroOp *source, std::vector<MicroOp> &destination);
 };
 
 #include "Implementation/Z80Implementation.hpp"

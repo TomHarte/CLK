@@ -229,32 +229,32 @@ struct Flywheel {
 			(counter_ >= expected_next_sync_ - (standard_period_ / 100));
 	}
 
-	private:
-		const int standard_period_;		// The idealised length of time between syncs.
-		const int retrace_time_;		// A constant indicating the amount of time it takes to perform a retrace.
-		const int sync_error_window_;	// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
+private:
+	const int standard_period_;		// The idealised length of time between syncs.
+	const int retrace_time_;		// A constant indicating the amount of time it takes to perform a retrace.
+	const int sync_error_window_;	// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
 
-		int counter_ = 0;				// Time since the _start_ of the last sync.
-		int counter_before_retrace_;	// The value of _counter immediately before retrace began.
-		int expected_next_sync_;		// Our current expection of when the next sync will be encountered (which implies velocity).
+	int counter_ = 0;				// Time since the _start_ of the last sync.
+	int counter_before_retrace_;	// The value of _counter immediately before retrace began.
+	int expected_next_sync_;		// Our current expection of when the next sync will be encountered (which implies velocity).
 
-		int number_of_surprises_ = 0;	// A count of the surprising syncs.
-		int number_of_retraces_ = 0;	// A count of the number of retraces to date.
+	int number_of_surprises_ = 0;	// A count of the surprising syncs.
+	int number_of_retraces_ = 0;	// A count of the number of retraces to date.
 
-		int last_adjustment_ = 0;		// The amount by which expected_next_sync_ was adjusted at the last sync.
+	int last_adjustment_ = 0;		// The amount by which expected_next_sync_ was adjusted at the last sync.
 
-		/*
-			Implementation notes:
+	/*
+		Implementation notes:
 
-			Retrace takes a fixed amount of time and runs during [0, _retrace_time).
+		Retrace takes a fixed amount of time and runs during [0, _retrace_time).
 
-			For the current line, scan then occurs from [_retrace_time, _expected_next_sync), at which point
-			retrace begins and the internal counter is reset.
+		For the current line, scan then occurs from [_retrace_time, _expected_next_sync), at which point
+		retrace begins and the internal counter is reset.
 
-			All synchronisation events that occur within (-_sync_error_window, _sync_error_window) of the
-			expected synchronisation time will cause a proportional adjustment in the expected time for the next
-			synchronisation. Other synchronisation events are clamped as though they occurred in that range.
-		*/
+		All synchronisation events that occur within (-_sync_error_window, _sync_error_window) of the
+		expected synchronisation time will cause a proportional adjustment in the expected time for the next
+		synchronisation. Other synchronisation events are clamped as though they occurred in that range.
+	*/
 };
 
 }

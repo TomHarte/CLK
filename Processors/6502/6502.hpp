@@ -142,28 +142,28 @@ class ProcessorBase: public ProcessorStorage {
 	can produce a minor runtime performance improvement.
 */
 template <Personality personality, typename BusHandler, bool uses_ready_line> class Processor: public ProcessorBase {
-	public:
-		/*!
-			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
-		*/
-		Processor(BusHandler &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
+public:
+	/*!
+		Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
+	*/
+	Processor(BusHandler &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
 
-		/*!
-			Runs the 6502 for a supplied number of cycles.
+	/*!
+		Runs the 6502 for a supplied number of cycles.
 
-			@param cycles The number of cycles to run the 6502 for.
-		*/
-		void run_for(const Cycles cycles);
+		@param cycles The number of cycles to run the 6502 for.
+	*/
+	void run_for(const Cycles cycles);
 
-		/*!
-			Sets the current level of the RDY line.
+	/*!
+		Sets the current level of the RDY line.
 
-			@param active @c true if the line is logically active; @c false otherwise.
-		*/
-		void set_ready_line(bool active);
+		@param active @c true if the line is logically active; @c false otherwise.
+	*/
+	void set_ready_line(bool active);
 
-	private:
-		BusHandler &bus_handler_;
+private:
+	BusHandler &bus_handler_;
 };
 
 #include "Implementation/6502Implementation.hpp"

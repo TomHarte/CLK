@@ -108,7 +108,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		storage_.micro_ops_.push_back(OperationDecode);
 	}
 
-	private:
+private:
 
 	PatternTable::iterator install(Generator generator, AccessType access_type = AccessType::Read) {
 		// Check whether this access type + addressing mode generator has already been generated.
