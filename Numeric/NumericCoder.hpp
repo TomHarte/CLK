@@ -28,47 +28,47 @@ namespace Numeric {
 ///				= 65
 ///
 template <int... Sizes> class NumericCoder {
-	public:
-		/// Modifies @c target to hold @c value at @c index.
-		template <int index> static void encode(int &target, int value) {
-			static_assert(index < sizeof...(Sizes), "Index must be within range");
-			NumericEncoder<Sizes...>::template encode<index>(target, value);
-		}
+public:
+	/// Modifies @c target to hold @c value at @c index.
+	template <int index> static void encode(int &target, int value) {
+		static_assert(index < sizeof...(Sizes), "Index must be within range");
+		NumericEncoder<Sizes...>::template encode<index>(target, value);
+	}
 
-		/// @returns The value from @c source at @c index.
-		template <int index> static int decode(int source) {
-			static_assert(index < sizeof...(Sizes), "Index must be within range");
-			return NumericDecoder<Sizes...>::template decode<index>(source);
-		}
+	/// @returns The value from @c source at @c index.
+	template <int index> static int decode(int source) {
+		static_assert(index < sizeof...(Sizes), "Index must be within range");
+		return NumericDecoder<Sizes...>::template decode<index>(source);
+	}
 
-	private:
+private:
 
-		template <int size, int... Tail>
-		struct NumericEncoder {
-			template <int index, int i = 0, int divider = 1> static void encode(int &target, int value) {
-				if constexpr (i == index) {
-					const int suffix = target % divider;
-					target /= divider;
-					target -= target % size;
-					target += value % size;
-					target *= divider;
-					target += suffix;
-				} else {
-					NumericEncoder<Tail...>::template encode<index, i+1, divider*size>(target, value);
-				}
+	template <int size, int... Tail>
+	struct NumericEncoder {
+		template <int index, int i = 0, int divider = 1> static void encode(int &target, int value) {
+			if constexpr (i == index) {
+				const int suffix = target % divider;
+				target /= divider;
+				target -= target % size;
+				target += value % size;
+				target *= divider;
+				target += suffix;
+			} else {
+				NumericEncoder<Tail...>::template encode<index, i+1, divider*size>(target, value);
 			}
-		};
+		}
+	};
 
-		template <int size, int... Tail>
-		struct NumericDecoder {
-			template <int index, int i = 0, int divider = 1> static int decode(int source) {
-				if constexpr (i == index) {
-					return (source / divider) % size;
-				} else {
-					return NumericDecoder<Tail...>::template decode<index, i+1, divider*size>(source);
-				}
+	template <int size, int... Tail>
+	struct NumericDecoder {
+		template <int index, int i = 0, int divider = 1> static int decode(int source) {
+			if constexpr (i == index) {
+				return (source / divider) % size;
+			} else {
+				return NumericDecoder<Tail...>::template decode<index, i+1, divider*size>(source);
 			}
-		};
+		}
+	};
 };
 
 }

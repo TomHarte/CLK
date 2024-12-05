@@ -438,61 +438,61 @@ namespace CPU::MC68000 {
 */
 template <class BusHandler, bool dtack_is_implicit = true, bool permit_overrun = true, bool signal_will_perform = false>
 class Processor: private ProcessorBase {
-	public:
-		Processor(BusHandler &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
-		Processor(const Processor& rhs) = delete;
-		Processor& operator=(const Processor& rhs) = delete;
+public:
+	Processor(BusHandler &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
+	Processor(const Processor& rhs) = delete;
+	Processor& operator=(const Processor& rhs) = delete;
 
-		void run_for(HalfCycles duration);
+	void run_for(HalfCycles duration);
 
-		/// @returns The current processor state.
-		CPU::MC68000::State get_state();
+	/// @returns The current processor state.
+	CPU::MC68000::State get_state();
 
-		/// Sets the current processor state.
-		void set_state(const CPU::MC68000::State &);
+	/// Sets the current processor state.
+	void set_state(const CPU::MC68000::State &);
 
-		/// Sets all registers to the values provided, fills the prefetch queue and ensures the
-		/// next action the processor will take is to decode whatever is in the queue.
-		///
-		/// The queue is filled synchronously, during this call, causing calls to the bus handler.
-		void decode_from_state(const InstructionSet::M68k::RegisterSet &);
+	/// Sets all registers to the values provided, fills the prefetch queue and ensures the
+	/// next action the processor will take is to decode whatever is in the queue.
+	///
+	/// The queue is filled synchronously, during this call, causing calls to the bus handler.
+	void decode_from_state(const InstructionSet::M68k::RegisterSet &);
 
-		// TODO: bus ack/grant, halt,
+	// TODO: bus ack/grant, halt,
 
-		/// Sets the DTack line — @c true for active, @c false for inactive.
-		inline void set_dtack(bool dtack) {
-			dtack_ = dtack;
-		}
+	/// Sets the DTack line — @c true for active, @c false for inactive.
+	inline void set_dtack(bool dtack) {
+		dtack_ = dtack;
+	}
 
-		/// Sets the VPA (valid peripheral address) line — @c true for active, @c false for inactive.
-		inline void set_is_peripheral_address(bool is_peripheral_address) {
-			vpa_ = is_peripheral_address;
-		}
+	/// Sets the VPA (valid peripheral address) line — @c true for active, @c false for inactive.
+	inline void set_is_peripheral_address(bool is_peripheral_address) {
+		vpa_ = is_peripheral_address;
+	}
 
-		/// Sets the bus error line — @c true for active, @c false for inactive.
-		inline void set_bus_error(bool bus_error) {
-			berr_ = bus_error;
-		}
+	/// Sets the bus error line — @c true for active, @c false for inactive.
+	inline void set_bus_error(bool bus_error) {
+		berr_ = bus_error;
+	}
 
-		/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
-		inline void set_interrupt_level(int interrupt_level) {
-			bus_interrupt_level_ = interrupt_level;
-		}
+	/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
+	inline void set_interrupt_level(int interrupt_level) {
+		bus_interrupt_level_ = interrupt_level;
+	}
 
-		/// @returns The current phase of the E clock; this will be a number of
-		/// half-cycles between 0 and 19 inclusive, indicating how far the 68000
-		/// is into the current E cycle.
-		///
-		/// This is guaranteed to be 0 at initial 68000 construction. It is not guaranteed
-		/// to return the correct result if called during a bus transaction.
-		HalfCycles get_e_clock_phase() {
-			return e_clock_phase_;
-		}
+	/// @returns The current phase of the E clock; this will be a number of
+	/// half-cycles between 0 and 19 inclusive, indicating how far the 68000
+	/// is into the current E cycle.
+	///
+	/// This is guaranteed to be 0 at initial 68000 construction. It is not guaranteed
+	/// to return the correct result if called during a bus transaction.
+	HalfCycles get_e_clock_phase() {
+		return e_clock_phase_;
+	}
 
-		void reset();
+	void reset();
 
-	private:
-		BusHandler &bus_handler_;
+private:
+	BusHandler &bus_handler_;
 };
 
 }

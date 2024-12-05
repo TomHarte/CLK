@@ -100,52 +100,52 @@ class BufferSource {
 ///
 template <typename SourceT, bool stereo, int divider = 1>
 struct SampleSource: public BufferSource<SourceT, stereo> {
-	public:
-		template <Action action>
-		void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target) {
-			auto &source = *static_cast<SourceT *>(this);
+public:
+	template <Action action>
+	void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target) {
+		auto &source = *static_cast<SourceT *>(this);
 
-			if constexpr (divider == 1) {
-				while(number_of_samples--) {
-					apply<action>(*target, source.level());
-					++target;
-					source.advance();
-				}
-			} else {
-				std::size_t c = 0;
-
-				// Fill in the tail of any partially-captured level.
-				auto level = source.level();
-				while(c < number_of_samples && master_divider_ != divider) {
-					apply<action>(target[c], level);
-					++c;
-					++master_divider_;
-				}
+		if constexpr (divider == 1) {
+			while(number_of_samples--) {
+				apply<action>(*target, source.level());
+				++target;
 				source.advance();
-
-				// Provide all full levels.
-				auto whole_steps = static_cast<int>((number_of_samples - c) / divider);
-				while(whole_steps--) {
-					fill<action>(&target[c], &target[c + divider], source.level());
-					c += divider;
-					source.advance();
-				}
-
-				// Provide the head of a further partial capture.
-				level = source.level();
-				master_divider_ = static_cast<int>(number_of_samples - c);
-				fill<action>(&target[c], &target[number_of_samples], source.level());
 			}
+		} else {
+			std::size_t c = 0;
+
+			// Fill in the tail of any partially-captured level.
+			auto level = source.level();
+			while(c < number_of_samples && master_divider_ != divider) {
+				apply<action>(target[c], level);
+				++c;
+				++master_divider_;
+			}
+			source.advance();
+
+			// Provide all full levels.
+			auto whole_steps = static_cast<int>((number_of_samples - c) / divider);
+			while(whole_steps--) {
+				fill<action>(&target[c], &target[c + divider], source.level());
+				c += divider;
+				source.advance();
+			}
+
+			// Provide the head of a further partial capture.
+			level = source.level();
+			master_divider_ = static_cast<int>(number_of_samples - c);
+			fill<action>(&target[c], &target[number_of_samples], source.level());
 		}
+	}
 
-		// TODO: use a concept here, when C++20 filters through.
-		//
-		// Until then: sample sources should implement this.
-//		typename SampleT<stereo>::type level() const;
-//		void advance();
+	// TODO: use a concept here, when C++20 filters through.
+	//
+	// Until then: sample sources should implement this.
+//	typename SampleT<stereo>::type level() const;
+//	void advance();
 
-	private:
-		int master_divider_{};
+private:
+	int master_divider_{};
 };
 
 }

@@ -395,15 +395,15 @@ struct ProcessorStorage {
 			return reinterpret_cast<uint8_t *>(&value);
 		}
 
-		private:
-			uint8_t *byte(int pointer) {
-				assert(pointer >= 0 && pointer < 4);
-				#if TARGET_RT_BIG_ENDIAN
-					return reinterpret_cast<uint8_t *>(&value) + (3 ^ pointer);
-				#else
-					return reinterpret_cast<uint8_t *>(&value) + pointer;
-				#endif
-			}
+	private:
+		uint8_t *byte(int pointer) {
+			assert(pointer >= 0 && pointer < 4);
+			#if TARGET_RT_BIG_ENDIAN
+				return reinterpret_cast<uint8_t *>(&value) + (3 ^ pointer);
+			#else
+				return reinterpret_cast<uint8_t *>(&value) + pointer;
+			#endif
+		}
 	};
 	Buffer instruction_buffer_, data_buffer_;
 	uint32_t data_address_;

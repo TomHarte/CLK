@@ -70,7 +70,7 @@ private:
 	uint8_t track_;
 	std::shared_ptr<Sector> sector_cache_[65536];
 
-	void process_input_bit(const int value) {
+	void process_input_bit(const int value) override {
 		shift_register_ = ((shift_register_ << 1) | unsigned(value)) & 0x3ff;
 		bit_count_++;
 	}
@@ -107,7 +107,7 @@ private:
 		}
 	}
 
-	void process_index_hole() {
+	void process_index_hole() override {
 		index_count_++;
 	}
 
