@@ -36,20 +36,20 @@ namespace Commodore::C1540 {
 	Provides an emulation of the C1540.
 */
 class Machine final: public MachineBase {
-	public:
-		static ROM::Request rom_request(Personality personality);
-		Machine(Personality personality, const ROM::Map &roms);
+public:
+	static ROM::Request rom_request(Personality personality);
+	Machine(Personality personality, const ROM::Map &roms);
 
-		/*!
-			Sets the serial bus to which this drive should attach itself.
-		*/
-		void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
+	/*!
+		Sets the serial bus to which this drive should attach itself.
+	*/
+	void set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus);
 
-		/// Advances time.
-		void run_for(const Cycles cycles);
+	/// Advances time.
+	void run_for(const Cycles cycles);
 
-		/// Inserts @c disk into the drive.
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
+	/// Inserts @c disk into the drive.
+	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk);
 };
 
 }

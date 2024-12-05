@@ -33,9 +33,8 @@ public:
 	inline uint8_t get_interrupt_status() { return interrupt_status_; }
 	void clear_interrupts(uint8_t interrupts);
 
-	class Delegate {
-		public:
-			virtual void tape_did_change_interrupt_status(Tape *tape) = 0;
+	struct Delegate {
+		virtual void tape_did_change_interrupt_status(Tape *tape) = 0;
 	};
 	inline void set_delegate(Delegate *delegate) { delegate_ = delegate; }
 

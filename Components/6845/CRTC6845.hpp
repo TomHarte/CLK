@@ -28,9 +28,8 @@ struct BusState {
 	int field_count = 0;
 };
 
-class BusHandler {
-	public:
-		void perform_bus_cycle(const BusState &) {}
+struct BusHandler {
+	void perform_bus_cycle(const BusState &) {}
 };
 
 enum class Personality {

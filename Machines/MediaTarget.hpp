@@ -18,14 +18,13 @@ namespace MachineTypes {
 /*!
 	A MediaTarget::Machine is anything that can accept new media while running.
 */
-class MediaTarget {
-	public:
-		/*!
-			Requests that the machine insert @c media as a modification to current state
+struct MediaTarget {
+	/*!
+		Requests that the machine insert @c media as a modification to current state
 
-			@returns @c true if any media was inserted; @c false otherwise.
-		*/
-		virtual bool insert_media(const Analyser::Static::Media &media) = 0;
+		@returns @c true if any media was inserted; @c false otherwise.
+	*/
+	virtual bool insert_media(const Analyser::Static::Media &media) = 0;
 };
 
 }

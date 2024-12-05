@@ -24,22 +24,22 @@ namespace Enterprise {
 	Elan Enterprise.
 */
 class Machine {
-	public:
-		virtual ~Machine() = default;
-		static std::unique_ptr<Machine> Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+public:
+	virtual ~Machine() = default;
+	static std::unique_ptr<Machine> Enterprise(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
-		/// Defines the runtime options available for an Enterprise.
-		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
-			friend Configurable::DisplayOption<Options>;
-			public:
-				Options(Configurable::OptionsType type) :
-					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour) {
-					if(needs_declare()) {
-						declare_display_option();
-						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
-					}
-				}
-		};
+	/// Defines the runtime options available for an Enterprise.
+	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
+		friend Configurable::DisplayOption<Options>;
+	public:
+		Options(Configurable::OptionsType type) :
+			Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour) {
+			if(needs_declare()) {
+				declare_display_option();
+				limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
+			}
+		}
+	};
 };
 
 };

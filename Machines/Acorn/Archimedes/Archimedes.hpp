@@ -18,23 +18,23 @@
 namespace Archimedes {
 
 class Machine {
-	public:
-		virtual ~Machine() = default;
-		static std::unique_ptr<Machine> Archimedes(
-			const Analyser::Static::Target *target,
-			const ROMMachine::ROMFetcher &rom_fetcher
-		);
+public:
+	virtual ~Machine() = default;
+	static std::unique_ptr<Machine> Archimedes(
+		const Analyser::Static::Target *target,
+		const ROMMachine::ROMFetcher &rom_fetcher
+	);
 
-		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
-			friend Configurable::QuickloadOption<Options>;
-			public:
-				Options(Configurable::OptionsType type) :
-					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
-					if(needs_declare()) {
-						declare_quickload_option();
-					}
-				}
-		};
+	class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
+		friend Configurable::QuickloadOption<Options>;
+	public:
+		Options(Configurable::OptionsType type) :
+			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
+			if(needs_declare()) {
+				declare_quickload_option();
+			}
+		}
+	};
 };
 
 }

@@ -120,29 +120,29 @@ class PrimarySlot {
 };
 
 class MemorySlotHandler {
-	public:
-		virtual ~MemorySlotHandler() = default;
+public:
+	virtual ~MemorySlotHandler() = default;
 
-		/*! Advances time by @c half_cycles. */
-		virtual void run_for([[maybe_unused]] HalfCycles half_cycles) {}
+	/*! Advances time by @c half_cycles. */
+	virtual void run_for([[maybe_unused]] HalfCycles half_cycles) {}
 
-		/*! Announces an attempt to write @c value to @c address. */
-		virtual void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) = 0;
+	/*! Announces an attempt to write @c value to @c address. */
+	virtual void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) = 0;
 
-		/*! Seeks the result of a read at @c address; this is used only if the area is unmapped. */
-		virtual uint8_t read([[maybe_unused]] uint16_t address) { return 0xff; }
+	/*! Seeks the result of a read at @c address; this is used only if the area is unmapped. */
+	virtual uint8_t read([[maybe_unused]] uint16_t address) { return 0xff; }
 
-		/*! @returns The probability that this handler is correct for the data it owns. */
-		float get_confidence() {
-			return confidence_counter_.get_confidence();
-		}
+	/*! @returns The probability that this handler is correct for the data it owns. */
+	float get_confidence() {
+		return confidence_counter_.get_confidence();
+	}
 
-		virtual std::string debug_type() {
-			return "";
-		}
+	virtual std::string debug_type() {
+		return "";
+	}
 
-	protected:
-		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
+protected:
+	Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 };
 
 }

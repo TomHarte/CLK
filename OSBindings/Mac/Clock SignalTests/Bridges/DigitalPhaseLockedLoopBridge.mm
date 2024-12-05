@@ -16,12 +16,12 @@
 @end
 
 class DigitalPhaseLockedLoopDelegate {
-	public:
-		__weak DigitalPhaseLockedLoopBridge *bridge;
+public:
+	__weak DigitalPhaseLockedLoopBridge *bridge;
 
-		void digital_phase_locked_loop_output_bit(int value) {
-			[bridge pushBit:value ? 1 : 0];
-		}
+	void digital_phase_locked_loop_output_bit(int value) {
+		[bridge pushBit:value ? 1 : 0];
+	}
 };
 
 @implementation DigitalPhaseLockedLoopBridge {

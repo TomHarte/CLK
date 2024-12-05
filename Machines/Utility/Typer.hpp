@@ -21,37 +21,37 @@ namespace Utility {
 	necessary to type that character on a given machine.
 */
 class CharacterMapper {
-	public:
-		virtual ~CharacterMapper() = default;
+public:
+	virtual ~CharacterMapper() = default;
 
-		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
-		virtual const uint16_t *sequence_for_character(char character) const = 0;
+	/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
+	virtual const uint16_t *sequence_for_character(char character) const = 0;
 
-		/// The typer will automatically reset all keys in between each sequence that it types.
-		/// By default it will pause for one key's duration when doing so. Character mappers
-		/// can eliminate that pause by overriding this method.
-		/// @returns @c true if the typer should pause after performing a reset; @c false otherwise.
-		virtual bool needs_pause_after_reset_all_keys() const	{ return true; }
+	/// The typer will automatically reset all keys in between each sequence that it types.
+	/// By default it will pause for one key's duration when doing so. Character mappers
+	/// can eliminate that pause by overriding this method.
+	/// @returns @c true if the typer should pause after performing a reset; @c false otherwise.
+	virtual bool needs_pause_after_reset_all_keys() const	{ return true; }
 
-		/// The typer will pause between every entry in a keyboard sequence. On some machines
-		/// that may not be necessary — it'll often depends on whether the machine needs time to
-		/// observe a modifier like shift before it sees the actual keypress.
-		/// @returns @c true if the typer should pause after forwarding @c key; @c false otherwise.
-		virtual bool needs_pause_after_key([[maybe_unused]] uint16_t key) const	{ return true; }
+	/// The typer will pause between every entry in a keyboard sequence. On some machines
+	/// that may not be necessary — it'll often depends on whether the machine needs time to
+	/// observe a modifier like shift before it sees the actual keypress.
+	/// @returns @c true if the typer should pause after forwarding @c key; @c false otherwise.
+	virtual bool needs_pause_after_key([[maybe_unused]] uint16_t key) const	{ return true; }
 
-	protected:
-		typedef uint16_t KeySequence[16];
+protected:
+	typedef uint16_t KeySequence[16];
 
-		/*!
-			Provided in the base class as a convenience: given the C array of key sequences @c sequences,
-			returns the sequence for character @c character if it exists; otherwise returns @c nullptr.
-		*/
-		template <typename Collection> const uint16_t *table_lookup_sequence_for_character(const Collection &sequences, char character) const {
-			std::size_t ucharacter = size_t((unsigned char)character);
-			if(ucharacter >= sizeof(sequences) / sizeof(KeySequence)) return nullptr;
-			if(sequences[ucharacter][0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) return nullptr;
-			return sequences[ucharacter];
-		}
+	/*!
+		Provided in the base class as a convenience: given the C array of key sequences @c sequences,
+		returns the sequence for character @c character if it exists; otherwise returns @c nullptr.
+	*/
+	template <typename Collection> const uint16_t *table_lookup_sequence_for_character(const Collection &sequences, char character) const {
+		std::size_t ucharacter = size_t((unsigned char)character);
+		if(ucharacter >= sizeof(sequences) / sizeof(KeySequence)) return nullptr;
+		if(sequences[ucharacter][0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) return nullptr;
+		return sequences[ucharacter];
+	}
 };
 
 /*!

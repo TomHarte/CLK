@@ -16,11 +16,11 @@
 namespace Amiga {
 
 class Machine {
-	public:
-		virtual ~Machine() = default;
+public:
+	virtual ~Machine() = default;
 
-		/// Creates and returns an Amiga.
-		static std::unique_ptr<Machine> Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+	/// Creates and returns an Amiga.
+	static std::unique_ptr<Machine> Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }

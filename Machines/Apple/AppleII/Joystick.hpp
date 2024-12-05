@@ -24,33 +24,33 @@ public:
 	}
 
 	class Joystick: public Inputs::ConcreteJoystick {
-		public:
-			Joystick() :
-				ConcreteJoystick({
-					Input(Input::Horizontal),
-					Input(Input::Vertical),
+	public:
+		Joystick() : ConcreteJoystick({
+			Input(Input::Horizontal),
+			Input(Input::Vertical),
 
-					// The Apple II offers three buttons between two joysticks;
-					// this emulator puts three buttons on each joystick and
-					// combines them.
-					Input(Input::Fire, 0),
-					Input(Input::Fire, 1),
-					Input(Input::Fire, 2),
-				}) {}
+			// The Apple II offers three buttons between two joysticks;
+			// this emulator puts three buttons on each joystick and
+			// combines them.
+			Input(Input::Fire, 0),
+			Input(Input::Fire, 1),
+			Input(Input::Fire, 2),
+		}) {}
 
-				void did_set_input(const Input &input, float value) final {
-					if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
-						axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
-				}
+		void did_set_input(const Input &input, float value) final {
+			if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
+				axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
+		}
 
-				void did_set_input(const Input &input, bool value) final {
-					if(input.type == Input::Type::Fire && input.info.control.index < 3) {
-						buttons[input.info.control.index] = value;
-					}
-				}
+		void did_set_input(const Input &input, bool value) final {
+			if(input.type == Input::Type::Fire && input.info.control.index < 3) {
+				buttons[input.info.control.index] = value;
+			}
+		}
 
-			bool buttons[3] = {false, false, false};
-			float axes[2] = {0.5f, 0.5f};
+	private:
+		bool buttons[3] = {false, false, false};
+		float axes[2] = {0.5f, 0.5f};
 	};
 
 	inline bool button(size_t index) {

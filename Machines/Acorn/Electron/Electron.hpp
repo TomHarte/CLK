@@ -23,28 +23,27 @@ namespace Electron {
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine {
+struct Machine {
+	virtual ~Machine() = default;
+
+	/// Creates and returns an Electron.
+	static std::unique_ptr<Machine> Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+
+	/// Defines the runtime options available for an Electron.
+	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
+		friend Configurable::DisplayOption<Options>;
+		friend Configurable::QuickloadOption<Options>;
 	public:
-		virtual ~Machine() = default;
-
-		/// Creates and returns an Electron.
-		static std::unique_ptr<Machine> Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
-
-		/// Defines the runtime options available for an Electron.
-		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
-			friend Configurable::DisplayOption<Options>;
-			friend Configurable::QuickloadOption<Options>;
-			public:
-				Options(Configurable::OptionsType type) :
-					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
-					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
-					if(needs_declare()) {
-						declare_display_option();
-						declare_quickload_option();
-						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
-					}
-				}
-		};
+		Options(Configurable::OptionsType type) :
+			Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
+			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
+			if(needs_declare()) {
+				declare_display_option();
+				declare_quickload_option();
+				limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
+			}
+		}
+	};
 };
 
 }

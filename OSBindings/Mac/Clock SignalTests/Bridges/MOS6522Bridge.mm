@@ -14,28 +14,28 @@
 @class MOS6522Bridge;
 
 class VanillaVIAPortHandler: public MOS::MOS6522::PortHandler {
-	public:
-		MOS6522Bridge *bridge;
-		bool irq_line;
-		uint8_t port_a_value;
-		uint8_t port_b_value;
-		bool control_line_values[2][2];
+public:
+	MOS6522Bridge *bridge;
+	bool irq_line;
+	uint8_t port_a_value;
+	uint8_t port_b_value;
+	bool control_line_values[2][2];
 
-		/*
-			All methods below here are to replace those defined by
-			MOS::MOS6522::PortHandler.
-		*/
-		void set_interrupt_status(bool new_status) {
-			irq_line = new_status;
-		}
+	/*
+		All methods below here are to replace those defined by
+		MOS::MOS6522::PortHandler.
+	*/
+	void set_interrupt_status(bool new_status) {
+		irq_line = new_status;
+	}
 
-		uint8_t get_port_input(MOS::MOS6522::Port port) {
-			return port ? port_b_value : port_a_value;
-		}
+	uint8_t get_port_input(MOS::MOS6522::Port port) {
+		return port ? port_b_value : port_a_value;
+	}
 
-		void set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
-			control_line_values[int(port)][int(line)] = value;
-		}
+	void set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
+		control_line_values[int(port)][int(line)] = value;
+	}
 };
 
 @implementation MOS6522Bridge {

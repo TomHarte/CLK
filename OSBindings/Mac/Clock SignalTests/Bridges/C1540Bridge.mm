@@ -14,12 +14,12 @@
 #include <memory>
 
 class VanillaSerialPort: public Commodore::Serial::Port {
-	public:
-		void set_input(Commodore::Serial::Line line, Commodore::Serial::LineLevel value) {
-			_input_line_levels[(int)line] = value;
-		}
+public:
+	void set_input(Commodore::Serial::Line line, Commodore::Serial::LineLevel value) {
+		_input_line_levels[(int)line] = value;
+	}
 
-		Commodore::Serial::LineLevel _input_line_levels[5];
+	Commodore::Serial::LineLevel _input_line_levels[5];
 };
 
 @implementation C1540Bridge {

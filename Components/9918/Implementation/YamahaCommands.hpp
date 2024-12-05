@@ -142,13 +142,13 @@ struct Command {
 	/// number of pixels per byte in the current screen mode.
 	virtual void advance() = 0;
 
-	protected:
-		template <int axis, bool include_source> void advance_axis(const int offset = 1) {
-			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
-			if constexpr (include_source) {
-				context.source.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
-			}
+protected:
+	template <int axis, bool include_source> void advance_axis(const int offset = 1) {
+		context.destination.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
+		if constexpr (include_source) {
+			context.source.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
 		}
+	}
 };
 
 namespace Commands {

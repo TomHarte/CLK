@@ -18,11 +18,11 @@
 namespace Apple::IIgs {
 
 class Machine {
-	public:
-		virtual ~Machine() = default;
+public:
+	virtual ~Machine() = default;
 
-		/// Creates and returns an AppleIIgs.
-		static std::unique_ptr<Machine> AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+	/// Creates and returns an AppleIIgs.
+	static std::unique_ptr<Machine> AppleIIgs(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }

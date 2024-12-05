@@ -77,10 +77,9 @@ private:
 */
 class DriveVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 public:
-	class Delegate {
-		public:
-			virtual void drive_via_did_step_head(void *driveVIA, int direction) = 0;
-			virtual void drive_via_did_set_data_density(void *driveVIA, int density) = 0;
+	struct Delegate {
+		virtual void drive_via_did_step_head(void *driveVIA, int direction) = 0;
+		virtual void drive_via_did_set_data_density(void *driveVIA, int density) = 0;
 	};
 	void set_delegate(Delegate *);
 

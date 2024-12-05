@@ -41,70 +41,69 @@ struct KeyActions {
 /*!
 	Describes an emulated machine which exposes a keyboard and accepts a typed string.
 */
-class KeyboardMachine: public KeyActions {
-	public:
-		/*!
-			Causes the machine to attempt to type the supplied string.
+struct KeyboardMachine: public KeyActions {
+	/*!
+		Causes the machine to attempt to type the supplied string.
 
-			This is best effort. Success or failure is permitted to be a function of machine and current state.
-		*/
-		virtual void type_string(const std::string &);
+		This is best effort. Success or failure is permitted to be a function of machine and current state.
+	*/
+	virtual void type_string(const std::string &);
 
-		/*!
-			@returns @c true if this machine can type the character @c c as part of a @c type_string; @c false otherwise.
-		*/
-		virtual bool can_type([[maybe_unused]] char c) const { return false; }
+	/*!
+		@returns @c true if this machine can type the character @c c as part of a @c type_string; @c false otherwise.
+	*/
+	virtual bool can_type([[maybe_unused]] char c) const { return false; }
 
-		/*!
-			Provides a destination for keyboard input.
-		*/
-		virtual Inputs::Keyboard &get_keyboard() = 0;
+	/*!
+		Provides a destination for keyboard input.
+	*/
+	virtual Inputs::Keyboard &get_keyboard() = 0;
 
-		/*!
-			Provides a standard bundle of logic for hosts that are able to correlate typed symbols
-			with keypresses. Specifically:
+	/*!
+		Provides a standard bundle of logic for hosts that are able to correlate typed symbols
+		with keypresses. Specifically:
 
-			If map_logically is false:
+		If map_logically is false:
 
-				(i) initially try to set @c key as @c is_pressed;
-				(ii) if this machine doesn't map @c key to anything but @c symbol is a printable ASCII character, attempt to @c type_string it.
+			(i) initially try to set @c key as @c is_pressed;
+			(ii) if this machine doesn't map @c key to anything but @c symbol is a printable ASCII character, attempt to @c type_string it.
 
-			If map_logically is true:
+		If map_logically is true:
 
-				(i) if @c symbol can be typed and this is a key down, @c type_string it;
-				(ii) if @c symbol cannot be typed, set @c key as @c is_pressed
-		*/
-		bool apply_key(Inputs::Keyboard::Key key, char symbol, bool is_pressed, bool is_repeat, bool map_logically) {
-			Inputs::Keyboard &keyboard = get_keyboard();
+			(i) if @c symbol can be typed and this is a key down, @c type_string it;
+			(ii) if @c symbol cannot be typed, set @c key as @c is_pressed
+	*/
+	bool apply_key(Inputs::Keyboard::Key key, char symbol, bool is_pressed, bool is_repeat, bool map_logically) {
+		Inputs::Keyboard &keyboard = get_keyboard();
 
-			if(!map_logically) {
-				// Try a regular keypress first, and stop if that works.
-				if(keyboard.set_key_pressed(key, symbol, is_pressed, is_repeat)) {
-					return true;
-				}
-
-				// That having failed, if a symbol has been supplied then try typing it.
-				if(is_pressed && symbol && can_type(symbol)) {
-					char string[2] = { symbol, 0 };
-					type_string(string);
-					return true;
-				}
-
-				return false;
-			} else {
-				// Try to type first.
-				if(is_pressed && symbol && can_type(symbol)) {
-					char string[2] = { symbol, 0 };
-					type_string(string);
-					return true;
-				}
-
-				// That didn't work. Forward as a keypress. As, either:
-				//	(i) this is a key down, but doesn't have a symbol, or is an untypeable symbol; or
-				//	(ii) this is a key up, which it won't be an issue to miscommunicate.
-				return keyboard.set_key_pressed(key, symbol, is_pressed, is_repeat);
+		if(!map_logically) {
+			// Try a regular keypress first, and stop if that works.
+			if(keyboard.set_key_pressed(key, symbol, is_pressed, is_repeat)) {
+				return true;
 			}
+
+			// That having failed, if a symbol has been supplied then try typing it.
+			if(is_pressed && symbol && can_type(symbol)) {
+				char string[2] = { symbol, 0 };
+				type_string(string);
+				return true;
+			}
+
+			return false;
+		} else {
+			// Try to type first.
+			if(is_pressed && symbol && can_type(symbol)) {
+				char string[2] = { symbol, 0 };
+				type_string(string);
+				return true;
+			}
+
+			// That didn't work. Forward as a keypress. As, either:
+			//	(i) this is a key down, but doesn't have a symbol, or is an untypeable symbol; or
+			//	(ii) this is a key up, which it won't be an issue to miscommunicate.
+			return keyboard.set_key_pressed(key, symbol, is_pressed, is_repeat);
 		}
+	}
 };
 
 /*!
@@ -119,9 +118,8 @@ public:
 		A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.
 		See the character mapper for logical mapping.
 	*/
-	class KeyboardMapper {
-		public:
-			virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const = 0;
+	struct KeyboardMapper {
+		virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const = 0;
 	};
 
 	/// Terminates a key sequence from the character mapper.
