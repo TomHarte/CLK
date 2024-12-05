@@ -15,23 +15,28 @@
 #include "../../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
 #include "../../../Outputs/Log.hpp"
 
+#include "../Disassembler/6502.hpp"
+#include "../Disassembler/AddressMapper.hpp"
+
 #include <algorithm>
 #include <cstring>
 #include <sstream>
 
 using namespace Analyser::Static::Commodore;
 
-static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
+namespace {
+
+std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
 
 	for(const auto &cartridge : cartridges) {
 		const auto &segments = cartridge->get_segments();
 
-		// only one mapped item is allowed
+		// Only one mapped item is allowed ...
 		if(segments.size() != 1) continue;
 
-		// which must be 16 kb in size
+		// ... which must be 16 kb in size.
 		Storage::Cartridge::Cartridge::Segment segment = segments.front();
 		if(segment.start_address != 0xa000) continue;
 		if(!Storage::Cartridge::Encodings::CommodoreROM::isROM(segment.data)) continue;
@@ -39,7 +44,93 @@ Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 		vic20_cartridges.push_back(cartridge);
 	}
 
+	// TODO: other machines?
+
 	return vic20_cartridges;
+}
+
+struct BASICAnalysis {
+	enum class Version {
+		BASIC2,
+		BASIC4,
+		BASIC3_5,
+	} minimum_version = Version::BASIC2;
+	std::vector<uint16_t> machine_code_addresses;
+};
+
+std::optional<BASICAnalysis> analyse(const File &file) {
+	// Accept only 'program' types.
+	if(file.type != File::RelocatableProgram && file.type != File::NonRelocatableProgram) {
+		return std::nullopt;
+	}
+
+	uint16_t line_address = file.starting_address;
+	int previous_line_number = -1;
+
+	const auto byte = [&](uint16_t address) {
+		return file.data[address - file.starting_address];
+	};
+	const auto word = [&](uint16_t address) {
+		return uint16_t(byte(address) | byte(address + 1) << 8);
+	};
+
+	// BASIC programs have a per-line structure of:
+	//		[2 bytes: address of start of next line]
+	//		[2 bytes: this line number]
+	//		... null-terminated code ...
+	//	(with a next line address of 0000 indicating end of program)
+	//
+	// If a SYS is encountered that jumps into the BASIC program then treat that as
+	// a machine code entry point.
+
+	BASICAnalysis analysis;
+	while(true) {
+		// Analysis has failed if there isn't at least one complete BASIC line from here.
+		if(size_t(line_address - file.starting_address) + 5 >= file.data.size()) {
+			return std::nullopt;
+		}
+
+		const auto next_line_address = word(line_address);
+		const auto line_number = word(line_address + 2);
+
+		uint16_t code = line_address + 4;
+		const auto next = [&]() -> uint8_t {
+			if(code >= file.starting_address + file.data.size()) {
+				return 0;
+			}
+			return byte(code++);
+		};
+
+		while(true) {
+			const auto token = next();
+			if(!token) break;
+
+			switch(token) {
+				case 0x9e: {	// SYS; parse following ASCII argument.
+					uint16_t address = 0;
+					while(true) {
+						const auto c = next();
+						if(c < '0' || c > '9') {
+							break;
+						}
+						address = (address * 10) + (c - '0');
+					};
+					analysis.machine_code_addresses.push_back(address);
+				} break;
+			}
+		}
+
+		if(!next_line_address) {
+			break;
+		}
+
+		previous_line_number = line_number;
+		line_address = next_line_address;
+	}
+
+	return analysis;
+}
+
 }
 
 Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
@@ -48,19 +139,16 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 	TargetPlatform::IntType
 ) {
 	TargetList destination;
-
 	auto target = std::make_unique<Target>();
-	target->machine = Machine::Vic20;	// TODO: machine estimation
-	target->confidence = 0.5; // TODO: a proper estimation
 
 	int device = 0;
 	std::vector<File> files;
 	bool is_disk = false;
 
-	// strip out inappropriate cartridges
+	// Strip out inappropriate cartridges.
 	target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
 
-	// check disks
+	// Find all valid Commodore files on disks.
 	for(auto &disk : media.disks) {
 		std::vector<File> disk_files = GetFiles(disk);
 		if(!disk_files.empty()) {
@@ -71,7 +159,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		}
 	}
 
-	// check tapes
+	// Find all valid Commodore files on tapes.
 	for(auto &tape : media.tapes) {
 		std::vector<File> tape_files = GetFiles(tape);
 		tape->reset();
@@ -82,15 +170,28 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		}
 	}
 
+	// Inspect discovered files to try to divine machine and memory model.
 	if(!files.empty()) {
+		const auto &file = files.front();
+
 		auto memory_model = Target::MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
-		if(files.front().is_basic()) {
-			string_stream << "0";
-		} else {
+
+		const auto analysis = analyse(file);
+		if(!analysis->machine_code_addresses.empty()) {
 			string_stream << "1";
+
+			const auto disassembly = Analyser::Static::MOS6502::Disassemble(
+				file.data,
+				Analyser::Static::Disassembler::OffsetMapper(file.starting_address),
+				analysis->machine_code_addresses
+			);
+			// TODO: disassemble.
+
+			printf("");
 		}
+
 		string_stream << "\nRUN\n";
 		target->loading_command = string_stream.str();
 

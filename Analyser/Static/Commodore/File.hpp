@@ -29,8 +29,6 @@ struct File {
 		Relative
 	} type;
 	std::vector<uint8_t> data;
-
-	bool is_basic();
 };
 
 }
