@@ -21,7 +21,6 @@ set(CLK_SOURCES
 	Analyser/Static/AtariST/StaticAnalyser.cpp
 	Analyser/Static/Coleco/StaticAnalyser.cpp
 	Analyser/Static/Commodore/Disk.cpp
-	Analyser/Static/Commodore/File.cpp
 	Analyser/Static/Commodore/StaticAnalyser.cpp
 	Analyser/Static/Commodore/Tape.cpp
 	Analyser/Static/Disassembler/6502.cpp
