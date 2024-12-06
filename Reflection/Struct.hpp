@@ -27,8 +27,8 @@ namespace Reflection {
 
 #define DeclareField(Name) declare(&Name, #Name)
 
-#define BeginDeclarations () void declare_fields() {
-#define EndDeclarations () }											\
+#define BEGIN_DECLARATIONS void declare_fields() {
+#define END_DECLARATIONS }											\
 	struct Declarer { Declarer() { Target t; t.declare_fields(); } };	\
 	static Declarer declarer;
 
