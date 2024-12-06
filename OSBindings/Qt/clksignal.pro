@@ -99,6 +99,7 @@ SOURCES += \
 	$$SRC/Machines/ColecoVision/*.cpp \
 	$$SRC/Machines/Commodore/*.cpp \
 	$$SRC/Machines/Commodore/1540/Implementation/*.cpp \
+	$$SRC/Machines/Commodore/Plus4/*.cpp \
 	$$SRC/Machines/Commodore/Vic-20/*.cpp \
 	$$SRC/Machines/Enterprise/*.cpp \
 	$$SRC/Machines/MasterSystem/*.cpp \
@@ -235,6 +236,7 @@ HEADERS += \
 	$$SRC/Machines/ColecoVision/*.hpp \
 	$$SRC/Machines/Commodore/*.hpp \
 	$$SRC/Machines/Commodore/1540/Implementation/*.hpp \
+	$$SRC/Machines/Commodore/Plus4/*.hpp \
 	$$SRC/Machines/Commodore/Vic-20/*.hpp \
 	$$SRC/Machines/Electron/*.hpp \
 	$$SRC/Machines/Enterprise/*.hpp \
