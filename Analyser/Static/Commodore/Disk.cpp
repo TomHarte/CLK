@@ -174,15 +174,13 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 	CommodoreGCRParser parser;
 	parser.set_disk(disk);
 
-	// find any sector whatsoever to establish the current track
-	std::shared_ptr<CommodoreGCRParser::Sector> sector;
-
-	// assemble directory
+	// Assemble directory.
 	std::vector<uint8_t> directory;
 	uint8_t next_track = 18;
 	uint8_t next_sector = 1;
+	directory.reserve(20 * 1024);	// Probably more than plenty.
 	while(true) {
-		sector = parser.sector(next_track, next_sector);
+		auto sector = parser.sector(next_track, next_sector);
 		if(!sector) break;
 		directory.insert(directory.end(), sector->data.begin(), sector->data.end());
 		next_track = sector->data[0];
@@ -224,7 +222,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 
 			bool is_first_sector = true;
 			while(next_track) {
-				sector = parser.sector(next_track, next_sector);
+				auto sector = parser.sector(next_track, next_sector);
 				if(!sector) break;
 
 				next_track = sector->data[0];

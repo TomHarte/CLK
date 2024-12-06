@@ -226,7 +226,8 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 				analysis->machine_code_addresses
 			);
 
-			// Very dumb check: if FF3E or FF3F were touched, this is for the +4.
+			// If FF3E or FF3F is touched, this is for the +4.
+			// TODO: probably require a very early touch.
 			for(const auto address: {0xff3e, 0xff3f}) {
 				for(const auto &collection: {
 					disassembly.external_loads,
@@ -243,28 +244,37 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		string_stream << "\nRUN\n";
 		if(it == files.begin()) {
 			target->loading_command = string_stream.str();
+
+			// Make a guess for the Vic-20, if ultimately selected, based on loading address.
+			// TODO: probably also discount other machines if starting address isn't 0x1001?
+			switch(files.front().starting_address) {
+				default:
+					Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append(
+						"Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
+					[[fallthrough]];
+				case 0x1001:
+					vic_memory_model = Target::MemoryModel::Unexpanded;
+					// TODO: could be Vic-20 or Plus4.
+				break;
+
+				case 0x1201:
+					vic_memory_model = Target::MemoryModel::ThirtyTwoKB;
+					target->machine = Machine::Vic20;
+				break;
+				case 0x0401:
+					vic_memory_model = Target::MemoryModel::EightKB;
+					target->machine = Machine::Vic20;
+				break;
+
+				case 0x0801:
+					// TODO: assume C64.
+				break;
+				case 0x1c01:
+					// TODO: assume C128.
+				break;
+			}
 		}
 
-		// make a first guess based on loading address
-		switch(files.front().starting_address) {
-			default:
-				Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append(
-					"Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
-				[[fallthrough]];
-			case 0x1001:
-				vic_memory_model = Target::MemoryModel::Unexpanded;
-			break;
-			case 0x1201:
-				vic_memory_model = Target::MemoryModel::ThirtyTwoKB;
-			break;
-			case 0x0401:
-				vic_memory_model = Target::MemoryModel::EightKB;
-			break;
-
-			case 0x1c01:
-				Log::Logger<Log::Source::CommodoreStaticAnalyser>().info().append("Unimplemented: C128");
-			break;
-		}
 
 		// The Vic-20 never has RAM after 0x8000.
 		if(file.ending_address >= 0x8000) {
