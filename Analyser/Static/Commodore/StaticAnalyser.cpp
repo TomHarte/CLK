@@ -105,7 +105,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 
 		while(true) {
 			const auto token = next();
-			if(!token) break;
+			if(!token || token == 0x8f) break;
 
 			switch(token) {
 				case 0x9e: {	// SYS; parse following ASCII argument.
@@ -158,7 +158,11 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		std::vector<File> disk_files = GetFiles(disk);
 		if(!disk_files.empty()) {
 			is_disk = true;
-			files.insert(files.end(), disk_files.begin(), disk_files.end());
+			files.insert(
+				files.end(),
+				std::make_move_iterator(disk_files.begin()),
+				std::make_move_iterator(disk_files.end())
+			);
 			target->media.disks.push_back(disk);
 			if(!device) device = 8;
 		}
@@ -169,7 +173,11 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		std::vector<File> tape_files = GetFiles(tape);
 		tape->reset();
 		if(!tape_files.empty()) {
-			files.insert(files.end(), tape_files.begin(), tape_files.end());
+			files.insert(
+				files.end(),
+				std::make_move_iterator(tape_files.begin()),
+				std::make_move_iterator(tape_files.end())
+			);
 			target->media.tapes.push_back(tape);
 			if(!device) device = 1;
 		}
@@ -181,11 +189,11 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 
 		auto memory_model = Target::MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
-		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
+		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device;
 
 		const auto analysis = analyse(file);
 		if(analysis && !analysis->machine_code_addresses.empty()) {
-			string_stream << "1";
+			string_stream << ",1";
 
 			// Disassemble.
 			const auto disassembly = Analyser::Static::MOS6502::Disassemble(
@@ -230,6 +238,11 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 			case 0x1c01:
 				Log::Logger<Log::Source::CommodoreStaticAnalyser>().info().append("Unimplemented: C128");
 			break;
+		}
+
+		// The Vic-20 never has RAM after 0x8000.
+		if(file.ending_address >= 0x8000) {
+			target->machine = Machine::Plus4;
 		}
 
 		target->set_memory_model(memory_model);
