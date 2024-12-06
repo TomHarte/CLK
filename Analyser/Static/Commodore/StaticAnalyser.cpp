@@ -52,17 +52,32 @@ Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 
 struct BASICAnalysis {
 	enum class Version {
+		NotBASIC,
 		BASIC2,
 		BASIC4,
 		BASIC3_5,
-	} minimum_version = Version::BASIC2;
+	} minimum_version = Version::NotBASIC;
 	std::vector<uint16_t> machine_code_addresses;
 };
 
 std::optional<BASICAnalysis> analyse(const File &file) {
-	// Accept only 'program' types.
-	if(file.type != File::RelocatableProgram && file.type != File::NonRelocatableProgram) {
+	BASICAnalysis analysis;
+
+	switch(file.type) {
+		// For 'program' types, proceed with analysis below.
+		case File::RelocatableProgram:
+		case File::NonRelocatableProgram:
+		break;
+
+		// For sequential and relative data stop right now.
+		case File::DataSequence:
+		case File::Relative:
 		return std::nullopt;
+
+		// For user data, try decoding from the starting point.
+		case File::User:
+			analysis.machine_code_addresses.push_back(file.starting_address);
+		return analysis;
 	}
 
 	uint16_t line_address = file.starting_address;
@@ -84,12 +99,13 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 	// If a SYS is encountered that jumps into the BASIC program then treat that as
 	// a machine code entry point.
 
-	BASICAnalysis analysis;
 	std::unordered_set<uint16_t> visited_lines;
 	while(true) {
 		// Analysis has failed if there isn't at least one complete BASIC line from here.
+		// Fall back on guessing the start address as a machine code entrypoint.
 		if(size_t(line_address - file.starting_address) + 5 >= file.data.size()) {
-			return std::nullopt;
+			analysis.machine_code_addresses.push_back(file.starting_address);
+			break;
 		}
 
 		const auto next_line_address = word(line_address);
@@ -103,6 +119,8 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 			return byte(code++);
 		};
 
+		// TODO: sanity check on apparent line contents.
+		// TODO: observe token set (and possibly parameters?) to guess BASIC version.
 		while(true) {
 			const auto token = next();
 			if(!token || token == 0x8f) break;
@@ -184,10 +202,16 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 	}
 
 	// Inspect discovered files to try to divine machine and memory model.
-	if(!files.empty()) {
-		const auto &file = files.front();
+	auto vic_memory_model = Target::MemoryModel::Unexpanded;
 
-		auto memory_model = Target::MemoryModel::Unexpanded;
+	if(files.size() > 1) {
+		printf("");
+	}
+
+	auto it = files.begin();
+	while(it != files.end()) {
+		const auto &file = *it;
+
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device;
 
@@ -217,7 +241,9 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 		}
 
 		string_stream << "\nRUN\n";
-		target->loading_command = string_stream.str();
+		if(it == files.begin()) {
+			target->loading_command = string_stream.str();
+		}
 
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
@@ -226,13 +252,13 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 					"Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
 				[[fallthrough]];
 			case 0x1001:
-				memory_model = Target::MemoryModel::Unexpanded;
+				vic_memory_model = Target::MemoryModel::Unexpanded;
 			break;
 			case 0x1201:
-				memory_model = Target::MemoryModel::ThirtyTwoKB;
+				vic_memory_model = Target::MemoryModel::ThirtyTwoKB;
 			break;
 			case 0x0401:
-				memory_model = Target::MemoryModel::EightKB;
+				vic_memory_model = Target::MemoryModel::EightKB;
 			break;
 
 			case 0x1c01:
@@ -245,47 +271,9 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 			target->machine = Machine::Plus4;
 		}
 
-		target->set_memory_model(memory_model);
+		target->set_memory_model(vic_memory_model);
 
-		// General approach: increase memory size conservatively such that the largest file found will fit.
-//		for(File &file : files) {
-//			std::size_t file_size = file.data.size();
-//			bool is_basic = file.is_basic();
-
-			/*if(is_basic)
-			{
-				// BASIC files may be relocated, so the only limit is size.
-				//
-				// An unexpanded machine has 3583 bytes free for BASIC;
-				// a 3kb expanded machine has 6655 bytes free.
-				if(file_size > 6655)
-					target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-				else if(target->vic20.memory_model == Vic20MemoryModel::Unexpanded && file_size > 3583)
-					target->vic20.memory_model = Vic20MemoryModel::EightKB;
-			}
-			else
-			{*/
-//			if(!file.type == File::NonRelocatableProgram)
-//			{
-				// Non-BASIC files may be relocatable but, if so, by what logic?
-				// Given that this is unknown, take starting address as literal
-				// and check against memory windows.
-				//
-				// (ignoring colour memory...)
-				// An unexpanded Vic has memory between 0x0000 and 0x0400; and between 0x1000 and 0x2000.
-				// A 3kb expanded Vic fills in the gap and has memory between 0x0000 and 0x2000.
-				// A 32kb expanded Vic has memory in the entire low 32kb.
-//				uint16_t starting_address = file.starting_address;
-
-				// If anything above the 8kb mark is touched, mark as a 32kb machine; otherwise if the
-				// region 0x0400 to 0x1000 is touched and this is an unexpanded machine, mark as 3kb.
-//				if(starting_address + file_size > 0x2000)
-//					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
-//				else if(target->memory_model == Target::MemoryModel::Unexpanded &&
-//					!(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
-//					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
-//			}
-//		}
+		++it;
 	}
 
 	if(!target->media.empty()) {
