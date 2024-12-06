@@ -12,10 +12,9 @@
 
 namespace MachineTypes {
 
-class MouseMachine {
-	public:
-		// TODO: support multiple mice?
-		virtual Inputs::Mouse &get_mouse() = 0;
+struct MouseMachine {
+	// TODO: support multiple mice?
+	virtual Inputs::Mouse &get_mouse() = 0;
 };
 
 }

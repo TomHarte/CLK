@@ -53,7 +53,7 @@ protected:
 		Maps from Configurable::Display to Outputs::Display::VideoSignal and calls
 		@c set_display_type with the result.
 	*/
-	void set_video_signal_configurable(Configurable::Display type) {
+	void set_video_signal_configurable(const Configurable::Display type) {
 		Outputs::Display::DisplayType display_type;
 		switch(type) {
 			default:
