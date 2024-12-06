@@ -80,6 +80,11 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 		return analysis;
 	}
 
+	// Don't form an opinion if file is empty.
+	if(file.data.empty()) {
+		return std::nullopt;
+	}
+
 	uint16_t line_address = file.starting_address;
 	int previous_line_number = -1;
 
