@@ -27,6 +27,12 @@ namespace Reflection {
 
 #define DeclareField(Name) declare(&Name, #Name)
 
+#define BeginDeclarations () void declare_fields() {
+#define EndDeclarations () }											\
+	struct Declarer { Declarer() { Target t; t.declare_fields(); } };	\
+	static Declarer declarer;
+
+
 struct Struct {
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
@@ -300,7 +306,7 @@ protected:
 	/*!
 		@returns @c true if this subclass of @c Struct has not yet declared any fields.
 	*/
-	bool needs_declare() {
+	bool needs_declare() const {
 		return contents_.empty();
 	}
 
