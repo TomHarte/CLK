@@ -342,7 +342,11 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 			return;
 		}
 		auto new_targets = evaluator(media, file_name, potential_platforms);
-		std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));
+		targets.insert(
+			targets.end(),
+			std::make_move_iterator(new_targets.begin()),
+			std::make_move_iterator(new_targets.end())
+		);
 	};
 
 	append(TargetPlatform::Acorn, Acorn::GetTargets);
