@@ -12,6 +12,8 @@
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
+#include <atomic>
+
 // This test runs through a whole bunch of files somewhere on disk. These files are not included in the repository
 // because they are not suitably licensed. So this path is specific to my local system, at the time I happen to be
 // writing these tests. Update in the future, as necessary.
@@ -37,36 +39,48 @@ struct HitRate {
 @implementation CommodoreStaticAnalyserTests
 
 - (HitRate)hitRateBeneathPath:(NSString *)path forMachine:(Analyser::Machine)machine {
-	HitRate hits{};
+	__block std::atomic<int> files_source = 0;
+	__block std::atomic<int> matches_source = 0;
+	auto &files = files_source;
+	auto &matches = matches_source;
 
 	NSDirectoryEnumerator<NSString *> *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:path];
+
+	const auto dispatch_group = dispatch_group_create();
+
 	while(NSString *diskItem = [enumerator nextObject]) {
 		const NSString *type = [[enumerator fileAttributes] objectForKey:NSFileType];
 		if(![type isEqual:NSFileTypeRegular]) {
 			continue;
 		}
 
-		NSLog(@"%@", diskItem);
-		const auto list = Analyser::Static::GetTargets([path stringByAppendingPathComponent:diskItem].UTF8String);
-		if(list.empty()) {
-			continue;
-		}
+		NSString *const fullPath = [path stringByAppendingPathComponent:diskItem];
+		dispatch_group_async(dispatch_group, dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
+			const auto list = Analyser::Static::GetTargets(fullPath.UTF8String);
+			if(list.empty()) {
+				return;
+			}
 
-		++hits.files;
-		if(list.size() != 1) {
-			continue;
-		}
+			++files;
+			if(list.size() != 1) {
+				return;
+			}
 
-		const auto &first = *list.begin();
-		hits.matches += first->machine == machine;
+			const auto &first = *list.begin();
+			matches += first->machine == machine;
 
-//		if(!(hits.files % 100)) {
-			NSLog(@"Currently %d in %d, i.e. %0.2f",
-				hits.matches, hits.files, float(hits.matches) / float(hits.files));
-//		}
+			if(!(files % 100)) {
+				NSLog(@"Currently %d in %d, i.e. %0.2f",
+					matches.load(), files.load(), float(matches.load()) / float(files.load()));
+			}
+		});
 	}
 
-	return hits;
+	dispatch_group_wait(dispatch_group, DISPATCH_TIME_FOREVER);
+	return HitRate {
+		.files = files,
+		.matches = matches,
+	};
 }
 
 - (void)testPlus4 {
