@@ -505,7 +505,7 @@ public:
 
 		@param cycles The number of cycles to run for.
 	*/
-	void run_for(const HalfCycles);
+	void run_for(const HalfCycles cycles);
 
 	/*!
 		Sets the logical value of the bus request line, having asserted that this Z80 supports the bus request line.
