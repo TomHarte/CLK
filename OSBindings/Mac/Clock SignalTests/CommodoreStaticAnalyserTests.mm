@@ -50,12 +50,19 @@ struct HitRate {
 		[items addObject:[path stringByAppendingPathComponent:diskItem]];
 	}
 
-	dispatch_apply(([items count] + 9) / 10, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t iteration) {
-		const auto base = iteration * 10;
-		for(size_t index = base; index < base + 10 && index < [items count]; index++) {
+	static constexpr int BatchSize = 10;
+	dispatch_apply(
+		([items count] + BatchSize - 1) / BatchSize,
+		dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0),
+		^(size_t iteration) {
+
+		const auto base = iteration * BatchSize;
+		for(size_t index = base; index < base + BatchSize && index < [items count]; index++) {
 			NSString *const fullPath = [items objectAtIndex:index];
 
+			NSLog(@"Starting %@", fullPath);
 			const auto list = Analyser::Static::GetTargets(fullPath.UTF8String);
+			NSLog(@"Ending %@", fullPath);
 			if(list.empty()) {
 				return;
 			}
