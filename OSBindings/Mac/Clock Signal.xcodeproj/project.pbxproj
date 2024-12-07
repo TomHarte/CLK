@@ -387,6 +387,7 @@
 		4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
 		4B596EB22D037E8800FBF4B1 /* Plus4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B596EB02D037E8800FBF4B1 /* Plus4.cpp */; };
 		4B596EB32D037E8800FBF4B1 /* Plus4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B596EB02D037E8800FBF4B1 /* Plus4.cpp */; };
+		4B596EB42D04B8C700FBF4B1 /* Plus4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B596EB02D037E8800FBF4B1 /* Plus4.cpp */; };
 		4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5D497C28513F870076E2F9 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
@@ -6457,6 +6458,7 @@
 			files = (
 				4B06AAEA2C645FDD0034D014 /* Bus.cpp in Sources */,
 				4B778EF623A5EB600000D260 /* WOZ.cpp in Sources */,
+				4B596EB42D04B8C700FBF4B1 /* Plus4.cpp in Sources */,
 				42EB812F2B4700B800429AF4 /* MemoryMap.cpp in Sources */,
 				4B778F1423A5EC960000D260 /* Z80Storage.cpp in Sources */,
 				4B778F1F23A5EDC70000D260 /* Audio.cpp in Sources */,
