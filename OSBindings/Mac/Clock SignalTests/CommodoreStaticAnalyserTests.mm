@@ -45,17 +45,16 @@ struct HitRate {
 	auto &matches = matches_source;
 
 	NSDirectoryEnumerator<NSString *> *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:path];
-
-	const auto dispatch_group = dispatch_group_create();
-
+	NSMutableArray<NSString *> *items = [[NSMutableArray alloc] init];
 	while(NSString *diskItem = [enumerator nextObject]) {
-		const NSString *type = [[enumerator fileAttributes] objectForKey:NSFileType];
-		if(![type isEqual:NSFileTypeRegular]) {
-			continue;
-		}
+		[items addObject:[path stringByAppendingPathComponent:diskItem]];
+	}
 
-		NSString *const fullPath = [path stringByAppendingPathComponent:diskItem];
-		dispatch_group_async(dispatch_group, dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
+	dispatch_apply(([items count] + 9) / 10, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t iteration) {
+		const auto base = iteration * 10;
+		for(size_t index = base; index < base + 10 && index < [items count]; index++) {
+			NSString *const fullPath = [items objectAtIndex:index];
+
 			const auto list = Analyser::Static::GetTargets(fullPath.UTF8String);
 			if(list.empty()) {
 				return;
@@ -68,15 +67,11 @@ struct HitRate {
 
 			const auto &first = *list.begin();
 			matches += first->machine == machine;
+		}
+		NSLog(@"Currently %d in %d, i.e. %0.2f",
+			matches.load(), files.load(), float(matches.load()) / float(files.load()));
+	});
 
-			if(!(files % 100)) {
-				NSLog(@"Currently %d in %d, i.e. %0.2f",
-					matches.load(), files.load(), float(matches.load()) / float(files.load()));
-			}
-		});
-	}
-
-	dispatch_group_wait(dispatch_group, DISPATCH_TIME_FOREVER);
 	return HitRate {
 		.files = files,
 		.matches = matches,
