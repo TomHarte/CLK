@@ -19,15 +19,15 @@ using namespace Storage::Disk;
 
 D64::D64(const std::string &file_name) :
 		file_(file_name) {
-	// in D64, this is it for validation without imposing potential false-negative tests: check that
+	// In D64, this is it for validation without imposing potential false-negative tests: check that
 	// the file size appears to be correct. Stone-age stuff.
 	if(file_.stats().st_size != 174848 && file_.stats().st_size != 196608)
 		throw Error::InvalidFormat;
 
 	number_of_tracks_ = (file_.stats().st_size == 174848) ? 35 : 40;
 
-	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
-	// being the most stable thing available
+	// Then, ostensibly, this is a valid file. Pick a disk ID as a
+	// function of the file_name, being the most stable thing available.
 	disk_id_ = 0;
 	for(const auto &character: file_name) {
 		disk_id_ ^= character;
