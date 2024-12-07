@@ -15,8 +15,7 @@
 
 namespace Commodore::Plus4 {
 
-class Machine {
-public:
+struct Machine {
 	virtual ~Machine() = default;
 
 	static std::unique_ptr<Machine> Plus4(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);

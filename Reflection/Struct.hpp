@@ -27,12 +27,6 @@ namespace Reflection {
 
 #define DeclareField(Name) declare(&Name, #Name)
 
-#define BEGIN_DECLARATIONS void declare_fields() {
-#define END_DECLARATIONS }											\
-	struct Declarer { Declarer() { Target t; t.declare_fields(); } };	\
-	static Declarer declarer;
-
-
 struct Struct {
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
@@ -248,9 +242,8 @@ protected:
 		declare_field(&field1, "field1");
 		declare_field(&field2, "field2");
 
-		Fields are registered in class storage. So callers can use needs_declare()
-		to determine whether a class of this type has already established the
-		reflective fields.
+		They should provide a default constructor and implement the method
+		declare_fields() to perform all declarations.
 	*/
 
 	/*!
@@ -304,13 +297,6 @@ protected:
 	}
 
 	/*!
-		@returns @c true if this subclass of @c Struct has not yet declared any fields.
-	*/
-	bool needs_declare() const {
-		return contents_.empty();
-	}
-
-	/*!
 		Performs a reverse lookup from field to name.
 	*/
 	std::string name_of(void *field) {
@@ -358,6 +344,15 @@ private:
 	};
 	static inline std::unordered_map<std::string, Field> contents_;
 	static inline std::unordered_map<std::string, std::vector<bool>> permitted_enum_values_;
+
+	// Ensure fields are declared at startup.
+	struct Declarer {
+		Declarer() {
+			Owner o;
+			o.declare_fields();
+		}
+	};
+	static Declarer declarer;
 };
 
 

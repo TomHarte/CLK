@@ -41,15 +41,17 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	std::string loading_command;
 	bool should_start_jasmin = false;
 
-	Target(): Analyser::Static::Target(Machine::Oric) {
-		if(needs_declare()) {
-			DeclareField(rom);
-			DeclareField(disk_interface);
-			DeclareField(processor);
-			AnnounceEnum(ROM);
-			AnnounceEnum(DiskInterface);
-			AnnounceEnum(Processor);
-		}
+	Target(): Analyser::Static::Target(Machine::Oric) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(rom);
+		DeclareField(disk_interface);
+		DeclareField(processor);
+		AnnounceEnum(ROM);
+		AnnounceEnum(DiskInterface);
+		AnnounceEnum(Processor);
 	}
 };
 

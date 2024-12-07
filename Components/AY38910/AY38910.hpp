@@ -223,13 +223,6 @@ struct State: public Reflection::StructImpl<State> {
 
 	// TODO: all audio-production thread state.
 
-	State() {
-		if(needs_declare()) {
-			DeclareField(registers);
-			DeclareField(selected_register);
-		}
-	}
-
 	template <typename AY> void apply(AY &target) {
 		// Establish emulator-thread state
 		for(uint8_t c = 0; c < 16; c++) {
@@ -237,6 +230,13 @@ struct State: public Reflection::StructImpl<State> {
 			target.set_register_value(registers[c]);
 		}
 		target.select_register(selected_register);
+	}
+
+private:
+	friend Reflection::StructImpl<State>;
+	void declare_fields() {
+		DeclareField(registers);
+		DeclareField(selected_register);
 	}
 };
 

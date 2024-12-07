@@ -26,13 +26,15 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	// This is used internally for testing; it therefore isn't exposed reflectively.
 	bool catch_ssm_codes = false;
 
-	Target() : Analyser::Static::Target(Machine::AmstradCPC) {
-		if(needs_declare()) {
-			DeclareField(model);
-			DeclareField(crtc_type);
-			AnnounceEnum(Model);
-			AnnounceEnum(CRTCType);
-		}
+	Target() : Analyser::Static::Target(Machine::AmstradCPC) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(model);
+		DeclareField(crtc_type);
+		AnnounceEnum(Model);
+		AnnounceEnum(CRTCType);
 	}
 };
 

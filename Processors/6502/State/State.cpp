@@ -83,43 +83,35 @@ void State::apply(ProcessorBase &target) {
 }
 
 // Boilerplate follows here, to establish 'reflection'.
-State::State() {
-	if(needs_declare()) {
-		DeclareField(registers);
-		DeclareField(execution_state);
-		DeclareField(inputs);
-	}
+void State::declare_fields() {
+	DeclareField(registers);
+	DeclareField(execution_state);
+	DeclareField(inputs);
 }
 
-State::Registers::Registers() {
-	if(needs_declare()) {
-		DeclareField(program_counter);
-		DeclareField(stack_pointer);
-		DeclareField(flags);
-		DeclareField(a);
-		DeclareField(x);
-		DeclareField(y);
-	}
+void State::Registers::declare_fields() {
+	DeclareField(program_counter);
+	DeclareField(stack_pointer);
+	DeclareField(flags);
+	DeclareField(a);
+	DeclareField(x);
+	DeclareField(y);
 }
 
-State::ExecutionState::ExecutionState() {
-	if(needs_declare()) {
-		AnnounceEnum(Phase);
-		DeclareField(phase);
-		DeclareField(micro_program);
-		DeclareField(micro_program_offset);
-		DeclareField(operation);
-		DeclareField(operand);
-		DeclareField(address);
-		DeclareField(next_address);
-	}
+void State::ExecutionState::declare_fields() {
+	AnnounceEnum(Phase);
+	DeclareField(phase);
+	DeclareField(micro_program);
+	DeclareField(micro_program_offset);
+	DeclareField(operation);
+	DeclareField(operand);
+	DeclareField(address);
+	DeclareField(next_address);
 }
 
-State::Inputs::Inputs() {
-	if(needs_declare()) {
-		DeclareField(ready);
-		DeclareField(irq);
-		DeclareField(nmi);
-		DeclareField(reset);
-	}
+void State::Inputs::declare_fields() {
+	DeclareField(ready);
+	DeclareField(irq);
+	DeclareField(nmi);
+	DeclareField(reset);
 }

@@ -37,11 +37,13 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	Region region = Region::Japan;
 	PagingScheme paging_scheme = PagingScheme::Sega;
 
-	Target() : Analyser::Static::Target(Machine::MasterSystem) {
-		if(needs_declare()) {
-			DeclareField(region);
-			AnnounceEnum(Region);
-		}
+	Target() : Analyser::Static::Target(Machine::MasterSystem) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(region);
+		AnnounceEnum(Region);
 	}
 };
 

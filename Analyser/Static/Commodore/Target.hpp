@@ -57,7 +57,8 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	Target() : Analyser::Static::Target(Machine::Vic20) {}
 
 private:
-	BEGIN_DECLARATIONS
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
 		DeclareField(enabled_ram.bank0);
 		DeclareField(enabled_ram.bank1);
 		DeclareField(enabled_ram.bank2);
@@ -66,7 +67,7 @@ private:
 		DeclareField(region);
 		DeclareField(has_c1540);
 		AnnounceEnum(Region);
-	END_DECLARATIONS
+	}
 };
 
 }

@@ -32,15 +32,15 @@ struct State: public Reflection::StructImpl<State> {
 	// Meaningful for the +2a and +3 only.
 	uint8_t last_1ffd = 0;
 
-	State() {
-		if(needs_declare()) {
-			DeclareField(z80);
-			DeclareField(video);
-			DeclareField(ram);
-			DeclareField(last_7ffd);
-			DeclareField(last_1ffd);
-			DeclareField(ay);
-		}
+private:
+	friend Reflection::StructImpl<State>;
+	void declare_fields() {
+		DeclareField(z80);
+		DeclareField(video);
+		DeclareField(ram);
+		DeclareField(last_7ffd);
+		DeclareField(last_1ffd);
+		DeclareField(ay);
 	}
 };
 

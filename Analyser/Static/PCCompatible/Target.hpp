@@ -24,13 +24,15 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		Fast);
 	Speed speed = Speed::Fast;
 
-	Target() : Analyser::Static::Target(Machine::PCCompatible) {
-		if(needs_declare()) {
-			AnnounceEnum(VideoAdaptor);
-			AnnounceEnum(Speed);
-			DeclareField(adaptor);
-			DeclareField(speed);
-		}
+	Target() : Analyser::Static::Target(Machine::PCCompatible) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		AnnounceEnum(VideoAdaptor);
+		AnnounceEnum(Speed);
+		DeclareField(adaptor);
+		DeclareField(speed);
 	}
 };
 

@@ -27,11 +27,13 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	Model model = Model::Plus2;
 	bool should_hold_enter = false;
 
-	Target(): Analyser::Static::Target(Machine::ZXSpectrum) {
-		if(needs_declare()) {
-			DeclareField(model);
-			AnnounceEnum(Model);
-		}
+	Target(): Analyser::Static::Target(Machine::ZXSpectrum) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(model);
+		AnnounceEnum(Model);
 	}
 };
 

@@ -36,17 +36,19 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	SCSIController scsi_controller = SCSIController::None;
 	bool has_mockingboard = true;
 
-	Target() : Analyser::Static::Target(Machine::AppleII) {
-		if(needs_declare()) {
-			DeclareField(model);
-			DeclareField(disk_controller);
-			DeclareField(scsi_controller);
-			DeclareField(has_mockingboard);
+	Target() : Analyser::Static::Target(Machine::AppleII) {}
 
-			AnnounceEnum(Model);
-			AnnounceEnum(DiskController);
-			AnnounceEnum(SCSIController);
-		}
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(model);
+		DeclareField(disk_controller);
+		DeclareField(scsi_controller);
+		DeclareField(has_mockingboard);
+
+		AnnounceEnum(Model);
+		AnnounceEnum(DiskController);
+		AnnounceEnum(SCSIController);
 	}
 };
 
