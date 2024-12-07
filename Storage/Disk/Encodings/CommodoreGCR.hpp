@@ -33,7 +33,7 @@ namespace CommodoreGCR {
 	/*!
 		A block is defined to be four source bytes, which encodes to five GCR bytes.
 	*/
-	void encode_block(uint8_t *destination, uint8_t *source);
+	void encode_block(uint8_t *destination, const uint8_t *source);
 
 	/*!
 		@returns the four bit nibble for the five-bit GCR @c quintet if a valid GCR value; INT_MAX otherwise.

@@ -11,12 +11,12 @@
 
 using namespace Storage;
 
-Time Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned int time_zone) {
+Time Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(const unsigned int time_zone) {
 	// the speed zone divides a 4Mhz clock by 13, 14, 15 or 16, with higher-numbered zones being faster (i.e. each bit taking less time)
 	return Time(16 - time_zone, 4000000u);
 }
 
-unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(uint8_t nibble) {
+unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(const uint8_t nibble) {
 	switch(nibble & 0xf) {
 		case 0x0:	return 0x0a;		case 0x1:	return 0x0b;
 		case 0x2:	return 0x12;		case 0x3:	return 0x13;
@@ -32,7 +32,7 @@ unsigned int Storage::Encodings::CommodoreGCR::encoding_for_nibble(uint8_t nibbl
 	}
 }
 
-unsigned int Storage::Encodings::CommodoreGCR::decoding_from_quintet(unsigned int quintet) {
+unsigned int Storage::Encodings::CommodoreGCR::decoding_from_quintet(const unsigned int quintet) {
 	switch(quintet & 0x1f) {
 		case 0x0a:	return 0x0;			case 0x0b:	return 0x1;
 		case 0x12:	return 0x2;			case 0x13:	return 0x3;
@@ -47,15 +47,15 @@ unsigned int Storage::Encodings::CommodoreGCR::decoding_from_quintet(unsigned in
 	}
 }
 
-unsigned int Storage::Encodings::CommodoreGCR::encoding_for_byte(uint8_t byte) {
+unsigned int Storage::Encodings::CommodoreGCR::encoding_for_byte(const uint8_t byte) {
 	return encoding_for_nibble(byte) | (encoding_for_nibble(byte >> 4) << 5);
 }
 
-unsigned int Storage::Encodings::CommodoreGCR::decoding_from_dectet(unsigned int dectet) {
+unsigned int Storage::Encodings::CommodoreGCR::decoding_from_dectet(const unsigned int dectet) {
 	return decoding_from_quintet(dectet) | (decoding_from_quintet(dectet >> 5) << 4);
 }
 
-void Storage::Encodings::CommodoreGCR::encode_block(uint8_t *destination, uint8_t *source) {
+void Storage::Encodings::CommodoreGCR::encode_block(uint8_t *const destination, const uint8_t *const source) {
 	unsigned int encoded_bytes[4] = {
 		encoding_for_byte(source[0]),
 		encoding_for_byte(source[1]),
