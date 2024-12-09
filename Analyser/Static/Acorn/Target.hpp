@@ -40,6 +40,10 @@ struct ArchimedesTarget: public ::Analyser::Static::Target, public Reflection::S
 	std::string main_program;
 
 	ArchimedesTarget() : Analyser::Static::Target(Machine::Archimedes) {}
+
+private:
+	friend Reflection::StructImpl<ArchimedesTarget>;
+	void declare_fields() {}
 };
 
 }

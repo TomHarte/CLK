@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
@@ -150,6 +151,13 @@ template <typename Type> Type get(const Struct &target, const std::string &name,
 
 template <typename Owner> class StructImpl: public Struct {
 public:
+	StructImpl<Owner>() {
+		static std::once_flag once;
+		std::call_once(once, [this] {
+			static_cast<Owner *>(this)->declare_fields();
+		});
+	}
+
 	/*!
 		@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 			It is the caller's responsibility to provide an appropriate type of data.
@@ -344,15 +352,6 @@ private:
 	};
 	static inline std::unordered_map<std::string, Field> contents_;
 	static inline std::unordered_map<std::string, std::vector<bool>> permitted_enum_values_;
-
-	// Ensure fields are declared at startup.
-	struct Declarer {
-		Declarer() {
-			Owner o;
-			o.declare_fields();
-		}
-	};
-	static Declarer declarer;
 };
 
 
