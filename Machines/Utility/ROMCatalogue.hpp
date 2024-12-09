@@ -146,6 +146,12 @@ enum Name {
 	PCCompatibleEGABIOS,
 	PCCompatibleVGABIOS,
 
+	// Plus 4.
+	Plus4KernelPALv3,
+	Plus4KernelPALv4,
+	Plus4KernelPALv5,
+	Plus4BASIC,
+
 	// Sinclair QL.
 	SinclairQLJS,
 

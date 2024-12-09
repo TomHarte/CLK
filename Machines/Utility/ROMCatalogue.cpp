@@ -601,7 +601,6 @@ Description::Description(Name name) {
 			*this = Description(name, "PCCompatible", "IBM's VGA BIOS", "ibm_vga.bin", 32 * 1024, 0x03b3f90du);
 		break;
 
-
 		// TODO: CRCs below are incomplete, at best.
 		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
 		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);	break;
@@ -612,6 +611,19 @@ Description::Description(Name name) {
 		case Name::MSX2GenericBIOS:	*this = Description(name, "MSX", "a generic MSX2 BIOS", "msx2.rom", 32*1024, 0x6cdaf3a5u);			break;
 		case Name::MSX2Extension:	*this = Description(name, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16*1024, 0x66237ecfu);	break;
 		case Name::MSXMusic:		*this = Description(name, "MSX", "the MSX-MUSIC / FM-PAC ROM", "fmpac.rom", 64*1024, 0x0e84505du);	break;
+
+		case Name::Plus4KernelPALv3:
+			*this = Description(name, "Plus4", "the C16+4 kernel, PAL-G revision 3", "kernal.318004-03.bin", 16*1024, 0x77bab934u);
+		break;
+		case Name::Plus4KernelPALv4:
+			*this = Description(name, "Plus4", "the C16+4 kernel, PAL-G revision 4", "kernal.318004-04.bin", 16*1024, 0xbe54ed79u);
+		break;
+		case Name::Plus4KernelPALv5:
+			*this = Description(name, "Plus4", "the C16+4 kernel, PAL-G revision 5", "kernal.318004-05.bin", 16*1024, 0x71c07bd4u);
+		break;
+		case Name::Plus4BASIC:
+			*this = Description(name, "Plus4", "the C16+4 BASIC ROM", "basic.318006-01.bin", 16*1024, 0x74eaae87u);
+		break;
 
 		case Name::SinclairQLJS:
 			*this = Description(name, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48*1024, 0x0f95aab5u);
