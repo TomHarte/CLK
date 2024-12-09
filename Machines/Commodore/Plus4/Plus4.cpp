@@ -19,11 +19,17 @@ namespace {
 class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
+	public MachineTypes::MediaTarget,
 	public Machine {
 public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
-		(void)target;
-		(void)rom_fetcher;
+		const ROM::Request request = ROM::Request(ROM::Name::Plus4BASIC) && ROM::Request(ROM::Name::Plus4KernelPALv5);
+		auto roms = rom_fetcher(request);
+		if(!request.validate(roms)) {
+			throw ROMMachine::Error::MissingROMs;
+		}
+
+		insert_media(target.media);
 	}
 
 private:
@@ -35,6 +41,10 @@ private:
 	}
 
 	void run_for(const Cycles) final {
+	}
+
+	bool insert_media(const Analyser::Static::Media &) final {
+		return true;
 	}
 };
 
