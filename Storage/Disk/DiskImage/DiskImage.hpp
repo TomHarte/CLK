@@ -103,7 +103,7 @@ public:
 
 	HeadPosition get_maximum_head_position();
 	int get_head_count();
-	std::shared_ptr<Track> get_track_at_position(Track::Address address);
+	Track *track_at_position(Track::Address address);
 	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
 	void flush_tracks();
 	bool get_is_read_only();

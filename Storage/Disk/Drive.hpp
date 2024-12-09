@@ -11,6 +11,7 @@
 #include "Disk.hpp"
 #include "Track/PCMSegment.hpp"
 #include "Track/PCMTrack.hpp"
+#include "Track/UnformattedTrack.hpp"
 
 #include "../TimedEventLoop.hpp"
 #include "../../Activity/Observer.hpp"
@@ -174,7 +175,7 @@ public:
 
 		It's for the benefit of user-optional fast-loading mechanisms **ONLY**.
 	*/
-	std::shared_ptr<Track> step_to(HeadPosition offset);
+	Track *step_to(HeadPosition offset);
 
 	/*!
 		Alters the rotational velocity of this drive.
@@ -209,7 +210,8 @@ private:
 	// Drives contain an entire disk; from that a certain track
 	// will be currently under the head.
 	std::shared_ptr<Disk> disk_;
-	std::shared_ptr<Track> track_;
+	UnformattedTrack unformatted_track_;
+	Track *track_ = nullptr;
 	bool has_disk_ = false;
 
 	// Contains the multiplier that converts between track-relative lengths
@@ -274,7 +276,7 @@ private:
 	/*!
 		@returns the track underneath the current head at the location now stepped to.
 	*/
-	std::shared_ptr<Track> get_track();
+	Track *get_track();
 
 	/*!
 		Attempts to set @c track as the track underneath the current head at the location now stepped to.

@@ -25,7 +25,7 @@ void Parser::install_track(const Storage::Disk::Track::Address &address) {
 		return;
 	}
 
-	const auto track = disk_->get_track_at_position(address);
+	const auto track = disk_->track_at_position(address);
 	if(!track) {
 		return;
 	}

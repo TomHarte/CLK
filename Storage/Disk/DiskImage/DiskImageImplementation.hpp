@@ -42,18 +42,18 @@ template <typename T> void DiskImageHolder<T>::set_track_at_position(Track::Addr
 	cached_tracks_[address] = track;
 }
 
-template <typename T> std::shared_ptr<Track> DiskImageHolder<T>::get_track_at_position(Track::Address address) {
+template <typename T> Track *DiskImageHolder<T>::track_at_position(Track::Address address) {
 	if(address.head >= get_head_count()) return nullptr;
 	if(address.position >= get_maximum_head_position()) return nullptr;
 
 	const auto canonical_address = disk_image_.canonical_address(address);
 	auto cached_track = cached_tracks_.find(canonical_address);
-	if(cached_track != cached_tracks_.end()) return cached_track->second;
+	if(cached_track != cached_tracks_.end()) return cached_track->second.get();
 
 	std::shared_ptr<Track> track = disk_image_.track_at_position(canonical_address);
 	if(!track) return nullptr;
 	cached_tracks_[canonical_address] = track;
-	return track;
+	return track.get();
 }
 
 template <typename T> DiskImageHolder<T>::~DiskImageHolder() {

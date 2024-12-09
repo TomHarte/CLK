@@ -67,7 +67,7 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(
 
 	// Grab track 0, sector 0: the boot sector.
 	const auto track_zero =
-		disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
+		disk->track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
 	const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 		Storage::Disk::track_serialisation(*track_zero, Storage::Time(1, 50000)));
 
