@@ -15,10 +15,9 @@ namespace MachineTypes {
 /*!
 	An AudioProducer is any machine that **might** produce audio. This isn't always knowable statically.
 */
-class AudioProducer {
-	public:
-		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
-		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
+struct AudioProducer {
+	/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
+	virtual Outputs::Speaker::Speaker *get_speaker() = 0;
 };
 
 }

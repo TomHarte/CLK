@@ -28,13 +28,15 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ChipRAM chip_ram = ChipRAM::FiveHundredAndTwelveKilobytes;
 	FastRAM fast_ram = FastRAM::EightMegabytes;
 
-	Target() : Analyser::Static::Target(Machine::Amiga) {
-		if(needs_declare()) {
-			DeclareField(fast_ram);
-			DeclareField(chip_ram);
-			AnnounceEnum(FastRAM);
-			AnnounceEnum(ChipRAM);
-		}
+	Target() : Analyser::Static::Target(Machine::Amiga) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(fast_ram);
+		DeclareField(chip_ram);
+		AnnounceEnum(FastRAM);
+		AnnounceEnum(ChipRAM);
 	}
 };
 

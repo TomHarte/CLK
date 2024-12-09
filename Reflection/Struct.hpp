@@ -242,9 +242,8 @@ protected:
 		declare_field(&field1, "field1");
 		declare_field(&field2, "field2");
 
-		Fields are registered in class storage. So callers can use needs_declare()
-		to determine whether a class of this type has already established the
-		reflective fields.
+		They should provide a default constructor and implement the method
+		declare_fields() to perform all declarations.
 	*/
 
 	/*!
@@ -298,13 +297,6 @@ protected:
 	}
 
 	/*!
-		@returns @c true if this subclass of @c Struct has not yet declared any fields.
-	*/
-	bool needs_declare() {
-		return contents_.empty();
-	}
-
-	/*!
 		Performs a reverse lookup from field to name.
 	*/
 	std::string name_of(void *field) {
@@ -352,6 +344,15 @@ private:
 	};
 	static inline std::unordered_map<std::string, Field> contents_;
 	static inline std::unordered_map<std::string, std::vector<bool>> permitted_enum_values_;
+
+	// Ensure fields are declared at startup.
+	struct Declarer {
+		Declarer() {
+			Owner o;
+			o.declare_fields();
+		}
+	};
+	static Declarer declarer;
 };
 
 

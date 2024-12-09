@@ -164,62 +164,54 @@ void State::apply(ProcessorBase &target) {
 }
 
 // Boilerplate follows here, to establish 'reflection'.
-State::State() {
-	if(needs_declare()) {
-		DeclareField(registers);
-		DeclareField(execution_state);
-		DeclareField(inputs);
-	}
+void State::declare_fields() {
+	DeclareField(registers);
+	DeclareField(execution_state);
+	DeclareField(inputs);
 }
 
-State::Registers::Registers() {
-	if(needs_declare()) {
-		DeclareField(a);
-		DeclareField(flags);
-		DeclareField(bc);
-		DeclareField(de);
-		DeclareField(hl);
-		DeclareField(af_dash);	// TODO: is there any disadvantage to declaring these for reflective
-		DeclareField(bc_dash);	// purposes as AF', BC', etc?
-		DeclareField(de_dash);
-		DeclareField(hl_dash);
-		DeclareField(ix);
-		DeclareField(iy);
-		DeclareField(ir);
-		DeclareField(program_counter);
-		DeclareField(stack_pointer);
-		DeclareField(interrupt_mode);
-		DeclareField(iff1);
-		DeclareField(iff2);
-		DeclareField(memptr);
-	}
+void State::Registers::declare_fields() {
+	DeclareField(a);
+	DeclareField(flags);
+	DeclareField(bc);
+	DeclareField(de);
+	DeclareField(hl);
+	DeclareField(af_dash);	// TODO: is there any disadvantage to declaring these for reflective
+	DeclareField(bc_dash);	// purposes as AF', BC', etc?
+	DeclareField(de_dash);
+	DeclareField(hl_dash);
+	DeclareField(ix);
+	DeclareField(iy);
+	DeclareField(ir);
+	DeclareField(program_counter);
+	DeclareField(stack_pointer);
+	DeclareField(interrupt_mode);
+	DeclareField(iff1);
+	DeclareField(iff2);
+	DeclareField(memptr);
 }
 
-State::ExecutionState::ExecutionState() {
-	if(needs_declare()) {
-		DeclareField(is_halted);
-		DeclareField(requests);
-		DeclareField(last_requests);
-		DeclareField(temp8);
-		DeclareField(operation);
-		DeclareField(temp16);
-		DeclareField(flag_adjustment_history);
-		DeclareField(pc_increment);
-		DeclareField(refresh_address);
+void State::ExecutionState::declare_fields() {
+	DeclareField(is_halted);
+	DeclareField(requests);
+	DeclareField(last_requests);
+	DeclareField(temp8);
+	DeclareField(operation);
+	DeclareField(temp16);
+	DeclareField(flag_adjustment_history);
+	DeclareField(pc_increment);
+	DeclareField(refresh_address);
 
-		AnnounceEnum(Phase);
-		DeclareField(phase);
-		DeclareField(half_cycles_into_step);
-		DeclareField(steps_into_phase);
-		DeclareField(instruction_page);
-	}
+	AnnounceEnum(Phase);
+	DeclareField(phase);
+	DeclareField(half_cycles_into_step);
+	DeclareField(steps_into_phase);
+	DeclareField(instruction_page);
 }
 
-State::Inputs::Inputs() {
-	if(needs_declare()) {
-		DeclareField(irq);
-		DeclareField(nmi);
-		DeclareField(bus_request);
-		DeclareField(wait);
-	}
+void State::Inputs::declare_fields() {
+	DeclareField(irq);
+	DeclareField(nmi);
+	DeclareField(bus_request);
+	DeclareField(wait);
 }

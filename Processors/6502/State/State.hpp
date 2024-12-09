@@ -31,7 +31,9 @@ struct State: public Reflection::StructImpl<State> {
 		uint8_t flags;
 		uint8_t a, x, y;
 
-		Registers();
+	private:
+		friend Reflection::StructImpl<Registers>;
+		void declare_fields();
 	} registers;
 
 	/*!
@@ -44,7 +46,9 @@ struct State: public Reflection::StructImpl<State> {
 		bool nmi;
 		bool reset;
 
-		Inputs();
+	private:
+		friend Reflection::StructImpl<Inputs>;
+		void declare_fields();
 	} inputs;
 
 	/*!
@@ -74,17 +78,22 @@ struct State: public Reflection::StructImpl<State> {
 		uint8_t operation, operand;
 		uint16_t address, next_address;
 
-		ExecutionState();
+	private:
+		friend Reflection::StructImpl<ExecutionState>;
+		void declare_fields();
 	} execution_state;
 
-	/// Default constructor; makes no guarantees as to field values beyond those given above.
-	State();
+	State() {}
 
 	/// Instantiates a new State based on the processor @c src.
-	State(const ProcessorBase &src);
+	State(const ProcessorBase &);
 
 	/// Applies this state to @c target.
-	void apply(ProcessorBase &target);
+	void apply(ProcessorBase &);
+
+private:
+	friend Reflection::StructImpl<State>;
+	void declare_fields();
 };
 
 }

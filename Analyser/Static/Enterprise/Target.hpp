@@ -30,20 +30,22 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	Speed speed = Speed::FourMHz;
 	std::string loading_command;
 
-	Target() : Analyser::Static::Target(Machine::Enterprise) {
-		if(needs_declare()) {
-			AnnounceEnum(Model);
-			AnnounceEnum(EXOSVersion);
-			AnnounceEnum(BASICVersion);
-			AnnounceEnum(DOS);
-			AnnounceEnum(Speed);
+	Target() : Analyser::Static::Target(Machine::Enterprise) {}
 
-			DeclareField(model);
-			DeclareField(exos_version);
-			DeclareField(basic_version);
-			DeclareField(dos);
-			DeclareField(speed);
-		}
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		AnnounceEnum(Model);
+		AnnounceEnum(EXOSVersion);
+		AnnounceEnum(BASICVersion);
+		AnnounceEnum(DOS);
+		AnnounceEnum(Speed);
+
+		DeclareField(model);
+		DeclareField(exos_version);
+		DeclareField(basic_version);
+		DeclareField(dos);
+		DeclareField(speed);
 	}
 };
 

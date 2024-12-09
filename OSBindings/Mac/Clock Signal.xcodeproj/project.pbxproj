@@ -385,6 +385,9 @@
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
 		4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
+		4B596EB22D037E8800FBF4B1 /* Plus4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B596EB02D037E8800FBF4B1 /* Plus4.cpp */; };
+		4B596EB32D037E8800FBF4B1 /* Plus4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B596EB02D037E8800FBF4B1 /* Plus4.cpp */; };
+		4B596EB42D04B8C700FBF4B1 /* Plus4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B596EB02D037E8800FBF4B1 /* Plus4.cpp */; };
 		4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5D497C28513F870076E2F9 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
@@ -565,7 +568,6 @@
 		4B778F5E23A5F3230000D260 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F91DCFF807003085B1 /* Oric.cpp */; };
 		4B778F6023A5F3460000D260 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944EC201967B4007DE474 /* Disk.cpp */; };
 		4B778F6123A5F3560000D260 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944FC201967B4007DE474 /* Disk.cpp */; };
-		4B778F6223A5F35F0000D260 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894500201967B4007DE474 /* File.cpp */; };
 		4B778F6323A5F3630000D260 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894501201967B4007DE474 /* Tape.cpp */; };
 		4B7962A02819681F008130F9 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79629F2819681F008130F9 /* Decoder.cpp */; };
 		4B7962A12819681F008130F9 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79629F2819681F008130F9 /* Decoder.cpp */; };
@@ -639,8 +641,6 @@
 		4B894527201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944FA201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B894528201967B4007DE474 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944FC201967B4007DE474 /* Disk.cpp */; };
 		4B894529201967B4007DE474 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944FC201967B4007DE474 /* Disk.cpp */; };
-		4B89452A201967B4007DE474 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894500201967B4007DE474 /* File.cpp */; };
-		4B89452B201967B4007DE474 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894500201967B4007DE474 /* File.cpp */; };
 		4B89452C201967B4007DE474 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894501201967B4007DE474 /* Tape.cpp */; };
 		4B89452D201967B4007DE474 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894501201967B4007DE474 /* Tape.cpp */; };
 		4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894503201967B4007DE474 /* StaticAnalyser.cpp */; };
@@ -1602,6 +1602,8 @@
 		4B59199B1DAC6C46005BB85C /* OricTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricTAP.hpp; sourceTree = "<group>"; };
 		4B595FAB2086DFBA0083CAA8 /* AudioToggle.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AudioToggle.hpp; sourceTree = "<group>"; };
 		4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioToggle.cpp; sourceTree = "<group>"; };
+		4B596EAF2D037E8800FBF4B1 /* Plus4.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Plus4.hpp; sourceTree = "<group>"; };
+		4B596EB02D037E8800FBF4B1 /* Plus4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Plus4.cpp; sourceTree = "<group>"; };
 		4B5B372F2777C7FC0047F238 /* IPF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPF.cpp; sourceTree = "<group>"; };
 		4B5B37302777C7FC0047F238 /* IPF.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IPF.hpp; sourceTree = "<group>"; };
 		4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Spectrum.cpp; path = Parsers/Spectrum.cpp; sourceTree = "<group>"; };
@@ -1756,7 +1758,6 @@
 		4B8944FD201967B4007DE474 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4B8944FE201967B4007DE474 /* File.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = File.hpp; sourceTree = "<group>"; };
 		4B8944FF201967B4007DE474 /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Tape.hpp; sourceTree = "<group>"; };
-		4B894500201967B4007DE474 /* File.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = File.cpp; sourceTree = "<group>"; };
 		4B894501201967B4007DE474 /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tape.cpp; sourceTree = "<group>"; };
 		4B894502201967B4007DE474 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4B894503201967B4007DE474 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
@@ -3273,10 +3274,11 @@
 		4B4DC81D1D2C2425003C5BF8 /* Commodore */ = {
 			isa = PBXGroup;
 			children = (
-				4B4DC8251D2C2470003C5BF8 /* 1540 */,
-				4B4DC81E1D2C2425003C5BF8 /* Vic-20 */,
 				4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */,
 				4B4DC82A1D2C27A4003C5BF8 /* SerialBus.hpp */,
+				4B4DC8251D2C2470003C5BF8 /* 1540 */,
+				4B596EB12D037E8800FBF4B1 /* Plus4 */,
+				4B4DC81E1D2C2425003C5BF8 /* Vic-20 */,
 			);
 			path = Commodore;
 			sourceTree = "<group>";
@@ -3384,6 +3386,15 @@
 				4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */,
 			);
 			path = AudioToggle;
+			sourceTree = "<group>";
+		};
+		4B596EB12D037E8800FBF4B1 /* Plus4 */ = {
+			isa = PBXGroup;
+			children = (
+				4B596EAF2D037E8800FBF4B1 /* Plus4.hpp */,
+				4B596EB02D037E8800FBF4B1 /* Plus4.cpp */,
+			);
+			path = Plus4;
 			sourceTree = "<group>";
 		};
 		4B643F3B1D77AD6D00D431D6 /* StaticAnalyser */ = {
@@ -3810,7 +3821,6 @@
 			isa = PBXGroup;
 			children = (
 				4B8944FC201967B4007DE474 /* Disk.cpp */,
-				4B894500201967B4007DE474 /* File.cpp */,
 				4B894503201967B4007DE474 /* StaticAnalyser.cpp */,
 				4B894501201967B4007DE474 /* Tape.cpp */,
 				4B894502201967B4007DE474 /* Disk.hpp */,
@@ -6006,7 +6016,6 @@
 				4B055AA31FAE85DF0060FFFF /* ImplicitSectors.cpp in Sources */,
 				4B8318B322D3E540006DB630 /* Audio.cpp in Sources */,
 				4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */,
-				4B89452B201967B4007DE474 /* File.cpp in Sources */,
 				4B6AAEAC230E40250078E864 /* SCSI.cpp in Sources */,
 				4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */,
 				4BD424E62193B5830097291A /* Shader.cpp in Sources */,
@@ -6143,6 +6152,7 @@
 				4B8318B822D3E566006DB630 /* IWM.cpp in Sources */,
 				4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */,
 				4B055AD41FAE9B0B0060FFFF /* Oric.cpp in Sources */,
+				4B596EB22D037E8800FBF4B1 /* Plus4.cpp in Sources */,
 				4B055A921FAE85B50060FFFF /* PRG.cpp in Sources */,
 				4B055AAF1FAE85FD0060FFFF /* UnformattedTrack.cpp in Sources */,
 				4B055A7E1FAE84AA0060FFFF /* main.cpp in Sources */,
@@ -6249,6 +6259,7 @@
 				4B051C97266EF5F600CA44E8 /* CSAppleII.mm in Sources */,
 				4B0ACC2A23775819008902D0 /* Video.cpp in Sources */,
 				4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */,
+				4B596EB32D037E8800FBF4B1 /* Plus4.cpp in Sources */,
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				423820112B17CBC800964EFE /* StaticAnalyser.cpp in Sources */,
 				4BC6236D26F4235400F83DFE /* Copper.cpp in Sources */,
@@ -6331,7 +6342,6 @@
 				4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */,
 				4BCD634922D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */,
 				4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */,
-				4B89452A201967B4007DE474 /* File.cpp in Sources */,
 				4BC080D026A257A200D03FD8 /* StaticAnalyser.cpp in Sources */,
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
 				4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */,
@@ -6448,6 +6458,7 @@
 			files = (
 				4B06AAEA2C645FDD0034D014 /* Bus.cpp in Sources */,
 				4B778EF623A5EB600000D260 /* WOZ.cpp in Sources */,
+				4B596EB42D04B8C700FBF4B1 /* Plus4.cpp in Sources */,
 				42EB812F2B4700B800429AF4 /* MemoryMap.cpp in Sources */,
 				4B778F1423A5EC960000D260 /* Z80Storage.cpp in Sources */,
 				4B778F1F23A5EDC70000D260 /* Audio.cpp in Sources */,
@@ -6581,7 +6592,6 @@
 				4BEDA3BB25B25563000C2DBD /* Decoder.cpp in Sources */,
 				4B778F2423A5EDEE0000D260 /* PRG.cpp in Sources */,
 				4B778F5A23A5F2D50000D260 /* 6502.cpp in Sources */,
-				4B778F6223A5F35F0000D260 /* File.cpp in Sources */,
 				4B06AB0F2C6461780034D014 /* MultiProducer.cpp in Sources */,
 				4B778F3523A5F1040000D260 /* SCSI.cpp in Sources */,
 				4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */,

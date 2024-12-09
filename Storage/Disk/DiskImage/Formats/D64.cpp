@@ -19,16 +19,15 @@ using namespace Storage::Disk;
 
 D64::D64(const std::string &file_name) :
 		file_(file_name) {
-	// in D64, this is it for validation without imposing potential false-negative tests: check that
-	// the file size appears to be correct. Stone-age stuff.
+	// In D64, this is it for validation without imposing potential false-negative tests:
+	// check that the file size appears to be correct. Stone-age stuff.
 	if(file_.stats().st_size != 174848 && file_.stats().st_size != 196608)
 		throw Error::InvalidFormat;
 
 	number_of_tracks_ = (file_.stats().st_size == 174848) ? 35 : 40;
 
-	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
-	// being the most stable thing available
-	disk_id_ = 0;
+	// Then, ostensibly, this is a valid file. Pick a disk ID as a
+	// function of the file_name, being the most stable thing available.
 	for(const auto &character: file_name) {
 		disk_id_ ^= character;
 		disk_id_ = uint16_t((disk_id_ << 2) ^ (disk_id_ >> 13));
@@ -39,8 +38,8 @@ HeadPosition D64::get_maximum_head_position() {
 	return HeadPosition(number_of_tracks_);
 }
 
-std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
-	// figure out where this track starts on the disk
+std::shared_ptr<Track> D64::get_track_at_position(const Track::Address address) {
+	// Figure out where this track starts on the disk.
 	int offset_to_track = 0;
 	int tracks_to_traverse = address.position.as_int();
 
@@ -54,12 +53,12 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 		if(tracks_in_this_zone == zone_sizes[current_zone]) zone++;
 	}
 
-	// seek to start of data
+	// Seek to start of data.
 	file_.seek(offset_to_track * 256, SEEK_SET);
 
-	// build up a PCM sampling of the GCR version of this track
+	// Build up a PCM sampling of the GCR version of this track.
 
-	// format per sector:
+	// Format per sector:
 	//
 	// syncronisation: three $FFs directly in GCR
 	// value $08 to announce a header
@@ -86,39 +85,39 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 		uint8_t *sector_data = &data[size_t(sector) * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
-		uint8_t sector_number = uint8_t(sector);						// sectors count from 0
-		uint8_t track_number = uint8_t(address.position.as_int() + 1);	// tracks count from 1
+		uint8_t sector_number = uint8_t(sector);						// Sectors count from 0.
+		uint8_t track_number = uint8_t(address.position.as_int() + 1);	// Tracks count from 1.
 		uint8_t checksum = uint8_t(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
 		uint8_t header_start[4] = {
 			0x08, checksum, sector_number, track_number
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[3], header_start);
 
-		uint8_t header_end[4] = {
+		const uint8_t header_end[4] = {
 			uint8_t(disk_id_ & 0xff), uint8_t(disk_id_ >> 8), 0, 0
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[8], header_end);
 
-		// pad out post-header parts
+		// Pad out post-header parts.
 		uint8_t zeros[4] = {0, 0, 0, 0};
 		Encodings::CommodoreGCR::encode_block(&sector_data[13], zeros);
 		sector_data[18] = 0x52;
 		sector_data[19] = 0x94;
 		sector_data[20] = 0xaf;
 
-		// get the actual contents
+		// Get the actual contents.
 		uint8_t source_data[256];
 		file_.read(source_data, sizeof(source_data));
 
-		// compute the latest checksum
+		// Compute the latest checksum.
 		checksum = 0;
 		for(int c = 0; c < 256; c++)
 			checksum ^= source_data[c];
 
-		// put in another sync
+		// Put in another sync.
 		sector_data[21] = sector_data[22] = sector_data[23] = 0xff;
 
-		// now start writing in the actual data
+		// Now start writing in the actual data.
 		uint8_t start_of_data[4] = {
 			0x07, source_data[0], source_data[1], source_data[2]
 		};

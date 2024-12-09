@@ -17,22 +17,26 @@
 
 namespace Coleco::Vision {
 
-class Machine {
-	public:
-		virtual ~Machine() = default;
-		static std::unique_ptr<Machine> ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+struct Machine {
+	virtual ~Machine() = default;
+	static std::unique_ptr<Machine> ColecoVision(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
-		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
-			friend Configurable::DisplayOption<Options>;
-			public:
-				Options(Configurable::OptionsType type) :
-					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::SVideo : Configurable::Display::CompositeColour) {
-					if(needs_declare()) {
-						declare_display_option();
-						limit_enum(&output, Configurable::Display::SVideo, Configurable::Display::CompositeColour, -1);
-					}
-				}
-		};
+	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
+		friend Configurable::DisplayOption<Options>;
+		public:
+			Options(Configurable::OptionsType type) :
+				Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ?
+					Configurable::Display::SVideo : Configurable::Display::CompositeColour) {}
+
+	private:
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+
+		friend Reflection::StructImpl<Options>;
+		void declare_fields() {
+			declare_display_option();
+			limit_enum(&output, Configurable::Display::SVideo, Configurable::Display::CompositeColour, -1);
+		}
+	};
 };
 
 }

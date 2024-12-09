@@ -71,9 +71,7 @@ public:
 	Processor(BusHandler &bus_handler) : bus_handler_(bus_handler) {}
 
 	/*!
-		Runs the 6502 for a supplied number of cycles.
-
-		@param cycles The number of cycles to run the 6502 for.
+		Runs the 6502 for a number of cycles.
 	*/
 	void run_for(const Cycles);
 

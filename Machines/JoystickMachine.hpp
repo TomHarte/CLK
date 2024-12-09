@@ -13,9 +13,8 @@
 
 namespace MachineTypes {
 
-class JoystickMachine {
-	public:
-		virtual const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() = 0;
+struct JoystickMachine {
+	virtual const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() = 0;
 };
 
 }

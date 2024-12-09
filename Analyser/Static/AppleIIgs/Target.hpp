@@ -29,13 +29,15 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	Model model = Model::ROM01;
 	MemoryModel memory_model = MemoryModel::EightMB;
 
-	Target() : Analyser::Static::Target(Machine::AppleIIgs) {
-		if(needs_declare()) {
-			DeclareField(model);
-			DeclareField(memory_model);
-			AnnounceEnum(Model);
-			AnnounceEnum(MemoryModel);
-		}
+	Target() : Analyser::Static::Target(Machine::AppleIIgs) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(model);
+		DeclareField(memory_model);
+		AnnounceEnum(Model);
+		AnnounceEnum(MemoryModel);
 	}
 };
 

@@ -26,7 +26,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 
 		switch(header->type) {
 			case Storage::Tape::Commodore::Header::DataSequenceHeader: {
-				File new_file;
+				File &new_file = file_list.emplace_back();
 				new_file.name = header->name;
 				new_file.raw_name = header->raw_name;
 				new_file.starting_address = header->starting_address;
@@ -40,8 +40,6 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 					if(header->type != Storage::Tape::Commodore::Header::DataBlock) break;
 					std::copy(header->data.begin(), header->data.end(), std::back_inserter(new_file.data));
 				}
-
-				file_list.push_back(new_file);
 			}
 			break;
 
@@ -49,7 +47,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 			case Storage::Tape::Commodore::Header::NonRelocatableProgram: {
 				std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape);
 				if(data) {
-					File new_file;
+					File &new_file = file_list.emplace_back();
 					new_file.name = header->name;
 					new_file.raw_name = header->raw_name;
 					new_file.starting_address = header->starting_address;
@@ -58,8 +56,6 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 					new_file.type =
 						header->type == Storage::Tape::Commodore::Header::RelocatableProgram
 							? File::RelocatableProgram : File::NonRelocatableProgram;
-
-					file_list.push_back(new_file);
 				}
 
 				header = parser.get_next_header(tape);

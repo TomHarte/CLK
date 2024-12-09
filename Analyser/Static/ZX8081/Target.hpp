@@ -27,13 +27,15 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	bool ZX80_uses_ZX81_ROM = false;
 	std::string loading_command;
 
-	Target(): Analyser::Static::Target(Machine::ZX8081) {
-		if(needs_declare()) {
-			DeclareField(memory_model);
-			DeclareField(is_ZX81);
-			DeclareField(ZX80_uses_ZX81_ROM);
-			AnnounceEnum(MemoryModel);
-		}
+	Target(): Analyser::Static::Target(Machine::ZX8081) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(memory_model);
+		DeclareField(is_ZX81);
+		DeclareField(ZX80_uses_ZX81_ROM);
+		AnnounceEnum(MemoryModel);
 	}
 };
 

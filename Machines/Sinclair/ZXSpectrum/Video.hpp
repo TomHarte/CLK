@@ -455,15 +455,7 @@ struct State: public Reflection::StructImpl<State> {
 	int flash_counter = 0;
 	bool is_alternate_line = false;
 
-	State() {
-		if(needs_declare()) {
-			DeclareField(border_colour);
-			DeclareField(half_cycles_since_interrupt);
-			DeclareField(flash);
-			DeclareField(flash_counter);
-			DeclareField(is_alternate_line);
-		}
-	}
+	State() {}
 
 	template <typename Video> State(const Video &source) : State() {
 		border_colour = source.border_byte_;
@@ -479,6 +471,16 @@ struct State: public Reflection::StructImpl<State> {
 		target.flash_counter_ = flash_counter;
 		target.is_alternate_line_ = is_alternate_line;
 		target.set_time_since_interrupt(HalfCycles(half_cycles_since_interrupt));
+	}
+
+private:
+	friend Reflection::StructImpl<State>;
+	void declare_fields() {
+		DeclareField(border_colour);
+		DeclareField(half_cycles_since_interrupt);
+		DeclareField(flash);
+		DeclareField(flash_counter);
+		DeclareField(is_alternate_line);
 	}
 };
 

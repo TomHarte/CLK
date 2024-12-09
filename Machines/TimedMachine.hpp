@@ -25,7 +25,7 @@ namespace MachineTypes {
 class TimedMachine {
 public:
 	/// Runs the machine for @c duration seconds.
-	virtual void run_for(Time::Seconds duration) {
+	virtual void run_for(const Time::Seconds duration) {
 		const double cycles = (duration * clock_rate_ * speed_multiplier_) + clock_conversion_error_;
 		clock_conversion_error_ = std::fmod(cycles, 1.0);
 		run_for(Cycles(int(cycles)));
@@ -36,7 +36,7 @@ public:
 		emulated machine to run 50% faster than a real machine. This speed-up is an emulation
 		fiction: it will apply across the system, including to the CRT.
 	*/
-	virtual void set_speed_multiplier(double multiplier) {
+	virtual void set_speed_multiplier(const double multiplier) {
 		if(speed_multiplier_ == multiplier) {
 			return;
 		}
@@ -75,10 +75,10 @@ public:
 
 protected:
 	/// Runs the machine for @c cycles.
-	virtual void run_for(const Cycles cycles) = 0;
+	virtual void run_for(const Cycles) = 0;
 
 	/// Sets this machine's clock rate.
-	void set_clock_rate(double clock_rate) {
+	void set_clock_rate(const double clock_rate) {
 		clock_rate_ = clock_rate;
 	}
 

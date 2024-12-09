@@ -18,12 +18,13 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ReflectableEnum(Model, Mac128k, Mac512k, Mac512ke, MacPlus);
 	Model model = Model::MacPlus;
 
-	Target() : Analyser::Static::Target(Machine::Macintosh) {
-		// Boilerplate for declaring fields and potential values.
-		if(needs_declare()) {
-			DeclareField(model);
-			AnnounceEnum(Model);
-		}
+	Target() : Analyser::Static::Target(Machine::Macintosh) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(model);
+		AnnounceEnum(Model);
 	}
 };
 

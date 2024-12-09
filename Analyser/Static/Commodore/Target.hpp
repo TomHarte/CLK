@@ -54,17 +54,19 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	bool has_c1540 = false;
 	std::string loading_command;
 
-	Target() : Analyser::Static::Target(Machine::Vic20) {
-		if(needs_declare()) {
-			DeclareField(enabled_ram.bank0);
-			DeclareField(enabled_ram.bank1);
-			DeclareField(enabled_ram.bank2);
-			DeclareField(enabled_ram.bank3);
-			DeclareField(enabled_ram.bank5);
-			DeclareField(region);
-			DeclareField(has_c1540);
-			AnnounceEnum(Region);
-		}
+	Target() : Analyser::Static::Target(Machine::Vic20) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(enabled_ram.bank0);
+		DeclareField(enabled_ram.bank1);
+		DeclareField(enabled_ram.bank2);
+		DeclareField(enabled_ram.bank3);
+		DeclareField(enabled_ram.bank5);
+		DeclareField(region);
+		DeclareField(has_c1540);
+		AnnounceEnum(Region);
 	}
 };
 

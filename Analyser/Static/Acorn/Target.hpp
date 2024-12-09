@@ -23,14 +23,16 @@ struct ElectronTarget: public ::Analyser::Static::Target, public Reflection::Str
 	bool should_shift_restart = false;
 	std::string loading_command;
 
-	ElectronTarget() : Analyser::Static::Target(Machine::Electron) {
-		if(needs_declare()) {
-			DeclareField(has_pres_adfs);
-			DeclareField(has_acorn_adfs);
-			DeclareField(has_dfs);
-			DeclareField(has_ap6_rom);
-			DeclareField(has_sideways_ram);
-		}
+	ElectronTarget() : Analyser::Static::Target(Machine::Electron) {}
+
+private:
+	friend Reflection::StructImpl<ElectronTarget>;
+	void declare_fields() {
+		DeclareField(has_pres_adfs);
+		DeclareField(has_acorn_adfs);
+		DeclareField(has_dfs);
+		DeclareField(has_ap6_rom);
+		DeclareField(has_sideways_ram);
 	}
 };
 

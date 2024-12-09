@@ -33,15 +33,17 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	);
 	Region region = Region::USA;
 
-	Target(): Analyser::Static::Target(Machine::MSX) {
-		if(needs_declare()) {
-			DeclareField(has_disk_drive);
-			DeclareField(has_msx_music);
-			DeclareField(region);
-			AnnounceEnum(Region);
-			DeclareField(model);
-			AnnounceEnum(Model);
-		}
+	Target(): Analyser::Static::Target(Machine::MSX) {}
+
+private:
+	friend Reflection::StructImpl<Target>;
+	void declare_fields() {
+		DeclareField(has_disk_drive);
+		DeclareField(has_msx_music);
+		DeclareField(region);
+		AnnounceEnum(Region);
+		DeclareField(model);
+		AnnounceEnum(Model);
 	}
 };
 

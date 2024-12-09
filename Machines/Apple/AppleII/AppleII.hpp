@@ -17,27 +17,30 @@
 
 namespace Apple::II {
 
-class Machine {
+struct Machine {
+	virtual ~Machine() = default;
+
+	/// Creates and returns an AppleII.
+	static std::unique_ptr<Machine> AppleII(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+
+	/// Defines the runtime options available for an Apple II.
+	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
+		friend Configurable::DisplayOption<Options>;
 	public:
-		virtual ~Machine() = default;
+		bool use_square_pixels = false;
 
-		/// Creates and returns an AppleII.
-		static std::unique_ptr<Machine> AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		Options(Configurable::OptionsType) :
+			Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour) {}
+	private:
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
-		/// Defines the runtime options available for an Apple II.
-		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
-			friend Configurable::DisplayOption<Options>;
-			public:
-				bool use_square_pixels = false;
-
-				Options(Configurable::OptionsType) : Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour) {
-					if(needs_declare()) {
-						DeclareField(use_square_pixels);
-						declare_display_option();
-						limit_enum(&output, Configurable::Display::CompositeMonochrome, Configurable::Display::CompositeColour, -1);
-					}
-				}
-		};
+		friend Reflection::StructImpl<Options>;
+		void declare_fields() {
+			DeclareField(use_square_pixels);
+			declare_display_option();
+			limit_enum(&output, Configurable::Display::CompositeMonochrome, Configurable::Display::CompositeColour, -1);
+		}
+	};
 };
 
 }

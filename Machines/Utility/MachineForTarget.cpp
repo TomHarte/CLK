@@ -21,6 +21,7 @@
 #include "../Atari/2600/Atari2600.hpp"
 #include "../Atari/ST/AtariST.hpp"
 #include "../ColecoVision/ColecoVision.hpp"
+#include "../Commodore/Plus4/Plus4.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
 #include "../Enterprise/Enterprise.hpp"
 #include "../MasterSystem/MasterSystem.hpp"
@@ -68,6 +69,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(const Analyse
 			Bind(Atari2600)
 			BindD(Atari::ST, AtariST)
 			BindD(Coleco::Vision, ColecoVision)
+			BindD(Commodore::Plus4, Plus4)
 			BindD(Commodore::Vic20, Vic20)
 			Bind(Electron)
 			Bind(Enterprise)
@@ -145,6 +147,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::MasterSystem:	return "MasterSystem";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
+		case Analyser::Machine::Plus4:			return "Plus4";
 		case Analyser::Machine::PCCompatible:	return "PCCompatible";
 		case Analyser::Machine::Vic20:			return "Vic20";
 		case Analyser::Machine::ZX8081:			return "ZX8081";
@@ -170,6 +173,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::MasterSystem:	return "Sega Master System";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
+		case Analyser::Machine::Plus4:			return "Commodore C16+4";
 		case Analyser::Machine::PCCompatible:	return "PC Compatible";
 		case Analyser::Machine::Vic20:			return "Vic 20";
 		case Analyser::Machine::ZX8081:			return "ZX80/81";
@@ -202,6 +206,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 		AddName(Macintosh);
 		AddName(MSX);
 		AddName(Oric);
+		AddName(Plus4);
 		AddName(PCCompatible);
 		AddName(Vic20);
 		AddName(ZX8081);
@@ -230,6 +235,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(MasterSystem, Sega::MasterSystem::Machine);
 	Emplace(MSX, MSX::Machine);
 	Emplace(Oric, Oric::Machine);
+//	Emplace(Plus4, Commodore::Plus4::Machine);		// There are no options yet.
 	Emplace(PCCompatible, PCCompatible::Machine);
 	Emplace(Vic20, Commodore::Vic20::Machine);
 	Emplace(ZX8081, Sinclair::ZX8081::Machine);
@@ -258,6 +264,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(Macintosh);
 	Add(MSX);
 	Add(Oric);
+	AddMapped(Plus4, Commodore);
 	Add(PCCompatible);
 	AddMapped(Vic20, Commodore);
 	Add(ZX8081);

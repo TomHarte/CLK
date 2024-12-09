@@ -20,27 +20,35 @@ namespace Commodore::Vic20 {
 /// @returns The options available for a Vic-20.
 std::unique_ptr<Reflection::Struct> get_options();
 
-class Machine {
-	public:
-		virtual ~Machine() = default;
+struct Machine {
+	virtual ~Machine() = default;
 
-		/// Creates and returns a Vic-20.
-		static std::unique_ptr<Machine> Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+	/// Creates and returns a Vic-20.
+	static std::unique_ptr<Machine> Vic20(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
-		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
-			friend Configurable::DisplayOption<Options>;
-			friend Configurable::QuickloadOption<Options>;
-			public:
-				Options(Configurable::OptionsType type) :
-					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::SVideo : Configurable::Display::CompositeColour),
-					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
-					if(needs_declare()) {
-						declare_display_option();
-						declare_quickload_option();
-						limit_enum(&output, Configurable::Display::SVideo, Configurable::Display::CompositeColour, -1);
-					}
-				}
-		};
+	class Options:
+		public Reflection::StructImpl<Options>,
+		public Configurable::DisplayOption<Options>,
+		public Configurable::QuickloadOption<Options>
+	{
+		friend Configurable::DisplayOption<Options>;
+		friend Configurable::QuickloadOption<Options>;
+		public:
+			Options(Configurable::OptionsType type) :
+				Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ?
+					Configurable::Display::SVideo : Configurable::Display::CompositeColour),
+				Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
+			}
+	private:
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+
+		friend Reflection::StructImpl<Options>;
+		void declare_fields() {
+			declare_display_option();
+			declare_quickload_option();
+			limit_enum(&output, Configurable::Display::SVideo, Configurable::Display::CompositeColour, -1);
+		}
+	};
 };
 
 }

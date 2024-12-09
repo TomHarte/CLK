@@ -21,7 +21,6 @@ set(CLK_SOURCES
 	Analyser/Static/AtariST/StaticAnalyser.cpp
 	Analyser/Static/Coleco/StaticAnalyser.cpp
 	Analyser/Static/Commodore/Disk.cpp
-	Analyser/Static/Commodore/File.cpp
 	Analyser/Static/Commodore/StaticAnalyser.cpp
 	Analyser/Static/Commodore/Tape.cpp
 	Analyser/Static/Disassembler/6502.cpp
@@ -119,6 +118,7 @@ set(CLK_SOURCES
 	Machines/Atari/ST/Video.cpp
 	Machines/ColecoVision/ColecoVision.cpp
 	Machines/Commodore/1540/Implementation/C1540.cpp
+	Machines/Commodore/Plus4/Plus4.cpp
 	Machines/Commodore/SerialBus.cpp
 	Machines/Commodore/Vic-20/Keyboard.cpp
 	Machines/Commodore/Vic-20/Vic20.cpp

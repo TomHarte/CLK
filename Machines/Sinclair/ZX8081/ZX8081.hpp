@@ -18,31 +18,32 @@
 namespace Sinclair::ZX8081 {
 
 /// The ZX80/81 machine.
-class Machine {
+struct Machine {
+	virtual ~Machine() = default;
+	static std::unique_ptr<Machine> ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+
+	virtual void set_tape_is_playing(bool is_playing) = 0;
+	virtual bool get_tape_is_playing() = 0;
+
+	/// Defines the runtime options available for a ZX80/81.
+	class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
+		friend Configurable::QuickloadOption<Options>;
 	public:
-		virtual ~Machine() = default;
-		static std::unique_ptr<Machine> ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+		bool automatic_tape_motor_control = true;
 
-		virtual void set_tape_is_playing(bool is_playing) = 0;
-		virtual bool get_tape_is_playing() = 0;
+		Options(Configurable::OptionsType type):
+			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly),
+			automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly) {}
 
-		/// Defines the runtime options available for a ZX80/81.
-		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
-			friend Configurable::QuickloadOption<Options>;
-			public:
-				bool automatic_tape_motor_control = true;
+	private:
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
-				Options(Configurable::OptionsType type):
-					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly),
-					automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly) {
-
-					// Declare fields if necessary.
-					if(needs_declare()) {
-						DeclareField(automatic_tape_motor_control);
-						declare_quickload_option();
-					}
-				}
-		};
+		friend Reflection::StructImpl<Options>;
+		void declare_fields() {
+			DeclareField(automatic_tape_motor_control);
+			declare_quickload_option();
+		}
+	};
 };
 
 }

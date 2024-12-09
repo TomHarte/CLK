@@ -21,8 +21,7 @@ namespace Atari2600 {
 /*!
 	Models an Atari 2600.
 */
-class Machine {
-public:
+struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns an Atari 2600 on the heap.

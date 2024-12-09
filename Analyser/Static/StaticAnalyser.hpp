@@ -64,7 +64,7 @@ struct Target {
 
 	Machine machine;
 	Media media;
-	float confidence = 0.0f;
+	float confidence = 0.5f;
 };
 typedef std::vector<std::unique_ptr<Target>> TargetList;
 

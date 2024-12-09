@@ -37,7 +37,9 @@ struct State: public Reflection::StructImpl<State> {
 		int interrupt_mode;
 		bool iff1, iff2;
 
-		Registers();
+	private:
+		friend Reflection::StructImpl<Registers>;
+		void declare_fields();
 	} registers;
 
 	/*!
@@ -50,7 +52,9 @@ struct State: public Reflection::StructImpl<State> {
 		bool bus_request = false;
 		bool wait = false;
 
-		Inputs();
+	private:
+		friend Reflection::StructImpl<Inputs>;
+		void declare_fields();
 	} inputs;
 
 	/*!
@@ -80,17 +84,22 @@ struct State: public Reflection::StructImpl<State> {
 		int steps_into_phase = 0;
 		uint16_t instruction_page = 0;
 
-		ExecutionState();
+	private:
+		friend Reflection::StructImpl<ExecutionState>;
+		void declare_fields();
 	} execution_state;
 
-	/// Default constructor; makes no guarantees as to field values beyond those given above.
-	State();
+	State() {}
 
 	/// Instantiates a new State based on the processor @c src.
 	State(const ProcessorBase &src);
 
 	/// Applies this state to @c target.
 	void apply(ProcessorBase &target);
+
+private:
+	friend Reflection::StructImpl<State>;
+	void declare_fields();
 };
 
 }
