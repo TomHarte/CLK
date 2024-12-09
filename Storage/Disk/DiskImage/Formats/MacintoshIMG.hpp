@@ -47,8 +47,8 @@ public:
 	int get_head_count() final;
 	bool get_is_read_only() final;
 
-	std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) final;
-	void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) final;
 
 private:
 	Storage::FileHolder file_;

@@ -31,7 +31,7 @@ public:
 	// DiskImage interface.
 	HeadPosition get_maximum_head_position() final;
 	int get_head_count() final;
-	std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) final;
 
 private:
 	FileHolder file_;

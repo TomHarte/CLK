@@ -27,20 +27,15 @@ public:
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition get_maximum_head_position() final;
-	std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) final;
-	void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) final;
+	Track::Address canonical_address(Track::Address) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) final;
 	bool get_is_read_only() final;
 
 private:
 	FileHolder file_;
 	long get_file_offset_for_position(Track::Address address);
 	long file_offset(Track::Address address);
-
-	// Cache for the last-generated track, given that head steps on an Apple II
-	// occur in quarter-track increments, so there'll routinely be four gets in
-	// a row for the same data.
-	long cached_offset_ = 0;
-	std::shared_ptr<Storage::Disk::PCMTrack> cached_track_;
 };
 
 }

@@ -50,7 +50,7 @@ long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
 	return long(seek_offset) * 6400 + 256;
 }
 
-std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address) {
+std::unique_ptr<Track> OricMFMDSK::track_at_position(Track::Address address) {
 	PCMSegment segment;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
@@ -112,10 +112,10 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 		}
 	}
 
-	return std::make_shared<PCMTrack>(segment);
+	return std::make_unique<PCMTrack>(segment);
 }
 
-void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+void OricMFMDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	for(const auto &track : tracks) {
 		PCMSegment segment = Storage::Disk::track_serialisation(*track.second, Storage::Encodings::MFM::MFMBitLength);
 		Storage::Encodings::MFM::Shifter shifter;

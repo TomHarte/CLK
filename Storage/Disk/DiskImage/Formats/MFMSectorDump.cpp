@@ -21,7 +21,7 @@ void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uin
 	first_sector_ = first_sector;
 }
 
-std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address address) {
+std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) {
 	if(address.head >= get_head_count()) return nullptr;
 	if(address.position.as_largest() >= get_maximum_head_position().as_largest()) return nullptr;
 
@@ -44,7 +44,7 @@ std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address addre
 		density_);
 }
 
-void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	uint8_t parsed_track[(128 << sector_size_)*sectors_per_track_];
 
 	// TODO: it would be more efficient from a file access and locking point of view to parse the sectors

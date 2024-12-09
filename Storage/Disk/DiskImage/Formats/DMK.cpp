@@ -79,7 +79,7 @@ long DMK::get_file_offset_for_position(Track::Address address) {
 	return (address.head*head_count_ + address.position.as_int()) * track_length_ + 16;
 }
 
-std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(::Storage::Disk::Track::Address address) {
 	file_.seek(get_file_offset_for_position(address), SEEK_SET);
 
 	// Read the IDAM table.
@@ -179,5 +179,5 @@ std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Di
 		idam_pointer++;
 	}
 
-	return std::make_shared<PCMTrack>(segments);
+	return std::make_unique<PCMTrack>(segments);
 }

@@ -182,7 +182,7 @@ public:
 		(void)first_sync_;
 	}
 
-	std::shared_ptr<PCMTrack> get_track() {
+	std::unique_ptr<PCMTrack> get_track() {
 		// If no contents are supplied, return an unformatted track.
 		if(sectors_.empty() && track_data_.empty()) {
 			return nullptr;
@@ -192,11 +192,11 @@ public:
 		// changes and fuzzy bits in sectors only.
 		if(sectors_.empty()) {
 			PCMSegment segment;
-			std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+			auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
 			for(auto c: track_data_) {
 				encoder->add_byte(c);
 			}
-			return std::make_shared<PCMTrack>(segment);
+			return std::make_unique<PCMTrack>(segment);
 		}
 
 		// Otherwise, seek to encode the sectors, using the track data to
@@ -377,7 +377,7 @@ public:
 			track_size += 16;
 		}
 
-		return std::make_shared<PCMTrack>(segments);
+		return std::make_unique<PCMTrack>(segments);
 	}
 
 private:
@@ -448,7 +448,7 @@ int STX::get_head_count() {
 	return head_count_;
 }
 
-std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 	// These images have two sides, at most.
 	if(address.head > 1) return nullptr;
 
