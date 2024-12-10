@@ -22,10 +22,10 @@ template <typename T> void DiskImageHolder<T>::flush_tracks() {
 	if(!unwritten_tracks_.empty()) {
 		if(!update_queue_) update_queue_ = std::make_unique<Concurrency::AsyncTaskQueue<true>>();
 
-		using TrackMap = std::map<Track::Address, std::shared_ptr<Track>>;
-		std::shared_ptr<TrackMap> track_copies(new TrackMap);
+		using TrackMap = std::map<Track::Address, std::unique_ptr<Track>>;
+		auto track_copies = std::make_shared<TrackMap>();
 		for(const auto &address : unwritten_tracks_) {
-			track_copies->insert({address, std::shared_ptr<Track>(cached_tracks_[address]->clone())});
+			track_copies->insert({address, std::unique_ptr<Track>(cached_tracks_[address]->clone())});
 		}
 		unwritten_tracks_.clear();
 
@@ -42,17 +42,18 @@ template <typename T> void DiskImageHolder<T>::set_track_at_position(Track::Addr
 	cached_tracks_[address] = track;
 }
 
-template <typename T> std::shared_ptr<Track> DiskImageHolder<T>::get_track_at_position(Track::Address address) {
+template <typename T> Track *DiskImageHolder<T>::track_at_position(Track::Address address) {
 	if(address.head >= get_head_count()) return nullptr;
 	if(address.position >= get_maximum_head_position()) return nullptr;
 
-	auto cached_track = cached_tracks_.find(address);
-	if(cached_track != cached_tracks_.end()) return cached_track->second;
+	const auto canonical_address = disk_image_.canonical_address(address);
+	auto cached_track = cached_tracks_.find(canonical_address);
+	if(cached_track != cached_tracks_.end()) return cached_track->second.get();
 
-	std::shared_ptr<Track> track = disk_image_.get_track_at_position(address);
+	std::shared_ptr<Track> track = disk_image_.track_at_position(canonical_address);
 	if(!track) return nullptr;
-	cached_tracks_[address] = track;
-	return track;
+	cached_tracks_[canonical_address] = track;
+	return track.get();
 }
 
 template <typename T> DiskImageHolder<T>::~DiskImageHolder() {

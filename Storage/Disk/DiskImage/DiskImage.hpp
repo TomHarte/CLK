@@ -50,12 +50,12 @@ public:
 		@returns the @c Track at @c position underneath @c head if there are any detectable events there;
 		returns @c nullptr otherwise.
 	*/
-	virtual std::shared_ptr<Track> get_track_at_position(Track::Address address) = 0;
+	virtual std::unique_ptr<Track> track_at_position(Track::Address address) = 0;
 
 	/*!
 		Replaces the Tracks indicated by the map, that maps from physical address to track content.
 	*/
-	virtual void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &) {}
+	virtual void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) {}
 
 	/*!
 		Communicates that it is likely to be a while before any more tracks are written.
@@ -72,6 +72,12 @@ public:
 			This can avoid some degree of work when disk images offer sub-head-position precision.
 	*/
 	virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs != rhs; }
+
+	/*!
+		Maps from an address to its canonical form; this provides a means for images that duplicate the same
+		track at different addresses to declare as much.
+	*/
+	virtual Track::Address canonical_address(Track::Address address) { return address; }
 };
 
 class DiskImageHolderBase: public Disk {
@@ -97,7 +103,7 @@ public:
 
 	HeadPosition get_maximum_head_position();
 	int get_head_count();
-	std::shared_ptr<Track> get_track_at_position(Track::Address address);
+	Track *track_at_position(Track::Address address);
 	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
 	void flush_tracks();
 	bool get_is_read_only();

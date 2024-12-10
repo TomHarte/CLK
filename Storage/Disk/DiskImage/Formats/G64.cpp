@@ -36,9 +36,7 @@ HeadPosition G64::get_maximum_head_position() {
 	return HeadPosition(number_of_tracks_ > 84 ? number_of_tracks_ : 84, 2);
 }
 
-std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
-	std::shared_ptr<Track> resulting_track;
-
+std::unique_ptr<Track> G64::track_at_position(Track::Address address) {
 	// seek to this track's entry in the track table
 	file_.seek(long((address.position.as_half() * 4) + 0xc), SEEK_SET);
 
@@ -93,7 +91,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 			}
 		}
 
-		resulting_track = std::make_shared<PCMTrack>(std::move(segments));
+		return std::make_unique<PCMTrack>(std::move(segments));
 	} else {
 		PCMSegment segment(
 			Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(speed_zone_offset)),
@@ -101,11 +99,9 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 			track_contents
 		);
 
-		resulting_track = std::make_shared<PCMTrack>(std::move(segment));
+		return std::make_unique<PCMTrack>(std::move(segment));
 	}
 
-	// TODO: find out whether it's possible for a G64 to supply only a partial track. I don't think it is, which would make the
-	// above correct but supposing I'm wrong, the above would produce some incorrectly clocked tracks
-
-	return resulting_track;
+	// TODO: find out whether it's possible for a G64 to supply only a partial track. I don't think it is, which
+	// would make the above correct but supposing I'm wrong, the above would produce some incorrectly clocked tracks.
 }

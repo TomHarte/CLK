@@ -98,7 +98,7 @@ int IMD::get_head_count() {
 	return heads_ + 1;
 }
 
-std::shared_ptr<::Storage::Disk::Track> IMD::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<Track> IMD::track_at_position(Track::Address address) {
 	auto location = track_locations_.find(address);
 	if(location == track_locations_.end()) {
 		return nullptr;

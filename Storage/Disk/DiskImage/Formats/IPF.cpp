@@ -186,7 +186,7 @@ int IPF::get_head_count() {
 	return head_count_;
 }
 
-std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Address address) {
+std::unique_ptr<Track> IPF::track_at_position([[maybe_unused]] Track::Address address) {
 	// Get the track description, if it exists, and check either that the file has contents for the track.
 	auto pair = tracks_.find(address);
 	if(pair == tracks_.end()) {
@@ -313,7 +313,7 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 		++block_count;
 	}
 
-	return std::make_shared<Storage::Disk::PCMTrack>(segments);
+	return std::make_unique<Storage::Disk::PCMTrack>(segments);
 }
 
 /// @returns The correct bit length for @c block on a track of @c density.

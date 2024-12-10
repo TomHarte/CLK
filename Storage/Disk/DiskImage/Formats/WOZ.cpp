@@ -147,7 +147,7 @@ bool WOZ::tracks_differ(Track::Address lhs, Track::Address rhs) {
 	return offset1 != offset2;
 }
 
-std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
+std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) {
 	const long offset = file_offset(address);
 	if(offset == NoSuchTrack) {
 		return nullptr;
@@ -183,10 +183,10 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 		}
 	}
 
-	return std::make_shared<PCMTrack>(PCMSegment(number_of_bits, track_contents));
+	return std::make_unique<PCMTrack>(PCMSegment(number_of_bits, track_contents));
 }
 
-void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	if(type_ == Type::WOZ2) return;
 
 	for(const auto &pair: tracks) {

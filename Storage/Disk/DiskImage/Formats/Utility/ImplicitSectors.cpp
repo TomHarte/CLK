@@ -18,7 +18,7 @@
 
 using namespace Storage::Disk;
 
-std::shared_ptr<Track> Storage::Disk::track_for_sectors(
+std::unique_ptr<Track> Storage::Disk::track_for_sectors(
 	const uint8_t *const source,
 	int number_of_sectors,
 	uint8_t track,

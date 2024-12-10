@@ -75,7 +75,7 @@ MSA::MSA(const std::string &file_name) :
 		throw Error::InvalidFormat;
 }
 
-std::shared_ptr<::Storage::Disk::Track> MSA::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<Track> MSA::track_at_position(Track::Address address) {
 	if(address.head >= sides_) return nullptr;
 
 	const auto position = address.position.as_int();

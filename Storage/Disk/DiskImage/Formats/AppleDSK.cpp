@@ -61,7 +61,7 @@ size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) {
 	return (physical * (is_prodos_ ? 8 : 7)) % 15;
 }
 
-std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
+std::unique_ptr<Track> AppleDSK::track_at_position(Track::Address address) {
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
@@ -93,10 +93,10 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	const size_t offset_in_fifths = size_t(address.position.as_int() % 5);
 	segment.rotate_right(offset_in_fifths * segment.data.size() / 5);
 
-	return std::make_shared<PCMTrack>(segment);
+	return std::make_unique<PCMTrack>(segment);
 }
 
-void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+void AppleDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
 	for(const auto &pair: tracks) {
 		// Decode the track.

@@ -38,7 +38,7 @@ public:
 	// implemented to satisfy @c Disk
 	HeadPosition get_maximum_head_position() final;
 	int get_head_count() final;
-	std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) final;
 
 private:
 	Storage::FileHolder file_;

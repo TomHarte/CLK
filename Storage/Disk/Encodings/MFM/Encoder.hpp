@@ -27,13 +27,13 @@ namespace Storage::Encodings::MFM {
 	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
 	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
 */
-std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+std::unique_ptr<Storage::Disk::Track> TrackWithSectors(
 	Density density,
 	const std::vector<Sector> &sectors,
 	std::optional<std::size_t> sector_gap_length = std::nullopt,
 	std::optional<uint8_t> sector_gap_filler_byte = std::nullopt);
 
-std::shared_ptr<Storage::Disk::Track> TrackWithSectors(
+std::unique_ptr<Storage::Disk::Track> TrackWithSectors(
 	Density density,
 	const std::vector<const Sector *> &sectors,
 	std::optional<std::size_t> sector_gap_length = std::nullopt,

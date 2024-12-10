@@ -198,7 +198,7 @@ std::size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) {
 	return size_t((address.position.as_int() * head_count_) + address.head);
 }
 
-std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<Track> CPCDSK::track_at_position(::Storage::Disk::Track::Address address) {
 	// Given that thesea are interleaved images, determine which track, chronologically, is being requested.
 	const std::size_t chronological_track = index_for_track(address);
 
@@ -221,7 +221,7 @@ std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Add
 		track->filler_byte);
 }
 
-void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::shared_ptr<::Storage::Disk::Track>> &tracks) {
+void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::unique_ptr<::Storage::Disk::Track>> &tracks) {
 	// Patch changed tracks into the disk image.
 	for(auto &pair: tracks) {
 		// Assume MFM for now; with extensions DSK can contain FM tracks.
