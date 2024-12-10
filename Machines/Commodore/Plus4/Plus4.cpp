@@ -63,6 +63,12 @@ public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this)
 	{
+		// PAL: 8'867'240 divided by 5 or 4?
+		// NTSC: 7'159'090?
+		// i.e. colour subcarriers multiplied by two?
+
+		set_clock_rate(8'867'240);	// TODO.
+
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
 
@@ -88,11 +94,24 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
-		(void)operation;
-		(void)address;
-		(void)value;
+//		printf("%04x\n", address);
 
-		return Cycles(1);
+		if(address >= 0xfd00 && address < 0xff40) {
+			if(isReadOperation(operation)) {
+				printf("TODO: TED read @ %04x\n", address);
+			} else {
+				printf("TODO: TED write of %02x @ %04x\n", *value, address);
+			}
+			return Cycles(5);
+		}
+
+		if(isReadOperation(operation)) {
+			*value = map_.read(address);
+		} else {
+			map_.write(address) = *value;
+		}
+
+		return Cycles(5);
 	}
 
 private:
