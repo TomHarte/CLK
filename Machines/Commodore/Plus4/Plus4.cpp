@@ -172,7 +172,20 @@ public:
 		timers_.tick(timers_cycles.as<int>());
 
 		// Perform actual access.
-		if(address >= 0xff00 && address < 0xff40) {
+		if(address < 0xfd00 || address >= 0xff40) {
+			if(isReadOperation(operation)) {
+				*value = map_.read(address);
+			} else {
+				map_.write(address) = *value;
+			}
+		} else if(address < 0xff00) {
+			// Miscellaneous hardware. All TODO.
+//			if(isReadOperation(operation)) {
+//				printf("TODO: read @ %04x\n", address);
+//			} else {
+//				printf("TODO: write of %02x @ %04x\n", *value, address);
+//			}
+		} else {
 			if(isReadOperation(operation)) {
 				switch(address) {
 					case 0xff00:	*value = timers_.read<0>();	break;
@@ -181,6 +194,9 @@ public:
 					case 0xff03:	*value = timers_.read<3>();	break;
 					case 0xff04:	*value = timers_.read<4>();	break;
 					case 0xff05:	*value = timers_.read<5>();	break;
+
+					default:
+						printf("TODO: TED read at %04x\n", address);
 				}
 			} else {
 				switch(address) {
@@ -190,23 +206,11 @@ public:
 					case 0xff03:	timers_.write<3>(*value);	break;
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
+
+					default:
+						printf("TODO: TED write at %04x\n", address);
 				}
 			}
-		}
-
-		if(address >= 0xfd00 && address < 0xff40) {
-			if(isReadOperation(operation)) {
-				printf("TODO: TED read @ %04x\n", address);
-			} else {
-				printf("TODO: TED write of %02x @ %04x\n", *value, address);
-			}
-			return length;
-		}
-
-		if(isReadOperation(operation)) {
-			*value = map_.read(address);
-		} else {
-			map_.write(address) = *value;
 		}
 
 		return length;
