@@ -38,7 +38,7 @@ HeadPosition D64::get_maximum_head_position() {
 	return HeadPosition(number_of_tracks_);
 }
 
-std::shared_ptr<Track> D64::get_track_at_position(const Track::Address address) {
+std::unique_ptr<Track> D64::track_at_position(const Track::Address address) {
 	// Figure out where this track starts on the disk.
 	int offset_to_track = 0;
 	int tracks_to_traverse = address.position.as_int();
@@ -135,5 +135,5 @@ std::shared_ptr<Track> D64::get_track_at_position(const Track::Address address) 
 		Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], end_of_data);
 	}
 
-	return std::make_shared<PCMTrack>(PCMSegment(data));
+	return std::make_unique<PCMTrack>(PCMSegment(data));
 }

@@ -31,8 +31,8 @@ public:
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition get_maximum_head_position() final;
-	std::shared_ptr<Track> get_track_at_position(Track::Address) final;
-	void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) final;
 	bool get_is_read_only() final;
 
 private:

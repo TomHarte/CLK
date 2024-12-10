@@ -171,7 +171,7 @@ bool MacintoshIMG::get_is_read_only() {
 	return file_.get_is_known_read_only();
 }
 
-std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) {
 	/*
 		The format_ byte has the following meanings:
 
@@ -246,13 +246,13 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 		// TODO: it seems some tracks are skewed respective to others; investigate further.
 
 //		segment.rotate_right(3000);	// Just a test, yo.
-		return std::make_shared<PCMTrack>(segment);
+		return std::make_unique<PCMTrack>(segment);
 	}
 
 	return nullptr;
 }
 
-void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
 	for(const auto &pair: tracks) {
 		// Determine a data rate for the track.

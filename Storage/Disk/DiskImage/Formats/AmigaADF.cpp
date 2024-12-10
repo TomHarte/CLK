@@ -124,7 +124,7 @@ int AmigaADF::get_head_count() {
 	return 2;
 }
 
-std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
+std::unique_ptr<Track> AmigaADF::track_at_position(Track::Address address) {
 	using namespace Storage::Encodings;
 
 	// Create an MFM encoder.
@@ -179,7 +179,7 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 		encoder->add_byte(0xff);
 	}
 
-	return std::make_shared<Storage::Disk::PCMTrack>(std::move(encoded_segment));
+	return std::make_unique<Storage::Disk::PCMTrack>(std::move(encoded_segment));
 }
 
 long AmigaADF::get_file_offset_for_position(Track::Address address) {

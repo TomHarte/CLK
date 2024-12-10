@@ -179,7 +179,7 @@ public:
 	}
 };
 
-template<class T> std::shared_ptr<Storage::Disk::Track>
+template<class T> std::unique_ptr<Storage::Disk::Track>
 		GTrackWithSectors(
 			const std::vector<const Sector *> &sectors,
 			std::size_t post_index_address_mark_bytes, uint8_t post_index_address_mark_value,
@@ -300,7 +300,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	// Allow the amount of data written to be up to 10% more than the expected size. Which is generous.
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
-	return std::make_shared<Storage::Disk::PCMTrack>(std::move(segment));
+	return std::make_unique<Storage::Disk::PCMTrack>(std::move(segment));
 }
 
 Encoder::Encoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) :
@@ -339,7 +339,7 @@ void Encoder::add_crc(bool incorrectly) {
 
 namespace {
 template <Density density>
-std::shared_ptr<Storage::Disk::Track> TTrackWithSectors(
+std::unique_ptr<Storage::Disk::Track> TTrackWithSectors(
 	const std::vector<const Sector *> &sectors,
 	std::optional<std::size_t> sector_gap_length,
 	std::optional<uint8_t> sector_gap_filler_byte
@@ -361,7 +361,7 @@ std::shared_ptr<Storage::Disk::Track> TTrackWithSectors(
 
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
+std::unique_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 	Density density,
 	const std::vector<Sector> &sectors,
 	std::optional<std::size_t> sector_gap_length,
@@ -375,7 +375,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 	);
 }
 
-std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
+std::unique_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 	Density density,
 	const std::vector<const Sector *> &sectors,
 	std::optional<std::size_t> sector_gap_length,

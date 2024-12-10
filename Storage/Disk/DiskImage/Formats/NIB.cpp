@@ -54,7 +54,14 @@ long NIB::file_offset(Track::Address address) {
 	return long(address.position.as_int()) * track_length;
 }
 
-std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
+Track::Address NIB::canonical_address(Track::Address address) {
+	return Track::Address(
+		address.head,
+		HeadPosition(address.position.as_int())
+	);
+}
+
+std::unique_ptr<Track> NIB::track_at_position(Track::Address address) {
 	static constexpr size_t MinimumSyncByteCount = 4;
 
 	// NIBs contain data for a fixed quantity of integer-position tracks underneath a single head only.
@@ -71,9 +78,6 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
-		if(cached_offset_ == offset && cached_track_) {
-			return cached_track_;
-		}
 		file_.seek(offset, SEEK_SET);
 		track_data = file_.read(track_length);
 	}
@@ -133,12 +137,10 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	}
 
 	std::lock_guard lock_guard(file_.get_file_access_mutex());
-	cached_offset_ = offset;
-	cached_track_ = std::make_shared<PCMTrack>(segment);
-	return cached_track_;
+	return std::make_unique<PCMTrack>(segment);
 }
 
-void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+void NIB::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
 
 	// Convert to a map from address to a vector of data that contains the NIB representation
@@ -186,5 +188,4 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		file_.seek(file_offset(track.first), SEEK_SET);
 		file_.write(track.second);
 	}
-	cached_track_ = nullptr;	// Conservative, but safe.
 }

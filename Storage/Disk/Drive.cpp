@@ -8,8 +8,6 @@
 
 #include "Drive.hpp"
 
-#include "Track/UnformattedTrack.hpp"
-
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -107,7 +105,7 @@ void Drive::step(HeadPosition offset) {
 	did_step(head_position_);
 }
 
-std::shared_ptr<Track> Drive::step_to(HeadPosition offset) {
+Track *Drive::step_to(HeadPosition offset) {
 	HeadPosition old_head_position = head_position_;
 	head_position_ = std::max(offset, HeadPosition(0));
 
@@ -343,8 +341,8 @@ void Drive::process_next_event() {
 
 // MARK: - Track management
 
-std::shared_ptr<Track> Drive::get_track() {
-	if(disk_) return disk_->get_track_at_position(Track::Address(head_, head_position_));
+Track *Drive::get_track() {
+	if(disk_) return disk_->track_at_position(Track::Address(head_, head_position_));
 	return nullptr;
 }
 
@@ -355,7 +353,7 @@ void Drive::set_track(const std::shared_ptr<Track> &track) {
 void Drive::setup_track() {
 	track_ = get_track();
 	if(!track_) {
-		track_ = std::make_shared<UnformattedTrack>();
+		track_ = &unformatted_track_;
 	}
 
 	float offset = 0.0f;
@@ -426,11 +424,11 @@ void Drive::end_writing() {
 
 		if(!patched_track_) {
 			// Avoid creating a new patched track if this one is already patched
-			patched_track_ = std::dynamic_pointer_cast<PCMTrack>(track_);
-			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
-				Track *const tr = track_.get();
+//			patched_track_ = dynamic_cast<PCMTrack *>(track_);
+//			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
+				Track *const tr = track_;
 				patched_track_.reset(PCMTrack::resampled_clone(tr, high_resolution_track_rate));
-			}
+//			}
 		}
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
 		cycles_since_index_hole_ %= cycles_per_revolution_;
