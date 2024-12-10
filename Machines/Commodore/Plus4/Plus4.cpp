@@ -53,6 +53,73 @@ private:
 	static constexpr auto Shift = ln2(PageSize);
 };
 
+class Timers {
+public:
+	template <int offset>
+	void write(const uint8_t value) {
+		const auto load_low = [&](uint16_t &target) {
+			target = uint16_t((target & 0xff00) | (value << 0));
+		};
+		const auto load_high = [&](uint16_t &target) {
+			target = uint16_t((target & 0x00ff) | (value << 8));
+		};
+
+		constexpr auto timer = offset >> 1;
+		paused_[timer] = !(offset & 1);
+		if constexpr (offset & 1) {
+			load_high(timers_[timer]);
+			if(!timer) {
+				load_high(timer0_reload_);
+			}
+		} else {
+			load_low(timers_[timer]);
+			if(!timer) {
+				load_low(timer0_reload_);
+			}
+		}
+	}
+
+	template <int offset>
+	uint8_t read() {
+		constexpr auto timer = offset >> 1;
+		if constexpr (offset & 1) {
+			return uint8_t(timers_[timer] >> 8);
+		} else {
+			return uint8_t(timers_[timer] >> 0);
+		}
+	}
+
+	void tick(int count) {
+		// Quick hack here; do better than stepping through one at a time.
+		while(count--) {
+			decrement<0>();
+			decrement<1>();
+			decrement<2>();
+		}
+	}
+
+private:
+	template <int timer>
+	void decrement() {
+		if(paused_[timer]) return;
+
+		// Check for reload.
+		if(!timer && !timers_[timer]) {
+			timers_[timer] = timer0_reload_;
+		}
+
+		-- timers_[timer];
+
+		// Check for interrupt.
+		if(!timers_[timer]) {
+		}
+	}
+
+	uint16_t timers_[3]{};
+	uint16_t timer0_reload_ = 0xffff;
+	bool paused_[3]{};
+};
+
 class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::TimedMachine,
@@ -94,7 +161,38 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
-//		printf("%04x\n", address);
+		// TODO: calculate length of this bus operation.
+		const auto length = Cycles(5);
+
+		// Update other subsystems.
+		// TODO: timers decrement at a 894 KHz rate for NTSC television systems, 884 KHZ for PAL systems.
+		// Probably a function of the speed register?
+		timers_subcycles_ += length;
+		const auto timers_cycles = timers_subcycles_.divide(Cycles(5));
+		timers_.tick(timers_cycles.as<int>());
+
+		// Perform actual access.
+		if(address >= 0xff00 && address < 0xff40) {
+			if(isReadOperation(operation)) {
+				switch(address) {
+					case 0xff00:	*value = timers_.read<0>();	break;
+					case 0xff01:	*value = timers_.read<1>();	break;
+					case 0xff02:	*value = timers_.read<2>();	break;
+					case 0xff03:	*value = timers_.read<3>();	break;
+					case 0xff04:	*value = timers_.read<4>();	break;
+					case 0xff05:	*value = timers_.read<5>();	break;
+				}
+			} else {
+				switch(address) {
+					case 0xff00:	timers_.write<0>(*value);	break;
+					case 0xff01:	timers_.write<1>(*value);	break;
+					case 0xff02:	timers_.write<2>(*value);	break;
+					case 0xff03:	timers_.write<3>(*value);	break;
+					case 0xff04:	timers_.write<4>(*value);	break;
+					case 0xff05:	timers_.write<5>(*value);	break;
+				}
+			}
+		}
 
 		if(address >= 0xfd00 && address < 0xff40) {
 			if(isReadOperation(operation)) {
@@ -102,7 +200,7 @@ public:
 			} else {
 				printf("TODO: TED write of %02x @ %04x\n", *value, address);
 			}
-			return Cycles(5);
+			return length;
 		}
 
 		if(isReadOperation(operation)) {
@@ -111,7 +209,7 @@ public:
 			map_.write(address) = *value;
 		}
 
-		return Cycles(5);
+		return length;
 	}
 
 private:
@@ -136,6 +234,9 @@ private:
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
+
+	Cycles timers_subcycles_;
+	Timers timers_;
 };
 
 }
