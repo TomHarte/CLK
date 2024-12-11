@@ -68,55 +68,142 @@ public:
 	// raster lines are from 4 to 203.
 	//
 	// The horizontal position register counts 456 dots, 0 to 455.
-	void run_for(Cycles) {
+	void run_for(Cycles cycles) {
 		// Timing:
 		//
 		//	456 cycles/line;
 		//	if in PAL mode, divide input clock by 1.25 (?);
 		//	see page 34 of plus4_tech.pdf for event times.
 
-		// Horizontal events:
-		//
-		//	3: 38-column screen start
-		//	288: external fetch window end, refresh single clock start, increment character position end
-		//	290: latch character position to reload
-		//	296: character window end, character window single clock end, increment refresh start
-		//	304: video shift register end
-		//	307: 38-column screen stop
-		//	315: 40-column screen end
-		//	328: refresh single clock end
-		//	336: increment blink, increment refresh end
-		//	344: horizontal blanking start
-		//	358: horizontal sync start
-		//	376: increment vertical line
-		//	384: burst start, end of screen — clear vertical line, vertical sub and character reload registers
-		//	390: horizontal sync end
-		//	408: burst end
-		//	400: external fetch window start
-		//	416: horizontal blanking end
-		//	424: increment character position reload
-		//	432: character window start, character window single clock start, increment character position start
-		//	440: video shift register start
-		//	451: 40-column screen start
+		auto ticks_remaining = cycles.as<int>() * 8;
+		while(ticks_remaining--) {
+			++horizontal_counter_;
+			switch(horizontal_counter_) {
+				case 3:		// 38-column screen start.
+				break;
 
-		// Vertical events:
-		//
-		//	0: attribute fetch start
-		//	4: vertical screen window start (25 lines)
-		//	8: vertical screen window start (24 lines)
-		//	203: attribute fetch end
-		//	200: vertical screen window stop (24 lines)
-		//	204: frame window stop, vertical screen window stop (25 lines)
-		//	226: NTSC vertical blank start
-		//	229: NTSC vsync start
-		//	232: NTSC vsync end
-		//	244: NTSC vertical blank end
-		//	251: PAL vertical blank start
-		//	254: PAL vsync start
-		//	257: PAL vsync end
-		//	261: end of screen NTSC
-		//	269: PAL vertical blank end
-		//	311: end of screen PAL
+				case 288:	// External fetch window end, refresh single clock start, increment character position end.
+				break;
+
+				case 290:	// Latch character position to reload.
+				break;
+
+				case 296:	// Character window end, character window single clock end, increment refresh start.
+				break;
+
+				case 304:	// Video shift register end.
+				break;
+
+				case 307:	// 38-column screen stop.
+				break;
+
+				case 315:	// 40-column screen end.
+				break;
+
+				case 328:	// Refresh single clock end.
+				break;
+
+				case 336:	// Increment blink, increment refresh end.
+				break;
+
+				case 344:	// Horizontal blanking start.
+				break;
+
+				case 358:	// Horizontal sync start.
+				break;
+
+				case 376:	// Increment vertical line.
+					++vertical_counter_;
+				break;
+
+				case 384:	// Burst start, end of screen — clear vertical line, vertical sub and character reload registers.
+				break;
+
+				case 390:	// Horizontal sync end.
+				break;
+
+				case 408:	// Burst end.
+				break;
+
+				case 400:	// External fetch window start.
+				break;
+
+				case 416:	// Horizontal blanking end.
+				break;
+
+				case 424:	// Increment character position reload.
+				break;
+
+				case 432:	// Character window start, character window single clock start, increment character position start.
+				break;
+
+				case 440:	// Video shift register start.
+				break;
+
+				case 451:	// 40-column screen start.
+				break;
+
+				case 465:	// Wraparound.
+					horizontal_counter_ = 0;
+				break;
+			}
+
+			const auto attribute_fetch_start = []{};
+			switch(vertical_counter_) {
+				case 261:	// End of screen NTSC. [and hence 0: Attribute fetch start].
+					if(is_ntsc_) {
+						vertical_counter_ = 0;
+						attribute_fetch_start();
+					}
+				break;
+
+				case 311:	// End of screen PAL. [and hence 0: Attribute fetch start].
+					if(!is_ntsc_) {
+						vertical_counter_ = 0;
+						attribute_fetch_start();
+					}
+				break;
+
+				case 4:		// Vertical screen window start (25 lines).
+				break;
+
+				case 8:		// Vertical screen window start (24 lines).
+				break;
+
+				case 200:	// Vertical screen window stop (24 lines).
+				break;
+
+				case 203:	// Attribute fetch end.
+				break;
+
+				case 204:	// Vertical screen window stop (25 lines).
+				break;
+
+				case 226:	// NTSC vertical blank start.
+				break;
+
+				case 229:	// NTSC vsync start.
+				break;
+
+				case 232:	// NTSC vsync end.
+				break;
+
+				case 244:	// NTSC vertical blank end.
+				break;
+
+				case 251:	// PAL vertical blank start.
+				break;
+
+				case 254:	// PAL vsync start.
+				break;
+
+				case 257:	// PAL vsync end.
+				break;
+
+				case 269:	// PAL vertical blank end.
+				break;
+			}
+		}
 	}
 
 private:
