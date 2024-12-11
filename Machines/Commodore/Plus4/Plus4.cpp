@@ -8,10 +8,10 @@
 
 #include "Plus4.hpp"
 
+#include "Video.hpp"
+
 #include "../../MachineTypes.hpp"
-
 #include "../../../Processors/6502/6502.hpp"
-
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
 using namespace Commodore::Plus4;
@@ -207,6 +207,15 @@ public:
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
 
+					case 0xff06:	video_.write<0xff06>(*value);	break;
+					case 0xff07:	video_.write<0xff07>(*value);	break;
+					case 0xff0c:	video_.write<0xff0c>(*value);	break;
+					case 0xff0d:	video_.write<0xff0d>(*value);	break;
+					case 0xff12:	video_.write<0xff12>(*value);	break;
+					case 0xff14:	video_.write<0xff14>(*value);	break;
+					case 0xff1a:	video_.write<0xff1a>(*value);	break;
+					case 0xff1b:	video_.write<0xff1b>(*value);	break;
+
 					default:
 						printf("TODO: TED write at %04x\n", address);
 				}
@@ -241,6 +250,7 @@ private:
 
 	Cycles timers_subcycles_;
 	Timers timers_;
+	Video video_;
 };
 
 }
