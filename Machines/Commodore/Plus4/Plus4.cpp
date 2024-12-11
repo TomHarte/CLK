@@ -130,11 +130,11 @@ public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this)
 	{
-		// PAL: 8'867'240 divided by 5 or 4?
-		// NTSC: 7'159'090?
+		// PAL: 8867240 divided by 5 or 4?
+		// NTSC: 7159090?
 		// i.e. colour subcarriers multiplied by two?
 
-		set_clock_rate(8'867'240);	// TODO.
+		set_clock_rate(7159090);	// TODO.
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
@@ -170,6 +170,8 @@ public:
 		timers_subcycles_ += length;
 		const auto timers_cycles = timers_subcycles_.divide(Cycles(5));
 		timers_.tick(timers_cycles.as<int>());
+
+		video_.run_for(length);
 
 		// Perform actual access.
 		if(address < 0xfd00 || address >= 0xff40) {
