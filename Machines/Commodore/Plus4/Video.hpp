@@ -82,8 +82,10 @@ public:
 
 		auto ticks_remaining = cycles.as<int>() * 8;
 		while(ticks_remaining) {
+			//
 			// Test vertical first; this will catch both any programmed change that has occurred outside
 			// of the loop and any change to the vertical counter that occurs during the horizontal runs.
+			//
 			const auto attribute_fetch_start = []{};
 			switch(vertical_counter_) {
 				case 261:	// End of screen NTSC. [and hence 0: Attribute fetch start].
@@ -115,29 +117,15 @@ public:
 				case 204:	// Vertical screen window stop (25 lines).
 				break;
 
-				case 226:	// NTSC vertical blank start.
-				break;
+				case 226:	if(is_ntsc_) vertical_blank_ = true;	break;	// NTSC vertical blank start.
+				case 229:	if(is_ntsc_) vertical_sync_ = true;		break;	// NTSC vsync start.
+				case 232:	if(is_ntsc_) vertical_sync_ = false;	break;	// NTSC vsync end.
+				case 244:	if(is_ntsc_) vertical_blank_ = false;	break;	// NTSC vertical blank end.
 
-				case 229:	// NTSC vsync start.
-				break;
-
-				case 232:	// NTSC vsync end.
-				break;
-
-				case 244:	// NTSC vertical blank end.
-				break;
-
-				case 251:	// PAL vertical blank start.
-				break;
-
-				case 254:	// PAL vsync start.
-				break;
-
-				case 257:	// PAL vsync end.
-				break;
-
-				case 269:	// PAL vertical blank end.
-				break;
+				case 251:	if(!is_ntsc_) vertical_blank_ = true;	break;	// PAL vertical blank start.
+				case 254:	if(!is_ntsc_) vertical_sync_ = true;	break;	// PAL vsync start.
+				case 257:	if(!is_ntsc_) vertical_sync_ = false;	break;	// PAL vsync end.
+				case 269:	if(!is_ntsc_) vertical_blank_ = false;	break;	// PAL vertical blank end.
 			}
 
 			const auto next = Numeric::upper_bound<
@@ -145,8 +133,36 @@ public:
 			>(horizontal_counter_);
 			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
 
-//			printf("From %d next is %d\n", horizontal_counter_, next);
 
+			//
+			// TODO: output.
+			//
+			OutputState state;
+			if(vertical_sync_ || horizontal_sync_) {
+				state = OutputState::Sync;
+			} else if(vertical_blank_ || horizontal_blank_) {
+				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
+			} else {
+				state = OutputState::Border;
+				// TODO: pixels when?
+			}
+
+
+			if(state != output_state_) {
+				switch(output_state_) {
+					case OutputState::Blank:	crt_.output_blank(time_in_state_);						break;
+					case OutputState::Sync:		crt_.output_sync(time_in_state_);						break;
+					case OutputState::Burst:	crt_.output_default_colour_burst(time_in_state_);		break;
+					case OutputState::Border:	crt_.output_level<uint16_t>(time_in_state_, 0x8080);	break;
+				}
+				time_in_state_ = 0;
+			}
+			output_state_ = state;
+			time_in_state_ += period;
+
+			//
+			// Advance for current period.
+			//
 			horizontal_counter_ += period;
 			ticks_remaining -= period;
 			switch(horizontal_counter_) {
@@ -177,29 +193,22 @@ public:
 				case 336:	// Increment blink, increment refresh end.
 				break;
 
-				case 344:	// Horizontal blanking start.
-				break;
-
-				case 358:	// Horizontal sync start.
-				break;
-
 				case 376:	// Increment vertical line.
 					++vertical_counter_;
 				break;
 
 				case 384:	// Burst start, end of screen — clear vertical line, vertical sub and character reload registers.
+					horizontal_burst_ = true;
+					// TODO: rest.
 				break;
 
-				case 390:	// Horizontal sync end.
-				break;
+				case 344:	horizontal_blank_ = true;	break;	// Horizontal blanking start.
+				case 358:	horizontal_sync_ = true;	break;	// Horizontal sync start.
+				case 390:	horizontal_sync_ = false;	break;	// Horizontal sync end.
+				case 408:	horizontal_burst_ = false;	break;	// Burst end.
+				case 416:	horizontal_blank_ = false;	break;	// Horizontal blanking end.
 
 				case 400:	// External fetch window start.
-				break;
-
-				case 408:	// Burst end.
-				break;
-
-				case 416:	// Horizontal blanking end.
 				break;
 
 				case 424:	// Increment character position reload.
@@ -232,6 +241,7 @@ public:
 private:
 	Outputs::CRT::CRT crt_;
 
+	// Programmable values.
 	bool extended_colour_mode_ = false;
 	bool bitmap_mode_ = false;
 	bool display_enable_ = false;
@@ -250,8 +260,24 @@ private:
 	uint16_t character_generator_address_ = 0;
 	uint16_t screen_memory_address_ = 0;
 
+	// Field position.
 	int horizontal_counter_ = 0;
 	int vertical_counter_ = 0;
+
+	// Running state.
+	bool vertical_blank_ = false;
+	bool vertical_sync_ = false;
+	bool horizontal_blank_ = false;
+	bool horizontal_sync_ = false;
+	bool horizontal_burst_ = false;
+
+	enum class OutputState {
+		Blank,
+		Sync,
+		Burst,
+		Border,
+	} output_state_ = OutputState::Blank;
+	int time_in_state_ = 0;
 };
 
 }
