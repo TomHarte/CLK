@@ -19,7 +19,11 @@ struct Video {
 public:
 	Video(const Commodore::Plus4::Pager &pager) :
 		crt_(465, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance8Phase8),
-		pager_(pager) {}
+		pager_(pager)
+	{
+		// TODO: perfect crop.
+		crt_.set_visible_area(Outputs::Display::Rect(0.075f, 0.065f, 0.85f, 0.85f));
+	}
 
 	template <uint16_t address>
 	void write(const uint8_t value) {
