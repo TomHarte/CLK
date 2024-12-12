@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "../../../Numeric/UpperBound.hpp"
+
 namespace Commodore::Plus4 {
 
 struct Video {
@@ -76,78 +78,9 @@ public:
 		//	see page 34 of plus4_tech.pdf for event times.
 
 		auto ticks_remaining = cycles.as<int>() * 8;
-		while(ticks_remaining--) {
-			++horizontal_counter_;
-			switch(horizontal_counter_) {
-				case 3:		// 38-column screen start.
-				break;
-
-				case 288:	// External fetch window end, refresh single clock start, increment character position end.
-				break;
-
-				case 290:	// Latch character position to reload.
-				break;
-
-				case 296:	// Character window end, character window single clock end, increment refresh start.
-				break;
-
-				case 304:	// Video shift register end.
-				break;
-
-				case 307:	// 38-column screen stop.
-				break;
-
-				case 315:	// 40-column screen end.
-				break;
-
-				case 328:	// Refresh single clock end.
-				break;
-
-				case 336:	// Increment blink, increment refresh end.
-				break;
-
-				case 344:	// Horizontal blanking start.
-				break;
-
-				case 358:	// Horizontal sync start.
-				break;
-
-				case 376:	// Increment vertical line.
-					++vertical_counter_;
-				break;
-
-				case 384:	// Burst start, end of screen — clear vertical line, vertical sub and character reload registers.
-				break;
-
-				case 390:	// Horizontal sync end.
-				break;
-
-				case 408:	// Burst end.
-				break;
-
-				case 400:	// External fetch window start.
-				break;
-
-				case 416:	// Horizontal blanking end.
-				break;
-
-				case 424:	// Increment character position reload.
-				break;
-
-				case 432:	// Character window start, character window single clock start, increment character position start.
-				break;
-
-				case 440:	// Video shift register start.
-				break;
-
-				case 451:	// 40-column screen start.
-				break;
-
-				case 465:	// Wraparound.
-					horizontal_counter_ = 0;
-				break;
-			}
-
+		while(ticks_remaining) {
+			// Test vertical first; this will catch both any programmed change that has occurred outside
+			// of the loop and any change to the vertical counter that occurs during the horizontal runs.
 			const auto attribute_fetch_start = []{};
 			switch(vertical_counter_) {
 				case 261:	// End of screen NTSC. [and hence 0: Attribute fetch start].
@@ -201,6 +134,85 @@ public:
 				break;
 
 				case 269:	// PAL vertical blank end.
+				break;
+			}
+
+			const auto next = Numeric::upper_bound<
+				0, 3, 288, 290, 296, 304, 307, 315, 328, 336, 344, 358, 376, 384, 390, 400, 416, 424, 432, 440, 451, 465
+			>(horizontal_counter_);
+			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
+
+//			printf("From %d next is %d\n", horizontal_counter_, next);
+
+			horizontal_counter_ += period;
+			ticks_remaining -= period;
+			switch(horizontal_counter_) {
+				case 3:		// 38-column screen start.
+				break;
+
+				case 288:	// External fetch window end, refresh single clock start, increment character position end.
+				break;
+
+				case 290:	// Latch character position to reload.
+				break;
+
+				case 296:	// Character window end, character window single clock end, increment refresh start.
+				break;
+
+				case 304:	// Video shift register end.
+				break;
+
+				case 307:	// 38-column screen stop.
+				break;
+
+				case 315:	// 40-column screen end.
+				break;
+
+				case 328:	// Refresh single clock end.
+				break;
+
+				case 336:	// Increment blink, increment refresh end.
+				break;
+
+				case 344:	// Horizontal blanking start.
+				break;
+
+				case 358:	// Horizontal sync start.
+				break;
+
+				case 376:	// Increment vertical line.
+					++vertical_counter_;
+				break;
+
+				case 384:	// Burst start, end of screen — clear vertical line, vertical sub and character reload registers.
+				break;
+
+				case 390:	// Horizontal sync end.
+				break;
+
+				case 400:	// External fetch window start.
+				break;
+
+				case 408:	// Burst end.
+				break;
+
+				case 416:	// Horizontal blanking end.
+				break;
+
+				case 424:	// Increment character position reload.
+				break;
+
+				case 432:	// Character window start, character window single clock start, increment character position start.
+				break;
+
+				case 440:	// Video shift register start.
+				break;
+
+				case 451:	// 40-column screen start.
+				break;
+
+				case 465:	// Wraparound.
+					horizontal_counter_ = 0;
 				break;
 			}
 		}

@@ -1297,6 +1297,7 @@
 		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B03291F2D0923E300C51EB5 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
+		4B0329202D0A78DC00C51EB5 /* UpperBound.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = UpperBound.hpp; sourceTree = "<group>"; };
 		4B0333AD2094081A0050B93D /* AppleDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppleDSK.cpp; sourceTree = "<group>"; };
 		4B0333AE2094081A0050B93D /* AppleDSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AppleDSK.hpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
@@ -3637,13 +3638,14 @@
 			children = (
 				4B43984129674943006B0BFC /* BitReverse.hpp */,
 				4BD155312716362A00410C6E /* BitSpread.hpp */,
+				4281572E2AA0334300E16AA1 /* Carry.hpp */,
 				4B7BA03E23D55E7900B98D9E /* CRC.hpp */,
 				4B7BA03F23D55E7900B98D9E /* LFSR.hpp */,
 				4B66E1A8297719270057ED0F /* NumericCoder.hpp */,
 				4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */,
 				4BFEA2F12682A90200EBF94C /* Sizes.hpp */,
-				4281572E2AA0334300E16AA1 /* Carry.hpp */,
 				4BD9713A2BFD7E7100C907AA /* StringSimilarity.hpp */,
+				4B0329202D0A78DC00C51EB5 /* UpperBound.hpp */,
 			);
 			name = Numeric;
 			path = ../../Numeric;
