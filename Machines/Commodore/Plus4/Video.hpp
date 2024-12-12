@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "Pager.hpp"
+
 #include "../../../Numeric/UpperBound.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
@@ -15,7 +17,9 @@ namespace Commodore::Plus4 {
 
 struct Video {
 public:
-	Video() : crt_(465, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance8Phase8) {}
+	Video(const Commodore::Plus4::Pager &pager) :
+		crt_(465, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance8Phase8),
+		pager_(pager) {}
 
 	template <uint16_t address>
 	void write(const uint8_t value) {
@@ -60,6 +64,8 @@ public:
 			case 0xff1a:	load_high10(character_row_address_);	break;
 			case 0xff1b:	load_low8(character_row_address_);		break;
 		}
+
+//		printf("bitmap:%d c256:%d ntsc:%d 40col:%d; base:%04x\n", bitmap_mode_, characters_256_, is_ntsc_, columns_40_, screen_memory_address_);
 	}
 
 	// Outer clock is [NTSC or PAL] colour subcarrier * 2.
@@ -103,20 +109,14 @@ public:
 					}
 				break;
 
-				case 4:		// Vertical screen window start (25 lines).
-				break;
-
-				case 8:		// Vertical screen window start (24 lines).
-				break;
-
-				case 200:	// Vertical screen window stop (24 lines).
-				break;
-
 				case 203:	// Attribute fetch end.
 				break;
 
-				case 204:	// Vertical screen window stop (25 lines).
-				break;
+
+				case 4:		if(rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (25 lines).
+				case 204:	if(rows_25_) vertical_window_ = false;	break;	// Vertical screen window stop (25 lines).
+				case 8:		if(!rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (24 lines).
+				case 200:	if(!rows_25_) vertical_window_ = false;	break;	// Vertical screen window stop (24 lines).
 
 				case 226:	if(is_ntsc_) vertical_blank_ = true;	break;	// NTSC vertical blank start.
 				case 229:	if(is_ntsc_) vertical_sync_ = true;		break;	// NTSC vsync start.
@@ -136,7 +136,7 @@ public:
 
 
 			//
-			// TODO: output.
+			// Output.
 			//
 			OutputState state;
 			if(vertical_sync_ || horizontal_sync_) {
@@ -144,8 +144,8 @@ public:
 			} else if(vertical_blank_ || horizontal_blank_) {
 				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
 			} else {
-				state = OutputState::Border;
-				// TODO: pixels when?
+				state = vertical_window_ ? OutputState::Pixels : OutputState::Border;
+				// TODO: pixels when? Like, for real?
 			}
 
 
@@ -155,6 +155,7 @@ public:
 					case OutputState::Sync:		crt_.output_sync(time_in_state_);						break;
 					case OutputState::Burst:	crt_.output_default_colour_burst(time_in_state_);		break;
 					case OutputState::Border:	crt_.output_level<uint16_t>(time_in_state_, 0x8080);	break;
+					case OutputState::Pixels:	crt_.output_level<uint16_t>(time_in_state_, 0xff80);	break;
 				}
 				time_in_state_ = 0;
 			}
@@ -269,6 +270,7 @@ private:
 	// Running state.
 	bool vertical_blank_ = false;
 	bool vertical_sync_ = false;
+	bool vertical_window_ = false;
 	bool horizontal_blank_ = false;
 	bool horizontal_sync_ = false;
 	bool horizontal_burst_ = false;
@@ -278,8 +280,11 @@ private:
 		Sync,
 		Burst,
 		Border,
+		Pixels,
 	} output_state_ = OutputState::Blank;
 	int time_in_state_ = 0;
+
+	const Commodore::Plus4::Pager &pager_;
 };
 
 }

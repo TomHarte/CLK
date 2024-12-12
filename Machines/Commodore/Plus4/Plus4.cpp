@@ -8,6 +8,7 @@
 
 #include "Plus4.hpp"
 
+#include "Pager.hpp"
 #include "Video.hpp"
 
 #include "../../MachineTypes.hpp"
@@ -17,41 +18,6 @@
 using namespace Commodore::Plus4;
 
 namespace {
-
-template <typename AddressT, typename DataT, int NumPages>
-class Pager {
-public:
-	DataT read(AddressT address) {
-		return read_[address >> Shift][address];
-	}
-	DataT &write(AddressT address) {
-		return write_[address >> Shift][address];
-	}
-
-	template <int slot>
-	void page(const uint8_t *read, uint8_t *write) {
-		write_[slot] = write - (slot << Shift);
-		read_[slot] = read - (slot << Shift);
-	}
-
-private:
-	std::array<DataT *, NumPages> write_{};
-	std::array<const DataT *, NumPages> read_{};
-
-	static constexpr auto AddressBits = sizeof(AddressT) * 8;
-	static constexpr auto PageSize = (1 << AddressBits) / NumPages;
-	static_assert(!(PageSize & (PageSize - 1)), "Pages must be a power of two in size");
-
-	static constexpr int ln2(int value) {
-		int result = 0;
-		while(value != 1) {
-			value >>= 1;
-			++result;
-		}
-		return result;
-	}
-	static constexpr auto Shift = ln2(PageSize);
-};
 
 class Timers {
 public:
@@ -128,7 +94,8 @@ class ConcreteMachine:
 	public Machine {
 public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-		m6502_(*this)
+		m6502_(*this),
+		video_(map_)
 	{
 		// PAL: 8867240 divided by 5 or 4?
 		// NTSC: 7159090?
@@ -246,7 +213,7 @@ private:
 		return true;
 	}
 
-	Pager<uint16_t, uint8_t, 4> map_;
+	Commodore::Plus4::Pager map_;
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
