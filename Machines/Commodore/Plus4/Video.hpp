@@ -112,7 +112,6 @@ public:
 				case 203:	// Attribute fetch end.
 				break;
 
-
 				case 4:		if(rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (25 lines).
 				case 204:	if(rows_25_) vertical_window_ = false;	break;	// Vertical screen window stop (25 lines).
 				case 8:		if(!rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (24 lines).
@@ -134,7 +133,6 @@ public:
 			>(horizontal_counter_);
 			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
 
-
 			//
 			// Output.
 			//
@@ -144,10 +142,8 @@ public:
 			} else if(vertical_blank_ || horizontal_blank_) {
 				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
 			} else {
-				state = vertical_window_ ? OutputState::Pixels : OutputState::Border;
-				// TODO: pixels when? Like, for real?
+				state = vertical_window_ && output_pixels_ ? OutputState::Pixels : OutputState::Border;
 			}
-
 
 			if(state != output_state_) {
 				switch(output_state_) {
@@ -168,28 +164,35 @@ public:
 			horizontal_counter_ += period;
 			ticks_remaining -= period;
 			switch(horizontal_counter_) {
-				case 3:		// 38-column screen start.
-				break;
-
 				case 288:	// External fetch window end, refresh single clock start, increment character position end.
+					// TODO: release RDY if it was held.
+					// TODO: increment character position end.
+					refresh_ = true;
 				break;
 
-				case 290:	// Latch character position to reload.
+				case 400:	// External fetch window start.
+					// TODO: set RDY line if this is an appropriate row.
 				break;
+
+				case 290:	line_character_address_ = character_address_;	break;	// Latch character position to reload.
 
 				case 296:	// Character window end, character window single clock end, increment refresh start.
+					fetch_characters_ = false;
+				break;
+				case 432:	// Character window start, character window single clock start, increment character position start.
+					fetch_characters_ = true;
 				break;
 
 				case 304:	// Video shift register end.
 				break;
 
-				case 307:	// 38-column screen stop.
-				break;
-
-				case 315:	// 40-column screen end.
-				break;
+				case 3:		if(!columns_40_) output_pixels_ = true;		break;	// 38-column screen start.
+				case 307:	if(!columns_40_) output_pixels_ = false;	break;	// 38-column screen stop.
+				case 451:	if(columns_40_) output_pixels_ = true;		break;	// 40-column screen start.
+				case 315:	if(columns_40_) output_pixels_ = false;		break;	// 40-column screen end.
 
 				case 328:	// Refresh single clock end.
+					refresh_ = false;
 				break;
 
 				case 336:	// Increment blink, increment refresh end.
@@ -210,19 +213,10 @@ public:
 				case 408:	horizontal_burst_ = false;	break;	// Burst end.
 				case 416:	horizontal_blank_ = false;	break;	// Horizontal blanking end.
 
-				case 400:	// External fetch window start.
-				break;
-
 				case 424:	// Increment character position reload.
 				break;
 
-				case 432:	// Character window start, character window single clock start, increment character position start.
-				break;
-
 				case 440:	// Video shift register start.
-				break;
-
-				case 451:	// 40-column screen start.
 				break;
 
 				case 465:	// Wraparound.
@@ -274,6 +268,12 @@ private:
 	bool horizontal_blank_ = false;
 	bool horizontal_sync_ = false;
 	bool horizontal_burst_ = false;
+
+	uint16_t character_address_ = 0;
+	uint16_t line_character_address_ = 0;
+	bool fetch_characters_;
+	bool output_pixels_;
+	bool refresh_ = false;
 
 	enum class OutputState {
 		Blank,
