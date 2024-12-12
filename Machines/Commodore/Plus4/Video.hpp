@@ -80,7 +80,8 @@ public:
 		//	if in PAL mode, divide input clock by 1.25 (?);
 		//	see page 34 of plus4_tech.pdf for event times.
 
-		auto ticks_remaining = cycles.as<int>() * 8;
+		subcycles_ += cycles * 4;
+		auto ticks_remaining = subcycles_.divide(is_ntsc_ ? Cycles(4) : Cycles(5)).as<int>();
 		while(ticks_remaining) {
 			//
 			// Test vertical first; this will catch both any programmed change that has occurred outside
@@ -240,6 +241,7 @@ public:
 
 private:
 	Outputs::CRT::CRT crt_;
+	Cycles subcycles_;
 
 	// Programmable values.
 	bool extended_colour_mode_ = false;
