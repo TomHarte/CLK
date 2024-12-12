@@ -230,11 +230,12 @@ public:
 private:
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
 
-	void set_scan_target(Outputs::Display::ScanTarget *const) final {
+	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
+		video_.set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return {};
+		return video_.get_scaled_scan_status();
 	}
 
 	void run_for(const Cycles cycles) final {

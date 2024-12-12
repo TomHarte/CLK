@@ -9,11 +9,14 @@
 #pragma once
 
 #include "../../../Numeric/UpperBound.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
 
 namespace Commodore::Plus4 {
 
 struct Video {
 public:
+	Video() : crt_(465, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance8Phase8) {}
+
 	template <uint16_t address>
 	void write(const uint8_t value) {
 		const auto load_high10 = [&](uint16_t &target) {
@@ -218,7 +221,17 @@ public:
 		}
 	}
 
+	void set_scan_target(Outputs::Display::ScanTarget *const target) {
+		crt_.set_scan_target(target);
+	}
+
+	Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		return crt_.get_scaled_scan_status();
+	}
+
 private:
+	Outputs::CRT::CRT crt_;
+
 	bool extended_colour_mode_ = false;
 	bool bitmap_mode_ = false;
 	bool display_enable_ = false;
