@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Interrupts.hpp"
 #include "Pager.hpp"
 
 #include "../../../Numeric/UpperBound.hpp"
@@ -19,12 +20,24 @@ namespace Commodore::Plus4 {
 
 struct Video {
 public:
-	Video(const Commodore::Plus4::Pager &pager) :
+	Video(const Commodore::Plus4::Pager &pager, Interrupts &interrupts) :
 		crt_(465, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance8Phase8),
-		pager_(pager)
+		pager_(pager),
+		interrupts_(interrupts)
 	{
 		// TODO: perfect crop.
 		crt_.set_visible_area(Outputs::Display::Rect(0.075f, 0.065f, 0.85f, 0.85f));
+	}
+
+	template <uint16_t address>
+	uint8_t read() const {
+		switch(address) {
+			case 0xff0b:	return uint8_t(raster_interrupt_);
+			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
+			case 0xff0d:	return uint8_t(vertical_counter_);
+		}
+
+		return 0xff;
 	}
 
 	template <uint16_t address>
@@ -63,6 +76,13 @@ public:
 			break;
 			case 0xff14:
 				screen_memory_address_ = uint16_t((value & 0xf8) << 8);
+			break;
+
+			case 0xff0a:
+				raster_interrupt_ = (raster_interrupt_ & 0x00ff) | ((value & 1) << 8);
+			break;
+			case 0xff0b:
+				raster_interrupt_ = (raster_interrupt_ & 0xff00) | value;
 			break;
 
 			case 0xff0c:	load_high10(cursor_address_);			break;
@@ -144,6 +164,9 @@ public:
 				case 257:	if(!is_ntsc_) vertical_sync_ = false;	break;	// PAL vsync end.
 				case 269:	if(!is_ntsc_) vertical_blank_ = false;	break;	// PAL vertical blank end.
 			}
+			if(raster_interrupt_ == vertical_counter_) {
+				interrupts_.apply(Interrupts::Flag::Raster);
+			}
 
 			const auto next = Numeric::upper_bound<
 				0, 3, 288, 290, 296, 304, 307, 315, 328, 336, 344, 358, 376, 384, 390, 400, 416, 424, 432, 440, 451, 465
@@ -216,7 +239,7 @@ public:
 				break;
 
 				case 376:	// Increment vertical line.
-					++vertical_counter_;
+					vertical_counter_ = (vertical_counter_ + 1) & 0x1ff;
 				break;
 
 				case 384:	// Burst start, end of screen — clear vertical line, vertical sub and character reload registers.
@@ -274,6 +297,8 @@ private:
 	uint16_t character_generator_address_ = 0;
 	uint16_t screen_memory_address_ = 0;
 
+	int raster_interrupt_ = 0x1ff;
+
 	// Field position.
 	int horizontal_counter_ = 0;
 	int vertical_counter_ = 0;
@@ -304,6 +329,7 @@ private:
 	std::array<uint16_t, 5> background_{};
 
 	const Commodore::Plus4::Pager &pager_;
+	Interrupts &interrupts_;
 };
 
 }

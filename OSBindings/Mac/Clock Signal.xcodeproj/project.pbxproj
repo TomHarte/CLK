@@ -1299,6 +1299,7 @@
 		4B03291F2D0923E300C51EB5 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B0329202D0A78DC00C51EB5 /* UpperBound.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = UpperBound.hpp; sourceTree = "<group>"; };
 		4B0329212D0A8C4700C51EB5 /* Pager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Pager.hpp; sourceTree = "<group>"; };
+		4B0329222D0BD32500C51EB5 /* Interrupts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Interrupts.hpp; sourceTree = "<group>"; };
 		4B0333AD2094081A0050B93D /* AppleDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppleDSK.cpp; sourceTree = "<group>"; };
 		4B0333AE2094081A0050B93D /* AppleDSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AppleDSK.hpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
@@ -3395,6 +3396,7 @@
 			isa = PBXGroup;
 			children = (
 				4B596EB02D037E8800FBF4B1 /* Plus4.cpp */,
+				4B0329222D0BD32500C51EB5 /* Interrupts.hpp */,
 				4B0329212D0A8C4700C51EB5 /* Pager.hpp */,
 				4B596EAF2D037E8800FBF4B1 /* Plus4.hpp */,
 				4B03291F2D0923E300C51EB5 /* Video.hpp */,

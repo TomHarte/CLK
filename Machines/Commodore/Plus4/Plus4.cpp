@@ -8,6 +8,7 @@
 
 #include "Plus4.hpp"
 
+#include "Interrupts.hpp"
 #include "Pager.hpp"
 #include "Video.hpp"
 
@@ -21,6 +22,8 @@ namespace {
 
 class Timers {
 public:
+	Timers(Interrupts &interrupts) : interrupts_(interrupts) {}
+
 	template <int offset>
 	void write(const uint8_t value) {
 		const auto load_low = [&](uint16_t &target) {
@@ -78,16 +81,24 @@ private:
 
 		// Check for interrupt.
 		if(!timers_[timer]) {
+			switch(timer) {
+				case 0:	interrupts_.apply(Interrupts::Flag::Timer1);	break;
+				case 1:	interrupts_.apply(Interrupts::Flag::Timer2);	break;
+				case 2:	interrupts_.apply(Interrupts::Flag::Timer3);	break;
+			}
 		}
 	}
 
 	uint16_t timers_[3]{};
 	uint16_t timer0_reload_ = 0xffff;
 	bool paused_[3]{};
+
+	Interrupts &interrupts_;
 };
 
 class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
+	public Interrupts::Delegate,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::MediaTarget,
@@ -95,7 +106,9 @@ class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this),
-		video_(map_)
+		interrupts_(*this),
+		timers_(interrupts_),
+		video_(map_, interrupts_)
 	{
 		// PAL: 8867240 divided by 5 or 4?
 		// NTSC: 7159090?
@@ -155,12 +168,24 @@ public:
 		} else {
 			if(isReadOperation(operation)) {
 				switch(address) {
-					case 0xff00:	*value = timers_.read<0>();	break;
-					case 0xff01:	*value = timers_.read<1>();	break;
-					case 0xff02:	*value = timers_.read<2>();	break;
-					case 0xff03:	*value = timers_.read<3>();	break;
-					case 0xff04:	*value = timers_.read<4>();	break;
-					case 0xff05:	*value = timers_.read<5>();	break;
+					case 0xff00:	*value = timers_.read<0>();		break;
+					case 0xff01:	*value = timers_.read<1	>();	break;
+					case 0xff02:	*value = timers_.read<2>();		break;
+					case 0xff03:	*value = timers_.read<3>();		break;
+					case 0xff04:	*value = timers_.read<4>();		break;
+					case 0xff05:	*value = timers_.read<5>();		break;
+
+					case 0xff08:
+						// TODO: keyboard.
+						*value = 0xff;
+					break;
+
+					case 0xff09:	*value = interrupts_.status();	break;
+					case 0xff0a:	*value = interrupts_.mask();	break;
+
+					case 0xff0b:	*value = video_.read<0xff0b>();	break;
+					case 0xff1c:	*value = video_.read<0xff1c>();	break;
+					case 0xff1d:	*value = video_.read<0xff1d>();	break;
 
 					default:
 						printf("TODO: TED read at %04x\n", address);
@@ -173,6 +198,19 @@ public:
 					case 0xff03:	timers_.write<3>(*value);	break;
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
+
+					case 0xff08:
+						// TODO: keyboard.
+					break;
+
+					case 0xff09:
+						interrupts_.set_status(*value);
+					break;
+					case 0xff0a:
+						interrupts_.set_mask(*value);
+						video_.write<0xff0a>(*value);
+					break;
+					case 0xff0b:	video_.write<0xff0b>(*value);	break;
 
 					case 0xff06:	video_.write<0xff06>(*value);	break;
 					case 0xff07:	video_.write<0xff07>(*value);	break;
@@ -197,6 +235,10 @@ public:
 
 private:
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
+
+	void set_irq_line(bool active) override {
+		m6502_.set_irq_line(active);
+	}
 
 	void page_rom() {
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
@@ -227,6 +269,7 @@ private:
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
 
+	Interrupts interrupts_;
 	Cycles timers_subcycles_;
 	Timers timers_;
 	Video video_;
