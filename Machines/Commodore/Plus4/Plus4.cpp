@@ -241,6 +241,8 @@ public:
 					case 0xff3e:	page_rom();						break;
 					case 0xff3f:	page_ram();						break;
 
+					// TODO: audio is 0xff10, 0xff11, 0xff0e, 0xff0f and shares 0xff18.
+
 					default:
 						printf("TODO: TED write at %04x\n", address);
 				}
