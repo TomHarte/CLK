@@ -36,7 +36,7 @@ public:
 	}
 
 	void set_status(const uint8_t status) {
-		status_ = status & 0x7f;
+		status_ &= ~status;
 		update_output();
 	}
 
