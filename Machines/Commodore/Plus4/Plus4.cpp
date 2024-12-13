@@ -187,6 +187,12 @@ public:
 					case 0xff1c:	*value = video_.read<0xff1c>();	break;
 					case 0xff1d:	*value = video_.read<0xff1d>();	break;
 
+					case 0xff15:	*value = video_.read<0xff15>();	break;
+					case 0xff16:	*value = video_.read<0xff16>();	break;
+					case 0xff17:	*value = video_.read<0xff17>();	break;
+					case 0xff18:	*value = video_.read<0xff18>();	break;
+					case 0xff19:	*value = video_.read<0xff19>();	break;
+
 					default:
 						printf("TODO: TED read at %04x\n", address);
 				}
@@ -220,6 +226,12 @@ public:
 					case 0xff14:	video_.write<0xff14>(*value);	break;
 					case 0xff1a:	video_.write<0xff1a>(*value);	break;
 					case 0xff1b:	video_.write<0xff1b>(*value);	break;
+
+					case 0xff15:	video_.write<0xff15>(*value);	break;
+					case 0xff16:	video_.write<0xff16>(*value);	break;
+					case 0xff17:	video_.write<0xff17>(*value);	break;
+					case 0xff18:	video_.write<0xff18>(*value);	break;
+					case 0xff19:	video_.write<0xff19>(*value);	break;
 
 					case 0xff3e:	page_rom();						break;
 					case 0xff3f:	page_ram();						break;

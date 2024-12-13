@@ -34,7 +34,10 @@ public:
 		switch(address) {
 			case 0xff0b:	return uint8_t(raster_interrupt_);
 			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
-			case 0xff0d:	return uint8_t(vertical_counter_);
+			case 0xff1d:	return uint8_t(vertical_counter_);
+
+			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
+				return raw_background_[size_t(address - 0xff15)];
 		}
 
 		return 0xff;
@@ -91,11 +94,13 @@ public:
 			case 0xff1b:	load_low8(character_row_address_);		break;
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19: {
+				raw_background_[size_t(address - 0xff15)] = value;
+
 				const uint8_t luminance = uint8_t(
 					((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
 				);
-				background_[value - 0xff15] = uint16_t(
-					luminance
+				background_[size_t(address - 0xff15)] = uint16_t(
+					luminance | 0xff00
 				);
 
 				printf("%02x -> %04x\n", value, address);
@@ -327,6 +332,7 @@ private:
 	int time_in_state_ = 0;
 
 	std::array<uint16_t, 5> background_{};
+	std::array<uint8_t, 5> raw_background_{};
 
 	const Commodore::Plus4::Pager &pager_;
 	Interrupts &interrupts_;
