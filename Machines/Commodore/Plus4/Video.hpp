@@ -96,11 +96,27 @@ public:
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19: {
 				raw_background_[size_t(address - 0xff15)] = value;
 
-				const uint8_t luminance = uint8_t(
+				const uint8_t luminance = (value & 0x0f) ? uint8_t(
 					((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
-				);
+				) : 0;
+				const auto chrominance = uint8_t([&] {
+					switch(value & 0x0f) {
+						default:
+							printf("Unmapped colour: %d\n", value & 0x0f);
+							[[fallthrough]];
+						case 0:
+						case 1:		return 0xff;
+
+						// The following have been eyeballed.
+//						case 5:		return 3;
+//						case 7:		return 3;
+//						case 11:	return 3;
+						case 14:	return 5;
+					}
+				}());
+
 				background_[size_t(address - 0xff15)] = uint16_t(
-					luminance | 0xff00
+					luminance | (chrominance << 8)
 				);
 
 				printf("%02x -> %04x\n", value, address);
