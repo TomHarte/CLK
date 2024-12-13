@@ -17,7 +17,7 @@ enum PagerSide {
 template <typename AddressT, typename DataT, int NumPages>
 class Pager {
 public:
-	DataT read(AddressT address) {
+	DataT read(AddressT address) const {
 		return read_[address >> Shift][address];
 	}
 	DataT &write(AddressT address) {

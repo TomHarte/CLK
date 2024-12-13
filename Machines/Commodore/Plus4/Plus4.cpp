@@ -227,6 +227,7 @@ public:
 					case 0xff0c:	video_.write<0xff0c>(*value);	break;
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
 					case 0xff12:	video_.write<0xff12>(*value);	break;
+					case 0xff13:	video_.write<0xff13>(*value);	break;
 					case 0xff14:	video_.write<0xff14>(*value);	break;
 					case 0xff1a:	video_.write<0xff1a>(*value);	break;
 					case 0xff1b:	video_.write<0xff1b>(*value);	break;
@@ -274,68 +275,7 @@ private:
 	}
 
 	void run_for(const Cycles cycles) final {
-		static bool log = false;
 		m6502_.run_for(cycles);
-
-		if(!log) return;
-		for(size_t y = 0; y < 25; y++) {
-			for(size_t x = 0; x < 40; x++) {
-				const auto c = ram_[0xc00 + x + (y * 40)];
-				printf("%c", [&] {
-					switch(c) {
-						case 0x00:	return '@';
-						case 0x01:	return 'A';
-						case 0x02:	return 'B';
-						case 0x03:	return 'C';
-						case 0x04:	return 'D';
-						case 0x05:	return 'E';
-						case 0x06:	return 'F';
-						case 0x07:	return 'G';
-						case 0x08:	return 'H';
-						case 0x09:	return 'I';
-						case 0x0a:	return 'J';
-						case 0x0b:	return 'K';
-						case 0x0c:	return 'L';
-						case 0x0d:	return 'M';
-						case 0x0e:	return 'N';
-						case 0x0f:	return 'O';
-						case 0x10:	return 'P';
-						case 0x11:	return 'Q';
-						case 0x12:	return 'R';
-						case 0x13:	return 'S';
-						case 0x14:	return 'T';
-						case 0x15:	return 'U';
-						case 0x16:	return 'V';
-						case 0x17:	return 'W';
-						case 0x18:	return 'X';
-						case 0x19:	return 'Y';
-						case 0x1a:	return 'Z';
-						case 0x1b:	return '[';
-						case 0x1c:	return '\\';
-						case 0x1d:	return ']';
-						case 0x1e:	return '?';
-						case 0x1f:	return '?';
-						case 0x20:	return ' ';
-
-						case 0x2e:	return '.';
-						case 0x30:	return '0';
-						case 0x31:	return '1';
-						case 0x32:	return '2';
-						case 0x33:	return '3';
-						case 0x34:	return '4';
-						case 0x35:	return '5';
-						case 0x36:	return '6';
-						case 0x37:	return '7';
-						case 0x38:	return '8';
-						case 0x39:	return '9';
-
-						default: return '?';
-					}
-				}());
-			}
-			printf("\n");
-		}
-		printf("\n");
 	}
 
 	bool insert_media(const Analyser::Static::Media &) final {

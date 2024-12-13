@@ -75,6 +75,9 @@ public:
 			break;
 
 			case 0xff12:
+//				bitmap_base_ = uint16_t((value & 0x3c) << 10);
+			break;
+			case 0xff13:
 				character_generator_address_ = uint16_t((value & 0xfc) << 8);
 			break;
 			case 0xff14:
@@ -233,15 +236,23 @@ public:
 					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(384, 2));
 				}
 			}
-			time_in_state_ += period;
 
-			// Output pixels. TODO: properly.
+			// Output pixels.
+			// TODO: properly. THIS HACKS IN TEXT OUTPUT. IT IS NOT CORRECT. NOT AS TO TIMING, NOT AS TO CONTENT.
 			if(pixels_) {
 				for(int c = 0; c < period; c++) {
-					pixels_[c] = ((c + horizontal_counter_)  & 1) ? 0x0000 : 0xffff;
+					const auto pixel = time_in_state_ + c;
+					const auto row = vertical_counter_ - 4;
+
+					const auto index = (row >> 3) * 40 + (pixel >> 3);
+					const uint8_t character = pager_.read(uint16_t(index + screen_memory_address_ + 0x400));
+					const uint8_t glyph = pager_.read(character_generator_address_ + character * 8 + (row & 7));
+
+					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ? 0xff00 : 0xffff;
 				}
 				pixels_ += period;
 			}
+			time_in_state_ += period;
 
 			//
 			// Advance for current period.
