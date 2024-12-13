@@ -126,6 +126,18 @@ public:
 //		printf("bitmap:%d c256:%d ntsc:%d 40col:%d; base:%04x\n", bitmap_mode_, characters_256_, is_ntsc_, columns_40_, screen_memory_address_);
 	}
 
+	Cycles cycle_length([[maybe_unused]] bool is_ready) const {
+		// TODO: the complete test is more than this.
+		// TODO: if this is a RDY cycle, can reply with time until end-of-RDY.
+		const bool is_long_cycle = refresh_;
+
+		if(is_ntsc_) {
+			return is_long_cycle ? Cycles(8) : Cycles(4);
+		} else {
+			return is_long_cycle ? Cycles(10) : Cycles(5);
+		}
+	}
+
 	// Outer clock is [NTSC or PAL] colour subcarrier * 2.
 	//
 	// 65 cycles = 64µs?
@@ -212,12 +224,24 @@ public:
 					case OutputState::Sync:		crt_.output_sync(time_in_state_);								break;
 					case OutputState::Burst:	crt_.output_default_colour_burst(time_in_state_);				break;
 					case OutputState::Border:	crt_.output_level<uint16_t>(time_in_state_, background_[4]);	break;
-					case OutputState::Pixels:	crt_.output_level<uint16_t>(time_in_state_, background_[0]);	break;
+					case OutputState::Pixels:	crt_.output_data(time_in_state_, time_in_state_);				break;
 				}
 				time_in_state_ = 0;
+
+				output_state_ = state;
+				if(output_state_ == OutputState::Pixels) {
+					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(384, 2));
+				}
 			}
-			output_state_ = state;
 			time_in_state_ += period;
+
+			// Output pixels. TODO: properly.
+			if(pixels_) {
+				for(int c = 0; c < period; c++) {
+					pixels_[c] = ((c + horizontal_counter_)  & 1) ? 0x0000 : 0xffff;
+				}
+				pixels_ += period;
+			}
 
 			//
 			// Advance for current period.
@@ -346,6 +370,7 @@ private:
 		Pixels,
 	} output_state_ = OutputState::Blank;
 	int time_in_state_ = 0;
+	uint16_t *pixels_ = nullptr;
 
 	std::array<uint16_t, 5> background_{};
 	std::array<uint8_t, 5> raw_background_{};

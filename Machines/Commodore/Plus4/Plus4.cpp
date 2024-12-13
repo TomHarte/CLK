@@ -115,7 +115,7 @@ public:
 		// NTSC: 7159090?
 		// i.e. colour subcarriers multiplied by two?
 
-		set_clock_rate(7159090);	// TODO.
+		set_clock_rate(8867240);	// TODO.
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
@@ -141,8 +141,9 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
-		// TODO: calculate length of this bus operation.
-		const auto length = Cycles(5);
+		// Determine from the TED video subsystem the length of this clock cycle as perceived by the 6502,
+		// relative to the master clock.
+		const auto length = video_.cycle_length(operation == CPU::MOS6502::BusOperation::Ready);
 
 		// Update other subsystems.
 		// TODO: timers decrement at a 894 KHz rate for NTSC television systems, 884 KHZ for PAL systems.
@@ -179,6 +180,7 @@ public:
 
 					case 0xff08:
 						// TODO: keyboard.
+						// For now: all keys unpressed.
 						*value = 0xff;
 					break;
 
@@ -255,6 +257,7 @@ private:
 	}
 
 	void page_rom() {
+		// TODO: allow other ROM selection. And no ROM?
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
 		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
 	}
