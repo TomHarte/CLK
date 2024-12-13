@@ -13,6 +13,8 @@
 #include "../../../Numeric/UpperBound.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
+#include <array>
+
 namespace Commodore::Plus4 {
 
 struct Video {
@@ -67,6 +69,17 @@ public:
 			case 0xff0d:	load_low8(cursor_address_);				break;
 			case 0xff1a:	load_high10(character_row_address_);	break;
 			case 0xff1b:	load_low8(character_row_address_);		break;
+
+			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19: {
+				const uint8_t luminance = uint8_t(
+					((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
+				);
+				background_[value - 0xff15] = uint16_t(
+					luminance
+				);
+
+				printf("%02x -> %04x\n", value, address);
+			} break;
 		}
 
 //		printf("bitmap:%d c256:%d ntsc:%d 40col:%d; base:%04x\n", bitmap_mode_, characters_256_, is_ntsc_, columns_40_, screen_memory_address_);
@@ -151,11 +164,11 @@ public:
 
 			if(state != output_state_) {
 				switch(output_state_) {
-					case OutputState::Blank:	crt_.output_blank(time_in_state_);						break;
-					case OutputState::Sync:		crt_.output_sync(time_in_state_);						break;
-					case OutputState::Burst:	crt_.output_default_colour_burst(time_in_state_);		break;
-					case OutputState::Border:	crt_.output_level<uint16_t>(time_in_state_, 0x8080);	break;
-					case OutputState::Pixels:	crt_.output_level<uint16_t>(time_in_state_, 0xff80);	break;
+					case OutputState::Blank:	crt_.output_blank(time_in_state_);								break;
+					case OutputState::Sync:		crt_.output_sync(time_in_state_);								break;
+					case OutputState::Burst:	crt_.output_default_colour_burst(time_in_state_);				break;
+					case OutputState::Border:	crt_.output_level<uint16_t>(time_in_state_, background_[4]);	break;
+					case OutputState::Pixels:	crt_.output_level<uint16_t>(time_in_state_, background_[0]);	break;
 				}
 				time_in_state_ = 0;
 			}
@@ -287,6 +300,8 @@ private:
 		Pixels,
 	} output_state_ = OutputState::Blank;
 	int time_in_state_ = 0;
+
+	std::array<uint16_t, 5> background_{};
 
 	const Commodore::Plus4::Pager &pager_;
 };

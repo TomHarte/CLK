@@ -115,10 +115,8 @@ public:
 		kernel_ = roms.find(kernel)->second;
 		basic_ = roms.find(basic)->second;
 
-		map_.page<0>(ram_.data(), ram_.data());
-		map_.page<1>(ram_.data() + 16*1024, ram_.data() + 16*1024);
-		map_.page<2>(basic_.data(), ram_.data() + 32*1024);
-		map_.page<3>(kernel_.data(), ram_.data() + 48*1024);
+		map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
+		page_rom();
 
 		insert_media(target.media);
 	}
@@ -185,6 +183,9 @@ public:
 					case 0xff1a:	video_.write<0xff1a>(*value);	break;
 					case 0xff1b:	video_.write<0xff1b>(*value);	break;
 
+					case 0xff3e:	page_rom();						break;
+					case 0xff3f:	page_ram();						break;
+
 					default:
 						printf("TODO: TED write at %04x\n", address);
 				}
@@ -196,6 +197,14 @@ public:
 
 private:
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
+
+	void page_rom() {
+		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
+		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
+	}
+	void page_ram() {
+		map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
+	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
 		video_.set_scan_target(target);

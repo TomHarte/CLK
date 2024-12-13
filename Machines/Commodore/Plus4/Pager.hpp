@@ -8,6 +8,12 @@
 
 #pragma once
 
+enum PagerSide {
+	Read = 1,
+	Write = 2,
+	ReadWrite = Read | Write,
+};
+
 template <typename AddressT, typename DataT, int NumPages>
 class Pager {
 public:
@@ -18,10 +24,16 @@ public:
 		return write_[address >> Shift][address];
 	}
 
-	template <int slot>
-	void page(const uint8_t *read, uint8_t *write) {
-		write_[slot] = write - (slot << Shift);
-		read_[slot] = read - (slot << Shift);
+	template <int side, size_t start, size_t length>
+	void page(uint8_t *data) {
+		static_assert(!(start % PageSize), "Start address must be a multiple of the page size");
+		static_assert(!(length % PageSize), "Data length must be a multiple of the page size");
+
+		for(size_t slot = start >> Shift; slot < (start + length) >> Shift; slot++) {
+			if constexpr (side & PagerSide::Write) write_[slot] = data - (slot << Shift);
+			if constexpr (side & PagerSide::Read) read_[slot] = data - (slot << Shift);
+			data += PageSize;
+		}
 	}
 
 private:
