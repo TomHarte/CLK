@@ -178,11 +178,7 @@ public:
 					case 0xff04:	*value = timers_.read<4>();		break;
 					case 0xff05:	*value = timers_.read<5>();		break;
 
-					case 0xff08:
-						// TODO: keyboard.
-						// For now: all keys unpressed.
-						*value = 0xff;
-					break;
+					case 0xff08:	*value = keyboard_latch_;		break;
 
 					case 0xff09:	*value = interrupts_.status();	break;
 					case 0xff0a:	*value = interrupts_.mask();	break;
@@ -210,7 +206,12 @@ public:
 					case 0xff05:	timers_.write<5>(*value);	break;
 
 					case 0xff08:
-						// TODO: keyboard.
+						printf("Keyboard: %02x\n", *value);
+
+						keyboard_latch_ = (*value & 2) ? 0xff : 0xfb;
+						// TODO: keyboard. Low bits on the data bus select keyboard lines.
+						// Pressed keys drain to 0.
+						// TODO: possibly fd30 imputes joystick inputs here too?
 					break;
 
 					case 0xff09:
@@ -288,6 +289,8 @@ private:
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
+
+	uint8_t keyboard_latch_ = 0xff;
 
 	Interrupts interrupts_;
 	Cycles timers_subcycles_;
