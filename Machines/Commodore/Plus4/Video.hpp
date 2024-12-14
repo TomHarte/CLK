@@ -191,7 +191,7 @@ public:
 			}
 
 			const auto next = Numeric::upper_bound<
-				0, 3, 288, 290, 296, 304, 307, 315, 328, 336, 344, 358, 376, 384, 390, 400, 416, 424, 432, 440, 451, 465
+				0, 3, 288, 290, 296, 304, 307, 315, 328, 336, 344, 358, 368, 376, 384, 390, 400, 416, 424, 432, 440, 451, 465
 			>(horizontal_counter_);
 			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
 
@@ -295,7 +295,13 @@ public:
 				case 408:	horizontal_burst_ = false;	break;	// Burst end.
 				case 416:	horizontal_blank_ = false;	break;	// Horizontal blanking end.
 
-				case 424:	// Increment character position reload.
+				case 368:
+					if(raster_interrupt_ == vertical_counter_) {
+						interrupts_.apply(Interrupts::Flag::Raster);
+					}
+				break;
+
+				case 424:	// Increment character position reload; also interrput time.
 				break;
 
 				case 440:	// Video shift register start.

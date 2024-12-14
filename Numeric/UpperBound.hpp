@@ -16,7 +16,7 @@ namespace Numeric {
 /// E.g. @c at_index<0, 3, 5, 6, 7, 8, 9>() returns the `3 - 0` = 4th element from the
 /// list 5, 6, 7, 8, 9, i.e. 8.
 template<int origin, int index, int T, int... Args>
-int at_index() {
+constexpr int at_index() {
 	if constexpr (origin == index || sizeof...(Args) == 0) {
 		return T;
 	} else {
@@ -40,10 +40,22 @@ int upper_bound_bounded(int location) {
 	}
 }
 
+template <int index, int... Args>
+constexpr int is_ordered() {
+	if constexpr (sizeof...(Args) == index + 1) {
+		return true;
+	} else {
+		return
+			(at_index<0, index, Args...>() < at_index<0, index+1, Args...>()) &&
+			is_ordered<index+1, Args...>();
+	}
+}
+
 /// @returns The result of binary searching for the first thing in the template arguments
 /// is strictly greater than @c location.
 template <int... Args>
 int upper_bound(int location) {
+	static_assert(is_ordered<0, Args...>(), "Template arguments must be in ascending order.");
 	return upper_bound_bounded<0, sizeof...(Args), Args...>(location);
 }
 

@@ -174,7 +174,7 @@ public:
 			if(isReadOperation(operation)) {
 				switch(address) {
 					case 0xff00:	*value = timers_.read<0>();		break;
-					case 0xff01:	*value = timers_.read<1	>();	break;
+					case 0xff01:	*value = timers_.read<1>();		break;
 					case 0xff02:	*value = timers_.read<2>();		break;
 					case 0xff03:	*value = timers_.read<3>();		break;
 					case 0xff04:	*value = timers_.read<4>();		break;
