@@ -9,6 +9,7 @@
 #include "Plus4.hpp"
 
 #include "Interrupts.hpp"
+#include "Keyboard.hpp"
 #include "Pager.hpp"
 #include "Video.hpp"
 
@@ -100,6 +101,7 @@ private:
 class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public Interrupts::Delegate,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::MediaTarget,
@@ -205,14 +207,18 @@ public:
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
 
-					case 0xff08:
-						printf("Keyboard: %02x\n", *value);
-
-						keyboard_latch_ = (*value & 2) ? 0xff : 0xfb;
-						// TODO: keyboard. Low bits on the data bus select keyboard lines.
-						// Pressed keys drain to 0.
-						// TODO: possibly fd30 imputes joystick inputs here too?
-					break;
+					case 0xff08: {
+						keyboard_latch_ = ~(
+							((*value & 0x01) ? 0x00 : key_states_[0]) |
+							((*value & 0x02) ? 0x00 : key_states_[1]) |
+							((*value & 0x04) ? 0x00 : key_states_[2]) |
+							((*value & 0x08) ? 0x00 : key_states_[3]) |
+							((*value & 0x10) ? 0x00 : key_states_[4]) |
+							((*value & 0x20) ? 0x00 : key_states_[5]) |
+							((*value & 0x40) ? 0x00 : key_states_[6]) |
+							((*value & 0x80) ? 0x00 : key_states_[7])
+						);
+					} break;
 
 					case 0xff09:
 						interrupts_.set_status(*value);
@@ -290,12 +296,27 @@ private:
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
 
-	uint8_t keyboard_latch_ = 0xff;
-
 	Interrupts interrupts_;
 	Cycles timers_subcycles_;
 	Timers timers_;
 	Video video_;
+
+	// MARK: - MappedKeyboardMachine.
+	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+		static Commodore::Plus4::KeyboardMapper keyboard_mapper_;
+		return &keyboard_mapper_;
+	}
+
+	void set_key_state(uint16_t key, bool is_pressed) override {
+		if(is_pressed) {
+			key_states_[line(key)] |= mask(key);
+		} else {
+			key_states_[line(key)] &= ~mask(key);
+		}
+	}
+
+	std::array<uint8_t, 8> key_states_{};
+	uint8_t keyboard_latch_ = 0xff;
 };
 
 }
