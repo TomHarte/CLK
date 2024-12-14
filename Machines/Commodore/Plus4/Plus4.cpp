@@ -185,10 +185,16 @@ public:
 					case 0xff09:	*value = interrupts_.status();	break;
 					case 0xff0a:	*value = interrupts_.mask();	break;
 
+					case 0xff06:	*value = video_.read<0xff06>();	break;
+					case 0xff07:	*value = video_.read<0xff07>();	break;
 					case 0xff0b:	*value = video_.read<0xff0b>();	break;
 					case 0xff1c:	*value = video_.read<0xff1c>();	break;
 					case 0xff1d:	*value = video_.read<0xff1d>();	break;
 
+					case 0xff12:	*value = ff12_;	break;
+					case 0xff13:	*value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
+
+					case 0xff14:	*value = video_.read<0xff14>();	break;
 					case 0xff15:	*value = video_.read<0xff15>();	break;
 					case 0xff16:	*value = video_.read<0xff16>();	break;
 					case 0xff17:	*value = video_.read<0xff17>();	break;
@@ -207,7 +213,7 @@ public:
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
 
-					case 0xff08: {
+					case 0xff08:
 						keyboard_latch_ = ~(
 							((*value & 0x01) ? 0x00 : key_states_[0]) |
 							((*value & 0x02) ? 0x00 : key_states_[1]) |
@@ -218,7 +224,7 @@ public:
 							((*value & 0x40) ? 0x00 : key_states_[6]) |
 							((*value & 0x80) ? 0x00 : key_states_[7])
 						);
-					} break;
+					break;
 
 					case 0xff09:
 						interrupts_.set_status(*value);
@@ -233,8 +239,14 @@ public:
 					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff0c:	video_.write<0xff0c>(*value);	break;
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
-					case 0xff12:	video_.write<0xff12>(*value);	break;
-					case 0xff13:	video_.write<0xff13>(*value);	break;
+					case 0xff12:
+						ff12_ = *value & 0x3f;
+						video_.write<0xff12>(*value);
+					break;
+					case 0xff13:
+						ff13_ = *value & 0xfe;
+						video_.write<0xff13>(*value);
+					break;
 					case 0xff14:	video_.write<0xff14>(*value);	break;
 					case 0xff1a:	video_.write<0xff1a>(*value);	break;
 					case 0xff1b:	video_.write<0xff1b>(*value);	break;
@@ -270,10 +282,13 @@ private:
 		// TODO: allow other ROM selection. And no ROM?
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
 		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
+		rom_is_paged_ = true;
 	}
 	void page_ram() {
 		map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
+		rom_is_paged_ = false;
 	}
+	bool rom_is_paged_ = false;
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
 		video_.set_scan_target(target);
@@ -295,6 +310,7 @@ private:
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
+	uint8_t ff12_, ff13_;
 
 	Interrupts interrupts_;
 	Cycles timers_subcycles_;

@@ -32,9 +32,12 @@ public:
 	template <uint16_t address>
 	uint8_t read() const {
 		switch(address) {
+			case 0xff06:	return ff06_;
+			case 0xff07:	return ff07_;
 			case 0xff0b:	return uint8_t(raster_interrupt_);
 			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
 			case 0xff1d:	return uint8_t(vertical_counter_);
+			case 0xff14:	return uint8_t((screen_memory_address_ >> 8) & 0xf8);
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				return raw_background_[size_t(address - 0xff15)];
@@ -58,6 +61,7 @@ public:
 
 		switch(address) {
 			case 0xff06:
+				ff06_ = value;
 				extended_colour_mode_ = value & 0x40;
 				bitmap_mode_ = value & 0x20;
 				display_enable_ = value & 0x10;
@@ -66,6 +70,7 @@ public:
 			break;
 
 			case 0xff07:
+				ff07_ = value;
 				characters_256_ = value & 0x80;
 				is_ntsc_ = value & 0x40;
 				ted_off_ = value & 0x20;
@@ -79,6 +84,7 @@ public:
 			break;
 			case 0xff13:
 				character_generator_address_ = uint16_t((value & 0xfc) << 8);
+				single_clock_ = value & 0x02;
 			break;
 			case 0xff14:
 				screen_memory_address_ = uint16_t((value & 0xf8) << 8);
@@ -102,37 +108,17 @@ public:
 				const uint8_t luminance = (value & 0x0f) ? uint8_t(
 					((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
 				) : 0;
-				const auto chrominance = uint8_t([&] {
-					switch(value & 0x0f) {
-						default:
-							printf("Unmapped colour: %d\n", value & 0x0f);
-							[[fallthrough]];
-						case 0:
-						case 1:		return 0xff;
-
-						// The following have been eyeballed.
-//						case 5:		return 3;
-//						case 7:		return 3;
-//						case 11:	return 3;
-						case 14:	return 5;
-					}
-				}());
-
 				background_[size_t(address - 0xff15)] = uint16_t(
-					luminance | (chrominance << 8)
+					luminance | (chrominances[value & 0x0f] << 8)
 				);
-
-				printf("%02x -> %04x\n", value, address);
 			} break;
 		}
-
-//		printf("bitmap:%d c256:%d ntsc:%d 40col:%d; base:%04x\n", bitmap_mode_, characters_256_, is_ntsc_, columns_40_, screen_memory_address_);
 	}
 
 	Cycles cycle_length([[maybe_unused]] bool is_ready) const {
 		// TODO: the complete test is more than this.
 		// TODO: if this is a RDY cycle, can reply with time until end-of-RDY.
-		const bool is_long_cycle = refresh_;
+		const bool is_long_cycle = single_clock_ || refresh_;
 
 		if(is_ntsc_) {
 			return is_long_cycle ? Cycles(8) : Cycles(4);
@@ -227,7 +213,7 @@ public:
 					case OutputState::Sync:		crt_.output_sync(time_in_state_);								break;
 					case OutputState::Burst:	crt_.output_default_colour_burst(time_in_state_);				break;
 					case OutputState::Border:	crt_.output_level<uint16_t>(time_in_state_, background_[4]);	break;
-					case OutputState::Pixels:	crt_.output_data(time_in_state_, time_in_state_);				break;
+					case OutputState::Pixels:	crt_.output_data(time_in_state_, size_t(time_in_state_));		break;
 				}
 				time_in_state_ = 0;
 
@@ -366,12 +352,15 @@ private:
 	bool horizontal_blank_ = false;
 	bool horizontal_sync_ = false;
 	bool horizontal_burst_ = false;
+	uint8_t ff06_;
 
 	uint16_t character_address_ = 0;
 	uint16_t line_character_address_ = 0;
 	bool fetch_characters_;
 	bool output_pixels_;
 	bool refresh_ = false;
+	bool single_clock_ = false;
+	uint8_t ff07_;
 
 	enum class OutputState {
 		Blank,
@@ -388,6 +377,15 @@ private:
 
 	const Commodore::Plus4::Pager &pager_;
 	Interrupts &interrupts_;
+
+	// The following aren't accurate; they're eyeballed to be close enough for now in PAL.
+	static constexpr uint8_t chrominances[] = {
+		0xff,	0xff,
+		90,		23,		105,	59,
+		14,		69,		83,		78,
+		50,		96,		32,		9,
+		5,		41,
+	};
 };
 
 }
