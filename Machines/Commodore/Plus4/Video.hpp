@@ -121,9 +121,9 @@ public:
 		const bool is_long_cycle = single_clock_ || refresh_;
 
 		if(is_ntsc_) {
-			return is_long_cycle ? Cycles(8) : Cycles(4);
+			return is_long_cycle ? Cycles(16) : Cycles(8);
 		} else {
-			return is_long_cycle ? Cycles(10) : Cycles(5);
+			return is_long_cycle ? Cycles(20) : Cycles(10);
 		}
 	}
 
@@ -141,11 +141,18 @@ public:
 	void run_for(Cycles cycles) {
 		// Timing:
 		//
-		//	456 cycles/line;
-		//	if in PAL mode, divide input clock by 1.25 (?);
-		//	see page 34 of plus4_tech.pdf for event times.
+		// Input clock is at 17.7Mhz PAL or 14.38Mhz NTSC. i.e. each is four times the colour subcarrier.
+		//
+		// In PAL mode, divide by 5 and multiply by 2 to get the internal pixel clock.
+		//
+		// In NTSC mode just dividing by 2 would do to get the pixel clock but in practice that's implemented as
+		// a divide by 4 and a multiply by 2 to keep it similar to the PAL code.
+		//
+		// That gives close enough to 456 pixel clocks per line in both systems so the TED just rolls with that.
 
-		subcycles_ += cycles * 4;
+		// See page 34 of plus4_tech.pdf for event times.
+
+		subcycles_ += cycles * 2;
 		auto ticks_remaining = subcycles_.divide(is_ntsc_ ? Cycles(4) : Cycles(5)).as<int>();
 		while(ticks_remaining) {
 			//

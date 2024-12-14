@@ -113,11 +113,11 @@ public:
 		timers_(interrupts_),
 		video_(map_, interrupts_)
 	{
-		// PAL: 8867240 divided by 5 or 4?
-		// NTSC: 7159090?
+		// PAL: 17,734,480 Mhz divided by 5 or 4?
+		// NTSC: 14,318,180 Mhz
 		// i.e. colour subcarriers multiplied by two?
 
-		set_clock_rate(8867240);	// TODO.
+		set_clock_rate(17'734'480);
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
