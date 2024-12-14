@@ -175,7 +175,8 @@ public:
 					}
 				break;
 
-				case 203:	// Attribute fetch end.
+				case 203:	// Attribute fetch end. But I think this might be fairly nominal, assuming attribute fetches
+							// are triggered by testing against y scroll.
 				break;
 
 				case 4:		if(rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (25 lines).
