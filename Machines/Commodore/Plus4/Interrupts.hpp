@@ -12,13 +12,18 @@
 
 namespace Commodore::Plus4 {
 
+struct BusController {
+	virtual void set_irq_line(bool) = 0;
+	virtual void set_ready_line(bool) = 0;
+};
+
 struct Interrupts {
 public:
-	struct Delegate {
-		virtual void set_irq_line(bool) = 0;
-	};
+	Interrupts(BusController &delegate) : delegate_(delegate) {}
+	BusController &bus() {
+		return delegate_;
+	}
 
-	Interrupts(Delegate &delegate) : delegate_(delegate) {}
 
 	enum Flag {
 		Timer3 = 0x40,
@@ -59,7 +64,7 @@ private:
 		}
 	}
 
-	Delegate &delegate_;
+	BusController &delegate_;
 	uint8_t status_;
 	uint8_t mask_;
 	bool last_set_ = false;

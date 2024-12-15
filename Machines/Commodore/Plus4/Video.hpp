@@ -127,6 +127,10 @@ public:
 		}
 	}
 
+	Cycles timer_cycle_length() const {
+		return is_ntsc_ ? Cycles(16) : Cycles(20);
+	}
+
 	// Outer clock is [NTSC or PAL] colour subcarrier * 2.
 	//
 	// 65 cycles = 64µs?
@@ -400,6 +404,12 @@ private:
 		50,		96,		32,		9,
 		5,		41,
 	};
+
+	enum class FetchPhase {
+		Waiting,
+		FetchingCharacters,
+		FetchingAttributs,
+	} fetch_phase_ = FetchPhase::Waiting;
 };
 
 }

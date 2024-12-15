@@ -99,8 +99,8 @@ private:
 };
 
 class ConcreteMachine:
+	public BusController,
 	public CPU::MOS6502::BusHandler,
-	public Interrupts::Delegate,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -148,16 +148,26 @@ public:
 		const auto length = video_.cycle_length(operation == CPU::MOS6502::BusOperation::Ready);
 
 		// Update other subsystems.
-		// TODO: timers decrement at a 894 KHz rate for NTSC television systems, 884 KHZ for PAL systems.
-		// Probably a function of the speed register?
 		timers_subcycles_ += length;
-		const auto timers_cycles = timers_subcycles_.divide(Cycles(5));
+		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
 		timers_.tick(timers_cycles.as<int>());
 
 		video_.run_for(length);
 
 		// Perform actual access.
-		if(address < 0xfd00 || address >= 0xff40) {
+		if(address < 0x0002) {
+			// TODO: 0x0000: data directions for parallel IO; 1  = output.
+			// TODO: 0x0001:
+			//	b7 = serial data in;
+			//	b6 = serial clock in and cassette write;
+			//	b5 = [unconnected];
+			//	b4 = cassette read;
+			//	b3 = cassette motor, 1 = off;
+			//	b2 = serial ATN out;
+			//	b1 = serial clock out and cassette write;
+			//	b0 = serial data out.
+//			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
+		} else if(address < 0xfd00 || address >= 0xff40) {
 			if(isReadOperation(operation)) {
 				*value = map_.read(address);
 			} else {
@@ -276,6 +286,9 @@ private:
 
 	void set_irq_line(bool active) override {
 		m6502_.set_irq_line(active);
+	}
+	void set_ready_line(bool active) override {
+		m6502_.set_ready_line(active);
 	}
 
 	void page_rom() {
