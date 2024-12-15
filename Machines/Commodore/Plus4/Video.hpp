@@ -202,8 +202,46 @@ public:
 				interrupts_.apply(Interrupts::Flag::Raster);
 			}
 
+			// List of events.
+			enum HorizontalEvent {
+				Begin38Columns = 3,
+				EndExternalFetchWindow = 288,
+				LatchCharacterPosition = 290,
+				EndCharacterFetchWindow = 296,
+				EndVideoShiftRegister = 304,
+				End38Columns = 307,
+				End40Columns = 315,
+				EndRefresh = 328,
+				IncrementBlink = 336,
+				BeginBlank = 344,
+				BeginSync = 358,
+				TestRasterInterrupt = 368,
+				IncrementVerticalLine = 376,
+				BeginBurst = 384,
+				EndSync = 390,
+				BeginExternalFetchWindow = 400,
+				EndBurst = 408,
+				EndBlank = 416,
+				IncrementCharacterPositionReload = 424,
+				BeginCharacterFetchWindow = 432,
+				BeginVideoShiftRegister = 440,
+				Begin40Columns = 451,
+				EndOfLine = 456,
+			};
+
 			const auto next = Numeric::upper_bound<
-				0, 3, 288, 290, 296, 304, 307, 315, 328, 336, 344, 358, 368, 376, 384, 390, 400, 416, 424, 432, 440, 451, 465
+				0,								Begin38Columns,
+				EndExternalFetchWindow,			LatchCharacterPosition,
+				EndCharacterFetchWindow,		EndVideoShiftRegister,
+				End38Columns,					End40Columns,
+				EndRefresh,						IncrementBlink,
+				BeginBlank,						BeginSync,
+				TestRasterInterrupt,			IncrementVerticalLine,
+				BeginBurst,						EndSync,
+				BeginExternalFetchWindow,		EndBurst,
+				EndBlank,						IncrementCharacterPositionReload,
+				BeginCharacterFetchWindow,		BeginVideoShiftRegister,
+				Begin40Columns,					EndOfLine
 			>(horizontal_counter_);
 			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
 
@@ -258,68 +296,65 @@ public:
 			horizontal_counter_ += period;
 			ticks_remaining -= period;
 			switch(horizontal_counter_) {
-				case 288:	// External fetch window end, refresh single clock start, increment character position end.
+				case EndExternalFetchWindow:
 					// TODO: release RDY if it was held.
 					// TODO: increment character position end.
 					refresh_ = true;
 				break;
 
-				case 400:	// External fetch window start.
+				case BeginExternalFetchWindow:
 					// TODO: set RDY line if this is an appropriate row.
 				break;
 
-				case 290:	line_character_address_ = character_address_;	break;	// Latch character position to reload.
+				case LatchCharacterPosition:	line_character_address_ = character_address_;	break;
 
-				case 296:	// Character window end, character window single clock end, increment refresh start.
+				case EndCharacterFetchWindow:
 					fetch_characters_ = false;
 				break;
-				case 432:	// Character window start, character window single clock start, increment character position start.
+				case BeginCharacterFetchWindow:
 					fetch_characters_ = true;
 				break;
 
-				case 304:	// Video shift register end.
-				break;
+				case Begin38Columns:	if(!columns_40_) output_pixels_ = true;		break;
+				case End38Columns:		if(!columns_40_) output_pixels_ = false;	break;
+				case Begin40Columns:	if(columns_40_) output_pixels_ = true;		break;
+				case End40Columns:		if(columns_40_) output_pixels_ = false;		break;
 
-				case 3:		if(!columns_40_) output_pixels_ = true;		break;	// 38-column screen start.
-				case 307:	if(!columns_40_) output_pixels_ = false;	break;	// 38-column screen stop.
-				case 451:	if(columns_40_) output_pixels_ = true;		break;	// 40-column screen start.
-				case 315:	if(columns_40_) output_pixels_ = false;		break;	// 40-column screen end.
-
-				case 328:	// Refresh single clock end.
+				case EndRefresh:
 					refresh_ = false;
 				break;
 
-				case 336:	// Increment blink, increment refresh end.
+				case IncrementBlink:
 				break;
 
-				case 376:	// Increment vertical line.
+				case IncrementVerticalLine:
 					vertical_counter_ = (vertical_counter_ + 1) & 0x1ff;
 				break;
 
-				case 384:	// Burst start, end of screen — clear vertical line, vertical sub and character reload registers.
+				case BeginBurst:
 					horizontal_burst_ = true;
 					// TODO: rest.
 				break;
 
-				case 344:	horizontal_blank_ = true;	break;	// Horizontal blanking start.
-				case 358:	horizontal_sync_ = true;	break;	// Horizontal sync start.
-				case 390:	horizontal_sync_ = false;	break;	// Horizontal sync end.
-				case 408:	horizontal_burst_ = false;	break;	// Burst end.
-				case 416:	horizontal_blank_ = false;	break;	// Horizontal blanking end.
+				case BeginBlank:	horizontal_blank_ = true;	break;
+				case BeginSync:		horizontal_sync_ = true;	break;
+				case EndSync:		horizontal_sync_ = false;	break;
+				case EndBurst:		horizontal_burst_ = false;	break;
+				case EndBlank:		horizontal_blank_ = false;	break;
 
-				case 368:
+				case TestRasterInterrupt:
 					if(raster_interrupt_ == vertical_counter_) {
 						interrupts_.apply(Interrupts::Flag::Raster);
 					}
 				break;
 
-				case 424:	// Increment character position reload; also interrput time.
+				case IncrementCharacterPositionReload:
 				break;
 
-				case 440:	// Video shift register start.
+				case BeginVideoShiftRegister:
 				break;
 
-				case 465:	// Wraparound.
+				case EndOfLine:
 					horizontal_counter_ = 0;
 				break;
 			}
