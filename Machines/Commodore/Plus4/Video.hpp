@@ -116,9 +116,12 @@ public:
 	}
 
 	Cycles cycle_length([[maybe_unused]] bool is_ready) const {
-		// TODO: the complete test is more than this.
-		// TODO: if this is a RDY cycle, can reply with time until end-of-RDY.
-		const bool is_long_cycle = single_clock_ || refresh_;
+		if(is_ready) {
+//			return
+//				Cycles(EndCharacterFetchWindow - horizontal_counter_ + EndOfLine) * is_ntsc_ ? Cycles(4) : Cycles(5) / 2;
+		}
+
+		const bool is_long_cycle = single_clock_ || refresh_ || external_fetch_;
 
 		if(is_ntsc_) {
 			return is_long_cycle ? Cycles(16) : Cycles(8);
@@ -202,33 +205,6 @@ public:
 				interrupts_.apply(Interrupts::Flag::Raster);
 			}
 
-			// List of events.
-			enum HorizontalEvent {
-				Begin38Columns = 3,
-				EndExternalFetchWindow = 288,
-				LatchCharacterPosition = 290,
-				EndCharacterFetchWindow = 296,
-				EndVideoShiftRegister = 304,
-				End38Columns = 307,
-				End40Columns = 315,
-				EndRefresh = 328,
-				IncrementBlink = 336,
-				BeginBlank = 344,
-				BeginSync = 358,
-				TestRasterInterrupt = 368,
-				IncrementVerticalLine = 376,
-				BeginBurst = 384,
-				EndSync = 390,
-				BeginExternalFetchWindow = 400,
-				EndBurst = 408,
-				EndBlank = 416,
-				IncrementCharacterPositionReload = 424,
-				BeginCharacterFetchWindow = 432,
-				BeginVideoShiftRegister = 440,
-				Begin40Columns = 451,
-				EndOfLine = 456,
-			};
-
 			const auto next = Numeric::upper_bound<
 				0,								Begin38Columns,
 				EndExternalFetchWindow,			LatchCharacterPosition,
@@ -238,7 +214,7 @@ public:
 				BeginBlank,						BeginSync,
 				TestRasterInterrupt,			IncrementVerticalLine,
 				BeginBurst,						EndSync,
-				BeginExternalFetchWindow,		EndBurst,
+				BeginExternalFetchWindow,		//EndBurst,
 				EndBlank,						IncrementCharacterPositionReload,
 				BeginCharacterFetchWindow,		BeginVideoShiftRegister,
 				Begin40Columns,					EndOfLine
@@ -255,6 +231,10 @@ public:
 				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
 			} else {
 				state = vertical_window_ && output_pixels_ ? OutputState::Pixels : OutputState::Border;
+
+//				if(output_pixels_) {
+//					printf("%d -> %d\n", horizontal_counter_, horizontal_counter_ + period);
+//				}
 			}
 
 			if(state != output_state_) {
@@ -303,13 +283,34 @@ public:
 				break;
 
 				case BeginExternalFetchWindow:
-					// TODO: set RDY line if this is an appropriate row.
+					external_fetch_ = true;
+					switch(fetch_phase_) {
+						case FetchPhase::Waiting:
+							// TODO: the < 200 is obviously phoney baloney. Figure out what the actual condition is here.
+							if(vertical_counter_ < 200 && (vertical_counter_&7) == y_scroll_ && vertical_window_) {
+								fetch_phase_ = FetchPhase::FetchingCharacters;
+							}
+						break;
+						case FetchPhase::FetchingCharacters:
+							fetch_phase_ = FetchPhase::FetchingAttributes;
+						break;
+						case FetchPhase::FetchingAttributes:
+							fetch_phase_ = FetchPhase::Waiting;
+						break;
+					}
+					interrupts_.bus().set_ready_line(fetch_phase_ != FetchPhase::Waiting);
+
+					horizontal_burst_ = false;
 				break;
 
-				case LatchCharacterPosition:	line_character_address_ = character_address_;	break;
+				case LatchCharacterPosition:
+					line_character_address_ = character_address_;
+				break;
 
 				case EndCharacterFetchWindow:
 					fetch_characters_ = false;
+					external_fetch_ = false;
+					interrupts_.bus().set_ready_line(false);
 				break;
 				case BeginCharacterFetchWindow:
 					fetch_characters_ = true;
@@ -339,7 +340,7 @@ public:
 				case BeginBlank:	horizontal_blank_ = true;	break;
 				case BeginSync:		horizontal_sync_ = true;	break;
 				case EndSync:		horizontal_sync_ = false;	break;
-				case EndBurst:		horizontal_burst_ = false;	break;
+//				case EndBurst:		horizontal_burst_ = false;	break;
 				case EndBlank:		horizontal_blank_ = false;	break;
 
 				case TestRasterInterrupt:
@@ -409,8 +410,9 @@ private:
 
 	uint16_t character_address_ = 0;
 	uint16_t line_character_address_ = 0;
-	bool fetch_characters_;
-	bool output_pixels_;
+	bool fetch_characters_ = false;
+	bool external_fetch_ = false;
+	bool output_pixels_ = false;
 	bool refresh_ = false;
 	bool single_clock_ = false;
 	uint8_t ff07_;
@@ -443,8 +445,35 @@ private:
 	enum class FetchPhase {
 		Waiting,
 		FetchingCharacters,
-		FetchingAttributs,
+		FetchingAttributes,
 	} fetch_phase_ = FetchPhase::Waiting;
+
+	// List of events.
+	enum HorizontalEvent {
+		Begin38Columns = 3,
+		EndExternalFetchWindow = 288,
+		LatchCharacterPosition = 290,
+		EndCharacterFetchWindow = 300,	// 296
+		EndVideoShiftRegister = 304,
+		End38Columns = 307,
+		End40Columns = 315,
+		EndRefresh = 328,
+		IncrementBlink = 336,
+		BeginBlank = 344,
+		BeginSync = 358,
+		TestRasterInterrupt = 368,
+		IncrementVerticalLine = 376,
+		BeginBurst = 384,
+		EndSync = 390,
+		BeginExternalFetchWindow = 408, // 400,
+//		EndBurst = 408,
+		EndBlank = 416,
+		IncrementCharacterPositionReload = 424,
+		BeginCharacterFetchWindow = 436, // 432,
+		BeginVideoShiftRegister = 440,
+		Begin40Columns = 451,
+		EndOfLine = 456,
+	};
 };
 
 }

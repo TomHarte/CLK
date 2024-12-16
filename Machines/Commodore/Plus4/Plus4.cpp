@@ -154,6 +154,10 @@ public:
 
 		video_.run_for(length);
 
+		if(operation == CPU::MOS6502::BusOperation::Ready) {
+			return length;
+		}
+
 		// Perform actual access.
 		if(address < 0x0002) {
 			// TODO: 0x0000: data directions for parallel IO; 1  = output.
