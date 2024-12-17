@@ -166,7 +166,9 @@ public:
 			// Test vertical first; this will catch both any programmed change that has occurred outside
 			// of the loop and any change to the vertical counter that occurs during the horizontal runs.
 			//
-			const auto attribute_fetch_start = []{};
+			const auto attribute_fetch_start = [&] {
+				character_address_ = 0;
+			};
 			switch(vertical_counter_) {
 				case 261:	// End of screen NTSC. [and hence 0: Attribute fetch start].
 					if(is_ntsc_) {
@@ -222,6 +224,31 @@ public:
 			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
 
 			//
+			// Fetch as appropriate.
+			//
+			if(fetch_characters_) {
+				const int start = fetch_count_ >> 3;
+				const int end = (fetch_count_ + period) >> 3;
+				fetch_count_ += period;
+
+				auto &line = lines_[line_pointer_];
+//		uint8_t attributes[40];
+//		uint8_t characters[40];
+//	} lines_[2];
+//	int line_pointer_ = 0;
+
+				for(int x = start; x < end; x++) {
+//					line.attributes[x] = pager_.read(character_generator_address_ + x * 8 + (row & 7));
+//					line.characters[x] = pager_.read(uint16_t(line_character_address_ + x + screen_memory_address_ + 0x400));
+				}
+
+//				switch(fetch_phase_) {
+//					case FetchPh
+//				}
+			}
+
+
+			//
 			// Output.
 			//
 			OutputState state;
@@ -231,10 +258,6 @@ public:
 				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
 			} else {
 				state = vertical_window_ && output_pixels_ ? OutputState::Pixels : OutputState::Border;
-
-//				if(output_pixels_) {
-//					printf("%d -> %d\n", horizontal_counter_, horizontal_counter_ + period);
-//				}
 			}
 
 			if(state != output_state_) {
@@ -286,6 +309,8 @@ public:
 					external_fetch_ = true;
 					switch(fetch_phase_) {
 						case FetchPhase::Waiting:
+							++character_line_;
+
 							// TODO: the < 200 is obviously phoney baloney. Figure out what the actual condition is here.
 							if(vertical_counter_ < 200 && (vertical_counter_&7) == y_scroll_ && vertical_window_) {
 								fetch_phase_ = FetchPhase::FetchingCharacters;
@@ -293,6 +318,7 @@ public:
 						break;
 						case FetchPhase::FetchingCharacters:
 							fetch_phase_ = FetchPhase::FetchingAttributes;
+							character_line_ = 0;
 						break;
 						case FetchPhase::FetchingAttributes:
 							fetch_phase_ = FetchPhase::Waiting;
@@ -314,6 +340,7 @@ public:
 				break;
 				case BeginCharacterFetchWindow:
 					fetch_characters_ = true;
+					fetch_count_ = 0;
 				break;
 
 				case Begin38Columns:	if(!columns_40_) output_pixels_ = true;		break;
@@ -447,6 +474,15 @@ private:
 		FetchingCharacters,
 		FetchingAttributes,
 	} fetch_phase_ = FetchPhase::Waiting;
+	int character_line_ = 0;
+	int fetch_count_ = 0;
+
+	struct LineBuffer {
+		uint8_t attributes[40];
+		uint8_t characters[40];
+	} lines_[2];
+	uint8_t bitmap_[40];
+	int line_pointer_ = 0;
 
 	// List of events.
 	enum HorizontalEvent {
