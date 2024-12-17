@@ -14,6 +14,7 @@
 #include <limits>
 #include <vector>
 #include <array>
+#include <unordered_map>
 
 using namespace Analyser::Static::Commodore;
 
@@ -37,7 +38,7 @@ public:
 
 		@returns a sector if one was found; @c nullptr otherwise.
 	*/
-	std::shared_ptr<Sector> sector(const uint8_t track, const uint8_t sector) {
+	const Sector *sector(const uint8_t track, const uint8_t sector) {
 		int difference = int(track) - int(track_);
 		track_ = track;
 
@@ -68,7 +69,7 @@ private:
 	int index_count_;
 	int bit_count_;
 	uint8_t track_;
-	std::shared_ptr<Sector> sector_cache_[65536];
+	std::unordered_map<uint16_t, std::unique_ptr<Sector>> sector_cache_;
 
 	void process_input_bit(const int value) override {
 		shift_register_ = ((shift_register_ << 1) | unsigned(value)) & 0x3ff;
@@ -111,23 +112,24 @@ private:
 		index_count_++;
 	}
 
-	std::shared_ptr<Sector> get_sector(const uint8_t sector) {
+	const Sector *get_sector(const uint8_t sector) {
 		const uint16_t sector_address = uint16_t((track_ << 8) | sector);
-		if(sector_cache_[sector_address]) return sector_cache_[sector_address];
+		auto existing = sector_cache_.find(sector_address);
+		if(existing != sector_cache_.end()) return existing->second.get();
 
-		const std::shared_ptr<Sector> first_sector = get_next_sector();
+		const auto first_sector = get_next_sector();
 		if(!first_sector) return first_sector;
 		if(first_sector->sector == sector) return first_sector;
 
-		while(1) {
-			const std::shared_ptr<Sector> next_sector = get_next_sector();
+		while(true) {
+			const auto next_sector = get_next_sector();
 			if(next_sector->sector == first_sector->sector) return nullptr;
 			if(next_sector->sector == sector) return next_sector;
 		}
 	}
 
-	std::shared_ptr<Sector> get_next_sector() {
-		auto sector = std::make_shared<Sector>();
+	const Sector *get_next_sector() {
+		auto sector = std::make_unique<Sector>();
 		const int max_index_count = index_count_ + 2;
 
 		while(index_count_ < max_index_count) {
@@ -160,8 +162,8 @@ private:
 
 			if(checksum == get_next_byte()) {
 				uint16_t sector_address = uint16_t((sector->track << 8) | sector->sector);
-				sector_cache_[sector_address] = sector;
-				return sector;
+				auto pair = sector_cache_.emplace(sector_address, std::move(sector));
+				return pair.first->second.get();
 			}
 		}
 
@@ -171,8 +173,8 @@ private:
 
 std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	std::vector<File> files;
-	auto parser = std::make_unique<CommodoreGCRParser>();
-	parser->set_disk(disk);
+	CommodoreGCRParser parser;
+	parser.set_disk(disk);
 
 	// Assemble directory.
 	std::vector<uint8_t> directory;
@@ -180,7 +182,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 	uint8_t next_sector = 1;
 	directory.reserve(20 * 1024);	// Probably more than plenty.
 	while(true) {
-		auto sector = parser->sector(next_track, next_sector);
+		const auto sector = parser.sector(next_track, next_sector);
 		if(!sector) break;
 		directory.insert(directory.end(), sector->data.begin(), sector->data.end());
 		next_track = sector->data[0];
@@ -222,7 +224,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 
 			bool is_first_sector = true;
 			while(next_track) {
-				auto sector = parser->sector(next_track, next_sector);
+				const auto sector = parser.sector(next_track, next_sector);
 				if(!sector) break;
 
 				next_track = sector->data[0];
