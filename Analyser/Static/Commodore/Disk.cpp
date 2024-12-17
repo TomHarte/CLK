@@ -181,13 +181,21 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 	uint8_t next_track = 18;
 	uint8_t next_sector = 1;
 	directory.reserve(20 * 1024);	// Probably more than plenty.
+	std::set<std::pair<uint8_t, uint8_t>> visited;
 	while(true) {
+		// Don't be fooled by disks that are encoded with a looping directory.
+		const auto key = std::make_pair(next_track, next_sector);
+		if(visited.find(key) != visited.end()) break;
+		visited.insert(key);
+
+		// Append sector to directory and follow next link.
 		const auto sector = parser.sector(next_track, next_sector);
 		if(!sector) break;
 		directory.insert(directory.end(), sector->data.begin(), sector->data.end());
 		next_track = sector->data[0];
 		next_sector = sector->data[1];
 
+		// Check for end-of-directory.
 		if(!next_track) break;
 	}
 
