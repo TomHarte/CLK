@@ -26,7 +26,14 @@ public:
 		interrupts_(interrupts)
 	{
 		// TODO: perfect crop.
-		crt_.set_visible_area(Outputs::Display::Rect(0.075f, 0.065f, 0.85f, 0.85f));
+//		crt_.set_visible_area(Outputs::Display::Rect(0.075f - 0.00877193f, 0.065f, 0.85f, 0.85f));
+		crt_.set_visible_area(crt_.get_rect_for_area(
+			311 - 257 - 4,
+			208 + 8,
+			Begin40Columns - BeginSync - 8,
+			End40Columns + EndOfLine - Begin40Columns + 16,
+			4.0f / 3.0f
+		));
 	}
 
 	template <uint16_t address>
