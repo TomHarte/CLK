@@ -114,7 +114,7 @@ public:
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
-		video_(map_, interrupts_)
+		video_(video_map_, interrupts_)
 	{
 		set_clock_rate(PALclock);
 
@@ -132,7 +132,9 @@ public:
 
 		Memory::Fuzz(ram_);
 		map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
-		page_rom();
+		page_cpu_rom();
+
+		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 
 		insert_media(target.media);
 	}
@@ -255,6 +257,12 @@ public:
 					case 0xff12:
 						ff12_ = *value & 0x3f;
 						video_.write<0xff12>(*value);
+
+						if((*value & 4)) {
+							page_video_rom();
+						} else {
+							page_video_ram();
+						}
 					break;
 					case 0xff13:
 						ff13_ = *value & 0xfe;
@@ -270,8 +278,8 @@ public:
 					case 0xff18:	video_.write<0xff18>(*value);	break;
 					case 0xff19:	video_.write<0xff19>(*value);	break;
 
-					case 0xff3e:	page_rom();						break;
-					case 0xff3f:	page_ram();						break;
+					case 0xff3e:	page_cpu_rom();					break;
+					case 0xff3f:	page_cpu_ram();					break;
 
 					// TODO: audio is 0xff10, 0xff11, 0xff0e, 0xff0f and shares 0xff18.
 
@@ -294,13 +302,21 @@ private:
 		m6502_.set_ready_line(active);
 	}
 
-	void page_rom() {
+	void page_video_rom() {
+		video_map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
+		video_map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
+	}
+	void page_video_ram() {
+		video_map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
+	}
+
+	void page_cpu_rom() {
 		// TODO: allow other ROM selection. And no ROM?
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
 		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
 		rom_is_paged_ = true;
 	}
-	void page_ram() {
+	void page_cpu_ram() {
 		map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
 		rom_is_paged_ = false;
 	}
@@ -323,6 +339,7 @@ private:
 	}
 
 	Commodore::Plus4::Pager map_;
+	Commodore::Plus4::Pager video_map_;
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;

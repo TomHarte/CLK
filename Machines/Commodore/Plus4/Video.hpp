@@ -25,8 +25,6 @@ public:
 		pager_(pager),
 		interrupts_(interrupts)
 	{
-		// TODO: perfect crop.
-//		crt_.set_visible_area(Outputs::Display::Rect(0.075f - 0.00877193f, 0.065f, 0.85f, 0.85f));
 		crt_.set_visible_area(crt_.get_rect_for_area(
 			311 - 257 - 4,
 			208 + 8,
@@ -87,7 +85,7 @@ public:
 			break;
 
 			case 0xff12:
-//				bitmap_base_ = uint16_t((value & 0x3c) << 10);
+				bitmap_base_ = uint16_t((value & 0x3c) << 10);
 			break;
 			case 0xff13:
 				character_generator_address_ = uint16_t((value & 0xfc) << 8);
@@ -175,6 +173,7 @@ public:
 			//
 			const auto attribute_fetch_start = [&] {
 				character_address_ = 0;
+				fetch_phase_ = FetchPhase::Waiting;
 			};
 			switch(vertical_counter_) {
 				case 261:	// End of screen NTSC. [and hence 0: Attribute fetch start].
@@ -239,19 +238,39 @@ public:
 				fetch_count_ += period;
 
 				auto &line = lines_[line_pointer_];
-//		uint8_t attributes[40];
-//		uint8_t characters[40];
-//	} lines_[2];
-//	int line_pointer_ = 0;
-
 				for(int x = start; x < end; x++) {
-//					line.attributes[x] = pager_.read(character_generator_address_ + x * 8 + (row & 7));
-//					line.characters[x] = pager_.read(uint16_t(line_character_address_ + x + screen_memory_address_ + 0x400));
+					const auto offset = (line.characters[x] << 3) + (character_line_ & 7);
+					bitmap_[x] = pager_.read(uint16_t(
+						character_generator_address_ +
+						offset
+					));
 				}
 
-//				switch(fetch_phase_) {
-//					case FetchPh
-//				}
+				switch(fetch_phase_) {
+					default: break;
+					case FetchPhase::FetchingCharacters: {
+						auto &character_line = lines_[line_pointer_ ^ 1];
+						for(int x = start; x < end; x++) {
+							character_line.characters[x] = pager_.read(
+								screen_memory_address_ + 0x400 +
+								uint16_t(character_address_ + x)
+							);
+
+							// TEST of cursor position.
+							if(character_address_ + x == cursor_address_) {
+								character_line.characters[x] = ']';
+							}
+						}
+					} break;
+					case FetchPhase::FetchingAttributes:
+						for(int x = start; x < end; x++) {
+							line.attributes[x] = pager_.read(
+								screen_memory_address_ +
+								uint16_t(character_address_ + x)
+							);
+						}
+					break;
+				}
 			}
 
 
@@ -284,16 +303,11 @@ public:
 			}
 
 			// Output pixels.
-			// TODO: properly. THIS HACKS IN TEXT OUTPUT. IT IS NOT CORRECT. NOT AS TO TIMING, NOT AS TO CONTENT.
+			// TODO: properly. Accounting for mode, attributes, etc.
 			if(pixels_) {
 				for(int c = 0; c < period; c++) {
 					const auto pixel = time_in_state_ + c;
-					const auto row = vertical_counter_ - 4;
-
-					const auto index = (row >> 3) * 40 + (pixel >> 3);
-					const uint8_t character = pager_.read(uint16_t(index + screen_memory_address_ + 0x400));
-					const uint8_t glyph = pager_.read(character_generator_address_ + character * 8 + (row & 7));
-
+					const uint8_t glyph = bitmap_[pixel >> 3];
 					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ? 0xff00 : 0xffff;
 				}
 				pixels_ += period;
@@ -314,21 +328,24 @@ public:
 
 				case BeginExternalFetchWindow:
 					external_fetch_ = true;
+					++character_line_;
+
+					// At this point fetch_phase_ is whichever phase is **ending**.
 					switch(fetch_phase_) {
 						case FetchPhase::Waiting:
-							++character_line_;
-
 							// TODO: the < 200 is obviously phoney baloney. Figure out what the actual condition is here.
-							if(vertical_counter_ < 200 && (vertical_counter_&7) == y_scroll_ && vertical_window_) {
+							if(vertical_counter_ < 200 && (vertical_counter_&7) == y_scroll_) {
 								fetch_phase_ = FetchPhase::FetchingCharacters;
 							}
 						break;
 						case FetchPhase::FetchingCharacters:
 							fetch_phase_ = FetchPhase::FetchingAttributes;
 							character_line_ = 0;
+							line_pointer_ ^= 1;
 						break;
 						case FetchPhase::FetchingAttributes:
 							fetch_phase_ = FetchPhase::Waiting;
+							character_address_ += 40;
 						break;
 					}
 					interrupts_.bus().set_ready_line(fetch_phase_ != FetchPhase::Waiting);
@@ -337,7 +354,6 @@ public:
 				break;
 
 				case LatchCharacterPosition:
-					line_character_address_ = character_address_;
 				break;
 
 				case EndCharacterFetchWindow:
@@ -426,6 +442,7 @@ private:
 	uint16_t character_row_address_ = 0;
 	uint16_t character_generator_address_ = 0;
 	uint16_t screen_memory_address_ = 0;
+	uint16_t bitmap_base_ = 0;
 
 	int raster_interrupt_ = 0x1ff;
 
@@ -443,7 +460,6 @@ private:
 	uint8_t ff06_;
 
 	uint16_t character_address_ = 0;
-	uint16_t line_character_address_ = 0;
 	bool fetch_characters_ = false;
 	bool external_fetch_ = false;
 	bool output_pixels_ = false;
