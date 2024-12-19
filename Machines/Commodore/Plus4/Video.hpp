@@ -107,16 +107,10 @@ public:
 			case 0xff1a:	load_high10(character_row_address_);	break;
 			case 0xff1b:	load_low8(character_row_address_);		break;
 
-			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19: {
+			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				raw_background_[size_t(address - 0xff15)] = value;
-
-				const uint8_t luminance = (value & 0x0f) ? uint8_t(
-					((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
-				) : 0;
-				background_[size_t(address - 0xff15)] = uint16_t(
-					luminance | (chrominances[value & 0x0f] << 8)
-				);
-			} break;
+				background_[size_t(address - 0xff15)] = colour(value);
+			break;
 		}
 	}
 
@@ -257,7 +251,7 @@ public:
 							);
 
 							// TEST of cursor position.
-							if(character_address_ + x == cursor_address_) {
+							if(character_address_ + x == cursor_address_ && (blink_ & 32)) {
 								character_line.characters[x] = ']';
 							}
 						}
@@ -308,7 +302,9 @@ public:
 				for(int c = 0; c < period; c++) {
 					const auto pixel = time_in_state_ + c;
 					const uint8_t glyph = bitmap_[pixel >> 3];
-					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ? 0xff00 : 0xffff;
+					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ?
+						colour(lines_[line_pointer_].attributes[pixel >> 3]) :
+						background_[0];
 				}
 				pixels_ += period;
 			}
@@ -376,6 +372,7 @@ public:
 				break;
 
 				case IncrementBlink:
+					blink_ += vertical_counter_ == 0;
 				break;
 
 				case IncrementVerticalLine:
@@ -457,7 +454,8 @@ private:
 	bool horizontal_blank_ = false;
 	bool horizontal_sync_ = false;
 	bool horizontal_burst_ = false;
-	uint8_t ff06_;
+	uint8_t ff06_ = 0;
+	int blink_ = 0;
 
 	uint16_t character_address_ = 0;
 	bool fetch_characters_ = false;
@@ -465,7 +463,7 @@ private:
 	bool output_pixels_ = false;
 	bool refresh_ = false;
 	bool single_clock_ = false;
-	uint8_t ff07_;
+	uint8_t ff07_ = 0;
 
 	enum class OutputState {
 		Blank,
@@ -483,14 +481,23 @@ private:
 	const Commodore::Plus4::Pager &pager_;
 	Interrupts &interrupts_;
 
-	// The following aren't accurate; they're eyeballed to be close enough for now in PAL.
-	static constexpr uint8_t chrominances[] = {
-		0xff,	0xff,
-		90,		23,		105,	59,
-		14,		69,		83,		78,
-		50,		96,		32,		9,
-		5,		41,
-	};
+	uint16_t colour(uint8_t value) const {
+		// The following aren't accurate; they're eyeballed to be close enough for now in PAL.
+		static constexpr uint8_t chrominances[] = {
+			0xff,	0xff,
+			90,		23,		105,	59,
+			14,		69,		83,		78,
+			50,		96,		32,		9,
+			5,		41,
+		};
+
+		const uint8_t luminance = (value & 0x0f) ? uint8_t(
+			((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
+		) : 0;
+		return uint16_t(
+			luminance | (chrominances[value & 0x0f] << 8)
+		);
+	}
 
 	enum class FetchPhase {
 		Waiting,
