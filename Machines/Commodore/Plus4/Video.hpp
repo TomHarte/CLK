@@ -295,11 +295,11 @@ public:
 			// Output pixels.
 			// TODO: properly. Accounting for mode, attributes, etc.
 			if(pixels_) {
+				const auto first_pixel = ((horizontal_counter_ + EndOfLine - Begin40Columns) - x_scroll_) % EndOfLine;
 				for(int c = 0; c < period; c++) {
-					const auto pixel = time_in_state_ + c;
+					const auto pixel = first_pixel + c;
 					const auto column = pixel >> 3;
 					const uint8_t glyph = bitmap_[column] ^ lines_[line_pointer_].attributes[column].cursor_mask;
-
 					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ?
 						lines_[line_pointer_].attributes[pixel >> 3].colour :
 						background_[0];
