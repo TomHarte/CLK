@@ -249,19 +249,15 @@ public:
 								screen_memory_address_ + 0x400 +
 								uint16_t(character_address_ + x)
 							);
-
-							// TEST of cursor position.
-							if(character_address_ + x == cursor_address_ && (blink_ & 32)) {
-								character_line.characters[x] = ']';
-							}
 						}
 					} break;
 					case FetchPhase::FetchingAttributes:
 						for(int x = start; x < end; x++) {
-							line.attributes[x] = pager_.read(
+							line.attributes[x].colour = colour(pager_.read(
 								screen_memory_address_ +
 								uint16_t(character_address_ + x)
-							);
+							));
+							line.attributes[x].cursor_mask = character_address_ + x == cursor_address_ && (blink_ & 32) ? 0xff : 0x00;
 						}
 					break;
 				}
@@ -301,9 +297,11 @@ public:
 			if(pixels_) {
 				for(int c = 0; c < period; c++) {
 					const auto pixel = time_in_state_ + c;
-					const uint8_t glyph = bitmap_[pixel >> 3];
+					const auto column = pixel >> 3;
+					const uint8_t glyph = bitmap_[column] ^ lines_[line_pointer_].attributes[column].cursor_mask;
+
 					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ?
-						colour(lines_[line_pointer_].attributes[pixel >> 3]) :
+						lines_[line_pointer_].attributes[pixel >> 3].colour :
 						background_[0];
 				}
 				pixels_ += period;
@@ -508,7 +506,10 @@ private:
 	int fetch_count_ = 0;
 
 	struct LineBuffer {
-		uint8_t attributes[40];
+		struct Attribute {
+			uint16_t colour;
+			uint8_t cursor_mask;
+		} attributes[40];
 		uint8_t characters[40];
 	} lines_[2];
 	uint8_t bitmap_[40];
