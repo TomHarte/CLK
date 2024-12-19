@@ -390,6 +390,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[encoder endEncoding];
+	encoder = nil;
 	[commandBuffer commit];
 
 	return commandBuffer;
@@ -885,6 +886,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Complete encoding.
 	[encoder endEncoding];
+	encoder = nil;
 }
 
 - (void)outputFrameCleanerToCommandBuffer:(id<MTLCommandBuffer>)commandBuffer {
@@ -901,11 +903,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[encoder endEncoding];
+	encoder = nil;
 }
 
 - (void)composeOutputArea:(const BufferingScanTarget::OutputArea &)outputArea commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
 	// Output all scans to the composition buffer.
-	const id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
 	[encoder setRenderPipelineState:_composePipeline];
 
 	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
@@ -919,6 +922,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
 #undef OutputScans
 	[encoder endEncoding];
+	encoder = nil;
 }
 
 - (id<MTLBuffer>)bufferForOffset:(size_t)offset {
@@ -1141,6 +1145,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[encoder endEncoding];
+	encoder = nil;
 
 	[commandBuffer presentDrawable:view.currentDrawable];
 	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {

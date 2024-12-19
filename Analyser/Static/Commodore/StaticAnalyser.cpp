@@ -108,7 +108,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 	while(true) {
 		// Analysis has failed if there isn't at least one complete BASIC line from here.
 		// Fall back on guessing the start address as a machine code entrypoint.
-		if(size_t(line_address - file.starting_address) + 5 >= file.data.size()) {
+		if(size_t(line_address - file.starting_address) + 5 >= file.data.size() || line_address < file.starting_address) {
 			analysis.machine_code_addresses.push_back(file.starting_address);
 			break;
 		}
