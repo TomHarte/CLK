@@ -98,9 +98,6 @@ private:
 	Interrupts &interrupts_;
 };
 
-static constexpr auto NTSCclock = 14'318'180;	// i.e. colour subcarrier * 4.
-static constexpr auto PALclock = 17'734'448;	// i.e. very close to colour subcarrier * 4 — only about 0.1% off.
-
 class ConcreteMachine:
 	public BusController,
 	public CPU::MOS6502::BusHandler,
@@ -116,7 +113,7 @@ public:
 		timers_(interrupts_),
 		video_(video_map_, interrupts_)
 	{
-		set_clock_rate(PALclock);
+		set_clock_rate(clock_rate(false));
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;

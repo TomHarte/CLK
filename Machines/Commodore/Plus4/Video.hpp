@@ -18,6 +18,12 @@
 
 namespace Commodore::Plus4 {
 
+constexpr double clock_rate(bool is_ntsc) {
+	return is_ntsc ?
+				14'318'180 :	// i.e. colour subcarrier * 4.
+				17'734'448;		// i.e. very close to colour subcarrier * 4 — only about 0.1% off.
+}
+
 struct Video {
 public:
 	Video(const Commodore::Plus4::Pager &pager, Interrupts &interrupts) :
@@ -253,10 +259,10 @@ public:
 					} break;
 					case FetchPhase::FetchingAttributes:
 						for(int x = start; x < end; x++) {
-							line.attributes[x].colour = colour(pager_.read(
+							line.attributes[x].colour = pager_.read(
 								screen_memory_address_ +
 								uint16_t(character_address_ + x)
-							));
+							);
 							line.attributes[x].cursor_mask = character_address_ + x == cursor_address_ && (blink_ & 32) ? 0xff : 0x00;
 						}
 					break;
@@ -296,12 +302,13 @@ public:
 			// TODO: properly. Accounting for mode, attributes, etc.
 			if(pixels_) {
 				const auto first_pixel = ((horizontal_counter_ + EndOfLine - Begin40Columns) - x_scroll_) % EndOfLine;
-				for(int c = 0; c < period; c++) {
-					const auto pixel = first_pixel + c;
+				const auto last_pixel = ((horizontal_counter_ + EndOfLine - Begin40Columns) - x_scroll_ + period) % EndOfLine;
+
+				for(int pixel = first_pixel; pixel < last_pixel; pixel++) {
 					const auto column = pixel >> 3;
 					const uint8_t glyph = bitmap_[column] ^ lines_[line_pointer_].attributes[column].cursor_mask;
-					pixels_[c] = glyph & (0x80 >> (pixel & 7)) ?
-						lines_[line_pointer_].attributes[pixel >> 3].colour :
+					pixels_[pixel] = glyph & (0x80 >> (pixel & 7)) ?
+						colour(lines_[line_pointer_].attributes[pixel >> 3].colour) :
 						background_[0];
 				}
 				pixels_ += period;
@@ -479,7 +486,7 @@ private:
 	const Commodore::Plus4::Pager &pager_;
 	Interrupts &interrupts_;
 
-	uint16_t colour(uint8_t value) const {
+	uint16_t colour(uint8_t chrominance, uint8_t luminance) const {
 		// The following aren't accurate; they're eyeballed to be close enough for now in PAL.
 		static constexpr uint8_t chrominances[] = {
 			0xff,	0xff,
@@ -489,12 +496,16 @@ private:
 			5,		41,
 		};
 
-		const uint8_t luminance = (value & 0x0f) ? uint8_t(
-			((value & 0x70) << 1) | ((value & 0x70) >> 2) | ((value & 0x70) >> 5)
+		luminance = chrominance ? uint8_t(
+			(luminance << 5) | (luminance << 2) | (luminance >> 1)
 		) : 0;
 		return uint16_t(
-			luminance | (chrominances[value & 0x0f] << 8)
+			luminance | (chrominances[chrominance] << 8)
 		);
+	}
+
+	uint16_t colour(uint8_t value) const {
+		return colour(value & 0x0f, (value >> 4) & 7);
 	}
 
 	enum class FetchPhase {
@@ -507,7 +518,7 @@ private:
 
 	struct LineBuffer {
 		struct Attribute {
-			uint16_t colour;
+			uint8_t colour;
 			uint8_t cursor_mask;
 		} attributes[40];
 		uint8_t characters[40];
