@@ -300,6 +300,9 @@ public:
 					waiting_attribute_ = current_attribute_;
 					current_attribute_ = next_attribute_;
 
+					waiting_cursor_ = current_cursor_;
+					current_cursor_ = next_cursor_;
+
 					tprintf("s");
 				}
 				if(increment_video_counter_) {
@@ -311,6 +314,9 @@ public:
 					// delay. They'll probably need to come back either way once I observe x_scroll_.
 					next_attribute_ = shifter_.read<1>();
 					next_character_ = shifter_.read<0>();
+					next_cursor_ =
+						(!cursor_position_ && !character_position_) ||
+						((character_position_ == cursor_position_) && vertical_sub_active_);
 
 					shifter_.advance();
 					tprintf("+");
@@ -336,8 +342,10 @@ public:
 
 				if(state == OutputState::Pixels && pixels_) {
 					const auto pixel_address = waiting_character_;
-					const auto pixels =
-						pager_.read(uint16_t(character_base_ + (pixel_address * 8) + vertical_sub_count_));
+					const uint8_t flash_mask = waiting_cursor_ && (flash_count_ & 0x10) ? 0xff : 0x00;
+					const auto pixels = pager_.read(uint16_t(
+						character_base_ + (pixel_address << 3) + vertical_sub_count_
+					)) ^ flash_mask;
 
 					const auto attribute = waiting_attribute_;
 					const uint16_t colours[] = { background_[0], colour(attribute) };
@@ -668,6 +676,8 @@ private:
 	uint8_t current_attribute_, current_character_;
 	uint8_t waiting_attribute_, waiting_character_;
 	uint8_t pixel_attribute_, pixel_character_;
+
+	bool next_cursor_, current_cursor_, waiting_cursor_;
 
 	// List of counter-triggered events.
 	enum class HorizontalEvent: unsigned int {
