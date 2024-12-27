@@ -18,6 +18,14 @@
 
 namespace Commodore::Plus4 {
 
+namespace {
+
+void tprintf([[maybe_unused]] const char *str) {
+//	printf("%s", str);
+}
+
+}
+
 constexpr double clock_rate(bool is_ntsc) {
 	return is_ntsc ?
 				14'318'180 :	// i.e. colour subcarrier * 4.
@@ -34,8 +42,8 @@ public:
 		crt_.set_visible_area(crt_.get_rect_for_area(
 			311 - 257 - 4,
 			208 + 8,
-			Begin40Columns - BeginSync - 8,
-			End40Columns + EndOfLine - Begin40Columns + 16,
+			int(HorizontalEvent::Begin40Columns) - int(HorizontalEvent::BeginSync) + int(HorizontalEvent::ScheduleCounterReset) + 1 - 8,
+			int(HorizontalEvent::End40Columns) - int(HorizontalEvent::Begin40Columns) + 16,
 			4.0f / 3.0f
 		));
 	}
@@ -48,7 +56,7 @@ public:
 			case 0xff0b:	return uint8_t(raster_interrupt_);
 			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
 			case 0xff1d:	return uint8_t(vertical_counter_);
-			case 0xff14:	return uint8_t((screen_memory_address_ >> 8) & 0xf8);
+			case 0xff14:	return uint8_t((video_matrix_base_ >> 8) & 0xf8);
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				return raw_background_[size_t(address - 0xff15)];
@@ -94,11 +102,11 @@ public:
 				bitmap_base_ = uint16_t((value & 0x3c) << 10);
 			break;
 			case 0xff13:
-				character_generator_address_ = uint16_t((value & 0xfc) << 8);
+				character_base_ = uint16_t((value & 0xfc) << 8);
 				single_clock_ = value & 0x02;
 			break;
 			case 0xff14:
-				screen_memory_address_ = uint16_t((value & 0xf8) << 8);
+				video_matrix_base_ = uint16_t((value & 0xf8) << 8);
 			break;
 
 			case 0xff0a:
@@ -108,10 +116,10 @@ public:
 				raster_interrupt_ = (raster_interrupt_ & 0xff00) | value;
 			break;
 
-			case 0xff0c:	load_high10(cursor_address_);			break;
-			case 0xff0d:	load_low8(cursor_address_);				break;
-			case 0xff1a:	load_high10(character_row_address_);	break;
-			case 0xff1b:	load_low8(character_row_address_);		break;
+			case 0xff0c:	load_high10(cursor_position_);				break;
+			case 0xff0d:	load_low8(cursor_position_);				break;
+			case 0xff1a:	load_high10(character_position_reload_);	break;
+			case 0xff1b:	load_low8(character_position_reload_);		break;
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				raw_background_[size_t(address - 0xff15)] = value;
@@ -162,113 +170,65 @@ public:
 		//
 		// That gives close enough to 456 pixel clocks per line in both systems so the TED just rolls with that.
 
-		// See page 34 of plus4_tech.pdf for event times.
-
 		subcycles_ += cycles * 2;
 		auto ticks_remaining = subcycles_.divide(is_ntsc_ ? Cycles(4) : Cycles(5)).as<int>();
 		while(ticks_remaining) {
-			//
-			// Test vertical first; this will catch both any programmed change that has occurred outside
-			// of the loop and any change to the vertical counter that occurs during the horizontal runs.
-			//
-			const auto attribute_fetch_start = [&] {
-				character_address_ = 0;
-				fetch_phase_ = FetchPhase::Waiting;
-			};
-			switch(vertical_counter_) {
-				case 261:	// End of screen NTSC. [and hence 0: Attribute fetch start].
-					if(is_ntsc_) {
-						vertical_counter_ = 0;
-						attribute_fetch_start();
-					}
-				break;
-
-				case 311:	// End of screen PAL. [and hence 0: Attribute fetch start].
-					if(!is_ntsc_) {
-						vertical_counter_ = 0;
-						attribute_fetch_start();
-					}
-				break;
-
-				case 203:	// Attribute fetch end. But I think this might be fairly nominal, assuming attribute fetches
-							// are triggered by testing against y scroll.
-				break;
-
-				case 4:		if(rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (25 lines).
-				case 204:	if(rows_25_) vertical_window_ = false;	break;	// Vertical screen window stop (25 lines).
-				case 8:		if(!rows_25_) vertical_window_ = true;	break;	// Vertical screen window start (24 lines).
-				case 200:	if(!rows_25_) vertical_window_ = false;	break;	// Vertical screen window stop (24 lines).
-
-				case 226:	if(is_ntsc_) vertical_blank_ = true;	break;	// NTSC vertical blank start.
-				case 229:	if(is_ntsc_) vertical_sync_ = true;		break;	// NTSC vsync start.
-				case 232:	if(is_ntsc_) vertical_sync_ = false;	break;	// NTSC vsync end.
-				case 244:	if(is_ntsc_) vertical_blank_ = false;	break;	// NTSC vertical blank end.
-
-				case 251:	if(!is_ntsc_) vertical_blank_ = true;	break;	// PAL vertical blank start.
-				case 254:	if(!is_ntsc_) vertical_sync_ = true;	break;	// PAL vsync start.
-				case 257:	if(!is_ntsc_) vertical_sync_ = false;	break;	// PAL vsync end.
-				case 269:	if(!is_ntsc_) vertical_blank_ = false;	break;	// PAL vertical blank end.
-			}
+			// Test for raster interrupt.
 			if(raster_interrupt_ == vertical_counter_) {
-				interrupts_.apply(Interrupts::Flag::Raster);
+				if(!raster_interrupt_done_) {
+					raster_interrupt_done_ = true;
+					interrupts_.apply(Interrupts::Flag::Raster);
+				}
+			} else {
+				raster_interrupt_done_ = false;
 			}
 
+			//
+			// Compute time to run for in this step based upon:
+			//	(i) timer-linked events;
+			//	(ii) deferred events; and
+			//	(iii) ticks remaining.
+			//
 			const auto next = Numeric::upper_bound<
-				0,								Begin38Columns,
-				EndExternalFetchWindow,			LatchCharacterPosition,
-				EndCharacterFetchWindow,		EndVideoShiftRegister,
-				End38Columns,					End40Columns,
-				EndRefresh,						IncrementBlink,
-				BeginBlank,						BeginSync,
-				TestRasterInterrupt,			IncrementVerticalLine,
-				BeginBurst,						EndSync,
-				BeginExternalFetchWindow,		//EndBurst,
-				EndBlank,						IncrementCharacterPositionReload,
-				BeginCharacterFetchWindow,		BeginVideoShiftRegister,
-				Begin40Columns,					EndOfLine
+				int(HorizontalEvent::Begin40Columns),			int(HorizontalEvent::Begin38Columns),
+				int(HorizontalEvent::LatchCharacterPosition),	int(HorizontalEvent::DMAWindowEnd),
+				int(HorizontalEvent::EndExternalFetchWindow),	int(HorizontalEvent::EndCharacterFetchWindow),
+				int(HorizontalEvent::End38Columns),				int(HorizontalEvent::End40Columns),
+				int(HorizontalEvent::EndRefresh),				int(HorizontalEvent::IncrementFlashCounter),
+				int(HorizontalEvent::BeginBlank),				int(HorizontalEvent::BeginSync),
+				int(HorizontalEvent::VerticalSubActive),		int(HorizontalEvent::EndOfScreen),
+				int(HorizontalEvent::EndSync),					int(HorizontalEvent::IncrementVerticalSub),
+				int(HorizontalEvent::BeginExternalFetchClock),	int(HorizontalEvent::BeginAttributeFetch),
+				int(HorizontalEvent::EndBlank),					int(HorizontalEvent::IncrementVideoCounter),
+				int(HorizontalEvent::BeginShiftRegister),		int(HorizontalEvent::ScheduleCounterReset),
+				int(HorizontalEvent::CounterOverflow)
 			>(horizontal_counter_);
-			const auto period = std::min(next - horizontal_counter_, ticks_remaining);
-
-			//
-			// Fetch as appropriate.
-			//
-			if(fetch_characters_) {
-				const int start = fetch_count_ >> 3;
-				const int end = (fetch_count_ + period) >> 3;
-				fetch_count_ += period;
-
-				auto &line = lines_[line_pointer_];
-				for(int x = start; x < end; x++) {
-					const auto offset = (line.characters[x] << 3) + (character_line_ & 7);
-					bitmap_[x] = pager_.read(uint16_t(
-						character_generator_address_ +
-						offset
-					));
+			const auto period = [&] {
+				auto period = std::min(next - horizontal_counter_, ticks_remaining);
+				if(delayed_events_) {
+					period = std::min(period, __builtin_ctzll(delayed_events_) / DelayEventSize);
+					// TODO: switch to std::countr_zero upon adoption of C++20.
 				}
+				return period;
+			}();
 
-				switch(fetch_phase_) {
-					default: break;
-					case FetchPhase::FetchingCharacters: {
-						auto &character_line = lines_[line_pointer_ ^ 1];
-						for(int x = start; x < end; x++) {
-							character_line.characters[x] = pager_.read(
-								screen_memory_address_ + 0x400 +
-								uint16_t(character_address_ + x)
-							);
-						}
-					} break;
-					case FetchPhase::FetchingAttributes:
-						for(int x = start; x < end; x++) {
-							line.attributes[x].colour = pager_.read(
-								screen_memory_address_ +
-								uint16_t(character_address_ + x)
-							);
-							line.attributes[x].cursor_mask = character_address_ + x == cursor_address_ && (blink_ & 32) ? 0xff : 0x00;
-						}
-					break;
-				}
+			// Update vertical state.
+			if(rows_25_) {
+				if(video_line_ == 4) vertical_screen_ = true;
+				else if(video_line_ == 204) vertical_screen_ = false;
+			} else {
+				if(video_line_ == 8) vertical_screen_ = true;
+				else if(video_line_ == 200) vertical_screen_ = false;
 			}
 
+			character_fetch_ |= bad_line2_;
+			if(video_line_ == vblank_start()) vertical_blank_ = true;
+			else if(video_line_ == vblank_stop()) vertical_blank_ = false;
+			else if(video_line_ == 0 && display_enable_) enable_display_ = true;
+			else if(video_line_ == 204) {
+				enable_display_ = false;
+				character_fetch_ = false;
+			}
 
 			//
 			// Output.
@@ -277,12 +237,15 @@ public:
 			if(vertical_sync_ || horizontal_sync_) {
 				state = OutputState::Sync;
 			} else if(vertical_blank_ || horizontal_blank_) {
-				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
+//				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
+				state = OutputState::Blank;
 			} else {
-				state = vertical_window_ && output_pixels_ ? OutputState::Pixels : OutputState::Border;
+				const bool pixel_screen = columns_40_ ? wide_screen_ : narrow_screen_;
+				state = enable_display_ && pixel_screen ? OutputState::Pixels : OutputState::Border;
 			}
 
-			if(state != output_state_) {
+			static constexpr auto PixelAllocationSize = 320;
+			if(state != output_state_ || (state == OutputState::Pixels && time_in_state_ == PixelAllocationSize)) {
 				switch(output_state_) {
 					case OutputState::Blank:	crt_.output_blank(time_in_state_);								break;
 					case OutputState::Sync:		crt_.output_sync(time_in_state_);								break;
@@ -294,123 +257,244 @@ public:
 
 				output_state_ = state;
 				if(output_state_ == OutputState::Pixels) {
-					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(384, 2));
+					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelAllocationSize));
 				}
 			}
 
-			// Output pixels.
-			// TODO: properly. Accounting for mode, attributes, etc.
-			if(pixels_) {
-				const auto first_pixel = ((horizontal_counter_ + EndOfLine - Begin40Columns) - x_scroll_) % EndOfLine;
-				const auto last_pixel = ((horizontal_counter_ + EndOfLine - Begin40Columns) - x_scroll_ + period) % EndOfLine;
+			// Get count of 'single_cycle_end's in FPGATED parlance.
+			const int start_window = horizontal_counter_ >> 3;
+			const int end_window = (horizontal_counter_ + period) >> 3;
+			const int window_count = end_window - start_window;
 
-				for(int pixel = first_pixel; pixel < last_pixel; pixel++) {
-					const auto column = pixel >> 3;
-					const uint8_t glyph = bitmap_[column] ^ lines_[line_pointer_].attributes[column].cursor_mask;
-					pixels_[pixel] = glyph & (0x80 >> (pixel & 7)) ?
-						colour(lines_[line_pointer_].attributes[pixel >> 3].colour) :
-						background_[0];
+			// Advance DMA state machine.
+			for(int cycle = 0; cycle < window_count; cycle++) {
+				const auto is_active = [&] {	return dma_window_ && (bad_line2_ || bad_line());	};
+				switch(dma_state_) {
+					case DMAState::IDLE:
+						if(is_active()) {
+							dma_state_ = DMAState::THALT1;
+						}
+					break;
+					case DMAState::THALT1:
+					case DMAState::THALT2:
+					case DMAState::THALT3:
+						if(is_active()) {
+							dma_state_ = DMAState(int(dma_state_) + 1);
+						} else {
+							dma_state_ = DMAState::IDLE;
+						}
+					break;
+					case DMAState::TDMA:
+						if(!is_active()) {
+							dma_state_ = DMAState::IDLE;
+						}
+					break;
 				}
-				pixels_ += period;
+				if(increment_character_position_) {
+					++character_position_;
+				}
+				if(video_shift_) {
+					waiting_character_ = current_character_;
+					current_character_ = next_character_;
+
+					waiting_attribute_ = current_attribute_;
+					current_attribute_ = next_attribute_;
+
+					tprintf("s");
+				}
+				if(increment_video_counter_) {
+					++video_counter_;
+					shifter_.advance();
+					next_attribute_ = shifter_.read<1>();
+					next_character_ = shifter_.read<0>();
+					tprintf("+");
+				}
+
+				if(dma_state_ == DMAState::TDMA) {
+					const uint16_t address = video_matrix_base_ + video_counter_;
+					if(bad_line2_) {
+						shifter_.write<1>(pager_.read(address));
+						tprintf("c");
+					} else {
+						shifter_.write<0>(pager_.read(address + 0x400));
+						tprintf("a");
+					}
+				}
+
+				if(increment_character_position_ && character_fetch_) {
+					tprintf("p");
+				}
+				if(wide_screen_ || narrow_screen_) {
+					tprintf(".");
+				}
+
+				if(state == OutputState::Pixels && pixels_) {
+					const auto pixel_address = shifter_.read<0>();
+					const auto pixels =
+						pager_.read(uint16_t(character_base_ + (pixel_address * 8) + vertical_sub_count_));
+
+					const auto attribute = shifter_.read<1>();
+					const uint16_t colours[] = { background_[0], colour(attribute) };
+
+					pixels_[0] = (pixels & 0x80) ? colours[1] : colours[0];
+					pixels_[1] = (pixels & 0x40) ? colours[1] : colours[0];
+					pixels_[2] = (pixels & 0x20) ? colours[1] : colours[0];
+					pixels_[3] = (pixels & 0x10) ? colours[1] : colours[0];
+					pixels_[4] = (pixels & 0x08) ? colours[1] : colours[0];
+					pixels_[5] = (pixels & 0x04) ? colours[1] : colours[0];
+					pixels_[6] = (pixels & 0x02) ? colours[1] : colours[0];
+					pixels_[7] = (pixels & 0x01) ? colours[1] : colours[0];
+
+					pixels_ += 8;
+				}
+
+				tprintf("|");
 			}
 			time_in_state_ += period;
 
 			//
-			// Advance for current period.
+			// Advance for current period, then check for...
 			//
 			horizontal_counter_ += period;
-			ticks_remaining -= period;
-			switch(horizontal_counter_) {
-				case EndExternalFetchWindow:
-					// TODO: release RDY if it was held.
-					// TODO: increment character position end.
+
+			// ... deferred events, and...
+			if(delayed_events_) {
+				delayed_events_ >>= period * DelayEventSize;
+
+				if(delayed_events_ & uint64_t(DelayedEvent::Latch)) {
+					if(char_pos_latch_ && vertical_sub_active_) {
+						character_position_reload_ = character_position_;
+					}
+					char_pos_latch_ = vertical_sub_count_ == 6;
+					if(char_pos_latch_ && enable_display_) {
+						video_counter_reload_ = video_counter_;
+					}
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::Flash)) {
+					if(vertical_counter_ == 205) {
+						++flash_count_;
+					}
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::IncrementVerticalLine)) {
+					vertical_counter_ = next_vertical_counter_;
+					bad_line2_ = bad_line();
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::IncrementVerticalSub)) {
+					if(!video_line_) {
+						vertical_sub_count_ = 7;	// TODO: should be between cycle 0xc8 and 0xca?
+					} else if(display_enable_ && vertical_sub_active_) {
+						vertical_sub_count_ = (vertical_sub_count_ + 1) & 7;
+					}
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::CounterReset)) {
+					horizontal_counter_ = 0;
+				}
+
+				delayed_events_ &= ~uint64_t(DelayedEvent::Mask);
+			}
+
+			// ... timer-linked events.
+			switch(HorizontalEvent(horizontal_counter_)) {
+				case HorizontalEvent::CounterOverflow:
+					horizontal_counter_ = 0;
+					[[fallthrough]];
+				case HorizontalEvent::Begin40Columns:
+					if(vertical_screen_ && enable_display_) wide_screen_ = true;
+				break;
+				case HorizontalEvent::End40Columns:
+					if(vertical_screen_ && enable_display_) wide_screen_ = false;
+				break;
+				case HorizontalEvent::Begin38Columns:
+					if(vertical_screen_ && enable_display_) narrow_screen_ = true;
+				break;
+				case HorizontalEvent::End38Columns:
+					if(vertical_screen_ && enable_display_) narrow_screen_ = false;
+					video_shift_ = false;
+				break;
+				case HorizontalEvent::DMAWindowEnd:				dma_window_ = false;		break;
+				case HorizontalEvent::EndRefresh:				refresh_ = false;			break;
+				case HorizontalEvent::EndCharacterFetchWindow:	character_window_ = false;	break;
+				case HorizontalEvent::BeginBlank:				horizontal_blank_ = true;	break;
+				case HorizontalEvent::BeginSync:				horizontal_sync_ = true;	break;
+				case HorizontalEvent::EndSync:					horizontal_sync_ = false;	break;
+
+				case HorizontalEvent::LatchCharacterPosition:	schedule<8>(DelayedEvent::Latch);			break;
+				case HorizontalEvent::IncrementFlashCounter:	schedule<4>(DelayedEvent::Flash);			break;
+				case HorizontalEvent::EndOfScreen:
+					schedule<8>(DelayedEvent::IncrementVerticalLine);
+					next_vertical_counter_ = video_line_ == eos() ? 0 : ((vertical_counter_ + 1) & 511);
+				break;
+
+				case HorizontalEvent::EndExternalFetchWindow:
+					external_fetch_ = false;
+					increment_character_position_ = false;
+					if(enable_display_) increment_video_counter_ = false;
 					refresh_ = true;
 				break;
 
-				case BeginExternalFetchWindow:
+				case HorizontalEvent::VerticalSubActive:
+					if(bad_line()) {
+						vertical_sub_active_ = true;
+					} else if(!enable_display_) {
+						vertical_sub_active_ = false;
+					}
+				break;
+
+				case HorizontalEvent::IncrementVerticalSub:
+					schedule<8>(DelayedEvent::IncrementVerticalSub);
+					video_line_ = vertical_counter_;
+					character_position_ = 0;
+
+					if(video_line_ == eos()) {
+						character_position_reload_ = 0;
+						video_counter_reload_ = 0;
+					}
+				break;
+
+				case HorizontalEvent::ScheduleCounterReset:
+					schedule<1>(DelayedEvent::CounterReset);
+				break;
+
+				case HorizontalEvent::BeginExternalFetchClock:
 					external_fetch_ = true;
-					++character_line_;
 
-					// At this point fetch_phase_ is whichever phase is **ending**.
-					switch(fetch_phase_) {
-						case FetchPhase::Waiting:
-							// TODO: the < 200 is obviously phoney baloney. Figure out what the actual condition is here.
-							if(vertical_counter_ < 200 && (vertical_counter_&7) == y_scroll_) {
-								fetch_phase_ = FetchPhase::FetchingCharacters;
-							}
-						break;
-						case FetchPhase::FetchingCharacters:
-							fetch_phase_ = FetchPhase::FetchingAttributes;
-							character_line_ = 0;
-							line_pointer_ ^= 1;
-						break;
-						case FetchPhase::FetchingAttributes:
-							fetch_phase_ = FetchPhase::Waiting;
-							character_address_ += 40;
-						break;
-					}
-					interrupts_.bus().set_ready_line(fetch_phase_ != FetchPhase::Waiting);
-
-					horizontal_burst_ = false;
-				break;
-
-				case LatchCharacterPosition:
-				break;
-
-				case EndCharacterFetchWindow:
-					fetch_characters_ = false;
-					external_fetch_ = false;
-					interrupts_.bus().set_ready_line(false);
-				break;
-				case BeginCharacterFetchWindow:
-					fetch_characters_ = true;
-					fetch_count_ = 0;
-				break;
-
-				case Begin38Columns:	if(!columns_40_) output_pixels_ = true;		break;
-				case End38Columns:		if(!columns_40_) output_pixels_ = false;	break;
-				case Begin40Columns:	if(columns_40_) output_pixels_ = true;		break;
-				case End40Columns:		if(columns_40_) output_pixels_ = false;		break;
-
-				case EndRefresh:
-					refresh_ = false;
-				break;
-
-				case IncrementBlink:
-					blink_ += vertical_counter_ == 0;
-				break;
-
-				case IncrementVerticalLine:
-					vertical_counter_ = (vertical_counter_ + 1) & 0x1ff;
-				break;
-
-				case BeginBurst:
-					horizontal_burst_ = true;
-					// TODO: rest.
-				break;
-
-				case BeginBlank:	horizontal_blank_ = true;	break;
-				case BeginSync:		horizontal_sync_ = true;	break;
-				case EndSync:		horizontal_sync_ = false;	break;
-//				case EndBurst:		horizontal_burst_ = false;	break;
-				case EndBlank:		horizontal_blank_ = false;	break;
-
-				case TestRasterInterrupt:
-					if(raster_interrupt_ == vertical_counter_) {
-						interrupts_.apply(Interrupts::Flag::Raster);
+					if(video_line_ == vs_start()) {
+						vertical_sync_ = true;
+					} else if(video_line_ == vs_stop()) {
+						vertical_sync_ = false;
 					}
 				break;
 
-				case IncrementCharacterPositionReload:
+				case HorizontalEvent::BeginAttributeFetch:
+					dma_window_ = true;
 				break;
 
-				case BeginVideoShiftRegister:
+				case HorizontalEvent::EndBlank:
+					horizontal_blank_ = false;
 				break;
 
-				case EndOfLine:
-					horizontal_counter_ = 0;
+				case HorizontalEvent::IncrementVideoCounter:
+					increment_character_position_ = true;
+					if(enable_display_) increment_video_counter_ = true;
+
+					if(enable_display_ && vertical_sub_active_) {
+						character_position_ = character_position_reload_;
+					}
+					video_counter_ = video_counter_reload_;
+				break;
+
+				case HorizontalEvent::BeginShiftRegister:
+					character_window_ = video_shift_ = enable_display_;
+					next_pixels_ = 0;
 				break;
 			}
+
+			ticks_remaining -= period;
+			if(!horizontal_counter_) tprintf("\n");
 		}
 	}
 
@@ -440,35 +524,79 @@ private:
 	bool columns_40_ = false;
 	int x_scroll_ = 0;
 
-	uint16_t cursor_address_ = 0;
-	uint16_t character_row_address_ = 0;
-	uint16_t character_generator_address_ = 0;
-	uint16_t screen_memory_address_ = 0;
+	uint16_t cursor_position_ = 0;
+	uint16_t character_base_ = 0;
+	uint16_t video_matrix_base_ = 0;
 	uint16_t bitmap_base_ = 0;
 
 	int raster_interrupt_ = 0x1ff;
+	bool raster_interrupt_done_ = false;
+	bool single_clock_ = false;
+
+	// FF06 and FF07 are easier to return if read by just keeping undecoded copies of, not reconstituting.
+	uint8_t ff06_ = 0;
+	uint8_t ff07_ = 0;
 
 	// Field position.
 	int horizontal_counter_ = 0;
+
 	int vertical_counter_ = 0;
+	int next_vertical_counter_ = 0;
+	int video_line_ = 0;
+
+	int eos() const {			return is_ntsc_ ? 261 : 311;	}
+	int vs_start() const {		return is_ntsc_ ? 229 : 254;	}
+	int vs_stop() const {		return is_ntsc_ ? 232 : 257;	}
+	int vblank_start() const {	return is_ntsc_ ? 226 : 251;	}
+	int vblank_stop() const {	return is_ntsc_ ? 244 : 269;	}
+
+	bool attribute_fetch_line() const {
+		return video_line_ >= 0 && video_line_ < 203;
+	}
+	bool bad_line() const {
+		return enable_display_ && attribute_fetch_line() && ((video_line_ & 7) == y_scroll_);
+	}
+
+	// Running state that's exposed.
+	uint16_t character_position_reload_ = 0;
+	uint16_t character_position_ = 0;			// Actually kept as fixed point in this implementation, i.e. effectively
+												// a pixel count.
 
 	// Running state.
-	bool vertical_blank_ = false;
-	bool vertical_sync_ = false;
-	bool vertical_window_ = false;
+	bool wide_screen_ = false;
+	bool narrow_screen_ = false;
+
+	int vertical_sub_count_ = 0;
+
+	bool char_pos_latch_ = false;
+
+	bool increment_character_position_ = false;
+	bool increment_video_counter_ = false;
+	bool refresh_ = false;
+	bool character_window_ = false;
 	bool horizontal_blank_ = false;
 	bool horizontal_sync_ = false;
-	bool horizontal_burst_ = false;
-	uint8_t ff06_ = 0;
-	int blink_ = 0;
+	bool enable_display_ = false;
+	bool vertical_sub_active_ = false;	// Indicates the the 3-bit row counter is active.
+	bool video_shift_ = false;			// Indicates that the shift register is shifting.
 
-	uint16_t character_address_ = 0;
-	bool fetch_characters_ = false;
-	bool external_fetch_ = false;
-	bool output_pixels_ = false;
-	bool refresh_ = false;
-	bool single_clock_ = false;
-	uint8_t ff07_ = 0;
+	bool dma_window_ = false;			// Indicates when RDY might be asserted.
+	bool external_fetch_ = false;		// Covers the entire region during which the CPU is slowed down
+										// to single-clock speed to allow for CPU-interleaved fetches.
+	bool bad_line2_ = false;			// High for the second (i.e. character-fetch) badline.
+										// Cf. bad_line() which indicates the first (i.e. attribute-fetch) badline.
+	bool character_fetch_ = false;		// High for the entire region of a frame during which characters might be
+										// fetched, i.e. from the first bad_line2_ until the end of the visible area.
+
+	bool vertical_sync_ = false;
+	bool vertical_screen_ = false;
+	bool vertical_blank_ = false;
+
+	int flash_count_ = 0;
+
+	uint16_t video_counter_ = 0;
+	uint16_t video_counter_reload_ = 0;
+	uint16_t next_pixels_ = 0;
 
 	enum class OutputState {
 		Blank,
@@ -508,50 +636,85 @@ private:
 		return colour(value & 0x0f, (value >> 4) & 7);
 	}
 
-	enum class FetchPhase {
-		Waiting,
-		FetchingCharacters,
-		FetchingAttributes,
-	} fetch_phase_ = FetchPhase::Waiting;
-	int character_line_ = 0;
-	int fetch_count_ = 0;
+	/// Maintains two 320-bit shift registers, one for attributes and one for characters.
+	/// Values come out of here and go through another 16-bit shift register before eventually reaching the display.
+	struct ShiftLine {
+	public:
+		template<int channel>
+		uint8_t read() const {
+			return data_[channel][cursor_];
+		}
+		template<int channel>
+		void write(uint8_t value) {
+			data_[channel][(cursor_ + 1) % 40] = value;
+		}
+		void advance() {
+			++cursor_;
+			if(cursor_ == 40) cursor_ = 0;
+		}
 
-	struct LineBuffer {
-		struct Attribute {
-			uint8_t colour;
-			uint8_t cursor_mask;
-		} attributes[40];
-		uint8_t characters[40];
-	} lines_[2];
-	uint8_t bitmap_[40];
-	int line_pointer_ = 0;
-
-	// List of events.
-	enum HorizontalEvent {
-		Begin38Columns = 3,
-		EndExternalFetchWindow = 288,
-		LatchCharacterPosition = 290,
-		EndCharacterFetchWindow = 300,	// 296
-		EndVideoShiftRegister = 304,
-		End38Columns = 307,
-		End40Columns = 315,
-		EndRefresh = 328,
-		IncrementBlink = 336,
-		BeginBlank = 344,
-		BeginSync = 358,
-		TestRasterInterrupt = 368,
-		IncrementVerticalLine = 376,
-		BeginBurst = 384,
-		EndSync = 390,
-		BeginExternalFetchWindow = 408, // 400,
-//		EndBurst = 408,
-		EndBlank = 416,
-		IncrementCharacterPositionReload = 424,
-		BeginCharacterFetchWindow = 436, // 432,
-		BeginVideoShiftRegister = 440,
-		Begin40Columns = 451,
-		EndOfLine = 456,
+	private:
+		uint8_t data_[2][40];
+		int cursor_ = 0;
 	};
+	ShiftLine shifter_;
+	uint8_t next_attribute_, next_character_;
+	uint8_t current_attribute_, current_character_;
+	uint8_t waiting_attribute_, waiting_character_;
+
+	// List of counter-triggered events.
+	enum class HorizontalEvent: unsigned int {
+		Begin40Columns = 0,
+		Begin38Columns = 8,
+		LatchCharacterPosition = 288,
+		DMAWindowEnd = 295,
+		EndExternalFetchWindow = 296,
+		EndCharacterFetchWindow = 304,
+		End38Columns = 312,
+		End40Columns = 320,
+		EndRefresh = 336,
+		IncrementFlashCounter = 348,
+		BeginBlank = 353,
+		BeginSync = 359,
+		VerticalSubActive = 380,
+		EndOfScreen = 384,
+		EndSync = 391,
+		IncrementVerticalSub = 392,
+		BeginExternalFetchClock = 400,
+		BeginAttributeFetch = 407,
+		EndBlank = 423,
+		IncrementVideoCounter = 432,
+		BeginShiftRegister = 440,
+		ScheduleCounterReset = 455,
+		CounterOverflow = 512,
+	};
+
+	// List of events that occur at a certain latency.
+	enum class DelayedEvent {
+		Latch = 0x01,
+		Flash = 0x02,
+		IncrementVerticalSub = 0x04,
+		IncrementVerticalLine = 0x08,
+		CounterReset = 0x10,
+		UpdateDMAState = 0x20,
+
+		Mask = CounterReset | IncrementVerticalLine | IncrementVerticalSub | Flash | Latch,
+	};
+	static constexpr int DelayEventSize = 6;
+	uint64_t delayed_events_ = 0;
+
+	/// Scheudles @c event to occur after @c latency pixel-clock cycles.
+	template <int latency>
+	void schedule(DelayedEvent event) {
+		static_assert(latency <= sizeof(delayed_events_) * 8 / DelayEventSize);
+		delayed_events_ |= uint64_t(event) << (DelayEventSize * latency);
+	}
+
+	// DMA states.
+	enum class DMAState {
+		IDLE,
+		THALT1, THALT2, THALT3, TDMA,
+	} dma_state_ = DMAState::IDLE;
 };
 
 }
