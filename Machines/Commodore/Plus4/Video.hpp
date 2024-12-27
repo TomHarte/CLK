@@ -18,14 +18,6 @@
 
 namespace Commodore::Plus4 {
 
-namespace {
-
-void tprintf([[maybe_unused]] const char *str) {
-//	printf("%s", str);
-}
-
-}
-
 constexpr double clock_rate(bool is_ntsc) {
 	return is_ntsc ?
 				14'318'180 :	// i.e. colour subcarrier * 4.
@@ -289,64 +281,53 @@ public:
 						}
 					break;
 				}
-				if(increment_character_position_) {
-					++character_position_;
-				}
 				if(video_shift_) {
-					waiting_character_ = current_character_;
-					current_character_ = next_character_;
-
-					waiting_attribute_ = current_attribute_;
-					current_attribute_ = next_attribute_;
-
-					waiting_cursor_ = current_cursor_;
-					current_cursor_ = next_cursor_;
-
-					tprintf("s");
+					next_attribute_.advance();
+					next_character_.advance();
+					next_cursor_.advance();
 				}
 				if(increment_video_counter_) {
-					++video_counter_;
-
 					// TODO: I've not fully persuaded myself yet that these shouldn't be the other side of the advance,
 					// subject to another latch in the pipeline. I need to figure out whether pixel[char/attr] are
 					// artefacts of the FPGA version not being able to dump 8 pixels simultaneously or act as extra
 					// delay. They'll probably need to come back either way once I observe x_scroll_.
-					next_attribute_ = shifter_.read<1>();
-					next_character_ = shifter_.read<0>();
-					next_cursor_ =
-						(!cursor_position_ && !character_position_) ||
-						((character_position_ == cursor_position_) && vertical_sub_active_);
+					//
+					// Current thinking: these should probably go afterwards, with an equivalent of pixelshiftreg
+					// adding further delay?
+					next_attribute_.write(shifter_.read<1>());
+					next_character_.write(shifter_.read<0>());
+					next_cursor_.write(
+						(flash_count_ & 0x10) &&
+						(
+							(!cursor_position_ && !character_position_) ||
+							((character_position_ == cursor_position_) && vertical_sub_active_)
+						)
+							? 0xff : 0x00
+					);
 
 					shifter_.advance();
-					tprintf("+");
+					++video_counter_;
+				}
+				if(increment_character_position_ && character_fetch_) {
+					++character_position_;
 				}
 
 				if(dma_state_ == DMAState::TDMA) {
 					const uint16_t address = video_matrix_base_ + video_counter_;
 					if(bad_line2_) {
 						shifter_.write<1>(pager_.read(address));
-						tprintf("c");
 					} else {
 						shifter_.write<0>(pager_.read(address + 0x400));
-						tprintf("a");
 					}
 				}
 
-				if(increment_character_position_ && character_fetch_) {
-					tprintf("p");
-				}
-				if(wide_screen_ || narrow_screen_) {
-					tprintf(".");
-				}
-
 				if(state == OutputState::Pixels && pixels_) {
-					const auto pixel_address = waiting_character_;
-					const uint8_t flash_mask = waiting_cursor_ && (flash_count_ & 0x10) ? 0xff : 0x00;
+					const auto pixel_address = next_character_.read();
 					const auto pixels = pager_.read(uint16_t(
 						character_base_ + (pixel_address << 3) + vertical_sub_count_
-					)) ^ flash_mask;
+					)) ^ next_cursor_.read();
 
-					const auto attribute = waiting_attribute_;
+					const auto attribute = next_attribute_.read();
 					const uint16_t colours[] = { background_[0], colour(attribute) };
 
 					pixels_[0] = (pixels & 0x80) ? colours[1] : colours[0];
@@ -360,8 +341,6 @@ public:
 
 					pixels_ += 8;
 				}
-
-				tprintf("|");
 			}
 			time_in_state_ += period;
 
@@ -510,7 +489,6 @@ public:
 			}
 
 			ticks_remaining -= period;
-			if(!horizontal_counter_) tprintf("\n");
 		}
 	}
 
@@ -675,12 +653,28 @@ private:
 		int cursor_ = 0;
 	};
 	ShiftLine shifter_;
-	uint8_t next_attribute_, next_character_;
-	uint8_t current_attribute_, current_character_;
-	uint8_t waiting_attribute_, waiting_character_;
-	uint8_t pixel_attribute_, pixel_character_;
 
-	bool next_cursor_, current_cursor_, waiting_cursor_;
+	/// Maintains a single 32-bit shift register, which shifts in whole-byte increments with
+	/// a template-provided delay time.
+	template <int cycles_delay>
+	struct ShiftRegister {
+	public:
+		uint8_t read() const {
+			return uint8_t(data_);
+		}
+		void write(uint8_t value) {
+			data_ |= uint32_t(value) << (cycles_delay * 8);
+		}
+		void advance() {
+			data_ >>= 8;
+		}
+
+	private:
+		uint32_t data_;
+	};
+	ShiftRegister<2> next_attribute_;
+	ShiftRegister<2> next_character_;
+	ShiftRegister<3> next_cursor_;
 
 	// List of counter-triggered events.
 	enum class HorizontalEvent: unsigned int {
