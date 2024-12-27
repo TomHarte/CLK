@@ -237,8 +237,7 @@ public:
 			if(vertical_sync_ || horizontal_sync_) {
 				state = OutputState::Sync;
 			} else if(vertical_blank_ || horizontal_blank_) {
-//				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
-				state = OutputState::Blank;
+				state = horizontal_burst_ ? OutputState::Burst : OutputState::Blank;
 			} else {
 				const bool pixel_screen = columns_40_ ? wide_screen_ : narrow_screen_;
 				state = enable_display_ && pixel_screen ? OutputState::Pixels : OutputState::Border;
@@ -441,6 +440,7 @@ public:
 				case HorizontalEvent::EndOfScreen:
 					schedule<8>(DelayedEvent::IncrementVerticalLine);
 					next_vertical_counter_ = video_line_ == eos() ? 0 : ((vertical_counter_ + 1) & 511);
+					horizontal_burst_ = true;
 				break;
 
 				case HorizontalEvent::EndExternalFetchWindow:
@@ -485,6 +485,8 @@ public:
 
 				case HorizontalEvent::BeginAttributeFetch:
 					dma_window_ = true;
+					horizontal_burst_ = false;	// Should be 1 cycle later, if the data sheet is completely accurate.
+												// Though all other timings work on the assumption that it isn't.
 				break;
 
 				case HorizontalEvent::EndBlank:
@@ -590,6 +592,7 @@ private:
 	bool character_window_ = false;
 	bool horizontal_blank_ = false;
 	bool horizontal_sync_ = false;
+	bool horizontal_burst_ = false;
 	bool enable_display_ = false;
 	bool vertical_sub_active_ = false;	// Indicates the the 3-bit row counter is active.
 	bool video_shift_ = false;			// Indicates that the shift register is shifting.
