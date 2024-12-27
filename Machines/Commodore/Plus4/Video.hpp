@@ -304,9 +304,15 @@ public:
 				}
 				if(increment_video_counter_) {
 					++video_counter_;
-					shifter_.advance();
+
+					// TODO: I've not fully persuaded myself yet that these shouldn't be the other side of the advance,
+					// subject to another latch in the pipeline. I need to figure out whether pixel[char/attr] are
+					// artefacts of the FPGA version not being able to dump 8 pixels simultaneously or act as extra
+					// delay. They'll probably need to come back either way once I observe x_scroll_.
 					next_attribute_ = shifter_.read<1>();
 					next_character_ = shifter_.read<0>();
+
+					shifter_.advance();
 					tprintf("+");
 				}
 
@@ -329,11 +335,11 @@ public:
 				}
 
 				if(state == OutputState::Pixels && pixels_) {
-					const auto pixel_address = shifter_.read<0>();
+					const auto pixel_address = waiting_character_;
 					const auto pixels =
 						pager_.read(uint16_t(character_base_ + (pixel_address * 8) + vertical_sub_count_));
 
-					const auto attribute = shifter_.read<1>();
+					const auto attribute = waiting_attribute_;
 					const uint16_t colours[] = { background_[0], colour(attribute) };
 
 					pixels_[0] = (pixels & 0x80) ? colours[1] : colours[0];
@@ -661,6 +667,7 @@ private:
 	uint8_t next_attribute_, next_character_;
 	uint8_t current_attribute_, current_character_;
 	uint8_t waiting_attribute_, waiting_character_;
+	uint8_t pixel_attribute_, pixel_character_;
 
 	// List of counter-triggered events.
 	enum class HorizontalEvent: unsigned int {
