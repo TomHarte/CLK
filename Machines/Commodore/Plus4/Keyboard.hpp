@@ -63,6 +63,12 @@ enum Key: uint16_t {
 	Control		= key(7, 0x04),		k2			= key(7, 0x08),
 	Space		= key(7, 0x10),		Commodore	= key(7, 0x20),
 	Q			= key(7, 0x40),		Run_Stop	= key(7, 0x80),
+
+	// Bonus virtual keys:
+	F4			= 0xfe00,
+	F5			= 0xfe01,
+	F6			= 0xfe02,
+	F7			= 0xfe03,
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {

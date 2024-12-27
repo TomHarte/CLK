@@ -43,12 +43,16 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(Semicolon, Semicolon);		BIND(Quote, Colon);
 		BIND(Equals, Equals);			BIND(ForwardSlash, Slash);
 
+		BIND(OpenSquareBracket, At);
+		BIND(CloseSquareBracket, Plus);
+		BIND(Backslash, Clear_Home);
+
+		BIND(F11, Clear_Home);
+		BIND(F12, Run_Stop);
+
 		// TODO:
-		//	At
 		//	GBP
 		//	Asterisk
-		// 	Clear_Home
-		//	Run_Stop
 	}
 #undef BIND
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
