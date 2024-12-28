@@ -177,25 +177,25 @@ public:
 			//	b0 = serial data out.
 
 			if(isReadOperation(operation)) {
-				if(address) {
+				if(!address) {
 					*value = io_direction_;
 //					printf("Read data direction: %02x\n", *value);
 				} else {
 					const uint8_t all_inputs = tape_player_->input() ? 0x10 : 0x00;
 					*value =
 						(io_direction_ & io_output_) |
-						(~io_direction_ & all_inputs);
-					printf("Read input: %02x\n", *value);
+						((~io_direction_) & all_inputs);
+//					printf("Read input: %02x\n", *value);
 				}
 			} else {
-				if(address) {
+				if(!address) {
 					io_direction_ = *value;
 //					printf("Set data direction: %02x\n", *value);
 				} else {
 					io_output_ = *value;
-					printf("Output: %02x\n", *value);
-					tape_player_->set_motor_control(!(*value & 0x08));
+//					printf("Output: %02x\n", *value);
 //					tape_player_->set_motor_control(*value & 0x08);
+					tape_player_->set_motor_control(!(*value & 0x08));
 				}
 			}
 
@@ -208,11 +208,12 @@ public:
 			}
 		} else if(address < 0xff00) {
 			// Miscellaneous hardware. All TODO.
-//			if(isReadOperation(operation)) {
+			if(isReadOperation(operation)) {
 //				printf("TODO: read @ %04x\n", address);
-//			} else {
+				*value = 0x00;
+			} else {
 //				printf("TODO: write of %02x @ %04x\n", *value, address);
-//			}
+			}
 		} else {
 			if(isReadOperation(operation)) {
 				switch(address) {
