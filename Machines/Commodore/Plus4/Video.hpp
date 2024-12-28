@@ -18,7 +18,7 @@
 
 namespace Commodore::Plus4 {
 
-constexpr double clock_rate(bool is_ntsc) {
+constexpr int clock_rate(bool is_ntsc) {
 	return is_ntsc ?
 				14'318'180 :	// i.e. colour subcarrier * 4.
 				17'734'448;		// i.e. very close to colour subcarrier * 4 — only about 0.1% off.

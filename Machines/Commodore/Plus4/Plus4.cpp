@@ -113,10 +113,12 @@ public:
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
-		video_(video_map_, interrupts_),
-		tape_player_(1'000'000)
+		video_(video_map_, interrupts_)
 	{
-		set_clock_rate(clock_rate(false));
+		const auto clock = clock_rate(false);
+		media_divider_ = Cycles(clock);
+		set_clock_rate(clock);
+		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
@@ -137,6 +139,7 @@ public:
 		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 
 		insert_media(target.media);
+		printf("Loading command is: %s\n", target.loading_command.c_str());
 	}
 
 	Cycles perform_bus_operation(
@@ -154,6 +157,7 @@ public:
 		timers_.tick(timers_cycles.as<int>());
 
 		video_.run_for(length);
+		tape_player_->run_for(length);
 
 		if(operation == CPU::MOS6502::BusOperation::Ready) {
 			return length;
@@ -171,6 +175,30 @@ public:
 			//	b2 = serial ATN out;
 			//	b1 = serial clock out and cassette write;
 			//	b0 = serial data out.
+
+			if(isReadOperation(operation)) {
+				if(address) {
+					*value = io_direction_;
+//					printf("Read data direction: %02x\n", *value);
+				} else {
+					const uint8_t all_inputs = tape_player_->input() ? 0x10 : 0x00;
+					*value =
+						(io_direction_ & io_output_) |
+						(~io_direction_ & all_inputs);
+					printf("Read input: %02x\n", *value);
+				}
+			} else {
+				if(address) {
+					io_direction_ = *value;
+//					printf("Set data direction: %02x\n", *value);
+				} else {
+					io_output_ = *value;
+					printf("Output: %02x\n", *value);
+					tape_player_->set_motor_control(!(*value & 0x08));
+//					tape_player_->set_motor_control(*value & 0x08);
+				}
+			}
+
 //			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			if(isReadOperation(operation)) {
@@ -334,7 +362,11 @@ private:
 		m6502_.run_for(cycles);
 	}
 
-	bool insert_media(const Analyser::Static::Media &) final {
+	bool insert_media(const Analyser::Static::Media &media) final {
+		if(!media.tapes.empty()) {
+			tape_player_->set_tape(media.tapes[0]);
+		}
+
 		return true;
 	}
 
@@ -367,7 +399,9 @@ private:
 	std::array<uint8_t, 8> key_states_{};
 	uint8_t keyboard_latch_ = 0xff;
 
-	Storage::Tape::BinaryTapePlayer tape_player_;
+	Cycles media_divider_;
+	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
+	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 };
 
 }
