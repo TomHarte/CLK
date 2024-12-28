@@ -18,6 +18,8 @@
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
+#include "../../../Storage/Tape/Tape.hpp"
+
 using namespace Commodore::Plus4;
 
 namespace {
@@ -111,7 +113,8 @@ public:
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
-		video_(video_map_, interrupts_)
+		video_(video_map_, interrupts_),
+		tape_player_(1'000'000)
 	{
 		set_clock_rate(clock_rate(false));
 
@@ -363,6 +366,8 @@ private:
 
 	std::array<uint8_t, 8> key_states_{};
 	uint8_t keyboard_latch_ = 0xff;
+
+	Storage::Tape::BinaryTapePlayer tape_player_;
 };
 
 }
