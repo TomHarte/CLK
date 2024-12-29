@@ -27,16 +27,15 @@ ROM::Request Machine::rom_request(Personality personality) {
 MachineBase::MachineBase(Personality personality, const ROM::Map &roms) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
-		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
-		serial_port_(new SerialPort),
+		serial_port_VIA_port_handler_(serial_port_VIA_),
 		drive_VIA_(drive_VIA_port_handler_),
-		serial_port_VIA_(*serial_port_VIA_port_handler_) {
+		serial_port_VIA_(serial_port_VIA_port_handler_) {
 	// attach the serial port to its VIA and vice versa
-	serial_port_->set_serial_port_via(serial_port_VIA_port_handler_);
-	serial_port_VIA_port_handler_->set_serial_port(serial_port_);
+	serial_port_.set_serial_port_via(serial_port_VIA_port_handler_);
+	serial_port_VIA_port_handler_.set_serial_port(serial_port_);
 
 	// set this instance as the delegate to receive interrupt requests from both VIAs
-	serial_port_VIA_port_handler_->set_interrupt_delegate(this);
+	serial_port_VIA_port_handler_.set_interrupt_delegate(this);
 	drive_VIA_port_handler_.set_interrupt_delegate(this);
 	drive_VIA_port_handler_.set_delegate(this);
 
@@ -64,8 +63,8 @@ MachineBase::MachineBase(Personality personality, const ROM::Map &roms) :
 Machine::Machine(Personality personality, const ROM::Map &roms) :
 	MachineBase(personality, roms) {}
 
-void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus) {
-	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
+void Machine::set_serial_bus(Commodore::Serial::Bus &serial_bus) {
+	Commodore::Serial::attach(serial_port_, serial_bus);
 }
 
 Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -174,14 +173,11 @@ uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 
 void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
-		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-		if(serialPort) {
-			attention_acknowledge_level_ = !(value&0x10);
-			data_level_output_ = (value&0x02);
+		attention_acknowledge_level_ = !(value&0x10);
+		data_level_output_ = (value&0x02);
 
-			serialPort->set_output(::Commodore::Serial::Line::Clock, ::Commodore::Serial::LineLevel(!(value&0x08)));
-			update_data_line();
-		}
+		serial_port_->set_output(::Commodore::Serial::Line::Clock, ::Commodore::Serial::LineLevel(!(value&0x08)));
+		update_data_line();
 	}
 }
 
@@ -199,17 +195,14 @@ void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool v
 	}
 }
 
-void SerialPortVIA::set_serial_port(const std::shared_ptr<::Commodore::Serial::Port> &serialPort) {
-	serial_port_ = serialPort;
+void SerialPortVIA::set_serial_port(Commodore::Serial::Port &port) {
+	serial_port_ = &port;
 }
 
 void SerialPortVIA::update_data_line() {
-	std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-	if(serialPort) {
-		// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
-		serialPort->set_output(::Commodore::Serial::Line::Data,
-			::Commodore::Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
-	}
+	// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
+	serial_port_->set_output(::Commodore::Serial::Line::Data,
+		Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
 }
 
 // MARK: - DriveVIA
@@ -281,11 +274,10 @@ void DriveVIA::set_activity_observer(Activity::Observer *observer) {
 
 // MARK: - SerialPort
 
-void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
-	std::shared_ptr<SerialPortVIA> serialPortVIA = serial_port_VIA_.lock();
-	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, bool(level));
+void SerialPort::set_input(Serial::Line line, Serial::LineLevel level) {
+	serial_port_VIA_->set_serial_line_state(line, bool(level));
 }
 
-void SerialPort::set_serial_port_via(const std::shared_ptr<SerialPortVIA> &serialPortVIA) {
-	serial_port_VIA_ = serialPortVIA;
+void SerialPort::set_serial_port_via(SerialPortVIA &serialPortVIA) {
+	serial_port_VIA_ = &serialPortVIA;
 }

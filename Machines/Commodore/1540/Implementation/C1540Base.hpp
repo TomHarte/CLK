@@ -46,12 +46,12 @@ public:
 	void set_port_output(MOS::MOS6522::Port, uint8_t value, uint8_t mask);
 	void set_serial_line_state(::Commodore::Serial::Line, bool);
 
-	void set_serial_port(const std::shared_ptr<::Commodore::Serial::Port> &);
+	void set_serial_port(Commodore::Serial::Port &);
 
 private:
 	MOS::MOS6522::MOS6522<SerialPortVIA> &via_;
 	uint8_t port_b_ = 0x0;
-	std::weak_ptr<::Commodore::Serial::Port> serial_port_;
+	Commodore::Serial::Port *serial_port_ = nullptr;
 	bool attention_acknowledge_level_ = false;
 	bool attention_level_input_ = true;
 	bool data_level_output_ = false;
@@ -84,7 +84,7 @@ public:
 	};
 	void set_delegate(Delegate *);
 
-	uint8_t get_port_input(MOS::MOS6522::Port port);
+	uint8_t get_port_input(MOS::MOS6522::Port);
 
 	void set_sync_detected(bool);
 	void set_data_input(uint8_t);
@@ -95,7 +95,7 @@ public:
 
 	void set_port_output(MOS::MOS6522::Port, uint8_t value, uint8_t direction_mask);
 
-	void set_activity_observer(Activity::Observer *observer);
+	void set_activity_observer(Activity::Observer *);
 
 private:
 	uint8_t port_b_ = 0xff, port_a_ = 0xff;
@@ -111,11 +111,11 @@ private:
 */
 class SerialPort : public ::Commodore::Serial::Port {
 public:
-	void set_input(::Commodore::Serial::Line, ::Commodore::Serial::LineLevel);
-	void set_serial_port_via(const std::shared_ptr<SerialPortVIA> &);
+	void set_input(Commodore::Serial::Line, Commodore::Serial::LineLevel);
+	void set_serial_port_via(SerialPortVIA &);
 
 private:
-	std::weak_ptr<SerialPortVIA> serial_port_VIA_;
+	SerialPortVIA *serial_port_VIA_ = nullptr;
 };
 
 class MachineBase:
@@ -125,37 +125,37 @@ class MachineBase:
 	public Storage::Disk::Controller {
 
 public:
-	MachineBase(Personality personality, const ROM::Map &roms);
-
-	// to satisfy CPU::MOS6502::Processor
-	Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);
-
-	// to satisfy MOS::MOS6522::Delegate
-	virtual void mos6522_did_change_interrupt_status(void *mos6522);
-
-	// to satisfy DriveVIA::Delegate
-	void drive_via_did_step_head(void *driveVIA, int direction);
-	void drive_via_did_set_data_density(void *driveVIA, int density);
+	MachineBase(Personality, const ROM::Map &);
 
 	/// Attaches the activity observer to this C1540.
-	void set_activity_observer(Activity::Observer *observer);
+	void set_activity_observer(Activity::Observer *);
+
+	// to satisfy CPU::MOS6502::Processor
+	Cycles perform_bus_operation(CPU::MOS6502::BusOperation, uint16_t address, uint8_t *value);
 
 protected:
+	// to satisfy MOS::MOS6522::Delegate
+	void mos6522_did_change_interrupt_status(void *mos6522) override;
+
+	// to satisfy DriveVIA::Delegate
+	void drive_via_did_step_head(void *driveVIA, int direction) override;
+	void drive_via_did_set_data_density(void *driveVIA, int density) override;
+
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, MachineBase, false> m6502_;
 
 	uint8_t ram_[0x800];
 	uint8_t rom_[0x4000];
 
-	std::shared_ptr<SerialPortVIA> serial_port_VIA_port_handler_;
-	std::shared_ptr<SerialPort> serial_port_;
+	SerialPortVIA serial_port_VIA_port_handler_;
+	SerialPort serial_port_;
 	DriveVIA drive_VIA_port_handler_;
 
 	MOS::MOS6522::MOS6522<DriveVIA> drive_VIA_;
 	MOS::MOS6522::MOS6522<SerialPortVIA> serial_port_VIA_;
 
 	int shift_register_ = 0, bit_window_offset_;
-	virtual void process_input_bit(int value);
-	virtual void process_index_hole();
+	void process_input_bit(int value) override;
+	void process_index_hole() override;
 };
 
 }

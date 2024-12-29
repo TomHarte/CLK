@@ -23,7 +23,7 @@ enum class Line {
 };
 const char *to_string(Line line);
 
-enum class LineLevel: bool {
+enum LineLevel: bool {
 	High = true,
 	Low = false
 };
@@ -44,29 +44,29 @@ void attach(Port &port, Bus &bus);
 	levels to every port.
 */
 class Bus {
-	public:
-		Bus() : line_levels_{
-			LineLevel::High,
-			LineLevel::High,
-			LineLevel::High,
-			LineLevel::High,
-			LineLevel::High
-		} {}
+public:
+	Bus() : line_levels_{
+		LineLevel::High,
+		LineLevel::High,
+		LineLevel::High,
+		LineLevel::High,
+		LineLevel::High
+	} {}
 
-		/*!
-			Adds the supplied port to the bus.
-		*/
-		void add_port(Port &port);
+	/*!
+		Adds the supplied port to the bus.
+	*/
+	void add_port(Port &port);
 
-		/*!
-			Communicates to the bus that one of its attached port has changed its output level for the given line.
-			The bus will therefore recalculate bus state and propagate as necessary.
-		*/
-		void set_line_output_did_change(Line line);
+	/*!
+		Communicates to the bus that one of its attached port has changed its output level for the given line.
+		The bus will therefore recalculate bus state and propagate as necessary.
+	*/
+	void set_line_output_did_change(Line line);
 
-	private:
-		LineLevel line_levels_[5];
-		std::vector<Port &> ports_;
+private:
+	LineLevel line_levels_[5];
+	std::vector<Port *> ports_;
 };
 
 /*!
@@ -74,63 +74,63 @@ class Bus {
 	expects to be subclassed in order for specific port-housing devices to deal with input.
 */
 class Port {
-	public:
-		Port() : line_levels_{
-			LineLevel::High,
-			LineLevel::High,
-			LineLevel::High,
-			LineLevel::High,
-			LineLevel::High
-		} {}
-		virtual ~Port() = default;
+public:
+	Port() : line_levels_{
+		LineLevel::High,
+		LineLevel::High,
+		LineLevel::High,
+		LineLevel::High,
+		LineLevel::High
+	} {}
+	virtual ~Port() = default;
 
-		/*!
-			Sets the current level of an output line on this serial port.
-		*/
-		void set_output(Line line, LineLevel level) {
-			if(line_levels_[size_t(line)] != level) {
-				line_levels_[size_t(line)] = level;
-				if(serial_bus_) serial_bus_->set_line_output_did_change(line);
-			}
+	/*!
+		Sets the current level of an output line on this serial port.
+	*/
+	void set_output(Line line, LineLevel level) {
+		if(line_levels_[size_t(line)] != level) {
+			line_levels_[size_t(line)] = level;
+			if(serial_bus_) serial_bus_->set_line_output_did_change(line);
 		}
+	}
 
-		/*!
-			Gets the previously set level of an output line.
-		*/
-		LineLevel get_output(Line line) {
-			return line_levels_[size_t(line)];
-		}
+	/*!
+		Gets the previously set level of an output line.
+	*/
+	LineLevel get_output(Line line) {
+		return line_levels_[size_t(line)];
+	}
 
-		/*!
-			Called by the bus to signal a change in any input line level. Subclasses should implement this.
-		*/
-		virtual void set_input(Line line, LineLevel value) = 0;
+	/*!
+		Called by the bus to signal a change in any input line level. Subclasses should implement this.
+	*/
+	virtual void set_input(Line line, LineLevel value) = 0;
 
-		/*!
-			Sets the supplied serial bus as that to which line levels will be communicated.
-		*/
-		inline void set_bus(Bus &serial_bus) {
-			serial_bus_ = &serial_bus;
-		}
+	/*!
+		Sets the supplied serial bus as that to which line levels will be communicated.
+	*/
+	inline void set_bus(Bus &serial_bus) {
+		serial_bus_ = &serial_bus;
+	}
 
-	private:
-		Bus *serial_bus_ = nullptr;
-		LineLevel line_levels_[5];
+private:
+	Bus *serial_bus_ = nullptr;
+	LineLevel line_levels_[5];
 };
 
 /*!
 	A debugging port, which makes some attempt to log bus activity. Incomplete. TODO: complete.
 */
 class DebugPort: public Port {
-	public:
-		void set_input(Line line, LineLevel value);
+public:
+	void set_input(Line line, LineLevel value);
 
-		DebugPort() : incoming_count_(0) {}
+	DebugPort() : incoming_count_(0) {}
 
-	private:
-		uint8_t incoming_byte_;
-		int incoming_count_;
-		LineLevel input_levels_[5];
+private:
+	uint8_t incoming_byte_;
+	int incoming_count_;
+	LineLevel input_levels_[5];
 };
 
 }

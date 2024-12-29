@@ -24,7 +24,6 @@ public:
 		return delegate_;
 	}
 
-
 	enum Flag {
 		Timer3 = 0x40,
 		Timer2 = 0x10,

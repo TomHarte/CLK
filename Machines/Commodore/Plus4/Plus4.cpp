@@ -181,11 +181,11 @@ public:
 					*value = io_direction_;
 //					printf("Read data direction: %02x\n", *value);
 				} else {
-					const uint8_t all_inputs = tape_player_->input() ? 0x10 : 0x00;
+					const uint8_t all_inputs = (tape_player_->input() ? 0x00 : 0x10) | 0xe0;
 					*value =
 						(io_direction_ & io_output_) |
 						((~io_direction_) & all_inputs);
-//					printf("Read input: %02x\n", *value);
+					printf("[%04x] In: %02x\n", m6502_.value_of(CPU::MOS6502::Register::ProgramCounter), *value);
 				}
 			} else {
 				if(!address) {
@@ -193,7 +193,7 @@ public:
 //					printf("Set data direction: %02x\n", *value);
 				} else {
 					io_output_ = *value;
-//					printf("Output: %02x\n", *value);
+					printf("[%04x] Out: %02x\n", m6502_.value_of(CPU::MOS6502::Register::ProgramCounter), *value);
 //					tape_player_->set_motor_control(*value & 0x08);
 					tape_player_->set_motor_control(!(*value & 0x08));
 				}
@@ -210,7 +210,11 @@ public:
 			// Miscellaneous hardware. All TODO.
 			if(isReadOperation(operation)) {
 //				printf("TODO: read @ %04x\n", address);
-				*value = 0x00;
+				if((address & 0xfff0) == 0xfd10) {
+					*value = 0xff ^ 0x4;	// Seems to detect the play button.
+				} else {
+					*value = 0xff;
+				}
 			} else {
 //				printf("TODO: write of %02x @ %04x\n", *value, address);
 			}
