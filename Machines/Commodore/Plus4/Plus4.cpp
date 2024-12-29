@@ -19,6 +19,8 @@
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
 #include "../../../Storage/Tape/Tape.hpp"
+#include "../SerialBus.hpp"
+#include "../1540/C1540.hpp"
 
 using namespace Commodore::Plus4;
 
@@ -100,6 +102,20 @@ private:
 	Interrupts &interrupts_;
 };
 
+class SerialPort: public Commodore::Serial::Port {
+public:
+	void set_input(Commodore::Serial::Line line, Commodore::Serial::LineLevel value) override {
+		levels_[size_t(line)] = value;
+	}
+
+	Commodore::Serial::LineLevel level(Commodore::Serial::Line line) const {
+		return levels_[size_t(line)];
+	}
+
+private:
+	Commodore::Serial::LineLevel levels_[5];
+};
+
 class ConcreteMachine:
 	public BusController,
 	public CPU::MOS6502::BusHandler,
@@ -118,12 +134,17 @@ public:
 		const auto clock = clock_rate(false);
 		media_divider_ = Cycles(clock);
 		set_clock_rate(clock);
-		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
+
+		// TODO: decide whether to attach a 1541 for real.
+		const bool has_c1541 = true;
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
+		ROM::Request request = ROM::Request(basic) && ROM::Request(kernel);
+		if(has_c1541) {
+			request = request && Commodore::C1540::Machine::rom_request(Commodore::C1540::Personality::C1541);
+		}
 
-		const ROM::Request request = ROM::Request(basic) && ROM::Request(kernel);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
@@ -137,6 +158,14 @@ public:
 		page_cpu_rom();
 
 		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
+
+		if(has_c1541) {
+			c1541_ = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1541, roms);
+			c1541_->set_serial_bus(serial_bus_);
+			serial_port_.set_bus(serial_bus_);
+		}
+
+		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
 
 		insert_media(target.media);
 		printf("Loading command is: %s\n", target.loading_command.c_str());
@@ -159,6 +188,11 @@ public:
 		video_.run_for(length);
 		tape_player_->run_for(length);
 
+		if(c1541_) {
+			c1541_cycles_ += length;
+			c1541_->run_for(c1541_cycles_.divide(media_divider_));
+		}
+
 		if(operation == CPU::MOS6502::BusOperation::Ready) {
 			return length;
 		}
@@ -179,9 +213,11 @@ public:
 			if(isReadOperation(operation)) {
 				if(!address) {
 					*value = io_direction_;
-//					printf("Read data direction: %02x\n", *value);
 				} else {
-					const uint8_t all_inputs = (tape_player_->input() ? 0x00 : 0x10) | 0xe0;
+					const uint8_t all_inputs =
+						(tape_player_->input() ? 0x00 : 0x10) |
+						(serial_port_.level(Commodore::Serial::Line::Data) ? 0x80 : 0x00) |
+						(serial_port_.level(Commodore::Serial::Line::Clock) ? 0x40 : 0x00);
 					*value =
 						(io_direction_ & io_output_) |
 						((~io_direction_) & all_inputs);
@@ -190,13 +226,18 @@ public:
 			} else {
 				if(!address) {
 					io_direction_ = *value;
-//					printf("Set data direction: %02x\n", *value);
 				} else {
 					io_output_ = *value;
-					printf("[%04x] Out: %02x\n", m6502_.value_of(CPU::MOS6502::Register::ProgramCounter), *value);
-//					tape_player_->set_motor_control(*value & 0x08);
-					tape_player_->set_motor_control(!(*value & 0x08));
 				}
+
+				const auto output = io_output_ & ~io_direction_;
+				tape_player_->set_motor_control(!(output & 0x08));
+				serial_port_.set_output(
+					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(~output & 0x01));
+				serial_port_.set_output(
+					Commodore::Serial::Line::Clock, Commodore::Serial::LineLevel(~output & 0x02));
+				serial_port_.set_output(
+					Commodore::Serial::Line::Attention, Commodore::Serial::LineLevel(~output & 0x04));
 			}
 
 //			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
@@ -372,6 +413,10 @@ private:
 			tape_player_->set_tape(media.tapes[0]);
 		}
 
+		if(!media.disks.empty() && c1541_) {
+			c1541_->set_disk(media.disks[0]);
+		}
+
 		return true;
 	}
 
@@ -404,12 +449,16 @@ private:
 	std::array<uint8_t, 8> key_states_{};
 	uint8_t keyboard_latch_ = 0xff;
 
-	Cycles media_divider_;
+	Cycles media_divider_, c1541_cycles_;
+	std::unique_ptr<Commodore::C1540::Machine> c1541_;
+	Commodore::Serial::Bus serial_bus_;
+	SerialPort serial_port_;
+
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 };
-
 }
+
 std::unique_ptr<Machine> Machine::Plus4(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher

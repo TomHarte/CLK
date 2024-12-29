@@ -56,13 +56,13 @@ public:
 	/*!
 		Adds the supplied port to the bus.
 	*/
-	void add_port(Port &port);
+	void add_port(Port &);
 
 	/*!
 		Communicates to the bus that one of its attached port has changed its output level for the given line.
 		The bus will therefore recalculate bus state and propagate as necessary.
 	*/
-	void set_line_output_did_change(Line line);
+	void set_line_output_did_change(Line);
 
 private:
 	LineLevel line_levels_[5];
@@ -97,7 +97,7 @@ public:
 	/*!
 		Gets the previously set level of an output line.
 	*/
-	LineLevel get_output(Line line) {
+	LineLevel get_output(Line line) const {
 		return line_levels_[size_t(line)];
 	}
 
