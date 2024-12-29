@@ -13,7 +13,7 @@
 
 using namespace Commodore::Serial;
 
-const char *::Commodore::Serial::StringForLine(Line line) {
+const char *::Commodore::Serial::to_string(Line line) {
 	switch(line) {
 		case ServiceRequest: return "Service request";
 		case Attention: return "Attention";
