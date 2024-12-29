@@ -153,11 +153,11 @@ void MachineBase::process_index_hole()	{}
 
 // MARK: - Drive VIA delegate
 
-void MachineBase::drive_via_did_step_head(void *, int direction) {
+void MachineBase::drive_via_did_step_head(void *, const int direction) {
 	get_drive().step(Storage::Disk::HeadPosition(direction, 2));
 }
 
-void MachineBase::drive_via_did_set_data_density(void *, int density) {
+void MachineBase::drive_via_did_set_data_density(void *, const int density) {
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(density)));
 }
 
@@ -240,22 +240,22 @@ void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Li
 void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
 		if(previous_port_b_output_ != value) {
-			// record drive motor state
+			// Record drive motor state.
 			drive_motor_ = value&4;
 
-			// check for a head step
-			int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
+			// Check for a head step.
+			const int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
 			if(step_difference) {
 				if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
 			}
 
-			// check for a change in density
-			int density_difference = (previous_port_b_output_^value) & (3 << 5);
+			// Check for a change in density.
+			const int density_difference = (previous_port_b_output_^value) & (3 << 5);
 			if(density_difference && delegate_) {
 				delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
 			}
 
-			// post the LED status
+			// Post the LED status.
 			if(observer_) observer_->set_led_status("Drive", value&8);
 
 			previous_port_b_output_ = value;

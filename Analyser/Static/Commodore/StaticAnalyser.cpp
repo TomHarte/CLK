@@ -209,10 +209,6 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 	// Inspect discovered files to try to divine machine and memory model.
 	auto vic_memory_model = Target::MemoryModel::Unexpanded;
 
-	if(files.size() > 1) {
-		printf("");
-	}
-
 	auto it = files.begin();
 	while(it != files.end()) {
 		const auto &file = *it;

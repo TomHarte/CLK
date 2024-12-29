@@ -162,7 +162,7 @@ public:
 		if(has_c1541) {
 			c1541_ = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1541, roms);
 			c1541_->set_serial_bus(serial_bus_);
-			serial_port_.set_bus(serial_bus_);
+			Commodore::Serial::attach(serial_port_, serial_bus_);
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
@@ -215,29 +215,33 @@ public:
 					*value = io_direction_;
 				} else {
 					const uint8_t all_inputs =
-						(tape_player_->input() ? 0x00 : 0x10) |
+						(tape_player_->input() ? 0x10 : 0x00) |
 						(serial_port_.level(Commodore::Serial::Line::Data) ? 0x80 : 0x00) |
 						(serial_port_.level(Commodore::Serial::Line::Clock) ? 0x40 : 0x00);
 					*value =
 						(io_direction_ & io_output_) |
 						((~io_direction_) & all_inputs);
-					printf("[%04x] In: %02x\n", m6502_.value_of(CPU::MOS6502::Register::ProgramCounter), *value);
+//					printf("[%04x] In: %02x\n", m6502_.value_of(CPU::MOS6502::Register::ProgramCounter), *value);
+//					printf("Input: %02x\n", *value);
 				}
 			} else {
 				if(!address) {
 					io_direction_ = *value;
+//					printf("Direction: %02x\n", io_direction_);
 				} else {
 					io_output_ = *value;
+//					printf("'Output': %02x\n", io_output_);
 				}
 
-				const auto output = io_output_ & ~io_direction_;
-				tape_player_->set_motor_control(!(output & 0x08));
+				const auto output = io_output_ | ~io_direction_;
+//				printf("Visible output: %02x\n\n", uint8_t(output));
+				tape_player_->set_motor_control(~output & 0x08);
 				serial_port_.set_output(
-					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(~output & 0x01));
+					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(output & 0x01));
 				serial_port_.set_output(
-					Commodore::Serial::Line::Clock, Commodore::Serial::LineLevel(~output & 0x02));
+					Commodore::Serial::Line::Clock, Commodore::Serial::LineLevel(output & 0x02));
 				serial_port_.set_output(
-					Commodore::Serial::Line::Attention, Commodore::Serial::LineLevel(~output & 0x04));
+					Commodore::Serial::Line::Attention, Commodore::Serial::LineLevel(output & 0x04));
 			}
 
 //			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
