@@ -189,7 +189,7 @@ public:
 		tape_player_->run_for(length);
 
 		if(c1541_) {
-			c1541_cycles_ += length;
+			c1541_cycles_ += length * Cycles(1'000'000);
 			c1541_->run_for(c1541_cycles_.divide(media_divider_));
 		}
 
@@ -237,11 +237,11 @@ public:
 //				printf("Visible output: %02x\n\n", uint8_t(output));
 				tape_player_->set_motor_control(~output & 0x08);
 				serial_port_.set_output(
-					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(output & 0x01));
+					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(~output & 0x01));
 				serial_port_.set_output(
-					Commodore::Serial::Line::Clock, Commodore::Serial::LineLevel(output & 0x02));
+					Commodore::Serial::Line::Clock, Commodore::Serial::LineLevel(~output & 0x02));
 				serial_port_.set_output(
-					Commodore::Serial::Line::Attention, Commodore::Serial::LineLevel(output & 0x04));
+					Commodore::Serial::Line::Attention, Commodore::Serial::LineLevel(~output & 0x04));
 			}
 
 //			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
