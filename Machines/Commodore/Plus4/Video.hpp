@@ -295,7 +295,7 @@ public:
 					// Current thinking: these should probably go afterwards, with an equivalent of pixelshiftreg
 					// adding further delay?
 					next_attribute_.write(shifter_.read<1>());
-					next_character_.write(shifter_.read<0>());
+					if(!bad_line()) next_character_.write(shifter_.read<0>());
 					next_cursor_.write(
 						(flash_count_ & 0x10) &&
 						(
@@ -317,7 +317,9 @@ public:
 					if(bad_line2_) {
 						shifter_.write<1>(pager_.read(address));
 					} else {
-						shifter_.write<0>(pager_.read(address + 0x400));
+						const auto data = pager_.read(address + 0x400);
+						shifter_.write<0>(data);
+						if(bad_line()) next_character_.write(data);
 					}
 				}
 

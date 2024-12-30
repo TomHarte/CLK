@@ -22,6 +22,7 @@
 #include "../SerialBus.hpp"
 #include "../1540/C1540.hpp"
 
+using namespace Commodore;
 using namespace Commodore::Plus4;
 
 namespace {
@@ -102,18 +103,18 @@ private:
 	Interrupts &interrupts_;
 };
 
-class SerialPort: public Commodore::Serial::Port {
+class SerialPort: public Serial::Port {
 public:
-	void set_input(Commodore::Serial::Line line, Commodore::Serial::LineLevel value) override {
+	void set_input(const Serial::Line line, const Serial::LineLevel value) override {
 		levels_[size_t(line)] = value;
 	}
 
-	Commodore::Serial::LineLevel level(Commodore::Serial::Line line) const {
+	Serial::LineLevel level(const Serial::Line line) const {
 		return levels_[size_t(line)];
 	}
 
 private:
-	Commodore::Serial::LineLevel levels_[5];
+	Serial::LineLevel levels_[5];
 };
 
 class ConcreteMachine:
@@ -143,7 +144,7 @@ public:
 		const auto basic = ROM::Name::Plus4BASIC;
 		ROM::Request request = ROM::Request(basic) && ROM::Request(kernel);
 		if(has_c1541) {
-			request = request && Commodore::C1540::Machine::rom_request(Commodore::C1540::Personality::C1541);
+			request = request && C1540::Machine::rom_request(C1540::Personality::C1541);
 		}
 
 		auto roms = rom_fetcher(request);
@@ -161,9 +162,9 @@ public:
 		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 
 		if(has_c1541) {
-			c1541_ = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1541, roms);
+			c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
 			c1541_->set_serial_bus(serial_bus_);
-			Commodore::Serial::attach(serial_port_, serial_bus_);
+			Serial::attach(serial_port_, serial_bus_);
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
@@ -217,8 +218,8 @@ public:
 				} else {
 					const uint8_t all_inputs =
 						(tape_player_->input() ? 0x10 : 0x00) |
-						(serial_port_.level(Commodore::Serial::Line::Data) ? 0x80 : 0x00) |
-						(serial_port_.level(Commodore::Serial::Line::Clock) ? 0x40 : 0x00);
+						(serial_port_.level(Serial::Line::Data) ? 0x80 : 0x00) |
+						(serial_port_.level(Serial::Line::Clock) ? 0x40 : 0x00);
 					*value =
 						(io_direction_ & io_output_) |
 						(~io_direction_ & all_inputs);
@@ -232,12 +233,9 @@ public:
 
 				const auto output = io_output_ | ~io_direction_;
 //				tape_player_->set_motor_control(~output & 0x08);
-				serial_port_.set_output(
-					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(~output & 0x01));
-				serial_port_.set_output(
-					Commodore::Serial::Line::Clock, Commodore::Serial::LineLevel(~output & 0x02));
-				serial_port_.set_output(
-					Commodore::Serial::Line::Attention, Commodore::Serial::LineLevel(~output & 0x04));
+				serial_port_.set_output(Serial::Line::Data, Serial::LineLevel(~output & 0x01));
+				serial_port_.set_output(Serial::Line::Clock, Serial::LineLevel(~output & 0x02));
+				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 
 //			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
@@ -425,8 +423,8 @@ private:
 		return true;
 	}
 
-	Commodore::Plus4::Pager map_;
-	Commodore::Plus4::Pager video_map_;
+	Plus4::Pager map_;
+	Plus4::Pager video_map_;
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
@@ -439,7 +437,7 @@ private:
 
 	// MARK: - MappedKeyboardMachine.
 	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
-		static Commodore::Plus4::KeyboardMapper keyboard_mapper_;
+		static Plus4::KeyboardMapper keyboard_mapper_;
 		return &keyboard_mapper_;
 	}
 
@@ -455,8 +453,8 @@ private:
 	uint8_t keyboard_latch_ = 0xff;
 
 	Cycles media_divider_, c1541_cycles_;
-	std::unique_ptr<Commodore::C1540::Machine> c1541_;
-	Commodore::Serial::Bus serial_bus_;
+	std::unique_ptr<C1540::Machine> c1541_;
+	Serial::Bus serial_bus_;
 	SerialPort serial_port_;
 
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
