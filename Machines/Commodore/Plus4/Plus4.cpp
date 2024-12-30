@@ -117,6 +117,7 @@ private:
 };
 
 class ConcreteMachine:
+	public Activity::Source,
 	public BusController,
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::MappedKeyboardMachine,
@@ -371,6 +372,10 @@ public:
 	}
 
 private:
+	void set_activity_observer(Activity::Observer *const observer) final {
+		if(c1541_) c1541_->set_activity_observer(observer);
+	}
+
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
 
 	void set_irq_line(bool active) override {
