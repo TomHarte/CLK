@@ -17,6 +17,8 @@
 #include "PIT.hpp"
 #include "RTC.hpp"
 
+#include "../../Activity/Source.hpp"
+
 #include "../../InstructionSets/x86/Decoder.hpp"
 #include "../../InstructionSets/x86/Flags.hpp"
 #include "../../InstructionSets/x86/Instruction.hpp"
