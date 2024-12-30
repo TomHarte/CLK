@@ -200,8 +200,8 @@ public:
 
 		// Perform actual access.
 		if(address < 0x0002) {
-			// TODO: 0x0000: data directions for parallel IO; 1  = output.
-			// TODO: 0x0001:
+			// 0x0000: data directions for parallel IO; 1  = output.
+			// 0x0001:
 			//	b7 = serial data in;
 			//	b6 = serial clock in and cassette write;
 			//	b5 = [unconnected];
@@ -221,22 +221,17 @@ public:
 						(serial_port_.level(Commodore::Serial::Line::Clock) ? 0x40 : 0x00);
 					*value =
 						(io_direction_ & io_output_) |
-						((~io_direction_) & all_inputs);
-//					printf("[%04x] In: %02x\n", m6502_.value_of(CPU::MOS6502::Register::ProgramCounter), *value);
-//					printf("Input: %02x\n", *value);
+						(~io_direction_ & all_inputs);
 				}
 			} else {
 				if(!address) {
 					io_direction_ = *value;
-//					printf("Direction: %02x\n", io_direction_);
 				} else {
 					io_output_ = *value;
-//					printf("'Output': %02x\n", io_output_);
 				}
 
 				const auto output = io_output_ | ~io_direction_;
-//				printf("Visible output: %02x\n\n", uint8_t(output));
-				tape_player_->set_motor_control(~output & 0x08);
+//				tape_player_->set_motor_control(~output & 0x08);
 				serial_port_.set_output(
 					Commodore::Serial::Line::Data, Commodore::Serial::LineLevel(~output & 0x01));
 				serial_port_.set_output(
@@ -257,6 +252,7 @@ public:
 			if(isReadOperation(operation)) {
 //				printf("TODO: read @ %04x\n", address);
 				if((address & 0xfff0) == 0xfd10) {
+					tape_player_->set_motor_control(true);
 					*value = 0xff ^ 0x4;	// Seems to detect the play button.
 				} else {
 					*value = 0xff;
@@ -372,11 +368,11 @@ public:
 	}
 
 private:
+	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
+
 	void set_activity_observer(Activity::Observer *const observer) final {
 		if(c1541_) c1541_->set_activity_observer(observer);
 	}
-
-	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
 
 	void set_irq_line(bool active) override {
 		m6502_.set_irq_line(active);
