@@ -307,7 +307,6 @@ public:
 					);
 
 					shifter_.advance();
-
 					++video_counter_;
 				}
 				if(increment_character_position_ && character_fetch_) {
@@ -477,7 +476,9 @@ public:
 				break;
 
 				case HorizontalEvent::BeginShiftRegister:
-					character_window_ = video_shift_ = enable_display_;
+					if(enable_display_) {
+						character_window_ = video_shift_ = true;
+					}
 					next_pixels_ = 0;
 				break;
 			}

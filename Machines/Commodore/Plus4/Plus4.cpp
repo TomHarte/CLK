@@ -444,6 +444,10 @@ private:
 
 	void run_for(const Cycles cycles) final {
 		m6502_.run_for(cycles);
+
+		// I don't know why.
+		update_audio();
+		audio_queue_.perform();
 	}
 
 	void flush_output(int outputs) override {
