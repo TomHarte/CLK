@@ -287,13 +287,15 @@ public:
 					next_cursor_.advance();
 				}
 				if(increment_video_counter_) {
-					// TODO: I've not fully persuaded myself yet that these shouldn't be the other side of the advance,
-					// subject to another latch in the pipeline. I need to figure out whether pixel[char/attr] are
-					// artefacts of the FPGA version not being able to dump 8 pixels simultaneously or act as extra
-					// delay. They'll probably need to come back either way once I observe x_scroll_.
-					//
-					// Current thinking: these should probably go afterwards, with an equivalent of pixelshiftreg
-					// adding further delay?
+					const uint16_t address = video_matrix_base_ + video_counter_;
+					if(bad_line2_) {
+						shifter_.write<1>(pager_.read(address));
+					} else {
+						const auto data = pager_.read(address + 0x400);
+						shifter_.write<0>(data);
+						if(bad_line()) next_character_.write(data);
+					}
+
 					next_attribute_.write(shifter_.read<1>());
 					if(!bad_line()) next_character_.write(shifter_.read<0>());
 					next_cursor_.write(
@@ -306,21 +308,11 @@ public:
 					);
 
 					shifter_.advance();
+
 					++video_counter_;
 				}
 				if(increment_character_position_ && character_fetch_) {
 					++character_position_;
-				}
-
-				if(dma_state_ == DMAState::TDMA) {
-					const uint16_t address = video_matrix_base_ + video_counter_;
-					if(bad_line2_) {
-						shifter_.write<1>(pager_.read(address));
-					} else {
-						const auto data = pager_.read(address + 0x400);
-						shifter_.write<0>(data);
-						if(bad_line()) next_character_.write(data);
-					}
 				}
 
 				if(state == OutputState::Pixels && pixels_) {
@@ -422,6 +414,7 @@ public:
 					schedule<8>(DelayedEvent::IncrementVerticalLine);
 					next_vertical_counter_ = video_line_ == eos() ? 0 : ((vertical_counter_ + 1) & 511);
 					horizontal_burst_ = true;
+					printf("\n");
 				break;
 
 				case HorizontalEvent::EndExternalFetchWindow:
@@ -643,7 +636,7 @@ private:
 		}
 		template<int channel>
 		void write(uint8_t value) {
-			data_[channel][(cursor_ + 1) % 40] = value;
+			data_[channel][cursor_] = value;
 		}
 		void advance() {
 			++cursor_;
@@ -665,6 +658,7 @@ private:
 			return uint8_t(data_);
 		}
 		void write(uint8_t value) {
+			static_assert(cycles_delay < sizeof(data_));
 			data_ |= uint32_t(value) << (cycles_delay * 8);
 		}
 		void advance() {
@@ -674,8 +668,8 @@ private:
 	private:
 		uint32_t data_;
 	};
-	ShiftRegister<2> next_attribute_;
-	ShiftRegister<2> next_character_;
+	ShiftRegister<3> next_attribute_;
+	ShiftRegister<3> next_character_;
 	ShiftRegister<3> next_cursor_;
 
 	// List of counter-triggered events.
