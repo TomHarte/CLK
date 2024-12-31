@@ -714,7 +714,7 @@ private:
 		CounterReset = 0x10,
 		UpdateDMAState = 0x20,
 
-		Mask = CounterReset | IncrementVerticalLine | IncrementVerticalSub | Flash | Latch,
+		Mask = CounterReset | IncrementVerticalLine | IncrementVerticalSub | Flash | Latch | UpdateDMAState,
 	};
 	static constexpr int DelayEventSize = 6;
 	uint64_t delayed_events_ = 0;
