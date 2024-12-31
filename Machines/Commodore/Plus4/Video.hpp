@@ -287,12 +287,12 @@ public:
 					next_cursor_.advance();
 				}
 				if(increment_video_counter_) {
-					const uint16_t address = video_matrix_base_ + video_counter_;
+					const auto address = [&] { return uint16_t(video_matrix_base_ + video_counter_); };
 					if(bad_line2_) {
-						shifter_.write<1>(pager_.read(address));
+						shifter_.write<1>(pager_.read(address()));
 					} else if(bad_line()) {
 						next_character_.write(shifter_.read<0>());
-						shifter_.write<0>(pager_.read(address + 0x400));
+						shifter_.write<0>(pager_.read(address() + 0x400));
 					}
 
 					if(!bad_line()) next_character_.write(shifter_.read<0>());
