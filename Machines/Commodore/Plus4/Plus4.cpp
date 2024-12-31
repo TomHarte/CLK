@@ -8,6 +8,7 @@
 
 #include "Plus4.hpp"
 
+#include "Audio.hpp"
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
 #include "Pager.hpp"
@@ -17,6 +18,7 @@
 #include "../../Utility/MemoryFuzzer.hpp"
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../SerialBus.hpp"
@@ -121,6 +123,7 @@ class ConcreteMachine:
 	public Activity::Source,
 	public BusController,
 	public CPU::MOS6502::BusHandler,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -131,11 +134,14 @@ public:
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
-		video_(video_map_, interrupts_)
+		video_(video_map_, interrupts_),
+		audio_(audio_queue_),
+		speaker_(audio_)
 	{
 		const auto clock = clock_rate(false);
 		media_divider_ = Cycles(clock);
 		set_clock_rate(clock);
+		speaker_.set_input_rate(float(clock) / 32.0f);
 
 		// TODO: decide whether to attach a 1541 for real.
 		const bool has_c1541 = true;
@@ -173,6 +179,10 @@ public:
 		printf("Loading command is: %s\n", target.loading_command.c_str());
 	}
 
+	~ConcreteMachine() {
+		audio_queue_.flush();
+	}
+
 	Cycles perform_bus_operation(
 		const CPU::MOS6502::BusOperation operation,
 		const uint16_t address,
@@ -194,6 +204,8 @@ public:
 			c1541_cycles_ += length * Cycles(1'000'000);
 			c1541_->run_for(c1541_cycles_.divide(media_divider_));
 		}
+
+		time_since_audio_update_ += length;
 
 		if(operation == CPU::MOS6502::BusOperation::Ready) {
 			return length;
@@ -327,6 +339,22 @@ public:
 					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff0c:	video_.write<0xff0c>(*value);	break;
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
+					case 0xff0e:
+						update_audio();
+						audio_.set_frequency_low<0>(*value);
+					break;
+					case 0xff0f:
+						update_audio();
+						audio_.set_frequency_low<1>(*value);
+					break;
+					case 0xff10:
+						update_audio();
+						audio_.set_frequency_high<1>(*value);
+					break;
+					case 0xff11:
+						update_audio();
+						audio_.set_constrol(*value);
+					break;
 					case 0xff12:
 						ff12_ = *value & 0x3f;
 						video_.write<0xff12>(*value);
@@ -336,6 +364,9 @@ public:
 						} else {
 							page_video_ram();
 						}
+
+						update_audio();
+						audio_.set_frequency_high<0>(*value);
 					break;
 					case 0xff13:
 						ff13_ = *value & 0xfe;
@@ -367,6 +398,10 @@ public:
 
 private:
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
+
+	Outputs::Speaker::Speaker *get_speaker() override {
+		return &speaker_;
+	}
 
 	void set_activity_observer(Activity::Observer *const observer) final {
 		if(c1541_) c1541_->set_activity_observer(observer);
@@ -411,6 +446,13 @@ private:
 		m6502_.run_for(cycles);
 	}
 
+	void flush_output(int outputs) override {
+		if(outputs & Output::Audio) {
+			update_audio();
+			audio_queue_.perform();
+		}
+	}
+
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
 			tape_player_->set_tape(media.tapes[0]);
@@ -434,6 +476,14 @@ private:
 	Cycles timers_subcycles_;
 	Timers timers_;
 	Video video_;
+
+	Concurrency::AsyncTaskQueue<false> audio_queue_;
+	Audio audio_;
+	Cycles time_since_audio_update_;
+	Outputs::Speaker::PullLowpass<Audio> speaker_;
+	void update_audio() {
+		speaker_.run_for(audio_queue_, time_since_audio_update_.divide(Cycles(32)));
+	}
 
 	// MARK: - MappedKeyboardMachine.
 	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {

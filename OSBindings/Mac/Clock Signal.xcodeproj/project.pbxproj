@@ -1719,6 +1719,7 @@
 		4B80214322EE7C3E00068002 /* JustInTime.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = JustInTime.hpp; sourceTree = "<group>"; };
 		4B8058012D0D0B55007EAD46 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B8058022D0D0B55007EAD46 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
+		4B8058062D23902B007EAD46 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B80CD6D2568A82600176FCC /* DiskIIDrive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskIIDrive.cpp; sourceTree = "<group>"; };
 		4B80CD6E2568A82900176FCC /* DiskIIDrive.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskIIDrive.hpp; sourceTree = "<group>"; };
 		4B80CD74256CA15E00176FCC /* 2MG.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 2MG.cpp; sourceTree = "<group>"; };
@@ -3407,6 +3408,7 @@
 				4B0329212D0A8C4700C51EB5 /* Pager.hpp */,
 				4B596EAF2D037E8800FBF4B1 /* Plus4.hpp */,
 				4B03291F2D0923E300C51EB5 /* Video.hpp */,
+				4B8058062D23902B007EAD46 /* Audio.hpp */,
 			);
 			path = Plus4;
 			sourceTree = "<group>";
