@@ -27,13 +27,18 @@ public:
 	template <Outputs::Speaker::Action action>
 	void apply_samples(std::size_t size, Outputs::Speaker::MonoSample *const target) {
 		const auto count_frequency = [&](int index) {
-			if(!counts_[index]) {
-				counts_[index] = frequencies_[index] * frequency_multiplier_;
+			++counts_[index];
+			if(counts_[index] == frequencies_[index] * frequency_multiplier_) {
 				states_[index] ^= 1;
-			} else {
-				--counts_[index];
+			}
+			if(	counts_[index] == frequencies_[index] * frequency_multiplier_ ||
+				counts_[index] == 1024 * frequency_multiplier_
+			) {
+				counts_[index] = 0;
 			}
 		};
+
+		// TODO: noise generation.
 
 		for(size_t c = 0; c < size; c++) {
 			count_frequency(0);
@@ -52,7 +57,7 @@ public:
 	}
 
 	void set_sample_volume_range(const std::int16_t range) {
-		external_volume_ = range >> 5;
+		external_volume_ = range / (2 * 9);	// Two channels and nine output levels.
 	}
 
 	bool is_zero_level() const {
@@ -73,10 +78,12 @@ public:
 
 	void set_constrol(uint8_t value) {
 		audio_queue_.enqueue([this, value] {
-			volume_ = value & 0xf;
+			volume_ = std::min(value & 0xf, 8);	// Only nine volumes are available.
 			masks_[0] = (value & 0x10) ? 1 : 0;
+
 			masks_[1] = (value & 0x20) ? 1 : 0;
-			sound2_noise_on_ = value & 0x40;
+			sound2_noise_on_ = (value & 0x40) && !(value & 0x20);
+
 			sound_dc_ = value & 0x80;
 		});
 	}
@@ -96,7 +103,7 @@ private:
 
 	bool sound2_noise_on_ = false;
 	bool sound_dc_ = false;
-	uint8_t volume_ = 0;
+	int volume_ = 0;
 
 	int r_ = 0;
 };
