@@ -28,31 +28,33 @@ public:
 	void apply_samples(std::size_t size, Outputs::Speaker::MonoSample *const target) {
 		const auto count_frequency = [&](int index) {
 			++counts_[index];
-			if(counts_[index] == frequencies_[index] * frequency_multiplier_) {
+			if(counts_[index] == (frequencies_[index] /* ^ 1023 */) * frequency_multiplier_) {
 				states_[index] ^= 1;
-			}
-			if(	counts_[index] == frequencies_[index] * frequency_multiplier_ ||
-				counts_[index] == 1024 * frequency_multiplier_
-			) {
+				counts_[index] = 0;
+			} else if(counts_[index] == 1024 * frequency_multiplier_) {
 				counts_[index] = 0;
 			}
 		};
 
-		// TODO: noise generation.
+//		if(sound_dc_) {
+//			Outputs::Speaker::fill<action>(target, target + size, Outputs::Speaker::MonoSample(volume_ * 2));
+//		} else {
+			// TODO: noise generation.
 
-		for(size_t c = 0; c < size; c++) {
-			count_frequency(0);
-			count_frequency(1);
+			for(size_t c = 0; c < size; c++) {
+				count_frequency(0);
+				count_frequency(1);
 
-			Outputs::Speaker::apply<action>(
-				target[c],
-				Outputs::Speaker::MonoSample(
-					(
-						((states_[0] & masks_[0]) * external_volume_) +
-						((states_[1] & masks_[1]) * external_volume_)
-					) * volume_
-				));
-		}
+				Outputs::Speaker::apply<action>(
+					target[c],
+					Outputs::Speaker::MonoSample(
+						(
+							((states_[0] & masks_[0]) * external_volume_) +
+							((states_[1] & masks_[1]) * external_volume_)
+						) * volume_
+					));
+			}
+//		}
 		r_ += size;
 	}
 
