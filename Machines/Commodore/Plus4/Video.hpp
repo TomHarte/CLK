@@ -281,7 +281,7 @@ public:
 						}
 					break;
 				}
-				if(video_shift_) {
+				if(video_shift_ || wide_screen_) {
 					next_attribute_.advance();
 					next_character_.advance();
 					next_cursor_.advance();
@@ -486,6 +486,11 @@ public:
 			ticks_remaining -= period;
 		}
 	}
+
+//	template <int offset>
+//	void draw_standard_character_mode() {
+//
+//	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) {
 		crt_.set_scan_target(target);
