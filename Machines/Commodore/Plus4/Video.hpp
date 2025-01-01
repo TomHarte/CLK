@@ -663,7 +663,6 @@ private:
 			return uint8_t(data_);
 		}
 		void write(uint8_t value) {
-			static_assert(cycles_delay < sizeof(data_));
 			data_ |= uint32_t(value) << (cycles_delay * 8);
 		}
 		void advance() {
@@ -672,6 +671,7 @@ private:
 
 	private:
 		uint32_t data_;
+		static_assert(cycles_delay < sizeof(data_));
 	};
 	ShiftRegister<3> next_attribute_;
 	ShiftRegister<3> next_character_;
