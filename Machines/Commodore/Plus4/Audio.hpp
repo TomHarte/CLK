@@ -28,7 +28,7 @@ public:
 	void apply_samples(std::size_t size, Outputs::Speaker::MonoSample *const target) {
 		const auto count_frequency = [&](int index) {
 			++counts_[index];
-			if(counts_[index] == (frequencies_[index] /* ^ 1023 */) * frequency_multiplier_) {
+			if(counts_[index] == (frequencies_[index] ^ 1023) * frequency_multiplier_) {
 				states_[index] ^= 1;
 				counts_[index] = 0;
 			} else if(counts_[index] == 1024 * frequency_multiplier_) {
@@ -36,9 +36,9 @@ public:
 			}
 		};
 
-//		if(sound_dc_) {
-//			Outputs::Speaker::fill<action>(target, target + size, Outputs::Speaker::MonoSample(volume_ * 2));
-//		} else {
+		if(sound_dc_) {
+			Outputs::Speaker::fill<action>(target, target + size, Outputs::Speaker::MonoSample(volume_ * 2));
+		} else {
 			// TODO: noise generation.
 
 			for(size_t c = 0; c < size; c++) {
@@ -54,7 +54,7 @@ public:
 						) * volume_
 					));
 			}
-//		}
+		}
 		r_ += size;
 	}
 
