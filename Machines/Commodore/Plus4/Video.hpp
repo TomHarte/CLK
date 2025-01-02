@@ -77,9 +77,9 @@ public:
 				if(extended_colour_mode_) {
 					video_mode_ = VideoMode::Blank;
 				} else if(multicolour_mode_) {
-					video_mode_ = VideoMode::BitmapMulticolour;
+					video_mode_ = VideoMode::MulticolourBitmap;
 				} else {
-					video_mode_ = VideoMode::BitmapHighRes;
+					video_mode_ = VideoMode::HighResBitmap;
 				}
 			} else {
 				if(multicolour_mode_) {
@@ -365,8 +365,8 @@ public:
 							)) ^ cursor;
 						break;
 
-						case VideoMode::BitmapMulticolour:
-						case VideoMode::BitmapHighRes:
+						case VideoMode::MulticolourBitmap:
+						case VideoMode::HighResBitmap:
 							pixels = pager_.read(uint16_t(
 								bitmap_base_ + (video_counter_ << 3) + vertical_sub_count_
 							));
@@ -577,8 +577,8 @@ private:
 		Text,
 		MulticolourText,
 		ExtendedColourText,
-		BitmapMulticolour,
-		BitmapHighRes,
+		MulticolourBitmap,
+		HighResBitmap,
 		Blank,
 	} video_mode_ = VideoMode::Text;
 
@@ -840,8 +840,8 @@ private:
 			case VideoMode::Text:				draw<scroll, VideoMode::Text>();				break;
 			case VideoMode::MulticolourText:	draw<scroll, VideoMode::MulticolourText>();		break;
 			case VideoMode::ExtendedColourText:	draw<scroll, VideoMode::ExtendedColourText>();	break;
-			case VideoMode::BitmapMulticolour:	draw<scroll, VideoMode::BitmapMulticolour>();	break;
-			case VideoMode::BitmapHighRes:		draw<scroll, VideoMode::BitmapHighRes>();		break;
+			case VideoMode::MulticolourBitmap:	draw<scroll, VideoMode::MulticolourBitmap>();	break;
+			case VideoMode::HighResBitmap:		draw<scroll, VideoMode::HighResBitmap>();		break;
 			case VideoMode::Blank:				draw<scroll, VideoMode::Blank>();				break;
 		}
 	}
@@ -902,7 +902,7 @@ private:
 				}
 			} break;
 
-			case VideoMode::BitmapHighRes: {
+			case VideoMode::HighResBitmap: {
 				const auto attributes = output_.attributes<0>();
 				const auto character = output_.attributes<1>();
 				const uint16_t colours[] = {
@@ -912,7 +912,7 @@ private:
 				draw_1bpp_segment<length>(target, colours);
 			} break;
 
-			case VideoMode::BitmapMulticolour: {
+			case VideoMode::MulticolourBitmap: {
 				const auto attributes = output_.attributes<0>();
 				const auto character = output_.attributes<1>();
 				const uint16_t colours[] = {
