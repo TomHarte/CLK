@@ -893,7 +893,6 @@ private:
 				}
 			}();
 			draw_1bpp_segment<length>(target, colours.data());
-			output_.advance_pixels(length);
 		}
 
 		if constexpr (mode == VideoMode::BitmapMulticolour) {
@@ -906,12 +905,24 @@ private:
 				background_[1],
 			};
 			draw_2bpp_segment<length, is_leftovers>(target, colours);
+		}
 
-			constexpr int leftover = is_leftovers && (length & 1);
-			if(is_leftovers) {
-				output_.advance_pixels(length + leftover);
+		if constexpr (mode == VideoMode::MulticolourText) {
+			const auto attributes = output_.attributes<0>();
+			if(attributes & 0x08) {
+				const uint16_t colours[] = {
+					background_[0],
+					background_[1],
+					background_[2],
+					colour(attributes & ~0x08)
+				};
+				draw_2bpp_segment<length, is_leftovers>(target, colours);
 			} else {
-				output_.advance_pixels(length & ~1);
+				const uint16_t colours[] = {
+					background_[0],
+					colour(attributes & ~0x08)
+				};
+				draw_1bpp_segment<length>(target, colours);
 			}
 		}
 
@@ -932,6 +943,8 @@ private:
 		if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
 		if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
 		if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+
+		output_.advance_pixels(length);
 	}
 
 	template <int length, bool is_leftovers>
@@ -948,6 +961,12 @@ private:
 		if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
 		if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
 		if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+
+		if(is_leftovers) {
+			output_.advance_pixels(length + leftover);
+		} else {
+			output_.advance_pixels(length & ~1);
+		}
 	}
 };
 
