@@ -870,8 +870,6 @@ private:
 			mode == VideoMode::ExtendedColourText
 		) {
 			const auto attributes = output_.attributes<0>();
-			output_.advance_pixels(length);
-
 			const auto colours = [&]() -> std::array<uint16_t, 2> {
 				if constexpr(mode == VideoMode::Text) {
 					return {
@@ -895,19 +893,12 @@ private:
 				}
 			}();
 			draw_1bpp_segment<length>(target, colours.data());
+			output_.advance_pixels(length);
 		}
 
 		if constexpr (mode == VideoMode::BitmapMulticolour) {
 			const auto attributes = output_.attributes<0>();
 			const auto character = output_.attributes<1>();
-
-			constexpr int leftover = is_leftovers && (length & 1);
-			if(is_leftovers) {
-				output_.advance_pixels(length + leftover);
-			} else {
-				output_.advance_pixels(length & ~1);
-			}
-
 			const uint16_t colours[] = {
 				background_[0],
 				colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
@@ -915,6 +906,13 @@ private:
 				background_[1],
 			};
 			draw_2bpp_segment<length, is_leftovers>(target, colours);
+
+			constexpr int leftover = is_leftovers && (length & 1);
+			if(is_leftovers) {
+				output_.advance_pixels(length + leftover);
+			} else {
+				output_.advance_pixels(length & ~1);
+			}
 		}
 
 		if constexpr (mode == VideoMode::Blank) {
