@@ -893,6 +893,37 @@ private:
 			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
 		}
 
+		if constexpr (mode == VideoMode::BitmapMulticolour) {
+			const auto attributes = output_.attributes<0>();
+			const auto character = output_.attributes<1>();
+			const auto pixels = output_.pixels();
+
+			constexpr int leftover = is_leftovers && (length & 1);
+			if(is_leftovers) {
+				output_.advance_pixels(length + leftover);
+			} else {
+				output_.advance_pixels(length & ~1);
+			}
+
+			const uint16_t colours[] = {
+				background_[0],
+				colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
+				colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
+				background_[1],
+			};
+
+			// Intention: skip first output if leftover is 1, but still do the correct
+			// length of output.
+			if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
+			if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
+			if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
+			if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+		}
+
 		if constexpr (mode == VideoMode::Blank) {
 			output_.advance_pixels(length);
 			if constexpr (length >= 1) target[0] = 0x000;
