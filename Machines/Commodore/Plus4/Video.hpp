@@ -863,32 +863,37 @@ private:
 		const auto target = pixels_;
 		pixels_ += length;
 
-		if constexpr (mode == VideoMode::Text) {
+		if constexpr (
+			mode == VideoMode::BitmapHighRes ||
+			mode == VideoMode::Text ||
+			mode == VideoMode::ExtendedColourText
+		) {
 			const auto attributes = output_.attributes<0>();
 			const auto pixels = output_.pixels();
 			output_.advance_pixels(length);
-			const uint16_t colours[] = { background_[0], colour(attributes) };
 
-			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
-			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
-			if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
-			if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
-			if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
-			if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
-			if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
-			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
-		}
+			const auto colours = [&]() -> std::array<uint16_t, 2> {
+				if constexpr(mode == VideoMode::Text) {
+					return {
+						background_[0],
+						colour(attributes)
+					};
+				}
 
-		if constexpr (mode == VideoMode::BitmapHighRes) {
-			const auto attributes = output_.attributes<0>();
-			const auto character = output_.attributes<1>();
-			const auto pixels = output_.pixels();
-			output_.advance_pixels(length);
-
-			const uint16_t colours[] = {
-				colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
-				colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
-			};
+				const auto character = output_.attributes<1>();
+				if constexpr(mode == VideoMode::BitmapHighRes) {
+					return {
+						colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
+						colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
+					};
+				} else {
+					// i.e. VideoMode::ExtendedColourText.
+					return {
+						background_[character >> 6],
+						colour(attributes)
+					};
+				}
+			}();
 
 			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
 			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
