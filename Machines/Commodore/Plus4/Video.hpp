@@ -860,75 +860,74 @@ private:
 	template <int length, VideoMode mode, bool is_leftovers>
 	void draw_segment() {
 		if constexpr (length == 0) return;
-
 		const auto target = pixels_;
 		pixels_ += length;
 
-		if constexpr (
-			mode == VideoMode::BitmapHighRes ||
-			mode == VideoMode::Text ||
-			mode == VideoMode::ExtendedColourText
-		) {
-			const auto attributes = output_.attributes<0>();
-			const auto colours = [&]() -> std::array<uint16_t, 2> {
-				if constexpr(mode == VideoMode::Text) {
-					return {
-						background_[0],
-						colour(attributes)
-					};
-				}
-
-				const auto character = output_.attributes<1>();
-				if constexpr(mode == VideoMode::BitmapHighRes) {
-					return {
-						colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
-						colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
-					};
-				} else {
-					// i.e. VideoMode::ExtendedColourText.
-					return {
-						background_[character >> 6],
-						colour(attributes)
-					};
-				}
-			}();
-			draw_1bpp_segment<length>(target, colours.data());
-		}
-
-		if constexpr (mode == VideoMode::BitmapMulticolour) {
-			const auto attributes = output_.attributes<0>();
-			const auto character = output_.attributes<1>();
-			const uint16_t colours[] = {
-				background_[0],
-				colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
-				colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
-				background_[1],
-			};
-			draw_2bpp_segment<length, is_leftovers>(target, colours);
-		}
-
-		if constexpr (mode == VideoMode::MulticolourText) {
-			const auto attributes = output_.attributes<0>();
-			if(attributes & 0x08) {
+		switch(mode) {
+			case VideoMode::Text: {
+				const auto attributes = output_.attributes<0>();
 				const uint16_t colours[] = {
 					background_[0],
-					background_[1],
-					background_[2],
-					colour(attributes & ~0x08)
-				};
-				draw_2bpp_segment<length, is_leftovers>(target, colours);
-			} else {
-				const uint16_t colours[] = {
-					background_[0],
-					colour(attributes & ~0x08)
+					colour(attributes)
 				};
 				draw_1bpp_segment<length>(target, colours);
-			}
-		}
+			} break;
 
-		if constexpr (mode == VideoMode::Blank) {
-			output_.advance_pixels(length);
-			std::fill(target, target + length, 0x0000);
+			case VideoMode::ExtendedColourText: {
+				const auto attributes = output_.attributes<0>();
+				const auto character = output_.attributes<1>();
+				const uint16_t colours[] = {
+					background_[character >> 6],
+					colour(attributes)
+				};
+				draw_1bpp_segment<length>(target, colours);
+			} break;
+
+			case VideoMode::MulticolourText: {
+				const auto attributes = output_.attributes<0>();
+				if(attributes & 0x08) {
+					const uint16_t colours[] = {
+						background_[0],
+						background_[1],
+						background_[2],
+						colour(attributes & ~0x08)
+					};
+					draw_2bpp_segment<length, is_leftovers>(target, colours);
+				} else {
+					const uint16_t colours[] = {
+						background_[0],
+						colour(attributes & ~0x08)
+					};
+					draw_1bpp_segment<length>(target, colours);
+				}
+			} break;
+
+			case VideoMode::BitmapHighRes: {
+				const auto attributes = output_.attributes<0>();
+				const auto character = output_.attributes<1>();
+				const uint16_t colours[] = {
+					colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
+					colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
+				};
+				draw_1bpp_segment<length>(target, colours);
+			} break;
+
+			case VideoMode::BitmapMulticolour: {
+				const auto attributes = output_.attributes<0>();
+				const auto character = output_.attributes<1>();
+				const uint16_t colours[] = {
+					background_[0],
+					colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
+					colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
+					background_[1],
+				};
+				draw_2bpp_segment<length, is_leftovers>(target, colours);
+			} break;
+
+			case VideoMode::Blank:
+				std::fill(target, target + length, 0x0000);
+				output_.advance_pixels(length);
+			break;
 		}
 	}
 
