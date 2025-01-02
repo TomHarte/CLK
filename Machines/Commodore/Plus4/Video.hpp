@@ -285,6 +285,10 @@ public:
 			// Advance DMA state machine.
 			for(int cycle = 0; cycle < window_count; cycle++) {
 				const auto is_active = [&] {	return dma_window_ && (bad_line2_ || bad_line());	};
+				const auto set_idle = [&] {
+					dma_state_ = DMAState::IDLE;
+					interrupts_.bus().set_ready_line(false);
+				};
 				switch(dma_state_) {
 					case DMAState::IDLE:
 						if(is_active()) {
@@ -296,13 +300,14 @@ public:
 					case DMAState::THALT3:
 						if(is_active()) {
 							dma_state_ = DMAState(int(dma_state_) + 1);
+							interrupts_.bus().set_ready_line(true);
 						} else {
-							dma_state_ = DMAState::IDLE;
+							set_idle();
 						}
 					break;
 					case DMAState::TDMA:
 						if(!is_active()) {
-							dma_state_ = DMAState::IDLE;
+							set_idle();
 						}
 					break;
 				}
