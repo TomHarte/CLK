@@ -14,6 +14,7 @@
 #include "../../../Numeric/UpperBound.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
+#include <algorithm>
 #include <array>
 
 namespace Commodore::Plus4 {
@@ -869,7 +870,6 @@ private:
 			mode == VideoMode::ExtendedColourText
 		) {
 			const auto attributes = output_.attributes<0>();
-			const auto pixels = output_.pixels();
 			output_.advance_pixels(length);
 
 			const auto colours = [&]() -> std::array<uint16_t, 2> {
@@ -894,21 +894,12 @@ private:
 					};
 				}
 			}();
-
-			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
-			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
-			if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
-			if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
-			if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
-			if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
-			if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
-			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+			draw_1bpp_segment<length>(target, colours.data());
 		}
 
 		if constexpr (mode == VideoMode::BitmapMulticolour) {
 			const auto attributes = output_.attributes<0>();
 			const auto character = output_.attributes<1>();
-			const auto pixels = output_.pixels();
 
 			constexpr int leftover = is_leftovers && (length & 1);
 			if(is_leftovers) {
@@ -923,30 +914,42 @@ private:
 				colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
 				background_[1],
 			};
-
-			// Intention: skip first output if leftover is 1, but still do the correct
-			// length of output.
-			if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
-			if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
-			if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
-			if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
-			if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
-			if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
-			if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
-			if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+			draw_2bpp_segment<length, is_leftovers>(target, colours);
 		}
 
 		if constexpr (mode == VideoMode::Blank) {
 			output_.advance_pixels(length);
-			if constexpr (length >= 1) target[0] = 0x000;
-			if constexpr (length >= 2) target[1] = 0x000;
-			if constexpr (length >= 3) target[2] = 0x000;
-			if constexpr (length >= 4) target[3] = 0x000;
-			if constexpr (length >= 5) target[4] = 0x000;
-			if constexpr (length >= 6) target[5] = 0x000;
-			if constexpr (length >= 7) target[6] = 0x000;
-			if constexpr (length >= 8) target[7] = 0x000;
+			std::fill(target, target + length, 0x0000);
 		}
+	}
+
+	template <int length>
+	void draw_1bpp_segment(uint16_t *const target, const uint16_t *colours) {
+		const auto pixels = output_.pixels();
+		if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
+		if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
+		if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
+		if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
+		if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
+		if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
+		if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
+		if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+	}
+
+	template <int length, bool is_leftovers>
+	void draw_2bpp_segment(uint16_t *const target, const uint16_t *colours) {
+		constexpr int leftover = is_leftovers && (length & 1);
+		const auto pixels = output_.pixels();
+		// Intention: skip first output if leftover is 1, but still do the correct
+		// length of output.
+		if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
+		if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
+		if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
+		if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
+		if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
+		if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
+		if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
+		if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
 	}
 };
 
