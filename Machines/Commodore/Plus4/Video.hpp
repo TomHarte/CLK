@@ -46,6 +46,8 @@ public:
 			case 0xff06:	return ff06_;
 			case 0xff07:	return ff07_;
 			case 0xff0b:	return uint8_t(raster_interrupt_);
+			case 0xff0c:	return cursor_position_ >> 8;
+			case 0xff0d:	return uint8_t(cursor_position_);
 			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
 			case 0xff1d:	return uint8_t(vertical_counter_);
 			case 0xff14:	return uint8_t((video_matrix_base_ >> 8) & 0xf8);
@@ -69,6 +71,27 @@ public:
 				(target & 0xff00) | value
 			);
 		};
+		const auto set_video_mode = [&] {
+			if(bitmap_mode_) {
+				if(extended_colour_mode_) {
+					video_mode_ = VideoMode::Blank;
+				} else if(multicolour_mode_) {
+					video_mode_ = VideoMode::BitmapMulticolour;
+				} else {
+					video_mode_ = VideoMode::BitmapHighRes;
+				}
+			} else {
+				if(multicolour_mode_) {
+					video_mode_ = extended_colour_mode_ ? VideoMode::Blank : VideoMode::MulticolourText;
+				} else if(extended_colour_mode_) {
+					video_mode_ = VideoMode::ExtendedColourText;
+				} else {
+					video_mode_ = VideoMode::Text;
+				}
+			}
+
+//			printf("Mode: %d %d %d -> %d\n", bitmap_mode_, extended_colour_mode_, multicolour_mode_, int(video_mode_));
+		};
 
 		switch(address) {
 			case 0xff06:
@@ -78,6 +101,7 @@ public:
 				display_enable_ = value & 0x10;
 				rows_25_ = value & 8;
 				y_scroll_ = value & 7;
+				set_video_mode();
 			break;
 
 			case 0xff07:
@@ -88,6 +112,7 @@ public:
 				multicolour_mode_ = value & 0x10;
 				columns_40_ = value & 8;
 				x_scroll_ = value & 7;
+				set_video_mode();
 			break;
 
 			case 0xff12:
@@ -487,42 +512,6 @@ public:
 		}
 	}
 
-	template <int scroll>
-	void draw() {
-		draw_standard_character_mode<scroll>();
-		output_.set_attributes(next_attribute_.read());
-		draw_standard_character_mode<8 - scroll>();
-	}
-
-	template <int length>
-	void draw_standard_character_mode() {
-		if constexpr (length == 0) return;
-
-		const auto attributes = output_.attributes();
-		const auto pixels = output_.pixels();
-		output_.advance_pixels(length);
-
-		const uint16_t colours[] = { background_[0], colour(attributes) };
-		const auto target = pixels_;
-		pixels_ += length;
-
-		target[0] = (pixels & 0x80) ? colours[1] : colours[0];
-		if constexpr (length == 1) return;
-		target[1] = (pixels & 0x40) ? colours[1] : colours[0];
-		if constexpr (length == 2) return;
-		target[2] = (pixels & 0x20) ? colours[1] : colours[0];
-		if constexpr (length == 3) return;
-		target[3] = (pixels & 0x10) ? colours[1] : colours[0];
-		if constexpr (length == 4) return;
-		target[4] = (pixels & 0x08) ? colours[1] : colours[0];
-		if constexpr (length == 5) return;
-		target[5] = (pixels & 0x04) ? colours[1] : colours[0];
-		if constexpr (length == 6) return;
-		target[6] = (pixels & 0x02) ? colours[1] : colours[0];
-		if constexpr (length == 7) return;
-		target[7] = (pixels & 0x01) ? colours[1] : colours[0];
-	}
-
 	void set_scan_target(Outputs::Display::ScanTarget *const target) {
 		crt_.set_scan_target(target);
 	}
@@ -548,6 +537,16 @@ private:
 	bool multicolour_mode_ = false;
 	bool columns_40_ = false;
 	int x_scroll_ = 0;
+
+	// Graphics mode, summarised.
+	enum class VideoMode {
+		Text,
+		MulticolourText,
+		ExtendedColourText,
+		BitmapMulticolour,
+		BitmapHighRes,
+		Blank,
+	} video_mode_ = VideoMode::Text;
 
 	uint16_t cursor_position_ = 0;
 	uint16_t character_base_ = 0;
@@ -795,6 +794,103 @@ private:
 		IDLE,
 		THALT1, THALT2, THALT3, TDMA,
 	} dma_state_ = DMAState::IDLE;
+
+	//
+	// Various pixel outputters.
+	//
+	template <int scroll>
+	void draw() {
+		switch(video_mode_) {
+			case VideoMode::Text:
+				draw<scroll, VideoMode::Text>();
+			break;
+			case VideoMode::MulticolourText:
+				draw<scroll, VideoMode::MulticolourText>();
+			break;
+			case VideoMode::ExtendedColourText:
+				draw<scroll, VideoMode::ExtendedColourText>();
+			break;
+			case VideoMode::BitmapMulticolour:
+				draw<scroll, VideoMode::BitmapMulticolour>();
+			break;
+			case VideoMode::BitmapHighRes:
+				draw<scroll, VideoMode::BitmapHighRes>();
+			break;
+			case VideoMode::Blank:
+				draw<scroll, VideoMode::Blank>();
+			break;
+		}
+	}
+
+	template <int scroll, VideoMode mode>
+	void draw() {
+		draw_segment<scroll, mode>();
+		output_.set_attributes(next_attribute_.read());
+		draw_segment<8 - scroll, mode>();
+	}
+
+	template <int length, VideoMode mode>
+	void draw_segment() {
+		if constexpr (length == 0) return;
+		switch(mode) {
+			default:
+			case VideoMode::Text:
+				draw_segment_text<length>();
+			break;
+			case VideoMode::Blank:
+				draw_blank<length>();
+			break;
+		}
+	}
+
+	template <int length>
+	void draw_segment_text() {
+		const auto attributes = output_.attributes();
+		const auto pixels = output_.pixels();
+		output_.advance_pixels(length);
+
+		const uint16_t colours[] = { background_[0], colour(attributes) };
+		const auto target = pixels_;
+		pixels_ += length;
+
+		target[0] = (pixels & 0x80) ? colours[1] : colours[0];
+		if constexpr (length == 1) return;
+		target[1] = (pixels & 0x40) ? colours[1] : colours[0];
+		if constexpr (length == 2) return;
+		target[2] = (pixels & 0x20) ? colours[1] : colours[0];
+		if constexpr (length == 3) return;
+		target[3] = (pixels & 0x10) ? colours[1] : colours[0];
+		if constexpr (length == 4) return;
+		target[4] = (pixels & 0x08) ? colours[1] : colours[0];
+		if constexpr (length == 5) return;
+		target[5] = (pixels & 0x04) ? colours[1] : colours[0];
+		if constexpr (length == 6) return;
+		target[6] = (pixels & 0x02) ? colours[1] : colours[0];
+		if constexpr (length == 7) return;
+		target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+	}
+
+	template <int length>
+	void draw_blank() {
+		const auto target = pixels_;
+		pixels_ += length;
+
+		target[0] = 0x0000;
+		if constexpr (length == 1) return;
+		target[1] = 0x0000;
+		if constexpr (length == 2) return;
+		target[2] = 0x0000;
+		if constexpr (length == 3) return;
+		target[3] = 0x0000;
+		if constexpr (length == 4) return;
+		target[4] = 0x0000;
+		if constexpr (length == 5) return;
+		target[5] = 0x0000;
+		if constexpr (length == 6) return;
+		target[6] = 0x0000;
+		if constexpr (length == 7) return;
+		target[7] = 0x0000;
+	}
 };
 
 }

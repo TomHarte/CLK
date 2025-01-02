@@ -291,9 +291,15 @@ public:
 					case 0xff1c:	*value = video_.read<0xff1c>();	break;
 					case 0xff1d:	*value = video_.read<0xff1d>();	break;
 
+					case 0xff0e:	*value = ff0e_;	break;
+					case 0xff0f:	*value = ff0f_;	break;
+					case 0xff10:	*value = ff10_;	break;
+					case 0xff11:	*value = ff11_;	break;
 					case 0xff12:	*value = ff12_;	break;
 					case 0xff13:	*value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
 
+					case 0xff0c:	*value = video_.read<0xff0c>();	break;
+					case 0xff0d:	*value = video_.read<0xff0d>();	break;
 					case 0xff14:	*value = video_.read<0xff14>();	break;
 					case 0xff15:	*value = video_.read<0xff15>();	break;
 					case 0xff16:	*value = video_.read<0xff16>();	break;
@@ -340,18 +346,22 @@ public:
 					case 0xff0c:	video_.write<0xff0c>(*value);	break;
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
 					case 0xff0e:
+						ff0e_ = *value;
 						update_audio();
 						audio_.set_frequency_low<0>(*value);
 					break;
 					case 0xff0f:
+						ff0f_ = *value;
 						update_audio();
 						audio_.set_frequency_low<1>(*value);
 					break;
 					case 0xff10:
+						ff10_ = *value;
 						update_audio();
 						audio_.set_frequency_high<1>(*value);
 					break;
 					case 0xff11:
+						ff11_ = *value;
 						update_audio();
 						audio_.set_constrol(*value);
 					break;
@@ -474,7 +484,7 @@ private:
 	std::array<uint8_t, 65536> ram_;
 	std::vector<uint8_t> kernel_;
 	std::vector<uint8_t> basic_;
-	uint8_t ff12_, ff13_;
+	uint8_t ff0e_, ff0f_, ff10_, ff11_, ff12_, ff13_;
 
 	Interrupts interrupts_;
 	Cycles timers_subcycles_;
