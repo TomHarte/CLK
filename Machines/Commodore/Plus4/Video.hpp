@@ -314,53 +314,58 @@ public:
 				if(video_shift_ || wide_screen_) {
 					next_attribute_.advance();
 					next_character_.advance();
-					next_cursor_.advance();
+					next_pixels_.advance();
 
-					// TODO: calculation here depends on graphics mode.
-
-					switch(video_mode_) {
-						case VideoMode::Blank:
-						break;
-
-						case VideoMode::Text: {
-							const auto character = next_character_.read();
-							const uint8_t pixels = pager_.read(uint16_t(
-								character_base_ + (character << 3) + vertical_sub_count_
-							)) ^ next_cursor_.read();
-							output_.load_pixels(pixels, x_scroll_);
-						} break;
-
-						case VideoMode::BitmapMulticolour:
-						case VideoMode::BitmapHighRes: {
-							const uint8_t pixels = pager_.read(uint16_t(
-								bitmap_base_ + (video_counter_ << 3) + vertical_sub_count_
-							));
-							output_.load_pixels(pixels, x_scroll_);
-						} break;
-					}
-				} else {
-					output_.reset();
+					output_.load_pixels(next_pixels_.read(), x_scroll_);
 				}
 				if(increment_video_counter_) {
+					//
+					// If this is one of the relevant bad lines then obtain a new character index and attributes,
+					// placing them into the delaying shift registers.
+					//
 					const auto address = [&] { return uint16_t(video_matrix_base_ + video_counter_); };
+					uint8_t character = 0;
 					if(bad_line2_) {
 						shifter_.write<1>(pager_.read(address()));
 					} else if(bad_line()) {
-						next_character_.write(shifter_.read<0>());
+						next_character_.write(character = shifter_.read<0>());
 						shifter_.write<0>(pager_.read(address() + 0x400));
 					}
 
-					if(!bad_line()) next_character_.write(shifter_.read<0>());
+					if(!bad_line()) next_character_.write(character = shifter_.read<0>());
 					next_attribute_.write(shifter_.read<1>());
-					next_cursor_.write(
+					const uint8_t cursor =
 						(flash_count_ & 0x10) &&
 						(
 							(!cursor_position_ && !character_position_) ||
 							((character_position_ == cursor_position_) && vertical_sub_active_)
 						)
-							? 0xff : 0x00
-					);
+							? 0xff : 0x00;
 
+					//
+					// Also obtain pixel data, which is a function of current character in text modes but not
+					// in bitmap modes.
+					//
+					uint8_t pixels = 0;
+					switch(video_mode_) {
+						case VideoMode::Blank:
+						break;
+
+						case VideoMode::Text:
+							pixels = pager_.read(uint16_t(
+								character_base_ + (character << 3) + vertical_sub_count_
+							)) ^ cursor;
+						break;
+
+						case VideoMode::BitmapMulticolour:
+						case VideoMode::BitmapHighRes:
+							pixels = pager_.read(uint16_t(
+								bitmap_base_ + (video_counter_ << 3) + vertical_sub_count_
+							));
+						break;
+					}
+
+					next_pixels_.write(pixels);
 					shifter_.advance();
 					++video_counter_;
 				}
@@ -525,7 +530,7 @@ public:
 					if(enable_display_) {
 						character_window_ = video_shift_ = true;
 					}
-					next_pixels_ = 0;
+					output_.reset();
 				break;
 			}
 
@@ -642,7 +647,6 @@ private:
 
 	uint16_t video_counter_ = 0;
 	uint16_t video_counter_reload_ = 0;
-	uint16_t next_pixels_ = 0;
 
 	enum class OutputState {
 		Blank,
@@ -726,7 +730,7 @@ private:
 	};
 	ShiftRegister<3> next_attribute_;
 	ShiftRegister<3> next_character_;
-	ShiftRegister<3> next_cursor_;
+	ShiftRegister<3> next_pixels_;
 
 	/// Maintains a 16-bit pixel shift register along with a hard-switchover
 	/// set of attributes.
