@@ -286,7 +286,7 @@ public:
 					next_character_.advance();
 					next_cursor_.advance();
 
-					// TODO: is this calculation different for pixel modes?
+					// TODO: calculation here depends on graphics mode.
 					const auto character = next_character_.read();
 					const uint8_t pixels = pager_.read(uint16_t(
 						character_base_ + (character << 3) + vertical_sub_count_
@@ -323,21 +323,16 @@ public:
 				}
 
 				if(state == OutputState::Pixels && pixels_) {
-					const auto attribute = next_attribute_.read();
-					const auto pixels = output_.pixels();
-					output_.advance_pixels(8);
-					const uint16_t colours[] = { background_[0], colour(attribute) };
-
-					pixels_[0] = (pixels & 0x80) ? colours[1] : colours[0];
-					pixels_[1] = (pixels & 0x40) ? colours[1] : colours[0];
-					pixels_[2] = (pixels & 0x20) ? colours[1] : colours[0];
-					pixels_[3] = (pixels & 0x10) ? colours[1] : colours[0];
-					pixels_[4] = (pixels & 0x08) ? colours[1] : colours[0];
-					pixels_[5] = (pixels & 0x04) ? colours[1] : colours[0];
-					pixels_[6] = (pixels & 0x02) ? colours[1] : colours[0];
-					pixels_[7] = (pixels & 0x01) ? colours[1] : colours[0];
-
-					pixels_ += 8;
+					switch(x_scroll_) {
+						case 0:	draw<0>();	break;
+						case 1:	draw<1>();	break;
+						case 2:	draw<2>();	break;
+						case 3:	draw<3>();	break;
+						case 4:	draw<4>();	break;
+						case 5:	draw<5>();	break;
+						case 6:	draw<6>();	break;
+						case 7:	draw<7>();	break;
+					}
 				}
 			}
 			time_in_state_ += period;
@@ -418,7 +413,6 @@ public:
 					schedule<8>(DelayedEvent::IncrementVerticalLine);
 					next_vertical_counter_ = video_line_ == eos() ? 0 : ((vertical_counter_ + 1) & 511);
 					horizontal_burst_ = true;
-					printf("\n");
 				break;
 
 				case HorizontalEvent::EndExternalFetchWindow:
@@ -493,10 +487,41 @@ public:
 		}
 	}
 
-//	template <int offset>
-//	void draw_standard_character_mode() {
-//
-//	}
+	template <int scroll>
+	void draw() {
+		draw_standard_character_mode<scroll>();
+		output_.set_attributes(next_attribute_.read());
+		draw_standard_character_mode<8 - scroll>();
+	}
+
+	template <int length>
+	void draw_standard_character_mode() {
+		if constexpr (length == 0) return;
+
+		const auto attributes = output_.attributes();
+		const auto pixels = output_.pixels();
+		output_.advance_pixels(length);
+
+		const uint16_t colours[] = { background_[0], colour(attributes) };
+		const auto target = pixels_;
+		pixels_ += length;
+
+		target[0] = (pixels & 0x80) ? colours[1] : colours[0];
+		if constexpr (length == 1) return;
+		target[1] = (pixels & 0x40) ? colours[1] : colours[0];
+		if constexpr (length == 2) return;
+		target[2] = (pixels & 0x20) ? colours[1] : colours[0];
+		if constexpr (length == 3) return;
+		target[3] = (pixels & 0x10) ? colours[1] : colours[0];
+		if constexpr (length == 4) return;
+		target[4] = (pixels & 0x08) ? colours[1] : colours[0];
+		if constexpr (length == 5) return;
+		target[5] = (pixels & 0x04) ? colours[1] : colours[0];
+		if constexpr (length == 6) return;
+		target[6] = (pixels & 0x02) ? colours[1] : colours[0];
+		if constexpr (length == 7) return;
+		target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) {
 		crt_.set_scan_target(target);
