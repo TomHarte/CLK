@@ -352,8 +352,15 @@ public:
 						break;
 
 						case VideoMode::Text:
+						case VideoMode::MulticolourText:
 							pixels = pager_.read(uint16_t(
 								character_base_ + (character << 3) + vertical_sub_count_
+							)) ^ cursor;
+						break;
+
+						case VideoMode::ExtendedColourText:
+							pixels = pager_.read(uint16_t(
+								character_base_ + ((character & 0x3f) << 3) + vertical_sub_count_
 							)) ^ cursor;
 						break;
 
