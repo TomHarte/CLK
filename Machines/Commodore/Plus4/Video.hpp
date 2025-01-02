@@ -285,6 +285,15 @@ public:
 					next_attribute_.advance();
 					next_character_.advance();
 					next_cursor_.advance();
+
+					// TODO: is this calculation different for pixel modes?
+					const auto character = next_character_.read();
+					const uint8_t pixels = pager_.read(uint16_t(
+						character_base_ + (character << 3) + vertical_sub_count_
+					)) ^ next_cursor_.read();
+					output_.load_pixels(pixels, x_scroll_);
+				} else {
+					output_.reset();
 				}
 				if(increment_video_counter_) {
 					const auto address = [&] { return uint16_t(video_matrix_base_ + video_counter_); };
@@ -314,12 +323,9 @@ public:
 				}
 
 				if(state == OutputState::Pixels && pixels_) {
-					const auto pixel_address = next_character_.read();
-					const auto pixels = pager_.read(uint16_t(
-						character_base_ + (pixel_address << 3) + vertical_sub_count_
-					)) ^ next_cursor_.read();
-
 					const auto attribute = next_attribute_.read();
+					const auto pixels = output_.pixels();
+					output_.advance_pixels(8);
 					const uint16_t colours[] = { background_[0], colour(attribute) };
 
 					pixels_[0] = (pixels & 0x80) ? colours[1] : colours[0];
@@ -676,6 +682,40 @@ private:
 	ShiftRegister<3> next_attribute_;
 	ShiftRegister<3> next_character_;
 	ShiftRegister<3> next_cursor_;
+
+	/// Maintains a 16-bit pixel shift register along with a hard-switchover
+	/// set of attributes.
+	struct OutputSegment {
+	public:
+		void advance_pixels(int distance) {
+			pixels_ <<= distance;
+		}
+		void load_pixels(uint8_t source, int offset) {
+			const auto shift = 8 - offset;
+			pixels_ &= ~(0xff << shift);
+			pixels_ |= source << shift;
+		}
+		uint8_t pixels() const {
+			return uint8_t(pixels_ >> 8);
+		}
+
+		void set_attributes(uint8_t attributes) {
+			attributes_ = attributes;
+		}
+		uint8_t attributes() const {
+			return attributes_;
+		}
+
+		void reset() {
+			pixels_ = 0;
+			attributes_ = 0;
+		}
+
+	private:
+		uint16_t pixels_;
+		uint8_t attributes_;
+	};
+	OutputSegment output_;
 
 	// List of counter-triggered events.
 	enum class HorizontalEvent: unsigned int {
