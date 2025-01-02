@@ -312,11 +312,27 @@ public:
 					next_cursor_.advance();
 
 					// TODO: calculation here depends on graphics mode.
-					const auto character = next_character_.read();
-					const uint8_t pixels = pager_.read(uint16_t(
-						character_base_ + (character << 3) + vertical_sub_count_
-					)) ^ next_cursor_.read();
-					output_.load_pixels(pixels, x_scroll_);
+
+					switch(video_mode_) {
+						case VideoMode::Blank:
+						break;
+
+						case VideoMode::Text: {
+							const auto character = next_character_.read();
+							const uint8_t pixels = pager_.read(uint16_t(
+								character_base_ + (character << 3) + vertical_sub_count_
+							)) ^ next_cursor_.read();
+							output_.load_pixels(pixels, x_scroll_);
+						} break;
+
+						case VideoMode::BitmapMulticolour:
+						case VideoMode::BitmapHighRes: {
+							const uint8_t pixels = pager_.read(uint16_t(
+								bitmap_base_ + (video_counter_ << 3) + vertical_sub_count_
+							));
+							output_.load_pixels(pixels, x_scroll_);
+						} break;
+					}
 				} else {
 					output_.reset();
 				}
@@ -847,7 +863,29 @@ private:
 			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
 		}
 
+		if constexpr (mode == VideoMode::BitmapHighRes) {
+			const auto attributes = output_.attributes<0>();
+			const auto character = output_.attributes<1>();
+			const auto pixels = output_.pixels();
+			output_.advance_pixels(length);
+
+			const uint16_t colours[] = {
+				colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
+				colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
+			};
+
+			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
+			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
+			if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
+			if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
+			if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
+			if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
+			if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
+			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+		}
+
 		if constexpr (mode == VideoMode::Blank) {
+			output_.advance_pixels(length);
 			if constexpr (length >= 1) target[0] = 0x000;
 			if constexpr (length >= 2) target[1] = 0x000;
 			if constexpr (length >= 3) target[2] = 0x000;
