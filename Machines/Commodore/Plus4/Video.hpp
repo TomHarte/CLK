@@ -723,21 +723,23 @@ private:
 			return uint8_t(pixels_ >> 8);
 		}
 
+		template <int index>
 		void set_attributes(uint8_t attributes) {
-			attributes_ = attributes;
+			attributes_[index] = attributes;
 		}
+		template <int index>
 		uint8_t attributes() const {
-			return attributes_;
+			return attributes_[index];
 		}
 
 		void reset() {
 			pixels_ = 0;
-			attributes_ = 0;
+			attributes_[0] = attributes_[1] = 0;
 		}
 
 	private:
 		uint16_t pixels_;
-		uint8_t attributes_;
+		uint8_t attributes_[2];
 	};
 	OutputSegment output_;
 
@@ -800,96 +802,61 @@ private:
 	//
 	template <int scroll>
 	void draw() {
+		// Bake in the video mode.
 		switch(video_mode_) {
-			case VideoMode::Text:
-				draw<scroll, VideoMode::Text>();
-			break;
-			case VideoMode::MulticolourText:
-				draw<scroll, VideoMode::MulticolourText>();
-			break;
-			case VideoMode::ExtendedColourText:
-				draw<scroll, VideoMode::ExtendedColourText>();
-			break;
-			case VideoMode::BitmapMulticolour:
-				draw<scroll, VideoMode::BitmapMulticolour>();
-			break;
-			case VideoMode::BitmapHighRes:
-				draw<scroll, VideoMode::BitmapHighRes>();
-			break;
-			case VideoMode::Blank:
-				draw<scroll, VideoMode::Blank>();
-			break;
+			case VideoMode::Text:				draw<scroll, VideoMode::Text>();				break;
+			case VideoMode::MulticolourText:	draw<scroll, VideoMode::MulticolourText>();		break;
+			case VideoMode::ExtendedColourText:	draw<scroll, VideoMode::ExtendedColourText>();	break;
+			case VideoMode::BitmapMulticolour:	draw<scroll, VideoMode::BitmapMulticolour>();	break;
+			case VideoMode::BitmapHighRes:		draw<scroll, VideoMode::BitmapHighRes>();		break;
+			case VideoMode::Blank:				draw<scroll, VideoMode::Blank>();				break;
 		}
 	}
 
 	template <int scroll, VideoMode mode>
 	void draw() {
-		draw_segment<scroll, mode>();
-		output_.set_attributes(next_attribute_.read());
-		draw_segment<8 - scroll, mode>();
+		// Finish off whatever is in the shifter up until the point that x position hits
+		// the current scroll, then roll over on attributes and fill in the rest of the window
+		// from there.
+		draw_segment<scroll, mode, true>();
+		output_.set_attributes<0>(next_attribute_.read());
+		output_.set_attributes<1>(next_character_.read());
+		draw_segment<8 - scroll, mode, false>();
 	}
 
-	template <int length, VideoMode mode>
+	template <int length, VideoMode mode, bool is_leftovers>
 	void draw_segment() {
 		if constexpr (length == 0) return;
-		switch(mode) {
-			default:
-			case VideoMode::Text:
-				draw_segment_text<length>();
-			break;
-			case VideoMode::Blank:
-				draw_blank<length>();
-			break;
+
+		const auto target = pixels_;
+		pixels_ += length;
+
+		if constexpr (mode == VideoMode::Text) {
+			const auto attributes = output_.attributes<0>();
+			const auto pixels = output_.pixels();
+			output_.advance_pixels(length);
+			const uint16_t colours[] = { background_[0], colour(attributes) };
+
+			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
+			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
+			if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
+			if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
+			if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
+			if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
+			if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
+			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
 		}
-	}
 
-	template <int length>
-	void draw_segment_text() {
-		const auto attributes = output_.attributes();
-		const auto pixels = output_.pixels();
-		output_.advance_pixels(length);
-
-		const uint16_t colours[] = { background_[0], colour(attributes) };
-		const auto target = pixels_;
-		pixels_ += length;
-
-		target[0] = (pixels & 0x80) ? colours[1] : colours[0];
-		if constexpr (length == 1) return;
-		target[1] = (pixels & 0x40) ? colours[1] : colours[0];
-		if constexpr (length == 2) return;
-		target[2] = (pixels & 0x20) ? colours[1] : colours[0];
-		if constexpr (length == 3) return;
-		target[3] = (pixels & 0x10) ? colours[1] : colours[0];
-		if constexpr (length == 4) return;
-		target[4] = (pixels & 0x08) ? colours[1] : colours[0];
-		if constexpr (length == 5) return;
-		target[5] = (pixels & 0x04) ? colours[1] : colours[0];
-		if constexpr (length == 6) return;
-		target[6] = (pixels & 0x02) ? colours[1] : colours[0];
-		if constexpr (length == 7) return;
-		target[7] = (pixels & 0x01) ? colours[1] : colours[0];
-	}
-
-	template <int length>
-	void draw_blank() {
-		const auto target = pixels_;
-		pixels_ += length;
-
-		target[0] = 0x0000;
-		if constexpr (length == 1) return;
-		target[1] = 0x0000;
-		if constexpr (length == 2) return;
-		target[2] = 0x0000;
-		if constexpr (length == 3) return;
-		target[3] = 0x0000;
-		if constexpr (length == 4) return;
-		target[4] = 0x0000;
-		if constexpr (length == 5) return;
-		target[5] = 0x0000;
-		if constexpr (length == 6) return;
-		target[6] = 0x0000;
-		if constexpr (length == 7) return;
-		target[7] = 0x0000;
+		if constexpr (mode == VideoMode::Blank) {
+			if constexpr (length >= 1) target[0] = 0x000;
+			if constexpr (length >= 2) target[1] = 0x000;
+			if constexpr (length >= 3) target[2] = 0x000;
+			if constexpr (length >= 4) target[3] = 0x000;
+			if constexpr (length >= 5) target[4] = 0x000;
+			if constexpr (length >= 6) target[5] = 0x000;
+			if constexpr (length >= 7) target[6] = 0x000;
+			if constexpr (length >= 8) target[7] = 0x000;
+		}
 	}
 };
 
