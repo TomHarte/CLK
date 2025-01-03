@@ -117,7 +117,7 @@ public:
 			break;
 
 			case 0xff12:
-				bitmap_base_ = uint16_t((value & 0x3c) << 10);
+				bitmap_base_ = uint16_t((value & 0x38) << 10);
 			break;
 			case 0xff13:
 				character_base_ = uint16_t((value & 0xfc) << 8);
@@ -152,7 +152,7 @@ public:
 //				Cycles(EndCharacterFetchWindow - horizontal_counter_ + EndOfLine) * is_ntsc_ ? Cycles(4) : Cycles(5) / 2;
 		}
 
-		const bool is_long_cycle = single_clock_ || refresh_ || external_fetch_;
+		const bool is_long_cycle = single_clock_ || refresh_ || (external_fetch_ && enable_display_);
 
 		if(is_ntsc_) {
 			return is_long_cycle ? Cycles(16) : Cycles(8);
@@ -324,24 +324,27 @@ public:
 					// If this is one of the relevant bad lines then obtain a new character index and attributes,
 					// placing them into the delaying shift registers.
 					//
+					const uint8_t character = shifter_.read<0>();
+					next_character_.write(character);
+
 					const auto address = [&] { return uint16_t(video_matrix_base_ + video_counter_); };
-					uint8_t character = 0;
 					if(bad_line2_) {
 						shifter_.write<1>(pager_.read(address()));
 					} else if(bad_line()) {
-						next_character_.write(character = shifter_.read<0>());
 						shifter_.write<0>(pager_.read(address() + 0x400));
 					}
 
-					if(!bad_line()) next_character_.write(character = shifter_.read<0>());
 					next_attribute_.write(shifter_.read<1>());
-					const uint8_t cursor =
-						(flash_count_ & 0x10) &&
-						(
-							(!cursor_position_ && !character_position_) ||
-							((character_position_ == cursor_position_) && vertical_sub_active_)
-						)
-							? 0xff : 0x00;
+
+					const auto cursor = [&]() -> uint8_t {
+						return
+							(flash_count_ & 0x10) &&
+							(
+								(!cursor_position_ && !character_position_) ||
+								((character_position_ == cursor_position_) && vertical_sub_active_)
+							)
+								? 0xff : 0x00;
+					};
 
 					//
 					// Also obtain pixel data, which is a function of current character in text modes but not
@@ -353,16 +356,18 @@ public:
 						break;
 
 						case VideoMode::Text:
-						case VideoMode::MulticolourText:
-							pixels = pager_.read(uint16_t(
-								character_base_ + (character << 3) + vertical_sub_count_
-							)) ^ cursor;
-						break;
+						case VideoMode::MulticolourText: {
+							const uint16_t address_top =
+								characters_256_ ?
+									uint16_t((character_base_ & 0xf800) + (character << 3)) :
+									uint16_t(character_base_ + ((character & 0x7f) << 3));
+							pixels = pager_.read(uint16_t(address_top + vertical_sub_count_)) ^ cursor();
+						} break;
 
 						case VideoMode::ExtendedColourText:
 							pixels = pager_.read(uint16_t(
 								character_base_ + ((character & 0x3f) << 3) + vertical_sub_count_
-							)) ^ cursor;
+							)) ^ cursor();
 						break;
 
 						case VideoMode::MulticolourBitmap:
@@ -862,6 +867,8 @@ private:
 		if constexpr (length == 0) return;
 		const auto target = pixels_;
 		if(target) pixels_ += length;
+
+		// TODO: check character top bit for potential flash if characters_256_ is false.
 
 		switch(mode) {
 			case VideoMode::Text: {
