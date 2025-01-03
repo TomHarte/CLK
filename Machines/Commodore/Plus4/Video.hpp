@@ -870,26 +870,13 @@ private:
 		const auto target = pixels_;
 		if(target) pixels_ += length;
 
-		const auto invert_char = [&]() -> bool {
-			if(characters_256_) return false;
-			const auto character = output_.attributes<1>();
-			return character & 0x80;
-		};
-		const auto flash_char = [&](uint8_t attributes) -> bool {
-			return (attributes & 0x80) && (flash_count_ & 0x10);
-		};
-
 		switch(mode) {
 			case VideoMode::Text: {
 				const auto attributes = output_.attributes<0>();
-				const uint16_t source_colours[] = {
-					colour(attributes), background_[0]
-				};
 				const uint16_t colours[] = {
-					invert_char() != flash_char(attributes) ? source_colours[0] : source_colours[1],
-					invert_char() ? source_colours[1] : source_colours[0],
+					background_[0], colour(attributes)
 				};
-				draw_1bpp_segment<length>(target, colours);
+				draw_1bpp_segment<length, true>(target, colours);
 			} break;
 
 			case VideoMode::ExtendedColourText: {
@@ -899,7 +886,7 @@ private:
 					background_[character >> 6],
 					colour(attributes),
 				};
-				draw_1bpp_segment<length>(target, colours);
+				draw_1bpp_segment<length, false>(target, colours);
 			} break;
 
 			case VideoMode::MulticolourText: {
@@ -914,10 +901,10 @@ private:
 					draw_2bpp_segment<length, is_leftovers>(target, colours);
 				} else {
 					const uint16_t colours[] = {
-						invert_char() ? colour(attributes & ~0x08) : background_[0],
-						invert_char() ? background_[0] : colour(attributes & ~0x08),
+						background_[0],
+						colour(attributes & ~0x08),
 					};
-					draw_1bpp_segment<length>(target, colours);
+					draw_1bpp_segment<length, true>(target, colours);
 				}
 			} break;
 
@@ -928,7 +915,7 @@ private:
 					colour((character >> 0) & 0xf, (attributes >> 4) & 0x7),
 					colour((character >> 4) & 0xf, (attributes >> 0) & 0x7),
 				};
-				draw_1bpp_segment<length>(target, colours);
+				draw_1bpp_segment<length, false>(target, colours);
 			} break;
 
 			case VideoMode::MulticolourBitmap: {
@@ -950,10 +937,19 @@ private:
 		}
 	}
 
-	template <int length>
+	template <int length, bool support_inversion>
 	void draw_1bpp_segment(uint16_t *const target, const uint16_t *colours) {
 		if(target) {
-			const auto pixels = output_.pixels();
+			uint8_t pixels = output_.pixels();
+
+			// TODO: I feel like more of this could be outside the loop.
+			if((output_.attributes<0>()&0x80) && (flash_count_ & 0x10)) pixels = 0;
+			if constexpr (support_inversion) {
+				if(!characters_256_ && (output_.attributes<1>()&0x80)) {
+					pixels ^= 0xff;
+				}
+			}
+
 			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
 			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
 			if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
