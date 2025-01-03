@@ -381,7 +381,7 @@ public:
 					++character_position_;
 				}
 
-				if(state == OutputState::Pixels && pixels_) {
+				if(state == OutputState::Pixels) {
 					switch(x_scroll_) {
 						case 0:	draw<0>();	break;
 						case 1:	draw<1>();	break;
@@ -861,7 +861,7 @@ private:
 	void draw_segment() {
 		if constexpr (length == 0) return;
 		const auto target = pixels_;
-		pixels_ += length;
+		if(target) pixels_ += length;
 
 		switch(mode) {
 			case VideoMode::Text: {
@@ -933,15 +933,17 @@ private:
 
 	template <int length>
 	void draw_1bpp_segment(uint16_t *const target, const uint16_t *colours) {
-		const auto pixels = output_.pixels();
-		if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
-		if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
-		if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
-		if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
-		if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
-		if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
-		if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
-		if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+		if(target) {
+			const auto pixels = output_.pixels();
+			if constexpr (length >= 1) target[0] = (pixels & 0x80) ? colours[1] : colours[0];
+			if constexpr (length >= 2) target[1] = (pixels & 0x40) ? colours[1] : colours[0];
+			if constexpr (length >= 3) target[2] = (pixels & 0x20) ? colours[1] : colours[0];
+			if constexpr (length >= 4) target[3] = (pixels & 0x10) ? colours[1] : colours[0];
+			if constexpr (length >= 5) target[4] = (pixels & 0x08) ? colours[1] : colours[0];
+			if constexpr (length >= 6) target[5] = (pixels & 0x04) ? colours[1] : colours[0];
+			if constexpr (length >= 7) target[6] = (pixels & 0x02) ? colours[1] : colours[0];
+			if constexpr (length >= 8) target[7] = (pixels & 0x01) ? colours[1] : colours[0];
+		}
 
 		output_.advance_pixels(length);
 	}
@@ -949,17 +951,19 @@ private:
 	template <int length, bool is_leftovers>
 	void draw_2bpp_segment(uint16_t *const target, const uint16_t *colours) {
 		constexpr int leftover = is_leftovers && (length & 1);
-		const auto pixels = output_.pixels();
-		// Intention: skip first output if leftover is 1, but still do the correct
-		// length of output.
-		if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
-		if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
-		if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
-		if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
-		if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
-		if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
-		if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
-		if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+		if(target) {
+			const auto pixels = output_.pixels();
+			// Intention: skip first output if leftover is 1, but still do the correct
+			// length of output.
+			if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
+			if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
+			if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
+			if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+		}
 
 		if(is_leftovers) {
 			output_.advance_pixels(length + leftover);
