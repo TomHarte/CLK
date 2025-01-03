@@ -375,6 +375,8 @@ public:
 							pixels = pager_.read(uint16_t(
 								bitmap_base_ + (video_counter_ << 3) + vertical_sub_count_
 							));
+							// TODO: taking the next vertical sub count rather than the current seems to
+							// fix bitmap mode. So look for an off by one on that somewhere, somehow.
 						break;
 					}
 
