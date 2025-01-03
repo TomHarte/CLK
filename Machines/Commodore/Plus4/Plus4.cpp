@@ -43,15 +43,15 @@ public:
 		};
 
 		constexpr auto timer = offset >> 1;
-		paused_[timer] = !(offset & 1);
+		paused_[timer] = ~offset & 1;
 		if constexpr (offset & 1) {
 			load_high(timers_[timer]);
-			if(!timer) {
+			if constexpr (!timer) {
 				load_high(timer0_reload_);
 			}
 		} else {
 			load_low(timers_[timer]);
-			if(!timer) {
+			if constexpr (!timer) {
 				load_low(timer0_reload_);
 			}
 		}
@@ -229,7 +229,7 @@ public:
 					*value = io_direction_;
 				} else {
 					const uint8_t all_inputs =
-						(tape_player_->input() ? 0x10 : 0x00) |
+						(tape_player_->input() ? 0x00 : 0x10) |
 						(serial_port_.level(Serial::Line::Data) ? 0x80 : 0x00) |
 						(serial_port_.level(Serial::Line::Clock) ? 0x40 : 0x00);
 					*value =
