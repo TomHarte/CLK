@@ -868,14 +868,24 @@ private:
 		const auto target = pixels_;
 		if(target) pixels_ += length;
 
-		// TODO: check character top bit for potential flash if characters_256_ is false.
+		const auto invert_char = [&]() -> bool {
+			if(characters_256_) return false;
+			const auto character = output_.attributes<1>();
+			return character & 0x80;
+		};
+		const auto flash_char = [&](uint8_t attributes) -> bool {
+			return (attributes & 0x80) && (flash_count_ & 0x10);
+		};
 
 		switch(mode) {
 			case VideoMode::Text: {
 				const auto attributes = output_.attributes<0>();
+				const uint16_t source_colours[] = {
+					colour(attributes), background_[0]
+				};
 				const uint16_t colours[] = {
-					background_[0],
-					colour(attributes)
+					invert_char() != flash_char(attributes) ? source_colours[0] : source_colours[1],
+					invert_char() ? source_colours[1] : source_colours[0],
 				};
 				draw_1bpp_segment<length>(target, colours);
 			} break;
@@ -885,7 +895,7 @@ private:
 				const auto character = output_.attributes<1>();
 				const uint16_t colours[] = {
 					background_[character >> 6],
-					colour(attributes)
+					colour(attributes),
 				};
 				draw_1bpp_segment<length>(target, colours);
 			} break;
@@ -897,13 +907,13 @@ private:
 						background_[0],
 						background_[1],
 						background_[2],
-						colour(attributes & ~0x08)
+						colour(attributes & ~0x08),
 					};
 					draw_2bpp_segment<length, is_leftovers>(target, colours);
 				} else {
 					const uint16_t colours[] = {
-						background_[0],
-						colour(attributes & ~0x08)
+						invert_char() ? colour(attributes & ~0x08) : background_[0],
+						invert_char() ? background_[0] : colour(attributes & ~0x08),
 					};
 					draw_1bpp_segment<length>(target, colours);
 				}
