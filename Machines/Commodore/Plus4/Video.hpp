@@ -114,6 +114,16 @@ public:
 				columns_40_ = value & 8;
 				x_scroll_ = value & 7;
 				set_video_mode();
+
+				if(characters_256_) {
+					character_base_mask_ = 0xf800;
+					character_mask_ = 0xff;
+					inversion_mask_ = 0x00;
+				} else {
+					character_base_mask_ = 0xfc00;
+					character_mask_ = 0x7f;
+					inversion_mask_ = 0xff;
+				}
 			break;
 
 			case 0xff12:
@@ -338,12 +348,11 @@ public:
 
 					const auto cursor = [&]() -> uint8_t {
 						return
-							(flash_count_ & 0x10) &&
 							(
 								(!cursor_position_ && !character_position_) ||
 								((character_position_ == cursor_position_) && vertical_sub_active_)
 							)
-								? 0xff : 0x00;
+								? flash_mask_ : 0x00;
 					};
 
 					//
@@ -356,13 +365,13 @@ public:
 						break;
 
 						case VideoMode::Text:
-						case VideoMode::MulticolourText: {
-							const uint16_t address_top =
-								characters_256_ ?
-									uint16_t((character_base_ & 0xf800) + (character << 3)) :
-									uint16_t(character_base_ + ((character & 0x7f) << 3));
-							pixels = pager_.read(uint16_t(address_top + vertical_sub_count_)) ^ cursor();
-						} break;
+						case VideoMode::MulticolourText:
+							pixels = pager_.read(uint16_t(
+								(character_base_ & character_base_mask_) +
+								((character & character_mask_) << 3)
+								+ vertical_sub_count_
+							)) ^ cursor();
+						break;
 
 						case VideoMode::ExtendedColourText:
 							pixels = pager_.read(uint16_t(
@@ -423,6 +432,7 @@ public:
 				if(delayed_events_ & uint64_t(DelayedEvent::Flash)) {
 					if(vertical_counter_ == 205) {
 						++flash_count_;
+						flash_mask_ = (flash_count_ & 0x10) ? 0xff : 0x00;
 					}
 				}
 
@@ -570,12 +580,16 @@ private:
 	bool rows_25_ = false;
 	int y_scroll_ = 0;
 
-	bool characters_256_ = false;
 	bool is_ntsc_ = false;
 	bool ted_off_ = false;
 	bool multicolour_mode_ = false;
 	bool columns_40_ = false;
 	int x_scroll_ = 0;
+
+	bool characters_256_ = false;
+	uint16_t character_base_mask_ = 0xf800;
+	uint8_t character_mask_ = 0xff;
+	uint8_t inversion_mask_ = 0x00;
 
 	// Graphics mode, summarised.
 	enum class VideoMode {
@@ -657,6 +671,7 @@ private:
 	bool vertical_blank_ = false;
 
 	int flash_count_ = 0;
+	uint8_t flash_mask_ = 0xff;
 
 	uint16_t video_counter_ = 0;
 	uint16_t video_counter_reload_ = 0;
@@ -940,11 +955,10 @@ private:
 		if(target) {
 			uint8_t pixels = output_.pixels();
 
-			// TODO: I feel like more of this could be outside the loop.
-			if((output_.attributes<0>()&0x80) && (flash_count_ & 0x10)) pixels = 0;
+			if(output_.attributes<0>()&0x80) pixels &= flash_mask_;
 			if constexpr (support_inversion) {
-				if(!characters_256_ && (output_.attributes<1>()&0x80)) {
-					pixels ^= 0xff;
+				if(output_.attributes<1>()&0x80) {
+					pixels ^= inversion_mask_;
 				}
 			}
 
