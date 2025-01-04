@@ -10,16 +10,17 @@
 @import AudioToolbox;
 #include <stdatomic.h>
 
-#define OSSGuard(x)	{			\
-	const OSStatus status = x;	\
-	assert(!status);			\
-	(void)status;				\
+typedef OSStatus (^OSGuardable)(void);
+static void OSSGuard(OSGuardable guardable) {
+	const OSStatus status = guardable();
+	assert(!status);
+	(void)status;
 }
 
-#define IsDry(x)	(x) < 2
+static BOOL IsDry(int x) { return x < 2; }
 
-#define MaximumBacklog	4
-#define NumBuffers		(MaximumBacklog + 1)
+static const int MaximumBacklog = 4;
+static const int NumBuffers = MaximumBacklog + 1;
 
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
@@ -98,7 +99,7 @@
 						const int buffers = atomic_fetch_add(&queue->_enqueuedBuffers, -1) - 1;
 						if(!buffers) {
 							[queue->_queueLock lock];
-								OSSGuard(AudioQueuePause(inAQ));
+								OSSGuard(^{return AudioQueuePause(inAQ);});
 							[queue->_queueLock unlock];
 						}
 
@@ -121,20 +122,20 @@
 	[_deallocLock lock];
 		// Ensure no buffers remain enqueued by stopping the queue.
 		if(_audioQueue) {
-			OSSGuard(AudioQueueStop(_audioQueue, true));
+			OSSGuard(^{return AudioQueueStop(self->_audioQueue, true);});
 		}
 
 		// Free all buffers.
 		for(size_t c = 0; c < NumBuffers; c++) {
 			if(_buffers[c]) {
-				OSSGuard(AudioQueueFreeBuffer(_audioQueue, _buffers[c]));
+				OSSGuard(^{return AudioQueueFreeBuffer(self->_audioQueue, self->_buffers[c]);});
 				_buffers[c] = NULL;
 			}
 		}
 
 		// Dispose of the queue.
 		if(_audioQueue) {
-			OSSGuard(AudioQueueDispose(_audioQueue, true));
+			OSSGuard(^{return AudioQueueDispose(self->_audioQueue, true);});
 			_audioQueue = NULL;
 		}
 
@@ -155,10 +156,10 @@
 		const size_t bufferBytes = self.bufferSize * sizeof(int16_t) * _numChannels;
 		for(size_t c = 0; c < NumBuffers; c++) {
 			if(_buffers[c]) {
-				OSSGuard(AudioQueueFreeBuffer(_audioQueue, _buffers[c]));
+				OSSGuard(^{return AudioQueueFreeBuffer(self->_audioQueue, self->_buffers[c]);});
 			}
 
-			OSSGuard(AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes, &_buffers[c]));
+			OSSGuard(^{return AudioQueueAllocateBuffer(self->_audioQueue, (UInt32)bufferBytes, &self->_buffers[c]);});
 			_buffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
 		}
 	[_queueLock unlock];
@@ -179,12 +180,12 @@
 	memcpy(_buffers[targetBuffer]->mAudioData, buffer, bufferBytes);
 
 	[_queueLock lock];
-		OSSGuard(AudioQueueEnqueueBuffer(_audioQueue, _buffers[targetBuffer], 0, NULL));
+		OSSGuard(^{return AudioQueueEnqueueBuffer(self->_audioQueue, self->_buffers[targetBuffer], 0, NULL);});
 
 		// Starting is a no-op if the queue is already playing, but it may not have been started
 		// yet, or may have been paused due to a pipeline failure if the producer is running slowly.
 		if(enqueuedBuffers > 1) {
-			OSSGuard(AudioQueueStart(_audioQueue, NULL));
+			OSSGuard(^{return AudioQueueStart(self->_audioQueue, NULL);});
 		}
 	[_queueLock unlock];
 }
