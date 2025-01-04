@@ -275,7 +275,11 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		switch machineSelector.selectedTabViewItem!.identifier as! String {
 
 			case "amiga":
-				return CSStaticAnalyser(amigaModel: .A500, chipMemorySize: Kilobytes(amigaChipRAMButton.selectedTag()), fastMemorySize: Kilobytes(amigaFastRAMButton.selectedTag()))
+				return CSStaticAnalyser(
+					amigaModel: .A500,
+					chipMemorySize: Kilobytes(amigaChipRAMButton.selectedTag()),
+					fastMemorySize: Kilobytes(amigaFastRAMButton.selectedTag())
+				)
 
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII
@@ -295,7 +299,11 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					default:	diskController = .none
 				}
 
-				return CSStaticAnalyser(appleIIModel: model, diskController: diskController, hasMockingboard: appleIIMockingboardButton.state == .on)
+				return CSStaticAnalyser(
+					appleIIModel: model,
+					diskController: diskController,
+					hasMockingboard: appleIIMockingboardButton.state == .on
+				)
 
 			case "appleiigs":
 				var model: CSMachineAppleIIgsModel = .ROM00
@@ -315,6 +323,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 			case "atarist":
 				let memorySize = Kilobytes(atariSTMemorySizeButton.selectedTag())
 				return CSStaticAnalyser(atariSTMemorySize: memorySize)
+
+			case "c16plus4":
+				return CSStaticAnalyser(commodoreTEDModel: .C16)
 
 			case "cpc":
 				switch cpcModelTypeButton.selectedTag() {
@@ -371,7 +382,13 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					default:	dos = .dosNone
 				}
 
-				return CSStaticAnalyser(enterpriseModel: model, speed: speed, exosVersion: exos, basicVersion: basic, dos: dos)
+				return CSStaticAnalyser(
+					enterpriseModel: model,
+					speed: speed,
+					exosVersion: exos,
+					basicVersion: basic,
+					dos: dos
+				)
 
 			case "mac":
 				switch macintoshModelTypeButton.selectedTag() {

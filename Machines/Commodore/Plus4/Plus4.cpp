@@ -133,7 +133,7 @@ class ConcreteMachine:
 	public Machine,
 	public Utility::TypeRecipient<CharacterMapper> {
 public:
-	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
@@ -557,7 +557,7 @@ std::unique_ptr<Machine> Machine::Plus4(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Commodore::Target;
+	using Target = Analyser::Static::Target;
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<ConcreteMachine>(*commodore_target, rom_fetcher);
 }
