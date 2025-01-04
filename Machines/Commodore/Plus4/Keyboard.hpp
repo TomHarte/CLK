@@ -75,8 +75,8 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
-//struct CharacterMapper: public ::Utility::CharacterMapper {
-//	const uint16_t *sequence_for_character(char character) const final;
-//};
+struct CharacterMapper: public ::Utility::CharacterMapper {
+	const uint16_t *sequence_for_character(char character) const final;
+};
 
 }

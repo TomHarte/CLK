@@ -128,7 +128,8 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::MediaTarget,
-	public Machine {
+	public Machine,
+	public Utility::TypeRecipient<CharacterMapper> {
 public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this),
@@ -176,7 +177,9 @@ public:
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
 
 		insert_media(target.media);
-		printf("Loading command is: %s\n", target.loading_command.c_str());
+		if(!target.loading_command.empty()) {
+			type_string(target.loading_command);
+		}
 	}
 
 	~ConcreteMachine() {
@@ -503,6 +506,14 @@ private:
 	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
 		static Plus4::KeyboardMapper keyboard_mapper_;
 		return &keyboard_mapper_;
+	}
+
+	void type_string(const std::string &string) final {
+		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+	}
+
+	bool can_type(const char c) const final {
+		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
 	void set_key_state(uint16_t key, bool is_pressed) override {
