@@ -24,6 +24,8 @@
 #include "../SerialBus.hpp"
 #include "../1540/C1540.hpp"
 
+#include <algorithm>
+
 using namespace Commodore;
 using namespace Commodore::Plus4;
 
@@ -177,9 +179,9 @@ public:
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
 
 		insert_media(target.media);
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+//		if(!target.loading_command.empty()) {
+//			type_string(target.loading_command);
+//		}
 	}
 
 	~ConcreteMachine() {
@@ -323,6 +325,16 @@ public:
 					case 0xff05:	timers_.write<5>(*value);	break;
 
 					case 0xff08:
+						// Observation here: the kernel posts a 0 to this
+						// address upon completing each keyboard scan cycle,
+						// once per frame.
+						if(typer_ && !*value) {
+							if(!typer_->type_next_character()) {
+								clear_all_keys();
+								typer_.reset();
+							}
+						}
+
 						keyboard_latch_ = ~(
 							((*value & 0x01) ? 0x00 : key_states_[0]) |
 							((*value & 0x02) ? 0x00 : key_states_[1]) |
@@ -522,6 +534,10 @@ private:
 		} else {
 			key_states_[line(key)] &= ~mask(key);
 		}
+	}
+
+	void clear_all_keys() final {
+		std::fill(key_states_.begin(), key_states_.end(), 0);
 	}
 
 	std::array<uint8_t, 8> key_states_{};
