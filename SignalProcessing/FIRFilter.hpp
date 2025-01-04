@@ -13,7 +13,9 @@
 // a difference in the Qt build across platforms.
 #if defined(__APPLE__) && !defined(TARGET_QT)
 #include <Accelerate/Accelerate.h>
-#define USE_ACCELERATE
+constexpr bool UseAccelerate = true;
+#else
+constexpr bool UseAccelerate = false;
 #endif
 
 #include <cstddef>
@@ -60,7 +62,7 @@ public:
 		@returns The result of applying the filter.
 	*/
 	inline short apply(const short *src, size_t stride = 1) const {
-		#ifdef USE_ACCELERATE
+		if constexpr (UseAccelerate) {
 			short result;
 			vDSP_dotpr_s1_15(
 				filter_coefficients_.data(),
@@ -69,13 +71,13 @@ public:
 				vDSP_Stride(stride), &result, filter_coefficients_.size()
 			);
 			return result;
-		#else
+		} else {
 			int outputValue = 0;
 			for(std::size_t c = 0; c < filter_coefficients_.size(); ++c) {
 				outputValue += filter_coefficients_[c] * src[c * stride];
 			}
 			return short(outputValue >> FixedShift);
-		#endif
+		}
 	}
 
 	/*! @returns The number of taps used by this filter. */
