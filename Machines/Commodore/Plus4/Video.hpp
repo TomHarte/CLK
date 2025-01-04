@@ -285,6 +285,8 @@ public:
 				output_state_ = state;
 				if(output_state_ == OutputState::Pixels) {
 					pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelAllocationSize));
+				} else {
+					pixels_ = nullptr;
 				}
 			}
 
@@ -394,8 +396,7 @@ public:
 				if(increment_character_position_ && character_fetch_) {
 					++character_position_;
 				}
-
-				if(state == OutputState::Pixels) {
+				if(enable_display_) {
 					switch(x_scroll_) {
 						case 0:	draw<0>();	break;
 						case 1:	draw<1>();	break;
