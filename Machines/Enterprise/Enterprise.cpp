@@ -16,6 +16,7 @@
 #include "../MachineTypes.hpp"
 #include "../Utility/Typer.hpp"
 
+#include "../../Activity/Source.hpp"
 #include "../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
 #include "../../Outputs/Log.hpp"

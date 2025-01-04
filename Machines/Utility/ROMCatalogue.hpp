@@ -256,7 +256,7 @@ struct Request {
 	bool empty();
 
 	/// @returns what remains of this ROM request given that everything in @c map has been found.
-	Request subtract(const ROM::Map &map) const;
+	Request subtract(const Map &map) const;
 
 	enum class ListType {
 		Any, All, Single
@@ -303,7 +303,7 @@ private:
 			const std::function<void(void)> &exit_list,
 			const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 		) const;
-		bool subtract(const ROM::Map &map);
+		bool subtract(const Map &map);
 		void sort() {
 			// Don't do a full sort, but move anything optional to the back.
 			// This makes them print more nicely; it's a human-facing tweak only.

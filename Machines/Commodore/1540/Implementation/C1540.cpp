@@ -16,56 +16,54 @@
 
 using namespace Commodore::C1540;
 
-ROM::Request Machine::rom_request(Personality personality) {
+namespace {
+ROM::Name rom_name(Personality personality) {
 	switch(personality) {
 		default:
-		case Personality::C1540:	return ROM::Request(ROM::Name::Commodore1540);
-		case Personality::C1541:	return ROM::Request(ROM::Name::Commodore1541);
+		case Personality::C1540:	return ROM::Name::Commodore1540;
+		case Personality::C1541:	return ROM::Name::Commodore1541;
 	}
+}
+}
+
+ROM::Request Machine::rom_request(Personality personality) {
+	return ROM::Request(rom_name(personality));
 }
 
 MachineBase::MachineBase(Personality personality, const ROM::Map &roms) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
-		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
-		serial_port_(new SerialPort),
+		serial_port_VIA_port_handler_(serial_port_VIA_),
 		drive_VIA_(drive_VIA_port_handler_),
-		serial_port_VIA_(*serial_port_VIA_port_handler_) {
-	// attach the serial port to its VIA and vice versa
-	serial_port_->set_serial_port_via(serial_port_VIA_port_handler_);
-	serial_port_VIA_port_handler_->set_serial_port(serial_port_);
+		serial_port_VIA_(serial_port_VIA_port_handler_) {
+	// Attach the serial port to its VIA and vice versa.
+	serial_port_.set_serial_port_via(serial_port_VIA_port_handler_);
+	serial_port_VIA_port_handler_.set_serial_port(serial_port_);
 
-	// set this instance as the delegate to receive interrupt requests from both VIAs
-	serial_port_VIA_port_handler_->set_interrupt_delegate(this);
+	// Set this instance as the delegate to receive interrupt requests from both VIAs.
+	serial_port_VIA_port_handler_.set_interrupt_delegate(this);
 	drive_VIA_port_handler_.set_interrupt_delegate(this);
 	drive_VIA_port_handler_.set_delegate(this);
 
-	// set a bit rate
+	// Set a bit rate.
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
 
-	// attach the only drive there is
+	// Attach the only drive there is.
 	emplace_drive(1000000, 300, 2);
 	set_drive(1);
 
-	ROM::Name rom_name;
-	switch(personality) {
-		default:
-		case Personality::C1540:	rom_name = ROM::Name::Commodore1540;	break;
-		case Personality::C1541:	rom_name = ROM::Name::Commodore1541;	break;
-	}
-
-	auto rom = roms.find(rom_name);
+	const auto rom = roms.find(rom_name(personality));
 	if(rom == roms.end()) {
 		throw ROMMachine::Error::MissingROMs;
 	}
-	std::memcpy(rom_, roms.find(rom_name)->second.data(), std::min(sizeof(rom_), roms.find(rom_name)->second.size()));
+	std::memcpy(rom_, rom->second.data(), std::min(sizeof(rom_), rom->second.size()));
 }
 
 Machine::Machine(Personality personality, const ROM::Map &roms) :
 	MachineBase(personality, roms) {}
 
-void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus) {
-	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
+void Machine::set_serial_bus(Commodore::Serial::Bus &serial_bus) {
+	Commodore::Serial::attach(serial_port_, serial_bus);
 }
 
 Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -155,11 +153,11 @@ void MachineBase::process_index_hole()	{}
 
 // MARK: - Drive VIA delegate
 
-void MachineBase::drive_via_did_step_head(void *, int direction) {
+void MachineBase::drive_via_did_step_head(void *, const int direction) {
 	get_drive().step(Storage::Disk::HeadPosition(direction, 2));
 }
 
-void MachineBase::drive_via_did_set_data_density(void *, int density) {
+void MachineBase::drive_via_did_set_data_density(void *, const int density) {
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(density)));
 }
 
@@ -174,14 +172,11 @@ uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 
 void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
-		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-		if(serialPort) {
-			attention_acknowledge_level_ = !(value&0x10);
-			data_level_output_ = (value&0x02);
+		attention_acknowledge_level_ = !(value&0x10);
+		data_level_output_ = (value&0x02);
 
-			serialPort->set_output(::Commodore::Serial::Line::Clock, ::Commodore::Serial::LineLevel(!(value&0x08)));
-			update_data_line();
-		}
+		serial_port_->set_output(::Commodore::Serial::Line::Clock, ::Commodore::Serial::LineLevel(!(value&0x08)));
+		update_data_line();
 	}
 }
 
@@ -199,17 +194,14 @@ void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool v
 	}
 }
 
-void SerialPortVIA::set_serial_port(const std::shared_ptr<::Commodore::Serial::Port> &serialPort) {
-	serial_port_ = serialPort;
+void SerialPortVIA::set_serial_port(Commodore::Serial::Port &port) {
+	serial_port_ = &port;
 }
 
 void SerialPortVIA::update_data_line() {
-	std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-	if(serialPort) {
-		// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
-		serialPort->set_output(::Commodore::Serial::Line::Data,
-			::Commodore::Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
-	}
+	// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
+	serial_port_->set_output(::Commodore::Serial::Line::Data,
+		Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
 }
 
 // MARK: - DriveVIA
@@ -248,23 +240,23 @@ void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Li
 void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
 		if(previous_port_b_output_ != value) {
-			// record drive motor state
-			drive_motor_ = !!(value&4);
+			// Record drive motor state.
+			drive_motor_ = value&4;
 
-			// check for a head step
-			int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
+			// Check for a head step.
+			const int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
 			if(step_difference) {
 				if(delegate_) delegate_->drive_via_did_step_head(this, (step_difference == 1) ? 1 : -1);
 			}
 
-			// check for a change in density
-			int density_difference = (previous_port_b_output_^value) & (3 << 5);
+			// Check for a change in density.
+			const int density_difference = (previous_port_b_output_^value) & (3 << 5);
 			if(density_difference && delegate_) {
 				delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
 			}
 
-			// post the LED status
-			if(observer_) observer_->set_led_status("Drive", !!(value&8));
+			// Post the LED status.
+			if(observer_) observer_->set_led_status("Drive", value&8);
 
 			previous_port_b_output_ = value;
 		}
@@ -275,17 +267,16 @@ void DriveVIA::set_activity_observer(Activity::Observer *observer) {
 	observer_ = observer;
 	if(observer) {
 		observer->register_led("Drive");
-		observer->set_led_status("Drive", !!(previous_port_b_output_&8));
+		observer->set_led_status("Drive", previous_port_b_output_&8);
 	}
 }
 
 // MARK: - SerialPort
 
-void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
-	std::shared_ptr<SerialPortVIA> serialPortVIA = serial_port_VIA_.lock();
-	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, bool(level));
+void SerialPort::set_input(Serial::Line line, Serial::LineLevel level) {
+	serial_port_VIA_->set_serial_line_state(line, bool(level));
 }
 
-void SerialPort::set_serial_port_via(const std::shared_ptr<SerialPortVIA> &serialPortVIA) {
-	serial_port_VIA_ = serialPortVIA;
+void SerialPort::set_serial_port_via(SerialPortVIA &serialPortVIA) {
+	serial_port_VIA_ = &serialPortVIA;
 }

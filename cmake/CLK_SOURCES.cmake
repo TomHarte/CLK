@@ -118,6 +118,7 @@ set(CLK_SOURCES
 	Machines/Atari/ST/Video.cpp
 	Machines/ColecoVision/ColecoVision.cpp
 	Machines/Commodore/1540/Implementation/C1540.cpp
+	Machines/Commodore/Plus4/Keyboard.cpp
 	Machines/Commodore/Plus4/Plus4.cpp
 	Machines/Commodore/SerialBus.cpp
 	Machines/Commodore/Vic-20/Keyboard.cpp

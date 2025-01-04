@@ -13,11 +13,10 @@
 
 #include "../TimedEventLoop.hpp"
 
-#include "../../Activity/Source.hpp"
+#include "../../Activity/Observer.hpp"
 #include "../TargetPlatforms.hpp"
 
 #include <memory>
-#include <optional>
 
 namespace Storage::Tape {
 
@@ -112,7 +111,7 @@ public:
 	bool has_tape() const;
 	std::shared_ptr<Storage::Tape::Tape> tape();
 
-	void run_for(const Cycles cycles);
+	void run_for(Cycles);
 	void run_for_input_pulse();
 
 	ClockingHint::Preference preferred_clocking() const override;
@@ -148,12 +147,12 @@ public:
 	void set_tape_output(bool);
 	bool input() const;
 
-	void run_for(const Cycles cycles);
+	void run_for(Cycles);
 
 	struct Delegate {
 		virtual void tape_did_change_input(BinaryTapePlayer *) = 0;
 	};
-	void set_delegate(Delegate *delegate);
+	void set_delegate(Delegate *);
 
 	ClockingHint::Preference preferred_clocking() const final;
 

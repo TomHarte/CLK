@@ -105,14 +105,13 @@ public:
 	void set_port_output(const MOS::MOS6522::Port port, const uint8_t value, uint8_t) {
 		// Line 7 of port A is inverted and output as serial ATN.
 		if(!port) {
-			std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-			if(serialPort) serialPort->set_output(::Commodore::Serial::Line::Attention, (::Commodore::Serial::LineLevel)!(value&0x80));
+			serial_port_->set_output(Serial::Line::Attention, Serial::LineLevel(!(value&0x80)));
 		}
 	}
 
 	/// Sets @serial_port as this VIA's connection to the serial bus.
-	void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serial_port) {
-		serial_port_ = serial_port;
+	void set_serial_port(Serial::Port &serial_port) {
+		serial_port_ = &serial_port;
 	}
 
 	/// Sets @tape as the tape player connected to this VIA.
@@ -122,7 +121,7 @@ public:
 
 private:
 	uint8_t port_a_;
-	std::weak_ptr<::Commodore::Serial::Port> serial_port_;
+	Serial::Port *serial_port_ = nullptr;
 	std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
 };
 
@@ -171,14 +170,11 @@ public:
 	/// Called by the 6522 to set control line output. Which affects the serial port.
 	void set_control_line_output(const MOS::MOS6522::Port port, const MOS::MOS6522::Line line, const bool value) {
 		if(line == MOS::MOS6522::Line::Two) {
-			std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
-			if(serialPort) {
-				// CB2 is inverted to become serial data; CA2 is inverted to become serial clock
-				if(port == MOS::MOS6522::Port::A)
-					serialPort->set_output(::Commodore::Serial::Line::Clock, (::Commodore::Serial::LineLevel)!value);
-				else
-					serialPort->set_output(::Commodore::Serial::Line::Data, (::Commodore::Serial::LineLevel)!value);
-			}
+			// CB2 is inverted to become serial data; CA2 is inverted to become serial clock
+			if(port == MOS::MOS6522::Port::A)
+				serial_port_->set_output(Serial::Line::Clock, Serial::LineLevel(!value));
+			else
+				serial_port_->set_output(Serial::Line::Data, Serial::LineLevel(!value));
 		}
 	}
 
@@ -190,15 +186,15 @@ public:
 	}
 
 	/// Sets the serial port to which this VIA is connected.
-	void set_serial_port(std::shared_ptr<::Commodore::Serial::Port> serialPort) {
-		serial_port_ = serialPort;
+	void set_serial_port(Serial::Port &port) {
+		serial_port_ = &port;
 	}
 
 private:
 	uint8_t port_b_;
 	uint8_t columns_[8];
 	uint8_t activation_mask_;
-	std::weak_ptr<::Commodore::Serial::Port> serial_port_;
+	Serial::Port *serial_port_ = nullptr;
 };
 
 /*!
@@ -208,17 +204,16 @@ class SerialPort : public ::Commodore::Serial::Port {
 public:
 	/// Receives an input change from the base serial port class, and communicates it to the user-port VIA.
 	void set_input(const ::Commodore::Serial::Line line, const ::Commodore::Serial::LineLevel level) {
-		std::shared_ptr<UserPortVIA> userPortVIA = user_port_via_.lock();
-		if(userPortVIA) userPortVIA->set_serial_line_state(line, bool(level));
+		if(user_port_via_) user_port_via_->set_serial_line_state(line, bool(level));
 	}
 
 	/// Sets the user-port VIA with which this serial port communicates.
-	void set_user_port_via(const std::shared_ptr<UserPortVIA> userPortVIA) {
-		user_port_via_ = userPortVIA;
+	void set_user_port_via(UserPortVIA &via) {
+		user_port_via_ = &via;
 	}
 
 private:
-	std::weak_ptr<UserPortVIA> user_port_via_;
+	UserPortVIA *user_port_via_ = nullptr;
 };
 
 /*!
@@ -293,32 +288,28 @@ public:
 	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m6502_(*this),
 			mos6560_(mos6560_bus_handler_),
-			user_port_via_port_handler_(new UserPortVIA),
-			keyboard_via_port_handler_(new KeyboardVIA),
-			serial_port_(new SerialPort),
-			serial_bus_(new ::Commodore::Serial::Bus),
-			user_port_via_(*user_port_via_port_handler_),
-			keyboard_via_(*keyboard_via_port_handler_),
+			user_port_via_(user_port_via_port_handler_),
+			keyboard_via_(keyboard_via_port_handler_),
 			tape_(new Storage::Tape::BinaryTapePlayer(1022727)) {
 		// communicate the tape to the user-port VIA
-		user_port_via_port_handler_->set_tape(tape_);
+		user_port_via_port_handler_.set_tape(tape_);
 
 		// wire up the serial bus and serial port
-		Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus_);
+		Commodore::Serial::attach(serial_port_, serial_bus_);
 
 		// wire up 6522s and serial port
-		user_port_via_port_handler_->set_serial_port(serial_port_);
-		keyboard_via_port_handler_->set_serial_port(serial_port_);
-		serial_port_->set_user_port_via(user_port_via_port_handler_);
+		user_port_via_port_handler_.set_serial_port(serial_port_);
+		keyboard_via_port_handler_.set_serial_port(serial_port_);
+		serial_port_.set_user_port_via(user_port_via_port_handler_);
 
 		// wire up the 6522s, tape and machine
-		user_port_via_port_handler_->set_interrupt_delegate(this);
-		keyboard_via_port_handler_->set_interrupt_delegate(this);
+		user_port_via_port_handler_.set_interrupt_delegate(this);
+		keyboard_via_port_handler_.set_interrupt_delegate(this);
 		tape_->set_delegate(this);
 		tape_->set_clocking_hint_observer(this);
 
 		// Install a joystick.
-		joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
+		joysticks_.emplace_back(new Joystick(user_port_via_port_handler_, keyboard_via_port_handler_));
 
 		ROM::Request request(ROM::Name::Vic20BASIC);
 		ROM::Name kernel, character;
@@ -361,7 +352,7 @@ public:
 
 		if(target.has_c1540) {
 			// construct the 1540
-			c1540_ = std::make_unique<::Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, roms);
+			c1540_ = std::make_unique<C1540::Machine>(C1540::Personality::C1540, roms);
 
 			// attach it to the serial bus
 			c1540_->set_serial_bus(serial_bus_);
@@ -472,7 +463,7 @@ public:
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
 		if(key < 0xfff0) {
-			keyboard_via_port_handler_->set_key_state(key, is_pressed);
+			keyboard_via_port_handler_.set_key_state(key, is_pressed);
 		} else {
 			switch(key) {
 				case KeyRestore:
@@ -480,8 +471,8 @@ public:
 				break;
 #define ShiftedMap(source, target)	\
 				case source:	\
-					keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);	\
-					keyboard_via_port_handler_->set_key_state(target, is_pressed);	\
+					keyboard_via_port_handler_.set_key_state(KeyLShift, is_pressed);	\
+					keyboard_via_port_handler_.set_key_state(target, is_pressed);	\
 				break;
 
 				ShiftedMap(KeyUp, KeyDown);
@@ -496,7 +487,7 @@ public:
 	}
 
 	void clear_all_keys() final {
-		keyboard_via_port_handler_->clear_all_keys();
+		keyboard_via_port_handler_.clear_all_keys();
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
@@ -741,10 +732,10 @@ private:
 	Cycles cycles_since_mos6560_update_;
 	Vic6560BusHandler mos6560_bus_handler_;
 	MOS::MOS6560::MOS6560<Vic6560BusHandler> mos6560_;
-	std::shared_ptr<UserPortVIA> user_port_via_port_handler_;
-	std::shared_ptr<KeyboardVIA> keyboard_via_port_handler_;
-	std::shared_ptr<SerialPort> serial_port_;
-	std::shared_ptr<::Commodore::Serial::Bus> serial_bus_;
+	UserPortVIA user_port_via_port_handler_;
+	KeyboardVIA keyboard_via_port_handler_;
+	SerialPort serial_port_;
+	Serial::Bus serial_bus_;
 
 	MOS::MOS6522::MOS6522<UserPortVIA> user_port_via_;
 	MOS::MOS6522::MOS6522<KeyboardVIA> keyboard_via_;
@@ -760,7 +751,7 @@ private:
 	}
 
 	// Disk
-	std::shared_ptr<::Commodore::C1540::Machine> c1540_;
+	std::unique_ptr<::Commodore::C1540::Machine> c1540_;
 };
 
 }

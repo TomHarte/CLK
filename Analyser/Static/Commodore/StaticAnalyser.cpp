@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <optional>
 #include <sstream>
 #include <unordered_set>
 
@@ -108,7 +109,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 	while(true) {
 		// Analysis has failed if there isn't at least one complete BASIC line from here.
 		// Fall back on guessing the start address as a machine code entrypoint.
-		if(size_t(line_address - file.starting_address) + 5 >= file.data.size()) {
+		if(size_t(line_address - file.starting_address) + 5 >= file.data.size() || line_address < file.starting_address) {
 			analysis.machine_code_addresses.push_back(file.starting_address);
 			break;
 		}
@@ -208,10 +209,6 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 
 	// Inspect discovered files to try to divine machine and memory model.
 	auto vic_memory_model = Target::MemoryModel::Unexpanded;
-
-	if(files.size() > 1) {
-		printf("");
-	}
 
 	auto it = files.begin();
 	while(it != files.end()) {

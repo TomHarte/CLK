@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23504" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22690"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23504"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="590" height="369"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1470" height="924"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="590" height="369"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -125,7 +125,7 @@ Gw
                                             <rect key="frame" x="110" y="210" width="80" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="512 kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="512" imageScaling="axesIndependently" inset="2" selectedItem="Zev-ku-jDG" id="vdO-VR-mUx">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="Zvi-ox-ip4">
                                                     <items>
                                                         <menuItem title="512 kb" state="on" tag="512" id="Zev-ku-jDG"/>
@@ -155,7 +155,7 @@ Gw
                                             <rect key="frame" x="108" y="180" width="72" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="zV7-V8-c7s" id="39D-ms-pf9">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="yIx-1y-Ab0">
                                                     <items>
                                                         <menuItem title="None" state="on" id="zV7-V8-c7s"/>
@@ -192,7 +192,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="96" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="CPC6128" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="6128" imageScaling="axesIndependently" inset="2" selectedItem="LgZ-9j-YQl" id="yH2-Vm-hiD">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="FdB-a4-Cox">
                                                     <items>
                                                         <menuItem title="CPC464" tag="464" id="VSM-l2-mWa"/>
@@ -246,7 +246,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="117" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="esp-ir-7iH">
                                                     <items>
                                                         <menuItem title="Apple II" state="on" id="VBQ-JG-AeM"/>
@@ -261,7 +261,7 @@ Gw
                                             <rect key="frame" x="119" y="180" width="134" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Sixteen Sector" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="QaV-Yr-k9o" id="8BT-RV-2Nm">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="udQ-NK-FG8">
                                                     <items>
                                                         <menuItem title="Sixteen Sector" state="on" tag="16" id="QaV-Yr-k9o"/>
@@ -321,7 +321,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="89" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="ROM 03" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="2" imageScaling="axesIndependently" inset="2" selectedItem="0TS-DO-O9h" id="hjw-g8-e2f">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="4rn-K4-QgV">
                                                     <items>
                                                         <menuItem title="ROM 00" id="2LO-US-byb"/>
@@ -335,7 +335,7 @@ Gw
                                             <rect key="frame" x="108" y="180" width="82" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="8 mb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="8192" imageScaling="axesIndependently" inset="2" selectedItem="UHg-gU-Xnn" id="dl3-cq-uWO">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="Scm-d9-EU9">
                                                     <items>
                                                         <menuItem title="256 kb" tag="256" id="PZE-8h-MNs"/>
@@ -400,7 +400,7 @@ Gw
                                             <rect key="frame" x="79" y="210" width="80" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="512 kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="512" imageScaling="axesIndependently" inset="2" selectedItem="LVX-CI-lo9" id="dSS-yv-CDV">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="jsD-9U-bwN">
                                                     <items>
                                                         <menuItem title="512 kb" state="on" tag="512" id="LVX-CI-lo9"/>
@@ -481,7 +481,7 @@ Gw
                                             <rect key="frame" x="80" y="210" width="129" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Enterprise 128" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="128" imageScaling="axesIndependently" inset="2" selectedItem="roH-nL-f8o" id="z9O-XC-XBv">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="ojI-Vb-iHz">
                                                     <items>
                                                         <menuItem title="Enterprise 256" tag="256" id="Al3-A0-tvw"/>
@@ -495,7 +495,7 @@ Gw
                                             <rect key="frame" x="67" y="180" width="77" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="4 Mhz" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="4" imageScaling="axesIndependently" inset="2" selectedItem="5N6-tD-uN7" id="BU2-NJ-Kii">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="ANK-p0-M77">
                                                     <items>
                                                         <menuItem title="4 Mhz" state="on" tag="4" id="5N6-tD-uN7"/>
@@ -508,7 +508,7 @@ Gw
                                             <rect key="frame" x="64" y="150" width="107" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Version 2.1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Qja-xZ-wVM" id="xGG-ri-8Sb">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="uNC-hA-d5z">
                                                     <items>
                                                         <menuItem title="Version 2.1" state="on" tag="21" id="Qja-xZ-wVM"/>
@@ -522,7 +522,7 @@ Gw
                                             <rect key="frame" x="67" y="120" width="105" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Version 2.1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="TME-cv-Jh1" id="9mQ-GW-lq9">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="VcH-Xm-1hY">
                                                     <items>
                                                         <menuItem title="Version 2.1" state="on" tag="21" id="TME-cv-Jh1"/>
@@ -537,7 +537,7 @@ Gw
                                             <rect key="frame" x="57" y="90" width="83" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="EXDOS" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="8rP-2w-PdU" id="NvO-Zm-2Rq">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" title="DOS" id="sdr-al-7mi">
                                                     <items>
                                                         <menuItem title="EXDOS" state="on" tag="1" id="8rP-2w-PdU"/>
@@ -636,7 +636,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="75" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Plus" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="3" imageScaling="axesIndependently" inset="2" selectedItem="R6T-hg-rOF" id="1Kb-Q2-BGM">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="ofy-j9-YnU">
                                                     <items>
                                                         <menuItem title="128k" id="WCG-6u-ANQ"/>
@@ -674,7 +674,7 @@ Gw
                                             <rect key="frame" x="71" y="180" width="146" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="European (PAL)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="xAh-Ch-tby" id="yR4-yv-Lvu">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="BCR-rp-Kpc">
                                                     <items>
                                                         <menuItem title="European (PAL)" state="on" id="xAh-Ch-tby"/>
@@ -704,7 +704,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="79" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="MSX 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="G9U-vd-Cjk" id="2TO-f6-Gmp">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="v3T-Jv-VLK">
                                                     <items>
                                                         <menuItem title="MSX 1" state="on" tag="1" id="G9U-vd-Cjk"/>
@@ -759,7 +759,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="107" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="E9d-fH-Eak">
                                                     <items>
                                                         <menuItem title="Oric-1" state="on" id="jGN-1a-biF"/>
@@ -773,7 +773,7 @@ Gw
                                             <rect key="frame" x="113" y="180" width="130" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="XhK-Jh-oTW" id="aYb-m1-H9X">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="hy3-Li-nlW">
                                                     <items>
                                                         <menuItem title="None" state="on" id="XhK-Jh-oTW"/>
@@ -818,7 +818,7 @@ Gw
                                             <rect key="frame" x="116" y="210" width="68" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="MDA" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="oIy-If-5bQ" id="xz8-mu-ynU">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="dju-ZY-2DH">
                                                     <items>
                                                         <menuItem title="MDA" state="on" id="oIy-If-5bQ"/>
@@ -847,7 +847,7 @@ Gw
                                             <rect key="frame" x="68" y="180" width="146" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Similar to Original" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="8086" imageScaling="axesIndependently" inset="2" selectedItem="R4W-s4-KFx" id="9i0-UG-B2c">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="KQw-8g-SrI">
                                                     <items>
                                                         <menuItem title="Similar to Original" state="on" tag="8086" id="R4W-s4-KFx"/>
@@ -881,7 +881,7 @@ Gw
                                             <rect key="frame" x="71" y="210" width="146" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="European (PAL)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="45i-0n-gau" id="yi7-eo-I0q">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="uCQ-9l-eBb">
                                                     <items>
                                                         <menuItem title="European (PAL)" state="on" id="45i-0n-gau"/>
@@ -897,7 +897,7 @@ Gw
                                             <rect key="frame" x="108" y="180" width="116" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="fOl-8Q-fsA" id="rH0-7T-pJE">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="e9J-Ie-PjH">
                                                     <items>
                                                         <menuItem title="Unexpanded" state="on" id="fOl-8Q-fsA"/>
@@ -958,7 +958,7 @@ Gw
                                             <rect key="frame" x="108" y="210" width="116" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="4Sa-jR-xOd" id="B8M-do-Yod">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="Of4-DY-mE5">
                                                     <items>
                                                         <menuItem title="Unexpanded" state="on" id="4Sa-jR-xOd"/>
@@ -1006,7 +1006,7 @@ Gw
                                             <rect key="frame" x="108" y="210" width="116" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="mua-Lp-9wl">
                                                     <items>
                                                         <menuItem title="Unexpanded" state="on" id="7QC-Ij-hES"/>
@@ -1044,7 +1044,7 @@ Gw
                                             <rect key="frame" x="67" y="210" width="76" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="16kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="8lt-dk-zPr">
                                                     <items>
                                                         <menuItem title="16kb" state="on" tag="16" id="Fo7-NL-Kv5"/>

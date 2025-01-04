@@ -12,7 +12,7 @@ using namespace Storage::Tape;
 
 // MARK: - Lifecycle
 
-TapePlayer::TapePlayer(int input_clock_rate) :
+TapePlayer::TapePlayer(const int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
@@ -129,7 +129,7 @@ void TapePlayer::process_next_event() {
 
 // MARK: - Binary Player
 
-BinaryTapePlayer::BinaryTapePlayer(int input_clock_rate) :
+BinaryTapePlayer::BinaryTapePlayer(const int input_clock_rate) :
 	TapePlayer(input_clock_rate)
 {}
 
@@ -138,7 +138,7 @@ ClockingHint::Preference BinaryTapePlayer::preferred_clocking() const {
 	return TapePlayer::preferred_clocking();
 }
 
-void BinaryTapePlayer::set_motor_control(bool enabled) {
+void BinaryTapePlayer::set_motor_control(const bool enabled) {
 	if(motor_is_running_ != enabled) {
 		motor_is_running_ = enabled;
 		update_clocking_observer();
@@ -149,7 +149,7 @@ void BinaryTapePlayer::set_motor_control(bool enabled) {
 	}
 }
 
-void BinaryTapePlayer::set_activity_observer(Activity::Observer *observer) {
+void BinaryTapePlayer::set_activity_observer(Activity::Observer *const observer) {
 	observer_ = observer;
 	if(observer) {
 		observer->register_led("Tape motor");
@@ -173,7 +173,7 @@ void BinaryTapePlayer::run_for(const Cycles cycles) {
 	if(motor_is_running_) TapePlayer::run_for(cycles);
 }
 
-void BinaryTapePlayer::set_delegate(Delegate *delegate) {
+void BinaryTapePlayer::set_delegate(Delegate *const delegate) {
 	delegate_ = delegate;
 }
 
