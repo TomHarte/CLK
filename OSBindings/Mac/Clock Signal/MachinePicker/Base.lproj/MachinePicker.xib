@@ -421,6 +421,27 @@ Gw
                                     </constraints>
                                 </view>
                             </tabViewItem>
+                            <tabViewItem label="Commodore TED" identifier="c16plus4" id="8zk-1k-5AC" userLabel="Commodore TED">
+                                <view key="view" id="JoI-6t-qsH">
+                                    <rect key="frame" x="10" y="7" width="400" height="254"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Sbs-hE-B7B">
+                                            <rect key="frame" x="18" y="218" width="364" height="16"/>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="At present only a 64kb Commodore 16 is available." id="Sh8-Y5-Giz">
+                                                <font key="font" usesAppearanceFont="YES"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="Sbs-hE-B7B" firstAttribute="leading" secondItem="JoI-6t-qsH" secondAttribute="leading" constant="20" symbolic="YES" id="72I-3B-f1k"/>
+                                        <constraint firstItem="Sbs-hE-B7B" firstAttribute="top" secondItem="JoI-6t-qsH" secondAttribute="top" constant="20" symbolic="YES" id="vvk-Dc-0KN"/>
+                                        <constraint firstAttribute="trailing" secondItem="Sbs-hE-B7B" secondAttribute="trailing" constant="20" symbolic="YES" id="xMF-do-3ah"/>
+                                    </constraints>
+                                </view>
+                            </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
                                     <rect key="frame" x="10" y="7" width="400" height="254"/>

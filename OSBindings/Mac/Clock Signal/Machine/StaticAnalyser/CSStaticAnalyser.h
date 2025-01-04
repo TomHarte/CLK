@@ -39,6 +39,11 @@ typedef NS_ENUM(NSInteger, CSMachineArchimedesModel) {
 	CSMachineArchimedesModelFirstGeneration,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineCommodoreTEDModel) {
+	CSMachineCommodoreTEDModelC16,
+	CSMachineCommodoreTEDModelPlus4,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 	CSMachineCPCModel464,
 	CSMachineCPCModel664,
@@ -145,6 +150,7 @@ typedef int Kilobytes;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
 - (instancetype)initWithArchimedesModel:(CSMachineArchimedesModel)model;
 - (instancetype)initWithAtariSTMemorySize:(Kilobytes)memorySize;
+- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
 - (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
