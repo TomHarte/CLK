@@ -16,6 +16,7 @@
 constexpr bool UseAccelerate = true;
 #else
 constexpr bool UseAccelerate = false;
+void vDSP_dotpr_s1_15(short *, size_t, short *, size_t, short *, size_t);
 #endif
 
 #include <cstddef>
