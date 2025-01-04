@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <array>
 #include <memory>
 #include <string>
 
@@ -40,7 +41,7 @@ class CharacterMapper {
 		virtual bool needs_pause_after_key([[maybe_unused]] uint16_t key) const	{ return true; }
 
 	protected:
-		typedef uint16_t KeySequence[16];
+		using KeySequence = std::array<uint16_t, 16>;
 
 		/*!
 			Provided in the base class as a convenience: given the C array of key sequences @c sequences,
@@ -50,7 +51,7 @@ class CharacterMapper {
 			std::size_t ucharacter = size_t((unsigned char)character);
 			if(ucharacter >= sizeof(sequences) / sizeof(KeySequence)) return nullptr;
 			if(sequences[ucharacter][0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) return nullptr;
-			return sequences[ucharacter];
+			return sequences[ucharacter].data();
 		}
 };
 
