@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="19455" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23504" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="19455"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23504"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -145,7 +145,7 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Input" id="6yv-Cf-E9r">
                         <items>
-                            <menuItem title="Use Keyboard as Keyboard" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
+                            <menuItem title="Map Pressed Keys by Layout" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
                                 <connections>
                                     <action selector="useKeyboardAsPhysicalKeyboard:" target="-1" id="3NX-jl-F4z"/>
                                 </connections>
