@@ -145,7 +145,7 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Input" id="6yv-Cf-E9r">
                         <items>
-                            <menuItem title="Map Pressed Keys by Layout" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
+                            <menuItem title="Map Keys by Layout" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
                                 <connections>
                                     <action selector="useKeyboardAsPhysicalKeyboard:" target="-1" id="3NX-jl-F4z"/>
                                 </connections>
