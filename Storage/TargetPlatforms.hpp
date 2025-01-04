@@ -10,7 +10,7 @@
 
 namespace TargetPlatform {
 
-typedef int IntType;
+using IntType = int;
 
 // The below is somehwat overspecified because some of the file formats already supported by this
 // emulator can self-specify platforms beyond those the emulator otherwise implements.

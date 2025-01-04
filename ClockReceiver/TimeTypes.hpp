@@ -12,8 +12,8 @@
 
 namespace Time {
 
-typedef double Seconds;
-typedef int64_t Nanos;
+using Seconds = double;
+using Nanos = int64_t;
 
 inline Nanos nanos_now() {
 	return std::chrono::duration_cast<std::chrono::nanoseconds>(

@@ -66,7 +66,7 @@ struct Target {
 	Media media;
 	float confidence = 0.5f;
 };
-typedef std::vector<std::unique_ptr<Target>> TargetList;
+using TargetList = std::vector<std::unique_ptr<Target>>;
 
 /*!
 	Attempts, through any available means, to return a list of potential targets for the file with the given name.

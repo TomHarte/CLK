@@ -20,7 +20,7 @@ namespace SCSI {
 
 /// Provides the current state of the SCSI bus, being comprised of a bitwise combination
 /// of zero or more of the @c BusState flags defined below.
-typedef int BusState;
+using BusState = int;
 
 constexpr BusState DefaultBusState = 0;
 

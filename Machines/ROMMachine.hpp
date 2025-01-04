@@ -27,7 +27,7 @@ namespace ROMMachine {
 	return a vector of unique_ptrs that either contain the contents of the ROM from @c names that corresponds by
 	index, or else are @c nullptr.
 */
-typedef std::function<ROM::Map(const ROM::Request &)> ROMFetcher;
+using ROMFetcher = std::function<ROM::Map(const ROM::Request &)>;
 
 enum class Error {
 	MissingROMs,
