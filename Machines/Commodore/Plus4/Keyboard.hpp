@@ -77,6 +77,10 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
 	const uint16_t *sequence_for_character(char character) const final;
+	bool needs_pause_after_reset_all_keys() const final	{ return false; }
+	bool needs_pause_after_key(uint16_t key) const	{
+		return key != Key::Shift && key != Key::Commodore && key != Key::Control;
+	}
 };
 
 }
