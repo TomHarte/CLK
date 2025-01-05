@@ -267,8 +267,27 @@ public:
 			if(isReadOperation(operation)) {
 //				printf("TODO: read @ %04x\n", address);
 				if((address & 0xfff0) == 0xfd10) {
-					tape_player_->set_motor_control(true);
-					*value = 0xff ^ 0x4;	// Seems to detect the play button.
+					// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
+
+					// If tape motor is not currently running and this read is immediately followed by
+					// an AND 4, turn the tape motor on.
+					if(!tape_player_->motor_control()) {
+						const uint16_t pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+						const uint8_t next[] = {
+							map_.read(pc+0),
+							map_.read(pc+1),
+							map_.read(pc+2),
+							map_.read(pc+3),
+						};
+
+						// TODO: boil this down to a PC check. It's currently in this form as I'm unclear what
+						// diversity of kernels exist.
+						if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
+							tape_player_->set_motor_control(true);	// TODO: match to tape motor IO state.
+						}
+					}
+
+					*value = 0xff ^ (tape_player_->motor_control() ? 0x4 :0x0);
 				} else {
 					*value = 0xff;
 				}
