@@ -234,7 +234,7 @@ public:
 					*value = io_direction_;
 				} else {
 					const uint8_t all_inputs =
-						(tape_player_->input() ? 0x00 : 0x10) |
+						(tape_player_->input() ? 0x10 : 0x00) |
 						(serial_port_.level(Serial::Line::Data) ? 0x80 : 0x00) |
 						(serial_port_.level(Serial::Line::Clock) ? 0x40 : 0x00);
 					*value =

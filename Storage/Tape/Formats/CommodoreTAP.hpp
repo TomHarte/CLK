@@ -43,8 +43,14 @@ private:
 
 		Storage::FileHolder file_;
 
-		bool updated_layout_;
 		uint32_t file_size_;
+		uint8_t version_;
+		bool updated_layout() const {
+			return version_ >= 1;
+		}
+		bool half_waves() const {
+			return version_ >= 2;
+		}
 
 		Pulse current_pulse_;
 		bool is_at_end_ = false;
