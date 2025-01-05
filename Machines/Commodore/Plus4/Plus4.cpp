@@ -249,13 +249,11 @@ public:
 				}
 
 				const auto output = io_output_ | ~io_direction_;
-//				tape_player_->set_motor_control(~output & 0x08);
+				tape_player_->set_motor_control(~output & 0x08);
 				serial_port_.set_output(Serial::Line::Data, Serial::LineLevel(~output & 0x01));
 				serial_port_.set_output(Serial::Line::Clock, Serial::LineLevel(~output & 0x02));
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
-
-//			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			if(isReadOperation(operation)) {
 				*value = map_.read(address);
@@ -269,9 +267,9 @@ public:
 				if((address & 0xfff0) == 0xfd10) {
 					// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
 
-					// If tape motor is not currently running and this read is immediately followed by
-					// an AND 4, turn the tape motor on.
-					if(!tape_player_->motor_control()) {
+					// If play button is not currently pressed and this read is immediately followed by
+					// an AND 4, press it. The kernel will deal with motor control subsequently.
+					if(!play_button_) {
 						const uint16_t pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
 						const uint8_t next[] = {
 							map_.read(pc+0),
@@ -283,11 +281,11 @@ public:
 						// TODO: boil this down to a PC check. It's currently in this form as I'm unclear what
 						// diversity of kernels exist.
 						if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
-							tape_player_->set_motor_control(true);	// TODO: match to tape motor IO state.
+							play_button_ = true;
 						}
 					}
 
-					*value = 0xff ^ (tape_player_->motor_control() ? 0x4 :0x0);
+					*value = 0xff ^ (play_button_ ? 0x4 :0x0);
 				} else {
 					*value = 0xff;
 				}
@@ -568,6 +566,7 @@ private:
 	SerialPort serial_port_;
 
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
+	bool play_button_ = false;
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 };
 }
