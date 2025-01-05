@@ -124,7 +124,7 @@ bool Typer::type_next_character() {
 			if(string_pointer_ == string_.size()) return false;
 		}
 
-		if(character_mapper_.needs_pause_after_key(key_pressed)) {
+		if(key_pressed && character_mapper_.needs_pause_after_key(key_pressed)) {
 			break;
 		}
 	}
