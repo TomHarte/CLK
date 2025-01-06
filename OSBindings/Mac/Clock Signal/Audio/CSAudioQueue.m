@@ -185,7 +185,15 @@ static const int NumBuffers = MaximumBacklog + 1;
 		// Starting is a no-op if the queue is already playing, but it may not have been started
 		// yet, or may have been paused due to a pipeline failure if the producer is running slowly.
 		if(enqueuedBuffers > 1) {
-			OSSGuard(^{return AudioQueueStart(self->_audioQueue, NULL);});
+			OSSGuard(^{
+				const OSStatus result = AudioQueueStart(self->_audioQueue, NULL);
+				if(result == kAudioQueueErr_CannotStart) {
+					// Accept cannot-start, hoping it's ephemeral; Apple's specific advice is:
+					// "Sleeping briefly and retrying is recommended".
+					return kAudioSessionNoError;
+				}
+				return result;
+			});
 		}
 	[_queueLock unlock];
 }
