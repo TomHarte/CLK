@@ -993,6 +993,7 @@ private:
 	template <int length, bool is_leftovers>
 	void draw_2bpp_segment(uint16_t *const target, const uint16_t *colours) {
 		constexpr int leftover = is_leftovers && (length & 1);
+		static_assert(length + leftover <= 8);
 		if(target) {
 			const auto pixels = output_.pixels();
 			// Intention: skip first output if leftover is 1, but still do the correct
@@ -1007,8 +1008,10 @@ private:
 			if constexpr (length + leftover >= 8) target[7 - leftover] = colours[(pixels >> 0) & 3];
 		}
 
-		if(is_leftovers) {
-			output_.advance_pixels(length + leftover);
+		if constexpr (is_leftovers) {
+			constexpr int shift_distance = length + leftover;
+			static_assert(!(shift_distance&1));
+			output_.advance_pixels(shift_distance);
 		} else {
 			output_.advance_pixels(length & ~1);
 		}
