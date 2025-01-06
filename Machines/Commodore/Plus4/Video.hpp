@@ -998,13 +998,13 @@ private:
 			// Intention: skip first output if leftover is 1, but still do the correct
 			// length of output.
 			if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
-			if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
-			if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
-			if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
-			if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
-			if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
-			if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
-			if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+			if constexpr (length + leftover >= 2) target[1 - leftover] = colours[(pixels >> 6) & 3];
+			if constexpr (length + leftover >= 3) target[2 - leftover] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 4) target[3 - leftover] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 5) target[4 - leftover] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 6) target[5 - leftover] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 7) target[6 - leftover] = colours[(pixels >> 0) & 3];
+			if constexpr (length + leftover >= 8) target[7 - leftover] = colours[(pixels >> 0) & 3];
 		}
 
 		if(is_leftovers) {
