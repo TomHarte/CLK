@@ -301,33 +301,32 @@ public:
 					case 0xff03:	*value = timers_.read<3>();		break;
 					case 0xff04:	*value = timers_.read<4>();		break;
 					case 0xff05:	*value = timers_.read<5>();		break;
-
-					case 0xff08:	*value = keyboard_latch_;		break;
-
-					case 0xff09:	*value = interrupts_.status();	break;
-					case 0xff0a:	*value = interrupts_.mask();	break;
-
 					case 0xff06:	*value = video_.read<0xff06>();	break;
 					case 0xff07:	*value = video_.read<0xff07>();	break;
+					case 0xff08:	*value = keyboard_latch_;		break;
+					case 0xff09:	*value = interrupts_.status();	break;
+					case 0xff0a:	*value = interrupts_.mask();	break;
 					case 0xff0b:	*value = video_.read<0xff0b>();	break;
-					case 0xff1c:	*value = video_.read<0xff1c>();	break;
-					case 0xff1d:	*value = video_.read<0xff1d>();	break;
-
+					case 0xff0c:	*value = video_.read<0xff0c>();	break;
+					case 0xff0d:	*value = video_.read<0xff0d>();	break;
 					case 0xff0e:	*value = ff0e_;	break;
 					case 0xff0f:	*value = ff0f_;	break;
 					case 0xff10:	*value = ff10_;	break;
 					case 0xff11:	*value = ff11_;	break;
 					case 0xff12:	*value = ff12_;	break;
 					case 0xff13:	*value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
-
-					case 0xff0c:	*value = video_.read<0xff0c>();	break;
-					case 0xff0d:	*value = video_.read<0xff0d>();	break;
 					case 0xff14:	*value = video_.read<0xff14>();	break;
 					case 0xff15:	*value = video_.read<0xff15>();	break;
 					case 0xff16:	*value = video_.read<0xff16>();	break;
 					case 0xff17:	*value = video_.read<0xff17>();	break;
 					case 0xff18:	*value = video_.read<0xff18>();	break;
 					case 0xff19:	*value = video_.read<0xff19>();	break;
+					case 0xff1a:	*value = video_.read<0xff19>();	break;
+					case 0xff1b:	*value = video_.read<0xff19>();	break;
+					case 0xff1c:	*value = video_.read<0xff1c>();	break;
+					case 0xff1d:	*value = video_.read<0xff1d>();	break;
+					case 0xff1e:	*value = video_.read<0xff1e>();	break;
+					case 0xff1f:	*value = video_.read<0xff1f>();	break;
 
 					default:
 						printf("TODO: TED read at %04x\n", address);
@@ -340,7 +339,8 @@ public:
 					case 0xff03:	timers_.write<3>(*value);	break;
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
-
+					case 0xff06:	video_.write<0xff06>(*value);	break;
+					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
 						// address upon completing each keyboard scan cycle,
@@ -363,7 +363,6 @@ public:
 							((*value & 0x80) ? 0x00 : key_states_[7])
 						);
 					break;
-
 					case 0xff09:
 						interrupts_.set_status(*value);
 					break;
@@ -372,9 +371,6 @@ public:
 						video_.write<0xff0a>(*value);
 					break;
 					case 0xff0b:	video_.write<0xff0b>(*value);	break;
-
-					case 0xff06:	video_.write<0xff06>(*value);	break;
-					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff0c:	video_.write<0xff0c>(*value);	break;
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
 					case 0xff0e:
@@ -415,14 +411,17 @@ public:
 						video_.write<0xff13>(*value);
 					break;
 					case 0xff14:	video_.write<0xff14>(*value);	break;
-					case 0xff1a:	video_.write<0xff1a>(*value);	break;
-					case 0xff1b:	video_.write<0xff1b>(*value);	break;
-
 					case 0xff15:	video_.write<0xff15>(*value);	break;
 					case 0xff16:	video_.write<0xff16>(*value);	break;
 					case 0xff17:	video_.write<0xff17>(*value);	break;
 					case 0xff18:	video_.write<0xff18>(*value);	break;
 					case 0xff19:	video_.write<0xff19>(*value);	break;
+					case 0xff1a:	video_.write<0xff1a>(*value);	break;
+					case 0xff1b:	video_.write<0xff1b>(*value);	break;
+					case 0xff1c:	video_.write<0xff1c>(*value);	break;
+					case 0xff1d:	video_.write<0xff1d>(*value);	break;
+					case 0xff1e:	video_.write<0xff1e>(*value);	break;
+					case 0xff1f:	video_.write<0xff1f>(*value);	break;
 
 					case 0xff3e:	page_cpu_rom();					break;
 					case 0xff3f:	page_cpu_ram();					break;
