@@ -44,12 +44,26 @@ private:
 		Storage::FileHolder file_;
 
 		uint32_t file_size_;
+		enum class FileType {
+			C16, C64,
+		} type_;
+		enum class Platform: uint8_t {
+			C64 = 0,
+			Vic20 = 1,
+			C16 = 2,
+		} platform_;
+		enum class VideoStandard: uint8_t {
+			PAL = 0,
+			NTSC1 = 1,
+			NTSC2 = 2,
+		} video_;
 		uint8_t version_;
 		bool updated_layout() const {
 			return version_ >= 1;
 		}
 		bool half_waves() const {
-			return version_ >= 2;
+			return type_ == FileType::C16;
+//			return version_ >= 2;
 		}
 
 		Pulse current_pulse_;

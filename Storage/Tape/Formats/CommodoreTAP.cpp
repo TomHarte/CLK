@@ -23,6 +23,7 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	if(!is_c64 && !is_c16) {
 		throw ErrorNotCommodoreTAP;
 	}
+	type_ = is_c16 ? FileType::C16 : FileType::C64;
 
 	// Get and check the file version.
 	version_ = file_.get8();
@@ -31,18 +32,8 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	}
 
 	// Read clock rate-implying bytes.
-	enum Platform: uint8_t {
-		C64 = 0,
-		Vic20 = 1,
-		C16 = 2,
-	};
-	const auto platform = Platform(file_.get8());
-	enum VideoStandard: uint8_t {
-		PAL = 0,
-		NTSC1 = 1,
-		NTSC2 = 2,
-	};
-	const auto video = VideoStandard(file_.get8());
+	platform_ = Platform(file_.get8());
+	video_ = VideoStandard(file_.get8());
 	file_.seek(1, SEEK_CUR);
 
 	// Read file size.
@@ -51,12 +42,12 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	// Pick clock rate.
 	current_pulse_.length.clock_rate = static_cast<unsigned int>(
 		[&] {
-			switch(platform) {
-				case Vic20:	return video == PAL ? 1'108'000 : 1'022'000;		// TODO: these are inexact.
-				case C64:	return video == PAL ? 985'248 : 1'022'727;
-				case C16:	return video == PAL ? 886'722 : 894'886;
+			switch(platform_) {			// TODO: Vic-20 numbers are inexact.
+				case Platform::Vic20:	return video_ == VideoStandard::PAL ? 1'108'000 : 1'022'000;
+				case Platform::C64:		return video_ == VideoStandard::PAL ? 985'248 : 1'022'727;
+				case Platform::C16:		return video_ == VideoStandard::PAL ? 886'722 : 894'886;
 			}
-		}() * 1 //(half_waves() ? 1 : 2)
+		}() * (half_waves() ? 1 : 2)
 	);
 	reset();
 }
