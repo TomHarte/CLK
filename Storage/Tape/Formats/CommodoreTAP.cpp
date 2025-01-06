@@ -56,7 +56,7 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 				case C64:	return video == PAL ? 985'248 : 1'022'727;
 				case C16:	return video == PAL ? 886'722 : 894'886;
 			}
-		}() * 2 //(half_waves() ? 1 : 2)
+		}() * 1 //(half_waves() ? 1 : 2)
 	);
 	reset();
 }
