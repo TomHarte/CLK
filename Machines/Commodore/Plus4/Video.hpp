@@ -49,12 +49,19 @@ public:
 			case 0xff0b:	return uint8_t(raster_interrupt_);
 			case 0xff0c:	return cursor_position_ >> 8;
 			case 0xff0d:	return uint8_t(cursor_position_);
-			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
-			case 0xff1d:	return uint8_t(vertical_counter_);
 			case 0xff14:	return uint8_t((video_matrix_base_ >> 8) & 0xf8);
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				return raw_background_[size_t(address - 0xff15)];
+
+			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
+			case 0xff1d:	return uint8_t(vertical_counter_);
+
+			case 0xff1a:
+			case 0xff1b:
+			case 0xff1e:
+			case 0xff1f:
+				printf("TODO: TED video read at %04x\n", address);
 		}
 
 		return 0xff;
@@ -126,6 +133,16 @@ public:
 				}
 			break;
 
+			case 0xff0a:
+				raster_interrupt_ = (raster_interrupt_ & 0x00ff) | ((value & 1) << 8);
+			break;
+			case 0xff0b:
+				raster_interrupt_ = (raster_interrupt_ & 0xff00) | value;
+			break;
+
+			case 0xff0c:	load_high10(cursor_position_);				break;
+			case 0xff0d:	load_low8(cursor_position_);				break;
+
 			case 0xff12:
 				bitmap_base_ = uint16_t((value & 0x38) << 10);
 			break;
@@ -137,22 +154,19 @@ public:
 				video_matrix_base_ = uint16_t((value & 0xf8) << 8);
 			break;
 
-			case 0xff0a:
-				raster_interrupt_ = (raster_interrupt_ & 0x00ff) | ((value & 1) << 8);
-			break;
-			case 0xff0b:
-				raster_interrupt_ = (raster_interrupt_ & 0xff00) | value;
-			break;
-
-			case 0xff0c:	load_high10(cursor_position_);				break;
-			case 0xff0d:	load_low8(cursor_position_);				break;
-			case 0xff1a:	load_high10(character_position_reload_);	break;
-			case 0xff1b:	load_low8(character_position_reload_);		break;
-
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				raw_background_[size_t(address - 0xff15)] = value;
 				background_[size_t(address - 0xff15)] = colour(value);
 			break;
+
+			case 0xff1a:	load_high10(character_position_reload_);	break;
+			case 0xff1b:	load_low8(character_position_reload_);		break;
+
+			case 0xff1c:
+			case 0xff1d:
+			case 0xff1e:
+			case 0xff1f:
+				printf("TODO: TED video write at %04x\n", address);
 		}
 	}
 

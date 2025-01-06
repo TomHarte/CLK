@@ -321,8 +321,8 @@ public:
 					case 0xff17:	*value = video_.read<0xff17>();	break;
 					case 0xff18:	*value = video_.read<0xff18>();	break;
 					case 0xff19:	*value = video_.read<0xff19>();	break;
-					case 0xff1a:	*value = video_.read<0xff19>();	break;
-					case 0xff1b:	*value = video_.read<0xff19>();	break;
+					case 0xff1a:	*value = video_.read<0xff1a>();	break;
+					case 0xff1b:	*value = video_.read<0xff1b>();	break;
 					case 0xff1c:	*value = video_.read<0xff1c>();	break;
 					case 0xff1d:	*value = video_.read<0xff1d>();	break;
 					case 0xff1e:	*value = video_.read<0xff1e>();	break;
