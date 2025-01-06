@@ -48,10 +48,7 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	// Read file size.
 	file_size_ = file_.get32le();
 
-	// Set up for pulse output at the requested clock rate, with each high and
-	// low being half of whatever length values will be read; pretend that
-	// a high pulse has just been distributed to imply that the next thing
-	// that needs to happen is a length check.
+	// Pick clock rate.
 	current_pulse_.length.clock_rate = static_cast<unsigned int>(
 		[&] {
 			switch(platform) {
@@ -59,14 +56,14 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 				case C64:	return video == PAL ? 985'248 : 1'022'727;
 				case C16:	return video == PAL ? 886'722 : 894'886;
 			}
-		}() * (half_waves() ? 1 : 2)
+		}() * 2 //(half_waves() ? 1 : 2)
 	);
-	current_pulse_.type = Pulse::High;
+	reset();
 }
 
 void CommodoreTAP::Serialiser::reset() {
 	file_.seek(0x14, SEEK_SET);
-	current_pulse_.type = Pulse::High;
+	current_pulse_.type = Pulse::High;	// Implies that the first posted wave will be ::Low.
 	is_at_end_ = false;
 }
 
