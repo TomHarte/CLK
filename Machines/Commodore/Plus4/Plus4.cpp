@@ -188,7 +188,7 @@ public:
 		audio_queue_.flush();
 	}
 
-	Cycles total;
+//	Cycles total;
 	Cycles perform_bus_operation(
 		const CPU::MOS6502::BusOperation operation,
 		const uint16_t address,
@@ -212,7 +212,7 @@ public:
 		}
 
 		time_since_audio_update_ += length;
-		total += length;
+//		total += length;
 
 		if(operation == CPU::MOS6502::BusOperation::Ready) {
 			return length;
@@ -245,8 +245,8 @@ public:
 
 					static uint8_t previous = 0;
 					if((previous & 0x10) != (*value & 0x10)) {
-						printf("%02x after %d [%02x]\n", *value & 0x10, total.as<int>(), (total.as<int>() / 20) >> 3);
-						total = Cycles(0);
+//						printf("%02x after %d [%02x]\n", *value & 0x10, total.as<int>(), (total.as<int>() / 20) >> 3);
+//						total = Cycles(0);
 						previous = *value;
 					}
 				}

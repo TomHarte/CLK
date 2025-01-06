@@ -343,9 +343,10 @@ public:
 					next_character_.advance();
 					next_pixels_.advance();
 
-					// TODO: if x_scroll_ is odd and a 2bpp output is ongoing, load
-					// shifted one to the right. Hacked like this currently:
-					const int adjustment = (x_scroll_ & 1) && (video_mode_ == VideoMode::MulticolourBitmap);
+					const bool is_2bpp =
+						(video_mode_ == VideoMode::MulticolourBitmap) ||
+						(video_mode_ == VideoMode::MulticolourText && output_.attributes<0>() & 0x8);
+					const int adjustment = (x_scroll_ & 1) && is_2bpp;
 					output_.load_pixels(next_pixels_.read(), x_scroll_ + adjustment);
 				}
 				if(increment_video_counter_) {
