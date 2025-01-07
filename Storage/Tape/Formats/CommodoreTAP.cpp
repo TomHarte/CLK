@@ -42,12 +42,12 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	// Pick clock rate.
 	current_pulse_.length.clock_rate = static_cast<unsigned int>(
 		[&] {
-			switch(platform_) {			// TODO: Vic-20 numbers are inexact.
-				case Platform::Vic20:	return video_ == VideoStandard::PAL ? 1'108'000 : 1'022'000;
+			switch(platform_) {
+				case Platform::Vic20:	// It empirically seems like Vic-20 waves are counted with C64 timings?
 				case Platform::C64:		return video_ == VideoStandard::PAL ? 985'248 : 1'022'727;
 				case Platform::C16:		return video_ == VideoStandard::PAL ? 886'722 : 894'886;
 			}
-		}() * (half_waves() ? 1 : 2)
+		}() * (double_clock() ? 2 : 1)
 	);
 	reset();
 }

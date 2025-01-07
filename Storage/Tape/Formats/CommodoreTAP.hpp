@@ -47,6 +47,7 @@ private:
 		enum class FileType {
 			C16, C64,
 		} type_;
+		uint8_t version_;
 		enum class Platform: uint8_t {
 			C64 = 0,
 			Vic20 = 1,
@@ -57,13 +58,14 @@ private:
 			NTSC1 = 1,
 			NTSC2 = 2,
 		} video_;
-		uint8_t version_;
 		bool updated_layout() const {
 			return version_ >= 1;
 		}
 		bool half_waves() const {
-			return type_ == FileType::C16;
-//			return version_ >= 2;
+			return version_ >= 2;
+		}
+		bool double_clock() const {
+			return platform_ == Platform::C16 && !half_waves();
 		}
 
 		Pulse current_pulse_;
