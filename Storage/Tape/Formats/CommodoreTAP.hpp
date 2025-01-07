@@ -65,7 +65,7 @@ private:
 			return version_ >= 2;
 		}
 		bool double_clock() const {
-			return platform_ == Platform::C16 && !half_waves();
+			return platform_ != Platform::C16 || !half_waves();
 		}
 
 		Pulse current_pulse_;
