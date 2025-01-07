@@ -19,6 +19,7 @@
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../SerialBus.hpp"
@@ -124,6 +125,7 @@ private:
 class ConcreteMachine:
 	public Activity::Source,
 	public BusController,
+	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
@@ -467,6 +469,14 @@ private:
 		return video_.get_scaled_scan_status();
 	}
 
+	void set_display_type(const Outputs::Display::DisplayType display_type) final {
+		video_.set_display_type(display_type);
+	}
+
+	Outputs::Display::DisplayType get_display_type() const final {
+		return video_.get_display_type();
+	}
+
 	void run_for(const Cycles cycles) final {
 		m6502_.run_for(cycles);
 
@@ -549,7 +559,26 @@ private:
 	SerialPort serial_port_;
 
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
+	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
+	void set_use_fast_tape() {}
+
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
+
+	// MARK: - Configuration options.
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->output = get_video_signal_configurable();
+		options->quickload = allow_fast_tape_hack_;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+
+		set_video_signal_configurable(options->output);
+		allow_fast_tape_hack_ = options->quickload;
+		set_use_fast_tape();
+	}
 };
 }
 
