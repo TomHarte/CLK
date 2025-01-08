@@ -46,15 +46,16 @@ public:
 		switch(address) {
 			case 0xff06:	return ff06_;
 			case 0xff07:	return ff07_;
+			case 0xff0a:	return (raster_interrupt_ >> 8) & 1;
 			case 0xff0b:	return uint8_t(raster_interrupt_);
-			case 0xff0c:	return cursor_position_ >> 8;
+			case 0xff0c:	return (cursor_position_ >> 8) | 0xfc;
 			case 0xff0d:	return uint8_t(cursor_position_);
-			case 0xff14:	return uint8_t((video_matrix_base_ >> 8) & 0xf8);
+			case 0xff14:	return uint8_t((video_matrix_base_ >> 8) & 0xf8) | 0x07;
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
-				return raw_background_[size_t(address - 0xff15)];
+				return 0x80 | raw_background_[size_t(address - 0xff15)];
 
-			case 0xff1a:	return uint8_t(character_position_reload_ >> 8);
+			case 0xff1a:	return uint8_t(character_position_reload_ >> 8) | 0xfc;
 			case 0xff1b:	return uint8_t(character_position_reload_);
 			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
 			case 0xff1d:	return uint8_t(vertical_counter_);
@@ -63,7 +64,7 @@ public:
 				return uint8_t(
 					((flash_count_ & 0xf) << 3) |
 					vertical_sub_count_
-				);
+				) | 0x80;
 		}
 
 		return 0xff;

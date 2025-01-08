@@ -307,15 +307,17 @@ public:
 					case 0xff07:	*value = video_.read<0xff07>();	break;
 					case 0xff08:	*value = keyboard_latch_;		break;
 					case 0xff09:	*value = interrupts_.status();	break;
-					case 0xff0a:	*value = interrupts_.mask();	break;
+					case 0xff0a:
+						*value = interrupts_.mask() | video_.read<0xff0a>() | 0x60;
+					break;
 					case 0xff0b:	*value = video_.read<0xff0b>();	break;
 					case 0xff0c:	*value = video_.read<0xff0c>();	break;
 					case 0xff0d:	*value = video_.read<0xff0d>();	break;
-					case 0xff0e:	*value = ff0e_;	break;
-					case 0xff0f:	*value = ff0f_;	break;
-					case 0xff10:	*value = ff10_;	break;
-					case 0xff11:	*value = ff11_;	break;
-					case 0xff12:	*value = ff12_;	break;
+					case 0xff0e:	*value = ff0e_;					break;
+					case 0xff0f:	*value = ff0f_;					break;
+					case 0xff10:	*value = ff10_ | 0xfc;			break;
+					case 0xff11:	*value = ff11_;					break;
+					case 0xff12:	*value = ff12_ | 0xc0;			break;
 					case 0xff13:	*value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
 					case 0xff14:	*value = video_.read<0xff14>();	break;
 					case 0xff15:	*value = video_.read<0xff15>();	break;
