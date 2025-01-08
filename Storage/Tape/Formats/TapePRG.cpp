@@ -61,12 +61,12 @@ PRG::Serialiser::Serialiser(const std::string &file_name) :
 	load_address_ = file_.get16le();
 	length_ = uint16_t(file_.stats().st_size - 2);
 
-	if (load_address_ + length_ >= 65536)
+	if(load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
 }
 
 Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
-	// these are all microseconds per pole
+	// The below are in microseconds per pole.
 	constexpr unsigned int leader_zero_length = 179;
 	constexpr unsigned int zero_length = 169;
 	constexpr unsigned int one_length = 247;
@@ -76,7 +76,7 @@ Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
 	if(!bit_phase_) get_next_output_token();
 
 	Pulse pulse;
-	pulse.length.clock_rate = 1000000;
+	pulse.length.clock_rate = 1'000'000;
 	pulse.type = (bit_phase_&1) ? Pulse::High : Pulse::Low;
 	switch(output_token_) {
 		case Leader:		pulse.length.length = leader_zero_length;							break;
