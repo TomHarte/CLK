@@ -250,7 +250,7 @@ public:
 		}
 
 		if(address < 0x8000) {
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				*value = ram_[address];
 			} else {
 				ram_[address] = *value;
@@ -258,7 +258,7 @@ public:
 		} else {
 			switch(address & 0xff0f) {
 				case 0xfe00:
-					if(isReadOperation(operation)) {
+					if(is_read(operation)) {
 						*value = interrupt_status_;
 						interrupt_status_ &= ~PowerOnReset;
 					} else {
@@ -267,7 +267,7 @@ public:
 					}
 				break;
 				case 0xfe07:
-					if(!isReadOperation(operation)) {
+					if(!is_read(operation)) {
 						// update speaker mode
 						bool new_speaker_is_enabled = (*value & 6) == 2;
 						if(new_speaker_is_enabled != speaker_is_enabled_) {
@@ -291,12 +291,12 @@ public:
 				case 0xfe02: case 0xfe03:
 				case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
 				case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
-					if(!isReadOperation(operation)) {
+					if(!is_read(operation)) {
 						video_.write(address, *value);
 					}
 				break;
 				case 0xfe04:
-					if(isReadOperation(operation)) {
+					if(is_read(operation)) {
 						*value = tape_.get_data_register();
 						tape_.clear_interrupts(Interrupt::ReceiveDataFull);
 					} else {
@@ -305,7 +305,7 @@ public:
 					}
 				break;
 				case 0xfe05:
-					if(!isReadOperation(operation)) {
+					if(!is_read(operation)) {
 						const uint8_t interruptDisable = (*value)&0xf0;
 						if( interruptDisable ) {
 							if( interruptDisable&0x10 ) interrupt_status_ &= ~Interrupt::DisplayEnd;
@@ -332,7 +332,7 @@ public:
 					}
 				break;
 				case 0xfe06:
-					if(!isReadOperation(operation)) {
+					if(!is_read(operation)) {
 						update_audio();
 						sound_generator_.set_divider(*value);
 						tape_.set_counter(*value);
@@ -345,7 +345,7 @@ public:
 							is_holding_shift_ = false;
 							set_key_state(KeyShift, false);
 						}
-						if(isReadOperation(operation))
+						if(is_read(operation))
 							*value = plus3_->read(address);
 						else
 							plus3_->write(address, *value);
@@ -353,14 +353,14 @@ public:
 				break;
 				case 0xfc00:
 					if(plus3_ && (address&0x00f0) == 0x00c0) {
-						if(!isReadOperation(operation)) {
+						if(!is_read(operation)) {
 							plus3_->set_control_register(*value);
 						} else *value = 1;
 					}
 
 					if(has_scsi_bus && (address&0x00f0) == 0x0040) {
 						scsi_acknowledge_ = true;
-						if(!isReadOperation(operation)) {
+						if(!is_read(operation)) {
 							scsi_data_ = *value;
 							push_scsi_output();
 						} else {
@@ -377,7 +377,7 @@ public:
 					}
 				break;
 				case 0xfc01:
-					if(has_scsi_bus && (address&0x00f0) == 0x0040 && isReadOperation(operation)) {
+					if(has_scsi_bus && (address&0x00f0) == 0x0040 && is_read(operation)) {
 						// Status byte is:
 						//
 						//	b7:	SCSI C/D
@@ -427,7 +427,7 @@ public:
 
 				default:
 					if(address >= 0xc000) {
-						if(isReadOperation(operation)) {
+						if(is_read(operation)) {
 							if(
 								use_fast_tape_hack_ &&
 								(operation == CPU::MOS6502::BusOperation::ReadOpcode) &&
@@ -479,7 +479,7 @@ public:
 							}
 						}
 					} else {
-						if(isReadOperation(operation)) {
+						if(is_read(operation)) {
 							*value = roms_[active_rom_][address & 16383];
 							if(keyboard_is_active_) {
 								*value &= 0xf0;

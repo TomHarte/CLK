@@ -35,7 +35,7 @@ public:
 			}
 		}
 
-		if(isReadOperation(operation)) {
+		if(is_read(operation)) {
 			*value = rom_ptr_[address & 4095];
 		}
 

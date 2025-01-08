@@ -284,7 +284,7 @@ public:
 			*value = rom_[rom_.size() - 65536 + address];
 		} else if(region.flags & MemoryMap::Region::IsIO) {
 			// Ensure classic auxiliary and language card accesses have effect.
-			const bool is_read = isReadOperation(operation);
+			const bool is_read = CPU::MOS6502Esque::is_read(operation);
 			memory_.access(uint16_t(address), is_read);
 
 			const auto address_suffix = address & 0xffff;
@@ -818,7 +818,7 @@ public:
 			assert(operation != CPU::WDC65816::BusOperation::ReadOpcode || region.read);
 			is_1Mhz = region.flags & MemoryMap::Region::Is1Mhz;
 
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				*value = memory_.read(region, address);
 			} else {
 				// Shadowed writes also occur "at 1Mhz".

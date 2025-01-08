@@ -99,17 +99,17 @@ enum class BusOperation {
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation should be treated as a read; @c false otherwise.
 */
-constexpr bool isReadOperation(BusOperation op) { return op <= BusOperation::InternalOperationRead; }
+constexpr bool is_read(BusOperation op) { return op <= BusOperation::InternalOperationRead; }
 
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation is any sort of write; @c false otherwise.
 */
-constexpr bool isWriteOperation(BusOperation op) { return op >= BusOperation::Write; }
+constexpr bool is_write(BusOperation op) { return op >= BusOperation::Write; }
 
 /*!
 	Evaluates to @c true if the operation actually expects a response; @c false otherwise.
 */
-constexpr bool isAccessOperation(BusOperation op) { return op <= BusOperation::ReadVector || op == BusOperation::Write; }
+constexpr bool is_access(BusOperation op) { return op <= BusOperation::ReadVector || op == BusOperation::Write; }
 
 /*!
 	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,

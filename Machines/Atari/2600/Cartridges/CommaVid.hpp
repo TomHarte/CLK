@@ -25,7 +25,7 @@ public:
 		address &= 0x1fff;
 
 		if(address < 0x1400) {
-			if(isReadOperation(operation)) *value = ram_[address & 1023];
+			if(is_read(operation)) *value = ram_[address & 1023];
 			return;
 		}
 
@@ -34,7 +34,7 @@ public:
 			return;
 		}
 
-		if(isReadOperation(operation)) *value = rom_base_[address & 2047];
+		if(is_read(operation)) *value = rom_base_[address & 2047];
 	}
 
 private:

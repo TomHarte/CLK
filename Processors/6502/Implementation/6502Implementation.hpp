@@ -780,7 +780,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 				if(has_stpwai(personality) && (stop_is_active_ || wait_is_active_)) {
 					break;
 				}
-				if(uses_ready_line && ready_line_is_enabled_ && (is_65c02(personality) || isReadOperation(next_bus_operation_))) {
+				if(uses_ready_line && ready_line_is_enabled_ && (is_65c02(personality) || is_read(next_bus_operation_))) {
 					ready_is_active_ = true;
 					break;
 				}

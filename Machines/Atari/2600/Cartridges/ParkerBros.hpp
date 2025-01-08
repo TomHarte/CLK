@@ -36,7 +36,7 @@ public:
 			rom_ptr_[slot] = rom_base_ + ((address & 7) * 1024);
 		}
 
-		if(isReadOperation(operation)) {
+		if(is_read(operation)) {
 			*value = rom_ptr_[(address >> 10)&3][address & 1023];
 		}
 	}

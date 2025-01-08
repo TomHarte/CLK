@@ -76,21 +76,21 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 			0xc000-0xffff	ROM
 	*/
 	if(address < 0x800) {
-		if(isReadOperation(operation))
+		if(is_read(operation))
 			*value = ram_[address];
 		else
 			ram_[address] = *value;
 	} else if(address >= 0xc000) {
-		if(isReadOperation(operation)) {
+		if(is_read(operation)) {
 			*value = rom_[address & 0x3fff];
 		}
 	} else if(address >= 0x1800 && address <= 0x180f) {
-		if(isReadOperation(operation))
+		if(is_read(operation))
 			*value = serial_port_VIA_.read(address);
 		else
 			serial_port_VIA_.write(address, *value);
 	} else if(address >= 0x1c00 && address <= 0x1c0f) {
-		if(isReadOperation(operation))
+		if(is_read(operation))
 			*value = drive_VIA_.read(address);
 		else
 			drive_VIA_.write(address, *value);

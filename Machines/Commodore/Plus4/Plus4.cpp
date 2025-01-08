@@ -231,7 +231,7 @@ public:
 			//	b1 = serial clock out and cassette write;
 			//	b0 = serial data out.
 
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				if(!address) {
 					*value = io_direction_;
 				} else {
@@ -257,14 +257,14 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				*value = map_.read(address);
 			} else {
 				map_.write(address) = *value;
 			}
 		} else if(address < 0xff00) {
 			// Miscellaneous hardware. All TODO.
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 //				printf("TODO: read @ %04x\n", address);
 				if((address & 0xfff0) == 0xfd10) {
 					// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
@@ -295,7 +295,7 @@ public:
 //				printf("TODO: write of %02x @ %04x\n", *value, address);
 			}
 		} else {
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				switch(address) {
 					case 0xff00:	*value = timers_.read<0>();		break;
 					case 0xff01:	*value = timers_.read<1>();		break;

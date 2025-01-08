@@ -21,7 +21,7 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
-		if(isReadOperation(operation) && (address & 0x1000)) {
+		if(is_read(operation) && (address & 0x1000)) {
 			*value = rom_base_[address & (rom_size_ - 1)];
 		}
 	}
