@@ -330,17 +330,20 @@ public:
 					case 0xff1e:	*value = video_.read<0xff1e>();	break;
 					case 0xff1f:	*value = video_.read<0xff1f>();	break;
 
+					case 0xff3e:	*value = 0;						break;
+					case 0xff3f:	*value = 0;						break;
+
 					default:
 						printf("TODO: TED read at %04x\n", address);
 				}
 			} else {
 				switch(address) {
-					case 0xff00:	timers_.write<0>(*value);	break;
-					case 0xff01:	timers_.write<1>(*value);	break;
-					case 0xff02:	timers_.write<2>(*value);	break;
-					case 0xff03:	timers_.write<3>(*value);	break;
-					case 0xff04:	timers_.write<4>(*value);	break;
-					case 0xff05:	timers_.write<5>(*value);	break;
+					case 0xff00:	timers_.write<0>(*value);		break;
+					case 0xff01:	timers_.write<1>(*value);		break;
+					case 0xff02:	timers_.write<2>(*value);		break;
+					case 0xff03:	timers_.write<3>(*value);		break;
+					case 0xff04:	timers_.write<4>(*value);		break;
+					case 0xff05:	timers_.write<5>(*value);		break;
 					case 0xff06:	video_.write<0xff06>(*value);	break;
 					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff08:
@@ -427,8 +430,6 @@ public:
 
 					case 0xff3e:	page_cpu_rom();					break;
 					case 0xff3f:	page_cpu_ram();					break;
-
-					// TODO: audio is 0xff10, 0xff11, 0xff0e, 0xff0f and shares 0xff18.
 
 					default:
 						printf("TODO: TED write at %04x\n", address);
