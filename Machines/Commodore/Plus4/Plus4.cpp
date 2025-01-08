@@ -249,13 +249,11 @@ public:
 				}
 
 				const auto output = io_output_ | ~io_direction_;
-//				tape_player_->set_motor_control(~output & 0x08);
+				tape_player_->set_motor_control(~output & 0x08);
 				serial_port_.set_output(Serial::Line::Data, Serial::LineLevel(~output & 0x01));
 				serial_port_.set_output(Serial::Line::Clock, Serial::LineLevel(~output & 0x02));
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
-
-//			printf("%04x: %02x %c\n", address, *value, isReadOperation(operation) ? 'r' : 'w');
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			if(isReadOperation(operation)) {
 				*value = map_.read(address);
@@ -267,8 +265,27 @@ public:
 			if(isReadOperation(operation)) {
 //				printf("TODO: read @ %04x\n", address);
 				if((address & 0xfff0) == 0xfd10) {
-					tape_player_->set_motor_control(true);
-					*value = 0xff ^ 0x4;	// Seems to detect the play button.
+					// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
+
+					// If play button is not currently pressed and this read is immediately followed by
+					// an AND 4, press it. The kernel will deal with motor control subsequently.
+					if(!play_button_) {
+						const uint16_t pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+						const uint8_t next[] = {
+							map_.read(pc+0),
+							map_.read(pc+1),
+							map_.read(pc+2),
+							map_.read(pc+3),
+						};
+
+						// TODO: boil this down to a PC check. It's currently in this form as I'm unclear what
+						// diversity of kernels exist.
+						if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
+							play_button_ = true;
+						}
+					}
+
+					*value = 0xff ^ (play_button_ ? 0x4 :0x0);
 				} else {
 					*value = 0xff;
 				}
@@ -284,33 +301,32 @@ public:
 					case 0xff03:	*value = timers_.read<3>();		break;
 					case 0xff04:	*value = timers_.read<4>();		break;
 					case 0xff05:	*value = timers_.read<5>();		break;
-
-					case 0xff08:	*value = keyboard_latch_;		break;
-
-					case 0xff09:	*value = interrupts_.status();	break;
-					case 0xff0a:	*value = interrupts_.mask();	break;
-
 					case 0xff06:	*value = video_.read<0xff06>();	break;
 					case 0xff07:	*value = video_.read<0xff07>();	break;
+					case 0xff08:	*value = keyboard_latch_;		break;
+					case 0xff09:	*value = interrupts_.status();	break;
+					case 0xff0a:	*value = interrupts_.mask();	break;
 					case 0xff0b:	*value = video_.read<0xff0b>();	break;
-					case 0xff1c:	*value = video_.read<0xff1c>();	break;
-					case 0xff1d:	*value = video_.read<0xff1d>();	break;
-
+					case 0xff0c:	*value = video_.read<0xff0c>();	break;
+					case 0xff0d:	*value = video_.read<0xff0d>();	break;
 					case 0xff0e:	*value = ff0e_;	break;
 					case 0xff0f:	*value = ff0f_;	break;
 					case 0xff10:	*value = ff10_;	break;
 					case 0xff11:	*value = ff11_;	break;
 					case 0xff12:	*value = ff12_;	break;
 					case 0xff13:	*value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
-
-					case 0xff0c:	*value = video_.read<0xff0c>();	break;
-					case 0xff0d:	*value = video_.read<0xff0d>();	break;
 					case 0xff14:	*value = video_.read<0xff14>();	break;
 					case 0xff15:	*value = video_.read<0xff15>();	break;
 					case 0xff16:	*value = video_.read<0xff16>();	break;
 					case 0xff17:	*value = video_.read<0xff17>();	break;
 					case 0xff18:	*value = video_.read<0xff18>();	break;
 					case 0xff19:	*value = video_.read<0xff19>();	break;
+					case 0xff1a:	*value = video_.read<0xff1a>();	break;
+					case 0xff1b:	*value = video_.read<0xff1b>();	break;
+					case 0xff1c:	*value = video_.read<0xff1c>();	break;
+					case 0xff1d:	*value = video_.read<0xff1d>();	break;
+					case 0xff1e:	*value = video_.read<0xff1e>();	break;
+					case 0xff1f:	*value = video_.read<0xff1f>();	break;
 
 					default:
 						printf("TODO: TED read at %04x\n", address);
@@ -323,7 +339,8 @@ public:
 					case 0xff03:	timers_.write<3>(*value);	break;
 					case 0xff04:	timers_.write<4>(*value);	break;
 					case 0xff05:	timers_.write<5>(*value);	break;
-
+					case 0xff06:	video_.write<0xff06>(*value);	break;
+					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
 						// address upon completing each keyboard scan cycle,
@@ -346,7 +363,6 @@ public:
 							((*value & 0x80) ? 0x00 : key_states_[7])
 						);
 					break;
-
 					case 0xff09:
 						interrupts_.set_status(*value);
 					break;
@@ -355,9 +371,6 @@ public:
 						video_.write<0xff0a>(*value);
 					break;
 					case 0xff0b:	video_.write<0xff0b>(*value);	break;
-
-					case 0xff06:	video_.write<0xff06>(*value);	break;
-					case 0xff07:	video_.write<0xff07>(*value);	break;
 					case 0xff0c:	video_.write<0xff0c>(*value);	break;
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
 					case 0xff0e:
@@ -398,14 +411,17 @@ public:
 						video_.write<0xff13>(*value);
 					break;
 					case 0xff14:	video_.write<0xff14>(*value);	break;
-					case 0xff1a:	video_.write<0xff1a>(*value);	break;
-					case 0xff1b:	video_.write<0xff1b>(*value);	break;
-
 					case 0xff15:	video_.write<0xff15>(*value);	break;
 					case 0xff16:	video_.write<0xff16>(*value);	break;
 					case 0xff17:	video_.write<0xff17>(*value);	break;
 					case 0xff18:	video_.write<0xff18>(*value);	break;
 					case 0xff19:	video_.write<0xff19>(*value);	break;
+					case 0xff1a:	video_.write<0xff1a>(*value);	break;
+					case 0xff1b:	video_.write<0xff1b>(*value);	break;
+					case 0xff1c:	video_.write<0xff1c>(*value);	break;
+					case 0xff1d:	video_.write<0xff1d>(*value);	break;
+					case 0xff1e:	video_.write<0xff1e>(*value);	break;
+					case 0xff1f:	video_.write<0xff1f>(*value);	break;
 
 					case 0xff3e:	page_cpu_rom();					break;
 					case 0xff3f:	page_cpu_ram();					break;
@@ -549,6 +565,7 @@ private:
 	SerialPort serial_port_;
 
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
+	bool play_button_ = false;
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 };
 }

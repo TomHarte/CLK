@@ -17,33 +17,44 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) : Tape(serialiser_), se
 CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read)
 {
-	if(!file_.check_signature("C64-TAPE-RAW"))
+	const bool is_c64 = file_.check_signature("C64-TAPE-RAW");
+	file_.seek(0, SEEK_SET);
+	const bool is_c16 = file_.check_signature("C16-TAPE-RAW");
+	if(!is_c64 && !is_c16) {
 		throw ErrorNotCommodoreTAP;
+	}
+	type_ = is_c16 ? FileType::C16 : FileType::C64;
 
-	// check the file version
-	switch(file_.get8()) {
-		case 0:		updated_layout_ = false;	break;
-		case 1:		updated_layout_ = true;		break;
-		default:	throw ErrorNotCommodoreTAP;
+	// Get and check the file version.
+	version_ = file_.get8();
+	if(version_ > 2) {
+		throw ErrorNotCommodoreTAP;
 	}
 
-	// skip reserved bytes
-	file_.seek(3, SEEK_CUR);
+	// Read clock rate-implying bytes.
+	platform_ = Platform(file_.get8());
+	video_ = VideoStandard(file_.get8());
+	file_.seek(1, SEEK_CUR);
 
-	// read file size
+	// Read file size.
 	file_size_ = file_.get32le();
 
-	// set up for pulse output at the PAL clock rate, with each high and
-	// low being half of whatever length values will be read; pretend that
-	// a high pulse has just been distributed to imply that the next thing
-	// that needs to happen is a length check
-	current_pulse_.length.clock_rate = 985248 * 2;
-	current_pulse_.type = Pulse::High;
+	// Pick clock rate.
+	current_pulse_.length.clock_rate = static_cast<unsigned int>(
+		[&] {
+			switch(platform_) {
+				case Platform::Vic20:	// It empirically seems like Vic-20 waves are counted with C64 timings?
+				case Platform::C64:		return video_ == VideoStandard::PAL ? 985'248 : 1'022'727;
+				case Platform::C16:		return video_ == VideoStandard::PAL ? 886'722 : 894'886;
+			}
+		}() * (double_clock() ? 2 : 1)
+	);
+	reset();
 }
 
 void CommodoreTAP::Serialiser::reset() {
 	file_.seek(0x14, SEEK_SET);
-	current_pulse_.type = Pulse::High;
+	current_pulse_.type = Pulse::High;	// Implies that the first posted wave will be ::Low.
 	is_at_end_ = false;
 }
 
@@ -56,10 +67,10 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 		return current_pulse_;
 	}
 
-	if(current_pulse_.type == Pulse::High) {
+	const auto read_next_length = [&]() -> bool {
 		uint32_t next_length;
 		const uint8_t next_byte = file_.get8();
-		if(!updated_layout_ || next_byte > 0) {
+		if(!updated_layout() || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {
 			next_length = file_.get24le();
@@ -69,8 +80,19 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 			is_at_end_ = true;
 			current_pulse_.length.length = current_pulse_.length.clock_rate;
 			current_pulse_.type = Pulse::Zero;
+			return false;
 		} else {
 			current_pulse_.length.length = next_length;
+			return true;
+		}
+	};
+
+	if(half_waves()) {
+		if(read_next_length()) {
+			current_pulse_.type = current_pulse_.type == Pulse::High ? Pulse::Low : Pulse::High;
+		}
+	} else if(current_pulse_.type == Pulse::High) {
+		if(read_next_length()) {
 			current_pulse_.type = Pulse::Low;
 		}
 	} else {
