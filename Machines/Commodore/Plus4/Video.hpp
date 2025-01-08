@@ -588,6 +588,14 @@ public:
 		return crt_.get_scaled_scan_status();
 	}
 
+	void set_display_type(const Outputs::Display::DisplayType display_type) {
+		crt_.set_display_type(display_type);
+	}
+
+	Outputs::Display::DisplayType get_display_type() const {
+		return crt_.get_display_type();
+	}
+
 private:
 	Outputs::CRT::CRT crt_;
 	Cycles subcycles_;
