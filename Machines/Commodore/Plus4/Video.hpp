@@ -49,12 +49,19 @@ public:
 			case 0xff0b:	return uint8_t(raster_interrupt_);
 			case 0xff0c:	return cursor_position_ >> 8;
 			case 0xff0d:	return uint8_t(cursor_position_);
-			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
-			case 0xff1d:	return uint8_t(vertical_counter_);
 			case 0xff14:	return uint8_t((video_matrix_base_ >> 8) & 0xf8);
 
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				return raw_background_[size_t(address - 0xff15)];
+
+			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
+			case 0xff1d:	return uint8_t(vertical_counter_);
+
+			case 0xff1a:
+			case 0xff1b:
+			case 0xff1e:
+			case 0xff1f:
+				printf("TODO: TED video read at %04x\n", address);
 		}
 
 		return 0xff;
@@ -126,6 +133,16 @@ public:
 				}
 			break;
 
+			case 0xff0a:
+				raster_interrupt_ = (raster_interrupt_ & 0x00ff) | ((value & 1) << 8);
+			break;
+			case 0xff0b:
+				raster_interrupt_ = (raster_interrupt_ & 0xff00) | value;
+			break;
+
+			case 0xff0c:	load_high10(cursor_position_);				break;
+			case 0xff0d:	load_low8(cursor_position_);				break;
+
 			case 0xff12:
 				bitmap_base_ = uint16_t((value & 0x38) << 10);
 			break;
@@ -137,22 +154,19 @@ public:
 				video_matrix_base_ = uint16_t((value & 0xf8) << 8);
 			break;
 
-			case 0xff0a:
-				raster_interrupt_ = (raster_interrupt_ & 0x00ff) | ((value & 1) << 8);
-			break;
-			case 0xff0b:
-				raster_interrupt_ = (raster_interrupt_ & 0xff00) | value;
-			break;
-
-			case 0xff0c:	load_high10(cursor_position_);				break;
-			case 0xff0d:	load_low8(cursor_position_);				break;
-			case 0xff1a:	load_high10(character_position_reload_);	break;
-			case 0xff1b:	load_low8(character_position_reload_);		break;
-
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				raw_background_[size_t(address - 0xff15)] = value;
 				background_[size_t(address - 0xff15)] = colour(value);
 			break;
+
+			case 0xff1a:	load_high10(character_position_reload_);	break;
+			case 0xff1b:	load_low8(character_position_reload_);		break;
+
+			case 0xff1c:
+			case 0xff1d:
+			case 0xff1e:
+			case 0xff1f:
+				printf("TODO: TED video write at %04x\n", address);
 		}
 	}
 
@@ -329,7 +343,11 @@ public:
 					next_character_.advance();
 					next_pixels_.advance();
 
-					output_.load_pixels(next_pixels_.read(), x_scroll_);
+					const bool is_2bpp =
+						(video_mode_ == VideoMode::MulticolourBitmap) ||
+						(video_mode_ == VideoMode::MulticolourText && output_.attributes<0>() & 0x8);
+					const int adjustment = (x_scroll_ & 1) && is_2bpp;
+					output_.load_pixels(next_pixels_.read(), x_scroll_ + adjustment);
 				}
 				if(increment_video_counter_) {
 					//
@@ -987,22 +1005,25 @@ private:
 	template <int length, bool is_leftovers>
 	void draw_2bpp_segment(uint16_t *const target, const uint16_t *colours) {
 		constexpr int leftover = is_leftovers && (length & 1);
+		static_assert(length + leftover <= 8);
 		if(target) {
 			const auto pixels = output_.pixels();
 			// Intention: skip first output if leftover is 1, but still do the correct
 			// length of output.
 			if constexpr (!leftover && length >= 1) target[0] = colours[(pixels >> 6) & 3];
-			if constexpr (length + leftover >= 2) target[1] = colours[(pixels >> 6) & 3];
-			if constexpr (length + leftover >= 3) target[2] = colours[(pixels >> 4) & 3];
-			if constexpr (length + leftover >= 4) target[3] = colours[(pixels >> 4) & 3];
-			if constexpr (length + leftover >= 5) target[4] = colours[(pixels >> 2) & 3];
-			if constexpr (length + leftover >= 6) target[5] = colours[(pixels >> 2) & 3];
-			if constexpr (length + leftover >= 7) target[6] = colours[(pixels >> 0) & 3];
-			if constexpr (length + leftover >= 8) target[7] = colours[(pixels >> 0) & 3];
+			if constexpr (length + leftover >= 2) target[1 - leftover] = colours[(pixels >> 6) & 3];
+			if constexpr (length + leftover >= 3) target[2 - leftover] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 4) target[3 - leftover] = colours[(pixels >> 4) & 3];
+			if constexpr (length + leftover >= 5) target[4 - leftover] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 6) target[5 - leftover] = colours[(pixels >> 2) & 3];
+			if constexpr (length + leftover >= 7) target[6 - leftover] = colours[(pixels >> 0) & 3];
+			if constexpr (length + leftover >= 8) target[7 - leftover] = colours[(pixels >> 0) & 3];
 		}
 
-		if(is_leftovers) {
-			output_.advance_pixels(length + leftover);
+		if constexpr (is_leftovers) {
+			constexpr int shift_distance = length + leftover;
+			static_assert(!(shift_distance&1));
+			output_.advance_pixels(shift_distance);
 		} else {
 			output_.advance_pixels(length & ~1);
 		}
