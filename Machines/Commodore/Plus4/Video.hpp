@@ -54,14 +54,16 @@ public:
 			case 0xff15:	case 0xff16:	case 0xff17:	case 0xff18:	case 0xff19:
 				return raw_background_[size_t(address - 0xff15)];
 
+			case 0xff1a:	return uint8_t(character_position_reload_ >> 8);
+			case 0xff1b:	return uint8_t(character_position_reload_);
 			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
 			case 0xff1d:	return uint8_t(vertical_counter_);
-
-			case 0xff1a:
-			case 0xff1b:
-			case 0xff1e:
+			case 0xff1e:	return uint8_t(horizontal_counter_ >> 1);
 			case 0xff1f:
-				printf("TODO: TED video read at %04x\n", address);
+				return uint8_t(
+					((flash_count_ & 0xf) << 3) |
+					vertical_sub_count_
+				);
 		}
 
 		return 0xff;
@@ -971,7 +973,9 @@ private:
 			} break;
 
 			case VideoMode::Blank:
-				std::fill(target, target + length, 0x0000);
+				if(target) {
+					std::fill(target, target + length, 0x0000);
+				}
 				output_.advance_pixels(length);
 			break;
 		}
