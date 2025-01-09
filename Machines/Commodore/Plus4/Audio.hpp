@@ -78,7 +78,7 @@ public:
 		});
 	}
 
-	void set_constrol(uint8_t value) {
+	void set_control(const uint8_t value) {
 		audio_queue_.enqueue([this, value] {
 			volume_ = std::min(value & 0xf, 8);	// Only nine volumes are available.
 			masks_[0] = (value & 0x10) ? 1 : 0;
@@ -87,6 +87,12 @@ public:
 			sound2_noise_on_ = (value & 0x40) && !(value & 0x20);
 
 			sound_dc_ = value & 0x80;
+		});
+	}
+
+	void set_divider(const uint8_t value) {
+		audio_queue_.enqueue([this, value] {
+			frequency_multiplier_ = value & 0x40 ? 4 : 5;
 		});
 	}
 

@@ -347,7 +347,11 @@ public:
 					case 0xff04:	timers_.write<4>(*value);		break;
 					case 0xff05:	timers_.write<5>(*value);		break;
 					case 0xff06:	video_.write<0xff06>(*value);	break;
-					case 0xff07:	video_.write<0xff07>(*value);	break;
+					case 0xff07:
+						video_.write<0xff07>(*value);
+						update_audio();
+						audio_.set_divider(*value);
+					break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
 						// address upon completing each keyboard scan cycle,
@@ -398,7 +402,7 @@ public:
 					case 0xff11:
 						ff11_ = *value;
 						update_audio();
-						audio_.set_constrol(*value);
+						audio_.set_control(*value);
 					break;
 					case 0xff12:
 						ff12_ = *value & 0x3f;
