@@ -722,14 +722,14 @@ public:
 
 		bool has_updated_cards = false;
 		if(read_pages_[address >> 8]) {
-			if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
+			if(is_read(operation)) *value = read_pages_[address >> 8][address & 0xff];
 			else {
 				if(address >= 0x200 && address < 0x6000) update_video();
 				if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 			}
 
 			if(is_iie(model)) {
-				auxiliary_switches_.access(address, isReadOperation(operation));
+				auxiliary_switches_.access(address, is_read(operation));
 			}
 		} else {
 			// Assume a vapour read unless it turns out otherwise; this is a little
@@ -745,7 +745,7 @@ public:
 			// doesn't. The call into the video isn't free because it's a just-in-time
 			// actor, but this will actually be the result most of the time so it's not
 			// too terrible.
-			if(isReadOperation(operation) && address != 0xc000) {
+			if(is_read(operation) && address != 0xc000) {
 				// Ensure any enqueued video changes are applied before grabbing the
 				// vapour value.
 				if(video_.has_deferred_actions()) {
@@ -756,7 +756,7 @@ public:
 
 			switch(address) {
 				default:
-					if(isReadOperation(operation)) {
+					if(is_read(operation)) {
 						// Read-only switches.
 						switch(address) {
 							default: break;
@@ -868,13 +868,13 @@ public:
 				case 0xc055:
 					update_video();
 					video_.set_page2(address&1);
-					auxiliary_switches_.access(address, isReadOperation(operation));
+					auxiliary_switches_.access(address, is_read(operation));
 				break;
 				case 0xc056:
 				case 0xc057:
 					update_video();
 					video_.set_high_resolution(address&1);
-					auxiliary_switches_.access(address, isReadOperation(operation));
+					auxiliary_switches_.access(address, is_read(operation));
 				break;
 
 				case 0xc05e:
@@ -889,7 +889,7 @@ public:
 					keyboard_.clear_keyboard_input();
 
 					// On the IIe, reading C010 returns additional key info.
-					if(is_iie(model) && isReadOperation(operation)) {
+					if(is_iie(model) && is_read(operation)) {
 						*value = (keyboard_.get_key_is_down() ? 0x80 : 0x00) | (keyboard_.get_keyboard_input() & 0x7f);
 					}
 				break;
@@ -904,7 +904,7 @@ public:
 				case 0xc081: case 0xc085: case 0xc089: case 0xc08d:
 				case 0xc082: case 0xc086: case 0xc08a: case 0xc08e:
 				case 0xc083: case 0xc087: case 0xc08b: case 0xc08f:
-					language_card_.access(address, isReadOperation(operation));
+					language_card_.access(address, is_read(operation));
 				break;
 			}
 
@@ -950,7 +950,7 @@ public:
 
 				// If the selected card is a just-in-time card, update the just-in-time cards,
 				// and then message it specifically.
-				const bool is_read = isReadOperation(operation);
+				const bool is_read = CPU::MOS6502Esque::is_read(operation);
 				Apple::II::Card *const target = cards_[size_t(card_number)].get();
 				if(target && !is_every_cycle_card(target)) {
 					update_just_in_time_cards();
@@ -971,7 +971,7 @@ public:
 
 		if(!has_updated_cards && !every_cycle_cards_.empty()) {
 			// Update all every-cycle cards and give them the cycle.
-			const bool is_read = isReadOperation(operation);
+			const bool is_read = CPU::MOS6502Esque::is_read(operation);
 			for(const auto &card: every_cycle_cards_) {
 				card->run_for(Cycles(1), is_stretched_cycle);
 				card->perform_bus_operation(Apple::II::Card::None, is_read, address, value);

@@ -47,7 +47,7 @@ public:
 			cia2_.run_for(HalfCycles(2));
 		}
 
-		if(isAccessOperation(operation)) {
+		if(is_access(operation)) {
 			if(operation == BusOperation::ReadOpcode) {
 				if constexpr (LogProgramCounter) {
 					printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],

@@ -64,7 +64,7 @@ enum Flag: uint8_t {
 	Bus handlers will be given the task of performing bus operations, allowing them to provide whatever interface they like
 	between a 6502-esque chip and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
 */
-enum BusOperation {
+enum class BusOperation {
 	/// 6502: indicates that a read was signalled.
 	/// 65816: indicates that a read was signalled with VDA.
 	Read,
@@ -99,17 +99,17 @@ enum BusOperation {
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation should be treated as a read; @c false otherwise.
 */
-#define isReadOperation(v)		(v <= CPU::MOS6502Esque::InternalOperationRead)
+constexpr bool is_read(BusOperation op) { return op <= BusOperation::InternalOperationRead; }
 
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation is any sort of write; @c false otherwise.
 */
-#define isWriteOperation(v)		(v >= CPU::MOS6502Esque::Write)
+constexpr bool is_write(BusOperation op) { return op >= BusOperation::Write; }
 
 /*!
 	Evaluates to @c true if the operation actually expects a response; @c false otherwise.
 */
-#define isAccessOperation(v)	((v <= CPU::MOS6502Esque::ReadVector) || (v == CPU::MOS6502Esque::Write))
+constexpr bool is_access(BusOperation op) { return op <= BusOperation::ReadVector || op == BusOperation::Write; }
 
 /*!
 	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,
@@ -136,7 +136,11 @@ template <typename addr_t> class BusHandler {
 			during some periods; one way to simulate that is to have the bus handler return a number other than
 			Cycles(1) to describe lengthened bus cycles.
 		*/
-		Cycles perform_bus_operation([[maybe_unused]] BusOperation operation, [[maybe_unused]] addr_t address, [[maybe_unused]] uint8_t *value) {
+		Cycles perform_bus_operation(
+			[[maybe_unused]] BusOperation operation,
+			[[maybe_unused]] addr_t address,
+			[[maybe_unused]] uint8_t *value
+		) {
 			return Cycles(1);
 		}
 };

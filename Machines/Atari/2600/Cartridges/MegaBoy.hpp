@@ -30,7 +30,7 @@ public:
 			rom_ptr_ = rom_base_ + current_page_ * 4096;
 		}
 
-		if(isReadOperation(operation)) {
+		if(is_read(operation)) {
 			*value = rom_ptr_[address & 4095];
 		}
 	}

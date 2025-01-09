@@ -41,18 +41,18 @@ public:
 			if(address < 0x1900) {
 				high_ram_ptr_[address & 255] = *value;
 			} else if(address < 0x1a00) {
-				if(isReadOperation(operation)) *value = high_ram_ptr_[address & 255];
+				if(is_read(operation)) *value = high_ram_ptr_[address & 255];
 			} else {
-				if(isReadOperation(operation)) *value = rom_ptr_[1][address & 2047];
+				if(is_read(operation)) *value = rom_ptr_[1][address & 2047];
 			}
 		} else {
 			if(rom_ptr_[0]) {
-				if(isReadOperation(operation)) *value = rom_ptr_[0][address & 2047];
+				if(is_read(operation)) *value = rom_ptr_[0][address & 2047];
 			} else {
 				if(address < 0x1400) {
 					low_ram_[address & 1023] = *value;
 				} else {
-					if(isReadOperation(operation)) *value = low_ram_[address & 1023];
+					if(is_read(operation)) *value = low_ram_[address & 1023];
 				}
 			}
 		}

@@ -13,8 +13,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 	bus_value_ = value;							\
 	bus_operation_ = operation
 
-#define read(address, value)	perform_bus(address, value, MOS6502Esque::Read)
-#define write(address, value)	perform_bus(address, value, MOS6502Esque::Write)
+#define read(address, value)	perform_bus(address, value, MOS6502Esque::BusOperation::Read)
+#define write(address, value)	perform_bus(address, value, MOS6502Esque::BusOperation::Write)
 
 #define m_flag() registers_.mx_flags[0]
 #define x_flag() registers_.mx_flags[1]
@@ -85,29 +85,45 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				//
 
 				case CycleFetchOpcode:
-					perform_bus(registers_.pc | registers_.program_bank, instruction_buffer_.next_input(), MOS6502Esque::ReadOpcode);
+					perform_bus(
+						registers_.pc | registers_.program_bank,
+						instruction_buffer_.next_input(),
+						MOS6502Esque::BusOperation::ReadOpcode
+					);
 					++registers_.pc;
 				break;
 
 				case CycleFetchIncrementPC:
-					perform_bus(registers_.pc | registers_.program_bank, instruction_buffer_.next_input(), MOS6502Esque::ReadProgram);
+					perform_bus(
+						registers_.pc | registers_.program_bank,
+						instruction_buffer_.next_input(),
+						MOS6502Esque::BusOperation::ReadProgram
+					);
 					++registers_.pc;
 				break;
 
 				case CycleFetchPC:
-					perform_bus(registers_.pc | registers_.program_bank, instruction_buffer_.next_input(), MOS6502Esque::ReadProgram);
+					perform_bus(
+						registers_.pc | registers_.program_bank,
+						instruction_buffer_.next_input(),
+						MOS6502Esque::BusOperation::ReadProgram
+					);
 				break;
 
 				case CycleFetchPCThrowaway:
-					perform_bus(registers_.pc | registers_.program_bank, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(
+						registers_.pc | registers_.program_bank,
+						&bus_throwaway_,
+						MOS6502Esque::BusOperation::InternalOperationRead
+					);
 				break;
 
 				case CycleFetchPreviousPCThrowaway:
-					perform_bus(((registers_.pc - 1) & 0xffff) | registers_.program_bank, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(((registers_.pc - 1) & 0xffff) | registers_.program_bank, &bus_throwaway_, MOS6502Esque::BusOperation::InternalOperationRead);
 				break;
 
 				case CycleFetchPreviousThrowaway:
-					perform_bus(bus_address_, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(bus_address_, &bus_throwaway_, MOS6502Esque::BusOperation::InternalOperationRead);
 				break;
 
 				//
@@ -124,17 +140,29 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case CycleStoreOrFetchDataThrowaway:
 					if(registers_.emulation_flag) {
-						perform_bus(data_address_, data_buffer_.preview_output(), MOS6502Esque::InternalOperationWrite);
+						perform_bus(
+							data_address_,
+							data_buffer_.preview_output(),
+							MOS6502Esque::BusOperation::InternalOperationWrite
+						);
 						break;
 					}
 
 					[[fallthrough]];
 				case CycleFetchDataThrowaway:
-					perform_bus(data_address_, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(
+						data_address_,
+						&bus_throwaway_,
+						MOS6502Esque::BusOperation::InternalOperationRead
+					);
 				break;
 
 				case CycleFetchIncorrectDataAddress:
-					perform_bus(incorrect_data_address_, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(
+						incorrect_data_address_,
+						&bus_throwaway_,
+						MOS6502Esque::BusOperation::InternalOperationRead
+					);
 				break;
 
 				case CycleFetchIncrementData:
@@ -143,11 +171,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				break;
 
 				case CycleFetchVector:
-					perform_bus(data_address_, data_buffer_.next_input(), MOS6502Esque::ReadVector);
+					perform_bus(data_address_, data_buffer_.next_input(), MOS6502Esque::BusOperation::ReadVector);
 				break;
 
 				case CycleFetchIncrementVector:
-					perform_bus(data_address_, data_buffer_.next_input(), MOS6502Esque::ReadVector);
+					perform_bus(data_address_, data_buffer_.next_input(), MOS6502Esque::BusOperation::ReadVector);
 					increment_data_address();
 				break;
 
@@ -170,7 +198,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				break;
 
 				case CycleFetchBlockY:
-					perform_bus(((instruction_buffer_.value & 0x00ff) << 16) | registers_.y.full, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(
+						((instruction_buffer_.value & 0x00ff) << 16) | registers_.y.full,
+						&bus_throwaway_,
+						MOS6502Esque::BusOperation::InternalOperationRead
+					);
 				break;
 
 				case CycleStoreBlockY:
@@ -190,14 +222,14 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 	bus_operation_ = operation;
 
 				case CyclePush:
-					stack_access(data_buffer_.next_output_descending(), MOS6502Esque::Write);
+					stack_access(data_buffer_.next_output_descending(), MOS6502Esque::BusOperation::Write);
 					--registers_.s.full;
 				break;
 
 				case CyclePushNotEmulation:
 					bus_address_ = registers_.s.full;
 					bus_value_ = data_buffer_.next_output_descending();
-					bus_operation_ = MOS6502Esque::Write;
+					bus_operation_ = MOS6502Esque::BusOperation::Write;
 					--registers_.s.full;
 				break;
 
@@ -209,18 +241,18 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case CyclePull:
 					++registers_.s.full;
-					stack_access(data_buffer_.next_input(), MOS6502Esque::Read);
+					stack_access(data_buffer_.next_input(), MOS6502Esque::BusOperation::Read);
 				break;
 
 				case CyclePullNotEmulation:
 					++registers_.s.full;
 					bus_address_ = registers_.s.full;
 					bus_value_ = data_buffer_.next_input();
-					bus_operation_ = MOS6502Esque::Read;
+					bus_operation_ = MOS6502Esque::BusOperation::Read;
 				break;
 
 				case CycleAccessStack:
-					stack_access(&bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					stack_access(&bus_throwaway_, MOS6502Esque::BusOperation::InternalOperationRead);
 				break;
 
 #undef stack_access
@@ -242,7 +274,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						continue;
 					} else {
 						--next_op_;
-						perform_bus(0xffffff, &bus_throwaway_, (required_exceptions_ & IRQ) ? MOS6502Esque::Ready : MOS6502Esque::None);
+						perform_bus(
+							0xffffff,
+							&bus_throwaway_,
+							(required_exceptions_ & IRQ) ?
+								MOS6502Esque::BusOperation::Ready : MOS6502Esque::BusOperation::None
+						);
 					}
 				break;
 

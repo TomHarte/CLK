@@ -28,7 +28,7 @@ public:
 			int offset = ((*value) * 2048) & (rom_size_ - 1);
 			rom_ptr_[0] = rom_base_ + offset;
 			return;
-		} else if((address&0x1000) && isReadOperation(operation)) {
+		} else if((address&0x1000) && is_read(operation)) {
 			*value = rom_ptr_[(address >> 11)&1][address & 2047];
 		}
 	}

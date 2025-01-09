@@ -78,13 +78,13 @@ public:
 		cycles_since_6532_update_ += Cycles(cycles_run_for / 3);
 		bus_extender_.advance_cycles(cycles_run_for / 3);
 
-		if(isAccessOperation(operation)) {
+		if(is_access(operation)) {
 			// give the cartridge a chance to respond to the bus access
 			bus_extender_.perform_bus_operation(operation, address, value);
 
 			// check for a RIOT RAM access
 			if((address&0x1280) == 0x80) {
-				if(isReadOperation(operation)) {
+				if(is_read(operation)) {
 					returnValue &= mos6532_.get_ram(address);
 				} else {
 					mos6532_.set_ram(address, *value);
@@ -93,7 +93,7 @@ public:
 
 			// check for a TIA access
 			if(!(address&0x1080)) {
-				if(isReadOperation(operation)) {
+				if(is_read(operation)) {
 					const uint16_t decodedAddress = address & 0xf;
 					switch(decodedAddress) {
 						case 0x00:		// missile 0 / player collisions
@@ -183,14 +183,14 @@ public:
 			// check for a PIA access
 			if((address&0x1280) == 0x280) {
 				update_6532();
-				if(isReadOperation(operation)) {
+				if(is_read(operation)) {
 					returnValue &= mos6532_.read(address);
 				} else {
 					mos6532_.write(address, *value);
 				}
 			}
 
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				*value &= returnValue;
 			}
 		}

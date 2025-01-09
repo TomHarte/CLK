@@ -34,7 +34,7 @@ public:
 
 			// The random number generator
 			case 0x1000: case 0x1001: case 0x1002: case 0x1003: case 0x1004:
-				if(isReadOperation(operation)) {
+				if(is_read(operation)) {
 					*value = random_number_generator_;
 				}
 				random_number_generator_ = uint8_t(
@@ -85,7 +85,7 @@ public:
 // MARK: - Business as usual
 
 			default:
-				if(isReadOperation(operation)) {
+				if(is_read(operation)) {
 					*value = rom_ptr_[address & 4095];
 				}
 			break;

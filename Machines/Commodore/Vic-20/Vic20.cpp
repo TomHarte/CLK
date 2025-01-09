@@ -504,7 +504,7 @@ public:
 		cycles_since_mos6560_update_++;
 
 		// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
-		if(isReadOperation(operation)) {
+		if(is_read(operation)) {
 			uint8_t result = processor_read_memory_map_[address >> 10] ? processor_read_memory_map_[address >> 10][address & 0x3ff] : 0xff;
 			if((address&0xfc00) == 0x9000) {
 				if(!(address&0x100)) {

@@ -27,12 +27,12 @@ public:
 
 		if(address >= 0x1ff8 && address <= 0x1ffa) rom_ptr_ = rom_base_ + (address - 0x1ff8) * 4096;
 
-		if(isReadOperation(operation)) {
+		if(is_read(operation)) {
 			*value = rom_ptr_[address & 4095];
 		}
 
 		if(address < 0x1100) ram_[address & 0xff] = *value;
-		else if(address < 0x1200 && isReadOperation(operation)) *value = ram_[address & 0xff];
+		else if(address < 0x1200 && is_read(operation)) *value = ram_[address & 0xff];
 	}
 
 private:
