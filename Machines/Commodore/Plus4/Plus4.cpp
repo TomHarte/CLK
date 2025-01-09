@@ -265,34 +265,45 @@ public:
 		} else if(address < 0xff00) {
 			// Miscellaneous hardware. All TODO.
 			if(is_read(operation)) {
-//				printf("TODO: read @ %04x\n", address);
-				if((address & 0xfff0) == 0xfd10) {
-					// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
+				switch(address & 0xfff0) {
+					case 0xfd10:
+						// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
 
-					// If play button is not currently pressed and this read is immediately followed by
-					// an AND 4, press it. The kernel will deal with motor control subsequently.
-					if(!play_button_) {
-						const uint16_t pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
-						const uint8_t next[] = {
-							map_.read(pc+0),
-							map_.read(pc+1),
-							map_.read(pc+2),
-							map_.read(pc+3),
-						};
+						// If play button is not currently pressed and this read is immediately followed by
+						// an AND 4, press it. The kernel will deal with motor control subsequently.
+						if(!play_button_) {
+							const uint16_t pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+							const uint8_t next[] = {
+								map_.read(pc+0),
+								map_.read(pc+1),
+								map_.read(pc+2),
+								map_.read(pc+3),
+							};
 
-						// TODO: boil this down to a PC check. It's currently in this form as I'm unclear what
-						// diversity of kernels exist.
-						if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
-							play_button_ = true;
+							// TODO: boil this down to a PC check. It's currently in this form as I'm unclear what
+							// diversity of kernels exist.
+							if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
+								play_button_ = true;
+							}
 						}
-					}
 
-					*value = 0xff ^ (play_button_ ? 0x4 :0x0);
-				} else {
-					*value = 0xff;
+						*value = 0xff ^ (play_button_ ? 0x4 :0x0);
+					break;
+
+					default:
+						printf("TODO: read @ %04x\n", address);
+					break;
 				}
 			} else {
-//				printf("TODO: write of %02x @ %04x\n", *value, address);
+				switch(address & 0xfff0) {
+					case 0xfd30:
+						keyboard_mask_ = *value;
+					break;
+
+					default:
+						printf("TODO: write of %02x @ %04x\n", *value, address);
+					break;
+				}
 			}
 		} else {
 			if(is_read(operation)) {
@@ -305,7 +316,21 @@ public:
 					case 0xff05:	*value = timers_.read<5>();		break;
 					case 0xff06:	*value = video_.read<0xff06>();	break;
 					case 0xff07:	*value = video_.read<0xff07>();	break;
-					case 0xff08:	*value = keyboard_latch_;		break;
+					case 0xff08: {
+						const uint8_t keyboard_input =
+							~(
+								((keyboard_mask_ & 0x01) ? 0x00 : key_states_[0]) |
+								((keyboard_mask_ & 0x02) ? 0x00 : key_states_[1]) |
+								((keyboard_mask_ & 0x04) ? 0x00 : key_states_[2]) |
+								((keyboard_mask_ & 0x08) ? 0x00 : key_states_[3]) |
+								((keyboard_mask_ & 0x10) ? 0x00 : key_states_[4]) |
+								((keyboard_mask_ & 0x20) ? 0x00 : key_states_[5]) |
+								((keyboard_mask_ & 0x40) ? 0x00 : key_states_[6]) |
+								((keyboard_mask_ & 0x80) ? 0x00 : key_states_[7])
+							);
+
+						*value = keyboard_input;
+					} break;
 					case 0xff09:	*value = interrupts_.status();	break;
 					case 0xff0a:
 						*value = interrupts_.mask() | video_.read<0xff0a>() | 0x60;
@@ -363,16 +388,7 @@ public:
 							}
 						}
 
-						keyboard_latch_ = ~(
-							((*value & 0x01) ? 0x00 : key_states_[0]) |
-							((*value & 0x02) ? 0x00 : key_states_[1]) |
-							((*value & 0x04) ? 0x00 : key_states_[2]) |
-							((*value & 0x08) ? 0x00 : key_states_[3]) |
-							((*value & 0x10) ? 0x00 : key_states_[4]) |
-							((*value & 0x20) ? 0x00 : key_states_[5]) |
-							((*value & 0x40) ? 0x00 : key_states_[6]) |
-							((*value & 0x80) ? 0x00 : key_states_[7])
-						);
+						joystick_mask_ = *value;
 					break;
 					case 0xff09:
 						interrupts_.set_status(*value);
@@ -574,7 +590,8 @@ private:
 	}
 
 	std::array<uint8_t, 8> key_states_{};
-	uint8_t keyboard_latch_ = 0xff;
+	uint8_t keyboard_mask_ = 0xff;
+	uint8_t joystick_mask_ = 0xff;
 
 	Cycles media_divider_, c1541_cycles_;
 	std::unique_ptr<C1540::Machine> c1541_;
