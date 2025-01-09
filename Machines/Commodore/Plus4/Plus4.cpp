@@ -146,7 +146,7 @@ public:
 		const auto clock = clock_rate(false);
 		media_divider_ = Cycles(clock);
 		set_clock_rate(clock);
-		speaker_.set_input_rate(float(clock) / 32.0f);
+		speaker_.set_input_rate(float(clock));
 
 		// TODO: decide whether to attach a 1541 for real.
 		const bool has_c1541 = true;
@@ -544,7 +544,7 @@ private:
 	Cycles time_since_audio_update_;
 	Outputs::Speaker::PullLowpass<Audio> speaker_;
 	void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.divide(Cycles(32)));
+		speaker_.run_for(audio_queue_, time_since_audio_update_.flush<Cycles>());
 	}
 
 	// MARK: - MappedKeyboardMachine.

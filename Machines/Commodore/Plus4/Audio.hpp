@@ -19,6 +19,8 @@ namespace Commodore::Plus4 {
 // 111860.78125 = NTSC
 // 110840.46875 = PAL
 
+//
+
 class Audio: public Outputs::Speaker::BufferSource<Audio, false> {
 public:
 	Audio(Concurrency::AsyncTaskQueue<false> &audio_queue) :
@@ -92,7 +94,7 @@ public:
 
 	void set_divider(const uint8_t value) {
 		audio_queue_.enqueue([this, value] {
-			frequency_multiplier_ = value & 0x40 ? 4 : 5;
+			frequency_multiplier_ = 32 * (value & 0x40 ? 4 : 5);
 		});
 	}
 
