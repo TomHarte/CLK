@@ -146,7 +146,7 @@ public:
 		const auto clock = clock_rate(false);
 		media_divider_ = Cycles(clock);
 		set_clock_rate(clock);
-		speaker_.set_input_rate(float(clock) / 32.0f);
+		speaker_.set_input_rate(float(clock));
 
 		// TODO: decide whether to attach a 1541 for real.
 		const bool has_c1541 = true;
@@ -347,7 +347,11 @@ public:
 					case 0xff04:	timers_.write<4>(*value);		break;
 					case 0xff05:	timers_.write<5>(*value);		break;
 					case 0xff06:	video_.write<0xff06>(*value);	break;
-					case 0xff07:	video_.write<0xff07>(*value);	break;
+					case 0xff07:
+						video_.write<0xff07>(*value);
+						update_audio();
+						audio_.set_divider(*value);
+					break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
 						// address upon completing each keyboard scan cycle,
@@ -398,7 +402,7 @@ public:
 					case 0xff11:
 						ff11_ = *value;
 						update_audio();
-						audio_.set_constrol(*value);
+						audio_.set_control(*value);
 					break;
 					case 0xff12:
 						ff12_ = *value & 0x3f;
@@ -540,7 +544,7 @@ private:
 	Cycles time_since_audio_update_;
 	Outputs::Speaker::PullLowpass<Audio> speaker_;
 	void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.divide(Cycles(32)));
+		speaker_.run_for(audio_queue_, time_since_audio_update_.flush<Cycles>());
 	}
 
 	// MARK: - MappedKeyboardMachine.
