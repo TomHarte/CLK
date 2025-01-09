@@ -33,11 +33,10 @@ ROM::Request Machine::rom_request(Personality personality) {
 MachineBase::MachineBase(Personality personality, const ROM::Map &roms) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
-		serial_port_VIA_port_handler_(serial_port_VIA_),
 		drive_VIA_(drive_VIA_port_handler_),
 		serial_port_VIA_(serial_port_VIA_port_handler_) {
 	// Attach the serial port to its VIA and vice versa.
-	serial_port_.set_serial_port_via(serial_port_VIA_port_handler_);
+	serial_port_.connect(serial_port_VIA_port_handler_, serial_port_VIA_);
 	serial_port_VIA_port_handler_.set_serial_port(serial_port_);
 
 	// Set this instance as the delegate to receive interrupt requests from both VIAs.
@@ -163,8 +162,6 @@ void MachineBase::drive_via_did_set_data_density(void *, const int density) {
 
 // MARK: - SerialPortVIA
 
-SerialPortVIA::SerialPortVIA(MOS::MOS6522::MOS6522<SerialPortVIA> &via) : via_(via) {}
-
 uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 	if(port) return port_b_;
 	return 0xff;
@@ -180,7 +177,11 @@ void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint
 	}
 }
 
-void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool value) {
+void SerialPortVIA::set_serial_line_state(
+	::Commodore::Serial::Line line,
+	bool value,
+	MOS::MOS6522::MOS6522<SerialPortVIA> &via
+) {
 	switch(line) {
 		default: break;
 		case ::Commodore::Serial::Line::Data:		port_b_ = (port_b_ & ~0x01) | (value ? 0x00 : 0x01);		break;
@@ -188,7 +189,7 @@ void SerialPortVIA::set_serial_line_state(::Commodore::Serial::Line line, bool v
 		case ::Commodore::Serial::Line::Attention:
 			attention_level_input_ = !value;
 			port_b_ = (port_b_ & ~0x80) | (value ? 0x00 : 0x80);
-			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !value);
+			via.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !value);
 			update_data_line();
 		break;
 	}
@@ -274,9 +275,10 @@ void DriveVIA::set_activity_observer(Activity::Observer *observer) {
 // MARK: - SerialPort
 
 void SerialPort::set_input(Serial::Line line, Serial::LineLevel level) {
-	serial_port_VIA_->set_serial_line_state(line, bool(level));
+	serial_port_via_->set_serial_line_state(line, bool(level), *via_);
 }
 
-void SerialPort::set_serial_port_via(SerialPortVIA &serialPortVIA) {
-	serial_port_VIA_ = &serialPortVIA;
+void SerialPort::connect(SerialPortVIA &serial_port_via, MOS::MOS6522::MOS6522<SerialPortVIA> &via) {
+	serial_port_via_ = &serial_port_via;
+	via_ = &via;
 }
