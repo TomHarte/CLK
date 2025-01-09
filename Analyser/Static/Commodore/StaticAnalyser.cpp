@@ -115,7 +115,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 		}
 
 		const auto next_line_address = word(line_address);
-		const auto line_number = word(line_address + 2);
+//		const auto line_number = word(line_address + 2);
 
 		uint16_t code = line_address + 4;
 		const auto next = [&]() -> uint8_t {
