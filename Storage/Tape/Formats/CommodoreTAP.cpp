@@ -43,6 +43,7 @@ CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	current_pulse_.length.clock_rate = static_cast<unsigned int>(
 		[&] {
 			switch(platform_) {
+				default:
 				case Platform::Vic20:	// It empirically seems like Vic-20 waves are counted with C64 timings?
 				case Platform::C64:		return video_ == VideoStandard::PAL ? 985'248 : 1'022'727;
 				case Platform::C16:		return video_ == VideoStandard::PAL ? 886'722 : 894'886;

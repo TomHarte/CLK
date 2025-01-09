@@ -39,17 +39,14 @@ namespace Commodore::C1540 {
 */
 class SerialPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 public:
-	SerialPortVIA(MOS::MOS6522::MOS6522<SerialPortVIA> &via);
-
 	uint8_t get_port_input(MOS::MOS6522::Port);
 
 	void set_port_output(MOS::MOS6522::Port, uint8_t value, uint8_t mask);
-	void set_serial_line_state(::Commodore::Serial::Line, bool);
+	void set_serial_line_state(::Commodore::Serial::Line, bool, MOS::MOS6522::MOS6522<SerialPortVIA> &);
 
 	void set_serial_port(Commodore::Serial::Port &);
 
 private:
-	MOS::MOS6522::MOS6522<SerialPortVIA> &via_;
 	uint8_t port_b_ = 0x0;
 	Commodore::Serial::Port *serial_port_ = nullptr;
 	bool attention_acknowledge_level_ = false;
@@ -111,11 +108,12 @@ private:
 */
 class SerialPort : public ::Commodore::Serial::Port {
 public:
-	void set_input(Commodore::Serial::Line, Commodore::Serial::LineLevel);
-	void set_serial_port_via(SerialPortVIA &);
+	void set_input(Commodore::Serial::Line, Commodore::Serial::LineLevel) override;
+	void connect(SerialPortVIA &, MOS::MOS6522::MOS6522<SerialPortVIA>&);
 
 private:
-	SerialPortVIA *serial_port_VIA_ = nullptr;
+	SerialPortVIA *serial_port_via_ = nullptr;
+	MOS::MOS6522::MOS6522<SerialPortVIA> *via_ = nullptr;
 };
 
 class MachineBase:

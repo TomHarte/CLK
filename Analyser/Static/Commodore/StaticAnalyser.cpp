@@ -87,7 +87,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 	}
 
 	uint16_t line_address = file.starting_address;
-	int previous_line_number = -1;
+//	int previous_line_number = -1;
 
 	const auto byte = [&](uint16_t address) {
 		return file.data[address - file.starting_address];
@@ -115,7 +115,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 		}
 
 		const auto next_line_address = word(line_address);
-		const auto line_number = word(line_address + 2);
+//		const auto line_number = word(line_address + 2);
 
 		uint16_t code = line_address + 4;
 		const auto next = [&]() -> uint8_t {
@@ -153,7 +153,7 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 			break;
 		}
 
-		previous_line_number = line_number;
+//		previous_line_number = line_number;
 		line_address = next_line_address;
 	}
 
