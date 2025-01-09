@@ -26,11 +26,46 @@
 #include "../1540/C1540.hpp"
 
 #include <algorithm>
+#include <vector>
 
 using namespace Commodore;
 using namespace Commodore::Plus4;
 
 namespace {
+
+class Joystick: public Inputs::ConcreteJoystick {
+	public:
+		Joystick() :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+				Input(Input::Fire)
+			}) {}
+
+		void did_set_input(const Input &digital_input, bool is_active) final {
+			const auto apply = [&](uint8_t mask) {
+				if(is_active) mask_ &= ~mask; else mask_ |= mask;
+			};
+
+			switch(digital_input.type) {
+				default: return;
+				case Input::Right:	apply(0x08);	break;
+				case Input::Left:	apply(0x04);	break;
+				case Input::Down:	apply(0x02);	break;
+				case Input::Up:		apply(0x01);	break;
+				case Input::Fire:	apply(0xc0);	break;
+			}
+		}
+
+		uint8_t mask() const {
+			return mask_;
+		}
+
+	private:
+		uint8_t mask_ = 0xff;
+};
 
 class Timers {
 public:
@@ -128,6 +163,7 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -179,6 +215,9 @@ public:
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
+
+		joysticks_.emplace_back(std::make_unique<Joystick>());
+		joysticks_.emplace_back(std::make_unique<Joystick>());
 
 		insert_media(target.media);
 //		if(!target.loading_command.empty()) {
@@ -329,7 +368,12 @@ public:
 								((keyboard_mask_ & 0x80) ? 0x00 : key_states_[7])
 							);
 
-						*value = keyboard_input;
+						const uint8_t joystick_mask =
+							0xff &
+							((joystick_mask_ & 0x02) ? 0xff : (joystick(1).mask() | 0x40)) &
+							((joystick_mask_ & 0x04) ? 0xff : (joystick(0).mask() | 0x80));
+
+						*value = keyboard_input & joystick_mask;
 					} break;
 					case 0xff09:	*value = interrupts_.status();	break;
 					case 0xff0a:
@@ -604,6 +648,14 @@ private:
 	void set_use_fast_tape() {}
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
+
+	std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		return joysticks_;
+	}
+	Joystick &joystick(size_t index) const {
+		return *static_cast<Joystick *>(joysticks_[index].get());
+	}
+	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
