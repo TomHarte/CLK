@@ -290,7 +290,7 @@ public:
 				}
 
 				const auto output = io_output_ | ~io_direction_;
-				tape_player_->set_motor_control(~output & 0x08);
+				update_tape_motor();
 				serial_port_.set_output(Serial::Line::Data, Serial::LineLevel(~output & 0x01));
 				serial_port_.set_output(Serial::Line::Clock, Serial::LineLevel(~output & 0x02));
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
@@ -323,6 +323,7 @@ public:
 							// diversity of kernels exist.
 							if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
 								play_button_ = true;
+								update_tape_motor();
 							}
 						}
 
@@ -646,6 +647,10 @@ private:
 	bool play_button_ = false;
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
 	void set_use_fast_tape() {}
+	void update_tape_motor() {
+		const auto output = io_output_ | ~io_direction_;
+		tape_player_->set_motor_control(play_button_ && (~output & 0x08));
+	}
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 

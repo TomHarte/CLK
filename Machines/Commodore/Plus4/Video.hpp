@@ -989,9 +989,9 @@ private:
 		if(target) {
 			uint8_t pixels = output_.pixels();
 
-			if(output_.attributes<0>()&0x80) pixels &= flash_mask_;
+			if(output_.attributes<0>() & 0x80) pixels &= flash_mask_;
 			if constexpr (support_inversion) {
-				if(output_.attributes<1>()&0x80) {
+				if(output_.attributes<1>() & 0x80) {
 					pixels ^= inversion_mask_;
 				}
 			}
