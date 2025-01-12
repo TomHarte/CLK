@@ -167,7 +167,10 @@ public:
 
 			case 0xff1c:	vertical_counter_ = (vertical_counter_ & 0x00ff) | ((value & 3) << 8);		break;
 			case 0xff1d:	vertical_counter_ = (vertical_counter_ & 0xff00) | value;					break;
-			case 0xff1e:	horizontal_counter_ = (horizontal_counter_ & 0x07) | ((value<< 2) & 0x1f8);	break;
+			case 0xff1e:
+				// TODO: possibly should be deferred, if falling out of phase?
+				horizontal_counter_ = (horizontal_counter_ & 0x07) | ((~value << 2) & 0x1f8);
+			break;
 			case 0xff1f:
 				vertical_sub_count_ = value & 0x7;
 				flash_count_ = (flash_count_ & 0x10) | ((value >> 3) & 0xf);
@@ -414,10 +417,10 @@ public:
 
 					next_pixels_.write(pixels);
 					shifter_.advance();
-					++video_counter_;
+					video_counter_ = (video_counter_ + 1) & 0x3ff;
 				}
 				if(increment_character_position_ && character_fetch_) {
-					++character_position_;
+					character_position_ = (character_position_ + 1) & 0x3ff;
 				}
 				if(enable_display_) {
 					switch(x_scroll_) {
