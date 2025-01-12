@@ -32,7 +32,7 @@ public:
 	};
 
 	uint8_t status() const {
-		return status_ | ((status_ & mask_) ? 0x80 : 0x00) | 0x21;
+		return status_ | ((status_ & mask_) ? 0x80 : 0x00) | 0x25;
 	}
 
 	uint8_t mask() const {
