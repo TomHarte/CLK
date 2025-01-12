@@ -378,7 +378,7 @@ public:
 					} break;
 					case 0xff09:	*value = interrupts_.status();	break;
 					case 0xff0a:
-						*value = interrupts_.mask() | video_.read<0xff0a>() | 0x60;
+						*value = interrupts_.mask() | video_.read<0xff0a>() | 0xa0;
 					break;
 					case 0xff0b:	*value = video_.read<0xff0b>();	break;
 					case 0xff0c:	*value = video_.read<0xff0c>();	break;
