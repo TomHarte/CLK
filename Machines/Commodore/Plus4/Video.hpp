@@ -223,6 +223,148 @@ public:
 		subcycles_ += cycles * 2;
 		auto ticks_remaining = subcycles_.divide(is_ntsc_ ? Cycles(4) : Cycles(5)).as<int>();
 		while(ticks_remaining) {
+			//
+			// Check for events: (i) deferred; ...
+			//
+			if(delayed_events_) {
+				if(delayed_events_ & uint64_t(DelayedEvent::Latch)) {
+					if(char_pos_latch_ && vertical_sub_active_) {
+						character_position_reload_ = character_position_;
+					}
+					char_pos_latch_ = vertical_sub_count_ == 6;
+					if(char_pos_latch_ && enable_display_) {
+						video_counter_reload_ = video_counter_;
+					}
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::Flash)) {
+					if(vertical_counter_ == 205) {
+						++flash_count_;
+						flash_mask_ = (flash_count_ & 0x10) ? 0xff : 0x00;
+					}
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::IncrementVerticalLine)) {
+					vertical_counter_ = next_vertical_counter_;
+					bad_line2_ = bad_line();
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::IncrementVerticalSub)) {
+					if(!video_line_) {
+						vertical_sub_count_ = 7;	// TODO: should be between cycle 0xc8 and 0xca?
+					} else if(display_enable_ && vertical_sub_active_) {
+						vertical_sub_count_ = (vertical_sub_count_ + 1) & 7;
+					}
+				}
+
+				if(delayed_events_ & uint64_t(DelayedEvent::CounterReset)) {
+					horizontal_counter_ = 0;
+				}
+
+				delayed_events_ &= ~uint64_t(DelayedEvent::Mask);
+			}
+
+			// ... (ii) timer-linked.
+			switch(HorizontalEvent(horizontal_counter_)) {
+				case HorizontalEvent::CounterOverflow:
+					horizontal_counter_ = 0;
+					[[fallthrough]];
+				case HorizontalEvent::Begin40Columns:
+					if(vertical_screen_ && enable_display_) wide_screen_ = true;
+				break;
+				case HorizontalEvent::End40Columns:
+					if(vertical_screen_ && enable_display_) wide_screen_ = false;
+				break;
+				case HorizontalEvent::Begin38Columns:
+					if(vertical_screen_ && enable_display_) narrow_screen_ = true;
+				break;
+				case HorizontalEvent::End38Columns:
+					if(vertical_screen_ && enable_display_) narrow_screen_ = false;
+					video_shift_ = false;
+				break;
+				case HorizontalEvent::DMAWindowEnd:				dma_window_ = false;		break;
+				case HorizontalEvent::EndRefresh:				refresh_ = false;			break;
+				case HorizontalEvent::EndCharacterFetchWindow:	character_window_ = false;	break;
+				case HorizontalEvent::BeginBlank:				horizontal_blank_ = true;	break;
+				case HorizontalEvent::BeginSync:				horizontal_sync_ = true;	break;
+				case HorizontalEvent::EndSync:					horizontal_sync_ = false;	break;
+
+				case HorizontalEvent::LatchCharacterPosition:	schedule<8>(DelayedEvent::Latch);			break;
+				case HorizontalEvent::IncrementFlashCounter:	schedule<4>(DelayedEvent::Flash);			break;
+				case HorizontalEvent::EndOfScreen:
+					schedule<8>(DelayedEvent::IncrementVerticalLine);
+					next_vertical_counter_ = video_line_ == eos() ? 0 : ((vertical_counter_ + 1) & 511);
+					horizontal_burst_ = true;
+				break;
+
+				case HorizontalEvent::EndExternalFetchWindow:
+					external_fetch_ = false;
+					increment_character_position_ = false;
+					if(enable_display_) increment_video_counter_ = false;
+					refresh_ = true;
+				break;
+
+				case HorizontalEvent::VerticalSubActive:
+					if(bad_line()) {
+						vertical_sub_active_ = true;
+					} else if(!enable_display_) {
+						vertical_sub_active_ = false;
+					}
+				break;
+
+				case HorizontalEvent::IncrementVerticalSub:
+					schedule<8>(DelayedEvent::IncrementVerticalSub);
+					video_line_ = vertical_counter_;
+					character_position_ = 0;
+
+					if(video_line_ == eos()) {
+						character_position_reload_ = 0;
+						video_counter_reload_ = 0;
+					}
+				break;
+
+				case HorizontalEvent::ScheduleCounterReset:
+					schedule<1>(DelayedEvent::CounterReset);
+				break;
+
+				case HorizontalEvent::BeginExternalFetchClock:
+					external_fetch_ = true;
+
+					if(video_line_ == vs_start()) {
+						vertical_sync_ = true;
+					} else if(video_line_ == vs_stop()) {
+						vertical_sync_ = false;
+					}
+				break;
+
+				case HorizontalEvent::BeginAttributeFetch:
+					dma_window_ = true;
+					horizontal_burst_ = false;	// Should be 1 cycle later, if the data sheet is completely accurate.
+												// Though all other timings work on the assumption that it isn't.
+				break;
+
+				case HorizontalEvent::EndBlank:
+					horizontal_blank_ = false;
+				break;
+
+				case HorizontalEvent::IncrementVideoCounter:
+					increment_character_position_ = true;
+					if(enable_display_) increment_video_counter_ = true;
+
+					if(enable_display_ && vertical_sub_active_) {
+						character_position_ = character_position_reload_;
+					}
+					video_counter_ = video_counter_reload_;
+				break;
+
+				case HorizontalEvent::BeginShiftRegister:
+					if(enable_display_) {
+						character_window_ = video_shift_ = true;
+					}
+					output_.reset();
+				break;
+			}
+
 			// Test for raster interrupt.
 			if(raster_interrupt_ == vertical_counter_) {
 				if(!raster_interrupt_done_) {
@@ -435,155 +577,11 @@ public:
 					}
 				}
 			}
+
+			// Advance for the current period.
 			time_in_state_ += period;
-
-			//
-			// Advance for current period, then check for...
-			//
 			horizontal_counter_ += period;
-
-			// ... deferred events, and...
-			if(delayed_events_) {
-				delayed_events_ >>= period * DelayEventSize;
-
-				if(delayed_events_ & uint64_t(DelayedEvent::Latch)) {
-					if(char_pos_latch_ && vertical_sub_active_) {
-						character_position_reload_ = character_position_;
-					}
-					char_pos_latch_ = vertical_sub_count_ == 6;
-					if(char_pos_latch_ && enable_display_) {
-						video_counter_reload_ = video_counter_;
-					}
-				}
-
-				if(delayed_events_ & uint64_t(DelayedEvent::Flash)) {
-					if(vertical_counter_ == 205) {
-						++flash_count_;
-						flash_mask_ = (flash_count_ & 0x10) ? 0xff : 0x00;
-					}
-				}
-
-				if(delayed_events_ & uint64_t(DelayedEvent::IncrementVerticalLine)) {
-					vertical_counter_ = next_vertical_counter_;
-					bad_line2_ = bad_line();
-				}
-
-				if(delayed_events_ & uint64_t(DelayedEvent::IncrementVerticalSub)) {
-					if(!video_line_) {
-						vertical_sub_count_ = 7;	// TODO: should be between cycle 0xc8 and 0xca?
-					} else if(display_enable_ && vertical_sub_active_) {
-						vertical_sub_count_ = (vertical_sub_count_ + 1) & 7;
-					}
-				}
-
-				if(delayed_events_ & uint64_t(DelayedEvent::CounterReset)) {
-					horizontal_counter_ = 0;
-				}
-
-				delayed_events_ &= ~uint64_t(DelayedEvent::Mask);
-			}
-
-			// ... timer-linked events.
-			switch(HorizontalEvent(horizontal_counter_)) {
-				case HorizontalEvent::CounterOverflow:
-					horizontal_counter_ = 0;
-					[[fallthrough]];
-				case HorizontalEvent::Begin40Columns:
-					if(vertical_screen_ && enable_display_) wide_screen_ = true;
-				break;
-				case HorizontalEvent::End40Columns:
-					if(vertical_screen_ && enable_display_) wide_screen_ = false;
-				break;
-				case HorizontalEvent::Begin38Columns:
-					if(vertical_screen_ && enable_display_) narrow_screen_ = true;
-				break;
-				case HorizontalEvent::End38Columns:
-					if(vertical_screen_ && enable_display_) narrow_screen_ = false;
-					video_shift_ = false;
-				break;
-				case HorizontalEvent::DMAWindowEnd:				dma_window_ = false;		break;
-				case HorizontalEvent::EndRefresh:				refresh_ = false;			break;
-				case HorizontalEvent::EndCharacterFetchWindow:	character_window_ = false;	break;
-				case HorizontalEvent::BeginBlank:				horizontal_blank_ = true;	break;
-				case HorizontalEvent::BeginSync:				horizontal_sync_ = true;	break;
-				case HorizontalEvent::EndSync:					horizontal_sync_ = false;	break;
-
-				case HorizontalEvent::LatchCharacterPosition:	schedule<8>(DelayedEvent::Latch);			break;
-				case HorizontalEvent::IncrementFlashCounter:	schedule<4>(DelayedEvent::Flash);			break;
-				case HorizontalEvent::EndOfScreen:
-					schedule<8>(DelayedEvent::IncrementVerticalLine);
-					next_vertical_counter_ = video_line_ == eos() ? 0 : ((vertical_counter_ + 1) & 511);
-					horizontal_burst_ = true;
-				break;
-
-				case HorizontalEvent::EndExternalFetchWindow:
-					external_fetch_ = false;
-					increment_character_position_ = false;
-					if(enable_display_) increment_video_counter_ = false;
-					refresh_ = true;
-				break;
-
-				case HorizontalEvent::VerticalSubActive:
-					if(bad_line()) {
-						vertical_sub_active_ = true;
-					} else if(!enable_display_) {
-						vertical_sub_active_ = false;
-					}
-				break;
-
-				case HorizontalEvent::IncrementVerticalSub:
-					schedule<8>(DelayedEvent::IncrementVerticalSub);
-					video_line_ = vertical_counter_;
-					character_position_ = 0;
-
-					if(video_line_ == eos()) {
-						character_position_reload_ = 0;
-						video_counter_reload_ = 0;
-					}
-				break;
-
-				case HorizontalEvent::ScheduleCounterReset:
-					schedule<1>(DelayedEvent::CounterReset);
-				break;
-
-				case HorizontalEvent::BeginExternalFetchClock:
-					external_fetch_ = true;
-
-					if(video_line_ == vs_start()) {
-						vertical_sync_ = true;
-					} else if(video_line_ == vs_stop()) {
-						vertical_sync_ = false;
-					}
-				break;
-
-				case HorizontalEvent::BeginAttributeFetch:
-					dma_window_ = true;
-					horizontal_burst_ = false;	// Should be 1 cycle later, if the data sheet is completely accurate.
-												// Though all other timings work on the assumption that it isn't.
-				break;
-
-				case HorizontalEvent::EndBlank:
-					horizontal_blank_ = false;
-				break;
-
-				case HorizontalEvent::IncrementVideoCounter:
-					increment_character_position_ = true;
-					if(enable_display_) increment_video_counter_ = true;
-
-					if(enable_display_ && vertical_sub_active_) {
-						character_position_ = character_position_reload_;
-					}
-					video_counter_ = video_counter_reload_;
-				break;
-
-				case HorizontalEvent::BeginShiftRegister:
-					if(enable_display_) {
-						character_window_ = video_shift_ = true;
-					}
-					output_.reset();
-				break;
-			}
-
+			delayed_events_ >>= period * DelayEventSize;
 			ticks_remaining -= period;
 		}
 	}
