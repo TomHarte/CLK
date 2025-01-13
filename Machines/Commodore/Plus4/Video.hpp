@@ -167,8 +167,8 @@ public:
 			case 0xff1d:	vertical_counter_ = (vertical_counter_ & 0xff00) | value;					break;
 			case 0xff1e:
 				// TODO: possibly should be deferred, if falling out of phase?
-				horizontal_counter_ = (horizontal_counter_ & 0x03) | ((~value << 1) & ~0x3);
-				horizontal_counter_ &= 511;
+				horizontal_counter_ = (horizontal_counter_ & 0x07) | ((~value << 1) & ~0x07);
+				horizontal_counter_ &= 0x1ff;
 			break;
 			case 0xff1f:
 				vertical_sub_count_ = value & 0x7;
