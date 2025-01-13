@@ -668,8 +668,7 @@ private:
 
 	// Running state that's exposed.
 	uint16_t character_position_reload_ = 0;
-	uint16_t character_position_ = 0;			// Actually kept as fixed point in this implementation, i.e. effectively
-												// a pixel count.
+	uint16_t character_position_ = 0;
 
 	// Running state.
 	bool wide_screen_ = false;
