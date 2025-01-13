@@ -100,8 +100,6 @@ public:
 					video_mode_ = VideoMode::Text;
 				}
 			}
-
-//			printf("Mode: %d %d %d -> %d\n", bitmap_mode_, extended_colour_mode_, multicolour_mode_, int(video_mode_));
 		};
 
 		switch(address) {
@@ -169,7 +167,8 @@ public:
 			case 0xff1d:	vertical_counter_ = (vertical_counter_ & 0xff00) | value;					break;
 			case 0xff1e:
 				// TODO: possibly should be deferred, if falling out of phase?
-				horizontal_counter_ = (horizontal_counter_ & 0x07) | ((~value << 2) & 0x1f8);
+				horizontal_counter_ = (horizontal_counter_ & 0x07) | ((~value << 1) & ~0x07);
+				horizontal_counter_ &= 0x1ff;
 			break;
 			case 0xff1f:
 				vertical_sub_count_ = value & 0x7;
