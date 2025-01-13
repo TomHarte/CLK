@@ -507,10 +507,10 @@ public:
 					next_character_.write(character);
 
 					const auto address = [&] { return uint16_t(video_matrix_base_ + video_counter_); };
-					if(bad_line2_) {
-						shifter_.write<1>(pager_.read(address()));
-					} else if(bad_line()) {
+					if(bad_line()) {
 						shifter_.write<0>(pager_.read(address() + 0x400));
+					} else if(bad_line2_) {
+						shifter_.write<1>(pager_.read(address()));
 					}
 
 					next_attribute_.write(shifter_.read<1>());
