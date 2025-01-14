@@ -507,10 +507,10 @@ public:
 					next_character_.write(character);
 
 					const auto address = [&] { return uint16_t(video_matrix_base_ + video_counter_); };
-					if(bad_line2_) {
-						shifter_.write<1>(pager_.read(address()));
-					} else if(bad_line()) {
+					if(bad_line()) {
 						shifter_.write<0>(pager_.read(address() + 0x400));
+					} else if(bad_line2_) {
+						shifter_.write<1>(pager_.read(address()));
 					}
 
 					next_attribute_.write(shifter_.read<1>());
@@ -668,8 +668,7 @@ private:
 
 	// Running state that's exposed.
 	uint16_t character_position_reload_ = 0;
-	uint16_t character_position_ = 0;			// Actually kept as fixed point in this implementation, i.e. effectively
-												// a pixel count.
+	uint16_t character_position_ = 0;
 
 	// Running state.
 	bool wide_screen_ = false;
