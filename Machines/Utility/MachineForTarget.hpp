@@ -44,13 +44,19 @@ enum class Error {
 	receive the supplied static analyser result. The machine has been allocated
 	on the heap. It is the caller's responsibility to delete the class when finished.
 */
-std::unique_ptr<DynamicMachine> MachineForTargets(const Analyser::Static::TargetList &targets, const ::ROMMachine::ROMFetcher &rom_fetcher, Error &error);
+std::unique_ptr<DynamicMachine> MachineForTargets(
+	const Analyser::Static::TargetList &,
+	const ::ROMMachine::ROMFetcher &,
+	Error &);
 
 /*!
 	Allocates an instance of DynamicMaachine holding the machine described
 	by @c target. It is the caller's responsibility to delete the class when finished.
 */
-std::unique_ptr<DynamicMachine> MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error);
+std::unique_ptr<DynamicMachine> MachineForTarget(
+	const Analyser::Static::Target *,
+	const ROMMachine::ROMFetcher &,
+	Machine::Error &);
 
 /*!
 	Returns a short string name for the machine identified by the target,
@@ -90,6 +96,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> AllOptionsByMachineNa
 
 	NB: Usually the instances of Target can be dynamic_casted to Reflection::Struct in order to determine available properties.
 */
-std::map<std::string, std::unique_ptr<Analyser::Static::Target>> TargetsByMachineName(bool meaningful_without_media_only);
+std::map<std::string, std::unique_ptr<Analyser::Static::Target>>
+	TargetsByMachineName(bool meaningful_without_media_only);
 
 }

@@ -323,7 +323,7 @@ void UEF::Serialiser::queue_bit(const int bit) {
 
 // MARK: - TypeDistinguisher
 
-TargetPlatform::Type UEF::target_platform_type() {
+TargetPlatform::Type UEF::target_platforms() {
 	return serialiser_.target_platform_type();
 }
 

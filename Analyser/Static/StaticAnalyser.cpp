@@ -127,9 +127,9 @@ public:
 		potential_platforms_ |= platforms;
 
 		// Check whether the instance itself has any input on target platforms.
-		TargetPlatform::TypeDistinguisher *const distinguisher =
-			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance.get());
-		if(distinguisher) potential_platforms_ &= distinguisher->target_platform_type();
+		TargetPlatform::Distinguisher *const distinguisher =
+			dynamic_cast<TargetPlatform::Distinguisher *>(instance.get());
+		if(distinguisher) potential_platforms_ &= distinguisher->target_platforms();
 	}
 
 	/// Concstructs a new instance of @c InstanceT supplying @c args and adds it to the back of @c list using @c insert_instance.

@@ -10,6 +10,7 @@
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
+#include "../../TargetPlatforms.hpp"
 
 #include <cstdint>
 #include <string>
@@ -19,7 +20,7 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
 */
-class PRG: public Tape {
+class PRG: public Tape, public TargetPlatform::Recipient {
 public:
 	/*!
 		Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
@@ -34,8 +35,11 @@ public:
 	};
 
 private:
+	void set_target_platforms(TargetPlatform::Type) override;
+
 	struct Serialiser: public TapeSerialiser {
 		Serialiser(const std::string &file_name);
+		void set_target_platforms(TargetPlatform::Type);
 	private:
 		bool is_at_end() const override;
 		Pulse next_pulse() override;
@@ -68,6 +72,20 @@ private:
 		uint8_t output_byte_;
 		uint8_t check_digit_;
 		uint8_t copy_mask_ = 0x80;
+
+		struct Timings {
+			Timings(bool is_plus4) :
+				leader_zero_length(	is_plus4 ? 240 : 179),
+				zero_length(		is_plus4 ? 240 : 169),
+				one_length(			is_plus4 ? 480 : 247),
+				marker_length(		is_plus4 ? 960 : 328) {}
+
+			// The below are in microseconds per pole.
+			unsigned int leader_zero_length;
+			unsigned int zero_length;
+			unsigned int one_length;
+			unsigned int marker_length;
+		} timings_;
 	} serialiser_;
 };
 

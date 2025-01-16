@@ -21,7 +21,7 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a UEF tape image, a slightly-convoluted description of pulses.
 */
-class UEF : public Tape, public TargetPlatform::TypeDistinguisher {
+class UEF : public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
 		Constructs a @c UEF containing content from the file with name @c file_name.
@@ -35,7 +35,7 @@ public:
 	};
 
 private:
-	TargetPlatform::Type target_platform_type() override;
+	TargetPlatform::Type target_platforms() override;
 
 	struct Serialiser: public PulseQueuedSerialiser {
 		Serialiser(const std::string &file_name);

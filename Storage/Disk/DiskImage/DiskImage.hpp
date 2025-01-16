@@ -95,7 +95,7 @@ class DiskImageHolderBase: public Disk {
 	Implements TargetPlatform::TypeDistinguisher to return either no information whatsoever, if
 	the underlying image doesn't implement TypeDistinguisher, or else to pass the call along.
 */
-template <typename T> class DiskImageHolder: public DiskImageHolderBase, public TargetPlatform::TypeDistinguisher {
+template <typename T> class DiskImageHolder: public DiskImageHolderBase, public TargetPlatform::Distinguisher {
 public:
 	template <typename... Ts> DiskImageHolder(Ts&&... args) :
 		disk_image_(args...) {}
@@ -112,9 +112,9 @@ public:
 private:
 	T disk_image_;
 
-	TargetPlatform::Type target_platform_type() final {
-		if constexpr (std::is_base_of<TargetPlatform::TypeDistinguisher, T>::value) {
-			return static_cast<TargetPlatform::TypeDistinguisher *>(&disk_image_)->target_platform_type();
+	TargetPlatform::Type target_platforms() final {
+		if constexpr (std::is_base_of<TargetPlatform::Distinguisher, T>::value) {
+			return static_cast<TargetPlatform::Distinguisher *>(&disk_image_)->target_platforms();
 		} else {
 			return TargetPlatform::Type(~0);
 		}

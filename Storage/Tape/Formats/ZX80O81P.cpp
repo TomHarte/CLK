@@ -105,7 +105,7 @@ Pulse ZX80O81P::Serialiser::next_pulse() {
 	return pulse;
 }
 
-TargetPlatform::Type ZX80O81P::target_platform_type() {
+TargetPlatform::Type ZX80O81P::target_platforms() {
 	return serialiser_.target_platform_type();
 }
 

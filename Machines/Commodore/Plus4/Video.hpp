@@ -57,7 +57,7 @@ public:
 
 			case 0xff1a:	return uint8_t(character_position_reload_ >> 8) | 0xfc;
 			case 0xff1b:	return uint8_t(character_position_reload_);
-			case 0xff1c:	return uint8_t(vertical_counter_ >> 8);
+			case 0xff1c:	return uint8_t(vertical_counter_ >> 8) | 0xfe;
 			case 0xff1d:	return uint8_t(vertical_counter_);
 			case 0xff1e:	return uint8_t(horizontal_counter_ >> 1);
 			case 0xff1f:
@@ -163,7 +163,7 @@ public:
 			case 0xff1a:	load_high10(character_position_reload_);	break;
 			case 0xff1b:	load_low8(character_position_reload_);		break;
 
-			case 0xff1c:	vertical_counter_ = (vertical_counter_ & 0x00ff) | ((value & 3) << 8);		break;
+			case 0xff1c:	vertical_counter_ = (vertical_counter_ & 0x00ff) | ((value & 1) << 8);		break;
 			case 0xff1d:	vertical_counter_ = (vertical_counter_ & 0xff00) | value;					break;
 			case 0xff1e:
 				// TODO: possibly should be deferred, if falling out of phase?

@@ -51,7 +51,8 @@ using namespace Storage::Tape;
 PRG::PRG(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
 
 PRG::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read)
+	file_(file_name, FileHolder::FileMode::Read),
+	timings_(false)
 {
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
@@ -65,26 +66,28 @@ PRG::Serialiser::Serialiser(const std::string &file_name) :
 		throw ErrorBadFormat;
 }
 
-Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
-	// The below are in microseconds per pole.
-	constexpr unsigned int leader_zero_length = 179;
-	constexpr unsigned int zero_length = 169;
-	constexpr unsigned int one_length = 247;
-	constexpr unsigned int marker_length = 328;
+void PRG::set_target_platforms(TargetPlatform::Type type) {
+	serialiser_.set_target_platforms(type);
+}
 
-	bit_phase_ = (bit_phase_+1)&3;
+void PRG::Serialiser::set_target_platforms(TargetPlatform::Type type) {
+	timings_ = Timings(type & TargetPlatform::Type::Plus4);
+}
+
+Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
+	bit_phase_ = (bit_phase_ + 1)&3;
 	if(!bit_phase_) get_next_output_token();
 
 	Pulse pulse;
 	pulse.length.clock_rate = 1'000'000;
 	pulse.type = (bit_phase_&1) ? Pulse::High : Pulse::Low;
 	switch(output_token_) {
-		case Leader:		pulse.length.length = leader_zero_length;							break;
-		case Zero:			pulse.length.length = (bit_phase_&2) ? one_length : zero_length;	break;
-		case One:			pulse.length.length = (bit_phase_&2) ? zero_length : one_length;	break;
-		case WordMarker:	pulse.length.length = (bit_phase_&2) ? one_length : marker_length;	break;
-		case EndOfBlock:	pulse.length.length = (bit_phase_&2) ? zero_length : marker_length;	break;
-		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;				break;
+		case Leader:		pulse.length.length = timings_.leader_zero_length;										break;
+		case Zero:			pulse.length.length = (bit_phase_&2) ? timings_.one_length : timings_.zero_length;		break;
+		case One:			pulse.length.length = (bit_phase_&2) ? timings_.zero_length : timings_.one_length;		break;
+		case WordMarker:	pulse.length.length = (bit_phase_&2) ? timings_.one_length : timings_.marker_length;	break;
+		case EndOfBlock:	pulse.length.length = (bit_phase_&2) ? timings_.zero_length : timings_.marker_length;	break;
+		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;									break;
 	}
 	return pulse;
 }

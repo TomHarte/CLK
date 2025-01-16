@@ -330,6 +330,10 @@ public:
 						*value = 0xff ^ (play_button_ ? 0x4 :0x0);
 					break;
 
+					case 0xfdd0:
+						*value = 0xff;
+					break;
+
 					default:
 						printf("TODO: read @ %04x\n", address);
 					break;
@@ -339,6 +343,12 @@ public:
 					case 0xfd30:
 						keyboard_mask_ = *value;
 					break;
+
+					case 0xfdd0: {
+//						const auto low = address & 3;
+//						const auto high = (address >> 2) & 3;
+						// TODO: set up ROMs.
+					} break;
 
 					default:
 						printf("TODO: write of %02x @ %04x\n", *value, address);

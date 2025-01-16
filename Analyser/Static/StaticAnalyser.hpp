@@ -14,6 +14,7 @@
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/MassStorage/MassStorageDevice.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../Storage/TargetPlatforms.hpp"
 #include "../../Reflection/Struct.hpp"
 
 #include <memory>
@@ -35,6 +36,20 @@ struct Media {
 
 	bool empty() const {
 		return disks.empty() && tapes.empty() && cartridges.empty() && mass_storage_devices.empty();
+	}
+
+	void set_target_platforms(const TargetPlatform::Type target) {
+		const auto propagate = [&](const auto &list) {
+			for(const auto &item: list) {
+				if(auto *recipient = dynamic_cast<TargetPlatform::Recipient *>(item.get())) {
+					recipient->set_target_platforms(target);
+				}
+			}
+		};
+		propagate(disks);
+		propagate(tapes);
+		propagate(cartridges);
+		propagate(mass_storage_devices);
 	}
 
 	Media &operator +=(const Media &rhs) {
