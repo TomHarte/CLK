@@ -48,7 +48,13 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+PRG::PRG(const std::string &file_name) : file_name_(file_name) {
+	format_serialiser();
+}
+
+std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 PRG::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read),
@@ -64,10 +70,6 @@ PRG::Serialiser::Serialiser(const std::string &file_name) :
 
 	if(load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
-}
-
-void PRG::set_target_platforms(TargetPlatform::Type type) {
-	serialiser_.set_target_platforms(type);
 }
 
 void PRG::Serialiser::set_target_platforms(TargetPlatform::Type type) {

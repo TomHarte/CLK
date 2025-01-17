@@ -12,8 +12,13 @@
 
 using namespace Storage::Tape;
 
-OricTAP::OricTAP(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+OricTAP::OricTAP(const std::string &file_name) : file_name_(file_name) {
+	format_serialiser();
+}
 
+std::unique_ptr<FormatSerialiser> OricTAP::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 OricTAP::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read)

@@ -11,7 +11,14 @@
 
 using namespace Storage::Tape;
 
-ZX80O81P::ZX80O81P(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+ZX80O81P::ZX80O81P(const std::string &file_name) : file_name_(file_name) {
+	Serialiser test_serialiser(file_name);
+	target_platforms_ = test_serialiser.target_platforms();
+}
+
+std::unique_ptr<FormatSerialiser> ZX80O81P::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 ZX80O81P::Serialiser::Serialiser(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
@@ -106,9 +113,9 @@ Pulse ZX80O81P::Serialiser::next_pulse() {
 }
 
 TargetPlatform::Type ZX80O81P::target_platforms() {
-	return serialiser_.target_platform_type();
+	return target_platforms_;
 }
 
-TargetPlatform::Type ZX80O81P::Serialiser::target_platform_type() {
+TargetPlatform::Type ZX80O81P::Serialiser::target_platforms() {
 	return platform_type_;
 }

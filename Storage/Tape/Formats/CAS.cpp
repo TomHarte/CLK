@@ -59,7 +59,13 @@ namespace {
 	const uint8_t ascii_signature[] = TenX(0xea);
 }
 
-CAS::CAS(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+CAS::CAS(const std::string &file_name)  : file_name_(file_name) {
+	format_serialiser();
+}
+
+std::unique_ptr<FormatSerialiser> CAS::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 CAS::Serialiser::Serialiser(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);

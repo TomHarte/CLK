@@ -18,7 +18,13 @@ using namespace Storage::Tape;
 	https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
 */
 
-ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) : file_name_(file_name) {
+	format_serialiser();
+}
+
+std::unique_ptr<FormatSerialiser> ZXSpectrumTAP::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 ZXSpectrumTAP::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read)

@@ -20,10 +20,10 @@ Parser::Parser() :
 	Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
 	Returns @c nullptr if any wave-encoding level errors are encountered.
 */
-std::unique_ptr<Header> Parser::get_next_header(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::unique_ptr<Header> Parser::get_next_header(Storage::Tape::TapeSerialiser &serialiser) {
 	return duplicate_match<Header>(
-		get_next_header_body(tape, true),
-		get_next_header_body(tape, false)
+		get_next_header_body(serialiser, true),
+		get_next_header_body(serialiser, false)
 	);
 }
 
@@ -31,10 +31,10 @@ std::unique_ptr<Header> Parser::get_next_header(const std::shared_ptr<Storage::T
 	Advances to the next block on the tape, treating it as data, then consumes, parses, and returns it.
 	Returns @c nullptr if any wave-encoding level errors are encountered.
 */
-std::unique_ptr<Data> Parser::get_next_data(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::unique_ptr<Data> Parser::get_next_data(Storage::Tape::TapeSerialiser &serialiser) {
 	return duplicate_match<Data>(
-		get_next_data_body(tape, true),
-		get_next_data_body(tape, false)
+		get_next_data_body(serialiser, true),
+		get_next_data_body(serialiser, false)
 	);
 }
 
@@ -43,7 +43,10 @@ std::unique_ptr<Data> Parser::get_next_data(const std::shared_ptr<Storage::Tape:
 	including setting the duplicate_matched flag.
 */
 template<class ObjectType>
-	std::unique_ptr<ObjectType> Parser::duplicate_match(std::unique_ptr<ObjectType> first_copy, std::unique_ptr<ObjectType> second_copy) {
+std::unique_ptr<ObjectType> Parser::duplicate_match(
+	std::unique_ptr<ObjectType> first_copy,
+	std::unique_ptr<ObjectType> second_copy
+) {
 	// if only one copy was parsed successfully, return it
 	if(!first_copy) return second_copy;
 	if(!second_copy) return first_copy;
@@ -64,19 +67,19 @@ template<class ObjectType>
 	return std::move(*copy_to_return);
 }
 
-std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original) {
+std::unique_ptr<Header> Parser::get_next_header_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
 	auto header = std::make_unique<Header>();
 	reset_error_flag();
 
 	// find and proceed beyond lead-in tone
-	proceed_to_symbol(tape, SymbolType::LeadIn);
+	proceed_to_symbol(serialiser, SymbolType::LeadIn);
 
 	// look for landing zone
-	proceed_to_landing_zone(tape, is_original);
+	proceed_to_landing_zone(serialiser, is_original);
 	reset_parity_byte();
 
 	// get header type
-	const uint8_t header_type = get_next_byte(tape);
+	const uint8_t header_type = get_next_byte(serialiser);
 	switch(header_type) {
 		default:	header->type = Header::Unknown;					break;
 		case 0x01:	header->type = Header::RelocatableProgram;		break;
@@ -89,11 +92,11 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 	// grab rest of data
 	header->data.reserve(191);
 	for(std::size_t c = 0; c < 191; c++) {
-		header->data.push_back(get_next_byte(tape));
+		header->data.push_back(get_next_byte(serialiser));
 	}
 
 	const uint8_t parity_byte = get_parity_byte();
-	header->parity_was_valid = get_next_byte(tape) == parity_byte;
+	header->parity_was_valid = get_next_byte(serialiser) == parity_byte;
 
 	// parse if this is not pure data
 	if(header->type != Header::DataBlock) {
@@ -125,20 +128,20 @@ void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) {
 	std::memcpy(&target[1], data.data(), 191);
 }
 
-std::unique_ptr<Data> Parser::get_next_data_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original) {
+std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
 	auto data = std::make_unique<Data>();
 	reset_error_flag();
 
 	// find and proceed beyond lead-in tone to the next landing zone
-	proceed_to_symbol(tape, SymbolType::LeadIn);
-	proceed_to_landing_zone(tape, is_original);
+	proceed_to_symbol(serialiser, SymbolType::LeadIn);
+	proceed_to_landing_zone(serialiser, is_original);
 	reset_parity_byte();
 
 	// accumulate until the next non-word marker is hit
-	while(!tape->is_at_end()) {
-		const SymbolType start_symbol = get_next_symbol(tape);
+	while(!serialiser.is_at_end()) {
+		const SymbolType start_symbol = get_next_symbol(serialiser);
 		if(start_symbol != SymbolType::Word) break;
-		data->data.push_back(get_next_byte_contents(tape));
+		data->data.push_back(get_next_byte_contents(serialiser));
 	}
 
 	// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
@@ -154,11 +157,11 @@ std::unique_ptr<Data> Parser::get_next_data_body(const std::shared_ptr<Storage::
 /*!
 	Finds and completes the next landing zone.
 */
-void Parser::proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original) {
+void Parser::proceed_to_landing_zone(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
 	uint8_t landing_zone[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-	while(!tape->is_at_end()) {
+	while(!serialiser.is_at_end()) {
 		memmove(landing_zone, &landing_zone[1], sizeof(uint8_t) * 8);
-		landing_zone[8] = get_next_byte(tape);
+		landing_zone[8] = get_next_byte(serialiser);
 
 		bool is_landing_zone = true;
 		for(int c = 0; c < 9; c++) {
@@ -174,8 +177,8 @@ void Parser::proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> 
 /*!
 	Swallows the next byte; sets the error flag if it is not equal to @c value.
 */
-void Parser::expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value) {
-	const uint8_t next_byte = get_next_byte(tape);
+void Parser::expect_byte(Storage::Tape::TapeSerialiser &serialiser, uint8_t value) {
+	const uint8_t next_byte = get_next_byte(serialiser);
 	if(next_byte != value) set_error_flag();
 }
 
@@ -186,9 +189,9 @@ void Parser::add_parity_byte(uint8_t byte)	{ parity_byte_ ^= byte;	}
 /*!
 	Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
 */
-uint8_t Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	proceed_to_symbol(tape, SymbolType::Word);
-	return get_next_byte_contents(tape);
+uint8_t Parser::get_next_byte(Storage::Tape::TapeSerialiser &serialiser) {
+	proceed_to_symbol(serialiser, SymbolType::Word);
+	return get_next_byte_contents(serialiser);
 }
 
 /*!
@@ -196,11 +199,11 @@ uint8_t Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) 
 	Returns a byte composed of the first eight of those as bits; sets the error flag if any symbol is not
 	::One and not ::Zero, or if the ninth bit is not equal to the odd parity of the other eight.
 */
-uint8_t Parser::get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+uint8_t Parser::get_next_byte_contents(Storage::Tape::TapeSerialiser &serialiser) {
 	int byte_plus_parity = 0;
 	int c = 9;
 	while(c--) {
-		const SymbolType next_symbol = get_next_symbol(tape);
+		const SymbolType next_symbol = get_next_symbol(serialiser);
 		if((next_symbol != SymbolType::One) && (next_symbol != SymbolType::Zero)) set_error_flag();
 		byte_plus_parity = (byte_plus_parity >> 1) | (((next_symbol == SymbolType::One) ? 1 : 0) << 8);
 	}
@@ -219,9 +222,9 @@ uint8_t Parser::get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape
 /*!
 	Returns the result of two consecutive @c get_next_byte calls, arranged in little-endian format.
 */
-uint16_t Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	uint16_t value = get_next_byte(tape);
-	value |= get_next_byte(tape) << 8;
+uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
+	uint16_t value = get_next_byte(serialiser);
+	value |= get_next_byte(serialiser) << 8;
 	return value;
 }
 

@@ -21,7 +21,13 @@ Log::Logger<Log::Source::TZX> logger;
 
 }
 
-TZX::TZX(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+TZX::TZX(const std::string &file_name) : file_name_(file_name) {
+	format_serialiser();
+}
+
+std::unique_ptr<FormatSerialiser> TZX::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 TZX::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read),
@@ -113,14 +119,15 @@ void TZX::Serialiser::get_csw_recording_block() {
 
 	std::vector<uint8_t> raw_block = file_.read(block_length - 10);
 
-	CSW csw(
+	const CSW csw(
 		std::move(raw_block),
 		(compression_type == 2) ? CSW::CompressionType::ZRLE : CSW::CompressionType::RLE,
 		current_level_,
 		sampling_rate
 	);
-	while(!csw.is_at_end()) {
-		Pulse next_pulse = csw.next_pulse();
+	auto serialiser = csw.serialiser();
+	while(!serialiser->is_at_end()) {
+		Pulse next_pulse = serialiser->next_pulse();
 		current_level_ = (next_pulse.type == Pulse::High);
 		push_back(next_pulse);
 	}

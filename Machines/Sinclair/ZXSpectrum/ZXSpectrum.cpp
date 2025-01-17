@@ -921,7 +921,7 @@ template<Model model> class ConcreteMachine:
 			if(!(flags & 1)) return false;
 
 			const uint8_t block_type = uint8_t(z80_.value_of(Register::ADash));
-			const auto block = parser.find_block(tape_player_.tape());
+			const auto block = parser.find_block(*tape_player_.serialiser());
 			if(!block || block_type != (*block).type) return false;
 
 			uint16_t length = z80_.value_of(Register::DE);
@@ -930,7 +930,7 @@ template<Model model> class ConcreteMachine:
 			flags = 0x93;
 			uint8_t parity = 0x00;
 			while(length--) {
-				auto next = parser.get_byte(tape_player_.tape());
+				auto next = parser.get_byte(*tape_player_.serialiser());
 				if(!next) {
 					flags &= ~1;
 					break;
@@ -941,7 +941,7 @@ template<Model model> class ConcreteMachine:
 				++target;
 			}
 
-			auto stored_parity = parser.get_byte(tape_player_.tape());
+			auto stored_parity = parser.get_byte(*tape_player_.serialiser());
 			if(!stored_parity) {
 				flags &= ~1;
 			} else {

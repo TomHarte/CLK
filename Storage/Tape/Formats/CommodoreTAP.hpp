@@ -36,8 +36,9 @@ public:
 
 private:
 	TargetPlatform::Type target_platforms() override;
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
-	struct Serialiser: public TapeSerialiser {
+	struct Serialiser: public FormatSerialiser {
 		Serialiser(const std::string &file_name);
 
 		TargetPlatform::Type target_platforms();
@@ -76,7 +77,9 @@ private:
 
 		Pulse current_pulse_;
 		bool is_at_end_ = false;
-	} serialiser_;
+	};
+	std::string file_name_;
+	TargetPlatform::Type target_platforms_;
 };
 
 }

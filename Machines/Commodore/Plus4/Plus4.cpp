@@ -214,6 +214,7 @@ public:
 			c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
 			c1541_->set_serial_bus(serial_bus_);
 			Serial::attach(serial_port_, serial_bus_);
+			c1541_->run_for(Cycles(2000000));
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
@@ -299,6 +300,33 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
+			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode && address == 0xe5fd) {
+				// TODO:
+				//
+				// ; read a dipole from tape (and then RTS)
+				// ;
+				// ; if c=1 then error
+				// ;    else if v=1 then short
+				// ;            else if n=0 then long
+				// ;                    else word
+				// ;                    end
+				// ;            end
+				// ;    end
+
+				// Compare with:
+				//
+				// dsamp1	*=*+2		;time constant for x cell sample		07B8
+				// dsamp2	*=*+2		;time constant for y cell sample
+				// zcell	*=*+2		;time constant for z cell verify
+
+//				const uint8_t dsamp1 = map_.read(0x7b8);
+//				const uint8_t dsamp2 = map_.read(0x7b9);
+//				const uint8_t zcell = map_.read(0x7ba);
+//
+//
+//				printf("rddipl: %d / %d / %d\n", dsamp1, dsamp2, zcell);
+			}
+
 			if(is_read(operation)) {
 				*value = map_.read(address);
 			} else {
@@ -384,8 +412,8 @@ public:
 
 						const uint8_t joystick_mask =
 							0xff &
-							((joystick_mask_ & 0x02) ? 0xff : (joystick(1).mask() | 0x40)) &
-							((joystick_mask_ & 0x04) ? 0xff : (joystick(0).mask() | 0x80));
+							((joystick_mask_ & 0x02) ? 0xff : (joystick(0).mask() | 0x40)) &
+							((joystick_mask_ & 0x04) ? 0xff : (joystick(1).mask() | 0x80));
 
 						*value = keyboard_input & joystick_mask;
 					} break;
@@ -551,10 +579,12 @@ private:
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
 		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
 		rom_is_paged_ = true;
+		set_use_fast_tape();
 	}
 	void page_cpu_ram() {
 		map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
 		rom_is_paged_ = false;
+		set_use_fast_tape();
 	}
 	bool rom_is_paged_ = false;
 
@@ -659,10 +689,14 @@ private:
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
 	bool play_button_ = false;
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
-	void set_use_fast_tape() {}
+	bool use_fast_tape_hack_ = false;
+	void set_use_fast_tape() {
+		use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_;
+	}
 	void update_tape_motor() {
 		const auto output = io_output_ | ~io_direction_;
 		tape_player_->set_motor_control(play_button_ && (~output & 0x08));
+		set_use_fast_tape();
 	}
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;

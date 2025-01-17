@@ -34,7 +34,8 @@ public:
 	};
 
 private:
-	struct Serialiser: public TapeSerialiser {
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
+	struct Serialiser: public FormatSerialiser {
 		Serialiser(const std::string &file_name);
 
 	private:
@@ -65,7 +66,8 @@ private:
 		} phase_ = Phase::Header;
 		std::size_t distance_into_phase_ = 0;
 		std::size_t distance_into_bit_ = 0;
-	} serialiser_;
+	};
+	std::string file_name_;
 };
 
 }

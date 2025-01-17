@@ -36,6 +36,7 @@ public:
 
 private:
 	TargetPlatform::Type target_platforms() override;
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public PulseQueuedSerialiser {
 		Serialiser(const std::string &file_name);
@@ -76,7 +77,9 @@ private:
 
 		void queue_bit(int bit);
 		void queue_implicit_byte(uint8_t byte);
-	} serialiser_;
+	};
+	std::string file_name_;
+	TargetPlatform::Type target_platform_;
 };
 
 }

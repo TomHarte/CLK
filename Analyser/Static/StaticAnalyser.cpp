@@ -385,13 +385,6 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
 	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
 
-	// Reset any tapes to their initial position.
-	for(const auto &target : targets) {
-		for(auto &tape : target->media.tapes) {
-			tape->reset();
-		}
-	}
-
 	// Sort by initial confidence. Use a stable sort in case any of the machine-specific analysers
 	// picked their insertion order carefully.
 	std::stable_sort(targets.begin(), targets.end(),

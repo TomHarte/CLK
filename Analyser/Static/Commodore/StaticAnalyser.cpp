@@ -212,8 +212,8 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 
 		// Find all valid Commodore files on tapes.
 		for(auto &tape : media.tapes) {
-			std::vector<File> tape_files = GetFiles(tape);
-			tape->reset();
+			auto serialiser = tape->serialiser();
+			std::vector<File> tape_files = GetFiles(*serialiser);
 			if(!tape_files.empty()) {
 				files.insert(
 					files.end(),

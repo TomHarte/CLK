@@ -25,8 +25,8 @@ enum class SymbolType {
 
 class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolType> {
 public:
-	int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool use_fast_encoding);
-	bool sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	int get_next_byte(Storage::Tape::TapeSerialiser &, bool use_fast_encoding);
+	bool sync_and_get_encoding_speed(Storage::Tape::TapeSerialiser &);
 
 private:
 	void process_pulse(const Storage::Tape::Pulse &pulse) override;

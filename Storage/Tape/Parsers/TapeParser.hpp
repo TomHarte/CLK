@@ -27,11 +27,11 @@ public:
 		Asks the parser to continue taking pulses from the tape until either the subclass next declares a symbol
 		or the tape runs out, returning the most-recently declared symbol.
 	*/
-	SymbolType get_next_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-		while(!has_next_symbol_ && !tape->is_at_end()) {
-			process_pulse(tape->next_pulse());
+	SymbolType get_next_symbol(Storage::Tape::TapeSerialiser &serialiser) {
+		while(!has_next_symbol_ && !serialiser.is_at_end()) {
+			process_pulse(serialiser.next_pulse());
 		}
-		if(!has_next_symbol_ && tape->is_at_end()) mark_end();
+		if(!has_next_symbol_ && serialiser.is_at_end()) mark_end();
 		has_next_symbol_ = false;
 		return next_symbol_;
 	}
@@ -50,17 +50,17 @@ public:
 	/*!
 		@returns `true` if there is no data left on the tape and the WaveType queue has been exhausted; `false` otherwise.
 	*/
-	bool is_at_end(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-		return tape->is_at_end() && !has_next_symbol_;
+	bool is_at_end(Storage::Tape::TapeSerialiser &serialiser) {
+		return serialiser.is_at_end() && !has_next_symbol_;
 	}
 
 	/*!
 		Swallows symbols until it reaches the first instance of the required symbol, swallows that
 		and returns.
 	*/
-	void proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape, SymbolType required_symbol) {
-		while(!is_at_end(tape)) {
-			const SymbolType symbol = get_next_symbol(tape);
+	void proceed_to_symbol(Storage::Tape::TapeSerialiser &serialiser, SymbolType required_symbol) {
+		while(!is_at_end(serialiser)) {
+			const SymbolType symbol = get_next_symbol(serialiser);
 			if(symbol == required_symbol) return;
 		}
 	}

@@ -522,9 +522,9 @@ public:
 					// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
 					// So cancel that via a double NOP and fill in the next header programmatically.
 					Storage::Tape::Commodore::Parser parser;
-					std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->tape());
+					std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(*tape_->serialiser());
 
-					const auto tape_position = tape_->tape()->offset();
+					const auto tape_position = tape_->serialiser()->offset();
 					if(header) {
 						// serialise to wherever b2:b3 points
 						const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
@@ -533,7 +533,7 @@ public:
 						logger.info().append("Found header");
 					} else {
 						// no header found, so pretend this hack never interceded
-						tape_->tape()->set_offset(tape_position);
+						tape_->serialiser()->set_offset(tape_position);
 						hold_tape_ = false;
 						logger.info().append("Didn't find header");
 					}
@@ -547,8 +547,8 @@ public:
 					uint8_t x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 					if(x == 0xe) {
 						Storage::Tape::Commodore::Parser parser;
-						const auto tape_position = tape_->tape()->offset();
-						const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->tape());
+						const auto tape_position = tape_->serialiser()->offset();
+						const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(*tape_->serialiser());
 						if(data) {
 							uint16_t start_address, end_address;
 							start_address = uint16_t(ram_[0xc1] | (ram_[0xc2] << 8));
@@ -578,7 +578,7 @@ public:
 							hold_tape_ = true;
 							logger.info().append("Found data");
 						} else {
-							tape_->tape()->set_offset(tape_position);
+							tape_->serialiser()->set_offset(tape_position);
 							hold_tape_ = false;
 							logger.info().append("Didn't find data");
 						}

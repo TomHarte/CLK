@@ -900,7 +900,7 @@ public:
 						// preceding symbol and be a short way into the pulse that should determine the
 						// first bit of this byte.
 						parser.process_pulse(tape_player_.current_pulse());
-						const auto byte = parser.get_byte(tape_player_.tape());
+						const auto byte = parser.get_byte(*tape_player_.serialiser());
 						auto flags = z80_.value_of(CPU::Z80::Register::Flags);
 
 						if(byte) {

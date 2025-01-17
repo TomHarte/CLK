@@ -12,7 +12,14 @@
 
 using namespace Storage::Tape;
 
-CommodoreTAP::CommodoreTAP(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name) {
+	Serialiser test(file_name);
+	target_platforms_ = test.target_platforms();
+}
+
+std::unique_ptr<FormatSerialiser> CommodoreTAP::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read)
@@ -106,7 +113,7 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 // MARK: - TargetPlatform::Distinguisher
 
 TargetPlatform::Type CommodoreTAP::target_platforms() {
-	return serialiser_.target_platforms();
+	return target_platforms_;
 }
 
 TargetPlatform::Type CommodoreTAP::Serialiser::target_platforms() {

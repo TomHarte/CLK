@@ -33,14 +33,14 @@ public:
 	/*!
 		Reads and combines the next eight bits. Returns -1 if any errors are encountered.
 	*/
-	int get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &);
+	int get_next_byte(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Waits for a long gap, reads all the bytes between that and the next long gap, then
 		attempts to parse those as a valid ZX80 or ZX81 file. If no file is found,
 		returns nullptr.
 	*/
-	std::shared_ptr<Storage::Data::ZX8081::File> get_next_file(const std::shared_ptr<Storage::Tape::Tape> &);
+	std::shared_ptr<Storage::Data::ZX8081::File> get_next_file(Storage::Tape::TapeSerialiser &);
 
 private:
 	bool pulse_was_high_;
@@ -51,7 +51,7 @@ private:
 	void mark_end() override;
 	void inspect_waves(const std::vector<WaveType> &waves) override;
 
-	std::shared_ptr<std::vector<uint8_t>> get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &);
+	std::shared_ptr<std::vector<uint8_t>> get_next_file_data(Storage::Tape::TapeSerialiser &);
 };
 
 }

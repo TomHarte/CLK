@@ -33,22 +33,18 @@ struct Pulse {
 /*!
 	Provdes the means for tape serialiserion.
 */
-class TapeSerialiser {
+class FormatSerialiser {
 public:
+	virtual ~FormatSerialiser() = default;
 	virtual Pulse next_pulse() = 0;
 	virtual void reset() = 0;
 	virtual bool is_at_end() const = 0;
 };
 
-/*!
-	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
-	by their relationship with zero:
-		- high pulses exit from zero upward before returning to it;
-		- low pulses exit from zero downward before returning to it;
-		- zero pulses run along zero.
-*/
-class Tape {
+class TapeSerialiser {
 public:
+	TapeSerialiser(std::unique_ptr<FormatSerialiser> &&);
+	virtual ~TapeSerialiser() = default;
 
 	/*!
 		If at the start of the tape returns the first stored pulse. Otherwise advances past
@@ -86,13 +82,25 @@ public:
 	*/
 	void seek(Time);
 
-	Tape(TapeSerialiser &);
-	virtual ~Tape() = default;
-
 private:
-	uint64_t offset_;
+	uint64_t offset_{};
 	Pulse pulse_;
-	TapeSerialiser &serialiser_;
+	std::unique_ptr<FormatSerialiser> &serialiser_;
+};
+
+/*!
+	Models a tape as a sequence of pulses, each pulse being of arbitrary length and described
+	by their relationship with zero:
+		- high pulses exit from zero upward before returning to it;
+		- low pulses exit from zero downward before returning to it;
+		- zero pulses run along zero.
+*/
+class Tape {
+public:
+	std::unique_ptr<TapeSerialiser> serialiser() const;
+
+protected:
+	virtual std::unique_ptr<FormatSerialiser> format_serialiser() const = 0;
 };
 
 /*!
@@ -109,7 +117,8 @@ public:
 
 	void set_tape(std::shared_ptr<Storage::Tape::Tape>);
 	bool has_tape() const;
-	std::shared_ptr<Storage::Tape::Tape> tape();
+	bool is_at_end() const;
+	TapeSerialiser *serialiser();
 
 	void run_for(Cycles);
 	void run_for_input_pulse();
@@ -127,6 +136,7 @@ private:
 	inline void next_pulse();
 
 	std::shared_ptr<Storage::Tape::Tape> tape_;
+	std::unique_ptr<TapeSerialiser> serialiser_;
 	Pulse current_pulse_;
 };
 

@@ -185,7 +185,7 @@ bool CheckBootSector(
 	return false;
 }
 
-bool IsAmstradTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+bool IsAmstradTape(Storage::Tape::TapeSerialiser &serialiser) {
 	// Limited sophistication here; look for a CPC-style file header, that is
 	// any Spectrum-esque block with a synchronisation character of 0x2c.
 	//
@@ -194,7 +194,7 @@ bool IsAmstradTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 	Parser parser(Parser::MachineType::AmstradCPC);
 
 	while(true) {
-		const auto block = parser.find_block(tape);
+		const auto block = parser.find_block(serialiser);
 		if(!block) break;
 
 		if(block->type == 0x2c) {
@@ -222,7 +222,8 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(
 	if(!media.tapes.empty()) {
 		bool has_cpc_tape = false;
 		for(auto &tape: media.tapes) {
-			has_cpc_tape |= IsAmstradTape(tape);
+			const auto serialiser = tape->serialiser();
+			has_cpc_tape |= IsAmstradTape(*serialiser);
 		}
 
 		if(has_cpc_tape) {

@@ -61,13 +61,13 @@ public:
 		Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
 		Returns @c nullptr if any wave-encoding level errors are encountered.
 	*/
-	std::unique_ptr<Header> get_next_header(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	std::unique_ptr<Header> get_next_header(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Advances to the next block on the tape, treating it as data, then consumes, parses, and returns it.
 		Returns @c nullptr if any wave-encoding level errors are encountered.
 	*/
-	std::unique_ptr<Data> get_next_data(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	std::unique_ptr<Data> get_next_data(Storage::Tape::TapeSerialiser &);
 
 private:
 	/*!
@@ -75,20 +75,21 @@ private:
 		including setting the duplicate_matched flag.
 	*/
 	template<class ObjectType>
-		std::unique_ptr<ObjectType> duplicate_match(std::unique_ptr<ObjectType> first_copy, std::unique_ptr<ObjectType> second_copy);
+		std::unique_ptr<ObjectType> duplicate_match(
+			std::unique_ptr<ObjectType> first_copy, std::unique_ptr<ObjectType> second_copy);
 
-	std::unique_ptr<Header> get_next_header_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original);
-	std::unique_ptr<Data> get_next_data_body(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original);
+	std::unique_ptr<Header> get_next_header_body(Storage::Tape::TapeSerialiser &, bool is_original);
+	std::unique_ptr<Data> get_next_data_body(Storage::Tape::TapeSerialiser &, bool is_original);
 
 	/*!
 		Finds and completes the next landing zone.
 	*/
-	void proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original);
+	void proceed_to_landing_zone(Storage::Tape::TapeSerialiser &, bool is_original);
 
 	/*!
 		Swallows the next byte; sets the error flag if it is not equal to @c value.
 	*/
-	void expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value);
+	void expect_byte(Storage::Tape::TapeSerialiser &, uint8_t value);
 
 	uint8_t parity_byte_ = 0;
 	void reset_parity_byte();
@@ -98,19 +99,19 @@ private:
 	/*!
 		Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
 	*/
-	uint8_t get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	uint8_t get_next_byte(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Reads the next nine symbols and applies a binary test to each to differentiate between ::One and not-::One.
 		Returns a byte composed of the first eight of those as bits; sets the error flag if any symbol is not
 		::One and not ::Zero, or if the ninth bit is not equal to the odd parity of the other eight.
 	*/
-	uint8_t get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	uint8_t get_next_byte_contents(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Returns the result of two consecutive @c get_next_byte calls, arranged in little-endian format.
 	*/
-	uint16_t get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	uint16_t get_next_short(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Per the contract with Analyser::Static::TapeParser; sums time across pulses. If this pulse

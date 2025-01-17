@@ -34,7 +34,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 	using Parser = Storage::Tape::MSX::Parser;
 
 	// Get all recognisable files from the tape.
-	while(!tape->is_at_end()) {
+	while(!tape_player.is_at_end()) {
 		// Try to locate and measure a header.
 		std::unique_ptr<Parser::FileSpeed> file_speed = Parser::find_header(tape_player);
 		if(!file_speed) continue;

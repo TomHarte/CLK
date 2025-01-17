@@ -194,8 +194,8 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(
 	int basic11_votes = 0;
 
 	for(auto &tape : media.tapes) {
-		std::vector<File> tape_files = GetFiles(tape);
-		tape->reset();
+		auto serialiser = tape->serialiser();
+		std::vector<File> tape_files = GetFiles(*serialiser);
 		if(!tape_files.empty()) {
 			for(const auto &file : tape_files) {
 				if(file.data_type == File::MachineCode) {

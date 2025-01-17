@@ -38,10 +38,11 @@ public:
 private:
 	// TargetPlatform::TypeDistinguisher.
 	TargetPlatform::Type target_platforms() override;
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
-	struct Serialiser: public TapeSerialiser {
+	struct Serialiser: public FormatSerialiser {
 		Serialiser(const std::string &file_name);
-		TargetPlatform::Type target_platform_type();
+		TargetPlatform::Type target_platforms();
 
 	private:
 		bool is_at_end() const override;
@@ -59,7 +60,9 @@ private:
 
 		std::vector<uint8_t> data_;
 		std::size_t data_pointer_;
-	} serialiser_;
+	};
+	std::string file_name_;
+	TargetPlatform::Type target_platforms_;
 };
 
 }

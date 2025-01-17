@@ -20,7 +20,7 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a .PRG, which is a direct local file.
 */
-class PRG: public Tape, public TargetPlatform::Recipient {
+class PRG: public Tape {
 public:
 	/*!
 		Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
@@ -35,11 +35,11 @@ public:
 	};
 
 private:
-	void set_target_platforms(TargetPlatform::Type) override;
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
-	struct Serialiser: public TapeSerialiser {
+	struct Serialiser: public FormatSerialiser, public TargetPlatform::Recipient {
 		Serialiser(const std::string &file_name);
-		void set_target_platforms(TargetPlatform::Type);
+		void set_target_platforms(TargetPlatform::Type) override;
 	private:
 		bool is_at_end() const override;
 		Pulse next_pulse() override;
@@ -86,7 +86,8 @@ private:
 			unsigned int one_length;
 			unsigned int marker_length;
 		} timings_;
-	} serialiser_;
+	};
+	std::string file_name_;
 };
 
 }

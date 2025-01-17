@@ -75,7 +75,14 @@ int gzget32(gzFile file) {
 
 using namespace Storage::Tape;
 
-UEF::UEF(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+UEF::UEF(const std::string &file_name) : file_name_(file_name) {
+	Serialiser test_serialiser(file_name);
+	target_platform_ = test_serialiser.target_platforms();
+}
+
+std::unique_ptr<FormatSerialiser> UEF::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
 UEF::Serialiser::Serialiser(const std::string &file_name) {
 	file_ = gzopen(file_name.c_str(), "rb");
@@ -324,7 +331,7 @@ void UEF::Serialiser::queue_bit(const int bit) {
 // MARK: - TargetPlatform::Distinguisher
 
 TargetPlatform::Type UEF::target_platforms() {
-	return serialiser_.target_platforms();
+	return target_platform_;
 }
 
 TargetPlatform::Type UEF::Serialiser::target_platforms() {

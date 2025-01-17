@@ -23,7 +23,7 @@ namespace Storage::Tape {
 	anything there, and otherwise calls @c push_next_pulses() which is
 	virtual, giving subclasses a chance to provide the next batch of pulses.
 */
-class PulseQueuedSerialiser: public TapeSerialiser {
+class PulseQueuedSerialiser: public FormatSerialiser {
 public:
 	void emplace_back(Pulse::Type, Time);
 	void push_back(Pulse);

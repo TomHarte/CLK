@@ -10,27 +10,27 @@
 
 using namespace Storage::Tape::Oric;
 
-int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, bool use_fast_encoding) {
+int Parser::get_next_byte(Storage::Tape::TapeSerialiser &serialiser, bool use_fast_encoding) {
 	detection_mode_ = use_fast_encoding ? FastZero : SlowZero;
 	cycle_length_ = 0.0f;
 
 	int result = 0;
 	int bit_count = 0;
-	while(bit_count < 11 && !tape->is_at_end()) {
-		SymbolType symbol = get_next_symbol(tape);
+	while(bit_count < 11 && !serialiser.is_at_end()) {
+		SymbolType symbol = get_next_symbol(serialiser);
 		if(!bit_count && symbol != SymbolType::Zero) continue;
 		detection_mode_ = use_fast_encoding ? FastData : SlowData;
 		result |= ((symbol == SymbolType::One) ? 1 : 0) << bit_count;
 		bit_count++;
 	}
 	// TODO: check parity?
-	return tape->is_at_end() ? -1 : ((result >> 1)&0xff);
+	return serialiser.is_at_end() ? -1 : ((result >> 1)&0xff);
 }
 
-bool Parser::sync_and_get_encoding_speed(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+bool Parser::sync_and_get_encoding_speed(Storage::Tape::TapeSerialiser &serialiser) {
 	detection_mode_ = Sync;
-	while(!tape->is_at_end()) {
-		const SymbolType symbol = get_next_symbol(tape);
+	while(!serialiser.is_at_end()) {
+		const SymbolType symbol = get_next_symbol(serialiser);
 		switch(symbol) {
 			case SymbolType::FoundSlow: return false;
 			case SymbolType::FoundFast: return true;

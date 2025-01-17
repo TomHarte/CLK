@@ -77,8 +77,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	// If there are any tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
 		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
-		std::vector<File> files = GetFiles(tape);
-		tape->reset();
+		auto serialiser = tape->serialiser();
+		std::vector<File> files = GetFiles(*serialiser);
 
 		// continue if there are any files
 		if(!files.empty()) {

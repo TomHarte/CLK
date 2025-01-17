@@ -34,7 +34,9 @@ public:
 	};
 
 private:
-	struct Serialiser: public TapeSerialiser {
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
+
+	struct Serialiser: public FormatSerialiser {
 		Serialiser(const std::string &file_name);
 	private:
 		Storage::FileHolder file_;
@@ -54,7 +56,8 @@ private:
 		bool is_at_end() const override;
 		void reset() override;
 		Pulse next_pulse() override;
-	} serialiser_;
+	};
+	std::string file_name_;
 };
 
 }

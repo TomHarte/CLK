@@ -36,33 +36,35 @@ public:
 	/*!
 		Constructs a @c CSW containing content as specified. Does not throw.
 	*/
-	CSW(const std::vector<uint8_t> &&data, CompressionType, bool initial_level, uint32_t sampling_rate);
+	CSW(std::vector<uint8_t> &&data, CompressionType, bool initial_level, uint32_t sampling_rate);
 
 	enum {
 		ErrorNotCSW
 	};
 
 private:
-	struct Serialiser: public TapeSerialiser {
-		Serialiser(const std::string &file_name);
-		Serialiser(const std::vector<uint8_t> &&data, CompressionType, bool initial_level, uint32_t sampling_rate);
+	void set_data(std::vector<uint8_t> &&data, CompressionType type);
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;	
+
+	struct Serialiser: public FormatSerialiser {
+		Serialiser(const std::vector<uint8_t> &data, Pulse);
 
 	private:
-		// implemented to satisfy @c Tape
+		// implemented to satisfy @c FormatSerialiser
 		bool is_at_end() const override;
 		void reset() override;
 		Pulse next_pulse() override;
-
-		Pulse pulse_;
-		CompressionType compression_type_;
 
 		uint8_t get_next_byte();
 		uint32_t get_next_int32le();
 		void invert_pulse();
 
-		std::vector<uint8_t> source_data_;
-		std::size_t source_data_pointer_;
-	} serialiser_;
+		Pulse pulse_;
+		const std::vector<uint8_t> &source_data_;
+		std::size_t source_data_pointer_ = 0;
+	};
+	std::vector<uint8_t> source_data_;
+	Pulse pulse_;
 };
 
 }
