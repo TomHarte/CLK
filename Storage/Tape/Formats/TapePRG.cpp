@@ -49,27 +49,31 @@
 using namespace Storage::Tape;
 
 PRG::PRG(const std::string &file_name) : file_name_(file_name) {
-	format_serialiser();
-}
+	FileHolder file(file_name, FileHolder::FileMode::Read);
 
-std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_);
-}
-
-PRG::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read),
-	timings_(true)
-{
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
-	if(file_.stats().st_size >= 65538 || file_.stats().st_size < 3)
+	if(file.stats().st_size >= 65538 || file.stats().st_size < 3)
 		throw ErrorBadFormat;
 
-	load_address_ = file_.get16le();
-	length_ = uint16_t(file_.stats().st_size - 2);
+	load_address_ = file.get16le();
+	length_ = uint16_t(file.stats().st_size - 2);
 
 	if(load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
+}
+
+std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_, load_address_, length_);
+}
+
+PRG::Serialiser::Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length) :
+	file_(file_name, FileHolder::FileMode::Read),
+	load_address_(load_address),
+	length_(length),
+	timings_(false)
+{
+	reset();
 }
 
 void PRG::Serialiser::set_target_platforms(TargetPlatform::Type type) {

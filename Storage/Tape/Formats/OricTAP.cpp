@@ -13,31 +13,28 @@
 using namespace Storage::Tape;
 
 OricTAP::OricTAP(const std::string &file_name) : file_name_(file_name) {
-	format_serialiser();
+	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
+
+	// Check for a sequence of at least three 0x16s followed by a 0x24.
+	while(true) {
+		const uint8_t next = file.get8();
+		if(next != 0x16 && next != 0x24) {
+			throw ErrorNotOricTAP;
+		}
+		if(next == 0x24) {
+			if(file.tell() < 4) {
+				throw ErrorNotOricTAP;
+			}
+			break;
+		}
+	}
 }
 
 std::unique_ptr<FormatSerialiser> OricTAP::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-OricTAP::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read)
-{
-	// Check for a sequence of at least three 0x16s followed by a 0x24.
-	while(true) {
-		const uint8_t next = file_.get8();
-		if(next != 0x16 && next != 0x24) {
-			throw ErrorNotOricTAP;
-		}
-		if(next == 0x24) {
-			if(file_.tell() < 4) {
-				throw ErrorNotOricTAP;
-			}
-			break;
-		}
-	}
-
-	// Rewind and start again.
+OricTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileHolder::FileMode::Read) {
 	reset();
 }
 

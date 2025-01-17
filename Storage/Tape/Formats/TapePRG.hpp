@@ -38,15 +38,15 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser, public TargetPlatform::Recipient {
-		Serialiser(const std::string &file_name);
+		Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length);
 		void set_target_platforms(TargetPlatform::Type) override;
+
 	private:
 		bool is_at_end() const override;
 		Pulse next_pulse() override;
 		void reset() override;
 
 		FileHolder file_;
-
 		uint16_t load_address_;
 		uint16_t length_;
 
@@ -88,6 +88,8 @@ private:
 		} timings_;
 	};
 	std::string file_name_;
+	uint16_t load_address_;
+	uint16_t length_;
 };
 
 }
