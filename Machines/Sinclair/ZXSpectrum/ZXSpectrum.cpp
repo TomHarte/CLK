@@ -681,7 +681,7 @@ template<Model model> class ConcreteMachine:
 		bool insert_media(const Analyser::Static::Media &media) override {
 			// If there are any tapes supplied, use the first of them.
 			if(!media.tapes.empty()) {
-				tape_player_.set_tape(media.tapes.front());
+				tape_player_.set_tape(media.tapes.front(), TargetPlatform::ZXSpectrum);
 				set_use_fast_tape();
 			}
 

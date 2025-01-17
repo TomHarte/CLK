@@ -439,7 +439,7 @@ public:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
-			tape_->set_tape(media.tapes.front());
+			tape_->set_tape(media.tapes.front(), TargetPlatform::Vic20);
 		}
 
 		if(!media.disks.empty() && c1540_) {

@@ -323,7 +323,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
-				tape_player_.set_tape(media.tapes.front());
+				tape_player_.set_tape(media.tapes.front(), is_zx81 ? TargetPlatform::ZX81 : TargetPlatform::ZX80);
 			}
 
 			set_use_fast_tape();

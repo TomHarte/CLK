@@ -186,7 +186,7 @@ public:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
-			tape_.set_tape(media.tapes.front());
+			tape_.set_tape(media.tapes.front(), TargetPlatform::AcornElectron);
 		}
 		set_use_fast_tape_hack();
 

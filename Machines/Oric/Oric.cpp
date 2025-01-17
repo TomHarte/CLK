@@ -440,7 +440,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			bool inserted = false;
 
 			if(!media.tapes.empty()) {
-				tape_player_.set_tape(media.tapes.front());
+				tape_player_.set_tape(media.tapes.front(), TargetPlatform::Oric);
 				inserted = true;
 			}
 

@@ -115,7 +115,7 @@ public:
 	TapePlayer(int input_clock_rate);
 	virtual ~TapePlayer() = default;
 
-	void set_tape(std::shared_ptr<Storage::Tape::Tape>);
+	void set_tape(std::shared_ptr<Storage::Tape::Tape>, TargetPlatform::Type platform);
 	bool has_tape() const;
 	bool is_at_end() const;
 	TapeSerialiser *serialiser();

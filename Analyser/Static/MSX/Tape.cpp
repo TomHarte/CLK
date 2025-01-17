@@ -29,7 +29,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 
 	Storage::Tape::BinaryTapePlayer tape_player(1000000);
 	tape_player.set_motor_control(true);
-	tape_player.set_tape(tape);
+	tape_player.set_tape(tape, TargetPlatform::MSX);
 
 	using Parser = Storage::Tape::MSX::Parser;
 

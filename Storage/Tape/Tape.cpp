@@ -78,9 +78,13 @@ ClockingHint::Preference TapePlayer::preferred_clocking() const {
 	return (!tape_ || serialiser_->is_at_end()) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
-void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape) {
+void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape, TargetPlatform::Type platform) {
 	tape_ = tape;
 	serialiser_ = tape->serialiser();
+	if(auto recipient = dynamic_cast<TargetPlatform::Recipient *>(serialiser_.get()); recipient) {
+		recipient->set_target_platforms(platform);
+	}
+
 	reset_timer();
 	next_pulse();
 	update_clocking_observer();

@@ -621,7 +621,7 @@ private:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
-			tape_player_->set_tape(media.tapes[0]);
+			tape_player_->set_tape(media.tapes[0], TargetPlatform::Plus4);
 		}
 
 		if(!media.disks.empty() && c1541_) {
