@@ -76,6 +76,7 @@ int gzget32(gzFile file) {
 using namespace Storage::Tape;
 
 UEF::UEF(const std::string &file_name) : file_name_(file_name) {
+	// TODO: pull up front the validation and parsing being relied upon by instantiating a serialiser.
 	Serialiser test_serialiser(file_name);
 	target_platform_ = test_serialiser.target_platforms();
 }
