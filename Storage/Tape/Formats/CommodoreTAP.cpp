@@ -13,50 +13,58 @@
 using namespace Storage::Tape;
 
 CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name) {
-	Serialiser test(file_name);
-	target_platforms_ = test.target_platforms();
-}
+	Storage::FileHolder file(file_name);
 
-std::unique_ptr<FormatSerialiser> CommodoreTAP::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_);
-}
-
-CommodoreTAP::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read)
-{
-	const bool is_c64 = file_.check_signature("C64-TAPE-RAW");
-	file_.seek(0, SEEK_SET);
-	const bool is_c16 = file_.check_signature("C16-TAPE-RAW");
+	const bool is_c64 = file.check_signature("C64-TAPE-RAW");
+	file.seek(0, SEEK_SET);
+	const bool is_c16 = file.check_signature("C16-TAPE-RAW");
 	if(!is_c64 && !is_c16) {
 		throw ErrorNotCommodoreTAP;
 	}
-	type_ = is_c16 ? FileType::C16 : FileType::C64;
+	const FileType type = is_c16 ? FileType::C16 : FileType::C64;
 
 	// Get and check the file version.
-	version_ = file_.get8();
-	if(version_ > 2) {
+	const uint8_t version = file.get8();
+	if(version > 2) {
 		throw ErrorNotCommodoreTAP;
 	}
+	updated_layout_ = version >= 1;
+	half_waves_ = version >= 2;
 
 	// Read clock rate-implying bytes.
-	platform_ = Platform(file_.get8());
-	video_ = VideoStandard(file_.get8());
-	file_.seek(1, SEEK_CUR);
+	platform_ = Platform(file.get8());
+	const VideoStandard video = VideoStandard(file.get8());
+	file.seek(1, SEEK_CUR);
 
-	// Read file size.
-	file_size_ = file_.get32le();
+	const bool double_clock = platform_ != Platform::C16 || !half_waves_;	// TODO: is the platform check correct?
 
 	// Pick clock rate.
-	current_pulse_.length.clock_rate = static_cast<unsigned int>(
+	initial_pulse_.length.clock_rate = static_cast<unsigned int>(
 		[&] {
 			switch(platform_) {
 				default:
 				case Platform::Vic20:	// It empirically seems like Vic-20 waves are counted with C64 timings?
-				case Platform::C64:		return video_ == VideoStandard::PAL ? 985'248 : 1'022'727;
-				case Platform::C16:		return video_ == VideoStandard::PAL ? 886'722 : 894'886;
+				case Platform::C64:		return video == VideoStandard::PAL ? 985'248 : 1'022'727;
+				case Platform::C16:		return video == VideoStandard::PAL ? 886'722 : 894'886;
 			}
-		}() * (double_clock() ? 2 : 1)
+		}() * (double_clock ? 2 : 1)
 	);
+}
+
+std::unique_ptr<FormatSerialiser> CommodoreTAP::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_, initial_pulse_, half_waves_, updated_layout_);
+}
+
+CommodoreTAP::Serialiser::Serialiser(
+	const std::string &file_name,
+	Pulse initial,
+	bool half_waves,
+	bool updated_layout) :
+		file_(file_name, FileHolder::FileMode::Read),
+		current_pulse_(initial),
+		half_waves_(half_waves),
+		updated_layout_(updated_layout)
+{
 	reset();
 }
 
@@ -78,7 +86,7 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 	const auto read_next_length = [&]() -> bool {
 		uint32_t next_length;
 		const uint8_t next_byte = file_.get8();
-		if(!updated_layout() || next_byte > 0) {
+		if(updated_layout_ || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {
 			next_length = file_.get24le();
@@ -95,7 +103,7 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 		}
 	};
 
-	if(half_waves()) {
+	if(half_waves_) {
 		if(read_next_length()) {
 			current_pulse_.type = current_pulse_.type == Pulse::High ? Pulse::Low : Pulse::High;
 		}
@@ -113,10 +121,6 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 // MARK: - TargetPlatform::Distinguisher
 
 TargetPlatform::Type CommodoreTAP::target_platforms() {
-	return target_platforms_;
-}
-
-TargetPlatform::Type CommodoreTAP::Serialiser::target_platforms() {
 	switch(platform_) {
 		default:				return TargetPlatform::Type::Commodore;
 		case Platform::C64:		return TargetPlatform::Type::C64;
