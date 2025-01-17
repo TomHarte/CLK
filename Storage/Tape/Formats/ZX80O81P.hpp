@@ -41,8 +41,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name);
-		TargetPlatform::Type target_platforms();
+		Serialiser(const std::vector<uint8_t> &data);
 
 	private:
 		bool is_at_end() const override;
@@ -50,19 +49,17 @@ private:
 		Pulse next_pulse() override;
 		bool has_finished_data() const;
 
-		TargetPlatform::Type platform_type_;
-
 		uint8_t byte_;
 		int bit_pointer_;
 		int wave_pointer_;
 		bool is_past_silence_, has_ended_final_byte_;
 		bool is_high_;
 
-		std::vector<uint8_t> data_;
+		const std::vector<uint8_t> &data_;
 		std::size_t data_pointer_;
 	};
-	std::string file_name_;
 	TargetPlatform::Type target_platforms_;
+	std::vector<uint8_t> data_;
 };
 
 }
