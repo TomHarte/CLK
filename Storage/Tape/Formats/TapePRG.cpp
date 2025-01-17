@@ -52,7 +52,7 @@ PRG::PRG(const std::string &file_name) : Tape(serialiser_), serialiser_(file_nam
 
 PRG::Serialiser::Serialiser(const std::string &file_name) :
 	file_(file_name, FileHolder::FileMode::Read),
-	timings_(false)
+	timings_(true)
 {
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.

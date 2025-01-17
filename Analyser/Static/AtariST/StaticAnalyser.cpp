@@ -12,7 +12,8 @@
 Analyser::Static::TargetList Analyser::Static::AtariST::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	// This analyser can comprehend disks and mass-storage devices only.
 	if(media.disks.empty()) return {};

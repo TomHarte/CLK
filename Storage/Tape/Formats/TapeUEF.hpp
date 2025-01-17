@@ -41,7 +41,7 @@ private:
 		Serialiser(const std::string &file_name);
 		~Serialiser();
 
-		TargetPlatform::Type target_platform_type();
+		TargetPlatform::Type target_platforms();
 
 	private:
 		void reset() override;

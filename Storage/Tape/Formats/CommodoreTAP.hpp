@@ -11,6 +11,8 @@
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
 
+#include "../../TargetPlatforms.hpp"
+
 #include <cstdint>
 #include <string>
 
@@ -19,7 +21,7 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
 */
-class CommodoreTAP: public Tape {
+class CommodoreTAP: public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
 		Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
@@ -33,8 +35,12 @@ public:
 	};
 
 private:
+	TargetPlatform::Type target_platforms() override;
+
 	struct Serialiser: public TapeSerialiser {
 		Serialiser(const std::string &file_name);
+
+		TargetPlatform::Type target_platforms();
 
 	private:
 		bool is_at_end() const override;

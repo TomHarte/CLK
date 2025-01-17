@@ -321,13 +321,13 @@ void UEF::Serialiser::queue_bit(const int bit) {
 	}
 }
 
-// MARK: - TypeDistinguisher
+// MARK: - TargetPlatform::Distinguisher
 
 TargetPlatform::Type UEF::target_platforms() {
-	return serialiser_.target_platform_type();
+	return serialiser_.target_platforms();
 }
 
-TargetPlatform::Type UEF::Serialiser::target_platform_type() {
+TargetPlatform::Type UEF::Serialiser::target_platforms() {
 	return platform_type_;
 }
 

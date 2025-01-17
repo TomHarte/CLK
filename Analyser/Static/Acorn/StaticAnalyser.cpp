@@ -65,7 +65,8 @@ AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	const Media &media,
 	const std::string &file_name,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	auto target8bit = std::make_unique<ElectronTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();

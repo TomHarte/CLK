@@ -102,3 +102,18 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 
 	return current_pulse_;
 }
+
+// MARK: - TargetPlatform::Distinguisher
+
+TargetPlatform::Type CommodoreTAP::target_platforms() {
+	return serialiser_.target_platforms();
+}
+
+TargetPlatform::Type CommodoreTAP::Serialiser::target_platforms() {
+	switch(platform_) {
+		default:				return TargetPlatform::Type::Commodore;
+		case Platform::C64:		return TargetPlatform::Type::C64;
+		case Platform::Vic20:	return TargetPlatform::Type::Vic20;
+		case Platform::C16:		return TargetPlatform::Type::Plus4;
+	}
+}

@@ -31,7 +31,8 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<S
 Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType potential_platforms
+	TargetPlatform::IntType potential_platforms,
+	bool
 ) {
 	TargetList destination;
 	if(!media.tapes.empty()) {

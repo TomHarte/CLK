@@ -12,7 +12,8 @@
 Analyser::Static::TargetList Analyser::Static::PCCompatible::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};

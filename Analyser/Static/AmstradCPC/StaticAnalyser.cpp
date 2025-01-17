@@ -210,7 +210,8 @@ bool IsAmstradTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	TargetList destination;
 	auto target = std::make_unique<Target>();

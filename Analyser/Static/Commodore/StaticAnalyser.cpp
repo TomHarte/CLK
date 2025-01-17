@@ -165,7 +165,8 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 	const Media &media,
 	const std::string &file_name,
-	TargetPlatform::IntType
+	TargetPlatform::IntType platforms,
+	bool is_confident
 ) {
 	TargetList destination;
 	auto target = std::make_unique<Target>();
@@ -174,36 +175,54 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 	std::vector<File> files;
 	bool is_disk = false;
 
-	// Strip out inappropriate cartridges.
-	target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
-
-	// Find all valid Commodore files on disks.
-	for(auto &disk : media.disks) {
-		std::vector<File> disk_files = GetFiles(disk);
-		if(!disk_files.empty()) {
-			is_disk = true;
-			files.insert(
-				files.end(),
-				std::make_move_iterator(disk_files.begin()),
-				std::make_move_iterator(disk_files.end())
-			);
-			target->media.disks.push_back(disk);
-			if(!device) device = 8;
+	if(is_confident) {
+		target->media = media;
+		if(target->media.disks.empty()) {
+			target->loading_command = "LOAD\"\",1,1\nRUN\n";
+		} else {
+			target->loading_command = "LOAD\"*\",8,1\nRUN\n";
 		}
-	}
 
-	// Find all valid Commodore files on tapes.
-	for(auto &tape : media.tapes) {
-		std::vector<File> tape_files = GetFiles(tape);
-		tape->reset();
-		if(!tape_files.empty()) {
-			files.insert(
-				files.end(),
-				std::make_move_iterator(tape_files.begin()),
-				std::make_move_iterator(tape_files.end())
-			);
-			target->media.tapes.push_back(tape);
-			if(!device) device = 1;
+		if(platforms & TargetPlatform::C64) {
+			return {};	// C64 not yet implemented.
+		} else if(platforms & TargetPlatform::Vic20) {
+			target->machine = Machine::Vic20;
+			// TODO: pick a memory model.
+		} else {
+			target->machine = Machine::Plus4;
+		}
+	} else {
+		// Strip out inappropriate cartridges.
+		target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
+
+		// Find all valid Commodore files on disks.
+		for(auto &disk : media.disks) {
+			std::vector<File> disk_files = GetFiles(disk);
+			if(!disk_files.empty()) {
+				is_disk = true;
+				files.insert(
+					files.end(),
+					std::make_move_iterator(disk_files.begin()),
+					std::make_move_iterator(disk_files.end())
+				);
+				target->media.disks.push_back(disk);
+				if(!device) device = 8;
+			}
+		}
+
+		// Find all valid Commodore files on tapes.
+		for(auto &tape : media.tapes) {
+			std::vector<File> tape_files = GetFiles(tape);
+			tape->reset();
+			if(!tape_files.empty()) {
+				files.insert(
+					files.end(),
+					std::make_move_iterator(tape_files.begin()),
+					std::make_move_iterator(tape_files.end())
+				);
+				target->media.tapes.push_back(tape);
+				if(!device) device = 1;
+			}
 		}
 	}
 
@@ -276,7 +295,6 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 				break;
 			}
 		}
-
 
 		// The Vic-20 never has RAM after 0x8000.
 		if(file.ending_address >= 0x8000) {

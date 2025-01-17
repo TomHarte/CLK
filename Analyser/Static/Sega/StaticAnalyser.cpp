@@ -16,7 +16,8 @@
 Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(
 	const Media &media,
 	const std::string &file_name,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	if(media.cartridges.empty())
 		return {};

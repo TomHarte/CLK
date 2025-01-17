@@ -21,6 +21,8 @@
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Analyser/Static/Commodore/Target.hpp"
+
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../SerialBus.hpp"
 #include "../1540/C1540.hpp"
@@ -171,7 +173,7 @@ class ConcreteMachine:
 	public Machine,
 	public Utility::TypeRecipient<CharacterMapper> {
 public:
-	ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
@@ -220,9 +222,10 @@ public:
 		joysticks_.emplace_back(std::make_unique<Joystick>());
 
 		insert_media(target.media);
-//		if(!target.loading_command.empty()) {
-//			type_string(target.loading_command);
-//		}
+		if(!target.loading_command.empty()) {
+			// Prefix a space as a delaying technique.
+			type_string(std::string(" ") + target.loading_command);
+		}
 	}
 
 	~ConcreteMachine() {
@@ -694,7 +697,7 @@ std::unique_ptr<Machine> Machine::Plus4(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Target;
+	using Target = Analyser::Static::Commodore::Target;
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<ConcreteMachine>(*commodore_target, rom_fetcher);
 }

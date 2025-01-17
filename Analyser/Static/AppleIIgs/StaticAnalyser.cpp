@@ -12,7 +12,8 @@
 Analyser::Static::TargetList Analyser::Static::AppleIIgs::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	auto target = std::make_unique<Target>();
 	target->media = media;

@@ -188,7 +188,8 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	TargetList destination;
 

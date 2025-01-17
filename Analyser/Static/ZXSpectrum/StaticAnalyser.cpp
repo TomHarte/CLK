@@ -106,7 +106,8 @@ bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	TargetList destination;
 	auto target = std::make_unique<Target>();
