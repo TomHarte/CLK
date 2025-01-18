@@ -36,6 +36,10 @@ struct Pulse {
 class FormatSerialiser {
 public:
 	virtual ~FormatSerialiser() = default;
+	FormatSerialiser() = default;
+
+	FormatSerialiser(FormatSerialiser &) = delete;
+
 	virtual Pulse next_pulse() = 0;
 	virtual void reset() = 0;
 	virtual bool is_at_end() const = 0;
@@ -43,8 +47,11 @@ public:
 
 class TapeSerialiser {
 public:
-	TapeSerialiser(std::unique_ptr<FormatSerialiser> &&);
+	explicit TapeSerialiser(std::unique_ptr<FormatSerialiser> &&);
+	TapeSerialiser(TapeSerialiser &) = delete;
 	virtual ~TapeSerialiser() = default;
+
+	void set_target_platforms(TargetPlatform::IntType);
 
 	/*!
 		If at the start of the tape returns the first stored pulse. Otherwise advances past
@@ -85,7 +92,7 @@ public:
 private:
 	uint64_t offset_{};
 	Pulse pulse_;
-	std::unique_ptr<FormatSerialiser> &serialiser_;
+	std::unique_ptr<FormatSerialiser> serialiser_;
 };
 
 /*!
@@ -97,7 +104,7 @@ private:
 */
 class Tape {
 public:
-	std::unique_ptr<TapeSerialiser> serialiser() const;
+	std::unique_ptr<TapeSerialiser> serialiser(TargetPlatform::Type platform = TargetPlatform::All) const;
 
 protected:
 	virtual std::unique_ptr<FormatSerialiser> format_serialiser() const = 0;

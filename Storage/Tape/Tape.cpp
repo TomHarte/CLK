@@ -16,11 +16,17 @@ TapePlayer::TapePlayer(const int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
-TapeSerialiser::TapeSerialiser(std::unique_ptr<FormatSerialiser> &&serialiser) : serialiser_(serialiser) {}
+TapeSerialiser::TapeSerialiser(std::unique_ptr<FormatSerialiser> &&serialiser) : serialiser_(std::move(serialiser)) {}
 
-std::unique_ptr<TapeSerialiser> Tape::serialiser() const {
-	return std::make_unique<TapeSerialiser>(format_serialiser());
+std::unique_ptr<TapeSerialiser> Tape::serialiser(const TargetPlatform::Type platform) const {
+	auto serialiser = format_serialiser();
+	if(auto *recipient = dynamic_cast<TargetPlatform::Recipient *>(serialiser.get())) {
+		recipient->set_target_platforms(platform);
+	}
+
+	return std::make_unique<TapeSerialiser>(std::move(serialiser));
 }
+
 
 // MARK: - Seeking
 
@@ -46,7 +52,7 @@ Storage::Time TapeSerialiser::current_time() {
 
 void TapeSerialiser::reset() {
 	offset_ = 0;
-	serialiser_.reset();
+	serialiser_->reset();
 }
 
 Pulse TapeSerialiser::next_pulse() {
@@ -80,10 +86,7 @@ ClockingHint::Preference TapePlayer::preferred_clocking() const {
 
 void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape, TargetPlatform::Type platform) {
 	tape_ = tape;
-	serialiser_ = tape->serialiser();
-	if(auto recipient = dynamic_cast<TargetPlatform::Recipient *>(serialiser_.get()); recipient) {
-		recipient->set_target_platforms(platform);
-	}
+	serialiser_ = tape->serialiser(platform);
 
 	reset_timer();
 	next_pulse();

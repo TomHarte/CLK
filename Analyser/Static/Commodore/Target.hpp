@@ -15,7 +15,21 @@
 
 namespace Analyser::Static::Commodore {
 
-struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct Plus4Target: public Analyser::Static::Target, public Reflection::StructImpl<Plus4Target> {
+	// TODO: region, etc.
+	std::string loading_command;
+	bool has_c1541 = false;
+
+	Plus4Target() : Analyser::Static::Target(Machine::Plus4) {}
+
+private:
+	friend Reflection::StructImpl<Plus4Target>;
+	void declare_fields() {
+		DeclareField(has_c1541);
+	}
+};
+
+struct Vic20Target: public Analyser::Static::Target, public Reflection::StructImpl<Vic20Target> {
 	enum class MemoryModel {
 		Unexpanded,
 		EightKB,
@@ -54,10 +68,10 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	bool has_c1540 = false;
 	std::string loading_command;
 
-	Target() : Analyser::Static::Target(Machine::Vic20) {}
+	Vic20Target() : Analyser::Static::Target(Machine::Vic20) {}
 
 private:
-	friend Reflection::StructImpl<Target>;
+	friend Reflection::StructImpl<Vic20Target>;
 	void declare_fields() {
 		DeclareField(enabled_ram.bank0);
 		DeclareField(enabled_ram.bank1);

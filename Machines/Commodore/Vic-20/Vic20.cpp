@@ -285,7 +285,7 @@ class ConcreteMachine:
 	public ClockingHint::Observer,
 	public Activity::Source {
 public:
-	ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::Commodore::Vic20Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m6502_(*this),
 			mos6560_(mos6560_bus_handler_),
 			user_port_via_(user_port_via_port_handler_),
@@ -313,24 +313,25 @@ public:
 
 		ROM::Request request(ROM::Name::Vic20BASIC);
 		ROM::Name kernel, character;
+		using Region = Analyser::Static::Commodore::Vic20Target::Region;
 		switch(target.region) {
 			default:
 				character = ROM::Name::Vic20EnglishCharacters;
 				kernel = ROM::Name::Vic20EnglishPALKernel;
 			break;
-			case Analyser::Static::Commodore::Target::Region::American:
+			case Region::American:
 				character = ROM::Name::Vic20EnglishCharacters;
 				kernel = ROM::Name::Vic20EnglishNTSCKernel;
 			break;
-			case Analyser::Static::Commodore::Target::Region::Danish:
+			case Region::Danish:
 				character = ROM::Name::Vic20DanishCharacters;
 				kernel = ROM::Name::Vic20DanishKernel;
 			break;
-			case Analyser::Static::Commodore::Target::Region::Japanese:
+			case Region::Japanese:
 				character = ROM::Name::Vic20JapaneseCharacters;
 				kernel = ROM::Name::Vic20JapaneseKernel;
 			break;
-			case Analyser::Static::Commodore::Target::Region::Swedish:
+			case Region::Swedish:
 				character = ROM::Name::Vic20SwedishCharacters;
 				kernel = ROM::Name::Vic20SwedishKernel;
 			break;
@@ -362,7 +363,7 @@ public:
 		}
 
 		// Determine PAL/NTSC
-		if(target.region == Analyser::Static::Commodore::Target::Region::American || target.region == Analyser::Static::Commodore::Target::Region::Japanese) {
+		if(target.region == Region::American || target.region == Region::Japanese) {
 			// NTSC
 			set_clock_rate(1022727);
 			mos6560_.set_output_mode(MOS::MOS6560::OutputMode::NTSC);
@@ -762,7 +763,7 @@ std::unique_ptr<Machine> Machine::Vic20(
 	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Commodore::Target;
+	using Target = Analyser::Static::Commodore::Vic20Target;
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<Vic20::ConcreteMachine>(*commodore_target, rom_fetcher);
 }

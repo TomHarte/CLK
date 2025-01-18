@@ -21,7 +21,7 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name)
 	if(!is_c64 && !is_c16) {
 		throw ErrorNotCommodoreTAP;
 	}
-	const FileType type = is_c16 ? FileType::C16 : FileType::C64;
+//	const FileType type = is_c16 ? FileType::C16 : FileType::C64;
 
 	// Get and check the file version.
 	const uint8_t version = file.get8();
