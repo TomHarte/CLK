@@ -13,6 +13,7 @@
 #include "../../TargetPlatforms.hpp"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <zlib.h>
 
@@ -38,6 +39,24 @@ private:
 	TargetPlatform::Type target_platforms() override;
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
+	struct Parser {
+		Parser(const std::string &file_name);
+		~Parser();
+
+		struct Chunk {
+			uint16_t id;
+			uint32_t length;
+		};
+		std::optional<Chunk> next();
+		void reset();
+
+		template <typename TargetT, int num_bytes = 0> TargetT read();
+
+	private:
+		gzFile file_;
+		z_off_t start_of_next_chunk_;
+	};
+
 	struct Serialiser: public PulseQueuedSerialiser {
 		Serialiser(const std::string &file_name);
 		~Serialiser();
@@ -47,20 +66,10 @@ private:
 	private:
 		void reset() override;
 
-		void set_platform_type();
-		TargetPlatform::Type platform_type_ = TargetPlatform::Acorn;
-
-		gzFile file_;
+		Parser parser_;
 		unsigned int time_base_ = 1200;
 		bool is_300_baud_ = false;
 
-		struct Chunk {
-			uint16_t id;
-			uint32_t length;
-			z_off_t start_of_next_chunk;
-		};
-
-		bool get_next_chunk(Chunk &);
 		void push_next_pulses() override;
 
 		void queue_implicit_bit_pattern(uint32_t length);
@@ -79,7 +88,7 @@ private:
 		void queue_implicit_byte(uint8_t byte);
 	};
 	std::string file_name_;
-	TargetPlatform::Type target_platform_;
+	TargetPlatform::Type target_platforms_ = TargetPlatform::Acorn;
 };
 
 }
