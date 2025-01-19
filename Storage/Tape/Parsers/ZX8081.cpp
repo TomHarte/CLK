@@ -108,32 +108,32 @@ int Parser::get_next_byte(Storage::Tape::TapeSerialiser &serialiser) {
 	return result;
 }
 
-std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(Storage::Tape::TapeSerialiser &serialiser) {
-	if(is_at_end(serialiser)) return nullptr;
+std::optional<std::vector<uint8_t>> Parser::get_next_file_data(Storage::Tape::TapeSerialiser &serialiser) {
+	if(is_at_end(serialiser)) return std::nullopt;
 	SymbolType symbol = get_next_symbol(serialiser);
 	if(symbol != SymbolType::FileGap) {
-		return nullptr;
+		return std::nullopt;
 	}
 	while((symbol == SymbolType::FileGap || symbol == SymbolType::Unrecognised) && !is_at_end(serialiser)) {
 		symbol = get_next_symbol(serialiser);
 	}
-	if(is_at_end(serialiser)) return nullptr;
+	if(is_at_end(serialiser)) return std::nullopt;
 	return_symbol(symbol);
 
-	auto result = std::make_shared<std::vector<uint8_t>>();
+	std::vector<uint8_t> result;
 	int byte;
 	while(!is_at_end(serialiser)) {
 		byte = get_next_byte(serialiser);
 		if(byte == -1) return result;
-		result->push_back(uint8_t(byte));
+		result.push_back(uint8_t(byte));
 	}
 	return result;
 }
 
-std::shared_ptr<Storage::Data::ZX8081::File> Parser::get_next_file(Storage::Tape::TapeSerialiser &serialiser) {
-	std::shared_ptr<std::vector<uint8_t>> file_data = get_next_file_data(serialiser);
+std::optional<Storage::Data::ZX8081::File> Parser::get_next_file(Storage::Tape::TapeSerialiser &serialiser) {
+	const auto file_data = get_next_file_data(serialiser);
 	if(!file_data) {
-		return nullptr;
+		return std::nullopt;
 	}
 	return Storage::Data::ZX8081::FileFromData(*file_data);
 }

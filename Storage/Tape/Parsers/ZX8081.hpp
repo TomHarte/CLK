@@ -40,7 +40,7 @@ public:
 		attempts to parse those as a valid ZX80 or ZX81 file. If no file is found,
 		returns nullptr.
 	*/
-	std::shared_ptr<Storage::Data::ZX8081::File> get_next_file(Storage::Tape::TapeSerialiser &);
+	std::optional<Storage::Data::ZX8081::File> get_next_file(Storage::Tape::TapeSerialiser &);
 
 private:
 	bool pulse_was_high_;
@@ -51,7 +51,7 @@ private:
 	void mark_end() override;
 	void inspect_waves(const std::vector<WaveType> &waves) override;
 
-	std::shared_ptr<std::vector<uint8_t>> get_next_file_data(Storage::Tape::TapeSerialiser &);
+	std::optional<std::vector<uint8_t>> get_next_file_data(Storage::Tape::TapeSerialiser &);
 };
 
 }

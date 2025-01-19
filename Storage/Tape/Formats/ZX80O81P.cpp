@@ -27,7 +27,7 @@ ZX80O81P::ZX80O81P(const std::string &file_name) {
 		target_platforms_ = TargetPlatform::ZX81;
 	}
 
-	std::shared_ptr<::Storage::Data::ZX8081::File> zx_file = Storage::Data::ZX8081::FileFromData(data_);
+	const auto zx_file = Storage::Data::ZX8081::FileFromData(data_);
 	if(!zx_file) throw ErrorNotZX80O81P;
 }
 

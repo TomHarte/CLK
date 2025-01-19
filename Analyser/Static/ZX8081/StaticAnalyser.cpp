@@ -19,9 +19,9 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(Storage::Tape::TapeSeri
 	Storage::Tape::ZX8081::Parser parser;
 
 	while(!serialiser.is_at_end()) {
-		std::shared_ptr<Storage::Data::ZX8081::File> next_file = parser.get_next_file(serialiser);
-		if(next_file != nullptr) {
-			files.push_back(*next_file);
+		const auto next_file = parser.get_next_file(serialiser);
+		if(next_file) {
+			files.push_back(std::move(*next_file));
 		}
 	}
 
