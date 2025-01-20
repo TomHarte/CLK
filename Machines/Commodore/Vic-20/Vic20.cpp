@@ -30,6 +30,7 @@
 
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
 #include <algorithm>
@@ -501,12 +502,20 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
-		// run the phase-1 part of this cycle, in which the VIC accesses memory
+		// Tun the phase-1 part of this cycle, in which the VIC accesses memory.
 		cycles_since_mos6560_update_++;
 
-		// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
+		// Run the phase-2 part of the cycle, which is whatever the 6502 said it should be.
+		const bool is_from_rom = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter) > 0x8000;
 		if(is_read(operation)) {
-			uint8_t result = processor_read_memory_map_[address >> 10] ? processor_read_memory_map_[address >> 10][address & 0x3ff] : 0xff;
+			const auto page = processor_read_memory_map_[address >> 10];
+			uint8_t result;
+			if(!page) {
+				if(!is_from_rom) confidence_.add_miss();
+				result = 0xff;
+			} else {
+				result = processor_read_memory_map_[address >> 10][address & 0x3ff];
+			}
 			if((address&0xfc00) == 0x9000) {
 				if(!(address&0x100)) {
 					update_video();
@@ -559,8 +568,8 @@ public:
 							uint8_t *data_ptr = data->data.data();
 							std::size_t data_left = data->data.size();
 							while(data_left && start_address != end_address) {
-								uint8_t *page = processor_write_memory_map_[start_address >> 10];
-								if(page) page[start_address & 0x3ff] = *data_ptr;
+								uint8_t *const tape_page = processor_write_memory_map_[start_address >> 10];
+								if(tape_page) tape_page[start_address & 0x3ff] = *data_ptr;
 								data_ptr++;
 								start_address++;
 								data_left--;
@@ -587,7 +596,7 @@ public:
 				}
 			}
 		} else {
-			uint8_t *ram = processor_write_memory_map_[address >> 10];
+			uint8_t *const ram = processor_write_memory_map_[address >> 10];
 			if(ram) {
 				update_video();
 				ram[address & 0x3ff] = *value;
@@ -603,6 +612,8 @@ public:
 				if(address & 0x10) user_port_via_.write(address, *value);
 				// The second VIA is selected by bit 5 = 1.
 				if(address & 0x20) keyboard_via_.write(address, *value);
+			} else if(!ram) {
+				if(!is_from_rom) confidence_.add_miss();
 			}
 		}
 
@@ -753,6 +764,10 @@ private:
 
 	// Disk
 	std::unique_ptr<::Commodore::C1540::Machine> c1540_;
+
+	// MARK: - Confidence.
+	Analyser::Dynamic::ConfidenceCounter confidence_;
+	float get_confidence() final { return confidence_.get_confidence(); }
 };
 
 }

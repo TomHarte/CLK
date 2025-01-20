@@ -21,6 +21,7 @@
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
 #include "../../../Storage/Tape/Tape.hpp"
@@ -387,6 +388,13 @@ public:
 				}
 			}
 		} else {
+			const auto pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+			const bool is_from_rom =
+				(rom_is_paged_ && pc >= 0x8000) ||
+				(pc >= 0x400 && pc < 0x500) ||
+				(pc >= 0x700 && pc < 0x800);
+			bool is_hit = true;
+
 			if(is_read(operation)) {
 				switch(address) {
 					case 0xff00:	*value = timers_.read<0>();		break;
@@ -448,6 +456,7 @@ public:
 
 					default:
 						printf("TODO: TED read at %04x\n", address);
+						is_hit = false;
 				}
 			} else {
 				switch(address) {
@@ -541,7 +550,12 @@ public:
 
 					default:
 						printf("TODO: TED write at %04x\n", address);
+						is_hit = false;
 				}
+			}
+			if(!is_from_rom) {
+				printf("%04x\n", pc);
+				if(is_hit) confidence_.add_hit(); else confidence_.add_miss();
 			}
 		}
 
@@ -708,6 +722,10 @@ private:
 		return *static_cast<Joystick *>(joysticks_[index].get());
 	}
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+	// MARK: - Confidence.
+	Analyser::Dynamic::ConfidenceCounter confidence_;
+	float get_confidence() final { return confidence_.get_confidence(); }
 
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
