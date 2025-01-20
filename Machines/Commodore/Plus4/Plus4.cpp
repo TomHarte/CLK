@@ -726,6 +726,9 @@ private:
 	// MARK: - Confidence.
 	Analyser::Dynamic::ConfidenceCounter confidence_;
 	float get_confidence() final { return confidence_.get_confidence(); }
+	std::string debug_type() final {
+		return "Plus4";
+	}
 
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
