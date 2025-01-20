@@ -293,6 +293,8 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Plus4>(
 		if(!files.files.empty()) {
 			target->loading_command = loading_command(files);
 		}
+		target->media.disks = media.disks;
+		target->media.tapes = media.tapes;
 	}
 
 	// Attach a 1541 if there are any disks here.
@@ -321,8 +323,10 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Vic20>(
 		target->media = media;
 		set_loading_command(*target);
 	} else {
-		// Strip out inappropriate cartridges.
+		// Strip out inappropriate cartridges but retain all tapes and disks.
 		target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
+		target->media.disks = media.disks;
+		target->media.tapes = media.tapes;
 	}
 
 	for(const auto &file : files.files) {
