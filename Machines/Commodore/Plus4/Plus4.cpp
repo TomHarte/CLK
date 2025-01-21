@@ -18,6 +18,7 @@
 #include "../../Utility/MemoryFuzzer.hpp"
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
+#include "../../../Outputs/Log.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 
@@ -35,6 +36,8 @@ using namespace Commodore;
 using namespace Commodore::Plus4;
 
 namespace {
+
+Log::Logger<Log::Source::Plus4> logger;
 
 class Joystick: public Inputs::ConcreteJoystick {
 	public:
@@ -322,7 +325,7 @@ public:
 //				const uint8_t zcell = map_.read(0x7ba);
 //
 //
-//				printf("rddipl: %d / %d / %d\n", dsamp1, dsamp2, zcell);
+//				logger.info().append("rddipl: %d / %d / %d", dsamp1, dsamp2, zcell);
 			}
 
 			if(is_read(operation)) {
@@ -360,11 +363,12 @@ public:
 					break;
 
 					case 0xfdd0:
-						*value = 0xff;
+					case 0xfdf0:
+						*value = uint8_t(address >> 8);
 					break;
 
 					default:
-						printf("TODO: read @ %04x\n", address);
+						logger.info().append("TODO: read @ %04x", address);
 					break;
 				}
 			} else {
@@ -380,7 +384,7 @@ public:
 					} break;
 
 					default:
-						printf("TODO: write of %02x @ %04x\n", *value, address);
+						logger.info().append("TODO: write of %02x @ %04x", *value, address);
 					break;
 				}
 			}
@@ -452,7 +456,7 @@ public:
 					case 0xff3f:	*value = 0;						break;
 
 					default:
-						printf("TODO: TED read at %04x\n", address);
+						logger.info().append("TODO: TED read at %04x", address);
 						is_hit = false;
 				}
 			} else {
@@ -546,12 +550,11 @@ public:
 					case 0xff3f:	page_cpu_ram();					break;
 
 					default:
-						printf("TODO: TED write at %04x\n", address);
+						logger.info().append("TODO: TED write at %04x", address);
 						is_hit = false;
 				}
 			}
 			if(!is_from_rom) {
-				printf("%04x\n", pc);
 				if(is_hit) confidence_.add_hit(); else confidence_.add_miss();
 			}
 		}
