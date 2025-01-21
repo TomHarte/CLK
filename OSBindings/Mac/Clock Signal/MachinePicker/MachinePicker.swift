@@ -64,6 +64,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var oricModelTypeButton: NSPopUpButton!
 	@IBOutlet var oricDiskInterfaceButton: NSPopUpButton!
 
+	// MARK: - Plus 4 properties
+	@IBOutlet var plus4HasC1541Button: NSButton!
+
 	// MARK: - PC compatible properties
 	@IBOutlet var pcVideoAdaptorButton: NSPopUpButton!
 	@IBOutlet var pcSpeedButton: NSPopUpButton!
@@ -156,6 +159,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		oricDiskInterfaceButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
 		oricModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
 
+		// Plus 4 settings
+		plus4HasC1541Button.state = standardUserDefaults.bool(forKey: "new.plus4C1541") ? .on : .off
+
 		// PC settings
 		pcVideoAdaptorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcVideoAdaptor"))
 		pcSpeedButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcSpeed"))
@@ -226,6 +232,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		// Oric settings
 		standardUserDefaults.set(oricDiskInterfaceButton.selectedTag(), forKey: "new.oricDiskInterface")
 		standardUserDefaults.set(oricModelTypeButton.selectedTag(), forKey: "new.oricModel")
+
+		// Plus 4 settings
+		standardUserDefaults.set(plus4HasC1541Button.state == .on, forKey: "new.plus4C1541")
 
 		// PC settings
 		standardUserDefaults.set(pcVideoAdaptorButton.selectedTag(), forKey: "new.pcVideoAdaptor")
@@ -325,7 +334,8 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(atariSTMemorySize: memorySize)
 
 			case "c16plus4":
-				return CSStaticAnalyser(commodoreTEDModel: .C16)
+				let hasC1541 = plus4HasC1541Button.state == .on
+				return CSStaticAnalyser(commodoreTEDModel: .C16, hasC1541: hasC1541)
 
 			case "cpc":
 				switch cpcModelTypeButton.selectedTag() {

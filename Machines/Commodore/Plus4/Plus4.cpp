@@ -187,13 +187,10 @@ public:
 		set_clock_rate(clock);
 		speaker_.set_input_rate(float(clock));
 
-		// TODO: decide whether to attach a 1541 for real.
-		const bool has_c1541 = true;
-
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
 		ROM::Request request = ROM::Request(basic) && ROM::Request(kernel);
-		if(has_c1541) {
+		if(target.has_c1541) {
 			request = request && C1540::Machine::rom_request(C1540::Personality::C1541);
 		}
 
@@ -211,7 +208,7 @@ public:
 
 		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 
-		if(has_c1541) {
+		if(target.has_c1541) {
 			c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
 			c1541_->set_serial_bus(serial_bus_);
 			Serial::attach(serial_port_, serial_bus_);
