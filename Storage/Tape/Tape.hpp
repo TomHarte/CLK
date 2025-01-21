@@ -105,6 +105,7 @@ private:
 class Tape {
 public:
 	std::unique_ptr<TapeSerialiser> serialiser(TargetPlatform::Type platform = TargetPlatform::All) const;
+	virtual ~Tape() = default;
 
 protected:
 	virtual std::unique_ptr<FormatSerialiser> format_serialiser() const = 0;
