@@ -160,11 +160,12 @@
 	return self;
 }
 
-- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model {
+- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model hasC1541:(BOOL)hasC1541 {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Plus4Target;
 		auto target = std::make_unique<Target>();
+		target->has_c1541 = hasC1541;
 		_targets.push_back(std::move(target));
 	}
 	return self;
