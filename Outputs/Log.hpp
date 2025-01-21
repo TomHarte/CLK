@@ -48,6 +48,7 @@ enum class Source {
 	MSX,
 	NCR5380,
 	OpenGL,
+	Plus4,
 	PCMTrack,
 	SCC,
 	SCSI,
@@ -120,6 +121,7 @@ constexpr const char *prefix(Source source) {
 		case Source::MSX:						return "MSX";
 		case Source::NCR5380:					return "5380";
 		case Source::OpenGL:					return "OpenGL";
+		case Source::Plus4:						return "Plus4";
 		case Source::PCMTrack:					return "PCM Track";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";

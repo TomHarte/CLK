@@ -523,6 +523,14 @@ public:
 				}
 				if(address & 0x10) result &= user_port_via_.read(address);
 				if(address & 0x20) result &= keyboard_via_.read(address);
+
+				if(!is_from_rom) {
+					if((address & 0x100) && !(address & 0x30)) {
+						confidence_.add_miss();
+					} else {
+						confidence_.add_hit();
+					}
+				}
 			}
 			*value = result;
 
@@ -612,6 +620,14 @@ public:
 				if(address & 0x10) user_port_via_.write(address, *value);
 				// The second VIA is selected by bit 5 = 1.
 				if(address & 0x20) keyboard_via_.write(address, *value);
+
+				if(!is_from_rom) {
+					if((address & 0x100) && !(address & 0x30)) {
+						confidence_.add_miss();
+					} else {
+						confidence_.add_hit();
+					}
+				}
 			} else if(!ram) {
 				if(!is_from_rom) confidence_.add_miss();
 			}
