@@ -24,21 +24,18 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 
 @implementation C1540Bridge {
 	std::unique_ptr<Commodore::C1540::Machine> _c1540;
-	std::shared_ptr<Commodore::Serial::Bus> _serialBus;
-	std::shared_ptr<VanillaSerialPort> _serialPort;
+	Commodore::Serial::Bus _serialBus;
+	VanillaSerialPort _serialPort;
 }
 
 - (instancetype)init {
 	self = [super init];
 	if(self) {
-		_serialBus = std::make_shared<::Commodore::Serial::Bus>();
-		_serialPort = std::make_shared<VanillaSerialPort>();
-
 		auto rom_fetcher = CSROMFetcher();
 		auto roms = rom_fetcher(Commodore::C1540::Machine::rom_request(Commodore::C1540::Personality::C1540));
 		_c1540 = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, roms);
 		_c1540->set_serial_bus(_serialBus);
-		Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
+		Commodore::Serial::attach(_serialPort, _serialBus);
 	}
 	return self;
 }
@@ -48,27 +45,27 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 }
 
 - (void)setAttentionLine:(BOOL)attentionLine {
-	_serialPort->set_output(Commodore::Serial::Line::Attention, attentionLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
+	_serialPort.set_output(Commodore::Serial::Line::Attention, attentionLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
 }
 
 - (BOOL)attentionLine {
-	return _serialPort->_input_line_levels[Commodore::Serial::Line::Attention];
+	return _serialPort._input_line_levels[size_t(Commodore::Serial::Line::Attention)];
 }
 
 - (void)setDataLine:(BOOL)dataLine {
-	_serialPort->set_output(Commodore::Serial::Line::Data, dataLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
+	_serialPort.set_output(Commodore::Serial::Line::Data, dataLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
 }
 
 - (BOOL)dataLine {
-	return _serialPort->_input_line_levels[Commodore::Serial::Line::Data];
+	return _serialPort._input_line_levels[size_t(Commodore::Serial::Line::Data)];
 }
 
 - (void)setClockLine:(BOOL)clockLine {
-	_serialPort->set_output(Commodore::Serial::Line::Clock, clockLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
+	_serialPort.set_output(Commodore::Serial::Line::Clock, clockLine ? Commodore::Serial::LineLevel::High : Commodore::Serial::LineLevel::Low);
 }
 
 - (BOOL)clockLine {
-	return _serialPort->_input_line_levels[Commodore::Serial::Line::Clock];
+	return _serialPort._input_line_levels[size_t(Commodore::Serial::Line::Clock)];
 }
 
 @end

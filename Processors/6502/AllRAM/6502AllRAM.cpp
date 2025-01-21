@@ -61,7 +61,7 @@ public:
 				--instructions_;
 			}
 
-			if(isReadOperation(operation)) {
+			if(is_read(operation)) {
 				*value = memory_[address];
 
 				if constexpr (has_cias) {
