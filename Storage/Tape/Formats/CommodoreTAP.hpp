@@ -11,6 +11,8 @@
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
 
+#include "../../TargetPlatforms.hpp"
+
 #include <cstdint>
 #include <string>
 
@@ -19,7 +21,7 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a Commodore-format tape image, which is simply a timed list of downward-going zero crossings.
 */
-class CommodoreTAP: public Tape {
+class CommodoreTAP: public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
 		Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
@@ -33,8 +35,25 @@ public:
 	};
 
 private:
-	struct Serialiser: public TapeSerialiser {
-		Serialiser(const std::string &file_name);
+	TargetPlatform::Type target_platforms() override;
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
+
+	enum class FileType {
+		C16, C64,
+	};
+	enum class Platform: uint8_t {
+		C64 = 0,
+		Vic20 = 1,
+		C16 = 2,
+	};
+	enum class VideoStandard: uint8_t {
+		PAL = 0,
+		NTSC1 = 1,
+		NTSC2 = 2,
+	};
+
+	struct Serialiser: public FormatSerialiser {
+		Serialiser(const std::string &file_name, Pulse initial, bool half_waves, bool updated_layout);
 
 	private:
 		bool is_at_end() const override;
@@ -42,35 +61,17 @@ private:
 		Pulse next_pulse() override;
 
 		Storage::FileHolder file_;
-
-		uint32_t file_size_;
-		enum class FileType {
-			C16, C64,
-		} type_;
-		uint8_t version_;
-		enum class Platform: uint8_t {
-			C64 = 0,
-			Vic20 = 1,
-			C16 = 2,
-		} platform_;
-		enum class VideoStandard: uint8_t {
-			PAL = 0,
-			NTSC1 = 1,
-			NTSC2 = 2,
-		} video_;
-		bool updated_layout() const {
-			return version_ >= 1;
-		}
-		bool half_waves() const {
-			return version_ >= 2;
-		}
-		bool double_clock() const {
-			return platform_ != Platform::C16 || !half_waves();
-		}
-
 		Pulse current_pulse_;
+		bool half_waves_;
+		bool updated_layout_;
 		bool is_at_end_ = false;
-	} serialiser_;
+	};
+	std::string file_name_;
+	Pulse initial_pulse_;
+	bool half_waves_;
+	bool updated_layout_;
+	Platform platform_;
+	TargetPlatform::Type target_platforms_;
 };
 
 }

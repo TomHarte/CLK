@@ -55,12 +55,17 @@ ColecoCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartr
 Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	const bool is_confident
 ) {
 	TargetList targets;
 	auto target = std::make_unique<Target>(Machine::ColecoVision);
 	target->confidence = 1.0f - 1.0f / 32768.0f;
-	target->media.cartridges = ColecoCartridgesFrom(media.cartridges);
+	if(is_confident) {
+		target->media = media;
+	} else {
+		target->media.cartridges = ColecoCartridgesFrom(media.cartridges);
+	}
 	if(!target->media.empty())
 		targets.push_back(std::move(target));
 	return targets;

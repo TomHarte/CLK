@@ -18,7 +18,7 @@
 
 namespace {
 
-bool IsSpectrumTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+bool IsSpectrumTape(Storage::Tape::TapeSerialiser &tape) {
 	using Parser = Storage::Tape::ZXSpectrum::Parser;
 	Parser parser(Parser::MachineType::ZXSpectrum);
 
@@ -106,7 +106,8 @@ bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	TargetList destination;
 	auto target = std::make_unique<Target>();
@@ -115,7 +116,8 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 	if(!media.tapes.empty()) {
 		bool has_spectrum_tape = false;
 		for(auto &tape: media.tapes) {
-			has_spectrum_tape |= IsSpectrumTape(tape);
+			auto serialiser = tape->serialiser();
+			has_spectrum_tape |= IsSpectrumTape(*serialiser);
 		}
 
 		if(has_spectrum_tape) {

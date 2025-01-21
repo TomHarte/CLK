@@ -20,7 +20,7 @@ namespace MachineTypes {
 */
 struct MediaTarget {
 	/*!
-		Requests that the machine insert @c media as a modification to current state
+		Requests that the machine insert @c media as a modification to current state.
 
 		@returns @c true if any media was inserted; @c false otherwise.
 	*/

@@ -106,6 +106,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_macintosh();
 		void start_msx();
 		void start_oric();
+		void start_plus4();
 		void start_pc();
 		void start_spectrum();
 		void start_vic20();

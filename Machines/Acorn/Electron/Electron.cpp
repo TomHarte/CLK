@@ -186,7 +186,7 @@ public:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
-			tape_.set_tape(media.tapes.front());
+			tape_.set_tape(media.tapes.front(), TargetPlatform::AcornElectron);
 		}
 		set_use_fast_tape_hack();
 
@@ -454,7 +454,7 @@ public:
 
 										int cycles_left_while_plausibly_in_data = 50;
 										tape_.clear_interrupts(Interrupt::ReceiveDataFull);
-										while(!tape_.tape()->is_at_end()) {
+										while(!tape_.serialiser()->is_at_end()) {
 											tape_.run_for_input_pulse();
 											--cycles_left_while_plausibly_in_data;
 											if(!cycles_left_while_plausibly_in_data) fast_load_is_in_data_ = false;

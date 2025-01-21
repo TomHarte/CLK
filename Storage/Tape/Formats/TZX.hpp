@@ -32,6 +32,8 @@ public:
 	};
 
 private:
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
+
 	struct Serialiser: public PulseQueuedSerialiser {
 		Serialiser(const std::string &file_name);
 
@@ -104,7 +106,8 @@ private:
 		void post_gap(unsigned int milliseconds);
 
 		void post_pulse(const Storage::Time &time);
-	} serialiser_;
+	};
+	std::string file_name_;
 };
 
 }

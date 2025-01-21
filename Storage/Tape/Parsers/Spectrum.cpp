@@ -162,22 +162,22 @@ void Parser::inspect_waves(const std::vector<Storage::Tape::ZXSpectrum::WaveType
 	}
 }
 
-std::optional<Block> Parser::find_block(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::optional<Block> Parser::find_block(Storage::Tape::TapeSerialiser &serialiser) {
 	// Decide whether to kick off a speed detection phase.
 	if(should_detect_speed()) {
 		speed_phase_ = SpeedDetectionPhase::WaitingForGap;
 	}
 
 	// Find pilot tone.
-	proceed_to_symbol(tape, SymbolType::Pilot);
-	if(is_at_end(tape)) return std::nullopt;
+	proceed_to_symbol(serialiser, SymbolType::Pilot);
+	if(is_at_end(serialiser)) return std::nullopt;
 
 	// Find sync bit.
-	proceed_to_symbol(tape, SymbolType::Zero);
-	if(is_at_end(tape)) return std::nullopt;
+	proceed_to_symbol(serialiser, SymbolType::Zero);
+	if(is_at_end(serialiser)) return std::nullopt;
 
 	// Read marker byte.
-	const auto type = get_byte(tape);
+	const auto type = get_byte(serialiser);
 	if(!type) return std::nullopt;
 
 	// That succeeded.
@@ -187,11 +187,11 @@ std::optional<Block> Parser::find_block(const std::shared_ptr<Storage::Tape::Tap
 	return block;
 }
 
-std::vector<uint8_t> Parser::get_block_body(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::vector<uint8_t> Parser::get_block_body(Storage::Tape::TapeSerialiser &serialiser) {
 	std::vector<uint8_t> result;
 
 	while(true) {
-		const auto next_byte = get_byte(tape);
+		const auto next_byte = get_byte(serialiser);
 		if(!next_byte) break;
 		result.push_back(*next_byte);
 	}
@@ -203,10 +203,10 @@ void Parser::seed_checksum(uint8_t value) {
 	checksum_ = value;
 }
 
-std::optional<uint8_t> Parser::get_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::optional<uint8_t> Parser::get_byte(Storage::Tape::TapeSerialiser &serialiser) {
 	uint8_t result = 0;
 	for(int c = 0; c < 8; c++) {
-		const SymbolType symbol = get_next_symbol(tape);
+		const SymbolType symbol = get_next_symbol(serialiser);
 		if(symbol != SymbolType::One && symbol != SymbolType::Zero) return std::nullopt;
 		result = uint8_t((result << 1) | (symbol == SymbolType::One));
 	}

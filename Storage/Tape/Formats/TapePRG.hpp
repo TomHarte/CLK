@@ -10,6 +10,7 @@
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
+#include "../../TargetPlatforms.hpp"
 
 #include <cstdint>
 #include <string>
@@ -34,15 +35,18 @@ public:
 	};
 
 private:
-	struct Serialiser: public TapeSerialiser {
-		Serialiser(const std::string &file_name);
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
+
+	struct Serialiser: public FormatSerialiser, public TargetPlatform::Recipient {
+		Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length);
+		void set_target_platforms(TargetPlatform::Type) override;
+
 	private:
 		bool is_at_end() const override;
 		Pulse next_pulse() override;
 		void reset() override;
 
 		FileHolder file_;
-
 		uint16_t load_address_;
 		uint16_t length_;
 
@@ -68,7 +72,24 @@ private:
 		uint8_t output_byte_;
 		uint8_t check_digit_;
 		uint8_t copy_mask_ = 0x80;
-	} serialiser_;
+
+		struct Timings {
+			Timings(bool is_plus4) :
+				leader_zero_length(	is_plus4 ? 240 : 179),
+				zero_length(		is_plus4 ? 240 : 169),
+				one_length(			is_plus4 ? 480 : 247),
+				marker_length(		is_plus4 ? 960 : 328) {}
+
+			// The below are in microseconds per pole.
+			unsigned int leader_zero_length;
+			unsigned int zero_length;
+			unsigned int one_length;
+			unsigned int marker_length;
+		} timings_;
+	};
+	std::string file_name_;
+	uint16_t load_address_;
+	uint16_t length_;
 };
 
 }

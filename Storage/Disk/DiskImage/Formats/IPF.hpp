@@ -24,7 +24,7 @@ namespace Storage::Disk {
 	of which is variably clocked (albeit not at flux transition resolution; as a result IPF files tend to be
 	close in size to more primitive formats).
 */
-class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
+class IPF: public DiskImage, public TargetPlatform::Distinguisher {
 public:
 	/*!
 		Construct an @c IPF containing content from the file with name @c file_name.
@@ -72,7 +72,7 @@ private:
 	std::map<Track::Address, TrackDescription> tracks_;
 	bool is_sps_format_ = false;
 
-	TargetPlatform::Type target_platform_type() final {
+	TargetPlatform::Type target_platforms() final {
 		return TargetPlatform::Type(platform_type_);
 	}
 	TargetPlatform::IntType platform_type_ = TargetPlatform::Amiga;

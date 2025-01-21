@@ -1021,6 +1021,7 @@ void MainWindow::startMachine() {
 	TEST(macintosh);
 	TEST(msx);
 	TEST(oric);
+	TEST(plus4);
 	TEST(pc);
 	TEST(spectrum);
 	TEST(vic20);
@@ -1261,8 +1262,15 @@ void MainWindow::start_spectrum() {
 	launchTarget(std::move(target));
 }
 
+void MainWindow::start_plus4() {
+	using Target = Analyser::Static::Commodore::Plus4Target;
+	auto target = std::make_unique<Target>();
+	target->has_c1541 = ui->plus4C1541CheckBox->isChecked();
+	launchTarget(std::move(target));
+}
+
 void MainWindow::start_vic20() {
-	using Target = Analyser::Static::Commodore::Target;
+	using Target = Analyser::Static::Commodore::Vic20Target;
 	auto target = std::make_unique<Target>();
 
 	switch(ui->vic20RegionComboBox->currentIndex()) {

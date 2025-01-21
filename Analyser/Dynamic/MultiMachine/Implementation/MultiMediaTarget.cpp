@@ -18,6 +18,9 @@ MultiMediaTarget::MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::
 }
 
 bool MultiMediaTarget::insert_media(const Analyser::Static::Media &media) {
+	// TODO: copy media afresh for each target machine; media
+	// generally has mutable state.
+
 	bool inserted = false;
 	for(const auto &target : targets_) {
 		inserted |= target->insert_media(media);

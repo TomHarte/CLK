@@ -12,10 +12,11 @@
 Analyser::Static::TargetList Analyser::Static::Amiga::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool is_confident
 ) {
 	// This analyser can comprehend disks and mass-storage devices only.
-	if(media.disks.empty()) return {};
+	if(media.disks.empty() && !is_confident) return {};
 
 	// As there is at least one usable media image, wave it through.
 	Analyser::Static::TargetList targets;

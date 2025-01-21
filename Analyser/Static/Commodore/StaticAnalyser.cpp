@@ -160,145 +160,199 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 	return analysis;
 }
 
+template <typename TargetT>
+void set_loading_command(TargetT &target) {
+	if(target.media.disks.empty()) {
+		target.loading_command = "LOAD\"\",1,1\nRUN\n";
+	} else {
+		target.loading_command = "LOAD\"*\",8,1\nRUN\n";
+	}
 }
 
-Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
-	const Media &media,
-	const std::string &file_name,
-	TargetPlatform::IntType
-) {
-	TargetList destination;
-	auto target = std::make_unique<Target>();
+bool obviously_uses_ted(const File &file) {
+	const auto analysis = analyse(file);
+	if(!analysis) return false;
 
+	// Disassemble.
+	const auto disassembly = Analyser::Static::MOS6502::Disassemble(
+		file.data,
+		Analyser::Static::Disassembler::OffsetMapper(file.starting_address),
+		analysis->machine_code_addresses
+	);
+
+	// If FF3E or FF3F is touched, this is for the +4.
+	// TODO: probably require a very early touch.
+	for(const auto address: {0xff3e, 0xff3f}) {
+		for(const auto &collection: {
+			disassembly.external_loads,
+			disassembly.external_stores,
+			disassembly.external_modifies
+		}) {
+			if(collection.find(uint16_t(address)) != collection.end()) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+struct FileAnalysis {
 	int device = 0;
 	std::vector<File> files;
 	bool is_disk = false;
+	Analyser::Static::Media media;
+};
 
-	// Strip out inappropriate cartridges.
-	target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
+template <TargetPlatform::IntType platform>
+FileAnalysis analyse_files(const Analyser::Static::Media &media) {
+	FileAnalysis analysis;
 
 	// Find all valid Commodore files on disks.
 	for(auto &disk : media.disks) {
 		std::vector<File> disk_files = GetFiles(disk);
 		if(!disk_files.empty()) {
-			is_disk = true;
-			files.insert(
-				files.end(),
+			analysis.is_disk = true;
+			analysis.files.insert(
+				analysis.files.end(),
 				std::make_move_iterator(disk_files.begin()),
 				std::make_move_iterator(disk_files.end())
 			);
-			target->media.disks.push_back(disk);
-			if(!device) device = 8;
+			analysis.media.disks.push_back(disk);
+			if(!analysis.device) analysis.device = 8;
 		}
 	}
 
 	// Find all valid Commodore files on tapes.
 	for(auto &tape : media.tapes) {
-		std::vector<File> tape_files = GetFiles(tape);
-		tape->reset();
+		auto serialiser = tape->serialiser();
+		std::vector<File> tape_files = GetFiles(*serialiser);
 		if(!tape_files.empty()) {
-			files.insert(
-				files.end(),
+			analysis.files.insert(
+				analysis.files.end(),
 				std::make_move_iterator(tape_files.begin()),
 				std::make_move_iterator(tape_files.end())
 			);
-			target->media.tapes.push_back(tape);
-			if(!device) device = 1;
+			analysis.media.tapes.push_back(tape);
+			if(!analysis.device) analysis.device = 1;
 		}
 	}
 
-	// Inspect discovered files to try to divine machine and memory model.
-	auto vic_memory_model = Target::MemoryModel::Unexpanded;
+	return analysis;
+}
 
-	auto it = files.begin();
-	while(it != files.end()) {
-		const auto &file = *it;
+std::string loading_command(const FileAnalysis &file_analysis) {
+	std::ostringstream string_stream;
+	string_stream << "LOAD\"" << (file_analysis.is_disk ? "*" : "") << "\"," << file_analysis.device;
 
-		std::ostringstream string_stream;
-		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device;
+	const auto analysis = analyse(file_analysis.files[0]);
+	if(analysis && !analysis->machine_code_addresses.empty()) {
+		string_stream << ",1";
+	}
+	string_stream << "\nRUN\n";
+	return string_stream.str();
+}
 
-		const auto analysis = analyse(file);
-		if(analysis && !analysis->machine_code_addresses.empty()) {
-			string_stream << ",1";
+std::pair<TargetPlatform::IntType, std::optional<Vic20Target::MemoryModel>>
+analyse_starting_address(uint16_t starting_address) {
+	switch(starting_address) {
+		case 0x1c01:
+			// TODO: assume C128.
+		default:
+			Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append(
+				"Unrecognised loading address for Commodore program: %04x", starting_address);
+			[[fallthrough]];
+		case 0x1001:
+		return std::make_pair(TargetPlatform::Vic20 | TargetPlatform::Plus4, Vic20Target::MemoryModel::Unexpanded);
 
-			// Disassemble.
-			const auto disassembly = Analyser::Static::MOS6502::Disassemble(
-				file.data,
-				Analyser::Static::Disassembler::OffsetMapper(file.starting_address),
-				analysis->machine_code_addresses
-			);
+		case 0x1201:	return std::make_pair(TargetPlatform::Vic20, Vic20Target::MemoryModel::ThirtyTwoKB);
+		case 0x0401:	return std::make_pair(TargetPlatform::Vic20, Vic20Target::MemoryModel::EightKB);
+		case 0x0801:	return std::make_pair(TargetPlatform::C64, std::nullopt);
+	}
+}
 
-			// If FF3E or FF3F is touched, this is for the +4.
-			// TODO: probably require a very early touch.
-			for(const auto address: {0xff3e, 0xff3f}) {
-				for(const auto &collection: {
-					disassembly.external_loads,
-					disassembly.external_stores,
-					disassembly.external_modifies
-				}) {
-					if(collection.find(uint16_t(address)) != collection.end()) {
-						target->machine = Machine::Plus4;	// TODO: use a better target?
-					}
-				}
-			}
+template <TargetPlatform::IntType platform>
+std::unique_ptr<Analyser::Static::Target> get_target(
+	const Analyser::Static::Media &media,
+	const std::string &file_name,
+	bool is_confident
+);
+
+template<>
+std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Plus4>(
+	const Analyser::Static::Media &media,
+	const std::string &,
+	bool is_confident
+) {
+	auto target = std::make_unique<Plus4Target>();
+	if(is_confident) {
+		target->media = media;
+		set_loading_command(*target);
+	} else {
+		const auto files = analyse_files<TargetPlatform::Plus4>(media);
+		if(!files.files.empty()) {
+			target->loading_command = loading_command(files);
 		}
+		target->media.disks = media.disks;
+		target->media.tapes = media.tapes;
+	}
 
-		string_stream << "\nRUN\n";
-		if(it == files.begin()) {
-			target->loading_command = string_stream.str();
+	// Attach a 1541 if there are any disks here.
+	target->has_c1541 = !target->media.disks.empty();
+	return std::move(target);
+}
 
-			// Make a guess for the Vic-20, if ultimately selected, based on loading address.
-			// TODO: probably also discount other machines if starting address isn't 0x1001?
-			switch(files.front().starting_address) {
-				default:
-					Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append(
-						"Unrecognised loading address for Commodore program: %04x", files.front().starting_address);
-					[[fallthrough]];
-				case 0x1001:
-					vic_memory_model = Target::MemoryModel::Unexpanded;
-					// TODO: could be Vic-20 or Plus4.
-				break;
+template<>
+std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Vic20>(
+	const Analyser::Static::Media &media,
+	const std::string &file_name,
+	bool is_confident
+) {
+	auto target = std::make_unique<Vic20Target>();
+	const auto files = analyse_files<TargetPlatform::Vic20>(media);
+	if(!files.files.empty()) {
+		target->loading_command = loading_command(files);
 
-				case 0x1201:
-					vic_memory_model = Target::MemoryModel::ThirtyTwoKB;
-					target->machine = Machine::Vic20;
-				break;
-				case 0x0401:
-					vic_memory_model = Target::MemoryModel::EightKB;
-					target->machine = Machine::Vic20;
-				break;
-
-				case 0x0801:
-					// TODO: assume C64.
-				break;
-				case 0x1c01:
-					// TODO: assume C128.
-				break;
-			}
+		const auto model = analyse_starting_address(files.files[0].starting_address);
+		if(model.second.has_value()) {
+			target->set_memory_model(*model.second);
 		}
+	}
 
+	if(is_confident) {
+		target->media = media;
+		set_loading_command(*target);
+	} else {
+		// Strip out inappropriate cartridges but retain all tapes and disks.
+		target->media.cartridges = Vic20CartridgesFrom(media.cartridges);
+		target->media.disks = media.disks;
+		target->media.tapes = media.tapes;
+	}
 
+	for(const auto &file : files.files) {
 		// The Vic-20 never has RAM after 0x8000.
 		if(file.ending_address >= 0x8000) {
-			target->machine = Machine::Plus4;
+			return nullptr;
 		}
 
-		target->set_memory_model(vic_memory_model);
-
-		++it;
+		if(obviously_uses_ted(file)) {
+			return nullptr;
+		}
 	}
 
+	// Inspect filename for configuration hints.
 	if(!target->media.empty()) {
-		// Inspect filename for configuration hints.
+		using Region = Analyser::Static::Commodore::Vic20Target::Region;
+
 		std::string lowercase_name = file_name;
 		std::transform(lowercase_name.begin(), lowercase_name.end(), lowercase_name.begin(), ::tolower);
 
 		// Hint 1: 'ntsc' anywhere in the name implies America.
 		if(lowercase_name.find("ntsc") != std::string::npos) {
-			target->region = Analyser::Static::Commodore::Target::Region::American;
+			target->region = Region::American;
 		}
 
-		// Potential additional hints: check for TheC64 tags.
+		// Potential additional hints: check for TheC64 tags; these are Vic-20 exclusive.
 		auto final_underscore = lowercase_name.find_last_of('_');
 		if(final_underscore != std::string::npos) {
 			auto iterator = lowercase_name.begin() + ssize_t(final_underscore) + 1;
@@ -320,10 +374,10 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 				target->enabled_ram.bank3 |= !strcmp(next_tag, "b3");
 				target->enabled_ram.bank5 |= !strcmp(next_tag, "b5");
 				if(!strcmp(next_tag, "tn")) {	// i.e. NTSC.
-					target->region = Analyser::Static::Commodore::Target::Region::American;
+					target->region = Region::American;
 				}
 				if(!strcmp(next_tag, "tp")) {	// i.e. PAL.
-					target->region = Analyser::Static::Commodore::Target::Region::European;
+					target->region = Region::European;
 				}
 
 				// Unhandled:
@@ -334,11 +388,36 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 				//	RO:		this disk image should be treated as read-only.
 			}
 		}
+	}
 
-		// Attach a 1540 if there are any disks here.
-		target->has_c1540 = !target->media.disks.empty();
+	// Attach a 1540 if there are any disks here.
+	target->has_c1540 = !target->media.disks.empty();
+	return std::move(target);
+}
 
-		destination.push_back(std::move(target));
+}
+
+
+Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
+	const Media &media,
+	const std::string &file_name,
+	TargetPlatform::IntType platforms,
+	bool is_confident
+) {
+	TargetList destination;
+
+	if(platforms & TargetPlatform::Vic20) {
+		auto vic20 = get_target<TargetPlatform::Vic20>(media, file_name, is_confident);
+		if(vic20) {
+			destination.push_back(std::move(vic20));
+		}
+	}
+
+	if(platforms & TargetPlatform::Plus4) {
+		auto plus4 = get_target<TargetPlatform::Plus4>(media, file_name, is_confident);
+		if(plus4) {
+			destination.push_back(std::move(plus4));
+		}
 	}
 
 	return destination;

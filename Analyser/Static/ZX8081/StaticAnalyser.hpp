@@ -14,6 +14,6 @@
 
 namespace Analyser::Static::ZX8081 {
 
-TargetList GetTargets(const Media &, const std::string &file_name, TargetPlatform::IntType potential_platforms);
+TargetList GetTargets(const Media &, const std::string &, TargetPlatform::IntType, bool);
 
 }

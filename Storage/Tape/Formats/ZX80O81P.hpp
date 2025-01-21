@@ -22,7 +22,7 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a ZX80-format .O tape image, which is a byte stream capture.
 */
-class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
+class ZX80O81P: public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
 		Constructs a @c ZX80O containing content from the file with name @c file_name.
@@ -37,11 +37,11 @@ public:
 
 private:
 	// TargetPlatform::TypeDistinguisher.
-	TargetPlatform::Type target_platform_type() override;
+	TargetPlatform::Type target_platforms() override;
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
-	struct Serialiser: public TapeSerialiser {
-		Serialiser(const std::string &file_name);
-		TargetPlatform::Type target_platform_type();
+	struct Serialiser: public FormatSerialiser {
+		Serialiser(const std::vector<uint8_t> &data);
 
 	private:
 		bool is_at_end() const override;
@@ -49,17 +49,17 @@ private:
 		Pulse next_pulse() override;
 		bool has_finished_data() const;
 
-		TargetPlatform::Type platform_type_;
-
 		uint8_t byte_;
 		int bit_pointer_;
 		int wave_pointer_;
 		bool is_past_silence_, has_ended_final_byte_;
 		bool is_high_;
 
-		std::vector<uint8_t> data_;
+		const std::vector<uint8_t> &data_;
 		std::size_t data_pointer_;
-	} serialiser_;
+	};
+	TargetPlatform::Type target_platforms_;
+	std::vector<uint8_t> data_;
 };
 
 }

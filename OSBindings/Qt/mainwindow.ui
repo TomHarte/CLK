@@ -881,6 +881,33 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="plus4Tab">
+       <attribute name="title">
+        <string>Plus 4</string>
+       </attribute>
+       <layout class="QVBoxLayout">
+        <item>
+         <widget class="QCheckBox" name="plus4C1541CheckBox">
+          <property name="text">
+           <string>Attach C-1541 disk drive</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer>
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="pcTab">
        <attribute name="title">
         <string>PC Compatible</string>

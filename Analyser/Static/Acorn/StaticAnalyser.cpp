@@ -65,7 +65,8 @@ AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	const Media &media,
 	const std::string &file_name,
-	TargetPlatform::IntType
+	TargetPlatform::IntType,
+	bool
 ) {
 	auto target8bit = std::make_unique<ElectronTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
@@ -76,8 +77,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	// If there are any tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
 		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
-		std::vector<File> files = GetFiles(tape);
-		tape->reset();
+		auto serialiser = tape->serialiser();
+		std::vector<File> files = GetFiles(*serialiser);
 
 		// continue if there are any files
 		if(!files.empty()) {

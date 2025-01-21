@@ -14,14 +14,7 @@
 
 using namespace Storage::Tape;
 
-CSW::CSW(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
-
-CSW::CSW(const std::vector<uint8_t> &&data, CompressionType type, bool initial_level, uint32_t sampling_rate) :
-	Tape(serialiser_),
-	serialiser_(std::move(data), type, initial_level, sampling_rate) {}
-
-
-CSW::Serialiser::Serialiser(const std::string &file_name) : source_data_pointer_(0) {
+CSW::CSW(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
 
@@ -42,21 +35,22 @@ CSW::Serialiser::Serialiser(const std::string &file_name) : source_data_pointer_
 
 	// The header now diverges based on version.
 	uint32_t number_of_waves = 0;
+	CompressionType compression_type;
 	if(major_version == 1) {
 		pulse_.length.clock_rate = file.get16le();
 
 		if(file.get8() != 1) throw ErrorNotCSW;
-		compression_type_ = CompressionType::RLE;
+		compression_type = CompressionType::RLE;
 
 		pulse_.type = (file.get8() & 1) ? Pulse::High : Pulse::Low;
 
 		file.seek(0x20, SEEK_SET);
 	} else {
 		pulse_.length.clock_rate = file.get32le();
-		number_of_waves = file.get32le();
+		number_of_waves = file.get32le();	// TODO: is this still useful?
 		switch(file.get8()) {
-			case 1: compression_type_ = CompressionType::RLE;	break;
-			case 2: compression_type_ = CompressionType::ZRLE;	break;
+			case 1: compression_type = CompressionType::RLE;	break;
+			case 2: compression_type = CompressionType::ZRLE;	break;
 			default: throw ErrorNotCSW;
 		}
 
@@ -73,35 +67,41 @@ CSW::Serialiser::Serialiser(const std::string &file_name) : source_data_pointer_
 	file_data.resize(remaining_data);
 	file.read(file_data.data(), remaining_data);
 
-	if(compression_type_ == CompressionType::ZRLE) {
+	set_data(std::move(file_data), compression_type);
+}
+
+CSW::CSW(std::vector<uint8_t> &&data, CompressionType type, bool initial_level, uint32_t sampling_rate) {
+	set_data(std::move(data), type);
+	pulse_.length.clock_rate = sampling_rate;
+	pulse_.type = initial_level ? Pulse::Type::High : Pulse::Type::Low;
+}
+
+void CSW::set_data(std::vector<uint8_t> &&data, CompressionType type) {
+	// TODO: compression types.
+
+	if(type == CompressionType::ZRLE) {
 		// The only clue given by CSW as to the output size in bytes is that there will be
 		// number_of_waves waves. Waves are usually one byte, but may be five. So this code
 		// is pessimistic.
-		source_data_.resize(size_t(number_of_waves) * 5);
+//		source_data_.resize(size_t(number_of_waves) * 5);
 
 		// uncompress will tell how many compressed bytes there actually were, so use its
 		// modification of output_length to throw away all the memory that isn't actually
 		// needed.
-		uLongf output_length = uLongf(number_of_waves * 5);
-		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
-		source_data_.resize(std::size_t(output_length));
+//		uLongf output_length = uLongf(number_of_waves * 5);
+//		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
+//		source_data_.resize(std::size_t(output_length));
 	} else {
-		source_data_ = std::move(file_data);
+		source_data_ = std::move(data);
 	}
 
-	invert_pulse();
 }
 
-CSW::Serialiser::Serialiser(
-	const std::vector<uint8_t> &&data,
-	const CompressionType compression_type,
-	const bool initial_level,
-	const uint32_t sampling_rate
-) : compression_type_(compression_type) {
-	pulse_.length.clock_rate = sampling_rate;
-	pulse_.type = initial_level ? Pulse::High : Pulse::Low;
-	source_data_ = std::move(data);
+std::unique_ptr<FormatSerialiser> CSW::format_serialiser() const {
+	return std::make_unique<Serialiser>(source_data_, pulse_);
 }
+
+CSW::Serialiser::Serialiser(const std::vector<uint8_t> &data, Pulse pulse) : pulse_(pulse), source_data_(data) {}
 
 uint8_t CSW::Serialiser::get_next_byte() {
 	if(source_data_pointer_ == source_data_.size()) return 0xff;

@@ -11,9 +11,7 @@
 
 using namespace Storage::Tape;
 
-ZX80O81P::ZX80O81P(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
-
-ZX80O81P::Serialiser::Serialiser(const std::string &file_name) {
+ZX80O81P::ZX80O81P(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
 	// Grab the actual file contents
@@ -22,17 +20,26 @@ ZX80O81P::Serialiser::Serialiser(const std::string &file_name) {
 
 	// If it's a ZX81 file, prepend a file name.
 	std::string type = file.extension();
-	platform_type_ = TargetPlatform::ZX80;
+	target_platforms_ = TargetPlatform::ZX80;
 	if(type == "p" || type == "81") {
 		// TODO, maybe: prefix a proper file name; this is leaving the file nameless.
 		data_.insert(data_.begin(), 0x80);
-		platform_type_ = TargetPlatform::ZX81;
+		target_platforms_ = TargetPlatform::ZX81;
 	}
 
-	std::shared_ptr<::Storage::Data::ZX8081::File> zx_file = Storage::Data::ZX8081::FileFromData(data_);
+	const auto zx_file = Storage::Data::ZX8081::FileFromData(data_);
 	if(!zx_file) throw ErrorNotZX80O81P;
+}
 
-	// then rewind and start again
+TargetPlatform::Type ZX80O81P::target_platforms() {
+	return target_platforms_;
+}
+
+std::unique_ptr<FormatSerialiser> ZX80O81P::format_serialiser() const {
+	return std::make_unique<Serialiser>(data_);
+}
+
+ZX80O81P::Serialiser::Serialiser(const std::vector<uint8_t> &data) : data_(data) {
 	reset();
 }
 
@@ -103,12 +110,4 @@ Pulse ZX80O81P::Serialiser::next_pulse() {
 	}
 
 	return pulse;
-}
-
-TargetPlatform::Type ZX80O81P::target_platform_type() {
-	return serialiser_.target_platform_type();
-}
-
-TargetPlatform::Type ZX80O81P::Serialiser::target_platform_type() {
-	return platform_type_;
 }

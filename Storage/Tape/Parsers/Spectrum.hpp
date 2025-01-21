@@ -72,19 +72,19 @@ public:
 		in Spectrum-world this seems to be called the flag byte. This call can therefore be followed up with one
 		of the get_ methods.
 	*/
-	std::optional<Block> find_block(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	std::optional<Block> find_block(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Reads the contents of the rest of this block, until the next gap.
 	*/
-	std::vector<uint8_t> get_block_body(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	std::vector<uint8_t> get_block_body(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Reads a single byte from the tape, if there is one left, updating the internal checksum.
 
 		The checksum is computed as an exclusive OR of all bytes read.
 	*/
-	std::optional<uint8_t> get_byte(const std::shared_ptr<Storage::Tape::Tape> &tape);
+	std::optional<uint8_t> get_byte(Storage::Tape::TapeSerialiser &);
 
 	/*!
 		Seeds the internal checksum.

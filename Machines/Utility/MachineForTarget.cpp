@@ -264,9 +264,9 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(Macintosh);
 	Add(MSX);
 	Add(Oric);
-	AddMapped(Plus4, Commodore);
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::Plus4), std::make_unique<Analyser::Static::Commodore::Plus4Target>());
 	Add(PCCompatible);
-	AddMapped(Vic20, Commodore);
+	options.emplace(LongNameForTargetMachine(Analyser::Machine::Vic20), std::make_unique<Analyser::Static::Commodore::Vic20Target>());
 	Add(ZX8081);
 	Add(ZXSpectrum);
 

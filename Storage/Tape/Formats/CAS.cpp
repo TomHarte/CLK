@@ -59,9 +59,7 @@ namespace {
 	const uint8_t ascii_signature[] = TenX(0xea);
 }
 
-CAS::CAS(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
-
-CAS::Serialiser::Serialiser(const std::string &file_name) {
+CAS::CAS(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
 	enum class Mode {
@@ -69,7 +67,7 @@ CAS::Serialiser::Serialiser(const std::string &file_name) {
 		ASCII,
 		Binary,
 		BASIC
-	} parsing_mode_ = Mode::Seeking;
+	} parsing_mode = Mode::Seeking;
 
 	while(true) {
 		// Churn through the file until the next header signature is found.
@@ -104,15 +102,15 @@ CAS::Serialiser::Serialiser(const std::string &file_name) {
 		const bool is_basic		= !std::memcmp(type.data(), basic_signature, type.size());
 		const bool is_ascii		= !std::memcmp(type.data(), ascii_signature, type.size());
 
-		switch(parsing_mode_) {
+		switch(parsing_mode) {
 			case Mode::Seeking: {
 				if(is_ascii || is_binary || is_basic) {
 					file.seek(header_position + 8, SEEK_SET);
 					chunks_.emplace_back(!chunks_.empty(), true, file.read(10 + 6));
 
-					if(is_ascii)	parsing_mode_ = Mode::ASCII;
-					if(is_binary)	parsing_mode_ = Mode::Binary;
-					if(is_basic)	parsing_mode_ = Mode::BASIC;
+					if(is_ascii)	parsing_mode = Mode::ASCII;
+					if(is_binary)	parsing_mode = Mode::Binary;
+					if(is_basic)	parsing_mode = Mode::BASIC;
 				} else {
 					// Raw data appears now. Grab its length and keep going.
 					file.seek(header_position + 8, SEEK_SET);
@@ -127,7 +125,7 @@ CAS::Serialiser::Serialiser(const std::string &file_name) {
 				// Keep reading ASCII in 256-byte segments until a non-ASCII chunk arrives.
 				if(is_binary || is_basic || is_ascii) {
 					file.seek(header_position, SEEK_SET);
-					parsing_mode_ = Mode::Seeking;
+					parsing_mode = Mode::Seeking;
 				} else {
 					file.seek(header_position + 8, SEEK_SET);
 					chunks_.emplace_back(false, false, file.read(256));
@@ -145,7 +143,7 @@ CAS::Serialiser::Serialiser(const std::string &file_name) {
 				const auto length = end_address - start_address + 1;
 				chunks_.emplace_back(false, false, file.read(size_t(length) + 6));
 
-				parsing_mode_ = Mode::Seeking;
+				parsing_mode = Mode::Seeking;
 			} break;
 
 			case Mode::BASIC: {
@@ -164,11 +162,17 @@ CAS::Serialiser::Serialiser(const std::string &file_name) {
 				// Create the chunk and return to regular parsing.
 				file.seek(header_position + 8, SEEK_SET);
 				chunks_.emplace_back(false, false, file.read(size_t(length)));
-				parsing_mode_ = Mode::Seeking;
+				parsing_mode = Mode::Seeking;
 			} break;
 		}
 	}
 }
+
+std::unique_ptr<FormatSerialiser> CAS::format_serialiser() const {
+	return std::make_unique<Serialiser>(chunks_);
+}
+
+CAS::Serialiser::Serialiser(const std::vector<Chunk> &chunks) : chunks_(chunks) {}
 
 bool CAS::Serialiser::is_at_end() const {
 	return phase_ == Phase::EndOfFile;

@@ -18,26 +18,30 @@ using namespace Storage::Tape;
 	https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
 */
 
-ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) : file_name_(file_name) {
+	Storage::FileHolder file(file_name);
 
-ZXSpectrumTAP::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read)
-{
 	// Check for a continuous series of blocks through to
 	// exactly file end.
 	//
 	// To consider: could also check those blocks of type 0
 	// and type ff for valid checksums?
-	while(file_.tell() != file_.stats().st_size) {
-		const uint16_t block_length = file_.get16le();
-		if(file_.eof() || file_.tell() + block_length > file_.stats().st_size) {
+	while(file.tell() != file.stats().st_size) {
+		const uint16_t block_length = file.get16le();
+		if(file.eof() || file.tell() + block_length > file.stats().st_size) {
 			throw ErrorNotZXSpectrumTAP;
 		}
 
-		file_.seek(block_length, SEEK_CUR);
+		file.seek(block_length, SEEK_CUR);
 	}
+}
 
-	reset();
+std::unique_ptr<FormatSerialiser> ZXSpectrumTAP::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
+
+ZXSpectrumTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileHolder::FileMode::Read) {
+	read_next_block();
 }
 
 bool ZXSpectrumTAP::Serialiser::is_at_end() const {

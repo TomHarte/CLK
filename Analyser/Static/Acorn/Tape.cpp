@@ -16,7 +16,7 @@
 using namespace Analyser::Static::Acorn;
 
 static std::unique_ptr<File::Chunk> GetNextChunk(
-	const std::shared_ptr<Storage::Tape::Tape> &tape,
+	Storage::Tape::TapeSerialiser &serialiser,
 	Storage::Tape::Acorn::Parser &parser
 ) {
 	auto new_chunk = std::make_unique<File::Chunk>();
@@ -24,16 +24,16 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 
 	// TODO: move this into the parser
 	const auto shift = [&] {
-		shift_register = (shift_register >> 1) | (parser.get_next_bit(tape) << 9);
+		shift_register = (shift_register >> 1) | (parser.get_next_bit(serialiser) << 9);
 	};
 
 	// find next area of high tone
-	while(!tape->is_at_end() && (shift_register != 0x3ff)) {
+	while(!serialiser.is_at_end() && (shift_register != 0x3ff)) {
 		shift();
 	}
 
 	// find next 0x2a (swallowing stop bit)
-	while(!tape->is_at_end() && (shift_register != 0x254)) {
+	while(!serialiser.is_at_end() && (shift_register != 0x254)) {
 		shift();
 	}
 
@@ -43,8 +43,8 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 	// read out name
 	char name[11];
 	std::size_t name_ptr = 0;
-	while(!tape->is_at_end() && name_ptr < sizeof(name)) {
-		name[name_ptr] = char(parser.get_next_byte(tape));
+	while(!serialiser.is_at_end() && name_ptr < sizeof(name)) {
+		name[name_ptr] = char(parser.get_next_byte(serialiser));
 		if(!name[name_ptr]) break;
 		++name_ptr;
 	}
@@ -52,15 +52,15 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 	new_chunk->name = name;
 
 	// addresses
-	new_chunk->load_address = uint32_t(parser.get_next_word(tape));
-	new_chunk->execution_address = uint32_t(parser.get_next_word(tape));
-	new_chunk->block_number = uint16_t(parser.get_next_short(tape));
-	new_chunk->block_length = uint16_t(parser.get_next_short(tape));
-	new_chunk->block_flag = uint8_t(parser.get_next_byte(tape));
-	new_chunk->next_address = uint32_t(parser.get_next_word(tape));
+	new_chunk->load_address = uint32_t(parser.get_next_word(serialiser));
+	new_chunk->execution_address = uint32_t(parser.get_next_word(serialiser));
+	new_chunk->block_number = uint16_t(parser.get_next_short(serialiser));
+	new_chunk->block_length = uint16_t(parser.get_next_short(serialiser));
+	new_chunk->block_flag = uint8_t(parser.get_next_byte(serialiser));
+	new_chunk->next_address = uint32_t(parser.get_next_word(serialiser));
 
 	const uint16_t calculated_header_crc = parser.get_crc();
-	uint16_t stored_header_crc = uint16_t(parser.get_next_short(tape));
+	uint16_t stored_header_crc = uint16_t(parser.get_next_short(serialiser));
 	stored_header_crc = uint16_t((stored_header_crc >> 8) | (stored_header_crc << 8));
 	new_chunk->header_crc_matched = stored_header_crc == calculated_header_crc;
 
@@ -69,12 +69,12 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 	parser.reset_crc();
 	new_chunk->data.reserve(new_chunk->block_length);
 	for(int c = 0; c < new_chunk->block_length; c++) {
-		new_chunk->data.push_back(uint8_t(parser.get_next_byte(tape)));
+		new_chunk->data.push_back(uint8_t(parser.get_next_byte(serialiser)));
 	}
 
 	if(new_chunk->block_length && !(new_chunk->block_flag&0x40)) {
 		uint16_t calculated_data_crc = parser.get_crc();
-		uint16_t stored_data_crc = uint16_t(parser.get_next_short(tape));
+		uint16_t stored_data_crc = uint16_t(parser.get_next_short(serialiser));
 		stored_data_crc = uint16_t((stored_data_crc >> 8) | (stored_data_crc << 8));
 		new_chunk->data_crc_matched = stored_data_crc == calculated_data_crc;
 	} else {
@@ -127,13 +127,13 @@ static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
 	return file;
 }
 
-std::vector<File> Analyser::Static::Acorn::GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::vector<File> Analyser::Static::Acorn::GetFiles(Storage::Tape::TapeSerialiser &serialiser) {
 	Storage::Tape::Acorn::Parser parser;
 
 	// populate chunk list
 	std::deque<File::Chunk> chunk_list;
-	while(!tape->is_at_end()) {
-		std::unique_ptr<File::Chunk> chunk = GetNextChunk(tape, parser);
+	while(!serialiser.is_at_end()) {
+		std::unique_ptr<File::Chunk> chunk = GetNextChunk(serialiser, parser);
 		if(chunk) {
 			chunk_list.push_back(*chunk);
 		}

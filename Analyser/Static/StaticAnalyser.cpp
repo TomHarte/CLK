@@ -127,9 +127,12 @@ public:
 		potential_platforms_ |= platforms;
 
 		// Check whether the instance itself has any input on target platforms.
-		TargetPlatform::TypeDistinguisher *const distinguisher =
-			dynamic_cast<TargetPlatform::TypeDistinguisher *>(instance.get());
-		if(distinguisher) potential_platforms_ &= distinguisher->target_platform_type();
+		TargetPlatform::Distinguisher *const distinguisher =
+			dynamic_cast<TargetPlatform::Distinguisher *>(instance.get());
+		if(distinguisher) {
+			was_distinguished = true;
+			potential_platforms_ &= distinguisher->target_platforms();
+		}
 	}
 
 	/// Concstructs a new instance of @c InstanceT supplying @c args and adds it to the back of @c list using @c insert_instance.
@@ -160,6 +163,7 @@ public:
 	}
 
 	Media media;
+	bool was_distinguished = false;
 
 private:
 	const std::string &file_name_;
@@ -209,7 +213,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, "col");
 	accumulator.try_standard<Tape::CSW>(TargetPlatform::AllTape, "csw");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::D64>>(TargetPlatform::Commodore, "d64");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::D64>>(TargetPlatform::Commodore8bit, "d64");
 	accumulator.try_standard<MassStorage::DAT>(TargetPlatform::Acorn, "dat");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::DMK>>(TargetPlatform::MSX, "dmk");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "do");
@@ -223,7 +227,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::MSX, "dsk");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::OricMFMDSK>>(TargetPlatform::Oric, "dsk");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::G64>>(TargetPlatform::Commodore, "g64");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::G64>>(TargetPlatform::Commodore8bit, "g64");
 
 	accumulator.try_standard<MassStorage::HDV>(TargetPlatform::AppleII, "hdv");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::HFE>>(
@@ -268,10 +272,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	if(accumulator.name_matches("prg")) {
 		// Try instantiating as a ROM; failing that accept as a tape.
 		try {
-			accumulator.insert<Cartridge::PRG>(TargetPlatform::Commodore, file_name);
+			accumulator.insert<Cartridge::PRG>(TargetPlatform::Commodore8bit, file_name);
 		} catch(...) {
 			try {
-				accumulator.insert<Tape::PRG>(TargetPlatform::Commodore, file_name);
+				accumulator.insert<Tape::PRG>(TargetPlatform::Commodore8bit, file_name);
 			} catch(...) {}
 		}
 	}
@@ -286,7 +290,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::AtariST, "st");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::STX>>(TargetPlatform::AtariST, "stx");
 
-	accumulator.try_standard<Tape::CommodoreTAP>(TargetPlatform::Commodore, "tap");
+	accumulator.try_standard<Tape::CommodoreTAP>(TargetPlatform::Commodore8bit, "tap");
 	accumulator.try_standard<Tape::OricTAP>(TargetPlatform::Oric, "tap");
 	accumulator.try_standard<Tape::ZXSpectrumTAP>(TargetPlatform::ZXSpectrum, "tap");
 	accumulator.try_standard<Tape::TZX>(TargetPlatform::MSX, "tsx");
@@ -335,13 +339,25 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	TargetPlatform::IntType potential_platforms = 0;
 	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
 
+	// TODO: std::popcount here.
+	int total_options = 0;
+	TargetPlatform::IntType mask = 1;
+	while(mask) {
+		total_options += bool(potential_platforms & mask);
+		mask <<= 1;
+	}
+	const bool is_confident = total_options == 1;
+	// i.e. This analyser `is_confident` if file analysis suggested only one potential target platform.
+	// The machine-specific static analyser will still run in case it can provide meaningful annotations on
+	// loading command, machine configuration, etc, but the flag will be passed onwards to mean "don't reject this".
+
 	// Hand off to platform-specific determination of whether these
 	// things are actually compatible and, if so, how to load them.
 	const auto append = [&](TargetPlatform::IntType platform, auto evaluator) {
 		if(!(potential_platforms & platform)) {
 			return;
 		}
-		auto new_targets = evaluator(media, file_name, potential_platforms);
+		auto new_targets = evaluator(media, file_name, potential_platforms, is_confident);
 		targets.insert(
 			targets.end(),
 			std::make_move_iterator(new_targets.begin()),
@@ -357,7 +373,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	append(TargetPlatform::Atari2600, Atari2600::GetTargets);
 	append(TargetPlatform::AtariST, AtariST::GetTargets);
 	append(TargetPlatform::Coleco, Coleco::GetTargets);
-	append(TargetPlatform::Commodore, Commodore::GetTargets);
+	append(TargetPlatform::Commodore8bit, Commodore::GetTargets);
 	append(TargetPlatform::DiskII, DiskII::GetTargets);
 	append(TargetPlatform::Enterprise, Enterprise::GetTargets);
 	append(TargetPlatform::FAT12, FAT12::GetTargets);
@@ -368,13 +384,6 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	append(TargetPlatform::Sega, Sega::GetTargets);
 	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
 	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
-
-	// Reset any tapes to their initial position.
-	for(const auto &target : targets) {
-		for(auto &tape : target->media.tapes) {
-			tape->reset();
-		}
-	}
 
 	// Sort by initial confidence. Use a stable sort in case any of the machine-specific analysers
 	// picked their insertion order carefully.

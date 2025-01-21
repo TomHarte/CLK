@@ -16,11 +16,21 @@ TapePlayer::TapePlayer(const int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
-Tape::Tape(TapeSerialiser &serialiser) : serialiser_(serialiser) {}
+TapeSerialiser::TapeSerialiser(std::unique_ptr<FormatSerialiser> &&serialiser) : serialiser_(std::move(serialiser)) {}
+
+std::unique_ptr<TapeSerialiser> Tape::serialiser(const TargetPlatform::Type platform) const {
+	auto serialiser = format_serialiser();
+	if(auto *recipient = dynamic_cast<TargetPlatform::Recipient *>(serialiser.get())) {
+		recipient->set_target_platforms(platform);
+	}
+
+	return std::make_unique<TapeSerialiser>(std::move(serialiser));
+}
+
 
 // MARK: - Seeking
 
-void Storage::Tape::Tape::seek(const Time seek_time) {
+void TapeSerialiser::seek(const Time seek_time) {
 	Time next_time(0);
 	reset();
 	while(next_time <= seek_time) {
@@ -29,7 +39,7 @@ void Storage::Tape::Tape::seek(const Time seek_time) {
 	}
 }
 
-Storage::Time Tape::current_time() {
+Storage::Time TapeSerialiser::current_time() {
 	Time time(0);
 	uint64_t steps = offset();
 	reset();
@@ -40,22 +50,22 @@ Storage::Time Tape::current_time() {
 	return time;
 }
 
-void Storage::Tape::Tape::reset() {
+void TapeSerialiser::reset() {
 	offset_ = 0;
-	serialiser_.reset();
+	serialiser_->reset();
 }
 
-Pulse Tape::next_pulse() {
-	pulse_ = serialiser_.next_pulse();
+Pulse TapeSerialiser::next_pulse() {
+	pulse_ = serialiser_->next_pulse();
 	offset_++;
 	return pulse_;
 }
 
-uint64_t Tape::offset() const {
+uint64_t TapeSerialiser::offset() const {
 	return offset_;
 }
 
-void Tape::set_offset(uint64_t offset) {
+void TapeSerialiser::set_offset(uint64_t offset) {
 	if(offset == offset_) return;
 	if(offset < offset_) {
 		reset();
@@ -64,26 +74,31 @@ void Tape::set_offset(uint64_t offset) {
 	while(offset--) next_pulse();
 }
 
-bool Tape::is_at_end() const {
-	return serialiser_.is_at_end();
+bool TapeSerialiser::is_at_end() const {
+	return serialiser_->is_at_end();
 }
-
 
 // MARK: - Player
 
 ClockingHint::Preference TapePlayer::preferred_clocking() const {
-	return (!tape_ || tape_->is_at_end()) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	return (!tape_ || serialiser_->is_at_end()) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
-void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape) {
+void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape, TargetPlatform::Type platform) {
 	tape_ = tape;
+	serialiser_ = tape->serialiser(platform);
+
 	reset_timer();
 	next_pulse();
 	update_clocking_observer();
 }
 
-std::shared_ptr<Storage::Tape::Tape> TapePlayer::tape() {
-	return tape_;
+bool TapePlayer::is_at_end() const {
+	return serialiser_->is_at_end();
+}
+
+TapeSerialiser *TapePlayer::serialiser() {
+	return serialiser_.get();
 }
 
 bool TapePlayer::has_tape() const {
@@ -93,8 +108,8 @@ bool TapePlayer::has_tape() const {
 void TapePlayer::next_pulse() {
 	// get the new pulse
 	if(tape_) {
-		current_pulse_ = tape_->next_pulse();
-		if(tape_->is_at_end()) update_clocking_observer();
+		current_pulse_ = serialiser_->next_pulse();
+		if(serialiser_->is_at_end()) update_clocking_observer();
 	} else {
 		current_pulse_.length.length = 1;
 		current_pulse_.length.clock_rate = 1;

@@ -48,43 +48,52 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
+PRG::PRG(const std::string &file_name) : file_name_(file_name) {
+	FileHolder file(file_name, FileHolder::FileMode::Read);
 
-PRG::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read)
-{
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
-	if(file_.stats().st_size >= 65538 || file_.stats().st_size < 3)
+	if(file.stats().st_size >= 65538 || file.stats().st_size < 3)
 		throw ErrorBadFormat;
 
-	load_address_ = file_.get16le();
-	length_ = uint16_t(file_.stats().st_size - 2);
+	load_address_ = file.get16le();
+	length_ = uint16_t(file.stats().st_size - 2);
 
 	if(load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
 }
 
-Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
-	// The below are in microseconds per pole.
-	constexpr unsigned int leader_zero_length = 179;
-	constexpr unsigned int zero_length = 169;
-	constexpr unsigned int one_length = 247;
-	constexpr unsigned int marker_length = 328;
+std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_, load_address_, length_);
+}
 
-	bit_phase_ = (bit_phase_+1)&3;
+PRG::Serialiser::Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length) :
+	file_(file_name, FileHolder::FileMode::Read),
+	load_address_(load_address),
+	length_(length),
+	timings_(false)
+{
+	reset();
+}
+
+void PRG::Serialiser::set_target_platforms(TargetPlatform::Type type) {
+	timings_ = Timings(type & TargetPlatform::Type::Plus4);
+}
+
+Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
+	bit_phase_ = (bit_phase_ + 1)&3;
 	if(!bit_phase_) get_next_output_token();
 
 	Pulse pulse;
 	pulse.length.clock_rate = 1'000'000;
 	pulse.type = (bit_phase_&1) ? Pulse::High : Pulse::Low;
 	switch(output_token_) {
-		case Leader:		pulse.length.length = leader_zero_length;							break;
-		case Zero:			pulse.length.length = (bit_phase_&2) ? one_length : zero_length;	break;
-		case One:			pulse.length.length = (bit_phase_&2) ? zero_length : one_length;	break;
-		case WordMarker:	pulse.length.length = (bit_phase_&2) ? one_length : marker_length;	break;
-		case EndOfBlock:	pulse.length.length = (bit_phase_&2) ? zero_length : marker_length;	break;
-		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;				break;
+		case Leader:		pulse.length.length = timings_.leader_zero_length;										break;
+		case Zero:			pulse.length.length = (bit_phase_&2) ? timings_.one_length : timings_.zero_length;		break;
+		case One:			pulse.length.length = (bit_phase_&2) ? timings_.zero_length : timings_.one_length;		break;
+		case WordMarker:	pulse.length.length = (bit_phase_&2) ? timings_.one_length : timings_.marker_length;	break;
+		case EndOfBlock:	pulse.length.length = (bit_phase_&2) ? timings_.zero_length : timings_.marker_length;	break;
+		case Silence:		pulse.type = Pulse::Zero; pulse.length.length = 5000;									break;
 	}
 	return pulse;
 }

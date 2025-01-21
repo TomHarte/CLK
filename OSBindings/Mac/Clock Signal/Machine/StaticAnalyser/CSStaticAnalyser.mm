@@ -163,8 +163,8 @@
 - (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Target;
-		auto target = std::make_unique<Target>(Analyser::Machine::Plus4);
+		using Target = Analyser::Static::Commodore::Plus4Target;
+		auto target = std::make_unique<Target>();
 		_targets.push_back(std::move(target));
 	}
 	return self;
@@ -330,7 +330,7 @@
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540 {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Commodore::Target;
+		using Target = Analyser::Static::Commodore::Vic20Target;
 		auto target = std::make_unique<Target>();
 		switch(region) {
 			case CSMachineVic20RegionDanish:	target->region = Target::Region::Danish;	break;

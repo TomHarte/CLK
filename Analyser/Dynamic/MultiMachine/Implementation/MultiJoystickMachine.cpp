@@ -19,7 +19,7 @@ public:
 	MultiJoystick(std::vector<MachineTypes::JoystickMachine *> &machines, const std::size_t index) {
 		for(const auto &machine: machines) {
 			const auto &joysticks = machine->get_joysticks();
-			if(joysticks.size() >= index) {
+			if(joysticks.size() > index) {
 				joysticks_.push_back(joysticks[index].get());
 			}
 		}

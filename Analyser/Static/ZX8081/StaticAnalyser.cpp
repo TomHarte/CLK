@@ -14,14 +14,14 @@
 #include "Target.hpp"
 #include "../../../Storage/Tape/Parsers/ZX8081.hpp"
 
-static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+static std::vector<Storage::Data::ZX8081::File> GetFiles(Storage::Tape::TapeSerialiser &serialiser) {
 	std::vector<Storage::Data::ZX8081::File> files;
 	Storage::Tape::ZX8081::Parser parser;
 
-	while(!tape->is_at_end()) {
-		std::shared_ptr<Storage::Data::ZX8081::File> next_file = parser.get_next_file(tape);
-		if(next_file != nullptr) {
-			files.push_back(*next_file);
+	while(!serialiser.is_at_end()) {
+		const auto next_file = parser.get_next_file(serialiser);
+		if(next_file) {
+			files.push_back(std::move(*next_file));
 		}
 	}
 
@@ -31,12 +31,13 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<S
 Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(
 	const Media &media,
 	const std::string &,
-	TargetPlatform::IntType potential_platforms
+	TargetPlatform::IntType potential_platforms,
+	bool
 ) {
 	TargetList destination;
 	if(!media.tapes.empty()) {
-		std::vector<Storage::Data::ZX8081::File> files = GetFiles(media.tapes.front());
-		media.tapes.front()->reset();
+		const auto serialiser = media.tapes.front()->serialiser();
+		std::vector<Storage::Data::ZX8081::File> files = GetFiles(*serialiser);
 		if(!files.empty()) {
 			Target *const target = new Target;
 			destination.push_back(std::unique_ptr<::Analyser::Static::Target>(target));

@@ -900,7 +900,7 @@ public:
 						// preceding symbol and be a short way into the pulse that should determine the
 						// first bit of this byte.
 						parser.process_pulse(tape_player_.current_pulse());
-						const auto byte = parser.get_byte(tape_player_.tape());
+						const auto byte = parser.get_byte(*tape_player_.serialiser());
 						auto flags = z80_.value_of(CPU::Z80::Register::Flags);
 
 						if(byte) {
@@ -1125,7 +1125,7 @@ public:
 	bool insert_media(const Analyser::Static::Media &media) final {
 		// If there are any tapes supplied, use the first of them.
 		if(!media.tapes.empty()) {
-			tape_player_.set_tape(media.tapes.front());
+			tape_player_.set_tape(media.tapes.front(), TargetPlatform::AmstradCPC);
 			set_use_fast_tape_hack();
 		}
 

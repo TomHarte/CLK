@@ -21,23 +21,26 @@ Log::Logger<Log::Source::TZX> logger;
 
 }
 
-TZX::TZX(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
-
-TZX::Serialiser::Serialiser(const std::string &file_name) :
-	file_(file_name, FileHolder::FileMode::Read),
-	current_level_(false) {
+TZX::TZX(const std::string &file_name) : file_name_(file_name) {
+	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
 	// Check for signature followed by a 0x1a
-	if(!file_.check_signature("ZXTape!")) throw ErrorNotTZX;
-	if(file_.get8() != 0x1a) throw ErrorNotTZX;
+	if(!file.check_signature("ZXTape!")) throw ErrorNotTZX;
+	if(file.get8() != 0x1a) throw ErrorNotTZX;
 
 	// Get version number
-	const uint8_t major_version = file_.get8();
-	const uint8_t minor_version = file_.get8();
+	const uint8_t major_version = file.get8();
+	const uint8_t minor_version = file.get8();
 
 	// Reject if an incompatible version
 	if(major_version != 1 || minor_version > 21) throw ErrorNotTZX;
+}
 
+std::unique_ptr<FormatSerialiser> TZX::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
+
+TZX::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileHolder::FileMode::Read) {
 	reset();
 }
 
@@ -113,14 +116,15 @@ void TZX::Serialiser::get_csw_recording_block() {
 
 	std::vector<uint8_t> raw_block = file_.read(block_length - 10);
 
-	CSW csw(
+	const CSW csw(
 		std::move(raw_block),
 		(compression_type == 2) ? CSW::CompressionType::ZRLE : CSW::CompressionType::RLE,
 		current_level_,
 		sampling_rate
 	);
-	while(!csw.is_at_end()) {
-		Pulse next_pulse = csw.next_pulse();
+	auto serialiser = csw.serialiser();
+	while(!serialiser->is_at_end()) {
+		Pulse next_pulse = serialiser->next_pulse();
 		current_level_ = (next_pulse.type == Pulse::High);
 		push_back(next_pulse);
 	}

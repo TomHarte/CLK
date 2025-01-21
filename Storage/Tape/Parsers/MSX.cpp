@@ -25,7 +25,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	float low = std::numeric_limits<float>::max();
 	float high = std::numeric_limits<float>::min();
 	int samples = 0;
-	while(!tape_player.tape()->is_at_end()) {
+	while(!tape_player.is_at_end()) {
 		float next_length = 0.0f;
 		do {
 			next_length += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
@@ -43,14 +43,14 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 		if(samples == 1111*2) break;	// Cycles are read, not half-cycles.
 	}
 
-	if(tape_player.tape()->is_at_end()) return nullptr;
+	if(tape_player.is_at_end()) return nullptr;
 
 	/*
 		"The next 256 cycles are then read (1B34H) and averaged to determine the cassette HI cycle length."
 	*/
 	float total_length = 0.0f;
 	samples = 512;
-	while(!tape_player.tape()->is_at_end()) {
+	while(!tape_player.is_at_end()) {
 		total_length += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 		if(tape_player.input() != last_level) {
 			samples--;
@@ -60,7 +60,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 		tape_player.run_for_input_pulse();
 	}
 
-	if(tape_player.tape()->is_at_end()) return nullptr;
+	if(tape_player.is_at_end()) return nullptr;
 
 	/*
 		This figure is multiplied by 1.5 and placed in LOWLIM where it defines the minimum acceptable length
@@ -103,7 +103,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 	*/
 	const float minimum_start_bit_duration = float(speed.minimum_start_bit_duration) * 0.00001145f * 0.5f;
 	int input = 0;
-	while(!tape_player.tape()->is_at_end()) {
+	while(!tape_player.is_at_end()) {
 		// Find next transition.
 		bool level = tape_player.input();
 		float duration = 0.0;
@@ -132,11 +132,11 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 	);
 	int bits_left = 8;
 	bool level = tape_player.input();
-	while(!tape_player.tape()->is_at_end() && bits_left--) {
+	while(!tape_player.is_at_end() && bits_left--) {
 		// Count number of transitions within cycles_per_window.
 		int transitions = 0;
 		int cycles_remaining = cycles_per_window;
-		while(!tape_player.tape()->is_at_end() && cycles_remaining) {
+		while(!tape_player.is_at_end() && cycles_remaining) {
 			const int cycles_until_next_event = int(tape_player.get_cycles_until_next_event());
 			const int cycles_to_run_for = std::min(cycles_until_next_event, cycles_remaining);
 
@@ -149,7 +149,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 			}
 		}
 
-		if(tape_player.tape()->is_at_end()) return -1;
+		if(tape_player.is_at_end()) return -1;
 
 		int next_bit = 0;
 		switch(transitions) {
@@ -170,7 +170,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 			transition count two more."
 		*/
 		int required_transitions = 2 - (transitions&1);
-		while(!tape_player.tape()->is_at_end()) {
+		while(!tape_player.is_at_end()) {
 			tape_player.run_for_input_pulse();
 			if(level != tape_player.input()) {
 				level = tape_player.input();
@@ -179,7 +179,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 			}
 		}
 
-		if(tape_player.tape()->is_at_end()) return -1;
+		if(tape_player.is_at_end()) return -1;
 	}
 	return result;
 }

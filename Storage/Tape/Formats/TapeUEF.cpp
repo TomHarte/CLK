@@ -15,14 +15,89 @@
 #include "../../../Outputs/Log.hpp"
 
 namespace {
-
 Log::Logger<Log::Source::TapeUEF> logger;
+}
 
-// MARK: - ZLib extensions
+using namespace Storage::Tape;
 
-float gzgetfloat(gzFile file) {
+UEF::Parser::Parser(const std::string &file_name) {
+	file_ = gzopen(file_name.c_str(), "rb");
+
+	char identifier[10];
+	const int bytes_read = gzread(file_, identifier, 10);
+	if(bytes_read < 10 || std::strcmp(identifier, "UEF File!")) {
+		throw Storage::Tape::UEF::ErrorNotUEF;
+	}
+
+	uint8_t version[2];
+	gzread(file_, version, 2);
+
+	if(version[1] > 0 || version[0] > 10) {
+		throw Storage::Tape::UEF::ErrorNotUEF;
+	}
+
+	start_of_next_chunk_ = gztell(file_);
+}
+
+void UEF::Parser::reset() {
+	start_of_next_chunk_ = 12;
+}
+
+UEF::Parser::~Parser() {
+	gzclose(file_);
+}
+
+template<>
+uint8_t UEF::Parser::read<uint8_t>() {
+	// This is a workaround for gzgetc, which seems to be broken in ZLib 1.2.8.
+	uint8_t result;
+	gzread(file_, &result, 1);
+	return result;
+}
+
+template<>
+uint16_t UEF::Parser::read<uint16_t>() {
+	uint8_t bytes[2];
+	gzread(file_, bytes, 2);
+	return uint16_t(bytes[0] | (bytes[1] << 8));
+}
+
+template<>
+uint32_t UEF::Parser::read<uint32_t, 3>() {
+	uint8_t bytes[3];
+	gzread(file_, bytes, 3);
+	return uint32_t(bytes[0] | (bytes[1] << 8) | (bytes[2] << 16));
+}
+
+template<>
+uint32_t UEF::Parser::read<uint32_t>() {
 	uint8_t bytes[4];
-	gzread(file, bytes, 4);
+	gzread(file_, bytes, 4);
+	return uint32_t(bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24));
+}
+
+std::optional<UEF::Parser::Chunk> UEF::Parser::next() {
+	gzseek(file_, start_of_next_chunk_, SEEK_SET);
+
+	const uint16_t chunk_id = read<uint16_t>();
+	const uint32_t chunk_length = read<uint32_t>();
+	const auto start = gztell(file_);
+	start_of_next_chunk_ = start + chunk_length;
+
+	if(gzeof(file_)) {
+		return std::nullopt;
+	}
+
+	return Chunk{
+		.id = chunk_id,
+		.length = chunk_length,
+	};
+}
+
+template<>
+float UEF::Parser::read<float>() {
+	uint8_t bytes[4];
+	gzread(file_, bytes, 4);
 
 	/* assume a four byte array named Float exists, where Float[0]
 	was the first byte read from the UEF, Float[1] the second, etc */
@@ -46,98 +121,58 @@ float gzgetfloat(gzFile file) {
 	return result;
 }
 
-uint8_t gzget8(gzFile file) {
-	// This is a workaround for gzgetc, which seems to be broken in ZLib 1.2.8.
-	uint8_t result;
-	gzread(file, &result, 1);
-	return result;
-}
+UEF::UEF(const std::string &file_name) : file_name_(file_name) {
+	Parser parser(file_name);
 
-int gzget16(gzFile file) {
-	uint8_t bytes[2];
-	gzread(file, bytes, 2);
-	return bytes[0] | (bytes[1] << 8);
-}
-
-int gzget24(gzFile file) {
-	uint8_t bytes[3];
-	gzread(file, bytes, 3);
-	return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16);
-}
-
-int gzget32(gzFile file) {
-	uint8_t bytes[4];
-	gzread(file, bytes, 4);
-	return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
-}
-
-}
-
-using namespace Storage::Tape;
-
-UEF::UEF(const std::string &file_name) : Tape(serialiser_), serialiser_(file_name) {}
-
-UEF::Serialiser::Serialiser(const std::string &file_name) {
-	file_ = gzopen(file_name.c_str(), "rb");
-
-	char identifier[10];
-	const int bytes_read = gzread(file_, identifier, 10);
-	if(bytes_read < 10 || std::strcmp(identifier, "UEF File!")) {
-		throw ErrorNotUEF;
+	// If a chunk of type 0005 exists anywhere in the UEF then the UEF specifies its target machine.
+	// So check and, if so, update the list of machines for which this file thinks it is suitable.
+	while(const auto chunk = parser.next()) {
+		if(chunk->id == 0x0005) {
+			const uint8_t target = parser.read<uint8_t>();
+			switch(target >> 4) {
+				case 0:	target_platforms_ = TargetPlatform::BBCModelA;		break;
+				case 1:	target_platforms_ = TargetPlatform::AcornElectron;	break;
+				case 2:	target_platforms_ = TargetPlatform::BBCModelB;		break;
+				case 3:	target_platforms_ = TargetPlatform::BBCMaster;		break;
+				case 4:	target_platforms_ = TargetPlatform::AcornAtom;		break;
+				default: break;
+			}
+		}
 	}
+}
 
-	uint8_t version[2];
-	gzread(file_, version, 2);
+std::unique_ptr<FormatSerialiser> UEF::format_serialiser() const {
+	return std::make_unique<Serialiser>(file_name_);
+}
 
-	if(version[1] > 0 || version[0] > 10) {
-		throw ErrorNotUEF;
-	}
-
-	set_platform_type();
+UEF::Serialiser::Serialiser(const std::string &file_name): parser_(file_name) {
 }
 
 UEF::Serialiser::~Serialiser() {
-	gzclose(file_);
 }
 
 // MARK: - Public methods
 
 void UEF::Serialiser::reset() {
-	gzseek(file_, 12, SEEK_SET);
+	parser_.reset();
 	set_is_at_end(false);
 	clear();
 }
 
 // MARK: - Chunk navigator
 
-bool UEF::Serialiser::get_next_chunk(Chunk &result) {
-	const uint16_t chunk_id = uint16_t(gzget16(file_));
-	const uint32_t chunk_length = uint32_t(gzget32(file_));
-	const z_off_t start_of_next_chunk = gztell(file_) + chunk_length;
-
-	if(gzeof(file_)) {
-		return false;
-	}
-
-	result.id = chunk_id;
-	result.length = chunk_length;
-	result.start_of_next_chunk = start_of_next_chunk;
-
-	return true;
-}
-
 void UEF::Serialiser::push_next_pulses() {
 	while(empty()) {
 		// read chunk details
-		Chunk next_chunk;
-		if(!get_next_chunk(next_chunk)) {
+		const auto next_chunk = parser_.next();
+		if(!next_chunk) {
 			set_is_at_end(true);
 			return;
 		}
 
-		switch(next_chunk.id) {
-			case 0x0100:	queue_implicit_bit_pattern(next_chunk.length);	break;
-			case 0x0102:	queue_explicit_bit_pattern(next_chunk.length);	break;
+		switch(next_chunk->id) {
+			case 0x0100:	queue_implicit_bit_pattern(next_chunk->length);	break;
+			case 0x0102:	queue_explicit_bit_pattern(next_chunk->length);	break;
 			case 0x0112:	queue_integer_gap();							break;
 			case 0x0116:	queue_floating_point_gap();						break;
 
@@ -145,28 +180,26 @@ void UEF::Serialiser::push_next_pulses() {
 			case 0x0111:	queue_carrier_tone_with_dummy();				break;
 
 			case 0x0114:	queue_security_cycles();						break;
-			case 0x0104:	queue_defined_data(next_chunk.length);			break;
+			case 0x0104:	queue_defined_data(next_chunk->length);			break;
 
 			// change of base rate
 			case 0x0113: {
 				// TODO: something smarter than just converting this to an int
-				const float new_time_base = gzgetfloat(file_);
+				const float new_time_base = parser_.read<float>();
 				time_base_ = unsigned(roundf(new_time_base));
 			}
 			break;
 
 			case 0x0117: {
-				const int baud_rate = gzget16(file_);
+				const auto baud_rate = parser_.read<uint16_t>();
 				is_300_baud_ = (baud_rate == 300);
 			}
 			break;
 
 			default:
-				logger.info().append("Skipping chunk of type %04x", next_chunk.id);
+				logger.info().append("Skipping chunk of type %04x", next_chunk->id);
 			break;
 		}
-
-		gzseek(file_, next_chunk.start_of_next_chunk, SEEK_SET);
 	}
 }
 
@@ -174,15 +207,15 @@ void UEF::Serialiser::push_next_pulses() {
 
 void UEF::Serialiser::queue_implicit_bit_pattern(uint32_t length) {
 	while(length--) {
-		queue_implicit_byte(gzget8(file_));
+		queue_implicit_byte(parser_.read<uint8_t>());
 	}
 }
 
 void UEF::Serialiser::queue_explicit_bit_pattern(const uint32_t length) {
-	const std::size_t length_in_bits = (length << 3) - size_t(gzget8(file_));
+	const std::size_t length_in_bits = (length << 3) - size_t(parser_.read<uint8_t>());
 	uint8_t current_byte = 0;
 	for(std::size_t bit = 0; bit < length_in_bits; bit++) {
-		if(!(bit&7)) current_byte = gzget8(file_);
+		if(!(bit&7)) current_byte = parser_.read<uint8_t>();
 		queue_bit(current_byte&1);
 		current_byte >>= 1;
 	}
@@ -190,13 +223,13 @@ void UEF::Serialiser::queue_explicit_bit_pattern(const uint32_t length) {
 
 void UEF::Serialiser::queue_integer_gap() {
 	Time duration;
-	duration.length = unsigned(gzget16(file_));
+	duration.length = parser_.read<uint16_t>();
 	duration.clock_rate = time_base_;
 	emplace_back(Pulse::Zero, duration);
 }
 
 void UEF::Serialiser::queue_floating_point_gap() {
-	const float length = gzgetfloat(file_);
+	const float length = parser_.read<float>();
 	Time duration;
 	duration.length = unsigned(length * 4000000);
 	duration.clock_rate = 4000000;
@@ -204,26 +237,26 @@ void UEF::Serialiser::queue_floating_point_gap() {
 }
 
 void UEF::Serialiser::queue_carrier_tone() {
-	unsigned int number_of_cycles = unsigned(gzget16(file_));
+	auto number_of_cycles = parser_.read<uint16_t>();
 	while(number_of_cycles--) queue_bit(1);
 }
 
 void UEF::Serialiser::queue_carrier_tone_with_dummy() {
-	unsigned int pre_cycles = unsigned(gzget16(file_));
-	unsigned int post_cycles = unsigned(gzget16(file_));
+	auto pre_cycles = parser_.read<uint16_t>();
+	auto post_cycles = parser_.read<uint16_t>();
 	while(pre_cycles--) queue_bit(1);
 	queue_implicit_byte(0xaa);
 	while(post_cycles--) queue_bit(1);
 }
 
 void UEF::Serialiser::queue_security_cycles() {
-	int number_of_cycles = gzget24(file_);
-	bool first_is_pulse = gzget8(file_) == 'P';
-	bool last_is_pulse = gzget8(file_) == 'P';
+	auto number_of_cycles = parser_.read<uint32_t, 3>();
+	bool first_is_pulse = parser_.read<uint8_t>() == 'P';
+	bool last_is_pulse = parser_.read<uint8_t>() == 'P';
 
 	uint8_t current_byte = 0;
-	for(int cycle = 0; cycle < number_of_cycles; cycle++) {
-		if(!(cycle&7)) current_byte = gzget8(file_);
+	for(uint32_t cycle = 0; cycle < number_of_cycles; cycle++) {
+		if(!(cycle&7)) current_byte = parser_.read<uint8_t>();
 		int bit = (current_byte >> 7);
 		current_byte <<= 1;
 
@@ -245,16 +278,16 @@ void UEF::Serialiser::queue_security_cycles() {
 void UEF::Serialiser::queue_defined_data(uint32_t length) {
 	if(length < 3) return;
 
-	const int bits_per_packet = gzget8(file_);
-	const char parity_type = char(gzget8(file_));
-	int number_of_stop_bits = gzget8(file_);
+	const int bits_per_packet = parser_.read<uint8_t>();
+	const char parity_type = char(parser_.read<uint8_t>());
+	int number_of_stop_bits = parser_.read<uint8_t>();
 
 	const bool has_extra_stop_wave = (number_of_stop_bits < 0);
 	number_of_stop_bits = abs(number_of_stop_bits);
 
 	length -= 3;
 	while(length--) {
-		uint8_t byte = gzget8(file_);
+		uint8_t byte = parser_.read<uint8_t>();
 
 		uint8_t parity_value = byte;
 		parity_value ^= (parity_value >> 4);
@@ -321,33 +354,8 @@ void UEF::Serialiser::queue_bit(const int bit) {
 	}
 }
 
-// MARK: - TypeDistinguisher
+// MARK: - TargetPlatform::Distinguisher
 
-TargetPlatform::Type UEF::target_platform_type() {
-	return serialiser_.target_platform_type();
-}
-
-TargetPlatform::Type UEF::Serialiser::target_platform_type() {
-	return platform_type_;
-}
-
-void UEF::Serialiser::set_platform_type() {
-	// If a chunk of type 0005 exists anywhere in the UEF then the UEF specifies its target machine.
-	// So check and, if so, update the list of machines for which this file thinks it is suitable.
-	Chunk next_chunk;
-	while(get_next_chunk(next_chunk)) {
-		if(next_chunk.id == 0x0005) {
-			uint8_t target = gzget8(file_);
-			switch(target >> 4) {
-				case 0:	platform_type_ = TargetPlatform::BBCModelA;		break;
-				case 1:	platform_type_ = TargetPlatform::AcornElectron;	break;
-				case 2:	platform_type_ = TargetPlatform::BBCModelB;		break;
-				case 3:	platform_type_ = TargetPlatform::BBCMaster;		break;
-				case 4:	platform_type_ = TargetPlatform::AcornAtom;		break;
-				default: break;
-			}
-		}
-		gzseek(file_, next_chunk.start_of_next_chunk, SEEK_SET);
-	}
-	reset();
+TargetPlatform::Type UEF::target_platforms() {
+	return target_platforms_;
 }

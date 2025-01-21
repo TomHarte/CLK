@@ -232,8 +232,8 @@ template<bool is_zx81> class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 					// Check for use of the fast tape hack.
 					if(use_fast_tape_hack_ && address == tape_trap_address_) {
-						const uint64_t prior_offset = tape_player_.tape()->offset();
-						const int next_byte = parser_.get_next_byte(tape_player_.tape());
+						const uint64_t prior_offset = tape_player_.serialiser()->offset();
+						const int next_byte = parser_.get_next_byte(*tape_player_.serialiser());
 						if(next_byte != -1) {
 							const uint16_t hl = z80_.value_of(CPU::Z80::Register::HL);
 							ram_[hl & ram_mask_] = uint8_t(next_byte);
@@ -246,7 +246,7 @@ template<bool is_zx81> class ConcreteMachine:
 							tape_advance_delay_ = 1000;
 							return 0;
 						} else {
-							tape_player_.tape()->set_offset(prior_offset);
+							tape_player_.serialiser()->set_offset(prior_offset);
 						}
 					}
 
@@ -323,7 +323,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
-				tape_player_.set_tape(media.tapes.front());
+				tape_player_.set_tape(media.tapes.front(), is_zx81 ? TargetPlatform::ZX81 : TargetPlatform::ZX80);
 			}
 
 			set_use_fast_tape();

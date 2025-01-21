@@ -431,7 +431,7 @@ class ConcreteMachine:
 			}
 
 			if(!media.tapes.empty()) {
-				tape_player_.set_tape(media.tapes.front());
+				tape_player_.set_tape(media.tapes.front(), TargetPlatform::MSX);
 			}
 
 			if(!media.disks.empty()) {

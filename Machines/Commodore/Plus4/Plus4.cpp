@@ -21,6 +21,9 @@
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
+#include "../../../Analyser/Static/Commodore/Target.hpp"
+
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../SerialBus.hpp"
 #include "../1540/C1540.hpp"
@@ -171,7 +174,7 @@ class ConcreteMachine:
 	public Machine,
 	public Utility::TypeRecipient<CharacterMapper> {
 public:
-	ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::Commodore::Plus4Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6502_(*this),
 		interrupts_(*this),
 		timers_(interrupts_),
@@ -212,6 +215,7 @@ public:
 			c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
 			c1541_->set_serial_bus(serial_bus_);
 			Serial::attach(serial_port_, serial_bus_);
+			c1541_->run_for(Cycles(2000000));
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
@@ -220,9 +224,10 @@ public:
 		joysticks_.emplace_back(std::make_unique<Joystick>());
 
 		insert_media(target.media);
-//		if(!target.loading_command.empty()) {
-//			type_string(target.loading_command);
-//		}
+		if(!target.loading_command.empty()) {
+			// Prefix a space as a delaying technique.
+			type_string(std::string(" ") + target.loading_command);
+		}
 	}
 
 	~ConcreteMachine() {
@@ -296,6 +301,33 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
+			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode && address == 0xe5fd) {
+				// TODO:
+				//
+				// ; read a dipole from tape (and then RTS)
+				// ;
+				// ; if c=1 then error
+				// ;    else if v=1 then short
+				// ;            else if n=0 then long
+				// ;                    else word
+				// ;                    end
+				// ;            end
+				// ;    end
+
+				// Compare with:
+				//
+				// dsamp1	*=*+2		;time constant for x cell sample		07B8
+				// dsamp2	*=*+2		;time constant for y cell sample
+				// zcell	*=*+2		;time constant for z cell verify
+
+//				const uint8_t dsamp1 = map_.read(0x7b8);
+//				const uint8_t dsamp2 = map_.read(0x7b9);
+//				const uint8_t zcell = map_.read(0x7ba);
+//
+//
+//				printf("rddipl: %d / %d / %d\n", dsamp1, dsamp2, zcell);
+			}
+
 			if(is_read(operation)) {
 				*value = map_.read(address);
 			} else {
@@ -330,6 +362,10 @@ public:
 						*value = 0xff ^ (play_button_ ? 0x4 :0x0);
 					break;
 
+					case 0xfdd0:
+						*value = 0xff;
+					break;
+
 					default:
 						printf("TODO: read @ %04x\n", address);
 					break;
@@ -340,12 +376,25 @@ public:
 						keyboard_mask_ = *value;
 					break;
 
+					case 0xfdd0: {
+//						const auto low = address & 3;
+//						const auto high = (address >> 2) & 3;
+						// TODO: set up ROMs.
+					} break;
+
 					default:
 						printf("TODO: write of %02x @ %04x\n", *value, address);
 					break;
 				}
 			}
 		} else {
+			const auto pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+			const bool is_from_rom =
+				(rom_is_paged_ && pc >= 0x8000) ||
+				(pc >= 0x400 && pc < 0x500) ||
+				(pc >= 0x700 && pc < 0x800);
+			bool is_hit = true;
+
 			if(is_read(operation)) {
 				switch(address) {
 					case 0xff00:	*value = timers_.read<0>();		break;
@@ -371,8 +420,8 @@ public:
 
 						const uint8_t joystick_mask =
 							0xff &
-							((joystick_mask_ & 0x02) ? 0xff : (joystick(1).mask() | 0x40)) &
-							((joystick_mask_ & 0x04) ? 0xff : (joystick(0).mask() | 0x80));
+							((joystick_mask_ & 0x02) ? 0xff : (joystick(0).mask() | 0x40)) &
+							((joystick_mask_ & 0x04) ? 0xff : (joystick(1).mask() | 0x80));
 
 						*value = keyboard_input & joystick_mask;
 					} break;
@@ -407,6 +456,7 @@ public:
 
 					default:
 						printf("TODO: TED read at %04x\n", address);
+						is_hit = false;
 				}
 			} else {
 				switch(address) {
@@ -500,7 +550,12 @@ public:
 
 					default:
 						printf("TODO: TED write at %04x\n", address);
+						is_hit = false;
 				}
+			}
+			if(!is_from_rom) {
+				printf("%04x\n", pc);
+				if(is_hit) confidence_.add_hit(); else confidence_.add_miss();
 			}
 		}
 
@@ -538,10 +593,12 @@ private:
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
 		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
 		rom_is_paged_ = true;
+		set_use_fast_tape();
 	}
 	void page_cpu_ram() {
 		map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
 		rom_is_paged_ = false;
+		set_use_fast_tape();
 	}
 	bool rom_is_paged_ = false;
 
@@ -578,7 +635,7 @@ private:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
-			tape_player_->set_tape(media.tapes[0]);
+			tape_player_->set_tape(media.tapes[0], TargetPlatform::Plus4);
 		}
 
 		if(!media.disks.empty() && c1541_) {
@@ -646,10 +703,14 @@ private:
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
 	bool play_button_ = false;
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
-	void set_use_fast_tape() {}
+	bool use_fast_tape_hack_ = false;
+	void set_use_fast_tape() {
+		use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_;
+	}
 	void update_tape_motor() {
 		const auto output = io_output_ | ~io_direction_;
 		tape_player_->set_motor_control(play_button_ && (~output & 0x08));
+		set_use_fast_tape();
 	}
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
@@ -661,6 +722,13 @@ private:
 		return *static_cast<Joystick *>(joysticks_[index].get());
 	}
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+	// MARK: - Confidence.
+	Analyser::Dynamic::ConfidenceCounter confidence_;
+	float get_confidence() final { return confidence_.get_confidence(); }
+	std::string debug_type() final {
+		return "Plus4";
+	}
 
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
@@ -684,7 +752,7 @@ std::unique_ptr<Machine> Machine::Plus4(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Target;
+	using Target = Analyser::Static::Commodore::Plus4Target;
 	const Target *const commodore_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<ConcreteMachine>(*commodore_target, rom_fetcher);
 }
