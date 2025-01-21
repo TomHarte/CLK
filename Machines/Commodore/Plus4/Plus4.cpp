@@ -712,10 +712,9 @@ private:
 		set_use_fast_tape();
 	}
 	void read_dipole() {
-		if(pulse_num_ == 15225) {
+		if(pulse_num_ >= 15225) {
 			printf("");
 		}
-
 		// Provides an HLE implementation of the routine beginning at address
 		// 0xe5fd in the ROM, i.e. rddipl (read dipole) as that's the one that
 		// spins awaiting changes in tape input.
@@ -728,19 +727,24 @@ private:
 		const unsigned int timer_clock_rate =
 			static_cast<unsigned int>(get_clock_rate()) / video_.timer_cycle_length().as<unsigned int>();
 
-		//; trigger on negative edge (beginning) of dipole
-		//;
-		//rddipl
-		//       ldx  dsamp1     	; setup x,y with 1st sample point
-		//       ldy  dsamp1+1
-		//badeg1
-		//       lda  dsamp2+1   	; put 2nd samp value on stack in reverse order
-		//       pha
-		//       lda  dsamp2
-		//       pha
+		const auto wait_for = [&](Pulse::Type type) -> bool {
+			while(!tape_player_->is_at_end() && tape_player_->current_pulse().type != type) {
+				tape_player_->complete_pulse();
+			}
+
+			return tape_player_->current_pulse().type == type;
+		};
 		const auto read16 = [&](uint16_t address) {
 			return uint16_t( map_.read(address) | (map_.read(address + 1) << 8) );
 		};
+		const auto pulse_timer_cycles = [&] {
+			const auto length = tape_player_->current_pulse().length;
+			return (length.length * timer_clock_rate) / length.clock_rate;
+		};
+
+		//
+		// Grab timing constants, and put one into memory as it had been on the stack.
+		//
 		const auto dsamp1 = read16(0x7b8);
 		const auto dsamp2 = read16(0x7ba);
 		const auto zcell = read16(0x7bc);
@@ -750,258 +754,57 @@ private:
 		map_.write(0x100 + s) = uint8_t (dsamp2);
 
 		//
-		//       lda  #$10
-		//rwtl   			; wait till rd line is high
-		//       bit  port
-		//       beq  rwtl       	; !ls!
+		// Busy wait for high input from tape (Elaboration: exiting with error if the tape ends).
 		//
-		const auto wait_for = [&](Pulse::Type type) -> bool {
-			while(!tape_player_->is_at_end() && tape_player_->current_pulse().type != type) {
-				tape_player_->complete_pulse();
-			}
-
-			return tape_player_->current_pulse().type == type;
-		};
 		if(!wait_for(Pulse::Low)) {
 			flags |= Flag::Carry;
+			m6502_.set_value_of(Register::Flags, flags);
 			return;
 		}
 
 		//
-		//rwth   			;it's high...now wait till it's low
-		//       bit  port
-		//       bne  rwth	; caught the edge
+		// Busy wait for low input from tape (Elaboration: exiting with error if the tape ends).
+		//
 		if(!wait_for(Pulse::High)) {
 			flags |= Flag::Carry;
+			m6502_.set_value_of(Register::Flags, flags);
 			return;
 		}
 
-		//       stx  timr2l
-		//       sty  timr2h
 		//
-		//; go! ...ta
+		// If tape input goes high before dsamp1 cycles, report a short.
 		//
-		//       pla		;go! ...ta
-		//       sta  timr3l
-		//       pla
-		//       sta  timr3h     	;go! ...tb
-		//
-		//; clear timer flags
-		//
-		//       lda  #$50       	; clr ta,tb
-		//       sta  tedirq
-		//
-		//; um...check that edge again
-		//
-		//casdb1
-		//       lda  port
-		//       cmp  port
-		//       bne  casdb1     	; something is going on here...
-		//       and  #$10       	; a look at that edge again
-		//       bne  badeg1     	; woa! got a bad edge trigger  !ls!
-		//
-		//; must have been a valid edge
-		//;
-		//; do stop key check here
-		//
-		//       jsr  balout
-		//       lda  #$10
-		//wata   			; wait for ta to timeout
-		//       bit  port       	; kuldge, kludge, kludge !!! <<><>>
-		//       bne  rshort     	; kuldge, kludge, kludge !!! <<><>>
-		//       bit  tedirq
-		//       beq  wata
-		//
-		//; now do the dipole sample #1
-		//
-		//casdb2
-		//       lda  port
-		//       cmp  port
-		//       bne  casdb2
-		//       and  #$10
-		//       bne  rshort     	; shorts anyone?
-		//
-
-		const auto pulse_timer_cycles = [&] {
-			const auto length = tape_player_->current_pulse().length;
-			return (length.length * timer_clock_rate) / length.clock_rate;
-		};
 		const auto pulse_length = pulse_timer_cycles();
 		if(pulse_length <= dsamp1) {
-			// Goto rshort, i.e. ...
 			flags |= Flag::Overflow;
 			flags &= ~Flag::Carry;
 			m6502_.set_value_of(Register::Flags, flags);
 			return;
 		}
 
-		if(pulse_length <= dsamp2) {
+		//
+		// Wait until end of dsamp1 period, then wait on until input is high, then wait until end of dsamp2 period.
+		// If input is then low, it's a long.
+		//
+		tape_player_->complete_pulse();
+		const auto second_pulse_length = pulse_timer_cycles();
+		if(second_pulse_length + pulse_length <= dsamp2) {
 			// Goto rlong, i.e. ...
 			flags &= ~(Flag::Carry | Flag::Sign);
 			m6502_.set_value_of(Register::Flags, flags);
 			return;
 		}
 
-		// Test for a word by looking at the second part of the pulse.
-		tape_player_->complete_pulse();
-		const auto second_pulse_length = pulse_timer_cycles();
-		if(second_pulse_length <= zcell) {
+		//
+		// Now wait an additional zcell clocks. If input is still low, that's an error. Otherwise it's a word.
+		//
+		if(second_pulse_length + pulse_length > dsamp2 + zcell) {
+			flags |= Flag::Carry;
+		} else {
 			flags |= Flag::Sign;
 			flags &= ~(Flag::Carry | Flag::Overflow);
-			m6502_.set_value_of(Register::Flags, flags);
-			return;
 		}
-
-		flags |= Flag::Carry;
 		m6502_.set_value_of(Register::Flags, flags);
-
-		//; perhaps a long or a word?
-		//
-		//       lda  #$40
-		//watb
-		//       bit  tedirq
-		//       beq  watb
-		//
-		//; wait for tb to timeout
-		//; now do the dipole sample #2
-		//
-		//casdb3
-		//       lda  port
-		//       cmp  port
-		//       bne  casdb3
-		//       and  #$10
-		//       bne  rlong      	; looks like a long from here !ls!
-		//			; or could it be a word?
-		//       lda  zcell
-		//       sta  timr2l
-		//       lda  zcell+1
-		//       sta  timr2h
-		//			; go! z-cell check
-		//			; clear ta flag
-		//       lda  #$10
-		//       sta  tedirq	; verify +180 half of word dipole
-		//       lda  #$10
-		//wata2
-		//       bit  tedirq
-		//       beq  wata2	; check z-cell is low
-		//casdb4
-		//       lda  port
-		//       cmp  port
-		//       bne  casdb4
-		//       and  #$10
-		//       beq  rderr1     	; !ls!
-		//       bit  twordd     	; got a word dipole
-		//       bmi  dipok      	; !bra
-		//
-		//rshort
-		//       bit  tshrtd     	; got a short
-		//       bvs  dipok      	; !bra
-		//
-		//rlong
-		//       bit  tlongd     	; got a long
-		//
-		//dipok
-		//       clc             	; everything's fine
-		//       rts
-		//
-		//rderr1
-		//       sec             	; i'm confused
-		//       rts
-
-
-
-//				++pulse_num;
-//				const bool is_interesting = pulse_num >= 15220;
-//
-//				if(pulse_num == 15224) {
-//					printf("");
-//				}
-//
-////			if(address == 0xe68a) {
-////			}
-//
-//			if(address == 0xe5fd) {
-//				// TODO:
-//				//
-//				// ; read a dipole from tape (and then RTS)
-//				// ;
-//				// ; if c=1 then error
-//				// ;    else if v=1 then short
-//				// ;            else if n=0 then long
-//				// ;                    else word
-//				// ;                    end
-//				// ;            end
-//				// ;    end
-//
-//				// 76 = V, not N or C
-//				// b7 = N
-//
-//				// Compare with:
-//				//
-//				// dsamp1	*=*+2		;time constant for x cell sample		07B8
-//				// dsamp2	*=*+2		;time constant for y cell sample
-//				// zcell	*=*+2		;time constant for z cell verify
-//
-//				const auto zcell = read16(0x7bc);
-//				using Pulse = Storage::Tape::Pulse;
-//
-//				// Wait until tape input is high (i.e. input is low).
-////				while(tape_player_->current_pulse().type != Pulse::Type::Low) {
-////					tape_player_->complete_pulse();
-////				}
-//
-//				// Wait until tape input is low.
-//				while(tape_player_->current_pulse().type != Pulse::Type::High) {
-//					tape_player_->complete_pulse();
-//				}
-//
-//				// Count time of low high, and classify.
-//				const auto length1 = tape_player_->current_pulse().length.get<float>();
-//				tape_player_->complete_pulse();	// Consume High.
-//				const auto length2 = tape_player_->current_pulse().length.get<float>();
-//				tape_player_->complete_pulse();	// Consume Low.
-//
-//				uint8_t flags =
-//					uint8_t(m6502_.value_of(CPU::MOS6502::Register::Flags)) &
-//					~(CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Overflow | CPU::MOS6502::Flag::Sign);
-//
-//				if(std::abs(length1 - length2) > 0.00025f) {
-//					// Lengths are too dissimilar; call that an error.
-//					flags |= CPU::MOS6502::Flag::Carry;
-//				}
-//
-////				const auto dsamp1_difference = std::abs(length1 - dsamp1);
-////				const auto dsamp2_difference = std::abs(length1 - dsamp2);
-////				const auto zcell_difference = std::abs(length1 - zcell);
-//
-//				if(length2 < dsamp1) {
-//					flags |= CPU::MOS6502::Flag::Overflow;
-//				} else if(length2 > zcell) {
-//					flags |= CPU::MOS6502::Flag::Sign;
-//				}
-//
-//				m6502_.set_value_of(CPU::MOS6502::Register::Flags, flags);
-//
-//				if(is_interesting) {
-//					logger.info().append("Read: %d %d",
-//						int(length1 * 1'000'000),
-//						int(length2 * 1'000'000)
-//					);
-//				}
-//
-//				*value = 0x60;	// i.e. RTS.
-//				}
-//
-//	if(is_interesting) {
-//				const auto flags = m6502_.value_of(CPU::MOS6502::Register::Flags);
-//				logger.info().append("%d @ %d dipole result: %c%c%c",
-//					pulse_num,
-//					tape_player_->event_count(),
-//					flags & CPU::MOS6502::Flag::Sign ? 'n' : '-',
-//					flags & CPU::MOS6502::Flag::Overflow ? 'v' : '-',
-//					flags & CPU::MOS6502::Flag::Carry ? 'c' : '-');
-//}
-//			} else {	
 	}
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
