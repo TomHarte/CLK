@@ -225,6 +225,8 @@ HEADERS += \
 	$$SRC/InstructionSets/x86/*.hpp \
 \
 	$$SRC/Machines/*.hpp \
+	$$SRC/Machines/Acorn/Archimedes/*.hpp \
+	$$SRC/Machines/Acorn/Electron/*.hpp \
 	$$SRC/Machines/Amiga/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \
 	$$SRC/Machines/Apple/ADB/*.hpp \
@@ -238,7 +240,6 @@ HEADERS += \
 	$$SRC/Machines/Commodore/1540/Implementation/*.hpp \
 	$$SRC/Machines/Commodore/Plus4/*.hpp \
 	$$SRC/Machines/Commodore/Vic-20/*.hpp \
-	$$SRC/Machines/Electron/*.hpp \
 	$$SRC/Machines/Enterprise/*.hpp \
 	$$SRC/Machines/MasterSystem/*.hpp \
 	$$SRC/Machines/MSX/*.hpp \
