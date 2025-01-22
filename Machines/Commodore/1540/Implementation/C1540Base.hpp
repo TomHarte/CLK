@@ -59,13 +59,6 @@ private:
 	void update_data_line();
 };
 
-//inline void set_serial_line_state(Commodore::Serial::Line line bool value, MOS::MOS6522::MOS6522<SerialPortVIA> &via) {
-//	switch(line){
-//		case Commodore::Serial::Line::One:
-//			via.set_serial_line_state<Commodore::Serial::Line::One>(value, via);
-//	}
-//}
-
 /*!
 	An implementation of the drive VIA in a Commodore 1540: the VIA that is used to interface with the disk.
 
