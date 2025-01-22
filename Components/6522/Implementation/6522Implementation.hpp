@@ -132,13 +132,11 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 			}
 			evaluate_port_b_output();
 		break;
-		case 0xc: {	// Peripheral control ('PCR').
-//			const auto old_peripheral_control = registers_.peripheral_control;
+		case 0xc:	// Peripheral control ('PCR').
 			registers_.peripheral_control = value;
-
-			update_pcr<Port::A, 0>(value);
-			update_pcr<Port::B, 4>(value);
-		} break;
+			update_pcr<Port::A>(value);
+			update_pcr<Port::B>(value >> 4);
+		break;
 
 		// Interrupt control
 		case 0xd:	// Interrupt flag regiser ('IFR').
@@ -156,10 +154,10 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 }
 
 template <typename T>
-template <Port port, int shift>
+template <Port port>
 void MOS6522<T>::update_pcr(const uint8_t value) {
 	handshake_modes_[port] = HandshakeMode::None;
-	switch((value >> shift) & 0x0e) {
+	switch(value & 0x0e) {
 		default: break;
 
 		case 0x00:	// Negative interrupt input; set Cx2 interrupt on negative Cx2 transition, clear on access to Port x register.

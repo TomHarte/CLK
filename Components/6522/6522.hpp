@@ -131,7 +131,7 @@ private:
 	void access(int address);
 
 	template <Port> uint8_t get_port_input(uint8_t output_mask, uint8_t output, uint8_t timer_mask);
-	template <Port port, int shift> void update_pcr(const uint8_t);
+	template <Port port> void update_pcr(const uint8_t);
 	inline void reevaluate_interrupts();
 
 	/// Sets the current intended output value for the port and line;
