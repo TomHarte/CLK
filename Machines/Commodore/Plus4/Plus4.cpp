@@ -25,6 +25,7 @@
 #include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
+#include "../../../Storage/Tape/Parsers/Commodore.hpp"
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../SerialBus.hpp"
 #include "../1540/C1540.hpp"
@@ -305,31 +306,40 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
-			constexpr bool use_hle = true;
-			constexpr uint16_t trap = use_hle ? 0xe5fd : 0xe68a;
-
-			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode && address == trap) {
-				++pulse_num_;
-
-				if(use_hle) {
-					read_dipole();
-				}
-				*value = 0x60;
-
-				if(!tape_player_->is_at_end()) {
-					const auto flags = uint8_t(m6502_.value_of(CPU::MOS6502::Register::Flags));
-					logger.info().append("%d @ %d dipole result: %c%c%c",
-						pulse_num_,
-						tape_player_->event_count(),
-						flags & CPU::MOS6502::Flag::Sign ? 'n' : '-',
-						flags & CPU::MOS6502::Flag::Overflow ? 'v' : '-',
-						flags & CPU::MOS6502::Flag::Carry ? 'c' : '-');
-				}
+			if(is_read(operation)) {
+				*value = map_.read(address);
 			} else {
-				if(is_read(operation)) {
-					*value = map_.read(address);
-				} else {
-					map_.write(address) = *value;
+				map_.write(address) = *value;
+			}
+
+			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
+				if(address == 0xe9cc) {
+					// Skip the `jsr rdblok` that opens `fah` (i.e. find any header), performing
+					// its function as a high-level emulation.
+					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
+					auto header = parser.get_next_header(*tape_player_->serialiser());
+
+					const auto tape_position = tape_player_->serialiser()->offset();
+					if(header) {
+						// Copy to in-memory buffer and set type.
+						std::memcpy(&ram_[0x0333], header->data.data(), 191);
+						map_.write(0xb6) = 0x33;
+						map_.write(0xb7) = 0x03;
+						map_.write(0xf8) = header->type_descriptor();
+//						hold_tape_ = true;
+						logger.info().append("Found header");
+					} else {
+						// no header found, so pretend this hack never interceded
+						tape_player_->serialiser()->set_offset(tape_position);
+//						hold_tape_ = false;
+						logger.info().append("Didn't find header");
+					}
+
+					// Clear status and the verify flags.
+					ram_[0x90] = 0;
+					ram_[0x93] = 0;
+
+					*value = 0x0c;	// NOP abs.
 				}
 			}
 		} else if(address < 0xff00) {
@@ -712,9 +722,9 @@ private:
 		set_use_fast_tape();
 	}
 	void read_dipole() {
-		if(pulse_num_ >= 15225) {
-			printf("");
-		}
+//		if(pulse_num_ >= 15225) {
+//			printf("");
+//		}
 		// Provides an HLE implementation of the routine beginning at address
 		// 0xe5fd in the ROM, i.e. rddipl (read dipole) as that's the one that
 		// spins awaiting changes in tape input.

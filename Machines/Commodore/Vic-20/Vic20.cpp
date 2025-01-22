@@ -537,9 +537,9 @@ public:
 			// Consider applying the fast tape hack.
 			if(use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 				if(address == 0xf7b2) {
-					// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
-					// So cancel that via a double NOP and fill in the next header programmatically.
-					Storage::Tape::Commodore::Parser parser;
+					// Address 0xf7b2 contains a JSR to 0xf8c0 ('RDTPBLKS') that will fill the tape buffer with the
+					// next header. Skip that via a three-byte NOP and fill in the next header programmatically.
+					Storage::Tape::Commodore::Parser parser(TargetPlatform::Vic20);
 					std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(*tape_->serialiser());
 
 					const auto tape_position = tape_->serialiser()->offset();
@@ -564,7 +564,7 @@ public:
 				} else if(address == 0xf90b) {
 					uint8_t x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 					if(x == 0xe) {
-						Storage::Tape::Commodore::Parser parser;
+						Storage::Tape::Commodore::Parser parser(TargetPlatform::Vic20);
 						const auto tape_position = tape_->serialiser()->offset();
 						const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(*tape_->serialiser());
 						if(data) {

@@ -13,8 +13,9 @@
 
 using namespace Storage::Tape::Commodore;
 
-Parser::Parser() :
-	Storage::Tape::PulseClassificationParser<WaveType, SymbolType>() {}
+Parser::Parser(TargetPlatform::Type target_platform) :
+	Storage::Tape::PulseClassificationParser<WaveType, SymbolType>(),
+	target_platform_(target_platform) {}
 
 /*!
 	Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
@@ -113,18 +114,21 @@ std::unique_ptr<Header> Parser::get_next_header_body(Storage::Tape::TapeSerialis
 	return header;
 }
 
-void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) {
+uint8_t Header::type_descriptor() const {
 	switch(type) {
-		default:							target[0] = 0xff;	break;
-		case Header::RelocatableProgram:	target[0] = 0x01;	break;
-		case Header::DataBlock:				target[0] = 0x02;	break;
-		case Header::NonRelocatableProgram:	target[0] = 0x03;	break;
-		case Header::DataSequenceHeader:	target[0] = 0x04;	break;
-		case Header::EndOfTape:				target[0] = 0x05;	break;
+		default:							return 0xff;
+		case Header::RelocatableProgram:	return 0x01;
+		case Header::DataBlock:				return 0x02;
+		case Header::NonRelocatableProgram:	return 0x03;
+		case Header::DataSequenceHeader:	return 0x04;
+		case Header::EndOfTape:				return 0x05;
 	}
+}
+
+void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) const {
+	target[0] = type_descriptor();
 
 	// TODO: validate length.
-
 	std::memcpy(&target[1], data.data(), 191);
 }
 
@@ -238,12 +242,29 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	// short: 182us		=>	0.000364s cycle
 	// medium: 262us	=>	0.000524s cycle
 	// long: 342us		=>	0.000684s cycle
+
+	// The C16, which polls for tape level around lengthy bad line pauses, instead uses these timings:
+	// short: 240us		=>	0.000480s cycle
+	// medium: 480us	=>	0.000960s cycle
+	// long: 960us		=>	0.001920s cycle
+
 	const bool is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!is_high && previous_was_high_) {
-		if(wave_period_ >= 0.000764)		push_wave(WaveType::Unrecognised);
-		else if(wave_period_ >= 0.000604)	push_wave(WaveType::Long);
-		else if(wave_period_ >= 0.000444)	push_wave(WaveType::Medium);
-		else if(wave_period_ >= 0.000284)	push_wave(WaveType::Short);
+		const bool is_plus4 = target_platform_ == TargetPlatform::Plus4;
+		const float short_ms = is_plus4 ? 240.0f : 182.0f;
+		const float medium_ms = is_plus4 ? 480.0f : 262.0f;
+		const float long_ms = is_plus4 ? 960.0f : 342.0f;
+
+		constexpr float to_s = 2.0f / 1'000'000.0f;
+		const float overlong_threshold = (long_ms + long_ms - medium_ms) * to_s;
+		const float long_threshold = ((long_ms + medium_ms) * 0.5f) * to_s;
+		const float medium_threshold = ((medium_ms + short_ms) * 0.5f) * to_s;
+		const float short_threshold = (short_ms * 0.5f) * to_s;
+
+		if(wave_period_ >= overlong_threshold)		push_wave(WaveType::Unrecognised);
+		else if(wave_period_ >= long_threshold)		push_wave(WaveType::Long);
+		else if(wave_period_ >= medium_threshold)	push_wave(WaveType::Medium);
+		else if(wave_period_ >= short_threshold)	push_wave(WaveType::Short);
 		else push_wave(WaveType::Unrecognised);
 
 		wave_period_ = 0.0f;
