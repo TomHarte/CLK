@@ -19,7 +19,7 @@ template <typename T> void MOS6522<T>::access(const int address) {
 		case 0x0:
 			// In both handshake and pulse modes, CB2 goes low on any read or write of Port B.
 			if(handshake_modes_[1] != HandshakeMode::None) {
-				set_control_line_output(Port::B, Line::Two, LineState::Off);
+				set_control_line_output<Port::B, Line::Two>(LineState::Off);
 			}
 		break;
 
@@ -27,7 +27,7 @@ template <typename T> void MOS6522<T>::access(const int address) {
 		case 0x1:
 			// In both handshake and pulse modes, CA2 goes low on any read or write of Port A.
 			if(handshake_modes_[0] != HandshakeMode::None) {
-				set_control_line_output(Port::A, Line::Two, LineState::Off);
+				set_control_line_output<Port::A, Line::Two>(LineState::Off);
 			}
 		break;
 	}
@@ -55,10 +55,10 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 			registers_.output[0] = value;
 
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-			bus_handler_.set_port_output(Port::A, value, registers_.data_direction[0]);
+			bus_handler_.template set_port_output<Port::A>(value, registers_.data_direction[0]);
 
 			if(handshake_modes_[1] != HandshakeMode::None) {
-				set_control_line_output(Port::A, Line::Two, LineState::Off);
+				set_control_line_output<Port::A, Line::Two>(LineState::Off);
 			}
 
 			registers_.interrupt_flags &= ~(
@@ -136,40 +136,8 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 //			const auto old_peripheral_control = registers_.peripheral_control;
 			registers_.peripheral_control = value;
 
-			int shift = 0;
-			for(int port = 0; port < 2; ++port) {
-				handshake_modes_[port] = HandshakeMode::None;
-				switch((value >> shift) & 0x0e) {
-					default: break;
-
-					case 0x00:	// Negative interrupt input; set Cx2 interrupt on negative Cx2 transition, clear on access to Port x register.
-					case 0x02:	// Independent negative interrupt input; set Cx2 interrupt on negative transition, don't clear automatically.
-					case 0x04:	// Positive interrupt input; set Cx2 interrupt on positive Cx2 transition, clear on access to Port x register.
-					case 0x06:	// Independent positive interrupt input; set Cx2 interrupt on positive transition, don't clear automatically.
-						set_control_line_output(Port(port), Line::Two, LineState::Input);
-					break;
-
-					case 0x08:	// Handshake: set Cx2 to low on any read or write of Port x; set to high on an active transition of Cx1.
-						handshake_modes_[port] = HandshakeMode::Handshake;
-						set_control_line_output(Port(port), Line::Two, LineState::Off);	// At a guess.
-					break;
-
-					case 0x0a:	// Pulse output: Cx2 is low for one cycle following a read or write of Port x.
-						handshake_modes_[port] = HandshakeMode::Pulse;
-						set_control_line_output(Port(port), Line::Two, LineState::On);
-					break;
-
-					case 0x0c:	// Manual output: Cx2 low.
-						set_control_line_output(Port(port), Line::Two, LineState::Off);
-					break;
-
-					case 0x0e:	// Manual output: Cx2 high.
-						set_control_line_output(Port(port), Line::Two, LineState::On);
-					break;
-				}
-
-				shift += 4;
-			}
+			update_pcr<Port::A, 0>(value);
+			update_pcr<Port::B, 4>(value);
 		} break;
 
 		// Interrupt control
@@ -187,6 +155,40 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 	}
 }
 
+template <typename T>
+template <Port port, int shift>
+void MOS6522<T>::update_pcr(const uint8_t value) {
+	handshake_modes_[port] = HandshakeMode::None;
+	switch((value >> shift) & 0x0e) {
+		default: break;
+
+		case 0x00:	// Negative interrupt input; set Cx2 interrupt on negative Cx2 transition, clear on access to Port x register.
+		case 0x02:	// Independent negative interrupt input; set Cx2 interrupt on negative transition, don't clear automatically.
+		case 0x04:	// Positive interrupt input; set Cx2 interrupt on positive Cx2 transition, clear on access to Port x register.
+		case 0x06:	// Independent positive interrupt input; set Cx2 interrupt on positive transition, don't clear automatically.
+			set_control_line_output<port, Line::Two>(LineState::Input);
+		break;
+
+		case 0x08:	// Handshake: set Cx2 to low on any read or write of Port x; set to high on an active transition of Cx1.
+			handshake_modes_[port] = HandshakeMode::Handshake;
+			set_control_line_output<port, Line::Two>(LineState::Off);	// At a guess.
+		break;
+
+		case 0x0a:	// Pulse output: Cx2 is low for one cycle following a read or write of Port x.
+			handshake_modes_[port] = HandshakeMode::Pulse;
+			set_control_line_output<port, Line::Two>(LineState::On);
+		break;
+
+		case 0x0c:	// Manual output: Cx2 low.
+			set_control_line_output<port, Line::Two>(LineState::Off);
+		break;
+
+		case 0x0e:	// Manual output: Cx2 high.
+			set_control_line_output<port, Line::Two>(LineState::On);
+		break;
+	}
+}
+
 template <typename T> uint8_t MOS6522<T>::read(int address) {
 	address &= 0xf;
 	access(address);
@@ -194,12 +196,12 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 		case 0x0:	// Read Port B ('IRB').
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
 			reevaluate_interrupts();
-		return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1], registers_.auxiliary_control & 0x80);
+		return get_port_input<Port::B>(registers_.data_direction[1], registers_.output[1], registers_.auxiliary_control & 0x80);
 		case 0xf:
 		case 0x1:	// Read Port A ('IRA').
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
 			reevaluate_interrupts();
-		return get_port_input(Port::A, registers_.data_direction[0], registers_.output[0], 0);
+		return get_port_input<Port::A>(registers_.data_direction[0], registers_.output[0], 0);
 
 		case 0x2:	return registers_.data_direction[1];	// Port B direction ('DDRB').
 		case 0x3:	return registers_.data_direction[0];	// Port A direction ('DDRA').
@@ -236,14 +238,15 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 	return 0xff;
 }
 
-template <typename T> uint8_t MOS6522<T>::get_port_input(
-	const Port port,
+template <typename T>
+template <Port port>
+uint8_t MOS6522<T>::get_port_input(
 	const uint8_t output_mask,
 	uint8_t output,
 	const uint8_t timer_mask
 ) {
 	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-	const uint8_t input = bus_handler_.get_port_input(port);
+	const uint8_t input = bus_handler_.template get_port_input<port>();
 	output = (output & ~timer_mask) | (registers_.timer_port_b_output & timer_mask);
 	return (input & ~output_mask) | (output & output_mask);
 }
@@ -263,13 +266,15 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 	}
 }
 
-template <typename T> void MOS6522<T>::set_control_line_input(const Port port, const Line line, const bool value) {
+template <typename T>
+template <Port port, Line line>
+void MOS6522<T>::set_control_line_input(const bool value) {
 	switch(line) {
 		case Line::One:
 			if(value != control_inputs_[port].lines[line]) {
 				// In handshake mode, any transition on C[A/B]1 sets output high on C[A/B]2.
 				if(handshake_modes_[port] == HandshakeMode::Handshake) {
-					set_control_line_output(port, Line::Two, LineState::On);
+					set_control_line_output<port, Line::Two>(LineState::On);
 				}
 
 				// Set the proper transition interrupt bit if enabled.
@@ -332,10 +337,10 @@ template <typename T> void MOS6522<T>::do_phase2() {
 
 	// In pulse modes, CA2 and CB2 go high again on the next clock edge.
 	if(handshake_modes_[1] == HandshakeMode::Pulse) {
-		set_control_line_output(Port::B, Line::Two, LineState::On);
+		set_control_line_output<Port::B, Line::Two>(LineState::On);
 	}
 	if(handshake_modes_[0] == HandshakeMode::Pulse) {
-		set_control_line_output(Port::A, Line::Two, LineState::On);
+		set_control_line_output<Port::A, Line::Two>(LineState::On);
 	}
 
 	// If the shift register is shifting according to the input clock, do a shift.
@@ -388,8 +393,7 @@ template <typename T> void MOS6522<T>::do_phase1() {
 template <typename T> void MOS6522<T>::evaluate_port_b_output() {
 	// Apply current timer-linked PB7 output if any atop the stated output.
 	const uint8_t timer_control_bit = registers_.auxiliary_control & 0x80;
-	bus_handler_.set_port_output(
-		Port::B,
+	bus_handler_.template set_port_output<Port::B>(
 		(registers_.output[1] & (0xff ^ timer_control_bit)) | timer_control_bit,
 		registers_.data_direction[1] | timer_control_bit);
 }
@@ -448,19 +452,20 @@ template <typename T> void MOS6522<T>::evaluate_cb2_output() {
 		// Shift register is enabled, one way or the other; but announce only output.
 		if(is_shifting_out()) {
 			// Output mode; set the level according to the current top of the shift register.
-			bus_handler_.set_control_line_output(Port::B, Line::Two, !!(registers_.shift & 0x80));
+			bus_handler_.template set_control_line_output<Port::B, Line::Two>(registers_.shift & 0x80);
 		} else {
 			// Input mode.
-			bus_handler_.set_control_line_output(Port::B, Line::Two, true);
+			bus_handler_.template set_control_line_output<Port::B, Line::Two>(true);
 		}
 	} else {
 		// Shift register is disabled.
-		bus_handler_.set_control_line_output(Port::B, Line::Two, control_outputs_[1].lines[1] != LineState::Off);
+		bus_handler_.template set_control_line_output<Port::B, Line::Two>(control_outputs_[1].lines[1] != LineState::Off);
 	}
 }
 
 template <typename T>
-void MOS6522<T>::set_control_line_output(const Port port, const Line line, const LineState value) {
+template <Port port, Line line>
+void MOS6522<T>::set_control_line_output(const LineState value) {
 	if(port == Port::B && line == Line::Two) {
 		control_outputs_[port].lines[line] = value;
 		evaluate_cb2_output();
@@ -474,7 +479,7 @@ void MOS6522<T>::set_control_line_output(const Port port, const Line line, const
 
 		if(value != LineState::Input) {
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-			bus_handler_.set_control_line_output(port, line, value != LineState::Off);
+			bus_handler_.template set_control_line_output<port, line>(value != LineState::Off);
 		}
 	}
 }

@@ -33,15 +33,18 @@ enum Line {
 class PortHandler {
 public:
 	/// Requests the current input value of the named port from the port handler.
-	uint8_t get_port_input(Port) {
+	template<Port port>
+	uint8_t get_port_input() const {
 		return 0xff;
 	}
 
 	/// Sets the current output value of the named oprt and provides @c direction_mask, indicating which pins are marked as output.
-	void set_port_output(Port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask) {}
+	template<Port port>
+	void set_port_output([[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask) {}
 
 	/// Sets the current logical output level for the named line on the specified  port.
-	void set_control_line_output(Port, Line, [[maybe_unused]] bool value) {}
+	template<Port port, Line line>
+	void set_control_line_output([[maybe_unused]] bool value) {}
 
 	/// Sets the current logical value of the interrupt line.
 	void set_interrupt_status([[maybe_unused]] bool status) {}
@@ -101,7 +104,8 @@ public:
 	BusHandlerT &bus_handler();
 
 	/// Sets the input value of the named line and port.
-	void set_control_line_input(Port, Line, bool value);
+	template<Port, Line>
+	void set_control_line_input(bool value);
 
 	/// Runs for a specified number of half cycles.
 	void run_for(const HalfCycles);
@@ -126,12 +130,13 @@ private:
 
 	void access(int address);
 
-	uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask);
+	template <Port> uint8_t get_port_input(uint8_t output_mask, uint8_t output, uint8_t timer_mask);
+	template <Port port, int shift> void update_pcr(const uint8_t);
 	inline void reevaluate_interrupts();
 
 	/// Sets the current intended output value for the port and line;
 	/// if this affects the visible output, it will be passed to the handler.
-	void set_control_line_output(Port port, Line line, LineState value);
+	template <Port, Line> void set_control_line_output(LineState);
 	void evaluate_cb2_output();
 	void evaluate_port_b_output();
 };

@@ -68,7 +68,7 @@ public:
 	UserPortVIA() : port_a_(0xbf) {}
 
 	/// Reports the current input to the 6522 port @c port.
-	uint8_t get_port_input(const MOS::MOS6522::Port port) {
+	template <MOS::MOS6522::Port port> uint8_t get_port_input() const {
 		// Port A provides information about the presence or absence of a tape, and parts of
 		// the joystick and serial port state, both of which have been statefully collected
 		// into port_a_.
@@ -79,7 +79,7 @@ public:
 	}
 
 	/// Receives announcements of control line output change from the 6522.
-	void set_control_line_output(const MOS::MOS6522::Port port, const MOS::MOS6522::Line line, const bool value) {
+	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line> void set_control_line_output(const bool value) {
 		// The CA2 output is used to control the tape motor.
 		if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
 			tape_->set_motor_control(!value);
@@ -87,7 +87,7 @@ public:
 	}
 
 	/// Receives announcements of changes in the serial bus connected to the serial port and propagates them into Port A.
-	void set_serial_line_state(const ::Commodore::Serial::Line line, const bool value) {
+	void set_serial_line_state(Commodore::Serial::Line line, const bool value) {
 		switch(line) {
 			default: break;
 			case ::Commodore::Serial::Line::Data: port_a_ = (port_a_ & ~0x02) | (value ? 0x02 : 0x00);	break;
@@ -103,7 +103,7 @@ public:
 	}
 
 	/// Receives announcements from the 6522 of user-port output, which might affect what's currently being presented onto the serial bus.
-	void set_port_output(const MOS::MOS6522::Port port, const uint8_t value, uint8_t) {
+	template <MOS::MOS6522::Port port> void set_port_output(const uint8_t value, uint8_t) {
 		// Line 7 of port A is inverted and output as serial ATN.
 		if(!port) {
 			serial_port_->set_output(Serial::Line::Attention, Serial::LineLevel(!(value&0x80)));
@@ -150,7 +150,7 @@ public:
 	}
 
 	/// Called by the 6522 to get input. Reads the keyboard on Port A, returns a small amount of joystick state on Port B.
-	uint8_t get_port_input(const MOS::MOS6522::Port port) {
+	template <MOS::MOS6522::Port port> uint8_t get_port_input() const {
 		if(!port) {
 			uint8_t result = 0xff;
 			for(int c = 0; c < 8; c++) {
@@ -164,12 +164,12 @@ public:
 	}
 
 	/// Called by the 6522 to set output. The value of Port B selects which part of the keyboard to read.
-	void set_port_output(const MOS::MOS6522::Port port, const uint8_t value, const uint8_t mask) {
+	template <MOS::MOS6522::Port port> void set_port_output(const uint8_t value, const uint8_t mask) {
 		if(port) activation_mask_ = (value & mask) | (~mask);
 	}
 
 	/// Called by the 6522 to set control line output. Which affects the serial port.
-	void set_control_line_output(const MOS::MOS6522::Port port, const MOS::MOS6522::Line line, const bool value) {
+	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line> void set_control_line_output(const bool value) {
 		if(line == MOS::MOS6522::Line::Two) {
 			// CB2 is inverted to become serial data; CA2 is inverted to become serial clock
 			if(port == MOS::MOS6522::Port::A)
@@ -469,7 +469,7 @@ public:
 		} else {
 			switch(key) {
 				case KeyRestore:
-					user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+					user_port_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!is_pressed);
 				break;
 #define ShiftedMap(source, target)	\
 				case source:	\
@@ -694,7 +694,7 @@ public:
 	}
 
 	void tape_did_change_input(Storage::Tape::BinaryTapePlayer *const tape) final {
-		keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->input());
+		keyboard_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!tape->input());
 	}
 
 	KeyboardMapper *get_keyboard_mapper() final {

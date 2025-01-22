@@ -39,10 +39,13 @@ namespace Commodore::C1540 {
 */
 class SerialPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 public:
-	uint8_t get_port_input(MOS::MOS6522::Port);
+	template <MOS::MOS6522::Port>
+	uint8_t get_port_input() const;
 
-	void set_port_output(MOS::MOS6522::Port, uint8_t value, uint8_t mask);
-	void set_serial_line_state(::Commodore::Serial::Line, bool, MOS::MOS6522::MOS6522<SerialPortVIA> &);
+	template <MOS::MOS6522::Port>
+	void set_port_output(uint8_t value, uint8_t mask);
+
+	void set_serial_line_state(Commodore::Serial::Line, bool, MOS::MOS6522::MOS6522<SerialPortVIA> &);
 
 	void set_serial_port(Commodore::Serial::Port &);
 
@@ -55,6 +58,13 @@ private:
 
 	void update_data_line();
 };
+
+//inline void set_serial_line_state(Commodore::Serial::Line line bool value, MOS::MOS6522::MOS6522<SerialPortVIA> &via) {
+//	switch(line){
+//		case Commodore::Serial::Line::One:
+//			via.set_serial_line_state<Commodore::Serial::Line::One>(value, via);
+//	}
+//}
 
 /*!
 	An implementation of the drive VIA in a Commodore 1540: the VIA that is used to interface with the disk.
@@ -81,16 +91,19 @@ public:
 	};
 	void set_delegate(Delegate *);
 
-	uint8_t get_port_input(MOS::MOS6522::Port);
+	template <MOS::MOS6522::Port>
+	uint8_t get_port_input() const;
 
 	void set_sync_detected(bool);
 	void set_data_input(uint8_t);
 	bool get_should_set_overflow();
 	bool get_motor_enabled();
 
-	void set_control_line_output(MOS::MOS6522::Port, MOS::MOS6522::Line, bool value);
+	template <MOS::MOS6522::Port, MOS::MOS6522::Line>
+	void set_control_line_output(bool value);
 
-	void set_port_output(MOS::MOS6522::Port, uint8_t value, uint8_t direction_mask);
+	template <MOS::MOS6522::Port>
+	void set_port_output(uint8_t value, uint8_t direction_mask);
 
 	void set_activity_observer(Activity::Observer *);
 

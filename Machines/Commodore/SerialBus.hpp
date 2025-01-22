@@ -104,7 +104,7 @@ public:
 	/*!
 		Called by the bus to signal a change in any input line level. Subclasses should implement this.
 	*/
-	virtual void set_input(Line line, LineLevel value) = 0;
+	virtual void set_input(Line, LineLevel) = 0;
 
 	/*!
 		Sets the supplied serial bus as that to which line levels will be communicated.

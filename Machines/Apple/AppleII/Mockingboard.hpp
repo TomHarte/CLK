@@ -99,7 +99,8 @@ private:
 			card.did_change_interrupt_flags();
 		}
 
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
+		template <MOS::MOS6522::Port port>
+		void set_port_output(const uint8_t value, uint8_t) {
 			if(port) {
 				using ControlLines = GI::AY38910::ControlLines;
 				ay.set_control_lines(
@@ -116,7 +117,8 @@ private:
 			}
 		}
 
-		uint8_t get_port_input(MOS::MOS6522::Port port) {
+		template <MOS::MOS6522::Port port>
+		uint8_t get_port_input() const {
 			if(!port) {
 				return ay.get_data_output();
 			}
