@@ -280,7 +280,6 @@ void DriveVIA::set_activity_observer(Activity::Observer *observer) {
 // MARK: - SerialPort
 
 void SerialPort::set_input(Serial::Line line, Serial::LineLevel level) {
-	// TODO: add dynamic.
 	serial_port_via_->set_serial_line_state(line, bool(level), *via_);
 }
 
