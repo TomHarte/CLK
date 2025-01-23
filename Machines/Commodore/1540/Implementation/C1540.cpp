@@ -162,12 +162,14 @@ void MachineBase::drive_via_did_set_data_density(void *, const int density) {
 
 // MARK: - SerialPortVIA
 
-uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
+template <MOS::MOS6522::Port port>
+uint8_t SerialPortVIA::get_port_input() const {
 	if(port) return port_b_;
 	return 0xff;
 }
 
-void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
+template <MOS::MOS6522::Port port>
+void SerialPortVIA::set_port_output(const uint8_t value, uint8_t) {
 	if(port) {
 		attention_acknowledge_level_ = !(value&0x10);
 		data_level_output_ = (value&0x02);
@@ -178,8 +180,8 @@ void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint
 }
 
 void SerialPortVIA::set_serial_line_state(
-	::Commodore::Serial::Line line,
-	bool value,
+	const Commodore::Serial::Line line,
+	const bool value,
 	MOS::MOS6522::MOS6522<SerialPortVIA> &via
 ) {
 	switch(line) {
@@ -189,7 +191,7 @@ void SerialPortVIA::set_serial_line_state(
 		case ::Commodore::Serial::Line::Attention:
 			attention_level_input_ = !value;
 			port_b_ = (port_b_ & ~0x80) | (value ? 0x00 : 0x80);
-			via.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !value);
+			via.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!value);
 			update_data_line();
 		break;
 	}
@@ -212,11 +214,12 @@ void DriveVIA::set_delegate(Delegate *delegate) {
 }
 
 // write protect tab uncovered
-uint8_t DriveVIA::get_port_input(MOS::MOS6522::Port port) {
+template <MOS::MOS6522::Port port>
+uint8_t DriveVIA::get_port_input() const {
 	return port ? port_b_ : port_a_;
 }
 
-void DriveVIA::set_sync_detected(bool sync_detected) {
+void DriveVIA::set_sync_detected(const bool sync_detected) {
 	port_b_ = (port_b_ & 0x7f) | (sync_detected ? 0x00 : 0x80);
 }
 
@@ -232,13 +235,15 @@ bool DriveVIA::get_motor_enabled() {
 	return drive_motor_;
 }
 
-void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
+template <MOS::MOS6522::Port port, MOS::MOS6522::Line line>
+void DriveVIA::set_control_line_output(const bool value) {
 	if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
 		should_set_overflow_ = value;
 	}
 }
 
-void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
+template <MOS::MOS6522::Port port>
+void DriveVIA::set_port_output(const uint8_t value, uint8_t) {
 	if(port) {
 		if(previous_port_b_output_ != value) {
 			// Record drive motor state.
