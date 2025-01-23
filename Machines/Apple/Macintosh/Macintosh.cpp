@@ -579,7 +579,7 @@ private:
 				time_since_video_update_ -= time_until_video_event_;
 				time_until_video_event_ = video_.next_sequence_point();
 
-				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
+				via_.template set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!video_.vsync());
 			}
 
 			via_clock_ += via_cycles_outstanding;
@@ -592,8 +592,8 @@ private:
 		if(keyboard_clock_ >= KEYBOARD_CLOCK_RATE) {
 			const auto keyboard_ticks = keyboard_clock_.divide(KEYBOARD_CLOCK_RATE);
 			keyboard_.run_for(keyboard_ticks);
-			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
-			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
+			via_.template set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two>(keyboard_.get_data());
+			via_.template set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::One>(keyboard_.get_clock());
 		}
 
 		// Feed mouse inputs within at most 1250 cycles of each other.
@@ -616,8 +616,8 @@ private:
 		while(ticks--) {
 			clock_.update();
 			// TODO: leave a delay between toggling the input rather than using this coupled hack.
-			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
-			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
+			via_.template set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(true);
+			via_.template set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(false);
 		}
 
 		// Update the SCSI if currently active.
@@ -645,7 +645,7 @@ private:
 		using Port = MOS::MOS6522::Port;
 		using Line = MOS::MOS6522::Line;
 
-		void set_port_output(Port port, uint8_t value, uint8_t) {
+		template <Port port> void set_port_output(const uint8_t value, uint8_t) {
 			/*
 				Peripheral lines: keyboard data, interrupt configuration.
 				(See p176 [/215])
@@ -691,7 +691,7 @@ private:
 			}
 		}
 
-		uint8_t get_port_input(Port port) {
+		template <Port port> uint8_t get_port_input() const {
 			switch(port) {
 				case Port::A:
 //							printf("6522 r A\n");
@@ -711,7 +711,7 @@ private:
 			return 0xff;
 		}
 
-		void set_control_line_output(Port port, Line line, bool value) {
+		template <Port port, Line line> void set_control_line_output(const bool value) {
 			/*
 				Keyboard wiring (I believe):
 				CB2 = data		(input/output)

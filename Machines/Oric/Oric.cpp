@@ -193,7 +193,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			Reponds to the 6522's control line output change signal; on an Oric A2 is connected to
 			the AY's BDIR, and B2 is connected to the AY's A2.
 		*/
-		void set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
+		template <MOS::MOS6522::Port port, MOS::MOS6522::Line line> void set_control_line_output(const bool value) {
 			if(line) {
 				if(port) ay_bdir_ = value; else ay_bc1_ = value;
 				update_ay();
@@ -205,7 +205,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			Reponds to changes in the 6522's port output. On an Oric port B sets the tape motor control
 			and the keyboard's active row. Port A is connected to the AY's data bus.
 		*/
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
+		template <MOS::MOS6522::Port port> void set_port_output(uint8_t value, uint8_t) {
 			if(port) {
 				keyboard_.set_active_row(value);
 				tape_player_.set_motor_control(value & 0x40);
@@ -219,7 +219,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		/*!
 			Provides input data for the 6522. Port B reads the keyboard, and port A reads from the AY.
 		*/
-		uint8_t get_port_input(MOS::MOS6522::Port port) {
+		template <MOS::MOS6522::Port port> uint8_t get_port_input() const {
 			if(port) {
 				uint8_t column = ay8910_.get_port_output(false) ^ 0xff;
 				return keyboard_.query_column(column) ? 0x08 : 0x00;
@@ -630,8 +630,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 
 		void set_via_port_b_input() {
 			// set CB1
-			via_.set_control_line_input(
-				MOS::MOS6522::Port::B, MOS::MOS6522::Line::One,
+			via_.set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::One>(
 				tape_player_.motor_control() ?
 					!tape_player_.input() :
 					!video_->vsync()
@@ -811,7 +810,8 @@ using namespace Oric;
 
 namespace {
 
-template <CPU::MOS6502Esque::Type processor> std::unique_ptr<Machine> machine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+template <CPU::MOS6502Esque::Type processor>
+std::unique_ptr<Machine> machine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	switch(target.disk_interface) {
 		default:						return std::make_unique<ConcreteMachine<DiskInterface::None, processor>>(target, rom_fetcher);
 		case DiskInterface::Microdisc:	return std::make_unique<ConcreteMachine<DiskInterface::Microdisc, processor>>(target, rom_fetcher);
