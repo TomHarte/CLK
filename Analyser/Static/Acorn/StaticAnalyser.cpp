@@ -26,14 +26,14 @@ AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 	for(const auto &cartridge : cartridges) {
 		const auto &segments = cartridge->get_segments();
 
-		// only one mapped item is allowed
+		// Only one mapped item is allowed.
 		if(segments.size() != 1) continue;
 
-		// which must be 8 or 16 kb in size
+		// Cartridges must be 8 or 16 kb in size.
 		const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
 		if(segment.data.size() != 0x4000 && segment.data.size() != 0x2000) continue;
 
-		// is a copyright string present?
+		// Check copyright string.
 		const uint8_t copyright_offset = segment.data[7];
 		if(
 			segment.data[copyright_offset] != 0x00 ||
@@ -42,16 +42,16 @@ AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 			segment.data[copyright_offset+3] != 0x29
 		) continue;
 
-		// is the language entry point valid?
+		// Check language entry point.
 		if(!(
 			(segment.data[0] == 0x00 && segment.data[1] == 0x00 && segment.data[2] == 0x00) ||
 			(segment.data[0] != 0x00 && segment.data[2] >= 0x80 && segment.data[2] < 0xc0)
 			)) continue;
 
-		// is the service entry point valid?
+		// Check service entry point.
 		if(!(segment.data[5] >= 0x80 && segment.data[5] < 0xc0)) continue;
 
-		// probability of a random binary blob that isn't an Acorn ROM proceeding to here:
+		// Probability of a random binary blob that isn't an Acorn ROM proceeding to here:
 		//		1/(2^32) *
 		//		( ((2^24)-1)/(2^24)*(1/4)		+		1/(2^24)	) *
 		//		1/4
@@ -74,7 +74,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	// Copy appropriate cartridges to the 8-bit target.
 	target8bit->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
-	// If there are any tapes, attempt to get data from the first.
+	// If there are tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
 		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
 		auto serialiser = tape->serialiser();
@@ -85,26 +85,29 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 			bool is_basic = true;
 
 			// If a file is execute-only, that means *RUN.
-			if(files.front().flags & File::Flags::ExecuteOnly) is_basic = false;
+			if(files.front().flags & File::Flags::ExecuteOnly) {
+				is_basic = false;
+			}
 
-			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
-			// so that's also justification to *RUN
-			std::size_t pointer = 0;
-			uint8_t *const data = &files.front().data[0];
-			const std::size_t data_size = files.front().data.size();
-			while(1) {
-				if(pointer >= data_size-1 || data[pointer] != 13) {
-					is_basic = false;
-					break;
+			// Check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
+			// so that's also justification to *RUN.
+			if(is_basic) {
+				std::size_t pointer = 0;
+				uint8_t *const data = &files.front().data[0];
+				const std::size_t data_size = files.front().data.size();
+				while(true) {
+					if(pointer >= data_size-1 || data[pointer] != 0x0d) {
+						is_basic = false;
+						break;
+					}
+					if((data[pointer+1]&0x7f) == 0x7f) break;
+					pointer += data[pointer+3];
 				}
-				if((data[pointer+1]&0x7f) == 0x7f) break;
-				pointer += data[pointer+3];
 			}
 
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
 			target8bit->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
-
 			target8bit->media.tapes = media.tapes;
 		}
 	}
