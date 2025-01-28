@@ -32,8 +32,9 @@ template <Numeric::Operation operation, bool is_extend, typename IntT>
 static void add_sub(const IntT source, IntT &destination, Status &status) {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
 
+	static_assert(operation == Numeric::Operation::Add || operation == Numeric::Operation::Subtract);
 	constexpr bool is_add = operation == Numeric::Operation::Add;
-	IntT result =  is_add ?
+	IntT result = is_add ?
 		destination + source :
 		destination - source;
 	status.carry_flag = is_add ? result < destination : result > destination;
@@ -520,6 +521,7 @@ template <
 	Status &status,
 	FlowController &flow_controller
 ) {
+	using NumOp = Numeric::Operation;
 	switch((operation != Operation::Undefined) ? operation : instruction.operation) {
 		/*
 			ABCD adds the lowest bytes from the source and destination using BCD arithmetic,
@@ -552,20 +554,20 @@ template <
 
 		// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
 		// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
-		case Operation::ADDb:	Primitive::add_sub<Numeric::Operation::Add, false>(src.b, dest.b, status);		break;
-		case Operation::SUBb:	Primitive::add_sub<Numeric::Operation::Subtract, false>(src.b, dest.b, status);	break;
-		case Operation::ADDXb:	Primitive::add_sub<Numeric::Operation::Add, true>(src.b, dest.b, status);		break;
-		case Operation::SUBXb:	Primitive::add_sub<Numeric::Operation::Subtract, true>(src.b, dest.b, status);	break;
+		case Operation::ADDb:	Primitive::add_sub<NumOp::Add, false>(src.b, dest.b, status);		break;
+		case Operation::SUBb:	Primitive::add_sub<NumOp::Subtract, false>(src.b, dest.b, status);	break;
+		case Operation::ADDXb:	Primitive::add_sub<NumOp::Add, true>(src.b, dest.b, status);		break;
+		case Operation::SUBXb:	Primitive::add_sub<NumOp::Subtract, true>(src.b, dest.b, status);	break;
 
-		case Operation::ADDw:	Primitive::add_sub<Numeric::Operation::Add, false>(src.w, dest.w, status);		break;
-		case Operation::SUBw:	Primitive::add_sub<Numeric::Operation::Subtract, false>(src.w, dest.w, status);	break;
-		case Operation::ADDXw:	Primitive::add_sub<Numeric::Operation::Add, true>(src.w, dest.w, status);		break;
-		case Operation::SUBXw:	Primitive::add_sub<Numeric::Operation::Subtract, true>(src.w, dest.w, status);	break;
+		case Operation::ADDw:	Primitive::add_sub<NumOp::Add, false>(src.w, dest.w, status);		break;
+		case Operation::SUBw:	Primitive::add_sub<NumOp::Subtract, false>(src.w, dest.w, status);	break;
+		case Operation::ADDXw:	Primitive::add_sub<NumOp::Add, true>(src.w, dest.w, status);		break;
+		case Operation::SUBXw:	Primitive::add_sub<NumOp::Subtract, true>(src.w, dest.w, status);	break;
 
-		case Operation::ADDl:	Primitive::add_sub<Numeric::Operation::Add, false>(src.l, dest.l, status);		break;
-		case Operation::SUBl:	Primitive::add_sub<Numeric::Operation::Subtract, false>(src.l, dest.l, status);	break;
-		case Operation::ADDXl:	Primitive::add_sub<Numeric::Operation::Add, true>(src.l, dest.l, status);		break;
-		case Operation::SUBXl:	Primitive::add_sub<Numeric::Operation::Subtract, true>(src.l, dest.l, status);	break;
+		case Operation::ADDl:	Primitive::add_sub<NumOp::Add, false>(src.l, dest.l, status);		break;
+		case Operation::SUBl:	Primitive::add_sub<NumOp::Subtract, false>(src.l, dest.l, status);	break;
+		case Operation::ADDXl:	Primitive::add_sub<NumOp::Add, true>(src.l, dest.l, status);		break;
+		case Operation::SUBXl:	Primitive::add_sub<NumOp::Subtract, true>(src.l, dest.l, status);	break;
 
 		case Operation::ADDAw:	dest.l += u_extend16(src.w);	break;
 		case Operation::ADDAl:	dest.l += src.l;				break;

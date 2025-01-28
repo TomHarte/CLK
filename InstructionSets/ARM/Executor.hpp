@@ -152,8 +152,9 @@ struct Executor {
 			if constexpr (flags.set_condition_codes()) {
 				// "For a subtraction, including the comparison instruction CMP, C is set to 0 if
 				// the subtraction produced a borrow (that is, an unsigned underflow), and to 1 otherwise."
-				registers_.set_c(!Numeric::carried_out<Numeric::Operation::Subtract, 31>(lhs, rhs, conditions));
-				registers_.set_v(Numeric::overflow<Numeric::Operation::Subtract>(lhs, rhs, conditions));
+				using NumOp = Numeric::Operation;
+				registers_.set_c(!Numeric::carried_out<NumOp::Subtract, 31>(lhs, rhs, conditions));
+				registers_.set_v(Numeric::overflow<NumOp::Subtract>(lhs, rhs, conditions));
 			}
 
 			if constexpr (!is_comparison(flags.operation())) {
@@ -185,8 +186,9 @@ struct Executor {
 				}
 
 				if constexpr (flags.set_condition_codes()) {
-					registers_.set_c(Numeric::carried_out<Numeric::Operation::Add, 31>(operand1, operand2, conditions));
-					registers_.set_v(Numeric::overflow<Numeric::Operation::Add>(operand1, operand2, conditions));
+					using NumOp = Numeric::Operation;
+					registers_.set_c(Numeric::carried_out<NumOp::Add, 31>(operand1, operand2, conditions));
+					registers_.set_v(Numeric::overflow<NumOp::Add>(operand1, operand2, conditions));
 				}
 
 				if constexpr (!is_comparison(flags.operation())) {
