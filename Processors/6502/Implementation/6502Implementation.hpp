@@ -368,7 +368,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 
 							// All flags are set based only on the decimal result.
 							flags_.zero_result = result;
-							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
+							flags_.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(a_, operand_, result);
 							flags_.negative_result = result;
 							flags_.overflow = (( (result ^ a_) & (result ^ operand_) ) & 0x80) >> 1;
 
@@ -418,7 +418,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 						if(flags_.decimal && has_decimal_mode(personality)) {
 							uint8_t result = a_ + operand_ + flags_.carry;
 							flags_.zero_result = result;
-							flags_.carry = Numeric::carried_out<true, 7>(a_, operand_, result);
+							flags_.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(a_, operand_, result);
 
 							// General ADC logic:
 							//
