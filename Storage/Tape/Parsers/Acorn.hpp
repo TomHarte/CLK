@@ -58,7 +58,7 @@ private:
 	void process_pulse(const Storage::Tape::Pulse &) override;
 
 	bool did_update_shifter(int new_value, int length);
-	CRC::Generator<uint16_t, 0x0000, 0x0000, false, false> crc_;
+	CRC::Generator<uint16_t, 0x1021, 0x0000, 0x0000, false, false> crc_;
 	Shifter shifter_;
 };
 
