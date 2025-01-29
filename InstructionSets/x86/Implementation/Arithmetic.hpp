@@ -30,12 +30,13 @@ void add(
 	*/
 	const IntT result = destination + source + (with_carry ? context.flags.template carry_bit<IntT>() : 0);
 
+	using NumOp = Numeric::Operation;
 	context.flags.template set_from<Flag::Carry>(
-		Numeric::carried_out<true, Numeric::bit_size<IntT>() - 1>(destination, source, result));
+		Numeric::carried_out<NumOp::Add, Numeric::bit_size<IntT>() - 1>(destination, source, result));
 	context.flags.template set_from<Flag::AuxiliaryCarry>(
 		Numeric::carried_in<4>(destination, source, result));
 	context.flags.template set_from<Flag::Overflow>(
-		Numeric::overflow<true, IntT>(destination, source, result));
+		Numeric::overflow<NumOp::Add, IntT>(destination, source, result));
 
 	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 
@@ -56,12 +57,13 @@ void sub(
 	*/
 	const IntT result = destination - source - (with_borrow ? context.flags.template carry_bit<IntT>() : 0);
 
+	using NumOp = Numeric::Operation;
 	context.flags.template set_from<Flag::Carry>(
-		Numeric::carried_out<false, Numeric::bit_size<IntT>() - 1>(destination, source, result));
+		Numeric::carried_out<NumOp::Subtract, Numeric::bit_size<IntT>() - 1>(destination, source, result));
 	context.flags.template set_from<Flag::AuxiliaryCarry>(
 		Numeric::carried_in<4>(destination, source, result));
 	context.flags.template set_from<Flag::Overflow>(
-		Numeric::overflow<false, IntT>(destination, source, result));
+		Numeric::overflow<NumOp::Subtract, IntT>(destination, source, result));
 
 	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 

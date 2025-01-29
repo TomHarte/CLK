@@ -23,35 +23,29 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 	int shift_register = 0;
 
 	// TODO: move this into the parser
-	const auto shift = [&] {
-		shift_register = (shift_register >> 1) | (parser.get_next_bit(serialiser) << 9);
+	const auto find = [&](int target) {
+		while(!serialiser.is_at_end() && (shift_register != target)) {
+			shift_register = (shift_register >> 1) | (parser.get_next_bit(serialiser) << 9);
+		}
 	};
 
-	// find next area of high tone
-	while(!serialiser.is_at_end() && (shift_register != 0x3ff)) {
-		shift();
-	}
-
-	// find next 0x2a (swallowing stop bit)
-	while(!serialiser.is_at_end() && (shift_register != 0x254)) {
-		shift();
-	}
-
+	// Find first sync byte that follows high tone.
+	find(0x3ff);
+	find(0x254);	// i.e. 0x2a wrapped in a 1 start bit and a 0 stop bit.
 	parser.reset_crc();
 	parser.reset_error_flag();
 
-	// read out name
-	char name[11];
+	// Read name.
+	char name[11]{};
 	std::size_t name_ptr = 0;
 	while(!serialiser.is_at_end() && name_ptr < sizeof(name)) {
 		name[name_ptr] = char(parser.get_next_byte(serialiser));
 		if(!name[name_ptr]) break;
 		++name_ptr;
 	}
-	name[sizeof(name)-1] = '\0';
 	new_chunk->name = name;
 
-	// addresses
+	// Read rest of header fields.
 	new_chunk->load_address = uint32_t(parser.get_next_word(serialiser));
 	new_chunk->execution_address = uint32_t(parser.get_next_word(serialiser));
 	new_chunk->block_number = uint16_t(parser.get_next_short(serialiser));
@@ -59,24 +53,25 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 	new_chunk->block_flag = uint8_t(parser.get_next_byte(serialiser));
 	new_chunk->next_address = uint32_t(parser.get_next_word(serialiser));
 
-	const uint16_t calculated_header_crc = parser.get_crc();
-	uint16_t stored_header_crc = uint16_t(parser.get_next_short(serialiser));
-	stored_header_crc = uint16_t((stored_header_crc >> 8) | (stored_header_crc << 8));
-	new_chunk->header_crc_matched = stored_header_crc == calculated_header_crc;
+	const auto matched_crc = [&]() {
+		const uint16_t calculated_crc = parser.get_crc();
+		uint16_t stored_crc = uint16_t(parser.get_next_short(serialiser));
+		stored_crc = uint16_t((stored_crc >> 8) | (stored_crc << 8));
+		return stored_crc == calculated_crc;
+	};
+
+	new_chunk->header_crc_matched = matched_crc();
 
 	if(!new_chunk->header_crc_matched) return nullptr;
 
-	parser.reset_crc();
-	new_chunk->data.reserve(new_chunk->block_length);
-	for(int c = 0; c < new_chunk->block_length; c++) {
-		new_chunk->data.push_back(uint8_t(parser.get_next_byte(serialiser)));
-	}
-
+	// Bit 6 of the block flag means 'empty block'; allow it to override declared block length.
 	if(new_chunk->block_length && !(new_chunk->block_flag&0x40)) {
-		uint16_t calculated_data_crc = parser.get_crc();
-		uint16_t stored_data_crc = uint16_t(parser.get_next_short(serialiser));
-		stored_data_crc = uint16_t((stored_data_crc >> 8) | (stored_data_crc << 8));
-		new_chunk->data_crc_matched = stored_data_crc == calculated_data_crc;
+		parser.reset_crc();
+		new_chunk->data.reserve(new_chunk->block_length);
+		for(int c = 0; c < new_chunk->block_length; c++) {
+			new_chunk->data.push_back(uint8_t(parser.get_next_byte(serialiser)));
+		}
+		new_chunk->data_crc_matched = matched_crc();
 	} else {
 		new_chunk->data_crc_matched = true;
 	}
@@ -85,42 +80,38 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 }
 
 static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
-	// find next chunk with a block number of 0
-	while(chunks.size() && chunks.front().block_number) {
+	// Find next chunk with a block number of 0.
+	while(!chunks.empty() && chunks.front().block_number) {
 		chunks.pop_front();
 	}
+	if(chunks.empty()) return nullptr;
 
-	if(!chunks.size()) return nullptr;
-
-	// accumulate chunks for as long as block number is sequential and the end-of-file bit isn't set
+	// Accumulate sequential blocks until end-of-file bit is set.
 	auto file = std::make_unique<File>();
-
 	uint16_t block_number = 0;
-
-	while(chunks.size()) {
+	while(!chunks.empty()) {
 		if(chunks.front().block_number != block_number) return nullptr;
 
-		bool was_last = chunks.front().block_flag & 0x80;
+		const bool was_last = chunks.front().block_flag & 0x80;
 		file->chunks.push_back(chunks.front());
 		chunks.pop_front();
-		block_number++;
+		++block_number;
 
 		if(was_last) break;
 	}
 
-	// accumulate total data, copy flags appropriately
+	// Grab metadata flags.
 	file->name = file->chunks.front().name;
 	file->load_address = file->chunks.front().load_address;
 	file->execution_address = file->chunks.front().execution_address;
-	// I think the final chunk's flags are the ones that count; TODO: check.
 	if(file->chunks.back().block_flag & 0x01) {
-		// File is locked, which in more generalised terms means it is
-		// for execution only.
+		// File is locked i.e. for execution only.
 		file->flags |= File::Flags::ExecuteOnly;
 	}
 
-	// copy all data into a single big block
-	for(File::Chunk chunk : file->chunks) {
+	// Copy data into a single big block.
+	file->data.reserve(file->chunks.size() * 256);
+	for(auto &chunk : file->chunks) {
 		file->data.insert(file->data.end(), chunk.data.begin(), chunk.data.end());
 	}
 
@@ -130,22 +121,21 @@ static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
 std::vector<File> Analyser::Static::Acorn::GetFiles(Storage::Tape::TapeSerialiser &serialiser) {
 	Storage::Tape::Acorn::Parser parser;
 
-	// populate chunk list
+	// Read all chunks.
 	std::deque<File::Chunk> chunk_list;
 	while(!serialiser.is_at_end()) {
-		std::unique_ptr<File::Chunk> chunk = GetNextChunk(serialiser, parser);
+		const std::unique_ptr<File::Chunk> chunk = GetNextChunk(serialiser, parser);
 		if(chunk) {
-			chunk_list.push_back(*chunk);
+			chunk_list.push_back(std::move(*chunk));
 		}
 	}
 
-	// decompose into file list
+	// Convert to files.
 	std::vector<File> file_list;
-
-	while(chunk_list.size()) {
-		std::unique_ptr<File> next_file = GetNextFile(chunk_list);
+	while(!chunk_list.empty()) {
+		const std::unique_ptr<File> next_file = GetNextFile(chunk_list);
 		if(next_file) {
-			file_list.push_back(*next_file);
+			file_list.push_back(std::move(*next_file));
 		}
 	}
 
