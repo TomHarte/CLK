@@ -865,8 +865,8 @@ private:
 
 			//       stx  timr2l
 			//       sty  timr2h
-			timers_.write<0xff02>(x);
-			timers_.write<0xff03>(y);
+			timers_.write<2>(x);
+			timers_.write<3>(y);
 
 			//; go! ...ta
 			//
@@ -874,11 +874,10 @@ private:
 			//       sta  timr3l
 			//       pla
 			//       sta  timr3h     	;go! ...tb
-			timers_.tick(4);
 			pla();
-			timers_.write<0xff04>(a);
+			timers_.write<4>(a);
 			pla();
-			timers_.write<0xff05>(a);
+			timers_.write<5>(a);
 
 
 			//; clear timer flags
@@ -1000,9 +999,9 @@ private:
 		//       lda  zcell+1
 		//       sta  timr2h
 		ldabs(a, zcell);
-		timers_.write<0xff02>(a);
+		timers_.write<2>(a);
 		ldabs(a, zcell + 1);
-		timers_.write<0xff03>(y);
+		timers_.write<3>(y);
 
 
 		//			; go! z-cell check
