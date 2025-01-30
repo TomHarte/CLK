@@ -170,6 +170,7 @@ private:
 class ConcreteMachine:
 	public Activity::Source,
 	public BusController,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::AudioProducer,
@@ -223,6 +224,7 @@ public:
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
+		tape_player_->set_clocking_hint_observer(this);
 
 		joysticks_.emplace_back(std::make_unique<Joystick>());
 		joysticks_.emplace_back(std::make_unique<Joystick>());
@@ -712,12 +714,12 @@ private:
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
 	bool use_fast_tape_hack_ = false;
 	void set_use_fast_tape() {
-		use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_;
+		use_fast_tape_hack_ =
+			allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_ && !tape_player_->is_at_end();
 	}
 	void update_tape_motor() {
 		const auto output = io_output_ | ~io_direction_;
 		tape_player_->set_motor_control(play_button_ && (~output & 0x08));
-		set_use_fast_tape();
 	}
 	void advance_timers_and_tape(const Cycles length) {
 		timers_subcycles_ += length;
@@ -753,8 +755,9 @@ private:
 		//
 		// Time advancement.
 		//
-		const auto advance_cycles = [&](int cycles) {
+		const auto advance_cycles = [&](int cycles) -> bool {
 			advance_timers_and_tape(video_.cycle_length(false) * cycles);
+			return !use_fast_tape_hack_;
 		};
 
 		//
@@ -851,7 +854,9 @@ private:
 			ldimm(a, 0x10);
 			do {
 				bit(io_input());
-				advance_cycles(7);
+				if(advance_cycles(7)) {
+					return;
+				}
 			} while(eq());
 
 			//rwth   			;it's high...now wait till it's low
@@ -859,7 +864,9 @@ private:
 			//       bne  rwth	; caught the edge
 			do {
 				bit(io_input());
-				advance_cycles(7);
+				if(advance_cycles(7)) {
+					return;
+				}
 			} while(ne());
 
 
@@ -899,7 +906,9 @@ private:
 			do {
 				ldimm(a, io_input());
 				cmp(io_input());
-				advance_cycles(11);
+				if(advance_cycles(11)) {
+					return;
+				}
 			} while(ne());
 			andimm(0x10);
 		} while(ne());
@@ -919,7 +928,9 @@ private:
 		//wata   			; wait for ta to timeout
 		ldimm(a, 0x10);
 		do {
-			advance_cycles(13);
+			if(advance_cycles(13)) {
+				return;
+			}
 
 			//       bit  port       	; kuldge, kludge, kludge !!! <<><>>
 			//       bne  rshort     	; kuldge, kludge, kludge !!! <<><>>
@@ -940,7 +951,9 @@ private:
 		//
 		//casdb2
 		do {
-			advance_cycles(11);
+			if(advance_cycles(11)) {
+				return;
+			}
 
 			//       lda  port
 			//       cmp  port
@@ -970,7 +983,9 @@ private:
 		//; now do the dipole sample #2
 		ldimm(a, 0x40);
 		do {
-			advance_cycles(7);
+			if(advance_cycles(7)) {
+				return;
+			}
 			bit(interrupts_.status());
 		} while(eq());
 
@@ -980,7 +995,9 @@ private:
 		//       cmp  port
 		//       bne  casdb3
 		do {
-			advance_cycles(11);
+			if(advance_cycles(11)) {
+				return;
+			}
 			ldimm(a, io_input());
 			cmp(io_input());
 		} while(ne());
@@ -1017,7 +1034,9 @@ private:
 		//       bit  tedirq
 		//       beq  wata2	; check z-cell is low
 		do {
-			advance_cycles(7);
+			if(advance_cycles(7)) {
+				return;
+			}
 			bit(interrupts_.status());
 		} while(eq());
 
@@ -1026,7 +1045,9 @@ private:
 		//       cmp  port
 		//       bne  casdb4
 		do {
-			advance_cycles(7);
+			if(advance_cycles(7)) {
+				return;
+			}
 			ldimm(a, io_input());
 			cmp(io_input());
 		} while(ne());
@@ -1062,6 +1083,11 @@ private:
 		return *static_cast<Joystick *>(joysticks_[index].get());
 	}
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+	// MARK: - ClockingHint::Observer.
+	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) override {
+		set_use_fast_tape();
+	}
 
 	// MARK: - Confidence.
 	Analyser::Dynamic::ConfidenceCounter confidence_;
