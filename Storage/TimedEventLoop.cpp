@@ -30,6 +30,9 @@ void TimedEventLoop::run_for(const Cycles cycles) {
 		advance(cycles_until_event_);
 		remaining_cycles -= cycles_until_event_;
 		cycles_until_event_ = 0;
+#ifndef NDEBUG
+		++event_count_;
+#endif
 		process_next_event();
 	}
 
@@ -60,6 +63,9 @@ void TimedEventLoop::reset_timer() {
 
 void TimedEventLoop::jump_to_next_event() {
 	reset_timer();
+#ifndef NDEBUG
+	++event_count_;
+#endif
 	process_next_event();
 }
 

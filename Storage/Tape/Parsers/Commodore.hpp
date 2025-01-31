@@ -9,6 +9,7 @@
 #pragma once
 
 #include "TapeParser.hpp"
+#include "../../TargetPlatforms.hpp"
 #include <memory>
 #include <string>
 
@@ -44,7 +45,9 @@ struct Header {
 		Writes a byte serialised version of this header to @c target, writing at most
 		@c length bytes.
 	*/
-	void serialise(uint8_t *target, uint16_t length);
+	void serialise(uint8_t *target, uint16_t length) const;
+
+	uint8_t type_descriptor() const;
 };
 
 struct Data {
@@ -55,7 +58,7 @@ struct Data {
 
 class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolType> {
 public:
-	Parser();
+	Parser(TargetPlatform::Type);
 
 	/*!
 		Advances to the next block on the tape, treating it as a header, then consumes, parses, and returns it.
@@ -70,6 +73,8 @@ public:
 	std::unique_ptr<Data> get_next_data(Storage::Tape::TapeSerialiser &);
 
 private:
+	TargetPlatform::Type target_platform_;
+
 	/*!
 		Template for the logic in selecting which of two copies of something to consider authoritative,
 		including setting the duplicate_matched flag.

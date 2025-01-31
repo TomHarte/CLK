@@ -32,27 +32,27 @@ struct LazyFlags {
 	uint8_t inverse_interrupt = 0;
 
 	/// Sets N and Z flags per the 8-bit value @c value.
-	void set_nz(uint8_t value) {
+	void set_nz(const uint8_t value) {
 		zero_result = negative_result = value;
 	}
 
 	/// Sets N and Z flags per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
-	void set_nz(uint16_t value, int shift) {
+	void set_nz(const uint16_t value, const int shift) {
 		negative_result = uint8_t(value >> shift);
 		zero_result = uint8_t(value | (value >> shift));
 	}
 
 	/// Sets the Z flag per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
-	void set_z(uint16_t value, int shift) {
+	void set_z(const uint16_t value, const int shift) {
 		zero_result = uint8_t(value | (value >> shift));
 	}
 
 	/// Sets the N flag per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
-	void set_n(uint16_t value, int shift) {
+	void set_n(const uint16_t value, const int shift) {
 		negative_result = uint8_t(value >> shift);
 	}
 
-	void set(uint8_t flags) {
+	void set(const uint8_t flags) {
 		carry				= flags		& Flag::Carry;
 		negative_result		= flags		& Flag::Sign;
 		zero_result			= (~flags)	& Flag::Zero;
@@ -71,6 +71,10 @@ struct LazyFlags {
 		carry &= Flag::Carry;
 		decimal &= Flag::Decimal;
 		overflow &= Flag::Overflow;
+	}
+
+	LazyFlags(const uint8_t value) {
+		set(value);
 	}
 };
 

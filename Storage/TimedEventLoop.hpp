@@ -58,6 +58,13 @@ public:
 	*/
 	Cycles::IntType get_input_clock_rate() const;
 
+#ifndef NDEBUG
+	/*!
+		For debugging purposes only, returns the number of events that have so far passed.
+	*/
+	int event_count() { return event_count_; }
+#endif
+
 protected:
 	/*!
 		Sets the time interval, as a proportion of a second, until the next event should be triggered.
@@ -103,6 +110,9 @@ private:
 	Cycles::IntType input_clock_rate_ = 0;
 	Cycles::IntType cycles_until_event_ = 0;
 	float subcycles_until_event_ = 0.0f;
+#ifndef NDEBUG
+	int event_count_ = 0;
+#endif
 };
 
 }

@@ -12,8 +12,8 @@
 
 using namespace Analyser::Static::Commodore;
 
-std::vector<File> Analyser::Static::Commodore::GetFiles(Storage::Tape::TapeSerialiser &serialiser) {
-	Storage::Tape::Commodore::Parser parser;
+std::vector<File> Analyser::Static::Commodore::GetFiles(Storage::Tape::TapeSerialiser &serialiser, TargetPlatform::Type type) {
+	Storage::Tape::Commodore::Parser parser(type);
 	std::vector<File> file_list;
 
 	std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(serialiser);
