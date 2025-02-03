@@ -98,7 +98,7 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
-        archives: 'qtmultimedia qtx11extras'
+        archives: 'qtbase qtmultimedia qtx11extras'
     - name: Make
       working-directory: OSBindings/Qt
       shell: bash
