@@ -85,3 +85,23 @@ jobs:
             jobs=1
         esac
         scons -j"$jobs"
+  build-qt:
+    name: Qt / ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        archives: 'qtbase qtmultimedia qtx11extras icu'
+    - name: Make
+      working-directory: OSBindings/Qt
+      shell: bash
+      run: |
+        qmake -o Makefile clksignal.pro
+        make
