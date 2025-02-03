@@ -158,7 +158,9 @@ void PRG::Serialiser::get_next_output_token() {
 			case FilePhaseData:
 				copy_mask_ ^= 0x80;
 				file_.seek(2, SEEK_SET);
-				if(copy_mask_) file_phase_ = FilePhaseAtEnd;
+				if(copy_mask_) {
+					file_phase_ = FilePhaseAtEnd;
+				}
 			break;
 		}
 		return;
