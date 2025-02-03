@@ -25,11 +25,15 @@
 #include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
+#include "../../../Storage/Tape/Parsers/Commodore.hpp"
 #include "../../../Storage/Tape/Tape.hpp"
 #include "../SerialBus.hpp"
 #include "../1540/C1540.hpp"
 
+#include "../../../Processors/6502Esque/Implementation/LazyFlags.hpp"
+
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 using namespace Commodore;
@@ -166,6 +170,7 @@ private:
 class ConcreteMachine:
 	public Activity::Source,
 	public BusController,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::AudioProducer,
@@ -219,6 +224,7 @@ public:
 		}
 
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
+		tape_player_->set_clocking_hint_observer(this);
 
 		joysticks_.emplace_back(std::make_unique<Joystick>());
 		joysticks_.emplace_back(std::make_unique<Joystick>());
@@ -234,6 +240,9 @@ public:
 		audio_queue_.flush();
 	}
 
+	// HACK. NOCOMMIT.
+	int pulse_num_ = 0;
+
 	Cycles perform_bus_operation(
 		const CPU::MOS6502::BusOperation operation,
 		const uint16_t address,
@@ -244,12 +253,8 @@ public:
 		const auto length = video_.cycle_length(operation == CPU::MOS6502::BusOperation::Ready);
 
 		// Update other subsystems.
-		timers_subcycles_ += length;
-		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
-		timers_.tick(timers_cycles.as<int>());
-
+		advance_timers_and_tape(length);
 		video_.run_for(length);
-		tape_player_->run_for(length);
 
 		if(c1541_) {
 			c1541_cycles_ += length * Cycles(1'000'000);
@@ -279,13 +284,7 @@ public:
 				if(!address) {
 					*value = io_direction_;
 				} else {
-					const uint8_t all_inputs =
-						(tape_player_->input() ? 0x00 : 0x10) |
-						(serial_port_.level(Serial::Line::Data) ? 0x80 : 0x00) |
-						(serial_port_.level(Serial::Line::Clock) ? 0x40 : 0x00);
-					*value =
-						(io_direction_ & io_output_) |
-						(~io_direction_ & all_inputs);
+					*value = io_input();
 				}
 			} else {
 				if(!address) {
@@ -302,37 +301,46 @@ public:
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode && address == 0xe5fd) {
-				// TODO:
-				//
-				// ; read a dipole from tape (and then RTS)
-				// ;
-				// ; if c=1 then error
-				// ;    else if v=1 then short
-				// ;            else if n=0 then long
-				// ;                    else word
-				// ;                    end
-				// ;            end
-				// ;    end
-
-				// Compare with:
-				//
-				// dsamp1	*=*+2		;time constant for x cell sample		07B8
-				// dsamp2	*=*+2		;time constant for y cell sample
-				// zcell	*=*+2		;time constant for z cell verify
-
-//				const uint8_t dsamp1 = map_.read(0x7b8);
-//				const uint8_t dsamp2 = map_.read(0x7b9);
-//				const uint8_t zcell = map_.read(0x7ba);
-//
-//
-//				logger.info().append("rddipl: %d / %d / %d", dsamp1, dsamp2, zcell);
-			}
-
-			if(is_read(operation)) {
-				*value = map_.read(address);
+				read_dipole();
+				*value = 0x60;
 			} else {
-				map_.write(address) = *value;
+				if(is_read(operation)) {
+					*value = map_.read(address);
+				} else {
+					map_.write(address) = *value;
+				}
 			}
+
+/*			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
+				if(address == 0xe9cc) {
+					// Skip the `jsr rdblok` that opens `fah` (i.e. find any header), performing
+					// its function as a high-level emulation.
+					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
+					auto header = parser.get_next_header(*tape_player_->serialiser());
+
+					const auto tape_position = tape_player_->serialiser()->offset();
+					if(header) {
+						// Copy to in-memory buffer and set type.
+						std::memcpy(&ram_[0x0333], header->data.data(), 191);
+						map_.write(0xb6) = 0x33;
+						map_.write(0xb7) = 0x03;
+						map_.write(0xf8) = header->type_descriptor();
+//						hold_tape_ = true;
+						logger.info().append("Found header");
+					} else {
+						// no header found, so pretend this hack never interceded
+						tape_player_->serialiser()->set_offset(tape_position);
+//						hold_tape_ = false;
+						logger.info().append("Didn't find header");
+					}
+
+					// Clear status and the verify flags.
+					ram_[0x90] = 0;
+					ram_[0x93] = 0;
+
+					*value = 0x0c;	// NOP abs.
+				}
+			}*/
 		} else if(address < 0xff00) {
 			// Miscellaneous hardware. All TODO.
 			if(is_read(operation)) {
@@ -563,7 +571,8 @@ public:
 	}
 
 private:
-	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true> m6502_;
+	using Processor = CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true>;
+	Processor m6502_;
 
 	Outputs::Speaker::Speaker *get_speaker() override {
 		return &speaker_;
@@ -705,15 +714,367 @@ private:
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
 	bool use_fast_tape_hack_ = false;
 	void set_use_fast_tape() {
-		use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_;
+		use_fast_tape_hack_ =
+			allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_ && !tape_player_->is_at_end();
 	}
 	void update_tape_motor() {
 		const auto output = io_output_ | ~io_direction_;
 		tape_player_->set_motor_control(play_button_ && (~output & 0x08));
-		set_use_fast_tape();
+	}
+	void advance_timers_and_tape(const Cycles length) {
+		timers_subcycles_ += length;
+		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
+		timers_.tick(timers_cycles.as<int>());
+
+		tape_player_->run_for(length);
+	}
+	void read_dipole() {
+		using Register = CPU::MOS6502::Register;
+		using Pulse = Storage::Tape::Pulse;
+		using Flag = CPU::MOS6502::Flag;
+
+		//
+		// Get registers now and ensure they'll be written back at function exit.
+		//
+		CPU::MOS6502Esque::LazyFlags flags(uint8_t(m6502_.value_of(Register::Flags)));
+		uint8_t x, y, a;
+		uint8_t s = uint8_t(m6502_.value_of(Register::StackPointer));
+		struct ScopeGuard {
+			ScopeGuard(std::function<void(void)> at_exit) : at_exit_(at_exit) {}
+			~ScopeGuard() {	at_exit_();	}
+		private:
+			std::function<void(void)> at_exit_;
+		} registers([&] {
+			m6502_.set_value_of(Register::Flags, flags.get());
+			m6502_.set_value_of(Register::A, a);
+			m6502_.set_value_of(Register::X, x);
+			m6502_.set_value_of(Register::Y, y);
+			m6502_.set_value_of(Register::StackPointer, s);
+		});
+
+		//
+		// Time advancement.
+		//
+		const auto advance_cycles = [&](int cycles) -> bool {
+			advance_timers_and_tape(video_.cycle_length(false) * cycles);
+			return !use_fast_tape_hack_;
+		};
+
+		//
+		// 6502 pseudo-ops.
+		//
+		const auto ldabs = [&] (uint8_t &target, const uint16_t address) {
+			flags.set_nz(target = map_.read(address));
+		};
+		const auto ldimm = [&] (uint8_t &target, const uint8_t value) {
+			flags.set_nz(target = value);
+		};
+		const auto pha = [&] () {
+			map_.write(0x100 + s) = a;
+			--s;
+		};
+		const auto pla = [&] () {
+			++s;
+			a = map_.read(0x100 + s);
+		};
+		const auto bit = [&] (const uint8_t value) {
+			flags.zero_result = a & value;
+			flags.negative_result = value;
+			flags.overflow = value & CPU::MOS6502Esque::Flag::Overflow;
+		};
+		const auto cmp = [&] (const uint8_t value) {
+			const uint16_t temp16 = a - value;
+			flags.set_nz(uint8_t(temp16));
+			flags.carry = ((~temp16) >> 8)&1;
+		};
+		const auto andimm = [&] (const uint8_t value) {
+			a &= value;
+			flags.set_nz(a);
+		};
+		const auto ne = [&]() -> bool {
+			return flags.zero_result;
+		};
+		const auto eq = [&]() -> bool {
+			return !flags.zero_result;
+		};
+
+		//
+		// Common branch points.
+		//
+		const auto dipok = [&] {
+			//       clc             	; everything's fine
+			//       rts
+			flags.carry = 0;
+		};
+		const auto rshort = [&] {
+			//       bit  tshrtd     	; got a short
+			//       bvs  dipok      	; !bra
+			bit(0x40);
+			dipok();
+		};
+		const auto rlong = [&] {
+			//       bit  tlongd     	; got a long
+			bit(0x00);
+			dipok();
+		};
+		const auto rderr1 = [&] {
+			//       sec             	; i'm confused
+			//       rts
+			flags.carry = Flag::Carry;
+		};
+
+		//
+		// Labels.
+		//
+		static constexpr uint16_t dsamp1 = 0x7b8;
+		static constexpr uint16_t dsamp2 = 0x7ba;
+		static constexpr uint16_t zcell = 0x07bc;
+
+		//rddipl
+		//       ldx  dsamp1     	; setup x,y with 1st sample point
+		//       ldy  dsamp1+1
+		ldabs(x, dsamp1);
+		ldabs(y, dsamp1 + 1);
+
+		//badeg1
+		do {
+			//       lda  dsamp2+1   	; put 2nd samp value on stack in reverse order
+			//       pha
+			//       lda  dsamp2
+			//       pha
+			ldabs(a, dsamp2 + 1);
+			pha();
+			ldabs(a, dsamp2);
+			pha();
+
+			//       lda  #$10
+			//rwtl   			; wait till rd line is high
+			//       bit  port	[= $0001]
+			//       beq  rwtl       	; !ls!
+			ldimm(a, 0x10);
+			do {
+				bit(io_input());
+				if(advance_cycles(7)) {
+					return;
+				}
+			} while(eq());
+
+			//rwth   			;it's high...now wait till it's low
+			//       bit  port
+			//       bne  rwth	; caught the edge
+			do {
+				bit(io_input());
+				if(advance_cycles(7)) {
+					return;
+				}
+			} while(ne());
+
+
+			//       stx  timr2l
+			//       sty  timr2h
+			timers_.write<2>(x);
+			timers_.write<3>(y);
+
+			//; go! ...ta
+			//
+			//       pla		;go! ...ta
+			//       sta  timr3l
+			//       pla
+			//       sta  timr3h     	;go! ...tb
+			pla();
+			timers_.write<4>(a);
+			pla();
+			timers_.write<5>(a);
+
+
+			//; clear timer flags
+			//
+			//       lda  #$50       	; clr ta,tb
+			//       sta  tedirq
+			ldimm(a, 0x50);
+			interrupts_.set_status(a);
+
+
+			//; um...check that edge again
+			//
+			//casdb1
+			//       lda  port
+			//       cmp  port
+			//       bne  casdb1     	; something is going on here...
+			//       and  #$10       	; a look at that edge again
+			//       bne  badeg1     	; woa! got a bad edge trigger  !ls!
+			do {
+				ldimm(a, io_input());
+				cmp(io_input());
+				if(advance_cycles(11)) {
+					return;
+				}
+			} while(ne());
+			andimm(0x10);
+		} while(ne());
+
+
+		//
+		//; must have been a valid edge
+		//;
+		//; do stop key check here
+		//
+		//       jsr  balout
+
+		/* balout not checked */
+
+
+		//       lda  #$10
+		//wata   			; wait for ta to timeout
+		ldimm(a, 0x10);
+		do {
+			if(advance_cycles(13)) {
+				return;
+			}
+
+			//       bit  port       	; kuldge, kludge, kludge !!! <<><>>
+			//       bne  rshort     	; kuldge, kludge, kludge !!! <<><>>
+			bit(io_input());
+			if(ne()) {
+				rshort();
+				return;
+			}
+
+			//       bit  tedirq
+			//       beq  wata
+			bit(interrupts_.status());
+		} while(eq());
+
+
+		//
+		//; now do the dipole sample #1
+		//
+		//casdb2
+		do {
+			if(advance_cycles(11)) {
+				return;
+			}
+
+			//       lda  port
+			//       cmp  port
+			ldimm(a, io_input());
+			cmp(io_input());
+
+			//       bne  casdb2
+		} while(ne());
+
+		//       and  #$10
+		//       bne  rshort     	; shorts anyone?
+		andimm(0x10);
+		if(ne()) {
+			rshort();
+			return;
+		}
+
+		//
+		//; perhaps a long or a word?
+		//
+		//       lda  #$40
+		//watb
+		//       bit  tedirq
+		//       beq  watb
+		//
+		//; wait for tb to timeout
+		//; now do the dipole sample #2
+		ldimm(a, 0x40);
+		do {
+			if(advance_cycles(7)) {
+				return;
+			}
+			bit(interrupts_.status());
+		} while(eq());
+
+
+		//casdb3
+		//       lda  port
+		//       cmp  port
+		//       bne  casdb3
+		do {
+			if(advance_cycles(11)) {
+				return;
+			}
+			ldimm(a, io_input());
+			cmp(io_input());
+		} while(ne());
+
+		//       and  #$10
+		//       bne  rlong      	; looks like a long from here !ls!
+		andimm(0x10);
+		if(ne()) {
+			rlong();
+			return;
+		}
+
+		//			; or could it be a word?
+		//       lda  zcell
+		//       sta  timr2l
+		//       lda  zcell+1
+		//       sta  timr2h
+		ldabs(a, zcell);
+		timers_.write<2>(a);
+		ldabs(a, zcell + 1);
+		timers_.write<3>(y);
+
+
+		//			; go! z-cell check
+		//			; clear ta flag
+		//       lda  #$10
+		//       sta  tedirq	; verify +180 half of word dipole
+		//       lda  #$10
+		ldimm(a, 0x10);
+		interrupts_.set_status(a);
+		ldimm(a, 0x10);
+
+		//wata2
+		//       bit  tedirq
+		//       beq  wata2	; check z-cell is low
+		do {
+			if(advance_cycles(7)) {
+				return;
+			}
+			bit(interrupts_.status());
+		} while(eq());
+
+		//casdb4
+		//       lda  port
+		//       cmp  port
+		//       bne  casdb4
+		do {
+			if(advance_cycles(7)) {
+				return;
+			}
+			ldimm(a, io_input());
+			cmp(io_input());
+		} while(ne());
+
+		//       and  #$10
+		//       beq  rderr1     	; !ls!
+		//       bit  twordd     	; got a word dipole
+		//       bmi  dipok      	; !bra
+		andimm(0x10);
+		if(eq()) {
+			rderr1();
+			return;
+		}
+		bit(0x80);
+		dipok();
 	}
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
+	uint8_t io_input() const {
+		const uint8_t all_inputs =
+			(tape_player_->input() ? 0x00 : 0x10) |
+			(serial_port_.level(Serial::Line::Data) ? 0x80 : 0x00) |
+			(serial_port_.level(Serial::Line::Clock) ? 0x40 : 0x00);
+		return
+			(io_direction_ & io_output_) |
+			(~io_direction_ & all_inputs);
+	}
 
 	std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 		return joysticks_;
@@ -722,6 +1083,11 @@ private:
 		return *static_cast<Joystick *>(joysticks_[index].get());
 	}
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+	// MARK: - ClockingHint::Observer.
+	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) override {
+		set_use_fast_tape();
+	}
 
 	// MARK: - Confidence.
 	Analyser::Dynamic::ConfidenceCounter confidence_;

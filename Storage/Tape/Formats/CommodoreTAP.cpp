@@ -86,7 +86,7 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 	const auto read_next_length = [&]() -> bool {
 		uint32_t next_length;
 		const uint8_t next_byte = file_.get8();
-		if(updated_layout_ || next_byte > 0) {
+		if(!updated_layout_ || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {
 			next_length = file_.get24le();

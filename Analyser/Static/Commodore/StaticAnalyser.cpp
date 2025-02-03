@@ -204,7 +204,7 @@ struct FileAnalysis {
 	Analyser::Static::Media media;
 };
 
-template <TargetPlatform::IntType platform>
+template <TargetPlatform::Type platform>
 FileAnalysis analyse_files(const Analyser::Static::Media &media) {
 	FileAnalysis analysis;
 
@@ -226,7 +226,7 @@ FileAnalysis analyse_files(const Analyser::Static::Media &media) {
 	// Find all valid Commodore files on tapes.
 	for(auto &tape : media.tapes) {
 		auto serialiser = tape->serialiser();
-		std::vector<File> tape_files = GetFiles(*serialiser);
+		std::vector<File> tape_files = GetFiles(*serialiser, platform);
 		if(!tape_files.empty()) {
 			analysis.files.insert(
 				analysis.files.end(),

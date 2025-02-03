@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -2467,6 +2467,10 @@
 		4BFEA2F12682A90200EBF94C /* Sizes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Sizes.hpp; sourceTree = "<group>"; };
 		4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = EmuTOSTests.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4B24B3ED2D49BA4400691F28 /* 65x02 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = 65x02; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		4B055A671FAE763F0060FFFF /* Frameworks */ = {
@@ -5289,6 +5293,7 @@
 		4BEDA3B225B25563000C2DBD /* InstructionSets */ = {
 			isa = PBXGroup;
 			children = (
+				4B24B3ED2D49BA4400691F28 /* 65x02 */,
 				4BEDA42925B3C26B000C2DBD /* AccessType.hpp */,
 				4BEDA45425B5ECAB000C2DBD /* CachingExecutor.hpp */,
 				4BE8EB5425C0E9D40040BC40 /* Disassembler.hpp */,
@@ -5454,6 +5459,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				4B24B3ED2D49BA4400691F28 /* 65x02 */,
+			);
 			name = "Clock Signal";
 			productName = "Clock Signal";
 			productReference = 4BB73E9E1B587A5100552FC2 /* Clock Signal.app */;
@@ -5471,6 +5479,9 @@
 			);
 			dependencies = (
 				4BB73EB41B587A5100552FC2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4B24B3ED2D49BA4400691F28 /* 65x02 */,
 			);
 			name = "Clock SignalTests";
 			productName = "Clock SignalTests";

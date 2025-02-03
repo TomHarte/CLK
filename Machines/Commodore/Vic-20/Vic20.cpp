@@ -222,14 +222,14 @@ private:
 */
 struct Vic6560BusHandler {
 	/// Performs a read on behalf of the 6560; in practice uses @c video_memory_map and @c colour_memory to find data.
-	forceinline void perform_read(const uint16_t address, uint8_t *const pixel_data, uint8_t *const colour_data) {
+	forceinline void perform_read(const uint16_t address, uint8_t *const pixel_data, uint8_t *const colour_data) const {
 		*pixel_data = video_memory_map[address >> 10] ? video_memory_map[address >> 10][address & 0x3ff] : 0xff; // TODO
 		*colour_data = colour_memory[address & 0x03ff];
 	}
 
 	// It is assumed that these pointers have been filled in by the machine.
-	uint8_t *video_memory_map[16]{};	// Segments video memory into 1kb portions.
-	uint8_t *colour_memory{};			// Colour memory must be contiguous.
+	const uint8_t *video_memory_map[16]{};	// Segments video memory into 1kb portions.
+	const uint8_t *colour_memory{};			// Colour memory must be contiguous.
 
 	// TODO: make the above const.
 };
@@ -251,18 +251,20 @@ public:
 		keyboard_via_port_handler_(keyboard_via_port_handler) {}
 
 	void did_set_input(const Input &digital_input, const bool is_active) final {
-		JoystickInput mapped_input;
-		switch(digital_input.type) {
-			default: return;
-			case Input::Up:		mapped_input = Up;		break;
-			case Input::Down:	mapped_input = Down;	break;
-			case Input::Left:	mapped_input = Left;	break;
-			case Input::Right:	mapped_input = Right;	break;
-			case Input::Fire:	mapped_input = Fire;	break;
+		if(const auto mapped_input = [&]() -> std::optional<JoystickInput> {
+				switch(digital_input.type) {
+					default: 			return std::nullopt;
+					case Input::Up:		return Up;
+					case Input::Down:	return Down;
+					case Input::Left:	return Left;
+					case Input::Right:	return Right;
+					case Input::Fire:	return Fire;
+				}
+			}(); mapped_input.has_value()
+		) {
+			user_port_via_port_handler_.set_joystick_state(*mapped_input, is_active);
+			keyboard_via_port_handler_.set_joystick_state(*mapped_input, is_active);
 		}
-
-		user_port_via_port_handler_.set_joystick_state(mapped_input, is_active);
-		keyboard_via_port_handler_.set_joystick_state(mapped_input, is_active);
 	}
 
 private:
@@ -292,18 +294,18 @@ public:
 			user_port_via_(user_port_via_port_handler_),
 			keyboard_via_(keyboard_via_port_handler_),
 			tape_(new Storage::Tape::BinaryTapePlayer(1022727)) {
-		// communicate the tape to the user-port VIA
+		// Connect tape and user-port VIA.
 		user_port_via_port_handler_.set_tape(tape_);
 
-		// wire up the serial bus and serial port
+		// Connect serial bus and serial port.
 		Commodore::Serial::attach(serial_port_, serial_bus_);
 
-		// wire up 6522s and serial port
+		// Connect 6522s and serial port.
 		user_port_via_port_handler_.set_serial_port(serial_port_);
 		keyboard_via_port_handler_.set_serial_port(serial_port_);
 		serial_port_.set_user_port_via(user_port_via_port_handler_);
 
-		// wire up the 6522s, tape and machine
+		// Connect 6522s, tape and machine.
 		user_port_via_port_handler_.set_interrupt_delegate(this);
 		keyboard_via_port_handler_.set_interrupt_delegate(this);
 		tape_->set_delegate(this);
@@ -312,6 +314,7 @@ public:
 		// Install a joystick.
 		joysticks_.emplace_back(new Joystick(user_port_via_port_handler_, keyboard_via_port_handler_));
 
+		// Obtain and distribute ROMs.
 		ROM::Request request(ROM::Name::Vic20BASIC);
 		ROM::Name kernel, character;
 		using Region = Analyser::Static::Commodore::Vic20Target::Region;
@@ -363,7 +366,7 @@ public:
 			c1540_->run_for(Cycles(2000000));
 		}
 
-		// Determine PAL/NTSC
+		// Determine PAL/NTSC.
 		if(target.region == Region::American || target.region == Region::Japanese) {
 			// NTSC
 			set_clock_rate(1022727);
@@ -377,17 +380,11 @@ public:
 		mos6560_.set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 		mos6560_.set_clock_rate(get_clock_rate());
 
-		// Initialise the memory maps as all pointing to nothing
-		memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
-		memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
-		memset(mos6560_bus_handler_.video_memory_map, 0, sizeof(mos6560_bus_handler_.video_memory_map));
-
-#define set_ram(baseaddr, length)	{ \
-	write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
-	write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);	\
-}
-
 		// Add 6502-visible RAM as requested.
+		const auto set_ram = [&](uint16_t base_address, uint16_t length) {
+			write_to_map(processor_read_memory_map_, &ram_[base_address], base_address, length);
+			write_to_map(processor_write_memory_map_, &ram_[base_address], base_address, length);
+		};
 		set_ram(0x0000, 0x0400);
 		set_ram(0x1000, 0x1000);	// Built-in RAM.
 		if(target.enabled_ram.bank0) set_ram(0x0400, 0x0c00);	// Bank 0:	0x0400 -> 0x1000.
@@ -396,9 +393,7 @@ public:
 		if(target.enabled_ram.bank3) set_ram(0x6000, 0x2000);	// Bank 3:	0x6000 -> 0x8000.
 		if(target.enabled_ram.bank5) set_ram(0xa000, 0x2000);	// Bank 5:	0xa000 -> 0xc000.
 
-#undef set_ram
-
-		// all expansions also have colour RAM visible at 0x9400.
+		// All expansions also have colour RAM visible at 0x9400.
 		write_to_map(processor_read_memory_map_, colour_ram_, 0x9400, sizeof(colour_ram_));
 		write_to_map(processor_write_memory_map_, colour_ram_, 0x9400, sizeof(colour_ram_));
 
@@ -407,32 +402,29 @@ public:
 		// memory bus. It can access only internal memory, so the first 1kb, then the 4kb from 0x1000.
 		struct Range {
 			const std::size_t start, end;
-			Range(std::size_t start, std::size_t end) : start(start), end(end) {}
 		};
 		const std::array<Range, 2> video_ranges = {{
-			Range(0x0000, 0x0400),
-			Range(0x1000, 0x2000),
+			{0x0000, 0x0400},
+			{0x1000, 0x2000},
 		}};
 		for(const auto &video_range : video_ranges) {
 			for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
 				auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
 				if(processor_read_memory_map_[addr >> 10]) {
-					write_to_map(mos6560_bus_handler_.video_memory_map, &ram_[addr], uint16_t(destination_address), 0x400);
+					write_to_map(
+						mos6560_bus_handler_.video_memory_map, &ram_[addr], uint16_t(destination_address), 0x400);
 				}
 			}
 		}
 		mos6560_bus_handler_.colour_memory = colour_ram_;
 
-		// install the BASIC ROM
-		write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, uint16_t(basic_rom_.size()));
+		// Install ROMs.
+		write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, basic_rom_.size());
+		write_to_map(processor_read_memory_map_, character_rom_.data(), 0x8000, character_rom_.size());
+		write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, character_rom_.size());
+		write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, kernel_rom_.size());
 
-		// install the system ROM
-		write_to_map(processor_read_memory_map_, character_rom_.data(), 0x8000, uint16_t(character_rom_.size()));
-		write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, uint16_t(character_rom_.size()));
-		write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, uint16_t(kernel_rom_.size()));
-
-		// The insert_media occurs last, so if there's a conflict between cartridges and RAM,
-		// the cartridge wins.
+		// Insert media last so that if there's a conflict between cartridges and RAM, the cartridge wins.
 		insert_media(target.media);
 		if(!target.loading_command.empty()) {
 			type_string(target.loading_command);
@@ -459,7 +451,6 @@ public:
 		}
 
 		set_use_fast_tape();
-
 		return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 	}
 
@@ -537,9 +528,9 @@ public:
 			// Consider applying the fast tape hack.
 			if(use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 				if(address == 0xf7b2) {
-					// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
-					// So cancel that via a double NOP and fill in the next header programmatically.
-					Storage::Tape::Commodore::Parser parser;
+					// Address 0xf7b2 contains a JSR to 0xf8c0 ('RDTPBLKS') that will fill the tape buffer with the
+					// next header. Skip that via a three-byte NOP and fill in the next header programmatically.
+					Storage::Tape::Commodore::Parser parser(TargetPlatform::Vic20);
 					std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(*tape_->serialiser());
 
 					const auto tape_position = tape_->serialiser()->offset();
@@ -562,9 +553,9 @@ public:
 
 					*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 				} else if(address == 0xf90b) {
-					uint8_t x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
+					const auto x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
 					if(x == 0xe) {
-						Storage::Tape::Commodore::Parser parser;
+						Storage::Tape::Commodore::Parser parser(TargetPlatform::Vic20);
 						const auto tape_position = tape_->serialiser()->offset();
 						const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(*tape_->serialiser());
 						if(data) {
@@ -711,7 +702,6 @@ public:
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
-
 		set_video_signal_configurable(options->output);
 		allow_fast_tape_hack_ = options->quickload;
 		set_use_fast_tape();
@@ -742,16 +732,28 @@ private:
 	uint8_t ram_[0x10000];
 	uint8_t colour_ram_[0x0400];
 
-	uint8_t *processor_read_memory_map_[64];
-	uint8_t *processor_write_memory_map_[64];
-	void write_to_map(uint8_t **map, uint8_t *area, uint16_t address, uint16_t length) {
+	const uint8_t *processor_read_memory_map_[64]{};
+	uint8_t *processor_write_memory_map_[64]{};
+
+	void write_to_map(const std::function<void(uint16_t, size_t)> &store, uint16_t address, size_t length) {
 		address >>= 10;
 		length >>= 10;
+		size_t offset = 0;
 		while(length--) {
-			map[address] = area;
-			area += 0x400;
-			address++;
+			store(address, offset);
+			offset += 0x400;
+			++address;
 		}
+	}
+	void write_to_map(const uint8_t **const map, const uint8_t *area, uint16_t address, size_t length) {
+		write_to_map([&](const uint16_t address, const size_t offset) {
+			map[address] = &area[offset];
+		}, address, length);
+	}
+	void write_to_map(uint8_t **const map, uint8_t *area, uint16_t address, size_t length) {
+		write_to_map([&](const uint16_t address, const size_t offset) {
+			map[address] = &area[offset];
+		}, address, length);
 	}
 
 	Commodore::Vic20::KeyboardMapper keyboard_mapper_;
