@@ -98,9 +98,9 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
-#        modules: 'multimedia x11extras'
+        archives: 'qtmultimedia qtx11extras'
     - name: Make
       working-directory: OSBindings/Qt
       shell: bash
-      run: aqt list-qt linux desktop --modules 5.15.2 gcc_64
-#      run: qmake
+#      run: aqt list-qt linux desktop --modules 5.15.2 gcc_64
+      run: qmake
