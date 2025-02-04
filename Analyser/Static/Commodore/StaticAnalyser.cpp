@@ -299,7 +299,7 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Plus4>(
 
 	// Attach a 1541 if there are any disks here.
 	target->has_c1541 = !target->media.disks.empty();
-	return std::move(target);
+	return target;
 }
 
 template<>
@@ -392,7 +392,7 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Vic20>(
 
 	// Attach a 1540 if there are any disks here.
 	target->has_c1540 = !target->media.disks.empty();
-	return std::move(target);
+	return target;
 }
 
 }

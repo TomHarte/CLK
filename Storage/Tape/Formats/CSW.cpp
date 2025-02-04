@@ -34,7 +34,6 @@ CSW::CSW(const std::string &file_name) {
 	if(major_version > 2 || !major_version || minor_version > 1) throw ErrorNotCSW;
 
 	// The header now diverges based on version.
-	uint32_t number_of_waves = 0;
 	CompressionType compression_type;
 	if(major_version == 1) {
 		pulse_.length.clock_rate = file.get16le();
@@ -47,7 +46,7 @@ CSW::CSW(const std::string &file_name) {
 		file.seek(0x20, SEEK_SET);
 	} else {
 		pulse_.length.clock_rate = file.get32le();
-		number_of_waves = file.get32le();	// TODO: is this still useful?
+		file.seek(4, SEEK_CUR);	// Skip number of waves.
 		switch(file.get8()) {
 			case 1: compression_type = CompressionType::RLE;	break;
 			case 2: compression_type = CompressionType::ZRLE;	break;
@@ -55,7 +54,7 @@ CSW::CSW(const std::string &file_name) {
 		}
 
 		pulse_.type = (file.get8() & 1) ? Pulse::High : Pulse::Low;
-		uint8_t extension_length = file.get8();
+		const uint8_t extension_length = file.get8();
 
 		if(file.stats().st_size < 0x34 + extension_length) throw ErrorNotCSW;
 		file.seek(0x34 + extension_length, SEEK_SET);
@@ -66,7 +65,6 @@ CSW::CSW(const std::string &file_name) {
 	const std::size_t remaining_data = size_t(file.stats().st_size) - size_t(file.tell());
 	file_data.resize(remaining_data);
 	file.read(file_data.data(), remaining_data);
-
 	set_data(std::move(file_data), compression_type);
 }
 
@@ -77,24 +75,21 @@ CSW::CSW(std::vector<uint8_t> &&data, CompressionType type, bool initial_level, 
 }
 
 void CSW::set_data(std::vector<uint8_t> &&data, CompressionType type) {
-	// TODO: compression types.
-
 	if(type == CompressionType::ZRLE) {
-		// The only clue given by CSW as to the output size in bytes is that there will be
-		// number_of_waves waves. Waves are usually one byte, but may be five. So this code
-		// is pessimistic.
-//		source_data_.resize(size_t(number_of_waves) * 5);
+		// Play a fun game of guessing buffer sizes.
+		source_data_.resize(data.size() * 2);
 
-		// uncompress will tell how many compressed bytes there actually were, so use its
-		// modification of output_length to throw away all the memory that isn't actually
-		// needed.
-//		uLongf output_length = uLongf(number_of_waves * 5);
-//		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
-//		source_data_.resize(std::size_t(output_length));
+		do {
+			uLongf output_size = source_data_.size();
+			if(uncompress(source_data_.data(), &output_size, data.data(), data.size()) == Z_BUF_ERROR) {
+				source_data_.resize(source_data_.size() * 2);
+				continue;
+			}
+			source_data_.resize(output_size);
+		} while(false);
 	} else {
 		source_data_ = std::move(data);
 	}
-
 }
 
 std::unique_ptr<FormatSerialiser> CSW::format_serialiser() const {
