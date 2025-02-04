@@ -115,10 +115,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Install dependencies
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
-        version: '6.7'
-        archives: 'qtbase qtmultimedia qtx11extras icu'
+        version: '6.8'
+        archives: qtbase
     - name: Make
       working-directory: OSBindings/Qt
       shell: bash
