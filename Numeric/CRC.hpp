@@ -58,7 +58,7 @@ public:
 	}
 
 	/// @returns The current value of the CRC.
-	inline IntType get_value() const {
+	IntType get_value() const {
 		const IntType result = value_ ^ output_xor;
 		if constexpr (reflect_output) {
 			return Numeric::bit_reverse(result);
@@ -68,7 +68,7 @@ public:
 	}
 
 	/// Sets the current value of the CRC.
-	inline void set_value(const IntType value) { value_ = value; }
+	void set_value(const IntType value) { value_ = value; }
 
 	/*!
 		A compound for:
