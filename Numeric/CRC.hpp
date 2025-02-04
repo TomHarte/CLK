@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "BitReverse.hpp"
 #include "Carry.hpp"
 
 #include <array>
@@ -15,34 +16,6 @@
 #include <vector>
 
 namespace CRC {
-
-template <typename IntT>
-constexpr IntT reverse(const IntT source) {
-	static_assert(std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t> || std::is_same_v<IntT, uint64_t>);
-	using HalfIntT =
-		std::conditional_t<std::is_same_v<IntT, uint16_t>, uint8_t,
-			std::conditional_t<std::is_same_v<IntT, uint32_t>, uint16_t,
-				uint32_t>>;
-	constexpr auto HalfShift = sizeof(IntT) * 4;
-
-	return IntT(
-		IntT(reverse(HalfIntT(source))) << HalfShift) |
-		IntT(reverse(HalfIntT(source >> HalfShift))
-	);
-}
-
-template <>
-constexpr uint8_t reverse<uint8_t>(const uint8_t byte) {
-	return
-		((byte & 0x80) ? 0x01 : 0x00) |
-		((byte & 0x40) ? 0x02 : 0x00) |
-		((byte & 0x20) ? 0x04 : 0x00) |
-		((byte & 0x10) ? 0x08 : 0x00) |
-		((byte & 0x08) ? 0x10 : 0x00) |
-		((byte & 0x04) ? 0x20 : 0x00) |
-		((byte & 0x02) ? 0x40 : 0x00) |
-		((byte & 0x01) ? 0x80 : 0x00);
-}
 
 /*! Provides a class capable of generating a CRC from source data. */
 template <
@@ -80,7 +53,7 @@ public:
 			return table;
 		} ();
 
-		if constexpr (reflect_input) byte = reverse(byte);
+		if constexpr (reflect_input) byte = Numeric::bit_reverse(byte);
 		value_ = IntType((value_ << 8) ^ xor_table[(value_ >> multibyte_shift) ^ byte]);
 	}
 
@@ -88,7 +61,7 @@ public:
 	inline IntType get_value() const {
 		const IntType result = value_ ^ output_xor;
 		if constexpr (reflect_output) {
-			return reverse(result);
+			return Numeric::bit_reverse(result);
 		} else {
 			return result;
 		}
