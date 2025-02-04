@@ -117,7 +117,7 @@ jobs:
     - name: Install dependencies
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.8'
+        version: '6.7'
         archives: 'qtbase qtmultimedia qtx11extras icu'
     - name: Make
       working-directory: OSBindings/Qt
