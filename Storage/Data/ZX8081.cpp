@@ -44,7 +44,7 @@ static std::optional<File> ZX80FileFromData(const std::vector<uint8_t> &data) {
 	File file;
 	file.data = data;
 	file.isZX81 = false;
-	return std::move(file);
+	return file;
 }
 
 std::optional<File> ZX81FileFromData(const std::vector<uint8_t> &data) {
@@ -87,7 +87,7 @@ std::optional<File> ZX81FileFromData(const std::vector<uint8_t> &data) {
 	file.name = StringFromData(name_data, true);
 	file.data = data;
 	file.isZX81 = true;
-	return std::move(file);
+	return file;
 }
 
 }
