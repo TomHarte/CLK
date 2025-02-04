@@ -730,7 +730,6 @@ private:
 	}
 	void read_dipole() {
 		using Register = CPU::MOS6502::Register;
-		using Pulse = Storage::Tape::Pulse;
 		using Flag = CPU::MOS6502::Flag;
 
 		//

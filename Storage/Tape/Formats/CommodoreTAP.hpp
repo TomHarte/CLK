@@ -71,7 +71,6 @@ private:
 	bool half_waves_;
 	bool updated_layout_;
 	Platform platform_;
-	TargetPlatform::Type target_platforms_;
 };
 
 }
