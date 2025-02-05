@@ -8,7 +8,7 @@
 
 #include "Spectrum.hpp"
 
-#include "../../../Numeric/CRC.hpp"
+#include "../../../Numeric/BitReverse.hpp"
 
 #include <cstring>
 
@@ -212,7 +212,7 @@ std::optional<uint8_t> Parser::get_byte(Storage::Tape::TapeSerialiser &serialise
 	}
 
 	if(should_flip_bytes()) {
-		result = CRC::reverse_byte(result);
+		result = Numeric::bit_reverse(result);
 	}
 
 	checksum_ ^= result;

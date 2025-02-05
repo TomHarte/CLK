@@ -29,11 +29,13 @@ class VanillaVIAPortHandler: public MOS::MOS6522::PortHandler {
 			irq_line = new_status;
 		}
 
-		uint8_t get_port_input(MOS::MOS6522::Port port) {
+		template<MOS::MOS6522::Port port>
+		uint8_t get_port_input() {
 			return port ? port_b_value : port_a_value;
 		}
 
-		void set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Line line, bool value) {
+		template<MOS::MOS6522::Port port, MOS::MOS6522::Line line>
+		void set_control_line_output(bool value) {
 			control_line_values[int(port)][int(line)] = value;
 		}
 };

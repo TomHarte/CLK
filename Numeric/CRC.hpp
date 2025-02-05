@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "BitReverse.hpp"
 #include "Carry.hpp"
 
 #include <array>
@@ -15,18 +16,6 @@
 #include <vector>
 
 namespace CRC {
-
-constexpr uint8_t reverse_byte(uint8_t byte) {
-	return
-		((byte & 0x80) ? 0x01 : 0x00) |
-		((byte & 0x40) ? 0x02 : 0x00) |
-		((byte & 0x20) ? 0x04 : 0x00) |
-		((byte & 0x10) ? 0x08 : 0x00) |
-		((byte & 0x08) ? 0x10 : 0x00) |
-		((byte & 0x04) ? 0x20 : 0x00) |
-		((byte & 0x02) ? 0x40 : 0x00) |
-		((byte & 0x01) ? 0x80 : 0x00);
-}
 
 /*! Provides a class capable of generating a CRC from source data. */
 template <
@@ -64,26 +53,22 @@ public:
 			return table;
 		} ();
 
-		if constexpr (reflect_input) byte = reverse_byte(byte);
+		if constexpr (reflect_input) byte = Numeric::bit_reverse(byte);
 		value_ = IntType((value_ << 8) ^ xor_table[(value_ >> multibyte_shift) ^ byte]);
 	}
 
 	/// @returns The current value of the CRC.
-	inline IntType get_value() const {
-		IntType result = value_ ^ output_xor;
+	IntType get_value() const {
+		const IntType result = value_ ^ output_xor;
 		if constexpr (reflect_output) {
-			IntType reflected_output = 0;
-			for(std::size_t c = 0; c < sizeof(IntType); ++c) {
-				reflected_output = IntType(reflected_output << 8) | IntType(reverse_byte(result & 0xff));
-				result >>= 8;
-			}
-			return reflected_output;
+			return Numeric::bit_reverse(result);
+		} else {
+			return result;
 		}
-		return result;
 	}
 
 	/// Sets the current value of the CRC.
-	inline void set_value(IntType value) { value_ = value; }
+	void set_value(const IntType value) { value_ = value; }
 
 	/*!
 		A compound for:
@@ -103,7 +88,7 @@ public:
 			[add all data from @c begin to @c end]
 			get_value()
 	*/
-	template <typename Iterator> IntType compute_crc(Iterator begin, Iterator end) {
+	template <typename Iterator> IntType compute_crc(Iterator begin, const Iterator end) {
 		reset();
 		while(begin != end) {
 			add(*begin);
