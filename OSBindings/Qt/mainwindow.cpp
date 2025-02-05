@@ -795,9 +795,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 				const auto contents = fileContentsAndClose(file);
 				if(!contents) continue;
 
-
-				CRC::CRC32 generator;
-				const uint32_t crc = generator.compute_crc(*contents);
+				const uint32_t crc = CRC::CRC32::crc_of(*contents);
 
 				std::optional<ROM::Description> target_rom = ROM::Description::from_crc(crc);
 				if(target_rom) {
