@@ -8,8 +8,18 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
+
+template <int size> struct uint_t_impl;
+template <> struct uint_t_impl<8> { using type = uint8_t; };
+template <> struct uint_t_impl<16> { using type = uint16_t; };
+template <> struct uint_t_impl<32> { using type = uint32_t; };
+template <> struct uint_t_impl<64> { using type = uint64_t; };
+
+/// Unsigned integer types templated on size; `uint_t<8> = uint8_t`; `uint_t<16> = uint16_t`, etc.
+template <int size> using uint_t = typename uint_t_impl<size>::type;
 
 /*!
 	Maps to the smallest integral type that can contain max_value, from the following options:

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace Numeric {
 
 /// @returns The bits of @c input with a 0 bit inserted between each and

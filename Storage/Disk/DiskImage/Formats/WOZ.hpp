@@ -42,7 +42,6 @@ private:
 	long tracks_offset_ = -1;
 
 	std::vector<uint8_t> post_crc_contents_;
-	CRC::CRC32 crc_generator;
 
 	/*!
 		Gets the in-file offset of a track.

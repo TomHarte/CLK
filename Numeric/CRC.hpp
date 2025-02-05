@@ -71,30 +71,24 @@ public:
 	void set_value(const IntType value) { value_ = value; }
 
 	/*!
-		A compound for:
-
-			reset()
-			[add all data from @c data]
-			get_value()
+		Calculates the CRC of the provided collection, assuming that it contains `uint8_t`s.
 	*/
-	template <typename Collection> IntType compute_crc(const Collection &data) {
-		return compute_crc(data.begin(), data.end());
+	template <typename Collection>
+	static IntType crc_of(const Collection &data) {
+		return crc_of(data.begin(), data.end());
 	}
 
 	/*!
-		A compound for:
-
-			reset()
-			[add all data from @c begin to @c end]
-			get_value()
+		Calculates the CRC of all `uint8_t`s in the range defined by @c begin and @c end.
 	*/
-	template <typename Iterator> IntType compute_crc(Iterator begin, const Iterator end) {
-		reset();
+	template <typename Iterator>
+	static IntType crc_of(Iterator begin, const Iterator end) {
+		Generator generator;
 		while(begin != end) {
-			add(*begin);
+			generator.add(*begin);
 			++begin;
 		}
-		return get_value();
+		return generator.get_value();
 	}
 
 private:

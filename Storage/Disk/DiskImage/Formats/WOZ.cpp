@@ -47,7 +47,7 @@ WOZ::WOZ(const std::string &file_name) :
 	post_crc_contents_ = file_.read(size_t(file_.stats().st_size - 12));
 
 	// Test the CRC.
-	const uint32_t computed_crc = crc_generator.compute_crc(post_crc_contents_);
+	const uint32_t computed_crc = CRC::CRC32::crc_of(post_crc_contents_);
 	if(crc != computed_crc) {
 		 throw Error::InvalidFormat;
 	}
@@ -209,7 +209,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	}
 
 	// Calculate the new CRC.
-	const uint32_t crc = crc_generator.compute_crc(post_crc_contents_);
+	const uint32_t crc = CRC::CRC32::crc_of(post_crc_contents_);
 
 	// Grab the file lock, then write the CRC, then just dump the entire file buffer.
 	std::lock_guard lock_guard(file_.get_file_access_mutex());
