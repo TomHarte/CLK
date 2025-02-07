@@ -13,7 +13,6 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
 
 namespace CRC {
 

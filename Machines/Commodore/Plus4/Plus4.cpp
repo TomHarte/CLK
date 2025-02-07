@@ -300,8 +300,31 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
-			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode && address == 0xe5fd) {
-				read_dipole();
+			constexpr bool use_hle = true;
+
+			if(
+				use_fast_tape_hack_ &&
+				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode &&
+				(
+					(use_hle && address == 0xe5fd) ||
+					address == 0xe68b ||
+					address == 0xe68d
+				)
+			) {
+				if(use_hle) {
+					read_dipole();
+				}
+				++pulse_num_;
+
+				using Flag = CPU::MOS6502::Flag;
+				using Register = CPU::MOS6502::Register;
+				const auto flags = m6502_.value_of(Register::Flags);
+				printf("Pulse %d: %c%c%c\n",
+					pulse_num_,
+					flags & Flag::Sign ? 'n' : '-',
+					flags & Flag::Overflow ? 'v' : '-',
+					flags & Flag::Carry ? 'v' : '-'
+				);
 				*value = 0x60;
 			} else {
 				if(is_read(operation)) {
@@ -728,6 +751,9 @@ private:
 
 		tape_player_->run_for(length);
 	}
+
+	// TODO: substantially simplify the below; at the minute it's a
+	// literal transcription of the original as a simple first step.
 	void read_dipole() {
 		using Register = CPU::MOS6502::Register;
 		using Flag = CPU::MOS6502::Flag;
