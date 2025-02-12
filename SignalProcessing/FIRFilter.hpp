@@ -20,6 +20,8 @@
 #include <vector>
 
 namespace SignalProcessing {
+constexpr float FixedMultiplier = 32767.0f;
+constexpr int FixedShift = 15;
 
 /*!
 	The FIR filter takes a 1d PCM signal with a given sample rate and applies a band-pass filter to it.
@@ -28,13 +30,10 @@ namespace SignalProcessing {
 	smaller numbers permit a filter that operates more quickly and with less lag but less effectively.
 */
 class FIRFilter {
-private:
-	static constexpr float FixedMultiplier = 32767.0f;
-	static constexpr int FixedShift = 15;
-
 public:
 	/*! A suggested default attenuation value. */
-	constexpr static float DefaultAttenuation = 60.0f;
+	static constexpr float DefaultAttenuation = 60.0f;
+
 	/*!
 		Creates an instance of @c FIRFilter.
 
@@ -59,7 +58,7 @@ public:
 		@param src The source buffer to apply the filter to.
 		@returns The result of applying the filter.
 	*/
-	inline short apply(const short *src, size_t stride = 1) const {
+	inline short apply(const short *const src, const size_t stride = 1) const {
 		#ifdef USE_ACCELERATE
 			short result;
 			vDSP_dotpr_s1_15(
@@ -105,10 +104,6 @@ public:
 
 private:
 	std::vector<short> filter_coefficients_;
-
-	static void coefficients_for_idealised_filter_response(
-		short *filterCoefficients, float *A, float attenuation, std::size_t numberOfTaps);
-	static float ino(float a);
 };
 
 }
