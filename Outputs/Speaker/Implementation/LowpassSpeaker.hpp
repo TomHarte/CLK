@@ -100,8 +100,8 @@ private:
 
 	std::mutex filter_parameters_mutex_;
 	struct FilterParameters {
-		float input_cycles_per_second = 0.0f;
-		float output_cycles_per_second = 0.0f;
+		float input_cycles_per_second = 1.0f;
+		float output_cycles_per_second = 1.0f;
 		float high_frequency_cutoff = -1.0;
 
 		bool parameters_are_dirty = true;
