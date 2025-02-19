@@ -241,8 +241,7 @@ public:
 	}
 
 	// HACK. NOCOMMIT.
-	int pulse_num_ = 0;
-	bool superspeed_ = false;
+//	int pulse_num_ = 0;
 
 	Cycles perform_bus_operation(
 		const CPU::MOS6502::BusOperation operation,
@@ -312,22 +311,18 @@ public:
 //				superspeed_ &= (address != 0xe68b) && (address != 0xe68d);
 //			}
 
-			constexpr bool use_hle = !true;
+			constexpr bool use_hle = true;
 
-			if(
-				use_fast_tape_hack_ &&
-				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode &&
-				address == 0xe5fd
-			) {
-				printf("Pulse %d from %lld ",
-					pulse_num_,
-					tape_player_->serialiser()->offset()
-				);
-
-				if(tape_player_->serialiser()->offset() == 108080) {
-					printf("");
-				}
-			}
+//			if(
+//				use_fast_tape_hack_ &&
+//				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode &&
+//				address == 0xe5fd
+//			) {
+//				printf("Pulse %d from %lld ",
+//					pulse_num_,
+//					tape_player_->serialiser()->offset()
+//				);
+//			}
 
 			if(
 				use_fast_tape_hack_ &&
@@ -338,20 +333,20 @@ public:
 					address == 0xe68d
 				)
 			) {
-				++pulse_num_;
+//				++pulse_num_;
 				if(use_hle) {
 					read_dipole();
 				}
 
-				using Flag = CPU::MOS6502::Flag;
-				using Register = CPU::MOS6502::Register;
-				const auto flags = m6502_.value_of(Register::Flags);
-				printf("to %lld: %c%c%c\n",
-					tape_player_->serialiser()->offset(),
-					flags & Flag::Sign ? 'n' : '-',
-					flags & Flag::Overflow ? 'v' : '-',
-					flags & Flag::Carry ? 'c' : '-'
-				);
+//				using Flag = CPU::MOS6502::Flag;
+//				using Register = CPU::MOS6502::Register;
+//				const auto flags = m6502_.value_of(Register::Flags);
+//				printf("to %lld: %c%c%c\n",
+//					tape_player_->serialiser()->offset(),
+//					flags & Flag::Sign ? 'n' : '-',
+//					flags & Flag::Overflow ? 'v' : '-',
+//					flags & Flag::Carry ? 'c' : '-'
+//				);
 				*value = 0x60;
 			} else {
 				if(is_read(operation)) {
@@ -361,7 +356,18 @@ public:
 				}
 			}
 
+
+			// TODO: rdbyte and ldsync is probably sufficient?
+
 //			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
+//				constexpr uint16_t ldsync = 0;
+//				switch(address) {
+//					default: break;
+//
+//					case ldsync:
+//					break;
+//				}
+//
 //				if(address == 0xe9cc) {
 //					// Skip the `jsr rdblok` that opens `fah` (i.e. find any header), performing
 //					// its function as a high-level emulation.
@@ -763,6 +769,7 @@ private:
 	bool play_button_ = false;
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
 	bool use_fast_tape_hack_ = false;
+	bool superspeed_ = false;
 	void set_use_fast_tape() {
 		use_fast_tape_hack_ =
 			allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_ && !tape_player_->is_at_end();
