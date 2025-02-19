@@ -73,8 +73,8 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 	// Now parse all included blocks.
 	while(true) {
-		const uint32_t blockID = file.get_le<uint32_t>();
-		const uint32_t size = file.get_le<uint32_t>();
+		const auto blockID = file.get_le<uint32_t>();
+		const auto size = file.get_le<uint32_t>();
 		if(file.eof()) break;
 		const auto location = file.tell();
 

@@ -134,15 +134,15 @@ void TZX::Serialiser::get_csw_recording_block() {
 }
 
 void TZX::Serialiser::get_generalised_data_block() {
-	const uint32_t block_length = file_.get_le<uint32_t>();
+	const auto block_length = file_.get_le<uint32_t>();
 	const long endpoint = file_.tell() + long(block_length);
-	const uint16_t pause_after_block = file_.get_le<uint16_t>();
+	const auto pause_after_block = file_.get_le<uint16_t>();
 
-	const uint32_t total_pilot_symbols = file_.get_le<uint32_t>();
+	const auto total_pilot_symbols = file_.get_le<uint32_t>();
 	const uint8_t maximum_pulses_per_pilot_symbol = file_.get8();
 	const uint8_t symbols_in_pilot_table = file_.get8();
 
-	const uint32_t total_data_symbols = file_.get_le<uint32_t>();
+	const auto total_data_symbols = file_.get_le<uint32_t>();
 	const uint8_t maximum_pulses_per_data_symbol = file_.get8();
 	const uint8_t symbols_in_data_table = file_.get8();
 
@@ -284,8 +284,8 @@ void TZX::Serialiser::get_data(const Data &data) {
 }
 
 void TZX::Serialiser::get_pure_tone_data_block() {
-	const uint16_t length_of_pulse = file_.get_le<uint16_t>();
-	const uint16_t nunber_of_pulses = file_.get_le<uint16_t>();
+	const auto length_of_pulse = file_.get_le<uint16_t>();
+	const auto nunber_of_pulses = file_.get_le<uint16_t>();
 
 	post_pulses(nunber_of_pulses, length_of_pulse);
 }
@@ -339,7 +339,7 @@ void TZX::Serialiser::get_pulse_sequence() {
 }
 
 void TZX::Serialiser::get_pause() {
-	const uint16_t duration = file_.get_le<uint16_t>();
+	const auto duration = file_.get_le<uint16_t>();
 	if(!duration) {
 		// TODO (maybe): post a 'pause the tape' suggestion
 	} else {
@@ -354,11 +354,11 @@ void TZX::Serialiser::get_set_signal_level() {
 }
 
 void TZX::Serialiser::get_kansas_city_block() {
-	uint32_t block_length = file_.get_le<uint32_t>();
+	auto block_length = file_.get_le<uint32_t>();
 
-	const uint16_t pause_after_block = file_.get_le<uint16_t>();
-	const uint16_t pilot_pulse_duration = file_.get_le<uint16_t>();
-	const uint16_t pilot_length = file_.get_le<uint16_t>();
+	const auto pause_after_block = file_.get_le<uint16_t>();
+	const auto pilot_pulse_duration = file_.get_le<uint16_t>();
+	const auto pilot_length = file_.get_le<uint16_t>();
 	uint16_t pulse_durations[2];
 	pulse_durations[0] = file_.get_le<uint16_t>();
 	pulse_durations[1] = file_.get_le<uint16_t>();
@@ -445,12 +445,12 @@ void TZX::Serialiser::ignore_group_end() {
 }
 
 void TZX::Serialiser::ignore_jump_to_block() {
-	const uint16_t target = file_.get_le<uint16_t>();
+	const auto target = file_.get_le<uint16_t>();
 	(void)target;
 }
 
 void TZX::Serialiser::ignore_loop_start() {
-	const uint16_t number_of_repetitions = file_.get_le<uint16_t>();
+	const auto number_of_repetitions = file_.get_le<uint16_t>();
 	(void)number_of_repetitions;
 }
 
@@ -458,7 +458,7 @@ void TZX::Serialiser::ignore_loop_end() {
 }
 
 void TZX::Serialiser::ignore_call_sequence() {
-	const uint16_t number_of_entries = file_.get_le<uint16_t>();
+	const auto number_of_entries = file_.get_le<uint16_t>();
 	file_.seek(number_of_entries * sizeof(uint16_t), SEEK_CUR);
 }
 
@@ -466,7 +466,7 @@ void TZX::Serialiser::ignore_return_from_sequence() {
 }
 
 void TZX::Serialiser::ignore_select_block() {
-	const uint16_t length_of_block = file_.get_le<uint16_t>();
+	const auto length_of_block = file_.get_le<uint16_t>();
 	file_.seek(length_of_block, SEEK_CUR);
 }
 
@@ -476,7 +476,7 @@ void TZX::Serialiser::ignore_stop_tape_if_in_48kb_mode() {
 
 void TZX::Serialiser::ignore_custom_info_block() {
 	file_.seek(0x10, SEEK_CUR);
-	const uint32_t length = file_.get_le<uint32_t>();
+	const auto length = file_.get_le<uint32_t>();
 	file_.seek(length, SEEK_CUR);
 }
 
@@ -495,7 +495,7 @@ void TZX::Serialiser::ignore_message_block() {
 }
 
 void TZX::Serialiser::ignore_archive_info() {
-	const uint16_t length = file_.get_le<uint16_t>();
+	const auto length = file_.get_le<uint16_t>();
 	file_.seek(length, SEEK_CUR);
 }
 

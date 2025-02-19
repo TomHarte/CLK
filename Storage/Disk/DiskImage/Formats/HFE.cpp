@@ -45,8 +45,8 @@ uint16_t HFE::seek_track(Track::Address address) {
 	// based on an assumption of two heads.
 	file_.seek(track_list_offset_ + address.position.as_int() * 4, SEEK_SET);
 
-	long track_offset = long(file_.get_le<uint16_t>()) << 9;		// Track offset, in units of 512 bytes.
-	uint16_t track_length = file_.get_le<uint16_t>();			// Track length, in bytes, containing both the front and back track.
+	long track_offset = long(file_.get_le<uint16_t>()) << 9;	// Track offset, in units of 512 bytes.
+	const auto track_length = file_.get_le<uint16_t>();			// Track length, in bytes, containing both the front and back track.
 
 	file_.seek(track_offset, SEEK_SET);
 	if(address.head) file_.seek(256, SEEK_CUR);

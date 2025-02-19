@@ -34,17 +34,17 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 	const auto creator = file.read(4);
 
 	// Grab the header size, version number and image format.
-	const uint16_t header_size = file.get_le<uint16_t>();
-	const uint16_t version = file.get_le<uint16_t>();
-	const uint32_t format = file.get_le<uint32_t>();
-	const uint32_t flags = file.get_le<uint32_t>();
+	const auto header_size = file.get_le<uint16_t>();
+	const auto version = file.get_le<uint16_t>();
+	const auto format = file.get_le<uint32_t>();
+	const auto flags = file.get_le<uint32_t>();
 
 	// Skip the number of ProDOS blocks; this is surely implicit from the data size?
 	file.seek(4, SEEK_CUR);
 
 	// Get the offset and size of the disk image data.
-	const uint32_t data_start = file.get_le<uint32_t>();
-	uint32_t data_size = file.get_le<uint32_t>();
+	const auto data_start = file.get_le<uint32_t>();
+	auto data_size = file.get_le<uint32_t>();
 
 	// Correct for the Sweet 16 emulator, which writes broken 2MGs.
 	if(!data_size && !memcmp(creator.data(), "WOOF", 4)) {

@@ -111,7 +111,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	// This was a version 1 or 2 snapshot, so keep going...
-	const uint16_t bonus_header_size = file.get_le<uint16_t>();
+	const auto bonus_header_size = file.get_le<uint16_t>();
 	if(bonus_header_size != 23 && bonus_header_size != 54 && bonus_header_size != 55) {
 		return nullptr;
 	}
@@ -146,7 +146,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 
 	if(bonus_header_size != 23) {
 		// More Z80, the emulator, lack of encapsulation to deal with here.
-		const uint16_t low_t_state = file.get_le<uint16_t>();
+		const auto low_t_state = file.get_le<uint16_t>();
 		const uint16_t high_t_state = file.get8();
 		switch(result->model) {
 			case Target::Model::SixteenK:
@@ -181,7 +181,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	while(true) {
-		const uint16_t block_size = file.get_le<uint16_t>();
+		const auto block_size = file.get_le<uint16_t>();
 		const uint8_t page = file.get8();
 		const auto location = file.tell();
 		if(file.eof()) break;

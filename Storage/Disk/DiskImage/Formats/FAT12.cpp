@@ -24,7 +24,7 @@ FAT12::FAT12(const std::string &file_name) :
 	file_.seek(11, SEEK_SET);
 	sector_size_ = file_.get_le<uint16_t>();
 	file_.seek(19, SEEK_SET);
-	const uint16_t total_sectors = file_.get_le<uint16_t>();
+	const auto total_sectors = file_.get_le<uint16_t>();
 	file_.seek(24, SEEK_SET);
 	sector_count_ = file_.get_le<uint16_t>();
 	head_count_ = file_.get_le<uint16_t>();

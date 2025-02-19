@@ -57,7 +57,7 @@ DMK::DMK(const std::string &file_name) :
 	// Skip to the end of the header and check that this is
 	// "in the emulator's native format".
 	file_.seek(0xc, SEEK_SET);
-	uint32_t format = file_.get_le<uint32_t>();
+	const auto format = file_.get_le<uint32_t>();
 	if(format) throw Error::InvalidFormat;
 }
 

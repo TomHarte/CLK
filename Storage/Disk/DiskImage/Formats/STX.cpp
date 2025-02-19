@@ -422,7 +422,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	head_count_ = 1;
 	while(true) {
 		const long offset = file_.tell();
-		const uint32_t size = file_.get_le<uint32_t>();
+		const auto size = file_.get_le<uint32_t>();
 		if(file_.eof()) break;
 
 		// Skip fields other than track position, then fill in table position and advance.
@@ -460,9 +460,9 @@ std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 	file_.seek(offset_by_track_[track_index] + 4, SEEK_SET);
 
 	// Grab the track description.
-	const uint32_t fuzzy_size = file_.get_le<uint32_t>();
-	const uint16_t sector_count = file_.get_le<uint16_t>();
-	const uint16_t flags = file_.get_le<uint16_t>();
+	const auto fuzzy_size = file_.get_le<uint32_t>();
+	const auto sector_count = file_.get_le<uint16_t>();
+	const auto flags = file_.get_le<uint16_t>();
 	const size_t track_length = file_.get_le<uint16_t>();
 	file_.seek(2, SEEK_CUR);		// Skip track type; despite being named, it's apparently unused.
 
@@ -520,10 +520,10 @@ std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 		// bit
 		if(flags & 0x80) {
 			first_sync = file_.get_le<uint16_t>();
-			const uint16_t image_size = file_.get_le<uint16_t>();
+			const auto image_size = file_.get_le<uint16_t>();
 			track_data = file_.read(image_size);
 		} else {
-			const uint16_t image_size = file_.get_le<uint16_t>();
+			const auto image_size = file_.get_le<uint16_t>();
 			track_data = file_.read(image_size);
 		}
 	}

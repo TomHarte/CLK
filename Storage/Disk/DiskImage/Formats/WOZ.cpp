@@ -41,7 +41,7 @@ WOZ::WOZ(const std::string &file_name) :
 	type_ = isWoz2 ? Type::WOZ2 : Type::WOZ1;
 
 	// Get the file's CRC32.
-	const uint32_t crc = file_.get_le<uint32_t>();
+	const auto crc = file_.get_le<uint32_t>();
 
 	// Get the collection of all data that contributes to the CRC.
 	post_crc_contents_ = file_.read(size_t(file_.stats().st_size - 12));
@@ -58,8 +58,8 @@ WOZ::WOZ(const std::string &file_name) :
 	// Parse all chunks up front.
 	bool has_tmap = false;
 	while(true) {
-		const uint32_t chunk_id = file_.get_le<uint32_t>();
-		const uint32_t chunk_size = file_.get_le<uint32_t>();
+		const auto chunk_id = file_.get_le<uint32_t>();
+		const auto chunk_size = file_.get_le<uint32_t>();
 		if(file_.eof()) break;
 
 		long end_of_chunk = file_.tell() + long(chunk_size);
@@ -173,7 +173,7 @@ std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) {
 			default:
 			case Type::WOZ2: {
 				// In WOZ 2 an extra level of indirection allows for variable track sizes.
-				const uint16_t starting_block = file_.get_le<uint16_t>();
+				const auto starting_block = file_.get_le<uint16_t>();
 				file_.seek(2, SEEK_CUR);	// Skip the block count; the amount of data to read is implied by the number of bits.
 				number_of_bits = file_.get_le<uint32_t>();
 

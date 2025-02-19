@@ -43,9 +43,9 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 	// plus the other fields that'll be necessary to convert them into flux on demand later.
 	while(true) {
 		const auto start_of_block = file_.tell();
-		const uint32_t type = file_.get_be<uint32_t>();
-		uint32_t length = file_.get_be<uint32_t>();						// Can't be const because of the dumb encoding of DATA blocks.
-		[[maybe_unused]] const uint32_t crc = file_.get_be<uint32_t>();
+		const auto type = file_.get_be<uint32_t>();
+		auto length = file_.get_be<uint32_t>();						// Can't be const because of the dumb encoding of DATA blocks.
+		[[maybe_unused]] const auto crc = file_.get_be<uint32_t>();
 		if(file_.eof()) break;
 
 		// Sanity check: the first thing in a file should be the CAPS record.
@@ -71,7 +71,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				// aren't that interesting.
 
 				// Make sure this is a floppy disk.
-				const uint32_t media_type = file_.get_be<uint32_t>();
+				const auto media_type = file_.get_be<uint32_t>();
 				if(media_type != 1) {
 					throw Error::InvalidFormat;
 				}
@@ -117,8 +117,8 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 
 			case block("IMGE"): {
 				// Get track location.
-				const uint32_t track = file_.get_be<uint32_t>();
-				const uint32_t side = file_.get_be<uint32_t>();
+				const auto track = file_.get_be<uint32_t>();
+				const auto side = file_.get_be<uint32_t>();
 				const Track::Address address{int(side), HeadPosition(int(track))};
 
 				// Hence generate a TrackDescription.
@@ -147,7 +147,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				// For some reason the authors decided to introduce another primary key,
 				// in addition to that which naturally exists of (track, side). So set up
 				// a mapping from the one to the other.
-				const uint32_t data_key = file_.get_be<uint32_t>();
+				const auto data_key = file_.get_be<uint32_t>();
 				tracks_by_data_key.emplace(data_key, address);
 			} break;
 
@@ -160,7 +160,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				// position for this track.
 				//
 				// Assumed here: DATA records will come after corresponding IMGE records.
-				const uint32_t data_key = file_.get_be<uint32_t>();
+				const auto data_key = file_.get_be<uint32_t>();
 				const auto pair = tracks_by_data_key.find(data_key);
 				if(pair == tracks_by_data_key.end()) {
 					break;
@@ -231,7 +231,7 @@ std::unique_ptr<Track> IPF::track_at_position([[maybe_unused]] Track::Address ad
 		}
 		block.is_mfm = file_.get_be<uint32_t>() == 1;
 
-		const uint32_t flags = file_.get_be<uint32_t>();
+		const auto flags = file_.get_be<uint32_t>();
 		block.has_forward_gap = flags & 1;
 		block.has_backwards_gap = flags & 2;
 		block.data_unit_is_bits = flags & 4;
