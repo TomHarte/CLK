@@ -71,11 +71,11 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	// Read version 1 header.
 	state->z80.registers.a = file.get8();
 	state->z80.registers.flags = file.get8();
-	state->z80.registers.bc = file.get16le();
-	state->z80.registers.hl = file.get16le();
-	state->z80.registers.program_counter = file.get16le();
-	state->z80.registers.stack_pointer = file.get16le();
-	state->z80.registers.ir = file.get16be();	// Stored I then R.
+	state->z80.registers.bc = file.get_le<uint16_t>();
+	state->z80.registers.hl = file.get_le<uint16_t>();
+	state->z80.registers.program_counter = file.get_le<uint16_t>();
+	state->z80.registers.stack_pointer = file.get_le<uint16_t>();
+	state->z80.registers.ir = file.get_be<uint16_t>();	// Stored I then R.
 
 	// Bit 7 of R is stored separately; likely this relates to an
 	// optimisation in the Z80 emulator that for some reason was
@@ -84,13 +84,13 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	const uint8_t misc = (raw_misc == 0xff) ? 1 : raw_misc;
 	state->z80.registers.ir = uint16_t((state->z80.registers.ir & ~0x80) | ((misc&1) << 7));
 
-	state->z80.registers.de = file.get16le();
-	state->z80.registers.bc_dash = file.get16le();
-	state->z80.registers.de_dash = file.get16le();
-	state->z80.registers.hl_dash = file.get16le();
-	state->z80.registers.af_dash = file.get16be();	// Stored A' then F'.
-	state->z80.registers.iy = file.get16le();
-	state->z80.registers.ix = file.get16le();
+	state->z80.registers.de = file.get_le<uint16_t>();
+	state->z80.registers.bc_dash = file.get_le<uint16_t>();
+	state->z80.registers.de_dash = file.get_le<uint16_t>();
+	state->z80.registers.hl_dash = file.get_le<uint16_t>();
+	state->z80.registers.af_dash = file.get_be<uint16_t>();	// Stored A' then F'.
+	state->z80.registers.iy = file.get_le<uint16_t>();
+	state->z80.registers.ix = file.get_le<uint16_t>();
 	state->z80.registers.iff1 = bool(file.get8());
 	state->z80.registers.iff2 = bool(file.get8());
 
@@ -111,12 +111,12 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	// This was a version 1 or 2 snapshot, so keep going...
-	const uint16_t bonus_header_size = file.get16le();
+	const uint16_t bonus_header_size = file.get_le<uint16_t>();
 	if(bonus_header_size != 23 && bonus_header_size != 54 && bonus_header_size != 55) {
 		return nullptr;
 	}
 
-	state->z80.registers.program_counter = file.get16le();
+	state->z80.registers.program_counter = file.get_le<uint16_t>();
 	const uint8_t model = file.get8();
 	switch(model) {
 		default: return nullptr;
@@ -146,7 +146,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 
 	if(bonus_header_size != 23) {
 		// More Z80, the emulator, lack of encapsulation to deal with here.
-		const uint16_t low_t_state = file.get16le();
+		const uint16_t low_t_state = file.get_le<uint16_t>();
 		const uint16_t high_t_state = file.get8();
 		switch(result->model) {
 			case Target::Model::SixteenK:
@@ -181,7 +181,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	while(true) {
-		const uint16_t block_size = file.get16le();
+		const uint16_t block_size = file.get_le<uint16_t>();
 		const uint8_t page = file.get8();
 		const auto location = file.tell();
 		if(file.eof()) break;

@@ -47,18 +47,12 @@ public:
 	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
 
 	/*!
-		Performs @c get8 four times on @c file, casting each result to a @c uint32_t
-		and returning the four assembled in little endian order.
-	*/
-	uint32_t get32le();
-
-	/*!
 		Writes @c value using successive @c put8s, in little endian order.
 	*/
-	template <typename T> void put_le(T value) {
-		auto bytes = sizeof(T);
-		while(bytes--) {
-			put8(value&0xff);
+	template <typename IntT, size_t bytes = 0>
+	void put_le(IntT value) {
+		for(size_t c = 0; c < bytes ? bytes : sizeof(IntT); c++) {
+			put8(uint8_t(value));
 			value >>= 8;
 		}
 	}
@@ -66,8 +60,9 @@ public:
 	/*!
 		Writes @c value using successive @c put8s, in big endian order.
 	*/
-	template <typename T> void put_be(T value) {
-		auto shift = sizeof(T) * 8;
+	template <typename IntT, size_t bytes = 0>
+	void put_be(IntT value) {
+		auto shift = (bytes ? bytes : sizeof(IntT)) * 8;
 		while(shift) {
 			shift -= 8;
 			put8((value >> shift)&0xff);
@@ -75,44 +70,32 @@ public:
 	}
 
 	/*!
-		Performs @c get8 four times on @c file, casting each result to a @c uint32_t
-		and returning the four assembled in big endian order.
+		Writes @c value using successive @c put8s, in little endian order.
 	*/
-	uint32_t get32be();
+	template <typename IntT, size_t bytes = 0>
+	IntT get_le() {
+		constexpr auto length = bytes ? bytes : sizeof(IntT);
+		IntT result{};
+		for(size_t c = 0; c < length; c++) {
+			result >>= 8;
+			result |= IntT(get8() << ((length - 1) * 8));
+		}
+		return result;
+	}
 
 	/*!
-		Performs @c get8 three times on @c file, casting each result to a @c uint32_t
-		and returning the three assembled in little endian order.
+		Writes @c value using successive @c put8s, in big endian order.
 	*/
-	uint32_t get24le();
-
-	/*!
-		Performs @c get8 three times on @c file, casting each result to a @c uint32_t
-		and returning the three assembled in big endian order.
-	*/
-	uint32_t get24be();
-
-	/*!
-		Performs @c get8 two times on @c file, casting each result to a @c uint32_t
-		and returning the two assembled in little endian order.
-	*/
-	uint16_t get16le();
-
-	/*!
-		Writes @c value using two successive @c put8s, in little endian order.
-	*/
-	void put16le(uint16_t value);
-
-	/*!
-		Performs @c get8 two times on @c file, casting each result to a @c uint32_t
-		and returning the two assembled in big endian order.
-	*/
-	uint16_t get16be();
-
-	/*!
-		Writes @c value using two successive @c put8s, in big endian order.
-	*/
-	void put16be(uint16_t value);
+	template <typename IntT, size_t bytes = 0>
+	IntT get_be() {
+		constexpr auto length = bytes ? bytes : sizeof(IntT);
+		IntT result{};
+		for(size_t c = 0; c < length; c++) {
+			result <<= 8;
+			result |= get8();
+		}
+		return result;
+	}
 
 	/*! Reads a single byte from @c file. */
 	uint8_t get8();

@@ -16,17 +16,17 @@ using namespace Storage::Disk;
 
 MSA::MSA(const std::string &file_name) :
 	file_(file_name) {
-	const auto signature = file_.get16be();
+	const auto signature = file_.get_be<uint16_t>();
 	if(signature != 0x0e0f) throw Error::InvalidFormat;
 
-	sectors_per_track_ = file_.get16be();
-	sides_ = 1 + file_.get16be();
-	starting_track_ = file_.get16be();
-	ending_track_ = file_.get16be();
+	sectors_per_track_ = file_.get_be<uint16_t>();
+	sides_ = 1 + file_.get_be<uint16_t>();
+	starting_track_ = file_.get_be<uint16_t>();
+	ending_track_ = file_.get_be<uint16_t>();
 
 	// Create the uncompressed track list.
 	while(true) {
-		const auto data_length = file_.get16be();
+		const auto data_length = file_.get_be<uint16_t>();
 		if(file_.eof()) break;
 
 		if(data_length == sectors_per_track_ * 512) {
@@ -55,7 +55,7 @@ MSA::MSA(const std::string &file_name) :
 				if(pointer > data_length) break;
 
 				const auto value = file_.get8();
-				auto count = file_.get16be();
+				auto count = file_.get_be<uint16_t>();
 				while(count--) {
 					track.push_back(value);
 				}

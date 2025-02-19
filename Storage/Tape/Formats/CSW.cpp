@@ -36,7 +36,7 @@ CSW::CSW(const std::string &file_name) {
 	// The header now diverges based on version.
 	CompressionType compression_type;
 	if(major_version == 1) {
-		pulse_.length.clock_rate = file.get16le();
+		pulse_.length.clock_rate = file.get_le<uint16_t>();
 
 		if(file.get8() != 1) throw ErrorNotCSW;
 		compression_type = CompressionType::RLE;
@@ -45,7 +45,7 @@ CSW::CSW(const std::string &file_name) {
 
 		file.seek(0x20, SEEK_SET);
 	} else {
-		pulse_.length.clock_rate = file.get32le();
+		pulse_.length.clock_rate = file.get_le<uint32_t>();
 		file.seek(4, SEEK_CUR);	// Skip number of waves.
 		switch(file.get8()) {
 			case 1: compression_type = CompressionType::RLE;	break;

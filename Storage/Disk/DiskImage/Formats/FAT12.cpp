@@ -22,12 +22,12 @@ FAT12::FAT12(const std::string &file_name) :
 
 	// Inspect the FAT.
 	file_.seek(11, SEEK_SET);
-	sector_size_ = file_.get16le();
+	sector_size_ = file_.get_le<uint16_t>();
 	file_.seek(19, SEEK_SET);
-	const uint16_t total_sectors = file_.get16le();
+	const uint16_t total_sectors = file_.get_le<uint16_t>();
 	file_.seek(24, SEEK_SET);
-	sector_count_ = file_.get16le();
-	head_count_ = file_.get16le();
+	sector_count_ = file_.get_le<uint16_t>();
+	head_count_ = file_.get_le<uint16_t>();
 
 	// Throw if there would seemingly be an incomplete track.
 	if(file_size != total_sectors*sector_size_) throw Error::InvalidFormat;

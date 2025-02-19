@@ -56,7 +56,7 @@ PRG::PRG(const std::string &file_name) : file_name_(file_name) {
 	if(file.stats().st_size >= 65538 || file.stats().st_size < 3)
 		throw ErrorBadFormat;
 
-	load_address_ = file.get16le();
+	load_address_ = file.get_le<uint16_t>();
 	length_ = uint16_t(file.stats().st_size - 2);
 
 	if(load_address_ + length_ >= 65536)

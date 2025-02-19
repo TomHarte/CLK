@@ -21,9 +21,9 @@ OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 	if(!file_.check_signature("MFM_DISK"))
 		throw Error::InvalidFormat;
 
-	head_count_ = file_.get32le();
-	track_count_ = file_.get32le();
-	geometry_type_ = file_.get32le();
+	head_count_ = file_.get_le<uint32_t>();
+	track_count_ = file_.get_le<uint32_t>();
+	geometry_type_ = file_.get_le<uint32_t>();
 
 	if(geometry_type_ < 1 || geometry_type_ > 2)
 		throw Error::InvalidFormat;

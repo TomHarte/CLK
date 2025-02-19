@@ -37,17 +37,17 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	const uint8_t i = file.get8();
 
 	//	01	HL';	03	DE';	05	BC';	07	AF'
-	state->z80.registers.hl_dash = file.get16le();
-	state->z80.registers.de_dash = file.get16le();
-	state->z80.registers.bc_dash = file.get16le();
-	state->z80.registers.af_dash = file.get16le();
+	state->z80.registers.hl_dash = file.get_le<uint16_t>();
+	state->z80.registers.de_dash = file.get_le<uint16_t>();
+	state->z80.registers.bc_dash = file.get_le<uint16_t>();
+	state->z80.registers.af_dash = file.get_le<uint16_t>();
 
 	//	09	HL;		0B	DE;		0D	BC;		0F	IY;		11	IX
-	state->z80.registers.hl = file.get16le();
-	state->z80.registers.de = file.get16le();
-	state->z80.registers.bc = file.get16le();
-	state->z80.registers.iy = file.get16le();
-	state->z80.registers.ix = file.get16le();
+	state->z80.registers.hl = file.get_le<uint16_t>();
+	state->z80.registers.de = file.get_le<uint16_t>();
+	state->z80.registers.bc = file.get_le<uint16_t>();
+	state->z80.registers.iy = file.get_le<uint16_t>();
+	state->z80.registers.ix = file.get_le<uint16_t>();
 
 	//	13	IFF2 (in bit 2)
 	const uint8_t iff = file.get8();
@@ -60,7 +60,7 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	//	15	AF;		17	SP;		19	interrupt mode
 	state->z80.registers.flags = file.get8();
 	state->z80.registers.a = file.get8();
-	state->z80.registers.stack_pointer = file.get16le();
+	state->z80.registers.stack_pointer = file.get_le<uint16_t>();
 	state->z80.registers.interrupt_mode = file.get8();
 
 	//	1A	border colour

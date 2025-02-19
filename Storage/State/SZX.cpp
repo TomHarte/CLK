@@ -73,8 +73,8 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 	// Now parse all included blocks.
 	while(true) {
-		const uint32_t blockID = file.get32le();
-		const uint32_t size = file.get32le();
+		const uint32_t blockID = file.get_le<uint32_t>();
+		const uint32_t size = file.get_le<uint32_t>();
 		if(file.eof()) break;
 		const auto location = file.tell();
 
@@ -88,19 +88,19 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				state->z80.registers.flags = file.get8();
 				state->z80.registers.a = file.get8();
 
-				state->z80.registers.bc = file.get16le();
-				state->z80.registers.de = file.get16le();
-				state->z80.registers.hl = file.get16le();
+				state->z80.registers.bc = file.get_le<uint16_t>();
+				state->z80.registers.de = file.get_le<uint16_t>();
+				state->z80.registers.hl = file.get_le<uint16_t>();
 
-				state->z80.registers.af_dash = file.get16le();
-				state->z80.registers.bc_dash = file.get16le();
-				state->z80.registers.de_dash = file.get16le();
-				state->z80.registers.hl_dash = file.get16le();
+				state->z80.registers.af_dash = file.get_le<uint16_t>();
+				state->z80.registers.bc_dash = file.get_le<uint16_t>();
+				state->z80.registers.de_dash = file.get_le<uint16_t>();
+				state->z80.registers.hl_dash = file.get_le<uint16_t>();
 
-				state->z80.registers.ix = file.get16le();
-				state->z80.registers.iy = file.get16le();
-				state->z80.registers.stack_pointer = file.get16le();
-				state->z80.registers.program_counter = file.get16le();
+				state->z80.registers.ix = file.get_le<uint16_t>();
+				state->z80.registers.iy = file.get_le<uint16_t>();
+				state->z80.registers.stack_pointer = file.get_le<uint16_t>();
+				state->z80.registers.program_counter = file.get_le<uint16_t>();
 
 				const uint8_t i = file.get8();
 				const uint8_t r = file.get8();
@@ -110,7 +110,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				state->z80.registers.iff2 = file.get8();
 				state->z80.registers.interrupt_mode = file.get8();
 
-				state->video.half_cycles_since_interrupt = int(file.get32le()) * 2;
+				state->video.half_cycles_since_interrupt = int(file.get_le<uint32_t>()) * 2;
 
 				// SZX includes a count of remaining cycles that interrupt should be asserted for
 				// because it supports hardware that might cause an interrupt other than the display.
@@ -124,7 +124,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				// verdict but I'm unclear what the effect of an invalid DD or FD is so
 				// have not yet implemented this.
 
-				state->z80.registers.memptr = file.get16le();
+				state->z80.registers.memptr = file.get_le<uint16_t>();
 			} break;
 
 			// ZXSTAYBLOCK
@@ -139,7 +139,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 			// ZXSTRAMPAGE
 			case block("RAMP"): {
-				const uint16_t flags = file.get16le();
+				const uint16_t flags = file.get_le<uint16_t>();
 				const uint8_t page = file.get8();
 
 				std::vector<uint8_t> contents;

@@ -42,7 +42,7 @@ DMK::DMK(const std::string &file_name) :
 
 	// Read track count and size.
 	head_position_count_ = int(file_.get8());
-	track_length_ = long(file_.get16le());
+	track_length_ = long(file_.get_le<uint16_t>());
 
 	// Track length must be at least 0x80, as that's the size of the IDAM
 	// table before track contents.
@@ -57,7 +57,7 @@ DMK::DMK(const std::string &file_name) :
 	// Skip to the end of the header and check that this is
 	// "in the emulator's native format".
 	file_.seek(0xc, SEEK_SET);
-	uint32_t format = file_.get32le();
+	uint32_t format = file_.get_le<uint32_t>();
 	if(format) throw Error::InvalidFormat;
 }
 
@@ -86,7 +86,7 @@ std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(::Storage::Disk::
 	uint16_t idam_locations[64];
 	std::size_t idam_count = 0;
 	for(std::size_t c = 0; c < sizeof(idam_locations) / sizeof(*idam_locations); ++c) {
-		idam_locations[idam_count] = file_.get16le();
+		idam_locations[idam_count] = file_.get_le<uint16_t>();
 		if((idam_locations[idam_count] & 0x7fff) >= 128) {
 			idam_count++;
 		}
