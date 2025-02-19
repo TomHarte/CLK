@@ -241,7 +241,7 @@ public:
 	}
 
 	// HACK. NOCOMMIT.
-	int pulse_num_ = 0;
+//	int pulse_num_ = 0;
 
 	Cycles perform_bus_operation(
 		const CPU::MOS6502::BusOperation operation,
@@ -254,14 +254,17 @@ public:
 
 		// Update other subsystems.
 		advance_timers_and_tape(length);
-		video_.run_for(length);
+		if(!superspeed_) {
+			video_.run_for(length);
 
-		if(c1541_) {
-			c1541_cycles_ += length * Cycles(1'000'000);
-			c1541_->run_for(c1541_cycles_.divide(media_divider_));
+			if(c1541_) {
+				c1541_cycles_ += length * Cycles(1'000'000);
+				c1541_->run_for(c1541_cycles_.divide(media_divider_));
+			}
+
+
+			time_since_audio_update_ += length;
 		}
-
-		time_since_audio_update_ += length;
 
 		if(operation == CPU::MOS6502::BusOperation::Ready) {
 			return length;
@@ -300,8 +303,50 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
-			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode && address == 0xe5fd) {
-				read_dipole();
+//			if(
+//				use_fast_tape_hack_ &&
+//				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode
+//			) {
+//				superspeed_ |= address == 0xe5fd;
+//				superspeed_ &= (address != 0xe68b) && (address != 0xe68d);
+//			}
+
+			constexpr bool use_hle = true;
+
+//			if(
+//				use_fast_tape_hack_ &&
+//				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode &&
+//				address == 0xe5fd
+//			) {
+//				printf("Pulse %d from %lld ",
+//					pulse_num_,
+//					tape_player_->serialiser()->offset()
+//				);
+//			}
+
+			if(
+				use_fast_tape_hack_ &&
+				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode &&
+				(
+					(use_hle && address == 0xe5fd) ||
+					address == 0xe68b ||
+					address == 0xe68d
+				)
+			) {
+//				++pulse_num_;
+				if(use_hle) {
+					read_dipole();
+				}
+
+//				using Flag = CPU::MOS6502::Flag;
+//				using Register = CPU::MOS6502::Register;
+//				const auto flags = m6502_.value_of(Register::Flags);
+//				printf("to %lld: %c%c%c\n",
+//					tape_player_->serialiser()->offset(),
+//					flags & Flag::Sign ? 'n' : '-',
+//					flags & Flag::Overflow ? 'v' : '-',
+//					flags & Flag::Carry ? 'c' : '-'
+//				);
 				*value = 0x60;
 			} else {
 				if(is_read(operation)) {
@@ -311,36 +356,47 @@ public:
 				}
 			}
 
-/*			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
-				if(address == 0xe9cc) {
-					// Skip the `jsr rdblok` that opens `fah` (i.e. find any header), performing
-					// its function as a high-level emulation.
-					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
-					auto header = parser.get_next_header(*tape_player_->serialiser());
 
-					const auto tape_position = tape_player_->serialiser()->offset();
-					if(header) {
-						// Copy to in-memory buffer and set type.
-						std::memcpy(&ram_[0x0333], header->data.data(), 191);
-						map_.write(0xb6) = 0x33;
-						map_.write(0xb7) = 0x03;
-						map_.write(0xf8) = header->type_descriptor();
-//						hold_tape_ = true;
-						logger.info().append("Found header");
-					} else {
-						// no header found, so pretend this hack never interceded
-						tape_player_->serialiser()->set_offset(tape_position);
-//						hold_tape_ = false;
-						logger.info().append("Didn't find header");
-					}
+			// TODO: rdbyte and ldsync is probably sufficient?
 
-					// Clear status and the verify flags.
-					ram_[0x90] = 0;
-					ram_[0x93] = 0;
-
-					*value = 0x0c;	// NOP abs.
-				}
-			}*/
+//			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
+//				constexpr uint16_t ldsync = 0;
+//				switch(address) {
+//					default: break;
+//
+//					case ldsync:
+//					break;
+//				}
+//
+//				if(address == 0xe9cc) {
+//					// Skip the `jsr rdblok` that opens `fah` (i.e. find any header), performing
+//					// its function as a high-level emulation.
+//					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
+//					auto header = parser.get_next_header(*tape_player_->serialiser());
+//
+//					const auto tape_position = tape_player_->serialiser()->offset();
+//					if(header) {
+//						// Copy to in-memory buffer and set type.
+//						std::memcpy(&ram_[0x0333], header->data.data(), 191);
+//						map_.write(0xb6) = 0x33;
+//						map_.write(0xb7) = 0x03;
+//						map_.write(0xf8) = header->type_descriptor();
+////						hold_tape_ = true;
+//						logger.info().append("Found header");
+//					} else {
+//						// no header found, so pretend this hack never interceded
+//						tape_player_->serialiser()->set_offset(tape_position);
+////						hold_tape_ = false;
+//						logger.info().append("Didn't find header");
+//					}
+//
+//					// Clear status and the verify flags.
+//					ram_[0x90] = 0;
+//					ram_[0x93] = 0;
+//
+//					*value = 0x0c;	// NOP abs.
+//				}
+//			}
 		} else if(address < 0xff00) {
 			// Miscellaneous hardware. All TODO.
 			if(is_read(operation)) {
@@ -567,7 +623,7 @@ public:
 			}
 		}
 
-		return length;
+		return superspeed_ ? Cycles(0) : length;
 	}
 
 private:
@@ -713,6 +769,7 @@ private:
 	bool play_button_ = false;
 	bool allow_fast_tape_hack_ = false;	// TODO: implement fast-tape hack.
 	bool use_fast_tape_hack_ = false;
+	bool superspeed_ = false;
 	void set_use_fast_tape() {
 		use_fast_tape_hack_ =
 			allow_fast_tape_hack_ && tape_player_->motor_control() && rom_is_paged_ && !tape_player_->is_at_end();
@@ -728,6 +785,9 @@ private:
 
 		tape_player_->run_for(length);
 	}
+
+	// TODO: substantially simplify the below; at the minute it's a
+	// literal transcription of the original as a simple first step.
 	void read_dipole() {
 		using Register = CPU::MOS6502::Register;
 		using Flag = CPU::MOS6502::Flag;
@@ -834,6 +894,7 @@ private:
 		//       ldy  dsamp1+1
 		ldabs(x, dsamp1);
 		ldabs(y, dsamp1 + 1);
+		advance_cycles(8);
 
 		//badeg1
 		do {
@@ -845,15 +906,17 @@ private:
 			pha();
 			ldabs(a, dsamp2);
 			pha();
+			advance_cycles(14);
 
 			//       lda  #$10
 			//rwtl   			; wait till rd line is high
 			//       bit  port	[= $0001]
 			//       beq  rwtl       	; !ls!
 			ldimm(a, 0x10);
+			advance_cycles(2);
 			do {
 				bit(io_input());
-				if(advance_cycles(7)) {
+				if(advance_cycles(6)) {
 					return;
 				}
 			} while(eq());
@@ -863,7 +926,7 @@ private:
 			//       bne  rwth	; caught the edge
 			do {
 				bit(io_input());
-				if(advance_cycles(7)) {
+				if(advance_cycles(6)) {
 					return;
 				}
 			} while(ne());
@@ -873,6 +936,8 @@ private:
 			//       sty  timr2h
 			timers_.write<2>(x);
 			timers_.write<3>(y);
+			advance_cycles(8);
+
 
 			//; go! ...ta
 			//
@@ -884,6 +949,7 @@ private:
 			timers_.write<4>(a);
 			pla();
 			timers_.write<5>(a);
+			advance_cycles(14);
 
 
 			//; clear timer flags
@@ -892,6 +958,7 @@ private:
 			//       sta  tedirq
 			ldimm(a, 0x50);
 			interrupts_.set_status(a);
+			advance_cycles(6);
 
 
 			//; um...check that edge again
@@ -905,11 +972,12 @@ private:
 			do {
 				ldimm(a, io_input());
 				cmp(io_input());
-				if(advance_cycles(11)) {
+				if(advance_cycles(9)) {
 					return;
 				}
 			} while(ne());
 			andimm(0x10);
+			advance_cycles(5);
 		} while(ne());
 
 
@@ -926,11 +994,8 @@ private:
 		//       lda  #$10
 		//wata   			; wait for ta to timeout
 		ldimm(a, 0x10);
+		advance_cycles(3);
 		do {
-			if(advance_cycles(13)) {
-				return;
-			}
-
 			//       bit  port       	; kuldge, kludge, kludge !!! <<><>>
 			//       bne  rshort     	; kuldge, kludge, kludge !!! <<><>>
 			bit(io_input());
@@ -942,6 +1007,10 @@ private:
 			//       bit  tedirq
 			//       beq  wata
 			bit(interrupts_.status());
+
+			if(advance_cycles(12)) {
+				return;
+			}
 		} while(eq());
 
 
@@ -950,21 +1019,21 @@ private:
 		//
 		//casdb2
 		do {
-			if(advance_cycles(11)) {
-				return;
-			}
-
 			//       lda  port
 			//       cmp  port
 			ldimm(a, io_input());
 			cmp(io_input());
 
+			if(advance_cycles(9)) {
+				return;
+			}
 			//       bne  casdb2
 		} while(ne());
 
 		//       and  #$10
 		//       bne  rshort     	; shorts anyone?
 		andimm(0x10);
+		advance_cycles(3);
 		if(ne()) {
 			rshort();
 			return;
@@ -981,11 +1050,12 @@ private:
 		//; wait for tb to timeout
 		//; now do the dipole sample #2
 		ldimm(a, 0x40);
+		advance_cycles(3);
 		do {
-			if(advance_cycles(7)) {
+			bit(interrupts_.status());
+			if(advance_cycles(6)) {
 				return;
 			}
-			bit(interrupts_.status());
 		} while(eq());
 
 
@@ -994,16 +1064,17 @@ private:
 		//       cmp  port
 		//       bne  casdb3
 		do {
-			if(advance_cycles(11)) {
-				return;
-			}
 			ldimm(a, io_input());
 			cmp(io_input());
+			if(advance_cycles(9)) {
+				return;
+			}
 		} while(ne());
 
 		//       and  #$10
 		//       bne  rlong      	; looks like a long from here !ls!
 		andimm(0x10);
+		advance_cycles(2);
 		if(ne()) {
 			rlong();
 			return;
@@ -1018,6 +1089,7 @@ private:
 		timers_.write<2>(a);
 		ldabs(a, zcell + 1);
 		timers_.write<3>(y);
+		advance_cycles(16);
 
 
 		//			; go! z-cell check
@@ -1028,15 +1100,16 @@ private:
 		ldimm(a, 0x10);
 		interrupts_.set_status(a);
 		ldimm(a, 0x10);
+		advance_cycles(8);
 
 		//wata2
 		//       bit  tedirq
 		//       beq  wata2	; check z-cell is low
 		do {
+			bit(interrupts_.status());
 			if(advance_cycles(7)) {
 				return;
 			}
-			bit(interrupts_.status());
 		} while(eq());
 
 		//casdb4
@@ -1044,11 +1117,11 @@ private:
 		//       cmp  port
 		//       bne  casdb4
 		do {
-			if(advance_cycles(7)) {
-				return;
-			}
 			ldimm(a, io_input());
 			cmp(io_input());
+			if(advance_cycles(9)) {
+				return;
+			}
 		} while(ne());
 
 		//       and  #$10
@@ -1056,11 +1129,13 @@ private:
 		//       bit  twordd     	; got a word dipole
 		//       bmi  dipok      	; !bra
 		andimm(0x10);
+		advance_cycles(2);
 		if(eq()) {
 			rderr1();
 			return;
 		}
 		bit(0x80);
+		advance_cycles(2);
 		dipok();
 	}
 

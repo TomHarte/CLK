@@ -269,13 +269,14 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "p81");
 
+	static constexpr auto PRGTargets = TargetPlatform::Vic20; //Commodore8bit;	// Disabled until analysis improves.
 	if(accumulator.name_matches("prg")) {
 		// Try instantiating as a ROM; failing that accept as a tape.
 		try {
-			accumulator.insert<Cartridge::PRG>(TargetPlatform::Commodore8bit, file_name);
+			accumulator.insert<Cartridge::PRG>(PRGTargets, file_name);
 		} catch(...) {
 			try {
-				accumulator.insert<Tape::PRG>(TargetPlatform::Commodore8bit, file_name);
+				accumulator.insert<Tape::PRG>(PRGTargets, file_name);
 			} catch(...) {}
 		}
 	}

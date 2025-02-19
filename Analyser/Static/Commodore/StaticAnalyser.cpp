@@ -180,9 +180,8 @@ bool obviously_uses_ted(const File &file) {
 		analysis->machine_code_addresses
 	);
 
-	// If FF3E or FF3F is touched, this is for the +4.
-	// TODO: probably require a very early touch.
-	for(const auto address: {0xff3e, 0xff3f}) {
+	// Check for interrupt status and paging touches.
+	for(const auto address: {0xff3e, 0xff3f, 0xff09}) {
 		for(const auto &collection: {
 			disassembly.external_loads,
 			disassembly.external_stores,
