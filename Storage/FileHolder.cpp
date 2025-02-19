@@ -87,10 +87,6 @@ bool FileHolder::eof() const {
 	return std::feof(file_);
 }
 
-FileHolder::BitStream FileHolder::get_bitstream(bool lsb_first) {
-	return BitStream(file_, lsb_first);
-}
-
 bool FileHolder::check_signature(const char *signature, std::size_t length) {
 	if(!length) length = std::strlen(signature);
 

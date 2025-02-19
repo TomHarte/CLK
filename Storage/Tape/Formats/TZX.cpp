@@ -178,9 +178,9 @@ void TZX::Serialiser::get_generalised_segment(
 	}
 
 	// Hence produce the output.
-	FileHolder::BitStream stream = file_.get_bitstream(false);
+	auto stream = file_.bitstream<uint8_t, false>();
 	int base = 2;
-	int bits = 1;
+	size_t bits = 1;
 	while(base < number_of_symbols) {
 		base <<= 1;
 		bits++;
@@ -189,7 +189,7 @@ void TZX::Serialiser::get_generalised_segment(
 		uint8_t symbol_value;
 		int count;
 		if(is_data) {
-			symbol_value = stream.get_bits(bits);
+			symbol_value = stream.next(bits);
 			count = 1;
 		} else {
 			symbol_value = file_.get8();

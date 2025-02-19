@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "../Numeric/BitStream.hpp"
 #include <sys/stat.h>
 #include <array>
 #include <cstdio>
@@ -135,54 +136,15 @@ public:
 	/*! @returns @c true if the end-of-file indicator is set, @c false otherwise. */
 	bool eof() const;
 
-	class BitStream {
-	public:
-		uint8_t get_bits(int q) {
-			uint8_t result = 0;
-			while(q--) {
-				result = uint8_t((result << 1) | get_bit());
-			}
-			return result;
-		}
-
-	private:
-		BitStream(FILE *file, bool lsb_first) :
-			file_(file),
-			lsb_first_(lsb_first),
-			next_value_(0),
-			bits_remaining_(0) {}
-		friend FileHolder;
-
-		FILE *file_;
-		bool lsb_first_;
-		uint8_t next_value_;
-		int bits_remaining_;
-
-		uint8_t get_bit() {
-			if(!bits_remaining_) {
-				bits_remaining_ = 8;
-				next_value_ = uint8_t(fgetc(file_));
-			}
-
-			uint8_t bit;
-			if(lsb_first_) {
-				bit = next_value_ & 1;
-				next_value_ >>= 1;
-			} else {
-				bit = next_value_ >> 7;
-				next_value_ <<= 1;
-			}
-
-			bits_remaining_--;
-
-			return bit;
-		}
-	};
-
 	/*!
 		Obtains a BitStream for reading from the file from the current reading cursor.
 	*/
-	BitStream get_bitstream(bool lsb_first);
+	template <typename MaxIntT, bool lsb_first>
+	Numeric::BitStream<MaxIntT, lsb_first> bitstream() {
+		return Numeric::BitStream<MaxIntT, lsb_first>([&] {
+			return get8();
+		});
+	}
 
 	/*!
 		Reads @c length bytes from the file and compares them to the first
