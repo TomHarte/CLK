@@ -139,9 +139,9 @@ public:
 	/*!
 		Obtains a BitStream for reading from the file from the current reading cursor.
 	*/
-	template <typename MaxIntT, bool lsb_first>
-	Numeric::BitStream<MaxIntT, lsb_first> bitstream() {
-		return Numeric::BitStream<MaxIntT, lsb_first>([&] {
+	template <int max_bits, bool lsb_first>
+	Numeric::BitStream<max_bits, lsb_first> bitstream() {
+		return Numeric::BitStream<max_bits, lsb_first>([&] {
 			return get8();
 		});
 	}

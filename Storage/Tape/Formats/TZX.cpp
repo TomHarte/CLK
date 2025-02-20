@@ -178,7 +178,7 @@ void TZX::Serialiser::get_generalised_segment(
 	}
 
 	// Hence produce the output.
-	auto stream = file_.bitstream<uint8_t, false>();
+	auto stream = file_.bitstream<8, false>();
 	int base = 2;
 	size_t bits = 1;
 	while(base < number_of_symbols) {

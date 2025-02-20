@@ -22,14 +22,15 @@ template <> struct uint_t_impl<64> { using type = uint64_t; };
 template <int size> using uint_t = typename uint_t_impl<size>::type;
 
 /*!
-	Maps to the smallest integral type that can contain max_value, from the following options:
+	Maps to the smallest integral type that can contain `max_value`, from the following options:
 
 	* uint8_t;
 	* uint16_t;
 	* uint32_t; or
 	* uint64_t.
 */
-template <uint64_t max_value> struct MinIntTypeValue {
+template <uint64_t max_value>
+struct MinIntTypeValue {
 	using type =
 		std::conditional_t<
 			max_value <= std::numeric_limits<uint8_t>::max(), uint8_t,
@@ -42,3 +43,29 @@ template <uint64_t max_value> struct MinIntTypeValue {
 			>
 		>;
 };
+template <uint64_t max_value> using min_int_value_t = typename MinIntTypeValue<max_value>::type;
+
+/*!
+	Maps to the smallest integral type that can hold at least `max_bits` bits, from the following options:
+
+	* uint8_t;
+	* uint16_t;
+	* uint32_t; or
+	* uint64_t.
+*/
+template <int max_bits>
+struct MinIntTypeSize {
+	static_assert(max_bits <= 64, "Only integers up to 64 bits are supported");
+	using type =
+		std::conditional_t<
+			max_bits <= 8, uint8_t,
+			std::conditional_t<
+				max_bits <= 16, uint16_t,
+				std::conditional_t<
+					max_bits <= 32, uint32_t,
+					uint64_t
+				>
+			>
+		>;
+};
+template <uint64_t max_value> using min_int_size_t = typename MinIntTypeValue<max_value>::type;
