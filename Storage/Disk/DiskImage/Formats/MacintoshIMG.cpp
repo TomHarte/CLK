@@ -67,10 +67,10 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 
 		// Get the length of the data and tag blocks.
 		file_.seek(64, SEEK_SET);
-		const auto data_block_length = file_.get32be();
-		const auto tag_block_length = file_.get32be();
-		const auto data_checksum = file_.get32be();
-		const auto tag_checksum = file_.get32be();
+		const auto data_block_length = file_.get_be<uint32_t>();
+		const auto tag_block_length = file_.get_be<uint32_t>();
+		const auto data_checksum = file_.get_be<uint32_t>();
+		const auto tag_checksum = file_.get_be<uint32_t>();
 
 		// Don't continue with no data.
 		if(!data_block_length)
@@ -89,7 +89,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		format_ = file_.get8();
 
 		// Check the magic number.
-		const auto magic_number = file_.get16be();
+		const auto magic_number = file_.get_be<uint16_t>();
 		if(magic_number != 0x0100)
 			throw Error::InvalidFormat;
 

@@ -392,7 +392,7 @@ private:
 STX::STX(const std::string &file_name) : file_(file_name) {
 	// Require that this be a version 3 Pasti.
 	if(!file_.check_signature("RSY", 4)) throw Error::InvalidFormat;
-	if(file_.get16le() != 3) throw Error::InvalidFormat;
+	if(file_.get_le<uint16_t>() != 3) throw Error::InvalidFormat;
 
 	// Skip: tool used, 2 reserved bytes.
 	file_.seek(4, SEEK_CUR);
@@ -422,7 +422,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	head_count_ = 1;
 	while(true) {
 		const long offset = file_.tell();
-		const uint32_t size = file_.get32le();
+		const auto size = file_.get_le<uint32_t>();
 		if(file_.eof()) break;
 
 		// Skip fields other than track position, then fill in table position and advance.
@@ -460,10 +460,10 @@ std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 	file_.seek(offset_by_track_[track_index] + 4, SEEK_SET);
 
 	// Grab the track description.
-	const uint32_t fuzzy_size = file_.get32le();
-	const uint16_t sector_count = file_.get16le();
-	const uint16_t flags = file_.get16le();
-	const size_t track_length = file_.get16le();
+	const auto fuzzy_size = file_.get_le<uint32_t>();
+	const auto sector_count = file_.get_le<uint16_t>();
+	const auto flags = file_.get_le<uint16_t>();
+	const size_t track_length = file_.get_le<uint16_t>();
 	file_.seek(2, SEEK_CUR);		// Skip track type; despite being named, it's apparently unused.
 
 	// If this is a trivial .ST-style sector dump, life is easy.
@@ -480,9 +480,9 @@ std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 	// Sector records come first.
 	for(uint16_t c = 0; c < sector_count; ++c) {
 		sectors.emplace_back();
-		sectors.back().data_offset = file_.get32le();
-		sectors.back().bit_position = file_.get16le();
-		sectors.back().data_duration = file_.get16le();
+		sectors.back().data_offset = file_.get_le<uint32_t>();
+		sectors.back().bit_position = file_.get_le<uint16_t>();
+		sectors.back().data_duration = file_.get_le<uint16_t>();
 		file_.read(sectors.back().address);
 		sectors.back().status = file_.get8();
 		file_.seek(1, SEEK_CUR);
@@ -519,11 +519,11 @@ std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 		// Bit 6 => there is a track to read;
 		// bit
 		if(flags & 0x80) {
-			first_sync = file_.get16le();
-			const uint16_t image_size = file_.get16le();
+			first_sync = file_.get_le<uint16_t>();
+			const auto image_size = file_.get_le<uint16_t>();
 			track_data = file_.read(image_size);
 		} else {
-			const uint16_t image_size = file_.get16le();
+			const auto image_size = file_.get_le<uint16_t>();
 			track_data = file_.read(image_size);
 		}
 	}
@@ -571,7 +571,7 @@ std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
 
 		// This is going to be a new-format record.
 		for(size_t c = 0; c < timing_record_size; ++c) {
-			sector.timing[c] = file_.get16be();		// These values are big endian, unlike the rest of the file.
+			sector.timing[c] = file_.get_be<uint16_t>();		// These values are big endian, unlike the rest of the file.
 		}
 	}
 

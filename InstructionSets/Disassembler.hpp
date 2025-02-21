@@ -29,7 +29,7 @@ template <
 	typename AddressType
 > class Disassembler {
 public:
-	using ProgramCounterType = typename MinIntTypeValue<max_address>::type;
+	using ProgramCounterType = min_int_for_value_t<max_address>;
 
 	/*!
 		Adds the result of disassembling @c memory which is @c length @c MemoryWords long from @c start_address

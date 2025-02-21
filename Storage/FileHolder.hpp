@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "../Numeric/BitStream.hpp"
 #include <sys/stat.h>
 #include <array>
 #include <cstdio>
@@ -47,18 +48,12 @@ public:
 	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
 
 	/*!
-		Performs @c get8 four times on @c file, casting each result to a @c uint32_t
-		and returning the four assembled in little endian order.
-	*/
-	uint32_t get32le();
-
-	/*!
 		Writes @c value using successive @c put8s, in little endian order.
 	*/
-	template <typename T> void put_le(T value) {
-		auto bytes = sizeof(T);
-		while(bytes--) {
-			put8(value&0xff);
+	template <typename IntT, size_t bytes = 0>
+	void put_le(IntT value) {
+		for(size_t c = 0; c < bytes ? bytes : sizeof(IntT); c++) {
+			put8(uint8_t(value));
 			value >>= 8;
 		}
 	}
@@ -66,8 +61,9 @@ public:
 	/*!
 		Writes @c value using successive @c put8s, in big endian order.
 	*/
-	template <typename T> void put_be(T value) {
-		auto shift = sizeof(T) * 8;
+	template <typename IntT, size_t bytes = 0>
+	void put_be(IntT value) {
+		auto shift = (bytes ? bytes : sizeof(IntT)) * 8;
 		while(shift) {
 			shift -= 8;
 			put8((value >> shift)&0xff);
@@ -75,44 +71,32 @@ public:
 	}
 
 	/*!
-		Performs @c get8 four times on @c file, casting each result to a @c uint32_t
-		and returning the four assembled in big endian order.
+		Writes @c value using successive @c put8s, in little endian order.
 	*/
-	uint32_t get32be();
+	template <typename IntT, size_t bytes = 0>
+	IntT get_le() {
+		constexpr auto length = bytes ? bytes : sizeof(IntT);
+		IntT result{};
+		for(size_t c = 0; c < length; c++) {
+			result >>= 8;
+			result |= IntT(get8() << ((length - 1) * 8));
+		}
+		return result;
+	}
 
 	/*!
-		Performs @c get8 three times on @c file, casting each result to a @c uint32_t
-		and returning the three assembled in little endian order.
+		Writes @c value using successive @c put8s, in big endian order.
 	*/
-	uint32_t get24le();
-
-	/*!
-		Performs @c get8 three times on @c file, casting each result to a @c uint32_t
-		and returning the three assembled in big endian order.
-	*/
-	uint32_t get24be();
-
-	/*!
-		Performs @c get8 two times on @c file, casting each result to a @c uint32_t
-		and returning the two assembled in little endian order.
-	*/
-	uint16_t get16le();
-
-	/*!
-		Writes @c value using two successive @c put8s, in little endian order.
-	*/
-	void put16le(uint16_t value);
-
-	/*!
-		Performs @c get8 two times on @c file, casting each result to a @c uint32_t
-		and returning the two assembled in big endian order.
-	*/
-	uint16_t get16be();
-
-	/*!
-		Writes @c value using two successive @c put8s, in big endian order.
-	*/
-	void put16be(uint16_t value);
+	template <typename IntT, size_t bytes = 0>
+	IntT get_be() {
+		constexpr auto length = bytes ? bytes : sizeof(IntT);
+		IntT result{};
+		for(size_t c = 0; c < length; c++) {
+			result <<= 8;
+			result |= get8();
+		}
+		return result;
+	}
 
 	/*! Reads a single byte from @c file. */
 	uint8_t get8();
@@ -152,54 +136,15 @@ public:
 	/*! @returns @c true if the end-of-file indicator is set, @c false otherwise. */
 	bool eof() const;
 
-	class BitStream {
-	public:
-		uint8_t get_bits(int q) {
-			uint8_t result = 0;
-			while(q--) {
-				result = uint8_t((result << 1) | get_bit());
-			}
-			return result;
-		}
-
-	private:
-		BitStream(FILE *file, bool lsb_first) :
-			file_(file),
-			lsb_first_(lsb_first),
-			next_value_(0),
-			bits_remaining_(0) {}
-		friend FileHolder;
-
-		FILE *file_;
-		bool lsb_first_;
-		uint8_t next_value_;
-		int bits_remaining_;
-
-		uint8_t get_bit() {
-			if(!bits_remaining_) {
-				bits_remaining_ = 8;
-				next_value_ = uint8_t(fgetc(file_));
-			}
-
-			uint8_t bit;
-			if(lsb_first_) {
-				bit = next_value_ & 1;
-				next_value_ >>= 1;
-			} else {
-				bit = next_value_ >> 7;
-				next_value_ <<= 1;
-			}
-
-			bits_remaining_--;
-
-			return bit;
-		}
-	};
-
 	/*!
 		Obtains a BitStream for reading from the file from the current reading cursor.
 	*/
-	BitStream get_bitstream(bool lsb_first);
+	template <int max_bits, bool lsb_first>
+	Numeric::BitStream<max_bits, lsb_first> bitstream() {
+		return Numeric::BitStream<max_bits, lsb_first>([&] {
+			return get8();
+		});
+	}
 
 	/*!
 		Reads @c length bytes from the file and compares them to the first

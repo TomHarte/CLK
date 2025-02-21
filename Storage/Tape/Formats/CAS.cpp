@@ -114,7 +114,7 @@ CAS::CAS(const std::string &file_name) {
 				} else {
 					// Raw data appears now. Grab its length and keep going.
 					file.seek(header_position + 8, SEEK_SET);
-					const uint16_t length = file.get16le();
+					const auto length = file.get_le<uint16_t>();
 
 					file.seek(header_position + 8, SEEK_SET);
 					chunks_.emplace_back(false, false, file.read(size_t(length) + 2));
@@ -136,8 +136,8 @@ CAS::CAS(const std::string &file_name) {
 				// Get the start and end addresses in order to figure out how much data
 				// is here.
 				file.seek(header_position + 8, SEEK_SET);
-				const uint16_t start_address = file.get16le();
-				const uint16_t end_address = file.get16le();
+				const auto start_address = file.get_le<uint16_t>();
+				const auto end_address = file.get_le<uint16_t>();
 
 				file.seek(header_position + 8, SEEK_SET);
 				const auto length = end_address - start_address + 1;
@@ -152,7 +152,7 @@ CAS::CAS(const std::string &file_name) {
 				file.seek(header_position + 8, SEEK_SET);
 				uint16_t address = 0x8001;	// the BASIC start address.
 				while(true) {
-					const uint16_t next_line_address = file.get16le();
+					const auto next_line_address = file.get_le<uint16_t>();
 					if(!next_line_address || file.eof()) break;
 					file.seek(next_line_address - address - 2, SEEK_CUR);
 					address = next_line_address;

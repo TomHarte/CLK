@@ -108,11 +108,11 @@ void TZX::Serialiser::push_next_pulses() {
 }
 
 void TZX::Serialiser::get_csw_recording_block() {
-	const uint32_t block_length = file_.get32le();
-	const uint16_t pause_after_block = file_.get16le();
-	const uint32_t sampling_rate = file_.get24le();
-	const uint8_t compression_type = file_.get8();
-	const uint32_t number_of_compressed_pulses = file_.get32le();
+	const auto block_length = file_.get_le<uint32_t>();
+	const auto pause_after_block = file_.get_le<uint16_t>();
+	const auto sampling_rate = file_.get_le<uint32_t, 3>();
+	const auto compression_type = file_.get8();
+	const auto number_of_compressed_pulses = file_.get_le<uint32_t>();
 
 	std::vector<uint8_t> raw_block = file_.read(block_length - 10);
 
@@ -134,15 +134,15 @@ void TZX::Serialiser::get_csw_recording_block() {
 }
 
 void TZX::Serialiser::get_generalised_data_block() {
-	const uint32_t block_length = file_.get32le();
+	const auto block_length = file_.get_le<uint32_t>();
 	const long endpoint = file_.tell() + long(block_length);
-	const uint16_t pause_after_block = file_.get16le();
+	const auto pause_after_block = file_.get_le<uint16_t>();
 
-	const uint32_t total_pilot_symbols = file_.get32le();
+	const auto total_pilot_symbols = file_.get_le<uint32_t>();
 	const uint8_t maximum_pulses_per_pilot_symbol = file_.get8();
 	const uint8_t symbols_in_pilot_table = file_.get8();
 
-	const uint32_t total_data_symbols = file_.get32le();
+	const auto total_data_symbols = file_.get_le<uint32_t>();
 	const uint8_t maximum_pulses_per_data_symbol = file_.get8();
 	const uint8_t symbols_in_data_table = file_.get8();
 
@@ -172,15 +172,15 @@ void TZX::Serialiser::get_generalised_segment(
 		Symbol symbol;
 		symbol.flags = file_.get8();
 		for(int ic = 0; ic < max_pulses_per_symbol; ic++) {
-			symbol.pulse_lengths.push_back(file_.get16le());
+			symbol.pulse_lengths.push_back(file_.get_le<uint16_t>());
 		}
 		symbol_table.push_back(symbol);
 	}
 
 	// Hence produce the output.
-	FileHolder::BitStream stream = file_.get_bitstream(false);
+	auto stream = file_.bitstream<8, false>();
 	int base = 2;
-	int bits = 1;
+	size_t bits = 1;
 	while(base < number_of_symbols) {
 		base <<= 1;
 		bits++;
@@ -189,11 +189,11 @@ void TZX::Serialiser::get_generalised_segment(
 		uint8_t symbol_value;
 		int count;
 		if(is_data) {
-			symbol_value = stream.get_bits(bits);
+			symbol_value = stream.next(bits);
 			count = 1;
 		} else {
 			symbol_value = file_.get8();
-			count = file_.get16le();
+			count = file_.get_le<uint16_t>();
 		}
 		if(symbol_value > number_of_symbols) {
 			continue;
@@ -227,8 +227,8 @@ void TZX::Serialiser::get_standard_speed_data_block() {
 	data_block.data.length_of_one_bit_pulse = 1710;
 	data_block.data.number_of_bits_in_final_byte = 8;
 
-	data_block.data.pause_after_block = file_.get16le();
-	data_block.data.data_length = file_.get16le();
+	data_block.data.pause_after_block = file_.get_le<uint16_t>();
+	data_block.data.data_length = file_.get_le<uint16_t>();
 	if(!data_block.data.data_length) return;
 
 	const uint8_t first_byte = file_.get8();
@@ -240,15 +240,15 @@ void TZX::Serialiser::get_standard_speed_data_block() {
 
 void TZX::Serialiser::get_turbo_speed_data_block() {
 	DataBlock data_block;
-	data_block.length_of_pilot_pulse = file_.get16le();
-	data_block.length_of_sync_first_pulse = file_.get16le();
-	data_block.length_of_sync_second_pulse = file_.get16le();
-	data_block.data.length_of_zero_bit_pulse = file_.get16le();
-	data_block.data.length_of_one_bit_pulse = file_.get16le();
-	data_block.length_of_pilot_tone = file_.get16le();
+	data_block.length_of_pilot_pulse = file_.get_le<uint16_t>();
+	data_block.length_of_sync_first_pulse = file_.get_le<uint16_t>();
+	data_block.length_of_sync_second_pulse = file_.get_le<uint16_t>();
+	data_block.data.length_of_zero_bit_pulse = file_.get_le<uint16_t>();
+	data_block.data.length_of_one_bit_pulse = file_.get_le<uint16_t>();
+	data_block.length_of_pilot_tone = file_.get_le<uint16_t>();
 	data_block.data.number_of_bits_in_final_byte = file_.get8();
-	data_block.data.pause_after_block = file_.get16le();
-	data_block.data.data_length = file_.get24le();
+	data_block.data.pause_after_block = file_.get_le<uint16_t>();
+	data_block.data.data_length = file_.get_le<uint32_t, 3>();
 
 	get_data_block(data_block);
 }
@@ -284,28 +284,28 @@ void TZX::Serialiser::get_data(const Data &data) {
 }
 
 void TZX::Serialiser::get_pure_tone_data_block() {
-	const uint16_t length_of_pulse = file_.get16le();
-	const uint16_t nunber_of_pulses = file_.get16le();
+	const auto length_of_pulse = file_.get_le<uint16_t>();
+	const auto nunber_of_pulses = file_.get_le<uint16_t>();
 
 	post_pulses(nunber_of_pulses, length_of_pulse);
 }
 
 void TZX::Serialiser::get_pure_data_block() {
 	Data data;
-	data.length_of_zero_bit_pulse = file_.get16le();
-	data.length_of_one_bit_pulse = file_.get16le();
+	data.length_of_zero_bit_pulse = file_.get_le<uint16_t>();
+	data.length_of_one_bit_pulse = file_.get_le<uint16_t>();
 	data.number_of_bits_in_final_byte = file_.get8();
-	data.pause_after_block = file_.get16le();
-	data.data_length = file_.get24le();
+	data.pause_after_block = file_.get_le<uint16_t>();
+	data.data_length = file_.get_le<uint32_t, 3>();
 
 	get_data(data);
 }
 
 void TZX::Serialiser::get_direct_recording_block() {
-	const Storage::Time length_per_sample(unsigned(file_.get16le()), StandardTZXClock);
-	const uint16_t pause_after_block = file_.get16le();
+	const Storage::Time length_per_sample(unsigned(file_.get_le<uint16_t>()), StandardTZXClock);
+	const auto pause_after_block = file_.get_le<uint16_t>();
 	uint8_t used_bits_in_final_byte = file_.get8();
-	const uint32_t length_of_data = file_.get24le();
+	const auto length_of_data = file_.get_le<uint32_t, 3>();
 
 	if(used_bits_in_final_byte < 1) used_bits_in_final_byte = 1;
 	if(used_bits_in_final_byte > 8) used_bits_in_final_byte = 8;
@@ -334,12 +334,12 @@ void TZX::Serialiser::get_direct_recording_block() {
 void TZX::Serialiser::get_pulse_sequence() {
 	uint8_t number_of_pulses = file_.get8();
 	while(number_of_pulses--) {
-		post_pulse(file_.get16le());
+		post_pulse(file_.get_le<uint16_t>());
 	}
 }
 
 void TZX::Serialiser::get_pause() {
-	const uint16_t duration = file_.get16le();
+	const auto duration = file_.get_le<uint16_t>();
 	if(!duration) {
 		// TODO (maybe): post a 'pause the tape' suggestion
 	} else {
@@ -354,14 +354,14 @@ void TZX::Serialiser::get_set_signal_level() {
 }
 
 void TZX::Serialiser::get_kansas_city_block() {
-	uint32_t block_length = file_.get32le();
+	auto block_length = file_.get_le<uint32_t>();
 
-	const uint16_t pause_after_block = file_.get16le();
-	const uint16_t pilot_pulse_duration = file_.get16le();
-	const uint16_t pilot_length = file_.get16le();
+	const auto pause_after_block = file_.get_le<uint16_t>();
+	const auto pilot_pulse_duration = file_.get_le<uint16_t>();
+	const auto pilot_length = file_.get_le<uint16_t>();
 	uint16_t pulse_durations[2];
-	pulse_durations[0] = file_.get16le();
-	pulse_durations[1] = file_.get16le();
+	pulse_durations[0] = file_.get_le<uint16_t>();
+	pulse_durations[1] = file_.get_le<uint16_t>();
 	const uint8_t packed_pulse_counts = file_.get8();
 	const unsigned int pulse_counts[2] = {
 		unsigned((((packed_pulse_counts >> 4) - 1) & 15) + 1),
@@ -445,12 +445,12 @@ void TZX::Serialiser::ignore_group_end() {
 }
 
 void TZX::Serialiser::ignore_jump_to_block() {
-	const uint16_t target = file_.get16le();
+	const auto target = file_.get_le<uint16_t>();
 	(void)target;
 }
 
 void TZX::Serialiser::ignore_loop_start() {
-	const uint16_t number_of_repetitions = file_.get16le();
+	const auto number_of_repetitions = file_.get_le<uint16_t>();
 	(void)number_of_repetitions;
 }
 
@@ -458,7 +458,7 @@ void TZX::Serialiser::ignore_loop_end() {
 }
 
 void TZX::Serialiser::ignore_call_sequence() {
-	const uint16_t number_of_entries = file_.get16le();
+	const auto number_of_entries = file_.get_le<uint16_t>();
 	file_.seek(number_of_entries * sizeof(uint16_t), SEEK_CUR);
 }
 
@@ -466,7 +466,7 @@ void TZX::Serialiser::ignore_return_from_sequence() {
 }
 
 void TZX::Serialiser::ignore_select_block() {
-	const uint16_t length_of_block = file_.get16le();
+	const auto length_of_block = file_.get_le<uint16_t>();
 	file_.seek(length_of_block, SEEK_CUR);
 }
 
@@ -476,7 +476,7 @@ void TZX::Serialiser::ignore_stop_tape_if_in_48kb_mode() {
 
 void TZX::Serialiser::ignore_custom_info_block() {
 	file_.seek(0x10, SEEK_CUR);
-	const uint32_t length = file_.get32le();
+	const auto length = file_.get_le<uint32_t>();
 	file_.seek(length, SEEK_CUR);
 }
 
@@ -495,7 +495,7 @@ void TZX::Serialiser::ignore_message_block() {
 }
 
 void TZX::Serialiser::ignore_archive_info() {
-	const uint16_t length = file_.get16le();
+	const auto length = file_.get_le<uint16_t>();
 	file_.seek(length, SEEK_CUR);
 }
 

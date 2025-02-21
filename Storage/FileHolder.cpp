@@ -41,66 +41,8 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 	if(!file_) throw Error::CantOpen;
 }
 
-uint32_t FileHolder::get32le() {
-	uint32_t result = uint32_t(std::fgetc(file_));
-	result |= uint32_t(std::fgetc(file_)) << 8;
-	result |= uint32_t(std::fgetc(file_)) << 16;
-	result |= uint32_t(std::fgetc(file_)) << 24;
-
-	return result;
-}
-
-uint32_t FileHolder::get32be() {
-	uint32_t result = uint32_t(std::fgetc(file_)) << 24;
-	result |= uint32_t(std::fgetc(file_)) << 16;
-	result |= uint32_t(std::fgetc(file_)) << 8;
-	result |= uint32_t(std::fgetc(file_));
-
-	return result;
-}
-
-uint32_t FileHolder::get24le() {
-	uint32_t result = uint32_t(std::fgetc(file_));
-	result |= uint32_t(std::fgetc(file_)) << 8;
-	result |= uint32_t(std::fgetc(file_)) << 16;
-
-	return result;
-}
-
-uint32_t FileHolder::get24be() {
-	uint32_t result = uint32_t(std::fgetc(file_)) << 16;
-	result |= uint32_t(std::fgetc(file_)) << 8;
-	result |= uint32_t(std::fgetc(file_));
-
-	return result;
-}
-
-uint16_t FileHolder::get16le() {
-	uint16_t result = uint16_t(std::fgetc(file_));
-	result |= uint16_t(uint16_t(std::fgetc(file_)) << 8);
-
-	return result;
-}
-
-uint16_t FileHolder::get16be() {
-	uint16_t result = uint16_t(uint16_t(std::fgetc(file_)) << 8);
-	result |= uint16_t(std::fgetc(file_));
-
-	return result;
-}
-
 uint8_t FileHolder::get8() {
 	return uint8_t(std::fgetc(file_));
-}
-
-void FileHolder::put16be(uint16_t value) {
-	std::fputc(value >> 8, file_);
-	std::fputc(value, file_);
-}
-
-void FileHolder::put16le(uint16_t value) {
-	std::fputc(value, file_);
-	std::fputc(value >> 8, file_);
 }
 
 void FileHolder::put8(uint8_t value) {
@@ -143,10 +85,6 @@ void FileHolder::flush() {
 
 bool FileHolder::eof() const {
 	return std::feof(file_);
-}
-
-FileHolder::BitStream FileHolder::get_bitstream(bool lsb_first) {
-	return BitStream(file_, lsb_first);
 }
 
 bool FileHolder::check_signature(const char *signature, std::size_t length) {

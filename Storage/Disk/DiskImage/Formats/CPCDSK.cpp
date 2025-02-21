@@ -48,7 +48,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 			track_sizes.push_back(size_t(file.get8()) << 8);
 		}
 	} else {
-		size_of_a_track = file.get16le();
+		size_of_a_track = file.get_le<uint16_t>();
 	}
 
 	long file_offset = 0x100;
@@ -140,7 +140,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 					// sector was weak or fuzzy and that multiple samplings are provided. If the greater size
 					// is not an exact multiple then my reading of the documentation is that this is an invalid
 					// disk image.
-					std::size_t declared_data_size = file.get16le();
+					std::size_t declared_data_size = file.get_le<uint16_t>();
 					if(declared_data_size != stored_data_size) {
 						if(declared_data_size > data_size) {
 							number_of_samplings = declared_data_size / data_size;
@@ -365,7 +365,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 			for(auto &sample: sector.samples) {
 				data_size += sample.size();
 			}
-			output.put16le(uint16_t(data_size));
+			output.put_le<uint16_t>(uint16_t(data_size));
 		}
 
 		// Move to next 256-byte boundary.

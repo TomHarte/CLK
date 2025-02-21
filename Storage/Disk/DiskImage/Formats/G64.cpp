@@ -27,7 +27,7 @@ G64::G64(const std::string &file_name) :
 
 	// get the number of tracks and track size
 	number_of_tracks_ = file_.get8();
-	maximum_track_size_ = file_.get16le();
+	maximum_track_size_ = file_.get_le<uint16_t>();
 }
 
 HeadPosition G64::get_maximum_head_position() {
@@ -41,7 +41,7 @@ std::unique_ptr<Track> G64::track_at_position(Track::Address address) {
 	file_.seek(long((address.position.as_half() * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
-	const uint32_t track_offset = file_.get32le();
+	const auto track_offset = file_.get_le<uint32_t>();
 
 	// if the track offset is zero, this track doesn't exist, so...
 	if(!track_offset) return nullptr;
@@ -50,7 +50,7 @@ std::unique_ptr<Track> G64::track_at_position(Track::Address address) {
 	file_.seek(long(track_offset), SEEK_SET);
 
 	// get the real track length
-	const uint16_t track_length = file_.get16le();
+	const auto track_length = file_.get_le<uint16_t>();
 
 	// grab the byte contents of this track
 	const std::vector<uint8_t> track_contents = file_.read(track_length);
@@ -59,7 +59,7 @@ std::unique_ptr<Track> G64::track_at_position(Track::Address address) {
 	file_.seek(long((address.position.as_half() * 4) + 0x15c), SEEK_SET);
 
 	// read the speed zone offsrt
-	const uint32_t speed_zone_offset = file_.get32le();
+	const auto speed_zone_offset = file_.get_le<uint32_t>();
 
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3) {

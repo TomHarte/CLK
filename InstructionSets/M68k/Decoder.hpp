@@ -54,9 +54,9 @@ private:
 	// integer size large enough to hold all actual operations plus the ephemeral
 	// ones used here. Intention is to support table-based decoding, which will mean
 	// making those integers less ephemeral, hence the desire to pick a minimum size.
-	using OpT = typename MinIntTypeValue<
+	using OpT = min_int_for_value_t<
 		uint64_t(OperationMax<model>::value) + 67
-	>::type;
+	>;
 	static constexpr auto OpMax = OpT(OperationMax<model>::value);
 
 	// Specific instruction decoders.

@@ -89,7 +89,7 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 		if(!updated_layout_ || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {
-			next_length = file_.get24le();
+			next_length = file_.get_le<uint32_t, 3>();
 		}
 
 		if(file_.eof()) {
