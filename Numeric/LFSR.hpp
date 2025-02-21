@@ -77,6 +77,6 @@ private:
 	IntType value_ = 0;
 };
 
-template <uint64_t polynomial> class LFSRv: public LFSR<typename MinIntTypeValue<polynomial>::type, polynomial> {};
+template <uint64_t polynomial> class LFSRv: public LFSR<min_int_for_value_t<polynomial>, polynomial> {};
 
 }

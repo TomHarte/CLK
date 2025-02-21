@@ -10,6 +10,8 @@
 
 #include "BitReverse.hpp"
 #include "Sizes.hpp"
+
+#include <cstdint>
 #include <functional>
 
 namespace Numeric {
@@ -23,7 +25,7 @@ namespace Numeric {
 template <int max_bits, bool lsb_first>
 class BitStream {
 public:
-	using IntT = min_int_size_t<max_bits + 8>;
+	using IntT = min_int_for_bits_t<max_bits>;
 
 	BitStream(std::function<uint8_t(void)> next_byte) : next_byte_(next_byte) {}
 
@@ -33,6 +35,9 @@ public:
 	/// `rbits` is ignored if `bits` is non-zero.
 	template <size_t bits = 0>
 	IntT next([[maybe_unused]] const size_t rbits = 0) {
+		static_assert(bits <= max_bits);
+		static constexpr size_t ShiftBitSize = sizeof(ShiftIntT) * 8;
+
 		const size_t required = bits ? bits : rbits;
 		while(enqueued_ < required) {
 			uint8_t next = next_byte_();
@@ -40,11 +45,11 @@ public:
 				next = bit_reverse(next);
 			}
 
-			input_ |= IntT(next) << (BitSize - 8 - enqueued_);
+			input_ |= ShiftIntT(next) << (ShiftBitSize - 8 - enqueued_);
 			enqueued_ += 8;
 		}
 
-		const auto result = IntT(input_ >> (BitSize - required));
+		const auto result = IntT(input_ >> (ShiftBitSize - required));
 		input_ <<= required;
 		enqueued_ -= required;
 		return result;
@@ -53,10 +58,9 @@ public:
 private:
 	std::function<uint8_t(void)> next_byte_;
 
+	using ShiftIntT = min_int_for_bits_t<max_bits + 7>;
+	ShiftIntT input_{};
 	size_t enqueued_{};
-
-	IntT input_{};
-	static constexpr size_t BitSize = sizeof(IntT) * 8;
 };
 
 }

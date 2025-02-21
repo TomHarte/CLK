@@ -235,6 +235,7 @@
 		4B0ACC3123775819008902D0 /* TIASound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC2123775819008902D0 /* TIASound.cpp */; };
 		4B0ACC3223775819008902D0 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC2223775819008902D0 /* Atari2600.cpp */; };
 		4B0ACC3323775819008902D0 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC2223775819008902D0 /* Atari2600.cpp */; };
+		4B0B23A12D6826DE00153879 /* NumericTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B0B23A02D6826DE00153879 /* NumericTests.mm */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B0DA67B282DCDF100C12F17 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0DA67A282DCC4200C12F17 /* Instruction.cpp */; };
 		4B0DA67C282DCDF300C12F17 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0DA67A282DCC4200C12F17 /* Instruction.cpp */; };
@@ -1372,6 +1373,7 @@
 		4B0ACC2423775819008902D0 /* PIA.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PIA.hpp; sourceTree = "<group>"; };
 		4B0ACC2523775819008902D0 /* TIA.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TIA.hpp; sourceTree = "<group>"; };
 		4B0B239F2D658C9400153879 /* BitStream.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BitStream.hpp; sourceTree = "<group>"; };
+		4B0B23A02D6826DE00153879 /* NumericTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NumericTests.mm; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0DA67A282DCC4200C12F17 /* Instruction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Instruction.cpp; sourceTree = "<group>"; };
@@ -4702,6 +4704,7 @@
 				4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */,
 				4BC6237126F94BCB00F83DFE /* MintermTests.mm */,
 				4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */,
+				4B0B23A02D6826DE00153879 /* NumericTests.mm */,
 				4BC0CB272446BC7B00A79DBB /* OPLTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
@@ -6631,6 +6634,7 @@
 				4B06AB022C6460CB0034D014 /* Typer.cpp in Sources */,
 				4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */,
 				4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */,
+				4B0B23A12D6826DE00153879 /* NumericTests.mm in Sources */,
 				4BE34438238389E10058E78F /* AtariSTVideoTests.mm in Sources */,
 				4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */,
 				4BE76CF922641ED400ACD6FA /* QLTests.mm in Sources */,

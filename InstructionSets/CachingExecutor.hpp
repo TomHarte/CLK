@@ -46,8 +46,8 @@ template <
 > class CachingExecutor {
 public:
 	using Performer = void (Executor::*)();
-	using PerformerIndex = typename MinIntTypeValue<max_performer_count>::type;
-	using ProgramCounterType = typename MinIntTypeValue<max_address>::type;
+	using PerformerIndex = min_int_for_value_t<max_performer_count>;
+	using ProgramCounterType = min_int_for_value_t<max_address>;
 
 	// MARK: - Parser call-ins.
 
