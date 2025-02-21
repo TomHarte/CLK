@@ -111,6 +111,7 @@ class MachineDocument:
 		volumeSlider.floatValue = pow(2.0, userDefaultsVolume())
 
 		volumeView.layer!.cornerRadius = 5.0
+		scanTargetView.responderDelegate = self
 	}
 
 	private var missingROMs: String = ""
@@ -227,7 +228,6 @@ class MachineDocument:
 			setupActivityDisplay()
 
 			machine.delegate = self
-			scanTargetView.responderDelegate = self
 
 			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
 			// of the command key is desired.
@@ -243,6 +243,7 @@ class MachineDocument:
 
 			// Start forwarding best-effort updates.
 			machine.start()
+			optionsFader.showTransiently(for: 1.0)
 		}
 	}
 
@@ -782,13 +783,17 @@ class MachineDocument:
 
 	private var optionsFader: ViewFader! = nil
 
-	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
-		// The OS mouse cursor became visible, so show the volume controls.
+	internal func scanTargetView(_ view: CSScanTargetView, shouldTrackMousovers subview: NSView) -> Bool {
+		return subview == self.volumeView || subview == self.optionsView
+	}
+
+	internal func scanTargetViewDidMouseoverSubviews(_ view: CSScanTargetView) {
+		// The OS mouse cursor became visible, so show the options.
 		optionsFader.animateIn()
 	}
 
 	internal func scanTargetViewWouldHideOSMouseCursor(_ view: CSScanTargetView) {
-		// The OS mouse cursor will be hidden, so hide the volume controls.
+		// The OS mouse cursor will be hidden, so hide the options if visible.
 		optionsFader.animateOut(delay: 0.0)
 	}
 

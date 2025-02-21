@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23504" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23504"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="scanTargetView" destination="DEG-fq-cjd" id="5aX-3R-eXQ"/>
+                <outlet property="scanTargetView" destination="gIp-Ho-8D9" id="oG7-rq-m8l"/>
                 <outlet property="volumeSlider" destination="bmN-Nb-BBh" id="1aU-pu-mfB"/>
                 <outlet property="volumeView" destination="l9e-qt-jMo" id="4cE-4e-RhG"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
@@ -21,20 +21,17 @@
             <windowCollectionBehavior key="collectionBehavior" fullScreenPrimary="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="80" y="250" width="600" height="450"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1470" height="924"/>
             <value key="minSize" type="size" width="228" height="171"/>
-            <view key="contentView" id="gIp-Ho-8D9">
+            <view key="contentView" id="gIp-Ho-8D9" customClass="CSScanTargetView">
                 <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <view hidden="YES" wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
-                        <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
-                    </view>
                     <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo" userLabel="Volume View">
                         <rect key="frame" x="130" y="20" width="340" height="36"/>
                         <subviews>
                             <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="3hK-SA-aKj">
-                                <rect key="frame" x="8" y="12" width="32.5" height="14"/>
+                                <rect key="frame" x="8" y="10" width="32.5" height="18"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="32" id="tY0-07-0UK"/>
                                 </constraints>
@@ -49,7 +46,7 @@
                                 </connections>
                             </slider>
                             <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="pG5-Iv-llF">
-                                <rect key="frame" x="300" y="11.5" width="32.5" height="15"/>
+                                <rect key="frame" x="300" y="9" width="32" height="19"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="32" id="Nq1-7v-zbT"/>
                                 </constraints>
@@ -72,11 +69,7 @@
                 </subviews>
                 <constraints>
                     <constraint firstItem="l9e-qt-jMo" firstAttribute="centerX" secondItem="gIp-Ho-8D9" secondAttribute="centerX" id="63A-k7-XRW"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="centerX" secondItem="gIp-Ho-8D9" secondAttribute="centerX" id="ES5-nL-N3h"/>
                     <constraint firstAttribute="bottom" secondItem="l9e-qt-jMo" secondAttribute="bottom" constant="20" symbolic="YES" id="QG7-P0-OBj"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="height" secondItem="gIp-Ho-8D9" secondAttribute="height" id="YoB-qI-LFX"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="centerY" secondItem="gIp-Ho-8D9" secondAttribute="centerY" id="d5Y-3a-CEI"/>
-                    <constraint firstItem="DEG-fq-cjd" firstAttribute="width" secondItem="gIp-Ho-8D9" secondAttribute="width" id="mYS-bH-DST"/>
                 </constraints>
             </view>
             <userDefinedRuntimeAttributes>
@@ -86,13 +79,13 @@
             </userDefinedRuntimeAttributes>
             <connections>
                 <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
-                <outlet property="initialFirstResponder" destination="DEG-fq-cjd" id="9RI-Kx-QeN"/>
+                <outlet property="initialFirstResponder" destination="gIp-Ho-8D9" id="Kb6-6a-7fu"/>
             </connections>
             <point key="canvasLocation" x="141" y="147"/>
         </window>
     </objects>
     <resources>
-        <image name="NSTouchBarAudioOutputVolumeHighTemplate" width="22" height="15"/>
-        <image name="NSTouchBarAudioOutputVolumeOffTemplate" width="14" height="14"/>
+        <image name="NSTouchBarAudioOutputVolumeHighTemplate" width="27" height="19"/>
+        <image name="NSTouchBarAudioOutputVolumeOffTemplate" width="17" height="18"/>
     </resources>
 </document>

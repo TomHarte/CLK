@@ -77,7 +77,7 @@
 	Announces that the OS mouse cursor is now being displayed again, after having been invisible.
 	@param view The view making the announcement.
 */
-- (void)scanTargetViewDidShowOSMouseCursor:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewDidMouseoverSubviews:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces that the OS mouse cursor would now be hidden; 'would' means that if this is not
@@ -93,6 +93,13 @@
 	@param URL The file URL of the received file.
 */
 - (void)scanTargetView:(nonnull CSScanTargetView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
+
+/*!
+	Asks the receiver whether @c view should be included in the set of subviews that generate
+	@c scanTargetViewDidShowOSMouseCursor and subsequent actions.
+*/
+- (BOOL)scanTargetView:(nonnull CSScanTargetView *)view shouldTrackMousovers:(nonnull NSView *)view;
+
 
 @end
 

@@ -480,9 +480,9 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	// Various resource addresses with VDP-version-specific modifications
 	// built in.
-	AddressT pattern_name_address_;
-	AddressT sprite_attribute_table_address_;
-	AddressT sprite_generator_table_address_;
+	AddressT pattern_name_address_{};
+	AddressT sprite_attribute_table_address_{};
+	AddressT sprite_generator_table_address_{};
 
 	void begin_line(ScreenMode, bool) {}
 };
