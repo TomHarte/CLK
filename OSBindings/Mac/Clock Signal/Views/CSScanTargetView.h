@@ -94,6 +94,13 @@
 */
 - (void)scanTargetView:(nonnull CSScanTargetView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
 
+/*!
+	Asks the receiver whether @c view should be included in the set of subviews that generate
+	@c scanTargetViewDidShowOSMouseCursor and subsequent actions.
+*/
+- (BOOL)scanTargetView:(nonnull CSScanTargetView *)view shouldTrackMousovers:(nonnull NSView *)view;
+
+
 @end
 
 /*!

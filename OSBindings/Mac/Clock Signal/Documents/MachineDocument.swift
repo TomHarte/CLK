@@ -111,6 +111,7 @@ class MachineDocument:
 		volumeSlider.floatValue = pow(2.0, userDefaultsVolume())
 
 		volumeView.layer!.cornerRadius = 5.0
+		scanTargetView.responderDelegate = self
 	}
 
 	private var missingROMs: String = ""
@@ -227,7 +228,6 @@ class MachineDocument:
 			setupActivityDisplay()
 
 			machine.delegate = self
-			scanTargetView.responderDelegate = self
 
 			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
 			// of the command key is desired.
@@ -781,6 +781,10 @@ class MachineDocument:
 	// MARK: - In-window panels (i.e. options, volume).
 
 	private var optionsFader: ViewFader! = nil
+
+	internal func scanTargetView(_ view: CSScanTargetView, shouldTrackMousovers subview: NSView) -> Bool {
+		return subview == self.volumeView || subview == self.optionsView
+	}
 
 	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor became visible, so show the volume controls.
