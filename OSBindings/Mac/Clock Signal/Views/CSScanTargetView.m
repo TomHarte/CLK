@@ -286,8 +286,12 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[self recalculateSubviewTrackingAreas];
 }
 
-- (void)scheduleMouseHideAfter:(NSTimeInterval)interval {
+- (void)cancelMouseHide {
 	[_mouseHideTimer invalidate];
+}
+
+- (void)scheduleMouseHideAfter:(NSTimeInterval)interval {
+	[self cancelMouseHide];
 
 	_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:interval repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
 		// Don't actually hide the mouse if this is a mouse-capture machine; that makes
@@ -306,6 +310,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		[self scheduleMouseHideAfter:standardMouseHideInterval];
 	}
 	if(event.trackingArea == _subviewTrackingArea && !_mouseIsCaptured) {
+		[self cancelMouseHide];
 		[self.responderDelegate scanTargetViewDidMouseoverSubviews:self];
 	}
 }
@@ -332,14 +337,14 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 - (void)applyMouseMotion:(NSEvent *)event {
 	if(!_mouseIsCaptured) {
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
-		// hide in the near future.
-		[self scheduleMouseHideAfter:standardMouseHideInterval];
-
+		// hide in the near future unless over an interesting subview.
 		if(
 			_subviewTrackingArea &&
 			NSPointInRect([self convertPoint:event.locationInWindow fromView:nil], _subviewTrackingArea.rect)
 		) {
 			[self.responderDelegate scanTargetViewDidMouseoverSubviews:self];
+		} else {
+			[self scheduleMouseHideAfter:standardMouseHideInterval];
 		}
 	} else {
 		// Mouse capture is on, so move the cursor back to the middle of the window, and
