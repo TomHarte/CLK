@@ -243,6 +243,7 @@ class MachineDocument:
 
 			// Start forwarding best-effort updates.
 			machine.start()
+			optionsFader.showTransiently(for: 1.0)
 		}
 	}
 
