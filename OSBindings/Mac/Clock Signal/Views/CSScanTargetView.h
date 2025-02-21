@@ -77,7 +77,7 @@
 	Announces that the OS mouse cursor is now being displayed again, after having been invisible.
 	@param view The view making the announcement.
 */
-- (void)scanTargetViewDidShowOSMouseCursor:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewDidMouseoverSubviews:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces that the OS mouse cursor would now be hidden; 'would' means that if this is not

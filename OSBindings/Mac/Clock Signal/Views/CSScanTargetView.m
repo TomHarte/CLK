@@ -306,7 +306,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		[self scheduleMouseHideAfter:standardMouseHideInterval];
 	}
 	if(event.trackingArea == _subviewTrackingArea && !_mouseIsCaptured) {
-		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
+		[self.responderDelegate scanTargetViewDidMouseoverSubviews:self];
 	}
 }
 
@@ -339,7 +339,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 			_subviewTrackingArea &&
 			NSPointInRect([self convertPoint:event.locationInWindow fromView:nil], _subviewTrackingArea.rect)
 		) {
-			[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewDidMouseoverSubviews:self];
 		}
 	} else {
 		// Mouse capture is on, so move the cursor back to the middle of the window, and

@@ -787,13 +787,13 @@ class MachineDocument:
 		return subview == self.volumeView || subview == self.optionsView
 	}
 
-	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
-		// The OS mouse cursor became visible, so show the volume controls.
+	internal func scanTargetViewDidMouseoverSubviews(_ view: CSScanTargetView) {
+		// The OS mouse cursor became visible, so show the options.
 		optionsFader.animateIn()
 	}
 
 	internal func scanTargetViewWouldHideOSMouseCursor(_ view: CSScanTargetView) {
-		// The OS mouse cursor will be hidden, so hide the volume controls.
+		// The OS mouse cursor will be hidden, so hide the options if visible.
 		optionsFader.animateOut(delay: 0.0)
 	}
 
