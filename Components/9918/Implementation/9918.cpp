@@ -778,15 +778,18 @@ void Base<personality>::commit_register(int reg, const uint8_t value) {
 			break;
 
 			case 2:
-				Storage<personality>::pattern_name_address_ = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
+				Storage<personality>::pattern_name_address_ =
+					pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
 			break;
 
 			case 5:
-				Storage<personality>::sprite_attribute_table_address_ = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
+				Storage<personality>::sprite_attribute_table_address_ =
+					sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
 			break;
 
 			case 6:
-				Storage<personality>::sprite_generator_table_address_ = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
+				Storage<personality>::sprite_generator_table_address_ =
+					sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
 			break;
 
 			case 8:
