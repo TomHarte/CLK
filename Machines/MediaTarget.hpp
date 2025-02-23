@@ -25,6 +25,27 @@ struct MediaTarget {
 		@returns @c true if any media was inserted; @c false otherwise.
 	*/
 	virtual bool insert_media(const Analyser::Static::Media &) = 0;
+
+	enum class ChangeEffect {
+		None,
+		ReinsertMedia,
+		RestartMachine
+	};
+	/*!
+		Queries what action an observed on-disk change in the file with name `file_name`,
+		which is guaranteed lexically to match one used earlier for the creation of media that
+		was either inserted or provided at machine construction, should be performed by the
+		machine's owner.
+
+		@c ChangeEffect::None means that no specific action will be taken;
+		@c ChangeEffect::ReinsertMedia requests that the owner construct the applicable
+			`Analyser::Static::Media` and call `insert_media`;
+		@c ChangeEffect::RestartMachine requests that the owner reconsult the static analyer
+			and construct a new machine to replace this one.
+	*/
+	virtual ChangeEffect effect_for_file_did_change([[maybe_unused]] const std::string &file_name) {
+		return ChangeEffect::None;
+	}
 };
 
 }
