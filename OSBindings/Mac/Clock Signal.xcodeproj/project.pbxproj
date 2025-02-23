@@ -236,6 +236,7 @@
 		4B0ACC3223775819008902D0 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC2223775819008902D0 /* Atari2600.cpp */; };
 		4B0ACC3323775819008902D0 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC2223775819008902D0 /* Atari2600.cpp */; };
 		4B0B23A12D6826DE00153879 /* NumericTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B0B23A02D6826DE00153879 /* NumericTests.mm */; };
+		4B0B23A62D6AC53B00153879 /* CSFileContentChangeObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B0B23A42D6AC53B00153879 /* CSFileContentChangeObserver.m */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B0DA67B282DCDF100C12F17 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0DA67A282DCC4200C12F17 /* Instruction.cpp */; };
 		4B0DA67C282DCDF300C12F17 /* Instruction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0DA67A282DCC4200C12F17 /* Instruction.cpp */; };
@@ -1374,6 +1375,8 @@
 		4B0ACC2523775819008902D0 /* TIA.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TIA.hpp; sourceTree = "<group>"; };
 		4B0B239F2D658C9400153879 /* BitStream.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BitStream.hpp; sourceTree = "<group>"; };
 		4B0B23A02D6826DE00153879 /* NumericTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NumericTests.mm; sourceTree = "<group>"; };
+		4B0B23A42D6AC53B00153879 /* CSFileContentChangeObserver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSFileContentChangeObserver.m; sourceTree = "<group>"; };
+		4B0B23A72D6AC56400153879 /* CSFileContentChangeObserver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSFileContentChangeObserver.h; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0DA67A282DCC4200C12F17 /* Instruction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Instruction.cpp; sourceTree = "<group>"; };
@@ -2724,6 +2727,15 @@
 				4B0ACC1C23775819008902D0 /* CommaVid.hpp */,
 			);
 			path = Cartridges;
+			sourceTree = "<group>";
+		};
+		4B0B23A52D6AC53B00153879 /* File Observer */ = {
+			isa = PBXGroup;
+			children = (
+				4B0B23A72D6AC56400153879 /* CSFileContentChangeObserver.h */,
+				4B0B23A42D6AC53B00153879 /* CSFileContentChangeObserver.m */,
+			);
+			path = "File Observer";
 			sourceTree = "<group>";
 		};
 		4B0CCC411C62D0B3001CAC5F /* CRT */ = {
@@ -4651,6 +4663,7 @@
 				4B2A538F1D117D36003C6002 /* Audio */,
 				4B643F3D1D77B88000D431D6 /* Document Controller */,
 				4B55CE551C3B7D360093A61B /* Documents */,
+				4B0B23A52D6AC53B00153879 /* File Observer */,
 				4B2BF19323E10F0000C3AD60 /* High Precision Timer */,
 				4BBFE83B21015D9C00BF1C40 /* Joystick Manager */,
 				4B2A53921D117D36003C6002 /* Machine */,
@@ -6354,6 +6367,7 @@
 				4BEDA3BA25B25563000C2DBD /* Decoder.cpp in Sources */,
 				4BFEA2EF2682A7B900EBF94C /* Dave.cpp in Sources */,
 				4B4518A21F75FD1C00926311 /* G64.cpp in Sources */,
+				4B0B23A62D6AC53B00153879 /* CSFileContentChangeObserver.m in Sources */,
 				4B89452C201967B4007DE474 /* Tape.cpp in Sources */,
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
 				4BBFE83D21015D9C00BF1C40 /* CSJoystickManager.m in Sources */,

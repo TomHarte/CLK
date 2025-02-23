@@ -9,6 +9,8 @@
 import AudioToolbox
 import Cocoa
 import QuartzCore
+import System
+
 
 class MachineDocument:
 	NSDocument,
@@ -63,10 +65,14 @@ class MachineDocument:
 		return "MachineDocument"
 	}
 
+	var fileObserver: CSFileContentChangeObserver?
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
+			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
+				Swift.print("Content changed")
+			})
 		} else {
 			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
 		}
@@ -135,20 +141,6 @@ class MachineDocument:
 
 		actionLock.unlock()
 		drawLock.unlock()
-	}
-
-	override func presentedItemDidChange() {
-		// Indicates that _something_ about the file changed.
-		//
-		// It could be only metadata.
-		//
-		// It could be content, but it might have been this application that did it.
-		//
-		// However, if:
-		//	(i) content changed; and
-		//	(ii) it was another application that did it;
-		// then it makes sense to restart the machine.
-		Swift.print("Did change?")
 	}
 
 	enum InteractionMode {
