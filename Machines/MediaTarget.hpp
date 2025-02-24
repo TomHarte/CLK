@@ -33,15 +33,25 @@ struct MediaTarget {
 	};
 	/*!
 		Queries what action an observed on-disk change in the file with name `file_name`,
-		which is guaranteed lexically to match one used earlier for the creation of media that
-		was either inserted or provided at machine construction, should be performed by the
-		machine's owner.
+		which is guaranteed lexically to match one used earlier with this machine, should be
+		performed by the machine's owner.
+
+		It is guaranteed by the caller that the underlying bytes of the file have changed; the caller
+		is not required to differentiate changes made by Clock Signal itself from those made
+		external to it.
 
 		@c ChangeEffect::None means that no specific action will be taken;
 		@c ChangeEffect::ReinsertMedia requests that the owner construct the applicable
 			`Analyser::Static::Media` and call `insert_media`;
 		@c ChangeEffect::RestartMachine requests that the owner reconsult the static analyer
 			and construct a new machine to replace this one.
+
+		In general:
+			* if the machine itself has recently modified the file, `::None` is appropriate;
+			* if the machine has not recently modified the file, quite often obviously so because the
+			file is a ROM or something else that is never modified, then ::ReinsertMedia or ::RestartMachine
+			might be appropriate depending on whether it is more likely that execution will continue correctly
+			with a simple media swap or whether this implies that previous state should be completely discarded.
 	*/
 	virtual ChangeEffect effect_for_file_did_change([[maybe_unused]] const std::string &file_name) {
 		return ChangeEffect::None;

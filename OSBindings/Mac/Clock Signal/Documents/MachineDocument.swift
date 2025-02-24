@@ -71,6 +71,18 @@ class MachineDocument:
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
+				switch(self.machine.effectForFile(atURLDidChange: url)) {
+					case .reinsertMedia:	self.insertFile(url)
+					case .restartMachine:
+						let target = CSStaticAnalyser(fileAt: url)
+						if let target = target {
+							self.configureAs(target)
+						}
+
+					case .none:				fallthrough
+					@unknown default:		break
+				}
+
 				Swift.print("Content changed")
 
 				// TODO: tell machine content has changed. Machine will need to indicate

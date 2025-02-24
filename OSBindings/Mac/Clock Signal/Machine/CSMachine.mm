@@ -350,6 +350,30 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
+- (CSMachineChangeEffect)effectForFileAtURLDidChange:(nonnull NSURL *)url {
+	@synchronized(self) {
+		const auto mediaTarget = _machine->media_target();
+		if(!mediaTarget) {
+			return CSMachineChangeEffectNone;
+		}
+		const auto effect = mediaTarget->effect_for_file_did_change([url fileSystemRepresentation]);
+		using ChangeEffect = MachineTypes::MediaTarget::ChangeEffect;
+		switch(effect) {
+			case ChangeEffect::None:
+				return CSMachineChangeEffectNone;
+			case ChangeEffect::ReinsertMedia:
+				return CSMachineChangeEffectReinsertMedia;
+			case ChangeEffect::RestartMachine:
+				return CSMachineChangeEffectRestartMachine;
+
+			default:
+				NSLog(@"Unmapped change effect %d", int(effect));
+				return CSMachineChangeEffectNone;
+		}
+	}
+}
+
+
 - (void)setInputMode:(CSMachineKeyboardInputMode)inputMode {
 	_inputMode = inputMode;
 
