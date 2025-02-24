@@ -29,13 +29,13 @@ public:
 	AmigaADF(const std::string &file_name);
 
 	// implemented to satisfy @c Disk
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	Storage::FileHolder file_;
-	long get_file_offset_for_position(Track::Address);
+	mutable Storage::FileHolder file_;
+	long get_file_offset_for_position(Track::Address) const;
 
 };
 

@@ -43,15 +43,15 @@ public:
 	MacintoshIMG(const std::string &file_name, FixedType type, size_t offset = 0, size_t length = 0);
 
 	// implemented to satisfy @c Disk
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	bool get_is_read_only() final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	bool get_is_read_only() const;
 
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 
 private:
-	Storage::FileHolder file_;
+	mutable Storage::FileHolder file_;
 
 	enum class Encoding {
 		GCR400,
@@ -64,9 +64,9 @@ private:
 	std::vector<uint8_t> data_;
 	std::vector<uint8_t> tags_;
 	bool is_diskCopy_file_ = false;
-	std::mutex buffer_mutex_;
+	mutable std::mutex buffer_mutex_;
 
-	uint32_t checksum(const std::vector<uint8_t> &, size_t bytes_to_skip = 0);
+	uint32_t checksum(const std::vector<uint8_t> &, size_t bytes_to_skip = 0) const;
 	void construct_raw_gcr(size_t offset, size_t length = 0);
 	long raw_offset_ = 0;
 };

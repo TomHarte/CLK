@@ -78,7 +78,8 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 			// 'ProDOS order', which could still mean Macintosh-style (ie. not ProDOS, but whatever)
 			// or Apple II-style. Try them both.
 			try {
-				return new DiskImageHolder<Storage::Disk::MacintoshIMG>(file_name, MacintoshIMG::FixedType::GCR, data_start, data_size);
+				return new DiskImageHolder<Storage::Disk::MacintoshIMG>(
+					file_name, MacintoshIMG::FixedType::GCR, data_start, data_size);
 			} catch(...) {}
 
 			// TODO: Apple II-style.

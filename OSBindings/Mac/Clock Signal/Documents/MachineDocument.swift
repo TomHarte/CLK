@@ -82,11 +82,6 @@ class MachineDocument:
 					case .none:				fallthrough
 					@unknown default:		break
 				}
-
-				Swift.print("Content changed")
-
-				// TODO: tell machine content has changed. Machine will need to indicate
-				// whether it's the one that changed it. If not, restart the machine.
 			})
 		} else {
 			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)

@@ -29,15 +29,15 @@ OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 		throw Error::InvalidFormat;
 }
 
-HeadPosition OricMFMDSK::get_maximum_head_position() {
+HeadPosition OricMFMDSK::get_maximum_head_position() const {
 	return HeadPosition(int(track_count_));
 }
 
-int OricMFMDSK::get_head_count() {
+int OricMFMDSK::get_head_count() const {
 	return int(head_count_);
 }
 
-long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
+long OricMFMDSK::get_file_offset_for_position(Track::Address address) const {
 	int seek_offset = 0;
 	switch(geometry_type_) {
 		case 1:
@@ -50,7 +50,7 @@ long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
 	return long(seek_offset) * 6400 + 256;
 }
 
-std::unique_ptr<Track> OricMFMDSK::track_at_position(Track::Address address) {
+std::unique_ptr<Track> OricMFMDSK::track_at_position(const Track::Address address) const {
 	PCMSegment segment;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
@@ -164,6 +164,6 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track
 	}
 }
 
-bool OricMFMDSK::get_is_read_only() {
+bool OricMFMDSK::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }

@@ -109,7 +109,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 
 				// If the file didn't declare anything, default to supporting everything.
 				if(!platform_type_) {
-					platform_type_ = ~0;
+					platform_type_ = ~TargetPlatform::IntType(0);
 				}
 
 				// Ignore: disk number, creator ID, reserved area.
@@ -178,15 +178,15 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 	}
 }
 
-HeadPosition IPF::get_maximum_head_position() {
+HeadPosition IPF::get_maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int IPF::get_head_count() {
+int IPF::get_head_count() const {
 	return head_count_;
 }
 
-std::unique_ptr<Track> IPF::track_at_position([[maybe_unused]] Track::Address address) {
+std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) const {
 	// Get the track description, if it exists, and check either that the file has contents for the track.
 	auto pair = tracks_.find(address);
 	if(pair == tracks_.end()) {
@@ -322,7 +322,7 @@ std::unique_ptr<Track> IPF::track_at_position([[maybe_unused]] Track::Address ad
 /// densities (or, equivalently, lengths) in the file, densities are named according to their protection scheme and the decoder
 /// is required to know all named protection schemes. Which makes IPF unable to handle arbitrary disks (or, indeed, disks
 /// with multiple protection schemes on a single track).
-Storage::Time IPF::bit_length(TrackDescription::Density density, int block) {
+Storage::Time IPF::bit_length(TrackDescription::Density density, int block) const {
 	constexpr unsigned int us = 100'000'000;
 	static constexpr auto us170 = Storage::Time::simplified(170, us);
 	static constexpr auto us180 = Storage::Time::simplified(180, us);
@@ -378,7 +378,7 @@ Storage::Time IPF::bit_length(TrackDescription::Density density, int block) {
 	return us200;	// i.e. default to 2µs.
 }
 
-void IPF::add_gap(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits, uint32_t value) {
+void IPF::add_gap(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits, uint32_t value) const {
 	auto &segment = track.emplace_back();
 	segment.length_of_a_bit = bit_length;
 
@@ -396,7 +396,7 @@ void IPF::add_gap(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length
 	segment.data.resize(num_bits);
 }
 
-void IPF::add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits) {
+void IPF::add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits) const {
 	auto &segment = track.emplace_back();
 	segment.length_of_a_bit = bit_length;
 
@@ -415,7 +415,7 @@ void IPF::add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &track, Time
 	segment.data.resize(num_bits * 2);
 }
 
-void IPF::add_raw_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits) {
+void IPF::add_raw_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits) const {
 	auto &segment = track.emplace_back();
 	segment.length_of_a_bit = bit_length;
 

@@ -51,6 +51,11 @@ public:
 	void set_disk(const std::shared_ptr<Disk> &disk);
 
 	/*!
+		@returns The attached disk, if any.
+	*/
+	const Disk *disk() const;
+
+	/*!
 		@returns @c true if a disk is currently inserted; @c false otherwise.
 	*/
 	bool has_disk() const;

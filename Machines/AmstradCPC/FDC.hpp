@@ -40,6 +40,10 @@ public:
 		get_drive().set_disk(disk);
 	}
 
+	const Storage::Disk::Disk *disk() const {
+		return get_drive().disk();
+	}
+
 	void set_activity_observer(Activity::Observer *observer) {
 		get_drive().set_activity_observer(observer, "Drive 1", true);
 	}

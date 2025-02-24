@@ -440,15 +440,15 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	}
 }
 
-HeadPosition STX::get_maximum_head_position() {
+HeadPosition STX::get_maximum_head_position() const {
 	return HeadPosition(track_count_ + 1);	// Same issue as MSA; must fix!
 }
 
-int STX::get_head_count() {
+int STX::get_head_count() const {
 	return head_count_;
 }
 
-std::unique_ptr<Track> STX::track_at_position(Track::Address address) {
+std::unique_ptr<Track> STX::track_at_position(const Track::Address address) const {
 	// These images have two sides, at most.
 	if(address.head > 1) return nullptr;
 

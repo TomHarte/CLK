@@ -26,11 +26,11 @@ public:
 	*/
 	D64(const std::string &file_name);
 
-	HeadPosition get_maximum_head_position() final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	Storage::FileHolder file_;
+	mutable Storage::FileHolder file_;
 	int number_of_tracks_;
 	uint16_t disk_id_;
 };

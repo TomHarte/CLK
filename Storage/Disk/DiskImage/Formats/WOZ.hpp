@@ -24,15 +24,15 @@ public:
 	WOZ(const std::string &file_name);
 
 	// Implemented to satisfy @c DiskImage.
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) final;
-	bool get_is_read_only() final;
-	bool tracks_differ(Track::Address, Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
+	bool get_is_read_only() const;
+	bool tracks_differ(Track::Address, Track::Address) const;
 
 private:
-	Storage::FileHolder file_;
+	mutable Storage::FileHolder file_;
 	enum class Type {
 		WOZ1, WOZ2
 	} type_ = Type::WOZ1;
@@ -49,7 +49,7 @@ private:
 		@returns The offset within the file of the track at @c address or @c NoSuchTrack if
 			the track does not exit.
 	*/
-	long file_offset(Track::Address address);
+	long file_offset(Track::Address address) const;
 	constexpr static long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
 };
 

@@ -34,11 +34,11 @@ D64::D64(const std::string &file_name) :
 	}
 }
 
-HeadPosition D64::get_maximum_head_position() {
+HeadPosition D64::get_maximum_head_position() const {
 	return HeadPosition(number_of_tracks_);
 }
 
-std::unique_ptr<Track> D64::track_at_position(const Track::Address address) {
+std::unique_ptr<Track> D64::track_at_position(const Track::Address address) const {
 	// Figure out where this track starts on the disk.
 	int offset_to_track = 0;
 	int tracks_to_traverse = address.position.as_int();

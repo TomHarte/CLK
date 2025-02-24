@@ -42,26 +42,26 @@ NIB::NIB(const std::string &file_name) :
 	}
 }
 
-HeadPosition NIB::get_maximum_head_position() {
+HeadPosition NIB::get_maximum_head_position() const {
 	return HeadPosition(number_of_tracks);
 }
 
-bool NIB::get_is_read_only() {
+bool NIB::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }
 
-long NIB::file_offset(Track::Address address) {
+long NIB::file_offset(const Track::Address address) const {
 	return long(address.position.as_int()) * track_length;
 }
 
-Track::Address NIB::canonical_address(Track::Address address) {
+Track::Address NIB::canonical_address(const Track::Address address) const {
 	return Track::Address(
 		address.head,
 		HeadPosition(address.position.as_int())
 	);
 }
 
-std::unique_ptr<Track> NIB::track_at_position(Track::Address address) {
+std::unique_ptr<Track> NIB::track_at_position(const Track::Address address) const {
 	static constexpr size_t MinimumSyncByteCount = 4;
 
 	// NIBs contain data for a fixed quantity of integer-position tracks underneath a single head only.

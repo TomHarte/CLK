@@ -36,12 +36,12 @@ public:
 	IPF(const std::string &file_name);
 
 	// implemented to satisfy @c Disk
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	Storage::FileHolder file_;
+	mutable Storage::FileHolder file_;
 	uint16_t seek_track(Track::Address address);
 
 	struct TrackDescription {
@@ -77,10 +77,10 @@ private:
 	}
 	TargetPlatform::IntType platform_type_ = TargetPlatform::Amiga;
 
-	Time bit_length(TrackDescription::Density, int block);
-	void add_gap(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits, uint32_t value);
-	void add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
-	void add_raw_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
+	Time bit_length(TrackDescription::Density, int block) const;
+	void add_gap(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits, uint32_t value) const;
+	void add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits) const;
+	void add_raw_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits) const;
 };
 
 }

@@ -42,26 +42,26 @@ AppleDSK::AppleDSK(const std::string &file_name) :
 	}
 }
 
-HeadPosition AppleDSK::get_maximum_head_position() {
+HeadPosition AppleDSK::get_maximum_head_position() const {
 	return HeadPosition(number_of_tracks);
 }
 
-bool AppleDSK::get_is_read_only() {
+bool AppleDSK::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }
 
-long AppleDSK::file_offset(Track::Address address) {
+long AppleDSK::file_offset(Track::Address address) const {
 	return address.position.as_int() * bytes_per_sector * sectors_per_track_;
 }
 
-size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) {
+size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) const {
 	// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
 	// image in physical order rather than logical.
 	if(physical == 15) return 15;
 	return (physical * (is_prodos_ ? 8 : 7)) % 15;
 }
 
-std::unique_ptr<Track> AppleDSK::track_at_position(Track::Address address) {
+std::unique_ptr<Track> AppleDSK::track_at_position(Track::Address address) const {
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());

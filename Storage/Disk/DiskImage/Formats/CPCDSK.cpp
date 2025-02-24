@@ -186,19 +186,19 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	}
 }
 
-HeadPosition CPCDSK::get_maximum_head_position() {
+HeadPosition CPCDSK::get_maximum_head_position() const {
 	return HeadPosition(head_position_count_);
 }
 
-int CPCDSK::get_head_count() {
+int CPCDSK::get_head_count() const {
 	return head_count_;
 }
 
-std::size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) {
+std::size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) const {
 	return size_t((address.position.as_int() * head_count_) + address.head);
 }
 
-std::unique_ptr<Track> CPCDSK::track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<Track> CPCDSK::track_at_position(::Storage::Disk::Track::Address address) const {
 	// Given that thesea are interleaved images, determine which track, chronologically, is being requested.
 	const std::size_t chronological_track = index_for_track(address);
 
@@ -385,6 +385,6 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 	}
 }
 
-bool CPCDSK::get_is_read_only() {
+bool CPCDSK::get_is_read_only() const {
 	return is_read_only_;
 }

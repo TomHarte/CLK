@@ -143,7 +143,7 @@ void MacintoshIMG::construct_raw_gcr(size_t offset, size_t size) {
 	}
 }
 
-uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) {
+uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) const {
 	uint32_t result = 0;
 
 	// Checksum algorithm is: take each two bytes as a big-endian word; add that to a
@@ -157,21 +157,21 @@ uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_t
 	return result;
 }
 
-HeadPosition MacintoshIMG::get_maximum_head_position() {
+HeadPosition MacintoshIMG::get_maximum_head_position() const {
 	return HeadPosition(80);
 }
 
-int MacintoshIMG::get_head_count() {
+int MacintoshIMG::get_head_count() const {
 	// Bit 5 in the format field indicates whether this disk is double
 	// sided, regardless of whether it is GCR or MFM.
 	return 1 + ((format_ & 0x20) >> 5);
 }
 
-bool MacintoshIMG::get_is_read_only() {
+bool MacintoshIMG::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }
 
-std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) {
+std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) const {
 	/*
 		The format_ byte has the following meanings:
 
@@ -197,8 +197,8 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) {
 
 		if(start_sector*512 >= data_.size()) return nullptr;
 
-		uint8_t *const sector = &data_[512 * start_sector];
-		uint8_t *const tags = tags_.size() ? &tags_[12 * start_sector] : nullptr;
+		const uint8_t *const sector = &data_[512 * start_sector];
+		const uint8_t *const tags = tags_.size() ? &tags_[12 * start_sector] : nullptr;
 
 		Storage::Disk::PCMSegment segment;
 		segment += Encodings::AppleGCR::six_and_two_sync(24);

@@ -25,11 +25,11 @@ HFE::HFE(const std::string &file_name) :
 	track_list_offset_ = long(file_.get_le<uint16_t>()) << 9;
 }
 
-HeadPosition HFE::get_maximum_head_position() {
+HeadPosition HFE::get_maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int HFE::get_head_count() {
+int HFE::get_head_count() const {
 	return head_count_;
 }
 
@@ -40,7 +40,7 @@ int HFE::get_head_count() {
 	To read the track, start from the current file position, read 256 bytes,
 	skip 256 bytes, read 256 bytes, skip 256 bytes, etc.
 */
-uint16_t HFE::seek_track(Track::Address address) {
+uint16_t HFE::seek_track(const Track::Address address) const {
 	// Get track position and length from the lookup table; data is then always interleaved
 	// based on an assumption of two heads.
 	file_.seek(track_list_offset_ + address.position.as_int() * 4, SEEK_SET);
@@ -54,7 +54,7 @@ uint16_t HFE::seek_track(Track::Address address) {
 	return track_length / 2;	// Divide by two to give the track length for a single side.
 }
 
-std::unique_ptr<Track> HFE::track_at_position(Track::Address address) {
+std::unique_ptr<Track> HFE::track_at_position(const Track::Address address) const {
 	PCMSegment segment;
 	{
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
@@ -125,6 +125,6 @@ void HFE::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	}
 }
 
-bool HFE::get_is_read_only() {
+bool HFE::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }

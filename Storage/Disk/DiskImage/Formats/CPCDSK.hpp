@@ -31,11 +31,11 @@ public:
 	CPCDSK(const std::string &file_name);
 
 	// DiskImage interface.
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	bool get_is_read_only() final;
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) final;
-	std::unique_ptr<::Storage::Disk::Track> track_at_position(::Storage::Disk::Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	bool get_is_read_only() const;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
+	std::unique_ptr<::Storage::Disk::Track> track_at_position(::Storage::Disk::Track::Address) const;
 
 private:
 	struct Track {
@@ -60,7 +60,7 @@ private:
 	};
 	std::string file_name_;
 	std::vector<std::unique_ptr<Track>> tracks_;
-	std::size_t index_for_track(::Storage::Disk::Track::Address address);
+	std::size_t index_for_track(::Storage::Disk::Track::Address address) const;
 
 	int head_count_;
 	int head_position_count_;

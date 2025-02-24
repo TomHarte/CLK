@@ -6,19 +6,34 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-template <typename T> HeadPosition DiskImageHolder<T>::get_maximum_head_position() {
+template <typename T>
+HeadPosition DiskImageHolder<T>::get_maximum_head_position() const {
 	return disk_image_.get_maximum_head_position();
 }
 
-template <typename T> int DiskImageHolder<T>::get_head_count() {
+template <typename T>
+int DiskImageHolder<T>::get_head_count() const {
 	return disk_image_.get_head_count();
 }
 
-template <typename T> bool DiskImageHolder<T>::get_is_read_only() {
+template <typename T>
+bool DiskImageHolder<T>::get_is_read_only() const {
 	return disk_image_.get_is_read_only();
 }
 
-template <typename T> void DiskImageHolder<T>::flush_tracks() {
+template <typename T>
+bool DiskImageHolder<T>::represents(const std::string &file) const {
+	return false;	// TODO.
+//	return disk_image_.represents(file);
+}
+
+template <typename T>
+bool DiskImageHolder<T>::has_written() const {
+	return has_written_;
+}
+
+template <typename T>
+void DiskImageHolder<T>::flush_tracks() {
 	if(!unwritten_tracks_.empty()) {
 		if(!update_queue_) update_queue_ = std::make_unique<Concurrency::AsyncTaskQueue<true>>();
 
@@ -35,14 +50,17 @@ template <typename T> void DiskImageHolder<T>::flush_tracks() {
 	}
 }
 
-template <typename T> void DiskImageHolder<T>::set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {
+template <typename T>
+void DiskImageHolder<T>::set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {
 	if(disk_image_.get_is_read_only()) return;
+	has_written_ = true;
 
 	unwritten_tracks_.insert(address);
 	cached_tracks_[address] = track;
 }
 
-template <typename T> Track *DiskImageHolder<T>::track_at_position(Track::Address address) {
+template <typename T>
+Track *DiskImageHolder<T>::track_at_position(Track::Address address) const {
 	if(address.head >= get_head_count()) return nullptr;
 	if(address.position >= get_maximum_head_position()) return nullptr;
 
@@ -56,10 +74,12 @@ template <typename T> Track *DiskImageHolder<T>::track_at_position(Track::Addres
 	return track.get();
 }
 
-template <typename T> DiskImageHolder<T>::~DiskImageHolder() {
+template <typename T>
+DiskImageHolder<T>::~DiskImageHolder() {
 	if(update_queue_) update_queue_->flush();
 }
 
-template <typename T> bool DiskImageHolder<T>::tracks_differ(Track::Address lhs, Track::Address rhs) {
+template <typename T>
+bool DiskImageHolder<T>::tracks_differ(Track::Address lhs, Track::Address rhs) const {
 	return disk_image_.tracks_differ(lhs, rhs);
 }

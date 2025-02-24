@@ -29,12 +29,12 @@ public:
 	IMD(const std::string &file_name);
 
 	// DiskImage interface.
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	FileHolder file_;
+	mutable FileHolder file_;
 	std::map<Storage::Disk::Track::Address, long> track_locations_;
 	uint8_t cylinders_ = 0, heads_ = 0;
 };
