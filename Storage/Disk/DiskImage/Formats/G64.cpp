@@ -30,13 +30,13 @@ G64::G64(const std::string &file_name) :
 	maximum_track_size_ = file_.get_le<uint16_t>();
 }
 
-HeadPosition G64::get_maximum_head_position() {
+HeadPosition G64::get_maximum_head_position() const {
 	// give at least 84 tracks, to yield the normal geometry but,
 	// if there are more, shove them in
 	return HeadPosition(number_of_tracks_ > 84 ? number_of_tracks_ : 84, 2);
 }
 
-std::unique_ptr<Track> G64::track_at_position(Track::Address address) {
+std::unique_ptr<Track> G64::track_at_position(const Track::Address address) const {
 	// seek to this track's entry in the track table
 	file_.seek(long((address.position.as_half() * 4) + 0xc), SEEK_SET);
 
@@ -104,4 +104,8 @@ std::unique_ptr<Track> G64::track_at_position(Track::Address address) {
 
 	// TODO: find out whether it's possible for a G64 to supply only a partial track. I don't think it is, which
 	// would make the above correct but supposing I'm wrong, the above would produce some incorrectly clocked tracks.
+}
+
+bool G64::represents(const std::string &name) const {
+	return name == file_.name();
 }

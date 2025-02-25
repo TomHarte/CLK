@@ -9,6 +9,8 @@
 import AudioToolbox
 import Cocoa
 import QuartzCore
+import System
+
 
 class MachineDocument:
 	NSDocument,
@@ -63,10 +65,30 @@ class MachineDocument:
 		return "MachineDocument"
 	}
 
+	var fileObserver: CSFileContentChangeObserver?
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
+			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
+				if let machine = self.machine {
+					DispatchQueue.main.async {
+						switch(machine.effectForFile(atURLDidChange: url)) {
+							case .reinsertMedia:	self.insertFile(url)
+							case .restartMachine:
+								let target = CSStaticAnalyser(fileAt: url)
+								if let target = target {
+									self.audioQueue = nil
+									machine.substitute(target)
+									self.optionsController?.establishStoredOptions()
+								}
+
+							case .none:				fallthrough
+							@unknown default:		break
+						}
+					}
+				}
+			})
 		} else {
 			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
 		}

@@ -61,25 +61,25 @@ DMK::DMK(const std::string &file_name) :
 	if(format) throw Error::InvalidFormat;
 }
 
-HeadPosition DMK::get_maximum_head_position() {
+HeadPosition DMK::get_maximum_head_position() const {
 	return HeadPosition(head_position_count_);
 }
 
-int DMK::get_head_count() {
+int DMK::get_head_count() const {
 	return head_count_;
 }
 
-bool DMK::get_is_read_only() {
+bool DMK::get_is_read_only() const {
 	return true;
 	// Given that track serialisation is not yet implemented, treat all DMKs as read-only.
 //	return is_read_only_;
 }
 
-long DMK::get_file_offset_for_position(Track::Address address) {
+long DMK::get_file_offset_for_position(const Track::Address address) const {
 	return (address.head*head_count_ + address.position.as_int()) * track_length_ + 16;
 }
 
-std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(::Storage::Disk::Track::Address address) {
+std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(const ::Storage::Disk::Track::Address address) const {
 	file_.seek(get_file_offset_for_position(address), SEEK_SET);
 
 	// Read the IDAM table.
@@ -180,4 +180,8 @@ std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(::Storage::Disk::
 	}
 
 	return std::make_unique<PCMTrack>(segments);
+}
+
+bool DMK::represents(const std::string &name) const {
+	return name == file_.name();
 }

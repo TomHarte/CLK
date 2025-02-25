@@ -28,16 +28,17 @@ public:
 	OricMFMDSK(const std::string &file_name);
 
 	// implemented to satisfy @c DiskImage
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	bool get_is_read_only() final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	bool get_is_read_only() const;
+	bool represents(const std::string &) const;
 
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	Storage::FileHolder file_;
-	long get_file_offset_for_position(Track::Address address);
+	mutable Storage::FileHolder file_;
+	long get_file_offset_for_position(Track::Address address) const;
 
 	uint32_t head_count_;
 	uint32_t track_count_;

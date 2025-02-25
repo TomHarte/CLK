@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace TargetPlatform {
 
-using IntType = int;
+using IntType = uint32_t;
 
 constexpr IntType bit(int index) {
 	return 1 << index;
@@ -56,7 +58,7 @@ enum Type: IntType {
 	AllDisk			=	Acorn | Commodore | AmstradCPC | C64 | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII | PCCompatible | FAT12,
 	AllTape			=	Acorn | AmstradCPC | Commodore8bit | Oric | ZX8081 | MSX | ZXSpectrum,
 
-	All 			= ~0,
+	All 			=	~IntType(0),
 };
 
 class Distinguisher {

@@ -7,6 +7,7 @@
 #import "CSAtari2600.h"
 #import "CSZX8081.h"
 
+#import "CSFileContentChangeObserver.h"
 #import "CSStaticAnalyser.h"
 
 #import "CSAudioQueue.h"

@@ -107,15 +107,15 @@ WOZ::WOZ(const std::string &file_name) :
 	if(tracks_offset_ == -1 || !has_tmap) throw Error::InvalidFormat;
 }
 
-HeadPosition WOZ::get_maximum_head_position() {
+HeadPosition WOZ::get_maximum_head_position() const {
 	return is_3_5_disk_ ? HeadPosition(80) : HeadPosition(160, 4);
 }
 
-int WOZ::get_head_count() {
+int WOZ::get_head_count() const {
 	return is_3_5_disk_ ? 2 : 1;
 }
 
-long WOZ::file_offset(Track::Address address) {
+long WOZ::file_offset(Track::Address address) const {
 	// Calculate table position.
 	int table_position;
 	if(!is_3_5_disk_) {
@@ -141,13 +141,13 @@ long WOZ::file_offset(Track::Address address) {
 	}
 }
 
-bool WOZ::tracks_differ(Track::Address lhs, Track::Address rhs) {
+bool WOZ::tracks_differ(Track::Address lhs, Track::Address rhs) const {
 	const long offset1 = file_offset(lhs);
 	const long offset2 = file_offset(rhs);
 	return offset1 != offset2;
 }
 
-std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) {
+std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) const {
 	const long offset = file_offset(address);
 	if(offset == NoSuchTrack) {
 		return nullptr;
@@ -218,7 +218,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	file_.write(post_crc_contents_);
 }
 
-bool WOZ::get_is_read_only() {
+bool WOZ::get_is_read_only() const {
 	/*
 		There is an unintended issue with the disk code that sits above here: it doesn't understand the idea
 		of multiple addresses mapping to the same track, yet it maintains a cache of track contents. Therefore
@@ -227,4 +227,8 @@ bool WOZ::get_is_read_only() {
 	*/
 	return true;
 //	return file_.get_is_known_read_only() || is_read_only_ || type_ == Type::WOZ2;	// WOZ 2 disks are currently read only.
+}
+
+bool WOZ::represents(const std::string &name) const {
+	return name == file_.name();
 }

@@ -107,6 +107,10 @@ std::string FileHolder::extension() const {
 	return extension;
 }
 
+const std::string &FileHolder::name() const {
+	return name_;
+}
+
 void FileHolder::ensure_is_at_least_length(long length) {
 	std::fseek(file_, 0, SEEK_END);
 	long bytes_to_write = length - ftell(file_);

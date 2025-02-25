@@ -34,6 +34,7 @@
 #include <atomic>
 #include <bitset>
 #include <locale>
+#include <memory>
 
 namespace {
 
@@ -49,6 +50,8 @@ struct MachineUpdater {
 	Machine::DynamicMachine *machine = nullptr;
 	MachineTypes::TimedMachine *timed_machine = nullptr;
 };
+
+using Updater = Concurrency::AsyncTaskQueue<true, false, MachineUpdater>;
 
 }
 
@@ -123,7 +126,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	Concurrency::AsyncTaskQueue<true, false, MachineUpdater> updater;
+	std::unique_ptr<Updater> updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -138,6 +141,10 @@ struct ActivityObserver: public Activity::Observer {
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableString *)missingROMs {
 	self = [super init];
 	if(self) {
+		_delegateMachineAccessLock = [[NSLock alloc] init];
+		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
+		_inputEvents = [[NSMutableArray alloc] init];
+
 		_analyser = result;
 
 		Machine::Error error;
@@ -161,34 +168,48 @@ struct ActivityObserver: public Activity::Observer {
 			}
 			return nil;
 		}
-		updater.performer.machine = _machine.get();
-		if(updater.performer.machine) {
-			updater.start();
-		}
-
-		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
-		_inputMode =
-			(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
-				? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
-
-		_leds = [[NSMutableArray alloc] init];
-		Activity::Source *const activity_source = _machine->activity_source();
-		if(activity_source) {
-			_activityObserver.machine = self;
-			activity_source->set_activity_observer(&_activityObserver);
-		}
-
-		_delegateMachineAccessLock = [[NSLock alloc] init];
-
-		_speakerDelegate.machine = self;
-		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
-
-		_inputEvents = [[NSMutableArray alloc] init];
-
-		_joystickMachine = _machine->joystick_machine();
-		[self updateJoystickTimer];
+		[self install:result];
 	}
 	return self;
+}
+
+- (void)substitute:(nonnull CSStaticAnalyser *)machine {
+	[self stop];
+	_view.scanTarget.scanTarget->will_change_owner();
+
+	Machine::Error error;
+	ROM::Request missing_roms;
+	_machine = Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error);
+	[self install:machine];
+	[self.delegate machineSpeakerDidChangeInputClock:self];
+}
+
+- (void)install:(nonnull CSStaticAnalyser *)machine {
+	_analyser = machine;
+	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
+
+	updater = std::make_unique<Updater>();
+	updater->performer.machine = _machine.get();
+	if(updater->performer.machine) {
+		updater->start();
+	}
+
+	_leds = [[NSMutableArray alloc] init];
+	Activity::Source *const activity_source = _machine->activity_source();
+	if(activity_source) {
+		_activityObserver.machine = self;
+		activity_source->set_activity_observer(&_activityObserver);
+	}
+
+	_speakerDelegate.machine = self;
+
+	// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
+	_inputMode =
+		(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
+			? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
+
+	_joystickMachine = _machine->joystick_machine();
+	[self updateJoystickTimer];
 }
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
@@ -350,6 +371,30 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
+- (CSMachineChangeEffect)effectForFileAtURLDidChange:(nonnull NSURL *)url {
+	@synchronized(self) {
+		const auto mediaTarget = _machine->media_target();
+		if(!mediaTarget) {
+			return CSMachineChangeEffectNone;
+		}
+		const auto effect = mediaTarget->effect_for_file_did_change([url fileSystemRepresentation]);
+		using ChangeEffect = MachineTypes::MediaTarget::ChangeEffect;
+		switch(effect) {
+			case ChangeEffect::None:
+				return CSMachineChangeEffectNone;
+			case ChangeEffect::ReinsertMedia:
+				return CSMachineChangeEffectReinsertMedia;
+			case ChangeEffect::RestartMachine:
+				return CSMachineChangeEffectRestartMachine;
+
+			default:
+				NSLog(@"Unmapped change effect %d", int(effect));
+				return CSMachineChangeEffectNone;
+		}
+	}
+}
+
+
 - (void)setInputMode:(CSMachineKeyboardInputMode)inputMode {
 	_inputMode = inputMode;
 
@@ -487,7 +532,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	updater.enqueue([event] {
+	updater->enqueue([event] {
 		event();
 	});
 }
@@ -703,10 +748,10 @@ struct ActivityObserver: public Activity::Observer {
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	__weak CSMachine *weakSelf = self;
 
-	updater.enqueue([weakSelf] {
+	updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
-			strongSelf->updater.performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+			strongSelf->updater->performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 		}
 	});
 }
@@ -714,7 +759,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	__weak CSMachine *weakSelf = self;
 
-	updater.enqueue([weakSelf] {
+	updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(!strongSelf) {
 			return;
@@ -722,7 +767,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.timed_machine;
+		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater->performer.timed_machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
@@ -761,7 +806,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)stop {
-	updater.stop();
+	updater->stop();
 }
 
 + (BOOL)attemptInstallROM:(NSURL *)url {

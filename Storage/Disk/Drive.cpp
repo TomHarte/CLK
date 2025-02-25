@@ -66,6 +66,10 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	update_clocking_observer();
 }
 
+const Disk *Drive::disk() const {
+	return disk_.get();
+}
+
 bool Drive::has_disk() const {
 	return has_disk_;
 }

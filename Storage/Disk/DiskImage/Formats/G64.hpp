@@ -30,12 +30,13 @@ public:
 	G64(const std::string &file_name);
 
 	// implemented to satisfy @c Disk
-	HeadPosition get_maximum_head_position() final;
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	HeadPosition get_maximum_head_position() const;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	using DiskImage::get_is_read_only;
+	bool represents(const std::string &) const;
 
 private:
-	Storage::FileHolder file_;
+	mutable Storage::FileHolder file_;
 	uint8_t number_of_tracks_;
 	uint16_t maximum_track_size_;
 };

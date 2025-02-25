@@ -33,6 +33,12 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 	CSMachineKeyboardInputModeJoystick,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineChangeEffect) {
+	CSMachineChangeEffectNone,
+	CSMachineChangeEffectReinsertMedia,
+	CSMachineChangeEffectRestartMachine,
+};
+
 @interface CSMachineLED: NSObject
 @property(nonatomic, nonnull, readonly) NSString *name;
 @property(nonatomic, readonly) BOOL isPersisent;
@@ -73,6 +79,8 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (void)setMouseButton:(int)button isPressed:(BOOL)isPressed;
 - (void)addMouseMotionX:(CGFloat)deltaX y:(CGFloat)deltaY;
 
+- (void)substitute:(nonnull CSStaticAnalyser *)machine;
+
 @property (nonatomic, strong, nullable) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly, nonnull) CSScanTargetView *view;
 @property (nonatomic, weak, nullable) id<CSMachineDelegate> delegate;
@@ -87,11 +95,13 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
 @property (nonatomic, assign) BOOL useQuickBootingHack;
 
-@property (nonatomic, readonly) BOOL canInsertMedia;
-
 - (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
 
-// Volume contorl.
+// Public media functions; use a CSMediaSet to insert.
+@property (nonatomic, readonly) BOOL canInsertMedia;
+- (CSMachineChangeEffect)effectForFileAtURLDidChange:(nonnull NSURL *)url;
+
+// Volume control.
 - (void)setVolume:(float)volume;
 @property (nonatomic, readonly) BOOL hasAudioOutput;
 

@@ -90,15 +90,19 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 	++ heads_;
 }
 
-HeadPosition IMD::get_maximum_head_position() {
+HeadPosition IMD::get_maximum_head_position() const {
 	return HeadPosition(cylinders_);
 }
 
-int IMD::get_head_count() {
+int IMD::get_head_count() const {
 	return heads_ + 1;
 }
 
-std::unique_ptr<Track> IMD::track_at_position(Track::Address address) {
+bool IMD::represents(const std::string &name) const {
+	return name == file_.name();
+}
+
+std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) const {
 	auto location = track_locations_.find(address);
 	if(location == track_locations_.end()) {
 		return nullptr;

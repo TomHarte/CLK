@@ -75,7 +75,7 @@ MSA::MSA(const std::string &file_name) :
 		throw Error::InvalidFormat;
 }
 
-std::unique_ptr<Track> MSA::track_at_position(Track::Address address) {
+std::unique_ptr<Track> MSA::track_at_position(Track::Address address) const {
 	if(address.head >= sides_) return nullptr;
 
 	const auto position = address.position.as_int();
@@ -87,10 +87,14 @@ std::unique_ptr<Track> MSA::track_at_position(Track::Address address) {
 	return track_for_sectors(track.data(), sectors_per_track_, uint8_t(position), uint8_t(address.head), 1, 2, Storage::Encodings::MFM::Density::Double);
 }
 
-HeadPosition MSA::get_maximum_head_position() {
+HeadPosition MSA::get_maximum_head_position() const {
 	return HeadPosition(ending_track_ + 1);
 }
 
-int MSA::get_head_count() {
+int MSA::get_head_count() const {
 	return sides_;
+}
+
+bool MSA::represents(const std::string &name) const {
+	return name == file_.name();
 }

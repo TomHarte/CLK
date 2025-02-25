@@ -27,13 +27,14 @@ public:
 	*/
 	STX(const std::string &file_name);
 
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	bool represents(const std::string &) const;
 
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	FileHolder file_;
+	mutable FileHolder file_;
 
 	int track_count_;
 	int head_count_;

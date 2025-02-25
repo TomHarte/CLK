@@ -21,7 +21,7 @@ void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uin
 	first_sector_ = first_sector;
 }
 
-std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) {
+std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) const {
 	if(address.head >= get_head_count()) return nullptr;
 	if(address.position.as_largest() >= get_maximum_head_position().as_largest()) return nullptr;
 
@@ -68,6 +68,10 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Tr
 	file_.flush();
 }
 
-bool MFMSectorDump::get_is_read_only() {
+bool MFMSectorDump::get_is_read_only() const {
 	return file_.get_is_known_read_only();
+}
+
+bool MFMSectorDump::represents(const std::string &name) const {
+	return name == file_.name();
 }

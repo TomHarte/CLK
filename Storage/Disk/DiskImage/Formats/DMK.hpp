@@ -28,16 +28,16 @@ public:
 	*/
 	DMK(const std::string &file_name);
 
-	// implemented to satisfy @c Disk
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
-	bool get_is_read_only() final;
+	HeadPosition get_maximum_head_position() const;
+	int get_head_count() const;
+	bool get_is_read_only() const;
+	bool represents(const std::string &) const;
 
-	std::unique_ptr<Track> track_at_position(Track::Address) final;
+	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
-	FileHolder file_;
-	long get_file_offset_for_position(Track::Address address);
+	mutable FileHolder file_;
+	long get_file_offset_for_position(Track::Address address) const;
 
 	bool is_read_only_;
 	int head_position_count_;

@@ -27,11 +27,11 @@ public:
 	*/
 	AcornADF(const std::string &file_name);
 
-	HeadPosition get_maximum_head_position() final;
-	int get_head_count() final;
+	HeadPosition get_maximum_head_position() const final;
+	int get_head_count() const final;
 
 private:
-	long get_file_offset_for_position(Track::Address) final;
+	long get_file_offset_for_position(Track::Address) const final;
 	int head_count_ = 1;
 	uint8_t sector_size_ = 1;
 	int sectors_per_track_ = 16;

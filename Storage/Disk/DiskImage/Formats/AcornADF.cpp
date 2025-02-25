@@ -111,14 +111,14 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	set_geometry(sectors_per_track_, sector_size_, 0, density);
 }
 
-HeadPosition AcornADF::get_maximum_head_position() {
+HeadPosition AcornADF::get_maximum_head_position() const {
 	return HeadPosition(80);
 }
 
-int AcornADF::get_head_count() {
+int AcornADF::get_head_count() const {
 	return head_count_;
 }
 
-long AcornADF::get_file_offset_for_position(Track::Address address) {
+long AcornADF::get_file_offset_for_position(Track::Address address) const {
 	return (address.position.as_int() * head_count_ + address.head) * (128 << sector_size_) * sectors_per_track_;
 }

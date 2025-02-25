@@ -39,51 +39,51 @@ public:
 		This is not necessarily a track count. There is no implicit guarantee that every position will
 		return a distinct track, or, e.g. if the media is holeless, will return any track at all.
 	*/
-	virtual HeadPosition get_maximum_head_position() = 0;
+//	virtual HeadPosition get_maximum_head_position() = 0;
 
 	/*!
 		@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
 	*/
-	virtual int get_head_count() { return 1; }
+	int get_head_count() const { return 1; }
 
 	/*!
 		@returns the @c Track at @c position underneath @c head if there are any detectable events there;
 		returns @c nullptr otherwise.
 	*/
-	virtual std::unique_ptr<Track> track_at_position(Track::Address address) = 0;
+//	virtual std::unique_ptr<Track> track_at_position(Track::Address address) = 0;
 
 	/*!
 		Replaces the Tracks indicated by the map, that maps from physical address to track content.
 	*/
-	virtual void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) {}
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) {}
 
 	/*!
 		Communicates that it is likely to be a while before any more tracks are written.
 	*/
-	virtual void flush_tracks() {}
+	void flush_tracks() {}
 
 	/*!
 		@returns whether the disk image is read only. Defaults to @c true if not overridden.
 	*/
-	virtual bool get_is_read_only() { return true; }
+	bool get_is_read_only() const { return true; }
 
 	/*!
 		@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
 			This can avoid some degree of work when disk images offer sub-head-position precision.
 	*/
-	virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs != rhs; }
+	bool tracks_differ(Track::Address lhs, Track::Address rhs) const { return lhs != rhs; }
 
 	/*!
 		Maps from an address to its canonical form; this provides a means for images that duplicate the same
 		track at different addresses to declare as much.
 	*/
-	virtual Track::Address canonical_address(Track::Address address) { return address; }
+	Track::Address canonical_address(Track::Address address) const { return address; }
 };
 
 class DiskImageHolderBase: public Disk {
 	protected:
 		std::set<Track::Address> unwritten_tracks_;
-		std::map<Track::Address, std::shared_ptr<Track>> cached_tracks_;
+		mutable std::map<Track::Address, std::shared_ptr<Track>> cached_tracks_;
 		std::unique_ptr<Concurrency::AsyncTaskQueue<true>> update_queue_;
 };
 
@@ -95,22 +95,26 @@ class DiskImageHolderBase: public Disk {
 	Implements TargetPlatform::TypeDistinguisher to return either no information whatsoever, if
 	the underlying image doesn't implement TypeDistinguisher, or else to pass the call along.
 */
-template <typename T> class DiskImageHolder: public DiskImageHolderBase, public TargetPlatform::Distinguisher {
+template <typename T>
+class DiskImageHolder: public DiskImageHolderBase, public TargetPlatform::Distinguisher {
 public:
 	template <typename... Ts> DiskImageHolder(Ts&&... args) :
 		disk_image_(args...) {}
 	~DiskImageHolder();
 
-	HeadPosition get_maximum_head_position();
-	int get_head_count();
-	Track *track_at_position(Track::Address address);
-	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
-	void flush_tracks();
-	bool get_is_read_only();
-	bool tracks_differ(Track::Address lhs, Track::Address rhs);
+	HeadPosition get_maximum_head_position() const override;
+	int get_head_count() const override;
+	Track *track_at_position(Track::Address address) const override;
+	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) override;
+	void flush_tracks() override;
+	bool tracks_differ(Track::Address lhs, Track::Address rhs) const override;
+	bool get_is_read_only() const override;
+	bool represents(const std::string &) const override;
+	bool has_written() const override;
 
 private:
 	T disk_image_;
+	bool has_written_ = false;
 
 	TargetPlatform::Type target_platforms() final {
 		if constexpr (std::is_base_of<TargetPlatform::Distinguisher, T>::value) {

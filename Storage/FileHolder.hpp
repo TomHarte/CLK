@@ -162,6 +162,11 @@ public:
 	std::string extension() const;
 
 	/*!
+		Returns the underlying file name.
+	*/
+	const std::string &name() const;
+
+	/*!
 		Ensures the file is at least @c length bytes long, appending 0s until it is
 		if necessary.
 	*/
