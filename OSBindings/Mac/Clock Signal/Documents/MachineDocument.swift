@@ -78,6 +78,7 @@ class MachineDocument:
 							let target = CSStaticAnalyser(fileAt: url)
 							if let target = target {
 								self.machine.substitute(target)
+								self.optionsController?.establishStoredOptions()
 							}
 
 						case .none:				fallthrough
