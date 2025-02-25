@@ -72,23 +72,17 @@ class MachineDocument:
 			self.configureAs(analyser)
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
 				DispatchQueue.main.async {
-//					self.actionLock.lock()
-//					self.drawLock.lock()
-
 					switch(self.machine.effectForFile(atURLDidChange: url)) {
 						case .reinsertMedia:	self.insertFile(url)
 						case .restartMachine:
 							let target = CSStaticAnalyser(fileAt: url)
 							if let target = target {
-//								self.configureAs(target)
+								self.machine.substitute(target)
 							}
 
 						case .none:				fallthrough
 						@unknown default:		break
 					}
-
-//					self.actionLock.unlock()
-//					self.drawLock.unlock()
 				}
 			})
 		} else {

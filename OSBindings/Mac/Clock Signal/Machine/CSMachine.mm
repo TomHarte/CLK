@@ -34,6 +34,7 @@
 #include <atomic>
 #include <bitset>
 #include <locale>
+#include <memory>
 
 namespace {
 
@@ -49,6 +50,8 @@ struct MachineUpdater {
 	Machine::DynamicMachine *machine = nullptr;
 	MachineTypes::TimedMachine *timed_machine = nullptr;
 };
+
+using Updater = Concurrency::AsyncTaskQueue<true, false, MachineUpdater>;
 
 }
 
@@ -123,7 +126,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	Concurrency::AsyncTaskQueue<true, false, MachineUpdater> updater;
+	std::unique_ptr<Updater> updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -161,9 +164,11 @@ struct ActivityObserver: public Activity::Observer {
 			}
 			return nil;
 		}
-		updater.performer.machine = _machine.get();
-		if(updater.performer.machine) {
-			updater.start();
+
+		updater = std::make_unique<Updater>();
+		updater->performer.machine = _machine.get();
+		if(updater->performer.machine) {
+			updater->start();
 		}
 
 		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
@@ -189,6 +194,32 @@ struct ActivityObserver: public Activity::Observer {
 		[self updateJoystickTimer];
 	}
 	return self;
+}
+
+- (void)substitute:(nonnull CSStaticAnalyser *)machine {
+	[self stop];
+
+	Machine::Error error;
+	ROM::Request missing_roms;
+	_machine = Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error);
+
+	_view.scanTarget.scanTarget->will_change_owner();
+	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
+
+	updater = std::make_unique<Updater>();
+	updater->performer.machine = _machine.get();
+	if(updater->performer.machine) {
+		updater->start();
+	}
+
+	Activity::Source *const activity_source = _machine->activity_source();
+	if(activity_source) {
+		_activityObserver.machine = self;
+		activity_source->set_activity_observer(&_activityObserver);
+	}
+
+	_speakerDelegate.machine = self;
+	[self.delegate machineSpeakerDidChangeInputClock:self];
 }
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
@@ -511,7 +542,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	updater.enqueue([event] {
+	updater->enqueue([event] {
 		event();
 	});
 }
@@ -727,10 +758,10 @@ struct ActivityObserver: public Activity::Observer {
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	__weak CSMachine *weakSelf = self;
 
-	updater.enqueue([weakSelf] {
+	updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
-			strongSelf->updater.performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+			strongSelf->updater->performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 		}
 	});
 }
@@ -738,7 +769,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	__weak CSMachine *weakSelf = self;
 
-	updater.enqueue([weakSelf] {
+	updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(!strongSelf) {
 			return;
@@ -746,7 +777,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.timed_machine;
+		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater->performer.timed_machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
@@ -785,7 +816,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)stop {
-	updater.stop();
+	updater->stop();
 }
 
 + (BOOL)attemptInstallROM:(NSURL *)url {

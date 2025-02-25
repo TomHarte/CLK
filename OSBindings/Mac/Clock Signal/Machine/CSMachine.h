@@ -79,6 +79,8 @@ typedef NS_ENUM(NSInteger, CSMachineChangeEffect) {
 - (void)setMouseButton:(int)button isPressed:(BOOL)isPressed;
 - (void)addMouseMotionX:(CGFloat)deltaX y:(CGFloat)deltaY;
 
+- (void)substitute:(nonnull CSStaticAnalyser *)machine;
+
 @property (nonatomic, strong, nullable) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly, nonnull) CSScanTargetView *view;
 @property (nonatomic, weak, nullable) id<CSMachineDelegate> delegate;
