@@ -71,18 +71,21 @@ class MachineDocument:
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
-				DispatchQueue.main.async {
-					switch(self.machine.effectForFile(atURLDidChange: url)) {
-						case .reinsertMedia:	self.insertFile(url)
-						case .restartMachine:
-							let target = CSStaticAnalyser(fileAt: url)
-							if let target = target {
-								self.machine.substitute(target)
-								self.optionsController?.establishStoredOptions()
-							}
+				if let machine = self.machine {
+					DispatchQueue.main.async {
+						switch(machine.effectForFile(atURLDidChange: url)) {
+							case .reinsertMedia:	self.insertFile(url)
+							case .restartMachine:
+								let target = CSStaticAnalyser(fileAt: url)
+								if let target = target {
+									self.audioQueue = nil
+									machine.substitute(target)
+									self.optionsController?.establishStoredOptions()
+								}
 
-						case .none:				fallthrough
-						@unknown default:		break
+							case .none:				fallthrough
+							@unknown default:		break
+						}
 					}
 				}
 			})
