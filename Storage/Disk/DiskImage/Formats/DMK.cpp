@@ -181,3 +181,7 @@ std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(const ::Storage::
 
 	return std::make_unique<PCMTrack>(segments);
 }
+
+bool DMK::represents(const std::string &name) const {
+	return name == file_.name();
+}

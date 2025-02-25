@@ -697,9 +697,9 @@ template<Model model> class ConcreteMachine:
 		}
 
 		ChangeEffect effect_for_file_did_change(const std::string &file_name) override {
-			fdc_->disk();
-
-			return ChangeEffect::None;
+			const auto disk = fdc_->disk();
+			return disk && disk->represents(file_name) && disk->has_written() ?
+				ChangeEffect::None : ChangeEffect::RestartMachine;
 		}
 
 		// MARK: - ClockingHint::Observer.

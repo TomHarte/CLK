@@ -228,3 +228,7 @@ bool WOZ::get_is_read_only() const {
 	return true;
 //	return file_.get_is_known_read_only() || is_read_only_ || type_ == Type::WOZ2;	// WOZ 2 disks are currently read only.
 }
+
+bool WOZ::represents(const std::string &name) const {
+	return name == file_.name();
+}

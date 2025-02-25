@@ -171,6 +171,11 @@ bool MacintoshIMG::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }
 
+bool MacintoshIMG::represents(const std::string &name) const {
+	return name == file_.name();
+}
+
+
 std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) const {
 	/*
 		The format_ byte has the following meanings:

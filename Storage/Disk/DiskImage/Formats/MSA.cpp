@@ -94,3 +94,7 @@ HeadPosition MSA::get_maximum_head_position() const {
 int MSA::get_head_count() const {
 	return sides_;
 }
+
+bool MSA::represents(const std::string &name) const {
+	return name == file_.name();
+}

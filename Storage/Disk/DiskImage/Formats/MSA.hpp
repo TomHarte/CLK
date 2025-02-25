@@ -28,6 +28,7 @@ public:
 	int get_head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	bool get_is_read_only() const { return false; }
+	bool represents(const std::string &) const;
 
 private:
 	mutable FileHolder file_;

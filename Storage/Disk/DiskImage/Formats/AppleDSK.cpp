@@ -121,3 +121,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>>
 		file_.write(pair.second);
 	}
 }
+
+bool AppleDSK::represents(const std::string &name) const {
+	return name == file_.name();
+}

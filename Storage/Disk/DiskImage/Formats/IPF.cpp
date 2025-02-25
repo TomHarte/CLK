@@ -437,3 +437,7 @@ void IPF::add_raw_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_l
 	assert(segment.data.size() <= num_bits_ceiling);
 	segment.data.resize(num_bits);
 }
+
+bool IPF::represents(const std::string &name) const {
+	return name == file_.name();
+}

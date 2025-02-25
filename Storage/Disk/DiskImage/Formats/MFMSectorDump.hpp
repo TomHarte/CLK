@@ -24,6 +24,7 @@ public:
 	MFMSectorDump(const std::string &file_name);
 
 	bool get_is_read_only() const;
+	bool represents(const std::string &) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 

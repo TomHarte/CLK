@@ -128,3 +128,7 @@ void HFE::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 bool HFE::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }
+
+bool HFE::represents(const std::string &name) const {
+	return name == file_.name();
+}

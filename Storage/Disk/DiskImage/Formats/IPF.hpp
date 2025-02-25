@@ -39,6 +39,7 @@ public:
 	HeadPosition get_maximum_head_position() const;
 	int get_head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
+	bool represents(const std::string &) const;
 
 private:
 	mutable Storage::FileHolder file_;

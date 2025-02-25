@@ -137,3 +137,7 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 
 	return std::make_unique<PCMTrack>(PCMSegment(data));
 }
+
+bool D64::represents(const std::string &name) const {
+	return name == file_.name();
+}

@@ -23,8 +23,7 @@ bool DiskImageHolder<T>::get_is_read_only() const {
 
 template <typename T>
 bool DiskImageHolder<T>::represents(const std::string &file) const {
-	return false;	// TODO.
-//	return disk_image_.represents(file);
+	return disk_image_.represents(file);
 }
 
 template <typename T>

@@ -31,6 +31,7 @@ public:
 	// DiskImage interface.
 	HeadPosition get_maximum_head_position() const;
 	int get_head_count() const;
+	bool represents(const std::string &) const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:

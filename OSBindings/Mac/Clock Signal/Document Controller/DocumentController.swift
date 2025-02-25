@@ -10,9 +10,4 @@ import Cocoa
 
 class DocumentController: NSDocumentController {
 	let joystickManager = CSJoystickManager()
-
-	override func document(for url: URL) -> NSDocument? {
-		Swift.print("Document for?")
-		return super.document(for: url)
-	}
 }

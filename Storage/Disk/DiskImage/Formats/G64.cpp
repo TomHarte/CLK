@@ -105,3 +105,7 @@ std::unique_ptr<Track> G64::track_at_position(const Track::Address address) cons
 	// TODO: find out whether it's possible for a G64 to supply only a partial track. I don't think it is, which
 	// would make the above correct but supposing I'm wrong, the above would produce some incorrectly clocked tracks.
 }
+
+bool G64::represents(const std::string &name) const {
+	return name == file_.name();
+}

@@ -50,6 +50,10 @@ bool NIB::get_is_read_only() const {
 	return file_.get_is_known_read_only();
 }
 
+bool NIB::represents(const std::string &name) const {
+	return name == file_.name();
+}
+
 long NIB::file_offset(const Track::Address address) const {
 	return long(address.position.as_int()) * track_length;
 }
@@ -189,3 +193,4 @@ void NIB::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 		file_.write(track.second);
 	}
 }
+

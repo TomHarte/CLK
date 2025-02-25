@@ -593,3 +593,7 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 	TrackConstructor constructor(track_data, sectors, track_length, first_sync);
 	return constructor.get_track();
 }
+
+bool STX::represents(const std::string &name) const {
+	return name == file_.name();
+}

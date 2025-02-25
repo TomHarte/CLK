@@ -98,6 +98,10 @@ int IMD::get_head_count() const {
 	return heads_ + 1;
 }
 
+bool IMD::represents(const std::string &name) const {
+	return name == file_.name();
+}
+
 std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) const {
 	auto location = track_locations_.find(address);
 	if(location == track_locations_.end()) {

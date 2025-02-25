@@ -185,3 +185,7 @@ std::unique_ptr<Track> AmigaADF::track_at_position(Track::Address address) const
 long AmigaADF::get_file_offset_for_position(Track::Address address) const {
 	return (address.position.as_int() * 2 + address.head) * 512 * 11;
 }
+
+bool AmigaADF::represents(const std::string &name) const {
+	return name == file_.name();
+}

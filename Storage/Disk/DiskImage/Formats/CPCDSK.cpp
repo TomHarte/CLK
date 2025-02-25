@@ -388,3 +388,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 bool CPCDSK::get_is_read_only() const {
 	return is_read_only_;
 }
+
+bool CPCDSK::represents(const std::string &name) const {
+	return name == file_name_;
+}
