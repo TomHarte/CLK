@@ -141,6 +141,10 @@ struct ActivityObserver: public Activity::Observer {
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableString *)missingROMs {
 	self = [super init];
 	if(self) {
+		_delegateMachineAccessLock = [[NSLock alloc] init];
+		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
+		_inputEvents = [[NSMutableArray alloc] init];
+
 		_analyser = result;
 
 		Machine::Error error;
@@ -164,46 +168,24 @@ struct ActivityObserver: public Activity::Observer {
 			}
 			return nil;
 		}
-
-		updater = std::make_unique<Updater>();
-		updater->performer.machine = _machine.get();
-		if(updater->performer.machine) {
-			updater->start();
-		}
-
-		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
-		_inputMode =
-			(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
-				? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
-
-		_leds = [[NSMutableArray alloc] init];
-		Activity::Source *const activity_source = _machine->activity_source();
-		if(activity_source) {
-			_activityObserver.machine = self;
-			activity_source->set_activity_observer(&_activityObserver);
-		}
-
-		_delegateMachineAccessLock = [[NSLock alloc] init];
-
-		_speakerDelegate.machine = self;
-		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
-
-		_inputEvents = [[NSMutableArray alloc] init];
-
-		_joystickMachine = _machine->joystick_machine();
-		[self updateJoystickTimer];
+		[self install:result];
 	}
 	return self;
 }
 
 - (void)substitute:(nonnull CSStaticAnalyser *)machine {
 	[self stop];
+	_view.scanTarget.scanTarget->will_change_owner();
 
 	Machine::Error error;
 	ROM::Request missing_roms;
 	_machine = Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error);
+	[self install:machine];
+	[self.delegate machineSpeakerDidChangeInputClock:self];
+}
 
-	_view.scanTarget.scanTarget->will_change_owner();
+- (void)install:(nonnull CSStaticAnalyser *)machine {
+	_analyser = machine;
 	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 
 	updater = std::make_unique<Updater>();
@@ -212,6 +194,7 @@ struct ActivityObserver: public Activity::Observer {
 		updater->start();
 	}
 
+	_leds = [[NSMutableArray alloc] init];
 	Activity::Source *const activity_source = _machine->activity_source();
 	if(activity_source) {
 		_activityObserver.machine = self;
@@ -219,7 +202,14 @@ struct ActivityObserver: public Activity::Observer {
 	}
 
 	_speakerDelegate.machine = self;
-	[self.delegate machineSpeakerDidChangeInputClock:self];
+
+	// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
+	_inputMode =
+		(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
+			? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
+
+	_joystickMachine = _machine->joystick_machine();
+	[self updateJoystickTimer];
 }
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
