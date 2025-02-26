@@ -30,7 +30,9 @@ struct MediaTarget {
 	// inserted, ejected and ignored. That'll allow the owner to know which media is actually
 	// being consumed, so it knows what to monitor (if available on the host system) and hence
 	// if/when to call effect_for_file_did_change.
+};
 
+struct MediaChangeObserver {
 	enum class ChangeEffect {
 		None,
 		ReinsertMedia,
@@ -58,7 +60,7 @@ struct MediaTarget {
 			might be appropriate depending on whether it is more likely that execution will continue correctly
 			with a simple media swap or whether this implies that previous state should be completely discarded.
 	*/
-	virtual ChangeEffect effect_for_file_did_change([[maybe_unused]] const std::string &file_name) {
+	virtual ChangeEffect effect_for_file_did_change([[maybe_unused]] const std::string &file_name) const {
 		return ChangeEffect::None;
 	}
 };

@@ -58,6 +58,7 @@ public:
 	MachineTypes::KeyboardMachine *keyboard_machine() final;
 	MachineTypes::MouseMachine *mouse_machine() final;
 	MachineTypes::MediaTarget *media_target() final;
+	MachineTypes::MediaChangeObserver *media_change_observer() final;
 	void *raw_pointer() final;
 
 private:
@@ -73,6 +74,7 @@ private:
 	MultiJoystickMachine joystick_machine_;
 	MultiKeyboardMachine keyboard_machine_;
 	MultiMediaTarget media_target_;
+	MultiMediaChangeObserver media_change_observer_;
 
 	void pick_first();
 	bool has_picked_ = false;
