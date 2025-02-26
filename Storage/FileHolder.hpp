@@ -52,7 +52,8 @@ public:
 	*/
 	template <typename IntT, size_t bytes = 0>
 	void put_le(IntT value) {
-		for(size_t c = 0; c < bytes ? bytes : sizeof(IntT); c++) {
+		constexpr auto size = bytes ? bytes : sizeof(IntT);
+		for(size_t c = 0; c < size; c++) {
 			put8(uint8_t(value));
 			value >>= 8;
 		}
@@ -75,11 +76,11 @@ public:
 	*/
 	template <typename IntT, size_t bytes = 0>
 	IntT get_le() {
-		constexpr auto length = bytes ? bytes : sizeof(IntT);
+		constexpr auto size = bytes ? bytes : sizeof(IntT);
 		IntT result{};
-		for(size_t c = 0; c < length; c++) {
+		for(size_t c = 0; c < size; c++) {
 			result >>= 8;
-			result |= IntT(get8() << ((length - 1) * 8));
+			result |= IntT(get8() << ((size - 1) * 8));
 		}
 		return result;
 	}
@@ -89,9 +90,9 @@ public:
 	*/
 	template <typename IntT, size_t bytes = 0>
 	IntT get_be() {
-		constexpr auto length = bytes ? bytes : sizeof(IntT);
+		constexpr auto size = bytes ? bytes : sizeof(IntT);
 		IntT result{};
-		for(size_t c = 0; c < length; c++) {
+		for(size_t c = 0; c < size; c++) {
 			result <<= 8;
 			result |= get8();
 		}
