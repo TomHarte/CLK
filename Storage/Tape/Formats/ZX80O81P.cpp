@@ -14,9 +14,8 @@ using namespace Storage::Tape;
 ZX80O81P::ZX80O81P(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
 
-	// Grab the actual file contents
-	data_.resize(size_t(file.stats().st_size));
-	file.read(data_.data(), size_t(file.stats().st_size));
+	// Grab file contents.
+	data_ = file.read(size_t(file.stats().st_size));
 
 	// If it's a ZX81 file, prepend a file name.
 	const auto type = file.extension();

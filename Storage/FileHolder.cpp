@@ -98,11 +98,12 @@ bool FileHolder::check_signature(const char *signature, std::size_t length) {
 }
 
 std::string FileHolder::extension() const {
-	std::size_t pointer = name_.size() - 1;
-	while(pointer > 0 && name_[pointer] != '.') pointer--;
-	if(name_[pointer] == '.') pointer++;
+	const auto final_dot = name_.rfind('.');
+	if(final_dot == std::string::npos) {
+		return "";
+	}
 
-	std::string extension = name_.substr(pointer);
+	std::string extension = name_.substr(final_dot + 1);
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 	return extension;
 }
