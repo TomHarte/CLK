@@ -22,11 +22,11 @@ G64::G64(const std::string &file_name) :
 	if(!file_.check_signature("GCR-1541")) throw Error::InvalidFormat;
 
 	// check the version number
-	int version = file_.get8();
+	int version = file_.get();
 	if(version != 0) throw Error::UnknownVersion;
 
 	// get the number of tracks and track size
-	number_of_tracks_ = file_.get8();
+	number_of_tracks_ = file_.get();
 	maximum_track_size_ = file_.get_le<uint16_t>();
 }
 

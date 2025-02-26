@@ -45,9 +45,9 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	//
 	// Luckily, both 0x00 and 0x4c are invalid string length for the proper
 	// DiskCopy 4.2 format, so there's no ambiguity here.
-	const auto name_length = file_.get8();
+	const auto name_length = file_.get();
 	if(name_length == 0x4c || !name_length) {
-		uint32_t magic_word = file_.get8();
+		uint32_t magic_word = file_.get();
 		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
@@ -77,7 +77,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 			throw Error::InvalidFormat;
 
 		// Check that this is a comprehensible disk encoding.
-		const auto encoding = file_.get8();
+		const auto encoding = file_.get();
 		switch(encoding) {
 			default: throw Error::InvalidFormat;
 
@@ -86,7 +86,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 			case 2:	encoding_ = Encoding::MFM720;	break;
 			case 3:	encoding_ = Encoding::MFM1440;	break;
 		}
-		format_ = file_.get8();
+		format_ = file_.get();
 
 		// Check the magic number.
 		const auto magic_number = file_.get_be<uint16_t>();

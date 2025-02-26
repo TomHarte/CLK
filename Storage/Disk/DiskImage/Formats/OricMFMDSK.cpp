@@ -63,7 +63,7 @@ std::unique_ptr<Track> OricMFMDSK::track_at_position(const Track::Address addres
 		std::unique_ptr<Encodings::MFM::Encoder> encoder = Encodings::MFM::GetMFMEncoder(segment.data);
 		bool did_sync = false;
 		while(track_offset < 6250) {
-			uint8_t next_byte = file_.get8();
+			uint8_t next_byte = file_.get();
 			track_offset++;
 
 			switch(next_byte) {
@@ -75,7 +75,7 @@ std::unique_ptr<Track> OricMFMDSK::track_at_position(const Track::Address addres
 
 							case 0xfe:
 								for(int byte = 0; byte < 6; byte++) {
-									last_header[byte] = file_.get8();
+									last_header[byte] = file_.get();
 									encoder->add_byte(last_header[byte]);
 									++track_offset;
 									if(track_offset == 6250) break;
@@ -84,7 +84,7 @@ std::unique_ptr<Track> OricMFMDSK::track_at_position(const Track::Address addres
 
 							case 0xfb:
 								for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++) {
-									encoder->add_byte(file_.get8());
+									encoder->add_byte(file_.get());
 									++track_offset;
 									// Special exception: don't interrupt a sector body if it seems to
 									// be about to run over the end of the track. It seems like BD-500

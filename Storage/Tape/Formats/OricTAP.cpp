@@ -17,7 +17,7 @@ OricTAP::OricTAP(const std::string &file_name) : file_name_(file_name) {
 
 	// Check for a sequence of at least three 0x16s followed by a 0x24.
 	while(true) {
-		const uint8_t next = file.get8();
+		const uint8_t next = file.get();
 		if(next != 0x16 && next != 0x24) {
 			throw ErrorNotOricTAP;
 		}
@@ -62,7 +62,7 @@ Pulse OricTAP::Serialiser::next_pulse() {
 				phase_counter_++;
 				if(phase_counter_ == 259) {	// 256 artificial bytes plus the three in the file = 259
 					while(1) {
-						if(file_.get8() != 0x16) break;
+						if(file_.get() != 0x16) break;
 					}
 					next_phase_ = Header;
 				}
@@ -77,7 +77,7 @@ Pulse OricTAP::Serialiser::next_pulse() {
 				// [6, 7]:		start address of data
 				// 8:			"unused" (on the Oric 1)
 				// [9...]:		filename, up to NULL byte
-				next_byte = file_.get8();
+				next_byte = file_.get();
 
 				if(phase_counter_ == 4)	data_end_address_ = uint16_t(next_byte << 8);
 				if(phase_counter_ == 5)	data_end_address_ |= next_byte;
@@ -101,7 +101,7 @@ Pulse OricTAP::Serialiser::next_pulse() {
 			break;
 
 			case Data:
-				next_byte = file_.get8();
+				next_byte = file_.get();
 				phase_counter_++;
 				if(phase_counter_ >= (data_end_address_ - data_start_address_)+1) {
 					if(next_byte == 0x16) {

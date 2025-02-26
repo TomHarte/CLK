@@ -25,11 +25,11 @@ constexpr uint32_t block(const char (& src)[5]) {
 	);
 }
 
-size_t block_size(Storage::FileHolder &file, uint8_t header) {
+size_t block_size(Storage::FileHolder &file, const uint8_t header) {
 	uint8_t size_width = header >> 5;
 	size_t length = 0;
 	while(size_width--) {
-		length = (length << 8) | file.get8();
+		length = (length << 8) | file.get();
 	}
 	return length;
 }
@@ -92,7 +92,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 
 				platform_type_ = 0;
 				for(int c = 0; c < 4; c++) {
-					const uint8_t platform = file_.get8();
+					const uint8_t platform = file_.get();
 					switch(platform) {
 						default: break;
 						case 1:	platform_type_ |= TargetPlatform::Amiga;		break;
@@ -248,7 +248,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 		if(block.gap_offset) {
 			file_.seek(description.file_offset + block.gap_offset, SEEK_SET);
 			while(true) {
-				const uint8_t gap_header = file_.get8();
+				const uint8_t gap_header = file_.get();
 				if(!gap_header) break;
 
 				// Decompose the header and read the length.
@@ -278,7 +278,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 		if(block.data_offset) {
 			file_.seek(description.file_offset + block.data_offset, SEEK_SET);
 			while(true) {
-				const uint8_t data_header = file_.get8();
+				const uint8_t data_header = file_.get();
 				if(!data_header) break;
 
 				// Decompose the header and read the length.
@@ -408,7 +408,7 @@ void IPF::add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &track, Time
 
 	auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
 	for(size_t c = 0; c < num_bits; c += 8) {
-		encoder->add_byte(file_.get8());
+		encoder->add_byte(file_.get());
 	}
 
 	assert(segment.data.size() <= (byte_length * 16));
@@ -423,7 +423,7 @@ void IPF::add_raw_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_l
 	segment.data.reserve(num_bits_ceiling);
 
 	for(size_t bit = 0; bit < num_bits; bit += 8) {
-		const uint8_t next = file_.get8();
+		const uint8_t next = file_.get();
 		segment.data.push_back(next & 0x80);
 		segment.data.push_back(next & 0x40);
 		segment.data.push_back(next & 0x20);

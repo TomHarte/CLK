@@ -40,14 +40,14 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 	if(!file.check_signature("ZXST")) {
 		return nullptr;
 	}
-	const uint8_t major_version = file.get8();
-	[[maybe_unused]] const uint8_t minor_version = file.get8();
+	const uint8_t major_version = file.get();
+	[[maybe_unused]] const uint8_t minor_version = file.get();
 	if(major_version > 1) {
 		return nullptr;
 	}
 
 	// Check for a supported machine type.
-	const uint8_t machine_type = file.get8();
+	const uint8_t machine_type = file.get();
 	switch(machine_type) {
 		default: return nullptr;
 
@@ -68,7 +68,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 		break;
 	}
 
-	const uint8_t file_flags = file.get8();
+	const uint8_t file_flags = file.get();
 	[[maybe_unused]] const bool uses_late_timings = file_flags & 1;
 
 	// Now parse all included blocks.
@@ -85,8 +85,8 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 			// ZXSTZ80REGS
 			case block("Z80R"): {
-				state->z80.registers.flags = file.get8();
-				state->z80.registers.a = file.get8();
+				state->z80.registers.flags = file.get();
+				state->z80.registers.a = file.get();
 
 				state->z80.registers.bc = file.get_le<uint16_t>();
 				state->z80.registers.de = file.get_le<uint16_t>();
@@ -102,22 +102,22 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 				state->z80.registers.stack_pointer = file.get_le<uint16_t>();
 				state->z80.registers.program_counter = file.get_le<uint16_t>();
 
-				const uint8_t i = file.get8();
-				const uint8_t r = file.get8();
+				const uint8_t i = file.get();
+				const uint8_t r = file.get();
 				state->z80.registers.ir = uint16_t((i << 8) | r);
 
-				state->z80.registers.iff1 = file.get8();
-				state->z80.registers.iff2 = file.get8();
-				state->z80.registers.interrupt_mode = file.get8();
+				state->z80.registers.iff1 = file.get();
+				state->z80.registers.iff2 = file.get();
+				state->z80.registers.interrupt_mode = file.get();
 
 				state->video.half_cycles_since_interrupt = int(file.get_le<uint32_t>()) * 2;
 
 				// SZX includes a count of remaining cycles that interrupt should be asserted for
 				// because it supports hardware that might cause an interrupt other than the display.
 				// This emulator doesn't, so this field can be ignored.
-				[[maybe_unused]] uint8_t remaining_interrupt_cycles = file.get8();
+				[[maybe_unused]] uint8_t remaining_interrupt_cycles = file.get();
 
-				const uint8_t flags = file.get8();
+				const uint8_t flags = file.get();
 				state->z80.execution_state.is_halted = flags & 2;
 				// TODO: bit 0 indicates that the last instruction was an EI, or an invalid
 				// DD or FD. I assume I'm supposed to use that to conclude an interrupt
@@ -131,16 +131,16 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 			case block("AY\0\0"): {
 				// This applies to 48kb machines with AY boxes only. This emulator
 				// doesn't currently support those.
-				[[maybe_unused]] const uint8_t interface_type = file.get8();
+				[[maybe_unused]] const uint8_t interface_type = file.get();
 
-				state->ay.selected_register = file.get8();
+				state->ay.selected_register = file.get();
 				file.read(state->ay.registers, 16);
 			} break;
 
 			// ZXSTRAMPAGE
 			case block("RAMP"): {
 				const uint16_t flags = file.get_le<uint16_t>();
-				const uint8_t page = file.get8();
+				const uint8_t page = file.get();
 
 				std::vector<uint8_t> contents;
 				if(flags & 1) {
@@ -182,9 +182,9 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 			// ZXSTSPECREGS
 			case block("SPCR"): {
-				state->video.border_colour = file.get8();
-				state->last_7ffd = file.get8();
-				state->last_1ffd = file.get8();
+				state->video.border_colour = file.get();
+				state->last_7ffd = file.get();
+				state->last_1ffd = file.get();
 
 				// TODO: use last write to FE, at least.
 			} break;

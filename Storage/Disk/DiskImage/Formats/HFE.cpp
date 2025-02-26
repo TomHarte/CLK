@@ -17,9 +17,9 @@ HFE::HFE(const std::string &file_name) :
 		file_(file_name) {
 	if(!file_.check_signature("HXCPICFE")) throw Error::InvalidFormat;
 
-	if(file_.get8()) throw Error::UnknownVersion;
-	track_count_ = file_.get8();
-	head_count_ = file_.get8();
+	if(file_.get()) throw Error::UnknownVersion;
+	track_count_ = file_.get();
+	head_count_ = file_.get();
 
 	file_.seek(7, SEEK_CUR);
 	track_list_offset_ = long(file_.get_le<uint16_t>()) << 9;

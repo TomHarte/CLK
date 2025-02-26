@@ -66,10 +66,10 @@ WOZ::WOZ(const std::string &file_name) :
 
 		switch(chunk_id) {
 			case chunk("INFO"): {
-				const uint8_t version = file_.get8();
+				const uint8_t version = file_.get();
 				if(version > 2) break;
-				is_3_5_disk_ = file_.get8() == 2;
-				is_read_only_ = file_.get8() == 1;
+				is_3_5_disk_ = file_.get() == 2;
+				is_read_only_ = file_.get() == 1;
 				/*
 					Ignored:
 						1 byte: Synchronized; 1 = Cross track sync was used during imaging.

@@ -26,7 +26,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 	size_t cursor = 0;
 
 	while(cursor != size) {
-		const uint8_t next = file.get8();
+		const uint8_t next = file.get();
 
 		// If the next byte definitely doesn't, or can't,
 		// start an ED ED sequence then just take it.
@@ -38,7 +38,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 
 		// Grab the next byte. If it's not ED then write
 		// both and continue.
-		const uint8_t after = file.get8();
+		const uint8_t after = file.get();
 		if(after != 0xed) {
 			result[cursor] = next;
 			result[cursor+1] = after;
@@ -47,8 +47,8 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 		}
 
 		// An ED ED has begun, so grab the RLE sequence.
-		const uint8_t count = file.get8();
-		const uint8_t value = file.get8();
+		const uint8_t count = file.get();
+		const uint8_t value = file.get();
 
 		memset(&result[cursor], value, count);
 		cursor += count;
@@ -69,8 +69,8 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	result->state = std::unique_ptr<Reflection::Struct>(state);
 
 	// Read version 1 header.
-	state->z80.registers.a = file.get8();
-	state->z80.registers.flags = file.get8();
+	state->z80.registers.a = file.get();
+	state->z80.registers.flags = file.get();
 	state->z80.registers.bc = file.get_le<uint16_t>();
 	state->z80.registers.hl = file.get_le<uint16_t>();
 	state->z80.registers.program_counter = file.get_le<uint16_t>();
@@ -80,7 +80,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	// Bit 7 of R is stored separately; likely this relates to an
 	// optimisation in the Z80 emulator that for some reason was
 	// exported into its file format.
-	const uint8_t raw_misc = file.get8();
+	const uint8_t raw_misc = file.get();
 	const uint8_t misc = (raw_misc == 0xff) ? 1 : raw_misc;
 	state->z80.registers.ir = uint16_t((state->z80.registers.ir & ~0x80) | ((misc&1) << 7));
 
@@ -91,8 +91,8 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	state->z80.registers.af_dash = file.get_be<uint16_t>();	// Stored A' then F'.
 	state->z80.registers.iy = file.get_le<uint16_t>();
 	state->z80.registers.ix = file.get_le<uint16_t>();
-	state->z80.registers.iff1 = bool(file.get8());
-	state->z80.registers.iff2 = bool(file.get8());
+	state->z80.registers.iff1 = bool(file.get());
+	state->z80.registers.iff2 = bool(file.get());
 
 	// Ignored from the next byte:
 	//
@@ -100,7 +100,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	//	bit 3 = 1	=> double interrupt frequency (?)
 	//	bit 4–5		=> video synchronisation (to do with emulation hackery?)
 	//	bit 6–7		=> joystick type
-	state->z80.registers.interrupt_mode = file.get8() & 3;
+	state->z80.registers.interrupt_mode = file.get() & 3;
 
 	// If the program counter is non-0 then this is a version 1 snapshot,
 	// which means it's definitely a 48k image.
@@ -117,7 +117,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	state->z80.registers.program_counter = file.get_le<uint16_t>();
-	const uint8_t model = file.get8();
+	const uint8_t model = file.get();
 	switch(model) {
 		default: return nullptr;
 		case 0:		result->model = Target::Model::FortyEightK;		break;
@@ -128,10 +128,10 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		case 13:	result->model = Target::Model::Plus2a;			break;
 	}
 
-	state->last_7ffd = file.get8();
+	state->last_7ffd = file.get();
 
 	file.seek(1, SEEK_CUR);
-	if(file.get8() & 0x80) {
+	if(file.get() & 0x80) {
 		// The 'hardware modify' bit, which inexplicably does this:
 		switch(result->model) {
 			default: break;
@@ -141,13 +141,13 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		}
 	}
 
-	state->ay.selected_register = file.get8();
+	state->ay.selected_register = file.get();
 	file.read(state->ay.registers, 16);
 
 	if(bonus_header_size != 23) {
 		// More Z80, the emulator, lack of encapsulation to deal with here.
 		const auto low_t_state = file.get_le<uint16_t>();
-		const uint16_t high_t_state = file.get8();
+		const uint16_t high_t_state = file.get();
 		switch(result->model) {
 			case Target::Model::SixteenK:
 			case Target::Model::FortyEightK:
@@ -169,7 +169,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		file.seek(3, SEEK_CUR);
 
 		if(bonus_header_size == 55) {
-			state->last_1ffd = file.get8();
+			state->last_1ffd = file.get();
 		}
 	}
 
@@ -182,7 +182,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 
 	while(true) {
 		const auto block_size = file.get_le<uint16_t>();
-		const uint8_t page = file.get8();
+		const uint8_t page = file.get();
 		const auto location = file.tell();
 		if(file.eof()) break;
 

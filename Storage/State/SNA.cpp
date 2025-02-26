@@ -34,7 +34,7 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	// Comments below: [offset] [contents]
 
 	//	00	I
-	const uint8_t i = file.get8();
+	const uint8_t i = file.get();
 
 	//	01	HL';	03	DE';	05	BC';	07	AF'
 	state->z80.registers.hl_dash = file.get_le<uint16_t>();
@@ -50,21 +50,21 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	state->z80.registers.ix = file.get_le<uint16_t>();
 
 	//	13	IFF2 (in bit 2)
-	const uint8_t iff = file.get8();
+	const uint8_t iff = file.get();
 	state->z80.registers.iff1 = state->z80.registers.iff2 = iff & 4;
 
 	//	14	R
-	const uint8_t r = file.get8();
+	const uint8_t r = file.get();
 	state->z80.registers.ir = uint16_t((i << 8) | r);
 
 	//	15	AF;		17	SP;		19	interrupt mode
-	state->z80.registers.flags = file.get8();
-	state->z80.registers.a = file.get8();
+	state->z80.registers.flags = file.get();
+	state->z80.registers.a = file.get();
 	state->z80.registers.stack_pointer = file.get_le<uint16_t>();
-	state->z80.registers.interrupt_mode = file.get8();
+	state->z80.registers.interrupt_mode = file.get();
 
 	//	1A	border colour
-	state->video.border_colour = file.get8();
+	state->video.border_colour = file.get();
 
 	//	1B–	48kb RAM contents
 	state->ram = file.read(48*1024);

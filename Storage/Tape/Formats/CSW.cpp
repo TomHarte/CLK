@@ -24,11 +24,11 @@ CSW::CSW(const std::string &file_name) {
 	}
 
 	// Check terminating byte.
-	if(file.get8() != 0x1a) throw ErrorNotCSW;
+	if(file.get() != 0x1a) throw ErrorNotCSW;
 
 	// Get version file number.
-	const uint8_t major_version = file.get8();
-	const uint8_t minor_version = file.get8();
+	const uint8_t major_version = file.get();
+	const uint8_t minor_version = file.get();
 
 	// Reject if this is an unknown version.
 	if(major_version > 2 || !major_version || minor_version > 1) throw ErrorNotCSW;
@@ -38,23 +38,23 @@ CSW::CSW(const std::string &file_name) {
 	if(major_version == 1) {
 		pulse_.length.clock_rate = file.get_le<uint16_t>();
 
-		if(file.get8() != 1) throw ErrorNotCSW;
+		if(file.get() != 1) throw ErrorNotCSW;
 		compression_type = CompressionType::RLE;
 
-		pulse_.type = (file.get8() & 1) ? Pulse::High : Pulse::Low;
+		pulse_.type = (file.get() & 1) ? Pulse::High : Pulse::Low;
 
 		file.seek(0x20, SEEK_SET);
 	} else {
 		pulse_.length.clock_rate = file.get_le<uint32_t>();
 		file.seek(4, SEEK_CUR);	// Skip number of waves.
-		switch(file.get8()) {
+		switch(file.get()) {
 			case 1: compression_type = CompressionType::RLE;	break;
 			case 2: compression_type = CompressionType::ZRLE;	break;
 			default: throw ErrorNotCSW;
 		}
 
-		pulse_.type = (file.get8() & 1) ? Pulse::High : Pulse::Low;
-		const uint8_t extension_length = file.get8();
+		pulse_.type = (file.get() & 1) ? Pulse::High : Pulse::Low;
+		const uint8_t extension_length = file.get();
 
 		if(file.stats().st_size < 0x34 + extension_length) throw ErrorNotCSW;
 		file.seek(0x34 + extension_length, SEEK_SET);

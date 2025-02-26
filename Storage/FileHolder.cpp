@@ -41,16 +41,16 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 	if(!file_) throw Error::CantOpen;
 }
 
-uint8_t FileHolder::get8() {
+uint8_t FileHolder::get() {
 	return uint8_t(std::fgetc(file_));
 }
 
-void FileHolder::put8(uint8_t value) {
+void FileHolder::put(uint8_t value) {
 	std::fputc(value, file_);
 }
 
 void FileHolder::putn(std::size_t repeats, uint8_t value) {
-	while(repeats--) put8(value);
+	while(repeats--) put(value);
 }
 
 std::vector<uint8_t> FileHolder::read(std::size_t size) {

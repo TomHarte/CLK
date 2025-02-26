@@ -41,7 +41,7 @@ MSA::MSA(const std::string &file_name) :
 			track.reserve(sectors_per_track_ * 512);
 			uint16_t pointer = 0;
 			while(pointer < data_length) {
-				const auto byte = file_.get8();
+				const auto byte = file_.get();
 
 				// Compression scheme: if the byte E5 is encountered, an RLE run follows.
 				// An RLE run is encoded as the byte to repeat plus a 16-bit repeat count.
@@ -54,7 +54,7 @@ MSA::MSA(const std::string &file_name) :
 				pointer += 4;
 				if(pointer > data_length) break;
 
-				const auto value = file_.get8();
+				const auto value = file_.get();
 				auto count = file_.get_be<uint16_t>();
 				while(count--) {
 					track.push_back(value);
