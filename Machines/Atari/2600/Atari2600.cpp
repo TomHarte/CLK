@@ -75,10 +75,11 @@ using Target = Analyser::Static::Atari2600::Target;
 
 class ConcreteMachine:
 	public Machine,
-	public MachineTypes::TimedMachine,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::ScanProducer,
-	public MachineTypes::JoystickMachine {
+	public MachineTypes::TimedMachine {
 public:
 	ConcreteMachine(const Target &target) : frequency_mismatch_warner_(*this) {
 		const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
@@ -185,6 +186,10 @@ public:
 
 	float get_confidence() final {
 		return confidence_counter_.get_confidence();
+	}
+
+	ChangeEffect effect_for_file_did_change(const std::string &) const final {
+		return ChangeEffect::RestartMachine;
 	}
 
 private:

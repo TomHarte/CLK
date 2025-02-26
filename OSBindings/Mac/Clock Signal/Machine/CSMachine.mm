@@ -373,12 +373,12 @@ struct ActivityObserver: public Activity::Observer {
 
 - (CSMachineChangeEffect)effectForFileAtURLDidChange:(nonnull NSURL *)url {
 	@synchronized(self) {
-		const auto mediaTarget = _machine->media_target();
-		if(!mediaTarget) {
+		const auto mediaChangeObserver = _machine->media_change_observer();
+		if(!mediaChangeObserver) {
 			return CSMachineChangeEffectNone;
 		}
-		const auto effect = mediaTarget->effect_for_file_did_change([url fileSystemRepresentation]);
-		using ChangeEffect = MachineTypes::MediaTarget::ChangeEffect;
+		const auto effect = mediaChangeObserver->effect_for_file_did_change([url fileSystemRepresentation]);
+		using ChangeEffect = MachineTypes::MediaChangeObserver::ChangeEffect;
 		switch(effect) {
 			case ChangeEffect::None:
 				return CSMachineChangeEffectNone;

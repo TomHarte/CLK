@@ -109,10 +109,11 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public Configurable::Device,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
-	public MachineTypes::JoystickMachine {
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MediaChangeObserver,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine {
 
 public:
 	ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -354,6 +355,10 @@ public:
 	float get_confidence() final {
 		if(pc_zero_accesses_ > 1) return 0.0f;
 		return confidence_counter_.get_confidence();
+	}
+
+	ChangeEffect effect_for_file_did_change(const std::string &) const final {
+		return ChangeEffect::RestartMachine;
 	}
 
 	// MARK: - Configuration options.

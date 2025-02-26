@@ -40,6 +40,7 @@ public:
 	Provide(MachineTypes::KeyboardMachine, keyboard_machine)
 	Provide(MachineTypes::MouseMachine, mouse_machine)
 	Provide(MachineTypes::MediaTarget, media_target)
+	Provide(MachineTypes::MediaChangeObserver, media_change_observer)
 
 #undef Provide
 

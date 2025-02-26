@@ -33,4 +33,15 @@ private:
 	std::vector<MachineTypes::MediaTarget *> targets_;
 };
 
+struct MultiMediaChangeObserver: public MachineTypes::MediaChangeObserver {
+public:
+	MultiMediaChangeObserver(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &);
+
+	// Below is the standard MediaTarget::Machine interface; see there for documentation.
+	ChangeEffect effect_for_file_did_change(const std::string &) const final;
+
+private:
+	std::vector<MachineTypes::MediaChangeObserver *> targets_;
+};
+
 }

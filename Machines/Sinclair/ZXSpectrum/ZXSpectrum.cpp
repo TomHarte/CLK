@@ -126,6 +126,7 @@ template<Model model> class ConcreteMachine:
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
@@ -696,7 +697,7 @@ template<Model model> class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && model == Model::Plus3);
 		}
 
-		ChangeEffect effect_for_file_did_change(const std::string &file_name) override {
+		ChangeEffect effect_for_file_did_change(const std::string &file_name) const override {
 			const auto disk = fdc_->disk();
 			return disk && disk->represents(file_name) && disk->has_written() ?
 				ChangeEffect::None : ChangeEffect::RestartMachine;

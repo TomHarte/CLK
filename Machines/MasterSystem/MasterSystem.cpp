@@ -80,14 +80,15 @@ class Joystick: public Inputs::ConcreteJoystick {
 
 template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 	public Machine,
-	public CPU::Z80::BusHandler,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
-	public MachineTypes::AudioProducer,
-	public MachineTypes::KeyboardMachine,
-	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public Inputs::Keyboard::Delegate {
+	public CPU::Z80::BusHandler,
+	public Inputs::Keyboard::Delegate,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::KeyboardMachine,
+	public MachineTypes::MediaChangeObserver,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -178,6 +179,10 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 
 		~ConcreteMachine() {
 			audio_queue_.flush();
+		}
+
+		ChangeEffect effect_for_file_did_change(const std::string &) const final {
+			return ChangeEffect::RestartMachine;
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
