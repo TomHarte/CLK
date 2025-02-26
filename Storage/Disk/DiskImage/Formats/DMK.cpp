@@ -38,7 +38,7 @@ DMK::DMK(const std::string &file_name) :
 	// or by virtue of filesystem placement).
 	uint8_t read_only_byte = file_.get();
 	if(read_only_byte != 0x00 && read_only_byte != 0xff) throw Error::InvalidFormat;
-	is_read_only_ = (read_only_byte == 0xff) || file_.get_is_known_read_only();
+	is_read_only_ = (read_only_byte == 0xff) || file_.is_known_read_only();
 
 	// Read track count and size.
 	head_position_count_ = int(file_.get());

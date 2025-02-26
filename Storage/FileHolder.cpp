@@ -120,7 +120,7 @@ void FileHolder::ensure_is_at_least_length(long length) {
 	}
 }
 
-bool FileHolder::get_is_known_read_only() const {
+bool FileHolder::is_known_read_only() const {
 	return is_read_only_;
 }
 
@@ -128,6 +128,6 @@ const struct stat &FileHolder::stats() const {
 	return file_stats_;
 }
 
-std::mutex &FileHolder::get_file_access_mutex() {
+std::mutex &FileHolder::file_access_mutex() {
 	return file_access_mutex_;
 }

@@ -53,7 +53,7 @@ long OricMFMDSK::get_file_offset_for_position(Track::Address address) const {
 std::unique_ptr<Track> OricMFMDSK::track_at_position(const Track::Address address) const {
 	PCMSegment segment;
 	{
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.seek(get_file_offset_for_position(address), SEEK_SET);
 
 		// The file format omits clock bits. So it's not a genuine MFM capture.
@@ -157,7 +157,7 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track
 
 		long file_offset = get_file_offset_for_position(track.first);
 
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.seek(file_offset, SEEK_SET);
 		std::size_t track_size = std::min(size_t(6400), parsed_track.size());
 		file_.write(parsed_track.data(), track_size);
@@ -165,7 +165,7 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track
 }
 
 bool OricMFMDSK::get_is_read_only() const {
-	return file_.get_is_known_read_only();
+	return file_.is_known_read_only();
 }
 
 bool OricMFMDSK::represents(const std::string &name) const {

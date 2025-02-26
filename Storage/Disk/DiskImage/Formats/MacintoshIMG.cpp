@@ -168,7 +168,7 @@ int MacintoshIMG::get_head_count() const {
 }
 
 bool MacintoshIMG::get_is_read_only() const {
-	return file_.get_is_known_read_only();
+	return file_.is_known_read_only();
 }
 
 bool MacintoshIMG::represents(const std::string &name) const {
@@ -308,7 +308,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 
 	// Grab the file lock and write out the new tracks.
 	{
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 
 		if(!is_diskCopy_file_) {
 			// Just dump out the entire disk. Grossly lazy, possibly worth improving.

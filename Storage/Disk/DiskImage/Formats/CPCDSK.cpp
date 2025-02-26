@@ -21,7 +21,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	file_name_(file_name),
 	is_extended_(false) {
 	FileHolder file(file_name);
-	is_read_only_ = file.get_is_known_read_only();
+	is_read_only_ = file.is_known_read_only();
 
 	if(!file.check_signature("MV - CPC")) {
 		is_extended_ = true;

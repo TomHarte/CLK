@@ -19,7 +19,7 @@ ZX80O81P::ZX80O81P(const std::string &file_name) {
 	file.read(data_.data(), size_t(file.stats().st_size));
 
 	// If it's a ZX81 file, prepend a file name.
-	std::string type = file.extension();
+	const auto type = file.extension();
 	target_platforms_ = TargetPlatform::ZX80;
 	if(type == "p" || type == "81") {
 		// TODO, maybe: prefix a proper file name; this is leaving the file nameless.

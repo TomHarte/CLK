@@ -177,7 +177,7 @@ public:
 	/*!
 		@returns @c true if an attempt was made to read this file in ReadWrite mode but it could be opened only for reading; @c false otherwise.
 	*/
-	bool get_is_known_read_only() const;
+	bool is_known_read_only() const;
 
 	/*!
 		@returns the stat struct describing this file.
@@ -187,7 +187,7 @@ public:
 	/*!
 		@returns a mutex owned by the file that can be used to serialise file access.
 	*/
-	std::mutex &get_file_access_mutex();
+	std::mutex &file_access_mutex();
 
 private:
 	FILE *file_ = nullptr;
