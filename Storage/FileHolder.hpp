@@ -199,4 +199,9 @@ private:
 	std::mutex file_access_mutex_;
 };
 
+inline std::vector<uint8_t> contents_of(const std::string &file_name) {
+	FileHolder file(file_name, FileHolder::FileMode::Read);
+	return file.read(size_t(file.stats().st_size));
+}
+
 }
