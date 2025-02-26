@@ -50,9 +50,8 @@ public:
 	/*!
 		Writes @c value using successive @c put8s, in little endian order.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	void put_le(IntT value) {
-		constexpr auto size = bytes ? bytes : sizeof(IntT);
 		for(size_t c = 0; c < size; c++) {
 			put8(uint8_t(value));
 			value >>= 8;
@@ -62,9 +61,9 @@ public:
 	/*!
 		Writes @c value using successive @c put8s, in big endian order.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	void put_be(IntT value) {
-		auto shift = (bytes ? bytes : sizeof(IntT)) * 8;
+		auto shift = size * 8;
 		while(shift) {
 			shift -= 8;
 			put8((value >> shift)&0xff);
@@ -74,9 +73,8 @@ public:
 	/*!
 		Writes @c value using successive @c put8s, in little endian order.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	IntT get_le() {
-		constexpr auto size = bytes ? bytes : sizeof(IntT);
 		IntT result{};
 		for(size_t c = 0; c < size; c++) {
 			result >>= 8;
@@ -88,9 +86,8 @@ public:
 	/*!
 		Writes @c value using successive @c put8s, in big endian order.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	IntT get_be() {
-		constexpr auto size = bytes ? bytes : sizeof(IntT);
 		IntT result{};
 		for(size_t c = 0; c < size; c++) {
 			result <<= 8;
