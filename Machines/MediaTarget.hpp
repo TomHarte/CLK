@@ -26,6 +26,11 @@ struct MediaTarget {
 	*/
 	virtual bool insert_media(const Analyser::Static::Media &) = 0;
 
+	// TODO: replace return result of insert_media with some sort of change log — a list of files
+	// inserted, ejected and ignored. That'll allow the owner to know which media is actually
+	// being consumed, so it knows what to monitor (if available on the host system) and hence
+	// if/when to call effect_for_file_did_change.
+
 	enum class ChangeEffect {
 		None,
 		ReinsertMedia,
