@@ -17,19 +17,19 @@ HFE::HFE(const std::string &file_name) :
 		file_(file_name) {
 	if(!file_.check_signature("HXCPICFE")) throw Error::InvalidFormat;
 
-	if(file_.get8()) throw Error::UnknownVersion;
-	track_count_ = file_.get8();
-	head_count_ = file_.get8();
+	if(file_.get()) throw Error::UnknownVersion;
+	track_count_ = file_.get();
+	head_count_ = file_.get();
 
 	file_.seek(7, SEEK_CUR);
 	track_list_offset_ = long(file_.get_le<uint16_t>()) << 9;
 }
 
-HeadPosition HFE::get_maximum_head_position() const {
+HeadPosition HFE::maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int HFE::get_head_count() const {
+int HFE::head_count() const {
 	return head_count_;
 }
 
@@ -57,7 +57,7 @@ uint16_t HFE::seek_track(const Track::Address address) const {
 std::unique_ptr<Track> HFE::track_at_position(const Track::Address address) const {
 	PCMSegment segment;
 	{
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 		uint16_t track_length = seek_track(address);
 
 		segment.data.resize(track_length * 8);
@@ -101,7 +101,7 @@ std::unique_ptr<Track> HFE::track_at_position(const Track::Address address) cons
 
 void HFE::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	for(auto &track : tracks) {
-		std::unique_lock lock_guard(file_.get_file_access_mutex());
+		std::unique_lock lock_guard(file_.file_access_mutex());
 		uint16_t track_length = seek_track(track.first);
 		lock_guard.unlock();
 
@@ -125,8 +125,8 @@ void HFE::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	}
 }
 
-bool HFE::get_is_read_only() const {
-	return file_.get_is_known_read_only();
+bool HFE::is_read_only() const {
+	return file_.is_known_read_only();
 }
 
 bool HFE::represents(const std::string &name) const {

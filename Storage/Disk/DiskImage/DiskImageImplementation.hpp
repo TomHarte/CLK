@@ -7,18 +7,18 @@
 //
 
 template <typename T>
-HeadPosition DiskImageHolder<T>::get_maximum_head_position() const {
-	return disk_image_.get_maximum_head_position();
+HeadPosition DiskImageHolder<T>::maximum_head_position() const {
+	return disk_image_.maximum_head_position();
 }
 
 template <typename T>
-int DiskImageHolder<T>::get_head_count() const {
-	return disk_image_.get_head_count();
+int DiskImageHolder<T>::head_count() const {
+	return disk_image_.head_count();
 }
 
 template <typename T>
-bool DiskImageHolder<T>::get_is_read_only() const {
-	return disk_image_.get_is_read_only();
+bool DiskImageHolder<T>::is_read_only() const {
+	return disk_image_.is_read_only();
 }
 
 template <typename T>
@@ -51,7 +51,7 @@ void DiskImageHolder<T>::flush_tracks() {
 
 template <typename T>
 void DiskImageHolder<T>::set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) {
-	if(disk_image_.get_is_read_only()) return;
+	if(disk_image_.is_read_only()) return;
 	has_written_ = true;
 
 	unwritten_tracks_.insert(address);
@@ -60,8 +60,8 @@ void DiskImageHolder<T>::set_track_at_position(Track::Address address, const std
 
 template <typename T>
 Track *DiskImageHolder<T>::track_at_position(Track::Address address) const {
-	if(address.head >= get_head_count()) return nullptr;
-	if(address.position >= get_maximum_head_position()) return nullptr;
+	if(address.head >= head_count()) return nullptr;
+	if(address.position >= maximum_head_position()) return nullptr;
 
 	const auto canonical_address = disk_image_.canonical_address(address);
 	auto cached_track = cached_tracks_.find(canonical_address);

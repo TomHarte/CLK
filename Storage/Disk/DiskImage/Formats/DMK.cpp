@@ -36,12 +36,12 @@ DMK::DMK(const std::string &file_name) :
 	file_(file_name) {
 	// Determine whether this DMK represents a read-only disk (whether intentionally,
 	// or by virtue of filesystem placement).
-	uint8_t read_only_byte = file_.get8();
+	uint8_t read_only_byte = file_.get();
 	if(read_only_byte != 0x00 && read_only_byte != 0xff) throw Error::InvalidFormat;
-	is_read_only_ = (read_only_byte == 0xff) || file_.get_is_known_read_only();
+	is_read_only_ = (read_only_byte == 0xff) || file_.is_known_read_only();
 
 	// Read track count and size.
-	head_position_count_ = int(file_.get8());
+	head_position_count_ = int(file_.get());
 	track_length_ = long(file_.get_le<uint16_t>());
 
 	// Track length must be at least 0x80, as that's the size of the IDAM
@@ -49,7 +49,7 @@ DMK::DMK(const std::string &file_name) :
 	if(track_length_ < 0x80) throw Error::InvalidFormat;
 
 	// Read the file flags and apply them.
-	uint8_t flags = file_.get8();
+	uint8_t flags = file_.get();
 	head_count_ = 2 - ((flags & 0x10) >> 4);
 	head_position_count_ /= head_count_;
 	is_purely_single_density_ = !!(flags & 0x40);
@@ -61,15 +61,15 @@ DMK::DMK(const std::string &file_name) :
 	if(format) throw Error::InvalidFormat;
 }
 
-HeadPosition DMK::get_maximum_head_position() const {
+HeadPosition DMK::maximum_head_position() const {
 	return HeadPosition(head_position_count_);
 }
 
-int DMK::get_head_count() const {
+int DMK::head_count() const {
 	return head_count_;
 }
 
-bool DMK::get_is_read_only() const {
+bool DMK::is_read_only() const {
 	return true;
 	// Given that track serialisation is not yet implemented, treat all DMKs as read-only.
 //	return is_read_only_;

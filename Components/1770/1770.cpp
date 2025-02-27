@@ -77,7 +77,7 @@ uint8_t WD1770::read(const int address) {
 					status |=
 						(status_.track_zero ? Flag::TrackZero : 0) |
 						(status_.seek_error ? Flag::SeekError : 0) |
-						(get_drive().get_is_read_only() ? Flag::WriteProtect : 0) |
+						(get_drive().is_read_only() ? Flag::WriteProtect : 0) |
 						(get_drive().get_index_pulse() ? Flag::Index : 0);
 				break;
 
@@ -417,7 +417,7 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_TIME(30);
 
 	test_type2_write_protection:
-		if(command_&0x20 && get_drive().get_is_read_only()) {
+		if(command_&0x20 && get_drive().is_read_only()) {
 			update_status([] (Status &status) {
 				status.write_protect = true;
 			});
@@ -716,7 +716,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.lost_data = false;
 		});
 
-		if(get_drive().get_is_read_only()) {
+		if(get_drive().is_read_only()) {
 			update_status([] (Status &status) {
 				status.write_protect = true;
 			});

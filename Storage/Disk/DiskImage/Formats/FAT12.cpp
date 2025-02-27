@@ -49,11 +49,11 @@ FAT12::FAT12(const std::string &file_name) :
 	);
 }
 
-HeadPosition FAT12::get_maximum_head_position() const {
+HeadPosition FAT12::maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int FAT12::get_head_count() const {
+int FAT12::head_count() const {
 	return head_count_;
 }
 

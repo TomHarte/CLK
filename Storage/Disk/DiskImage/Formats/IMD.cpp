@@ -26,7 +26,7 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 	}
 
 	// Skip rest of ASCII.
-	while(file_.get8() != 0x1a);
+	while(file_.get() != 0x1a);
 
 	// Build track map.
 	while(true) {
@@ -36,10 +36,10 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 		file_.seek(1, SEEK_CUR);
 
 		// Grab relevant fields.
-		const uint8_t cylinder = file_.get8();
-		const uint8_t head = file_.get8();
-		const uint8_t sector_count = file_.get8();
-		const uint8_t sector_size = file_.get8();
+		const uint8_t cylinder = file_.get();
+		const uint8_t head = file_.get();
+		const uint8_t sector_count = file_.get();
+		const uint8_t sector_size = file_.get();
 		if(file_.eof()) {
 			break;
 		}
@@ -67,7 +67,7 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 
 		// Skip sectors.
 		for(int c = 0; c < sector_count; c++) {
-			const uint8_t type = file_.get8();
+			const uint8_t type = file_.get();
 			switch(type) {
 				case 0x00:	break;	// Sector couldn't be read.
 
@@ -90,11 +90,11 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 	++ heads_;
 }
 
-HeadPosition IMD::get_maximum_head_position() const {
+HeadPosition IMD::maximum_head_position() const {
 	return HeadPosition(cylinders_);
 }
 
-int IMD::get_head_count() const {
+int IMD::head_count() const {
 	return heads_ + 1;
 }
 
@@ -111,11 +111,11 @@ std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) cons
 	// Seek to track, parse fully this time.
 	file_.seek(location->second, SEEK_SET);
 
-	const uint8_t mode = file_.get8();
-	const uint8_t cylinder = file_.get8();
-	const uint8_t head = file_.get8();
-	const uint8_t sector_count = file_.get8();
-	const uint8_t sector_size = file_.get8();
+	const uint8_t mode = file_.get();
+	const uint8_t cylinder = file_.get();
+	const uint8_t head = file_.get();
+	const uint8_t sector_count = file_.get();
+	const uint8_t sector_size = file_.get();
 
 	const std::vector<uint8_t> sector_ids = file_.read(sector_count);
 	const std::vector<uint8_t> cylinders = (head & 0x80) ? file_.read(sector_count) : std::vector<uint8_t>{};
@@ -135,7 +135,7 @@ std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) cons
 		sector.size = sector_size;
 
 		const auto byte_size = size_t(128 << sector_size);
-		uint8_t type = file_.get8();
+		uint8_t type = file_.get();
 
 		// Type 0: sector was present, but couldn't be read.
 		// Since body CRC errors are a separate item, just don't include a body at all.
@@ -152,7 +152,7 @@ std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) cons
 		sector.is_deleted = type & 2;
 		sector.has_data_crc_error = type & 4;
 		if(type & 1) {
-			sector.samples.emplace_back(byte_size, file_.get8());
+			sector.samples.emplace_back(byte_size, file_.get());
 		} else {
 			sector.samples.push_back(file_.read(byte_size));
 		}

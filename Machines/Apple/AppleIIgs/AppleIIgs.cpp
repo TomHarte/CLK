@@ -254,7 +254,7 @@ public:
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.disks.empty()) {
 			const auto disk = media.disks[0];
-			if(disk->get_maximum_head_position().as_int() > 35) {
+			if(disk->maximum_head_position().as_int() > 35) {
 				drives35_[0].set_disk(media.disks[0]);
 			} else {
 				drives525_[0].set_disk(media.disks[0]);

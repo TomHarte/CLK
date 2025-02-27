@@ -7,6 +7,7 @@
 //
 
 #include "PRG.hpp"
+#include "../../FileHolder.hpp"
 
 #include <cstdio>
 #include <sys/stat.h>
@@ -16,33 +17,27 @@
 using namespace Storage::Cartridge;
 
 PRG::PRG(const std::string &file_name) {
-	struct stat file_stats;
-	stat(file_name.c_str(), &file_stats);
+	Storage::FileHolder file(file_name.c_str(), FileHolder::FileMode::Read);
 
-	// accept only files sized less than 8kb
-	if(file_stats.st_size > 0x2000 + 2)
+	const auto loading_address = file.get_le<uint16_t>();
+	if(loading_address != 0xa000) {
 		throw ErrorNotROM;
+	}
 
-	// get the loading address, and the rest of the contents
-	FILE *file = std::fopen(file_name.c_str(), "rb");
+	const auto data_length = size_t(file.stats().st_size) - 2;
+	if(data_length > 0x2000) {
+		throw ErrorNotROM;
+	}
 
-	int loading_address = fgetc(file);
-	loading_address |= fgetc(file) << 8;
-
-	const std::size_t data_length = size_t(file_stats.st_size) - 2;
+	// Pad up to a power of two.
 	std::size_t padded_data_length = 1;
 	while(padded_data_length < data_length) padded_data_length <<= 1;
-	std::vector<uint8_t> contents(padded_data_length);
-	const std::size_t length = std::fread(contents.data(), 1, size_t(data_length), file);
-	std::fclose(file);
 
-	// accept only files intended to load at 0xa000
-	if(loading_address != 0xa000 || length != size_t(data_length))
+	std::vector<uint8_t> contents = file.read(data_length);
+	contents.resize(padded_data_length);
+	if(!Storage::Cartridge::Encodings::CommodoreROM::isROM(contents)) {
 		throw ErrorNotROM;
-
-	// also accept only cartridges with the proper signature
-	if(!Storage::Cartridge::Encodings::CommodoreROM::isROM(contents))
-		throw ErrorNotROM;
+	}
 
 	segments_.emplace_back(0xa000, 0xa000 + data_length, std::move(contents));
 }

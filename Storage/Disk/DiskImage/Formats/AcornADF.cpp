@@ -111,11 +111,11 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	set_geometry(sectors_per_track_, sector_size_, 0, density);
 }
 
-HeadPosition AcornADF::get_maximum_head_position() const {
+HeadPosition AcornADF::maximum_head_position() const {
 	return HeadPosition(80);
 }
 
-int AcornADF::get_head_count() const {
+int AcornADF::head_count() const {
 	return head_count_;
 }
 

@@ -24,7 +24,7 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name)
 //	const FileType type = is_c16 ? FileType::C16 : FileType::C64;
 
 	// Get and check the file version.
-	const uint8_t version = file.get8();
+	const uint8_t version = file.get();
 	if(version > 2) {
 		throw ErrorNotCommodoreTAP;
 	}
@@ -32,8 +32,8 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name)
 	half_waves_ = version >= 2;
 
 	// Read clock rate-implying bytes.
-	platform_ = Platform(file.get8());
-	const VideoStandard video = VideoStandard(file.get8());
+	platform_ = Platform(file.get());
+	const VideoStandard video = VideoStandard(file.get());
 	file.seek(1, SEEK_CUR);
 
 	const bool double_clock = platform_ != Platform::C16 || !half_waves_;	// TODO: is the platform check correct?
@@ -85,7 +85,7 @@ Storage::Tape::Pulse CommodoreTAP::Serialiser::next_pulse() {
 
 	const auto read_next_length = [&]() -> bool {
 		uint32_t next_length;
-		const uint8_t next_byte = file_.get8();
+		const uint8_t next_byte = file_.get();
 		if(!updated_layout_ || next_byte > 0) {
 			next_length = uint32_t(next_byte) << 3;
 		} else {

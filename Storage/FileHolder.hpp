@@ -48,61 +48,63 @@ public:
 	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
 
 	/*!
-		Writes @c value using successive @c put8s, in little endian order.
+		Writes @c value using successive @c puts, in little endian order.
+		Optionally limits itself to only @c size bytes.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	void put_le(IntT value) {
-		for(size_t c = 0; c < bytes ? bytes : sizeof(IntT); c++) {
-			put8(uint8_t(value));
+		for(size_t c = 0; c < size; c++) {
+			put(uint8_t(value));
 			value >>= 8;
 		}
 	}
 
 	/*!
-		Writes @c value using successive @c put8s, in big endian order.
+		Writes @c value using successive @c puts, in big endian order.
+		Optionally limits itself to only @c size bytes.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	void put_be(IntT value) {
-		auto shift = (bytes ? bytes : sizeof(IntT)) * 8;
+		auto shift = size * 8;
 		while(shift) {
 			shift -= 8;
-			put8((value >> shift)&0xff);
+			put((value >> shift)&0xff);
 		}
 	}
 
 	/*!
-		Writes @c value using successive @c put8s, in little endian order.
+		Reads a value of type @c IntT using successive @c gets, in little endian order.
+		Optionally limits itself to only @c size bytes.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	IntT get_le() {
-		constexpr auto length = bytes ? bytes : sizeof(IntT);
 		IntT result{};
-		for(size_t c = 0; c < length; c++) {
+		for(size_t c = 0; c < size; c++) {
 			result >>= 8;
-			result |= IntT(get8() << ((length - 1) * 8));
+			result |= IntT(get() << ((size - 1) * 8));
 		}
 		return result;
 	}
 
 	/*!
-		Writes @c value using successive @c put8s, in big endian order.
+		Reads a value of type @c IntT using successive @c gets, in big endian order.
+		Optionally limits itself to only @c size bytes.
 	*/
-	template <typename IntT, size_t bytes = 0>
+	template <typename IntT, size_t size = sizeof(IntT)>
 	IntT get_be() {
-		constexpr auto length = bytes ? bytes : sizeof(IntT);
 		IntT result{};
-		for(size_t c = 0; c < length; c++) {
+		for(size_t c = 0; c < size; c++) {
 			result <<= 8;
-			result |= get8();
+			result |= get();
 		}
 		return result;
 	}
 
 	/*! Reads a single byte from @c file. */
-	uint8_t get8();
+	uint8_t get();
 
 	/*! Writes a single byte from @c file. */
-	void put8(uint8_t value);
+	void put(uint8_t value);
 
 	/*! Writes @c value a total of @c repeats times. */
 	void putn(std::size_t repeats, uint8_t value);
@@ -142,7 +144,7 @@ public:
 	template <int max_bits, bool lsb_first>
 	Numeric::BitStream<max_bits, lsb_first> bitstream() {
 		return Numeric::BitStream<max_bits, lsb_first>([&] {
-			return get8();
+			return get();
 		});
 	}
 
@@ -175,7 +177,7 @@ public:
 	/*!
 		@returns @c true if an attempt was made to read this file in ReadWrite mode but it could be opened only for reading; @c false otherwise.
 	*/
-	bool get_is_known_read_only() const;
+	bool is_known_read_only() const;
 
 	/*!
 		@returns the stat struct describing this file.
@@ -185,7 +187,7 @@ public:
 	/*!
 		@returns a mutex owned by the file that can be used to serialise file access.
 	*/
-	std::mutex &get_file_access_mutex();
+	std::mutex &file_access_mutex();
 
 private:
 	FILE *file_ = nullptr;
@@ -196,5 +198,10 @@ private:
 
 	std::mutex file_access_mutex_;
 };
+
+inline std::vector<uint8_t> contents_of(const std::string &file_name) {
+	FileHolder file(file_name, FileHolder::FileMode::Read);
+	return file.read(size_t(file.stats().st_size));
+}
 
 }

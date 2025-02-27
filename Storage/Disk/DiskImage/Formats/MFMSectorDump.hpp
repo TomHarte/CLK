@@ -23,7 +23,7 @@ class MFMSectorDump: public DiskImage {
 public:
 	MFMSectorDump(const std::string &file_name);
 
-	bool get_is_read_only() const;
+	bool is_read_only() const;
 	bool represents(const std::string &) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
@@ -33,8 +33,8 @@ protected:
 	void set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, Encodings::MFM::Density);
 
 private:
-	virtual int get_head_count() const = 0;
-	virtual HeadPosition get_maximum_head_position() const = 0;
+	virtual int head_count() const = 0;
+	virtual HeadPosition maximum_head_position() const = 0;
 	virtual long get_file_offset_for_position(Track::Address) const = 0;
 
 	int sectors_per_track_ = 0;

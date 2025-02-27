@@ -24,10 +24,10 @@ public:
 	MSA(const std::string &file_name);
 
 	// Implemented to satisfy @c DiskImage.
-	HeadPosition get_maximum_head_position() const;
-	int get_head_count() const;
+	HeadPosition maximum_head_position() const;
+	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool get_is_read_only() const { return false; }
+	bool is_read_only() const { return false; }
 	bool represents(const std::string &) const;
 
 private:

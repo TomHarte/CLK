@@ -447,7 +447,7 @@ void i8272::posit_event(const int event_type) {
 //				command_[6],
 //				command_[8]);
 
-			if(get_drive().get_is_read_only()) {
+			if(get_drive().is_read_only()) {
 				status_.set(Status1::NotWriteable);
 				goto abort;
 			}
@@ -564,7 +564,7 @@ void i8272::posit_event(const int event_type) {
 	// Performs format [/write] track.
 	format_track:
 			logger.info().append("Format track");
-			if(get_drive().get_is_read_only()) {
+			if(get_drive().is_read_only()) {
 				status_.set(Status1::NotWriteable);
 				goto abort;
 			}
@@ -745,7 +745,7 @@ void i8272::posit_event(const int event_type) {
 						0x08 |						// single sided
 						(get_drive().get_is_track_zero() ? 0x10 : 0x00)	|
 						(get_drive().get_is_ready() ? 0x20 : 0x00)		|
-						(get_drive().get_is_read_only() ? 0x40 : 0x00)
+						(get_drive().is_read_only() ? 0x40 : 0x00)
 					)
 				};
 			}

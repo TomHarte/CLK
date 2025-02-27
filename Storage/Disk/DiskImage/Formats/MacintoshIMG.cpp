@@ -45,9 +45,9 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	//
 	// Luckily, both 0x00 and 0x4c are invalid string length for the proper
 	// DiskCopy 4.2 format, so there's no ambiguity here.
-	const auto name_length = file_.get8();
+	const auto name_length = file_.get();
 	if(name_length == 0x4c || !name_length) {
-		uint32_t magic_word = file_.get8();
+		uint32_t magic_word = file_.get();
 		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
@@ -77,7 +77,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 			throw Error::InvalidFormat;
 
 		// Check that this is a comprehensible disk encoding.
-		const auto encoding = file_.get8();
+		const auto encoding = file_.get();
 		switch(encoding) {
 			default: throw Error::InvalidFormat;
 
@@ -86,7 +86,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 			case 2:	encoding_ = Encoding::MFM720;	break;
 			case 3:	encoding_ = Encoding::MFM1440;	break;
 		}
-		format_ = file_.get8();
+		format_ = file_.get();
 
 		// Check the magic number.
 		const auto magic_number = file_.get_be<uint16_t>();
@@ -157,18 +157,18 @@ uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_t
 	return result;
 }
 
-HeadPosition MacintoshIMG::get_maximum_head_position() const {
+HeadPosition MacintoshIMG::maximum_head_position() const {
 	return HeadPosition(80);
 }
 
-int MacintoshIMG::get_head_count() const {
+int MacintoshIMG::head_count() const {
 	// Bit 5 in the format field indicates whether this disk is double
 	// sided, regardless of whether it is GCR or MFM.
 	return 1 + ((format_ & 0x20) >> 5);
 }
 
-bool MacintoshIMG::get_is_read_only() const {
-	return file_.get_is_known_read_only();
+bool MacintoshIMG::is_read_only() const {
+	return file_.is_known_read_only();
 }
 
 bool MacintoshIMG::represents(const std::string &name) const {
@@ -198,7 +198,7 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) c
 	if(encoding_ == Encoding::GCR400 || encoding_ == Encoding::GCR800) {
 		// Perform a GCR encoding.
 		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
-		const size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * address.head);
+		const size_t start_sector = size_t(included_sectors.start * head_count() + included_sectors.length * address.head);
 
 		if(start_sector*512 >= data_.size()) return nullptr;
 
@@ -287,7 +287,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 		std::lock_guard buffer_lock(buffer_mutex_);
 		for(const auto &pair: tracks_by_address) {
 			const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(pair.first.position.as_int());
-			size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * pair.first.head);
+			size_t start_sector = size_t(included_sectors.start * head_count() + included_sectors.length * pair.first.head);
 
 			for(int c = 0; c < included_sectors.length; ++c) {
 				const auto sector_plus_tags = &pair.second[size_t(c)*524];
@@ -308,7 +308,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 
 	// Grab the file lock and write out the new tracks.
 	{
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 
 		if(!is_diskCopy_file_) {
 			// Just dump out the entire disk. Grossly lazy, possibly worth improving.

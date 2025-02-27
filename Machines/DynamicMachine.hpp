@@ -31,6 +31,7 @@ struct DynamicMachine {
 	virtual MachineTypes::KeyboardMachine *keyboard_machine() = 0;
 	virtual MachineTypes::MouseMachine *mouse_machine() = 0;
 	virtual MachineTypes::MediaTarget *media_target() = 0;
+	virtual MachineTypes::MediaChangeObserver *media_change_observer() = 0;
 
 	/*!
 		Provides a raw pointer to the underlying machine if and only if this dynamic machine really is
@@ -65,6 +66,7 @@ SpecialisedGet(MachineTypes::JoystickMachine, joystick_machine)
 SpecialisedGet(MachineTypes::KeyboardMachine, keyboard_machine)
 SpecialisedGet(MachineTypes::MouseMachine, mouse_machine)
 SpecialisedGet(MachineTypes::MediaTarget, media_target)
+SpecialisedGet(MachineTypes::MediaChangeObserver, media_change_observer)
 
 #undef SpecialisedGet
 

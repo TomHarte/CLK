@@ -21,7 +21,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	file_name_(file_name),
 	is_extended_(false) {
 	FileHolder file(file_name);
-	is_read_only_ = file.get_is_known_read_only();
+	is_read_only_ = file.is_known_read_only();
 
 	if(!file.check_signature("MV - CPC")) {
 		is_extended_ = true;
@@ -32,8 +32,8 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 
 	// Don't really care about about the creator; skip.
 	file.seek(0x30, SEEK_SET);
-	head_position_count_ = file.get8();
-	head_count_ = file.get8();
+	head_position_count_ = file.get();
+	head_count_ = file.get();
 
 	// Used only for non-extended disks.
 	long size_of_a_track = 0;
@@ -45,7 +45,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 		// Skip two unused bytes and grab the track size table.
 		file.seek(2, SEEK_CUR);
 		for(int c = 0; c < head_position_count_ * head_count_; c++) {
-			track_sizes.push_back(size_t(file.get8()) << 8);
+			track_sizes.push_back(size_t(file.get()) << 8);
 		}
 	} else {
 		size_of_a_track = file.get_le<uint16_t>();
@@ -61,19 +61,19 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 			Track *track = tracks_.back().get();
 
 			// Track and side are stored, being a byte each.
-			track->track = file.get8();
-			track->side = file.get8();
+			track->track = file.get();
+			track->side = file.get();
 
 			// If this is an extended disk image then John Elliott's extension provides some greater
 			// data rate and encoding context. Otherwise the next two bytes have no defined meaning.
 			if(is_extended_) {
-				switch(file.get8()) {
+				switch(file.get()) {
 					default: track->data_rate = Track::DataRate::Unknown;				break;
 					case 1: track->data_rate = Track::DataRate::SingleOrDoubleDensity;	break;
 					case 2: track->data_rate = Track::DataRate::HighDensity;			break;
 					case 3: track->data_rate = Track::DataRate::ExtendedDensity;		break;
 				}
-				switch(file.get8()) {
+				switch(file.get()) {
 					default: track->data_encoding = Track::DataEncoding::Unknown;		break;
 					case 1: track->data_encoding = Track::DataEncoding::FM;				break;
 					case 2: track->data_encoding = Track::Track::DataEncoding::MFM;		break;
@@ -86,10 +86,10 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 
 			// Sector size, number of sectors, gap 3 length and the filler byte are then common
 			// between both variants of DSK.
-			track->sector_length = file.get8();
-			std::size_t number_of_sectors = file.get8();
-			track->gap3_length = file.get8();
-			track->filler_byte = file.get8();
+			track->sector_length = file.get();
+			std::size_t number_of_sectors = file.get();
+			track->gap3_length = file.get();
+			track->filler_byte = file.get();
 
 			// Sector information begins immediately after the track information table.
 			while(number_of_sectors--) {
@@ -98,12 +98,12 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 
 				// Track, side, sector, size and two FDC8272-esque status bytes are stored
 				// per sector, in both regular and extended DSK files.
-				sector.address.track = file.get8();
-				sector.address.side = file.get8();
-				sector.address.sector = file.get8();
-				sector.size = file.get8();
-				sector.fdc_status1 = file.get8();
-				sector.fdc_status2 = file.get8();
+				sector.address.track = file.get();
+				sector.address.side = file.get();
+				sector.address.sector = file.get();
+				sector.size = file.get();
+				sector.fdc_status1 = file.get();
+				sector.fdc_status2 = file.get();
 
 				if(sector.fdc_status2 & 0x20) {
 					// The CRC failed in the data field.
@@ -186,11 +186,11 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	}
 }
 
-HeadPosition CPCDSK::get_maximum_head_position() const {
+HeadPosition CPCDSK::maximum_head_position() const {
 	return HeadPosition(head_position_count_);
 }
 
-int CPCDSK::get_head_count() const {
+int CPCDSK::head_count() const {
 	return head_count_;
 }
 
@@ -279,19 +279,19 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 	Storage::FileHolder output(file_name_, Storage::FileHolder::FileMode::Rewrite);
 	output.write(reinterpret_cast<const uint8_t *>("EXTENDED CPC DSK File\r\nDisk-Info\r\n"), 34);
 	output.write(reinterpret_cast<const uint8_t *>("Clock Signal  "), 14);
-	output.put8(uint8_t(head_position_count_));
-	output.put8(uint8_t(head_count_));
+	output.put(uint8_t(head_position_count_));
+	output.put(uint8_t(head_count_));
 	output.putn(2, 0);
 
 	// Output size table.
 	for(std::size_t index = 0; index < size_t(head_position_count_ * head_count_); ++index) {
 		if(index >= tracks_.size()) {
-			output.put8(0);
+			output.put(0);
 			continue;
 		}
 		Track *track = tracks_[index].get();
 		if(!track) {
-			output.put8(0);
+			output.put(0);
 			continue;
 		}
 
@@ -305,7 +305,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 
 		// Round upward and output.
 		track_size += (256 - (track_size & 255)) & 255;
-		output.put8(uint8_t(track_size >> 8));
+		output.put(uint8_t(track_size >> 8));
 	}
 
 	// Advance to offset 256.
@@ -320,46 +320,46 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 		// Output track header.
 		output.write(reinterpret_cast<const uint8_t *>("Track-Info\r\n"), 13);
 		output.putn(3, 0);
-		output.put8(track->track);
-		output.put8(track->side);
+		output.put(track->track);
+		output.put(track->side);
 		switch (track->data_rate) {
 			default:
-				output.put8(0);
+				output.put(0);
 			break;
 			case Track::DataRate::SingleOrDoubleDensity:
-				output.put8(1);
+				output.put(1);
 			break;
 			case Track::DataRate::HighDensity:
-				output.put8(2);
+				output.put(2);
 			break;
 			case Track::DataRate::ExtendedDensity:
-				output.put8(3);
+				output.put(3);
 			break;
 		}
 		switch (track->data_encoding) {
 			default:
-				output.put8(0);
+				output.put(0);
 			break;
 			case Track::DataEncoding::FM:
-				output.put8(1);
+				output.put(1);
 			break;
 			case Track::DataEncoding::MFM:
-				output.put8(2);
+				output.put(2);
 			break;
 		}
-		output.put8(track->sector_length);
-		output.put8(uint8_t(track->sectors.size()));
-		output.put8(track->gap3_length);
-		output.put8(track->filler_byte);
+		output.put(track->sector_length);
+		output.put(uint8_t(track->sectors.size()));
+		output.put(track->gap3_length);
+		output.put(track->filler_byte);
 
 		// Output sector information list.
 		for(auto &sector: track->sectors) {
-			output.put8(sector.address.track);
-			output.put8(sector.address.side);
-			output.put8(sector.address.sector);
-			output.put8(sector.size);
-			output.put8(sector.fdc_status1);
-			output.put8(sector.fdc_status2);
+			output.put(sector.address.track);
+			output.put(sector.address.side);
+			output.put(sector.address.sector);
+			output.put(sector.size);
+			output.put(sector.fdc_status1);
+			output.put(sector.fdc_status2);
 
 			std::size_t data_size = 0;
 			for(auto &sample: sector.samples) {
@@ -385,7 +385,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 	}
 }
 
-bool CPCDSK::get_is_read_only() const {
+bool CPCDSK::is_read_only() const {
 	return is_read_only_;
 }
 

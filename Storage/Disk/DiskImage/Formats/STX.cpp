@@ -399,7 +399,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 
 	// Skip the track count, test for a new-style encoding, skip a reserved area.
 	file_.seek(1, SEEK_CUR);
-	is_new_format_ = file_.get8() == 2;
+	is_new_format_ = file_.get() == 2;
 	file_.seek(4, SEEK_CUR);
 
 	// Set all tracks absent.
@@ -428,7 +428,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 		// Skip fields other than track position, then fill in table position and advance.
 		file_.seek(10, SEEK_CUR);
 
-		const uint8_t track_position = file_.get8();
+		const uint8_t track_position = file_.get();
 		offset_by_track_[track_position] = offset;
 
 		// Update the maximum surface dimensions.
@@ -440,11 +440,11 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	}
 }
 
-HeadPosition STX::get_maximum_head_position() const {
+HeadPosition STX::maximum_head_position() const {
 	return HeadPosition(track_count_ + 1);	// Same issue as MSA; must fix!
 }
 
-int STX::get_head_count() const {
+int STX::head_count() const {
 	return head_count_;
 }
 
@@ -484,7 +484,7 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 		sectors.back().bit_position = file_.get_le<uint16_t>();
 		sectors.back().data_duration = file_.get_le<uint16_t>();
 		file_.read(sectors.back().address);
-		sectors.back().status = file_.get8();
+		sectors.back().status = file_.get();
 		file_.seek(1, SEEK_CUR);
 	}
 

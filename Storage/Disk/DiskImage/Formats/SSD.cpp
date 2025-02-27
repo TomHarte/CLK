@@ -32,11 +32,11 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 	set_geometry(sectors_per_track, sector_size, 0, Encodings::MFM::Density::Single);
 }
 
-HeadPosition SSD::get_maximum_head_position() const {
+HeadPosition SSD::maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int SSD::get_head_count() const {
+int SSD::head_count() const {
 	return head_count_;
 }
 

@@ -26,11 +26,11 @@ public:
 	NIB(const std::string &file_name);
 
 	// Implemented to satisfy @c DiskImage.
-	HeadPosition get_maximum_head_position() const;
+	HeadPosition maximum_head_position() const;
 	Track::Address canonical_address(Track::Address) const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
-	bool get_is_read_only() const;
+	bool is_read_only() const;
 	bool represents(const std::string &) const;
 
 private:

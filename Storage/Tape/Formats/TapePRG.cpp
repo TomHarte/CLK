@@ -194,7 +194,7 @@ void PRG::Serialiser::get_next_output_token() {
 					}
 				}
 			} else {
-				output_byte_ = file_.get8();
+				output_byte_ = file_.get();
 				if(file_.eof()) {
 					output_byte_ = check_digit_;
 				}

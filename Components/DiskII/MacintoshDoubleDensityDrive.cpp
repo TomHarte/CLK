@@ -129,7 +129,7 @@ bool DoubleDensityDrive::read() {
 
 		case CA0|SEL:			// Disk locked.
 								// (0 = write protected)
-		return !get_is_read_only();
+		return !is_read_only();
 
 		case CA1:				// Disk motor running.
 								// (0 = motor on)
@@ -161,7 +161,7 @@ bool DoubleDensityDrive::read() {
 
 		case CA2|CA1:			// Single- or double-sided drive.
 								// (0 = single sided)
-		return get_head_count() != 1;
+		return head_count() != 1;
 
 		case CA2|CA1|CA0:		// "Present/HD" (per the Mac Plus ROM)
 								// (0 = ??HD??)

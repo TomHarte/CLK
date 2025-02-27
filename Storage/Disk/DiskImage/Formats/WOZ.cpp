@@ -66,10 +66,10 @@ WOZ::WOZ(const std::string &file_name) :
 
 		switch(chunk_id) {
 			case chunk("INFO"): {
-				const uint8_t version = file_.get8();
+				const uint8_t version = file_.get();
 				if(version > 2) break;
-				is_3_5_disk_ = file_.get8() == 2;
-				is_read_only_ = file_.get8() == 1;
+				is_3_5_disk_ = file_.get() == 2;
+				is_read_only_ = file_.get() == 1;
 				/*
 					Ignored:
 						1 byte: Synchronized; 1 = Cross track sync was used during imaging.
@@ -107,11 +107,11 @@ WOZ::WOZ(const std::string &file_name) :
 	if(tracks_offset_ == -1 || !has_tmap) throw Error::InvalidFormat;
 }
 
-HeadPosition WOZ::get_maximum_head_position() const {
+HeadPosition WOZ::maximum_head_position() const {
 	return is_3_5_disk_ ? HeadPosition(80) : HeadPosition(160, 4);
 }
 
-int WOZ::get_head_count() const {
+int WOZ::head_count() const {
 	return is_3_5_disk_ ? 2 : 1;
 }
 
@@ -157,7 +157,7 @@ std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) const {
 	std::vector<uint8_t> track_contents;
 	size_t number_of_bits;
 	{
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.seek(offset, SEEK_SET);
 
 		switch(type_) {
@@ -212,13 +212,13 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	const uint32_t crc = CRC::CRC32::crc_of(post_crc_contents_);
 
 	// Grab the file lock, then write the CRC, then just dump the entire file buffer.
-	std::lock_guard lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.file_access_mutex());
 	file_.seek(8, SEEK_SET);
 	file_.put_le(crc);
 	file_.write(post_crc_contents_);
 }
 
-bool WOZ::get_is_read_only() const {
+bool WOZ::is_read_only() const {
 	/*
 		There is an unintended issue with the disk code that sits above here: it doesn't understand the idea
 		of multiple addresses mapping to the same track, yet it maintains a cache of track contents. Therefore

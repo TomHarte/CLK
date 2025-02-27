@@ -100,7 +100,7 @@ Pulse ZXSpectrumTAP::Serialiser::next_pulse() {
 						read_next_block();
 					}
 				} else {
-					data_byte_ = file_.get8();
+					data_byte_ = file_.get();
 				}
 			}
 		} break;
@@ -122,7 +122,7 @@ void ZXSpectrumTAP::Serialiser::read_next_block() {
 		phase_ = Phase::Gap;
 	} else {
 		block_length_ = file_.get_le<uint16_t>();
-		data_byte_ = block_type_ = file_.get8();
+		data_byte_ = block_type_ = file_.get();
 		phase_ = Phase::PilotTone;
 	}
 	distance_into_phase_ = 0;

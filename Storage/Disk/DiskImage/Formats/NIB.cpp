@@ -36,18 +36,18 @@ NIB::NIB(const std::string &file_name) :
 	// A real NIB should have every single top bit set. Yes, 1/8th of the
 	// file size is a complete waste. But it provides a hook for validation.
 	while(true) {
-		uint8_t next = file_.get8();
+		uint8_t next = file_.get();
 		if(file_.eof()) break;
 		if(!(next & 0x80)) throw Error::InvalidFormat;
 	}
 }
 
-HeadPosition NIB::get_maximum_head_position() const {
+HeadPosition NIB::maximum_head_position() const {
 	return HeadPosition(number_of_tracks);
 }
 
-bool NIB::get_is_read_only() const {
-	return file_.get_is_known_read_only();
+bool NIB::is_read_only() const {
+	return file_.is_known_read_only();
 }
 
 bool NIB::represents(const std::string &name) const {
@@ -81,7 +81,7 @@ std::unique_ptr<Track> NIB::track_at_position(const Track::Address address) cons
 	const long offset = file_offset(address);
 	std::vector<uint8_t> track_data;
 	{
-		std::lock_guard lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.seek(offset, SEEK_SET);
 		track_data = file_.read(track_length);
 	}
@@ -140,7 +140,7 @@ std::unique_ptr<Track> NIB::track_at_position(const Track::Address address) cons
 		}
 	}
 
-	std::lock_guard lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.file_access_mutex());
 	return std::make_unique<PCMTrack>(segment);
 }
 
@@ -187,7 +187,7 @@ void NIB::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	}
 
 	// Lock the file and spool out.
-	std::lock_guard lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.file_access_mutex());
 	for(const auto &track: tracks_by_address) {
 		file_.seek(file_offset(track.first), SEEK_SET);
 		file_.write(track.second);

@@ -26,7 +26,7 @@ public:
 	*/
 	D64(const std::string &file_name);
 
-	HeadPosition get_maximum_head_position() const;
+	HeadPosition maximum_head_position() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	bool represents(const std::string &) const;
 

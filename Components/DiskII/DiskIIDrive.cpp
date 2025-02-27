@@ -41,5 +41,5 @@ void DiskIIDrive::set_control_lines(const int lines) {
 }
 
 bool DiskIIDrive::read() {
-	return !!(stepper_mask_ & 2) || get_is_read_only();
+	return !!(stepper_mask_ & 2) || is_read_only();
 }

@@ -41,16 +41,16 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 	if(!file_) throw Error::CantOpen;
 }
 
-uint8_t FileHolder::get8() {
+uint8_t FileHolder::get() {
 	return uint8_t(std::fgetc(file_));
 }
 
-void FileHolder::put8(uint8_t value) {
+void FileHolder::put(uint8_t value) {
 	std::fputc(value, file_);
 }
 
 void FileHolder::putn(std::size_t repeats, uint8_t value) {
-	while(repeats--) put8(value);
+	while(repeats--) put(value);
 }
 
 std::vector<uint8_t> FileHolder::read(std::size_t size) {
@@ -98,11 +98,12 @@ bool FileHolder::check_signature(const char *signature, std::size_t length) {
 }
 
 std::string FileHolder::extension() const {
-	std::size_t pointer = name_.size() - 1;
-	while(pointer > 0 && name_[pointer] != '.') pointer--;
-	if(name_[pointer] == '.') pointer++;
+	const auto final_dot = name_.rfind('.');
+	if(final_dot == std::string::npos) {
+		return "";
+	}
 
-	std::string extension = name_.substr(pointer);
+	std::string extension = name_.substr(final_dot + 1);
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 	return extension;
 }
@@ -120,7 +121,7 @@ void FileHolder::ensure_is_at_least_length(long length) {
 	}
 }
 
-bool FileHolder::get_is_known_read_only() const {
+bool FileHolder::is_known_read_only() const {
 	return is_read_only_;
 }
 
@@ -128,6 +129,6 @@ const struct stat &FileHolder::stats() const {
 	return file_stats_;
 }
 
-std::mutex &FileHolder::get_file_access_mutex() {
+std::mutex &FileHolder::file_access_mutex() {
 	return file_access_mutex_;
 }
