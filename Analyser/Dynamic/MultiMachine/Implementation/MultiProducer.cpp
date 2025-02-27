@@ -19,7 +19,7 @@ template <typename MachineType>
 void MultiInterface<MachineType>::perform_parallel(const std::function<void(MachineType *)> &function) {
 	// Apply a blunt force parallelisation of the machines; each run_for is dispatched
 	// to a separate queue and this queue will block until all are done.
-	volatile std::size_t outstanding_machines;
+	std::size_t outstanding_machines;
 	std::condition_variable condition;
 	std::mutex mutex;
 	{
@@ -33,7 +33,7 @@ void MultiInterface<MachineType>::perform_parallel(const std::function<void(Mach
 				if(machine) function(machine);
 
 				std::lock_guard lock(mutex);
-				outstanding_machines--;
+				--outstanding_machines;
 				condition.notify_all();
 			});
 		}

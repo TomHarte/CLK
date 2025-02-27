@@ -297,7 +297,7 @@ size_t BufferingScanTarget::write_area_data_size() const {
 }
 
 void BufferingScanTarget::set_modals(Modals modals) {
-	perform([=] {
+	perform([&] {
 		modals_ = modals;
 		modals_are_dirty_.store(true, std::memory_order_relaxed);
 	});
