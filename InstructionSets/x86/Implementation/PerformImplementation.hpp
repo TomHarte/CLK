@@ -524,7 +524,7 @@ template <
 	const uint16_t ip = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address);
 	const uint16_t cs = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 2);
 
-	auto flags = context.flags.get();
+	const auto flags = context.flags.get();
 	Primitive::push<uint16_t, true>(flags, context);
 	context.flags.template set_from<Flag::Interrupt, Flag::Trap>(0);
 

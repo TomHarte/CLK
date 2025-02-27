@@ -111,12 +111,12 @@ struct Memory {
 		//
 		// Helper for instruction fetch.
 		//
-		std::pair<const uint8_t *, size_t> next_code() {
+		std::pair<const uint8_t *, size_t> next_code() const {
 			const uint32_t start = segments_.cs_base_ + registers_.ip();
 			return std::make_pair(&memory[start], 0x10'000 - start);
 		}
 
-		std::pair<const uint8_t *, size_t> all() {
+		std::pair<const uint8_t *, size_t> all() const {
 			return std::make_pair(memory.data(), 0x10'000);
 		}
 
@@ -136,7 +136,7 @@ struct Memory {
 		Registers &registers_;
 		const Segments &segments_;
 
-		uint32_t segment_base(InstructionSet::x86::Source segment) {
+		uint32_t segment_base(const InstructionSet::x86::Source segment) const {
 			using Source = InstructionSet::x86::Source;
 			switch(segment) {
 				default:			return segments_.ds_base_;
@@ -146,13 +146,13 @@ struct Memory {
 			}
 		}
 
-		uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
+		uint32_t address(const InstructionSet::x86::Source segment, const uint16_t offset) const {
 			return (segment_base(segment) + offset) & 0xf'ffff;
 		}
 
 		template <AccessType type>
 		typename InstructionSet::x86::Accessor<uint16_t, type>::type
-		split_word(uint32_t low_address, uint32_t high_address) {
+		split_word(const uint32_t low_address, const uint32_t high_address) {
 			if constexpr (is_writeable(type)) {
 				write_back_address_[0] = low_address;
 				write_back_address_[1] = high_address;
