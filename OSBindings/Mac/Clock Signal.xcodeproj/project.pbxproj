@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -42,6 +42,8 @@
 		42EB812D2B4700B700429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
 		42EB812E2B4700B700429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
 		42EB812F2B4700B800429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
+		4B0150262D71286B00F270C7 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
+		4B0150272D71286B00F270C7 /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -66,7 +68,6 @@
 		4B051CB72680158600CA44E8 /* EXDos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CB42680158600CA44E8 /* EXDos.cpp */; };
 		4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
-		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
 		4B055A7E1FAE84AA0060FFFF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055A7C1FAE84A50060FFFF /* main.cpp */; };
 		4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
 		4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
@@ -1221,6 +1222,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		4B0150282D71286B00F270C7 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				4B0150272D71286B00F270C7 /* SDL2.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4B055A681FAE763F0060FFFF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2474,10 +2486,6 @@
 		4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = EmuTOSTests.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		4B24B3ED2D49BA4400691F28 /* 65x02 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = 65x02; sourceTree = "<group>"; };
-/* End PBXFileSystemSynchronizedRootGroup section */
-
 /* Begin PBXFrameworksBuildPhase section */
 		4B055A671FAE763F0060FFFF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -2486,7 +2494,7 @@
 				4B055AF21FAE9C1C0060FFFF /* OpenGL.framework in Frameworks */,
 				4BB8617224E22F5A00A00E03 /* Accelerate.framework in Frameworks */,
 				4B055ABD1FAE86530060FFFF /* libz.tbd in Frameworks */,
-				4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */,
+				4B0150262D71286B00F270C7 /* SDL2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5311,7 +5319,6 @@
 		4BEDA3B225B25563000C2DBD /* InstructionSets */ = {
 			isa = PBXGroup;
 			children = (
-				4B24B3ED2D49BA4400691F28 /* 65x02 */,
 				4BEDA42925B3C26B000C2DBD /* AccessType.hpp */,
 				4BEDA45425B5ECAB000C2DBD /* CachingExecutor.hpp */,
 				4BE8EB5425C0E9D40040BC40 /* Disassembler.hpp */,
@@ -5454,6 +5461,7 @@
 				4B055A661FAE763F0060FFFF /* Sources */,
 				4B055A671FAE763F0060FFFF /* Frameworks */,
 				4B055A681FAE763F0060FFFF /* CopyFiles */,
+				4B0150282D71286B00F270C7 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -5477,9 +5485,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				4B24B3ED2D49BA4400691F28 /* 65x02 */,
-			);
 			name = "Clock Signal";
 			productName = "Clock Signal";
 			productReference = 4BB73E9E1B587A5100552FC2 /* Clock Signal.app */;
@@ -5497,9 +5502,6 @@
 			);
 			dependencies = (
 				4BB73EB41B587A5100552FC2 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				4B24B3ED2D49BA4400691F28 /* 65x02 */,
 			);
 			name = "Clock SignalTests";
 			productName = "Clock SignalTests";
@@ -6927,6 +6929,7 @@
 		4B055A6E1FAE763F0060FFFF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
@@ -6949,6 +6952,7 @@
 		4B055A6F1FAE763F0060FFFF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
