@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 
 #include "DMADevice.hpp"

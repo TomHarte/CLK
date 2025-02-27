@@ -102,7 +102,7 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 }
 
 ScanTarget::~ScanTarget() {
-	perform([=] {
+	perform([&] {
 		glDeleteBuffers(1, &scan_buffer_name_);
 		glDeleteTextures(1, &write_area_texture_name_);
 		glDeleteVertexArrays(1, &scan_vertex_array_);
@@ -110,7 +110,7 @@ ScanTarget::~ScanTarget() {
 }
 
 void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
-	perform([=] {
+	perform([&] {
 		target_framebuffer_ = target_framebuffer;
 	});
 }
@@ -189,7 +189,7 @@ void ScanTarget::update(int, int output_height) {
 		true);
 
 	// Grab the new output list.
-	perform([=] {
+	perform([&] {
 		OutputArea area = get_output_area();
 
 		// Establish the pipeline if necessary.
