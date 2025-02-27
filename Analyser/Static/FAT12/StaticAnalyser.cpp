@@ -39,7 +39,7 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
 
 	// If the disk image is very small or large, map it to the PC. That's the only option old enough
 	// to have used 5.25" media.
-	if(disk->get_maximum_head_position() <= Storage::Disk::HeadPosition(40)) {
+	if(disk->maximum_head_position() <= Storage::Disk::HeadPosition(40)) {
 		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms, true);
 	}
 

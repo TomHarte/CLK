@@ -116,11 +116,11 @@ AmigaADF::AmigaADF(const std::string &file_name) :
 	if(file_.stats().st_size != 901120) throw Error::InvalidFormat;
 }
 
-HeadPosition AmigaADF::get_maximum_head_position() const {
+HeadPosition AmigaADF::maximum_head_position() const {
 	return HeadPosition(80);
 }
 
-int AmigaADF::get_head_count() const {
+int AmigaADF::head_count() const {
 	return 2;
 }
 

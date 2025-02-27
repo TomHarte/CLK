@@ -25,11 +25,11 @@ HFE::HFE(const std::string &file_name) :
 	track_list_offset_ = long(file_.get_le<uint16_t>()) << 9;
 }
 
-HeadPosition HFE::get_maximum_head_position() const {
+HeadPosition HFE::maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int HFE::get_head_count() const {
+int HFE::head_count() const {
 	return head_count_;
 }
 
@@ -125,7 +125,7 @@ void HFE::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	}
 }
 
-bool HFE::get_is_read_only() const {
+bool HFE::is_read_only() const {
 	return file_.is_known_read_only();
 }
 

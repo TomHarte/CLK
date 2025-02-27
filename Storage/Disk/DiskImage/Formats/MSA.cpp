@@ -87,11 +87,11 @@ std::unique_ptr<Track> MSA::track_at_position(Track::Address address) const {
 	return track_for_sectors(track.data(), sectors_per_track_, uint8_t(position), uint8_t(address.head), 1, 2, Storage::Encodings::MFM::Density::Double);
 }
 
-HeadPosition MSA::get_maximum_head_position() const {
+HeadPosition MSA::maximum_head_position() const {
 	return HeadPosition(ending_track_ + 1);
 }
 
-int MSA::get_head_count() const {
+int MSA::head_count() const {
 	return sides_;
 }
 

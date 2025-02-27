@@ -29,7 +29,7 @@ Analyser::Static::TargetList Analyser::Static::Macintosh::GetTargets(
 	if(media.mass_storage_devices.empty()) {
 		bool has_800kb_disks = false;
 		for(const auto &disk: media.disks) {
-			has_800kb_disks |= disk->get_head_count() > 1;
+			has_800kb_disks |= disk->head_count() > 1;
 		}
 
 		if(!has_800kb_disks) {

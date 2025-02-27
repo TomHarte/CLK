@@ -129,7 +129,7 @@ void Drive::set_head(int head) {
 	}
 }
 
-int Drive::get_head_count() const {
+int Drive::head_count() const {
 	return available_heads_;
 }
 
@@ -151,8 +151,8 @@ float Drive::get_time_into_track() const {
 	return float(cycles_since_index_hole_) / (float(get_input_clock_rate()) * rotational_multiplier_);
 }
 
-bool Drive::get_is_read_only() const {
-	if(disk_) return disk_->get_is_read_only();
+bool Drive::is_read_only() const {
+	if(disk_) return disk_->is_read_only();
 	return true;
 }
 

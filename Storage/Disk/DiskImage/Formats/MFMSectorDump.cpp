@@ -22,8 +22,8 @@ void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uin
 }
 
 std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) const {
-	if(address.head >= get_head_count()) return nullptr;
-	if(address.position.as_largest() >= get_maximum_head_position().as_largest()) return nullptr;
+	if(address.head >= head_count()) return nullptr;
+	if(address.position.as_largest() >= maximum_head_position().as_largest()) return nullptr;
 
 	uint8_t sectors[(128 << sector_size_)*sectors_per_track_];
 	const long file_offset = get_file_offset_for_position(address);
@@ -68,7 +68,7 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Tr
 	file_.flush();
 }
 
-bool MFMSectorDump::get_is_read_only() const {
+bool MFMSectorDump::is_read_only() const {
 	return file_.is_known_read_only();
 }
 

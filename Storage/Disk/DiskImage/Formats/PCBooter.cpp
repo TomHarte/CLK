@@ -55,11 +55,11 @@ PCBooter::PCBooter(const std::string &file_name) :
 	// as it can also be used to disambiguate FAT12 disks.
 }
 
-HeadPosition PCBooter::get_maximum_head_position() const {
+HeadPosition PCBooter::maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int PCBooter::get_head_count() const {
+int PCBooter::head_count() const {
 	return head_count_;
 }
 

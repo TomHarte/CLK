@@ -21,8 +21,8 @@ namespace Storage::Disk {
 class PCBooter: public MFMSectorDump {
 public:
 	PCBooter(const std::string &file_name);
-	HeadPosition get_maximum_head_position() const final;
-	int get_head_count() const final;
+	HeadPosition maximum_head_position() const final;
+	int head_count() const final;
 
 private:
 	long get_file_offset_for_position(Track::Address address) const final;

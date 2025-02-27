@@ -42,11 +42,11 @@ NIB::NIB(const std::string &file_name) :
 	}
 }
 
-HeadPosition NIB::get_maximum_head_position() const {
+HeadPosition NIB::maximum_head_position() const {
 	return HeadPosition(number_of_tracks);
 }
 
-bool NIB::get_is_read_only() const {
+bool NIB::is_read_only() const {
 	return file_.is_known_read_only();
 }
 

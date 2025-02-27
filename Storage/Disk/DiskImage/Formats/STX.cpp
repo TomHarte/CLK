@@ -440,11 +440,11 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	}
 }
 
-HeadPosition STX::get_maximum_head_position() const {
+HeadPosition STX::maximum_head_position() const {
 	return HeadPosition(track_count_ + 1);	// Same issue as MSA; must fix!
 }
 
-int STX::get_head_count() const {
+int STX::head_count() const {
 	return head_count_;
 }
 

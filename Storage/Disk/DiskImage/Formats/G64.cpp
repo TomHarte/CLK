@@ -30,7 +30,7 @@ G64::G64(const std::string &file_name) :
 	maximum_track_size_ = file_.get_le<uint16_t>();
 }
 
-HeadPosition G64::get_maximum_head_position() const {
+HeadPosition G64::maximum_head_position() const {
 	// give at least 84 tracks, to yield the normal geometry but,
 	// if there are more, shove them in
 	return HeadPosition(number_of_tracks_ > 84 ? number_of_tracks_ : 84, 2);

@@ -90,11 +90,11 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 	++ heads_;
 }
 
-HeadPosition IMD::get_maximum_head_position() const {
+HeadPosition IMD::maximum_head_position() const {
 	return HeadPosition(cylinders_);
 }
 
-int IMD::get_head_count() const {
+int IMD::head_count() const {
 	return heads_ + 1;
 }
 

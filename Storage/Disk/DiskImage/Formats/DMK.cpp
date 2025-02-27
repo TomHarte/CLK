@@ -61,15 +61,15 @@ DMK::DMK(const std::string &file_name) :
 	if(format) throw Error::InvalidFormat;
 }
 
-HeadPosition DMK::get_maximum_head_position() const {
+HeadPosition DMK::maximum_head_position() const {
 	return HeadPosition(head_position_count_);
 }
 
-int DMK::get_head_count() const {
+int DMK::head_count() const {
 	return head_count_;
 }
 
-bool DMK::get_is_read_only() const {
+bool DMK::is_read_only() const {
 	return true;
 	// Given that track serialisation is not yet implemented, treat all DMKs as read-only.
 //	return is_read_only_;

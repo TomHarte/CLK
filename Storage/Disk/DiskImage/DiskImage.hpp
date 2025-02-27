@@ -39,12 +39,12 @@ public:
 		This is not necessarily a track count. There is no implicit guarantee that every position will
 		return a distinct track, or, e.g. if the media is holeless, will return any track at all.
 	*/
-//	virtual HeadPosition get_maximum_head_position() = 0;
+//	virtual HeadPosition maximum_head_position() = 0;
 
 	/*!
 		@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
 	*/
-	int get_head_count() const { return 1; }
+	int head_count() const { return 1; }
 
 	/*!
 		@returns the @c Track at @c position underneath @c head if there are any detectable events there;
@@ -65,7 +65,7 @@ public:
 	/*!
 		@returns whether the disk image is read only. Defaults to @c true if not overridden.
 	*/
-	bool get_is_read_only() const { return true; }
+	bool is_read_only() const { return true; }
 
 	/*!
 		@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
@@ -102,13 +102,13 @@ public:
 		disk_image_(args...) {}
 	~DiskImageHolder();
 
-	HeadPosition get_maximum_head_position() const override;
-	int get_head_count() const override;
+	HeadPosition maximum_head_position() const override;
+	int head_count() const override;
 	Track *track_at_position(Track::Address address) const override;
 	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) override;
 	void flush_tracks() override;
 	bool tracks_differ(Track::Address lhs, Track::Address rhs) const override;
-	bool get_is_read_only() const override;
+	bool is_read_only() const override;
 	bool represents(const std::string &) const override;
 	bool has_written() const override;
 

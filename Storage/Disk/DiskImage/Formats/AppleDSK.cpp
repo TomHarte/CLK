@@ -42,11 +42,11 @@ AppleDSK::AppleDSK(const std::string &file_name) :
 	}
 }
 
-HeadPosition AppleDSK::get_maximum_head_position() const {
+HeadPosition AppleDSK::maximum_head_position() const {
 	return HeadPosition(number_of_tracks);
 }
 
-bool AppleDSK::get_is_read_only() const {
+bool AppleDSK::is_read_only() const {
 	return file_.is_known_read_only();
 }
 

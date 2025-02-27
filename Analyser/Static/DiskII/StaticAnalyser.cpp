@@ -60,7 +60,7 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(
 	TargetList targets;
 
 	// If the disk image is too large for a 5.25" disk, map this to the IIgs.
-	if(disk->get_maximum_head_position() > Storage::Disk::HeadPosition(40)) {
+	if(disk->maximum_head_position() > Storage::Disk::HeadPosition(40)) {
 		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIIgsTarget()));
 		targets.back()->media = media;
 		return targets;

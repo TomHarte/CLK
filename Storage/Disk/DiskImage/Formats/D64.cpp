@@ -34,7 +34,7 @@ D64::D64(const std::string &file_name) :
 	}
 }
 
-HeadPosition D64::get_maximum_head_position() const {
+HeadPosition D64::maximum_head_position() const {
 	return HeadPosition(number_of_tracks_);
 }
 

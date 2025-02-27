@@ -232,7 +232,7 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 		(drive.get_motor_on() ? 0x20 : 0x00) |
 		(drive.get_is_ready() ? 0x00 : 0x04) |
 		(drive.get_is_track_zero() ? 0x10 : 0x00) |
-		(drive.get_is_read_only() ? 0x08 : 0x00);
+		(drive.is_read_only() ? 0x08 : 0x00);
 
 	return ~active_high;
 }

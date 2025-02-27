@@ -30,9 +30,9 @@ public:
 	G64(const std::string &file_name);
 
 	// implemented to satisfy @c Disk
-	HeadPosition get_maximum_head_position() const;
+	HeadPosition maximum_head_position() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	using DiskImage::get_is_read_only;
+	using DiskImage::is_read_only;
 	bool represents(const std::string &) const;
 
 private:

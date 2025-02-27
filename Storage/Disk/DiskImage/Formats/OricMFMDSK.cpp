@@ -29,11 +29,11 @@ OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 		throw Error::InvalidFormat;
 }
 
-HeadPosition OricMFMDSK::get_maximum_head_position() const {
+HeadPosition OricMFMDSK::maximum_head_position() const {
 	return HeadPosition(int(track_count_));
 }
 
-int OricMFMDSK::get_head_count() const {
+int OricMFMDSK::head_count() const {
 	return int(head_count_);
 }
 
@@ -164,7 +164,7 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track
 	}
 }
 
-bool OricMFMDSK::get_is_read_only() const {
+bool OricMFMDSK::is_read_only() const {
 	return file_.is_known_read_only();
 }
 

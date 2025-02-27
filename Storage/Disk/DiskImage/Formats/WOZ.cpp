@@ -107,11 +107,11 @@ WOZ::WOZ(const std::string &file_name) :
 	if(tracks_offset_ == -1 || !has_tmap) throw Error::InvalidFormat;
 }
 
-HeadPosition WOZ::get_maximum_head_position() const {
+HeadPosition WOZ::maximum_head_position() const {
 	return is_3_5_disk_ ? HeadPosition(80) : HeadPosition(160, 4);
 }
 
-int WOZ::get_head_count() const {
+int WOZ::head_count() const {
 	return is_3_5_disk_ ? 2 : 1;
 }
 
@@ -218,7 +218,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	file_.write(post_crc_contents_);
 }
 
-bool WOZ::get_is_read_only() const {
+bool WOZ::is_read_only() const {
 	/*
 		There is an unintended issue with the disk code that sits above here: it doesn't understand the idea
 		of multiple addresses mapping to the same track, yet it maintains a cache of track contents. Therefore

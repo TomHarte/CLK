@@ -178,11 +178,11 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 	}
 }
 
-HeadPosition IPF::get_maximum_head_position() const {
+HeadPosition IPF::maximum_head_position() const {
 	return HeadPosition(track_count_);
 }
 
-int IPF::get_head_count() const {
+int IPF::head_count() const {
 	return head_count_;
 }
 
