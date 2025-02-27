@@ -18,7 +18,7 @@ namespace InstructionSet::x86::Primitive {
 // which should place the value of SP after the push onto the stack.
 template <typename IntT, bool preauthorised, typename ContextT>
 void push(
-	IntT &value,
+	const IntT &value,
 	ContextT &context
 ) {
 	context.registers.sp() -= sizeof(IntT);
@@ -45,7 +45,7 @@ IntT pop(
 
 template <typename ContextT>
 void sahf(
-	uint8_t &ah,
+	const uint8_t &ah,
 	ContextT &context
 ) {
 	/*
@@ -86,7 +86,7 @@ template <typename ContextT>
 void pushf(
 	ContextT &context
 ) {
-	uint16_t value = context.flags.get();
+	const uint16_t value = context.flags.get();
 	push<uint16_t, false>(value, context);
 }
 
@@ -121,7 +121,7 @@ void pusha(
 	ContextT &context
 ) {
 	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
-	IntT initial_sp = context.registers.sp();
+	const IntT initial_sp = context.registers.sp();
 	if constexpr (std::is_same_v<IntT, uint32_t>) {
 		push<uint32_t, true>(context.registers.eax(), context);
 		push<uint32_t, true>(context.registers.ecx(), context);

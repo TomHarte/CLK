@@ -41,6 +41,7 @@ template <
 	ContextT &context
 );
 
+/// Performs an x86 INT operation; also often used by other operations to indicate an error.
 template <
 	typename ContextT
 > void interrupt(
