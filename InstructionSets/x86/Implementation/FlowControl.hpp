@@ -10,7 +10,7 @@
 
 #include "Resolver.hpp"
 #include "Stack.hpp"
-#include "../AccessType.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
 
 #include <type_traits>
 

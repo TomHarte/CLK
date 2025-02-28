@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Configurable/Configurable.hpp"
-#include "../../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../ROMMachine.hpp"
+#include "Configurable/Configurable.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Machines/ROMMachine.hpp"
 
 #include "Atari2600Inputs.h"
 

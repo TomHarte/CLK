@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../Z80.hpp"
-#include "../../AllRAMProcessor.hpp"
+#include "Processors/Z80/Z80.hpp"
+#include "Processors/AllRAMProcessor.hpp"
 
 namespace CPU::Z80 {
 

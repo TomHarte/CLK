@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../AccessType.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
 
-#include "../../../Numeric/RegisterSizes.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
 namespace InstructionSet::x86::Primitive {
 

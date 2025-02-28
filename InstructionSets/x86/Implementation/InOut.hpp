@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../AccessType.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
 
 namespace InstructionSet::x86::Primitive {
 

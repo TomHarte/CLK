@@ -12,8 +12,8 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
-#include "../Disassembler/Z80.hpp"
-#include "../Disassembler/AddressMapper.hpp"
+#include "Analyser/Static/Disassembler/Z80.hpp"
+#include "Analyser/Static//Disassembler/AddressMapper.hpp"
 
 #include <algorithm>
 

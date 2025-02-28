@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Storage/Disk/Controller/MFMDiskController.hpp"
+#include "Storage/Disk/Controller/MFMDiskController.hpp"
 
 namespace WD {
 

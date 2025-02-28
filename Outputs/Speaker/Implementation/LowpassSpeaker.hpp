@@ -9,10 +9,10 @@
 #pragma once
 
 #include "BufferSource.hpp"
-#include "../Speaker.hpp"
-#include "../../../SignalProcessing/FIRFilter.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/Speaker.hpp"
+#include "SignalProcessing/FIRFilter.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
 
 #include <algorithm>
 #include <cassert>

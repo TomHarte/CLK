@@ -9,8 +9,8 @@
 #pragma once
 
 #include "Storage.hpp"
-#include "../ClockReceiver/ClockReceiver.hpp"
-#include "../SignalProcessing/Stepper.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "SignalProcessing/Stepper.hpp"
 
 #include <memory>
 

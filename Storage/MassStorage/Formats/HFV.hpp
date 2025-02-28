@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../MassStorageDevice.hpp"
-#include "../../FileHolder.hpp"
-#include "../Encodings/MacintoshVolume.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
+#include "Storage/FileHolder.hpp"
+#include "Storage/MassStorage/Encodings/MacintoshVolume.hpp"
 
 #include <vector>
 #include <map>

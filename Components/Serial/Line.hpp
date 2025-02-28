@@ -9,9 +9,9 @@
 #pragma once
 
 #include <vector>
-#include "../../Storage/Storage.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/ForceInline.hpp"
+#include "Storage/Storage.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ForceInline.hpp"
 
 namespace Serial {
 

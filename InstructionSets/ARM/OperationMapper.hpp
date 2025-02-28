@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Reflection/Dispatcher.hpp"
+#include "Reflection/Dispatcher.hpp"
 #include "BarrelShifter.hpp"
 
 namespace InstructionSet::ARM {

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Storage.hpp"
+#include "Storage/Storage.hpp"
 
 namespace Storage::Encodings::MFM {
 

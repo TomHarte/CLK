@@ -6,7 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#include "../6522.hpp"
+#include "Components/6522/6522.hpp"
 
 using namespace MOS::MOS6522;
 

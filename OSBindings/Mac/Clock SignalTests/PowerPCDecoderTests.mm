@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../InstructionSets/PowerPC/Decoder.hpp"
+#include "InstructionSets/PowerPC/Decoder.hpp"
 
 namespace {
 	using Operation = InstructionSet::PowerPC::Operation;

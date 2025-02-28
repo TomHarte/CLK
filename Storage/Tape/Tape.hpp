@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/ClockingHintSource.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
 
-#include "../TimedEventLoop.hpp"
+#include "Storage/TimedEventLoop.hpp"
 
-#include "../../Activity/Observer.hpp"
-#include "../TargetPlatforms.hpp"
+#include "Activity/Observer.hpp"
+#include "Storage/TargetPlatforms.hpp"
 
 #include <memory>
 

@@ -8,9 +8,9 @@
 
 #include "DMK.hpp"
 
-#include "../../Encodings/MFM/Constants.hpp"
-#include "../../Encodings/MFM/Encoder.hpp"
-#include "../../Track/PCMTrack.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
 
 using namespace Storage::Disk;
 

@@ -10,8 +10,8 @@
 
 #include "Instruction.hpp"
 #include "Parser.hpp"
-#include "../CachingExecutor.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "InstructionSets/CachingExecutor.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 #include <array>
 #include <cstdint>

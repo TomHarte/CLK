@@ -11,7 +11,7 @@
 #include <cassert>
 #include <cstdio>
 
-#include "../../../InstructionSets/M68k/ExceptionVectors.hpp"
+#include "InstructionSets/M68k/ExceptionVectors.hpp"
 
 namespace CPU::MC68000 {
 

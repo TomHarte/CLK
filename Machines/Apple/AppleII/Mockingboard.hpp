@@ -10,7 +10,7 @@
 
 #include "Card.hpp"
 
-#include "../../../Components/6522/6522.hpp"
+#include "Components/6522/6522.hpp"
 
 namespace Apple::II {
 

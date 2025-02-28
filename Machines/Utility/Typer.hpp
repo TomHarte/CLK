@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include "Machines/KeyboardMachine.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+
 #include <array>
 #include <memory>
 #include <string>
-
-#include "../KeyboardMachine.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Utility {
 

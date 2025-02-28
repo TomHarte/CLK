@@ -10,7 +10,7 @@
 
 #include "Instruction.hpp"
 #include "Model.hpp"
-#include "../../Numeric/Sizes.hpp"
+#include "Numeric/Sizes.hpp"
 
 namespace InstructionSet::M68k {
 

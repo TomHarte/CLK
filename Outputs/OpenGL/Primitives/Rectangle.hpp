@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../OpenGL.hpp"
+#include "Outputs/OpenGL/OpenGL.hpp"
 #include "Shader.hpp"
 #include <memory>
 

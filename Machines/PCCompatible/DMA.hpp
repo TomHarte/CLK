@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Numeric/RegisterSizes.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
 #include "Memory.hpp"
 

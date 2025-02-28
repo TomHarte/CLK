@@ -10,7 +10,7 @@
 
 #include "Track.hpp"
 #include "PCMSegment.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 #include <vector>
 

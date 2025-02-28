@@ -6,13 +6,13 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#include "../C1540.hpp"
+#include "Machines/Commodore/1540/C1540.hpp"
 
 #include <cassert>
 #include <cstring>
 #include <string>
 
-#include "../../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
+#include "Storage/Disk/Encodings/CommodoreGCR.hpp"
 
 using namespace Commodore::C1540;
 

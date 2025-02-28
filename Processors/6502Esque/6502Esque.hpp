@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 /*
 	This file defines how the CPU-controlled part of a bus looks for the 6502 and

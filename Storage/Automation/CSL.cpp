@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <set>
 
-#include "../../Machines/AmstradCPC/Keyboard.hpp"
+#include "Machines/AmstradCPC/Keyboard.hpp"
 
 using namespace Storage::Automation;
 

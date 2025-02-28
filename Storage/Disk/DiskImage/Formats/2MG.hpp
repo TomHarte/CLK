@@ -8,10 +8,9 @@
 
 #pragma once
 
-#include "../DiskImage.hpp"
-#include "../../../MassStorage/MassStorageDevice.hpp"
-
-#include "../../../FileHolder.hpp"
+#include "Storage/Disk/DiskImage/DiskImage.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
+#include "Storage/FileHolder.hpp"
 
 #include <cstddef>
 #include <variant>

@@ -9,8 +9,8 @@
 #import <XCTest/XCTest.h>
 
 #import <CommonCrypto/CommonDigest.h>
-#include "../../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../../Analyser/Static/Atari2600/Target.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Analyser/Static/Atari2600/Target.hpp"
 
 using PagingModel = Analyser::Static::Atari2600::Target::PagingModel;
 

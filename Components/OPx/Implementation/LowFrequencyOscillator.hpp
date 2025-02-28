@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Numeric/LFSR.hpp"
+#include "Numeric/LFSR.hpp"
 
 namespace Yamaha::OPL {
 

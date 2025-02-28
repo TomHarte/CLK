@@ -8,10 +8,10 @@
 
 #include "AmigaADF.hpp"
 
-#include "../../Encodings/MFM/Constants.hpp"
-#include "../../Encodings/MFM/Encoder.hpp"
-#include "../../../../Numeric/BitSpread.hpp"
-#include "../../Track/PCMTrack.hpp"
+#include "Numeric/BitSpread.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
 
 #include <type_traits>
 

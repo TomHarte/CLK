@@ -10,7 +10,7 @@
 
 #include "Registers.hpp"
 
-#include "../../InstructionSets/x86/Instruction.hpp"
+#include "InstructionSets/x86/Instruction.hpp"
 
 namespace PCCompatible {
 

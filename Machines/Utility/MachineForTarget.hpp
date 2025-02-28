@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../Reflection/Struct.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Reflection/Struct.hpp"
 
-#include "../DynamicMachine.hpp"
-#include "../ROMMachine.hpp"
+#include "Machines/DynamicMachine.hpp"
+#include "Machines/ROMMachine.hpp"
 
 #include <map>
 #include <memory>

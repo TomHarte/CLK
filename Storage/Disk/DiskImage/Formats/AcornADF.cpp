@@ -8,7 +8,7 @@
 
 #include "AcornADF.hpp"
 
-#include "Utility/ImplicitSectors.hpp"
+#include "Storage/Disk/DiskImage/Formats/Utility/ImplicitSectors.hpp"
 
 #include <cstring>
 

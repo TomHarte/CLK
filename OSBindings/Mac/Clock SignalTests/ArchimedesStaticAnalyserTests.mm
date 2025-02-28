@@ -9,8 +9,8 @@
 #import <XCTest/XCTest.h>
 
 #import <CommonCrypto/CommonDigest.h>
-#include "../../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../../Analyser/Static/Acorn/Target.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Analyser/Static/Acorn/Target.hpp"
 
 static NSString *archimedesDiskPath = @"/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Archimedes";
 

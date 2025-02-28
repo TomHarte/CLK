@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../KeyboardMachine.hpp"
-#include "../../Utility/Typer.hpp"
+#include "Machines/KeyboardMachine.hpp"
+#include "Machines/Utility/Typer.hpp"
 
 namespace Commodore::Vic20 {
 

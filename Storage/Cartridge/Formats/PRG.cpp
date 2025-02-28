@@ -7,12 +7,8 @@
 //
 
 #include "PRG.hpp"
-#include "../../FileHolder.hpp"
-
-#include <cstdio>
-#include <sys/stat.h>
-
-#include "../Encodings/CommodoreROM.hpp"
+#include "Storage/FileHolder.hpp"
+#include "Storage/Cartridge/Encodings/CommodoreROM.hpp"
 
 using namespace Storage::Cartridge;
 

@@ -9,10 +9,10 @@
 #pragma once
 
 #include <cstdint>
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../ClockReceiver/ClockingHintSource.hpp"
-#include "../Serial/Line.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
+#include "Components/Serial/Line.hpp"
 
 namespace Motorola::ACIA {
 

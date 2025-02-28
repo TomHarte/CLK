@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../MemorySlotHandler.hpp"
+#include "Machines/MSX/MemorySlotHandler.hpp"
 
 namespace MSX::Cartridge {
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../KeyboardMachine.hpp"
+#include "Machines/KeyboardMachine.hpp"
 
 namespace PCCompatible {
 

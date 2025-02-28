@@ -14,7 +14,7 @@
 #include <thread>
 #include <vector>
 
-#include "../ClockReceiver/TimeTypes.hpp"
+#include "ClockReceiver/TimeTypes.hpp"
 
 namespace Concurrency {
 

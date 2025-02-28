@@ -13,9 +13,9 @@
 #include <vector>
 #include <cstdint>
 
-#include "../../Numeric/RegisterSizes.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/ForceInline.hpp"
+#include "Numeric/RegisterSizes.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ForceInline.hpp"
 
 namespace CPU::Z80 {
 

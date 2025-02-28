@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../MassStorageDevice.hpp"
-#include "../../FileHolder.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
+#include "Storage/FileHolder.hpp"
 
 #include <cassert>
 

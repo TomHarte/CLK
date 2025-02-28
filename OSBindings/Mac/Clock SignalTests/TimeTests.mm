@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Storage/Storage.hpp"
+#include "Storage/Storage.hpp"
 
 @interface TimeTests : XCTestCase
 @end

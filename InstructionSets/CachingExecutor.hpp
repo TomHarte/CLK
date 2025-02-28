@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Numeric/Sizes.hpp"
+#include "Numeric/Sizes.hpp"
 
 #include <array>
 #include <cstdint>

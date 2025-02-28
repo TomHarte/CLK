@@ -11,9 +11,9 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../../MachineTypes.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../../../Analyser/Static/Atari2600/Target.hpp"
+#include "Analyser/Static/Atari2600/Target.hpp"
 
 #include "Cartridges/Atari8k.hpp"
 #include "Cartridges/Atari16k.hpp"

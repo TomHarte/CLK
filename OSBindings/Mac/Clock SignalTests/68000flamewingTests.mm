@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../InstructionSets/M68k/Perform.hpp"
+#include "InstructionSets/M68k/Perform.hpp"
 
 using namespace InstructionSet::M68k;
 

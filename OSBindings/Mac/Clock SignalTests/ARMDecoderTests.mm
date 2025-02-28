@@ -8,8 +8,8 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../InstructionSets/ARM/Disassembler.hpp"
-#include "../../../InstructionSets/ARM/Executor.hpp"
+#include "InstructionSets/ARM/Disassembler.hpp"
+#include "InstructionSets/ARM/Executor.hpp"
 
 #include "NSData+dataWithContentsOfGZippedFile.h"
 

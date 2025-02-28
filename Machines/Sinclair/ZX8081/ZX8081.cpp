@@ -24,7 +24,7 @@
 
 #include "Analyser/Static/ZX8081/Target.hpp"
 
-#include "../Keyboard/Keyboard.hpp"
+#include "Machines/Sinclair/Keyboard/Keyboard.hpp"
 #include "Video.hpp"
 
 #include <cstdint>

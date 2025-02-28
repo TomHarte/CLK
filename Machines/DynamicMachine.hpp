@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../Configurable/Configurable.hpp"
-#include "../Activity/Source.hpp"
+#include "Configurable/Configurable.hpp"
+#include "Activity/Source.hpp"
 
 #include "MachineTypes.hpp"
 

@@ -9,8 +9,8 @@
 #pragma once
 
 #include "ReactiveDevice.hpp"
-#include "../../../Inputs/Keyboard.hpp"
-#include "../../KeyboardMachine.hpp"
+#include "Inputs/Keyboard.hpp"
+#include "Machines/KeyboardMachine.hpp"
 
 #include <array>
 #include <cstdint>

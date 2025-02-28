@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/DeferredQueue.hpp"
-#include "../../ROMMachine.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/DeferredQueue.hpp"
+#include "Machines/ROMMachine.hpp"
 
 namespace Apple::II {
 

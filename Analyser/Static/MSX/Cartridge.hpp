@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Storage/Cartridge/Cartridge.hpp"
+#include "Storage/Cartridge/Cartridge.hpp"
 
 namespace Analyser::Static::MSX {
 

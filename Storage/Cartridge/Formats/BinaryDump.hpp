@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Cartridge.hpp"
+#include "Storage/Cartridge/Cartridge.hpp"
 
 #include <string>
 

@@ -8,10 +8,10 @@
 
 #include "Z80.hpp"
 
-#include "../FileHolder.hpp"
+#include "Storage/FileHolder.hpp"
 
-#include "../../Analyser/Static/ZXSpectrum/Target.hpp"
-#include "../../Machines/Sinclair/ZXSpectrum/State.hpp"
+#include "Analyser/Static/ZXSpectrum/Target.hpp"
+#include "Machines/Sinclair/ZXSpectrum/State.hpp"
 
 using namespace Storage::State;
 

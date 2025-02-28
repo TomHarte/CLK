@@ -8,13 +8,13 @@
 
 #include "ImplicitSectors.hpp"
 
-#include <cstring>
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+#include "Storage/Disk/Encodings/MFM/Sector.hpp"
+#include "Storage/Disk/Encodings/MFM/SegmentParser.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
 
-#include "../../../Encodings/MFM/Sector.hpp"
-#include "../../../Encodings/MFM/Encoder.hpp"
-#include "../../../Encodings/MFM/Constants.hpp"
-#include "../../../Track/TrackSerialiser.hpp"
-#include "../../../Encodings/MFM/SegmentParser.hpp"
+#include <cstring>
 
 using namespace Storage::Disk;
 

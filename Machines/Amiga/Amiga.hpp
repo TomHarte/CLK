@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../ROMMachine.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Machines/ROMMachine.hpp"
 
 #include <memory>
 

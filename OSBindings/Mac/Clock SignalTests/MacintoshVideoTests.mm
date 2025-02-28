@@ -9,7 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include <memory>
-#include "../../../Machines/Apple/Macintosh/Video.hpp"
+#include "Machines/Apple/Macintosh/Video.hpp"
 
 @interface MacintoshVideoTests : XCTestCase
 @end

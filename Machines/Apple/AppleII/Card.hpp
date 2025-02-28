@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Processors/6502/6502.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Activity/Observer.hpp"
+#include "Processors/6502/6502.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Activity/Observer.hpp"
 
 namespace Apple::II {
 

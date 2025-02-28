@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../DPLL/DigitalPhaseLockedLoop.hpp"
+#include "Storage/Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 #include "PCMSegment.hpp"
 #include "Track.hpp"
 

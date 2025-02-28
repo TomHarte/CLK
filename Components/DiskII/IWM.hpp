@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../../Activity/Observer.hpp"
+#include "Activity/Observer.hpp"
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/ClockingHintSource.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
 
-#include "../../Storage/Disk/Drive.hpp"
+#include "Storage/Disk/Drive.hpp"
 
 #include <cstdint>
 

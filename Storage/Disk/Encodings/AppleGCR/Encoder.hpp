@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "Storage/Disk/Track/PCMSegment.hpp"
 #include <cstdint>
-#include "../../../Disk/Track/PCMSegment.hpp"
 
 namespace Storage::Encodings::AppleGCR {
 

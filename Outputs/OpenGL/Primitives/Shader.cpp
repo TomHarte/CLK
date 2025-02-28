@@ -8,7 +8,7 @@
 
 #include "Shader.hpp"
 
-#include "../../Log.hpp"
+#include "Outputs/Log.hpp"
 #include <vector>
 
 using namespace Outputs::Display::OpenGL;

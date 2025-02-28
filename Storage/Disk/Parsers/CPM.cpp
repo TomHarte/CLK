@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "../Encodings/MFM/Parser.hpp"
+#include "Storage/Disk/Encodings/MFM/Parser.hpp"
 
 using namespace Storage::Disk::CPM;
 

@@ -8,15 +8,15 @@
 
 #pragma once
 
-#include "../Log.hpp"
-#include "../DisplayMetrics.hpp"
-#include "../ScanTargets/BufferingScanTarget.hpp"
+#include "Outputs/Log.hpp"
+#include "Outputs/DisplayMetrics.hpp"
+#include "Outputs/ScanTargets/BufferingScanTarget.hpp"
 
 #include "OpenGL.hpp"
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/Rectangle.hpp"
 
-#include "../../SignalProcessing/FIRFilter.hpp"
+#include "SignalProcessing/FIRFilter.hpp"
 
 #include <array>
 #include <atomic>

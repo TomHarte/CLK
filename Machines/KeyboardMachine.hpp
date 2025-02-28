@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include "Inputs/Keyboard.hpp"
+
 #include <bitset>
 #include <cstdint>
 #include <string>
 #include <set>
-
-#include "../Inputs/Keyboard.hpp"
 
 namespace MachineTypes {
 

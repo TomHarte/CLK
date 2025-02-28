@@ -13,11 +13,11 @@
 #include <cstdio>
 #include <cstdint>
 
-#include "../6502Esque/6502Esque.hpp"
-#include "../6502Esque/Implementation/LazyFlags.hpp"
-#include "../../Numeric/Carry.hpp"
-#include "../../Numeric/RegisterSizes.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "Processors/6502Esque/6502Esque.hpp"
+#include "Processors/6502Esque/Implementation/LazyFlags.hpp"
+#include "Numeric/Carry.hpp"
+#include "Numeric/RegisterSizes.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU::MOS6502 {
 

@@ -11,7 +11,7 @@
 #include "CommandDecoder.hpp"
 #include "Status.hpp"
 
-#include "../../Storage/Disk/Controller/MFMDiskController.hpp"
+#include "Storage/Disk/Controller/MFMDiskController.hpp"
 
 #include <cstdint>
 #include <memory>

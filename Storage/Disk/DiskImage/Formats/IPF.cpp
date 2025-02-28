@@ -8,7 +8,7 @@
 
 #include "IPF.hpp"
 
-#include "../../Encodings/MFM/Encoder.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
 
 #include <cassert>
 

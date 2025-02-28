@@ -9,7 +9,7 @@
 #include "Shifter.hpp"
 #include "Constants.hpp"
 
-#include "../../../../Numeric/BitSpread.hpp"
+#include "Numeric/BitSpread.hpp"
 
 using namespace Storage::Encodings::MFM;
 

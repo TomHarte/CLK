@@ -8,10 +8,11 @@
 
 #pragma once
 
+#include "ClockReceiver/TimeTypes.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Outputs::Display {
 

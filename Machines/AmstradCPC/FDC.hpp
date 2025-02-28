@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Components/8272/i8272.hpp"
+#include "Components/8272/i8272.hpp"
 
 namespace Amstrad {
 

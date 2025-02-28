@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../Numeric/Carry.hpp"
-#include "../ExceptionVectors.hpp"
+#include "Numeric/Carry.hpp"
+#include "InstructionSets/M68k/ExceptionVectors.hpp"
 
 #include <algorithm>
 #include <cassert>

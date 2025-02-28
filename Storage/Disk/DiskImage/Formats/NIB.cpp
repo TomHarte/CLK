@@ -8,12 +8,10 @@
 
 #include "NIB.hpp"
 
-#include "../../Track/PCMTrack.hpp"
-#include "../../Track/TrackSerialiser.hpp"
-#include "../../Encodings/AppleGCR/Encoder.hpp"
-
-#include "../../Encodings/AppleGCR/Encoder.hpp"
-#include "../../Encodings/AppleGCR/SegmentParser.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Storage/Disk/Encodings/AppleGCR/Encoder.hpp"
+#include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
 
 #include <vector>
 

@@ -8,11 +8,11 @@
 
 #include "OricMFMDSK.hpp"
 
-#include "../../Encodings/MFM/Constants.hpp"
-#include "../../Encodings/MFM/Shifter.hpp"
-#include "../../Encodings/MFM/Encoder.hpp"
-#include "../../Track/PCMTrack.hpp"
-#include "../../Track/TrackSerialiser.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/Encodings/MFM/Shifter.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
 
 using namespace Storage::Disk;
 

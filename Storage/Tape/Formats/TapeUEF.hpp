@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../PulseQueuedTape.hpp"
+#include "Storage/Tape/PulseQueuedTape.hpp"
 
-#include "../../TargetPlatforms.hpp"
+#include "Storage/TargetPlatforms.hpp"
 
 #include <cstdint>
 #include <optional>

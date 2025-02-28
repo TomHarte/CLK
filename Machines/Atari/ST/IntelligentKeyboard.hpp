@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
-#include "../../../Components/Serial/Line.hpp"
-#include "../../KeyboardMachine.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
+#include "Components/Serial/Line.hpp"
+#include "Machines/KeyboardMachine.hpp"
 
-#include "../../../Inputs/Joystick.hpp"
-#include "../../../Inputs/Mouse.hpp"
+#include "Inputs/Joystick.hpp"
+#include "Inputs/Mouse.hpp"
 
 #include <atomic>
 #include <mutex>

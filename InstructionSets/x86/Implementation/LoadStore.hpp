@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../AccessType.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
 
 #include <utility>
 

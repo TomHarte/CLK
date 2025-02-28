@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../../Processors/6502/6502.hpp"
-#include "../Bus.hpp"
+#include "Processors/6502/6502.hpp"
+#include "Machines/Atari/2600/Bus.hpp"
 
 namespace Atari2600::Cartridge {
 

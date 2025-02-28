@@ -10,8 +10,8 @@
 
 #include "MemorySlotHandler.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../../Components/1770/1770.hpp"
+#include "Activity/Source.hpp"
+#include "Components/1770/1770.hpp"
 
 #include <array>
 #include <cstdint>

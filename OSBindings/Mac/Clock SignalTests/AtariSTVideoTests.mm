@@ -10,7 +10,7 @@
 
 #include <memory>
 
-#include "../../../Machines/Atari/ST/Video.hpp"
+#include "Machines/Atari/ST/Video.hpp"
 
 // Implement Atari::ST::Video's friend class, to expose some
 // internal state.

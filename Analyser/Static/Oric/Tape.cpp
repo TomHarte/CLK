@@ -7,7 +7,7 @@
 //
 
 #include "Tape.hpp"
-#include "../../../Storage/Tape/Parsers/Oric.hpp"
+#include "Storage/Tape/Parsers/Oric.hpp"
 
 using namespace Analyser::Static::Oric;
 

@@ -8,12 +8,12 @@
 
 #include "STX.hpp"
 
-#include "../../Encodings/MFM/Constants.hpp"
-#include "../../Encodings/MFM/Shifter.hpp"
-#include "../../Encodings/MFM/Encoder.hpp"
-#include "../../Track/PCMTrack.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/Encodings/MFM/Shifter.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
 
-#include "Utility/ImplicitSectors.hpp"
+#include "Storage/Disk/DiskImage/Formats/Utility/ImplicitSectors.hpp"
 
 #include <array>
 #include <cstdlib>

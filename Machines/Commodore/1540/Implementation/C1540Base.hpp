@@ -8,17 +8,17 @@
 
 #pragma once
 
-#include "../../../../Processors/6502/6502.hpp"
-#include "../../../../Components/6522/6522.hpp"
+#include "Processors/6502/6502.hpp"
+#include "Components/6522/6522.hpp"
 
-#include "../../SerialBus.hpp"
+#include "Machines/Commodore/SerialBus.hpp"
 
-#include "../../../../Activity/Source.hpp"
-#include "../../../../Storage/Disk/Disk.hpp"
+#include "Activity/Source.hpp"
+#include "Storage/Disk/Disk.hpp"
 
-#include "../../../../Storage/Disk/Controller/DiskController.hpp"
+#include "Storage/Disk/Controller/DiskController.hpp"
 
-#include "../C1540.hpp"
+#include "Machines/Commodore/1540/C1540.hpp"
 
 namespace Commodore::C1540 {
 

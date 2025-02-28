@@ -11,10 +11,10 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
-#include "../Disassembler/6502.hpp"
-#include "../Disassembler/AddressMapper.hpp"
+#include "Analyser/Static/Disassembler/6502.hpp"
+#include "Analyser/Static/Disassembler/AddressMapper.hpp"
 
-#include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
+#include "Storage/Disk/Encodings/MFM/Parser.hpp"
 
 #include <cstring>
 

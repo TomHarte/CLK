@@ -11,7 +11,7 @@
 #include "Model.hpp"
 #include "Instruction.hpp"
 #include "Status.hpp"
-#include "../../Numeric/RegisterSizes.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
 namespace InstructionSet::M68k {
 

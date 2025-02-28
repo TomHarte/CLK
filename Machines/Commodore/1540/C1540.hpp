@@ -25,9 +25,9 @@ enum class Personality {
 
 }
 
-#include "../SerialBus.hpp"
-#include "../../ROMMachine.hpp"
-#include "../../../Storage/Disk/Disk.hpp"
+#include "Machines/Commodore/SerialBus.hpp"
+#include "Machines/ROMMachine.hpp"
+#include "Storage/Disk/Disk.hpp"
 #include "Implementation/C1540Base.hpp"
 
 namespace Commodore::C1540 {

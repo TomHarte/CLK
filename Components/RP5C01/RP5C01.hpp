@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 #include <array>
 #include <cstdint>

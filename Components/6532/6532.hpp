@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include "ClockReceiver/ClockReceiver.hpp"
+
 #include <cstdint>
 #include <cstdio>
-
-#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace MOS {
 

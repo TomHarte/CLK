@@ -13,7 +13,7 @@
 #include <limits>
 #include <memory>
 
-#include "../ScanTarget.hpp"
+#include "Outputs/ScanTarget.hpp"
 #include "Internals/Flywheel.hpp"
 
 namespace Outputs::CRT {

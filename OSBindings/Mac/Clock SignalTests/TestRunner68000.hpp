@@ -12,7 +12,7 @@
 #include <functional>
 #include <vector>
 
-#include "../../../Processors/68000/68000.hpp"
+#include "Processors/68000/68000.hpp"
 
 using namespace InstructionSet::M68k;
 

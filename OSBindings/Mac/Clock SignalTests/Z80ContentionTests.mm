@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Processors/Z80/Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
 namespace {
 

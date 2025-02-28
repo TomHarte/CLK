@@ -8,8 +8,8 @@
 
 #include "HFE.hpp"
 
-#include "../../Track/PCMTrack.hpp"
-#include "../../Track/TrackSerialiser.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
 
 using namespace Storage::Disk;
 

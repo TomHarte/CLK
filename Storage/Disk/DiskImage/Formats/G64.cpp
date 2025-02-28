@@ -11,8 +11,8 @@
 #include <cstring>
 #include <vector>
 
-#include "../../Track/PCMTrack.hpp"
-#include "../../Encodings/CommodoreGCR.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Storage/Disk/Encodings/CommodoreGCR.hpp"
 
 using namespace Storage::Disk;
 

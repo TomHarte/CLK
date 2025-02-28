@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include "Outputs/Speaker/Speaker.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-
-#include "../Speaker.hpp"
 
 namespace Outputs::Speaker {
 

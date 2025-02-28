@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../9918.hpp"
+#include "Components/9918/9918.hpp"
 #include "PersonalityTraits.hpp"
 #include "LineLayout.hpp"
 

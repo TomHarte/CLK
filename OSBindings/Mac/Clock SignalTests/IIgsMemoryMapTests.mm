@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Machines/Apple/AppleIIgs/MemoryMap.hpp"
+#include "Machines/Apple/AppleIIgs/MemoryMap.hpp"
 
 namespace {
 	// Test the ROM03-era mapping hardware.

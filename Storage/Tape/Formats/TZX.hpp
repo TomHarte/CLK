@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../PulseQueuedTape.hpp"
-#include "../../FileHolder.hpp"
+#include "Storage/Tape/PulseQueuedTape.hpp"
+#include "Storage/FileHolder.hpp"
 
 #include <string>
 

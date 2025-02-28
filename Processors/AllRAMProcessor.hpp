@@ -8,11 +8,11 @@
 
 #pragma once
 
+#include "ClockReceiver/ClockReceiver.hpp"
+
 #include <cstdint>
 #include <set>
 #include <vector>
-
-#include "../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 

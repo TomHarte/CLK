@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Reflection/Struct.hpp"
+#include "Reflection/Struct.hpp"
 
 #include <memory>
 

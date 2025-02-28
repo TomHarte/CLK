@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Mouse.hpp"
+#include "Inputs/Mouse.hpp"
 #include <atomic>
 
 namespace Inputs {
