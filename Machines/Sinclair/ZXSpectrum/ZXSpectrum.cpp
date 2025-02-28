@@ -10,7 +10,7 @@
 
 #include "State.hpp"
 #include "Video.hpp"
-#include "../Keyboard/Keyboard.hpp"
+#include "Machines/Sinclair/Keyboard/Keyboard.hpp"
 
 #include "../../../Activity/Source.hpp"
 #include "../../MachineTypes.hpp"
