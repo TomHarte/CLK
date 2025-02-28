@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "KeyboardMachine.hpp"
+#include "Machines/KeyboardMachine.hpp"
 #include "Machines/Utility/Typer.hpp"
 
 namespace Commodore::Plus4 {
