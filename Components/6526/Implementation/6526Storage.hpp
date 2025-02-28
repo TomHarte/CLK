@@ -10,8 +10,8 @@
 
 #include <array>
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Outputs/Log.hpp"
 
 namespace MOS::MOS6526 {
 

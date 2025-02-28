@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "../../../Components/6526/6526.hpp"
+#include "Components/6526/6526.hpp"
 
 //#define BE_NOISY
 using namespace CPU::MOS6502;

@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "../DiskImage.hpp"
-#include "../../Track/PCMTrack.hpp"
-#include "../../../FileHolder.hpp"
-#include "../../../TargetPlatforms.hpp"
+#include "Storage/Disk/DiskImage/DiskImage.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Storage/FileHolder.hpp"
+#include "Storage/TargetPlatforms.hpp"
 
 #include <string>
 #include <map>

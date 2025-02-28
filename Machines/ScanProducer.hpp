@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../Outputs/ScanTarget.hpp"
-#include "../Configurable/StandardOptions.hpp"
+#include "Outputs/ScanTarget.hpp"
+#include "Configurable/StandardOptions.hpp"
 
 #include "TimedMachine.hpp"
 

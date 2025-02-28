@@ -8,7 +8,7 @@
 
 #include "Tape.hpp"
 
-#include "../../../Storage/Tape/Parsers/MSX.hpp"
+#include "Storage/Tape/Parsers/MSX.hpp"
 
 using namespace Analyser::Static::MSX;
 

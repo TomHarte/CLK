@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Analyser/Dynamic/ConfidenceCounter.hpp"
 
 #include <array>
 #include <cstddef>

@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Machines/Enterprise/Dave.hpp"
+#include "Machines/Enterprise/Dave.hpp"
 #include <memory>
 
 @interface EnterpriseDaveTests : XCTestCase

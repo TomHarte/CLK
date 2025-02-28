@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "../AccessType.hpp"
-#include "../Interrupts.hpp"
-#include "../Perform.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Interrupts.hpp"
+#include "InstructionSets/x86/Perform.hpp"
 
-#include "../../../Numeric/Carry.hpp"
+#include "Numeric/Carry.hpp"
 
 namespace InstructionSet::x86::Primitive {
 

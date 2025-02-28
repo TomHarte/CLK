@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../DiskImage.hpp"
-#include "../../../FileHolder.hpp"
-#include "../../Track/PCMTrack.hpp"
+#include "Storage/Disk/DiskImage/DiskImage.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Storage/FileHolder.hpp"
 
 #include <memory>
 

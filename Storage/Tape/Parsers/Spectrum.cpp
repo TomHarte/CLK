@@ -8,7 +8,7 @@
 
 #include "Spectrum.hpp"
 
-#include "../../../Numeric/BitReverse.hpp"
+#include "Numeric/BitReverse.hpp"
 
 #include <cstring>
 

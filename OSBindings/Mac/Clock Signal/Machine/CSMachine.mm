@@ -20,11 +20,11 @@
 #include "MachineForTarget.hpp"
 #include "StandardOptions.hpp"
 #include "Typer.hpp"
-#include "../../../../Activity/Observer.hpp"
+#include "Activity/Observer.hpp"
 
-#include "../../../../ClockReceiver/TimeTypes.hpp"
-#include "../../../../ClockReceiver/ScanSynchroniser.hpp"
-#include "../../../../Concurrency/AsyncTaskQueue.hpp"
+#include "ClockReceiver/TimeTypes.hpp"
+#include "ClockReceiver/ScanSynchroniser.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
 
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"

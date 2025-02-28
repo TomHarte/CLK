@@ -9,8 +9,8 @@
 #pragma once
 
 #include "TapeParser.hpp"
-#include "../../../Numeric/CRC.hpp"
-#include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
+#include "Numeric/CRC.hpp"
+#include "Storage/Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
 namespace Storage::Tape::Acorn {
 

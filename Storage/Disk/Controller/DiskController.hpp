@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "../Drive.hpp"
-#include "../DPLL/DigitalPhaseLockedLoop.hpp"
-#include "../Track/PCMSegment.hpp"
+#include "Storage/Disk/Drive.hpp"
+#include "Storage/Disk/DPLL/DigitalPhaseLockedLoop.hpp"
+#include "Storage/Disk/Track/PCMSegment.hpp"
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
 
 namespace Storage::Disk {
 

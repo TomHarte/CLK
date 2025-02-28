@@ -8,7 +8,7 @@
 
 #include "Instruction.hpp"
 
-#include "../../Numeric/Carry.hpp"
+#include "Numeric/Carry.hpp"
 
 #include <cassert>
 #include <iomanip>

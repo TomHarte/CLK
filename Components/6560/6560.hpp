@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace MOS::MOS6560 {
 

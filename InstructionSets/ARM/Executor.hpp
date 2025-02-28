@@ -11,7 +11,7 @@
 #include "BarrelShifter.hpp"
 #include "OperationMapper.hpp"
 #include "Registers.hpp"
-#include "../../Numeric/Carry.hpp"
+#include "Numeric/Carry.hpp"
 
 namespace InstructionSet::ARM {
 

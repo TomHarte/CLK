@@ -8,9 +8,9 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Processors/68000/68000.hpp"
-#include "../../../InstructionSets/M68k/Executor.hpp"
-#include "../../../InstructionSets/M68k/Decoder.hpp"
+#include "Processors/68000/68000.hpp"
+#include "InstructionSets/M68k/Executor.hpp"
+#include "InstructionSets/M68k/Decoder.hpp"
 
 #include <array>
 #include <memory>

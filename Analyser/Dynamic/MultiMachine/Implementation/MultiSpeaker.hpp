@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../../Machines/DynamicMachine.hpp"
-#include "../../../../Outputs/Speaker/Speaker.hpp"
+#include "Machines/DynamicMachine.hpp"
+#include "Outputs/Speaker/Speaker.hpp"
 
 #include <memory>
 #include <mutex>

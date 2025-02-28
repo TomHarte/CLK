@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../StaticAnalyser.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
 
 namespace Analyser::Static::Atari2600 {
 

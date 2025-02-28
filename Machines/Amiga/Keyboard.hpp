@@ -8,11 +8,12 @@
 
 #pragma once
 
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Components/Serial/Line.hpp"
+#include "Machines/KeyboardMachine.hpp"
+
 #include <array>
 #include <cstdint>
-#include "../KeyboardMachine.hpp"
-#include "../../Components/Serial/Line.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Amiga {
 

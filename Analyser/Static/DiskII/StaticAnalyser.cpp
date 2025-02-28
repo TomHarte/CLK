@@ -8,14 +8,14 @@
 
 #include "StaticAnalyser.hpp"
 
-#include "../AppleII/Target.hpp"
-#include "../AppleIIgs/Target.hpp"
-#include "../Oric/Target.hpp"
-#include "../Disassembler/6502.hpp"
-#include "../Disassembler/AddressMapper.hpp"
+#include "Analyser/Static/AppleII/Target.hpp"
+#include "Analyser/Static//AppleIIgs/Target.hpp"
+#include "Analyser/Static//Oric/Target.hpp"
+#include "Analyser/Static//Disassembler/6502.hpp"
+#include "Analyser/Static//Disassembler/AddressMapper.hpp"
 
-#include "../../../Storage/Disk/Track/TrackSerialiser.hpp"
-#include "../../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
 
 namespace {
 

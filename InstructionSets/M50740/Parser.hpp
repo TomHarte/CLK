@@ -10,7 +10,7 @@
 
 #include <cstdint>
 #include "Decoder.hpp"
-#include "../AccessType.hpp"
+#include "InstructionSets/AccessType.hpp"
 
 namespace InstructionSet::M50740 {
 

@@ -14,9 +14,9 @@
 #include "Sound.hpp"
 #include "Video.hpp"
 
-#include "../../../Outputs/Log.hpp"
-#include "../../../Activity/Observer.hpp"
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
+#include "Outputs/Log.hpp"
+#include "Activity/Observer.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
 
 namespace Archimedes {
 

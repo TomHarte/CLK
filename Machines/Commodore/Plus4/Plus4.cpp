@@ -14,23 +14,23 @@
 #include "Pager.hpp"
 #include "Video.hpp"
 
-#include "../../MachineTypes.hpp"
-#include "../../Utility/MemoryFuzzer.hpp"
-#include "../../../Processors/6502/6502.hpp"
-#include "../../../Analyser/Static/Commodore/Target.hpp"
-#include "../../../Outputs/Log.hpp"
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../../Configurable/StandardOptions.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Processors/6502/6502.hpp"
+#include "Analyser/Static/Commodore/Target.hpp"
+#include "Outputs/Log.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Configurable/StandardOptions.hpp"
 
-#include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
-#include "../../../Analyser/Static/Commodore/Target.hpp"
+#include "Analyser/Dynamic/ConfidenceCounter.hpp"
+#include "Analyser/Static/Commodore/Target.hpp"
 
-#include "../../../Storage/Tape/Parsers/Commodore.hpp"
-#include "../../../Storage/Tape/Tape.hpp"
-#include "../SerialBus.hpp"
-#include "../1540/C1540.hpp"
+#include "Storage/Tape/Parsers/Commodore.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Machines/Commodore/SerialBus.hpp"
+#include "Machines/Commodore/1540/C1540.hpp"
 
-#include "../../../Processors/6502Esque/Implementation/LazyFlags.hpp"
+#include "Processors/6502Esque/Implementation/LazyFlags.hpp"
 
 #include <algorithm>
 #include <cmath>

@@ -6,7 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#include "../65816.hpp"
+#include "Processors/65816/65816.hpp"
 
 using namespace CPU::WDC65816;
 

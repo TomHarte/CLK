@@ -13,10 +13,10 @@
 #include <iostream>
 
 // TEST.
-#include "../../../InstructionSets/M50740/Parser.hpp"
-#include "../../../InstructionSets/Disassembler.hpp"
+#include "InstructionSets/M50740/Parser.hpp"
+#include "InstructionSets/Disassembler.hpp"
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace Apple::IIgs::ADB;
 

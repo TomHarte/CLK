@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Processors/6502/6502.hpp"
+#include "Processors/6502/6502.hpp"
 
 namespace Commodore::Plus4 {
 

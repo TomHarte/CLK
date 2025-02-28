@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../../Machines/DynamicMachine.hpp"
+#include "Machines/DynamicMachine.hpp"
 
 #include <memory>
 #include <vector>

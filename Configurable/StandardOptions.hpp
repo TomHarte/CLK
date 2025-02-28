@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Reflection/Enum.hpp"
+#include "Reflection/Enum.hpp"
 
 namespace Configurable {
 

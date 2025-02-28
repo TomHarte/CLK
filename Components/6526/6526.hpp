@@ -11,7 +11,7 @@
 #include <cstdint>
 
 #include "Implementation/6526Storage.hpp"
-#include "../Serial/Line.hpp"
+#include "Components/Serial/Line.hpp"
 
 namespace MOS::MOS6526 {
 

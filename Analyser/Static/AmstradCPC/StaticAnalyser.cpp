@@ -8,14 +8,14 @@
 
 #include "StaticAnalyser.hpp"
 
-#include <algorithm>
-#include <cstring>
-
-#include "../../../Storage/Disk/Parsers/CPM.hpp"
-#include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
-#include "../../../Storage/Tape/Parsers/Spectrum.hpp"
+#include "Storage/Disk/Parsers/CPM.hpp"
+#include "Storage/Disk/Encodings/MFM/Parser.hpp"
+#include "Storage/Tape/Parsers/Spectrum.hpp"
 
 #include "Target.hpp"
+
+#include <algorithm>
+#include <cstring>
 
 namespace {
 

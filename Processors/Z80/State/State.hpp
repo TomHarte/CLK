@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Reflection/Enum.hpp"
-#include "../../../Reflection/Struct.hpp"
-#include "../Z80.hpp"
+#include "Reflection/Enum.hpp"
+#include "Reflection/Struct.hpp"
+#include "Processors/Z80/Z80.hpp"
 
 namespace CPU {
 namespace Z80 {

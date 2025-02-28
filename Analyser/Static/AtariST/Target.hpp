@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../Reflection/Struct.hpp"
-#include "../StaticAnalyser.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Reflection/Struct.hpp"
 
 namespace Analyser::Static::AtariST {
 

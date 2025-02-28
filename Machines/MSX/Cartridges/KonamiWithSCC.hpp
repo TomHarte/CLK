@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../MemorySlotHandler.hpp"
-#include "../../../Components/KonamiSCC/KonamiSCC.hpp"
+#include "Machines/MSX/MemorySlotHandler.hpp"
+#include "Components/KonamiSCC/KonamiSCC.hpp"
 
 namespace MSX::Cartridge {
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Outputs/ScanTarget.hpp"
+#include "Outputs/ScanTarget.hpp"
 
 #include <cmath>
 

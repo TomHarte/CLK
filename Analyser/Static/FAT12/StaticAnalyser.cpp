@@ -8,12 +8,12 @@
 
 #include "StaticAnalyser.hpp"
 
-#include "../Enterprise/StaticAnalyser.hpp"
-#include "../PCCompatible/StaticAnalyser.hpp"
+#include "Analyser/Static/Enterprise/StaticAnalyser.hpp"
+#include "Analyser/Static/PCCompatible/StaticAnalyser.hpp"
 
-#include "../../../Storage/Disk/Track/TrackSerialiser.hpp"
-#include "../../../Storage/Disk/Encodings/MFM/Constants.hpp"
-#include "../../../Storage/Disk/Encodings/MFM/SegmentParser.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/Encodings/MFM/SegmentParser.hpp"
 
 
 Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(

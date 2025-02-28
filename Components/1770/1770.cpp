@@ -8,8 +8,8 @@
 
 #include "1770.hpp"
 
-#include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
-#include "../../Outputs/Log.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Outputs/Log.hpp"
 
 namespace {
 Log::Logger<Log::Source::WDFDC> logger;

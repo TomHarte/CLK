@@ -8,7 +8,7 @@
 
 #include "FAT.hpp"
 
-#include "../Encodings/MFM/Parser.hpp"
+#include "Storage/Disk/Encodings/MFM/Parser.hpp"
 
 #include <iostream>
 

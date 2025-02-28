@@ -13,15 +13,15 @@
 #include "Keyboard.hpp"
 #include "Nick.hpp"
 
-#include "../MachineTypes.hpp"
-#include "../Utility/Typer.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/Typer.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../../Analyser/Static/Enterprise/Target.hpp"
-#include "../../ClockReceiver/JustInTime.hpp"
-#include "../../Outputs/Log.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Processors/Z80/Z80.hpp"
+#include "Activity/Source.hpp"
+#include "Analyser/Static/Enterprise/Target.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+#include "Outputs/Log.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Processors/Z80/Z80.hpp"
 
 namespace {
 Log::Logger<Log::Source::Enterprise> logger;

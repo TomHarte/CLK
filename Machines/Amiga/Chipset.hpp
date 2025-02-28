@@ -14,14 +14,14 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../../Activity/Source.hpp"
-#include "../../ClockReceiver/ClockingHintSource.hpp"
-#include "../../ClockReceiver/JustInTime.hpp"
-#include "../../Components/6526/6526.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../Processors/68000/68000.hpp"
-#include "../../Storage/Disk/Controller/DiskController.hpp"
-#include "../../Storage/Disk/Drive.hpp"
+#include "Activity/Source.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+#include "Components/6526/6526.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "Processors/68000/68000.hpp"
+#include "Storage/Disk/Controller/DiskController.hpp"
+#include "Storage/Disk/Drive.hpp"
 
 #include "Audio.hpp"
 #include "Bitplanes.hpp"

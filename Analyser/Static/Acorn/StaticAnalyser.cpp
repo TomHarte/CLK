@@ -12,7 +12,7 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
-#include "../../../Numeric/StringSimilarity.hpp"
+#include "Numeric/StringSimilarity.hpp"
 
 #include <algorithm>
 #include <map>

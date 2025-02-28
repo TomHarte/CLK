@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../Analyser/Static/Amiga/Target.hpp"
+#include "Analyser/Static/Amiga/Target.hpp"
 
 #include <array>
 #include <cassert>

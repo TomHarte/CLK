@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../ClockReceiver/ClockReceiver.hpp"
-#include "../ClockReceiver/TimeTypes.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/TimeTypes.hpp"
 
 #include "AudioProducer.hpp"
 

@@ -20,8 +20,8 @@
 #include "ShiftRoll.hpp"
 #include "Stack.hpp"
 
-#include "../Interrupts.hpp"
-#include "../AccessType.hpp"
+#include "InstructionSets/x86/Interrupts.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
 
 //
 // Comments throughout headers above come from the 1997 edition of the

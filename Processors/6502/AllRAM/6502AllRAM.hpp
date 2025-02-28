@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../6502Esque/6502Selector.hpp"
-#include "../../AllRAMProcessor.hpp"
+#include "Processors/6502Esque/6502Selector.hpp"
+#include "Processors/AllRAMProcessor.hpp"
 
 namespace CPU::MOS6502 {
 

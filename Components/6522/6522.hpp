@@ -8,11 +8,9 @@
 
 #pragma once
 
+#include "Components/6522/Implementation/6522Storage.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 #include <cstdint>
-
-#include "Implementation/6522Storage.hpp"
-
-#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace MOS::MOS6522 {
 

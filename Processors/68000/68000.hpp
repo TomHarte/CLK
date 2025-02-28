@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Numeric/RegisterSizes.hpp"
-#include "../../InstructionSets/M68k/RegisterSet.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Numeric/RegisterSizes.hpp"
+#include "InstructionSets/M68k/RegisterSet.hpp"
 
 #include <cassert>
 

@@ -11,7 +11,7 @@
 #include "Registers.hpp"
 #include "Segments.hpp"
 
-#include "../../InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
 
 #include <array>
 

@@ -8,7 +8,7 @@
 
 #include "IntelligentKeyboard.hpp"
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include <algorithm>
 

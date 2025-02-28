@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Target.hpp"
-#include "../MassStorageDevice.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
 
 #include <memory>
 

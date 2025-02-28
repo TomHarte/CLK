@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Outputs/CRT/CRT.hpp"
 #include <cstdint>
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
 
 namespace Enterprise {
 

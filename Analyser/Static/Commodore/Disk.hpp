@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Storage/Disk/Disk.hpp"
+#include "Storage/Disk/Disk.hpp"
 #include "File.hpp"
 
 #include <vector>

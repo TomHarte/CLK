@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../Analyser/Static/StaticAnalyser.hpp"
-#include "../Configurable/Configurable.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Configurable/Configurable.hpp"
 
 #include <string>
 

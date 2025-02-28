@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../../../Machines/MachineTypes.hpp"
-#include "../../../../Machines/DynamicMachine.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Machines/DynamicMachine.hpp"
 
 #include "MultiSpeaker.hpp"
 

@@ -9,15 +9,15 @@
 #pragma once
 
 #include "Card.hpp"
-#include "../../ROMMachine.hpp"
+#include "Machines/ROMMachine.hpp"
 
-#include "../../../Components/5380/ncr5380.hpp"
+#include "Components/5380/ncr5380.hpp"
 
-#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
-#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
-#include "../../../Storage/MassStorage/MassStorageDevice.hpp"
+#include "Storage/MassStorage/SCSI/SCSI.hpp"
+#include "Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include <array>
 #include <memory>

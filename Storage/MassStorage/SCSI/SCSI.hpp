@@ -12,9 +12,9 @@
 #include <limits>
 #include <vector>
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
-#include "../../../Activity/Source.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
+#include "Activity/Source.hpp"
 
 namespace SCSI {
 

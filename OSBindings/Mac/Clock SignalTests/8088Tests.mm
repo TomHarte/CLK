@@ -20,11 +20,11 @@
 
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
-#include "../../../InstructionSets/x86/AccessType.hpp"
-#include "../../../InstructionSets/x86/Decoder.hpp"
-#include "../../../InstructionSets/x86/Perform.hpp"
-#include "../../../InstructionSets/x86/Flags.hpp"
-#include "../../../Numeric/RegisterSizes.hpp"
+#include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Decoder.hpp"
+#include "InstructionSets/x86/Perform.hpp"
+#include "InstructionSets/x86/Flags.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
 namespace {
 

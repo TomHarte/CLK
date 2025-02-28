@@ -8,13 +8,13 @@
 
 #pragma once
 
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
+#include "Components/1770/1770.hpp"
+#include "Activity/Source.hpp"
+
 #include <cstdint>
 #include <vector>
-
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
-#include "../../../Components/1770/1770.hpp"
-#include "../../../Activity/Source.hpp"
 
 namespace Atari::ST {
 

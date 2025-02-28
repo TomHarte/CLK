@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
 #include <array>
 #include <atomic>

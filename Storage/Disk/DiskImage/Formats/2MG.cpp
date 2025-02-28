@@ -9,8 +9,7 @@
 #include "2MG.hpp"
 
 #include "MacintoshIMG.hpp"
-#include "../../../MassStorage/Formats/HDV.hpp"
-
+#include "Storage/MassStorage/Formats/HDV.hpp"
 
 #include <cstring>
 

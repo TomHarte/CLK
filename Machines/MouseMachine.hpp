@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Inputs/Mouse.hpp"
+#include "Inputs/Mouse.hpp"
 
 namespace MachineTypes {
 

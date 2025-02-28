@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include <array>
 #include <cstdint>

@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
-#include "../AccessType.hpp"
+#include "InstructionSets/AccessType.hpp"
 
 namespace InstructionSet::M50740 {
 

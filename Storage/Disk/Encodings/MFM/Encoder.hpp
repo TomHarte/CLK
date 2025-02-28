@@ -15,8 +15,8 @@
 
 #include "Constants.hpp"
 #include "Sector.hpp"
-#include "../../Track/Track.hpp"
-#include "../../../../Numeric/CRC.hpp"
+#include "Storage/Disk/Track/Track.hpp"
+#include "Numeric/CRC.hpp"
 
 namespace Storage::Encodings::MFM {
 

@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Outputs/CRT/CRT.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/DeferredQueue.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/DeferredQueue.hpp"
 
 #include <vector>
 

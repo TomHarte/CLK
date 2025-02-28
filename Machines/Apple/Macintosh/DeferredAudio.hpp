@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Audio.hpp"
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Apple::Macintosh {
 

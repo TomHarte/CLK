@@ -9,7 +9,7 @@
 #include "Blitter.hpp"
 
 #include "Minterms.hpp"
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include <cassert>
 

@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../DiskImage.hpp"
-#include "../../../FileHolder.hpp"
-#include "../../Encodings/MFM/Sector.hpp"
+#include "Storage/Disk/DiskImage/DiskImage.hpp"
+#include "Storage/Disk/Encodings/MFM/Sector.hpp"
+#include "Storage/FileHolder.hpp"
 
 #include <string>
 #include <vector>

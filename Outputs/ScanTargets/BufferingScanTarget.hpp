@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../ScanTarget.hpp"
-#include "../DisplayMetrics.hpp"
+#include "Outputs/ScanTarget.hpp"
+#include "Outputs/DisplayMetrics.hpp"
 
 #include <array>
 #include <atomic>

@@ -8,8 +8,8 @@
 
 #include "Executor.hpp"
 
-#include "../../Machines/Utility/MemoryFuzzer.hpp"
-#include "../../Outputs/Log.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Outputs/Log.hpp"
 
 #include <algorithm>
 #include <cassert>

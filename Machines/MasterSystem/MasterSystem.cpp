@@ -8,24 +8,24 @@
 
 #include "MasterSystem.hpp"
 
-#include "../../Processors/Z80/Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
-#include "../../Components/9918/9918.hpp"
-#include "../../Components/SN76489/SN76489.hpp"
-#include "../../Components/OPx/OPLL.hpp"
+#include "Components/9918/9918.hpp"
+#include "Components/SN76489/SN76489.hpp"
+#include "Components/OPx/OPLL.hpp"
 
-#include "../MachineTypes.hpp"
-#include "../../Configurable/Configurable.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Configurable/Configurable.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../ClockReceiver/JustInTime.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "ClockReceiver/JustInTime.hpp"
 
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
-#include "../../Analyser/Static/Sega/Target.hpp"
+#include "Analyser/Static/Sega/Target.hpp"
 
 #include <algorithm>
 #include <cassert>

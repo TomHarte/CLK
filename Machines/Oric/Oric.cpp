@@ -14,27 +14,27 @@
 #include "Microdisc.hpp"
 #include "Video.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../MachineTypes.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/StringSerialiser.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/StringSerialiser.hpp"
 
-#include "../../Processors/6502Esque/6502Selector.hpp"
-#include "../../Components/6522/6522.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
-#include "../../Components/DiskII/DiskII.hpp"
+#include "Processors/6502Esque/6502Selector.hpp"
+#include "Components/6522/6522.hpp"
+#include "Components/AY38910/AY38910.hpp"
+#include "Components/DiskII/DiskII.hpp"
 
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/Tape/Parsers/Oric.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Storage/Tape/Parsers/Oric.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../Configurable/StandardOptions.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "Configurable/StandardOptions.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#include "../../Analyser/Static/Oric/Target.hpp"
+#include "Analyser/Static/Oric/Target.hpp"
 
-#include "../../ClockReceiver/JustInTime.hpp"
+#include "ClockReceiver/JustInTime.hpp"
 
 #include <array>
 #include <cstdint>

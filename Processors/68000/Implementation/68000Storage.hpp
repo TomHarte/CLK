@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../InstructionSets/M68k/Decoder.hpp"
-#include "../../../InstructionSets/M68k/Perform.hpp"
-#include "../../../InstructionSets/M68k/Status.hpp"
+#include "InstructionSets/M68k/Decoder.hpp"
+#include "InstructionSets/M68k/Perform.hpp"
+#include "InstructionSets/M68k/Status.hpp"
 
 #include <limits>
 

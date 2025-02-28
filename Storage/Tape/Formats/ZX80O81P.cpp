@@ -7,7 +7,7 @@
 //
 
 #include "ZX80O81P.hpp"
-#include "../../Data/ZX8081.hpp"
+#include "Storage/Data/ZX8081.hpp"
 
 using namespace Storage::Tape;
 

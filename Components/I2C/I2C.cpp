@@ -8,7 +8,7 @@
 
 #include "I2C.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace I2C;
 

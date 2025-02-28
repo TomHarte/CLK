@@ -8,23 +8,23 @@
 
 #include "ZX8081.hpp"
 
-#include "../../MachineTypes.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../../../Components/AY38910/AY38910.hpp"
-#include "../../../Processors/Z80/Z80.hpp"
-#include "../../../Storage/Tape/Tape.hpp"
-#include "../../../Storage/Tape/Parsers/ZX8081.hpp"
+#include "Components/AY38910/AY38910.hpp"
+#include "Processors/Z80/Z80.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Storage/Tape/Parsers/ZX8081.hpp"
 
-#include "../../../ClockReceiver/ForceInline.hpp"
+#include "ClockReceiver/ForceInline.hpp"
 
-#include "../../Utility/MemoryFuzzer.hpp"
-#include "../../Utility/Typer.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/Typer.hpp"
 
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#include "../../../Analyser/Static/ZX8081/Target.hpp"
+#include "Analyser/Static/ZX8081/Target.hpp"
 
-#include "../Keyboard/Keyboard.hpp"
+#include "Machines/Sinclair/Keyboard/Keyboard.hpp"
 #include "Video.hpp"
 
 #include <cstdint>

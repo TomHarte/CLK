@@ -9,7 +9,7 @@
 #include "TZX.hpp"
 
 #include "CSW.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace Storage::Tape;
 

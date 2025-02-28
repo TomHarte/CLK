@@ -10,11 +10,11 @@
 
 #include <cstdint>
 #include <vector>
-#include "../../../InstructionSets/M50740/Executor.hpp"
+#include "InstructionSets/M50740/Executor.hpp"
 
-#include "../ADB/Bus.hpp"
-#include "../ADB/Mouse.hpp"
-#include "../ADB/Keyboard.hpp"
+#include "Machines/Apple/ADB/Bus.hpp"
+#include "Machines/Apple/ADB/Mouse.hpp"
+#include "Machines/Apple/ADB/Keyboard.hpp"
 
 namespace Apple::IIgs::ADB {
 

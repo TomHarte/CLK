@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Numeric/BitStream.hpp"
+#include "Numeric/BitStream.hpp"
 #include <sys/stat.h>
 #include <array>
 #include <cstdio>

@@ -9,7 +9,7 @@
 #include "StaticAnalyser.hpp"
 #include "Target.hpp"
 
-#include "../../../Storage/Disk/Parsers/FAT.hpp"
+#include "Storage/Disk/Parsers/FAT.hpp"
 
 #include <algorithm>
 

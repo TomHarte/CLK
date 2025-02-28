@@ -8,10 +8,8 @@
 
 #pragma once
 
+#include "Storage/MassStorage/SCSI/SCSI.hpp"
 #include <cstdint>
-
-#include "../../Storage/MassStorage/SCSI/SCSI.hpp"
-
 
 namespace NCR::NCR5380 {
 

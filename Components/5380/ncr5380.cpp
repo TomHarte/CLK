@@ -8,7 +8,7 @@
 
 #include "ncr5380.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 namespace {
 Log::Logger<Log::Source::NCR5380> logger;

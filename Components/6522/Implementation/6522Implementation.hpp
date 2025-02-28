@@ -6,7 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 // As-yet unimplemented (incomplete list):
 //

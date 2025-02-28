@@ -11,8 +11,8 @@
 #include "Constants.hpp"
 #include "Sector.hpp"
 #include "SegmentParser.hpp"
-#include "../../Track/Track.hpp"
-#include "../../Drive.hpp"
+#include "Storage/Disk/Track/Track.hpp"
+#include "Storage/Disk/Drive.hpp"
 
 #include <optional>
 

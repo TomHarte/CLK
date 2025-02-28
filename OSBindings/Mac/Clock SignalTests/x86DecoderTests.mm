@@ -8,10 +8,11 @@
 
 #import <XCTest/XCTest.h>
 
+#include "InstructionSets/x86/Decoder.hpp"
+
 #include <initializer_list>
 #include <optional>
 #include <vector>
-#include "../../../InstructionSets/x86/Decoder.hpp"
 
 using namespace InstructionSet::x86;
 

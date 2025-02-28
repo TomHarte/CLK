@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../DiskImage.hpp"
-#include "../../../FileHolder.hpp"
-#include "../../Encodings/MFM/Constants.hpp"
+#include "Storage/Disk/DiskImage/DiskImage.hpp"
+#include "Storage/FileHolder.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
 
 #include <string>
 

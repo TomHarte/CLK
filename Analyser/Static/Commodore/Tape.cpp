@@ -7,8 +7,7 @@
 //
 
 #include "Tape.hpp"
-
-#include "../../../Storage/Tape/Parsers/Commodore.hpp"
+#include "Storage/Tape/Parsers/Commodore.hpp"
 
 using namespace Analyser::Static::Commodore;
 

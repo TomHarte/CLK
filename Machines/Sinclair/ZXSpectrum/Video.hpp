@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "../../../Outputs/CRT/CRT.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
-#include "../../../Reflection/Struct.hpp"
+#include "Reflection/Struct.hpp"
 
 #include <algorithm>
 

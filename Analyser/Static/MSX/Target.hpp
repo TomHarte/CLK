@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Reflection/Enum.hpp"
-#include "../../../Reflection/Struct.hpp"
-#include "../StaticAnalyser.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Reflection/Enum.hpp"
+#include "Reflection/Struct.hpp"
 #include <string>
 
 namespace Analyser::Static::MSX {

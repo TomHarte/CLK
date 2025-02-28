@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../../Reflection/Enum.hpp"
-#include "../../../Reflection/Struct.hpp"
-#include "../6502.hpp"
+#include "Reflection/Enum.hpp"
+#include "Reflection/Struct.hpp"
+#include "Processors/6502/6502.hpp"
 
 namespace CPU::MOS6502 {
 

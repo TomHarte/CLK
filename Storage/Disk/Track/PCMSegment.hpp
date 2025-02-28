@@ -12,8 +12,8 @@
 #include <memory>
 #include <vector>
 
-#include "../../Storage.hpp"
-#include "../../../Numeric/LFSR.hpp"
+#include "Storage/Storage.hpp"
+#include "Numeric/LFSR.hpp"
 #include "Track.hpp"
 
 namespace Storage::Disk {

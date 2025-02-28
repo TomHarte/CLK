@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Components/1770/1770.hpp"
+#include "Components/1770/1770.hpp"
 
 namespace Archimedes {
 

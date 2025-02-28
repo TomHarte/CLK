@@ -8,7 +8,7 @@
 
 #include "Chipset.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include <algorithm>
 #include <cassert>

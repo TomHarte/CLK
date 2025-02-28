@@ -9,7 +9,7 @@
 #pragma once
 
 #include "ReactiveDevice.hpp"
-#include "../../../Inputs/Mouse.hpp"
+#include "Inputs/Mouse.hpp"
 
 namespace Apple::ADB {
 

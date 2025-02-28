@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../KeyboardMachine.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "Machines/KeyboardMachine.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 #include <mutex>
 #include <vector>

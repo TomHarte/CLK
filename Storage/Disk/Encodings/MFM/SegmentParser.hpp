@@ -10,7 +10,7 @@
 
 #include "Constants.hpp"
 #include "Sector.hpp"
-#include "../../Track/PCMSegment.hpp"
+#include "Storage/Disk/Track/PCMSegment.hpp"
 #include <map>
 
 namespace Storage::Encodings::MFM {

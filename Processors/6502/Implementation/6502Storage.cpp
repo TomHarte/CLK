@@ -6,7 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#include "../6502.hpp"
+#include "Processors/6502/6502.hpp"
 
 #include <cstring>
 

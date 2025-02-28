@@ -13,9 +13,9 @@
 #include "Track/PCMTrack.hpp"
 #include "Track/UnformattedTrack.hpp"
 
-#include "../TimedEventLoop.hpp"
-#include "../../Activity/Observer.hpp"
-#include "../../ClockReceiver/ClockingHintSource.hpp"
+#include "Storage/TimedEventLoop.hpp"
+#include "Activity/Observer.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
 
 #include <memory>
 

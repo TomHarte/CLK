@@ -8,12 +8,11 @@
 
 #pragma once
 
-#include "../../../Track/Track.hpp"
+#include "Storage/Disk/Track/Track.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+
 #include <memory>
 #include <vector>
-
-#include "../../../Encodings/MFM/Encoder.hpp"
-
 
 namespace Storage::Disk {
 

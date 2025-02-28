@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "../Perform.hpp"
-#include "../ExceptionVectors.hpp"
+#include "InstructionSets/M68k/Perform.hpp"
+#include "InstructionSets/M68k/ExceptionVectors.hpp"
 
 #include <cassert>
 

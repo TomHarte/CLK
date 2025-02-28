@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../6502Esque.hpp"
+#include "Processors/6502Esque/6502Esque.hpp"
 
 namespace CPU::MOS6502Esque {
 

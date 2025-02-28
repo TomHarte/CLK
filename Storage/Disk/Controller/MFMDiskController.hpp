@@ -9,9 +9,9 @@
 #pragma once
 
 #include "DiskController.hpp"
-#include "../../../Numeric/CRC.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../Encodings/MFM/Shifter.hpp"
+#include "Numeric/CRC.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Storage/Disk/Encodings/MFM/Shifter.hpp"
 
 namespace Storage::Disk {
 

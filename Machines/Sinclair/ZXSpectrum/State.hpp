@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "../../../Reflection/Struct.hpp"
-#include "../../../Processors/Z80/State/State.hpp"
+#include "Reflection/Struct.hpp"
+#include "Processors/Z80/State/State.hpp"
 
 #include "Video.hpp"
-#include "../../../Components/AY38910/AY38910.hpp"
+#include "Components/AY38910/AY38910.hpp"
 
 namespace Sinclair::ZXSpectrum {
 

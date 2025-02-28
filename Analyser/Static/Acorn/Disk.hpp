@@ -9,7 +9,7 @@
 #pragma once
 
 #include "File.hpp"
-#include "../../../Storage/Disk/Disk.hpp"
+#include "Storage/Disk/Disk.hpp"
 
 namespace Analyser::Static::Acorn {
 

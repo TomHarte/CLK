@@ -9,7 +9,7 @@
 #pragma once
 
 #include "ClockReceiver.hpp"
-#include "../Concurrency/AsyncTaskQueue.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
 #include "ClockingHintSource.hpp"
 #include "ForceInline.hpp"
 

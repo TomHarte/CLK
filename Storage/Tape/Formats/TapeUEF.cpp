@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <cmath>
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 namespace {
 Log::Logger<Log::Source::TapeUEF> logger;

@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../../Components/6845/CRTC6845.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../Machines/Utility/ROMCatalogue.hpp"
+#include "Components/6845/CRTC6845.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "Machines/Utility/ROMCatalogue.hpp"
 
 namespace PCCompatible {
 

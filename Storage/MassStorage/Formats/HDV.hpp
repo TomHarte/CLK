@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../MassStorageDevice.hpp"
-#include "../../FileHolder.hpp"
-#include "../Encodings/AppleIIVolume.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
+#include "Storage/FileHolder.hpp"
+#include "Storage/MassStorage/Encodings/AppleIIVolume.hpp"
 
 #include <limits>
 #include <vector>

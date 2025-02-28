@@ -9,7 +9,7 @@
 #pragma once
 
 #include "SCSI.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include <cassert>
 #include <cstring>

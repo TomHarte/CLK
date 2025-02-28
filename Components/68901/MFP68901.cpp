@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 namespace {
 

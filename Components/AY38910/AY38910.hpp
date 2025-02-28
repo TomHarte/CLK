@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
-#include "../../Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
 
-#include "../../Reflection/Struct.hpp"
+#include "Reflection/Struct.hpp"
 
 namespace GI::AY38910 {
 

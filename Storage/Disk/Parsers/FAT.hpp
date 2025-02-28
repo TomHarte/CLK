@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Disk.hpp"
+#include "Storage/Disk/Disk.hpp"
 
 #include <cstdint>
 #include <optional>

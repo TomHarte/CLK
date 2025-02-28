@@ -9,8 +9,8 @@
 #import <XCTest/XCTest.h>
 
 #import <CommonCrypto/CommonDigest.h>
-#include "../../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../../Analyser/Static/MSX/Cartridge.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Analyser/Static/MSX/Cartridge.hpp"
 
 @interface MSXROMRecord : NSObject
 @property(nonatomic, readonly) Analyser::Static::MSX::Cartridge::Type cartridgeType;

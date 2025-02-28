@@ -8,7 +8,7 @@
 
 #include "RP5C01.hpp"
 
-#include "../../Numeric/NumericCoder.hpp"
+#include "Numeric/NumericCoder.hpp"
 
 #include <ctime>
 

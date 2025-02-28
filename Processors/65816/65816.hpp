@@ -13,10 +13,10 @@
 #include <cstdint>
 #include <vector>
 
-#include "../../Numeric/RegisterSizes.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../6502Esque/6502Esque.hpp"
-#include "../6502Esque/Implementation/LazyFlags.hpp"
+#include "Numeric/RegisterSizes.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Processors/6502Esque/6502Esque.hpp"
+#include "Processors/6502Esque/Implementation/LazyFlags.hpp"
 
 namespace CPU::WDC65816 {
 

@@ -9,11 +9,11 @@
 #pragma once
 
 #include "Card.hpp"
-#include "../../ROMMachine.hpp"
+#include "Machines/ROMMachine.hpp"
 
-#include "../../../Components/DiskII/DiskII.hpp"
-#include "../../../Storage/Disk/Disk.hpp"
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
+#include "Components/DiskII/DiskII.hpp"
+#include "Storage/Disk/Disk.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
 
 #include <cstdint>
 #include <memory>

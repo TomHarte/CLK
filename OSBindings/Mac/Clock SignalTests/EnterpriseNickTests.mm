@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Machines/Enterprise/Nick.hpp"
+#include "Machines/Enterprise/Nick.hpp"
 #include <memory>
 
 @interface EnterpriseNickTests : XCTestCase

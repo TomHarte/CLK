@@ -8,7 +8,7 @@
 
 #include "DMAController.hpp"
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include <cstdio>
 

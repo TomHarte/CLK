@@ -7,14 +7,14 @@
 //
 
 #include "Disk.hpp"
-#include "../../../Storage/Disk/Controller/DiskController.hpp"
-#include "../../../Storage/Disk/Encodings/CommodoreGCR.hpp"
-#include "../../../Storage/Data/Commodore.hpp"
+#include "Storage/Disk/Controller/DiskController.hpp"
+#include "Storage/Disk/Encodings/CommodoreGCR.hpp"
+#include "Storage/Data/Commodore.hpp"
 
-#include <limits>
-#include <vector>
 #include <array>
+#include <limits>
 #include <unordered_map>
+#include <vector>
 
 using namespace Analyser::Static::Commodore;
 

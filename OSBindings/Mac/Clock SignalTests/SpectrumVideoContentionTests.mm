@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Machines/Sinclair/ZXSpectrum/Video.hpp"
+#include "Machines/Sinclair/ZXSpectrum/Video.hpp"
 
 @interface SpectrumVideoContentionTests : XCTestCase
 @end

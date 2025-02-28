@@ -13,7 +13,7 @@
 #include <memory>
 #include <vector>
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 namespace Storage {
 

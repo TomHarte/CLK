@@ -8,7 +8,7 @@
 
 #include "MFMSectorDump.hpp"
 
-#include "Utility/ImplicitSectors.hpp"
+#include "Storage/Disk/DiskImage/Formats/Utility/ImplicitSectors.hpp"
 
 using namespace Storage::Disk;
 

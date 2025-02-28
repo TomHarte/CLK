@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../../Machines/DynamicMachine.hpp"
-#include "../../../../Configurable/Configurable.hpp"
+#include "Machines/DynamicMachine.hpp"
+#include "Configurable/Configurable.hpp"
 
 #include <memory>
 #include <vector>

@@ -9,9 +9,9 @@
 #include "Encoder.hpp"
 
 #include "Constants.hpp"
-#include "../../Track/PCMTrack.hpp"
-#include "../../../../Numeric/CRC.hpp"
-#include "../../../../Numeric/BitSpread.hpp"
+#include "Storage/Disk/Track/PCMTrack.hpp"
+#include "Numeric/CRC.hpp"
+#include "Numeric/BitSpread.hpp"
 
 #include <cassert>
 #include <set>

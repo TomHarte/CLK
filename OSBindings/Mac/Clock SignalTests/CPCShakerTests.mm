@@ -13,9 +13,9 @@
 
 #include "CSL.hpp"
 #include "AmstradCPC.hpp"
-#include "../../../Analyser/Static/AmstradCPC/Target.hpp"
-#include "../../../Machines/AmstradCPC/Keyboard.hpp"
-#include "../../../Outputs/ScanTarget.hpp"
+#include "Analyser/Static/AmstradCPC/Target.hpp"
+#include "Machines/AmstradCPC/Keyboard.hpp"
+#include "Outputs/ScanTarget.hpp"
 #include "CSROMFetcher.hpp"
 #include "TimedMachine.hpp"
 #include "MediaTarget.hpp"

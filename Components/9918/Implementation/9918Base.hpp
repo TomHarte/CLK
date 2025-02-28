@@ -10,9 +10,9 @@
 
 #include "ClockConverter.hpp"
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Numeric/BitReverse.hpp"
-#include "../../../Outputs/CRT/CRT.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Numeric/BitReverse.hpp"
+#include "Outputs/CRT/CRT.hpp"
 
 #include "AccessEnums.hpp"
 #include "LineBuffer.hpp"

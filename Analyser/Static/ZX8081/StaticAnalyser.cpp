@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "Target.hpp"
-#include "../../../Storage/Tape/Parsers/ZX8081.hpp"
+#include "Storage/Tape/Parsers/ZX8081.hpp"
 
 static std::vector<Storage::Data::ZX8081::File> GetFiles(Storage::Tape::TapeSerialiser &serialiser) {
 	std::vector<Storage::Data::ZX8081::File> files;

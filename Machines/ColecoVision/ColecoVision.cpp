@@ -8,23 +8,23 @@
 
 #include "ColecoVision.hpp"
 
-#include "../../Processors/Z80/Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
-#include "../../Components/9918/9918.hpp"
-#include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
-#include "../../Components/SN76489/SN76489.hpp"
+#include "Components/9918/9918.hpp"
+#include "Components/AY38910/AY38910.hpp"	// For the Super Game Module.
+#include "Components/SN76489/SN76489.hpp"
 
-#include "../MachineTypes.hpp"
-#include "../../Configurable/Configurable.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Configurable/Configurable.hpp"
 
-#include "../../Configurable/StandardOptions.hpp"
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../ClockReceiver/JustInTime.hpp"
+#include "Configurable/StandardOptions.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "ClockReceiver/JustInTime.hpp"
 
-#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
+#include "Analyser/Dynamic/ConfidenceCounter.hpp"
 
 namespace {
 constexpr int sn76489_divider = 2;

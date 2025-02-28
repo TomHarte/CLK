@@ -9,8 +9,8 @@
 #import <XCTest/XCTest.h>
 
 #import <CommonCrypto/CommonDigest.h>
-#include "../../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../../Analyser/Static/Commodore/Target.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Analyser/Static/Commodore/Target.hpp"
 
 #include <atomic>
 

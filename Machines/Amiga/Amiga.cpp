@@ -8,17 +8,17 @@
 
 #include "Amiga.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../MachineTypes.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../../Processors/68000/68000.hpp"
+#include "Processors/68000/68000.hpp"
 
-#include "../../Analyser/Static/Amiga/Target.hpp"
+#include "Analyser/Static/Amiga/Target.hpp"
 
-#include "../Utility/MemoryPacker.hpp"
-#include "../Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/MemoryPacker.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 #include "Chipset.hpp"
 #include "Keyboard.hpp"

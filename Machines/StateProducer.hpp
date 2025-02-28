@@ -9,7 +9,7 @@
 #pragma once
 
 #include <memory>
-#include "../Analyser/Static/StaticAnalyser.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
 
 namespace MachineTypes {
 

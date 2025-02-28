@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../Inputs/Joystick.hpp"
+#include "Inputs/Joystick.hpp"
 
 #include <memory>
 #include <vector>

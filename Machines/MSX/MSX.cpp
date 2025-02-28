@@ -8,46 +8,46 @@
 
 #include "MSX.hpp"
 
-#include <algorithm>
-
 #include "DiskROM.hpp"
 #include "Keyboard.hpp"
 #include "MemorySlotHandler.hpp"
 
-#include "../../Analyser/Static/MSX/Cartridge.hpp"
-#include "Cartridges/ASCII8kb.hpp"
-#include "Cartridges/ASCII16kb.hpp"
-#include "Cartridges/Konami.hpp"
-#include "Cartridges/KonamiWithSCC.hpp"
+#include "Analyser/Static/MSX/Cartridge.hpp"
+#include "Machines/MSX/Cartridges/ASCII8kb.hpp"
+#include "Machines/MSX/Cartridges/ASCII16kb.hpp"
+#include "Machines/MSX/Cartridges/Konami.hpp"
+#include "Machines/MSX/Cartridges/KonamiWithSCC.hpp"
 
-#include "../../Processors/Z80/Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
-#include "../../Components/1770/1770.hpp"
-#include "../../Components/8255/i8255.hpp"
-#include "../../Components/9918/9918.hpp"
-#include "../../Components/AudioToggle/AudioToggle.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
-#include "../../Components/KonamiSCC/KonamiSCC.hpp"
-#include "../../Components/OPx/OPLL.hpp"
-#include "../../Components/RP5C01/RP5C01.hpp"
+#include "Components/1770/1770.hpp"
+#include "Components/8255/i8255.hpp"
+#include "Components/9918/9918.hpp"
+#include "Components/AudioToggle/AudioToggle.hpp"
+#include "Components/AY38910/AY38910.hpp"
+#include "Components/KonamiSCC/KonamiSCC.hpp"
+#include "Components/OPx/OPLL.hpp"
+#include "Components/RP5C01/RP5C01.hpp"
 
-#include "../../Storage/Tape/Parsers/MSX.hpp"
-#include "../../Storage/Tape/Tape.hpp"
+#include "Storage/Tape/Parsers/MSX.hpp"
+#include "Storage/Tape/Tape.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../MachineTypes.hpp"
-#include "../../Configurable/Configurable.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Configurable/Configurable.hpp"
 
-#include "../../Outputs/Log.hpp"
-#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "Outputs/Log.hpp"
+#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
-#include "../../Configurable/StandardOptions.hpp"
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../ClockReceiver/JustInTime.hpp"
+#include "Configurable/StandardOptions.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "ClockReceiver/JustInTime.hpp"
 
-#include "../../Analyser/Static/MSX/Target.hpp"
+#include "Analyser/Static/MSX/Target.hpp"
+
+#include <algorithm>
 
 namespace {
 Log::Logger<Log::Source::MSX> logger;

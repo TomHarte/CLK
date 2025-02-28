@@ -10,28 +10,28 @@
 
 #include "Keyboard.hpp"
 
-#include "../../../Activity/Source.hpp"
-#include "../../MachineTypes.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../../../Processors/6502/6502.hpp"
-#include "../../../Components/6560/6560.hpp"
-#include "../../../Components/6522/6522.hpp"
+#include "Processors/6502/6502.hpp"
+#include "Components/6560/6560.hpp"
+#include "Components/6522/6522.hpp"
 
-#include "../../../ClockReceiver/ForceInline.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "Outputs/Log.hpp"
 
-#include "../../../Storage/Tape/Parsers/Commodore.hpp"
+#include "Storage/Tape/Parsers/Commodore.hpp"
 
-#include "../SerialBus.hpp"
-#include "../1540/C1540.hpp"
+#include "Machines/Commodore/SerialBus.hpp"
+#include "Machines/Commodore/1540/C1540.hpp"
 
-#include "../../../Storage/Tape/Tape.hpp"
-#include "../../../Storage/Disk/Disk.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Storage/Disk/Disk.hpp"
 
-#include "../../../Configurable/StandardOptions.hpp"
+#include "Configurable/StandardOptions.hpp"
 
-#include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
-#include "../../../Analyser/Static/Commodore/Target.hpp"
+#include "Analyser/Dynamic/ConfidenceCounter.hpp"
+#include "Analyser/Static/Commodore/Target.hpp"
 
 #include <algorithm>
 #include <array>

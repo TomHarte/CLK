@@ -11,8 +11,8 @@
 #include <array>
 #include <atomic>
 
-#include "../../Inputs/Joystick.hpp"
-#include "../../Inputs/Mouse.hpp"
+#include "Inputs/Joystick.hpp"
+#include "Inputs/Mouse.hpp"
 
 namespace Amiga {
 

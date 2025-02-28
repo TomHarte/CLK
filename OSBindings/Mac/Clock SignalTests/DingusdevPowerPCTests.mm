@@ -8,9 +8,8 @@
 
 #import <XCTest/XCTest.h>
 
+#include "InstructionSets/PowerPC/Decoder.hpp"
 #include <cstdlib>
-
-#include "../../../InstructionSets/PowerPC/Decoder.hpp"
 
 using namespace InstructionSet::PowerPC;
 

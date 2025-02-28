@@ -14,8 +14,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "../AppleII/LanguageCardSwitches.hpp"
-#include "../AppleII/AuxiliaryMemorySwitches.hpp"
+#include "Machines/Apple/AppleII/LanguageCardSwitches.hpp"
+#include "Machines/Apple/AppleII/AuxiliaryMemorySwitches.hpp"
 
 namespace Apple::IIgs {
 

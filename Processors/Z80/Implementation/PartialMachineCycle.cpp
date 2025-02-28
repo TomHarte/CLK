@@ -6,7 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#include "../Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
 using namespace CPU::Z80;
 

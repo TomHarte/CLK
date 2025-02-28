@@ -8,11 +8,11 @@
 
 #include "SZX.hpp"
 
-#include "../FileHolder.hpp"
+#include "Storage/FileHolder.hpp"
 
-#include "../../Analyser/Static/ZXSpectrum/Target.hpp"
-#include "../../Machines/Sinclair/ZXSpectrum/State.hpp"
-#include "../../Outputs/Log.hpp"
+#include "Analyser/Static/ZXSpectrum/Target.hpp"
+#include "Machines/Sinclair/ZXSpectrum/State.hpp"
+#include "Outputs/Log.hpp"
 
 #include <zlib.h>
 

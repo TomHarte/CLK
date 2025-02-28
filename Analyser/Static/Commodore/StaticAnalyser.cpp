@@ -12,11 +12,11 @@
 #include "File.hpp"
 #include "Tape.hpp"
 #include "Target.hpp"
-#include "../../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Storage/Cartridge/Encodings/CommodoreROM.hpp"
+#include "Outputs/Log.hpp"
 
-#include "../Disassembler/6502.hpp"
-#include "../Disassembler/AddressMapper.hpp"
+#include "Analyser/Static/Disassembler/6502.hpp"
+#include "Analyser/Static/Disassembler/AddressMapper.hpp"
 
 #include <algorithm>
 #include <cstring>

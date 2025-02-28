@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 #include "BlitterSequencer.hpp"
 #include "DMADevice.hpp"
 

@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include "Storage/Disk/Disk.hpp"
+#include "Storage/Disk/Track/Track.hpp"
+#include "Storage/TargetPlatforms.hpp"
+
 #include <map>
 #include <memory>
-
-#include "../Disk.hpp"
-#include "../Track/Track.hpp"
-#include "../../TargetPlatforms.hpp"
 
 namespace Storage::Disk {
 

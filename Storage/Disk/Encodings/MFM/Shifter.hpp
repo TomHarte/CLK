@@ -10,7 +10,7 @@
 
 #include <cstdint>
 #include <memory>
-#include "../../../../Numeric/CRC.hpp"
+#include "Numeric/CRC.hpp"
 
 namespace Storage::Encodings::MFM {
 

@@ -7,9 +7,9 @@
 //
 
 #import "TestMachine6502.h"
-#include <stdint.h>
-#include "../../../../Processors/6502/AllRAM/6502AllRAM.hpp"
+#include "Processors/6502/AllRAM/6502AllRAM.hpp"
 #import "TestMachine+ForSubclassEyesOnly.h"
+#include <cstdint>
 
 const uint8_t CSTestMachine6502JamOpcode = CPU::MOS6502::JamOpcode;
 
