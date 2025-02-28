@@ -10,8 +10,8 @@
 
 #include <deque>
 
-#include "../../../Numeric/CRC.hpp"
-#include "../../../Storage/Tape/Parsers/Acorn.hpp"
+#include "Numeric/CRC.hpp"
+#include "Storage/Tape/Parsers/Acorn.hpp"
 
 using namespace Analyser::Static::Acorn;
 

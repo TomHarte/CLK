@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../Outputs/Speaker/Speaker.hpp"
+#include "Outputs/Speaker/Speaker.hpp"
 
 namespace MachineTypes {
 

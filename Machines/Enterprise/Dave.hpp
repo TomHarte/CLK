@@ -10,10 +10,10 @@
 
 #include <cstdint>
 
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../Numeric/LFSR.hpp"
-#include "../../Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Numeric/LFSR.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace Enterprise::Dave {
 

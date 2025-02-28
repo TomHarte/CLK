@@ -9,7 +9,7 @@
 #pragma once
 
 #include "TapeParser.hpp"
-#include "../../TargetPlatforms.hpp"
+#include "Storage/TargetPlatforms.hpp"
 #include <memory>
 #include <string>
 

@@ -8,14 +8,14 @@
 
 #pragma once
 
-#include "../Machines.hpp"
+#include "Analyser/Machines.hpp"
 
-#include "../../Storage/Cartridge/Cartridge.hpp"
-#include "../../Storage/Disk/Disk.hpp"
-#include "../../Storage/MassStorage/MassStorageDevice.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/TargetPlatforms.hpp"
-#include "../../Reflection/Struct.hpp"
+#include "Storage/Cartridge/Cartridge.hpp"
+#include "Storage/Disk/Disk.hpp"
+#include "Storage/MassStorage/MassStorageDevice.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Storage/TargetPlatforms.hpp"
+#include "Reflection/Struct.hpp"
 
 #include <memory>
 #include <string>

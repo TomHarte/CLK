@@ -6,6 +6,22 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Machines/Utility/MachineForTarget.hpp"
+
+#include "ClockReceiver/TimeTypes.hpp"
+#include "ClockReceiver/ScanSynchroniser.hpp"
+
+#include "Machines/MachineTypes.hpp"
+
+#include "Activity/Observer.hpp"
+#include "Outputs/OpenGL/Primitives/Rectangle.hpp"
+#include "Outputs/OpenGL/ScanTarget.hpp"
+#include "Outputs/OpenGL/Screenshot.hpp"
+
+#include "Reflection/Enum.hpp"
+#include "Reflection/Struct.hpp"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -20,22 +36,6 @@
 #include <sys/stat.h>
 
 #include <SDL.h>
-
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../Machines/Utility/MachineForTarget.hpp"
-
-#include "../../ClockReceiver/TimeTypes.hpp"
-#include "../../ClockReceiver/ScanSynchroniser.hpp"
-
-#include "../../Machines/MachineTypes.hpp"
-
-#include "../../Activity/Observer.hpp"
-#include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
-#include "../../Outputs/OpenGL/ScanTarget.hpp"
-#include "../../Outputs/OpenGL/Screenshot.hpp"
-
-#include "../../Reflection/Enum.hpp"
-#include "../../Reflection/Struct.hpp"
 
 namespace {
 

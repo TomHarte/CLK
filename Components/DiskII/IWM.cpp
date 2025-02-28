@@ -8,7 +8,7 @@
 
 #include "IWM.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace Apple;
 

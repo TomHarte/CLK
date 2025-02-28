@@ -8,33 +8,32 @@
 
 #include "AtariST.hpp"
 
-#include "../../MachineTypes.hpp"
-#include "../../../Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Activity/Source.hpp"
 
 //#define LOG_TRACE
 //bool should_log = false;
-#include "../../../Processors/68000/68000.hpp"
+#include "Processors/68000/68000.hpp"
 
-#include "../../../Components/AY38910/AY38910.hpp"
-#include "../../../Components/68901/MFP68901.hpp"
-#include "../../../Components/6850/6850.hpp"
+#include "Components/AY38910/AY38910.hpp"
+#include "Components/68901/MFP68901.hpp"
+#include "Components/6850/6850.hpp"
 
 #include "DMAController.hpp"
 #include "IntelligentKeyboard.hpp"
 #include "Video.hpp"
 
-#include "../../../ClockReceiver/JustInTime.hpp"
-#include "../../../ClockReceiver/ForceInline.hpp"
-#include "../../../Configurable/StandardOptions.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "Configurable/StandardOptions.hpp"
 
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Log.hpp"
 
-#include "../../../Outputs/Log.hpp"
+#include "Machines/Utility/MemoryPacker.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 
-#include "../../Utility/MemoryPacker.hpp"
-#include "../../Utility/MemoryFuzzer.hpp"
-
-#include "../../../Analyser/Static/AtariST/Target.hpp"
+#include "Analyser/Static/AtariST/Target.hpp"
 
 namespace {
 Log::Logger<Log::Source::AtariST> logger;

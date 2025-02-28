@@ -8,7 +8,7 @@
 
 #include "z8530.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace Zilog::SCC;
 

@@ -15,36 +15,36 @@
 #include "Keyboard.hpp"
 #include "Video.hpp"
 
-#include "../../MachineTypes.hpp"
-#include "../../../Activity/Source.hpp"
-#include "../../../Configurable/Configurable.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Activity/Source.hpp"
+#include "Configurable/Configurable.hpp"
 
-#include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Inputs/QuadratureMouse/QuadratureMouse.hpp"
+#include "Outputs/Log.hpp"
 
-#include "../../../ClockReceiver/JustInTime.hpp"
-#include "../../../ClockReceiver/ClockingHintSource.hpp"
-#include "../../../Configurable/StandardOptions.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+#include "ClockReceiver/ClockingHintSource.hpp"
+#include "Configurable/StandardOptions.hpp"
 
 //#define LOG_TRACE
 
-#include "../../../Components/5380/ncr5380.hpp"
-#include "../../../Components/6522/6522.hpp"
-#include "../../../Components/8530/z8530.hpp"
-#include "../../../Components/AppleClock/AppleClock.hpp"
-#include "../../../Components/DiskII/IWM.hpp"
-#include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
+#include "Components/5380/ncr5380.hpp"
+#include "Components/6522/6522.hpp"
+#include "Components/8530/z8530.hpp"
+#include "Components/AppleClock/AppleClock.hpp"
+#include "Components/DiskII/IWM.hpp"
+#include "Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 
-#include "../../../Processors/68000/68000.hpp"
+#include "Processors/68000/68000.hpp"
 
-#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
-#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
-#include "../../../Storage/MassStorage/Encodings/MacintoshVolume.hpp"
+#include "Storage/MassStorage/SCSI/SCSI.hpp"
+#include "Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+#include "Storage/MassStorage/Encodings/MacintoshVolume.hpp"
 
-#include "../../../Analyser/Static/Macintosh/Target.hpp"
+#include "Analyser/Static/Macintosh/Target.hpp"
 
-#include "../../Utility/MemoryPacker.hpp"
-#include "../../Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/MemoryPacker.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 
 namespace {
 

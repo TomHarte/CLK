@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../Outputs/Log.hpp"
-#include "../../../Outputs/CRT/CRT.hpp"
+#include "Outputs/Log.hpp"
+#include "Outputs/CRT/CRT.hpp"
 
 #include <array>
 #include <cassert>

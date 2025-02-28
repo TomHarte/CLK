@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
-#include "../../../Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
 
 namespace Commodore::Plus4 {
 

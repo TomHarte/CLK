@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <memory>
-
 #include "File.hpp"
-#include "../../../Storage/Tape/Tape.hpp"
+#include "Storage/Tape/Tape.hpp"
+
+#include <vector>
 
 namespace Analyser::Static::Acorn {
 

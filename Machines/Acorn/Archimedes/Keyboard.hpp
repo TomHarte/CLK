@@ -10,8 +10,8 @@
 
 #include "HalfDuplexSerial.hpp"
 
-#include "../../../Outputs/Log.hpp"
-#include "../../../Inputs/Mouse.hpp"
+#include "Outputs/Log.hpp"
+#include "Inputs/Mouse.hpp"
 
 #include <bitset>
 

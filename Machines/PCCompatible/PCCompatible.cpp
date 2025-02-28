@@ -17,34 +17,34 @@
 #include "PIT.hpp"
 #include "RTC.hpp"
 
-#include "../../Activity/Source.hpp"
+#include "Activity/Source.hpp"
 
-#include "../../InstructionSets/x86/Decoder.hpp"
-#include "../../InstructionSets/x86/Flags.hpp"
-#include "../../InstructionSets/x86/Instruction.hpp"
-#include "../../InstructionSets/x86/Perform.hpp"
+#include "InstructionSets/x86/Decoder.hpp"
+#include "InstructionSets/x86/Flags.hpp"
+#include "InstructionSets/x86/Instruction.hpp"
+#include "InstructionSets/x86/Perform.hpp"
 
-#include "../../Components/8255/i8255.hpp"
-#include "../../Components/8272/CommandDecoder.hpp"
-#include "../../Components/8272/Results.hpp"
-#include "../../Components/8272/Status.hpp"
-#include "../../Components/AudioToggle/AudioToggle.hpp"
+#include "Components/8255/i8255.hpp"
+#include "Components/8272/CommandDecoder.hpp"
+#include "Components/8272/Results.hpp"
+#include "Components/8272/Status.hpp"
+#include "Components/AudioToggle/AudioToggle.hpp"
 
-#include "../../Numeric/RegisterSizes.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#include "../../Storage/Disk/Track/TrackSerialiser.hpp"
-#include "../../Storage/Disk/Encodings/MFM/Parser.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Storage/Disk/Encodings/MFM/Parser.hpp"
 
-#include "../AudioProducer.hpp"
-#include "../KeyboardMachine.hpp"
-#include "../MediaTarget.hpp"
-#include "../ScanProducer.hpp"
-#include "../TimedMachine.hpp"
+#include "Machines/AudioProducer.hpp"
+#include "Machines/KeyboardMachine.hpp"
+#include "Machines/MediaTarget.hpp"
+#include "Machines/ScanProducer.hpp"
+#include "Machines/TimedMachine.hpp"
 
-#include "../../Analyser/Static/PCCompatible/Target.hpp"
+#include "Analyser/Static/PCCompatible/Target.hpp"
 
 #include <array>
 #include <iostream>

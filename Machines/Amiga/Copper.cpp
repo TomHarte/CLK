@@ -9,7 +9,7 @@
 #include "Copper.hpp"
 #include "Chipset.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace Amiga;
 

@@ -11,28 +11,28 @@
 #include "Keyboard.hpp"
 #include "FDC.hpp"
 
-#include "../../Processors/Z80/Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
-#include "../../Components/6845/CRTC6845.hpp"
-#include "../../Components/8255/i8255.hpp"
-#include "../../Components/AY38910/AY38910.hpp"
+#include "Components/6845/CRTC6845.hpp"
+#include "Components/8255/i8255.hpp"
+#include "Components/AY38910/AY38910.hpp"
 
-#include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/Typer.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/Typer.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../MachineTypes.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/Tape/Parsers/Spectrum.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Storage/Tape/Parsers/Spectrum.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/CRT/CRT.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/CRT/CRT.hpp"
 
-#include "../../Analyser/Static/AmstradCPC/Target.hpp"
+#include "Analyser/Static/AmstradCPC/Target.hpp"
 
-#include "../../Numeric/CRC.hpp"
+#include "Numeric/CRC.hpp"
 
 #include <array>
 #include <cstdint>

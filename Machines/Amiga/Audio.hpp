@@ -12,9 +12,9 @@
 #include <cstdint>
 
 #include "DMADevice.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Amiga {
 

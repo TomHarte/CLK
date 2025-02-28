@@ -15,23 +15,23 @@
 #include "MemoryController.hpp"
 #include "Sound.hpp"
 
-#include "../../../Configurable/Configurable.hpp"
+#include "Configurable/Configurable.hpp"
 
-#include "../../AudioProducer.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../MouseMachine.hpp"
-#include "../../ScanProducer.hpp"
-#include "../../TimedMachine.hpp"
+#include "Machines/AudioProducer.hpp"
+#include "Machines/KeyboardMachine.hpp"
+#include "Machines/MediaTarget.hpp"
+#include "Machines/MouseMachine.hpp"
+#include "Machines/ScanProducer.hpp"
+#include "Machines/TimedMachine.hpp"
 
-#include "../../../Activity/Source.hpp"
+#include "Activity/Source.hpp"
 
-#include "../../../InstructionSets/ARM/Disassembler.hpp"
-#include "../../../InstructionSets/ARM/Executor.hpp"
-#include "../../../Outputs/Log.hpp"
-#include "../../../Components/I2C/I2C.hpp"
+#include "InstructionSets/ARM/Disassembler.hpp"
+#include "InstructionSets/ARM/Executor.hpp"
+#include "Outputs/Log.hpp"
+#include "Components/I2C/I2C.hpp"
 
-#include "../../../Analyser/Static/Acorn/Target.hpp"
+#include "Analyser/Static/Acorn/Target.hpp"
 
 #include <algorithm>
 #include <array>

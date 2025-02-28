@@ -12,33 +12,33 @@
 #include "Video.hpp"
 #include "Machines/Sinclair/Keyboard/Keyboard.hpp"
 
-#include "../../../Activity/Source.hpp"
-#include "../../MachineTypes.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
 
-#include "../../../Processors/Z80/Z80.hpp"
+#include "Processors/Z80/Z80.hpp"
 
-#include "../../../Components/AudioToggle/AudioToggle.hpp"
-#include "../../../Components/AY38910/AY38910.hpp"
+#include "Components/AudioToggle/AudioToggle.hpp"
+#include "Components/AY38910/AY38910.hpp"
 
 // TODO: possibly there's a better factoring than this, but for now
 // just grab the CPC's version of an FDC.
-#include "../../AmstradCPC/FDC.hpp"
+#include "Machines/AmstradCPC/FDC.hpp"
 
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
-#include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
-#include "../../../Storage/Tape/Tape.hpp"
-#include "../../../Storage/Tape/Parsers/Spectrum.hpp"
+#include "Storage/Tape/Tape.hpp"
+#include "Storage/Tape/Parsers/Spectrum.hpp"
 
-#include "../../../Analyser/Static/ZXSpectrum/Target.hpp"
+#include "Analyser/Static/ZXSpectrum/Target.hpp"
 
-#include "../../Utility/MemoryFuzzer.hpp"
-#include "../../Utility/Typer.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/Typer.hpp"
 
-#include "../../../ClockReceiver/JustInTime.hpp"
+#include "ClockReceiver/JustInTime.hpp"
 
 #include <array>
 

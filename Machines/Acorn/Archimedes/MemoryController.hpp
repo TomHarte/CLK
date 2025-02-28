@@ -12,9 +12,9 @@
 #include "Video.hpp"
 #include "Sound.hpp"
 
-#include "../../../InstructionSets/ARM/Registers.hpp"
-#include "../../../Outputs/Log.hpp"
-#include "../../../Activity/Observer.hpp"
+#include "InstructionSets/ARM/Registers.hpp"
+#include "Outputs/Log.hpp"
+#include "Activity/Observer.hpp"
 
 namespace Archimedes {
 

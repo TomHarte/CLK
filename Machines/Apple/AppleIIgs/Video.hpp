@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../AppleII/VideoSwitches.hpp"
-#include "../../../Outputs/CRT/CRT.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "Machines/Apple/AppleII/VideoSwitches.hpp"
+#include "Outputs/CRT/CRT.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 namespace Apple::IIgs::Video {
 

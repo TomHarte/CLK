@@ -7,7 +7,7 @@
 //
 
 #include "DirectAccessDevice.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 using namespace SCSI;
 

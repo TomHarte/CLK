@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../../Machines/MediaTarget.hpp"
-#include "../../../../Machines/DynamicMachine.hpp"
+#include "Machines/MediaTarget.hpp"
+#include "Machines/DynamicMachine.hpp"
 
 #include <memory>
 #include <vector>

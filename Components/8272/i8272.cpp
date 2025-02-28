@@ -8,7 +8,7 @@
 
 #include "i8272.hpp"
 
-#include "../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 namespace {
 

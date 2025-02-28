@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../Components/I2C/I2C.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Components/I2C/I2C.hpp"
+#include "Outputs/Log.hpp"
 
 #include <array>
 

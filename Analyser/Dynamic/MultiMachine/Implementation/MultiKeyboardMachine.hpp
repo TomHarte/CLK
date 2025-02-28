@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../../../../Machines/DynamicMachine.hpp"
-#include "../../../../Machines/KeyboardMachine.hpp"
+#include "Machines/DynamicMachine.hpp"
+#include "Machines/KeyboardMachine.hpp"
 
 #include <memory>
 #include <vector>

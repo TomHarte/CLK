@@ -10,7 +10,7 @@
 
 #include "Target.hpp"
 
-#include "../Disassembler/6502.hpp"
+#include "Analyser/Static/Disassembler/6502.hpp"
 
 using namespace Analyser::Static::Atari2600;
 using Target = Analyser::Static::Atari2600::Target;

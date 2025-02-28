@@ -8,14 +8,14 @@
 
 #pragma once
 
-#include "../../../Machines/DynamicMachine.hpp"
+#include "Machines/DynamicMachine.hpp"
 
-#include "Implementation/MultiProducer.hpp"
-#include "Implementation/MultiConfigurable.hpp"
-#include "Implementation/MultiProducer.hpp"
-#include "Implementation/MultiJoystickMachine.hpp"
-#include "Implementation/MultiKeyboardMachine.hpp"
-#include "Implementation/MultiMediaTarget.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiProducer.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiConfigurable.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiProducer.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiJoystickMachine.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiKeyboardMachine.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiMediaTarget.hpp"
 
 #include <memory>
 #include <mutex>

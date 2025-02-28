@@ -7,7 +7,7 @@
 //
 
 #include "PCMTrack.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Log.hpp"
 
 namespace {
 

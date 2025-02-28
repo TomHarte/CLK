@@ -10,9 +10,9 @@
 
 #include <atomic>
 
-#include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../../Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
 namespace Apple::IIgs::Sound {
 

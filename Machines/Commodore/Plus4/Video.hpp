@@ -11,8 +11,8 @@
 #include "Interrupts.hpp"
 #include "Pager.hpp"
 
-#include "../../../Numeric/UpperBound.hpp"
-#include "../../../Outputs/CRT/CRT.hpp"
+#include "Numeric/UpperBound.hpp"
+#include "Outputs/CRT/CRT.hpp"
 
 #include <algorithm>
 #include <array>

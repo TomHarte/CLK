@@ -8,9 +8,9 @@
 
 #include "Disk.hpp"
 
-#include "../../../Storage/Disk/Controller/DiskController.hpp"
-#include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
-#include "../../../Numeric/CRC.hpp"
+#include "Storage/Disk/Controller/DiskController.hpp"
+#include "Storage/Disk/Encodings/MFM/Parser.hpp"
+#include "Numeric/CRC.hpp"
 
 #include <algorithm>
 #include <cstring>

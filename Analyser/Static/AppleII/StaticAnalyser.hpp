@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "../StaticAnalyser.hpp"
-#include "../../../Storage/TargetPlatforms.hpp"
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Storage/TargetPlatforms.hpp"
 #include <string>
 
 namespace Analyser::Static::AppleII {

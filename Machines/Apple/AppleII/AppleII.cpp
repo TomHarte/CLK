@@ -8,18 +8,18 @@
 
 #include "AppleII.hpp"
 
-#include "../../../Activity/Source.hpp"
-#include "../../MachineTypes.hpp"
-#include "../../Utility/MemoryFuzzer.hpp"
-#include "../../Utility/StringSerialiser.hpp"
+#include "Activity/Source.hpp"
+#include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/StringSerialiser.hpp"
 
-#include "../../../Processors/6502/6502.hpp"
-#include "../../../Components/AudioToggle/AudioToggle.hpp"
-#include "../../../Components/AY38910/AY38910.hpp"
+#include "Processors/6502/6502.hpp"
+#include "Components/AudioToggle/AudioToggle.hpp"
+#include "Components/AY38910/AY38910.hpp"
 
-#include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../../Outputs/Log.hpp"
+#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Log.hpp"
 
 #include "AuxiliaryMemorySwitches.hpp"
 #include "Card.hpp"
@@ -30,13 +30,13 @@
 #include "SCSICard.hpp"
 #include "Video.hpp"
 
-#include "../../../Analyser/Static/AppleII/Target.hpp"
-#include "../../../ClockReceiver/ForceInline.hpp"
-#include "../../../Configurable/StandardOptions.hpp"
+#include "Analyser/Static/AppleII/Target.hpp"
+#include "ClockReceiver/ForceInline.hpp"
+#include "Configurable/StandardOptions.hpp"
 
-#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
-#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
-#include "../../../Storage/MassStorage/Encodings/MacintoshVolume.hpp"
+#include "Storage/MassStorage/SCSI/SCSI.hpp"
+#include "Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+#include "Storage/MassStorage/Encodings/MacintoshVolume.hpp"
 
 #include <algorithm>
 #include <array>
