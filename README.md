@@ -1,4 +1,4 @@
-# ![Clock Signal Application Icon](READMEImages/Icon.png) Clock Signal
+# Clock Signal ![Clock Signal Application Icon](READMEImages/Icon.png)
 
 Clock Signal ('CLK') is an emulator that seeks to be invisible. Users directly launch classic software, avoiding the learning curves associated with emulators and with classic machines.
 
