@@ -1,8 +1,6 @@
-![Clock Signal Application Icon](READMEImages/Icon.png)
-
 # Clock Signal
 
-Clock Signal ('CLK') is an emulator that seeks to be invisible. Users directly launch classic software, avoiding the learning curves associated with emulators and with classic machines.
+<img align="left" src="READMEImages/Icon.png" alt="Clock Signal Application Icon" /> Clock Signal ('CLK') is an emulator that seeks to be invisible. Users directly launch classic software, avoiding the learning curves associated with emulators and with classic machines.
 
 macOS and source releases are [hosted on GitHub](https://github.com/TomHarte/CLK/releases). A Qt-based Linux build is available as a [Snap](https://snapcraft.io/clock-signal). 
 
@@ -20,7 +18,7 @@ It currently contains emulations of the:
 * Atari 2600;
 * Atari ST;
 * ColecoVision;
-* Commodore Vic-20 (and Commodore 1540/1);
+* Commodore Vic-20;
 * Enterprise 64/128;
 * Macintosh 128K, 512K, 512Ke, and Plus;
 * MSX 1 and 2;
@@ -32,6 +30,7 @@ It currently contains emulations of the:
 Also present but very much upcoming are the:
 
 * Acorn Archimedes;
+* Commodore Plus 4;
 * Commodore Amiga; and
 * early PC compatible.
 
