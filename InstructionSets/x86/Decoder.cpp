@@ -637,8 +637,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 #undef Requires
 #undef RequiresMin
-#undef Far
-#undef Displacement
 
 	// MARK: - ModRegRM byte, if any.
 
