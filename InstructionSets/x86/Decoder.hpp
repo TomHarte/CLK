@@ -225,6 +225,148 @@ private:
 		sign_extend_operand_ = false;
 		sign_extend_displacement_ = true;
 	}
+
+	//
+	// Construction helpers.
+	//
+
+	/// Sets the operation and verifies that the current repetition, if any, is compatible, discarding it otherwise.
+	void set(const Operation operation) {
+		operation_ = rep_operation<model>(operation, repetition_);
+	};
+
+	/// Helper for those that follow...
+	void set(
+		const Operation operation,
+		const Source source,
+		const Source destination,
+		const DataSize operation_size
+	) {
+		set(operation);
+		source_ = source;
+		destination_ = destination;
+		operation_size_ = operation_size;
+	};
+
+	/// Covers anything which is complete as soon as the opcode is encountered.
+	void complete(
+		const Operation operation,
+		const Source source,
+		const Source destination,
+		const DataSize operation_size
+	) {
+		set(operation, source, destination, operation_size);
+		phase_ = Phase::ReadyToPost;
+	}
+
+	/// Handles instructions of the form rr, kk and rr, jjkk, i.e. a destination register plus an operand.
+	void reg_data(
+		const Operation operation,
+		const Source destination,
+		const DataSize operation_size
+	) {
+		set(operation, Source::Immediate, destination, operation_size);
+		operand_size_ = operation_size;
+		phase_ = Phase::DisplacementOrOperand;
+	}
+
+	/// Handles instructions of the form Ax, jjkk where the latter is implicitly an address.
+	void reg_addr(
+		const Operation operation,
+		const Source destination,
+		const DataSize operation_size,
+		const DataSize address_size
+	) {
+		set(operation, Source::DirectAddress, destination, operation_size);
+		displacement_size_ = address_size;
+		phase_ = Phase::DisplacementOrOperand;
+		sign_extend_displacement_ = false;
+	}
+
+	/// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
+	void addr_reg(
+		const Operation operation,
+		const Source source,
+		const DataSize operation_size,
+		const DataSize address_size
+	) {
+		set(operation, source, Source::DirectAddress, operation_size);
+		displacement_size_ = address_size;
+		phase_ = Phase::DisplacementOrOperand;
+		sign_extend_displacement_ = false;
+	}
+
+	/// Covers both `mem/reg, reg` and `reg, mem/reg`.
+	void mem_reg_reg(
+		const Operation operation,
+		ModRegRMFormat format,
+		const DataSize operation_size
+	) {
+		set(operation);
+		phase_ = Phase::ModRegRM;
+		modregrm_format_ = format;
+		operand_size_ = DataSize::None;
+		operation_size_ = operation_size;
+	}
+
+	/// Handles JO, JNO, JB, etc — anything with only a displacement.
+	void displacement(
+		const Operation operation,
+		const DataSize operation_size
+	) {
+		set(operation);
+		phase_ = Phase::DisplacementOrOperand;
+		operation_size_ = displacement_size_ = operation_size;
+	}
+
+	/// Handles PUSH [immediate], etc — anything with only an immediate operand.
+	void immediate(
+		const Operation operation,
+		const DataSize operand_size
+	) {
+		set(operation);
+		source_ = Source::Immediate;
+		phase_ = Phase::DisplacementOrOperand;
+		operand_size_ = operand_size;
+	}
+
+	/// Handles far CALL and far JMP — fixed four or six byte operand operations.
+	void far(
+		const Operation operation
+	) {
+		set(operation);
+		phase_ = Phase::DisplacementOrOperand;
+		operation_size_ = operand_size_ = DataSize::Word;
+		destination_ = Source::Immediate;
+		displacement_size_ = data_size(default_address_size_);
+	}
+
+	/// Handles ENTER — a fixed three-byte operation.
+	void word_displacement_byte_operand(
+		const Operation operation
+	) {
+		set(operation);
+		phase_ = Phase::DisplacementOrOperand;
+		displacement_size_ = DataSize::Word;
+		operand_size_ = DataSize::Byte;
+	}
+
+	/// Sets up the operation size, oncoming phase and modregrm format for a member of the shift group (i.e. 'group 2').
+	void shift_group(
+		const int size_mask
+	) {
+		const DataSize sizes[] = {DataSize::Byte, data_size_};
+		phase_ = Phase::ModRegRM;
+		modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
+		operation_size_ = sizes[size_mask];
+	}
+
+	/// Constructs an instruction for 'undefined' and returns it.
+	std::pair<int, typename Decoder<model>::InstructionT> undefined() {
+		const auto result = std::make_pair(consumed_, InstructionT());
+		reset_parsing();
+		return result;
+	}
 };
 
 // This is a temporary measure; for reasons as-yet unknown, GCC isn't picking up the
