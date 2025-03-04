@@ -55,6 +55,13 @@ namespace {
 
 Log::Logger<Log::Source::PCCompatible> log;
 
+using PCModelApproximation = Analyser::Static::PCCompatible::Target::ModelApproximation;
+constexpr InstructionSet::x86::Model processor_model(PCModelApproximation model) {
+	switch(model) {
+		default: return InstructionSet::x86::Model::i8086;
+	}
+}
+
 }
 
 using Target = Analyser::Static::PCCompatible::Target;
@@ -865,7 +872,7 @@ class FlowController {
 		bool halted_ = false;
 };
 
-template <Target::VideoAdaptor video>
+template <Target::VideoAdaptor video, Target::ModelApproximation pc_model>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
@@ -892,9 +899,6 @@ class ConcreteMachine:
 			ppi_(ppi_handler_),
 			context_(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
-			// Capture speed.
-			model_ = target.model;
-
 			// Set up DMA source/target.
 			dma_.set_memory(&context_.memory);
 
@@ -939,7 +943,7 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 		void run_for(const Cycles duration) override {
 			using Model = Target::ModelApproximation;
-			switch(model_) {
+			switch(pc_model) {
 				case Model::XT:			run_for<Model::XT>(duration);			break;
 				case Model::TurboXT:	run_for<Model::TurboXT>(duration);		break;
 			}
@@ -1195,7 +1199,7 @@ class ConcreteMachine:
 			Memory memory;
 			FlowController flow_controller;
 			IO<video> io;
-			static constexpr auto model = InstructionSet::x86::Model::i8086;
+			static constexpr auto model = processor_model(pc_model);
 		} context_;
 
 		using Decoder = InstructionSet::x86::Decoder<Context::model>;
@@ -1205,7 +1209,6 @@ class ConcreteMachine:
 		std::pair<int, typename Decoder::InstructionT> decoded_;
 
 		int cpu_divisor_ = 0;
-		Target::ModelApproximation model_{};
 };
 
 
@@ -1213,12 +1216,30 @@ class ConcreteMachine:
 
 using namespace PCCompatible;
 
-std::unique_ptr<Machine> Machine::PCCompatible(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+namespace {
+template <Target::VideoAdaptor video>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	switch(target.model) {
+		case PCModelApproximation::XT:
+			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::XT>>
+				(target, rom_fetcher);
+
+		case PCModelApproximation::TurboXT:
+			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::TurboXT>>
+				(target, rom_fetcher);
+	}
+}
+}
+
+std::unique_ptr<Machine> Machine::PCCompatible(
+	const Analyser::Static::Target *target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	const Target *const pc_target = dynamic_cast<const Target *>(target);
 
 	switch(pc_target->adaptor) {
-		case Target::VideoAdaptor::MDA:	return std::make_unique<PCCompatible::ConcreteMachine<Target::VideoAdaptor::MDA>>(*pc_target, rom_fetcher);
-		case Target::VideoAdaptor::CGA:	return std::make_unique<PCCompatible::ConcreteMachine<Target::VideoAdaptor::CGA>>(*pc_target, rom_fetcher);
+		case Target::VideoAdaptor::MDA:	return machine<Target::VideoAdaptor::MDA>(*pc_target, rom_fetcher);
+		case Target::VideoAdaptor::CGA:	return machine<Target::VideoAdaptor::CGA>(*pc_target, rom_fetcher);
 		default: return nullptr;
 	}
 }
