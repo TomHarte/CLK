@@ -890,13 +890,13 @@ class ConcreteMachine:
 			ppi_handler_(speaker_, keyboard_, video, DriveCount),
 			pit_(pit_observer_),
 			ppi_(ppi_handler_),
-			context(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
+			context_(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
 			// Capture speed.
 			model_ = target.model;
 
 			// Set up DMA source/target.
-			dma_.set_memory(&context.memory);
+			dma_.set_memory(&context_.memory);
 
 			// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 			static constexpr int pit_frequency = 1'193'182;
@@ -916,17 +916,17 @@ class ConcreteMachine:
 
 			// A BIOS is mandatory.
 			const auto &bios_contents = roms.find(bios)->second;
-			context.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+			context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 
 			// If found, install GlaTICK at 0xd'0000.
 			auto tick_contents = roms.find(tick);
 			if(tick_contents != roms.end()) {
-				context.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
+				context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
 			}
 
 			// Give the video card something to read from.
 			const auto &font_contents = roms.find(font)->second;
-			video_.set_source(context.memory.at(Video::BaseAddress), font_contents);
+			video_.set_source(context_.memory.at(Video::BaseAddress), font_contents);
 
 			// ... and insert media.
 			insert_media(target.media);
@@ -996,23 +996,23 @@ class ConcreteMachine:
 				//
 
 				// Query for interrupts and apply if pending.
-				if(pic_.pending() && context.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
+				if(pic_.pending() && context_.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
 					// Regress the IP if a REP is in-progress so as to resume it later.
-					if(context.flow_controller.should_repeat()) {
-						context.registers.ip() = decoded_ip_;
-						context.flow_controller.begin_instruction();
+					if(context_.flow_controller.should_repeat()) {
+						context_.registers.ip() = decoded_ip_;
+						context_.flow_controller.begin_instruction();
 					}
 
 					// Signal interrupt.
-					context.flow_controller.unhalt();
+					context_.flow_controller.unhalt();
 					InstructionSet::x86::interrupt(
 						pic_.acknowledge(),
-						context
+						context_
 					);
 				}
 
 				// Do nothing if currently halted.
-				if(context.flow_controller.halted()) {
+				if(context_.flow_controller.halted()) {
 					continue;
 				}
 
@@ -1037,22 +1037,22 @@ class ConcreteMachine:
 
 		void perform_instruction() {
 			// Get the next thing to execute.
-			if(!context.flow_controller.should_repeat()) {
+			if(!context_.flow_controller.should_repeat()) {
 				// Decode from the current IP.
-				decoded_ip_ = context.registers.ip();
-				const auto remainder = context.memory.next_code();
-				decoded = decoder.decode(remainder.first, remainder.second);
+				decoded_ip_ = context_.registers.ip();
+				const auto remainder = context_.memory.next_code();
+				decoded_ = decoder_.decode(remainder.first, remainder.second);
 
 				// If that didn't yield a whole instruction then the end of memory must have been hit;
 				// continue from the beginning.
-				if(decoded.first <= 0) {
-					const auto all = context.memory.all();
-					decoded = decoder.decode(all.first, all.second);
+				if(decoded_.first <= 0) {
+					const auto all = context_.memory.all();
+					decoded_ = decoder_.decode(all.first, all.second);
 				}
 
-				context.registers.ip() += decoded.first;
+				context_.registers.ip() += decoded_.first;
 			} else {
-				context.flow_controller.begin_instruction();
+				context_.flow_controller.begin_instruction();
 			}
 
 /*			if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
@@ -1061,13 +1061,13 @@ class ConcreteMachine:
 					std::cout << std::hex << decoded_ip_ << " " << next;
 
 					if(decoded.second.operation() == InstructionSet::x86::Operation::INT) {
-						std::cout << " dl:" << std::hex << +context.registers.dl() << "; ";
-						std::cout << "ah:" << std::hex << +context.registers.ah() << "; ";
-						std::cout << "ch:" << std::hex << +context.registers.ch() << "; ";
-						std::cout << "cl:" << std::hex << +context.registers.cl() << "; ";
-						std::cout << "dh:" << std::hex << +context.registers.dh() << "; ";
-						std::cout << "es:" << std::hex << +context.registers.es() << "; ";
-						std::cout << "bx:" << std::hex << +context.registers.bx();
+						std::cout << " dl:" << std::hex << +context_.registers.dl() << "; ";
+						std::cout << "ah:" << std::hex << +context_.registers.ah() << "; ";
+						std::cout << "ch:" << std::hex << +context_.registers.ch() << "; ";
+						std::cout << "cl:" << std::hex << +context_.registers.cl() << "; ";
+						std::cout << "dh:" << std::hex << +context_.registers.dh() << "; ";
+						std::cout << "es:" << std::hex << +context_.registers.es() << "; ";
+						std::cout << "bx:" << std::hex << +context_.registers.bx();
 					}
 
 					std::cout << std::endl;
@@ -1077,8 +1077,8 @@ class ConcreteMachine:
 
 			// Execute it.
 			InstructionSet::x86::perform(
-				decoded.second,
-				context
+				decoded_.second,
+				context_
 			);
 		}
 
@@ -1168,7 +1168,14 @@ class ConcreteMachine:
 		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
-			Context(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc, RTC &rtc) :
+			Context(
+				PIT &pit,
+				DMA &dma,
+				PPI &ppi,
+				PIC &pic,
+				typename Adaptor<video>::type &card,
+				FloppyController &fdc, RTC &rtc
+			) :
 				segments(registers),
 				memory(registers, segments),
 				flow_controller(registers, segments),
@@ -1189,15 +1196,13 @@ class ConcreteMachine:
 			FlowController flow_controller;
 			IO<video> io;
 			static constexpr auto model = InstructionSet::x86::Model::i8086;
-		} context;
+		} context_;
 
-		// TODO: eliminate use of Decoder8086 and Decoder8086 in gneral in favour of the templated version, as soon
-		// as whatever error is preventing GCC from picking up Decoder's explicit instantiations becomes apparent.
-//		InstructionSet::x86::Decoder8086 decoder;
-		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+		using Decoder = InstructionSet::x86::Decoder<Context::model>;
+		Decoder decoder_;
 
 		uint16_t decoded_ip_ = 0;
-		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
+		std::pair<int, typename Decoder::InstructionT> decoded_;
 
 		int cpu_divisor_ = 0;
 		Target::ModelApproximation model_{};
