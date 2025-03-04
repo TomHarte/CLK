@@ -892,6 +892,9 @@ class ConcreteMachine:
 			ppi_(ppi_handler_),
 			context(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
+			// Yuck, for GCC. Yuck. See notes in x86 decoder.
+			InstructionSet::x86::_gcc_instantion_workaround();
+
 			// Capture speed.
 			model_ = target.model;
 

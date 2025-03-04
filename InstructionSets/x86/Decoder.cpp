@@ -1086,11 +1086,9 @@ template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286>;
 template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;
 
-namespace {
-
 // Workaround for GCC; despite explicit instantiations above, GCC will fail to
 // link without the function below.
-void _gcc_nonsense() {
+void _gcc_instantion_workaround() {
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder86;
 	decoder86.decode(nullptr, 0);
 
@@ -1102,6 +1100,4 @@ void _gcc_nonsense() {
 
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386> decoder386;
 	decoder386.decode(nullptr, 0);
-}
-
 }
