@@ -302,8 +302,8 @@
 			case CSPCCompatibleVideoAdaptorCGA:	target->adaptor = Target::VideoAdaptor::CGA;	break;
 		}
 		switch(speed) {
-			case CSPCCompatibleSpeedOriginal:	target->model = Target::ModelApproximation::XT;			break;
-			case CSPCCompatibleSpeedTurbo:		target->model = Target::ModelApproximation::TurboXT;	break;
+			case CSPCCompatibleSpeedOriginal:	target->model = Analyser::Static::PCCompatible::Model::XT;		break;
+			case CSPCCompatibleSpeedTurbo:		target->model = Analyser::Static::PCCompatible::Model::TurboXT;	break;
 		}
 		_targets.push_back(std::move(target));
 	}

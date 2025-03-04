@@ -8,9 +8,15 @@
 
 #pragma once
 
+#include "InstructionSets/x86/Model.hpp"
+
 namespace PCCompatible {
 
-struct Registers {
+template <InstructionSet::x86::Model>
+struct Registers;
+
+template <>
+struct Registers<InstructionSet::x86::Model::i8086> {
 	public:
 		static constexpr bool is_32bit = false;
 
@@ -65,6 +71,14 @@ struct Registers {
 		uint16_t di_;
 		uint16_t es_, cs_, ds_, ss_;
 		uint16_t ip_;
+};
+
+template <>
+struct Registers<InstructionSet::x86::Model::i80186>: public Registers<InstructionSet::x86::Model::i8086> {
+};
+
+template <>
+struct Registers<InstructionSet::x86::Model::i80286>: public Registers<InstructionSet::x86::Model::i80186> {
 };
 
 }

@@ -8,6 +8,7 @@
 
 #include "PCCompatible.hpp"
 
+#include "ProcessorByModel.hpp"
 #include "CGA.hpp"
 #include "DMA.hpp"
 #include "KeyboardMapper.hpp"
@@ -52,17 +53,7 @@
 
 namespace PCCompatible {
 namespace {
-
 Log::Logger<Log::Source::PCCompatible> log;
-
-using PCModelApproximation = Analyser::Static::PCCompatible::Target::ModelApproximation;
-constexpr InstructionSet::x86::Model processor_model(PCModelApproximation model) {
-	switch(model) {
-		default: 						return InstructionSet::x86::Model::i8086;
-		case PCModelApproximation::AT:	return InstructionSet::x86::Model::i80286;
-	}
-}
-
 }
 
 using Target = Analyser::Static::PCCompatible::Target;
@@ -72,9 +63,14 @@ template <Target::VideoAdaptor adaptor> struct Adaptor;
 template <> struct Adaptor<Target::VideoAdaptor::MDA> {		using type = MDA;	};
 template <> struct Adaptor<Target::VideoAdaptor::CGA> {		using type = CGA;	};
 
+template <Analyser::Static::PCCompatible::Model model>
 class FloppyController {
 	public:
-		FloppyController(PIC &pic, DMA &dma, int drive_count) : pic_(pic), dma_(dma) {
+		FloppyController(
+			PIC<model> &pic,
+			DMA<model> &dma,
+			int drive_count
+		) : pic_(pic), dma_(dma) {
 			// Default: one floppy drive only.
 			for(int c = 0; c < 4; c++) {
 				drives_[c].exists = drive_count > c;
@@ -107,7 +103,7 @@ class FloppyController {
 			}
 			hold_reset_ = hold_reset;
 			if(hold_reset_) {
-				pic_.apply_edge<6>(false);
+				pic_.template apply_edge<6>(false);
 			}
 		}
 
@@ -143,7 +139,7 @@ class FloppyController {
 						// TODO: what if head has changed?
 						drives_[decoder_.target().drive].status = decoder_.drive_head();
 						drives_[decoder_.target().drive].raised_interrupt = true;
-						pic_.apply_edge<6>(true);
+						pic_.template apply_edge<6>(true);
 					} break;
 
 					case Command::ReadDeletedData:
@@ -204,7 +200,7 @@ class FloppyController {
 						// TODO: what if head has changed?
 						drives_[decoder_.target().drive].status = decoder_.drive_head();
 						drives_[decoder_.target().drive].raised_interrupt = true;
-						pic_.apply_edge<6>(true);
+						pic_.template apply_edge<6>(true);
 					} break;
 
 					case Command::Recalibrate:
@@ -212,14 +208,14 @@ class FloppyController {
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
-						pic_.apply_edge<6>(true);
+						pic_.template apply_edge<6>(true);
 					break;
 					case Command::Seek:
 						drives_[decoder_.target().drive].track = decoder_.seek_target();
 
 						drives_[decoder_.target().drive].raised_interrupt = true;
 						drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
-						pic_.apply_edge<6>(true);
+						pic_.template apply_edge<6>(true);
 					break;
 
 					case Command::SenseInterruptStatus: {
@@ -237,7 +233,7 @@ class FloppyController {
 							any_remaining_interrupts |= drives_[c].raised_interrupt;
 						}
 						if(!any_remaining_interrupts) {
-							pic_.apply_edge<6>(false);
+							pic_.template apply_edge<6>(false);
 						}
 					} break;
 					case Command::Specify:
@@ -309,15 +305,15 @@ class FloppyController {
 				drives_[c].raised_interrupt = true;
 				drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
 			}
-			pic_.apply_edge<6>(true);
+			pic_.template apply_edge<6>(true);
 
 			using MainStatus = Intel::i8272::MainStatus;
 			status_.set(MainStatus::DataReady, true);
 			status_.set(MainStatus::DataIsToProcessor, false);
 		}
 
-		PIC &pic_;
-		DMA &dma_;
+		PIC<model> &pic_;
+		DMA<model> &dma_;
 
 		bool hold_reset_ = false;
 		bool enable_dma_ = false;
@@ -361,9 +357,10 @@ class FloppyController {
 		Activity::Observer *observer_ = nullptr;
 };
 
+template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController {
 	public:
-		KeyboardController(PIC &pic) : pic_(pic) {}
+		KeyboardController(PIC<model> &pic) : pic_(pic) {}
 
 		// KB Status Port 61h high bits:
 		//; 01 - normal operation. wait for keypress, when one comes in,
@@ -380,13 +377,13 @@ class KeyboardController {
 			switch(mode_) {
 				case Mode::NormalOperation:		break;
 				case Mode::NoIRQsIgnoreInput:
-					pic_.apply_edge<1>(false);
+					pic_.template apply_edge<1>(false);
 				break;
 				case Mode::Reset:
 					input_.clear();
 					[[fallthrough]];
 				case Mode::ClearIRQReset:
-					pic_.apply_edge<1>(false);
+					pic_.template apply_edge<1>(false);
 				break;
 			}
 
@@ -408,7 +405,7 @@ class KeyboardController {
 		}
 
 		uint8_t read() {
-			pic_.apply_edge<1>(false);
+			pic_.template apply_edge<1>(false);
 			if(input_.empty()) {
 				return 0;
 			}
@@ -416,7 +413,7 @@ class KeyboardController {
 			const uint8_t key = input_.front();
 			input_.erase(input_.begin());
 			if(!input_.empty()) {
-				pic_.apply_edge<1>(true);
+				pic_.template apply_edge<1>(true);
 			}
 			return key;
 		}
@@ -426,7 +423,7 @@ class KeyboardController {
 				return;
 			}
 			input_.push_back(value);
-			pic_.apply_edge<1>(true);
+			pic_.template apply_edge<1>(true);
 		}
 
 	private:
@@ -438,7 +435,7 @@ class KeyboardController {
 		} mode_;
 
 		std::vector<uint8_t> input_;
-		PIC &pic_;
+		PIC<model> &pic_;
 
 		int reset_delay_ = 0;
 };
@@ -486,21 +483,22 @@ struct PCSpeaker {
 	bool output_ = false;
 };
 
+template <Analyser::Static::PCCompatible::Model model>
 class PITObserver {
 	public:
-		PITObserver(PIC &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
+		PITObserver(PIC<model> &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
 
 		template <int channel>
 		void update_output(bool new_level) {
 			switch(channel) {
 				default: break;
-				case 0: pic_.apply_edge<0>(new_level);	break;
-				case 2: speaker_.set_pit(new_level);	break;
+				case 0: pic_.template apply_edge<0>(new_level);	break;
+				case 2: speaker_.set_pit(new_level);			break;
 			}
 		}
 
 	private:
-		PIC &pic_;
+		PIC<model> &pic_;
 		PCSpeaker &speaker_;
 
 	// TODO:
@@ -509,11 +507,19 @@ class PITObserver {
 	//	channel 1 is used for DRAM refresh (presumably connected to DMA?);
 	//	channel 2 is gated by a PPI output and feeds into the speaker.
 };
-using PIT = i8253<false, PITObserver>;
 
+template <Analyser::Static::PCCompatible::Model model>
+using PIT = i8253<false, PITObserver<model>>;
+
+template <Analyser::Static::PCCompatible::Model model>
 class i8255PortHandler : public Intel::i8255::PortHandler {
 	public:
-		i8255PortHandler(PCSpeaker &speaker, KeyboardController &keyboard, Target::VideoAdaptor adaptor, int drive_count) :
+		i8255PortHandler(
+			PCSpeaker &speaker,
+			KeyboardController<model> &keyboard,
+			const Target::VideoAdaptor adaptor,
+			const int drive_count
+		) :
 			speaker_(speaker), keyboard_(keyboard) {
 				// High switches:
 				//
@@ -600,16 +606,25 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 
 		bool use_high_switches_ = false;
 		PCSpeaker &speaker_;
-		KeyboardController &keyboard_;
+		KeyboardController<model> &keyboard_;
 
 		bool enable_keyboard_ = false;
 };
-using PPI = Intel::i8255::i8255<i8255PortHandler>;
+template <Analyser::Static::PCCompatible::Model model>
+using PPI = Intel::i8255::i8255<i8255PortHandler<model>>;
 
-template <Target::VideoAdaptor video>
+template <Analyser::Static::PCCompatible::Model model, Target::VideoAdaptor video>
 class IO {
 	public:
-		IO(PIT &pit, DMA &dma, PPI &ppi, PIC &pic, typename Adaptor<video>::type &card, FloppyController &fdc, RTC &rtc) :
+		IO(
+			PIT<model> &pit,
+			DMA<model> &dma,
+			PPI<model> &ppi,
+			PIC<model> &pic,
+			typename Adaptor<video>::type &card,
+			FloppyController<model> &fdc,
+			RTC &rtc
+		) :
 			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc), rtc_(rtc) {}
 
 		template <typename IntT> void out(uint16_t port, IntT value) {
@@ -633,30 +648,30 @@ class IO {
 					log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
-				case 0x0000:	dma_.controller.write<0x0>(uint8_t(value));		break;
-				case 0x0001:	dma_.controller.write<0x1>(uint8_t(value));		break;
-				case 0x0002:	dma_.controller.write<0x2>(uint8_t(value));		break;
-				case 0x0003:	dma_.controller.write<0x3>(uint8_t(value));		break;
-				case 0x0004:	dma_.controller.write<0x4>(uint8_t(value));		break;
-				case 0x0005:	dma_.controller.write<0x5>(uint8_t(value));		break;
-				case 0x0006:	dma_.controller.write<0x6>(uint8_t(value));		break;
-				case 0x0007:	dma_.controller.write<0x7>(uint8_t(value));		break;
-				case 0x0008:	dma_.controller.write<0x8>(uint8_t(value));		break;
-				case 0x0009:	dma_.controller.write<0x9>(uint8_t(value));		break;
-				case 0x000a:	dma_.controller.write<0xa>(uint8_t(value));		break;
-				case 0x000b:	dma_.controller.write<0xb>(uint8_t(value));		break;
-				case 0x000c:	dma_.controller.write<0xc>(uint8_t(value));		break;
-				case 0x000d:	dma_.controller.write<0xd>(uint8_t(value));		break;
-				case 0x000e:	dma_.controller.write<0xe>(uint8_t(value));		break;
-				case 0x000f:	dma_.controller.write<0xf>(uint8_t(value));		break;
+				case 0x0000:	dma_.controller.template write<0x0>(uint8_t(value));	break;
+				case 0x0001:	dma_.controller.template write<0x1>(uint8_t(value));	break;
+				case 0x0002:	dma_.controller.template write<0x2>(uint8_t(value));	break;
+				case 0x0003:	dma_.controller.template write<0x3>(uint8_t(value));	break;
+				case 0x0004:	dma_.controller.template write<0x4>(uint8_t(value));	break;
+				case 0x0005:	dma_.controller.template write<0x5>(uint8_t(value));	break;
+				case 0x0006:	dma_.controller.template write<0x6>(uint8_t(value));	break;
+				case 0x0007:	dma_.controller.template write<0x7>(uint8_t(value));	break;
+				case 0x0008:	dma_.controller.template write<0x8>(uint8_t(value));	break;
+				case 0x0009:	dma_.controller.template write<0x9>(uint8_t(value));	break;
+				case 0x000a:	dma_.controller.template write<0xa>(uint8_t(value));	break;
+				case 0x000b:	dma_.controller.template write<0xb>(uint8_t(value));	break;
+				case 0x000c:	dma_.controller.template write<0xc>(uint8_t(value));	break;
+				case 0x000d:	dma_.controller.template write<0xd>(uint8_t(value));	break;
+				case 0x000e:	dma_.controller.template write<0xe>(uint8_t(value));	break;
+				case 0x000f:	dma_.controller.template write<0xf>(uint8_t(value));	break;
 
-				case 0x0020:	pic_.write<0>(uint8_t(value));	break;
-				case 0x0021:	pic_.write<1>(uint8_t(value));	break;
+				case 0x0020:	pic_.template write<0>(uint8_t(value));	break;
+				case 0x0021:	pic_.template write<1>(uint8_t(value));	break;
 
-				case 0x0040:	pit_.write<0>(uint8_t(value));	break;
-				case 0x0041:	pit_.write<1>(uint8_t(value));	break;
-				case 0x0042:	pit_.write<2>(uint8_t(value));	break;
-				case 0x0043:	pit_.set_mode(uint8_t(value));	break;
+				case 0x0040:	pit_.template write<0>(uint8_t(value));	break;
+				case 0x0041:	pit_.template write<1>(uint8_t(value));	break;
+				case 0x0042:	pit_.template write<2>(uint8_t(value));	break;
+				case 0x0043:	pit_.set_mode(uint8_t(value));			break;
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
@@ -665,14 +680,14 @@ class IO {
 					ppi_.write(port, uint8_t(value));
 				break;
 
-				case 0x0080:	dma_.pages.set_page<0>(uint8_t(value));	break;
-				case 0x0081:	dma_.pages.set_page<1>(uint8_t(value));	break;
-				case 0x0082:	dma_.pages.set_page<2>(uint8_t(value));	break;
-				case 0x0083:	dma_.pages.set_page<3>(uint8_t(value));	break;
-				case 0x0084:	dma_.pages.set_page<4>(uint8_t(value));	break;
-				case 0x0085:	dma_.pages.set_page<5>(uint8_t(value));	break;
-				case 0x0086:	dma_.pages.set_page<6>(uint8_t(value));	break;
-				case 0x0087:	dma_.pages.set_page<7>(uint8_t(value));	break;
+				case 0x0080:	dma_.pages.template set_page<0>(uint8_t(value));	break;
+				case 0x0081:	dma_.pages.template set_page<1>(uint8_t(value));	break;
+				case 0x0082:	dma_.pages.template set_page<2>(uint8_t(value));	break;
+				case 0x0083:	dma_.pages.template set_page<3>(uint8_t(value));	break;
+				case 0x0084:	dma_.pages.template set_page<4>(uint8_t(value));	break;
+				case 0x0085:	dma_.pages.template set_page<5>(uint8_t(value));	break;
+				case 0x0086:	dma_.pages.template set_page<6>(uint8_t(value));	break;
+				case 0x0087:	dma_.pages.template set_page<7>(uint8_t(value));	break;
 
 				//
 				// CRTC access block, with slightly laboured 16-bit to 8-bit mapping.
@@ -733,28 +748,28 @@ class IO {
 					log.error().append("Unhandled in: %04x", port);
 				break;
 
-				case 0x0000:	return dma_.controller.read<0x0>();
-				case 0x0001:	return dma_.controller.read<0x1>();
-				case 0x0002:	return dma_.controller.read<0x2>();
-				case 0x0003:	return dma_.controller.read<0x3>();
-				case 0x0004:	return dma_.controller.read<0x4>();
-				case 0x0005:	return dma_.controller.read<0x5>();
-				case 0x0006:	return dma_.controller.read<0x6>();
-				case 0x0007:	return dma_.controller.read<0x7>();
-				case 0x0008:	return dma_.controller.read<0x8>();
-				case 0x000d:	return dma_.controller.read<0xd>();
+				case 0x0000:	return dma_.controller.template read<0x0>();
+				case 0x0001:	return dma_.controller.template read<0x1>();
+				case 0x0002:	return dma_.controller.template read<0x2>();
+				case 0x0003:	return dma_.controller.template read<0x3>();
+				case 0x0004:	return dma_.controller.template read<0x4>();
+				case 0x0005:	return dma_.controller.template read<0x5>();
+				case 0x0006:	return dma_.controller.template read<0x6>();
+				case 0x0007:	return dma_.controller.template read<0x7>();
+				case 0x0008:	return dma_.controller.template read<0x8>();
+				case 0x000d:	return dma_.controller.template read<0xd>();
 
 				case 0x0009:	case 0x000b:
 				case 0x000c:	case 0x000f:
 					// DMA area, but it doesn't respond.
 				break;
 
-				case 0x0020:	return pic_.read<0>();
-				case 0x0021:	return pic_.read<1>();
+				case 0x0020:	return pic_.template read<0>();
+				case 0x0021:	return pic_.template read<1>();
 
-				case 0x0040:	return pit_.read<0>();
-				case 0x0041:	return pit_.read<1>();
-				case 0x0042:	return pit_.read<2>();
+				case 0x0040:	return pit_.template read<0>();
+				case 0x0041:	return pit_.template read<1>();
+				case 0x0042:	return pit_.template read<2>();
 
 				case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
@@ -764,14 +779,14 @@ class IO {
 
 				case 0x0071:	return rtc_.read();
 
-				case 0x0080:	return dma_.pages.page<0>();
-				case 0x0081:	return dma_.pages.page<1>();
-				case 0x0082:	return dma_.pages.page<2>();
-				case 0x0083:	return dma_.pages.page<3>();
-				case 0x0084:	return dma_.pages.page<4>();
-				case 0x0085:	return dma_.pages.page<5>();
-				case 0x0086:	return dma_.pages.page<6>();
-				case 0x0087:	return dma_.pages.page<7>();
+				case 0x0080:	return dma_.pages.template page<0>();
+				case 0x0081:	return dma_.pages.template page<1>();
+				case 0x0082:	return dma_.pages.template page<2>();
+				case 0x0083:	return dma_.pages.template page<3>();
+				case 0x0084:	return dma_.pages.template page<4>();
+				case 0x0085:	return dma_.pages.template page<5>();
+				case 0x0086:	return dma_.pages.template page<6>();
+				case 0x0087:	return dma_.pages.template page<7>();
 
 				case 0x0201:	break;		// Ignore game port.
 
@@ -811,69 +826,72 @@ class IO {
 		}
 
 	private:
-		PIT &pit_;
-		DMA &dma_;
-		PPI &ppi_;
-		PIC &pic_;
+		PIT<model> &pit_;
+		DMA<model> &dma_;
+		PPI<model> &ppi_;
+		PIC<model> &pic_;
 		typename Adaptor<video>::type &video_;
-		FloppyController &fdc_;
+		FloppyController<model> &fdc_;
 		RTC &rtc_;
 };
 
+template <Analyser::Static::PCCompatible::Model model>
 class FlowController {
-	public:
-		FlowController(Registers &registers, Segments &segments) :
-			registers_(registers), segments_(segments) {}
+	static constexpr auto x86_model = processor_model(model);
 
-		// Requirements for perform.
-		template <typename AddressT>
-		void jump(AddressT address) {
-			static_assert(std::is_same_v<AddressT, uint16_t>);
-			registers_.ip() = address;
-		}
+public:
+	FlowController(Registers<x86_model> &registers, Segments<x86_model> &segments) :
+		registers_(registers), segments_(segments) {}
 
-		template <typename AddressT>
-		void jump(uint16_t segment, AddressT address) {
-			static_assert(std::is_same_v<AddressT, uint16_t>);
-			registers_.cs() = segment;
-			segments_.did_update(Segments::Source::CS);
-			registers_.ip() = address;
-		}
+	// Requirements for perform.
+	template <typename AddressT>
+	void jump(AddressT address) {
+		static_assert(std::is_same_v<AddressT, uint16_t>);
+		registers_.ip() = address;
+	}
 
-		void halt() {
-			halted_ = true;
-		}
-		void wait() {
-			log.error().append("WAIT ????");
-		}
+	template <typename AddressT>
+	void jump(const uint16_t segment, const AddressT address) {
+		static_assert(std::is_same_v<AddressT, uint16_t>);
+		registers_.cs() = segment;
+		segments_.did_update(InstructionSet::x86::Source::CS);
+		registers_.ip() = address;
+	}
 
-		void repeat_last() {
-			should_repeat_ = true;
-		}
+	void halt() {
+		halted_ = true;
+	}
+	void wait() {
+		log.error().append("WAIT ????");
+	}
 
-		// Other actions.
-		void begin_instruction() {
-			should_repeat_ = false;
-		}
-		bool should_repeat() const {
-			return should_repeat_;
-		}
+	void repeat_last() {
+		should_repeat_ = true;
+	}
 
-		void unhalt() {
-			halted_ = false;
-		}
-		bool halted() const {
-			return halted_;
-		}
+	// Other actions.
+	void begin_instruction() {
+		should_repeat_ = false;
+	}
+	bool should_repeat() const {
+		return should_repeat_;
+	}
 
-	private:
-		Registers &registers_;
-		Segments &segments_;
-		bool should_repeat_ = false;
-		bool halted_ = false;
+	void unhalt() {
+		halted_ = false;
+	}
+	bool halted() const {
+		return halted_;
+	}
+
+private:
+	Registers<x86_model> &registers_;
+	Segments<x86_model> &segments_;
+	bool should_repeat_ = false;
+	bool halted_ = false;
 };
 
-template <Target::VideoAdaptor video, Target::ModelApproximation pc_model>
+template <Analyser::Static::PCCompatible::Model pc_model, Target::VideoAdaptor video>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
@@ -921,7 +939,7 @@ class ConcreteMachine:
 				default:
 					request = request && ROM::Request(biosXT) && ROM::Request(tickXT);
 				break;
-				case PCModelApproximation::AT:
+				case Analyser::Static::PCCompatible::Model::AT:
 					request = request && ROM::Request(biosAT);
 				break;
 			}
@@ -943,7 +961,7 @@ class ConcreteMachine:
 					}
 				} break;
 
-				case PCModelApproximation::AT:
+				case Analyser::Static::PCCompatible::Model::AT:
 					const auto &bios_contents = roms.find(biosAT)->second;
 					context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 				break;
@@ -964,7 +982,7 @@ class ConcreteMachine:
 		// MARK: - TimedMachine.
 		void run_for(const Cycles duration) final {
 			const auto pit_ticks = duration.as<int>();
-			constexpr bool is_fast = pc_model >= Target::ModelApproximation::TurboXT;
+			constexpr bool is_fast = pc_model >= Analyser::Static::PCCompatible::Model::TurboXT;
 
 			int ticks;
 			if constexpr (is_fast) {
@@ -1167,30 +1185,33 @@ class ConcreteMachine:
 		}
 
 	private:
-		PIC pic_;
-		DMA dma_;
+		static constexpr auto x86_model = processor_model(pc_model);
+
+		PIC<pc_model> pic_;
+		DMA<pc_model> dma_;
 		PCSpeaker speaker_;
 		Video video_;
 
-		KeyboardController keyboard_;
-		FloppyController fdc_;
-		PITObserver pit_observer_;
-		i8255PortHandler ppi_handler_;
+		KeyboardController<pc_model> keyboard_;
+		FloppyController<pc_model> fdc_;
+		PITObserver<pc_model> pit_observer_;
+		i8255PortHandler<pc_model> ppi_handler_;
 
-		PIT pit_;
-		PPI ppi_;
+		PIT<pc_model> pit_;
+		PPI<pc_model> ppi_;
 		RTC rtc_;
 
 		PCCompatible::KeyboardMapper keyboard_mapper_;
 
 		struct Context {
 			Context(
-				PIT &pit,
-				DMA &dma,
-				PPI &ppi,
-				PIC &pic,
+				PIT<pc_model> &pit,
+				DMA<pc_model> &dma,
+				PPI<pc_model> &ppi,
+				PIC<pc_model> &pic,
 				typename Adaptor<video>::type &card,
-				FloppyController &fdc, RTC &rtc
+				FloppyController<pc_model> &fdc,
+				RTC &rtc
 			) :
 				segments(registers),
 				memory(registers, segments),
@@ -1206,11 +1227,11 @@ class ConcreteMachine:
 			}
 
 			InstructionSet::x86::Flags flags;
-			Registers registers;
-			Segments segments;
-			Memory memory;
-			FlowController flow_controller;
-			IO<video> io;
+			Registers<x86_model> registers;
+			Segments<x86_model> segments;
+			Memory<pc_model> memory;
+			FlowController<pc_model> flow_controller;
+			IO<pc_model, video> io;
 			static constexpr auto model = processor_model(pc_model);
 		} context_;
 
@@ -1233,17 +1254,17 @@ static constexpr bool ForceAT = false;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	switch(ForceAT ? PCModelApproximation::AT : target.model) {
-		case PCModelApproximation::XT:
-			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::XT>>
+	switch(ForceAT ? Analyser::Static::PCCompatible::Model::AT : target.model) {
+		case Analyser::Static::PCCompatible::Model::XT:
+			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::XT, video>>
 				(target, rom_fetcher);
 
-		case PCModelApproximation::TurboXT:
-			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::TurboXT>>
+		case Analyser::Static::PCCompatible::Model::TurboXT:
+			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::TurboXT, video>>
 				(target, rom_fetcher);
 
-		case PCModelApproximation::AT:
-			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::AT>>
+		case Analyser::Static::PCCompatible::Model::AT:
+			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::AT, video>>
 				(target, rom_fetcher);
 	}
 }
