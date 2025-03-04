@@ -33,6 +33,7 @@
 #include "Numeric/RegisterSizes.hpp"
 
 #include "Outputs/CRT/CRT.hpp"
+#include "Outputs/Log.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
@@ -50,6 +51,11 @@
 #include <iostream>
 
 namespace PCCompatible {
+namespace {
+
+Log::Logger<Log::Source::PCCompatible> log;
+
+}
 
 using Target = Analyser::Static::PCCompatible::Target;
 
@@ -108,7 +114,7 @@ class FloppyController {
 				using Command = Intel::i8272::Command;
 				switch(decoder_.command()) {
 					default:
-						printf("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
+						log.error().append("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
 					break;
 
 					case Command::WriteDeletedData:
@@ -605,9 +611,9 @@ class IO {
 			switch(port) {
 				default:
 					if constexpr (std::is_same_v<IntT, uint8_t>) {
-						printf("Unhandled out: %02x to %04x\n", value, port);
+						log.error().append("Unhandled out: %02x to %04x\n", value, port);
 					} else {
-						printf("Unhandled out: %04x to %04x\n", value, port);
+						log.error().append("Unhandled out: %04x to %04x\n", value, port);
 					}
 				break;
 
@@ -616,7 +622,7 @@ class IO {
 
 				// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
 				case 0x00a0:
-					printf("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
+					log.error().append("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
 				case 0x0000:	dma_.controller.write<0x0>(uint8_t(value));		break;
@@ -689,7 +695,7 @@ class IO {
 					fdc_.set_digital_output(uint8_t(value));
 				break;
 				case 0x03f4:
-					printf("TODO: FDC write of %02x at %04x\n", value, port);
+					log.error().append("TODO: FDC write of %02x at %04x\n", value, port);
 				break;
 				case 0x03f5:
 					fdc_.write(uint8_t(value));
@@ -716,7 +722,7 @@ class IO {
 		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
 			switch(port) {
 				default:
-					printf("Unhandled in: %04x\n", port);
+					log.error().append("Unhandled in: %04x\n", port);
 				break;
 
 				case 0x0000:	return dma_.controller.read<0x0>();
@@ -830,7 +836,7 @@ class FlowController {
 			halted_ = true;
 		}
 		void wait() {
-			printf("WAIT ????\n");
+			log.error().append("WAIT ????\n");
 		}
 
 		void repeat_last() {
