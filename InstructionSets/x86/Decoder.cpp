@@ -1088,16 +1088,16 @@ template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;
 
 // Workaround for GCC; despite explicit instantiations above, GCC will fail to
 // link without the function below.
-void InstructionSet::x86::_gcc_instantiation_workaround() {
+void InstructionSet::x86::_gcc_instantiation_workaround(const uint8_t v) {
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder86;
-	decoder86.decode(nullptr, 0);
+	decoder86.decode(&v, 1);
 
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186> decoder186;
-	decoder186.decode(nullptr, 0);
+	decoder186.decode(&v, 1);
 
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286> decoder286;
-	decoder286.decode(nullptr, 0);
+	decoder286.decode(&v, 1);
 
 	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386> decoder386;
-	decoder386.decode(nullptr, 0);
+	decoder386.decode(&v, 1);
 }

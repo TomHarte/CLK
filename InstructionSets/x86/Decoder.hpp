@@ -371,6 +371,7 @@ private:
 
 // As the name implies, this function exists purely to work around what appears
 // at my level of comprehension to be an issue with GCC and explicit instantiation.
-void _gcc_instantiation_workaround();
+
+void _gcc_instantiation_workaround(uint8_t v = 0xff);
 
 }
