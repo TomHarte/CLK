@@ -19,10 +19,10 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		CGA);
 	VideoAdaptor adaptor = VideoAdaptor::CGA;
 
-	ReflectableEnum(Speed,
-		ApproximatelyOriginal,
-		Fast);
-	Speed speed = Speed::Fast;
+	ReflectableEnum(ModelApproximation,
+		XT,
+		TurboXT);
+	ModelApproximation model = ModelApproximation::TurboXT;
 
 	Target() : Analyser::Static::Target(Machine::PCCompatible) {}
 
@@ -30,9 +30,9 @@ private:
 	friend Reflection::StructImpl<Target>;
 	void declare_fields() {
 		AnnounceEnum(VideoAdaptor);
-		AnnounceEnum(Speed);
+		AnnounceEnum(ModelApproximation);
 		DeclareField(adaptor);
-		DeclareField(speed);
+		DeclareField(model);
 	}
 };
 
