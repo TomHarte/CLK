@@ -152,18 +152,18 @@ void enter(
 	const auto alloc_size = instruction.dynamic_storage_size();
 	const auto nesting_level = instruction.nesting_level() & 0x1f;
 
-	// Preauthorse contents that'll be fetched via BP.
+	// Preauthorise contents that'll be fetched via BP.
 	const auto copied_pointers = nesting_level - 2;
 	if(copied_pointers > 0) {
 		context.memory.preauthorise_read(
 			Source::SS,
-			context.registers.bp() - copied_pointers * sizeof(uint16_t),
-			copied_pointers * sizeof(uint16_t)
+			uint16_t(context.registers.bp() - size_t(copied_pointers) * sizeof(uint16_t)),
+			uint32_t(size_t(copied_pointers) * sizeof(uint16_t))	// TODO: I don't think this can actually be 32 bit.
 		);
 	}
 
-	// Preauthorse stack activity.
-	context.memory.preauthorise_stack_write((1 + copied_pointers) * sizeof(uint16_t));
+	// Preauthorise writes.
+	context.memory.preauthorise_stack_write(uint32_t(size_t(nesting_level) * sizeof(uint16_t)));
 
 	// Push BP and grab the end of frame.
 	push<uint16_t, true>(context.registers.bp(), context);
@@ -179,6 +179,7 @@ void enter(
 
 	// Set final BP.
 	context.registers.bp() = frame;
+	context.registers.sp() -= alloc_size;
 }
 
 template <typename IntT, typename ContextT>

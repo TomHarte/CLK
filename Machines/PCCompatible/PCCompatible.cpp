@@ -122,7 +122,7 @@ class FloppyController {
 				using Command = Intel::i8272::Command;
 				switch(decoder_.command()) {
 					default:
-						log.error().append("TODO: implement FDC command %d\n", uint8_t(decoder_.command()));
+						log.error().append("TODO: implement FDC command %d", uint8_t(decoder_.command()));
 					break;
 
 					case Command::WriteDeletedData:
@@ -619,9 +619,9 @@ class IO {
 			switch(port) {
 				default:
 					if constexpr (std::is_same_v<IntT, uint8_t>) {
-						log.error().append("Unhandled out: %02x to %04x\n", value, port);
+						log.error().append("Unhandled out: %02x to %04x", value, port);
 					} else {
-						log.error().append("Unhandled out: %04x to %04x\n", value, port);
+						log.error().append("Unhandled out: %04x to %04x", value, port);
 					}
 				break;
 
@@ -630,7 +630,7 @@ class IO {
 
 				// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
 				case 0x00a0:
-					log.error().append("TODO: NMIs %s\n", (value & 0x80) ? "masked" : "unmasked");
+					log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
 				case 0x0000:	dma_.controller.write<0x0>(uint8_t(value));		break;
@@ -703,7 +703,7 @@ class IO {
 					fdc_.set_digital_output(uint8_t(value));
 				break;
 				case 0x03f4:
-					log.error().append("TODO: FDC write of %02x at %04x\n", value, port);
+					log.error().append("TODO: FDC write of %02x at %04x", value, port);
 				break;
 				case 0x03f5:
 					fdc_.write(uint8_t(value));
@@ -730,7 +730,7 @@ class IO {
 		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
 			switch(port) {
 				default:
-					log.error().append("Unhandled in: %04x\n", port);
+					log.error().append("Unhandled in: %04x", port);
 				break;
 
 				case 0x0000:	return dma_.controller.read<0x0>();
@@ -844,7 +844,7 @@ class FlowController {
 			halted_ = true;
 		}
 		void wait() {
-			log.error().append("WAIT ????\n");
+			log.error().append("WAIT ????");
 		}
 
 		void repeat_last() {
@@ -1229,9 +1229,11 @@ class ConcreteMachine:
 using namespace PCCompatible;
 
 namespace {
+static constexpr bool ForceAT = false;
+
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	switch(target.model) {
+	switch(ForceAT ? PCModelApproximation::AT : target.model) {
 		case PCModelApproximation::XT:
 			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::XT>>
 				(target, rom_fetcher);
