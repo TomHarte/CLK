@@ -1232,8 +1232,8 @@ void MainWindow::start_pc() {
 	auto target = std::make_unique<Target>();
 
 	switch(ui->pcSpeedComboBox->currentIndex()) {
-			default:	target->speed = Target::Speed::ApproximatelyOriginal;	break;
-			case 1:		target->speed = Target::Speed::Fast;						break;
+			default:	target->model = Target::ModelApproximation::XT;			break;
+			case 1:		target->speed = Target::ModelApproximation::TurboXT;	break;
 	}
 
 	switch(ui->pcVideoAdaptorComboBox->currentIndex()) {
