@@ -1233,7 +1233,7 @@ void MainWindow::start_pc() {
 
 	switch(ui->pcSpeedComboBox->currentIndex()) {
 			default:	target->model = Target::ModelApproximation::XT;			break;
-			case 1:		target->speed = Target::ModelApproximation::TurboXT;	break;
+			case 1:		target->model = Target::ModelApproximation::TurboXT;	break;
 	}
 
 	switch(ui->pcVideoAdaptorComboBox->currentIndex()) {
