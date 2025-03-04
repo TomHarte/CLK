@@ -893,7 +893,7 @@ class ConcreteMachine:
 			context(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
 			// Capture speed.
-			speed_ = target.speed;
+			model_ = target.model;
 
 			// Set up DMA source/target.
 			dma_.set_memory(&context.memory);
@@ -938,18 +938,20 @@ class ConcreteMachine:
 
 		// MARK: - TimedMachine.
 		void run_for(const Cycles duration) override {
-			switch(speed_) {
-				case Target::Speed::ApproximatelyOriginal:	run_for<Target::Speed::ApproximatelyOriginal>(duration);	break;
-				case Target::Speed::Fast:					run_for<Target::Speed::Fast>(duration);						break;
+			using Model = Target::ModelApproximation;
+			switch(model_) {
+				case Model::XT:			run_for<Model::XT>(duration);			break;
+				case Model::TurboXT:	run_for<Model::TurboXT>(duration);		break;
 			}
 		}
 
-		template <Target::Speed speed>
+		template <Target::ModelApproximation model>
 		void run_for(const Cycles duration) {
 			const auto pit_ticks = duration.as<int>();
+			constexpr bool is_fast = model == Target::ModelApproximation::TurboXT;
 
 			int ticks;
-			if constexpr (speed == Target::Speed::Fast) {
+			if constexpr (is_fast) {
 				ticks = pit_ticks;
 			} else {
 				cpu_divisor_ += pit_ticks;
@@ -970,7 +972,7 @@ class ConcreteMachine:
 
 				// For original speed, the CPU performs instructions at a 1/3rd divider of the PIT clock,
 				// so run the PIT three times per 'tick'.
-				if constexpr (speed == Target::Speed::ApproximatelyOriginal) {
+				if constexpr (is_fast) {
 					pit_.run_for(1);
 					++speaker_.cycles_since_update;
 					pit_.run_for(1);
@@ -980,7 +982,7 @@ class ConcreteMachine:
 				//
 				// Advance CRTC at a more approximate rate.
 				//
-				video_.run_for(speed == Target::Speed::Fast ? Cycles(1) : Cycles(3));
+				video_.run_for(is_fast ? Cycles(1) : Cycles(3));
 
 				//
 				// Give the keyboard a notification of passing time; it's very approximately clocked,
@@ -1014,7 +1016,7 @@ class ConcreteMachine:
 					continue;
 				}
 
-				if constexpr (speed == Target::Speed::Fast) {
+				if constexpr (is_fast) {
 					// There's no divider applied, so this makes for 2*PIT = around 2.4 MIPS.
 					// That's broadly 80286 speed, if MIPS were a valid measure.
 					perform_instruction();
@@ -1198,7 +1200,7 @@ class ConcreteMachine:
 		std::pair<int, InstructionSet::x86::Instruction<false>> decoded;
 
 		int cpu_divisor_ = 0;
-		Target::Speed speed_{};
+		Target::ModelApproximation model_{};
 };
 
 
