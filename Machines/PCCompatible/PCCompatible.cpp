@@ -58,7 +58,8 @@ Log::Logger<Log::Source::PCCompatible> log;
 using PCModelApproximation = Analyser::Static::PCCompatible::Target::ModelApproximation;
 constexpr InstructionSet::x86::Model processor_model(PCModelApproximation model) {
 	switch(model) {
-		default: return InstructionSet::x86::Model::i8086;
+		default: 						return InstructionSet::x86::Model::i8086;
+		case PCModelApproximation::AT:	return InstructionSet::x86::Model::i80286;
 	}
 }
 
@@ -907,25 +908,45 @@ class ConcreteMachine:
 			set_clock_rate(double(pit_frequency));
 			speaker_.speaker.set_input_rate(double(pit_frequency));
 
-			// Fetch the BIOS. [8088 only, for now]
-			const auto bios = ROM::Name::PCCompatibleGLaBIOS;
-			const auto tick = ROM::Name::PCCompatibleGLaTICK;
+			// Fetch the BIOS.
 			const auto font = Video::FontROM;
 
-			ROM::Request request = ROM::Request(bios) && ROM::Request(tick, true) && ROM::Request(font);
+			constexpr auto biosXT = ROM::Name::PCCompatibleGLaBIOS;
+			constexpr auto tickXT = ROM::Name::PCCompatibleGLaTICK;
+
+			constexpr auto biosAT = ROM::Name::PCCompatiblePhoenix80286BIOS;
+
+			ROM::Request request = ROM::Request(font);
+			switch(pc_model) {
+				default:
+					request = request && ROM::Request(biosXT) && ROM::Request(tickXT);
+				break;
+				case PCModelApproximation::AT:
+					request = request && ROM::Request(biosAT);
+				break;
+			}
+
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 
-			// A BIOS is mandatory.
-			const auto &bios_contents = roms.find(bios)->second;
-			context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+			switch(pc_model) {
+				default: {
+					const auto &bios_contents = roms.find(biosXT)->second;
+					context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 
-			// If found, install GlaTICK at 0xd'0000.
-			auto tick_contents = roms.find(tick);
-			if(tick_contents != roms.end()) {
-				context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
+					// If found, install GlaTICK at 0xd'0000.
+					auto tick_contents = roms.find(tickXT);
+					if(tick_contents != roms.end()) {
+						context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
+					}
+				} break;
+
+				case PCModelApproximation::AT:
+					const auto &bios_contents = roms.find(biosAT)->second;
+					context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+				break;
 			}
 
 			// Give the video card something to read from.
@@ -941,18 +962,9 @@ class ConcreteMachine:
 		}
 
 		// MARK: - TimedMachine.
-		void run_for(const Cycles duration) override {
-			using Model = Target::ModelApproximation;
-			switch(pc_model) {
-				case Model::XT:			run_for<Model::XT>(duration);			break;
-				case Model::TurboXT:	run_for<Model::TurboXT>(duration);		break;
-			}
-		}
-
-		template <Target::ModelApproximation model>
-		void run_for(const Cycles duration) {
+		void run_for(const Cycles duration) final {
 			const auto pit_ticks = duration.as<int>();
-			constexpr bool is_fast = model == Target::ModelApproximation::TurboXT;
+			constexpr bool is_fast = pc_model >= Target::ModelApproximation::TurboXT;
 
 			int ticks;
 			if constexpr (is_fast) {
@@ -1087,15 +1099,15 @@ class ConcreteMachine:
 		}
 
 		// MARK: - ScanProducer.
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
-		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
 			return video_.get_scaled_scan_status();
 		}
 
 		// MARK: - AudioProducer.
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_.speaker;
 		}
 
@@ -1107,7 +1119,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - MediaTarget
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			int c = 0;
 			for(auto &disk : media.disks) {
 				fdc_.set_disk(disk, c);
@@ -1118,11 +1130,11 @@ class ConcreteMachine:
 		}
 
 		// MARK: - MappedKeyboardMachine.
-		MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+		MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			keyboard_.post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
 		}
 
@@ -1132,25 +1144,25 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options() const override {
+		std::unique_ptr<Reflection::Struct> get_options() const final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
 			return options;
 		}
 
-		void set_options(const std::unique_ptr<Reflection::Struct> &str) override {
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 			const auto options = dynamic_cast<Options *>(str.get());
 			set_video_signal_configurable(options->output);
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_.set_display_type(display_type);
 
 			// Give the PPI a shout-out in case it isn't too late to switch to CGA40.
 			ppi_handler_.hint_is_composite(Outputs::Display::is_composite(display_type));
 		}
 
-		Outputs::Display::DisplayType get_display_type() const override {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return video_.get_display_type();
 		}
 
@@ -1226,6 +1238,10 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 
 		case PCModelApproximation::TurboXT:
 			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::TurboXT>>
+				(target, rom_fetcher);
+
+		case PCModelApproximation::AT:
+			return std::make_unique<PCCompatible::ConcreteMachine<video, PCModelApproximation::AT>>
 				(target, rom_fetcher);
 	}
 }

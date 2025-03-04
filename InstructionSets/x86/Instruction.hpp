@@ -850,7 +850,7 @@ public:
 
 	/// @returns The dynamic storage size argument supplied to an ENTER.
 	constexpr ImmediateT dynamic_storage_size() const	{
-		return displacement();
+		return offset();
 	}
 
 	// Standard comparison operator.

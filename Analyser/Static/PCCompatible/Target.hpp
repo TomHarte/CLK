@@ -16,12 +16,15 @@ namespace Analyser::Static::PCCompatible {
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(VideoAdaptor,
 		MDA,
-		CGA);
+		CGA,
+	);
 	VideoAdaptor adaptor = VideoAdaptor::CGA;
 
 	ReflectableEnum(ModelApproximation,
 		XT,
-		TurboXT);
+		TurboXT,
+		AT
+	);
 	ModelApproximation model = ModelApproximation::TurboXT;
 
 	Target() : Analyser::Static::Target(Machine::PCCompatible) {}

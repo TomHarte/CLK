@@ -174,7 +174,7 @@ void enter(
 		context.registers.bp() -= 2;
 
 		const auto value = context.memory.template preauthorised_read<uint16_t>(Source::SS, context.registers.bp());
-		push<uint16_t, true>(value);
+		push<uint16_t, true>(value, context);
 	}
 
 	// Set final BP.

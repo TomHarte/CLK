@@ -39,7 +39,10 @@ struct Memory {
 
 		// Accesses an address based on segment:offset.
 		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
+		typename InstructionSet::x86::Accessor<IntT, type>::type access(
+			const InstructionSet::x86::Source segment,
+			const uint16_t offset
+		) {
 			const uint32_t physical_address = address(segment, offset);
 
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
@@ -55,7 +58,7 @@ struct Memory {
 
 		// Accesses an address based on physical location.
 		template <typename IntT, AccessType type>
-		typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
+		typename InstructionSet::x86::Accessor<IntT, type>::type access(const uint32_t address) {
 			// Dispense with the single-byte case trivially.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				return memory[address];
@@ -78,10 +81,14 @@ struct Memory {
 		}
 
 		//
-		// Direct write.
+		// Direct read and write.
 		//
 		template <typename IntT>
-		void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
+		void preauthorised_write(
+			const InstructionSet::x86::Source segment,
+			const uint16_t offset,
+			const IntT value
+		) {
 			// Bytes can be written without further ado.
 			if constexpr (std::is_same_v<IntT, uint8_t>) {
 				memory[address(segment, offset) & 0xf'ffff] = value;
@@ -105,7 +112,39 @@ struct Memory {
 			}
 
 			// It's safe just to write then.
-			*reinterpret_cast<uint16_t *>(&memory[target]) = value;
+			*reinterpret_cast<IntT *>(&memory[target]) = value;
+		}
+
+		template <typename IntT>
+		IntT preauthorised_read(
+			const InstructionSet::x86::Source segment,
+			const uint16_t offset
+		) {
+			// Bytes can be written without further ado.
+			if constexpr (std::is_same_v<IntT, uint8_t>) {
+				return memory[address(segment, offset) & 0xf'ffff];
+			}
+
+			// Words that straddle the segment end must be split in two.
+			if(offset == 0xffff) {
+				return IntT(
+					memory[address(segment, offset) & 0xf'ffff] |
+					memory[address(segment, 0x0000) & 0xf'ffff] << 8
+				);
+			}
+
+			const uint32_t target = address(segment, offset) & 0xf'ffff;
+
+			// Words that straddle the end of physical RAM must also be split in two.
+			if(target == 0xf'ffff) {
+				return IntT(
+					memory[0xf'ffff] |
+					memory[0x0'0000] << 8
+				);
+			}
+
+			// It's safe just to write then.
+			return *reinterpret_cast<IntT *>(&memory[target]);
 		}
 
 		//
