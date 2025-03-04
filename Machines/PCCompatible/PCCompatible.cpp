@@ -893,7 +893,7 @@ class ConcreteMachine:
 			context(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
 		{
 			// Yuck, for GCC. Yuck. See notes in x86 decoder.
-			InstructionSet::x86::_gcc_instantion_workaround();
+			InstructionSet::x86::_gcc_instantiation_workaround();
 
 			// Capture speed.
 			model_ = target.model;
