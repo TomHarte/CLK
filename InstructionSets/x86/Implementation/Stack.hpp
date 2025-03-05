@@ -170,11 +170,14 @@ void enter(
 	const auto frame = context.registers.sp();
 
 	// Copy data as per the nesting level.
-	for(int c = 1; c < nesting_level; c++) {
-		context.registers.bp() -= 2;
+	if(nesting_level > 0) {
+		for(int c = 1; c < nesting_level; c++) {
+			context.registers.bp() -= 2;
 
-		const auto value = context.memory.template preauthorised_read<uint16_t>(Source::SS, context.registers.bp());
-		push<uint16_t, true>(value, context);
+			const auto value = context.memory.template preauthorised_read<uint16_t>(Source::SS, context.registers.bp());
+			push<uint16_t, true>(value, context);
+		}
+		push<uint16_t, true>(frame, context);
 	}
 
 	// Set final BP.
