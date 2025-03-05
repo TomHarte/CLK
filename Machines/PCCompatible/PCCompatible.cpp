@@ -1314,7 +1314,7 @@ class ConcreteMachine:
 using namespace PCCompatible;
 
 namespace {
-static constexpr bool ForceAT = true;
+static constexpr bool ForceAT = false;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
