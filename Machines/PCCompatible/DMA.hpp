@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Analyser/Static/PCCompatible/Target.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
 #include "Memory.hpp"
@@ -287,13 +288,14 @@ class DMAPages {
 		}
 };
 
+template <Analyser::Static::PCCompatible::Model model>
 class DMA {
 	public:
 		i8237 controller;
 		DMAPages pages;
 
 		// Memory is set posthoc to resolve a startup time.
-		void set_memory(Memory *memory) {
+		void set_memory(Memory<model> *memory) {
 			memory_ = memory;
 		}
 
@@ -310,7 +312,7 @@ class DMA {
 		}
 
 	private:
-		Memory *memory_;
+		Memory<model> *memory_;
 };
 
 }

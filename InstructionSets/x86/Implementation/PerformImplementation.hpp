@@ -223,7 +223,7 @@ template <
 			} else {
 				static_assert(int(Operation::IDIV_REP) == int(Operation::LEAVE));
 				if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
-					Primitive::leave<IntT>();
+					Primitive::leave<IntT>(context);
 				}
 			}
 		return;
@@ -338,7 +338,7 @@ template <
 				break;
 			} else {
 				static_assert(int(Operation::SETMOC) == int(Operation::BOUND));
-				Primitive::bound<IntT>(instruction, destination_r(), source_r(), context);
+				Primitive::bound<IntT, AddressT>(instruction, destination_r(), source_r(), context);
 			}
 		return;
 

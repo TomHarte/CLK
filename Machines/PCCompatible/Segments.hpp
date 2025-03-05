@@ -11,12 +11,14 @@
 #include "Registers.hpp"
 
 #include "InstructionSets/x86/Instruction.hpp"
+#include "InstructionSets/x86/Model.hpp"
 
 namespace PCCompatible {
 
+template <InstructionSet::x86::Model model>
 class Segments {
 	public:
-		Segments(const Registers &registers) : registers_(registers) {}
+		Segments(const Registers<model> &registers) : registers_(registers) {}
 
 		using Source = InstructionSet::x86::Source;
 
@@ -49,7 +51,7 @@ class Segments {
 		}
 
 	private:
-		const Registers &registers_;
+		const Registers<model> &registers_;
 };
 
 }

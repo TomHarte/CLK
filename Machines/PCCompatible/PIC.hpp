@@ -8,9 +8,12 @@
 
 #pragma once
 
+#include "Analyser/Static/PCCompatible/Target.hpp"
+
 namespace PCCompatible {
 
 // Cf. https://helppc.netcore2k.net/hardware/pic
+template <Analyser::Static::PCCompatible::Model model>
 class PIC {
 	public:
 		template <int address>
