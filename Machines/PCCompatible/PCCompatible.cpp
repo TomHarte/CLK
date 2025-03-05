@@ -627,18 +627,27 @@ class IO {
 		) :
 			pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc), rtc_(rtc) {}
 
-		template <typename IntT> void out(uint16_t port, IntT value) {
+		template <typename IntT> void out(const uint16_t port, const IntT value) {
+			static const auto log_unhandled = [](const uint16_t port, const IntT value) {
+				if constexpr (std::is_same_v<IntT, uint8_t>) {
+					log.error().append("Unhandled out: %02x to %04x", value, port);
+				} else {
+					log.error().append("Unhandled out: %04x to %04x", value, port);
+				}
+			};
+			static const auto has_second_dma = [](const uint16_t port, const IntT value) {
+				if constexpr (model >= Analyser::Static::PCCompatible::Model::AT) {
+					return true;
+				}
+				log_unhandled(port, value);
+				return false;
+			};
+
 			static constexpr uint16_t crtc_base =
 				video == Target::VideoAdaptor::MDA ? 0x03b0 : 0x03d0;
 
 			switch(port) {
-				default:
-					if constexpr (std::is_same_v<IntT, uint8_t>) {
-						log.error().append("Unhandled out: %02x to %04x", value, port);
-					} else {
-						log.error().append("Unhandled out: %04x to %04x", value, port);
-					}
-				break;
+				default:		log_unhandled(port, value);		break;
 
 				case 0x0070:	rtc_.write<0>(uint8_t(value));	break;
 				case 0x0071:	rtc_.write<1>(uint8_t(value));	break;
@@ -688,6 +697,15 @@ class IO {
 				case 0x0085:	dma_.pages.template set_page<5>(uint8_t(value));	break;
 				case 0x0086:	dma_.pages.template set_page<6>(uint8_t(value));	break;
 				case 0x0087:	dma_.pages.template set_page<7>(uint8_t(value));	break;
+
+				case 0x0088:	if(has_second_dma(port, value))	dma_.pages.template set_page<0x8>(uint8_t(value));	break;
+				case 0x0089:	if(has_second_dma(port, value))	dma_.pages.template set_page<0x9>(uint8_t(value));	break;
+				case 0x008a:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xa>(uint8_t(value));	break;
+				case 0x008b:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xb>(uint8_t(value));	break;
+				case 0x008c:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xc>(uint8_t(value));	break;
+				case 0x008d:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xd>(uint8_t(value));	break;
+				case 0x008e:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xe>(uint8_t(value));	break;
+				case 0x008f:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xf>(uint8_t(value));	break;
 
 				//
 				// CRTC access block, with slightly laboured 16-bit to 8-bit mapping.
@@ -742,11 +760,20 @@ class IO {
 				break;
 			}
 		}
-		template <typename IntT> IntT in([[maybe_unused]] uint16_t port) {
+		template <typename IntT> IntT in(const uint16_t port) {
+			static const auto log_unhandled = [](const uint16_t port) {
+				log.error().append("Unhandled in: %04x", port);
+			};
+			static const auto has_second_dma = [](const uint16_t port) {
+				if constexpr (model >= Analyser::Static::PCCompatible::Model::AT) {
+					return true;
+				}
+				log_unhandled(port);
+				return false;
+			};
+
 			switch(port) {
-				default:
-					log.error().append("Unhandled in: %04x", port);
-				break;
+				default:		log_unhandled(port);	break;
 
 				case 0x0000:	return dma_.controller.template read<0x0>();
 				case 0x0001:	return dma_.controller.template read<0x1>();
@@ -787,6 +814,15 @@ class IO {
 				case 0x0085:	return dma_.pages.template page<5>();
 				case 0x0086:	return dma_.pages.template page<6>();
 				case 0x0087:	return dma_.pages.template page<7>();
+
+				case 0x0088:	if(has_second_dma(port)) return dma_.pages.template page<0x8>(); 	break;
+				case 0x0089:	if(has_second_dma(port)) return dma_.pages.template page<0x9>(); 	break;
+				case 0x008a:	if(has_second_dma(port)) return dma_.pages.template page<0xa>(); 	break;
+				case 0x008b:	if(has_second_dma(port)) return dma_.pages.template page<0xb>(); 	break;
+				case 0x008c:	if(has_second_dma(port)) return dma_.pages.template page<0xc>(); 	break;
+				case 0x008d:	if(has_second_dma(port)) return dma_.pages.template page<0xd>(); 	break;
+				case 0x008e:	if(has_second_dma(port)) return dma_.pages.template page<0xe>(); 	break;
+				case 0x008f:	if(has_second_dma(port)) return dma_.pages.template page<0xf>(); 	break;
 
 				case 0x0201:	break;		// Ignore game port.
 
@@ -1254,7 +1290,7 @@ class ConcreteMachine:
 using namespace PCCompatible;
 
 namespace {
-static constexpr bool ForceAT = false;
+static constexpr bool ForceAT = true;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
