@@ -1109,6 +1109,10 @@ class ConcreteMachine:
 //				}
 			}*/
 
+			if(decoded_.second.operation() == InstructionSet::x86::Operation::Invalid) {
+				log.error().append("Invalid operation");
+			}
+
 			// Execute it.
 			InstructionSet::x86::perform(
 				decoded_.second,
@@ -1250,7 +1254,7 @@ class ConcreteMachine:
 using namespace PCCompatible;
 
 namespace {
-static constexpr bool ForceAT = false;
+static constexpr bool ForceAT = true;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
@@ -1267,6 +1271,8 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::AT, video>>
 				(target, rom_fetcher);
 	}
+
+	return nullptr;
 }
 }
 
