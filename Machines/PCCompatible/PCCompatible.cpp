@@ -657,6 +657,10 @@ class IO {
 					log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
 				break;
 
+				case 0x00f1:
+					log.error().append("TODO: coprocessor reset");
+				break;
+
 				case 0x0000:	dma_.controller.template write<0x0>(uint8_t(value));	break;
 				case 0x0001:	dma_.controller.template write<0x1>(uint8_t(value));	break;
 				case 0x0002:	dma_.controller.template write<0x2>(uint8_t(value));	break;
