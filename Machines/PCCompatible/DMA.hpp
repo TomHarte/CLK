@@ -117,7 +117,7 @@ public:
 	/// Provides the next target address for @c channel if performing either a write (if @c is_write is @c true) or read (otherwise).
 	///
 	/// @returns A combined address and @c AccessResult.
-	std::pair<uint16_t, AccessResult> access(size_t channel, bool is_write) {
+	std::pair<uint16_t, AccessResult> access(const size_t channel, const bool is_write) {
 		if(is_write && channels_[channel].transfer != Channel::Transfer::Write) {
 			return std::make_pair(0, AccessResult::NotAccepted);
 		}
@@ -143,7 +143,7 @@ public:
 		return std::make_pair(address, result);
 	}
 
-	void set_complete(size_t channel) {
+	void set_complete(const size_t channel) {
 		channels_[channel].transfer_complete = true;
 	}
 
@@ -195,15 +195,15 @@ private:
 		channels_[0].transfer_complete = true;
 	}
 
-	void set_reset_mask(uint8_t value) {
+	void set_reset_mask(const uint8_t value) {
 		channels_[value & 3].mask = value & 4;
 	}
 
-	void set_reset_request(uint8_t value) {
+	void set_reset_request(const uint8_t value) {
 		channels_[value & 3].request = value & 4;
 	}
 
-	void set_mask(uint8_t value) {
+	void set_mask(const uint8_t value) {
 		channels_[0].mask = value & 1;
 		channels_[1].mask = value & 2;
 		channels_[2].mask = value & 4;
@@ -217,7 +217,7 @@ private:
 		channels_[value & 3].mode = Channel::Mode(value >> 6);
 	}
 
-	void set_command(uint8_t value) {
+	void set_command(const uint8_t value) {
 		enable_memory_to_memory_ = value & 0x01;
 		enable_channel0_address_hold_ = value & 0x02;
 		enable_controller_ = value & 0x04;
@@ -300,13 +300,13 @@ public:
 	DMAPages<has_second_dma> pages;
 
 	// Memory is set posthoc to resolve a startup time.
-	void set_memory(Memory<model> *memory) {
+	void set_memory(Memory<model> *const memory) {
 		memory_ = memory;
 	}
 
 	// TODO: this permits only 8-bit DMA. Fix that.
-	AccessResult write(size_t channel, uint8_t value) {
-		auto access = controller.access(channel, true);
+	AccessResult write(const size_t channel, const uint8_t value) {
+		const auto access = controller.access(channel, true);
 		if(access.second == AccessResult::NotAccepted) {
 			return access.second;
 		}
