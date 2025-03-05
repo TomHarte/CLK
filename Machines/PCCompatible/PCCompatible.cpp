@@ -690,7 +690,11 @@ class IO {
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
-					ppi_.write(port, uint8_t(value));
+					if constexpr (model <= Analyser::Static::PCCompatible::Model::TurboXT) {
+						ppi_.write(port, uint8_t(value));
+					} else {
+						log_unhandled(port, value);
+					}
 				break;
 
 				case 0x0080:	dma_.pages.template set_page<0>(uint8_t(value));	break;
@@ -766,7 +770,7 @@ class IO {
 		}
 		template <typename IntT> IntT in(const uint16_t port) {
 			static const auto log_unhandled = [](const uint16_t port) {
-				log.error().append("Unhandled in: %04x", port);
+				log.error().append("Unhandled in of %d bytes: %04x", sizeof(IntT), port);
 			};
 			static const auto has_second_dma = [](const uint16_t port) {
 				if constexpr (model >= Analyser::Static::PCCompatible::Model::AT) {
@@ -779,16 +783,27 @@ class IO {
 			switch(port) {
 				default:		log_unhandled(port);	break;
 
-				case 0x0000:	return dma_.controller.template read<0x0>();
-				case 0x0001:	return dma_.controller.template read<0x1>();
-				case 0x0002:	return dma_.controller.template read<0x2>();
-				case 0x0003:	return dma_.controller.template read<0x3>();
-				case 0x0004:	return dma_.controller.template read<0x4>();
-				case 0x0005:	return dma_.controller.template read<0x5>();
-				case 0x0006:	return dma_.controller.template read<0x6>();
-				case 0x0007:	return dma_.controller.template read<0x7>();
-				case 0x0008:	return dma_.controller.template read<0x8>();
-				case 0x000d:	return dma_.controller.template read<0xd>();
+				case 0x0000:	return dma_.controller.template read<0x00>();
+				case 0x0001:	return dma_.controller.template read<0x01>();
+				case 0x0002:	return dma_.controller.template read<0x02>();
+				case 0x0003:	return dma_.controller.template read<0x03>();
+				case 0x0004:	return dma_.controller.template read<0x04>();
+				case 0x0005:	return dma_.controller.template read<0x05>();
+				case 0x0006:	return dma_.controller.template read<0x06>();
+				case 0x0007:	return dma_.controller.template read<0x07>();
+				case 0x0008:	return dma_.controller.template read<0x08>();
+				case 0x000d:	return dma_.controller.template read<0x0d>();
+
+//				case 0x00c0:	return dma_.controller.template read<0x00>();
+//				case 0x00c1:	return dma_.controller.template read<0x01>();
+//				case 0x00c2:	return dma_.controller.template read<0x02>();
+//				case 0x00c3:	return dma_.controller.template read<0x03>();
+//				case 0x00c4:	return dma_.controller.template read<0x04>();
+//				case 0x00c5:	return dma_.controller.template read<0x05>();
+//				case 0x00c6:	return dma_.controller.template read<0x06>();
+//				case 0x00c7:	return dma_.controller.template read<0x07>();
+//				case 0x00c8:	return dma_.controller.template read<0x08>();
+//				case 0x00cd:	return dma_.controller.template read<0x0d>();
 
 				case 0x0009:	case 0x000b:
 				case 0x000c:	case 0x000f:
@@ -806,7 +821,12 @@ class IO {
 				case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 				case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 				case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
-				return ppi_.read(port);
+					if constexpr (model <= Analyser::Static::PCCompatible::Model::TurboXT) {
+						return ppi_.read(port);
+					} else {
+						log_unhandled(port);
+					}
+				break;
 
 				case 0x0071:	return rtc_.read();
 
