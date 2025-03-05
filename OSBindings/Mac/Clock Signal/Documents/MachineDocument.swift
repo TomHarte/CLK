@@ -265,7 +265,7 @@ class MachineDocument:
 
 			// Start forwarding best-effort updates.
 			machine.start()
-			optionsFader.showTransiently(for: 1.0)
+			optionsFader?.showTransiently(for: 1.0)
 		}
 	}
 
@@ -803,7 +803,7 @@ class MachineDocument:
 
 	// MARK: - In-window panels (i.e. options, volume).
 
-	private var optionsFader: ViewFader! = nil
+	private var optionsFader: ViewFader? = nil
 
 	internal func scanTargetView(_ view: CSScanTargetView, shouldTrackMousovers subview: NSView) -> Bool {
 		return subview == self.volumeView || subview == self.optionsView
@@ -811,12 +811,12 @@ class MachineDocument:
 
 	internal func scanTargetViewDidMouseoverSubviews(_ view: CSScanTargetView) {
 		// The OS mouse cursor became visible, so show the options.
-		optionsFader.animateIn()
+		optionsFader?.animateIn()
 	}
 
 	internal func scanTargetViewWouldHideOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor will be hidden, so hide the options if visible.
-		optionsFader.animateOut(delay: 0.0)
+		optionsFader?.animateOut(delay: 0.0)
 	}
 
 	// MARK: - Helpers for fading things in and out.
