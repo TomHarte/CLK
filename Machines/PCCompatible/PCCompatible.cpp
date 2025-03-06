@@ -453,6 +453,17 @@ public:
 	void post([[maybe_unused]] const uint8_t value) {
 	}
 
+	template <typename IntT>
+	void write([[maybe_unused]] const uint16_t port, [[maybe_unused]] const IntT value) {
+		log.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
+	}
+
+	template <typename IntT>
+	IntT read([[maybe_unused]] const uint16_t port) {
+		log.error().append("Unimplemented AT keyboard read from %04x", port);
+		return ~0;
+	}
+
 private:
 	PIC<model> &pic_;
 };
@@ -637,9 +648,10 @@ public:
 		PIC<model> &pic,
 		typename Adaptor<video>::type &card,
 		FloppyController<model> &fdc,
+		KeyboardController<model> &keyboard,
 		RTC &rtc
 	) :
-		pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc), rtc_(rtc) {}
+		pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc), keyboard_(keyboard), rtc_(rtc) {}
 
 	template <typename IntT> void out(const uint16_t port, const IntT value) {
 		static const auto log_unhandled = [](const uint16_t port, const IntT value) {
@@ -707,7 +719,7 @@ public:
 				if constexpr (is_xt(model)) {
 					ppi_.write(port, uint8_t(value));
 				} else {
-					log_unhandled(port, value);
+					keyboard_.write(port, value);
 				}
 			break;
 
@@ -838,10 +850,7 @@ public:
 				if constexpr (is_xt(model)) {
 					return ppi_.read(port);
 				} else {
-					log_unhandled(port);
-					if(port == 0x0061) {
-						return 0xc0;
-					}
+					return keyboard_.template read<IntT>(port);
 				}
 			break;
 
@@ -909,6 +918,7 @@ private:
 	PIC<model> &pic_;
 	typename Adaptor<video>::type &video_;
 	FloppyController<model> &fdc_;
+	KeyboardController<model> &keyboard_;
 	RTC &rtc_;
 };
 
@@ -993,7 +1003,7 @@ public:
 		ppi_handler_(speaker_, keyboard_, video, DriveCount),
 		pit_(pit_observer_),
 		ppi_(ppi_handler_),
-		context_(pit_, dma_, ppi_, pic_, video_, fdc_, rtc_)
+		context_(pit_, dma_, ppi_, pic_, video_, fdc_, keyboard_, rtc_)
 	{
 		// Set up DMA source/target.
 		dma_.set_memory(&context_.memory);
@@ -1292,12 +1302,13 @@ private:
 			PIC<pc_model> &pic,
 			typename Adaptor<video>::type &card,
 			FloppyController<pc_model> &fdc,
+			KeyboardController<pc_model> &keyboard,
 			RTC &rtc
 		) :
 			segments(registers),
 			memory(registers, segments),
 			flow_controller(registers, segments),
-			io(pit, dma, ppi, pic, card, fdc, rtc)
+			io(pit, dma, ppi, pic, card, fdc, keyboard, rtc)
 		{
 			reset();
 		}
