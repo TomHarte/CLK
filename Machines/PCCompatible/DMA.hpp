@@ -10,6 +10,7 @@
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
 #include "Numeric/RegisterSizes.hpp"
+#include "Outputs/Log.hpp"
 
 #include "Memory.hpp"
 
@@ -250,6 +251,9 @@ public:
 	template <int index>
 	void set_page(const uint8_t value) {
 		pages_[page_for_index(index)] = value;
+		if(index == 0x00) {
+			log_.info().append("%02x", value);
+		}
 	}
 
 	template <int index>
@@ -263,6 +267,8 @@ public:
 
 private:
 	uint8_t pages_[16]{};
+
+	Log::Logger<Log::Source::PCPOST> log_;
 
 	static constexpr int page_for_index(const int index) {
 		switch(index) {
