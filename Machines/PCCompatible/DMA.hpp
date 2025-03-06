@@ -24,27 +24,23 @@ enum class AccessResult {
 	NotAccepted,
 };
 
-// Per-channel state.
-struct i8237Channel {
-	bool mask = false;
-	enum class Transfer {
-		Verify, Write, Read, Invalid
-	} transfer = Transfer::Verify;
-	bool autoinitialise = false;
-	bool address_decrement = false;
-	enum class Mode {
-		Demand, Single, Block, Cascade
-	} mode = Mode::Demand;
-
-	bool request = false;
-	bool transfer_complete = false;
-
-	CPU::RegisterPair16 address, count;
-};
-
-template <bool is_pair>
 class i8237 {
-	using Channel = i8237Channel;
+	struct Channel {
+		bool mask = false;
+		enum class Transfer {
+			Verify, Write, Read, Invalid
+		} transfer = Transfer::Verify;
+		bool autoinitialise = false;
+		bool address_decrement = false;
+		enum class Mode {
+			Demand, Single, Block, Cascade
+		} mode = Mode::Demand;
+
+		bool request = false;
+		bool transfer_complete = false;
+
+		CPU::RegisterPair16 address, count;
+	};
 
 public:
 	//
@@ -302,7 +298,7 @@ class DMA {
 	static constexpr bool has_second_dma = model >= Analyser::Static::PCCompatible::Model::AT;
 
 public:
-	i8237<has_second_dma> controller;
+	i8237 controllers[is_at(model) ? 2 : 1];
 	DMAPages<has_second_dma> pages;
 
 	// Memory is set posthoc to resolve a startup time.
@@ -312,7 +308,7 @@ public:
 
 	// TODO: this permits only 8-bit DMA. Fix that.
 	AccessResult write(const size_t channel, const uint8_t value) {
-		const auto access = controller.access(channel, true);
+		const auto access = controllers[channel >> 2].access(channel & 3, true);
 		if(access.second == AccessResult::NotAccepted) {
 			return access.second;
 		}

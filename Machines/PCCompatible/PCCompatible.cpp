@@ -710,22 +710,39 @@ public:
 				log.error().append("TODO: coprocessor reset");
 			break;
 
-			case 0x0000:	dma_.controller.template write<0x0>(uint8_t(value));	break;
-			case 0x0001:	dma_.controller.template write<0x1>(uint8_t(value));	break;
-			case 0x0002:	dma_.controller.template write<0x2>(uint8_t(value));	break;
-			case 0x0003:	dma_.controller.template write<0x3>(uint8_t(value));	break;
-			case 0x0004:	dma_.controller.template write<0x4>(uint8_t(value));	break;
-			case 0x0005:	dma_.controller.template write<0x5>(uint8_t(value));	break;
-			case 0x0006:	dma_.controller.template write<0x6>(uint8_t(value));	break;
-			case 0x0007:	dma_.controller.template write<0x7>(uint8_t(value));	break;
-			case 0x0008:	dma_.controller.template write<0x8>(uint8_t(value));	break;
-			case 0x0009:	dma_.controller.template write<0x9>(uint8_t(value));	break;
-			case 0x000a:	dma_.controller.template write<0xa>(uint8_t(value));	break;
-			case 0x000b:	dma_.controller.template write<0xb>(uint8_t(value));	break;
-			case 0x000c:	dma_.controller.template write<0xc>(uint8_t(value));	break;
-			case 0x000d:	dma_.controller.template write<0xd>(uint8_t(value));	break;
-			case 0x000e:	dma_.controller.template write<0xe>(uint8_t(value));	break;
-			case 0x000f:	dma_.controller.template write<0xf>(uint8_t(value));	break;
+			case 0x0000:	dma_.controllers[0].template write<0x0>(uint8_t(value));	break;
+			case 0x0001:	dma_.controllers[0].template write<0x1>(uint8_t(value));	break;
+			case 0x0002:	dma_.controllers[0].template write<0x2>(uint8_t(value));	break;
+			case 0x0003:	dma_.controllers[0].template write<0x3>(uint8_t(value));	break;
+			case 0x0004:	dma_.controllers[0].template write<0x4>(uint8_t(value));	break;
+			case 0x0005:	dma_.controllers[0].template write<0x5>(uint8_t(value));	break;
+			case 0x0006:	dma_.controllers[0].template write<0x6>(uint8_t(value));	break;
+			case 0x0007:	dma_.controllers[0].template write<0x7>(uint8_t(value));	break;
+			case 0x0008:	dma_.controllers[0].template write<0x8>(uint8_t(value));	break;
+			case 0x0009:	dma_.controllers[0].template write<0x9>(uint8_t(value));	break;
+			case 0x000a:	dma_.controllers[0].template write<0xa>(uint8_t(value));	break;
+			case 0x000b:	dma_.controllers[0].template write<0xb>(uint8_t(value));	break;
+			case 0x000c:	dma_.controllers[0].template write<0xc>(uint8_t(value));	break;
+			case 0x000d:	dma_.controllers[0].template write<0xd>(uint8_t(value));	break;
+			case 0x000e:	dma_.controllers[0].template write<0xe>(uint8_t(value));	break;
+			case 0x000f:	dma_.controllers[0].template write<0xf>(uint8_t(value));	break;
+
+			case 0x00c0:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x0>(uint8_t(value));	break;
+			case 0x00c2:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x1>(uint8_t(value));	break;
+			case 0x00c4:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x2>(uint8_t(value));	break;
+			case 0x00c6:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x3>(uint8_t(value));	break;
+			case 0x00c8:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x4>(uint8_t(value));	break;
+			case 0x00ca:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x5>(uint8_t(value));	break;
+			case 0x00cc:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x6>(uint8_t(value));	break;
+			case 0x00ce:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x7>(uint8_t(value));	break;
+			case 0x00d0:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x8>(uint8_t(value));	break;
+			case 0x00d2:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x9>(uint8_t(value));	break;
+			case 0x00d4:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xa>(uint8_t(value));	break;
+			case 0x00d6:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xb>(uint8_t(value));	break;
+			case 0x00d8:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xc>(uint8_t(value));	break;
+			case 0x00da:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xd>(uint8_t(value));	break;
+			case 0x00dc:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xe>(uint8_t(value));	break;
+			case 0x00de:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xf>(uint8_t(value));	break;
 
 			case 0x0020:	pic_.template write<0>(uint8_t(value));	break;
 			case 0x0021:	pic_.template write<1>(uint8_t(value));	break;
@@ -832,27 +849,27 @@ public:
 		switch(port) {
 			default:		log_unhandled(port);	break;
 
-			case 0x0000:	return dma_.controller.template read<0x00>();
-			case 0x0001:	return dma_.controller.template read<0x01>();
-			case 0x0002:	return dma_.controller.template read<0x02>();
-			case 0x0003:	return dma_.controller.template read<0x03>();
-			case 0x0004:	return dma_.controller.template read<0x04>();
-			case 0x0005:	return dma_.controller.template read<0x05>();
-			case 0x0006:	return dma_.controller.template read<0x06>();
-			case 0x0007:	return dma_.controller.template read<0x07>();
-			case 0x0008:	return dma_.controller.template read<0x08>();
-			case 0x000d:	return dma_.controller.template read<0x0d>();
+			case 0x0000:	return dma_.controllers[0].template read<0x0>();
+			case 0x0001:	return dma_.controllers[0].template read<0x1>();
+			case 0x0002:	return dma_.controllers[0].template read<0x2>();
+			case 0x0003:	return dma_.controllers[0].template read<0x3>();
+			case 0x0004:	return dma_.controllers[0].template read<0x4>();
+			case 0x0005:	return dma_.controllers[0].template read<0x5>();
+			case 0x0006:	return dma_.controllers[0].template read<0x6>();
+			case 0x0007:	return dma_.controllers[0].template read<0x7>();
+			case 0x0008:	return dma_.controllers[0].template read<0x8>();
+			case 0x000d:	return dma_.controllers[0].template read<0xd>();
 
-//			case 0x00c0:	return dma_.controller.template read<0x00>();
-//			case 0x00c1:	return dma_.controller.template read<0x01>();
-//			case 0x00c2:	return dma_.controller.template read<0x02>();
-//			case 0x00c3:	return dma_.controller.template read<0x03>();
-//			case 0x00c4:	return dma_.controller.template read<0x04>();
-//			case 0x00c5:	return dma_.controller.template read<0x05>();
-//			case 0x00c6:	return dma_.controller.template read<0x06>();
-//			case 0x00c7:	return dma_.controller.template read<0x07>();
-//			case 0x00c8:	return dma_.controller.template read<0x08>();
-//			case 0x00cd:	return dma_.controller.template read<0x0d>();
+			case 0x00c0:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x0>();	break;
+			case 0x00c2:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x1>();	break;
+			case 0x00c4:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x2>();	break;
+			case 0x00c6:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x3>();	break;
+			case 0x00c8:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x4>();	break;
+			case 0x00ca:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x5>();	break;
+			case 0x00cc:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x6>();	break;
+			case 0x00ce:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x7>();	break;
+			case 0x00d0:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x8>();	break;
+			case 0x00d8:	if(has_second_dma(port)) return dma_.controllers[1].template read<0xd>();	break;
 
 			case 0x0009:	case 0x000b:
 			case 0x000c:	case 0x000f:
