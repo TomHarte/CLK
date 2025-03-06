@@ -58,6 +58,49 @@ Log::Logger<Log::Source::PCCompatible> log;
 
 using Target = Analyser::Static::PCCompatible::Target;
 
+struct PCSpeaker {
+	PCSpeaker() :
+		toggle(queue),
+		speaker(toggle) {}
+
+	void update() {
+		speaker.run_for(queue, cycles_since_update);
+		cycles_since_update = 0;
+	}
+
+	void set_pit(const bool pit_input) {
+		pit_input_ = pit_input;
+		set_level();
+	}
+
+	void set_control(const bool pit_mask, const bool level) {
+		pit_mask_ = pit_mask;
+		level_ = level;
+		set_level();
+	}
+
+	void set_level() {
+		// TODO: I think pit_mask_ actually acts as the gate input to the PIT.
+		const bool new_output = (!pit_mask_ | pit_input_) & level_;
+
+		if(new_output != output_) {
+			update();
+			toggle.set_output(new_output);
+			output_ = new_output;
+		}
+	}
+
+	Concurrency::AsyncTaskQueue<false> queue;
+	Audio::Toggle toggle;
+	Outputs::Speaker::PullLowpass<Audio::Toggle> speaker;
+	Cycles cycles_since_update = 0;
+
+	bool pit_input_ = false;
+	bool pit_mask_ = false;
+	bool level_ = false;
+	bool output_ = false;
+};
+
 // Map from members of the VideoAdaptor enum to concrete class types.
 template <Target::VideoAdaptor adaptor> struct Adaptor;
 template <> struct Adaptor<Target::VideoAdaptor::MDA> {		using type = MDA;	};
@@ -362,7 +405,7 @@ class KeyboardController;
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
-	KeyboardController(PIC<model> &pic) : pic_(pic) {}
+	KeyboardController(PIC<model> &pic, PCSpeaker &) : pic_(pic) {}
 
 	// KB Status Port 61h high bits:
 	//; 01 - normal operation. wait for keypress, when one comes in,
@@ -445,7 +488,7 @@ private:
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
 public:
-	KeyboardController(PIC<model> &pic) : pic_(pic) {}
+	KeyboardController(PIC<model> &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
 
 	void run_for([[maybe_unused]] const Cycles cycles) {
 	}
@@ -455,60 +498,40 @@ public:
 
 	template <typename IntT>
 	void write([[maybe_unused]] const uint16_t port, [[maybe_unused]] const IntT value) {
-		log.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
+		switch(port) {
+			default:
+				log.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
+			break;
+
+			case 0x0061:
+				// TODO:
+				//	b7: 1 = reset IRQ 0
+				//	b3: enable channel check
+				//	b2: enable parity check
+				speaker_.set_control(value & 0x01, value & 0x02);
+			break;
+		}
 	}
 
 	template <typename IntT>
 	IntT read([[maybe_unused]] const uint16_t port) {
-		log.error().append("Unimplemented AT keyboard read from %04x", port);
+		switch(port) {
+			default:
+				log.error().append("Unimplemented AT keyboard read from %04x", port);
+			break;
+
+			case 0x0061:
+				refresh_toggle_ ^= 0x10;
+				log.info().append("AT keyboard: %02x from %04x", refresh_toggle_, port);
+			return refresh_toggle_;
+		}
 		return ~0;
 	}
 
 private:
 	PIC<model> &pic_;
-};
-
-struct PCSpeaker {
-	PCSpeaker() :
-		toggle(queue),
-		speaker(toggle) {}
-
-	void update() {
-		speaker.run_for(queue, cycles_since_update);
-		cycles_since_update = 0;
-	}
-
-	void set_pit(const bool pit_input) {
-		pit_input_ = pit_input;
-		set_level();
-	}
-
-	void set_control(const bool pit_mask, const bool level) {
-		pit_mask_ = pit_mask;
-		level_ = level;
-		set_level();
-	}
-
-	void set_level() {
-		// TODO: I think pit_mask_ actually acts as the gate input to the PIT.
-		const bool new_output = (!pit_mask_ | pit_input_) & level_;
-
-		if(new_output != output_) {
-			update();
-			toggle.set_output(new_output);
-			output_ = new_output;
-		}
-	}
-
-	Concurrency::AsyncTaskQueue<false> queue;
-	Audio::Toggle toggle;
-	Outputs::Speaker::PullLowpass<Audio::Toggle> speaker;
-	Cycles cycles_since_update = 0;
-
-	bool pit_input_ = false;
-	bool pit_mask_ = false;
-	bool level_ = false;
-	bool output_ = false;
+	PCSpeaker &speaker_;
+	uint8_t refresh_toggle_ = 0;
 };
 
 template <Analyser::Static::PCCompatible::Model model>
@@ -568,7 +591,7 @@ public:
 
 	/// Supplies a hint about the user's display choice. If the high switches haven't been read yet and this is a CGA device,
 	/// this hint will be used to select between 40- and 80-column default display.
-	void hint_is_composite(bool composite) {
+	void hint_is_composite(const bool composite) {
 		if(high_switches_observed_) {
 			return;
 		}
@@ -585,7 +608,7 @@ public:
 		}
 	}
 
-	void set_value(int port, uint8_t value) {
+	void set_value(const int port, const uint8_t value) {
 		switch(port) {
 			case 1:
 				// b7: 0 => enable keyboard read (and IRQ); 1 => don't;
@@ -604,7 +627,7 @@ public:
 		}
 	}
 
-	uint8_t get_value(int port) {
+	uint8_t get_value(const int port) {
 		switch(port) {
 			case 0:
 				high_switches_observed_ = true;
@@ -997,7 +1020,7 @@ public:
 		const Analyser::Static::PCCompatible::Target &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
-		keyboard_(pic_),
+		keyboard_(pic_, speaker_),
 		fdc_(pic_, dma_, DriveCount),
 		pit_observer_(pic_, speaker_),
 		ppi_handler_(speaker_, keyboard_, video, DriveCount),
@@ -1278,9 +1301,9 @@ public:
 private:
 	static constexpr auto x86_model = processor_model(pc_model);
 
+	PCSpeaker speaker_;
 	PIC<pc_model> pic_;
 	DMA<pc_model> dma_;
-	PCSpeaker speaker_;
 	Video video_;
 
 	KeyboardController<pc_model> keyboard_;
@@ -1342,7 +1365,7 @@ private:
 using namespace PCCompatible;
 
 namespace {
-static constexpr bool ForceAT = false;
+static constexpr bool ForceAT = true;//false;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
