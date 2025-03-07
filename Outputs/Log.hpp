@@ -125,7 +125,7 @@ constexpr const char *prefix(Source source) {
 		case Source::OpenGL:					return "OpenGL";
 		case Source::Plus4:						return "Plus4";
 		case Source::PCCompatible:				return "PC";
-		case Source::PCPOST:					return "PC POST";
+		case Source::PCPOST:					return "POST";
 		case Source::PCMTrack:					return "PCM Track";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";
