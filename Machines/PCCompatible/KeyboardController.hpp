@@ -121,13 +121,14 @@ public:
 	}
 
 	template <typename IntT>
-	void write(const uint16_t port,const IntT value) {
+	void write(const uint16_t port, const IntT value) {
 		switch(port) {
 			default:
 				log_.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
 			break;
 
 			case 0x0060:
+				log_.error().append("Keyboard parameter set to: ", value);
 				parameter_ = value;
 			break;
 
@@ -140,17 +141,9 @@ public:
 			break;
 
 			case 0x0064:
-				switch(value) {
-					default:
-						log_.error().append("Unimplemented AT keyboard command %04x", value);
-					break;
-
-					case 0xaa:	// Self-test; 0x55 => no issues found.
-						is_tested_ = true;
-						parameter_ = 0x55;
-						has_input_ = true;
-					break;
-				}
+				has_output_ = true;
+				is_command_ = true;
+				parameter_ = value;
 			break;
 		}
 	}
@@ -163,6 +156,8 @@ public:
 			break;
 
 			case 0x0060:
+				log_.error().append("Read keyboard parameter of %02x", parameter_);
+				has_input_ = false;
 			return parameter_;
 
 			case 0x0061:
@@ -174,7 +169,7 @@ public:
 				log_.info().append("AT keyboard: %02x from %04x", refresh_toggle_, port);
 			return refresh_toggle_;
 
-			case 0x0064:
+			case 0x0064: {
 				// Status:
 				//	b7 = 1 => parity error on transmission;
 				//	b6 = 1 => receive timeout;
@@ -184,9 +179,15 @@ public:
 				//	b2 = 1 = selftest OK; 0 = just powered up or reset;
 				//	b1 = 1 => input buffer has data;
 				//	b0 = 1 => output data is full.
-			return
-				(is_tested_ ? 0x4 : 0x0) |
-				(has_input_ ? 0x2 : 0x0);
+				const uint8_t status =
+					(is_command_	? 0x08 : 0x00) |
+					(is_tested_		? 0x04 : 0x00) |
+					(has_input_		? 0x02 : 0x00) |
+					(has_output_	? 0x01 : 0x00);
+				log_.error().append("Reading status: %02x", status);
+				perform_command();
+				return status;
+			}
 		}
 		return IntT(~0);
 	}
@@ -194,13 +195,47 @@ public:
 private:
 	Log::Logger<Log::Source::PCCompatible> log_;
 
+	void perform_command() {
+		if(!is_command_) {
+			return;
+		}
+
+		has_output_ = false;
+		is_command_ = false;
+		const auto set_input = [&](const uint8_t input) {
+			parameter_ = input;
+			has_input_ = true;
+			is_command_ = false;
+		};
+
+		auto info = log_.info();
+		info.append("AT keyboard command %04x", command_);
+		switch(command_) {
+			default:
+				info.append("; unimplemented");
+			break;
+
+			case 0xaa:	// Self-test; 0x55 => no issues found.
+				log_.error().append("Keyboard self-test");
+				is_tested_ = true;
+				set_input(0x55);
+			break;
+
+			case 0xd1:	// Set output byte. b0 = the A20 gate.
+			break;
+		}
+	}
+
 	PICs<model> &pics_;
 	Speaker &speaker_;
 	uint8_t refresh_toggle_ = 0;
 
 	bool is_tested_ = false;
 	bool has_input_ = false;
+	bool has_output_ = false;
+	bool is_command_ = false;
 	uint8_t parameter_;
+	uint8_t command_;
 };
 
 }
