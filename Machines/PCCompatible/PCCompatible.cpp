@@ -110,10 +110,10 @@ template <Analyser::Static::PCCompatible::Model model>
 class FloppyController {
 public:
 	FloppyController(
-		PIC<model> &pic,
+		PICs<model> &pics,
 		DMA<model> &dma,
 		int drive_count
-	) : pic_(pic), dma_(dma) {
+	) : pics_(pics), dma_(dma) {
 		// Default: one floppy drive only.
 		for(int c = 0; c < 4; c++) {
 			drives_[c].exists = drive_count > c;
@@ -146,7 +146,7 @@ public:
 		}
 		hold_reset_ = hold_reset;
 		if(hold_reset_) {
-			pic_.template apply_edge<6>(false);
+			pics_.pic[0].template apply_edge<6>(false);
 		}
 	}
 
@@ -182,7 +182,7 @@ public:
 					// TODO: what if head has changed?
 					drives_[decoder_.target().drive].status = decoder_.drive_head();
 					drives_[decoder_.target().drive].raised_interrupt = true;
-					pic_.template apply_edge<6>(true);
+					pics_.pic[0].template apply_edge<6>(true);
 				} break;
 
 				case Command::ReadDeletedData:
@@ -243,22 +243,24 @@ public:
 					// TODO: what if head has changed?
 					drives_[decoder_.target().drive].status = decoder_.drive_head();
 					drives_[decoder_.target().drive].raised_interrupt = true;
-					pic_.template apply_edge<6>(true);
+					pics_.pic[0].template apply_edge<6>(true);
 				} break;
 
 				case Command::Recalibrate:
 					drives_[decoder_.target().drive].track = 0;
 
 					drives_[decoder_.target().drive].raised_interrupt = true;
-					drives_[decoder_.target().drive].status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
-					pic_.template apply_edge<6>(true);
+					drives_[decoder_.target().drive].status =
+						decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+					pics_.pic[0].template apply_edge<6>(true);
 				break;
 				case Command::Seek:
 					drives_[decoder_.target().drive].track = decoder_.seek_target();
 
 					drives_[decoder_.target().drive].raised_interrupt = true;
-					drives_[decoder_.target().drive].status = decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
-					pic_.template apply_edge<6>(true);
+					drives_[decoder_.target().drive].status =
+						decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
+					pics_.pic[0].template apply_edge<6>(true);
 				break;
 
 				case Command::SenseInterruptStatus: {
@@ -276,7 +278,7 @@ public:
 						any_remaining_interrupts |= drives_[c].raised_interrupt;
 					}
 					if(!any_remaining_interrupts) {
-						pic_.template apply_edge<6>(false);
+						pics_.pic[0].template apply_edge<6>(false);
 					}
 				} break;
 				case Command::Specify:
@@ -330,7 +332,7 @@ public:
 //			// TODO: drive should only transition to unready if it was ready in the first place.
 //			drives_[drive].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
 //			drives_[drive].raised_interrupt = true;
-//			pic_.apply_edge<6>(true);
+//			pics_.pic[0].apply_edge<6>(true);
 //		}
 		drives_[drive].set_disk(disk);
 	}
@@ -348,14 +350,14 @@ private:
 			drives_[c].raised_interrupt = true;
 			drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
 		}
-		pic_.template apply_edge<6>(true);
+		pics_.pic[0].template apply_edge<6>(true);
 
 		using MainStatus = Intel::i8272::MainStatus;
 		status_.set(MainStatus::DataReady, true);
 		status_.set(MainStatus::DataIsToProcessor, false);
 	}
 
-	PIC<model> &pic_;
+	PICs<model> &pics_;
 	DMA<model> &dma_;
 
 	bool hold_reset_ = false;
@@ -405,7 +407,7 @@ class KeyboardController;
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
-	KeyboardController(PIC<model> &pic, PCSpeaker &) : pic_(pic) {}
+	KeyboardController(PICs<model> &pics, PCSpeaker &) : pics_(pics) {}
 
 	// KB Status Port 61h high bits:
 	//; 01 - normal operation. wait for keypress, when one comes in,
@@ -422,13 +424,13 @@ public:
 		switch(mode_) {
 			case Mode::NormalOperation:		break;
 			case Mode::NoIRQsIgnoreInput:
-				pic_.template apply_edge<1>(false);
+				pics_.pic[0].template apply_edge<1>(false);
 			break;
 			case Mode::Reset:
 				input_.clear();
 				[[fallthrough]];
 			case Mode::ClearIRQReset:
-				pic_.template apply_edge<1>(false);
+				pics_.pic[0].template apply_edge<1>(false);
 			break;
 		}
 
@@ -450,7 +452,7 @@ public:
 	}
 
 	uint8_t read() {
-		pic_.template apply_edge<1>(false);
+		pics_.pic[0].template apply_edge<1>(false);
 		if(input_.empty()) {
 			return 0;
 		}
@@ -458,7 +460,7 @@ public:
 		const uint8_t key = input_.front();
 		input_.erase(input_.begin());
 		if(!input_.empty()) {
-			pic_.template apply_edge<1>(true);
+			pics_.pic[0].template apply_edge<1>(true);
 		}
 		return key;
 	}
@@ -468,7 +470,7 @@ public:
 			return;
 		}
 		input_.push_back(value);
-		pic_.template apply_edge<1>(true);
+		pics_.pic[0].template apply_edge<1>(true);
 	}
 
 private:
@@ -480,7 +482,7 @@ private:
 	} mode_;
 
 	std::vector<uint8_t> input_;
-	PIC<model> &pic_;
+	PICs<model> &pics_;
 
 	int reset_delay_ = 0;
 };
@@ -488,7 +490,7 @@ private:
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
 public:
-	KeyboardController(PIC<model> &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
+	KeyboardController(PICs<model> &pics, PCSpeaker &speaker) : pics_(pics), speaker_(speaker) {}
 
 	void run_for([[maybe_unused]] const Cycles cycles) {
 	}
@@ -529,7 +531,7 @@ public:
 	}
 
 private:
-	PIC<model> &pic_;
+	PICs<model> &pics_;
 	PCSpeaker &speaker_;
 	uint8_t refresh_toggle_ = 0;
 };
@@ -537,7 +539,7 @@ private:
 template <Analyser::Static::PCCompatible::Model model>
 class PITObserver {
 public:
-	PITObserver(PIC<model> &pic, PCSpeaker &speaker) : pic_(pic), speaker_(speaker) {}
+	PITObserver(PICs<model> &pics, PCSpeaker &speaker) : pics_(pics), speaker_(speaker) {}
 
 	template <int channel>
 	void update_output(const bool new_level) {
@@ -546,13 +548,13 @@ public:
 		//	channel 2 is gated by a PPI output and feeds into the speaker.
 		switch(channel) {
 			default: break;
-			case 0: pic_.template apply_edge<0>(new_level);	break;
-			case 2: speaker_.set_pit(new_level);			break;
+			case 0: pics_.pic[0].template apply_edge<0>(new_level);	break;
+			case 2: speaker_.set_pit(new_level);					break;
 		}
 	}
 
 private:
-	PIC<model> &pic_;
+	PICs<model> &pics_;
 	PCSpeaker &speaker_;
 };
 
@@ -668,13 +670,13 @@ public:
 		PIT<model> &pit,
 		DMA<model> &dma,
 		PPI<model> &ppi,
-		PIC<model> &pic,
+		PICs<model> &pics,
 		typename Adaptor<video>::type &card,
 		FloppyController<model> &fdc,
 		KeyboardController<model> &keyboard,
 		RTC &rtc
 	) :
-		pit_(pit), dma_(dma), ppi_(ppi), pic_(pic), video_(card), fdc_(fdc), keyboard_(keyboard), rtc_(rtc) {}
+		pit_(pit), dma_(dma), ppi_(ppi), pics_(pics), video_(card), fdc_(fdc), keyboard_(keyboard), rtc_(rtc) {}
 
 	template <typename IntT> void out(const uint16_t port, const IntT value) {
 		static const auto log_unhandled = [](const uint16_t port, const IntT value) {
@@ -684,7 +686,7 @@ public:
 				log.error().append("Unhandled out: %04x to %04x", value, port);
 			}
 		};
-		static const auto has_second_dma = [](const uint16_t port, const IntT value) {
+		static const auto require_at = [](const uint16_t port, const IntT value) {
 			if constexpr (is_at(model)) {
 				return true;
 			}
@@ -701,10 +703,6 @@ public:
 			case 0x0070:	rtc_.write<0>(uint8_t(value));	break;
 			case 0x0071:	rtc_.write<1>(uint8_t(value));	break;
 
-			// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
-			case 0x00a0:
-				log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
-			break;
 
 			case 0x00f1:
 				log.error().append("TODO: coprocessor reset");
@@ -727,25 +725,37 @@ public:
 			case 0x000e:	dma_.controllers[0].template write<0xe>(uint8_t(value));	break;
 			case 0x000f:	dma_.controllers[0].template write<0xf>(uint8_t(value));	break;
 
-			case 0x00c0:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x0>(uint8_t(value));	break;
-			case 0x00c2:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x1>(uint8_t(value));	break;
-			case 0x00c4:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x2>(uint8_t(value));	break;
-			case 0x00c6:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x3>(uint8_t(value));	break;
-			case 0x00c8:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x4>(uint8_t(value));	break;
-			case 0x00ca:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x5>(uint8_t(value));	break;
-			case 0x00cc:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x6>(uint8_t(value));	break;
-			case 0x00ce:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x7>(uint8_t(value));	break;
-			case 0x00d0:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x8>(uint8_t(value));	break;
-			case 0x00d2:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0x9>(uint8_t(value));	break;
-			case 0x00d4:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xa>(uint8_t(value));	break;
-			case 0x00d6:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xb>(uint8_t(value));	break;
-			case 0x00d8:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xc>(uint8_t(value));	break;
-			case 0x00da:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xd>(uint8_t(value));	break;
-			case 0x00dc:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xe>(uint8_t(value));	break;
-			case 0x00de:	if(has_second_dma(port, value)) dma_.controllers[1].template write<0xf>(uint8_t(value));	break;
+			case 0x00c0:	if(require_at(port, value)) dma_.controllers[1].template write<0x0>(uint8_t(value));	break;
+			case 0x00c2:	if(require_at(port, value)) dma_.controllers[1].template write<0x1>(uint8_t(value));	break;
+			case 0x00c4:	if(require_at(port, value)) dma_.controllers[1].template write<0x2>(uint8_t(value));	break;
+			case 0x00c6:	if(require_at(port, value)) dma_.controllers[1].template write<0x3>(uint8_t(value));	break;
+			case 0x00c8:	if(require_at(port, value)) dma_.controllers[1].template write<0x4>(uint8_t(value));	break;
+			case 0x00ca:	if(require_at(port, value)) dma_.controllers[1].template write<0x5>(uint8_t(value));	break;
+			case 0x00cc:	if(require_at(port, value)) dma_.controllers[1].template write<0x6>(uint8_t(value));	break;
+			case 0x00ce:	if(require_at(port, value)) dma_.controllers[1].template write<0x7>(uint8_t(value));	break;
+			case 0x00d0:	if(require_at(port, value)) dma_.controllers[1].template write<0x8>(uint8_t(value));	break;
+			case 0x00d2:	if(require_at(port, value)) dma_.controllers[1].template write<0x9>(uint8_t(value));	break;
+			case 0x00d4:	if(require_at(port, value)) dma_.controllers[1].template write<0xa>(uint8_t(value));	break;
+			case 0x00d6:	if(require_at(port, value)) dma_.controllers[1].template write<0xb>(uint8_t(value));	break;
+			case 0x00d8:	if(require_at(port, value)) dma_.controllers[1].template write<0xc>(uint8_t(value));	break;
+			case 0x00da:	if(require_at(port, value)) dma_.controllers[1].template write<0xd>(uint8_t(value));	break;
+			case 0x00dc:	if(require_at(port, value)) dma_.controllers[1].template write<0xe>(uint8_t(value));	break;
+			case 0x00de:	if(require_at(port, value)) dma_.controllers[1].template write<0xf>(uint8_t(value));	break;
 
-			case 0x0020:	pic_.template write<0>(uint8_t(value));	break;
-			case 0x0021:	pic_.template write<1>(uint8_t(value));	break;
+			case 0x0020:	pics_.pic[0].template write<0>(uint8_t(value));	break;
+			case 0x0021:	pics_.pic[0].template write<1>(uint8_t(value));	break;
+
+			case 0x00a0:
+				if constexpr (is_xt(model)) {
+					// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
+					log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
+				} else {
+					pics_.pic[1].template write<0>(uint8_t(value));
+				}
+			break;
+			case 0x00a1:
+				if(require_at(port, value)) pics_.pic[1].template write<1>(uint8_t(value));
+			break;
 
 			case 0x0040:	pit_.template write<0>(uint8_t(value));	break;
 			case 0x0041:	pit_.template write<1>(uint8_t(value));	break;
@@ -772,14 +782,14 @@ public:
 			case 0x0086:	dma_.pages.template set_page<6>(uint8_t(value));	break;
 			case 0x0087:	dma_.pages.template set_page<7>(uint8_t(value));	break;
 
-			case 0x0088:	if(has_second_dma(port, value))	dma_.pages.template set_page<0x8>(uint8_t(value));	break;
-			case 0x0089:	if(has_second_dma(port, value))	dma_.pages.template set_page<0x9>(uint8_t(value));	break;
-			case 0x008a:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xa>(uint8_t(value));	break;
-			case 0x008b:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xb>(uint8_t(value));	break;
-			case 0x008c:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xc>(uint8_t(value));	break;
-			case 0x008d:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xd>(uint8_t(value));	break;
-			case 0x008e:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xe>(uint8_t(value));	break;
-			case 0x008f:	if(has_second_dma(port, value))	dma_.pages.template set_page<0xf>(uint8_t(value));	break;
+			case 0x0088:	if(require_at(port, value))	dma_.pages.template set_page<0x8>(uint8_t(value));	break;
+			case 0x0089:	if(require_at(port, value))	dma_.pages.template set_page<0x9>(uint8_t(value));	break;
+			case 0x008a:	if(require_at(port, value))	dma_.pages.template set_page<0xa>(uint8_t(value));	break;
+			case 0x008b:	if(require_at(port, value))	dma_.pages.template set_page<0xb>(uint8_t(value));	break;
+			case 0x008c:	if(require_at(port, value))	dma_.pages.template set_page<0xc>(uint8_t(value));	break;
+			case 0x008d:	if(require_at(port, value))	dma_.pages.template set_page<0xd>(uint8_t(value));	break;
+			case 0x008e:	if(require_at(port, value))	dma_.pages.template set_page<0xe>(uint8_t(value));	break;
+			case 0x008f:	if(require_at(port, value))	dma_.pages.template set_page<0xf>(uint8_t(value));	break;
 
 			//
 			// CRTC access block, with slightly laboured 16-bit to 8-bit mapping.
@@ -838,7 +848,7 @@ public:
 		static const auto log_unhandled = [](const uint16_t port) {
 			log.error().append("Unhandled in of %d bytes: %04x", sizeof(IntT), port);
 		};
-		static const auto has_second_dma = [](const uint16_t port) {
+		static const auto require_at = [](const uint16_t port) {
 			if constexpr (is_at(model)) {
 				return true;
 			}
@@ -860,24 +870,26 @@ public:
 			case 0x0008:	return dma_.controllers[0].template read<0x8>();
 			case 0x000d:	return dma_.controllers[0].template read<0xd>();
 
-			case 0x00c0:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x0>();	break;
-			case 0x00c2:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x1>();	break;
-			case 0x00c4:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x2>();	break;
-			case 0x00c6:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x3>();	break;
-			case 0x00c8:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x4>();	break;
-			case 0x00ca:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x5>();	break;
-			case 0x00cc:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x6>();	break;
-			case 0x00ce:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x7>();	break;
-			case 0x00d0:	if(has_second_dma(port)) return dma_.controllers[1].template read<0x8>();	break;
-			case 0x00d8:	if(has_second_dma(port)) return dma_.controllers[1].template read<0xd>();	break;
+			case 0x00c0:	if(require_at(port)) return dma_.controllers[1].template read<0x0>();	break;
+			case 0x00c2:	if(require_at(port)) return dma_.controllers[1].template read<0x1>();	break;
+			case 0x00c4:	if(require_at(port)) return dma_.controllers[1].template read<0x2>();	break;
+			case 0x00c6:	if(require_at(port)) return dma_.controllers[1].template read<0x3>();	break;
+			case 0x00c8:	if(require_at(port)) return dma_.controllers[1].template read<0x4>();	break;
+			case 0x00ca:	if(require_at(port)) return dma_.controllers[1].template read<0x5>();	break;
+			case 0x00cc:	if(require_at(port)) return dma_.controllers[1].template read<0x6>();	break;
+			case 0x00ce:	if(require_at(port)) return dma_.controllers[1].template read<0x7>();	break;
+			case 0x00d0:	if(require_at(port)) return dma_.controllers[1].template read<0x8>();	break;
+			case 0x00d8:	if(require_at(port)) return dma_.controllers[1].template read<0xd>();	break;
 
 			case 0x0009:	case 0x000b:
 			case 0x000c:	case 0x000f:
 				// DMA area, but it doesn't respond.
 			break;
 
-			case 0x0020:	return pic_.template read<0>();
-			case 0x0021:	return pic_.template read<1>();
+			case 0x0020:	return pics_.pic[0].template read<0>();
+			case 0x0021:	return pics_.pic[0].template read<1>();
+			case 0x00a0:	if(require_at(port)) return pics_.pic[1].template read<0>();	break;
+			case 0x00a1:	if(require_at(port)) return pics_.pic[1].template read<1>();	break;
 
 			case 0x0040:	return pit_.template read<0>();
 			case 0x0041:	return pit_.template read<1>();
@@ -905,14 +917,14 @@ public:
 			case 0x0086:	return dma_.pages.template page<6>();
 			case 0x0087:	return dma_.pages.template page<7>();
 
-			case 0x0088:	if(has_second_dma(port)) return dma_.pages.template page<0x8>(); 	break;
-			case 0x0089:	if(has_second_dma(port)) return dma_.pages.template page<0x9>(); 	break;
-			case 0x008a:	if(has_second_dma(port)) return dma_.pages.template page<0xa>(); 	break;
-			case 0x008b:	if(has_second_dma(port)) return dma_.pages.template page<0xb>(); 	break;
-			case 0x008c:	if(has_second_dma(port)) return dma_.pages.template page<0xc>(); 	break;
-			case 0x008d:	if(has_second_dma(port)) return dma_.pages.template page<0xd>(); 	break;
-			case 0x008e:	if(has_second_dma(port)) return dma_.pages.template page<0xe>(); 	break;
-			case 0x008f:	if(has_second_dma(port)) return dma_.pages.template page<0xf>(); 	break;
+			case 0x0088:	if(require_at(port)) return dma_.pages.template page<0x8>(); 	break;
+			case 0x0089:	if(require_at(port)) return dma_.pages.template page<0x9>(); 	break;
+			case 0x008a:	if(require_at(port)) return dma_.pages.template page<0xa>(); 	break;
+			case 0x008b:	if(require_at(port)) return dma_.pages.template page<0xb>(); 	break;
+			case 0x008c:	if(require_at(port)) return dma_.pages.template page<0xc>(); 	break;
+			case 0x008d:	if(require_at(port)) return dma_.pages.template page<0xd>(); 	break;
+			case 0x008e:	if(require_at(port)) return dma_.pages.template page<0xe>(); 	break;
+			case 0x008f:	if(require_at(port)) return dma_.pages.template page<0xf>(); 	break;
 
 			case 0x0201:	break;		// Ignore game port.
 
@@ -955,7 +967,7 @@ private:
 	PIT<model> &pit_;
 	DMA<model> &dma_;
 	PPI<model> &ppi_;
-	PIC<model> &pic_;
+	PICs<model> &pics_;
 	typename Adaptor<video>::type &video_;
 	FloppyController<model> &fdc_;
 	KeyboardController<model> &keyboard_;
@@ -1037,13 +1049,13 @@ public:
 		const Analyser::Static::PCCompatible::Target &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
-		keyboard_(pic_, speaker_),
-		fdc_(pic_, dma_, DriveCount),
-		pit_observer_(pic_, speaker_),
+		keyboard_(pics_, speaker_),
+		fdc_(pics_, dma_, DriveCount),
+		pit_observer_(pics_, speaker_),
 		ppi_handler_(speaker_, keyboard_, video, DriveCount),
 		pit_(pit_observer_),
 		ppi_(ppi_handler_),
-		context_(pit_, dma_, ppi_, pic_, video_, fdc_, keyboard_, rtc_)
+		context_(pit_, dma_, ppi_, pics_, video_, fdc_, keyboard_, rtc_)
 	{
 		// Set up DMA source/target.
 		dma_.set_memory(&context_.memory);
@@ -1157,7 +1169,7 @@ public:
 			//
 
 			// Query for interrupts and apply if pending.
-			if(pic_.pending() && context_.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
+			if(pics_.pic[0].pending() && context_.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
 				// Regress the IP if a REP is in-progress so as to resume it later.
 				if(context_.flow_controller.should_repeat()) {
 					context_.registers.ip() = decoded_ip_;
@@ -1167,7 +1179,7 @@ public:
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
 				InstructionSet::x86::interrupt(
-					pic_.acknowledge(),
+					pics_.pic[0].acknowledge(),
 					context_
 				);
 			}
@@ -1319,7 +1331,7 @@ private:
 	static constexpr auto x86_model = processor_model(pc_model);
 
 	PCSpeaker speaker_;
-	PIC<pc_model> pic_;
+	PICs<pc_model> pics_;
 	DMA<pc_model> dma_;
 	Video video_;
 
@@ -1339,7 +1351,7 @@ private:
 			PIT<pc_model> &pit,
 			DMA<pc_model> &dma,
 			PPI<pc_model> &ppi,
-			PIC<pc_model> &pic,
+			PICs<pc_model> &pics,
 			typename Adaptor<video>::type &card,
 			FloppyController<pc_model> &fdc,
 			KeyboardController<pc_model> &keyboard,
@@ -1348,7 +1360,7 @@ private:
 			segments(registers),
 			memory(registers, segments),
 			flow_controller(registers, segments),
-			io(pit, dma, ppi, pic, card, fdc, keyboard, rtc)
+			io(pit, dma, ppi, pics, card, fdc, keyboard, rtc)
 		{
 			reset();
 		}
@@ -1382,22 +1394,20 @@ private:
 using namespace PCCompatible;
 
 namespace {
-static constexpr bool ForceAT = true;//false;
+static constexpr bool ForceAT = false;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	switch(ForceAT ? Analyser::Static::PCCompatible::Model::AT : target.model) {
-		case Analyser::Static::PCCompatible::Model::XT:
-			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::XT, video>>
-				(target, rom_fetcher);
+	using Model = Analyser::Static::PCCompatible::Model;
+	switch(ForceAT ? Model::AT : target.model) {
+		case Model::XT:
+			return std::make_unique<PCCompatible::ConcreteMachine<Model::XT, video>>(target, rom_fetcher);
 
-		case Analyser::Static::PCCompatible::Model::TurboXT:
-			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::TurboXT, video>>
-				(target, rom_fetcher);
+		case Model::TurboXT:
+			return std::make_unique<PCCompatible::ConcreteMachine<Model::TurboXT, video>>(target, rom_fetcher);
 
-		case Analyser::Static::PCCompatible::Model::AT:
-			return std::make_unique<PCCompatible::ConcreteMachine<Analyser::Static::PCCompatible::Model::AT, video>>
-				(target, rom_fetcher);
+		case Model::AT:
+			return std::make_unique<PCCompatible::ConcreteMachine<Model::AT, video>>(target, rom_fetcher);
 	}
 
 	return nullptr;

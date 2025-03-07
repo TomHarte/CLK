@@ -13,7 +13,6 @@
 namespace PCCompatible {
 
 // Cf. https://helppc.netcore2k.net/hardware/pic
-template <Analyser::Static::PCCompatible::Model model>
 class PIC {
 	public:
 		template <int address>
@@ -168,6 +167,11 @@ class PIC {
 			int word;
 			bool has_fourth_word;
 		} config_;
+};
+
+template <Analyser::Static::PCCompatible::Model model>
+struct PICs {
+	std::array<PIC, is_at(model) ? 2 : 1> pic;
 };
 
 }
