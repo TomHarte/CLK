@@ -19,7 +19,7 @@ class KeyboardController;
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
-	KeyboardController(PICs<model> &pics, PCSpeaker &) : pics_(pics) {}
+	KeyboardController(PICs<model> &pics, Speaker &) : pics_(pics) {}
 
 	// KB Status Port 61h high bits:
 	//; 01 - normal operation. wait for keypress, when one comes in,
@@ -102,7 +102,7 @@ private:
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
 public:
-	KeyboardController(PICs<model> &pics, PCSpeaker &speaker) : pics_(pics), speaker_(speaker) {}
+	KeyboardController(PICs<model> &pics, Speaker &speaker) : pics_(pics), speaker_(speaker) {}
 
 	void run_for([[maybe_unused]] const Cycles cycles) {
 	}
@@ -146,7 +146,7 @@ private:
 	Log::Logger<Log::Source::PCCompatible> log_;
 
 	PICs<model> &pics_;
-	PCSpeaker &speaker_;
+	Speaker &speaker_;
 	uint8_t refresh_toggle_ = 0;
 };
 

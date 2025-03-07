@@ -14,8 +14,8 @@
 
 namespace PCCompatible {
 
-struct PCSpeaker {
-	PCSpeaker() :
+struct Speaker {
+	Speaker() :
 		toggle(queue),
 		speaker(toggle) {}
 

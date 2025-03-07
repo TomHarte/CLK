@@ -62,7 +62,7 @@ template <> struct Adaptor<Target::VideoAdaptor::CGA> {		using type = CGA;	};
 template <Analyser::Static::PCCompatible::Model model>
 class PITObserver {
 public:
-	PITObserver(PICs<model> &pics, PCSpeaker &speaker) : pics_(pics), speaker_(speaker) {}
+	PITObserver(PICs<model> &pics, Speaker &speaker) : pics_(pics), speaker_(speaker) {}
 
 	template <int channel>
 	void update_output(const bool new_level) {
@@ -78,7 +78,7 @@ public:
 
 private:
 	PICs<model> &pics_;
-	PCSpeaker &speaker_;
+	Speaker &speaker_;
 };
 
 template <Analyser::Static::PCCompatible::Model model>
@@ -88,7 +88,7 @@ template <Analyser::Static::PCCompatible::Model model>
 class i8255PortHandler : public Intel::i8255::PortHandler {
 public:
 	i8255PortHandler(
-		PCSpeaker &speaker,
+		Speaker &speaker,
 		KeyboardController<model> &keyboard,
 		const Target::VideoAdaptor adaptor,
 		const int drive_count
@@ -178,7 +178,7 @@ private:
 	uint8_t low_switches_ = 0;
 
 	bool use_high_switches_ = false;
-	PCSpeaker &speaker_;
+	Speaker &speaker_;
 	KeyboardController<model> &keyboard_;
 
 	bool enable_keyboard_ = false;
@@ -854,7 +854,7 @@ public:
 private:
 	static constexpr auto x86_model = processor_model(pc_model);
 
-	PCSpeaker speaker_;
+	Speaker speaker_;
 	PICs<pc_model> pics_;
 	DMA<pc_model> dma_;
 	Video video_;
