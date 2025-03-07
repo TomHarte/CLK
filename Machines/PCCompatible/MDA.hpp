@@ -15,221 +15,221 @@
 namespace PCCompatible {
 
 class MDA {
-	public:
-		MDA() : crtc_(outputter_) {}
+public:
+	MDA() : crtc_(outputter_) {}
 
-		static constexpr uint32_t BaseAddress = 0xb'0000;
-		static constexpr auto FontROM = ROM::Name::PCCompatibleMDAFont;
+	static constexpr uint32_t BaseAddress = 0xb'0000;
+	static constexpr auto FontROM = ROM::Name::PCCompatibleMDAFont;
 
-		void set_source(const uint8_t *ram, std::vector<uint8_t> font) {
-			outputter_.ram = ram;
-			outputter_.font = font;
+	void set_source(const uint8_t *const ram, const std::vector<uint8_t> font) {
+		outputter_.ram = ram;
+		outputter_.font = font;
+	}
+
+	void run_for(const Cycles cycles) {
+		// Input rate is the PIT rate of 1,193,182 Hz.
+		// MDA is actually clocked at 16.257 MHz; which is treated internally as 1,806,333.333333333333333... Hz
+		//
+		// The GCD of those two numbers is... 2. Oh well.
+		full_clock_ += 8'128'500 * cycles.as<int>();
+		crtc_.run_for(Cycles(full_clock_ / (596'591 * 9)));
+		full_clock_ %= (596'591 * 9);
+	}
+
+	template <int address>
+	void write(const uint8_t value) {
+		switch(address) {
+			case 0:	case 2:	case 4:	case 6:
+				crtc_.select_register(value);
+			break;
+			case 1:	case 3:	case 5:	case 7:
+				crtc_.set_register(value);
+			break;
+
+			case 0x8:
+				outputter_.set_control(value);
+			break;
+
+			default: break;
+		}
+	}
+
+	template <int address>
+	uint8_t read() {
+		switch(address) {
+			case 1:	case 3:	case 5:	case 7:
+				return crtc_.get_register();
+
+			case 0x8: return outputter_.control();
+
+			default: return 0xff;
+		}
+	}
+
+	// MARK: - Call-ins for ScanProducer.
+
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
+		outputter_.crt.set_scan_target(scan_target);
+	}
+	Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		return outputter_.crt.get_scaled_scan_status() * 596591.0f / 8128500.0f;
+	}
+
+	// MARK: - Display type configuration.
+
+	void set_display_type(Outputs::Display::DisplayType) {}
+	Outputs::Display::DisplayType get_display_type() const {
+		return outputter_.crt.get_display_type();
+	}
+
+private:
+	struct CRTCOutputter {
+		CRTCOutputter() :
+			crt(882, 9, 370, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
+			// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
+			// consider whether that's worth building into the scan target.
+		{
+			crt.set_visible_area(Outputs::Display::Rect(0.028f, 0.025f, 0.98f, 0.98f));
+			crt.set_display_type(Outputs::Display::DisplayType::RGB);
 		}
 
-		void run_for(Cycles cycles) {
-			// Input rate is the PIT rate of 1,193,182 Hz.
-			// MDA is actually clocked at 16.257 MHz; which is treated internally as 1,806,333.333333333333333... Hz
-			//
-			// The GCD of those two numbers is... 2. Oh well.
-			full_clock_ += 8'128'500 * cycles.as<int>();
-			crtc_.run_for(Cycles(full_clock_ / (596'591 * 9)));
-			full_clock_ %= (596'591 * 9);
+		void set_control(const uint8_t control) {
+			// b0: 'high resolution' (probably breaks if not 1)
+			// b3: video enable
+			// b5: enable blink
+			control_ = control;
 		}
 
-		template <int address>
-		void write(uint8_t value) {
-			switch(address) {
-				case 0:	case 2:	case 4:	case 6:
-					crtc_.select_register(value);
-				break;
-				case 1:	case 3:	case 5:	case 7:
-					crtc_.set_register(value);
-				break;
+		uint8_t control() const {
+			return control_;
+		}
 
-				case 0x8:
-					outputter_.set_control(value);
-				break;
+		void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+			// Determine new output state.
+			const OutputState new_state =
+				(state.hsync | state.vsync) ? OutputState::Sync :
+					((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
 
-				default: break;
+			// Upon either a state change or just having accumulated too much local time...
+			if(new_state != output_state || count > 882) {
+				// (1) flush preexisting state.
+				if(count) {
+					switch(output_state) {
+						case OutputState::Sync:		crt.output_sync(count);		break;
+						case OutputState::Border:	crt.output_blank(count);	break;
+						case OutputState::Pixels:
+							crt.output_data(count);
+							pixels = pixel_pointer = nullptr;
+						break;
+					}
+				}
+
+				// (2) adopt new state.
+				output_state = new_state;
+				count = 0;
 			}
-		}
 
-		template <int address>
-		uint8_t read() {
-			switch(address) {
-				case 1:	case 3:	case 5:	case 7:
-					return crtc_.get_register();
+			// Collect pixels if applicable.
+			if(output_state == OutputState::Pixels) {
+				if(!pixels) {
+					pixel_pointer = pixels = crt.begin_data(DefaultAllocationSize);
 
-				case 0x8: return outputter_.control();
+					// Flush any period where pixels weren't recorded due to back pressure.
+					if(pixels && count) {
+						crt.output_blank(count);
+						count = 0;
+					}
+				}
 
-				default: return 0xff;
-			}
-		}
+				if(pixels) {
+					static constexpr uint8_t high_intensity = 0x0d;
+					static constexpr uint8_t low_intensity = 0x09;
+					static constexpr uint8_t off = 0x00;
 
-		// MARK: - Call-ins for ScanProducer.
+					if(state.cursor) {
+						pixel_pointer[0] =	pixel_pointer[1] =	pixel_pointer[2] =	pixel_pointer[3] =
+						pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
+						pixel_pointer[8] =	low_intensity;
+					} else {
+						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
+						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
+						uint8_t row = font[(glyph * 14) + state.row_address];
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
-			outputter_.crt.set_scan_target(scan_target);
-		}
-		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return outputter_.crt.get_scaled_scan_status() * 596591.0f / 8128500.0f;
-		}
+						const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
+						uint8_t blank = off;
 
-		// MARK: - Display type configuration.
-
-		void set_display_type(Outputs::Display::DisplayType) {}
-		Outputs::Display::DisplayType get_display_type() const {
-			return outputter_.crt.get_display_type();
-		}
-
-	private:
-		struct CRTCOutputter {
-			CRTCOutputter() :
-				crt(882, 9, 370, 3, Outputs::Display::InputDataType::Red2Green2Blue2)
-				// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
-				// consider whether that's worth building into the scan target.
-			{
-				crt.set_visible_area(Outputs::Display::Rect(0.028f, 0.025f, 0.98f, 0.98f));
-				crt.set_display_type(Outputs::Display::DisplayType::RGB);
-			}
-
-			void set_control(uint8_t control) {
-				// b0: 'high resolution' (probably breaks if not 1)
-				// b3: video enable
-				// b5: enable blink
-				control_ = control;
-			}
-
-			uint8_t control() {
-				return control_;
-			}
-
-			void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
-				// Determine new output state.
-				const OutputState new_state =
-					(state.hsync | state.vsync) ? OutputState::Sync :
-						((state.display_enable && control_&0x08) ? OutputState::Pixels : OutputState::Border);
-
-				// Upon either a state change or just having accumulated too much local time...
-				if(new_state != output_state || count > 882) {
-					// (1) flush preexisting state.
-					if(count) {
-						switch(output_state) {
-							case OutputState::Sync:		crt.output_sync(count);		break;
-							case OutputState::Border:	crt.output_blank(count);	break;
-							case OutputState::Pixels:
-								crt.output_data(count);
-								pixels = pixel_pointer = nullptr;
+						// Handle irregular attributes.
+						// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
+						switch(attributes) {
+							case 0x00:	case 0x08:	case 0x80:	case 0x88:
+								row = 0;
+							break;
+							case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
+								row ^= 0xff;
+								blank = intensity;
 							break;
 						}
-					}
 
-					// (2) adopt new state.
-					output_state = new_state;
-					count = 0;
-				}
-
-				// Collect pixels if applicable.
-				if(output_state == OutputState::Pixels) {
-					if(!pixels) {
-						pixel_pointer = pixels = crt.begin_data(DefaultAllocationSize);
-
-						// Flush any period where pixels weren't recorded due to back pressure.
-						if(pixels && count) {
-							crt.output_blank(count);
-							count = 0;
+						// Apply blink if enabled.
+						if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
+							row ^= 0xff;
+							blank = (blank == off) ? intensity : off;
 						}
-					}
 
-					if(pixels) {
-						static constexpr uint8_t high_intensity = 0x0d;
-						static constexpr uint8_t low_intensity = 0x09;
-						static constexpr uint8_t off = 0x00;
-
-						if(state.cursor) {
-							pixel_pointer[0] =	pixel_pointer[1] =	pixel_pointer[2] =	pixel_pointer[3] =
-							pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
-							pixel_pointer[8] =	low_intensity;
+						if(((attributes & 7) == 1) && state.row_address == 13) {
+							// Draw as underline.
+							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
 						} else {
-							const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-							const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-							uint8_t row = font[(glyph * 14) + state.row_address];
-
-							const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
-							uint8_t blank = off;
-
-							// Handle irregular attributes.
-							// Cf. http://www.seasip.info/VintagePC/mda.html#memmap
-							switch(attributes) {
-								case 0x00:	case 0x08:	case 0x80:	case 0x88:
-									row = 0;
-								break;
-								case 0x70:	case 0x78:	case 0xf0:	case 0xf8:
-									row ^= 0xff;
-									blank = intensity;
-								break;
-							}
-
-							// Apply blink if enabled.
-							if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
-								row ^= 0xff;
-								blank = (blank == off) ? intensity : off;
-							}
-
-							if(((attributes & 7) == 1) && state.row_address == 13) {
-								// Draw as underline.
-								std::fill(pixel_pointer, pixel_pointer + 9, intensity);
-							} else {
-								// Draw according to ROM contents, possibly duplicating final column.
-								pixel_pointer[0] = (row & 0x80) ? intensity : off;
-								pixel_pointer[1] = (row & 0x40) ? intensity : off;
-								pixel_pointer[2] = (row & 0x20) ? intensity : off;
-								pixel_pointer[3] = (row & 0x10) ? intensity : off;
-								pixel_pointer[4] = (row & 0x08) ? intensity : off;
-								pixel_pointer[5] = (row & 0x04) ? intensity : off;
-								pixel_pointer[6] = (row & 0x02) ? intensity : off;
-								pixel_pointer[7] = (row & 0x01) ? intensity : off;
-								pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
-							}
+							// Draw according to ROM contents, possibly duplicating final column.
+							pixel_pointer[0] = (row & 0x80) ? intensity : off;
+							pixel_pointer[1] = (row & 0x40) ? intensity : off;
+							pixel_pointer[2] = (row & 0x20) ? intensity : off;
+							pixel_pointer[3] = (row & 0x10) ? intensity : off;
+							pixel_pointer[4] = (row & 0x08) ? intensity : off;
+							pixel_pointer[5] = (row & 0x04) ? intensity : off;
+							pixel_pointer[6] = (row & 0x02) ? intensity : off;
+							pixel_pointer[7] = (row & 0x01) ? intensity : off;
+							pixel_pointer[8] = (glyph >= 0xc0 && glyph < 0xe0) ? pixel_pointer[7] : blank;
 						}
-						pixel_pointer += 9;
 					}
-				}
-
-				// Advance.
-				count += 9;
-
-				// Output pixel row prematurely if storage is exhausted.
-				if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
-					crt.output_data(count);
-					count = 0;
-
-					pixels = pixel_pointer = nullptr;
+					pixel_pointer += 9;
 				}
 			}
 
-			Outputs::CRT::CRT crt;
+			// Advance.
+			count += 9;
 
-			enum class OutputState {
-				Sync, Pixels, Border
-			} output_state = OutputState::Sync;
-			int count = 0;
+			// Output pixel row prematurely if storage is exhausted.
+			if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
+				crt.output_data(count);
+				count = 0;
 
-			uint8_t *pixels = nullptr;
-			uint8_t *pixel_pointer = nullptr;
-			static constexpr size_t DefaultAllocationSize = 720;
+				pixels = pixel_pointer = nullptr;
+			}
+		}
 
-			const uint8_t *ram = nullptr;
-			std::vector<uint8_t> font;
+		Outputs::CRT::CRT crt;
 
-			uint8_t control_ = 0;
-		} outputter_;
-		Motorola::CRTC::CRTC6845<
-			CRTCOutputter,
-			Motorola::CRTC::Personality::HD6845S,
-			Motorola::CRTC::CursorType::MDA> crtc_;
+		enum class OutputState {
+			Sync, Pixels, Border
+		} output_state = OutputState::Sync;
+		int count = 0;
 
-		int full_clock_ = 0;
+		uint8_t *pixels = nullptr;
+		uint8_t *pixel_pointer = nullptr;
+		static constexpr size_t DefaultAllocationSize = 720;
+
+		const uint8_t *ram = nullptr;
+		std::vector<uint8_t> font;
+
+		uint8_t control_ = 0;
+	} outputter_;
+	Motorola::CRTC::CRTC6845<
+		CRTCOutputter,
+		Motorola::CRTC::Personality::HD6845S,
+		Motorola::CRTC::CursorType::MDA> crtc_;
+
+	int full_clock_ = 0;
 };
 
 }

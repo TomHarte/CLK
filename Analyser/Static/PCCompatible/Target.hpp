@@ -19,6 +19,14 @@ ReflectableEnum(Model,
 	AT
 );
 
+constexpr bool is_xt(const Model model) {
+	return model <= Model::TurboXT;
+}
+
+constexpr bool is_at(const Model model) {
+	return model >= Model::AT;
+}
+
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(VideoAdaptor,
 		MDA,
