@@ -13,9 +13,16 @@
 
 namespace PCCompatible {
 
+/*!
+	Provides an implementation of either an XT- or AT-style keyboard controller,
+	as determined by the model template parameter.
+*/
 template <Analyser::Static::PCCompatible::Model, typename Enable = void>
 class KeyboardController;
 
+/*!
+	Models the XT keyboard controller.
+*/
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
@@ -99,6 +106,9 @@ private:
 	int reset_delay_ = 0;
 };
 
+/*!
+	Models the AT keyboard controller.
+*/
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
 public:
@@ -111,10 +121,14 @@ public:
 	}
 
 	template <typename IntT>
-	void write([[maybe_unused]] const uint16_t port, [[maybe_unused]] const IntT value) {
+	void write(const uint16_t port,const IntT value) {
 		switch(port) {
 			default:
 				log_.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
+			break;
+
+			case 0x0060:
+				parameter_ = value;
 			break;
 
 			case 0x0061:
@@ -123,6 +137,20 @@ public:
 				//	b3: enable channel check
 				//	b2: enable parity check
 				speaker_.set_control(value & 0x01, value & 0x02);
+			break;
+
+			case 0x0064:
+				switch(value) {
+					default:
+						log_.error().append("Unimplemented AT keyboard command %04x", value);
+					break;
+
+					case 0xaa:	// Self-test; 0x55 => no issues found.
+						is_tested_ = true;
+						parameter_ = 0x55;
+						has_input_ = true;
+					break;
+				}
 			break;
 		}
 	}
@@ -134,10 +162,31 @@ public:
 				log_.error().append("Unimplemented AT keyboard read from %04x", port);
 			break;
 
+			case 0x0060:
+			return parameter_;
+
 			case 0x0061:
+				// In a real machine bit 4 toggles as a function of memory refresh; it is often
+				// used by BIOSes to check that refresh is happening, with no greater inspection
+				// than that it is toggling. So toggle on read.
 				refresh_toggle_ ^= 0x10;
+
 				log_.info().append("AT keyboard: %02x from %04x", refresh_toggle_, port);
 			return refresh_toggle_;
+
+			case 0x0064:
+				// Status:
+				//	b7 = 1 => parity error on transmission;
+				//	b6 = 1 => receive timeout;
+				// 	b5 = 1 => transmit timeout;
+				//	b4 = 1 => keyboard active;
+				//	b3 = 1 = data at 0060 is command, 0 = data;
+				//	b2 = 1 = selftest OK; 0 = just powered up or reset;
+				//	b1 = 1 => input buffer has data;
+				//	b0 = 1 => output data is full.
+			return
+				(is_tested_ ? 0x4 : 0x0) |
+				(has_input_ ? 0x2 : 0x0);
 		}
 		return IntT(~0);
 	}
@@ -148,6 +197,10 @@ private:
 	PICs<model> &pics_;
 	Speaker &speaker_;
 	uint8_t refresh_toggle_ = 0;
+
+	bool is_tested_ = false;
+	bool has_input_ = false;
+	uint8_t parameter_;
 };
 
 }
