@@ -1169,6 +1169,7 @@ public:
 			//
 
 			// Query for interrupts and apply if pending.
+			// TODO: include the other PIC.
 			if(pics_.pic[0].pending() && context_.flags.template flag<InstructionSet::x86::Flag::Interrupt>()) {
 				// Regress the IP if a REP is in-progress so as to resume it later.
 				if(context_.flow_controller.should_repeat()) {
