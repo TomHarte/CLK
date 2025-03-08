@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <string>
 
 namespace Log {
 // TODO: if adopting C++20, std::format would be a better model to apply below.
@@ -88,7 +89,7 @@ constexpr bool is_enabled(const Source source) {
 	}
 }
 
-constexpr const char *prefix(Source source) {
+constexpr const char *prefix(const Source source) {
 	switch(source) {
 		default: return nullptr;
 
@@ -142,36 +143,52 @@ class Logger {
 public:
 	static constexpr bool enabled = is_enabled(source);
 
-	struct LogLine {
-	public:
-		LogLine(FILE *const stream) : stream_(stream) {
-			if constexpr (!enabled) return;
+	template <bool enabled>
+	struct LogLine;
 
+	template <>
+	struct LogLine<true> {
+	public:
+		explicit LogLine(FILE *const stream) noexcept : stream_(stream) {
 			const auto source_prefix = prefix(source);
-			if(source_prefix) {
-				fprintf(stream_, "[%s] ", source_prefix);
-			}
+			if(!source_prefix) return;
+
+			output_.resize(strlen(source_prefix) + 4);
+			std::snprintf(output_.data(), output_.size(), "[%s] ", source_prefix);
+			output_.pop_back();
 		}
 
 		~LogLine() {
-			if constexpr (!enabled) return;
-			fprintf(stream_, "\n");
+			fprintf(stream_, "%s\n", output_.c_str());
 		}
 
-		void append(const char *const format, ...) {
-			if constexpr (!enabled) return;
-			va_list args;
-			va_start(args, format);
-			vfprintf(stream_, format, args);
-			va_end(args);
+		template <size_t size, typename... Args>
+		void append(const char (&format)[size], Args... args) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
+			const auto append_size = std::snprintf(nullptr, 0, format, args...);
+			const auto end = output_.size();
+			output_.resize(output_.size() + size_t(append_size) + 1);
+			std::snprintf(output_.data() + end, size_t(append_size) + 1, format, args...);
+			output_.pop_back();
+#pragma GCC diagnostic pop
 		}
 
 	private:
+		std::string output_;
 		FILE *stream_;
 	};
 
-	LogLine info()	{	return LogLine(stdout);		}
-	LogLine error()	{	return LogLine(stderr);		}
+	template <>
+	struct LogLine<false> {
+		explicit LogLine(FILE *) noexcept {}
+
+		template <size_t size, typename... Args>
+		void append(const char (&)[size], Args...) {}
+	};
+
+	LogLine<enabled> info()		{	return LogLine<enabled>(stdout);	}
+	LogLine<enabled> error()	{	return LogLine<enabled>(stderr);	}
 };
 
 }
