@@ -292,7 +292,7 @@ public:
 				if constexpr (is_xt(model)) {
 					ppi_.write(port, uint8_t(value));
 				} else {
-					keyboard_.write(port, value);
+					keyboard_.write(port, uint8_t(value));
 				}
 			break;
 

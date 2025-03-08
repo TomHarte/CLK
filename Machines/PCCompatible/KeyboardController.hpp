@@ -120,8 +120,7 @@ public:
 	void post([[maybe_unused]] const uint8_t value) {
 	}
 
-	template <typename IntT>
-	void write(const uint16_t port, const IntT value) {
+	void write(const uint16_t port, const uint8_t value) {
 		switch(port) {
 			default:
 				log_.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
