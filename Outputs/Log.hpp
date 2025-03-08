@@ -138,57 +138,56 @@ constexpr const char *prefix(const Source source) {
 	}
 }
 
+template <Source source, bool enabled>
+struct LogLine;
+
+template <Source source>
+struct LogLine<source, true> {
+public:
+	explicit LogLine(FILE *const stream) noexcept : stream_(stream) {
+		const auto source_prefix = prefix(source);
+		if(!source_prefix) return;
+
+		output_.resize(strlen(source_prefix) + 4);
+		std::snprintf(output_.data(), output_.size(), "[%s] ", source_prefix);
+		output_.pop_back();
+	}
+
+	~LogLine() {
+		fprintf(stream_, "%s\n", output_.c_str());
+	}
+
+	template <size_t size, typename... Args>
+	void append(const char (&format)[size], Args... args) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
+		const auto append_size = std::snprintf(nullptr, 0, format, args...);
+		const auto end = output_.size();
+		output_.resize(output_.size() + size_t(append_size) + 1);
+		std::snprintf(output_.data() + end, size_t(append_size) + 1, format, args...);
+		output_.pop_back();
+#pragma GCC diagnostic pop
+	}
+
+private:
+	std::string output_;
+	FILE *stream_;
+};
+
+template <Source source>
+struct LogLine<source, false> {
+	explicit LogLine(FILE *) noexcept {}
+
+	template <size_t size, typename... Args>
+	void append(const char (&)[size], Args...) {}
+};
+
 template <Source source>
 class Logger {
 public:
 	static constexpr bool enabled = is_enabled(source);
-
-	template <bool enabled>
-	struct LogLine;
-
-	template <>
-	struct LogLine<true> {
-	public:
-		explicit LogLine(FILE *const stream) noexcept : stream_(stream) {
-			const auto source_prefix = prefix(source);
-			if(!source_prefix) return;
-
-			output_.resize(strlen(source_prefix) + 4);
-			std::snprintf(output_.data(), output_.size(), "[%s] ", source_prefix);
-			output_.pop_back();
-		}
-
-		~LogLine() {
-			fprintf(stream_, "%s\n", output_.c_str());
-		}
-
-		template <size_t size, typename... Args>
-		void append(const char (&format)[size], Args... args) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat"
-			const auto append_size = std::snprintf(nullptr, 0, format, args...);
-			const auto end = output_.size();
-			output_.resize(output_.size() + size_t(append_size) + 1);
-			std::snprintf(output_.data() + end, size_t(append_size) + 1, format, args...);
-			output_.pop_back();
-#pragma GCC diagnostic pop
-		}
-
-	private:
-		std::string output_;
-		FILE *stream_;
-	};
-
-	template <>
-	struct LogLine<false> {
-		explicit LogLine(FILE *) noexcept {}
-
-		template <size_t size, typename... Args>
-		void append(const char (&)[size], Args...) {}
-	};
-
-	LogLine<enabled> info()		{	return LogLine<enabled>(stdout);	}
-	LogLine<enabled> error()	{	return LogLine<enabled>(stderr);	}
+	LogLine<source, enabled> info()		{	return LogLine<source, enabled>(stdout);	}
+	LogLine<source, enabled> error()	{	return LogLine<source, enabled>(stderr);	}
 };
 
 }
