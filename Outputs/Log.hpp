@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <cstring>
 #include <string>
 
 namespace Log {
