@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/Model.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
 namespace PCCompatible {
 

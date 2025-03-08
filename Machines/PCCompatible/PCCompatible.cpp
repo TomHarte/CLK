@@ -9,6 +9,7 @@
 #include "PCCompatible.hpp"
 
 #include "CGA.hpp"
+#include "CPUControl.hpp"
 #include "DMA.hpp"
 #include "FloppyController.hpp"
 #include "KeyboardController.hpp"
@@ -884,14 +885,15 @@ private:
 			segments(registers),
 			memory(registers, segments),
 			flow_controller(registers, segments),
+			cpu_control(registers, segments, memory),
 			io(pit, dma, ppi, pics, card, fdc, keyboard, rtc)
 		{
+			keyboard.set_cpu_control(&cpu_control);
 			reset();
 		}
 
 		void reset() {
-			registers.reset();
-			segments.reset();
+			cpu_control.reset();
 		}
 
 		InstructionSet::x86::Flags flags;
@@ -899,6 +901,7 @@ private:
 		Segments<x86_model> segments;
 		Memory<pc_model> memory;
 		FlowController<pc_model> flow_controller;
+		CPUControl<pc_model> cpu_control;
 		IO<pc_model, video> io;
 		static constexpr auto model = processor_model(pc_model);
 	} context_;
