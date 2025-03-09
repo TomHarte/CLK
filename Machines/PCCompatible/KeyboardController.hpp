@@ -158,6 +158,7 @@ public:
 
 					case 0xaa:	// Self-test; 0x55 => no issues found.
 						log_.error().append("Keyboard self-test");
+						is_tested_ = true;
 						post(0x55);
 					break;
 
@@ -218,6 +219,7 @@ public:
 				const uint8_t status =
 					0x10 |
 					(is_command_	? 0x08 : 0x00) |
+					(is_tested_		? 0x04 : 0x00) |
 					(has_output_	? 0x02 : 0x00) |
 					(has_input_		? 0x01 : 0x00);
 				log_.error().append("Reading status: %02x", status);
@@ -242,6 +244,7 @@ private:
 
 	bool has_input_ = false;
 	bool has_output_ = false;
+	bool is_tested_ = false;
 
 	bool is_command_ = false;
 	uint8_t parameter_;
