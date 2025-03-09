@@ -1457,6 +1457,7 @@
 		4B1FBE222D7B739700BAC888 /* FloppyController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FloppyController.hpp; sourceTree = "<group>"; };
 		4B1FBE232D7B73C800BAC888 /* Speaker.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
 		4B1FBE242D7B753000BAC888 /* KeyboardController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardController.hpp; sourceTree = "<group>"; };
+		4B1FBE252D7C0B2200BAC888 /* CPUControl.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CPUControl.hpp; sourceTree = "<group>"; };
 		4B2005402B804AA300420C5C /* OperationMapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OperationMapper.hpp; sourceTree = "<group>"; };
 		4B2005422B804D6400420C5C /* ARMDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ARMDecoderTests.mm; sourceTree = "<group>"; };
 		4B2005462B8BD7A500420C5C /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
@@ -2560,6 +2561,7 @@
 			children = (
 				425739372B051EA800B7D1E4 /* PCCompatible.cpp */,
 				429B13632B20234B006BB4CB /* CGA.hpp */,
+				4B1FBE252D7C0B2200BAC888 /* CPUControl.hpp */,
 				4267A9C92B0D4F17008A59BB /* DMA.hpp */,
 				4B1FBE222D7B739700BAC888 /* FloppyController.hpp */,
 				4B1FBE242D7B753000BAC888 /* KeyboardController.hpp */,
