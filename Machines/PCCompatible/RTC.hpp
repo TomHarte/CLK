@@ -12,6 +12,9 @@
 
 namespace PCCompatible {
 
+/*!
+	Implements enough of the MC146818 to satisfy those BIOSes I've tested.
+*/
 class RTC {
 public:
 	template <int address>
