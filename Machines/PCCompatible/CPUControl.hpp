@@ -14,6 +14,7 @@
 #include "Segments.hpp"
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
+#include "Outputs/Log.hpp"
 
 namespace PCCompatible {
 
@@ -31,14 +32,17 @@ public:
 		segments_.reset();
 	}
 
-	void set_a20_enabled(bool) {
+	void set_a20_enabled(const bool enabled) {
 		// Assumed: this'll be something to set on Memory.
+		log_.info().append("A20 line is now: ", enabled);
 	}
 
 private:
 	Registers<processor_model(model)> &registers_;
 	Segments<processor_model(model)> &segments_;
 	Memory<model> &memory_;
+
+	Log::Logger<Log::Source::PCCompatible> log_;
 };
 
 
