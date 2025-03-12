@@ -9,6 +9,7 @@
 #include "PCCompatible.hpp"
 
 #include "CGA.hpp"
+#include "CPUControl.hpp"
 #include "DMA.hpp"
 #include "FloppyController.hpp"
 #include "KeyboardController.hpp"
@@ -292,7 +293,7 @@ public:
 				if constexpr (is_xt(model)) {
 					ppi_.write(port, uint8_t(value));
 				} else {
-					keyboard_.write(port, value);
+					keyboard_.write(port, uint8_t(value));
 				}
 			break;
 
@@ -884,14 +885,15 @@ private:
 			segments(registers),
 			memory(registers, segments),
 			flow_controller(registers, segments),
+			cpu_control(registers, segments, memory),
 			io(pit, dma, ppi, pics, card, fdc, keyboard, rtc)
 		{
+			keyboard.set_cpu_control(&cpu_control);
 			reset();
 		}
 
 		void reset() {
-			registers.reset();
-			segments.reset();
+			cpu_control.reset();
 		}
 
 		InstructionSet::x86::Flags flags;
@@ -899,6 +901,7 @@ private:
 		Segments<x86_model> segments;
 		Memory<pc_model> memory;
 		FlowController<pc_model> flow_controller;
+		CPUControl<pc_model> cpu_control;
 		IO<pc_model, video> io;
 		static constexpr auto model = processor_model(pc_model);
 	} context_;
@@ -917,7 +920,11 @@ private:
 using namespace PCCompatible;
 
 namespace {
+#ifndef NDEBUG
+static constexpr bool ForceAT = true;
+#else
 static constexpr bool ForceAT = false;
+#endif
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
@@ -942,10 +949,10 @@ std::unique_ptr<Machine> Machine::PCCompatible(
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const Target *const pc_target = dynamic_cast<const Target *>(target);
-
+	using VideoAdaptor = Target::VideoAdaptor;
 	switch(pc_target->adaptor) {
-		case Target::VideoAdaptor::MDA:	return machine<Target::VideoAdaptor::MDA>(*pc_target, rom_fetcher);
-		case Target::VideoAdaptor::CGA:	return machine<Target::VideoAdaptor::CGA>(*pc_target, rom_fetcher);
+		case VideoAdaptor::MDA:	return machine<VideoAdaptor::MDA>(*pc_target, rom_fetcher);
+		case VideoAdaptor::CGA:	return machine<VideoAdaptor::CGA>(*pc_target, rom_fetcher);
 		default: return nullptr;
 	}
 }
