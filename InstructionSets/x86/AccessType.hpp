@@ -30,6 +30,15 @@ enum class AccessType {
 	PreauthorisedRead,
 };
 
+constexpr const char *to_string(const AccessType type) {
+	switch(type) {
+		case AccessType::Read:				return "read";
+		case AccessType::Write:				return "write";
+		case AccessType::ReadModifyWrite:	return "read-modify-write";
+		case AccessType::PreauthorisedRead:	return "preauthorised read";
+	}
+}
+
 constexpr bool is_writeable(const AccessType type) {
 	return type == AccessType::ReadModifyWrite || type == AccessType::Write;
 }
