@@ -920,7 +920,7 @@ private:
 using namespace PCCompatible;
 
 namespace {
-static constexpr bool ForceAT = false;
+static constexpr bool ForceAT = true;
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {

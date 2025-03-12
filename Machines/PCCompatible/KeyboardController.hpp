@@ -159,7 +159,11 @@ public:
 				command_ = value;
 				has_command_ = true;
 				command_phase_ = CommandPhase::WaitingForData;
-				write_delay_ = 10;
+
+				write_delay_ = performance_delay(command_);
+				if(!write_delay_) {
+					perform_command();
+				}
 			break;
 		}
 	}
@@ -215,21 +219,32 @@ public:
 	}
 
 private:
+	static constexpr bool requires_parameter(const uint8_t command) {
+		return
+			(command >= 0x60 && command < 0x80) ||
+			(command == 0xc1) || (command == 0xc2) ||
+			(command >= 0xd1 && command < 0xd5);
+	}
+
+	static constexpr int performance_delay(const uint8_t command) {
+		if(requires_parameter(command)) {
+			return 3;
+		}
+
+		switch(command) {
+			case 0xaa:		return 5;
+			default: 		return 0;
+		}
+	}
+
 	void perform_command() {
 		// Wait for a command.
 		if(!has_command_) return;
 
 		// Wait for a parameter if one is needed.
-		if(
-			(command_ >= 0x60 && command_ < 0x80) ||
-			(command_ == 0xc1) || (command_ == 0xc2) ||
-			(command_ >= 0xd1 && command_ < 0xd5)
-		) {
-			if(!has_output_) {
-				return;
-			}
+		if(requires_parameter(command_) && !has_output_) {
+			return;
 		}
-
 
 		{
 			auto info = log_.info();
