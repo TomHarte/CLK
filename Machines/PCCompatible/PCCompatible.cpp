@@ -920,7 +920,11 @@ private:
 using namespace PCCompatible;
 
 namespace {
+#ifndef NDEBUG
 static constexpr bool ForceAT = true;
+#else
+static constexpr bool ForceAT = false;
+#endif
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
