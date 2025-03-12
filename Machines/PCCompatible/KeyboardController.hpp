@@ -141,6 +141,7 @@ public:
 
 			case 0x0060:
 //				log_.error().append("Keyboard parameter set to %02x", value);
+				output_ = value;
 				has_output_ = true;
 				write_delay_ = 10;
 			break;
@@ -202,7 +203,7 @@ public:
 					(is_tested_										? 0x04 : 0x00) |
 					(has_output_									? 0x02 : 0x00) |
 					(has_input_										? 0x01 : 0x00);
-//				log_.error().append("Reading status: %02x", status);
+				log_.error().append("Reading status: %02x", status);
 				return status;
 			}
 		}
@@ -248,13 +249,20 @@ private:
 
 			case 0xaa:	// Self-test; 0x55 => no issues found.
 				log_.error().append("Keyboard self-test");
-				is_tested_ = true;
 				post(0x55);
 			break;
 
 			case 0xd1:	// Set output byte. b1 = the A20 gate.
 				log_.error().append("Should set A20 gate: %d", output_ & 0x02);
 				cpu_control_->set_a20_enabled(output_ & 0x02);
+			break;
+
+			case 0x60:
+				is_tested_ = output_ & 0x4;
+			break;
+
+			case 0xc0:	// Read input port.
+				post(0xd0);
 			break;
 
 			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
