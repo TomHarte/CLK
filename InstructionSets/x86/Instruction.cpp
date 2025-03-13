@@ -120,6 +120,7 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 
 		case Operation::IN:		return "in";
 		case Operation::OUT:	return "out";
+		case Operation::OUTS:	return "outs";
 
 		case Operation::JO:		return "jo";
 		case Operation::JNO:	return "jno";
@@ -223,6 +224,7 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 		case Operation::NOP:	return "nop";
 		case Operation::POP:	return "pop";
 		case Operation::POPF:	return "popf";
+		case Operation::PUSHA:	return "pusha";
 		case Operation::PUSH:	return "push";
 		case Operation::PUSHF:	return "pushf";
 		case Operation::RCL:	return "rcl";
