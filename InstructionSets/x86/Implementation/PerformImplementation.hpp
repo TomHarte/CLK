@@ -361,21 +361,29 @@ template <
 		case Operation::POPF:
 			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
 				Primitive::popf(context);
+			} else {
+				assert(false);
 			}
 		return;
 		case Operation::PUSHF:
 			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
 				Primitive::pushf(context);
+			} else {
+				assert(false);
 			}
 		return;
 		case Operation::POPA:
 			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
 				Primitive::popa<IntT>(context);
+			} else {
+				assert(false);
 			}
 		return;
 		case Operation::PUSHA:
 			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
 				Primitive::pusha<IntT>(context);
+			} else {
+				assert(false);
 			}
 		return;
 
