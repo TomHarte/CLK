@@ -130,7 +130,7 @@ void pusha(
 		push<uint32_t, true>(initial_sp, context);
 		push<uint32_t, true>(context.registers.ebp(), context);
 		push<uint32_t, true>(context.registers.esi(), context);
-		push<uint32_t, true>(context.registers.esi(), context);
+		push<uint32_t, true>(context.registers.edi(), context);
 	} else {
 		push<uint16_t, true>(context.registers.ax(), context);
 		push<uint16_t, true>(context.registers.cx(), context);
@@ -139,7 +139,7 @@ void pusha(
 		push<uint16_t, true>(initial_sp, context);
 		push<uint16_t, true>(context.registers.bp(), context);
 		push<uint16_t, true>(context.registers.si(), context);
-		push<uint16_t, true>(context.registers.si(), context);
+		push<uint16_t, true>(context.registers.di(), context);
 	}
 }
 
