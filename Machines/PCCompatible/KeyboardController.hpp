@@ -118,6 +118,7 @@ public:
 	KeyboardController(PICs<model> &pics, Speaker &speaker) : pics_(pics), speaker_(speaker) {}
 
 	void run_for(const Cycles cycles) {
+		instruction_count_ += cycles.as<int>();
 		if(!write_delay_) return;
 		write_delay_ -= cycles.as<int>();
 		if(write_delay_ <= 0) {
@@ -181,15 +182,12 @@ public:
 			return input_;
 
 			case 0x0061:
-				// In a real machine bit 4 toggles as a function of memory refresh; it is often
-				// used by BIOSes to check that refresh is happening, with no greater inspection
-				// than that it is toggling. So toggle on read.
-				//
-				// TODO: is this really from the keyboard controller?
-				refresh_toggle_ ^= 0x10;
-
-//				log_.info().append("AT keyboard: %02x from %04x", refresh_toggle_, port);
-			return refresh_toggle_;
+				// In a real machine bit 4 toggles as a function of memory refresh and some BIOSes
+				// (including IBM's) do a polled loop to test its speed. So that effectively compares
+				// PIT counts against CPU cycle counts. Since this emulator does nothing whatsoever
+				// to attempt realistic CPU timing, the ratio here is just one I found that passed
+				// BIOS inspection. I may have overfitted to IBM's. This counts as an ugliness.
+			return ((instruction_count_ * 2) / 25) & 0x10;
 
 			case 0x0064: {
 				// Status:
@@ -301,7 +299,7 @@ private:
 	Speaker &speaker_;
 	CPUControl<model> *cpu_control_ = nullptr;
 
-	uint8_t refresh_toggle_ = 0;
+	int instruction_count_ = 0;
 
 	bool has_input_ = false;
 	uint8_t input_;
