@@ -141,6 +141,10 @@ enum Name {
 	PCCompatibleGLaTICK,
 	PCCompatiblePhoenix80286BIOS,
 
+	PCCompatibleIBMATBIOS,
+	PCCompatibleIBMATBIOSNov85U27,
+	PCCompatibleIBMATBIOSNov85U47,
+
 	PCCompatibleMDAFont,
 	PCCompatibleCGAFont,
 	PCCompatibleEGABIOS,
@@ -235,6 +239,8 @@ std::vector<Description> all_descriptions();
 struct Request {
 	Request(Name name, bool optional = false);
 	Request() = default;
+
+	// TODO: the following is definitely not const correct.
 
 	/// Forms the request that would be satisfied by @c this plus the right-hand side.
 	Request operator &&(const Request &);
