@@ -592,19 +592,26 @@ public:
 		// Fetch the BIOS.
 		const auto font = Video::FontROM;
 
-		constexpr auto biosXT = ROM::Name::PCCompatibleGLaBIOS;
-		constexpr auto tickXT = ROM::Name::PCCompatibleGLaTICK;
+		constexpr auto bios_XT = ROM::Name::PCCompatibleGLaBIOS;
+		constexpr auto tick_XT = ROM::Name::PCCompatibleGLaTICK;
 
-		constexpr auto biosAT = ROM::Name::PCCompatiblePhoenix80286BIOS;
+		constexpr auto bios_AT = ROM::Name::PCCompatibleIBMATBIOS;
+		constexpr auto bios_AT_even = ROM::Name::PCCompatibleIBMATBIOSNov85U27;
+		constexpr auto bios_AT_odd = ROM::Name::PCCompatibleIBMATBIOSNov85U47;
+		constexpr auto bios_AT_Phoenix = ROM::Name::PCCompatiblePhoenix80286BIOS;
 
 		ROM::Request request = ROM::Request(font);
 		switch(pc_model) {
 			default:
-				request = request && ROM::Request(biosXT) && ROM::Request(tickXT);
+				request = request && ROM::Request(bios_XT) && ROM::Request(tick_XT);
 			break;
-			case Analyser::Static::PCCompatible::Model::AT:
-				request = request && ROM::Request(biosAT);
-			break;
+			case Analyser::Static::PCCompatible::Model::AT: {
+				auto at_even_odd = ROM::Request(bios_AT_odd) && ROM::Request(bios_AT_even);
+				auto at_full = ROM::Request(bios_AT);
+				auto phoenix_full = ROM::Request(bios_AT_Phoenix);
+				const auto at_any = at_even_odd || at_full || phoenix_full;
+				request = request && at_any;
+			} break;
 		}
 
 		auto roms = rom_fetcher(request);
@@ -614,20 +621,50 @@ public:
 
 		switch(pc_model) {
 			default: {
-				const auto &bios_contents = roms.find(biosXT)->second;
+				const auto &bios_contents = roms.find(bios_XT)->second;
 				context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
 
 				// If found, install GlaTICK at 0xd'0000.
-				auto tick_contents = roms.find(tickXT);
+				auto tick_contents = roms.find(tick_XT);
 				if(tick_contents != roms.end()) {
 					context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
 				}
 			} break;
 
-			case Analyser::Static::PCCompatible::Model::AT:
-				const auto &bios_contents = roms.find(biosAT)->second;
-				context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
-			break;
+			case Analyser::Static::PCCompatible::Model::AT: {
+				const auto install_at = [&] {
+					const auto bios_even = roms.find(bios_AT_even);
+					const auto bios_odd = roms.find(bios_AT_odd);
+					if(bios_even != roms.end() && bios_odd != roms.end()) {
+						std::vector<uint8_t> bios(65536);
+
+						for(size_t c = 0; c < bios.size(); c++) {
+							bios[c] = (c & 1) ? bios_odd->second[c >> 1] : bios_even->second[c >> 1];
+						}
+
+						context_.memory.install(
+							0x10'0000 - bios.size(),
+							bios.data(),
+							bios.size()
+						);
+						return;
+					}
+
+					for(const auto name: {bios_AT, bios_AT_Phoenix}) {
+						const auto bios_contents = roms.find(name);
+						if(bios_contents != roms.end()) {
+							context_.memory.install(
+								0x10'0000 - bios_contents->second.size(),
+								bios_contents->second.data(),
+								bios_contents->second.size()
+							);
+							return;
+						}
+					}
+				};
+
+				install_at();
+			} break;
 		}
 
 		// Give the video card something to read from.

@@ -588,6 +588,15 @@ Description::Description(Name name) {
 		case Name::PCCompatiblePhoenix80286BIOS:
 			*this = Description(name, "PCCompatible", "Phoenix 80286 BIOS 3.05", "Phoenix 80286 ROM BIOS Version 3.05.bin", 32 * 1024, 0x8d0d318au);
 		break;
+		case Name::PCCompatibleIBMATBIOS:
+			*this = Description(name, "PCCompatible", "IBM PC AT BIOS v3", "at-bios.bin", 64 * 1024, 0x674426beu);
+		break;
+		case Name::PCCompatibleIBMATBIOSNov85U27:
+			*this = Description(name, "PCCompatible", "IBM PC AT BIOS; 15th Nov 1985; U27", "BIOS_5170_15NOV85_U27_61X9266_27256.BIN", 32 * 1024, 0x4995be7au);
+		break;
+		case Name::PCCompatibleIBMATBIOSNov85U47:
+			*this = Description(name, "PCCompatible", "IBM PC AT BIOS; 15th Nov 1985; U47", "BIOS_5170_15NOV85_U47_61X9265_27256.BIN", 32 * 1024, 0xc32713e4u);
+		break;
 		case Name::PCCompatibleCGAFont:
 			*this = Description(name, "PCCompatible", "IBM's CGA font", "CGA.F08", 8 * 256, 0xa362ffe6u);
 		break;
