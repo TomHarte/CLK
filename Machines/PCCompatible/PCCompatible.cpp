@@ -628,7 +628,7 @@ public:
 				install_bios(roms.find(bios_XT)->second);
 
 				// If found, install GlaTICK at 0xd'0000.
-				auto tick_contents = roms.find(tick_XT);
+				const auto tick_contents = roms.find(tick_XT);
 				if(tick_contents != roms.end()) {
 					context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
 				}
