@@ -619,13 +619,16 @@ public:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
+		const auto install_bios = [&](const std::vector<uint8_t> &source) {
+			context_.memory.install(0x10'0000 - source.size(), source.data(), source.size());
+		};
+
 		switch(pc_model) {
 			default: {
-				const auto &bios_contents = roms.find(bios_XT)->second;
-				context_.memory.install(0x10'0000 - bios_contents.size(), bios_contents.data(), bios_contents.size());
+				install_bios(roms.find(bios_XT)->second);
 
 				// If found, install GlaTICK at 0xd'0000.
-				auto tick_contents = roms.find(tick_XT);
+				const auto tick_contents = roms.find(tick_XT);
 				if(tick_contents != roms.end()) {
 					context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
 				}
@@ -642,22 +645,14 @@ public:
 							bios[c] = (c & 1) ? bios_odd->second[c >> 1] : bios_even->second[c >> 1];
 						}
 
-						context_.memory.install(
-							0x10'0000 - bios.size(),
-							bios.data(),
-							bios.size()
-						);
+						install_bios(bios);
 						return;
 					}
 
 					for(const auto name: {bios_AT, bios_AT_Phoenix}) {
 						const auto bios_contents = roms.find(name);
 						if(bios_contents != roms.end()) {
-							context_.memory.install(
-								0x10'0000 - bios_contents->second.size(),
-								bios_contents->second.data(),
-								bios_contents->second.size()
-							);
+							install_bios(bios_contents->second);
 							return;
 						}
 					}
