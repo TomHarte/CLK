@@ -282,6 +282,13 @@ template <
 				context.segments.did_update(instruction.destination().source());
 			}
 		break;
+		case Operation::SMSW:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				Primitive::smsw(destination_w(), context);
+			} else {
+				assert(false);
+			}
+		break;
 
 		case Operation::JO:		jcc(context.flags.template condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!context.flags.template condition<Condition::Overflow>());		return;

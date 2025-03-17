@@ -77,4 +77,12 @@ void mov(
 	destination = source;
 }
 
+template <typename ContextT>
+void smsw(
+	write_t<uint16_t> destination,
+	ContextT &context
+) {
+	destination = context.registers.msw();
+}
+
 }
