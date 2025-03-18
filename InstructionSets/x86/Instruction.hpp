@@ -551,6 +551,10 @@ constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 	}
 }
 
+enum class DescriptorTable {
+	Global, Local, Interrupt,
+};
+
 /// Provides a 32-bit-style scale, index and base; to produce the address this represents,
 /// calcluate base() + (index() << scale()).
 ///

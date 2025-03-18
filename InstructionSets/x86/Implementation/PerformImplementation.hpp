@@ -115,6 +115,13 @@ template <
 		}
 	};
 
+	// Currently a special case for descriptor loading; assumes an indirect operand and returns the
+	// address indicated. Unlike [source/destination]_r it doesn't read an IntT from that address,
+	// since those instructions load an atypical six bytes.
+	const auto source_indirect = [&]() -> AddressT {
+		return address<Source::Indirect, AddressT, AccessType::Read>(instruction, instruction.source(), context);
+	};
+
 	// Some instructions use a pair of registers as an extended accumulator — DX:AX or EDX:EAX.
 	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
 	// i.e. AX split into high and low parts.
@@ -282,9 +289,24 @@ template <
 				context.segments.did_update(instruction.destination().source());
 			}
 		break;
+
 		case Operation::SMSW:
 			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
 				Primitive::smsw(destination_w(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::LIDT:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::ldt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::LGDT:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::ldt<DescriptorTable::Global, AddressT>(source_indirect(), instruction, context);
 			} else {
 				assert(false);
 			}

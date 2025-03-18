@@ -85,4 +85,18 @@ void smsw(
 	destination = context.registers.msw();
 }
 
+template <DescriptorTable table, typename IntT, typename InstructionT, typename ContextT>
+void ldt(
+	read_t<IntT> source_address,
+	const InstructionT &instruction,
+	ContextT &context
+) {
+	context.memory.preauthorise_read(
+		instruction.data_segment(),
+		source_address,
+		6);
+
+	assert(false);
+}
+
 }
