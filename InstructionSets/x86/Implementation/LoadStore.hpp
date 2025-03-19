@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
 
 #include <utility>
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "InstructionSets/x86/Instruction.hpp"	// For DescriptorTable.
+#include "InstructionSets/x86/Descriptors.hpp"
 #include "InstructionSets/x86/Model.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
