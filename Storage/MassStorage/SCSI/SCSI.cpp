@@ -99,7 +99,7 @@ void Bus::run_for(HalfCycles time) {
 
 		const auto old_index = dispatch_index_;
 		const auto time_as_int = time_in_state_.as_integral();
-		while(time_as_int >= dispatch_times_[dispatch_index_] && dispatch_index_ < dispatch_times_.size()) {
+		while(dispatch_index_ < dispatch_times_.size() && time_as_int >= dispatch_times_[dispatch_index_]) {
 			++dispatch_index_;
 		}
 
