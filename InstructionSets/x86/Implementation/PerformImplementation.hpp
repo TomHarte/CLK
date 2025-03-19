@@ -311,6 +311,20 @@ template <
 				assert(false);
 			}
 		break;
+		case Operation::SIDT:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::sdt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::SGDT:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::sdt<DescriptorTable::Global, AddressT>(source_indirect(), instruction, context);
+			} else {
+				assert(false);
+			}
+		break;
 
 		case Operation::JO:		jcc(context.flags.template condition<Condition::Overflow>());		return;
 		case Operation::JNO:	jcc(!context.flags.template condition<Condition::Overflow>());		return;

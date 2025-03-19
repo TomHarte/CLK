@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "InstructionSets/x86/Instruction.hpp"	// For DescriptorTable.
 #include "InstructionSets/x86/Model.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
@@ -87,8 +88,27 @@ public:
 
 	uint16_t msw() const {	return machine_status_;	}
 
+	using DescriptorTable = InstructionSet::x86::DescriptorTable;
+	using DescriptorTableLocation = InstructionSet::x86::DescriptorTableLocation;
+
+	template <DescriptorTable table>
+	void set(const DescriptorTableLocation location) {
+		static constexpr bool is_global = table == DescriptorTable::Global;
+		static_assert(is_global || table == DescriptorTable::Interrupt);
+		auto &target = is_global ? global_ : interrupt_;
+		target = location;
+	}
+
+	template <DescriptorTable table>
+	DescriptorTableLocation get() {
+		static constexpr bool is_global = table == DescriptorTable::Global;
+		static_assert(is_global || table == DescriptorTable::Interrupt);
+		return is_global ? global_ : interrupt_;
+	}
+
 private:
 	uint16_t machine_status_;
+	DescriptorTableLocation global_, interrupt_;
 };
 
 }
