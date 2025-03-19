@@ -38,6 +38,8 @@ public:
 	void preauthorise_stack_read([[maybe_unused]] uint32_t length) {}
 	void preauthorise_read([[maybe_unused]] InstructionSet::x86::Source segment, [[maybe_unused]] uint16_t start, [[maybe_unused]] uint32_t length) {}
 	void preauthorise_read([[maybe_unused]] uint32_t start, [[maybe_unused]] uint32_t length) {}
+	void preauthorise_write([[maybe_unused]] InstructionSet::x86::Source segment, [[maybe_unused]] uint16_t start, [[maybe_unused]] uint32_t length) {}
+	void preauthorise_write([[maybe_unused]] uint32_t start, [[maybe_unused]] uint32_t length) {}
 
 	//
 	// Access call-ins.

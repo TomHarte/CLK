@@ -77,4 +77,54 @@ void mov(
 	destination = source;
 }
 
+template <typename ContextT>
+void smsw(
+	write_t<uint16_t> destination,
+	ContextT &context
+) {
+	destination = context.registers.msw();
+}
+
+template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
+void ldt(
+	read_t<AddressT> source_address,
+	const InstructionT &instruction,
+	ContextT &context
+) {
+	const auto segment = instruction.data_segment();
+	context.memory.preauthorise_read(
+		segment,
+		source_address,
+		6);
+
+	DescriptorTableLocation location;
+	location.limit =
+		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(segment, source_address);
+	location.base =
+		context.memory.template access<uint32_t, AccessType::PreauthorisedRead>(segment, AddressT(source_address + 2));
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		location.base &= 0xff'ff'ff;
+	}
+
+	context.registers.template set<table>(location);
+	context.segments.did_update(table);
+}
+
+template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
+void sdt(
+	read_t<AddressT> destination_address,
+	const InstructionT &instruction,
+	ContextT &context
+) {
+	const auto segment = instruction.data_segment();
+	context.memory.preauthorise_write(
+		segment,
+		destination_address,
+		6);
+
+	const auto location = context.registers.template get<table>();
+	context.memory.template preauthorised_write<uint16_t>(segment, destination_address, location.limit);
+	context.memory.template preauthorised_write<uint32_t>(segment, AddressT(destination_address + 2), location.base);
+}
+
 }

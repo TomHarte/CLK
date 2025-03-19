@@ -21,6 +21,7 @@ public:
 	Segments(const Registers<model> &registers) : registers_(registers) {}
 
 	using Source = InstructionSet::x86::Source;
+	using DescriptorTable = InstructionSet::x86::DescriptorTable;
 
 	/// Posted by @c perform after any operation which *might* have affected a segment register.
 	void did_update(const Source segment) {
@@ -32,6 +33,8 @@ public:
 			case Source::SS:	ss_base_ = uint32_t(registers_.ss()) << 4;	break;
 		}
 	}
+
+	void did_update(DescriptorTable) {}
 
 	void reset() {
 		did_update(Source::ES);
