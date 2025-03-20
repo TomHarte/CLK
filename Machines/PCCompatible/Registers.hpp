@@ -89,7 +89,7 @@ public:
 	uint16_t msw() const {	return machine_status_;	}
 
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTableLocation = InstructionSet::x86::DescriptorTableLocation;
+	using DescriptorTableLocation = InstructionSet::x86::DescriptorTablePointer;
 
 	template <DescriptorTable table>
 	void set(const DescriptorTableLocation location) {

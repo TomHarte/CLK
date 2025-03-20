@@ -98,7 +98,7 @@ void ldt(
 		source_address,
 		6);
 
-	DescriptorTableLocation location;
+	DescriptorTablePointer location;
 	location.limit =
 		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(segment, source_address);
 	location.base =
