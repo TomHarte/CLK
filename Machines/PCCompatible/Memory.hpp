@@ -159,7 +159,8 @@ public:
 	// Helper for instruction fetch.
 	//
 	std::pair<const uint8_t *, size_t> next_code() const {
-		const uint32_t start = segments_.cs_.to_linear(registers_.ip());
+		const uint32_t start =
+			segments_.descriptors[InstructionSet::x86::Source::CS].to_linear(registers_.ip()) & 0xf'ffff;
 		return std::make_pair(&memory[start], 0x10'000 - start);
 	}
 
@@ -183,18 +184,8 @@ private:
 	Registers<x86_model> &registers_;
 	const Segments<x86_model> &segments_;
 
-	const InstructionSet::x86::Descriptor &descriptor(const InstructionSet::x86::Source segment) const {
-		using Source = InstructionSet::x86::Source;
-		switch(segment) {
-			default:			return segments_.ds_;
-			case Source::ES:	return segments_.es_;
-			case Source::CS:	return segments_.cs_;
-			case Source::SS:	return segments_.ss_;
-		}
-	}
-
 	uint32_t address(const InstructionSet::x86::Source segment, const uint16_t offset) const {
-		return descriptor(segment).to_linear(offset) & 0xf'ffff;
+		return segments_.descriptors[segment].to_linear(offset) & 0xf'ffff;
 	}
 
 	template <AccessType type>

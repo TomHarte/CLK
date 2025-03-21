@@ -26,13 +26,8 @@ public:
 
 	/// Posted by @c perform after any operation which *might* have affected a segment register.
 	void did_update(const Source segment) {
-		switch(segment) {
-			default: break;
-			case Source::ES:	es_.set_segment(registers_.es());	break;
-			case Source::CS:	cs_.set_segment(registers_.cs());	break;
-			case Source::DS:	ds_.set_segment(registers_.ds());	break;
-			case Source::SS:	ss_.set_segment(registers_.ss());	break;
-		}
+		if(!is_segment_register(segment)) return;
+		descriptors[segment].set_segment(registers_.segment(segment));
 	}
 
 	void did_update(DescriptorTable) {}
@@ -44,14 +39,10 @@ public:
 		did_update(Source::SS);
 	}
 
-	Descriptor es_, cs_, ds_, ss_;
+	InstructionSet::x86::SegmentRegisterSet<Descriptor> descriptors;
 
 	bool operator ==(const Segments &rhs) const {
-		return
-			es_ == rhs.es_ &&
-			cs_ == rhs.cs_ &&
-			ds_ == rhs.ds_ &&
-			ss_ == rhs.ss_;
+		return descriptors == rhs.descriptors_;
 	}
 
 private:

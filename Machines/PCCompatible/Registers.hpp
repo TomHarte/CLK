@@ -47,21 +47,26 @@ public:
 
 	uint16_t &ip()	{	return ip_;				}
 
-	uint16_t &es()		{	return es_;			}
-	uint16_t &cs()		{	return cs_;			}
-	uint16_t &ds()		{	return ds_;			}
-	uint16_t &ss()		{	return ss_;			}
-	uint16_t es() const	{	return es_;			}
-	uint16_t cs() const	{	return cs_;			}
-	uint16_t ds() const	{	return ds_;			}
-	uint16_t ss() const	{	return ss_;			}
+	uint16_t &es()		{	return segments_[Source::ES];	}
+	uint16_t &cs()		{	return segments_[Source::CS];	}
+	uint16_t &ds()		{	return segments_[Source::DS];	}
+	uint16_t &ss()		{	return segments_[Source::SS];	}
+	uint16_t es() const	{	return segments_[Source::ES];	}
+	uint16_t cs() const	{	return segments_[Source::CS];	}
+	uint16_t ds() const	{	return segments_[Source::DS];	}
+	uint16_t ss() const	{	return segments_[Source::SS];	}
+	uint16_t segment(const InstructionSet::x86::Source segment) const {
+		return segments_[segment];
+	}
 
 	void reset() {
-		cs_ = 0xffff;
+		segments_[Source::CS] = 0xffff;
 		ip_ = 0;
 	}
 
 private:
+	using Source = InstructionSet::x86::Source;
+
 	CPU::RegisterPair16 ax_;
 	CPU::RegisterPair16 cx_;
 	CPU::RegisterPair16 dx_;
@@ -71,8 +76,8 @@ private:
 	uint16_t bp_;
 	uint16_t si_;
 	uint16_t di_;
-	uint16_t es_, cs_, ds_, ss_;
 	uint16_t ip_;
+	InstructionSet::x86::SegmentRegisterSet<uint16_t> segments_;
 };
 
 template <>
