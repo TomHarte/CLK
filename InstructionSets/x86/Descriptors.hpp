@@ -35,8 +35,7 @@ struct Descriptor {
 	// 27...24 = type;
 	// 23...00 = 4-bit base.
 
-	template <typename IntT>
-	IntT to_linear(const IntT address) {
+	uint32_t to_linear(const uint32_t address) const {
 		return base_ + address;
 	}
 

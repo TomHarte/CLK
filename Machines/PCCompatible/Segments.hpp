@@ -22,15 +22,16 @@ public:
 
 	using Source = InstructionSet::x86::Source;
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
+	using Descriptor = InstructionSet::x86::Descriptor;
 
 	/// Posted by @c perform after any operation which *might* have affected a segment register.
 	void did_update(const Source segment) {
 		switch(segment) {
 			default: break;
-			case Source::ES:	es_base_ = uint32_t(registers_.es()) << 4;	break;
-			case Source::CS:	cs_base_ = uint32_t(registers_.cs()) << 4;	break;
-			case Source::DS:	ds_base_ = uint32_t(registers_.ds()) << 4;	break;
-			case Source::SS:	ss_base_ = uint32_t(registers_.ss()) << 4;	break;
+			case Source::ES:	es_.set_segment(registers_.es());	break;
+			case Source::CS:	cs_.set_segment(registers_.cs());	break;
+			case Source::DS:	ds_.set_segment(registers_.ds());	break;
+			case Source::SS:	ss_.set_segment(registers_.ss());	break;
 		}
 	}
 
@@ -43,14 +44,14 @@ public:
 		did_update(Source::SS);
 	}
 
-	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
+	Descriptor es_, cs_, ds_, ss_;
 
 	bool operator ==(const Segments &rhs) const {
 		return
-			es_base_ == rhs.es_base_ &&
-			cs_base_ == rhs.cs_base_ &&
-			ds_base_ == rhs.ds_base_ &&
-			ss_base_ == rhs.ss_base_;
+			es_ == rhs.es_ &&
+			cs_ == rhs.cs_ &&
+			ds_ == rhs.ds_ &&
+			ss_ == rhs.ss_;
 	}
 
 private:
