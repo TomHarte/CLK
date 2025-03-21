@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "Instruction.hpp"
+
 namespace InstructionSet::x86 {
 
 enum class DescriptorTable {
@@ -43,6 +45,24 @@ private:
 	uint32_t base_;
 	uint32_t limit_;
 	// TODO: permissions, type, etc.
+};
+
+template <typename SegmentT>
+struct SegmentRegisterSet {
+	SegmentT &operator[](const Source segment) {
+		return values_[index_of(segment)];
+	}
+
+	const SegmentT &operator[](const Source segment) const {
+		return values_[index_of(segment)];
+	}
+
+private:
+	std::array<SegmentT, 6> values_;
+	static constexpr size_t index_of(const Source segment) {
+		assert(is_segment_register(segment));
+		return size_t(segment) - size_t(Source::ES);
+	}
 };
 
 }
