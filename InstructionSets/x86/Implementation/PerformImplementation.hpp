@@ -298,6 +298,13 @@ template <
 				assert(false);
 			}
 		break;
+		case Operation::LMSW:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				Primitive::lmsw(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
 		case Operation::LIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::ldt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
