@@ -14,6 +14,7 @@
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Mode.hpp"
 
 #include <array>
 
@@ -26,6 +27,7 @@ class Memory {
 
 public:
 	using AccessType = InstructionSet::x86::AccessType;
+	using Mode = InstructionSet::x86::Mode;
 
 	// Constructor.
 	Memory(Registers<x86_model> &registers, const Segments<x86_model> &segments) :
@@ -40,6 +42,10 @@ public:
 	void preauthorise_read([[maybe_unused]] uint32_t start, [[maybe_unused]] uint32_t length) {}
 	void preauthorise_write([[maybe_unused]] InstructionSet::x86::Source segment, [[maybe_unused]] uint16_t start, [[maybe_unused]] uint32_t length) {}
 	void preauthorise_write([[maybe_unused]] uint32_t start, [[maybe_unused]] uint32_t length) {}
+
+	void set_mode(const Mode mode) {
+		mode_ = mode;
+	}
 
 	//
 	// Access call-ins.
@@ -183,6 +189,7 @@ private:
 	std::array<uint8_t, 1024*1024> memory{0xff};
 	Registers<x86_model> &registers_;
 	const Segments<x86_model> &segments_;
+	Mode mode_ = Mode::Real;
 
 	uint32_t address(const InstructionSet::x86::Source segment, const uint16_t offset) const {
 		return segments_.descriptors[segment].to_linear(offset) & 0xf'ffff;

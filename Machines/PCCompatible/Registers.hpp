@@ -92,6 +92,9 @@ public:
 	}
 
 	uint16_t msw() const {	return machine_status_;	}
+	void set_msw(const uint16_t msw) {
+		machine_status_ = msw;
+	}
 
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
 	using DescriptorTableLocation = InstructionSet::x86::DescriptorTablePointer;

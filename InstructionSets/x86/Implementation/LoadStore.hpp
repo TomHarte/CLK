@@ -10,6 +10,7 @@
 
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/Mode.hpp"
 
 #include <utility>
 
@@ -91,7 +92,14 @@ void lmsw(
 	read_t<uint16_t> source,
 	ContextT &context
 ) {
-	assert(false);
+	context.registers.set_msw(source);
+	if(source & 1) {
+		context.memory.set_mode(Mode::Protected286);
+		context.segments.set_mode(Mode::Protected286);
+	}
+
+	// TODO: all other bits. Anything?
+	assert(!(source & ~1));
 }
 
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
