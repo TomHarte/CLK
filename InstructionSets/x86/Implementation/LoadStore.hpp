@@ -86,6 +86,14 @@ void smsw(
 	destination = context.registers.msw();
 }
 
+template <typename ContextT>
+void lmsw(
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	assert(false);
+}
+
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
 void ldt(
 	read_t<AddressT> source_address,
