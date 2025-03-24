@@ -108,7 +108,7 @@ public:
 	}
 
 	template <DescriptorTable table>
-	DescriptorTableLocation get() {
+	const DescriptorTableLocation &get() const {
 		static constexpr bool is_global = table == DescriptorTable::Global;
 		static_assert(is_global || table == DescriptorTable::Interrupt);
 		return is_global ? global_ : interrupt_;

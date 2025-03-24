@@ -285,6 +285,9 @@ template <
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
 		case Operation::MOV:
+			if constexpr (std::is_same_v<IntT, uint16_t>) {
+				// TODO: if this is a move into a segment register then preauthorise.
+			}
 			Primitive::mov<IntT>(destination_w(), source_r());
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				context.segments.did_update(instruction.destination().source());

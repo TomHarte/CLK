@@ -29,8 +29,26 @@ public:
 	/// Posted by @c perform after any operation which *might* have affected a segment register.
 	void did_update(const Source segment) {
 		if(!is_segment_register(segment)) return;
-		assert(mode_ == Mode::Real);
-		descriptors[segment].set_segment(registers_.segment(segment));
+		const auto value = registers_.segment(segment);
+		if constexpr (model <= InstructionSet::x86::Model::i80186) {
+			descriptors[segment].set_segment(value);
+			return;
+		} else {
+			switch(mode_) {
+				case Mode::Real:
+					descriptors[segment].set_segment(value);
+				break;
+
+				case Mode::Protected286: {
+					// TODO: when to use the local table? Is this right?
+					assert(!(value & 0x8000));
+					const auto &table = registers_.template get<DescriptorTable::Global>();
+					const uint32_t entry = table.base + value;
+
+					assert(false);
+				} break;
+			}
+		}
 	}
 
 	void did_update(DescriptorTable) {}

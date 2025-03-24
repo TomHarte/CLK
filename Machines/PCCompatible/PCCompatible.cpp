@@ -516,6 +516,9 @@ public:
 	template <typename AddressT>
 	void jump(const uint16_t segment, const AddressT address) {
 		static_assert(std::is_same_v<AddressT, uint16_t>);
+
+		// TODO: preauthorise segment read.
+
 		registers_.cs() = segment;
 		segments_.did_update(InstructionSet::x86::Source::CS);
 		registers_.ip() = address;

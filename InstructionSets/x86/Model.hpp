@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include "Mode.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -20,6 +21,14 @@ enum class Model {
 };
 
 static constexpr bool is_32bit(const Model model) { return model >= Model::i80386; }
+static constexpr bool has_mode(const Model model, const Mode mode) {
+	switch(mode) {
+		case Mode::Real:	return true;
+		case Mode::Protected286:
+			return model >= Model::i80286;
+	}
+	return false;
+}
 
 template <bool is_32bit> struct AddressT { using type = uint16_t; };
 template <> struct AddressT<true> { using type = uint32_t; };
