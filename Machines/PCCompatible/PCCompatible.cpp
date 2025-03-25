@@ -14,8 +14,9 @@
 #include "FloppyController.hpp"
 #include "KeyboardController.hpp"
 #include "KeyboardMapper.hpp"
+#include "LinearMemory.hpp"
 #include "MDA.hpp"
-#include "Memory.hpp"
+#include "SegmentedMemory.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
 #include "ProcessorByModel.hpp"
@@ -933,8 +934,9 @@ private:
 
 		InstructionSet::x86::Flags flags;
 		Registers<x86_model> registers;
+		LinearMemory<x86_model> linear_memory;
 		Segments<x86_model> segments;
-		Memory<pc_model> memory;
+		SegmentedMemory<pc_model> memory;
 		FlowController<pc_model> flow_controller;
 		CPUControl<pc_model> cpu_control;
 		IO<pc_model, video> io;

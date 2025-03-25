@@ -22,7 +22,7 @@ namespace PCCompatible {
 
 // TODO: send writes to the ROM area off to nowhere.
 template <Analyser::Static::PCCompatible::Model model>
-class Memory {
+class SegmentedMemory {
 	static constexpr auto x86_model = processor_model(model);
 
 public:
@@ -30,7 +30,7 @@ public:
 	using Mode = InstructionSet::x86::Mode;
 
 	// Constructor.
-	Memory(Registers<x86_model> &registers, const Segments<x86_model> &segments) :
+	SegmentedMemory(Registers<x86_model> &registers, const Segments<x86_model> &segments) :
 		registers_(registers), segments_(segments) {}
 
 	//

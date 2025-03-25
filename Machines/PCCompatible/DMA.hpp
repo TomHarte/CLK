@@ -12,7 +12,7 @@
 #include "Numeric/RegisterSizes.hpp"
 #include "Outputs/Log.hpp"
 
-#include "Memory.hpp"
+#include "SegmentedMemory.hpp"
 
 #include <array>
 
@@ -302,7 +302,7 @@ public:
 	DMAPages<has_second_dma> pages;
 
 	// Memory is set posthoc to resolve a startup time.
-	void set_memory(Memory<model> *const memory) {
+	void set_memory(SegmentedMemory<model> *const memory) {
 		memory_ = memory;
 	}
 
@@ -319,7 +319,7 @@ public:
 	}
 
 private:
-	Memory<model> *memory_;
+	SegmentedMemory<model> *memory_;
 };
 
 }

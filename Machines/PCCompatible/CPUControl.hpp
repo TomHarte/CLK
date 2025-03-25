@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Memory.hpp"
+#include "SegmentedMemory.hpp"
 #include "ProcessorByModel.hpp"
 #include "Registers.hpp"
 #include "Segments.hpp"
@@ -24,7 +24,7 @@ public:
 	CPUControl(
 		Registers<processor_model(model)> &registers,
 		Segments<processor_model(model)> &segments,
-		Memory<model> &memory
+		SegmentedMemory<model> &memory
 	) : registers_(registers), segments_(segments), memory_(memory) {}
 
 	void reset() {
@@ -40,7 +40,7 @@ public:
 private:
 	Registers<processor_model(model)> &registers_;
 	Segments<processor_model(model)> &segments_;
-	Memory<model> &memory_;
+	SegmentedMemory<model> &memory_;
 
 	Log::Logger<Log::Source::PCCompatible> log_;
 };
