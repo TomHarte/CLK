@@ -41,6 +41,10 @@ struct Descriptor {
 		return base_ + address;
 	}
 
+	uint32_t base() const {
+		return base_;
+	}
+
 private:
 	uint32_t base_;
 	uint32_t limit_;

@@ -586,7 +586,7 @@ public:
 		context_(pit_, dma_, ppi_, pics_, video_, fdc_, keyboard_, rtc_)
 	{
 		// Set up DMA source/target.
-		dma_.set_memory(&context_.memory);
+		dma_.set_memory(&context_.linear_memory);
 
 		// Use clock rate as a MIPS count; keeping it as a multiple or divisor of the PIT frequency is easy.
 		static constexpr int pit_frequency = 1'193'182;
@@ -624,7 +624,7 @@ public:
 		}
 
 		const auto install_bios = [&](const std::vector<uint8_t> &source) {
-			context_.memory.install(0x10'0000 - source.size(), source.data(), source.size());
+			context_.linear_memory.install(0x10'0000 - source.size(), source.data(), source.size());
 		};
 
 		switch(pc_model) {
@@ -634,7 +634,7 @@ public:
 				// If found, install GlaTICK at 0xd'0000.
 				const auto tick_contents = roms.find(tick_XT);
 				if(tick_contents != roms.end()) {
-					context_.memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
+					context_.linear_memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
 				}
 			} break;
 
@@ -668,7 +668,7 @@ public:
 
 		// Give the video card something to read from.
 		const auto &font_contents = roms.find(font)->second;
-		video_.set_source(context_.memory.at(Video::BaseAddress), font_contents);
+		video_.set_source(context_.linear_memory.at(Video::BaseAddress), font_contents);
 
 		// ... and insert media.
 		insert_media(target.media);
@@ -780,8 +780,8 @@ public:
 			// If that didn't yield a whole instruction then the end of memory must have been hit;
 			// continue from the beginning.
 			if(decoded_.first <= 0) {
-				const auto all = context_.memory.all();
-				decoded_ = decoder_.decode(all.first, all.second);
+				const auto start = context_.memory.start_code();
+				decoded_ = decoder_.decode(start.first, start.second);
 			}
 
 			context_.registers.ip() += decoded_.first;
@@ -919,7 +919,7 @@ private:
 			RTC &rtc
 		) :
 			segments(registers),
-			memory(registers, segments),
+			memory(registers, segments, linear_memory),
 			flow_controller(registers, segments),
 			cpu_control(registers, segments, memory),
 			io(pit, dma, ppi, pics, card, fdc, keyboard, rtc)
@@ -934,9 +934,11 @@ private:
 
 		InstructionSet::x86::Flags flags;
 		Registers<x86_model> registers;
+
 		LinearMemory<x86_model> linear_memory;
 		Segments<x86_model> segments;
-		SegmentedMemory<pc_model> memory;
+		SegmentedMemory<x86_model> memory;
+
 		FlowController<pc_model> flow_controller;
 		CPUControl<pc_model> cpu_control;
 		IO<pc_model, video> io;
@@ -957,11 +959,11 @@ private:
 using namespace PCCompatible;
 
 namespace {
-#ifndef NDEBUG
-static constexpr bool ForceAT = true;
-#else
+//#ifndef NDEBUG
+//static constexpr bool ForceAT = true;
+//#else
 static constexpr bool ForceAT = false;
-#endif
+//#endif
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
@@ -974,7 +976,8 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 			return std::make_unique<PCCompatible::ConcreteMachine<Model::TurboXT, video>>(target, rom_fetcher);
 
 		case Model::AT:
-			return std::make_unique<PCCompatible::ConcreteMachine<Model::AT, video>>(target, rom_fetcher);
+			return nullptr;
+//			return std::make_unique<PCCompatible::ConcreteMachine<Model::AT, video>>(target, rom_fetcher);
 	}
 
 	return nullptr;

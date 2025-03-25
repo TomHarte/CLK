@@ -583,8 +583,12 @@ template <
 	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
 	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
-	const uint16_t ip = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address);
-	const uint16_t cs = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 2);
+	// TODO: I think (?) these are always physical addresses, not linear ones.
+	// Indicate that when fetching.
+	const uint16_t ip = context.linear_memory.template read<uint16_t>(address);
+	const uint16_t cs = context.linear_memory.template read<uint16_t>(address + 2);
+//	const uint16_t ip = context.linear_memory.template access<uint16_t, AccessType::PreauthorisedRead>(address);
+//	const uint16_t cs = context.linear_memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 2);
 
 	const auto flags = context.flags.get();
 	Primitive::push<uint16_t, true>(flags, context);

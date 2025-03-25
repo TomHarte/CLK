@@ -24,7 +24,7 @@ public:
 	CPUControl(
 		Registers<processor_model(model)> &registers,
 		Segments<processor_model(model)> &segments,
-		SegmentedMemory<model> &memory
+		SegmentedMemory<processor_model(model)> &memory
 	) : registers_(registers), segments_(segments), memory_(memory) {}
 
 	void reset() {
@@ -40,7 +40,7 @@ public:
 private:
 	Registers<processor_model(model)> &registers_;
 	Segments<processor_model(model)> &segments_;
-	SegmentedMemory<model> &memory_;
+	SegmentedMemory<processor_model(model)> &memory_;
 
 	Log::Logger<Log::Source::PCCompatible> log_;
 };
