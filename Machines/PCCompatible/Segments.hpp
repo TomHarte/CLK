@@ -62,6 +62,8 @@ public:
 		did_update(Source::CS);
 		did_update(Source::DS);
 		did_update(Source::SS);
+		did_update(Source::FS);
+		did_update(Source::GS);
 	}
 
 	InstructionSet::x86::SegmentRegisterSet<Descriptor> descriptors;

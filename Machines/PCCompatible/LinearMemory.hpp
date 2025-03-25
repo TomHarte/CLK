@@ -10,6 +10,7 @@
 
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Model.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 
 #include <algorithm>
 #include <array>
@@ -26,6 +27,10 @@ namespace PCCompatible {
 template <size_t MaxAddressV>
 struct LinearPool {
 	static constexpr size_t MaxAddress = MaxAddressV;
+
+	LinearPool() {
+		Memory::Fuzz(memory);
+	}
 
 	//
 	// External access.
