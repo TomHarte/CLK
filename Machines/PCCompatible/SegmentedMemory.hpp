@@ -19,8 +19,35 @@
 
 namespace PCCompatible {
 
-template <InstructionSet::x86::Model model> class SegmentedMemory;
+template <InstructionSet::x86::Model model> struct ProgramFetcher {
+	std::pair<const uint8_t *, size_t> next_code(
+		const Registers<model> &registers,
+		const Segments<model> &segments,
+		LinearMemory<model> &linear_memory
+	) const {
+		const uint16_t ip = registers.ip();
+		const uint32_t start =
+			segments.descriptors[InstructionSet::x86::Source::CS].to_linear(ip) & (linear_memory.MaxAddress - 1);
+		return std::make_pair(
+			linear_memory.at(start),
+			std::min<size_t>(linear_memory.MaxAddress - start, 0x10000 - ip)
+		);
+	}
 
+	std::pair<const uint8_t *, size_t> start_code(
+		const Segments<model> &segments,
+		LinearMemory<model> &linear_memory
+	) const {
+		const auto base = segments.descriptors[InstructionSet::x86::Source::CS].base();
+		return std::make_pair(
+			linear_memory.at(base),
+			std::min<size_t>(0x1'0000, linear_memory.MaxAddress - base)
+		);
+	}
+
+};
+
+template <InstructionSet::x86::Model model> class SegmentedMemory;
 
 template <>
 class SegmentedMemory<InstructionSet::x86::Model::i8086> {
@@ -77,42 +104,100 @@ public:
 	}
 
 	//
-	// Helper for instruction fetch.
+	// Helpers for instruction fetch.
 	//
 	std::pair<const uint8_t *, size_t> next_code() const {
-		const uint16_t ip = registers_.ip();
-		const uint32_t start = segments_.descriptors[InstructionSet::x86::Source::CS].to_linear(ip) & 0xf'ffff;
-		return std::make_pair(
-			linear_memory_.at(start),
-			std::min<size_t>(linear_memory_.MaxAddress - start, 0x10000 - ip)
-		);
+		return program_fetcher_.next_code(registers_, segments_, linear_memory_);
 	}
 
 	std::pair<const uint8_t *, size_t> start_code() const {
-		return std::make_pair(
-			linear_memory_.at(segments_.descriptors[InstructionSet::x86::Source::CS].base()),
-			0x1'0000
-		);
+		return program_fetcher_.start_code(segments_, linear_memory_);
 	}
 
 private:
 	Registers<model> &registers_;
 	const Segments<model> &segments_;
 	LinearMemory<model> &linear_memory_;
+	ProgramFetcher<model> program_fetcher_;
 };
 
 template <>
-struct SegmentedMemory<InstructionSet::x86::Model::i80286>:
-	public SegmentedMemory<InstructionSet::x86::Model::i8086> {
-
-	using SegmentedMemory<InstructionSet::x86::Model::i8086>::SegmentedMemory;
-
-// TODO: almost everything.
-
+struct SegmentedMemory<InstructionSet::x86::Model::i80286> {
+	static constexpr auto model = InstructionSet::x86::Model::i80286;
 	using Mode = InstructionSet::x86::Mode;
-	void set_mode(const Mode) {
+	using AccessType = InstructionSet::x86::AccessType;
+
+	SegmentedMemory(
+		Registers<model> &registers,
+		const Segments<model> &segments,
+		LinearMemory<model> &linear_memory
+	) : registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
+
+	//
+	// Preauthorisation call-ins. Since only an 8088 is currently modelled, all accesses are implicitly authorised.
+	//
+	void preauthorise_stack_write(uint32_t) {}
+	void preauthorise_stack_read(uint32_t) {}
+	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
+	void preauthorise_read(uint32_t, uint32_t) {}
+	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
+	void preauthorise_write(uint32_t, uint32_t) {}
+
+	// TODO: perform authorisation checks.
+
+	//
+	// Access call-ins.
+	//
+
+	// Accesses an address based on segment:offset.
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		const InstructionSet::x86::Source segment,
+		const uint16_t offset
+	) {
+		const auto &descriptor = segments_.descriptors[segment];
+		return linear_memory_.access<IntT, type>(descriptor.to_linear(offset), descriptor.base());
 	}
 
+	template <typename IntT>
+	void write_back() {
+		linear_memory_.write_back<IntT>();
+	}
+
+	template <typename IntT>
+	void preauthorised_write(
+		const InstructionSet::x86::Source segment,
+		const uint16_t offset,
+		const IntT value
+	) {
+		const auto &descriptor = segments_.descriptors[segment];
+		linear_memory_.preauthorised_write<IntT>(descriptor.to_linear(offset), descriptor.base(), value);
+	}
+
+	//
+	// Mode selection.
+	//
+	void set_mode(const Mode mode) {
+		mode_ = mode;
+	}
+
+	//
+	// Helpers for instruction fetch.
+	//
+	std::pair<const uint8_t *, size_t> next_code() const {
+		return program_fetcher_.next_code(registers_, segments_, linear_memory_);
+	}
+
+	std::pair<const uint8_t *, size_t> start_code() const {
+		return program_fetcher_.start_code(segments_, linear_memory_);
+	}
+
+private:
+	Registers<model> &registers_;
+	const Segments<model> &segments_;
+	LinearMemory<model> &linear_memory_;
+	ProgramFetcher<model> program_fetcher_;
+	Mode mode_ = Mode::Real;
 };
 
 //template <InstructionSet::x86::Model model>

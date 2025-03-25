@@ -45,7 +45,8 @@ public:
 	uint16_t &si()	{	return si_;				}
 	uint16_t &di()	{	return di_;				}
 
-	uint16_t &ip()	{	return ip_;				}
+	uint16_t &ip()		{	return ip_;			}
+	uint16_t ip() const	{	return ip_;			}
 
 	uint16_t &es()		{	return segments_[Source::ES];	}
 	uint16_t &cs()		{	return segments_[Source::CS];	}

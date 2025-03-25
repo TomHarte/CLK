@@ -959,11 +959,11 @@ private:
 using namespace PCCompatible;
 
 namespace {
-//#ifndef NDEBUG
-//static constexpr bool ForceAT = true;
-//#else
+#ifndef NDEBUG
+static constexpr bool ForceAT = true;
+#else
 static constexpr bool ForceAT = false;
-//#endif
+#endif
 
 template <Target::VideoAdaptor video>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
@@ -976,8 +976,7 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 			return std::make_unique<PCCompatible::ConcreteMachine<Model::TurboXT, video>>(target, rom_fetcher);
 
 		case Model::AT:
-			return nullptr;
-//			return std::make_unique<PCCompatible::ConcreteMachine<Model::AT, video>>(target, rom_fetcher);
+			return std::make_unique<PCCompatible::ConcreteMachine<Model::AT, video>>(target, rom_fetcher);
 	}
 
 	return nullptr;

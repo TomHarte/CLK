@@ -205,7 +205,7 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 };
 
 template <>
-struct LinearMemory<InstructionSet::x86::Model::i80286>: public SplitHolder, public LinearPool<1 << 24> {
+struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 24> {
 	// A20 is the only thing that can cause split accesses on an 80286.
 	void set_a20_enabled(const bool enabled) {
 		address_mask_ = uint32_t(~0);
@@ -214,63 +214,25 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public SplitHolder, pub
 		}
 	}
 
+	using AccessType = InstructionSet::x86::AccessType;
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address, uint32_t
 	) {
-		// Bytes: always safe.
-		if constexpr (std::is_same_v<IntT, uint8_t>) {
-			return memory[address];
-		}
-
-		// Split on A20 if applicable.
-		if(((address + sizeof(IntT)) & address_mask_) < (address & address_mask_)) {
-			return SplitHolder::access<IntT, type>(address, (address + 1) & address_mask_, 1, memory.data());
-		}
-
-		// Don't split.
-		return *reinterpret_cast<IntT *>(&memory[address]);
+		// 80286: never split (probably?).
+		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
 	}
 
 	template <typename IntT>
-	void write_back() {
-		SplitHolder::write_back<IntT>(memory.data());
-	}
+	void write_back() {}
 
 	template <typename IntT>
 	void preauthorised_write(
-		uint32_t,
+		uint32_t address,
 		const uint32_t,
-		IntT
+		IntT value
 	) {
-		// TODO: possibly split on A20.
-//		address &= MaxAddress - 1;
-//
-//		// Bytes can be written without further ado.
-//		if constexpr (std::is_same_v<IntT, uint8_t>) {
-//			memory[address] = value;
-//			return;
-//		}
-//
-//		// Words that straddle the segment end must be split in two.
-//		if constexpr (model == InstructionSet::x86::Model::i8086) {
-//			const uint32_t offset = address - base;
-//			if(offset == 0xffff) {
-//				memory[address] = uint8_t(value & 0xff);
-//				memory[base] = uint8_t(value >> 8);
-//				return;
-//			}
-//		}
-//
-//		// Words that straddle the end of physical RAM must also be split in two.
-//		if(address == MaxAddress - 1) {
-//			memory[address] = uint8_t(value & 0xff);
-//			memory[0] = uint8_t(value >> 8);
-//			return;
-//		}
-//
-//		// It's safe just to write then.
-//		*reinterpret_cast<IntT *>(&memory[address]) = value;
+		*reinterpret_cast<IntT *>(&memory[address & address_mask_]) = value;
 	}
 
 private:
