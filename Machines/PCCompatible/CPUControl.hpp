@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "SegmentedMemory.hpp"
+#include "LinearMemory.hpp"
 #include "ProcessorByModel.hpp"
 #include "Registers.hpp"
 #include "Segments.hpp"
@@ -24,8 +24,8 @@ public:
 	CPUControl(
 		Registers<processor_model(model)> &registers,
 		Segments<processor_model(model)> &segments,
-		SegmentedMemory<processor_model(model)> &memory
-	) : registers_(registers), segments_(segments), memory_(memory) {}
+		LinearMemory<processor_model(model)> &linear_memory
+	) : registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
 
 	void reset() {
 		registers_.reset();
@@ -35,12 +35,13 @@ public:
 	void set_a20_enabled(const bool enabled) {
 		// Assumed: this'll be something to set on Memory.
 		log_.info().append("A20 line is now: ", enabled);
+		linear_memory_.set_a20_enabled(enabled);
 	}
 
 private:
 	Registers<processor_model(model)> &registers_;
 	Segments<processor_model(model)> &segments_;
-	SegmentedMemory<processor_model(model)> &memory_;
+	LinearMemory<processor_model(model)> &linear_memory_;
 
 	Log::Logger<Log::Source::PCCompatible> log_;
 };
