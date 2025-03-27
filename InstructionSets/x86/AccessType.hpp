@@ -53,8 +53,8 @@ template <typename IntT> struct Accessor<IntT, AccessType::PreauthorisedRead> { 
 template <typename IntT>
 class Writeable {
 public:
-	Writeable(IntT &target) : target_(target) {}
-	IntT operator=(IntT value) { return target_ = value; }
+	constexpr Writeable(IntT &target) noexcept : target_(target) {}
+	IntT operator=(const IntT value) { return target_ = value; }
 private:
 	IntT &target_;
 };
