@@ -789,25 +789,27 @@ public:
 			context_.flow_controller.begin_instruction();
 		}
 
+		static bool should_log = false;
 //		if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
-//			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
-////			if(next != previous) {
-//				std::cout << std::hex << decoded_ip_ << " " << next;
-//
-//				if(decoded_.second.operation() == InstructionSet::x86::Operation::INT) {
-//					std::cout << " dl:" << std::hex << +context_.registers.dl() << "; ";
-//					std::cout << "ah:" << std::hex << +context_.registers.ah() << "; ";
-//					std::cout << "ch:" << std::hex << +context_.registers.ch() << "; ";
-//					std::cout << "cl:" << std::hex << +context_.registers.cl() << "; ";
-//					std::cout << "dh:" << std::hex << +context_.registers.dh() << "; ";
-//					std::cout << "es:" << std::hex << +context_.registers.es() << "; ";
-//					std::cout << "bx:" << std::hex << +context_.registers.bx();
-//				}
-//
-//				std::cout << std::endl;
-////				previous = next;
-////			}
-//		}
+		if(should_log) {
+			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
+//			if(next != previous) {
+				std::cout << std::hex << decoded_ip_ << " " << next;
+
+				if(decoded_.second.operation() == InstructionSet::x86::Operation::INT) {
+					std::cout << " dl:" << std::hex << +context_.registers.dl() << "; ";
+					std::cout << "ah:" << std::hex << +context_.registers.ah() << "; ";
+					std::cout << "ch:" << std::hex << +context_.registers.ch() << "; ";
+					std::cout << "cl:" << std::hex << +context_.registers.cl() << "; ";
+					std::cout << "dh:" << std::hex << +context_.registers.dh() << "; ";
+					std::cout << "es:" << std::hex << +context_.registers.es() << "; ";
+					std::cout << "bx:" << std::hex << +context_.registers.bx();
+				}
+
+				std::cout << std::endl;
+//				previous = next;
+//			}
+		}
 
 		if(decoded_.second.operation() == InstructionSet::x86::Operation::Invalid) {
 			log.error().append("Invalid operation");

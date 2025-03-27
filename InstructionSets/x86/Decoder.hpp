@@ -327,7 +327,7 @@ private:
 		set(operation);
 		source_ = Source::Immediate;
 		phase_ = Phase::DisplacementOrOperand;
-		operand_size_ = operand_size;
+		operation_size_ = operand_size_ = operand_size;
 	}
 
 	/// Handles far CALL and far JMP — fixed four or six byte operand operations.
