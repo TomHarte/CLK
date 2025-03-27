@@ -24,10 +24,31 @@ struct DescriptorTablePointer {
 struct Descriptor {
 	void set_segment(const uint16_t segment) {
 		base_ = uint32_t(segment) << 4;
-		limit_ = std::numeric_limits<uint32_t>::max();
+		limit_ = 0xffff;
+
+		present_ = true;
 	}
 
-	void set(uint64_t);
+	void set(const uint16_t descriptor[4]) {
+		// TODO: something.
+
+		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
+		limit_ = descriptor[0];
+
+		printf("%04x %04x %04x %04x\n", descriptor[0], descriptor[1], descriptor[2], descriptor[3]);
+
+		if(descriptor[2] & 0x1000) {
+			// Is segment descriptor.
+			present_ = descriptor[2] & 0x8000;
+			privilege_level_ = (descriptor[2] >> 13) & 3;
+			accessed_ = descriptor[2] & 0x100;
+			readable_ = descriptor[2] & 0x200;
+			conforming_ = descriptor[2] & 0x400;
+			executable_ = descriptor[2] & 0x800;
+		} else {
+			assert(false);
+		}
+	}
 
 	// 286:
 	// 47...32 = 16-bit limit;
@@ -49,6 +70,25 @@ private:
 	uint32_t base_;
 	uint32_t limit_;
 	// TODO: permissions, type, etc.
+
+	bool present_;
+	uint8_t privilege_level_;
+	enum class Type {
+		AvailableTaskStateSegment = 1,
+		LDTDescriptor = 2,
+		BusyTaskStateSegment = 3,
+
+		Invalid0 = 0,	Invalid8 = 8,
+
+		Control4 = 4,	Control5 = 5,	Control6 = 6,	Control7 = 7,
+
+		Reserved9 = 9,	ReservedA = 10,	ReservedB = 11,	ReservedC = 12,
+		ReservedD = 13,	ReservedE = 14,	ReservedF = 15,
+	} type_;
+	bool accessed_;
+	bool readable_;
+	bool conforming_;
+	bool executable_;
 };
 
 template <typename SegmentT>

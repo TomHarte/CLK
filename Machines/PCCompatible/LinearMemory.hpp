@@ -224,12 +224,23 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	}
 
 	using AccessType = InstructionSet::x86::AccessType;
+
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address, uint32_t
 	) {
 		// 80286: never split (probably?).
 		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
+	}
+
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		uint32_t address, uint32_t
+	) const {
+		static_assert(!is_writeable(type));
+
+		// 80286: never split (probably?).
+		return *reinterpret_cast<const IntT *>(&memory[address & address_mask_]);
 	}
 
 	template <typename IntT>

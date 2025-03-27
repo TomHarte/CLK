@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include "LinearMemory.hpp"
 #include "Registers.hpp"
 
+#include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
 #include "InstructionSets/x86/Mode.hpp"
 #include "InstructionSets/x86/Model.hpp"
@@ -19,7 +21,8 @@ namespace PCCompatible {
 template <InstructionSet::x86::Model model>
 class Segments {
 public:
-	Segments(const Registers<model> &registers) : registers_(registers) {}
+	Segments(const Registers<model> &registers, const LinearMemory<model> &memory) :
+		registers_(registers), memory_(memory) {}
 
 	using Descriptor = InstructionSet::x86::Descriptor;
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
@@ -43,9 +46,18 @@ public:
 					// TODO: when to use the local table? Is this right?
 					assert(!(value & 0x8000));
 					const auto &table = registers_.template get<DescriptorTable::Global>();
-					const uint32_t entry = table.base + value;
+					const uint32_t table_address = table.base + value;
 
-					assert(false);
+					// TODO: authorisation required, possibly.
+					using AccessType = InstructionSet::x86::AccessType;
+					const uint32_t table_end = table.base + table.limit;
+					const uint16_t entry[] = {
+						memory_.template access<uint16_t, AccessType::Read>(table_address, table_end),
+						memory_.template access<uint16_t, AccessType::Read>(table_address + 2, table_end),
+						memory_.template access<uint16_t, AccessType::Read>(table_address + 4, table_end),
+						memory_.template access<uint16_t, AccessType::Read>(table_address + 6, table_end)
+					};
+					descriptors[segment].set(entry);
 				} break;
 			}
 		}
@@ -75,6 +87,7 @@ public:
 private:
 	Mode mode_ = Mode::Real;
 	const Registers<model> &registers_;
+	const LinearMemory<model> &memory_;
 };
 
 }
