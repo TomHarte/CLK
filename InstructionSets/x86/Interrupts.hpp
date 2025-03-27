@@ -33,4 +33,17 @@ enum Interrupt {
 
 };
 
+struct ProtectedException {
+	Interrupt cause;
+	uint16_t code;
+
+	// Code:
+	//	b3–b15: IDT/GDT/LDT entry
+	//	b2: 1 => in LDT; 0 => in GDT;
+	//	b1: 1 => in IDT, ignore b2; 0 => use b2;
+	//	b0:
+	//		1 => trigger was external to program code;
+	//		0 => trigger was caused by the instruction described by the CS:IP that is on the stack.
+};
+
 }

@@ -19,6 +19,7 @@
 
 namespace PCCompatible {
 
+// TODO: the following need to apply linear memory semantics, including potential A20 wrapping.
 template <InstructionSet::x86::Model model> struct ProgramFetcher {
 	std::pair<const uint8_t *, size_t> next_code(
 		const Registers<model> &registers,
@@ -26,11 +27,11 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 		LinearMemory<model> &linear_memory
 	) const {
 		const uint16_t ip = registers.ip();
-		const uint32_t start =
-			segments.descriptors[InstructionSet::x86::Source::CS].to_linear(ip) & (linear_memory.MaxAddress - 1);
+		const auto &descriptor = segments.descriptors[InstructionSet::x86::Source::CS];
+		const uint32_t start = descriptor.to_linear(ip) & (linear_memory.MaxAddress - 1);
 		return std::make_pair(
 			linear_memory.at(start),
-			std::min<size_t>(linear_memory.MaxAddress - start, 0x10000 - ip)
+			std::min<size_t>(linear_memory.MaxAddress - start, 1 + descriptor.limit() - ip)
 		);
 	}
 
@@ -38,10 +39,11 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 		const Segments<model> &segments,
 		LinearMemory<model> &linear_memory
 	) const {
-		const auto base = segments.descriptors[InstructionSet::x86::Source::CS].base();
+		const auto &descriptor = segments.descriptors[InstructionSet::x86::Source::CS];
+		const auto base = descriptor.base() & (linear_memory.MaxAddress - 1);
 		return std::make_pair(
 			linear_memory.at(base),
-			std::min<size_t>(0x1'0000, linear_memory.MaxAddress - base)
+			std::min<size_t>(0x1'0000, 1 + descriptor.limit() - base)
 		);
 	}
 

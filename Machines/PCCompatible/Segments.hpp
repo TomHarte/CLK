@@ -43,12 +43,23 @@ public:
 				break;
 
 				case Mode::Protected286: {
-					// TODO: when to use the local table? Is this right?
-					assert(!(value & 0x8000));
-					const auto &table = registers_.template get<DescriptorTable::Global>();
-					const uint32_t table_address = table.base + value;
+					// Check privilege level.
+					const auto requested_privilege_level = value & 3;
+					if(requested_privilege_level < descriptors[Source::CS].privilege_level()) {
+						printf("TODO: privilege exception.");
+					}
 
-					// TODO: authorisation required, possibly.
+					// Check segment range.
+					const auto &table =
+						(value & 4) ?
+							registers_.template get<DescriptorTable::Local>() :
+							registers_.template get<DescriptorTable::Global>();
+					const uint32_t table_address = table.base + (value & ~7);
+					if(table_address > table.base + table.limit - 8) {
+						printf("TODO: descriptor table overrun exception.\n");
+					}
+
+					// Get descriptor contents.
 					using AccessType = InstructionSet::x86::AccessType;
 					const uint32_t table_end = table.base + table.limit;
 					const uint16_t entry[] = {
@@ -57,7 +68,20 @@ public:
 						memory_.template access<uint16_t, AccessType::Read>(table_address + 4, table_end),
 						memory_.template access<uint16_t, AccessType::Read>(table_address + 6, table_end)
 					};
+
+					// TODO: is this descriptor privilege within reach?
+					// TODO: is this an empty descriptor*? If so: exception!
+					// (* other than the 0 descriptor, which can be loaded to DS or ES)
+					// TODO:
+					//	bool is_compatible(const Source reg) const {
+					//		switch(reg)
+					//			DS/ES: either readable code, or any sort of data
+					//			SS: writeable data
+					//			CS: any sort of code
+					//	}
+
 					descriptors[segment].set(entry);
+					// TODO: set descriptor accessed bit in memory if it's a segment.
 				} break;
 			}
 		}

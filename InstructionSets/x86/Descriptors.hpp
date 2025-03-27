@@ -30,40 +30,38 @@ struct Descriptor {
 	}
 
 	void set(const uint16_t descriptor[4]) {
-		// TODO: something.
-
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		limit_ = descriptor[0];
 
 		printf("%04x %04x %04x %04x\n", descriptor[0], descriptor[1], descriptor[2], descriptor[3]);
 
+		present_ = descriptor[2] & 0x8000;
+		privilege_level_ = (descriptor[2] >> 13) & 3;
+
+		// TODO: need to know more about the below.
 		if(descriptor[2] & 0x1000) {
-			// Is segment descriptor.
-			present_ = descriptor[2] & 0x8000;
-			privilege_level_ = (descriptor[2] >> 13) & 3;
-			accessed_ = descriptor[2] & 0x100;
-			readable_ = descriptor[2] & 0x200;
-			conforming_ = descriptor[2] & 0x400;
 			executable_ = descriptor[2] & 0x800;
+
+			if(executable_) {
+				conforming_ = descriptor[2] & 0x400;
+				readable_ = descriptor[2] & 0x200;
+			} else {
+				// expand down = descriptor[2] & 0x400;
+				// writeable_ = descriptor[2] & 0x200;
+			}
 		} else {
 			assert(false);
 		}
 	}
 
-	// 286:
-	// 47...32 = 16-bit limit;
-	// 31 = P
-	// 30...29 = DPL
-	// 28 = S
-	// 27...24 = type;
-	// 23...00 = 4-bit base.
-
 	uint32_t to_linear(const uint32_t address) const {
 		return base_ + address;
 	}
+	uint32_t base() const {		return base_;	}
+	uint32_t limit() const {	return limit_;	}
 
-	uint32_t base() const {
-		return base_;
+	int privilege_level() const {
+		return privilege_level_;
 	}
 
 private:
@@ -71,8 +69,7 @@ private:
 	uint32_t limit_;
 	// TODO: permissions, type, etc.
 
-	bool present_;
-	uint8_t privilege_level_;
+	int privilege_level_;
 	enum class Type {
 		AvailableTaskStateSegment = 1,
 		LDTDescriptor = 2,
@@ -85,7 +82,8 @@ private:
 		Reserved9 = 9,	ReservedA = 10,	ReservedB = 11,	ReservedC = 12,
 		ReservedD = 13,	ReservedE = 14,	ReservedF = 15,
 	} type_;
-	bool accessed_;
+
+	bool present_;
 	bool readable_;
 	bool conforming_;
 	bool executable_;
