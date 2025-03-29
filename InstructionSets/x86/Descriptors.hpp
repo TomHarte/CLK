@@ -22,14 +22,9 @@ struct DescriptorTablePointer {
 };
 
 struct Descriptor {
-	void set_segment(const uint16_t segment) {
-		base_ = uint32_t(segment) << 4;
-		limit_ = 0xffff;
+	Descriptor() = default;
 
-		present_ = true;
-	}
-
-	void set(const uint16_t descriptor[4]) {
+	Descriptor(const uint16_t descriptor[4]) noexcept {
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		limit_ = descriptor[0];
 
@@ -52,6 +47,13 @@ struct Descriptor {
 		} else {
 			assert(false);
 		}
+	}
+
+	void set_segment(const uint16_t segment) {
+		base_ = uint32_t(segment) << 4;
+		limit_ = 0xffff;
+
+		present_ = true;
 	}
 
 	uint32_t to_linear(const uint32_t address) const {

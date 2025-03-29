@@ -69,6 +69,8 @@ public:
 						memory_.template access<uint16_t, AccessType::Read>(table_address + 6, table_end)
 					};
 
+					const Descriptor incoming(entry);
+
 					// TODO: is this descriptor privilege within reach?
 					// TODO: is this an empty descriptor*? If so: exception!
 					// (* other than the 0 descriptor, which can be loaded to DS or ES)
@@ -80,7 +82,7 @@ public:
 					//			CS: any sort of code
 					//	}
 
-					descriptors[segment].set(entry);
+					descriptors[segment] = incoming;
 					// TODO: set descriptor accessed bit in memory if it's a segment.
 				} break;
 			}

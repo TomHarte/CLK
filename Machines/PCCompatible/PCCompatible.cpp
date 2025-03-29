@@ -962,7 +962,7 @@ using namespace PCCompatible;
 
 namespace {
 #ifndef NDEBUG
-static constexpr bool ForceAT = false;//true;
+static constexpr bool ForceAT = true;
 #else
 static constexpr bool ForceAT = false;
 #endif
