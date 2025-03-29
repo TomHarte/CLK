@@ -110,14 +110,19 @@ public:
 
 	template <DescriptorTable table>
 	const DescriptorTableLocation &get() const {
-		static constexpr bool is_global = table == DescriptorTable::Global;
-		static_assert(is_global || table == DescriptorTable::Interrupt);
-		return is_global ? global_ : interrupt_;
+		if constexpr (table == DescriptorTable::Global) {
+			return global_;
+		} else if constexpr (table == DescriptorTable::Interrupt) {
+			return interrupt_;
+		} else {
+			static_assert(table == DescriptorTable::Local);
+			return local_;
+		}
 	}
 
 private:
 	uint16_t machine_status_;
-	DescriptorTableLocation global_, interrupt_;
+	DescriptorTableLocation global_, interrupt_, local_;
 };
 
 }
