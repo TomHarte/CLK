@@ -13,8 +13,10 @@
 #include "BCD.hpp"
 #include "FlowControl.hpp"
 #include "InOut.hpp"
+#include "Interrupts.hpp"
 #include "LoadStore.hpp"
 #include "Logical.hpp"
+#include "MachineStatus.hpp"
 #include "Repetition.hpp"
 #include "Resolver.hpp"
 #include "ShiftRoll.hpp"
@@ -179,12 +181,22 @@ template <
 		default:
 			assert(false);
 
+		case Operation::NOP:	return;
+
 		case Operation::Invalid:
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
 				throw Exception(Interrupt::InvalidOpcode);
 			}
+		return;
+
 		case Operation::ESC:
-		case Operation::NOP:	return;
+			if constexpr (!uses_8086_exceptions(ContextT::model)) {
+				const auto should_throw = context.registers.msw() & MachineStatus::EmulateProcessorExtension;
+				if(should_throw) {
+					throw Exception(Interrupt::DeviceNotAvailable);
+				}
+			}
+		return;
 
 		case Operation::AAM:
 			Primitive::aam(context.registers.axp(), uint8_t(instruction.operand()), context);

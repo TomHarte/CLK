@@ -10,7 +10,8 @@
 
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
-#include "InstructionSets/x86/Mode.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/MachineStatus.hpp"
 
 #include <utility>
 
@@ -93,13 +94,10 @@ void lmsw(
 	ContextT &context
 ) {
 	context.registers.set_msw(source);
-	if(source & 1) {
+	if(source & MachineStatus::ProtectedModeEnable) {
 		context.memory.set_mode(Mode::Protected286);
 		context.segments.set_mode(Mode::Protected286);
 	}
-
-	// TODO: all other bits. Anything?
-	assert(!(source & ~1));
 }
 
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>

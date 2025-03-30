@@ -22,7 +22,7 @@ enum Interrupt {
 	BoundRangeExceeded			= 5,
 
 	//
-	// Added by the 80286
+	// Added by the 80286.
 	//
 	InvalidOpcode				= 6,
 	DeviceNotAvailable			= 7,
@@ -35,7 +35,7 @@ enum Interrupt {
 	FloatingPointException		= 16,
 
 	//
-	// Added by the 80286
+	// Added by the 80286.
 	//
 	PageFault					= 14,
 	AlignmentCheck				= 17,
