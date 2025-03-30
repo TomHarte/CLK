@@ -28,6 +28,7 @@
 #include "InstructionSets/x86/Decoder.hpp"
 #include "InstructionSets/x86/Flags.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
+#include "InstructionSets/x86/Interrupts.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 
 #include "Components/8255/i8255.hpp"
@@ -816,10 +817,37 @@ public:
 		}
 
 		// Execute it.
-		InstructionSet::x86::perform(
-			decoded_.second,
-			context_
-		);
+		if constexpr (uses_8086_exceptions(x86_model)) {
+			InstructionSet::x86::perform(
+				decoded_.second,
+				context_
+			);
+		} else {
+			while(true) {
+				// First attempt.
+				InstructionSet::x86::Exception caught;
+				try {
+					InstructionSet::x86::perform(
+						decoded_.second,
+						context_
+					);
+					return;
+				} catch (const InstructionSet::x86::Exception e) {
+					caught = e;
+				}
+
+				printf("TODO!");
+
+				// TODO, I think:
+				//
+				//	(1) push e.code if this is an exception that has a code;
+				//	(2) if in protected mode, do _something_ with the IDT?
+				// 	(3) do the stuff of `interrupt` but possibly catch another exception.
+				//
+				//	... upon another exception: double fault.
+				//	... upon a third: reset.
+			}
+		}
 	}
 
 	// MARK: - ScanProducer.

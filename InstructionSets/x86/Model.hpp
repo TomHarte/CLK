@@ -29,6 +29,10 @@ static constexpr bool has_mode(const Model model, const Mode mode) {
 	}
 	return false;
 }
+static constexpr bool uses_8086_exceptions(const Model model) {
+	return model <= Model::i80186;
+}
+
 
 template <bool is_32bit> struct AddressT { using type = uint16_t; };
 template <> struct AddressT<true> { using type = uint32_t; };

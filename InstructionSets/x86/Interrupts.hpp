@@ -11,12 +11,19 @@
 namespace InstructionSet::x86 {
 
 enum Interrupt {
+	//
+	// Present on all devices.
+	//
 	DivideError					= 0,
 	SingleStep					= 1,
 	NMI							= 2,
 	Breakpoint					= 3,
 	Overflow					= 4,
 	BoundRangeExceeded			= 5,
+
+	//
+	// Added by the 80286
+	//
 	InvalidOpcode				= 6,
 	DeviceNotAvailable			= 7,
 	DoubleFault					= 8,
@@ -25,25 +32,49 @@ enum Interrupt {
 	SegmentNotPresent			= 11,
 	StackSegmentFault			= 12,
 	GeneralProtectionFault		= 13,
-	PageFault					= 14,
-	/* 15 is reserved */
 	FloatingPointException		= 16,
+
+	//
+	// Added by the 80286
+	//
+	PageFault					= 14,
 	AlignmentCheck				= 17,
 	MachineCheck				= 18,
 
 };
 
-struct ProtectedException {
-	Interrupt cause;
-	uint16_t code;
+struct Code {
+	uint16_t value = 0;
 
-	// Code:
-	//	b3–b15: IDT/GDT/LDT entry
-	//	b2: 1 => in LDT; 0 => in GDT;
-	//	b1: 1 => in IDT, ignore b2; 0 => use b2;
-	//	b0:
-	//		1 => trigger was external to program code;
-	//		0 => trigger was caused by the instruction described by the CS:IP that is on the stack.
+	Code() = default;
+	Code(
+		const uint16_t index,
+		const bool is_local,
+		const bool is_interrupt,
+		const bool was_external) noexcept :
+			value(
+				index |
+				(is_local ? 0x4 : 0x0) |
+				(is_interrupt ? 0x2 : 0x0) |
+				(was_external ? 0x1 : 0x0)
+			) {}
+
+		// i.e.:
+		//	b3–b15: IDT/GDT/LDT entry
+		//	b2: 1 => in LDT; 0 => in GDT;
+		//	b1: 1 => in IDT, ignore b2; 0 => use b2;
+		//	b0:
+		//		1 => trigger was external to program code;
+		//		0 => trigger was caused by the instruction described by the CS:IP that is on the stack.
+};
+
+struct Exception {
+	Interrupt cause;
+	Code code;
+
+	Exception() = default;
+	constexpr Exception(const Interrupt cause) noexcept : cause(cause) {}
+	constexpr Exception(const Interrupt cause, const Code code) noexcept : cause(cause), code(code) {}
 };
 
 }
