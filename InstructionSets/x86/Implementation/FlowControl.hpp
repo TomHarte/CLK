@@ -236,7 +236,11 @@ void into(
 	ContextT &context
 ) {
 	if(context.flags.template flag<Flag::Overflow>()) {
-		interrupt(Interrupt::Overflow, context);
+		if constexpr (uses_8086_exceptions(ContextT::model)) {
+			interrupt(Interrupt::Overflow, context);
+		} else {
+			throw Exception(Interrupt::Overflow);
+		}
 	}
 }
 

@@ -175,7 +175,6 @@ void divide_error(ContextT &context) {
 	// additional context (primarily: IP of this instruction, not the next).
 	if constexpr (uses_8086_exceptions(ContextT::model)) {
 		interrupt(Interrupt::DivideError, context);
-		return;
 	} else {
 		throw Exception(Interrupt::DivideError);
 	}

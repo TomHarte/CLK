@@ -67,6 +67,18 @@ constexpr bool has_error_code(const Interrupt interrupt) {
 	}
 }
 
+constexpr bool posts_next_instruction_ip(const Interrupt interrupt) {
+	switch(interrupt) {
+		default:
+			return false;
+
+		case Interrupt::SingleStep:
+		case Interrupt::Breakpoint:
+		case Interrupt::Overflow:
+			return false;
+	}
+}
+
 struct Code {
 	uint16_t value = 0;
 
