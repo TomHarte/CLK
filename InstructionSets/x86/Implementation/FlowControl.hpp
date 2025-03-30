@@ -257,7 +257,11 @@ void bound(
 		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, IntT(source + 2)));
 
 	if(sIntT(destination) < lower_bound || sIntT(destination) > upper_bound) {
-		interrupt(Interrupt::BoundRangeExceeded, context);
+		if constexpr (uses_8086_exceptions(ContextT::model)) {
+			interrupt(Interrupt::BoundRangeExceeded, context);
+		} else {
+			throw Exception(Interrupt::BoundRangeExceeded);
+		}
 	}
 }
 
