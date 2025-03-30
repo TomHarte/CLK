@@ -40,8 +40,32 @@ enum Interrupt {
 	PageFault					= 14,
 	AlignmentCheck				= 17,
 	MachineCheck				= 18,
-
 };
+
+constexpr bool has_error_code(const Interrupt interrupt) {
+	switch(interrupt) {
+		default:	assert(false);	// 386 exceptions; I don't know yet.
+
+		case Interrupt::DivideError:
+		case Interrupt::SingleStep:
+		case Interrupt::NMI:
+		case Interrupt::Breakpoint:
+		case Interrupt::Overflow:
+		case Interrupt::BoundRangeExceeded:
+		case Interrupt::InvalidOpcode:
+		case Interrupt::DeviceNotAvailable:
+		case Interrupt::CoprocessorSegmentOverrun:
+		case Interrupt::FloatingPointException:
+			return false;
+
+		case Interrupt::DoubleFault:
+		case Interrupt::InvalidTSS:
+		case Interrupt::SegmentNotPresent:
+		case Interrupt::StackSegmentFault:
+		case Interrupt::GeneralProtectionFault:
+			return true;
+	}
+}
 
 struct Code {
 	uint16_t value = 0;

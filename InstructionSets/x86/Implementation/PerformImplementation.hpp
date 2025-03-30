@@ -180,7 +180,9 @@ template <
 			assert(false);
 
 		case Operation::Invalid:
-			// TODO: throw on higher-order processors.
+			if constexpr (!uses_8086_exceptions(ContextT::model)) {
+				throw Exception(Interrupt::InvalidOpcode);
+			}
 		case Operation::ESC:
 		case Operation::NOP:	return;
 
