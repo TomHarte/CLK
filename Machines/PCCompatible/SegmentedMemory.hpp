@@ -124,7 +124,8 @@ private:
 };
 
 template <>
-struct SegmentedMemory<InstructionSet::x86::Model::i80286> {
+class SegmentedMemory<InstructionSet::x86::Model::i80286> {
+public:
 	static constexpr auto model = InstructionSet::x86::Model::i80286;
 	using Mode = InstructionSet::x86::Mode;
 	using AccessType = InstructionSet::x86::AccessType;
