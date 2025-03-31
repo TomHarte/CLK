@@ -13,7 +13,6 @@
 #include "BCD.hpp"
 #include "FlowControl.hpp"
 #include "InOut.hpp"
-#include "Interrupts.hpp"
 #include "LoadStore.hpp"
 #include "Logical.hpp"
 #include "MachineStatus.hpp"
