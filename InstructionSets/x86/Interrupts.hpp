@@ -10,7 +10,7 @@
 
 namespace InstructionSet::x86 {
 
-enum Interrupt {
+enum Interrupt: uint8_t {
 	//
 	// Present on all devices.
 	//
@@ -67,7 +67,7 @@ constexpr bool has_error_code(const Interrupt interrupt) {
 	}
 }
 
-constexpr bool posts_next_instruction_ip(const Interrupt interrupt) {
+constexpr bool posts_next_ip(const Interrupt interrupt) {
 	switch(interrupt) {
 		default:
 			return false;
@@ -79,16 +79,14 @@ constexpr bool posts_next_instruction_ip(const Interrupt interrupt) {
 	}
 }
 
-struct Code {
-	uint16_t value = 0;
-
-	Code() = default;
-	Code(
+struct ExceptionCode {
+	ExceptionCode() = default;
+	ExceptionCode(
 		const uint16_t index,
 		const bool is_local,
 		const bool is_interrupt,
 		const bool was_external) noexcept :
-			value(
+			value_(
 				index |
 				(is_local ? 0x4 : 0x0) |
 				(is_interrupt ? 0x2 : 0x0) |
@@ -102,15 +100,22 @@ struct Code {
 		//	b0:
 		//		1 => trigger was external to program code;
 		//		0 => trigger was caused by the instruction described by the CS:IP that is on the stack.
+
+	operator uint16_t() const {
+		return value_;
+	}
+
+private:
+	uint16_t value_ = 0;
 };
 
 struct Exception {
 	Interrupt cause;
-	Code code;
+	ExceptionCode code;
 
 	Exception() = default;
 	constexpr Exception(const Interrupt cause) noexcept : cause(cause) {}
-	constexpr Exception(const Interrupt cause, const Code code) noexcept : cause(cause), code(code) {}
+	constexpr Exception(const Interrupt cause, const ExceptionCode code) noexcept : cause(cause), code(code) {}
 };
 
 }

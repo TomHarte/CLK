@@ -71,6 +71,11 @@ public:
 
 					const Descriptor incoming(entry);
 
+//					switch(segment) {
+//						case Source::CS:
+//						break;
+//					}
+
 					// TODO: is this descriptor privilege within reach?
 					// TODO: is this an empty descriptor*? If so: exception!
 					// (* other than the 0 descriptor, which can be loaded to DS or ES)

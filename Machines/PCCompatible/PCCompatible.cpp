@@ -823,31 +823,31 @@ public:
 				context_
 			);
 		} else {
-			while(true) {
-				// First attempt.
-				InstructionSet::x86::Exception caught;
-				try {
-					InstructionSet::x86::perform(
-						decoded_.second,
-						context_
-					);
-					return;
-				} catch (const InstructionSet::x86::Exception e) {
-					caught = e;
-				}
-
-				printf("TODO!");
-
-				// TODO, I think:
-				//
-				//	(1) push e.code if this is an exception that has a code;
-				//	(2) if in protected mode, do _something_ with the IDT?
-				// 	(3) do the stuff of `interrupt` but possibly catch another exception.
-				//
-				//	... upon another exception: double fault.
-				//	... upon a third: reset.
+			try {
+				InstructionSet::x86::perform(
+					decoded_.second,
+					context_
+				);
+				return;
+			} catch (const InstructionSet::x86::Exception exception) {
+				perform_fault(exception);
 			}
 		}
+	}
+
+	void perform_fault(const InstructionSet::x86::Exception exception) {
+		assert(uses_8086_exceptions(x86_model));
+
+		(void)exception;
+		printf("TODO!");
+		// TODO, I think:
+		//
+		//	(1) push e.code if this is an exception that has a code;
+		//	(2) if in protected mode, do _something_ with the IDT?
+		// 	(3) do the stuff of `InstructionSet::x86::interrupt` but possibly catch another exception.
+		//
+		//	... upon another exception: double fault.
+		//	... upon a third: reset.
 	}
 
 	// MARK: - ScanProducer.

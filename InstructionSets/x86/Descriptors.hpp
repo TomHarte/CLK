@@ -39,10 +39,14 @@ struct Descriptor {
 
 			if(executable_) {
 				conforming_ = descriptor[2] & 0x400;
+
 				readable_ = descriptor[2] & 0x200;
+				writeable_ = true;
 			} else {
 				// expand down = descriptor[2] & 0x400;
-				// writeable_ = descriptor[2] & 0x200;
+
+				writeable_ = descriptor[2] & 0x200;
+				readable_ = true;
 			}
 		} else {
 			assert(false);
@@ -54,6 +58,7 @@ struct Descriptor {
 		limit_ = 0xffff;
 
 		present_ = true;
+		readable_ = writeable_ = true;
 	}
 
 	uint32_t to_linear(const uint32_t address) const {
@@ -65,6 +70,9 @@ struct Descriptor {
 	int privilege_level() const {
 		return privilege_level_;
 	}
+
+	bool readable() const 	{	return readable_;	}
+	bool writeable() const	{	return writeable_;	}
 
 private:
 	uint32_t base_;
@@ -87,6 +95,7 @@ private:
 
 	bool present_;
 	bool readable_;
+	bool writeable_;
 	bool conforming_;
 	bool executable_;
 };
