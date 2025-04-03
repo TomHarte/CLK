@@ -194,6 +194,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 					displacement(Operation::JP, DataSize::Byte);
 				} else {
 					immediate(Operation::PUSH, DataSize::Byte);
+					operation_size_ = data_size_;
 				}
 			break;
 			case 0x6b:
