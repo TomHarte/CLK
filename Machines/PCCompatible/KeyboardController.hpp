@@ -169,8 +169,7 @@ public:
 		}
 	}
 
-	template <typename IntT>
-	IntT read(const uint16_t port) {
+	uint8_t read(const uint16_t port) {
 		switch(port) {
 			default:
 //				log_.error().append("Unimplemented AT keyboard read from %04x", port);
@@ -209,7 +208,7 @@ public:
 				return status;
 			}
 		}
-		return IntT(~0);
+		return 0xff;
 	}
 
 	void set_cpu_control(CPUControl<model> *const control) {

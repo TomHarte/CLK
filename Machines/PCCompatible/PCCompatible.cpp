@@ -204,15 +204,20 @@ public:
 	) :
 		pit_(pit), dma_(dma), ppi_(ppi), pics_(pics), video_(card), fdc_(fdc), keyboard_(keyboard), rtc_(rtc) {}
 
-	template <typename IntT> void out(const uint16_t port, const IntT value) {
-		static const auto log_unhandled = [](const uint16_t port, const IntT value) {
-			if constexpr (std::is_same_v<IntT, uint8_t>) {
-				log.error().append("Unhandled out: %02x to %04x", value, port);
-			} else {
-				log.error().append("Unhandled out: %04x to %04x", value, port);
-			}
+	template <typename IntT> void out(uint16_t, IntT);
+
+	template <>
+	void out<uint16_t>(const uint16_t port, const uint16_t value) {
+		out<uint8_t>(port, uint8_t(value));
+		out<uint8_t>(port + 1, uint8_t(value >> 8));
+	}
+
+	template <>
+	void out<uint8_t>(const uint16_t port, const uint8_t value) {
+		static constexpr auto log_unhandled = [](const uint16_t port, const uint8_t value) {
+			log.error().append("Unhandled out: %02x to %04x", value, port);
 		};
-		static const auto require_at = [](const uint16_t port, const IntT value) {
+		static constexpr auto require_at = [](const uint16_t port, const uint8_t value) {
 			if constexpr (is_at(model)) {
 				return true;
 			}
@@ -226,130 +231,120 @@ public:
 		switch(port) {
 			default:		log_unhandled(port, value);		break;
 
-			case 0x0070:	rtc_.write<0>(uint8_t(value));	break;
-			case 0x0071:	rtc_.write<1>(uint8_t(value));	break;
+			case 0x0070:	rtc_.write<0>(value);	break;
+			case 0x0071:	rtc_.write<1>(value);	break;
 
 
 			case 0x00f1:
 				log.error().append("TODO: coprocessor reset");
 			break;
 
-			case 0x0000:	dma_.controllers[0].template write<0x0>(uint8_t(value));	break;
-			case 0x0001:	dma_.controllers[0].template write<0x1>(uint8_t(value));	break;
-			case 0x0002:	dma_.controllers[0].template write<0x2>(uint8_t(value));	break;
-			case 0x0003:	dma_.controllers[0].template write<0x3>(uint8_t(value));	break;
-			case 0x0004:	dma_.controllers[0].template write<0x4>(uint8_t(value));	break;
-			case 0x0005:	dma_.controllers[0].template write<0x5>(uint8_t(value));	break;
-			case 0x0006:	dma_.controllers[0].template write<0x6>(uint8_t(value));	break;
-			case 0x0007:	dma_.controllers[0].template write<0x7>(uint8_t(value));	break;
-			case 0x0008:	dma_.controllers[0].template write<0x8>(uint8_t(value));	break;
-			case 0x0009:	dma_.controllers[0].template write<0x9>(uint8_t(value));	break;
-			case 0x000a:	dma_.controllers[0].template write<0xa>(uint8_t(value));	break;
-			case 0x000b:	dma_.controllers[0].template write<0xb>(uint8_t(value));	break;
-			case 0x000c:	dma_.controllers[0].template write<0xc>(uint8_t(value));	break;
-			case 0x000d:	dma_.controllers[0].template write<0xd>(uint8_t(value));	break;
-			case 0x000e:	dma_.controllers[0].template write<0xe>(uint8_t(value));	break;
-			case 0x000f:	dma_.controllers[0].template write<0xf>(uint8_t(value));	break;
+			case 0x0000:	dma_.controllers[0].template write<0x0>(value);	break;
+			case 0x0001:	dma_.controllers[0].template write<0x1>(value);	break;
+			case 0x0002:	dma_.controllers[0].template write<0x2>(value);	break;
+			case 0x0003:	dma_.controllers[0].template write<0x3>(value);	break;
+			case 0x0004:	dma_.controllers[0].template write<0x4>(value);	break;
+			case 0x0005:	dma_.controllers[0].template write<0x5>(value);	break;
+			case 0x0006:	dma_.controllers[0].template write<0x6>(value);	break;
+			case 0x0007:	dma_.controllers[0].template write<0x7>(value);	break;
+			case 0x0008:	dma_.controllers[0].template write<0x8>(value);	break;
+			case 0x0009:	dma_.controllers[0].template write<0x9>(value);	break;
+			case 0x000a:	dma_.controllers[0].template write<0xa>(value);	break;
+			case 0x000b:	dma_.controllers[0].template write<0xb>(value);	break;
+			case 0x000c:	dma_.controllers[0].template write<0xc>(value);	break;
+			case 0x000d:	dma_.controllers[0].template write<0xd>(value);	break;
+			case 0x000e:	dma_.controllers[0].template write<0xe>(value);	break;
+			case 0x000f:	dma_.controllers[0].template write<0xf>(value);	break;
 
-			case 0x00c0:	if(require_at(port, value)) dma_.controllers[1].template write<0x0>(uint8_t(value));	break;
-			case 0x00c2:	if(require_at(port, value)) dma_.controllers[1].template write<0x1>(uint8_t(value));	break;
-			case 0x00c4:	if(require_at(port, value)) dma_.controllers[1].template write<0x2>(uint8_t(value));	break;
-			case 0x00c6:	if(require_at(port, value)) dma_.controllers[1].template write<0x3>(uint8_t(value));	break;
-			case 0x00c8:	if(require_at(port, value)) dma_.controllers[1].template write<0x4>(uint8_t(value));	break;
-			case 0x00ca:	if(require_at(port, value)) dma_.controllers[1].template write<0x5>(uint8_t(value));	break;
-			case 0x00cc:	if(require_at(port, value)) dma_.controllers[1].template write<0x6>(uint8_t(value));	break;
-			case 0x00ce:	if(require_at(port, value)) dma_.controllers[1].template write<0x7>(uint8_t(value));	break;
-			case 0x00d0:	if(require_at(port, value)) dma_.controllers[1].template write<0x8>(uint8_t(value));	break;
-			case 0x00d2:	if(require_at(port, value)) dma_.controllers[1].template write<0x9>(uint8_t(value));	break;
-			case 0x00d4:	if(require_at(port, value)) dma_.controllers[1].template write<0xa>(uint8_t(value));	break;
-			case 0x00d6:	if(require_at(port, value)) dma_.controllers[1].template write<0xb>(uint8_t(value));	break;
-			case 0x00d8:	if(require_at(port, value)) dma_.controllers[1].template write<0xc>(uint8_t(value));	break;
-			case 0x00da:	if(require_at(port, value)) dma_.controllers[1].template write<0xd>(uint8_t(value));	break;
-			case 0x00dc:	if(require_at(port, value)) dma_.controllers[1].template write<0xe>(uint8_t(value));	break;
-			case 0x00de:	if(require_at(port, value)) dma_.controllers[1].template write<0xf>(uint8_t(value));	break;
+			case 0x00c0:	if(require_at(port, value)) dma_.controllers[1].template write<0x0>(value);	break;
+			case 0x00c2:	if(require_at(port, value)) dma_.controllers[1].template write<0x1>(value);	break;
+			case 0x00c4:	if(require_at(port, value)) dma_.controllers[1].template write<0x2>(value);	break;
+			case 0x00c6:	if(require_at(port, value)) dma_.controllers[1].template write<0x3>(value);	break;
+			case 0x00c8:	if(require_at(port, value)) dma_.controllers[1].template write<0x4>(value);	break;
+			case 0x00ca:	if(require_at(port, value)) dma_.controllers[1].template write<0x5>(value);	break;
+			case 0x00cc:	if(require_at(port, value)) dma_.controllers[1].template write<0x6>(value);	break;
+			case 0x00ce:	if(require_at(port, value)) dma_.controllers[1].template write<0x7>(value);	break;
+			case 0x00d0:	if(require_at(port, value)) dma_.controllers[1].template write<0x8>(value);	break;
+			case 0x00d2:	if(require_at(port, value)) dma_.controllers[1].template write<0x9>(value);	break;
+			case 0x00d4:	if(require_at(port, value)) dma_.controllers[1].template write<0xa>(value);	break;
+			case 0x00d6:	if(require_at(port, value)) dma_.controllers[1].template write<0xb>(value);	break;
+			case 0x00d8:	if(require_at(port, value)) dma_.controllers[1].template write<0xc>(value);	break;
+			case 0x00da:	if(require_at(port, value)) dma_.controllers[1].template write<0xd>(value);	break;
+			case 0x00dc:	if(require_at(port, value)) dma_.controllers[1].template write<0xe>(value);	break;
+			case 0x00de:	if(require_at(port, value)) dma_.controllers[1].template write<0xf>(value);	break;
 
-			case 0x0020:	pics_.pic[0].template write<0>(uint8_t(value));	break;
-			case 0x0021:	pics_.pic[0].template write<1>(uint8_t(value));	break;
+			case 0x0020:	pics_.pic[0].template write<0>(value);	break;
+			case 0x0021:	pics_.pic[0].template write<1>(value);	break;
 
 			case 0x00a0:
 				if constexpr (is_xt(model)) {
 					// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
 					log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
 				} else {
-					pics_.pic[1].template write<0>(uint8_t(value));
+					pics_.pic[1].template write<0>(value);
 				}
 			break;
 			case 0x00a1:
 				if(require_at(port, value)) pics_.pic[1].template write<1>(uint8_t(value));
 			break;
 
-			case 0x0040:	pit_.template write<0>(uint8_t(value));	break;
-			case 0x0041:	pit_.template write<1>(uint8_t(value));	break;
-			case 0x0042:	pit_.template write<2>(uint8_t(value));	break;
-			case 0x0043:	pit_.set_mode(uint8_t(value));			break;
+			case 0x0040:	pit_.template write<0>(value);	break;
+			case 0x0041:	pit_.template write<1>(value);	break;
+			case 0x0042:	pit_.template write<2>(value);	break;
+			case 0x0043:	pit_.set_mode(value);			break;
 
 			case 0x0060:	case 0x0061:	case 0x0062:	case 0x0063:
 			case 0x0064:	case 0x0065:	case 0x0066:	case 0x0067:
 			case 0x0068:	case 0x0069:	case 0x006a:	case 0x006b:
 			case 0x006c:	case 0x006d:	case 0x006e:	case 0x006f:
 				if constexpr (is_xt(model)) {
-					ppi_.write(port, uint8_t(value));
+					ppi_.write(port, value);
 				} else {
-					keyboard_.write(port, uint8_t(value));
+					keyboard_.write(port, value);
 				}
 			break;
 
-			case 0x0080:	dma_.pages.template set_page<0>(uint8_t(value));	break;
-			case 0x0081:	dma_.pages.template set_page<1>(uint8_t(value));	break;
-			case 0x0082:	dma_.pages.template set_page<2>(uint8_t(value));	break;
-			case 0x0083:	dma_.pages.template set_page<3>(uint8_t(value));	break;
-			case 0x0084:	dma_.pages.template set_page<4>(uint8_t(value));	break;
-			case 0x0085:	dma_.pages.template set_page<5>(uint8_t(value));	break;
-			case 0x0086:	dma_.pages.template set_page<6>(uint8_t(value));	break;
-			case 0x0087:	dma_.pages.template set_page<7>(uint8_t(value));	break;
+			case 0x0080:	dma_.pages.template set_page<0>(value);	break;
+			case 0x0081:	dma_.pages.template set_page<1>(value);	break;
+			case 0x0082:	dma_.pages.template set_page<2>(value);	break;
+			case 0x0083:	dma_.pages.template set_page<3>(value);	break;
+			case 0x0084:	dma_.pages.template set_page<4>(value);	break;
+			case 0x0085:	dma_.pages.template set_page<5>(value);	break;
+			case 0x0086:	dma_.pages.template set_page<6>(value);	break;
+			case 0x0087:	dma_.pages.template set_page<7>(value);	break;
 
-			case 0x0088:	if(require_at(port, value))	dma_.pages.template set_page<0x8>(uint8_t(value));	break;
-			case 0x0089:	if(require_at(port, value))	dma_.pages.template set_page<0x9>(uint8_t(value));	break;
-			case 0x008a:	if(require_at(port, value))	dma_.pages.template set_page<0xa>(uint8_t(value));	break;
-			case 0x008b:	if(require_at(port, value))	dma_.pages.template set_page<0xb>(uint8_t(value));	break;
-			case 0x008c:	if(require_at(port, value))	dma_.pages.template set_page<0xc>(uint8_t(value));	break;
-			case 0x008d:	if(require_at(port, value))	dma_.pages.template set_page<0xd>(uint8_t(value));	break;
-			case 0x008e:	if(require_at(port, value))	dma_.pages.template set_page<0xe>(uint8_t(value));	break;
-			case 0x008f:	if(require_at(port, value))	dma_.pages.template set_page<0xf>(uint8_t(value));	break;
+			case 0x0088:	if(require_at(port, value))	dma_.pages.template set_page<0x8>(value);	break;
+			case 0x0089:	if(require_at(port, value))	dma_.pages.template set_page<0x9>(value);	break;
+			case 0x008a:	if(require_at(port, value))	dma_.pages.template set_page<0xa>(value);	break;
+			case 0x008b:	if(require_at(port, value))	dma_.pages.template set_page<0xb>(value);	break;
+			case 0x008c:	if(require_at(port, value))	dma_.pages.template set_page<0xc>(value);	break;
+			case 0x008d:	if(require_at(port, value))	dma_.pages.template set_page<0xd>(value);	break;
+			case 0x008e:	if(require_at(port, value))	dma_.pages.template set_page<0xe>(value);	break;
+			case 0x008f:	if(require_at(port, value))	dma_.pages.template set_page<0xf>(value);	break;
 
 			//
 			// CRTC access block, with slightly laboured 16-bit to 8-bit mapping.
 			//
 			case crtc_base + 0:		case crtc_base + 2:
 			case crtc_base + 4:		case crtc_base + 6:
-				if constexpr (std::is_same_v<IntT, uint16_t>) {
-					video_.template write<0>(uint8_t(value));
-					video_.template write<1>(uint8_t(value >> 8));
-				} else {
-					video_.template write<0>(value);
-				}
+				video_.template write<0>(value);
 			break;
 			case crtc_base + 1:		case crtc_base + 3:
 			case crtc_base + 5:		case crtc_base + 7:
-				if constexpr (std::is_same_v<IntT, uint16_t>) {
-					video_.template write<1>(uint8_t(value));
-					video_.template write<0>(uint8_t(value >> 8));
-				} else {
-					video_.template write<1>(value);
-				}
+				video_.template write<1>(value);
 			break;
 
-			case crtc_base + 0x8:	video_.template write<0x8>(uint8_t(value));	break;
-			case crtc_base + 0x9:	video_.template write<0x9>(uint8_t(value));	break;
+			case crtc_base + 0x8:	video_.template write<0x8>(value);	break;
+			case crtc_base + 0x9:	video_.template write<0x9>(value);	break;
 
 			case 0x03f2:
-				fdc_.set_digital_output(uint8_t(value));
+				fdc_.set_digital_output(value);
 			break;
 			case 0x03f4:
 				log.error().append("TODO: FDC write of %02x at %04x", value, port);
 			break;
 			case 0x03f5:
-				fdc_.write(uint8_t(value));
+				fdc_.write(value);
 			break;
 
 			case 0x0278:	case 0x0279:	case 0x027a:
@@ -370,11 +365,20 @@ public:
 			break;
 		}
 	}
-	template <typename IntT> IntT in(const uint16_t port) {
-		static const auto log_unhandled = [](const uint16_t port) {
-			log.error().append("Unhandled in of %d bytes: %04x", sizeof(IntT), port);
+
+	template <typename IntT> IntT in(uint16_t);
+
+	template<>
+	uint16_t in<uint16_t>(const uint16_t port) {
+		return in<uint8_t>(port) | (in<uint8_t>(port + 1) << 8);
+	}
+
+	template<>
+	uint8_t in<uint8_t>(const uint16_t port) {
+		static constexpr auto log_unhandled = [](const uint16_t port) {
+			log.error().append("Unhandled in: %04x", port);
 		};
-		static const auto require_at = [](const uint16_t port) {
+		static constexpr auto require_at = [](const uint16_t port) {
 			if constexpr (is_at(model)) {
 				return true;
 			}
@@ -428,7 +432,7 @@ public:
 				if constexpr (is_xt(model)) {
 					return ppi_.read(port);
 				} else {
-					return keyboard_.template read<IntT>(port);
+					return keyboard_.read(port);
 				}
 			break;
 
