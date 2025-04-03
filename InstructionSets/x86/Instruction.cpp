@@ -264,6 +264,9 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 				return "bound";
 			}
 
+		case Operation::LMSW:	return "lmsw";
+		case Operation::SMSW:	return "smsw";
+
 		case Operation::Invalid:	return "invalid";
 
 		default:
