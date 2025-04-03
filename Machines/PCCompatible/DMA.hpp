@@ -250,6 +250,10 @@ public:
 		pages_[page_for_index(index)] = value;
 		if(index == 0x00) {
 			log_.info().append("%02x", value);
+
+			if(value == 0x1b) {
+				printf("");
+			}
 		}
 	}
 

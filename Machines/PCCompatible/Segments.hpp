@@ -69,6 +69,7 @@ public:
 						memory_.template access<uint16_t, AccessType::Read>(table_address + 6, table_end)
 					};
 
+					printf("%s [%04x -> %08x]: ", InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::Word).c_str(), value, table_address);
 					const Descriptor incoming(entry);
 
 //					switch(segment) {

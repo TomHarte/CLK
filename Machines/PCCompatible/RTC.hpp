@@ -118,6 +118,7 @@ private:
 			default:
 				if(ram_selected()) {
 					ram_[ram_address()] = value;
+					printf("RTC: %02x -> %zu\n", value, ram_address());
 				}
 			break;
 			case 0x0a:	statusA_ = value;	break;
