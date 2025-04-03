@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/MachineStatus.hpp"
 #include "InstructionSets/x86/Model.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
@@ -94,7 +95,9 @@ public:
 
 	uint16_t msw() const {	return machine_status_;	}
 	void set_msw(const uint16_t msw) {
-		machine_status_ = msw;
+		machine_status_ =
+			(machine_status_ & InstructionSet::x86::MachineStatus::ProtectedModeEnable) |
+			msw;
 	}
 
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
