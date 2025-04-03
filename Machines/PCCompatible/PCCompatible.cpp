@@ -740,10 +740,7 @@ public:
 
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
-				InstructionSet::x86::interrupt(
-					pics_.pic[0].acknowledge(),
-					context_
-				);
+				perform_fault({pics_.pic[0].acknowledge()});
 			}
 
 			// Do nothing if currently halted.
@@ -794,7 +791,8 @@ public:
 //		if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
 		if(should_log) {
 			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
-//			if(next != previous) {
+			static std::string previous;
+			if(next != previous) {
 				std::cout << std::hex << decoded_ip_ << " " << next;
 
 				if(decoded_.second.operation() == InstructionSet::x86::Operation::INT) {
@@ -808,8 +806,8 @@ public:
 				}
 
 				std::cout << std::endl;
-//				previous = next;
-//			}
+				previous = next;
+			}
 		}
 
 		if(decoded_.second.operation() == InstructionSet::x86::Operation::Invalid) {
@@ -836,18 +834,51 @@ public:
 	}
 
 	void perform_fault(const InstructionSet::x86::Exception exception) {
-		assert(uses_8086_exceptions(x86_model));
+		if constexpr (uses_8086_exceptions(x86_model)) {
+			perform_real_interrupt(exception.cause);
+		} else {
+			using Interrupt = InstructionSet::x86::Interrupt;
 
+			// Regress the IP if this is an exception that posts the instruction's IP.
+			if(!posts_next_ip(Interrupt(exception.cause))) {
+				context_.registers.ip() = decoded_ip_;
+			}
+
+			if(!context_.registers.msw() & InstructionSet::x86::MachineStatus::ProtectedModeEnable) {
+				perform_real_interrupt(exception.cause);
+				return;
+			}
+
+			try {
+				printf("TODO!");
+				// TODO, I think:
+				//
+				//	(1) push e.code if this is an exception that has a code;
+				//	(2) if in protected mode, do _something_ with the IDT?
+				// 	(3) do the stuff of `InstructionSet::x86::interrupt` but possibly catch another exception.
+				//
+				//	... upon another exception: double fault.
+				//	... upon a third: reset.
+			} catch (const InstructionSet::x86::Exception exception) {
+				perform_double_fault(exception);
+			}
+		}
+	}
+
+	void perform_real_interrupt(const uint8_t code) {
+		try {
+			InstructionSet::x86::interrupt(
+				code,
+				context_
+			);
+		} catch (const InstructionSet::x86::Exception exception) {
+			perform_double_fault(exception);
+		}
+	}
+
+	void perform_double_fault(const InstructionSet::x86::Exception exception) {
+		printf("DOUBLE TODO!");
 		(void)exception;
-		printf("TODO!");
-		// TODO, I think:
-		//
-		//	(1) push e.code if this is an exception that has a code;
-		//	(2) if in protected mode, do _something_ with the IDT?
-		// 	(3) do the stuff of `InstructionSet::x86::interrupt` but possibly catch another exception.
-		//
-		//	... upon another exception: double fault.
-		//	... upon a third: reset.
 	}
 
 	// MARK: - ScanProducer.

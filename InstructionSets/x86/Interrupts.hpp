@@ -110,11 +110,13 @@ private:
 };
 
 struct Exception {
-	Interrupt cause;
+	uint8_t cause;
+	bool internal = true;
 	ExceptionCode code;
 
 	Exception() = default;
 	constexpr Exception(const Interrupt cause) noexcept : cause(cause) {}
+	constexpr Exception(const uint8_t external_cause) noexcept : cause(external_cause), internal(false) {}
 	constexpr Exception(const Interrupt cause, const ExceptionCode code) noexcept : cause(cause), code(code) {}
 };
 
