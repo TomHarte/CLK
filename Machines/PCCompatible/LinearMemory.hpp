@@ -212,7 +212,7 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 template <>
 struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 24> {
 	LinearMemory() {
-		set_a20_enabled(false);
+		set_a20_enabled(true);
 	}
 
 	// A20 is the only thing that can cause split accesses on an 80286.

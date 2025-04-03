@@ -982,7 +982,7 @@ private:
 			segments(registers, linear_memory),
 			memory(registers, segments, linear_memory),
 			flow_controller(registers, segments),
-			cpu_control(registers, segments, linear_memory),
+			cpu_control(registers, segments, memory, linear_memory),
 			io(pit, dma, ppi, pics, card, fdc, keyboard, rtc)
 		{
 			keyboard.set_cpu_control(&cpu_control);

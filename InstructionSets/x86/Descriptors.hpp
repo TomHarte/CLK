@@ -25,10 +25,12 @@ struct Descriptor {
 	Descriptor() = default;
 
 	Descriptor(const uint16_t descriptor[4]) noexcept {
+		printf("%04x %04x %04x %04x", descriptor[0], descriptor[1], descriptor[2], descriptor[3]);
+
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		limit_ = descriptor[0];
 
-		printf("%04x %04x %04x %04x\n", descriptor[0], descriptor[1], descriptor[2], descriptor[3]);
+		printf(" -> %04x -> +%04x\n", base_, limit_);
 
 		present_ = descriptor[2] & 0x8000;
 		privilege_level_ = (descriptor[2] >> 13) & 3;
