@@ -251,7 +251,7 @@ public:
 		if(index == 0x00) {
 			log_.info().append("%02x", value);
 
-			if(value == 0x1d) {
+			if(value == 0x2b) {
 				printf("");
 			}
 		}

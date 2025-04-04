@@ -42,7 +42,7 @@ public:
 
 	void set_a20_enabled(const bool enabled) {
 		// Assumed: this'll be something to set on Memory.
-		log_.info().append("A20 line is now: ", enabled);
+		log_.info().append("A20 line is now: %d", enabled);
 		linear_memory_.set_a20_enabled(enabled);
 	}
 

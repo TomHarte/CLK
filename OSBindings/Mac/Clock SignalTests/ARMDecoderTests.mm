@@ -465,9 +465,9 @@ struct MemoryLedger {
 				// Execute test and compare.
 				++test_count;
 
-				if(opcode == 0xe1a0ae2f && test_count == 2) {
-					printf("");
-				}
+//				if(opcode == 0xe1a0ae2f && test_count == 2) {
+//					printf("");
+//				}
 
 				execute(opcode, *test);
 				NSMutableString *error = nil;

@@ -218,6 +218,11 @@ private:
 					counter = reload;
 				break;
 
+				case OperatingMode::InterruptOnTerminalCount:
+				case OperatingMode::HardwareRetriggerableOneShot:
+					set_output<channel>(observer, false);
+				break;
+
 				case OperatingMode::SquareWaveGenerator:
 					counter = reload & ~1;
 				break;
