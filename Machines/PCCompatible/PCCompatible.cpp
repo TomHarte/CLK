@@ -743,7 +743,7 @@ public:
 
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
-				perform_fault({pics_.pic[0].acknowledge()});
+				perform_fault(pics_.pic[0].acknowledge());
 			}
 
 			// Do nothing if currently halted.
@@ -770,6 +770,7 @@ public:
 		}
 	}
 
+	bool should_log = false;
 	void perform_instruction() {
 		// Get the next thing to execute.
 		if(!context_.flow_controller.should_repeat()) {
@@ -790,7 +791,6 @@ public:
 			context_.flow_controller.begin_instruction();
 		}
 
-		static bool should_log = false;
 //		if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
 		if(should_log) {
 			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
@@ -843,7 +843,7 @@ public:
 			using Interrupt = InstructionSet::x86::Interrupt;
 
 			// Regress the IP if this is an exception that posts the instruction's IP.
-			if(!posts_next_ip(Interrupt(exception.cause))) {
+			if(exception.internal && !posts_next_ip(Interrupt(exception.cause))) {
 				context_.registers.ip() = decoded_ip_;
 			}
 
@@ -869,6 +869,8 @@ public:
 	}
 
 	void perform_real_interrupt(const uint8_t code) {
+		printf("From %04x\n", decoded_ip_);
+//		should_log = true;
 		try {
 			InstructionSet::x86::interrupt(
 				code,
