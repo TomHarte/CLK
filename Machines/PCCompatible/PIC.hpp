@@ -127,7 +127,7 @@ public:
 
 	bool pending() const {
 		// Per the OSDev Wiki, masking is applied after the fact.
-		return !awaiting_eoi_ && (requests_ & ~mask_);
+		return (requests_ & ~mask_);	// !awaiting_eoi_ && 
 	}
 
 	uint8_t acknowledge() {
