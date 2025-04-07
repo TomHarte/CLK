@@ -113,7 +113,7 @@ public:
 	InstructionSet::x86::SegmentRegisterSet<Descriptor> descriptors;
 
 	bool operator ==(const Segments &rhs) const {
-		return descriptors == rhs.descriptors_;
+		return descriptors == rhs.descriptors;
 	}
 
 private:
