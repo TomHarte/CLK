@@ -64,7 +64,7 @@ struct SplitHolder {
 		const uint32_t address,
 		const uint32_t base,
 		const uint32_t bytes_available,
-		uint8_t *memory
+		uint8_t *const memory
 	) {
 		if(bytes_available >= sizeof(IntT)) {
 			return *reinterpret_cast<IntT *>(&memory[address]);
@@ -107,7 +107,7 @@ struct SplitHolder {
 	}
 
 	template <typename IntT>
-	void write_back(uint8_t *memory) {
+	void write_back(uint8_t *const memory) {
 		if constexpr (std::is_same_v<IntT, uint8_t>) {
 			return;
 		}
