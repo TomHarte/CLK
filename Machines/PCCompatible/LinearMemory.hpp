@@ -93,7 +93,7 @@ struct SplitHolder {
 
 		// Seed value only if this is a modify
 		if constexpr (type == AccessType::ReadModifyWrite) {
-			auto buffer = reinterpret_cast<uint8_t *>(&write_back_value_);
+			auto buffer = reinterpret_cast<uint8_t *>(write_back_value<IntT>());
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				buffer[0] = memory[address];
 				buffer[1] = memory[base];
@@ -103,7 +103,7 @@ struct SplitHolder {
 			}
 		}
 
-		return *reinterpret_cast<IntT *>(&write_back_value_);
+		return *write_back_value<IntT>();
 	}
 
 	template <typename IntT>
@@ -116,7 +116,7 @@ struct SplitHolder {
 			return;
 		}
 
-		auto buffer = reinterpret_cast<uint8_t *>(&write_back_value_);
+		auto buffer = reinterpret_cast<const uint8_t *>(write_back_value<IntT>());
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			memory[write_back_address_[0]] = buffer[0];
 			memory[write_back_address_[1]] = buffer[1];
@@ -131,7 +131,18 @@ private:
 	static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
 	uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
 	uint32_t write_back_lead_size_;
-	uint32_t write_back_value_;
+	union {
+		uint16_t word;
+		uint32_t dword;
+	} write_back_value_;
+	template <typename IntT> IntT *write_back_value() {
+		static_assert(std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>);
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			return &write_back_value_.word;
+		} else {
+			return &write_back_value_.dword;
+		}
+	}
 };
 
 
@@ -149,18 +160,18 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 		// Bytes: always safe.
 		if constexpr (std::is_same_v<IntT, uint8_t>) {
 			return memory[address];
-		}
-
-		// Split on end of address space.
-		if(address == MaxAddress - 1) {
-			return SplitHolder::access<IntT, type>(address, base, 1, memory.data());
-		}
-
-		// Split on end of segment if this is an 8086.
-		if constexpr (model == InstructionSet::x86::Model::i8086) {
-			const uint32_t offset = address - base;
-			if(offset == 0xffff) {
+		} else {
+			// Split on end of address space.
+			if(address == MaxAddress - 1) {
 				return SplitHolder::access<IntT, type>(address, base, 1, memory.data());
+			}
+
+			// Split on end of segment if this is an 8086.
+			if constexpr (model == InstructionSet::x86::Model::i8086) {
+				const uint32_t offset = address - base;
+				if(offset == 0xffff) {
+					return SplitHolder::access<IntT, type>(address, base, 1, memory.data());
+				}
 			}
 		}
 
@@ -170,7 +181,9 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 
 	template <typename IntT>
 	void write_back() {
-		SplitHolder::write_back<IntT>(memory.data());
+		if constexpr (!std::is_same_v<IntT, uint8_t>) {
+			SplitHolder::write_back<IntT>(memory.data());
+		}
 	}
 
 	template <typename IntT>
