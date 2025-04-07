@@ -112,6 +112,10 @@ struct SegmentRegisterSet {
 		return values_[index_of(segment)];
 	}
 
+	bool operator ==(const SegmentRegisterSet<SegmentT> &rhs) const {
+		return values_ == rhs.values_;
+	}
+
 private:
 	std::array<SegmentT, 6> values_;
 	static constexpr size_t index_of(const Source segment) {
