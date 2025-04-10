@@ -31,7 +31,7 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 		const uint32_t start = descriptor.to_linear(ip) & (linear_memory.MaxAddress - 1);
 		return std::make_pair(
 			linear_memory.at(start),
-			std::min<size_t>(linear_memory.MaxAddress - start, 1 + descriptor.limit() - ip)
+			std::min<size_t>(linear_memory.MaxAddress - start, 1 + descriptor.bounds().end - ip)
 		);
 	}
 
@@ -43,7 +43,7 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 		const auto base = descriptor.base() & (linear_memory.MaxAddress - 1);
 		return std::make_pair(
 			linear_memory.at(base),
-			std::min<size_t>(0x1'0000, 1 + descriptor.limit() - base)
+			std::min<size_t>(0x1'0000, 1 + descriptor.bounds().end - base)
 		);
 	}
 

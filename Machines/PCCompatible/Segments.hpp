@@ -16,6 +16,8 @@
 #include "InstructionSets/x86/Mode.hpp"
 #include "InstructionSets/x86/Model.hpp"
 
+#include <cassert>
+
 namespace PCCompatible {
 
 template <InstructionSet::x86::Model model>
@@ -46,7 +48,8 @@ public:
 					// Check privilege level.
 					const auto requested_privilege_level = value & 3;
 					if(requested_privilege_level < descriptors[Source::CS].privilege_level()) {
-						printf("TODO: privilege exception.");
+						printf("TODO: privilege exception.\n");
+						assert(false);
 					}
 
 					// Check segment range.
@@ -57,6 +60,7 @@ public:
 					const uint32_t table_address = table.base + (value & ~7);
 					if(table_address > table.base + table.limit - 8) {
 						printf("TODO: descriptor table overrun exception.\n");
+						assert(false);
 					}
 
 					// Get descriptor contents.
@@ -72,21 +76,40 @@ public:
 //					printf("%s [%04x -> %08x]: ", InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::Word).c_str(), value, table_address);
 					const Descriptor incoming(entry);
 
-//					switch(segment) {
-//						case Source::CS:
-//						break;
-//					}
+					switch(segment) {
+						case Source::DS:
+						case Source::ES:
+							if(!incoming.code_or_data() || (incoming.executable() && !incoming.readable())) {
+								printf("TODO: throw for unreadable DS or ES source.\n");
+								assert(false);
+							}
+						break;
+
+						case Source::SS:
+							if(!incoming.code_or_data() || incoming.executable() || !incoming.writeable()) {
+								printf("TODO: throw for invalid SS target.\n");
+								assert(false);
+							}
+						break;
+
+						case Source::CS:
+							if(!incoming.code_or_data() || !incoming.executable()) {
+								// TODO: throw.
+								printf("TODO: throw for illegal CS destination.\n");
+								assert(false);
+							}
+
+							if(!incoming.code_or_data()) {
+								printf("TODO: handle jump to system descriptor of type %d\n", int(incoming.type()));
+								assert(false);
+							}
+						break;
+
+						default: break;
+					}
 
 					// TODO: is this descriptor privilege within reach?
 					// TODO: is this an empty descriptor*? If so: exception!
-					// (* other than the 0 descriptor, which can be loaded to DS or ES)
-					// TODO:
-					//	bool is_compatible(const Source reg) const {
-					//		switch(reg)
-					//			DS/ES: either readable code, or any sort of data
-					//			SS: writeable data
-					//			CS: any sort of code
-					//	}
 
 					descriptors[segment] = incoming;
 					// TODO: set descriptor accessed bit in memory if it's a segment.

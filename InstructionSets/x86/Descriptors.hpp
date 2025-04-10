@@ -21,85 +21,89 @@ struct DescriptorTablePointer {
 	uint32_t base;
 };
 
+struct DescriptorBounds {
+	uint32_t begin, end;
+};
+
 struct Descriptor {
 	Descriptor() = default;
 
+	/// Creates a new descriptor with four 16-bit from a descriptor table.
 	Descriptor(const uint16_t descriptor[4]) noexcept {
-//		printf("%04x %04x %04x %04x", descriptor[0], descriptor[1], descriptor[2], descriptor[3]);
-
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
-		limit_ = descriptor[0];
+		type_ = descriptor[2] >> 8;
 
-//		printf(" -> %04x -> +%04x\n", base_, limit_);
-
-		present_ = descriptor[2] & 0x8000;
-		privilege_level_ = (descriptor[2] >> 13) & 3;
-
-		// TODO: need to know more about the below.
-		if(descriptor[2] & 0x1000) {
-			executable_ = descriptor[2] & 0x800;
-
-			if(executable_) {
-				conforming_ = descriptor[2] & 0x400;
-
-				readable_ = descriptor[2] & 0x200;
-				writeable_ = true;
-			} else {
-				// expand down = descriptor[2] & 0x400;
-
-				writeable_ = descriptor[2] & 0x200;
-				readable_ = true;
-			}
+		offset_ = descriptor[0];
+		if(!code_or_data() || executable() || !expand_down()) {
+			bounds_ = DescriptorBounds{ 0, offset_ };
 		} else {
-			assert(false);
+			if(offset_ != std::numeric_limits<uint32_t>::max()) {
+				bounds_ = DescriptorBounds{ uint32_t(offset_ + 1), std::numeric_limits<uint32_t>::max() };
+			} else {
+				// This descriptor is impossible to satisfy for reasons that aren't
+				// properly expressed if the lower bound is incremented, so make it
+				// impossible to satisfy in a more prosaic sense.
+				bounds_ = DescriptorBounds{ 1, 0 };
+			}
 		}
 	}
 
+	/// Rewrites this descriptor as a real-mode segment.
 	void set_segment(const uint16_t segment) {
 		base_ = uint32_t(segment) << 4;
-		limit_ = 0xffff;
-
-		present_ = true;
-		readable_ = writeable_ = true;
+		bounds_ = DescriptorBounds{ 0x0000, 0xffff };
+		offset_ = 0;
+		type_ = 0b1'00'1'001'0;		// Present, privilege level 0, expand-up writeable data, unaccessed.
 	}
 
+	/// @returns The linear address for offest @c address within the segment described by this descriptor.
 	uint32_t to_linear(const uint32_t address) const {
 		return base_ + address;
 	}
+
+	/// @returns The base of this segment descriptor.
 	uint32_t base() const {		return base_;	}
-	uint32_t limit() const {	return limit_;	}
 
-	int privilege_level() const {
-		return privilege_level_;
-	}
+	/// @returns The bounds of this segment descriptor; will be either [0, limit] or [limit, INT_MAX] depending on descriptor type.
+	/// Accesses must be `>= bounds().begin` and `<= bounds().end`.
+	DescriptorBounds bounds() const {	return bounds_;	}
 
-	bool readable() const 	{	return readable_;	}
-	bool writeable() const	{	return writeable_;	}
+	bool present() const 			{	return type_ & 0x80;		}
+	int privilege_level() const		{	return (type_ >> 5) & 3;	}
+	bool code_or_data() const 		{	return type_ & 0x10;		}
 
-private:
-	uint32_t base_;
-	uint32_t limit_;
-	// TODO: permissions, type, etc.
+	// If code_or_data():
+	bool executable() const 		{	return type_ & 0x08;		}
+	bool accessed() const 			{	return type_ & 0x01;		}
 
-	int privilege_level_;
+	// If code_or_data() and not executable():
+	bool expand_down() const 		{	return type_ & 0x04;		}
+	bool writeable() const 			{	return type_ & 0x02;		}
+
+	// If code_or_data() and executable():
+	bool conforming() const 		{	return type_ & 0x04;		}
+	bool readable() const 			{	return type_ & 0x02;		}
+
+	// If not code_or_data():
 	enum class Type {
 		AvailableTaskStateSegment = 1,
 		LDTDescriptor = 2,
 		BusyTaskStateSegment = 3,
 
-		Invalid0 = 0,	Invalid8 = 8,
+		Invalid0 = 0,   Invalid8 = 8,
 
-		Control4 = 4,	Control5 = 5,	Control6 = 6,	Control7 = 7,
+		Control4 = 4,   Control5 = 5,   Control6 = 6,   Control7 = 7,
 
-		Reserved9 = 9,	ReservedA = 10,	ReservedB = 11,	ReservedC = 12,
-		ReservedD = 13,	ReservedE = 14,	ReservedF = 15,
-	} type_;
+		Reserved9 = 9,  ReservedA = 10, ReservedB = 11, ReservedC = 12,
+		ReservedD = 13, ReservedE = 14, ReservedF = 15,
+	};
+	Type type() const 				{	return Type(type_ & 0x0f);	}
 
-	bool present_;
-	bool readable_;
-	bool writeable_;
-	bool conforming_;
-	bool executable_;
+private:
+	uint32_t base_;
+	uint32_t offset_;
+	DescriptorBounds bounds_;
+	uint8_t type_;
 };
 
 template <typename SegmentT>
