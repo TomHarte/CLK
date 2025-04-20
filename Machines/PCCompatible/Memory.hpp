@@ -105,8 +105,8 @@ public:
 
 		// Words that straddle the segment end must be split in two.
 		if(offset == 0xffff) {
-			memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
-			memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
+			memory[address(segment, offset) & 0xf'ffff] = uint8_t(value & 0xff);
+			memory[address(segment, 0x0000) & 0xf'ffff] = uint8_t(value >> 8);
 			return;
 		}
 
@@ -114,8 +114,8 @@ public:
 
 		// Words that straddle the end of physical RAM must also be split in two.
 		if(target == 0xf'ffff) {
-			memory[0xf'ffff] = value & 0xff;
-			memory[0x0'0000] = value >> 8;
+			memory[0xf'ffff] = uint8_t(value & 0xff);
+			memory[0x0'0000] = uint8_t(value >> 8);
 			return;
 		}
 
