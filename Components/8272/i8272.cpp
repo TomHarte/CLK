@@ -145,7 +145,7 @@ uint8_t i8272::read(const int address) {
 
 #define MS_TO_CYCLES(x)			x * 8000
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = int(Event8272::Timer); delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; update_clocking_observer(); case __LINE__: if(delay_time_) return;
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = int(Event8272::Timer); delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; update_clocking_observer(); [[fallthrough]]; case __LINE__: if(delay_time_) return;
 
 #define PASTE(x, y) x##y
 #define CONCAT(x, y) PASTE(x, y)
