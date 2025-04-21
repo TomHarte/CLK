@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23504" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23504"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -223,11 +223,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
                                 <view key="view" id="dHz-Yv-GNq">
-                                    <rect key="frame" x="10" y="7" width="400" height="254"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="274"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V5Z-dX-Ns4">
-                                            <rect key="frame" x="18" y="216" width="46" height="16"/>
+                                            <rect key="frame" x="18" y="236" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="qV3-2P-3JW">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -235,7 +235,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WnO-ef-IC6">
-                                            <rect key="frame" x="18" y="186" width="98" height="16"/>
+                                            <rect key="frame" x="18" y="206" width="98" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Disk Controller:" id="kbf-rc-Y4M">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -243,7 +243,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jli-ac-Sij">
-                                            <rect key="frame" x="67" y="210" width="117" height="25"/>
+                                            <rect key="frame" x="67" y="230" width="117" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -258,7 +258,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LSB-WP-FMi">
-                                            <rect key="frame" x="119" y="180" width="134" height="25"/>
+                                            <rect key="frame" x="119" y="200" width="134" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Sixteen Sector" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="QaV-Yr-k9o" id="8BT-RV-2Nm">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -272,7 +272,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="6UC-5k-3b6">
-                                            <rect key="frame" x="18" y="159" width="140" height="18"/>
+                                            <rect key="frame" x="18" y="179" width="140" height="18"/>
                                             <buttonCell key="cell" type="check" title="Has Mockingboard" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="vpo-D2-Tzo">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -292,6 +292,7 @@ Gw
                                         <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="6UC-5k-3b6" secondAttribute="bottom" constant="20" symbolic="YES" id="iTH-2B-JJa"/>
                                         <constraint firstItem="LSB-WP-FMi" firstAttribute="top" secondItem="jli-ac-Sij" secondAttribute="bottom" constant="10" symbolic="YES" id="ki5-JR-vRe"/>
                                         <constraint firstItem="jli-ac-Sij" firstAttribute="leading" secondItem="V5Z-dX-Ns4" secondAttribute="trailing" constant="8" symbolic="YES" id="qcd-pf-0T3"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="6UC-5k-3b6" secondAttribute="trailing" constant="20" symbolic="YES" id="r5g-5y-NtR"/>
                                         <constraint firstItem="V5Z-dX-Ns4" firstAttribute="centerY" secondItem="jli-ac-Sij" secondAttribute="centerY" id="v25-BK-BoD"/>
                                     </constraints>
                                 </view>
@@ -680,18 +681,18 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="7" width="400" height="254"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="274"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
-                                            <rect key="frame" x="18" y="159" width="128" height="18"/>
+                                            <rect key="frame" x="18" y="179" width="128" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach disk drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="CB3-nA-VTM">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LG6-mP-SeG">
-                                            <rect key="frame" x="71" y="180" width="146" height="25"/>
+                                            <rect key="frame" x="71" y="200" width="146" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="European (PAL)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="xAh-Ch-tby" id="yR4-yv-Lvu">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -705,7 +706,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZaD-7v-rMS">
-                                            <rect key="frame" x="18" y="186" width="50" height="16"/>
+                                            <rect key="frame" x="18" y="206" width="50" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region:" id="x4m-eh-Nif">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -713,7 +714,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFV-RB-7dB">
-                                            <rect key="frame" x="18" y="216" width="46" height="16"/>
+                                            <rect key="frame" x="18" y="236" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="r7C-zE-gyj">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -721,7 +722,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="44m-4z-PVv">
-                                            <rect key="frame" x="67" y="210" width="79" height="25"/>
+                                            <rect key="frame" x="67" y="230" width="79" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="MSX 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="G9U-vd-Cjk" id="2TO-f6-Gmp">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -734,7 +735,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V0e-KX-Wqn">
-                                            <rect key="frame" x="18" y="137" width="145" height="18"/>
+                                            <rect key="frame" x="18" y="157" width="145" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach MSX-MUSIC" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="DjG-qd-BYh">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
