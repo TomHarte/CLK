@@ -17,7 +17,8 @@ Instruction Decoder::instrucion_for_opcode(const uint8_t opcode) {
 	switch(opcode) {
 		default:	return Instruction(opcode);
 
-#define Map(opcode, operation, addressing_mode)	case opcode: return Instruction(Operation::operation, AddressingMode::addressing_mode, opcode);
+#define Map(opcode, operation, addressing_mode)	\
+	case opcode: return Instruction(Operation::operation, AddressingMode::addressing_mode, opcode);
 
 	/* 0x00 – 0x0f */
 		Map(0x00, BRK, Implied);					Map(0x01, ORA, XIndirect);
