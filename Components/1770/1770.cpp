@@ -132,26 +132,29 @@ void WD1770::run_for(const Cycles cycles) {
 	}
 }
 
+void WD1770::posit_event(const int new_event_type) {
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
-#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = int(Event::Token); return; }
+#define WAIT_FOR_BYTES(count)	distance_into_section_ = 0; \
+								WAIT_FOR_EVENT(Event::Token); \
+								if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
+								if(distance_into_section_ < count) { \
+									return;	\
+								}
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	(void)0; }
 
-#define READ_ID()	\
-		if(new_event_type == int(Event::Token)) {	\
-			if(!distance_into_section_ && get_latest_token().type == Token::ID) {\
-				set_data_mode(DataMode::Reading);	\
-				++distance_into_section_;	\
-			} else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
-				header_[distance_into_section_ - 1] = get_latest_token().byte_value;	\
-				++distance_into_section_;	\
-			}	\
+	const auto READ_ID = [&] {
+		if(new_event_type == int(Event::Token)) {
+			if(!distance_into_section_ && get_latest_token().type == Token::ID) {
+				set_data_mode(DataMode::Reading);
+				++distance_into_section_;
+			} else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {
+				header_[distance_into_section_ - 1] = get_latest_token().byte_value;
+				++distance_into_section_;
+			}
 		}
-
-#define CONCATENATE(x, y) x ## y
-#define INDIRECT_CONCATENATE(x, y) TOKENPASTE(x, y)
-#define LINE_LABEL INDIRECT_CONCATENATE(label, __LINE__)
+	};
 
 #define SPIN_UP()	\
 		set_motor_on(true);	\
@@ -160,24 +163,6 @@ void WD1770::run_for(const Cycles cycles) {
 		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);	\
 		status_.spin_up = true;
 
-// +--------+----------+-------------------------+
-// !	    !	       !          BITS           !
-// ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
-// +--------+----------+-------------------------+
-// !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
-// !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
-// !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
-// !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
-// !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
-// !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
-// !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
-// !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
-// !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
-// !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
-// !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
-// +--------+----------+-------------------------+
-
-void WD1770::posit_event(const int new_event_type) {
 	if(new_event_type == int(Event::IndexHole)) {
 		index_hole_count_++;
 		if(index_hole_count_target_ == index_hole_count_) {
@@ -208,6 +193,23 @@ void WD1770::posit_event(const int new_event_type) {
 		if(!(interesting_event_mask_ & int(new_event_type))) return;
 		interesting_event_mask_ &= ~new_event_type;
 	}
+
+// +--------+----------+-------------------------+
+// !	    !	       !          BITS           !
+// ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+// +--------+----------+-------------------------+
+// !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
+// !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
+// !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
+// !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
+// !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
+// !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
+// !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
+// !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
+// !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
+// !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
+// !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
+// +--------+----------+-------------------------+
 
 	BEGIN_SECTION()
 
