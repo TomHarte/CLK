@@ -109,7 +109,6 @@ void BufferingScanTarget::end_data(size_t actual_length) {
 
 	// Apply necessary bookends.
 	switch(data_type_size_) {
-		default: assert(false);
 		case 0:
 			// This just means that modals haven't been grabbed yet. So it's not
 			// a valid data type size, but it is a value that might legitimately
@@ -118,6 +117,10 @@ void BufferingScanTarget::end_data(size_t actual_length) {
 		case 1:	end_data<uint8_t>(actual_length);	break;
 		case 2:	end_data<uint16_t>(actual_length);	break;
 		case 4:	end_data<uint32_t>(actual_length);	break;
+
+		default:
+			// Other sizes are unavailable.
+			assert(false);
 	}
 
 	// Advance to the end of the current run.

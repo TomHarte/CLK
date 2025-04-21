@@ -17,7 +17,7 @@
 
 // MARK: - Setters
 
-template <> bool Reflection::set(Struct &target, const std::string &name, float value, size_t offset) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const float value, const size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
@@ -29,7 +29,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, float 
 	return set<double>(target, name, value);
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, double value, size_t offset) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const double value, const size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
@@ -47,11 +47,11 @@ template <> bool Reflection::set(Struct &target, const std::string &name, double
 	return false;
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, int value, size_t offset) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const int value, const size_t offset) {
 	return set<int64_t>(target, name, value, offset);
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, int64_t value, size_t offset) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const int64_t value, const size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
@@ -68,14 +68,22 @@ template <> bool Reflection::set(Struct &target, const std::string &name, int64_
 		return true;
 	}
 
-#define SetInt(x)	if(*target_type == typeid(x)) { x truncated_value = x(value); target.set(name, &truncated_value, offset); }
+#define SetInt(x)	if(*target_type == typeid(x)) { \
+	const auto truncated_value = x(value); \
+	target.set(name, &truncated_value, offset); \
+}
 	ForAllInts(SetInt);
 #undef SetInt
 
 	return false;
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, const std::string &value, size_t offset) {
+template <> bool Reflection::set(
+	Struct &target,
+	const std::string &name,
+	const std::string &value,
+	const size_t offset
+) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
@@ -100,12 +108,12 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 	return true;
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, const char *value, size_t offset) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const char *value, const size_t offset) {
 	const std::string string(value);
 	return set<const std::string &>(target, name, string, offset);
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, bool value, size_t offset) {
+template <> bool Reflection::set(Struct &target, const std::string &name, bool value, const size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
@@ -159,34 +167,70 @@ bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::s
 
 // MARK: - Description
 
-void Reflection::Struct::append(std::ostringstream &stream, const std::string &key, const std::type_info *const type, size_t offset) const {
+namespace {
+
+template <typename IntT>
+bool append_int(
+	const Reflection::Struct &target,
+	std::ostringstream &stream,
+	const std::string &key,
+	const std::type_info *const type,
+	const size_t offset
+) {
+	if(*type != typeid(IntT)) {
+		return false;
+	}
+
+	stream << std::setfill('0') << std::setw(sizeof(IntT)*2);
+	stream << std::hex << +Reflection::get<IntT>(target, key, offset);
+	return true;
+}
+
+template <typename ValT>
+bool append_native(
+	const Reflection::Struct &target,
+	std::ostringstream &stream,
+	const std::string &key,
+	const std::type_info *const type,
+	const size_t offset
+) {
+	if(*type != typeid(ValT)) {
+		return false;
+	}
+
+	stream << Reflection::get<ValT>(target, key, offset);
+	return true;
+}
+
+}
+
+void Reflection::Struct::append(
+	std::ostringstream &stream,
+	const std::string &key,
+	const std::type_info *const type,
+	const size_t offset
+) const {
 	// Output Bools as yes/no.
 	if(*type == typeid(bool)) {
-		stream << ::Reflection::get<bool>(*this, key, offset);
+		stream << Reflection::get<bool>(*this, key, offset);
 		return;
 	}
 
 	// Output Ints of all sizes as hex.
-#define OutputIntC(int_type, cast_type) if(*type == typeid(int_type)) { stream << std::setfill('0') << std::setw(sizeof(int_type)*2) << std::hex << cast_type(::Reflection::get<int_type>(*this, key, offset)); return; }
-#define OutputInt(int_type) OutputIntC(int_type, int_type)
-	OutputIntC(int8_t, int16_t);
-	OutputIntC(uint8_t, uint16_t);
-	OutputInt(int16_t);
-	OutputInt(uint16_t);
-	OutputInt(int32_t);
-	OutputInt(uint32_t);
-	OutputInt(int64_t);
-	OutputInt(uint64_t);
-#undef OutputInt
-#undef OutputIntC
+	if(append_int<int8_t>(*this, stream, key, type, offset)) return;
+	if(append_int<uint8_t>(*this, stream, key, type, offset)) return;
+	if(append_int<int16_t>(*this, stream, key, type, offset)) return;
+	if(append_int<uint16_t>(*this, stream, key, type, offset)) return;
+	if(append_int<int32_t>(*this, stream, key, type, offset)) return;
+	if(append_int<uint32_t>(*this, stream, key, type, offset)) return;
+	if(append_int<int64_t>(*this, stream, key, type, offset)) return;
+	if(append_int<uint64_t>(*this, stream, key, type, offset)) return;
 
-		// Output floats and strings natively.
-#define OutputNative(val_type) if(*type == typeid(val_type)) { stream << ::Reflection::get<val_type>(*this, key, offset); return; }
-	OutputNative(float);
-	OutputNative(double);
-	OutputNative(char *);
-	OutputNative(std::string);
-#undef OutputNative
+	// Output floats and strings natively.
+	if(append_native<float>(*this, stream, key, type, offset)) return;
+	if(append_native<double>(*this, stream, key, type, offset)) return;
+	if(append_native<char *>(*this, stream, key, type, offset)) return;
+	if(append_native<std::string>(*this, stream, key, type, offset)) return;
 
 	// Output the current value of any enums.
 	if(!Enum::name(*type).empty()) {
@@ -244,13 +288,19 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 		result.push_back(0);
 	};
 
-	auto append = [push_name, this] (std::vector<uint8_t> &result, const std::string &key, const std::string &output_name, const std::type_info *type, size_t offset) {
-		auto push_int = [&result] (auto x) {
+	auto append = [push_name, this] (
+		std::vector<uint8_t> &result,
+		const std::string &key,
+		const std::string &output_name,
+		const std::type_info *type,
+		const size_t offset
+	) {
+		const auto push_int = [&result] (auto x) {
 			for(size_t c = 0; c < sizeof(x); ++c)
 				result.push_back(uint8_t((x) >> (8 * c)));
 		};
 
-		auto push_named_int = [push_int, push_name, &result, &output_name] (uint8_t type, auto x) {
+		auto push_named_int = [push_int, push_name, &result, &output_name] (const uint8_t type, const auto x) {
 			result.push_back(type);
 			push_name(result, output_name);
 			push_int(x);
@@ -358,7 +408,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 		assert(false);
 	};
 
-	auto wrap_object = [] (std::vector<uint8_t> &data) {
+	const auto wrap_object = [] (std::vector<uint8_t> &data) {
 		/*
 			document ::= int32 e_list "\x00"
 			The int32 is the total number of bytes comprising the document.
@@ -412,7 +462,12 @@ namespace {
 	an offset based on the propety name specified here.
 */
 struct ArrayReceiver: public Reflection::Struct {
-	ArrayReceiver(Reflection::Struct *target, const std::type_info *type, const std::string &key, size_t count) :
+	ArrayReceiver(
+		Reflection::Struct *const target,
+		const std::type_info *type,
+		const std::string &key,
+		const size_t count
+	) :
 		target_(target), type_(type), key_(key), count_(count) {}
 
 	std::vector<std::string> all_keys() const final { return {}; }
@@ -444,7 +499,7 @@ private:
 
 }
 
-bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
+bool Reflection::Struct::deserialise(const uint8_t *bson, const size_t size) {
 	// Validate the object's declared size.
 	const auto end = bson + size;
 	auto read_int = [&bson] (auto &target) {

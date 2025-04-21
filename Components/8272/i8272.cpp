@@ -11,9 +11,8 @@
 #include "Outputs/Log.hpp"
 
 namespace {
-
 Log::Logger<Log::Source::i8272> logger;
-
+constexpr int ms_to_cycles(const int x) { return x * 8000; }
 }
 
 using namespace Intel::i8272;
@@ -60,7 +59,8 @@ void i8272::run_for(const Cycles cycles) {
 				while(steps--) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					logger.info().append("Target %d versus believed %d", drives_[c].target_head_position, drives_[c].head_position);
+					logger.info().append(
+						"Target %d versus believed %d", drives_[c].target_head_position, drives_[c].head_position);
 					select_drive(c);
 					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
@@ -140,52 +140,65 @@ uint8_t i8272::read(const int address) {
 	}
 }
 
+void i8272::posit_event(const int event_type) {
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	}
 
-#define MS_TO_CYCLES(x)			x * 8000
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = int(Event8272::Timer); delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; update_clocking_observer(); case __LINE__: if(delay_time_) return;
+#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; \
+								interesting_event_mask_ = int(mask); \
+								return; \
+								case __LINE__:
+
+#define WAIT_FOR_TIME(ms)		interesting_event_mask_ = int(Event8272::Timer); \
+								delay_time_ = ms_to_cycles(ms); \
+								is_sleeping_ = false;	\
+								update_clocking_observer(); \
+								resume_point_ = __LINE__;	\
+								[[fallthrough]]; \
+								case __LINE__: \
+								if(delay_time_) return;
 
 #define PASTE(x, y) x##y
-#define CONCAT(x, y) PASTE(x, y)
+#define LABEL(x, y) PASTE(x, y)
 
 #define FIND_HEADER()	\
 	set_data_mode(DataMode::Scanning);	\
-	CONCAT(find_header, __LINE__): WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole)); \
+	LABEL(find_header, __LINE__): WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole)); \
 	if(event_type == int(Event::IndexHole)) { index_hole_limit_--; }	\
-	else if(get_latest_token().type == Token::ID) goto CONCAT(header_found, __LINE__);	\
+	else if(get_latest_token().type == Token::ID) goto LABEL(header_found, __LINE__);	\
 	\
-	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
-	CONCAT(header_found, __LINE__):	(void)0;\
+	if(index_hole_limit_) goto LABEL(find_header, __LINE__);	\
+	LABEL(header_found, __LINE__):	(void)0;\
 
 #define FIND_DATA()	\
 	set_data_mode(DataMode::Scanning);	\
-	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole)); \
+	LABEL(find_data, __LINE__): WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole)); \
 	if(event_type == int(Event::Token)) { \
-		if(get_latest_token().type == Token::Byte || get_latest_token().type == Token::Sync) goto CONCAT(find_data, __LINE__);	\
+		if(get_latest_token().type == Token::Byte || get_latest_token().type == Token::Sync) \
+			goto LABEL(find_data, __LINE__);	\
 	}
 
 #define READ_HEADER()	\
 	distance_into_section_ = 0;	\
 	set_data_mode(DataMode::Reading);	\
-	CONCAT(read_header, __LINE__): WAIT_FOR_EVENT(Event::Token); \
+	LABEL(read_header, __LINE__): WAIT_FOR_EVENT(Event::Token); \
 	header_[distance_into_section_] = get_latest_token().byte_value;	\
 	distance_into_section_++; \
-	if(distance_into_section_ < 6) goto CONCAT(read_header, __LINE__);	\
+	if(distance_into_section_ < 6) goto LABEL(read_header, __LINE__);	\
 
-#define SET_DRIVE_HEAD_MFM()	\
-	active_drive_ = command_.target().drive;	\
-	active_head_ = command_.target().head;	\
-	select_drive(active_drive_);	\
-	get_drive().set_head(active_head_);	\
-	set_is_double_density(command_.target().mfm);
+	const auto SET_DRIVE_HEAD_MFM = [&] {
+		active_drive_ = command_.target().drive;
+		active_head_ = command_.target().head;
+		select_drive(active_drive_);
+		get_drive().set_head(active_head_);
+		set_is_double_density(command_.target().mfm);
+	};
 
 #define WAIT_FOR_BYTES(n) \
 	distance_into_section_ = 0;	\
-	CONCAT(wait_bytes, __LINE__): WAIT_FOR_EVENT(Event::Token);	\
+	LABEL(wait_bytes, __LINE__): WAIT_FOR_EVENT(Event::Token);	\
 	if(get_latest_token().type == Token::Byte) distance_into_section_++;	\
-	if(distance_into_section_ < (n)) goto CONCAT(wait_bytes, __LINE__);
+	if(distance_into_section_ < (n)) goto LABEL(wait_bytes, __LINE__);
 
 #define LOAD_HEAD()	\
 	if(!drives_[active_drive_].head_is_loaded[active_head_]) {	\
@@ -198,18 +211,20 @@ uint8_t i8272::read(const int address) {
 		}	\
 	}
 
-#define SCHEDULE_HEAD_UNLOAD()	\
-	if(drives_[active_drive_].head_is_loaded[active_head_]) {\
-		if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {	\
-			head_timers_running_++;	\
-			is_sleeping_ = false;	\
-			update_clocking_observer();	\
-		}	\
-		drives_[active_drive_].head_unload_delay[active_head_] = MS_TO_CYCLES(head_unload_time_);\
-	}
+	const auto SCHEDULE_HEAD_UNLOAD = [&] {
+		if(drives_[active_drive_].head_is_loaded[active_head_]) {
+			if(drives_[active_drive_].head_unload_delay[active_head_] == 0) {
+				++head_timers_running_;
+				is_sleeping_ = false;
+				update_clocking_observer();
+			}
+			drives_[active_drive_].head_unload_delay[active_head_] = ms_to_cycles(head_unload_time_);
+		}
+	};
 
-void i8272::posit_event(const int event_type) {
-	if(event_type == int(Event::IndexHole)) index_hole_count_++;
+	if(event_type == int(Event::IndexHole)) {
+		++index_hole_count_;
+	}
 	if(event_type == int(Event8272::NoLongerReady)) {
 		status_.set(Status0::NotReady);
 		goto abort;
@@ -234,7 +249,7 @@ void i8272::posit_event(const int event_type) {
 	wait_for_complete_command_sequence:
 			status_.set(MainStatus::DataReady, true);
 			status_.set(MainStatus::DataIsToProcessor, false);
-			WAIT_FOR_EVENT(Event8272::CommandByte)
+			WAIT_FOR_EVENT(Event8272::CommandByte);
 
 			if(!command_.has_command()) {
 				goto wait_for_complete_command_sequence;
@@ -258,8 +273,8 @@ void i8272::posit_event(const int event_type) {
 						drives_seeking_--;
 					}
 				}
-				// Establishes the drive and head being addressed, and whether in double density mode; populates the internal
-				// cylinder, head, sector and size registers from the command stream.
+				// Establishes the drive and head being addressed, and whether in double density mode; populates
+				// the internal cylinder, head, sector and size registers from the command stream.
 				is_executing_ = true;
 				if(!dma_mode_) {
 					status_.set(MainStatus::InNonDMAExecution, true);
@@ -330,8 +345,12 @@ void i8272::posit_event(const int event_type) {
 				// This implies a CRC error in the header; mark as such but continue.
 				status_.set(Status1::DataError);
 			}
-//			logger.info().append("Considering %02x %02x %02x %02x [%04x]", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
-			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
+//			logger.info().append(
+//				"Considering %02x %02x %02x %02x [%04x]",
+//					header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
+			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) {
+				goto find_next_sector;
+			}
 
 			// Branch to whatever is supposed to happen next
 //			logger.info().append("Proceeding");
@@ -341,8 +360,8 @@ void i8272::posit_event(const int event_type) {
 				case Command::ReadDeletedData:
 				goto read_data_found_header;
 
-				case Command::WriteData:	// write data
-				case Command::WriteDeletedData:	// write deleted data
+				case Command::WriteData:
+				case Command::WriteDeletedData:
 				goto write_data_found_header;
 			}
 
@@ -390,8 +409,8 @@ void i8272::posit_event(const int event_type) {
 			distance_into_section_ = 0;
 			set_data_mode(Reading);
 
-		// Waits for the next token, then supplies it to the CPU by: (i) setting data request and direction; and (ii) resetting
-		// data request once the byte has been taken. Continues until all bytes have been read.
+		// Waits for the next token, then supplies it to the CPU by: (i) setting data request and direction; and
+		// (ii) resetting data request once the byte has been taken. Continues until all bytes have been read.
 		//
 		// TODO: consider DTL.
 		read_data_get_byte:
@@ -498,8 +517,9 @@ void i8272::posit_event(const int event_type) {
 		// Establishes the drive and head being addressed, and whether in double density mode.
 //			logger.info().append("Read ID [%02x %02x]", command_[0], command_[1]);
 
-		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
-		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
+		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many
+		// index holes. If a header mark is found, reads in the following bytes that produce a header. Otherwise
+		// branches to data not found.
 			index_hole_limit_ = 2;
 			FIND_HEADER();
 			if(!index_hole_limit_) {

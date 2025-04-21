@@ -14,6 +14,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(co
 	switch((t_operation != Operation::Undefined) ? t_operation : r_operation) {
 		default:
 			assert(false);
+			[[fallthrough]];
 
 		//
 		//	No operands are fetched or stored.

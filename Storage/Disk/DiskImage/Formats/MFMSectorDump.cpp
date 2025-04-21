@@ -25,17 +25,18 @@ std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) 
 	if(address.head >= head_count()) return nullptr;
 	if(address.position.as_largest() >= maximum_head_position().as_largest()) return nullptr;
 
-	uint8_t sectors[(128 << sector_size_)*sectors_per_track_];
+	const auto size = size_t((128 << sector_size_) * sectors_per_track_);
+	std::vector<uint8_t> sectors;
 	const long file_offset = get_file_offset_for_position(address);
 
 	{
 		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.seek(file_offset, SEEK_SET);
-		file_.read(sectors, sizeof(sectors));
+		sectors = file_.read(size);
 	}
 
 	return track_for_sectors(
-		sectors,
+		sectors.data(),
 		sectors_per_track_,
 		uint8_t(address.position.as_int()),
 		uint8_t(address.head),
@@ -45,7 +46,8 @@ std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) 
 }
 
 void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
-	uint8_t parsed_track[(128 << sector_size_)*sectors_per_track_];
+	const auto size = size_t((128 << sector_size_) * sectors_per_track_);
+	std::vector<uint8_t> parsed_track(size);
 
 	// TODO: it would be more efficient from a file access and locking point of view to parse the sectors
 	// in one loop, then write in another.
@@ -53,7 +55,7 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Tr
 	for(const auto &track : tracks) {
 		decode_sectors(
 			*track.second,
-			parsed_track,
+			parsed_track.data(),
 			first_sector_,
 			first_sector_ + uint8_t(sectors_per_track_-1),
 			sector_size_,
@@ -63,7 +65,7 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Tr
 		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.ensure_is_at_least_length(file_offset);
 		file_.seek(file_offset, SEEK_SET);
-		file_.write(parsed_track, sizeof(parsed_track));
+		file_.write(parsed_track);
 	}
 	file_.flush();
 }
