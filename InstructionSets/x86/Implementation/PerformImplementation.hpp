@@ -119,7 +119,9 @@ template <
 	// address indicated. Unlike [source/destination]_r it doesn't read an IntT from that address,
 	// since those instructions load an atypical six bytes.
 	const auto source_indirect = [&]() -> AddressT {
-		return address<Source::Indirect, AddressT, AccessType::Read>(instruction, instruction.source(), context);
+		return AddressT(
+			address<Source::Indirect, AddressT, AccessType::Read>(instruction, instruction.source(), context)
+		);
 	};
 
 	// Some instructions use a pair of registers as an extended accumulator — DX:AX or EDX:EAX.
