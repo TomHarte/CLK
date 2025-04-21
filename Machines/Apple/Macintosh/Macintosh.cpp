@@ -225,7 +225,9 @@ public:
 		uint8_t *memory_base = nullptr;
 		HalfCycles delay;
 		switch(memory_map_[address >> 17]) {
-			default: assert(false);
+			default:
+				assert(false);
+				[[fallthrough]];
 
 			case BusDevice::Unassigned:
 				fill_unmapped(cycle);
