@@ -177,6 +177,7 @@ template <
 	switch(instruction.operation()) {
 		default:
 			assert(false);
+			[[fallthrough]];
 
 		case Operation::Invalid:
 			// TODO: throw on higher-order processors.
