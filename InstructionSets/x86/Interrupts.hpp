@@ -44,8 +44,6 @@ enum Interrupt: uint8_t {
 
 constexpr bool has_error_code(const Interrupt interrupt) {
 	switch(interrupt) {
-		default:	assert(false);	// 386 exceptions; I don't know yet.
-
 		case Interrupt::DivideError:
 		case Interrupt::SingleStep:
 		case Interrupt::NMI:
@@ -64,7 +62,11 @@ constexpr bool has_error_code(const Interrupt interrupt) {
 		case Interrupt::StackSegmentFault:
 		case Interrupt::GeneralProtectionFault:
 			return true;
+
+		default:	// 386 exceptions; I don't know yet.
+		break;
 	}
+	assert(false);
 }
 
 constexpr bool posts_next_ip(const Interrupt interrupt) {
