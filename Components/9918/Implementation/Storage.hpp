@@ -202,6 +202,7 @@ protected:
 						} else {
 							return Event::Type::External;
 						}
+					break;
 					case 6:
 						if((block & 3) != 3) {
 							return Event::Type::External;
@@ -280,11 +281,11 @@ protected:
 				const int block = offset / 32;
 				const int sub_block = offset & 31;
 				switch(sub_block) {
-					case 0:		if(block > 0) return Event(Event::Type::Name, uint8_t(block - 1));
-					case 6:		if((sub_block & 3) != 3) return Event::Type::External;
-					case 12:	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));
-					case 18:	if(block > 0) return Event(Event::Type::Pattern, uint8_t(block - 1));
-					case 24:	if(block > 0) return Event(Event::Type::Colour, uint8_t(block - 1));
+					case 0:		if(block > 0) return Event(Event::Type::Name, uint8_t(block - 1));		break;
+					case 6:		if((sub_block & 3) != 3) return Event::Type::External;					break;
+					case 12:	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));		break;
+					case 18:	if(block > 0) return Event(Event::Type::Pattern, uint8_t(block - 1));	break;
+					case 24:	if(block > 0) return Event(Event::Type::Colour, uint8_t(block - 1));	break;
 				}
 			}
 

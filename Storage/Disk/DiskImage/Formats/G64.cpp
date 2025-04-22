@@ -68,8 +68,7 @@ std::unique_ptr<Track> G64::track_at_position(const Track::Address address) cons
 
 		// read the speed zone bytes
 		const uint16_t speed_zone_length = (track_length + 3) >> 2;
-		uint8_t speed_zone_contents[speed_zone_length];
-		file_.read(speed_zone_contents, speed_zone_length);
+		const auto speed_zone_contents = file_.read(speed_zone_length);
 
 		// divide track into appropriately timed PCMSegments
 		std::vector<PCMSegment> segments;

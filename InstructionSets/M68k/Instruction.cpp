@@ -14,8 +14,6 @@ using namespace InstructionSet::M68k;
 
 std::string Preinstruction::operand_description(const int index, const int opcode) const {
 	switch(mode(index)) {
-		default:	assert(false);
-
 		case AddressingMode::None:
 			return "";
 
@@ -54,7 +52,12 @@ std::string Preinstruction::operand_description(const int index, const int opcod
 				return "Q";
 			}
 			return std::to_string(int(quick(uint16_t(opcode), operation)));
+
+		// TODO: 68020+ modes.
+		default: break;
 	}
+	assert(false);
+	return "[TODO]";
 }
 
 namespace {

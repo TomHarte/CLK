@@ -1083,6 +1083,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				default:
 					assert(false);
 			}
+			[[fallthrough]];	// 'Reachable' only after default: assert(false).
 
 #undef Duplicate
 #undef StdCASE

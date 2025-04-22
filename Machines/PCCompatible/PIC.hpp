@@ -79,6 +79,7 @@ public:
 				switch(value >> 5) {
 					default:
 						printf("PIC: TODO EOI type %d\n", value >> 5);
+						[[fallthrough]];
 					case 0b010:	// No-op.
 					break;
 
