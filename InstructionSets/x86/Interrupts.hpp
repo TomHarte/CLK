@@ -67,6 +67,7 @@ constexpr bool has_error_code(const Interrupt interrupt) {
 		break;
 	}
 	assert(false);
+	return false;
 }
 
 constexpr bool posts_next_ip(const Interrupt interrupt) {
