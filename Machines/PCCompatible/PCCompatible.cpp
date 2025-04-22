@@ -369,7 +369,7 @@ public:
 
 	template <typename IntT> IntT in(const uint16_t port) {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
-			return in<uint8_t>(port) | (in<uint8_t>(port + 1) << 8);
+			return uint16_t(in<uint8_t>(port) | (in<uint8_t>(port + 1) << 8));
 		} else {
 			static_assert(std::is_same_v<IntT, uint8_t>);
 

@@ -40,7 +40,7 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 		LinearMemory<model> &linear_memory
 	) const {
 		const auto &descriptor = segments.descriptors[InstructionSet::x86::Source::CS];
-		const auto base = descriptor.base() & (linear_memory.MaxAddress - 1);
+		const auto base = uint32_t(descriptor.base() & (linear_memory.MaxAddress - 1));
 		return std::make_pair(
 			linear_memory.at(base),
 			std::min<size_t>(0x1'0000, 1 + descriptor.bounds().end - base)
