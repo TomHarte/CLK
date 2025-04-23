@@ -385,24 +385,30 @@ private:
 		}
 	}
 
-#define Mode0Colour0(c) (((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2))
-#define Mode0Colour1(c) (((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3))
+	template <typename IntT>
+	static auto Mode0Colour0(const IntT c) {
+		return ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2);
+	}
+	template <typename IntT>
+	static auto Mode0Colour1(const IntT c) {
+		return ((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3);
+	}
 
-#define Mode1Colour0(c) (((c & 0x80) >> 7) | ((c & 0x08) >> 2))
-#define Mode1Colour1(c) (((c & 0x40) >> 6) | ((c & 0x04) >> 1))
-#define Mode1Colour2(c) (((c & 0x20) >> 5) | ((c & 0x02) >> 0))
-#define Mode1Colour3(c) (((c & 0x10) >> 4) | ((c & 0x01) << 1))
+	template <typename IntT> static auto Mode1Colour0(const IntT c) { return ((c & 0x80) >> 7) | ((c & 0x08) >> 2); }
+	template <typename IntT> static auto Mode1Colour1(const IntT c) { return ((c & 0x40) >> 6) | ((c & 0x04) >> 1); }
+	template <typename IntT> static auto Mode1Colour2(const IntT c) { return ((c & 0x20) >> 5) | ((c & 0x02) >> 0); }
+	template <typename IntT> static auto Mode1Colour3(const IntT c) { return ((c & 0x10) >> 4) | ((c & 0x01) << 1); }
 
-#define Mode3Colour0(c)	(((c & 0x80) >> 7) | ((c & 0x08) >> 2))
-#define Mode3Colour1(c) (((c & 0x40) >> 6) | ((c & 0x04) >> 1))
+	template <typename IntT> static auto Mode3Colour0(const IntT c) { return ((c & 0x80) >> 7) | ((c & 0x08) >> 2); }
+	template <typename IntT> static auto Mode3Colour1(const IntT c) { return ((c & 0x40) >> 6) | ((c & 0x04) >> 1); }
 
 	/*!
 		Creates a lookup table from palette entry to list of affected entries in the value -> pixels lookup tables.
 	*/
 	void establish_palette_hits() {
 		for(size_t c = 0; c < 256; c++) {
-			assert(Mode0Colour0(c) < mode0_palette_hits_.size());
-			assert(Mode0Colour1(c) < mode0_palette_hits_.size());
+			assert(size_t(Mode0Colour0(c)) < mode0_palette_hits_.size());
+			assert(size_t(Mode0Colour1(c)) < mode0_palette_hits_.size());
 			mode0_palette_hits_[Mode0Colour0(c)].push_back(uint8_t(c));
 			mode0_palette_hits_[Mode0Colour1(c)].push_back(uint8_t(c));
 
@@ -511,19 +517,10 @@ private:
 		}
 	}
 
-#undef Mode0Colour0
-#undef Mode0Colour1
-
-#undef Mode1Colour0
-#undef Mode1Colour1
-#undef Mode1Colour2
-#undef Mode1Colour3
-
-#undef Mode3Colour0
-#undef Mode3Colour1
-
 	uint8_t mapped_palette_value(uint8_t colour) {
-#define COL(r, g, b) (r << 4) | (g << 2) | b
+		static constexpr auto COL = [](int r, int g, int b) {
+			return uint8_t((r << 4) | (g << 2) | b);
+		};
 		constexpr uint8_t mapping[32] = {
 			COL(1, 1, 1),	COL(1, 1, 1),	COL(0, 2, 1),	COL(2, 2, 1),
 			COL(0, 0, 1),	COL(2, 0, 1),	COL(0, 1, 1),	COL(2, 1, 1),
@@ -534,7 +531,6 @@ private:
 			COL(1, 0, 1),	COL(1, 2, 1),	COL(1, 2, 0),	COL(1, 2, 2),
 			COL(1, 0, 0),	COL(1, 0, 2),	COL(1, 1, 0),	COL(1, 1, 2),
 		};
-#undef COL
 		return mapping[colour];
 	}
 
@@ -1229,8 +1225,14 @@ private:
 				if(has_128k_) {
 					const bool adjust_low_read_pointer = read_pointers_[0] == write_pointers_[0];
 					const bool adjust_high_read_pointer = read_pointers_[3] == write_pointers_[3];
-#define RAM_BANK(x) &ram_[x * 16384]
-#define RAM_CONFIG(a, b, c, d) write_pointers_[0] = RAM_BANK(a); write_pointers_[1] = RAM_BANK(b); write_pointers_[2] = RAM_BANK(c); write_pointers_[3] = RAM_BANK(d);
+
+					const auto RAM_CONFIG = [&](int a, int b, int c, int d) {
+						const auto RAM_BANK = [&](int x) { return &ram_[x * 16384]; };
+						write_pointers_[0] = RAM_BANK(a);
+						write_pointers_[1] = RAM_BANK(b);
+						write_pointers_[2] = RAM_BANK(c);
+						write_pointers_[3] = RAM_BANK(d);
+					};
 					switch(value & 7) {
 						case 0:	RAM_CONFIG(0, 1, 2, 3);	break;
 						case 1:	RAM_CONFIG(0, 1, 2, 7);	break;
@@ -1241,8 +1243,7 @@ private:
 						case 6:	RAM_CONFIG(0, 6, 2, 3);	break;
 						case 7:	RAM_CONFIG(0, 7, 2, 3);	break;
 					}
-#undef RAM_CONFIG
-#undef RAM_BANK
+
 					if(adjust_low_read_pointer) read_pointers_[0] = write_pointers_[0];
 					read_pointers_[1] = write_pointers_[1];
 					read_pointers_[2] = write_pointers_[2];
