@@ -628,7 +628,11 @@ public:
 		}
 
 		const auto install_bios = [&](const std::vector<uint8_t> &source) {
-			context_.linear_memory.install(0x10'0000 - source.size(), source.data(), source.size());
+			context_.linear_memory.install(
+				uint32_t(0x10'0000 - source.size()),
+				source.data(),
+				uint32_t(source.size())
+			);
 		};
 
 		switch(pc_model) {
@@ -638,7 +642,11 @@ public:
 				// If found, install GlaTICK at 0xd'0000.
 				const auto tick_contents = roms.find(tick_XT);
 				if(tick_contents != roms.end()) {
-					context_.linear_memory.install(0xd'0000, tick_contents->second.data(), tick_contents->second.size());
+					context_.linear_memory.install(
+						0xd'0000,
+						tick_contents->second.data(),
+						uint32_t(tick_contents->second.size())
+					);
 				}
 			} break;
 
