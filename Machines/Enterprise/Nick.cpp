@@ -12,7 +12,7 @@
 
 namespace {
 
-uint16_t mapped_colour(uint8_t source) {
+uint16_t mapped_colour(const uint8_t source) {
 	// On the Enterprise, red and green are 3-bit quantities; blue is a 2-bit quantity.
 	int red		= ((source&0x01) << 2) | ((source&0x08) >> 2) | ((source&0x40) >> 6);
 	int green	= ((source&0x02) << 1) | ((source&0x10) >> 3) | ((source&0x80) >> 7);
@@ -46,7 +46,7 @@ uint16_t mapped_colour(uint8_t source) {
 
 using namespace Enterprise;
 
-Nick::Nick(const uint8_t *ram) :
+Nick::Nick(const uint8_t *const ram) :
 	crt_(57*16, 16, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	ram_(ram) {
 
@@ -57,7 +57,7 @@ Nick::Nick(const uint8_t *ram) :
 	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 }
 
-void Nick::write(uint16_t address, uint8_t value) {
+void Nick::write(const uint16_t address, const uint8_t value) {
 	switch(address & 3) {
 		case 0:
 			// Ignored: everything to do with external colour.
@@ -95,7 +95,7 @@ uint8_t Nick::read() {
 	return last_read_;
 }
 
-Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
+Cycles Nick::get_time_until_z80_slot(const Cycles after_period) const {
 	// Place Z80 accesses in the first six cycles in each sixteen-cycle window.
 	// That models video accesses as being the final ten. Which has the net effect
 	// of responding to the line parameter table interrupt flag as soon as it's
@@ -111,8 +111,8 @@ Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
 	}
 }
 
-void Nick::run_for(Cycles duration) {
-	constexpr int line_length = 912;
+void Nick::run_for(const Cycles duration) {
+	static constexpr int line_length = 912;
 
 #define add_window(x)															\
 	line_data_pointer_[0] += is_sync_or_pixels_ * line_data_per_column_increments_[0] * (x);	\
@@ -437,7 +437,7 @@ void Nick::run_for(Cycles duration) {
 
 }
 
-void Nick::set_output_type(OutputType type, bool force_flush) {
+void Nick::set_output_type(const OutputType type, const bool force_flush) {
 	if(type == output_type_ && !force_flush) {
 		return;
 	}
@@ -480,7 +480,7 @@ Cycles Nick::next_sequence_point() const {
 
 // MARK: - CRT passthroughs.
 
-void Nick::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+void Nick::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
@@ -488,7 +488,7 @@ Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
 }
 
-void Nick::set_display_type(Outputs::Display::DisplayType display_type) {
+void Nick::set_display_type(const Outputs::Display::DisplayType display_type) {
 	first_pixel_window_ = display_type == Outputs::Display::DisplayType::RGB ? 8 : 10;
 	crt_.set_display_type(display_type);
 }
@@ -526,7 +526,7 @@ Outputs::Display::DisplayType Nick::get_display_type() const {
 	target[0] = mapped_colour(x);	\
 	++target
 
-template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int columns) const {
+template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, const int columns) const {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	int index = 0;
@@ -576,7 +576,7 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 	}
 }
 
-template <int bpp, int index_bits> void Nick::output_character(uint16_t *target, int columns) const {
+template <int bpp, int index_bits> void Nick::output_character(uint16_t *target, const int columns) const {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	for(int c = 0; c < columns; c++) {
@@ -605,7 +605,7 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 	}
 }
 
-template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) const {
+template <int bpp> void Nick::output_attributed(uint16_t *target, const int columns) const {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	for(int c = 0; c < columns; c++) {

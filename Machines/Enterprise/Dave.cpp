@@ -15,7 +15,7 @@ using namespace Enterprise::Dave;
 Audio::Audio(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
-void Audio::write(uint16_t address, uint8_t value) {
+void Audio::write(uint16_t address, const uint8_t value) {
 	address &= 0x1f;
 	audio_queue_.enqueue([address, value, this] {
 		switch(address) {
@@ -62,13 +62,13 @@ void Audio::write(uint16_t address, uint8_t value) {
 	});
 }
 
-void Audio::set_sample_volume_range(int16_t range) {
+void Audio::set_sample_volume_range(const int16_t range) {
 	audio_queue_.enqueue([range, this] {
 		volume_ = range / (63*4);
 	});
 }
 
-void Audio::update_channel(int c) {
+void Audio::update_channel(const int c) {
 	auto output = channels_[c].output & 1;
 	channels_[c].output <<= 1;
 	if(channels_[c].sync) {
@@ -100,7 +100,7 @@ void Audio::update_channel(int c) {
 }
 
 template <Outputs::Speaker::Action action>
-void Audio::apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
+void Audio::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::StereoSample *const target) {
 	Outputs::Speaker::StereoSample output_level;
 
 	size_t c = 0;
@@ -216,7 +216,7 @@ uint8_t TimedInterruptSource::get_new_interrupts() {
 	return result;
 }
 
-void TimedInterruptSource::write(uint16_t address, uint8_t value) {
+void TimedInterruptSource::write(uint16_t address, const uint8_t value) {
 	address &= 0x1f;
 	switch(address) {
 		default: break;
@@ -240,7 +240,7 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 	}
 }
 
-void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) {
+void TimedInterruptSource::update_channel(const int c, const bool is_linked, const int decrement) {
 	if(channels_[c].sync) {
 		channels_[c].value = channels_[c].reload;
 	} else {
@@ -273,7 +273,7 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 	}
 }
 
-void TimedInterruptSource::run_for(Cycles duration) {
+void TimedInterruptSource::run_for(const Cycles duration) {
 	// Determine total number of ticks.
 	run_length_ += duration;
 	const Cycles cycles = run_length_.divide(global_divider_);

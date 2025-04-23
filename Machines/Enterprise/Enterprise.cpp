@@ -261,7 +261,7 @@ public:
 	}
 
 	// MARK: - Z80::BusHandler.
-	forceinline void advance_nick(HalfCycles duration) {
+	forceinline void advance_nick(const HalfCycles duration) {
 		if(nick_ += duration) {
 			const auto nick = nick_.last_valid();
 			const bool nick_interrupt_line = nick->get_interrupt_line();
@@ -558,7 +558,7 @@ public:
 		return penalty;
 	}
 
-	void flush_output(int outputs) final {
+	void flush_output(const int outputs) final {
 		if(outputs & Output::Video) {
 			nick_.flush();
 		}
@@ -613,7 +613,7 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 		page<slot>(nullptr, nullptr);
 	}
 
-	template <size_t slot> void page(const uint8_t *read, uint8_t *write) {
+	template <size_t slot> void page(const uint8_t *const read, uint8_t *const write) {
 		read_pointers_[slot] = read ? read - (slot * 0x4000) : nullptr;
 		write_pointers_[slot] = write ? write - (slot * 0x4000) : nullptr;
 	}
@@ -629,7 +629,7 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 	bool is_video_[4]{};
 
 	// MARK: - ScanProducer
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) override {
 		nick_.last_valid()->set_scan_target(scan_target);
 	}
 
@@ -637,7 +637,7 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 		return nick_.last_valid()->get_scaled_scan_status();
 	}
 
-	void set_display_type(Outputs::Display::DisplayType display_type) final {
+	void set_display_type(const Outputs::Display::DisplayType display_type) final {
 		nick_.last_valid()->set_display_type(display_type);
 	}
 
@@ -664,7 +664,7 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 
 	uint8_t active_key_line_ = 0;
 	std::array<uint8_t, 10> key_lines_;
-	void set_key_state(uint16_t key, bool is_pressed) final {
+	void set_key_state(const uint16_t key, const bool is_pressed) final {
 		if(is_pressed) {
 			key_lines_[key >> 8] &= ~uint8_t(key);
 		} else {
@@ -689,7 +689,7 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 		}
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const char c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
@@ -710,11 +710,11 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 	// MARK: - Interrupts
 
 	uint8_t interrupt_mask_ = 0x00, interrupt_state_ = 0x00;
-	void set_interrupts(uint8_t mask, HalfCycles offset = HalfCycles(0)) {
+	void set_interrupts(const uint8_t mask, const HalfCycles offset = HalfCycles(0)) {
 		interrupt_state_ |= uint8_t(mask);
 		update_interrupts(offset);
 	}
-	void update_interrupts(HalfCycles offset = HalfCycles(0)) {
+	void update_interrupts(const HalfCycles offset = HalfCycles(0)) {
 		z80_.set_interrupt_line((interrupt_state_ >> 1) & interrupt_mask_, offset);
 	}
 
@@ -743,7 +743,7 @@ if(offset >= location && offset < location + source.size() / 0x4000) {	\
 	EXDos exdos_;
 
 	// MARK: - Activity Source
-	void set_activity_observer([[maybe_unused]] Activity::Observer *observer) final {
+	void set_activity_observer([[maybe_unused]] Activity::Observer *const observer) final {
 		if constexpr (has_disk_controller) {
 			exdos_.set_activity_observer(observer);
 		}
