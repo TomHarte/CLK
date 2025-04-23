@@ -3129,8 +3129,8 @@
 				4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */,
 				4B54C0C11F8D91CD0050900F /* Keyboard.cpp */,
 				4B38F3471F2EC11D00D9235D /* AmstradCPC.hpp */,
-				4B54C0C01F8D91CD0050900F /* Keyboard.hpp */,
 				4B0F1C3D26095AC600B85C66 /* FDC.hpp */,
+				4B54C0C01F8D91CD0050900F /* Keyboard.hpp */,
 			);
 			path = AmstradCPC;
 			sourceTree = "<group>";

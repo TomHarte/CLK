@@ -25,7 +25,7 @@ struct Machine {
 
 	/// Creates and returns an Amstrad CPC.
 	static std::unique_ptr<Machine> AmstradCPC(
-		const Analyser::Static::Target *target,
+		const Analyser::Static::Target *const target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	);
 
@@ -36,7 +36,7 @@ struct Machine {
 		public Configurable::QuickloadOption<Options>
 	{
 	public:
-		Options(Configurable::OptionsType type) :
+		Options(const Configurable::OptionsType type) :
 			Configurable::DisplayOption<Options>(Configurable::Display::RGB),
 			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
 
