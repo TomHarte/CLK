@@ -10,7 +10,7 @@
 
 using namespace Enterprise;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
+uint16_t KeyboardMapper::mapped_key_for_key(const Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return uint16_t(Key::dest)
 	switch(key) {
 		default: break;
@@ -73,7 +73,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+const uint16_t *CharacterMapper::sequence_for_character(const char character) const {
 #define KEYS(x)		{uint16_t(x), MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SHIFT(x)	{uint16_t(Key::LeftShift), uint16_t(x), MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define _			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}

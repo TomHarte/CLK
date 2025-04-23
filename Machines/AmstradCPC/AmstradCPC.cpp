@@ -78,7 +78,7 @@ public:
 	}
 
 	/// Indicates the leading edge of a new vertical sync.
-	inline void set_vsync(bool active) {
+	inline void set_vsync(const bool active) {
 		reset_counter_ = active ? 2 : 0;
 	}
 
@@ -131,7 +131,7 @@ public:
 	}
 
 	/// Adds @c half_cycles half cycles to the amount of time that has passed.
-	inline void run_for(HalfCycles half_cycles) {
+	inline void run_for(const HalfCycles half_cycles) {
 		cycles_since_update_ += half_cycles;
 	}
 
@@ -169,7 +169,7 @@ private:
 */
 class CRTCBusHandler {
 public:
-	CRTCBusHandler(const uint8_t *ram, InterruptTimer &interrupt_timer) :
+	CRTCBusHandler(const uint8_t *const ram, InterruptTimer &interrupt_timer) :
 		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
 		ram_(ram),
 		interrupt_timer_(interrupt_timer) {
@@ -324,7 +324,7 @@ public:
 	}
 
 	/// Sets the destination for output.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 		crt_.set_scan_target(scan_target);
 	}
 
@@ -334,7 +334,7 @@ public:
 	}
 
 	/// Sets the type of display.
-	void set_display_type(Outputs::Display::DisplayType display_type) {
+	void set_display_type(const Outputs::Display::DisplayType display_type) {
 		crt_.set_display_type(display_type);
 	}
 
@@ -347,17 +347,17 @@ public:
 		Sets the next video mode. Per the documentation, mode changes take effect only at the end of line,
 		not immediately. So next means "as of the end of this line".
 	*/
-	void set_next_mode(int mode) {
+	void set_next_mode(const int mode) {
 		next_mode_ = mode;
 	}
 
 	/// Palette management: selects a pen to modify.
-	void select_pen(int pen) {
+	void select_pen(const int pen) {
 		pen_ = pen;
 	}
 
 	/// Palette management: sets the colour of the selected pen.
-	void set_colour(uint8_t colour) {
+	void set_colour(const uint8_t colour) {
 		if(pen_ & 16) {
 			// If border is[/was] currently being output, flush what should have been
 			// drawn in the old colour.
@@ -373,7 +373,7 @@ public:
 	}
 
 private:
-	void output_border(int length) {
+	void output_border(const int length) {
 		assert(length >= 0);
 
 		// A black border can be output via crt_.output_blank for a minor performance
@@ -385,24 +385,30 @@ private:
 		}
 	}
 
-#define Mode0Colour0(c) (((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2))
-#define Mode0Colour1(c) (((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3))
+	template <typename IntT>
+	static auto Mode0Colour0(const IntT c) {
+		return ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2);
+	}
+	template <typename IntT>
+	static auto Mode0Colour1(const IntT c) {
+		return ((c & 0x40) >> 6) | ((c & 0x10) >> 2) | ((c & 0x04) >> 1) | ((c & 0x01) << 3);
+	}
 
-#define Mode1Colour0(c) (((c & 0x80) >> 7) | ((c & 0x08) >> 2))
-#define Mode1Colour1(c) (((c & 0x40) >> 6) | ((c & 0x04) >> 1))
-#define Mode1Colour2(c) (((c & 0x20) >> 5) | ((c & 0x02) >> 0))
-#define Mode1Colour3(c) (((c & 0x10) >> 4) | ((c & 0x01) << 1))
+	template <typename IntT> static auto Mode1Colour0(const IntT c) { return ((c & 0x80) >> 7) | ((c & 0x08) >> 2); }
+	template <typename IntT> static auto Mode1Colour1(const IntT c) { return ((c & 0x40) >> 6) | ((c & 0x04) >> 1); }
+	template <typename IntT> static auto Mode1Colour2(const IntT c) { return ((c & 0x20) >> 5) | ((c & 0x02) >> 0); }
+	template <typename IntT> static auto Mode1Colour3(const IntT c) { return ((c & 0x10) >> 4) | ((c & 0x01) << 1); }
 
-#define Mode3Colour0(c)	(((c & 0x80) >> 7) | ((c & 0x08) >> 2))
-#define Mode3Colour1(c) (((c & 0x40) >> 6) | ((c & 0x04) >> 1))
+	template <typename IntT> static auto Mode3Colour0(const IntT c) { return ((c & 0x80) >> 7) | ((c & 0x08) >> 2); }
+	template <typename IntT> static auto Mode3Colour1(const IntT c) { return ((c & 0x40) >> 6) | ((c & 0x04) >> 1); }
 
 	/*!
 		Creates a lookup table from palette entry to list of affected entries in the value -> pixels lookup tables.
 	*/
 	void establish_palette_hits() {
 		for(size_t c = 0; c < 256; c++) {
-			assert(Mode0Colour0(c) < mode0_palette_hits_.size());
-			assert(Mode0Colour1(c) < mode0_palette_hits_.size());
+			assert(size_t(Mode0Colour0(c)) < mode0_palette_hits_.size());
+			assert(size_t(Mode0Colour1(c)) < mode0_palette_hits_.size());
 			mode0_palette_hits_[Mode0Colour0(c)].push_back(uint8_t(c));
 			mode0_palette_hits_[Mode0Colour1(c)].push_back(uint8_t(c));
 
@@ -471,7 +477,7 @@ private:
 		}
 	}
 
-	void patch_mode_table(size_t pen) {
+	void patch_mode_table(const size_t pen) {
 		switch(mode_) {
 			case 0: {
 				for(uint8_t c : mode0_palette_hits_[pen]) {
@@ -511,19 +517,10 @@ private:
 		}
 	}
 
-#undef Mode0Colour0
-#undef Mode0Colour1
-
-#undef Mode1Colour0
-#undef Mode1Colour1
-#undef Mode1Colour2
-#undef Mode1Colour3
-
-#undef Mode3Colour0
-#undef Mode3Colour1
-
-	uint8_t mapped_palette_value(uint8_t colour) {
-#define COL(r, g, b) (r << 4) | (g << 2) | b
+	uint8_t mapped_palette_value(const uint8_t colour) {
+		static constexpr auto COL = [](int r, int g, int b) {
+			return uint8_t((r << 4) | (g << 2) | b);
+		};
 		constexpr uint8_t mapping[32] = {
 			COL(1, 1, 1),	COL(1, 1, 1),	COL(0, 2, 1),	COL(2, 2, 1),
 			COL(0, 0, 1),	COL(2, 0, 1),	COL(0, 1, 1),	COL(2, 1, 1),
@@ -534,7 +531,6 @@ private:
 			COL(1, 0, 1),	COL(1, 2, 1),	COL(1, 2, 0),	COL(1, 2, 2),
 			COL(1, 0, 0),	COL(1, 0, 2),	COL(1, 1, 0),	COL(1, 1, 2),
 		};
-#undef COL
 		return mapping[colour];
 	}
 
@@ -592,14 +588,14 @@ public:
 	/*!
 		Sets the row currently being reported to the AY.
 	*/
-	void set_row(int row) {
+	void set_row(const int row) {
 		row_ = size_t(row);
 	}
 
 	/*!
 		Reports the state of the currently-selected row as Port A to the AY.
 	*/
-	uint8_t get_port_input(bool port_b) {
+	uint8_t get_port_input(const bool port_b) {
 		if(!port_b && row_ < sizeof(rows_)) {
 			return (row_ == 6) ? rows_[row_] & joy2_state_ : rows_[row_];
 		}
@@ -610,7 +606,7 @@ public:
 	/*!
 		Sets whether @c key on line @c line is currently pressed.
 	*/
-	void set_is_pressed(bool is_pressed, int line, int key) {
+	void set_is_pressed(const bool is_pressed, const int line, const int key) {
 		int mask = 1 << key;
 		assert(size_t(line) < sizeof(rows_));
 		if(is_pressed) rows_[line] &= ~mask; else rows_[line] |= mask;
@@ -646,7 +642,7 @@ private:
 			}),
 			state_(state) {}
 
-		void did_set_input(const Input &input, bool is_active) final {
+		void did_set_input(const Input &input, const bool is_active) final {
 			uint8_t mask = 0;
 			switch(input.type) {
 				default: return;
@@ -684,7 +680,7 @@ public:
 			tape_player_(tape_player) {}
 
 	/// The i8255 will call this to set a new output value of @c value for @c port.
-	void set_value(int port, uint8_t value) {
+	void set_value(const int port, const uint8_t value) {
 		switch(port) {
 			case 0:
 				// Port A is connected to the AY's data bus.
@@ -716,7 +712,7 @@ public:
 	}
 
 	/// The i8255 will call this to obtain a new input for @c port.
-	uint8_t get_value(int port) {
+	uint8_t get_value(const int port) {
 		switch(port) {
 			case 0: return ay_.ay().get_data_output();	// Port A is wired to the AY
 			case 1:	return
@@ -862,7 +858,9 @@ public:
 
 			// Check whether that prompted a change in the interrupt line. If so then date
 			// it to whenever the cycle was triggered.
-			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
+			if(interrupt_timer_.request_has_changed()) {
+				z80_.set_interrupt_line(interrupt_timer_.get_request(), -crtc_counter_);
+			}
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles.
@@ -889,11 +887,16 @@ public:
 					// TODO: just capturing byte reads as below doesn't seem to do that much in terms of acceleration;
 					// I'm not immediately clear whether that's just because the machine still has to sit through
 					// pilot tone in real time, or just that almost no software uses the ROM loader.
-					if(use_fast_tape_hack_ && address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
+					if(
+						use_fast_tape_hack_ &&
+						address == tape_read_byte_address &&
+						read_pointers_[0] == roms_[ROMType::OS].data()
+					) {
 						using Parser = Storage::Tape::ZXSpectrum::Parser;
 						Parser parser(Parser::MachineType::AmstradCPC);
 
-						const auto speed = read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
+						const auto speed =
+							read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
 						parser.set_cpc_read_speed(speed);
 
 						// Seed with the current pulse; the CPC will have finished the
@@ -920,7 +923,8 @@ public:
 							crc_value = tape_crc_.get_value();
 
 							write_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] = uint8_t(crc_value);
-							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] = uint8_t(crc_value >> 8);
+							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] =
+								uint8_t(crc_value >> 8);
 
 							// Indicate successful byte read.
 							z80_.set_value_of(CPU::Z80::Register::A, *byte);
@@ -1081,7 +1085,7 @@ public:
 	}
 
 	/// Fields requests to pump all output.
-	void flush_output(int outputs) final {
+	void flush_output(const int outputs) final {
 		// Just flush the AY.
 		if(outputs & Output::Audio) {
 			ay_.update();
@@ -1093,7 +1097,7 @@ public:
 	}
 
 	/// A CRTMachine function; sets the destination for video.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) final {
 		crtc_bus_handler_.set_scan_target(scan_target);
 	}
 
@@ -1145,7 +1149,7 @@ public:
 		tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 	}
 
-	void set_ssm_delegate(SSMDelegate *delegate) final {
+	void set_ssm_delegate(SSMDelegate *const delegate) final {
 		ssm_delegate_ = delegate;
 	}
 
@@ -1154,7 +1158,7 @@ public:
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const char c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
@@ -1167,7 +1171,7 @@ public:
 	}
 
 	// See header; sets a key as either pressed or released.
-	void set_key_state(uint16_t key, bool isPressed) final {
+	void set_key_state(const uint16_t key, const bool isPressed) final {
 		key_state_.set_is_pressed(isPressed, key >> 4, key & 7);
 	}
 
@@ -1181,7 +1185,7 @@ public:
 	}
 
 	// MARK: - Activity Source
-	void set_activity_observer([[maybe_unused]] Activity::Observer *observer) final {
+	void set_activity_observer(Activity::Observer *const observer) final {
 		if constexpr (has_fdc) fdc_.set_activity_observer(observer);
 		tape_player_.set_activity_observer(observer);
 	}
@@ -1207,7 +1211,7 @@ public:
 	}
 
 private:
-	inline void write_to_gate_array(uint8_t value) {
+	inline void write_to_gate_array(const uint8_t value) {
 		switch(value >> 6) {
 			case 0: crtc_bus_handler_.select_pen(value & 0x1f);		break;
 			case 1: crtc_bus_handler_.set_colour(value & 0x1f);		break;
@@ -1229,8 +1233,14 @@ private:
 				if(has_128k_) {
 					const bool adjust_low_read_pointer = read_pointers_[0] == write_pointers_[0];
 					const bool adjust_high_read_pointer = read_pointers_[3] == write_pointers_[3];
-#define RAM_BANK(x) &ram_[x * 16384]
-#define RAM_CONFIG(a, b, c, d) write_pointers_[0] = RAM_BANK(a); write_pointers_[1] = RAM_BANK(b); write_pointers_[2] = RAM_BANK(c); write_pointers_[3] = RAM_BANK(d);
+
+					const auto RAM_CONFIG = [&](int a, int b, int c, int d) {
+						const auto RAM_BANK = [&](int x) { return &ram_[x * 16384]; };
+						write_pointers_[0] = RAM_BANK(a);
+						write_pointers_[1] = RAM_BANK(b);
+						write_pointers_[2] = RAM_BANK(c);
+						write_pointers_[3] = RAM_BANK(d);
+					};
 					switch(value & 7) {
 						case 0:	RAM_CONFIG(0, 1, 2, 3);	break;
 						case 1:	RAM_CONFIG(0, 1, 2, 7);	break;
@@ -1241,8 +1251,7 @@ private:
 						case 6:	RAM_CONFIG(0, 6, 2, 3);	break;
 						case 7:	RAM_CONFIG(0, 7, 2, 3);	break;
 					}
-#undef RAM_CONFIG
-#undef RAM_BANK
+
 					if(adjust_low_read_pointer) read_pointers_[0] = write_pointers_[0];
 					read_pointers_[1] = write_pointers_[1];
 					read_pointers_[2] = write_pointers_[2];
@@ -1324,7 +1333,10 @@ using namespace AmstradCPC;
 namespace {
 
 template <bool catch_ssm>
-std::unique_ptr<Machine> machine(const Analyser::Static::AmstradCPC::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> machine(
+	const Analyser::Static::AmstradCPC::Target &target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	using Model = Analyser::Static::AmstradCPC::Target::Model;
 	switch(target.model) {
 		default:			return std::make_unique<AmstradCPC::ConcreteMachine<true, catch_ssm>>(target, rom_fetcher);
@@ -1335,7 +1347,10 @@ std::unique_ptr<Machine> machine(const Analyser::Static::AmstradCPC::Target &tar
 }
 
 // See header; constructs and returns an instance of the Amstrad CPC.
-std::unique_ptr<Machine> Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::AmstradCPC(
+	const Analyser::Static::Target *target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	using Target = Analyser::Static::AmstradCPC::Target;
 	const Target *const cpc_target = dynamic_cast<const Target *>(target);
 	if(cpc_target->catch_ssm_codes) {

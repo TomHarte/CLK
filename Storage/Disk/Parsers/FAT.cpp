@@ -118,7 +118,7 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 
 	// Decode the FAT.
 	// TODO: stop assuming FAT12 here.
-	for(size_t c = 0; c < source_fat.size(); c += 3) {
+	for(size_t c = 0; c < source_fat.size() - 2; c += 3) {
 		const uint32_t double_cluster = uint32_t(source_fat[c] + (source_fat[c + 1] << 8) + (source_fat[c + 2] << 16));
 		volume.fat.push_back(uint16_t(double_cluster & 0xfff));
 		volume.fat.push_back(uint16_t(double_cluster >> 12));

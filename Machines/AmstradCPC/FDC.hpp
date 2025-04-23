@@ -21,14 +21,14 @@ private:
 	Intel::i8272::BusHandler bus_handler_;
 
 public:
-	FDC(Cycles clock_rate = Cycles(8000000)) :
+	FDC(const Cycles clock_rate = Cycles(8000000)) :
 		i8272(bus_handler_, clock_rate)
 	{
 		emplace_drive(clock_rate.as<int>(), 300, 1);
 		set_drive(1);
 	}
 
-	void set_motor_on(bool on) {
+	void set_motor_on(const bool on) {
 		get_drive().set_motor_on(on);
 	}
 
@@ -44,7 +44,7 @@ public:
 		return get_drive().disk();
 	}
 
-	void set_activity_observer(Activity::Observer *observer) {
+	void set_activity_observer(Activity::Observer *const observer) {
 		get_drive().set_activity_observer(observer, "Drive 1", true);
 	}
 };

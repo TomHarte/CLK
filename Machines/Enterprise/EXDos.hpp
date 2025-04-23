@@ -14,20 +14,19 @@
 namespace Enterprise {
 
 class EXDos final : public WD::WD1770 {
-	public:
-		EXDos();
+public:
+	EXDos();
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
+	void set_disk(std::shared_ptr<Storage::Disk::Disk>, const size_t drive);
 
-		void set_control_register(uint8_t control);
-		uint8_t get_control_register();
+	void set_control_register(uint8_t);
+	uint8_t get_control_register();
 
-		void set_activity_observer(Activity::Observer *observer);
+	void set_activity_observer(Activity::Observer *);
 
-	private:
-		bool disk_did_change_ = false;
-
-		void set_motor_on(bool on) override;
+private:
+	bool disk_did_change_ = false;
+	void set_motor_on(bool) override;
 };
 
 }
