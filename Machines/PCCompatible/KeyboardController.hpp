@@ -169,8 +169,7 @@ public:
 		}
 	}
 
-	template <typename IntT>
-	IntT read(const uint16_t port) {
+	uint8_t read(const uint16_t port) {
 		switch(port) {
 			default:
 //				log_.error().append("Unimplemented AT keyboard read from %04x", port);
@@ -209,7 +208,7 @@ public:
 				return status;
 			}
 		}
-		return IntT(~0);
+		return 0xff;
 	}
 
 	void set_cpu_control(CPUControl<model> *const control) {
@@ -265,7 +264,7 @@ private:
 				post(0x55);
 			break;
 
-			case 0xd1:	// Set output byte. b1 = the A20 gate.
+			case 0xd1:	// Set output byte. b1 = the A20 gate, 1 => A20 enabled.
 				log_.error().append("Should set A20 gate: %d", output_ & 0x02);
 				cpu_control_->set_a20_enabled(output_ & 0x02);
 			break;

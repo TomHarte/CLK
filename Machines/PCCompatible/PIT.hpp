@@ -194,20 +194,20 @@ private:
 		void write([[maybe_unused]] PITObserver &observer, const uint8_t value) {
 			switch(latch_mode) {
 				case LatchMode::LowOnly:
-					reload = (reload & 0xff00) | value;
+					latch = reload = (reload & 0xff00) | value;
 				break;
 				case LatchMode::HighOnly:
-					reload = uint16_t((reload & 0x00ff) | (value << 8));
+					latch = reload = uint16_t((reload & 0x00ff) | (value << 8));
 				break;
 				case LatchMode::LowHigh:
 					next_access_high ^= true;
 					if(next_access_high) {
-						reload = (reload & 0xff00) | value;
+						latch = reload = (reload & 0xff00) | value;
 						awaiting_reload = true;
 						return;
 					}
 
-					reload = uint16_t((reload & 0x00ff) | (value << 8));
+					latch = reload = uint16_t((reload & 0x00ff) | (value << 8));
 				break;
 			}
 
@@ -216,6 +216,11 @@ private:
 			switch(mode) {
 				default:
 					counter = reload;
+				break;
+
+				case OperatingMode::InterruptOnTerminalCount:
+				case OperatingMode::HardwareRetriggerableOneShot:
+					set_output<channel>(observer, false);
 				break;
 
 				case OperatingMode::SquareWaveGenerator:

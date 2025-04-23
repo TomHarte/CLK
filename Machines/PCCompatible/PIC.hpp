@@ -128,10 +128,10 @@ public:
 
 	bool pending() const {
 		// Per the OSDev Wiki, masking is applied after the fact.
-		return !awaiting_eoi_ && (requests_ & ~mask_);
+		return (requests_ & ~mask_);	// !awaiting_eoi_ && 
 	}
 
-	int acknowledge() {
+	uint8_t acknowledge() {
 		in_service_ = 0x01;
 		int id = 0;
 		while(!(in_service_ & requests_) && in_service_) {
@@ -143,11 +143,11 @@ public:
 			eoi_target_ = id;
 			awaiting_eoi_ = !auto_eoi_;
 			requests_ &= ~in_service_;
-			return vector_base_ + id;
+			return uint8_t(vector_base_ + id);
 		}
 
 		// Spurious interrupt.
-		return vector_base_ + 7;
+		return uint8_t(vector_base_ + 7);
 	}
 
 private:

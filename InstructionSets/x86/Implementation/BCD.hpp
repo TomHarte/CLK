@@ -75,8 +75,12 @@ void aam(
 		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
 	*/
 	if(!imm) {
-		interrupt(Interrupt::DivideError, context);
-		return;
+		if constexpr (uses_8086_exceptions(ContextT::model)) {
+			interrupt(Interrupt::DivideError, context);
+			return;
+		} else {
+			throw Exception(Interrupt::DivideError);
+		}
 	}
 
 	ax.halves.high = ax.halves.low / imm;

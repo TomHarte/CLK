@@ -12,7 +12,8 @@
 #include "Numeric/RegisterSizes.hpp"
 #include "Outputs/Log.hpp"
 
-#include "Memory.hpp"
+#include "ProcessorByModel.hpp"
+#include "SegmentedMemory.hpp"
 
 #include <array>
 
@@ -249,6 +250,10 @@ public:
 		pages_[page_for_index(index)] = value;
 		if(index == 0x00) {
 			log_.info().append("%02x", value);
+
+			if(value == 0x2b) {
+				printf("");
+			}
 		}
 	}
 
@@ -302,7 +307,8 @@ public:
 	DMAPages<has_second_dma> pages;
 
 	// Memory is set posthoc to resolve a startup time.
-	void set_memory(Memory<model> *const memory) {
+	// TODO: has this been resolved by separation of memory into linear and segmented.
+	void set_memory(LinearMemory<processor_model(model)> *const memory) {
 		memory_ = memory;
 	}
 
@@ -319,7 +325,7 @@ public:
 	}
 
 private:
-	Memory<model> *memory_;
+	LinearMemory<processor_model(model)> *memory_;
 };
 
 }

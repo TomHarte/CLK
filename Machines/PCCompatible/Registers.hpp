@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "InstructionSets/x86/Instruction.hpp"	// For DescriptorTable.
+#include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/MachineStatus.hpp"
 #include "InstructionSets/x86/Model.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
@@ -45,23 +46,29 @@ public:
 	uint16_t &si()	{	return si_;				}
 	uint16_t &di()	{	return di_;				}
 
-	uint16_t &ip()	{	return ip_;				}
+	uint16_t &ip()		{	return ip_;			}
+	uint16_t ip() const	{	return ip_;			}
 
-	uint16_t &es()		{	return es_;			}
-	uint16_t &cs()		{	return cs_;			}
-	uint16_t &ds()		{	return ds_;			}
-	uint16_t &ss()		{	return ss_;			}
-	uint16_t es() const	{	return es_;			}
-	uint16_t cs() const	{	return cs_;			}
-	uint16_t ds() const	{	return ds_;			}
-	uint16_t ss() const	{	return ss_;			}
+	uint16_t &es()		{	return segments_[Source::ES];	}
+	uint16_t &cs()		{	return segments_[Source::CS];	}
+	uint16_t &ds()		{	return segments_[Source::DS];	}
+	uint16_t &ss()		{	return segments_[Source::SS];	}
+	uint16_t es() const	{	return segments_[Source::ES];	}
+	uint16_t cs() const	{	return segments_[Source::CS];	}
+	uint16_t ds() const	{	return segments_[Source::DS];	}
+	uint16_t ss() const	{	return segments_[Source::SS];	}
+	uint16_t segment(const InstructionSet::x86::Source segment) const {
+		return segments_[segment];
+	}
 
 	void reset() {
-		cs_ = 0xffff;
+		segments_[Source::CS] = 0xffff;
 		ip_ = 0;
 	}
 
 private:
+	using Source = InstructionSet::x86::Source;
+
 	CPU::RegisterPair16 ax_;
 	CPU::RegisterPair16 cx_;
 	CPU::RegisterPair16 dx_;
@@ -71,8 +78,8 @@ private:
 	uint16_t bp_;
 	uint16_t si_;
 	uint16_t di_;
-	uint16_t es_, cs_, ds_, ss_;
 	uint16_t ip_;
+	InstructionSet::x86::SegmentRegisterSet<uint16_t> segments_;
 };
 
 template <>
@@ -87,9 +94,14 @@ public:
 	}
 
 	uint16_t msw() const {	return machine_status_;	}
+	void set_msw(const uint16_t msw) {
+		machine_status_ =
+			(machine_status_ & InstructionSet::x86::MachineStatus::ProtectedModeEnable) |
+			msw;
+	}
 
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTableLocation = InstructionSet::x86::DescriptorTableLocation;
+	using DescriptorTableLocation = InstructionSet::x86::DescriptorTablePointer;
 
 	template <DescriptorTable table>
 	void set(const DescriptorTableLocation location) {
@@ -100,15 +112,20 @@ public:
 	}
 
 	template <DescriptorTable table>
-	DescriptorTableLocation get() {
-		static constexpr bool is_global = table == DescriptorTable::Global;
-		static_assert(is_global || table == DescriptorTable::Interrupt);
-		return is_global ? global_ : interrupt_;
+	const DescriptorTableLocation &get() const {
+		if constexpr (table == DescriptorTable::Global) {
+			return global_;
+		} else if constexpr (table == DescriptorTable::Interrupt) {
+			return interrupt_;
+		} else {
+			static_assert(table == DescriptorTable::Local);
+			return local_;
+		}
 	}
 
 private:
 	uint16_t machine_status_;
-	DescriptorTableLocation global_, interrupt_;
+	DescriptorTableLocation global_, interrupt_, local_;
 };
 
 }

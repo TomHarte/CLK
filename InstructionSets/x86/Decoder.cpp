@@ -194,6 +194,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 					displacement(Operation::JP, DataSize::Byte);
 				} else {
 					immediate(Operation::PUSH, DataSize::Byte);
+					operation_size_ = data_size_;
 				}
 			break;
 			case 0x6b:
@@ -789,6 +790,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 			case ModRegRMFormat::MemRegROL_to_SAR:
 				destination_ = memreg;
+
+				// TODO: is this true? It appears empirically to be so from the PC AT BIOS, but find a source.
+				if(operand_size_ != DataSize::None) {
+					operand_size_ = DataSize::Byte;
+				}
 
 				switch(reg) {
 					default:

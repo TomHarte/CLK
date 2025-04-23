@@ -174,7 +174,8 @@ void enter(
 		for(int c = 1; c < nesting_level; c++) {
 			context.registers.bp() -= 2;
 
-			const auto value = context.memory.template preauthorised_read<uint16_t>(Source::SS, context.registers.bp());
+			const auto value =
+				context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(Source::SS, context.registers.bp());
 			push<uint16_t, true>(value, context);
 		}
 		push<uint16_t, true>(frame, context);

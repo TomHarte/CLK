@@ -20,8 +20,10 @@
 #include "ShiftRoll.hpp"
 #include "Stack.hpp"
 
-#include "InstructionSets/x86/Interrupts.hpp"
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/Interrupts.hpp"
+#include "InstructionSets/x86/MachineStatus.hpp"
 
 //
 // Comments throughout headers above come from the 1997 edition of the
@@ -181,10 +183,22 @@ template <
 			assert(false);
 			[[fallthrough]];
 
-		case Operation::Invalid:
-			// TODO: throw on higher-order processors.
-		case Operation::ESC:
 		case Operation::NOP:	return;
+
+		case Operation::Invalid:
+			if constexpr (!uses_8086_exceptions(ContextT::model)) {
+				throw Exception(Interrupt::InvalidOpcode);
+			}
+		return;
+
+		case Operation::ESC:
+			if constexpr (!uses_8086_exceptions(ContextT::model)) {
+				const auto should_throw = context.registers.msw() & MachineStatus::EmulateProcessorExtension;
+				if(should_throw) {
+					throw Exception(Interrupt::DeviceNotAvailable);
+				}
+			}
+		return;
 
 		case Operation::AAM:
 			Primitive::aam(context.registers.axp(), uint8_t(instruction.operand()), context);
@@ -287,6 +301,9 @@ template <
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
 		case Operation::MOV:
+			if constexpr (std::is_same_v<IntT, uint16_t>) {
+				// TODO: if this is a move into a segment register then preauthorise.
+			}
 			Primitive::mov<IntT>(destination_w(), source_r());
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				context.segments.did_update(instruction.destination().source());
@@ -296,6 +313,13 @@ template <
 		case Operation::SMSW:
 			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
 				Primitive::smsw(destination_w(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::LMSW:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				Primitive::lmsw(source_r(), context);
 			} else {
 				assert(false);
 			}
@@ -575,8 +599,17 @@ template <
 	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
 	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
-	const uint16_t ip = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address);
-	const uint16_t cs = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 2);
+	if constexpr (ContextT::model >= Model::i80286) {
+		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
+			// TODO: use the IDT, ummm, somehow.
+			assert(false);
+		}
+	}
+
+	// TODO: I think (?) these are always physical addresses, not linear ones.
+	// Indicate that when fetching.
+	const uint16_t ip = context.linear_memory.template read<uint16_t>(address);
+	const uint16_t cs = context.linear_memory.template read<uint16_t>(address + 2);
 
 	const auto flags = context.flags.get();
 	Primitive::push<uint16_t, true>(flags, context);

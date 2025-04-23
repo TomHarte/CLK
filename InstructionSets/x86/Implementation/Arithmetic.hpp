@@ -167,6 +167,19 @@ void imul(
 	context.flags.template set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
 }
 
+template <typename ContextT>
+void divide_error(ContextT &context) {
+	// 8086-style: just segue directly to the interrupt.
+	//
+	// 80286-style: throw the divide error, allowing the caller to insert
+	// additional context (primarily: IP of this instruction, not the next).
+	if constexpr (uses_8086_exceptions(ContextT::model)) {
+		interrupt(Interrupt::DivideError, context);
+	} else {
+		throw Exception(Interrupt::DivideError);
+	}
+}
+
 template <typename IntT, typename ContextT>
 void div(
 	modify_t<IntT> destination_high,
@@ -212,16 +225,14 @@ void div(
 		The CF, OF, SF, ZF, AF, and PF flags are undefined.
 	*/
 	if(!source) {
-		interrupt(Interrupt::DivideError, context);
-		return;
+		return divide_error(context);
 	}
 
 	// TEMPORARY HACK. Will not work with DWords.
 	const uint32_t dividend = uint32_t((destination_high << (8 * sizeof(IntT))) + destination_low);
 	const auto result = dividend / source;
 	if(IntT(result) != result) {
-		interrupt(Interrupt::DivideError, context);
-		return;
+		return divide_error(context);
 	}
 
 	destination_low = IntT(result);
@@ -276,8 +287,7 @@ void idiv(
 		The CF, OF, SF, ZF, AF, and PF flags are undefined.
 	*/
 	if(!source) {
-		interrupt(Interrupt::DivideError, context);
-		return;
+		return divide_error(context);
 	}
 
 	// TEMPORARY HACK. Will not work with DWords.
@@ -292,8 +302,7 @@ void idiv(
 	}
 
 	if(sIntT(result) != result) {
-		interrupt(Interrupt::DivideError, context);
-		return;
+		return divide_error(context);
 	}
 
 	destination_low = IntT(result);

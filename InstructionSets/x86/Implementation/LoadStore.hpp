@@ -9,6 +9,9 @@
 #pragma once
 
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/MachineStatus.hpp"
 
 #include <utility>
 
@@ -85,6 +88,19 @@ void smsw(
 	destination = context.registers.msw();
 }
 
+template <typename ContextT>
+void lmsw(
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	context.registers.set_msw(source);
+	if(source & MachineStatus::ProtectedModeEnable) {
+		context.cpu_control.set_mode(Mode::Protected286);
+//		context.memory.set_mode(Mode::Protected286);
+//		context.segments.set_mode(Mode::Protected286);
+	}
+}
+
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
 void ldt(
 	read_t<AddressT> source_address,
@@ -97,7 +113,7 @@ void ldt(
 		source_address,
 		6);
 
-	DescriptorTableLocation location;
+	DescriptorTablePointer location;
 	location.limit =
 		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(segment, source_address);
 	location.base =
