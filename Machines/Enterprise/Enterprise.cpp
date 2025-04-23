@@ -581,22 +581,24 @@ private:
 	uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t pages_[4] = {0x80, 0x80, 0x80, 0x80};
 
+	template <size_t slot, typename RomT>
+	bool page_rom(const uint8_t offset, const uint8_t location, const RomT &source) {
+		if(offset < location || offset >= location + source.size() / 0x4000) {
+			return false;
+		}
+
+		page<slot>(&source[(offset - location) * 0x4000], nullptr);
+		is_video_[slot] = false;
+		return true;
+	}
+
 	template <size_t slot> void page(const uint8_t offset) {
 		pages_[slot] = offset;
 
-#define Map(location, source)											\
-if(offset >= location && offset < location + source.size() / 0x4000) {	\
-	page<slot>(&source[(offset - location) * 0x4000], nullptr);			\
-	is_video_[slot] = false;											\
-	return;																\
-}
-
-		Map(0, exos_);
-		Map(16, basic_);
-		Map(32, exdos_rom_);
-		Map(48, epdos_rom_);
-
-#undef Map
+		if(page_rom<slot>(offset, 0, exos_)) return;
+		if(page_rom<slot>(offset, 16, basic_)) return;
+		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
+		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
 
 		// Of whatever size of RAM I've declared above, use only the final portion.
 		// This correlated with Nick always having been handed the final 64kb and,
