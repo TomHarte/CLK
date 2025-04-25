@@ -322,7 +322,7 @@ void MainWindow::launchMachine() {
 		if(speaker) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 			QAudioDevice device(QMediaDevices::defaultAudioOutput());
-			if(true) {  // TODO: how to check that audio output is available in Qt6?
+			if(true) {	// TODO: how to check that audio output is available in Qt6?
 				QAudioFormat idealFormat = device.preferredFormat();
 #else
 			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
@@ -412,13 +412,13 @@ void MainWindow::launchMachine() {
 #endif
 		inputMenu->addAction(asJoystickAction);
 
-		connect(asKeyboardAction, &QAction::triggered, this, [=] {
+		connect(asKeyboardAction, &QAction::triggered, this, [=, this] {
 			keyboardInputMode = KeyboardInputMode::Keyboard;
 			asKeyboardAction->setChecked(true);
 			asJoystickAction->setChecked(false);
 		});
 
-		connect(asJoystickAction, &QAction::triggered, this, [=] {
+		connect(asJoystickAction, &QAction::triggered, this, [=, this] {
 			keyboardInputMode = KeyboardInputMode::Joystick;
 			asKeyboardAction->setChecked(false);
 			asJoystickAction->setChecked(true);
@@ -558,7 +558,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 		if(!action) continue;
 
 		action->setChecked(displaySelection == defaultDisplay);
-		connect(action, &QAction::triggered, this, [=] {
+		connect(action, &QAction::triggered, this, [=, this] {
 			for(auto otherAction: {compositeColourAction, compositeMonochromeAction, sVideoAction, rgbAction}) {
 				if(otherAction && otherAction != action) otherAction->setChecked(false);
 			}
@@ -596,7 +596,7 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 		}																							\
 		action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);	\
 																									\
-		connect(action, &QAction::triggered, this, [=] {											\
+		connect(action, &QAction::triggered, this, [=, this] {										\
 			std::lock_guard lock_guard(machineMutex);												\
 			auto options = machine->configurable_device()->get_options();							\
 			Reflection::set(*options, setting, action->isChecked());								\
@@ -628,7 +628,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	// Add the start/stop items.
 	startTapeAction = new QAction(tr("Start Tape"), this);
 	controlsMenu->addAction(startTapeAction);
-	connect(startTapeAction, &QAction::triggered, this, [=] {
+	connect(startTapeAction, &QAction::triggered, this, [=, this] {
 		std::lock_guard lock_guard(machineMutex);
 		static_cast<Sinclair::ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(true);
 		updateTapeControls();
@@ -636,7 +636,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 
 	stopTapeAction = new QAction(tr("Stop Tape"), this);
 	controlsMenu->addAction(stopTapeAction);
-	connect(stopTapeAction, &QAction::triggered, this, [=] {
+	connect(stopTapeAction, &QAction::triggered, this, [=, this] {
 		std::lock_guard lock_guard(machineMutex);
 		static_cast<Sinclair::ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(false);
 		updateTapeControls();
@@ -644,7 +644,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 
 	updateTapeControls();
 
-	connect(automaticTapeControlAction, &QAction::triggered, this, [=] {
+	connect(automaticTapeControlAction, &QAction::triggered, this, [=, this] {
 		updateTapeControls();
 	});
 }
@@ -662,7 +662,7 @@ void MainWindow::addAtari2600Menu() {
 
 	QAction *const blackAndWhiteAction = new QAction(tr("Black and white"));
 	blackAndWhiteAction->setCheckable(true);
-	connect(blackAndWhiteAction, &QAction::triggered, this, [=] {
+	connect(blackAndWhiteAction, &QAction::triggered, this, [=, this] {
 		std::lock_guard lock_guard(machineMutex);
 		// TODO: is this switch perhaps misnamed?
 		static_cast<Atari2600::Machine *>(machine->raw_pointer())->set_switch_is_enabled(Atari2600SwitchColour, blackAndWhiteAction->isChecked());
@@ -671,7 +671,7 @@ void MainWindow::addAtari2600Menu() {
 
 	QAction *const leftDifficultyAction = new QAction(tr("Left Difficulty"));
 	leftDifficultyAction->setCheckable(true);
-	connect(leftDifficultyAction, &QAction::triggered, this, [=] {
+	connect(leftDifficultyAction, &QAction::triggered, this, [=, this] {
 		std::lock_guard lock_guard(machineMutex);
 		static_cast<Atari2600::Machine *>(machine->raw_pointer())->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftDifficultyAction->isChecked());
 	});
@@ -679,7 +679,7 @@ void MainWindow::addAtari2600Menu() {
 
 	QAction *const rightDifficultyAction = new QAction(tr("Right Difficulty"));
 	rightDifficultyAction->setCheckable(true);
-	connect(rightDifficultyAction, &QAction::triggered, this, [=] {
+	connect(rightDifficultyAction, &QAction::triggered, this, [=, this] {
 		std::lock_guard lock_guard(machineMutex);
 		static_cast<Atari2600::Machine *>(machine->raw_pointer())->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightDifficultyAction->isChecked());
 	});
@@ -689,13 +689,13 @@ void MainWindow::addAtari2600Menu() {
 
 	QAction *const gameSelectAction = new QAction(tr("Game Select"));
 	controlsMenu->addAction(gameSelectAction);
-	connect(gameSelectAction, &QAction::triggered, this, [=] {
+	connect(gameSelectAction, &QAction::triggered, this, [=, this] {
 		toggleAtari2600Switch(Atari2600SwitchSelect);
 	});
 
 	QAction *const gameResetAction = new QAction(tr("Game Reset"));
 	controlsMenu->addAction(gameResetAction);
-	connect(gameSelectAction, &QAction::triggered, this, [=] {
+	connect(gameSelectAction, &QAction::triggered, this, [=, this] {
 		toggleAtari2600Switch(Atari2600SwitchReset);
 	});
 }
@@ -717,7 +717,7 @@ void MainWindow::addAppleIIMenu() {
 	// Add an additional tick box, for square pixels.
 	QAction *const squarePixelsAction = new QAction(tr("Square Pixels"));
 	squarePixelsAction->setCheckable(true);
-	connect(squarePixelsAction, &QAction::triggered, this, [=] {
+	connect(squarePixelsAction, &QAction::triggered, this, [=, this] {
 		std::lock_guard lock_guard(machineMutex);
 
 		// Apply the new setting to the machine.
@@ -806,7 +806,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 						dir.mkpath(".");
 
 					// Write into place.
-					const std::string destination =  QDir::toNativeSeparators(QString::fromStdString(path+ "/" + target_rom->file_names[0])).toStdString();
+					const std::string destination = QDir::toNativeSeparators(QString::fromStdString(path+ "/" + target_rom->file_names[0])).toStdString();
 					FILE *const target = fopen(destination.c_str(), "wb");
 					fwrite(contents->data(), 1, contents->size(), target);
 					fclose(target);
