@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 
 namespace Commodore::Plus4 {
 
@@ -400,8 +401,7 @@ public:
 			const auto period = [&] {
 				auto period = std::min(next - horizontal_counter_, ticks_remaining);
 				if(delayed_events_) {
-					period = std::min(period, __builtin_ctzll(delayed_events_) / DelayEventSize);
-					// TODO: switch to std::countr_zero upon adoption of C++20.
+					period = std::min(period, std::countr_zero(delayed_events_) / DelayEventSize);
 				}
 				return period;
 			}();
