@@ -12,6 +12,7 @@
 #include "InstructionSets/M68k/ExceptionVectors.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cmath>
 
@@ -417,21 +418,11 @@ void rotate(const uint32_t source, IntT &destination, Status &status, FlowContro
 
 		switch(operation) {
 			case Operation::ROLb:	case Operation::ROLw:	case Operation::ROLl:
-				if(shift) {
-					destination = IntT(
-						(destination << shift) |
-						(destination >> (size - shift))
-					);
-				}
+				destination = std::rotl<IntT>(destination, shift);
 				status.carry_flag = Status::FlagT(destination & 1);
 			break;
 			case Operation::RORb:	case Operation::RORw:	case Operation::RORl:
-				if(shift) {
-					destination = IntT(
-						(destination >> shift) |
-						(destination << (size - shift))
-					);
-				}
+				destination = std::rotr<IntT>(destination, shift);
 				status.carry_flag = Status::FlagT(destination & Numeric::top_bit<IntT>());
 			break;
 		}

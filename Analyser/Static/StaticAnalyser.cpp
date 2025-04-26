@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -340,13 +341,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	TargetPlatform::IntType potential_platforms = 0;
 	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
 
-	// TODO: std::popcount here.
-	int total_options = 0;
-	TargetPlatform::IntType mask = 1;
-	while(mask) {
-		total_options += bool(potential_platforms & mask);
-		mask <<= 1;
-	}
+	int total_options = std::popcount(potential_platforms);
 	const bool is_confident = total_options == 1;
 	// i.e. This analyser `is_confident` if file analysis suggested only one potential target platform.
 	// The machine-specific static analyser will still run in case it can provide meaningful annotations on
