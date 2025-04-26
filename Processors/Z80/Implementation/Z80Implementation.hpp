@@ -46,11 +46,8 @@ template <	class T,
 	};
 
 	/// Computes parity for @c v, leaving it bit 2 of parity_overflow_result_; the other bits are undefined.
-	const auto set_parity = [&](uint8_t v) {
-		parity_overflow_result_ = uint8_t(v^1);
-		parity_overflow_result_ ^= parity_overflow_result_ >> 4;
-		parity_overflow_result_ ^= parity_overflow_result_ << 2;
-		parity_overflow_result_ ^= parity_overflow_result_ >> 1;
+	const auto set_parity = [&](const uint8_t v) {
+		parity_overflow_result_ = uint8_t((1 ^ (std::popcount(v) & 1)) << 2);
 	};
 
 	/// Sets flags as expected at the end of a logical operation — an AND, OR or XOR.
