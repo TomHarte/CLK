@@ -9,12 +9,8 @@
 #include "FIRFilter.hpp"
 
 #include <cmath>
+#include <numbers>
 #include <numeric>
-
-#ifndef M_PI
-static constexpr float M_PI = 3.1415926f;
-// TODO: use std::numbers::pi_v when switching to C++20.
-#endif
 
 using namespace SignalProcessing;
 
@@ -134,7 +130,7 @@ FIRFilter::FIRFilter(
 	std::vector<float> A(Np+1);
 	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
 	for(unsigned int i = 1; i <= Np; ++i) {
-		const float i_pi = float(i) * float(M_PI);
+		const float i_pi = float(i) * std::numbers::pi_v<float>;
 		A[i] =
 			(
 				sinf(two_over_sample_rate * i_pi * high_frequency) -
