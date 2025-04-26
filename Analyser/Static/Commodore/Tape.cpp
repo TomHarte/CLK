@@ -9,6 +9,8 @@
 #include "Tape.hpp"
 #include "Storage/Tape/Parsers/Commodore.hpp"
 
+#include <algorithm>
+
 using namespace Analyser::Static::Commodore;
 
 std::vector<File> Analyser::Static::Commodore::GetFiles(Storage::Tape::TapeSerialiser &serialiser, TargetPlatform::Type type) {
@@ -37,7 +39,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(Storage::Tape::TapeSeria
 					header = parser.get_next_header(serialiser);
 					if(!header) continue;
 					if(header->type != Storage::Tape::Commodore::Header::DataBlock) break;
-					std::copy(header->data.begin(), header->data.end(), std::back_inserter(new_file.data));
+					std::ranges::copy(header->data, std::back_inserter(new_file.data));
 				}
 			}
 			break;

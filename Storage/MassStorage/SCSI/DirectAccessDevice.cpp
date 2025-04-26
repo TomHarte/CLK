@@ -9,6 +9,8 @@
 #include "DirectAccessDevice.hpp"
 #include "Outputs/Log.hpp"
 
+#include <algorithm>
+
 using namespace SCSI;
 
 namespace {
@@ -30,7 +32,7 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 	std::vector<uint8_t> output = device_->get_block(specs.address);
 	for(uint32_t offset = 1; offset < specs.number_of_blocks; ++offset) {
 		const auto next_block = device_->get_block(specs.address + offset);
-		std::copy(next_block.begin(), next_block.end(), std::back_inserter(output));
+		std::ranges::copy(next_block, std::back_inserter(output));
 	}
 
 	responder.send_data(std::move(output), [] (const Target::CommandState &, Target::Responder &responder) {

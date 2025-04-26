@@ -742,7 +742,7 @@ int main(int argc, char *argv[]) {
 					}
 
 					if(!file) {
-						std::copy(rom_checked_paths.begin(), rom_checked_paths.end(), std::back_inserter(checked_paths));
+						std::ranges::copy(rom_checked_paths, std::back_inserter(checked_paths));
 						continue;
 					}
 
@@ -757,7 +757,7 @@ int main(int argc, char *argv[]) {
 					if(read == data.size()) {
 						results[description.name] = std::move(data);
 					} else {
-						std::copy(rom_checked_paths.begin(), rom_checked_paths.end(), std::back_inserter(checked_paths));
+						std::ranges::copy(rom_checked_paths, std::back_inserter(checked_paths));
 					}
 				}
 			}

@@ -16,6 +16,8 @@
 #include "Outputs/Log.hpp"
 #include "Activity/Observer.hpp"
 
+#include <algorithm>
+
 namespace Archimedes {
 
 /// Provides the mask with all bits set in the range [start, end], where start must  be >= end.
@@ -53,9 +55,8 @@ struct MemoryController {
 		// Copy in as many times as it'll fit.
 		std::size_t base = 0;
 		while(base < rom_.size()) {
-			std::copy(
-				rom.begin(),
-				rom.end(),
+			std::ranges::copy(
+				rom,
 				rom_.begin() + base);
 			base += rom.size();
 		}
