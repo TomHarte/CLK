@@ -56,7 +56,7 @@ template <	class T,
 	/// * P/V is set according to the parity of A;
 	/// * N and C are cleared; and
 	/// * H is set to whatever value is supplied as an argument.
-	const auto set_logical_flags = [&](uint8_t half_carry) {
+	const auto set_logical_flags = [&](const uint8_t half_carry) {
 		sign_result_ = zero_result_ = bit53_result_ = a_;
 		set_parity(a_);
 		half_carry_result_ = half_carry;
@@ -73,7 +73,9 @@ template <	class T,
 	/// * V is set according to bit 7 of overflow;
 	/// * N is set to whatever is supplied as subtact; and
 	/// * 5 & 3 are set to the respective bits of bits53.
-	const auto set_arithmetic_flags = [&](int result, int half_result, int overflow, uint8_t subtract, uint8_t bits53) {
+	const auto set_arithmetic_flags = [&](
+		const int result, const int half_result, const int overflow, const uint8_t subtract, const uint8_t bits53
+	) {
 		sign_result_ = zero_result_ = uint8_t(result);
 		carry_result_ = uint8_t(result >> 8);
 		half_carry_result_ = uint8_t(half_result);
@@ -88,7 +90,7 @@ template <	class T,
 	/// * C is set to whatever is supplied as new_carry;
 	/// * 5 and 3 are set from the result now stored in A; and
 	/// * H and N are reset.
-	const auto set_rotate_flags = [&](uint8_t new_carry) {
+	const auto set_rotate_flags = [&](const uint8_t new_carry) {
 		bit53_result_ = a_;
 		carry_result_ = new_carry;
 		half_carry_result_ = subtract_flag_ = 0;
@@ -100,7 +102,7 @@ template <	class T,
 	/// * S, Z, 5 and 3 are set according to the value of source;
 	/// * P is set according to the parity of the source; and
 	/// * H and N are reset.
-	const auto set_shift_flags = [&](uint8_t source) {
+	const auto set_shift_flags = [&](const uint8_t source) {
 		sign_result_ = zero_result_ = bit53_result_ = source;
 		set_parity(source);
 		half_carry_result_ = subtract_flag_ = 0;
@@ -109,7 +111,7 @@ template <	class T,
 
 	/// Takes appropriate action for an untaken conditional branch; this might mean just skipping to the next instruction or it might mean taking
 	/// some other alternative follow-up action.
-	const auto decline_conditional = [&](const MicroOp *operation) {
+	const auto decline_conditional = [&](const MicroOp *const operation) {
 		if(operation->source) {
 			scheduled_program_counter_ = static_cast<MicroOp *>(operation->source);
 		} else {
@@ -120,7 +122,7 @@ template <	class T,
 	/// Performs the repeat step of LDIR, LDDR, etc that either:
 	/// * repeats this instruction if test is true, updating MEMPTR appropriately; or
 	/// * moves to the next operation otherwise.
-	const auto repeat_mem = [&](bool test) {
+	const auto repeat_mem = [&](const bool test) {
 		if(test) {
 			pc_.full -= 2;
 			memptr_.full = pc_.full + 1;
@@ -133,7 +135,7 @@ template <	class T,
 	/// * repeats this instruction if test is true; or
 	/// * moves to the next operation otherwise.
 	/// Unlike repeat_memptr, this does not affect MEMPTR.
-	const auto repeat_io = [&](bool test) {
+	const auto repeat_io = [&](const bool test) {
 		if(test) {
 			pc_.full -= 2;
 		} else {
@@ -142,7 +144,7 @@ template <	class T,
 	};
 
 	/// Performs a single instance of LDD/LDI/LDDR/LDIR, setting flags appropriately.
-	const auto LDxR = [&](int direction) {
+	const auto LDxR = [&](const int direction) {
 		--bc_.full;
 		de_.full += direction;
 		hl_.full += direction;
@@ -156,7 +158,7 @@ template <	class T,
 	};
 
 	/// Performs a single instance of CPD/CPI/CPDR/CPIR, setting flags appropriately.
-	const auto CPxR = [&](int direction) {
+	const auto CPxR = [&](const int direction) {
 		--bc_.full;
 		hl_.full += direction;
 		memptr_.full += direction;
@@ -175,7 +177,7 @@ template <	class T,
 	};
 
 	/// Performs a single instance of IND/INI/INDR/INIR, setting flags appropriately.
-	const auto INxR = [&](int direction) {
+	const auto INxR = [&](const int direction) {
 		memptr_.full = uint16_t(bc_.full + direction);
 		--bc_.halves.high;
 		hl_.full += direction;
@@ -200,7 +202,7 @@ template <	class T,
 	};
 
 	/// Performs a single instance of OTD/OTI/OTDR/OTIR, setting flags appropriately.
-	const auto OUTxR = [&](int direction) {
+	const auto OUTxR = [&](const int direction) {
 		--bc_.halves.high;
 		memptr_.full = uint16_t(bc_.full + direction);
 		hl_.full += direction;
@@ -694,29 +696,27 @@ template <	class T,
 					set_rotate_flags(new_carry);
 				} break;
 
-				case MicroOp::RLCA: {
-					const uint8_t new_carry = a_ >> 7;
-					a_ = uint8_t((a_ << 1) | new_carry);
-					set_rotate_flags(new_carry);
-				} break;
+				case MicroOp::RLCA:
+					a_ = std::rotl(a_, 1);
+					set_rotate_flags(a_);
+				break;
 
-				case MicroOp::RRCA: {
-					const uint8_t new_carry = a_ & 1;
-					a_ = uint8_t((a_ >> 1) | (new_carry << 7));
-					set_rotate_flags(new_carry);
-				} break;
+				case MicroOp::RRCA:
+					a_ = std::rotr(a_, 1);
+					set_rotate_flags(a_ >> 7);
+				break;
 
 				case MicroOp::RLC: {
 					uint8_t &source = *static_cast<uint8_t *>(operation->source);
-					carry_result_ = source >> 7;
-					source = uint8_t((source << 1) | carry_result_);
+					source = std::rotl(source, 1);
+					carry_result_ = source;
 					set_shift_flags(source);
 				} break;
 
 				case MicroOp::RRC: {
 					uint8_t &source = *static_cast<uint8_t *>(operation->source);
 					carry_result_ = source;
-					source = uint8_t((source >> 1) | (carry_result_ << 7));
+					source = std::rotr(source, 1);
 					set_shift_flags(source);
 				} break;
 
