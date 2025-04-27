@@ -43,14 +43,25 @@ constexpr bool is_writeable(const AccessType type) {
 	return type == AccessType::ReadModifyWrite || type == AccessType::Write;
 }
 
+// Allow only 8-, 16- and 32-bit unsigned int accesses.
+template <typename IntT>
+concept is_x86_data_type
+	= std::is_same_v<IntT, uint8_t> || std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>;
+
 template <typename IntT, AccessType type> struct Accessor;
 
 // Reads: return a value directly.
-template <typename IntT> struct Accessor<IntT, AccessType::Read> { using type = const IntT; };
-template <typename IntT> struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = const IntT; };
+template <typename IntT>
+requires is_x86_data_type<IntT>
+struct Accessor<IntT, AccessType::Read> { using type = const IntT; };
+
+template <typename IntT>
+requires is_x86_data_type<IntT>
+struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = const IntT; };
 
 // Writes: return a custom type that can be written but not read.
 template <typename IntT>
+requires is_x86_data_type<IntT>
 class Writeable {
 public:
 	constexpr Writeable(IntT &target) noexcept : target_(target) {}
@@ -58,10 +69,15 @@ public:
 private:
 	IntT &target_;
 };
-template <typename IntT> struct Accessor<IntT, AccessType::Write> { using type = Writeable<IntT>; };
+
+template <typename IntT>
+requires is_x86_data_type<IntT>
+struct Accessor<IntT, AccessType::Write> { using type = Writeable<IntT>; };
 
 // Read-modify-writes: return a reference.
-template <typename IntT> struct Accessor<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
+template <typename IntT>
+requires is_x86_data_type<IntT>
+struct Accessor<IntT, AccessType::ReadModifyWrite> { using type = IntT &; };
 
 // Shorthands; assumed that preauthorised reads have the same return type as reads.
 template<typename IntT> using read_t = typename Accessor<IntT, AccessType::Read>::type;
