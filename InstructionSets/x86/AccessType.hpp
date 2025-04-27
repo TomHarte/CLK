@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 namespace InstructionSet::x86 {
 
 /// Explains the type of access that `perform` intends to perform; is provided as a template parameter to whatever
