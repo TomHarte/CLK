@@ -1,0 +1,12 @@
+;
+; Designed for assembly with pyz80, https://github.com/simonowen/pyz80/
+; E.g. pyz80 --obj=hostfs.rom hostfs.z80s
+;
+
+	dm "EXOS_ROM"		; Standard ROM signature.
+	dw device_chain		; Pointer to the included device chain.
+
+	; Startup entry point; there is no startup code.
+	dw 0
+
+device_chain:
