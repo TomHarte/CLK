@@ -151,7 +151,7 @@ template <typename Type> Type get(const Struct &target, const std::string &name,
 
 template <typename Owner> class StructImpl: public Struct {
 public:
-	StructImpl<Owner>() {
+	StructImpl() {
 		static std::once_flag once;
 		std::call_once(once, [this] {
 			static_cast<Owner *>(this)->declare_fields();
@@ -177,7 +177,11 @@ public:
 		const auto iterator = contents_.find(name);
 		if(iterator == contents_.end()) return;
 		assert(offset < iterator->second.count);
-		memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset + offset * iterator->second.size, value, iterator->second.size);
+		memcpy(
+			reinterpret_cast<uint8_t *>(this) + iterator->second.offset + offset * iterator->second.size,
+			value,
+			iterator->second.size
+		);
 	}
 
 	/*!
@@ -338,7 +342,12 @@ private:
 		contents_.emplace(
 			std::make_pair(
 				name,
-				Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this), sizeof(Type), count)
+				Field(
+					typeid(Type),
+					reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this),
+					sizeof(Type),
+					count
+				)
 			));
 	}
 

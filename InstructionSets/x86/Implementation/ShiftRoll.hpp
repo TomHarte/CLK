@@ -10,6 +10,8 @@
 
 #include "InstructionSets/x86/AccessType.hpp"
 
+#include <bit>
+
 namespace InstructionSet::x86::Primitive {
 
 template <typename IntT, typename ContextT>
@@ -159,12 +161,7 @@ void rol(
 		// TODO: is this 8086-specific? i.e. do the other x86s also exit without affecting flags when temp_count = 0?
 		return;
 	}
-	if(temp_count) {
-		destination = IntT(
-			(destination << temp_count) |
-			(destination >> (Numeric::bit_size<IntT>() - temp_count))
-		);
-	}
+	destination = std::rotl<IntT>(destination, temp_count);
 
 	context.flags.template set_from<Flag::Carry>(destination & 1);
 	context.flags.template set_from<Flag::Overflow>(
@@ -211,12 +208,7 @@ void ror(
 		// TODO: is this 8086-specific? i.e. do the other x86s also exit without affecting flags when temp_count = 0?
 		return;
 	}
-	if(temp_count) {
-		destination = IntT(
-			(destination >> temp_count) |
-			(destination << (Numeric::bit_size<IntT>() - temp_count))
-		);
-	}
+	destination = std::rotr<IntT>(destination, temp_count);
 
 	context.flags.template set_from<Flag::Carry>(destination & Numeric::top_bit<IntT>());
 	context.flags.template set_from<Flag::Overflow>(

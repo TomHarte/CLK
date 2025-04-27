@@ -3,8 +3,8 @@ greaterThan(5, QT_MAJOR_VERSION) QT += openglwidgets
 
 # Be specific about C++17 but also try the vaguer C++1z for older
 # versions of Qt.
-CONFIG += c++17
-CONFIG += c++1z
+CONFIG += c++20
+CONFIG += c++2a
 
 # Permit multiple source files in different directories to have the same file name.
 CONFIG += object_parallel_to_source

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <bit>
+
 namespace InstructionSet::ARM {
 
 enum class ShiftType {
@@ -99,13 +101,11 @@ void shift(uint32_t &source, uint32_t amount, const typename Carry<set_carry>::t
 			amount &= 31;
 			if(amount) {
 				if constexpr (set_carry) carry = source & (1 << (amount - 1));
-				source = (source >> amount) | (source << (32 - amount));
+				source = std::rotr(source, int(amount));
 			} else {
 				if constexpr (set_carry) carry = source & 0x8000'0000;
 			}
 		} break;
-
-		// TODO: upon adoption of C++20, use std::rotr.
 
 		default: break;
 	}

@@ -116,7 +116,7 @@ Storage::Time PCMSegmentEventSource::get_length() {
 	return segment_->length_of_a_bit * unsigned(segment_->data.size());
 }
 
-float PCMSegmentEventSource::seek_to(float time_from_start) {
+float PCMSegmentEventSource::seek_to(const float time_from_start) {
 	// test for requested time being beyond the end
 	const float length = get_length().get<float>();
 	if(time_from_start >= length) {

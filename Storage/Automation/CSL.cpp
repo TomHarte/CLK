@@ -8,11 +8,12 @@
 
 #include "CSL.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <set>
 #include <sstream>
 #include <unordered_map>
-#include <set>
 
 #include "Machines/AmstradCPC/Keyboard.hpp"
 
@@ -348,8 +349,8 @@ std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
 				std::vector<KeyEvent> down;
 				std::vector<KeyEvent> up;
 				while(append_typed(down, up, stream)) {
-					std::copy(down.begin(), down.end(), std::back_inserter(argument));
-					std::copy(up.begin(), up.end(), std::back_inserter(argument));
+					std::ranges::copy(down, std::back_inserter(argument));
+					std::ranges::copy(up, std::back_inserter(argument));
 					down.clear();
 					up.clear();
 				}

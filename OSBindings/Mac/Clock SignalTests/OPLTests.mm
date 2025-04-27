@@ -11,6 +11,7 @@
 #include "Tables.hpp"
 
 #include <cmath>
+#include <numbers>
 
 @interface OPLTests: XCTestCase
 @end
@@ -24,7 +25,7 @@
 		const auto logSin = Yamaha::OPL::negative_log_sin(c);
 		const auto level = Yamaha::OPL::power_two(logSin);
 
-		double fl_angle = double(c) * M_PI / 512.0;
+		double fl_angle = double(c) * std::numbers::pi_v<double> / 512.0;
 		double fl_level = sin(fl_angle);
 
 		XCTAssertLessThanOrEqual(fabs(fl_level - double(level) / 4096.0), 0.01, "Sine varies by more than 0.01 at angle %d", c);

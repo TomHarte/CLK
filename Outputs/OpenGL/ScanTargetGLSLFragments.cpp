@@ -9,10 +9,7 @@
 #include "ScanTarget.hpp"
 
 #include <cmath>
-
-#ifndef M_PI
-#define M_PI 3.1415926f
-#endif
+#include <numbers>
 
 using namespace Outputs::Display::OpenGL;
 
@@ -37,7 +34,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 			for(int c = 0; c < 4; ++c) {
 				GLfloat angle = (GLfloat(c) - 1.5f) / 4.0f;
 				texture_offsets[c] = angle * clocks_per_angle;
-				angles[c] = GLfloat(angle * 2.0f * M_PI);
+				angles[c] = GLfloat(angle * 2.0f * std::numbers::pi_v<float>);
 			}
 			target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
 			target.set_uniform("compositeAngleOffsets", 4, 1, angles);
@@ -70,7 +67,7 @@ void ScanTarget::set_sampling_window(int output_width, int, Shader &target) {
 		GLfloat angles[4];
 		for(int c = 0; c < 4; ++c) {
 			texture_offsets[c] = 1.0f * (((one_pixel_width * float(c)) / 3.0f) - (one_pixel_width * 0.5f));
-			angles[c] = GLfloat((texture_offsets[c] / clocks_per_angle) * 2.0f * M_PI);
+			angles[c] = GLfloat((texture_offsets[c] / clocks_per_angle) * 2.0f * std::numbers::pi_v<float>);
 		}
 		target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
 		target.set_uniform("compositeAngleOffsets", 4, 1, angles);

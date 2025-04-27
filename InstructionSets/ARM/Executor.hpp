@@ -63,7 +63,7 @@ struct Executor {
 		return condition == Condition::AL ? true : registers_.test(condition);
 	}
 
-	template <bool allow_register, bool set_carry, typename FieldsT>
+	template <bool set_carry, typename FieldsT>
 	uint32_t decode_shift(const FieldsT fields, uint32_t &rotate_carry, const uint32_t pc_offset) {
 		// "When R15 appears in the Rm position it will give the value of the PC together
 		// with the PSR flags to the barrel shifter. ...
@@ -78,8 +78,7 @@ struct Executor {
 			operand2 = registers_[fields.operand2()];
 		}
 
-		// TODO: in C++20, a quick `if constexpr (requires` can eliminate the `allow_register` parameter.
-		if constexpr (allow_register) {
+		if constexpr (requires {fields.shift_count_is_register();}) {
 			if(fields.shift_count_is_register()) {
 				uint32_t shift_amount;
 
@@ -135,7 +134,7 @@ struct Executor {
 			operand2 = fields.immediate();
 			shift<ShiftType::RotateRight, shift_sets_carry, false>(operand2, fields.rotate(), rotate_carry);
 		} else {
-			operand2 = decode_shift<true, shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
+			operand2 = decode_shift<shift_sets_carry>(fields, rotate_carry, shift_by_register ? 8 : 4);
 		}
 
 		uint32_t conditions = 0;
@@ -276,7 +275,7 @@ struct Executor {
 			// the register specified shift amounts are not available
 			// in this instruction class.
 			uint32_t carry = registers_.c();
-			offset = decode_shift<false, false>(transfer, carry, 4);
+			offset = decode_shift<false>(transfer, carry, 4);
 		} else {
 			offset = transfer.immediate();
 		}

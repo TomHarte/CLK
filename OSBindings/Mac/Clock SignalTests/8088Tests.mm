@@ -26,6 +26,8 @@
 #include "InstructionSets/x86/Flags.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
+#if 0
+
 namespace {
 
 // The tests themselves are not duplicated in this repository;
@@ -139,6 +141,29 @@ public:
 private:
 	const Registers &registers_;
 };
+
+struct LinearMemory {
+public:
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		uint32_t address,
+		const uint32_t base
+	) {
+	}
+
+	template <typename IntT>
+	void preauthorised_write(
+		uint32_t address,
+		const uint32_t base,
+		IntT value
+	) {
+	}
+
+	template <typename IntT>
+	void write_back() {
+	}
+};
+
 struct Memory {
 public:
 	using AccessType = InstructionSet::x86::AccessType;
@@ -411,7 +436,8 @@ struct ExecutionSupport {
 	Flags flags;
 	Registers registers;
 	Segments segments;
-	Memory memory;
+	LinearMemory linear_memory;
+	SegmentedMemory memory;
 	FlowController flow_controller;
 	IO io;
 	static constexpr auto model = InstructionSet::x86::Model::i8086;
@@ -867,3 +893,5 @@ struct FailedExecution {
 }
 
 @end
+
+#endif

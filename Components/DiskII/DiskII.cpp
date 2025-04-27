@@ -8,6 +8,7 @@
 
 #include "DiskII.hpp"
 
+#include <bit>
 #include <cstdio>
 #include <cstring>
 
@@ -62,11 +63,7 @@ void DiskII::set_control(const Control control, const bool on) {
 		if(stepper_mask_&4) direction += (((stepper_position_ - 4) + 4)&7) - 4;
 		if(stepper_mask_&8) direction += (((stepper_position_ - 6) + 4)&7) - 4;
 
-		// TODO: when adopting C++20, replace with std::popcount.
-		int bits_set = stepper_mask_;
-		bits_set = (bits_set & 0x5) + ((bits_set >> 1) & 0x5);
-		bits_set = (bits_set & 0x3) + ((bits_set >> 2) & 0x3);
-
+		const int bits_set = std::popcount(uint8_t(stepper_mask_));
 		direction /= bits_set;
 
 		// Compare to the stepper position to decide whether that pulls in the current cog notch,

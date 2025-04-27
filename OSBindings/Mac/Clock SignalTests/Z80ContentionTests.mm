@@ -10,6 +10,8 @@
 
 #include "Processors/Z80/Z80.hpp"
 
+#include <algorithm>
+
 namespace {
 
 static constexpr uint16_t initial_pc = 0x0000;
@@ -28,7 +30,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	template <typename Collection> CapturingZ80(const Collection &code) : z80_(*this) {
 		// Take a copy of the code.
-		std::copy(code.begin(), code.end(), ram_);
+		std::ranges::copy(code, ram_);
 		code_length_ = uint16_t(code.size());
 
 		// Skip the three cycles the Z80 spends on a reset, and

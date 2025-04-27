@@ -284,7 +284,7 @@ std::string Reflection::Struct::description() const {
 /* Contractually, this serialises as BSON. */
 std::vector<uint8_t> Reflection::Struct::serialise() const {
 	auto push_name = [] (std::vector<uint8_t> &result, const std::string &name) {
-		std::copy(name.begin(), name.end(), std::back_inserter(result));
+		std::ranges::copy(name, std::back_inserter(result));
 		result.push_back(0);
 	};
 
@@ -312,7 +312,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 
 			const uint32_t string_length = uint32_t(text.size() + 1);
 			push_int(string_length);
-			std::copy(text.begin(), text.end(), std::back_inserter(result));
+			std::ranges::copy(text, std::back_inserter(result));
 			result.push_back(0);
 		};
 
@@ -387,7 +387,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 			auto source = reinterpret_cast<const std::vector<uint8_t> *>(get(key));
 			push_int(uint32_t(source->size()));
 			result.push_back(0x00);
-			std::copy(source->begin(), source->end(), std::back_inserter(result));
+			std::ranges::copy(*source, std::back_inserter(result));
 			return;
 		}
 
@@ -399,7 +399,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 
 			const Reflection::Struct *const child = reinterpret_cast<const Reflection::Struct *>(get(key));
 			const auto sub_document = child->serialise();
-			std::copy(sub_document.begin(), sub_document.end(), std::back_inserter(result));
+			std::ranges::copy(sub_document, std::back_inserter(result));
 			return;
 		}
 
@@ -441,7 +441,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 			}
 			wrap_object(array);
 
-			std::copy(array.begin(), array.end(), std::back_inserter(result));
+			std::ranges::copy(array, std::back_inserter(result));
 		} else {
 			append(result, key, key, type, 0);
 		}
