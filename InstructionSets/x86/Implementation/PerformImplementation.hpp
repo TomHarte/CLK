@@ -533,7 +533,9 @@ template <
 template <
 	InstructionType type,
 	typename ContextT
-> void perform(
+>
+requires is_context<ContextT>
+void perform(
 	const Instruction<type> &instruction,
 	ContextT &context
 ) {
@@ -597,7 +599,9 @@ template <
 
 template <
 	typename ContextT
-> void interrupt(
+>
+requires is_context<ContextT>
+void interrupt(
 	const int index,
 	ContextT &context
 ) {

@@ -12,8 +12,39 @@
 #include "Model.hpp"
 #include "Flags.hpp"
 
+#include <concepts>
+
 namespace InstructionSet::x86 {
 
+template <typename RegistersT, Model model>
+concept is_registers = true;
+
+template <typename SegmentsT, Model model>
+concept is_segments = true;
+
+template <typename LinearMemoryT, Model model>
+concept is_linear_memory = true;
+
+template <typename SegmentedMemoryT, Model model>
+concept is_segmented_memory = true;
+
+template <typename FlowControllerT, Model model>
+concept is_flow_controller = true;
+
+template <typename CPUControlT, Model model>
+concept is_cpu_control = true;
+
+template <typename ContextT>
+concept is_context = requires(ContextT context) {
+	{ context.flags } -> std::same_as<InstructionSet::x86::Flags &>;
+	{ context.registers } -> is_registers<ContextT::model>;
+	{ context.segments } -> is_segments<ContextT::model>;
+	{ context.memory } -> is_segmented_memory<ContextT::model>;
+	{ context.linear_memory } -> is_linear_memory<ContextT::model>;
+	{ context.flow_controller } -> is_flow_controller<ContextT::model>;
+
+	// TODO: is < 286 or has is_cpu_control for .cpu_control.
+};
 
 /// Performs @c instruction  querying @c registers and/or @c memory as required, using @c io for port input/output,
 /// and providing any flow control effects to @c flow_controller.
@@ -22,7 +53,9 @@ namespace InstructionSet::x86 {
 template <
 	InstructionType type,
 	typename ContextT
-> void perform(
+>
+requires is_context<ContextT>
+void perform(
 	const Instruction<type> &instruction,
 	ContextT &context
 );
@@ -30,7 +63,9 @@ template <
 /// Performs an x86 INT operation; also often used by other operations to indicate an error.
 template <
 	typename ContextT
-> void interrupt(
+>
+requires is_context<ContextT>
+void interrupt(
 	int index,
 	ContextT &context
 );
