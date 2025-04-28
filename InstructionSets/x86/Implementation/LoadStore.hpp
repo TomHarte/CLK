@@ -49,14 +49,14 @@ void ld(
 	}
 }
 
-template <typename IntT, typename InstructionT, typename ContextT>
+template <typename IntT, InstructionType type, typename ContextT>
 void lea(
-	const InstructionT &instruction,
+	const Instruction<type> &instruction,
 	write_t<IntT> destination,
 	ContextT &context
 ) {
 	// TODO: address size.
-	destination = IntT(address<uint16_t, AccessType::Read>(instruction, instruction.source(), context));
+	destination = IntT(address<uint16_t, AccessType::Read, type>(instruction, instruction.source(), context));
 }
 
 template <typename AddressT, typename InstructionT, typename ContextT>
