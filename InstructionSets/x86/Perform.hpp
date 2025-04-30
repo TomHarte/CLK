@@ -101,10 +101,16 @@ concept is_segments =
 //
 //
 template <typename LinearMemoryT, Model model>
-concept is_linear_memory = true;
+concept is_linear_memory = requires(LinearMemoryT memory) {
+	{ memory.template read<uint16_t>(uint32_t{}) } -> std::same_as<uint16_t>;
+};
 
 template <typename SegmentedMemoryT, Model model>
 concept is_segmented_memory = true;
+
+//requires(SegmentedMemoryT memory) {
+	// TODO: express, somehow.
+//};
 
 //
 // Flow controller requirements.
