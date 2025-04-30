@@ -8,9 +8,12 @@
 
 #pragma once
 
+#include "Flags.hpp"
 #include "Instruction.hpp"
 #include "Model.hpp"
-#include "Flags.hpp"
+#include "Registers.hpp"
+
+#include "Numeric/RegisterSizes.hpp"
 
 #include <concepts>
 
@@ -18,9 +21,62 @@ namespace InstructionSet::x86 {
 
 //
 // Register interface requirements.
+// Chicken out for now: require prescribed class.
 //
 template <typename RegistersT, Model model>
-concept is_registers = true;
+concept is_registers_16 = requires(RegistersT registers) {
+	{ registers.al() } -> std::same_as<uint8_t &>;
+	{ registers.ah() } -> std::same_as<uint8_t &>;
+	{ registers.ax() } -> std::same_as<uint16_t &>;
+	{ registers.axp() } -> std::same_as<CPU::RegisterPair16 &>;
+
+	{ registers.bl() } -> std::same_as<uint8_t &>;
+	{ registers.bh() } -> std::same_as<uint8_t &>;
+	{ registers.bx() } -> std::same_as<uint16_t &>;
+
+	{ registers.cl() } -> std::same_as<uint8_t &>;
+	{ registers.ch() } -> std::same_as<uint8_t &>;
+	{ registers.cx() } -> std::same_as<uint16_t &>;
+
+	{ registers.dl() } -> std::same_as<uint8_t &>;
+	{ registers.dh() } -> std::same_as<uint8_t &>;
+	{ registers.dx() } -> std::same_as<uint16_t &>;
+
+	{ registers.sp() } -> std::same_as<uint16_t &>;
+	{ registers.bp() } -> std::same_as<uint16_t &>;
+	{ registers.si() } -> std::same_as<uint16_t &>;
+	{ registers.di() } -> std::same_as<uint16_t &>;
+
+	{ registers.ip() } -> std::same_as<uint16_t &>;
+
+	{ registers.es() } -> std::same_as<uint16_t &>;
+	{ registers.cs() } -> std::same_as<uint16_t &>;
+	{ registers.ds() } -> std::same_as<uint16_t &>;
+	{ registers.ss() } -> std::same_as<uint16_t &>;
+};
+
+template <typename RegistersT, Model model>
+concept is_registers_32 = requires(RegistersT registers) {
+	{ registers.eax() } -> std::same_as<uint32_t &>;
+	{ registers.ebx() } -> std::same_as<uint32_t &>;
+	{ registers.ecx() } -> std::same_as<uint32_t &>;
+	{ registers.edx() } -> std::same_as<uint32_t &>;
+
+	{ registers.esi() } -> std::same_as<uint32_t &>;
+	{ registers.edi() } -> std::same_as<uint32_t &>;
+	{ registers.ebp() } -> std::same_as<uint32_t &>;
+	{ registers.esp() } -> std::same_as<uint32_t &>;
+
+	{ registers.eip() } -> std::same_as<uint32_t &>;
+
+	{ registers.fs() } -> std::same_as<uint16_t &>;
+	{ registers.gs() } -> std::same_as<uint16_t &>;
+};
+
+template <typename RegistersT, Model model>
+concept is_registers =
+	is_registers_16<RegistersT, model> &&
+	(!has_32bit_instructions<model> || is_registers_32<RegistersT, model>);
 
 //
 // Segment/descriptor interface requirements.
@@ -49,6 +105,9 @@ concept is_linear_memory = true;
 template <typename SegmentedMemoryT, Model model>
 concept is_segmented_memory = true;
 
+//
+// Flow controller requirements.
+//
 template <typename FlowControllerT, Model model>
 concept is_flow_controller = requires(FlowControllerT controller) {
 	controller.template jump<uint16_t>(uint16_t{});
@@ -60,10 +119,16 @@ concept is_flow_controller = requires(FlowControllerT controller) {
 	// TODO: if 32-bit, check for jump<uint32_t>, Somehow?
 };
 
+//
+// CPU control requirements.
+//
 template <typename CPUControlT, Model model>
 concept is_cpu_control = true;
 // TODO: if 286 or better, cpu_control.set_mode(Mode{});
 
+//
+// Complete context requirements.
+//
 template <typename ContextT>
 concept is_context = requires(ContextT context) {
 	{ context.flags } -> std::same_as<InstructionSet::x86::Flags &>;
