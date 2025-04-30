@@ -94,7 +94,7 @@ concept has_descriptor_table_update = requires(SegmentsT segments) {
 template <typename SegmentsT, Model model>
 concept is_segments =
 	has_segment_update<SegmentsT, model> &&
-	(!has_descriptor_tables<model> || has_descriptor_table_update<SegmentsT, model>);
+	(!has_protected_mode<model> || has_descriptor_table_update<SegmentsT, model>);
 
 //
 //
@@ -109,15 +109,24 @@ concept is_segmented_memory = true;
 // Flow controller requirements.
 //
 template <typename FlowControllerT, Model model>
-concept is_flow_controller = requires(FlowControllerT controller) {
-	controller.template jump<uint16_t>(uint16_t{});
-	controller.template jump<uint16_t>(uint16_t{}, uint16_t{});
+concept is_flow_controller_16 = requires(FlowControllerT controller) {
+	controller.template jump<uint16_t>(0);
+	controller.template jump<uint16_t>(0, 0);
 	controller.halt();
 	controller.wait();
 	controller.repeat_last();
-
-	// TODO: if 32-bit, check for jump<uint32_t>, Somehow?
 };
+
+template <typename FlowControllerT, Model model>
+concept is_flow_controller_32 = requires(FlowControllerT controller) {
+	controller.template jump<uint32_t>(0);
+	controller.template jump<uint32_t>(0, 0);
+};
+
+template <typename FlowControllerT, Model model>
+concept is_flow_controller =
+	is_flow_controller_16<FlowControllerT, model> &&
+	(!has_32bit_instructions<model> || is_flow_controller_32<FlowControllerT, model>);
 
 //
 // CPU control requirements.

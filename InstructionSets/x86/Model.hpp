@@ -54,7 +54,7 @@ static constexpr bool uses_8086_exceptions(const Model model) {
 
 
 template <Model model>
-concept has_descriptor_tables = model >= Model::i80286;
+concept has_protected_mode = model >= Model::i80286;
 
 template <Model model>
 concept has_32bit_instructions = model >= Model::i80386;
