@@ -12,7 +12,6 @@
 #include "Instruction.hpp"
 #include "Mode.hpp"
 #include "Model.hpp"
-#include "Registers.hpp"
 
 #include "Numeric/RegisterSizes.hpp"
 
