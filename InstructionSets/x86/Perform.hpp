@@ -16,12 +16,33 @@
 
 namespace InstructionSet::x86 {
 
+//
+// Register interface requirements.
+//
 template <typename RegistersT, Model model>
 concept is_registers = true;
 
+//
+// Segment/descriptor interface requirements.
+//
 template <typename SegmentsT, Model model>
-concept is_segments = true;
+concept has_segment_update = requires(SegmentsT segments) {
+	segments.did_update(Source{});
+};
 
+template <typename SegmentsT, Model model>
+concept has_descriptor_table_update = requires(SegmentsT segments) {
+	segments.did_update(DescriptorTable{});
+};
+
+template <typename SegmentsT, Model model>
+concept is_segments =
+	has_segment_update<SegmentsT, model> &&
+	(!has_descriptor_tables<model> || has_descriptor_table_update<SegmentsT, model>);
+
+//
+//
+//
 template <typename LinearMemoryT, Model model>
 concept is_linear_memory = true;
 
@@ -29,10 +50,19 @@ template <typename SegmentedMemoryT, Model model>
 concept is_segmented_memory = true;
 
 template <typename FlowControllerT, Model model>
-concept is_flow_controller = true;
+concept is_flow_controller = requires(FlowControllerT controller) {
+	controller.template jump<uint16_t>(uint16_t{});
+	controller.template jump<uint16_t>(uint16_t{}, uint16_t{});
+	controller.halt();
+	controller.wait();
+	controller.repeat_last();
+
+	// TODO: if 32-bit, check for jump<uint32_t>, Somehow?
+};
 
 template <typename CPUControlT, Model model>
 concept is_cpu_control = true;
+// TODO: if 286 or better, cpu_control.set_mode(Mode{});
 
 template <typename ContextT>
 concept is_context = requires(ContextT context) {

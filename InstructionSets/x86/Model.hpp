@@ -47,8 +47,16 @@ static constexpr bool has_mode(const Model model, const Mode mode) {
 	}
 	return false;
 }
+
 static constexpr bool uses_8086_exceptions(const Model model) {
 	return model <= Model::i80186;
 }
+
+
+template <Model model>
+concept has_descriptor_tables = model >= Model::i80286;
+
+template <Model model>
+concept has_32bit_instructions = model >= Model::i80386;
 
 }

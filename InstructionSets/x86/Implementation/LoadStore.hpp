@@ -96,8 +96,6 @@ void lmsw(
 	context.registers.set_msw(source);
 	if(source & MachineStatus::ProtectedModeEnable) {
 		context.cpu_control.set_mode(Mode::Protected286);
-//		context.memory.set_mode(Mode::Protected286);
-//		context.segments.set_mode(Mode::Protected286);
 	}
 }
 
