@@ -10,6 +10,7 @@
 
 #include "Flags.hpp"
 #include "Instruction.hpp"
+#include "Mode.hpp"
 #include "Model.hpp"
 #include "Registers.hpp"
 
@@ -132,23 +133,32 @@ concept is_flow_controller =
 // CPU control requirements.
 //
 template <typename CPUControlT, Model model>
-concept is_cpu_control = true;
-// TODO: if 286 or better, cpu_control.set_mode(Mode{});
+concept is_cpu_control = requires(CPUControlT control) {
+	control.set_mode(Mode{});
+};
 
 //
 // Complete context requirements.
 //
 template <typename ContextT>
-concept is_context = requires(ContextT context) {
+concept is_context_real = requires(ContextT context) {
 	{ context.flags } -> std::same_as<InstructionSet::x86::Flags &>;
 	{ context.registers } -> is_registers<ContextT::model>;
 	{ context.segments } -> is_segments<ContextT::model>;
 	{ context.memory } -> is_segmented_memory<ContextT::model>;
 	{ context.linear_memory } -> is_linear_memory<ContextT::model>;
 	{ context.flow_controller } -> is_flow_controller<ContextT::model>;
-
-	// TODO: is < 286 or has is_cpu_control for .cpu_control.
 };
+
+template <typename ContextT>
+concept is_context_protected = requires(ContextT context) {
+	{ context.cpu_control } -> is_cpu_control<ContextT::model>;
+};
+
+template <typename ContextT>
+concept is_context =
+	is_context_real<ContextT> &&
+	(!has_protected_mode<ContextT::model> || is_context_protected<ContextT>);
 
 /// Performs @c instruction  querying @c registers and/or @c memory as required, using @c io for port input/output,
 /// and providing any flow control effects to @c flow_controller.
