@@ -55,11 +55,11 @@ template <typename IntT, AccessType type> struct Accessor;
 // Reads: return a value directly.
 template <typename IntT>
 requires is_x86_data_type<IntT>
-struct Accessor<IntT, AccessType::Read> { using type = const IntT; };
+struct Accessor<IntT, AccessType::Read> { using type = IntT; };
 
 template <typename IntT>
 requires is_x86_data_type<IntT>
-struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = const IntT; };
+struct Accessor<IntT, AccessType::PreauthorisedRead> { using type = IntT; };
 
 // Writes: return a custom type that can be written but not read.
 template <typename IntT>

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "AccessType.hpp"
 #include "Flags.hpp"
 #include "Instruction.hpp"
 #include "Mode.hpp"
@@ -97,19 +98,78 @@ concept is_segments =
 	(!has_protected_mode<model> || has_descriptor_table_update<SegmentsT, model>);
 
 //
-//
+// Memory subsystem requirements.
 //
 template <typename LinearMemoryT, Model model>
 concept is_linear_memory = requires(LinearMemoryT memory) {
 	{ memory.template read<uint16_t>(uint32_t{}) } -> std::same_as<uint16_t>;
 };
 
-template <typename SegmentedMemoryT, Model model>
-concept is_segmented_memory = true;
+template <typename SegmentedMemoryT, typename AddressT, typename IntT, AccessType type>
+concept supports_segmented_access = requires(SegmentedMemoryT memory) {
+	{ memory.template access<IntT, type>(Source{}, AddressT{}) } -> std::same_as<typename Accessor<IntT, type>::type>;
+};
 
-//requires(SegmentedMemoryT memory) {
-	// TODO: express, somehow.
-//};
+template <typename SegmentedMemoryT, typename IntT>
+concept supports_write_back = requires(SegmentedMemoryT memory) {
+	memory.template write_back<IntT>();
+};
+
+template <typename SegmentedMemoryT, typename AddressT, typename IntT>
+concept supports_segmented_accesses =
+	supports_segmented_access<SegmentedMemoryT, AddressT, IntT, AccessType::PreauthorisedRead> &&
+	supports_segmented_access<SegmentedMemoryT, AddressT, IntT, AccessType::Read> &&
+	supports_segmented_access<SegmentedMemoryT, AddressT, IntT, AccessType::ReadModifyWrite> &&
+	supports_segmented_access<SegmentedMemoryT, AddressT, IntT, AccessType::Write>;
+
+template <typename SegmentedMemoryT, Model model>
+concept is_segmented_memory_16 =
+	supports_segmented_accesses<SegmentedMemoryT, uint16_t, uint8_t> &&
+	supports_segmented_accesses<SegmentedMemoryT, uint16_t, uint16_t> &&
+	supports_write_back<SegmentedMemoryT, uint8_t> &&
+	supports_write_back<SegmentedMemoryT, uint16_t>;
+
+template <typename SegmentedMemoryT, Model model>
+concept is_segmented_memory_32 =
+	supports_segmented_accesses<SegmentedMemoryT, uint16_t, uint32_t> &&
+	supports_segmented_accesses<SegmentedMemoryT, uint32_t, uint8_t> &&
+	supports_segmented_accesses<SegmentedMemoryT, uint32_t, uint16_t> &&
+	supports_segmented_accesses<SegmentedMemoryT, uint32_t, uint32_t> &&
+	supports_write_back<SegmentedMemoryT, uint32_t>;
+
+template <typename SegmentedMemoryT, typename AddressT, typename IntT>
+concept supports_preauthorisations = requires(SegmentedMemoryT memory) {
+	memory.preauthorise_stack_write(uint32_t{});
+	memory.preauthorise_stack_read(uint32_t{});
+
+	memory.preauthorise_read(uint32_t{}, uint32_t{});
+	memory.preauthorise_write(uint32_t{}, uint32_t{});
+
+	memory.preauthorise_read(Source{}, AddressT{}, uint32_t{});
+	memory.preauthorise_write(Source{}, AddressT{}, uint32_t{});
+
+	memory.template preauthorised_write<IntT>(Source{}, AddressT{}, IntT{});
+};
+
+template <typename SegmentedMemoryT, Model model>
+concept supports_preauthorisation =
+	supports_preauthorisations<SegmentedMemoryT, uint16_t, uint8_t> &&
+	supports_preauthorisations<SegmentedMemoryT, uint16_t, uint16_t> &&
+	(
+		!has_32bit_instructions<model> ||
+		(
+			supports_preauthorisations<SegmentedMemoryT, uint16_t, uint32_t> &&
+			supports_preauthorisations<SegmentedMemoryT, uint32_t, uint8_t> &&
+			supports_preauthorisations<SegmentedMemoryT, uint32_t, uint16_t> &&
+			supports_preauthorisations<SegmentedMemoryT, uint32_t, uint32_t>
+		)
+	);
+
+template <typename SegmentedMemoryT, Model model>
+concept is_segmented_memory =
+	(!has_protected_mode<model> || supports_preauthorisation<SegmentedMemoryT, model>) &&
+	is_segmented_memory_16<SegmentedMemoryT, model> &&
+	(!has_32bit_instructions<model> || is_segmented_memory_32<SegmentedMemoryT, model>);
 
 //
 // Flow controller requirements.
