@@ -23,7 +23,7 @@ namespace InstructionSet::x86 {
 */
 template <Model model> class Decoder {
 public:
-	using InstructionT = Instruction<is_32bit(model)>;
+	using InstructionT = Instruction<instruction_type(model)>;
 
 	/*!
 		@returns an @c Instruction plus a size; a positive size indicates successful decoding of

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Numeric/Carry.hpp"
+#include "AccessType.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -121,7 +122,9 @@ public:
 	/// • Flag::Interrupt: sets interrupt if @c value is non-zero;
 	/// • Flag::Trap: sets interrupt if @c value is non-zero;
 	/// • Flag::Direction: sets direction if @c value is non-zero.
-	template <typename IntT, Flag... flags> void set_from(const IntT value) {
+	template <typename IntT, Flag... flags>
+	requires is_x86_data_type<IntT>
+	void set_from(const IntT value) {
 		for(const auto flag: {flags...}) {
 			switch(flag) {
 				default: break;
@@ -141,7 +144,9 @@ public:
 		set_from<FlagT, flags...>(value);
 	}
 
-	template <typename IntT> IntT carry_bit() const { return carry_ ? 1 : 0; }
+	template <typename IntT>
+	requires is_x86_data_type<IntT>
+	IntT carry_bit() const { return carry_ ? 1 : 0; }
 	bool not_parity_bit() const {
 		// x86 parity always considers the lowest 8-bits only.
 		auto result = static_cast<uint8_t>(parity_);
@@ -151,7 +156,9 @@ public:
 		return result & 1;
 	}
 
-	template <typename IntT> IntT direction() const { return static_cast<IntT>(direction_); }
+	template <typename IntT>
+	requires is_x86_data_type<IntT>
+	IntT direction() const { return static_cast<IntT>(direction_); }
 
 	// Complete value get and set.
 	void set(uint16_t value) {

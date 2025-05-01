@@ -30,6 +30,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 	// without any loss of context. This reduces the risk of the decoder tricking a caller into
 	// an infinite loop.
 	static constexpr int max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 65536);
+	static constexpr bool is_32bit = instruction_type(model) == InstructionType::Bits32;
 	const uint8_t *const end = source + std::min(length, size_t(max_instruction_length - consumed_));
 
 	// MARK: - Prefixes (if present) and the opcode.
@@ -689,7 +690,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 			};
 			displacement_size_ = sizes[mod];
 
-			if(is_32bit(model) && address_size_ == AddressSize::b32) {
+			if(is_32bit && address_size_ == AddressSize::b32) {
 				// 32-bit decoding: the range of potential indirections is expanded,
 				// and may segue into obtaining a SIB.
 				sib_ = ScaleIndexBase(0, Source::None, reg_table[rm]);
@@ -764,7 +765,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 				// The 16-bit chips have four segment registers;
 				// the 80386 onwards has six.
-				if constexpr (is_32bit(model)) {
+				if constexpr (is_32bit) {
 					if(masked_reg > 5) {
 						return undefined();
 					}
@@ -949,7 +950,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 	// MARK: - ScaleIndexBase
 
-	if constexpr (is_32bit(model)) {
+	if constexpr (is_32bit) {
 		if(phase_ == Phase::ScaleIndexBase && source != end) {
 			sib_ = *source;
 			++source;
@@ -1072,7 +1073,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 }
 
 template <Model model> void Decoder<model>::set_32bit_protected_mode(bool enabled) {
-	if constexpr (!is_32bit(model)) {
+	if constexpr (instruction_type(model) == InstructionType::Bits16) {
 		assert(!enabled);
 		return;
 	}

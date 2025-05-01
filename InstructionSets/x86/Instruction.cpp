@@ -370,10 +370,10 @@ std::string to_hex(IntT value) {
 
 }
 
-template <bool is_32bit>
+template <InstructionType type>
 std::string InstructionSet::x86::to_string(
 	DataPointer pointer,
-	Instruction<is_32bit> instruction,
+	Instruction<type> instruction,
 	int offset_length,
 	int immediate_length,
 	DataSize operation_size
@@ -462,9 +462,9 @@ std::string InstructionSet::x86::to_string(
 	return operand;
 };
 
-template<bool is_32bit>
+template <InstructionType type>
 std::string InstructionSet::x86::to_string(
-	std::pair<int, Instruction<is_32bit>> instruction,
+	std::pair<int, Instruction<type>> instruction,
 	Model model,
 	int offset_length,
 	int immediate_length
@@ -616,7 +616,7 @@ std::string InstructionSet::x86::to_string(
 //);
 
 template std::string InstructionSet::x86::to_string(
-	std::pair<int, Instruction<false>> instruction,
+	std::pair<int, Instruction<InstructionType::Bits16>> instruction,
 	Model model,
 	int offset_length,
 	int immediate_length

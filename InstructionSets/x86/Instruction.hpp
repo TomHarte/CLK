@@ -697,10 +697,10 @@ private:
 	ScaleIndexBase sib_;
 };
 
-template<bool is_32bit> class Instruction {
+template<InstructionType type> class Instruction {
 public:
-	using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
-	using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
+	using DisplacementT = DisplacementT<type>::type;
+	using ImmediateT = ImmediateT<type>::type;
 	using AddressT = ImmediateT;
 
 	constexpr Instruction() noexcept = default;
@@ -768,7 +768,7 @@ public:
 	/// this allows a denser packing of instructions into containers.
 	constexpr size_t packing_size() const	{
 		return
-			offsetof(Instruction<is_32bit>, extensions_) +
+			offsetof(Instruction<type>, extensions_) +
 			(has_displacement() + has_operand()) * sizeof(ImmediateT);
 	}
 
@@ -854,7 +854,7 @@ public:
 	}
 
 	// Standard comparison operator.
-	constexpr bool operator ==(const Instruction<is_32bit> &rhs) const {
+	constexpr bool operator ==(const Instruction<type> &rhs) const {
 		if(	operation_ != rhs.operation_ ||
 			mem_exts_source_ != rhs.mem_exts_source_ ||
 			source_data_dest_sib_ != rhs.source_data_dest_sib_) {
@@ -920,8 +920,8 @@ private:
 	};
 };
 
-static_assert(sizeof(Instruction<true>) <= 16);
-static_assert(sizeof(Instruction<false>) <= 10);
+static_assert(sizeof(Instruction<InstructionType::Bits32>) <= 16);
+static_assert(sizeof(Instruction<InstructionType::Bits16>) <= 10);
 
 //
 // Disassembly aids.
@@ -951,10 +951,10 @@ std::string to_string(Source, DataSize);
 ///
 /// See notes below re: @c offset_length and @c immediate_length.
 /// If @c operation_size is the default value of @c ::None, it'll be taken from the @c instruction.
-template <bool is_32bit>
+template <InstructionType type>
 std::string to_string(
 	DataPointer pointer,
-	Instruction<is_32bit> instruction,
+	Instruction<type> instruction,
 	int offset_length,
 	int immediate_length,
 	DataSize operation_size = InstructionSet::x86::DataSize::None
@@ -966,9 +966,9 @@ std::string to_string(
 ///
 /// If @c offset_length is '2' or '4', truncates any printed offset to 2 or 4 digits if it is compatible with being that length.
 /// If @c immediate_length is '2' or '4', truncates any printed immediate value to 2 or 4 digits if it is compatible with being that length.
-template<bool is_32bit>
+template <InstructionType type>
 std::string to_string(
-	std::pair<int, Instruction<is_32bit>> instruction,
+	std::pair<int, Instruction<type>> instruction,
 	Model model,
 	int offset_length = 0,
 	int immediate_length = 0);

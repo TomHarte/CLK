@@ -105,9 +105,9 @@ void jump_absolute(
 	context.flow_controller.template jump<uint16_t>(target);
 }
 
-template <typename AddressT, typename InstructionT, typename ContextT>
+template <typename AddressT, InstructionType type, typename ContextT>
 void call_far(
-	InstructionT &instruction,
+	const Instruction<type> &instruction,
 	ContextT &context
 ) {
 	// TODO: eliminate 16-bit assumption below.
@@ -155,9 +155,9 @@ void call_far(
 	context.flow_controller.template jump<AddressT>(segment, offset);
 }
 
-template <typename InstructionT, typename ContextT>
+template <InstructionType type, typename ContextT>
 void jump_far(
-	InstructionT &instruction,
+	const Instruction<type> &instruction,
 	ContextT &context
 ) {
 	// TODO: eliminate 16-bit assumption below.

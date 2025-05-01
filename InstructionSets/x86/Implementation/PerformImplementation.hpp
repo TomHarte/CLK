@@ -531,15 +531,19 @@ template <
 // It'd be a substantial effort to find the most neat expression of that, I think, so it is not currently done.
 //
 template <
-	typename InstructionT,
+	InstructionType type,
 	typename ContextT
-> void perform(
-	const InstructionT &instruction,
+>
+requires is_context<ContextT>
+void perform(
+	const Instruction<type> &instruction,
 	ContextT &context
 ) {
 	const auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
 		return int(operation_size) + (int(address_size) << 2);
 	};
+
+	static constexpr bool supports_32bit = type != InstructionType::Bits16;
 
 	// Dispatch to a function specialised on data and address size.
 	switch(size(instruction.operation_size(), instruction.address_size())) {
@@ -557,25 +561,29 @@ template <
 		// model combinations. So if a caller nominates a 16-bit model it can supply registers and memory objects
 		// that don't implement 32-bit registers or accesses.
 		case size(DataSize::Byte, AddressSize::b32):
-			if constexpr (is_32bit(ContextT::model)) {
+			assert(supports_32bit);
+			if constexpr (supports_32bit) {
 				perform<DataSize::Byte, AddressSize::b32>(instruction, context);
 				return;
 			}
 		break;
 		case size(DataSize::Word, AddressSize::b32):
-			if constexpr (is_32bit(ContextT::model)) {
+			assert(supports_32bit);
+			if constexpr (supports_32bit) {
 				perform<DataSize::Word, AddressSize::b32>(instruction, context);
 				return;
 			}
 		break;
 		case size(DataSize::DWord, AddressSize::b16):
-			if constexpr (is_32bit(ContextT::model)) {
+			assert(supports_32bit);
+			if constexpr (supports_32bit) {
 				perform<DataSize::DWord, AddressSize::b16>(instruction, context);
 				return;
 			}
 		break;
 		case size(DataSize::DWord, AddressSize::b32):
-			if constexpr (is_32bit(ContextT::model)) {
+			assert(supports_32bit);
+			if constexpr (supports_32bit) {
 				perform<DataSize::DWord, AddressSize::b32>(instruction, context);
 				return;
 			}
@@ -591,7 +599,9 @@ template <
 
 template <
 	typename ContextT
-> void interrupt(
+>
+requires is_context<ContextT>
+void interrupt(
 	const int index,
 	ContextT &context
 ) {
