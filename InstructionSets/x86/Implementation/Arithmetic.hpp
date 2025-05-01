@@ -173,10 +173,11 @@ void divide_error(ContextT &context) {
 	//
 	// 80286-style: throw the divide error, allowing the caller to insert
 	// additional context (primarily: IP of this instruction, not the next).
+	constexpr auto exception = Exception::exception<Interrupt::DivideError>();
 	if constexpr (uses_8086_exceptions(ContextT::model)) {
-		interrupt(Interrupt::DivideError, context);
+		interrupt(exception, context);
 	} else {
-		throw Exception(Interrupt::DivideError);
+		throw exception;
 	}
 }
 

@@ -187,7 +187,7 @@ template <
 
 		case Operation::Invalid:
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
-				throw Exception(Interrupt::InvalidOpcode);
+				throw Exception::exception<Interrupt::InvalidOpcode>();
 			}
 		return;
 
@@ -195,7 +195,7 @@ template <
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
 				const auto should_throw = context.registers.msw() & MachineStatus::EmulateProcessorExtension;
 				if(should_throw) {
-					throw Exception(Interrupt::DeviceNotAvailable);
+					throw Exception::exception<Interrupt::DeviceNotAvailable>();
 				}
 			}
 		return;
@@ -280,8 +280,8 @@ template <
 		case Operation::RETnear:	Primitive::ret_near(instruction, context);	return;
 		case Operation::RETfar:		Primitive::ret_far(instruction, context);	return;
 
-		case Operation::INT:	interrupt(instruction.operand(), context);		return;
-		case Operation::INTO:	Primitive::into(context);						return;
+		case Operation::INT:	interrupt(Exception::interrupt(uint8_t(instruction.operand())), context);		return;
+		case Operation::INTO:	Primitive::into(context);														return;
 
 		case Operation::SAHF:	Primitive::sahf(context.registers.ah(), context);		return;
 		case Operation::LAHF:	Primitive::lahf(context.registers.ah(), context);		return;

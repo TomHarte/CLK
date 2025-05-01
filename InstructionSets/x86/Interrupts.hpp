@@ -10,7 +10,7 @@
 
 namespace InstructionSet::x86 {
 
-enum Interrupt: uint8_t {
+enum class Interrupt: uint8_t {
 	//
 	// Present on all devices.
 	//
@@ -113,14 +113,42 @@ private:
 };
 
 struct Exception {
-	uint8_t cause;
-	bool internal = true;
-	ExceptionCode code;
+	ExceptionCode code{};			// Exception code to push to the stack if this is an internal
+									// exception that provides a code and post_ip_as_code is `false`.
+	uint8_t vector{};				// Will be equal to value of an Interrupt enum if internal.
 
-	Exception() = default;
-	constexpr Exception(const Interrupt cause) noexcept : cause(cause) {}
-	constexpr Exception(const uint8_t external_cause) noexcept : cause(external_cause), internal(false) {}
-	constexpr Exception(const Interrupt cause, const ExceptionCode code) noexcept : cause(cause), code(code) {}
+	enum class CodeType: uint8_t {
+		Internal,
+		External,
+	};
+	CodeType code_type = CodeType::Internal;
+
+	/// Generates an internal exception with no error code.
+	template <Interrupt cause>
+	requires (!has_error_code(cause))
+	static constexpr Exception exception() {
+		return Exception(uint8_t(cause));
+	}
+
+	/// Generates an internal exception with a specified error code.
+	template <Interrupt cause>
+	requires (has_error_code(cause))
+	static constexpr Exception exception(const ExceptionCode code) {
+		return Exception(uint8_t(cause), code);
+	}
+
+	/// Generates an externally-motivated exception (i.e. an interrupt).
+	static constexpr Exception interrupt(const uint8_t vector) {
+		return Exception(vector, CodeType::External);
+	}
+
+private:
+	constexpr Exception(const uint8_t vector) noexcept : vector(vector) {}
+	constexpr Exception(const uint8_t vector, const ExceptionCode code) noexcept : code(code), vector(vector){}
+	constexpr Exception(const uint8_t vector, const CodeType code_type) noexcept :
+		vector(vector), code_type(code_type) {}
 };
+
+static_assert(sizeof(Exception) <= 4);
 
 }
