@@ -26,9 +26,9 @@
 #include "Activity/Source.hpp"
 
 #include "InstructionSets/x86/Decoder.hpp"
+#include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/Flags.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
-#include "InstructionSets/x86/Interrupts.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 
 #include "Components/8255/i8255.hpp"
@@ -857,7 +857,7 @@ public:
 
 		if(
 			exception.code_type == Exception::CodeType::Internal &&
-			!posts_next_ip(InstructionSet::x86::Interrupt(exception.vector))
+			!posts_next_ip(InstructionSet::x86::Vector(exception.vector))
 		) {
 			context_.registers.ip() = decoded_ip_;
 		}
@@ -1013,7 +1013,7 @@ using namespace PCCompatible;
 
 namespace {
 #ifndef NDEBUG
-static constexpr bool ForceAT = true;
+static constexpr bool ForceAT = false;// true;
 #else
 static constexpr bool ForceAT = false;
 #endif

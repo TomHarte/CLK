@@ -75,7 +75,7 @@ void aam(
 		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
 	*/
 	if(!imm) {
-		constexpr auto exception = Exception::exception<Interrupt::DivideError>();
+		constexpr auto exception = Exception::exception<Vector::DivideError>();
 		if constexpr (uses_8086_exceptions(ContextT::model)) {
 			interrupt(exception, context);
 			return;

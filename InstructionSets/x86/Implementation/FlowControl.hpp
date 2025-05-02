@@ -236,7 +236,7 @@ void into(
 	ContextT &context
 ) {
 	if(context.flags.template flag<Flag::Overflow>()) {
-		constexpr auto exception = Exception::exception<Interrupt::Overflow>();
+		constexpr auto exception = Exception::exception<Vector::Overflow>();
 		if constexpr (uses_8086_exceptions(ContextT::model)) {
 			interrupt(exception, context);
 		} else {
@@ -262,7 +262,7 @@ void bound(
 		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, IntT(source + 2)));
 
 	if(sIntT(destination) < lower_bound || sIntT(destination) > upper_bound) {
-		constexpr auto exception = Exception::exception<Interrupt::BoundRangeExceeded>();
+		constexpr auto exception = Exception::exception<Vector::BoundRangeExceeded>();
 		if constexpr (uses_8086_exceptions(ContextT::model)) {
 			interrupt(exception, context);
 		} else {

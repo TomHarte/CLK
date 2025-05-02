@@ -10,7 +10,7 @@
 
 namespace InstructionSet::x86 {
 
-enum class Interrupt: uint8_t {
+enum class Vector: uint8_t {
 	//
 	// Present on all devices.
 	//
@@ -42,25 +42,27 @@ enum class Interrupt: uint8_t {
 	MachineCheck				= 18,
 };
 
-constexpr bool has_error_code(const Interrupt interrupt) {
-	switch(interrupt) {
-		case Interrupt::DivideError:
-		case Interrupt::SingleStep:
-		case Interrupt::NMI:
-		case Interrupt::Breakpoint:
-		case Interrupt::Overflow:
-		case Interrupt::BoundRangeExceeded:
-		case Interrupt::InvalidOpcode:
-		case Interrupt::DeviceNotAvailable:
-		case Interrupt::CoprocessorSegmentOverrun:
-		case Interrupt::FloatingPointException:
+constexpr bool has_error_code(const Vector vector) {
+	switch(vector) {
+		using enum Vector;
+
+		case DivideError:
+		case SingleStep:
+		case NMI:
+		case Breakpoint:
+		case Overflow:
+		case BoundRangeExceeded:
+		case InvalidOpcode:
+		case DeviceNotAvailable:
+		case CoprocessorSegmentOverrun:
+		case FloatingPointException:
 			return false;
 
-		case Interrupt::DoubleFault:
-		case Interrupt::InvalidTSS:
-		case Interrupt::SegmentNotPresent:
-		case Interrupt::StackSegmentFault:
-		case Interrupt::GeneralProtectionFault:
+		case DoubleFault:
+		case InvalidTSS:
+		case SegmentNotPresent:
+		case StackSegmentFault:
+		case GeneralProtectionFault:
 			return true;
 
 		default:	// 386 exceptions; I don't know yet.
@@ -70,14 +72,16 @@ constexpr bool has_error_code(const Interrupt interrupt) {
 	return false;
 }
 
-constexpr bool posts_next_ip(const Interrupt interrupt) {
-	switch(interrupt) {
+constexpr bool posts_next_ip(const Vector vector) {
+	switch(vector) {
+		using enum Vector;
+
 		default:
 			return false;
 
-		case Interrupt::SingleStep:
-		case Interrupt::Breakpoint:
-		case Interrupt::Overflow:
+		case SingleStep:
+		case Breakpoint:
+		case Overflow:
 			return false;
 	}
 }
@@ -115,7 +119,7 @@ private:
 struct Exception {
 	ExceptionCode code{};			// Exception code to push to the stack if this is an internal
 									// exception that provides a code and post_ip_as_code is `false`.
-	uint8_t vector{};				// Will be equal to value of an Interrupt enum if internal.
+	uint8_t vector{};				// Will be equal to value of a `Vector` enum if internal.
 
 	enum class CodeType: uint8_t {
 		Internal,
@@ -124,14 +128,14 @@ struct Exception {
 	CodeType code_type = CodeType::Internal;
 
 	/// Generates an internal exception with no error code.
-	template <Interrupt cause>
+	template <Vector cause>
 	requires (!has_error_code(cause))
 	static constexpr Exception exception() {
 		return Exception(uint8_t(cause));
 	}
 
 	/// Generates an internal exception with a specified error code.
-	template <Interrupt cause>
+	template <Vector cause>
 	requires (has_error_code(cause))
 	static constexpr Exception exception(const ExceptionCode code) {
 		return Exception(uint8_t(cause), code);

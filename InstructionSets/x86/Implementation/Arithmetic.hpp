@@ -9,7 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/AccessType.hpp"
-#include "InstructionSets/x86/Interrupts.hpp"
+#include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 
 #include "Numeric/Carry.hpp"
@@ -173,7 +173,7 @@ void divide_error(ContextT &context) {
 	//
 	// 80286-style: throw the divide error, allowing the caller to insert
 	// additional context (primarily: IP of this instruction, not the next).
-	constexpr auto exception = Exception::exception<Interrupt::DivideError>();
+	constexpr auto exception = Exception::exception<Vector::DivideError>();
 	if constexpr (uses_8086_exceptions(ContextT::model)) {
 		interrupt(exception, context);
 	} else {

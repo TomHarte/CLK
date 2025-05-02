@@ -22,7 +22,7 @@
 
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
-#include "InstructionSets/x86/Interrupts.hpp"
+#include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/MachineStatus.hpp"
 
 //
@@ -187,7 +187,7 @@ template <
 
 		case Operation::Invalid:
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
-				throw Exception::exception<Interrupt::InvalidOpcode>();
+				throw Exception::exception<Vector::InvalidOpcode>();
 			}
 		return;
 
@@ -195,7 +195,7 @@ template <
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
 				const auto should_throw = context.registers.msw() & MachineStatus::EmulateProcessorExtension;
 				if(should_throw) {
-					throw Exception::exception<Interrupt::DeviceNotAvailable>();
+					throw Exception::exception<Vector::DeviceNotAvailable>();
 				}
 			}
 		return;
