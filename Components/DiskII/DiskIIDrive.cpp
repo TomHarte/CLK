@@ -8,6 +8,8 @@
 
 #include "DiskIIDrive.hpp"
 
+#include <bit>
+
 using namespace Apple::Disk;
 
 DiskIIDrive::DiskIIDrive(const int input_clock_rate) :
@@ -29,7 +31,7 @@ void DiskIIDrive::set_control_lines(const int lines) {
 		if(lines&2) direction += (((stepper_position_ - 2) + 4)&7) - 4;
 		if(lines&4) direction += (((stepper_position_ - 4) + 4)&7) - 4;
 		if(lines&8) direction += (((stepper_position_ - 6) + 4)&7) - 4;
-		const int bits_set = (lines&1) + ((lines >> 1)&1) + ((lines >> 2)&1) + ((lines >> 3)&1);
+		const int bits_set = std::popcount(uint8_t(lines));
 		direction /= bits_set;
 
 		// Compare to the stepper position to decide whether that pulls in the
