@@ -245,7 +245,7 @@ template <
 >
 requires is_context<ContextT>
 void interrupt(
-	int index,
+	Exception exception,
 	ContextT &context
 );
 

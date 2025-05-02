@@ -26,9 +26,9 @@
 #include "Activity/Source.hpp"
 
 #include "InstructionSets/x86/Decoder.hpp"
+#include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/Flags.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
-#include "InstructionSets/x86/Interrupts.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 
 #include "Components/8255/i8255.hpp"
@@ -691,6 +691,8 @@ public:
 	}
 
 	// MARK: - TimedMachine.
+	using Exception = InstructionSet::x86::Exception;
+
 	void run_for(const Cycles duration) final {
 		const auto pit_ticks = duration.as<int>();
 		constexpr bool is_fast = pc_model >= Analyser::Static::PCCompatible::Model::TurboXT;
@@ -751,7 +753,7 @@ public:
 
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
-				perform_fault(pics_.pic[0].acknowledge());
+				fault(Exception::interrupt(pics_.pic[0].acknowledge()));
 			}
 
 			// Do nothing if currently halted.
@@ -839,59 +841,36 @@ public:
 				);
 				return;
 			} catch (const InstructionSet::x86::Exception exception) {
-				perform_fault(exception);
+				fault(exception);
 			}
 		}
 	}
 
-	void perform_fault(const InstructionSet::x86::Exception exception) {
+	void fault(const Exception exception) {
 		if constexpr (uses_8086_exceptions(x86_model)) {
-			perform_real_interrupt(exception.cause);
-		} else {
-			using Interrupt = InstructionSet::x86::Interrupt;
-
-			// Regress the IP if this is an exception that posts the instruction's IP.
-			if(exception.internal && !posts_next_ip(Interrupt(exception.cause))) {
-				context_.registers.ip() = decoded_ip_;
-			}
-
-			if(!(context_.registers.msw() & InstructionSet::x86::MachineStatus::ProtectedModeEnable)) {
-				perform_real_interrupt(exception.cause);
-				return;
-			}
-
-			try {
-				printf("TODO!");
-				// TODO, I think:
-				//
-				//	(1) push e.code if this is an exception that has a code;
-				//	(2) if in protected mode, do _something_ with the IDT?
-				// 	(3) do the stuff of `InstructionSet::x86::interrupt` but possibly catch another exception.
-				//
-				//	... upon another exception: double fault.
-				//	... upon a third: reset.
-			} catch (const InstructionSet::x86::Exception exception) {
-				perform_double_fault(exception);
-			}
+			InstructionSet::x86::interrupt(
+				exception,
+				context_
+			);
+			return;
 		}
-	}
 
-	void perform_real_interrupt(const uint8_t code) {
-		printf("From %04x\n", decoded_ip_);
-//		should_log = true;
+		if(
+			exception.code_type == Exception::CodeType::Internal &&
+			!posts_next_ip(InstructionSet::x86::Vector(exception.vector))
+		) {
+			context_.registers.ip() = decoded_ip_;
+		}
+
 		try {
 			InstructionSet::x86::interrupt(
-				code,
+				exception,
 				context_
 			);
 		} catch (const InstructionSet::x86::Exception exception) {
-			perform_double_fault(exception);
+			// TODO: unsure about this. Probably just recurse?
+			printf("DOUBLE FAULT TODO!");
 		}
-	}
-
-	void perform_double_fault(const InstructionSet::x86::Exception exception) {
-		printf("DOUBLE TODO!");
-		(void)exception;
 	}
 
 	// MARK: - ScanProducer.
@@ -1034,7 +1013,7 @@ using namespace PCCompatible;
 
 namespace {
 #ifndef NDEBUG
-static constexpr bool ForceAT = true;
+static constexpr bool ForceAT = false;// true;
 #else
 static constexpr bool ForceAT = false;
 #endif

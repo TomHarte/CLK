@@ -1261,7 +1261,7 @@
 		42437B342ACF02A9006DFED1 /* Flags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Flags.hpp; sourceTree = "<group>"; };
 		42437B352ACF0AA2006DFED1 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		42437B382ACF2798006DFED1 /* PerformImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PerformImplementation.hpp; sourceTree = "<group>"; };
-		42437B392AD07465006DFED1 /* Interrupts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Interrupts.hpp; sourceTree = "<group>"; };
+		42437B392AD07465006DFED1 /* Exceptions.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Exceptions.hpp; sourceTree = "<group>"; };
 		425739282AFBDF2700B7D1E4 /* Arithmetic.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Arithmetic.hpp; sourceTree = "<group>"; };
 		425739292AFBE03600B7D1E4 /* Logical.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Logical.hpp; sourceTree = "<group>"; };
 		4257392A2AFBE0AE00B7D1E4 /* ShiftRoll.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ShiftRoll.hpp; sourceTree = "<group>"; };
@@ -5369,9 +5369,9 @@
 				42AA41232AF888370016751C /* AccessType.hpp */,
 				4BEDA3B825B25563000C2DBD /* Decoder.hpp */,
 				4B8671EA2D8B40D8009E1610 /* Descriptors.hpp */,
+				42437B392AD07465006DFED1 /* Exceptions.hpp */,
 				42437B342ACF02A9006DFED1 /* Flags.hpp */,
 				4BEDA3DB25B2588F000C2DBD /* Instruction.hpp */,
-				42437B392AD07465006DFED1 /* Interrupts.hpp */,
 				4B8671EC2D99BE2C009E1610 /* MachineStatus.hpp */,
 				4B8671EB2D8FABA0009E1610 /* Mode.hpp */,
 				4BE3C69527CBC540000EAD28 /* Model.hpp */,
