@@ -602,19 +602,19 @@ template <
 >
 requires is_context<ContextT>
 void interrupt(
-	const int index,
+	const Exception exception,
 	ContextT &context
 ) {
-	const uint32_t address = static_cast<uint32_t>(index) << 2;
-	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
-	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
-
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
 			// TODO: use the IDT, ummm, somehow.
 			assert(false);
 		}
 	}
+
+	const uint32_t address = static_cast<uint32_t>(exception.vector) << 2;
+	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
+	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
 	// TODO: I think (?) these are always physical addresses, not linear ones.
 	// Indicate that when fetching.
