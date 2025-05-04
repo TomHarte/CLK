@@ -88,9 +88,16 @@ struct Registers<InstructionSet::x86::Model::i80186>: public Registers<Instructi
 template <>
 struct Registers<InstructionSet::x86::Model::i80286>: public Registers<InstructionSet::x86::Model::i80186> {
 public:
+	using DescriptorTable = InstructionSet::x86::DescriptorTable;
+	using DescriptorTablePointer = InstructionSet::x86::DescriptorTablePointer;
+
 	void reset() {
 		Registers<InstructionSet::x86::Model::i80186>::reset();
 		machine_status_ = 0;
+		interrupt_ = DescriptorTablePointer{
+			.limit = 256 * 4,
+			.base = 0
+		};
 	}
 
 	uint16_t msw() const {	return machine_status_;	}
@@ -99,9 +106,6 @@ public:
 			(machine_status_ & InstructionSet::x86::MachineStatus::ProtectedModeEnable) |
 			msw;
 	}
-
-	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTablePointer = InstructionSet::x86::DescriptorTablePointer;
 
 	template <DescriptorTable table>
 	void set(const DescriptorTablePointer location) {

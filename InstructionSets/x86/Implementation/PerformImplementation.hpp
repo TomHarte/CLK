@@ -605,6 +605,16 @@ void interrupt(
 	const Exception exception,
 	ContextT &context
 ) {
+	const auto table_pointer = [&] {
+		if constexpr (ContextT::model >= Model::i80286) {
+			return context.registers.template get<DescriptorTable::Interrupt>();
+		}
+		return DescriptorTablePointer{
+			.limit = 1024,
+			.base = 0
+		};
+	} ();
+
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
 			// TODO: use the IDT, ummm, somehow.
@@ -612,7 +622,7 @@ void interrupt(
 		}
 	}
 
-	const uint32_t address = static_cast<uint32_t>(exception.vector) << 2;
+	const uint32_t address = static_cast<uint32_t>(table_pointer.base + exception.vector) << 2;
 	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
 	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
