@@ -101,10 +101,10 @@ public:
 	}
 
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTableLocation = InstructionSet::x86::DescriptorTablePointer;
+	using DescriptorTablePointer = InstructionSet::x86::DescriptorTablePointer;
 
 	template <DescriptorTable table>
-	void set(const DescriptorTableLocation location) {
+	void set(const DescriptorTablePointer location) {
 		static constexpr bool is_global = table == DescriptorTable::Global;
 		static_assert(is_global || table == DescriptorTable::Interrupt);
 		auto &target = is_global ? global_ : interrupt_;
@@ -112,7 +112,7 @@ public:
 	}
 
 	template <DescriptorTable table>
-	const DescriptorTableLocation &get() const {
+	const DescriptorTablePointer &get() const {
 		if constexpr (table == DescriptorTable::Global) {
 			return global_;
 		} else if constexpr (table == DescriptorTable::Interrupt) {
@@ -125,7 +125,7 @@ public:
 
 private:
 	uint16_t machine_status_;
-	DescriptorTableLocation global_, interrupt_, local_;
+	DescriptorTablePointer global_, interrupt_, local_;
 };
 
 }
