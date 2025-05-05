@@ -26,7 +26,7 @@ public:
 	Segments(const Registers<model> &registers, const LinearMemory<model> &memory) :
 		registers_(registers), memory_(memory) {}
 
-	using Descriptor = InstructionSet::x86::Descriptor;
+	using Descriptor = InstructionSet::x86::SegmentDescriptor;
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
 	using Mode = InstructionSet::x86::Mode;
 	using Source = InstructionSet::x86::Source;
@@ -57,7 +57,7 @@ public:
 						(value & 4) ?
 							registers_.template get<DescriptorTable::Local>() :
 							registers_.template get<DescriptorTable::Global>();
-					const auto incoming = descriptor_at(memory_, table, value & ~7);
+					const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7);
 
 					switch(segment) {
 						case Source::DS:

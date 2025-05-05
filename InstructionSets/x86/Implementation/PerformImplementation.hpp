@@ -617,7 +617,8 @@ void interrupt(
 
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
-			const auto call_gate = descriptor_at(context.linear_memory, table_pointer, uint32_t(exception.vector) << 3);
+			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
+				context.linear_memory, table_pointer, uint32_t(exception.vector) << 3);
 
 			(void)call_gate;
 			// TODO: use the IDT, ummm, somehow.

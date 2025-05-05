@@ -26,11 +26,11 @@ struct DescriptorBounds {
 	uint32_t begin, end;
 };
 
-struct Descriptor {
-	Descriptor() = default;
+struct SegmentDescriptor {
+	SegmentDescriptor() = default;
 
 	/// Creates a new descriptor with four 16-bit from a descriptor table.
-	Descriptor(const uint16_t descriptor[4]) noexcept {
+	SegmentDescriptor(const uint16_t descriptor[4]) noexcept {
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		type_ = descriptor[2] >> 8;
 
@@ -119,6 +119,33 @@ private:
 	uint8_t type_;
 };
 
+struct InterruptDescriptor {
+	InterruptDescriptor(const uint16_t descriptor[4]) noexcept :
+		segment_(descriptor[1]),
+		offset_(uint32_t(descriptor[0] | (descriptor[3] << 16))),
+		flags_(descriptor[2] >> 8) {}
+
+	uint16_t segment() const { return segment_; }
+	uint32_t offset() const { return offset_; }
+	bool present() const { return flags_ & 0x80; }
+	uint8_t priority() const { return (flags_ >> 5) & 3; }
+
+	enum class Type {
+		Task = 0x5,
+		Interrupt16 = 0x6,	Trap16 = 0x7,
+		Interrupt32 = 0xe,	Trap32 = 0xf,
+	};
+	Type type() const {
+		return Type(flags_ & 0xf);
+	}
+
+private:
+	uint16_t segment_;
+	uint32_t offset_;
+	uint8_t flags_;
+};
+
+
 template <typename SegmentT>
 struct SegmentRegisterSet {
 	SegmentT &operator[](const Source segment) {
@@ -141,9 +168,9 @@ private:
 	}
 };
 
-template <typename LinearMemoryT>
+template <typename DescriptorT, typename LinearMemoryT>
 //requires is_linear_memory<LinearMemoryT>
-Descriptor descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint32_t offset) {
+DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint32_t offset) {
 	if(offset > table.limit - 8) {
 		printf("TODO: descriptor table overrun exception.\n");
 		assert(false);
@@ -159,7 +186,7 @@ Descriptor descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer tab
 		memory.template access<uint16_t, AccessType::Read>(address + 6, table_end)
 	};
 
-	return Descriptor(entry);
+	return DescriptorT(entry);
 }
 
 }
