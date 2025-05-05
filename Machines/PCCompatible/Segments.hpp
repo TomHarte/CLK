@@ -52,18 +52,13 @@ public:
 						assert(false);
 					}
 
-					// Check segment range.
+					// Get and validate descriptor.
 					const auto &table =
 						(value & 4) ?
 							registers_.template get<DescriptorTable::Local>() :
 							registers_.template get<DescriptorTable::Global>();
-					const uint32_t table_address = table.base + (value & ~7);
-					if(table_address > table.base + table.limit - 8) {
-						printf("TODO: descriptor table overrun exception.\n");
-						assert(false);
-					}
+					const auto incoming = descriptor_at(memory_, table, value & ~7);
 
-					const auto incoming = descriptor_at(memory_, table, table_address);
 					switch(segment) {
 						case Source::DS:
 						case Source::ES:
