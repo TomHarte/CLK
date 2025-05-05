@@ -63,19 +63,7 @@ public:
 						assert(false);
 					}
 
-					// Get descriptor contents.
-					using AccessType = InstructionSet::x86::AccessType;
-					const uint32_t table_end = table.base + table.limit;
-					const uint16_t entry[] = {
-						memory_.template access<uint16_t, AccessType::Read>(table_address, table_end),
-						memory_.template access<uint16_t, AccessType::Read>(table_address + 2, table_end),
-						memory_.template access<uint16_t, AccessType::Read>(table_address + 4, table_end),
-						memory_.template access<uint16_t, AccessType::Read>(table_address + 6, table_end)
-					};
-
-//					printf("%s [%04x -> %08x]: ", InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::Word).c_str(), value, table_address);
-					const Descriptor incoming(entry);
-
+					const auto incoming = descriptor_at(memory_, table, table_address);
 					switch(segment) {
 						case Source::DS:
 						case Source::ES:

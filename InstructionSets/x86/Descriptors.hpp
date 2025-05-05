@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Instruction.hpp"
+//#include "Perform.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -127,5 +128,20 @@ private:
 		return size_t(segment) - size_t(Source::ES);
 	}
 };
+
+template <typename LinearMemoryT>
+//requires is_linear_memory<LinearMemoryT>
+Descriptor descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint32_t address) {
+	using AccessType = InstructionSet::x86::AccessType;
+	const uint32_t table_end = table.base + table.limit;
+	const uint16_t entry[] = {
+		memory.template access<uint16_t, AccessType::Read>(address, table_end),
+		memory.template access<uint16_t, AccessType::Read>(address + 2, table_end),
+		memory.template access<uint16_t, AccessType::Read>(address + 4, table_end),
+		memory.template access<uint16_t, AccessType::Read>(address + 6, table_end)
+	};
+
+	return Descriptor(entry);
+}
 
 }
