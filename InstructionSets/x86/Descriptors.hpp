@@ -49,18 +49,6 @@ struct SegmentDescriptor {
 		}
 	}
 
-	// TODO: gate desciptors are:
-	//	[0] = offset		(and [3] if 32-bit)
-	//	[1] = segment
-	//	[2] >> 8  = type; b7 = present; b6+b5 = priority; b3–b0 = type.
-	//
-	// Types:
-	//	0x5 = task gate;
-	//	6 = 16-bit interrupt gate;
-	//	7 = 16-bit trap gate;
-	//	e = 32-bit interrupt gate;
-	//	f = 32-bit trap gate.
-
 	/// Rewrites this descriptor as a real-mode segment.
 	void set_segment(const uint16_t segment) {
 		base_ = uint32_t(segment) << 4;
