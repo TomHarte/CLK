@@ -695,10 +695,30 @@ public:
 
 	void run_for(const Cycles duration) final {
 		const auto pit_ticks = duration.as<int>();
-		constexpr bool is_fast = pc_model >= Analyser::Static::PCCompatible::Model::TurboXT;
+		constexpr int pit_multiplier = [] {
+			switch(pc_model) {
+				// This is implicitly treated as running at 1/3 the PIT clock = around 0.4 MIPS.
+				// i.e. a shade more than 8086 speed, if MIPS were meaningful.
+				case Analyser::Static::PCCompatible::Model::XT: return 1;
+
+				// Other multipliers are CPU instructions per PIT clock.
+				//
+				// 2*PIT = around 2.4 MIPS, broadly 80286 speed, if MIPS were a valid measure.
+				case Analyser::Static::PCCompatible::Model::TurboXT: return 2;
+
+				case Analyser::Static::PCCompatible::Model::AT: return 2;	// TODO: increase if/when no longer timing
+																			// dependent in BIOS boot (cf. test 11h,
+																			// RAM refresh rate versus execution rate)
+			}
+			// Other inevitably broad and fuzzy and inconsistent MIPS counts for my own potential future play:
+			//
+			// 80386 @ 20Mhz: 4–5 MIPS.
+			// 80486 @ 66Mhz: 25 MIPS.
+			// Pentium @ 100Mhz: 188 MIPS.
+		} ();
 
 		int ticks;
-		if constexpr (is_fast) {
+		if constexpr (pit_multiplier > 1) {
 			ticks = pit_ticks;
 		} else {
 			cpu_divisor_ += pit_ticks;
@@ -717,9 +737,8 @@ public:
 			pit_.run_for(1);
 			++speaker_.cycles_since_update;
 
-			// For original speed, the CPU performs instructions at a 1/3rd divider of the PIT clock,
-			// so run the PIT three times per 'tick'.
-			if constexpr (is_fast) {
+			// For the slow speed, run the PIT multiple times per CPU tick.
+			if constexpr (pit_multiplier == 1) {
 				pit_.run_for(1);
 				++speaker_.cycles_since_update;
 				pit_.run_for(1);
@@ -727,9 +746,9 @@ public:
 			}
 
 			//
-			// Advance CRTC at a more approximate rate.
+			// Advance CRTC.
 			//
-			video_.run_for(is_fast ? Cycles(1) : Cycles(3));
+			video_.run_for((pit_multiplier > 1) ? Cycles(1) : Cycles(3));
 
 			//
 			// Give the keyboard a notification of passing time; it's very approximately clocked,
@@ -761,22 +780,9 @@ public:
 				continue;
 			}
 
-			if constexpr (is_fast) {
-				// There's no divider applied, so this makes for 2*PIT = around 2.4 MIPS.
-				// That's broadly 80286 speed, if MIPS were a valid measure.
-				perform_instruction();
-				perform_instruction();
-			} else {
-				// With the clock divider above, this makes for a net of PIT/3 = around 0.4 MIPS.
-				// i.e. a shade more than 8086 speed, if MIPS were meaningful.
+			for(int c = 0; c < pit_multiplier; c++) {
 				perform_instruction();
 			}
-
-			// Other inevitably broad and fuzzy and inconsistent MIPS counts for my own potential future play:
-			//
-			// 80386 @ 20Mhz: 4–5 MIPS.
-			// 80486 @ 66Mhz: 25 MIPS.
-			// Pentium @ 100Mhz: 188 MIPS.
 		}
 	}
 

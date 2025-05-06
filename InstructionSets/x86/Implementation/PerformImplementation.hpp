@@ -620,7 +620,8 @@ void interrupt(
 			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
 				context.linear_memory, table_pointer, uint32_t(exception.vector) << 3);
 
-			(void)call_gate;
+			printf("Type %d to segment %d, IP %04x\n", call_gate.type(), call_gate.segment(), call_gate.offset());
+
 			// TODO: use the IDT, ummm, somehow.
 			assert(false);
 		}
