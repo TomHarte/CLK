@@ -82,7 +82,6 @@ struct SegmentDescriptor {
 
 		// Tested at loading (?): present(), privilege_level().
 
-
 		if(type == AccessType::Read && executable() && !readable()) {
 			throw_exception();
 		}
@@ -98,6 +97,9 @@ struct SegmentDescriptor {
 
 	/// @returns The base of this segment descriptor.
 	uint32_t base() const {		return base_;	}
+
+	/// @returns The offset of this segment descriptor.
+	uint32_t offset() const {	return offset_;	}
 
 	/// @returns The bounds of this segment descriptor; will be either [0, limit] or [limit, INT_MAX] depending on descriptor type.
 	/// Accesses must be `>= bounds().begin` and `<= bounds().end`.

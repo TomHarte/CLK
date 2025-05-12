@@ -124,6 +124,28 @@ void ldt(
 	context.segments.did_update(table);
 }
 
+template <typename AddressT, typename ContextT>
+void lldt(
+	read_t<AddressT> source_segment,
+	ContextT &context
+) {
+	const auto ldt =
+		descriptor_at<SegmentDescriptor>(
+			context.linear_memory,
+			context.registers.template get<DescriptorTable::Global>(),
+			source_segment & ~7);
+
+	DescriptorTablePointer location;
+	location.limit = ldt.base();
+	location.base = ldt.offset();
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		location.base &= 0xff'ff'ff;
+	}
+
+	context.registers.template set<DescriptorTable::Local>(location);
+	context.segments.did_update(DescriptorTable::Local);
+}
+
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
 void sdt(
 	read_t<AddressT> destination_address,

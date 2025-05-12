@@ -109,10 +109,11 @@ public:
 
 	template <DescriptorTable table>
 	void set(const DescriptorTablePointer location) {
-		static constexpr bool is_global = table == DescriptorTable::Global;
-		static_assert(is_global || table == DescriptorTable::Interrupt);
-		auto &target = is_global ? global_ : interrupt_;
-		target = location;
+		switch(table) {
+			case DescriptorTable::Local:		local_ = location; 		break;
+			case DescriptorTable::Global:		global_ = location; 	break;
+			case DescriptorTable::Interrupt:	interrupt_ = location;	break;
+		}
 	}
 
 	template <DescriptorTable table>

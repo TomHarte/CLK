@@ -340,6 +340,13 @@ template <
 				assert(false);
 			}
 		break;
+		case Operation::LLDT:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::lldt<AddressT>(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
 		case Operation::SIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::sdt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
