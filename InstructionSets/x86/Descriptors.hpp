@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Exceptions.hpp"
 #include "Instruction.hpp"
 //#include "Perform.hpp"
 
@@ -68,8 +69,24 @@ struct SegmentDescriptor {
 	template <AccessType type, typename AddressT>
 	requires std::same_as<AddressT, uint16_t> || std::same_as<AddressT, uint32_t>
 	void authorise(const AddressT begin, const AddressT end) const {
-		(void)begin;
-		(void)end;
+		const auto throw_exception = [&] {
+			printf("Should GPF?\n");
+		};
+
+		// Tested at loading (?): present(), privilege_level().
+
+
+		if(type == AccessType::Read && executable() && !readable()) {
+			throw_exception();
+		}
+
+		if(type == AccessType::Write && !executable() && !writeable()) {
+			throw_exception();
+		}
+
+		if(begin < bounds_.begin || end >= bounds_.end) {
+			throw_exception();
+		}
 	}
 
 	/// @returns The base of this segment descriptor.
