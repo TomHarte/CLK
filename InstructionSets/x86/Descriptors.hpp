@@ -32,7 +32,7 @@ struct SegmentDescriptor {
 	SegmentDescriptor() = default;
 
 	/// Creates a new descriptor with four 16-bit from a descriptor table.
-	SegmentDescriptor(const uint16_t descriptor[4]) noexcept {
+	SegmentDescriptor(const uint16_t segment, const uint16_t descriptor[4]) noexcept : segment_(segment) {
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		type_ = descriptor[2] >> 8;
 
@@ -53,6 +53,7 @@ struct SegmentDescriptor {
 
 	/// Rewrites this descriptor as a real-mode segment.
 	void set_segment(const uint16_t segment) {
+		segment_ = segment;
 		base_ = uint32_t(segment) << 4;
 		bounds_ = DescriptorBounds{ 0x0000, 0xffff };
 		offset_ = 0;
@@ -114,10 +115,11 @@ private:
 	uint32_t offset_;
 	DescriptorBounds bounds_;
 	uint8_t type_;
+	uint16_t segment_;
 };
 
 struct InterruptDescriptor {
-	InterruptDescriptor(const uint16_t descriptor[4]) noexcept :
+	InterruptDescriptor(const uint16_t, const uint16_t descriptor[4]) noexcept :
 		segment_(descriptor[1]),
 		offset_(uint32_t(descriptor[0] | (descriptor[3] << 16))),
 		flags_(descriptor[2] >> 8) {}
@@ -183,7 +185,7 @@ DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer ta
 		memory.template access<uint16_t, AccessType::Read>(address + 6, table_end)
 	};
 
-	return DescriptorT(entry);
+	return DescriptorT(uint16_t(offset) & ~7, entry);
 }
 
 }
