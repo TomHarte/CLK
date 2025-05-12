@@ -180,6 +180,8 @@ template <
 	//	* break if there's a chance of writeback.
 	switch(instruction.operation()) {
 		default:
+			// If execution gets here then the decoder recognised an operation that I have yet to implement.
+			// This is definitely an oversight on my part. It cannot possibly be a problem with the underlying software.
 			assert(false);
 			[[fallthrough]];
 
