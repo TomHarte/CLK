@@ -73,9 +73,7 @@ public:
 	void preauthorise_stack_write(uint32_t) {}
 	void preauthorise_stack_read(uint32_t) {}
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_read(uint32_t, uint32_t) {}
 	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_write(uint32_t, uint32_t) {}
 
 	//
 	// Access call-ins.
@@ -156,9 +154,8 @@ public:
 	}
 
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_read(uint32_t, uint32_t) {}
+
 	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_write(uint32_t, uint32_t) {}
 
 	// TODO: perform authorisation checks.
 
