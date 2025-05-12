@@ -26,7 +26,7 @@ public:
 	Segments(const Registers<model> &registers, const LinearMemory<model> &memory) :
 		registers_(registers), memory_(memory) {}
 
-	using Descriptor = InstructionSet::x86::Descriptor;
+	using Descriptor = InstructionSet::x86::SegmentDescriptor;
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
 	using Mode = InstructionSet::x86::Mode;
 	using Source = InstructionSet::x86::Source;
@@ -52,29 +52,12 @@ public:
 						assert(false);
 					}
 
-					// Check segment range.
+					// Get and validate descriptor.
 					const auto &table =
 						(value & 4) ?
 							registers_.template get<DescriptorTable::Local>() :
 							registers_.template get<DescriptorTable::Global>();
-					const uint32_t table_address = table.base + (value & ~7);
-					if(table_address > table.base + table.limit - 8) {
-						printf("TODO: descriptor table overrun exception.\n");
-						assert(false);
-					}
-
-					// Get descriptor contents.
-					using AccessType = InstructionSet::x86::AccessType;
-					const uint32_t table_end = table.base + table.limit;
-					const uint16_t entry[] = {
-						memory_.template access<uint16_t, AccessType::Read>(table_address, table_end),
-						memory_.template access<uint16_t, AccessType::Read>(table_address + 2, table_end),
-						memory_.template access<uint16_t, AccessType::Read>(table_address + 4, table_end),
-						memory_.template access<uint16_t, AccessType::Read>(table_address + 6, table_end)
-					};
-
-//					printf("%s [%04x -> %08x]: ", InstructionSet::x86::to_string(segment, InstructionSet::x86::DataSize::Word).c_str(), value, table_address);
-					const Descriptor incoming(entry);
+					const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7);
 
 					switch(segment) {
 						case Source::DS:

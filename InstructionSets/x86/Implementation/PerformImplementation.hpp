@@ -605,32 +605,65 @@ void interrupt(
 	const Exception exception,
 	ContextT &context
 ) {
+	const auto table_pointer = [&] {
+		if constexpr (ContextT::model >= Model::i80286) {
+			return context.registers.template get<DescriptorTable::Interrupt>();
+		}
+		return DescriptorTablePointer{
+			.limit = 1024,
+			.base = 0
+		};
+	} ();
+
+	const auto far_call = [&](const uint16_t segment, const uint16_t offset) {
+		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
+
+		const auto flags = context.flags.get();
+		Primitive::push<uint16_t, true>(flags, context);
+
+		// Push CS and IP.
+		Primitive::push<uint16_t, true>(context.registers.cs(), context);
+		Primitive::push<uint16_t, true>(context.registers.ip(), context);
+
+		// Set new destination.
+		context.flow_controller.jump(segment, offset);
+	};
+
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
-			// TODO: use the IDT, ummm, somehow.
-			assert(false);
+			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
+				context.linear_memory, table_pointer, uint32_t(exception.vector) << 3);
+
+			if(!call_gate.present()) {
+				printf("TODO: should throw for non-present IDT entry\n");
+				assert(false);
+			}
+
+			if(
+				call_gate.type() != InterruptDescriptor::Type::Interrupt16 &&
+				call_gate.type() != InterruptDescriptor::Type::Trap16
+			) {
+				printf("TODO: unknown or unhandled call gate type\n");
+				assert(false);
+			}
+
+			far_call(call_gate.segment(), static_cast<uint16_t>(call_gate.offset()));
+			if(call_gate.type() == InterruptDescriptor::Type::Interrupt16) {
+				context.flags.template set_from<Flag::Interrupt>(0);
+			}
+			return;
 		}
 	}
 
-	const uint32_t address = static_cast<uint32_t>(exception.vector) << 2;
+	const uint32_t address = static_cast<uint32_t>(table_pointer.base + exception.vector) << 2;
 	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
-	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
 	// TODO: I think (?) these are always physical addresses, not linear ones.
 	// Indicate that when fetching.
 	const uint16_t ip = context.linear_memory.template read<uint16_t>(address);
 	const uint16_t cs = context.linear_memory.template read<uint16_t>(address + 2);
-
-	const auto flags = context.flags.get();
-	Primitive::push<uint16_t, true>(flags, context);
+	far_call(cs, ip);
 	context.flags.template set_from<Flag::Interrupt, Flag::Trap>(0);
-
-	// Push CS and IP.
-	Primitive::push<uint16_t, true>(context.registers.cs(), context);
-	Primitive::push<uint16_t, true>(context.registers.ip(), context);
-
-	// Set new destination.
-	context.flow_controller.jump(cs, ip);
 }
 
 }

@@ -88,9 +88,16 @@ struct Registers<InstructionSet::x86::Model::i80186>: public Registers<Instructi
 template <>
 struct Registers<InstructionSet::x86::Model::i80286>: public Registers<InstructionSet::x86::Model::i80186> {
 public:
+	using DescriptorTable = InstructionSet::x86::DescriptorTable;
+	using DescriptorTablePointer = InstructionSet::x86::DescriptorTablePointer;
+
 	void reset() {
 		Registers<InstructionSet::x86::Model::i80186>::reset();
 		machine_status_ = 0;
+		interrupt_ = DescriptorTablePointer{
+			.limit = 256 * 4,
+			.base = 0
+		};
 	}
 
 	uint16_t msw() const {	return machine_status_;	}
@@ -100,11 +107,8 @@ public:
 			msw;
 	}
 
-	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTableLocation = InstructionSet::x86::DescriptorTablePointer;
-
 	template <DescriptorTable table>
-	void set(const DescriptorTableLocation location) {
+	void set(const DescriptorTablePointer location) {
 		static constexpr bool is_global = table == DescriptorTable::Global;
 		static_assert(is_global || table == DescriptorTable::Interrupt);
 		auto &target = is_global ? global_ : interrupt_;
@@ -112,7 +116,7 @@ public:
 	}
 
 	template <DescriptorTable table>
-	const DescriptorTableLocation &get() const {
+	const DescriptorTablePointer &get() const {
 		if constexpr (table == DescriptorTable::Global) {
 			return global_;
 		} else if constexpr (table == DescriptorTable::Interrupt) {
@@ -125,7 +129,7 @@ public:
 
 private:
 	uint16_t machine_status_;
-	DescriptorTableLocation global_, interrupt_, local_;
+	DescriptorTablePointer global_, interrupt_, local_;
 };
 
 }
