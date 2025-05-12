@@ -107,6 +107,13 @@ public:
 			msw;
 	}
 
+	int privilege_level() const {
+		return 0;	// TODO.
+	}
+	void set_privilege_level(int) {
+		// TODO.
+	}
+
 	template <DescriptorTable table>
 	void set(const DescriptorTablePointer location) {
 		switch(table) {

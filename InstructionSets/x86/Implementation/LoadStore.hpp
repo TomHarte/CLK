@@ -135,8 +135,25 @@ void lldt(
 			context.registers.template get<DescriptorTable::Global>(),
 			source_segment & ~7);
 
+	const auto exception_code = [](const uint16_t segment) {
+		return ExceptionCode(
+			segment &~ 7,
+			false,
+			false,
+			false
+		);
+	};
+
+	if(ldt.type() != SegmentDescriptor::Type::LDTDescriptor) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(exception_code(source_segment));
+	}
+
+	if(!ldt.present()) {
+		throw Exception::exception<Vector::SegmentNotPresent>(exception_code(source_segment));
+	}
+
 	DescriptorTablePointer location;
-	location.limit = ldt.base();
+	location.limit = AddressT(ldt.base());
 	location.base = ldt.offset();
 	if constexpr (std::is_same_v<AddressT, uint16_t>) {
 		location.base &= 0xff'ff'ff;
