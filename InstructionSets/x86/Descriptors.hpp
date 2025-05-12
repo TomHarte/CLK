@@ -70,7 +70,14 @@ struct SegmentDescriptor {
 	requires std::same_as<AddressT, uint16_t> || std::same_as<AddressT, uint32_t>
 	void authorise(const AddressT begin, const AddressT end) const {
 		const auto throw_exception = [&] {
-			printf("Should GPF?\n");
+			throw Exception::exception<Vector::GeneralProtectionFault>(
+				ExceptionCode(
+					segment_,
+					true,	// LDT or GDT???
+					false,
+					false
+				)
+			);
 		};
 
 		// Tested at loading (?): present(), privilege_level().
