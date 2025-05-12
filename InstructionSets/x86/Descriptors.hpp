@@ -11,6 +11,8 @@
 #include "Instruction.hpp"
 //#include "Perform.hpp"
 
+#include <concepts>
+
 namespace InstructionSet::x86 {
 
 enum class DescriptorTable {
@@ -60,6 +62,13 @@ struct SegmentDescriptor {
 	/// @returns The linear address for offest @c address within the segment described by this descriptor.
 	uint32_t to_linear(const uint32_t address) const {
 		return base_ + address;
+	}
+
+	template <AccessType type, typename AddressT>
+	requires std::same_as<AddressT, uint16_t> || std::same_as<AddressT, uint32_t>
+	void authorise(const AddressT begin, const AddressT end) const {
+		(void)begin;
+		(void)end;
 	}
 
 	/// @returns The base of this segment descriptor.
