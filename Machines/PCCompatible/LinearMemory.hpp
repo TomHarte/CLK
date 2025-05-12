@@ -220,6 +220,9 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 		// It's safe just to write then.
 		*reinterpret_cast<IntT *>(&memory[address]) = value;
 	}
+
+	void preauthorise_read(uint32_t, uint32_t) {}
+	void preauthorise_write(uint32_t, uint32_t) {}
 };
 
 template <>
@@ -267,6 +270,9 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	) {
 		*reinterpret_cast<IntT *>(&memory[address & address_mask_]) = value;
 	}
+
+	void preauthorise_read(uint32_t, uint32_t) {}
+	void preauthorise_write(uint32_t, uint32_t) {}
 
 private:
 	uint32_t address_mask_;

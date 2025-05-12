@@ -8,8 +8,11 @@
 
 #pragma once
 
+#include "Exceptions.hpp"
 #include "Instruction.hpp"
 //#include "Perform.hpp"
+
+#include <concepts>
 
 namespace InstructionSet::x86 {
 
@@ -30,7 +33,7 @@ struct SegmentDescriptor {
 	SegmentDescriptor() = default;
 
 	/// Creates a new descriptor with four 16-bit from a descriptor table.
-	SegmentDescriptor(const uint16_t descriptor[4]) noexcept {
+	SegmentDescriptor(const uint16_t segment, const uint16_t descriptor[4]) noexcept : segment_(segment) {
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		type_ = descriptor[2] >> 8;
 
@@ -51,6 +54,7 @@ struct SegmentDescriptor {
 
 	/// Rewrites this descriptor as a real-mode segment.
 	void set_segment(const uint16_t segment) {
+		segment_ = segment;
 		base_ = uint32_t(segment) << 4;
 		bounds_ = DescriptorBounds{ 0x0000, 0xffff };
 		offset_ = 0;
@@ -60,6 +64,36 @@ struct SegmentDescriptor {
 	/// @returns The linear address for offest @c address within the segment described by this descriptor.
 	uint32_t to_linear(const uint32_t address) const {
 		return base_ + address;
+	}
+
+	template <AccessType type, typename AddressT>
+	requires std::same_as<AddressT, uint16_t> || std::same_as<AddressT, uint32_t>
+	void authorise(const AddressT begin, const AddressT end) const {
+		const auto throw_exception = [&] {
+			throw Exception::exception<Vector::GeneralProtectionFault>(
+				ExceptionCode(
+					segment_,
+					true,	// LDT or GDT???
+					false,
+					false
+				)
+			);
+		};
+
+		// Tested at loading (?): present(), privilege_level().
+
+
+		if(type == AccessType::Read && executable() && !readable()) {
+			throw_exception();
+		}
+
+		if(type == AccessType::Write && !executable() && !writeable()) {
+			throw_exception();
+		}
+
+		if(begin < bounds_.begin || end >= bounds_.end) {
+			throw_exception();
+		}
 	}
 
 	/// @returns The base of this segment descriptor.
@@ -105,10 +139,11 @@ private:
 	uint32_t offset_;
 	DescriptorBounds bounds_;
 	uint8_t type_;
+	uint16_t segment_;
 };
 
 struct InterruptDescriptor {
-	InterruptDescriptor(const uint16_t descriptor[4]) noexcept :
+	InterruptDescriptor(const uint16_t, const uint16_t descriptor[4]) noexcept :
 		segment_(descriptor[1]),
 		offset_(uint32_t(descriptor[0] | (descriptor[3] << 16))),
 		flags_(descriptor[2] >> 8) {}
@@ -174,7 +209,7 @@ DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer ta
 		memory.template access<uint16_t, AccessType::Read>(address + 6, table_end)
 	};
 
-	return DescriptorT(entry);
+	return DescriptorT(uint16_t(offset) & ~7, entry);
 }
 
 }

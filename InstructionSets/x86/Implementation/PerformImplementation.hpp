@@ -656,7 +656,7 @@ void interrupt(
 	}
 
 	const uint32_t address = static_cast<uint32_t>(table_pointer.base + exception.vector) << 2;
-	context.memory.preauthorise_read(address, sizeof(uint16_t) * 2);
+	context.linear_memory.preauthorise_read(address, sizeof(uint16_t) * 2);
 
 	// TODO: I think (?) these are always physical addresses, not linear ones.
 	// Indicate that when fetching.

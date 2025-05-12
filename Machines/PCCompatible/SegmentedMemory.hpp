@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
 #include "InstructionSets/x86/Model.hpp"
 
 #include "LinearMemory.hpp"
@@ -72,9 +73,7 @@ public:
 	void preauthorise_stack_write(uint32_t) {}
 	void preauthorise_stack_read(uint32_t) {}
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_read(uint32_t, uint32_t) {}
 	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_write(uint32_t, uint32_t) {}
 
 	//
 	// Access call-ins.
@@ -137,14 +136,26 @@ public:
 	) : registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
 
 	//
-	// Preauthorisation call-ins. Since only an 8088 is currently modelled, all accesses are implicitly authorised.
+	// Preauthorisation call-ins.
 	//
-	void preauthorise_stack_write(uint32_t) {}
-	void preauthorise_stack_read(uint32_t) {}
+	void preauthorise_stack_write(const uint32_t size) {
+		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
+		descriptor.authorise<InstructionSet::x86::AccessType::Write, uint16_t>(
+			uint16_t(registers_.sp() - size),
+			uint16_t(registers_.sp())
+		);
+	}
+	void preauthorise_stack_read(const uint32_t size) {
+		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
+		descriptor.authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
+			uint16_t(registers_.sp() - size),
+			uint16_t(registers_.sp())
+		);
+	}
+
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_read(uint32_t, uint32_t) {}
+
 	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_write(uint32_t, uint32_t) {}
 
 	// TODO: perform authorisation checks.
 
@@ -159,6 +170,7 @@ public:
 		const uint16_t offset
 	) {
 		const auto &descriptor = segments_.descriptors[segment];
+		descriptor.authorise<type, uint16_t>(offset, offset + sizeof(IntT));
 		return linear_memory_.access<IntT, type>(descriptor.to_linear(offset), descriptor.base());
 	}
 
@@ -174,6 +186,7 @@ public:
 		const IntT value
 	) {
 		const auto &descriptor = segments_.descriptors[segment];
+		descriptor.authorise<InstructionSet::x86::AccessType::Write, uint16_t>(offset, offset + sizeof(IntT));
 		linear_memory_.preauthorised_write<IntT>(descriptor.to_linear(offset), descriptor.base(), value);
 	}
 

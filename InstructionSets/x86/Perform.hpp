@@ -123,6 +123,8 @@ concept is_segments =
 template <typename LinearMemoryT, Model model>
 concept is_linear_memory = requires(LinearMemoryT memory) {
 	{ memory.template read<uint16_t>(uint32_t{}) } -> std::same_as<uint16_t>;
+	memory.preauthorise_read(uint32_t{}, uint32_t{});
+	memory.preauthorise_write(uint32_t{}, uint32_t{});
 };
 
 template <typename SegmentedMemoryT, typename AddressT, typename IntT, AccessType type>
@@ -161,9 +163,6 @@ template <typename SegmentedMemoryT, typename AddressT, typename IntT>
 concept supports_preauthorisations = requires(SegmentedMemoryT memory) {
 	memory.preauthorise_stack_write(uint32_t{});
 	memory.preauthorise_stack_read(uint32_t{});
-
-	memory.preauthorise_read(uint32_t{}, uint32_t{});
-	memory.preauthorise_write(uint32_t{}, uint32_t{});
 
 	memory.preauthorise_read(Source{}, AddressT{}, uint32_t{});
 	memory.preauthorise_write(Source{}, AddressT{}, uint32_t{});
