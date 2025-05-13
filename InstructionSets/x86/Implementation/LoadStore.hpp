@@ -164,7 +164,16 @@ void lldt(
 	}
 
 	context.registers.template set<DescriptorTable::Local>(location);
+	context.registers.set_ldtr(source_segment);
 	context.segments.did_update(DescriptorTable::Local);
+}
+
+template <typename AddressT, typename ContextT>
+void sldt(
+	write_t<AddressT> segment,
+	ContextT &context
+) {
+	segment = AddressT(context.registers.ldtr());
 }
 
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>

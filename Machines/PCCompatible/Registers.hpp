@@ -107,6 +107,11 @@ public:
 			msw;
 	}
 
+	uint16_t ldtr() const {	return ldtr_;	}
+	void set_ldtr(const uint16_t ldtr) {
+		ldtr_ = ldtr;
+	}
+
 	int privilege_level() const {
 		return 0;	// TODO.
 	}
@@ -138,6 +143,7 @@ public:
 private:
 	uint16_t machine_status_;
 	DescriptorTablePointer global_, interrupt_, local_;
+	uint16_t ldtr_;
 };
 
 }

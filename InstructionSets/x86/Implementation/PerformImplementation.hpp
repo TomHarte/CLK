@@ -347,6 +347,7 @@ template <
 				assert(false);
 			}
 		break;
+
 		case Operation::SIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::sdt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
@@ -357,6 +358,16 @@ template <
 		case Operation::SGDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::sdt<DescriptorTable::Global, AddressT>(source_indirect(), instruction, context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::SLDT:
+			// TODO:
+			//	"When the destination operand is a memory location, the segment selector is written to memory as a
+			//	16-bit quantity, regardless of the operand size."
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::sldt<IntT>(destination_w(), context);
 			} else {
 				assert(false);
 			}

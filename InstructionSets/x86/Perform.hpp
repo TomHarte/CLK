@@ -66,6 +66,9 @@ template <typename RegistersT>
 concept has_msw = requires(RegistersT registers) {
 	{ registers.set_msw(uint16_t{}) } -> std::same_as<void>;
 	{ registers.msw() } -> std::same_as<uint16_t>;
+
+	{ registers.set_ldtr(uint16_t{}) } -> std::same_as<void>;
+	{ registers.ldtr() } -> std::same_as<uint16_t>;
 };
 
 template <typename RegistersT>
