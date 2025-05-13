@@ -112,6 +112,10 @@ struct ExceptionCode {
 		return value_;
 	}
 
+	static ExceptionCode zero() {
+		return ExceptionCode();
+	}
+
 private:
 	uint16_t value_ = 0;
 };

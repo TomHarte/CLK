@@ -129,13 +129,17 @@ void lldt(
 	read_t<AddressT> source_segment,
 	ContextT &context
 ) {
+	if(!source_segment || context.registers.privilege_level()) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(ExceptionCode::zero());
+	}
+
 	const auto ldt =
 		descriptor_at<SegmentDescriptor>(
 			context.linear_memory,
 			context.registers.template get<DescriptorTable::Global>(),
 			source_segment & ~7);
 
-	const auto exception_code = [](const uint16_t segment) {
+	constexpr auto exception_code = [](const uint16_t segment) {
 		return ExceptionCode(
 			segment &~ 7,
 			false,
