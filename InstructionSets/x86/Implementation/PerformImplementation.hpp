@@ -652,7 +652,7 @@ void interrupt(
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
 			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
-				context.linear_memory, table_pointer, uint32_t(exception.vector) << 3);
+				context.linear_memory, table_pointer, uint16_t(exception.vector << 3));
 
 			if(!call_gate.present()) {
 				printf("TODO: should throw for non-present IDT entry\n");

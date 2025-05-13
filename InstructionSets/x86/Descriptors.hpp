@@ -195,7 +195,7 @@ private:
 
 template <typename DescriptorT, typename LinearMemoryT>
 //requires is_linear_memory<LinearMemoryT>
-DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint32_t offset) {
+DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint16_t offset) {
 	if(offset > table.limit - 8) {
 		printf("TODO: descriptor table overrun exception.\n");
 		assert(false);
