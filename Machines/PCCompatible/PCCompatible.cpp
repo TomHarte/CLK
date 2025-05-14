@@ -48,6 +48,7 @@
 #include "Analyser/Static/PCCompatible/Target.hpp"
 
 #include <array>
+#include <concepts>
 #include <iostream>
 #include <type_traits>
 
@@ -206,14 +207,12 @@ public:
 		pit_(pit), dma_(dma), ppi_(ppi), pics_(pics), video_(card), fdc_(fdc), keyboard_(keyboard), rtc_(rtc) {}
 
 	template <typename IntT>
+	requires std::same_as<IntT, uint8_t> || std::same_as<IntT, uint16_t>
 	void out(const uint16_t port, const IntT value) {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			out<uint8_t>(port, uint8_t(value));
 			out<uint8_t>(port + 1, uint8_t(value >> 8));
-			return;
 		} else {
-			static_assert(std::is_same_v<IntT, uint8_t>);
-
 			static constexpr auto log_unhandled = [](const uint16_t port, const uint8_t value) {
 				log.error().append("Unhandled out: %02x to %04x", value, port);
 			};
@@ -363,16 +362,16 @@ public:
 				case 0x03fc:	case 0x03fd:	case 0x03fe:	case 0x03ff:
 					// Ignore serial port accesses.
 				break;
-		}
+			}
 		}
 	}
 
-	template <typename IntT> IntT in(const uint16_t port) {
+	template <typename IntT>
+	requires std::same_as<IntT, uint16_t> || std::same_as<IntT, uint8_t>
+	IntT in(const uint16_t port) {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			return uint16_t(in<uint8_t>(port) | (in<uint8_t>(port + 1) << 8));
 		} else {
-			static_assert(std::is_same_v<IntT, uint8_t>);
-
 			static constexpr auto log_unhandled = [](const uint16_t port) {
 				log.error().append("Unhandled in: %04x", port);
 			};
@@ -513,14 +512,14 @@ public:
 
 	// Requirements for perform.
 	template <typename AddressT>
-	void jump(AddressT address) {
-		static_assert(std::is_same_v<AddressT, uint16_t>);
+	requires std::same_as<AddressT, uint16_t>
+	void jump(const AddressT address) {
 		registers_.ip() = address;
 	}
 
 	template <typename AddressT>
+	requires std::same_as<AddressT, uint16_t>
 	void jump(const uint16_t segment, const AddressT address) {
-		static_assert(std::is_same_v<AddressT, uint16_t>);
 
 		// TODO: preauthorise segment read.
 
@@ -880,7 +879,7 @@ public:
 	}
 
 	// MARK: - ScanProducer.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) final {
 		video_.set_scan_target(scan_target);
 	}
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
@@ -892,7 +891,7 @@ public:
 		return &speaker_.speaker;
 	}
 
-	void flush_output(int outputs) final {
+	void flush_output(const int outputs) final {
 		if(outputs & Output::Audio) {
 			speaker_.update();
 			speaker_.queue.perform();
@@ -915,12 +914,12 @@ public:
 		return &keyboard_mapper_;
 	}
 
-	void set_key_state(uint16_t key, bool is_pressed) final {
+	void set_key_state(const uint16_t key, const bool is_pressed) final {
 		keyboard_.post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
 	}
 
 	// MARK: - Activity::Source.
-	void set_activity_observer(Activity::Observer *observer) final {
+	void set_activity_observer(Activity::Observer *const observer) final {
 		fdc_.set_activity_observer(observer);
 	}
 
@@ -936,7 +935,7 @@ public:
 		set_video_signal_configurable(options->output);
 	}
 
-	void set_display_type(Outputs::Display::DisplayType display_type) final {
+	void set_display_type(const Outputs::Display::DisplayType display_type) final {
 		video_.set_display_type(display_type);
 
 		// Give the PPI a shout-out in case it isn't too late to switch to CGA40.

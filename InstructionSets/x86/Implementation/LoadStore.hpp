@@ -124,6 +124,58 @@ void ldt(
 	context.segments.did_update(table);
 }
 
+template <typename AddressT, typename ContextT>
+void lldt(
+	read_t<AddressT> source_segment,
+	ContextT &context
+) {
+	if(!source_segment || context.registers.privilege_level()) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(ExceptionCode::zero());
+	}
+
+	const auto ldt =
+		descriptor_at<SegmentDescriptor>(
+			context.linear_memory,
+			context.registers.template get<DescriptorTable::Global>(),
+			source_segment & ~7);
+
+	constexpr auto exception_code = [](const uint16_t segment) {
+		return ExceptionCode(
+			segment &~ 7,
+			false,
+			false,
+			false
+		);
+	};
+
+	if(ldt.type() != SegmentDescriptor::Type::LDTDescriptor) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(exception_code(source_segment));
+	}
+
+	if(!ldt.present()) {
+		throw Exception::exception<Vector::SegmentNotPresent>(exception_code(source_segment));
+	}
+
+	DescriptorTablePointer location;
+	location.limit = AddressT(ldt.base());
+	location.base = ldt.offset();
+	if constexpr (std::is_same_v<AddressT, uint16_t>) {
+		location.base &= 0xff'ff'ff;
+	}
+
+	context.registers.template set<DescriptorTable::Local>(location);
+	context.registers.set_ldtr(source_segment);
+	context.segments.did_update(DescriptorTable::Local);
+}
+
+template <typename AddressT, typename ContextT>
+void sldt(
+	write_t<AddressT> segment,
+	ContextT &context
+) {
+	segment = AddressT(context.registers.ldtr());
+}
+
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
 void sdt(
 	read_t<AddressT> destination_address,

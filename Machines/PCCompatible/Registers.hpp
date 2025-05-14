@@ -107,12 +107,25 @@ public:
 			msw;
 	}
 
+	uint16_t ldtr() const {	return ldtr_;	}
+	void set_ldtr(const uint16_t ldtr) {
+		ldtr_ = ldtr;
+	}
+
+	int privilege_level() const {
+		return 0;	// TODO.
+	}
+	void set_privilege_level(int) {
+		// TODO.
+	}
+
 	template <DescriptorTable table>
 	void set(const DescriptorTablePointer location) {
-		static constexpr bool is_global = table == DescriptorTable::Global;
-		static_assert(is_global || table == DescriptorTable::Interrupt);
-		auto &target = is_global ? global_ : interrupt_;
-		target = location;
+		switch(table) {
+			case DescriptorTable::Local:		local_ = location; 		break;
+			case DescriptorTable::Global:		global_ = location; 	break;
+			case DescriptorTable::Interrupt:	interrupt_ = location;	break;
+		}
 	}
 
 	template <DescriptorTable table>
@@ -130,6 +143,7 @@ public:
 private:
 	uint16_t machine_status_;
 	DescriptorTablePointer global_, interrupt_, local_;
+	uint16_t ldtr_;
 };
 
 }

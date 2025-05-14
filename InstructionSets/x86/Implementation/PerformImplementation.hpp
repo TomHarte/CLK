@@ -180,6 +180,8 @@ template <
 	//	* break if there's a chance of writeback.
 	switch(instruction.operation()) {
 		default:
+			// If execution gets here then the decoder recognised an operation that I have yet to implement.
+			// This is definitely an oversight on my part. It cannot possibly be a problem with the underlying software.
 			assert(false);
 			[[fallthrough]];
 
@@ -338,6 +340,14 @@ template <
 				assert(false);
 			}
 		break;
+		case Operation::LLDT:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::lldt<AddressT>(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+
 		case Operation::SIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::sdt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
@@ -348,6 +358,16 @@ template <
 		case Operation::SGDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::sdt<DescriptorTable::Global, AddressT>(source_indirect(), instruction, context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::SLDT:
+			// TODO:
+			//	"When the destination operand is a memory location, the segment selector is written to memory as a
+			//	16-bit quantity, regardless of the operand size."
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::sldt<IntT>(destination_w(), context);
 			} else {
 				assert(false);
 			}
@@ -632,7 +652,7 @@ void interrupt(
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
 			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
-				context.linear_memory, table_pointer, uint32_t(exception.vector) << 3);
+				context.linear_memory, table_pointer, uint16_t(exception.vector << 3));
 
 			if(!call_gate.present()) {
 				printf("TODO: should throw for non-present IDT entry\n");

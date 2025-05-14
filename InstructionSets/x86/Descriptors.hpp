@@ -82,7 +82,6 @@ struct SegmentDescriptor {
 
 		// Tested at loading (?): present(), privilege_level().
 
-
 		if(type == AccessType::Read && executable() && !readable()) {
 			throw_exception();
 		}
@@ -98,6 +97,9 @@ struct SegmentDescriptor {
 
 	/// @returns The base of this segment descriptor.
 	uint32_t base() const {		return base_;	}
+
+	/// @returns The offset of this segment descriptor.
+	uint32_t offset() const {	return offset_;	}
 
 	/// @returns The bounds of this segment descriptor; will be either [0, limit] or [limit, INT_MAX] depending on descriptor type.
 	/// Accesses must be `>= bounds().begin` and `<= bounds().end`.
@@ -193,7 +195,7 @@ private:
 
 template <typename DescriptorT, typename LinearMemoryT>
 //requires is_linear_memory<LinearMemoryT>
-DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint32_t offset) {
+DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint16_t offset) {
 	if(offset > table.limit - 8) {
 		printf("TODO: descriptor table overrun exception.\n");
 		assert(false);
