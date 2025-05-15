@@ -537,8 +537,15 @@ template <
 		break;
 
 		case Operation::ARPL:
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
 				Primitive::arpl(destination_rmw(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::CLTS:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::clts(context);
 			} else {
 				assert(false);
 			}

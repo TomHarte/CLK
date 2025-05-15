@@ -210,4 +210,18 @@ void arpl(
 	}
 }
 
+template <typename ContextT>
+void clts(
+	ContextT &context
+) {
+	if(context.registers.privilege_level()) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(ExceptionCode::zero());
+	}
+
+	const auto msw = context.registers.msw();
+	context.registers.set_msw(
+		msw & ~MachineStatus::TaskSwitched
+	);
+}
+
 }
