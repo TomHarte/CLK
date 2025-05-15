@@ -25,6 +25,8 @@
 #include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/MachineStatus.hpp"
 
+#include <type_traits>
+
 //
 // Comments throughout headers above come from the 1997 edition of the
 // Intel Architecture Software Developer’s Manual; that year all such
@@ -325,28 +327,28 @@ template <
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 		case Operation::LIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::ldt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 		case Operation::LGDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::ldt<DescriptorTable::Global, AddressT>(source_indirect(), instruction, context);
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 		case Operation::LLDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::lldt<AddressT>(source_r(), context);
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 
 		case Operation::SIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
@@ -533,6 +535,32 @@ template <
 		case Operation::INS_REP:
 			Primitive::ins<IntT, AddressT, Repetition::Rep>(eCX(), context.registers.dx(), eDI(), context);
 		break;
+
+		case Operation::ARPL:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				Primitive::arpl(destination_rmw(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::CLTS:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::clts(context);
+			} else {
+				assert(false);
+			}
+		break;
+
+		// TODO to reach a full 80286:
+		//
+		//	LAR
+		//	VERR
+		//	VERW
+		//	LSL
+		//	LTR
+		//	STR
+		//	IMUL_3
+		//	LOADALL
 	}
 
 	// Write to memory if required to complete this operation.

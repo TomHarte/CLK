@@ -772,6 +772,8 @@ public:
 			(has_displacement() + has_operand()) * sizeof(ImmediateT);
 	}
 
+	static constexpr size_t minimum_packing_size() { return offsetof(Instruction<type>, extensions_); }
+
 	/// @returns The @c Operation performed by this instruction.
 	constexpr Operation operation() const {
 		return operation_;
@@ -920,6 +922,8 @@ private:
 	};
 };
 
+static_assert(Instruction<InstructionType::Bits32>::minimum_packing_size() <= 4);
+static_assert(Instruction<InstructionType::Bits16>::minimum_packing_size() <= 4);
 static_assert(sizeof(Instruction<InstructionType::Bits32>) <= 16);
 static_assert(sizeof(Instruction<InstructionType::Bits16>) <= 10);
 
