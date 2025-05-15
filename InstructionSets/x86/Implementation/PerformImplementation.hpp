@@ -550,6 +550,17 @@ template <
 				assert(false);
 			}
 		break;
+
+		// TODO to reach a full 80286:
+		//
+		//	LAR
+		//	VERR
+		//	VERW
+		//	LSL
+		//	LTR
+		//	STR
+		//	IMUL_3
+		//	LOADALL
 	}
 
 	// Write to memory if required to complete this operation.
