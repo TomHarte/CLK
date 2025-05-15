@@ -178,19 +178,36 @@ void sldt(
 
 template <DescriptorTable table, typename AddressT, typename InstructionT, typename ContextT>
 void sdt(
-	read_t<AddressT> destination_address,
+	read_t<AddressT> destination,
 	const InstructionT &instruction,
 	ContextT &context
 ) {
 	const auto segment = instruction.data_segment();
 	context.memory.preauthorise_write(
 		segment,
-		destination_address,
+		destination,
 		6);
 
 	const auto location = context.registers.template get<table>();
-	context.memory.template preauthorised_write<uint16_t>(segment, destination_address, location.limit);
-	context.memory.template preauthorised_write<uint32_t>(segment, AddressT(destination_address + 2), location.base);
+	context.memory.template preauthorised_write<uint16_t>(segment, destination, location.limit);
+	context.memory.template preauthorised_write<uint32_t>(segment, AddressT(destination + 2), location.base);
+}
+
+template <typename ContextT>
+void arpl(
+	modify_t<uint16_t> destination,
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	const auto destination_rpl = destination & 3;
+	const auto source_rpl = source & 3;
+
+	if(destination_rpl < source_rpl) {
+		destination = uint16_t((destination & ~3) | source_rpl);
+		context.flags.template set_from<Flag::Carry>(1);
+	} else {
+		context.flags.template set_from<Flag::Carry>(0);
+	}
 }
 
 }
