@@ -538,6 +538,10 @@ template <
 
 		case Operation::ARPL:
 			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
 				Primitive::arpl(destination_rmw(), source_r(), context);
 			} else {
 				assert(false);
