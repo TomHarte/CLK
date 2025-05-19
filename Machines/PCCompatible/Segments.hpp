@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "Descriptors.hpp"
 #include "LinearMemory.hpp"
 #include "Registers.hpp"
 
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Descriptors.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
 #include "InstructionSets/x86/Mode.hpp"
 #include "InstructionSets/x86/Model.hpp"
