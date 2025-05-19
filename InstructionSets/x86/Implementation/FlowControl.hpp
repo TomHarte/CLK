@@ -111,10 +111,11 @@ void call_far(
 	AddressT offset,
 	ContextT &context
 ) {
-	// TODO: preauthorise segment/offset.
-	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
-	push<uint16_t, true>(context.registers.cs(), context);
-	push<uint16_t, true>(context.registers.ip(), context);
+//	if(is_real(context.cpu_control.mode())) {
+		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+		push<uint16_t, true>(context.registers.cs(), context);
+		push<uint16_t, true>(context.registers.ip(), context);
+//	}
 	context.flow_controller.template jump<AddressT>(segment, offset);
 }
 

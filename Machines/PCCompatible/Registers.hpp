@@ -13,6 +13,8 @@
 #include "InstructionSets/x86/Model.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
+#include <cassert>
+
 namespace PCCompatible {
 
 template <InstructionSet::x86::Model>
@@ -130,13 +132,12 @@ public:
 
 	template <DescriptorTable table>
 	const DescriptorTablePointer &get() const {
-		if constexpr (table == DescriptorTable::Global) {
-			return global_;
-		} else if constexpr (table == DescriptorTable::Interrupt) {
-			return interrupt_;
-		} else {
-			static_assert(table == DescriptorTable::Local);
-			return local_;
+		switch(table) {
+			case DescriptorTable::Local:		return local_;
+			case DescriptorTable::Global:		return global_;
+			default:
+				assert(table == DescriptorTable::Interrupt);
+				return interrupt_;
 		}
 	}
 

@@ -293,26 +293,26 @@ template <
 		case Operation::LDS:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::DS>(instruction, destination_w(), context);
-				context.segments.did_update(Source::DS);
 			}
 		return;
 		case Operation::LES:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::ES>(instruction, destination_w(), context);
-				context.segments.did_update(Source::ES);
 			}
 		return;
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
-		case Operation::MOV:
+		case Operation::MOV: {
+			const auto source = source_r();
+
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				// TODO: if this is a move into a segment register then preauthorise.
+				context.segments.preauthorise(instruction.destination().source(), source);
 			}
-			Primitive::mov<IntT>(destination_w(), source_r());
+			Primitive::mov<IntT>(destination_w(), source);
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				context.segments.did_update(instruction.destination().source());
 			}
-		break;
+		} break;
 
 		case Operation::SMSW:
 			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
@@ -439,12 +439,17 @@ template <
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
-		case Operation::POP:
-			destination_w() = Primitive::pop<IntT, false>(context);
+		case Operation::POP: {
+			const auto value = Primitive::pop<IntT, false>(context);;
+
+			if constexpr (std::is_same_v<IntT, uint16_t>) {
+				context.segments.preauthorise(instruction.destination().source(), value);
+			}
+			destination_w() = value;
 			if constexpr (std::is_same_v<IntT, uint16_t>) {
 				context.segments.did_update(instruction.destination().source());
 			}
-		break;
+		} break;
 		case Operation::PUSH:
 			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
 																	// hence PUSH is sometimes read-modify-write.

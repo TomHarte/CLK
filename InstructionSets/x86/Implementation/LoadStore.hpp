@@ -41,12 +41,19 @@ void ld(
 	const Source source_segment = instruction.data_segment();
 
 	context.memory.preauthorise_read(source_segment, source_address, 4);
-	destination = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+	const auto offset =
+		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
 	source_address += 2;
+	const auto segment =
+		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+
+	context.segments.preauthorise(selector, segment);
+	destination = offset;
 	switch(selector) {
-		case Source::DS:	context.registers.ds() = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);	break;
-		case Source::ES:	context.registers.es() = context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);	break;
+		case Source::DS:	context.registers.ds() = segment;	break;
+		case Source::ES:	context.registers.es() = segment;	break;
 	}
+	context.segments.did_update(selector);
 }
 
 template <typename IntT, InstructionType type, typename ContextT>
