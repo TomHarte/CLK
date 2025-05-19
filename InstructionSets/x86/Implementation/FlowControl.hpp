@@ -111,12 +111,20 @@ void call_far(
 	AddressT offset,
 	ContextT &context
 ) {
-//	if(is_real(context.cpu_control.mode())) {
-		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
-		push<uint16_t, true>(context.registers.cs(), context);
-		push<uint16_t, true>(context.registers.ip(), context);
-//	}
-	context.flow_controller.template jump<AddressT>(segment, offset);
+	context.segments.preauthorise(
+		Source::CS,
+		offset,
+		[&] {
+			context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+			push<uint16_t, true>(context.registers.cs(), context);
+			push<uint16_t, true>(context.registers.ip(), context);
+			context.flow_controller.template jump<AddressT>(segment, offset);
+		},
+		[&] (const SegmentDescriptor &descriptor) {
+			(void)descriptor;
+			printf("TODO: protected mode far call");
+		}
+	);
 }
 
 template <typename AddressT, InstructionType type, typename ContextT>

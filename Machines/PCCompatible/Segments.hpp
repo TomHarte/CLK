@@ -18,6 +18,7 @@
 #include "InstructionSets/x86/Model.hpp"
 
 #include <cassert>
+#include <functional>
 #include <optional>
 
 namespace PCCompatible {
@@ -33,15 +34,22 @@ public:
 	using Mode = InstructionSet::x86::Mode;
 	using Source = InstructionSet::x86::Source;
 
-	void preauthorise(const Source segment, const uint16_t value) {
+	void preauthorise(
+		const Source segment,
+		const uint16_t value,
+		const std::function<void()> &real_callback = {},
+		const std::function<void(const Descriptor &)> &protected_callback = {}
+	) {
 #ifndef NDEBUG
 		last_source_ = segment;
 #endif
 
 		if constexpr (model <= InstructionSet::x86::Model::i80186) {
+			if(real_callback) real_callback();
 			return;
 		} else {
 			if(is_real(mode_)) {
+				if(real_callback) real_callback();
 				return;
 			}
 
@@ -101,6 +109,8 @@ public:
 			// TODO: is this an empty descriptor*? If so: exception!
 
 			// TODO: set descriptor accessed bit in memory if it's a segment.
+
+			if(protected_callback) protected_callback(incoming);
 		}
 	}
 
