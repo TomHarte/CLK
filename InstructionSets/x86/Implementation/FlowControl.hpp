@@ -10,6 +10,7 @@
 
 #include "Resolver.hpp"
 #include "Stack.hpp"
+#include "InstructionSets/x86/TaskStateSegment.hpp"
 #include "InstructionSets/x86/AccessType.hpp"
 
 #include <type_traits>
