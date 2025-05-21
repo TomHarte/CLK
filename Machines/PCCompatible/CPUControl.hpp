@@ -47,10 +47,15 @@ public:
 	}
 
 	void set_mode(const Mode mode) {
+		mode_ = mode;
 		if constexpr (processor_model(model) >= InstructionSet::x86::Model::i80286) {
 			segments_.set_mode(mode);
 			segmented_memory_.set_mode(mode);
 		}
+	}
+
+	Mode mode() const {
+		return mode_;
 	}
 
 private:
@@ -60,6 +65,7 @@ private:
 	LinearMemory<processor_model(model)> &linear_memory_;
 
 	Log::Logger<Log::Source::PCCompatible> log_;
+	Mode mode_ = Mode::Real;
 };
 
 

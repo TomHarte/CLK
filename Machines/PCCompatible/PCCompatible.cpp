@@ -520,11 +520,10 @@ public:
 	template <typename AddressT>
 	requires std::same_as<AddressT, uint16_t>
 	void jump(const uint16_t segment, const AddressT address) {
-
-		// TODO: preauthorise segment read.
-
+		static constexpr auto cs = InstructionSet::x86::Source::CS;
+		segments_.preauthorise(cs, segment);
 		registers_.cs() = segment;
-		segments_.did_update(InstructionSet::x86::Source::CS);
+		segments_.did_update(cs);
 		registers_.ip() = address;
 	}
 
