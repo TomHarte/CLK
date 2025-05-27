@@ -92,11 +92,11 @@ void test(
 	/*
 		The OF and CF flags are cleared to 0.
 		The SF, ZF, and PF flags are set according to the result (see the “Operation” section above).
-		The state of the AF flag is undefined.
+		The state of the AF flag is formally undefined but known to be reset.
 	*/
 	const IntT result = destination & source;
 
-	context.flags.template set_from<Flag::Carry, Flag::Overflow>(0);
+	context.flags.template set_from<Flag::Carry, Flag::Overflow, Flag::AuxiliaryCarry>(0);
 	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 }
 
