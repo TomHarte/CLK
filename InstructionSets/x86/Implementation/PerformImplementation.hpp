@@ -25,6 +25,8 @@
 #include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/MachineStatus.hpp"
 
+#include <type_traits>
+
 //
 // Comments throughout headers above come from the 1997 edition of the
 // Intel Architecture Software Developer’s Manual; that year all such
@@ -291,26 +293,27 @@ template <
 		case Operation::LDS:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::DS>(instruction, destination_w(), context);
-				context.segments.did_update(Source::DS);
 			}
 		return;
 		case Operation::LES:
 			if constexpr (data_size == DataSize::Word) {
 				Primitive::ld<Source::ES>(instruction, destination_w(), context);
-				context.segments.did_update(Source::ES);
 			}
 		return;
 
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
-		case Operation::MOV:
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				// TODO: if this is a move into a segment register then preauthorise.
+		case Operation::MOV: {
+			const auto source = source_r();
+			const auto segment = instruction.destination().source();
+
+			if(is_segment_register(segment)) {
+				context.segments.preauthorise(segment, source);
+				Primitive::mov<IntT>(destination_w(), source);
+				context.segments.did_update(segment);
+			} else {
+				Primitive::mov<IntT>(destination_w(), source);
 			}
-			Primitive::mov<IntT>(destination_w(), source_r());
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.segments.did_update(instruction.destination().source());
-			}
-		break;
+		} break;
 
 		case Operation::SMSW:
 			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
@@ -325,28 +328,28 @@ template <
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 		case Operation::LIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::ldt<DescriptorTable::Interrupt, AddressT>(source_indirect(), instruction, context);
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 		case Operation::LGDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::ldt<DescriptorTable::Global, AddressT>(source_indirect(), instruction, context);
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 		case Operation::LLDT:
 			if constexpr (ContextT::model >= Model::i80286) {
 				Primitive::lldt<AddressT>(source_r(), context);
 			} else {
 				assert(false);
 			}
-		break;
+		return;
 
 		case Operation::SIDT:
 			if constexpr (ContextT::model >= Model::i80286) {
@@ -437,12 +440,18 @@ template <
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
-		case Operation::POP:
-			destination_w() = Primitive::pop<IntT, false>(context);
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.segments.did_update(instruction.destination().source());
+		case Operation::POP: {
+			const auto value = Primitive::pop<IntT, false>(context);
+			const auto segment = instruction.destination().source();
+
+			if(is_segment_register(segment)) {
+				context.segments.preauthorise(segment, value);
+				destination_w() = value;
+				context.segments.did_update(segment);
+			} else {
+				destination_w() = value;
 			}
-		break;
+		} break;
 		case Operation::PUSH:
 			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
 																	// hence PUSH is sometimes read-modify-write.
@@ -533,6 +542,36 @@ template <
 		case Operation::INS_REP:
 			Primitive::ins<IntT, AddressT, Repetition::Rep>(eCX(), context.registers.dx(), eDI(), context);
 		break;
+
+		case Operation::ARPL:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::arpl(destination_rmw(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::CLTS:
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::clts(context);
+			} else {
+				assert(false);
+			}
+		break;
+
+		// TODO to reach a full 80286:
+		//
+		//	LAR
+		//	VERR
+		//	VERW
+		//	LSL
+		//	LTR
+		//	STR
+		//	IMUL_3
+		//	LOADALL
 	}
 
 	// Write to memory if required to complete this operation.

@@ -15,4 +15,9 @@ enum class Mode {
 	Protected286,
 };
 
+constexpr bool is_real(const Mode mode) {
+	// Note to future self: this will include virtual 8086 mode in the future.
+	return mode == Mode::Real;
+}
+
 }

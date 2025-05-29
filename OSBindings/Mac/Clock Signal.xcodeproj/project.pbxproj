@@ -1472,6 +1472,7 @@
 		4B228CDA24DA41880077EF25 /* ScanTarget.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ScanTarget.metal; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.metal; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
+		4B25BC1E2DDD64AA002044CA /* TaskStateSegment.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TaskStateSegment.hpp; sourceTree = "<group>"; };
 		4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PersonalityTraits.hpp; sourceTree = "<group>"; };
 		4B2A1CD92BA775C5004496CE /* I2C.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = I2C.cpp; sourceTree = "<group>"; };
 		4B2A1CDA2BA775C5004496CE /* I2C.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = I2C.hpp; sourceTree = "<group>"; };
@@ -5376,6 +5377,7 @@
 				4B8671EB2D8FABA0009E1610 /* Mode.hpp */,
 				4BE3C69527CBC540000EAD28 /* Model.hpp */,
 				42437B352ACF0AA2006DFED1 /* Perform.hpp */,
+				4B25BC1E2DDD64AA002044CA /* TaskStateSegment.hpp */,
 				42437B372ACF2798006DFED1 /* Implementation */,
 			);
 			path = x86;
