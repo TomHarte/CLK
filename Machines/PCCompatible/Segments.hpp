@@ -114,10 +114,8 @@ public:
 		}
 	}
 
-	/// Posted by @c perform after any operation which *might* have affected a segment register.
+	/// Posted by @c perform after any operation which affected a segment register.
 	void did_update(const Source segment) {
-		if(!is_segment_register(segment)) return;
-
 #ifndef NDEBUG
 		assert(last_source_.has_value() && *last_source_ == segment);
 		last_source_ = std::nullopt;

@@ -304,13 +304,14 @@ template <
 		case Operation::LEA:	Primitive::lea<IntT>(instruction, destination_w(), context);	return;
 		case Operation::MOV: {
 			const auto source = source_r();
+			const auto segment = instruction.destination().source();
 
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.segments.preauthorise(instruction.destination().source(), source);
-			}
-			Primitive::mov<IntT>(destination_w(), source);
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.segments.did_update(instruction.destination().source());
+			if(is_segment_register(segment)) {
+				context.segments.preauthorise(segment, source);
+				Primitive::mov<IntT>(destination_w(), source);
+				context.segments.did_update(segment);
+			} else {
+				Primitive::mov<IntT>(destination_w(), source);
 			}
 		} break;
 
@@ -440,14 +441,15 @@ template <
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 
 		case Operation::POP: {
-			const auto value = Primitive::pop<IntT, false>(context);;
+			const auto value = Primitive::pop<IntT, false>(context);
+			const auto segment = instruction.destination().source();
 
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.segments.preauthorise(instruction.destination().source(), value);
-			}
-			destination_w() = value;
-			if constexpr (std::is_same_v<IntT, uint16_t>) {
-				context.segments.did_update(instruction.destination().source());
+			if(is_segment_register(segment)) {
+				context.segments.preauthorise(segment, value);
+				destination_w() = value;
+				context.segments.did_update(segment);
+			} else {
+				destination_w() = value;
 			}
 		} break;
 		case Operation::PUSH:
