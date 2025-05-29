@@ -469,6 +469,9 @@
 		4B7752C128217F490073E2C5 /* FAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B477709268FBE4D005C2340 /* FAT.cpp */; };
 		4B7752C228217F5C0073E2C5 /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */; };
 		4B7752C328217F720073E2C5 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DD39526360DDF00B3C866 /* Z80.cpp */; };
+		4B7773522DE894E400933F03 /* JFD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7773512DE894E400933F03 /* JFD.cpp */; };
+		4B7773532DE894E400933F03 /* JFD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7773512DE894E400933F03 /* JFD.cpp */; };
+		4B7773542DE894E400933F03 /* JFD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7773512DE894E400933F03 /* JFD.cpp */; };
 		4B778EF323A5DB230000D260 /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518731F75E91800926311 /* PCMSegment.cpp */; };
 		4B778EF423A5DB3A0000D260 /* C1540.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334941F5E25B60097E338 /* C1540.cpp */; };
 		4B778EF523A5DB440000D260 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894517201967B4007DE474 /* StaticAnalyser.cpp */; };
@@ -1706,6 +1709,8 @@
 		4B75F97A280D7C7700121055 /* 68000 Decoding */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Decoding"; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Z80.hpp; sourceTree = "<group>"; };
 		4B770A961FE9EE770026DC70 /* CompoundSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompoundSource.hpp; sourceTree = "<group>"; };
+		4B7773502DE894E400933F03 /* JFD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = JFD.hpp; sourceTree = "<group>"; };
+		4B7773512DE894E400933F03 /* JFD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JFD.cpp; sourceTree = "<group>"; };
 		4B79629C2819681F008130F9 /* Instruction.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
 		4B79629D2819681F008130F9 /* Model.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
 		4B79629E2819681F008130F9 /* Decoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
@@ -3262,6 +3267,7 @@
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
 				42EB81262B23AAC300429AF4 /* IMD.cpp */,
 				4B5B372F2777C7FC0047F238 /* IPF.cpp */,
+				4B7773512DE894E400933F03 /* JFD.cpp */,
 				4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
 				4BC131782346DF2B00E4FF3D /* MSA.cpp */,
@@ -3283,6 +3289,7 @@
 				4B4518961F75FD1B00926311 /* HFE.hpp */,
 				42EB81272B23AAC300429AF4 /* IMD.hpp */,
 				4B5B37302777C7FC0047F238 /* IPF.hpp */,
+				4B7773502DE894E400933F03 /* JFD.hpp */,
 				4BB4BFAF22A42F290069048D /* MacintoshIMG.hpp */,
 				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
 				4BC131792346DF2B00E4FF3D /* MSA.hpp */,
@@ -6114,6 +6121,7 @@
 				4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */,
 				4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
+				4B7773522DE894E400933F03 /* JFD.cpp in Sources */,
 				4BF0BC722973318E00CCA2B5 /* RP5C01.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
@@ -6449,6 +6457,7 @@
 				4B65086022F4CF8D009C1100 /* Keyboard.cpp in Sources */,
 				4B47770B268FBE4D005C2340 /* FAT.cpp in Sources */,
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
+				4B7773542DE894E400933F03 /* JFD.cpp in Sources */,
 				4B2E86CF25D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
 				4B4C81CA28B56CF800F84AE9 /* MacintoshVolume.cpp in Sources */,
 				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
@@ -6649,6 +6658,7 @@
 				4B778F4C23A5F2090000D260 /* StaticAnalyser.cpp in Sources */,
 				4B778F2623A5EE350000D260 /* Acorn.cpp in Sources */,
 				4B7752C128217F490073E2C5 /* FAT.cpp in Sources */,
+				4B7773532DE894E400933F03 /* JFD.cpp in Sources */,
 				4B06AAFE2C6460A40034D014 /* ConfidenceSummary.cpp in Sources */,
 				4B778F5B23A5F2DE0000D260 /* Tape.cpp in Sources */,
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
