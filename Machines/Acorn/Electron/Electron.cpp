@@ -37,19 +37,20 @@
 namespace Electron {
 
 template <bool has_scsi_bus> class ConcreteMachine:
-	public Machine,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
-	public MachineTypes::AudioProducer,
-	public MachineTypes::MediaTarget,
-	public MachineTypes::MappedKeyboardMachine,
+	public Activity::Source,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
-	public Tape::Delegate,
-	public Utility::TypeRecipient<CharacterMapper>,
-	public Activity::Source,
+	public Machine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaChangeObserver,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine,
 	public SCSI::Bus::Observer,
-	public ClockingHint::Observer {
+	public Tape::Delegate,
+	public Utility::TypeRecipient<CharacterMapper> {
 public:
 	ConcreteMachine(const Analyser::Static::Acorn::ElectronTarget &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m6502_(*this),
@@ -210,6 +211,11 @@ public:
 		}
 
 		return !media.empty();
+	}
+
+	ChangeEffect effect_for_file_did_change(const std::string &file_name) const override {
+		const auto disk = plus3_->disk(file_name);
+		return disk && disk->has_written() ? ChangeEffect::None : ChangeEffect::RestartMachine;
 	}
 
 	forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
