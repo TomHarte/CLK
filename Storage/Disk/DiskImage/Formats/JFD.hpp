@@ -25,8 +25,14 @@ public:
 	bool represents(const std::string &) const;
 
 private:
-	gzFile file_;
 	std::string file_name_;
+	gzFile file_;
+	uint8_t read8() const;
+	uint32_t read32() const;
+
+	uint32_t track_offset_;
+	uint32_t sector_offset_;
+	uint32_t data_offset_;
 };
 
 }
