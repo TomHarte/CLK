@@ -66,6 +66,7 @@ std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) cons
 	}
 
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
+
 	uint32_t sector = sector_begin;
 	while(sector < sector_offset_) {
 		gzseek(file_, sector_offset_ + sector, SEEK_SET);
@@ -79,12 +80,38 @@ std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) cons
 		}
 
 		const auto data = read32();
-		printf("After %d ms, od %02x, sector %d, crc_size %02x, at %d\n", time_ms, options_density, sector_number, crc_size, data);
+//		printf("After %d ms, od %02x, sector %d, crc_size %02x, at %d\n", time_ms, options_density, sector_number, crc_size, data);
 
+		if(time_ms != 0xff) {
+			fprintf(stderr, "JFD unimplemented: sector time offsets\n");
+		}
+
+		Storage::Encodings::MFM::Sector new_sector;
+		new_sector.address.track = uint8_t(address.position.as_int());
+		new_sector.address.side = uint8_t(address.head);
+		new_sector.address.sector = sector_number;
+
+		new_sector.size = crc_size & 0xf;
+		new_sector.has_header_crc_error = crc_size & 0x20;
+		new_sector.has_data_crc_error = crc_size & 0x10;
+
+		// TODO: density value might not be double density?
+
+		if(data != 0xffffffff) {
+			new_sector.samples.emplace_back();
+			new_sector.samples.back().resize(size_t(128 << new_sector.size));
+
+			gzseek(file_, data_offset_ + data, SEEK_SET);
+			gzread(file_, new_sector.samples.back().data(), static_cast<unsigned>(new_sector.samples.back().size()));
+		}
+
+		sectors.push_back(std::move(new_sector));
 		sector += 8;
 	}
 
-	return {};
+	return Storage::Encodings::MFM::TrackWithSectors(
+		Storage::Encodings::MFM::Density::Double,
+		sectors);
 }
 
 bool JFD::represents(const std::string &name) const {
