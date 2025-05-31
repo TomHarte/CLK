@@ -12,6 +12,10 @@
 #include "Storage/Disk/Encodings/MFM/Encoder.hpp"
 #include "Storage/Disk/Encodings/MFM/Sector.hpp"
 
+//
+// File format documentation: https://gist.github.com/Kaens/a139d96dc429b49788e47ea57e55017d
+//
+
 using namespace Storage::Disk;
 
 uint32_t JFD::read32() const {
@@ -53,7 +57,8 @@ int JFD::head_count() const {
 }
 
 std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) const {
-	const uint32_t offset = track_offset_ + uint32_t(address.head + address.position.as_int() * 2);
+	const uint32_t offset = track_offset_ + uint32_t((address.head + address.position.as_int() * 2)) * sizeof(uint32_t);
+//	printf("!!! %d / %d -> %d\n", address.position.as_int(), address.head, offset - track_offset_);
 
 	if(offset >= sector_offset_) {
 		return nullptr;
