@@ -58,7 +58,6 @@ int JFD::head_count() const {
 
 std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) const {
 	const uint32_t offset = track_offset_ + uint32_t((address.head + address.position.as_int() * 2)) * sizeof(uint32_t);
-//	printf("!!! %d / %d -> %d\n", address.position.as_int(), address.head, offset - track_offset_);
 
 	if(offset >= sector_offset_) {
 		return nullptr;
@@ -73,7 +72,7 @@ std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) cons
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 
 	uint32_t sector = sector_begin;
-	while(sector < sector_offset_) {
+	while(sector_offset_ + sector <= data_offset_ - 8) {
 		gzseek(file_, sector_offset_ + sector, SEEK_SET);
 
 		const auto crc_size = read8();
@@ -85,7 +84,6 @@ std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) cons
 		}
 
 		const auto data = read32();
-//		printf("After %d ms, od %02x, sector %d, crc_size %02x, at %d\n", time_ms, options_density, sector_number, crc_size, data);
 
 		if(time_ms != 0xff) {
 			fprintf(stderr, "JFD unimplemented: sector time offsets\n");
