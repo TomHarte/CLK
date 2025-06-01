@@ -195,6 +195,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/HFE.cpp
 	Storage/Disk/DiskImage/Formats/IMD.cpp
 	Storage/Disk/DiskImage/Formats/IPF.cpp
+	Storage/Disk/DiskImage/Formats/JFD.cpp
 	Storage/Disk/DiskImage/Formats/MFMSectorDump.cpp
 	Storage/Disk/DiskImage/Formats/MSA.cpp
 	Storage/Disk/DiskImage/Formats/MacintoshIMG.cpp
