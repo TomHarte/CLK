@@ -53,6 +53,7 @@
 #include "Storage/Disk/DiskImage/Formats/HFE.hpp"
 #include "Storage/Disk/DiskImage/Formats/IPF.hpp"
 #include "Storage/Disk/DiskImage/Formats/IMD.hpp"
+#include "Storage/Disk/DiskImage/Formats/JFD.hpp"
 #include "Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
 #include "Storage/Disk/DiskImage/Formats/MSA.hpp"
 #include "Storage/Disk/DiskImage/Formats/NIB.hpp"
@@ -206,6 +207,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adf");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AmigaADF>>(TargetPlatform::Amiga, "adf");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adl");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, "bin");
 
