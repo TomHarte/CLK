@@ -31,6 +31,7 @@ public:
 
 	using Descriptor = InstructionSet::x86::SegmentDescriptor;
 	using DescriptorTable = InstructionSet::x86::DescriptorTable;
+	using DescriptorType = InstructionSet::x86::DescriptorType;
 	using Mode = InstructionSet::x86::Mode;
 	using Source = InstructionSet::x86::Source;
 
@@ -73,33 +74,34 @@ public:
 
 			// Get and validate descriptor.
 
+			const auto desc = incoming.description();
 			switch(segment) {
 				case Source::DS:
 				case Source::ES:
-					if(!incoming.code_or_data() || (incoming.executable() && !incoming.readable())) {
+					if(!desc.readable) {
 						printf("TODO: throw for unreadable DS or ES source.\n");
 						assert(false);
 					}
 				break;
 
 				case Source::SS:
-					if(!incoming.code_or_data() || incoming.executable() || !incoming.writeable()) {
+					if((desc.type != DescriptorType::Data && desc.type != DescriptorType::Stack) || !desc.writeable) {
 						printf("TODO: throw for invalid SS target.\n");
 						assert(false);
 					}
 				break;
 
 				case Source::CS:
-					if(!incoming.code_or_data() || !incoming.executable()) {
+					if(desc.type != DescriptorType::Code) {
 						// TODO: throw.
-						printf("TODO: throw for illegal CS destination.\n");
+						printf("TODO: throw for illegal (or unhandled? A gate perhaps?) CS destination.\n");
 						assert(false);
 					}
 
-					if(!incoming.code_or_data()) {
-						printf("TODO: handle jump to system descriptor of type %d\n", int(incoming.type()));
-						assert(false);
-					}
+//					if(!incoming.code_or_data()) {
+//						printf("TODO: handle jump to system descriptor of type %d\n", int(incoming.type()));
+//						assert(false);
+//					}
 				break;
 
 				default: break;
