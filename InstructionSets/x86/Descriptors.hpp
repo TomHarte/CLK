@@ -29,6 +29,21 @@ struct DescriptorBounds {
 	uint32_t begin, end;
 };
 
+enum class DescriptorType {
+	Code, Data, Stack,
+	CallGate, TaskGate, InterruptGate, TrapGate,
+	AvailableTaskStateSegment, LDTDescriptor, BusyTaskStateSegment,
+	Invalid,
+};
+
+struct DescriptorDescription {
+	DescriptorType type = DescriptorType::Invalid;
+	bool readable = false;
+	bool writeable = false;
+	bool conforming = false;
+};
+
+
 struct SegmentDescriptor {
 	SegmentDescriptor() = default;
 
@@ -38,7 +53,7 @@ struct SegmentDescriptor {
 		type_ = descriptor[2] >> 8;
 
 		offset_ = descriptor[0];
-		if(!code_or_data() || executable() || !expand_down()) {
+		if(description().type != DescriptorType::Stack) {
 			bounds_ = DescriptorBounds{ 0, offset_ };
 		} else {
 			if(offset_ != std::numeric_limits<uint32_t>::max()) {
@@ -82,11 +97,13 @@ struct SegmentDescriptor {
 
 		// Tested at loading (?): present(), privilege_level().
 
-		if(type == AccessType::Read && executable() && !readable()) {
+		const auto desc = description();
+
+		if(type == AccessType::Read && !desc.readable) {
 			throw_exception();
 		}
 
-		if(type == AccessType::Write && !executable() && !writeable()) {
+		if(type == AccessType::Write && !desc.writeable) {
 			throw_exception();
 		}
 
@@ -105,36 +122,35 @@ struct SegmentDescriptor {
 	/// Accesses must be `>= bounds().begin` and `<= bounds().end`.
 	DescriptorBounds bounds() const {	return bounds_;	}
 
-	bool present() const 			{	return type_ & 0x80;		}
-	int privilege_level() const		{	return (type_ >> 5) & 3;	}
-	bool code_or_data() const 		{	return type_ & 0x10;		}
+	DescriptorDescription description() const {
+		using Type = DescriptorType;
+		switch((type_ >> 1) & 0b1111) {
+			default:
+			case 0b0000:	return { .type = Type::Invalid };
+			case 0b0001:	return { .type = Type::AvailableTaskStateSegment };
+			case 0b0010:	return { .type = Type::LDTDescriptor };
+			case 0b0011:	return { .type = Type::BusyTaskStateSegment };
 
-	// If code_or_data():
-	bool executable() const 		{	return type_ & 0x08;		}
-	bool accessed() const 			{	return type_ & 0x01;		}
+			case 0b0100:	return { .type = Type::CallGate };
+			case 0b0101:	return { .type = Type::TaskGate };
+			case 0b0110:	return { .type = Type::InterruptGate };
+			case 0b0111:	return { .type = Type::TrapGate };
 
-	// If code_or_data() and not executable():
-	bool expand_down() const 		{	return type_ & 0x04;		}
-	bool writeable() const 			{	return type_ & 0x02;		}
+			case 0b1000:	return { .type = Type::Data, .readable = true, .writeable = false };
+			case 0b1001:	return { .type = Type::Data, .readable = true, .writeable = true };
+			case 0b1010:	return { .type = Type::Stack, .readable = true, .writeable = false };
+			case 0b1011:	return { .type = Type::Stack, .readable = true, .writeable = true };
 
-	// If code_or_data() and executable():
-	bool conforming() const 		{	return type_ & 0x04;		}
-	bool readable() const 			{	return type_ & 0x02;		}
+			case 0b1100:	return { .type = Type::Code, .readable = false, .writeable = false, .conforming = false };
+			case 0b1101:	return { .type = Type::Code, .readable = true, .writeable = false, .conforming = false };
+			case 0b1110:	return { .type = Type::Code, .readable = false, .writeable = false, .conforming = true };
+			case 0b1111:	return { .type = Type::Code, .readable = true, .writeable = false, .conforming = true };
+		}
+	}
 
-	// If not code_or_data():
-	enum class Type {
-		AvailableTaskStateSegment = 1,
-		LDTDescriptor = 2,
-		BusyTaskStateSegment = 3,
-
-		Invalid0 = 0,   Invalid8 = 8,
-
-		Control4 = 4,   Control5 = 5,   Control6 = 6,   Control7 = 7,
-
-		Reserved9 = 9,  ReservedA = 10, ReservedB = 11, ReservedC = 12,
-		ReservedD = 13, ReservedE = 14, ReservedF = 15,
-	};
-	Type type() const 				{	return Type(type_ & 0x0f);	}
+	bool present() const 			{	return type_ & 0x80;		}	// b7
+	int privilege_level() const		{	return (type_ >> 5) & 3;	}	// b5 and b6
+	bool code_or_data() const 		{	return type_ & 0x10;		}	// b4
 
 private:
 	uint32_t base_;
