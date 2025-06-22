@@ -262,34 +262,34 @@ void VideoOutput::write(int address, const uint8_t value) {
 			palette_[address - 8] = ~value;
 
 			if(address <= 0x09) {
-				palette1bpp_[0] = palette_entry<{0xfe09, 0}, {0xfe09, 4}, {0xfe08, 4}>();
-				palette1bpp_[1] = palette_entry<{0xfe09, 2}, {0xfe08, 2}, {0xfe08, 6}>();
+				palette1bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
+				palette1bpp_[1] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
 
-				palette2bpp_[0] = palette_entry<{0xfe09, 0}, {0xfe09, 4}, {0xfe08, 4}>();
-				palette2bpp_[1] = palette_entry<{0xfe09, 1}, {0xfe09, 5}, {0xfe08, 5}>();
-				palette2bpp_[2] = palette_entry<{0xfe09, 2}, {0xfe08, 2}, {0xfe08, 6}>();
-				palette2bpp_[3] = palette_entry<{0xfe09, 3}, {0xfe08, 3}, {0xfe08, 7}>();
+				palette2bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
+				palette2bpp_[1] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
+				palette2bpp_[2] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
+				palette2bpp_[3] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
 			}
 
-			palette4bpp_[0] = palette_entry<{0xfe09, 0}, {0xfe09, 4}, {0xfe08, 4}>();
-			palette4bpp_[2] = palette_entry<{0xfe09, 1}, {0xfe09, 5}, {0xfe08, 5}>();
-			palette4bpp_[8] = palette_entry<{0xfe09, 2}, {0xfe08, 2}, {0xfe08, 6}>();
-			palette4bpp_[10] = palette_entry<{0xfe09, 3}, {0xfe08, 3}, {0xfe08, 7}>();
+			palette4bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
+			palette4bpp_[2] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
+			palette4bpp_[8] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
+			palette4bpp_[10] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
 
-			palette4bpp_[4] = palette_entry<{0xfe0b, 0}, {0xfe0b, 4}, {0xfe0a, 4}>();
-			palette4bpp_[6] = palette_entry<{0xfe0b, 1}, {0xfe0b, 5}, {0xfe0a, 5}>();
-			palette4bpp_[12] = palette_entry<{0xfe0b, 2}, {0xfe0a, 2}, {0xfe0a, 6}>();
-			palette4bpp_[14] = palette_entry<{0xfe0b, 3}, {0xfe0a, 3}, {0xfe0a, 7}>();
+			palette4bpp_[4] = palette_entry<BitIndex{0xfe0b, 0}, BitIndex{0xfe0b, 4}, BitIndex{0xfe0a, 4}>();
+			palette4bpp_[6] = palette_entry<BitIndex{0xfe0b, 1}, BitIndex{0xfe0b, 5}, BitIndex{0xfe0a, 5}>();
+			palette4bpp_[12] = palette_entry<BitIndex{0xfe0b, 2}, BitIndex{0xfe0a, 2}, BitIndex{0xfe0a, 6}>();
+			palette4bpp_[14] = palette_entry<BitIndex{0xfe0b, 3}, BitIndex{0xfe0a, 3}, BitIndex{0xfe0a, 7}>();
 
-			palette4bpp_[5] = palette_entry<{0xfe0d, 0}, {0xfe0d, 4}, {0xfe0c, 4}>();
-			palette4bpp_[7] = palette_entry<{0xfe0d, 1}, {0xfe0d, 5}, {0xfe0c, 5}>();
-			palette4bpp_[13] = palette_entry<{0xfe0d, 2}, {0xfe0c, 2}, {0xfe0c, 6}>();
-			palette4bpp_[15] = palette_entry<{0xfe0d, 3}, {0xfe0c, 3}, {0xfe0c, 7}>();
+			palette4bpp_[5] = palette_entry<BitIndex{0xfe0d, 0}, BitIndex{0xfe0d, 4}, BitIndex{0xfe0c, 4}>();
+			palette4bpp_[7] = palette_entry<BitIndex{0xfe0d, 1}, BitIndex{0xfe0d, 5}, BitIndex{0xfe0c, 5}>();
+			palette4bpp_[13] = palette_entry<BitIndex{0xfe0d, 2}, BitIndex{0xfe0c, 2}, BitIndex{0xfe0c, 6}>();
+			palette4bpp_[15] = palette_entry<BitIndex{0xfe0d, 3}, BitIndex{0xfe0c, 3}, BitIndex{0xfe0c, 7}>();
 
-			palette4bpp_[1] = palette_entry<{0xfe0f, 0}, {0xfe0f, 4}, {0xfe0e, 4}>();
-			palette4bpp_[3] = palette_entry<{0xfe0f, 1}, {0xfe0f, 5}, {0xfe0e, 5}>();
-			palette4bpp_[9] = palette_entry<{0xfe0f, 2}, {0xfe0e, 2}, {0xfe0e, 6}>();
-			palette4bpp_[11] = palette_entry<{0xfe0f, 3}, {0xfe0e, 3}, {0xfe0e, 7}>();
+			palette4bpp_[1] = palette_entry<BitIndex{0xfe0f, 0}, BitIndex{0xfe0f, 4}, BitIndex{0xfe0e, 4}>();
+			palette4bpp_[3] = palette_entry<BitIndex{0xfe0f, 1}, BitIndex{0xfe0f, 5}, BitIndex{0xfe0e, 5}>();
+			palette4bpp_[9] = palette_entry<BitIndex{0xfe0f, 2}, BitIndex{0xfe0e, 2}, BitIndex{0xfe0e, 6}>();
+			palette4bpp_[11] = palette_entry<BitIndex{0xfe0f, 3}, BitIndex{0xfe0e, 3}, BitIndex{0xfe0e, 7}>();
 		} break;
 	}
 }
