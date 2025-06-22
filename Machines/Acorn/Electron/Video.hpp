@@ -98,18 +98,22 @@ private:
 	uint8_t palette2bpp_[4]{};
 	uint8_t palette4bpp_[16]{};
 
-	template <int index, int source_bit, int target_bit>
+	struct BitIndex {
+		int address;
+		int bit;
+	};
+
+	template <BitIndex index, int target_bit>
 	uint8_t channel() {
-		if constexpr (source_bit < target_bit) {
-			return (palette_[index] << (target_bit - source_bit)) & (1 << target_bit);
-		} else {
-			return (palette_[index] >> (source_bit - target_bit)) & (1 << target_bit);
-		}
+		static_assert(index.address >= 0xfe08 && index.address <= 0xfe0f);
+		static_assert(index.bit >= 0 && index.bit <= 7);
+		static_assert(target_bit >= 0 && target_bit <= 2);
+		return uint8_t(((palette_[index.address - 0xfe08] >> index.bit) & 1) << target_bit);
 	}
 
-	template <int r_index, int r_bit, int g_index, int g_bit, int b_index, int b_bit>
+	template <BitIndex red, BitIndex green, BitIndex blue>
 	uint8_t palette_entry() {
-		return channel<r_index, r_bit, 2>() | channel<g_index, g_bit, 1>() | channel<b_index, b_bit, 0>();
+		return channel<red, 2>() | channel<green, 1>() | channel<blue, 0>();
 	}
 
 	// User-selected base address; constrained to a 64-byte boundary by the setter.
