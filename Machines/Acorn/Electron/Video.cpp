@@ -263,7 +263,7 @@ void VideoOutput::write(int address, const uint8_t value) {
 
 			if(address <= 0x09) {
 				palette1bpp_[0] = palette_entry<{0xfe09, 0}, {0xfe09, 4}, {0xfe08, 4}>();
-				palette1bpp_[1] = palette_entry<{0xfe09, 2}, {0xfe08, 6}, {0xfe08, 2}>();
+				palette1bpp_[1] = palette_entry<{0xfe09, 2}, {0xfe08, 2}, {0xfe08, 6}>();
 
 				palette2bpp_[0] = palette_entry<{0xfe09, 0}, {0xfe09, 4}, {0xfe08, 4}>();
 				palette2bpp_[1] = palette_entry<{0xfe09, 1}, {0xfe09, 5}, {0xfe08, 5}>();
