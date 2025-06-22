@@ -223,7 +223,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 // MARK: - Register hub
 
-void VideoOutput::write(int address, uint8_t value) {
+void VideoOutput::write(int address, const uint8_t value) {
 	address &= 0xf;
 	switch(address) {
 		case 0x02:
@@ -237,7 +237,7 @@ void VideoOutput::write(int address, uint8_t value) {
 				(screen_base_ & 0b0000'0001'1100'0000);
 		break;
 		case 0x07: {
-			uint8_t mode = (value >> 3)&7;
+			const uint8_t mode = (value >> 3)&7;
 			mode_40_ = mode >= 4;
 			mode_text_ = mode == 3 || mode == 6;
 
@@ -262,34 +262,34 @@ void VideoOutput::write(int address, uint8_t value) {
 			palette_[address - 8] = ~value;
 
 			if(address <= 0x09) {
-				palette1bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
-				palette1bpp_[1] = palette_entry<1, 2, 0, 6, 0, 2>();
+				palette1bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
+				palette1bpp_[1] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
 
-				palette2bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
-				palette2bpp_[1] = palette_entry<1, 1, 1, 5, 0, 5>();
-				palette2bpp_[2] = palette_entry<1, 2, 0, 2, 0, 6>();
-				palette2bpp_[3] = palette_entry<1, 3, 0, 3, 0, 7>();
+				palette2bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
+				palette2bpp_[1] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
+				palette2bpp_[2] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
+				palette2bpp_[3] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
 			}
 
-			palette4bpp_[0] = palette_entry<1, 0, 1, 4, 0, 4>();
-			palette4bpp_[2] = palette_entry<1, 1, 1, 5, 0, 5>();
-			palette4bpp_[8] = palette_entry<1, 2, 0, 2, 0, 6>();
-			palette4bpp_[10] = palette_entry<1, 3, 0, 3, 0, 7>();
+			palette4bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
+			palette4bpp_[2] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
+			palette4bpp_[8] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
+			palette4bpp_[10] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
 
-			palette4bpp_[4] = palette_entry<3, 0, 3, 4, 2, 4>();
-			palette4bpp_[6] = palette_entry<3, 1, 3, 5, 2, 5>();
-			palette4bpp_[12] = palette_entry<3, 2, 2, 2, 2, 6>();
-			palette4bpp_[14] = palette_entry<3, 3, 2, 3, 2, 7>();
+			palette4bpp_[4] = palette_entry<BitIndex{0xfe0b, 0}, BitIndex{0xfe0b, 4}, BitIndex{0xfe0a, 4}>();
+			palette4bpp_[6] = palette_entry<BitIndex{0xfe0b, 1}, BitIndex{0xfe0b, 5}, BitIndex{0xfe0a, 5}>();
+			palette4bpp_[12] = palette_entry<BitIndex{0xfe0b, 2}, BitIndex{0xfe0a, 2}, BitIndex{0xfe0a, 6}>();
+			palette4bpp_[14] = palette_entry<BitIndex{0xfe0b, 3}, BitIndex{0xfe0a, 3}, BitIndex{0xfe0a, 7}>();
 
-			palette4bpp_[5] = palette_entry<5, 0, 5, 4, 4, 4>();
-			palette4bpp_[7] = palette_entry<5, 1, 5, 5, 4, 5>();
-			palette4bpp_[13] = palette_entry<5, 2, 4, 2, 4, 6>();
-			palette4bpp_[15] = palette_entry<5, 3, 4, 3, 4, 7>();
+			palette4bpp_[5] = palette_entry<BitIndex{0xfe0d, 0}, BitIndex{0xfe0d, 4}, BitIndex{0xfe0c, 4}>();
+			palette4bpp_[7] = palette_entry<BitIndex{0xfe0d, 1}, BitIndex{0xfe0d, 5}, BitIndex{0xfe0c, 5}>();
+			palette4bpp_[13] = palette_entry<BitIndex{0xfe0d, 2}, BitIndex{0xfe0c, 2}, BitIndex{0xfe0c, 6}>();
+			palette4bpp_[15] = palette_entry<BitIndex{0xfe0d, 3}, BitIndex{0xfe0c, 3}, BitIndex{0xfe0c, 7}>();
 
-			palette4bpp_[1] = palette_entry<7, 0, 7, 4, 6, 4>();
-			palette4bpp_[3] = palette_entry<7, 1, 7, 5, 6, 5>();
-			palette4bpp_[9] = palette_entry<7, 2, 6, 2, 6, 6>();
-			palette4bpp_[11] = palette_entry<7, 3, 6, 3, 6, 7>();
+			palette4bpp_[1] = palette_entry<BitIndex{0xfe0f, 0}, BitIndex{0xfe0f, 4}, BitIndex{0xfe0e, 4}>();
+			palette4bpp_[3] = palette_entry<BitIndex{0xfe0f, 1}, BitIndex{0xfe0f, 5}, BitIndex{0xfe0e, 5}>();
+			palette4bpp_[9] = palette_entry<BitIndex{0xfe0f, 2}, BitIndex{0xfe0e, 2}, BitIndex{0xfe0e, 6}>();
+			palette4bpp_[11] = palette_entry<BitIndex{0xfe0f, 3}, BitIndex{0xfe0e, 3}, BitIndex{0xfe0e, 7}>();
 		} break;
 	}
 }
