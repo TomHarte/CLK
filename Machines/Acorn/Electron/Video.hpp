@@ -33,7 +33,7 @@ public:
 	VideoOutput(const uint8_t *memory);
 
 	/// Sets the destination for output.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+	void set_scan_target(Outputs::Display::ScanTarget *);
 
 	/// Gets the current scan status.
 	Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -47,17 +47,17 @@ public:
 	/// Produces the next @c cycles of video output.
 	///
 	/// @returns a bit mask of all interrupts triggered.
-	uint8_t run_for(const Cycles cycles);
+	uint8_t run_for(const Cycles);
 
 	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 	/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
-	Cycles io_delay() {
+	Cycles io_delay() const {
 		return 2 + ((h_count_ >> 3)&1);
 	}
 
 	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 	/// RAM access that is first signalled in the upcoming cycle.
-	Cycles ram_delay() {
+	Cycles ram_delay() const {
 		if(!mode_40_ && !in_blank()) {
 			return 2 + ((h_active - h_count_) >> 3);
 		}
@@ -68,16 +68,16 @@ public:
 		Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
 		@c get_cycles_until_next_ram_availability and @c get_memory_access_range.
 	*/
-	void write(int address, uint8_t value);
+	void write(const int address, const uint8_t value);
 
 	/*!
 		@returns the number of cycles after (final cycle of last run_for batch + @c from_time)
 		before the video circuits will allow the CPU to access RAM.
 	*/
-	unsigned int get_cycles_until_next_ram_availability(int from_time);
+	unsigned int get_cycles_until_next_ram_availability(const int from_time);
 
 private:
-	const uint8_t *ram_ = nullptr;
+	const uint8_t *const ram_ = nullptr;
 
 	// CRT output
 	enum class OutputStage {
@@ -131,9 +131,9 @@ private:
 	bool field_ = true;
 
 	// Current working address.
-	uint16_t row_addr_ = 0;	// Address, sans character row, adopted at the start of a row.
+	uint16_t row_addr_ = 0;		// Address, sans character row, adopted at the start of a row.
 	uint16_t byte_addr_ = 0;	// Current working address, incremented as the raster moves across the line.
-	int char_row_ = 0;		// Character row; 0–9 in text mode, 0–7 in graphics.
+	int char_row_ = 0;			// Character row; 0–9 in text mode, 0–7 in graphics.
 
 	// Sync states.
 	bool vsync_int_ = false;	// True => vsync active.
