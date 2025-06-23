@@ -93,10 +93,8 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	// Palettes.
-	uint8_t palette_[8]{};
-	uint8_t palette1bpp_[2]{};
-	uint8_t palette2bpp_[4]{};
-	uint8_t palette4bpp_[16]{};
+	uint8_t source_palette_[8]{};
+	uint8_t mapped_palette_[16]{};
 
 	struct BitIndex {
 		int address;
@@ -108,7 +106,7 @@ private:
 		static_assert(index.address >= 0xfe08 && index.address <= 0xfe0f);
 		static_assert(index.bit >= 0 && index.bit <= 7);
 		static_assert(target_bit >= 0 && target_bit <= 2);
-		return uint8_t(((palette_[index.address - 0xfe08] >> index.bit) & 1) << target_bit);
+		return uint8_t(((source_palette_[index.address - 0xfe08] >> index.bit) & 1) << target_bit);
 	}
 
 	template <BitIndex red, BitIndex green, BitIndex blue>
