@@ -114,6 +114,16 @@ private:
 		return channel<red, 2>() | channel<green, 1>() | channel<blue, 0>();
 	}
 
+	template <uint16_t pair, int base>
+	void set_palette_group(const int address, const uint8_t value) {
+		source_palette_[address & 0b0111] = ~value;
+
+		mapped_palette_[base | 0b0000] = palette_entry<BitIndex{pair + 1, 0}, BitIndex{pair + 1, 4}, BitIndex{pair, 4}>();
+		mapped_palette_[base | 0b0010] = palette_entry<BitIndex{pair + 1, 1}, BitIndex{pair + 1, 5}, BitIndex{pair, 5}>();
+		mapped_palette_[base | 0b1000] = palette_entry<BitIndex{pair + 1, 2}, BitIndex{pair, 2}, BitIndex{pair, 6}>();
+		mapped_palette_[base | 0b1010] = palette_entry<BitIndex{pair + 1, 3}, BitIndex{pair, 3}, BitIndex{pair, 7}>();
+	}
+
 	// User-selected base address; constrained to a 64-byte boundary by the setter.
 	uint16_t screen_base_ = 0;
 

@@ -236,7 +236,7 @@ void VideoOutput::write(const int address, const uint8_t value) {
 				(screen_base_ & 0b0000'0001'1100'0000);
 		break;
 		case 0x07: {
-			const uint8_t mode = (value >> 3)&7;
+			const uint8_t mode = (value >> 3) & 7;
 			mode_40_ = mode >= 4;
 			mode_text_ = mode == 3 || mode == 6;
 
@@ -256,37 +256,9 @@ void VideoOutput::write(const int address, const uint8_t value) {
 				case 2:		mode_bpp_ = Bpp::Four;	break;
 			}
 		} break;
-		case 0x08: case 0x09:
-			source_palette_[address & 0b0111] = ~value;
-
-			mapped_palette_[0b0000] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
-			mapped_palette_[0b0010] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
-			mapped_palette_[0b1000] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
-			mapped_palette_[0b1010] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
-		break;
-		case 0x0a: case 0x0b:
-			source_palette_[address & 0b0111] = ~value;
-
-			mapped_palette_[0b0100] = palette_entry<BitIndex{0xfe0b, 0}, BitIndex{0xfe0b, 4}, BitIndex{0xfe0a, 4}>();
-			mapped_palette_[0b0110] = palette_entry<BitIndex{0xfe0b, 1}, BitIndex{0xfe0b, 5}, BitIndex{0xfe0a, 5}>();
-			mapped_palette_[0b1100] = palette_entry<BitIndex{0xfe0b, 2}, BitIndex{0xfe0a, 2}, BitIndex{0xfe0a, 6}>();
-			mapped_palette_[0b1110] = palette_entry<BitIndex{0xfe0b, 3}, BitIndex{0xfe0a, 3}, BitIndex{0xfe0a, 7}>();
-		break;
-		case 0x0c: case 0x0d:
-			source_palette_[address & 0b0111] = ~value;
-
-			mapped_palette_[0b0101] = palette_entry<BitIndex{0xfe0d, 0}, BitIndex{0xfe0d, 4}, BitIndex{0xfe0c, 4}>();
-			mapped_palette_[0b0111] = palette_entry<BitIndex{0xfe0d, 1}, BitIndex{0xfe0d, 5}, BitIndex{0xfe0c, 5}>();
-			mapped_palette_[0b1101] = palette_entry<BitIndex{0xfe0d, 2}, BitIndex{0xfe0c, 2}, BitIndex{0xfe0c, 6}>();
-			mapped_palette_[0b1111] = palette_entry<BitIndex{0xfe0d, 3}, BitIndex{0xfe0c, 3}, BitIndex{0xfe0c, 7}>();
-		break;
-		case 0x0e: case 0x0f:
-			source_palette_[address & 0b0111] = ~value;
-
-			mapped_palette_[0b0001] = palette_entry<BitIndex{0xfe0f, 0}, BitIndex{0xfe0f, 4}, BitIndex{0xfe0e, 4}>();
-			mapped_palette_[0b0011] = palette_entry<BitIndex{0xfe0f, 1}, BitIndex{0xfe0f, 5}, BitIndex{0xfe0e, 5}>();
-			mapped_palette_[0b1001] = palette_entry<BitIndex{0xfe0f, 2}, BitIndex{0xfe0e, 2}, BitIndex{0xfe0e, 6}>();
-			mapped_palette_[0b1011] = palette_entry<BitIndex{0xfe0f, 3}, BitIndex{0xfe0e, 3}, BitIndex{0xfe0e, 7}>();
-		break;
+		case 0x08: case 0x09:	set_palette_group<0xfe08, 0b0000>(address, value);	break;
+		case 0x0a: case 0x0b:	set_palette_group<0xfe0a, 0b0100>(address, value);	break;
+		case 0x0c: case 0x0d:	set_palette_group<0xfe0c, 0b0101>(address, value);	break;
+		case 0x0e: case 0x0f:	set_palette_group<0xfe0e, 0b0001>(address, value);	break;
 	}
 }
