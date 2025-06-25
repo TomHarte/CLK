@@ -29,7 +29,7 @@ VideoOutput::VideoOutput(const uint8_t *memory) :
 	));
 }
 
-void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
@@ -37,7 +37,7 @@ Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
 }
 
-void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
+void VideoOutput::set_display_type(const Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
@@ -60,14 +60,6 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 		// named by (h_count_, v_count_) is the one that was active **prior to this cycle**.
 		//
 		// So this cycle spans the period from (h_count_, v_count_) to (h_count_, v_count_)+1.
-
-		// Test for interrupts.
-		if(v_count_ == v_rtc && ((!field_ && !h_count_) || (field_ && h_count_ == h_half))) {
-			interrupts |= static_cast<uint8_t>(Interrupt::RealTimeClock);
-		}
-		if(h_count_ == hsync_start && ((v_count_ == v_disp_gph && !mode_text_) or (v_count_ == v_disp_txt && mode_text_))) {
-			interrupts |= static_cast<uint8_t>(Interrupt::DisplayEnd);
-		}
 
 		// Update syncs.
 		if(!field_) {
@@ -164,33 +156,33 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 			switch(mode_bpp_) {
 				case Bpp::One:
-					current_output_target_[0] = palette1bpp_[(data >> 7) & 1];
-					current_output_target_[1] = palette1bpp_[(data >> 6) & 1];
-					current_output_target_[2] = palette1bpp_[(data >> 5) & 1];
-					current_output_target_[3] = palette1bpp_[(data >> 4) & 1];
-					current_output_target_[4] = palette1bpp_[(data >> 3) & 1];
-					current_output_target_[5] = palette1bpp_[(data >> 2) & 1];
-					current_output_target_[6] = palette1bpp_[(data >> 1) & 1];
-					current_output_target_[7] = palette1bpp_[(data >> 0) & 1];
+					current_output_target_[0] = mapped_palette_[(data >> 4) & 8];
+					current_output_target_[1] = mapped_palette_[(data >> 3) & 8];
+					current_output_target_[2] = mapped_palette_[(data >> 2) & 8];
+					current_output_target_[3] = mapped_palette_[(data >> 1) & 8];
+					current_output_target_[4] = mapped_palette_[(data >> 0) & 8];
+					current_output_target_[5] = mapped_palette_[(data << 1) & 8];
+					current_output_target_[6] = mapped_palette_[(data << 2) & 8];
+					current_output_target_[7] = mapped_palette_[(data << 3) & 8];
 					current_output_target_ += 8;
 				break;
 				case Bpp::Two:
-					current_output_target_[0] = palette2bpp_[((data >> 6) & 2) | ((data >> 3) & 1)];
-					current_output_target_[1] = palette2bpp_[((data >> 5) & 2) | ((data >> 2) & 1)];
-					current_output_target_[2] = palette2bpp_[((data >> 4) & 2) | ((data >> 1) & 1)];
-					current_output_target_[3] = palette2bpp_[((data >> 3) & 2) | ((data >> 0) & 1)];
+					current_output_target_[0] = mapped_palette_[((data >> 4) & 8) | ((data >> 2) & 2)];
+					current_output_target_[1] = mapped_palette_[((data >> 3) & 8) | ((data >> 1) & 2)];
+					current_output_target_[2] = mapped_palette_[((data >> 2) & 8) | ((data >> 0) & 2)];
+					current_output_target_[3] = mapped_palette_[((data >> 1) & 8) | ((data << 1) & 2)];
 					current_output_target_ += 4;
 				break;
 				case Bpp::Four:
-					current_output_target_[0] = palette4bpp_[((data >> 4) & 8) | ((data >> 3) & 4) | ((data >> 2) & 2) | ((data >> 1) & 1)];
-					current_output_target_[1] = palette4bpp_[((data >> 3) & 8) | ((data >> 2) & 4) | ((data >> 1) & 2) | ((data >> 0) & 1)];
+					current_output_target_[0] = mapped_palette_[((data >> 4) & 8) | ((data >> 3) & 4) | ((data >> 2) & 2) | ((data >> 1) & 1)];
+					current_output_target_[1] = mapped_palette_[((data >> 3) & 8) | ((data >> 2) & 4) | ((data >> 1) & 2) | ((data >> 0) & 1)];
 					current_output_target_ += 2;
 				break;
 			}
 		}
 
 		// Increment the byte address across the line.
-		// (slghtly pained logic here because the input clock is still at the pixel rate, not the byte rate)
+		// (slghtly pained logic here because the input clock is at the pixel rate, not the byte rate)
 		if(h_count_ < h_active) {
 			if(
 				(!mode_40_ && !(h_count_ & 0x7)) ||
@@ -204,7 +196,7 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 			}
 		}
 
-		// Horizontal and vertical counter updates; code below should act
+		// Horizontal and vertical counter updates.
 		h_count_ += 8;
 		if(h_count_ == h_total) {
 			h_count_ = 0;
@@ -216,6 +208,14 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 				++v_count_;
 			}
 		}
+
+		// Test for interrupts.
+		if(v_count_ == v_rtc && ((!field_ && !h_count_) || (field_ && h_count_ == h_half))) {
+			interrupts |= static_cast<uint8_t>(Interrupt::RealTimeClock);
+		}
+		if(h_count_ == hsync_start && ((v_count_ == v_disp_gph && !mode_text_) or (v_count_ == v_disp_txt && mode_text_))) {
+			interrupts |= static_cast<uint8_t>(Interrupt::DisplayEnd);
+		}
 	}
 
 	return interrupts;
@@ -223,9 +223,8 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 
 // MARK: - Register hub
 
-void VideoOutput::write(int address, const uint8_t value) {
-	address &= 0xf;
-	switch(address) {
+void VideoOutput::write(const int address, const uint8_t value) {
+	switch(address & 0b1111) {
 		case 0x02:
 			screen_base_ =
 				(screen_base_ & 0b0111'1110'0000'0000) |
@@ -237,7 +236,7 @@ void VideoOutput::write(int address, const uint8_t value) {
 				(screen_base_ & 0b0000'0001'1100'0000);
 		break;
 		case 0x07: {
-			const uint8_t mode = (value >> 3)&7;
+			const uint8_t mode = (value >> 3) & 7;
 			mode_40_ = mode >= 4;
 			mode_text_ = mode == 3 || mode == 6;
 
@@ -257,39 +256,9 @@ void VideoOutput::write(int address, const uint8_t value) {
 				case 2:		mode_bpp_ = Bpp::Four;	break;
 			}
 		} break;
-		case 0x08: case 0x09: case 0x0a: case 0x0b:
-		case 0x0c: case 0x0d: case 0x0e: case 0x0f: {
-			palette_[address - 8] = ~value;
-
-			if(address <= 0x09) {
-				palette1bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
-				palette1bpp_[1] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
-
-				palette2bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
-				palette2bpp_[1] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
-				palette2bpp_[2] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
-				palette2bpp_[3] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
-			}
-
-			palette4bpp_[0] = palette_entry<BitIndex{0xfe09, 0}, BitIndex{0xfe09, 4}, BitIndex{0xfe08, 4}>();
-			palette4bpp_[2] = palette_entry<BitIndex{0xfe09, 1}, BitIndex{0xfe09, 5}, BitIndex{0xfe08, 5}>();
-			palette4bpp_[8] = palette_entry<BitIndex{0xfe09, 2}, BitIndex{0xfe08, 2}, BitIndex{0xfe08, 6}>();
-			palette4bpp_[10] = palette_entry<BitIndex{0xfe09, 3}, BitIndex{0xfe08, 3}, BitIndex{0xfe08, 7}>();
-
-			palette4bpp_[4] = palette_entry<BitIndex{0xfe0b, 0}, BitIndex{0xfe0b, 4}, BitIndex{0xfe0a, 4}>();
-			palette4bpp_[6] = palette_entry<BitIndex{0xfe0b, 1}, BitIndex{0xfe0b, 5}, BitIndex{0xfe0a, 5}>();
-			palette4bpp_[12] = palette_entry<BitIndex{0xfe0b, 2}, BitIndex{0xfe0a, 2}, BitIndex{0xfe0a, 6}>();
-			palette4bpp_[14] = palette_entry<BitIndex{0xfe0b, 3}, BitIndex{0xfe0a, 3}, BitIndex{0xfe0a, 7}>();
-
-			palette4bpp_[5] = palette_entry<BitIndex{0xfe0d, 0}, BitIndex{0xfe0d, 4}, BitIndex{0xfe0c, 4}>();
-			palette4bpp_[7] = palette_entry<BitIndex{0xfe0d, 1}, BitIndex{0xfe0d, 5}, BitIndex{0xfe0c, 5}>();
-			palette4bpp_[13] = palette_entry<BitIndex{0xfe0d, 2}, BitIndex{0xfe0c, 2}, BitIndex{0xfe0c, 6}>();
-			palette4bpp_[15] = palette_entry<BitIndex{0xfe0d, 3}, BitIndex{0xfe0c, 3}, BitIndex{0xfe0c, 7}>();
-
-			palette4bpp_[1] = palette_entry<BitIndex{0xfe0f, 0}, BitIndex{0xfe0f, 4}, BitIndex{0xfe0e, 4}>();
-			palette4bpp_[3] = palette_entry<BitIndex{0xfe0f, 1}, BitIndex{0xfe0f, 5}, BitIndex{0xfe0e, 5}>();
-			palette4bpp_[9] = palette_entry<BitIndex{0xfe0f, 2}, BitIndex{0xfe0e, 2}, BitIndex{0xfe0e, 6}>();
-			palette4bpp_[11] = palette_entry<BitIndex{0xfe0f, 3}, BitIndex{0xfe0e, 3}, BitIndex{0xfe0e, 7}>();
-		} break;
+		case 0x08: case 0x09:	set_palette_group<0xfe08, 0b0000>(address, value);	break;
+		case 0x0a: case 0x0b:	set_palette_group<0xfe0a, 0b0100>(address, value);	break;
+		case 0x0c: case 0x0d:	set_palette_group<0xfe0c, 0b0101>(address, value);	break;
+		case 0x0e: case 0x0f:	set_palette_group<0xfe0e, 0b0001>(address, value);	break;
 	}
 }

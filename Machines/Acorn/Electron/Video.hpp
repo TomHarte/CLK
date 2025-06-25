@@ -33,7 +33,7 @@ public:
 	VideoOutput(const uint8_t *memory);
 
 	/// Sets the destination for output.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+	void set_scan_target(Outputs::Display::ScanTarget *);
 
 	/// Gets the current scan status.
 	Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -47,17 +47,17 @@ public:
 	/// Produces the next @c cycles of video output.
 	///
 	/// @returns a bit mask of all interrupts triggered.
-	uint8_t run_for(const Cycles cycles);
+	uint8_t run_for(const Cycles);
 
 	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 	/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
-	Cycles io_delay() {
+	Cycles io_delay() const {
 		return 2 + ((h_count_ >> 3)&1);
 	}
 
 	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
 	/// RAM access that is first signalled in the upcoming cycle.
-	Cycles ram_delay() {
+	Cycles ram_delay() const {
 		if(!mode_40_ && !in_blank()) {
 			return 2 + ((h_active - h_count_) >> 3);
 		}
@@ -68,16 +68,16 @@ public:
 		Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
 		@c get_cycles_until_next_ram_availability and @c get_memory_access_range.
 	*/
-	void write(int address, uint8_t value);
+	void write(const int address, const uint8_t value);
 
 	/*!
 		@returns the number of cycles after (final cycle of last run_for batch + @c from_time)
 		before the video circuits will allow the CPU to access RAM.
 	*/
-	unsigned int get_cycles_until_next_ram_availability(int from_time);
+	unsigned int get_cycles_until_next_ram_availability(const int from_time);
 
 private:
-	const uint8_t *ram_ = nullptr;
+	const uint8_t *const ram_ = nullptr;
 
 	// CRT output
 	enum class OutputStage {
@@ -93,10 +93,8 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	// Palettes.
-	uint8_t palette_[8]{};
-	uint8_t palette1bpp_[2]{};
-	uint8_t palette2bpp_[4]{};
-	uint8_t palette4bpp_[16]{};
+	uint8_t source_palette_[8]{};
+	uint8_t mapped_palette_[16]{};
 
 	struct BitIndex {
 		int address;
@@ -104,16 +102,29 @@ private:
 	};
 
 	template <BitIndex index, int target_bit>
+	requires (
+		target_bit >= 0 && target_bit <= 2 &&
+		index.bit >= 0 && index.bit <= 7 &&
+		index.address >= 0xfe08 && index.address <= 0xfe0f
+	)
 	uint8_t channel() {
-		static_assert(index.address >= 0xfe08 && index.address <= 0xfe0f);
-		static_assert(index.bit >= 0 && index.bit <= 7);
-		static_assert(target_bit >= 0 && target_bit <= 2);
-		return uint8_t(((palette_[index.address - 0xfe08] >> index.bit) & 1) << target_bit);
+		return uint8_t(((source_palette_[index.address - 0xfe08] >> index.bit) & 1) << target_bit);
 	}
 
 	template <BitIndex red, BitIndex green, BitIndex blue>
 	uint8_t palette_entry() {
 		return channel<red, 2>() | channel<green, 1>() | channel<blue, 0>();
+	}
+
+	template <uint16_t pair, int base>
+	requires ((pair & 1) == 0 && pair >= 0xfe08 && pair <= 0xfe0e && base >= 0 && base < 16 && !(base & 0b1010))
+	void set_palette_group(const int address, const uint8_t value) {
+		source_palette_[address & 0b0111] = ~value;
+
+		mapped_palette_[base | 0b0000] = palette_entry<BitIndex{pair + 1, 0}, BitIndex{pair + 1, 4}, BitIndex{pair, 4}>();
+		mapped_palette_[base | 0b0010] = palette_entry<BitIndex{pair + 1, 1}, BitIndex{pair + 1, 5}, BitIndex{pair, 5}>();
+		mapped_palette_[base | 0b1000] = palette_entry<BitIndex{pair + 1, 2}, BitIndex{pair, 2}, BitIndex{pair, 6}>();
+		mapped_palette_[base | 0b1010] = palette_entry<BitIndex{pair + 1, 3}, BitIndex{pair, 3}, BitIndex{pair, 7}>();
 	}
 
 	// User-selected base address; constrained to a 64-byte boundary by the setter.
@@ -133,9 +144,9 @@ private:
 	bool field_ = true;
 
 	// Current working address.
-	uint16_t row_addr_ = 0;	// Address, sans character row, adopted at the start of a row.
+	uint16_t row_addr_ = 0;		// Address, sans character row, adopted at the start of a row.
 	uint16_t byte_addr_ = 0;	// Current working address, incremented as the raster moves across the line.
-	int char_row_ = 0;		// Character row; 0–9 in text mode, 0–7 in graphics.
+	int char_row_ = 0;			// Character row; 0–9 in text mode, 0–7 in graphics.
 
 	// Sync states.
 	bool vsync_int_ = false;	// True => vsync active.
