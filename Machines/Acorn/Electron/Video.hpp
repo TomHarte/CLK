@@ -79,7 +79,7 @@ public:
 private:
 	const uint8_t *const ram_ = nullptr;
 
-	// CRT output
+	// CRT output.
 	enum class OutputStage {
 		Sync, Blank, Pixels, ColourBurst,
 	};
@@ -194,5 +194,7 @@ private:
 	bool is_v_end() const {
 		return v_count_ == v_total();
 	}
+
+	uint8_t perform(int h_count, int v_count);
 };
 }
