@@ -154,6 +154,10 @@ uint8_t VideoOutput::perform(const int h_count, const int v_count) {
 
 		switch(mode_bpp_) {
 			case Bpp::One:
+				// Maps 1bpp to 4bpp as:
+				//
+				// 0	->	0000
+				// 1	->	1000
 				current_output_target_[0] = mapped_palette_[(data >> 4) & 8];
 				current_output_target_[1] = mapped_palette_[(data >> 3) & 8];
 				current_output_target_[2] = mapped_palette_[(data >> 2) & 8];
@@ -165,6 +169,12 @@ uint8_t VideoOutput::perform(const int h_count, const int v_count) {
 				current_output_target_ += 8;
 			break;
 			case Bpp::Two:
+				// Maps 2bpp to 4bpp as:
+				//
+				// 00	->	0000
+				// 01	->	1000
+				// 10	->	0010
+				// 11	->	1010
 				current_output_target_[0] = mapped_palette_[((data >> 4) & 8) | ((data >> 2) & 2)];
 				current_output_target_[1] = mapped_palette_[((data >> 3) & 8) | ((data >> 1) & 2)];
 				current_output_target_[2] = mapped_palette_[((data >> 2) & 8) | ((data >> 0) & 2)];
