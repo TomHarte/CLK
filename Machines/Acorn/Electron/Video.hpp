@@ -12,7 +12,7 @@
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
-#include <tuple>
+#include <utility>
 #include <vector>
 
 namespace Electron {
