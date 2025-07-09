@@ -53,6 +53,8 @@ public:
 	/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
 	Cycles io_delay() const {
 		return 2 + ((h_count_ >> 3)&1);
+//		return 3 - ((h_count_ >> 3)&1);
+		// i.e. two cycles for the access, to end halfway through a 1Mhz window.
 	}
 
 	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
@@ -188,7 +190,11 @@ private:
 	}
 
 	bool in_blank() const {
-		return h_count_ >= h_active || (mode_text_ && v_count_ >= v_active_txt) || (!mode_text_ && v_count_ >= v_active_gph) || char_row_ >= 8;
+		return
+			h_count_ >= h_active ||
+			(mode_text_ && v_count_ >= v_active_txt) ||
+			(!mode_text_ && v_count_ >= v_active_gph) ||
+			char_row_ >= 8;
 	}
 
 	bool is_v_end() const {
