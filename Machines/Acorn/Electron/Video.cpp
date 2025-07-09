@@ -182,8 +182,10 @@ uint8_t VideoOutput::perform(const int h_count, const int v_count) {
 				current_output_target_ += 4;
 			break;
 			case Bpp::Four:
-				current_output_target_[0] = mapped_palette_[((data >> 4) & 8) | ((data >> 3) & 4) | ((data >> 2) & 2) | ((data >> 1) & 1)];
-				current_output_target_[1] = mapped_palette_[((data >> 3) & 8) | ((data >> 2) & 4) | ((data >> 1) & 2) | ((data >> 0) & 1)];
+				current_output_target_[0] =
+					mapped_palette_[((data >> 4) & 8) | ((data >> 3) & 4) | ((data >> 2) & 2) | ((data >> 1) & 1)];
+				current_output_target_[1] =
+					mapped_palette_[((data >> 3) & 8) | ((data >> 2) & 4) | ((data >> 1) & 2) | ((data >> 0) & 1)];
 				current_output_target_ += 2;
 			break;
 		}
