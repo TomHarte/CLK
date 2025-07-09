@@ -195,23 +195,6 @@ private:
 		return v_count_ == v_total();
 	}
 
-	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
-	/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
-	Cycles io_delay() const {
-		return 2 + ((h_count_ >> 3)&1);
-//		return 3 - ((h_count_ >> 3)&1);
-		// i.e. two cycles for the access, to end halfway through a 1Mhz window.
-	}
-
-	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
-	/// RAM access that is first signalled in the upcoming cycle.
-	Cycles ram_delay() const {
-		if(!mode_40_ && !in_blank()) {
-			return 2 + ((h_active - h_count_) >> 3);
-		}
-		return io_delay();
-	}
-
 	uint8_t perform(int h_count, int v_count);
 };
 }

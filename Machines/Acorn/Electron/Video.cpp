@@ -240,12 +240,39 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 }
 
 std::pair<Cycles, uint8_t> VideoOutput::run_until_ram_slot() {
-	const auto duration = ram_delay();
-	return std::make_pair(duration, run_for(duration));
+	if(mode_40_) {
+		return run_until_io_slot();
+	}
+
+	Cycles duration{};
+	uint8_t interrupts{};
+
+	// If currently in the back half of a cycle,
+	// advance to the start of the next 1Mhz window.
+	if(h_count_ & 8) {
+		duration += Cycles(1);
+		interrupts |= run_for(Cycles(1));
+	}
+
+	// If now in blank, just finish out the half window.
+	// Otherwise let the pixel run end.
+	if(!in_blank()) {
+		const auto additional = Cycles(1 + ((h_active - h_count_) >> 3));
+		duration += additional;
+		interrupts |= run_for(additional);
+	} else {
+		duration += Cycles(1);
+		interrupts |= run_for(Cycles(1));
+	}
+
+	return std::make_pair(duration, interrupts);
 }
 
 std::pair<Cycles, uint8_t> VideoOutput::run_until_io_slot() {
-	const auto duration = io_delay();
+	// Two cycles minimum are required; ensure also that the next access
+	// ends at the midpoint of a 1Mhz window. In each window the CPU
+	// access conceptually comes first.
+	const auto duration = 3 - ((h_count_ >> 3) & 1);
 	return std::make_pair(duration, run_for(duration));
 }
 
