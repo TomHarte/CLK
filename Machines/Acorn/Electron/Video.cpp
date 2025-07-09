@@ -215,7 +215,6 @@ uint8_t VideoOutput::perform(const int h_count, const int v_count) {
 	return interrupts;
 }
 
-
 uint8_t VideoOutput::run_for(const Cycles cycles) {
 	uint8_t interrupts{};
 
@@ -238,6 +237,16 @@ uint8_t VideoOutput::run_for(const Cycles cycles) {
 	}
 
 	return interrupts;
+}
+
+std::pair<Cycles, uint8_t> VideoOutput::run_until_ram_slot() {
+	const auto duration = ram_delay();
+	return std::make_pair(duration, run_for(duration));
+}
+
+std::pair<Cycles, uint8_t> VideoOutput::run_until_io_slot() {
+	const auto duration = io_delay();
+	return std::make_pair(duration, run_for(duration));
 }
 
 // MARK: - Register hub
