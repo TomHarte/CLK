@@ -218,20 +218,21 @@ public:
 		return disk && disk->has_written() ? ChangeEffect::None : ChangeEffect::RestartMachine;
 	}
 
-	forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-		Cycles cycles{1};
-
+	std::pair<Cycles, uint8_t> run_for_access(const uint16_t address) {
 		if(address < 0x8000) {
-			cycles = video_.ram_delay();
-		} else {
-			if((address & 0xff00) == 0xfe00) {
-				cycles = video_.io_delay();
-			}
+			return video_.run_until_ram_slot();
 		}
 
-		if(const auto video_interrupts = video_.run_for(cycles); video_interrupts) {
-			signal_interrupt(video_interrupts);
+		if((address & 0xff00) == 0xfe00) {
+			return video_.run_until_io_slot();
 		}
+
+		return std::make_pair(Cycles(1), video_.run_for(Cycles(1)));
+	}
+
+	forceinline Cycles perform_bus_operation(const CPU::MOS6502::BusOperation operation, const uint16_t address, uint8_t *const value) {
+		const auto [cycles, video_interrupts] = run_for_access(address);
+		signal_interrupt(video_interrupts);
 
 		cycles_since_audio_update_ += cycles;
 		if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
@@ -240,7 +241,7 @@ public:
 		if(typer_) typer_->run_for(cycles);
 		if(plus3_) plus3_->run_for(cycles * 4);
 		if(shift_restart_counter_) {
-			shift_restart_counter_ -= cycles.as<int>();
+			shift_restart_counter_ -= cycles.template as<int>();
 			if(shift_restart_counter_ <= 0) {
 				shift_restart_counter_ = 0;
 				m6502_.set_power_on(true);

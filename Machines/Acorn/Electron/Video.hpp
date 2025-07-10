@@ -12,6 +12,7 @@
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
+#include <utility>
 #include <vector>
 
 namespace Electron {
@@ -49,20 +50,15 @@ public:
 	/// @returns a bit mask of all interrupts triggered.
 	uint8_t run_for(const Cycles);
 
-	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
-	/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
-	Cycles io_delay() const {
-		return 2 + ((h_count_ >> 3)&1);
-	}
+	/// Runs for as many cycles as is correct to get to the next RAM access slot.
+	///
+	/// @returns the number of cycles run for and a bit mask of all interrupts triggered.
+	std::pair<Cycles, uint8_t> run_until_ram_slot();
 
-	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
-	/// RAM access that is first signalled in the upcoming cycle.
-	Cycles ram_delay() const {
-		if(!mode_40_ && !in_blank()) {
-			return 2 + ((h_active - h_count_) >> 3);
-		}
-		return io_delay();
-	}
+	/// Runs for as many cycles as is correct to get to the next IO access slot.
+	///
+	/// @returns the number of cycles run for and a bit mask of all interrupts triggered.
+	std::pair<Cycles, uint8_t> run_until_io_slot();
 
 	/*!
 		Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
@@ -79,7 +75,7 @@ public:
 private:
 	const uint8_t *const ram_ = nullptr;
 
-	// CRT output
+	// CRT output.
 	enum class OutputStage {
 		Sync, Blank, Pixels, ColourBurst,
 	};
@@ -188,11 +184,17 @@ private:
 	}
 
 	bool in_blank() const {
-		return h_count_ >= h_active || (mode_text_ && v_count_ >= v_active_txt) || (!mode_text_ && v_count_ >= v_active_gph) || char_row_ >= 8;
+		return
+			h_count_ >= h_active ||
+			(mode_text_ && v_count_ >= v_active_txt) ||
+			(!mode_text_ && v_count_ >= v_active_gph) ||
+			char_row_ >= 8;
 	}
 
 	bool is_v_end() const {
 		return v_count_ == v_total();
 	}
+
+	uint8_t perform(int h_count, int v_count);
 };
 }
