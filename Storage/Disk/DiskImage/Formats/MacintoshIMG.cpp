@@ -8,12 +8,13 @@
 
 #include "MacintoshIMG.hpp"
 
-#include <cstring>
-
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
 #include "Storage/Disk/Encodings/AppleGCR/Encoder.hpp"
 #include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+
+#include <bit>
+#include <cstring>
 
 /*
 	File format specifications as referenced below are largely
@@ -23,7 +24,12 @@
 
 using namespace Storage::Disk;
 
-MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type, size_t offset, size_t length) :
+MacintoshIMG::MacintoshIMG(
+	const std::string &file_name,
+	const FixedType type,
+	const size_t offset,
+	const size_t length
+) :
 	file_(file_name) {
 
 	switch(type) {
@@ -47,7 +53,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	// DiskCopy 4.2 format, so there's no ambiguity here.
 	const auto name_length = file_.get();
 	if(name_length == 0x4c || !name_length) {
-		uint32_t magic_word = file_.get();
+		const uint32_t magic_word = file_.get();
 		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
@@ -62,8 +68,9 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		//
 		// Validate the length, then skip the rest of the string.
 		is_diskCopy_file_ = true;
-		if(name_length > 64)
+		if(name_length > 64) {
 			throw Error::InvalidFormat;
+		}
 
 		// Get the length of the data and tag blocks.
 		file_.seek(64, SEEK_SET);
@@ -73,8 +80,9 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		const auto tag_checksum = file_.get_be<uint32_t>();
 
 		// Don't continue with no data.
-		if(!data_block_length)
+		if(!data_block_length) {
 			throw Error::InvalidFormat;
+		}
 
 		// Check that this is a comprehensible disk encoding.
 		const auto encoding = file_.get();
@@ -122,13 +130,14 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	}
 }
 
-void MacintoshIMG::construct_raw_gcr(size_t offset, size_t size) {
+void MacintoshIMG::construct_raw_gcr(const size_t offset, size_t size) {
 	is_diskCopy_file_ = false;
 	if(size == 0) {
 		size = size_t(file_.stats().st_size);
 	}
-	if(size != 819200 && size != 409600)
+	if(size != 819200 && size != 409600) {
 		throw Error::InvalidFormat;
+	}
 
 	raw_offset_ = long(offset);
 	file_.seek(raw_offset_, SEEK_SET);
@@ -143,15 +152,14 @@ void MacintoshIMG::construct_raw_gcr(size_t offset, size_t size) {
 	}
 }
 
-uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) const {
-	uint32_t result = 0;
-
-	// Checksum algorithm is: take each two bytes as a big-endian word; add that to a
+uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, const size_t bytes_to_skip) const {
+	// Checksum algorithm: take each two bytes as a big-endian word; add that to a
 	// 32-bit accumulator and then rotate the accumulator right one position.
+	uint32_t result = 0;
 	for(size_t c = bytes_to_skip; c < data.size(); c += 2) {
-		const uint16_t next_word = uint16_t((data[c] << 8) | data[c+1]);
-		result += next_word;
-		result = (result >> 1) | (result << 31);
+		result += uint32_t(data[c + 0] << 8);
+		result += uint32_t(data[c + 1] << 0);
+		result = std::rotr(result, 1);
 	}
 
 	return result;
@@ -175,8 +183,7 @@ bool MacintoshIMG::represents(const std::string &name) const {
 	return name == file_.name();
 }
 
-
-std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) const {
+std::unique_ptr<Track> MacintoshIMG::track_at_position(const Track::Address address) const {
 	/*
 		The format_ byte has the following meanings:
 
@@ -194,7 +201,7 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(Track::Address address) c
 			Bit 5 indicates double sided or not.
 	*/
 
-	std::lock_guard buffer_lock(buffer_mutex_);
+	const std::lock_guard buffer_lock(buffer_mutex_);
 	if(encoding_ == Encoding::GCR400 || encoding_ == Encoding::GCR800) {
 		// Perform a GCR encoding.
 		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
