@@ -63,6 +63,8 @@ uint8_t IWM::read(const int address) {
 			if(data_register_ & 0x80) {
 				data_register_ = 0;
 //				logger.info().append("Reading data: %02x", result);
+			} else {
+//				logger.info().append("Spurious read?");
 			}
 //			logger.info().append("Reading data register: %02x", result);
 

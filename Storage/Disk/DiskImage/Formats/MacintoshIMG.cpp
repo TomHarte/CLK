@@ -13,6 +13,7 @@
 #include "Storage/Disk/Encodings/AppleGCR/Encoder.hpp"
 #include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
 
+#include <algorithm>
 #include <bit>
 #include <cstring>
 
@@ -204,11 +205,12 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(const Track::Address addr
 	const std::lock_guard buffer_lock(buffer_mutex_);
 	if(encoding_ == Encoding::GCR400 || encoding_ == Encoding::GCR800) {
 		// Perform a GCR encoding.
-		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
-		const size_t start_sector = size_t(included_sectors.start * head_count() + included_sectors.length * address.head);
+		const auto included_sectors =
+			Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
+		const size_t start_sector =
+			size_t(included_sectors.start * head_count() + included_sectors.length * address.head);
 
 		if(start_sector*512 >= data_.size()) return nullptr;
-
 		const uint8_t *const sector = &data_[512 * start_sector];
 		const uint8_t *const tags = tags_.size() ? &tags_[12 * start_sector] : nullptr;
 
@@ -228,36 +230,35 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(const Track::Address addr
 		for(int c = 0; c < included_sectors.length; ++c) {
 			const uint8_t sector_id = source_sectors[c];
 			uint8_t sector_plus_tags[524];
+			auto target = std::begin(sector_plus_tags);
 
 			// Copy in the tags, if provided; otherwise generate them.
 			if(tags) {
-				memcpy(sector_plus_tags, &tags[sector_id * 12], 12);
+				std::copy(&tags[sector_id * 12], &tags[(sector_id + 1) * 12], target);
 			} else {
 				// TODO: fill in tags properly.
-				memset(sector_plus_tags, 0, 12);
+				std::fill(target, target + 12, 0);
 			}
+			target += 12;
 
 			// Copy in the sector body.
-			memcpy(&sector_plus_tags[12], &sector[sector_id * 512], 512);
+			std::copy(&sector[sector_id * 512], &sector[(sector_id + 1) * 512], target);
 
-			// NB: sync lengths below are identical to those for
-			// the Apple II, as I have no idea whatsoever what they
-			// should be.
-
+			// NB: sync lengths below are probably not identical to any
+			// specific Mac.
+			segment += Encodings::AppleGCR::six_and_two_sync(28);
 			segment += Encodings::AppleGCR::Macintosh::header(
 				format_,
 				uint8_t(address.position.as_int()),
 				sector_id,
-				!!address.head
+				address.head > 0
 			);
-			segment += Encodings::AppleGCR::six_and_two_sync(7);
+			segment += Encodings::AppleGCR::six_and_two_sync(4);
 			segment += Encodings::AppleGCR::Macintosh::data(sector_id, sector_plus_tags);
-			segment += Encodings::AppleGCR::six_and_two_sync(20);
 		}
 
 		// TODO: it seems some tracks are skewed respective to others; investigate further.
 
-//		segment.rotate_right(3000);	// Just a test, yo.
 		return std::make_unique<PCMTrack>(segment);
 	}
 
