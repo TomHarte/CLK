@@ -8,6 +8,9 @@
 
 #include "Encoder.hpp"
 
+#include <cassert>
+#include <bit>
+
 namespace {
 
 const uint8_t five_and_three_mapping[] = {
@@ -199,7 +202,7 @@ AppleGCR::Macintosh::SectorSpan AppleGCR::Macintosh::sectors_in_track(int track)
 }
 
 Storage::Disk::PCMSegment AppleGCR::Macintosh::header(uint8_t type, uint8_t track, uint8_t sector, bool side_two) {
-	std::vector<uint8_t> data(11);
+	std::vector<uint8_t> data(10);
 
 	// The standard prologue.
 	data[0] = header_prologue[0];
@@ -215,8 +218,8 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::header(uint8_t type, uint8_t trac
 	//	5) the XOR of all those fields.
 	//
 	//	(all two-and-six encoded).
-	data[3] = track&0x3f;
-	data[4] = sector;
+	data[3] = track & 0x3f;
+	data[4] = sector & 0x3f;
 	data[5] = (side_two ? 0x20 : 0x00) | ((track >> 6) & 0x1f);
 	data[6] = type;
 	data[7] = data[3] ^ data[4] ^ data[5] ^ data[6];
@@ -225,16 +228,15 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::header(uint8_t type, uint8_t trac
 		data[c] = six_and_two_mapping[data[c]];
 	}
 
-	// Then the standard epilogue.
+	// Then the standard epilogue, as far as the Mac cares.
 	data[8] = epilogue[0];
 	data[9] = epilogue[1];
-	data[10] = epilogue[2];
 
 	return Storage::Disk::PCMSegment(data);
 }
 
 Storage::Disk::PCMSegment AppleGCR::Macintosh::data(uint8_t sector, const uint8_t *source) {
-	std::vector<uint8_t> output(710);
+	std::vector<uint8_t> output(709);
 	int checksum[3] = {0, 0, 0};
 
 	// Write prologue.
@@ -256,12 +258,12 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(uint8_t sector, const uint8_
 		uint8_t values[3];
 
 		// The low byte of the checksum is rotated left one position; Cf. 18FA4.
-		checksum[0] = (checksum[0] << 1) | (checksum[0] >> 7);
+		checksum[0] = std::rotl(uint8_t(checksum[0]), 1);
 
 		// See 18FBA and 18FBC: an ADDX (with the carry left over from the roll)
 		// and an EOR act to update the checksum and generate the next output.
 		values[0] = uint8_t(*source ^ checksum[0]);
-		checksum[2] += *source + (checksum[0] >> 8);
+		checksum[2] += *source + (checksum[0] & 1);
 		++source;
 
 		// As above, but now 18FD0 and 18FD2.
@@ -281,7 +283,6 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(uint8_t sector, const uint8_
 		// Throw away the top bits of checksum[1] and checksum[2]; the original
 		// routine is byte centric, the longer ints here are just to retain the
 		// carry after each add transientliy.
-		checksum[0] &= 0xff;
 		checksum[1] &= 0xff;
 		checksum[2] &= 0xff;
 
@@ -313,10 +314,9 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(uint8_t sector, const uint8_
 		((checksum[0] >> 6) & 0x03)
 	];
 
-	// Write epilogue.
+	// Write epilogue; the Mac needs only the first two bytes,
 	output[707] = epilogue[0];
 	output[708] = epilogue[1];
-	output[709] = epilogue[2];
 
 	return Storage::Disk::PCMSegment(output);
 }
