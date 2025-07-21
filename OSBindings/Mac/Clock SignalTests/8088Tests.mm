@@ -522,8 +522,9 @@ struct FailedExecution {
 	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil];
 }
 
+using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
 - (NSString *)
-	toString:(const std::pair<int, InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>> &)instruction
+	toString:(const std::pair<int, Instruction> &)instruction
 	offsetLength:(int)offsetLength
 	immediateLength:(int)immediateLength
 {
@@ -889,7 +890,8 @@ struct FailedExecution {
 		// Grab the metadata. If it wants a reg field, inspect a little further.
 		NSDictionary *test_metadata = metadata[metadata_key];
 		if(test_metadata[@"reg"]) {
-			test_metadata = test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
+			test_metadata =
+				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
 		}
 
 		int index = 0;
