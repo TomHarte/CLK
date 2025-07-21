@@ -24,9 +24,8 @@
 #include "InstructionSets/x86/Decoder.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 #include "InstructionSets/x86/Flags.hpp"
+#include "Machines/PCCompatible/SegmentedMemory.hpp"
 #include "Numeric/RegisterSizes.hpp"
-
-#if 0
 
 namespace {
 
@@ -142,34 +141,34 @@ private:
 	const Registers &registers_;
 };
 
+//struct LinearMemory {
+//public:
+//	template <typename IntT, InstructionSet::x86::AccessType type>
+//	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+//		[[maybe_unused]] const uint32_t address,
+//		[[maybe_unused]] const uint32_t base
+//	) {
+//	}
+//
+//	template <typename IntT>
+//	void preauthorised_write(
+//		[[maybe_unused]] const uint32_t address,
+//		[[maybe_unused]] const uint32_t base,
+//		[[maybe_unused]] const IntT value
+//	) {
+//	}
+//
+//	template <typename IntT>
+//	void write_back() {
+//	}
+//};
+
 struct LinearMemory {
-public:
-	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(
-		uint32_t address,
-		const uint32_t base
-	) {
-	}
-
-	template <typename IntT>
-	void preauthorised_write(
-		uint32_t address,
-		const uint32_t base,
-		IntT value
-	) {
-	}
-
-	template <typename IntT>
-	void write_back() {
-	}
-};
-
-struct Memory {
 public:
 	using AccessType = InstructionSet::x86::AccessType;
 
 	// Constructor.
-	Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
+	LinearMemory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
 		memory.resize(1024*1024);
 	}
 
@@ -223,7 +222,9 @@ public:
 
 	// Accesses an address based on segment:offset.
 	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		InstructionSet::x86::Source segment, uint16_t offset
+	) {
 		return access<IntT, type>(segment, offset, Tag::Accessed);
 	}
 
@@ -325,7 +326,11 @@ private:
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
 	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		InstructionSet::x86::Source segment,
+		uint16_t offset,
+		Tag tag
+	) {
 		const uint32_t physical_address = address(segment, offset);
 
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
@@ -432,15 +437,17 @@ private:
 	bool should_repeat_ = false;
 };
 
+template <InstructionSet::x86::Model t_model>
 struct ExecutionSupport {
+	static constexpr auto model = t_model;
+
 	Flags flags;
 	Registers registers;
 	Segments segments;
 	LinearMemory linear_memory;
-	SegmentedMemory memory;
+	PCCompatible::SegmentedMemory<model> memory;
 	FlowController flow_controller;
 	IO io;
-	static constexpr auto model = InstructionSet::x86::Model::i8086;
 
 	ExecutionSupport():
 		memory(registers, segments),
@@ -455,7 +462,10 @@ struct ExecutionSupport {
 struct FailedExecution {
 	std::string test_name;
 	std::string reason;
-	InstructionSet::x86::Instruction<false> instruction;
+	std::variant<
+		InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>,
+		InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits32>
+	> instruction;
 };
 
 }
@@ -466,7 +476,7 @@ struct FailedExecution {
 @implementation i8088Tests {
 	std::vector<FailedExecution> execution_failures;
 	std::vector<FailedExecution> permitted_failures;
-	ExecutionSupport execution_support;
+	ExecutionSupport<InstructionSet::x86::Model::i8086> execution_support;
 }
 
 - (NSArray<NSString *> *)testFiles {
@@ -481,7 +491,10 @@ struct FailedExecution {
 	NSSet *ignoreList = nil;
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
-	files = [files filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *) {
+	files = [files
+		filteredArrayUsingPredicate:
+			[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *)
+	{
 		if(allowList.count && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
 			return NO;
 		}
@@ -509,9 +522,14 @@ struct FailedExecution {
 	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil];
 }
 
-- (NSString *)toString:(const std::pair<int, InstructionSet::x86::Instruction<false>> &)instruction offsetLength:(int)offsetLength immediateLength:(int)immediateLength {
+- (NSString *)
+	toString:(const std::pair<int, InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>> &)instruction
+	offsetLength:(int)offsetLength
+	immediateLength:(int)immediateLength
+{
 	const auto operation = to_string(instruction, InstructionSet::x86::Model::i8086, offsetLength, immediateLength);
-	return [[NSString stringWithUTF8String:operation.c_str()] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+	return [[NSString stringWithUTF8String:operation.c_str()]
+		stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
 - (std::vector<uint8_t>)bytes:(NSArray<NSNumber *> *)encoding {
@@ -658,10 +676,10 @@ struct FailedExecution {
 	// Apply initial state.
 	Flags initial_flags;
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
-		execution_support.memory.seed([ram[0] intValue], [ram[1] intValue]);
+		execution_support.linear_memory.seed([ram[0] intValue], [ram[1] intValue]);
 	}
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
-		execution_support.memory.touch([ram[0] intValue]);
+		execution_support.linear_memory.touch([ram[0] intValue]);
 	}
 	Registers initial_registers;
 	[self populate:initial_registers flags:initial_flags value:initial_state[@"regs"]];
@@ -690,7 +708,8 @@ struct FailedExecution {
 	int mask_position = 0;
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
 		const uint32_t address = [ram[0] intValue];
-		const auto value = execution_support.memory.access<uint8_t, Memory::AccessType::Read>(address);
+		const auto value =
+			execution_support.linear_memory.access<uint8_t, InstructionSet::x86::AccessType::Read>(address);
 
 		if((mask_position != 1) && value == [ram[1] intValue]) {
 			continue;
@@ -719,7 +738,9 @@ struct FailedExecution {
 	[self populate:intended_registers flags:intended_flags value:final_state[@"regs"]];
 	intended_segments.reset();
 
-	const bool registersEqual = intended_registers == execution_support.registers && intended_segments == execution_support.segments;
+	const bool registersEqual =
+		intended_registers == execution_support.registers &&
+		intended_segments == execution_support.segments;
 	const bool flagsEqual = (intended_flags.get() & flags_mask) == (execution_support.flags.get() & flags_mask);
 
 	// Exit if no issues were found.
@@ -772,7 +793,10 @@ struct FailedExecution {
 	}
 
 	// LEA from a register is undefined behaviour and throws on processors beyond the 8086.
-	if(decoded.second.operation() == Operation::LEA && InstructionSet::x86::is_register(decoded.second.source().source())) {
+	if(
+		decoded.second.operation() == Operation::LEA &&
+		InstructionSet::x86::is_register(decoded.second.source().source())
+	) {
 		failure_list = &permitted_failures;
 	}
 
@@ -893,5 +917,3 @@ struct FailedExecution {
 }
 
 @end
-
-#endif
