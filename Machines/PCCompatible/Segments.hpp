@@ -9,13 +9,13 @@
 #pragma once
 
 #include "LinearMemory.hpp"
-#include "Registers.hpp"
 
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
 #include "InstructionSets/x86/Mode.hpp"
 #include "InstructionSets/x86/Model.hpp"
+#include "InstructionSets/x86/Registers.hpp"
 
 #include <cassert>
 #include <functional>
@@ -26,7 +26,7 @@ namespace PCCompatible {
 template <InstructionSet::x86::Model model>
 class Segments {
 public:
-	Segments(const Registers<model> &registers, const LinearMemory<model> &memory) :
+	Segments(const InstructionSet::x86::Registers<model> &registers, const LinearMemory<model> &memory) :
 		registers_(registers), memory_(memory) {}
 
 	using Descriptor = InstructionSet::x86::SegmentDescriptor;
@@ -162,7 +162,7 @@ private:
 	}
 
 	Mode mode_ = Mode::Real;
-	const Registers<model> &registers_;
+	const InstructionSet::x86::Registers<model> &registers_;
 	const LinearMemory<model> &memory_;
 	Descriptor last_descriptor_;
 

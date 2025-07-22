@@ -10,9 +10,10 @@
 
 #include "LinearMemory.hpp"
 #include "ProcessorByModel.hpp"
-#include "Registers.hpp"
 #include "Segments.hpp"
 #include "SegmentedMemory.hpp"
+
+#include "InstructionSets/x86/Registers.hpp"
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -23,7 +24,7 @@ template <Analyser::Static::PCCompatible::Model model>
 class CPUControl {
 public:
 	CPUControl(
-		Registers<processor_model(model)> &registers,
+		InstructionSet::x86::Registers<processor_model(model)> &registers,
 		Segments<processor_model(model)> &segments,
 		SegmentedMemory<processor_model(model)> &segmented_memory,
 		LinearMemory<processor_model(model)> &linear_memory
@@ -59,7 +60,7 @@ public:
 	}
 
 private:
-	Registers<processor_model(model)> &registers_;
+	InstructionSet::x86::Registers<processor_model(model)> &registers_;
 	Segments<processor_model(model)> &segments_;
 	SegmentedMemory<processor_model(model)> &segmented_memory_;
 	LinearMemory<processor_model(model)> &linear_memory_;
