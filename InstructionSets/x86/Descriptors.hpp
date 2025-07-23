@@ -95,6 +95,43 @@ struct SegmentDescriptor {
 		}
 	}
 
+	void validate_as(const Source segment) const {
+		switch(segment) {
+			case Source::DS:
+			case Source::ES:
+				if(!code_or_data() || (executable() && !readable())) {
+					printf("TODO: throw for unreadable DS or ES source.\n");
+					assert(false);
+				}
+			break;
+
+			case Source::SS:
+				if(!code_or_data() || executable() || !writeable()) {
+					printf("TODO: throw for invalid SS target.\n");
+					assert(false);
+				}
+			break;
+
+			case Source::CS:
+				if(!code_or_data() || !executable()) {
+					// TODO: throw.
+					printf("TODO: throw for illegal CS destination.\n");
+					assert(false);
+				}
+
+				if(!code_or_data()) {
+					printf("TODO: handle jump to system descriptor of type %d\n", int(type()));
+					assert(false);
+				}
+			break;
+
+			default: break;
+		}
+
+		// TODO: is this descriptor privilege within reach?
+		// TODO: is this an empty descriptor*? If so: exception!
+	}
+
 	/// @returns The base of this segment descriptor.
 	uint32_t base() const {		return base_;	}
 

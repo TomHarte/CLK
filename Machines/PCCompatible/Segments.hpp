@@ -71,44 +71,10 @@ public:
 	//			assert(false);
 	//		}
 
-			// Get and validate descriptor.
-
-			switch(segment) {
-				case Source::DS:
-				case Source::ES:
-					if(!incoming.code_or_data() || (incoming.executable() && !incoming.readable())) {
-						printf("TODO: throw for unreadable DS or ES source.\n");
-						assert(false);
-					}
-				break;
-
-				case Source::SS:
-					if(!incoming.code_or_data() || incoming.executable() || !incoming.writeable()) {
-						printf("TODO: throw for invalid SS target.\n");
-						assert(false);
-					}
-				break;
-
-				case Source::CS:
-					if(!incoming.code_or_data() || !incoming.executable()) {
-						// TODO: throw.
-						printf("TODO: throw for illegal CS destination.\n");
-						assert(false);
-					}
-
-					if(!incoming.code_or_data()) {
-						printf("TODO: handle jump to system descriptor of type %d\n", int(incoming.type()));
-						assert(false);
-					}
-				break;
-
-				default: break;
-			}
-
-			// TODO: is this descriptor privilege within reach?
-			// TODO: is this an empty descriptor*? If so: exception!
-
 			// TODO: set descriptor accessed bit in memory if it's a segment.
+
+			// Get and validate descriptor.
+			last_descriptor_.validate_as(segment);
 
 			if(protected_callback) protected_callback(incoming);
 		}
