@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include "LinearMemory.hpp"
-
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
@@ -23,10 +21,10 @@
 
 namespace PCCompatible {
 
-template <InstructionSet::x86::Model model>
+template <InstructionSet::x86::Model model, typename LinearMemoryT>
 class Segments {
 public:
-	Segments(const InstructionSet::x86::Registers<model> &registers, const LinearMemory<model> &memory) :
+	Segments(const InstructionSet::x86::Registers<model> &registers, const LinearMemoryT &memory) :
 		registers_(registers), memory_(memory) {}
 
 	using Descriptor = InstructionSet::x86::SegmentDescriptor;
@@ -129,7 +127,7 @@ private:
 
 	Mode mode_ = Mode::Real;
 	const InstructionSet::x86::Registers<model> &registers_;
-	const LinearMemory<model> &memory_;
+	const LinearMemoryT &memory_;
 	Descriptor last_descriptor_;
 
 #ifndef NDEBUG

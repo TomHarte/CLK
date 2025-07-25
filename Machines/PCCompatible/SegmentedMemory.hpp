@@ -24,7 +24,7 @@ namespace PCCompatible {
 template <InstructionSet::x86::Model model> struct ProgramFetcher {
 	std::pair<const uint8_t *, size_t> next_code(
 		const InstructionSet::x86::Registers<model> &registers,
-		const Segments<model> &segments,
+		const Segments<model, LinearMemory<model>> &segments,
 		LinearMemory<model> &linear_memory
 	) const {
 		const uint16_t ip = registers.ip();
@@ -37,7 +37,7 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 	}
 
 	std::pair<const uint8_t *, size_t> start_code(
-		const Segments<model> &segments,
+		const Segments<model, LinearMemory<model>> &segments,
 		LinearMemory<model> &linear_memory
 	) const {
 		const auto &descriptor = segments.descriptors[InstructionSet::x86::Source::CS];
@@ -62,7 +62,7 @@ public:
 
 	SegmentedMemory(
 		InstructionSet::x86::Registers<model> &registers,
-		const Segments<model> &segments,
+		const Segments<model, LinearMemory<model>> &segments,
 		LinearMemory<model> &linear_memory
 	) :
 		registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
@@ -117,7 +117,7 @@ public:
 
 private:
 	InstructionSet::x86::Registers<model> &registers_;
-	const Segments<model> &segments_;
+	const Segments<model, LinearMemory<model>> &segments_;
 	LinearMemory<model> &linear_memory_;
 	ProgramFetcher<model> program_fetcher_;
 };
@@ -131,7 +131,7 @@ public:
 
 	SegmentedMemory(
 		InstructionSet::x86::Registers<model> &registers,
-		const Segments<model> &segments,
+		const Segments<model, LinearMemory<model>> &segments,
 		LinearMemory<model> &linear_memory
 	) : registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
 
@@ -210,7 +210,7 @@ public:
 
 private:
 	InstructionSet::x86::Registers<model> &registers_;
-	const Segments<model> &segments_;
+	const Segments<model, LinearMemory<model>> &segments_;
 	LinearMemory<model> &linear_memory_;
 	ProgramFetcher<model> program_fetcher_;
 	Mode mode_ = Mode::Real;

@@ -25,7 +25,7 @@ class CPUControl {
 public:
 	CPUControl(
 		InstructionSet::x86::Registers<processor_model(model)> &registers,
-		Segments<processor_model(model)> &segments,
+		Segments<processor_model(model), LinearMemory<processor_model(model)>> &segments,
 		SegmentedMemory<processor_model(model)> &segmented_memory,
 		LinearMemory<processor_model(model)> &linear_memory
 	) :
@@ -61,7 +61,7 @@ public:
 
 private:
 	InstructionSet::x86::Registers<processor_model(model)> &registers_;
-	Segments<processor_model(model)> &segments_;
+	Segments<processor_model(model), LinearMemory<processor_model(model)>> &segments_;
 	SegmentedMemory<processor_model(model)> &segmented_memory_;
 	LinearMemory<processor_model(model)> &linear_memory_;
 

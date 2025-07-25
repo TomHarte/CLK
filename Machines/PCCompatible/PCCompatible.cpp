@@ -508,7 +508,7 @@ class FlowController {
 	static constexpr auto x86_model = processor_model(model);
 
 public:
-	FlowController(InstructionSet::x86::Registers<x86_model> &registers, Segments<x86_model> &segments) :
+	FlowController(InstructionSet::x86::Registers<x86_model> &registers, Segments<x86_model, LinearMemory<x86_model>> &segments) :
 		registers_(registers), segments_(segments) {}
 
 	// Requirements for perform.
@@ -556,7 +556,7 @@ public:
 
 private:
 	InstructionSet::x86::Registers<x86_model> &registers_;
-	Segments<x86_model> &segments_;
+	Segments<x86_model, LinearMemory<x86_model>> &segments_;
 	bool should_repeat_ = false;
 	bool halted_ = false;
 };
@@ -994,7 +994,7 @@ private:
 		InstructionSet::x86::Registers<x86_model> registers;
 
 		LinearMemory<x86_model> linear_memory;
-		Segments<x86_model> segments;
+		Segments<x86_model, LinearMemory<x86_model>> segments;
 		SegmentedMemory<x86_model> memory;
 
 		FlowController<pc_model> flow_controller;

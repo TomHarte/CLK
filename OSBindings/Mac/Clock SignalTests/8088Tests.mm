@@ -25,6 +25,7 @@
 #include "InstructionSets/x86/Perform.hpp"
 #include "InstructionSets/x86/Flags.hpp"
 #include "Machines/PCCompatible/SegmentedMemory.hpp"
+#include "Machines/PCCompatible/Segments.hpp"
 #include "Numeric/RegisterSizes.hpp"
 
 namespace {
@@ -122,27 +123,13 @@ public:
 	//
 	// Preauthorisation call-ins.
 	//
-	void preauthorise_stack_write(uint32_t length) {
-		uint16_t sp = registers_.sp();
+	void preauthorise_read(uint32_t start, uint32_t length) {
 		while(length--) {
-			--sp;
-			preauthorise(InstructionSet::x86::Source::SS, sp);
-		}
-	}
-	void preauthorise_stack_read(uint32_t length) {
-		uint16_t sp = registers_.sp();
-		while(length--) {
-			preauthorise(InstructionSet::x86::Source::SS, sp);
-			++sp;
-		}
-	}
-	void preauthorise_read(InstructionSet::x86::Source segment, uint16_t start, uint32_t length) {
-		while(length--) {
-			preauthorise(segment, start);
+			preauthorise(start);
 			++start;
 		}
 	}
-	void preauthorise_read(uint32_t start, uint32_t length) {
+	void preauthorise_write(uint32_t start, uint32_t length) {
 		while(length--) {
 			preauthorise(start);
 			++start;
@@ -156,14 +143,8 @@ public:
 	// Accesses an address based on segment:offset.
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
-		InstructionSet::x86::Source segment, uint16_t offset
+		const uint32_t address, uint16_t offset
 	) {
-		return access<IntT, type>(segment, offset, Tag::Accessed);
-	}
-
-	// Accesses an address based on physical location.
-	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
 		return access<IntT, type>(address, Tag::Accessed);
 	}
 
@@ -182,35 +163,33 @@ public:
 	// Direct write.
 	//
 	template <typename IntT>
-	void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
-		if(!test_preauthorisation(address(segment, offset))) {
+	void preauthorised_write(const uint32_t address, const uint32_t base, IntT value) {
+		if(!test_preauthorisation(address)) {
 			printf("Non-preauthorised access\n");
 		}
 
 		// Bytes can be written without further ado.
 		if constexpr (std::is_same_v<IntT, uint8_t>) {
-			memory[address(segment, offset) & 0xf'ffff] = value;
+			memory[address & 0xf'ffff] = value;
 			return;
 		}
 
 		// Words that straddle the segment end must be split in two.
-		if(offset == 0xffff) {
-			memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
-			memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
+		if((address - base) == 0xffff) {
+			memory[address] = value & 0xff;
+			memory[base] = value >> 8;
 			return;
 		}
 
-		const uint32_t target = address(segment, offset) & 0xf'ffff;
-
 		// Words that straddle the end of physical RAM must also be split in two.
-		if(target == 0xf'ffff) {
+		if(address == 0xf'ffff) {
 			memory[0xf'ffff] = value & 0xff;
 			memory[0x0'0000] = value >> 8;
 			return;
 		}
 
 		// It's safe just to write then.
-		*reinterpret_cast<uint16_t *>(&memory[target]) = value;
+		*reinterpret_cast<uint16_t *>(&memory[address]) = value;
 	}
 
 private:
@@ -229,9 +208,6 @@ private:
 	void preauthorise(uint32_t address) {
 		preauthorisations.insert(address);
 	}
-	void preauthorise(InstructionSet::x86::Source segment, uint16_t address) {
-		preauthorise((segment_base(segment) + address) & 0xf'ffff);
-	}
 	bool test_preauthorisation(uint32_t address) {
 		auto authorisation = preauthorisations.find(address);
 		if(authorisation == preauthorisations.end()) {
@@ -241,31 +217,14 @@ private:
 		return true;
 	}
 
-	uint32_t segment_base(InstructionSet::x86::Source segment) {
-		using Source = InstructionSet::x86::Source;
-		switch(segment) {
-			default:			return segments_.ds_base_;
-			case Source::ES:	return segments_.es_base_;
-			case Source::CS:	return segments_.cs_base_;
-			case Source::SS:	return segments_.ss_base_;
-		}
-	}
-
-	uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
-		return (segment_base(segment) + offset) & 0xf'ffff;
-	}
-
 
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
-		InstructionSet::x86::Source segment,
-		uint16_t offset,
+		const uint32_t address,
 		Tag tag
 	) {
-		const uint32_t physical_address = address(segment, offset);
-
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
 			// to the start. So the 16-bit value will need to be a local cache.
