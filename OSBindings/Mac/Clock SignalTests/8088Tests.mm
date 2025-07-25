@@ -38,44 +38,6 @@ constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/8088/v1";
 using Flags = InstructionSet::x86::Flags;
 using Registers = InstructionSet::x86::Registers<InstructionSet::x86::Model::i8086>;
 
-class Segments {
-public:
-	Segments(const Registers &registers) : registers_(registers) {}
-
-	using Source = InstructionSet::x86::Source;
-
-	/// Posted by @c perform after any operation which *might* have affected a segment register.
-	void did_update(Source segment) {
-		switch(segment) {
-			default: break;
-			case Source::ES:	es_base_ = registers_.es() << 4;	break;
-			case Source::CS:	cs_base_ = registers_.cs() << 4;	break;
-			case Source::DS:	ds_base_ = registers_.ds() << 4;	break;
-			case Source::SS:	ss_base_ = registers_.ss() << 4;	break;
-		}
-	}
-
-	void reset() {
-		did_update(Source::ES);
-		did_update(Source::CS);
-		did_update(Source::DS);
-		did_update(Source::SS);
-	}
-
-	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
-
-	bool operator ==(const Segments &rhs) const {
-		return
-			es_base_ == rhs.es_base_ &&
-			cs_base_ == rhs.cs_base_ &&
-			ds_base_ == rhs.ds_base_ &&
-			ss_base_ == rhs.ss_base_;
-	}
-
-private:
-	const Registers &registers_;
-};
-
 struct LinearMemory {
 	enum class Tag {
 		Seeded,
@@ -141,10 +103,10 @@ public:
 	//
 	template <typename IntT>
 	void preauthorised_write(const uint32_t address, const uint32_t base, IntT value) {
-//		if(!test_preauthorisation(address)) {
-//			printf("Non-preauthorised access\n");
-//		}
-//
+		if(!test_preauthorisation(address)) {
+			printf("Non-preauthorised access\n");
+		}
+
 //		// Bytes can be written without further ado.
 //		if constexpr (std::is_same_v<IntT, uint8_t>) {
 //			memory[address & 0xf'ffff] = value;
@@ -167,7 +129,7 @@ public:
 //
 //		// It's safe just to write then.
 //		*reinterpret_cast<uint16_t *>(&memory[address]) = value;
-		memory_.preauthorise_write(address, base, value);
+		memory_.preauthorised_write(address, base, value);
 	}
 
 private:
@@ -256,9 +218,11 @@ struct IO {
 	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
 	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) { return IntT(~0); }
 };
+
+template <InstructionSet::x86::Model t_model>
 class FlowController {
 public:
-	FlowController(Registers &registers, Segments &segments) :
+	FlowController(Registers &registers, PCCompatible::Segments<t_model, LinearMemory> &segments) :
 		registers_(registers), segments_(segments) {}
 
 	// Requirements for perform.
@@ -272,7 +236,7 @@ public:
 	void jump(uint16_t segment, AddressT address) {
 		static_assert(std::is_same_v<AddressT, uint16_t>);
 		registers_.cs() = segment;
-		segments_.did_update(Segments::Source::CS);
+		segments_.did_update(InstructionSet::x86::Source::CS);
 		registers_.ip() = address;
 	}
 
@@ -293,7 +257,7 @@ public:
 
 private:
 	Registers &registers_;
-	Segments &segments_;
+	PCCompatible::Segments<t_model, LinearMemory> &segments_;
 	bool should_repeat_ = false;
 };
 
@@ -303,10 +267,10 @@ struct ExecutionSupport {
 
 	Flags flags;
 	Registers registers;
-	Segments segments;
 	LinearMemory linear_memory;
 	PCCompatible::SegmentedMemory<model> memory;
-	FlowController flow_controller;
+	PCCompatible::Segments<t_model, LinearMemory> segments;
+	FlowController<t_model> flow_controller;
 	IO io;
 
 	ExecutionSupport():
@@ -595,7 +559,7 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 		break;
 	}
 
-	Segments intended_segments(intended_registers);
+	PCCompatible::Segments<InstructionSet::x86::Model::i8086, LinearMemory> intended_segments(intended_registers, execution_support.linear_memory);
 	[self populate:intended_registers flags:intended_flags value:final_state[@"regs"]];
 	intended_segments.reset();
 
