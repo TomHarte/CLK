@@ -995,7 +995,7 @@ private:
 
 		LinearMemory<x86_model> linear_memory;
 		Segments<x86_model, LinearMemory<x86_model>> segments;
-		SegmentedMemory<x86_model> memory;
+		SegmentedMemory<x86_model, LinearMemory<x86_model>> memory;
 
 		FlowController<pc_model> flow_controller;
 		CPUControl<pc_model> cpu_control;

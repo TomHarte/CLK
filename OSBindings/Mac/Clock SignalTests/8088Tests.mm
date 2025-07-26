@@ -272,13 +272,13 @@ struct ExecutionSupport {
 	Flags flags;
 	Registers registers;
 	LinearMemory linear_memory;
-	PCCompatible::SegmentedMemory<model> memory;
+	PCCompatible::SegmentedMemory<model, LinearMemory> memory;
 	PCCompatible::Segments<t_model, LinearMemory> segments;
 	FlowController<t_model> flow_controller;
 	IO io;
 
 	ExecutionSupport():
-		memory(registers, segments, linear_memory.memory),
+		memory(registers, segments, linear_memory),
 		segments(registers, linear_memory),
 		flow_controller(registers, segments) {}
 

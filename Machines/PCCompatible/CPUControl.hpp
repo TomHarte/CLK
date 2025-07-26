@@ -26,7 +26,7 @@ public:
 	CPUControl(
 		InstructionSet::x86::Registers<processor_model(model)> &registers,
 		Segments<processor_model(model), LinearMemory<processor_model(model)>> &segments,
-		SegmentedMemory<processor_model(model)> &segmented_memory,
+		SegmentedMemory<processor_model(model), LinearMemory<processor_model(model)>> &segmented_memory,
 		LinearMemory<processor_model(model)> &linear_memory
 	) :
 		registers_(registers),
@@ -62,7 +62,7 @@ public:
 private:
 	InstructionSet::x86::Registers<processor_model(model)> &registers_;
 	Segments<processor_model(model), LinearMemory<processor_model(model)>> &segments_;
-	SegmentedMemory<processor_model(model)> &segmented_memory_;
+	SegmentedMemory<processor_model(model), LinearMemory<processor_model(model)>> &segmented_memory_;
 	LinearMemory<processor_model(model)> &linear_memory_;
 
 	Log::Logger<Log::Source::PCCompatible> log_;

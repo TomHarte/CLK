@@ -21,11 +21,11 @@
 namespace PCCompatible {
 
 // TODO: the following need to apply linear memory semantics, including potential A20 wrapping.
-template <InstructionSet::x86::Model model> struct ProgramFetcher {
+template <InstructionSet::x86::Model model, typename LinearMemoryT> struct ProgramFetcher {
 	std::pair<const uint8_t *, size_t> next_code(
 		const InstructionSet::x86::Registers<model> &registers,
-		const Segments<model, LinearMemory<model>> &segments,
-		LinearMemory<model> &linear_memory
+		const Segments<model, LinearMemoryT> &segments,
+		LinearMemoryT &linear_memory
 	) const {
 		const uint16_t ip = registers.ip();
 		const auto &descriptor = segments.descriptors[InstructionSet::x86::Source::CS];
@@ -37,8 +37,8 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 	}
 
 	std::pair<const uint8_t *, size_t> start_code(
-		const Segments<model, LinearMemory<model>> &segments,
-		LinearMemory<model> &linear_memory
+		const Segments<model, LinearMemoryT> &segments,
+		LinearMemoryT &linear_memory
 	) const {
 		const auto &descriptor = segments.descriptors[InstructionSet::x86::Source::CS];
 		const auto base = uint32_t(descriptor.base() & (linear_memory.MaxAddress - 1));
@@ -50,10 +50,10 @@ template <InstructionSet::x86::Model model> struct ProgramFetcher {
 
 };
 
-template <InstructionSet::x86::Model model> class SegmentedMemory;
+template <InstructionSet::x86::Model model, typename LinearMemoryT> class SegmentedMemory;
 
-template <>
-class SegmentedMemory<InstructionSet::x86::Model::i8086> {
+template <typename LinearMemoryT>
+class SegmentedMemory<InstructionSet::x86::Model::i8086, LinearMemoryT> {
 private:
 	static constexpr auto model = InstructionSet::x86::Model::i8086;
 
@@ -62,8 +62,8 @@ public:
 
 	SegmentedMemory(
 		InstructionSet::x86::Registers<model> &registers,
-		const Segments<model, LinearMemory<model>> &segments,
-		LinearMemory<model> &linear_memory
+		const Segments<model, LinearMemoryT> &segments,
+		LinearMemoryT &linear_memory
 	) :
 		registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
 
@@ -86,12 +86,12 @@ public:
 		const uint16_t offset
 	) {
 		const auto &descriptor = segments_.descriptors[segment];
-		return linear_memory_.access<IntT, type>(descriptor.to_linear(offset), descriptor.base());
+		return linear_memory_.template access<IntT, type>(descriptor.to_linear(offset), descriptor.base());
 	}
 
 	template <typename IntT>
 	void write_back() {
-		linear_memory_.write_back<IntT>();
+		linear_memory_.template write_back<IntT>();
 	}
 
 	template <typename IntT>
@@ -101,7 +101,7 @@ public:
 		const IntT value
 	) {
 		const auto &descriptor = segments_.descriptors[segment];
-		linear_memory_.preauthorised_write<IntT>(descriptor.to_linear(offset), descriptor.base(), value);
+		linear_memory_.template preauthorised_write<IntT>(descriptor.to_linear(offset), descriptor.base(), value);
 	}
 
 	//
@@ -117,13 +117,13 @@ public:
 
 private:
 	InstructionSet::x86::Registers<model> &registers_;
-	const Segments<model, LinearMemory<model>> &segments_;
-	LinearMemory<model> &linear_memory_;
-	ProgramFetcher<model> program_fetcher_;
+	const Segments<model, LinearMemoryT> &segments_;
+	LinearMemoryT &linear_memory_;
+	ProgramFetcher<model, LinearMemoryT> program_fetcher_;
 };
 
-template <>
-class SegmentedMemory<InstructionSet::x86::Model::i80286> {
+template <typename LinearMemoryT>
+class SegmentedMemory<InstructionSet::x86::Model::i80286, LinearMemoryT> {
 public:
 	static constexpr auto model = InstructionSet::x86::Model::i80286;
 	using Mode = InstructionSet::x86::Mode;
@@ -131,8 +131,8 @@ public:
 
 	SegmentedMemory(
 		InstructionSet::x86::Registers<model> &registers,
-		const Segments<model, LinearMemory<model>> &segments,
-		LinearMemory<model> &linear_memory
+		const Segments<model, LinearMemoryT> &segments,
+		LinearMemoryT &linear_memory
 	) : registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
 
 	//
@@ -147,7 +147,7 @@ public:
 	}
 	void preauthorise_stack_read(const uint32_t size) {
 		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
-		descriptor.authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
+		descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
 			uint16_t(registers_.sp() - size),
 			uint16_t(registers_.sp())
 		);
@@ -170,13 +170,13 @@ public:
 		const uint16_t offset
 	) {
 		const auto &descriptor = segments_.descriptors[segment];
-		descriptor.authorise<type, uint16_t>(offset, offset + sizeof(IntT));
-		return linear_memory_.access<IntT, type>(descriptor.to_linear(offset), descriptor.base());
+		descriptor.template authorise<type, uint16_t>(offset, offset + sizeof(IntT));
+		return linear_memory_.template access<IntT, type>(descriptor.to_linear(offset), descriptor.base());
 	}
 
 	template <typename IntT>
 	void write_back() {
-		linear_memory_.write_back<IntT>();
+		linear_memory_.template write_back<IntT>();
 	}
 
 	template <typename IntT>
@@ -186,8 +186,8 @@ public:
 		const IntT value
 	) {
 		const auto &descriptor = segments_.descriptors[segment];
-		descriptor.authorise<InstructionSet::x86::AccessType::Write, uint16_t>(offset, offset + sizeof(IntT));
-		linear_memory_.preauthorised_write<IntT>(descriptor.to_linear(offset), descriptor.base(), value);
+		descriptor.template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(offset, offset + sizeof(IntT));
+		linear_memory_.template preauthorised_write<IntT>(descriptor.to_linear(offset), descriptor.base(), value);
 	}
 
 	//
@@ -210,9 +210,9 @@ public:
 
 private:
 	InstructionSet::x86::Registers<model> &registers_;
-	const Segments<model, LinearMemory<model>> &segments_;
-	LinearMemory<model> &linear_memory_;
-	ProgramFetcher<model> program_fetcher_;
+	const Segments<model, LinearMemoryT> &segments_;
+	LinearMemoryT &linear_memory_;
+	ProgramFetcher<model, LinearMemoryT> program_fetcher_;
 	Mode mode_ = Mode::Real;
 };
 
