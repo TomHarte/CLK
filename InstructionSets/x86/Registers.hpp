@@ -8,20 +8,21 @@
 
 #pragma once
 
-#include "InstructionSets/x86/Descriptors.hpp"
-#include "InstructionSets/x86/MachineStatus.hpp"
-#include "InstructionSets/x86/Model.hpp"
+#include "Descriptors.hpp"
+#include "MachineStatus.hpp"
+#include "Model.hpp"
+
 #include "Numeric/RegisterSizes.hpp"
 
 #include <cassert>
 
-namespace PCCompatible {
+namespace InstructionSet::x86 {
 
-template <InstructionSet::x86::Model>
+template <Model>
 struct Registers;
 
 template <>
-struct Registers<InstructionSet::x86::Model::i8086> {
+struct Registers<Model::i8086> {
 public:
 	static constexpr bool is_32bit = false;
 
@@ -59,7 +60,7 @@ public:
 	uint16_t cs() const	{	return segments_[Source::CS];	}
 	uint16_t ds() const	{	return segments_[Source::DS];	}
 	uint16_t ss() const	{	return segments_[Source::SS];	}
-	uint16_t segment(const InstructionSet::x86::Source segment) const {
+	uint16_t segment(const Source segment) const {
 		return segments_[segment];
 	}
 
@@ -68,9 +69,21 @@ public:
 		ip_ = 0;
 	}
 
-private:
-	using Source = InstructionSet::x86::Source;
+	bool operator ==(const Registers &rhs) const {
+		return
+			ax_ == rhs.ax_ &&
+			cx_ == rhs.cx_ &&
+			dx_ == rhs.dx_ &&
+			bx_ == rhs.bx_ &&
+			sp_ == rhs.sp_ &&
+			bp_ == rhs.bp_ &&
+			si_ == rhs.si_ &&
+			di_ == rhs.di_ &&
+			ip_ == rhs.ip_ &&
+			segments_ == rhs.segments_;
+	}
 
+private:
 	CPU::RegisterPair16 ax_;
 	CPU::RegisterPair16 cx_;
 	CPU::RegisterPair16 dx_;
@@ -81,20 +94,17 @@ private:
 	uint16_t si_;
 	uint16_t di_;
 	uint16_t ip_;
-	InstructionSet::x86::SegmentRegisterSet<uint16_t> segments_;
+	SegmentRegisterSet<uint16_t> segments_;
 };
 
 template <>
-struct Registers<InstructionSet::x86::Model::i80186>: public Registers<InstructionSet::x86::Model::i8086> {};
+struct Registers<Model::i80186>: public Registers<Model::i8086> {};
 
 template <>
-struct Registers<InstructionSet::x86::Model::i80286>: public Registers<InstructionSet::x86::Model::i80186> {
+struct Registers<Model::i80286>: public Registers<Model::i80186> {
 public:
-	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTablePointer = InstructionSet::x86::DescriptorTablePointer;
-
 	void reset() {
-		Registers<InstructionSet::x86::Model::i80186>::reset();
+		Registers<Model::i80186>::reset();
 		machine_status_ = 0;
 		interrupt_ = DescriptorTablePointer{
 			.limit = 256 * 4,
@@ -105,7 +115,7 @@ public:
 	uint16_t msw() const {	return machine_status_;	}
 	void set_msw(const uint16_t msw) {
 		machine_status_ =
-			(machine_status_ & InstructionSet::x86::MachineStatus::ProtectedModeEnable) |
+			(machine_status_ & MachineStatus::ProtectedModeEnable) |
 			msw;
 	}
 

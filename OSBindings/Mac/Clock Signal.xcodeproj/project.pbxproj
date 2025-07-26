@@ -1256,7 +1256,6 @@
 		4238200F2B17CBC800964EFE /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		423820102B17CBC800964EFE /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		423820132B1A235200964EFE /* SegmentedMemory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentedMemory.hpp; sourceTree = "<group>"; };
-		423820142B1A23C200964EFE /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
 		423820152B1A23E100964EFE /* Segments.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Segments.hpp; sourceTree = "<group>"; };
 		423820422B1A90BE00964EFE /* PCBooter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCBooter.cpp; sourceTree = "<group>"; };
 		423820432B1A90BE00964EFE /* PCBooter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCBooter.hpp; sourceTree = "<group>"; };
@@ -1734,6 +1733,7 @@
 		4B7BA03823CEB8D200B98D9E /* DiskController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B7BA03E23D55E7900B98D9E /* CRC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRC.hpp; sourceTree = "<group>"; };
 		4B7BA03F23D55E7900B98D9E /* LFSR.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LFSR.hpp; sourceTree = "<group>"; };
+		4B7BD24F2E2F1C6D00FDAEC9 /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
 		4B7C681427517A59001671EC /* Sprites.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sprites.cpp; sourceTree = "<group>"; };
 		4B7C681527517A59001671EC /* Sprites.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sprites.hpp; sourceTree = "<group>"; };
 		4B7C6818275196E8001671EC /* MouseJoystick.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MouseJoystick.cpp; sourceTree = "<group>"; };
@@ -2582,7 +2582,6 @@
 				4267A9C82B0D4EC2008A59BB /* PIC.hpp */,
 				4267A9C72B0C26FA008A59BB /* PIT.hpp */,
 				4B1FBE1F2D77AAC500BAC888 /* ProcessorByModel.hpp */,
-				423820142B1A23C200964EFE /* Registers.hpp */,
 				42EB81252B21788200429AF4 /* RTC.hpp */,
 				423820132B1A235200964EFE /* SegmentedMemory.hpp */,
 				423820152B1A23E100964EFE /* Segments.hpp */,
@@ -5384,6 +5383,7 @@
 				4B8671EB2D8FABA0009E1610 /* Mode.hpp */,
 				4BE3C69527CBC540000EAD28 /* Model.hpp */,
 				42437B352ACF0AA2006DFED1 /* Perform.hpp */,
+				4B7BD24F2E2F1C6D00FDAEC9 /* Registers.hpp */,
 				4B25BC1E2DDD64AA002044CA /* TaskStateSegment.hpp */,
 				42437B372ACF2798006DFED1 /* Implementation */,
 			);

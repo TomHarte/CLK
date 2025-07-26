@@ -30,6 +30,7 @@
 #include "InstructionSets/x86/Flags.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
 #include "InstructionSets/x86/Perform.hpp"
+#include "InstructionSets/x86/Registers.hpp"
 
 #include "Components/8255/i8255.hpp"
 
@@ -507,7 +508,7 @@ class FlowController {
 	static constexpr auto x86_model = processor_model(model);
 
 public:
-	FlowController(Registers<x86_model> &registers, Segments<x86_model> &segments) :
+	FlowController(InstructionSet::x86::Registers<x86_model> &registers, Segments<x86_model, LinearMemory<x86_model>> &segments) :
 		registers_(registers), segments_(segments) {}
 
 	// Requirements for perform.
@@ -554,8 +555,8 @@ public:
 	}
 
 private:
-	Registers<x86_model> &registers_;
-	Segments<x86_model> &segments_;
+	InstructionSet::x86::Registers<x86_model> &registers_;
+	Segments<x86_model, LinearMemory<x86_model>> &segments_;
 	bool should_repeat_ = false;
 	bool halted_ = false;
 };
@@ -990,11 +991,11 @@ private:
 		}
 
 		InstructionSet::x86::Flags flags;
-		Registers<x86_model> registers;
+		InstructionSet::x86::Registers<x86_model> registers;
 
 		LinearMemory<x86_model> linear_memory;
-		Segments<x86_model> segments;
-		SegmentedMemory<x86_model> memory;
+		Segments<x86_model, LinearMemory<x86_model>> segments;
+		SegmentedMemory<x86_model, LinearMemory<x86_model>> memory;
 
 		FlowController<pc_model> flow_controller;
 		CPUControl<pc_model> cpu_control;

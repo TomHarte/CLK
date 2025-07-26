@@ -9,6 +9,7 @@
 #pragma once
 
 #include "AccessType.hpp"
+#include "Descriptors.hpp"
 #include "Flags.hpp"
 #include "Instruction.hpp"
 #include "Mode.hpp"
