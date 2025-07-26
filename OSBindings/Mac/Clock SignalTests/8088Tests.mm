@@ -132,6 +132,11 @@ public:
 		memory_.preauthorised_write(address, base, value);
 	}
 
+	template <typename IntT>
+	IntT read(const uint32_t address) {
+		return memory_.read<IntT>(address);
+	}
+
 private:
 
 	std::unordered_set<uint32_t> preauthorisations;
