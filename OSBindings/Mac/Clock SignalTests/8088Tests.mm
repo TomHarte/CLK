@@ -44,9 +44,8 @@ struct LinearMemory {
 		AccessExpected,
 		Accessed,
 	};
-
-	PCCompatible::LinearMemory<InstructionSet::x86::Model::i8086> memory_;
 public:
+	PCCompatible::LinearMemory<InstructionSet::x86::Model::i8086> memory;
 	using AccessType = InstructionSet::x86::AccessType;
 
 	// Initialisation.
@@ -55,7 +54,7 @@ public:
 	}
 
 	void seed(uint32_t address, uint8_t value) {
-		memory_.access<uint8_t, AccessType::Write>(address, value);
+		memory.access<uint8_t, AccessType::Write>(address, value);
 		tags[address] = Tag::Seeded;
 	}
 
@@ -71,14 +70,14 @@ public:
 			preauthorise(start);
 			++start;
 		}
-		memory_.preauthorise_read(start, length);
+		memory.preauthorise_read(start, length);
 	}
 	void preauthorise_write(uint32_t start, uint32_t length) {
 		while(length--) {
 			preauthorise(start);
 			++start;
 		}
-		memory_.preauthorise_write(start, length);
+		memory.preauthorise_write(start, length);
 	}
 
 	//
@@ -90,12 +89,12 @@ public:
 		uint32_t address,
 		const uint32_t base
 	) {
-		return memory_.access<IntT, type>(address, base);
+		return memory.access<IntT, type>(address, base);
 	}
 
 	template <typename IntT>
 	void write_back() {
-		memory_.write_back<IntT>();
+		memory.write_back<IntT>();
 	}
 
 	//
@@ -129,12 +128,12 @@ public:
 //
 //		// It's safe just to write then.
 //		*reinterpret_cast<uint16_t *>(&memory[address]) = value;
-		memory_.preauthorised_write(address, base, value);
+		memory.preauthorised_write(address, base, value);
 	}
 
 	template <typename IntT>
 	IntT read(const uint32_t address) {
-		return memory_.read<IntT>(address);
+		return memory.read<IntT>(address);
 	}
 
 private:
@@ -279,12 +278,12 @@ struct ExecutionSupport {
 	IO io;
 
 	ExecutionSupport():
-		memory(registers, segments),
-		segments(registers),
+		memory(registers, segments, linear_memory.memory),
+		segments(registers, linear_memory),
 		flow_controller(registers, segments) {}
 
 	void clear() {
-		memory.clear();
+		linear_memory.clear();
 	}
 };
 

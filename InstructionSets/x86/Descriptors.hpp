@@ -27,6 +27,7 @@ struct DescriptorTablePointer {
 
 struct DescriptorBounds {
 	uint32_t begin, end;
+	auto operator<=>(const DescriptorBounds &) const = default;
 };
 
 struct SegmentDescriptor {
@@ -172,6 +173,15 @@ struct SegmentDescriptor {
 		ReservedD = 13, ReservedE = 14, ReservedF = 15,
 	};
 	Type type() const 				{	return Type(type_ & 0x0f);	}
+
+	bool operator ==(const SegmentDescriptor &rhs) const {
+		return
+			base_ == rhs.base_ &&
+			offset_ == rhs.offset_ &&
+			bounds_ == rhs.bounds_ &&
+			type_ == rhs.type_ &&
+			segment_ == rhs.segment_;
+	}
 
 private:
 	uint32_t base_;

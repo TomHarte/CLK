@@ -23,7 +23,6 @@ template <typename Full, typename Half> union alignas(Full) alignas(Half) Regist
 	RegisterPair() = default;
 
 	Full full;
-
 	bool operator ==(const RegisterPair &rhs) const {
 		return full == rhs.full;
 	}
