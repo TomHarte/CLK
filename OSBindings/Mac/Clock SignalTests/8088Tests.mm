@@ -102,9 +102,9 @@ public:
 	//
 	template <typename IntT>
 	void preauthorised_write(const uint32_t address, const uint32_t base, IntT value) {
-		if(!test_preauthorisation(address)) {
-			printf("Non-preauthorised access\n");
-		}
+//		if(!test_preauthorisation(address)) {
+//			printf("Non-preauthorised access\n");
+//		}
 
 //		// Bytes can be written without further ado.
 //		if constexpr (std::is_same_v<IntT, uint8_t>) {
@@ -237,10 +237,12 @@ public:
 	}
 
 	template <typename AddressT>
-	void jump(uint16_t segment, AddressT address) {
+	void jump(const uint16_t segment, const AddressT address) {
 		static_assert(std::is_same_v<AddressT, uint16_t>);
+		static constexpr auto cs = InstructionSet::x86::Source::CS;
+		segments_.preauthorise(cs, segment);
 		registers_.cs() = segment;
-		segments_.did_update(InstructionSet::x86::Source::CS);
+		segments_.did_update(cs);
 		registers_.ip() = address;
 	}
 
