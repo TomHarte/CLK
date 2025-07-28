@@ -24,9 +24,10 @@
 #include "InstructionSets/x86/Decoder.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 #include "InstructionSets/x86/Flags.hpp"
+#include "Machines/PCCompatible/LinearMemory.hpp"
+#include "Machines/PCCompatible/SegmentedMemory.hpp"
+#include "Machines/PCCompatible/Segments.hpp"
 #include "Numeric/RegisterSizes.hpp"
-
-#if 0
 
 namespace {
 
@@ -35,143 +36,17 @@ namespace {
 constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/8088/v1";
 
 using Flags = InstructionSet::x86::Flags;
-struct Registers {
-public:
-//	static constexpr bool is_32bit = false;
-
-	uint8_t &al()	{	return ax_.halves.low;	}
-	uint8_t &ah()	{	return ax_.halves.high;	}
-	uint16_t &ax()	{	return ax_.full;		}
-
-	CPU::RegisterPair16 &axp()	{	return ax_;	}
-
-	uint8_t &cl()	{	return cx_.halves.low;	}
-	uint8_t &ch()	{	return cx_.halves.high;	}
-	uint16_t &cx()	{	return cx_.full;		}
-
-	uint8_t &dl()	{	return dx_.halves.low;	}
-	uint8_t &dh()	{	return dx_.halves.high;	}
-	uint16_t &dx()	{	return dx_.full;		}
-
-	uint8_t &bl()	{	return bx_.halves.low;	}
-	uint8_t &bh()	{	return bx_.halves.high;	}
-	uint16_t &bx()	{	return bx_.full;		}
-
-	uint16_t &sp()	{	return sp_;				}
-	uint16_t &bp()	{	return bp_;				}
-	uint16_t &si()	{	return si_;				}
-	uint16_t &di()	{	return di_;				}
-
-	uint16_t &ip()	{	return ip_;				}
-
-	uint16_t &es()	{	return es_;				}
-	uint16_t &cs()	{	return cs_;				}
-	uint16_t &ds()	{	return ds_;				}
-	uint16_t &ss()	{	return ss_;				}
-
-	const uint16_t es() const	{	return es_;				}
-	const uint16_t cs() const	{	return cs_;				}
-	const uint16_t ds() const	{	return ds_;				}
-	const uint16_t ss() const	{	return ss_;				}
-
-	bool operator ==(const Registers &rhs) const {
-		return
-			ax_.full == rhs.ax_.full &&
-			cx_.full == rhs.cx_.full &&
-			dx_.full == rhs.dx_.full &&
-			bx_.full == rhs.bx_.full &&
-			sp_ == rhs.sp_ &&
-			bp_ == rhs.bp_ &&
-			si_ == rhs.si_ &&
-			di_ == rhs.di_ &&
-			es_ == rhs.es_ &&
-			cs_ == rhs.cs_ &&
-			ds_ == rhs.ds_ &&
-			si_ == rhs.si_ &&
-			ip_ == rhs.ip_;
-	}
-
-private:
-	CPU::RegisterPair16 ax_;
-	CPU::RegisterPair16 cx_;
-	CPU::RegisterPair16 dx_;
-	CPU::RegisterPair16 bx_;
-
-	uint16_t sp_;
-	uint16_t bp_;
-	uint16_t si_;
-	uint16_t di_;
-	uint16_t es_, cs_, ds_, ss_;
-	uint16_t ip_;
-};
-class Segments {
-public:
-	Segments(const Registers &registers) : registers_(registers) {}
-
-	using Source = InstructionSet::x86::Source;
-
-	/// Posted by @c perform after any operation which *might* have affected a segment register.
-	void did_update(Source segment) {
-		switch(segment) {
-			default: break;
-			case Source::ES:	es_base_ = registers_.es() << 4;	break;
-			case Source::CS:	cs_base_ = registers_.cs() << 4;	break;
-			case Source::DS:	ds_base_ = registers_.ds() << 4;	break;
-			case Source::SS:	ss_base_ = registers_.ss() << 4;	break;
-		}
-	}
-
-	void reset() {
-		did_update(Source::ES);
-		did_update(Source::CS);
-		did_update(Source::DS);
-		did_update(Source::SS);
-	}
-
-	uint32_t es_base_, cs_base_, ds_base_, ss_base_;
-
-	bool operator ==(const Segments &rhs) const {
-		return
-			es_base_ == rhs.es_base_ &&
-			cs_base_ == rhs.cs_base_ &&
-			ds_base_ == rhs.ds_base_ &&
-			ss_base_ == rhs.ss_base_;
-	}
-
-private:
-	const Registers &registers_;
-};
+using Registers = InstructionSet::x86::Registers<InstructionSet::x86::Model::i8086>;
 
 struct LinearMemory {
+	enum class Tag {
+		Seeded,
+		AccessExpected,
+		Accessed,
+	};
 public:
-	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(
-		uint32_t address,
-		const uint32_t base
-	) {
-	}
-
-	template <typename IntT>
-	void preauthorised_write(
-		uint32_t address,
-		const uint32_t base,
-		IntT value
-	) {
-	}
-
-	template <typename IntT>
-	void write_back() {
-	}
-};
-
-struct Memory {
-public:
+	PCCompatible::LinearMemory<InstructionSet::x86::Model::i8086> memory;
 	using AccessType = InstructionSet::x86::AccessType;
-
-	// Constructor.
-	Memory(Registers &registers, const Segments &segments) : registers_(registers), segments_(segments) {
-		memory.resize(1024*1024);
-	}
 
 	// Initialisation.
 	void clear() {
@@ -179,7 +54,7 @@ public:
 	}
 
 	void seed(uint32_t address, uint8_t value) {
-		memory[address] = value;
+		memory.access<uint8_t, AccessType::Write>(address, value);
 		tags[address] = Tag::Seeded;
 	}
 
@@ -190,116 +65,87 @@ public:
 	//
 	// Preauthorisation call-ins.
 	//
-	void preauthorise_stack_write(uint32_t length) {
-		uint16_t sp = registers_.sp();
-		while(length--) {
-			--sp;
-			preauthorise(InstructionSet::x86::Source::SS, sp);
-		}
-	}
-	void preauthorise_stack_read(uint32_t length) {
-		uint16_t sp = registers_.sp();
-		while(length--) {
-			preauthorise(InstructionSet::x86::Source::SS, sp);
-			++sp;
-		}
-	}
-	void preauthorise_read(InstructionSet::x86::Source segment, uint16_t start, uint32_t length) {
-		while(length--) {
-			preauthorise(segment, start);
-			++start;
-		}
-	}
 	void preauthorise_read(uint32_t start, uint32_t length) {
 		while(length--) {
 			preauthorise(start);
 			++start;
 		}
+		memory.preauthorise_read(start, length);
+	}
+	void preauthorise_write(uint32_t start, uint32_t length) {
+		while(length--) {
+			preauthorise(start);
+			++start;
+		}
+		memory.preauthorise_write(start, length);
 	}
 
 	//
 	// Access call-ins.
 	//
 
-	// Accesses an address based on segment:offset.
 	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset) {
-		return access<IntT, type>(segment, offset, Tag::Accessed);
-	}
-
-	// Accesses an address based on physical location.
-	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address) {
-		return access<IntT, type>(address, Tag::Accessed);
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		uint32_t address,
+		const uint32_t base
+	) {
+		return memory.access<IntT, type>(address, base);
 	}
 
 	template <typename IntT>
 	void write_back() {
-		if constexpr (std::is_same_v<IntT, uint16_t>) {
-			if(write_back_address_[0] != NoWriteBack) {
-				memory[write_back_address_[0]] = write_back_value_ & 0xff;
-				memory[write_back_address_[1]] = write_back_value_ >> 8;
-				write_back_address_[0]  = 0;
-			}
-		}
+		memory.write_back<IntT>();
 	}
 
 	//
 	// Direct write.
 	//
 	template <typename IntT>
-	void preauthorised_write(InstructionSet::x86::Source segment, uint16_t offset, IntT value) {
-		if(!test_preauthorisation(address(segment, offset))) {
-			printf("Non-preauthorised access\n");
-		}
+	void preauthorised_write(const uint32_t address, const uint32_t base, IntT value) {
+//		if(!test_preauthorisation(address)) {
+//			printf("Non-preauthorised access\n");
+//		}
 
-		// Bytes can be written without further ado.
-		if constexpr (std::is_same_v<IntT, uint8_t>) {
-			memory[address(segment, offset) & 0xf'ffff] = value;
-			return;
-		}
+//		// Bytes can be written without further ado.
+//		if constexpr (std::is_same_v<IntT, uint8_t>) {
+//			memory[address & 0xf'ffff] = value;
+//			return;
+//		}
+//
+//		// Words that straddle the segment end must be split in two.
+//		if((address - base) == 0xffff) {
+//			memory[address] = value & 0xff;
+//			memory[base] = value >> 8;
+//			return;
+//		}
+//
+//		// Words that straddle the end of physical RAM must also be split in two.
+//		if(address == 0xf'ffff) {
+//			memory[0xf'ffff] = value & 0xff;
+//			memory[0x0'0000] = value >> 8;
+//			return;
+//		}
+//
+//		// It's safe just to write then.
+//		*reinterpret_cast<uint16_t *>(&memory[address]) = value;
+		memory.preauthorised_write(address, base, value);
+	}
 
-		// Words that straddle the segment end must be split in two.
-		if(offset == 0xffff) {
-			memory[address(segment, offset) & 0xf'ffff] = value & 0xff;
-			memory[address(segment, 0x0000) & 0xf'ffff] = value >> 8;
-			return;
-		}
-
-		const uint32_t target = address(segment, offset) & 0xf'ffff;
-
-		// Words that straddle the end of physical RAM must also be split in two.
-		if(target == 0xf'ffff) {
-			memory[0xf'ffff] = value & 0xff;
-			memory[0x0'0000] = value >> 8;
-			return;
-		}
-
-		// It's safe just to write then.
-		*reinterpret_cast<uint16_t *>(&memory[target]) = value;
+	template <typename IntT>
+	IntT read(const uint32_t address) {
+		return memory.read<IntT>(address);
 	}
 
 private:
-	enum class Tag {
-		Seeded,
-		AccessExpected,
-		Accessed,
-	};
 
 	std::unordered_set<uint32_t> preauthorisations;
 	std::unordered_map<uint32_t, Tag> tags;
-	std::vector<uint8_t> memory;
-	Registers &registers_;
-	const Segments &segments_;
 
-	void preauthorise(uint32_t address) {
+	void preauthorise(const uint32_t address) {
 		preauthorisations.insert(address);
 	}
-	void preauthorise(InstructionSet::x86::Source segment, uint16_t address) {
-		preauthorise((segment_base(segment) + address) & 0xf'ffff);
-	}
-	bool test_preauthorisation(uint32_t address) {
-		auto authorisation = preauthorisations.find(address);
+	bool test_preauthorisation(const uint32_t address) {
+		const auto authorisation = preauthorisations.find(address);
 		if(authorisation == preauthorisations.end()) {
 			return false;
 		}
@@ -307,93 +153,80 @@ private:
 		return true;
 	}
 
-	uint32_t segment_base(InstructionSet::x86::Source segment) {
-		using Source = InstructionSet::x86::Source;
-		switch(segment) {
-			default:			return segments_.ds_base_;
-			case Source::ES:	return segments_.es_base_;
-			case Source::CS:	return segments_.cs_base_;
-			case Source::SS:	return segments_.ss_base_;
-		}
-	}
-
-	uint32_t address(InstructionSet::x86::Source segment, uint16_t offset) {
-		return (segment_base(segment) + offset) & 0xf'ffff;
-	}
-
 
 	// Entry point used by the flow controller so that it can mark up locations at which the flags were written,
 	// so that defined-flag-only masks can be applied while verifying RAM contents.
-	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(InstructionSet::x86::Source segment, uint16_t offset, Tag tag) {
-		const uint32_t physical_address = address(segment, offset);
-
-		if constexpr (std::is_same_v<IntT, uint16_t>) {
-			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
-			// to the start. So the 16-bit value will need to be a local cache.
-			if(offset == 0xffff) {
-				return split_word<type>(physical_address, address(segment, 0), tag);
-			}
-		}
-
-		return access<IntT, type>(physical_address, tag);
-	}
+//	template <typename IntT, AccessType type>
+//	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+//		const uint32_t address,
+//		Tag tag
+//	) {
+//		if constexpr (std::is_same_v<IntT, uint16_t>) {
+//			// If this is a 16-bit access that runs past the end of the segment, it'll wrap back
+//			// to the start. So the 16-bit value will need to be a local cache.
+//			if(offset == 0xffff) {
+//				return split_word<type>(physical_address, address(segment, 0), tag);
+//			}
+//		}
+//
+//		return access<IntT, type>(physical_address, tag);
+//	}
 
 	// An additional entry point for the flow controller; on the original 8086 interrupt vectors aren't relative
 	// to a segment, they're just at an absolute location.
-	template <typename IntT, AccessType type>
-	typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
-		if constexpr (type == AccessType::PreauthorisedRead) {
-			if(!test_preauthorisation(address)) {
-				printf("Non preauthorised access\n");
-			}
-		}
+//	template <typename IntT, AccessType type>
+//	typename InstructionSet::x86::Accessor<IntT, type>::type access(uint32_t address, Tag tag) {
+//		if constexpr (type == AccessType::PreauthorisedRead) {
+//			if(!test_preauthorisation(address)) {
+//				printf("Non preauthorised access\n");
+//			}
+//		}
+//
+//		for(size_t c = 0; c < sizeof(IntT); c++) {
+//			tags[(address + c) & 0xf'ffff] = tag;
+//		}
+//
+//		// Dispense with the single-byte case trivially.
+//		if constexpr (std::is_same_v<IntT, uint8_t>) {
+//			return memory[address];
+//		} else if(address != 0xf'ffff) {
+//			return *reinterpret_cast<IntT *>(&memory[address]);
+//		} else {
+//			return split_word<type>(address, 0, tag);
+//		}
+//	}
 
-		for(size_t c = 0; c < sizeof(IntT); c++) {
-			tags[(address + c) & 0xf'ffff] = tag;
-		}
+//	template <AccessType type>
+//	typename InstructionSet::x86::Accessor<uint16_t, type>::type
+//	split_word(uint32_t low_address, uint32_t high_address, Tag tag) {
+//		if constexpr (is_writeable(type)) {
+//			write_back_address_[0] = low_address;
+//			write_back_address_[1] = high_address;
+//			tags[low_address] = tag;
+//			tags[high_address] = tag;
+//
+//			// Prepopulate only if this is a modify.
+//			if constexpr (type == AccessType::ReadModifyWrite) {
+//				write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
+//			}
+//
+//			return write_back_value_;
+//		} else {
+//			return memory[low_address] | (memory[high_address] << 8);
+//		}
+//	}
 
-		// Dispense with the single-byte case trivially.
-		if constexpr (std::is_same_v<IntT, uint8_t>) {
-			return memory[address];
-		} else if(address != 0xf'ffff) {
-			return *reinterpret_cast<IntT *>(&memory[address]);
-		} else {
-			return split_word<type>(address, 0, tag);
-		}
-	}
-
-	template <AccessType type>
-	typename InstructionSet::x86::Accessor<uint16_t, type>::type
-	split_word(uint32_t low_address, uint32_t high_address, Tag tag) {
-		if constexpr (is_writeable(type)) {
-			write_back_address_[0] = low_address;
-			write_back_address_[1] = high_address;
-			tags[low_address] = tag;
-			tags[high_address] = tag;
-
-			// Prepopulate only if this is a modify.
-			if constexpr (type == AccessType::ReadModifyWrite) {
-				write_back_value_ = memory[write_back_address_[0]] | (memory[write_back_address_[1]] << 8);
-			}
-
-			return write_back_value_;
-		} else {
-			return memory[low_address] | (memory[high_address] << 8);
-		}
-	}
-
-	static constexpr uint32_t NoWriteBack = 0;	// A low byte address of 0 can't require write-back.
-	uint32_t write_back_address_[2] = {NoWriteBack, NoWriteBack};
-	uint16_t write_back_value_;
 };
+
 struct IO {
 	template <typename IntT> void out([[maybe_unused]] uint16_t port, [[maybe_unused]] IntT value) {}
 	template <typename IntT> IntT in([[maybe_unused]] uint16_t port) { return IntT(~0); }
 };
+
+template <InstructionSet::x86::Model t_model>
 class FlowController {
 public:
-	FlowController(Registers &registers, Segments &segments) :
+	FlowController(Registers &registers, PCCompatible::Segments<t_model, LinearMemory> &segments) :
 		registers_(registers), segments_(segments) {}
 
 	// Requirements for perform.
@@ -404,10 +237,12 @@ public:
 	}
 
 	template <typename AddressT>
-	void jump(uint16_t segment, AddressT address) {
+	void jump(const uint16_t segment, const AddressT address) {
 		static_assert(std::is_same_v<AddressT, uint16_t>);
+		static constexpr auto cs = InstructionSet::x86::Source::CS;
+		segments_.preauthorise(cs, segment);
 		registers_.cs() = segment;
-		segments_.did_update(Segments::Source::CS);
+		segments_.did_update(cs);
 		registers_.ip() = address;
 	}
 
@@ -428,34 +263,39 @@ public:
 
 private:
 	Registers &registers_;
-	Segments &segments_;
+	PCCompatible::Segments<t_model, LinearMemory> &segments_;
 	bool should_repeat_ = false;
 };
 
+template <InstructionSet::x86::Model t_model>
 struct ExecutionSupport {
+	static constexpr auto model = t_model;
+
 	Flags flags;
 	Registers registers;
-	Segments segments;
 	LinearMemory linear_memory;
-	SegmentedMemory memory;
-	FlowController flow_controller;
+	PCCompatible::SegmentedMemory<model, LinearMemory> memory;
+	PCCompatible::Segments<t_model, LinearMemory> segments;
+	FlowController<t_model> flow_controller;
 	IO io;
-	static constexpr auto model = InstructionSet::x86::Model::i8086;
 
 	ExecutionSupport():
-		memory(registers, segments),
-		segments(registers),
+		memory(registers, segments, linear_memory),
+		segments(registers, linear_memory),
 		flow_controller(registers, segments) {}
 
 	void clear() {
-		memory.clear();
+		linear_memory.clear();
 	}
 };
 
 struct FailedExecution {
 	std::string test_name;
 	std::string reason;
-	InstructionSet::x86::Instruction<false> instruction;
+	std::variant<
+		InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>,
+		InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits32>
+	> instruction;
 };
 
 }
@@ -466,7 +306,7 @@ struct FailedExecution {
 @implementation i8088Tests {
 	std::vector<FailedExecution> execution_failures;
 	std::vector<FailedExecution> permitted_failures;
-	ExecutionSupport execution_support;
+	ExecutionSupport<InstructionSet::x86::Model::i8086> execution_support;
 }
 
 - (NSArray<NSString *> *)testFiles {
@@ -481,7 +321,10 @@ struct FailedExecution {
 	NSSet *ignoreList = nil;
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
-	files = [files filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *) {
+	files = [files
+		filteredArrayUsingPredicate:
+			[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *)
+	{
 		if(allowList.count && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
 			return NO;
 		}
@@ -509,9 +352,15 @@ struct FailedExecution {
 	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil];
 }
 
-- (NSString *)toString:(const std::pair<int, InstructionSet::x86::Instruction<false>> &)instruction offsetLength:(int)offsetLength immediateLength:(int)immediateLength {
+using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
+- (NSString *)
+	toString:(const std::pair<int, Instruction> &)instruction
+	offsetLength:(int)offsetLength
+	immediateLength:(int)immediateLength
+{
 	const auto operation = to_string(instruction, InstructionSet::x86::Model::i8086, offsetLength, immediateLength);
-	return [[NSString stringWithUTF8String:operation.c_str()] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+	return [[NSString stringWithUTF8String:operation.c_str()]
+		stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
 - (std::vector<uint8_t>)bytes:(NSArray<NSNumber *> *)encoding {
@@ -658,10 +507,10 @@ struct FailedExecution {
 	// Apply initial state.
 	Flags initial_flags;
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
-		execution_support.memory.seed([ram[0] intValue], [ram[1] intValue]);
+		execution_support.linear_memory.seed([ram[0] intValue], [ram[1] intValue]);
 	}
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
-		execution_support.memory.touch([ram[0] intValue]);
+		execution_support.linear_memory.touch([ram[0] intValue]);
 	}
 	Registers initial_registers;
 	[self populate:initial_registers flags:initial_flags value:initial_state[@"regs"]];
@@ -690,7 +539,8 @@ struct FailedExecution {
 	int mask_position = 0;
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
 		const uint32_t address = [ram[0] intValue];
-		const auto value = execution_support.memory.access<uint8_t, Memory::AccessType::Read>(address);
+		const auto value =
+			execution_support.linear_memory.access<uint8_t, InstructionSet::x86::AccessType::Read>(address, address);
 
 		if((mask_position != 1) && value == [ram[1] intValue]) {
 			continue;
@@ -715,11 +565,13 @@ struct FailedExecution {
 		break;
 	}
 
-	Segments intended_segments(intended_registers);
+	PCCompatible::Segments<InstructionSet::x86::Model::i8086, LinearMemory> intended_segments(intended_registers, execution_support.linear_memory);
 	[self populate:intended_registers flags:intended_flags value:final_state[@"regs"]];
 	intended_segments.reset();
 
-	const bool registersEqual = intended_registers == execution_support.registers && intended_segments == execution_support.segments;
+	const bool registersEqual =
+		intended_registers == execution_support.registers &&
+		intended_segments == execution_support.segments;
 	const bool flagsEqual = (intended_flags.get() & flags_mask) == (execution_support.flags.get() & flags_mask);
 
 	// Exit if no issues were found.
@@ -772,7 +624,10 @@ struct FailedExecution {
 	}
 
 	// LEA from a register is undefined behaviour and throws on processors beyond the 8086.
-	if(decoded.second.operation() == Operation::LEA && InstructionSet::x86::is_register(decoded.second.source().source())) {
+	if(
+		decoded.second.operation() == Operation::LEA &&
+		InstructionSet::x86::is_register(decoded.second.source().source())
+	) {
 		failure_list = &permitted_failures;
 	}
 
@@ -865,7 +720,8 @@ struct FailedExecution {
 		// Grab the metadata. If it wants a reg field, inspect a little further.
 		NSDictionary *test_metadata = metadata[metadata_key];
 		if(test_metadata[@"reg"]) {
-			test_metadata = test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
+			test_metadata =
+				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
 		}
 
 		int index = 0;
@@ -893,5 +749,3 @@ struct FailedExecution {
 }
 
 @end
-
-#endif

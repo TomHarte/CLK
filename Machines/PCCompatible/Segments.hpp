@@ -8,14 +8,12 @@
 
 #pragma once
 
-#include "LinearMemory.hpp"
-#include "Registers.hpp"
-
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
 #include "InstructionSets/x86/Instruction.hpp"
 #include "InstructionSets/x86/Mode.hpp"
 #include "InstructionSets/x86/Model.hpp"
+#include "InstructionSets/x86/Registers.hpp"
 
 #include <cassert>
 #include <functional>
@@ -23,10 +21,10 @@
 
 namespace PCCompatible {
 
-template <InstructionSet::x86::Model model>
+template <InstructionSet::x86::Model model, typename LinearMemoryT>
 class Segments {
 public:
-	Segments(const Registers<model> &registers, const LinearMemory<model> &memory) :
+	Segments(const InstructionSet::x86::Registers<model> &registers, const LinearMemoryT &memory) :
 		registers_(registers), memory_(memory) {}
 
 	using Descriptor = InstructionSet::x86::SegmentDescriptor;
@@ -71,44 +69,10 @@ public:
 	//			assert(false);
 	//		}
 
-			// Get and validate descriptor.
-
-			switch(segment) {
-				case Source::DS:
-				case Source::ES:
-					if(!incoming.code_or_data() || (incoming.executable() && !incoming.readable())) {
-						printf("TODO: throw for unreadable DS or ES source.\n");
-						assert(false);
-					}
-				break;
-
-				case Source::SS:
-					if(!incoming.code_or_data() || incoming.executable() || !incoming.writeable()) {
-						printf("TODO: throw for invalid SS target.\n");
-						assert(false);
-					}
-				break;
-
-				case Source::CS:
-					if(!incoming.code_or_data() || !incoming.executable()) {
-						// TODO: throw.
-						printf("TODO: throw for illegal CS destination.\n");
-						assert(false);
-					}
-
-					if(!incoming.code_or_data()) {
-						printf("TODO: handle jump to system descriptor of type %d\n", int(incoming.type()));
-						assert(false);
-					}
-				break;
-
-				default: break;
-			}
-
-			// TODO: is this descriptor privilege within reach?
-			// TODO: is this an empty descriptor*? If so: exception!
-
 			// TODO: set descriptor accessed bit in memory if it's a segment.
+
+			// Get and validate descriptor.
+			last_descriptor_.validate_as(segment);
 
 			if(protected_callback) protected_callback(incoming);
 		}
@@ -162,8 +126,8 @@ private:
 	}
 
 	Mode mode_ = Mode::Real;
-	const Registers<model> &registers_;
-	const LinearMemory<model> &memory_;
+	const InstructionSet::x86::Registers<model> &registers_;
+	const LinearMemoryT &memory_;
 	Descriptor last_descriptor_;
 
 #ifndef NDEBUG

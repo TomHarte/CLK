@@ -27,6 +27,7 @@ struct DescriptorTablePointer {
 
 struct DescriptorBounds {
 	uint32_t begin, end;
+	auto operator<=>(const DescriptorBounds &) const = default;
 };
 
 struct SegmentDescriptor {
@@ -95,6 +96,43 @@ struct SegmentDescriptor {
 		}
 	}
 
+	void validate_as(const Source segment) const {
+		switch(segment) {
+			case Source::DS:
+			case Source::ES:
+				if(!code_or_data() || (executable() && !readable())) {
+					printf("TODO: throw for unreadable DS or ES source.\n");
+					assert(false);
+				}
+			break;
+
+			case Source::SS:
+				if(!code_or_data() || executable() || !writeable()) {
+					printf("TODO: throw for invalid SS target.\n");
+					assert(false);
+				}
+			break;
+
+			case Source::CS:
+				if(!code_or_data() || !executable()) {
+					// TODO: throw.
+					printf("TODO: throw for illegal CS destination.\n");
+					assert(false);
+				}
+
+				if(!code_or_data()) {
+					printf("TODO: handle jump to system descriptor of type %d\n", int(type()));
+					assert(false);
+				}
+			break;
+
+			default: break;
+		}
+
+		// TODO: is this descriptor privilege within reach?
+		// TODO: is this an empty descriptor*? If so: exception!
+	}
+
 	/// @returns The base of this segment descriptor.
 	uint32_t base() const {		return base_;	}
 
@@ -135,6 +173,15 @@ struct SegmentDescriptor {
 		ReservedD = 13, ReservedE = 14, ReservedF = 15,
 	};
 	Type type() const 				{	return Type(type_ & 0x0f);	}
+
+	bool operator ==(const SegmentDescriptor &rhs) const {
+		return
+			base_ == rhs.base_ &&
+			offset_ == rhs.offset_ &&
+			bounds_ == rhs.bounds_ &&
+			type_ == rhs.type_ &&
+			segment_ == rhs.segment_;
+	}
 
 private:
 	uint32_t base_;
