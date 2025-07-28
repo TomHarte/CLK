@@ -565,8 +565,12 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 		break;
 	}
 
-	PCCompatible::Segments<InstructionSet::x86::Model::i8086, LinearMemory> intended_segments(intended_registers, execution_support.linear_memory);
-	[self populate:intended_registers flags:intended_flags value:final_state[@"regs"]];
+	PCCompatible::Segments<InstructionSet::x86::Model::i8086, LinearMemory>
+		intended_segments(intended_registers, execution_support.linear_memory);
+
+	NSMutableDictionary *final_registers = [initial_state[@"regs"] mutableCopy];
+	[final_registers setValuesForKeysWithDictionary:final_state[@"regs"]];
+	[self populate:intended_registers flags:intended_flags value:final_registers];
 	intended_segments.reset();
 
 	const bool registersEqual =
@@ -724,10 +728,10 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
 		}
 
-		int index = 0;
+//		int index = 0;
 		for(NSDictionary *test in [self testsInFile:file]) {
 			[self applyExecutionTest:test metadata:test_metadata];
-			++index;
+//			++index;
 		}
 
 		if (execution_failures.size() != failures_before) {
