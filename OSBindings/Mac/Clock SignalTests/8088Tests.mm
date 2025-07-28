@@ -141,11 +141,11 @@ private:
 	std::unordered_set<uint32_t> preauthorisations;
 	std::unordered_map<uint32_t, Tag> tags;
 
-	void preauthorise(uint32_t address) {
+	void preauthorise(const uint32_t address) {
 		preauthorisations.insert(address);
 	}
-	bool test_preauthorisation(uint32_t address) {
-		auto authorisation = preauthorisations.find(address);
+	bool test_preauthorisation(const uint32_t address) {
+		const auto authorisation = preauthorisations.find(address);
 		if(authorisation == preauthorisations.end()) {
 			return false;
 		}

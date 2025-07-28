@@ -20,7 +20,6 @@
 
 namespace PCCompatible {
 
-// TODO: the following need to apply linear memory semantics, including potential A20 wrapping.
 template <InstructionSet::x86::Model model, typename LinearMemoryT> struct ProgramFetcher {
 	std::pair<const uint8_t *, size_t> next_code(
 		const InstructionSet::x86::Registers<model> &registers,
@@ -47,7 +46,6 @@ template <InstructionSet::x86::Model model, typename LinearMemoryT> struct Progr
 			std::min<size_t>(0x1'0000, 1 + descriptor.bounds().end - base)
 		);
 	}
-
 };
 
 template <InstructionSet::x86::Model model, typename LinearMemoryT> class SegmentedMemory;
@@ -68,7 +66,7 @@ public:
 		registers_(registers), segments_(segments), linear_memory_(linear_memory) {}
 
 	//
-	// Preauthorisation call-ins. Since only an 8088 is currently modelled, all accesses are implicitly authorised.
+	// Preauthorisation call-ins.
 	//
 	void preauthorise_stack_write(uint32_t) {}
 	void preauthorise_stack_read(uint32_t) {}
@@ -145,6 +143,7 @@ public:
 			uint16_t(registers_.sp())
 		);
 	}
+
 	void preauthorise_stack_read(const uint32_t size) {
 		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
 		descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
@@ -154,7 +153,6 @@ public:
 	}
 
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-
 	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
 
 	// TODO: perform authorisation checks.

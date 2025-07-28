@@ -150,6 +150,8 @@ template <InstructionSet::x86::Model model, typename Enable = void> struct Linea
 
 template <InstructionSet::x86::Model model>
 struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model::i80186>>: public SplitHolder, public LinearPool<1 << 20> {
+	static constexpr bool RequiresPreauthorisation = false;
+
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address,
@@ -227,6 +229,8 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 
 template <>
 struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 24> {
+	static constexpr bool RequiresPreauthorisation = true;
+
 	LinearMemory() {
 		set_a20_enabled(true);
 	}
