@@ -54,7 +54,7 @@ public:
 	}
 
 	void seed(uint32_t address, uint8_t value) {
-		memory.access<uint8_t, AccessType::Write>(address, value);
+		memory.access<uint8_t, AccessType::Write>(address, address) = value;
 		tags[address] = Tag::Seeded;
 	}
 
@@ -645,7 +645,7 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 		Flags difference;
 		difference.set((intended_flags.get() ^ execution_support.flags.get()) & flags_mask);
 		[reasons addObject:
-			[NSString stringWithFormat:@"flags differs; errors in %s",
+			[NSString stringWithFormat:@"flags differ; errors in %s",
 				difference.to_string().c_str()]];
 	}
 	if(!registersEqual) {
