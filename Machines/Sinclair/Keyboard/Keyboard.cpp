@@ -12,9 +12,9 @@
 
 using namespace Sinclair::ZX::Keyboard;
 
-KeyboardMapper::KeyboardMapper(Machine machine) : machine_(machine) {}
+KeyboardMapper::KeyboardMapper(const Machine machine) : machine_(machine) {}
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
+uint16_t KeyboardMapper::mapped_key_for_key(const Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return dest
 	switch(key) {
 		default: break;
@@ -67,7 +67,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 
 CharacterMapper::CharacterMapper(Machine machine) : machine_(machine) {}
 
-const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+const uint16_t *CharacterMapper::sequence_for_character(const char character) const {
 #define KEYS(...)		{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SHIFT(...)		{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SYMSHIFT(...)	{KeySymbolShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
@@ -286,7 +286,7 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 	}
 }
 
-bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
+bool CharacterMapper::needs_pause_after_key(const uint16_t key) const {
 	return key != KeyShift && !(machine_ == Machine::ZXSpectrum && key == KeySymbolShift);
 }
 
@@ -294,7 +294,7 @@ Keyboard::Keyboard(Machine machine) : machine_(machine) {
 	clear_all_keys();
 }
 
-void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
+void Keyboard::set_key_state(const uint16_t key, const bool is_pressed) {
 	const auto line = key >> 8;
 
 	// Check for special cases.
@@ -342,7 +342,7 @@ void Keyboard::clear_all_keys() {
 	memset(key_states_, 0xff, 8);
 }
 
-uint8_t Keyboard::read(uint16_t address) {
+uint8_t Keyboard::read(const uint16_t address) {
 	uint8_t value = 0xff;
 
 	uint16_t mask = 0x100;
