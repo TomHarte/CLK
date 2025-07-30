@@ -233,7 +233,7 @@ struct SegmentRegisterSet {
 	}
 
 private:
-	std::array<SegmentT, 6> values_;
+	std::array<SegmentT, 6> values_{};
 	static constexpr size_t index_of(const Source segment) {
 		assert(is_segment_register(segment));
 		return size_t(segment) - size_t(Source::ES);

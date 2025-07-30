@@ -216,22 +216,22 @@ public:
 
 private:
 	// Non-zero => set; zero => unset.
-	uint32_t carry_;
-	uint32_t auxiliary_carry_;
-	uint32_t sign_;
-	uint32_t overflow_;
-	uint32_t trap_;
-	uint32_t interrupt_;
+	uint32_t carry_{};
+	uint32_t auxiliary_carry_{};
+	uint32_t sign_{};
+	uint32_t overflow_{};
+	uint32_t trap_{};
+	uint32_t interrupt_{};
 
 	// +1 = direction flag not set;
 	// -1 = direction flag set.
-	int32_t direction_;
+	int32_t direction_{};
 
 	// Zero => set; non-zero => unset.
-	uint32_t zero_;
+	uint32_t zero_{};
 
 	// Odd number of bits => set; even => unset.
-	uint32_t parity_;
+	uint32_t parity_{};
 };
 
 }
