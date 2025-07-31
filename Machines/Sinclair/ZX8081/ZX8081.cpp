@@ -374,7 +374,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_frequency() const final {
-			return Cycles(146'250);
+			return Cycles(159'961);
 		}
 
 		KeyboardMapper *get_keyboard_mapper() final {
