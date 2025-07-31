@@ -349,7 +349,7 @@ struct FailedExecution {
 
 - (NSDictionary *)metadata {
 	NSString *path = [[NSString stringWithUTF8String:TestSuiteHome] stringByAppendingPathComponent:@"metadata.json"];
-	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil];
+	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil][@"opcodes"];
 }
 
 using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
