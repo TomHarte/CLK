@@ -33,7 +33,8 @@ namespace {
 
 // The tests themselves are not duplicated in this repository;
 // provide their real path here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Projects/8088/v1";
+constexpr char TestSuiteHome8088[] = "/Users/thomasharte/Projects/8088/v1";
+constexpr char TestSuiteHome80286[] = "/Users/thomasharte/Projects/80286/v1_real_mode";
 
 using Flags = InstructionSet::x86::Flags;
 
@@ -218,6 +219,49 @@ std::vector<uint8_t> bytes(NSArray<NSNumber *> *encoding) {
 		data.push_back([number intValue]);
 	}
 	return data;
+}
+
+NSArray<NSString *> *testFiles(const char *const home) {
+	NSString *const path = [NSString stringWithUTF8String:home];
+	NSSet *const allowList = [NSSet setWithArray:@[
+		// Current execution failures, albeit all permitted:
+//		@"D4.json.gz",		// AAM
+//		@"F6.7.json.gz",	// IDIV byte
+//		@"F7.7.json.gz",	// IDIV word
+	]];
+
+	NSSet *ignoreList = nil;
+
+	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
+	files = [files
+		filteredArrayUsingPredicate:
+			[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *)
+	{
+		if(allowList.count && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
+			return NO;
+		}
+		if([ignoreList containsObject:[evaluatedObject lastPathComponent]]) {
+			return NO;
+		}
+		return [evaluatedObject hasSuffix:@"json.gz"];
+	}]];
+
+	NSMutableArray<NSString *> *fullPaths = [[NSMutableArray alloc] init];
+	for(NSString *file in files) {
+		[fullPaths addObject:[path stringByAppendingPathComponent:file]];
+	}
+
+	return [fullPaths sortedArrayUsingSelector:@selector(compare:)];
+}
+
+NSArray<NSDictionary *> *testsInFile(NSString *file) {
+	NSData *data = [NSData dataWithContentsOfGZippedFile:file];
+	return [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+}
+
+NSDictionary *metadata(const char *home) {
+	NSString *path = [[NSString stringWithUTF8String:home] stringByAppendingPathComponent:@"metadata.json"];
+	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil][@"opcodes"];
 }
 
 template <InstructionSet::x86::Model t_model>
@@ -455,55 +499,59 @@ void apply_execution_test(
 	failure.reason = std::string([reasons componentsJoinedByString:@"; "].UTF8String);
 	failure_list->push_back(std::move(failure));
 }
+
+template <InstructionSet::x86::Model t_model>
+void test_execution(const char *const home) {
+	NSDictionary *metadatas = metadata(home);
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+	std::vector<FailedExecution> execution_failures;
+	std::vector<FailedExecution> permitted_failures;
+	ExecutionSupport<t_model> execution_support;
+
+	for(NSString *file in testFiles(home)) @autoreleasepool {
+		const auto failures_before = execution_failures.size();
+
+		// Determine the metadata key.
+		NSString *const name = [file lastPathComponent];
+		NSRange first_dot = [name rangeOfString:@"."];
+		NSString *metadata_key = [name substringToIndex:first_dot.location];
+
+		// Grab the metadata. If it wants a reg field, inspect a little further.
+		NSDictionary *test_metadata = metadatas[metadata_key];
+		if(test_metadata[@"reg"]) {
+			test_metadata =
+				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
+		}
+
+//		int index = 0;
+		for(NSDictionary *test in testsInFile(file)) {
+			apply_execution_test(execution_support, execution_failures, permitted_failures, test, test_metadata);
+//			++index;
+		}
+
+		if (execution_failures.size() != failures_before) {
+			[failures addObject:file];
+		}
+	}
+
+	// Lock in current failure rate.
+	XCTAssertLessThanOrEqual(execution_failures.size(), 0);
+
+	for(const auto &failure: execution_failures) {
+		NSLog(@"Failed %s — %s", failure.test_name.c_str(), failure.reason.c_str());
+	}
+	for(const auto &failure: permitted_failures) {
+		NSLog(@"Permitted failure of %s — %s", failure.test_name.c_str(), failure.reason.c_str());
+	}
+
+	NSLog(@"Files with failures, permitted or otherwise, were: %@", failures);
+}
 }
 
 @interface i8088Tests : XCTestCase
 @end
 
 @implementation i8088Tests
-
-- (NSArray<NSString *> *)testFiles {
-	NSString *path = [NSString stringWithUTF8String:TestSuiteHome];
-	NSSet *allowList = [NSSet setWithArray:@[
-		// Current execution failures, albeit all permitted:
-//		@"D4.json.gz",		// AAM
-//		@"F6.7.json.gz",	// IDIV byte
-//		@"F7.7.json.gz",	// IDIV word
-	]];
-
-	NSSet *ignoreList = nil;
-
-	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
-	files = [files
-		filteredArrayUsingPredicate:
-			[NSPredicate predicateWithBlock:^BOOL(NSString* evaluatedObject, NSDictionary<NSString *,id> *)
-	{
-		if(allowList.count && ![allowList containsObject:[evaluatedObject lastPathComponent]]) {
-			return NO;
-		}
-		if([ignoreList containsObject:[evaluatedObject lastPathComponent]]) {
-			return NO;
-		}
-		return [evaluatedObject hasSuffix:@"json.gz"];
-	}]];
-
-	NSMutableArray<NSString *> *fullPaths = [[NSMutableArray alloc] init];
-	for(NSString *file in files) {
-		[fullPaths addObject:[path stringByAppendingPathComponent:file]];
-	}
-
-	return [fullPaths sortedArrayUsingSelector:@selector(compare:)];
-}
-
-- (NSArray<NSDictionary *> *)testsInFile:(NSString *)file {
-	NSData *data = [NSData dataWithContentsOfGZippedFile:file];
-	return [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-}
-
-- (NSDictionary *)metadata {
-	NSString *path = [[NSString stringWithUTF8String:TestSuiteHome] stringByAppendingPathComponent:@"metadata.json"];
-	return [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfGZippedFile:path] options:0 error:nil][@"opcodes"];
-}
 
 using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
 - (NSString *)
@@ -603,14 +651,14 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	NSLog(
 		@"%ld failures out of %ld tests: %@",
 		failures.count,
-		[self testFiles].count,
+		testFiles(TestSuiteHome8088).count,
 		[failures sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
 }
 
 - (void)testDecoding {
 	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
-	for(NSString *file in [self testFiles]) @autoreleasepool {
-		for(NSDictionary *test in [self testsInFile:file]) {
+	for(NSString *file in testFiles(TestSuiteHome8088)) @autoreleasepool {
+		for(NSDictionary *test in testsInFile(file)) {
 			// A single failure per instruction is fine.
 			if(![self applyDecodingTest:test file:file assert:YES]) {
 				[failures addObject:file];
@@ -625,50 +673,12 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	[self printFailures:failures];
 }
 
-- (void)testExecution {
-	NSDictionary *metadata = [self metadata];
-	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
-	std::vector<FailedExecution> execution_failures;
-	std::vector<FailedExecution> permitted_failures;
-	ExecutionSupport<InstructionSet::x86::Model::i8086> execution_support;
+- (void)testExecution8088 {
+	test_execution<InstructionSet::x86::Model::i8086>(TestSuiteHome8088);
+}
 
-	for(NSString *file in [self testFiles]) @autoreleasepool {
-		const auto failures_before = execution_failures.size();
-
-		// Determine the metadata key.
-		NSString *const name = [file lastPathComponent];
-		NSRange first_dot = [name rangeOfString:@"."];
-		NSString *metadata_key = [name substringToIndex:first_dot.location];
-
-		// Grab the metadata. If it wants a reg field, inspect a little further.
-		NSDictionary *test_metadata = metadata[metadata_key];
-		if(test_metadata[@"reg"]) {
-			test_metadata =
-				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
-		}
-
-//		int index = 0;
-		for(NSDictionary *test in [self testsInFile:file]) {
-			apply_execution_test(execution_support, execution_failures, permitted_failures, test, test_metadata);
-//			++index;
-		}
-
-		if (execution_failures.size() != failures_before) {
-			[failures addObject:file];
-		}
-	}
-
-	// Lock in current failure rate.
-	XCTAssertLessThanOrEqual(execution_failures.size(), 0);
-
-	for(const auto &failure: execution_failures) {
-		NSLog(@"Failed %s — %s", failure.test_name.c_str(), failure.reason.c_str());
-	}
-	for(const auto &failure: permitted_failures) {
-		NSLog(@"Permitted failure of %s — %s", failure.test_name.c_str(), failure.reason.c_str());
-	}
-
-	NSLog(@"Files with failures, permitted or otherwise, were: %@", failures);
+- (void)testExecution80286 {
+//	test_execution<InstructionSet::x86::Model::i80286>(TestSuiteHome80286);
 }
 
 @end
