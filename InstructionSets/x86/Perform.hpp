@@ -223,6 +223,7 @@ concept is_flow_controller =
 template <typename CPUControlT, Model model>
 concept is_cpu_control = requires(CPUControlT control) {
 	control.set_mode(Mode{});
+	control.mode();		// TODO: require return type.
 };
 
 //

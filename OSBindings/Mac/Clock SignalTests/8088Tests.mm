@@ -84,12 +84,20 @@ public:
 	//
 	// Access call-ins.
 	//
-
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address,
 		const uint32_t base
 	) {
+		return memory.template access<IntT, type>(address, base);
+	}
+
+	template <typename IntT, AccessType type>
+	typename InstructionSet::x86::Accessor<IntT, type>::type access(
+		uint32_t address,
+		const uint32_t base
+	) const {
+		static_assert(!is_writeable(type));
 		return memory.template access<IntT, type>(address, base);
 	}
 
@@ -181,6 +189,18 @@ private:
 	bool should_repeat_ = false;
 };
 
+struct CPUControl {
+	void set_mode(const InstructionSet::x86::Mode mode) {
+		mode_ = mode;
+	}
+	InstructionSet::x86::Mode mode() const {
+		return mode_;
+	}
+
+private:
+	InstructionSet::x86::Mode mode_ = InstructionSet::x86::Mode::Real;
+};
+
 template <InstructionSet::x86::Model t_model>
 struct ExecutionSupport {
 	static constexpr auto model = t_model;
@@ -192,6 +212,7 @@ struct ExecutionSupport {
 	PCCompatible::Segments<t_model, LinearMemory<t_model>> segments;
 	FlowController<t_model> flow_controller;
 	IO io;
+	CPUControl cpu_control;
 
 	ExecutionSupport():
 		memory(registers, segments, linear_memory),
@@ -311,7 +332,7 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
 	const auto decoded = decoder.decode(data.data(), data.size());
 
@@ -382,7 +403,7 @@ void apply_execution_test(
 		break;
 	}
 
-	PCCompatible::Segments<InstructionSet::x86::Model::i8086, LinearMemory<t_model>>
+	PCCompatible::Segments<t_model, LinearMemory<t_model>>
 		intended_segments(intended_registers, execution_support.linear_memory);
 
 	NSMutableDictionary *final_registers = [initial_state[@"regs"] mutableCopy];
@@ -678,7 +699,7 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 }
 
 - (void)testExecution80286 {
-//	test_execution<InstructionSet::x86::Model::i80286>(TestSuiteHome80286);
+	test_execution<InstructionSet::x86::Model::i80286>(TestSuiteHome80286);
 }
 
 @end
