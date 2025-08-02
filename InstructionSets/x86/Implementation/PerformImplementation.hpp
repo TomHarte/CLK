@@ -725,4 +725,39 @@ void interrupt(
 	context.flags.template set_from<Flag::Interrupt, Flag::Trap>(0);
 }
 
+template <
+	typename ContextT
+>
+requires is_context<ContextT>
+void fault(
+	const Exception exception,
+	ContextT &context,
+	const uint32_t source_ip
+) {
+	if constexpr (uses_8086_exceptions(ContextT::model)) {
+		InstructionSet::x86::interrupt(
+			exception,
+			context
+		);
+		return;
+	}
+
+	if(
+		exception.code_type == Exception::CodeType::Internal &&
+		!posts_next_ip(InstructionSet::x86::Vector(exception.vector))
+	) {
+		context.registers.ip() = source_ip;
+	}
+
+	try {
+		InstructionSet::x86::interrupt(
+			exception,
+			context
+		);
+	} catch (const InstructionSet::x86::Exception exception) {
+		// TODO: unsure about this. Probably just recurse?
+		printf("DOUBLE FAULT TODO!");
+	}
+}
+
 }

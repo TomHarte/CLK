@@ -771,7 +771,7 @@ public:
 
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
-				fault(Exception::interrupt(pics_.pic[0].acknowledge()));
+				InstructionSet::x86::fault(Exception::interrupt(pics_.pic[0].acknowledge()), context_);
 			}
 
 			// Do nothing if currently halted.
@@ -846,35 +846,8 @@ public:
 				);
 				return;
 			} catch (const InstructionSet::x86::Exception exception) {
-				fault(exception);
+				InstructionSet::x86::fault(exception, context_, decoded_ip_);
 			}
-		}
-	}
-
-	void fault(const Exception exception) {
-		if constexpr (uses_8086_exceptions(x86_model)) {
-			InstructionSet::x86::interrupt(
-				exception,
-				context_
-			);
-			return;
-		}
-
-		if(
-			exception.code_type == Exception::CodeType::Internal &&
-			!posts_next_ip(InstructionSet::x86::Vector(exception.vector))
-		) {
-			context_.registers.ip() = decoded_ip_;
-		}
-
-		try {
-			InstructionSet::x86::interrupt(
-				exception,
-				context_
-			);
-		} catch (const InstructionSet::x86::Exception exception) {
-			// TODO: unsure about this. Probably just recurse?
-			printf("DOUBLE FAULT TODO!");
 		}
 	}
 
