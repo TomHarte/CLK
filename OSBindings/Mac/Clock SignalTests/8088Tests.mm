@@ -527,7 +527,7 @@ void test_execution(const char *const home) {
 	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
 	std::vector<FailedExecution> execution_failures;
 	std::vector<FailedExecution> permitted_failures;
-	ExecutionSupport<t_model> execution_support;
+	auto execution_support = std::make_unique<ExecutionSupport<t_model>>();
 
 	for(NSString *file in testFiles(home)) @autoreleasepool {
 		const auto failures_before = execution_failures.size();
@@ -546,7 +546,7 @@ void test_execution(const char *const home) {
 
 //		int index = 0;
 		for(NSDictionary *test in testsInFile(file)) {
-			apply_execution_test(execution_support, execution_failures, permitted_failures, test, test_metadata);
+			apply_execution_test(*execution_support, execution_failures, permitted_failures, test, test_metadata);
 //			++index;
 		}
 
