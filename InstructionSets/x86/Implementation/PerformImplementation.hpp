@@ -583,12 +583,6 @@ template <
 	context.memory.template write_back<IntT>();
 }
 
-//
-// Public function; just a trampoline into a version of perform templated on data and address size.
-//
-// Which, yes, means there's an outer switch leading to an inner switch, which could be reduced to one big switch.
-// It'd be a substantial effort to find the most neat expression of that, I think, so it is not currently done.
-//
 template <
 	InstructionType type,
 	typename ContextT
@@ -653,7 +647,40 @@ void perform(
 
 	// This is reachable only if the data and address size combination in use isn't available
 	// on the processor model nominated.
-	assert(false);
+	assert(false);}
+
+//
+// Public function; just indirects into a trampoline into a version of perform templated on data and address size.
+//
+// Which, yes, means there's an outer switch leading to an inner switch, which could be reduced to one big switch.
+// It'd be a substantial effort to find the most neat expression of that, I think, so it is not currently done.
+//
+template <
+	InstructionType type,
+	typename ContextT
+>
+requires is_context<ContextT>
+void perform(
+	const Instruction<type> &instruction,
+	ContextT &context,
+	uint32_t source_ip
+) {
+	if constexpr (uses_8086_exceptions(ContextT::model)) {
+		InstructionSet::x86::perform(
+			instruction,
+			context
+		);
+	} else {
+		try {
+			InstructionSet::x86::perform(
+				instruction,
+				context
+			);
+			return;
+		} catch (const InstructionSet::x86::Exception exception) {
+			fault(exception, context, source_ip);
+		}
+	}
 }
 
 template <
@@ -723,6 +750,41 @@ void interrupt(
 	const uint16_t cs = context.linear_memory.template read<uint16_t>(address + 2);
 	far_call(cs, ip);
 	context.flags.template set_from<Flag::Interrupt, Flag::Trap>(0);
+}
+
+template <
+	typename ContextT
+>
+requires is_context<ContextT>
+void fault(
+	const Exception exception,
+	ContextT &context,
+	const uint32_t source_ip
+) {
+	if constexpr (uses_8086_exceptions(ContextT::model)) {
+		InstructionSet::x86::interrupt(
+			exception,
+			context
+		);
+		return;
+	}
+
+	if(
+		exception.code_type == Exception::CodeType::Internal &&
+		!posts_next_ip(InstructionSet::x86::Vector(exception.vector))
+	) {
+		context.registers.ip() = source_ip;
+	}
+
+	try {
+		InstructionSet::x86::interrupt(
+			exception,
+			context
+		);
+	} catch (const InstructionSet::x86::Exception exception) {
+		// TODO: unsure about this. Probably just recurse?
+		printf("DOUBLE FAULT TODO!");
+	}
 }
 
 }
