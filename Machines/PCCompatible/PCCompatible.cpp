@@ -833,22 +833,11 @@ public:
 		}
 
 		// Execute it.
-		if constexpr (uses_8086_exceptions(x86_model)) {
-			InstructionSet::x86::perform(
-				decoded_.second,
-				context_
-			);
-		} else {
-			try {
-				InstructionSet::x86::perform(
-					decoded_.second,
-					context_
-				);
-				return;
-			} catch (const InstructionSet::x86::Exception exception) {
-				InstructionSet::x86::fault(exception, context_, decoded_ip_);
-			}
-		}
+		InstructionSet::x86::perform(
+			decoded_.second,
+			context_,
+			decoded_ip_
+		);
 	}
 
 	// MARK: - ScanProducer.
