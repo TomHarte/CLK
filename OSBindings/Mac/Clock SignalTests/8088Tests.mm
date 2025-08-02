@@ -360,6 +360,7 @@ void apply_execution_test(
 	//
 	// TODO: enquire of the actual mechanism of repetition; if it were stateful as below then
 	// would it survive interrupts? So is it just IP adjustment?
+	const auto prior_ip = execution_support.registers.ip();
 	execution_support.registers.ip() += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
@@ -367,7 +368,8 @@ void apply_execution_test(
 		// re: PCCompatible/instruction set.
 		InstructionSet::x86::perform(
 			decoded.second,
-			execution_support
+			execution_support,
+			prior_ip
 		);
 	} while (execution_support.flow_controller.should_repeat());
 
