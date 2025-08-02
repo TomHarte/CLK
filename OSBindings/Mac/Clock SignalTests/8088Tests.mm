@@ -363,6 +363,8 @@ void apply_execution_test(
 	execution_support.registers.ip() += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
+		// TODO: catch and process exceptions, which I think means better factoring
+		// re: PCCompatible/instruction set.
 		InstructionSet::x86::perform(
 			decoded.second,
 			execution_support
