@@ -175,7 +175,9 @@ public:
 		registers_.ip() = address;
 	}
 
-	void halt() {}
+	void halt() {
+		is_halted_ = true;
+	}
 	void wait() {}
 
 	void repeat_last() {
@@ -189,11 +191,15 @@ public:
 	bool should_repeat() const {
 		return should_repeat_;
 	}
+	bool is_halted() const {
+		return is_halted_;
+	}
 
 private:
 	InstructionSet::x86::Registers<t_model> &registers_;
 	PCCompatible::Segments<t_model, LinearMemory<t_model>> &segments_;
 	bool should_repeat_ = false;
+	bool is_halted_ = false;
 };
 
 struct CPUControl {
@@ -384,6 +390,11 @@ void apply_execution_test(
 			prior_ip
 		);
 	} while (execution_support.flow_controller.should_repeat());
+
+	// If this is the 80286 test set then there was also a HLT. Act as if that happened.
+	if constexpr (t_model == InstructionSet::x86::Model::i80286) {
+		++execution_support.registers.ip();
+	}
 
 	// Compare final state.
 	InstructionSet::x86::Registers<t_model> intended_registers;
