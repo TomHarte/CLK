@@ -132,6 +132,7 @@ void imul(
 	modify_t<IntT> destination_high,
 	modify_t<IntT> destination_low,
 	read_t<IntT> source,
+	read_t<IntT> multiplicand,
 	ContextT &context
 ) {
 	/*
@@ -160,8 +161,8 @@ void imul(
 		FI;
 	*/
 	using sIntT = typename std::make_signed<IntT>::type;
-	destination_high = IntT((sIntT(destination_low) * sIntT(source)) >> (8 * sizeof(IntT)));
-	destination_low = IntT(sIntT(destination_low) * sIntT(source));
+	destination_high = IntT((sIntT(multiplicand) * sIntT(source)) >> (8 * sizeof(IntT)));
+	destination_low = IntT(sIntT(multiplicand) * sIntT(source));
 
 	const auto sign_extension = (destination_low & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
 	context.flags.template set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);

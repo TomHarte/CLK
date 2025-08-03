@@ -241,7 +241,12 @@ template <
 		return;
 
 		case Operation::MUL:		Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::IMUL_1:		Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
+		case Operation::IMUL_1:
+			Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), pair_low(), context);
+		return;
+		case Operation::IMUL_3:
+			Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), IntT(instruction.operand()), context);
+		return;
 		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
 		case Operation::IDIV_REP:
@@ -570,7 +575,6 @@ template <
 		//	LSL
 		//	LTR
 		//	STR
-		//	IMUL_3
 		//	LOADALL
 	}
 
@@ -647,7 +651,8 @@ void perform(
 
 	// This is reachable only if the data and address size combination in use isn't available
 	// on the processor model nominated.
-	assert(false);}
+	assert(false);
+}
 
 //
 // Public function; just indirects into a trampoline into a version of perform templated on data and address size.
