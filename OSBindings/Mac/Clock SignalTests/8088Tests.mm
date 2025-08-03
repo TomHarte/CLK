@@ -571,26 +571,21 @@ void test_execution(const char *const home) {
 
 	NSLog(@"Files with failures, permitted or otherwise, were: %@", failures);
 }
-}
 
-@interface i8088Tests : XCTestCase
-@end
-
-@implementation i8088Tests
-
-using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
-- (NSString *)
-	toString:(const std::pair<int, Instruction> &)instruction
-	offsetLength:(int)offsetLength
-	immediateLength:(int)immediateLength
-{
-	const auto operation = to_string(instruction, InstructionSet::x86::Model::i8086, offsetLength, immediateLength);
+template <InstructionSet::x86::Model model, InstructionSet::x86::InstructionType type>
+NSString *toString(
+	const std::pair<int, InstructionSet::x86::Instruction<type>> &instruction,
+	int offsetLength,
+	int immediateLength
+) {
+	const auto operation = to_string(instruction, model, offsetLength, immediateLength);
 	return [[NSString stringWithUTF8String:operation.c_str()]
 		stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
-- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
-	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+template <InstructionSet::x86::Model model>
+bool applyDecodingTest(NSDictionary *test, NSString *file, BOOL assert) {
+	InstructionSet::x86::Decoder<model> decoder;
 
 	// Build a vector of the instruction bytes; this makes manual step debugging easier.
 	const auto data = bytes(test[@"bytes"]);
@@ -622,12 +617,12 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	// The decoder doesn't preserve the original offset length, which makes no functional difference but
 	// does affect the way that offsets are printed in the test set.
 	NSSet<NSString *> *decodings = [NSSet setWithObjects:
-		[self toString:decoded offsetLength:4 immediateLength:4],
-		[self toString:decoded offsetLength:2 immediateLength:4],
-		[self toString:decoded offsetLength:0 immediateLength:4],
-		[self toString:decoded offsetLength:4 immediateLength:2],
-		[self toString:decoded offsetLength:2 immediateLength:2],
-		[self toString:decoded offsetLength:0 immediateLength:2],
+		toString<model>(decoded, 4, 4),
+		toString<model>(decoded, 2, 4),
+		toString<model>(decoded, 0, 4),
+		toString<model>(decoded, 4, 2),
+		toString<model>(decoded, 2, 2),
+		toString<model>(decoded, 0, 2),
 		nil];
 
 	auto compare_decoding = [&](NSString *name) -> bool {
@@ -672,7 +667,22 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	return isEqual;
 }
 
-- (void)printFailures:(NSArray<NSString *> *)failures {
+template <InstructionSet::x86::Model model>
+void test_decoding(const char *home) {
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+	for(NSString *file in testFiles(home)) @autoreleasepool {
+		for(NSDictionary *test in testsInFile(file)) {
+			// A single failure per instruction is fine.
+			if(!applyDecodingTest<model>(test, file, YES)) {
+				[failures addObject:file];
+
+				// Attempt a second decoding, to provide a debugger hook.
+				applyDecodingTest<model>(test, file, NO);
+				break;
+			}
+		}
+	}
+
 	NSLog(
 		@"%ld failures out of %ld tests: %@",
 		failures.count,
@@ -680,26 +690,29 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 		[failures sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
 }
 
-- (void)testDecoding {
-	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
-	for(NSString *file in testFiles(TestSuiteHome8088)) @autoreleasepool {
-		for(NSDictionary *test in testsInFile(file)) {
-			// A single failure per instruction is fine.
-			if(![self applyDecodingTest:test file:file assert:YES]) {
-				[failures addObject:file];
+}
 
-				// Attempt a second decoding, to provide a debugger hook.
-				[self applyDecodingTest:test file:file assert:NO];
-				break;
-			}
-		}
-	}
+@interface i8088Tests : XCTestCase
+@end
 
-	[self printFailures:failures];
+@implementation i8088Tests
+
+using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
+
+// MARK: - 8088
+
+- (void)testDecoding8088 {
+	test_decoding<InstructionSet::x86::Model::i8086>(TestSuiteHome8088);
 }
 
 - (void)testExecution8088 {
 	test_execution<InstructionSet::x86::Model::i8086>(TestSuiteHome8088);
+}
+
+// MARK: - 80286
+
+- (void)testDecoding80286 {
+	test_decoding<InstructionSet::x86::Model::i80286>(TestSuiteHome80286);
 }
 
 - (void)testExecution80286 {
