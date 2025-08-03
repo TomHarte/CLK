@@ -31,10 +31,14 @@
 
 namespace {
 
+// MARK: - Test paths
+
 // The tests themselves are not duplicated in this repository;
-// provide their real path here.
+// provide their real paths here.
 constexpr char TestSuiteHome8088[] = "/Users/thomasharte/Projects/8088/v1";
 constexpr char TestSuiteHome80286[] = "/Users/thomasharte/Projects/80286/v1_real_mode";
+
+// MARK: - Virtual machine
 
 using Flags = InstructionSet::x86::Flags;
 
@@ -148,7 +152,10 @@ struct IO {
 template <InstructionSet::x86::Model t_model>
 class FlowController {
 public:
-	FlowController(InstructionSet::x86::Registers<t_model> &registers, PCCompatible::Segments<t_model, LinearMemory<t_model>> &segments) :
+	FlowController(
+		InstructionSet::x86::Registers<t_model> &registers,
+		PCCompatible::Segments<t_model, LinearMemory<t_model>> &segments
+	) :
 		registers_(registers), segments_(segments) {}
 
 	// Requirements for perform.
@@ -224,6 +231,8 @@ struct ExecutionSupport {
 	}
 };
 
+// MARK: - Test helpers
+
 struct FailedExecution {
 	std::string test_name;
 	std::string reason;
@@ -242,7 +251,7 @@ std::vector<uint8_t> bytes(NSArray<NSNumber *> *encoding) {
 	return data;
 }
 
-NSArray<NSString *> *testFiles(const char *const home) {
+NSArray<NSString *> *test_files(const char *const home) {
 	NSString *const path = [NSString stringWithUTF8String:home];
 	NSSet *const allowList = [NSSet setWithArray:@[
 		// Current execution failures, albeit all permitted:
@@ -275,7 +284,7 @@ NSArray<NSString *> *testFiles(const char *const home) {
 	return [fullPaths sortedArrayUsingSelector:@selector(compare:)];
 }
 
-NSArray<NSDictionary *> *testsInFile(NSString *file) {
+NSArray<NSDictionary *> *tests_in_file(NSString *file) {
 	NSData *data = [NSData dataWithContentsOfGZippedFile:file];
 	return [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 }
@@ -323,6 +332,8 @@ void populate(InstructionSet::x86::Registers<t_model> &registers, Flags &flags, 
 			(flags.get() & defined_flags)
 		);
 }
+
+// MARK: - Test runners; execution
 
 template <InstructionSet::x86::Model t_model>
 void apply_execution_test(
@@ -533,7 +544,7 @@ void test_execution(const char *const home) {
 	std::vector<FailedExecution> permitted_failures;
 	auto execution_support = std::make_unique<ExecutionSupport<t_model>>();
 
-	for(NSString *file in testFiles(home)) @autoreleasepool {
+	for(NSString *file in test_files(home)) @autoreleasepool {
 		const auto failures_before = execution_failures.size();
 
 		// Determine the metadata key.
@@ -549,7 +560,7 @@ void test_execution(const char *const home) {
 		}
 
 //		int index = 0;
-		for(NSDictionary *test in testsInFile(file)) {
+		for(NSDictionary *test in tests_in_file(file)) {
 			apply_execution_test(*execution_support, execution_failures, permitted_failures, test, test_metadata);
 //			++index;
 		}
@@ -572,8 +583,10 @@ void test_execution(const char *const home) {
 	NSLog(@"Files with failures, permitted or otherwise, were: %@", failures);
 }
 
+// MARK: - Test runners; decoding
+
 template <InstructionSet::x86::Model model, InstructionSet::x86::InstructionType type>
-NSString *toString(
+NSString *to_string(
 	const std::pair<int, InstructionSet::x86::Instruction<type>> &instruction,
 	int offsetLength,
 	int immediateLength
@@ -584,7 +597,7 @@ NSString *toString(
 }
 
 template <InstructionSet::x86::Model model>
-bool applyDecodingTest(NSDictionary *test, NSString *file, BOOL assert) {
+bool apply_decoding_test(NSDictionary *test, NSString *file, BOOL assert) {
 	InstructionSet::x86::Decoder<model> decoder;
 
 	// Build a vector of the instruction bytes; this makes manual step debugging easier.
@@ -598,7 +611,10 @@ bool applyDecodingTest(NSDictionary *test, NSString *file, BOOL assert) {
 	};
 
 	const auto decoded = decoder.decode(data.data(), data.size());
-	const bool sizeMatched = decoded.first == data.size();
+	const bool sizeMatched =
+		(model == InstructionSet::x86::Model::i8086) ?
+			(decoded.first == data.size()) :
+			(decoded.first == data.size() - 1);	// The 80286 instruction set adds a HLT after every instruction.
 	if(assert) {
 		XCTAssert(
 			sizeMatched,
@@ -617,12 +633,12 @@ bool applyDecodingTest(NSDictionary *test, NSString *file, BOOL assert) {
 	// The decoder doesn't preserve the original offset length, which makes no functional difference but
 	// does affect the way that offsets are printed in the test set.
 	NSSet<NSString *> *decodings = [NSSet setWithObjects:
-		toString<model>(decoded, 4, 4),
-		toString<model>(decoded, 2, 4),
-		toString<model>(decoded, 0, 4),
-		toString<model>(decoded, 4, 2),
-		toString<model>(decoded, 2, 2),
-		toString<model>(decoded, 0, 2),
+		to_string<model>(decoded, 4, 4),
+		to_string<model>(decoded, 2, 4),
+		to_string<model>(decoded, 0, 4),
+		to_string<model>(decoded, 4, 2),
+		to_string<model>(decoded, 2, 2),
+		to_string<model>(decoded, 0, 2),
 		nil];
 
 	auto compare_decoding = [&](NSString *name) -> bool {
@@ -670,14 +686,14 @@ bool applyDecodingTest(NSDictionary *test, NSString *file, BOOL assert) {
 template <InstructionSet::x86::Model model>
 void test_decoding(const char *home) {
 	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
-	for(NSString *file in testFiles(home)) @autoreleasepool {
-		for(NSDictionary *test in testsInFile(file)) {
+	for(NSString *file in test_files(home)) @autoreleasepool {
+		for(NSDictionary *test in tests_in_file(file)) {
 			// A single failure per instruction is fine.
-			if(!applyDecodingTest<model>(test, file, YES)) {
+			if(!apply_decoding_test<model>(test, file, YES)) {
 				[failures addObject:file];
 
 				// Attempt a second decoding, to provide a debugger hook.
-				applyDecodingTest<model>(test, file, NO);
+				apply_decoding_test<model>(test, file, NO);
 				break;
 			}
 		}
@@ -686,10 +702,9 @@ void test_decoding(const char *home) {
 	NSLog(
 		@"%ld failures out of %ld tests: %@",
 		failures.count,
-		testFiles(TestSuiteHome8088).count,
+		test_files(TestSuiteHome8088).count,
 		[failures sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
 }
-
 }
 
 @interface i8088Tests : XCTestCase
