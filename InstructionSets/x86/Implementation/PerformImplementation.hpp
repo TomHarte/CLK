@@ -596,7 +596,7 @@ void perform(
 	const Instruction<type> &instruction,
 	ContextT &context
 ) {
-	const auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
+	const auto size = [](const DataSize operation_size, const AddressSize address_size) constexpr -> int {
 		return int(operation_size) + (int(address_size) << 2);
 	};
 

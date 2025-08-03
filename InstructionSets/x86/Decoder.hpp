@@ -349,6 +349,7 @@ private:
 		phase_ = Phase::DisplacementOrOperand;
 		displacement_size_ = DataSize::Word;
 		operand_size_ = DataSize::Byte;
+		operation_size_ = DataSize::Byte;
 	}
 
 	/// Sets up the operation size, oncoming phase and modregrm format for a member of the shift group (i.e. 'group 2').
