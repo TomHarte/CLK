@@ -592,7 +592,7 @@ void test_execution(const char *const home) {
 		NSLog(@"Permitted failure of %s — %s", failure.test_name.c_str(), failure.reason.c_str());
 	}
 
-	NSLog(@"Files with failures, permitted or otherwise, were: %@", failures);
+	NSLog(@"Files with failures, permitted or otherwise, were the following %@: %@", @(failures.count), failures);
 }
 
 // MARK: - Test runners; decoding
@@ -747,3 +747,4 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 }
 
 @end
+
