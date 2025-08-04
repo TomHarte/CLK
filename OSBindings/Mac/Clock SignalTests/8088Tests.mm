@@ -264,7 +264,6 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"D4.json.gz",		// AAM
 //		@"F6.7.json.gz",	// IDIV byte
 //		@"F7.7.json.gz",	// IDIV word
-		@"00.json.gz",		// ADD
 	]];
 
 	NSSet *ignoreList = nil;

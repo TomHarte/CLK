@@ -91,7 +91,7 @@ struct SegmentDescriptor {
 			throw_exception();
 		}
 
-		if(begin < bounds_.begin || end >= bounds_.end) {
+		if(begin < bounds_.begin || end > bounds_.end) {
 			throw_exception();
 		}
 	}
