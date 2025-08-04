@@ -709,7 +709,11 @@ void interrupt(
 	const auto far_call = [&](const uint16_t segment, const uint16_t offset) {
 		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
 
-		const auto flags = context.flags.get();
+		auto flags = context.flags.get();
+		if(ContextT::model >= Model::i80286 && exception.code_type == Exception::CodeType::Internal) {
+			// TODO: set OP flags, nested flag, etc, properly.
+			flags &= 0xfff;
+		}
 		Primitive::push<uint16_t, true>(flags, context);
 
 		// Push CS and IP.
