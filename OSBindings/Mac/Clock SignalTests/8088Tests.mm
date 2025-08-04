@@ -264,7 +264,7 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"D4.json.gz",		// AAM
 //		@"F6.7.json.gz",	// IDIV byte
 //		@"F7.7.json.gz",	// IDIV word
-//		@"C8.json.gz",		// ENTER
+		@"00.json.gz",		// ADD
 	]];
 
 	NSSet *ignoreList = nil;
@@ -382,8 +382,6 @@ void apply_execution_test(
 	execution_support.registers.ip() += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
-		// TODO: catch and process exceptions, which I think means better factoring
-		// re: PCCompatible/instruction set.
 		InstructionSet::x86::perform(
 			decoded.second,
 			execution_support,
@@ -503,7 +501,7 @@ void apply_execution_test(
 	// Record a failure.
 	FailedExecution failure;
 	failure.instruction = decoded.second;
-	failure.test_name = std::string([test[@"name"] UTF8String]);
+	failure.test_name = std::string([[test[@"name"] stringByAppendingFormat:@"; hash: %@", test[@"hash"]] UTF8String]);
 
 	NSMutableArray<NSString *> *reasons = [[NSMutableArray alloc] init];
 	if(!flagsEqual) {
@@ -747,4 +745,3 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 }
 
 @end
-
