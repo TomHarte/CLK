@@ -458,9 +458,14 @@ template <
 			}
 		} break;
 		case Operation::PUSH:
-			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
-																	// hence PUSH is sometimes read-modify-write.
-		break;
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::push<IntT, false>(source_r(), context);
+			} else {
+				Primitive::push<IntT, false>(source_rmw(), context);	// Prior to the 286, PUSH SP modifies SP
+																		// before pushing it; hence PUSH is
+																		// sometimes read-modify-write.
+			}
+		return;
 
 		case Operation::POPF:
 			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
