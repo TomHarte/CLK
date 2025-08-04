@@ -264,7 +264,7 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"D4.json.gz",		// AAM
 //		@"F6.7.json.gz",	// IDIV byte
 //		@"F7.7.json.gz",	// IDIV word
-		@"01.json.gz",
+//		@"00.json.gz",
 	]];
 
 	NSSet *ignoreList = nil;
@@ -409,7 +409,8 @@ void apply_execution_test(
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
 		const uint32_t address = [ram[0] intValue];
 		const auto value =
-			execution_support.linear_memory.template access<uint8_t, InstructionSet::x86::AccessType::Read>(address, address);
+			execution_support.linear_memory.template access<uint8_t, InstructionSet::x86::AccessType::Read>
+				(address, address);
 
 		if((mask_position != 1) && value == [ram[1] intValue]) {
 			continue;

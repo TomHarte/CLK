@@ -81,9 +81,9 @@ struct SegmentDescriptor {
 			);
 		};
 
-		// Test for bounds; end < begin captures instances where end is both beyond the bounds
-		// and beyond the range of AddressT.
-		if(begin < bounds_.begin || end > bounds_.end || end < begin) {
+		// Test for bounds; end && end < begin captures instances where end is
+		// both out of bounds and beyond the range of AddressT.
+		if(begin < bounds_.begin || end > bounds_.end || (end && end < begin)) {
 			throw_exception();
 		}
 
