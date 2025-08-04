@@ -303,6 +303,8 @@ NSDictionary *metadata(const char *home) {
 
 template <InstructionSet::x86::Model t_model>
 void populate(InstructionSet::x86::Registers<t_model> &registers, Flags &flags, NSDictionary *value) {
+	registers.reset();
+
 	registers.ax() = [value[@"ax"] intValue];
 	registers.bx() = [value[@"bx"] intValue];
 	registers.cx() = [value[@"cx"] intValue];
