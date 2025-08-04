@@ -264,6 +264,7 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"D4.json.gz",		// AAM
 //		@"F6.7.json.gz",	// IDIV byte
 //		@"F7.7.json.gz",	// IDIV word
+		@"01.json.gz",
 	]];
 
 	NSSet *ignoreList = nil;
@@ -512,11 +513,14 @@ void apply_execution_test(
 	}
 	if(!registersEqual) {
 		NSMutableArray<NSString *> *registers = [[NSMutableArray alloc] init];
+		bool is_first = true;
 #define Reg(x)	\
-	if(intended_registers.x() != execution_support.registers.x())	\
+	if(intended_registers.x() != execution_support.registers.x()) {	\
 		[registers addObject:	\
 			[NSString stringWithFormat:	\
-				@#x" is %04x rather than %04x", execution_support.registers.x(), intended_registers.x()]];
+				@#x" is %04x %@ %04x", execution_support.registers.x(), is_first ? @"but should have been" : @"not", intended_registers.x()]];	\
+		is_first = false;	\
+	}
 
 		Reg(ax);
 		Reg(cx);
