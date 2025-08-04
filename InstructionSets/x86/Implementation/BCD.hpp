@@ -22,10 +22,18 @@ void aaas(
 ) {
 	if((ax.halves.low & 0x0f) > 9 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
 		if constexpr (add) {
-			ax.halves.low += 6;
+			if constexpr (ContextT::model <= Model::i80186) {
+				ax.halves.low += 6;
+			} else {
+				ax.full += 6;
+			}
 			++ax.halves.high;
 		} else {
-			ax.halves.low -= 6;
+			if constexpr (ContextT::model <= Model::i80186) {
+				ax.halves.low -= 6;
+			} else {
+				ax.full -= 6;
+			}
 			--ax.halves.high;
 		}
 		context.flags.template set_from<Flag::Carry, Flag::AuxiliaryCarry>(1);

@@ -267,10 +267,7 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"00.json.gz",
 
 //		@"2F.json.gz",		// DAS
-		@"37.json.gz",		// AAA
-//		@"3F.json.gz",
-//		@"54.json.gz",
-//		@"60.json.gz",
+		@"60.json.gz",		// PUSHA
 //		@"61.json.gz",
 //		@"62.json.gz",
 //		@"69.json.gz",
@@ -405,7 +402,7 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-	if([test[@"hash"] isEqualToString:@"16d44a5ac756ede0771a4fdd0dc994e66d95f9e0"]) {
+	if([test[@"hash"] isEqualToString:@"26be225e2d0fcb3f891d75dc5355b8c54847b2fa"]) {
 		printf("");
 	}
 
