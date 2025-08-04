@@ -81,6 +81,12 @@ struct SegmentDescriptor {
 			);
 		};
 
+		// Test for bounds; end < begin captures instances where end is both beyond the bounds
+		// and beyond the range of AddressT.
+		if(begin < bounds_.begin || end > bounds_.end || end < begin) {
+			throw_exception();
+		}
+
 		// Tested at loading (?): present(), privilege_level().
 
 		if(type == AccessType::Read && executable() && !readable()) {
@@ -88,10 +94,6 @@ struct SegmentDescriptor {
 		}
 
 		if(type == AccessType::Write && !executable() && !writeable()) {
-			throw_exception();
-		}
-
-		if(begin < bounds_.begin || end > bounds_.end) {
 			throw_exception();
 		}
 	}
