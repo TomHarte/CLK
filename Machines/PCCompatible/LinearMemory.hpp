@@ -249,7 +249,6 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address, uint32_t
 	) {
-		// 80286: never split (probably?).
 		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
 	}
 
@@ -258,8 +257,6 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		uint32_t address, uint32_t
 	) const {
 		static_assert(!is_writeable(type));
-
-		// 80286: never split (probably?).
 		return *reinterpret_cast<const IntT *>(&memory[address & address_mask_]);
 	}
 

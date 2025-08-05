@@ -196,6 +196,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				} else {
 					immediate(Operation::PUSH, DataSize::Byte);
 					operation_size_ = data_size_;
+					sign_extend_operand_ = true;
 				}
 			break;
 			case 0x6b:

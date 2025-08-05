@@ -270,10 +270,8 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"60.json.gz",		// PUSHA
 //		@"61.json.gz",		// POPA
 //		@"62.json.gz",		// BOUND and (bad) mix
-		@"69.json.gz",		// IMUL
-//		@"6A.json.gz",
-//		@"6B.json.gz",
-//		@"6D.json.gz",
+//		@"69.json.gz",		// IMUL
+		@"6D.json.gz",		// INS.W
 //		@"6F.json.gz",
 //		@"81.0.json.gz",
 //		@"81.1.json.gz",
@@ -402,9 +400,9 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-	if([test[@"hash"] isEqualToString:@"0a5d3b8908512d35bb5b129f775766c963c9a7fb"]) {
-		printf("");
-	}
+//	if([test[@"hash"] isEqualToString:@"30ec05e4b7d17b58b3785f2aa71db7468bb15cd6"]) {
+//		printf("");
+//	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
