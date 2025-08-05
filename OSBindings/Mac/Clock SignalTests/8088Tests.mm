@@ -274,14 +274,14 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"6D.json.gz",		// INS.W
 //		@"6F.json.gz",		// OUTS.W
 //		@"81.0.json.gz",	// ADD
-//		@"81.1.json.gz",
-//		@"81.2.json.gz",
-//		@"81.3.json.gz",
+//		@"81.1.json.gz",	// OR
+		@"81.2.json.gz",	// ADC
+		@"81.3.json.gz",	// SBB
 //		@"81.4.json.gz",
 //		@"81.5.json.gz",
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
-//		@"9A.json.gz",
+//		@"9A.json.gz",		// CALL
 //		@"9C.json.gz",
 //		@"A5.json.gz",
 //		@"A7.json.gz",
@@ -304,13 +304,13 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"D1.6.json.gz",
 //		@"D2.6.json.gz",
 //		@"D3.6.json.gz",
-//		@"D8.json.gz",
-//		@"EA.json.gz",
-//		@"F4.json.gz",
-//		@"F6.1.json.gz",
-//		@"F6.7.json.gz",
-		@"F7.0.json.gz",	// TEST
-		@"F7.1.json.gz",	// TEST
+//		@"D8.json.gz",		// Various floating poing
+//		@"EA.json.gz",		// JMP aa:bb
+//		@"F4.json.gz",		// HLT
+//		@"F6.1.json.gz",	// IDIV
+//		@"F6.7.json.gz",	// IDIV
+//		@"F7.0.json.gz",	// TEST
+//		@"F7.1.json.gz",	// TEST
 //		@"FF.3.json.gz",	// CALL far, plus unrecognised (bad)s?
 //		@"FF.5.json.gz",
 	]];
@@ -400,13 +400,23 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-	if([test[@"hash"] isEqualToString:@"0fb82f901e54ab6d11299548e1b4bb3507b2c183"]) {
-		printf("");
-	}
+//	NSLog(@"%@", test[@"hash"]);
+//	if([test[@"hash"] isEqualToString:@"025d2b0f5f65a5eba94c87b765c3c618e4503069"]) {
+//		printf("");
+//	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
 	const auto decoded = decoder.decode(data.data(), data.size());
+
+	if(decoded.first < 0) {
+		FailedExecution failure;
+		failure.instruction = decoded.second;
+		failure.test_name = std::string([[test[@"name"] stringByAppendingFormat:@"; hash: %@", test[@"hash"]] UTF8String]);
+		failure.reason = "Failed to decode";
+		execution_failures.push_back(std::move(failure));
+		return;
+	}
 
 	execution_support.clear();
 
