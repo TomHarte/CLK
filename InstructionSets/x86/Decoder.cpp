@@ -737,9 +737,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 				switch(reg) {
 					default:
-						// case 1 is treated as another form of TEST on the 8086.
-						// (and, I guess, the 80186?)
-						if constexpr (model >= Model::i80286) {
+						// case 1 is treated as another form of TEST through to at least the 80286.
+						if constexpr (model >= Model::i80386) {
 							return undefined();
 						}
 						[[fallthrough]];

@@ -271,9 +271,9 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"61.json.gz",		// POPA
 //		@"62.json.gz",		// BOUND and (bad) mix
 //		@"69.json.gz",		// IMUL
-		@"6D.json.gz",		// INS.W
-//		@"6F.json.gz",
-//		@"81.0.json.gz",
+//		@"6D.json.gz",		// INS.W
+//		@"6F.json.gz",		// OUTS.W
+//		@"81.0.json.gz",	// ADD
 //		@"81.1.json.gz",
 //		@"81.2.json.gz",
 //		@"81.3.json.gz",
@@ -309,9 +309,9 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"F4.json.gz",
 //		@"F6.1.json.gz",
 //		@"F6.7.json.gz",
-//		@"F7.0.json.gz",
-//		@"F7.1.json.gz",
-//		@"FF.3.json.gz",
+		@"F7.0.json.gz",	// TEST
+		@"F7.1.json.gz",	// TEST
+//		@"FF.3.json.gz",	// CALL far, plus unrecognised (bad)s?
 //		@"FF.5.json.gz",
 	]];
 
@@ -400,9 +400,9 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-//	if([test[@"hash"] isEqualToString:@"30ec05e4b7d17b58b3785f2aa71db7468bb15cd6"]) {
-//		printf("");
-//	}
+	if([test[@"hash"] isEqualToString:@"0fb82f901e54ab6d11299548e1b4bb3507b2c183"]) {
+		printf("");
+	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
