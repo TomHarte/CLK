@@ -267,10 +267,10 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"00.json.gz",
 
 //		@"2F.json.gz",		// DAS
-		@"60.json.gz",		// PUSHA
-//		@"61.json.gz",
-//		@"62.json.gz",
-//		@"69.json.gz",
+//		@"60.json.gz",		// PUSHA
+//		@"61.json.gz",		// POPA
+//		@"62.json.gz",		// BOUND and (bad) mix
+		@"69.json.gz",		// IMUL
 //		@"6A.json.gz",
 //		@"6B.json.gz",
 //		@"6D.json.gz",
@@ -402,7 +402,7 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-	if([test[@"hash"] isEqualToString:@"26be225e2d0fcb3f891d75dc5355b8c54847b2fa"]) {
+	if([test[@"hash"] isEqualToString:@"0a5d3b8908512d35bb5b129f775766c963c9a7fb"]) {
 		printf("");
 	}
 

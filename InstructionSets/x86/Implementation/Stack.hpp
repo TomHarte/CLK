@@ -120,7 +120,7 @@ template <typename IntT, typename ContextT>
 void pusha(
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
+	context.memory.preauthorise_stack_write(sizeof(IntT) * 8);
 	const IntT initial_sp = context.registers.sp();
 	if constexpr (std::is_same_v<IntT, uint32_t>) {
 		push<uint32_t, true>(context.registers.eax(), context);

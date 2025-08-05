@@ -242,10 +242,10 @@ template <
 
 		case Operation::MUL:		Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IMUL_1:
-			Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), pair_low(), context);
+			Primitive::imul_double<IntT>(pair_high(), pair_low(), source_r(), context);
 		return;
 		case Operation::IMUL_3:
-			Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), IntT(instruction.operand()), context);
+			Primitive::imul_single<IntT>(destination_w(), source_r(), IntT(instruction.operand()), context);
 		return;
 		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
