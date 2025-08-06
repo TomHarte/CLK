@@ -48,14 +48,14 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"81.0.json.gz",	// ADD
 //		@"81.1.json.gz",	// OR
 //		@"81.2.json.gz",	// ADC
-		@"81.3.json.gz",	// SBB
-//		@"81.4.json.gz",
+//		@"81.3.json.gz",	// SBB
+//		@"81.4.json.gz",	// AND
 //		@"81.5.json.gz",
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
 //		@"9A.json.gz",		// CALL
 //		@"A5.json.gz",		// MOVS
-//		@"A7.json.gz",
+//		@"A7.json.gz",		// CMPS
 //		@"AD.json.gz",
 //		@"AF.json.gz",		// SCAS
 //		@"C0.2.json.gz",
@@ -617,7 +617,7 @@ void apply_execution_test(
 template <InstructionSet::x86::Model t_model>
 void test_execution(const char *const home) {
 	NSDictionary *metadatas = metadata(home);
-	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+	NSMutableDictionary<NSString *, NSNumber *> *failures = [[NSMutableDictionary alloc] init];
 	std::vector<FailedExecution> execution_failures;
 	std::vector<FailedExecution> permitted_failures;
 	auto execution_support = std::make_unique<ExecutionSupport<t_model>>();
@@ -637,14 +637,12 @@ void test_execution(const char *const home) {
 				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
 		}
 
-//		int index = 0;
 		for(NSDictionary *test in tests_in_file(file)) {
 			apply_execution_test(*execution_support, execution_failures, permitted_failures, test, test_metadata);
-//			++index;
 		}
 
 		if (execution_failures.size() != failures_before) {
-			[failures addObject:file];
+			failures[file] = @([failures[file] intValue] + execution_failures.size() - failures_before);
 		}
 	}
 
