@@ -130,7 +130,7 @@ void stos(
 		return;
 	}
 
-	if constexpr (uses_8086_exceptions(ContextT::model)) {
+	if constexpr (!uses_8086_exceptions(ContextT::model)) {
 		try {
 			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
 		} catch (const Exception &e) {
@@ -138,7 +138,7 @@ void stos(
 			// and CX has been adjusted... twice?
 			//
 			// (yes: including even if CX has already hit zero)
-			if constexpr (ContextT::model <= Model::i80286) {
+			if constexpr (ContextT::model == Model::i80286) {
 				eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 				repeat<AddressT, repetition>(eCX, context);
 				repeat<AddressT, repetition>(eCX, context);
