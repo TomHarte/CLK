@@ -688,6 +688,7 @@ void perform(
 			);
 			return;
 		} catch (const InstructionSet::x86::Exception exception) {
+			context.flow_controller.cancel_repetition();
 			fault(exception, context, source_ip);
 		}
 	}

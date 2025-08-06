@@ -204,6 +204,7 @@ concept is_flow_controller_16 = requires(FlowControllerT controller) {
 	controller.halt();
 	controller.wait();
 	controller.repeat_last();
+	controller.cancel_repetition();
 };
 
 template <typename FlowControllerT, Model model>

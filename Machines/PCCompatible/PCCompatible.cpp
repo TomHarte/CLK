@@ -538,6 +538,9 @@ public:
 	void repeat_last() {
 		should_repeat_ = true;
 	}
+	void cancel_repetition() {
+		should_repeat_ = false;
+	}
 
 	// Other actions.
 	void begin_instruction() {

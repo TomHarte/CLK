@@ -183,6 +183,9 @@ public:
 	void repeat_last() {
 		should_repeat_ = true;
 	}
+	void cancel_repetition() {
+		should_repeat_ = false;
+	}
 
 	// Other actions.
 	void begin_instruction() {
@@ -285,7 +288,6 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"9C.json.gz",
 //		@"A5.json.gz",
 //		@"A7.json.gz",
-//		@"AB.json.gz",
 //		@"AD.json.gz",
 //		@"AF.json.gz",
 //		@"C0.2.json.gz",
@@ -295,7 +297,7 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"C1.6.json.gz",
 //		@"C6.json.gz",
 //		@"C7.json.gz",
-		@"C8.json.gz",		// ENTER
+//		@"C8.json.gz",		// ENTER
 //		@"C9.json.gz",
 //		@"CC.json.gz",
 //		@"CD.json.gz",
@@ -401,9 +403,9 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-//	if([test[@"hash"] isEqualToString:@"57b2da1b1434b3a07bee04a091389855472acd5c"]) {
-//		printf("");
-//	}
+	if([test[@"hash"] isEqualToString:@"b8fc0bb2b0223c84d27633e471daf2ed4faa7c98"]) {
+		printf("");
+	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
