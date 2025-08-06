@@ -130,20 +130,24 @@ void stos(
 		return;
 	}
 
-	try {
-		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
-	} catch (const Exception &e) {
-		// Empirical quirk of at least the 286: DI is adjusted even if the following access throws,
-		// and CX has been adjusted... twice?
-		//
-		// (yes: including even if CX has already hit zero)
-		if constexpr (ContextT::model <= Model::i80286) {
-			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
-			repeat<AddressT, repetition>(eCX, context);
-			repeat<AddressT, repetition>(eCX, context);
-		}
+	if constexpr (uses_8086_exceptions(ContextT::model)) {
+		try {
+			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
+		} catch (const Exception &e) {
+			// Empirical quirk of at least the 286: DI is adjusted even if the following access throws,
+			// and CX has been adjusted... twice?
+			//
+			// (yes: including even if CX has already hit zero)
+			if constexpr (ContextT::model <= Model::i80286) {
+				eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+				repeat<AddressT, repetition>(eCX, context);
+				repeat<AddressT, repetition>(eCX, context);
+			}
 
-		throw e;
+			throw e;
+		}
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
 	}
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);

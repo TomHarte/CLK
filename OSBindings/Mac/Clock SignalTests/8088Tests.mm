@@ -31,6 +31,61 @@
 
 namespace {
 
+NSSet *const allowList = [NSSet setWithArray:@[
+	// Current execution failures, albeit all permitted:
+//		@"D4.json.gz",		// AAM
+//		@"F6.7.json.gz",	// IDIV byte
+//		@"F7.7.json.gz",	// IDIV word
+//		@"00.json.gz",
+
+//		@"2F.json.gz",		// DAS
+//		@"60.json.gz",		// PUSHA
+//		@"61.json.gz",		// POPA
+//		@"62.json.gz",		// BOUND and (bad) mix
+//		@"69.json.gz",		// IMUL
+//		@"6D.json.gz",		// INS.W
+//		@"6F.json.gz",		// OUTS.W
+//		@"81.0.json.gz",	// ADD
+//		@"81.1.json.gz",	// OR
+//		@"81.2.json.gz",	// ADC
+//		@"81.3.json.gz",	// SBB
+//		@"81.4.json.gz",
+//		@"81.5.json.gz",
+//		@"81.6.json.gz",
+//		@"81.7.json.gz",
+//		@"9A.json.gz",		// CALL
+//		@"9C.json.gz",
+		@"A5.json.gz",		// MOVS
+//		@"A7.json.gz",
+//		@"AD.json.gz",
+//		@"AF.json.gz",
+//		@"C0.2.json.gz",
+//		@"C0.3.json.gz",
+//		@"C0.5.json.gz",
+//		@"C0.6.json.gz",
+//		@"C1.6.json.gz",
+//		@"C6.json.gz",
+//		@"C7.json.gz",
+//		@"C8.json.gz",		// ENTER
+//		@"C9.json.gz",
+//		@"CC.json.gz",
+//		@"CD.json.gz",
+//		@"CE.json.gz",
+//		@"D0.6.json.gz",
+//		@"D1.6.json.gz",
+//		@"D2.6.json.gz",
+//		@"D3.6.json.gz",
+//		@"D8.json.gz",		// Various floating poing
+//		@"EA.json.gz",		// JMP aa:bb
+//		@"F4.json.gz",		// HLT
+//		@"F6.1.json.gz",	// IDIV
+//		@"F6.7.json.gz",	// IDIV
+//		@"F7.0.json.gz",	// TEST
+//		@"F7.1.json.gz",	// TEST
+//		@"FF.3.json.gz",	// CALL far, plus unrecognised (bad)s?
+//		@"FF.5.json.gz",
+]];
+
 // MARK: - Test paths
 
 // The tests themselves are not duplicated in this repository;
@@ -262,61 +317,6 @@ std::vector<uint8_t> bytes(NSArray<NSNumber *> *encoding) {
 
 NSArray<NSString *> *test_files(const char *const home) {
 	NSString *const path = [NSString stringWithUTF8String:home];
-	NSSet *const allowList = [NSSet setWithArray:@[
-		// Current execution failures, albeit all permitted:
-//		@"D4.json.gz",		// AAM
-//		@"F6.7.json.gz",	// IDIV byte
-//		@"F7.7.json.gz",	// IDIV word
-//		@"00.json.gz",
-
-//		@"2F.json.gz",		// DAS
-//		@"60.json.gz",		// PUSHA
-//		@"61.json.gz",		// POPA
-//		@"62.json.gz",		// BOUND and (bad) mix
-//		@"69.json.gz",		// IMUL
-//		@"6D.json.gz",		// INS.W
-//		@"6F.json.gz",		// OUTS.W
-//		@"81.0.json.gz",	// ADD
-//		@"81.1.json.gz",	// OR
-//		@"81.2.json.gz",	// ADC
-//		@"81.3.json.gz",	// SBB
-//		@"81.4.json.gz",
-//		@"81.5.json.gz",
-//		@"81.6.json.gz",
-//		@"81.7.json.gz",
-//		@"9A.json.gz",		// CALL
-//		@"9C.json.gz",
-//		@"A5.json.gz",
-//		@"A7.json.gz",
-//		@"AD.json.gz",
-//		@"AF.json.gz",
-//		@"C0.2.json.gz",
-//		@"C0.3.json.gz",
-//		@"C0.5.json.gz",
-//		@"C0.6.json.gz",
-//		@"C1.6.json.gz",
-//		@"C6.json.gz",
-//		@"C7.json.gz",
-//		@"C8.json.gz",		// ENTER
-//		@"C9.json.gz",
-//		@"CC.json.gz",
-//		@"CD.json.gz",
-//		@"CE.json.gz",
-//		@"D0.6.json.gz",
-//		@"D1.6.json.gz",
-//		@"D2.6.json.gz",
-//		@"D3.6.json.gz",
-//		@"D8.json.gz",		// Various floating poing
-//		@"EA.json.gz",		// JMP aa:bb
-//		@"F4.json.gz",		// HLT
-//		@"F6.1.json.gz",	// IDIV
-//		@"F6.7.json.gz",	// IDIV
-//		@"F7.0.json.gz",	// TEST
-//		@"F7.1.json.gz",	// TEST
-//		@"FF.3.json.gz",	// CALL far, plus unrecognised (bad)s?
-//		@"FF.5.json.gz",
-	]];
-
 	NSSet *ignoreList = nil;
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
