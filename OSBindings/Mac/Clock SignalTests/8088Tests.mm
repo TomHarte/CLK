@@ -54,9 +54,9 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
 //		@"9A.json.gz",		// CALL
-//		@"9C.json.gz",
-		@"A5.json.gz",		// MOVS
+//		@"A5.json.gz",		// MOVS
 //		@"A7.json.gz",
+		@"AB.json.gz",		// STOSW
 //		@"AD.json.gz",
 //		@"AF.json.gz",
 //		@"C0.2.json.gz",
@@ -68,17 +68,15 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
 //		@"C9.json.gz",
-//		@"CC.json.gz",
 //		@"CD.json.gz",
 //		@"CE.json.gz",
 //		@"D0.6.json.gz",
 //		@"D1.6.json.gz",
 //		@"D2.6.json.gz",
 //		@"D3.6.json.gz",
-//		@"D8.json.gz",		// Various floating poing
+//		@"D8.json.gz",		// Various floating point
 //		@"EA.json.gz",		// JMP aa:bb
 //		@"F4.json.gz",		// HLT
-//		@"F6.1.json.gz",	// IDIV
 //		@"F6.7.json.gz",	// IDIV
 //		@"F7.0.json.gz",	// TEST
 //		@"F7.1.json.gz",	// TEST
@@ -286,6 +284,7 @@ struct ExecutionSupport {
 	CPUControl cpu_control;
 
 	ExecutionSupport():
+		flags(model),
 		memory(registers, segments, linear_memory),
 		segments(registers, linear_memory),
 		flow_controller(registers, segments) {}
@@ -427,7 +426,7 @@ void apply_execution_test(
 	NSDictionary *const final_state = test[@"final"];
 
 	// Apply initial state.
-	Flags initial_flags;
+	Flags initial_flags(t_model);
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
 		execution_support.linear_memory.seed([ram[0] intValue], [ram[1] intValue]);
 	}
@@ -462,7 +461,7 @@ void apply_execution_test(
 
 	// Compare final state.
 	InstructionSet::x86::Registers<t_model> intended_registers;
-	InstructionSet::x86::Flags intended_flags;
+	InstructionSet::x86::Flags intended_flags(t_model);
 
 	bool ramEqual = true;
 	int mask_position = 0;
@@ -572,7 +571,7 @@ void apply_execution_test(
 
 	NSMutableArray<NSString *> *reasons = [[NSMutableArray alloc] init];
 	if(!flagsEqual) {
-		Flags difference;
+		Flags difference(t_model);
 		difference.set((intended_flags.get() ^ execution_support.flags.get()) & flags_mask);
 		[reasons addObject:
 			[NSString stringWithFormat:@"flags differ; errors in %s",

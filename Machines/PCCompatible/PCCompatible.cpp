@@ -941,6 +941,7 @@ private:
 			KeyboardController<pc_model> &keyboard,
 			RTC &rtc
 		) :
+			flags(x86_model),
 			segments(registers, linear_memory),
 			memory(registers, segments, linear_memory),
 			flow_controller(registers, segments),

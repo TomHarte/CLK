@@ -81,6 +81,18 @@ class Flags {
 public:
 	using FlagT = uint32_t;
 
+	Flags(const Model model) {
+		switch(model) {
+			case Model::i8086:
+			case Model::i80186:
+				forced_set_ = 0xf002;
+			break;
+			default:
+				forced_set_ = 0x0002;
+			break;
+		}
+	}
+
 	// Flag getters.
 	template <Flag flag_v> bool flag() const {
 		switch(flag_v) {
@@ -177,7 +189,7 @@ public:
 
 	uint16_t get() const {
 		return
-			0xf002 |
+			forced_set_ |
 
 			(flag<Flag::Carry>() ? FlagValue::Carry : 0) |
 			(flag<Flag::AuxiliaryCarry>() ? FlagValue::AuxiliaryCarry : 0) |
@@ -232,6 +244,9 @@ private:
 
 	// Odd number of bits => set; even => unset.
 	uint32_t parity_{};
+
+	// Model specific stuff: bits that are always set, regardless of other state.
+	uint16_t forced_set_{};
 };
 
 }
