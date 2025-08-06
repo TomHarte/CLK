@@ -61,18 +61,12 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"C0.2.json.gz",
 //		@"C0.3.json.gz",
 //		@"C0.5.json.gz",
-//		@"C0.6.json.gz",
-//		@"C1.6.json.gz",
 //		@"C6.json.gz",
 //		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
 //		@"C9.json.gz",
 //		@"CD.json.gz",
 //		@"CE.json.gz",
-//		@"D0.6.json.gz",
-//		@"D1.6.json.gz",
-//		@"D2.6.json.gz",
-//		@"D3.6.json.gz",
 //		@"D8.json.gz",		// Various floating point
 //		@"EA.json.gz",		// JMP aa:bb
 //		@"F4.json.gz",		// HLT

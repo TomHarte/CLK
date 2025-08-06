@@ -810,14 +810,21 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 				switch(reg) {
 					default:
-						if constexpr (model == Model::i8086) {
-							if(source_ == Source::eCX) {
-								set(Operation::SETMOC);
-							} else {
-								set(Operation::SETMO);
-							}
-						} else {
-							return undefined();
+						switch(model) {
+							case Model::i8086:
+								if(source_ == Source::eCX) {
+									set(Operation::SETMOC);
+								} else {
+									set(Operation::SETMO);
+								}
+							break;
+
+							case Model::i80286:
+								set(Operation::SAL);
+							break;
+
+							default:
+								undefined();
 						}
 					break;
 
