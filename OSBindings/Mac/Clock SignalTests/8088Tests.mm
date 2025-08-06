@@ -59,7 +59,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"AD.json.gz",
 //		@"AF.json.gz",		// SCAS
 //		@"C0.2.json.gz",
-//		@"C0.3.json.gz",
 //		@"C0.5.json.gz",
 //		@"C6.json.gz",
 //		@"C7.json.gz",
@@ -567,8 +566,8 @@ void apply_execution_test(
 		Flags difference(t_model);
 		difference.set((intended_flags.get() ^ execution_support.flags.get()) & flags_mask);
 		[reasons addObject:
-			[NSString stringWithFormat:@"flags differ; errors in %s",
-				difference.to_string().c_str()]];
+			[NSString stringWithFormat:@"flags differ; errors in %s due to final state %s",
+				difference.to_string().c_str(), execution_support.flags.to_string().c_str()]];
 	}
 	if(!registersEqual) {
 		NSMutableArray<NSString *> *registers = [[NSMutableArray alloc] init];

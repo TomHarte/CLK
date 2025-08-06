@@ -96,13 +96,12 @@ void rcr(
 			OD;
 	*/
 	auto carry = context.flags.template carry_bit<IntT>();
-	context.flags.template set_from<Flag::Overflow>(
-		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
-	);
 
 	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
 	switch(temp_count) {
-		case 0: break;
+		case 0:
+			if(!count) return;
+		break;
 		case Numeric::bit_size<IntT>(): {
 			const IntT temp_carry = destination & Numeric::top_bit<IntT>();
 			destination = IntT((destination << 1) | carry);
@@ -119,6 +118,11 @@ void rcr(
 		} break;
 	}
 
+	// Intention: overflow is set if the last shift step affected the top bit of
+	// the destination.
+	context.flags.template set_from<Flag::Overflow>(
+		(destination ^ (destination << 1)) & Numeric::top_bit<IntT>()
+	);
 	context.flags.template set_from<Flag::Carry>(carry);
 }
 
