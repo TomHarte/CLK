@@ -152,7 +152,11 @@ void enter(
 	const auto alloc_size = instruction.dynamic_storage_size();
 	const auto nesting_level = instruction.nesting_level() & 0x1f;
 
-	// Preauthorise contents that'll be fetched via BP.
+	auto final_sp = context.registers.sp();
+	final_sp -= (nesting_level * sizeof(uint16_t)) + alloc_size + sizeof(uint16_t);
+	context.memory.preauthorise_write(Source::SS, final_sp, sizeof(IntT));
+
+	// Preauthorise contents that'll be copied via BP.
 	const auto copied_pointers = nesting_level - 2;
 	if(copied_pointers > 0) {
 		context.memory.preauthorise_read(
@@ -160,10 +164,10 @@ void enter(
 			uint16_t(context.registers.bp() - size_t(copied_pointers) * sizeof(uint16_t)),
 			uint32_t(size_t(copied_pointers) * sizeof(uint16_t))	// TODO: I don't think this can actually be 32 bit.
 		);
-	}
 
-	// Preauthorise writes.
-	context.memory.preauthorise_stack_write(uint32_t(size_t(nesting_level) * sizeof(uint16_t)));
+		// Preauthorise stack writes.
+//		context.memory.preauthorise_stack_write(uint32_t(size_t(copied_pointers) * sizeof(uint16_t)));
+	}
 
 	// Push BP and grab the end of frame.
 	push<uint16_t, true>(context.registers.bp(), context);
@@ -175,15 +179,18 @@ void enter(
 			context.registers.bp() -= 2;
 
 			const auto value =
-				context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(Source::SS, context.registers.bp());
-			push<uint16_t, true>(value, context);
+				context.memory.template access
+					<uint16_t, AccessType::PreauthorisedRead>(Source::SS, context.registers.bp());
+			push<uint16_t, false>(value, context);
 		}
-		push<uint16_t, true>(frame, context);
+		push<uint16_t, false>(frame, context);
 	}
 
 	// Set final BP.
 	context.registers.bp() = frame;
 	context.registers.sp() -= alloc_size;
+
+	assert(final_sp == context.registers.sp());
 }
 
 template <typename IntT, typename ContextT>

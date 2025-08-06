@@ -50,12 +50,18 @@ uint32_t address(
 	if constexpr (instruction_type(ContextT::model) != InstructionType::Bits16) {
 		address <<= pointer.scale();
 	}
+//	printf("%d + %d", address, instruction.offset());
 	address += instruction.offset();
 
 	if constexpr (source == Source::IndirectNoBase) {
+//		printf("\n");
 		return address;
 	}
-	return address + resolve<uint16_t, AccessType::Read>(instruction, pointer.base(), pointer, context);
+
+	const auto base = resolve<uint16_t, AccessType::Read>(instruction, pointer.base(), pointer, context);
+//	printf("+ %d\n", base);
+	address += base;
+	return address;
 }
 
 /// @returns a pointer to the contents of the register identified by the combination of @c IntT and @c Source if any;
@@ -207,6 +213,10 @@ typename Accessor<IntT, access>::type resolve(
 	// Do it and exit.
 	//
 	// TODO: support 32-bit addresses.
+
+	//
+	// TODO: validate offset. If it's greater than the address size, fault?
+	//
 	return context.memory.template access<IntT, access>(instruction.data_segment(), uint16_t(target_address));
 }
 

@@ -275,8 +275,8 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"6F.json.gz",		// OUTS.W
 //		@"81.0.json.gz",	// ADD
 //		@"81.1.json.gz",	// OR
-		@"81.2.json.gz",	// ADC
-		@"81.3.json.gz",	// SBB
+//		@"81.2.json.gz",	// ADC
+//		@"81.3.json.gz",	// SBB
 //		@"81.4.json.gz",
 //		@"81.5.json.gz",
 //		@"81.6.json.gz",
@@ -295,7 +295,7 @@ NSArray<NSString *> *test_files(const char *const home) {
 //		@"C1.6.json.gz",
 //		@"C6.json.gz",
 //		@"C7.json.gz",
-//		@"C8.json.gz",
+		@"C8.json.gz",		// ENTER
 //		@"C9.json.gz",
 //		@"CC.json.gz",
 //		@"CD.json.gz",
@@ -401,7 +401,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-//	if([test[@"hash"] isEqualToString:@"025d2b0f5f65a5eba94c87b765c3c618e4503069"]) {
+//	if([test[@"hash"] isEqualToString:@"57b2da1b1434b3a07bee04a091389855472acd5c"]) {
 //		printf("");
 //	}
 
