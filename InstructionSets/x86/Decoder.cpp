@@ -33,6 +33,17 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 	static constexpr bool is_32bit = instruction_type(model) == InstructionType::Bits32;
 	const uint8_t *const end = source + std::min(length, size_t(max_instruction_length - consumed_));
 
+	const auto post_invalid = [&] {
+		std::pair<int, InstructionT> result;
+		if(max_instruction_length == 65536) {
+			result = std::make_pair(consumed_, InstructionT(Operation::NOP));
+		} else {
+			result = std::make_pair(consumed_, InstructionT());
+		}
+		reset_parsing();
+		return result;
+	};
+
 	// MARK: - Prefixes (if present) and the opcode.
 
 #define Requires(x)		if constexpr (model != Model::x) return undefined();
@@ -1017,8 +1028,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				}
 			}
 		} else {
-			// Provide a genuine measure of further bytes required.
-			return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
+			// Provide a genuine measure of further bytes required, or post a bad instruction
+			// if the length limit has been breached.
+			if(consumed_ != max_instruction_length) {
+				return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
+			} else {
+				return post_invalid();
+			}
 		}
 	}
 
@@ -1058,14 +1074,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 	// Check for a too-long instruction.
 	if(consumed_ == max_instruction_length) {
-		std::pair<int, InstructionT> result;
-		if(max_instruction_length == 65536) {
-			result = std::make_pair(consumed_, InstructionT(Operation::NOP));
-		} else {
-			result = std::make_pair(consumed_, InstructionT());
-		}
-		reset_parsing();
-		return result;
+		return post_invalid();
 	}
 
 	// i.e. not done yet.
