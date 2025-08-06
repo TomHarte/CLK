@@ -64,7 +64,7 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"C6.json.gz",
 //		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
-//		@"C9.json.gz",
+//		@"C9.json.gz",		// LEAVE
 //		@"CD.json.gz",
 //		@"CE.json.gz",
 //		@"D8.json.gz",		// Various floating point
@@ -395,7 +395,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"3668fd6dd7102672fd0f86008ce0decbd6cd1b05"]) {
+	if([test[@"hash"] isEqualToString:@"9a64f0b343d07c6526fa1f25664ab31f1488f561"]) {
 		printf("");
 	}
 

@@ -250,14 +250,12 @@ template <
 		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
 		case Operation::IDIV_REP:
-			if constexpr (ContextT::model == Model::i8086) {
+			if constexpr (ContextT::model < Model::i80286) {
 				Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);
 				break;
 			} else {
 				static_assert(int(Operation::IDIV_REP) == int(Operation::LEAVE));
-				if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
-					Primitive::leave<IntT>(context);
-				}
+				Primitive::leave<IntT>(context);
 			}
 		return;
 
