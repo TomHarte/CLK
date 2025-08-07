@@ -123,9 +123,19 @@ void lods(
 		return;
 	}
 
-	eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	}
 
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 
