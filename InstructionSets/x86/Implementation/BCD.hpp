@@ -104,18 +104,27 @@ void daas(
 	ContextT &context
 ) {
 	bool top_exceeded_threshold;
-	if constexpr (ContextT::model == Model::i8086) {
+	constexpr bool is_8086 = ContextT::model == Model::i8086;
+	if constexpr (is_8086) {
 		top_exceeded_threshold = al > (context.flags.template flag<Flag::AuxiliaryCarry>() ? 0x9f : 0x99);
 	} else {
 		top_exceeded_threshold = al > 0x99;
 	}
 
+	const auto initial_cf = context.flags.template flag<Flag::Carry>();
 	if((al & 0x0f) > 0x09 || context.flags.template flag<Flag::AuxiliaryCarry>()) {
-		if constexpr (add) al += 0x06; else al -= 0x06;
+		const auto prior_al = al;
+		if constexpr (add) {
+			al += 0x06;
+			if(!is_8086 && al < prior_al) context.flags.template set_from<Flag::Carry>(1);
+		} else {
+			al -= 0x06;
+			if(!is_8086 && al > prior_al) context.flags.template set_from<Flag::Carry>(1);
+		}
 		context.flags.template set_from<Flag::AuxiliaryCarry>(1);
 	}
 
-	if(top_exceeded_threshold || context.flags.template flag<Flag::Carry>()) {
+	if(top_exceeded_threshold || initial_cf) {
 		if constexpr (add) al += 0x60; else al -= 0x60;
 		context.flags.template set_from<Flag::Carry>(1);
 	}

@@ -38,7 +38,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"F7.7.json.gz",	// IDIV word
 //		@"00.json.gz",
 
-//		@"2F.json.gz",		// DAS
 //		@"61.json.gz",		// POPA
 //		@"69.json.gz",		// IMUL
 //		@"81.0.json.gz",	// ADD
@@ -386,7 +385,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"3744dfa0a1386ef97ddd25c67bad150ba05beb3b"]) {
+	if([test[@"hash"] isEqualToString:@"453ef52b02539ada0b78a7bdc319c4d7d06fc0a2"]) {
 		printf("");
 	}
 
