@@ -52,9 +52,8 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
 //		@"9A.json.gz",		// CALL
-//		@"C0.2.json.gz",
 //		@"C6.json.gz",
-//		@"C7.json.gz",
+//		@"C7.json.gz",		// MOV WORD failure to spot invalids
 //		@"C8.json.gz",		// ENTER
 //		@"CD.json.gz",
 //		@"CE.json.gz",		// INTO
