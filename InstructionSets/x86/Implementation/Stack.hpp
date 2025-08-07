@@ -120,26 +120,38 @@ template <typename IntT, typename ContextT>
 void pusha(
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_write(sizeof(IntT) * 8);
 	const IntT initial_sp = context.registers.sp();
-	if constexpr (std::is_same_v<IntT, uint32_t>) {
-		push<uint32_t, true>(context.registers.eax(), context);
-		push<uint32_t, true>(context.registers.ecx(), context);
-		push<uint32_t, true>(context.registers.edx(), context);
-		push<uint32_t, true>(context.registers.ebx(), context);
-		push<uint32_t, true>(initial_sp, context);
-		push<uint32_t, true>(context.registers.ebp(), context);
-		push<uint32_t, true>(context.registers.esi(), context);
-		push<uint32_t, true>(context.registers.edi(), context);
+	const auto do_pushes = [&] {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			push<uint32_t, false>(context.registers.eax(), context);
+			push<uint32_t, false>(context.registers.ecx(), context);
+			push<uint32_t, false>(context.registers.edx(), context);
+			push<uint32_t, false>(context.registers.ebx(), context);
+			push<uint32_t, false>(initial_sp, context);
+			push<uint32_t, false>(context.registers.ebp(), context);
+			push<uint32_t, false>(context.registers.esi(), context);
+			push<uint32_t, false>(context.registers.edi(), context);
+		} else {
+			push<uint16_t, false>(context.registers.ax(), context);
+			push<uint16_t, false>(context.registers.cx(), context);
+			push<uint16_t, false>(context.registers.dx(), context);
+			push<uint16_t, false>(context.registers.bx(), context);
+			push<uint16_t, false>(initial_sp, context);
+			push<uint16_t, false>(context.registers.bp(), context);
+			push<uint16_t, false>(context.registers.si(), context);
+			push<uint16_t, false>(context.registers.di(), context);
+		}
+	};
+
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			do_pushes();
+		} catch (const Exception &e) {
+			context.registers.sp() = initial_sp;
+			throw e;
+		};
 	} else {
-		push<uint16_t, true>(context.registers.ax(), context);
-		push<uint16_t, true>(context.registers.cx(), context);
-		push<uint16_t, true>(context.registers.dx(), context);
-		push<uint16_t, true>(context.registers.bx(), context);
-		push<uint16_t, true>(initial_sp, context);
-		push<uint16_t, true>(context.registers.bp(), context);
-		push<uint16_t, true>(context.registers.si(), context);
-		push<uint16_t, true>(context.registers.di(), context);
+		do_pushes();
 	}
 }
 

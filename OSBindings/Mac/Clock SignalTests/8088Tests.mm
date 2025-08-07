@@ -39,7 +39,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"00.json.gz",
 
 //		@"2F.json.gz",		// DAS
-//		@"60.json.gz",		// PUSHA
 //		@"61.json.gz",		// POPA
 //		@"69.json.gz",		// IMUL
 //		@"6D.json.gz",		// INS.W
