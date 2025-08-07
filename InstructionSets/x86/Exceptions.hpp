@@ -82,7 +82,7 @@ constexpr bool posts_next_ip(const Vector vector) {
 		case SingleStep:
 		case Breakpoint:
 		case Overflow:
-			return false;
+			return true;
 	}
 }
 
