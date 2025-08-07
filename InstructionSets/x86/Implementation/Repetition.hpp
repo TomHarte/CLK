@@ -51,8 +51,28 @@ void cmps(
 		return;
 	}
 
-	IntT lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	IntT lhs, rhs;
+	if constexpr (!uses_8086_exceptions(ContextT::model)) {
+		try {
+			rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			throw e;
+		}
+
+		try {
+			lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+
+	} else {
+		rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+		lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	}
 	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
