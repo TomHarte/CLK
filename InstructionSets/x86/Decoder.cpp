@@ -1049,8 +1049,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 		// operations would unlock an extra bit of storage for a net gain of 239 extra operation types and thereby
 		// alleviating any concerns over whether there'll be space to handle MMX, floating point extensions, etc.
 
-		if(operation_ == Operation::BOUND && source_ <= Source::None) {
-			return undefined();
+		if constexpr (model >= Model::i80286) {
+			if(operation_ == Operation::BOUND && source_ <= Source::None) {
+				return undefined();
+			}
 		}
 
 		const auto result = std::make_pair(

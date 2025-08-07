@@ -71,7 +71,7 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"F7.0.json.gz",	// TEST
 //		@"F7.1.json.gz",	// TEST
 //		@"FF.3.json.gz",	// CALL far, plus unrecognised (bad)s?
-//		@"FF.5.json.gz",
+//		@"FF.5.json.gz",	// JMP far
 ]];
 
 // MARK: - Test paths
