@@ -152,8 +152,12 @@ public:
 		);
 	}
 
-	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
-	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
+	void preauthorise_read(const InstructionSet::x86::Source descriptor, const uint16_t offset, const uint32_t size) {
+		segments_.descriptors[descriptor].template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(offset, offset + size);
+	}
+	void preauthorise_write(const InstructionSet::x86::Source descriptor, const uint16_t offset, const uint32_t size) {
+		segments_.descriptors[descriptor].template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(offset, offset + size);
+	}
 
 	// TODO: perform authorisation checks.
 

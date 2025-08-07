@@ -224,11 +224,13 @@ void leave(
 ) {
 	// TODO: should use StackAddressSize to determine assignment of bp to sp.
 	if constexpr (std::is_same_v<IntT, uint32_t>) {
+		context.memory.preauthorise_read(Source::SS, context.registers.ebp(), sizeof(uint32_t));
 		context.registers.esp() = context.registers.ebp();
-		context.registers.ebp() = pop<uint32_t, false>(context);
+		context.registers.ebp() = pop<uint32_t, true>(context);
 	} else {
+		context.memory.preauthorise_read(Source::SS, context.registers.bp(), sizeof(uint16_t));
 		context.registers.sp() = context.registers.bp();
-		context.registers.bp() = pop<uint16_t, false>(context);
+		context.registers.bp() = pop<uint16_t, true>(context);
 	}
 }
 
