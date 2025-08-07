@@ -41,8 +41,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"2F.json.gz",		// DAS
 //		@"61.json.gz",		// POPA
 //		@"69.json.gz",		// IMUL
-//		@"6D.json.gz",		// INS.W
-//		@"6F.json.gz",		// OUTS.W
 //		@"81.0.json.gz",	// ADD
 //		@"81.1.json.gz",	// OR
 //		@"81.2.json.gz",	// ADC
@@ -52,7 +50,7 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
 //		@"9A.json.gz",		// CALL
-//		@"C6.json.gz",
+//		@"C6.json.gz",		// MOV byte failure to spot invalids
 //		@"C7.json.gz",		// MOV WORD failure to spot invalids
 //		@"C8.json.gz",		// ENTER
 //		@"CD.json.gz",

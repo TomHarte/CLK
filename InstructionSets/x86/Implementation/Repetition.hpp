@@ -227,12 +227,26 @@ void outs(
 		return;
 	}
 
-	context.io.template out<IntT>(
-		port,
-		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
-	);
-	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	// TODO: break down as two potentially-throwing steps.
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			context.io.template out<IntT>(
+				port,
+				context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
+			);
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		context.io.template out<IntT>(
+			port,
+			context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
+		);
+	}
 
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 
@@ -247,9 +261,22 @@ void ins(
 		return;
 	}
 
-	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = context.io.template in<IntT>(port);
-	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	// TODO: break down as two potentially-throwing steps.
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
+				context.io.template in<IntT>(port);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = context.io.template in<IntT>(port);
+	}
 
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 
