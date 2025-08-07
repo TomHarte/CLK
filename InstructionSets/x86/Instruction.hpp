@@ -507,7 +507,7 @@ constexpr bool is_segment_register(const Source source) {
 }
 constexpr bool is_address(const Source source) {
 	// TODO: is there any reason not to swap DirectAddress and Immediate to simplify this?
-	return source >= Source::Indirect || source == Source::DirectAddress;
+	return source == Source::Indirect || source == Source::IndirectNoBase || source == Source::DirectAddress;
 }
 
 enum class Repetition: uint8_t {

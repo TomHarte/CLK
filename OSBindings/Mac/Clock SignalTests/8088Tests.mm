@@ -70,8 +70,7 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"F6.7.json.gz",	// IDIV
 //		@"F7.0.json.gz",	// TEST
 //		@"F7.1.json.gz",	// TEST
-//		@"FF.3.json.gz",	// CALL far, plus unrecognised (bad)s?
-//		@"FF.5.json.gz",	// JMP far
+//		@"FF.3.json.gz",	// CALL far
 ]];
 
 // MARK: - Test paths
@@ -392,7 +391,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"0fb82f901e54ab6d11299548e1b4bb3507b2c183"]) {
+	if([test[@"hash"] isEqualToString:@"4fc96e3cc26c9d12bf46af9e086a94722d0f8fdd"]) {
 		printf("");
 	}
 
