@@ -110,12 +110,33 @@ void movs(
 		return;
 	}
 
-	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
-		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	if constexpr (!uses_8086_exceptions(ContextT::model)) {
+		IntT temp;
+
+		try {
+			temp = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+
+		try {
+			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = temp;
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
+			context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	}
 
 	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
-
 	repeat<AddressT, repetition>(eCX, context);
 }
 
