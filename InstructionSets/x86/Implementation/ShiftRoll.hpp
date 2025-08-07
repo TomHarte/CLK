@@ -340,7 +340,7 @@ void shr(
 		return;
 	}
 
-	context.flags.template set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
+	context.flags.template set_from<Flag::Overflow>(count == 1 && Numeric::top_bit<IntT>() & destination);
 	if(count == Numeric::bit_size<IntT>()) {
 		context.flags.template set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
 		destination = 0;
