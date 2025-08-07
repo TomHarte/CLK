@@ -872,6 +872,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				source_ = Source::Immediate;
 				destination_ = memreg;
 				operand_size_ = operation_size_;
+
+				// This form requires that the reg field be blank
+				if constexpr (model >= Model::i80286) {
+					if(reg != 0) {
+						return undefined();
+					}
+				}
 			break;
 
 			case ModRegRMFormat::MemRegADD_to_CMP:
