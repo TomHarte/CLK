@@ -92,11 +92,22 @@ void scas(
 		return;
 	}
 
-	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	IntT rhs;
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+
+	} else {
+		rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	}
+
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
-
 	Primitive::sub<false, AccessType::Read, IntT>(eAX, rhs, context);
-
 	repeat<AddressT, repetition>(eCX, context);
 }
 

@@ -52,8 +52,7 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
 //		@"9A.json.gz",		// CALL
-//		@"AD.json.gz",
-//		@"AF.json.gz",		// SCAS
+		@"AD.json.gz",
 //		@"C0.2.json.gz",
 //		@"C6.json.gz",
 //		@"C7.json.gz",
