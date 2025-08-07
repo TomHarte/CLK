@@ -94,25 +94,38 @@ template <typename IntT, typename ContextT>
 void popa(
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
-	if constexpr (std::is_same_v<IntT, uint32_t>) {
-		context.registers.edi() = pop<uint32_t, true>(context);
-		context.registers.esi() = pop<uint32_t, true>(context);
-		context.registers.ebp() = pop<uint32_t, true>(context);
-		context.registers.esp() += 4;
-		context.registers.ebx() = pop<uint32_t, true>(context);
-		context.registers.edx() = pop<uint32_t, true>(context);
-		context.registers.ecx() = pop<uint32_t, true>(context);
-		context.registers.eax() = pop<uint32_t, true>(context);
+	const auto initial_sp = context.registers.sp();
+	const auto do_pops = [&] {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			context.registers.edi() = pop<uint32_t, false>(context);
+			context.registers.esi() = pop<uint32_t, false>(context);
+			context.registers.ebp() = pop<uint32_t, false>(context);
+			context.registers.esp() += 4;
+			context.registers.ebx() = pop<uint32_t, false>(context);
+			context.registers.edx() = pop<uint32_t, false>(context);
+			context.registers.ecx() = pop<uint32_t, false>(context);
+			context.registers.eax() = pop<uint32_t, false>(context);
+		} else {
+			context.registers.di() = pop<uint16_t, false>(context);
+			context.registers.si() = pop<uint16_t, false>(context);
+			context.registers.bp() = pop<uint16_t, false>(context);
+			context.registers.sp() += 2;
+			context.registers.bx() = pop<uint16_t, false>(context);
+			context.registers.dx() = pop<uint16_t, false>(context);
+			context.registers.cx() = pop<uint16_t, false>(context);
+			context.registers.ax() = pop<uint16_t, false>(context);
+		}
+	};
+
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			do_pops();
+		} catch (const Exception &e) {
+			context.registers.sp() = initial_sp;
+			throw e;
+		};
 	} else {
-		context.registers.di() = pop<uint16_t, true>(context);
-		context.registers.si() = pop<uint16_t, true>(context);
-		context.registers.bp() = pop<uint16_t, true>(context);
-		context.registers.sp() += 2;
-		context.registers.bx() = pop<uint16_t, true>(context);
-		context.registers.dx() = pop<uint16_t, true>(context);
-		context.registers.cx() = pop<uint16_t, true>(context);
-		context.registers.ax() = pop<uint16_t, true>(context);
+		do_pops();
 	}
 }
 
