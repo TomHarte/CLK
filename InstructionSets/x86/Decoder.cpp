@@ -1050,9 +1050,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 		// alleviating any concerns over whether there'll be space to handle MMX, floating point extensions, etc.
 
 		if constexpr (model >= Model::i80286) {
-			if(operation_ == Operation::BOUND && source_ <= Source::None) {
+			if(operation_ == Operation::BOUND && !is_address(source_)) {
 				return undefined();
 			}
+		}
+		if(
+			(operation_ == Operation::JMPfar || operation_ == Operation::CALLfar) &&
+			destination_ < Source::DirectAddress
+		) {
+			return undefined();
 		}
 
 		const auto result = std::make_pair(

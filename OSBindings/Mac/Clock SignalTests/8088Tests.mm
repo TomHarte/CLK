@@ -392,9 +392,9 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-//	if([test[@"hash"] isEqualToString:@"c00a95eb3ae2b5500858bdafeb82a1e923e351c8"]) {
-//		printf("");
-//	}
+	if([test[@"hash"] isEqualToString:@"0fb82f901e54ab6d11299548e1b4bb3507b2c183"]) {
+		printf("");
+	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
