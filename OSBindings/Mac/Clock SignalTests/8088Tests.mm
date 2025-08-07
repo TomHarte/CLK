@@ -61,7 +61,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"CE.json.gz",		// INTO
 //		@"D8.json.gz",		// Various floating point
 //		@"EA.json.gz",		// JMP aa:bb
-//		@"F4.json.gz",		// HLT
 //		@"F6.7.json.gz",	// IDIV
 //		@"F7.0.json.gz",	// TEST
 //		@"F7.1.json.gz",	// TEST
@@ -226,13 +225,17 @@ public:
 
 	// Other actions.
 	void begin_instruction() {
-		should_repeat_ = false;
+		is_halted_ = should_repeat_ = false;
 	}
 	bool should_repeat() const {
 		return should_repeat_;
 	}
 	bool is_halted() const {
 		return is_halted_;
+	}
+
+	void clear() {
+		should_repeat_ = is_halted_ = false;
 	}
 
 private:
@@ -275,6 +278,7 @@ struct ExecutionSupport {
 
 	void clear() {
 		linear_memory.clear();
+		flow_controller.clear();
 	}
 };
 
@@ -386,7 +390,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"531ff4a8224b0c13f57c27c3bea6534e1a65d263"]) {
+	if([test[@"hash"] isEqualToString:@"09bc7d2c7275af399dfbb532779b72e36920dc1f"]) {
 		printf("");
 	}
 
@@ -439,8 +443,11 @@ void apply_execution_test(
 	} while (execution_support.flow_controller.should_repeat());
 
 	// If this is the 80286 test set then there was also a HLT. Act as if that happened.
+	// Unless the processor was already halted.
 	if constexpr (t_model == InstructionSet::x86::Model::i80286) {
-		++execution_support.registers.ip();
+		if(!execution_support.flow_controller.is_halted()) {
+			++execution_support.registers.ip();
+		}
 	}
 
 	// Compare final state.
