@@ -41,7 +41,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"2F.json.gz",		// DAS
 //		@"60.json.gz",		// PUSHA
 //		@"61.json.gz",		// POPA
-//		@"62.json.gz",		// BOUND and (bad) mix
 //		@"69.json.gz",		// IMUL
 //		@"6D.json.gz",		// INS.W
 //		@"6F.json.gz",		// OUTS.W
@@ -393,9 +392,9 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"1d665df5828ad5bde2397f32de7cc8c95fe451c5"]) {
-		printf("");
-	}
+//	if([test[@"hash"] isEqualToString:@"c00a95eb3ae2b5500858bdafeb82a1e923e351c8"]) {
+//		printf("");
+//	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);

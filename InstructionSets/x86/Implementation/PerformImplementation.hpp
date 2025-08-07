@@ -128,6 +128,12 @@ template <
 		);
 	};
 
+	const auto source_address = [&]() -> AddressT {
+		return AddressT(
+			address<AddressT, AccessType::Read>(instruction, instruction.source(), context)
+		);
+	};
+
 	// Some instructions use a pair of registers as an extended accumulator — DX:AX or EDX:EAX.
 	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
 	// i.e. AX split into high and low parts.
@@ -434,7 +440,7 @@ template <
 				break;
 			} else {
 				static_assert(int(Operation::SETMOC) == int(Operation::BOUND));
-				Primitive::bound<IntT, AddressT>(instruction, destination_r(), source_r(), context);
+				Primitive::bound<IntT, AddressT>(instruction, destination_r(), source_address(), context);
 			}
 		return;
 

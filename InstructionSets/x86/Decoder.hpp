@@ -368,6 +368,15 @@ private:
 		reset_parsing();
 		return result;
 	}
+
+	std::pair<int, typename Decoder<model>::InstructionT> overlong() {
+		reset_parsing();
+		if(consumed_ == 65536) {
+			return std::make_pair(consumed_, InstructionT(Operation::NOP));
+		} else {
+			return std::make_pair(consumed_, InstructionT());
+		}
+	}
 };
 
 extern template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;

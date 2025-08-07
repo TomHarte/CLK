@@ -33,17 +33,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 	static constexpr bool is_32bit = instruction_type(model) == InstructionType::Bits32;
 	const uint8_t *const end = source + std::min(length, size_t(max_instruction_length - consumed_));
 
-	const auto post_invalid = [&] {
-		std::pair<int, InstructionT> result;
-		if(max_instruction_length == 65536) {
-			result = std::make_pair(consumed_, InstructionT(Operation::NOP));
-		} else {
-			result = std::make_pair(consumed_, InstructionT());
-		}
-		reset_parsing();
-		return result;
-	};
-
 	// MARK: - Prefixes (if present) and the opcode.
 
 #define Requires(x)		if constexpr (model != Model::x) return undefined();
@@ -824,7 +813,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 							break;
 
 							default:
-								undefined();
+							return undefined();
 						}
 					break;
 
@@ -1040,7 +1029,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 			if(consumed_ != max_instruction_length) {
 				return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
 			} else {
-				return post_invalid();
+				return overlong();
 			}
 		}
 	}
@@ -1059,6 +1048,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 		// ... and the #UD exception will be raised if LOCK is encountered elsewhere. So adding 17 additional
 		// operations would unlock an extra bit of storage for a net gain of 239 extra operation types and thereby
 		// alleviating any concerns over whether there'll be space to handle MMX, floating point extensions, etc.
+
+		if(operation_ == Operation::BOUND && source_ <= Source::None) {
+			return undefined();
+		}
 
 		const auto result = std::make_pair(
 			consumed_,
@@ -1081,7 +1074,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 	// Check for a too-long instruction.
 	if(consumed_ == max_instruction_length) {
-		return post_invalid();
+		return overlong();
 	}
 
 	// i.e. not done yet.
