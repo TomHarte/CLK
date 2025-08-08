@@ -116,7 +116,7 @@ void call_far(
 		Source::CS,
 		offset,
 		[&] {
-			context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+			context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2, sizeof(uint16_t));
 			push<uint16_t, true>(context.registers.cs(), context);
 			push<uint16_t, true>(context.registers.ip(), context);
 			context.flow_controller.template jump<AddressT>(segment, offset);
@@ -217,7 +217,7 @@ void iret(
 	ContextT &context
 ) {
 	// TODO: all modes other than 16-bit real mode.
-	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3, sizeof(uint16_t));
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.flags.set(pop<uint16_t, true>(context));
@@ -239,7 +239,7 @@ void ret_far(
 	const InstructionT instruction,
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2, sizeof(uint16_t));
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.registers.sp() += instruction.operand();

@@ -723,7 +723,7 @@ void interrupt(
 	} ();
 
 	const auto far_call = [&](const uint16_t segment, const uint16_t offset) {
-		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
+		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3, sizeof(uint16_t));
 
 		const auto flags = context.flags.get();
 		Primitive::push<uint16_t, true>(flags, context);

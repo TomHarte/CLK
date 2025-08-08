@@ -10,6 +10,7 @@
 
 #include "InstructionSets/x86/AccessType.hpp"
 #include "InstructionSets/x86/Descriptors.hpp"
+#include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/Model.hpp"
 #include "InstructionSets/x86/Registers.hpp"
 
@@ -68,8 +69,8 @@ public:
 	//
 	// Preauthorisation call-ins.
 	//
-	void preauthorise_stack_write(uint32_t) {}
-	void preauthorise_stack_read(uint32_t) {}
+	void preauthorise_stack_write(uint32_t, uint32_t) {}
+	void preauthorise_stack_read(uint32_t, uint32_t) {}
 	void preauthorise_read(InstructionSet::x86::Source, uint16_t, uint32_t) {}
 	void preauthorise_write(InstructionSet::x86::Source, uint16_t, uint32_t) {}
 
@@ -136,20 +137,64 @@ public:
 	//
 	// Preauthorisation call-ins.
 	//
-	void preauthorise_stack_write(const uint32_t size) {
+	void preauthorise_stack_write(const uint32_t size, const uint32_t granularity) {
 		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
-		descriptor.template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(
-			uint16_t(registers_.sp() - size),
-			uint16_t(registers_.sp())
-		);
+
+		const auto leading_distance = registers_.sp();
+		if(leading_distance >= size) {
+			descriptor.template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(
+				uint16_t(registers_.sp() - size),
+				registers_.sp()
+			);
+		} else {
+			// This stack write will overflow the segment; if there's an alignment issue then that's not
+			// going to work.
+			if(registers_.sp() % granularity) {
+				descriptor.throw_gpf();
+			}
+
+			// Authorise two blocks of writes.
+			descriptor.template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(
+				0,
+				registers_.sp()
+			);
+
+			const auto remainder = size - leading_distance;
+			descriptor.template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(
+				uint16_t(65536 - remainder),
+				0 // i.e. 65536
+			);
+		}
 	}
 
-	void preauthorise_stack_read(const uint32_t size) {
+	void preauthorise_stack_read(const uint32_t size, const uint32_t granularity) {
 		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
-		descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
-			uint16_t(registers_.sp() - size),
-			uint16_t(registers_.sp())
-		);
+
+		const auto trailing_distance = 65536 - registers_.sp();
+		if(trailing_distance >= size) {
+			descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
+				uint16_t(registers_.sp()),
+				uint16_t(registers_.sp() + size)
+			);
+		} else {
+			// This stack write will overflow the segment; if there's an alignment issue then that's not
+			// going to work.
+			if(registers_.sp() % granularity) {
+				descriptor.throw_gpf();
+			}
+
+			// Authorise two blocks of reads.
+			descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
+				registers_.sp(),
+				0	// i.e. 65536
+			);
+
+			const auto remainder = size - trailing_distance;
+			descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
+				0,
+				uint16_t(remainder)
+			);
+		}
 	}
 
 	void preauthorise_read(const InstructionSet::x86::Source descriptor, const uint16_t offset, const uint32_t size) {
