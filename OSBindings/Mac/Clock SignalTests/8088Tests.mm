@@ -38,14 +38,10 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"F7.7.json.gz",	// IDIV word
 //		@"00.json.gz",
 
-//		@"C6.json.gz",
 //		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
-//		@"CD.json.gz",
-//		@"CE.json.gz",		// INTO
 //		@"D8.json.gz",		// Various floating point
-//		@"F6.7.json.gz",	// IDIV
-//		@"FF.3.json.gz",	// CALL far
+//		@"F6.7.json.gz",	// IDIV byte
 ]];
 
 // MARK: - Test paths
@@ -370,8 +366,24 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
+	// "Known bad" hashes.
+	NSSet<NSString *> *knownBad = [NSSet setWithArray:@[
+		// Things that ostensibly push an SS to the stack rather than CS, likely due to a recording error:
+			@"7df1d2a948c416f5a4416e2f747d2d357d497570", 	// ce.json; INTO
+			@"ab0cea0f2b89ae469a98eaf20dedc9ff2ca08c91",	// ff.3.json; far CALL
+			@"ba5bb16b5a4306333a359c3abd2169b871ffa42c",	// cd.json; int 3bh
+
+		// This one has entries in its final 'ram' that don't correlate with its bus activity,
+		// so is internally inconsistent.
+			@"eaaf835a6600a351ee70375c7f6996931411bca5",	// c6.json; mov byte [0E805h],6Ah
+	]];
+	if([knownBad containsObject:test[@"hash"]]) {
+		return;
+	}
+
+
 //	NSLog(@"%@", test[@"hash"]);
-//	if(![test[@"hash"] isEqualToString:@"0fa97fc1b8e6acebdef24bf145727635c030e277"]) {
+//	if(![test[@"hash"] isEqualToString:@"eaaf835a6600a351ee70375c7f6996931411bca5"]) {
 //		return;
 //	}
 
