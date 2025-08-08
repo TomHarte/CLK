@@ -39,8 +39,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"00.json.gz",
 
 //		@"61.json.gz",		// POPA
-//		@"C4.json.gz",
-//		@"C5.json.gz",
 //		@"C6.json.gz",
 //		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
@@ -375,7 +373,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-//	if(![test[@"hash"] isEqualToString:@"de57c5300e4e952c0922dcabeb3e896b645f0d2b"]) {
+//	if(![test[@"hash"] isEqualToString:@"ed7087ccf6036e30365a290ac7598d7a3cb93b43"]) {
 //		return;
 //	}
 
