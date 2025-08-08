@@ -38,10 +38,22 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"F7.7.json.gz",	// IDIV word
 //		@"00.json.gz",
 
-//		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
 //		@"D8.json.gz",		// Various floating point
 //		@"F6.7.json.gz",	// IDIV byte
+]];
+
+// "Known bad" test hashes.
+NSSet<NSString *> *knownBad = [NSSet setWithArray:@[
+	// Things that ostensibly push an SS to the stack rather than CS, likely due to a recording error:
+		@"7df1d2a948c416f5a4416e2f747d2d357d497570", 	// ce.json; INTO
+		@"ab0cea0f2b89ae469a98eaf20dedc9ff2ca08c91",	// ff.3.json; far CALL
+		@"ba5bb16b5a4306333a359c3abd2169b871ffa42c",	// cd.json; int 3bh
+
+	// Thes have entries in their final 'ram' lists that don't correlate with their bus activity,
+	// so are internally inconsistent.
+		@"eaaf835a6600a351ee70375c7f6996931411bca5",	// c6.json; mov byte [0E805h],6Ah
+		@"1b586a46891182a22b3f55f71e4db4c601ac26e4",	// c7.json; (bad)
 ]];
 
 // MARK: - Test paths
@@ -366,24 +378,8 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
-	// "Known bad" hashes.
-	NSSet<NSString *> *knownBad = [NSSet setWithArray:@[
-		// Things that ostensibly push an SS to the stack rather than CS, likely due to a recording error:
-			@"7df1d2a948c416f5a4416e2f747d2d357d497570", 	// ce.json; INTO
-			@"ab0cea0f2b89ae469a98eaf20dedc9ff2ca08c91",	// ff.3.json; far CALL
-			@"ba5bb16b5a4306333a359c3abd2169b871ffa42c",	// cd.json; int 3bh
-
-		// This one has entries in its final 'ram' that don't correlate with its bus activity,
-		// so is internally inconsistent.
-			@"eaaf835a6600a351ee70375c7f6996931411bca5",	// c6.json; mov byte [0E805h],6Ah
-	]];
-	if([knownBad containsObject:test[@"hash"]]) {
-		return;
-	}
-
-
 //	NSLog(@"%@", test[@"hash"]);
-//	if(![test[@"hash"] isEqualToString:@"eaaf835a6600a351ee70375c7f6996931411bca5"]) {
+//	if(![test[@"hash"] isEqualToString:@"1b586a46891182a22b3f55f71e4db4c601ac26e4"]) {
 //		return;
 //	}
 
@@ -505,7 +501,12 @@ void apply_execution_test(
 	// AAM 00h throws its exception only after modifying flags in an undocumented manner;
 	// I'm not too concerned about this because AAM 00h is an undocumented usage of 00h,
 	// not even supported by NEC amongst others, and the proper exception is being thrown.
-	if(decoded.second.operation() == Operation::AAM && !decoded.second.operand()) {
+	//
+	// Also check whether the hash of this test just indicates that it's a bad one.
+	if(
+		(decoded.second.operation() == Operation::AAM && !decoded.second.operand()) ||
+		[knownBad containsObject:test[@"hash"]]
+	) {
 		failure_list = &permitted_failures;
 	}
 
