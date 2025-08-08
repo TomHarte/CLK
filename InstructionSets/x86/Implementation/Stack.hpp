@@ -166,45 +166,44 @@ void enter(
 	const auto alloc_size = instruction.dynamic_storage_size();
 	const auto nesting_level = instruction.nesting_level() & 0x1f;
 
-	auto final_sp = context.registers.sp();
-	final_sp -= (nesting_level * sizeof(uint16_t)) + alloc_size + sizeof(uint16_t);
-	context.memory.preauthorise_write(Source::SS, final_sp, sizeof(IntT));
-
-	// Preauthorise contents that'll be copied via BP.
-	const auto copied_pointers = nesting_level - 2;
-	if(copied_pointers > 0) {
-		context.memory.preauthorise_read(
-			Source::SS,
-			uint16_t(context.registers.bp() - size_t(copied_pointers) * sizeof(uint16_t)),
-			uint32_t(size_t(copied_pointers) * sizeof(uint16_t))	// TODO: I don't think this can actually be 32 bit.
-		);
-
-		// Preauthorise stack writes.
-//		context.memory.preauthorise_stack_write(uint32_t(size_t(copied_pointers) * sizeof(uint16_t)));
-	}
-
 	// Push BP and grab the end of frame.
-	push<uint16_t, true>(context.registers.bp(), context);
-	const auto frame = context.registers.sp();
+	const auto original_sp = context.registers.sp();
+	const auto original_bp = context.registers.bp();
+	const auto do_enter = [&] {
+		push<uint16_t, false>(context.registers.bp(), context);
+		const auto frame = context.registers.sp();
 
-	// Copy data as per the nesting level.
-	if(nesting_level > 0) {
-		for(int c = 1; c < nesting_level; c++) {
-			context.registers.bp() -= 2;
+		// Copy data as per the nesting level.
+		if(nesting_level > 0) {
+			for(int c = 1; c < nesting_level; c++) {
+				context.registers.bp() -= 2;
 
-			const auto value =
-				context.memory.template access
-					<uint16_t, AccessType::PreauthorisedRead>(Source::SS, context.registers.bp());
-			push<uint16_t, false>(value, context);
+				const auto value =
+					context.memory.template access
+						<uint16_t, AccessType::Read>(Source::SS, context.registers.bp());
+				push<uint16_t, false>(value, context);
+			}
+			push<uint16_t, false>(frame, context);
 		}
-		push<uint16_t, false>(frame, context);
+
+		// Set final BP.
+		context.registers.bp() = frame;
+		context.registers.sp() -= alloc_size;
+	};
+
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			do_enter();
+		} catch (const Exception &e) {
+			context.registers.sp() = original_sp;
+			context.registers.bp() = original_bp;
+			throw e;
+		}
+	} else {
+		do_enter();
 	}
 
-	// Set final BP.
-	context.registers.bp() = frame;
-	context.registers.sp() -= alloc_size;
-
-	assert(final_sp == context.registers.sp());
+//	assert(final_sp == context.registers.sp());
 }
 
 template <typename IntT, typename ContextT>
