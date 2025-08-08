@@ -46,7 +46,6 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"D8.json.gz",		// Various floating point
 //		@"F6.7.json.gz",	// IDIV
 //		@"FF.3.json.gz",	// CALL far
-//		@"FF.5.json.gz"
 ]];
 
 // MARK: - Test paths

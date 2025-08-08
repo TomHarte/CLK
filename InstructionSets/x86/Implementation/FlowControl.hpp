@@ -202,13 +202,13 @@ void jump_far(
 	}
 
 	const Source source_segment = instruction.data_segment();
-	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
+//	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
 
 	const auto offset =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	context.flow_controller.template jump<uint16_t>(segment, offset);
 }
 
