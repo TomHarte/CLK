@@ -160,12 +160,12 @@ void call_far(
 		break;
 	}
 
-	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) + sizeof(AddressT));
+//	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) + sizeof(AddressT));
 	const auto offset =
-		context.memory.template access<AddressT, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<AddressT, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 
 	call_far(segment, offset, context);
 }
