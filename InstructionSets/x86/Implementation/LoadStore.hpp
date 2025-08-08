@@ -40,12 +40,11 @@ void ld(
 	uint16_t source_address = uint16_t(address<uint16_t, AccessType::Read>(instruction, pointer, context));
 	const Source source_segment = instruction.data_segment();
 
-	context.memory.preauthorise_read(source_segment, source_address, 4);
 	const auto offset =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 
 	context.segments.preauthorise(selector, segment);
 	destination = offset;

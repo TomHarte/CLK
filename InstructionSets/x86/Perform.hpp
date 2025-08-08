@@ -165,8 +165,8 @@ concept is_segmented_memory_32 =
 
 template <typename SegmentedMemoryT, typename AddressT, typename IntT>
 concept supports_preauthorisations = requires(SegmentedMemoryT memory) {
-	memory.preauthorise_stack_write(uint32_t{});
-	memory.preauthorise_stack_read(uint32_t{});
+	memory.preauthorise_stack_write(uint32_t{}, uint32_t{});
+	memory.preauthorise_stack_read(uint32_t{}, uint32_t{});
 
 	memory.preauthorise_read(Source{}, AddressT{}, uint32_t{});
 	memory.preauthorise_write(Source{}, AddressT{}, uint32_t{});
@@ -204,6 +204,7 @@ concept is_flow_controller_16 = requires(FlowControllerT controller) {
 	controller.halt();
 	controller.wait();
 	controller.repeat_last();
+	controller.cancel_repetition();
 };
 
 template <typename FlowControllerT, Model model>

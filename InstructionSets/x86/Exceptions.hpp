@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include <cassert>
+#include <cstdint>
+
 namespace InstructionSet::x86 {
 
 enum class Vector: uint8_t {
@@ -82,7 +85,7 @@ constexpr bool posts_next_ip(const Vector vector) {
 		case SingleStep:
 		case Breakpoint:
 		case Overflow:
-			return false;
+			return true;
 	}
 }
 
@@ -107,6 +110,9 @@ struct ExceptionCode {
 		//	b0:
 		//		1 => trigger was external to program code;
 		//		0 => trigger was caused by the instruction described by the CS:IP that is on the stack.
+
+	ExceptionCode(const uint16_t value) :
+		value_(value) {}
 
 	operator uint16_t() const {
 		return value_;

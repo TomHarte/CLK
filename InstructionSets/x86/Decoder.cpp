@@ -196,6 +196,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				} else {
 					immediate(Operation::PUSH, DataSize::Byte);
 					operation_size_ = data_size_;
+					sign_extend_operand_ = true;
 				}
 			break;
 			case 0x6b:
@@ -736,9 +737,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 				switch(reg) {
 					default:
-						// case 1 is treated as another form of TEST on the 8086.
-						// (and, I guess, the 80186?)
-						if constexpr (model >= Model::i80286) {
+						// case 1 is treated as another form of TEST through to at least the 80286.
+						if constexpr (model >= Model::i80386) {
 							return undefined();
 						}
 						[[fallthrough]];
@@ -799,13 +799,20 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 				switch(reg) {
 					default:
-						if constexpr (model == Model::i8086) {
-							if(source_ == Source::eCX) {
-								set(Operation::SETMOC);
-							} else {
-								set(Operation::SETMO);
-							}
-						} else {
+						switch(model) {
+							case Model::i8086:
+								if(source_ == Source::eCX) {
+									set(Operation::SETMOC);
+								} else {
+									set(Operation::SETMO);
+								}
+							break;
+
+							case Model::i80286:
+								set(Operation::SAL);
+							break;
+
+							default:
 							return undefined();
 						}
 					break;
@@ -865,6 +872,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				source_ = Source::Immediate;
 				destination_ = memreg;
 				operand_size_ = operation_size_;
+
+				// This form requires that the reg field be blank
+				if constexpr (model >= Model::i80286) {
+					if(reg != 0) {
+						return undefined();
+					}
+				}
 			break;
 
 			case ModRegRMFormat::MemRegADD_to_CMP:
@@ -1017,8 +1031,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				}
 			}
 		} else {
-			// Provide a genuine measure of further bytes required.
-			return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
+			// Provide a genuine measure of further bytes required, or post a bad instruction
+			// if the length limit has been breached.
+			if(consumed_ != max_instruction_length) {
+				return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
+			} else {
+				return overlong();
+			}
 		}
 	}
 
@@ -1036,6 +1055,18 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 		// ... and the #UD exception will be raised if LOCK is encountered elsewhere. So adding 17 additional
 		// operations would unlock an extra bit of storage for a net gain of 239 extra operation types and thereby
 		// alleviating any concerns over whether there'll be space to handle MMX, floating point extensions, etc.
+
+		if constexpr (model >= Model::i80286) {
+			if(operation_ == Operation::BOUND && !is_address(source_)) {
+				return undefined();
+			}
+		}
+		if(
+			(operation_ == Operation::JMPfar || operation_ == Operation::CALLfar) &&
+			destination_ < Source::DirectAddress
+		) {
+			return undefined();
+		}
 
 		const auto result = std::make_pair(
 			consumed_,
@@ -1058,14 +1089,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 
 	// Check for a too-long instruction.
 	if(consumed_ == max_instruction_length) {
-		std::pair<int, InstructionT> result;
-		if(max_instruction_length == 65536) {
-			result = std::make_pair(consumed_, InstructionT(Operation::NOP));
-		} else {
-			result = std::make_pair(consumed_, InstructionT());
-		}
-		reset_parsing();
-		return result;
+		return overlong();
 	}
 
 	// i.e. not done yet.

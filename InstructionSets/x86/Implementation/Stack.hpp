@@ -94,7 +94,7 @@ template <typename IntT, typename ContextT>
 void popa(
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
+	context.memory.preauthorise_stack_read(8 * sizeof(IntT), sizeof(IntT));
 	if constexpr (std::is_same_v<IntT, uint32_t>) {
 		context.registers.edi() = pop<uint32_t, true>(context);
 		context.registers.esi() = pop<uint32_t, true>(context);
@@ -120,26 +120,40 @@ template <typename IntT, typename ContextT>
 void pusha(
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(IntT) * 8);
+	// Don't preauthorise, as the 286 does write all the intermediate values prior
+	// to discovering the fault.
 	const IntT initial_sp = context.registers.sp();
-	if constexpr (std::is_same_v<IntT, uint32_t>) {
-		push<uint32_t, true>(context.registers.eax(), context);
-		push<uint32_t, true>(context.registers.ecx(), context);
-		push<uint32_t, true>(context.registers.edx(), context);
-		push<uint32_t, true>(context.registers.ebx(), context);
-		push<uint32_t, true>(initial_sp, context);
-		push<uint32_t, true>(context.registers.ebp(), context);
-		push<uint32_t, true>(context.registers.esi(), context);
-		push<uint32_t, true>(context.registers.edi(), context);
+	const auto do_pushes = [&] {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			push<uint32_t, false>(context.registers.eax(), context);
+			push<uint32_t, false>(context.registers.ecx(), context);
+			push<uint32_t, false>(context.registers.edx(), context);
+			push<uint32_t, false>(context.registers.ebx(), context);
+			push<uint32_t, false>(initial_sp, context);
+			push<uint32_t, false>(context.registers.ebp(), context);
+			push<uint32_t, false>(context.registers.esi(), context);
+			push<uint32_t, false>(context.registers.edi(), context);
+		} else {
+			push<uint16_t, false>(context.registers.ax(), context);
+			push<uint16_t, false>(context.registers.cx(), context);
+			push<uint16_t, false>(context.registers.dx(), context);
+			push<uint16_t, false>(context.registers.bx(), context);
+			push<uint16_t, false>(initial_sp, context);
+			push<uint16_t, false>(context.registers.bp(), context);
+			push<uint16_t, false>(context.registers.si(), context);
+			push<uint16_t, false>(context.registers.di(), context);
+		}
+	};
+
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			do_pushes();
+		} catch (const Exception &e) {
+			context.registers.sp() = initial_sp;
+			throw e;
+		};
 	} else {
-		push<uint16_t, true>(context.registers.ax(), context);
-		push<uint16_t, true>(context.registers.cx(), context);
-		push<uint16_t, true>(context.registers.dx(), context);
-		push<uint16_t, true>(context.registers.bx(), context);
-		push<uint16_t, true>(initial_sp, context);
-		push<uint16_t, true>(context.registers.bp(), context);
-		push<uint16_t, true>(context.registers.si(), context);
-		push<uint16_t, true>(context.registers.di(), context);
+		do_pushes();
 	}
 }
 
@@ -152,38 +166,44 @@ void enter(
 	const auto alloc_size = instruction.dynamic_storage_size();
 	const auto nesting_level = instruction.nesting_level() & 0x1f;
 
-	// Preauthorise contents that'll be fetched via BP.
-	const auto copied_pointers = nesting_level - 2;
-	if(copied_pointers > 0) {
-		context.memory.preauthorise_read(
-			Source::SS,
-			uint16_t(context.registers.bp() - size_t(copied_pointers) * sizeof(uint16_t)),
-			uint32_t(size_t(copied_pointers) * sizeof(uint16_t))	// TODO: I don't think this can actually be 32 bit.
-		);
-	}
-
-	// Preauthorise writes.
-	context.memory.preauthorise_stack_write(uint32_t(size_t(nesting_level) * sizeof(uint16_t)));
-
 	// Push BP and grab the end of frame.
-	push<uint16_t, true>(context.registers.bp(), context);
-	const auto frame = context.registers.sp();
+	const auto original_sp = context.registers.sp();
+	const auto original_bp = context.registers.bp();
+	const auto do_enter = [&] {
+		push<uint16_t, false>(context.registers.bp(), context);
+		const auto frame = context.registers.sp();
 
-	// Copy data as per the nesting level.
-	if(nesting_level > 0) {
-		for(int c = 1; c < nesting_level; c++) {
-			context.registers.bp() -= 2;
+		// Copy data as per the nesting level.
+		if(nesting_level > 0) {
+			for(int c = 1; c < nesting_level; c++) {
+				context.registers.bp() -= 2;
 
-			const auto value =
-				context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(Source::SS, context.registers.bp());
-			push<uint16_t, true>(value, context);
+				const auto value =
+					context.memory.template access
+						<uint16_t, AccessType::Read>(Source::SS, context.registers.bp());
+				push<uint16_t, false>(value, context);
+			}
+			push<uint16_t, false>(frame, context);
 		}
-		push<uint16_t, true>(frame, context);
+
+		// Set final BP.
+		context.registers.bp() = frame;
+		context.registers.sp() -= alloc_size;
+	};
+
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			do_enter();
+		} catch (const Exception &e) {
+			context.registers.sp() = original_sp;
+			context.registers.bp() = original_bp;
+			throw e;
+		}
+	} else {
+		do_enter();
 	}
 
-	// Set final BP.
-	context.registers.bp() = frame;
-	context.registers.sp() -= alloc_size;
+//	assert(final_sp == context.registers.sp());
 }
 
 template <typename IntT, typename ContextT>
@@ -192,11 +212,13 @@ void leave(
 ) {
 	// TODO: should use StackAddressSize to determine assignment of bp to sp.
 	if constexpr (std::is_same_v<IntT, uint32_t>) {
+		context.memory.preauthorise_read(Source::SS, context.registers.ebp(), sizeof(uint32_t));
 		context.registers.esp() = context.registers.ebp();
-		context.registers.ebp() = pop<uint32_t, false>(context);
+		context.registers.ebp() = pop<uint32_t, true>(context);
 	} else {
+		context.memory.preauthorise_read(Source::SS, context.registers.bp(), sizeof(uint16_t));
 		context.registers.sp() = context.registers.bp();
-		context.registers.bp() = pop<uint16_t, false>(context);
+		context.registers.bp() = pop<uint16_t, true>(context);
 	}
 }
 

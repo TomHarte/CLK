@@ -128,6 +128,12 @@ template <
 		);
 	};
 
+	const auto source_address = [&]() -> AddressT {
+		return AddressT(
+			address<AddressT, AccessType::Read>(instruction, instruction.source(), context)
+		);
+	};
+
 	// Some instructions use a pair of registers as an extended accumulator — DX:AX or EDX:EAX.
 	// The two following return the high and low parts of that pair; they also work in Byte mode to return AH:AL,
 	// i.e. AX split into high and low parts.
@@ -190,8 +196,14 @@ template <
 		case Operation::NOP:	return;
 
 		case Operation::Invalid:
+			// TODO: ask whether the issue was overlong. If so then
+			// get an exception code and do a GPF.
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
-				throw Exception::exception<Vector::InvalidOpcode>();
+				if(instruction.invalid_is_gpf()) {
+					throw Exception::exception<Vector::GeneralProtectionFault>(instruction.gpf_exception_code());
+				} else {
+					throw Exception::exception<Vector::InvalidOpcode>();
+				}
 			}
 		return;
 
@@ -241,18 +253,21 @@ template <
 		return;
 
 		case Operation::MUL:		Primitive::mul<IntT>(pair_high(), pair_low(), source_r(), context);			return;
-		case Operation::IMUL_1:		Primitive::imul<IntT>(pair_high(), pair_low(), source_r(), context);		return;
+		case Operation::IMUL_1:
+			Primitive::imul_double<IntT>(pair_high(), pair_low(), source_r(), context);
+		return;
+		case Operation::IMUL_3:
+			Primitive::imul_single<IntT>(destination_w(), source_r(), IntT(instruction.operand()), context);
+		return;
 		case Operation::DIV:		Primitive::div<IntT>(pair_high(), pair_low(), source_r(), context);			return;
 		case Operation::IDIV:		Primitive::idiv<false, IntT>(pair_high(), pair_low(), source_r(), context);	return;
 		case Operation::IDIV_REP:
-			if constexpr (ContextT::model == Model::i8086) {
+			if constexpr (ContextT::model < Model::i80286) {
 				Primitive::idiv<true, IntT>(pair_high(), pair_low(), source_r(), context);
 				break;
 			} else {
 				static_assert(int(Operation::IDIV_REP) == int(Operation::LEAVE));
-				if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
-					Primitive::leave<IntT>(context);
-				}
+				Primitive::leave<IntT>(context);
 			}
 		return;
 
@@ -431,7 +446,7 @@ template <
 				break;
 			} else {
 				static_assert(int(Operation::SETMOC) == int(Operation::BOUND));
-				Primitive::bound<IntT, AddressT>(instruction, destination_r(), source_r(), context);
+				Primitive::bound<IntT, AddressT>(instruction, destination_r(), source_address(), context);
 			}
 		return;
 
@@ -453,9 +468,14 @@ template <
 			}
 		} break;
 		case Operation::PUSH:
-			Primitive::push<IntT, false>(source_rmw(), context);	// PUSH SP modifies SP before pushing it;
-																	// hence PUSH is sometimes read-modify-write.
-		break;
+			if constexpr (ContextT::model >= Model::i80286) {
+				Primitive::push<IntT, false>(source_r(), context);
+			} else {
+				Primitive::push<IntT, false>(source_rmw(), context);	// Prior to the 286, PUSH SP modifies SP
+																		// before pushing it; hence PUSH is
+																		// sometimes read-modify-write.
+			}
+		return;
 
 		case Operation::POPF:
 			if constexpr (std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t>) {
@@ -570,7 +590,6 @@ template <
 		//	LSL
 		//	LTR
 		//	STR
-		//	IMUL_3
 		//	LOADALL
 	}
 
@@ -592,7 +611,7 @@ void perform(
 	const Instruction<type> &instruction,
 	ContextT &context
 ) {
-	const auto size = [](DataSize operation_size, AddressSize address_size) constexpr -> int {
+	const auto size = [](const DataSize operation_size, const AddressSize address_size) constexpr -> int {
 		return int(operation_size) + (int(address_size) << 2);
 	};
 
@@ -647,7 +666,8 @@ void perform(
 
 	// This is reachable only if the data and address size combination in use isn't available
 	// on the processor model nominated.
-	assert(false);}
+	assert(false);
+}
 
 //
 // Public function; just indirects into a trampoline into a version of perform templated on data and address size.
@@ -678,6 +698,7 @@ void perform(
 			);
 			return;
 		} catch (const InstructionSet::x86::Exception exception) {
+			context.flow_controller.cancel_repetition();
 			fault(exception, context, source_ip);
 		}
 	}
@@ -702,7 +723,7 @@ void interrupt(
 	} ();
 
 	const auto far_call = [&](const uint16_t segment, const uint16_t offset) {
-		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3);
+		context.memory.preauthorise_stack_write(sizeof(uint16_t) * 3, sizeof(uint16_t));
 
 		const auto flags = context.flags.get();
 		Primitive::push<uint16_t, true>(flags, context);

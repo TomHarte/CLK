@@ -67,32 +67,34 @@ struct SegmentDescriptor {
 		return base_ + address;
 	}
 
+	void throw_gpf() const {
+		throw Exception::exception<Vector::GeneralProtectionFault>(
+			ExceptionCode(
+				segment_,
+				true,	// LDT or GDT???
+				false,
+				false
+			)
+		);
+	}
+
 	template <AccessType type, typename AddressT>
 	requires std::same_as<AddressT, uint16_t> || std::same_as<AddressT, uint32_t>
 	void authorise(const AddressT begin, const AddressT end) const {
-		const auto throw_exception = [&] {
-			throw Exception::exception<Vector::GeneralProtectionFault>(
-				ExceptionCode(
-					segment_,
-					true,	// LDT or GDT???
-					false,
-					false
-				)
-			);
-		};
+		// Test for bounds; end && end < begin captures instances where end is
+		// both out of bounds and beyond the range of AddressT.
+		if(begin < bounds_.begin || end > bounds_.end || (end && end < begin)) {
+			throw_gpf();
+		}
 
 		// Tested at loading (?): present(), privilege_level().
 
 		if(type == AccessType::Read && executable() && !readable()) {
-			throw_exception();
+			throw_gpf();
 		}
 
 		if(type == AccessType::Write && !executable() && !writeable()) {
-			throw_exception();
-		}
-
-		if(begin < bounds_.begin || end >= bounds_.end) {
-			throw_exception();
+			throw_gpf();
 		}
 	}
 

@@ -116,7 +116,7 @@ void call_far(
 		Source::CS,
 		offset,
 		[&] {
-			context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+			context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2, sizeof(uint16_t));
 			push<uint16_t, true>(context.registers.cs(), context);
 			push<uint16_t, true>(context.registers.ip(), context);
 			context.flow_controller.template jump<AddressT>(segment, offset);
@@ -160,12 +160,12 @@ void call_far(
 		break;
 	}
 
-	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) + sizeof(AddressT));
+//	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) + sizeof(AddressT));
 	const auto offset =
-		context.memory.template access<AddressT, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<AddressT, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 
 	call_far(segment, offset, context);
 }
@@ -202,13 +202,13 @@ void jump_far(
 	}
 
 	const Source source_segment = instruction.data_segment();
-	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
+//	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
 
 	const auto offset =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	context.flow_controller.template jump<uint16_t>(segment, offset);
 }
 
@@ -217,7 +217,7 @@ void iret(
 	ContextT &context
 ) {
 	// TODO: all modes other than 16-bit real mode.
-	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3, sizeof(uint16_t));
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.flags.set(pop<uint16_t, true>(context));
@@ -239,7 +239,7 @@ void ret_far(
 	const InstructionT instruction,
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2, sizeof(uint16_t));
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.registers.sp() += instruction.operand();
@@ -263,18 +263,17 @@ void into(
 template <typename IntT, typename AddressT, typename InstructionT, typename ContextT>
 void bound(
 	const InstructionT &instruction,
-	read_t<AddressT> destination,
+	read_t<IntT> destination,
 	read_t<AddressT> source,
 	ContextT &context
 ) {
 	using sIntT = typename std::make_signed<IntT>::type;
 
 	const auto source_segment = instruction.data_segment();
-	context.memory.preauthorise_read(source_segment, source, 2*sizeof(IntT));
 	const auto lower_bound =
-		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, source));
+		sIntT(context.memory.template access<IntT, AccessType::Read>(source_segment, source));
 	const auto upper_bound =
-		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, IntT(source + 2)));
+		sIntT(context.memory.template access<IntT, AccessType::Read>(source_segment, IntT(source + 2)));
 
 	if(sIntT(destination) < lower_bound || sIntT(destination) > upper_bound) {
 		constexpr auto exception = Exception::exception<Vector::BoundRangeExceeded>();

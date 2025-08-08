@@ -31,10 +31,39 @@
 
 namespace {
 
+NSSet *const allowList = [NSSet setWithArray:@[
+	// Current execution failures, albeit all permitted:
+//		@"D4.json.gz",		// AAM
+//		@"F6.7.json.gz",	// IDIV byte
+//		@"F7.7.json.gz",	// IDIV word
+//		@"00.json.gz",
+
+//		@"C8.json.gz",		// ENTER
+//		@"D8.json.gz",		// Various floating point
+//		@"F6.7.json.gz",	// IDIV byte
+]];
+
+// "Known bad" test hashes.
+NSSet<NSString *> *knownBad = [NSSet setWithArray:@[
+	// Things that ostensibly push an SS to the stack rather than CS, likely due to a recording error:
+		@"7df1d2a948c416f5a4416e2f747d2d357d497570", 	// ce.json; INTO
+		@"ab0cea0f2b89ae469a98eaf20dedc9ff2ca08c91",	// ff.3.json; far CALL
+		@"ba5bb16b5a4306333a359c3abd2169b871ffa42c",	// cd.json; int 3bh
+
+	// Thes have entries in their final 'ram' lists that don't correlate with their bus activity,
+	// so are internally inconsistent.
+		@"eaaf835a6600a351ee70375c7f6996931411bca5",	// c6.json; mov byte [0E805h],6Ah
+		@"1b586a46891182a22b3f55f71e4db4c601ac26e4",	// c7.json; (bad)
+]];
+
+// MARK: - Test paths
+
 // The tests themselves are not duplicated in this repository;
-// provide their real path here.
+// provide their real paths here.
 constexpr char TestSuiteHome8088[] = "/Users/thomasharte/Projects/8088/v1";
 constexpr char TestSuiteHome80286[] = "/Users/thomasharte/Projects/80286/v1_real_mode";
+
+// MARK: - Virtual machine
 
 using Flags = InstructionSet::x86::Flags;
 
@@ -148,7 +177,10 @@ struct IO {
 template <InstructionSet::x86::Model t_model>
 class FlowController {
 public:
-	FlowController(InstructionSet::x86::Registers<t_model> &registers, PCCompatible::Segments<t_model, LinearMemory<t_model>> &segments) :
+	FlowController(
+		InstructionSet::x86::Registers<t_model> &registers,
+		PCCompatible::Segments<t_model, LinearMemory<t_model>> &segments
+	) :
 		registers_(registers), segments_(segments) {}
 
 	// Requirements for perform.
@@ -168,25 +200,38 @@ public:
 		registers_.ip() = address;
 	}
 
-	void halt() {}
+	void halt() {
+		is_halted_ = true;
+	}
 	void wait() {}
 
 	void repeat_last() {
 		should_repeat_ = true;
 	}
+	void cancel_repetition() {
+		should_repeat_ = false;
+	}
 
 	// Other actions.
 	void begin_instruction() {
-		should_repeat_ = false;
+		is_halted_ = should_repeat_ = false;
 	}
 	bool should_repeat() const {
 		return should_repeat_;
+	}
+	bool is_halted() const {
+		return is_halted_;
+	}
+
+	void clear() {
+		should_repeat_ = is_halted_ = false;
 	}
 
 private:
 	InstructionSet::x86::Registers<t_model> &registers_;
 	PCCompatible::Segments<t_model, LinearMemory<t_model>> &segments_;
 	bool should_repeat_ = false;
+	bool is_halted_ = false;
 };
 
 struct CPUControl {
@@ -215,14 +260,18 @@ struct ExecutionSupport {
 	CPUControl cpu_control;
 
 	ExecutionSupport():
+		flags(model),
 		memory(registers, segments, linear_memory),
 		segments(registers, linear_memory),
 		flow_controller(registers, segments) {}
 
 	void clear() {
 		linear_memory.clear();
+		flow_controller.clear();
 	}
 };
+
+// MARK: - Test helpers
 
 struct FailedExecution {
 	std::string test_name;
@@ -242,15 +291,8 @@ std::vector<uint8_t> bytes(NSArray<NSNumber *> *encoding) {
 	return data;
 }
 
-NSArray<NSString *> *testFiles(const char *const home) {
+NSArray<NSString *> *test_files(const char *const home) {
 	NSString *const path = [NSString stringWithUTF8String:home];
-	NSSet *const allowList = [NSSet setWithArray:@[
-		// Current execution failures, albeit all permitted:
-//		@"D4.json.gz",		// AAM
-//		@"F6.7.json.gz",	// IDIV byte
-//		@"F7.7.json.gz",	// IDIV word
-	]];
-
 	NSSet *ignoreList = nil;
 
 	NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
@@ -275,7 +317,7 @@ NSArray<NSString *> *testFiles(const char *const home) {
 	return [fullPaths sortedArrayUsingSelector:@selector(compare:)];
 }
 
-NSArray<NSDictionary *> *testsInFile(NSString *file) {
+NSArray<NSDictionary *> *tests_in_file(NSString *file) {
 	NSData *data = [NSData dataWithContentsOfGZippedFile:file];
 	return [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 }
@@ -287,6 +329,8 @@ NSDictionary *metadata(const char *home) {
 
 template <InstructionSet::x86::Model t_model>
 void populate(InstructionSet::x86::Registers<t_model> &registers, Flags &flags, NSDictionary *value) {
+	registers.reset();
+
 	registers.ax() = [value[@"ax"] intValue];
 	registers.bx() = [value[@"bx"] intValue];
 	registers.cx() = [value[@"cx"] intValue];
@@ -324,6 +368,8 @@ void populate(InstructionSet::x86::Registers<t_model> &registers, Flags &flags, 
 		);
 }
 
+// MARK: - Test runners; execution
+
 template <InstructionSet::x86::Model t_model>
 void apply_execution_test(
 	ExecutionSupport<t_model> &execution_support,
@@ -332,9 +378,23 @@ void apply_execution_test(
 	NSDictionary *test,
 	NSDictionary *metadata
 ) {
+//	NSLog(@"%@", test[@"hash"]);
+//	if(![test[@"hash"] isEqualToString:@"1b586a46891182a22b3f55f71e4db4c601ac26e4"]) {
+//		return;
+//	}
+
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);
 	const auto decoded = decoder.decode(data.data(), data.size());
+
+	if(decoded.first < 0) {
+		FailedExecution failure;
+		failure.instruction = decoded.second;
+		failure.test_name = std::string([[test[@"name"] stringByAppendingFormat:@"; hash: %@", test[@"hash"]] UTF8String]);
+		failure.reason = "Failed to decode";
+		execution_failures.push_back(std::move(failure));
+		return;
+	}
 
 	execution_support.clear();
 
@@ -343,7 +403,7 @@ void apply_execution_test(
 	NSDictionary *const final_state = test[@"final"];
 
 	// Apply initial state.
-	Flags initial_flags;
+	Flags initial_flags(t_model);
 	for(NSArray<NSNumber *> *ram in initial_state[@"ram"]) {
 		execution_support.linear_memory.seed([ram[0] intValue], [ram[1] intValue]);
 	}
@@ -364,8 +424,6 @@ void apply_execution_test(
 	execution_support.registers.ip() += decoded.first;
 	do {
 		execution_support.flow_controller.begin_instruction();
-		// TODO: catch and process exceptions, which I think means better factoring
-		// re: PCCompatible/instruction set.
 		InstructionSet::x86::perform(
 			decoded.second,
 			execution_support,
@@ -373,16 +431,25 @@ void apply_execution_test(
 		);
 	} while (execution_support.flow_controller.should_repeat());
 
+	// If this is the 80286 test set then there was also a HLT. Act as if that happened.
+	// Unless the processor was already halted.
+	if constexpr (t_model == InstructionSet::x86::Model::i80286) {
+		if(!execution_support.flow_controller.is_halted()) {
+			++execution_support.registers.ip();
+		}
+	}
+
 	// Compare final state.
 	InstructionSet::x86::Registers<t_model> intended_registers;
-	InstructionSet::x86::Flags intended_flags;
+	InstructionSet::x86::Flags intended_flags(t_model);
 
 	bool ramEqual = true;
 	int mask_position = 0;
 	for(NSArray<NSNumber *> *ram in final_state[@"ram"]) {
 		const uint32_t address = [ram[0] intValue];
 		const auto value =
-			execution_support.linear_memory.template access<uint8_t, InstructionSet::x86::AccessType::Read>(address, address);
+			execution_support.linear_memory.template access<uint8_t, InstructionSet::x86::AccessType::Read>
+				(address, address);
 
 		if((mask_position != 1) && value == [ram[1] intValue]) {
 			continue;
@@ -434,7 +501,12 @@ void apply_execution_test(
 	// AAM 00h throws its exception only after modifying flags in an undocumented manner;
 	// I'm not too concerned about this because AAM 00h is an undocumented usage of 00h,
 	// not even supported by NEC amongst others, and the proper exception is being thrown.
-	if(decoded.second.operation() == Operation::AAM && !decoded.second.operand()) {
+	//
+	// Also check whether the hash of this test just indicates that it's a bad one.
+	if(
+		(decoded.second.operation() == Operation::AAM && !decoded.second.operand()) ||
+		[knownBad containsObject:test[@"hash"]]
+	) {
 		failure_list = &permitted_failures;
 	}
 
@@ -480,23 +552,26 @@ void apply_execution_test(
 	// Record a failure.
 	FailedExecution failure;
 	failure.instruction = decoded.second;
-	failure.test_name = std::string([test[@"name"] UTF8String]);
+	failure.test_name = std::string([[test[@"name"] stringByAppendingFormat:@"; hash: %@", test[@"hash"]] UTF8String]);
 
 	NSMutableArray<NSString *> *reasons = [[NSMutableArray alloc] init];
 	if(!flagsEqual) {
-		Flags difference;
+		Flags difference(t_model);
 		difference.set((intended_flags.get() ^ execution_support.flags.get()) & flags_mask);
 		[reasons addObject:
-			[NSString stringWithFormat:@"flags differ; errors in %s",
-				difference.to_string().c_str()]];
+			[NSString stringWithFormat:@"flags differ; errors in %s due to final state %s",
+				difference.to_string().c_str(), execution_support.flags.to_string().c_str()]];
 	}
 	if(!registersEqual) {
 		NSMutableArray<NSString *> *registers = [[NSMutableArray alloc] init];
+		bool is_first = true;
 #define Reg(x)	\
-	if(intended_registers.x() != execution_support.registers.x())	\
+	if(intended_registers.x() != execution_support.registers.x()) {	\
 		[registers addObject:	\
 			[NSString stringWithFormat:	\
-				@#x" is %04x rather than %04x", execution_support.registers.x(), intended_registers.x()]];
+				@#x" is %04x %@ %04x", execution_support.registers.x(), is_first ? @"but should have been" : @"not", intended_registers.x()]];	\
+		is_first = false;	\
+	}
 
 		Reg(ax);
 		Reg(cx);
@@ -528,12 +603,12 @@ void apply_execution_test(
 template <InstructionSet::x86::Model t_model>
 void test_execution(const char *const home) {
 	NSDictionary *metadatas = metadata(home);
-	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+	NSMutableDictionary<NSString *, NSNumber *> *failures = [[NSMutableDictionary alloc] init];
 	std::vector<FailedExecution> execution_failures;
 	std::vector<FailedExecution> permitted_failures;
 	auto execution_support = std::make_unique<ExecutionSupport<t_model>>();
 
-	for(NSString *file in testFiles(home)) @autoreleasepool {
+	for(NSString *file in test_files(home)) @autoreleasepool {
 		const auto failures_before = execution_failures.size();
 
 		// Determine the metadata key.
@@ -548,14 +623,12 @@ void test_execution(const char *const home) {
 				test_metadata[@"reg"][[NSString stringWithFormat:@"%c", [name characterAtIndex:first_dot.location+1]]];
 		}
 
-//		int index = 0;
-		for(NSDictionary *test in testsInFile(file)) {
+		for(NSDictionary *test in tests_in_file(file)) {
 			apply_execution_test(*execution_support, execution_failures, permitted_failures, test, test_metadata);
-//			++index;
 		}
 
 		if (execution_failures.size() != failures_before) {
-			[failures addObject:file];
+			failures[file] = @([failures[file] intValue] + execution_failures.size() - failures_before);
 		}
 	}
 
@@ -569,28 +642,25 @@ void test_execution(const char *const home) {
 		NSLog(@"Permitted failure of %s — %s", failure.test_name.c_str(), failure.reason.c_str());
 	}
 
-	NSLog(@"Files with failures, permitted or otherwise, were: %@", failures);
+	NSLog(@"Files with failures, permitted or otherwise, were the following %@: %@", @(failures.count), failures);
 }
-}
 
-@interface i8088Tests : XCTestCase
-@end
+// MARK: - Test runners; decoding
 
-@implementation i8088Tests
-
-using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
-- (NSString *)
-	toString:(const std::pair<int, Instruction> &)instruction
-	offsetLength:(int)offsetLength
-	immediateLength:(int)immediateLength
-{
-	const auto operation = to_string(instruction, InstructionSet::x86::Model::i8086, offsetLength, immediateLength);
+template <InstructionSet::x86::Model model, InstructionSet::x86::InstructionType type>
+NSString *to_string(
+	const std::pair<int, InstructionSet::x86::Instruction<type>> &instruction,
+	int offsetLength,
+	int immediateLength
+) {
+	const auto operation = to_string(instruction, model, offsetLength, immediateLength);
 	return [[NSString stringWithUTF8String:operation.c_str()]
 		stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
-- (bool)applyDecodingTest:(NSDictionary *)test file:(NSString *)file assert:(BOOL)assert {
-	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+template <InstructionSet::x86::Model model>
+bool apply_decoding_test(NSDictionary *test, NSString *file, BOOL assert) {
+	InstructionSet::x86::Decoder<model> decoder;
 
 	// Build a vector of the instruction bytes; this makes manual step debugging easier.
 	const auto data = bytes(test[@"bytes"]);
@@ -603,7 +673,10 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	};
 
 	const auto decoded = decoder.decode(data.data(), data.size());
-	const bool sizeMatched = decoded.first == data.size();
+	const bool sizeMatched =
+		(model == InstructionSet::x86::Model::i8086) ?
+			(decoded.first == data.size()) :
+			(decoded.first == data.size() - 1);	// The 80286 instruction set adds a HLT after every instruction.
 	if(assert) {
 		XCTAssert(
 			sizeMatched,
@@ -622,12 +695,12 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	// The decoder doesn't preserve the original offset length, which makes no functional difference but
 	// does affect the way that offsets are printed in the test set.
 	NSSet<NSString *> *decodings = [NSSet setWithObjects:
-		[self toString:decoded offsetLength:4 immediateLength:4],
-		[self toString:decoded offsetLength:2 immediateLength:4],
-		[self toString:decoded offsetLength:0 immediateLength:4],
-		[self toString:decoded offsetLength:4 immediateLength:2],
-		[self toString:decoded offsetLength:2 immediateLength:2],
-		[self toString:decoded offsetLength:0 immediateLength:2],
+		to_string<model>(decoded, 4, 4),
+		to_string<model>(decoded, 2, 4),
+		to_string<model>(decoded, 0, 4),
+		to_string<model>(decoded, 4, 2),
+		to_string<model>(decoded, 2, 2),
+		to_string<model>(decoded, 0, 2),
 		nil];
 
 	auto compare_decoding = [&](NSString *name) -> bool {
@@ -672,34 +745,51 @@ using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::Instru
 	return isEqual;
 }
 
-- (void)printFailures:(NSArray<NSString *> *)failures {
-	NSLog(
-		@"%ld failures out of %ld tests: %@",
-		failures.count,
-		testFiles(TestSuiteHome8088).count,
-		[failures sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
-}
-
-- (void)testDecoding {
+template <InstructionSet::x86::Model model>
+void test_decoding(const char *home) {
 	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
-	for(NSString *file in testFiles(TestSuiteHome8088)) @autoreleasepool {
-		for(NSDictionary *test in testsInFile(file)) {
+	for(NSString *file in test_files(home)) @autoreleasepool {
+		for(NSDictionary *test in tests_in_file(file)) {
 			// A single failure per instruction is fine.
-			if(![self applyDecodingTest:test file:file assert:YES]) {
+			if(!apply_decoding_test<model>(test, file, YES)) {
 				[failures addObject:file];
 
 				// Attempt a second decoding, to provide a debugger hook.
-				[self applyDecodingTest:test file:file assert:NO];
+				apply_decoding_test<model>(test, file, NO);
 				break;
 			}
 		}
 	}
 
-	[self printFailures:failures];
+	NSLog(
+		@"%ld failures out of %ld tests: %@",
+		failures.count,
+		test_files(TestSuiteHome8088).count,
+		[failures sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)]);
+}
+}
+
+@interface i8088Tests : XCTestCase
+@end
+
+@implementation i8088Tests
+
+using Instruction = InstructionSet::x86::Instruction<InstructionSet::x86::InstructionType::Bits16>;
+
+// MARK: - 8088
+
+- (void)testDecoding8088 {
+	test_decoding<InstructionSet::x86::Model::i8086>(TestSuiteHome8088);
 }
 
 - (void)testExecution8088 {
 	test_execution<InstructionSet::x86::Model::i8086>(TestSuiteHome8088);
+}
+
+// MARK: - 80286
+
+- (void)testDecoding80286 {
+	test_decoding<InstructionSet::x86::Model::i80286>(TestSuiteHome80286);
 }
 
 - (void)testExecution80286 {

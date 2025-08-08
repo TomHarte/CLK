@@ -538,6 +538,9 @@ public:
 	void repeat_last() {
 		should_repeat_ = true;
 	}
+	void cancel_repetition() {
+		should_repeat_ = false;
+	}
 
 	// Other actions.
 	void begin_instruction() {
@@ -938,6 +941,7 @@ private:
 			KeyboardController<pc_model> &keyboard,
 			RTC &rtc
 		) :
+			flags(x86_model),
 			segments(registers, linear_memory),
 			memory(registers, segments, linear_memory),
 			flow_controller(registers, segments),
