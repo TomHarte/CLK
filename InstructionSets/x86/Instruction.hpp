@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Exceptions.hpp"
 #include "Model.hpp"
 
 #include <cstddef>
@@ -767,6 +768,13 @@ public:
 		source_data_dest_sib_ |= (int(segment)&7) << 10;
 	}
 
+	/// Instantiates an Instruction as a particular GPF. This was originally intended to support decoding of
+	/// overlong instructions.
+	constexpr Instruction(const ExceptionCode gpf_code) noexcept :
+		operation_(Operation::Invalid),
+		mem_exts_source_(1),
+		source_data_dest_sib_(uint16_t(gpf_code)) {}
+
 	/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
 	/// to store an @c Instruction but is permitted to reuse the trailing sizeof(Instruction) - packing_size() for any purpose it likes. Teleologically,
 	/// this allows a denser packing of instructions into containers.
@@ -855,8 +863,19 @@ public:
 	}
 
 	/// @returns The dynamic storage size argument supplied to an ENTER.
-	constexpr ImmediateT dynamic_storage_size() const	{
+	constexpr ImmediateT dynamic_storage_size() const {
 		return offset();
+	}
+
+	/// If this Instruction's operation is ::Invalid, indicates whether the proper exception
+	/// to throw is a GPF rather than an InvalidOpcode.
+	constexpr bool invalid_is_gpf() const {
+		return mem_exts_source_ & 1;
+	}
+
+	/// If this Instruction represents a GPF, indicates the corresponding exception code.
+	constexpr ExceptionCode gpf_exception_code() const {
+		return ExceptionCode(source_data_dest_sib_);
 	}
 
 	// Standard comparison operator.

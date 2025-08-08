@@ -263,18 +263,17 @@ void into(
 template <typename IntT, typename AddressT, typename InstructionT, typename ContextT>
 void bound(
 	const InstructionT &instruction,
-	read_t<AddressT> destination,
+	read_t<IntT> destination,
 	read_t<AddressT> source,
 	ContextT &context
 ) {
 	using sIntT = typename std::make_signed<IntT>::type;
 
 	const auto source_segment = instruction.data_segment();
-	context.memory.preauthorise_read(source_segment, source, 2*sizeof(IntT));
 	const auto lower_bound =
-		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, source));
+		sIntT(context.memory.template access<IntT, AccessType::Read>(source_segment, source));
 	const auto upper_bound =
-		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, IntT(source + 2)));
+		sIntT(context.memory.template access<IntT, AccessType::Read>(source_segment, IntT(source + 2)));
 
 	if(sIntT(destination) < lower_bound || sIntT(destination) > upper_bound) {
 		constexpr auto exception = Exception::exception<Vector::BoundRangeExceeded>();

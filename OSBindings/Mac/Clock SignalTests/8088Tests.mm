@@ -39,27 +39,17 @@ NSSet *const allowList = [NSSet setWithArray:@[
 //		@"00.json.gz",
 
 //		@"61.json.gz",		// POPA
-//		@"69.json.gz",		// IMUL
-		@"81.0.json.gz",	// ADD
-		@"81.1.json.gz",	// OR
-		@"81.2.json.gz",	// ADC
-		@"81.3.json.gz",	// SBB
-		@"81.4.json.gz",	// AND
-//		@"81.5.json.gz",
-//		@"81.6.json.gz",
-//		@"81.7.json.gz",
-//		@"9A.json.gz",		// CALL
-//		@"C6.json.gz",		// MOV byte failure to spot invalids
-//		@"C7.json.gz",		// MOV WORD failure to spot invalids
+//		@"C4.json.gz",
+//		@"C5.json.gz",
+//		@"C6.json.gz",
+//		@"C7.json.gz",
 //		@"C8.json.gz",		// ENTER
 //		@"CD.json.gz",
 //		@"CE.json.gz",		// INTO
 //		@"D8.json.gz",		// Various floating point
-//		@"EA.json.gz",		// JMP aa:bb
 //		@"F6.7.json.gz",	// IDIV
-//		@"F7.0.json.gz",	// TEST
-//		@"F7.1.json.gz",	// TEST
 //		@"FF.3.json.gz",	// CALL far
+//		@"FF.5.json.gz"
 ]];
 
 // MARK: - Test paths
@@ -385,9 +375,9 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"f5c8f1014f6d85dd08d6a2aadc7fa04dd17c94c2"]) {
-		printf("");
-	}
+//	if(![test[@"hash"] isEqualToString:@"de57c5300e4e952c0922dcabeb3e896b645f0d2b"]) {
+//		return;
+//	}
 
 	InstructionSet::x86::Decoder<t_model> decoder;
 	const auto data = bytes(test[@"bytes"]);

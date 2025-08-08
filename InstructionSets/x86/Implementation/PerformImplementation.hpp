@@ -199,7 +199,11 @@ template <
 			// TODO: ask whether the issue was overlong. If so then
 			// get an exception code and do a GPF.
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
-				throw Exception::exception<Vector::InvalidOpcode>();
+				if(instruction.invalid_is_gpf()) {
+					throw Exception::exception<Vector::GeneralProtectionFault>(instruction.gpf_exception_code());
+				} else {
+					throw Exception::exception<Vector::InvalidOpcode>();
+				}
 			}
 		return;
 

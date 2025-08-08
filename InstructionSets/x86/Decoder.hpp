@@ -370,11 +370,12 @@ private:
 	}
 
 	std::pair<int, typename Decoder<model>::InstructionT> overlong() {
+		const auto consumed = consumed_;
 		reset_parsing();
-		if(consumed_ == 65536) {
-			return std::make_pair(consumed_, InstructionT(Operation::NOP));
+		if(consumed == 65536) {
+			return std::make_pair(consumed, InstructionT(Operation::NOP));
 		} else {
-			return std::make_pair(consumed_, InstructionT());
+			return std::make_pair(consumed, InstructionT(ExceptionCode()));
 		}
 	}
 };
