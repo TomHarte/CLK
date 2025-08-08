@@ -196,6 +196,8 @@ template <
 		case Operation::NOP:	return;
 
 		case Operation::Invalid:
+			// TODO: ask whether the issue was overlong. If so then
+			// get an exception code and do a GPF.
 			if constexpr (!uses_8086_exceptions(ContextT::model)) {
 				throw Exception::exception<Vector::InvalidOpcode>();
 			}

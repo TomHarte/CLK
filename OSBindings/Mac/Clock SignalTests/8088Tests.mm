@@ -40,11 +40,11 @@ NSSet *const allowList = [NSSet setWithArray:@[
 
 //		@"61.json.gz",		// POPA
 //		@"69.json.gz",		// IMUL
-//		@"81.0.json.gz",	// ADD
-//		@"81.1.json.gz",	// OR
-//		@"81.2.json.gz",	// ADC
-//		@"81.3.json.gz",	// SBB
-//		@"81.4.json.gz",	// AND
+		@"81.0.json.gz",	// ADD
+		@"81.1.json.gz",	// OR
+		@"81.2.json.gz",	// ADC
+		@"81.3.json.gz",	// SBB
+		@"81.4.json.gz",	// AND
 //		@"81.5.json.gz",
 //		@"81.6.json.gz",
 //		@"81.7.json.gz",
@@ -385,7 +385,7 @@ void apply_execution_test(
 	NSDictionary *metadata
 ) {
 //	NSLog(@"%@", test[@"hash"]);
-	if([test[@"hash"] isEqualToString:@"453ef52b02539ada0b78a7bdc319c4d7d06fc0a2"]) {
+	if([test[@"hash"] isEqualToString:@"f5c8f1014f6d85dd08d6a2aadc7fa04dd17c94c2"]) {
 		printf("");
 	}
 
