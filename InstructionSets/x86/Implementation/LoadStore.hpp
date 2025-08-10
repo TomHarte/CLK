@@ -154,7 +154,7 @@ void lldt(
 		);
 	};
 
-	if(ldt.type() != SegmentDescriptor::Type::LDTDescriptor) {
+	if(ldt.description().type != DescriptorType::LDT) {
 		throw Exception::exception<Vector::GeneralProtectionFault>(exception_code(source_segment));
 	}
 
