@@ -58,26 +58,23 @@ public:
 		const Source segment,
 		const uint16_t value,
 		const std::function<void()> &real_callback,
-		const std::function<void(const Descriptor &)> &protected_callback	// TODO: this needs to be more granular.
+		const std::function<void(const Descriptor &)> &call_callback	// TODO: call gate and task segment callbacks.
 	) {
 #ifndef NDEBUG
 		last_source_ = segment;
 #endif
 
 		if constexpr (model <= InstructionSet::x86::Model::i80186) {
-			if(real_callback) real_callback();
+			real_callback();
 			return;
 		} else {
 			if(is_real(mode_)) {
-				if(real_callback) real_callback();
+				real_callback();
 				return;
 			}
 
 			const auto incoming = descriptor(value);
-			incoming.validate_as(segment);
-			if(protected_callback) protected_callback(incoming);
-
-			// TODO: does the descriptor itself have enough context to handle/validate CALL far, JMP far, interrupts, etc?
+			incoming.validate_call(call_callback);
 		}
 	}
 

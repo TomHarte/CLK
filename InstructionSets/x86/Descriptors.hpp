@@ -132,18 +132,41 @@ struct SegmentDescriptor {
 				}
 			break;
 
-			case Source::CS:
-				if(desc.type != DescriptorType::Code) {
-					printf("TODO: throw for non-code CS target.\n");
-					assert(false);
-				}
-			break;
-
 			default: break;
 		}
 
 		// TODO: is this descriptor privilege within reach?
 		// TODO: is this an empty descriptor*? If so: exception!
+	}
+
+	void validate_call(
+		const std::function<void(const SegmentDescriptor &)> &call_callback
+	) const {
+		const auto desc = description();
+		switch(desc.type) {
+			case DescriptorType::Code:
+				if(desc.conforming) {
+					// TODO:
+					// DPL must be :5 CPL else #GP (code segment selector)
+				} else {
+
+				}
+
+				call_callback(*this);
+			break;
+
+			case DescriptorType::CallGate:
+				assert(false);
+			break;
+
+			case DescriptorType::AvailableTaskStateSegment:
+				assert(false);
+			break;
+
+			default:
+				throw_gpf();
+			break;
+		}
 	}
 
 	/// @returns The base of this segment descriptor.
