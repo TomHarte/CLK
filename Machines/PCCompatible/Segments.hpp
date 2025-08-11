@@ -34,9 +34,31 @@ public:
 
 	void preauthorise(
 		const Source segment,
+		const uint16_t value
+	) {
+#ifndef NDEBUG
+		last_source_ = segment;
+#endif
+
+		if constexpr (model <= InstructionSet::x86::Model::i80186) {
+			return;
+		} else {
+			if(is_real(mode_)) {
+				return;
+			}
+			const auto incoming = descriptor(value);
+			incoming.validate_as(segment);
+
+			// TODO: set descriptor accessed bit in memory.
+			// (unless that happens later? But probably not.)
+		}
+	}
+
+	void preauthorise_call(
+		const Source segment,
 		const uint16_t value,
-		const std::function<void()> &real_callback = {},
-		const std::function<void(const Descriptor &)> &protected_callback = {}
+		const std::function<void()> &real_callback,
+		const std::function<void(const Descriptor &)> &protected_callback	// TODO: this needs to be more granular.
 	) {
 #ifndef NDEBUG
 		last_source_ = segment;
@@ -51,18 +73,11 @@ public:
 				return;
 			}
 
-			// Cache descriptor for preauthorisation.
-			const auto &table =
-				(value & 4) ?
-					registers_.template get<DescriptorTable::Local>() :
-					registers_.template get<DescriptorTable::Global>();
-			const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7);
-			last_descriptor_ = incoming;
-			last_descriptor_.validate_as(segment);
+			const auto incoming = descriptor(value);
+			incoming.validate_as(segment);
 			if(protected_callback) protected_callback(incoming);
 
 			// TODO: does the descriptor itself have enough context to handle/validate CALL far, JMP far, interrupts, etc?
-			// TODO: set descriptor accessed bit in memory if it's a segment.
 		}
 	}
 
@@ -111,6 +126,16 @@ private:
 	void load_real(const Source segment) {
 		const auto value = registers_.segment(segment);
 		descriptors[segment].set_segment(value);
+	}
+
+	Descriptor descriptor(const uint16_t value) {
+		const auto &table =
+			(value & 4) ?
+				registers_.template get<DescriptorTable::Local>() :
+				registers_.template get<DescriptorTable::Global>();
+		const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7);
+		last_descriptor_ = incoming;
+		return last_descriptor_;
 	}
 
 	Mode mode_ = Mode::Real;

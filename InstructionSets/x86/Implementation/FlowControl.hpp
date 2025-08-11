@@ -112,7 +112,7 @@ void call_far(
 	const AddressT offset,
 	ContextT &context
 ) {
-	context.segments.preauthorise(
+	context.segments.preauthorise_call(
 		Source::CS,
 		offset,
 		[&] {
