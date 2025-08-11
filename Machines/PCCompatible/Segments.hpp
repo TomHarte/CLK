@@ -58,23 +58,11 @@ public:
 					registers_.template get<DescriptorTable::Global>();
 			const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7);
 			last_descriptor_ = incoming;
-
-			// TODO: authorise otherwise, i.e. test anything telse that should cause a throw
-			// prior to modification of the segment register.
-
-			// Check privilege level.
-	//		const auto requested_privilege_level = value & 3;
-	//		if(requested_privilege_level < descriptors[Source::CS].privilege_level()) {
-	//			printf("TODO: privilege exception.\n");
-	//			assert(false);
-	//		}
-
-			// TODO: set descriptor accessed bit in memory if it's a segment.
-
-			// Get and validate descriptor.
 			last_descriptor_.validate_as(segment);
-
 			if(protected_callback) protected_callback(incoming);
+
+			// TODO: does the descriptor itself have enough context to handle/validate CALL far, JMP far, interrupts, etc?
+			// TODO: set descriptor accessed bit in memory if it's a segment.
 		}
 	}
 
