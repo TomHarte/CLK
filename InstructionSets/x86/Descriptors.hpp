@@ -12,6 +12,7 @@
 #include "Instruction.hpp"
 //#include "Perform.hpp"
 
+#include <cassert>
 #include <concepts>
 
 namespace InstructionSet::x86 {
@@ -30,6 +31,21 @@ struct DescriptorBounds {
 	auto operator<=>(const DescriptorBounds &) const = default;
 };
 
+enum class DescriptorType {
+	Code, Data, Stack,
+	CallGate, TaskGate, InterruptGate, TrapGate,
+	AvailableTaskStateSegment, LDT, BusyTaskStateSegment,
+	Invalid,
+};
+
+struct DescriptorDescription {
+	DescriptorType type = DescriptorType::Invalid;
+	bool readable = false;
+	bool writeable = false;
+	bool conforming = false;
+	bool is32bit = false;
+};
+
 struct SegmentDescriptor {
 	SegmentDescriptor() = default;
 
@@ -39,7 +55,7 @@ struct SegmentDescriptor {
 		type_ = descriptor[2] >> 8;
 
 		offset_ = descriptor[0];
-		if(!code_or_data() || executable() || !expand_down()) {
+		if(description().type != DescriptorType::Stack) {
 			bounds_ = DescriptorBounds{ 0, offset_ };
 		} else {
 			if(offset_ != std::numeric_limits<uint32_t>::max()) {
@@ -88,42 +104,37 @@ struct SegmentDescriptor {
 		}
 
 		// Tested at loading (?): present(), privilege_level().
-
-		if(type == AccessType::Read && executable() && !readable()) {
+		const auto desc = description();
+		if(type == AccessType::Read && !desc.readable) {
 			throw_gpf();
 		}
 
-		if(type == AccessType::Write && !executable() && !writeable()) {
+		if(type == AccessType::Write && !desc.writeable) {
 			throw_gpf();
 		}
 	}
 
 	void validate_as(const Source segment) const {
+		const auto desc = description();
 		switch(segment) {
 			case Source::DS:
 			case Source::ES:
-				if(!code_or_data() || (executable() && !readable())) {
+				if(!desc.readable) {
 					printf("TODO: throw for unreadable DS or ES source.\n");
 					assert(false);
 				}
 			break;
 
 			case Source::SS:
-				if(!code_or_data() || executable() || !writeable()) {
-					printf("TODO: throw for invalid SS target.\n");
+				if(!desc.writeable) {
+					printf("TODO: throw for unwriteable SS target.\n");
 					assert(false);
 				}
 			break;
 
 			case Source::CS:
-				if(!code_or_data() || !executable()) {
-					// TODO: throw.
-					printf("TODO: throw for illegal CS destination.\n");
-					assert(false);
-				}
-
-				if(!code_or_data()) {
-					printf("TODO: handle jump to system descriptor of type %d\n", int(type()));
+				if(desc.type != DescriptorType::Code) {
+					printf("TODO: throw for non-code CS target.\n");
 					assert(false);
 				}
 			break;
@@ -147,34 +158,51 @@ struct SegmentDescriptor {
 
 	bool present() const 			{	return type_ & 0x80;		}
 	int privilege_level() const		{	return (type_ >> 5) & 3;	}
-	bool code_or_data() const 		{	return type_ & 0x10;		}
 
-	// If code_or_data():
-	bool executable() const 		{	return type_ & 0x08;		}
-	bool accessed() const 			{	return type_ & 0x01;		}
+	DescriptorDescription description() const {
+		using Type = DescriptorType;
+		switch(type_ & 0b11111) {
+			default:
+			case 0b00000:    return { .type = Type::Invalid };
+			case 0b00001:    return { .type = Type::AvailableTaskStateSegment, .is32bit = false };
+			case 0b00010:    return { .type = Type::LDT };
+			case 0b00011:    return { .type = Type::BusyTaskStateSegment, .is32bit = false };
 
-	// If code_or_data() and not executable():
-	bool expand_down() const 		{	return type_ & 0x04;		}
-	bool writeable() const 			{	return type_ & 0x02;		}
+			case 0b00100:    return { .type = Type::CallGate, .is32bit = false };
+			case 0b00101:    return { .type = Type::TaskGate };
+			case 0b00110:    return { .type = Type::InterruptGate, .is32bit = false };
+			case 0b00111:    return { .type = Type::TrapGate, .is32bit = false };
 
-	// If code_or_data() and executable():
-	bool conforming() const 		{	return type_ & 0x04;		}
-	bool readable() const 			{	return type_ & 0x02;		}
+			case 0b01000:    return { .type = Type::Invalid };
+			case 0b01001:    return { .type = Type::AvailableTaskStateSegment, .is32bit = true };
+			case 0b01010:    return { .type = Type::Invalid };
+			case 0b01011:    return { .type = Type::BusyTaskStateSegment, .is32bit = true };
 
-	// If not code_or_data():
-	enum class Type {
-		AvailableTaskStateSegment = 1,
-		LDTDescriptor = 2,
-		BusyTaskStateSegment = 3,
+			case 0b01100:    return { .type = Type::CallGate, .is32bit = true };
+			case 0b01101:    return { .type = Type::Invalid };
+			case 0b01110:    return { .type = Type::InterruptGate, .is32bit = true };
+			case 0b01111:    return { .type = Type::TrapGate, .is32bit = true };
 
-		Invalid0 = 0,   Invalid8 = 8,
+			// b0 is the accessed flag for non-system descriptors; it doesn't affect the type.
+			case 0b10000:
+			case 0b10001:    return { .type = Type::Data, .readable = true, .writeable = false };
+			case 0b10010:
+			case 0b10011:    return { .type = Type::Data, .readable = true, .writeable = true };
+			case 0b10100:
+			case 0b10101:    return { .type = Type::Stack, .readable = true, .writeable = false };
+			case 0b10110:
+			case 0b10111:    return { .type = Type::Stack, .readable = true, .writeable = true };
 
-		Control4 = 4,   Control5 = 5,   Control6 = 6,   Control7 = 7,
-
-		Reserved9 = 9,  ReservedA = 10, ReservedB = 11, ReservedC = 12,
-		ReservedD = 13, ReservedE = 14, ReservedF = 15,
-	};
-	Type type() const 				{	return Type(type_ & 0x0f);	}
+			case 0b11000:
+			case 0b11001:    return { .type = Type::Code, .readable = false, .writeable = false, .conforming = false };
+			case 0b11010:
+			case 0b11011:    return { .type = Type::Code, .readable = true, .writeable = false, .conforming = false };
+			case 0b11100:
+			case 0b11101:    return { .type = Type::Code, .readable = false, .writeable = false, .conforming = true };
+			case 0b11110:
+			case 0b11111:    return { .type = Type::Code, .readable = true, .writeable = false, .conforming = true };
+		}
+	}
 
 	bool operator ==(const SegmentDescriptor &rhs) const {
 		return
