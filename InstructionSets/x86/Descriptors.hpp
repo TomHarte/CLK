@@ -38,6 +38,10 @@ enum class DescriptorType {
 	Invalid,
 };
 
+constexpr bool is_data_or_code(const DescriptorType type) {
+	return type <= DescriptorType::Stack;
+}
+
 enum DescriptorTypeFlag: uint8_t {
 	Accessed	= 1 << 0,
 	Busy		= 1 << 1,

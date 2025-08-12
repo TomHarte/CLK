@@ -32,6 +32,30 @@ public:
 	using Mode = InstructionSet::x86::Mode;
 	using Source = InstructionSet::x86::Source;
 
+	template <bool for_read>
+	bool verify(const uint16_t value) {
+		try {
+			const auto incoming = descriptor(value);
+			const auto description = incoming.description();
+
+			if(!is_data_or_code(description.type)) {
+				return false;
+			}
+
+			if(for_read && !description.readable) {
+				return false;
+			} else if(!description.writeable) {
+				return false;
+			}
+
+			// TODO: privilege level?
+
+			return true;
+		} catch (const InstructionSet::x86::Exception &e) {
+			return false;
+		}
+	}
+
 	void preauthorise(
 		const Source segment,
 		const uint16_t value
