@@ -581,13 +581,25 @@ template <
 				assert(false);
 			}
 		break;
+
 		case Operation::LTR:
-			if constexpr (ContextT::model >= Model::i80286) {
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
 				if(is_real(context.cpu_control.mode())) {
 					throw Exception::exception<Vector::InvalidOpcode>();
 					return;
 				}
 				Primitive::ltr(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::STR:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::str(destination_w(), context);
 			} else {
 				assert(false);
 			}

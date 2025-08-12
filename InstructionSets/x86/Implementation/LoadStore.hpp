@@ -244,4 +244,12 @@ void ltr(
 	context.registers.set_task_state(source);
 }
 
+template <typename ContextT>
+void str(
+	write_t<uint16_t> destination,
+	ContextT &context
+) {
+	destination = context.registers.task_state();
+}
+
 }
