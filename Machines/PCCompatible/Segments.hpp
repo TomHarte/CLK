@@ -24,7 +24,7 @@ namespace PCCompatible {
 template <InstructionSet::x86::Model model, typename LinearMemoryT>
 class Segments {
 public:
-	Segments(const InstructionSet::x86::Registers<model> &registers, const LinearMemoryT &memory) :
+	Segments(const InstructionSet::x86::Registers<model> &registers, LinearMemoryT &memory) :
 		registers_(registers), memory_(memory) {}
 
 	using Descriptor = InstructionSet::x86::SegmentDescriptor;
@@ -52,6 +52,21 @@ public:
 			// TODO: set descriptor accessed bit in memory.
 			// (unless that happens later? But probably not.)
 		}
+	}
+
+	void preauthorise_task_state(const uint16_t value) {
+		// Test value of descriptor.
+		const auto incoming = descriptor(value);
+		const auto description = incoming.description();
+		if(description.type != InstructionSet::x86::DescriptorType::AvailableTaskStateSegment) {
+			incoming.throw_gpf();
+		}
+		set_descriptor_type_flag<Descriptor>(
+			memory_,
+			descriptor_table(value),
+			incoming,
+			InstructionSet::x86::DescriptorTypeFlag::Busy
+		);
 	}
 
 	void preauthorise_call(
@@ -125,19 +140,22 @@ private:
 		descriptors[segment].set_segment(value);
 	}
 
+	const InstructionSet::x86::DescriptorTablePointer &descriptor_table(const uint16_t value) {
+		return (value & 4) ?
+			registers_.template get<DescriptorTable::Local>() :
+			registers_.template get<DescriptorTable::Global>();
+	}
+
 	Descriptor descriptor(const uint16_t value) {
-		const auto &table =
-			(value & 4) ?
-				registers_.template get<DescriptorTable::Local>() :
-				registers_.template get<DescriptorTable::Global>();
-		const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7);
+		const auto &table = descriptor_table(value);
+		const auto incoming = descriptor_at<Descriptor>(memory_, table, value & ~7, value & 4);
 		last_descriptor_ = incoming;
 		return last_descriptor_;
 	}
 
 	Mode mode_ = Mode::Real;
 	const InstructionSet::x86::Registers<model> &registers_;
-	const LinearMemoryT &memory_;
+	LinearMemoryT &memory_;
 	Descriptor last_descriptor_;
 
 #ifndef NDEBUG

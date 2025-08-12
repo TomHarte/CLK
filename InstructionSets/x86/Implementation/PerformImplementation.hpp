@@ -581,6 +581,17 @@ template <
 				assert(false);
 			}
 		break;
+		case Operation::LTR:
+			if constexpr (ContextT::model >= Model::i80286) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::ltr(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
 
 		// TODO to reach a full 80286:
 		//
@@ -588,7 +599,6 @@ template <
 		//	VERR
 		//	VERW
 		//	LSL
-		//	LTR
 		//	STR
 		//	LOADALL
 	}
@@ -739,7 +749,7 @@ void interrupt(
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
 			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
-				context.linear_memory, table_pointer, uint16_t(exception.vector << 3));
+				context.linear_memory, table_pointer, uint16_t(exception.vector << 3), false);
 
 			if(!call_gate.present()) {
 				printf("TODO: should throw for non-present IDT entry\n");

@@ -143,7 +143,8 @@ void lldt(
 		descriptor_at<SegmentDescriptor>(
 			context.linear_memory,
 			context.registers.template get<DescriptorTable::Global>(),
-			source_segment & ~7);
+			source_segment & ~7,
+			false);
 
 	constexpr auto exception_code = [](const uint16_t segment) {
 		return ExceptionCode(
@@ -228,6 +229,19 @@ void clts(
 	context.registers.set_msw(
 		msw & ~MachineStatus::TaskSwitched
 	);
+}
+
+template <typename ContextT>
+void ltr(
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	if(context.registers.privilege_level()) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(ExceptionCode::zero());
+	}
+
+	context.segments.preauthorise_task_state(source);
+	context.registers.set_task_state(source);
 }
 
 }

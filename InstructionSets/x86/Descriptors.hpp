@@ -38,6 +38,11 @@ enum class DescriptorType {
 	Invalid,
 };
 
+enum DescriptorTypeFlag: uint8_t {
+	Accessed	= 1 << 0,
+	Busy		= 1 << 1,
+};
+
 struct DescriptorDescription {
 	DescriptorType type = DescriptorType::Invalid;
 	bool readable = false;
@@ -50,7 +55,11 @@ struct SegmentDescriptor {
 	SegmentDescriptor() = default;
 
 	/// Creates a new descriptor with four 16-bit from a descriptor table.
-	SegmentDescriptor(const uint16_t segment, const uint16_t descriptor[4]) noexcept : segment_(segment) {
+	SegmentDescriptor(
+		const uint16_t segment,
+		const bool local,
+		const uint16_t descriptor[4]
+	) noexcept : segment_(segment), local_(local) {
 		base_ = uint32_t(descriptor[1] | ((descriptor[2] & 0xff) << 16));
 		type_ = descriptor[2] >> 8;
 
@@ -78,6 +87,10 @@ struct SegmentDescriptor {
 		type_ = 0b1'00'1'001'0;		// Present, privilege level 0, expand-up writeable data, unaccessed.
 	}
 
+	uint16_t segment() const {
+		return segment_;
+	}
+
 	/// @returns The linear address for offest @c address within the segment described by this descriptor.
 	uint32_t to_linear(const uint32_t address) const {
 		return base_ + address;
@@ -87,7 +100,7 @@ struct SegmentDescriptor {
 		throw Exception::exception<Vector::GeneralProtectionFault>(
 			ExceptionCode(
 				segment_,
-				true,	// LDT or GDT???
+				local_,
 				false,
 				false
 			)
@@ -138,6 +151,14 @@ struct SegmentDescriptor {
 		// TODO: is this descriptor privilege within reach?
 		// TODO: is this an empty descriptor*? If so: exception!
 	}
+
+	// TODO: validators for:
+	//	INT
+	//	IRET
+	//	JMP
+	//	RET
+	//
+	// Verify also: MOV, POP, both of which can mutate DS/ES, SS, etc.
 
 	void validate_call(
 		const std::function<void(const SegmentDescriptor &)> &call_callback
@@ -242,10 +263,11 @@ private:
 	DescriptorBounds bounds_;
 	uint8_t type_;
 	uint16_t segment_;
+	bool local_;
 };
 
 struct InterruptDescriptor {
-	InterruptDescriptor(const uint16_t, const uint16_t descriptor[4]) noexcept :
+	InterruptDescriptor(const uint16_t, bool, const uint16_t descriptor[4]) noexcept :
 		segment_(descriptor[1]),
 		offset_(uint32_t(descriptor[0] | (descriptor[3] << 16))),
 		flags_(descriptor[2] >> 8) {}
@@ -295,7 +317,12 @@ private:
 
 template <typename DescriptorT, typename LinearMemoryT>
 //requires is_linear_memory<LinearMemoryT>
-DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer table, const uint16_t offset) {
+DescriptorT descriptor_at(
+	LinearMemoryT &memory,
+	const DescriptorTablePointer table,
+	const uint16_t offset,
+	const bool local
+) {
 	if(offset > table.limit - 8) {
 		printf("TODO: descriptor table overrun exception.\n");
 		assert(false);
@@ -311,7 +338,23 @@ DescriptorT descriptor_at(LinearMemoryT &memory, const DescriptorTablePointer ta
 		memory.template access<uint16_t, AccessType::Read>(address + 6, table_end)
 	};
 
-	return DescriptorT(uint16_t(offset) & ~7, entry);
+	return DescriptorT(uint16_t(offset) & ~7, local, entry);
+}
+
+template <typename DescriptorT, typename LinearMemoryT>
+//requires is_linear_memory<LinearMemoryT>
+void set_descriptor_type_flag(
+	LinearMemoryT &memory,
+	const DescriptorTablePointer table,
+	const DescriptorT &descriptor,
+	const DescriptorTypeFlag flag
+) {
+	const auto address = table.base + (descriptor.segment() & ~7);
+	const uint32_t table_end = table.base + table.limit;
+
+	auto type = memory.template access<uint16_t, AccessType::PreauthorisedRead>(address + 5, table_end);
+	type |= flag;
+	memory.template access<uint16_t, AccessType::Write>(address + 5, table_end) = type;
 }
 
 }
