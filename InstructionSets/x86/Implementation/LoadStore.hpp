@@ -211,9 +211,9 @@ void arpl(
 
 	if(destination_rpl < source_rpl) {
 		destination = uint16_t((destination & ~3) | source_rpl);
-		context.flags.template set_from<Flag::Carry>(1);
+		context.flags.template set_from<Flag::Zero>(0);
 	} else {
-		context.flags.template set_from<Flag::Carry>(0);
+		context.flags.template set_from<Flag::Zero>(1);
 	}
 }
 
