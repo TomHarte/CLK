@@ -268,4 +268,32 @@ void verw(
 	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<false>(source));
 }
 
+template <typename ContextT>
+void lar(
+	write_t<uint16_t> destination,
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	if(const auto rights = context.segments.load_access_rights(source); rights.has_value()) {
+		destination = uint16_t(*rights << 8);
+		context.flags.template set_from<Flag::Zero>(0);
+	} else {
+		context.flags.template set_from<Flag::Zero>(1);
+	}
+}
+
+template <typename ContextT>
+void lsl(
+	write_t<uint16_t> destination,
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	if(const auto limit = context.segments.load_limit(source); limit.has_value()) {
+		destination = *limit;
+		context.flags.template set_from<Flag::Zero>(0);
+	} else {
+		context.flags.template set_from<Flag::Zero>(1);
+	}
+}
+
 }

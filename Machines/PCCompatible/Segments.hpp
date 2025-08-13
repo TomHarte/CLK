@@ -60,6 +60,24 @@ public:
 		}
 	}
 
+	std::optional<uint8_t> load_access_rights(const uint16_t source) {
+		try {
+			const auto incoming = descriptor(source);
+			return incoming.access_rights();
+		} catch (const InstructionSet::x86::Exception &e) {
+			return std::nullopt;
+		}
+	}
+
+	std::optional<uint16_t> load_limit(const uint16_t source) {
+		try {
+			const auto incoming = descriptor(source);
+			return incoming.offset();
+		} catch (const InstructionSet::x86::Exception &e) {
+			return std::nullopt;
+		}
+	}
+
 	void preauthorise(
 		const Source segment,
 		const uint16_t value

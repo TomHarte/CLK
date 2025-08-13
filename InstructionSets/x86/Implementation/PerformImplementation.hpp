@@ -628,10 +628,31 @@ template <
 			}
 		break;
 
+		case Operation::LAR:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::lar(destination_w(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::LSL:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::lsl(destination_w(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+
 		// TODO to reach a full 80286:
 		//
-		//	LAR
-		//	LSL
 		//	LOADALL
 	}
 

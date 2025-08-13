@@ -206,6 +206,7 @@ struct SegmentDescriptor {
 
 	bool present() const 			{	return type_ & 0x80;		}
 	int privilege_level() const		{	return (type_ >> 5) & 3;	}
+	uint8_t access_rights() const	{	return uint8_t(type_);		}
 
 	DescriptorDescription description() const {
 		using Type = DescriptorType;
