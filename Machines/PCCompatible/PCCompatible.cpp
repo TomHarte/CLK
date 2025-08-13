@@ -696,7 +696,7 @@ public:
 	using Exception = InstructionSet::x86::Exception;
 
 	void run_for(const Cycles duration) final {
-		const auto pit_ticks = duration.as<int>();
+		const auto pit_ticks = duration.as<int>() * 10;
 		constexpr int pit_multiplier = [] {
 			switch(pc_model) {
 				// This is implicitly treated as running at 1/3 the PIT clock = around 0.4 MIPS.

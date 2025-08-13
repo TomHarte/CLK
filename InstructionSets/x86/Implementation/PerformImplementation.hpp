@@ -582,14 +582,77 @@ template <
 			}
 		break;
 
+		case Operation::LTR:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::ltr(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::STR:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::str(destination_w(), context);
+			} else {
+				assert(false);
+			}
+		break;
+
+		case Operation::VERR:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::verr(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::VERW:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::verw(source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+
+		case Operation::LAR:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::lar(destination_w(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+		case Operation::LSL:
+			if constexpr (ContextT::model >= Model::i80286 && std::is_same_v<IntT, uint16_t>) {
+				if(is_real(context.cpu_control.mode())) {
+					throw Exception::exception<Vector::InvalidOpcode>();
+					return;
+				}
+				Primitive::lsl(destination_w(), source_r(), context);
+			} else {
+				assert(false);
+			}
+		break;
+
 		// TODO to reach a full 80286:
 		//
-		//	LAR
-		//	VERR
-		//	VERW
-		//	LSL
-		//	LTR
-		//	STR
 		//	LOADALL
 	}
 
@@ -739,7 +802,7 @@ void interrupt(
 	if constexpr (ContextT::model >= Model::i80286) {
 		if(context.registers.msw() & MachineStatus::ProtectedModeEnable) {
 			const auto call_gate = descriptor_at<InstructionSet::x86::InterruptDescriptor>(
-				context.linear_memory, table_pointer, uint16_t(exception.vector << 3));
+				context.linear_memory, table_pointer, uint16_t(exception.vector << 3), false);
 
 			if(!call_gate.present()) {
 				printf("TODO: should throw for non-present IDT entry\n");

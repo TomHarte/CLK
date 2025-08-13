@@ -108,11 +108,11 @@ void jump_absolute(
 
 template <typename AddressT, typename ContextT>
 void call_far(
-	uint16_t segment,
-	AddressT offset,
+	const uint16_t segment,
+	const AddressT offset,
 	ContextT &context
 ) {
-	context.segments.preauthorise(
+	context.segments.preauthorise_call(
 		Source::CS,
 		offset,
 		[&] {

@@ -143,7 +143,8 @@ void lldt(
 		descriptor_at<SegmentDescriptor>(
 			context.linear_memory,
 			context.registers.template get<DescriptorTable::Global>(),
-			source_segment & ~7);
+			source_segment & ~7,
+			false);
 
 	constexpr auto exception_code = [](const uint16_t segment) {
 		return ExceptionCode(
@@ -210,9 +211,9 @@ void arpl(
 
 	if(destination_rpl < source_rpl) {
 		destination = uint16_t((destination & ~3) | source_rpl);
-		context.flags.template set_from<Flag::Carry>(1);
+		context.flags.template set_from<Flag::Zero>(0);
 	} else {
-		context.flags.template set_from<Flag::Carry>(0);
+		context.flags.template set_from<Flag::Zero>(1);
 	}
 }
 
@@ -228,6 +229,71 @@ void clts(
 	context.registers.set_msw(
 		msw & ~MachineStatus::TaskSwitched
 	);
+}
+
+template <typename ContextT>
+void ltr(
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	if(context.registers.privilege_level()) {
+		throw Exception::exception<Vector::GeneralProtectionFault>(ExceptionCode::zero());
+	}
+
+	context.segments.preauthorise_task_state(source);
+	context.registers.set_task_state(source);
+}
+
+template <typename ContextT>
+void str(
+	write_t<uint16_t> destination,
+	ContextT &context
+) {
+	destination = context.registers.task_state();
+}
+
+template <typename ContextT>
+void verr(
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<true>(source));
+}
+
+template <typename ContextT>
+void verw(
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<false>(source));
+}
+
+template <typename ContextT>
+void lar(
+	write_t<uint16_t> destination,
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	if(const auto rights = context.segments.load_access_rights(source); rights.has_value()) {
+		destination = uint16_t(*rights << 8);
+		context.flags.template set_from<Flag::Zero>(0);
+	} else {
+		context.flags.template set_from<Flag::Zero>(1);
+	}
+}
+
+template <typename ContextT>
+void lsl(
+	write_t<uint16_t> destination,
+	read_t<uint16_t> source,
+	ContextT &context
+) {
+	if(const auto limit = context.segments.load_limit(source); limit.has_value()) {
+		destination = *limit;
+		context.flags.template set_from<Flag::Zero>(0);
+	} else {
+		context.flags.template set_from<Flag::Zero>(1);
+	}
 }
 
 }

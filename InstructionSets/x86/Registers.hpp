@@ -119,6 +119,11 @@ public:
 			msw;
 	}
 
+	uint16_t task_state() const { return task_state_; }
+	void set_task_state(const uint16_t tsr) {
+		task_state_ = tsr;
+	}
+
 	uint16_t ldtr() const {	return ldtr_;	}
 	void set_ldtr(const uint16_t ldtr) {
 		ldtr_ = ldtr;
@@ -154,7 +159,7 @@ public:
 private:
 	uint16_t machine_status_;
 	DescriptorTablePointer global_, interrupt_, local_;
-	uint16_t ldtr_;
+	uint16_t ldtr_, task_state_;
 };
 
 }
