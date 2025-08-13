@@ -72,7 +72,17 @@ public:
 	std::optional<uint16_t> load_limit(const uint16_t source) {
 		try {
 			const auto incoming = descriptor(source);
-			return incoming.offset();
+			const auto description = incoming.description();
+			using DescriptorType = InstructionSet::x86::DescriptorType;
+			if(
+				InstructionSet::x86::is_data_or_code(description.type) ||
+				description.type == DescriptorType::AvailableTaskStateSegment ||
+				description.type == DescriptorType::BusyTaskStateSegment ||
+				description.type == DescriptorType::LDT) {
+				return incoming.offset();
+			} else {
+				return std::nullopt;
+			}
 		} catch (const InstructionSet::x86::Exception &e) {
 			return std::nullopt;
 		}
