@@ -18,12 +18,13 @@ namespace PCCompatible {
 class RTC {
 public:
 	template <int address>
+	requires(address >= 0 && address < 2)
 	void write(const uint8_t value) {
 		switch(address) {
 			default: break;
 			case 0:
 				selected_ = value & 0x7f;
-				// NMI not yet supported.
+				// NMI enable/disable not yet supported.
 			break;
 			case 1:
 				write_register(value);
@@ -40,6 +41,7 @@ public:
 		switch(selected_) {
 			default:
 				if(ram_selected()) {
+					printf("RTC: %02x <- %zu\n", ram_[ram_address()], ram_address());
 					return ram_[ram_address()];
 				}
 			return 0xff;
