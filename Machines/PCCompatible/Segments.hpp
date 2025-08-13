@@ -42,10 +42,14 @@ public:
 				return false;
 			}
 
-			if(for_read && !description.readable) {
-				return false;
-			} else if(!description.writeable) {
-				return false;
+			if constexpr (for_read) {
+				if(!description.readable) {
+					return false;
+				}
+			} else {
+				if(!description.writeable) {
+					return false;
+				}
 			}
 
 			// TODO: privilege level?

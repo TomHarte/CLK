@@ -257,7 +257,7 @@ void verr(
 	read_t<uint16_t> source,
 	ContextT &context
 ) {
-	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<false>(source));
+	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<true>(source));
 }
 
 template <typename ContextT>
@@ -265,7 +265,7 @@ void verw(
 	read_t<uint16_t> source,
 	ContextT &context
 ) {
-	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<true>(source));
+	context.flags.template set_from<Flag::Zero>(!context.segments.template verify<false>(source));
 }
 
 }
