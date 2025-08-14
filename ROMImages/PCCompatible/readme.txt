@@ -7,9 +7,13 @@ For XT-class emulation:
 
 For AT-class emulation:
 
-	BIOS_5170_15NOV85_U27_61X9266_27256.BIN and
-	BIOS_5170_15NOV85_U47_61X9265_27256.BIN — the IBM PC AT BIOS.
 	ibm-basic-1.10.rom — IBM ROM BIOS version 1.10.
+
+	Either:
+		at-bios.bin; or both
+
+		BIOS_5170_15NOV85_U27_61X9266_27256.BIN and
+		BIOS_5170_15NOV85_U47_61X9265_27256.BIN — the IBM PC AT BIOS.
 
 For specific video cards:
 
