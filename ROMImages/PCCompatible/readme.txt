@@ -5,6 +5,12 @@ For XT-class emulation:
 	GLABIOS_0.2.5_8T.ROM — the 8088 GLaBIOS ROM.
 	GLaTICK_0.8.5_AT.ROM (optionally) — the GLaBIOS AT RTC option ROM.
 
+For AT-class emulation:
+
+	BIOS_5170_15NOV85_U27_61X9266_27256.BIN and
+	BIOS_5170_15NOV85_U47_61X9265_27256.BIN — the IBM PC AT BIOS.
+	ibm-basic-1.10.rom — IBM ROM BIOS version 1.10.
+
 For specific video cards:
 
 	EUMDA9.F14 — the MDA font.

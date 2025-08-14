@@ -150,6 +150,8 @@ enum Name {
 	PCCompatibleEGABIOS,
 	PCCompatibleVGABIOS,
 
+	IBMBASIC110,
+
 	// Plus 4.
 	Plus4KernelPALv3,
 	Plus4KernelPALv4,
