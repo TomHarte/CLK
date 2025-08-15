@@ -610,6 +610,8 @@ public:
 		constexpr auto bios_AT_odd = ROM::Name::PCCompatibleIBMATBIOSNov85U47;
 		constexpr auto bios_AT_Phoenix = ROM::Name::PCCompatiblePhoenix80286BIOS;
 
+		constexpr auto rom_BASIC = ROM::Name::IBMBASIC110;
+
 		ROM::Request request = ROM::Request(font);
 		switch(pc_model) {
 			default:
@@ -619,7 +621,7 @@ public:
 				auto at_even_odd = ROM::Request(bios_AT_odd) && ROM::Request(bios_AT_even);
 				auto at_full = ROM::Request(bios_AT);
 				auto phoenix_full = ROM::Request(bios_AT_Phoenix);
-				const auto at_any = at_even_odd || at_full || phoenix_full;
+				const auto at_any = ((at_even_odd || at_full) && rom_BASIC) || phoenix_full;
 				request = request && at_any;
 			} break;
 		}
@@ -656,6 +658,8 @@ public:
 				const auto install_at = [&] {
 					const auto bios_even = roms.find(bios_AT_even);
 					const auto bios_odd = roms.find(bios_AT_odd);
+					bool is_ibm = false;
+
 					if(bios_even != roms.end() && bios_odd != roms.end()) {
 						std::vector<uint8_t> bios(65536);
 
@@ -664,15 +668,25 @@ public:
 						}
 
 						install_bios(bios);
-						return;
+						is_ibm = true;
+					} else {
+						for(const auto name: {bios_AT, bios_AT_Phoenix}) {
+							const auto bios_contents = roms.find(name);
+							if(bios_contents != roms.end()) {
+								install_bios(bios_contents->second);
+								is_ibm = name == bios_AT;
+								break;
+							}
+						}
 					}
 
-					for(const auto name: {bios_AT, bios_AT_Phoenix}) {
-						const auto bios_contents = roms.find(name);
-						if(bios_contents != roms.end()) {
-							install_bios(bios_contents->second);
-							return;
-						}
+					if(is_ibm) {
+						const auto basic = roms.find(rom_BASIC);
+						context_.linear_memory.install(
+							0xf'6000,
+							basic->second.data(),
+							uint32_t(basic->second.size())
+						);
 					}
 				};
 

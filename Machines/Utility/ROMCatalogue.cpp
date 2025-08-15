@@ -610,6 +610,10 @@ Description::Description(Name name) {
 			*this = Description(name, "PCCompatible", "IBM's VGA BIOS", "ibm_vga.bin", 32 * 1024, 0x03b3f90du);
 		break;
 
+		case Name::IBMBASIC110:
+			*this = Description(name, "PCCompatible", "IBM ROM BIOS 1.10", "ibm-basic-1.10.rom", 32 * 1024, 0xebacb791u);
+		break;
+
 		// TODO: CRCs below are incomplete, at best.
 		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
 		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);	break;
