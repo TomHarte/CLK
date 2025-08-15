@@ -271,11 +271,26 @@ private:
 
 			case 0x60:
 				is_tested_ = output_ & 0x4;
+				// TODO:
+				//	b0: 1 = enable first PS/2 port interrupt;
+				//	b1: 1 = enable second port interrupt;
+				//	b2: 1 = system has passed POST
+				//	b3: should be 0
+				//	b4: 1 = disable first port clock;
+				//	b5: 1 = disable second port clock;
+				//	b6: 1 = enable translation
+				//	b7: should be 0
 			break;
 
 			case 0xc0:	// Read input port.
+//				post(0b1000'1000);
 				post(0xd0);
 			break;
+			//	BASE_MEM8		EQU	00001000B	; BASE PLANAR R/W MEMORY EXTENSION 640/X
+			//	BASE_MEM		EQU	00010000B	; BASE PLANAR R/W MEMORY SIZE 256/512
+			//	MFG_LOOP		EQU	00100000B	; LOOP POST JUMPER BIT FOP MANUFACTURING
+			//	DSP_JMP 		EQU	01000000B	; DISPLAY TYPE SWITCH JUMPER BIT	[0 -> colour?]
+			//	KEY_BD_INHIB	EQU	10000000B	; KEYBOARD INHIBIT SWITCH BIT
 
 			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
 			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:
