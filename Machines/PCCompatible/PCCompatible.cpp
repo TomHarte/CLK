@@ -470,6 +470,11 @@ public:
 						return video_.template read<0x8>();
 					}
 				break;
+				case 0x03ba:
+					if constexpr (video == Target::VideoAdaptor::MDA) {
+						return video_.template read<0xa>();
+					}
+				break;
 
 				case 0x3da:
 					if constexpr (video == Target::VideoAdaptor::CGA) {

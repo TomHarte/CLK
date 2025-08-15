@@ -62,6 +62,13 @@ public:
 
 			case 0x8: return outputter_.control();
 
+			case 0xa:
+				// b3: live video output
+				// b0: 1 if horizontal retrace is active
+			return
+				(crtc_.get_bus_state().vsync ? 0x8 : 0x0) |
+				0xf0;
+
 			default: return 0xff;
 		}
 	}
