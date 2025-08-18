@@ -225,6 +225,7 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 		case Operation::POP:	return "pop";
 		case Operation::POPF:	return "popf";
 		case Operation::PUSHA:	return "pusha";
+		case Operation::POPA:	return "popa";
 		case Operation::PUSH:	return "push";
 		case Operation::PUSHF:	return "pushf";
 		case Operation::RCL:	return "rcl";
@@ -264,8 +265,26 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 				return "bound";
 			}
 
+		case Operation::ARPL:	return "arpl";
+		case Operation::CLTS:	return "clts";
+
 		case Operation::LMSW:	return "lmsw";
 		case Operation::SMSW:	return "smsw";
+
+		case Operation::LIDT:	return "lidt";
+		case Operation::LGDT:	return "lgdt";
+		case Operation::LLDT:	return "lldt";
+		case Operation::SIDT:	return "sidt";
+		case Operation::SGDT:	return "sgdt";
+		case Operation::SLDT:	return "sldt";
+
+		case Operation::LTR:	return "ltr";
+		case Operation::STR:	return "str";
+
+		case Operation::VERR:	return "verr";
+		case Operation::VERW:	return "verw";
+		case Operation::LAR:	return "lar";
+		case Operation::LSL:	return "lsl";
 
 		case Operation::Invalid:	return "invalid";
 
