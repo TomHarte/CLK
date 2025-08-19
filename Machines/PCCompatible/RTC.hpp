@@ -10,6 +10,8 @@
 
 #include <ctime>
 
+//extern bool should_log;
+
 namespace PCCompatible {
 
 /*!
@@ -41,7 +43,10 @@ public:
 		switch(selected_) {
 			default:
 				if(ram_selected()) {
-					printf("RTC: %02x <- %zu\n", ram_[ram_address()], ram_address());
+//					printf("RTC: %02x <- %zu\n", ram_[ram_address()], ram_address());
+//					if(ram_address() == 1 && ram_[1] == 6) {
+//						should_log = true;
+//					}
 					return ram_[ram_address()];
 				}
 			return 0xff;

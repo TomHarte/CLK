@@ -53,6 +53,8 @@
 #include <iostream>
 #include <type_traits>
 
+bool should_log = false;
+
 namespace PCCompatible {
 namespace {
 Log::Logger<Log::Source::PCCompatible> log;
@@ -588,7 +590,7 @@ public:
 		const Analyser::Static::PCCompatible::Target &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
-		keyboard_(pics_, speaker_),
+		keyboard_(pics_, speaker_, video),
 		fdc_(pics_, dma_, DriveCount),
 		pit_observer_(pics_, speaker_),
 		ppi_handler_(speaker_, keyboard_, video, DriveCount),
@@ -807,7 +809,6 @@ public:
 		}
 	}
 
-	bool should_log = false;
 	void perform_instruction() {
 		// Get the next thing to execute.
 		if(!context_.flow_controller.should_repeat()) {
@@ -829,6 +830,10 @@ public:
 		}
 
 //		if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
+//		if(decoded_ip_ == 0x12d8) {
+//			should_log = true;
+//		}
+
 		if(should_log) {
 			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
 			static std::string previous;

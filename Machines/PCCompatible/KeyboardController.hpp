@@ -12,6 +12,8 @@
 #include "PIC.hpp"
 #include "Speaker.hpp"
 
+#include "Analyser/Static/PCCompatible/Target.hpp"
+
 namespace PCCompatible {
 
 /*!
@@ -27,7 +29,7 @@ class KeyboardController;
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
-	KeyboardController(PICs<model> &pics, Speaker &) : pics_(pics) {}
+	KeyboardController(PICs<model> &pics, Speaker &, Analyser::Static::PCCompatible::Target::VideoAdaptor) : pics_(pics) {}
 
 	// KB Status Port 61h high bits:
 	//; 01 - normal operation. wait for keypress, when one comes in,
@@ -115,7 +117,15 @@ private:
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
 public:
-	KeyboardController(PICs<model> &pics, Speaker &speaker) : pics_(pics), speaker_(speaker) {}
+	KeyboardController(
+		PICs<model> &pics,
+		Speaker &speaker,
+		const Analyser::Static::PCCompatible::Target::VideoAdaptor adaptor
+	) : pics_(pics), speaker_(speaker) {
+		if(adaptor == Analyser::Static::PCCompatible::Target::VideoAdaptor::MDA) {
+			port_input_ |= 0x40;
+		}
+	}
 
 	void run_for(const Cycles cycles) {
 		instruction_count_ += cycles.as<int>();
@@ -283,14 +293,8 @@ private:
 			break;
 
 			case 0xc0:	// Read input port.
-//				post(0b1000'1000);
-				post(0xd0);
+				post(port_input_);
 			break;
-			//	BASE_MEM8		EQU	00001000B	; BASE PLANAR R/W MEMORY EXTENSION 640/X
-			//	BASE_MEM		EQU	00010000B	; BASE PLANAR R/W MEMORY SIZE 256/512
-			//	MFG_LOOP		EQU	00100000B	; LOOP POST JUMPER BIT FOP MANUFACTURING
-			//	DSP_JMP 		EQU	01000000B	; DISPLAY TYPE SWITCH JUMPER BIT	[0 -> colour?]
-			//	KEY_BD_INHIB	EQU	10000000B	; KEYBOARD INHIBIT SWITCH BIT
 
 			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
 			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:
@@ -321,6 +325,13 @@ private:
 	uint8_t output_;
 	bool has_command_ = false;
 	uint8_t command_;
+
+//		  bit 7	  = 0  keyboard inhibited
+//		  bit 6	  = 0  CGA, else MDA
+//		  bit 5	  = 0  manufacturing jumper installed
+//		  bit 4	  = 0  system RAM 512K, else 640K
+//		  bit 3-0      reserved
+	uint8_t port_input_ = 0b1011'0000;
 
 	int write_delay_ = 0;
 
