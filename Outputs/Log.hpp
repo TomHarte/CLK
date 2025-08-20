@@ -85,7 +85,6 @@ constexpr bool is_enabled(const Source source) {
 		case Source::SCC:
 		case Source::SCSI:
 		case Source::I2C:
-		case Source::Keyboard:
 			return false;
 	}
 }
@@ -159,7 +158,7 @@ public:
 	}
 
 	template <size_t size, typename... Args>
-	void append(const char (&format)[size], Args... args) {
+	auto &append(const char (&format)[size], Args... args) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
 		const auto append_size = std::snprintf(nullptr, 0, format, args...);
@@ -168,6 +167,13 @@ public:
 		std::snprintf(output_.data() + end, size_t(append_size) + 1, format, args...);
 		output_.pop_back();
 #pragma GCC diagnostic pop
+		return *this;
+	}
+
+	template <size_t size, typename... Args>
+	auto &append_if(const bool condition, const char (&format)[size], Args... args) {
+		if(!condition) return *this;
+		return append(format, args...);
 	}
 
 private:
@@ -180,7 +186,10 @@ struct LogLine<source, false> {
 	explicit LogLine(FILE *) noexcept {}
 
 	template <size_t size, typename... Args>
-	void append(const char (&)[size], Args...) {}
+	auto &append(const char (&)[size], Args...) { return *this; }
+
+	template <size_t size, typename... Args>
+	auto &append_if(bool, const char (&)[size], Args...) { return *this; }
 };
 
 template <Source source>
