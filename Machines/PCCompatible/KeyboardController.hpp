@@ -31,7 +31,8 @@ class KeyboardController;
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
-	KeyboardController(PICs<model> &pics, Speaker &, Analyser::Static::PCCompatible::Target::VideoAdaptor) : pics_(pics) {}
+	KeyboardController(PICs<model> &pics, Speaker &, Analyser::Static::PCCompatible::Target::VideoAdaptor) :
+		pics_(pics) {}
 
 	// KB Status Port 61h high bits:
 	//; 01 - normal operation. wait for keypress, when one comes in,
@@ -144,10 +145,8 @@ public:
 	}
 
 	void post(const uint8_t value) {
-		log_.info().append("Posting %02x", value);
-		output_ = value;
-		has_output_ = true;
-		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
+		if(!enabled_) return;
+		transmit(value);
 	}
 
 	void write(const uint16_t port, const uint8_t value) {
@@ -219,7 +218,7 @@ public:
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
 					(has_output_				? 0x01 : 0x00);
-				log_.error().append("Reading status: %02x", status);
+//				log_.error().append("Reading status: %02x", status);
 				return status;
 			}
 		}
@@ -249,6 +248,13 @@ private:
 		}
 	}
 
+	void transmit(const uint8_t value) {
+		log_.info().append("Posting %02x", value);
+		output_ = value;
+		has_output_ = true;
+		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
+	}
+
 	void perform_command() {
 		// Wait for a complete command.
 		if(
@@ -269,7 +275,7 @@ private:
 			case 0xaa:	// Self-test; 0x55 => no issues found.
 				log_.error().append("Keyboard self-test");
 				is_tested_ = true;
-				post(0x55);
+				transmit(0x55);
 			break;
 
 			case 0xd1:	// Set output byte. b1 = the A20 gate, 1 => A20 enabled.
@@ -291,12 +297,11 @@ private:
 			break;
 
 			case 0xc0:	// Read input port.
-				post(switches_);
+				transmit(switches_);
 			break;
 
-			case 0xae:
-				enabled_ = false;
-			break;
+			case 0xad:	enabled_ = false;	break;
+			case 0xae:	enabled_ = true;	break;
 
 			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
 			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:

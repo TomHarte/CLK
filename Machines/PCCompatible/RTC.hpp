@@ -44,9 +44,9 @@ public:
 			default:
 				if(ram_selected()) {
 //					printf("RTC: %02x <- %zu\n", ram_[ram_address()], ram_address());
-					if(ram_address() == 1 && ram_[1] == 6) {	// Catch reset after passing protected mode test.
-						should_log = true;
-					}
+//					if(ram_address() == 1 && ram_[1] == 6) {	// Catch reset after passing protected mode test.
+//						should_log = true;
+//					}
 					return ram_[ram_address()];
 				}
 			return 0xff;
