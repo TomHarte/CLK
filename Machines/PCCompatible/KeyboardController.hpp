@@ -214,7 +214,7 @@ public:
 				//	b1 = 1 => 'input' buffer full (i.e. don't write 0x60 or 0x64 now — this is input to the controller);
 				//	b0 = 1 => 'output' data is full (i.e. reading from 0x60 now makes sense — output is to PC).
 				const uint8_t status =
-					0x10 |
+					(enabled_ 					? 0x10 : 0x00) |
 					(phase_ == Phase::Command	? 0x08 : 0x00) |
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
@@ -294,6 +294,10 @@ private:
 				post(switches_);
 			break;
 
+			case 0xae:
+				enabled_ = false;
+			break;
+
 			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
 			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:
 			case 0xf8:	case 0xf9:	case 0xfa:	case 0xfb:
@@ -335,6 +339,8 @@ private:
 	int perform_delay_ = 0;
 
 	bool is_tested_ = false;
+	bool enabled_ = false;
+
 	enum class Phase {
 		Command,
 		Data,
