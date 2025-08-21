@@ -215,10 +215,10 @@ public:
 				//	b0 = 1 => 'output' data is full (i.e. reading from 0x60 now makes sense — output is to PC).
 				const uint8_t status =
 					0x10 |
-					(phase_ == Phase::Data	? 0x08 : 0x00) |
-					(is_tested_				? 0x04 : 0x00) |
-					(has_input_				? 0x02 : 0x00) |
-					(has_output_			? 0x01 : 0x00);
+					(phase_ == Phase::Command	? 0x08 : 0x00) |
+					(is_tested_					? 0x04 : 0x00) |
+					(has_input_					? 0x02 : 0x00) |
+					(has_output_				? 0x01 : 0x00);
 				log_.error().append("Reading status: %02x", status);
 				return status;
 			}
@@ -268,6 +268,7 @@ private:
 
 			case 0xaa:	// Self-test; 0x55 => no issues found.
 				log_.error().append("Keyboard self-test");
+				is_tested_ = true;
 				post(0x55);
 			break;
 
@@ -277,7 +278,7 @@ private:
 			break;
 
 			case 0x60:
-				is_tested_ = output_ & 0x4;
+				is_tested_ = input_ & 0x4;
 				// TODO:
 				//	b0: 1 = enable first PS/2 port interrupt;
 				//	b1: 1 = enable second port interrupt;
