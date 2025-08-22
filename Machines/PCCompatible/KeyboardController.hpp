@@ -14,6 +14,8 @@
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
 
+extern bool should_log;
+
 namespace PCCompatible {
 
 /*!
@@ -29,7 +31,8 @@ class KeyboardController;
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_xt(model)>> {
 public:
-	KeyboardController(PICs<model> &pics, Speaker &, Analyser::Static::PCCompatible::Target::VideoAdaptor) : pics_(pics) {}
+	KeyboardController(PICs<model> &pics, Speaker &, Analyser::Static::PCCompatible::Target::VideoAdaptor) :
+		pics_(pics) {}
 
 	// KB Status Port 61h high bits:
 	//; 01 - normal operation. wait for keypress, when one comes in,
@@ -123,25 +126,27 @@ public:
 		const Analyser::Static::PCCompatible::Target::VideoAdaptor adaptor
 	) : pics_(pics), speaker_(speaker) {
 		if(adaptor == Analyser::Static::PCCompatible::Target::VideoAdaptor::MDA) {
-			port_input_ |= 0x40;
+			switches_ |= 0x40;
 		}
 	}
 
 	void run_for(const Cycles cycles) {
 		instruction_count_ += cycles.as<int>();
-		if(!write_delay_) return;
-		write_delay_ -= cycles.as<int>();
-		if(write_delay_ <= 0) {
-			write_delay_ = 0;
+
+		if(!perform_delay_) {
+			return;
+		}
+
+		perform_delay_ -= cycles.as<int>();
+		if(perform_delay_ <= 0) {
+			perform_delay_ = 0;
 			perform_command();
 		}
 	}
 
 	void post(const uint8_t value) {
-		input_ = value;
-		has_input_ = true;
-		command_phase_ = CommandPhase::WaitingForCommand;
-		pics_.pic[0].template apply_edge<1>(true);
+		if(!enabled_) return;
+		transmit(value);
 	}
 
 	void write(const uint16_t port, const uint8_t value) {
@@ -151,10 +156,11 @@ public:
 			break;
 
 			case 0x0060:
-//				log_.error().append("Keyboard parameter set to %02x", value);
-				output_ = value;
-				has_output_ = true;
-				write_delay_ = 10;
+				log_.error().append("Keyboard parameter set to %02x", value);
+				phase_ = Phase::Data;
+				input_ = value;
+				has_input_ = true;
+				perform_command();
 			break;
 
 			case 0x0061:
@@ -166,15 +172,13 @@ public:
 			break;
 
 			case 0x0064:
-//				log_.info().append("AT keyboard command %04x", value);
+				phase_ = Phase::Command;
 				command_ = value;
 				has_command_ = true;
-				command_phase_ = CommandPhase::WaitingForData;
+				has_input_ = false;
+				perform_delay_ = performance_delay(command_);
 
-				write_delay_ = performance_delay(command_);
-				if(!write_delay_) {
-					perform_command();
-				}
+				perform_command();
 			break;
 		}
 	}
@@ -186,9 +190,9 @@ public:
 			break;
 
 			case 0x0060:
-				log_.error().append("Read from keyboard controller of %02x", input_);
-				has_input_ = false;
-			return input_;
+				log_.error().append("Read from keyboard controller of %02x", output_);
+				has_output_ = false;
+			return output_;
 
 			case 0x0061:
 				// In a real machine bit 4 toggles as a function of memory refresh and some BIOSes
@@ -209,12 +213,12 @@ public:
 				//	b1 = 1 => 'input' buffer full (i.e. don't write 0x60 or 0x64 now — this is input to the controller);
 				//	b0 = 1 => 'output' data is full (i.e. reading from 0x60 now makes sense — output is to PC).
 				const uint8_t status =
-					0x10 |
-					(command_phase_ == CommandPhase::WaitingForData	? 0x08 : 0x00) |
-					(is_tested_										? 0x04 : 0x00) |
-					(has_output_									? 0x02 : 0x00) |
-					(has_input_										? 0x01 : 0x00);
-				log_.error().append("Reading status: %02x", status);
+					(enabled_ 					? 0x10 : 0x00) |
+					(phase_ == Phase::Command	? 0x08 : 0x00) |
+					(is_tested_					? 0x04 : 0x00) |
+					(has_input_					? 0x02 : 0x00) |
+					(has_output_				? 0x01 : 0x00);
+//				log_.error().append("Reading status: %02x", status);
 				return status;
 			}
 		}
@@ -239,30 +243,29 @@ private:
 		}
 
 		switch(command) {
-			case 0xaa:		return 5;
+			case 0xaa:		return 15;
 			default: 		return 0;
 		}
 	}
 
+	void transmit(const uint8_t value) {
+		log_.info().append("Posting %02x", value);
+		output_ = value;
+		has_output_ = true;
+		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
+	}
+
 	void perform_command() {
-		// Wait for a command.
-		if(!has_command_) return;
-
-		// Wait for a parameter if one is needed.
-		if(requires_parameter(command_) && !has_output_) {
-			return;
-		}
-
-		{
-			auto info = log_.info();
-			info.append("Keyboard command: %02x", command_);
-			if(has_output_) {
-				info.append(" / %02x", output_);
-			}
-		}
+		// Wait for a complete command.
+		if(
+			!has_command_ ||
+			perform_delay_ ||
+			(requires_parameter(command_) && !has_input_)
+		) return;
+		log_.info().append("Keyboard command: %02x", command_).append_if(has_input_, " / %02x", input_);
 
 		// Consume command and parameter, and execute.
-		has_command_ = has_output_ = false;
+		has_command_ = has_input_ = false;
 
 		switch(command_) {
 			default:
@@ -271,7 +274,8 @@ private:
 
 			case 0xaa:	// Self-test; 0x55 => no issues found.
 				log_.error().append("Keyboard self-test");
-				post(0x55);
+				is_tested_ = true;
+				transmit(0x55);
 			break;
 
 			case 0xd1:	// Set output byte. b1 = the A20 gate, 1 => A20 enabled.
@@ -280,7 +284,7 @@ private:
 			break;
 
 			case 0x60:
-				is_tested_ = output_ & 0x4;
+				is_tested_ = input_ & 0x4;
 				// TODO:
 				//	b0: 1 = enable first PS/2 port interrupt;
 				//	b1: 1 = enable second port interrupt;
@@ -293,8 +297,11 @@ private:
 			break;
 
 			case 0xc0:	// Read input port.
-				post(port_input_);
+				transmit(switches_);
 			break;
+
+			case 0xad:	enabled_ = false;	break;
+			case 0xae:	enabled_ = true;	break;
 
 			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
 			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:
@@ -307,39 +314,42 @@ private:
 				}
 			break;
 		}
-
-		command_phase_ = CommandPhase::WaitingForCommand;
 	}
 
-	Log::Logger<Log::Source::PCCompatible> log_;
+	Log::Logger<Log::Source::Keyboard> log_;
 
 	PICs<model> &pics_;
 	Speaker &speaker_;
 	CPUControl<model> *cpu_control_ = nullptr;
 
+	// Strongly coupled to specific code in the 5170 BIOS, this provides a grossly-inaccurate
+	// linkage between execution speed (-ish) and DRAM refresh. An unambguous nonsense.
 	int instruction_count_ = 0;
 
-	bool has_input_ = false;
 	uint8_t input_;
-	bool has_output_ = false;
 	uint8_t output_;
-	bool has_command_ = false;
 	uint8_t command_;
 
-//		  bit 7	  = 0  keyboard inhibited
-//		  bit 6	  = 0  CGA, else MDA
-//		  bit 5	  = 0  manufacturing jumper installed
-//		  bit 4	  = 0  system RAM 512K, else 640K
-//		  bit 3-0      reserved
-	uint8_t port_input_ = 0b1011'0000;
+	bool has_input_ = false;
+	bool has_output_ = false;
+	bool has_command_ = false;
 
-	int write_delay_ = 0;
+	//	bit 7	  = 0  keyboard inhibited
+	//	bit 6	  = 0  CGA, else MDA
+	//	bit 5	  = 0  manufacturing jumper installed
+	//	bit 4	  = 0  system RAM 512K, else 640K
+	//	bit 3-0      reserved
+	uint8_t switches_ = 0b1011'0000;
+
+	int perform_delay_ = 0;
 
 	bool is_tested_ = false;
-	enum class CommandPhase {
-		WaitingForCommand,
-		WaitingForData,
-	} command_phase_ = CommandPhase::WaitingForCommand;
+	bool enabled_ = false;
+
+	enum class Phase {
+		Command,
+		Data,
+	} phase_ = Phase::Command;
 };
 
 }
