@@ -245,6 +245,8 @@ private:
 		SetOutputByte = 0xd1,
 
 		ReadTestInputs = 0xe0,
+
+		ResetBlockBegin = 0xf0,
 	};
 
 	static constexpr bool requires_parameter(const Command command) {
@@ -284,7 +286,13 @@ private:
 		// Consume command and parameter, and execute.
 		has_command_ = has_input_ = false;
 
-		switch(command_) {
+		if(command_ >= Command::ResetBlockBegin) {
+			log_.error().append("Should reset: %x", command_ & 0x0f);
+
+			if(!(command_ & 1)) {
+				cpu_control_->reset();
+			}
+		} else switch(command_) {
 			default:
 				log_.info().append("Keyboard command unimplemented", command_);
 			break;
@@ -323,17 +331,6 @@ private:
 
 			case Command::ReadSwitches:
 				transmit(switches_);
-			break;
-
-			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
-			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:
-			case 0xf8:	case 0xf9:	case 0xfa:	case 0xfb:
-			case 0xfc:	case 0xfd:	case 0xfe:	case 0xff:
-				log_.error().append("Should reset: %x", command_ & 0x0f);
-
-				if(!(command_ & 1)) {
-					cpu_control_->reset();
-				}
 			break;
 		}
 	}
