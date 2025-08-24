@@ -49,6 +49,7 @@ struct LinearPool {
 
 	template <typename IntT>
 	IntT read(const uint32_t address) {
+		if(address >= MaxAddressV) return IntT(~0);
 		return *reinterpret_cast<IntT *>(&memory[address]);
 	}
 
@@ -149,7 +150,10 @@ private:
 template <InstructionSet::x86::Model model, typename Enable = void> struct LinearMemory;
 
 template <InstructionSet::x86::Model model>
-struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model::i80186>>: public SplitHolder, public LinearPool<1 << 20> {
+struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model::i80186>>:
+	public SplitHolder,
+	public LinearPool<1 << 20>
+{
 	static constexpr bool RequiresPreauthorisation = false;
 
 	template <typename IntT, AccessType type>
@@ -227,8 +231,9 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 	void preauthorise_write(uint32_t, uint32_t) {}
 };
 
+// TODO: increase template parameter to LinearPool, which is the base RAM size.
 template <>
-struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 24> {
+struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 20> {
 	static constexpr bool RequiresPreauthorisation = true;
 
 	LinearMemory() {
@@ -249,6 +254,9 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address, uint32_t
 	) {
+		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
+			return *reinterpret_cast<IntT *>(&dummy_);
+		}
 		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
 	}
 
@@ -257,11 +265,16 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		uint32_t address, uint32_t
 	) const {
 		static_assert(!is_writeable(type));
+		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
+			return *reinterpret_cast<const IntT *>(&dummy_);
+		}
 		return *reinterpret_cast<const IntT *>(&memory[address & address_mask_]);
 	}
 
 	template <typename IntT>
-	void write_back() {}
+	void write_back() {
+		dummy_ = 0xffff;
+	}
 
 	template <typename IntT>
 	void preauthorised_write(
@@ -269,6 +282,7 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		const uint32_t,
 		IntT value
 	) {
+		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) return;
 		*reinterpret_cast<IntT *>(&memory[address & address_mask_]) = value;
 	}
 
@@ -277,6 +291,7 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 
 private:
 	uint32_t address_mask_;
+	uint16_t dummy_;
 };
 
 }
