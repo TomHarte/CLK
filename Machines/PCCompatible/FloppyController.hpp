@@ -37,6 +37,8 @@ public:
 	}
 
 	void set_digital_output(const uint8_t control) {
+		log_.info().append("03f2 <- %02x", control);
+
 		// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 		// b3: 1 => enable DMA; 0 => disable;
 		// b2: 1 => enable FDC; 0 => hold at reset;
@@ -66,11 +68,18 @@ public:
 		}
 	}
 
+	void set_data_rate(const uint8_t control) {
+		log_.info().append("03f4/3f7 <- %02x", control);
+	}
+
 	uint8_t status() const {
-		return status_.main();
+		const auto result = status_.main();
+		log_.info().append("03f4 -> %02x", result);
+		return result;
 	}
 
 	void write(const uint8_t value) {
+		log_.info().append("03f5 <- %02x", value);
 		decoder_.push_back(value);
 
 		if(decoder_.has_command()) {
@@ -185,7 +194,8 @@ public:
 						if(drives_[c].raised_interrupt) {
 							drives_[c].raised_interrupt = false;
 							status_.set_status0(drives_[c].status);
-							results_.serialise(status_, drives_[0].track);
+							results_.serialise(status_, drives_[c].track);
+							break;
 						}
 					}
 
@@ -228,9 +238,11 @@ public:
 				status_.set(MainStatus::DataIsToProcessor, false);
 				status_.set(MainStatus::CommandInProgress, false);
 			}
+			log_.info().append("03f5 -> %02x", result);
 			return result;
 		}
 
+		log_.info().append("03f5 -> 80 [default]");
 		return 0x80;
 	}
 
@@ -254,7 +266,7 @@ public:
 	}
 
 private:
-	Log::Logger<Log::Source::PCCompatible> log_;
+	mutable Log::Logger<Log::Source::Floppy> log_;
 
 	void reset() {
 //		printf("FDC reset\n");
