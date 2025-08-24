@@ -275,6 +275,11 @@ private:
 	}
 
 	void perform_command() {
+		if(has_input_ && !has_command_) {
+			log_.error().append("Direct device post: %02x", input_);
+			return;
+		}
+
 		// Wait for a complete command.
 		if(
 			!has_command_ ||
