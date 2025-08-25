@@ -13,6 +13,7 @@
 #include "Speaker.hpp"
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
+#include <array>
 
 extern bool should_log;
 
@@ -90,6 +91,10 @@ public:
 		return key;
 	}
 
+	auto &keyboard() {
+		return *this;
+	}
+
 	void post(const uint8_t value) {
 		if(mode_ != Mode::NormalOperation || reset_delay_) {
 			return;
@@ -124,7 +129,7 @@ public:
 		PICs<model> &pics,
 		Speaker &speaker,
 		const Analyser::Static::PCCompatible::Target::VideoAdaptor adaptor
-	) : pics_(pics), speaker_(speaker) {
+	) : pics_(pics), speaker_(speaker), keyboard_(*this) {
 		if(adaptor == Analyser::Static::PCCompatible::Target::VideoAdaptor::MDA) {
 			switches_ |= 0x40;
 		}
@@ -144,9 +149,8 @@ public:
 		}
 	}
 
-	void post(const uint8_t value) {
-		if(!enabled_) return;
-		transmit(value);
+	auto &keyboard() {
+		return keyboard_;
 	}
 
 	void write(const uint16_t port, const uint8_t value) {
@@ -189,10 +193,13 @@ public:
 //				log_.error().append("Unimplemented AT keyboard read from %04x", port);
 			break;
 
-			case 0x0060:
-				log_.error().append("Read from keyboard controller of %02x", output_);
-				has_output_ = false;
-			return output_;
+			case 0x0060: {
+				if(has_output()) {
+					advance_output_queue_pointer(output_read_);
+				}
+				log_.error().append("Read from keyboard controller of %02x", output_queue_[output_read_]);
+				return output_queue_[output_read_];
+			}
 
 			case 0x0061:
 				// In a real machine bit 4 toggles as a function of memory refresh and some BIOSes
@@ -217,7 +224,7 @@ public:
 					(phase_ == Phase::Command	? 0x08 : 0x00) |
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
-					(has_output_				? 0x01 : 0x00);
+					(has_output()				? 0x01 : 0x00);
 //				log_.error().append("Reading status: %02x", status);
 				return status;
 			}
@@ -269,24 +276,32 @@ private:
 
 	void transmit(const uint8_t value) {
 		log_.info().append("Posting %02x", value);
-		output_ = value;
-		has_output_ = true;
+		advance_output_queue_pointer(output_write_);
+		output_queue_[output_write_] = value;
 		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
 	}
 
 	void perform_command() {
-		if(has_input_ && !has_command_) {
-			log_.error().append("Direct device post: %02x", input_);
+		// Don't do anything until perform_delay_ is 0 and a command and/or other input is ready.
+		if(perform_delay_ || (!has_input_ && !has_command_)) {
 			return;
 		}
 
-		// Wait for a complete command.
-		if(
-			!has_command_ ||
-			perform_delay_ ||
-			(requires_parameter(command_) && !has_input_)
-		) return;
-		log_.info().append("Keyboard command: %02x", command_).append_if(has_input_, " / %02x", input_);
+		// No command => input only, which is a direct-to-device communication.
+		if(!has_command_) {
+			log_.info().append("Device command: %02x", input_);
+			keyboard_.perform(input_);
+			// TODO: mouse?
+			has_input_ = false;
+			return;
+		}
+
+		// There is a command, but stop anyway if it requires a parameter and doesn't yet have one.
+		if(requires_parameter(command_) && !has_input_) {
+			return;
+		}
+
+		log_.info().append("Controller command: %02x", command_).append_if(has_input_, " / %02x", input_);
 
 		// Consume command and parameter, and execute.
 		has_command_ = has_input_ = false;
@@ -331,7 +346,7 @@ private:
 
 			case Command::SetOutputByte:
 				// b1 = the A20 gate, 1 => A20 enabled.
-				cpu_control_->set_a20_enabled(output_ & 0x02);
+				cpu_control_->set_a20_enabled(input_ & 0x02);
 			break;
 
 			case Command::ReadSwitches:
@@ -351,12 +366,19 @@ private:
 	int instruction_count_ = 0;
 
 	uint8_t input_;
-	uint8_t output_;
 	Command command_;
 
 	bool has_input_ = false;
-	bool has_output_ = false;
 	bool has_command_ = false;
+
+	std::array<uint8_t, 8> output_queue_;
+	int output_read_ = 0, output_write_ = 0;
+	bool has_output() const {
+		return output_read_ != output_write_;
+	}
+	void advance_output_queue_pointer(int &pointer) {
+		pointer = (pointer + 1) & 7;
+	}
 
 	//	bit 7	  = 0  keyboard inhibited
 	//	bit 6	  = 0  CGA, else MDA
@@ -374,6 +396,32 @@ private:
 		Command,
 		Data,
 	} phase_ = Phase::Command;
+
+	struct Keyboard {
+		Keyboard(KeyboardController<model> &controller) : controller_(controller) {}
+
+		void post(const uint8_t value) {
+			controller_.post_keyboard({value});
+		}
+
+		void perform(const uint8_t command) {
+			switch(command) {
+				case 0xff:
+					controller_.post_keyboard({0xfa, 0xaa});
+				break;
+			}
+		}
+
+	private:
+		KeyboardController<model> &controller_;
+	} keyboard_;
+
+	friend Keyboard;
+	void post_keyboard(const std::initializer_list<uint8_t> values) {
+		for(const auto value : values) {
+			transmit(value);
+		}
+	}
 };
 
 }
