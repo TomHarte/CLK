@@ -13,7 +13,9 @@
 #include "Speaker.hpp"
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
+
 #include <array>
+#include <optional>
 
 extern bool should_log;
 
@@ -196,6 +198,10 @@ public:
 			case 0x0060: {
 				if(has_output()) {
 					advance_output_queue_pointer(output_read_);
+
+					if(!has_output()) {
+						pics_.pic[0].template apply_edge<1>(false);
+					}
 				}
 				log_.error().append("Read from keyboard controller of %02x", output_queue_[output_read_]);
 				return output_queue_[output_read_];
@@ -275,7 +281,7 @@ private:
 	}
 
 	void transmit(const uint8_t value) {
-		log_.info().append("Posting %02x", value);
+		log_.info().append("Enquing %02x", value);
 		advance_output_queue_pointer(output_write_);
 		output_queue_[output_write_] = value;
 		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
@@ -289,6 +295,12 @@ private:
 
 		// No command => input only, which is a direct-to-device communication.
 		if(!has_command_) {
+			if(!enabled_) {
+				log_.info().append("Storing device command for later: %02x", input_);
+				keyboard_command_ = input_;
+				has_input_ = false;
+				return;
+			}
 			log_.info().append("Device command: %02x", input_);
 			keyboard_.perform(input_);
 			// TODO: mouse?
@@ -304,7 +316,8 @@ private:
 		log_.info().append("Controller command: %02x", command_).append_if(has_input_, " / %02x", input_);
 
 		// Consume command and parameter, and execute.
-		has_command_ = has_input_ = false;
+		has_command_ = false;
+		if(requires_parameter(command_)) has_input_ = false;
 
 		if(command_ >= Command::ResetBlockBegin) {
 			log_.error().append("Should reset: %x", command_ & 0x0f);
@@ -342,7 +355,17 @@ private:
 			break;
 
 			case Command::DisableKeyboard:	enabled_ = false;	break;
-			case Command::EnableKeyboard:	enabled_ = true;	break;
+			case Command::EnableKeyboard:
+				enabled_ = true;
+
+				// If a keybaord command was enqueued, post it now.
+				if(keyboard_command_.has_value()) {
+					input_ = *keyboard_command_;
+					keyboard_command_ = std::nullopt;
+					has_input_ = true;
+					perform_command();
+				}
+			break;
 
 			case Command::SetOutputByte:
 				// b1 = the A20 gate, 1 => A20 enabled.
@@ -367,17 +390,19 @@ private:
 
 	uint8_t input_;
 	Command command_;
+	std::optional<uint8_t> keyboard_command_;
 
 	bool has_input_ = false;
 	bool has_command_ = false;
 
 	std::array<uint8_t, 8> output_queue_;
-	int output_read_ = 0, output_write_ = 0;
+	void advance_output_queue_pointer(size_t &pointer) {
+		pointer = (pointer + 1) % output_queue_.size();
+	}
+
+	size_t output_read_ = 0, output_write_ = 0;
 	bool has_output() const {
 		return output_read_ != output_write_;
-	}
-	void advance_output_queue_pointer(int &pointer) {
-		pointer = (pointer + 1) & 7;
 	}
 
 	//	bit 7	  = 0  keyboard inhibited
@@ -406,6 +431,10 @@ private:
 
 		void perform(const uint8_t command) {
 			switch(command) {
+//				case 0xf2:
+//					controller_.post_keyboard({0xfa});
+//				break;
+
 				case 0xff:
 					controller_.post_keyboard({0xfa, 0xaa});
 				break;
@@ -418,6 +447,7 @@ private:
 
 	friend Keyboard;
 	void post_keyboard(const std::initializer_list<uint8_t> values) {
+		if(!enabled_) return;
 		for(const auto value : values) {
 			transmit(value);
 		}
