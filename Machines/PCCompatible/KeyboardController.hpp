@@ -173,7 +173,7 @@ public:
 
 			case 0x0064:
 				phase_ = Phase::Command;
-				command_ = value;
+				command_ = Command(value);
 				has_command_ = true;
 				has_input_ = false;
 				perform_delay_ = performance_delay(command_);
@@ -230,21 +230,40 @@ public:
 	}
 
 private:
-	static constexpr bool requires_parameter(const uint8_t command) {
+	enum Command: uint8_t {
+		ReadCommandByte = 0x20,		// TODO.
+		WriteCommandByte = 0x60,
+
+		SelfTest = 0xaa,
+		InterfaceTest = 0xab,
+
+		DisableKeyboard = 0xad,
+		EnableKeyboard = 0xae,
+
+		ReadSwitches = 0xc0,
+		GetOutputByte = 0xd0,		// TODO.
+		SetOutputByte = 0xd1,
+
+		ReadTestInputs = 0xe0,
+
+		ResetBlockBegin = 0xf0,
+	};
+
+	static constexpr bool requires_parameter(const Command command) {
 		return
 			(command >= 0x60 && command < 0x80) ||
 			(command == 0xc1) || (command == 0xc2) ||
 			(command >= 0xd1 && command < 0xd5);
 	}
 
-	static constexpr int performance_delay(const uint8_t command) {
+	static constexpr int performance_delay(const Command command) {
 		if(requires_parameter(command)) {
 			return 3;
 		}
 
 		switch(command) {
-			case 0xaa:		return 15;
-			default: 		return 0;
+			case Command::SelfTest:	return 15;
+			default: 				return 0;
 		}
 	}
 
@@ -256,6 +275,11 @@ private:
 	}
 
 	void perform_command() {
+		if(has_input_ && !has_command_) {
+			log_.error().append("Direct device post: %02x", input_);
+			return;
+		}
+
 		// Wait for a complete command.
 		if(
 			!has_command_ ||
@@ -267,23 +291,18 @@ private:
 		// Consume command and parameter, and execute.
 		has_command_ = has_input_ = false;
 
-		switch(command_) {
+		if(command_ >= Command::ResetBlockBegin) {
+			log_.error().append("Should reset: %x", command_ & 0x0f);
+
+			if(!(command_ & 1)) {
+				cpu_control_->reset();
+			}
+		} else switch(command_) {
 			default:
 				log_.info().append("Keyboard command unimplemented", command_);
 			break;
 
-			case 0xaa:	// Self-test; 0x55 => no issues found.
-				log_.error().append("Keyboard self-test");
-				is_tested_ = true;
-				transmit(0x55);
-			break;
-
-			case 0xd1:	// Set output byte. b1 = the A20 gate, 1 => A20 enabled.
-				log_.error().append("Should set A20 gate: %d", output_ & 0x02);
-				cpu_control_->set_a20_enabled(output_ & 0x02);
-			break;
-
-			case 0x60:
+			case Command::WriteCommandByte:
 				is_tested_ = input_ & 0x4;
 				// TODO:
 				//	b0: 1 = enable first PS/2 port interrupt;
@@ -296,22 +315,27 @@ private:
 				//	b7: should be 0
 			break;
 
-			case 0xc0:	// Read input port.
-				transmit(switches_);
+			case Command::SelfTest:
+				is_tested_ = true;
+				transmit(0x55);	// 0x55 => no issues found.
+			break;
+			case Command::InterfaceTest:
+				transmit(0);	// i.e. no issues uncovered.
+			break;
+			case Command::ReadTestInputs:
+				transmit(enabled_ ? 0x01 : 0x00);
 			break;
 
-			case 0xad:	enabled_ = false;	break;
-			case 0xae:	enabled_ = true;	break;
+			case Command::DisableKeyboard:	enabled_ = false;	break;
+			case Command::EnableKeyboard:	enabled_ = true;	break;
 
-			case 0xf0:	case 0xf1:	case 0xf2:	case 0xf3:
-			case 0xf4:	case 0xf5:	case 0xf6:	case 0xf7:
-			case 0xf8:	case 0xf9:	case 0xfa:	case 0xfb:
-			case 0xfc:	case 0xfd:	case 0xfe:	case 0xff:
-				log_.error().append("Should reset: %x", command_ & 0x0f);
+			case Command::SetOutputByte:
+				// b1 = the A20 gate, 1 => A20 enabled.
+				cpu_control_->set_a20_enabled(output_ & 0x02);
+			break;
 
-				if(!(command_ & 1)) {
-					cpu_control_->reset();
-				}
+			case Command::ReadSwitches:
+				transmit(switches_);
 			break;
 		}
 	}
@@ -328,7 +352,7 @@ private:
 
 	uint8_t input_;
 	uint8_t output_;
-	uint8_t command_;
+	Command command_;
 
 	bool has_input_ = false;
 	bool has_output_ = false;
