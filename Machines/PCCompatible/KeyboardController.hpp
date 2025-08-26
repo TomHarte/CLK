@@ -431,9 +431,9 @@ private:
 
 		void perform(const uint8_t command) {
 			switch(command) {
-//				case 0xf2:
-//					controller_.post_keyboard({0xfa});
-//				break;
+				case 0xf2:
+					controller_.post_keyboard({0xfa});
+				break;
 
 				case 0xff:
 					controller_.post_keyboard({0xfa, 0xaa});

@@ -496,6 +496,10 @@ public:
 				case 0x03fc:	case 0x03fd:	case 0x03fe:	case 0x03ff:
 					// Ignore serial port accesses.
 				break;
+
+				// IDE.
+				case 0x01f7:
+				return 0;
 			}
 			return 0xff;
 		}
