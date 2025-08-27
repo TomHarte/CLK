@@ -20,17 +20,17 @@
 }
 
 - (void)testIDMark {
-	constexpr uint8_t IDMark[] = {
+	static constexpr uint8_t IDMark[] = {
 		0xa1, 0xa1, 0xa1, 0xfe, 0x00, 0x00, 0x01, 0x01
 	};
-	constexpr uint16_t crc = 0xfa0c;
+	static constexpr uint16_t crc = 0xfa0c;
 	const uint16_t computedCRC = CRC::CCITT::crc_of(std::begin(IDMark), std::end(IDMark));
 
 	XCTAssert(computedCRC == crc, @"Calculated CRC should have been %04x, was %04x", crc, computedCRC);
 }
 
 - (void)testData {
-	constexpr uint8_t sectorData[] = {
+	static constexpr uint8_t sectorData[] = {
 		0xa1, 0xa1, 0xa1, 0xfb, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x20, 0x20, 0x20,
 		0x20, 0x20, 0x20, 0x20, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x53, 0x45, 0x44, 0x4f,
 		0x52, 0x49, 0x43, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
@@ -49,19 +49,19 @@
 		0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
 		0x20, 0x20, 0x20, 0x20
 	};
-	constexpr uint16_t crc = 0x4de7;
+	static constexpr uint16_t crc = 0x4de7;
 	uint16_t computedCRC = CRC::CCITT::crc_of(std::begin(sectorData), std::end(sectorData));
 
 	XCTAssert(computedCRC == crc, @"Calculated CRC should have been %04x, was %04x", crc, computedCRC);
 }
 
 - (void)testCCITTCheck {
-	constexpr char testString[] = "123456789";
+	static constexpr char testString[] = "123456789";
 	XCTAssertEqual(CRC::CCITT::crc_of(std::begin(testString), std::end(testString) - 1), 0x29b1);
 }
 
 - (void)testCRC32Check {
-	constexpr char testString[] = "123456789";
+	static constexpr char testString[] = "123456789";
 	XCTAssertEqual(CRC::CRC32::crc_of(std::begin(testString), std::end(testString) - 1), 0xcbf43926);
 }
 

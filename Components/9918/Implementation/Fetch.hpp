@@ -407,8 +407,8 @@ struct TextSequencer {
 			return;
 		} else {
 			// For the 120 slots in between follow a three-step pattern of:
-			constexpr int offset = cycle - 30;
-			constexpr auto column = AddressT(offset / 3);
+			static constexpr int offset = cycle - 30;
+			static constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
 				case 0:		// (1) fetch tile name.
 					fetcher.fetch_name(column);
@@ -457,16 +457,16 @@ struct CharacterSequencer {
 
 		// Body of line: tiles themselves, plus some additional potential sprites.
 		if(cycle >= 27 && cycle < 155) {
-			constexpr int offset = cycle - 27;
-			constexpr int block = offset >> 2;
-			constexpr int sub_block = offset & 3;
+			static constexpr int offset = cycle - 27;
+			static constexpr int block = offset >> 2;
+			static constexpr int sub_block = offset & 3;
 			switch(sub_block) {
 				case 0:	character_fetcher.fetch_name(block);	break;
 				case 1:
 					if(!(block & 3)) {
 						character_fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 					} else {
-						constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
+						static constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
 						sprite_fetcher.fetch_y(sprite);
 					}
 				break;
@@ -549,9 +549,9 @@ struct SMSSequencer {
 		}
 
 		if(cycle >= 25 && cycle < 153) {
-			constexpr int offset = cycle - 25;
-			constexpr int block = offset >> 2;
-			constexpr int sub_block = offset & 3;
+			static constexpr int offset = cycle - 25;
+			static constexpr int block = offset >> 2;
+			static constexpr int sub_block = offset & 3;
 
 			switch(sub_block) {
 				default: break;
@@ -561,7 +561,7 @@ struct SMSSequencer {
 					if(!(block & 3)) {
 						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow, Clock::FromStartOfSync>(cycle));
 					} else {
-						constexpr int sprite = (8 + ((block >> 2) * 3) + ((block & 3) - 1)) << 1;
+						static constexpr int sprite = (8 + ((block >> 2) * 3) + ((block & 3) - 1)) << 1;
 						fetcher.posit_sprite(sprite);
 						fetcher.posit_sprite(sprite+1);
 					}

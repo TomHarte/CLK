@@ -137,7 +137,7 @@ bool Drive::get_tachometer() const {
 	// I have made a guess here that the tachometer is a symmetric square wave;
 	// if that is correct then around 60 beats per rotation appears to be correct
 	// to proceed beyond the speed checks I've so far uncovered.
-	constexpr float ticks_per_rotation = 60.0f; // 56 was too low; 64 too high.
+	static constexpr float ticks_per_rotation = 60.0f; // 56 was too low; 64 too high.
 	return int(get_rotation() * 2.0f * ticks_per_rotation) & 1;
 }
 
@@ -314,7 +314,7 @@ void Drive::get_next_event(float duration_already_passed) {
 
 	// An interval greater than 15µs => adjust gain up the point where noise starts happening.
 	// Seed that up and leave a 15µs gap until it starts.
-	constexpr float safe_gain_period = 15.0f / 1'000'000.0f;
+	static constexpr float safe_gain_period = 15.0f / 1'000'000.0f;
 	if(interval >= safe_gain_period) {
 		random_interval_ = interval - safe_gain_period;
 		interval = safe_gain_period;

@@ -56,7 +56,7 @@ private:
 		bool enabled;
 	};
 	static_assert(sizeof(MemoryWrite) == 8);
-	constexpr static int StoreBufferSize = 16384;
+	static constexpr int StoreBufferSize = 16384;
 
 	std::atomic<MemoryWrite> pending_stores_[StoreBufferSize];
 	uint32_t pending_store_read_ = 0, pending_store_read_time_ = 0;

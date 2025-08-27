@@ -17,7 +17,7 @@
 }
 
 - (void)testBitStreamLSBFirst {
-	constexpr uint8_t testData[] = {
+	static constexpr uint8_t testData[] = {
 		0xa3, 0xf4
 	};
 
@@ -40,7 +40,7 @@
 }
 
 - (void)testBitStreamMSBFirst {
-	constexpr uint8_t testData[] = {
+	static constexpr uint8_t testData[] = {
 		0xa3, 0xf4
 	};
 
@@ -63,7 +63,7 @@
 }
 
 - (void)testBitStreamMultibyte {
-	constexpr uint8_t testData[] = {
+	static constexpr uint8_t testData[] = {
 		0xa3, 0xf4, 0x11
 	};
 

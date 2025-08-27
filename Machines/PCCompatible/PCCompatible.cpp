@@ -496,6 +496,10 @@ public:
 				case 0x03fc:	case 0x03fd:	case 0x03fe:	case 0x03ff:
 					// Ignore serial port accesses.
 				break;
+
+				// IDE.
+				case 0x01f7:
+				return 0;
 			}
 			return 0xff;
 		}
@@ -720,13 +724,13 @@ public:
 
 	void run_for(const Cycles duration) final {
 #ifndef NDEBUG
-		constexpr int SpeedMultiplier = 2;
+		static constexpr int SpeedMultiplier = 2;
 #else
-		constexpr int SpeedMultiplier = 2;
+		static constexpr int SpeedMultiplier = 2;
 #endif
 
 		const auto pit_ticks = duration.as<int>() * SpeedMultiplier;
-		constexpr int pit_multiplier = [] {
+		static constexpr int pit_multiplier = [] {
 			switch(pc_model) {
 				// This is implicitly treated as running at 1/3 the PIT clock = around 0.4 MIPS.
 				// i.e. a shade more than 8086 speed, if MIPS were meaningful.
@@ -912,7 +916,7 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		keyboard_.post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
+		keyboard_.keyboard().post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
 	}
 
 	// MARK: - Activity::Source.

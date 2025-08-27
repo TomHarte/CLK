@@ -20,7 +20,7 @@
 
 namespace Commodore::Plus4 {
 
-constexpr int clock_rate(bool is_ntsc) {
+constexpr int clock_rate(const bool is_ntsc) {
 	return is_ntsc ?
 				14'318'180 :	// i.e. colour subcarrier * 4.
 				17'734'448;		// i.e. very close to colour subcarrier * 4 — only about 0.1% off.
@@ -1013,7 +1013,7 @@ private:
 
 	template <int length, bool is_leftovers>
 	void draw_2bpp_segment(uint16_t *const target, const uint16_t *colours) {
-		constexpr int leftover = is_leftovers && (length & 1);
+		static constexpr int leftover = is_leftovers && (length & 1);
 		static_assert(length + leftover <= 8);
 		if(target) {
 			const auto pixels = output_.pixels();
@@ -1030,7 +1030,7 @@ private:
 		}
 
 		if constexpr (is_leftovers) {
-			constexpr int shift_distance = length + leftover;
+			static constexpr int shift_distance = length + leftover;
 			static_assert(!(shift_distance&1));
 			output_.advance_pixels(shift_distance);
 		} else {

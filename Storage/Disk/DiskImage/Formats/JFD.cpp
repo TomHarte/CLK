@@ -33,7 +33,7 @@ JFD::JFD(const std::string &file_name) : file_name_(file_name) {
 
 	// First four bytes: signature.
 	uint8_t signature[4];
-	constexpr uint8_t required_signature[4] = { 'J', 'F', 'D', 'I' };
+	static constexpr uint8_t required_signature[4] = { 'J', 'F', 'D', 'I' };
 	gzread(file_, signature, sizeof(signature));
 	if(!std::equal(std::begin(signature), std::end(signature), std::begin(required_signature))) {
 		throw 1;

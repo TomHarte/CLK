@@ -116,7 +116,7 @@ struct SubrangeDispatcher {
 #define index(n)																\
 	case n:																		\
 		if constexpr (n <= ClassifierT::max) {									\
-			constexpr auto region = ClassifierT::region(n);						\
+			static constexpr auto region = ClassifierT::region(n);				\
 			if constexpr (n == find_begin(n)) {									\
 				if(n >= end) {													\
 					return;														\

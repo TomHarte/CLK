@@ -29,49 +29,49 @@ template <Personality personality, typename Enable = void> struct LineLayout;
 //		* text mode on all VDPs adjusts border width.
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_classic_vdp(personality)>> {
-	constexpr static int StartOfSync		= 0;
-	constexpr static int EndOfSync			= 26;
-	constexpr static int StartOfColourBurst	= 29;
-	constexpr static int EndOfColourBurst	= 43;
-	constexpr static int EndOfLeftErase		= 50;
-	constexpr static int EndOfLeftBorder	= 63;
-	constexpr static int EndOfPixels		= 319;
-	constexpr static int EndOfRightBorder	= 334;
+	static constexpr int StartOfSync		= 0;
+	static constexpr int EndOfSync			= 26;
+	static constexpr int StartOfColourBurst	= 29;
+	static constexpr int EndOfColourBurst	= 43;
+	static constexpr int EndOfLeftErase		= 50;
+	static constexpr int EndOfLeftBorder	= 63;
+	static constexpr int EndOfPixels		= 319;
+	static constexpr int EndOfRightBorder	= 334;
 
-	constexpr static int CyclesPerLine		= 342;
+	static constexpr int CyclesPerLine		= 342;
 
-	constexpr static int TextModeEndOfLeftBorder	= 69;
-	constexpr static int TextModeEndOfPixels		= 309;
+	static constexpr int TextModeEndOfLeftBorder	= 69;
+	static constexpr int TextModeEndOfPixels		= 309;
 
-	constexpr static int ModeLatchCycle		= 36;	// Just a guess; correlates with the known 144 for the Yamaha VDPs,
+	static constexpr int ModeLatchCycle		= 36;	// Just a guess; correlates with the known 144 for the Yamaha VDPs,
 													// and falls into the collection gap between the final sprite
 													// graphics and the initial tiles or pixels.
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
-	constexpr static int VRAMAccessDelay = 6;
+	static constexpr int VRAMAccessDelay = 6;
 };
 
 template <Personality personality> struct LineLayout<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
-	constexpr static int StartOfSync		= 0;
-	constexpr static int EndOfSync			= 100;
-	constexpr static int StartOfColourBurst	= 113;
-	constexpr static int EndOfColourBurst	= 167;
-	constexpr static int EndOfLeftErase		= 202;
-	constexpr static int EndOfLeftBorder	= 258;
-	constexpr static int EndOfPixels		= 1282;
-	constexpr static int EndOfRightBorder	= 1341;
+	static constexpr int StartOfSync		= 0;
+	static constexpr int EndOfSync			= 100;
+	static constexpr int StartOfColourBurst	= 113;
+	static constexpr int EndOfColourBurst	= 167;
+	static constexpr int EndOfLeftErase		= 202;
+	static constexpr int EndOfLeftBorder	= 258;
+	static constexpr int EndOfPixels		= 1282;
+	static constexpr int EndOfRightBorder	= 1341;
 
-	constexpr static int CyclesPerLine		= 1368;
+	static constexpr int CyclesPerLine		= 1368;
 
-	constexpr static int TextModeEndOfLeftBorder	= 294;
-	constexpr static int TextModeEndOfPixels		= 1254;
+	static constexpr int TextModeEndOfLeftBorder	= 294;
+	static constexpr int TextModeEndOfPixels		= 1254;
 
-	constexpr static int ModeLatchCycle		= 144;
+	static constexpr int ModeLatchCycle		= 144;
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
-	constexpr static int VRAMAccessDelay = 16;
+	static constexpr int VRAMAccessDelay = 16;
 };
 
 }

@@ -465,9 +465,9 @@ void Nick::set_output_type(const OutputType type, const bool force_flush) {
 // MARK: - Sequence points.
 
 Cycles Nick::next_sequence_point() const {
-	constexpr int load_point = 16;	// i.e. 16 cycles after the start of the line, the
-									// interrupt line may change. That is, after the
-									// second byte of the mode line has been read.
+	static constexpr int load_point = 16;	// i.e. 16 cycles after the start of the line, the
+											// interrupt line may change. That is, after the
+											// second byte of the mode line has been read.
 
 	// Any mode line may cause a change in the interrupt output, so as a first blush
 	// just always report the time until the end of the mode line.

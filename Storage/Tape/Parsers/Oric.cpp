@@ -41,9 +41,9 @@ bool Parser::sync_and_get_encoding_speed(Storage::Tape::TapeSerialiser &serialis
 }
 
 void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
-	constexpr float maximum_short_length = 0.000512f;
-	constexpr float maximum_medium_length = 0.000728f;
-	constexpr float maximum_long_length = 0.001456f;
+	static constexpr float maximum_short_length = 0.000512f;
+	static constexpr float maximum_medium_length = 0.000728f;
+	static constexpr float maximum_long_length = 0.001456f;
 
 	const bool wave_is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!wave_was_high_ && wave_is_high != wave_was_high_) {

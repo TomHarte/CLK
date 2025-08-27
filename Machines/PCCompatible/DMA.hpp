@@ -52,8 +52,8 @@ public:
 	void write(const uint8_t value) {
 		switch(address) {
 			default: {
-				constexpr int channel = (address >> 1) & 3;
-				constexpr bool is_count = address & 1;
+				static constexpr int channel = (address >> 1) & 3;
+				static constexpr bool is_count = address & 1;
 
 				next_access_low_ ^= true;
 				if(next_access_low_) {
@@ -85,8 +85,8 @@ public:
 	uint8_t read() {
 		switch(address) {
 			default: {
-				constexpr int channel = (address >> 1) & 3;
-				constexpr bool is_count = address & 1;
+				static constexpr int channel = (address >> 1) & 3;
+				static constexpr bool is_count = address & 1;
 
 				next_access_low_ ^= true;
 				if(next_access_low_) {

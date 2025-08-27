@@ -389,12 +389,12 @@ template <int cycle> void Chipset::output() {
 	//
 	// (???)
 
-	constexpr int end_of_pixels	= 15;
-	constexpr int blank1		= 3 + end_of_pixels;
-	constexpr int sync			= 17 + blank1;
-	constexpr int blank2		= 3 + sync;
-	constexpr int burst			= 9 + blank2;
-	constexpr int blank3		= 6 + burst;
+	static constexpr int end_of_pixels	= 15;
+	static constexpr int blank1			= 3 + end_of_pixels;
+	static constexpr int sync			= 17 + blank1;
+	static constexpr int blank2			= 3 + sync;
+	static constexpr int burst			= 9 + blank2;
+	static constexpr int blank3			= 6 + burst;
 	static_assert(blank3 == 53);
 
 #define LINK(location, action, length)	\

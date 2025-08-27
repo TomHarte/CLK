@@ -415,8 +415,8 @@ private:
 					case CursorAction::Type::MoveTo: {
 						// A measure of where within the tip lies within
 						// the default RISC OS cursor.
-						constexpr int ActionPointOffset = 20;
-						constexpr int MaxStep = 24;
+						static constexpr int ActionPointOffset = 20;
+						static constexpr int MaxStep = 24;
 
 						const auto position = executor_.bus.video().cursor_location();
 						if(!position) break;

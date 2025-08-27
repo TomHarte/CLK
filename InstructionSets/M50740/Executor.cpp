@@ -241,7 +241,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 		case Operation::ADC:	case Operation::AND:	case Operation::CMP:	case Operation::EOR:
 		case Operation::LDA:	case Operation::ORA:	case Operation::SBC:
 		{
-			constexpr int t_lengths[] = {
+			static constexpr int t_lengths[] = {
 				0,
 				operation == Operation::LDA ? 2 : (operation == Operation::CMP ? 1 : 3)
 			};
@@ -444,7 +444,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
 					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7: {
 						if constexpr (operation >= Operation::BBS0 && operation <= Operation::BBS7) {
-							constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBS0));
+							static constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBS0));
 							if(value & mask) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
@@ -454,7 +454,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
 					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7: {
 						if constexpr (operation >= Operation::BBC0 && operation <= Operation::BBC7) {
-							constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBC0));
+							static constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBC0));
 							if(!(value & mask)) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
@@ -805,8 +805,9 @@ inline void Executor::subtract_duration(const int duration) {
 	cycles_since_port_handler_ += Cycles(duration);
 
 	// Update timer 1 and 2 prescaler.
-	constexpr int t12_divider = 4;		// A divide by 4 has already been applied before counting instruction lengths; therefore
-										// this additional divide by 4 produces the correct net divide by 16.
+	static constexpr int t12_divider = 4;	// A divide by 4 has already been applied before counting instruction
+											// lengths; therefore this additional divide by 4 produces the correct net
+											// divide by 16.
 
 	timer_divider_ += duration;
 	const int clock_ticks = timer_divider_ / t12_divider;

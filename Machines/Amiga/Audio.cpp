@@ -108,7 +108,7 @@ bool Audio::advance_dma(int channel) {
 }
 
 void Audio::output() {
-	constexpr InterruptFlag::FlagT interrupts[] = {
+	static constexpr InterruptFlag::FlagT interrupts[] = {
 		InterruptFlag::AudioChannel0,
 		InterruptFlag::AudioChannel1,
 		InterruptFlag::AudioChannel2,

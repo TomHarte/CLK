@@ -204,7 +204,7 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 		sector->encoding = Sector::Encoding::FiveAndThree;
 	} else {
 		// Undo the 6 and 2 mapping.
-		constexpr uint8_t bit_reverse[] = {0, 2, 1, 3};
+		static constexpr uint8_t bit_reverse[] = {0, 2, 1, 3};
 		const auto unmap = [&](std::size_t byte, std::size_t nibble, int shift) {
 			sector->data[86 + byte] = uint8_t(
 				(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]

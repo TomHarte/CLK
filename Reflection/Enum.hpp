@@ -20,7 +20,7 @@ namespace Reflection {
 
 #define ReflectableEnum(Name, ...)	\
 	enum class Name { __VA_ARGS__ };	\
-	constexpr static const char *__declaration##Name = #__VA_ARGS__;
+	static constexpr const char *__declaration##Name = #__VA_ARGS__;
 
 #define EnumDeclaration(Name) #Name, __declaration##Name
 

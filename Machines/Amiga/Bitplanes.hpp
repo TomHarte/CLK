@@ -66,7 +66,7 @@ public:
 
 	/// Shifts either two pixels (in low-res mode) or four pixels (in high-res).
 	void shift(bool high_res) {
-		constexpr int shifts[] = {16, 32};
+		static constexpr int shifts[] = {16, 32};
 
 		data_[1] = (data_[1] << shifts[high_res]) | (data_[0] >> (64 - shifts[high_res]));
 		data_[0] <<= shifts[high_res];

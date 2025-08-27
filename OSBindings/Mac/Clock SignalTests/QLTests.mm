@@ -101,7 +101,7 @@ private:
 	Tests the progression of Clock Signal's 68000 through the Sinclair QL's ROM against a known-good trace.
 */
 - (void)testStartup {
-	constexpr ROM::Name rom_name = ROM::Name::SinclairQLJS;
+	static constexpr ROM::Name rom_name = ROM::Name::SinclairQLJS;
 	ROM::Request request(rom_name);
 	const auto roms = CSROMFetcher()(request);
 	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:@"qltrace" ofType:@".txt.gz"];
