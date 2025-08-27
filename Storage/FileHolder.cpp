@@ -9,6 +9,7 @@
 #include "FileHolder.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstring>
 
 using namespace Storage;
@@ -17,7 +18,7 @@ FileHolder::~FileHolder() {
 	if(file_) std::fclose(file_);
 }
 
-FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
+FileHolder::FileHolder(const std::string &file_name, const FileMode ideal_mode)
 	: name_(file_name) {
 	stat(file_name.c_str(), &file_stats_);
 	is_read_only_ = false;
@@ -45,21 +46,21 @@ uint8_t FileHolder::get() {
 	return uint8_t(std::fgetc(file_));
 }
 
-void FileHolder::put(uint8_t value) {
+void FileHolder::put(const uint8_t value) {
 	std::fputc(value, file_);
 }
 
-void FileHolder::putn(std::size_t repeats, uint8_t value) {
+void FileHolder::putn(std::size_t repeats, const uint8_t value) {
 	while(repeats--) put(value);
 }
 
-std::vector<uint8_t> FileHolder::read(std::size_t size) {
+std::vector<uint8_t> FileHolder::read(const std::size_t size) {
 	std::vector<uint8_t> result(size);
 	result.resize(std::fread(result.data(), 1, size, file_));
 	return result;
 }
 
-std::size_t FileHolder::read(uint8_t *buffer, std::size_t size) {
+std::size_t FileHolder::read(uint8_t *const buffer, const std::size_t size) {
 	return std::fread(buffer, 1, size, file_);
 }
 
@@ -67,12 +68,13 @@ std::size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
 	return std::fwrite(buffer.data(), 1, buffer.size(), file_);
 }
 
-std::size_t FileHolder::write(const uint8_t *buffer, std::size_t size) {
+std::size_t FileHolder::write(const uint8_t *buffer, const std::size_t size) {
 	return std::fwrite(buffer, 1, size, file_);
 }
 
-void FileHolder::seek(long offset, int whence) {
-	std::fseek(file_, offset, whence);
+void FileHolder::seek(const long offset, const int whence) {
+	[[maybe_unused]] const auto result = std::fseek(file_, offset, whence);
+	assert(!result);
 }
 
 long FileHolder::tell() const {
@@ -87,7 +89,7 @@ bool FileHolder::eof() const {
 	return std::feof(file_);
 }
 
-bool FileHolder::check_signature(const char *signature, std::size_t length) {
+bool FileHolder::check_signature(const char *const signature, std::size_t length) {
 	if(!length) length = std::strlen(signature);
 
 	// read and check the file signature
@@ -112,7 +114,7 @@ const std::string &FileHolder::name() const {
 	return name_;
 }
 
-void FileHolder::ensure_is_at_least_length(long length) {
+void FileHolder::ensure_is_at_least_length(const long length) {
 	std::fseek(file_, 0, SEEK_END);
 	long bytes_to_write = length - ftell(file_);
 	if(bytes_to_write > 0) {
