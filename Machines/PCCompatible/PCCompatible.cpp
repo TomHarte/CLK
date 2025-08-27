@@ -12,6 +12,7 @@
 #include "CPUControl.hpp"
 #include "DMA.hpp"
 #include "FloppyController.hpp"
+#include "IDE.hpp"
 #include "KeyboardController.hpp"
 #include "KeyboardMapper.hpp"
 #include "LinearMemory.hpp"
