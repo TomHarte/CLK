@@ -18,8 +18,8 @@ public:
 		this is used to select a key scaling rate if key-rate scaling is enabled.
 	*/
 	void set_period(const int period, const int octave) {
-		constexpr int key_level_scales[16] = {0, 48, 64, 74, 80, 86, 90, 94, 96, 100, 102, 104, 106, 108, 110, 112};
-		constexpr int masks[2] = {~0, 0};
+		static constexpr int key_level_scales[16] = {0, 48, 64, 74, 80, 86, 90, 94, 96, 100, 102, 104, 106, 108, 110, 112};
+		static constexpr int masks[2] = {~0, 0};
 
 		// A two's complement assumption is embedded below; the use of masks relies
 		// on the sign bit to clamp to zero.

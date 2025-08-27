@@ -24,11 +24,11 @@ constexpr uint32_t chunk(const char *str) {
 WOZ::WOZ(const std::string &file_name) :
 	file_(file_name) {
 
-	constexpr const char signature1[8] = {
+	static constexpr char signature1[8] = {
 		'W', 'O', 'Z', '1',
 		char(0xff), 0x0a, 0x0d, 0x0a
 	};
-	constexpr const char signature2[8] = {
+	static constexpr char signature2[8] = {
 		'W', 'O', 'Z', '2',
 		char(0xff), 0x0a, 0x0d, 0x0a
 	};

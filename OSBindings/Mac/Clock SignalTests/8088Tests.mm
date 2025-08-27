@@ -350,7 +350,7 @@ void populate(InstructionSet::x86::Registers<t_model> &registers, Flags &flags, 
 	flags.set(flags_value);
 
 	// Apply a quick test of flag packing/unpacking.
-	constexpr auto defined_flags = static_cast<uint16_t>(
+	static constexpr auto defined_flags = static_cast<uint16_t>(
 		InstructionSet::x86::FlagValue::Carry |
 		InstructionSet::x86::FlagValue::Parity |
 		InstructionSet::x86::FlagValue::AuxiliaryCarry |

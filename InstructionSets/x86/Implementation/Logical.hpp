@@ -86,8 +86,8 @@ template <typename IntT>
 void cbw(
 	IntT &ax
 ) {
-	constexpr IntT test_bit = 1 << (sizeof(IntT) * 4 - 1);
-	constexpr IntT low_half = (1 << (sizeof(IntT) * 4)) - 1;
+	static constexpr IntT test_bit = 1 << (sizeof(IntT) * 4 - 1);
+	static constexpr IntT low_half = (1 << (sizeof(IntT) * 4)) - 1;
 
 	if(ax & test_bit) {
 		ax |= ~low_half;

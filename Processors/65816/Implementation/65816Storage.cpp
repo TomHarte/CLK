@@ -26,7 +26,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	/// Divides memory-accessing instructions by whether they read or write.
 	/// Read-modify-writes are documented with completely distinct bus programs,
 	/// so there's no real ambiguity there.
-	constexpr static AccessType access_type_for_operation(Operation operation) {
+	static constexpr AccessType access_type_for_operation(Operation operation) {
 		switch(operation) {
 			case ADC:	case AND:	case BIT:	case CMP:
 			case CPX:	case CPY:	case EOR:	case ORA:
@@ -46,7 +46,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	/// Indicates which of the memory-accessing instructions take their cue from the current
 	/// size of the index registers, rather than 'memory'[/accumulator].
-	constexpr static bool operation_is_index_sized(Operation operation) {
+	static constexpr bool operation_is_index_sized(Operation operation) {
 		switch(operation) {
 			case CPX:	case CPY:
 			case LDX:	case LDY:

@@ -25,7 +25,7 @@ namespace {
 
 class TrackConstructor {
 public:
-	constexpr static uint16_t NoFirstOffset = std::numeric_limits<uint16_t>::max();
+	static constexpr uint16_t NoFirstOffset = std::numeric_limits<uint16_t>::max();
 
 	struct Sector {
 		// Records explicitly present in the sector table.

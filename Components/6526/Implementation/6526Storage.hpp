@@ -125,11 +125,11 @@ private:
 	uint32_t alarm_ = 0xff'ffff;
 
 public:
-	template <int byte> void write(uint8_t v) {
+	template <int byte> void write(const uint8_t v) {
 		if constexpr (byte == 3) {
 			return;
 		}
-		constexpr int shift = byte << 3;
+		static constexpr int shift = byte << 3;
 
 		// Write to either the alarm or the current value as directed;
 		// writing to any part of the current value other than the LSB
@@ -147,7 +147,7 @@ public:
 		if constexpr (byte == 3) {
 			return 0xff;	// Assumed. Just a guess.
 		}
-		constexpr int shift = byte << 3;
+		static constexpr int shift = byte << 3;
 
 		if constexpr (byte == 2) {
 			latch_ = value_ | 0xff00'0000;
@@ -163,7 +163,7 @@ public:
 		return result;
 	}
 
-	bool advance(int count) {
+	bool advance(const int count) {
 		// The 8250 uses a simple binary counter to replace the
 		// 6526's time-of-day clock. So this is easy.
 		const uint32_t distance_to_alarm = (alarm_ - value_) & 0xff'ffff;

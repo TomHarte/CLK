@@ -14,7 +14,7 @@ namespace TargetPlatform {
 
 using IntType = uint32_t;
 
-constexpr IntType bit(int index) {
+constexpr IntType bit(const int index) {
 	return 1 << index;
 }
 

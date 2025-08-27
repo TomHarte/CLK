@@ -142,7 +142,7 @@ Storage::Disk::PCMSegment AppleGCR::AppleII::six_and_two_data(const uint8_t *sou
 	// and combined copies of the bottom two bits of the sector
 	// contents; the 256 bytes afterwards are the remaining
 	// six bits.
-	constexpr uint8_t bit_reverse[] = {0, 2, 1, 3};
+	static constexpr uint8_t bit_reverse[] = {0, 2, 1, 3};
 	for(std::size_t c = 0; c < 84; ++c) {
 		data[3 + c] =
 			uint8_t(

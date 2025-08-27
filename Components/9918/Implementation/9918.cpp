@@ -226,7 +226,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// TODO: where did this magic constant come from? https://www.smspower.org/forums/17970-RoadRashHow#111000 mentioned in passing
 				// that "the vertical scroll register is latched at the start of the active display" and this is two clocks before that, so it's
 				// not uncompelling. I can just no longer find my source.
-				constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
+				static constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
 				static_assert(latch_time > 0);
 				if(this->fetch_pointer_.column < latch_time && end_column >= latch_time) {
 					if(!this->fetch_pointer_.row) {
@@ -1211,7 +1211,7 @@ uint8_t TMS9918<personality>::read(const int address) {
 template <Personality personality>
 int Base<personality>::fetch_line() const {
 	// This is the proper Master System value; TODO: what's correct for Yamaha, etc?
-	constexpr int row_change_position = 31;
+	static constexpr int row_change_position = 31;
 
 	return
 		(this->fetch_pointer_.column < row_change_position)

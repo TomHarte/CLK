@@ -323,7 +323,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 /// is required to know all named protection schemes. Which makes IPF unable to handle arbitrary disks (or, indeed, disks
 /// with multiple protection schemes on a single track).
 Storage::Time IPF::bit_length(TrackDescription::Density density, int block) const {
-	constexpr unsigned int us = 100'000'000;
+	static constexpr unsigned int us = 100'000'000;
 	static constexpr auto us170 = Storage::Time::simplified(170, us);
 	static constexpr auto us180 = Storage::Time::simplified(180, us);
 	static constexpr auto us189 = Storage::Time::simplified(189, us);

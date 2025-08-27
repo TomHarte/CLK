@@ -16,10 +16,10 @@ template <int DeferredDepth, typename ValueT> class DeferredValue {
 private:
 	static_assert(sizeof(ValueT) <= 4);
 
-	constexpr int elements_per_uint32 = sizeof(uint32_t) / sizeof(ValueT);
-	constexpr int unit_shift = sizeof(ValueT) * 8;
-	constexpr int insert_shift = (DeferredDepth & (elements_per_uint32 - 1)) * unit_shift;
-	constexpr uint32_t insert_mask = ~(0xffff'ffff << insert_shift);
+	static constexpr int elements_per_uint32 = sizeof(uint32_t) / sizeof(ValueT);
+	static constexpr int unit_shift = sizeof(ValueT) * 8;
+	static constexpr int insert_shift = (DeferredDepth & (elements_per_uint32 - 1)) * unit_shift;
+	static constexpr uint32_t insert_mask = ~(0xffff'ffff << insert_shift);
 
 	std::array<uint32_t, (DeferredDepth + elements_per_uint32 - 1) / elements_per_uint32> backlog;
 

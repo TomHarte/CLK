@@ -67,13 +67,29 @@ template <Timing timing> class Video {
 			// contention began.
 			int delays[8];
 
-			constexpr Timings(int cycles_per_line, int lines_per_frame, int contention_leadin, int contention_duration, int interrupt_offset, const int *delays) noexcept :
+			constexpr Timings(
+				const int cycles_per_line,
+				const int lines_per_frame,
+				const int contention_leadin,
+				const int contention_duration,
+				const int interrupt_offset,
+				const int (&delays)[8])
+			noexcept :
 				half_cycles_per_line(cycles_per_line * 2),
 				lines_per_frame(lines_per_frame),
 				contention_leadin(contention_leadin * 2),
 				contention_duration(contention_duration * 2),
 				interrupt_time((cycles_per_line * lines_per_frame - interrupt_offset - contention_leadin) * 2),
-				delays{ delays[0] * 2, delays[1] * 2, delays[2] * 2, delays[3] * 2, delays[4] * 2, delays[5] * 2, delays[6] * 2, delays[7] * 2}
+				delays{
+					delays[0] * 2,
+					delays[1] * 2,
+					delays[2] * 2,
+					delays[3] * 2,
+					delays[4] * 2,
+					delays[5] * 2,
+					delays[6] * 2,
+					delays[7] * 2
+				}
 			 {}
 		};
 
@@ -99,14 +115,14 @@ template <Timing timing> class Video {
 
 	public:
 		void run_for(HalfCycles duration) {
-			constexpr auto timings = get_timings();
+			static constexpr auto timings = get_timings();
 
-			constexpr int sync_line = (timings.interrupt_time / timings.half_cycles_per_line) + 1;
+			static constexpr int sync_line = (timings.interrupt_time / timings.half_cycles_per_line) + 1;
 
-			constexpr int sync_position = (timing == Timing::FortyEightK) ? 164 * 2 : 166 * 2;
-			constexpr int sync_length = 17 * 2;
-			constexpr int burst_position = sync_position + 40;
-			constexpr int burst_length = 17;
+			static constexpr int sync_position = (timing == Timing::FortyEightK) ? 164 * 2 : 166 * 2;
+			static constexpr int sync_length = 17 * 2;
+			static constexpr int burst_position = sync_position + 40;
+			static constexpr int burst_length = 17;
 
 			int cycles_remaining = duration.as<int>();
 			while(cycles_remaining) {

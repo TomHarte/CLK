@@ -47,7 +47,7 @@ void RP5C01::run_for(const HalfCycles cycles) {
 	// Update time within day.
 	seconds_ += elapsed_seconds;
 
-	constexpr int day_length = 60 * 60 * 24;
+	static constexpr int day_length = 60 * 60 * 24;
 	if(seconds_ < day_length) {
 		return;
 	}

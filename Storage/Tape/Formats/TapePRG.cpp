@@ -111,10 +111,10 @@ bool PRG::Serialiser::is_at_end() const {
 }
 
 void PRG::Serialiser::get_next_output_token() {
-	constexpr int block_length = 192;	// not counting the checksum
-	constexpr int countdown_bytes = 9;
-	constexpr int leadin_length = 20000;
-	constexpr int block_leadin_length = 5000;
+	static constexpr int block_length = 192;	// not counting the checksum
+	static constexpr int countdown_bytes = 9;
+	static constexpr int leadin_length = 20000;
+	static constexpr int block_leadin_length = 5000;
 
 	if(file_phase_ == FilePhaseHeaderDataGap || file_phase_ == FilePhaseAtEnd) {
 		output_token_ = Silence;

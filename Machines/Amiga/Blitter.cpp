@@ -351,10 +351,10 @@ bool Blitter<record_bus>::advance_dma() {
 			}
 		}
 
-		constexpr int LEFT	= 1 << 0;
-		constexpr int RIGHT	= 1 << 1;
-		constexpr int UP	= 1 << 2;
-		constexpr int DOWN	= 1 << 3;
+		static constexpr int LEFT	= 1 << 0;
+		static constexpr int RIGHT	= 1 << 1;
+		static constexpr int UP	= 1 << 2;
+		static constexpr int DOWN	= 1 << 3;
 		int step = (line_direction_ & 4) ?
 			((line_direction_ & 1) ? LEFT : RIGHT) :
 			((line_direction_ & 1) ? UP : DOWN);

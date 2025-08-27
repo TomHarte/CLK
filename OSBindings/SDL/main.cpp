@@ -241,7 +241,7 @@ public:
 		lights_.clear();
 
 		// Generate a bunch of LEDs for connected drives.
-		constexpr float height = 0.05f;
+		static constexpr float height = 0.05f;
 		const float width = height / aspect_ratio;
 		const float right_x = 1.0f - 2.0f * width;
 		float y = 1.0f - 2.0f * height;

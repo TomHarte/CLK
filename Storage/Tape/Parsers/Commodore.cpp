@@ -255,7 +255,7 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		const float medium_ms = is_plus4 ? 480.0f : 262.0f;
 		const float long_ms = is_plus4 ? 960.0f : 342.0f;
 
-		constexpr float to_s = 2.0f / 1'000'000.0f;
+		static constexpr float to_s = 2.0f / 1'000'000.0f;
 		const float overlong_threshold = (long_ms + long_ms - medium_ms) * to_s;
 		const float long_threshold = ((long_ms + medium_ms) * 0.5f) * to_s;
 		const float medium_threshold = ((medium_ms + short_ms) * 0.5f) * to_s;

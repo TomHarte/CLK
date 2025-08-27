@@ -260,16 +260,16 @@ private:
 		Implicitly adds an extra half a colour clock at the end of
 		line.
 	*/
-	void advance(Cycles cycles) {
+	void advance(const Cycles cycles) {
 		/*
 			Addressing scheme used throughout is that column 0 is the first column with pixels in it;
 			row 0 is the first row with pixels in it.
 
 			A frame is oriented around 65 cycles across, 262 lines down.
 		*/
-		constexpr int first_sync_line = 220;	// A complete guess. Information needed.
-		constexpr int first_sync_column = 49;	// Also a guess.
-		constexpr int sync_length = 4;			// One of the two likely candidates.
+		static constexpr int first_sync_line = 220;	// A complete guess. Information needed.
+		static constexpr int first_sync_column = 49;	// Also a guess.
+		static constexpr int sync_length = 4;			// One of the two likely candidates.
 
 		int int_cycles = int(cycles.as_integral());
 		while(int_cycles) {

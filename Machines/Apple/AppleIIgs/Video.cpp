@@ -195,7 +195,7 @@ Cycles Video::next_sequence_point() const {
 	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
 	const int row = cycles_into_frame_ / CyclesPerLine;
 
-	constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
+	static constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
 
 	// Seed as the distance to the next row 0.
 	int result = CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine;
@@ -241,7 +241,7 @@ void Video::output_row(int row, int start, int end) {
 
 	// The pixel buffer will actually be allocated a column early, to allow double high/low res to start
 	// half a column before everything else.
-	constexpr int pixel_buffer_allocation = start_of_pixels - 1;
+	static constexpr int pixel_buffer_allocation = start_of_pixels - 1;
 
 	// Possibly output border, pixels, border, if this is a pixel line.
 	if(row < 192 + ((new_video_&0x80) >> 4)) {	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.

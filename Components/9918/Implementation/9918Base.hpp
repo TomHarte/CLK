@@ -87,8 +87,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 	/// applicable @c memory_mask.
 	template <int shift, int length = 8> void install_field(AddressT &target, const uint8_t source) {
 		static_assert(length > 0 && length <= 8);
-		constexpr auto source_mask = (1 << length) - 1;
-		constexpr auto mask = AddressT(~(source_mask << shift));
+		static constexpr auto source_mask = (1 << length) - 1;
+		static constexpr auto mask = AddressT(~(source_mask << shift));
 		target = (
 			(target & mask) |
 			AddressT((source & source_mask) << shift)
@@ -545,8 +545,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 					if(Storage<personality>::cram_is_selected_) {
 						// Adjust the palette. In a Master System blue has a slightly different
 						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
-						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
-						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
+						static constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
+						static constexpr uint8_t b_scale[] = {0, 104, 170, 255};
 						Storage<personality>::colour_ram_[address & 0x1f] = palette_pack(
 							rg_scale[(read_ahead_buffer_ >> 0) & 3],
 							rg_scale[(read_ahead_buffer_ >> 2) & 3],

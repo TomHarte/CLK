@@ -51,7 +51,7 @@ private:
 			the track does not exit.
 	*/
 	long file_offset(Track::Address address) const;
-	constexpr static long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
+	static constexpr long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
 };
 
 }

@@ -724,13 +724,13 @@ public:
 
 	void run_for(const Cycles duration) final {
 #ifndef NDEBUG
-		constexpr int SpeedMultiplier = 2;
+		static constexpr int SpeedMultiplier = 2;
 #else
-		constexpr int SpeedMultiplier = 2;
+		static constexpr int SpeedMultiplier = 2;
 #endif
 
 		const auto pit_ticks = duration.as<int>() * SpeedMultiplier;
-		constexpr int pit_multiplier = [] {
+		static constexpr int pit_multiplier = [] {
 			switch(pc_model) {
 				// This is implicitly treated as running at 1/3 the PIT clock = around 0.4 MIPS.
 				// i.e. a shade more than 8086 speed, if MIPS were meaningful.

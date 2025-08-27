@@ -671,7 +671,7 @@ void Video::VideoStream::shift(int duration) {
 
 // TODO: turn this into a template on current BPP, perhaps? Would avoid reevaluation of the conditional.
 void Video::VideoStream::output_pixels(int duration) {
-	constexpr int allocation_size = 352;	// i.e. 320 plus a spare 32.
+	static constexpr int allocation_size = 352;	// i.e. 320 plus a spare 32.
 
 	// Convert from duration to pixels.
 	int pixels = duration;

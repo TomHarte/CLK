@@ -167,8 +167,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 				// Take whatever else comes with a preference for things that don't
 				// have 'boot' or 'read' in them (the latter of which will tend to be
 				// read_me or read_this or similar).
-				constexpr char read[] = "read";
-				constexpr char boot[] = "boot";
+				static constexpr char read[] = "read";
+				static constexpr char boot[] = "boot";
 				const auto has = [&](const char *begin, const char *end) {
 					return  std::search(
 						file.name.begin(), file.name.end(),
