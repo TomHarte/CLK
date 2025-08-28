@@ -32,7 +32,7 @@ ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) : file_name_(file_nam
 			throw ErrorNotZXSpectrumTAP;
 		}
 
-		file.seek(block_length, SEEK_CUR);
+		file.seek(block_length, Whence::CUR);
 	}
 }
 
@@ -49,7 +49,7 @@ bool ZXSpectrumTAP::Serialiser::is_at_end() const {
 }
 
 void ZXSpectrumTAP::Serialiser::reset() {
-	file_.seek(0, SEEK_SET);
+	file_.seek(0, Whence::SET);
 	read_next_block();
 }
 

@@ -54,7 +54,7 @@ std::unique_ptr<Track> OricMFMDSK::track_at_position(const Track::Address addres
 	PCMSegment segment;
 	{
 		std::lock_guard lock_guard(file_.file_access_mutex());
-		file_.seek(get_file_offset_for_position(address), SEEK_SET);
+		file_.seek(get_file_offset_for_position(address), Whence::SET);
 
 		// The file format omits clock bits. So it's not a genuine MFM capture.
 		// A consumer must contextually guess when an FB, FC, etc is meant to be a control mark.
@@ -158,7 +158,7 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track
 		long file_offset = get_file_offset_for_position(track.first);
 
 		std::lock_guard lock_guard(file_.file_access_mutex());
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		std::size_t track_size = std::min(size_t(6400), parsed_track.size());
 		file_.write(parsed_track.data(), track_size);
 	}

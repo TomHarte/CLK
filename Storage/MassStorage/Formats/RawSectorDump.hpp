@@ -36,13 +36,13 @@ public:
 	}
 
 	std::vector<uint8_t> get_block(size_t address) final {
-		file_.seek(file_start_ + long(address * sector_size), SEEK_SET);
+		file_.seek(file_start_ + long(address * sector_size), Whence::SET);
 		return file_.read(sector_size);
 	}
 
 	void set_block(size_t address, const std::vector<uint8_t> &contents) final {
 		assert(contents.size() == sector_size);
-		file_.seek(file_start_ + long(address * sector_size), SEEK_SET);
+		file_.seek(file_start_ + long(address * sector_size), Whence::SET);
 		file_.write(contents);
 	}
 

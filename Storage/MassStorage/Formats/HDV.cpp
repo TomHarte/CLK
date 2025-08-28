@@ -36,7 +36,7 @@ std::vector<uint8_t> HDV::get_block(size_t address) {
 	const auto file_offset = offset_for_block(source_address);
 
 	if(source_address >= 0) {
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		return mapper_.convert_source_block(source_address, file_.read(get_block_size()));
 	} else {
 		return mapper_.convert_source_block(source_address);
@@ -48,7 +48,7 @@ void HDV::set_block(size_t address, const std::vector<uint8_t> &data) {
 	const auto file_offset = offset_for_block(source_address);
 
 	if(source_address >= 0 && file_offset >= 0) {
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		file_.write(data);
 	}
 }

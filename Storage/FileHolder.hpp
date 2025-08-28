@@ -19,6 +19,12 @@
 
 namespace Storage {
 
+enum class Whence: int {
+	CUR = SEEK_CUR,
+	SET = SEEK_SET,
+	END = SEEK_END,
+};
+
 class FileHolder final {
 public:
 	enum class Error {
@@ -104,13 +110,13 @@ public:
 	uint8_t get();
 
 	/*! Writes a single byte from @c file. */
-	void put(uint8_t value);
+	void put(uint8_t);
 
 	/*! Writes @c value a total of @c repeats times. */
 	void putn(std::size_t repeats, uint8_t value);
 
 	/*! Reads @c size bytes and returns them as a vector. */
-	std::vector<uint8_t> read(std::size_t size);
+	std::vector<uint8_t> read(std::size_t);
 
 	/*! Reads @c a.size() bytes into @c a.data(). */
 	template <size_t size> std::size_t read(std::array<uint8_t, size> &a) {
@@ -118,16 +124,16 @@ public:
 	}
 
 	/*! Reads @c size bytes and writes them to @c buffer. */
-	std::size_t read(uint8_t *buffer, std::size_t size);
+	std::size_t read(uint8_t *, std::size_t);
 
 	/*! Writes @c buffer one byte at a time in order. */
-	std::size_t write(const std::vector<uint8_t> &buffer);
+	std::size_t write(const std::vector<uint8_t> &);
 
 	/*! Writes @c buffer one byte at a time in order, writing @c size bytes in total. */
-	std::size_t write(const uint8_t *buffer, std::size_t size);
+	std::size_t write(const uint8_t *, std::size_t);
 
 	/*! Moves @c bytes from the anchor indicated by @c whence: SEEK_SET, SEEK_CUR or SEEK_END. */
-	void seek(long offset, int whence);
+	void seek(long offset, Whence);
 
 	/*! @returns The current cursor position within this file. */
 	long tell() const;

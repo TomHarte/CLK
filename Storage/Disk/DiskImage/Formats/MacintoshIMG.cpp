@@ -74,7 +74,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		}
 
 		// Get the length of the data and tag blocks.
-		file_.seek(64, SEEK_SET);
+		file_.seek(64, Whence::SET);
 		const auto data_block_length = file_.get_be<uint32_t>();
 		const auto tag_block_length = file_.get_be<uint32_t>();
 		const auto data_checksum = file_.get_be<uint32_t>();
@@ -141,7 +141,7 @@ void MacintoshIMG::construct_raw_gcr(const size_t offset, size_t size) {
 	}
 
 	raw_offset_ = long(offset);
-	file_.seek(raw_offset_, SEEK_SET);
+	file_.seek(raw_offset_, Whence::SET);
 	if(size == 819200) {
 		encoding_ = Encoding::GCR800;
 		format_ = 0x22;
@@ -320,18 +320,18 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 
 		if(!is_diskCopy_file_) {
 			// Just dump out the entire disk. Grossly lazy, possibly worth improving.
-			file_.seek(raw_offset_, SEEK_SET);
+			file_.seek(raw_offset_, Whence::SET);
 			file_.write(data_);
 		} else {
 			// Write out the sectors, and possibly the tags, and update checksums.
-			file_.seek(0x54, SEEK_SET);
+			file_.seek(0x54, Whence::SET);
 			file_.write(data_);
 			file_.write(tags_);
 
 			const auto data_checksum = checksum(data_);
 			const auto tag_checksum = checksum(tags_, 12);
 
-			file_.seek(0x48, SEEK_SET);
+			file_.seek(0x48, Whence::SET);
 			file_.put_be(data_checksum);
 			file_.put_be(tag_checksum);
 		}

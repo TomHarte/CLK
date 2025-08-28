@@ -36,7 +36,7 @@ std::vector<uint8_t> HFV::get_block(size_t address) {
 	const auto source_address = mapper_.to_source_address(address);
 	if(source_address >= 0 && size_t(source_address)*get_block_size() < size_t(file_.stats().st_size)) {
 		const long file_offset = long(get_block_size()) * long(source_address);
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		return mapper_.convert_source_block(source_address, file_.read(get_block_size()));
 	} else {
 		return mapper_.convert_source_block(source_address);
@@ -47,7 +47,7 @@ void HFV::set_block(size_t address, const std::vector<uint8_t> &contents) {
 	const auto source_address = mapper_.to_source_address(address);
 	if(source_address >= 0 && size_t(source_address)*get_block_size() < size_t(file_.stats().st_size)) {
 		const long file_offset = long(get_block_size()) * long(source_address);
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		file_.write(contents);
 	} else {
 		writes_[address] = contents;

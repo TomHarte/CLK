@@ -72,8 +72,8 @@ std::size_t FileHolder::write(const uint8_t *buffer, const std::size_t size) {
 	return std::fwrite(buffer, 1, size, file_);
 }
 
-void FileHolder::seek(const long offset, const int whence) {
-	[[maybe_unused]] const auto result = std::fseek(file_, offset, whence);
+void FileHolder::seek(const long offset, const Whence whence) {
+	[[maybe_unused]] const auto result = std::fseek(file_, offset, int(whence));
 	assert(!result);
 }
 

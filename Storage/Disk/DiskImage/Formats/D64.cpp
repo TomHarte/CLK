@@ -54,7 +54,7 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 	}
 
 	// Seek to start of data.
-	file_.seek(offset_to_track * 256, SEEK_SET);
+	file_.seek(offset_to_track * 256, Whence::SET);
 
 	// Build up a PCM sampling of the GCR version of this track.
 

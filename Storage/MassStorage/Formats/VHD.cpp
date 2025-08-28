@@ -13,11 +13,11 @@ using namespace Storage::MassStorage;
 VHD::VHD(const std::string &file_name) : file_(file_name) {
 	// Find footer; this may be the final 511 or final 512 bytes of the file.
 	// Find what might be the start of the 'conectix' [sic] signature.
-	file_.seek(-511, SEEK_END);
+	file_.seek(-511, Whence::END);
 	const auto c = file_.get();
 	switch(c) {
-		case 'c':	file_.seek(-511, SEEK_END);	break;
-		case 'o':	file_.seek(-512, SEEK_END);	break;
+		case 'c':	file_.seek(-511, Whence::END);	break;
+		case 'o':	file_.seek(-512, Whence::END);	break;
 		default:	throw std::exception();
 	}
 
@@ -25,16 +25,16 @@ VHD::VHD(const std::string &file_name) : file_(file_name) {
 		throw std::exception();
 	}
 
-	file_.seek(4, SEEK_CUR);	// Skip 'Features', which would at best classify this disk as temporary or not.
+	file_.seek(4, Whence::CUR);	// Skip 'Features', which would at best classify this disk as temporary or not.
 	const auto major_version = file_.get_be<uint16_t>();
 	if(major_version > 1) {
 		throw std::exception();
 	}
-	file_.seek(2, SEEK_CUR);	// Skip minor version number.
+	file_.seek(2, Whence::CUR);	// Skip minor version number.
 
 	data_offset_ = file_.get_be<uint64_t>();
 
-	file_.seek(32, SEEK_CUR);	// Skip creator and timestamp fields, original size and current size.
+	file_.seek(32, Whence::CUR);	// Skip creator and timestamp fields, original size and current size.
 //	const auto current_size = file_.get_be<uint64_t>();
 
 	cylinders_ = file_.get_be<uint16_t>();

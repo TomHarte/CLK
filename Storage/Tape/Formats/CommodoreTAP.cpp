@@ -16,7 +16,7 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name)
 	Storage::FileHolder file(file_name);
 
 	const bool is_c64 = file.check_signature("C64-TAPE-RAW");
-	file.seek(0, SEEK_SET);
+	file.seek(0, Whence::SET);
 	const bool is_c16 = file.check_signature("C16-TAPE-RAW");
 	if(!is_c64 && !is_c16) {
 		throw ErrorNotCommodoreTAP;
@@ -34,7 +34,7 @@ CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name)
 	// Read clock rate-implying bytes.
 	platform_ = Platform(file.get());
 	const VideoStandard video = VideoStandard(file.get());
-	file.seek(1, SEEK_CUR);
+	file.seek(1, Whence::CUR);
 
 	const bool double_clock = platform_ != Platform::C16 || !half_waves_;	// TODO: is the platform check correct?
 
@@ -69,7 +69,7 @@ CommodoreTAP::Serialiser::Serialiser(
 }
 
 void CommodoreTAP::Serialiser::reset() {
-	file_.seek(0x14, SEEK_SET);
+	file_.seek(0x14, Whence::SET);
 	current_pulse_.type = Pulse::High;	// Implies that the first posted wave will be ::Low.
 	is_at_end_ = false;
 }

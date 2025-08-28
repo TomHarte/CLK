@@ -21,7 +21,7 @@ HFE::HFE(const std::string &file_name) :
 	track_count_ = file_.get();
 	head_count_ = file_.get();
 
-	file_.seek(7, SEEK_CUR);
+	file_.seek(7, Whence::CUR);
 	track_list_offset_ = long(file_.get_le<uint16_t>()) << 9;
 }
 
@@ -43,13 +43,13 @@ int HFE::head_count() const {
 uint16_t HFE::seek_track(const Track::Address address) const {
 	// Get track position and length from the lookup table; data is then always interleaved
 	// based on an assumption of two heads.
-	file_.seek(track_list_offset_ + address.position.as_int() * 4, SEEK_SET);
+	file_.seek(track_list_offset_ + address.position.as_int() * 4, Whence::SET);
 
 	long track_offset = long(file_.get_le<uint16_t>()) << 9;	// Track offset, in units of 512 bytes.
 	const auto track_length = file_.get_le<uint16_t>();			// Track length, in bytes, containing both the front and back track.
 
-	file_.seek(track_offset, SEEK_SET);
-	if(address.head) file_.seek(256, SEEK_CUR);
+	file_.seek(track_offset, Whence::SET);
+	if(address.head) file_.seek(256, Whence::CUR);
 
 	return track_length / 2;	// Divide by two to give the track length for a single side.
 }
@@ -92,7 +92,7 @@ std::unique_ptr<Track> HFE::track_at_position(const Track::Address address) cons
 			// Advance the target pointer, and skip the next 256 bytes of the file
 			// (which will be for the other side of the disk).
 			c += length;
-			file_.seek(256, SEEK_CUR);
+			file_.seek(256, Whence::CUR);
 		}
 	}
 
@@ -119,7 +119,7 @@ void HFE::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 			uint16_t length = uint16_t(std::min(256, data_length - c));
 			file_.write(&byte_segment[c], length);
 			c += length;
-			file_.seek(256, SEEK_CUR);
+			file_.seek(256, Whence::CUR);
 		}
 		lock_guard.unlock();
 	}

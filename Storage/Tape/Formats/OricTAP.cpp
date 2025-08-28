@@ -39,7 +39,7 @@ OricTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name,
 }
 
 void OricTAP::Serialiser::reset() {
-	file_.seek(0, SEEK_SET);
+	file_.seek(0, Whence::SET);
 	bit_count_ = 13;
 	phase_ = next_phase_ = LeadIn;
 	phase_counter_ = 0;

@@ -395,12 +395,12 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	if(file_.get_le<uint16_t>() != 3) throw Error::InvalidFormat;
 
 	// Skip: tool used, 2 reserved bytes.
-	file_.seek(4, SEEK_CUR);
+	file_.seek(4, Whence::CUR);
 
 	// Skip the track count, test for a new-style encoding, skip a reserved area.
-	file_.seek(1, SEEK_CUR);
+	file_.seek(1, Whence::CUR);
 	is_new_format_ = file_.get() == 2;
-	file_.seek(4, SEEK_CUR);
+	file_.seek(4, Whence::CUR);
 
 	// Set all tracks absent.
 	memset(offset_by_track_, 0, sizeof(offset_by_track_));
@@ -426,7 +426,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 		if(file_.eof()) break;
 
 		// Skip fields other than track position, then fill in table position and advance.
-		file_.seek(10, SEEK_CUR);
+		file_.seek(10, Whence::CUR);
 
 		const uint8_t track_position = file_.get();
 		offset_by_track_[track_position] = offset;
@@ -436,7 +436,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 		head_count_ = std::max(head_count_, ((track_position & 0x80) >> 6));
 
 		// Seek next track start.
-		file_.seek(offset + size, SEEK_SET);
+		file_.seek(offset + size, Whence::SET);
 	}
 }
 
@@ -457,14 +457,14 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 	if(!offset_by_track_[track_index]) return nullptr;
 
 	// Seek to the track (skipping the record size field).
-	file_.seek(offset_by_track_[track_index] + 4, SEEK_SET);
+	file_.seek(offset_by_track_[track_index] + 4, Whence::SET);
 
 	// Grab the track description.
 	const auto fuzzy_size = file_.get_le<uint32_t>();
 	const auto sector_count = file_.get_le<uint16_t>();
 	const auto flags = file_.get_le<uint16_t>();
 	const size_t track_length = file_.get_le<uint16_t>();
-	file_.seek(2, SEEK_CUR);		// Skip track type; despite being named, it's apparently unused.
+	file_.seek(2, Whence::CUR);		// Skip track type; despite being named, it's apparently unused.
 
 	// If this is a trivial .ST-style sector dump, life is easy.
 	if(!(flags & 1)) {
@@ -485,7 +485,7 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 		sectors.back().data_duration = file_.get_le<uint16_t>();
 		file_.read(sectors.back().address);
 		sectors.back().status = file_.get();
-		file_.seek(1, SEEK_CUR);
+		file_.seek(1, Whence::CUR);
 	}
 
 	// If fuzzy masks are specified, attach them to their corresponding sectors.
@@ -508,7 +508,7 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 		// It should be true that the number of fuzzy masks caused
 		// exactly the correct number of fuzzy bytes to be read.
 		// But, just in case, check and possibly skip some.
-		file_.seek(long(fuzzy_size) - fuzzy_bytes_read, SEEK_CUR);
+		file_.seek(long(fuzzy_size) - fuzzy_bytes_read, Whence::CUR);
 	}
 
 	// There may or may not be a track image. Grab it if so.
@@ -534,15 +534,15 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 		// If the FDC record-not-found flag is set, there's no sector body to find.
 		// Otherwise there's a sector body in the file somewhere.
 		if(!(sector.status & 0x10)) {
-			file_.seek(sector.data_offset + sector_start, SEEK_SET);
+			file_.seek(sector.data_offset + sector_start, Whence::SET);
 			sector.contents = file_.read(sector.data_size());
 			end_of_data = std::max(end_of_data, file_.tell());
 		}
 	}
-	file_.seek(end_of_data, SEEK_SET);
+	file_.seek(end_of_data, Whence::SET);
 
 	// Grab timing info if available.
-	file_.seek(4, SEEK_CUR);	// Skip the timing descriptor, as it includes no new information.
+	file_.seek(4, Whence::CUR);	// Skip the timing descriptor, as it includes no new information.
 	for(auto &sector: sectors) {
 		// Skip any sector with no intra-sector bit width variation.
 		if(!(sector.status&1)) continue;

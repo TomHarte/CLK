@@ -100,7 +100,7 @@ Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
 
 void PRG::Serialiser::reset() {
 	bit_phase_ = 3;
-	file_.seek(2, SEEK_SET);
+	file_.seek(2, Whence::SET);
 	file_phase_ = FilePhaseLeadIn;
 	phase_offset_ = 0;
 	copy_mask_ = 0x80;
@@ -157,7 +157,7 @@ void PRG::Serialiser::get_next_output_token() {
 			break;
 			case FilePhaseData:
 				copy_mask_ ^= 0x80;
-				file_.seek(2, SEEK_SET);
+				file_.seek(2, Whence::SET);
 				if(copy_mask_) {
 					file_phase_ = FilePhaseAtEnd;
 				}

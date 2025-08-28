@@ -191,7 +191,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 		}
 
 		// Advance to the next block.
-		file.seek(location + size, SEEK_SET);
+		file.seek(location + size, Whence::SET);
 	}
 
 	return result;
