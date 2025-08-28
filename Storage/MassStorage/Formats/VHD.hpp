@@ -20,6 +20,12 @@ public:
 private:
 	FileHolder file_;
 
+	uint64_t data_offset_;
+
+	uint16_t cylinders_;
+	uint8_t heads_;
+	uint8_t sides_;
+
 	// MassStorageDevice.
 	size_t get_block_size() override;
 	size_t get_number_of_blocks() override;

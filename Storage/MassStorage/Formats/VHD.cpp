@@ -24,6 +24,24 @@ VHD::VHD(const std::string &file_name) : file_(file_name) {
 	if(!file_.check_signature("conectix")) {
 		throw std::exception();
 	}
+
+	file_.seek(4, SEEK_CUR);	// Skip 'Features', which would at best classify this disk as temporary or not.
+	const auto major_version = file_.get_be<uint16_t>();
+	if(major_version > 1) {
+		throw std::exception();
+	}
+	file_.seek(2, SEEK_CUR);	// Skip minor version number.
+
+	data_offset_ = file_.get_be<uint64_t>();
+
+	file_.seek(24, SEEK_CUR);	// Skip creator and timestamp fields, and original size.
+	const auto current_size = file_.get_be<uint64_t>();
+
+	cylinders_ = file_.get_be<uint16_t>();
+	heads_ = file_.get();
+	sides_ = file_.get();
+
+	printf("");
 }
 
 size_t VHD::get_block_size() {
