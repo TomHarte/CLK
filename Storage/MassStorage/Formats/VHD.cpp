@@ -34,13 +34,26 @@ VHD::VHD(const std::string &file_name) : file_(file_name) {
 
 	data_offset_ = file_.get_be<uint64_t>();
 
-	file_.seek(24, SEEK_CUR);	// Skip creator and timestamp fields, and original size.
-	const auto current_size = file_.get_be<uint64_t>();
+	file_.seek(32, SEEK_CUR);	// Skip creator and timestamp fields, original size and current size.
+//	const auto current_size = file_.get_be<uint64_t>();
 
 	cylinders_ = file_.get_be<uint16_t>();
 	heads_ = file_.get();
 	sides_ = file_.get();
 
+	switch(file_.get_be<uint32_t>()) {
+		case 2:	type_ = Type::Fixed;		break;
+		case 3:	type_ = Type::Dynamic;		break;
+		case 4:	type_ = Type::Differencing;	break;
+
+		default:
+			throw std::exception();
+	}
+
+	if(type_ != Type::Dynamic) {
+		return;
+	}
+	
 	printf("");
 }
 

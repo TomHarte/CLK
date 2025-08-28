@@ -20,11 +20,16 @@ public:
 private:
 	FileHolder file_;
 
-	uint64_t data_offset_;
-
 	uint16_t cylinders_;
 	uint8_t heads_;
 	uint8_t sides_;
+
+	enum class Type {
+		Fixed,
+		Dynamic,
+		Differencing,
+	} type_;
+	uint64_t data_offset_;
 
 	// MassStorageDevice.
 	size_t get_block_size() override;
