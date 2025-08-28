@@ -89,16 +89,6 @@ bool FileHolder::eof() const {
 	return std::feof(file_);
 }
 
-bool FileHolder::check_signature(const char *const signature, std::size_t length) {
-	if(!length) length = std::strlen(signature);
-
-	// read and check the file signature
-	std::vector<uint8_t> stored_signature = read(length);
-	if(stored_signature.size() != length)							return false;
-	if(std::memcmp(stored_signature.data(), signature, length))		return false;
-	return true;
-}
-
 std::string FileHolder::extension() const {
 	const auto final_dot = name_.rfind('.');
 	if(final_dot == std::string::npos) {

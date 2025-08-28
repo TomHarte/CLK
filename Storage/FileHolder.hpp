@@ -161,7 +161,16 @@ public:
 
 		@returns @c true if the bytes read match the signature; @c false otherwise.
 	*/
-	bool check_signature(const char *signature, std::size_t length = 0);
+	template <size_t size>
+	bool check_signature(const char (&signature)[size]) {
+		constexpr auto signature_length = size - 1;
+
+		std::array<uint8_t, size> stored_signature;
+		if(read(stored_signature) != size) {
+			return false;
+		}
+		return !std::memcmp(stored_signature.data(), signature, signature_length);
+	}
 
 	/*!
 		Determines and returns the file extension: everything from the final character
