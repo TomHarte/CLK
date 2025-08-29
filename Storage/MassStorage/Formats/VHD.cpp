@@ -21,7 +21,7 @@ VHD::VHD(const std::string &file_name) : file_(file_name) {
 		default:	throw std::exception();
 	}
 
-	if(!file_.check_signature("conectix")) {
+	if(!file_.check_signature<SignatureType::String>("conectix")) {
 		throw std::exception();
 	}
 

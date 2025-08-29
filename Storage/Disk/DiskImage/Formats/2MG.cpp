@@ -27,7 +27,7 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 	FileHolder file(file_name);
 
 	// Check the signature.
-	if(!file.check_signature("2IMG")) throw Error::InvalidFormat;
+	if(!file.check_signature<SignatureType::String>("2IMG")) throw Error::InvalidFormat;
 
 	// Grab the creator, potential to fix the data size momentarily.
 	const auto creator = file.read(4);

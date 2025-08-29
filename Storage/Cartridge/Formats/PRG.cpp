@@ -13,7 +13,7 @@
 using namespace Storage::Cartridge;
 
 PRG::PRG(const std::string &file_name) {
-	Storage::FileHolder file(file_name.c_str(), FileHolder::FileMode::Read);
+	Storage::FileHolder file(file_name.c_str(), FileMode::Read);
 
 	const auto loading_address = file.get_le<uint16_t>();
 	if(loading_address != 0xa000) {

@@ -33,9 +33,9 @@ WOZ::WOZ(const std::string &file_name) :
 		char(0xff), 0x0a, 0x0d, 0x0a
 	};
 
-	const bool isWoz1 = file_.check_signature(signature1);
+	const bool isWoz1 = file_.check_signature<SignatureType::Binary>(signature1);
 	file_.seek(0, Whence::SET);
-	const bool isWoz2 = file_.check_signature(signature2);
+	const bool isWoz2 = file_.check_signature<SignatureType::Binary>(signature2);
 
 	if(!isWoz1 && !isWoz2) throw Error::InvalidFormat;
 	type_ = isWoz2 ? Type::WOZ2 : Type::WOZ1;

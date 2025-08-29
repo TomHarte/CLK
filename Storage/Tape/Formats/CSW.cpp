@@ -15,11 +15,11 @@
 using namespace Storage::Tape;
 
 CSW::CSW(const std::string &file_name) {
-	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
+	Storage::FileHolder file(file_name, FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
 
 	// Check signature.
-	if(!file.check_signature("Compressed Square Wave")) {
+	if(!file.check_signature<SignatureType::String>("Compressed Square Wave")) {
 		throw ErrorNotCSW;
 	}
 

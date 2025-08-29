@@ -23,10 +23,10 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	FileHolder file(file_name);
 	is_read_only_ = file.is_known_read_only();
 
-	if(!file.check_signature("MV - CPC")) {
+	if(!file.check_signature<SignatureType::String>("MV - CPC")) {
 		is_extended_ = true;
 		file.seek(0, Whence::SET);
-		if(!file.check_signature("EXTENDED"))
+		if(!file.check_signature<SignatureType::String>("EXTENDED"))
 			throw Error::InvalidFormat;
 	}
 
@@ -276,7 +276,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 	}
 
 	// Rewrite the entire disk image, in extended form.
-	Storage::FileHolder output(file_name_, Storage::FileHolder::FileMode::Rewrite);
+	Storage::FileHolder output(file_name_, Storage::FileMode::Rewrite);
 	output.write(reinterpret_cast<const uint8_t *>("EXTENDED CPC DSK File\r\nDisk-Info\r\n"), 34);
 	output.write(reinterpret_cast<const uint8_t *>("Clock Signal  "), 14);
 	output.put(uint8_t(head_position_count_));

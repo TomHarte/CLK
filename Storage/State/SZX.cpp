@@ -37,7 +37,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 	result->state = std::unique_ptr<Reflection::Struct>(state);
 
 	// Check signature and major version number.
-	if(!file.check_signature("ZXST")) {
+	if(!file.check_signature<SignatureType::String>("ZXST")) {
 		return nullptr;
 	}
 	const uint8_t major_version = file.get();

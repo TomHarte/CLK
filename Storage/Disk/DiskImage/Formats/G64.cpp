@@ -19,7 +19,7 @@ using namespace Storage::Disk;
 G64::G64(const std::string &file_name) :
 		file_(file_name) {
 	// read and check the file signature
-	if(!file_.check_signature("GCR-1541")) throw Error::InvalidFormat;
+	if(!file_.check_signature<SignatureType::String>("GCR-1541")) throw Error::InvalidFormat;
 
 	// check the version number
 	int version = file_.get();

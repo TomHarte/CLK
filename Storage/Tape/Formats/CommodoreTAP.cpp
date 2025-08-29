@@ -15,9 +15,9 @@ using namespace Storage::Tape;
 CommodoreTAP::CommodoreTAP(const std::string &file_name) : file_name_(file_name) {
 	Storage::FileHolder file(file_name);
 
-	const bool is_c64 = file.check_signature("C64-TAPE-RAW");
+	const bool is_c64 = file.check_signature<SignatureType::String>("C64-TAPE-RAW");
 	file.seek(0, Whence::SET);
-	const bool is_c16 = file.check_signature("C16-TAPE-RAW");
+	const bool is_c16 = file.check_signature<SignatureType::String>("C16-TAPE-RAW");
 	if(!is_c64 && !is_c16) {
 		throw ErrorNotCommodoreTAP;
 	}
@@ -60,7 +60,7 @@ CommodoreTAP::Serialiser::Serialiser(
 	Pulse initial,
 	bool half_waves,
 	bool updated_layout) :
-		file_(file_name, FileHolder::FileMode::Read),
+		file_(file_name, FileMode::Read),
 		current_pulse_(initial),
 		half_waves_(half_waves),
 		updated_layout_(updated_layout)

@@ -22,10 +22,10 @@ Log::Logger<Log::Source::TZX> logger;
 }
 
 TZX::TZX(const std::string &file_name) : file_name_(file_name) {
-	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
+	Storage::FileHolder file(file_name, FileMode::Read);
 
 	// Check for signature followed by a 0x1a
-	if(!file.check_signature("ZXTape!")) throw ErrorNotTZX;
+	if(!file.check_signature<SignatureType::String>("ZXTape!")) throw ErrorNotTZX;
 	if(file.get() != 0x1a) throw ErrorNotTZX;
 
 	// Get version number
@@ -40,7 +40,7 @@ std::unique_ptr<FormatSerialiser> TZX::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-TZX::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileHolder::FileMode::Read) {
+TZX::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileMode::Read) {
 	reset();
 }
 

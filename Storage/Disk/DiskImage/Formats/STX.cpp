@@ -391,7 +391,7 @@ private:
 
 STX::STX(const std::string &file_name) : file_(file_name) {
 	// Require that this be a version 3 Pasti.
-	if(!file_.check_signature("RSY\0")) throw Error::InvalidFormat;
+	if(!file_.check_signature<SignatureType::Binary>("RSY")) throw Error::InvalidFormat;
 	if(file_.get_le<uint16_t>() != 3) throw Error::InvalidFormat;
 
 	// Skip: tool used, 2 reserved bytes.

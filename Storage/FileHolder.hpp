@@ -25,16 +25,21 @@ enum class Whence: int {
 	END = SEEK_END,
 };
 
+enum class SignatureType {
+	String,
+	Binary,
+};
+
+enum class FileMode {
+	ReadWrite,
+	Read,
+	Rewrite
+};
+
 class FileHolder final {
 public:
 	enum class Error {
 		CantOpen = -1
-	};
-
-	enum class FileMode {
-		ReadWrite,
-		Read,
-		Rewrite
 	};
 
 	~FileHolder();
@@ -70,7 +75,7 @@ public:
 		Optionally limits itself to only @c size bytes.
 	*/
 	template <typename IntT, size_t size = sizeof(IntT)>
-	void put_be(IntT value) {
+	void put_be(const IntT value) {
 		auto shift = size * 8;
 		while(shift) {
 			shift -= 8;
@@ -161,9 +166,10 @@ public:
 
 		@returns @c true if the bytes read match the signature; @c false otherwise.
 	*/
-	template <size_t size>
+	template <SignatureType type, size_t size>
 	bool check_signature(const char (&signature)[size]) {
-		constexpr auto signature_length = size - 1;
+		// Discard C-style trailing NULL if this is a string compare.
+		constexpr auto signature_length = size - (type == SignatureType::String ? 1 : 0);
 
 		std::array<uint8_t, size> stored_signature;
 		if(read(stored_signature) != size) {
@@ -215,7 +221,7 @@ private:
 };
 
 inline std::vector<uint8_t> contents_of(const std::string &file_name) {
-	FileHolder file(file_name, FileHolder::FileMode::Read);
+	FileHolder file(file_name, FileMode::Read);
 	return file.read(size_t(file.stats().st_size));
 }
 

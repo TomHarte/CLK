@@ -15,7 +15,7 @@ using namespace Storage::Disk;
 
 HFE::HFE(const std::string &file_name) :
 		file_(file_name) {
-	if(!file_.check_signature("HXCPICFE")) throw Error::InvalidFormat;
+	if(!file_.check_signature<SignatureType::String>("HXCPICFE")) throw Error::InvalidFormat;
 
 	if(file_.get()) throw Error::UnknownVersion;
 	track_count_ = file_.get();

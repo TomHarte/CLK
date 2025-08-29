@@ -40,7 +40,7 @@ std::unique_ptr<FormatSerialiser> ZXSpectrumTAP::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-ZXSpectrumTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileHolder::FileMode::Read) {
+ZXSpectrumTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileMode::Read) {
 	read_next_block();
 }
 
