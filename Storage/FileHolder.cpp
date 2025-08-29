@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstring>
 
 using namespace Storage;
 

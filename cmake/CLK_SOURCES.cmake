@@ -226,6 +226,7 @@ set(CLK_SOURCES
 	Storage/MassStorage/Formats/DSK.cpp
 	Storage/MassStorage/Formats/HDV.cpp
 	Storage/MassStorage/Formats/HFV.cpp
+	Storage/MassStorage/Formats/VHD.cpp
 	Storage/MassStorage/MassStorageDevice.cpp
 	Storage/MassStorage/SCSI/DirectAccessDevice.cpp
 	Storage/MassStorage/SCSI/SCSI.cpp

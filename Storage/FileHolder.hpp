@@ -9,10 +9,12 @@
 #pragma once
 
 #include "Numeric/BitStream.hpp"
+
 #include <sys/stat.h>
 #include <array>
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <string>
 #include <vector>
