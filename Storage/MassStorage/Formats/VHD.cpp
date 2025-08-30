@@ -76,15 +76,15 @@ VHD::VHD(const std::string &file_name) : file_(file_name) {
 	total_blocks_ = block_size_ * max_table_entries_;
 }
 
-size_t VHD::get_block_size() {
+size_t VHD::get_block_size() const {
 	return SectorSize;
 }
 
-size_t VHD::get_number_of_blocks() {
+size_t VHD::get_number_of_blocks() const {
 	return total_blocks_;
 }
 
-std::vector<uint8_t> VHD::get_block(size_t) {
+std::vector<uint8_t> VHD::get_block(size_t) const {
 	// TODO.
 	assert(false);
 	return std::vector<uint8_t>(SectorSize);

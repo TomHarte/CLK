@@ -27,27 +27,27 @@ public:
 	}
 
 	/* MassStorageDevices overrides. */
-	size_t get_block_size() final {
+	size_t get_block_size() const final {
 		return sector_size;
 	}
 
-	size_t get_number_of_blocks() final {
+	size_t get_number_of_blocks() const final {
 		return size_t(file_size_ / sector_size);
 	}
 
-	std::vector<uint8_t> get_block(size_t address) final {
+	std::vector<uint8_t> get_block(const size_t address) const final {
 		file_.seek(file_start_ + long(address * sector_size), Whence::SET);
 		return file_.read(sector_size);
 	}
 
-	void set_block(size_t address, const std::vector<uint8_t> &contents) final {
+	void set_block(const size_t address, const std::vector<uint8_t> &contents) final {
 		assert(contents.size() == sector_size);
 		file_.seek(file_start_ + long(address * sector_size), Whence::SET);
 		file_.write(contents);
 	}
 
 private:
-	FileHolder file_;
+	mutable FileHolder file_;
 	const long file_size_, file_start_;
 };
 

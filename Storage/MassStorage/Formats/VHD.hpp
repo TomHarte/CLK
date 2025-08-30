@@ -39,9 +39,9 @@ private:
 	size_t total_blocks_;
 
 	// MassStorageDevice.
-	size_t get_block_size() override;
-	size_t get_number_of_blocks() override;
-	std::vector<uint8_t> get_block(size_t) override;
+	size_t get_block_size() const override;
+	size_t get_number_of_blocks() const override;
+	std::vector<uint8_t> get_block(size_t) const override;
 	void set_block(size_t, const std::vector<uint8_t> &) override;
 };
 

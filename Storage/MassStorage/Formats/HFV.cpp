@@ -21,15 +21,15 @@ HFV::HFV(const std::string &file_name) : file_(file_name) {
 	if(prefix[0] != 'L' || prefix[1] != 'K') throw std::exception();
 }
 
-size_t HFV::get_block_size() {
+size_t HFV::get_block_size() const {
 	return 512;
 }
 
-size_t HFV::get_number_of_blocks() {
+size_t HFV::get_number_of_blocks() const {
 	return mapper_.get_number_of_blocks();
 }
 
-std::vector<uint8_t> HFV::get_block(size_t address) {
+std::vector<uint8_t> HFV::get_block(const size_t address) const {
 	const auto written = writes_.find(address);
 	if(written != writes_.end()) return written->second;
 
@@ -43,7 +43,7 @@ std::vector<uint8_t> HFV::get_block(size_t address) {
 	}
 }
 
-void HFV::set_block(size_t address, const std::vector<uint8_t> &contents) {
+void HFV::set_block(const size_t address, const std::vector<uint8_t> &contents) {
 	const auto source_address = mapper_.to_source_address(address);
 	if(source_address >= 0 && size_t(source_address)*get_block_size() < size_t(file_.stats().st_size)) {
 		const long file_offset = long(get_block_size()) * long(source_address);
@@ -54,6 +54,6 @@ void HFV::set_block(size_t address, const std::vector<uint8_t> &contents) {
 	}
 }
 
-void HFV::set_drive_type(Encodings::Macintosh::DriveType drive_type) {
+void HFV::set_drive_type(const Encodings::Macintosh::DriveType drive_type) {
 	mapper_.set_drive_type(drive_type, size_t(file_.stats().st_size) / get_block_size());
 }

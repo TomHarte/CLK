@@ -12,7 +12,7 @@
 
 using namespace Storage::MassStorage;
 
-HDV::HDV(const std::string &file_name, long start, long size):
+HDV::HDV(const std::string &file_name, const long start, const long size):
 	file_(file_name),
 	file_start_(start),
 	image_size_(std::min(size, long(file_.stats().st_size)))
@@ -23,15 +23,15 @@ HDV::HDV(const std::string &file_name, long start, long size):
 	);
 }
 
-size_t HDV::get_block_size() {
+size_t HDV::get_block_size() const {
 	return 512;
 }
 
-size_t HDV::get_number_of_blocks() {
+size_t HDV::get_number_of_blocks() const {
 	return mapper_.get_number_of_blocks();
 }
 
-std::vector<uint8_t> HDV::get_block(size_t address) {
+std::vector<uint8_t> HDV::get_block(const size_t address) const {
 	const auto source_address = mapper_.to_source_address(address);
 	const auto file_offset = offset_for_block(source_address);
 
@@ -43,7 +43,7 @@ std::vector<uint8_t> HDV::get_block(size_t address) {
 	}
 }
 
-void HDV::set_block(size_t address, const std::vector<uint8_t> &data) {
+void HDV::set_block(const size_t address, const std::vector<uint8_t> &data) {
 	const auto source_address = mapper_.to_source_address(address);
 	const auto file_offset = offset_for_block(source_address);
 
@@ -53,7 +53,7 @@ void HDV::set_block(size_t address, const std::vector<uint8_t> &data) {
 	}
 }
 
-long HDV::offset_for_block(ssize_t address) {
+long HDV::offset_for_block(ssize_t address) const {
 	if(address < 0) return -1;
 
 	const long offset = 512 * address;
