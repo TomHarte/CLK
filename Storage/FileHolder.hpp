@@ -162,19 +162,24 @@ public:
 	}
 
 	/*!
-		Reads @c length bytes from the file and compares them to the first
-		@c length bytes of @c signature. If @c length is 0, it is computed
-		as the length of @c signature not including the terminating null.
+		For SignatureType::Binary:
 
-		@returns @c true if the bytes read match the signature; @c false otherwise.
+		compares every byte in @c signature to an incoming byte from the file,
+		returning @c true if they matched and @c false otherwise.
+
+		For SignatureType::String:
+
+		compares all bytes but the final in @c signature to an incoming byte from the file,
+		returning @c true if they matched and @c false otherwise. This therefore assumes
+		that the final byte was a NULL terminator, which is not represented in the file.
 	*/
-	template <SignatureType type, size_t size>
-	bool check_signature(const char (&signature)[size]) {
+	template <SignatureType type, size_t buffer_size>
+	bool check_signature(const char (&signature)[buffer_size]) {
 		// Discard C-style trailing NULL if this is a string compare.
-		constexpr auto signature_length = size - (type == SignatureType::String ? 1 : 0);
+		static constexpr auto signature_length = buffer_size - (type == SignatureType::String ? 1 : 0);
 
-		std::array<uint8_t, size> stored_signature;
-		if(read(stored_signature) != size) {
+		std::array<uint8_t, signature_length> stored_signature;
+		if(read(stored_signature) != signature_length) {
 			return false;
 		}
 		return !std::memcmp(stored_signature.data(), signature, signature_length);

@@ -10,6 +10,10 @@
 
 using namespace Storage::MassStorage;
 
+namespace {
+constexpr size_t SectorSize = 512;
+}
+
 VHD::VHD(const std::string &file_name) : file_(file_name) {
 	// Find footer; this may be the final 511 or final 512 bytes of the file.
 	// Find what might be the start of the 'conectix' [sic] signature.
@@ -51,22 +55,35 @@ VHD::VHD(const std::string &file_name) : file_(file_name) {
 	}
 
 	if(type_ != Type::Dynamic) {
+		total_blocks_ = cylinders_ * heads_ * sides_;
 		return;
 	}
-	
-	printf("");
+
+	file_.seek(static_cast<long>(data_offset_), Whence::SET);
+	if(!file_.check_signature<SignatureType::String>("cxsparse")) {
+		throw std::exception();
+	}
+
+	file_.seek(8, Whence::CUR);	// Skip data offset.
+	table_offset_ = file_.get_be<uint64_t>();
+
+	file_.seek(4, Whence::CUR);	// Skip table version. TODO: validate.
+	max_table_entries_ = file_.get_be<uint32_t>();
+	block_size_ = file_.get_be<uint32_t>();
+
+	total_blocks_ = block_size_ * max_table_entries_;
 }
 
 size_t VHD::get_block_size() {
-	return 512;
+	return SectorSize;
 }
 
 size_t VHD::get_number_of_blocks() {
-	return 0;
+	return total_blocks_;
 }
 
 std::vector<uint8_t> VHD::get_block(size_t) {
-	return {};
+	return std::vector<uint8_t>(SectorSize);
 }
 
 void VHD::set_block(size_t, const std::vector<uint8_t> &) {

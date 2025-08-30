@@ -31,6 +31,13 @@ private:
 	} type_;
 	uint64_t data_offset_;
 
+	// For dynamic VHDs.
+	uint64_t table_offset_;
+	uint32_t max_table_entries_;
+	uint32_t block_size_;
+
+	size_t total_blocks_;
+
 	// MassStorageDevice.
 	size_t get_block_size() override;
 	size_t get_number_of_blocks() override;
