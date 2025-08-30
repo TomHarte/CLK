@@ -65,10 +65,9 @@ class CharacterMapper {
 */
 class Typer {
 public:
-	class Delegate: public MachineTypes::KeyActions {
-		public:
-			/// Informs the delegate that this typer has reached the end of its content.
-			virtual void typer_reset(Typer *typer) = 0;
+	struct Delegate: public MachineTypes::KeyActions {
+		/// Informs the delegate that this typer has reached the end of its content.
+		virtual void typer_reset(Typer &) = 0;
 	};
 
 	Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, CharacterMapper &character_mapper, Delegate *delegate);
@@ -131,7 +130,7 @@ protected:
 		Provided in order to conform to that part of the Typer::Delegate interface that goes above and
 		beyond KeyboardMachine::Machine; responds to the end of typing by clearing all keys.
 	*/
-	void typer_reset(Typer *) override {
+	void typer_reset(Typer &) override {
 		clear_all_keys();
 
 		// It's unsafe to deallocate typer right now, since it is the caller, but also it has a small

@@ -425,6 +425,6 @@ void z8530::update_delegate() {
 	const bool interrupt_line = get_interrupt_line();
 	if(interrupt_line != previous_interrupt_line_) {
 		previous_interrupt_line_ = interrupt_line;
-		if(delegate_) delegate_->did_change_interrupt_status(this, interrupt_line);
+		if(delegate_) delegate_->did_change_interrupt_status(*this, interrupt_line);
 	}
 }

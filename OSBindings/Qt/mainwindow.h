@@ -82,7 +82,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::unique_ptr<QAudioOutput> audioOutput;
 #endif
 		bool audioIs8bit = false, audioIsStereo = false;
-		void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override;
+		void speaker_did_complete_samples(Outputs::Speaker::Speaker &, const std::vector<int16_t> &) override;
 		AudioBuffer audioBuffer;
 		FunctionThread audioThread;
 

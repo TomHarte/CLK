@@ -54,83 +54,83 @@ constexpr uint8_t JamOpcode = 0xf2;
 	A base class from which the 6502 descends; separated for implementation reasons only.
 */
 class ProcessorBase: public ProcessorStorage {
-	public:
-		ProcessorBase(Personality personality) : ProcessorStorage(personality) {}
+public:
+	ProcessorBase(const Personality personality) : ProcessorStorage(personality) {}
 
-		/*!
-			Gets the value of a register.
+	/*!
+		Gets the value of a register.
 
-			@see set_value_of
+		@see set_value_of
 
-			@param r The register to set.
-			@returns The value of the register. 8-bit registers will be returned as unsigned.
-		*/
-		inline uint16_t value_of(Register r) const;
+		@param r The register to set.
+		@returns The value of the register. 8-bit registers will be returned as unsigned.
+	*/
+	inline uint16_t value_of(Register r) const;
 
-		/*!
-			Sets the value of a register.
+	/*!
+		Sets the value of a register.
 
-			@see value_of
+		@see value_of
 
-			@param r The register to set.
-			@param value The value to set. If the register is only 8 bit, the value will be truncated.
-		*/
-		inline void set_value_of(Register r, uint16_t value);
+		@param r The register to set.
+		@param value The value to set. If the register is only 8 bit, the value will be truncated.
+	*/
+	inline void set_value_of(Register r, uint16_t value);
 
-		/*!
-			Sets the current level of the RST line.
+	/*!
+		Sets the current level of the RST line.
 
-			@param active @c true if the line is logically active; @c false otherwise.
-		*/
-		inline void set_reset_line(bool active);
+		@param active @c true if the line is logically active; @c false otherwise.
+	*/
+	inline void set_reset_line(bool active);
 
-		/*!
-			Gets whether the 6502 would reset at the next opportunity.
+	/*!
+		Gets whether the 6502 would reset at the next opportunity.
 
-			@returns @c true if the line is logically active; @c false otherwise.
-		*/
-		inline bool get_is_resetting() const;
+		@returns @c true if the line is logically active; @c false otherwise.
+	*/
+	inline bool get_is_resetting() const;
 
-		/*!
-			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
-			reset at the first opportunity. Use @c set_power_on to disable that behaviour.
-		*/
-		inline void set_power_on(bool active);
+	/*!
+		This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
+		reset at the first opportunity. Use @c set_power_on to disable that behaviour.
+	*/
+	inline void set_power_on(bool);
 
-		/*!
-			Sets the current level of the IRQ line.
+	/*!
+		Sets the current level of the IRQ line.
 
-			@param active @c true if the line is logically active; @c false otherwise.
-		*/
-		inline void set_irq_line(bool active);
+		@param active @c true if the line is logically active; @c false otherwise.
+	*/
+	inline void set_irq_line(bool active);
 
-		/*!
-			Sets the current level of the set overflow line.
+	/*!
+		Sets the current level of the set overflow line.
 
-			@param active @c true if the line is logically active; @c false otherwise.
-		*/
-		inline void set_overflow_line(bool active);
+		@param active @c true if the line is logically active; @c false otherwise.
+	*/
+	inline void set_overflow_line(bool active);
 
-		/*!
-			Sets the current level of the NMI line.
+	/*!
+		Sets the current level of the NMI line.
 
-			@param active `true` if the line is logically active; `false` otherwise.
-		*/
-		inline void set_nmi_line(bool active);
+		@param active `true` if the line is logically active; `false` otherwise.
+	*/
+	inline void set_nmi_line(bool active);
 
-		/*!
-			Queries whether the 6502 is now 'jammed'; i.e. has entered an invalid state
-			such that it will not of itself perform any more meaningful processing.
+	/*!
+		Queries whether the 6502 is now 'jammed'; i.e. has entered an invalid state
+		such that it will not of itself perform any more meaningful processing.
 
-			@returns @c true if the 6502 is jammed; @c false otherwise.
-		*/
-		inline bool is_jammed() const;
+		@returns @c true if the 6502 is jammed; @c false otherwise.
+	*/
+	inline bool is_jammed() const;
 
-		/*!
-			FOR TESTING PURPOSES ONLY: forces the processor into a state where
-			the next thing it intends to do is fetch a new opcode.
-		*/
-		inline void restart_operation_fetch();
+	/*!
+		FOR TESTING PURPOSES ONLY: forces the processor into a state where
+		the next thing it intends to do is fetch a new opcode.
+	*/
+	inline void restart_operation_fetch();
 };
 
 /*!

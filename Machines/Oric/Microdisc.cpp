@@ -55,7 +55,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 		irq_enable_ = bool(control & 0x01);
 		const bool has_irq = get_interrupt_request_line();
 		if(has_irq != had_irq && delegate_) {
-			delegate_->wd1770_did_change_output(this);
+			delegate_->wd1770_did_change_output(*this);
 		}
 	}
 

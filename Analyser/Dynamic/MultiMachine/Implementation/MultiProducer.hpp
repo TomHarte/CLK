@@ -60,7 +60,7 @@ public:
 		been received.
 	*/
 	struct Delegate {
-		virtual void did_run_machines(MultiTimedMachine *) = 0;
+		virtual void did_run_machines(MultiTimedMachine &) = 0;
 	};
 	/// Sets @c delegate as the receiver of delegate messages.
 	void set_delegate(Delegate *const delegate) {

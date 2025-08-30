@@ -43,7 +43,7 @@ public:
 		/*!
 			Communicates that @c scc now has the interrupt line status @c new_status.
 		*/
-		virtual void did_change_interrupt_status(z8530 *, bool new_status) = 0;
+		virtual void did_change_interrupt_status(z8530 &, bool new_status) = 0;
 	};
 
 	/*!
@@ -54,7 +54,7 @@ public:
 	void set_delegate(Delegate *const delegate) {
 		if(delegate_ == delegate) return;
 		delegate_ = delegate;
-		delegate_->did_change_interrupt_status(this, get_interrupt_line());
+		delegate_->did_change_interrupt_status(*this, get_interrupt_line());
 	}
 
 	/*

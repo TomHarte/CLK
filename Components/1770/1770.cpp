@@ -820,7 +820,7 @@ void WD1770::update_status(const std::function<void(Status &)> updater) {
 			(status_.busy != old_status.busy) ||
 			(status_.data_request != old_status.data_request) ||
 			(status_.interrupt_request != old_status.interrupt_request);
-		if(did_change) delegate_->wd1770_did_change_output(this);
+		if(did_change) delegate_->wd1770_did_change_output(*this);
 	} else updater(status_);
 
 	if(status_.busy != old_status.busy) update_clocking_observer();

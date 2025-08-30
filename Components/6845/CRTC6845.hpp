@@ -29,8 +29,8 @@ struct BusState {
 };
 
 class BusHandler {
-	public:
-		void perform_bus_cycle(const BusState &) {}
+public:
+	void perform_bus_cycle(const BusState &) {}
 };
 
 enum class Personality {

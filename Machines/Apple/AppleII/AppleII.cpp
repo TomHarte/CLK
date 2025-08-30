@@ -222,11 +222,11 @@ private:
 		card_became_just_in_time_ |= !is_every_cycle;
 	}
 
-	void card_did_change_select_constraints(Apple::II::Card *card) final {
-		pick_card_messaging_group(card);
+	void card_did_change_select_constraints(Apple::II::Card &card) final {
+		pick_card_messaging_group(&card);
 	}
 
-	void card_did_change_interrupt_flags(Apple::II::Card *) final {
+	void card_did_change_interrupt_flags(Apple::II::Card &) final {
 		bool nmi = false;
 		bool irq = false;
 

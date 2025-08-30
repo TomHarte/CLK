@@ -382,25 +382,25 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 	in order to get default implementations of any changes that may occur in the expected interface.
 */
 class BusHandler {
-	public:
-		/*!
-			Provides the bus handler with a single Microcycle to 'perform'.
+public:
+	/*!
+		Provides the bus handler with a single Microcycle to 'perform'.
 
-			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
-			flags; FC2 is provided here as @c is_supervisor — it'll be either 0 or 1.
+		FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
+		flags; FC2 is provided here as @c is_supervisor — it'll be either 0 or 1.
 
-			The @c Microcycle might be any instantiation of @c Microcycle above;
-			whether with a static constexpr operation or with a runtime-selected one.
-		*/
-		template <typename Microcycle>
-		HalfCycles perform_bus_operation(const Microcycle &, [[maybe_unused]] int is_supervisor) {
-			return HalfCycles(0);
-		}
+		The @c Microcycle might be any instantiation of @c Microcycle above;
+		whether with a static constexpr operation or with a runtime-selected one.
+	*/
+	template <typename Microcycle>
+	HalfCycles perform_bus_operation(const Microcycle &, [[maybe_unused]] int is_supervisor) {
+		return HalfCycles(0);
+	}
 
-		/*!
-			Provides information about the path of execution if enabled via the template.
-		*/
-		void will_perform([[maybe_unused]] uint32_t address, [[maybe_unused]] uint16_t opcode) {}
+	/*!
+		Provides information about the path of execution if enabled via the template.
+	*/
+	void will_perform([[maybe_unused]] uint32_t address, [[maybe_unused]] uint16_t opcode) {}
 };
 
 struct State {
