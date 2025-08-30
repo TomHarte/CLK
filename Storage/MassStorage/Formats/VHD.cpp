@@ -8,6 +8,8 @@
 
 #include "VHD.hpp"
 
+#include <cassert>
+
 using namespace Storage::MassStorage;
 
 namespace {
@@ -83,8 +85,12 @@ size_t VHD::get_number_of_blocks() {
 }
 
 std::vector<uint8_t> VHD::get_block(size_t) {
+	// TODO.
+	assert(false);
 	return std::vector<uint8_t>(SectorSize);
 }
 
 void VHD::set_block(size_t, const std::vector<uint8_t> &) {
+	// TODO.
+	assert(false);
 }
