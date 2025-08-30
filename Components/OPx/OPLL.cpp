@@ -314,7 +314,11 @@ void OPLL::update_all_channels() {
 		envelope_generators_[c + 9].update(oscillator_);
 	}
 
-#define VOLUME(x)	int16_t(((x) * total_volume_) >> 12)
+	const auto volume = [&](const int x) {
+		return int16_t(
+			(x * total_volume_) >> 12
+		);
+	};
 
 	if(rhythm_mode_enabled_) {
 		// Advance the rhythm envelope generators.
@@ -323,32 +327,32 @@ void OPLL::update_all_channels() {
 		}
 
 		// Fill in the melodic channels.
-		output_levels_[3] = VOLUME(melodic_output(0));
-		output_levels_[4] = VOLUME(melodic_output(1));
-		output_levels_[5] = VOLUME(melodic_output(2));
+		output_levels_[3] = volume(melodic_output(0));
+		output_levels_[4] = volume(melodic_output(1));
+		output_levels_[5] = volume(melodic_output(2));
 
-		output_levels_[9] = VOLUME(melodic_output(3));
-		output_levels_[10] = VOLUME(melodic_output(4));
-		output_levels_[11] = VOLUME(melodic_output(5));
+		output_levels_[9] = volume(melodic_output(3));
+		output_levels_[10] = volume(melodic_output(4));
+		output_levels_[11] = volume(melodic_output(5));
 
 		// Bass drum, which is a regular FM effect.
-		output_levels_[2] = output_levels_[15] = VOLUME(bass_drum());
+		output_levels_[2] = output_levels_[15] = volume(bass_drum());
 		oscillator_.update_lfsr();
 
 		// Tom tom, which is a single operator.
-		output_levels_[1] = output_levels_[14] = VOLUME(tom_tom());
+		output_levels_[1] = output_levels_[14] = volume(tom_tom());
 		oscillator_.update_lfsr();
 
 		// Snare.
-		output_levels_[6] = output_levels_[16] = VOLUME(snare_drum());
+		output_levels_[6] = output_levels_[16] = volume(snare_drum());
 		oscillator_.update_lfsr();
 
 		// Cymbal.
-		output_levels_[7] = output_levels_[17] = VOLUME(cymbal());
+		output_levels_[7] = output_levels_[17] = volume(cymbal());
 		oscillator_.update_lfsr();
 
 		// High-hat.
-		output_levels_[0] = output_levels_[13] = VOLUME(high_hat());
+		output_levels_[0] = output_levels_[13] = volume(high_hat());
 		oscillator_.update_lfsr();
 
 		// Unutilised slots.
@@ -365,32 +369,35 @@ void OPLL::update_all_channels() {
 		output_levels_[6] = output_levels_[7] = output_levels_[8] =
 		output_levels_[12] = output_levels_[13] = output_levels_[14] = 0;
 
-		output_levels_[3] = VOLUME(melodic_output(0));
-		output_levels_[4] = VOLUME(melodic_output(1));
-		output_levels_[5] = VOLUME(melodic_output(2));
+		output_levels_[3] = volume(melodic_output(0));
+		output_levels_[4] = volume(melodic_output(1));
+		output_levels_[5] = volume(melodic_output(2));
 
-		output_levels_[9] = VOLUME(melodic_output(3));
-		output_levels_[10] = VOLUME(melodic_output(4));
-		output_levels_[11] = VOLUME(melodic_output(5));
+		output_levels_[9] = volume(melodic_output(3));
+		output_levels_[10] = volume(melodic_output(4));
+		output_levels_[11] = volume(melodic_output(5));
 
-		output_levels_[15] = VOLUME(melodic_output(6));
-		output_levels_[16] = VOLUME(melodic_output(7));
-		output_levels_[17] = VOLUME(melodic_output(8));
+		output_levels_[15] = volume(melodic_output(6));
+		output_levels_[16] = volume(melodic_output(7));
+		output_levels_[17] = volume(melodic_output(8));
 	}
-
-#undef VOLUME
 
 	// TODO: batch updates of the LFSR.
 }
 
-// TODO: verify attenuation scales pervasively below.
+namespace {
 
-#define ATTENUATION(x)	((x) << 7)
+// TODO: verify attenuation scales pervasively below.
+constexpr int attenuation(const int x) {
+	return x << 7;
+}
+
+}
 
 int OPLL::melodic_output(const int channel) {
 	// The modulator always updates after the carrier, oddly enough. So calculate actual output first, based on the modulator's last value.
 	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), channels_[channel].modulator_output);
-	carrier += envelope_generators_[channel].attenuation() + ATTENUATION(channels_[channel].attenuation) + key_level_scalers_[channel].attenuation();
+	carrier += envelope_generators_[channel].attenuation() + attenuation(channels_[channel].attenuation) + key_level_scalers_[channel].attenuation();
 
 	// Get the modulator's new value.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
@@ -409,7 +416,7 @@ int OPLL::bass_drum() const {
 	modulation += rhythm_envelope_generators_[RhythmIndices::BassModulator].attenuation();
 
 	auto carrier = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[6].scaled_phase(), modulation);
-	carrier += rhythm_envelope_generators_[RhythmIndices::BassCarrier].attenuation() + ATTENUATION(channels_[6].attenuation);
+	carrier += rhythm_envelope_generators_[RhythmIndices::BassCarrier].attenuation() + attenuation(channels_[6].attenuation);
 	return carrier.level();
 }
 
@@ -417,7 +424,7 @@ int OPLL::tom_tom() const {
 	// Use modulator 8 and the 'instrument' selection for channel 8 as an attenuation.
 	auto tom_tom = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[8 + 9].phase());
 	tom_tom += rhythm_envelope_generators_[RhythmIndices::TomTom].attenuation();
-	tom_tom += ATTENUATION(channels_[8].instrument);
+	tom_tom += attenuation(channels_[8].instrument);
 	return tom_tom.level();
 }
 
@@ -425,7 +432,7 @@ int OPLL::snare_drum() const {
 	// Use modulator 7 and the carrier attenuation level for channel 7.
 	LogSign snare = WaveformGenerator<period_precision>::snare(oscillator_, phase_generators_[7 + 9].phase());
 	snare += rhythm_envelope_generators_[RhythmIndices::Snare].attenuation();
-	snare += ATTENUATION(channels_[7].attenuation);
+	snare += attenuation(channels_[7].attenuation);
 	return snare.level();
 }
 
@@ -433,7 +440,7 @@ int OPLL::cymbal() const {
 	// Use modulator 7, carrier 8 and the attenuation level for channel 8.
 	LogSign cymbal = WaveformGenerator<period_precision>::cymbal(phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	cymbal += rhythm_envelope_generators_[RhythmIndices::Cymbal].attenuation();
-	cymbal += ATTENUATION(channels_[8].attenuation);
+	cymbal += attenuation(channels_[8].attenuation);
 	return cymbal.level();
 }
 
@@ -441,8 +448,6 @@ int OPLL::high_hat() const {
 	// Use modulator 7, carrier 8 a and the 'instrument' selection for channel 7 as an attenuation.
 	LogSign high_hat = WaveformGenerator<period_precision>::high_hat(oscillator_, phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	high_hat += rhythm_envelope_generators_[RhythmIndices::HighHat].attenuation();
-	high_hat += ATTENUATION(channels_[7].instrument);
+	high_hat += attenuation(channels_[7].instrument);
 	return high_hat.level();
 }
-
-#undef ATTENUATION
