@@ -21,11 +21,11 @@ FAT12::FAT12(const std::string &file_name) :
 	if(file_size < 512) throw Error::InvalidFormat;
 
 	// Inspect the FAT.
-	file_.seek(11, SEEK_SET);
+	file_.seek(11, Whence::SET);
 	sector_size_ = file_.get_le<uint16_t>();
-	file_.seek(19, SEEK_SET);
+	file_.seek(19, Whence::SET);
 	const auto total_sectors = file_.get_le<uint16_t>();
-	file_.seek(24, SEEK_SET);
+	file_.seek(24, Whence::SET);
 	sector_count_ = file_.get_le<uint16_t>();
 	head_count_ = file_.get_le<uint16_t>();
 

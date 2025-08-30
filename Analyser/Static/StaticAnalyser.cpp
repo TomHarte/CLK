@@ -68,6 +68,7 @@
 #include "Storage/MassStorage/Formats/DSK.hpp"
 #include "Storage/MassStorage/Formats/HDV.hpp"
 #include "Storage/MassStorage/Formats/HFV.hpp"
+#include "Storage/MassStorage/Formats/VHD.hpp"
 
 // State Snapshots
 #include "Storage/State/SNA.hpp"
@@ -301,6 +302,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Tape::TZX>(TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum, "tzx");
 
 	accumulator.try_standard<Tape::UEF>(TargetPlatform::Acorn, "uef");
+
+	accumulator.try_standard<MassStorage::VHD>(TargetPlatform::PCCompatible, "vhd");
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::WOZ>>(TargetPlatform::DiskII, "woz");
 

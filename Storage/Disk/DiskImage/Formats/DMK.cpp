@@ -56,7 +56,7 @@ DMK::DMK(const std::string &file_name) :
 
 	// Skip to the end of the header and check that this is
 	// "in the emulator's native format".
-	file_.seek(0xc, SEEK_SET);
+	file_.seek(0xc, Whence::SET);
 	const auto format = file_.get_le<uint32_t>();
 	if(format) throw Error::InvalidFormat;
 }
@@ -80,7 +80,7 @@ long DMK::get_file_offset_for_position(const Track::Address address) const {
 }
 
 std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(const ::Storage::Disk::Track::Address address) const {
-	file_.seek(get_file_offset_for_position(address), SEEK_SET);
+	file_.seek(get_file_offset_for_position(address), Whence::SET);
 
 	// Read the IDAM table.
 	uint16_t idam_locations[64];

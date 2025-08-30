@@ -80,15 +80,15 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				is_sps_format_ = file_.get_be<uint32_t>() > 1;
 
 				// Skip: revision, file key and revision, CRC of the original .ctr, and minimum track.
-				file_.seek(20, SEEK_CUR);
+				file_.seek(20, Whence::CUR);
 				track_count_ = int(1 + file_.get_be<uint32_t>());
 
 				// Skip: min side.
-				file_.seek(4, SEEK_CUR);
+				file_.seek(4, Whence::CUR);
 				head_count_ = int(1 + file_.get_be<uint32_t>());
 
 				// Skip: creation date, time.
-				file_.seek(8, SEEK_CUR);
+				file_.seek(8, Whence::CUR);
 
 				platform_type_ = 0;
 				for(int c = 0; c < 4; c++) {
@@ -133,15 +133,15 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 					description.density = TrackDescription::Density::Unknown;
 				}
 
-				file_.seek(12, SEEK_CUR);	// Skipped: signal type, track bytes, start byte position.
+				file_.seek(12, Whence::CUR);	// Skipped: signal type, track bytes, start byte position.
 				description.start_bit_pos = file_.get_be<uint32_t>();
 				description.data_bits = file_.get_be<uint32_t>();
 				description.gap_bits = file_.get_be<uint32_t>();
 
-				file_.seek(4, SEEK_CUR);	// Skipped: track bits, which is entirely redundant.
+				file_.seek(4, Whence::CUR);	// Skipped: track bits, which is entirely redundant.
 				description.block_count = file_.get_be<uint32_t>();
 
-				file_.seek(4, SEEK_CUR);	// Skipped: encoder process.
+				file_.seek(4, Whence::CUR);	// Skipped: encoder process.
 				description.has_fuzzy_bits = file_.get_be<uint32_t>() & 1;
 
 				// For some reason the authors decided to introduce another primary key,
@@ -154,7 +154,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 			case block("DATA"): {
 				length += file_.get_be<uint32_t>();
 
-				file_.seek(8, SEEK_CUR);	// Skipped: bit size, CRC.
+				file_.seek(8, Whence::CUR);	// Skipped: bit size, CRC.
 
 				// Grab the data key and use that to establish the file starting
 				// position for this track.
@@ -174,7 +174,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 			} break;
 		}
 
-		file_.seek(start_of_block + length, SEEK_SET);
+		file_.seek(start_of_block + length, Whence::SET);
 	}
 }
 
@@ -198,7 +198,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 	}
 
 	// Seek to track content.
-	file_.seek(description.file_offset, SEEK_SET);
+	file_.seek(description.file_offset, Whence::SET);
 
 	// Read the block descriptions up front.
 	//
@@ -224,10 +224,10 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 		block.gap_bits = file_.get_be<uint32_t>();
 		if(is_sps_format_) {
 			block.gap_offset = file_.get_be<uint32_t>();
-			file_.seek(4, SEEK_CUR);	// Skip 'cell type' which appears to provide no content.
+			file_.seek(4, Whence::CUR);	// Skip 'cell type' which appears to provide no content.
 		} else {
 			// Skip potlower-resolution copies of data_bits and gap_bits.
-			file_.seek(8, SEEK_CUR);
+			file_.seek(8, Whence::CUR);
 		}
 		block.is_mfm = file_.get_be<uint32_t>() == 1;
 
@@ -246,7 +246,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 		const auto length_of_a_bit = bit_length(description.density, block_count);
 
 		if(block.gap_offset) {
-			file_.seek(description.file_offset + block.gap_offset, SEEK_SET);
+			file_.seek(description.file_offset + block.gap_offset, Whence::SET);
 			while(true) {
 				const uint8_t gap_header = file_.get();
 				if(!gap_header) break;
@@ -267,7 +267,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 					case Type::SampleLength:
 						printf("Adding sampled gap length %zu bits\n", length);
 						add_raw_data(segments, length_of_a_bit, length);
-//						file_.seek(long(length >> 3), SEEK_CUR);
+//						file_.seek(long(length >> 3), Whence::CUR);
 					break;
 				}
 			}
@@ -276,7 +276,7 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 		}
 
 		if(block.data_offset) {
-			file_.seek(description.file_offset + block.data_offset, SEEK_SET);
+			file_.seek(description.file_offset + block.data_offset, Whence::SET);
 			while(true) {
 				const uint8_t data_header = file_.get();
 				if(!data_header) break;

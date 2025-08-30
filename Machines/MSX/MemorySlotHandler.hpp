@@ -134,7 +134,7 @@ class MemorySlotHandler {
 
 		/*! @returns The probability that this handler is correct for the data it owns. */
 		float get_confidence() {
-			return confidence_counter_.get_confidence();
+			return confidence_counter_.confidence();
 		}
 
 		virtual std::string debug_type() {

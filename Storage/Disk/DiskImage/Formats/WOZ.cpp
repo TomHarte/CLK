@@ -33,9 +33,9 @@ WOZ::WOZ(const std::string &file_name) :
 		char(0xff), 0x0a, 0x0d, 0x0a
 	};
 
-	const bool isWoz1 = file_.check_signature(signature1, 8);
-	file_.seek(0, SEEK_SET);
-	const bool isWoz2 = file_.check_signature(signature2, 8);
+	const bool isWoz1 = file_.check_signature<SignatureType::Binary>(signature1);
+	file_.seek(0, Whence::SET);
+	const bool isWoz2 = file_.check_signature<SignatureType::Binary>(signature2);
 
 	if(!isWoz1 && !isWoz2) throw Error::InvalidFormat;
 	type_ = isWoz2 ? Type::WOZ2 : Type::WOZ1;
@@ -53,7 +53,7 @@ WOZ::WOZ(const std::string &file_name) :
 	}
 
 	// Retreat to the first byte after the CRC.
-	file_.seek(12, SEEK_SET);
+	file_.seek(12, Whence::SET);
 
 	// Parse all chunks up front.
 	bool has_tmap = false;
@@ -101,7 +101,7 @@ WOZ::WOZ(const std::string &file_name) :
 			break;
 		}
 
-		file_.seek(end_of_chunk, SEEK_SET);
+		file_.seek(end_of_chunk, Whence::SET);
 	}
 
 	if(tracks_offset_ == -1 || !has_tmap) throw Error::InvalidFormat;
@@ -158,7 +158,7 @@ std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) const {
 	size_t number_of_bits;
 	{
 		std::lock_guard lock_guard(file_.file_access_mutex());
-		file_.seek(offset, SEEK_SET);
+		file_.seek(offset, Whence::SET);
 
 		switch(type_) {
 			case Type::WOZ1:
@@ -166,7 +166,7 @@ std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) const {
 				// number of bytes that actually had data in them, then a two-byte count of the number
 				// of bits that were used. Other information follows but is not intended for emulation.
 				track_contents = file_.read(6646);
-				file_.seek(2, SEEK_CUR);
+				file_.seek(2, Whence::CUR);
 				number_of_bits = std::min(file_.get_le<uint16_t>(), uint16_t(6646*8));
 			break;
 
@@ -174,10 +174,10 @@ std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) const {
 			case Type::WOZ2: {
 				// In WOZ 2 an extra level of indirection allows for variable track sizes.
 				const auto starting_block = file_.get_le<uint16_t>();
-				file_.seek(2, SEEK_CUR);	// Skip the block count; the amount of data to read is implied by the number of bits.
+				file_.seek(2, Whence::CUR);	// Skip the block count; the amount of data to read is implied by the number of bits.
 				number_of_bits = file_.get_le<uint32_t>();
 
-				file_.seek(starting_block * 512, SEEK_SET);
+				file_.seek(starting_block * 512, Whence::SET);
 				track_contents = file_.read((number_of_bits + 7) >> 3);
 			} break;
 		}
@@ -213,7 +213,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 
 	// Grab the file lock, then write the CRC, then just dump the entire file buffer.
 	std::lock_guard lock_guard(file_.file_access_mutex());
-	file_.seek(8, SEEK_SET);
+	file_.seek(8, Whence::SET);
 	file_.put_le(crc);
 	file_.write(post_crc_contents_);
 }

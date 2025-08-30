@@ -31,7 +31,7 @@ public:
 	/*!
 		Sets the drive type to map to and the number of blocks in the underlying partition.
 	*/
-	void set_drive_type(DriveType drive_type, size_t number_of_blocks) {
+	void set_drive_type(const DriveType drive_type, const size_t number_of_blocks) {
 		drive_type_ = drive_type;
 		number_of_blocks_ = number_of_blocks;
 	}
@@ -49,7 +49,7 @@ public:
 		Maps from a mass-storage device address to an address
 		in the underlying volume.
 	*/
-	ssize_t to_source_address(size_t address) const {
+	ssize_t to_source_address(const size_t address) const {
 		// The embedded volume is always the last thing on the device.
 		return ssize_t(address) - ssize_t(non_volume_blocks());
 	}
@@ -66,7 +66,10 @@ public:
 				return mapper.convert_source_block(source_address);
 			}
 	*/
-	std::vector<uint8_t> convert_source_block(ssize_t source_address, std::vector<uint8_t> source_data = {}) {
+	std::vector<uint8_t> convert_source_block(
+		ssize_t source_address,
+		const std::vector<uint8_t> source_data = {}
+	) const {
 		// Addresses greater than or equal to zero map to the actual disk image.
 		if(source_address >= 0) return source_data;
 

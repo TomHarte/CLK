@@ -15,11 +15,11 @@
 using namespace Storage::Tape;
 
 CSW::CSW(const std::string &file_name) {
-	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
+	Storage::FileHolder file(file_name, FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
 
 	// Check signature.
-	if(!file.check_signature("Compressed Square Wave")) {
+	if(!file.check_signature<SignatureType::String>("Compressed Square Wave")) {
 		throw ErrorNotCSW;
 	}
 
@@ -43,10 +43,10 @@ CSW::CSW(const std::string &file_name) {
 
 		pulse_.type = (file.get() & 1) ? Pulse::High : Pulse::Low;
 
-		file.seek(0x20, SEEK_SET);
+		file.seek(0x20, Whence::SET);
 	} else {
 		pulse_.length.clock_rate = file.get_le<uint32_t>();
-		file.seek(4, SEEK_CUR);	// Skip number of waves.
+		file.seek(4, Whence::CUR);	// Skip number of waves.
 		switch(file.get()) {
 			case 1: compression_type = CompressionType::RLE;	break;
 			case 2: compression_type = CompressionType::ZRLE;	break;
@@ -57,7 +57,7 @@ CSW::CSW(const std::string &file_name) {
 		const uint8_t extension_length = file.get();
 
 		if(file.stats().st_size < 0x34 + extension_length) throw ErrorNotCSW;
-		file.seek(0x34 + extension_length, SEEK_SET);
+		file.seek(0x34 + extension_length, Whence::SET);
 	}
 
 	// Grab all data remaining in the file.

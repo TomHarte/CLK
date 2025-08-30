@@ -1119,6 +1119,9 @@
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 		4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */; };
 		4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */; };
+		4BCC76B62E5F899D00F0D39D /* VHD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCC76B52E5F899D00F0D39D /* VHD.cpp */; };
+		4BCC76B72E5F899D00F0D39D /* VHD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCC76B52E5F899D00F0D39D /* VHD.cpp */; };
+		4BCC76B82E5F899D00F0D39D /* VHD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCC76B52E5F899D00F0D39D /* VHD.cpp */; };
 		4BCD634922D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCD634722D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp */; };
 		4BCD634A22D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCD634722D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp */; };
 		4BCE0051227CE8CA000CA200 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE004D227CE8CA000CA200 /* Video.cpp */; };
@@ -2356,6 +2359,8 @@
 		4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreROM.cpp; path = Encodings/CommodoreROM.cpp; sourceTree = "<group>"; };
 		4BCA6CC71D9DD9F000C2D7B2 /* CommodoreROM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommodoreROM.hpp; path = Encodings/CommodoreROM.hpp; sourceTree = "<group>"; };
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
+		4BCC76B42E5F899D00F0D39D /* VHD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VHD.hpp; sourceTree = "<group>"; };
+		4BCC76B52E5F899D00F0D39D /* VHD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VHD.cpp; sourceTree = "<group>"; };
 		4BCD634722D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MacintoshDoubleDensityDrive.cpp; sourceTree = "<group>"; };
 		4BCD634822D6756400F567F1 /* MacintoshDoubleDensityDrive.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MacintoshDoubleDensityDrive.hpp; sourceTree = "<group>"; };
 		4BCE004A227CE8CA000CA200 /* AppleII.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AppleII.hpp; sourceTree = "<group>"; };
@@ -3630,6 +3635,8 @@
 				4B6FD0352923061300EC4760 /* HDV.hpp */,
 				4B74CF7F2312FA9C00500CE8 /* HFV.hpp */,
 				4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */,
+				4BCC76B42E5F899D00F0D39D /* VHD.hpp */,
+				4BCC76B52E5F899D00F0D39D /* VHD.cpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -6246,6 +6253,7 @@
 				4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */,
 				4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */,
 				4BB0A65D2045009000FB3688 /* ColecoVision.cpp in Sources */,
+				4BCC76B82E5F899D00F0D39D /* VHD.cpp in Sources */,
 				4BEDA3C125B25563000C2DBD /* Decoder.cpp in Sources */,
 				4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
@@ -6528,6 +6536,7 @@
 				4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */,
 				4BCE0053227CE8CA000CA200 /* AppleII.cpp in Sources */,
 				4B8334821F5D9FF70097E338 /* PartialMachineCycle.cpp in Sources */,
+				4BCC76B72E5F899D00F0D39D /* VHD.cpp in Sources */,
 				4B1B88C0202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
 				4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */,
 				4BB244D522AABAF600BE20E5 /* z8530.cpp in Sources */,
@@ -6622,6 +6631,7 @@
 				4B778F4D23A5F20F0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B06AAD72C645F330034D014 /* AppleIIgs.cpp in Sources */,
 				4B06AB082C64611F0034D014 /* ColecoVision.cpp in Sources */,
+				4BCC76B62E5F899D00F0D39D /* VHD.cpp in Sources */,
 				4B778F0423A5EBB00000D260 /* OricMFMDSK.cpp in Sources */,
 				4B7752BE28217F220073E2C5 /* MouseJoystick.cpp in Sources */,
 				4B8DF4D825465B7500F3433C /* IIgsMemoryMapTests.mm in Sources */,

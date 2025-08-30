@@ -52,7 +52,7 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	// So then .ADF files might be track-interleaved and might not be.
 
 	const auto has_identifier = [&](long location, bool permit_hugo, bool permit_nick) -> bool {
-		file_.seek(location, SEEK_SET);
+		file_.seek(location, Whence::SET);
 
 		uint8_t bytes[4];
 		file_.read(bytes, 4);

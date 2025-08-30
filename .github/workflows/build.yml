@@ -37,6 +37,7 @@ jobs:
             sudo apt-get --fix-missing install cmake gcc-10 libsdl2-dev
             ;;
           macOS)
+            brew uninstall cmake
             brew install cmake sdl2
             ;;
         esac

@@ -30,7 +30,7 @@ public:
 		const std::vector<float> &weights);
 
 	/*! @returns The weighted sum of all sources. */
-	float get_confidence() final;
+	float confidence() const final;
 
 private:
 	const std::vector<ConfidenceSource *> sources_;

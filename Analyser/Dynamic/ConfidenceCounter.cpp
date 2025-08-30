@@ -10,7 +10,7 @@
 
 using namespace Analyser::Dynamic;
 
-float ConfidenceCounter::get_confidence() {
+float ConfidenceCounter::confidence() const {
 	return float(hits_) / float(hits_ + misses_);
 }
 

@@ -785,7 +785,7 @@ private:
 
 	// MARK: - Confidence.
 	Analyser::Dynamic::ConfidenceCounter confidence_;
-	float get_confidence() final { return confidence_.get_confidence(); }
+	float get_confidence() final { return confidence_.confidence(); }
 	std::string debug_type() final {
 		return "Vic20";
 	}

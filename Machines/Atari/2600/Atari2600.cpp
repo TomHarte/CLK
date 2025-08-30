@@ -185,7 +185,7 @@ public:
 	}
 
 	float get_confidence() final {
-		return confidence_counter_.get_confidence();
+		return confidence_counter_.confidence();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const final {
