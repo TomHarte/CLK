@@ -52,23 +52,26 @@ State::State(const ProcessorBase &src): State() {
 	execution_state.half_cycles_into_step = src.number_of_cycles_.as<int>();
 
 	// Search for the current holder of the scheduled_program_counter_.
-#define ContainedBy(x)	(src.scheduled_program_counter_ >= &src.x[0]) && (src.scheduled_program_counter_ < &src.x[src.x.size()])
-#define Populate(x, y)	\
-	execution_state.phase = ExecutionState::Phase::x;	\
-	execution_state.steps_into_phase = int(src.scheduled_program_counter_ - &src.y[0]);
+	const auto contained_by = [&](auto &&x) {
+		return (src.scheduled_program_counter_ >= &x[0]) && (src.scheduled_program_counter_ < &x[x.size()]);
+	};
+	const auto populate = [&](const ExecutionState::Phase phase, auto &&y) {
+		execution_state.phase = phase;
+		execution_state.steps_into_phase = int(src.scheduled_program_counter_ - &y[0]);
+	};
 
-	if(ContainedBy(conditional_call_untaken_program_)) {
-		Populate(UntakenConditionalCall, conditional_call_untaken_program_);
-	} else if(ContainedBy(reset_program_)) {
-		Populate(Reset, reset_program_);
-	} else if(ContainedBy(irq_program_[0])) {
-		Populate(IRQMode0, irq_program_[0]);
-	} else if(ContainedBy(irq_program_[1])) {
-		Populate(IRQMode1, irq_program_[1]);
-	} else if(ContainedBy(irq_program_[2])) {
-		Populate(IRQMode2, irq_program_[2]);
-	} else if(ContainedBy(nmi_program_)) {
-		Populate(NMI, nmi_program_);
+	if(contained_by(src.conditional_call_untaken_program_)) {
+		populate(ExecutionState::Phase::UntakenConditionalCall, src.conditional_call_untaken_program_);
+	} else if(contained_by(src.reset_program_)) {
+		populate(ExecutionState::Phase::Reset, src.reset_program_);
+	} else if(contained_by(src.irq_program_[0])) {
+		populate(ExecutionState::Phase::IRQMode0, src.irq_program_[0]);
+	} else if(contained_by(src.irq_program_[1])) {
+		populate(ExecutionState::Phase::IRQMode1, src.irq_program_[1]);
+	} else if(contained_by(src.irq_program_[2])) {
+		populate(ExecutionState::Phase::IRQMode2, src.irq_program_[2]);
+	} else if(contained_by(src.nmi_program_)) {
+		populate(ExecutionState::Phase::NMI, src.nmi_program_);
 	} else {
 		if(src.current_instruction_page_ == &src.base_page_) {
 			execution_state.instruction_page = 0;
@@ -86,19 +89,19 @@ State::State(const ProcessorBase &src): State() {
 			execution_state.instruction_page = 0xddcb;
 		}
 
-		if(ContainedBy(current_instruction_page_->fetch_decode_execute)) {
-			Populate(FetchDecode, current_instruction_page_->fetch_decode_execute);
+		if(contained_by(src.current_instruction_page_->fetch_decode_execute)) {
+			populate(ExecutionState::Phase::FetchDecode, src.current_instruction_page_->fetch_decode_execute);
 		} else {
 			// There's no need to determine which opcode because that knowledge is already
 			// contained in the dedicated opcode field.
-			Populate(Operation, current_instruction_page_->instructions[src.operation_ & src.halt_mask_]);
+			populate(
+				ExecutionState::Phase::Operation,
+				src.current_instruction_page_->instructions[src.operation_ & src.halt_mask_]
+			);
 		}
 	}
 
 	assert(execution_state.steps_into_phase >= 0);
-
-#undef Populate
-#undef ContainedBy
 }
 
 void State::apply(ProcessorBase &target) {
@@ -151,14 +154,30 @@ void State::apply(ProcessorBase &target) {
 	}
 
 	switch(execution_state.phase) {
-		case ExecutionState::Phase::UntakenConditionalCall:		target.scheduled_program_counter_ = &target.conditional_call_untaken_program_[0];						break;
-		case ExecutionState::Phase::Reset:						target.scheduled_program_counter_ = &target.reset_program_[0];											break;
-		case ExecutionState::Phase::IRQMode0:					target.scheduled_program_counter_ = &target.irq_program_[0][0];											break;
-		case ExecutionState::Phase::IRQMode1:					target.scheduled_program_counter_ = &target.irq_program_[1][0];											break;
-		case ExecutionState::Phase::IRQMode2:					target.scheduled_program_counter_ = &target.irq_program_[2][0];											break;
-		case ExecutionState::Phase::NMI:						target.scheduled_program_counter_ = &target.nmi_program_[0];											break;
-		case ExecutionState::Phase::FetchDecode:				target.scheduled_program_counter_ = &target.current_instruction_page_->fetch_decode_execute[0];			break;
-		case ExecutionState::Phase::Operation:					target.scheduled_program_counter_ = target.current_instruction_page_->instructions[target.operation_];	break;
+		case ExecutionState::Phase::UntakenConditionalCall:
+			target.scheduled_program_counter_ = &target.conditional_call_untaken_program_[0];
+		break;
+		case ExecutionState::Phase::Reset:
+			target.scheduled_program_counter_ = &target.reset_program_[0];
+		break;
+		case ExecutionState::Phase::IRQMode0:
+			target.scheduled_program_counter_ = &target.irq_program_[0][0];
+		break;
+		case ExecutionState::Phase::IRQMode1:
+			target.scheduled_program_counter_ = &target.irq_program_[1][0];
+		break;
+		case ExecutionState::Phase::IRQMode2:
+			target.scheduled_program_counter_ = &target.irq_program_[2][0];
+		break;
+		case ExecutionState::Phase::NMI:
+			target.scheduled_program_counter_ = &target.nmi_program_[0];
+		break;
+		case ExecutionState::Phase::FetchDecode:
+			target.scheduled_program_counter_ = &target.current_instruction_page_->fetch_decode_execute[0];
+		break;
+		case ExecutionState::Phase::Operation:					target
+			.scheduled_program_counter_ = target.current_instruction_page_->instructions[target.operation_];
+		break;
 	}
 	target.scheduled_program_counter_ += execution_state.steps_into_phase;
 }
