@@ -28,7 +28,7 @@ bool Keyboard::set_key_pressed(const Key key, const char, const bool is_pressed,
 	}
 	key_states_[key_offset] = is_pressed;
 
-	if(delegate_) return delegate_->keyboard_did_change_key(this, key, is_pressed);
+	if(delegate_) return delegate_->keyboard_did_change_key(*this, key, is_pressed);
 	return false;
 }
 
@@ -38,7 +38,7 @@ const std::set<Inputs::Keyboard::Key> &Keyboard::get_essential_modifiers() const
 
 void Keyboard::reset_all_keys() {
 	std::fill(key_states_.begin(), key_states_.end(), false);
-	if(delegate_) delegate_->reset_all_keys(this);
+	if(delegate_) delegate_->reset_all_keys(*this);
 }
 
 void Keyboard::set_delegate(Delegate *const delegate) {

@@ -42,8 +42,8 @@ public:
 	void set_output_volume(float) override;
 
 private:
-	void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) final;
-	void speaker_did_change_input_clock(Speaker *speaker) final;
+	void speaker_did_complete_samples(Speaker &, const std::vector<int16_t> &buffer) final;
+	void speaker_did_change_input_clock(Speaker &) final;
 	MultiSpeaker(const std::vector<Outputs::Speaker::Speaker *> &speakers);
 
 	std::vector<Outputs::Speaker::Speaker *> speakers_;

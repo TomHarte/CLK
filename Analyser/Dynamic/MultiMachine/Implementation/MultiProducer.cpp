@@ -106,5 +106,5 @@ void MultiTimedMachine::run_for(const Time::Seconds duration) {
 		if(machine->get_confidence() >= 0.01f) machine->run_for(duration);
 	});
 
-	if(delegate_) delegate_->did_run_machines(this);
+	if(delegate_) delegate_->did_run_machines(*this);
 }

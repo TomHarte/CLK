@@ -29,12 +29,12 @@ class DiskController: public WD::WD1770 {
 		};
 
 		struct Delegate: public WD1770::Delegate {
-			virtual void disk_controller_did_change_paged_item(DiskController *controller) = 0;
+			virtual void disk_controller_did_change_paged_item(DiskController &) = 0;
 		};
 		inline void set_delegate(Delegate *delegate)	{
 			delegate_ = delegate;
 			WD1770::set_delegate(delegate);
-			if(delegate) delegate->disk_controller_did_change_paged_item(this);
+			if(delegate) delegate->disk_controller_did_change_paged_item(*this);
 		}
 		inline PagedItem get_paged_item() {
 			return paged_item_;
@@ -47,7 +47,7 @@ class DiskController: public WD::WD1770 {
 			if(paged_item_ == item) return;
 			paged_item_ = item;
 			if(delegate_) {
-				delegate_->disk_controller_did_change_paged_item(this);
+				delegate_->disk_controller_did_change_paged_item(*this);
 			}
 		}
 

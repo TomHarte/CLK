@@ -33,7 +33,7 @@ void Typer::run_for(const HalfCycles duration) {
 
 	if(counter_ < 0 && counter_ + duration >= 0) {
 		if(!type_next_character()) {
-			delegate_->typer_reset(this);
+			delegate_->typer_reset(*this);
 		}
 	}
 
@@ -41,7 +41,7 @@ void Typer::run_for(const HalfCycles duration) {
 	while(string_pointer_ < string_.size() && counter_ > frequency_) {
 		counter_ -= frequency_;
 		if(!type_next_character()) {
-			delegate_->typer_reset(this);
+			delegate_->typer_reset(*this);
 		}
 	}
 }

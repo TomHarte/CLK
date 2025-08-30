@@ -168,7 +168,7 @@ public:
 	void run_for(Cycles);
 
 	struct Delegate {
-		virtual void tape_did_change_input(BinaryTapePlayer *) = 0;
+		virtual void tape_did_change_input(BinaryTapePlayer &) = 0;
 	};
 	void set_delegate(Delegate *);
 

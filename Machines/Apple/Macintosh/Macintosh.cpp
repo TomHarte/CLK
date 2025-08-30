@@ -478,7 +478,7 @@ public:
 
 	// MARK: Interrupt updates.
 
-	void did_change_interrupt_status(Zilog::SCC::z8530 *, bool) final {
+	void did_change_interrupt_status(Zilog::SCC::z8530 &, bool) final {
 		update_interrupt_input();
 	}
 
@@ -536,7 +536,7 @@ private:
 		scsi_bus_is_clocked_ = scsi_bus_.preferred_clocking() != ClockingHint::Preference::None;
 	}
 
-	void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) final {
+	void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator &, const float speed) final {
 		iwm_.flush();
 		drives_[0].set_rotation_speed(speed);
 		drives_[1].set_rotation_speed(speed);

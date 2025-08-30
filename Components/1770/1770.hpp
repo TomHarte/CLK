@@ -66,9 +66,8 @@ public:
 	/// @returns The current value of the DRQ line output.
 	inline bool get_data_request_line() const		{	return status_.data_request;		}
 
-	class Delegate {
-	public:
-		virtual void wd1770_did_change_output(WD1770 *) = 0;
+	struct Delegate {
+		virtual void wd1770_did_change_output(WD1770 &) = 0;
 	};
 	inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;				}
 

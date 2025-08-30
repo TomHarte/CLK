@@ -73,8 +73,8 @@ public:
 
 	// Delegate interface.
 	struct Delegate {
-		virtual bool keyboard_did_change_key(Keyboard *keyboard, Key key, bool is_pressed) = 0;
-		virtual void reset_all_keys(Keyboard *keyboard) = 0;
+		virtual bool keyboard_did_change_key(Keyboard &, Key, bool is_pressed) = 0;
+		virtual void reset_all_keys(Keyboard &) = 0;
 	};
 	void set_delegate(Delegate *);
 	bool get_key_state(Key) const;

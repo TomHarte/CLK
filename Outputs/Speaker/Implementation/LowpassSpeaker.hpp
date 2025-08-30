@@ -245,7 +245,7 @@ protected:
 		const int scale = static_cast<ConcreteT *>(this)->get_scale();
 
 		if(recalculate_filter_if_dirty()) {
-			delegate->speaker_did_change_input_clock(this);
+			delegate->speaker_did_change_input_clock(*this);
 		}
 
 		switch(conversion_) {

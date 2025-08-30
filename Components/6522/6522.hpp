@@ -60,8 +60,7 @@ public:
 */
 class IRQDelegatePortHandler: public PortHandler {
 public:
-	class Delegate {
-	public:
+	struct Delegate {
 		/// Indicates that the interrupt status has changed for the IRQDelegatePortHandler provided.
 		virtual void mos6522_did_change_interrupt_status(void *irq_delegate) = 0;
 	};

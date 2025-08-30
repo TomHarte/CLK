@@ -34,7 +34,7 @@ public:
 	void clear_interrupts(uint8_t interrupts);
 
 	struct Delegate {
-		virtual void tape_did_change_interrupt_status(Tape *) = 0;
+		virtual void tape_did_change_interrupt_status(Tape &) = 0;
 	};
 	inline void set_delegate(Delegate *delegate) { delegate_ = delegate; }
 

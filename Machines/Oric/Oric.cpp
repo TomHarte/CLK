@@ -624,7 +624,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		}
 
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *) final {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer &) final {
 			set_via_port_b_input();
 		}
 
@@ -648,8 +648,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		}
 
 		// DiskController::Delegate
-		void disk_controller_did_change_paged_item(DiskController *controller) final {
-			switch(controller->get_paged_item()) {
+		void disk_controller_did_change_paged_item(DiskController &controller) final {
+			switch(controller.get_paged_item()) {
 				default:
 					ram_top_ = basic_visible_ram_top_;
 					paged_rom_ = rom_.data();
@@ -667,7 +667,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		}
 
 		// WD::WD1770::Delegate
-		void wd1770_did_change_output(WD::WD1770 *) final {
+		void wd1770_did_change_output(WD::WD1770 &) final {
 			set_interrupt_line();
 		}
 
