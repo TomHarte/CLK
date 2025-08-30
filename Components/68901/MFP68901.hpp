@@ -16,8 +16,8 @@
 namespace Motorola::MFP68901 {
 
 class PortHandler {
-	public:
-		// TODO: announce changes in output.
+public:
+	// TODO: announce changes in output.
 };
 
 /*!

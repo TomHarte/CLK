@@ -10,11 +10,11 @@
 #include "6532.hpp"
 
 class VanillaRIOT: public MOS::MOS6532<VanillaRIOT> {
-	public:
-		uint8_t get_port_input(int port) {
-			return input[port];
-		}
-		uint8_t input[2];
+public:
+	uint8_t get_port_input(const int port) {
+		return input[port];
+	}
+	uint8_t input[2];
 };
 
 @implementation MOS6532Bridge {

@@ -117,32 +117,32 @@ constexpr bool is_access(BusOperation op) { return op <= BusOperation::ReadVecto
 	handler.
 */
 template <typename addr_t> class BusHandler {
-	public:
-		using AddressType = addr_t;
+public:
+	using AddressType = addr_t;
 
-		/*!
-			Announces that the 6502 has performed the cycle defined by operation, address and value. On the 6502,
-			all bus cycles take one clock cycle so the amoutn of time advanced is implicit.
+	/*!
+		Announces that the 6502 has performed the cycle defined by operation, address and value. On the 6502,
+		all bus cycles take one clock cycle so the amoutn of time advanced is implicit.
 
-			@param operation The type of bus cycle: read, read opcode (i.e. read, with sync active),
-			write or ready.
-			@param address The value of the address bus during this bus cycle.
-			@param value If this is a cycle that puts a value onto the data bus, *value is that value. If this is
-			a cycle that reads the bus, the bus handler should write a value to *value. Writing to *value during
-			a read cycle will produce undefined behaviour.
+		@param operation The type of bus cycle: read, read opcode (i.e. read, with sync active),
+		write or ready.
+		@param address The value of the address bus during this bus cycle.
+		@param value If this is a cycle that puts a value onto the data bus, *value is that value. If this is
+		a cycle that reads the bus, the bus handler should write a value to *value. Writing to *value during
+		a read cycle will produce undefined behaviour.
 
-			@returns The number of cycles that passed in objective time while this 6502 bus cycle was ongoing.
-			On an archetypal machine this will be Cycles(1) but some architectures may choose not to clock the 6502
-			during some periods; one way to simulate that is to have the bus handler return a number other than
-			Cycles(1) to describe lengthened bus cycles.
-		*/
-		Cycles perform_bus_operation(
-			[[maybe_unused]] BusOperation operation,
-			[[maybe_unused]] addr_t address,
-			[[maybe_unused]] uint8_t *value
-		) {
-			return Cycles(1);
-		}
+		@returns The number of cycles that passed in objective time while this 6502 bus cycle was ongoing.
+		On an archetypal machine this will be Cycles(1) but some architectures may choose not to clock the 6502
+		during some periods; one way to simulate that is to have the bus handler return a number other than
+		Cycles(1) to describe lengthened bus cycles.
+	*/
+	Cycles perform_bus_operation(
+		[[maybe_unused]] BusOperation operation,
+		[[maybe_unused]] addr_t address,
+		[[maybe_unused]] uint8_t *value
+	) {
+		return Cycles(1);
+	}
 };
 
 }

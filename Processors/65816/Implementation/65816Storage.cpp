@@ -156,7 +156,7 @@ private:
 		return installed_patterns.insert({key, {micro_op_location_8, micro_op_location_16}}).first;
 	}
 
-	public:
+public:
 
 	/*
 		Code below is structured to ease translation from Table 5-7 of the 2018
