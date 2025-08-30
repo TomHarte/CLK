@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <bit>
 #include <cassert>
 #include <cstdio>
 
@@ -2916,12 +2917,6 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 	}
 }
 
-#define convert_to_bit_count_16(x)			\
-	x = ((x & 0xaaaa) >> 1) + (x & 0x5555);	\
-	x = ((x & 0xcccc) >> 2) + (x & 0x3333);	\
-	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
-	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
-
 template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int32_t divisor) {
 	// The route to spotting divide by 0 is just nn nn.
 	if(!divisor) {
@@ -2948,9 +2943,8 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int3
 	// undefined difference between a nop cycle an an idle wait is relevant here?
 	dynamic_instruction_length_ += 49;
 
-	int result_bits = ~abs(dividend / divisor) & 0xfffe;
-	convert_to_bit_count_16(result_bits);
-	dynamic_instruction_length_ += result_bits;
+	const auto result_bits = uint16_t(~abs(dividend / divisor) & 0xfffe);
+	dynamic_instruction_length_ += std::popcount(result_bits);
 
 	// Determine the tail cost; a divisor of less than 0 leads to one exit,
 	// a divisor of greater than zero makes the result a function of the
@@ -2969,22 +2963,18 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int3
 	}
 }
 
-template <typename IntT> void ProcessorBase::did_mulu(IntT multiplier) {
+template <typename IntT> void ProcessorBase::did_mulu(const IntT multiplier) {
 	// Count number of bits set.
-	convert_to_bit_count_16(multiplier);
-	dynamic_instruction_length_ = 17 + multiplier;
+	dynamic_instruction_length_ = 17 + std::popcount(multiplier);
 }
 
 template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
 	// Count number of transitions from 0 to 1 or from 1 to 0 — i.e. the
 	// number of times that a bit is not equal to the one to its right.
 	// Treat the bit to the right of b0 as 0.
-	int number_of_pairs = (multiplier ^ (multiplier << 1)) & 0xffff;
-	convert_to_bit_count_16(number_of_pairs);
-	dynamic_instruction_length_ = 17 + number_of_pairs;
+	const auto number_of_pairs = uint16_t((multiplier ^ (multiplier << 1)));
+	dynamic_instruction_length_ = 17 + std::popcount(number_of_pairs);
 }
-
-#undef convert_to_bit_count_16
 
 template <typename IntT> void ProcessorBase::did_shift(int bits_shifted) {
 	if constexpr (sizeof(IntT) == 4) {
