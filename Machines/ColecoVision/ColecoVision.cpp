@@ -354,7 +354,7 @@ public:
 
 	float get_confidence() final {
 		if(pc_zero_accesses_ > 1) return 0.0f;
-		return confidence_counter_.get_confidence();
+		return confidence_counter_.confidence();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const final {
