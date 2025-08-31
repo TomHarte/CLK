@@ -120,13 +120,13 @@ public:
 			Indicates that a new audio packet is ready. If the output is stereo, samples will be interleaved with the first
 			being left, the second being right, etc.
 		*/
-		virtual void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) = 0;
+		virtual void speaker_did_complete_samples(Speaker &, const std::vector<int16_t> &buffer) = 0;
 
 		/*!
 			Provides the delegate with a hint that the input clock rate has changed, which provides an opportunity to
 			renegotiate the ideal clock rate, if desired.
 		*/
-		virtual void speaker_did_change_input_clock([[maybe_unused]] Speaker *speaker) {}
+		virtual void speaker_did_change_input_clock(Speaker &) {}
 	};
 	virtual void set_delegate(Delegate *delegate) {
 		delegate_.store(delegate, std::memory_order_relaxed);
@@ -147,7 +147,7 @@ protected:
 		// Hope for the fast path first: producer and consumer agree about
 		// number of channels.
 		if(is_stereo == stereo_output_) {
-			delegate->speaker_did_complete_samples(this, buffer);
+			delegate->speaker_did_complete_samples(*this, buffer);
 			return;
 		}
 
@@ -166,7 +166,7 @@ protected:
 				mix_buffer_[(c << 1) + 0] = mix_buffer_[(c << 1) + 1] = buffer[c];
 			}
 		}
-		delegate->speaker_did_complete_samples(this, mix_buffer_);
+		delegate->speaker_did_complete_samples(*this, mix_buffer_);
 	}
 	std::atomic<Delegate *> delegate_{nullptr};
 

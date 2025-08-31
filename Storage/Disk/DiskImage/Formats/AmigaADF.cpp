@@ -133,7 +133,7 @@ std::unique_ptr<Track> AmigaADF::track_at_position(Track::Address address) const
 	auto encoder = MFM::GetMFMEncoder(encoded_segment.data);
 
 	// Grab the unencoded track.
-	file_.seek(get_file_offset_for_position(address), SEEK_SET);
+	file_.seek(get_file_offset_for_position(address), Whence::SET);
 	const std::vector<uint8_t> track_data = file_.read(512 * 11);
 
 	// Eleven sectors are then encoded.

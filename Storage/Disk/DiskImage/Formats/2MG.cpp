@@ -27,7 +27,7 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 	FileHolder file(file_name);
 
 	// Check the signature.
-	if(!file.check_signature("2IMG")) throw Error::InvalidFormat;
+	if(!file.check_signature<SignatureType::String>("2IMG")) throw Error::InvalidFormat;
 
 	// Grab the creator, potential to fix the data size momentarily.
 	const auto creator = file.read(4);
@@ -39,7 +39,7 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 	const auto flags = file.get_le<uint32_t>();
 
 	// Skip the number of ProDOS blocks; this is surely implicit from the data size?
-	file.seek(4, SEEK_CUR);
+	file.seek(4, Whence::CUR);
 
 	// Get the offset and size of the disk image data.
 	const auto data_start = file.get_le<uint32_t>();

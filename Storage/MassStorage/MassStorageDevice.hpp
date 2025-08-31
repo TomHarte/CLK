@@ -10,9 +10,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace Storage::MassStorage {
+
+struct CylinderHeadSide {
+	int cylinder;
+	int head;
+	int side;
+};
 
 /*!
 	A mass storage device is usually:
@@ -32,7 +39,7 @@ public:
 	/*!
 		@returns The size of each individual block.
 	*/
-	virtual size_t get_block_size() = 0;
+	virtual size_t get_block_size() const = 0;
 
 	/*!
 		Block addresses run from 0 to n. The total number of blocks, n,
@@ -40,17 +47,27 @@ public:
 
 		@returns The total number of blocks on the device.
 	*/
-	virtual size_t get_number_of_blocks() = 0;
+	virtual size_t get_number_of_blocks() const = 0;
 
 	/*!
 		@returns The current contents of the block at @c address.
 	*/
-	virtual std::vector<uint8_t> get_block(size_t address) = 0;
+	virtual std::vector<uint8_t> get_block(size_t address) const = 0;
 
 	/*!
 		Sets new contents for the block at @c address.
 	*/
 	virtual void set_block([[maybe_unused]] size_t address, const std::vector<uint8_t> &) {}
+
+	/*!
+		Gets the geometry of this drive, if defined.
+	*/
+	virtual std::optional<CylinderHeadSide> geometry() const { return std::nullopt; }
+
+	/*!
+		Convert a geometry-based address to a linear one; undefined if @c geometry() returns std::nullopt.
+	*/
+	virtual size_t address(const CylinderHeadSide &) const { return 0; }
 };
 
 }

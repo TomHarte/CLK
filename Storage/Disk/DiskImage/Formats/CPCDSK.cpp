@@ -23,15 +23,15 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	FileHolder file(file_name);
 	is_read_only_ = file.is_known_read_only();
 
-	if(!file.check_signature("MV - CPC")) {
+	if(!file.check_signature<SignatureType::String>("MV - CPC")) {
 		is_extended_ = true;
-		file.seek(0, SEEK_SET);
-		if(!file.check_signature("EXTENDED"))
+		file.seek(0, Whence::SET);
+		if(!file.check_signature<SignatureType::String>("EXTENDED"))
 			throw Error::InvalidFormat;
 	}
 
 	// Don't really care about about the creator; skip.
-	file.seek(0x30, SEEK_SET);
+	file.seek(0x30, Whence::SET);
 	head_position_count_ = file.get();
 	head_count_ = file.get();
 
@@ -43,7 +43,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 
 	if(is_extended_) {
 		// Skip two unused bytes and grab the track size table.
-		file.seek(2, SEEK_CUR);
+		file.seek(2, Whence::CUR);
 		for(int c = 0; c < head_position_count_ * head_count_; c++) {
 			track_sizes.push_back(size_t(file.get()) << 8);
 		}
@@ -55,7 +55,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	for(std::size_t c = 0; c < size_t(head_position_count_ * head_count_); c++) {
 		if(!is_extended_ || (track_sizes[c] > 0)) {
 			// Skip the introductory text, 'Track-Info\r\n' and its unused bytes.
-			file.seek(file_offset + 16, SEEK_SET);
+			file.seek(file_offset + 16, Whence::SET);
 
 			tracks_.emplace_back(new Track);
 			Track *track = tracks_.back().get();
@@ -81,7 +81,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 			} else {
 				track->data_rate = Track::DataRate::Unknown;
 				track->data_encoding = Track::DataEncoding::Unknown;
-				file.seek(2, SEEK_CUR);
+				file.seek(2, Whence::CUR);
 			}
 
 			// Sector size, number of sectors, gap 3 length and the filler byte are then common
@@ -154,7 +154,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 					// In a regular DSK, these two bytes are unused, and a special case is applied that ostensibly 8kb
 					// sectors are abbreviated to only 0x1800 bytes.
 					if(data_size == 0x2000) stored_data_size = 0x1800;
-					file.seek(2, SEEK_CUR);
+					file.seek(2, Whence::CUR);
 				}
 
 				// As per the weak/fuzzy sector extension, multiple samplings may be stored here.
@@ -167,7 +167,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 			}
 
 			// Sector contents are at offset 0x100 into the track.
-			file.seek(file_offset + 0x100, SEEK_SET);
+			file.seek(file_offset + 0x100, Whence::SET);
 			for(auto &sector: track->sectors) {
 				for(auto &data : sector.samples) {
 					file.read(data.data(), data.size());
@@ -276,7 +276,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 	}
 
 	// Rewrite the entire disk image, in extended form.
-	Storage::FileHolder output(file_name_, Storage::FileHolder::FileMode::Rewrite);
+	Storage::FileHolder output(file_name_, Storage::FileMode::Rewrite);
 	output.write(reinterpret_cast<const uint8_t *>("EXTENDED CPC DSK File\r\nDisk-Info\r\n"), 34);
 	output.write(reinterpret_cast<const uint8_t *>("Clock Signal  "), 14);
 	output.put(uint8_t(head_position_count_));

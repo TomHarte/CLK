@@ -561,7 +561,7 @@ private:
 	void acia6850_did_change_interrupt_status(Motorola::ACIA::ACIA *) final {
 		set_gpip_input();
 	}
-	void dma_controller_did_change_output(DMAController *) final {
+	void dma_controller_did_change_output(DMAController &) final {
 		set_gpip_input();
 
 		// Filty hack, here! Should: set the 68000's bus request line. But until

@@ -137,7 +137,6 @@ private:
 	Defines an RS-232-esque srial port.
 */
 class Port {
-	public:
 };
 
 }

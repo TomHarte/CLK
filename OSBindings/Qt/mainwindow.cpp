@@ -745,7 +745,7 @@ void MainWindow::setAppleIISquarePixels(bool squarePixels) {
 	configurable->set_options(options);
 }
 
-void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
+void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker &, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);
 }
 

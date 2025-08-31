@@ -68,7 +68,7 @@ bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachi
 		(machines.front()->timed_machine()->get_confidence() >= 2.0f * machines[1]->timed_machine()->get_confidence());
 }
 
-void MultiMachine::did_run_machines(MultiTimedMachine *) {
+void MultiMachine::did_run_machines(MultiTimedMachine &) {
 	std::lock_guard machines_lock(machines_mutex_);
 
 	if constexpr (logger.enabled) {

@@ -196,6 +196,6 @@ void BinaryTapePlayer::process(const Storage::Tape::Pulse &pulse) {
 	bool new_input_level = pulse.type == Pulse::High;
 	if(input_level_ != new_input_level) {
 		input_level_ = new_input_level;
-		if(delegate_) delegate_->tape_did_change_input(this);
+		if(delegate_) delegate_->tape_did_change_input(*this);
 	}
 }

@@ -9,26 +9,39 @@
 #pragma once
 
 #include "Numeric/BitStream.hpp"
+
 #include <sys/stat.h>
 #include <array>
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <string>
 #include <vector>
 
 namespace Storage {
 
+enum class Whence: int {
+	CUR = SEEK_CUR,
+	SET = SEEK_SET,
+	END = SEEK_END,
+};
+
+enum class SignatureType {
+	String,
+	Binary,
+};
+
+enum class FileMode {
+	ReadWrite,
+	Read,
+	Rewrite
+};
+
 class FileHolder final {
 public:
 	enum class Error {
 		CantOpen = -1
-	};
-
-	enum class FileMode {
-		ReadWrite,
-		Read,
-		Rewrite
 	};
 
 	~FileHolder();
@@ -64,7 +77,7 @@ public:
 		Optionally limits itself to only @c size bytes.
 	*/
 	template <typename IntT, size_t size = sizeof(IntT)>
-	void put_be(IntT value) {
+	void put_be(const IntT value) {
 		auto shift = size * 8;
 		while(shift) {
 			shift -= 8;
@@ -104,13 +117,13 @@ public:
 	uint8_t get();
 
 	/*! Writes a single byte from @c file. */
-	void put(uint8_t value);
+	void put(uint8_t);
 
 	/*! Writes @c value a total of @c repeats times. */
 	void putn(std::size_t repeats, uint8_t value);
 
 	/*! Reads @c size bytes and returns them as a vector. */
-	std::vector<uint8_t> read(std::size_t size);
+	std::vector<uint8_t> read(std::size_t);
 
 	/*! Reads @c a.size() bytes into @c a.data(). */
 	template <size_t size> std::size_t read(std::array<uint8_t, size> &a) {
@@ -118,16 +131,16 @@ public:
 	}
 
 	/*! Reads @c size bytes and writes them to @c buffer. */
-	std::size_t read(uint8_t *buffer, std::size_t size);
+	std::size_t read(uint8_t *, std::size_t);
 
 	/*! Writes @c buffer one byte at a time in order. */
-	std::size_t write(const std::vector<uint8_t> &buffer);
+	std::size_t write(const std::vector<uint8_t> &);
 
 	/*! Writes @c buffer one byte at a time in order, writing @c size bytes in total. */
-	std::size_t write(const uint8_t *buffer, std::size_t size);
+	std::size_t write(const uint8_t *, std::size_t);
 
 	/*! Moves @c bytes from the anchor indicated by @c whence: SEEK_SET, SEEK_CUR or SEEK_END. */
-	void seek(long offset, int whence);
+	void seek(long offset, Whence);
 
 	/*! @returns The current cursor position within this file. */
 	long tell() const;
@@ -149,13 +162,28 @@ public:
 	}
 
 	/*!
-		Reads @c length bytes from the file and compares them to the first
-		@c length bytes of @c signature. If @c length is 0, it is computed
-		as the length of @c signature not including the terminating null.
+		For SignatureType::Binary:
 
-		@returns @c true if the bytes read match the signature; @c false otherwise.
+		compares every byte in @c signature to an incoming byte from the file,
+		returning @c true if they matched and @c false otherwise.
+
+		For SignatureType::String:
+
+		compares all bytes but the final in @c signature to an incoming byte from the file,
+		returning @c true if they matched and @c false otherwise. This therefore assumes
+		that the final byte was a NULL terminator, which is not represented in the file.
 	*/
-	bool check_signature(const char *signature, std::size_t length = 0);
+	template <SignatureType type, size_t buffer_size>
+	bool check_signature(const char (&signature)[buffer_size]) {
+		// Discard C-style trailing NULL if this is a string compare.
+		static constexpr auto signature_length = buffer_size - (type == SignatureType::String ? 1 : 0);
+
+		std::array<uint8_t, signature_length> stored_signature;
+		if(read(stored_signature) != signature_length) {
+			return false;
+		}
+		return !std::memcmp(stored_signature.data(), signature, signature_length);
+	}
 
 	/*!
 		Determines and returns the file extension: everything from the final character
@@ -200,7 +228,7 @@ private:
 };
 
 inline std::vector<uint8_t> contents_of(const std::string &file_name) {
-	FileHolder file(file_name, FileHolder::FileMode::Read);
+	FileHolder file(file_name, FileMode::Read);
 	return file.read(size_t(file.stats().st_size));
 }
 

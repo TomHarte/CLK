@@ -38,7 +38,7 @@ void Tape::push_tape_bit(uint16_t bit) {
 void Tape::evaluate_interrupts() {
 	if(last_posted_interrupt_status_ != interrupt_status_) {
 		last_posted_interrupt_status_ = interrupt_status_;
-		if(delegate_) delegate_->tape_did_change_interrupt_status(this);
+		if(delegate_) delegate_->tape_did_change_interrupt_status(*this);
 	}
 }
 

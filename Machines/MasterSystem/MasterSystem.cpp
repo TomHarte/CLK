@@ -408,7 +408,7 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 			return keyboard_;
 		}
 
-		bool keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key key, bool is_pressed) final {
+		bool keyboard_did_change_key(Inputs::Keyboard &, Inputs::Keyboard::Key key, bool is_pressed) final {
 			if(key == Inputs::Keyboard::Key::Enter) {
 				pause_is_pressed_ = is_pressed;
 				return true;
@@ -422,7 +422,7 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 			return false;
 		}
 
-		void reset_all_keys(Inputs::Keyboard *) final {
+		void reset_all_keys(Inputs::Keyboard &) final {
 		}
 
 		// MARK: - Configuration options.

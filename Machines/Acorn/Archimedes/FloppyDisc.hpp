@@ -20,7 +20,7 @@ public:
 		set_delegate(this);
 	}
 
-	void wd1770_did_change_output(WD::WD1770 *) override {
+	void wd1770_did_change_output(WD::WD1770 &) override {
 		observer_.update_interrupts();
 	}
 

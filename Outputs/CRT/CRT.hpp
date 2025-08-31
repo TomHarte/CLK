@@ -44,9 +44,8 @@ static constexpr bool AlternatesPhase = false;
 
 class CRT;
 
-class Delegate {
-	public:
-		virtual void crt_did_end_batch_of_frames(CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) = 0;
+struct Delegate {
+	virtual void crt_did_end_batch_of_frames(CRT &, int number_of_frames, int number_of_unexpected_vertical_syncs) = 0;
 };
 
 /*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
@@ -356,7 +355,7 @@ template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::C
 public:
 	CRTFrequencyMismatchWarner(Receiver &receiver) : receiver_(receiver) {}
 
-	void crt_did_end_batch_of_frames(Outputs::CRT::CRT *, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
+	void crt_did_end_batch_of_frames(Outputs::CRT::CRT &, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
 		frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_frames = number_of_frames;
 		frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 		++frame_record_pointer_;

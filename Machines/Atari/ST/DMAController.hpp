@@ -41,7 +41,7 @@ public:
 	void set_floppy_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
 
 	struct Delegate {
-		virtual void dma_controller_did_change_output(DMAController *) = 0;
+		virtual void dma_controller_did_change_output(DMAController &) = 0;
 	};
 	void set_delegate(Delegate *delegate);
 
@@ -86,7 +86,7 @@ private:
 
 	} fdc_;
 
-	void wd1770_did_change_output(WD::WD1770 *) final;
+	void wd1770_did_change_output(WD::WD1770 &) final;
 
 	uint16_t control_ = 0;
 

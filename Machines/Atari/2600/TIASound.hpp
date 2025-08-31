@@ -26,9 +26,8 @@ public:
 	void set_control(int channel, uint8_t control);
 
 	// To satisfy ::SampleSource.
-	template <Outputs::Speaker::Action action>
-	void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *);
-	void set_sample_volume_range(std::int16_t range);
+	template <Outputs::Speaker::Action action> void apply_samples(std::size_t, Outputs::Speaker::MonoSample *);
+	void set_sample_volume_range(std::int16_t);
 
 private:
 	Concurrency::AsyncTaskQueue<false> &audio_queue_;
@@ -37,9 +36,9 @@ private:
 	uint8_t divider_[2];
 	uint8_t control_[2];
 
-	int poly4_counter_[2];
-	int poly5_counter_[2];
-	int poly9_counter_[2];
+	int poly4_counter_[2]{0x00f, 0x00f};
+	int poly5_counter_[2]{0x01f, 0x01f};
+	int poly9_counter_[2]{0x1ff, 0x1ff};
 	int output_state_[2];
 
 	int divider_counter_[2];

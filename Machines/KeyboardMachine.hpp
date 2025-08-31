@@ -150,8 +150,8 @@ public:
 	virtual Inputs::Keyboard &get_keyboard() override;
 
 private:
-	bool keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key, bool is_pressed) override;
-	void reset_all_keys(Inputs::Keyboard *) override;
+	bool keyboard_did_change_key(Inputs::Keyboard &, Inputs::Keyboard::Key, bool is_pressed) override;
+	void reset_all_keys(Inputs::Keyboard &) override;
 	Inputs::Keyboard keyboard_;
 };
 

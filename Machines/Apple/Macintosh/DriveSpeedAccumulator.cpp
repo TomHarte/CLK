@@ -74,7 +74,7 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 		const float normalised_sum = float(sample_total_) / float(samples_per_bucket);
 		const float rotation_speed = (normalised_sum - 3.7f) * 17.6f;
 
-		delegate_->drive_speed_accumulator_set_drive_speed(this, rotation_speed);
+		delegate_->drive_speed_accumulator_set_drive_speed(*this, rotation_speed);
 		sample_count_ = 0;
 		sample_total_ = 0;
 	}

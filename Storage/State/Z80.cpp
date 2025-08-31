@@ -130,7 +130,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 
 	state->last_7ffd = file.get();
 
-	file.seek(1, SEEK_CUR);
+	file.seek(1, Whence::CUR);
 	if(file.get() & 0x80) {
 		// The 'hardware modify' bit, which inexplicably does this:
 		switch(result->model) {
@@ -160,13 +160,13 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		}
 
 		// Skip: Spectator flag, MGT, Multiface and other ROM flags.
-		file.seek(5, SEEK_CUR);
+		file.seek(5, Whence::CUR);
 
 		// Skip: highly Z80-the-emulator-specific stuff about user-defined joystick.
-		file.seek(20, SEEK_CUR);
+		file.seek(20, Whence::CUR);
 
 		// Skip: Disciple/Plus D stuff.
-		file.seek(3, SEEK_CUR);
+		file.seek(3, Whence::CUR);
 
 		if(bonus_header_size == 55) {
 			state->last_1ffd = file.get();
@@ -202,7 +202,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		}
 
 		assert(location + block_size == file.tell());
-		file.seek(location + block_size, SEEK_SET);
+		file.seek(location + block_size, Whence::SET);
 	}
 
 	return result;

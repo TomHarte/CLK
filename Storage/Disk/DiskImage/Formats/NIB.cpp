@@ -80,7 +80,7 @@ std::unique_ptr<Track> NIB::track_at_position(const Track::Address address) cons
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.file_access_mutex());
-		file_.seek(offset, SEEK_SET);
+		file_.seek(offset, Whence::SET);
 		track_data = file_.read(track_length);
 	}
 
@@ -187,7 +187,7 @@ void NIB::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	// Lock the file and spool out.
 	std::lock_guard lock_guard(file_.file_access_mutex());
 	for(const auto &track: tracks_by_address) {
-		file_.seek(file_offset(track.first), SEEK_SET);
+		file_.seek(file_offset(track.first), Whence::SET);
 		file_.write(track.second);
 	}
 }

@@ -31,14 +31,14 @@ public:
 	HFV(const std::string &file_name);
 
 private:
-	FileHolder file_;
+	mutable FileHolder file_;
 	Encodings::Macintosh::Mapper mapper_;
 
 	/* MassStorageDevices overrides. */
-	size_t get_block_size() final;
-	size_t get_number_of_blocks() final;
-	std::vector<uint8_t> get_block(size_t address) final;
-	void set_block(size_t address, const std::vector<uint8_t> &) final;
+	size_t get_block_size() const final;
+	size_t get_number_of_blocks() const final;
+	std::vector<uint8_t> get_block(size_t) const final;
+	void set_block(size_t, const std::vector<uint8_t> &) final;
 
 	/* Encodings::Macintosh::Volume overrides. */
 	void set_drive_type(Encodings::Macintosh::DriveType) final;
