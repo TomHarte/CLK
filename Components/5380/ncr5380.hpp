@@ -78,7 +78,7 @@ private:
 	SCSI::BusState target_output() const;
 	void update_control_output();
 
-	void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) final;
+	void scsi_bus_did_change(SCSI::Bus &, SCSI::BusState, double) final;
 	bool phase_matches() const;
 };
 

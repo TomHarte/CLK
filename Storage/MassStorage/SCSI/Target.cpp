@@ -10,7 +10,8 @@
 
 using namespace SCSI::Target;
 
-CommandState::CommandState(const std::vector<uint8_t> &data, const std::vector<uint8_t> &received) : data_(data), received_(received) {}
+CommandState::CommandState(const std::vector<uint8_t> &data, const std::vector<uint8_t> &received) :
+	data_(data), received_(received) {}
 
 uint32_t CommandState::address() const {
 	switch(data_.size()) {
