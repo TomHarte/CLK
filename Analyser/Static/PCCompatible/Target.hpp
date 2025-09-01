@@ -27,6 +27,10 @@ constexpr bool is_at(const Model model) {
 	return model >= Model::AT;
 }
 
+constexpr bool has_ide(const Model model) {
+	return model >= Model::AT;
+}
+
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(VideoAdaptor,
 		MDA,

@@ -17,11 +17,11 @@
 #include "KeyboardMapper.hpp"
 #include "LinearMemory.hpp"
 #include "MDA.hpp"
-#include "SegmentedMemory.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
 #include "ProcessorByModel.hpp"
 #include "RTC.hpp"
+#include "SegmentedMemory.hpp"
 #include "Speaker.hpp"
 
 #include "Activity/Source.hpp"
@@ -213,21 +213,28 @@ public:
 	template <typename IntT>
 	requires std::same_as<IntT, uint8_t> || std::same_as<IntT, uint16_t>
 	void out(const uint16_t port, const IntT value) {
+		static constexpr auto log_unhandled = [](const uint16_t port, const IntT value) {
+			log.error().append("Unhandled out: %02x to %04x", value, port);
+		};
+		static constexpr auto require_at = [](const uint16_t port, const IntT value) {
+			if constexpr (is_at(model)) {
+				return true;
+			}
+			log_unhandled(port, value);
+			return false;
+		};
+		static constexpr auto require_ide = [](const uint16_t port, const IntT value) {
+			if constexpr (has_ide(model)) {
+				return true;
+			}
+			log_unhandled(port, value);
+			return false;
+		};
+
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			out<uint8_t>(port, uint8_t(value));
 			out<uint8_t>(port + 1, uint8_t(value >> 8));
 		} else {
-			static constexpr auto log_unhandled = [](const uint16_t port, const uint8_t value) {
-				log.error().append("Unhandled out: %02x to %04x", value, port);
-			};
-			static constexpr auto require_at = [](const uint16_t port, const uint8_t value) {
-				if constexpr (is_at(model)) {
-					return true;
-				}
-				log_unhandled(port, value);
-				return false;
-			};
-
 			static constexpr uint16_t crtc_base =
 				video == Target::VideoAdaptor::MDA ? 0x03b0 : 0x03d0;
 
@@ -236,7 +243,6 @@ public:
 
 				case 0x0070:	rtc_.write<0>(value);	break;
 				case 0x0071:	rtc_.write<1>(value);	break;
-
 
 				case 0x00f1:
 					log.error().append("TODO: coprocessor reset");
@@ -368,6 +374,22 @@ public:
 				case 0x03fc:	case 0x03fd:	case 0x03fe:	case 0x03ff:
 					// Ignore serial port accesses.
 				break;
+
+				// IDE.
+				//
+				// TODO: the data register is actually 16-bit.
+				// TODO: Correct assumptions prior to this switch so that it can be.
+				case 0x01f0:	if(require_ide(port, value)) ide_.set_data(value);					break;
+				case 0x01f1:	if(require_ide(port, value)) ide_.set_write_precompensation(value);	break;
+				case 0x01f2:	if(require_ide(port, value)) ide_.set_sector_count(value);			break;
+				case 0x01f3:	if(require_ide(port, value)) ide_.set_sector_number(value);			break;
+				case 0x01f4:	if(require_ide(port, value)) ide_.set_cylinder_low(value);			break;
+				case 0x01f5:	if(require_ide(port, value)) ide_.set_cylinder_high(value);			break;
+				case 0x01f6:	if(require_ide(port, value)) ide_.set_drive_head(value);			break;
+				case 0x01f7:	if(require_ide(port, value)) ide_.set_command(value);				break;
+
+				case 0x03f6:	if(require_ide(port, value)) ide_.set_controller_data(value);		break;
+//				case 0x03f7:	if(require_ide(port, value)) ide_.set_controller_status(value);		break;
 			}
 		}
 	}
@@ -375,20 +397,27 @@ public:
 	template <typename IntT>
 	requires std::same_as<IntT, uint16_t> || std::same_as<IntT, uint8_t>
 	IntT in(const uint16_t port) {
+		static constexpr auto log_unhandled = [](const uint16_t port) {
+			log.error().append("Unhandled in: %04x", port);
+		};
+		static constexpr auto require_at = [](const uint16_t port) {
+			if constexpr (is_at(model)) {
+				return true;
+			}
+			log_unhandled(port);
+			return false;
+		};
+		static constexpr auto require_ide = [](const uint16_t port) {
+			if constexpr (has_ide(model)) {
+				return true;
+			}
+			log_unhandled(port);
+			return false;
+		};
+
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
 			return uint16_t(in<uint8_t>(port) | (in<uint8_t>(port + 1) << 8));
 		} else {
-			static constexpr auto log_unhandled = [](const uint16_t port) {
-				log.error().append("Unhandled in: %04x", port);
-			};
-			static constexpr auto require_at = [](const uint16_t port) {
-				if constexpr (is_at(model)) {
-					return true;
-				}
-				log_unhandled(port);
-				return false;
-			};
-
 			switch(port) {
 				default:		log_unhandled(port);	break;
 
@@ -499,8 +528,17 @@ public:
 				break;
 
 				// IDE.
-				case 0x01f7:
-				return 0;
+				case 0x01f0:	if(require_ide(port)) return ide_.data();				break;
+				case 0x01f1:	if(require_ide(port)) return ide_.error();				break;
+				case 0x01f2:	if(require_ide(port)) return ide_.sector_count();		break;
+				case 0x01f3:	if(require_ide(port)) return ide_.sector_number();		break;
+				case 0x01f4:	if(require_ide(port)) return ide_.cylinder_low();		break;
+				case 0x01f5:	if(require_ide(port)) return ide_.cylinder_high();		break;
+				case 0x01f6:	if(require_ide(port)) return ide_.drive_head();			break;
+				case 0x01f7:	if(require_ide(port)) return ide_.status();				break;
+
+				case 0x03f6:	if(require_ide(port)) return ide_.controller_data();	break;
+				case 0x03f7:	if(require_ide(port)) return ide_.controller_status();	break;
 			}
 			return 0xff;
 		}
@@ -515,6 +553,7 @@ private:
 	FloppyController<model> &fdc_;
 	KeyboardController<model> &keyboard_;
 	RTC &rtc_;
+	IDE ide_;
 };
 
 template <Analyser::Static::PCCompatible::Model model>
