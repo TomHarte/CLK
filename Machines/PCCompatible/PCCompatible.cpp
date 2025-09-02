@@ -210,9 +210,6 @@ public:
 	) :
 		pit_(pit), dma_(dma), ppi_(ppi), pics_(pics), video_(card), fdc_(fdc), keyboard_(keyboard), rtc_(rtc) {}
 
-	template <typename IntT, bool is_retry = false>
-	void out(const uint16_t port, const IntT value);
-
 private:
 	static constexpr bool wilfully_unimplemented(const uint16_t port) {
 		switch(port) {
@@ -410,7 +407,7 @@ private:
 			case 0x03f4:
 			case 0x03f7:
 				fdc_.set_data_rate(value);
-//				log.error().append("TODO: FDC write of %02x at %04x", value, port);
+				log.error().append("TODO: FDC (or IDE?) write of %02x at %04x", value, port);
 			break;
 			case 0x03f5:
 				fdc_.write(value);
@@ -431,14 +428,14 @@ private:
 	}
 
 public:
-	template <>
-	void out<uint16_t, false>(const uint16_t port, const uint16_t value) {
-		out16<false>(port, value);
-	}
-
-	template <>
-	void out<uint8_t, false>(const uint16_t port, const uint8_t value) {
-		out8<false>(port, value);
+	template <typename IntT>
+	requires std::same_as<IntT, uint16_t> || std::same_as<IntT, uint8_t>
+	void out(const uint16_t port, const IntT value) {
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			out8<false>(port, value);
+		} else {
+			out16<false>(port, value);
+		}
 	}
 
 private:
@@ -595,16 +592,13 @@ private:
 
 public:
 	template <typename IntT>
-	IntT in(const uint16_t port);
-
-	template <>
-	uint8_t in<uint8_t>(const uint16_t port) {
-		return in8<false>(port);
-	}
-
-	template <>
-	uint16_t in<uint16_t>(const uint16_t port) {
-		return in16<false>(port);
+	requires std::same_as<IntT, uint16_t> || std::same_as<IntT, uint8_t>
+	IntT in(const uint16_t port) {
+		if constexpr (std::is_same_v<IntT, uint16_t>) {
+			return in16<false>(port);
+		} else {
+			return in8<false>(port);
+		}
 	}
 
 private:

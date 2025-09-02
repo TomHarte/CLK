@@ -85,7 +85,7 @@ public:
 
 	uint8_t status() {
 		log_.info().append("Read status");
-		return 0xff;
+		return 0x40;	// i.e. drive ready.
 	}
 
 	//
