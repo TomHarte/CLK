@@ -432,9 +432,9 @@ public:
 	requires std::same_as<IntT, uint16_t> || std::same_as<IntT, uint8_t>
 	void out(const uint16_t port, const IntT value) {
 		if constexpr (std::is_same_v<IntT, uint16_t>) {
-			out8<false>(port, value);
-		} else {
 			out16<false>(port, value);
+		} else {
+			out8<false>(port, value);
 		}
 	}
 
