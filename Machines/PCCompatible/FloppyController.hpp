@@ -211,6 +211,11 @@ public:
 					specify_specs_ = decoder_.specify_specs();
 				break;
 //				case Command::SenseDriveStatus: {
+//					// Hack attack!
+//					results_.serialise(
+//						0x20,
+//						0x00
+//					);
 //				} break;
 
 				case Command::Invalid:
