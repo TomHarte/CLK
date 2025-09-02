@@ -210,13 +210,15 @@ public:
 				case Command::Specify:
 					specify_specs_ = decoder_.specify_specs();
 				break;
-//				case Command::SenseDriveStatus: {
-//					// Hack attack!
-//					results_.serialise(
-//						0x20,
-//						0x00
-//					);
-//				} break;
+				case Command::SenseDriveStatus: {
+					const auto &drive = drives_[decoder_.target().drive];
+					results_.serialise(
+						decoder_.drive_head(),
+						(drive.track == 0 ? 0x10 : 0x00)	|
+						0x20		|	// Drive is ready.
+						0x00			// Disk in drive is not read-only. [0x40]
+					);
+				} break;
 
 				case Command::Invalid:
 					results_.serialise_none();
