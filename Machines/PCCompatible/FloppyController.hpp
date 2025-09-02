@@ -37,7 +37,7 @@ public:
 	}
 
 	void set_digital_output(const uint8_t control) {
-		log_.info().append("03f2 <- %02x", control);
+//		log_.info().append("03f2 <- %02x", control);
 
 		// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 		// b3: 1 => enable DMA; 0 => disable;
@@ -68,18 +68,18 @@ public:
 		}
 	}
 
-	void set_data_rate(const uint8_t control) {
-		log_.info().append("03f4/3f7 <- %02x", control);
+	void set_data_rate(const uint8_t) {
+//		log_.info().append("03f4/3f7 <- %02x", control);
 	}
 
 	uint8_t status() const {
 		const auto result = status_.main();
-		log_.info().append("03f4 -> %02x", result);
+//		log_.info().append("03f4 -> %02x", result);
 		return result;
 	}
 
 	void write(const uint8_t value) {
-		log_.info().append("03f5 <- %02x", value);
+//		log_.info().append("03f5 <- %02x", value);
 		decoder_.push_back(value);
 
 		if(decoder_.has_command()) {
@@ -91,6 +91,16 @@ public:
 
 				case Command::WriteDeletedData:
 				case Command::WriteData: {
+					log_.info().append(
+						"Write %sdata to drive %d / head %d / track %d of head %d / track %d / sector %d",
+						decoder_.command() == Command::WriteDeletedData ? "deleted " : "",
+						decoder_.target().drive,
+						decoder_.target().head,
+						drives_[decoder_.target().drive].track,
+						decoder_.geometry().head,
+						decoder_.geometry().cylinder,
+						decoder_.geometry().sector
+					);
 					status_.begin(decoder_);
 
 					// Just decline to write, for now.
@@ -112,13 +122,16 @@ public:
 
 				case Command::ReadDeletedData:
 				case Command::ReadData: {
-//					printf("FDC: Read from drive %d / head %d / track %d of head %d / track %d / sector %d\n",
-//						decoder_.target().drive,
-//						decoder_.target().head,
-//						drives_[decoder_.target().drive].track,
-//						decoder_.geometry().head,
-//						decoder_.geometry().cylinder,
-//						decoder_.geometry().sector);
+					log_.info().append(
+						"Read %sdata from drive %d / head %d / track %d of head %d / track %d / sector %d",
+						decoder_.command() == Command::ReadDeletedData ? "deleted " : "",
+						decoder_.target().drive,
+						decoder_.target().head,
+						drives_[decoder_.target().drive].track,
+						decoder_.geometry().head,
+						decoder_.geometry().cylinder,
+						decoder_.geometry().sector
+					);
 
 					status_.begin(decoder_);
 
@@ -172,6 +185,8 @@ public:
 				} break;
 
 				case Command::Recalibrate:
+					log_.info().append("Recalibrate");
+					last_seeking_drive_ = decoder_.target().drive;
 					drives_[decoder_.target().drive].track = 0;
 
 					drives_[decoder_.target().drive].raised_interrupt = true;
@@ -180,6 +195,8 @@ public:
 					pics_.pic[0].template apply_edge<6>(true);
 				break;
 				case Command::Seek:
+					log_.info().append("Seek to %d", decoder_.seek_target());
+					last_seeking_drive_ = decoder_.target().drive;
 					drives_[decoder_.target().drive].track = decoder_.seek_target();
 
 					drives_[decoder_.target().drive].raised_interrupt = true;
@@ -189,18 +206,12 @@ public:
 				break;
 
 				case Command::SenseInterruptStatus: {
-					int c = 0;
-					for(; c < 4; c++) {
-						if(drives_[c].raised_interrupt) {
-							drives_[c].raised_interrupt = false;
-							status_.set_status0(drives_[c].status);
-							results_.serialise(status_, drives_[c].track);
-							break;
-						}
-					}
+					drives_[last_seeking_drive_].raised_interrupt = false;
+					status_.set_status0(drives_[last_seeking_drive_].status);
+					results_.serialise(status_, drives_[last_seeking_drive_].track);
 
 					bool any_remaining_interrupts = false;
-					for(; c < 4; c++) {
+					for(int c = 0; c < 4; c++) {
 						any_remaining_interrupts |= drives_[c].raised_interrupt;
 					}
 					if(!any_remaining_interrupts) {
@@ -208,10 +219,12 @@ public:
 					}
 				} break;
 				case Command::Specify:
+					log_.info().append("Specify");
 					specify_specs_ = decoder_.specify_specs();
 				break;
 				case Command::SenseDriveStatus: {
 					const auto &drive = drives_[decoder_.target().drive];
+					log_.info().append("Sense drive status: track 0 is %d", drive.track == 0);
 					results_.serialise(
 						decoder_.drive_head(),
 						(drive.track == 0 ? 0x10 : 0x00)	|
@@ -221,6 +234,7 @@ public:
 				} break;
 
 				case Command::Invalid:
+					log_.info().append("Invalid command");
 					results_.serialise_none();
 				break;
 			}
@@ -245,11 +259,11 @@ public:
 				status_.set(MainStatus::DataIsToProcessor, false);
 				status_.set(MainStatus::CommandInProgress, false);
 			}
-			log_.info().append("03f5 -> %02x", result);
+//			log_.info().append("03f5 -> %02x", result);
 			return result;
 		}
 
-		log_.info().append("03f5 -> 80 [default]");
+//		log_.info().append("03f5 -> 80 [default]");
 		return 0x80;
 	}
 
@@ -328,8 +342,9 @@ private:
 	private:
 		std::unique_ptr<Storage::Encodings::MFM::Parser> parser_;
 	} drives_[4];
+	int last_seeking_drive_ = 0;
 
-	static std::string drive_name(int c) {
+	static std::string drive_name(const int c) {
 		char name[3] = "A";
 		name[0] += c;
 		return std::string("Drive ") + name;
