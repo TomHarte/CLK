@@ -233,7 +233,12 @@ public:
 				break;
 				case Command::SenseDriveStatus: {
 					const auto &drive = drives_[decoder_.target().drive];
-					log_.info().append("Sense drive status: track 0 is %d", drive.track == 0);
+					log_.info().append(
+						"Sense drive status: drive %d; track 0 is %d, ready is %d",
+						decoder_.target().drive,
+						drive.track == 0,
+						drive.ready
+					);
 					results_.serialise(
 						decoder_.drive_head(),
 						(drive.track == 0 ? 0x10 : 0x00)	|

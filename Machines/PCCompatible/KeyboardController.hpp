@@ -192,7 +192,7 @@ public:
 	uint8_t read(const uint16_t port) {
 		switch(port) {
 			default:
-//				log_.error().append("Unimplemented AT keyboard read from %04x", port);
+				log_.error().append("Unimplemented AT keyboard read from %04x", port);
 			break;
 
 			case 0x0060: {

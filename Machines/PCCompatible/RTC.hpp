@@ -43,7 +43,7 @@ public:
 		switch(selected_) {
 			default:
 				if(ram_selected()) {
-//					printf("RTC: %02x <- %zu\n", ram_[ram_address()], ram_address());
+//					printf("RTC: %02x from address %zu\n", ram_[ram_address()], ram_address());
 //					if(ram_address() == 1 && ram_[1] == 6) {	// Catch reset after passing protected mode test.
 //						should_log = true;
 //					}
@@ -125,7 +125,7 @@ private:
 			default:
 				if(ram_selected()) {
 					ram_[ram_address()] = value;
-					printf("RTC: %02x -> %zu\n", value, ram_address());
+//					printf("RTC: %02x to address %zu\n", value, ram_address());
 				}
 			break;
 			case 0x0a:	statusA_ = value;	break;
