@@ -20,6 +20,9 @@
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
 #include "Storage/Disk/Encodings/MFM/Parser.hpp"
 
+#include <algorithm>
+#include <numeric>
+
 namespace PCCompatible {
 
 template <Analyser::Static::PCCompatible::Model model>
