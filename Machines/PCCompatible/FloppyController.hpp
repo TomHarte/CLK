@@ -186,7 +186,6 @@ public:
 
 				case Command::Recalibrate:
 					log_.info().append("Recalibrate");
-					last_seeking_drive_ = decoder_.target().drive;
 					drives_[decoder_.target().drive].track = 0;
 
 					drives_[decoder_.target().drive].raised_interrupt = true;
@@ -196,7 +195,6 @@ public:
 				break;
 				case Command::Seek:
 					log_.info().append("Seek to %d", decoder_.seek_target());
-					last_seeking_drive_ = decoder_.target().drive;
 					drives_[decoder_.target().drive].track = decoder_.seek_target();
 
 					drives_[decoder_.target().drive].raised_interrupt = true;
@@ -206,14 +204,28 @@ public:
 				break;
 
 				case Command::SenseInterruptStatus: {
-					drives_[last_seeking_drive_].raised_interrupt = false;
+					const auto interruptor = std::find_if(
+						std::begin(drives_),
+						std::end(drives_),
+						[] (const auto &drive) {
+							return drive.raised_interrupt;
+						}
+					);
+					if(interruptor != std::end(drives_)) {
+						last_seeking_drive_ = interruptor - std::begin(drives_);
+						interruptor->raised_interrupt = false;
+					}
 					status_.set_status0(drives_[last_seeking_drive_].status);
 					results_.serialise(status_, drives_[last_seeking_drive_].track);
 
-					bool any_remaining_interrupts = false;
-					for(int c = 0; c < 4; c++) {
-						any_remaining_interrupts |= drives_[c].raised_interrupt;
-					}
+					const bool any_remaining_interrupts = std::accumulate(
+						std::begin(drives_),
+						std::end(drives_),
+						false,
+						[] (const bool flag, const auto &drive) {
+							return flag | drive.raised_interrupt;
+						}
+					);
 					if(!any_remaining_interrupts) {
 						pics_.pic[0].template apply_edge<6>(false);
 					}
@@ -342,7 +354,7 @@ private:
 	private:
 		std::unique_ptr<Storage::Encodings::MFM::Parser> parser_;
 	} drives_[4];
-	int last_seeking_drive_ = 0;
+	ssize_t last_seeking_drive_ = 0;
 
 	static std::string drive_name(const int c) {
 		char name[3] = "A";
