@@ -188,23 +188,17 @@ public:
 				} break;
 
 				case Command::Recalibrate:
+				case Command::Seek: {
 					log_.info().append("Recalibrate");
-					drives_[decoder_.target().drive].track = 0;
+					auto &drive = drives_[decoder_.target().drive];
+					drive.track = decoder_.command() == Command::Seek ? decoder_.seek_target() : 0;
 
-					drives_[decoder_.target().drive].raised_interrupt = true;
-					drives_[decoder_.target().drive].status =
+					drive.raised_interrupt = true;
+					drive.status =
 						decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+					drive.ready = drive.has_disk();
 					pics_.pic[0].template apply_edge<6>(true);
-				break;
-				case Command::Seek:
-					log_.info().append("Seek to %d", decoder_.seek_target());
-					drives_[decoder_.target().drive].track = decoder_.seek_target();
-
-					drives_[decoder_.target().drive].raised_interrupt = true;
-					drives_[decoder_.target().drive].status =
-						decoder_.drive_head() | uint8_t(Intel::i8272::Status0::SeekEnded);
-					pics_.pic[0].template apply_edge<6>(true);
-				break;
+				} break;
 
 				case Command::SenseInterruptStatus: {
 					const auto interruptor = std::find_if(
@@ -243,7 +237,7 @@ public:
 					results_.serialise(
 						decoder_.drive_head(),
 						(drive.track == 0 ? 0x10 : 0x00)	|
-						0x20		|	// Drive is ready.
+						(drive.ready ? 0x20 : 0x00)			|	// Ready => has disc and has stepped.
 						0x00			// Disk in drive is not read-only. [0x40]
 					);
 				} break;
@@ -337,10 +331,11 @@ private:
 	struct DriveStatus {
 	public:
 		bool raised_interrupt = false;
-		uint8_t status = 0;
+		uint8_t status = 0;	// ST0 if this drive is selected.
 		uint8_t track = 0;
 		bool motor = false;
 		bool exists = true;
+		bool ready = false;
 
 		bool has_disk() const {
 			return static_cast<bool>(parser_);
@@ -348,6 +343,7 @@ private:
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> image) {
 			parser_ = std::make_unique<Storage::Encodings::MFM::Parser>(image);
+			ready = false;
 		}
 
 		const Storage::Encodings::MFM::Sector *sector(const int head, const uint8_t sector) {
