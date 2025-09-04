@@ -104,12 +104,13 @@ public:
 
 				case Command::WriteDeletedData:
 				case Command::WriteData: {
+					auto &drive = drives_[decoder_.target().drive];
 					log_.info().append(
 						"Write %sdata to drive %d / head %d / track %d of head %d / track %d / sector %d",
 						decoder_.command() == Command::WriteDeletedData ? "deleted " : "",
 						decoder_.target().drive,
 						decoder_.target().head,
-						drives_[decoder_.target().drive].track,
+						drive.track,
 						decoder_.geometry().head,
 						decoder_.geometry().cylinder,
 						decoder_.geometry().sector
@@ -129,19 +130,20 @@ public:
 						decoder_.geometry().size);
 
 					// TODO: what if head has changed?
-					drives_[decoder_.target().drive].status = decoder_.drive_head();
-					drives_[decoder_.target().drive].raised_interrupt = true;
+					drive.status = decoder_.drive_head();
+					drive.raised_interrupt = true;
 					pics_.pic[0].template apply_edge<6>(true);
 				} break;
 
 				case Command::ReadDeletedData:
 				case Command::ReadData: {
+					auto &drive = drives_[decoder_.target().drive];
 					log_.info().append(
 						"Read %sdata from drive %d / head %d / track %d of head %d / track %d / sector %d",
 						decoder_.command() == Command::ReadDeletedData ? "deleted " : "",
 						decoder_.target().drive,
 						decoder_.target().head,
-						drives_[decoder_.target().drive].track,
+						drive.track,
 						decoder_.geometry().head,
 						decoder_.geometry().cylinder,
 						decoder_.geometry().sector
@@ -153,7 +155,7 @@ public:
 					auto target = decoder_.geometry();
 					bool complete = false;
 					while(!complete) {
-						const auto sector = drives_[decoder_.target().drive].sector(target.head, target.sector);
+						const auto sector = drive.sector(target.head, target.sector);
 
 						if(sector) {
 							// TODO: I _think_ I'm supposed to validate the rest of the address here?
@@ -193,8 +195,39 @@ public:
 						decoder_.geometry().size);
 
 					// TODO: what if head has changed?
-					drives_[decoder_.target().drive].status = decoder_.drive_head();
-					drives_[decoder_.target().drive].raised_interrupt = true;
+					drive.status = decoder_.drive_head();
+					drive.raised_interrupt = true;
+					pics_.pic[0].template apply_edge<6>(true);
+				} break;
+
+				case Command::ReadID: {
+					auto &drive = drives_[decoder_.target().drive];
+					const auto target = decoder_.target();
+					log_.info().append(
+						"Read ID from drive %d / head %d / track %",
+						target.drive,
+						target.head,
+						drive.track
+					);
+
+					// TODO: should really provide a succession of different IDs.
+					status_.begin(decoder_);
+					const auto sector = drive.any_sector(target.head);
+
+					if(!sector) {
+						status_.set(Intel::i8272::Status1::EndOfCylinder);
+						status_.set(Intel::i8272::Status0::AbnormalTermination);
+					}
+
+					results_.serialise(
+						status_,
+						sector->address.track,
+						sector->address.side,
+						sector->address.sector,
+						sector->size);
+
+					drive.status = decoder_.drive_head();
+					drive.raised_interrupt = true;
 					pics_.pic[0].template apply_edge<6>(true);
 				} break;
 
@@ -379,6 +412,10 @@ private:
 
 		const Storage::Encodings::MFM::Sector *sector(const int head, const uint8_t sector) {
 			return parser_ ? parser_->sector(head, track, sector) : nullptr;
+		}
+
+		const Storage::Encodings::MFM::Sector *any_sector(const int head) {
+			return parser_ ? parser_->any_sector(head, track) : nullptr;
 		}
 
 	private:

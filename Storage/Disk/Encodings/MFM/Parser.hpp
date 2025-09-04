@@ -51,16 +51,20 @@ private:
 	std::shared_ptr<Storage::Disk::Disk> disk_;
 	std::optional<Density> density_;
 
+	using SectorByIDMap = std::unordered_map<int, Sector>;
+
 	void install_track(const Storage::Disk::Track::Address &address);
 	static SectorMap parse_track(const Storage::Disk::Track &track, Density density);
-	static void append(const SectorMap &source, std::map<int, Sector> &destination);
+	static void append(const SectorMap &source, SectorByIDMap &destination);
 
 	// Maps from a track address, i.e. head and position, to a map from
 	// sector IDs to sectors.
-	std::map<
-		Storage::Disk::Track::Address,
-		std::map<int, Storage::Encodings::MFM::Sector>
-	> sectors_by_address_by_track_;
+	using TrackMap =
+		std::unordered_map<
+			Storage::Disk::Track::Address,
+			SectorByIDMap
+		>;
+	TrackMap sectors_by_address_by_track_;
 };
 
 }
