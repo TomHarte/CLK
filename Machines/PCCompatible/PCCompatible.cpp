@@ -821,12 +821,12 @@ public:
 
 	void run_for(const Cycles duration) final {
 #ifndef NDEBUG
-		static constexpr int SpeedMultiplier = 2;
+		static constexpr int SpeedMultiplier = 3;
 #else
 		static constexpr int SpeedMultiplier = 2;
 #endif
 
-		const auto pit_ticks = duration.as<int>() * SpeedMultiplier;
+		const auto pit_ticks = (duration.as<int>() * SpeedMultiplier) / 2;
 		static constexpr int pit_multiplier = [] {
 			switch(pc_model) {
 				// This is implicitly treated as running at 1/3 the PIT clock = around 0.4 MIPS.

@@ -17,6 +17,8 @@ public:
 	//
 	// Drive interface.
 	//
+	// TODO: probably all these belong directly on a drive; IDE = integrated drive electronics; the following
+	// are all functions owned by the drive, not the controller.
 	void set_data(const uint16_t data) {
 		log_.info().append("Set data: %04x", data);
 	}

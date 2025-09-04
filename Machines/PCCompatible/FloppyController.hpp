@@ -189,9 +189,13 @@ public:
 
 				case Command::Recalibrate:
 				case Command::Seek: {
-					log_.info().append("Recalibrate");
 					auto &drive = drives_[decoder_.target().drive];
 					drive.track = decoder_.command() == Command::Seek ? decoder_.seek_target() : 0;
+					log_.info().append(
+						"%s to %d",
+						decoder_.command() == Command::Seek ? "Seek" : "Recalibrate",
+						drive.track
+					);
 
 					drive.raised_interrupt = true;
 					drive.status =
@@ -234,16 +238,17 @@ public:
 				case Command::SenseDriveStatus: {
 					const auto &drive = drives_[decoder_.target().drive];
 					log_.info().append(
-						"Sense drive status: drive %d; track 0 is %d, ready is %d",
+						"Sense drive status: drive %d / head %d; track 0 is %d, ready is %d",
 						decoder_.target().drive,
+						decoder_.target().head,
 						drive.track == 0,
 						drive.ready
 					);
 					results_.serialise(
 						decoder_.drive_head(),
 						(drive.track == 0 ? 0x10 : 0x00)	|
-						(drive.ready ? 0x20 : 0x00)			|	// Ready => has disc and has stepped.
-						0x00			// Disk in drive is not read-only. [0x40]
+						(drive.ready ? 0x20 : 0x00)			|	// Ready [=> has disc and has stepped].
+						0x00									// Disk in drive is not read-only. [0x40]
 					);
 				} break;
 
