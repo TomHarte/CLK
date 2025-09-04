@@ -205,7 +205,6 @@ public:
 					const auto target = decoder_.target();
 					log_.info().append(
 						"Read ID from drive %d / head %d / track %",
-						decoder_.command() == Command::ReadDeletedData ? "deleted " : "",
 						target.drive,
 						target.head,
 						drive.track
