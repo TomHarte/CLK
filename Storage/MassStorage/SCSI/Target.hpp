@@ -134,9 +134,12 @@ struct Responder {
 	*/
 	void terminate_command(Status status) {
 		send_status(status, [] (const Target::CommandState &, Target::Responder &responder) {
-			responder.send_message(Target::Responder::Message::CommandComplete, [] (const Target::CommandState &, Target::Responder &responder) {
-				responder.end_command();
-			});
+			responder.send_message(
+				Target::Responder::Message::CommandComplete,
+				[] (const Target::CommandState &, Target::Responder &responder) {
+					responder.end_command();
+				}
+			);
 		});
 	}
 };
@@ -181,8 +184,9 @@ struct Executor {
 			break;
 
 			case 0x30:
+				// This seems to be required to satisfy the Apple HD SC Utility.
 				response.resize(34);
-				strcpy(reinterpret_cast<char *>(&response[14]), "APPLE COMPUTER, INC");	// This seems to be required to satisfy the Apple HD SC Utility.
+				strcpy(reinterpret_cast<char *>(&response[14]), "APPLE COMPUTER, INC");
 			break;
 		}
 
@@ -199,10 +203,13 @@ struct Executor {
 	bool mode_select(const CommandState &state, Responder &responder) {
 		const auto specs = state.mode_select_specs();
 
-		responder.receive_data(specs.parameter_list_length, [] (const Target::CommandState &, Target::Responder &responder) {
-			// TODO: parse data according to current sense mode.
-			responder.terminate_command(Target::Responder::Status::Good);
-		});
+		responder.receive_data(
+			specs.parameter_list_length,
+			[] (const Target::CommandState &, Target::Responder &responder) {
+				// TODO: parse data according to current sense mode.
+				responder.terminate_command(Target::Responder::Status::Good);
+			}
+		);
 
 		return true;
 	}
@@ -256,7 +263,10 @@ struct Executor {
 			uint8_t(inq.device_type),
 			uint8_t(inq.is_removeable ? 0x80 : 0x00),
 			uint8_t((inq.iso_standard << 5) | (inq.ecma_standard << 3) | (inq.ansi_standard)),
-			uint8_t((inq.supports_asynchronous_events ? 0x80 : 0x00) | (inq.supports_terminate_io_process ? 0x40 : 0x00) | 0x02),
+			uint8_t(
+				(inq.supports_asynchronous_events ? 0x80 : 0x00) |
+				(inq.supports_terminate_io_process ? 0x40 : 0x00) | 0x02
+			),
 			32,		/* Additional length: 36 - 4. */
 			0x00,	/* Reserved. */
 			0x00,	/* Reserved. */
@@ -293,9 +303,12 @@ struct Executor {
 			response.resize(allocated_bytes);
 		}
 
-		responder.send_data(std::move(response), [] (const Target::CommandState &, Target::Responder &responder) {
-			responder.terminate_command(Target::Responder::Status::Good);
-		});
+		responder.send_data(
+			std::move(response),
+			[] (const Target::CommandState &, Target::Responder &responder) {
+				responder.terminate_command(Target::Responder::Status::Good);
+			}
+		);
 
 		return true;
 	}
@@ -315,9 +328,12 @@ struct Executor {
 		// Since I have no idea what earthly function READ BUFFER is meant to allow,
 		// the default implementation just returns an empty buffer of the requested size.
 		const auto specs = state.read_buffer_specs();
-		responder.send_data(std::vector<uint8_t>(specs.buffer_length), [] (const Target::CommandState &, Target::Responder &responder) {
-			responder.terminate_command(Target::Responder::Status::Good);
-		});
+		responder.send_data(
+			std::vector<uint8_t>(specs.buffer_length),
+			[] (const Target::CommandState &, Target::Responder &responder) {
+				responder.terminate_command(Target::Responder::Status::Good);
+			}
+		);
 
 		return true;
 	}
@@ -350,7 +366,7 @@ private:
 	Log::Logger<Log::Source::SCSI> log_;
 
 	// Bus::Observer.
-	void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) final;
+	void scsi_bus_did_change(Bus &, BusState, double) final;
 
 	// Responder
 	void send_data(std::vector<uint8_t> &&data, continuation next) final;

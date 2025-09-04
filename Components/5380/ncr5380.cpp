@@ -25,7 +25,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, const int clock_rate) :
 	bus_(bus),
 	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
-	bus_.add_observer(this);
+	bus_.add_observer(*this);
 
 	// TODO: use clock rate and expected phase. This implementation currently
 	// provides only CPU-driven polling behaviour.
@@ -146,12 +146,12 @@ void NCR5380::write(const int address, const uint8_t value, bool) {
 uint8_t NCR5380::read(const int address, bool) {
 	switch(address & 7) {
 		case 0:
-			logger.info().append("[0] Get current SCSI bus state: %02x", (bus_.get_state() & 0xff));
+			logger.info().append("[0] Get current SCSI bus state: %02x", (bus_.state() & 0xff));
 
 			if(dma_request_ && dma_operation_ == DMAOperation::InitiatorReceive) {
 				return dma_acknowledge();
 			}
-		return uint8_t(bus_.get_state());
+		return uint8_t(bus_.state());
 
 		case 1:
 			logger.info().append(
@@ -177,7 +177,7 @@ uint8_t NCR5380::read(const int address, bool) {
 		return target_command_;
 
 		case 4: {
-			const auto bus_state = bus_.get_state();
+			const auto bus_state = bus_.state();
 			const uint8_t result =
 				((bus_state & Line::Reset)			? 0x80 : 0x00) |
 				((bus_state & Line::Busy)			? 0x40 : 0x00) |
@@ -192,7 +192,7 @@ uint8_t NCR5380::read(const int address, bool) {
 		}
 
 		case 5: {
-			const auto bus_state = bus_.get_state();
+			const auto bus_state = bus_.state();
 			const uint8_t result =
 				(end_of_dma_ ? 0x80 : 0x00) |
 				((dma_request_ && state_ == ExecutionState::PerformingDMA) ? 0x40 : 0x00)	|
@@ -242,7 +242,7 @@ void NCR5380::update_control_output() {
 	}
 }
 
-void NCR5380::scsi_bus_did_change(SCSI::Bus *, const SCSI::BusState new_state, const double time_since_change) {
+void NCR5380::scsi_bus_did_change(SCSI::Bus &, const SCSI::BusState new_state, const double time_since_change) {
 	/*
 		When connected as an Initiator with DMA Mode True,
 		if the phase lines I//O, C//D, and /MSG do not match the
@@ -350,7 +350,7 @@ bool NCR5380::dma_request() {
 }
 
 uint8_t NCR5380::dma_acknowledge() {
-	const uint8_t bus_state = uint8_t(bus_.get_state());
+	const uint8_t bus_state = uint8_t(bus_.state());
 
 	dma_acknowledge_ = true;
 	dma_request_ = false;
@@ -370,7 +370,7 @@ void NCR5380::dma_acknowledge(const uint8_t value) {
 }
 
 bool NCR5380::phase_matches() const {
-	const auto bus_state = bus_.get_state();
+	const auto bus_state = bus_.state();
 	return
 		(target_output() & (Line::Message | Line::Control | Line::Input)) ==
 		(bus_state & (Line::Message | Line::Control | Line::Input));

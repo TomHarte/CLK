@@ -2359,6 +2359,7 @@
 		4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreROM.cpp; path = Encodings/CommodoreROM.cpp; sourceTree = "<group>"; };
 		4BCA6CC71D9DD9F000C2D7B2 /* CommodoreROM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommodoreROM.hpp; path = Encodings/CommodoreROM.hpp; sourceTree = "<group>"; };
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
+		4BCC76B32E5EB19500F0D39D /* IDE.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDE.hpp; sourceTree = "<group>"; };
 		4BCC76B42E5F899D00F0D39D /* VHD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VHD.hpp; sourceTree = "<group>"; };
 		4BCC76B52E5F899D00F0D39D /* VHD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VHD.cpp; sourceTree = "<group>"; };
 		4BCD634722D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MacintoshDoubleDensityDrive.cpp; sourceTree = "<group>"; };
@@ -2579,6 +2580,7 @@
 				4B1FBE252D7C0B2200BAC888 /* CPUControl.hpp */,
 				4267A9C92B0D4F17008A59BB /* DMA.hpp */,
 				4B1FBE222D7B739700BAC888 /* FloppyController.hpp */,
+				4BCC76B32E5EB19500F0D39D /* IDE.hpp */,
 				4B1FBE242D7B753000BAC888 /* KeyboardController.hpp */,
 				4267A9CA2B111ED2008A59BB /* KeyboardMapper.hpp */,
 				4BA094C82D92339F00BD78A1 /* LinearMemory.hpp */,

@@ -126,7 +126,7 @@ public:
 	}
 
 	void preauthorise_call(
-		const Source segment,
+		[[maybe_unused]] const Source segment,
 		const uint16_t value,
 		const std::function<void()> &real_callback,
 		const std::function<void(const Descriptor &)> &call_callback	// TODO: call gate and task segment callbacks.

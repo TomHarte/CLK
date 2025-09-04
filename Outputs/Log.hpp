@@ -39,6 +39,7 @@ enum class Source {
 	Floppy,
 	i8272,
 	I2C,
+	IDE,
 	IntelligentKeyboard,	// Could probably be subsumed into 'Keyboard'?
 	IWM,
 	Keyboard,
@@ -115,6 +116,7 @@ constexpr const char *prefix(const Source source) {
 		case Source::Floppy:					return "Floppy";
 		case Source::i8272:						return "i8272";
 		case Source::I2C:						return "I2C";
+		case Source::IDE:						return "IDE";
 		case Source::IntelligentKeyboard:		return "IKYB";
 		case Source::IWM:						return "IWM";
 		case Source::Keyboard:					return "Keyboard";
@@ -199,8 +201,8 @@ template <Source source>
 class Logger {
 public:
 	static constexpr bool enabled = is_enabled(source);
-	LogLine<source, enabled> info()		{	return LogLine<source, enabled>(stdout);	}
-	LogLine<source, enabled> error()	{	return LogLine<source, enabled>(stderr);	}
+	static LogLine<source, enabled> info()	{	return LogLine<source, enabled>(stdout);	}
+	static LogLine<source, enabled> error()	{	return LogLine<source, enabled>(stderr);	}
 };
 
 }

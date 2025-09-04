@@ -137,7 +137,7 @@ public:
 		}
 
 		if(has_scsi_bus) {
-			scsi_bus_.add_observer(this);
+			scsi_bus_.add_observer(*this);
 			scsi_bus_.set_clocking_hint_observer(this);
 		}
 	}
@@ -371,7 +371,7 @@ public:
 							scsi_data_ = *value;
 							push_scsi_output();
 						} else {
-							*value = SCSI::data_lines(scsi_bus_.get_state());
+							*value = SCSI::data_lines(scsi_bus_.state());
 							push_scsi_output();
 						}
 					}
@@ -395,7 +395,7 @@ public:
 						//	b2:	0
 						//	b1:	SCSI BSY
 						//	b0: SCSI MSG
-						const auto state = scsi_bus_.get_state();
+						const auto state = scsi_bus_.state();
 						*value =
 							(state & SCSI::Line::Control ? 0x80 : 0x00) |
 							(state & SCSI::Line::Input ? 0x40 : 0x00) |
@@ -406,7 +406,7 @@ public:
 
 						// Empirical guess: this is also the trigger to affect busy/request/acknowledge
 						// signalling. Maybe?
-						if(scsi_select_ && scsi_bus_.get_state() & SCSI::Line::Busy) {
+						if(scsi_select_ && scsi_bus_.state() & SCSI::Line::Busy) {
 							scsi_select_ = false;
 							push_scsi_output();
 						}
@@ -539,7 +539,7 @@ public:
 		m6502_.run_for(cycles);
 	}
 
-	void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double) final {
+	void scsi_bus_did_change(SCSI::Bus &, const SCSI::BusState new_state, double) final {
 		// Release acknowledge when request is released.
 		if(scsi_acknowledge_ && !(new_state & SCSI::Line::Request)) {
 			scsi_acknowledge_ = false;
@@ -767,7 +767,7 @@ private:
 	bool scsi_interrupt_mask_ = false;
 	void push_scsi_output() {
 		scsi_bus_.set_device_output(scsi_device_,
-			(scsi_bus_.get_state()&SCSI::Line::Input ? 0 : scsi_data_) |
+			(scsi_bus_.state()&SCSI::Line::Input ? 0 : scsi_data_) |
 			(scsi_select_ ? SCSI::Line::SelectTarget : 0) |
 			(scsi_acknowledge_ ? SCSI::Line::Acknowledge : 0)
 		);

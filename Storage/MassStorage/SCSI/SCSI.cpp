@@ -10,7 +10,7 @@
 
 using namespace SCSI;
 
-Bus::Bus(HalfCycles clock_rate) {
+Bus::Bus(const HalfCycles clock_rate) {
 	cycles_to_time_ = 1.0 / double(clock_rate.as_integral());
 
 	// NB: note that the dispatch times below are **ORDERED**
@@ -34,7 +34,7 @@ size_t Bus::add_device() {
 	return slot;
 }
 
-void Bus::set_device_output(size_t device, BusState output) {
+void Bus::set_device_output(const size_t device, const BusState output) {
 	if(device_states_[device] == output) return;
 	device_states_[device] = output;
 
@@ -69,17 +69,17 @@ void Bus::set_device_output(size_t device, BusState output) {
 	if(was_asleep) update_clocking_observer();
 }
 
-void Bus::set_activity_observer(Activity::Observer *observer) {
+void Bus::set_activity_observer(Activity::Observer *const observer) {
 	activity_observer_ = observer;
 	activity_observer_->register_led("SCSI");
 }
 
-BusState Bus::get_state() const {
+BusState Bus::state() const {
 	return state_;
 }
 
-void Bus::add_observer(Observer *observer) {
-	observers_.push_back(observer);
+void Bus::add_observer(Observer &observer) {
+	observers_.push_back(&observer);
 }
 
 ClockingHint::Preference Bus::preferred_clocking() const {
@@ -89,11 +89,11 @@ ClockingHint::Preference Bus::preferred_clocking() const {
 void Bus::update_observers() {
 	const auto time_elapsed = double(time_in_state_.as_integral()) * cycles_to_time_;
 	for(auto &observer: observers_) {
-		observer->scsi_bus_did_change(this, state_, time_elapsed);
+		observer->scsi_bus_did_change(*this, state_, time_elapsed);
 	}
 }
 
-void Bus::run_for(HalfCycles time) {
+void Bus::run_for(const HalfCycles time) {
 	if(dispatch_index_ < dispatch_times_.size()) {
 		time_in_state_ += time;
 
