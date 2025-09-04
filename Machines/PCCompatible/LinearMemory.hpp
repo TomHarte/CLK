@@ -255,7 +255,7 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		uint32_t address, uint32_t
 	) {
 		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
-			return *reinterpret_cast<IntT *>(&dummy_);
+			return dummy<IntT>();
 		}
 		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
 	}
@@ -266,14 +266,14 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	) const {
 		static_assert(!is_writeable(type));
 		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
-			return *reinterpret_cast<const IntT *>(&dummy_);
+			return dummy<IntT>();
 		}
 		return *reinterpret_cast<const IntT *>(&memory[address & address_mask_]);
 	}
 
 	template <typename IntT>
 	void write_back() {
-		dummy_ = 0xffff;
+		dummy<IntT>() = IntT(~0);
 	}
 
 	template <typename IntT>
@@ -291,7 +291,16 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 
 private:
 	uint32_t address_mask_;
-	uint16_t dummy_;
+	union {
+		uint32_t dummy32;
+		uint16_t dummy16;
+		uint8_t dummy8;
+	} dummies_;
+
+	template <typename IntT> IntT &dummy();
+	template<> uint32_t &dummy<uint32_t>() { return dummies_.dummy32; }
+	template<> uint16_t &dummy<uint16_t>() { return dummies_.dummy16; }
+	template<> uint8_t &dummy<uint8_t>() { return dummies_.dummy8; }
 };
 
 }
