@@ -37,24 +37,7 @@ public:
 		position_ += rhs.position_;
 		return *this;
 	}
-	constexpr bool operator ==(const HeadPosition &rhs) const {
-		return position_ == rhs.position_;
-	}
-	constexpr bool operator !=(const HeadPosition &rhs) const {
-		return position_ != rhs.position_;
-	}
-	constexpr bool operator <(const HeadPosition &rhs) const {
-		return position_ < rhs.position_;
-	}
-	constexpr bool operator <=(const HeadPosition &rhs) const {
-		return position_ <= rhs.position_;
-	}
-	constexpr bool operator >(const HeadPosition &rhs) const {
-		return position_ > rhs.position_;
-	}
-	constexpr bool operator >=(const HeadPosition &rhs) const {
-		return position_ >= rhs.position_;
-	}
+	constexpr auto operator<=>(const HeadPosition&) const = default;
 
 private:
 	int position_ = 0;
@@ -71,24 +54,14 @@ public:
 	virtual ~Track() = default;
 
 	/*!
-		Describes the location of a track, implementing < to allow for use as a set key.
+		Describes the location of a track, implementing @c < and @c == (with std::hash specialised elsewhere)
+		to allow for use in both regular and unordered sets and maps.
 	*/
 	struct Address {
 		int head;
 		HeadPosition position;
 
-		constexpr bool operator < (const Address &rhs) const {
-			int largest_position = position.as_largest();
-			int rhs_largest_position = rhs.position.as_largest();
-			return std::tie(head, largest_position) < std::tie(rhs.head, rhs_largest_position);
-		}
-		constexpr bool operator == (const Address &rhs) const {
-			return head == rhs.head && position == rhs.position;
-		}
-		constexpr bool operator != (const Address &rhs) const {
-			return head != rhs.head || position != rhs.position;
-		}
-
+		constexpr auto operator<=>(const Address&) const = default;
 		constexpr Address(int head, HeadPosition position) : head(head), position(position) {}
 	};
 
@@ -125,3 +98,18 @@ public:
 };
 
 }
+
+template <>
+struct std::hash<Storage::Disk::HeadPosition> {
+	size_t operator()(const Storage::Disk::HeadPosition &position) const {
+		return size_t(position.as_largest());
+	}
+};
+
+template <>
+struct std::hash<Storage::Disk::Track::Address> {
+	size_t operator()(const Storage::Disk::Track::Address &address) const {
+		std::hash<Storage::Disk::HeadPosition> position_hasher;
+		return size_t(address.head << 16) ^ position_hasher(address.position);
+	}
+};

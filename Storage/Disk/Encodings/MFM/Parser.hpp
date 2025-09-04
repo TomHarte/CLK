@@ -59,10 +59,12 @@ private:
 
 	// Maps from a track address, i.e. head and position, to a map from
 	// sector IDs to sectors.
-	std::map<
-		Storage::Disk::Track::Address,
-		SectorByIDMap
-	> sectors_by_address_by_track_;
+	using TrackMap =
+		std::unordered_map<
+			Storage::Disk::Track::Address,
+			SectorByIDMap
+		>;
+	TrackMap sectors_by_address_by_track_;
 };
 
 }
