@@ -312,7 +312,7 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 
 private:
 	uint32_t address_mask_;
-	static DummyValue dummy_;
+	inline static DummyValue dummy_;
 };
 
 }
