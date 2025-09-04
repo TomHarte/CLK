@@ -198,15 +198,12 @@ public:
 					);
 
 					drive.raised_interrupt = true;
-					drive.status =
-						decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
+					drive.status = decoder_.target().drive | uint8_t(Intel::i8272::Status0::SeekEnded);
 					drive.ready = drive.has_disk();
 					pics_.pic[0].template apply_edge<6>(true);
 				} break;
 
 				case Command::SenseInterruptStatus: {
-					log_.info().append("Sense interrupt status");
-
 					const auto interruptor = std::find_if(
 						std::begin(drives_),
 						std::end(drives_),
@@ -216,12 +213,22 @@ public:
 					);
 					if(interruptor != std::end(drives_)) {
 						last_seeking_drive_ = interruptor - std::begin(drives_);
-						interruptor->raised_interrupt = false;
-						interruptor->status &= ~ 0xc0;
 					}
-					status_.set_status0(drives_[last_seeking_drive_].status);
-					results_.serialise(status_, drives_[last_seeking_drive_].track);
+					auto &drive = drives_[last_seeking_drive_];
 
+					log_.info().append(
+						"Sense interrupt status; picked drive %d with interrupt status %d",
+						last_seeking_drive_,
+						drive.raised_interrupt
+					);
+					status_.set_status0(drive.status);
+					results_.serialise(status_, drive.track);
+
+					// Clear cause-of-interrupt flags on that drive.
+					drive.raised_interrupt = false;
+					drive.status &= ~0xc0;
+
+					// Possibly lower interrupt flag.
 					const bool any_remaining_interrupts = std::accumulate(
 						std::begin(drives_),
 						std::end(drives_),
@@ -312,18 +319,18 @@ private:
 	mutable Log::Logger<Log::Source::Floppy> log_;
 
 	void reset() {
-//		printf("FDC reset\n");
+		log_.info().append("{Reset}");
 		decoder_.clear();
 		status_.reset();
 
 		// Necessary to pass GlaBIOS' POST test, but: why?
 		//
 		// Cf. INT_13_0_2 and the CMP	AL, 11000000B following a CALL	FDC_WAIT_SENSE.
-//		for(int c = 0; c < 4; c++) {
-//			drives_[c].raised_interrupt = true;
-//			drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
-//		}
-//		pics_.pic[0].template apply_edge<6>(true);
+		for(int c = 0; c < 4; c++) {
+			drives_[c].raised_interrupt = true;
+			drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady) | uint8_t(c);
+		}
+		pics_.pic[0].template apply_edge<6>(true);
 
 		using MainStatus = Intel::i8272::MainStatus;
 		status_.set(MainStatus::DataReady, true);

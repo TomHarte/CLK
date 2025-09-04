@@ -17,6 +17,8 @@
 
 #include <array>
 
+//extern bool should_log;
+
 namespace PCCompatible {
 
 enum class AccessResult {
@@ -245,12 +247,19 @@ private:
 template <bool is_pair>
 class DMAPages {
 public:
+	int count = 0;
+
 	template <int index>
 	void set_page(const uint8_t value) {
 		pages_[page_for_index(index)] = value;
 
 		if(index == 0x00) {
 			log_.info().append("%02x", value);
+
+//			if(value == 0x3c) {
+//				++count;
+//				should_log |= count == 2;
+//			}
 		}
 	}
 

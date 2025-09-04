@@ -24,6 +24,27 @@ namespace PCCompatible {
 // TODO: send writes to the ROM area off to nowhere.
 // TODO: support banked sections for EGA/VGA and possibly EMS purposes.
 
+struct DummyValue {
+public:
+	template <typename IntT>
+	IntT &value() {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			return dummies_.dummy32;
+		} else if constexpr (std::is_same_v<IntT, uint16_t>) {
+			return dummies_.dummy16;
+		} else if constexpr (std::is_same_v<IntT, uint8_t>) {
+			return dummies_.dummy8;
+		}
+	}
+
+private:
+	union {
+		uint32_t dummy32;
+		uint16_t dummy16;
+		uint8_t dummy8;
+	} dummies_;
+};
+
 template <size_t MaxAddressV>
 struct LinearPool {
 	static constexpr size_t MaxAddress = MaxAddressV;
@@ -255,7 +276,7 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		uint32_t address, uint32_t
 	) {
 		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
-			return dummy<IntT>();
+			return dummy_.value<IntT>();
 		}
 		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
 	}
@@ -266,14 +287,14 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	) const {
 		static_assert(!is_writeable(type));
 		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
-			return dummy<IntT>();
+			return dummy_.value<IntT>();
 		}
 		return *reinterpret_cast<const IntT *>(&memory[address & address_mask_]);
 	}
 
 	template <typename IntT>
 	void write_back() {
-		dummy<IntT>() = IntT(~0);
+		dummy_.value<IntT>() = IntT(~0);
 	}
 
 	template <typename IntT>
@@ -291,16 +312,7 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 
 private:
 	uint32_t address_mask_;
-	union {
-		uint32_t dummy32;
-		uint16_t dummy16;
-		uint8_t dummy8;
-	} dummies_;
-
-	template <typename IntT> IntT &dummy();
-	template<> uint32_t &dummy<uint32_t>() { return dummies_.dummy32; }
-	template<> uint16_t &dummy<uint16_t>() { return dummies_.dummy16; }
-	template<> uint8_t &dummy<uint8_t>() { return dummies_.dummy8; }
+	static DummyValue dummy_;
 };
 
 }

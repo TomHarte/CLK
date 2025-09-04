@@ -943,9 +943,12 @@ public:
 		}
 
 //		if(decoded_ip_ >= 0x7c00 && decoded_ip_ < 0x7c00 + 1024) {
-//		if(decoded_ip_ == 0x12d8) {
+//		if(decoded_ip_ == 0x21d0) {
 //			should_log = true;
 //		}
+
+		// Covers DISK_RESET.
+//		should_log = (decoded_ip_ >= 0x21d0 && decoded_ip_ < 0x221c);
 
 		if(should_log) {
 			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
