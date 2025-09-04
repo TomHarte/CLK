@@ -89,7 +89,17 @@ public:
 			using Command = Intel::i8272::Command;
 			switch(decoder_.command()) {
 				default:
-					log_.error().append("TODO: implement FDC command %d", uint8_t(decoder_.command()));
+					log_.error().append("TODO: implement FDC command %02x", uint8_t(decoder_.command()));
+
+					// Unimplemented:
+					//
+					//	ReadTrack
+					//	ReadID
+					//	FormatTrack
+					//
+					//	ScanLow
+					//	ScanLowOrEqual
+					//	ScanHighOrEqual
 				break;
 
 				case Command::WriteDeletedData:
@@ -107,6 +117,7 @@ public:
 					status_.begin(decoder_);
 
 					// Just decline to write, for now.
+					// TODO: stop doing this.
 					status_.set(Intel::i8272::Status1::NotWriteable);
 					status_.set(Intel::i8272::Status0::BecameNotReady);
 
