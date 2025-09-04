@@ -40,7 +40,7 @@ public:
 	}
 
 	void set_digital_output(const uint8_t control) {
-//		log_.info().append("03f2 <- %02x", control);
+		log_.info().append("Digital output: %02x", control);
 
 		// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 		// b3: 1 => enable DMA; 0 => disable;
@@ -58,7 +58,7 @@ public:
 			}
 		}
 
-		enable_dma_ = control & 0x08;
+		enable_dma_ = control & 0x08;	// Possibly also enables interrupts?
 
 		const bool hold_reset = !(control & 0x04);
 		if(!hold_reset && hold_reset_) {
@@ -71,13 +71,13 @@ public:
 		}
 	}
 
-	void set_data_rate(const uint8_t) {
-//		log_.info().append("03f4/3f7 <- %02x", control);
+	void set_data_rate(const uint8_t control) {
+		log_.info().append("Data rate: %02x", control);
 	}
 
 	uint8_t status() const {
 		const auto result = status_.main();
-//		log_.info().append("03f4 -> %02x", result);
+		log_.info().append("Status: %02x", result);
 		return result;
 	}
 
@@ -205,6 +205,8 @@ public:
 				} break;
 
 				case Command::SenseInterruptStatus: {
+					log_.info().append("Sense interrupt status");
+
 					const auto interruptor = std::find_if(
 						std::begin(drives_),
 						std::end(drives_),
@@ -215,6 +217,7 @@ public:
 					if(interruptor != std::end(drives_)) {
 						last_seeking_drive_ = interruptor - std::begin(drives_);
 						interruptor->raised_interrupt = false;
+						interruptor->status &= ~ 0xc0;
 					}
 					status_.set_status0(drives_[last_seeking_drive_].status);
 					results_.serialise(status_, drives_[last_seeking_drive_].track);
@@ -278,11 +281,11 @@ public:
 				status_.set(MainStatus::DataIsToProcessor, false);
 				status_.set(MainStatus::CommandInProgress, false);
 			}
-//			log_.info().append("03f5 -> %02x", result);
+			log_.info().append("Result read: %02x", result);
 			return result;
 		}
 
-//		log_.info().append("03f5 -> 80 [default]");
+		log_.info().append("Result read: 80 [default]");
 		return 0x80;
 	}
 
@@ -316,11 +319,11 @@ private:
 		// Necessary to pass GlaBIOS' POST test, but: why?
 		//
 		// Cf. INT_13_0_2 and the CMP	AL, 11000000B following a CALL	FDC_WAIT_SENSE.
-		for(int c = 0; c < 4; c++) {
-			drives_[c].raised_interrupt = true;
-			drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
-		}
-		pics_.pic[0].template apply_edge<6>(true);
+//		for(int c = 0; c < 4; c++) {
+//			drives_[c].raised_interrupt = true;
+//			drives_[c].status = uint8_t(Intel::i8272::Status0::BecameNotReady);
+//		}
+//		pics_.pic[0].template apply_edge<6>(true);
 
 		using MainStatus = Intel::i8272::MainStatus;
 		status_.set(MainStatus::DataReady, true);

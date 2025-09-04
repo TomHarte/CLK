@@ -578,6 +578,10 @@ private:
 			case 0x01f6:	if(require_ide(port)) return ide_.drive_head();			break;
 			case 0x01f7:	if(require_ide(port)) return ide_.status();				break;
 
+			case 0x03f1:	return 0b01010000;	// "D/S/P DIAGNOSTIC REGISTER"?
+												// This value is seemingly required by the PC AT BIOS, but is not
+												// further documented by IBM or elsewhere.
+
 			case 0x03f6:	if(require_ide(port)) return ide_.controller_data();	break;
 			case 0x03f7:	if(require_ide(port)) return ide_.controller_status();	break;
 		}
