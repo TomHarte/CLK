@@ -200,8 +200,37 @@ public:
 					pics_.pic[0].template apply_edge<6>(true);
 				} break;
 
-//				case Command::ReadID:
-//				break;
+				case Command::ReadID: {
+					auto &drive = drives_[decoder_.target().drive];
+					const auto target = decoder_.target();
+					log_.info().append(
+						"Read ID from drive %d / head %d / track %",
+						decoder_.command() == Command::ReadDeletedData ? "deleted " : "",
+						target.drive,
+						target.head,
+						drive.track
+					);
+
+					// TODO: should really provide a succession of different IDs.
+					status_.begin(decoder_);
+					const auto sector = drive.any_sector(target.head);
+
+					if(!sector) {
+						status_.set(Intel::i8272::Status1::EndOfCylinder);
+						status_.set(Intel::i8272::Status0::AbnormalTermination);
+					}
+
+					results_.serialise(
+						status_,
+						sector->address.track,
+						sector->address.side,
+						sector->address.sector,
+						sector->size);
+
+					drive.status = decoder_.drive_head();
+					drive.raised_interrupt = true;
+					pics_.pic[0].template apply_edge<6>(true);
+				} break;
 
 				case Command::Recalibrate:
 				case Command::Seek: {
@@ -384,6 +413,10 @@ private:
 
 		const Storage::Encodings::MFM::Sector *sector(const int head, const uint8_t sector) {
 			return parser_ ? parser_->sector(head, track, sector) : nullptr;
+		}
+
+		const Storage::Encodings::MFM::Sector *any_sector(const int head) {
+			return parser_ ? parser_->any_sector(head, track) : nullptr;
 		}
 
 	private:
