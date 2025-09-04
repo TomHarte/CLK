@@ -9,6 +9,8 @@
 #pragma once
 
 #include "Storage/Storage.hpp"
+
+#include <memory> // An arbitrary choice to get visibility of std::hash.
 #include <tuple>
 
 namespace Storage::Disk {
