@@ -28,7 +28,7 @@ struct DescriptorTablePointer {
 
 struct DescriptorBounds {
 	uint32_t begin, end;
-	auto operator<=>(const DescriptorBounds &) const = default;
+	auto operator <=>(const DescriptorBounds &) const = default;
 };
 
 enum class DescriptorType {
@@ -253,14 +253,7 @@ struct SegmentDescriptor {
 		}
 	}
 
-	bool operator ==(const SegmentDescriptor &rhs) const {
-		return
-			base_ == rhs.base_ &&
-			offset_ == rhs.offset_ &&
-			bounds_ == rhs.bounds_ &&
-			type_ == rhs.type_ &&
-			segment_ == rhs.segment_;
-	}
+	auto operator <=> (const SegmentDescriptor &) const = default;
 
 private:
 	uint32_t base_;
@@ -308,9 +301,7 @@ struct SegmentRegisterSet {
 		return values_[index_of(segment)];
 	}
 
-	bool operator ==(const SegmentRegisterSet<SegmentT> &rhs) const {
-		return values_ == rhs.values_;
-	}
+	auto operator <=>(const SegmentRegisterSet &rhs) const = default;
 
 private:
 	std::array<SegmentT, 6> values_{};

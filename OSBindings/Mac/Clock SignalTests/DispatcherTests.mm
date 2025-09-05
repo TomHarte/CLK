@@ -65,11 +65,7 @@ struct RangeTarget {
 
 		Event(Type event_type, RangeType range_type, int length) : event_type(event_type), range_type(range_type), length(length) {}
 
-		bool operator ==(const Event &rhs) const {
-			if(rhs.event_type != event_type) return false;
-			if(rhs.range_type != range_type) return false;
-			return rhs.length == length;
-		}
+		auto operator <=> (const Event &) const = default;
 	};
 	std::vector<Event> events;
 

@@ -39,7 +39,7 @@ public:
 		position_ += rhs.position_;
 		return *this;
 	}
-	constexpr auto operator<=>(const HeadPosition&) const = default;
+	constexpr auto operator <=>(const HeadPosition&) const = default;
 
 private:
 	int position_ = 0;
@@ -63,7 +63,7 @@ public:
 		int head;
 		HeadPosition position;
 
-		constexpr auto operator<=>(const Address&) const = default;
+		constexpr auto operator <=>(const Address&) const = default;
 		constexpr Address(int head, HeadPosition position) : head(head), position(position) {}
 	};
 

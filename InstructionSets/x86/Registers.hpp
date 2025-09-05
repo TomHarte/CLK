@@ -69,19 +69,7 @@ public:
 		ip_ = 0;
 	}
 
-	bool operator ==(const Registers &rhs) const {
-		return
-			ax_ == rhs.ax_ &&
-			cx_ == rhs.cx_ &&
-			dx_ == rhs.dx_ &&
-			bx_ == rhs.bx_ &&
-			sp_ == rhs.sp_ &&
-			bp_ == rhs.bp_ &&
-			si_ == rhs.si_ &&
-			di_ == rhs.di_ &&
-			ip_ == rhs.ip_ &&
-			segments_ == rhs.segments_;
-	}
+	auto operator <=> (const Registers &rhs) const = default;
 
 private:
 	CPU::RegisterPair16 ax_;

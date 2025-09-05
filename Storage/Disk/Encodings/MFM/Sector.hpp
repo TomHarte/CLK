@@ -24,9 +24,7 @@ struct Sector {
 	struct Address {
 		uint8_t track = 0, side = 0, sector = 0;
 
-		bool operator < (const Address &rhs) const {
-			return ((track << 24) | (side << 8) | sector) < ((rhs.track << 24) | (rhs.side << 8) | rhs.sector);
-		}
+		auto operator <=>(const Address &) const = default;
 	};
 
 	Address address;
