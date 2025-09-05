@@ -56,45 +56,45 @@ template <Action action, typename IteratorT, typename SampleT> void fill(Iterato
 */
 template <typename SourceT, bool stereo>
 class BufferSource {
-	public:
-		/*!
-			Indicates whether this component will write stereo samples.
-		*/
-		static constexpr bool is_stereo = stereo;
+public:
+	/*!
+		Indicates whether this component will write stereo samples.
+	*/
+	static constexpr bool is_stereo = stereo;
 
-		/*!
-			Should 'apply' the next @c number_of_samples to @c target ; application means applying @c action which can be achieved either via the
-			helper functions above — @c apply and @c fill — or by semantic inspection (primarily, if an obvious quick route for @c Action::Ignore is available).
+	/*!
+		Should 'apply' the next @c number_of_samples to @c target ; application means applying @c action which can be achieved either via the
+		helper functions above — @c apply and @c fill — or by semantic inspection (primarily, if an obvious quick route for @c Action::Ignore is available).
 
-			No default implementation is provided.
-		*/
-		template <Action action>
-		void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target);
+		No default implementation is provided.
+	*/
+	template <Action action>
+	void apply_samples(std::size_t number_of_samples, typename SampleT<stereo>::type *target);
 
-		/*!
-			@returns @c true if it is trivially true that a call to get_samples would just
-				fill the target with zeroes; @c false if a call might return all zeroes or
-				might not.
-		*/
-//		bool is_zero_level() const						{	return false;	}
+	/*!
+		@returns @c true if it is trivially true that a call to get_samples would just
+			fill the target with zeroes; @c false if a call might return all zeroes or
+			might not.
+	*/
+//	bool is_zero_level() const						{	return false;	}
 
-		/*!
-			Sets the proper output range for this sample source; it should write values
-			between 0 and volume.
-		*/
-//		void set_sample_volume_range(std::int16_t volume);
+	/*!
+		Sets the proper output range for this sample source; it should write values
+		between 0 and volume.
+	*/
+//	void set_sample_volume_range(std::int16_t volume);
 
-		/*!
-			Permits a sample source to declare that, averaged over time, it will use only
-			a certain proportion of the allocated volume range. This commonly happens
-			in sample sources that use a time-multiplexed sound output — for example, if
-			one were to output only every other sample then it would return 0.5.
+	/*!
+		Permits a sample source to declare that, averaged over time, it will use only
+		a certain proportion of the allocated volume range. This commonly happens
+		in sample sources that use a time-multiplexed sound output — for example, if
+		one were to output only every other sample then it would return 0.5.
 
-			This is permitted to vary over time but there is no contract as to when it will be
-			used by a speaker. If it varies, it should do so very infrequently and only to
-			represent changes in hardware configuration.
-		*/
-		double average_output_peak() const { return 1.0; }
+		This is permitted to vary over time but there is no contract as to when it will be
+		used by a speaker. If it varies, it should do so very infrequently and only to
+		represent changes in hardware configuration.
+	*/
+	double average_output_peak() const { return 1.0; }
 };
 
 ///
