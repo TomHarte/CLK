@@ -76,7 +76,7 @@ enum class EnabledLevel {
 
 constexpr EnabledLevel enabled_level(const Source source) {
 #ifdef NDEBUG
-	return false;
+	return EnabledLevel::None;
 #endif
 
 	// Allow for compile-time source-level enabling and disabling of different sources.
