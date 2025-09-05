@@ -24,6 +24,10 @@ constexpr Name MaxName = Name::SpectrumPlus3;
 size_t operator ""_kb(const unsigned long long kilobytes) {
 	return kilobytes * 1024;
 }
+
+size_t operator ""_mb(const unsigned long long megabytes) {
+	return megabytes * 1024 * 1024;
+}
 }
 
 Request::Request(Name name, bool optional) {
@@ -238,6 +242,8 @@ std::vector<Description> ROM::all_descriptions() {
 
 const std::vector<Description> &Description::all_roms() {
 	using enum Name;
+	using CRCs = std::initializer_list<uint32_t>;
+	using Files = std::initializer_list<std::string>;
 
 	static const std::vector<Description> descriptions = {
 		{AMSDOS,					"AmstradCPC", "the Amstrad Disk Operating System", "amsdos.rom", 16_kb, 0x1fe22ecdu},
@@ -274,204 +280,122 @@ const std::vector<Description> &Description::all_roms() {
 		{AppleIIgsMicrocontrollerROM03,	"AppleIIgs", "the Apple IIgs ROM03 ADB microcontroller ROM", "341s0632-2", 4_kb, 0xe1c11fb0u},
 
 		{DiskIIBoot16Sector, 			"DiskII", "the Disk II 16-sector boot ROM", "boot-16.rom", 256, 0xce7144f6u},
-		{DiskIIStateMachine16Sector,	"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, std::initializer_list<uint32_t>{ 0x9796a238, 0xb72a2c70 }},
+		{DiskIIStateMachine16Sector,	"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, CRCs{ 0x9796a238, 0xb72a2c70 }},
 		{DiskIIBoot13Sector, 			"DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ffu},
 		{DiskIIStateMachine13Sector, 	"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620u},
 
-//		{EnterpriseEXOS10, "Enterprise", "the Enterprise EXOS ROM v1.0", {"exos10.bin", "Exos (198x)(Enterprise).bin"}, 32 * 1024, 0x30b26387u},
-//		case Name::EnterpriseEXOS20: {
-//			const std::initializer_list<std::string> filenames = {"exos20.bin", "Expandible OS v2.0 (1984)(Intelligent Software).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v2.0", filenames, 32 * 1024, 0xd421795fu);
-//		} break;
-//		case Name::EnterpriseEXOS21: {
-//			const std::initializer_list<std::string> filenames = {"exos21.bin", "Expandible OS v2.1 (1985)(Intelligent Software).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v2.1", filenames, 32 * 1024, 0x982a3b44u);
-//		} break;
-//		case Name::EnterpriseEXOS23: {
-//			const std::initializer_list<std::string> filenames = {"exos23.bin", "Expandible OS v2.3 (1987)(Intelligent Software).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v2.1", filenames, 64 * 1024, 0x24838410u);
-//		} break;
+		{EnterpriseEXOS10, "Enterprise", "the Enterprise EXOS ROM v1.0", Files{"exos10.bin", "Exos (198x)(Enterprise).bin"}, 32_kb, 0x30b26387u},
+		{EnterpriseEXOS20, "Enterprise", "the Enterprise EXOS ROM v2.0", Files{"exos20.bin", "Expandible OS v2.0 (1984)(Intelligent Software).bin"}, 32_kb, 0xd421795fu},
+		{EnterpriseEXOS21, "Enterprise", "the Enterprise EXOS ROM v2.1", Files{"exos21.bin", "Expandible OS v2.1 (1985)(Intelligent Software).bin"}, 32_kb, 0x982a3b44u},
+		{EnterpriseEXOS23, "Enterprise", "the Enterprise EXOS ROM v2.1", Files{"exos23.bin", "Expandible OS v2.3 (1987)(Intelligent Software).bin"}, 64_kb, 0x24838410u},
 
-//		case Name::EnterpriseBASIC10: {
-//			const std::initializer_list<std::string> filenames = {"basic10.bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.0", filenames, 16 * 1024, 0xd62e4fb7u);
-//		} break;
-//		case Name::EnterpriseBASIC10Part1: {
-//			const std::initializer_list<std::string> filenames = {"BASIC 1.0 - EPROM 1-2 (198x)(Enterprise).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.0, Part 1", filenames, 8193, 0x37bf48e1u);
-//		} break;
-//		case Name::EnterpriseBASIC10Part2: {
-//			const std::initializer_list<std::string> filenames = {"BASIC 1.0 - EPROM 2-2 (198x)(Enterprise).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.0, Part 2", filenames, 8193, 0xc5298c79u);
-//		} break;
-//		case Name::EnterpriseBASIC11: {
-//			const std::initializer_list<std::string> filenames = {"basic11.bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.1", filenames, 16 * 1024, 0x683cf455u);
-//		} break;
-//		case Name::EnterpriseBASIC11Suffixed: {
-//			const std::initializer_list<std::string> filenames = {"BASIC 1.1 - EPROM 1.1 (198x)(Enterprise).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.1, with trailing byte", filenames, 16385, 0xc96b7602u);
-//		} break;
-//		case Name::EnterpriseBASIC21: {
-//			const std::initializer_list<std::string> filenames = {
-//				"basic21.bin",
-//				"BASIC Interpreter v2.1 (1985)(Intelligent Software).bin",
-//				"BASIC Interpreter v2.1 (1985)(Intelligent Software)[a].bin"
-//			};
-//			const std::initializer_list<uint32_t> crcs = { 0x55f96251, 0x683cf455 };
-//			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v2.1", filenames, 16 * 1024, crcs);
-//		} break;
-//
-//		case Name::EnterpriseEPDOS: {
-//			const std::initializer_list<std::string> filenames = {"epdos.bin", "EPDOS v1.7 (19xx)(Haluska, Laszlo).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise EPDOS ROM", filenames, 32 * 1024, 0x201319ebu);
-//		} break;
-//		case Name::EnterpriseEXDOS: {
-//			const std::initializer_list<std::string> filenames = {"exdos.bin", "EX-DOS EPROM (198x)(Enterprise).bin"};
-//			*this = Description(name, "Enterprise", "the Enterprise EXDOS ROM", filenames, 16 * 1024, 0xe6daa0e9u);
-//		} break;
-//
+		{EnterpriseBASIC10, "Enterprise", "the Enterprise BASIC ROM v1.0", "basic10.bin", 16_kb, 0xd62e4fb7u},
+		{EnterpriseBASIC10Part1, "Enterprise", "the Enterprise BASIC ROM v1.0, Part 1", "BASIC 1.0 - EPROM 1-2 (198x)(Enterprise).bin", 8193, 0x37bf48e1u},
+		{EnterpriseBASIC10Part2, "Enterprise", "the Enterprise BASIC ROM v1.0, Part 2", "BASIC 1.0 - EPROM 2-2 (198x)(Enterprise).bin", 8193, 0xc5298c79u},
+		{EnterpriseBASIC11, "Enterprise", "the Enterprise BASIC ROM v1.1", "basic11.bin", 16_kb, 0x683cf455u},
+		{EnterpriseBASIC11Suffixed, "Enterprise", "the Enterprise BASIC ROM v1.1, with trailing byte", "BASIC 1.1 - EPROM 1.1 (198x)(Enterprise).bin", 16385, 0xc96b7602u},
+		{
+			EnterpriseBASIC21,
+			"Enterprise",
+			"the Enterprise BASIC ROM v2.1",
+			Files{
+				"basic21.bin",
+				"BASIC Interpreter v2.1 (1985)(Intelligent Software).bin",
+				"BASIC Interpreter v2.1 (1985)(Intelligent Software)[a].bin"
+			},
+			16_kb,
+			CRCs{ 0x55f96251, 0x683cf455 }
+		},
+
+		{EnterpriseEPDOS, "Enterprise", "the Enterprise EPDOS ROM", Files{"epdos.bin", "EPDOS v1.7 (19xx)(Haluska, Laszlo).bin"}, 32_kb, 0x201319ebu},
+		{EnterpriseEXDOS, "Enterprise", "the Enterprise EXDOS ROM", Files{"exdos.bin", "EX-DOS EPROM (198x)(Enterprise).bin"}, 16_kb, 0xe6daa0e9u},
+
 		{Macintosh128k, "Macintosh", "the Macintosh 128k ROM", "mac128k.rom", 64_kb, 0x6d0c8a28u},
 		{Macintosh512k, "Macintosh", "the Macintosh 512k ROM", "mac512k.rom", 64_kb, 0xcf759e0du},
-//		case Name::MacintoshPlus: {
-//			const std::initializer_list<uint32_t> crcs = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
-//			*this = Description(name, "Macintosh", "the Macintosh Plus ROM", "macplus.rom", 128_kb, crcs);
-//		} break;
-//
-//		case Name::AtariSTTOS100:		*this = Description(name, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192_kb, 0x1a586c64u);		break;
-//		case Name::AtariSTTOS104:		*this = Description(name, "AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192_kb, 0xa50d1d43u);		break;
-//
-//		case Name::ColecoVisionBIOS:
-//			*this = Description(name, "ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8_kb, 0x3aa93ef3u);
-//		break;
-//
-//		case Name::ZX80:	*this = Description(name, "ZX8081", "the ZX80 BASIC ROM", "zx80.rom", 4 * 1024, 0x4c7fc597u);	break;
-//		case Name::ZX81:	*this = Description(name, "ZX8081", "the ZX81 BASIC ROM", "zx81.rom", 8 * 1024, 0x4b1dd6ebu);	break;
-//
-//		case Name::Spectrum48k:		*this = Description(name, "ZXSpectrum", "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531fu);		break;
-//		case Name::Spectrum128k:	*this = Description(name, "ZXSpectrum", "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995u);	break;
-//		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu);		break;
-//		case Name::SpectrumPlus3: {
-//			const std::initializer_list<uint32_t> crcs = { 0x96e3c17a, 0xbe0d9ec4 };
-//			*this = Description(name, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crcs);
-//		} break;
-//
-//		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16_kb, 0x79434781u);				break;
-//		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16_kb, 0x51523993u);	break;
-//		case Name::PRESADFSSlot2:	*this = Description(name, "Electron", "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16_kb, 0x8d17de0eu); break;
-//		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16_kb, 0x3289bdc6u);					break;
-//		case Name::Acorn1770DFS:	*this = Description(name, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16_kb, 0xf3dc9bc5u);			break;
-//		case Name::AcornIDEADFS103:
-//			*this = Description(name, "Electron", "the IDE-mofidied ADFS 1.03 ROM", "ELK130E.rom", 16_kb, 0xa923368du);
-//		break;
-//		case Name::PRESAdvancedPlus6:
-//			*this = Description(name, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8_kb, 0xe0013cfcu);
-//		break;
-//		case Name::AcornElectronMOS100:
-//			*this = Description(name, "Electron", "the Electron MOS ROM v1.00", "os.rom", 16_kb, 0xbf63fb1fu);
-//		break;
-//
-//		case Name::AcornArthur030:
-//			*this = Description(name, "Archimedes", "Arthur v0.30", "ROM030", 512_kb, 0x5df8ed42u);
-//		break;
-//		case Name::AcornRISCOS200:
-//			*this = Description(name, "Archimedes", "RISC OS v2.00", "ROM200", 512_kb, 0x89c4ad36u);
-//		break;
-//		case Name::AcornRISCOS311:
-//			*this = Description(name, "Archimedes", "RISC OS v3.11", "ROM311", 2_kb_kb, 0x54c0c963u);
-//		break;
-//		case Name::AcornRISCOS319:
-//			*this = Description(name, "Archimedes", "RISC OS v3.19", "ROM319", 2_kb_kb, 0x00c7a3d3u);
-//		break;
-//
-//		case Name::MasterSystemJapaneseBIOS:	*this = Description(name, "MasterSystem", "the Japanese Master System BIOS", "japanese-bios.sms", 8_kb, 0x48d44a13u); break;
-//		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8_kb, 0x0072ed54u);		break;
-//
-//		case Name::Commodore1540:	*this = Description(name, "Commodore1540", "the 1540 ROM", "1540.bin", 16_kb, 0x718d42b1u);	break;
-//		case Name::Commodore1541:	*this = Description(name, "Commodore1540", "the 1541 ROM", "1541.bin", 16_kb, 0xfb760019);	break;
-//
-//		case Name::Vic20BASIC:				*this = Description(name, "Vic20", "the VIC-20 BASIC ROM", "basic.bin", 8_kb, 0xdb4c43c1u);									break;
-//		case Name::Vic20EnglishCharacters:	*this = Description(name, "Vic20", "the English-language VIC-20 character ROM", "characters-english.bin", 4_kb, 0x83e032a6u);	break;
-//		case Name::Vic20EnglishPALKernel:	*this = Description(name, "Vic20", "the English-language PAL VIC-20 kernel ROM", "kernel-pal.bin", 8_kb, 0x4be07cb4u);		break;
-//		case Name::Vic20EnglishNTSCKernel:	*this = Description(name, "Vic20", "the English-language NTSC VIC-20 kernel ROM", "kernel-ntsc.bin", 8_kb, 0xe5e7c174u);		break;
-//		case Name::Vic20DanishCharacters:	*this = Description(name, "Vic20", "the Danish VIC-20 character ROM", "characters-danish.bin", 4_kb, 0x7fc11454u);			break;
-//		case Name::Vic20DanishKernel:		*this = Description(name, "Vic20", "the Danish VIC-20 kernel ROM", "kernel-danish.bin", 8_kb, 0x02adaf16u);					break;
-//		case Name::Vic20JapaneseCharacters:	*this = Description(name, "Vic20", "the Japanese VIC-20 character ROM", "characters-japanese.bin", 4_kb, 0xfcfd8a4bu);		break;
-//		case Name::Vic20JapaneseKernel:		*this = Description(name, "Vic20", "the Japanese VIC-20 kernel ROM", "kernel-japanese.bin", 8_kb, 0x336900d7u);				break;
-//		case Name::Vic20SwedishCharacters:	*this = Description(name, "Vic20", "the Swedish VIC-20 character ROM", "characters-swedish.bin", 4_kb, 0xd808551du);			break;
-//		case Name::Vic20SwedishKernel:		*this = Description(name, "Vic20", "the Swedish VIC-20 kernel ROM", "kernel-swedish.bin", 8_kb, 0xb2a60662u);					break;
-//
-//		case Name::OricColourROM:		*this = Description(name, "Oric", "the Oric colour ROM", "colour.rom", 128, 0xd50fca65u);			break;
-//		case Name::OricBASIC10:			*this = Description(name, "Oric", "Oric BASIC 1.0", "basic10.rom", 16_kb, 0xf18710b4u);			break;
-//		case Name::OricBASIC11:			*this = Description(name, "Oric", "Oric BASIC 1.1", "basic11.rom", 16_kb, 0xc3a92befu);			break;
-//		case Name::OricPravetzBASIC:	*this = Description(name, "Oric", "Pravetz BASIC", "pravetz.rom", 16_kb, 0x58079502u);			break;
-//		case Name::OricByteDrive500:	*this = Description(name, "Oric", "the Oric Byte Drive 500 ROM", "bd500.rom", 8_kb, 0x61952e34u);	break;
-//		case Name::OricJasmin:			*this = Description(name, "Oric", "the Oric Jasmin ROM", "jasmin.rom", 2_kb, 0x37220e89u);		break;
-//		case Name::OricMicrodisc:		*this = Description(name, "Oric", "the Oric Microdisc ROM", "microdisc.rom", 8_kb, 0xa9664a9cu);	break;
-//		case Name::Oric8DOSBoot:		*this = Description(name, "Oric", "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u);				break;
-//
-//		case Name::PCCompatibleGLaBIOS:
-//			*this = Description(name, "PCCompatible", "8088 GLaBIOS 0.2.5", "GLABIOS_0.2.5_8T.ROM", 8 * 1024, 0x9576944cu);
-//		break;
-//		case Name::PCCompatibleGLaTICK:
-//			*this = Description(name, "PCCompatible", "AT GLaTICK 0.8.5", "GLaTICK_0.8.5_AT.ROM", 2 * 1024, 0x371ea3f1u);
-//		break;
-//		case Name::PCCompatiblePhoenix80286BIOS:
-//			*this = Description(name, "PCCompatible", "Phoenix 80286 BIOS 3.05", "Phoenix 80286 ROM BIOS Version 3.05.bin", 32 * 1024, 0x8d0d318au);
-//		break;
-//		case Name::PCCompatibleIBMATBIOS:
-//			*this = Description(name, "PCCompatible", "IBM PC AT BIOS v3", "at-bios.bin", 64 * 1024, 0x674426beu);
-//		break;
-//		case Name::PCCompatibleIBMATBIOSNov85U27:
-//			*this = Description(name, "PCCompatible", "IBM PC AT BIOS; 15th Nov 1985; U27", "BIOS_5170_15NOV85_U27_61X9266_27256.BIN", 32 * 1024, 0x4995be7au);
-//		break;
-//		case Name::PCCompatibleIBMATBIOSNov85U47:
-//			*this = Description(name, "PCCompatible", "IBM PC AT BIOS; 15th Nov 1985; U47", "BIOS_5170_15NOV85_U47_61X9265_27256.BIN", 32 * 1024, 0xc32713e4u);
-//		break;
-//		case Name::PCCompatibleCGAFont:
-//			*this = Description(name, "PCCompatible", "IBM's CGA font", "CGA.F08", 8 * 256, 0xa362ffe6u);
-//		break;
-//		case Name::PCCompatibleMDAFont:
-//			*this = Description(name, "PCCompatible", "IBM's MDA font", "EUMDA9.F14", 14 * 256, 0x7754882au);
-//		break;
-//		case Name::PCCompatibleEGABIOS:
-//			*this = Description(name, "PCCompatible", "IBM's EGA BIOS", "ibm_6277356_ega_card_u44_27128.bin", 16 * 1024, 0x2f2fbc40u);
-//		break;
-//		case Name::PCCompatibleVGABIOS:
-//			*this = Description(name, "PCCompatible", "IBM's VGA BIOS", "ibm_vga.bin", 32 * 1024, 0x03b3f90du);
-//		break;
-//
-//		case Name::IBMBASIC110:
-//			*this = Description(name, "PCCompatible", "IBM ROM BIOS 1.10", "ibm-basic-1.10.rom", 32 * 1024, 0xebacb791u);
-//		break;
-//
-//		// TODO: CRCs below are incomplete, at best.
-//		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32_kb, 0x94ee12f3u);			break;
-//		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32_kb, 0xee229390u);	break;
-//		case Name::MSXAmericanBIOS:	*this = Description(name, "MSX", "an American MSX BIOS", "msx-american.rom", 32_kb, 0u);			break;
-//		case Name::MSXEuropeanBIOS:	*this = Description(name, "MSX", "a European MSX BIOS", "msx-european.rom", 32_kb, 0u);			break;
-//		case Name::MSXDOS:			*this = Description(name, "MSX", "the MSX-DOS ROM", "disk.rom", 16_kb, 0x721f61dfu);				break;
-//
-//		case Name::MSX2GenericBIOS:	*this = Description(name, "MSX", "a generic MSX2 BIOS", "msx2.rom", 32_kb, 0x6cdaf3a5u);			break;
-//		case Name::MSX2Extension:	*this = Description(name, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16_kb, 0x66237ecfu);	break;
-//		case Name::MSXMusic:		*this = Description(name, "MSX", "the MSX-MUSIC / FM-PAC ROM", "fmpac.rom", 64_kb, 0x0e84505du);	break;
-//
-//		case Name::Plus4KernelPALv3:
-//			*this = Description(name, "Plus4", "the C16+4 kernel, PAL-G revision 3", "kernal.318004-03.bin", 16_kb, 0x77bab934u);
-//		break;
-//		case Name::Plus4KernelPALv4:
-//			*this = Description(name, "Plus4", "the C16+4 kernel, PAL-G revision 4", "kernal.318004-04.bin", 16_kb, 0xbe54ed79u);
-//		break;
-//		case Name::Plus4KernelPALv5:
-//			*this = Description(name, "Plus4", "the C16+4 kernel, PAL-G revision 5", "kernal.318004-05.bin", 16_kb, 0x71c07bd4u);
-//		break;
-//		case Name::Plus4BASIC:
-//			*this = Description(name, "Plus4", "the C16+4 BASIC ROM", "basic.318006-01.bin", 16_kb, 0x74eaae87u);
-//		break;
-//
-//		case Name::SinclairQLJS:
-//			*this = Description(name, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48_kb, 0x0f95aab5u);
-//		break;
+		{MacintoshPlus, "Macintosh", "the Macintosh Plus ROM", "macplus.rom", 128_kb, CRCs{ 0x4fa5b399, 0x7cacd18f, 0xb2102e8e }},
+
+		{AtariSTTOS100, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192_kb, 0x1a586c64u},
+		{AtariSTTOS104, "AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192_kb, 0xa50d1d43u},
+
+		{ColecoVisionBIOS, "ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8_kb, 0x3aa93ef3u},
+
+		{ZX80, "ZX8081", "the ZX80 BASIC ROM", "zx80.rom", 4_kb, 0x4c7fc597u},
+		{ZX81, "ZX8081", "the ZX81 BASIC ROM", "zx81.rom", 8_kb, 0x4b1dd6ebu},
+
+		{Spectrum48k, "ZXSpectrum", "the 48kb ROM", "48.rom", 16_kb, 0xddee531fu},
+		{Spectrum128k, "ZXSpectrum", "the 128kb ROM", "128.rom", 32_kb, 0x2cbe8995u},
+		{SpecrumPlus2, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32_kb, 0xe7a517dcu},
+		{SpectrumPlus3, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64_kb, CRCs{ 0x96e3c17a, 0xbe0d9ec4 }},
+
+		{AcornBASICII, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16_kb, 0x79434781u},
+		{PRESADFSSlot1, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16_kb, 0x51523993u},
+		{PRESADFSSlot2, "Electron", "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16_kb, 0x8d17de0eu},
+		{AcornADFS, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16_kb, 0x3289bdc6u},
+		{Acorn1770DFS, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16_kb, 0xf3dc9bc5u},
+		{AcornIDEADFS103, "Electron", "the IDE-mofidied ADFS 1.03 ROM", "ELK130E.rom", 16_kb, 0xa923368du},
+		{PRESAdvancedPlus6, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8_kb, 0xe0013cfcu},
+		{AcornElectronMOS100, "Electron", "the Electron MOS ROM v1.00", "os.rom", 16_kb, 0xbf63fb1fu},
+
+		{AcornArthur030, "Archimedes", "Arthur v0.30", "ROM030", 512_kb, 0x5df8ed42u},
+		{AcornRISCOS200, "Archimedes", "RISC OS v2.00", "ROM200", 512_kb, 0x89c4ad36u},
+		{AcornRISCOS311, "Archimedes", "RISC OS v3.11", "ROM311", 2_mb, 0x54c0c963u},
+		{AcornRISCOS319, "Archimedes", "RISC OS v3.19", "ROM319", 2_mb, 0x00c7a3d3u},
+
+		{MasterSystemJapaneseBIOS, "MasterSystem", "the Japanese Master System BIOS", "japanese-bios.sms", 8_kb, 0x48d44a13u},
+		{MasterSystemWesternBIOS, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8_kb, 0x0072ed54u},
+
+		{Commodore1540, "Commodore1540", "the 1540 ROM", "1540.bin", 16_kb, 0x718d42b1u},
+		{Commodore1541, "Commodore1540", "the 1541 ROM", "1541.bin", 16_kb, 0xfb760019},
+
+		{Vic20BASIC, "Vic20", "the VIC-20 BASIC ROM", "basic.bin", 8_kb, 0xdb4c43c1u},
+		{Vic20EnglishCharacters, "Vic20", "the English-language VIC-20 character ROM", "characters-english.bin", 4_kb, 0x83e032a6u},
+		{Vic20EnglishPALKernel, "Vic20", "the English-language PAL VIC-20 kernel ROM", "kernel-pal.bin", 8_kb, 0x4be07cb4u},
+		{Vic20EnglishNTSCKernel, "Vic20", "the English-language NTSC VIC-20 kernel ROM", "kernel-ntsc.bin", 8_kb, 0xe5e7c174u},
+		{Vic20DanishCharacters, "Vic20", "the Danish VIC-20 character ROM", "characters-danish.bin", 4_kb, 0x7fc11454u},
+		{Vic20DanishKernel, "Vic20", "the Danish VIC-20 kernel ROM", "kernel-danish.bin", 8_kb, 0x02adaf16u},
+		{Vic20JapaneseCharacters, "Vic20", "the Japanese VIC-20 character ROM", "characters-japanese.bin", 4_kb, 0xfcfd8a4bu},
+		{Vic20JapaneseKernel, "Vic20", "the Japanese VIC-20 kernel ROM", "kernel-japanese.bin", 8_kb, 0x336900d7u},
+		{Vic20SwedishCharacters, "Vic20", "the Swedish VIC-20 character ROM", "characters-swedish.bin", 4_kb, 0xd808551du},
+		{Vic20SwedishKernel, "Vic20", "the Swedish VIC-20 kernel ROM", "kernel-swedish.bin", 8_kb, 0xb2a60662u},
+
+		{OricColourROM, "Oric", "the Oric colour ROM", "colour.rom", 128, 0xd50fca65u},
+		{OricBASIC10, "Oric", "Oric BASIC 1.0", "basic10.rom", 16_kb, 0xf18710b4u},
+		{OricBASIC11, "Oric", "Oric BASIC 1.1", "basic11.rom", 16_kb, 0xc3a92befu},
+		{OricPravetzBASIC, "Oric", "Pravetz BASIC", "pravetz.rom", 16_kb, 0x58079502u},
+		{OricByteDrive500, "Oric", "the Oric Byte Drive 500 ROM", "bd500.rom", 8_kb, 0x61952e34u},
+		{OricJasmin, "Oric", "the Oric Jasmin ROM", "jasmin.rom", 2_kb, 0x37220e89u},
+		{OricMicrodisc, "Oric", "the Oric Microdisc ROM", "microdisc.rom", 8_kb, 0xa9664a9cu},
+		{Oric8DOSBoot, "Oric", "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u},
+
+		{PCCompatibleGLaBIOS, "PCCompatible", "8088 GLaBIOS 0.2.5", "GLABIOS_0.2.5_8T.ROM", 8_kb, 0x9576944cu},
+		{PCCompatibleGLaTICK, "PCCompatible", "AT GLaTICK 0.8.5", "GLaTICK_0.8.5_AT.ROM", 2_kb, 0x371ea3f1u},
+		{PCCompatiblePhoenix80286BIOS, "PCCompatible", "Phoenix 80286 BIOS 3.05", "Phoenix 80286 ROM BIOS Version 3.05.bin", 32_kb, 0x8d0d318au},
+		{PCCompatibleIBMATBIOS, "PCCompatible", "IBM PC AT BIOS v3", "at-bios.bin", 64_kb, 0x674426beu},
+		{PCCompatibleIBMATBIOSNov85U27, "PCCompatible", "IBM PC AT BIOS; 15th Nov 1985; U27", "BIOS_5170_15NOV85_U27_61X9266_27256.BIN", 32_kb, 0x4995be7au},
+		{PCCompatibleIBMATBIOSNov85U47, "PCCompatible", "IBM PC AT BIOS; 15th Nov 1985; U47", "BIOS_5170_15NOV85_U47_61X9265_27256.BIN", 32_kb, 0xc32713e4u},
+		{PCCompatibleCGAFont, "PCCompatible", "IBM's CGA font", "CGA.F08", 8 * 256, 0xa362ffe6u},
+		{PCCompatibleMDAFont, "PCCompatible", "IBM's MDA font", "EUMDA9.F14", 14 * 256, 0x7754882au},
+		{PCCompatibleEGABIOS, "PCCompatible", "IBM's EGA BIOS", "ibm_6277356_ega_card_u44_27128.bin", 16_kb, 0x2f2fbc40u},
+		{PCCompatibleVGABIOS, "PCCompatible", "IBM's VGA BIOS", "ibm_vga.bin", 32_kb, 0x03b3f90du},
+		{IBMBASIC110, "PCCompatible", "IBM ROM BIOS 1.10", "ibm-basic-1.10.rom", 32_kb, 0xebacb791u},
+
+		// TODO: MSX CRCs below are incomplete, at best.
+		{MSXGenericBIOS, "MSX", "a generix MSX BIOS", "msx.rom", 32_kb, 0x94ee12f3u},
+		{MSXJapaneseBIOS, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32_kb, 0xee229390u},
+		{MSXAmericanBIOS, "MSX", "an American MSX BIOS", "msx-american.rom", 32_kb, 0u},
+		{MSXEuropeanBIOS, "MSX", "a European MSX BIOS", "msx-european.rom", 32_kb, 0u},
+		{MSXDOS, "MSX", "the MSX-DOS ROM", "disk.rom", 16_kb, 0x721f61dfu},
+
+		{MSX2GenericBIOS, "MSX", "a generic MSX2 BIOS", "msx2.rom", 32_kb, 0x6cdaf3a5u},
+		{MSX2Extension, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16_kb, 0x66237ecfu},
+		{MSXMusic, "MSX", "the MSX-MUSIC / FM-PAC ROM", "fmpac.rom", 64_kb, 0x0e84505du},
+
+		{Plus4KernelPALv3, "Plus4", "the C16+4 kernel, PAL-G revision 3", "kernal.318004-03.bin", 16_kb, 0x77bab934u},
+		{Plus4KernelPALv4, "Plus4", "the C16+4 kernel, PAL-G revision 4", "kernal.318004-04.bin", 16_kb, 0xbe54ed79u},
+		{Plus4KernelPALv5, "Plus4", "the C16+4 kernel, PAL-G revision 5", "kernal.318004-05.bin", 16_kb, 0x71c07bd4u},
+		{Plus4BASIC, "Plus4", "the C16+4 BASIC ROM", "basic.318006-01.bin", 16_kb, 0x74eaae87u},
+
+		{SinclairQLJS, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48_kb, 0x0f95aab5u},
 	};
 
 	return descriptions;

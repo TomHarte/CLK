@@ -227,7 +227,7 @@ private:
 		const Name name,
 		const char *machine_name,
 		const char *descriptive_name,
-		const FileNameT file_names,
+		const FileNameT &file_names,
 		const size_t size,
 		const CRC32T crc32s = uint32_t(0)
 	) :
