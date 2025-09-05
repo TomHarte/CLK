@@ -128,12 +128,7 @@ public:
 
 	forceinline constexpr T operator -() const						{	return T(- length_);				}
 
-	forceinline constexpr bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
-	forceinline constexpr bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
-	forceinline constexpr bool operator <=(const T &rhs) const		{	return length_ <= rhs.length_;		}
-	forceinline constexpr bool operator >=(const T &rhs) const		{	return length_ >= rhs.length_;		}
-	forceinline constexpr bool operator ==(const T &rhs) const		{	return length_ == rhs.length_;		}
-	forceinline constexpr bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
+	auto operator <=>(const WrappedInt &) const = default;
 
 	forceinline constexpr bool operator !() const					{	return !length_;					}
 	// bool operator () is not supported because it offers an implicit cast to int,

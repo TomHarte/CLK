@@ -186,9 +186,7 @@ public:
 
 	InstructionSet::x86::SegmentRegisterSet<Descriptor> descriptors;
 
-	bool operator ==(const Segments &rhs) const {
-		return descriptors == rhs.descriptors;
-	}
+	auto operator <=>(const Segments &rhs) const = default;
 
 private:
 	void load_real(const Source segment) {
