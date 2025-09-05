@@ -327,7 +327,7 @@ private:
 			}
 		} else switch(command_) {
 			default:
-				log_.info().append("Keyboard command unimplemented", command_);
+				log_.info().append("Unimplemented keyboard controller command: %02x", command_);
 			break;
 
 			case Command::WriteCommandByte:
@@ -378,7 +378,7 @@ private:
 		}
 	}
 
-	Log::Logger<Log::Source::Keyboard> log_;
+	[[no_unique_address]] Log::Logger<Log::Source::Keyboard> log_;
 
 	PICs<model> &pics_;
 	Speaker &speaker_;
@@ -431,6 +431,10 @@ private:
 
 		void perform(const uint8_t command) {
 			switch(command) {
+				default:
+					log_.error().append("Unimplemented keyboard command: %02x", command);
+				break;
+
 				case 0xf2:
 					controller_.post_keyboard({0xfa});
 				break;
@@ -443,6 +447,7 @@ private:
 
 	private:
 		KeyboardController<model> &controller_;
+		[[no_unique_address]] Log::Logger<Log::Source::Keyboard> log_;
 	} keyboard_;
 
 	friend Keyboard;

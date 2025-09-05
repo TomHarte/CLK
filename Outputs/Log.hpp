@@ -87,7 +87,7 @@ constexpr bool is_enabled(const Source source) {
 		case Source::SCC:
 		case Source::SCSI:
 		case Source::I2C:
-//		case Source::Keyboard:
+		case Source::Floppy:
 			return false;
 	}
 }
