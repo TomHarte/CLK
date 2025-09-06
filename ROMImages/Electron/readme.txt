@@ -8,7 +8,8 @@ DFS-1770-2.20.rom	— used only if the user opens a DFS disk image
 ADFS-E00_1.rom		— used only if the user opens an ADFS disk image
 ADFS-E00_2.rom
 AP6v133.rom			— used only if the user opens a disk image that makes use of any of the commands given below.
-adfs.rom			- used only if the user opens a hard disk image
+adfs.rom			— used only if the user opens a hard disk image or requests a SCSI interface
+ELK103.rom			— used only if the user requests an IDE interface
 
 Possibly to be desired in the future:
 * os300.rom

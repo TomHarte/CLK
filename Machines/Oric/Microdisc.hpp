@@ -15,30 +15,30 @@
 namespace Oric {
 
 class Microdisc: public DiskController {
-	public:
-		Microdisc();
+public:
+	Microdisc();
 
-		void set_control_register(uint8_t control);
-		uint8_t get_interrupt_request_register();
-		uint8_t get_data_request_register();
+	void set_control_register(uint8_t control);
+	uint8_t get_interrupt_request_register();
+	uint8_t get_data_request_register();
 
-		bool get_interrupt_request_line();
+	bool get_interrupt_request_line();
 
-		void run_for(const Cycles cycles);
+	void run_for(const Cycles cycles);
 
-		void set_activity_observer(Activity::Observer *observer);
+	void set_activity_observer(Activity::Observer *observer);
 
-	private:
-		void set_head_load_request(bool head_load) final;
+private:
+	void set_head_load_request(bool head_load) final;
 
-		void set_control_register(uint8_t control, uint8_t changes);
-		uint8_t last_control_ = 0;
-		bool irq_enable_ = false;
+	void set_control_register(uint8_t control, uint8_t changes);
+	uint8_t last_control_ = 0;
+	bool irq_enable_ = false;
 
-		Cycles::IntType head_load_request_counter_ = -1;
-		bool head_load_request_ = false;
+	Cycles::IntType head_load_request_counter_ = -1;
+	bool head_load_request_ = false;
 
-		Activity::Observer *observer_ = nullptr;
+	Activity::Observer *observer_ = nullptr;
 };
 
 }

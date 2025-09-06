@@ -16,6 +16,8 @@
 namespace Log {
 // TODO: if adopting C++20, std::format would be a better model to apply below.
 // But I prefer C files to C++ streams, so here it is for now.
+// Also noting: Apple's std::format support seems to require macOS 13.3, so
+// that'd be a bitter pill to swallow.
 
 enum class Source {
 	ADBDevice,
@@ -66,14 +68,21 @@ enum class Source {
 	WDFDC,
 };
 
-constexpr bool is_enabled(const Source source) {
+enum class EnabledLevel {
+	None,				// No logged statements are presented.
+	Errors,				// The error stream is presented, but not the info stream.
+	ErrorsAndInfo,		// All streams are presented.
+};
+
+constexpr EnabledLevel enabled_level(const Source source) {
 #ifdef NDEBUG
-	return false;
+	return EnabledLevel::None;
 #endif
 
 	// Allow for compile-time source-level enabling and disabling of different sources.
 	switch(source) {
-		default: return true;
+		default:
+			return EnabledLevel::ErrorsAndInfo;
 
 		// The following are all things I'm not actively working on.
 		case Source::AmigaBlitter:
@@ -87,8 +96,10 @@ constexpr bool is_enabled(const Source source) {
 		case Source::SCC:
 		case Source::SCSI:
 		case Source::I2C:
+			return EnabledLevel::None;
+
 		case Source::Floppy:
-			return false;
+			return EnabledLevel::Errors;
 	}
 }
 
@@ -150,12 +161,9 @@ template <Source source>
 struct LogLine<source, true> {
 public:
 	explicit LogLine(FILE *const stream) noexcept : stream_(stream) {
-		const auto source_prefix = prefix(source);
+		static constexpr auto source_prefix = prefix(source);
 		if(!source_prefix) return;
-
-		output_.resize(strlen(source_prefix) + 4);
-		std::snprintf(output_.data(), output_.size(), "[%s] ", source_prefix);
-		output_.pop_back();
+		append("[%s] ", source_prefix);
 	}
 
 	~LogLine() {
@@ -200,9 +208,11 @@ struct LogLine<source, false> {
 template <Source source>
 class Logger {
 public:
-	static constexpr bool enabled = is_enabled(source);
-	static LogLine<source, enabled> info()	{	return LogLine<source, enabled>(stdout);	}
-	static LogLine<source, enabled> error()	{	return LogLine<source, enabled>(stderr);	}
+	static constexpr bool InfoEnabled = enabled_level(source) == EnabledLevel::ErrorsAndInfo;
+	static constexpr bool ErrorsEnabled = enabled_level(source) >= EnabledLevel::Errors;
+
+	static auto info()	{	return LogLine<source, InfoEnabled>(stdout);	}
+	static auto error()	{	return LogLine<source, ErrorsEnabled>(stderr);	}
 };
 
 }

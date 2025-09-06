@@ -23,33 +23,33 @@ namespace Oric {
 	see the thread at https://forum.defence-force.org/viewtopic.php?f=25&t=2055
 */
 class BD500: public DiskController {
-	public:
-		BD500();
+public:
+	BD500();
 
-		void write(int address, uint8_t value);
-		uint8_t read(int address);
+	void write(int address, uint8_t value);
+	uint8_t read(int address);
 
-		void run_for(const Cycles cycles);
+	void run_for(const Cycles cycles);
 
-		void set_activity_observer(Activity::Observer *observer);
+	void set_activity_observer(Activity::Observer *observer);
 
-	private:
-		void set_head_load_request(bool head_load) final;
-		bool is_loading_head_ = false;
-		Activity::Observer *observer_ = nullptr;
+private:
+	void set_head_load_request(bool head_load) final;
+	bool is_loading_head_ = false;
+	Activity::Observer *observer_ = nullptr;
 
-		void access(int address);
-		void set_head_loaded(bool loaded);
+	void access(int address);
+	void set_head_loaded(bool loaded);
 
-		bool enable_overlay_ram_ = false;
-		bool disable_basic_rom_ = false;
-		void select_paged_item() {
-			PagedItem item = PagedItem::RAM;
-			if(!enable_overlay_ram_) {
-				item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
-			}
-			set_paged_item(item);
+	bool enable_overlay_ram_ = false;
+	bool disable_basic_rom_ = false;
+	void select_paged_item() {
+		PagedItem item = PagedItem::RAM;
+		if(!enable_overlay_ram_) {
+			item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
 		}
+		set_paged_item(item);
+	}
 };
 
 }

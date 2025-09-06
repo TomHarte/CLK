@@ -23,10 +23,10 @@ struct Machine {
 
 	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
 		friend Configurable::DisplayOption<Options>;
-		public:
-			Options(Configurable::OptionsType type) :
-				Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ?
-					Configurable::Display::SVideo : Configurable::Display::CompositeColour) {}
+	public:
+		Options(Configurable::OptionsType type) :
+			Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ?
+				Configurable::Display::SVideo : Configurable::Display::CompositeColour) {}
 
 	private:
 		Options() : Options(Configurable::OptionsType::UserFriendly) {}
