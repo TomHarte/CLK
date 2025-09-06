@@ -1076,12 +1076,12 @@ const std::vector<Description> &Description::all_roms() {
 	return descriptions;
 }
 
-Request::Request(Name name, bool optional) {
+Request::Request(const Name name, const bool optional) {
 	node.name = name;
 	node.is_optional = optional;
 }
 
-Request Request::append(Node::Type type, const Request &rhs) {
+Request Request::append(const Node::Type type, const Request &rhs) {
 	// If either side is empty, act appropriately.
 	if(node.empty() && !rhs.node.empty()) {
 		return rhs;
@@ -1093,7 +1093,11 @@ Request Request::append(Node::Type type, const Request &rhs) {
 	// Just copy in the RHS child nodes if types match.
 	if(node.type == type && rhs.node.type == type) {
 		Request new_request = *this;
-		new_request.node.children.insert(new_request.node.children.end(), rhs.node.children.begin(), rhs.node.children.end());
+		new_request.node.children.insert(
+			new_request.node.children.end(),
+			rhs.node.children.begin(),
+			rhs.node.children.end()
+		);
 		new_request.node.sort();
 		return new_request;
 	}
@@ -1242,7 +1246,12 @@ void Request::visit(
 		[&indentation_level] {
 			--indentation_level;
 		},
-		[&indentation_level, &add_item] (ROM::Request::ListType type, const ROM::Description &rom, bool is_optional, size_t remaining) {
+		[&indentation_level, &add_item] (
+			const ROM::Request::ListType type,
+			const ROM::Description &rom,
+			const bool is_optional,
+			const size_t remaining
+		) {
 			add_item(LineItem::Description, type, indentation_level, &rom, is_optional, remaining);
 		}
 	);
@@ -1251,7 +1260,14 @@ void Request::visit(
 void Request::Node::visit(
 	const std::function<void(ListType, size_t)> &enter_list,
 	const std::function<void(void)> &exit_list,
-	const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
+	const std::function<
+		void(
+			ROM::Request::ListType type,
+			const ROM::Description &,
+			bool is_optional,
+			size_t remaining
+		)
+	> &add_item
 ) const {
 	switch(type) {
 		case Type::One:
@@ -1417,7 +1433,6 @@ std::wstring Request::description(const int description_flags, const wchar_t bul
 
 	return output.str();
 }
-
 
 std::optional<Description> Description::from_crc(const uint32_t crc32) {
 	const auto all = all_roms();
