@@ -37,38 +37,38 @@ enum Key: uint16_t {
 };
 
 class Keyboard {
-	public:
-		Keyboard(Machine machine);
+public:
+	Keyboard(Machine machine);
 
-		void set_key_state(uint16_t key, bool is_pressed);
-		void clear_all_keys();
+	void set_key_state(uint16_t key, bool is_pressed);
+	void clear_all_keys();
 
-		uint8_t read(uint16_t address);
+	uint8_t read(uint16_t address);
 
-	private:
-		uint8_t key_states_[8];
-		const Machine machine_;
+private:
+	uint8_t key_states_[8];
+	const Machine machine_;
 };
 
 class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
-	public:
-		KeyboardMapper(Machine machine);
+public:
+	KeyboardMapper(Machine machine);
 
-		uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const override;
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const override;
 
-	private:
-		const Machine machine_;
+private:
+	const Machine machine_;
 };
 
 class CharacterMapper: public ::Utility::CharacterMapper {
-	public:
-		CharacterMapper(Machine machine);
-		const uint16_t *sequence_for_character(char character) const override;
+public:
+	CharacterMapper(Machine machine);
+	const uint16_t *sequence_for_character(char character) const override;
 
-		bool needs_pause_after_key(uint16_t key) const override;
+	bool needs_pause_after_key(uint16_t key) const override;
 
-	private:
-		const Machine machine_;
+private:
+	const Machine machine_;
 };
 
 }

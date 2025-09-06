@@ -44,37 +44,37 @@ namespace {
 Log::Logger<Log::Source::Plus4> logger;
 
 class Joystick: public Inputs::ConcreteJoystick {
-	public:
-		Joystick() :
-			ConcreteJoystick({
-				Input(Input::Up),
-				Input(Input::Down),
-				Input(Input::Left),
-				Input(Input::Right),
-				Input(Input::Fire)
-			}) {}
+public:
+	Joystick() :
+		ConcreteJoystick({
+			Input(Input::Up),
+			Input(Input::Down),
+			Input(Input::Left),
+			Input(Input::Right),
+			Input(Input::Fire)
+		}) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) final {
-			const auto apply = [&](uint8_t mask) {
-				if(is_active) mask_ &= ~mask; else mask_ |= mask;
-			};
+	void did_set_input(const Input &digital_input, bool is_active) final {
+		const auto apply = [&](uint8_t mask) {
+			if(is_active) mask_ &= ~mask; else mask_ |= mask;
+		};
 
-			switch(digital_input.type) {
-				default: return;
-				case Input::Right:	apply(0x08);	break;
-				case Input::Left:	apply(0x04);	break;
-				case Input::Down:	apply(0x02);	break;
-				case Input::Up:		apply(0x01);	break;
-				case Input::Fire:	apply(0xc0);	break;
-			}
+		switch(digital_input.type) {
+			default: return;
+			case Input::Right:	apply(0x08);	break;
+			case Input::Left:	apply(0x04);	break;
+			case Input::Down:	apply(0x02);	break;
+			case Input::Up:		apply(0x01);	break;
+			case Input::Fire:	apply(0xc0);	break;
 		}
+	}
 
-		uint8_t mask() const {
-			return mask_;
-		}
+	uint8_t mask() const {
+		return mask_;
+	}
 
-	private:
-		uint8_t mask_ = 0xff;
+private:
+	uint8_t mask_ = 0xff;
 };
 
 class Timers {
