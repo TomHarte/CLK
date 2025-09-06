@@ -48,134 +48,134 @@ enum class Timing {
 */
 
 template <Timing timing> class Video {
-	private:
-		struct Timings {
-			// Number of cycles per line. Will be 224 or 228.
-			int half_cycles_per_line;
-			// Number of lines comprising a whole frame. Will be 311 or 312.
-			int lines_per_frame;
+private:
+	struct Timings {
+		// Number of cycles per line. Will be 224 or 228.
+		int half_cycles_per_line;
+		// Number of lines comprising a whole frame. Will be 311 or 312.
+		int lines_per_frame;
 
-			// Number of cycles before first pixel fetch that contention starts to be applied.
-			int contention_leadin;
-			// Period in a line for which contention is applied.
-			int contention_duration;
+		// Number of cycles before first pixel fetch that contention starts to be applied.
+		int contention_leadin;
+		// Period in a line for which contention is applied.
+		int contention_duration;
 
-			// Number of cycles after first pixel fetch at which interrupt is first signalled.
-			int interrupt_time;
+		// Number of cycles after first pixel fetch at which interrupt is first signalled.
+		int interrupt_time;
 
-			// Contention to apply, in whole cycles, as a function of number of whole cycles since
-			// contention began.
-			int delays[8];
+		// Contention to apply, in whole cycles, as a function of number of whole cycles since
+		// contention began.
+		int delays[8];
 
-			constexpr Timings(
-				const int cycles_per_line,
-				const int lines_per_frame,
-				const int contention_leadin,
-				const int contention_duration,
-				const int interrupt_offset,
-				const int (&delays)[8])
-			noexcept :
-				half_cycles_per_line(cycles_per_line * 2),
-				lines_per_frame(lines_per_frame),
-				contention_leadin(contention_leadin * 2),
-				contention_duration(contention_duration * 2),
-				interrupt_time((cycles_per_line * lines_per_frame - interrupt_offset - contention_leadin) * 2),
-				delays{
-					delays[0] * 2,
-					delays[1] * 2,
-					delays[2] * 2,
-					delays[3] * 2,
-					delays[4] * 2,
-					delays[5] * 2,
-					delays[6] * 2,
-					delays[7] * 2
-				}
-			 {}
-		};
-
-		static constexpr Timings get_timings() {
-			if constexpr (timing == Timing::Plus3) {
-				constexpr int delays[] = {1, 0, 7, 6, 5, 4, 3, 2};
-				return Timings(228, 311, 6, 129, 14361, delays);
+		constexpr Timings(
+			const int cycles_per_line,
+			const int lines_per_frame,
+			const int contention_leadin,
+			const int contention_duration,
+			const int interrupt_offset,
+			const int (&delays)[8])
+		noexcept :
+			half_cycles_per_line(cycles_per_line * 2),
+			lines_per_frame(lines_per_frame),
+			contention_leadin(contention_leadin * 2),
+			contention_duration(contention_duration * 2),
+			interrupt_time((cycles_per_line * lines_per_frame - interrupt_offset - contention_leadin) * 2),
+			delays{
+				delays[0] * 2,
+				delays[1] * 2,
+				delays[2] * 2,
+				delays[3] * 2,
+				delays[4] * 2,
+				delays[5] * 2,
+				delays[6] * 2,
+				delays[7] * 2
 			}
+		 {}
+	};
 
-			if constexpr (timing == Timing::OneTwoEightK) {
-				constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
-				return Timings(228, 311, 4, 128, 14361, delays);
-			}
-
-			if constexpr (timing == Timing::FortyEightK) {
-				constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
-				return Timings(224, 312, 4, 128, 14335, delays);
-			}
+	static constexpr Timings get_timings() {
+		if constexpr (timing == Timing::Plus3) {
+			constexpr int delays[] = {1, 0, 7, 6, 5, 4, 3, 2};
+			return Timings(228, 311, 6, 129, 14361, delays);
 		}
 
-		// Interrupt should be held for 32 cycles.
-		static constexpr int interrupt_duration = 64;
+		if constexpr (timing == Timing::OneTwoEightK) {
+			constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
+			return Timings(228, 311, 4, 128, 14361, delays);
+		}
 
-	public:
-		void run_for(HalfCycles duration) {
-			static constexpr auto timings = get_timings();
+		if constexpr (timing == Timing::FortyEightK) {
+			constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
+			return Timings(224, 312, 4, 128, 14335, delays);
+		}
+	}
 
-			static constexpr int sync_line = (timings.interrupt_time / timings.half_cycles_per_line) + 1;
+	// Interrupt should be held for 32 cycles.
+	static constexpr int interrupt_duration = 64;
 
-			static constexpr int sync_position = (timing == Timing::FortyEightK) ? 164 * 2 : 166 * 2;
-			static constexpr int sync_length = 17 * 2;
-			static constexpr int burst_position = sync_position + 40;
-			static constexpr int burst_length = 17;
+public:
+	void run_for(HalfCycles duration) {
+		static constexpr auto timings = get_timings();
 
-			int cycles_remaining = duration.as<int>();
-			while(cycles_remaining) {
-				int line = time_into_frame_ / timings.half_cycles_per_line;
-				int offset = time_into_frame_ % timings.half_cycles_per_line;
-				const int cycles_this_line = std::min(cycles_remaining, timings.half_cycles_per_line - offset);
-				const int end_offset = offset + cycles_this_line;
+		static constexpr int sync_line = (timings.interrupt_time / timings.half_cycles_per_line) + 1;
 
-				if(!offset) {
-					is_alternate_line_ ^= true;
+		static constexpr int sync_position = (timing == Timing::FortyEightK) ? 164 * 2 : 166 * 2;
+		static constexpr int sync_length = 17 * 2;
+		static constexpr int burst_position = sync_position + 40;
+		static constexpr int burst_length = 17;
 
-					if(!line) {
-						flash_counter_ = (flash_counter_ + 1) & 31;
-						flash_mask_ = uint8_t(flash_counter_ >> 4);
-					}
+		int cycles_remaining = duration.as<int>();
+		while(cycles_remaining) {
+			int line = time_into_frame_ / timings.half_cycles_per_line;
+			int offset = time_into_frame_ % timings.half_cycles_per_line;
+			const int cycles_this_line = std::min(cycles_remaining, timings.half_cycles_per_line - offset);
+			const int end_offset = offset + cycles_this_line;
+
+			if(!offset) {
+				is_alternate_line_ ^= true;
+
+				if(!line) {
+					flash_counter_ = (flash_counter_ + 1) & 31;
+					flash_mask_ = uint8_t(flash_counter_ >> 4);
 				}
+			}
 
-				if(line >= sync_line && line < sync_line + 3) {
-					// Output sync line.
-					crt_.output_sync(cycles_this_line);
+			if(line >= sync_line && line < sync_line + 3) {
+				// Output sync line.
+				crt_.output_sync(cycles_this_line);
+			} else {
+				if(line >= 192) {
+					// Output plain border line.
+					if(offset < sync_position) {
+						const int border_duration = std::min(sync_position, end_offset) - offset;
+						crt_.output_level<uint8_t>(border_duration, border_colour_);
+						offset += border_duration;
+					}
 				} else {
-					if(line >= 192) {
-						// Output plain border line.
-						if(offset < sync_position) {
-							const int border_duration = std::min(sync_position, end_offset) - offset;
-							crt_.output_level<uint8_t>(border_duration, border_colour_);
-							offset += border_duration;
+					// Output pixel line.
+					if(offset < 256) {
+						const int pixel_duration = std::min(256, end_offset) - offset;
+
+						if(!offset) {
+							pixel_target_ = crt_.begin_data(256);
+							attribute_address_ = ((line >> 3) << 5) + 6144;
+							pixel_address_ = ((line & 0x07) << 8) | ((line & 0x38) << 2) | ((line & 0xc0) << 5);
 						}
-					} else {
-						// Output pixel line.
-						if(offset < 256) {
-							const int pixel_duration = std::min(256, end_offset) - offset;
 
-							if(!offset) {
-								pixel_target_ = crt_.begin_data(256);
-								attribute_address_ = ((line >> 3) << 5) + 6144;
-								pixel_address_ = ((line & 0x07) << 8) | ((line & 0x38) << 2) | ((line & 0xc0) << 5);
-							}
+						if(pixel_target_) {
+							const int start_column = offset >> 4;
+							const int end_column = (offset + pixel_duration) >> 4;
+							for(int column = start_column; column < end_column; column++) {
+								last_fetches_[0] = memory_[pixel_address_];
+								last_fetches_[1] = memory_[attribute_address_];
+								last_fetches_[2] = memory_[pixel_address_+1];
+								last_fetches_[3] = memory_[attribute_address_+1];
+								set_last_contended_area_access(last_fetches_[3]);
 
-							if(pixel_target_) {
-								const int start_column = offset >> 4;
-								const int end_column = (offset + pixel_duration) >> 4;
-								for(int column = start_column; column < end_column; column++) {
-									last_fetches_[0] = memory_[pixel_address_];
-									last_fetches_[1] = memory_[attribute_address_];
-									last_fetches_[2] = memory_[pixel_address_+1];
-									last_fetches_[3] = memory_[attribute_address_+1];
-									set_last_contended_area_access(last_fetches_[3]);
+								pixel_address_ += 2;
+								attribute_address_ += 2;
 
-									pixel_address_ += 2;
-									attribute_address_ += 2;
-
-									constexpr uint8_t masks[] = {0, 0xff};
+								constexpr uint8_t masks[] = {0, 0xff};
 
 #define Output(n)	\
 	{				\
@@ -198,269 +198,269 @@ template <Timing timing> class Video {
 		pixel_target_ += 8;									\
 	}
 
-									Output(0);
-									Output(2);
+								Output(0);
+								Output(2);
 
 #undef Output
-								}
-							}
-
-							offset += pixel_duration;
-							if(offset == 256) {
-								crt_.output_data(256);
-								pixel_target_ = nullptr;
 							}
 						}
 
-						if(offset >= 256 && offset < sync_position && end_offset > offset) {
-							const int border_duration = std::min(sync_position, end_offset) - offset;
-							crt_.output_level<uint8_t>(border_duration, border_colour_);
-							offset += border_duration;
+						offset += pixel_duration;
+						if(offset == 256) {
+							crt_.output_data(256);
+							pixel_target_ = nullptr;
 						}
 					}
 
-					// Output the common tail to border and pixel lines: sync, blank, colour burst, border.
-
-					if(offset >= sync_position && offset < sync_position + sync_length && end_offset > offset) {
-						const int sync_duration = std::min(sync_position + sync_length, end_offset) - offset;
-						crt_.output_sync(sync_duration);
-						offset += sync_duration;
-					}
-
-					if(offset >= sync_position + sync_length && offset < burst_position && end_offset > offset) {
-						const int blank_duration = std::min(burst_position, end_offset) - offset;
-						crt_.output_blank(blank_duration);
-						offset += blank_duration;
-					}
-
-					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
-						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-
-						if constexpr (timing >= Timing::OneTwoEightK) {
-							crt_.output_colour_burst(burst_duration, 116, is_alternate_line_);
-							// The colour burst phase above is an empirical guess. I need to research further.
-						} else {
-							crt_.output_default_colour_burst(burst_duration);
-						}
-						offset += burst_duration;
-					}
-
-					if(offset >= burst_position+burst_length && end_offset > offset) {
-						crt_.output_level<uint8_t>(end_offset - offset, border_colour_);
+					if(offset >= 256 && offset < sync_position && end_offset > offset) {
+						const int border_duration = std::min(sync_position, end_offset) - offset;
+						crt_.output_level<uint8_t>(border_duration, border_colour_);
+						offset += border_duration;
 					}
 				}
 
-				cycles_remaining -= cycles_this_line;
-				time_into_frame_ = (time_into_frame_ + cycles_this_line) % (timings.half_cycles_per_line * timings.lines_per_frame);
-			}
-		}
+				// Output the common tail to border and pixel lines: sync, blank, colour burst, border.
 
-	private:
-		static constexpr int half_cycles_per_line() {
-			if constexpr (timing == Timing::FortyEightK) {
-				// TODO: determine real figure here, if one exists.
-				// The source I'm looking at now suggests that the theoretical
-				// ideal of 224*2 ignores the real-life effects of separate
-				// crystals, so I've nudged this experimentally.
-				return 224*2 - 1;
-			} else {
-				return 227*2;
-			}
-		}
+				if(offset >= sync_position && offset < sync_position + sync_length && end_offset > offset) {
+					const int sync_duration = std::min(sync_position + sync_length, end_offset) - offset;
+					crt_.output_sync(sync_duration);
+					offset += sync_duration;
+				}
 
-		static constexpr HalfCycles frame_duration() {
-			const auto timings = get_timings();
-			return HalfCycles(timings.half_cycles_per_line * timings.lines_per_frame);
-		}
+				if(offset >= sync_position + sync_length && offset < burst_position && end_offset > offset) {
+					const int blank_duration = std::min(burst_position, end_offset) - offset;
+					crt_.output_blank(blank_duration);
+					offset += blank_duration;
+				}
 
-		HalfCycles time_since_interrupt() {
-			const auto timings = get_timings();
-			if(time_into_frame_ >= timings.interrupt_time) {
-				return HalfCycles(time_into_frame_ - timings.interrupt_time);
-			} else {
-				return HalfCycles(time_into_frame_) + frame_duration() - HalfCycles(timings.interrupt_time);
-			}
-		}
+				if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
+					const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
 
-		void set_time_since_interrupt(const HalfCycles time) {
-			// Advance using run_for to ensure that all proper CRT interactions occurred.
-			const auto timings = get_timings();
-			const auto target = (time + timings.interrupt_time) % frame_duration();
-			const auto now = HalfCycles(time_into_frame_);
+					if constexpr (timing >= Timing::OneTwoEightK) {
+						crt_.output_colour_burst(burst_duration, 116, is_alternate_line_);
+						// The colour burst phase above is an empirical guess. I need to research further.
+					} else {
+						crt_.output_default_colour_burst(burst_duration);
+					}
+					offset += burst_duration;
+				}
 
-			// Maybe this is easy?
-			if(target == now) return;
-
-			// Is the time within this frame?
-			if(time > now) {
-				run_for(target - time);
-				return;
+				if(offset >= burst_position+burst_length && end_offset > offset) {
+					crt_.output_level<uint8_t>(end_offset - offset, border_colour_);
+				}
 			}
 
-			// Then it's necessary to finish this frame and run into the next.
-			run_for(frame_duration() - now + time);
+			cycles_remaining -= cycles_this_line;
+			time_into_frame_ = (time_into_frame_ + cycles_this_line) % (timings.half_cycles_per_line * timings.lines_per_frame);
+		}
+	}
+
+private:
+	static constexpr int half_cycles_per_line() {
+		if constexpr (timing == Timing::FortyEightK) {
+			// TODO: determine real figure here, if one exists.
+			// The source I'm looking at now suggests that the theoretical
+			// ideal of 224*2 ignores the real-life effects of separate
+			// crystals, so I've nudged this experimentally.
+			return 224*2 - 1;
+		} else {
+			return 227*2;
+		}
+	}
+
+	static constexpr HalfCycles frame_duration() {
+		const auto timings = get_timings();
+		return HalfCycles(timings.half_cycles_per_line * timings.lines_per_frame);
+	}
+
+	HalfCycles time_since_interrupt() {
+		const auto timings = get_timings();
+		if(time_into_frame_ >= timings.interrupt_time) {
+			return HalfCycles(time_into_frame_ - timings.interrupt_time);
+		} else {
+			return HalfCycles(time_into_frame_) + frame_duration() - HalfCycles(timings.interrupt_time);
+		}
+	}
+
+	void set_time_since_interrupt(const HalfCycles time) {
+		// Advance using run_for to ensure that all proper CRT interactions occurred.
+		const auto timings = get_timings();
+		const auto target = (time + timings.interrupt_time) % frame_duration();
+		const auto now = HalfCycles(time_into_frame_);
+
+		// Maybe this is easy?
+		if(target == now) return;
+
+		// Is the time within this frame?
+		if(time > now) {
+			run_for(target - time);
+			return;
 		}
 
-	public:
-		Video() :
-			crt_(half_cycles_per_line(), 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
-		{
-			// Show only the centre 80% of the TV frame.
-			crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-			crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+		// Then it's necessary to finish this frame and run into the next.
+		run_for(frame_duration() - now + time);
+	}
 
-			// Get the CRT roughly into phase.
-			//
-			// TODO: this is coupled to an assumption about the initial CRT. Fix.
-			const auto timings = get_timings();
-			crt_.output_blank(timings.lines_per_frame*timings.half_cycles_per_line - timings.interrupt_time);
+public:
+	Video() :
+		crt_(half_cycles_per_line(), 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
+	{
+		// Show only the centre 80% of the TV frame.
+		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+		crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+
+		// Get the CRT roughly into phase.
+		//
+		// TODO: this is coupled to an assumption about the initial CRT. Fix.
+		const auto timings = get_timings();
+		crt_.output_blank(timings.lines_per_frame*timings.half_cycles_per_line - timings.interrupt_time);
+	}
+
+	void set_video_source(const uint8_t *source) {
+		memory_ = source;
+	}
+
+	/*!
+		@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
+	*/
+	HalfCycles next_sequence_point() {
+		constexpr auto timings = get_timings();
+
+		// Is the frame still ahead of this interrupt?
+		if(time_into_frame_ < timings.interrupt_time) {
+			return HalfCycles(timings.interrupt_time - time_into_frame_);
 		}
 
-		void set_video_source(const uint8_t *source) {
-			memory_ = source;
+		// If not, is it within this interrupt?
+		if(time_into_frame_ < timings.interrupt_time + interrupt_duration) {
+			return HalfCycles(timings.interrupt_time + interrupt_duration - time_into_frame_);
 		}
 
-		/*!
-			@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
-		*/
-		HalfCycles next_sequence_point() {
-			constexpr auto timings = get_timings();
+		// If not, it'll be in the next batch.
+		return timings.interrupt_time + timings.half_cycles_per_line * timings.lines_per_frame - time_into_frame_;
+	}
 
-			// Is the frame still ahead of this interrupt?
-			if(time_into_frame_ < timings.interrupt_time) {
-				return HalfCycles(timings.interrupt_time - time_into_frame_);
-			}
+	/*!
+		@returns The current state of the interrupt output.
+	*/
+	bool get_interrupt_line() const {
+		constexpr auto timings = get_timings();
+		return time_into_frame_ >= timings.interrupt_time && time_into_frame_ < timings.interrupt_time + interrupt_duration;
+	}
 
-			// If not, is it within this interrupt?
-			if(time_into_frame_ < timings.interrupt_time + interrupt_duration) {
-				return HalfCycles(timings.interrupt_time + interrupt_duration - time_into_frame_);
-			}
+	/*!
+		@returns How many cycles the [ULA/gate array] would delay the CPU for if it were to recognise that contention
+		needs to be applied in @c offset half-cycles from now.
+	*/
+	HalfCycles access_delay(HalfCycles offset) const {
+		constexpr auto timings = get_timings();
+		const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.half_cycles_per_line * timings.lines_per_frame);
+		assert(!(delay_time&1));
 
-			// If not, it'll be in the next batch.
-			return timings.interrupt_time + timings.half_cycles_per_line * timings.lines_per_frame - time_into_frame_;
+		// Check for a time within the no-contention window.
+		if(delay_time >= (191*timings.half_cycles_per_line + timings.contention_duration)) {
+			return 0;
 		}
 
-		/*!
-			@returns The current state of the interrupt output.
-		*/
-		bool get_interrupt_line() const {
-			constexpr auto timings = get_timings();
-			return time_into_frame_ >= timings.interrupt_time && time_into_frame_ < timings.interrupt_time + interrupt_duration;
+		const int time_into_line = delay_time % timings.half_cycles_per_line;
+		if(time_into_line >= timings.contention_duration) {
+			return 0;
 		}
 
-		/*!
-			@returns How many cycles the [ULA/gate array] would delay the CPU for if it were to recognise that contention
-			needs to be applied in @c offset half-cycles from now.
-		*/
-		HalfCycles access_delay(HalfCycles offset) const {
-			constexpr auto timings = get_timings();
-			const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.half_cycles_per_line * timings.lines_per_frame);
-			assert(!(delay_time&1));
+		return HalfCycles(timings.delays[(time_into_line >> 1) & 7]);
+	}
 
-			// Check for a time within the no-contention window.
-			if(delay_time >= (191*timings.half_cycles_per_line + timings.contention_duration)) {
-				return 0;
-			}
+	/*!
+		@returns Whatever the ULA or gate array would expose via the floating bus, this cycle.
+	*/
+	uint8_t get_floating_value() const {
+		constexpr auto timings = get_timings();
+		const uint8_t out_of_bounds = (timing == Timing::Plus3) ? last_contended_access_ : 0xff;
 
-			const int time_into_line = delay_time % timings.half_cycles_per_line;
-			if(time_into_line >= timings.contention_duration) {
-				return 0;
-			}
-
-			return HalfCycles(timings.delays[(time_into_line >> 1) & 7]);
+		const int line = time_into_frame_ / timings.half_cycles_per_line;
+		if(line >= 192) {
+			return out_of_bounds;
 		}
 
-		/*!
-			@returns Whatever the ULA or gate array would expose via the floating bus, this cycle.
-		*/
-		uint8_t get_floating_value() const {
-			constexpr auto timings = get_timings();
-			const uint8_t out_of_bounds = (timing == Timing::Plus3) ? last_contended_access_ : 0xff;
-
-			const int line = time_into_frame_ / timings.half_cycles_per_line;
-			if(line >= 192) {
-				return out_of_bounds;
-			}
-
-			const int time_into_line = time_into_frame_ % timings.half_cycles_per_line;
-			if(time_into_line >= 256 || (time_into_line&8)) {
-				return out_of_bounds;
-			}
-
-			// The +2a and +3 always return the low bit as set.
-			const uint8_t value = last_fetches_[(time_into_line >> 1) & 3];
-			if constexpr (timing == Timing::Plus3) {
-				return value | 1;
-			}
-			return value;
+		const int time_into_line = time_into_frame_ % timings.half_cycles_per_line;
+		if(time_into_line >= 256 || (time_into_line&8)) {
+			return out_of_bounds;
 		}
 
-		/*!
-			Relevant to the +2a and +3 only, sets the most recent value read from or
-			written to contended memory. This is what will be returned if the floating
-			bus is accessed when the gate array isn't currently reading.
-		*/
-		void set_last_contended_area_access([[maybe_unused]] uint8_t value) {
-			if constexpr (timing == Timing::Plus3) {
-				last_contended_access_ = value | 1;
-			}
+		// The +2a and +3 always return the low bit as set.
+		const uint8_t value = last_fetches_[(time_into_line >> 1) & 3];
+		if constexpr (timing == Timing::Plus3) {
+			return value | 1;
 		}
+		return value;
+	}
 
-		/*!
-			Sets the current border colour.
-		*/
-		void set_border_colour(uint8_t colour) {
-			border_byte_ = colour;
-			border_colour_ = palette[colour];
+	/*!
+		Relevant to the +2a and +3 only, sets the most recent value read from or
+		written to contended memory. This is what will be returned if the floating
+		bus is accessed when the gate array isn't currently reading.
+	*/
+	void set_last_contended_area_access([[maybe_unused]] uint8_t value) {
+		if constexpr (timing == Timing::Plus3) {
+			last_contended_access_ = value | 1;
 		}
+	}
 
-		/// Sets the scan target.
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
-			crt_.set_scan_target(scan_target);
-		}
+	/*!
+		Sets the current border colour.
+	*/
+	void set_border_colour(uint8_t colour) {
+		border_byte_ = colour;
+		border_colour_ = palette[colour];
+	}
 
-		/// Gets the current scan status.
-		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return crt_.get_scaled_scan_status();
-		}
+	/// Sets the scan target.
+	void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+		crt_.set_scan_target(scan_target);
+	}
 
-		/*! Sets the type of display the CRT will request. */
-		void set_display_type(Outputs::Display::DisplayType type) {
-			crt_.set_display_type(type);
-		}
+	/// Gets the current scan status.
+	Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		return crt_.get_scaled_scan_status();
+	}
 
-		/*! Gets the display type. */
-		Outputs::Display::DisplayType get_display_type() const {
-			return crt_.get_display_type();
-		}
+	/*! Sets the type of display the CRT will request. */
+	void set_display_type(Outputs::Display::DisplayType type) {
+		crt_.set_display_type(type);
+	}
 
-	private:
-		int time_into_frame_ = 0;
-		Outputs::CRT::CRT crt_;
-		const uint8_t *memory_ = nullptr;
-		uint8_t border_colour_ = 0;
-		uint8_t border_byte_ = 0;
+	/*! Gets the display type. */
+	Outputs::Display::DisplayType get_display_type() const {
+		return crt_.get_display_type();
+	}
 
-		uint8_t *pixel_target_ = nullptr;
-		int attribute_address_ = 0;
-		int pixel_address_ = 0;
+private:
+	int time_into_frame_ = 0;
+	Outputs::CRT::CRT crt_;
+	const uint8_t *memory_ = nullptr;
+	uint8_t border_colour_ = 0;
+	uint8_t border_byte_ = 0;
 
-		uint8_t flash_mask_ = 0;
-		int flash_counter_ = 0;
-		bool is_alternate_line_ = false;
+	uint8_t *pixel_target_ = nullptr;
+	int attribute_address_ = 0;
+	int pixel_address_ = 0;
 
-		uint8_t last_fetches_[4] = {0xff, 0xff, 0xff, 0xff};
-		uint8_t last_contended_access_ = 0xff;
+	uint8_t flash_mask_ = 0;
+	int flash_counter_ = 0;
+	bool is_alternate_line_ = false;
 
-		friend struct State;
+	uint8_t last_fetches_[4] = {0xff, 0xff, 0xff, 0xff};
+	uint8_t last_contended_access_ = 0xff;
+
+	friend struct State;
 
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
-		static constexpr uint8_t palette[] = {
-			RGB(0, 0, 0),	RGB(0, 0, 2),	RGB(2, 0, 0),	RGB(2, 0, 2),
-			RGB(0, 2, 0),	RGB(0, 2, 2),	RGB(2, 2, 0),	RGB(2, 2, 2),
-			RGB(0, 0, 0),	RGB(0, 0, 3),	RGB(3, 0, 0),	RGB(3, 0, 3),
-			RGB(0, 3, 0),	RGB(0, 3, 3),	RGB(3, 3, 0),	RGB(3, 3, 3),
-		};
+	static constexpr uint8_t palette[] = {
+		RGB(0, 0, 0),	RGB(0, 0, 2),	RGB(2, 0, 0),	RGB(2, 0, 2),
+		RGB(0, 2, 0),	RGB(0, 2, 2),	RGB(2, 2, 0),	RGB(2, 2, 2),
+		RGB(0, 0, 0),	RGB(0, 0, 3),	RGB(3, 0, 0),	RGB(3, 0, 3),
+		RGB(0, 3, 0),	RGB(0, 3, 3),	RGB(3, 3, 0),	RGB(3, 3, 3),
+	};
 #undef RGB
 };
 
