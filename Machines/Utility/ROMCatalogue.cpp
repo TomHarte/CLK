@@ -611,7 +611,7 @@ const std::vector<Description> &Description::all_roms() {
 		{
 			AcornIDEADFS103,
 			"Electron",
-			"the IDE-mofidied ADFS 1.03 ROM",
+			"the IDE-modified ADFS 1.03 ROM",
 			"ELK130E.rom",
 			16_kb,
 			0xa923368du
