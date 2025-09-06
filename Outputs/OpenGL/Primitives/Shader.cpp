@@ -24,7 +24,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	test_gl(glShaderSource, shader, 1, &c_str, NULL);
 	test_gl(glCompileShader, shader);
 
-	if constexpr (logger.enabled) {
+	if constexpr (logger.ErrorsEnabled) {
 		GLint isCompiled = 0;
 		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
 		if(isCompiled == GL_FALSE) {
@@ -69,7 +69,7 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 	for(const auto &binding : attribute_bindings) {
 		test_gl(glBindAttribLocation, shader_program_, binding.index, binding.name.c_str());
 
-		if constexpr (logger.enabled) {
+		if constexpr (logger.ErrorsEnabled) {
 			const auto error = glGetError();
 			switch(error) {
 				case 0: break;
@@ -88,7 +88,7 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 
 	test_gl(glLinkProgram, shader_program_);
 
-	if constexpr (logger.enabled) {
+	if constexpr (logger.ErrorsEnabled) {
 		GLint logLength;
 		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {

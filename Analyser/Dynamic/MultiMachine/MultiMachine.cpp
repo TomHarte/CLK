@@ -71,7 +71,7 @@ bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachi
 void MultiMachine::did_run_machines(MultiTimedMachine &) {
 	std::lock_guard machines_lock(machines_mutex_);
 
-	if constexpr (logger.enabled) {
+	if constexpr (logger.InfoEnabled) {
 		auto line = logger.info();
 		for(const auto &machine: machines_) {
 			auto timed_machine = machine->timed_machine();
