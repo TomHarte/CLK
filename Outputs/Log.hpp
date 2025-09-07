@@ -96,9 +96,11 @@ constexpr EnabledLevel enabled_level(const Source source) {
 		case Source::SCC:
 		case Source::SCSI:
 		case Source::I2C:
+		case Source::PCPOST:
 			return EnabledLevel::None;
 
 		case Source::Floppy:
+		case Source::Keyboard:
 			return EnabledLevel::Errors;
 	}
 }
