@@ -162,7 +162,7 @@ public:
 			break;
 
 			case 0x0060:
-				log_.error().append("Keyboard parameter set to %02x", value);
+				log_.info().append("Keyboard parameter set to %02x", value);
 				phase_ = Phase::Data;
 				input_ = value;
 				has_input_ = true;
@@ -203,7 +203,7 @@ public:
 						pics_.pic[0].template apply_edge<1>(false);
 					}
 				}
-				log_.error().append("Read from keyboard controller of %02x", output_queue_[output_read_]);
+				log_.info().append("Read from keyboard controller of %02x", output_queue_[output_read_]);
 				return output_queue_[output_read_];
 			}
 
@@ -231,7 +231,7 @@ public:
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
 					(has_output()				? 0x01 : 0x00);
-//				log_.error().append("Reading status: %02x", status);
+				log_.info().append("Reading status: %02x", status);
 				return status;
 			}
 		}
@@ -320,7 +320,7 @@ private:
 		if(requires_parameter(command_)) has_input_ = false;
 
 		if(command_ >= Command::ResetBlockBegin) {
-			log_.error().append("Should reset: %x", command_ & 0x0f);
+			log_.info().append("Should reset: %x", command_ & 0x0f);
 
 			if(!(command_ & 1)) {
 				cpu_control_->reset();
