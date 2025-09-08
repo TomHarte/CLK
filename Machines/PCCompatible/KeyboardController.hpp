@@ -386,7 +386,7 @@ private:
 		}
 	}
 
-	[[no_unique_address]] Log::Logger<Log::Source::Keyboard> log_;
+	Log::Logger<Log::Source::Keyboard> log_;
 
 	PICs<model> &pics_;
 	Speaker &speaker_;
@@ -456,7 +456,7 @@ private:
 		}
 
 	private:
-		[[no_unique_address]] Log::Logger<Log::Source::Keyboard> log_;
+		Log::Logger<Log::Source::Keyboard> log_;
 
 		KeyboardController<model> &controller_;
 		ByteQueue output_;

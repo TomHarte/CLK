@@ -120,7 +120,7 @@ private:
 	uint8_t controller_data_;
 	uint8_t controller_status_;
 
-	[[no_unique_address]] Log::Logger<Log::Source::IDE> log_;
+	mutable Log::Logger<Log::Source::IDE> log_;
 };
 
 }

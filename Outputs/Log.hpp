@@ -159,17 +159,36 @@ constexpr const char *prefix(const Source source) {
 template <Source source, bool enabled>
 struct LogLine;
 
+template <bool enabled> struct RepeatAccumulator {};
+template <> struct RepeatAccumulator<true> {
+	std::string last;
+	size_t count = 0;
+};
+
 template <Source source>
 struct LogLine<source, true> {
 public:
-	explicit LogLine(FILE *const stream) noexcept : stream_(stream) {
+	explicit LogLine(RepeatAccumulator<true> &accumulator, FILE *const stream) noexcept :
+		accumulator_(accumulator), stream_(stream)
+	{
 		static constexpr auto source_prefix = prefix(source);
 		if(!source_prefix) return;
 		append("[%s] ", source_prefix);
 	}
 
 	~LogLine() {
-		fprintf(stream_, "%s\n", output_.c_str());
+		if(output_ == accumulator_.last) {
+			++accumulator_.count;
+			return;
+		}
+
+		if(accumulator_.count > 1) {
+			fprintf(stream_, "%s\t\t{* %zu}\n", accumulator_.last.c_str(), accumulator_.count);
+		} else {
+			fprintf(stream_, "%s\n", accumulator_.last.c_str());
+		}
+		accumulator_.count = 1;
+		accumulator_.last = output_;
 	}
 
 	template <size_t size, typename... Args>
@@ -192,13 +211,14 @@ public:
 	}
 
 private:
-	std::string output_;
+	RepeatAccumulator<true> &accumulator_;
 	FILE *stream_;
+	std::string output_;
 };
 
 template <Source source>
 struct LogLine<source, false> {
-	explicit LogLine(FILE *) noexcept {}
+	explicit LogLine(RepeatAccumulator<false> &, FILE *) noexcept {}
 
 	template <size_t size, typename... Args>
 	auto &append(const char (&)[size], Args...) { return *this; }
@@ -213,8 +233,12 @@ public:
 	static constexpr bool InfoEnabled = enabled_level(source) == EnabledLevel::ErrorsAndInfo;
 	static constexpr bool ErrorsEnabled = enabled_level(source) >= EnabledLevel::Errors;
 
-	static auto info()	{	return LogLine<source, InfoEnabled>(stdout);	}
-	static auto error()	{	return LogLine<source, ErrorsEnabled>(stderr);	}
+	auto info()		{	return LogLine<source, InfoEnabled>(last_info_, stdout);	}
+	auto error()	{	return LogLine<source, ErrorsEnabled>(last_error_, stderr);	}
+
+private:
+	RepeatAccumulator<InfoEnabled> last_info_;
+	RepeatAccumulator<ErrorsEnabled> last_error_;
 };
 
 }
