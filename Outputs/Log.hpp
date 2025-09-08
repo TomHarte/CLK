@@ -100,7 +100,7 @@ constexpr EnabledLevel enabled_level(const Source source) {
 			return EnabledLevel::None;
 
 		case Source::Floppy:
-		case Source::Keyboard:
+//		case Source::Keyboard:
 			return EnabledLevel::Errors;
 	}
 }

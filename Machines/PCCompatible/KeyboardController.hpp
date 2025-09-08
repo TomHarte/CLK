@@ -126,6 +126,29 @@ private:
 */
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
+private:
+	struct ByteQueue {
+	public:
+		void append(const std::initializer_list<uint8_t> values) {
+			// Insert in reverse order, at the start of the vector. All outgoing values
+			// are popped from the back. So inserts are expensive, reads are cheap.
+			queue_.insert(queue_.begin(), std::rbegin(values), std::rend(values));
+		}
+
+		bool has_output() const {
+			return !queue_.empty();
+		}
+
+		uint8_t next() {
+			const auto next = queue_.back();
+			queue_.pop_back();
+			return next;
+		}
+
+	private:
+		std::vector<uint8_t> queue_;
+
+	};
 public:
 	KeyboardController(
 		PICs<model> &pics,
@@ -197,14 +220,11 @@ public:
 
 			case 0x0060: {
 				if(has_output()) {
-					advance_output_queue_pointer(output_read_);
-
-					if(!has_output()) {
-						pics_.pic[0].template apply_edge<1>(false);
-					}
+					last_output_ = next_output();
+					check_irqs();
 				}
-				log_.info().append("Read from keyboard controller of %02x", output_queue_[output_read_]);
-				return output_queue_[output_read_];
+				log_.info().append("Read from keyboard controller of %02x", last_output_);
+				return last_output_;
 			}
 
 			case 0x0061:
@@ -282,9 +302,8 @@ private:
 
 	void transmit(const uint8_t value) {
 		log_.info().append("Enquing %02x", value);
-		advance_output_queue_pointer(output_write_);
-		output_queue_[output_write_] = value;
-		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
+		output_.append({value});
+		check_irqs();
 	}
 
 	void perform_command() {
@@ -295,12 +314,6 @@ private:
 
 		// No command => input only, which is a direct-to-device communication.
 		if(!has_command_) {
-			if(!enabled_) {
-				log_.info().append("Storing device command for later: %02x", input_);
-				keyboard_command_ = input_;
-				has_input_ = false;
-				return;
-			}
 			log_.info().append("Device command: %02x", input_);
 			keyboard_.perform(input_);
 			// TODO: mouse?
@@ -354,17 +367,11 @@ private:
 				transmit(enabled_ ? 0x01 : 0x00);
 			break;
 
-			case Command::DisableKeyboard:	enabled_ = false;	break;
+			case Command::DisableKeyboard:
+				enabled_ = false;
+			break;
 			case Command::EnableKeyboard:
 				enabled_ = true;
-
-				// If a keybaord command was enqueued, post it now.
-				if(keyboard_command_.has_value()) {
-					input_ = *keyboard_command_;
-					keyboard_command_ = std::nullopt;
-					has_input_ = true;
-					perform_command();
-				}
 			break;
 
 			case Command::SetOutputByte:
@@ -390,20 +397,12 @@ private:
 
 	uint8_t input_;
 	Command command_;
-	std::optional<uint8_t> keyboard_command_;
+
+	ByteQueue output_;
+	uint8_t last_output_ = 0xff;
 
 	bool has_input_ = false;
 	bool has_command_ = false;
-
-	std::array<uint8_t, 8> output_queue_;
-	void advance_output_queue_pointer(size_t &pointer) {
-		pointer = (pointer + 1) % output_queue_.size();
-	}
-
-	size_t output_read_ = 0, output_write_ = 0;
-	bool has_output() const {
-		return output_read_ != output_write_;
-	}
 
 	//	bit 7	  = 0  keyboard inhibited
 	//	bit 6	  = 0  CGA, else MDA
@@ -425,37 +424,69 @@ private:
 	struct Keyboard {
 		Keyboard(KeyboardController<model> &controller) : controller_(controller) {}
 
-		void post(const uint8_t value) {
-			controller_.post_keyboard({value});
+		// TODO: this is the aped interface for receiving key events from the underlying PC,
+		// hastily added to align with that for the XT controller. A better interface is needed.
+		// Not least because of the nonsense fiction here: delivering XT-converted keypresses
+		// directly from an AT keyboard.
+		void post(const uint8_t key_change) {
+			output_.append({key_change});
+			controller_.keyboard_did_update_output();
 		}
 
 		void perform(const uint8_t command) {
 			switch(command) {
 				default:
 					log_.error().append("Unimplemented keyboard command: %02x", command);
-				break;
+				return;
 
-				case 0xf2:
-					controller_.post_keyboard({0xfa});
-				break;
-
-				case 0xff:
-					controller_.post_keyboard({0xfa, 0xaa});
-				break;
+				case 0xf2:	output_.append({0xfa, 0xab, 0x41});	break;
+				case 0xff:	output_.append({0xfa, 0xaa});		break;
 			}
+
+			controller_.keyboard_did_update_output();
+		}
+
+		ByteQueue &output() {
+			return output_;
+		}
+
+		const ByteQueue &output() const {
+			return output_;
 		}
 
 	private:
-		KeyboardController<model> &controller_;
 		[[no_unique_address]] Log::Logger<Log::Source::Keyboard> log_;
+
+		KeyboardController<model> &controller_;
+		ByteQueue output_;
 	} keyboard_;
 
 	friend Keyboard;
-	void post_keyboard(const std::initializer_list<uint8_t> values) {
-		if(!enabled_) return;
-		for(const auto value : values) {
-			transmit(value);
+	void keyboard_did_update_output() {
+		check_irqs();
+	}
+
+	bool has_output() const {
+		return
+			output_.has_output() ||
+			(keyboard_.output().has_output() && enabled_);
+	}
+
+	uint8_t next_output() {
+		if(output_.has_output()) {
+			return output_.next();
 		}
+
+		if(keyboard_.output().has_output() && enabled_) {
+			return keyboard_.output().next();
+		}
+
+		// Should be unreachable.
+		return 0xff;
+	}
+
+	void check_irqs() {
+		pics_.pic[0].template apply_edge<1>(has_output());
 	}
 };
 
