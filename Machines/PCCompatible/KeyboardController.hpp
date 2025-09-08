@@ -201,12 +201,10 @@ public:
 			break;
 
 			case 0x0064:
-				phase_ = Phase::Command;
 				command_ = Command(value);
 				has_command_ = true;
 				has_input_ = false;
 				perform_delay_ = performance_delay(command_);
-
 				perform_command();
 			break;
 		}
@@ -307,6 +305,8 @@ private:
 	}
 
 	void perform_command() {
+		phase_ = Phase::Data;
+
 		// Don't do anything until perform_delay_ is 0 and a command and/or other input is ready.
 		if(perform_delay_ || (!has_input_ && !has_command_)) {
 			return;
@@ -323,6 +323,7 @@ private:
 
 		// There is a command, but stop anyway if it requires a parameter and doesn't yet have one.
 		if(requires_parameter(command_) && !has_input_) {
+			phase_ = Phase::Command;
 			return;
 		}
 
@@ -344,7 +345,7 @@ private:
 			break;
 
 			case Command::WriteCommandByte:
-				is_tested_ = input_ & 0x4;
+//				is_tested_ = input_ & 0x4;
 				// TODO:
 				//	b0: 1 = enable first PS/2 port interrupt;
 				//	b1: 1 = enable second port interrupt;
@@ -419,7 +420,7 @@ private:
 	enum class Phase {
 		Command,
 		Data,
-	} phase_ = Phase::Command;
+	} phase_ = Phase::Data;
 
 	struct Keyboard {
 		Keyboard(KeyboardController<model> &controller) : controller_(controller) {}
