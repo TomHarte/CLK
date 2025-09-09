@@ -169,12 +169,7 @@ template <Source source>
 struct LogLine<source, true> {
 public:
 	explicit LogLine(RepeatAccumulator<true> &accumulator, FILE *const stream) noexcept :
-		accumulator_(accumulator), stream_(stream)
-	{
-		static constexpr auto source_prefix = prefix(source);
-		if(!source_prefix) return;
-		append("[%s] ", source_prefix);
-	}
+		accumulator_(accumulator), stream_(stream) {}
 
 	~LogLine() {
 		if(output_ == accumulator_.last) {
@@ -182,10 +177,18 @@ public:
 			return;
 		}
 
+		static constexpr auto unadorned_prefix = prefix(source);
+		std::string prefix;
+		if(unadorned_prefix) {
+			prefix = "[";
+			prefix += unadorned_prefix;
+			prefix += "] ";
+		}
+
 		if(accumulator_.count > 1) {
-			fprintf(stream_, "%s\t\t{* %zu}\n", accumulator_.last.c_str(), accumulator_.count);
+			fprintf(stream_, "%s%s [* %zu]\n", prefix.c_str(), accumulator_.last.c_str(), accumulator_.count);
 		} else {
-			fprintf(stream_, "%s\n", accumulator_.last.c_str());
+			fprintf(stream_, "%s%s\n", prefix.c_str(), accumulator_.last.c_str());
 		}
 		accumulator_.count = 1;
 		accumulator_.last = output_;
