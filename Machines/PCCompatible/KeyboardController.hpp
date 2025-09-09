@@ -284,6 +284,7 @@ private:
 	};
 
 	enum Control: uint8_t {
+		AllowInterrupts = 0x01,
 		InhibitKeyboard = 0x10,
 	};
 
@@ -491,7 +492,7 @@ private:
 			output_.append({keyboard_.output().next()});
 		}
 
-		const bool new_irq = (control_ & 0x01) && !output_.empty();
+		const bool new_irq = (control_ & Control::AllowInterrupts) && !output_.empty();
 
 		log_.info().append("IRQ1: %d", new_irq);
 		pics_.pic[0].template apply_edge<1>(new_irq);
