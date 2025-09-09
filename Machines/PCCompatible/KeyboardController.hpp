@@ -193,6 +193,7 @@ public:
 			break;
 
 			case 0x0061:
+				log_.info().append("Port 61: %02x", value);
 				// TODO:
 				//	b7: 1 = reset IRQ 0
 				//	b3: enable channel check
@@ -201,6 +202,7 @@ public:
 			break;
 
 			case 0x0064:
+				log_.info().append("Command byte: %02x", value);
 				command_ = Command(value);
 				has_command_ = true;
 				has_input_ = false;
@@ -327,7 +329,7 @@ private:
 			return;
 		}
 
-		log_.info().append("Controller command: %02x", command_).append_if(has_input_, " / %02x", input_);
+		log_.info().append("Performing: %02x", command_).append_if(has_input_, " / %02x", input_);
 
 		// Consume command and parameter, and execute.
 		has_command_ = false;
