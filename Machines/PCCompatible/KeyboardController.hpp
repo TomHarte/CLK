@@ -282,6 +282,10 @@ private:
 		ResetBlockBegin = 0xf0,
 	};
 
+	enum Control: uint8_t {
+		InhibitKeyboard = 0x10,
+	};
+
 	static constexpr bool requires_parameter(const Command command) {
 		return
 			(command >= 0x60 && command < 0x80) ||
@@ -368,15 +372,16 @@ private:
 				transmit(0);	// i.e. no issues uncovered.
 			break;
 			case Command::ReadTestInputs:
-				transmit((control_ & 0x10) ? 0x01 : 0x00);
+				// b0 is the keyboard clock; ensure it's inhibited when asked but otherwise don't attempt realism.
+				transmit((control_ & Control::InhibitKeyboard) ? 0x00 : 0x01);
 			break;
 
 			case Command::DisableKeyboard:
-				control_ |= 0x10;
+				control_ |= Control::InhibitKeyboard;
 				check_irqs();
 			break;
 			case Command::EnableKeyboard:
-				control_ &= ~0x10;
+				control_ &= ~Control::InhibitKeyboard;
 				check_irqs();
 			break;
 
@@ -478,7 +483,7 @@ private:
 	}
 
 	bool has_keyboard_output() const {
-		return keyboard_.output().has_output() && !(control_ & 0x10);
+		return keyboard_.output().has_output() && !(control_ & Control::InhibitKeyboard);
 	}
 
 	bool has_output() const {
