@@ -373,9 +373,11 @@ private:
 
 			case Command::DisableKeyboard:
 				enabled_ = false;
+				check_irqs();
 			break;
 			case Command::EnableKeyboard:
 				enabled_ = true;
+				check_irqs();
 			break;
 
 			case Command::SetOutputByte:
@@ -471,10 +473,14 @@ private:
 		check_irqs();
 	}
 
+	bool has_keyboard_output() const {
+		return keyboard_.output().has_output();// && enabled_;
+	}
+
 	bool has_output() const {
 		return
 			output_.has_output() ||
-			(keyboard_.output().has_output() && enabled_ && !(control_ & 0x10));
+			has_keyboard_output();
 	}
 
 	uint8_t next_output() {
@@ -482,7 +488,7 @@ private:
 			return output_.next();
 		}
 
-		if(keyboard_.output().has_output() && enabled_ && !(control_ & 0x10)) {
+		if(has_keyboard_output()) {
 			return keyboard_.output().next();
 		}
 
@@ -491,9 +497,10 @@ private:
 	}
 
 	void check_irqs() {
-		pics_.pic[0].template apply_edge<1>(has_output() && (control_ & 1));	// Not sure about whether that bit should inhibit
-																				// keyboard controller IRQs. Or if the controller
-																				// itself should even trigger them.
+		const bool new_irq = output_.has_output() || (has_keyboard_output() && enabled_ && !(control_ & 0x10));
+
+		log_.info().append("IRQ1: %d", new_irq);
+		pics_.pic[0].template apply_edge<1>(new_irq);
 	}
 };
 
