@@ -347,7 +347,8 @@ private:
 			break;
 
 			case Command::WriteCommandByte:
-//				is_tested_ = input_ & 0x4;
+				control_ = input_;
+				check_irqs();
 				// TODO:
 				//	b0: 1 = enable first PS/2 port interrupt;
 				//	b1: 1 = enable second port interrupt;
@@ -393,6 +394,7 @@ private:
 	PICs<model> &pics_;
 	Speaker &speaker_;
 	CPUControl<model> *cpu_control_ = nullptr;
+	uint8_t control_ = 0;
 
 	// Strongly coupled to specific code in the 5170 BIOS, this provides a grossly-inaccurate
 	// linkage between execution speed (-ish) and DRAM refresh. An unambguous nonsense.
@@ -472,7 +474,7 @@ private:
 	bool has_output() const {
 		return
 			output_.has_output() ||
-			(keyboard_.output().has_output() && enabled_);
+			(keyboard_.output().has_output() && enabled_ && !(control_ & 0x10));
 	}
 
 	uint8_t next_output() {
@@ -480,7 +482,7 @@ private:
 			return output_.next();
 		}
 
-		if(keyboard_.output().has_output() && enabled_) {
+		if(keyboard_.output().has_output() && enabled_ && !(control_ & 0x10)) {
 			return keyboard_.output().next();
 		}
 
@@ -489,7 +491,9 @@ private:
 	}
 
 	void check_irqs() {
-		pics_.pic[0].template apply_edge<1>(has_output());
+		pics_.pic[0].template apply_edge<1>(has_output() && (control_ & 1));	// Not sure about whether that bit should inhibit
+																				// keyboard controller IRQs. Or if the controller
+																				// itself should even trigger them.
 	}
 };
 
