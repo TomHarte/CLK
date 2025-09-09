@@ -61,7 +61,7 @@ public:
 
 		An initial value of 0 is invalid.
 	*/
-	LFSR(IntType initial_value) : value_(initial_value) {}
+	LFSR(const IntType initial_value) : value_(initial_value) {}
 
 	/*!
 		Advances the LSFR, returning either an @c IntType of value @c 1 or @c 0,
