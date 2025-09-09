@@ -93,8 +93,8 @@ public:
 		return key;
 	}
 
-	auto &keyboard() {
-		return *this;
+	void post_keyboard(const uint8_t value) {
+		post(value);
 	}
 
 	void post(const uint8_t value) {
@@ -135,8 +135,8 @@ private:
 			queue_.insert(queue_.begin(), std::rbegin(values), std::rend(values));
 		}
 
-		bool has_output() const {
-			return !queue_.empty();
+		bool empty() const {
+			return queue_.empty();
 		}
 
 		uint8_t next() {
@@ -154,7 +154,7 @@ public:
 		PICs<model> &pics,
 		Speaker &speaker,
 		const Analyser::Static::PCCompatible::Target::VideoAdaptor adaptor
-	) : pics_(pics), speaker_(speaker), keyboard_(*this) {
+	) : pics_(pics), speaker_(speaker) {
 		if(adaptor == Analyser::Static::PCCompatible::Target::VideoAdaptor::MDA) {
 			switches_ |= 0x40;
 		}
@@ -174,8 +174,9 @@ public:
 		}
 	}
 
-	auto &keyboard() {
-		return keyboard_;
+	void post_keyboard(const uint8_t value) {
+		keyboard_.post(value);
+		check_irqs();
 	}
 
 	void write(const uint16_t port, const uint8_t value) {
@@ -324,6 +325,8 @@ private:
 			keyboard_.perform(input_);
 			// TODO: mouse?
 			has_input_ = false;
+
+			check_irqs();
 			return;
 		}
 
@@ -433,15 +436,12 @@ private:
 	} phase_ = Phase::Data;
 
 	struct Keyboard {
-		Keyboard(KeyboardController<model> &controller) : controller_(controller) {}
-
 		// TODO: this is the aped interface for receiving key events from the underlying PC,
 		// hastily added to align with that for the XT controller. A better interface is needed.
 		// Not least because of the nonsense fiction here: delivering XT-converted keypresses
 		// directly from an AT keyboard.
 		void post(const uint8_t key_change) {
 			output_.append({key_change});
-			controller_.keyboard_did_update_output();
 		}
 
 		void perform(const uint8_t command) {
@@ -458,8 +458,6 @@ private:
 				case 0xf2:	output_.append({0xfa, 0xab, 0x41});	break;
 				case 0xff:	output_.append({0xfa, 0xaa});		break;
 			}
-
-			controller_.keyboard_did_update_output();
 		}
 
 		ByteQueue &output() {
@@ -472,33 +470,16 @@ private:
 
 	private:
 		Log::Logger<Log::Source::Keyboard> log_;
-
-		KeyboardController<model> &controller_;
 		ByteQueue output_;
 	} keyboard_;
 
-	friend Keyboard;
-	void keyboard_did_update_output() {
-		check_irqs();
-	}
-
-	bool has_keyboard_output() const {
-		return keyboard_.output().has_output() && !(control_ & Control::InhibitKeyboard);
-	}
-
 	bool has_output() const {
-		return
-			output_.has_output() ||
-			has_keyboard_output();
+		return !output_.empty();
 	}
 
 	uint8_t next_output() {
-		if(output_.has_output()) {
+		if(!output_.empty()) {
 			return output_.next();
-		}
-
-		if(has_keyboard_output()) {
-			return keyboard_.output().next();
 		}
 
 		// Should be unreachable.
@@ -506,11 +487,11 @@ private:
 	}
 
 	void check_irqs() {
-		const bool new_irq =
-			(control_ & 0x01) && (
-				output_.has_output() ||
-				has_keyboard_output()
-			);
+		if(output_.empty() && !(control_ & Control::InhibitKeyboard) && !keyboard_.output().empty()) {
+			output_.append({keyboard_.output().next()});
+		}
+
+		const bool new_irq = (control_ & 0x01) && !output_.empty();
 
 		log_.info().append("IRQ1: %d", new_irq);
 		pics_.pic[0].template apply_edge<1>(new_irq);

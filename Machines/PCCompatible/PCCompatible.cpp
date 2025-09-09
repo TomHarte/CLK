@@ -1020,7 +1020,7 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		keyboard_.keyboard().post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
+		keyboard_.post_keyboard(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
 	}
 
 	// MARK: - Activity::Source.
