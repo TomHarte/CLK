@@ -217,14 +217,21 @@ public:
 					if(!sector) {
 						status_.set(Intel::i8272::Status1::EndOfCylinder);
 						status_.set(Intel::i8272::Status0::AbnormalTermination);
-					}
 
-					results_.serialise(
-						status_,
-						sector->address.track,
-						sector->address.side,
-						sector->address.sector,
-						sector->size);
+						results_.serialise(
+							status_,
+							0,
+							0,
+							0,
+							0);
+					} else {
+						results_.serialise(
+							status_,
+							sector->address.track,
+							sector->address.side,
+							sector->address.sector,
+							sector->size);
+					}
 
 					drive.status = decoder_.drive_head();
 					drive.raised_interrupt = true;

@@ -446,6 +446,11 @@ private:
 					log_.error().append("Unimplemented keyboard command: %02x", command);
 				return;
 
+//				case 0xed:
+//					// TODO: use next incoming byte to set LEDs.
+//					output_.append({0xfa});
+//				break;
+
 				case 0xf2:	output_.append({0xfa, 0xab, 0x41});	break;
 				case 0xff:	output_.append({0xfa, 0xaa});		break;
 			}
