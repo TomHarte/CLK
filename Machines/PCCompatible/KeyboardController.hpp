@@ -193,7 +193,7 @@ public:
 			break;
 
 			case 0x0061:
-				log_.info().append("Port 61: %02x", value);
+//				log_.info().append("Port 61: %02x", value);
 				// TODO:
 				//	b7: 1 = reset IRQ 0
 				//	b3: enable channel check
@@ -240,13 +240,13 @@ public:
 				//	b7 = 1 => parity error on transmission;
 				//	b6 = 1 => receive timeout;
 				// 	b5 = 1 => transmit timeout;
-				//	b4 = 1 => keyboard active;
+				//	b4 = 1 => keyboard enabled via physical key;
 				//	b3 = 1 = data at 0060 is command, 0 = data;
 				//	b2 = 1 = selftest OK; 0 = just powered up or reset;
 				//	b1 = 1 => 'input' buffer full (i.e. don't write 0x60 or 0x64 now — this is input to the controller);
 				//	b0 = 1 => 'output' data is full (i.e. reading from 0x60 now makes sense — output is to PC).
 				const uint8_t status =
-					(enabled_ 					? 0x10 : 0x00) |
+					0x10 |
 					(phase_ == Phase::Command	? 0x08 : 0x00) |
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
@@ -368,15 +368,15 @@ private:
 				transmit(0);	// i.e. no issues uncovered.
 			break;
 			case Command::ReadTestInputs:
-				transmit(enabled_ ? 0x01 : 0x00);
+				transmit((control_ & 0x10) ? 0x01 : 0x00);
 			break;
 
 			case Command::DisableKeyboard:
-				enabled_ = false;
+				control_ |= 0x10;
 				check_irqs();
 			break;
 			case Command::EnableKeyboard:
-				enabled_ = true;
+				control_ &= ~0x10;
 				check_irqs();
 			break;
 
@@ -421,7 +421,6 @@ private:
 	int perform_delay_ = 0;
 
 	bool is_tested_ = false;
-	bool enabled_ = false;
 
 	enum class Phase {
 		Command,
@@ -479,7 +478,7 @@ private:
 	}
 
 	bool has_keyboard_output() const {
-		return keyboard_.output().has_output();// && enabled_;
+		return keyboard_.output().has_output() && !(control_ & 0x10);
 	}
 
 	bool has_output() const {
@@ -502,7 +501,11 @@ private:
 	}
 
 	void check_irqs() {
-		const bool new_irq = output_.has_output() || (has_keyboard_output() && enabled_ && !(control_ & 0x10));
+		const bool new_irq =
+			(control_ & 0x01) && (
+				output_.has_output() ||
+				has_keyboard_output()
+			);
 
 		log_.info().append("IRQ1: %d", new_irq);
 		pics_.pic[0].template apply_edge<1>(new_irq);
