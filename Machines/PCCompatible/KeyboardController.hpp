@@ -459,7 +459,7 @@ private:
 //				break;
 
 				case 0xf2:
-					output_.append({0xfa, 0xab, 0x41});
+					output_.append({0xfa, 0x83, 0xab});
 				break;
 
 				case 0xff:
