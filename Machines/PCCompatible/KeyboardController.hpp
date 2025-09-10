@@ -127,27 +127,40 @@ private:
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
 private:
+	template <int delay>
 	struct ByteQueue {
 	public:
 		void append(const std::initializer_list<uint8_t> values) {
+			if(queue_.empty()) {
+				delay_count_ = delay;
+			}
 			// Insert in reverse order, at the start of the vector. All outgoing values
 			// are popped from the back. So inserts are expensive, reads are cheap.
 			queue_.insert(queue_.begin(), std::rbegin(values), std::rend(values));
 		}
 
 		bool empty() const {
+			if(delay_count_) {
+				return true;
+			}
 			return queue_.empty();
 		}
 
 		uint8_t next() {
 			const auto next = queue_.back();
 			queue_.pop_back();
+			delay_count_ = delay;
 			return next;
+		}
+
+		bool run_for(const int ticks) {
+			delay_count_ = std::max(delay_count_ - ticks, 0);
+			return !delay_count_ && !queue_.empty();
 		}
 
 	private:
 		std::vector<uint8_t> queue_;
-
+		int delay_count_ = 0;
 	};
 public:
 	KeyboardController(
@@ -161,6 +174,12 @@ public:
 	}
 
 	void run_for(const Cycles cycles) {
+		const bool output_advanced = output_.run_for(cycles.as<int>());
+		const bool keyboard_advanced = keyboard_.run_for(cycles.as<int>());
+		if(output_advanced || keyboard_advanced) {
+			check_irqs();
+		}
+
 		instruction_count_ += cycles.as<int>();
 
 		if(!perform_delay_) {
@@ -416,7 +435,7 @@ private:
 	uint8_t input_;
 	Command command_;
 
-	ByteQueue output_;
+	ByteQueue<0> output_;
 	uint8_t last_output_ = 0xff;
 
 	bool has_input_ = false;
@@ -471,17 +490,21 @@ private:
 			}
 		}
 
-		ByteQueue &output() {
+		auto &output() {
 			return output_;
 		}
 
-		const ByteQueue &output() const {
+		const auto &output() const {
 			return output_;
+		}
+
+		bool run_for(const int instructions) {
+			return output_.run_for(instructions);
 		}
 
 	private:
 		Log::Logger<Log::Source::Keyboard> log_;
-		ByteQueue output_;
+		ByteQueue<15> output_;
 	} keyboard_;
 
 	bool has_output() const {
