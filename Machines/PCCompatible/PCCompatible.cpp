@@ -908,7 +908,12 @@ public:
 
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
-				InstructionSet::x86::fault(Exception::interrupt(pics_.pic[0].acknowledge()), context_);
+				const auto interrupt_id = pics_.pic[0].acknowledge();
+				InstructionSet::x86::fault(Exception::interrupt(interrupt_id), context_);
+
+				if(should_log) {
+					log.info().append("Taking interrupt vector %d", interrupt_id);
+				}
 			}
 
 			// Do nothing if currently halted.
@@ -952,10 +957,14 @@ public:
 
 		if(should_log) {
 			log.info().append(
-				"%04x %s bl:%02x",
+				"%04x %s \t\t[ds:6Bh]:%02x",
 					decoded_ip_,
 					to_string(decoded_, InstructionSet::x86::Model::i80286).c_str(),
-					context_.registers.bl()
+//					context_.registers.bl()
+					context_.memory.template access<uint8_t, InstructionSet::x86::AccessType::PreauthorisedRead>(
+						InstructionSet::x86::Source::DS,
+						uint16_t(0x6b)
+					)
 			).append_if(decoded_.second.operation() == InstructionSet::x86::Operation::INT,
 				" dl:%02x ah:%02x ch:%02x cl:%02x dh:%02x es:%04x bx:%04x",
 					context_.registers.dl(),
