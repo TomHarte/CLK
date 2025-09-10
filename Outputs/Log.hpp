@@ -167,22 +167,24 @@ struct RepeatAccumulator {
 	FILE *stream;
 };
 
+struct AccumulatingLog {
+	inline static thread_local RepeatAccumulator accumulator_;
+};
+
 template <Source source>
-struct LogLine<source, true> {
+struct LogLine<source, true>: private AccumulatingLog {
 public:
 	explicit LogLine(FILE *const stream) noexcept :
 		stream_(stream) {}
 
 	~LogLine() {
-		thread_local RepeatAccumulator accumulator;
+		if(output_ == accumulator_.last && source == accumulator_.source && stream_ == accumulator_.stream) {
+			++accumulator_.count;
+			return;
+		}
 
-//		if(output_ == accumulator.last && source == accumulator.source && stream_ == accumulator.stream) {
-//			++accumulator.count;
-//			return;
-//		}
-
-		if(!accumulator.last.empty()) {
-			const char *const unadorned_prefix = prefix(accumulator.source);
+		if(!accumulator_.last.empty()) {
+			const char *const unadorned_prefix = prefix(accumulator_.source);
 			std::string prefix;
 			if(unadorned_prefix) {
 				prefix = "[";
@@ -190,17 +192,28 @@ public:
 				prefix += "] ";
 			}
 
-			if(accumulator.count > 1) {
-				fprintf(accumulator.stream, "%s%s [* %zu]\n", prefix.c_str(), accumulator.last.c_str(), accumulator.count);
+			if(accumulator_.count > 1) {
+				fprintf(
+					accumulator_.stream,
+					"%s%s [* %zu]\n",
+						prefix.c_str(),
+						accumulator_.last.c_str(),
+						accumulator_.count
+				);
 			} else {
-				fprintf(accumulator.stream, "%s%s\n", prefix.c_str(), accumulator.last.c_str());
+				fprintf(
+					accumulator_.stream,
+					"%s%s\n",
+						prefix.c_str(),
+						accumulator_.last.c_str()
+				);
 			}
 		}
 
-		accumulator.count = 1;
-		accumulator.last = output_;
-		accumulator.source = source;
-		accumulator.stream = stream_;
+		accumulator_.count = 1;
+		accumulator_.last = output_;
+		accumulator_.source = source;
+		accumulator_.stream = stream_;
 	}
 
 	template <size_t size, typename... Args>
