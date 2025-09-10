@@ -952,9 +952,10 @@ public:
 
 		if(should_log) {
 			log.info().append(
-				"%04x %s",
+				"%04x %s bl:%02x",
 					decoded_ip_,
-					to_string(decoded_, InstructionSet::x86::Model::i80286).c_str()
+					to_string(decoded_, InstructionSet::x86::Model::i80286).c_str(),
+					context_.registers.bl()
 			).append_if(decoded_.second.operation() == InstructionSet::x86::Operation::INT,
 				" dl:%02x ah:%02x ch:%02x cl:%02x dh:%02x es:%04x bx:%04x",
 					context_.registers.dl(),

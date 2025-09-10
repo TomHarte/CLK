@@ -448,6 +448,8 @@ private:
 		}
 
 		void perform(const uint8_t command) {
+			// TODO: delay needed here.
+
 			switch(command) {
 				default:
 					log_.error().append("Unimplemented keyboard command: %02x", command);
