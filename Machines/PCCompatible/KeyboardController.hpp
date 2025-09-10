@@ -131,8 +131,8 @@ private:
 	struct ByteQueue {
 	public:
 		void append(const std::initializer_list<uint8_t> values) {
-			if(queue_.empty()) {
-				delay_count_ = delay;
+			if(delay && queue_.empty()) {
+				restart_delay();
 			}
 			// Insert in reverse order, at the start of the vector. All outgoing values
 			// are popped from the back. So inserts are expensive, reads are cheap.
@@ -140,20 +140,25 @@ private:
 		}
 
 		bool empty() const {
-			if(delay_count_) {
+			if(delay && delay_count_) {
 				return true;
 			}
 			return queue_.empty();
 		}
 
+		void restart_delay() {
+			delay_count_ = delay;
+		}
+
 		uint8_t next() {
 			const auto next = queue_.back();
 			queue_.pop_back();
-			delay_count_ = delay;
+			restart_delay();
 			return next;
 		}
 
 		bool run_for(const int ticks) {
+			if(!delay_count_) return false;
 			delay_count_ = std::max(delay_count_ - ticks, 0);
 			return !delay_count_ && !queue_.empty();
 		}
@@ -177,6 +182,7 @@ public:
 		const bool output_advanced = output_.run_for(cycles.as<int>());
 		const bool keyboard_advanced = keyboard_.run_for(cycles.as<int>());
 		if(output_advanced || keyboard_advanced) {
+			log_.info().append("Advancing output");
 			check_irqs();
 		}
 
@@ -241,6 +247,7 @@ public:
 			case 0x0060: {
 				if(has_output()) {
 					last_output_ = next_output();
+					keyboard_.output().restart_delay();
 					check_irqs();
 				}
 				log_.info().append("Read from keyboard controller of %02x", last_output_);
@@ -504,7 +511,7 @@ private:
 
 	private:
 		Log::Logger<Log::Source::Keyboard> log_;
-		ByteQueue<15> output_;
+		ByteQueue<50> output_;
 	} keyboard_;
 
 	bool has_output() const {
