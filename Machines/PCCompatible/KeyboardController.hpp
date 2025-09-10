@@ -284,7 +284,7 @@ private:
 	};
 
 	enum Control: uint8_t {
-		AllowInterrupts = 0x01,
+		AllowKeyboardInterrupts = 0x01,
 		InhibitKeyboard = 0x10,
 	};
 
@@ -323,6 +323,7 @@ private:
 		// No command => input only, which is a direct-to-device communication.
 		if(!has_command_) {
 			log_.info().append("Device command: %02x", input_);
+			control_ &= ~Control::InhibitKeyboard;
 			keyboard_.perform(input_);
 			// TODO: mouse?
 			has_input_ = false;
@@ -374,6 +375,7 @@ private:
 			break;
 			case Command::InterfaceTest:
 				transmit(0);	// i.e. no issues uncovered.
+				should_log = false;
 			break;
 			case Command::ReadTestInputs:
 				// b0 is the keyboard clock; ensure it's inhibited when asked but otherwise don't attempt realism.
@@ -456,8 +458,14 @@ private:
 //					output_.append({0xfa});
 //				break;
 
-				case 0xf2:	output_.append({0xfa, 0xab, 0x41});	break;
-				case 0xff:	output_.append({0xfa, 0xaa});		break;
+				case 0xf2:
+					output_.append({0xfa, 0xab, 0x41});
+				break;
+
+				case 0xff:
+					output_.append({0xfa, 0xaa});
+					should_log = true;
+				break;
 			}
 		}
 
@@ -488,14 +496,13 @@ private:
 	}
 
 	void check_irqs() {
+		bool new_irq1 = false;
 		if(output_.empty() && !(control_ & Control::InhibitKeyboard) && !keyboard_.output().empty()) {
 			output_.append({keyboard_.output().next()});
+			new_irq1 = control_ & Control::AllowKeyboardInterrupts;
 		}
-
-		const bool new_irq = (control_ & Control::AllowInterrupts) && !output_.empty();
-
-		log_.info().append("IRQ1: %d", new_irq);
-		pics_.pic[0].template apply_edge<1>(new_irq);
+		pics_.pic[0].template apply_edge<1>(new_irq1);
+		log_.info().append("IRQ1: %d", new_irq1);
 	}
 };
 

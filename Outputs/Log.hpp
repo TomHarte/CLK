@@ -176,10 +176,10 @@ public:
 	~LogLine() {
 		thread_local RepeatAccumulator accumulator;
 
-		if(output_ == accumulator.last && source == accumulator.source && stream_ == accumulator.stream) {
-			++accumulator.count;
-			return;
-		}
+//		if(output_ == accumulator.last && source == accumulator.source && stream_ == accumulator.stream) {
+//			++accumulator.count;
+//			return;
+//		}
 
 		if(!accumulator.last.empty()) {
 			const char *const unadorned_prefix = prefix(accumulator.source);
