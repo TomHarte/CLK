@@ -401,7 +401,7 @@ private:
 			break;
 			case Command::InterfaceTest:
 				transmit(0);	// i.e. no issues uncovered.
-				should_log = false;
+//				should_log = false;
 			break;
 			case Command::ReadTestInputs:
 				// b0 is the keyboard clock; ensure it's inhibited when asked but otherwise don't attempt realism.
@@ -492,7 +492,7 @@ private:
 
 				case 0xff:
 					output_.append({0xfa, 0xaa});
-					should_log = true;
+//					should_log = true;
 				break;
 			}
 		}
