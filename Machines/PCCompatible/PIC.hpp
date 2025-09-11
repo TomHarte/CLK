@@ -9,11 +9,13 @@
 #pragma once
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
+#include "Outputs/Log.hpp"
 
 namespace PCCompatible {
 
 // Cf. https://helppc.netcore2k.net/hardware/pic
 class PIC {
+	using Log = Log::Logger<Log::Source::PIC>;
 public:
 	template <int address>
 	void write(const uint8_t value) {
@@ -41,7 +43,15 @@ public:
 					config_.word = -1;
 				}
 			} else {
+				// Experimental: acknowledge any pending interrupts that weren't enabled before, if edge triggered?
+				// That guarantees the edge is one that occurs while interrupts are enabled.
+				// TODO: but then wouldn't it just never be set?
+//				if(!level_triggered_) {
+//					requests_ &= ~mask_;
+//				}
 				mask_ = value;
+
+				Log::info().append("Mask set to %02x; requests now %02x", mask_, requests_);
 			}
 		} else {
 			if(value & 0x10) {
@@ -59,6 +69,8 @@ public:
 				single_pic_ = value & 2;
 				four_byte_vectors_ = value & 4;
 				level_triggered_ = value & 8;
+
+				Log::info().append("Level triggered: %d", level_triggered_);
 			} else if(value & 0x08) {
 				//
 				// Operation Control Word 3.
@@ -109,12 +121,14 @@ public:
 		if(address) {
 			return mask_;
 		}
-		return 0;
+
+		Log::error().append("Reading address 0");
+		return requests_;
 	}
 
 	template <int input>
 	void apply_edge(const bool final_level) {
-		constexpr uint8_t input_mask = 1 << input;
+		static constexpr uint8_t input_mask = 1 << input;
 
 		// Guess: level triggered means the request can be forwarded only so long as the
 		// relevant input is actually high. Whereas edge triggered implies capturing state.
@@ -124,6 +138,7 @@ public:
 		if(final_level) {
 			requests_ |= input_mask;
 		}
+		Log::info().append("%d to %d => requests now %02x", input, final_level, requests_);
 	}
 
 	bool pending() const {
@@ -143,6 +158,7 @@ public:
 			eoi_target_ = id;
 			awaiting_eoi_ = !auto_eoi_;
 			requests_ &= ~in_service_;
+			Log::info().append("Implicitly acknowledging: %d; requests now: %02x", id, requests_);
 			return uint8_t(vector_base_ + id);
 		}
 
