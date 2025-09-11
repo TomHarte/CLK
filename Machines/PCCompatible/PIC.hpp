@@ -43,14 +43,7 @@ public:
 					config_.word = -1;
 				}
 			} else {
-				// Experimental: acknowledge any pending interrupts that weren't enabled before, if edge triggered?
-				// That guarantees the edge is one that occurs while interrupts are enabled.
-				// TODO: but then wouldn't it just never be set?
-//				if(!level_triggered_) {
-//					requests_ &= ~mask_;
-//				}
 				mask_ = value;
-
 				Log::info().append("Mask set to %02x; requests now %02x", mask_, requests_);
 			}
 		} else {
@@ -90,7 +83,7 @@ public:
 				// b2, b1, b0:	interrupt level to acknowledge.
 				switch(value >> 5) {
 					default:
-						printf("PIC: TODO EOI type %d\n", value >> 5);
+						Log::error().append("PIC: TODO EOI type %d\n", value >> 5);
 						[[fallthrough]];
 					case 0b010:	// No-op.
 					break;
@@ -130,14 +123,16 @@ public:
 	void apply_edge(const bool final_level) {
 		static constexpr uint8_t input_mask = 1 << input;
 
-		// Guess: level triggered means the request can be forwarded only so long as the
-		// relevant input is actually high. Whereas edge triggered implies capturing state.
+		const auto old_levels = levels_;
+		const uint8_t new_bit = final_level ? input_mask : 0;
+		levels_ = (levels_ & ~input_mask) | new_bit;
+
 		if(level_triggered_) {
-			requests_ &= ~input_mask;
+			requests_ = levels_;
+		} else {
+			requests_ |= (levels_ ^ old_levels) & new_bit;
 		}
-		if(final_level) {
-			requests_ |= input_mask;
-		}
+
 		Log::info().append("%d to %d => requests now %02x", input, final_level, requests_);
 	}
 
@@ -179,6 +174,7 @@ private:
 
 	uint8_t requests_ = 0;
 	uint8_t in_service_ = 0;
+	uint8_t levels_ = 0;
 
 	struct ConfgurationState {
 		int word;
