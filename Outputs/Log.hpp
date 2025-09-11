@@ -56,6 +56,8 @@ enum class Source {
 	OpenGL,
 	PCCompatible,
 	PCPOST,
+	PIC,
+	PIT,
 	Plus4,
 	PCMTrack,
 	SCC,
@@ -107,10 +109,9 @@ constexpr EnabledLevel enabled_level(const Source source) {
 
 constexpr const char *prefix(const Source source) {
 	switch(source) {
-		default: return nullptr;
-
 		case Source::ADBDevice:					return "ADB device";
 		case Source::ADBGLU:					return "ADB GLU";
+		case Source::Amiga:						return "Amiga";
 		case Source::AmigaBlitter:				return "Blitter";
 		case Source::AmigaChipset:				return "Chipset";
 		case Source::AmigaCopper:				return "Copper";
@@ -145,15 +146,20 @@ constexpr const char *prefix(const Source source) {
 		case Source::Plus4:						return "Plus4";
 		case Source::PCCompatible:				return "PC";
 		case Source::PCPOST:					return "POST";
+		case Source::PIC:						return "PIC";
+		case Source::PIT:						return "PIT";
 		case Source::PCMTrack:					return "PCM Track";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";
 		case Source::SZX:						return "SZX";
 		case Source::TapeUEF:					return "UEF";
+		case Source::TMS9918:					return "TMS9918";
 		case Source::TZX:						return "TZX";
 		case Source::Vic20:						return "Vic20";
 		case Source::WDFDC:						return "WD FDC";
 	}
+
+	return nullptr;
 }
 
 template <Source source, bool enabled>
