@@ -8,6 +8,7 @@
 
 #include "Keyboard.hpp"
 
+#include <algorithm>
 #include <cstddef>
 
 using namespace Inputs;
