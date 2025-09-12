@@ -18,7 +18,7 @@ struct Vector {
 	int v[2]{};
 
 	template <int offset, bool high> void set(const uint8_t value) {
-		constexpr uint8_t mask = high ? (offset ? 0x3 : 0x1) : 0xff;
+		static constexpr uint8_t mask = high ? (offset ? 0x3 : 0x1) : 0xff;
 		static constexpr int shift = high ? 8 : 0;
 		v[offset] = (v[offset] & ~(mask << shift)) | ((value & mask) << shift);
 	}

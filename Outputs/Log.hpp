@@ -56,6 +56,8 @@ enum class Source {
 	OpenGL,
 	PCCompatible,
 	PCPOST,
+	PIC,
+	PIT,
 	Plus4,
 	PCMTrack,
 	SCC,
@@ -96,19 +98,20 @@ constexpr EnabledLevel enabled_level(const Source source) {
 		case Source::SCC:
 		case Source::SCSI:
 		case Source::I2C:
+//		case Source::PCPOST:
 			return EnabledLevel::None;
 
 		case Source::Floppy:
+//		case Source::Keyboard:
 			return EnabledLevel::Errors;
 	}
 }
 
 constexpr const char *prefix(const Source source) {
 	switch(source) {
-		default: return nullptr;
-
 		case Source::ADBDevice:					return "ADB device";
 		case Source::ADBGLU:					return "ADB GLU";
+		case Source::Amiga:						return "Amiga";
 		case Source::AmigaBlitter:				return "Blitter";
 		case Source::AmigaChipset:				return "Chipset";
 		case Source::AmigaCopper:				return "Copper";
@@ -143,31 +146,80 @@ constexpr const char *prefix(const Source source) {
 		case Source::Plus4:						return "Plus4";
 		case Source::PCCompatible:				return "PC";
 		case Source::PCPOST:					return "POST";
+		case Source::PIC:						return "PIC";
+		case Source::PIT:						return "PIT";
 		case Source::PCMTrack:					return "PCM Track";
 		case Source::SCSI:						return "SCSI";
 		case Source::SCC:						return "SCC";
 		case Source::SZX:						return "SZX";
 		case Source::TapeUEF:					return "UEF";
+		case Source::TMS9918:					return "TMS9918";
 		case Source::TZX:						return "TZX";
 		case Source::Vic20:						return "Vic20";
 		case Source::WDFDC:						return "WD FDC";
 	}
+
+	return nullptr;
 }
 
 template <Source source, bool enabled>
 struct LogLine;
 
+struct RepeatAccumulator {
+	std::string last;
+	Source source;
+
+	size_t count = 0;
+	FILE *stream;
+};
+
+struct AccumulatingLog {
+	inline static thread_local RepeatAccumulator accumulator_;
+};
+
 template <Source source>
-struct LogLine<source, true> {
+struct LogLine<source, true>: private AccumulatingLog {
 public:
-	explicit LogLine(FILE *const stream) noexcept : stream_(stream) {
-		static constexpr auto source_prefix = prefix(source);
-		if(!source_prefix) return;
-		append("[%s] ", source_prefix);
-	}
+	explicit LogLine(FILE *const stream) noexcept :
+		stream_(stream) {}
 
 	~LogLine() {
-		fprintf(stream_, "%s\n", output_.c_str());
+		if(output_ == accumulator_.last && source == accumulator_.source && stream_ == accumulator_.stream) {
+			++accumulator_.count;
+			return;
+		}
+
+		if(!accumulator_.last.empty()) {
+			const char *const unadorned_prefix = prefix(accumulator_.source);
+			std::string prefix;
+			if(unadorned_prefix) {
+				prefix = "[";
+				prefix += unadorned_prefix;
+				prefix += "] ";
+			}
+
+			if(accumulator_.count > 1) {
+				fprintf(
+					accumulator_.stream,
+					"%s%s [* %zu]\n",
+						prefix.c_str(),
+						accumulator_.last.c_str(),
+						accumulator_.count
+				);
+			} else {
+				fprintf(
+					accumulator_.stream,
+					"%s%s\n",
+						prefix.c_str(),
+						accumulator_.last.c_str()
+				);
+			}
+		}
+
+		accumulator_.count = 1;
+		accumulator_.last = output_;
+		accumulator_.source = source;
+		accumulator_.stream = stream_;
 	}
 
 	template <size_t size, typename... Args>
@@ -190,8 +242,8 @@ public:
 	}
 
 private:
-	std::string output_;
 	FILE *stream_;
+	std::string output_;
 };
 
 template <Source source>

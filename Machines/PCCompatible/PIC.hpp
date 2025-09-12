@@ -9,11 +9,13 @@
 #pragma once
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
+#include "Outputs/Log.hpp"
 
 namespace PCCompatible {
 
 // Cf. https://helppc.netcore2k.net/hardware/pic
 class PIC {
+	using Log = Log::Logger<Log::Source::PIC>;
 public:
 	template <int address>
 	void write(const uint8_t value) {
@@ -42,6 +44,7 @@ public:
 				}
 			} else {
 				mask_ = value;
+				Log::info().append("Mask set to %02x; requests now %02x", mask_, requests_);
 			}
 		} else {
 			if(value & 0x10) {
@@ -59,6 +62,8 @@ public:
 				single_pic_ = value & 2;
 				four_byte_vectors_ = value & 4;
 				level_triggered_ = value & 8;
+
+				Log::info().append("Level triggered: %d", level_triggered_);
 			} else if(value & 0x08) {
 				//
 				// Operation Control Word 3.
@@ -78,7 +83,7 @@ public:
 				// b2, b1, b0:	interrupt level to acknowledge.
 				switch(value >> 5) {
 					default:
-						printf("PIC: TODO EOI type %d\n", value >> 5);
+						Log::error().append("PIC: TODO EOI type %d\n", value >> 5);
 						[[fallthrough]];
 					case 0b010:	// No-op.
 					break;
@@ -109,21 +114,39 @@ public:
 		if(address) {
 			return mask_;
 		}
-		return 0;
+
+		Log::error().append("Reading address 0");
+		return requests_;
 	}
 
 	template <int input>
 	void apply_edge(const bool final_level) {
-		constexpr uint8_t input_mask = 1 << input;
+		static constexpr uint8_t input_mask = 1 << input;
+		const uint8_t new_bit = final_level ? input_mask : 0;
 
 		// Guess: level triggered means the request can be forwarded only so long as the
 		// relevant input is actually high. Whereas edge triggered implies capturing state.
 		if(level_triggered_) {
 			requests_ &= ~input_mask;
 		}
-		if(final_level) {
-			requests_ |= input_mask;
-		}
+		requests_ |= new_bit;
+
+		// TODO: I don't think the above is correct because it defines an edge trigger to be any time that the
+		// level is redeclared as 1 but a previous request has been satisfied. So that's not about watching the rising
+		// edge of the input as it should be.
+		//
+		// ... but the code as below causes my XT to fail to boot. So it's possibly incorrect too, in some other way,
+		// or else it trigger a latent piece of incorrect behaviour elsewhere.
+//		const auto old_levels = levels_;
+//		levels_ = (levels_ & ~input_mask) | new_bit;
+//
+//		if(level_triggered_) {
+//			requests_ = (requests_ & ~input_mask) | new_bit;
+//		} else {
+//			requests_ |= (levels_ ^ old_levels) & new_bit;
+//		}
+
+		Log::info().append("%d to %d => requests now %02x", input, final_level, requests_);
 	}
 
 	bool pending() const {
@@ -143,6 +166,7 @@ public:
 			eoi_target_ = id;
 			awaiting_eoi_ = !auto_eoi_;
 			requests_ &= ~in_service_;
+			Log::info().append("Implicitly acknowledging: %d; requests now: %02x", id, requests_);
 			return uint8_t(vector_base_ + id);
 		}
 
@@ -163,6 +187,7 @@ private:
 
 	uint8_t requests_ = 0;
 	uint8_t in_service_ = 0;
+	uint8_t levels_ = 0;
 
 	struct ConfgurationState {
 		int word;

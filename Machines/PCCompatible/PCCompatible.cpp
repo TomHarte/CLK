@@ -908,7 +908,12 @@ public:
 
 				// Signal interrupt.
 				context_.flow_controller.unhalt();
-				InstructionSet::x86::fault(Exception::interrupt(pics_.pic[0].acknowledge()), context_);
+				const auto interrupt_id = pics_.pic[0].acknowledge();
+				InstructionSet::x86::fault(Exception::interrupt(interrupt_id), context_);
+
+				if(should_log) {
+					log.info().append("Taking interrupt vector %d", interrupt_id);
+				}
 			}
 
 			// Do nothing if currently halted.
@@ -951,24 +956,25 @@ public:
 //		should_log = (decoded_ip_ >= 0x21d0 && decoded_ip_ < 0x221c);
 
 		if(should_log) {
-			const auto next = to_string(decoded_, InstructionSet::x86::Model::i8086);
-			static std::string previous;
-			if(next != previous) {
-				std::cout << std::hex << decoded_ip_ << " " << next;
-
-				if(decoded_.second.operation() == InstructionSet::x86::Operation::INT) {
-					std::cout << " dl:" << std::hex << +context_.registers.dl() << "; ";
-					std::cout << "ah:" << std::hex << +context_.registers.ah() << "; ";
-					std::cout << "ch:" << std::hex << +context_.registers.ch() << "; ";
-					std::cout << "cl:" << std::hex << +context_.registers.cl() << "; ";
-					std::cout << "dh:" << std::hex << +context_.registers.dh() << "; ";
-					std::cout << "es:" << std::hex << +context_.registers.es() << "; ";
-					std::cout << "bx:" << std::hex << +context_.registers.bx();
-				}
-
-				std::cout << std::endl;
-				previous = next;
-			}
+			log.info().append(
+				"%04x %s \t\t[ds:6Bh]:%02x",
+					decoded_ip_,
+					to_string(decoded_, InstructionSet::x86::Model::i80286).c_str(),
+//					context_.registers.bl()
+					context_.memory.template access<uint8_t, InstructionSet::x86::AccessType::PreauthorisedRead>(
+						InstructionSet::x86::Source::DS,
+						uint16_t(0x6b)
+					)
+			).append_if(decoded_.second.operation() == InstructionSet::x86::Operation::INT,
+				" dl:%02x ah:%02x ch:%02x cl:%02x dh:%02x es:%04x bx:%04x",
+					context_.registers.dl(),
+					context_.registers.ah(),
+					context_.registers.ch(),
+					context_.registers.cl(),
+					context_.registers.dh(),
+					context_.registers.es(),
+					context_.registers.bx()
+			);
 		}
 
 		if(decoded_.second.operation() == InstructionSet::x86::Operation::Invalid) {
@@ -1020,7 +1026,7 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		keyboard_.keyboard().post(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
+		keyboard_.post_keyboard(uint8_t(key | (is_pressed ? 0x00 : 0x80)));
 	}
 
 	// MARK: - Activity::Source.

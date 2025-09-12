@@ -93,8 +93,8 @@ public:
 		return key;
 	}
 
-	auto &keyboard() {
-		return *this;
+	void post_keyboard(const uint8_t value) {
+		post(value);
 	}
 
 	void post(const uint8_t value) {
@@ -126,18 +126,66 @@ private:
 */
 template <Analyser::Static::PCCompatible::Model model>
 class KeyboardController<model, typename std::enable_if_t<is_at(model)>> {
+private:
+	template <int delay>
+	struct ByteQueue {
+	public:
+		void append(const std::initializer_list<uint8_t> values) {
+			if(delay && queue_.empty()) {
+				restart_delay();
+			}
+			// Insert in reverse order, at the start of the vector. All outgoing values
+			// are popped from the back. So inserts are expensive, reads are cheap.
+			queue_.insert(queue_.begin(), std::rbegin(values), std::rend(values));
+		}
+
+		bool empty() const {
+			if(delay && delay_count_) {
+				return true;
+			}
+			return queue_.empty();
+		}
+
+		void restart_delay() {
+			delay_count_ = delay;
+		}
+
+		uint8_t next() {
+			const auto next = queue_.back();
+			queue_.pop_back();
+			restart_delay();
+			return next;
+		}
+
+		bool run_for(const int ticks) {
+			if(!delay_count_) return false;
+			delay_count_ = std::max(delay_count_ - ticks, 0);
+			return !delay_count_ && !queue_.empty();
+		}
+
+	private:
+		std::vector<uint8_t> queue_;
+		int delay_count_ = 0;
+	};
 public:
 	KeyboardController(
 		PICs<model> &pics,
 		Speaker &speaker,
 		const Analyser::Static::PCCompatible::Target::VideoAdaptor adaptor
-	) : pics_(pics), speaker_(speaker), keyboard_(*this) {
+	) : pics_(pics), speaker_(speaker) {
 		if(adaptor == Analyser::Static::PCCompatible::Target::VideoAdaptor::MDA) {
 			switches_ |= 0x40;
 		}
 	}
 
 	void run_for(const Cycles cycles) {
+		const bool output_advanced = output_.run_for(cycles.as<int>());
+		const bool keyboard_advanced = keyboard_.run_for(cycles.as<int>());
+		if(output_advanced || keyboard_advanced) {
+			log_.info().append("Advancing output");
+			check_irqs();
+		}
+
 		instruction_count_ += cycles.as<int>();
 
 		if(!perform_delay_) {
@@ -151,8 +199,9 @@ public:
 		}
 	}
 
-	auto &keyboard() {
-		return keyboard_;
+	void post_keyboard(const uint8_t value) {
+		keyboard_.post(value);
+		check_irqs();
 	}
 
 	void write(const uint16_t port, const uint8_t value) {
@@ -162,7 +211,7 @@ public:
 			break;
 
 			case 0x0060:
-				log_.error().append("Keyboard parameter set to %02x", value);
+				log_.info().append("Keyboard parameter set to %02x", value);
 				phase_ = Phase::Data;
 				input_ = value;
 				has_input_ = true;
@@ -170,6 +219,7 @@ public:
 			break;
 
 			case 0x0061:
+//				log_.info().append("Port 61: %02x", value);
 				// TODO:
 				//	b7: 1 = reset IRQ 0
 				//	b3: enable channel check
@@ -178,12 +228,11 @@ public:
 			break;
 
 			case 0x0064:
-				phase_ = Phase::Command;
+				log_.info().append("Command byte: %02x", value);
 				command_ = Command(value);
 				has_command_ = true;
 				has_input_ = false;
 				perform_delay_ = performance_delay(command_);
-
 				perform_command();
 			break;
 		}
@@ -197,14 +246,12 @@ public:
 
 			case 0x0060: {
 				if(has_output()) {
-					advance_output_queue_pointer(output_read_);
-
-					if(!has_output()) {
-						pics_.pic[0].template apply_edge<1>(false);
-					}
+					last_output_ = next_output();
+					keyboard_.output().restart_delay();
+					check_irqs();
 				}
-				log_.error().append("Read from keyboard controller of %02x", output_queue_[output_read_]);
-				return output_queue_[output_read_];
+				log_.info().append("Read from keyboard controller of %02x", last_output_);
+				return last_output_;
 			}
 
 			case 0x0061:
@@ -220,18 +267,18 @@ public:
 				//	b7 = 1 => parity error on transmission;
 				//	b6 = 1 => receive timeout;
 				// 	b5 = 1 => transmit timeout;
-				//	b4 = 1 => keyboard active;
+				//	b4 = 1 => keyboard enabled via physical key;
 				//	b3 = 1 = data at 0060 is command, 0 = data;
 				//	b2 = 1 = selftest OK; 0 = just powered up or reset;
 				//	b1 = 1 => 'input' buffer full (i.e. don't write 0x60 or 0x64 now — this is input to the controller);
 				//	b0 = 1 => 'output' data is full (i.e. reading from 0x60 now makes sense — output is to PC).
 				const uint8_t status =
-					(enabled_ 					? 0x10 : 0x00) |
+					0x10 |
 					(phase_ == Phase::Command	? 0x08 : 0x00) |
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
 					(has_output()				? 0x01 : 0x00);
-//				log_.error().append("Reading status: %02x", status);
+				log_.info().append("Reading status: %02x", status);
 				return status;
 			}
 		}
@@ -262,6 +309,11 @@ private:
 		ResetBlockBegin = 0xf0,
 	};
 
+	enum Control: uint8_t {
+		AllowKeyboardInterrupts = 0x01,
+		InhibitKeyboard = 0x10,
+	};
+
 	static constexpr bool requires_parameter(const Command command) {
 		return
 			(command >= 0x60 && command < 0x80) ||
@@ -282,12 +334,13 @@ private:
 
 	void transmit(const uint8_t value) {
 		log_.info().append("Enquing %02x", value);
-		advance_output_queue_pointer(output_write_);
-		output_queue_[output_write_] = value;
-		pics_.pic[0].template apply_edge<1>(true);	// TODO: verify.
+		output_.append({value});
+		check_irqs();
 	}
 
 	void perform_command() {
+		phase_ = Phase::Data;
+
 		// Don't do anything until perform_delay_ is 0 and a command and/or other input is ready.
 		if(perform_delay_ || (!has_input_ && !has_command_)) {
 			return;
@@ -295,43 +348,42 @@ private:
 
 		// No command => input only, which is a direct-to-device communication.
 		if(!has_command_) {
-			if(!enabled_) {
-				log_.info().append("Storing device command for later: %02x", input_);
-				keyboard_command_ = input_;
-				has_input_ = false;
-				return;
-			}
 			log_.info().append("Device command: %02x", input_);
+			control_ &= ~Control::InhibitKeyboard;
 			keyboard_.perform(input_);
 			// TODO: mouse?
 			has_input_ = false;
+
+			check_irqs();
 			return;
 		}
 
 		// There is a command, but stop anyway if it requires a parameter and doesn't yet have one.
 		if(requires_parameter(command_) && !has_input_) {
+			phase_ = Phase::Command;
 			return;
 		}
 
-		log_.info().append("Controller command: %02x", command_).append_if(has_input_, " / %02x", input_);
+		log_.info().append("Performing: %02x", command_).append_if(has_input_, " / %02x", input_);
 
 		// Consume command and parameter, and execute.
 		has_command_ = false;
 		if(requires_parameter(command_)) has_input_ = false;
 
 		if(command_ >= Command::ResetBlockBegin) {
-			log_.error().append("Should reset: %x", command_ & 0x0f);
+			log_.info().append("Should reset: %x", command_ & 0x0f);
 
 			if(!(command_ & 1)) {
 				cpu_control_->reset();
 			}
 		} else switch(command_) {
 			default:
-				log_.info().append("Keyboard command unimplemented", command_);
+				log_.info().append("Unimplemented keyboard controller command: %02x", command_);
 			break;
 
 			case Command::WriteCommandByte:
-				is_tested_ = input_ & 0x4;
+				control_ = input_;
+				check_irqs();
 				// TODO:
 				//	b0: 1 = enable first PS/2 port interrupt;
 				//	b1: 1 = enable second port interrupt;
@@ -349,22 +401,20 @@ private:
 			break;
 			case Command::InterfaceTest:
 				transmit(0);	// i.e. no issues uncovered.
+//				should_log = false;
 			break;
 			case Command::ReadTestInputs:
-				transmit(enabled_ ? 0x01 : 0x00);
+				// b0 is the keyboard clock; ensure it's inhibited when asked but otherwise don't attempt realism.
+				transmit((control_ & Control::InhibitKeyboard) ? 0x00 : 0x01);
 			break;
 
-			case Command::DisableKeyboard:	enabled_ = false;	break;
+			case Command::DisableKeyboard:
+				control_ |= Control::InhibitKeyboard;
+				check_irqs();
+			break;
 			case Command::EnableKeyboard:
-				enabled_ = true;
-
-				// If a keybaord command was enqueued, post it now.
-				if(keyboard_command_.has_value()) {
-					input_ = *keyboard_command_;
-					keyboard_command_ = std::nullopt;
-					has_input_ = true;
-					perform_command();
-				}
+				control_ &= ~Control::InhibitKeyboard;
+				check_irqs();
 			break;
 
 			case Command::SetOutputByte:
@@ -383,6 +433,7 @@ private:
 	PICs<model> &pics_;
 	Speaker &speaker_;
 	CPUControl<model> *cpu_control_ = nullptr;
+	uint8_t control_ = 0;
 
 	// Strongly coupled to specific code in the 5170 BIOS, this provides a grossly-inaccurate
 	// linkage between execution speed (-ish) and DRAM refresh. An unambguous nonsense.
@@ -390,20 +441,12 @@ private:
 
 	uint8_t input_;
 	Command command_;
-	std::optional<uint8_t> keyboard_command_;
+
+	ByteQueue<0> output_;
+	uint8_t last_output_ = 0xff;
 
 	bool has_input_ = false;
 	bool has_command_ = false;
-
-	std::array<uint8_t, 8> output_queue_;
-	void advance_output_queue_pointer(size_t &pointer) {
-		pointer = (pointer + 1) % output_queue_.size();
-	}
-
-	size_t output_read_ = 0, output_write_ = 0;
-	bool has_output() const {
-		return output_read_ != output_write_;
-	}
 
 	//	bit 7	  = 0  keyboard inhibited
 	//	bit 6	  = 0  CGA, else MDA
@@ -415,42 +458,83 @@ private:
 	int perform_delay_ = 0;
 
 	bool is_tested_ = false;
-	bool enabled_ = false;
 
 	enum class Phase {
 		Command,
 		Data,
-	} phase_ = Phase::Command;
+	} phase_ = Phase::Data;
 
 	struct Keyboard {
-		Keyboard(KeyboardController<model> &controller) : controller_(controller) {}
-
-		void post(const uint8_t value) {
-			controller_.post_keyboard({value});
+		// TODO: this is the aped interface for receiving key events from the underlying PC,
+		// hastily added to align with that for the XT controller. A better interface is needed.
+		// Not least because of the nonsense fiction here: delivering XT-converted keypresses
+		// directly from an AT keyboard.
+		void post(const uint8_t key_change) {
+			output_.append({key_change});
 		}
 
 		void perform(const uint8_t command) {
+			// TODO: delay needed here.
+
 			switch(command) {
+				default:
+					log_.error().append("Unimplemented keyboard command: %02x", command);
+				return;
+
+//				case 0xed:
+//					// TODO: use next incoming byte to set LEDs.
+//					output_.append({0xfa});
+//				break;
+
 				case 0xf2:
-					controller_.post_keyboard({0xfa});
+					output_.append({0xfa, 0x83, 0xab});
 				break;
 
 				case 0xff:
-					controller_.post_keyboard({0xfa, 0xaa});
+					output_.append({0xfa, 0xaa});
+//					should_log = true;
 				break;
 			}
 		}
 
+		auto &output() {
+			return output_;
+		}
+
+		const auto &output() const {
+			return output_;
+		}
+
+		bool run_for(const int instructions) {
+			return output_.run_for(instructions);
+		}
+
 	private:
-		KeyboardController<model> &controller_;
+		Log::Logger<Log::Source::Keyboard> log_;
+		ByteQueue<50> output_;
 	} keyboard_;
 
-	friend Keyboard;
-	void post_keyboard(const std::initializer_list<uint8_t> values) {
-		if(!enabled_) return;
-		for(const auto value : values) {
-			transmit(value);
+	bool has_output() const {
+		return !output_.empty();
+	}
+
+	uint8_t next_output() {
+		if(!output_.empty()) {
+			return output_.next();
 		}
+
+		// Should be unreachable.
+		return 0xff;
+	}
+
+	void check_irqs() {
+		bool new_irq1 = false;
+		if(output_.empty() && !(control_ & Control::InhibitKeyboard) && !keyboard_.output().empty()) {
+			output_.append({keyboard_.output().next()});
+			new_irq1 = control_ & Control::AllowKeyboardInterrupts;
+		}
+		pics_.pic[0].template apply_edge<1>(new_irq1);
+		log_.info().append("IRQ1: %d", new_irq1);
 	}
 };
 

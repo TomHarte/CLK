@@ -96,7 +96,7 @@ public:
 			target = (target & 0xff00) | value;
 		};
 		const auto load_high = [value](uint16_t &target) {
-			constexpr uint8_t mask = RefreshMask >> 8;
+			static constexpr uint8_t mask = RefreshMask >> 8;
 			target = uint16_t((target & 0x00ff) | ((value & mask) << 8));
 		};
 
