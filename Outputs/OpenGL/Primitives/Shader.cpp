@@ -15,7 +15,7 @@ using namespace Outputs::Display::OpenGL;
 
 namespace {
 thread_local const Shader *bound_shader = nullptr;
-Log::Logger<Log::Source::OpenGL> logger;
+using Logger = Log::Logger<Log::Source::OpenGL>;
 }
 
 GLuint Shader::compile_shader(const std::string &source, GLenum type) {
@@ -24,7 +24,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	test_gl(glShaderSource, shader, 1, &c_str, NULL);
 	test_gl(glCompileShader, shader);
 
-	if constexpr (logger.ErrorsEnabled) {
+	if constexpr (Logger::ErrorsEnabled) {
 		GLint isCompiled = 0;
 		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
 		if(isCompiled == GL_FALSE) {
@@ -34,7 +34,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 				const auto length = std::vector<GLchar>::size_type(logLength);
 				std::vector<GLchar> log(length);
 				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
-				logger.error().append("Compile log: %s", log.data());
+				Logger::error().append("Compile log: %s", log.data());
 			}
 
 			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
@@ -69,18 +69,18 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 	for(const auto &binding : attribute_bindings) {
 		test_gl(glBindAttribLocation, shader_program_, binding.index, binding.name.c_str());
 
-		if constexpr (logger.ErrorsEnabled) {
+		if constexpr (Logger::ErrorsEnabled) {
 			const auto error = glGetError();
 			switch(error) {
 				case 0: break;
 				case GL_INVALID_VALUE:
-					logger.error().append("GL_INVALID_VALUE when attempting to bind %s to index %d (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)", binding.name.c_str(), binding.index);
+					Logger::error().append("GL_INVALID_VALUE when attempting to bind %s to index %d (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)", binding.name.c_str(), binding.index);
 				break;
 				case GL_INVALID_OPERATION:
-					logger.error().append("GL_INVALID_OPERATION when attempting to bind %s to index %d (i.e. name begins with gl_)", binding.name.c_str(), binding.index);
+					Logger::error().append("GL_INVALID_OPERATION when attempting to bind %s to index %d (i.e. name begins with gl_)", binding.name.c_str(), binding.index);
 				break;
 				default:
-					logger.error().append("Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
+					Logger::error().append("Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
 				break;
 			}
 		}
@@ -88,13 +88,13 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 
 	test_gl(glLinkProgram, shader_program_);
 
-	if constexpr (logger.ErrorsEnabled) {
+	if constexpr (Logger::ErrorsEnabled) {
 		GLint logLength;
 		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
 			std::vector<GLchar> log(logLength);
 			test_gl(glGetProgramInfoLog, shader_program_, logLength, &logLength, log.data());
-			logger.error().append("Link log: %s", log.data());
+			Logger::error().append("Link log: %s", log.data());
 		}
 
 		GLint didLink = 0;
@@ -138,7 +138,7 @@ void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint
 		test_gl(glVertexAttribPointer, GLuint(location), size, type, normalised, stride, pointer);
 		test_gl(glVertexAttribDivisor, GLuint(location), divisor);
 	} else {
-		logger.error().append("Couldn't enable vertex attribute %s", name.c_str());
+		Logger::error().append("Couldn't enable vertex attribute %s", name.c_str());
 	}
 }
 
@@ -146,10 +146,10 @@ void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint
 #define with_location(func, ...) {\
 		const GLint location = glGetUniformLocation(shader_program_, name.c_str());	\
 		if(location == -1) { \
-			logger.error().append("Couldn't get location for uniform %s", name.c_str());	\
+			Logger::error().append("Couldn't get location for uniform %s", name.c_str());	\
 		} else { \
 			func(location, __VA_ARGS__);	\
-			if(glGetError()) logger.error().append("Error setting uniform %s via %s", name.c_str(), #func);	\
+			if(glGetError()) Logger::error().append("Error setting uniform %s via %s", name.c_str(), #func);	\
 		} \
 	}
 
