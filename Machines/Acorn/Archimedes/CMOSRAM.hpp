@@ -28,7 +28,7 @@ struct CMOSRAM: public I2C::Peripheral {
 
 	std::optional<uint8_t> read() override {
 		if(address_ < 16) {
-			logger.error().append("TODO: read at %d", address_);
+			Logger::error().append("TODO: read at %d", address_);
 		}
 
 		const uint8_t result = ram_[address_];
@@ -44,7 +44,7 @@ struct CMOSRAM: public I2C::Peripheral {
 		}
 
 		if(address_ < 16) {
-			logger.error().append("TODO: write at %d", address_);
+			Logger::error().append("TODO: write at %d", address_);
 			return true;
 		}
 
@@ -79,7 +79,7 @@ private:
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 	};
 
-	Log::Logger<Log::Source::CMOSRTC> logger;
+	using Logger = Log::Logger<Log::Source::CMOSRTC>;
 };
 
 }

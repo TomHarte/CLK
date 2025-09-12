@@ -221,8 +221,7 @@ struct MOS6526Storage {
 			control = v;
 
 			if(v&2) {
-				Log::Logger<Log::Source::MOS6526> log;
-				log.error().append("UNIMPLEMENTED: PB strobe");
+				Log::Logger<Log::Source::MOS6526>::error().append("UNIMPLEMENTED: PB strobe");
 			}
 		}
 

@@ -12,7 +12,7 @@
 #include "Outputs/Log.hpp"
 
 namespace {
-Log::Logger<Log::Source::WDFDC> logger;
+using Logger = Log::Logger<Log::Source::WDFDC>;
 }
 
 using namespace WD;
@@ -31,10 +31,10 @@ void WD1770::write(const int address, const uint8_t value) {
 			if((value&0xf0) == 0xd0) {
 				if(value == 0xd0) {
 					// Force interrupt **immediately**.
-					logger.info().append("Force interrupt immediately");
+					Logger::info().append("Force interrupt immediately");
 					posit_event(int(Event1770::ForceInterrupt));
 				} else {
-					logger.error().append("TODO: force interrupt");
+					Logger::error().append("TODO: force interrupt");
 					update_status([] (Status &status) {
 						status.type = Status::One;
 					});
@@ -101,14 +101,14 @@ uint8_t WD1770::read(const int address) {
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
-//			logger.info().append("Returned status %02x of type %d", status, 1+int(status_.type));
+//			Logger::info().append("Returned status %02x of type %d", status, 1+int(status_.type));
 			return status;
 		}
 		case 1:
-			logger.info().append("Returned track %d", track_);
+			Logger::info().append("Returned track %d", track_);
 			return track_;
 		case 2:
-			logger.info().append("Returned sector %d", sector_);
+			Logger::info().append("Returned sector %d", sector_);
 			return sector_;
 		case 3:
 			update_status([] (Status &status) {
@@ -216,7 +216,7 @@ void WD1770::posit_event(const int new_event_type) {
 	// Wait for a new command, branch to the appropriate handler.
 	case 0:
 	wait_for_command:
-		logger.info().append("Idle...");
+		Logger::info().append("Idle...");
 		set_data_mode(DataMode::Scanning);
 		index_hole_count_ = 0;
 
@@ -233,7 +233,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.track_zero = false;	// Always reset by a non-type 1; so reset regardless and set properly later.
 		});
 
-		logger.info().append("Starting %02x", command_);
+		Logger::info().append("Starting %02x", command_);
 
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
@@ -263,7 +263,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.data_request = false;
 		});
 
-		logger.info().append("Step/Seek/Restore with track %d data %d", track_, data_);
+		Logger::info().append("Step/Seek/Restore with track %d data %d", track_, data_);
 		if(!has_motor_on_line() && !has_head_load_line()) goto test_type1_type;
 
 		if(has_motor_on_line()) goto begin_type1_spin_up;
@@ -343,7 +343,7 @@ void WD1770::posit_event(const int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 6) {
-			logger.info().append("Nothing found to verify");
+			Logger::info().append("Nothing found to verify");
 			update_status([] (Status &status) {
 				status.seek_error = true;
 			});
@@ -361,7 +361,7 @@ void WD1770::posit_event(const int new_event_type) {
 			}
 
 			if(header_[0] == track_) {
-				logger.info().append("Reached track %d", track_);
+				Logger::info().append("Reached track %d", track_);
 				update_status([] (Status &status) {
 					status.crc_error = false;
 				});
@@ -434,7 +434,7 @@ void WD1770::posit_event(const int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
-			logger.info().append("Failed to find sector %d", sector_);
+			Logger::info().append("Failed to find sector %d", sector_);
 			update_status([] (Status &status) {
 				status.record_not_found = true;
 			});
@@ -444,12 +444,12 @@ void WD1770::posit_event(const int new_event_type) {
 			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
 
-			logger.info().append("Considering %d/%d", header_[0], header_[2]);
+			Logger::info().append("Considering %d/%d", header_[0], header_[2]);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
-				logger.info().append("Found %d/%d", header_[0], header_[2]);
+				Logger::info().append("Found %d/%d", header_[0], header_[2]);
 				if(get_crc_generator().get_value()) {
-					logger.info().append("CRC error; back to searching");
+					Logger::info().append("CRC error; back to searching");
 					update_status([] (Status &status) {
 						status.crc_error = true;
 					});
@@ -507,18 +507,18 @@ void WD1770::posit_event(const int new_event_type) {
 			set_data_mode(DataMode::Scanning);
 
 			if(get_crc_generator().get_value()) {
-				logger.info().append("CRC error; terminating");
+				Logger::info().append("CRC error; terminating");
 				update_status([] (Status &status) {
 					status.crc_error = true;
 				});
 				goto wait_for_command;
 			}
 
-			logger.info().append("Finished reading sector %d", sector_);
+			Logger::info().append("Finished reading sector %d", sector_);
 
 			if(command_ & 0x10) {
 				sector_++;
-				logger.info().append("Advancing to search for sector %d", sector_);
+				Logger::info().append("Advancing to search for sector %d", sector_);
 				goto test_type2_write_protection;
 			}
 			goto wait_for_command;
@@ -602,7 +602,7 @@ void WD1770::posit_event(const int new_event_type) {
 			sector_++;
 			goto test_type2_write_protection;
 		}
-		logger.info().append("Wrote sector %d", sector_);
+		Logger::info().append("Wrote sector %d", sector_);
 		goto wait_for_command;
 
 

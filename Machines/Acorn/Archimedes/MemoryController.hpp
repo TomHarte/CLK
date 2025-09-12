@@ -142,7 +142,7 @@ struct MemoryController {
 							break;
 						}
 
-						logger.info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
+						Logger::info().append("MEMC Control: %08x -> OS:%d sound:%d video:%d refresh:%d high:%d low:%d size:%d", address, os_mode_, sound_dma_enable_, video_dma_enable_, dynamic_ram_refresh_, high_rom_access_time_, low_rom_access_time_, page_size_);
 						map_dirty_ = true;
 					break;
 				}
@@ -193,7 +193,7 @@ struct MemoryController {
 			break;
 
 			case ReadZone::LowROM:
-//				logger.error().append("TODO: Low ROM read from %08x", address);
+//				Logger::error().append("TODO: Low ROM read from %08x", address);
 				source = IntT(~0);
 			break;
 
@@ -238,7 +238,7 @@ struct MemoryController {
 	}
 
 private:
-	Log::Logger<Log::Source::ARMIOC> logger;
+	using Logger = Log::Logger<Log::Source::ARMIOC>;
 
 	enum class ReadZone {
 		LogicallyMappedRAM,

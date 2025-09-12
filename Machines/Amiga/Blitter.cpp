@@ -17,7 +17,7 @@ using namespace Amiga;
 
 namespace {
 
-Log::Logger<Log::Source::AmigaBlitter> logger;
+using Logger = Log::Logger<Log::Source::AmigaBlitter>;
 
 /// @returns Either the final carry flag or the output nibble when using fill mode given that it either @c is_exclusive fill mode, or isn't;
 /// and the specified initial @c carry and input @c nibble.
@@ -126,18 +126,18 @@ void Blitter<record_bus>::set_control(int index, uint16_t value) {
 		sequencer_.set_control(value >> 8);
 	}
 	shifts_[index] = value >> 12;
-	logger.info().append("Set control %d to %04x", index, value);
+	Logger::info().append("Set control %d to %04x", index, value);
 }
 
 template <bool record_bus>
 void Blitter<record_bus>::set_first_word_mask(uint16_t value) {
-	logger.info().append("Set first word mask: %04x", value);
+	Logger::info().append("Set first word mask: %04x", value);
 	a_mask_[0] = value;
 }
 
 template <bool record_bus>
 void Blitter<record_bus>::set_last_word_mask(uint16_t value) {
-	logger.info().append("Set last word mask: %04x", value);
+	Logger::info().append("Set last word mask: %04x", value);
 	a_mask_[1] = value;
 }
 
@@ -149,7 +149,7 @@ void Blitter<record_bus>::set_size(uint16_t value) {
 	if(!width_) width_ = 0x40;
 	height_ = value >> 6;
 	if(!height_) height_ = 1024;
-	logger.info().append("Set size to %d, %d", width_, height_);
+	Logger::info().append("Set size to %d, %d", width_, height_);
 
 	// Current assumption: writing this register informs the
 	// blitter that it should treat itself as about to start a new line.
@@ -157,24 +157,24 @@ void Blitter<record_bus>::set_size(uint16_t value) {
 
 template <bool record_bus>
 void Blitter<record_bus>::set_minterms(uint16_t value) {
-	logger.info().append("Set minterms: %02x", value & 0xff);
+	Logger::info().append("Set minterms: %02x", value & 0xff);
 	minterms_ = value & 0xff;
 }
 
 //template <bool record_bus>
 //void Blitter<record_bus>::set_vertical_size([[maybe_unused]] uint16_t value) {
-//	logger.info().append("Set vertical size %04x", value);
+//	Logger::info().append("Set vertical size %04x", value);
 //	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
 //}
 //
 //template <bool record_bus>
 //void Blitter<record_bus>::set_horizontal_size([[maybe_unused]] uint16_t value) {
-//	logger.info().append("Set horizontal size %04x", value);
+//	Logger::info().append("Set horizontal size %04x", value);
 //}
 
 template <bool record_bus>
 void Blitter<record_bus>::set_data(int channel, uint16_t value) {
-	logger.info().append("Set data %d to %04x", channel, value);
+	Logger::info().append("Set data %d to %04x", channel, value);
 
 	// Ugh, backed myself into a corner. TODO: clean.
 	switch(channel) {
@@ -189,7 +189,7 @@ template <bool record_bus>
 uint16_t Blitter<record_bus>::get_status() {
 	const uint16_t result =
 		(not_zero_flag_ ? 0x0000 : 0x2000) | (height_ ? 0x4000 : 0x0000);
-	logger.info().append("Returned status of %04x", result);
+	Logger::info().append("Returned status of %04x", result);
 	return result;
 }
 

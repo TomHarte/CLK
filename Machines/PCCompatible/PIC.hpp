@@ -15,7 +15,7 @@ namespace PCCompatible {
 
 // Cf. https://helppc.netcore2k.net/hardware/pic
 class PIC {
-	using Log = Log::Logger<Log::Source::PIC>;
+	using Logger = Log::Logger<Log::Source::PIC>;
 public:
 	template <int address>
 	void write(const uint8_t value) {
@@ -44,7 +44,7 @@ public:
 				}
 			} else {
 				mask_ = value;
-				Log::info().append("Mask set to %02x; requests now %02x", mask_, requests_);
+				Logger::info().append("Mask set to %02x; requests now %02x", mask_, requests_);
 			}
 		} else {
 			if(value & 0x10) {
@@ -63,7 +63,7 @@ public:
 				four_byte_vectors_ = value & 4;
 				level_triggered_ = value & 8;
 
-				Log::info().append("Level triggered: %d", level_triggered_);
+				Logger::info().append("Level triggered: %d", level_triggered_);
 			} else if(value & 0x08) {
 				//
 				// Operation Control Word 3.
@@ -83,7 +83,7 @@ public:
 				// b2, b1, b0:	interrupt level to acknowledge.
 				switch(value >> 5) {
 					default:
-						Log::error().append("PIC: TODO EOI type %d\n", value >> 5);
+						Logger::error().append("PIC: TODO EOI type %d\n", value >> 5);
 						[[fallthrough]];
 					case 0b010:	// No-op.
 					break;
@@ -115,7 +115,7 @@ public:
 			return mask_;
 		}
 
-		Log::error().append("Reading address 0");
+		Logger::error().append("Reading address 0");
 		return requests_;
 	}
 
@@ -146,7 +146,7 @@ public:
 //			requests_ |= (levels_ ^ old_levels) & new_bit;
 //		}
 
-		Log::info().append("%d to %d => requests now %02x", input, final_level, requests_);
+		Logger::info().append("%d to %d => requests now %02x", input, final_level, requests_);
 	}
 
 	bool pending() const {
@@ -166,7 +166,7 @@ public:
 			eoi_target_ = id;
 			awaiting_eoi_ = !auto_eoi_;
 			requests_ &= ~in_service_;
-			Log::info().append("Implicitly acknowledging: %d; requests now: %02x", id, requests_);
+			Logger::info().append("Implicitly acknowledging: %d; requests now: %02x", id, requests_);
 			return uint8_t(vector_base_ + id);
 		}
 

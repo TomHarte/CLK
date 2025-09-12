@@ -363,7 +363,7 @@ public:
 
 private:
 	Executor executor_;
-	Log::Logger<Log::Source::SCSI> log_;
+	using Logger = Log::Logger<Log::Source::SCSI>;
 
 	// Bus::Observer.
 	void scsi_bus_did_change(Bus &, BusState, double) final;

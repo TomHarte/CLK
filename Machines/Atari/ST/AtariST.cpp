@@ -36,7 +36,7 @@
 #include "Analyser/Static/AtariST/Target.hpp"
 
 namespace {
-Log::Logger<Log::Source::AtariST> logger;
+using Logger = Log::Logger<Log::Source::AtariST>;
 }
 
 namespace Atari {
@@ -188,7 +188,7 @@ public:
 
 		// Check for assertion of reset.
 		if(cycle.operation & CPU::MC68000::Operation::Reset) {
-			logger.error().append("Unhandled Reset");
+			Logger::error().append("Unhandled Reset");
 		}
 
 		// A null cycle leaves nothing else to do.

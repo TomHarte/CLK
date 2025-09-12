@@ -40,8 +40,7 @@ using namespace Commodore;
 using namespace Commodore::Plus4;
 
 namespace {
-
-Log::Logger<Log::Source::Plus4> logger;
+using Logger = Log::Logger<Log::Source::Plus4>;
 
 class Joystick: public Inputs::ConcreteJoystick {
 public:
@@ -382,12 +381,12 @@ public:
 //						map_.write(0xb7) = 0x03;
 //						map_.write(0xf8) = header->type_descriptor();
 ////						hold_tape_ = true;
-//						logger.info().append("Found header");
+//						Logger::info().append("Found header");
 //					} else {
 //						// no header found, so pretend this hack never interceded
 //						tape_player_->serialiser()->set_offset(tape_position);
 ////						hold_tape_ = false;
-//						logger.info().append("Didn't find header");
+//						Logger::info().append("Didn't find header");
 //					}
 //
 //					// Clear status and the verify flags.
@@ -432,7 +431,7 @@ public:
 					break;
 
 					default:
-						logger.info().append("TODO: read @ %04x", address);
+						Logger::info().append("TODO: read @ %04x", address);
 					break;
 				}
 			} else {
@@ -448,7 +447,7 @@ public:
 					} break;
 
 					default:
-						logger.info().append("TODO: write of %02x @ %04x", *value, address);
+						Logger::info().append("TODO: write of %02x @ %04x", *value, address);
 					break;
 				}
 			}
@@ -520,7 +519,7 @@ public:
 					case 0xff3f:	*value = 0;						break;
 
 					default:
-						logger.info().append("TODO: TED read at %04x", address);
+						Logger::info().append("TODO: TED read at %04x", address);
 						is_hit = false;
 				}
 			} else {
@@ -614,7 +613,7 @@ public:
 					case 0xff3f:	page_cpu_ram();					break;
 
 					default:
-						logger.info().append("TODO: TED write at %04x", address);
+						Logger::info().append("TODO: TED write at %04x", address);
 						is_hit = false;
 				}
 			}

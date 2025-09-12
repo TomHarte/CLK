@@ -26,7 +26,7 @@ bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *inst
 	return (position & mask) >= (instruction[0] & mask);
 }
 
-Log::Logger<Log::Source::AmigaCopper> logger;
+using Logger = Log::Logger<Log::Source::AmigaCopper>;
 
 }
 
@@ -82,7 +82,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 
 		case State::Waiting:
 			if(satisfies_raster(position, blitter_status, instruction_)) {
-				logger.info().append("Unblocked waiting for %04x at %04x with mask %04x", instruction_[0], position, instruction_[1] & 0x7ffe);
+				Logger::info().append("Unblocked waiting for %04x at %04x with mask %04x", instruction_[0], position, instruction_[1] & 0x7ffe);
 				state_ = State::FetchFirstWord;
 			}
 		return false;
@@ -91,7 +91,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 			instruction_[0] = ram_[address_ & ram_mask_];
 			++address_;
 			state_ = State::FetchSecondWord;
-			logger.info().append("First word fetch at %04x", position);
+			Logger::info().append("First word fetch at %04x", position);
 		break;
 
 		case State::FetchSecondWord: {
@@ -102,7 +102,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 			// Read in the second instruction word.
 			instruction_[1] = ram_[address_ & ram_mask_];
 			++address_;
-			logger.info().append("Second word fetch at %04x", position);
+			Logger::info().append("Second word fetch at %04x", position);
 
 			// Check for a MOVE.
 			if(!(instruction_[0] & 1)) {
@@ -110,7 +110,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 					// Stop if this move would be a privilege violation.
 					instruction_[0] &= 0x1fe;
 					if((instruction_[0] < 0x10) || (instruction_[0] < 0x20 && !(control_&1))) {
-						logger.info().append("Invalid MOVE to %04x; stopping", instruction_[0]);
+						Logger::info().append("Invalid MOVE to %04x; stopping", instruction_[0]);
 						state_ = State::Stopped;
 						break;
 					}

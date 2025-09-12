@@ -16,7 +16,7 @@ using namespace Atari::ST;
 
 namespace {
 
-[[maybe_unused]] Log::Logger<Log::Source::AtariSTDMAController> logger;
+using Logger = Log::Logger<Log::Source::AtariSTDMAController>;
 
 enum Control: uint16_t {
 	Direction = 0x100,
@@ -122,7 +122,7 @@ void DMAController::write(int address, uint16_t value) {
 }
 
 void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
-//	logger.info().append("Selected: %s%s%s", drive1 ? "1" : "-", drive2 ? "2" : "-", side2 ? "s" : "-");
+//	Logger::info().append("Selected: %s%s%s", drive1 ? "1" : "-", drive2 ? "2" : "-", side2 ? "s" : "-");
 	fdc_.set_floppy_drive_selection(drive1, drive2, side2);
 }
 

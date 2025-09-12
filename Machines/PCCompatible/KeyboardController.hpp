@@ -182,7 +182,7 @@ public:
 		const bool output_advanced = output_.run_for(cycles.as<int>());
 		const bool keyboard_advanced = keyboard_.run_for(cycles.as<int>());
 		if(output_advanced || keyboard_advanced) {
-			log_.info().append("Advancing output");
+			Logger::info().append("Advancing output");
 			check_irqs();
 		}
 
@@ -207,11 +207,11 @@ public:
 	void write(const uint16_t port, const uint8_t value) {
 		switch(port) {
 			default:
-				log_.error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
+				Logger::error().append("Unimplemented AT keyboard write: %04x to %04x", value, port);
 			break;
 
 			case 0x0060:
-				log_.info().append("Keyboard parameter set to %02x", value);
+				Logger::info().append("Keyboard parameter set to %02x", value);
 				phase_ = Phase::Data;
 				input_ = value;
 				has_input_ = true;
@@ -219,7 +219,7 @@ public:
 			break;
 
 			case 0x0061:
-//				log_.info().append("Port 61: %02x", value);
+//				Logger::info().append("Port 61: %02x", value);
 				// TODO:
 				//	b7: 1 = reset IRQ 0
 				//	b3: enable channel check
@@ -228,7 +228,7 @@ public:
 			break;
 
 			case 0x0064:
-				log_.info().append("Command byte: %02x", value);
+				Logger::info().append("Command byte: %02x", value);
 				command_ = Command(value);
 				has_command_ = true;
 				has_input_ = false;
@@ -241,7 +241,7 @@ public:
 	uint8_t read(const uint16_t port) {
 		switch(port) {
 			default:
-				log_.error().append("Unimplemented AT keyboard read from %04x", port);
+				Logger::error().append("Unimplemented AT keyboard read from %04x", port);
 			break;
 
 			case 0x0060: {
@@ -250,7 +250,7 @@ public:
 					keyboard_.output().restart_delay();
 					check_irqs();
 				}
-				log_.info().append("Read from keyboard controller of %02x", last_output_);
+				Logger::info().append("Read from keyboard controller of %02x", last_output_);
 				return last_output_;
 			}
 
@@ -278,7 +278,7 @@ public:
 					(is_tested_					? 0x04 : 0x00) |
 					(has_input_					? 0x02 : 0x00) |
 					(has_output()				? 0x01 : 0x00);
-				log_.info().append("Reading status: %02x", status);
+				Logger::info().append("Reading status: %02x", status);
 				return status;
 			}
 		}
@@ -333,7 +333,7 @@ private:
 	}
 
 	void transmit(const uint8_t value) {
-		log_.info().append("Enquing %02x", value);
+		Logger::info().append("Enquing %02x", value);
 		output_.append({value});
 		check_irqs();
 	}
@@ -348,7 +348,7 @@ private:
 
 		// No command => input only, which is a direct-to-device communication.
 		if(!has_command_) {
-			log_.info().append("Device command: %02x", input_);
+			Logger::info().append("Device command: %02x", input_);
 			control_ &= ~Control::InhibitKeyboard;
 			keyboard_.perform(input_);
 			// TODO: mouse?
@@ -364,21 +364,21 @@ private:
 			return;
 		}
 
-		log_.info().append("Performing: %02x", command_).append_if(has_input_, " / %02x", input_);
+		Logger::info().append("Performing: %02x", command_).append_if(has_input_, " / %02x", input_);
 
 		// Consume command and parameter, and execute.
 		has_command_ = false;
 		if(requires_parameter(command_)) has_input_ = false;
 
 		if(command_ >= Command::ResetBlockBegin) {
-			log_.info().append("Should reset: %x", command_ & 0x0f);
+			Logger::info().append("Should reset: %x", command_ & 0x0f);
 
 			if(!(command_ & 1)) {
 				cpu_control_->reset();
 			}
 		} else switch(command_) {
 			default:
-				log_.info().append("Unimplemented keyboard controller command: %02x", command_);
+				Logger::info().append("Unimplemented keyboard controller command: %02x", command_);
 			break;
 
 			case Command::WriteCommandByte:
@@ -428,7 +428,7 @@ private:
 		}
 	}
 
-	Log::Logger<Log::Source::Keyboard> log_;
+	using Logger = Log::Logger<Log::Source::Keyboard>;
 
 	PICs<model> &pics_;
 	Speaker &speaker_;
@@ -478,7 +478,7 @@ private:
 
 			switch(command) {
 				default:
-					log_.error().append("Unimplemented keyboard command: %02x", command);
+					Logger::error().append("Unimplemented keyboard command: %02x", command);
 				return;
 
 //				case 0xed:
@@ -510,7 +510,6 @@ private:
 		}
 
 	private:
-		Log::Logger<Log::Source::Keyboard> log_;
 		ByteQueue<50> output_;
 	} keyboard_;
 
@@ -534,7 +533,7 @@ private:
 			new_irq1 = control_ & Control::AllowKeyboardInterrupts;
 		}
 		pics_.pic[0].template apply_edge<1>(new_irq1);
-		log_.info().append("IRQ1: %d", new_irq1);
+		Logger::info().append("IRQ1: %d", new_irq1);
 	}
 };
 

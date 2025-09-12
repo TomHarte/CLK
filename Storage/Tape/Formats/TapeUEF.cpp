@@ -15,7 +15,7 @@
 #include "Outputs/Log.hpp"
 
 namespace {
-Log::Logger<Log::Source::TapeUEF> logger;
+using Logger = Log::Logger<Log::Source::TapeUEF>;
 }
 
 using namespace Storage::Tape;
@@ -197,7 +197,7 @@ void UEF::Serialiser::push_next_pulses() {
 			break;
 
 			default:
-				logger.info().append("Skipping chunk of type %04x", next_chunk->id);
+				Logger::info().append("Skipping chunk of type %04x", next_chunk->id);
 			break;
 		}
 	}

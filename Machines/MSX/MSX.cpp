@@ -50,7 +50,7 @@
 #include <algorithm>
 
 namespace {
-Log::Logger<Log::Source::MSX> logger;
+using Logger = Log::Logger<Log::Source::MSX>;
 }
 
 namespace MSX {
@@ -878,14 +878,14 @@ private:
 					// b0-b3: keyboard line
 					machine_.set_keyboard_line(value & 0xf);
 				} break;
-				default: logger.error().append("Unrecognised: MSX set 8255 output port %d to value %02x", port, value); break;
+				default: Logger::error().append("Unrecognised: MSX set 8255 output port %d to value %02x", port, value); break;
 			}
 		}
 
 		uint8_t get_value(int port) {
 			if(port == 1) {
 				return machine_.read_keyboard();
-			} else logger.error().append("MSX attempted to read from 8255 port %d");
+			} else Logger::error().append("MSX attempted to read from 8255 port %d");
 			return 0xff;
 		}
 

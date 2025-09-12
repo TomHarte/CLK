@@ -58,7 +58,7 @@ bool should_log = false;
 
 namespace PCCompatible {
 namespace {
-Log::Logger<Log::Source::PCCompatible> log;
+using Logger = Log::Logger<Log::Source::PCCompatible>;
 }
 
 using Target = Analyser::Static::PCCompatible::Target;
@@ -247,7 +247,7 @@ private:
 		if(wilfully_unimplemented(port)) {
 			return;
 		}
-		log.error().append("Unhandled out: %02x to %04x", value, port);
+		Logger::error().append("Unhandled out: %02x to %04x", value, port);
 	};
 
 	template <typename IntT>
@@ -300,7 +300,7 @@ private:
 			case 0x0071:	rtc_.write<1>(value);	break;
 
 			case 0x00f1:
-				log.error().append("TODO: coprocessor reset");
+				Logger::error().append("TODO: coprocessor reset");
 			break;
 
 			case 0x0000:	dma_.controllers[0].template write<0x0>(value);	break;
@@ -343,7 +343,7 @@ private:
 			case 0x00a0:
 				if constexpr (is_xt(model)) {
 					// On the XT the NMI can be masked by setting bit 7 on I/O port 0xA0.
-					log.error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
+					Logger::error().append("TODO: NMIs %s", (value & 0x80) ? "masked" : "unmasked");
 				} else {
 					pics_.pic[1].template write<0>(value);
 				}
@@ -407,7 +407,7 @@ private:
 			case 0x03f4:
 			case 0x03f7:
 				fdc_.set_data_rate(value);
-				log.error().append("TODO: FDC (or IDE?) write of %02x at %04x", value, port);
+				Logger::error().append("TODO: FDC (or IDE?) write of %02x at %04x", value, port);
 			break;
 			case 0x03f5:
 				fdc_.write(value);
@@ -443,7 +443,7 @@ private:
 		if(wilfully_unimplemented(port)) {
 			return;
 		}
-		log.error().append("Unhandled in: %04x", port);
+		Logger::error().append("Unhandled in: %04x", port);
 	};
 
 	bool require_at(const uint16_t port) {
@@ -646,7 +646,7 @@ public:
 		halted_ = true;
 	}
 	void wait() {
-		log.error().append("WAIT ????");
+		Logger::error().append("WAIT ????");
 	}
 
 	void repeat_last() {
@@ -912,7 +912,7 @@ public:
 				InstructionSet::x86::fault(Exception::interrupt(interrupt_id), context_);
 
 				if(should_log) {
-					log.info().append("Taking interrupt vector %d", interrupt_id);
+					Logger::info().append("Taking interrupt vector %d", interrupt_id);
 				}
 			}
 
@@ -956,7 +956,7 @@ public:
 //		should_log = (decoded_ip_ >= 0x21d0 && decoded_ip_ < 0x221c);
 
 		if(should_log) {
-			log.info().append(
+			Logger::info().append(
 				"%04x %s \t\t[ds:6Bh]:%02x",
 					decoded_ip_,
 					to_string(decoded_, InstructionSet::x86::Model::i80286).c_str(),
@@ -978,7 +978,7 @@ public:
 		}
 
 		if(decoded_.second.operation() == InstructionSet::x86::Operation::Invalid) {
-			log.error().append("Invalid operation");
+			Logger::error().append("Invalid operation");
 		}
 
 		// Execute it.

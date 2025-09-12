@@ -187,7 +187,7 @@ struct InputOutputController: public ClockingHint::Observer {
 
 		switch(target.bank) {
 			default:
-				logger.error().append("Unrecognised IOC read from %08x i.e. bank %d / type %d", address, target.bank, target.type);
+				Logger::error().append("Unrecognised IOC read from %08x i.e. bank %d / type %d", address, target.bank, target.type);
 				destination = IntT(~0);
 			break;
 
@@ -195,7 +195,7 @@ struct InputOutputController: public ClockingHint::Observer {
 			case 0:
 				switch(target.offset) {
 					default:
-						logger.error().append("Unrecognised IOC bank 0 read; offset %02x", target.offset);
+						Logger::error().append("Unrecognised IOC bank 0 read; offset %02x", target.offset);
 					break;
 
 					case 0x00: {
@@ -205,67 +205,67 @@ struct InputOutputController: public ClockingHint::Observer {
 						value &= ~(floppy_.ready() ? 0x00 : 0x04);
 						value &= ~(video_.flyback_active() ? 0x00 : 0x80);	// i.e. high during flyback.
 						set_byte(value);
-//						logger.error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
+//						Logger::error().append("IOC control read: C:%d D:%d", !(value & 2), !(value & 1));
 					} break;
 
 					case 0x04:
 						set_byte(serial_.input(IOCParty));
 						irq_b_.clear(IRQB::KeyboardReceiveFull);
 						observer_.update_interrupts();
-//						logger.error().append("IOC keyboard receive: %02x", value);
+//						Logger::error().append("IOC keyboard receive: %02x", value);
 					break;
 
 					// IRQ A.
 					case 0x10:
 						set_byte(irq_a_.status);
-//						logger.error().append("IRQ A status is %02x", value);
+//						Logger::error().append("IRQ A status is %02x", value);
 					break;
 					case 0x14:
 						set_byte(irq_a_.request());
-//						logger.error().append("IRQ A request is %02x", value);
+//						Logger::error().append("IRQ A request is %02x", value);
 					break;
 					case 0x18:
 						set_byte(irq_a_.mask);
-//						logger.error().append("IRQ A mask is %02x", value);
+//						Logger::error().append("IRQ A mask is %02x", value);
 					break;
 
 					// IRQ B.
 					case 0x20:
 						set_byte(irq_b_.status);
-//						logger.error().append("IRQ B status is %02x", value);
+//						Logger::error().append("IRQ B status is %02x", value);
 					break;
 					case 0x24:
 						set_byte(irq_b_.request());
-//						logger.error().append("IRQ B request is %02x", value);
+//						Logger::error().append("IRQ B request is %02x", value);
 					break;
 					case 0x28:
 						set_byte(irq_b_.mask);
-//						logger.error().append("IRQ B mask is %02x", value);
+//						Logger::error().append("IRQ B mask is %02x", value);
 					break;
 
 					// FIQ.
 					case 0x30:
 						set_byte(fiq_.status);
-//						logger.error().append("FIQ status is %02x", fiq_.status);
+//						Logger::error().append("FIQ status is %02x", fiq_.status);
 					break;
 					case 0x34:
 						set_byte(fiq_.request());
-//						logger.error().append("FIQ request is %02x", fiq_.request());
+//						Logger::error().append("FIQ request is %02x", fiq_.request());
 					break;
 					case 0x38:
 						set_byte(fiq_.mask);
-//						logger.error().append("FIQ mask is %02x", fiq_.mask);
+//						Logger::error().append("FIQ mask is %02x", fiq_.mask);
 					break;
 
 					// Counters.
 					case 0x40:	case 0x50:	case 0x60:	case 0x70:
 						set_byte(counters_[(target.offset >> 4) - 0x4].output & 0xff);
-//						logger.error().append("%02x: Counter %d low is %02x", target, (target >> 4) - 0x4, value);
+//						Logger::error().append("%02x: Counter %d low is %02x", target, (target >> 4) - 0x4, value);
 					break;
 
 					case 0x44:	case 0x54:	case 0x64:	case 0x74:
 						set_byte(counters_[(target.offset >> 4) - 0x4].output >> 8);
-//						logger.error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
+//						Logger::error().append("%02x: Counter %d high is %02x", target, (target >> 4) - 0x4, value);
 					break;
 				}
 			break;
@@ -273,7 +273,7 @@ struct InputOutputController: public ClockingHint::Observer {
 			// Bank 1: the floppy disc controller.
 			case 1:
 				set_byte(floppy_.read(target.offset >> 2));
-//				logger.error().append("Floppy read; offset %02x", target.offset);
+//				Logger::error().append("Floppy read; offset %02x", target.offset);
 			break;
 		}
 
@@ -302,14 +302,14 @@ struct InputOutputController: public ClockingHint::Observer {
 
 		switch(target.bank) {
 			default:
-				logger.error().append("Unrecognised IOC write of %02x to %08x i.e. bank %d / type %d", bus_value, address, target.bank, target.type);
+				Logger::error().append("Unrecognised IOC write of %02x to %08x i.e. bank %d / type %d", bus_value, address, target.bank, target.type);
 			break;
 
 			// Bank 0: internal registers.
 			case 0:
 				switch(target.offset) {
 					default:
-						logger.error().append("Unrecognised IOC bank 0 write; %02x to offset %02x", bus_value, target.offset);
+						Logger::error().append("Unrecognised IOC bank 0 write; %02x to offset %02x", bus_value, target.offset);
 					break;
 
 					case 0x00:
@@ -345,15 +345,15 @@ struct InputOutputController: public ClockingHint::Observer {
 					// Interrupts.
 					case 0x18:
 						irq_a_.mask = byte(bus_value);
-//						logger.error().append("IRQ A mask set to %02x", byte(bus_value));
+//						Logger::error().append("IRQ A mask set to %02x", byte(bus_value));
 					break;
 					case 0x28:
 						irq_b_.mask = byte(bus_value);
-//						logger.error().append("IRQ B mask set to %02x", byte(bus_value));
+//						Logger::error().append("IRQ B mask set to %02x", byte(bus_value));
 					break;
 					case 0x38:
 						fiq_.mask = byte(bus_value);
-//						logger.error().append("FIQ mask set to %02x", byte(bus_value));
+//						Logger::error().append("FIQ mask set to %02x", byte(bus_value));
 					break;
 
 					// Counters.
@@ -381,7 +381,7 @@ struct InputOutputController: public ClockingHint::Observer {
 
 			// Bank 1: the floppy disc controller.
 			case 1:
-//				logger.error().append("Floppy write; %02x to offset %02x", bus_value, target.offset);
+//				Logger::error().append("Floppy write; %02x to offset %02x", bus_value, target.offset);
 				floppy_.write(target.offset >> 2, byte(bus_value));
 //				set_byte(floppy_.read(target.offset >> 2));
 			break;
@@ -390,17 +390,17 @@ struct InputOutputController: public ClockingHint::Observer {
 			case 5:
 				switch(target.type) {
 					default:
-						logger.error().append("Unrecognised IOC bank 5 type %d write; %02x to offset %02x", target.type, bus_value, target.offset);
+						Logger::error().append("Unrecognised IOC bank 5 type %d write; %02x to offset %02x", target.type, bus_value, target.offset);
 					break;
 
 					case Address::Type::Fast:
 						switch(target.offset) {
 							default:
-								logger.error().append("Unrecognised IOC fast bank 5 write; %02x to offset %02x", bus_value, target.offset);
+								Logger::error().append("Unrecognised IOC fast bank 5 write; %02x to offset %02x", bus_value, target.offset);
 							break;
 
 							case 0x00:
-								logger.error().append("TODO: printer data write; %02x", byte(bus_value));
+								Logger::error().append("TODO: printer data write; %02x", byte(bus_value));
 							break;
 
 							case 0x18: {
@@ -419,7 +419,7 @@ struct InputOutputController: public ClockingHint::Observer {
 
 								floppy_.set_is_double_density(!(value & 0x2));
 								if(value & 0x08) floppy_.reset();
-//								logger.error().append("TODO: latch B write; %02x", byte(bus_value));
+//								Logger::error().append("TODO: latch B write; %02x", byte(bus_value));
 							} break;
 
 							case 0x40: {
@@ -444,7 +444,7 @@ struct InputOutputController: public ClockingHint::Observer {
 								//	b2/b3: sync polarity [b3 = V polarity, b2 = H?]
 								//	b0/b1: VIDC master clock; 00 = 24Mhz, 01 = 25.175Mhz; 10 = 36Mhz; 11 = reserved.
 
-								logger.error().append("TODO: latch C write; %02x", byte(bus_value));
+								Logger::error().append("TODO: latch C write; %02x", byte(bus_value));
 							break;
 						}
 					break;
@@ -453,23 +453,23 @@ struct InputOutputController: public ClockingHint::Observer {
 		}
 
 //			case 0x327'0000 & AddressMask:	// Bank 7
-//				logger.error().append("TODO: exteded external podule space");
+//				Logger::error().append("TODO: exteded external podule space");
 //			return true;
 //
 //			case 0x336'0000 & AddressMask:
-//				logger.error().append("TODO: podule interrupt request");
+//				Logger::error().append("TODO: podule interrupt request");
 //			return true;
 //
 //			case 0x336'0004 & AddressMask:
-//				logger.error().append("TODO: podule interrupt mask");
+//				Logger::error().append("TODO: podule interrupt mask");
 //			return true;
 //
 //			case 0x33a'0000 & AddressMask:
-//				logger.error().append("TODO: 6854 / econet write");
+//				Logger::error().append("TODO: 6854 / econet write");
 //			return true;
 //
 //			case 0x33b'0000 & AddressMask:
-//				logger.error().append("TODO: 6551 / serial line write");
+//				Logger::error().append("TODO: 6551 / serial line write");
 //			return true;
 		return true;
 	}
@@ -509,7 +509,7 @@ struct InputOutputController: public ClockingHint::Observer {
 	}
 
 private:
-	Log::Logger<Log::Source::ARMIOC> logger;
+	using Logger = Log::Logger<Log::Source::ARMIOC>;
 	InterruptObserverT &observer_;
 	Activity::Observer *activity_observer_ = nullptr;
 	static inline const std::string FloppyActivityLED = "Drive";

@@ -18,8 +18,8 @@
 using namespace InstructionSet::M50740;
 
 namespace {
-	constexpr int port_remap[] = {0, 1, 2, 0, 3};
-	Log::Logger<Log::Source::M50740> logger;
+constexpr int port_remap[] = {0, 1, 2, 0, 3};
+using Logger = Log::Logger<Log::Source::M50740>;
 }
 
 Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
@@ -82,13 +82,13 @@ uint8_t Executor::read(uint16_t address) {
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
 		default:
-			logger.error().append("Unrecognised read from %02x", address);
+			Logger::error().append("Unrecognised read from %02x", address);
 		return 0xff;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			logger.error().append("Unimplemented Port R read from %04x", address);
+			Logger::error().append("Unimplemented Port R read from %04x", address);
 		return 0x00;
 
 		// Ports P0–P3.
@@ -133,7 +133,7 @@ void Executor::write(uint16_t address, const uint8_t value) {
 
 	// ROM 'writes' are almost as easy (albeit unexpected).
 	if(address >= 0x100) {
-		logger.info().append("Attempted ROM write of %02x to %04x", value, address);
+		Logger::info().append("Attempted ROM write of %02x to %04x", value, address);
 		return;
 	}
 
@@ -142,13 +142,13 @@ void Executor::write(uint16_t address, const uint8_t value) {
 
 	switch(address) {
 		default:
-			logger.error().append("Unrecognised write of %02x to %04x", value, address);
+			Logger::error().append("Unrecognised write of %02x to %04x", value, address);
 		break;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			logger.error().append("Unimplemented Port R write of %02x to %04x", value, address);
+			Logger::error().append("Unimplemented Port R write of %02x to %04x", value, address);
 		break;
 
 		// Ports P0–P3.
@@ -792,7 +792,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		*/
 
 		default:
-			logger.error().append("Unimplemented operation: %d", operation);
+			Logger::error().append("Unimplemented operation: %d", operation);
 			assert(false);
 	}
 }
@@ -836,13 +836,13 @@ inline void Executor::subtract_duration(const int duration) {
 			}
 		} break;
 		case 0x04:
-			logger.error().append("TODO: Timer X; Pulse output mode");
+			Logger::error().append("TODO: Timer X; Pulse output mode");
 		break;
 		case 0x08:
-			logger.error().append("TODO: Timer X; Event counter mode");
+			Logger::error().append("TODO: Timer X; Event counter mode");
 		break;
 		case 0x0c:
-			logger.error().append("TODO: Timer X; Pulse width measurement mode");
+			Logger::error().append("TODO: Timer X; Pulse width measurement mode");
 		break;
 	}
 }

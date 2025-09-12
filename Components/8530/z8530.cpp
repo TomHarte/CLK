@@ -13,9 +13,7 @@
 using namespace Zilog::SCC;
 
 namespace {
-
-Log::Logger<Log::Source::SCC> logger;
-
+using Logger = Log::Logger<Log::Source::SCC>;
 }
 
 void z8530::reset() {
@@ -54,7 +52,7 @@ std::uint8_t z8530::read(const int address) {
 
 			case 2:		// Handled non-symmetrically between channels.
 				if(address & 1) {
-					logger.error().append("Unimplemented: register 2 status bits");
+					Logger::error().append("Unimplemented: register 2 status bits");
 				} else {
 					result = interrupt_vector_;
 
@@ -111,11 +109,11 @@ void z8530::write(const int address, const std::uint8_t value) {
 			case 2:	// Interrupt vector register; used only by Channel B.
 					// So there's only one of these.
 				interrupt_vector_ = value;
-				logger.info().append("Interrupt vector set to %d", value);
+				Logger::info().append("Interrupt vector set to %d", value);
 			break;
 
 			case 9:	// Master interrupt and reset register; there is also only one of these.
-				logger.info().append("Master interrupt and reset register: %02x", value);
+				Logger::info().append("Master interrupt and reset register: %02x", value);
 				master_interrupt_control_ = value;
 			break;
 		}
@@ -152,7 +150,7 @@ uint8_t z8530::Channel::read(const bool data, const uint8_t pointer) {
 	if(data) {
 		return data_;
 	} else {
-		logger.info().append("Control read from register %d", pointer);
+		Logger::info().append("Control read from register %d", pointer);
 		// Otherwise, this is a control read...
 		switch(pointer) {
 			default:
@@ -237,10 +235,10 @@ void z8530::Channel::write(const bool data, const uint8_t pointer, const uint8_t
 		data_ = value;
 		return;
 	} else {
-		logger.info().append("Control write: %02x to register %d", value, pointer);
+		Logger::info().append("Control write: %02x to register %d", value, pointer);
 		switch(pointer) {
 			default:
-				logger.info().append("Unrecognised control write: %02x to register %d", value, pointer);
+				Logger::info().append("Unrecognised control write: %02x to register %d", value, pointer);
 			break;
 
 			case 0x0:	// Write register 0 — CRC reset and other functions.
@@ -248,13 +246,13 @@ void z8530::Channel::write(const bool data, const uint8_t pointer, const uint8_t
 				switch(value >> 6) {
 					default:	/* Do nothing. */		break;
 					case 1:
-						logger.error().append("TODO: reset Rx CRC checker.");
+						Logger::error().append("TODO: reset Rx CRC checker.");
 					break;
 					case 2:
-						logger.error().append("TODO: reset Tx CRC checker.");
+						Logger::error().append("TODO: reset Tx CRC checker.");
 					break;
 					case 3:
-						logger.error().append("TODO: reset Tx underrun/EOM latch.");
+						Logger::error().append("TODO: reset Tx underrun/EOM latch.");
 					break;
 				}
 
@@ -262,24 +260,24 @@ void z8530::Channel::write(const bool data, const uint8_t pointer, const uint8_t
 				switch((value >> 3)&7) {
 					default:	/* Do nothing. */		break;
 					case 2:
-//						logger.info().append("reset ext/status interrupts.");
+//						Logger::info().append("reset ext/status interrupts.");
 						external_status_interrupt_ = false;
 						external_interrupt_status_ = 0;
 					break;
 					case 3:
-						logger.error().append("TODO: send abort (SDLC).");
+						Logger::error().append("TODO: send abort (SDLC).");
 					break;
 					case 4:
-						logger.error().append("TODO: enable interrupt on next Rx character.");
+						Logger::error().append("TODO: enable interrupt on next Rx character.");
 					break;
 					case 5:
-						logger.error().append("TODO: reset Tx interrupt pending.");
+						Logger::error().append("TODO: reset Tx interrupt pending.");
 					break;
 					case 6:
-						logger.error().append("TODO: reset error.");
+						Logger::error().append("TODO: reset error.");
 					break;
 					case 7:
-						logger.error().append("TODO: reset highest IUS.");
+						Logger::error().append("TODO: reset highest IUS.");
 					break;
 				}
 			break;
@@ -304,7 +302,7 @@ void z8530::Channel::write(const bool data, const uint8_t pointer, const uint8_t
 					b1 = 1 => transmit buffer empty interrupt is enabled; 0 => it isn't.
 					b0 = 1 => external interrupt is enabled; 0 => it isn't.
 				*/
-				logger.info().append("Interrupt mask: %02x", value);
+				Logger::info().append("Interrupt mask: %02x", value);
 			break;
 
 			case 0x2:	// Write register 2 - interrupt vector.
@@ -319,7 +317,7 @@ void z8530::Channel::write(const bool data, const uint8_t pointer, const uint8_t
 					case 2:		receive_bit_count = 6;	break;
 					case 3:		receive_bit_count = 8;	break;
 				}
-				logger.info().append("Receive bit count: %d", receive_bit_count);
+				Logger::info().append("Receive bit count: %d", receive_bit_count);
 
 				/*
 					b7,b6:

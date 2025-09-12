@@ -40,7 +40,7 @@ public:
 	}
 
 	void set_digital_output(const uint8_t control) {
-		log_.info().append("Digital output: %02x", control);
+		Logger::info().append("Digital output: %02x", control);
 
 		// b7, b6, b5, b4: enable motor for drive 4, 3, 2, 1;
 		// b3: 1 => enable DMA; 0 => disable;
@@ -72,24 +72,24 @@ public:
 	}
 
 	void set_data_rate(const uint8_t control) {
-		log_.info().append("Data rate: %02x", control);
+		Logger::info().append("Data rate: %02x", control);
 	}
 
 	uint8_t status() const {
 		const auto result = status_.main();
-		log_.info().append("Status: %02x", result);
+		Logger::info().append("Status: %02x", result);
 		return result;
 	}
 
 	void write(const uint8_t value) {
-//		log_.info().append("03f5 <- %02x", value);
+//		Logger::info().append("03f5 <- %02x", value);
 		decoder_.push_back(value);
 
 		if(decoder_.has_command()) {
 			using Command = Intel::i8272::Command;
 			switch(decoder_.command()) {
 				default:
-					log_.error().append("TODO: implement FDC command %02x", uint8_t(decoder_.command()));
+					Logger::error().append("TODO: implement FDC command %02x", uint8_t(decoder_.command()));
 
 					// Unimplemented:
 					//
@@ -105,7 +105,7 @@ public:
 				case Command::WriteDeletedData:
 				case Command::WriteData: {
 					auto &drive = drives_[decoder_.target().drive];
-					log_.info().append(
+					Logger::info().append(
 						"Write %sdata to drive %d / head %d / track %d of head %d / track %d / sector %d",
 						decoder_.command() == Command::WriteDeletedData ? "deleted " : "",
 						decoder_.target().drive,
@@ -138,7 +138,7 @@ public:
 				case Command::ReadDeletedData:
 				case Command::ReadData: {
 					auto &drive = drives_[decoder_.target().drive];
-					log_.info().append(
+					Logger::info().append(
 						"Read %sdata from drive %d / head %d / track %d of head %d / track %d / sector %d",
 						decoder_.command() == Command::ReadDeletedData ? "deleted " : "",
 						decoder_.target().drive,
@@ -203,7 +203,7 @@ public:
 				case Command::ReadID: {
 					auto &drive = drives_[decoder_.target().drive];
 					const auto target = decoder_.target();
-					log_.info().append(
+					Logger::info().append(
 						"Read ID from drive %d / head %d / track %",
 						target.drive,
 						target.head,
@@ -242,7 +242,7 @@ public:
 				case Command::Seek: {
 					auto &drive = drives_[decoder_.target().drive];
 					drive.track = decoder_.command() == Command::Seek ? decoder_.seek_target() : 0;
-					log_.info().append(
+					Logger::info().append(
 						"%s to %d",
 						decoder_.command() == Command::Seek ? "Seek" : "Recalibrate",
 						drive.track
@@ -267,7 +267,7 @@ public:
 					}
 					auto &drive = drives_[last_seeking_drive_];
 
-					log_.info().append(
+					Logger::info().append(
 						"Sense interrupt status; picked drive %d with interrupt status %d",
 						last_seeking_drive_,
 						drive.raised_interrupt
@@ -293,12 +293,12 @@ public:
 					}
 				} break;
 				case Command::Specify:
-					log_.info().append("Specify");
+					Logger::info().append("Specify");
 					specify_specs_ = decoder_.specify_specs();
 				break;
 				case Command::SenseDriveStatus: {
 					const auto &drive = drives_[decoder_.target().drive];
-					log_.info().append(
+					Logger::info().append(
 						"Sense drive status: drive %d / head %d; track 0 is %d, ready is %d",
 						decoder_.target().drive,
 						decoder_.target().head,
@@ -314,7 +314,7 @@ public:
 				} break;
 
 				case Command::Invalid:
-					log_.info().append("Invalid command");
+					Logger::info().append("Invalid command");
 					results_.serialise_none();
 				break;
 			}
@@ -339,11 +339,11 @@ public:
 				status_.set(MainStatus::DataIsToProcessor, false);
 				status_.set(MainStatus::CommandInProgress, false);
 			}
-			log_.info().append("Result read: %02x", result);
+			Logger::info().append("Result read: %02x", result);
 			return result;
 		}
 
-		log_.info().append("Result read: 80 [default]");
+		Logger::info().append("Result read: 80 [default]");
 		return 0x80;
 	}
 
@@ -367,10 +367,10 @@ public:
 	}
 
 private:
-	mutable Log::Logger<Log::Source::Floppy> log_;
+	using Logger = Log::Logger<Log::Source::Floppy>;
 
 	void reset() {
-		log_.info().append("{Reset}");
+		Logger::info().append("{Reset}");
 		decoder_.clear();
 		status_.reset();
 
