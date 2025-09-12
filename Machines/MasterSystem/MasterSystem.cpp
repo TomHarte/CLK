@@ -33,7 +33,7 @@
 
 namespace {
 constexpr int audio_divider = 1;
-Log::Logger<Log::Source::MasterSystem> logger;
+using Logger = Log::Logger<Log::Source::MasterSystem>;
 }
 
 namespace Sega {
@@ -260,17 +260,17 @@ public:
 					}
 
 					if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
-//					else logger.info().append("Ignored write to ROM");
+//					else Logger::info().append("Ignored write to ROM");
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
 					switch(address & 0xc1) {
 						case 0x00:
-							logger.error().append("TODO: [input] memory control");
+							Logger::error().append("TODO: [input] memory control");
 							*cycle.value = 0xff;
 						break;
 						case 0x01:
-							logger.error().append("TODO: [input] I/O port control");
+							Logger::error().append("TODO: [input] I/O port control");
 							*cycle.value = 0xff;
 						break;
 						case 0x40:
@@ -310,7 +310,7 @@ public:
 						} break;
 
 						default:
-							logger.error().append("[input] Clearly some sort of typo");
+							Logger::error().append("[input] Clearly some sort of typo");
 						break;
 					}
 				break;
@@ -320,7 +320,7 @@ public:
 						case 0x00:		// i.e. even ports less than 0x40.
 							if constexpr (is_master_system(model)) {
 								// TODO: Obey the RAM enable.
-								logger.info().append("Memory control: %02x", memory_control_);
+								Logger::info().append("Memory control: %02x", memory_control_);
 								memory_control_ = *cycle.value;
 								page_cartridge();
 							}
@@ -362,7 +362,7 @@ public:
 						break;
 
 						default:
-							logger.error().append("[output] Clearly some sort of typo");
+							Logger::error().append("[output] Clearly some sort of typo");
 						break;
 					}
 				break;

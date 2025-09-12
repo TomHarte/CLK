@@ -60,7 +60,7 @@ constexpr GLenum formatForDepth(std::size_t depth) {
 	}
 }
 
-Log::Logger<Log::Source::OpenGL> logger;
+using Logger = Log::Logger<Log::Source::OpenGL>;
 
 }
 
@@ -345,7 +345,7 @@ void ScanTarget::update(int, int output_height) {
 		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
 		while(is_drawing_to_accumulation_buffer_.test_and_set());
 		if(did_create_accumulation_texture) {
-			logger.info().append("Changed output resolution to %d by %d", proportional_width, framebuffer_height);
+			Logger::info().append("Changed output resolution to %d by %d", proportional_width, framebuffer_height);
 			display_metrics_.announce_did_resize();
 			std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 				new TextureTarget(

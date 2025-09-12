@@ -125,13 +125,13 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 
 				case 0xb:
 					if(!is_read) {
-						logger_.error().append("TODO: NCR reset");
+						Logger::error().append("TODO: NCR reset");
 					}
 				break;
 
 				case 0xd:
 					if(!is_read) {
-						logger_.error().append("TODO: Enable PDMA");
+						Logger::error().append("TODO: Enable PDMA");
 					}
 				break;
 
@@ -143,7 +143,7 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 				break;
 
 				default:
-					logger_.error().append("Unhandled: %04x %c %02x\n", address, is_read ? 'r' : 'w', *value);
+					Logger::error().append("Unhandled: %04x %c %02x\n", address, is_read ? 'r' : 'w', *value);
 				break;
 			}
 		break;

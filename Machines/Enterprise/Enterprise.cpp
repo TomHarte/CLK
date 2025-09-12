@@ -24,7 +24,7 @@
 #include "Processors/Z80/Z80.hpp"
 
 namespace {
-Log::Logger<Log::Source::Enterprise> logger;
+using Logger = Log::Logger<Log::Source::Enterprise>;
 }
 
 namespace Enterprise {
@@ -365,7 +365,7 @@ public:
 			case PartialMachineCycle::Input:
 				switch(address & 0xff) {
 					default:
-						logger.error().append("Unhandled input from %02x", address & 0xff);
+						Logger::error().append("Unhandled input from %02x", address & 0xff);
 						*cycle.value = 0xff;
 					break;
 
@@ -430,7 +430,7 @@ public:
 			case PartialMachineCycle::Output:
 				switch(address & 0xff) {
 					default:
-						logger.error().append("Unhandled output: %02x to %02x", *cycle.value, address & 0xff);
+						Logger::error().append("Unhandled output: %02x to %02x", *cycle.value, address & 0xff);
 					break;
 
 					case 0x10:	case 0x11:	case 0x12:	case 0x13:
@@ -529,12 +529,12 @@ public:
 					break;
 					case 0xb6:
 						// Just 8 bits of printer data.
-						logger.info().append("TODO: printer output: %02x", *cycle.value);
+						Logger::info().append("TODO: printer output: %02x", *cycle.value);
 					break;
 					case 0xb7:
 						// b0 = serial data out
 						// b1 = serial status out
-						logger.info().append("TODO: serial output: %02x", *cycle.value);
+						Logger::info().append("TODO: serial output: %02x", *cycle.value);
 					break;
 				}
 			break;

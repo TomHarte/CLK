@@ -17,7 +17,9 @@ jobs:
         xcode-version: latest-stable
     - name: Make
       working-directory: OSBindings/Mac
-      run: xcodebuild CODE_SIGN_IDENTITY=-
+      run: |
+        xcodebuild -downloadComponent MetalToolchain
+        xcodebuild CODE_SIGN_IDENTITY=-
 
   build-sdl-cmake:
     name: SDL UI / cmake / ${{ matrix.os }}

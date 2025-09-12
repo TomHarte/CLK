@@ -254,7 +254,7 @@ public:
 		pages_[page_for_index(index)] = value;
 
 		if(index == 0x00) {
-			log_.info().append("%02x", value);
+			Logger::info().append("%02x", value);
 
 //			if(value == 0x3c) {
 //				++count;
@@ -274,7 +274,7 @@ public:
 
 private:
 	uint8_t pages_[16]{};
-	mutable Log::Logger<Log::Source::PCPOST> log_;
+	using Logger = Log::Logger<Log::Source::PCPOST>;
 
 	static constexpr int page_for_index(const int index) {
 		switch(index) {

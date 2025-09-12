@@ -43,7 +43,7 @@ public:
 
 	void set_a20_enabled(const bool enabled) {
 		// Assumed: this'll be something to set on Memory.
-		log_.info().append("A20 line is now: %d", enabled);
+		Logger::info().append("A20 line is now: %d", enabled);
 		linear_memory_.set_a20_enabled(enabled);
 	}
 
@@ -65,7 +65,7 @@ private:
 	SegmentedMemory<processor_model(model), LinearMemory<processor_model(model)>> &segmented_memory_;
 	LinearMemory<processor_model(model)> &linear_memory_;
 
-	Log::Logger<Log::Source::PCCompatible> log_;
+	using Logger = Log::Logger<Log::Source::PCCompatible>;
 	Mode mode_ = Mode::Real;
 };
 

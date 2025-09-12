@@ -260,6 +260,8 @@ struct LogLine<source, false> {
 template <Source source>
 class Logger {
 public:
+	Logger() = delete;
+
 	static constexpr bool InfoEnabled = enabled_level(source) == EnabledLevel::ErrorsAndInfo;
 	static constexpr bool ErrorsEnabled = enabled_level(source) >= EnabledLevel::Errors;
 

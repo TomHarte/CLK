@@ -38,7 +38,7 @@
 #include <cstdint>
 
 namespace {
-Log::Logger<Log::Source::Vic20> logger;
+using Logger = Log::Logger<Log::Source::Vic20>;
 }
 
 namespace Commodore::Vic20 {
@@ -539,12 +539,12 @@ public:
 						const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
 						header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 						hold_tape_ = true;
-						logger.info().append("Found header");
+						Logger::info().append("Found header");
 					} else {
 						// no header found, so pretend this hack never interceded
 						tape_->serialiser()->set_offset(tape_position);
 						hold_tape_ = false;
-						logger.info().append("Didn't find header");
+						Logger::info().append("Didn't find header");
 					}
 
 					// clear status and the verify flag
@@ -585,11 +585,11 @@ public:
 							m6502_.set_value_of(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 							*value = 0xea;	// i.e. NOP implied
 							hold_tape_ = true;
-							logger.info().append("Found data");
+							Logger::info().append("Found data");
 						} else {
 							tape_->serialiser()->set_offset(tape_position);
 							hold_tape_ = false;
-							logger.info().append("Didn't find data");
+							Logger::info().append("Didn't find data");
 						}
 					}
 				}

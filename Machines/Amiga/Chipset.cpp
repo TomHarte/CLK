@@ -15,7 +15,7 @@
 #include <tuple>
 
 namespace {
-Log::Logger<Log::Source::AmigaChipset> logger;
+using Logger = Log::Logger<Log::Source::AmigaChipset>;
 }
 
 using namespace Amiga;
@@ -868,16 +868,16 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 
 		case 0x02a:		// VPOSW
-			logger.error().append("TODO: write vertical position high %04x", value);
+			Logger::error().append("TODO: write vertical position high %04x", value);
 		break;
 		case 0x02c:		// VHPOSW
-			logger.error().append("TODO: write vertical position low %04x", value);
+			Logger::error().append("TODO: write vertical position low %04x", value);
 			is_long_field_ = value & 0x8000;
 		break;
 
 		// Joystick/mouse input.
 		case 0x034:		// POTGO
-//			logger.error().append("TODO: pot port start");
+//			Logger::error().append("TODO: pot port start");
 		break;
 
 		// Disk DMA and control.
@@ -886,11 +886,11 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x024:	disk_.set_length(value);			break;		// DSKLEN
 
 		case 0x026:		// DSKDAT
-			logger.error().append("TODO: disk DMA; %04x to %04x", value, address);
+			Logger::error().append("TODO: disk DMA; %04x to %04x", value, address);
 		break;
 
 		case 0x09e:		// ADKCON
-			logger.info().append("Write disk control");
+			Logger::info().append("Write disk control");
 			ApplySetClear(paula_disk_control_, 0x7fff);
 
 			disk_controller_.set_control(paula_disk_control_);
@@ -904,7 +904,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 
 		// Refresh.
 		case 0x028:		// REFPTR
-			logger.info().append("TODO (maybe): refresh; %04x to %08x", value, address);
+			Logger::info().append("TODO (maybe): refresh; %04x to %08x", value, address);
 		break;
 
 		// Serial port.
@@ -943,7 +943,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 		case 0x092:		// DDFSTRT
 			if(fetch_window_[0] != value) {
-				logger.info().append("Fetch window start set to %d", value);
+				Logger::info().append("Fetch window start set to %d", value);
 			}
 			fetch_window_[0] = value & 0xfe;
 		break;
@@ -951,7 +951,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
 			if(fetch_window_[1] != value) {
-				logger.info().append("Fetch window stop set to %d", fetch_window_[1]);
+				Logger::info().append("Fetch window stop set to %d", fetch_window_[1]);
 			}
 			fetch_window_[1] = value & 0xfe;
 		break;
@@ -988,7 +988,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 
 		case 0x106:		// BPLCON3 (ECS)
-			logger.error().append("TODO: Bitplane control; %04x to %08x", value, address);
+			Logger::error().append("TODO: Bitplane control; %04x to %08x", value, address);
 		break;
 
 		case 0x108:	bitplanes_.set_modulo<0>(value);	break;	// BPL1MOD
@@ -1000,7 +1000,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x116:
 		case 0x118:
 		case 0x11a:
-			logger.error().append("TODO: Bitplane data; %04x to %08x", value, address);
+			Logger::error().append("TODO: Bitplane data; %04x to %08x", value, address);
 		break;
 
 		// Blitter.
@@ -1055,7 +1055,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x088:	copper_.reload<0>();				break;
 		case 0x08a:	copper_.reload<1>();				break;
 		case 0x08c:
-			logger.error().append("TODO: coprocessor instruction fetch identity %04x", value);
+			Logger::error().append("TODO: coprocessor instruction fetch identity %04x", value);
 		break;
 
 		// Sprites.
@@ -1143,15 +1143,15 @@ uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
 		case 0x00c:	return joystick(0).get_position();		// JOY1DAT
 
 		case 0x016:		// POTGOR / POTINP
-//			logger.error().append("TODO: pot port read");
+//			Logger::error().append("TODO: pot port read");
 		return 0xff00;
 
 		// Disk DMA and control.
 		case 0x010:		// ADKCONR
-			logger.info().append("Read disk control");
+			Logger::info().append("Read disk control");
 		return paula_disk_control_;
 		case 0x01a:		// DSKBYTR
-			logger.error().append("TODO: disk status");
+			Logger::error().append("TODO: disk status");
 			assert(false);	// Not yet implemented.
 		return 0xffff;
 
@@ -1193,7 +1193,7 @@ Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller, Mo
 void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
 		// CIA A, Port B: Parallel port output.
-		logger.info().append("TODO: parallel output %02x", value);
+		Logger::info().append("TODO: parallel output %02x", value);
 	} else {
 		// CIA A, Port A:
 		//
@@ -1215,7 +1215,7 @@ void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 
 uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	if(port) {
-		logger.info().append("TODO: parallel input?");
+		Logger::info().append("TODO: parallel input?");
 	} else {
 		// Use the mouse as FIR0, the joystick as FIR1.
 		return
@@ -1255,12 +1255,12 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		// b2: SEL
 		// b1: POUT
 		// b0: BUSY
-		logger.error().append("TODO: DTR/RTS/etc: %02x", value);
+		Logger::error().append("TODO: DTR/RTS/etc: %02x", value);
 	}
 }
 
 uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
-	logger.error().append("Unexpected: input for CIA B");
+	Logger::error().append("Unexpected: input for CIA B");
 	return 0xff;
 }
 

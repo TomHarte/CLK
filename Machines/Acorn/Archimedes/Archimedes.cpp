@@ -52,7 +52,7 @@ class ConcreteMachine:
 	public Configurable::Device
 {
 private:
-	Log::Logger<Log::Source::Archimedes> logger;
+	using Logger = Log::Logger<Log::Source::Archimedes>;
 
 	// This fictitious clock rate just means '24 MIPS, please'; it's divided elsewhere.
 	static constexpr int ClockRate = 24'000'000;

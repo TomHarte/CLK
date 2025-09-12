@@ -129,7 +129,7 @@ void MOS6526<BusHandlerT, personality>::write(int address, const uint8_t value) 
 
 		// Shift control.
 		case 12:
-			log.error().append("TODO: write to shift register");
+			Logger::error().append("TODO: write to shift register");
 		break;
 
 		// Logically unreachable.

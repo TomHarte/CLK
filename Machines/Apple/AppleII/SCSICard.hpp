@@ -49,7 +49,7 @@ private:
 	SCSI::Bus scsi_bus_;
 	NCR::NCR5380::NCR5380 ncr5380_;
 	SCSI::Target::Target<SCSI::DirectAccessDevice> storage_;
-	Log::Logger<Log::Source::AppleIISCSICard> logger_;
+	using Logger = Log::Logger<Log::Source::AppleIISCSICard>;
 };
 
 }

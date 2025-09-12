@@ -14,9 +14,7 @@
 using namespace SCSI;
 
 namespace {
-
-Log::Logger<Log::Source::DirectAccessDevice> logger;
-
+using Logger = Log::Logger<Log::Source::DirectAccessDevice>;
 }
 
 void DirectAccessDevice::set_storage(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device) {
@@ -27,7 +25,7 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 	if(!device_) return false;
 
 	const auto specs = state.read_write_specs();
-	logger.info().append("Read: %d from %d", specs.number_of_blocks, specs.address);
+	Logger::info().append("Read: %d from %d", specs.number_of_blocks, specs.address);
 
 	std::vector<uint8_t> output = device_->get_block(specs.address);
 	for(uint32_t offset = 1; offset < specs.number_of_blocks; ++offset) {
@@ -46,7 +44,7 @@ bool DirectAccessDevice::write(const Target::CommandState &state, Target::Respon
 	if(!device_) return false;
 
 	const auto specs = state.read_write_specs();
-	logger.info().append("Write: %d to %d", specs.number_of_blocks, specs.address);
+	Logger::info().append("Write: %d to %d", specs.number_of_blocks, specs.address);
 
 	responder.receive_data(
 		device_->get_block_size() * specs.number_of_blocks,

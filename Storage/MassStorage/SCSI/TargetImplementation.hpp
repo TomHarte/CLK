@@ -181,7 +181,7 @@ constexpr uint8_t G5(const uint8_t opcode) {	return 0xa0 | opcode;	}
 
 template <typename Executor> bool Target<Executor>::dispatch_command() {
 	CommandState arguments(command_, data_);
-	log_.info().append("---Command %02x---", command_[0]);
+	Logger::info().append("---Command %02x---", command_[0]);
 
 	switch(command_[0]) {
 		default:		return false;
@@ -276,5 +276,5 @@ template <typename Executor> void Target<Executor>::end_command() {
 	bus_state_ = DefaultBusState;
 	set_device_output(bus_state_);
 
-	log_.info().append("---Done---");
+	Logger::info().append("---Done---");
 }

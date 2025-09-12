@@ -122,7 +122,7 @@ struct Video {
 			break;
 
 			default:
-				logger.error().append("TODO: unrecognised VIDC write of %08x", value);
+				Logger::error().append("TODO: unrecognised VIDC write of %08x", value);
 			break;
 		}
 	}
@@ -269,7 +269,7 @@ struct Video {
 	}
 
 private:
-	Log::Logger<Log::Source::ARMIOC> logger;
+	using Logger = Log::Logger<Log::Source::ARMIOC>;
 	InterruptObserverT &interrupt_observer_;
 	ClockRateObserverT &clock_rate_observer_;
 	SoundT &sound_;

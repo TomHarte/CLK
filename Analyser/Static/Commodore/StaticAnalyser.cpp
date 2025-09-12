@@ -258,7 +258,7 @@ analyse_starting_address(uint16_t starting_address) {
 		case 0x1c01:
 			// TODO: assume C128.
 		default:
-			Log::Logger<Log::Source::CommodoreStaticAnalyser>().error().append(
+			Log::Logger<Log::Source::CommodoreStaticAnalyser>::error().append(
 				"Unrecognised loading address for Commodore program: %04x", starting_address);
 			[[fallthrough]];
 		case 0x1001:
