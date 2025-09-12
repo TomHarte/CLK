@@ -122,16 +122,29 @@ public:
 	template <int input>
 	void apply_edge(const bool final_level) {
 		static constexpr uint8_t input_mask = 1 << input;
-
-		const auto old_levels = levels_;
 		const uint8_t new_bit = final_level ? input_mask : 0;
-		levels_ = (levels_ & ~input_mask) | new_bit;
 
+		// Guess: level triggered means the request can be forwarded only so long as the
+		// relevant input is actually high. Whereas edge triggered implies capturing state.
 		if(level_triggered_) {
-			requests_ = levels_;
-		} else {
-			requests_ |= (levels_ ^ old_levels) & new_bit;
+			requests_ &= ~input_mask;
 		}
+		requests_ |= new_bit;
+
+		// TODO: I don't think the above is correct because it defines an edge trigger to be any time that the
+		// level is redeclared as 1 but a previous request has been satisfied. So that's not about watching the rising
+		// edge of the input as it should be.
+		//
+		// ... but the code as below causes my XT to fail to boot. So it's possibly incorrect too, in some other way,
+		// or else it trigger a latent piece of incorrect behaviour elsewhere.
+//		const auto old_levels = levels_;
+//		levels_ = (levels_ & ~input_mask) | new_bit;
+//
+//		if(level_triggered_) {
+//			requests_ = (requests_ & ~input_mask) | new_bit;
+//		} else {
+//			requests_ |= (levels_ ^ old_levels) & new_bit;
+//		}
 
 		Log::info().append("%d to %d => requests now %02x", input, final_level, requests_);
 	}
