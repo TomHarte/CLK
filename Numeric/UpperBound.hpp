@@ -32,7 +32,7 @@ int upper_bound_bounded(int location) {
 		return at_index<0, left+1, Args...>();
 	}
 
-	constexpr auto midpoint = (left + right) >> 1;
+	static constexpr auto midpoint = (left + right) >> 1;
 	if(location >= at_index<0, midpoint, Args...>()) {
 		return upper_bound_bounded<midpoint, right, Args...>(location);
 	} else {

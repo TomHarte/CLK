@@ -57,7 +57,7 @@ public:
 		chipset_(memory_, PALClockRate)
 	{
 		// Temporary: use a hard-coded Kickstart selection.
-		constexpr ROM::Name rom_name = ROM::Name::AmigaA500Kickstart13;
+		static constexpr ROM::Name rom_name = ROM::Name::AmigaA500Kickstart13;
 		ROM::Request request(rom_name);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {

@@ -83,7 +83,7 @@ void aam(
 		If ... an immediate value of 0 is used, it will cause a #DE (divide error) exception.
 	*/
 	if(!imm) {
-		constexpr auto exception = Exception::exception<Vector::DivideError>();
+		static constexpr auto exception = Exception::exception<Vector::DivideError>();
 		if constexpr (uses_8086_exceptions(ContextT::model)) {
 			interrupt(exception, context);
 			return;
@@ -104,7 +104,7 @@ void daas(
 	ContextT &context
 ) {
 	bool top_exceeded_threshold;
-	constexpr bool is_8086 = ContextT::model == Model::i8086;
+	static constexpr bool is_8086 = ContextT::model == Model::i8086;
 	if constexpr (is_8086) {
 		top_exceeded_threshold = al > (context.flags.template flag<Flag::AuxiliaryCarry>() ? 0x9f : 0x99);
 	} else {

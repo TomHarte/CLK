@@ -124,16 +124,16 @@ uint8_t GLU::get_status() {
 	return status_ | ((visible_mouse_register_ == 2) ? 0 : uint8_t(CPUFlags::MouseXIsAvailable));
 }
 
-void GLU::set_status(uint8_t status) {
+void GLU::set_status(const uint8_t status) {
 	// This permits only the interrupt flags to be set.
-	constexpr uint8_t interrupt_flags =
+	static constexpr uint8_t interrupt_flags =
 		uint8_t(CPUFlags::MouseInterruptEnabled) |
 		uint8_t(CPUFlags::CommandDataInterruptEnabled) |
 		uint8_t(CPUFlags::KeyboardDataInterruptEnabled);
 	status_ = (status_ & ~interrupt_flags) | (status & interrupt_flags);
 }
 
-void GLU::set_command(uint8_t command) {
+void GLU::set_command(const uint8_t command) {
 	registers_[1] = command;
 	registers_[4] |= uint8_t(MicrocontrollerFlags::CommandRegisterFull);
 	status_ |= uint8_t(CPUFlags::CommandRegisterFull);

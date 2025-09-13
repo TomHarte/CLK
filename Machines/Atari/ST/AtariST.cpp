@@ -93,7 +93,7 @@ public:
 			ram_.size() >> 1
 		);
 
-		constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
+		static constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
 		ROM::Request request(rom_name);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {

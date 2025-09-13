@@ -142,7 +142,7 @@ struct InputOutputController: public ClockingHint::Observer {
 
 	/// Decomposes an Archimedes bus address into bank, offset and type.
 	struct Address {
-		constexpr Address(uint32_t bus_address) noexcept {
+		constexpr Address(const uint32_t bus_address) noexcept {
 			bank = (bus_address >> 16) & 0b111;
 			type = Type((bus_address >> 19) & 0b11);
 			offset = bus_address & 0b1111100;

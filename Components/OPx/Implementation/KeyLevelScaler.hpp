@@ -33,7 +33,7 @@ public:
 	*/
 	void set_key_scaling_level(const int level) {
 		// '7' is just a number large enough to render all possible scaling coefficients as 0.
-		constexpr int key_level_scale_shifts[4] = {7, 1, 2, 0};
+		static constexpr int key_level_scale_shifts[4] = {7, 1, 2, 0};
 		shift_ = key_level_scale_shifts[level];
 	}
 

@@ -117,8 +117,8 @@ public:
 			case Target::Model::ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
 			default:					system = ROM::Name::AppleIIgsROM03;	break;
 		}
-		constexpr ROM::Name characters = ROM::Name::AppleIIEnhancedECharacter;
-		constexpr ROM::Name microcontroller = ROM::Name::AppleIIgsMicrocontrollerROM03;
+		static constexpr ROM::Name characters = ROM::Name::AppleIIEnhancedECharacter;
+		static constexpr ROM::Name microcontroller = ROM::Name::AppleIIgsMicrocontrollerROM03;
 
 		ROM::Request request = ROM::Request(system) && ROM::Request(characters) && ROM::Request(microcontroller);
 		auto roms = rom_fetcher(request);

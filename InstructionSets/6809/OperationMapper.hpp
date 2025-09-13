@@ -79,23 +79,23 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page0>::dispatc
 	using AM = AddressingMode;
 	using O = Operation;
 
-	constexpr auto upper = (i >> 4) & 0xf;
-	constexpr auto lower = (i >> 0) & 0xf;
+	static constexpr auto upper = (i >> 4) & 0xf;
+	static constexpr auto lower = (i >> 0) & 0xf;
 
-	constexpr AddressingMode modes[] = {
+	static constexpr AddressingMode modes[] = {
 		AM::Immediate, AM::Direct, AM::Indexed, AM::Extended
 	};
-	constexpr AddressingMode mode = modes[(i >> 4) & 3];
+	static constexpr AddressingMode mode = modes[(i >> 4) & 3];
 
 	switch(upper) {
 		default: break;
 
 		case 0x1: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::Page1,	O::Page2,	O::NOP,		O::SYNC,	O::None,	O::None,	O::LBRA,	O::LBSR,
 				O::None,	O::DAA,		O::ORCC,	O::None,	O::ANDCC,	O::SEX,		O::EXG,		O::TFR,
 			};
-			constexpr AddressingMode modes[] = {
+			static constexpr AddressingMode modes[] = {
 				AM::Variant,	AM::Variant,	AM::Inherent,	AM::Inherent,
 				AM::Illegal,	AM::Illegal,	AM::Relative,	AM::Relative,
 				AM::Illegal,	AM::Inherent,	AM::Immediate,	AM::Illegal,
@@ -104,18 +104,18 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page0>::dispatc
 			s.template schedule<operations[lower], modes[lower]>();
 		} break;
 		case 0x2: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::BRA,		O::BRN,		O::BHI,		O::BLS,		O::BCC,		O::BCS,		O::BNE,		O::BEQ,
 				O::BVC,		O::BVS,		O::BPL,		O::BMI,		O::BGE,		O::BLT,		O::BGT,		O::BLE,
 			};
 			s.template schedule<operations[lower], AM::Relative>();
 		} break;
 		case 0x3: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::LEAX,	O::LEAY,	O::LEAS,	O::LEAU,	O::PSHS,	O::PULS,	O::PSHU,	O::PULU,
 				O::None,	O::RTS,		O::ABX,		O::RTI,		O::CWAI,	O::MUL,		O::RESET,	O::SWI,
 			};
-			constexpr auto op = operations[lower];
+			static constexpr auto op = operations[lower];
 			switch(lower) {
 				case 0x0:	case 0x1:	case 0x2:	case 0x3:
 					s.template schedule<op, AM::Indexed>();
@@ -132,31 +132,31 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page0>::dispatc
 			}
 		} break;
 		case 0x4: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::NEGA,	O::None,	O::None,	O::COMA,	O::LSRA,	O::None,	O::RORA,	O::ASRA,
 				O::LSLA,	O::ROLA,	O::DECA,	O::None,	O::INCA,	O::TSTA,	O::None,	O::CLRA,
 			};
-			constexpr auto op = operations[lower];
+			static constexpr auto op = operations[lower];
 			s.template schedule<op, op == O::None ? AM::Illegal : AM::Inherent>();
 		} break;
 		case 0x5: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::NEGB,	O::None,	O::None,	O::COMB,	O::LSRB,	O::None,	O::RORB,	O::ASRB,
 				O::LSLB,	O::ROLB,	O::DECB,	O::None,	O::INCB,	O::TSTB,	O::None,	O::CLRB,
 			};
-			constexpr auto op = operations[lower];
+			static constexpr auto op = operations[lower];
 			s.template schedule<op, op == O::None ? AM::Illegal : AM::Inherent>();
 		} break;
 		case 0x0: case 0x6:	case 0x7: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::NEG,		O::None,	O::None,	O::COM,		O::LSR,		O::None,	O::ROR,		O::ASR,
 				O::LSL,		O::ROL,		O::DEC,		O::None,	O::INC,		O::TST,		O::JMP,		O::CLR,
 			};
-			constexpr auto op = operations[lower];
+			static constexpr auto op = operations[lower];
 			s.template schedule<op, op == O::None ? AM::Illegal : upper == 0 ? AM::Direct : mode>();
 		} break;
 		case 0x8:	case 0x9:	case 0xa:	case 0xb: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::SUBA,	O::CMPA,	O::SBCA,	O::SUBD,	O::ANDA,	O::BITA,	O::LDA,		O::STA,
 				O::EORA,	O::ADCA,	O::ORA,		O::ADDA,	O::CMPX,	O::JSR,		O::LDX,		O::STX,
 			};
@@ -164,7 +164,7 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page0>::dispatc
 			else			s.template schedule<operations[lower], mode>();
 		} break;
 		case 0xc:	case 0xd:	case 0xe:	case 0xf: {
-			constexpr Operation operations[] = {
+			static constexpr Operation operations[] = {
 				O::SUBB,	O::CMPB,	O::SBCB,	O::ADDD,	O::ANDB,	O::BITB,	O::LDB,		O::STB,
 				O::EORB,	O::ADCB,	O::ORB,		O::ADDB,	O::LDD,		O::STD,		O::LDU,		O::STU,
 			};
@@ -178,13 +178,13 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page1>::dispatc
 	using AM = AddressingMode;
 	using O = Operation;
 
-	constexpr AddressingMode modes[] = {
+	static constexpr AddressingMode modes[] = {
 		AM::Immediate, AM::Direct, AM::Indexed, AM::Extended
 	};
-	constexpr auto mode = modes[(i >> 4) & 3];
+	static constexpr auto mode = modes[(i >> 4) & 3];
 
 	if constexpr (i >= 0x21 && i < 0x30) {
-		constexpr Operation operations[] = {
+		static constexpr Operation operations[] = {
 						O::LBRN,	O::LBHI,	O::LBLS,	O::LBCC,	O::LBCS,	O::LBNE,	O::LBEQ,
 			O::LBVC,	O::LBVS,	O::LBPL,	O::LBMI,	O::LBGE,	O::LBLT,	O::LBGT,	O::LBLE,
 		};
@@ -219,10 +219,10 @@ template <int i, typename SchedulerT> void OperationMapper<Page::Page2>::dispatc
 	using AM = AddressingMode;
 	using O = Operation;
 
-	constexpr AddressingMode modes[] = {
+	static constexpr AddressingMode modes[] = {
 		AM::Immediate, AM::Direct, AM::Indexed, AM::Extended
 	};
-	constexpr auto mode = modes[(i >> 4) & 3];
+	static constexpr auto mode = modes[(i >> 4) & 3];
 
 	switch(i) {
 		default:	s.template schedule<O::None, AM::Illegal>();	break;

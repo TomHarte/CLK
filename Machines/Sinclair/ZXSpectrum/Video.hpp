@@ -324,7 +324,7 @@ public:
 		@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
 	*/
 	HalfCycles next_sequence_point() {
-		constexpr auto timings = get_timings();
+		static constexpr auto timings = get_timings();
 
 		// Is the frame still ahead of this interrupt?
 		if(time_into_frame_ < timings.interrupt_time) {
@@ -344,7 +344,7 @@ public:
 		@returns The current state of the interrupt output.
 	*/
 	bool get_interrupt_line() const {
-		constexpr auto timings = get_timings();
+		static constexpr auto timings = get_timings();
 		return time_into_frame_ >= timings.interrupt_time && time_into_frame_ < timings.interrupt_time + interrupt_duration;
 	}
 
@@ -353,7 +353,7 @@ public:
 		needs to be applied in @c offset half-cycles from now.
 	*/
 	HalfCycles access_delay(HalfCycles offset) const {
-		constexpr auto timings = get_timings();
+		static constexpr auto timings = get_timings();
 		const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.half_cycles_per_line * timings.lines_per_frame);
 		assert(!(delay_time&1));
 
@@ -374,7 +374,7 @@ public:
 		@returns Whatever the ULA or gate array would expose via the floating bus, this cycle.
 	*/
 	uint8_t get_floating_value() const {
-		constexpr auto timings = get_timings();
+		static constexpr auto timings = get_timings();
 		const uint8_t out_of_bounds = (timing == Timing::Plus3) ? last_contended_access_ : 0xff;
 
 		const int line = time_into_frame_ / timings.half_cycles_per_line;

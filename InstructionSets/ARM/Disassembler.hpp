@@ -172,7 +172,7 @@ struct Disassembler {
 	}
 
 	template <Flags f> void perform(const DataProcessing fields) {
-		constexpr DataProcessingFlags flags(f);
+		static constexpr DataProcessingFlags flags(f);
 
 		instruction_.operand1.type = Operand::Type::Register;
 		instruction_.operand1.value = fields.operand1();
@@ -215,7 +215,7 @@ struct Disassembler {
 
 	template <Flags> void perform(Multiply) {}
 	template <Flags f> void perform(const SingleDataTransfer fields) {
-		constexpr SingleDataTransferFlags flags(f);
+		static constexpr SingleDataTransferFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == SingleDataTransferFlags::Operation::STR) ?
 				Instruction::Operation::STR : Instruction::Operation::LDR;
@@ -227,7 +227,7 @@ struct Disassembler {
 		instruction_.operand1.value = fields.base();
 	}
 	template <Flags f> void perform(const BlockDataTransfer fields) {
-		constexpr BlockDataTransferFlags flags(f);
+		static constexpr BlockDataTransferFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == BlockDataTransferFlags::Operation::STM) ?
 				Instruction::Operation::STM : Instruction::Operation::LDM;
@@ -239,7 +239,7 @@ struct Disassembler {
 		instruction_.operand1.value = fields.register_list();
 	}
 	template <Flags f> void perform(const Branch fields) {
-		constexpr BranchFlags flags(f);
+		static constexpr BranchFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == BranchFlags::Operation::BL) ?
 				Instruction::Operation::BL : Instruction::Operation::B;
@@ -247,7 +247,7 @@ struct Disassembler {
 		instruction_.operand1.value = fields.offset();
 	}
 	template <Flags f> void perform(CoprocessorRegisterTransfer) {
-		constexpr CoprocessorRegisterTransferFlags flags(f);
+		static constexpr CoprocessorRegisterTransferFlags flags(f);
 		instruction_.operation =
 			(flags.operation() == CoprocessorRegisterTransferFlags::Operation::MRC) ?
 				Instruction::Operation::MRC : Instruction::Operation::MCR;

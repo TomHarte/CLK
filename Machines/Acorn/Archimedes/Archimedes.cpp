@@ -117,7 +117,7 @@ public:
 	) : executor_(*this, *this, *this) {
 		set_clock_rate(ClockRate);
 
-		constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
+		static constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
 		ROM::Request request(risc_os);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {

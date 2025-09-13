@@ -471,9 +471,9 @@ private:
 						// Supply the real phase value if this is an Apple build.
 						// TODO: eliminate UGLY HACK.
 #if defined(__APPLE__) && !defined(IGNORE_APPLE)
-						constexpr uint8_t phase = 224;
+						static constexpr uint8_t phase = 224;
 #else
-						constexpr uint8_t phase = 192;
+						static constexpr uint8_t phase = 192;
 #endif
 
 						crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, phase);

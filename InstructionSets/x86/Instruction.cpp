@@ -159,55 +159,55 @@ std::string InstructionSet::x86::to_string(Operation operation, DataSize size, M
 		case Operation::LEA:	return "lea";
 
 		case Operation::CMPS: {
-			constexpr char sizes[][6] = { "cmpsb", "cmpsw", "cmpsd", "?" };
+			static constexpr char sizes[][6] = { "cmpsb", "cmpsw", "cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::CMPS_REPE: {
-			constexpr char sizes[][11] = { "repe cmpsb", "repe cmpsw", "repe cmpsd", "?" };
+			static constexpr char sizes[][11] = { "repe cmpsb", "repe cmpsw", "repe cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::CMPS_REPNE: {
-			constexpr char sizes[][12] = { "repne cmpsb", "repne cmpsw", "repne cmpsd", "?" };
+			static constexpr char sizes[][12] = { "repne cmpsb", "repne cmpsw", "repne cmpsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
 		case Operation::SCAS: {
-			constexpr char sizes[][6] = { "scasb", "scasw", "scasd", "?" };
+			static constexpr char sizes[][6] = { "scasb", "scasw", "scasd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::SCAS_REPE: {
-			constexpr char sizes[][11] = { "repe scasb", "repe scasw", "repe scasd", "?" };
+			static constexpr char sizes[][11] = { "repe scasb", "repe scasw", "repe scasd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::SCAS_REPNE: {
-			constexpr char sizes[][12] = { "repne scasb", "repne scasw", "repne scasd", "?" };
+			static constexpr char sizes[][12] = { "repne scasb", "repne scasw", "repne scasd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
 		case Operation::LODS: {
-			constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
+			static constexpr char sizes[][6] = { "lodsb", "lodsw", "lodsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::LODS_REP: {
-			constexpr char sizes[][10] = { "rep lodsb", "rep lodsw", "rep lodsd", "?" };
+			static constexpr char sizes[][10] = { "rep lodsb", "rep lodsw", "rep lodsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
 		case Operation::MOVS: {
-			constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
+			static constexpr char sizes[][6] = { "movsb", "movsw", "movsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::MOVS_REP: {
-			constexpr char sizes[][10] = { "rep movsb", "rep movsw", "rep movsd", "?" };
+			static constexpr char sizes[][10] = { "rep movsb", "rep movsw", "rep movsd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
 		case Operation::STOS: {
-			constexpr char sizes[][6] = { "stosb", "stosw", "stosd", "?" };
+			static constexpr char sizes[][6] = { "stosb", "stosw", "stosd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Operation::STOS_REP: {
-			constexpr char sizes[][10] = { "rep stosb", "rep stosw", "rep stosd", "?" };
+			static constexpr char sizes[][10] = { "rep stosb", "rep stosw", "rep stosd", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 
@@ -310,42 +310,42 @@ bool InstructionSet::x86::mnemonic_implies_data_size(Operation operation) {
 }
 
 std::string InstructionSet::x86::to_string(DataSize size) {
-	constexpr char sizes[][6] = { "byte", "word", "dword", "?" };
+	static constexpr char sizes[][6] = { "byte", "word", "dword", "?" };
 	return sizes[static_cast<int>(size)];
 }
 
 std::string InstructionSet::x86::to_string(Source source, DataSize size) {
 	switch(source) {
 		case Source::eAX: {
-			constexpr char sizes[][4] = { "al", "ax", "eax", "?" };
+			static constexpr char sizes[][4] = { "al", "ax", "eax", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eCX: {
-			constexpr char sizes[][4] = { "cl", "cx", "ecx", "?" };
+			static constexpr char sizes[][4] = { "cl", "cx", "ecx", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eDX: {
-			constexpr char sizes[][4] = { "dl", "dx", "edx", "?" };
+			static constexpr char sizes[][4] = { "dl", "dx", "edx", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eBX: {
-			constexpr char sizes[][4] = { "bl", "bx", "ebx", "?" };
+			static constexpr char sizes[][4] = { "bl", "bx", "ebx", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eSPorAH: {
-			constexpr char sizes[][4] = { "ah", "sp", "esp", "?" };
+			static constexpr char sizes[][4] = { "ah", "sp", "esp", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eBPorCH: {
-			constexpr char sizes[][4] = { "ch", "bp", "ebp", "?" };
+			static constexpr char sizes[][4] = { "ch", "bp", "ebp", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eSIorDH: {
-			constexpr char sizes[][4] = { "dh", "si", "esi", "?" };
+			static constexpr char sizes[][4] = { "dh", "si", "esi", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 		case Source::eDIorBH: {
-			constexpr char sizes[][4] = { "bh", "di", "edi", "?" };
+			static constexpr char sizes[][4] = { "bh", "di", "edi", "?" };
 			return sizes[static_cast<int>(size)];
 		}
 

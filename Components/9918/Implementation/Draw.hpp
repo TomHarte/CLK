@@ -526,7 +526,7 @@ void Base<personality>::draw_yamaha(const uint8_t y, int start, int end) {
 		}
 	}
 
-	constexpr std::array<uint32_t, 16> graphics7_sprite_palette = {
+	static constexpr std::array<uint32_t, 16> graphics7_sprite_palette = {
 		palette_pack(0b00000000, 0b00000000, 0b00000000),	palette_pack(0b00000000, 0b00000000, 0b01001001),
 		palette_pack(0b00000000, 0b01101101, 0b00000000),	palette_pack(0b00000000, 0b01101101, 0b01001001),
 		palette_pack(0b01101101, 0b00000000, 0b00000000),	palette_pack(0b01101101, 0b00000000, 0b01001001),

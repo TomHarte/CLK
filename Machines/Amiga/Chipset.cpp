@@ -349,7 +349,7 @@ template <int cycle> void Chipset::output() {
 	audio_.output();
 
 	// Trigger any sprite loads encountered.
-	constexpr auto dcycle = cycle << 1;
+	static constexpr auto dcycle = cycle << 1;
 	static_assert(std::tuple_size<decltype(sprites_)>::value % 2 == 0);
 	for(size_t c = 0; c < sprites_.size(); c += 2) {
 		if( sprites_[c].visible &&
@@ -527,7 +527,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			}
 		}
 
-		constexpr auto BitplaneEnabled = DMAFlag::AllBelow | DMAFlag::Bitplane;
+		static constexpr auto BitplaneEnabled = DMAFlag::AllBelow | DMAFlag::Bitplane;
 		if(
 			horizontal_fetch_ != HorizontalFetch::Stopped &&
 			(dma_control_ & BitplaneEnabled) == BitplaneEnabled &&
@@ -593,7 +593,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x08 && cycle < 0x0e) {
-			constexpr auto DiskEnabled = DMAFlag::AllBelow | DMAFlag::Disk;
+			static constexpr auto DiskEnabled = DMAFlag::AllBelow | DMAFlag::Disk;
 			if((dma_control_ & DiskEnabled) == DiskEnabled) {
 				if(disk_.advance_dma()) {
 					return false;
@@ -602,11 +602,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0xe && cycle < 0x16) {
-			constexpr auto channel = (cycle - 0xe) >> 1;
+			static constexpr auto channel = (cycle - 0xe) >> 1;
 			static_assert(channel >= 0 && channel < 4);
 			static_assert(cycle != 0x15 || channel == 3);
 
-			constexpr DMAFlag::FlagT AudioFlags[] = {
+			static constexpr DMAFlag::FlagT AudioFlags[] = {
 				DMAFlag::AllBelow | DMAFlag::AudioChannel0,
 				DMAFlag::AllBelow | DMAFlag::AudioChannel1,
 				DMAFlag::AllBelow | DMAFlag::AudioChannel2,
@@ -621,9 +621,9 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x16 && cycle < 0x36) {
-			constexpr auto SpritesEnabled = DMAFlag::AllBelow | DMAFlag::Sprites;
+			static constexpr auto SpritesEnabled = DMAFlag::AllBelow | DMAFlag::Sprites;
 			if(y_ >= vertical_blank_height_ && (dma_control_ & SpritesEnabled) == SpritesEnabled) {
-				constexpr auto sprite_id = (cycle - 0x16) >> 2;
+				static constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
 				if(sprites_[sprite_id].advance_dma((~cycle&2) >> 1, y_, y_ == vertical_blank_height_)) {
@@ -634,7 +634,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	} else {
 		// Bitplanes having been dealt with, specific even-cycle responsibility
 		// is just possibly to pass to the Copper.
-		constexpr auto CopperEnabled = DMAFlag::AllBelow | DMAFlag::Copper;
+		static constexpr auto CopperEnabled = DMAFlag::AllBelow | DMAFlag::Copper;
 		if((dma_control_ & CopperEnabled) == CopperEnabled) {
 			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | cycle), blitter_.get_status())) {
 				return false;
@@ -658,7 +658,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// All tests pass without immediate completion, and immediate completion just runs the
 	// non-immediate version until the busy flag is disabled. So probably a scheduling or
 	// signalling issue out here.
-	constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
+	static constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
 	return (dma_control_ & BlitterEnabled) != BlitterEnabled || !blitter_.advance_dma<true>();
 }
 
