@@ -28,8 +28,10 @@ enum Name {
 	AcornRISCOS311,
 	AcornRISCOS319,
 
-	// Acorn Electron.
+	// Acorn 8-bit.
 	AcornBASICII,
+
+	// Acorn Electron.
 	AcornElectronMOS100,
 	PRESADFSSlot1,
 	PRESADFSSlot2,

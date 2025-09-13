@@ -2,4 +2,4 @@ ROM files would ordinarily go here; the copyright status of these is uncertain s
 
 Expected files:
 
-os12.rom
+basic.rom

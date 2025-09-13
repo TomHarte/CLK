@@ -72,6 +72,18 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
+	// Acorn 8-bit.
+	//
+		{
+			AcornBASICII,
+			"Acorn",
+			"the Acorn BASIC II ROM",
+			Files{"basic.rom", "basic2.rom"},
+			16_kb,
+			0x79434781u
+		},
+
+	//
 	// Acorn Electron.
 	//
 		{
