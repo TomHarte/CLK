@@ -36,6 +36,110 @@ const std::vector<Description> &Description::all_roms() {
 
 	static const std::vector<Description> descriptions = {
 	//
+	// Acorn Archimedes.
+	//
+		{
+			AcornArthur030,
+			"Archimedes",
+			"Arthur v0.30",
+			"ROM030",
+			512_kb,
+			0x5df8ed42u
+		},
+		{
+			AcornRISCOS200,
+			"Archimedes",
+			"RISC OS v2.00",
+			"ROM200",
+			512_kb,
+			0x89c4ad36u
+		},
+		{
+			AcornRISCOS311,
+			"Archimedes",
+			"RISC OS v3.11",
+			"ROM311",
+			2_mb,
+			0x54c0c963u
+		},
+		{
+			AcornRISCOS319,
+			"Archimedes",
+			"RISC OS v3.19",
+			"ROM319",
+			2_mb,
+			0x00c7a3d3u
+		},
+
+	//
+	// Acorn Electron.
+	//
+		{
+			AcornBASICII,
+			"Electron",
+			"the Acorn BASIC II ROM",
+			"basic.rom",
+			16_kb,
+			0x79434781u
+		},
+		{
+			PRESADFSSlot1,
+			"Electron",
+			"the E00 ADFS ROM, first slot",
+			"ADFS-E00_1.rom",
+			16_kb,
+			0x51523993u
+		},
+		{
+			PRESADFSSlot2,
+			"Electron",
+			"the E00 ADFS ROM, second slot",
+			"ADFS-E00_2.rom",
+			16_kb,
+			0x8d17de0eu
+		},
+		{
+			AcornADFS,
+			"Electron",
+			"the Acorn ADFS ROM",
+			"adfs.rom",
+			16_kb,
+			0x3289bdc6u
+		},
+		{
+			Acorn1770DFS,
+			"Electron",
+			"the 1770 DFS ROM",
+			"DFS-1770-2.20.rom",
+			16_kb,
+			0xf3dc9bc5u
+		},
+		{
+			AcornIDEADFS103,
+			"Electron",
+			"the IDE-modified ADFS 1.03 ROM",
+			"ELK130E.rom",
+			16_kb,
+			0xa923368du
+		},
+		{
+			PRESAdvancedPlus6,
+			"Electron",
+			"the 8kb Advanced Plus 6 ROM",
+			"AP6v133.rom",
+			8_kb,
+			0xe0013cfcu
+		},
+		{
+			AcornElectronMOS100,
+			"Electron",
+			"the Electron MOS ROM v1.00",
+			"os.rom",
+			16_kb,
+			0xbf63fb1fu
+		},
+
+	//
 	// Amiga.
 	//
 		{
@@ -303,6 +407,18 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
+	// BBC Micro.
+	//
+		{
+			BBCMicroMOS12,
+			"BBC Micro",
+			"the BBC MOS v1.2",
+			"os12.rom",
+			16_kb,
+			0x3c14fc70u
+		},
+
+	//
 	// ColecoVision.
 	//
 		{
@@ -312,6 +428,26 @@ const std::vector<Description> &Description::all_roms() {
 			"coleco.rom",
 			8_kb,
 			0x3aa93ef3u
+		},
+
+	//
+	// Commodore 1540/1541.
+	//
+		{
+			Commodore1540,
+			"Commodore1540",
+			"the 1540 ROM",
+			"1540.bin",
+			16_kb,
+			0x718d42b1u
+		},
+		{
+			Commodore1541,
+			"Commodore1540",
+			"the 1541 ROM",
+			"1541.bin",
+			16_kb,
+			0xfb760019
 		},
 
 	//
@@ -507,169 +643,6 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
-	// ZX80/81.
-	//
-		{
-			ZX80,
-			"ZX8081",
-			"the ZX80 BASIC ROM",
-			"zx80.rom",
-			4_kb,
-			0x4c7fc597u
-		},
-		{
-			ZX81,
-			"ZX8081",
-			"the ZX81 BASIC ROM",
-			"zx81.rom",
-			8_kb,
-			0x4b1dd6ebu
-		},
-
-	//
-	// ZX Spectrum.
-	//
-		{
-			Spectrum48k,
-			"ZXSpectrum",
-			"the 48kb ROM",
-			"48.rom",
-			16_kb,
-			0xddee531fu
-		},
-		{
-			Spectrum128k,
-			"ZXSpectrum",
-			"the 128kb ROM",
-			"128.rom",
-			32_kb,
-			0x2cbe8995u
-		},
-		{
-			SpecrumPlus2,
-			"ZXSpectrum",
-			"the +2 ROM",
-			"plus2.rom",
-			32_kb,
-			0xe7a517dcu
-		},
-		{
-			SpectrumPlus3,
-			"ZXSpectrum",
-			"the +2a/+3 ROM",
-			"plus3.rom",
-			64_kb,
-			CRCs{
-				0x96e3c17a,
-				0xbe0d9ec4
-			}
-		},
-
-	//
-	// Acorn Electron / BBC.
-	//
-		{
-			AcornBASICII,
-			"Electron",
-			"the Acorn BASIC II ROM",
-			"basic.rom",
-			16_kb,
-			0x79434781u
-		},
-		{
-			PRESADFSSlot1,
-			"Electron",
-			"the E00 ADFS ROM, first slot",
-			"ADFS-E00_1.rom",
-			16_kb,
-			0x51523993u
-		},
-		{
-			PRESADFSSlot2,
-			"Electron",
-			"the E00 ADFS ROM, second slot",
-			"ADFS-E00_2.rom",
-			16_kb,
-			0x8d17de0eu
-		},
-		{
-			AcornADFS,
-			"Electron",
-			"the Acorn ADFS ROM",
-			"adfs.rom",
-			16_kb,
-			0x3289bdc6u
-		},
-		{
-			Acorn1770DFS,
-			"Electron",
-			"the 1770 DFS ROM",
-			"DFS-1770-2.20.rom",
-			16_kb,
-			0xf3dc9bc5u
-		},
-		{
-			AcornIDEADFS103,
-			"Electron",
-			"the IDE-modified ADFS 1.03 ROM",
-			"ELK130E.rom",
-			16_kb,
-			0xa923368du
-		},
-		{
-			PRESAdvancedPlus6,
-			"Electron",
-			"the 8kb Advanced Plus 6 ROM",
-			"AP6v133.rom",
-			8_kb,
-			0xe0013cfcu
-		},
-		{
-			AcornElectronMOS100,
-			"Electron",
-			"the Electron MOS ROM v1.00",
-			"os.rom",
-			16_kb,
-			0xbf63fb1fu
-		},
-
-	//
-	// Acorn Archimedes.
-	//
-		{
-			AcornArthur030,
-			"Archimedes",
-			"Arthur v0.30",
-			"ROM030",
-			512_kb,
-			0x5df8ed42u
-		},
-		{
-			AcornRISCOS200,
-			"Archimedes",
-			"RISC OS v2.00",
-			"ROM200",
-			512_kb,
-			0x89c4ad36u
-		},
-		{
-			AcornRISCOS311,
-			"Archimedes",
-			"RISC OS v3.11",
-			"ROM311",
-			2_mb,
-			0x54c0c963u
-		},
-		{
-			AcornRISCOS319,
-			"Archimedes",
-			"RISC OS v3.19",
-			"ROM319",
-			2_mb,
-			0x00c7a3d3u
-		},
-
-	//
 	// Master System.
 	//
 		{
@@ -690,107 +663,73 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
-	// Commodore 1540/1541.
+	// MSX.
 	//
+	// TODO: MSX CRCs below are incomplete, at best.
 		{
-			Commodore1540,
-			"Commodore1540",
-			"the 1540 ROM",
-			"1540.bin",
-			16_kb,
-			0x718d42b1u
+			MSXGenericBIOS,
+			"MSX",
+			"a generix MSX BIOS",
+			"msx.rom",
+			32_kb,
+			0x94ee12f3u
 		},
 		{
-			Commodore1541,
-			"Commodore1540",
-			"the 1541 ROM",
-			"1541.bin",
+			MSXJapaneseBIOS,
+			"MSX",
+			"a Japanese MSX BIOS",
+			"msx-japanese.rom",
+			32_kb,
+			0xee229390u
+		},
+		{
+			MSXAmericanBIOS,
+			"MSX",
+			"an American MSX BIOS",
+			"msx-american.rom",
+			32_kb,
+			0u
+		},
+		{
+			MSXEuropeanBIOS,
+			"MSX",
+			"a European MSX BIOS",
+			"msx-european.rom",
+			32_kb,
+			0u
+		},
+		{
+			MSXDOS,
+			"MSX",
+			"the MSX-DOS ROM",
+			"disk.rom",
 			16_kb,
-			0xfb760019
+			0x721f61dfu
 		},
 
-	//
-	// Vic-20.
-	//
 		{
-			Vic20BASIC,
-			"Vic20",
-			"the VIC-20 BASIC ROM",
-			"basic.bin",
-			8_kb,
-			0xdb4c43c1u
+			MSX2GenericBIOS,
+			"MSX",
+			"a generic MSX2 BIOS",
+			"msx2.rom",
+			32_kb,
+			0x6cdaf3a5u
 		},
 		{
-			Vic20EnglishCharacters,
-			"Vic20",
-			"the English-language VIC-20 character ROM",
-			"characters-english.bin",
-			4_kb,
-			0x83e032a6u
+			MSX2Extension,
+			"MSX",
+			"the MSX2 extension ROM",
+			"msx2ext.rom",
+			16_kb,
+			0x66237ecfu
 		},
 		{
-			Vic20EnglishPALKernel,
-			"Vic20",
-			"the English-language PAL VIC-20 kernel ROM",
-			"kernel-pal.bin",
-			8_kb,
-			0x4be07cb4u
-		},
-		{
-			Vic20EnglishNTSCKernel,
-			"Vic20",
-			"the English-language NTSC VIC-20 kernel ROM",
-			"kernel-ntsc.bin",
-			8_kb,
-			0xe5e7c174u
-		},
-		{
-			Vic20DanishCharacters,
-			"Vic20",
-			"the Danish VIC-20 character ROM",
-			"characters-danish.bin",
-			4_kb,
-			0x7fc11454u
-		},
-		{
-			Vic20DanishKernel,
-			"Vic20",
-			"the Danish VIC-20 kernel ROM",
-			"kernel-danish.bin",
-			8_kb,
-			0x02adaf16u
-		},
-		{
-			Vic20JapaneseCharacters,
-			"Vic20",
-			"the Japanese VIC-20 character ROM",
-			"characters-japanese.bin",
-			4_kb,
-			0xfcfd8a4bu
-		},
-		{
-			Vic20JapaneseKernel,
-			"Vic20",
-			"the Japanese VIC-20 kernel ROM",
-			"kernel-japanese.bin",
-			8_kb,
-			0x336900d7u
-		},
-		{
-			Vic20SwedishCharacters,
-			"Vic20",
-			"the Swedish VIC-20 character ROM",
-			"characters-swedish.bin",
-			4_kb,
-			0xd808551du
-		},
-		{
-			Vic20SwedishKernel,
-			"Vic20",
-			"the Swedish VIC-20 kernel ROM",
-			"kernel-swedish.bin",
-			8_kb,
-			0xb2a60662u
+			MSXMusic,
+			"MSX",
+			"the MSX-MUSIC / FM-PAC ROM",
+			"fmpac.rom",
+			64_kb,
+			0x0e84505du
 		},
 
 	//
@@ -954,77 +893,7 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
-	// MSX.
-	//
-	// TODO: MSX CRCs below are incomplete, at best.
-		{
-			MSXGenericBIOS,
-			"MSX",
-			"a generix MSX BIOS",
-			"msx.rom",
-			32_kb,
-			0x94ee12f3u
-		},
-		{
-			MSXJapaneseBIOS,
-			"MSX",
-			"a Japanese MSX BIOS",
-			"msx-japanese.rom",
-			32_kb,
-			0xee229390u
-		},
-		{
-			MSXAmericanBIOS,
-			"MSX",
-			"an American MSX BIOS",
-			"msx-american.rom",
-			32_kb,
-			0u
-		},
-		{
-			MSXEuropeanBIOS,
-			"MSX",
-			"a European MSX BIOS",
-			"msx-european.rom",
-			32_kb,
-			0u
-		},
-		{
-			MSXDOS,
-			"MSX",
-			"the MSX-DOS ROM",
-			"disk.rom",
-			16_kb,
-			0x721f61dfu
-		},
-
-		{
-			MSX2GenericBIOS,
-			"MSX",
-			"a generic MSX2 BIOS",
-			"msx2.rom",
-			32_kb,
-			0x6cdaf3a5u
-		},
-		{
-			MSX2Extension,
-			"MSX",
-			"the MSX2 extension ROM",
-			"msx2ext.rom",
-			16_kb,
-			0x66237ecfu
-		},
-		{
-			MSXMusic,
-			"MSX",
-			"the MSX-MUSIC / FM-PAC ROM",
-			"fmpac.rom",
-			64_kb,
-			0x0e84505du
-		},
-
-	//
-	// C16+4.
+	// Plus 4.
 	//
 		{
 			Plus4KernelPALv3,
@@ -1069,6 +938,149 @@ const std::vector<Description> &Description::all_roms() {
 			"js.rom",
 			48_kb,
 			0x0f95aab5u
+		},
+
+	//
+	// Vic-20.
+	//
+		{
+			Vic20BASIC,
+			"Vic20",
+			"the VIC-20 BASIC ROM",
+			"basic.bin",
+			8_kb,
+			0xdb4c43c1u
+		},
+		{
+			Vic20EnglishCharacters,
+			"Vic20",
+			"the English-language VIC-20 character ROM",
+			"characters-english.bin",
+			4_kb,
+			0x83e032a6u
+		},
+		{
+			Vic20EnglishPALKernel,
+			"Vic20",
+			"the English-language PAL VIC-20 kernel ROM",
+			"kernel-pal.bin",
+			8_kb,
+			0x4be07cb4u
+		},
+		{
+			Vic20EnglishNTSCKernel,
+			"Vic20",
+			"the English-language NTSC VIC-20 kernel ROM",
+			"kernel-ntsc.bin",
+			8_kb,
+			0xe5e7c174u
+		},
+		{
+			Vic20DanishCharacters,
+			"Vic20",
+			"the Danish VIC-20 character ROM",
+			"characters-danish.bin",
+			4_kb,
+			0x7fc11454u
+		},
+		{
+			Vic20DanishKernel,
+			"Vic20",
+			"the Danish VIC-20 kernel ROM",
+			"kernel-danish.bin",
+			8_kb,
+			0x02adaf16u
+		},
+		{
+			Vic20JapaneseCharacters,
+			"Vic20",
+			"the Japanese VIC-20 character ROM",
+			"characters-japanese.bin",
+			4_kb,
+			0xfcfd8a4bu
+		},
+		{
+			Vic20JapaneseKernel,
+			"Vic20",
+			"the Japanese VIC-20 kernel ROM",
+			"kernel-japanese.bin",
+			8_kb,
+			0x336900d7u
+		},
+		{
+			Vic20SwedishCharacters,
+			"Vic20",
+			"the Swedish VIC-20 character ROM",
+			"characters-swedish.bin",
+			4_kb,
+			0xd808551du
+		},
+		{
+			Vic20SwedishKernel,
+			"Vic20",
+			"the Swedish VIC-20 kernel ROM",
+			"kernel-swedish.bin",
+			8_kb,
+			0xb2a60662u
+		},
+
+	//
+	// ZX Spectrum.
+	//
+		{
+			Spectrum48k,
+			"ZXSpectrum",
+			"the 48kb ROM",
+			"48.rom",
+			16_kb,
+			0xddee531fu
+		},
+		{
+			Spectrum128k,
+			"ZXSpectrum",
+			"the 128kb ROM",
+			"128.rom",
+			32_kb,
+			0x2cbe8995u
+		},
+		{
+			SpecrumPlus2,
+			"ZXSpectrum",
+			"the +2 ROM",
+			"plus2.rom",
+			32_kb,
+			0xe7a517dcu
+		},
+		{
+			SpectrumPlus3,
+			"ZXSpectrum",
+			"the +2a/+3 ROM",
+			"plus3.rom",
+			64_kb,
+			CRCs{
+				0x96e3c17a,
+				0xbe0d9ec4
+			}
+		},
+
+	//
+	// ZX80/81.
+	//
+		{
+			ZX80,
+			"ZX8081",
+			"the ZX80 BASIC ROM",
+			"zx80.rom",
+			4_kb,
+			0x4c7fc597u
+		},
+		{
+			ZX81,
+			"ZX8081",
+			"the ZX81 BASIC ROM",
+			"zx81.rom",
+			8_kb,
+			0x4b1dd6ebu
 		},
 	};
 

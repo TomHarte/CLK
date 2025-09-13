@@ -22,6 +22,12 @@ namespace ROM {
 enum Name {
 	None,
 
+	// Acorn Archimedes.
+	AcornArthur030,
+	AcornRISCOS200,
+	AcornRISCOS311,
+	AcornRISCOS319,
+
 	// Acorn Electron.
 	AcornBASICII,
 	AcornElectronMOS100,
@@ -31,12 +37,6 @@ enum Name {
 	PRESAdvancedPlus6,
 	Acorn1770DFS,
 	AcornIDEADFS103,
-
-	// Acorn Archimedes.
-	AcornArthur030,
-	AcornRISCOS200,
-	AcornRISCOS311,
-	AcornRISCOS319,
 
 	// Amiga.
 	AmigaKickstart10,
@@ -77,6 +77,9 @@ enum Name {
 	// Atari ST.
 	AtariSTTOS100,
 	AtariSTTOS104,
+
+	// BBC Micro.
+	BBCMicroMOS12,
 
 	// ColecoVision.
 	ColecoVisionBIOS,
@@ -137,7 +140,7 @@ enum Name {
 	OricMicrodisc,
 	Oric8DOSBoot,
 
-	// PCCompatible.
+	// PC Compatible.
 	PCCompatibleGLaBIOS,
 	PCCompatibleGLaTICK,
 	PCCompatiblePhoenix80286BIOS,
