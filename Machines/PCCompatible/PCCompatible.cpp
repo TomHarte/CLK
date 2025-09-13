@@ -716,15 +716,15 @@ public:
 		// Fetch the BIOS.
 		const auto font = Video::FontROM;
 
-		constexpr auto bios_XT = ROM::Name::PCCompatibleGLaBIOS;
-		constexpr auto tick_XT = ROM::Name::PCCompatibleGLaTICK;
+		static constexpr auto bios_XT = ROM::Name::PCCompatibleGLaBIOS;
+		static constexpr auto tick_XT = ROM::Name::PCCompatibleGLaTICK;
 
-		constexpr auto bios_AT = ROM::Name::PCCompatibleIBMATBIOS;
-		constexpr auto bios_AT_even = ROM::Name::PCCompatibleIBMATBIOSNov85U27;
-		constexpr auto bios_AT_odd = ROM::Name::PCCompatibleIBMATBIOSNov85U47;
-		constexpr auto bios_AT_Phoenix = ROM::Name::PCCompatiblePhoenix80286BIOS;
+		static constexpr auto bios_AT = ROM::Name::PCCompatibleIBMATBIOS;
+		static constexpr auto bios_AT_even = ROM::Name::PCCompatibleIBMATBIOSNov85U27;
+		static constexpr auto bios_AT_odd = ROM::Name::PCCompatibleIBMATBIOSNov85U47;
+		static constexpr auto bios_AT_Phoenix = ROM::Name::PCCompatiblePhoenix80286BIOS;
 
-		constexpr auto rom_BASIC = ROM::Name::IBMBASIC110;
+		static constexpr auto rom_BASIC = ROM::Name::IBMBASIC110;
 
 		ROM::Request request = ROM::Request(font);
 		switch(pc_model) {

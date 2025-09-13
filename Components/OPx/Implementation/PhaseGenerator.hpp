@@ -24,8 +24,8 @@ public:
 		Advances the phase generator a single step, given the current state of the low-frequency oscillator, @c oscillator.
 	*/
 	void update(const LowFrequencyOscillator &oscillator) {
-		constexpr int vibrato_shifts[4] = {3, 1, 0, 1};
-		constexpr int vibrato_signs[2] = {1, -1};
+		static constexpr int vibrato_shifts[4] = {3, 1, 0, 1};
+		static constexpr int vibrato_signs[2] = {1, -1};
 
 		// Get just the top three bits of the period_.
 		const int top_freq = period_ >> (precision - 3);
@@ -61,7 +61,7 @@ public:
 		plus the degree of feedback to apply
 	*/
 	void apply_feedback(const LogSign first, const LogSign second, const int level) {
-		constexpr int masks[] = {0, ~0, ~0, ~0, ~0, ~0, ~0, ~0};
+		static constexpr int masks[] = {0, ~0, ~0, ~0, ~0, ~0, ~0, ~0};
 		phase_ += ((second.level(precision) + first.level(precision)) >> (8 - level)) & masks[level];
 	}
 
@@ -72,7 +72,7 @@ public:
 	void set_multiple(const int multiple) {
 		// This encodes the MUL -> multiple table given on page 12,
 		// multiplied by two.
-		constexpr int multipliers[] = {
+		static constexpr int multipliers[] = {
 			1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
 		};
 		assert(multiple < 16);

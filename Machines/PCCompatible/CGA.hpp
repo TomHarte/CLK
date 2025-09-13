@@ -416,12 +416,12 @@ private:
 		}
 
 		/// @returns The brightened (i.e. high intensity) version of @c source.
-		constexpr uint8_t bright(const uint8_t source) {
+		static constexpr uint8_t bright(const uint8_t source) {
 			return source | (source >> 1);
 		}
 
 		/// Maps the RGB TTL triplet @c source to an appropriate output colour.
-		constexpr uint8_t rgb(const uint8_t source) {
+		static constexpr uint8_t rgb(const uint8_t source) {
 			return uint8_t(
 				((source & 0x01) << 1) |
 				((source & 0x02) << 2) |

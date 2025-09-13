@@ -97,7 +97,7 @@ void ReactiveDevice::advance_state(double microseconds, bool current_level) {
 	}
 
 	// Convert that into a level.
-	constexpr double low_periods[] = {66, 33};
+	static constexpr double low_periods[] = {66, 33};
 	bus_.set_device_output(device_id_, microseconds_at_bit_ > low_periods[bit]);
 }
 

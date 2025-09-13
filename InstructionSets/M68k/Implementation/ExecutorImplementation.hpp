@@ -202,7 +202,7 @@ template <typename IntT> IntT Executor<model, BusHandler>::State::read_pc() {
 template <Model model, typename BusHandler>
 uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t base) {
 	// Determine whether full extension addressing modes are supported.
-	constexpr bool supports_full_extensions = model >= Model::M68020;
+	static constexpr bool supports_full_extensions = model >= Model::M68020;
 
 	// Get the [first] extension word.
 	const auto extension = read_pc<uint16_t>();

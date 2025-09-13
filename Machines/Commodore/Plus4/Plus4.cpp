@@ -89,7 +89,7 @@ public:
 			target = uint16_t((target & 0x00ff) | (value << 8));
 		};
 
-		constexpr auto timer = offset >> 1;
+		static constexpr auto timer = offset >> 1;
 		paused_[timer] = ~offset & 1;
 		if constexpr (offset & 1) {
 			load_high(timers_[timer]);
@@ -106,7 +106,7 @@ public:
 
 	template <int offset>
 	uint8_t read() {
-		constexpr auto timer = offset >> 1;
+		static constexpr auto timer = offset >> 1;
 		if constexpr (offset & 1) {
 			return uint8_t(timers_[timer] >> 8);
 		} else {
@@ -310,7 +310,7 @@ public:
 //				superspeed_ &= (address != 0xe68b) && (address != 0xe68d);
 //			}
 
-			constexpr bool use_hle = true;
+			static constexpr bool use_hle = true;
 
 //			if(
 //				use_fast_tape_hack_ &&
@@ -359,7 +359,7 @@ public:
 			// TODO: rdbyte and ldsync is probably sufficient?
 
 //			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
-//				constexpr uint16_t ldsync = 0;
+//				static constexpr uint16_t ldsync = 0;
 //				switch(address) {
 //					default: break;
 //

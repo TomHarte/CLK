@@ -59,7 +59,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 }
 
 const uint16_t *CharacterMapper::sequence_for_character(char character) const {
-	constexpr KeySequence X = { MachineTypes::MappedKeyboardMachine::KeyNotMapped };
+	static constexpr KeySequence X = { MachineTypes::MappedKeyboardMachine::KeyNotMapped };
 	const auto key = [](Key k) -> KeySequence {
 		return { k, MachineTypes::MappedKeyboardMachine::KeyEndSequence };
 	};

@@ -91,7 +91,7 @@ void AY38910SampleSource<is_stereo>::set_sample_volume_range(const std::int16_t 
 	// from the YM's datasheet, showing a clear power curve, and fitting that to observed
 	// values reported elsewhere.
 	const float max_volume = float(range) / 3.0f;	// As there are three channels.
-	constexpr float root_two = 1.414213562373095f;
+	static constexpr float root_two = 1.414213562373095f;
 	for(int v = 0; v < 32; v++) {
 		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 3.18f));
 	}

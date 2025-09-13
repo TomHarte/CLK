@@ -625,7 +625,7 @@ uint16_t *Video::output_super_high_res(uint16_t *target, int start, int end, int
 
 uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
-	constexpr uint16_t colours[] = {0, 0xffff};
+	static constexpr uint16_t colours[] = {0, 0xffff};
 	for(int c = start; c < end; c++) {
 		const uint8_t source[2] = {
 			ram_[0x10000 + row_address + c],
@@ -766,7 +766,7 @@ uint16_t *Video::output_shift(uint16_t *target, int column) {
 	// I've picked for my rolls table and with my decision to count
 	// columns as aligned with double-mode.
 	const int phase = column * 7 + 3;
-	constexpr uint8_t rolls[4][16] = {
+	static constexpr uint8_t rolls[4][16] = {
 		{
 			0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf
 		},

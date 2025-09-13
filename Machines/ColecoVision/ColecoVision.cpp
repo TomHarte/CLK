@@ -127,7 +127,7 @@ public:
 		joysticks_.emplace_back(new Joystick);
 		joysticks_.emplace_back(new Joystick);
 
-		constexpr ROM::Name rom_name = ROM::Name::ColecoVisionBIOS;
+		static constexpr ROM::Name rom_name = ROM::Name::ColecoVisionBIOS;
 		const ROM::Request request(rom_name);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {

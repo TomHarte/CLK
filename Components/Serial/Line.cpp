@@ -101,7 +101,7 @@ template <bool lsb_first, typename IntT> void Line<include_clock>::write_interna
 			bit = levels & 1;
 			levels >>= 1;
 		} else {
-			constexpr auto top_bit = IntT(0x80) << ((sizeof(IntT) - 1) * 8);
+			static constexpr auto top_bit = IntT(0x80) << ((sizeof(IntT) - 1) * 8);
 			bit = levels & top_bit;
 			levels <<= 1;
 		}

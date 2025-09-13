@@ -521,7 +521,7 @@ private:
 		static constexpr auto COL = [](int r, int g, int b) {
 			return uint8_t((r << 4) | (g << 2) | b);
 		};
-		constexpr uint8_t mapping[32] = {
+		static constexpr uint8_t mapping[32] = {
 			COL(1, 1, 1),	COL(1, 1, 1),	COL(0, 2, 1),	COL(2, 2, 1),
 			COL(0, 0, 1),	COL(2, 0, 1),	COL(0, 1, 1),	COL(2, 1, 1),
 			COL(2, 0, 1),	COL(2, 2, 1),	COL(2, 2, 0),	COL(2, 2, 2),

@@ -105,7 +105,7 @@ struct Executor {
 	}
 
 	template <Flags f> void perform(const DataProcessing fields) {
-		constexpr DataProcessingFlags flags(f);
+		static constexpr DataProcessingFlags flags(f);
 		const bool shift_by_register = !flags.operand2_is_immediate() && fields.shift_count_is_register();
 
 		// Write a raw result into the PC proxy if the target is R15; it'll be stored properly later.
@@ -127,7 +127,7 @@ struct Executor {
 		uint32_t rotate_carry = registers_.c();
 
 		// Populate carry from the shift only if it'll be used.
-		constexpr bool shift_sets_carry = is_logical(flags.operation()) && flags.set_condition_codes();
+		static constexpr bool shift_sets_carry = is_logical(flags.operation()) && flags.set_condition_codes();
 
 		// Get operand 2.
 		if constexpr (flags.operand2_is_immediate()) {
@@ -230,7 +230,7 @@ struct Executor {
 	}
 
 	template <Flags f> void perform(const Multiply fields) {
-		constexpr MultiplyFlags flags(f);
+		static constexpr MultiplyFlags flags(f);
 
 		// R15 rules:
 		//
@@ -257,7 +257,7 @@ struct Executor {
 	}
 
 	template <Flags f> void perform(const Branch branch) {
-		constexpr BranchFlags flags(f);
+		static constexpr BranchFlags flags(f);
 
 		if constexpr (flags.operation() == BranchFlags::Operation::BL) {
 			registers_[14] = registers_.pc_status(0);
@@ -266,7 +266,7 @@ struct Executor {
 	}
 
 	template <Flags f> void perform(const SingleDataTransfer transfer) {
-		constexpr SingleDataTransferFlags flags(f);
+		static constexpr SingleDataTransferFlags flags(f);
 
 		// Calculate offset.
 		uint32_t offset;
@@ -391,8 +391,8 @@ struct Executor {
 		}
 	}
 	template <Flags f> void perform(const BlockDataTransfer transfer) {
-		constexpr BlockDataTransferFlags flags(f);
-		constexpr bool is_ldm = flags.operation() == BlockDataTransferFlags::Operation::LDM;
+		static constexpr BlockDataTransferFlags flags(f);
+		static constexpr bool is_ldm = flags.operation() == BlockDataTransferFlags::Operation::LDM;
 
 		// Ensure that *base points to the base register if it can be written back;
 		// also set address to the base.
