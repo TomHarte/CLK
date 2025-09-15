@@ -8,12 +8,16 @@
 
 #include "BBCMicro.hpp"
 
+#include "Machines/MachineTypes.hpp"
+
 #include "Analyser/Static/Acorn/Target.hpp"
 
 namespace BBCMicro {
 
 class ConcreteMachine:
-	public Machine
+	public Machine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine
 {
 public:
 	ConcreteMachine(
@@ -22,6 +26,17 @@ public:
 	) {
 		(void)target;
 		(void)rom_fetcher;
+	}
+
+private:
+	// MARK: - ScanProducer.
+	void set_scan_target(Outputs::Display::ScanTarget *) override {}
+	Outputs::Display::ScanStatus get_scan_status() const override {
+		return Outputs::Display::ScanStatus{};
+	}
+
+	// MARK: - TimedMachine.
+	void run_for(const Cycles) override {
 	}
 };
 
