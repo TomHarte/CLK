@@ -647,13 +647,9 @@ private:
 		Sets the contents of @c slot to @c data. If @c is_writeable is @c true then writing to the slot
 		is enabled: it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
 	*/
-	void set_rom(ROM slot, const std::vector<uint8_t> &data, bool is_writeable) {
+	void set_rom(const ROM slot, const std::vector<uint8_t> &data, const bool is_writeable) {
 		uint8_t *target = nullptr;
 		switch(slot) {
-			case ROM::DFS:		dfs_ = data;			return;
-			case ROM::ADFS1:	adfs1_ = data;			return;
-			case ROM::ADFS2:	adfs2_ = data;			return;
-
 			case ROM::OS:		target = os_;			break;
 			default:
 				target = roms_[int(slot)];
@@ -724,7 +720,6 @@ private:
 	bool rom_inserted_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 	bool rom_write_masks_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 	uint8_t os_[16384], ram_[32768];
-	std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 	// Paging
 	int active_rom_ = int(ROM::Slot0);
