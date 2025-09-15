@@ -88,6 +88,7 @@ SOURCES += \
 \
 	$$SRC/Machines/*.cpp \
 	$$SRC/Machines/Acorn/Archimedes/*.cpp \
+	$$SRC/Machines/Acorn/BBCMicro/*.cpp \
 	$$SRC/Machines/Acorn/Electron/*.cpp \
 	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
@@ -227,6 +228,7 @@ HEADERS += \
 \
 	$$SRC/Machines/*.hpp \
 	$$SRC/Machines/Acorn/Archimedes/*.hpp \
+	$$SRC/Machines/Acorn/BBCMicro/*.hpp \
 	$$SRC/Machines/Acorn/Electron/*.hpp \
 	$$SRC/Machines/Amiga/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \
