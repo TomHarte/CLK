@@ -24,6 +24,8 @@ public:
 		const Analyser::Static::Acorn::BBCMicroTarget &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) {
+		set_clock_rate(2'000'000);
+
 		(void)target;
 		(void)rom_fetcher;
 	}
