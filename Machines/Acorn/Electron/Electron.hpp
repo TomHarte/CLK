@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "Analyser/Static/StaticAnalyser.hpp"
 #include "Configurable/Configurable.hpp"
 #include "Configurable/StandardOptions.hpp"
-#include "Analyser/Static/StaticAnalyser.hpp"
 #include "Machines/ROMMachine.hpp"
 
 #include <memory>
@@ -27,16 +27,27 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns an Electron.
-	static std::unique_ptr<Machine> Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+	static std::unique_ptr<Machine> Electron(
+		const Analyser::Static::Target *target,
+		const ROMMachine::ROMFetcher &rom_fetcher
+	);
 
 	/// Defines the runtime options available for an Electron.
-	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
+	class Options:
+		public Reflection::StructImpl<Options>,
+		public Configurable::DisplayOption<Options>,
+		public Configurable::QuickloadOption<Options>
+	{
 		friend Configurable::DisplayOption<Options>;
 		friend Configurable::QuickloadOption<Options>;
 	public:
-		Options(Configurable::OptionsType type) :
-			Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
-			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
+		Options(const Configurable::OptionsType type) :
+			Configurable::DisplayOption<Options>(
+				type == Configurable::OptionsType::UserFriendly ?
+					Configurable::Display::RGB : Configurable::Display::CompositeColour
+			),
+			Configurable::QuickloadOption<Options>(
+				type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
 		Options() : Options(Configurable::OptionsType::UserFriendly) {}
@@ -45,7 +56,13 @@ struct Machine {
 		void declare_fields() {
 			declare_display_option();
 			declare_quickload_option();
-			limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
+			limit_enum(
+				&output,
+				Configurable::Display::RGB,
+				Configurable::Display::CompositeColour,
+				Configurable::Display::CompositeMonochrome,
+				-1
+			);
 		}
 	};
 };
