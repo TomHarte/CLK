@@ -205,39 +205,37 @@ std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
 
 std::vector<std::string> Machine::AllMachines(const Type type, const bool long_names) {
 	std::vector<std::string> result;
-
-#define AddName(x) \
-	result.push_back(\
-		long_names ? LongNameForTargetMachine(Analyser::Machine::x) : ShortNameForTargetMachine(Analyser::Machine::x	\
-	))
+	const auto add_name = [&](const Analyser::Machine machine) {
+		result.push_back(
+			long_names ? LongNameForTargetMachine(machine) : ShortNameForTargetMachine(machine)
+		);
+	};
 
 	if(type == Type::Any || type == Type::RequiresMedia) {
-		AddName(Atari2600);
-		AddName(ColecoVision);
-		AddName(MasterSystem);
+		add_name(Analyser::Machine::Atari2600);
+		add_name(Analyser::Machine::ColecoVision);
+		add_name(Analyser::Machine::MasterSystem);
 	}
 
 	if(type == Type::Any || type == Type::DoesntRequireMedia) {
-		AddName(Amiga);
-		AddName(AmstradCPC);
-		AddName(AppleII);
-		AddName(AppleIIgs);
-		AddName(Archimedes);
-		AddName(AtariST);
-		AddName(BBCMicro);
-		AddName(Electron);
-		AddName(Enterprise);
-		AddName(Macintosh);
-		AddName(MSX);
-		AddName(Oric);
-		AddName(Plus4);
-		AddName(PCCompatible);
-		AddName(Vic20);
-		AddName(ZX8081);
-		AddName(ZXSpectrum);
+		add_name(Analyser::Machine::Amiga);
+		add_name(Analyser::Machine::AmstradCPC);
+		add_name(Analyser::Machine::AppleII);
+		add_name(Analyser::Machine::AppleIIgs);
+		add_name(Analyser::Machine::Archimedes);
+		add_name(Analyser::Machine::AtariST);
+		add_name(Analyser::Machine::BBCMicro);
+		add_name(Analyser::Machine::Electron);
+		add_name(Analyser::Machine::Enterprise);
+		add_name(Analyser::Machine::Macintosh);
+		add_name(Analyser::Machine::MSX);
+		add_name(Analyser::Machine::Oric);
+		add_name(Analyser::Machine::Plus4);
+		add_name(Analyser::Machine::PCCompatible);
+		add_name(Analyser::Machine::Vic20);
+		add_name(Analyser::Machine::ZX8081);
+		add_name(Analyser::Machine::ZXSpectrum);
 	}
-
-#undef AddName
 
 	return result;
 }
