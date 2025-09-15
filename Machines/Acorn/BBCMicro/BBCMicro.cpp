@@ -13,6 +13,7 @@
 #include "Processors/6502/6502.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
+#include "Outputs/Log.hpp"
 
 #include <array>
 #include <bitset>
@@ -65,7 +66,7 @@ public:
 		uint8_t *const value
 	) {
 		if(address >= 0xfc00 && address < 0xff00) {
-			// TODO: all IO accesses.
+			Logger::error().append("Unhandled IO access at %04x", address);
 			return Cycles(1);
 		}
 
@@ -82,6 +83,8 @@ public:
 	}
 
 private:
+	using Logger = Log::Logger<Log::Source::BBCMicro>;
+
 	// MARK: - ScanProducer.
 	void set_scan_target(Outputs::Display::ScanTarget *) override {}
 	Outputs::Display::ScanStatus get_scan_status() const override {
