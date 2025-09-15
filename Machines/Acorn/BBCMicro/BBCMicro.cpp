@@ -10,6 +10,8 @@
 
 #include "Machines/MachineTypes.hpp"
 
+#include "Processors/6502/6502.hpp"
+
 #include "Analyser/Static/Acorn/Target.hpp"
 
 namespace BBCMicro {
@@ -23,11 +25,26 @@ public:
 	ConcreteMachine(
 		const Analyser::Static::Acorn::BBCMicroTarget &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
-	) {
+	) :
+		m6502_(*this)
+	{
 		set_clock_rate(2'000'000);
 
 		(void)target;
 		(void)rom_fetcher;
+	}
+
+	// MARK: - 6502 bus.
+	Cycles perform_bus_operation(
+		const CPU::MOS6502::BusOperation operation,
+		const uint16_t address,
+		uint8_t *const value
+	) {
+		(void)operation;
+		(void)address;
+		(void)value;
+
+		return Cycles(1);
 	}
 
 private:
@@ -38,8 +55,12 @@ private:
 	}
 
 	// MARK: - TimedMachine.
-	void run_for(const Cycles) override {
+	void run_for(const Cycles cycles) override {
+		m6502_.run_for(cycles);
 	}
+
+	// MARK: - Components.
+	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 };
 
 }
