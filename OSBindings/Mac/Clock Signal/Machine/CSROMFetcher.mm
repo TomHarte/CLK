@@ -95,6 +95,7 @@ ROMMachine::ROMFetcher CSROMFetcher(ROM::Request *missing) {
 				// Store an appropriate result.
 				if(fileData) {
 					results[description.name] = fileData.stdVector8;
+					break;
 				}
 			}
 		}
