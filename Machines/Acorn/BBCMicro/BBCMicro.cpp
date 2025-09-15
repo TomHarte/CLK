@@ -14,6 +14,11 @@
 
 #include "Analyser/Static/Acorn/Target.hpp"
 
+#include <array>
+#include <bitset>
+#include <cassert>
+#include <cstdint>
+
 namespace BBCMicro {
 
 class ConcreteMachine:
@@ -30,8 +35,27 @@ public:
 	{
 		set_clock_rate(2'000'000);
 
+		// Grab ROMs.
+		using Request = ::ROM::Request;
+		using Name = ::ROM::Name;
+		const auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
+		auto roms = rom_fetcher(request);
+		if(!request.validate(roms)) {
+			throw ROMMachine::Error::MissingROMs;
+		}
+
+		const auto os_data = roms.find(Name::BBCMicroMOS12)->second;
+		std::copy(os_data.begin(), os_data.end(), os_.begin());
+
+		install_sideways(15, roms.find(Name::AcornBASICII)->second, false);
+
+		// Setup fixed parts of memory map.
+		page(0, &ram_[0], true);
+		page(1, &ram_[1], true);
+		page_sideways(15);
+		page(3, os_.data(), true);
+
 		(void)target;
-		(void)rom_fetcher;
 	}
 
 	// MARK: - 6502 bus.
@@ -40,9 +64,19 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
-		(void)operation;
-		(void)address;
-		(void)value;
+		if(address >= 0xfc00 && address < 0xff00) {
+			// TODO: all IO accesses.
+			return Cycles(1);
+		}
+
+		// ROM or RAM access.
+		if(is_read(operation)) {
+			*value = memory_[address >> 14][address];
+		} else {
+			if(memory_write_masks_[address >> 14]) {
+				memory_[address >> 14][address] = *value;
+			}
+		}
 
 		return Cycles(1);
 	}
@@ -57,6 +91,35 @@ private:
 	// MARK: - TimedMachine.
 	void run_for(const Cycles cycles) override {
 		m6502_.run_for(cycles);
+	}
+
+	// MARK: - Memory.
+	std::array<uint8_t, 32 * 1024> ram_;
+	using ROM = std::array<uint8_t, 16 * 1024>;
+	ROM os_;
+	std::array<ROM, 16> roms_;
+
+	std::bitset<16> rom_inserted_;
+	std::bitset<16> rom_write_masks_;
+
+	uint8_t *memory_[4];
+	std::bitset<4> memory_write_masks_;
+	bool sideways_read_mask_ = false;
+	void page(const size_t slot, uint8_t *const source, bool is_writeable) {
+		memory_[slot] = source - (slot * 16384);
+		memory_write_masks_[slot] = is_writeable;
+	}
+
+	void page_sideways(const size_t source) {
+		sideways_read_mask_ = rom_inserted_[source];
+		page(2, roms_[source].data(), rom_write_masks_[source]);
+	}
+
+	void install_sideways(const size_t slot, const std::vector<uint8_t> &source, bool is_writeable) {
+		rom_write_masks_[slot] = is_writeable;
+
+		assert(source.size() == roms_[slot].size());
+		std::copy(source.begin(), source.end(), roms_[slot].begin());
 	}
 
 	// MARK: - Components.
