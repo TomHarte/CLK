@@ -23,7 +23,7 @@ public:
 		@returns The output of waveform @c form at [integral] phase @c phase.
 	*/
 	static constexpr LogSign wave(const Waveform form, const int phase) {
-		constexpr int waveforms[4][4] = {
+		int waveforms[4][4] = {
 			{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
 			{511, 511, 0, 0},			// Half sine: keep the first half intact, lock to 0 in the second half.
 			{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.

@@ -115,11 +115,13 @@ public:
 			case 6:	layout_.vertical.displayed = value & 0x7f;	break;
 			case 7:	layout_.vertical.start_sync = value & 0x7f;	break;
 			case 8:
-				switch(value & 3) {
-					default:	layout_.interlace_mode_ = InterlaceMode::Off;					break;
-					case 0b01:	layout_.interlace_mode_ = InterlaceMode::InterlaceSync;			break;
-					case 0b11:	layout_.interlace_mode_ = InterlaceMode::InterlaceSyncAndVideo;	break;
-				}
+				// TODO: an error elsewhere appears to cause modes other than InterlaceMode::Off never to hit
+				// vertical sync.
+//				switch(value & 3) {
+//					default:	layout_.interlace_mode_ = InterlaceMode::Off;					break;
+//					case 0b01:	layout_.interlace_mode_ = InterlaceMode::InterlaceSync;			break;
+//					case 0b11:	layout_.interlace_mode_ = InterlaceMode::InterlaceSyncAndVideo;	break;
+//				}
 
 				// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
 				if(personality != Personality::UM6845R && personality != Personality::MC6845) {
