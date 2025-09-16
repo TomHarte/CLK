@@ -430,6 +430,9 @@
 		4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */; };
 		4B6FD0362923B88F00EC4760 /* HDV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6FD0342923061300EC4760 /* HDV.cpp */; };
 		4B6FD0372923B89000EC4760 /* HDV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6FD0342923061300EC4760 /* HDV.cpp */; };
+		4B710C8D2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */; };
+		4B710C8E2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */; };
+		4B710C8F2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */; };
 		4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136841F78724F008B8ED9 /* Encoder.cpp */; };
 		4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
 		4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
@@ -1694,6 +1697,8 @@
 		4B7041271F92C26900735E45 /* JoystickMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = JoystickMachine.hpp; sourceTree = "<group>"; };
 		4B70412A1F92C2A700735E45 /* Joystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Joystick.hpp; sourceTree = "<group>"; };
 		4B70EF6A1FFDCDF400A3494E /* MemorySlotHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemorySlotHandler.hpp; sourceTree = "<group>"; };
+		4B710C8A2E77A3B20056BDF4 /* BBCMicro.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BBCMicro.hpp; sourceTree = "<group>"; };
+		4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BBCMicro.cpp; sourceTree = "<group>"; };
 		4B7136841F78724F008B8ED9 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4B7136851F78724F008B8ED9 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4B7136871F78725F008B8ED9 /* Shifter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Shifter.cpp; sourceTree = "<group>"; };
@@ -3607,6 +3612,15 @@
 			path = SCSI;
 			sourceTree = "<group>";
 		};
+		4B710C8C2E77A3B20056BDF4 /* BBCMicro */ = {
+			isa = PBXGroup;
+			children = (
+				4B710C8A2E77A3B20056BDF4 /* BBCMicro.hpp */,
+				4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */,
+			);
+			path = BBCMicro;
+			sourceTree = "<group>";
+		};
 		4B7136831F78724F008B8ED9 /* MFM */ = {
 			isa = PBXGroup;
 			children = (
@@ -4586,6 +4600,7 @@
 			isa = PBXGroup;
 			children = (
 				4BB505692B962DDF0031C43C /* Archimedes */,
+				4B710C8C2E77A3B20056BDF4 /* BBCMicro */,
 				4BB5056A2B962DDF0031C43C /* Electron */,
 			);
 			path = Acorn;
@@ -6184,6 +6199,7 @@
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
 				4B8DD3872634D37E00B3C866 /* SNA.cpp in Sources */,
 				4BB505792B962DDF0031C43C /* SoundGenerator.cpp in Sources */,
+				4B710C8D2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */,
 				4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */,
 				4B8058042D0D0B55007EAD46 /* Keyboard.cpp in Sources */,
 				4B055ADB1FAE9B460060FFFF /* 6560.cpp in Sources */,
@@ -6282,6 +6298,7 @@
 			files = (
 				4B7A90E52041097C008514A2 /* ColecoVision.cpp in Sources */,
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
+				4B710C8F2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B6AAEAB230E40250078E864 /* SCSI.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
@@ -6756,6 +6773,7 @@
 				4BC62FF228A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m in Sources */,
 				4B06AB152C6461A20034D014 /* MultiKeyboardMachine.cpp in Sources */,
 				4B7752AC28217E6E0073E2C5 /* StaticAnalyser.cpp in Sources */,
+				4B710C8E2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */,
 				4B778F1223A5EC720000D260 /* CRT.cpp in Sources */,
 				4B778EF423A5DB3A0000D260 /* C1540.cpp in Sources */,
 				4B778F3C23A5F16F0000D260 /* FIRFilter.cpp in Sources */,

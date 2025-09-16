@@ -36,6 +36,16 @@ private:
 	}
 };
 
+struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<BBCMicroTarget> {
+	std::string loading_command;
+
+	BBCMicroTarget() : Analyser::Static::Target(Machine::BBCMicro) {}
+
+private:
+	friend Reflection::StructImpl<BBCMicroTarget>;
+	void declare_fields() {}
+};
+
 struct ArchimedesTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<ArchimedesTarget> {
 	std::string main_program;
 

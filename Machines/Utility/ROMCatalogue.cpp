@@ -423,7 +423,7 @@ const std::vector<Description> &Description::all_roms() {
 	//
 		{
 			BBCMicroMOS12,
-			"BBC Micro",
+			"BBCMicro",
 			"the BBC MOS v1.2",
 			"os12.rom",
 			16_kb,

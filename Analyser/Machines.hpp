@@ -18,6 +18,7 @@ enum class Machine {
 	AtariST,
 	Amiga,
 	Archimedes,
+	BBCMicro,
 	ColecoVision,
 	Electron,
 	Enterprise,
