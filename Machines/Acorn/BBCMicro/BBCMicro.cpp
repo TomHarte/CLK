@@ -170,6 +170,10 @@ public:
 	void set_control(const uint8_t value) {
 		Logger::info().append("Video control set to %x", value);
 		cycle_length_ = (value & 0x10) ? 8 : 16;
+		Logger::info().append("TODO: video control => flash %d", bool(value & 0x01));
+		Logger::info().append("TODO: video control => teletext %d", bool(value & 0x02));
+		Logger::info().append("TODO: video control => columns %d", (value >> 2) & 0x03);
+		Logger::info().append("TODO: video control => cursor segment %d%d%d", bool(value & 0x80), bool(value & 0x40), bool(value & 0x20));
 	}
 
 	/*!
