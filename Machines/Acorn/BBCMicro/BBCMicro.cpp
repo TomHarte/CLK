@@ -128,7 +128,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 
 		Logger::info().append("Port A read");
-		return 0xff;
+		return 0xff;	// No keys pressed, start up in mode 7.
 	}
 
 private:
