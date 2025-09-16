@@ -379,7 +379,7 @@ public:
 		page(0, &ram_[0], true);
 		page(1, &ram_[16384], true);
 		page_sideways(15);
-		page(3, os_.data(), true);
+		page(3, os_.data(), false);
 		Memory::Fuzz(ram_);
 
 		(void)target;
