@@ -423,7 +423,12 @@ public:
 		// 2Mhz devices.
 		//
 		// TODO: if CRTC clock is 1Mhz, adapt.
-		crtc_.run_for(duration);
+		if(crtc_2mhz_) {
+			crtc_.run_for(duration);
+		} else {
+			// TODO: count number of 1Mhz windows ended, possibly skipping one
+			// to get into phase.
+		}
 
 		//
 		// Check for an IO access; if found then perform that and exit.
@@ -468,7 +473,7 @@ public:
 					switch(address) {
 						case 0xfe20:
 							crtc_bus_handler_.set_control(*value);
-							crtc_2mhz_ = *value & 0x08;
+							crtc_2mhz_ = *value & 0x10;
 						break;
 						case 0xfe21:
 							crtc_bus_handler_.set_palette(*value);
