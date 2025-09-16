@@ -24,11 +24,54 @@
 namespace BBCMicro {
 
 namespace {
+using Logger = Log::Logger<Log::Source::BBCMicro>;
 
 struct UserVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 };
 
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
+	// CA2: key pressed;
+	// CA1: vertical sync;
+	// CB2: lightpen strobe offscreen;
+	// CB1: ADC conversion complete.
+
+	template <MOS::MOS6522::Port port>
+	void set_port_output(const uint8_t value, uint8_t) {
+		if(port == MOS::MOS6522::Port::A) {
+			Logger::info().append("Port A write: %02x", value);
+			return;
+		}
+
+		// The addressable latch.
+		//
+		// B0: enable writes to the sound generator;
+		// B1, B2: read/write to the sound processor;
+		// B3: enable writes to the keyboard.
+		const auto mask = uint8_t(1 << (value & 7));
+		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
+
+		Logger::info().append("Programmable latch: %d%d%d%d", bool(latch_ & 8), bool(latch_ & 4), bool(latch_ & 2), bool(latch_ & 1));
+	}
+
+	template <MOS::MOS6522::Port port>
+	uint8_t get_port_input() const {
+		if(port == MOS::MOS6522::Port::B) {
+			// TODO:
+			//
+			//	b4/5: joystick fire buttons;
+			//	b6/7: speech interrupt/ready inputs.
+
+			Logger::info().append("Port B read");
+			return 0xff;
+		}
+
+		Logger::info().append("Port A read");
+		return 0xff;
+	}
+
+private:
+	uint8_t latch_ = 0;
+	uint8_t port_a_output_ = 0;
 };
 
 }
@@ -154,8 +197,6 @@ public:
 	}
 
 private:
-	using Logger = Log::Logger<Log::Source::BBCMicro>;
-
 	// MARK: - ScanProducer.
 	void set_scan_target(Outputs::Display::ScanTarget *) override {}
 	Outputs::Display::ScanStatus get_scan_status() const override {
