@@ -11,12 +11,14 @@
 #include "Machines/MachineTypes.hpp"
 
 #include "Components/6522/6522.hpp"
+#include "Components/6845/CRTC6845.hpp"
 #include "Components/SN76489/SN76489.hpp"
 #include "Processors/6502/6502.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
 
+#include "Outputs/CRT/CRT.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
 
@@ -30,6 +32,9 @@ namespace BBCMicro {
 namespace {
 using Logger = Log::Logger<Log::Source::BBCMicro>;
 
+/*!
+	Combines an SN76489 with an appropriate asynchronous queue and filtering speaker.
+*/
 struct Audio {
 	Audio() :
 		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_),
@@ -68,9 +73,15 @@ private:
 	HalfCycles time_since_update_;
 };
 
+/*!
+	Models the user-port VIA.
+*/
 struct UserVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 };
 
+/*!
+	Models the system VIA, which connects to the SN76489 and the keyboard.
+*/
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	SystemVIAPortHandler(Audio &audio) : audio_(audio) {}
 
@@ -124,6 +135,213 @@ private:
 	Audio &audio_;
 };
 
+/*!
+	Handles CRTC bus activity.
+*/
+class CRTCBusHandler {
+public:
+	CRTCBusHandler(const uint8_t *const ram) :
+		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
+		ram_(ram) {}
+
+	void set_palette(const uint8_t value) {
+		const auto index = value >> 4;
+		Logger::info().append("Palette entry %d set to %x", index, value & 0xf);
+	}
+
+	void set_control(const uint8_t value) {
+		Logger::info().append("Video control set to %x", value);
+	}
+
+	/*!
+		The CRTC entry function for the main part of each clock cycle; takes the current
+		bus state and determines what output to produce based on the current palette and mode.
+	*/
+	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+//		// The gate array waits 2us to react to the CRTC's vsync signal, and then
+//		// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
+//		// respectively.
+//		if(state.hsync) {
+//			cycles_into_hsync_++;
+//		} else {
+//			cycles_into_hsync_ = 0;
+//		}
+//
+//		const bool is_hsync = (cycles_into_hsync_ >= 2 && cycles_into_hsync_ < 6);
+//		const bool is_colour_burst = (cycles_into_hsync_ >= 7 && cycles_into_hsync_ < 11);
+//
+//		// Sync is taken to override pixels, and is combined as a simple OR.
+//		const bool is_sync = is_hsync || state.vsync;
+//		const bool is_blank = !is_sync && state.hsync;
+//
+//		OutputMode output_mode;
+//		if(is_sync) {
+//			output_mode = OutputMode::Sync;
+//		} else if(is_colour_burst) {
+//			output_mode = OutputMode::ColourBurst;
+//		} else if(is_blank) {
+//			output_mode = OutputMode::Blank;
+//		} else if(state.display_enable) {
+//			output_mode = OutputMode::Pixels;
+//		} else {
+//			output_mode = OutputMode::Border;
+//		}
+//
+//		// If a transition between sync/border/pixels just occurred, flush whatever was
+//		// in progress to the CRT and reset counting.
+//		if(output_mode != previous_output_mode_) {
+//			if(cycles_) {
+//				switch(previous_output_mode_) {
+//					default:
+//					case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);				break;
+//					case OutputMode::Sync:			crt_.output_sync(cycles_ * 16);					break;
+//					case OutputMode::Border:		output_border(cycles_);							break;
+//					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_ * 16);	break;
+//					case OutputMode::Pixels:
+//						crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
+//						pixel_pointer_ = pixel_data_ = nullptr;
+//					break;
+//				}
+//			}
+//
+//			cycles_ = 0;
+//			previous_output_mode_ = output_mode;
+//		}
+//
+//		// Increment cycles since state changed.
+//		cycles_++;
+//
+//		// Collect some more pixels if output is ongoing.
+//		if(previous_output_mode_ == OutputMode::Pixels) {
+//			if(!pixel_data_) {
+//				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
+//			}
+//			if(pixel_pointer_) {
+//				// the CPC shuffles output lines as:
+//				//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
+//				// ... so form the real access address.
+//				const uint16_t address =
+//					uint16_t(
+//						((state.refresh_address & 0x3ff) << 1) |
+//						((state.row_address & 0x7) << 11) |
+//						((state.refresh_address & 0x3000) << 2)
+//					);
+//
+//				// Fetch two bytes and translate into pixels. Guaranteed: the mode can change only at
+//				// hsync, so there's no risk of pixel_pointer_ overrunning 320 output pixels without
+//				// exactly reaching 320 output pixels.
+//				switch(mode_) {
+//					case 0:
+//						reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
+//						reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
+//						pixel_pointer_ += 2 * sizeof(uint16_t);
+//					break;
+//
+//					case 1:
+//						reinterpret_cast<uint32_t *>(pixel_pointer_)[0] = mode1_output_[ram_[address]];
+//						reinterpret_cast<uint32_t *>(pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
+//						pixel_pointer_ += 2 * sizeof(uint32_t);
+//					break;
+//
+//					case 2:
+//						reinterpret_cast<uint64_t *>(pixel_pointer_)[0] = mode2_output_[ram_[address]];
+//						reinterpret_cast<uint64_t *>(pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
+//						pixel_pointer_ += 2 * sizeof(uint64_t);
+//					break;
+//
+//					case 3:
+//						reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode3_output_[ram_[address]];
+//						reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
+//						pixel_pointer_ += 2 * sizeof(uint16_t);
+//					break;
+//
+//				}
+//
+//				// Flush the current buffer pixel if full; the CRTC allows many different display
+//				// widths so it's not necessarily possible to predict the correct number in advance
+//				// and using the upper bound could lead to inefficient behaviour.
+//				if(pixel_pointer_ == pixel_data_ + 320) {
+//					crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
+//					pixel_pointer_ = pixel_data_ = nullptr;
+//					cycles_ = 0;
+//				}
+//			}
+//		}
+//
+//		// Latch mode four cycles after HSYNC was signalled, if still active.
+//		if(cycles_into_hsync_ == 4 && mode_ != next_mode_) {
+//			mode_ = next_mode_;
+//			switch(mode_) {
+//				default:
+//				case 0:		pixel_divider_ = 4;	break;
+//				case 1:		pixel_divider_ = 2;	break;
+//				case 2:		pixel_divider_ = 1;	break;
+//			}
+//			build_mode_table();
+//		}
+//
+//		// For the interrupt timer: notify the leading edge of vertical sync and the
+//		// trailing edge of horizontal sync.
+//		if(was_vsync_ != state.vsync) {
+//			interrupt_timer_.set_vsync(state.vsync);
+//		}
+//		if(was_hsync_ && !state.hsync) {
+//			interrupt_timer_.signal_hsync();
+//		}
+//
+//		// Update current state for edge detection next time around.
+//		was_vsync_ = state.vsync;
+//		was_hsync_ = state.hsync;
+	}
+
+	/// Sets the destination for output.
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
+		crt_.set_scan_target(scan_target);
+	}
+
+	/// @returns The current scan status.
+	Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		return crt_.get_scaled_scan_status();
+	}
+
+	/// Sets the type of display.
+	void set_display_type(const Outputs::Display::DisplayType display_type) {
+		crt_.set_display_type(display_type);
+	}
+
+	/// Gets the type of display.
+	Outputs::Display::DisplayType get_display_type() const {
+		return crt_.get_display_type();
+	}
+
+
+private:
+	void output_border(const int length) {
+		assert(length >= 0);
+		crt_.output_blank(length * 16);
+	}
+
+	enum class OutputMode {
+		Sync,
+		Blank,
+		ColourBurst,
+		Border,
+		Pixels
+	} previous_output_mode_ = OutputMode::Sync;
+	int cycles_ = 0;
+
+	bool was_hsync_ = false, was_vsync_ = false;
+	int cycles_into_hsync_ = 0;
+
+	Outputs::CRT::CRT crt_;
+	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
+
+	const uint8_t *const ram_ = nullptr;
+};
+using CRTC = Motorola::CRTC::CRTC6845<
+	CRTCBusHandler,
+	Motorola::CRTC::Personality::HD6845S,
+	Motorola::CRTC::CursorType::None>;
 }
 
 class ConcreteMachine:
@@ -141,7 +359,9 @@ public:
 		m6502_(*this),
 		system_via_port_handler_(audio_),
 		user_via_(user_via_port_handler_),
-		system_via_(system_via_port_handler_)
+		system_via_(system_via_port_handler_),
+		crtc_bus_handler_(ram_.data()),
+		crtc_(crtc_bus_handler_)
 	{
 		set_clock_rate(2'000'000);
 
@@ -205,13 +425,19 @@ public:
 
 
 		//
-		// Dependent device updates.
+		// 1Mhz devices.
 		//
 		const auto half_cycles = HalfCycles(duration.as_integral());
 		audio_ += half_cycles;
 		system_via_.run_for(half_cycles);
 		user_via_.run_for(half_cycles);
 
+
+		//
+		// 2Mhz devices.
+		//
+		// TODO: if CRTC clock is 1Mhz, adapt.
+		crtc_.run_for(duration);
 
 		//
 		// Check for an IO access; if found then perform that and exit.
@@ -235,7 +461,37 @@ public:
 				} else {
 					page_sideways(*value & 0xf);
 				}
-			} else {
+			} else if(address >= 0xfe00 && address < 0xfe08) {
+				if(is_read(operation)) {
+					if(address & 1) {
+						*value = crtc_.get_register();
+					} else {
+						*value = crtc_.get_status();
+					}
+				} else {
+					if(address & 1) {
+						crtc_.set_register(*value);
+					} else {
+						crtc_.select_register(*value);
+					}
+				}
+			} else if(address >= 0xfe20 && address < 0xfe30) {
+				if(is_read(operation)) {
+					*value = 0xfe;
+				} else {
+					switch(address) {
+						case 0xfe20:
+							crtc_bus_handler_.set_control(*value);
+							crtc_2mhz_ = *value & 0x08;
+						break;
+						case 0xfe21:
+							crtc_bus_handler_.set_palette(*value);
+						break;
+					}
+				}
+			}
+
+			else {
 				Logger::error()
 					.append("Unhandled IO %s at %04x", is_read(operation) ? "read" : "write", address)
 					.append_if(!is_read(operation), ": %02x", *value);
@@ -269,9 +525,12 @@ private:
 	}
 
 	// MARK: - ScanProducer.
-	void set_scan_target(Outputs::Display::ScanTarget *) override {}
-	Outputs::Display::ScanStatus get_scan_status() const override {
-		return Outputs::Display::ScanStatus{};
+	void set_scan_target(Outputs::Display::ScanTarget *const target) override {
+		crtc_bus_handler_.set_scan_target(target);
+	}
+
+	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
+		return crtc_bus_handler_.get_scaled_scan_status();
 	}
 
 	// MARK: - TimedMachine.
@@ -339,6 +598,10 @@ private:
 	}
 
 	Audio audio_;
+
+	CRTCBusHandler crtc_bus_handler_;
+	CRTC crtc_;
+	bool crtc_2mhz_ = true;
 };
 
 }
