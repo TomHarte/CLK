@@ -369,7 +369,7 @@ public:
 
 		// Setup fixed parts of memory map.
 		page(0, &ram_[0], true);
-		page(1, &ram_[1], true);
+		page(1, &ram_[16384], true);
 		page_sideways(15);
 		page(3, os_.data(), true);
 		Memory::Fuzz(ram_);
