@@ -78,6 +78,7 @@ private:
 */
 struct UserVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 };
+using UserVIA = MOS::MOS6522::MOS6522<UserVIAPortHandler>;
 
 /*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
@@ -134,15 +135,17 @@ private:
 	uint8_t port_a_output_ = 0;
 	Audio &audio_;
 };
+using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 /*!
 	Handles CRTC bus activity.
 */
 class CRTCBusHandler {
 public:
-	CRTCBusHandler(const uint8_t *const ram) :
+	CRTCBusHandler(const uint8_t *const ram, SystemVIA &system_via) :
 		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
-		ram_(ram) {}
+		ram_(ram),
+		system_via_(system_via) {}
 
 	void set_palette(const uint8_t value) {
 		const auto index = value >> 4;
@@ -158,6 +161,8 @@ public:
 		bus state and determines what output to produce based on the current palette and mode.
 	*/
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.hsync);
+
 //		// The gate array waits 2us to react to the CRTC's vsync signal, and then
 //		// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 //		// respectively.
@@ -337,6 +342,7 @@ private:
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
 	const uint8_t *const ram_ = nullptr;
+	SystemVIA &system_via_;
 };
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
@@ -360,7 +366,7 @@ public:
 		system_via_port_handler_(audio_),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
-		crtc_bus_handler_(ram_.data()),
+		crtc_bus_handler_(ram_.data(), system_via_),
 		crtc_(crtc_bus_handler_)
 	{
 		set_clock_rate(2'000'000);
@@ -587,8 +593,8 @@ private:
 
 	UserVIAPortHandler user_via_port_handler_;
 	SystemVIAPortHandler system_via_port_handler_;
-	MOS::MOS6522::MOS6522<UserVIAPortHandler> user_via_;
-	MOS::MOS6522::MOS6522<SystemVIAPortHandler> system_via_;
+	UserVIA user_via_;
+	SystemVIA system_via_;
 
 	void update_irq_line() {
 		m6502_.set_irq_line(
