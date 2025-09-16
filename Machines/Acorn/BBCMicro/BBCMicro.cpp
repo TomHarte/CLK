@@ -105,6 +105,8 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		// B0: enable writes to the sound generator;
 		// B1, B2: read/write to the sound processor;
 		// B3: enable writes to the keyboard.
+		// B4/B5: "hardware scrolling" (new base address > 32768?)
+		// B6/B7: keyboard LEDs.
 		const auto mask = uint8_t(1 << (value & 7));
 		const auto old_latch = latch_;
 		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
@@ -113,7 +115,11 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		if((old_latch^latch_) & old_latch & 1) {
 			audio_->write(port_a_output_);
 		}
-//		Logger::info().append("Programmable latch: %d%d%d%d", bool(latch_ & 8), bool(latch_ & 4), bool(latch_ & 2), bool(latch_ & 1));
+
+		// Update keyboard LEDs.
+		if(mask >= 0x40) {
+			Logger::info().append("CAPS: %d SHIFT: %d", bool(latch_ & 0x40), bool(latch_ & 0x40));
+		}
 	}
 
 	template <MOS::MOS6522::Port port>
@@ -125,7 +131,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			//	b6/7: speech interrupt/ready inputs.
 
 			Logger::info().append("Port B read");
-			return 0xff;
+			return 0x3f;	// b6 = b7 = 0 => no speech hardware?
 		}
 
 		if(latch_ & 0b1000) {
@@ -135,13 +141,11 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
 //		Logger::info().append("Keyboard read from line %d", port_a_output_);
 		switch(port_a_output_ & 0x7f) {
-			default:	return 0xff;	// Default: key not pressed.
+			default:	return 0x80;	// Default: key not pressed.
 
 			case 9:		return 0x00;	//
 			case 8:		return 0x00;	// Startup mode.	(= mode 7?)
 			case 7:		return 0x00;	//
-
-			case 6:		return 0xff;	// Boot from network?
 		}
 	}
 
@@ -185,8 +189,9 @@ public:
 
 //		bool print = false;
 //		uint16_t start_address = 0x7c00;
+//		int rows = 24;
 //		if(print) {
-//			for(int y = 0; y < 24; y++) {
+//			for(int y = 0; y < rows; y++) {
 //				for(int x = 0; x < 40; x++) {
 //					printf("%c", ram_[start_address + y*40 + x]);
 //				}
@@ -501,8 +506,14 @@ public:
 						break;
 					}
 				}
+			} else if(address == 0xfee0) {
+				if(is_read(operation)) {
+					Logger::info().append("Read tube status: 0");
+					*value = 0;
+				} else {
+					Logger::info().append("Wrote tube: %02x", *value);
+				}
 			}
-
 			else {
 				Logger::error()
 					.append("Unhandled IO %s at %04x", is_read(operation) ? "read" : "write", address)
@@ -524,6 +535,10 @@ public:
 		} else {
 			if(memory_write_masks_[address >> 14]) {
 				memory_[address >> 14][address] = *value;
+
+				if(address >= 0x7c00 && *value) {
+					Logger::info().append("Output character: %c", *value);
+				}
 			}
 		}
 
