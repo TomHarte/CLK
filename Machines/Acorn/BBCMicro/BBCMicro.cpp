@@ -229,6 +229,12 @@ public:
 				} else {
 					user_via_.write(address, *value);
 				}
+			} else if(address == 0xfe30) {
+				if(is_read(operation)) {
+					*value = 0xfe;
+				} else {
+					page_sideways(*value & 0xf);
+				}
 			} else {
 				Logger::error().append("Unhandled IO access at %04x", address);
 			}
@@ -239,7 +245,12 @@ public:
 		// ROM or RAM access.
 		//
 		if(is_read(operation)) {
-			*value = memory_[address >> 14][address];
+			// TODO: probably don't do this with this condition? See how it compiles. If it's a CMOV somehow, no problem.
+			if((address >> 14) == 2 && !sideways_read_mask_) {
+				*value = 0xff;
+			} else {
+				*value = memory_[address >> 14][address];
+			}
 		} else {
 			if(memory_write_masks_[address >> 14]) {
 				memory_[address >> 14][address] = *value;
@@ -304,6 +315,7 @@ private:
 
 	void install_sideways(const size_t slot, const std::vector<uint8_t> &source, bool is_writeable) {
 		rom_write_masks_[slot] = is_writeable;
+		rom_inserted_[slot] = true;
 
 		assert(source.size() == roms_[slot].size());
 		std::copy(source.begin(), source.end(), roms_[slot].begin());
