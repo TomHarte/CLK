@@ -132,11 +132,16 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			return 0xff;
 		}
 
-		// Read keyboard.
+		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
 //		Logger::info().append("Keyboard read from line %d", port_a_output_);
 		switch(port_a_output_ & 0x7f) {
-			default:	return 0xff;
-			case 9:		return 0xff;	// All switches off.
+			default:	return 0xff;	// Default: key not pressed.
+
+			case 9:		return 0x00;	//
+			case 8:		return 0x00;	// Startup mode.	(= mode 7?)
+			case 7:		return 0x00;	//
+
+			case 6:		return 0xff;	// Boot from network?
 		}
 	}
 
@@ -164,6 +169,7 @@ public:
 
 	void set_control(const uint8_t value) {
 		Logger::info().append("Video control set to %x", value);
+		cycle_length_ = (value & 0x10) ? 8 : 16;
 	}
 
 	/*!
@@ -173,11 +179,12 @@ public:
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
-//		static bool print = false;
+//		bool print = false;
+//		uint16_t start_address = 0x7c00;
 //		if(print) {
-//			for(int y = 0; y < 25; y++) {
+//			for(int y = 0; y < 24; y++) {
 //				for(int x = 0; x < 40; x++) {
-//					printf("%c", ram_[0x7c00 + y*40 + x]);
+//					printf("%c", ram_[start_address + y*40 + x]);
 //				}
 //				printf("\n");
 //			}
@@ -233,7 +240,7 @@ public:
 		}
 
 		// Increment cycles since state changed.
-		cycles_ += 8;
+		cycles_ += cycle_length_;
 
 //		// Collect some more pixels if output is ongoing.
 //		if(previous_output_mode_ == OutputMode::Pixels) {
@@ -324,6 +331,7 @@ private:
 	} previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
 	int cycles_into_hsync_ = 0;
+	int cycle_length_ = 8;
 
 	Outputs::CRT::CRT crt_;
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
