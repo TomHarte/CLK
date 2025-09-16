@@ -161,7 +161,7 @@ public:
 		bus state and determines what output to produce based on the current palette and mode.
 	*/
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
-		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.hsync);
+		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
 //		// The gate array waits 2us to react to the CRTC's vsync signal, and then
 //		// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
