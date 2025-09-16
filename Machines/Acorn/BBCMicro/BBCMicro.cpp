@@ -95,6 +95,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	void set_port_output(const uint8_t value, uint8_t) {
 		if(port == MOS::MOS6522::Port::A) {
 			Logger::info().append("Port A write: %02x", value);
+			port_a_output_ = value;
 			return;
 		}
 
