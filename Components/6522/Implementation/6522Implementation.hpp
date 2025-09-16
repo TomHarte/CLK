@@ -144,10 +144,11 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 			reevaluate_interrupts();
 		break;
 		case 0xe:	// Interrupt enable register ('IER').
-			if(value&0x80)
+			if(value&0x80) {
 				registers_.interrupt_enable |= value;
-			else
+			} else {
 				registers_.interrupt_enable &= ~value;
+			}
 			reevaluate_interrupts();
 		break;
 	}
