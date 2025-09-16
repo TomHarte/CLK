@@ -121,18 +121,21 @@ public:
 		// Check for an IO access; if found then perform that and exit.
 		//
 		if(address >= 0xfc00 && address < 0xff00) {
-
-			// TODO:
-			//
-			//	fe00 - CRTC select register/read from status.
-			//	fe01 - CRTC write/read register.
-			//	(mirrored up to fe08)
-			//
-			//	fe08 - 6850 read/write.
-			//	(mirrored up to fe10)
-			//
-
-			Logger::error().append("Unhandled IO access at %04x", address);
+			if(address >= 0xfe40 && address < 0xfe60) {
+				if(is_read(operation)) {
+					*value = system_via_.read(address);
+				} else {
+					system_via_.write(address, *value);
+				}
+			} else if(address >= 0xfe60 && address < 0xfe80) {
+				if(is_read(operation)) {
+					*value = user_via_.read(address);
+				} else {
+					user_via_.write(address, *value);
+				}
+			} else {
+				Logger::error().append("Unhandled IO access at %04x", address);
+			}
 			return duration;
 		}
 
