@@ -236,7 +236,9 @@ public:
 					page_sideways(*value & 0xf);
 				}
 			} else {
-				Logger::error().append("Unhandled IO access at %04x", address);
+				Logger::error()
+					.append("Unhandled IO %s at %04x", is_read(operation) ? "read" : "write", address)
+					.append_if(!is_read(operation), ": %02x", *value);
 			}
 			return duration;
 		}
