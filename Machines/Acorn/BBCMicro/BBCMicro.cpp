@@ -65,9 +65,24 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
+		static constexpr auto is_1mhz = [](const uint16_t address) {
+			if(address < 0xfe00 || address >= 0xff00) return false;
+			// TODO: 1Mhz should apply only for "most of the SHEILA ($FExx) devices, except for the Econet, floppy,
+			// Tube, VIDPROC, and memory mapping registers."
+			return true;
+		};
+
+		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty,
+		// and update phase.
+		const auto duration = is_1mhz(address) ? Cycles(2 + (phase_&1)) : Cycles(1);
+		phase_ += duration.as<int>();
+
+		// TODO: advance subsystems.
+
+		// Check for an IO access; if found then perform that and exit.
 		if(address >= 0xfc00 && address < 0xff00) {
 			Logger::error().append("Unhandled IO access at %04x", address);
-			return Cycles(1);
+			return duration;
 		}
 
 		// ROM or RAM access.
@@ -79,7 +94,7 @@ public:
 			}
 		}
 
-		return Cycles(1);
+		return duration;
 	}
 
 private:
@@ -95,6 +110,9 @@ private:
 	void run_for(const Cycles cycles) override {
 		m6502_.run_for(cycles);
 	}
+
+	// MARK: - Clock phase.
+	int phase_ = 0;
 
 	// MARK: - Memory.
 	std::array<uint8_t, 32 * 1024> ram_;
