@@ -139,9 +139,9 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
-//		Logger::info().append("Keyboard read from line %d", port_a_output_);
+		Logger::info().append("Keyboard read from key %d", port_a_output_);
 		switch(port_a_output_ & 0x7f) {
-			default:	return 0x80;	// Default: key not pressed.
+			default:	return 0x00;	// Default: key not pressed.
 
 			case 9:		return 0x00;	//
 			case 8:		return 0x00;	// Startup mode.	(= mode 7?)
@@ -459,6 +459,7 @@ public:
 		//
 		// Check for an IO access; if found then perform that and exit.
 		//
+//		static bool log = false;
 		if(address >= 0xfc00 && address < 0xff00) {
 			if(address >= 0xfe40 && address < 0xfe60) {
 				if(is_read(operation)) {
@@ -525,6 +526,14 @@ public:
 		//
 		// ROM or RAM access.
 		//
+//		if(operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
+//			log |= address == 0xc4c0;
+//
+//			if(log) {
+//				printf("%04x\n", address);
+//			}
+//		}
+
 		if(is_read(operation)) {
 			// TODO: probably don't do this with this condition? See how it compiles. If it's a CMOV somehow, no problem.
 			if((address >> 14) == 2 && !sideways_read_mask_) {
