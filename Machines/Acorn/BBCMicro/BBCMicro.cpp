@@ -9,6 +9,7 @@
 #include "BBCMicro.hpp"
 
 #include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
@@ -163,6 +164,16 @@ public:
 	*/
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
+
+//		static bool print = false;
+//		if(print) {
+//			for(int y = 0; y < 25; y++) {
+//				for(int x = 0; x < 40; x++) {
+//					printf("%c", ram_[0x7c00 + y*40 + x]);
+//				}
+//				printf("\n");
+//			}
+//		}
 
 		// Count cycles since horizontal sync to insert a colour burst.
 		if(state.hsync) {
@@ -361,6 +372,7 @@ public:
 		page(1, &ram_[1], true);
 		page_sideways(15);
 		page(3, os_.data(), true);
+		Memory::Fuzz(ram_);
 
 		(void)target;
 	}
