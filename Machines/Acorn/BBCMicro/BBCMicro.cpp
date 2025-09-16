@@ -11,6 +11,7 @@
 #include "Machines/MachineTypes.hpp"
 
 #include "Processors/6502/6502.hpp"
+#include "Components/6522/6522.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -22,19 +23,35 @@
 
 namespace BBCMicro {
 
+namespace {
+
+struct UserVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
+};
+
+struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
+};
+
+}
+
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::ScanProducer,
-	public MachineTypes::TimedMachine
+	public MachineTypes::TimedMachine,
+	public MOS::MOS6522::IRQDelegatePortHandler::Delegate
 {
 public:
 	ConcreteMachine(
 		const Analyser::Static::Acorn::BBCMicroTarget &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
-		m6502_(*this)
+		m6502_(*this),
+		user_via_(user_via_port_handler_),
+		system_via_(system_via_port_handler_)
 	{
 		set_clock_rate(2'000'000);
+
+		system_via_port_handler_.set_interrupt_delegate(this);
+		user_via_port_handler_.set_interrupt_delegate(this);
 
 		// Grab ROMs.
 		using Request = ::ROM::Request;
@@ -65,27 +82,63 @@ public:
 		const uint16_t address,
 		uint8_t *const value
 	) {
+		// Returns @c true if @c address is a device on the 1Mhz bus; @c false otherwise.
 		static constexpr auto is_1mhz = [](const uint16_t address) {
-			if(address < 0xfe00 || address >= 0xff00) return false;
-			// TODO: 1Mhz should apply only for "most of the SHEILA ($FExx) devices, except for the Econet, floppy,
-			// Tube, VIDPROC, and memory mapping registers."
-			return true;
+			// Fast exit if outside the IO space.
+			if(address < 0xfc00) return false;
+			if(address >= 0xff00) return false;
+
+			// Pages FC ('Fred'), FD ('Jim').
+			if(address < 0xfe00) return true;
+
+			// The 6845, 6850 and serial ULA.
+			if(address < 0xfe18) return true;
+
+			// The two VIAs.
+			if(address >= 0xfe40 && address < 0xfe80) return true;
+
+			// The ADC.
+			if(address >= 0xfec0 && address < 0xfee0) return true;
+
+			// Otherwise: in IO space, but not a 1Mhz device.
+			return false;
 		};
 
-		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty,
-		// and update phase.
+		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty, and update phase.
 		const auto duration = is_1mhz(address) ? Cycles(2 + (phase_&1)) : Cycles(1);
 		phase_ += duration.as<int>();
 
-		// TODO: advance subsystems.
 
+		//
+		// Dependent device updates.
+		//
+		const auto half_cycles = HalfCycles(duration.as_integral());
+		system_via_.run_for(half_cycles);
+		user_via_.run_for(half_cycles);
+
+
+		//
 		// Check for an IO access; if found then perform that and exit.
+		//
 		if(address >= 0xfc00 && address < 0xff00) {
+
+			// TODO:
+			//
+			//	fe00 - CRTC select register/read from status.
+			//	fe01 - CRTC write/read register.
+			//	(mirrored up to fe08)
+			//
+			//	fe08 - 6850 read/write.
+			//	(mirrored up to fe10)
+			//
+
 			Logger::error().append("Unhandled IO access at %04x", address);
 			return duration;
 		}
 
+		//
 		// ROM or RAM access.
+		//
 		if(is_read(operation)) {
 			*value = memory_[address >> 14][address];
 		} else {
@@ -109,6 +162,11 @@ private:
 	// MARK: - TimedMachine.
 	void run_for(const Cycles cycles) override {
 		m6502_.run_for(cycles);
+	}
+
+	// MARK: - IRQDelegatePortHandler::Delegate.
+	void mos6522_did_change_interrupt_status(void *) override {
+		update_irq_line();
 	}
 
 	// MARK: - Clock phase.
@@ -145,6 +203,18 @@ private:
 
 	// MARK: - Components.
 	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
+
+	UserVIAPortHandler user_via_port_handler_;
+	SystemVIAPortHandler system_via_port_handler_;
+	MOS::MOS6522::MOS6522<UserVIAPortHandler> user_via_;
+	MOS::MOS6522::MOS6522<SystemVIAPortHandler> system_via_;
+
+	void update_irq_line() {
+		m6502_.set_irq_line(
+			user_via_.get_interrupt_line() ||
+			system_via_.get_interrupt_line()
+		);
+	}
 };
 
 }
