@@ -189,17 +189,17 @@ public:
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
-		bool print = false;
-		uint16_t start_address = 0x7c00;
-		int rows = 24;
-		if(print) {
-			for(int y = 0; y < rows; y++) {
-				for(int x = 0; x < 40; x++) {
-					printf("%c", ram_[start_address + y*40 + x]);
-				}
-				printf("\n");
-			}
-		}
+//		bool print = false;
+//		uint16_t start_address = 0x7c00;
+//		int rows = 24;
+//		if(print) {
+//			for(int y = 0; y < rows; y++) {
+//				for(int x = 0; x < 40; x++) {
+//					printf("%c", ram_[start_address + y*40 + x]);
+//				}
+//				printf("\n");
+//			}
+//		}
 
 		// Count cycles since horizontal sync to insert a colour burst.
 		if(state.hsync) {
