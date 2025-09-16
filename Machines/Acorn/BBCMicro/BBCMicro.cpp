@@ -163,18 +163,14 @@ public:
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
-//		// The gate array waits 2us to react to the CRTC's vsync signal, and then
-//		// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
-//		// respectively.
-//		if(state.hsync) {
-//			cycles_into_hsync_++;
-//		} else {
-//			cycles_into_hsync_ = 0;
-//		}
-//
-//		const bool is_hsync = (cycles_into_hsync_ >= 2 && cycles_into_hsync_ < 6);
-//		const bool is_colour_burst = (cycles_into_hsync_ >= 7 && cycles_into_hsync_ < 11);
-//
+		// Count cycles since horizontal sync to insert a colour burst.
+		if(state.hsync) {
+			++cycles_into_hsync_;
+		} else {
+			cycles_into_hsync_ = 0;
+		}
+		const bool is_colour_burst = (cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9);
+
 		// Sync is taken to override pixels, and is combined as a simple OR.
 		const bool is_sync = state.hsync || state.vsync;
 		const bool is_blank = !is_sync && state.hsync;
@@ -182,8 +178,8 @@ public:
 		OutputMode output_mode;
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
-//		} else if(is_colour_burst) {
-//			output_mode = OutputMode::ColourBurst;
+		} else if(is_colour_burst) {
+			output_mode = OutputMode::ColourBurst;
 		} else if(is_blank) {
 			output_mode = OutputMode::Blank;
 		} else if(state.display_enable) {
@@ -275,31 +271,6 @@ public:
 //				}
 //			}
 //		}
-//
-//		// Latch mode four cycles after HSYNC was signalled, if still active.
-//		if(cycles_into_hsync_ == 4 && mode_ != next_mode_) {
-//			mode_ = next_mode_;
-//			switch(mode_) {
-//				default:
-//				case 0:		pixel_divider_ = 4;	break;
-//				case 1:		pixel_divider_ = 2;	break;
-//				case 2:		pixel_divider_ = 1;	break;
-//			}
-//			build_mode_table();
-//		}
-//
-//		// For the interrupt timer: notify the leading edge of vertical sync and the
-//		// trailing edge of horizontal sync.
-//		if(was_vsync_ != state.vsync) {
-//			interrupt_timer_.set_vsync(state.vsync);
-//		}
-//		if(was_hsync_ && !state.hsync) {
-//			interrupt_timer_.signal_hsync();
-//		}
-//
-//		// Update current state for edge detection next time around.
-//		was_vsync_ = state.vsync;
-//		was_hsync_ = state.hsync;
 	}
 
 	/// Sets the destination for output.
@@ -332,8 +303,6 @@ private:
 		Pixels
 	} previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
-
-	bool was_hsync_ = false, was_vsync_ = false;
 	int cycles_into_hsync_ = 0;
 
 	Outputs::CRT::CRT crt_;
