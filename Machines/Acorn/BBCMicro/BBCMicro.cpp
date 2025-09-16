@@ -175,47 +175,50 @@ public:
 //		const bool is_hsync = (cycles_into_hsync_ >= 2 && cycles_into_hsync_ < 6);
 //		const bool is_colour_burst = (cycles_into_hsync_ >= 7 && cycles_into_hsync_ < 11);
 //
-//		// Sync is taken to override pixels, and is combined as a simple OR.
-//		const bool is_sync = is_hsync || state.vsync;
-//		const bool is_blank = !is_sync && state.hsync;
-//
-//		OutputMode output_mode;
-//		if(is_sync) {
-//			output_mode = OutputMode::Sync;
+		// Sync is taken to override pixels, and is combined as a simple OR.
+		const bool is_sync = state.hsync || state.vsync;
+		const bool is_blank = !is_sync && state.hsync;
+
+		OutputMode output_mode;
+		if(is_sync) {
+			output_mode = OutputMode::Sync;
 //		} else if(is_colour_burst) {
 //			output_mode = OutputMode::ColourBurst;
-//		} else if(is_blank) {
-//			output_mode = OutputMode::Blank;
-//		} else if(state.display_enable) {
-//			output_mode = OutputMode::Pixels;
-//		} else {
-//			output_mode = OutputMode::Border;
-//		}
-//
-//		// If a transition between sync/border/pixels just occurred, flush whatever was
-//		// in progress to the CRT and reset counting.
-//		if(output_mode != previous_output_mode_) {
-//			if(cycles_) {
-//				switch(previous_output_mode_) {
-//					default:
-//					case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);				break;
-//					case OutputMode::Sync:			crt_.output_sync(cycles_ * 16);					break;
-//					case OutputMode::Border:		output_border(cycles_);							break;
-//					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_ * 16);	break;
-//					case OutputMode::Pixels:
-//						crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
+		} else if(is_blank) {
+			output_mode = OutputMode::Blank;
+		} else if(state.display_enable) {
+			output_mode = OutputMode::Pixels;
+		} else {
+			output_mode = OutputMode::Border;
+		}
+
+		// If a transition between sync/border/pixels just occurred, flush whatever was
+		// in progress to the CRT and reset counting.
+		if(output_mode != previous_output_mode_) {
+			if(cycles_) {
+				switch(previous_output_mode_) {
+					default:
+					case OutputMode::Blank:			crt_.output_blank(cycles_);					break;
+					case OutputMode::Sync:			crt_.output_sync(cycles_);					break;
+					case OutputMode::Border:
+//						crt_.output_level(cycles_, 0xff);
+						crt_.output_blank(cycles_);
+					break;
+					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_);	break;
+					case OutputMode::Pixels:
+						crt_.output_level(cycles_, 0xff);
 //						pixel_pointer_ = pixel_data_ = nullptr;
-//					break;
-//				}
-//			}
-//
-//			cycles_ = 0;
-//			previous_output_mode_ = output_mode;
-//		}
-//
-//		// Increment cycles since state changed.
-//		cycles_++;
-//
+					break;
+				}
+			}
+
+			cycles_ = 0;
+			previous_output_mode_ = output_mode;
+		}
+
+		// Increment cycles since state changed.
+		cycles_ += 8;
+
 //		// Collect some more pixels if output is ongoing.
 //		if(previous_output_mode_ == OutputMode::Pixels) {
 //			if(!pixel_data_) {
@@ -321,11 +324,6 @@ public:
 
 
 private:
-	void output_border(const int length) {
-		assert(length >= 0);
-		crt_.output_blank(length * 16);
-	}
-
 	enum class OutputMode {
 		Sync,
 		Blank,
