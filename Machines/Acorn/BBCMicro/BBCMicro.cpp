@@ -10,11 +10,15 @@
 
 #include "Machines/MachineTypes.hpp"
 
-#include "Processors/6502/6502.hpp"
 #include "Components/6522/6522.hpp"
+#include "Components/SN76489/SN76489.hpp"
+#include "Processors/6502/6502.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
+
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Concurrency/AsyncTaskQueue.hpp"
 
 #include <array>
 #include <bitset>
@@ -26,10 +30,50 @@ namespace BBCMicro {
 namespace {
 using Logger = Log::Logger<Log::Source::BBCMicro>;
 
+struct Audio {
+	Audio() :
+		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_),
+		speaker_(sn76489_)
+	{
+		// I'm *VERY* unsure about this.
+		speaker_.set_input_rate(2'000'000.0f);
+	}
+
+	~Audio() {
+		audio_queue_.flush();
+	}
+
+	TI::SN76489 *operator ->() {
+		flush();
+		return &sn76489_;
+	}
+
+	void operator +=(const HalfCycles duration) {
+		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
+		time_since_update_ += duration;
+	}
+
+	void flush() {
+		audio_queue_.perform();
+	}
+
+	Outputs::Speaker::Speaker *speaker() {
+		return &speaker_;
+	}
+
+private:
+	Concurrency::AsyncTaskQueue<false> audio_queue_;
+	TI::SN76489 sn76489_;
+	Outputs::Speaker::PullLowpass<TI::SN76489> speaker_;
+	HalfCycles time_since_update_;
+};
+
 struct UserVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 };
 
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
+	SystemVIAPortHandler(Audio &audio) : audio_(audio) {}
+
 	// CA2: key pressed;
 	// CA1: vertical sync;
 	// CB2: lightpen strobe offscreen;
@@ -48,8 +92,13 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		// B1, B2: read/write to the sound processor;
 		// B3: enable writes to the keyboard.
 		const auto mask = uint8_t(1 << (value & 7));
+		const auto old_latch = latch_;
 		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
 
+		// Check for a strobe on the audio output.
+		if((old_latch^latch_) & old_latch & 1) {
+			audio_->write(port_a_output_);
+		}
 		Logger::info().append("Programmable latch: %d%d%d%d", bool(latch_ & 8), bool(latch_ & 4), bool(latch_ & 2), bool(latch_ & 1));
 	}
 
@@ -72,12 +121,14 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 private:
 	uint8_t latch_ = 0;
 	uint8_t port_a_output_ = 0;
+	Audio &audio_;
 };
 
 }
 
 class ConcreteMachine:
 	public Machine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate
@@ -88,6 +139,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
+		system_via_port_handler_(audio_),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_)
 	{
@@ -156,6 +208,7 @@ public:
 		// Dependent device updates.
 		//
 		const auto half_cycles = HalfCycles(duration.as_integral());
+		audio_ += half_cycles;
 		system_via_.run_for(half_cycles);
 		user_via_.run_for(half_cycles);
 
@@ -197,6 +250,11 @@ public:
 	}
 
 private:
+	// MARK: - AudioProducer.
+	Outputs::Speaker::Speaker *get_speaker() override {
+		return audio_.speaker();
+	}
+
 	// MARK: - ScanProducer.
 	void set_scan_target(Outputs::Display::ScanTarget *) override {}
 	Outputs::Display::ScanStatus get_scan_status() const override {
@@ -206,6 +264,12 @@ private:
 	// MARK: - TimedMachine.
 	void run_for(const Cycles cycles) override {
 		m6502_.run_for(cycles);
+	}
+
+	void flush_output(const int outputs) final {
+		if(outputs & Output::Audio) {
+			audio_.flush();
+		}
 	}
 
 	// MARK: - IRQDelegatePortHandler::Delegate.
@@ -259,6 +323,8 @@ private:
 			system_via_.get_interrupt_line()
 		);
 	}
+
+	Audio audio_;
 };
 
 }
