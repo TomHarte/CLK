@@ -95,7 +95,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	template <MOS::MOS6522::Port port>
 	void set_port_output(const uint8_t value, uint8_t) {
 		if(port == MOS::MOS6522::Port::A) {
-			Logger::info().append("Port A write: %02x", value);
+//			Logger::info().append("Port A write: %02x", value);
 			port_a_output_ = value;
 			return;
 		}
@@ -113,7 +113,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		if((old_latch^latch_) & old_latch & 1) {
 			audio_->write(port_a_output_);
 		}
-		Logger::info().append("Programmable latch: %d%d%d%d", bool(latch_ & 8), bool(latch_ & 4), bool(latch_ & 2), bool(latch_ & 1));
+//		Logger::info().append("Programmable latch: %d%d%d%d", bool(latch_ & 8), bool(latch_ & 4), bool(latch_ & 2), bool(latch_ & 1));
 	}
 
 	template <MOS::MOS6522::Port port>
@@ -128,8 +128,16 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			return 0xff;
 		}
 
-		Logger::info().append("Port A read");
-		return 0xff;	// No keys pressed, start up in mode 7.
+		if(latch_ & 0b1000) {
+			return 0xff;
+		}
+
+		// Read keyboard.
+//		Logger::info().append("Keyboard read from line %d", port_a_output_);
+		switch(port_a_output_ & 0x7f) {
+			default:	return 0xff;
+			case 9:		return 0xff;	// All switches off.
+		}
 	}
 
 private:
@@ -426,8 +434,9 @@ public:
 		if(crtc_2mhz_) {
 			crtc_.run_for(duration);
 		} else {
-			// TODO: count number of 1Mhz windows ended, possibly skipping one
-			// to get into phase.
+			// TODO: possibly skip one cycle if clock speed just changed partway through a 1Mhz window?
+			const auto cycles = (phase_ >> 1) - ((phase_ - duration.as<int>()) >> 1);
+			crtc_.run_for(Cycles(cycles));
 		}
 
 		//
