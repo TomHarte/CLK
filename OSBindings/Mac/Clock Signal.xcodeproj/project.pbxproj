@@ -1699,6 +1699,7 @@
 		4B70EF6A1FFDCDF400A3494E /* MemorySlotHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemorySlotHandler.hpp; sourceTree = "<group>"; };
 		4B710C8A2E77A3B20056BDF4 /* BBCMicro.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BBCMicro.hpp; sourceTree = "<group>"; };
 		4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BBCMicro.cpp; sourceTree = "<group>"; };
+		4B710C902E7A41FF0056BDF4 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B7136841F78724F008B8ED9 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4B7136851F78724F008B8ED9 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4B7136871F78725F008B8ED9 /* Shifter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Shifter.cpp; sourceTree = "<group>"; };
@@ -3615,8 +3616,9 @@
 		4B710C8C2E77A3B20056BDF4 /* BBCMicro */ = {
 			isa = PBXGroup;
 			children = (
-				4B710C8A2E77A3B20056BDF4 /* BBCMicro.hpp */,
 				4B710C8B2E77A3B20056BDF4 /* BBCMicro.cpp */,
+				4B710C8A2E77A3B20056BDF4 /* BBCMicro.hpp */,
+				4B710C902E7A41FF0056BDF4 /* Keyboard.hpp */,
 			);
 			path = BBCMicro;
 			sourceTree = "<group>";

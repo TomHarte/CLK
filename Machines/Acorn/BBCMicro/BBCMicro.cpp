@@ -7,6 +7,7 @@
 //
 
 #include "BBCMicro.hpp"
+#include "Keyboard.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
@@ -104,7 +105,14 @@ protected:
 	Models the system VIA, which connects to the SN76489 and the keyboard.
 */
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base) : audio_(audio), video_base_(video_base) {}
+	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base) :
+		audio_(audio), video_base_(video_base)
+	{
+		// Set initial mode.
+		key_states_[7] = true;
+		key_states_[8] = true;
+		key_states_[9] = true;
+	}
 
 	// CA2: key pressed;
 	// CA1: vertical sync;
@@ -161,13 +169,11 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
 		Logger::info().append("Keyboard read from key %d", port_a_output_);
-		switch(port_a_output_ & 0x7f) {
-			default:	return 0x00;	// Default: key not pressed.
+		return key_states_[port_a_output_ & 0x7f] ? 0x80 : 0x00;
+	}
 
-			case 9:		return 0x80;	//
-			case 8:		return 0x80;	// Startup mode.	(= mode 0?)
-			case 7:		return 0x80;	//
-		}
+	void set_key(const uint8_t key, const bool pressed) {
+		key_states_[key] = pressed;
 	}
 
 private:
@@ -176,6 +182,8 @@ private:
 
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
+
+	std::bitset<128> key_states_;
 };
 using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
