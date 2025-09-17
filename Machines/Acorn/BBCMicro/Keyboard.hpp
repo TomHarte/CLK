@@ -43,6 +43,10 @@ private:
 		{Key::k0, 0x27},	{Key::k1, 0x30},	{Key::k2, 0x31},	{Key::k3, 0x11},	{Key::k4, 0x12},
 		{Key::k5, 0x13},	{Key::k6, 0x34},	{Key::k7, 0x24},	{Key::k8, 0x15},	{Key::k9, 0x26},
 
+		{Key::Comma, 0x66},
+		{Key::FullStop, 0x67},
+		{Key::ForwardSlash, 0x68},
+
 		{Key::Hyphen, 0x17},
 		{Key::Equals, 0x18},
 		{Key::Quote, 0x69},
