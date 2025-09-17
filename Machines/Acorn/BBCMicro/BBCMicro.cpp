@@ -168,7 +168,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
-		Logger::info().append("Keyboard read from key %d", port_a_output_);
+		Logger::info().append("Keyboard read from key %d = %d", port_a_output_, bool(key_states_[port_a_output_ & 0x7f]));
 		return key_states_[port_a_output_ & 0x7f] ? 0x80 : 0x00;
 	}
 
@@ -183,7 +183,7 @@ private:
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
 
-	std::bitset<128> key_states_;
+	std::bitset<128> key_states_{};
 };
 using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
@@ -370,6 +370,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate
@@ -596,6 +597,20 @@ private:
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
 		return crtc_bus_handler_.get_scaled_scan_status();
+	}
+
+	// MARK: - KeyboardMachine.
+	BBCMicro::KeyboardMapper mapper_;
+	KeyboardMapper *get_keyboard_mapper() override {
+		return &mapper_;
+	}
+
+	void set_key_state(const uint16_t key, const bool is_pressed) override {
+		system_via_port_handler_.set_key(uint8_t(key), is_pressed);
+
+		// TODO: what's the actual input to CA2?
+		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(true);
+		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(false);
 	}
 
 	// MARK: - TimedMachine.
