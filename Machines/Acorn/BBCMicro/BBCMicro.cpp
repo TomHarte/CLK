@@ -84,10 +84,27 @@ struct UserVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 using UserVIA = MOS::MOS6522::MOS6522<UserVIAPortHandler>;
 
 /*!
+	Target for the video base address.
+*/
+struct VideoBaseAddress {
+	void set_video_base(const uint8_t code) {
+		switch(code) {
+			case 0b00:	video_base_ = 0x4000;	break;
+			case 0b01:	video_base_ = 0x5800;	break;
+			case 0b10:	video_base_ = 0x6000;	break;
+			case 0b11:	video_base_ = 0x3000;	break;
+		}
+	}
+
+protected:
+	uint16_t video_base_ = 0;
+};
+
+/*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
 */
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	SystemVIAPortHandler(Audio &audio) : audio_(audio) {}
+	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base) : audio_(audio), video_base_(video_base) {}
 
 	// CA2: key pressed;
 	// CA1: vertical sync;
@@ -118,6 +135,8 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			audio_->write(port_a_output_);
 		}
 
+		video_base_.set_video_base((latch_ >> 4) & 3);
+
 		// Update keyboard LEDs.
 		if(mask >= 0x40) {
 			Logger::info().append("CAPS: %d SHIFT: %d", bool(latch_ & 0x40), bool(latch_ & 0x40));
@@ -145,23 +164,25 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		switch(port_a_output_ & 0x7f) {
 			default:	return 0x00;	// Default: key not pressed.
 
-			case 9:		return 0x00;	//
-			case 8:		return 0x00;	// Startup mode.	(= mode 7?)
-			case 7:		return 0x00;	//
+			case 9:		return 0x80;	//
+			case 8:		return 0x80;	// Startup mode.	(= mode 0?)
+			case 7:		return 0x80;	//
 		}
 	}
 
 private:
 	uint8_t latch_ = 0;
 	uint8_t port_a_output_ = 0;
+
 	Audio &audio_;
+	VideoBaseAddress &video_base_;
 };
 using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 /*!
 	Handles CRTC bus activity.
 */
-class CRTCBusHandler {
+class CRTCBusHandler: public VideoBaseAddress {
 public:
 	CRTCBusHandler(const uint8_t *const ram, SystemVIA &system_via) :
 		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
@@ -234,14 +255,12 @@ public:
 					default:
 					case OutputMode::Blank:			crt_.output_blank(cycles_);					break;
 					case OutputMode::Sync:			crt_.output_sync(cycles_);					break;
-					case OutputMode::Border:
-//						crt_.output_level(cycles_, 0xff);
-						crt_.output_blank(cycles_);
-					break;
+					case OutputMode::Border:		crt_.output_blank(cycles_);					break;
 					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_);	break;
 					case OutputMode::Pixels:
-						crt_.output_level(cycles_, 0xff);
-//						pixel_pointer_ = pixel_data_ = nullptr;
+						crt_.output_data(cycles_, pixels_);
+						pixel_pointer_ = pixel_data_ = nullptr;
+						pixels_ = 0;
 					break;
 				}
 			}
@@ -253,62 +272,44 @@ public:
 		// Increment cycles since state changed.
 		cycles_ += cycle_length_;
 
-//		// Collect some more pixels if output is ongoing.
-//		if(previous_output_mode_ == OutputMode::Pixels) {
-//			if(!pixel_data_) {
-//				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
-//			}
-//			if(pixel_pointer_) {
-//				// the CPC shuffles output lines as:
-//				//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
-//				// ... so form the real access address.
-//				const uint16_t address =
-//					uint16_t(
-//						((state.refresh_address & 0x3ff) << 1) |
-//						((state.row_address & 0x7) << 11) |
-//						((state.refresh_address & 0x3000) << 2)
-//					);
-//
-//				// Fetch two bytes and translate into pixels. Guaranteed: the mode can change only at
-//				// hsync, so there's no risk of pixel_pointer_ overrunning 320 output pixels without
-//				// exactly reaching 320 output pixels.
-//				switch(mode_) {
-//					case 0:
-//						reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
-//						reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
-//						pixel_pointer_ += 2 * sizeof(uint16_t);
-//					break;
-//
-//					case 1:
-//						reinterpret_cast<uint32_t *>(pixel_pointer_)[0] = mode1_output_[ram_[address]];
-//						reinterpret_cast<uint32_t *>(pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
-//						pixel_pointer_ += 2 * sizeof(uint32_t);
-//					break;
-//
-//					case 2:
-//						reinterpret_cast<uint64_t *>(pixel_pointer_)[0] = mode2_output_[ram_[address]];
-//						reinterpret_cast<uint64_t *>(pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
-//						pixel_pointer_ += 2 * sizeof(uint64_t);
-//					break;
-//
-//					case 3:
-//						reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode3_output_[ram_[address]];
-//						reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
-//						pixel_pointer_ += 2 * sizeof(uint16_t);
-//					break;
-//
-//				}
-//
-//				// Flush the current buffer pixel if full; the CRTC allows many different display
-//				// widths so it's not necessarily possible to predict the correct number in advance
-//				// and using the upper bound could lead to inefficient behaviour.
-//				if(pixel_pointer_ == pixel_data_ + 320) {
-//					crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
-//					pixel_pointer_ = pixel_data_ = nullptr;
-//					cycles_ = 0;
-//				}
-//			}
-//		}
+		// Collect some more pixels if output is ongoing.
+		if(previous_output_mode_ == OutputMode::Pixels) {
+			if(!pixel_data_) {
+				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
+			}
+			if(pixel_pointer_) {
+				// Hard coded for Mode 0!
+				auto address = uint16_t(
+					(state.refresh_address << 3) |
+					state.row_address
+				);
+				if(address & 0x8000) {
+					address = (video_base_ + address) & 0x7fff;
+				}
+
+				const auto source = ram_[address];
+				pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
+				pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
+				pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
+				pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
+				pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
+				pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
+				pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
+				pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
+				pixel_pointer_ += 8;
+				pixels_ += 8;
+
+				// Flush the current buffer pixel if full; the CRTC allows many different display
+				// widths so it's not necessarily possible to predict the correct number in advance
+				// and using the upper bound could lead to inefficient behaviour.
+				if(pixels_ == 320) {
+					crt_.output_data(cycles_, pixels_);
+					pixel_pointer_ = pixel_data_ = nullptr;
+					cycles_ = 0;
+					pixels_ = 0;
+				}
+			}
+		}
 	}
 
 	/// Sets the destination for output.
@@ -345,7 +346,9 @@ private:
 	int cycle_length_ = 8;
 
 	Outputs::CRT::CRT crt_;
+
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
+	size_t pixels_;
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
@@ -369,7 +372,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
-		system_via_port_handler_(audio_),
+		system_via_port_handler_(audio_, crtc_bus_handler_),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
