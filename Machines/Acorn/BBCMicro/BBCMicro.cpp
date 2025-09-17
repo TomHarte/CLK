@@ -7,6 +7,7 @@
 //
 
 #include "BBCMicro.hpp"
+#include "Keyboard.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
@@ -103,8 +104,18 @@ protected:
 /*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
 */
+struct SystemVIAPortHandler;
+using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
+
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base) : audio_(audio), video_base_(video_base) {}
+	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via) :
+		audio_(audio), video_base_(video_base), via_(via)
+	{
+		// Set initial mode to mode 0.
+		set_key(7, true);
+		set_key(8, true);
+		set_key(9, true);
+	}
 
 	// CA2: key pressed;
 	// CA1: vertical sync;
@@ -114,28 +125,34 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	template <MOS::MOS6522::Port port>
 	void set_port_output(const uint8_t value, uint8_t) {
 		if(port == MOS::MOS6522::Port::A) {
-//			Logger::info().append("Port A write: %02x", value);
 			port_a_output_ = value;
+			update_ca2();
 			return;
 		}
 
 		// The addressable latch.
 		//
 		// B0: enable writes to the sound generator;
-		// B1, B2: read/write to the sound processor;
-		// B3: enable writes to the keyboard.
-		// B4/B5: "hardware scrolling" (new base address > 32768?)
+		// B1, B2: read/write to the speech processor;
+		// B3: keyboard scanning mode; 1 => automatic; 0 => programmatic;
+		// B4/B5: hardware scrolling;
 		// B6/B7: keyboard LEDs.
 		const auto mask = uint8_t(1 << (value & 7));
 		const auto old_latch = latch_;
 		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
 
 		// Check for a strobe on the audio output.
-		if((old_latch^latch_) & old_latch & 1) {
+		if((old_latch^latch_) & old_latch & LatchFlags::WriteToSN76489) {
 			audio_->write(port_a_output_);
 		}
 
+		// Pass on the video wraparound/base.
 		video_base_.set_video_base((latch_ >> 4) & 3);
+
+		// If keyboard scanning mode has changed, update CA2.
+		if(mask == LatchFlags::KeyboardIsScanning) {
+			update_ca2();
+		}
 
 		// Update keyboard LEDs.
 		if(mask >= 0x40) {
@@ -150,34 +167,80 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			//
 			//	b4/5: joystick fire buttons;
 			//	b6/7: speech interrupt/ready inputs.
-
-			Logger::info().append("Port B read");
-			return 0x3f;	// b6 = b7 = 0 => no speech hardware?
+			return 0x3f;	// b6 = b7 = 0 => no speech hardware.
 		}
 
-		if(latch_ & 0b1000) {
+		if(latch_ & LatchFlags::KeyboardIsScanning) {
 			return 0xff;
 		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
-		Logger::info().append("Keyboard read from key %d", port_a_output_);
-		switch(port_a_output_ & 0x7f) {
-			default:	return 0x00;	// Default: key not pressed.
+		const uint8_t key_state = key_column(port_a_output_)[key_row(port_a_output_)] ? 0x80 : 0x00;
+		return key_state;
+	}
 
-			case 9:		return 0x80;	//
-			case 8:		return 0x80;	// Startup mode.	(= mode 0?)
-			case 7:		return 0x80;	//
+	void set_key(const uint8_t key, const bool pressed) {
+		key_column(key)[key_row(key)] = pressed;
+		update_ca2();
+	}
+
+	void advance_keyboard_scan(const HalfCycles count) {
+		if(!(latch_ & LatchFlags::KeyboardIsScanning)) {
+			return;
 		}
+
+		const int ending_column = keyboard_scan_column_ + count.as<int>();
+		int steps = (ending_column >> 1) - (keyboard_scan_column_ >> 1);
+		while(steps--) {
+			keyboard_scan_column_ += 2;
+			update_ca2();
+		}
+		keyboard_scan_column_ = ending_column;
 	}
 
 private:
 	uint8_t latch_ = 0;
+	enum LatchFlags: uint8_t {
+		WriteToSN76489 = 1 << 0,
+		KeyboardIsScanning = 1 << 3,
+	};
+
 	uint8_t port_a_output_ = 0;
 
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
+
+	SystemVIA &via_;
+
+	// MARK: - Keyboard state and helpers.
+
+	using KeyRow = std::bitset<8>;
+	std::array<KeyRow, 16> key_states_{};
+	int keyboard_scan_column_ = 0;
+
+	KeyRow &key_column(const uint8_t key) {
+		return key_states_[key & 0xf];
+	}
+	const KeyRow &key_column(const uint8_t key) const {
+		return key_states_[key & 0xf];
+	}
+	static constexpr size_t key_row(const uint8_t key) {
+		return (key >> 4) & 7;
+	}
+
+	void update_ca2() {
+		const bool state = key_column(
+			[&]() {
+				if(latch_ & LatchFlags::KeyboardIsScanning) {
+					return uint8_t(keyboard_scan_column_ >> 1);
+				} else {
+					return uint8_t(port_a_output_ & 0xf);
+				}
+		} ()).to_ulong() & 0xfe;	// Discard the first row.
+
+		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
+	}
 };
-using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 /*!
 	Handles CRTC bus activity.
@@ -362,6 +425,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate
@@ -372,7 +436,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
-		system_via_port_handler_(audio_, crtc_bus_handler_),
+		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
@@ -447,6 +511,7 @@ public:
 		const auto half_cycles = HalfCycles(duration.as_integral());
 		audio_ += half_cycles;
 		system_via_.run_for(half_cycles);
+		system_via_port_handler_.advance_keyboard_scan(half_cycles);
 		user_via_.run_for(half_cycles);
 
 
@@ -588,6 +653,20 @@ private:
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
 		return crtc_bus_handler_.get_scaled_scan_status();
+	}
+
+	// MARK: - KeyboardMachine.
+	BBCMicro::KeyboardMapper mapper_;
+	KeyboardMapper *get_keyboard_mapper() override {
+		return &mapper_;
+	}
+
+	void set_key_state(const uint16_t key, const bool is_pressed) override {
+		if(key == BBCMicro::KeyboardMapper::KeyBreak) {
+			m6502_.set_reset_line(is_pressed);
+		} else {
+			system_via_port_handler_.set_key(uint8_t(key), is_pressed);
+		}
 	}
 
 	// MARK: - TimedMachine.
