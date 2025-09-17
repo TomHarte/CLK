@@ -171,9 +171,9 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			return 0x3f;	// b6 = b7 = 0 => no speech hardware?
 		}
 
-		if(latch_ & 0b1000) {
-			return 0xff;
-		}
+//		if(latch_ & 0b1000) {
+//			return 0xff;
+//		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
 		const uint8_t key_state = key_states_[(port_a_output_ >> 4) & 7][port_a_output_ & 0xf] ? 0x80 : 0x00;
@@ -209,11 +209,12 @@ private:
 					key_states_[6].any() |
 					key_states_[7].any();
 			} else {
+				if(!((port_a_output_ >> 4) & 7)) return false;
 				return key_states_[(port_a_output_ >> 4) & 7].any();
 			}
 		} ();
 
-//		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
+		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 };
