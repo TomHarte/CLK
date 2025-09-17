@@ -125,7 +125,6 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	template <MOS::MOS6522::Port port>
 	void set_port_output(const uint8_t value, uint8_t) {
 		if(port == MOS::MOS6522::Port::A) {
-//			Logger::info().append("Port A write: %02x", value);
 			port_a_output_ = value;
 			update_ca2();
 			return;
@@ -134,24 +133,26 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		// The addressable latch.
 		//
 		// B0: enable writes to the sound generator;
-		// B1, B2: read/write to the sound processor;
-		// B3: keyboard scanning mode (?)
-		// B4/B5: "hardware scrolling" (new base address > 32768?)
+		// B1, B2: read/write to the speech processor;
+		// B3: keyboard scanning mode; 1 => automatic; 0 => programmatic;
+		// B4/B5: hardware scrolling;
 		// B6/B7: keyboard LEDs.
 		const auto mask = uint8_t(1 << (value & 7));
 		const auto old_latch = latch_;
 		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
 
-		if(mask == LatchFlags::KeyboardIsScanning) {
-			update_ca2();
-		}
-
 		// Check for a strobe on the audio output.
-		if((old_latch^latch_) & old_latch & 1) {
+		if((old_latch^latch_) & old_latch & LatchFlags::WriteToSN76489) {
 			audio_->write(port_a_output_);
 		}
 
+		// Pass on the video wraparound/base.
 		video_base_.set_video_base((latch_ >> 4) & 3);
+
+		// If keyboard scanning mode has changed, update CA2.
+		if(mask == LatchFlags::KeyboardIsScanning) {
+			update_ca2();
+		}
 
 		// Update keyboard LEDs.
 		if(mask >= 0x40) {
@@ -166,23 +167,20 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			//
 			//	b4/5: joystick fire buttons;
 			//	b6/7: speech interrupt/ready inputs.
-
-			Logger::info().append("Port B read");
-			return 0x3f;	// b6 = b7 = 0 => no speech hardware?
+			return 0x3f;	// b6 = b7 = 0 => no speech hardware.
 		}
 
-//		if(latch_ & 0b1000) {
-//			return 0xff;
-//		}
+		if(latch_ & LatchFlags::KeyboardIsScanning) {
+			return 0xff;
+		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
-		const uint8_t key_state = key_states_[port_a_output_ & 0xf][(port_a_output_ >> 4) & 7] ? 0x80 : 0x00;
-		Logger::info().append("Keyboard read from key %d = %d", port_a_output_, key_state);
+		const uint8_t key_state = key_column(port_a_output_)[key_row(port_a_output_)] ? 0x80 : 0x00;
 		return key_state;
 	}
 
 	void set_key(const uint8_t key, const bool pressed) {
-		key_states_[key & 0xf][key >> 4] = pressed;
+		key_column(key)[key_row(key)] = pressed;
 		update_ca2();
 	}
 
@@ -203,29 +201,43 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 private:
 	uint8_t latch_ = 0;
 	enum LatchFlags: uint8_t {
+		WriteToSN76489 = 1 << 0,
 		KeyboardIsScanning = 1 << 3,
 	};
 
 	uint8_t port_a_output_ = 0;
-	int keyboard_scan_column_ = 0;
 
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
 
 	SystemVIA &via_;
+
+	// MARK: - Keyboard state and helpers.
+
 	using KeyRow = std::bitset<8>;
 	std::array<KeyRow, 16> key_states_{};
+	int keyboard_scan_column_ = 0;
+
+	KeyRow &key_column(const uint8_t key) {
+		return key_states_[key & 0xf];
+	}
+	const KeyRow &key_column(const uint8_t key) const {
+		return key_states_[key & 0xf];
+	}
+	static constexpr size_t key_row(const uint8_t key) {
+		return (key >> 4) & 7;
+	}
 
 	void update_ca2() {
-		const bool state = [&]() {
-			if(latch_ & LatchFlags::KeyboardIsScanning) {
-				return key_states_[size_t(keyboard_scan_column_ >> 1) & 0xf].to_ulong();
-			} else {
-				return key_states_[port_a_output_ & 0xf].to_ulong();
-			}
-		} () & 0xfe;	// Discard the first row.
+		const bool state = key_column(
+			[&]() {
+				if(latch_ & LatchFlags::KeyboardIsScanning) {
+					return uint8_t(keyboard_scan_column_ >> 1);
+				} else {
+					return uint8_t(port_a_output_ & 0xf);
+				}
+		} ()).to_ulong() & 0xfe;	// Discard the first row.
 
-//		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 };
