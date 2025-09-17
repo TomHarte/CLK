@@ -11,10 +11,12 @@
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
 
+#include "Processors/6502/6502.hpp"
+
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
 #include "Components/SN76489/SN76489.hpp"
-#include "Processors/6502/6502.hpp"
+#include "Components/6850/6850.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -371,7 +373,8 @@ public:
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
-		crtc_(crtc_bus_handler_)
+		crtc_(crtc_bus_handler_),
+		acia_(HalfCycles(2'000'000)) // TODO: look up real ACIA clock rate.
 	{
 		set_clock_rate(2'000'000);
 
@@ -456,6 +459,13 @@ public:
 			crtc_.run_for(Cycles(cycles));
 		}
 
+
+		//
+		// Questionably-clocked devices.
+		//
+		acia_.run_for(half_cycles);
+
+
 		//
 		// Check for an IO access; if found then perform that and exit.
 		//
@@ -513,6 +523,14 @@ public:
 					*value = 0;
 				} else {
 					Logger::info().append("Wrote tube: %02x", *value);
+				}
+			} else if(address >= 0xfe08 && address < 0xfe10) {
+				if(is_read(operation)) {
+					Logger::info().append("ACIA read");
+					*value = acia_.read(address);
+				} else {
+					Logger::info().append("ACIA write: %02x", *value);
+					acia_.write(address, *value);
 				}
 			}
 			else {
@@ -638,6 +656,8 @@ private:
 	CRTCBusHandler crtc_bus_handler_;
 	CRTC crtc_;
 	bool crtc_2mhz_ = true;
+
+	Motorola::ACIA::ACIA acia_;
 };
 
 }
