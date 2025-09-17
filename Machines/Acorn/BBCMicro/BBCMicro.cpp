@@ -111,10 +111,10 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via) :
 		audio_(audio), video_base_(video_base), via_(via)
 	{
-		// Set initial mode.
-		unscanned_key_states_[7] = true;
-		unscanned_key_states_[8] = true;
-		unscanned_key_states_[9] = true;
+		// Set initial mode to mode 0.
+		set_key(7, true);
+		set_key(8, true);
+		set_key(9, true);
 	}
 
 	// CA2: key pressed;
@@ -176,12 +176,13 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
-		Logger::info().append("Keyboard read from key %d = %d", port_a_output_, bool(key_states_[port_a_output_ & 0x7f]));
-		return key_state() ? 0x80 : 0x00;
+		const uint8_t key_state = key_states_[(port_a_output_ >> 4) & 7][port_a_output_ & 0xf] ? 0x80 : 0x00;
+		Logger::info().append("Keyboard read from key %d = %d", port_a_output_, key_state);
+		return key_state;
 	}
 
 	void set_key(const uint8_t key, const bool pressed) {
-		key_states_[key] = pressed;
+		key_states_[key >> 4][key & 0xf] = pressed;
 		update_ca2();
 	}
 
@@ -193,22 +194,27 @@ private:
 	VideoBaseAddress &video_base_;
 
 	SystemVIA &via_;
-	std::bitset<128> key_states_{};
-	std::bitset<128> unscanned_key_states_{};
-
-	/// @returns The state of the key currently selected by port A.
-	bool key_state() const {
-		return
-			unscanned_key_states_[port_a_output_ & 0x7f] |
-			key_states_[port_a_output_ & 0x7f];
-	}
+	using KeyRow = std::bitset<16>;
+	std::array<KeyRow, 8> key_states_{};
 
 	void update_ca2() {
-		if(latch_ & 8) {
-			via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(key_states_.any());
-		} else {
-			via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(key_state());
-		}
+		const bool state = [&]() -> bool {
+			if(latch_ & 8) {
+				return
+					key_states_[1].any() |
+					key_states_[2].any() |
+					key_states_[3].any() |
+					key_states_[4].any() |
+					key_states_[5].any() |
+					key_states_[6].any() |
+					key_states_[7].any();
+			} else {
+				return key_states_[(port_a_output_ >> 4) & 7].any();
+			}
+		} ();
+
+//		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
+		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 };
 
