@@ -104,14 +104,17 @@ protected:
 /*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
 */
+struct SystemVIAPortHandler;
+using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
+
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base) :
-		audio_(audio), video_base_(video_base)
+	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via) :
+		audio_(audio), video_base_(video_base), via_(via)
 	{
 		// Set initial mode.
-		key_states_[7] = true;
-		key_states_[8] = true;
-		key_states_[9] = true;
+		unscanned_key_states_[7] = true;
+		unscanned_key_states_[8] = true;
+		unscanned_key_states_[9] = true;
 	}
 
 	// CA2: key pressed;
@@ -124,6 +127,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		if(port == MOS::MOS6522::Port::A) {
 //			Logger::info().append("Port A write: %02x", value);
 			port_a_output_ = value;
+			update_ca2();
 			return;
 		}
 
@@ -131,12 +135,16 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		//
 		// B0: enable writes to the sound generator;
 		// B1, B2: read/write to the sound processor;
-		// B3: enable writes to the keyboard.
+		// B3: keyboard scanning mode (?)
 		// B4/B5: "hardware scrolling" (new base address > 32768?)
 		// B6/B7: keyboard LEDs.
 		const auto mask = uint8_t(1 << (value & 7));
 		const auto old_latch = latch_;
 		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
+
+		if(mask == 0x8) {
+			update_ca2();
+		}
 
 		// Check for a strobe on the audio output.
 		if((old_latch^latch_) & old_latch & 1) {
@@ -169,11 +177,12 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
 		Logger::info().append("Keyboard read from key %d = %d", port_a_output_, bool(key_states_[port_a_output_ & 0x7f]));
-		return key_states_[port_a_output_ & 0x7f] ? 0x80 : 0x00;
+		return key_state() ? 0x80 : 0x00;
 	}
 
 	void set_key(const uint8_t key, const bool pressed) {
 		key_states_[key] = pressed;
+		update_ca2();
 	}
 
 private:
@@ -183,9 +192,25 @@ private:
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
 
+	SystemVIA &via_;
 	std::bitset<128> key_states_{};
+	std::bitset<128> unscanned_key_states_{};
+
+	/// @returns The state of the key currently selected by port A.
+	bool key_state() const {
+		return
+			unscanned_key_states_[port_a_output_ & 0x7f] |
+			key_states_[port_a_output_ & 0x7f];
+	}
+
+	void update_ca2() {
+		if(latch_ & 8) {
+			via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(key_states_.any());
+		} else {
+			via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(key_state());
+		}
+	}
 };
-using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 /*!
 	Handles CRTC bus activity.
@@ -381,7 +406,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
-		system_via_port_handler_(audio_, crtc_bus_handler_),
+		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
@@ -607,10 +632,6 @@ private:
 
 	void set_key_state(const uint16_t key, const bool is_pressed) override {
 		system_via_port_handler_.set_key(uint8_t(key), is_pressed);
-
-		// TODO: what's the actual input to CA2?
-		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(true);
-		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(false);
 	}
 
 	// MARK: - TimedMachine.
