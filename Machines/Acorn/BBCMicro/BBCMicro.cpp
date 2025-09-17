@@ -225,7 +225,7 @@ private:
 			}
 		} () & 0xfe;	// Discard the first row.
 
-		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
+//		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 };
