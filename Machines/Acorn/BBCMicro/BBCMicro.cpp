@@ -142,7 +142,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		const auto old_latch = latch_;
 		latch_ = (latch_ & ~mask) | ((value & 8) ? mask : 0);
 
-		if(mask == 0x8) {
+		if(mask == LatchFlags::KeyboardIsScanning) {
 			update_ca2();
 		}
 
@@ -176,43 +176,54 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 //		}
 
 		// Read keyboard. Low six bits of output are key to check, state should be returned in high bit.
-		const uint8_t key_state = key_states_[(port_a_output_ >> 4) & 7][port_a_output_ & 0xf] ? 0x80 : 0x00;
+		const uint8_t key_state = key_states_[port_a_output_ & 0xf][(port_a_output_ >> 4) & 7] ? 0x80 : 0x00;
 		Logger::info().append("Keyboard read from key %d = %d", port_a_output_, key_state);
 		return key_state;
 	}
 
 	void set_key(const uint8_t key, const bool pressed) {
-		key_states_[key >> 4][key & 0xf] = pressed;
+		key_states_[key & 0xf][key >> 4] = pressed;
 		update_ca2();
+	}
+
+	void advance_keyboard_scan(const HalfCycles count) {
+		if(!(latch_ & LatchFlags::KeyboardIsScanning)) {
+			return;
+		}
+
+		const int ending_column = keyboard_scan_column_ + count.as<int>();
+		int steps = (ending_column >> 1) - (keyboard_scan_column_ >> 1);
+		while(steps--) {
+			keyboard_scan_column_ += 2;
+			update_ca2();
+		}
+		keyboard_scan_column_ = ending_column;
 	}
 
 private:
 	uint8_t latch_ = 0;
+	enum LatchFlags: uint8_t {
+		KeyboardIsScanning = 1 << 3,
+	};
+
 	uint8_t port_a_output_ = 0;
+	int keyboard_scan_column_ = 0;
 
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
 
 	SystemVIA &via_;
-	using KeyRow = std::bitset<16>;
-	std::array<KeyRow, 8> key_states_{};
+	using KeyRow = std::bitset<8>;
+	std::array<KeyRow, 16> key_states_{};
 
 	void update_ca2() {
-		const bool state = [&]() -> bool {
-			if(latch_ & 8) {
-				return
-					key_states_[1].any() |
-					key_states_[2].any() |
-					key_states_[3].any() |
-					key_states_[4].any() |
-					key_states_[5].any() |
-					key_states_[6].any() |
-					key_states_[7].any();
+		const bool state = [&]() {
+			if(latch_ & LatchFlags::KeyboardIsScanning) {
+				return key_states_[size_t(keyboard_scan_column_ >> 1) & 0xf].to_ulong();
 			} else {
-				if(!((port_a_output_ >> 4) & 7)) return false;
-				return key_states_[(port_a_output_ >> 4) & 7].any();
+				return key_states_[port_a_output_ & 0xf].to_ulong();
 			}
-		} ();
+		} () & 0xfe;	// Discard the first row.
 
 		Logger::info().append("CA2 to %d in mode %d", state, bool(latch_ & 8)).append_if(!(latch_ & 8), " for key %02x", port_a_output_ & 0x7f);
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
@@ -488,6 +499,7 @@ public:
 		const auto half_cycles = HalfCycles(duration.as_integral());
 		audio_ += half_cycles;
 		system_via_.run_for(half_cycles);
+		system_via_port_handler_.advance_keyboard_scan(half_cycles);
 		user_via_.run_for(half_cycles);
 
 
