@@ -16,6 +16,8 @@
 namespace BBCMicro {
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	static constexpr uint16_t KeyBreak = 0xfffd;
+
 	uint16_t mapped_key_for_key(const Inputs::Keyboard::Key key) const override {
 		const auto found = key_map.find(key);
 		return found != key_map.end() ? found->second : MachineTypes::MappedKeyboardMachine::KeyNotMapped;
@@ -25,6 +27,7 @@ private:
 	using Key = Inputs::Keyboard::Key;
 	static inline const std::unordered_map<Key, uint16_t> key_map{
 		{Key::Escape, 0x70},
+		{Key::F12, KeyBreak},
 
 		{Key::F10, 0x20},	{Key::F1, 0x71},	{Key::F2, 0x72},	{Key::F3, 0x73},	{Key::F4, 0x14},
 		{Key::F5, 0x75},	{Key::F6, 0x75},	{Key::F7, 0x16},	{Key::F8, 0x76},	{Key::F9, 0x77},

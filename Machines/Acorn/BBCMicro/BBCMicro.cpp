@@ -662,7 +662,11 @@ private:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) override {
-		system_via_port_handler_.set_key(uint8_t(key), is_pressed);
+		if(key == BBCMicro::KeyboardMapper::KeyBreak) {
+			m6502_.set_reset_line(is_pressed);
+		} else {
+			system_via_port_handler_.set_key(uint8_t(key), is_pressed);
+		}
 	}
 
 	// MARK: - TimedMachine.
