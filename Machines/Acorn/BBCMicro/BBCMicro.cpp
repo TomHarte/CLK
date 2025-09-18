@@ -256,16 +256,17 @@ public:
 
 	void set_palette(const uint8_t value) {
 		const auto index = value >> 4;
-		Logger::info().append("Palette entry %d set to %x", index, value & 0xf);
+		palette_[index] = value & 0xf;
 	}
 
 	void set_control(const uint8_t value) {
-		Logger::info().append("Video control set to %x", value);
-		cycle_length_ = (value & 0x10) ? 8 : 16;
+		crtc_clock_multiplier_ = (value & 0x10) ? 1 : 2;
 		Logger::info().append("TODO: video control => flash %d", bool(value & 0x01));
 		Logger::info().append("TODO: video control => teletext %d", bool(value & 0x02));
-		Logger::info().append("TODO: video control => columns %d", (value >> 2) & 0x03);
 		Logger::info().append("TODO: video control => cursor segment %d%d%d", bool(value & 0x80), bool(value & 0x40), bool(value & 0x20));
+
+		pixels_per_clock_ = 1 << ((value >> 2) & 0x03);
+		Logger::info().append("TODO: video control => columns %d", (value >> 2) & 0x03);
 	}
 
 	/*!
@@ -335,7 +336,7 @@ public:
 		}
 
 		// Increment cycles since state changed.
-		cycles_ += cycle_length_;
+		cycles_ += crtc_clock_multiplier_ << 3;
 
 		// Collect some more pixels if output is ongoing.
 		if(previous_output_mode_ == OutputMode::Pixels) {
@@ -352,7 +353,7 @@ public:
 						((state.refresh_address & 0x800) << 3) |
 						(state.refresh_address & 0x3ff)
 					);
-					// TODO: wraparound?
+					// TODO: wraparound? Does that happen on Mode 7?
 				} else {
 					address = uint16_t((state.refresh_address << 3) | (state.row_address & 7));
 					if(address & 0x8000) {
@@ -360,19 +361,18 @@ public:
 					}
 				}
 
-				// Hard coded from here for Mode 0!
-				const auto source = ram_[address];
-				pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
-				pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
-				pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
-				pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
-				pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
-				pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
-				pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
-				pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
-
-				pixel_pointer_ += 8;
-				pixels_ += 8;
+				// Hard coded: pixel mode!
+				pixel_shifter_ = ram_[address];
+				for(int c = 0; c < crtc_clock_multiplier_ * pixels_per_clock_; c++) {
+					const uint8_t colour =
+						((pixel_shifter_ & 0x80) >> 4) |
+						((pixel_shifter_ & 0x20) >> 3) |
+						((pixel_shifter_ & 0x08) >> 2) |
+						((pixel_shifter_ & 0x02) >> 1);
+					pixel_shifter_ <<= 1;
+					*pixel_pointer_++ = palette_[colour];
+					++pixels_;
+				}
 
 				// Flush the current buffer pixel if full; the CRTC allows many different display
 				// widths so it's not necessarily possible to predict the correct number in advance
@@ -418,12 +418,16 @@ private:
 	} previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
 	int cycles_into_hsync_ = 0;
-	int cycle_length_ = 8;
 
 	Outputs::CRT::CRT crt_;
 
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 	size_t pixels_ = 0;
+	uint8_t palette_[16];
+
+	int crtc_clock_multiplier_ = 1;
+	int pixels_per_clock_ = 1;
+	uint8_t pixel_shifter_ = 0;
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
