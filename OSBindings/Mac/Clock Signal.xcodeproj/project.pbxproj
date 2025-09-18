@@ -1597,6 +1597,7 @@
 		4B477709268FBE4D005C2340 /* FAT.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FAT.cpp; path = Parsers/FAT.cpp; sourceTree = "<group>"; };
 		4B47770A268FBE4D005C2340 /* FAT.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = FAT.hpp; path = Parsers/FAT.hpp; sourceTree = "<group>"; };
 		4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EnterpriseDaveTests.mm; sourceTree = "<group>"; };
+		4B47F3B32E7B9A14005D4DEC /* uPD7002.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uPD7002.hpp; sourceTree = "<group>"; };
 		4B47F6C4241C87A100ED06F7 /* Struct.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Struct.cpp; sourceTree = "<group>"; };
 		4B49F0A823346F7A0045E6A6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MacintoshOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AY38910.cpp; sourceTree = "<group>"; };
@@ -3314,6 +3315,14 @@
 				4BFDD7891F7F2DB4008579B9 /* Utility */,
 			);
 			path = Formats;
+			sourceTree = "<group>";
+		};
+		4B47F3B42E7B9A14005D4DEC /* uPD7002 */ = {
+			isa = PBXGroup;
+			children = (
+				4B47F3B32E7B9A14005D4DEC /* uPD7002.hpp */,
+			);
+			path = uPD7002;
 			sourceTree = "<group>";
 		};
 		4B4A762D1DB1A35C007AAE2E /* AY38910 */ = {
@@ -5075,6 +5084,7 @@
 				4BF0BC6E2973318E00CCA2B5 /* RP5C01 */,
 				4B0ACBFF237756EC008902D0 /* Serial */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
+				4B47F3B42E7B9A14005D4DEC /* uPD7002 */,
 			);
 			name = Components;
 			path = ../../Components;
