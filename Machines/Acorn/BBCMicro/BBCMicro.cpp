@@ -256,17 +256,16 @@ public:
 
 	void set_palette(const uint8_t value) {
 		const auto index = value >> 4;
-		palette_[index] = value & 0xf;
+		palette_[index] = (value & 0xf) ^ 0xf;	// TODO: something with flash bit?
 	}
 
 	void set_control(const uint8_t value) {
 		crtc_clock_multiplier_ = (value & 0x10) ? 1 : 2;
+		pixels_per_clock_ = 1 << ((value >> 2) & 0x03);
+
 		Logger::info().append("TODO: video control => flash %d", bool(value & 0x01));
 		Logger::info().append("TODO: video control => teletext %d", bool(value & 0x02));
 		Logger::info().append("TODO: video control => cursor segment %d%d%d", bool(value & 0x80), bool(value & 0x40), bool(value & 0x20));
-
-		pixels_per_clock_ = 1 << ((value >> 2) & 0x03);
-		Logger::info().append("TODO: video control => columns %d", (value >> 2) & 0x03);
 	}
 
 	/*!
@@ -275,18 +274,6 @@ public:
 	*/
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
-
-//		bool print = false;
-//		uint16_t start_address = 0x7c00;
-//		int rows = 24;
-//		if(print) {
-//			for(int y = 0; y < rows; y++) {
-//				for(int x = 0; x < 40; x++) {
-//					printf("%c", ram_[start_address + y*40 + x]);
-//				}
-//				printf("\n");
-//			}
-//		}
 
 		// Count cycles since horizontal sync to insert a colour burst.
 		if(state.hsync) {
@@ -298,19 +285,16 @@ public:
 
 		// Sync is taken to override pixels, and is combined as a simple OR.
 		const bool is_sync = state.hsync || state.vsync;
-		const bool is_blank = !is_sync && state.hsync;
 
 		OutputMode output_mode;
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
 			output_mode = OutputMode::ColourBurst;
-		} else if(is_blank || (state.row_address & 8)) {
-			output_mode = OutputMode::Blank;
-		} else if(state.display_enable) {
+		} else if(state.display_enable && !(state.row_address & 8)) {
 			output_mode = OutputMode::Pixels;
 		} else {
-			output_mode = OutputMode::Border;
+			output_mode = OutputMode::Blank;
 		}
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
@@ -321,7 +305,6 @@ public:
 					default:
 					case OutputMode::Blank:			crt_.output_blank(cycles_);					break;
 					case OutputMode::Sync:			crt_.output_sync(cycles_);					break;
-					case OutputMode::Border:		crt_.output_blank(cycles_);					break;
 					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_);	break;
 					case OutputMode::Pixels:
 						crt_.output_data(cycles_, pixels_);
@@ -363,15 +346,13 @@ public:
 
 				// Hard coded: pixel mode!
 				pixel_shifter_ = ram_[address];
-				for(int c = 0; c < crtc_clock_multiplier_ * pixels_per_clock_; c++) {
-					const uint8_t colour =
-						((pixel_shifter_ & 0x80) >> 4) |
-						((pixel_shifter_ & 0x20) >> 3) |
-						((pixel_shifter_ & 0x08) >> 2) |
-						((pixel_shifter_ & 0x02) >> 1);
-					pixel_shifter_ <<= 1;
-					*pixel_pointer_++ = palette_[colour];
-					++pixels_;
+				switch(crtc_clock_multiplier_ * pixels_per_clock_) {
+					case 1: shift_pixels<1>();		break;
+					case 2: shift_pixels<2>();		break;
+					case 4: shift_pixels<4>();		break;
+					case 8: shift_pixels<8>();		break;
+					case 16: shift_pixels<16>();	break;
+					default: break;
 				}
 
 				// Flush the current buffer pixel if full; the CRTC allows many different display
@@ -413,7 +394,6 @@ private:
 		Sync,
 		Blank,
 		ColourBurst,
-		Border,
 		Pixels
 	} previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
@@ -428,6 +408,19 @@ private:
 	int crtc_clock_multiplier_ = 1;
 	int pixels_per_clock_ = 1;
 	uint8_t pixel_shifter_ = 0;
+
+	template <int count> void shift_pixels() {
+		for(int c = 0; c < count; c++) {
+			const uint8_t colour =
+				((pixel_shifter_ & 0x80) >> 4) |
+				((pixel_shifter_ & 0x20) >> 3) |
+				((pixel_shifter_ & 0x08) >> 2) |
+				((pixel_shifter_ & 0x02) >> 1);
+			pixel_shifter_ <<= 1;
+			*pixel_pointer_++ = palette_[colour];
+		}
+		pixels_ += count;
+	}
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
