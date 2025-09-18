@@ -303,7 +303,7 @@ public:
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
 			output_mode = OutputMode::ColourBurst;
-		} else if(is_blank) {
+		} else if(is_blank || (state.row_address & 8)) {
 			output_mode = OutputMode::Blank;
 		} else if(state.display_enable) {
 			output_mode = OutputMode::Pixels;
@@ -360,19 +360,15 @@ public:
 				}
 
 				// Hard coded from here for Mode 0!
-				if(state.row_address & 8) {
-					std::fill(pixel_pointer_, pixel_pointer_+8, 0);
-				} else {
-					const auto source = ram_[address];
-					pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
-					pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
-					pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
-					pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
-					pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
-					pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
-					pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
-					pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
-				}
+				const auto source = ram_[address];
+				pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
+				pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
+				pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
+				pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
+				pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
+				pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
+				pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
+				pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
 
 				pixel_pointer_ += 8;
 				pixels_ += 8;
@@ -426,7 +422,7 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
-	size_t pixels_;
+	size_t pixels_ = 0;
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
