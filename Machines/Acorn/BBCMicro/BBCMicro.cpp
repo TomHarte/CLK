@@ -18,6 +18,7 @@
 #include "Components/6845/CRTC6845.hpp"
 #include "Components/SN76489/SN76489.hpp"
 #include "Components/6850/6850.hpp"
+#include "Components/uPD7002/uPD7002.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -54,16 +55,16 @@ struct Audio {
 	}
 
 	TI::SN76489 *operator ->() {
-		flush();
+		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
 		return &sn76489_;
 	}
 
 	void operator +=(const HalfCycles duration) {
-		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
 		time_since_update_ += duration;
 	}
 
 	void flush() {
+		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
 		audio_queue_.perform();
 	}
 
@@ -452,7 +453,8 @@ public:
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
 		crtc_(crtc_bus_handler_),
-		acia_(HalfCycles(2'000'000)) // TODO: look up real ACIA clock rate.
+		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
+		adc_(HalfCycles(2'000'000))
 	{
 		set_clock_rate(2'000'000);
 
@@ -537,6 +539,7 @@ public:
 			const auto cycles = (phase_ >> 1) - ((phase_ - duration.as<int>()) >> 1);
 			crtc_.run_for(Cycles(cycles));
 		}
+		adc_.run_for(duration);
 
 
 		//
@@ -609,6 +612,14 @@ public:
 				} else {
 //					Logger::info().append("ACIA write: %02x", *value);
 					acia_.write(address, *value);
+				}
+			} else if(address >= 0xfec0 && address < 0xfee0) {
+				if(is_read(operation)) {
+//					Logger::info().append("ACIA read");
+					*value = adc_.read(address);
+				} else {
+//					Logger::info().append("ACIA write: %02x", *value);
+					adc_.write(address, *value);
 				}
 			}
 			else {
@@ -731,7 +742,8 @@ private:
 	void update_irq_line() {
 		m6502_.set_irq_line(
 			user_via_.get_interrupt_line() ||
-			system_via_.get_interrupt_line()
+			system_via_.get_interrupt_line() ||
+			adc_.interrupt()
 		);
 	}
 
@@ -742,6 +754,8 @@ private:
 	bool crtc_2mhz_ = true;
 
 	Motorola::ACIA::ACIA acia_;
+
+	NEC::uPD7002 adc_;
 };
 
 }

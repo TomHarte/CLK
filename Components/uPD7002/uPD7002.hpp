@@ -6,8 +6,25 @@
 //  Copyright © 2025 Thomas Harte. All rights reserved.
 //
 
-#ifndef uPD7002_h
-#define uPD7002_h
+#include "ClockReceiver/ClockReceiver.hpp"
 
+namespace NEC {
 
-#endif /* uPD7002_h */
+class uPD7002 {
+public:
+	uPD7002(HalfCycles clock_rate);
+	void run_for(HalfCycles);
+
+	bool interrupt() const;
+
+	struct Delegate {
+	virtual void did_change_interrupt_status(uPD7002 &);
+	};
+
+	void write(uint16_t address, uint8_t value);
+	uint8_t read(uint16_t address);
+
+private:
+};
+
+}

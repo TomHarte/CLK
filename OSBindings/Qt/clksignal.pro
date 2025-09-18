@@ -78,6 +78,7 @@ SOURCES += \
 	$$SRC/Components/RP5C01/*.cpp \
 	$$SRC/Components/Serial/*.cpp \
 	$$SRC/Components/SN76489/*.cpp \
+	$$SRC/Components/uPD7002/*.cpp \
 \
 	$$SRC/Inputs/*.cpp \
 \
@@ -213,6 +214,7 @@ HEADERS += \
 	$$SRC/Components/RP5C01/*.hpp \
 	$$SRC/Components/Serial/*.hpp \
 	$$SRC/Components/SN76489/*.hpp \
+	$$SRC/Components/uPD7002/*.hpp \
 \
 	$$SRC/Concurrency/*.hpp \
 \
