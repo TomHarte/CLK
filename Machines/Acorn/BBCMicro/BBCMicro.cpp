@@ -552,7 +552,6 @@ public:
 		//
 		// Check for an IO access; if found then perform that and exit.
 		//
-//		static bool log = false;
 		if(address >= 0xfc00 && address < 0xff00) {
 			if(address >= 0xfe40 && address < 0xfe60) {
 				if(is_read(operation)) {
@@ -627,14 +626,6 @@ public:
 		//
 		// ROM or RAM access.
 		//
-//		if(operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
-//			log |= address == 0xc4c0;
-//
-//			if(log) {
-//				printf("%04x\n", address);
-//			}
-//		}
-
 		if(is_read(operation)) {
 			// TODO: probably don't do this with this condition? See how it compiles. If it's a CMOV somehow, no problem.
 			if((address >> 14) == 2 && !sideways_read_mask_) {
