@@ -26,6 +26,7 @@
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cassert>
@@ -91,9 +92,9 @@ struct VideoBaseAddress {
 	void set_video_base(const uint8_t code) {
 		switch(code) {
 			case 0b00:	video_base_ = 0x4000;	break;
-			case 0b01:	video_base_ = 0x5800;	break;
-			case 0b10:	video_base_ = 0x6000;	break;
-			case 0b11:	video_base_ = 0x3000;	break;
+			case 0b01:	video_base_ = 0x6000;	break;
+			case 0b10:	video_base_ = 0x3000;	break;
+			case 0b11:	video_base_ = 0x5800;	break;
 		}
 	}
 
@@ -341,24 +342,38 @@ public:
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 			}
 			if(pixel_pointer_) {
-				// Hard coded for Mode 0!
-				auto address = uint16_t(
-					(state.refresh_address << 3) |
-					state.row_address
-				);
-				if(address & 0x8000) {
-					address = (video_base_ + address) & 0x7fff;
+				uint16_t address;
+
+				if(state.refresh_address & (1 << 13)) {
+					// Teletext address generation mode.
+					address = uint16_t(
+						0x3c00 |
+						((state.refresh_address & 0x800) << 3) |
+						(state.refresh_address & 0x3ff)
+					);
+					// TODO: wraparound?
+				} else {
+					address = uint16_t((state.refresh_address << 3) | (state.row_address & 7));
+					if(address & 0x8000) {
+						address = (address + video_base_) & 0x7fff;
+					}
 				}
 
-				const auto source = ram_[address];
-				pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
-				pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
-				pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
-				pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
-				pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
-				pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
-				pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
-				pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
+				// Hard coded from here for Mode 0!
+				if(state.row_address & 8) {
+					std::fill(pixel_pointer_, pixel_pointer_+8, 0);
+				} else {
+					const auto source = ram_[address];
+					pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
+					pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
+					pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
+					pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
+					pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
+					pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
+					pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
+					pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
+				}
+
 				pixel_pointer_ += 8;
 				pixels_ += 8;
 
