@@ -256,7 +256,14 @@ public:
 
 	void set_palette(const uint8_t value) {
 		const auto index = value >> 4;
-		palette_[index] = (value & 0xf) ^ 0xf;	// TODO: something with flash bit?
+		palette_[index] = uint8_t(
+			7 ^ (
+				((value & 0b100) >> 2) |
+				((value & 0b001) << 2) |
+				(value & 0b010)
+			)
+		);
+		// TODO: something with flash bit?
 	}
 
 	void set_control(const uint8_t value) {
@@ -281,7 +288,7 @@ public:
 		} else {
 			cycles_into_hsync_ = 0;
 		}
-		const bool is_colour_burst = (cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9);
+		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
 
 		// Sync is taken to override pixels, and is combined as a simple OR.
 		const bool is_sync = state.hsync || state.vsync;
