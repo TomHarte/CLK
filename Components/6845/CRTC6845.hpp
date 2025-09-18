@@ -273,7 +273,8 @@ public:
 						bus_state_.vsync = true;
 						vsync_counter_ = (vsync_counter_ + 1) & 0xf;
 					} else {
-						vsync_counter_ = 0;
+						vsync_counter_ = -1;//0;		// TODO: this ensures the first time the condition above is met,
+														// vsync_counter starts at 0. It's a hack though.
 					}
 
 					if(vsync_counter_ == layout_.vertical.sync_lines) {
