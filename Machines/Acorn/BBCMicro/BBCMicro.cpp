@@ -440,7 +440,8 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
-	public MOS::MOS6522::IRQDelegatePortHandler::Delegate
+	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
+	public NEC::uPD7002::Delegate
 {
 public:
 	ConcreteMachine(
@@ -615,10 +616,8 @@ public:
 				}
 			} else if(address >= 0xfec0 && address < 0xfee0) {
 				if(is_read(operation)) {
-//					Logger::info().append("ACIA read");
 					*value = adc_.read(address);
 				} else {
-//					Logger::info().append("ACIA write: %02x", *value);
 					adc_.write(address, *value);
 				}
 			}
@@ -695,6 +694,11 @@ private:
 
 	// MARK: - IRQDelegatePortHandler::Delegate.
 	void mos6522_did_change_interrupt_status(void *) override {
+		update_irq_line();
+	}
+
+	// MARK: - uPD7002::Delegate.
+	void did_change_interrupt_status(NEC::uPD7002 &) override {
 		update_irq_line();
 	}
 
