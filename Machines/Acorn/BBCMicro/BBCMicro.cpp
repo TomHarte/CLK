@@ -609,10 +609,10 @@ public:
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
 				if(is_read(operation)) {
-					Logger::info().append("ACIA read");
+//					Logger::info().append("ACIA read");
 					*value = acia_.read(address);
 				} else {
-					Logger::info().append("ACIA write: %02x", *value);
+//					Logger::info().append("ACIA write: %02x", *value);
 					acia_.write(address, *value);
 				}
 			}
