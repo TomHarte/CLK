@@ -60,6 +60,7 @@ set(CLK_SOURCES
 	Components/RP5C01/RP5C01.cpp
 	Components/SN76489/SN76489.cpp
 	Components/Serial/Line.cpp
+	Components/uPD7002/uPD7002.cpp
 
 	Inputs/Keyboard.cpp
 

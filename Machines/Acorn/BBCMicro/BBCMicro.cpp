@@ -18,6 +18,7 @@
 #include "Components/6845/CRTC6845.hpp"
 #include "Components/SN76489/SN76489.hpp"
 #include "Components/6850/6850.hpp"
+#include "Components/uPD7002/uPD7002.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -26,6 +27,7 @@
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cassert>
@@ -53,16 +55,16 @@ struct Audio {
 	}
 
 	TI::SN76489 *operator ->() {
-		flush();
+		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
 		return &sn76489_;
 	}
 
 	void operator +=(const HalfCycles duration) {
-		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
 		time_since_update_ += duration;
 	}
 
 	void flush() {
+		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
 		audio_queue_.perform();
 	}
 
@@ -91,9 +93,9 @@ struct VideoBaseAddress {
 	void set_video_base(const uint8_t code) {
 		switch(code) {
 			case 0b00:	video_base_ = 0x4000;	break;
-			case 0b01:	video_base_ = 0x5800;	break;
-			case 0b10:	video_base_ = 0x6000;	break;
-			case 0b11:	video_base_ = 0x3000;	break;
+			case 0b01:	video_base_ = 0x6000;	break;
+			case 0b10:	video_base_ = 0x3000;	break;
+			case 0b11:	video_base_ = 0x5800;	break;
 		}
 	}
 
@@ -302,7 +304,7 @@ public:
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
 			output_mode = OutputMode::ColourBurst;
-		} else if(is_blank) {
+		} else if(is_blank || (state.row_address & 8)) {
 			output_mode = OutputMode::Blank;
 		} else if(state.display_enable) {
 			output_mode = OutputMode::Pixels;
@@ -341,15 +343,24 @@ public:
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 			}
 			if(pixel_pointer_) {
-				// Hard coded for Mode 0!
-				auto address = uint16_t(
-					(state.refresh_address << 3) |
-					state.row_address
-				);
-				if(address & 0x8000) {
-					address = (video_base_ + address) & 0x7fff;
+				uint16_t address;
+
+				if(state.refresh_address & (1 << 13)) {
+					// Teletext address generation mode.
+					address = uint16_t(
+						0x3c00 |
+						((state.refresh_address & 0x800) << 3) |
+						(state.refresh_address & 0x3ff)
+					);
+					// TODO: wraparound?
+				} else {
+					address = uint16_t((state.refresh_address << 3) | (state.row_address & 7));
+					if(address & 0x8000) {
+						address = (address + video_base_) & 0x7fff;
+					}
 				}
 
+				// Hard coded from here for Mode 0!
 				const auto source = ram_[address];
 				pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
 				pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
@@ -359,6 +370,7 @@ public:
 				pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
 				pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
 				pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
+
 				pixel_pointer_ += 8;
 				pixels_ += 8;
 
@@ -411,7 +423,7 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
-	size_t pixels_;
+	size_t pixels_ = 0;
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
@@ -428,7 +440,8 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
-	public MOS::MOS6522::IRQDelegatePortHandler::Delegate
+	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
+	public NEC::uPD7002::Delegate
 {
 public:
 	ConcreteMachine(
@@ -441,7 +454,8 @@ public:
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
 		crtc_(crtc_bus_handler_),
-		acia_(HalfCycles(2'000'000)) // TODO: look up real ACIA clock rate.
+		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
+		adc_(HalfCycles(2'000'000))
 	{
 		set_clock_rate(2'000'000);
 
@@ -526,6 +540,7 @@ public:
 			const auto cycles = (phase_ >> 1) - ((phase_ - duration.as<int>()) >> 1);
 			crtc_.run_for(Cycles(cycles));
 		}
+		adc_.run_for(duration);
 
 
 		//
@@ -537,7 +552,6 @@ public:
 		//
 		// Check for an IO access; if found then perform that and exit.
 		//
-//		static bool log = false;
 		if(address >= 0xfc00 && address < 0xff00) {
 			if(address >= 0xfe40 && address < 0xfe60) {
 				if(is_read(operation)) {
@@ -594,11 +608,17 @@ public:
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
 				if(is_read(operation)) {
-					Logger::info().append("ACIA read");
+//					Logger::info().append("ACIA read");
 					*value = acia_.read(address);
 				} else {
-					Logger::info().append("ACIA write: %02x", *value);
+//					Logger::info().append("ACIA write: %02x", *value);
 					acia_.write(address, *value);
+				}
+			} else if(address >= 0xfec0 && address < 0xfee0) {
+				if(is_read(operation)) {
+					*value = adc_.read(address);
+				} else {
+					adc_.write(address, *value);
 				}
 			}
 			else {
@@ -612,14 +632,6 @@ public:
 		//
 		// ROM or RAM access.
 		//
-//		if(operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
-//			log |= address == 0xc4c0;
-//
-//			if(log) {
-//				printf("%04x\n", address);
-//			}
-//		}
-
 		if(is_read(operation)) {
 			// TODO: probably don't do this with this condition? See how it compiles. If it's a CMOV somehow, no problem.
 			if((address >> 14) == 2 && !sideways_read_mask_) {
@@ -685,6 +697,11 @@ private:
 		update_irq_line();
 	}
 
+	// MARK: - uPD7002::Delegate.
+	void did_change_interrupt_status(NEC::uPD7002 &) override {
+		update_irq_line();
+	}
+
 	// MARK: - Clock phase.
 	int phase_ = 0;
 
@@ -729,7 +746,8 @@ private:
 	void update_irq_line() {
 		m6502_.set_irq_line(
 			user_via_.get_interrupt_line() ||
-			system_via_.get_interrupt_line()
+			system_via_.get_interrupt_line() ||
+			adc_.interrupt()
 		);
 	}
 
@@ -740,6 +758,8 @@ private:
 	bool crtc_2mhz_ = true;
 
 	Motorola::ACIA::ACIA acia_;
+
+	NEC::uPD7002 adc_;
 };
 
 }

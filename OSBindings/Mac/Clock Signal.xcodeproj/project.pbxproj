@@ -360,6 +360,9 @@
 		4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518991F75FD1B00926311 /* SSD.cpp */; };
 		4B47770B268FBE4D005C2340 /* FAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B477709268FBE4D005C2340 /* FAT.cpp */; };
 		4B47770D26900685005C2340 /* EnterpriseDaveTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */; };
+		4B47F3B62E7BAB94005D4DEC /* uPD7002.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F3B52E7BAB94005D4DEC /* uPD7002.cpp */; };
+		4B47F3B72E7BAB94005D4DEC /* uPD7002.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F3B52E7BAB94005D4DEC /* uPD7002.cpp */; };
+		4B47F3B82E7BAB94005D4DEC /* uPD7002.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F3B52E7BAB94005D4DEC /* uPD7002.cpp */; };
 		4B47F6C5241C87A100ED06F7 /* Struct.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F6C4241C87A100ED06F7 /* Struct.cpp */; };
 		4B47F6C6241C87A100ED06F7 /* Struct.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F6C4241C87A100ED06F7 /* Struct.cpp */; };
 		4B49F0A923346F7A0045E6A6 /* MacintoshOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B49F0A723346F7A0045E6A6 /* MacintoshOptions.xib */; };
@@ -1597,6 +1600,8 @@
 		4B477709268FBE4D005C2340 /* FAT.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FAT.cpp; path = Parsers/FAT.cpp; sourceTree = "<group>"; };
 		4B47770A268FBE4D005C2340 /* FAT.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = FAT.hpp; path = Parsers/FAT.hpp; sourceTree = "<group>"; };
 		4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EnterpriseDaveTests.mm; sourceTree = "<group>"; };
+		4B47F3B32E7B9A14005D4DEC /* uPD7002.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uPD7002.hpp; sourceTree = "<group>"; };
+		4B47F3B52E7BAB94005D4DEC /* uPD7002.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = uPD7002.cpp; sourceTree = "<group>"; };
 		4B47F6C4241C87A100ED06F7 /* Struct.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Struct.cpp; sourceTree = "<group>"; };
 		4B49F0A823346F7A0045E6A6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MacintoshOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AY38910.cpp; sourceTree = "<group>"; };
@@ -3314,6 +3319,15 @@
 				4BFDD7891F7F2DB4008579B9 /* Utility */,
 			);
 			path = Formats;
+			sourceTree = "<group>";
+		};
+		4B47F3B42E7B9A14005D4DEC /* uPD7002 */ = {
+			isa = PBXGroup;
+			children = (
+				4B47F3B52E7BAB94005D4DEC /* uPD7002.cpp */,
+				4B47F3B32E7B9A14005D4DEC /* uPD7002.hpp */,
+			);
+			path = uPD7002;
 			sourceTree = "<group>";
 		};
 		4B4A762D1DB1A35C007AAE2E /* AY38910 */ = {
@@ -5075,6 +5089,7 @@
 				4BF0BC6E2973318E00CCA2B5 /* RP5C01 */,
 				4B0ACBFF237756EC008902D0 /* Serial */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
+				4B47F3B42E7B9A14005D4DEC /* uPD7002 */,
 			);
 			name = Components;
 			path = ../../Components;
@@ -6064,6 +6079,7 @@
 				4BB505832B962DDF0031C43C /* Keyboard.cpp in Sources */,
 				4BF0BC69297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */,
 				4B894521201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4B47F3B62E7BAB94005D4DEC /* uPD7002.cpp in Sources */,
 				4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */,
 				4B8DF4FA254E36AE00F3433C /* Video.cpp in Sources */,
 				4B7BA03123C2B19C00B98D9E /* Jasmin.cpp in Sources */,
@@ -6434,6 +6450,7 @@
 				4B89452C201967B4007DE474 /* Tape.cpp in Sources */,
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
 				4BBFE83D21015D9C00BF1C40 /* CSJoystickManager.m in Sources */,
+				4B47F3B72E7BAB94005D4DEC /* uPD7002.cpp in Sources */,
 				4BEBFB512002DB30000708CC /* DiskROM.cpp in Sources */,
 				4B89451C201967B4007DE474 /* Disk.cpp in Sources */,
 				4B302184208A550100773308 /* DiskII.cpp in Sources */,
@@ -6792,6 +6809,7 @@
 				4BDA8235261E8E000021AA19 /* Z80ContentionTests.mm in Sources */,
 				4B882F592C2F9C6A00D84031 /* CPCShakerTests.mm in Sources */,
 				4B7752C328217F720073E2C5 /* Z80.cpp in Sources */,
+				4B47F3B82E7BAB94005D4DEC /* uPD7002.cpp in Sources */,
 				4B06AACE2C645EEC0034D014 /* PCCompatible.cpp in Sources */,
 				4B06AB072C6461160034D014 /* StaticAnalyser.cpp in Sources */,
 				4B778F1A23A5ED320000D260 /* Video.cpp in Sources */,

@@ -62,6 +62,7 @@ SOURCES += glob.glob('../../Components/OPx/*.cpp')
 SOURCES += glob.glob('../../Components/RP5C01/*.cpp')
 SOURCES += glob.glob('../../Components/SN76489/*.cpp')
 SOURCES += glob.glob('../../Components/Serial/*.cpp')
+SOURCES += glob.glob('../../Components/uPD7002/*.cpp')
 
 SOURCES += glob.glob('../../Configurable/*.cpp')
 
