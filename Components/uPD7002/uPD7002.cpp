@@ -38,7 +38,8 @@ bool uPD7002::interrupt() const {
 }
 
 void uPD7002::write(const uint16_t address, const uint8_t value) {
-	if(!address) {
+	const auto local_address = address & 3;
+	if(!local_address) {
 		channel_ = value & 3;
 		high_precision_ = value & 8;
 		conversion_time_remaining_ = high_precision_ ? slow_period_ : fast_period_;
@@ -47,11 +48,13 @@ void uPD7002::write(const uint16_t address, const uint8_t value) {
 }
 
 uint8_t uPD7002::read(const uint16_t address) {
-	if(!address) {
+	const auto local_address = address & 3;
+	if(!local_address) {
 		return status();
 	}
 
-	if(address & 1) {
+	// TODO: verify this decoding.
+	if(local_address & 1) {
 		interrupt_ = false;
 		if(delegate_) delegate_->did_change_interrupt_status(*this);
 		return uint8_t(result_ >> 8);
