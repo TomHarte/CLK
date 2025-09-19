@@ -43,11 +43,11 @@ using Logger = Log::Logger<Log::Source::BBCMicro>;
 */
 struct Audio {
 	Audio() :
-		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_),
+		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, 2),
 		speaker_(sn76489_)
 	{
-		// I'm *VERY* unsure about this.
-		speaker_.set_input_rate(4'000'000.0f);
+		// Combined with the additional divider specified above, implies this chip is clocked at 4Mhz.
+		speaker_.set_input_rate(2'000'000.0f);
 	}
 
 	~Audio() {
@@ -60,7 +60,7 @@ struct Audio {
 	}
 
 	void operator +=(const Cycles duration) {
-		time_since_update_ += duration * 2;
+		time_since_update_ += duration;
 	}
 
 	void flush() {
