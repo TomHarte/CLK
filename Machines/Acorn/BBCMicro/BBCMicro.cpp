@@ -671,6 +671,11 @@ public:
 						if(!is_read(operation)) {
 							Logger::info().append("WD1770 control: %02x", *value);
 							wd1770_.set_control_register(*value);
+
+							if(*value & 0x20) {
+								nmi_line_ = false;
+								m6502_.set_nmi_line(false);
+							}
 						}
 					break;
 					default:
@@ -831,10 +836,19 @@ private:
 
 	// MARK: - WD1770.
 	Electron::Plus3 wd1770_;
+	bool previous_wd1770_irq = false;
+	bool previous_wd1770_drq = false;
+	bool nmi_line_;
 	void wd1770_did_change_output(WD::WD1770 &) override {
-		// Wire the standard interrupt line to NMI.
-		// TODO: data request as well? And what about the mask?
-		m6502_.set_nmi_line(wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line());
+		const bool irq = wd1770_.get_interrupt_request_line();
+		nmi_line_ |= (irq != previous_wd1770_irq) && irq;
+		previous_wd1770_irq = irq;
+
+		const bool drq = wd1770_.get_data_request_line();
+		nmi_line_ |= (drq != previous_wd1770_drq) && drq;
+		previous_wd1770_drq = drq;
+
+		m6502_.set_nmi_line(nmi_line_);
 	}
 };
 
