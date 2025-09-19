@@ -555,7 +555,6 @@ public:
 		//
 		// 2Mhz devices.
 		//
-		// TODO: if CRTC clock is 1Mhz, adapt.
 		if(crtc_2mhz_) {
 			crtc_.run_for(duration);
 		} else {
