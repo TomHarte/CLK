@@ -47,7 +47,7 @@ struct Audio {
 		speaker_(sn76489_)
 	{
 		// I'm *VERY* unsure about this.
-		speaker_.set_input_rate(2'000'000.0f);
+		speaker_.set_input_rate(4'000'000.0f);
 	}
 
 	~Audio() {
@@ -59,8 +59,8 @@ struct Audio {
 		return &sn76489_;
 	}
 
-	void operator +=(const HalfCycles duration) {
-		time_since_update_ += duration;
+	void operator +=(const Cycles duration) {
+		time_since_update_ += duration * 2;
 	}
 
 	void flush() {
@@ -76,7 +76,7 @@ private:
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	TI::SN76489 sn76489_;
 	Outputs::Speaker::PullLowpass<TI::SN76489> speaker_;
-	HalfCycles time_since_update_;
+	Cycles time_since_update_;
 };
 
 /*!
@@ -546,7 +546,6 @@ public:
 		// 1Mhz devices.
 		//
 		const auto half_cycles = HalfCycles(duration.as_integral());
-		audio_ += half_cycles;
 		system_via_.run_for(half_cycles);
 		system_via_port_handler_.advance_keyboard_scan(half_cycles);
 		user_via_.run_for(half_cycles);
@@ -555,6 +554,7 @@ public:
 		//
 		// 2Mhz devices.
 		//
+		audio_ += duration;
 		if(crtc_2mhz_) {
 			crtc_.run_for(duration);
 		} else {
