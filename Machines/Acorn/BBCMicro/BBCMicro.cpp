@@ -263,15 +263,20 @@ public:
 				(value & 0b010)
 			)
 		);
-		// TODO: something with flash bit?
+		flash_flags_[size_t(index)] = value & 0b1000;
 	}
 
 	void set_control(const uint8_t value) {
 		crtc_clock_multiplier_ = (value & 0x10) ? 1 : 2;
-		pixels_per_clock_ = 1 << ((value >> 2) & 0x03);
 
-		Logger::info().append("TODO: video control => flash %d", bool(value & 0x01));
-		Logger::info().append("TODO: video control => teletext %d", bool(value & 0x02));
+		active_collation_.pixels_per_clock = 1 << ((value >> 2) & 0x03);
+		active_collation_.is_teletext = value & 0x02;
+		if(active_collation_.is_teletext) {
+			Logger::error().append("TODO: video control => teletext %d", bool(value & 0x02));
+		}
+
+		flash_mask_ = value & 0x01 ? 7 : 0;
+
 		Logger::info().append("TODO: video control => cursor segment %d%d%d", bool(value & 0x80), bool(value & 0x40), bool(value & 0x20));
 	}
 
@@ -313,11 +318,7 @@ public:
 					case OutputMode::Blank:			crt_.output_blank(cycles_);					break;
 					case OutputMode::Sync:			crt_.output_sync(cycles_);					break;
 					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_);	break;
-					case OutputMode::Pixels:
-						crt_.output_data(cycles_, pixels_);
-						pixel_pointer_ = pixel_data_ = nullptr;
-						pixels_ = 0;
-					break;
+					case OutputMode::Pixels:		flush_pixels();								break;
 				}
 			}
 
@@ -330,6 +331,15 @@ public:
 
 		// Collect some more pixels if output is ongoing.
 		if(previous_output_mode_ == OutputMode::Pixels) {
+			// Flush the current buffer pixel if full; the CRTC allows many different display
+			// widths so it's not necessarily possible to predict the correct number in advance
+			// and using the upper bound could lead to inefficient behaviour.
+			if(pixel_data_ && (pixels_collected() == 320 || active_collation_ != previous_collation_)) {
+				flush_pixels();
+				cycles_ = 0;
+			}
+			previous_collation_ = active_collation_;
+
 			if(!pixel_data_) {
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 			}
@@ -353,23 +363,13 @@ public:
 
 				// Hard coded: pixel mode!
 				pixel_shifter_ = ram_[address];
-				switch(crtc_clock_multiplier_ * pixels_per_clock_) {
+				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
 					case 1: shift_pixels<1>();		break;
 					case 2: shift_pixels<2>();		break;
 					case 4: shift_pixels<4>();		break;
 					case 8: shift_pixels<8>();		break;
 					case 16: shift_pixels<16>();	break;
 					default: break;
-				}
-
-				// Flush the current buffer pixel if full; the CRTC allows many different display
-				// widths so it's not necessarily possible to predict the correct number in advance
-				// and using the upper bound could lead to inefficient behaviour.
-				if(pixels_ == 320) {
-					crt_.output_data(cycles_, pixels_);
-					pixel_pointer_ = pixel_data_ = nullptr;
-					cycles_ = 0;
-					pixels_ = 0;
 				}
 			}
 		}
@@ -402,18 +402,38 @@ private:
 		Blank,
 		ColourBurst,
 		Pixels
-	} previous_output_mode_ = OutputMode::Sync;
+	};
+	struct PixelCollation {
+		int pixels_per_clock;
+		bool is_teletext;
+
+		bool operator !=(const PixelCollation &rhs) {
+			if(is_teletext && rhs.is_teletext) return false;
+			return pixels_per_clock != rhs.pixels_per_clock;
+		}
+	};
+
+	OutputMode previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
 	int cycles_into_hsync_ = 0;
 
 	Outputs::CRT::CRT crt_;
 
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
-	size_t pixels_ = 0;
+	size_t pixels_collected() const {
+		return size_t(pixel_pointer_ - pixel_data_);
+	}
+	void flush_pixels() {
+		crt_.output_data(cycles_, pixels_collected());
+		pixel_pointer_ = pixel_data_ = nullptr;
+	}
+	PixelCollation previous_collation_;
 	uint8_t palette_[16];
+	std::bitset<16> flash_flags_;
+	uint8_t flash_mask_ = 0;
 
 	int crtc_clock_multiplier_ = 1;
-	int pixels_per_clock_ = 1;
+	PixelCollation active_collation_;
 	uint8_t pixel_shifter_ = 0;
 
 	template <int count> void shift_pixels() {
@@ -424,9 +444,8 @@ private:
 				((pixel_shifter_ & 0x08) >> 2) |
 				((pixel_shifter_ & 0x02) >> 1);
 			pixel_shifter_ <<= 1;
-			*pixel_pointer_++ = palette_[colour];
+			*pixel_pointer_++ = palette_[colour] ^ (flash_flags_[colour] ? flash_mask_ : 0x00);
 		}
-		pixels_ += count;
 	}
 
 	const uint8_t *const ram_ = nullptr;
