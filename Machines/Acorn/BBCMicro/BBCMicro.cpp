@@ -20,6 +20,9 @@
 #include "Components/6850/6850.hpp"
 #include "Components/uPD7002/uPD7002.hpp"
 
+// TODO: factor this more appropriately.
+#include "Machines/Acorn/Electron/Plus3.hpp"
+
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
 
@@ -457,14 +460,17 @@ using CRTC = Motorola::CRTC::CRTC6845<
 	Motorola::CRTC::CursorType::None>;
 }
 
+template <bool has_1770>
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public NEC::uPD7002::Delegate
+	public NEC::uPD7002::Delegate,
+	public WD::WD1770::Delegate
 {
 public:
 	ConcreteMachine(
@@ -488,7 +494,12 @@ public:
 		// Grab ROMs.
 		using Request = ::ROM::Request;
 		using Name = ::ROM::Name;
-		const auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
+
+		auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
+		if(target.has_1770dfs) {
+			request = request && Request(Name::AcornDFS226);
+		}
+
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
@@ -498,6 +509,9 @@ public:
 		std::copy(os_data.begin(), os_data.end(), os_.begin());
 
 		install_sideways(15, roms.find(Name::AcornBASICII)->second, false);
+		if(target.has_1770dfs) {
+			install_sideways(14, roms.find(Name::AcornDFS226)->second, false);
+		}
 
 		// Setup fixed parts of memory map.
 		page(0, &ram_[0], true);
@@ -506,7 +520,11 @@ public:
 		page(3, os_.data(), false);
 		Memory::Fuzz(ram_);
 
-		(void)target;
+		if constexpr (has_1770) {
+			wd1770_.set_delegate(this);
+		}
+
+		insert_media(target.media);
 	}
 
 	// MARK: - 6502 bus.
@@ -538,7 +556,7 @@ public:
 		};
 
 		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty, and update phase.
-		const auto duration = is_1mhz(address) ? Cycles(2 + (phase_&1)) : Cycles(1);
+		const auto duration = Cycles(is_1mhz(address) ? 2 + (phase_&1) : 1);
 		phase_ += duration.as<int>();
 
 
@@ -564,6 +582,11 @@ public:
 		}
 		adc_.run_for(duration);
 
+
+		if constexpr (has_1770) {
+			// The WD1770 is nominally clocked at 8Mhz.
+			wd1770_.run_for(duration * 4);
+		}
 
 		//
 		// Questionably-clocked devices.
@@ -641,6 +664,24 @@ public:
 					*value = adc_.read(address);
 				} else {
 					adc_.write(address, *value);
+				}
+			} else if(has_1770 && address >= 0xfe80 && address < 0xfe88) {
+				switch(address) {
+					case 0xfe80:
+						if(!is_read(operation)) {
+							Logger::info().append("WD1770 control: %02x", *value);
+							wd1770_.set_control_register(*value);
+						}
+					break;
+					default:
+						if(is_read(operation)) {
+							Logger::info().append("WD1770 read: %d", address & 3);
+							*value = wd1770_.read(address);
+						} else {
+							Logger::info().append("WD1770 write: %02x -> %d", *value, address & 3);
+							wd1770_.write(address, *value);
+						}
+					break;
 				}
 			}
 			else {
@@ -720,6 +761,15 @@ private:
 		update_irq_line();
 	}
 
+	// MARK: - MediaTarget.
+	bool insert_media(const Analyser::Static::Media &media) override {
+		if(!media.disks.empty() && has_1770) {
+			wd1770_.set_disk(media.disks.front(), 0);
+		}
+
+		return !media.disks.empty();
+	}
+
 	// MARK: - Clock phase.
 	int phase_ = 0;
 
@@ -778,6 +828,14 @@ private:
 	Motorola::ACIA::ACIA acia_;
 
 	NEC::uPD7002 adc_;
+
+	// MARK: - WD1770.
+	Electron::Plus3 wd1770_;
+	void wd1770_did_change_output(WD::WD1770 &) override {
+		// Wire the standard interrupt line to NMI.
+		// TODO: data request as well? And what about the mask?
+		m6502_.set_nmi_line(wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line());
+	}
 };
 
 }
@@ -790,5 +848,9 @@ std::unique_ptr<Machine> Machine::BBCMicro(
 ) {
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	return std::make_unique<BBCMicro::ConcreteMachine>(*acorn_target, rom_fetcher);
+	if(acorn_target->has_1770dfs) {
+		return std::make_unique<BBCMicro::ConcreteMachine<true>>(*acorn_target, rom_fetcher);
+	} else {
+		return std::make_unique<BBCMicro::ConcreteMachine<false>>(*acorn_target, rom_fetcher);
+	}
 }

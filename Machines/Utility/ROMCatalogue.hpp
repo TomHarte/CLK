@@ -82,6 +82,7 @@ enum Name {
 
 	// BBC Micro.
 	BBCMicroMOS12,
+	AcornDFS226,
 
 	// ColecoVision.
 	ColecoVisionBIOS,

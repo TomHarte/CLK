@@ -38,12 +38,15 @@ private:
 
 struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<BBCMicroTarget> {
 	std::string loading_command;
+	bool has_1770dfs = false;
 
 	BBCMicroTarget() : Analyser::Static::Target(Machine::BBCMicro) {}
 
 private:
 	friend Reflection::StructImpl<BBCMicroTarget>;
-	void declare_fields() {}
+	void declare_fields() {
+		DeclareField(has_1770dfs);
+	}
 };
 
 struct ArchimedesTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<ArchimedesTarget> {

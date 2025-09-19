@@ -165,10 +165,9 @@
 	if(self) {
 		auto target = std::make_unique<Analyser::Static::Acorn::BBCMicroTarget>();
 		// TODO.
-		(void)dfs;
 		(void)adfs;
 		(void)sidewaysRAM;
-//		target->has_dfs = dfs;
+		target->has_1770dfs = dfs;
 //		target->has_pres_adfs = adfs;
 //		target->has_ap6_rom = ap6;
 //		target->has_sideways_ram = sidewaysRAM;
