@@ -43,10 +43,10 @@ using Logger = Log::Logger<Log::Source::BBCMicro>;
 */
 struct Audio {
 	Audio() :
-		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_),
+		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, 2),
 		speaker_(sn76489_)
 	{
-		// I'm *VERY* unsure about this.
+		// Combined with the additional divider specified above, implies this chip is clocked at 4Mhz.
 		speaker_.set_input_rate(2'000'000.0f);
 	}
 
@@ -59,7 +59,7 @@ struct Audio {
 		return &sn76489_;
 	}
 
-	void operator +=(const HalfCycles duration) {
+	void operator +=(const Cycles duration) {
 		time_since_update_ += duration;
 	}
 
@@ -76,7 +76,7 @@ private:
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	TI::SN76489 sn76489_;
 	Outputs::Speaker::PullLowpass<TI::SN76489> speaker_;
-	HalfCycles time_since_update_;
+	Cycles time_since_update_;
 };
 
 /*!
@@ -256,15 +256,27 @@ public:
 
 	void set_palette(const uint8_t value) {
 		const auto index = value >> 4;
-		Logger::info().append("Palette entry %d set to %x", index, value & 0xf);
+		palette_[index] = uint8_t(
+			7 ^ (
+				((value & 0b100) >> 2) |
+				((value & 0b001) << 2) |
+				(value & 0b010)
+			)
+		);
+		flash_flags_[size_t(index)] = value & 0b1000;
 	}
 
 	void set_control(const uint8_t value) {
-		Logger::info().append("Video control set to %x", value);
-		cycle_length_ = (value & 0x10) ? 8 : 16;
-		Logger::info().append("TODO: video control => flash %d", bool(value & 0x01));
-		Logger::info().append("TODO: video control => teletext %d", bool(value & 0x02));
-		Logger::info().append("TODO: video control => columns %d", (value >> 2) & 0x03);
+		crtc_clock_multiplier_ = (value & 0x10) ? 1 : 2;
+
+		active_collation_.pixels_per_clock = 1 << ((value >> 2) & 0x03);
+		active_collation_.is_teletext = value & 0x02;
+		if(active_collation_.is_teletext) {
+			Logger::error().append("TODO: video control => teletext %d", bool(value & 0x02));
+		}
+
+		flash_mask_ = value & 0x01 ? 7 : 0;
+
 		Logger::info().append("TODO: video control => cursor segment %d%d%d", bool(value & 0x80), bool(value & 0x40), bool(value & 0x20));
 	}
 
@@ -275,41 +287,26 @@ public:
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
-//		bool print = false;
-//		uint16_t start_address = 0x7c00;
-//		int rows = 24;
-//		if(print) {
-//			for(int y = 0; y < rows; y++) {
-//				for(int x = 0; x < 40; x++) {
-//					printf("%c", ram_[start_address + y*40 + x]);
-//				}
-//				printf("\n");
-//			}
-//		}
-
 		// Count cycles since horizontal sync to insert a colour burst.
 		if(state.hsync) {
 			++cycles_into_hsync_;
 		} else {
 			cycles_into_hsync_ = 0;
 		}
-		const bool is_colour_burst = (cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9);
+		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
 
 		// Sync is taken to override pixels, and is combined as a simple OR.
 		const bool is_sync = state.hsync || state.vsync;
-		const bool is_blank = !is_sync && state.hsync;
 
 		OutputMode output_mode;
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
 			output_mode = OutputMode::ColourBurst;
-		} else if(is_blank || (state.row_address & 8)) {
-			output_mode = OutputMode::Blank;
-		} else if(state.display_enable) {
+		} else if(state.display_enable && !(state.row_address & 8)) {
 			output_mode = OutputMode::Pixels;
 		} else {
-			output_mode = OutputMode::Border;
+			output_mode = OutputMode::Blank;
 		}
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
@@ -320,13 +317,8 @@ public:
 					default:
 					case OutputMode::Blank:			crt_.output_blank(cycles_);					break;
 					case OutputMode::Sync:			crt_.output_sync(cycles_);					break;
-					case OutputMode::Border:		crt_.output_blank(cycles_);					break;
 					case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_);	break;
-					case OutputMode::Pixels:
-						crt_.output_data(cycles_, pixels_);
-						pixel_pointer_ = pixel_data_ = nullptr;
-						pixels_ = 0;
-					break;
+					case OutputMode::Pixels:		flush_pixels();								break;
 				}
 			}
 
@@ -335,10 +327,19 @@ public:
 		}
 
 		// Increment cycles since state changed.
-		cycles_ += cycle_length_;
+		cycles_ += crtc_clock_multiplier_ << 3;
 
 		// Collect some more pixels if output is ongoing.
 		if(previous_output_mode_ == OutputMode::Pixels) {
+			// Flush the current buffer pixel if full; the CRTC allows many different display
+			// widths so it's not necessarily possible to predict the correct number in advance
+			// and using the upper bound could lead to inefficient behaviour.
+			if(pixel_data_ && (pixels_collected() == 320 || active_collation_ != previous_collation_)) {
+				flush_pixels();
+				cycles_ = 0;
+			}
+			previous_collation_ = active_collation_;
+
 			if(!pixel_data_) {
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 			}
@@ -352,7 +353,7 @@ public:
 						((state.refresh_address & 0x800) << 3) |
 						(state.refresh_address & 0x3ff)
 					);
-					// TODO: wraparound?
+					// TODO: wraparound? Does that happen on Mode 7?
 				} else {
 					address = uint16_t((state.refresh_address << 3) | (state.row_address & 7));
 					if(address & 0x8000) {
@@ -360,28 +361,15 @@ public:
 					}
 				}
 
-				// Hard coded from here for Mode 0!
-				const auto source = ram_[address];
-				pixel_pointer_[0] = (source & 0x80) ? 0xff : 0x00;
-				pixel_pointer_[1] = (source & 0x40) ? 0xff : 0x00;
-				pixel_pointer_[2] = (source & 0x20) ? 0xff : 0x00;
-				pixel_pointer_[3] = (source & 0x10) ? 0xff : 0x00;
-				pixel_pointer_[4] = (source & 0x08) ? 0xff : 0x00;
-				pixel_pointer_[5] = (source & 0x04) ? 0xff : 0x00;
-				pixel_pointer_[6] = (source & 0x02) ? 0xff : 0x00;
-				pixel_pointer_[7] = (source & 0x01) ? 0xff : 0x00;
-
-				pixel_pointer_ += 8;
-				pixels_ += 8;
-
-				// Flush the current buffer pixel if full; the CRTC allows many different display
-				// widths so it's not necessarily possible to predict the correct number in advance
-				// and using the upper bound could lead to inefficient behaviour.
-				if(pixels_ == 320) {
-					crt_.output_data(cycles_, pixels_);
-					pixel_pointer_ = pixel_data_ = nullptr;
-					cycles_ = 0;
-					pixels_ = 0;
+				// Hard coded: pixel mode!
+				pixel_shifter_ = ram_[address];
+				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
+					case 1: shift_pixels<1>();		break;
+					case 2: shift_pixels<2>();		break;
+					case 4: shift_pixels<4>();		break;
+					case 8: shift_pixels<8>();		break;
+					case 16: shift_pixels<16>();	break;
+					default: break;
 				}
 			}
 		}
@@ -413,17 +401,52 @@ private:
 		Sync,
 		Blank,
 		ColourBurst,
-		Border,
 		Pixels
-	} previous_output_mode_ = OutputMode::Sync;
+	};
+	struct PixelCollation {
+		int pixels_per_clock;
+		bool is_teletext;
+
+		bool operator !=(const PixelCollation &rhs) {
+			if(is_teletext && rhs.is_teletext) return false;
+			return pixels_per_clock != rhs.pixels_per_clock;
+		}
+	};
+
+	OutputMode previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
 	int cycles_into_hsync_ = 0;
-	int cycle_length_ = 8;
 
 	Outputs::CRT::CRT crt_;
 
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
-	size_t pixels_ = 0;
+	size_t pixels_collected() const {
+		return size_t(pixel_pointer_ - pixel_data_);
+	}
+	void flush_pixels() {
+		crt_.output_data(cycles_, pixels_collected());
+		pixel_pointer_ = pixel_data_ = nullptr;
+	}
+	PixelCollation previous_collation_;
+	uint8_t palette_[16];
+	std::bitset<16> flash_flags_;
+	uint8_t flash_mask_ = 0;
+
+	int crtc_clock_multiplier_ = 1;
+	PixelCollation active_collation_;
+	uint8_t pixel_shifter_ = 0;
+
+	template <int count> void shift_pixels() {
+		for(int c = 0; c < count; c++) {
+			const uint8_t colour =
+				((pixel_shifter_ & 0x80) >> 4) |
+				((pixel_shifter_ & 0x20) >> 3) |
+				((pixel_shifter_ & 0x08) >> 2) |
+				((pixel_shifter_ & 0x02) >> 1);
+			pixel_shifter_ <<= 1;
+			*pixel_pointer_++ = palette_[colour] ^ (flash_flags_[colour] ? flash_mask_ : 0x00);
+		}
+	}
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
@@ -523,7 +546,6 @@ public:
 		// 1Mhz devices.
 		//
 		const auto half_cycles = HalfCycles(duration.as_integral());
-		audio_ += half_cycles;
 		system_via_.run_for(half_cycles);
 		system_via_port_handler_.advance_keyboard_scan(half_cycles);
 		user_via_.run_for(half_cycles);
@@ -532,7 +554,7 @@ public:
 		//
 		// 2Mhz devices.
 		//
-		// TODO: if CRTC clock is 1Mhz, adapt.
+		audio_ += duration;
 		if(crtc_2mhz_) {
 			crtc_.run_for(duration);
 		} else {
@@ -642,10 +664,6 @@ public:
 		} else {
 			if(memory_write_masks_[address >> 14]) {
 				memory_[address >> 14][address] = *value;
-
-				if(address >= 0x7c00 && *value) {
-					Logger::info().append("Output character: %c", *value);
-				}
 			}
 		}
 
