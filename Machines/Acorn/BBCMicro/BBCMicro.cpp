@@ -665,10 +665,6 @@ public:
 		} else {
 			if(memory_write_masks_[address >> 14]) {
 				memory_[address >> 14][address] = *value;
-
-				if(address >= 0x7c00 && *value) {
-					Logger::info().append("Output character: %c", *value);
-				}
 			}
 		}
 
