@@ -311,8 +311,7 @@ public:
 		}
 
 		flash_mask_ = value & 0x01 ? 7 : 0;
-
-		Logger::info().append("TODO: video control => cursor segment %d%d%d", bool(value & 0x80), bool(value & 0x40), bool(value & 0x20));
+		cursor_mask_ = value & 0b1110'0000;
 	}
 
 	/*!
@@ -333,12 +332,25 @@ public:
 		// Sync is taken to override pixels, and is combined as a simple OR.
 		const bool is_sync = state.hsync || state.vsync;
 
+		// Check for a cursor leading edge.
+		cursor_shifter_ >>= 8;
+		if(state.cursor != previous_cursor_enabled_) {
+			if(state.cursor) {
+				cursor_shifter_ =
+					((cursor_mask_ & 0x80) ? 0x0007 : 0) |
+					((cursor_mask_ & 0x40) ? 0x0070 : 0) |
+					((cursor_mask_ & 0x20) ? 0x7700 : 0);
+			}
+			previous_cursor_enabled_ = state.cursor;
+		}
+
 		OutputMode output_mode;
+		const bool should_fetch = state.display_enable && !(state.row_address & 8);
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
 			output_mode = OutputMode::ColourBurst;
-		} else if(state.display_enable && !(state.row_address & 8)) {
+		} else if(should_fetch || cursor_shifter_) {
 			output_mode = OutputMode::Pixels;
 		} else {
 			output_mode = OutputMode::Blank;
@@ -397,13 +409,13 @@ public:
 				}
 
 				// Hard coded: pixel mode!
-				pixel_shifter_ = ram_[address];
+				pixel_shifter_ = should_fetch ? ram_[address] : 0;
 				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
-					case 1: shift_pixels<1>();		break;
-					case 2: shift_pixels<2>();		break;
-					case 4: shift_pixels<4>();		break;
-					case 8: shift_pixels<8>();		break;
-					case 16: shift_pixels<16>();	break;
+					case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
+					case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
+					case 4: shift_pixels<4>(cursor_shifter_ & 7);	break;
+					case 8: shift_pixels<8>(cursor_shifter_ & 7);	break;
+					case 16: shift_pixels<16>(cursor_shifter_ & 7);	break;
 					default: break;
 				}
 			}
@@ -470,7 +482,11 @@ private:
 	PixelCollation active_collation_;
 	uint8_t pixel_shifter_ = 0;
 
-	template <int count> void shift_pixels() {
+	uint8_t cursor_mask_ = 0;
+	uint32_t cursor_shifter_ = 0;
+	bool previous_cursor_enabled_ = false;
+
+	template <int count> void shift_pixels(const uint8_t cursor_mask) {
 		for(int c = 0; c < count; c++) {
 			const uint8_t colour =
 				((pixel_shifter_ & 0x80) >> 4) |
@@ -478,7 +494,7 @@ private:
 				((pixel_shifter_ & 0x08) >> 2) |
 				((pixel_shifter_ & 0x02) >> 1);
 			pixel_shifter_ <<= 1;
-			*pixel_pointer_++ = palette_[colour] ^ (flash_flags_[colour] ? flash_mask_ : 0x00);
+			*pixel_pointer_++ = palette_[colour] ^ (flash_flags_[colour] ? flash_mask_ : 0x00) ^ cursor_mask;
 		}
 	}
 
@@ -488,7 +504,7 @@ private:
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
 	Motorola::CRTC::Personality::HD6845S,
-	Motorola::CRTC::CursorType::None>;
+	Motorola::CRTC::CursorType::MDA>;
 }
 
 template <bool has_1770>
