@@ -194,8 +194,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 					case OperationRSTPickVector:		next_address_.full = 0xfffc;										continue;
 					case CycleReadVectorLow:			read_mem(pc_.halves.low, next_address_.full);						break;
 					case CycleReadVectorHigh:			read_mem(pc_.halves.high, next_address_.full+1);					break;
-					case OperationSetIRQFlags:
-					case OperationSetNMIRSTFlags:
+					case OperationSetInterruptFlags:
 						flags_.inverse_interrupt = 0;
 						if(is_65c02(personality)) flags_.decimal = 0;
 					continue;
