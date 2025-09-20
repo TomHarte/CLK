@@ -64,8 +64,8 @@ uint8_t uPD7002::read(const uint16_t address) {
 uint8_t uPD7002::status() const {
 	return
 		channel_ |
-		(high_precision_ ? 8 : 0) |
-		((result_ >> 10) & 0x30) |
+		(high_precision_ ? 0x08 : 0) |
+		((result_ >> 14) & 0x30) |
 		(conversion_time_remaining_ > HalfCycles(0) ? 0x00 : 0x40) |
 		(interrupt_ ? 0x00 : 0x80);
 }
