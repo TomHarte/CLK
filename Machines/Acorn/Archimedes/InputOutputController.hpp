@@ -512,7 +512,7 @@ private:
 	using Logger = Log::Logger<Log::Source::ARMIOC>;
 	InterruptObserverT &observer_;
 	Activity::Observer *activity_observer_ = nullptr;
-	static constexpr std::string FloppyActivityLED = "Drive";
+	static inline const std::string FloppyActivityLED = "Drive";
 
 	// IRQA, IRQB and FIQ states.
 	struct Interrupt {

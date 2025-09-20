@@ -275,7 +275,7 @@ private:
 		Mouse &mouse_;
 		Joystick *joystick_ = nullptr;
 		Activity::Observer *observer_ = nullptr;
-		static constexpr std::string led_name = "Power";
+		static inline const std::string led_name = "Power";
 	} cia_a_handler_;
 
 	class CIABHandler: public MOS::MOS6526::PortHandler {

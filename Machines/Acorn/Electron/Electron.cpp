@@ -778,7 +778,7 @@ private:
 	bool speaker_is_enabled_ = false;
 
 	// MARK: - Caps Lock status and the activity observer.
-	static constexpr std::string caps_led = "CAPS";
+	static inline const std::string caps_led = "CAPS";
 	bool caps_led_state_ = false;
 	Activity::Observer *activity_observer_ = nullptr;
 };

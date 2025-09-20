@@ -272,8 +272,8 @@ private:
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 
-	static constexpr std::string caps_led = "CAPS";
-	static constexpr std::string shift_led = "SHIFT";
+	static inline const std::string caps_led = "CAPS";
+	static inline const std::string shift_led = "SHIFT";
 	bool caps_led_state_ = false;
 	bool shift_led_state_ = false;
 	Activity::Observer *activity_observer_ = nullptr;
