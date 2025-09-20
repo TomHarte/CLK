@@ -7,7 +7,8 @@
 //
 
 #include "BBCMicro.hpp"
-#include "Keyboard.hpp"
+
+#include "Activity/Source.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
@@ -29,6 +30,8 @@
 #include "Outputs/CRT/CRT.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
+
+#include "Keyboard.hpp"
 
 #include <algorithm>
 #include <array>
@@ -398,7 +401,6 @@ public:
 		return crt_.get_display_type();
 	}
 
-
 private:
 	enum class OutputMode {
 		Sync,
@@ -462,6 +464,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 
 template <bool has_1770>
 class ConcreteMachine:
+	public Activity::Source,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
@@ -709,6 +712,13 @@ public:
 	}
 
 private:
+	// MARK: - Activity::Source.
+	void set_activity_observer(Activity::Observer *const observer) override {
+		if(has_1770) {
+			wd1770_.set_activity_observer(observer);
+		}
+	}
+
 	// MARK: - AudioProducer.
 	Outputs::Speaker::Speaker *get_speaker() override {
 		return audio_.speaker();
