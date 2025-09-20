@@ -333,9 +333,10 @@ public:
 		const bool is_sync = state.hsync || state.vsync;
 
 		// Check for a cursor leading edge.
-		cursor_shifter_ >>= 8;
+		cursor_shifter_ >>= 4;
 		if(state.cursor != previous_cursor_enabled_) {
-			if(state.cursor) {
+			if(state.cursor && state.display_enable) {	// TODO: should I have to test display enable here? Or should
+														// the CRTC already have factored that in?
 				cursor_shifter_ =
 					((cursor_mask_ & 0x80) ? 0x0007 : 0) |
 					((cursor_mask_ & 0x40) ? 0x0070 : 0) |
