@@ -669,16 +669,13 @@ public:
 				switch(address) {
 					case 0xfe80:
 						if(!is_read(operation)) {
-							Logger::info().append("WD1770 control: %02x", *value);
 							wd1770_.set_control_register(*value);
 						}
 					break;
 					default:
 						if(is_read(operation)) {
-							Logger::info().append("WD1770 read: %d", address & 3);
 							*value = wd1770_.read(address);
 						} else {
-							Logger::info().append("WD1770 write: %02x -> %d", *value, address & 3);
 							wd1770_.write(address, *value);
 						}
 					break;
@@ -832,7 +829,6 @@ private:
 	// MARK: - WD1770.
 	Electron::Plus3 wd1770_;
 	void wd1770_did_change_output(WD::WD1770 &) override {
-		Logger::info().append("NMI input: %d", wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line());
 		m6502_.set_nmi_line(wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line());
 	}
 };
