@@ -114,6 +114,7 @@ uint8_t WD1770::read(const int address) {
 			update_status([] (Status &status) {
 				status.data_request = false;
 			});
+//			Logger::info().append("Returned data %02x; [drq:%d]", data_, status_.data_request);
 		return data_;
 	}
 }
@@ -486,8 +487,12 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_EVENT(Event::Token);
 		if(get_latest_token().type != Token::Byte) goto type2_read_byte;
 		data_ = get_latest_token().byte_value;
+//		Logger::info().append("Posting %02x", data_);
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
+//			if(status.lost_data) {
+//				Logger::info().append("Lost data");
+//			}
 			status.data_request = true;
 		});
 		distance_into_section_++;

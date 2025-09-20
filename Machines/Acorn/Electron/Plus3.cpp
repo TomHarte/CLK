@@ -36,6 +36,7 @@ void Plus3::set_control_register(uint8_t control) {
 	//	bit 1 => enable or disable drive 2
 	//	bit 2 => side select
 	//	bit 3 => single density select
+	//	bit 5 => reset?
 
 	uint8_t changes = control ^ last_control_;
 	last_control_ = control;
