@@ -22,6 +22,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 					interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;
 					scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];
 				} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {
+					printf("Taking NMI!\n");
 					interrupt_requests_ &= ~InterruptRequestFlags::NMI;
 					scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];
 				} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {
