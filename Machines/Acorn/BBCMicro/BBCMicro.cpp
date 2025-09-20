@@ -868,8 +868,8 @@ private:
 	void update_irq_line() {
 		m6502_.set_irq_line(
 			user_via_.get_interrupt_line() ||
-			system_via_.get_interrupt_line() ||
-			adc_.interrupt()
+			system_via_.get_interrupt_line() /*||
+			adc_.interrupt()*/
 		);
 	}
 
