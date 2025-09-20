@@ -316,12 +316,14 @@ public:
 					++bus_state_.field_count;
 				}
 
-
 				// Cursor.
 				if constexpr (cursor_type != CursorType::None) {
 					// Check for cursor enable.
 					is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
-					is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
+					is_cursor_line_ &= !(
+						(bus_state_.row_address == layout_.vertical.end_cursor) ||
+						(character_total_hit && row_end_hit && layout_.vertical.end_cursor == lines_per_row + 1)
+					);
 
 					switch(cursor_type) {
 						// MDA-style blinking.
