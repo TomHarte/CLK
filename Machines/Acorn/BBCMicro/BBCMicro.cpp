@@ -164,7 +164,18 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		// Update keyboard LEDs.
 		if(mask >= 0x40) {
-			Logger::info().append("CAPS: %d SHIFT: %d", bool(latch_ & 0x40), bool(latch_ & 0x40));
+			const bool new_caps = latch_ & 0x80;
+			const bool new_shift = latch_ & 0x40;
+
+			if(new_caps != caps_led_state_) {
+				caps_led_state_ = new_caps;
+				activity_observer_->set_led_status(caps_led, caps_led_state_);
+			}
+
+			if(new_shift != shift_led_state_) {
+				shift_led_state_ = new_shift;
+				activity_observer_->set_led_status(shift_led, shift_led_state_);
+			}
 		}
 	}
 
@@ -204,6 +215,18 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			update_ca2();
 		}
 		keyboard_scan_column_ = ending_column;
+	}
+
+	void set_activity_observer(Activity::Observer *const observer) {
+		activity_observer_ = observer;
+
+		if(activity_observer_) {
+			activity_observer_->register_led(caps_led, Activity::Observer::LEDPresentation::Persistent);
+			activity_observer_->register_led(shift_led, Activity::Observer::LEDPresentation::Persistent);
+
+			activity_observer_->set_led_status(caps_led, caps_led_state_);
+			activity_observer_->set_led_status(shift_led, shift_led_state_);
+		}
 	}
 
 private:
@@ -248,6 +271,12 @@ private:
 
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
+
+	static constexpr std::string caps_led = "CAPS";
+	static constexpr std::string shift_led = "SHIFT";
+	bool caps_led_state_ = false;
+	bool shift_led_state_ = false;
+	Activity::Observer *activity_observer_ = nullptr;
 };
 
 /*!
@@ -717,6 +746,7 @@ private:
 		if(has_1770) {
 			wd1770_.set_activity_observer(observer);
 		}
+		system_via_port_handler_.set_activity_observer(observer);
 	}
 
 	// MARK: - AudioProducer.
