@@ -7,7 +7,8 @@
 //
 
 #include "BBCMicro.hpp"
-#include "Keyboard.hpp"
+
+#include "Activity/Source.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
@@ -29,6 +30,8 @@
 #include "Outputs/CRT/CRT.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
+
+#include "Keyboard.hpp"
 
 #include <algorithm>
 #include <array>
@@ -161,7 +164,18 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		// Update keyboard LEDs.
 		if(mask >= 0x40) {
-			Logger::info().append("CAPS: %d SHIFT: %d", bool(latch_ & 0x40), bool(latch_ & 0x40));
+			const bool new_caps = latch_ & 0x80;
+			const bool new_shift = latch_ & 0x40;
+
+			if(new_caps != caps_led_state_) {
+				caps_led_state_ = new_caps;
+				activity_observer_->set_led_status(caps_led, caps_led_state_);
+			}
+
+			if(new_shift != shift_led_state_) {
+				shift_led_state_ = new_shift;
+				activity_observer_->set_led_status(shift_led, shift_led_state_);
+			}
 		}
 	}
 
@@ -201,6 +215,18 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			update_ca2();
 		}
 		keyboard_scan_column_ = ending_column;
+	}
+
+	void set_activity_observer(Activity::Observer *const observer) {
+		activity_observer_ = observer;
+
+		if(activity_observer_) {
+			activity_observer_->register_led(caps_led, Activity::Observer::LEDPresentation::Persistent);
+			activity_observer_->register_led(shift_led, Activity::Observer::LEDPresentation::Persistent);
+
+			activity_observer_->set_led_status(caps_led, caps_led_state_);
+			activity_observer_->set_led_status(shift_led, shift_led_state_);
+		}
 	}
 
 private:
@@ -245,6 +271,12 @@ private:
 
 		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
+
+	static inline const std::string caps_led = "CAPS";
+	static inline const std::string shift_led = "SHIFT";
+	bool caps_led_state_ = false;
+	bool shift_led_state_ = false;
+	Activity::Observer *activity_observer_ = nullptr;
 };
 
 /*!
@@ -398,7 +430,6 @@ public:
 		return crt_.get_display_type();
 	}
 
-
 private:
 	enum class OutputMode {
 		Sync,
@@ -462,6 +493,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 
 template <bool has_1770>
 class ConcreteMachine:
+	public Activity::Source,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
@@ -709,6 +741,14 @@ public:
 	}
 
 private:
+	// MARK: - Activity::Source.
+	void set_activity_observer(Activity::Observer *const observer) override {
+		if(has_1770) {
+			wd1770_.set_activity_observer(observer);
+		}
+		system_via_port_handler_.set_activity_observer(observer);
+	}
+
 	// MARK: - AudioProducer.
 	Outputs::Speaker::Speaker *get_speaker() override {
 		return audio_.speaker();
