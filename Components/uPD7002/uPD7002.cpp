@@ -41,8 +41,9 @@ void uPD7002::write(const uint16_t address, const uint8_t value) {
 	const auto local_address = address & 3;
 	if(!local_address) {
 		interrupt_ = false;
-		channel_ = value & 3;
-		high_precision_ = value & 8;
+		channel_ = value & 0b0000'0011;
+		spare_ = value & 0b0000'0100;
+		high_precision_ = value & 0b0000'1000;
 		conversion_time_remaining_ = high_precision_ ? slow_period_ : fast_period_;
 		return;
 	}
@@ -64,6 +65,7 @@ uint8_t uPD7002::read(const uint16_t address) {
 uint8_t uPD7002::status() const {
 	return
 		channel_ |
+		spare_ |
 		(high_precision_ ? 0x08 : 0) |
 		((result_ >> 14) & 0x30) |
 		(conversion_time_remaining_ > HalfCycles(0) ? 0x00 : 0x40) |

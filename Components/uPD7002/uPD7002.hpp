@@ -37,10 +37,10 @@ private:
 	uint16_t result_ = 0;
 	bool interrupt_ = false;
 
-	uint8_t channel_ = 0;
+	uint8_t channel_ = 0, spare_ = 0;
 	bool high_precision_ = false;
 
-	HalfCycles conversion_time_remaining_;
+	HalfCycles conversion_time_remaining_{};
 	HalfCycles fast_period_, slow_period_;
 
 	uint8_t status() const;
