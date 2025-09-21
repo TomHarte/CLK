@@ -547,7 +547,10 @@ public:
 
 		auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
 		if(target.has_1770dfs) {
-			request = request && Request(Name::AcornDFS226);
+			request = request && Request(Name::BBCMicroDFS226);
+		}
+		if(target.has_adfs) {
+			request = request && Request(Name::BBCMicroADFS130);
 		}
 
 		auto roms = rom_fetcher(request);
@@ -558,9 +561,25 @@ public:
 		const auto os_data = roms.find(Name::BBCMicroMOS12)->second;
 		std::copy(os_data.begin(), os_data.end(), os_.begin());
 
+		// Put BASIC in pole position.
 		install_sideways(15, roms.find(Name::AcornBASICII)->second, false);
+
+		// Install filing systems: put the DFS before the ADFS because it's more common on the BBC.
+		size_t fs_slot = 14;
 		if(target.has_1770dfs) {
-			install_sideways(14, roms.find(Name::AcornDFS226)->second, false);
+			install_sideways(fs_slot--, roms.find(Name::BBCMicroDFS226)->second, false);
+		}
+		if(target.has_adfs) {
+			install_sideways(fs_slot--, roms.find(Name::BBCMicroADFS130)->second, false);
+		}
+
+		// Throw sideways RAM into all unused slots.
+		if(target.has_sideways_ram) {
+			for(size_t c = 0; c < 16; c++) {
+				if(!rom_inserted_[c]) {
+					rom_inserted_[c] = rom_write_masks_[c] = true;
+				}
+			}
 		}
 
 		// Setup fixed parts of memory map.
@@ -900,7 +919,7 @@ std::unique_ptr<Machine> Machine::BBCMicro(
 ) {
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	if(acorn_target->has_1770dfs) {
+	if(acorn_target->has_1770dfs || acorn_target->has_adfs) {
 		return std::make_unique<BBCMicro::ConcreteMachine<true>>(*acorn_target, rom_fetcher);
 	} else {
 		return std::make_unique<BBCMicro::ConcreteMachine<false>>(*acorn_target, rom_fetcher);
