@@ -24,9 +24,8 @@ void uPD7002::run_for(const HalfCycles count) {
 
 	if(count >= conversion_time_remaining_) {
 		conversion_time_remaining_ = HalfCycles(0);
-		interrupt_ = true;
 		result_ = uint16_t(inputs_[channel_] * 65535.0f) & (high_precision_ ? 0xfff0 : 0xff00);
-		if(delegate_) delegate_->did_change_interrupt_status(*this);
+		set_interrupt(true);
 		return;
 	}
 
@@ -40,11 +39,11 @@ bool uPD7002::interrupt() const {
 void uPD7002::write(const uint16_t address, const uint8_t value) {
 	const auto local_address = address & 3;
 	if(!local_address) {
-		interrupt_ = false;
 		channel_ = value & 0b0000'0011;
 		spare_ = value & 0b0000'0100;
 		high_precision_ = value & 0b0000'1000;
 		conversion_time_remaining_ = high_precision_ ? slow_period_ : fast_period_;
+		set_interrupt(false);
 		return;
 	}
 }
@@ -54,8 +53,7 @@ uint8_t uPD7002::read(const uint16_t address) {
 		default:
 		case 0:	return status();
 		case 1:
-			interrupt_ = false;
-			if(delegate_) delegate_->did_change_interrupt_status(*this);
+			set_interrupt(false);
 		return uint8_t(result_ >> 8);
 		case 2:	return uint8_t(result_);
 		case 3:	return 0xff;
@@ -70,4 +68,14 @@ uint8_t uPD7002::status() const {
 		((result_ >> 14) & 0x30) |
 		(conversion_time_remaining_ > HalfCycles(0) ? 0x00 : 0x40) |
 		(interrupt_ ? 0x00 : 0x80);
+}
+
+void uPD7002::set_delegate(Delegate *const delegate) {
+	delegate_ = delegate;
+}
+
+void uPD7002::set_interrupt(const bool value) {
+	if(interrupt_ == value) return;
+	interrupt_ = value;
+	if(delegate_) delegate_->did_change_interrupt_status(*this);
 }

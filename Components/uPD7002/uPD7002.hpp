@@ -44,6 +44,7 @@ private:
 	HalfCycles fast_period_, slow_period_;
 
 	uint8_t status() const;
+	void set_interrupt(bool);
 	Delegate *delegate_ = nullptr;
 };
 
