@@ -52,11 +52,13 @@ private:
 
 		{Key::Hyphen, 0x17},
 		{Key::Equals, 0x18},
-		{Key::Quote, 0x69},
+		{Key::BackTick, 0x69},
 
 		{Key::OpenSquareBracket, 0x38},
 		{Key::CloseSquareBracket, 0x58},
-		{Key::Semicolon, 0x48},
+
+		{Key::Semicolon, 0x57},
+		{Key::Quote, 0x48},
 
 		{Key::Enter, 0x49},
 		{Key::Backspace, 0x59},
