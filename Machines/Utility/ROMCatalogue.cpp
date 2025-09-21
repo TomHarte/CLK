@@ -430,12 +430,20 @@ const std::vector<Description> &Description::all_roms() {
 			0x3c14fc70u
 		},
 		{
-			AcornDFS226,
+			BBCMicroDFS226,
 			"BBCMicro",
 			"the Acorn 1770 DFS 2.26 ROM",
 			"dfs-2.26.rom",
 			16_kb,
 			0x5ae33e94u
+		},
+		{
+			BBCMicroADFS130,
+			"BBCMicro",
+			"the Acorn ADFS 1.30 ROM",
+			"adfs-1.30.rom",
+			16_kb,
+			0xd3855588u
 		},
 
 	//
