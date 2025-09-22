@@ -24,11 +24,11 @@
 namespace Motorola::CRTC {
 
 using RefreshAddress = Numeric::SizedCounter<14>;
-using RowAddress = Numeric::SizedCounter<7>;
+using LineAddress = Numeric::SizedCounter<5>;
 
 using SyncCounter = Numeric::SizedCounter<4>;
 using CharacterAddress = Numeric::SizedCounter<8>;
-using LineAddress = Numeric::SizedCounter<5>;
+using RowAddress = Numeric::SizedCounter<7>;
 
 struct BusState {
 	bool display_enable = false;
