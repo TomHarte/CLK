@@ -9,23 +9,33 @@
 #pragma once
 
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Numeric/SizedCounter.hpp"
 
 #include <cstdint>
 #include <cstdio>
 
+//
+// WARNING: code is in flux. I'm attempting to use hoglet's FPGA implementation at
+// https://github.com/hoglet67/BeebFpga/blob/master/src/common/mc6845.vhd as an authoritative guide to proper behaviour,
+// having found his Electron ULA to be excellent. This is starting by mapping various bits of internal state here
+// to hoglet's equivalents; cf. comments.
+//
+
 namespace Motorola::CRTC {
 
 struct BusState {
+	using RACounter = Numeric::SizedCounter<14>;
+
 	bool display_enable = false;
 	bool hsync = false;
 	bool vsync = false;
 	bool cursor = false;
-	uint16_t refresh_address = 0;
+	RACounter refresh_address = 0;	// ma_i
 	uint16_t row_address = 0;
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
-	int field_count = 0;
+	int field_count = 0;		// field_counter
 };
 
 class BusHandler {
@@ -39,13 +49,7 @@ enum class Personality {
 	UM6845R,	// Type 1 in CPC parlance. Status register, fixed-length VSYNC.
 	MC6845,		// Type 2. No status register, fixed-length VSYNC, no zero-length HSYNC.
 	AMS40226,	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
-
-	EGA,		// Extended EGA-style CRTC; uses 16-bit addressing throughout.
 };
-
-constexpr bool is_egavga(const Personality p) {
-	return p >= Personality::EGA;
-}
 
 // https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
 // register is really card specific".
@@ -56,8 +60,6 @@ enum class CursorType {
 	None,
 	/// MDA style: 00 => symmetric blinking; 01 or 10 => no blinking; 11 => short on, long off.
 	MDA,
-	/// EGA style: ignore the bits completely.
-	EGA,
 };
 
 // TODO UM6845R and R12/R13; see http://www.cpcwiki.eu/index.php/CRTC#CRTC_Differences
@@ -90,16 +92,6 @@ public:
 	}
 
 	void set_register(const uint8_t value) {
-		static constexpr bool is_ega = is_egavga(personality);
-
-		const auto load_low = [value](uint16_t &target) {
-			target = (target & 0xff00) | value;
-		};
-		const auto load_high = [value](uint16_t &target) {
-			static constexpr uint8_t mask = RefreshMask >> 8;
-			target = uint16_t((target & 0x00ff) | ((value & mask) << 8));
-		};
-
 		switch(selected_register_) {
 			case 0:	layout_.horizontal.total = value;		break;
 			case 1: layout_.horizontal.displayed = value;	break;
@@ -140,10 +132,10 @@ public:
 			case 11:
 				layout_.vertical.end_cursor = value & 0x1f;
 			break;
-			case 12:	load_high(layout_.start_address);	break;
-			case 13:	load_low(layout_.start_address);	break;
-			case 14:	load_high(layout_.cursor_address);	break;
-			case 15:	load_low(layout_.cursor_address);	break;
+			case 12:	layout_.start_address.template load<8>(value);	break;
+			case 13:	layout_.start_address.template load<0>(value);	break;
+			case 14:	layout_.cursor_address.template load<8>(value);	break;
+			case 15:	layout_.cursor_address.template load<0>(value);	break;
 		}
 
 		static constexpr uint8_t masks[] = {
@@ -154,11 +146,11 @@ public:
 					// EGA: b0–b4: end of horizontal blank;
 					// b5–b6: "Number of character clocks to delay start of display after Horizontal Total has been reached."
 
-			is_ega ? 0xff : 0x7f,	// Start horizontal retrace.
+			0x7f,	// Start horizontal retrace.
 			0x1f, 0x7f, 0x7f,
 			0xff, 0x1f, 0x7f, 0x1f,
-			uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
-			uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
+			uint8_t(BusState::RACounter::Mask >> 8), uint8_t(BusState::RACounter::Mask),
+			uint8_t(BusState::RACounter::Mask >> 8), uint8_t(BusState::RACounter::Mask),
 		};
 
 		if(selected_register_ < 16) {
@@ -350,7 +342,7 @@ public:
 				} else if(character_total_hit) {
 					bus_state_.refresh_address = line_address_;
 				} else {
-					bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
+					++bus_state_.refresh_address;
 				}
 
 				if(new_frame) {
@@ -366,8 +358,6 @@ public:
 	}
 
 private:
-	static constexpr uint16_t RefreshMask = (personality >= Personality::EGA) ? 0xffff : 0x3fff;
-
 	BusHandlerT &bus_handler_;
 	BusState bus_state_;
 
@@ -379,56 +369,59 @@ private:
 	enum class BlinkMode {
 		// TODO.
 	};
+
+	// Comments on the right provide the corresponding signal name in hoglet's VHDL implementation.
 	struct {
 		struct {
-			uint8_t total;
-			uint8_t displayed;
-			uint8_t start_sync;
-			uint8_t sync_width;
+			uint8_t total;			// r00_h_total
+			uint8_t displayed;		// r01_h_displayed
+			uint8_t start_sync;		// r02_h_sync_pos
+			uint8_t sync_width;		// r03_h_sync_width
 		} horizontal;
 
 		struct {
-			uint8_t total;
-			uint8_t displayed;
-			uint8_t start_sync;
-			uint8_t sync_lines;
-			uint8_t adjust;
+			uint8_t total;			// r04_v_total
+			uint8_t displayed;		// r06_v_displayed
+			uint8_t start_sync;		// r07_v_sync_pos
+			uint8_t sync_lines;		// r03_v_sync_width
+			uint8_t adjust;			// r05_v_total_adj
 
-			uint8_t end_row;
-			uint8_t start_cursor;
-			uint8_t end_cursor;
+			uint8_t end_row;		// r09_max_scanline_addr
+			uint8_t start_cursor;	// r10_cursor_start
+			uint8_t end_cursor;		// r11_cursor_end
 		} vertical;
 
-		InterlaceMode interlace_mode_ = InterlaceMode::Off;
+		InterlaceMode interlace_mode_ = InterlaceMode::Off;		// r08_interlace
 		uint8_t end_row() const {
 			return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? vertical.end_row & ~1 : vertical.end_row;
 		}
 
-		uint16_t start_address;
-		uint16_t cursor_address;
-		uint16_t light_pen_address;
-		uint8_t cursor_flags;
+		BusState::RACounter start_address;		// r12_start_addr_h + r13_start_addr_l
+		BusState::RACounter cursor_address;		// r14_cursor_h + r15_cursor_l
+		BusState::RACounter light_pen_address;	// r16_light_pen_h + r17_light_pen_l
+		uint8_t cursor_flags;					// r10_cursor_mode
 	} layout_;
 
 	uint8_t registers_[18]{};
 	uint8_t dummy_register_ = 0;
 	int selected_register_ = 0;
 
-	uint8_t character_counter_ = 0;
+	uint8_t character_counter_ = 0;						// h_counter
 	uint32_t character_reset_history_ = 0;
-	uint8_t row_counter_ = 0, next_row_counter_ = 0;
+	uint8_t row_counter_ = 0;							// row_counter
+	uint8_t next_row_counter_ = 0;						// row_counter_next
 	uint8_t adjustment_counter_ = 0;
 
-	bool character_is_visible_ = false;
-	bool line_is_visible_ = false;
+	bool character_is_visible_ = false;					// h_display
+	bool line_is_visible_ = false;						// v_display
 	bool is_first_scanline_ = false;
 	bool is_cursor_line_ = false;
 
-	int hsync_counter_ = 0;
-	int vsync_counter_ = 0;
+	int hsync_counter_ = 0;								// h_sync_counter
+	int vsync_counter_ = 0;								// v_sync_counter
 	bool is_in_adjustment_period_ = false;
 
-	uint16_t line_address_ = 0;
+	BusState::RACounter line_address_;
 	uint8_t status_ = 0;
 
 	int display_skew_mask_ = 1;
@@ -437,7 +430,17 @@ private:
 	bool eof_latched_ = false;
 	bool eom_latched_ = false;
 	uint16_t next_row_address_ = 0;
-	bool odd_field_ = false;
+	bool odd_field_ = false;							// odd_field
+
+	// line_counter
+	// line_counter_next
+	// hs
+	// vs
+	// vs_hit
+	// vs_hit_last
+	// vs_even
+	// vs_odd
+
 };
 
 }
