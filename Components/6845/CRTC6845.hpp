@@ -24,7 +24,11 @@
 namespace Motorola::CRTC {
 
 using RefreshAddress = Numeric::SizedCounter<14>;
-using RowAddress = Numeric::SizedCounter<5>;
+using RowAddress = Numeric::SizedCounter<7>;
+
+using SyncCounter = Numeric::SizedCounter<4>;
+using CharacterAddress = Numeric::SizedCounter<8>;
+using LineAddress = Numeric::SizedCounter<5>;
 
 struct BusState {
 	bool display_enable = false;
@@ -32,7 +36,7 @@ struct BusState {
 	bool vsync = false;
 	bool cursor = false;
 	RefreshAddress refresh;	// ma_i
-	RowAddress row;
+	LineAddress row;
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
@@ -185,9 +189,7 @@ public:
 			// Shared, stateless signals.
 			//
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
-				const auto lines_per_row =
-					layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ?
-						layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
+				const auto lines_per_row = layout_.end_row();
 				const bool row_end_hit = bus_state_.row == lines_per_row && !is_in_adjustment_period_;
 				const bool was_eof = eof_latched_;
 				const bool new_frame =
@@ -315,7 +317,11 @@ public:
 					is_cursor_line_ |= bus_state_.row == layout_.vertical.start_cursor;
 					is_cursor_line_ &= !(
 						(bus_state_.row == layout_.vertical.end_cursor) ||
-						(character_total_hit && row_end_hit && layout_.vertical.end_cursor == lines_per_row + 1)
+						(
+							character_total_hit &&
+							row_end_hit &&
+							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
+						)
 					);
 
 					switch(cursor_type) {
@@ -374,27 +380,28 @@ private:
 	// Comments on the right provide the corresponding signal name in hoglet's VHDL implementation.
 	struct {
 		struct {
-			uint8_t total;			// r00_h_total
-			uint8_t displayed;		// r01_h_displayed
-			uint8_t start_sync;		// r02_h_sync_pos
-			uint8_t sync_width;		// r03_h_sync_width
+			CharacterAddress total;			// r00_h_total
+			CharacterAddress displayed;		// r01_h_displayed
+			CharacterAddress start_sync;	// r02_h_sync_pos
+			SyncCounter sync_width;			// r03_h_sync_width
 		} horizontal;
 
 		struct {
-			RowAddress total;		// r04_v_total
-			RowAddress displayed;	// r06_v_displayed
-			RowAddress start_sync;	// r07_v_sync_pos
-			uint8_t sync_lines;		// r03_v_sync_width
-			uint8_t adjust;			// r05_v_total_adj
+			RowAddress total;			// r04_v_total
+			RowAddress displayed;		// r06_v_displayed
+			RowAddress start_sync;		// r07_v_sync_pos
+			SyncCounter sync_lines;		// r03_v_sync_width
+			LineAddress adjust;			// r05_v_total_adj
 
-			uint8_t end_row;		// r09_max_scanline_addr
-			uint8_t start_cursor;	// r10_cursor_start
-			uint8_t end_cursor;		// r11_cursor_end
+			LineAddress end_row;		// r09_max_scanline_addr
+			LineAddress start_cursor;	// r10_cursor_start
+			LineAddress end_cursor;		// r11_cursor_end
 		} vertical;
 
 		InterlaceMode interlace_mode_ = InterlaceMode::Off;		// r08_interlace
-		uint8_t end_row() const {
-			return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? vertical.end_row & ~1 : vertical.end_row;
+		LineAddress end_row() const {
+			return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ?
+				vertical.end_row & ~1 : vertical.end_row;
 		}
 
 		RefreshAddress start_address;		// r12_start_addr_h + r13_start_addr_l
@@ -407,7 +414,7 @@ private:
 	uint8_t dummy_register_ = 0;
 	int selected_register_ = 0;
 
-	uint8_t character_counter_ = 0;				// h_counter
+	CharacterAddress character_counter_ = 0;	// h_counter
 	uint32_t character_reset_history_ = 0;
 	RowAddress row_counter_ = 0;				// row_counter
 	RowAddress next_row_counter_ = 0;			// row_counter_next
@@ -418,8 +425,8 @@ private:
 	bool is_first_scanline_ = false;
 	bool is_cursor_line_ = false;
 
-	int hsync_counter_ = 0;						// h_sync_counter
-	int vsync_counter_ = 0;						// v_sync_counter
+	SyncCounter hsync_counter_;					// h_sync_counter
+	SyncCounter vsync_counter_;					// v_sync_counter
 	bool is_in_adjustment_period_ = false;
 
 	RefreshAddress line_address_;

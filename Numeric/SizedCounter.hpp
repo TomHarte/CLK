@@ -28,21 +28,33 @@ struct SizedCounter {
 		return counter_;
 	}
 
-	SizedCounter operator+(const SizedCounter offset) {
+	SizedCounter operator +(const SizedCounter offset) const {
 		return SizedCounter<bits>(counter_ + offset.counter_);
 	}
 
-	SizedCounter &operator++(int) {
-		(*this) ++;
+	SizedCounter operator &(const SizedCounter offset) const {
+		return SizedCounter<bits>(counter_ & offset.counter_);
+	}
+
+	SizedCounter operator >>(const int shift) const {
+		return SizedCounter<bits>(counter_ >> shift);
+	}
+
+	SizedCounter operator <<(const int shift) const {
+		return SizedCounter<bits>(counter_ << shift);
+	}
+
+	SizedCounter &operator ++(int) {
+		++(*this);
 		return *this;
 	}
 
-	SizedCounter &operator++() {
+	SizedCounter &operator ++() {
 		counter_ = (counter_ + 1) & Mask;
 		return *this;
 	}
 
-	SizedCounter &operator+=(const IntT rhs) {
+	SizedCounter &operator +=(const IntT rhs) {
 		counter_ = (counter_ + rhs) & Mask;
 		return *this;
 	}
