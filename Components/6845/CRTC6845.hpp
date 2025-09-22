@@ -23,15 +23,16 @@
 
 namespace Motorola::CRTC {
 
-struct BusState {
-	using RACounter = Numeric::SizedCounter<14>;
+using RefreshAddress = Numeric::SizedCounter<14>;
+using RowAddress = Numeric::SizedCounter<5>;
 
+struct BusState {
 	bool display_enable = false;
 	bool hsync = false;
 	bool vsync = false;
 	bool cursor = false;
-	RACounter refresh_address = 0;	// ma_i
-	uint16_t row_address = 0;
+	RefreshAddress refresh;	// ma_i
+	RowAddress row;
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
@@ -149,8 +150,8 @@ public:
 			0x7f,	// Start horizontal retrace.
 			0x1f, 0x7f, 0x7f,
 			0xff, 0x1f, 0x7f, 0x1f,
-			uint8_t(BusState::RACounter::Mask >> 8), uint8_t(BusState::RACounter::Mask),
-			uint8_t(BusState::RACounter::Mask >> 8), uint8_t(BusState::RACounter::Mask),
+			uint8_t(RefreshAddress::Mask >> 8), uint8_t(RefreshAddress::Mask),
+			uint8_t(RefreshAddress::Mask >> 8), uint8_t(RefreshAddress::Mask),
 		};
 
 		if(selected_register_ < 16) {
@@ -162,8 +163,8 @@ public:
 	}
 
 	void trigger_light_pen() {
-		registers_[17] = bus_state_.refresh_address & 0xff;
-		registers_[16] = bus_state_.refresh_address >> 8;
+		registers_[17] = bus_state_.refresh.get() & 0xff;
+		registers_[16] = bus_state_.refresh.get() >> 8;
 		status_ |= 0x40;
 	}
 
@@ -176,7 +177,7 @@ public:
 
 			// Do bus work.
 			bus_state_.cursor = is_cursor_line_ &&
-				bus_state_.refresh_address == layout_.cursor_address;
+				bus_state_.refresh == layout_.cursor_address;
 			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
 			bus_handler_.perform_bus_cycle(bus_state_);
 
@@ -184,10 +185,10 @@ public:
 			// Shared, stateless signals.
 			//
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
-				const uint8_t lines_per_row =
+				const auto lines_per_row =
 					layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ?
 						layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
-				const bool row_end_hit = bus_state_.row_address == lines_per_row && !is_in_adjustment_period_;
+				const bool row_end_hit = bus_state_.row == lines_per_row && !is_in_adjustment_period_;
 				const bool was_eof = eof_latched_;
 				const bool new_frame =
 					character_total_hit && was_eof &&
@@ -261,7 +262,7 @@ public:
 					(!odd_field_ && !character_counter_) ||
 					(odd_field_ && character_counter_ == (layout_.horizontal.total >> 1));
 				if(vsync_horizontal) {
-					if((row_counter_ == layout_.vertical.start_sync && !bus_state_.row_address) || bus_state_.vsync) {
+					if((row_counter_ == layout_.vertical.start_sync && !bus_state_.row) || bus_state_.vsync) {
 						bus_state_.vsync = true;
 						vsync_counter_ = (vsync_counter_ + 1) & 0xf;
 					} else {
@@ -277,14 +278,14 @@ public:
 				// Row address.
 				if(character_total_hit) {
 					if(was_eof) {
-						bus_state_.row_address = 0;
+						bus_state_.row = 0;
 						eof_latched_ = eom_latched_ = false;
 					} else if(row_end_hit) {
-						bus_state_.row_address = 0;
+						bus_state_.row = 0;
 					} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
-						bus_state_.row_address = (bus_state_.row_address + 2) & ~1 & 31;
+						bus_state_.row += 2;
 					} else {
-						bus_state_.row_address = (bus_state_.row_address + 1) & 31;
+						++bus_state_.row;
 					}
 				}
 
@@ -311,9 +312,9 @@ public:
 				// Cursor.
 				if constexpr (cursor_type != CursorType::None) {
 					// Check for cursor enable.
-					is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
+					is_cursor_line_ |= bus_state_.row == layout_.vertical.start_cursor;
 					is_cursor_line_ &= !(
-						(bus_state_.row_address == layout_.vertical.end_cursor) ||
+						(bus_state_.row == layout_.vertical.end_cursor) ||
 						(character_total_hit && row_end_hit && layout_.vertical.end_cursor == lines_per_row + 1)
 					);
 
@@ -338,17 +339,17 @@ public:
 			//
 
 				if(new_frame) {
-					bus_state_.refresh_address = layout_.start_address;
+					bus_state_.refresh = layout_.start_address;
 				} else if(character_total_hit) {
-					bus_state_.refresh_address = line_address_;
+					bus_state_.refresh = line_address_;
 				} else {
-					++bus_state_.refresh_address;
+					++bus_state_.refresh;
 				}
 
 				if(new_frame) {
 					line_address_ = layout_.start_address;
 				} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
-					line_address_ = bus_state_.refresh_address;
+					line_address_ = bus_state_.refresh;
 				}
 		}
 	}
@@ -380,9 +381,9 @@ private:
 		} horizontal;
 
 		struct {
-			uint8_t total;			// r04_v_total
-			uint8_t displayed;		// r06_v_displayed
-			uint8_t start_sync;		// r07_v_sync_pos
+			RowAddress total;		// r04_v_total
+			RowAddress displayed;	// r06_v_displayed
+			RowAddress start_sync;	// r07_v_sync_pos
 			uint8_t sync_lines;		// r03_v_sync_width
 			uint8_t adjust;			// r05_v_total_adj
 
@@ -396,32 +397,32 @@ private:
 			return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? vertical.end_row & ~1 : vertical.end_row;
 		}
 
-		BusState::RACounter start_address;		// r12_start_addr_h + r13_start_addr_l
-		BusState::RACounter cursor_address;		// r14_cursor_h + r15_cursor_l
-		BusState::RACounter light_pen_address;	// r16_light_pen_h + r17_light_pen_l
-		uint8_t cursor_flags;					// r10_cursor_mode
+		RefreshAddress start_address;		// r12_start_addr_h + r13_start_addr_l
+		RefreshAddress cursor_address;		// r14_cursor_h + r15_cursor_l
+		RefreshAddress light_pen_address;	// r16_light_pen_h + r17_light_pen_l
+		uint8_t cursor_flags;				// r10_cursor_mode
 	} layout_;
 
 	uint8_t registers_[18]{};
 	uint8_t dummy_register_ = 0;
 	int selected_register_ = 0;
 
-	uint8_t character_counter_ = 0;						// h_counter
+	uint8_t character_counter_ = 0;				// h_counter
 	uint32_t character_reset_history_ = 0;
-	uint8_t row_counter_ = 0;							// row_counter
-	uint8_t next_row_counter_ = 0;						// row_counter_next
+	RowAddress row_counter_ = 0;				// row_counter
+	RowAddress next_row_counter_ = 0;			// row_counter_next
 	uint8_t adjustment_counter_ = 0;
 
-	bool character_is_visible_ = false;					// h_display
-	bool line_is_visible_ = false;						// v_display
+	bool character_is_visible_ = false;			// h_display
+	bool line_is_visible_ = false;				// v_display
 	bool is_first_scanline_ = false;
 	bool is_cursor_line_ = false;
 
-	int hsync_counter_ = 0;								// h_sync_counter
-	int vsync_counter_ = 0;								// v_sync_counter
+	int hsync_counter_ = 0;						// h_sync_counter
+	int vsync_counter_ = 0;						// v_sync_counter
 	bool is_in_adjustment_period_ = false;
 
-	BusState::RACounter line_address_;
+	RefreshAddress line_address_;
 	uint8_t status_ = 0;
 
 	int display_skew_mask_ = 1;
@@ -429,7 +430,6 @@ private:
 
 	bool eof_latched_ = false;
 	bool eom_latched_ = false;
-	uint16_t next_row_address_ = 0;
 	bool odd_field_ = false;							// odd_field
 
 	// line_counter

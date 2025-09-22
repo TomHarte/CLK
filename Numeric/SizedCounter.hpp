@@ -24,8 +24,12 @@ struct SizedCounter {
 	constexpr SizedCounter(const IntT start_value) noexcept : counter_(start_value & Mask) {}
 	SizedCounter() = default;
 
-	operator IntT() const {
+	IntT get() const {
 		return counter_;
+	}
+
+	SizedCounter operator+(const SizedCounter offset) {
+		return SizedCounter<bits>(counter_ + offset.counter_);
 	}
 
 	SizedCounter &operator++(int) {
@@ -41,6 +45,10 @@ struct SizedCounter {
 	SizedCounter &operator+=(const IntT rhs) {
 		counter_ = (counter_ + rhs) & Mask;
 		return *this;
+	}
+
+	bool operator!() const {
+		return !counter_;
 	}
 
 	auto operator <=>(const SizedCounter &) const = default;

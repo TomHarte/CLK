@@ -258,8 +258,8 @@ private:
 			//
 			// Meanwhile, row address is used as a substitute 14th address line.
 			const auto base_address =
-				((state.refresh_address & 0xfff) << 1) +
-				((state.row_address & 1) << 13);
+				((state.refresh.get() & 0xfff) << 1) +
+				((state.row.get() & 1) << 13);
 			const uint8_t bitmap[] = {
 				ram[base_address],
 				ram[base_address + 1],
@@ -295,9 +295,9 @@ private:
 		}
 
 		void serialise_text(const Motorola::CRTC::BusState &state) {
-			const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0x3fff];
-			const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0x3fff];
-			const uint8_t row = font[(glyph * 8) + state.row_address];
+			const uint8_t attributes = ram[((state.refresh.get() << 1) + 1) & 0x3fff];
+			const uint8_t glyph = ram[((state.refresh.get() << 1) + 0) & 0x3fff];
+			const uint8_t row = font[(glyph * 8) + state.row.get()];
 
 			uint8_t colours[2] = { rgb(attributes >> 4), rgbi(attributes) };
 

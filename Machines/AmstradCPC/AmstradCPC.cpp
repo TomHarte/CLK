@@ -251,9 +251,9 @@ public:
 				// ... so form the real access address.
 				const uint16_t address =
 					uint16_t(
-						((state.refresh_address & 0x3ff) << 1) |
-						((state.row_address & 0x7) << 11) |
-						((state.refresh_address & 0x3000) << 2)
+						((state.refresh.get() & 0x3ff) << 1) |
+						((state.row.get() & 0x7) << 11) |
+						((state.refresh.get() & 0x3000) << 2)
 					);
 
 				// Fetch two bytes and translate into pixels. Guaranteed: the mode can change only at
