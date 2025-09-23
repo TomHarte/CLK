@@ -358,8 +358,9 @@ public:
 		}
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
-		// in progress to the CRT and reset counting.
-		if(output_mode != previous_output_mode_) {
+		// in progress to the CRT and reset counting. Also flush if this mode has just been effective
+		// for a really long time, so as not to buffer too much.
+		if(output_mode != previous_output_mode_ || cycles_ == 1024) {
 			if(cycles_) {
 				switch(previous_output_mode_) {
 					default:
