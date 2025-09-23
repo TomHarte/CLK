@@ -346,7 +346,7 @@ public:
 		}
 
 		OutputMode output_mode;
-		const bool should_fetch = state.display_enable && !(state.row.get() & 8);
+		const bool should_fetch = state.display_enable && !(state.line.get() & 8);
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
@@ -403,7 +403,7 @@ public:
 					);
 					// TODO: wraparound? Does that happen on Mode 7?
 				} else {
-					address = uint16_t((state.refresh.get() << 3) | (state.row.get() & 7));
+					address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
 					if(address & 0x8000) {
 						address = (address + video_base_) & 0x7fff;
 					}

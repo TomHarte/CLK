@@ -160,7 +160,7 @@ private:
 					} else {
 						const uint8_t attributes = ram[((state.refresh.get() << 1) + 1) & 0xfff];
 						const uint8_t glyph = ram[((state.refresh.get() << 1) + 0) & 0xfff];
-						uint8_t row = font[(glyph * 14) + state.row.get()];
+						uint8_t row = font[(glyph * 14) + state.line.get()];
 
 						const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
 						uint8_t blank = off;
@@ -183,7 +183,7 @@ private:
 							blank = (blank == off) ? intensity : off;
 						}
 
-						if(((attributes & 7) == 1) && state.row.get() == 13) {
+						if(((attributes & 7) == 1) && state.line.get() == 13) {
 							// Draw as underline.
 							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
 						} else {

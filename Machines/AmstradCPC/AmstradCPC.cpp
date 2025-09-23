@@ -252,7 +252,7 @@ public:
 				const uint16_t address =
 					uint16_t(
 						((state.refresh.get() & 0x3ff) << 1) |
-						((state.row.get() & 0x7) << 11) |
+						((state.line.get() & 0x7) << 11) |
 						((state.refresh.get() & 0x3000) << 2)
 					);
 

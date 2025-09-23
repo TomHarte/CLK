@@ -32,11 +32,11 @@ using RowAddress = Numeric::SizedCounter<7>;
 
 struct BusState {
 	bool display_enable = false;
-	bool hsync = false;
-	bool vsync = false;
+	bool hsync = false;		// hs
+	bool vsync = false;		// vs
 	bool cursor = false;
 	RefreshAddress refresh;	// ma_i
-	LineAddress row;
+	LineAddress line;		// line_counter
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
@@ -115,9 +115,9 @@ public:
 				// TODO: an error elsewhere appears to cause modes other than InterlaceMode::Off never to hit
 				// vertical sync.
 //				switch(value & 3) {
-//					default:	layout_.interlace_mode_ = InterlaceMode::Off;					break;
-//					case 0b01:	layout_.interlace_mode_ = InterlaceMode::InterlaceSync;			break;
-//					case 0b11:	layout_.interlace_mode_ = InterlaceMode::InterlaceSyncAndVideo;	break;
+//					default:	layout_.interlace_mode_ = InterlaceMode::Off;			break;
+//					case 0b01:	layout_.interlace_mode_ = InterlaceMode::Sync;			break;
+//					case 0b11:	layout_.interlace_mode_ = InterlaceMode::SyncAndVideo;	break;
 //				}
 
 				// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
@@ -143,6 +143,8 @@ public:
 			case 15:	layout_.cursor_address.template load<0>(value);	break;
 		}
 
+		// Take redundant copies of all registers, limited to their actual bit sizes,
+		// to proffer up if the registers are read.
 		static constexpr uint8_t masks[] = {
 			0xff,	// Horizontal total.
 			0xff,	// Horizontal display end.
@@ -188,42 +190,56 @@ public:
 			//
 			// Shared, stateless signals.
 			//
-				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
-				const auto lines_per_row = layout_.end_row();
-				const bool row_end_hit = bus_state_.row == lines_per_row && !is_in_adjustment_period_;
-				const bool was_eof = eof_latched_;
+				const bool character_total_hit = character_counter_ == layout_.horizontal.total;		// r00_h_total_hit
+				const auto lines_per_row =
+					layout_.interlace_mode_ == InterlaceMode::SyncAndVideo ?
+						layout_.vertical.end_row & ~1 : layout_.vertical.end_row;						// max_scanline
+				const bool row_end_hit = bus_state_.line == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
 				const bool new_frame =
-					character_total_hit && was_eof &&
+					character_total_hit && eof_latched_ &&
 					(
 						layout_.interlace_mode_ == InterlaceMode::Off ||
-						!odd_field_
-					);
+						!odd_field_ ||
+						extra_line_
+					);		// new_frame
 
 			//
 			// Horizontal.
 			//
 
 				// Update horizontal sync.
+				//
+				// A sync width of 0 should mean that no sync is observed.
+				// Hitting the start sync condition while sync is already ongoing should have no effect.
+				if(character_counter_ == layout_.horizontal.start_sync) {
+					bus_state_.hsync = true;
+				}
+				if(hsync_counter_ == layout_.horizontal.sync_width) {
+					bus_state_.hsync = false;
+				}
 				if(bus_state_.hsync) {
 					++hsync_counter_;
-					bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
-				}
-				if(character_counter_ == layout_.horizontal.start_sync) {
+				} else {
 					hsync_counter_ = 0;
-					bus_state_.hsync = true;
 				}
 
 				// Check for end-of-line.
+				//
+				// character_reset_history_ is used because some events are defined to occur one or two
+				// cycles after end-of-line regardless of whether an additional end of line is hit in
+				// the interim.
 				character_reset_history_ <<= 1;
 				if(character_total_hit) {
 					character_counter_ = 0;
-					character_is_visible_ = true;
 					character_reset_history_ |= 1;
 				} else {
-					character_counter_++;
+					++character_counter_;
 				}
 
-				// Check for end of visible characters.
+				// Check for visible characters.
+				if(!character_counter_) {
+					character_is_visible_ = true;
+				}
 				if(character_counter_ == layout_.horizontal.displayed) {
 					character_is_visible_ = false;
 				}
@@ -232,75 +248,109 @@ public:
 			// End-of-frame.
 			//
 
-				if(character_total_hit) {
-					if(was_eof) {
-						eof_latched_ = eom_latched_ = is_in_adjustment_period_ = false;
-						adjustment_counter_ = 0;
-					} else if(is_in_adjustment_period_) {
-						adjustment_counter_ = (adjustment_counter_ + 1) & 31;
+				if(new_frame) {
+					eof_latched_ = false;
+				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
+					eof_latched_ = true;
+				}
+
+				if(new_frame) {
+					is_in_adjustment_period_ = false;
+				} else if(character_total_hit && eom_latched_ && will_adjust_) {
+					is_in_adjustment_period_ = true;
+				}
+
+				if(new_frame) {
+					is_first_scanline_ = true;
+				} else if(character_total_hit) {
+					is_first_scanline_ = false;
+				}
+
+				if(character_total_hit && eof_latched_ && bus_state_.field_count&1 && !extra_line_) {
+					extra_line_ = true;
+				} else if(character_total_hit) {
+					extra_line_ = false;
+				}
+
+				if(new_frame) {
+					eom_latched_ = false;
+				} else if(character_reset_history_.bit<1>() && row_end_hit && row_counter_ == layout_.vertical.total) {
+					eom_latched_ = true;
+				}
+
+				if(new_frame) {
+					will_adjust_ = false;
+				} else if(character_reset_history_.bit<2>() && eom_latched_ && row_counter_ == layout_.vertical.total) {
+					if(next_line_ == layout_.vertical.adjust) {
+						will_adjust_ = false;
+					} else {
+						will_adjust_ = true;
 					}
 				}
 
-				if(character_reset_history_ & 2) {
-					eom_latched_ |= row_end_hit && row_counter_ == layout_.vertical.total;
-				}
-
-				if(character_reset_history_ & 4 && eom_latched_) {
-					// TODO: I don't believe the "add 1 for interlaced" test here is accurate;
-					// others represent the extra scanline as additional state, presumably because
-					// adjust total might be reprogrammed at any time.
-					const auto adjust_length =
-						layout_.vertical.adjust + (layout_.interlace_mode_ != InterlaceMode::Off && odd_field_ ? 1 : 0);
-					is_in_adjustment_period_ |= adjustment_counter_ != adjust_length;
-					eof_latched_ |= adjustment_counter_ == adjust_length;
-				}
 
 			//
 			// Vertical.
 			//
 
-				// Sync.
-				const bool vsync_horizontal =
-					(!odd_field_ && !character_counter_) ||
-					(odd_field_ && character_counter_ == (layout_.horizontal.total >> 1));
-				if(vsync_horizontal) {
-					if((row_counter_ == layout_.vertical.start_sync && !bus_state_.row) || bus_state_.vsync) {
-						bus_state_.vsync = true;
-						vsync_counter_ = (vsync_counter_ + 1) & 0xf;
-					} else {
-						vsync_counter_ = -1;//0;		// TODO: this ensures the first time the condition above is met,
-														// vsync_counter starts at 0. It's a hack though.
-					}
-
-					if(vsync_counter_ == layout_.vertical.sync_lines) {
-						bus_state_.vsync = false;
-					}
+				// Update line counter (which also counts the vertical adjust period).
+				//
+				// Counts in steps of 2 only if interlaced mode is InterlaceMode::SyncAndVideo and this is
+				// not the adjustment period. Otherwise counts in steps of 1.
+				if(new_frame) {
+					bus_state_.line = 0;
+				} else if(character_total_hit) {
+					bus_state_.line = next_line_;
 				}
 
-				// Row address.
-				if(character_total_hit) {
-					if(was_eof) {
-						bus_state_.row = 0;
-						eof_latched_ = eom_latched_ = false;
-					} else if(row_end_hit) {
-						bus_state_.row = 0;
-					} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
-						bus_state_.row += 2;
-					} else {
-						++bus_state_.row;
-					}
+				if(row_end_hit) {
+					next_line_ = 0;
+				} else if(is_in_adjustment_period_ || layout_.interlace_mode_ != InterlaceMode::SyncAndVideo) {
+					next_line_ = bus_state_.line + 1;
+				} else {
+					next_line_ = bus_state_.line + 2;
 				}
 
-				// Row counter.
+				// Update row counter.
+				//
+				// Very straightforward: tests at end of line whether row end has also been hit. If so, increments.
 				row_counter_ = next_row_counter_;
 				if(new_frame) {
 					next_row_counter_ = 0;
-					is_first_scanline_ = true;
-				} else {
-					next_row_counter_ = row_end_hit && character_total_hit ?
-						(next_row_counter_ + 1) : next_row_counter_;
-					is_first_scanline_ &= !row_end_hit;
+				} else if(character_total_hit && row_end_hit) {
+					next_row_counter_ = row_counter_ + 1;
 				}
+
+				// Sync.
+				//
+				// Counter:
+				// Sync width of 0 => 16 lines of sync.
+				// Triggered by the row counter becoming equal to the sync start position, regardless of when.
+				// Subsequently increments at the start of each line.
+				const bool hit_vsync = row_counter_ == layout_.vertical.start_sync;
+				const bool is_vsync_rising_edge = hit_vsync && !hit_vsync_last_;
+				if(is_vsync_rising_edge) {
+					vsync_counter_ = 0;
+				} else if(character_total_hit) {
+					++vsync_counter_;
+				}
+				hit_vsync_last_ = hit_vsync;
+
+				if(is_vsync_rising_edge) {
+					vsync_even_ = true;
+				} else if(vsync_counter_ == layout_.vertical.sync_lines && character_reset_history_.bit<1>()) {
+					vsync_even_ = false;
+				}
+
+				// Odd sync copies even sync, but half a line later.
+				if(character_counter_ == layout_.horizontal.total >> 1) {
+					vsync_odd_ = vsync_even_;
+				}
+
+				// Select odd or even sync depending on the field.
+				// (Noted: the reverse-odd-test is intentional)
+				bus_state_.vsync = (layout_.interlace_mode_ != InterlaceMode::Off && !odd_field_) ?
+					vsync_odd_ : vsync_even_;
 
 				// Vertical display enable.
 				if(is_first_scanline_) {
@@ -311,52 +361,77 @@ public:
 					++bus_state_.field_count;
 				}
 
-				// Cursor.
-				if constexpr (cursor_type != CursorType::None) {
-					// Check for cursor enable.
-					is_cursor_line_ |= bus_state_.row == layout_.vertical.start_cursor;
-					is_cursor_line_ &= !(
-						(bus_state_.row == layout_.vertical.end_cursor) ||
-						(
-							character_total_hit &&
-							row_end_hit &&
-							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
-						)
-					);
-
-					switch(cursor_type) {
-						// MDA-style blinking.
-						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
-						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
-						case CursorType::MDA:
-							switch(layout_.cursor_flags) {
-								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
-								case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
-								case 0b01: is_cursor_line_ = false;								break;
-								case 0b10: is_cursor_line_ = true;								break;
-								default: break;
-							}
-						break;
-					}
-				}
-
-			//
-			// Addressing.
-			//
-
-				if(new_frame) {
-					bus_state_.refresh = layout_.start_address;
-				} else if(character_total_hit) {
-					bus_state_.refresh = line_address_;
-				} else {
-					++bus_state_.refresh;
-				}
-
-				if(new_frame) {
-					line_address_ = layout_.start_address;
-				} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
-					line_address_ = bus_state_.refresh;
-				}
+//				// Row address.
+//				if(character_total_hit) {
+//					if(was_eof) {
+//						bus_state_.row = 0;
+//						eof_latched_ = eom_latched_ = false;
+//					} else if(row_end_hit) {
+//						bus_state_.row = 0;
+//					} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
+//						bus_state_.row += 2;
+//					} else {
+//						++bus_state_.row;
+//					}
+//				}
+//
+//				// Row counter.
+//				row_counter_ = next_row_counter_;
+//				if(new_frame) {
+//					next_row_counter_ = 0;
+//					is_first_scanline_ = true;
+//				} else {
+//					next_row_counter_ = row_end_hit && character_total_hit ?
+//						(next_row_counter_ + 1) : next_row_counter_;
+//					is_first_scanline_ &= !row_end_hit;
+//				}
+//
+//				// Cursor.
+//				if constexpr (cursor_type != CursorType::None) {
+//					// Check for cursor enable.
+//					is_cursor_line_ |= bus_state_.row == layout_.vertical.start_cursor;
+//					is_cursor_line_ &= !(
+//						(bus_state_.row == layout_.vertical.end_cursor) ||
+//						(
+//							character_total_hit &&
+//							row_end_hit &&
+//							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
+//						)
+//					);
+//
+//					switch(cursor_type) {
+//						// MDA-style blinking.
+//						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+//						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
+//						case CursorType::MDA:
+//							switch(layout_.cursor_flags) {
+//								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
+//								case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
+//								case 0b01: is_cursor_line_ = false;								break;
+//								case 0b10: is_cursor_line_ = true;								break;
+//								default: break;
+//							}
+//						break;
+//					}
+//				}
+//
+//			//
+//			// Addressing.
+//			//
+//
+//				if(new_frame) {
+//					bus_state_.refresh = layout_.start_address;
+//				} else if(character_total_hit) {
+//					bus_state_.refresh = line_address_;
+//				} else {
+//					++bus_state_.refresh;
+//				}
+//
+//				if(new_frame) {
+//					line_address_ = layout_.start_address;
+//				} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
+//					line_address_ = bus_state_.refresh;
+//				}
 		}
 	}
 
@@ -370,8 +445,8 @@ private:
 
 	enum class InterlaceMode {
 		Off,
-		InterlaceSync,
-		InterlaceSyncAndVideo,
+		Sync,
+		SyncAndVideo,
 	};
 	enum class BlinkMode {
 		// TODO.
@@ -399,10 +474,6 @@ private:
 		} vertical;
 
 		InterlaceMode interlace_mode_ = InterlaceMode::Off;		// r08_interlace
-		LineAddress end_row() const {
-			return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ?
-				vertical.end_row & ~1 : vertical.end_row;
-		}
 
 		RefreshAddress start_address;		// r12_start_addr_h + r13_start_addr_l
 		RefreshAddress cursor_address;		// r14_cursor_h + r15_cursor_l
@@ -414,10 +485,11 @@ private:
 	uint8_t dummy_register_ = 0;
 	int selected_register_ = 0;
 
-	CharacterAddress character_counter_ = 0;	// h_counter
-	uint32_t character_reset_history_ = 0;
-	RowAddress row_counter_ = 0;				// row_counter
-	RowAddress next_row_counter_ = 0;			// row_counter_next
+	CharacterAddress character_counter_;		// h_counter
+	Numeric::SizedCounter<4> character_reset_history_;	// sol
+	RowAddress row_counter_;					// row_counter
+	RowAddress next_row_counter_;				// row_counter_next
+	LineAddress next_line_;						// line_counter_next
 	uint8_t adjustment_counter_ = 0;
 
 	bool character_is_visible_ = false;			// h_display
@@ -427,7 +499,8 @@ private:
 
 	SyncCounter hsync_counter_;					// h_sync_counter
 	SyncCounter vsync_counter_;					// v_sync_counter
-	bool is_in_adjustment_period_ = false;
+	bool will_adjust_ = false;					// in_adj
+	bool is_in_adjustment_period_ = false;		// adj_in_progress
 
 	RefreshAddress line_address_;
 	uint8_t status_ = 0;
@@ -435,19 +508,16 @@ private:
 	int display_skew_mask_ = 1;
 	unsigned int character_is_visible_shifter_ = 0;
 
-	bool eof_latched_ = false;
-	bool eom_latched_ = false;
-	bool odd_field_ = false;							// odd_field
+	bool eof_latched_ = false;					// eof_latched
+	bool eom_latched_ = false;					// eom_latched
+	bool odd_field_ = false;					// odd_field
+	bool extra_line_ = false;					// extra_scanline
 
-	// line_counter
-	// line_counter_next
-	// hs
-	// vs
-	// vs_hit
-	// vs_hit_last
-	// vs_even
-	// vs_odd
+	bool hit_vsync_last_ = false;				// vs_hit_last
+	bool vsync_even_ = false;					// vs_even
+	bool vsync_odd_ = false;					// vs_odd
 
+	bool reset_ = false;
 };
 
 }
