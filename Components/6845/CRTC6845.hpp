@@ -248,6 +248,22 @@ public:
 			// End-of-frame.
 			//
 
+
+				// Notes to self for later:
+				//
+				//	Lockup can occur when:
+				//		1. is_in_adjustment_period_ is set.
+				//		2. hence row_end_hit is never set.
+				//		3. hence eom_latched_ is never set.
+				//		4. hence will_adjust_ is never reset.
+				//		5. hence eof_latched_ cannot be reached.
+				//		6. hence new_frame is never set.
+				//
+				// It also looks like the first line of the the first column of the first row that should have
+				// display enabled false still has it true.
+				//
+				// Furthermore, interlaced modes still aren't stable?
+
 				if(new_frame) {
 					eof_latched_ = false;
 				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
