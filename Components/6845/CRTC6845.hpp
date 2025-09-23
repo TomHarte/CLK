@@ -184,7 +184,7 @@ public:
 			// Do bus work.
 			bus_state_.cursor = is_cursor_line_ &&
 				bus_state_.refresh == layout_.cursor_address;
-			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
+			bus_state_.display_enable = character_is_visible_ && row_is_visible_;
 			bus_handler_.perform_bus_cycle(bus_state_);
 
 			//
@@ -354,10 +354,10 @@ public:
 
 				// Vertical display enable.
 				if(is_first_scanline_) {
-					line_is_visible_ = true;
+					row_is_visible_ = true;
 					odd_field_ = bus_state_.field_count & 1;
-				} else if(line_is_visible_ && row_counter_ == layout_.vertical.displayed) {
-					line_is_visible_ = false;
+				} else if(row_is_visible_ && row_counter_ == layout_.vertical.displayed) {
+					row_is_visible_ = false;
 					++bus_state_.field_count;
 				}
 
@@ -493,7 +493,7 @@ private:
 	uint8_t adjustment_counter_ = 0;
 
 	bool character_is_visible_ = false;			// h_display
-	bool line_is_visible_ = false;				// v_display
+	bool row_is_visible_ = false;				// v_display
 	bool is_first_scanline_ = false;
 	bool is_cursor_line_ = false;
 
