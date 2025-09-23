@@ -28,20 +28,35 @@ struct SizedCounter {
 		return counter_;
 	}
 
-	SizedCounter operator +(const SizedCounter offset) const {
-		return SizedCounter<bits>(counter_ + offset.counter_);
+	SizedCounter operator +(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ + offset.counter_); }
+	SizedCounter operator -(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ - offset.counter_); }
+	SizedCounter operator &(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ & offset.counter_); }
+	SizedCounter operator |(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ | offset.counter_); }
+	SizedCounter operator ^(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ ^ offset.counter_); }
+	SizedCounter operator >>(const int shift) const {	return SizedCounter<bits>(counter_ >> shift);	}
+	SizedCounter operator <<(const int shift) const {	return SizedCounter<bits>(counter_ << shift);	}
+
+	SizedCounter &operator &=(const SizedCounter offset) {
+		counter_ &= offset.counter_;
+		return *this;
+	}
+	SizedCounter &operator |=(const SizedCounter offset) {
+		counter_ |= offset.counter_;
+		return *this;
+	}
+	SizedCounter &operator ^=(const SizedCounter offset) {
+		counter_ ^= offset.counter_;
+		return *this;
 	}
 
-	SizedCounter operator &(const SizedCounter offset) const {
-		return SizedCounter<bits>(counter_ & offset.counter_);
+	SizedCounter &operator <<=(const int shift) {
+		counter_ = (counter_ << shift) & Mask;
+		return *this;
 	}
 
-	SizedCounter operator >>(const int shift) const {
-		return SizedCounter<bits>(counter_ >> shift);
-	}
-
-	SizedCounter operator <<(const int shift) const {
-		return SizedCounter<bits>(counter_ << shift);
+	SizedCounter &operator >>=(const int shift) {
+		counter_ >>= shift;
+		return *this;
 	}
 
 	SizedCounter &operator ++(int) {
@@ -76,6 +91,12 @@ struct SizedCounter {
 	template <int begin, typename IntT>
 	void load(const IntT value) {
 		load<begin, begin + sizeof(IntT)*8>(value);
+	}
+
+	template <int index>
+	requires (index < bits)
+	bool bit() {
+		return counter_ & (1 << index);
 	}
 
 private:
