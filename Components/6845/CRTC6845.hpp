@@ -184,6 +184,7 @@ public:
 				bus_state_.refresh == layout_.cursor_address;
 			bus_state_.display_enable = character_is_visible_ && row_is_visible_;
 			bus_handler_.perform_bus_cycle(bus_state_);
+			// TODO: exposed line address should be a function of interlaced video flag, as latched.
 
 			//
 			// Shared, stateless signals.
@@ -205,22 +206,20 @@ public:
 			// Addressing.
 			//
 
+				const auto initial_line_address = line_address_;
 				if(new_frame) {
 					line_address_ = layout_.start_address;
 				} else if(character_counter_ == layout_.horizontal.displayed && line_end_hit) {
 					line_address_ = bus_state_.refresh;
-					// TODO: does this create a conflict with line_address_ heading in the other direction below?
 				}
 
 				if(new_frame) {
 					bus_state_.refresh = layout_.start_address;
 				} else if(character_total_hit) {
-					bus_state_.refresh = line_address_;
+					bus_state_.refresh = initial_line_address;
 				} else {
 					++bus_state_.refresh;
 				}
-
-				// TODO: exposed line address should be a function of interlaced video flag, as latched.
 
 			//
 			// Sync.
