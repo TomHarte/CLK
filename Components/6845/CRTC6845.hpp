@@ -36,7 +36,7 @@ struct BusState {
 	bool vsync = false;		// vs
 	bool cursor = false;
 	RefreshAddress refresh;	// ma_i
-	LineAddress line;		// line_counter
+	LineAddress line;
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
@@ -179,21 +179,25 @@ public:
 			// ordered so that whatever assignments result don't affect any subsequent conditionals
 
 
-			// Do bus work.
-			bus_state_.display_enable = character_is_visible_ && row_is_visible_;
-			bus_state_.cursor = (is_cursor_line_ && bus_state_.refresh == layout_.cursor_address)
-				&& bus_state_.display_enable;
-			bus_handler_.perform_bus_cycle(bus_state_);
-			// TODO: exposed line address should be a function of interlaced video flag, as latched.
+			//
+			// External bus activity.
+			//
+				bus_state_.line = line_is_interlaced_ ? (line_ & LineAddress::IntT(~1)) | (odd_field_ ? 1 : 0) : line_;
+				bus_state_.display_enable = character_is_visible_ && row_is_visible_;
+				bus_state_.cursor = (is_cursor_line_ && bus_state_.refresh == layout_.cursor_address)
+					&& bus_state_.display_enable;
+
+				bus_handler_.perform_bus_cycle(bus_state_);
+
 
 			//
-			// Shared, stateless signals.
+			// Shared signals.
 			//
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;		// r00_h_total_hit
 				const auto lines_per_row =
 					layout_.interlace_mode_ == InterlaceMode::SyncAndVideo ?
 						layout_.vertical.end_line & LineAddress::IntT(~1) : layout_.vertical.end_line;	// max_scanline
-				const bool line_end_hit = bus_state_.line == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
+				const bool line_end_hit = line_ == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
 				const bool new_frame =
 					character_total_hit && eof_latched_ &&
 					(
@@ -201,6 +205,7 @@ public:
 						!bus_state_.field_count.bit<0>() ||
 						extra_line_
 					);		// new_frame
+
 
 			//
 			// Addressing.
@@ -219,6 +224,12 @@ public:
 					bus_state_.refresh = initial_line_address;
 				} else {
 					++bus_state_.refresh;
+				}
+
+				// Follow hoglet's lead in means of avoiding the logic that informs line address b0 varying
+				// within a line if interlace mode is enabled/disabled.
+				if(character_total_hit) {
+					line_is_interlaced_ = layout_.interlace_mode_ == InterlaceMode::SyncAndVideo;
 				}
 
 			//
@@ -310,17 +321,17 @@ public:
 				// Counts in steps of 2 only if & 3) mode is InterlaceMode::SyncAndVideo and this is
 				// not the adjustment period. Otherwise counts in steps of 1.
 				if(new_frame) {
-					bus_state_.line = 0;
+					line_ = 0;
 				} else if(character_total_hit) {
-					bus_state_.line = next_line_;
+					line_ = next_line_;
 				}
 
 				if(line_end_hit) {
 					next_line_ = 0;
 				} else if(is_in_adjustment_period_ || layout_.interlace_mode_ != InterlaceMode::SyncAndVideo) {
-					next_line_ = bus_state_.line + 1;
+					next_line_ = line_ + 1;
 				} else {
-					next_line_ = bus_state_.line + 2;
+					next_line_ = line_ + 2;
 				}
 
 				// Update row counter.
@@ -401,9 +412,9 @@ public:
 				if constexpr (cursor_type != CursorType::None) {
 					// Check for cursor enable.
 
-					is_cursor_line_ |= bus_state_.line == layout_.vertical.start_cursor;
+					is_cursor_line_ |= line_ == layout_.vertical.start_cursor;
 					is_cursor_line_ &= !(
-						(bus_state_.line == layout_.vertical.end_cursor) ||
+						(line_ == layout_.vertical.end_cursor) ||
 						(
 							character_total_hit &&
 							line_end_hit &&
@@ -496,6 +507,7 @@ private:
 	Numeric::SizedCounter<3> character_reset_history_;	// sol
 	RowAddress row_counter_;					// row_counter
 	RowAddress next_row_counter_;				// row_counter_next
+	LineAddress line_;							// line_counter
 	LineAddress next_line_;						// line_counter_next
 	uint8_t adjustment_counter_ = 0;
 
@@ -526,7 +538,8 @@ private:
 
 	bool reset_ = false;
 
-	Numeric::SizedCounter<3> cursor_history_;	// cursor0, cursor1, cursor2
+	Numeric::SizedCounter<3> cursor_history_;	// cursor0, cursor1, cursor2 [TODO]
+	bool line_is_interlaced_ = false;
 };
 
 }
