@@ -211,7 +211,7 @@ public:
 				// Sync width of 0 => 16 lines of sync.
 				// Triggered by the row counter becoming equal to the sync start position, regardless of when.
 				// Subsequently increments at the start of each line.
-				const bool hit_vsync = row_counter_ == layout_.vertical.start_sync;
+				const bool hit_vsync = row_counter_ == layout_.vertical.start_sync;		// vs_hit
 				const bool is_vsync_rising_edge = hit_vsync && !hit_vsync_last_;
 				hit_vsync_last_ = hit_vsync;
 
@@ -229,7 +229,7 @@ public:
 				// target, one cycle after reset of the horizontal counter.
 				if(is_vsync_rising_edge) {
 					vsync_even_ = true;
-				} else if(vsync_counter_ == layout_.vertical.sync_lines && character_reset_history_.bit<1>()) {
+				} else if(vsync_counter_ == layout_.vertical.sync_lines && character_reset_history_.bit<0>()) {
 					vsync_even_ = false;
 				}
 
@@ -245,16 +245,15 @@ public:
 				//
 				// A sync width of 0 should mean that no sync is observed.
 				// Hitting the start sync condition while sync is already ongoing should have no effect.
-				if(character_counter_ == layout_.horizontal.start_sync) {
-					bus_state_.hsync = true;
-				}
-				if(hsync_counter_ == layout_.horizontal.sync_width) {
-					bus_state_.hsync = false;
-				}
 				if(bus_state_.hsync) {
 					++hsync_counter_;
 				} else {
 					hsync_counter_ = 0;
+				}
+				if(hsync_counter_ == layout_.horizontal.sync_width) {
+					bus_state_.hsync = false;
+				} else if(character_counter_ == layout_.horizontal.start_sync) {
+					bus_state_.hsync = true;
 				}
 
 
@@ -266,7 +265,7 @@ public:
 				if(!character_counter_) {
 					character_is_visible_ = true;
 				}
-				if(character_counter_ == layout_.horizontal.displayed) {
+				if(character_counter_ == layout_.horizontal.displayed || character_total_hit) {
 					character_is_visible_ = false;
 				}
 
@@ -413,7 +412,13 @@ public:
 					is_first_scanline_ = false;
 				}
 
-				if(character_total_hit && eof_latched_ && bus_state_.field_count.bit<0>() /* && !extra_line_ */) {
+				if(
+					character_total_hit &&
+					eof_latched_ &&
+					layout_.interlace_mode_ != InterlaceMode::Off &&
+					bus_state_.field_count.bit<0>() &&
+					!extra_line_
+				) {
 					extra_line_ = true;
 				} else if(character_total_hit) {
 					extra_line_ = false;
@@ -421,13 +426,13 @@ public:
 
 				if(new_frame) {
 					eof_latched_ = false;
-				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
+				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<2>()) {
 					eof_latched_ = true;
 				}
 
 				if(new_frame) {
 					will_adjust_ = false;
-				} else if(character_reset_history_.bit<2>() && eom_latched_ && row_counter_ == layout_.vertical.total) {
+				} else if(character_reset_history_.bit<1>() && eom_latched_) {
 					if(next_line_ == layout_.vertical.adjust) {
 						will_adjust_ = false;
 					} else {
@@ -438,7 +443,7 @@ public:
 				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
 				if(new_frame) {
 					eom_latched_ = false;
-				} else if(character_reset_history_.bit<1>() && line_end_hit && row_counter_ == layout_.vertical.total) {
+				} else if(character_reset_history_.bit<0>() && line_end_hit && row_counter_ == layout_.vertical.total) {
 					eom_latched_ = true;
 				}
 
@@ -507,7 +512,7 @@ private:
 	int selected_register_ = 0;
 
 	CharacterAddress character_counter_;		// h_counter
-	Numeric::SizedCounter<4> character_reset_history_;	// sol
+	Numeric::SizedCounter<3> character_reset_history_;	// sol
 	RowAddress row_counter_;					// row_counter
 	RowAddress next_row_counter_;				// row_counter_next
 	LineAddress next_line_;						// line_counter_next
