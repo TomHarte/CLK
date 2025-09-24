@@ -202,6 +202,27 @@ public:
 					);		// new_frame
 
 			//
+			// Addressing.
+			//
+
+				if(new_frame) {
+					line_address_ = layout_.start_address;
+				} else if(character_counter_ == layout_.horizontal.displayed && line_end_hit) {
+					line_address_ = bus_state_.refresh;
+					// TODO: does this create a conflict with line_address_ heading in the other direction below?
+				}
+
+				if(new_frame) {
+					bus_state_.refresh = layout_.start_address;
+				} else if(character_total_hit) {
+					bus_state_.refresh = line_address_;
+				} else {
+					++bus_state_.refresh;
+				}
+
+				// TODO: exposed line address should be a function of interlaced video flag, as latched.
+
+			//
 			// Sync.
 			//
 
@@ -322,31 +343,7 @@ public:
 					++bus_state_.field_count;
 				}
 
-//				// Row address.
-//				if(character_total_hit) {
-//					if(was_eof) {
-//						bus_state_.row = 0;
-//						eof_latched_ = eom_latched_ = false;
-//					} else if(line_end_hit) {
-//						bus_state_.row = 0;
-//					} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
-//						bus_state_.row += 2;
-//					} else {
-//						++bus_state_.row;
-//					}
-//				}
-//
-//				// Row counter.
-//				row_counter_ = next_row_counter_;
-//				if(new_frame) {
-//					next_row_counter_ = 0;
-//					is_first_scanline_ = true;
-//				} else {
-//					next_row_counter_ = line_end_hit && character_total_hit ?
-//						(next_row_counter_ + 1) : next_row_counter_;
-//					is_first_scanline_ &= !line_end_hit;
-//				}
-//
+
 //				// Cursor.
 //				if constexpr (cursor_type != CursorType::None) {
 //					// Check for cursor enable.
@@ -375,25 +372,6 @@ public:
 //						break;
 //					}
 //				}
-//
-//			//
-//			// Addressing.
-//			//
-//
-//				if(new_frame) {
-//					bus_state_.refresh = layout_.start_address;
-//				} else if(character_total_hit) {
-//					bus_state_.refresh = line_address_;
-//				} else {
-//					++bus_state_.refresh;
-//				}
-//
-//				if(new_frame) {
-//					line_address_ = layout_.start_address;
-//				} else if(character_counter_ == layout_.horizontal.displayed && line_end_hit) {
-//					line_address_ = bus_state_.refresh;
-//				}
-
 
 
 			//
@@ -528,7 +506,7 @@ private:
 	bool will_adjust_ = false;					// in_adj
 	bool is_in_adjustment_period_ = false;		// adj_in_progress
 
-	RefreshAddress line_address_;
+	RefreshAddress line_address_;				// ma_row
 	uint8_t status_ = 0;
 
 	int display_skew_mask_ = 1;

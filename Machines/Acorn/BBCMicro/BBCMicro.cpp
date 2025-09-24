@@ -346,7 +346,7 @@ public:
 		}
 
 		OutputMode output_mode;
-		const bool should_fetch = state.display_enable && !(state.line.get() & 8);
+		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
@@ -411,8 +411,8 @@ public:
 				}
 
 				// Hard coded: pixel mode! TODO: teletext mode.
-//				pixel_shifter_ = should_fetch ? ram_[address] : 0;
-				pixel_shifter_ = should_fetch ? (address & 0xff) : 0;	// TODO: eliminate once 6845 addresses are
+				pixel_shifter_ = should_fetch ? ram_[address] : 0;
+//				pixel_shifter_ = should_fetch ? (address & 0xff) : 0;	// TODO: eliminate once 6845 addresses are
 																		// meaningful again.
 				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
 					case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
