@@ -180,9 +180,9 @@ public:
 
 
 			// Do bus work.
-			bus_state_.cursor = is_cursor_line_ &&
-				bus_state_.refresh == layout_.cursor_address;
 			bus_state_.display_enable = character_is_visible_ && row_is_visible_;
+			bus_state_.cursor = (is_cursor_line_ && bus_state_.refresh == layout_.cursor_address)
+				&& bus_state_.display_enable;
 			bus_handler_.perform_bus_cycle(bus_state_);
 			// TODO: exposed line address should be a function of interlaced video flag, as latched.
 
@@ -343,36 +343,6 @@ public:
 				}
 
 
-//				// Cursor.
-//				if constexpr (cursor_type != CursorType::None) {
-//					// Check for cursor enable.
-//					is_cursor_line_ |= bus_state_.row == layout_.vertical.start_cursor;
-//					is_cursor_line_ &= !(
-//						(bus_state_.row == layout_.vertical.end_cursor) ||
-//						(
-//							character_total_hit &&
-//							line_end_hit &&
-//							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
-//						)
-//					);
-//
-//					switch(cursor_type) {
-//						// MDA-style blinking.
-//						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
-//						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
-//						case CursorType::MDA:
-//							switch(layout_.cursor_flags) {
-//								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
-//								case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
-//								case 0b01: is_cursor_line_ = false;								break;
-//								case 0b10: is_cursor_line_ = true;								break;
-//								default: break;
-//							}
-//						break;
-//					}
-//				}
-
-
 			//
 			// End-of-frame.
 			//
@@ -423,6 +393,40 @@ public:
 				} else if(character_reset_history_.bit<0>() && line_end_hit && row_counter_ == layout_.vertical.total) {
 					eom_latched_ = true;
 				}
+
+			//
+			// Cursor
+			//
+				cursor_history_ <<= 1;
+				if constexpr (cursor_type != CursorType::None) {
+					// Check for cursor enable.
+
+					is_cursor_line_ |= bus_state_.line == layout_.vertical.start_cursor;
+					is_cursor_line_ &= !(
+						(bus_state_.line == layout_.vertical.end_cursor) ||
+						(
+							character_total_hit &&
+							line_end_hit &&
+							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
+						)
+					);
+
+					switch(cursor_type) {
+						// MDA-style blinking.
+						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
+						case CursorType::MDA:
+							switch(layout_.cursor_flags) {
+								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
+								case 0b00: is_cursor_line_ &= bus_state_.field_count.bit<3>();	break;
+								case 0b01: is_cursor_line_ = false;								break;
+								case 0b10: is_cursor_line_ = true;								break;
+								default: break;
+							}
+						break;
+					}
+				}
+
 
 			//
 			// Event history.
@@ -521,6 +525,8 @@ private:
 	bool vsync_odd_ = false;					// vs_odd
 
 	bool reset_ = false;
+
+	Numeric::SizedCounter<3> cursor_history_;	// cursor0, cursor1, cursor2
 };
 
 }
