@@ -221,6 +221,14 @@ public:
 					hsync_counter_ = 0;
 				}
 
+				// Check for visible characters.
+				if(!character_counter_) {
+					character_is_visible_ = true;
+				}
+				if(character_counter_ == layout_.horizontal.displayed) {
+					character_is_visible_ = false;
+				}
+
 				// Check for end-of-line.
 				//
 				// character_reset_history_ is used because some events are defined to occur one or two
@@ -232,14 +240,6 @@ public:
 					character_reset_history_ |= 1;
 				} else {
 					++character_counter_;
-				}
-
-				// Check for visible characters.
-				if(!character_counter_) {
-					character_is_visible_ = true;
-				}
-				if(character_counter_ == layout_.horizontal.displayed) {
-					character_is_visible_ = false;
 				}
 
 			//

@@ -410,8 +410,10 @@ public:
 					}
 				}
 
-				// Hard coded: pixel mode!
-				pixel_shifter_ = should_fetch ? ram_[address] : 0;
+				// Hard coded: pixel mode! TODO: teletext mode.
+//				pixel_shifter_ = should_fetch ? ram_[address] : 0;
+				pixel_shifter_ = should_fetch ? (address & 0xff) : 0;	// TODO: eliminate once 6845 addresses are
+																		// meaningful again.
 				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
 					case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
 					case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
