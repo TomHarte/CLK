@@ -127,7 +127,7 @@ public:
 					}
 				}
 			break;
-			case 9:	layout_.vertical.end_row = value & 0x1f;	break;
+			case 9:	layout_.vertical.end_line = value & 0x1f;	break;
 			case 10:
 				layout_.vertical.start_cursor = value & 0x1f;
 				layout_.cursor_flags = (value >> 5) & 3;
@@ -191,7 +191,7 @@ public:
 				const bool character_total_hit = character_counter_ == layout_.horizontal.total;		// r00_h_total_hit
 				const auto lines_per_row =
 					layout_.interlace_mode_ == InterlaceMode::SyncAndVideo ?
-						layout_.vertical.end_row & ~1 : layout_.vertical.end_row;						// max_scanline
+						layout_.vertical.end_line & LineAddress::IntT(~1) : layout_.vertical.end_line;	// max_scanline
 				const bool row_end_hit = bus_state_.line == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
 				const bool new_frame =
 					character_total_hit && eof_latched_ &&
@@ -482,7 +482,7 @@ private:
 			SyncCounter sync_lines;		// r03_v_sync_width
 			LineAddress adjust;			// r05_v_total_adj
 
-			LineAddress end_row;		// r09_max_scanline_addr
+			LineAddress end_line;		// r09_max_scanline_addr
 			LineAddress start_cursor;	// r10_cursor_start
 			LineAddress end_cursor;		// r11_cursor_end
 		} vertical;
