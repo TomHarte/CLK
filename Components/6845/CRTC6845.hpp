@@ -331,7 +331,7 @@ public:
 				} else if(is_in_adjustment_period_ || layout_.interlace_mode_ != InterlaceMode::SyncAndVideo) {
 					next_line_ = line_ + 1;
 				} else {
-					next_line_ = line_ + 2;
+					next_line_ = (line_ + 2) & LineAddress::IntT(~1);
 				}
 
 				// Update row counter.

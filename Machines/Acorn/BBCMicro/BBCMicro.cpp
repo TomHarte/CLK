@@ -120,9 +120,9 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		audio_(audio), video_base_(video_base), via_(via)
 	{
 		// Set initial mode to mode 0.
-		set_key(7, true);
-		set_key(8, true);
-		set_key(9, true);
+//		set_key(7, true);
+//		set_key(8, true);
+//		set_key(9, true);
 	}
 
 	// CA2: key pressed;
