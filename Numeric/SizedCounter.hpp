@@ -95,7 +95,7 @@ struct SizedCounter {
 
 	template <int index>
 	requires (index < bits)
-	bool bit() {
+	bool bit() const {
 		return counter_ & (1 << index);
 	}
 

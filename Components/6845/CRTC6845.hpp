@@ -40,7 +40,7 @@ struct BusState {
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
-	int field_count = 0;		// field_counter
+	Numeric::SizedCounter<5> field_count = 0;		// field_counter
 };
 
 class BusHandler {
@@ -197,7 +197,7 @@ public:
 					character_total_hit && eof_latched_ &&
 					(
 						layout_.interlace_mode_ == InterlaceMode::Off ||
-						!odd_field_ ||
+						!bus_state_.field_count.bit<0>() ||
 						extra_line_
 					);		// new_frame
 
@@ -263,12 +263,6 @@ public:
 				// Furthermore, interlaced modes still aren't stable?
 
 				if(new_frame) {
-					eof_latched_ = false;
-				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
-					eof_latched_ = true;
-				}
-
-				if(new_frame) {
 					is_in_adjustment_period_ = false;
 				} else if(character_total_hit && eom_latched_ && will_adjust_) {
 					is_in_adjustment_period_ = true;
@@ -280,16 +274,10 @@ public:
 					is_first_scanline_ = false;
 				}
 
-				if(character_total_hit && eof_latched_ && bus_state_.field_count&1 && !extra_line_) {
+				if(character_total_hit && eof_latched_ && bus_state_.field_count.bit<0>() && !extra_line_) {
 					extra_line_ = true;
 				} else if(character_total_hit) {
 					extra_line_ = false;
-				}
-
-				if(new_frame) {
-					eom_latched_ = false;
-				} else if(character_reset_history_.bit<1>() && row_end_hit && row_counter_ == layout_.vertical.total) {
-					eom_latched_ = true;
 				}
 
 				if(new_frame) {
@@ -302,6 +290,18 @@ public:
 					}
 				}
 
+				if(new_frame) {
+					eof_latched_ = false;
+				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
+					eof_latched_ = true;
+				}
+
+				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
+				if(new_frame) {
+					eom_latched_ = false;
+				} else if(character_reset_history_.bit<1>() && row_end_hit && row_counter_ == layout_.vertical.total) {
+					eom_latched_ = true;
+				}
 
 			//
 			// Vertical.
@@ -309,7 +309,7 @@ public:
 
 				// Update line counter (which also counts the vertical adjust period).
 				//
-				// Counts in steps of 2 only if interlaced mode is InterlaceMode::SyncAndVideo and this is
+				// Counts in steps of 2 only if & 3) mode is InterlaceMode::SyncAndVideo and this is
 				// not the adjustment period. Otherwise counts in steps of 1.
 				if(new_frame) {
 					bus_state_.line = 0;
@@ -369,7 +369,7 @@ public:
 				// Vertical display enable.
 				if(is_first_scanline_) {
 					row_is_visible_ = true;
-					odd_field_ = bus_state_.field_count & 1;
+					odd_field_ = bus_state_.field_count.bit<0>();
 				} else if(row_is_visible_ && row_counter_ == layout_.vertical.displayed) {
 					row_is_visible_ = false;
 					++bus_state_.field_count;
@@ -458,8 +458,11 @@ private:
 	BusState bus_state_;
 
 	enum class InterlaceMode {
+		/// No interlacing.
 		Off,
+		/// Provide interlaced sync, but just scan out the exact same display for each field.
 		Sync,
+		/// Provide interlaced sync and scan even/odd lines depending on field.
 		SyncAndVideo,
 	};
 	enum class BlinkMode {

@@ -304,7 +304,7 @@ private:
 			// Apply blink or background intensity.
 			if(control_ & 0x20) {
 				// Set both colours to black if within a blink; otherwise consider a yellow-to-brown conversion.
-				if((attributes & 0x80) && (state.field_count & 16)) {
+				if((attributes & 0x80) && state.field_count.bit<4>()) {
 					colours[0] = colours[1] = 0;
 				} else {
 					colours[0] = yellow_to_brown(colours[0]);

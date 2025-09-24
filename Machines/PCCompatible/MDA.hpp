@@ -178,7 +178,7 @@ private:
 						}
 
 						// Apply blink if enabled.
-						if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
+						if((control_ & 0x20) && (attributes & 0x80) && state.field_count.bit<4>()) {
 							row ^= 0xff;
 							blank = (blank == off) ? intensity : off;
 						}
