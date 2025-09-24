@@ -202,10 +202,46 @@ public:
 					);		// new_frame
 
 			//
-			// Horizontal.
+			// Sync.
 			//
 
-				// Update horizontal sync.
+				// Vertical sync.
+				//
+				// Counter:
+				// Sync width of 0 => 16 lines of sync.
+				// Triggered by the row counter becoming equal to the sync start position, regardless of when.
+				// Subsequently increments at the start of each line.
+				const bool hit_vsync = row_counter_ == layout_.vertical.start_sync;
+				const bool is_vsync_rising_edge = hit_vsync && !hit_vsync_last_;
+				hit_vsync_last_ = hit_vsync;
+
+				// Select odd or even sync depending on the field.
+				// (Noted: the reverse-odd-test is intentional)
+				bus_state_.vsync = (layout_.interlace_mode_ != InterlaceMode::Off && !odd_field_) ?
+					vsync_odd_ : vsync_even_;
+
+				// Odd sync copies even sync, but half a line later.
+				if(character_counter_ == layout_.horizontal.total >> 1) {
+					vsync_odd_ = vsync_even_;
+				}
+
+				// Even sync begins on the rising edge of vsync, then continues until the counter hits its proper
+				// target, one cycle after reset of the horizontal counter.
+				if(is_vsync_rising_edge) {
+					vsync_even_ = true;
+				} else if(vsync_counter_ == layout_.vertical.sync_lines && character_reset_history_.bit<1>()) {
+					vsync_even_ = false;
+				}
+
+				// The vsync counter is zeroed by the rising edge of sync but subsequently increments immediately
+				// upon reset of the horizontal counter.
+				if(is_vsync_rising_edge) {
+					vsync_counter_ = 0;
+				} else if(character_total_hit) {
+					++vsync_counter_;
+				}
+
+				// Horizontal sync.
 				//
 				// A sync width of 0 should mean that no sync is observed.
 				// Hitting the start sync condition while sync is already ongoing should have no effect.
@@ -221,7 +257,12 @@ public:
 					hsync_counter_ = 0;
 				}
 
-				// Check for visible characters.
+
+			//
+			// Horizontal.
+			//
+
+				// Check for visible characters; visibility starts in the first column and continues
 				if(!character_counter_) {
 					character_is_visible_ = true;
 				}
@@ -234,74 +275,12 @@ public:
 				// character_reset_history_ is used because some events are defined to occur one or two
 				// cycles after end-of-line regardless of whether an additional end of line is hit in
 				// the interim.
-				character_reset_history_ <<= 1;
 				if(character_total_hit) {
 					character_counter_ = 0;
-					character_reset_history_ |= 1;
 				} else {
 					++character_counter_;
 				}
 
-			//
-			// End-of-frame.
-			//
-
-
-				// Notes to self for later:
-				//
-				//	Lockup can occur when:
-				//		1. is_in_adjustment_period_ is set.
-				//		2. hence row_end_hit is never set.
-				//		3. hence eom_latched_ is never set.
-				//		4. hence will_adjust_ is never reset.
-				//		5. hence eof_latched_ cannot be reached.
-				//		6. hence new_frame is never set.
-				//
-				// It also looks like the first line of the the first column of the first row that should have
-				// display enabled false still has it true.
-				//
-				// Furthermore, interlaced modes still aren't stable?
-
-				if(new_frame) {
-					is_in_adjustment_period_ = false;
-				} else if(character_total_hit && eom_latched_ && will_adjust_) {
-					is_in_adjustment_period_ = true;
-				}
-
-				if(new_frame) {
-					is_first_scanline_ = true;
-				} else if(character_total_hit) {
-					is_first_scanline_ = false;
-				}
-
-				if(character_total_hit && eof_latched_ && bus_state_.field_count.bit<0>() && !extra_line_) {
-					extra_line_ = true;
-				} else if(character_total_hit) {
-					extra_line_ = false;
-				}
-
-				if(new_frame) {
-					will_adjust_ = false;
-				} else if(character_reset_history_.bit<2>() && eom_latched_ && row_counter_ == layout_.vertical.total) {
-					if(next_line_ == layout_.vertical.adjust) {
-						will_adjust_ = false;
-					} else {
-						will_adjust_ = true;
-					}
-				}
-
-				if(new_frame) {
-					eof_latched_ = false;
-				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
-					eof_latched_ = true;
-				}
-
-				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
-				if(new_frame) {
-					eom_latched_ = false;
-				} else if(character_reset_history_.bit<1>() && row_end_hit && row_counter_ == layout_.vertical.total) {
-					eom_latched_ = true;
-				}
 
 			//
 			// Vertical.
@@ -334,37 +313,6 @@ public:
 				} else if(character_total_hit && row_end_hit) {
 					next_row_counter_ = row_counter_ + 1;
 				}
-
-				// Sync.
-				//
-				// Counter:
-				// Sync width of 0 => 16 lines of sync.
-				// Triggered by the row counter becoming equal to the sync start position, regardless of when.
-				// Subsequently increments at the start of each line.
-				const bool hit_vsync = row_counter_ == layout_.vertical.start_sync;
-				const bool is_vsync_rising_edge = hit_vsync && !hit_vsync_last_;
-				if(is_vsync_rising_edge) {
-					vsync_counter_ = 0;
-				} else if(character_total_hit) {
-					++vsync_counter_;
-				}
-				hit_vsync_last_ = hit_vsync;
-
-				if(is_vsync_rising_edge) {
-					vsync_even_ = true;
-				} else if(vsync_counter_ == layout_.vertical.sync_lines && character_reset_history_.bit<1>()) {
-					vsync_even_ = false;
-				}
-
-				// Odd sync copies even sync, but half a line later.
-				if(character_counter_ == layout_.horizontal.total >> 1) {
-					vsync_odd_ = vsync_even_;
-				}
-
-				// Select odd or even sync depending on the field.
-				// (Noted: the reverse-odd-test is intentional)
-				bus_state_.vsync = (layout_.interlace_mode_ != InterlaceMode::Off && !odd_field_) ?
-					vsync_odd_ : vsync_even_;
 
 				// Vertical display enable.
 				if(is_first_scanline_) {
@@ -446,6 +394,62 @@ public:
 //				} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
 //					line_address_ = bus_state_.refresh;
 //				}
+
+
+
+			//
+			// End-of-frame.
+			//
+
+				if(new_frame) {
+					is_in_adjustment_period_ = false;
+				} else if(character_total_hit && eom_latched_ && will_adjust_) {
+					is_in_adjustment_period_ = true;
+				}
+
+				if(new_frame) {
+					is_first_scanline_ = true;
+				} else if(character_total_hit) {
+					is_first_scanline_ = false;
+				}
+
+				if(character_total_hit && eof_latched_ && bus_state_.field_count.bit<0>() /* && !extra_line_ */) {
+					extra_line_ = true;
+				} else if(character_total_hit) {
+					extra_line_ = false;
+				}
+
+				if(new_frame) {
+					eof_latched_ = false;
+				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<3>()) {
+					eof_latched_ = true;
+				}
+
+				if(new_frame) {
+					will_adjust_ = false;
+				} else if(character_reset_history_.bit<2>() && eom_latched_ && row_counter_ == layout_.vertical.total) {
+					if(next_line_ == layout_.vertical.adjust) {
+						will_adjust_ = false;
+					} else {
+						will_adjust_ = true;
+					}
+				}
+
+				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
+				if(new_frame) {
+					eom_latched_ = false;
+				} else if(character_reset_history_.bit<1>() && row_end_hit && row_counter_ == layout_.vertical.total) {
+					eom_latched_ = true;
+				}
+
+			//
+			// Event history.
+			//
+
+				// Somewhat of a fiction, this keeps a track of recent character resets because
+				// some events are keyed on 1 cycle after last reset, 2 cycles after last reset, etc.
+				character_reset_history_ <<= 1;
+				character_reset_history_ |= character_total_hit;
 		}
 	}
 
