@@ -192,7 +192,7 @@ public:
 				const auto lines_per_row =
 					layout_.interlace_mode_ == InterlaceMode::SyncAndVideo ?
 						layout_.vertical.end_line & LineAddress::IntT(~1) : layout_.vertical.end_line;	// max_scanline
-				const bool row_end_hit = bus_state_.line == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
+				const bool line_end_hit = bus_state_.line == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
 				const bool new_frame =
 					character_total_hit && eof_latched_ &&
 					(
@@ -296,7 +296,7 @@ public:
 					bus_state_.line = next_line_;
 				}
 
-				if(row_end_hit) {
+				if(line_end_hit) {
 					next_line_ = 0;
 				} else if(is_in_adjustment_period_ || layout_.interlace_mode_ != InterlaceMode::SyncAndVideo) {
 					next_line_ = bus_state_.line + 1;
@@ -310,7 +310,7 @@ public:
 				row_counter_ = next_row_counter_;
 				if(new_frame) {
 					next_row_counter_ = 0;
-				} else if(character_total_hit && row_end_hit) {
+				} else if(character_total_hit && line_end_hit) {
 					next_row_counter_ = row_counter_ + 1;
 				}
 
@@ -328,7 +328,7 @@ public:
 //					if(was_eof) {
 //						bus_state_.row = 0;
 //						eof_latched_ = eom_latched_ = false;
-//					} else if(row_end_hit) {
+//					} else if(line_end_hit) {
 //						bus_state_.row = 0;
 //					} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
 //						bus_state_.row += 2;
@@ -343,9 +343,9 @@ public:
 //					next_row_counter_ = 0;
 //					is_first_scanline_ = true;
 //				} else {
-//					next_row_counter_ = row_end_hit && character_total_hit ?
+//					next_row_counter_ = line_end_hit && character_total_hit ?
 //						(next_row_counter_ + 1) : next_row_counter_;
-//					is_first_scanline_ &= !row_end_hit;
+//					is_first_scanline_ &= !line_end_hit;
 //				}
 //
 //				// Cursor.
@@ -356,7 +356,7 @@ public:
 //						(bus_state_.row == layout_.vertical.end_cursor) ||
 //						(
 //							character_total_hit &&
-//							row_end_hit &&
+//							line_end_hit &&
 //							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
 //						)
 //					);
@@ -391,7 +391,7 @@ public:
 //
 //				if(new_frame) {
 //					line_address_ = layout_.start_address;
-//				} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
+//				} else if(character_counter_ == layout_.horizontal.displayed && line_end_hit) {
 //					line_address_ = bus_state_.refresh;
 //				}
 
@@ -438,7 +438,7 @@ public:
 				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
 				if(new_frame) {
 					eom_latched_ = false;
-				} else if(character_reset_history_.bit<1>() && row_end_hit && row_counter_ == layout_.vertical.total) {
+				} else if(character_reset_history_.bit<1>() && line_end_hit && row_counter_ == layout_.vertical.total) {
 					eom_latched_ = true;
 				}
 
