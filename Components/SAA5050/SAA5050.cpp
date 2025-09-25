@@ -122,15 +122,15 @@ constexpr uint16_t scale(const uint8_t top, const uint8_t bottom) {
 		((top & 0x08) ? 0b0000'1100'0000 : 0) |
 		((top & 0x10) ? 0b0011'0000'0000 : 0);
 
-	if ((top&0x10) && (bottom&0x08) && !(bottom&0x10)) wide |= 0x0080;
-	if ((top&0x08) && (bottom&0x04) && !(bottom&0x08)) wide |= 0x0020;
-	if ((top&0x04) && (bottom&0x02) && !(bottom&0x04)) wide |= 0x0008;
-	if ((top&0x02) && (bottom&0x01) && !(bottom&0x02)) wide |= 0x0002;
+	if((top & 0x10) && (bottom & 0x08) && !(bottom & 0x10)) wide |= 0b0000'1000'0000;
+	if((top & 0x08) && (bottom & 0x04) && !(bottom & 0x08)) wide |= 0b0000'0010'0000;
+	if((top & 0x04) && (bottom & 0x02) && !(bottom & 0x04)) wide |= 0b0000'0000'1000;
+	if((top & 0x02) && (bottom & 0x01) && !(bottom & 0x02)) wide |= 0b0000'0000'0010;
 
-	if ((bottom&0x10) && (top&0x08) && !(bottom&0x08)) wide |= 0x0100;
-	if ((bottom&0x08) && (top&0x04) && !(bottom&0x04)) wide |= 0x0040;
-	if ((bottom&0x04) && (top&0x02) && !(bottom&0x02)) wide |= 0x0010;
-	if ((bottom&0x02) && (top&0x01) && !(bottom&0x01)) wide |= 0x0004;
+	if((top & 0x08) && (bottom & 0x10) && !(bottom & 0x08)) wide |= 0b0001'0000'0000;
+	if((top & 0x04) && (bottom & 0x08) && !(bottom & 0x04)) wide |= 0b0000'0100'0000;
+	if((top & 0x02) && (bottom & 0x04) && !(bottom & 0x02)) wide |= 0b0000'0001'0000;
+	if((top & 0x01) && (bottom & 0x02) && !(bottom & 0x01)) wide |= 0b0000'0000'0100;
 
 	return wide;
 }
