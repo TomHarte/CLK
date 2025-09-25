@@ -41,6 +41,10 @@ private:
 
 	bool alpha_mode_ = true;
 	bool separated_graphics_ = false;
+
+	bool double_height_ = false;
+	bool row_has_double_height_ = false;
+	int double_height_offset_ = 0;
 };
 
 }

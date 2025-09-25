@@ -149,6 +149,10 @@ void SAA5050Serialiser::begin_line() {
 	if(line_ == 20) {
 		line_ = 0;
 		++row_;
+
+		if(row_has_double_height_) {
+			double_height_offset_ = (double_height_offset_ + 5) % 10;
+		}
 	}
 
 	output_.alpha = 0x7;
@@ -159,6 +163,7 @@ void SAA5050Serialiser::begin_line() {
 
 	alpha_mode_ = true;
 	separated_graphics_ = false;
+	double_height_ = false;
 }
 
 bool SAA5050Serialiser::has_output() const {
@@ -181,22 +186,28 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 		CyanAlpha = 0x06,
 		WhiteAlpha = 0x07,
 
+		NormalHeight = 0xc,
+		DoubleHeight = 0xd,
+
 		BlackBackground = 0x1c,
 		NewBackground = 0x1d,
 	};
 	switch(next_control_) {
 		default: break;
 
-		case RedAlpha:			output_.alpha = 0b100;					break;
-		case GreenAlpha:		output_.alpha = 0b010;					break;
-		case YellowAlpha:		output_.alpha = 0b110;					break;
-		case BlueAlpha:			output_.alpha = 0b001;					break;
-		case MagentaAlpha:		output_.alpha = 0b101;					break;
-		case CyanAlpha:			output_.alpha = 0b011;					break;
-		case WhiteAlpha:		output_.alpha = 0b111;					break;
+		case RedAlpha:			output_.alpha = 0b100;								break;
+		case GreenAlpha:		output_.alpha = 0b010;								break;
+		case YellowAlpha:		output_.alpha = 0b110;								break;
+		case BlueAlpha:			output_.alpha = 0b001;								break;
+		case MagentaAlpha:		output_.alpha = 0b101;								break;
+		case CyanAlpha:			output_.alpha = 0b011;								break;
+		case WhiteAlpha:		output_.alpha = 0b111;								break;
 
-		case BlackBackground:	output_.background = 0;					break;
-		case NewBackground:		output_.background = output_.alpha;		break;
+		case NormalHeight:		double_height_ = false;								break;
+		case DoubleHeight:		double_height_ = row_has_double_height_ = true;		break;
+
+		case BlackBackground:	output_.background = 0;								break;
+		case NewBackground:		output_.background = output_.alpha;					break;
 	}
 	next_control_ = 0;
 
@@ -209,11 +220,25 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 	}
 
 	// TODO: stop assuming text mode, as below.
-	const uint8_t top = font[c.get() - 32][line_ >> 1];
-	const uint8_t bottom = font[c.get() - 32][std::min(9, (line_ >> 1) + 1)];
-	if(odd_frame_) {
-		output_.pixels = scale(bottom, top);
+	if(double_height_) {
+		const auto top_address = (line_ >> 2) + double_height_offset_;
+		const uint8_t top = font[c.get() - 32][top_address];
+		const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
+
+		if(line_ & 2) {
+			output_.pixels = scale(bottom, top);
+		} else {
+			output_.pixels = scale(top, bottom);
+		}
 	} else {
-		output_.pixels = scale(top, bottom);
+		const auto top_address = line_ >> 1;
+		const uint8_t top = font[c.get() - 32][top_address];
+		const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
+
+		if(odd_frame_) {
+			output_.pixels = scale(bottom, top);
+		} else {
+			output_.pixels = scale(top, bottom);
+		}
 	}
 }
