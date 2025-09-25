@@ -324,15 +324,13 @@ public:
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
 		// Count cycles since horizontal sync to insert a colour burst.
+		// TODO: this is copy/pasted from the CPC. How does the BBC do it?
 		if(state.hsync) {
 			++cycles_into_hsync_;
 		} else {
 			cycles_into_hsync_ = 0;
 		}
 		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
-
-		// Sync is taken to override pixels, and is combined as a simple OR.
-		const bool is_sync = state.hsync || state.vsync;
 
 		// Check for a cursor leading edge.
 		cursor_shifter_ >>= 4;
@@ -346,28 +344,32 @@ public:
 			previous_cursor_enabled_ = state.cursor;
 		}
 
-		OutputMode output_mode;
 		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
-		if(is_sync) {
-			output_mode = OutputMode::Sync;
-		} else if(is_colour_burst) {
-			output_mode = OutputMode::ColourBurst;
-		} else if(should_fetch || cursor_shifter_ || (active_collation_.is_teletext && saa5050_serialiser_.has_output())) {
-			output_mode = OutputMode::Pixels;
-		} else {
-			output_mode = OutputMode::Blank;
-		}
+		const OutputMode output_mode = [&] {
+			if(state.hsync || state.vsync) {
+				return OutputMode::Sync;
+			}
+			if(is_colour_burst) {
+				return OutputMode::ColourBurst;;
+			}
+			if(should_fetch || cursor_shifter_ || (active_collation_.is_teletext && saa5050_serialiser_.has_output())) {
+				return OutputMode::Pixels;
+			}
+			return OutputMode::Blank;
+		} ();
 
 		// Consider some SAA5050 signalling.
-		if(output_mode != previous_output_mode_) {
-			if(output_mode == OutputMode::Pixels) {
-				saa5050_serialiser_.begin_line();
-			} else if(output_mode == OutputMode::Sync && state.vsync) {
-				// Complete fiction here; the SAA5050 field flag is set by peeking inside CRTC state.
-				// TODO: what really sets CRS for the SAA5050?
-				saa5050_serialiser_.begin_frame(state.field_count.bit<0>());
-			}
+		if(!state.vsync && previous_vsync_) {
+			// Complete fiction here; the SAA5050 field flag is set by peeking inside CRTC state.
+			// TODO: what really sets CRS for the SAA5050? Time since hsync maybe?
+			saa5050_serialiser_.begin_frame(state.field_count.bit<0>());
 		}
+		previous_vsync_ = state.vsync;
+
+		if(state.display_enable && !previous_display_enabled_) {
+			saa5050_serialiser_.begin_line();
+		}
+		previous_display_enabled_ = state.display_enable;
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
 		// in progress to the CRT and reset counting. Also flush if this mode has just been effective
@@ -421,9 +423,10 @@ public:
 				}
 				return address;
 			} ();
+			const uint8_t fetched = should_fetch ? ram_[address] : 0;
+			pixel_shifter_ = fetched;
 
 			if(pixel_pointer_) {
-				pixel_shifter_ = should_fetch ? ram_[address] : 0;
 				if(active_collation_.is_teletext) {
 					if(saa5050_serialiser_.has_output()) {
 						const auto output = saa5050_serialiser_.output();
@@ -439,8 +442,6 @@ public:
 						std::fill(pixel_pointer_, pixel_pointer_ + 12, 0);
 						pixel_pointer_ += 12;
 					}
-
-					saa5050_serialiser_.add(pixel_shifter_);
 				} else {
 					switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
 						case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
@@ -451,11 +452,11 @@ public:
 						default: break;
 					}
 				}
-			} else {
-				if(active_collation_.is_teletext && should_fetch) {
-					saa5050_serialiser_.add(ram_[address]);
-				}
 			}
+
+//			if(should_fetch) {
+				saa5050_serialiser_.add(fetched);
+//			}
 		}
 	}
 
@@ -522,6 +523,9 @@ private:
 	uint8_t cursor_mask_ = 0;
 	uint32_t cursor_shifter_ = 0;
 	bool previous_cursor_enabled_ = false;
+
+	bool previous_display_enabled_ = false;
+	bool previous_vsync_ = false;
 
 	template <int count> void shift_pixels(const uint8_t cursor_mask) {
 		for(int c = 0; c < count; c++) {

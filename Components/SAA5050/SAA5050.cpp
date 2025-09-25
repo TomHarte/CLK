@@ -153,7 +153,12 @@ void SAA5050Serialiser::begin_line() {
 
 	output_.alpha = 0x7;
 	output_.background = 0x0;
+	output_.pixels = 0;
 	has_output_ = false;
+	next_control_ = 0;
+
+	alpha_mode_ = true;
+	separated_graphics_ = false;
 }
 
 bool SAA5050Serialiser::has_output() const {
@@ -165,21 +170,50 @@ SAA5050Serialiser::Output SAA5050Serialiser::output() {
 	return output_;
 }
 
-void SAA5050Serialiser::add(const uint8_t c) {
-	has_output_ = true;
+void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
+	// Apply any enqueued control code.
+	enum ControlCode: uint8_t {
+		RedAlpha = 0x01,
+		GreenAlpha = 0x02,
+		YellowAlpha = 0x03,
+		BlueAlpha = 0x04,
+		MagentaAlpha = 0x05,
+		CyanAlpha = 0x06,
+		WhiteAlpha = 0x07,
 
-	const uint8_t masked_c = c & 0x7f;
-	if(masked_c < 32) {
-		// TODO: all control characters!
+		BlackBackground = 0x1c,
+		NewBackground = 0x1d,
+	};
+	switch(next_control_) {
+		default: break;
+
+		case RedAlpha:			output_.alpha = 0b100;					break;
+		case GreenAlpha:		output_.alpha = 0b010;					break;
+		case YellowAlpha:		output_.alpha = 0b110;					break;
+		case BlueAlpha:			output_.alpha = 0b001;					break;
+		case MagentaAlpha:		output_.alpha = 0b101;					break;
+		case CyanAlpha:			output_.alpha = 0b011;					break;
+		case WhiteAlpha:		output_.alpha = 0b111;					break;
+
+		case BlackBackground:	output_.background = 0;					break;
+		case NewBackground:		output_.background = output_.alpha;		break;
+	}
+	next_control_ = 0;
+
+	has_output_ = true;
+	if(c.get() < 32) {
+		// Defer any [some?] control characters until next time through.
+		next_control_ = c.get();
 		output_.pixels = 0;
 		return;
 	}
 
-	const uint8_t top = font[c - 32][line_ >> 1];
-	const uint8_t bottom = font[c - 32][std::min(9, (line_ >> 1) + 1)];
+	// TODO: stop assuming text mode, as below.
+	const uint8_t top = font[c.get() - 32][line_ >> 1];
+	const uint8_t bottom = font[c.get() - 32][std::min(9, (line_ >> 1) + 1)];
 	if(odd_frame_) {
-		output_.pixels = scale(top, bottom);
-	} else {
 		output_.pixels = scale(bottom, top);
+	} else {
+		output_.pixels = scale(top, bottom);
 	}
 }

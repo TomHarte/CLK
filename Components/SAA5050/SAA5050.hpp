@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include "Numeric/SizedCounter.hpp"
 
 namespace Mullard {
 
@@ -17,7 +18,7 @@ public:
 	void begin_frame(bool is_odd);
 	void begin_line();
 
-	void add(uint8_t);
+	void add(Numeric::SizedCounter<7>);
 
 	struct Output {
 		// The low twelve bits of this word provide 1bpp pixels.
@@ -31,12 +32,15 @@ public:
 	Output output();
 
 private:
-	int row_, line_;
+	uint8_t next_control_ = 0;
 	Output output_;
 	bool has_output_ = false;
+
+	int row_, line_;
 	bool odd_frame_;
 
-	// TODO: more state. Graphics mode only, probably?
+	bool alpha_mode_ = true;
+	bool separated_graphics_ = false;
 };
 
 }
