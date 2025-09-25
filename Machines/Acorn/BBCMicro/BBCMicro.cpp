@@ -17,8 +17,9 @@
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
-#include "Components/SN76489/SN76489.hpp"
 #include "Components/6850/6850.hpp"
+#include "Components/SAA5050/SAA5050.hpp"
+#include "Components/SN76489/SN76489.hpp"
 #include "Components/uPD7002/uPD7002.hpp"
 
 // TODO: factor this more appropriately.
@@ -361,6 +362,15 @@ public:
 			output_mode = OutputMode::Blank;
 		}
 
+		// Consider some SAA5050 signalling.
+		if(output_mode != previous_output_mode_) {
+			if(output_mode == OutputMode::Pixels) {
+				saa5050_serialiser_.begin_line();
+			} else if(output_mode == OutputMode::Sync && state.vsync) {
+				saa5050_serialiser_.begin_frame();
+			}
+		}
+
 		// If a transition between sync/border/pixels just occurred, flush whatever was
 		// in progress to the CRT and reset counting. Also flush if this mode has just been effective
 		// for a really long time, so as not to buffer too much.
@@ -416,11 +426,20 @@ public:
 
 				pixel_shifter_ = should_fetch ? ram_[address] : 0;
 				if(active_collation_.is_teletext) {
-					// TODO: output meaningful teletext pixels.
-					for(int c = 0; c < 12; c++) {
-						*pixel_pointer_++ = (pixel_shifter_ & 0x80 ? 0xff : 0x00) ^ cursor_mask_;
-						pixel_shifter_ <<= 1;
+					const auto output = saa5050_serialiser_.output();
+
+					uint16_t tshifter = output.pixels;
+
+					if(tshifter) {
+						printf("");
 					}
+
+					for(int c = 0; c < 12; c++) {
+						*pixel_pointer_++ = ((tshifter & 0b1000'0000'0000) ? output.alpha : output.background) ^ cursor_shifter_;
+						tshifter <<= 1;
+					}
+
+					saa5050_serialiser_.add(pixel_shifter_);
 				} else {
 					switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
 						case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
@@ -513,6 +532,8 @@ private:
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
+
+	Mullard::SAA5050Serialiser saa5050_serialiser_;
 };
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,

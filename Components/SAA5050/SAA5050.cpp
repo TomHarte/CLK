@@ -121,7 +121,7 @@ void SAA5050Serialiser::begin_frame() {
 
 void SAA5050Serialiser::begin_line() {
 	++line_;
-	if(line_ == 20) {
+	if(line_ == 10) {
 		line_ = 0;
 		++row_;
 	}
@@ -151,13 +151,13 @@ void SAA5050Serialiser::add(const uint8_t c) {
 	}
 
 	// TODO: proper scaling!
-	const uint8_t source = font[c - 32][line_ >> 1];
+	const uint8_t source = font[c - 32][line_];
 	output_.pixels = uint16_t(
-		((source & 0x01) ? 0xb0000'0000'0011 : 0) |
-		((source & 0x02) ? 0xb0000'0000'1100 : 0) |
-		((source & 0x04) ? 0xb0000'0011'0000 : 0) |
-		((source & 0x08) ? 0xb0000'1100'0000 : 0) |
-		((source & 0x10) ? 0xb0011'0000'0000 : 0) |
-		((source & 0x20) ? 0xb1100'0000'0000 : 0)
+		((source & 0x01) ? 0b0000'0000'0011 : 0) |
+		((source & 0x02) ? 0b0000'0000'1100 : 0) |
+		((source & 0x04) ? 0b0000'0011'0000 : 0) |
+		((source & 0x08) ? 0b0000'1100'0000 : 0) |
+		((source & 0x10) ? 0b0011'0000'0000 : 0) |
+		((source & 0x20) ? 0b1100'0000'0000 : 0)
 	);
 }
