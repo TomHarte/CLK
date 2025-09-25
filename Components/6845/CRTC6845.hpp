@@ -35,7 +35,7 @@ struct BusState {
 	bool hsync = false;		// hs
 	bool vsync = false;		// vs
 	bool cursor = false;
-	RefreshAddress refresh;	// ma_i
+	RefreshAddress refresh;
 	LineAddress line;
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
@@ -189,6 +189,9 @@ public:
 
 				bus_handler_.perform_bus_cycle(bus_state_);
 
+				bus_state_.refresh = refresh_;	// Deliberate: do this after bus activity.
+												// TODO: is this a hack?
+
 
 			//
 			// Shared signals.
@@ -215,15 +218,15 @@ public:
 				if(new_frame) {
 					line_address_ = layout_.start_address;
 				} else if(character_counter_ == layout_.horizontal.displayed && line_end_hit) {
-					line_address_ = bus_state_.refresh;
+					line_address_ = refresh_;
 				}
 
 				if(new_frame) {
-					bus_state_.refresh = layout_.start_address;
+					refresh_ = layout_.start_address;
 				} else if(character_total_hit) {
-					bus_state_.refresh = initial_line_address;
+					refresh_ = initial_line_address;
 				} else {
-					++bus_state_.refresh;
+					++refresh_;
 				}
 
 				// Follow hoglet's lead in means of avoiding the logic that informs line address b0 varying
@@ -509,6 +512,7 @@ private:
 	RowAddress next_row_counter_;				// row_counter_next
 	LineAddress line_;							// line_counter
 	LineAddress next_line_;						// line_counter_next
+	RefreshAddress refresh_;					// ma_i
 	uint8_t adjustment_counter_ = 0;
 
 	bool character_is_visible_ = false;			// h_display
