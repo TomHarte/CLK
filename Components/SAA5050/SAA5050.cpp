@@ -231,14 +231,18 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 			output_.pixels = scale(top, bottom);
 		}
 	} else {
-		const auto top_address = line_ >> 1;
-		const uint8_t top = font[c.get() - 32][top_address];
-		const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
-
-		if(odd_frame_) {
-			output_.pixels = scale(bottom, top);
+		if(double_height_offset_) {
+			output_.pixels = 0;
 		} else {
-			output_.pixels = scale(top, bottom);
+			const auto top_address = line_ >> 1;
+			const uint8_t top = font[c.get() - 32][top_address];
+			const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
+
+			if(odd_frame_) {
+				output_.pixels = scale(bottom, top);
+			} else {
+				output_.pixels = scale(top, bottom);
+			}
 		}
 	}
 }
