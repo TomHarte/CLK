@@ -430,11 +430,12 @@ public:
 					if(saa5050_serialiser_.has_output()) {
 						const auto output = saa5050_serialiser_.output();
 
-						uint16_t tshifter = output.pixels;
+						uint16_t pixels = output.pixels;
 						for(int c = 0; c < 12; c++) {
 							*pixel_pointer_++ =
-								((tshifter & 0b1000'0000'0000) ? output.alpha : output.background) ^ cursor_shifter_;
-							tshifter <<= 1;
+								((pixels & 0b1000'0000'0000) ? output.alpha : output.background)
+									^ uint8_t(cursor_shifter_);
+							pixels <<= 1;
 						}
 					} else {
 						std::fill(pixel_pointer_, pixel_pointer_ + 12, 0);
