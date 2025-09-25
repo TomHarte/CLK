@@ -7,3 +7,35 @@
 //
 
 #pragma once
+
+#include <cstdint>
+
+namespace Mullard {
+
+struct SAA5050Serialiser {
+public:
+	void begin_frame();
+	void begin_line();
+
+	void add(uint8_t);
+
+	struct Output {
+		// The low twelve bits of this word provide 1bpp pixels.
+		uint16_t pixels;
+
+		// Colours for set and background pixels.
+		uint8_t alpha;
+		uint8_t background;
+	};
+	bool has_output() const;
+	Output output();
+
+private:
+	int row_, line_;
+	Output output_;
+	bool has_output_ = false;
+
+	// TODO: more state. Graphics mode only, probably?
+};
+
+}
