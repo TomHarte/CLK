@@ -424,6 +424,7 @@ public:
 							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
 						)
 					);
+					// TODO: the above is clearly a quick-fix hack. Research better.
 
 					switch(cursor_type) {
 						// MDA-style blinking.
