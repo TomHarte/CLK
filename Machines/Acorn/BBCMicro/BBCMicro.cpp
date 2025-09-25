@@ -120,9 +120,9 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		audio_(audio), video_base_(video_base), via_(via)
 	{
 		// Set initial mode to mode 0.
-		set_key(7, true);
-		set_key(8, true);
-		set_key(9, true);
+//		set_key(7, true);
+//		set_key(8, true);
+//		set_key(9, true);
 	}
 
 	// CA2: key pressed;
@@ -319,6 +319,11 @@ public:
 		bus state and determines what output to produce based on the current palette and mode.
 	*/
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		static constexpr size_t PixelAllocationUnit = 480;	// Is assumed to be a multiple of both 12 and 16.
+															// i.e. a multiple of 48.
+		static_assert(!(PixelAllocationUnit % 16));
+		static_assert(!(PixelAllocationUnit % 12));
+
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
 		// Count cycles since horizontal sync to insert a colour burst.
@@ -335,8 +340,7 @@ public:
 		// Check for a cursor leading edge.
 		cursor_shifter_ >>= 4;
 		if(state.cursor != previous_cursor_enabled_) {
-			if(state.cursor && state.display_enable) {	// TODO: should I have to test display enable here? Or should
-														// the CRTC already have factored that in?
+			if(state.cursor) {
 				cursor_shifter_ =
 					((cursor_mask_ & 0x80) ? 0x0007 : 0) |
 					((cursor_mask_ & 0x40) ? 0x0070 : 0) |
@@ -346,7 +350,7 @@ public:
 		}
 
 		OutputMode output_mode;
-		const bool should_fetch = state.display_enable && !(state.row_address & 8);
+		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
 		if(is_sync) {
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
@@ -358,8 +362,9 @@ public:
 		}
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
-		// in progress to the CRT and reset counting.
-		if(output_mode != previous_output_mode_) {
+		// in progress to the CRT and reset counting. Also flush if this mode has just been effective
+		// for a really long time, so as not to buffer too much.
+		if(output_mode != previous_output_mode_ || cycles_ == 1024) {
 			if(cycles_) {
 				switch(previous_output_mode_) {
 					default:
@@ -382,42 +387,49 @@ public:
 			// Flush the current buffer pixel if full; the CRTC allows many different display
 			// widths so it's not necessarily possible to predict the correct number in advance
 			// and using the upper bound could lead to inefficient behaviour.
-			if(pixel_data_ && (pixels_collected() == 320 || active_collation_ != previous_collation_)) {
+			if(pixel_data_ && (pixels_collected() == PixelAllocationUnit || active_collation_ != previous_collation_)) {
 				flush_pixels();
 				cycles_ = 0;
 			}
 			previous_collation_ = active_collation_;
 
 			if(!pixel_data_) {
-				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
+				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit, 8);
 			}
 			if(pixel_pointer_) {
 				uint16_t address;
 
-				if(state.refresh_address & (1 << 13)) {
+				if(state.refresh.get() & (1 << 13)) {
 					// Teletext address generation mode.
 					address = uint16_t(
 						0x3c00 |
-						((state.refresh_address & 0x800) << 3) |
-						(state.refresh_address & 0x3ff)
+						((state.refresh.get() & 0x800) << 3) |
+						(state.refresh.get() & 0x3ff)
 					);
 					// TODO: wraparound? Does that happen on Mode 7?
 				} else {
-					address = uint16_t((state.refresh_address << 3) | (state.row_address & 7));
+					address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
 					if(address & 0x8000) {
 						address = (address + video_base_) & 0x7fff;
 					}
 				}
 
-				// Hard coded: pixel mode!
 				pixel_shifter_ = should_fetch ? ram_[address] : 0;
-				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
-					case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
-					case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
-					case 4: shift_pixels<4>(cursor_shifter_ & 7);	break;
-					case 8: shift_pixels<8>(cursor_shifter_ & 7);	break;
-					case 16: shift_pixels<16>(cursor_shifter_ & 7);	break;
-					default: break;
+				if(active_collation_.is_teletext) {
+					// TODO: output meaningful teletext pixels.
+					for(int c = 0; c < 12; c++) {
+						*pixel_pointer_++ = (pixel_shifter_ & 0x80 ? 0xff : 0x00) ^ cursor_mask_;
+						pixel_shifter_ <<= 1;
+					}
+				} else {
+					switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
+						case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
+						case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
+						case 4: shift_pixels<4>(cursor_shifter_ & 7);	break;
+						case 8: shift_pixels<8>(cursor_shifter_ & 7);	break;
+						case 16: shift_pixels<16>(cursor_shifter_ & 7);	break;
+						default: break;
+					}
 				}
 			}
 		}
