@@ -14,7 +14,7 @@ namespace Mullard {
 
 struct SAA5050Serialiser {
 public:
-	void begin_frame();
+	void begin_frame(bool is_odd);
 	void begin_line();
 
 	void add(uint8_t);
@@ -34,6 +34,7 @@ private:
 	int row_, line_;
 	Output output_;
 	bool has_output_ = false;
+	bool odd_frame_;
 
 	// TODO: more state. Graphics mode only, probably?
 };

@@ -356,7 +356,7 @@ public:
 			output_mode = OutputMode::Sync;
 		} else if(is_colour_burst) {
 			output_mode = OutputMode::ColourBurst;
-		} else if(should_fetch || cursor_shifter_) {
+		} else if(should_fetch || cursor_shifter_ || (active_collation_.is_teletext && saa5050_serialiser_.has_output())) {
 			output_mode = OutputMode::Pixels;
 		} else {
 			output_mode = OutputMode::Blank;
@@ -367,7 +367,9 @@ public:
 			if(output_mode == OutputMode::Pixels) {
 				saa5050_serialiser_.begin_line();
 			} else if(output_mode == OutputMode::Sync && state.vsync) {
-				saa5050_serialiser_.begin_frame();
+				// Complete fiction here; the SAA5050 field flag is set by peeking inside CRTC state.
+				// TODO: what really sets CRS for the SAA5050?
+				saa5050_serialiser_.begin_frame(state.field_count.bit<0>());
 			}
 		}
 
@@ -416,7 +418,6 @@ public:
 						((state.refresh.get() & 0x800) << 3) |
 						(state.refresh.get() & 0x3ff)
 					);
-					// TODO: wraparound? Does that happen on Mode 7?
 				} else {
 					address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
 					if(address & 0x8000) {
@@ -426,13 +427,18 @@ public:
 
 				pixel_shifter_ = should_fetch ? ram_[address] : 0;
 				if(active_collation_.is_teletext) {
-					const auto output = saa5050_serialiser_.output();
+					if(saa5050_serialiser_.has_output()) {
+						const auto output = saa5050_serialiser_.output();
 
-					uint16_t tshifter = output.pixels;
-					for(int c = 0; c < 12; c++) {
-						*pixel_pointer_++ =
-							((tshifter & 0b1000'0000'0000) ? output.alpha : output.background) ^ cursor_shifter_;
-						tshifter <<= 1;
+						uint16_t tshifter = output.pixels;
+						for(int c = 0; c < 12; c++) {
+							*pixel_pointer_++ =
+								((tshifter & 0b1000'0000'0000) ? output.alpha : output.background) ^ cursor_shifter_;
+							tshifter <<= 1;
+						}
+					} else {
+						std::fill(pixel_pointer_, pixel_pointer_ + 12, 0);
+						pixel_pointer_ += 12;
 					}
 
 					saa5050_serialiser_.add(pixel_shifter_);
@@ -446,6 +452,8 @@ public:
 						default: break;
 					}
 				}
+			} else {
+				// TODO: continue to feed SAA5050.
 			}
 		}
 	}
