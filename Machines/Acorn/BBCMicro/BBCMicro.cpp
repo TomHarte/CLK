@@ -319,6 +319,11 @@ public:
 		bus state and determines what output to produce based on the current palette and mode.
 	*/
 	void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
+		static constexpr size_t PixelAllocationUnit = 480;	// Is assumed to be a multiple of both 12 and 16.
+															// i.e. a multiple of 48.
+		static_assert(!(PixelAllocationUnit % 16));
+		static_assert(!(PixelAllocationUnit % 12));
+
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
 		// Count cycles since horizontal sync to insert a colour burst.
@@ -382,14 +387,14 @@ public:
 			// Flush the current buffer pixel if full; the CRTC allows many different display
 			// widths so it's not necessarily possible to predict the correct number in advance
 			// and using the upper bound could lead to inefficient behaviour.
-			if(pixel_data_ && (pixels_collected() == 320 || active_collation_ != previous_collation_)) {
+			if(pixel_data_ && (pixels_collected() == PixelAllocationUnit || active_collation_ != previous_collation_)) {
 				flush_pixels();
 				cycles_ = 0;
 			}
 			previous_collation_ = active_collation_;
 
 			if(!pixel_data_) {
-				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
+				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit, 8);
 			}
 			if(pixel_pointer_) {
 				uint16_t address;
@@ -409,17 +414,22 @@ public:
 					}
 				}
 
-				// Hard coded: pixel mode! TODO: teletext mode.
 				pixel_shifter_ = should_fetch ? ram_[address] : 0;
-//				pixel_shifter_ = should_fetch ? (address & 0xff) : 0;	// TODO: eliminate once 6845 addresses are
-																		// meaningful again.
-				switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
-					case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
-					case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
-					case 4: shift_pixels<4>(cursor_shifter_ & 7);	break;
-					case 8: shift_pixels<8>(cursor_shifter_ & 7);	break;
-					case 16: shift_pixels<16>(cursor_shifter_ & 7);	break;
-					default: break;
+				if(active_collation_.is_teletext) {
+					// TODO: output meaningful teletext pixels.
+					for(int c = 0; c < 12; c++) {
+						*pixel_pointer_++ = (pixel_shifter_ & 0x80 ? 0xff : 0x00) ^ cursor_mask_;
+						pixel_shifter_ <<= 1;
+					}
+				} else {
+					switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
+						case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
+						case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
+						case 4: shift_pixels<4>(cursor_shifter_ & 7);	break;
+						case 8: shift_pixels<8>(cursor_shifter_ & 7);	break;
+						case 16: shift_pixels<16>(cursor_shifter_ & 7);	break;
+						default: break;
+					}
 				}
 			}
 		}
