@@ -7,6 +7,8 @@
 //
 
 #include "SAA5050.hpp"
+
+#include <algorithm>
 #include <cstdint>
 
 namespace {
@@ -111,74 +113,40 @@ constexpr uint8_t font[][10] = {
 	{0x00, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00, 0x00, },
 };
 
+constexpr uint16_t scale(const uint8_t top, const uint8_t bottom) {
+	// Adapted from old ElectrEm source; my original provenance for the logic is unknown.
+	uint16_t wide =
+		((top & 0x01) ? 0b0000'0000'0011 : 0) |
+		((top & 0x02) ? 0b0000'0000'1100 : 0) |
+		((top & 0x04) ? 0b0000'0011'0000 : 0) |
+		((top & 0x08) ? 0b0000'1100'0000 : 0) |
+		((top & 0x10) ? 0b0011'0000'0000 : 0);
 
-//
-// Old ElectrEm code for font smoothing:
-//
-//	/* establish 12x20 smoothed versions */
-//	int ct;
-//	for(ct = 0; ct < 96; ct++)
-//	{
-//		for(c2 = 0; c2 < 10; c2++)
-//		{
-//			unsigned __int16 l, k;
-//			unsigned __int8 c, d;
-//
-//			c = CharSet[ct].Data[c2];
-//			CharSet[ct].WideData[c2] =
-//			k = l =	((c&0x20) ? 0x0c00 : 0x0000) |
-//	                ((c&0x10) ? 0x0300 : 0x0000) |
-//	                ((c&0x08) ? 0x00c0 : 0x0000) |
-//	                ((c&0x04) ? 0x0030 : 0x0000) |
-//	                ((c&0x02) ? 0x000c : 0x0000) |
-//	                ((c&0x01) ? 0x0003 : 0x0000);
-//
-//			if(c2 != 9)
-//			{
-//				d = CharSet[ct].Data[c2+1];
-//
-//				if ((c&0x10) && (d&0x08) && !(d&0x10)) l|=0x0080;
-//				if ((c&0x08) && (d&0x04) && !(d&0x08)) l|=0x0020;
-//				if ((c&0x04) && (d&0x02) && !(d&0x04)) l|=0x0008;
-//				if ((c&0x02) && (d&0x01) && !(d&0x02)) l|=0x0002;
-//				if ((d&0x10) && (c&0x08) && !(d&0x08)) l|=0x0100;
-//				if ((d&0x08) && (c&0x04) && !(d&0x04)) l|=0x0040;
-//				if ((d&0x04) && (c&0x02) && !(d&0x02)) l|=0x0010;
-//				if ((d&0x02) && (c&0x01) && !(d&0x01)) l|=0x0004;
-//			}
-//
-//			if(c2)
-//			{
-//				d = CharSet[ct].Data[c2-1];
-//
-//				if ((c&0x10) && (d&0x08) && !(d&0x10)) k|=0x0080;
-//				if ((c&0x08) && (d&0x04) && !(d&0x08)) k|=0x0020;
-//				if ((c&0x04) && (d&0x02) && !(d&0x04)) k|=0x0008;
-//				if ((c&0x02) && (d&0x01) && !(d&0x02)) k|=0x0002;
-//				if ((d&0x10) && (c&0x08) && !(d&0x08)) k|=0x0100;
-//				if ((d&0x08) && (c&0x04) && !(d&0x04)) k|=0x0040;
-//				if ((d&0x04) && (c&0x02) && !(d&0x02)) k|=0x0010;
-//				if ((d&0x02) && (c&0x01) && !(d&0x01)) k|=0x0004;
-//			}
-//
-//			CharSet[ct].HighData[c2 << 1] = k;
-//			CharSet[ct].HighData[(c2 << 1)+1] = l;
-//		}
-//	}
+	if ((top&0x10) && (bottom&0x08) && !(bottom&0x10)) wide |= 0x0080;
+	if ((top&0x08) && (bottom&0x04) && !(bottom&0x08)) wide |= 0x0020;
+	if ((top&0x04) && (bottom&0x02) && !(bottom&0x04)) wide |= 0x0008;
+	if ((top&0x02) && (bottom&0x01) && !(bottom&0x02)) wide |= 0x0002;
 
+	if ((bottom&0x10) && (top&0x08) && !(bottom&0x08)) wide |= 0x0100;
+	if ((bottom&0x08) && (top&0x04) && !(bottom&0x04)) wide |= 0x0040;
+	if ((bottom&0x04) && (top&0x02) && !(bottom&0x02)) wide |= 0x0010;
+	if ((bottom&0x02) && (top&0x01) && !(bottom&0x01)) wide |= 0x0004;
+
+	return wide;
+}
 }
 
 using namespace Mullard;
 
 void SAA5050Serialiser::begin_frame(const bool is_odd) {
-	line_ = -1;
+	line_ = -2;
 	row_ = 0;
 	odd_frame_ = is_odd;
 }
 
 void SAA5050Serialiser::begin_line() {
-	++line_;
-	if(line_ == 10) {
+	line_ += 2;
+	if(line_ == 20) {
 		line_ = 0;
 		++row_;
 	}
@@ -207,14 +175,11 @@ void SAA5050Serialiser::add(const uint8_t c) {
 		return;
 	}
 
-	// TODO: proper scaling!
-	const uint8_t source = font[c - 32][line_];
-	output_.pixels = uint16_t(
-		((source & 0x01) ? 0b0000'0000'0011 : 0) |
-		((source & 0x02) ? 0b0000'0000'1100 : 0) |
-		((source & 0x04) ? 0b0000'0011'0000 : 0) |
-		((source & 0x08) ? 0b0000'1100'0000 : 0) |
-		((source & 0x10) ? 0b0011'0000'0000 : 0) |
-		((source & 0x20) ? 0b1100'0000'0000 : 0)
-	);
+	const uint8_t top = font[c - 32][line_ >> 1];
+	const uint8_t bottom = font[c - 32][std::min(9, (line_ >> 1) + 1)];
+	if(odd_frame_) {
+		output_.pixels = scale(top, bottom);
+	} else {
+		output_.pixels = scale(bottom, top);
+	}
 }
