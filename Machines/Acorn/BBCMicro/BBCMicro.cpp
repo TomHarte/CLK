@@ -426,7 +426,7 @@ public:
 			const uint8_t fetched = should_fetch ? ram_[address] : 0;
 			pixel_shifter_ = fetched;
 
-			if(pixel_pointer_) {
+			if(pixel_data_) {
 				if(active_collation_.is_teletext) {
 					if(saa5050_serialiser_.has_output()) {
 						const auto output = saa5050_serialiser_.output();
@@ -452,8 +452,15 @@ public:
 						default: break;
 					}
 				}
-			}
+			} /*else {
+				if(active_collation_.is_teletext) {
+					pixel_pointer_ += 12;
+				} else {
+					pixel_pointer_ += crtc_clock_multiplier_ * active_collation_.pixels_per_clock;
+				}
+			} */
 
+			// TODO: why does enabling the below cause alternate lines to be different stretches?
 //			if(should_fetch) {
 				saa5050_serialiser_.add(fetched);
 //			}
