@@ -429,13 +429,9 @@ public:
 					const auto output = saa5050_serialiser_.output();
 
 					uint16_t tshifter = output.pixels;
-
-					if(tshifter) {
-						printf("");
-					}
-
 					for(int c = 0; c < 12; c++) {
-						*pixel_pointer_++ = ((tshifter & 0b1000'0000'0000) ? output.alpha : output.background) ^ cursor_shifter_;
+						*pixel_pointer_++ =
+							((tshifter & 0b1000'0000'0000) ? output.alpha : output.background) ^ cursor_shifter_;
 						tshifter <<= 1;
 					}
 
