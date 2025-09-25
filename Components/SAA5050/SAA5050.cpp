@@ -190,6 +190,17 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 		CyanAlpha = 0x06,
 		WhiteAlpha = 0x07,
 
+		RedGraphics = 0x11,
+		GreenGraphics = 0x12,
+		YellowGraphics = 0x13,
+		BlueGraphics = 0x14,
+		MagentaGraphics = 0x15,
+		CyanGraphics = 0x16,
+		WhiteGraphics = 0x17,
+
+		ContinuousGraphics = 0x19,
+		SeparatedGraphics = 0x1a,
+
 		NormalHeight = 0xc,
 		DoubleHeight = 0xd,
 
@@ -199,19 +210,30 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 	switch(next_control_) {
 		default: break;
 
-		case RedAlpha:			output_.alpha = 0b100;								break;
-		case GreenAlpha:		output_.alpha = 0b010;								break;
-		case YellowAlpha:		output_.alpha = 0b110;								break;
-		case BlueAlpha:			output_.alpha = 0b001;								break;
-		case MagentaAlpha:		output_.alpha = 0b101;								break;
-		case CyanAlpha:			output_.alpha = 0b011;								break;
-		case WhiteAlpha:		output_.alpha = 0b111;								break;
+		case RedAlpha:				alpha_mode_ = true; output_.alpha = 0b100;			break;
+		case GreenAlpha:			alpha_mode_ = true; output_.alpha = 0b010;			break;
+		case YellowAlpha:			alpha_mode_ = true; output_.alpha = 0b110;			break;
+		case BlueAlpha:				alpha_mode_ = true; output_.alpha = 0b001;			break;
+		case MagentaAlpha:			alpha_mode_ = true; output_.alpha = 0b101;			break;
+		case CyanAlpha:				alpha_mode_ = true; output_.alpha = 0b011;			break;
+		case WhiteAlpha:			alpha_mode_ = true; output_.alpha = 0b111;			break;
 
-		case NormalHeight:		double_height_ = false;								break;
-		case DoubleHeight:		double_height_ = row_has_double_height_ = true;		break;
+		case RedGraphics:			alpha_mode_ = false; output_.alpha = 0b100;			break;
+		case GreenGraphics:			alpha_mode_ = false; output_.alpha = 0b010;			break;
+		case YellowGraphics:		alpha_mode_ = false; output_.alpha = 0b110;			break;
+		case BlueGraphics:			alpha_mode_ = false; output_.alpha = 0b001;			break;
+		case MagentaGraphics:		alpha_mode_ = false; output_.alpha = 0b101;			break;
+		case CyanGraphics:			alpha_mode_ = false; output_.alpha = 0b011;			break;
+		case WhiteGraphics:			alpha_mode_ = false; output_.alpha = 0b111;			break;
 
-		case BlackBackground:	output_.background = 0;								break;
-		case NewBackground:		output_.background = output_.alpha;					break;
+		case ContinuousGraphics:	separated_graphics_ = false;						break;
+		case SeparatedGraphics:		separated_graphics_ = true;							break;
+
+		case NormalHeight:			double_height_ = false;								break;
+		case DoubleHeight:			double_height_ = row_has_double_height_ = true;		break;
+
+		case BlackBackground:		output_.background = 0;								break;
+		case NewBackground:			output_.background = output_.alpha;					break;
 	}
 	next_control_ = 0;
 
@@ -223,7 +245,51 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 		return;
 	}
 
-	// TODO: stop assuming text mode, as below.
+	// Divert into graphics only if both the mode and the character code allows it.
+	if(!alpha_mode_ && (c.get() & (1 << 5))) {
+		// Graphics layout:
+		//
+		//	|----|----|
+		//	|    |    |
+		//	| b0 | b1 |
+		//	|    |    |
+		//	|----|----|
+		//	|    |    |
+		//	| b2 | b3 |
+		//	|    |    |
+		//	|----|----|
+		//	|    |    |
+		//	| b4 | b6 |
+		//	|    |    |
+		//	|----|----|
+
+		const auto bits = c.get();
+		if(separated_graphics_ && (line_ == 6 || line_ == 12 || line_ == 18)) {
+			output_.pixels = 0;
+			return;
+		}
+
+		if(line_ < 6) {
+			output_.pixels =
+				((bits & 1) ? 0b1111'1100'0000 : 0) |
+				((bits & 2) ? 0b0000'0011'1111 : 0);
+		} else if(line_ < 12) {
+			output_.pixels =
+				((bits & 4) ? 0b1111'1100'0000 : 0) |
+				((bits & 8) ? 0b0000'0011'1111 : 0);
+		} else {
+			output_.pixels =
+				((bits & 16) ? 0b1111'1100'0000 : 0) |
+				((bits & 64) ? 0b0000'0011'1111 : 0);
+		}
+
+		if(separated_graphics_) {
+			output_.pixels &= 0b0111'1101'1111;
+		}
+
+		return;
+	}
+
 	if(double_height_) {
 		const auto top_address = (line_ >> 2) + double_height_offset_;
 		const uint8_t top = font[c.get() - 32][top_address];
