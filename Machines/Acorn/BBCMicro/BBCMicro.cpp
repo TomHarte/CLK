@@ -307,10 +307,6 @@ public:
 
 		active_collation_.pixels_per_clock = 1 << ((value >> 2) & 0x03);
 		active_collation_.is_teletext = value & 0x02;
-		if(active_collation_.is_teletext) {
-			Logger::error().append("TODO: video control => teletext %d", bool(value & 0x02));
-		}
-
 		flash_mask_ = value & 0x01 ? 7 : 0;
 		cursor_mask_ = value & 0b1110'0000;
 	}
@@ -408,23 +404,25 @@ public:
 			if(!pixel_data_) {
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit, 8);
 			}
-			if(pixel_pointer_) {
-				uint16_t address;
 
+			const uint16_t address = [&] {
+				// Teletext address generation.
 				if(state.refresh.get() & (1 << 13)) {
-					// Teletext address generation mode.
-					address = uint16_t(
+					return uint16_t(
 						0x3c00 |
 						((state.refresh.get() & 0x800) << 3) |
 						(state.refresh.get() & 0x3ff)
 					);
-				} else {
-					address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
-					if(address & 0x8000) {
-						address = (address + video_base_) & 0x7fff;
-					}
 				}
 
+				uint16_t address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
+				if(address & 0x8000) {
+					address = (address + video_base_) & 0x7fff;
+				}
+				return address;
+			} ();
+
+			if(pixel_pointer_) {
 				pixel_shifter_ = should_fetch ? ram_[address] : 0;
 				if(active_collation_.is_teletext) {
 					if(saa5050_serialiser_.has_output()) {
@@ -454,7 +452,9 @@ public:
 					}
 				}
 			} else {
-				// TODO: continue to feed SAA5050.
+				if(active_collation_.is_teletext && should_fetch) {
+					saa5050_serialiser_.add(ram_[address]);
+				}
 			}
 		}
 	}
