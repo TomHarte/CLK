@@ -142,6 +142,9 @@ void SAA5050Serialiser::begin_frame(const bool is_odd) {
 	line_ = -2;
 	row_ = 0;
 	odd_frame_ = is_odd;
+
+	row_has_double_height_ = false;
+	double_height_offset_ = 0;
 }
 
 void SAA5050Serialiser::begin_line() {
@@ -153,6 +156,7 @@ void SAA5050Serialiser::begin_line() {
 		if(row_has_double_height_) {
 			double_height_offset_ = (double_height_offset_ + 5) % 10;
 		}
+		row_has_double_height_ = false;
 	}
 
 	output_.alpha = 0x7;
