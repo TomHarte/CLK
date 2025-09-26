@@ -71,6 +71,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	auto targetElectron = std::make_unique<ElectronTarget>();
 	auto targetBBC = std::make_unique<BBCMicroTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
+	bool prefer_BBC = false;
 
 	// Copy appropriate cartridges to the 8-bit targets.
 	targetElectron->media.cartridges = AcornCartridgesFrom(media.cartridges);
@@ -127,25 +128,32 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		// 8-bit options: DFS and Hugo-style ADFS.
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
-			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
+
+			// Electron: use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
 			targetElectron->media.disks = media.disks;
 			targetElectron->has_dfs = bool(dfs_catalogue);
 			targetElectron->has_pres_adfs = bool(adfs_catalogue);
+
+			// BBC: only the 1770 DFS is currently supported, so use that.
+			targetBBC->media.disks = media.disks;
+			targetBBC->has_1770dfs = bool(dfs_catalogue);
+			targetBBC->has_adfs = bool(adfs_catalogue);
 
 			// Check whether a simple shift+break will do for loading this disk.
 			const auto bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None) {
 				targetElectron->should_shift_restart = true;
+				// TODO: support shift restart on the BBC.
 			} else {
-				targetElectron->loading_command = "*CAT\n";
+				targetBBC->loading_command = targetElectron->loading_command = "*CAT\n";
 			}
 
-			// Check whether adding the AP6 ROM is justified.
-			// For now this is an incredibly dense text search;
-			// if any of the commands that aren't usually present
-			// on a stock Electron are here, add the AP6 ROM and
-			// some sideways RAM such that the SR commands are useful.
 			for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
+				// Electron: check whether adding the AP6 ROM is justified.
+				// For now this is an incredibly dense text search;
+				// if any of the commands that aren't usually present
+				// on a stock Electron are here, add the AP6 ROM and
+				// some sideways RAM such that the SR commands are useful.
 				for(const auto &command: {
 					"AQRPAGE", "BUILD", "DUMP", "FORMAT", "INSERT", "LANG", "LIST", "LOADROM",
 					"LOCK", "LROMS", "RLOAD", "ROMS", "RSAVE", "SAVEROM", "SRLOAD", "SRPAGE",
@@ -155,6 +163,26 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
 						targetElectron->has_ap6_rom = true;
 						targetElectron->has_sideways_ram = true;
+					}
+				}
+
+				// Look for any 'BBC indicators', i.e. direct access to BBC-specific hardware.
+				// Also currently a dense search.
+				for(const auto address: {
+					0xfe00, 0xfe01, 0xfe02,		// The CRTC.
+					0xfe20, 0xfe21,				// The video control registers.
+					0xfe40, 0xfe41,				// The system VIA.
+					0xfe60, 0xfe61,				// The user VIA.
+				}) {
+					const uint8_t little_endian_address[2] = {
+						uint8_t(address & 0xff), uint8_t(address >> 8)
+					};
+
+					if(std::search(
+						file.data.begin(), file.data.end(),
+						std::begin(little_endian_address), std::end(little_endian_address)
+					) != file.data.end()) {
+						prefer_BBC = true;
 					}
 				}
 			}
@@ -221,8 +249,18 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	}
 
 	TargetList targets;
-	if(!targetElectron->media.empty()) {
-		targets.push_back(std::move(targetElectron));
+	if(!targetElectron->media.empty() && !targetBBC->media.empty()) {
+		if(prefer_BBC) {
+			targets.push_back(std::move(targetBBC));
+		} else {
+			targets.push_back(std::move(targetElectron));
+		}
+	} else {
+		if(!targetElectron->media.empty()) {
+			targets.push_back(std::move(targetElectron));
+		} else if(!targetBBC->media.empty()) {
+			targets.push_back(std::move(targetBBC));
+		}
 	}
 	if(!targetArchimedes->media.empty()) {
 		targets.push_back(std::move(targetArchimedes));
