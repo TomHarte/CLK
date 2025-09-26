@@ -117,13 +117,10 @@ struct SystemVIAPortHandler;
 using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via) :
+	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via, const bool run_disk) :
 		audio_(audio), video_base_(video_base), via_(via)
 	{
-		// Set initial mode to mode 0.
-//		set_key(7, true);
-//		set_key(8, true);
-//		set_key(9, true);
+		set_key(6, run_disk);
 	}
 
 	// CA2: key pressed;
@@ -579,7 +576,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
-		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_),
+		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_, target.should_shift_restart),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),

@@ -142,8 +142,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 			// Check whether a simple shift+break will do for loading this disk.
 			const auto bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None) {
-				targetElectron->should_shift_restart = true;
-				// TODO: support shift restart on the BBC.
+				targetBBC->should_shift_restart = targetElectron->should_shift_restart = true;
 			} else {
 				targetBBC->loading_command = targetElectron->loading_command = "*CAT\n";
 			}
