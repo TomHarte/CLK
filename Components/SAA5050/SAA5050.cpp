@@ -114,23 +114,23 @@ constexpr uint8_t font[][10] = {
 };
 
 constexpr uint16_t scale(const uint8_t top, const uint8_t bottom) {
-	// Adapted from old ElectrEm source; my original provenance for the logic is unknown.
+	// Adapted from old ElectrEm source; my original provenance for this being the correct logic is unknown.
 	uint16_t wide =
-		((top & 0x01) ? 0b0000'0000'0011 : 0) |
-		((top & 0x02) ? 0b0000'0000'1100 : 0) |
-		((top & 0x04) ? 0b0000'0011'0000 : 0) |
-		((top & 0x08) ? 0b0000'1100'0000 : 0) |
-		((top & 0x10) ? 0b0011'0000'0000 : 0);
+		((top & 0b00001) ? 0b0000'0000'0011 : 0) |
+		((top & 0b00010) ? 0b0000'0000'1100 : 0) |
+		((top & 0b00100) ? 0b0000'0011'0000 : 0) |
+		((top & 0b01000) ? 0b0000'1100'0000 : 0) |
+		((top & 0b10000) ? 0b0011'0000'0000 : 0);
 
-	if((top & 0x10) && (bottom & 0x08) && !(bottom & 0x10)) wide |= 0b0000'1000'0000;
-	if((top & 0x08) && (bottom & 0x04) && !(bottom & 0x08)) wide |= 0b0000'0010'0000;
-	if((top & 0x04) && (bottom & 0x02) && !(bottom & 0x04)) wide |= 0b0000'0000'1000;
-	if((top & 0x02) && (bottom & 0x01) && !(bottom & 0x02)) wide |= 0b0000'0000'0010;
+	if((top & 0b10000) && (bottom & 0b11000) == 0b01000) wide |= 0b0000'1000'0000;
+	if((top & 0b01000) && (bottom & 0b01100) == 0b00100) wide |= 0b0000'0010'0000;
+	if((top & 0b00100) && (bottom & 0b00110) == 0b00010) wide |= 0b0000'0000'1000;
+	if((top & 0b00010) && (bottom & 0b00011) == 0b00001) wide |= 0b0000'0000'0010;
 
-	if((top & 0x08) && (bottom & 0x10) && !(bottom & 0x08)) wide |= 0b0001'0000'0000;
-	if((top & 0x04) && (bottom & 0x08) && !(bottom & 0x04)) wide |= 0b0000'0100'0000;
-	if((top & 0x02) && (bottom & 0x04) && !(bottom & 0x02)) wide |= 0b0000'0001'0000;
-	if((top & 0x01) && (bottom & 0x02) && !(bottom & 0x01)) wide |= 0b0000'0000'0100;
+	if((top & 0b01000) && (bottom & 0b11000) == 0b10000) wide |= 0b0001'0000'0000;
+	if((top & 0b00100) && (bottom & 0b01100) == 0b01000) wide |= 0b0000'0100'0000;
+	if((top & 0b00010) && (bottom & 0b00110) == 0b00100) wide |= 0b0000'0001'0000;
+	if((top & 0b00001) && (bottom & 0b00011) == 0b00010) wide |= 0b0000'0000'0100;
 
 	return wide;
 }
