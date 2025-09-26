@@ -68,11 +68,13 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	TargetPlatform::IntType,
 	bool
 ) {
-	auto target8bit = std::make_unique<ElectronTarget>();
+	auto targetElectron = std::make_unique<ElectronTarget>();
+	auto targetBBC = std::make_unique<BBCMicroTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 
-	// Copy appropriate cartridges to the 8-bit target.
-	target8bit->media.cartridges = AcornCartridgesFrom(media.cartridges);
+	// Copy appropriate cartridges to the 8-bit targets.
+	targetElectron->media.cartridges = AcornCartridgesFrom(media.cartridges);
+	targetBBC->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
 	// If there are tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
@@ -107,8 +109,10 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
-			target8bit->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
-			target8bit->media.tapes = media.tapes;
+			targetElectron->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+			targetElectron->media.tapes = media.tapes;
+
+			// TODO: my BBC Micro doesn't yet support tapes; evaluate here in the future.
 		}
 	}
 
@@ -124,16 +128,16 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
-			target8bit->media.disks = media.disks;
-			target8bit->has_dfs = bool(dfs_catalogue);
-			target8bit->has_pres_adfs = bool(adfs_catalogue);
+			targetElectron->media.disks = media.disks;
+			targetElectron->has_dfs = bool(dfs_catalogue);
+			targetElectron->has_pres_adfs = bool(adfs_catalogue);
 
 			// Check whether a simple shift+break will do for loading this disk.
 			const auto bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None) {
-				target8bit->should_shift_restart = true;
+				targetElectron->should_shift_restart = true;
 			} else {
-				target8bit->loading_command = "*CAT\n";
+				targetElectron->loading_command = "*CAT\n";
 			}
 
 			// Check whether adding the AP6 ROM is justified.
@@ -149,8 +153,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					"VERIFY", "ZERO"
 				}) {
 					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
-						target8bit->has_ap6_rom = true;
-						target8bit->has_sideways_ram = true;
+						targetElectron->has_ap6_rom = true;
+						targetElectron->has_sideways_ram = true;
 					}
 				}
 			}
@@ -197,28 +201,28 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	// Enable the Acorn ADFS if a mass-storage device is attached;
 	// unlike the Pres ADFS it retains SCSI logic.
 	if(!media.mass_storage_devices.empty()) {
-		target8bit->has_pres_adfs = false;	// To override a floppy selection, if one was made.
-		target8bit->has_acorn_adfs = true;
+		targetElectron->has_pres_adfs = false;	// To override a floppy selection, if one was made.
+		targetElectron->has_acorn_adfs = true;
 
 		// Assume some sort of later-era Acorn work is likely to happen;
 		// so ensure *TYPE, etc are present.
-		target8bit->has_ap6_rom = true;
-		target8bit->has_sideways_ram = true;
+		targetElectron->has_ap6_rom = true;
+		targetElectron->has_sideways_ram = true;
 
-		target8bit->media.mass_storage_devices = media.mass_storage_devices;
+		targetElectron->media.mass_storage_devices = media.mass_storage_devices;
 
 		// Check for a boot option.
-		const auto sector = target8bit->media.mass_storage_devices.front()->get_block(1);
+		const auto sector = targetElectron->media.mass_storage_devices.front()->get_block(1);
 		if(sector[0xfd]) {
-			target8bit->should_shift_restart = true;
+			targetElectron->should_shift_restart = true;
 		} else {
-			target8bit->loading_command = "*CAT\n";
+			targetElectron->loading_command = "*CAT\n";
 		}
 	}
 
 	TargetList targets;
-	if(!target8bit->media.empty()) {
-		targets.push_back(std::move(target8bit));
+	if(!targetElectron->media.empty()) {
+		targets.push_back(std::move(targetElectron));
 	}
 	if(!targetArchimedes->media.empty()) {
 		targets.push_back(std::move(targetArchimedes));
