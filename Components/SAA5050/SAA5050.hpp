@@ -53,6 +53,10 @@ private:
 	bool row_has_double_height_ = false;
 	int double_height_offset_ = 0;
 
+	bool hold_graphics_ = false;
+	uint8_t last_graphic_ = 0;
+
+	uint16_t pixels(const uint8_t);
 	void apply_control(const uint8_t);
 };
 

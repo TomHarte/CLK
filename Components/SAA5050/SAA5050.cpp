@@ -220,12 +220,14 @@ void SAA5050Serialiser::apply_control(const uint8_t value) {
 		alpha_mode_ = true;
 		conceal_ = false;
 		output_.alpha = colour;
+		hold_graphics_ = false;
 	};
 
 	const auto set_graphics = [&](const uint8_t colour) {
 		alpha_mode_ = false;
 		conceal_ = false;
 		output_.alpha = colour;
+		hold_graphics_ = false;
 	};
 
 	switch(value) {
@@ -260,6 +262,9 @@ void SAA5050Serialiser::apply_control(const uint8_t value) {
 
 		case BlackBackground:		output_.background = 0;								break;
 		case NewBackground:			output_.background = output_.alpha;					break;
+
+		case HoldGraphics:			hold_graphics_ = true;								break;
+		case ReleaseGraphics:		hold_graphics_ = false; last_graphic_ = 32;			break;
 	}
 }
 
@@ -270,90 +275,91 @@ void SAA5050Serialiser::set_reveal(const bool reveal) {
 void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 	has_output_ = true;
 	if(c.get() < 32) {
-		// TODO: consider held graphics.
+		output_.pixels = hold_graphics_ ? pixels(last_graphic_) : 0;
 		apply_control(c.get());
-		output_.pixels = 0;
 		return;
 	}
+	output_.pixels = pixels(c.get());
+}
 
-	output_.pixels = [&]() -> uint16_t {
-		if(conceal_ && !reveal_) {
+uint16_t SAA5050Serialiser:: pixels(const uint8_t c) {
+	if(flash_ && frame_counter_&16) {
+		return 0;
+	}
+
+	if(conceal_ && !reveal_) {
+		return 0;
+	}
+
+	// Divert into graphics only if both the mode and the character code allows it.
+	if(!alpha_mode_ && (c & (1 << 5))) {
+		last_graphic_ = c;
+
+		// Graphics layout:
+		//
+		//	|----|----|
+		//	|    |    |
+		//	| b0 | b1 |
+		//	|    |    |
+		//	|----|----|
+		//	|    |    |
+		//	| b2 | b3 |
+		//	|    |    |
+		//	|----|----|
+		//	|    |    |
+		//	| b4 | b6 |
+		//	|    |    |
+		//	|----|----|
+
+		if(separated_graphics_ && (line_ == 6 || line_ == 12 || line_ == 18)) {
 			return 0;
 		}
 
-		// Divert into graphics only if both the mode and the character code allows it.
-		if(!alpha_mode_ && (c.get() & (1 << 5))) {
-			// Graphics layout:
-			//
-			//	|----|----|
-			//	|    |    |
-			//	| b0 | b1 |
-			//	|    |    |
-			//	|----|----|
-			//	|    |    |
-			//	| b2 | b3 |
-			//	|    |    |
-			//	|----|----|
-			//	|    |    |
-			//	| b4 | b6 |
-			//	|    |    |
-			//	|----|----|
-
-			const auto bits = c.get();
-			if(separated_graphics_ && (line_ == 6 || line_ == 12 || line_ == 18)) {
-				return 0;
-			}
-
-			uint16_t pixels;
-			if(line_ < 6) {
-				pixels =
-					((bits & 1) ? 0b1111'1100'0000 : 0) |
-					((bits & 2) ? 0b0000'0011'1111 : 0);
-			} else if(line_ < 12) {
-				pixels =
-					((bits & 4) ? 0b1111'1100'0000 : 0) |
-					((bits & 8) ? 0b0000'0011'1111 : 0);
-			} else {
-				pixels =
-					((bits & 16) ? 0b1111'1100'0000 : 0) |
-					((bits & 64) ? 0b0000'0011'1111 : 0);
-			}
-
-			if(separated_graphics_) {
-				pixels &= 0b0111'1101'1111;
-			}
-
-			return pixels;
+		uint16_t pixels;
+		if(line_ < 6) {
+			pixels =
+				((c & 1) ? 0b1111'1100'0000 : 0) |
+				((c & 2) ? 0b0000'0011'1111 : 0);
+		} else if(line_ < 12) {
+			pixels =
+				((c & 4) ? 0b1111'1100'0000 : 0) |
+				((c & 8) ? 0b0000'0011'1111 : 0);
+		} else {
+			pixels =
+				((c & 16) ? 0b1111'1100'0000 : 0) |
+				((c & 64) ? 0b0000'0011'1111 : 0);
 		}
 
-		if(double_height_) {
-			const auto top_address = (line_ >> 2) + double_height_offset_;
-			const uint8_t top = font[c.get() - 32][top_address];
-			const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
+		if(separated_graphics_) {
+			pixels &= 0b0111'1101'1111;
+		}
 
-			if(line_ & 2) {
+		return pixels;
+	}
+
+	if(double_height_) {
+		const auto top_address = (line_ >> 2) + double_height_offset_;
+		const uint8_t top = font[c - 32][top_address];
+		const uint8_t bottom = font[c - 32][std::min(9, top_address + 1)];
+
+		if(line_ & 2) {
+			return scale(bottom, top);
+		} else {
+			return scale(top, bottom);
+		}
+	} else {
+		if(double_height_offset_) {
+			return 0;
+		} else {
+			const auto top_address = line_ >> 1;
+			const uint8_t top = font[c - 32][top_address];
+			const uint8_t bottom = font[c - 32][std::min(9, top_address + 1)];
+
+			if(odd_frame_) {
 				return scale(bottom, top);
 			} else {
 				return scale(top, bottom);
 			}
-		} else {
-			if(double_height_offset_) {
-				return 0;
-			} else {
-				const auto top_address = line_ >> 1;
-				const uint8_t top = font[c.get() - 32][top_address];
-				const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
-
-				if(odd_frame_) {
-					return scale(bottom, top);
-				} else {
-					return scale(top, bottom);
-				}
-			}
 		}
-	} ();
-
-	if(flash_ && frame_counter_&16) {
-		output_.pixels = 0;
 	}
 }
