@@ -95,12 +95,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 
-		// Set up data soure.
-
-		// TEMPORARY: remove the Apple IIgs and PC compatible options.
-		// Neither is yet a fully-working machine.
 		#if !DEBUG
-		for hidden in ["appleiigs", "bbcmicro"] {
+		// Remove options that are not yet fully working, except in debug builds.
+		for hidden in ["appleiigs"] {
 			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
 			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
 		}
