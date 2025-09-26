@@ -288,7 +288,10 @@ public:
 	CRTCBusHandler(const uint8_t *const ram, SystemVIA &system_via) :
 		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
 		ram_(ram),
-		system_via_(system_via) {}
+		system_via_(system_via)
+	{
+		crt_.set_visible_area(crt_.get_rect_for_area(30, 256, 160, 800, 4.0f / 3.0f));
+	}
 
 	void set_palette(const uint8_t value) {
 		const auto index = value >> 4;
