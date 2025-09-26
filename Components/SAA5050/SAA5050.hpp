@@ -31,12 +31,20 @@ public:
 	bool has_output() const;
 	Output output();
 
+	void set_reveal(bool);
+
 private:
 	Output output_;
 	bool has_output_ = false;
 
 	int row_, line_;
 	bool odd_frame_;
+
+	bool flash_ = false;
+	int frame_counter_ = 0;
+
+	bool reveal_ = false;
+	bool conceal_ = false;
 
 	bool alpha_mode_ = true;
 	bool separated_graphics_ = false;

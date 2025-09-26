@@ -134,7 +134,41 @@ constexpr uint16_t scale(const uint8_t top, const uint8_t bottom) {
 
 	return wide;
 }
-}
+
+enum ControlCode: uint8_t {
+	RedAlpha = 0x01,
+	GreenAlpha = 0x02,
+	YellowAlpha = 0x03,
+	BlueAlpha = 0x04,
+	MagentaAlpha = 0x05,
+	CyanAlpha = 0x06,
+	WhiteAlpha = 0x07,
+
+	Flash = 0x08,
+	Steady = 0x09,
+
+	RedGraphics = 0x11,
+	GreenGraphics = 0x12,
+	YellowGraphics = 0x13,
+	BlueGraphics = 0x14,
+	MagentaGraphics = 0x15,
+	CyanGraphics = 0x16,
+	WhiteGraphics = 0x17,
+
+	Conceal = 0x18,
+
+	ContinuousGraphics = 0x19,
+	SeparatedGraphics = 0x1a,
+
+	NormalHeight = 0xc,
+	DoubleHeight = 0xd,
+
+	BlackBackground = 0x1c,
+	NewBackground = 0x1d,
+
+	HoldGraphics = 0x1e,
+	ReleaseGraphics = 0x1f,
+};}
 
 using namespace Mullard;
 
@@ -145,6 +179,8 @@ void SAA5050Serialiser::begin_frame(const bool is_odd) {
 
 	row_has_double_height_ = false;
 	double_height_offset_ = 0;
+
+	++frame_counter_;
 }
 
 void SAA5050Serialiser::begin_line() {
@@ -159,14 +195,15 @@ void SAA5050Serialiser::begin_line() {
 		row_has_double_height_ = false;
 	}
 
-	output_.alpha = 0x7;
-	output_.background = 0x0;
 	output_.pixels = 0;
 	has_output_ = false;
 
-	alpha_mode_ = true;
-	separated_graphics_ = false;
-	double_height_ = false;
+	apply_control(ControlCode::WhiteAlpha);
+	apply_control(ControlCode::Steady);
+	apply_control(ControlCode::NormalHeight);
+	apply_control(ControlCode::ContinuousGraphics);
+	apply_control(ControlCode::BlackBackground);
+	apply_control(ControlCode::ReleaseGraphics);
 }
 
 bool SAA5050Serialiser::has_output() const {
@@ -179,51 +216,41 @@ SAA5050Serialiser::Output SAA5050Serialiser::output() {
 }
 
 void SAA5050Serialiser::apply_control(const uint8_t value) {
-	enum ControlCode: uint8_t {
-		RedAlpha = 0x01,
-		GreenAlpha = 0x02,
-		YellowAlpha = 0x03,
-		BlueAlpha = 0x04,
-		MagentaAlpha = 0x05,
-		CyanAlpha = 0x06,
-		WhiteAlpha = 0x07,
+	const auto set_alpha = [&](const uint8_t colour) {
+		alpha_mode_ = true;
+		conceal_ = false;
+		output_.alpha = colour;
+	};
 
-		RedGraphics = 0x11,
-		GreenGraphics = 0x12,
-		YellowGraphics = 0x13,
-		BlueGraphics = 0x14,
-		MagentaGraphics = 0x15,
-		CyanGraphics = 0x16,
-		WhiteGraphics = 0x17,
-
-		ContinuousGraphics = 0x19,
-		SeparatedGraphics = 0x1a,
-
-		NormalHeight = 0xc,
-		DoubleHeight = 0xd,
-
-		BlackBackground = 0x1c,
-		NewBackground = 0x1d,
+	const auto set_graphics = [&](const uint8_t colour) {
+		alpha_mode_ = false;
+		conceal_ = false;
+		output_.alpha = colour;
 	};
 
 	switch(value) {
 		default: break;
 
-		case RedAlpha:				alpha_mode_ = true; output_.alpha = 0b100;			break;
-		case GreenAlpha:			alpha_mode_ = true; output_.alpha = 0b010;			break;
-		case YellowAlpha:			alpha_mode_ = true; output_.alpha = 0b110;			break;
-		case BlueAlpha:				alpha_mode_ = true; output_.alpha = 0b001;			break;
-		case MagentaAlpha:			alpha_mode_ = true; output_.alpha = 0b101;			break;
-		case CyanAlpha:				alpha_mode_ = true; output_.alpha = 0b011;			break;
-		case WhiteAlpha:			alpha_mode_ = true; output_.alpha = 0b111;			break;
+		case RedAlpha:				set_alpha(0b100);									break;
+		case GreenAlpha:			set_alpha(0b010);									break;
+		case YellowAlpha:			set_alpha(0b110);									break;
+		case BlueAlpha:				set_alpha(0b001);									break;
+		case MagentaAlpha:			set_alpha(0b101);									break;
+		case CyanAlpha:				set_alpha(0b011);									break;
+		case WhiteAlpha:			set_alpha(0b111);									break;
 
-		case RedGraphics:			alpha_mode_ = false; output_.alpha = 0b100;			break;
-		case GreenGraphics:			alpha_mode_ = false; output_.alpha = 0b010;			break;
-		case YellowGraphics:		alpha_mode_ = false; output_.alpha = 0b110;			break;
-		case BlueGraphics:			alpha_mode_ = false; output_.alpha = 0b001;			break;
-		case MagentaGraphics:		alpha_mode_ = false; output_.alpha = 0b101;			break;
-		case CyanGraphics:			alpha_mode_ = false; output_.alpha = 0b011;			break;
-		case WhiteGraphics:			alpha_mode_ = false; output_.alpha = 0b111;			break;
+		case Flash:					flash_ = true;										break;
+		case Steady:				flash_ = false;										break;
+
+		case RedGraphics:			set_graphics(0b100);								break;
+		case GreenGraphics:			set_graphics(0b010);								break;
+		case YellowGraphics:		set_graphics(0b110);								break;
+		case BlueGraphics:			set_graphics(0b001);								break;
+		case MagentaGraphics:		set_graphics(0b101);								break;
+		case CyanGraphics:			set_graphics(0b011);								break;
+		case WhiteGraphics:			set_graphics(0b111);								break;
+
+		case Conceal:				conceal_ = true;									break;
 
 		case ContinuousGraphics:	separated_graphics_ = false;						break;
 		case SeparatedGraphics:		separated_graphics_ = true;							break;
@@ -236,6 +263,10 @@ void SAA5050Serialiser::apply_control(const uint8_t value) {
 	}
 }
 
+void SAA5050Serialiser::set_reveal(const bool reveal) {
+	reveal_ = reveal;
+}
+
 void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 	has_output_ = true;
 	if(c.get() < 32) {
@@ -245,74 +276,84 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 		return;
 	}
 
-	// Divert into graphics only if both the mode and the character code allows it.
-	if(!alpha_mode_ && (c.get() & (1 << 5))) {
-		// Graphics layout:
-		//
-		//	|----|----|
-		//	|    |    |
-		//	| b0 | b1 |
-		//	|    |    |
-		//	|----|----|
-		//	|    |    |
-		//	| b2 | b3 |
-		//	|    |    |
-		//	|----|----|
-		//	|    |    |
-		//	| b4 | b6 |
-		//	|    |    |
-		//	|----|----|
-
-		const auto bits = c.get();
-		if(separated_graphics_ && (line_ == 6 || line_ == 12 || line_ == 18)) {
-			output_.pixels = 0;
-			return;
+	output_.pixels = [&]() -> uint16_t {
+		if(conceal_ && !reveal_) {
+			return 0;
 		}
 
-		if(line_ < 6) {
-			output_.pixels =
-				((bits & 1) ? 0b1111'1100'0000 : 0) |
-				((bits & 2) ? 0b0000'0011'1111 : 0);
-		} else if(line_ < 12) {
-			output_.pixels =
-				((bits & 4) ? 0b1111'1100'0000 : 0) |
-				((bits & 8) ? 0b0000'0011'1111 : 0);
-		} else {
-			output_.pixels =
-				((bits & 16) ? 0b1111'1100'0000 : 0) |
-				((bits & 64) ? 0b0000'0011'1111 : 0);
+		// Divert into graphics only if both the mode and the character code allows it.
+		if(!alpha_mode_ && (c.get() & (1 << 5))) {
+			// Graphics layout:
+			//
+			//	|----|----|
+			//	|    |    |
+			//	| b0 | b1 |
+			//	|    |    |
+			//	|----|----|
+			//	|    |    |
+			//	| b2 | b3 |
+			//	|    |    |
+			//	|----|----|
+			//	|    |    |
+			//	| b4 | b6 |
+			//	|    |    |
+			//	|----|----|
+
+			const auto bits = c.get();
+			if(separated_graphics_ && (line_ == 6 || line_ == 12 || line_ == 18)) {
+				return 0;
+			}
+
+			uint16_t pixels;
+			if(line_ < 6) {
+				pixels =
+					((bits & 1) ? 0b1111'1100'0000 : 0) |
+					((bits & 2) ? 0b0000'0011'1111 : 0);
+			} else if(line_ < 12) {
+				pixels =
+					((bits & 4) ? 0b1111'1100'0000 : 0) |
+					((bits & 8) ? 0b0000'0011'1111 : 0);
+			} else {
+				pixels =
+					((bits & 16) ? 0b1111'1100'0000 : 0) |
+					((bits & 64) ? 0b0000'0011'1111 : 0);
+			}
+
+			if(separated_graphics_) {
+				pixels &= 0b0111'1101'1111;
+			}
+
+			return pixels;
 		}
 
-		if(separated_graphics_) {
-			output_.pixels &= 0b0111'1101'1111;
-		}
-
-		return;
-	}
-
-	if(double_height_) {
-		const auto top_address = (line_ >> 2) + double_height_offset_;
-		const uint8_t top = font[c.get() - 32][top_address];
-		const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
-
-		if(line_ & 2) {
-			output_.pixels = scale(bottom, top);
-		} else {
-			output_.pixels = scale(top, bottom);
-		}
-	} else {
-		if(double_height_offset_) {
-			output_.pixels = 0;
-		} else {
-			const auto top_address = line_ >> 1;
+		if(double_height_) {
+			const auto top_address = (line_ >> 2) + double_height_offset_;
 			const uint8_t top = font[c.get() - 32][top_address];
 			const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
 
-			if(odd_frame_) {
-				output_.pixels = scale(bottom, top);
+			if(line_ & 2) {
+				return scale(bottom, top);
 			} else {
-				output_.pixels = scale(top, bottom);
+				return scale(top, bottom);
+			}
+		} else {
+			if(double_height_offset_) {
+				return 0;
+			} else {
+				const auto top_address = line_ >> 1;
+				const uint8_t top = font[c.get() - 32][top_address];
+				const uint8_t bottom = font[c.get() - 32][std::min(9, top_address + 1)];
+
+				if(odd_frame_) {
+					return scale(bottom, top);
+				} else {
+					return scale(top, bottom);
+				}
 			}
 		}
+	} ();
+
+	if(flash_ && frame_counter_&16) {
+		output_.pixels = 0;
 	}
 }
