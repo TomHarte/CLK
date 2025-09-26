@@ -641,6 +641,9 @@
 		4B882F5B2C2F9C7700D84031 /* Shaker in Resources */ = {isa = PBXBuildFile; fileRef = 4B882F5A2C2F9C7700D84031 /* Shaker */; };
 		4B882F5C2C32199400D84031 /* MachineForTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */; };
 		4B882F5D2C3219A400D84031 /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
+		4B8855A52E84D51B00E251DD /* SAA5050.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8855A32E84D51B00E251DD /* SAA5050.cpp */; };
+		4B8855A62E84D51B00E251DD /* SAA5050.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8855A32E84D51B00E251DD /* SAA5050.cpp */; };
+		4B8855A72E84D51B00E251DD /* SAA5050.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8855A32E84D51B00E251DD /* SAA5050.cpp */; };
 		4B89449520194CB3007DE474 /* MachineForTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */; };
 		4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944E6201967B4007DE474 /* ConfidenceCounter.cpp */; };
 		4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944E6201967B4007DE474 /* ConfidenceCounter.cpp */; };
@@ -1795,6 +1798,8 @@
 		4B882F582C2F9C6900D84031 /* CPCShakerTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CPCShakerTests.mm; sourceTree = "<group>"; };
 		4B882F5A2C2F9C7700D84031 /* Shaker */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaker; sourceTree = "<group>"; };
 		4B88559C2E8185BF00E251DD /* SizedCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SizedCounter.hpp; sourceTree = "<group>"; };
+		4B8855A22E84D51B00E251DD /* SAA5050.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAA5050.hpp; sourceTree = "<group>"; };
+		4B8855A32E84D51B00E251DD /* SAA5050.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAA5050.cpp; sourceTree = "<group>"; };
 		4B89449220194A47007DE474 /* CSStaticAnalyser+TargetVector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "CSStaticAnalyser+TargetVector.h"; path = "StaticAnalyser/CSStaticAnalyser+TargetVector.h"; sourceTree = "<group>"; };
 		4B8944E4201967B4007DE474 /* ConfidenceSummary.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ConfidenceSummary.hpp; sourceTree = "<group>"; };
 		4B8944E5201967B4007DE474 /* ConfidenceSource.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ConfidenceSource.hpp; sourceTree = "<group>"; };
@@ -3847,6 +3852,15 @@
 			path = Data;
 			sourceTree = "<group>";
 		};
+		4B8855A42E84D51B00E251DD /* SAA5050 */ = {
+			isa = PBXGroup;
+			children = (
+				4B8855A22E84D51B00E251DD /* SAA5050.hpp */,
+				4B8855A32E84D51B00E251DD /* SAA5050.cpp */,
+			);
+			path = SAA5050;
+			sourceTree = "<group>";
+		};
 		4B8944E2201967B4007DE474 /* Analyser */ = {
 			isa = PBXGroup;
 			children = (
@@ -5089,6 +5103,7 @@
 				4B4B1A39200198C900A0F866 /* KonamiSCC */,
 				4BC23A212467600E001A6030 /* OPx */,
 				4BF0BC6E2973318E00CCA2B5 /* RP5C01 */,
+				4B8855A42E84D51B00E251DD /* SAA5050 */,
 				4B0ACBFF237756EC008902D0 /* Serial */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
 				4B47F3B42E7B9A14005D4DEC /* uPD7002 */,
@@ -6301,6 +6316,7 @@
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
 				42EB81292B23AAC300429AF4 /* IMD.cpp in Sources */,
 				4B051CB1267C1CA200CA44E8 /* Keyboard.cpp in Sources */,
+				4B8855A72E84D51B00E251DD /* SAA5050.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
 				4B89452D201967B4007DE474 /* Tape.cpp in Sources */,
@@ -6397,6 +6413,7 @@
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BE8EB6625C750B50040BC40 /* DAT.cpp in Sources */,
 				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
+				4B8855A52E84D51B00E251DD /* SAA5050.cpp in Sources */,
 				4BAE49582032881E004BE78E /* CSZX8081.mm in Sources */,
 				4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */,
 				4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
@@ -6628,6 +6645,7 @@
 				4B778F3123A5F0CB0000D260 /* Keyboard.cpp in Sources */,
 				4B778F4A23A5F1FB0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B7752AB28217E560073E2C5 /* SZX.cpp in Sources */,
+				4B8855A62E84D51B00E251DD /* SAA5050.cpp in Sources */,
 				4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */,
 				4B06AAE22C645F970034D014 /* PCBooter.cpp in Sources */,
 				4B1082C32C1A87CA00B07C5D /* CSL.cpp in Sources */,

@@ -17,8 +17,9 @@
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
-#include "Components/SN76489/SN76489.hpp"
 #include "Components/6850/6850.hpp"
+#include "Components/SAA5050/SAA5050.hpp"
+#include "Components/SN76489/SN76489.hpp"
 #include "Components/uPD7002/uPD7002.hpp"
 
 // TODO: factor this more appropriately.
@@ -306,10 +307,6 @@ public:
 
 		active_collation_.pixels_per_clock = 1 << ((value >> 2) & 0x03);
 		active_collation_.is_teletext = value & 0x02;
-		if(active_collation_.is_teletext) {
-			Logger::error().append("TODO: video control => teletext %d", bool(value & 0x02));
-		}
-
 		flash_mask_ = value & 0x01 ? 7 : 0;
 		cursor_mask_ = value & 0b1110'0000;
 	}
@@ -327,15 +324,13 @@ public:
 		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
 
 		// Count cycles since horizontal sync to insert a colour burst.
-		if(state.hsync) {
-			++cycles_into_hsync_;
-		} else {
-			cycles_into_hsync_ = 0;
-		}
-		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
-
-		// Sync is taken to override pixels, and is combined as a simple OR.
-		const bool is_sync = state.hsync || state.vsync;
+		// TODO: this is copy/pasted from the CPC. How does the BBC do it?
+//		if(state.hsync) {
+//			++cycles_into_hsync_;
+//		} else {
+//			cycles_into_hsync_ = 0;
+//		}
+//		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
 
 		// Check for a cursor leading edge.
 		cursor_shifter_ >>= 4;
@@ -349,17 +344,64 @@ public:
 			previous_cursor_enabled_ = state.cursor;
 		}
 
-		OutputMode output_mode;
-		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
-		if(is_sync) {
-			output_mode = OutputMode::Sync;
-		} else if(is_colour_burst) {
-			output_mode = OutputMode::ColourBurst;
-		} else if(should_fetch || cursor_shifter_) {
-			output_mode = OutputMode::Pixels;
-		} else {
-			output_mode = OutputMode::Blank;
+		// Consider some SAA5050 signalling.
+		if(!state.vsync && previous_vsync_) {
+			// Complete fiction here; the SAA5050 field flag is set by peeking inside CRTC state.
+			// TODO: what really sets CRS for the SAA5050? Time since hsync maybe?
+			saa5050_serialiser_.begin_frame(state.field_count.bit<0>());
 		}
+		previous_vsync_ = state.vsync;
+
+		if(state.display_enable && !previous_display_enabled_) {
+			saa5050_serialiser_.begin_line();
+		}
+		previous_display_enabled_ = state.display_enable;
+
+		// Grab 5050 output, if any.
+		bool has_5050_output_ = saa5050_serialiser_.has_output();
+		const auto saa_50505_output_ = saa5050_serialiser_.output();
+
+		// Fetch, possibly.
+		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
+		if(should_fetch) {
+			const uint16_t address = [&] {
+				// Teletext address generation.
+				if(state.refresh.get() & (1 << 13)) {
+					return uint16_t(
+						0x3c00 |
+						((state.refresh.get() & 0x800) << 3) |
+						(state.refresh.get() & 0x3ff)
+					);
+				}
+
+				uint16_t address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
+				if(address & 0x8000) {
+					address = (address + video_base_) & 0x7fff;
+				}
+				return address;
+			} ();
+			const uint8_t fetched = ram_[address];
+			pixel_shifter_ = fetched;
+			saa5050_serialiser_.add(fetched);
+		}
+
+		// Pick new output mode.
+		const OutputMode output_mode = [&] {
+			if(state.hsync || state.vsync) {
+				return OutputMode::Sync;
+			}
+//			if(is_colour_burst) {
+//				return OutputMode::ColourBurst;
+//			}
+			if(
+				(should_fetch && !active_collation_.is_teletext) ||
+				(has_5050_output_ && active_collation_.is_teletext) ||
+				cursor_shifter_
+			) {
+				return OutputMode::Pixels;
+			}
+			return OutputMode::Blank;
+		} ();
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
 		// in progress to the CRT and reset counting. Also flush if this mode has just been effective
@@ -379,11 +421,8 @@ public:
 			previous_output_mode_ = output_mode;
 		}
 
-		// Increment cycles since state changed.
-		cycles_ += crtc_clock_multiplier_ << 3;
-
 		// Collect some more pixels if output is ongoing.
-		if(previous_output_mode_ == OutputMode::Pixels) {
+		if(output_mode == OutputMode::Pixels) {
 			// Flush the current buffer pixel if full; the CRTC allows many different display
 			// widths so it's not necessarily possible to predict the correct number in advance
 			// and using the upper bound could lead to inefficient behaviour.
@@ -396,30 +435,20 @@ public:
 			if(!pixel_data_) {
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit, 8);
 			}
-			if(pixel_pointer_) {
-				uint16_t address;
 
-				if(state.refresh.get() & (1 << 13)) {
-					// Teletext address generation mode.
-					address = uint16_t(
-						0x3c00 |
-						((state.refresh.get() & 0x800) << 3) |
-						(state.refresh.get() & 0x3ff)
-					);
-					// TODO: wraparound? Does that happen on Mode 7?
-				} else {
-					address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
-					if(address & 0x8000) {
-						address = (address + video_base_) & 0x7fff;
-					}
-				}
-
-				pixel_shifter_ = should_fetch ? ram_[address] : 0;
+			if(pixel_data_) {
 				if(active_collation_.is_teletext) {
-					// TODO: output meaningful teletext pixels.
-					for(int c = 0; c < 12; c++) {
-						*pixel_pointer_++ = (pixel_shifter_ & 0x80 ? 0xff : 0x00) ^ cursor_mask_;
-						pixel_shifter_ <<= 1;
+					if(has_5050_output_) {
+						uint16_t pixels = saa_50505_output_.pixels;
+						for(int c = 0; c < 12; c++) {
+							*pixel_pointer_++ =
+								((pixels & 0b1000'0000'0000) ? saa_50505_output_.alpha : saa_50505_output_.background)
+									^ uint8_t(cursor_shifter_);
+							pixels <<= 1;
+						}
+					} else {
+						std::fill(pixel_pointer_, pixel_pointer_ + 12, 0);
+						pixel_pointer_ += 12;
 					}
 				} else {
 					switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
@@ -433,6 +462,9 @@ public:
 				}
 			}
 		}
+
+		// Increment cycles since state changed.
+		cycles_ += crtc_clock_multiplier_ << 3;
 	}
 
 	/// Sets the destination for output.
@@ -499,6 +531,9 @@ private:
 	uint32_t cursor_shifter_ = 0;
 	bool previous_cursor_enabled_ = false;
 
+	bool previous_display_enabled_ = false;
+	bool previous_vsync_ = false;
+
 	template <int count> void shift_pixels(const uint8_t cursor_mask) {
 		for(int c = 0; c < count; c++) {
 			const uint8_t colour =
@@ -513,6 +548,8 @@ private:
 
 	const uint8_t *const ram_ = nullptr;
 	SystemVIA &system_via_;
+
+	Mullard::SAA5050Serialiser saa5050_serialiser_;
 };
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
