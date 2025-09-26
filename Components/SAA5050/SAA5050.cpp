@@ -163,7 +163,6 @@ void SAA5050Serialiser::begin_line() {
 	output_.background = 0x0;
 	output_.pixels = 0;
 	has_output_ = false;
-	next_control_ = 0;
 
 	alpha_mode_ = true;
 	separated_graphics_ = false;
@@ -179,8 +178,7 @@ SAA5050Serialiser::Output SAA5050Serialiser::output() {
 	return output_;
 }
 
-void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
-	// Apply any enqueued control code.
+void SAA5050Serialiser::apply_control(const uint8_t value) {
 	enum ControlCode: uint8_t {
 		RedAlpha = 0x01,
 		GreenAlpha = 0x02,
@@ -207,7 +205,8 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 		BlackBackground = 0x1c,
 		NewBackground = 0x1d,
 	};
-	switch(next_control_) {
+
+	switch(value) {
 		default: break;
 
 		case RedAlpha:				alpha_mode_ = true; output_.alpha = 0b100;			break;
@@ -235,12 +234,13 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 		case BlackBackground:		output_.background = 0;								break;
 		case NewBackground:			output_.background = output_.alpha;					break;
 	}
-	next_control_ = 0;
+}
 
+void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 	has_output_ = true;
 	if(c.get() < 32) {
-		// Defer any [some?] control characters until next time through.
-		next_control_ = c.get();
+		// TODO: consider held graphics.
+		apply_control(c.get());
 		output_.pixels = 0;
 		return;
 	}

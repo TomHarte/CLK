@@ -32,7 +32,6 @@ public:
 	Output output();
 
 private:
-	uint8_t next_control_ = 0;
 	Output output_;
 	bool has_output_ = false;
 
@@ -45,6 +44,8 @@ private:
 	bool double_height_ = false;
 	bool row_has_double_height_ = false;
 	int double_height_offset_ = 0;
+
+	void apply_control(const uint8_t);
 };
 
 }
