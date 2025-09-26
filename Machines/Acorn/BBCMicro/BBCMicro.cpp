@@ -325,12 +325,12 @@ public:
 
 		// Count cycles since horizontal sync to insert a colour burst.
 		// TODO: this is copy/pasted from the CPC. How does the BBC do it?
-		if(state.hsync) {
-			++cycles_into_hsync_;
-		} else {
-			cycles_into_hsync_ = 0;
-		}
-		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
+//		if(state.hsync) {
+//			++cycles_into_hsync_;
+//		} else {
+//			cycles_into_hsync_ = 0;
+//		}
+//		const bool is_colour_burst = cycles_into_hsync_ >= 5 && cycles_into_hsync_ < 9;
 
 		// Check for a cursor leading edge.
 		cursor_shifter_ >>= 4;
@@ -344,20 +344,6 @@ public:
 			previous_cursor_enabled_ = state.cursor;
 		}
 
-		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
-		const OutputMode output_mode = [&] {
-			if(state.hsync || state.vsync) {
-				return OutputMode::Sync;
-			}
-			if(is_colour_burst) {
-				return OutputMode::ColourBurst;;
-			}
-			if(should_fetch || cursor_shifter_ || (active_collation_.is_teletext && saa5050_serialiser_.has_output())) {
-				return OutputMode::Pixels;
-			}
-			return OutputMode::Blank;
-		} ();
-
 		// Consider some SAA5050 signalling.
 		if(!state.vsync && previous_vsync_) {
 			// Complete fiction here; the SAA5050 field flag is set by peeking inside CRTC state.
@@ -370,6 +356,52 @@ public:
 			saa5050_serialiser_.begin_line();
 		}
 		previous_display_enabled_ = state.display_enable;
+
+		// Grab 5050 output, if any.
+		bool has_5050_output_ = saa5050_serialiser_.has_output();
+		const auto saa_50505_output_ = saa5050_serialiser_.output();
+
+		// Fetch, possibly.
+		const bool should_fetch = state.display_enable && (active_collation_.is_teletext || !(state.line.get() & 8));
+		if(should_fetch) {
+			const uint16_t address = [&] {
+				// Teletext address generation.
+				if(state.refresh.get() & (1 << 13)) {
+					return uint16_t(
+						0x3c00 |
+						((state.refresh.get() & 0x800) << 3) |
+						(state.refresh.get() & 0x3ff)
+					);
+				}
+
+				uint16_t address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
+				if(address & 0x8000) {
+					address = (address + video_base_) & 0x7fff;
+				}
+				return address;
+			} ();
+			const uint8_t fetched = ram_[address];
+			pixel_shifter_ = fetched;
+			saa5050_serialiser_.add(fetched);
+		}
+
+		// Pick new output mode.
+		const OutputMode output_mode = [&] {
+			if(state.hsync || state.vsync) {
+				return OutputMode::Sync;
+			}
+//			if(is_colour_burst) {
+//				return OutputMode::ColourBurst;
+//			}
+			if(
+				(should_fetch && !active_collation_.is_teletext) ||
+				(has_5050_output_ && active_collation_.is_teletext) ||
+				cursor_shifter_
+			) {
+				return OutputMode::Pixels;
+			}
+			return OutputMode::Blank;
+		} ();
 
 		// If a transition between sync/border/pixels just occurred, flush whatever was
 		// in progress to the CRT and reset counting. Also flush if this mode has just been effective
@@ -389,11 +421,8 @@ public:
 			previous_output_mode_ = output_mode;
 		}
 
-		// Increment cycles since state changed.
-		cycles_ += crtc_clock_multiplier_ << 3;
-
 		// Collect some more pixels if output is ongoing.
-		if(previous_output_mode_ == OutputMode::Pixels) {
+		if(output_mode == OutputMode::Pixels) {
 			// Flush the current buffer pixel if full; the CRTC allows many different display
 			// widths so it's not necessarily possible to predict the correct number in advance
 			// and using the upper bound could lead to inefficient behaviour.
@@ -407,34 +436,13 @@ public:
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit, 8);
 			}
 
-			const uint16_t address = [&] {
-				// Teletext address generation.
-				if(state.refresh.get() & (1 << 13)) {
-					return uint16_t(
-						0x3c00 |
-						((state.refresh.get() & 0x800) << 3) |
-						(state.refresh.get() & 0x3ff)
-					);
-				}
-
-				uint16_t address = uint16_t((state.refresh.get() << 3) | (state.line.get() & 7));
-				if(address & 0x8000) {
-					address = (address + video_base_) & 0x7fff;
-				}
-				return address;
-			} ();
-			const uint8_t fetched = should_fetch ? ram_[address] : 0;
-			pixel_shifter_ = fetched;
-
 			if(pixel_data_) {
 				if(active_collation_.is_teletext) {
-					if(saa5050_serialiser_.has_output()) {
-						const auto output = saa5050_serialiser_.output();
-
-						uint16_t pixels = output.pixels;
+					if(has_5050_output_) {
+						uint16_t pixels = saa_50505_output_.pixels;
 						for(int c = 0; c < 12; c++) {
 							*pixel_pointer_++ =
-								((pixels & 0b1000'0000'0000) ? output.alpha : output.background)
+								((pixels & 0b1000'0000'0000) ? saa_50505_output_.alpha : saa_50505_output_.background)
 									^ uint8_t(cursor_shifter_);
 							pixels <<= 1;
 						}
@@ -452,19 +460,11 @@ public:
 						default: break;
 					}
 				}
-			} /*else {
-				if(active_collation_.is_teletext) {
-					pixel_pointer_ += 12;
-				} else {
-					pixel_pointer_ += crtc_clock_multiplier_ * active_collation_.pixels_per_clock;
-				}
-			} */
-
-			// TODO: why does enabling the below cause alternate lines to be different stretches?
-//			if(should_fetch) {
-				saa5050_serialiser_.add(fetched);
-//			}
+			}
 		}
+
+		// Increment cycles since state changed.
+		cycles_ += crtc_clock_multiplier_ << 3;
 	}
 
 	/// Sets the destination for output.
