@@ -38,9 +38,11 @@ private:
 
 struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<BBCMicroTarget> {
 	std::string loading_command;
+	bool should_shift_restart = false;
+
 	bool has_1770dfs = false;
 	bool has_adfs = false;
-	bool has_sideways_ram = false;
+	bool has_sideways_ram = true;
 
 	BBCMicroTarget() : Analyser::Static::Target(Machine::BBCMicro) {}
 

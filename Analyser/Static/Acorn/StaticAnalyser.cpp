@@ -68,11 +68,16 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	TargetPlatform::IntType,
 	bool
 ) {
-	auto target8bit = std::make_unique<ElectronTarget>();
+	auto targetElectron = std::make_unique<ElectronTarget>();
+	auto targetBBC = std::make_unique<BBCMicroTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
+	int bbc_hits = 0;
+	int electron_hits = 0;
+	bool format_prefers_bbc = false;
 
-	// Copy appropriate cartridges to the 8-bit target.
-	target8bit->media.cartridges = AcornCartridgesFrom(media.cartridges);
+	// Copy appropriate cartridges to the 8-bit targets.
+	targetElectron->media.cartridges = AcornCartridgesFrom(media.cartridges);
+	targetBBC->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
 	// If there are tapes, attempt to get data from the first.
 	if(!media.tapes.empty()) {
@@ -107,8 +112,10 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
-			target8bit->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
-			target8bit->media.tapes = media.tapes;
+			targetElectron->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+			targetElectron->media.tapes = media.tapes;
+
+			// TODO: my BBC Micro doesn't yet support tapes; evaluate here in the future.
 		}
 	}
 
@@ -123,25 +130,34 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		// 8-bit options: DFS and Hugo-style ADFS.
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
-			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
-			target8bit->media.disks = media.disks;
-			target8bit->has_dfs = bool(dfs_catalogue);
-			target8bit->has_pres_adfs = bool(adfs_catalogue);
+
+			// Electron: use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
+			targetElectron->media.disks = media.disks;
+			targetElectron->has_dfs = bool(dfs_catalogue);
+			targetElectron->has_pres_adfs = bool(adfs_catalogue);
+
+			// BBC: only the 1770 DFS is currently supported, so use that.
+			targetBBC->media.disks = media.disks;
+			targetBBC->has_1770dfs = bool(dfs_catalogue);
+			targetBBC->has_adfs = bool(adfs_catalogue);
 
 			// Check whether a simple shift+break will do for loading this disk.
 			const auto bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None) {
-				target8bit->should_shift_restart = true;
+				targetBBC->should_shift_restart = targetElectron->should_shift_restart = true;
 			} else {
-				target8bit->loading_command = "*CAT\n";
+				targetBBC->loading_command = targetElectron->loading_command = "*CAT\n";
 			}
 
-			// Check whether adding the AP6 ROM is justified.
-			// For now this is an incredibly dense text search;
-			// if any of the commands that aren't usually present
-			// on a stock Electron are here, add the AP6 ROM and
-			// some sideways RAM such that the SR commands are useful.
+			// Add a slight preference for the BBC over the Electron, all else being equal, if this is a DFS floppy.
+			format_prefers_bbc = bool(dfs_catalogue);
+
 			for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
+				// Electron: check whether adding the AP6 ROM is justified.
+				// For now this is an incredibly dense text search;
+				// if any of the commands that aren't usually present
+				// on a stock Electron are here, add the AP6 ROM and
+				// some sideways RAM such that the SR commands are useful.
 				for(const auto &command: {
 					"AQRPAGE", "BUILD", "DUMP", "FORMAT", "INSERT", "LANG", "LIST", "LOADROM",
 					"LOCK", "LROMS", "RLOAD", "ROMS", "RSAVE", "SAVEROM", "SRLOAD", "SRPAGE",
@@ -149,10 +165,60 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					"VERIFY", "ZERO"
 				}) {
 					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
-						target8bit->has_ap6_rom = true;
-						target8bit->has_sideways_ram = true;
+						targetElectron->has_ap6_rom = true;
+						targetElectron->has_sideways_ram = true;
 					}
 				}
+
+				// Look for any 'BBC indicators', i.e. direct access to BBC-specific hardware.
+				// Also currently a dense search.
+
+				const auto hits = [&](const std::initializer_list<uint16_t> collection) {
+					int hits = 0;
+					for(const auto address: collection) {
+						const uint8_t sta_address[3] = {
+							0x8d, uint8_t(address & 0xff), uint8_t(address >> 8)
+						};
+
+						if(std::search(
+							file.data.begin(), file.data.end(),
+							std::begin(sta_address), std::end(sta_address)
+						) != file.data.end()) {
+							++hits;
+						}
+
+						// I think I'll want std::ranges::contains_subrange if/when building for C++23.
+					}
+					return hits;
+				};
+
+				bbc_hits += hits({
+					// The video control registers.
+					0xfe20, 0xfe21,
+
+					// The system VIA.
+					0xfe40, 0xfe41, 0xfe42, 0xfe43, 0xfe44, 0xfe45, 0xfe46, 0xfe47,
+					0xfe48, 0xfe49, 0xfe4a, 0xfe4b, 0xfe4c, 0xfe4d, 0xfe4e, 0xfe4f,
+
+					// The user VIA.
+					0xfe60, 0xfe61, 0xfe62, 0xfe63, 0xfe64, 0xfe65, 0xfe66, 0xfe67,
+					0xfe68, 0xfe69, 0xfe6a, 0xfe6b, 0xfe6c, 0xfe6d, 0xfe6e, 0xfe6f,
+				});
+				// BASIC for "MODE7".
+				static constexpr uint8_t mode7[] = {0xeb, 0x37};
+				bbc_hits += std::search(
+							file.data.begin(), file.data.end(),
+							std::begin(mode7), std::end(mode7)
+						) != file.data.end();
+
+				electron_hits += hits({
+					// ULA addresses that aren't also the BBC's CRTC.
+					0xfe03, 0xfe04, 0xfe05,
+					0xfe06, 0xfe07, 0xfe08,
+					0xfe09, 0xfe0a, 0xfe0b,
+					0xfe0c, 0xfe0d, 0xfe0e,
+					0xfe0f,
+				});
 			}
 		} else if(adfs_catalogue) {
 			// Archimedes options, implicitly: ADFS, non-Hugo.
@@ -197,28 +263,38 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	// Enable the Acorn ADFS if a mass-storage device is attached;
 	// unlike the Pres ADFS it retains SCSI logic.
 	if(!media.mass_storage_devices.empty()) {
-		target8bit->has_pres_adfs = false;	// To override a floppy selection, if one was made.
-		target8bit->has_acorn_adfs = true;
+		targetElectron->has_pres_adfs = false;	// To override a floppy selection, if one was made.
+		targetElectron->has_acorn_adfs = true;
 
 		// Assume some sort of later-era Acorn work is likely to happen;
 		// so ensure *TYPE, etc are present.
-		target8bit->has_ap6_rom = true;
-		target8bit->has_sideways_ram = true;
+		targetElectron->has_ap6_rom = true;
+		targetElectron->has_sideways_ram = true;
 
-		target8bit->media.mass_storage_devices = media.mass_storage_devices;
+		targetElectron->media.mass_storage_devices = media.mass_storage_devices;
 
 		// Check for a boot option.
-		const auto sector = target8bit->media.mass_storage_devices.front()->get_block(1);
+		const auto sector = targetElectron->media.mass_storage_devices.front()->get_block(1);
 		if(sector[0xfd]) {
-			target8bit->should_shift_restart = true;
+			targetElectron->should_shift_restart = true;
 		} else {
-			target8bit->loading_command = "*CAT\n";
+			targetElectron->loading_command = "*CAT\n";
 		}
 	}
 
 	TargetList targets;
-	if(!target8bit->media.empty()) {
-		targets.push_back(std::move(target8bit));
+	if(!targetElectron->media.empty() && !targetBBC->media.empty()) {
+		if(bbc_hits > electron_hits || (bbc_hits == electron_hits && format_prefers_bbc)) {
+			targets.push_back(std::move(targetBBC));
+		} else {
+			targets.push_back(std::move(targetElectron));
+		}
+	} else {
+		if(!targetElectron->media.empty()) {
+			targets.push_back(std::move(targetElectron));
+		} else if(!targetBBC->media.empty()) {
+			targets.push_back(std::move(targetBBC));
+		}
 	}
 	if(!targetArchimedes->media.empty()) {
 		targets.push_back(std::move(targetArchimedes));

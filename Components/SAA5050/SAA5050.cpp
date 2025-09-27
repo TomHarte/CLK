@@ -283,7 +283,7 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 }
 
 uint16_t SAA5050Serialiser:: pixels(const uint8_t c) {
-	if(flash_ && frame_counter_&16) {
+	if(flash_ && frame_counter_&32) {
 		return 0;
 	}
 
