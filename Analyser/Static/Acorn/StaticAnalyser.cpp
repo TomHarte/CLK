@@ -73,6 +73,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 	int bbc_hits = 0;
 	int electron_hits = 0;
+	bool format_prefers_bbc = false;
 
 	// Copy appropriate cartridges to the 8-bit targets.
 	targetElectron->media.cartridges = AcornCartridgesFrom(media.cartridges);
@@ -148,6 +149,9 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 				targetBBC->loading_command = targetElectron->loading_command = "*CAT\n";
 			}
 
+			// Add a slight preference for the BBC over the Electron, all else being equal, if this is a DFS floppy.
+			format_prefers_bbc = bool(dfs_catalogue);
+
 			for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
 				// Electron: check whether adding the AP6 ROM is justified.
 				// For now this is an incredibly dense text search;
@@ -182,6 +186,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 						) != file.data.end()) {
 							++hits;
 						}
+
+						// I think I'll want std::ranges::contains_subrange if/when building for C++23.
 					}
 					return hits;
 				};
@@ -199,7 +205,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					0xfe68, 0xfe69, 0xfe6a, 0xfe6b, 0xfe6c, 0xfe6d, 0xfe6e, 0xfe6f,
 				});
 				// BASIC for "MODE7".
-				constexpr uint8_t mode7[] = {0xeb, 0x37};
+				static constexpr uint8_t mode7[] = {0xeb, 0x37};
 				bbc_hits += std::search(
 							file.data.begin(), file.data.end(),
 							std::begin(mode7), std::end(mode7)
@@ -278,7 +284,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 	TargetList targets;
 	if(!targetElectron->media.empty() && !targetBBC->media.empty()) {
-		if(bbc_hits > electron_hits) {
+		if(bbc_hits > electron_hits || (bbc_hits == electron_hits && format_prefers_bbc)) {
 			targets.push_back(std::move(targetBBC));
 		} else {
 			targets.push_back(std::move(targetElectron));
