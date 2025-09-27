@@ -169,16 +169,16 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 				// Look for any 'BBC indicators', i.e. direct access to BBC-specific hardware.
 				// Also currently a dense search.
 
-				const auto hits = [&](std::initializer_list<uint16_t> collection) {
+				const auto hits = [&](const std::initializer_list<uint16_t> collection) {
 					int hits = 0;
 					for(const auto address: collection) {
-						const uint8_t little_endian_address[2] = {
-							uint8_t(address & 0xff), uint8_t(address >> 8)
+						const uint8_t sta_address[3] = {
+							0x8d, uint8_t(address & 0xff), uint8_t(address >> 8)
 						};
 
 						if(std::search(
 							file.data.begin(), file.data.end(),
-							std::begin(little_endian_address), std::end(little_endian_address)
+							std::begin(sta_address), std::end(sta_address)
 						) != file.data.end()) {
 							++hits;
 						}
@@ -187,7 +187,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 				};
 
 				bbc_hits += hits({
-					0xfe20, 0xfe21,				// The video control registers.
+					// The video control registers.
+					0xfe20, 0xfe21,
 
 					// The system VIA.
 					0xfe40, 0xfe41, 0xfe42, 0xfe43, 0xfe44, 0xfe45, 0xfe46, 0xfe47,
@@ -196,8 +197,14 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					// The user VIA.
 					0xfe60, 0xfe61, 0xfe62, 0xfe63, 0xfe64, 0xfe65, 0xfe66, 0xfe67,
 					0xfe68, 0xfe69, 0xfe6a, 0xfe6b, 0xfe6c, 0xfe6d, 0xfe6e, 0xfe6f,
-
 				});
+				// BASIC for "MODE7".
+				constexpr uint8_t mode7[] = {0xeb, 0x37};
+				bbc_hits += std::search(
+							file.data.begin(), file.data.end(),
+							std::begin(mode7), std::end(mode7)
+						) != file.data.end();
+
 				electron_hits += hits({
 					// ULA addresses that aren't also the BBC's CRTC.
 					0xfe03, 0xfe04, 0xfe05,
@@ -271,7 +278,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 	TargetList targets;
 	if(!targetElectron->media.empty() && !targetBBC->media.empty()) {
-		if(bbc_hits >= electron_hits) {
+		if(bbc_hits > electron_hits) {
 			targets.push_back(std::move(targetBBC));
 		} else {
 			targets.push_back(std::move(targetElectron));
