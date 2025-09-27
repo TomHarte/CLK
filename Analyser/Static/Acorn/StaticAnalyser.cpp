@@ -71,7 +71,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	auto targetElectron = std::make_unique<ElectronTarget>();
 	auto targetBBC = std::make_unique<BBCMicroTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
-	bool prefer_BBC = false;
+	int bbc_hits = 0;
+	int electron_hits = 0;
 
 	// Copy appropriate cartridges to the 8-bit targets.
 	targetElectron->media.cartridges = AcornCartridgesFrom(media.cartridges);
@@ -167,23 +168,44 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 				// Look for any 'BBC indicators', i.e. direct access to BBC-specific hardware.
 				// Also currently a dense search.
-				for(const auto address: {
-					0xfe00, 0xfe01, 0xfe02,		// The CRTC.
-					0xfe20, 0xfe21,				// The video control registers.
-					0xfe40, 0xfe41,				// The system VIA.
-					0xfe60, 0xfe61,				// The user VIA.
-				}) {
-					const uint8_t little_endian_address[2] = {
-						uint8_t(address & 0xff), uint8_t(address >> 8)
-					};
 
-					if(std::search(
-						file.data.begin(), file.data.end(),
-						std::begin(little_endian_address), std::end(little_endian_address)
-					) != file.data.end()) {
-						prefer_BBC = true;
+				const auto hits = [&](std::initializer_list<uint16_t> collection) {
+					int hits = 0;
+					for(const auto address: collection) {
+						const uint8_t little_endian_address[2] = {
+							uint8_t(address & 0xff), uint8_t(address >> 8)
+						};
+
+						if(std::search(
+							file.data.begin(), file.data.end(),
+							std::begin(little_endian_address), std::end(little_endian_address)
+						) != file.data.end()) {
+							++hits;
+						}
 					}
-				}
+					return hits;
+				};
+
+				bbc_hits += hits({
+					0xfe20, 0xfe21,				// The video control registers.
+
+					// The system VIA.
+					0xfe40, 0xfe41, 0xfe42, 0xfe43, 0xfe44, 0xfe45, 0xfe46, 0xfe47,
+					0xfe48, 0xfe49, 0xfe4a, 0xfe4b, 0xfe4c, 0xfe4d, 0xfe4e, 0xfe4f,
+
+					// The user VIA.
+					0xfe60, 0xfe61, 0xfe62, 0xfe63, 0xfe64, 0xfe65, 0xfe66, 0xfe67,
+					0xfe68, 0xfe69, 0xfe6a, 0xfe6b, 0xfe6c, 0xfe6d, 0xfe6e, 0xfe6f,
+
+				});
+				electron_hits += hits({
+					// ULA addresses that aren't also the BBC's CRTC.
+					0xfe03, 0xfe04, 0xfe05,
+					0xfe06, 0xfe07, 0xfe08,
+					0xfe09, 0xfe0a, 0xfe0b,
+					0xfe0c, 0xfe0d, 0xfe0e,
+					0xfe0f,
+				});
 			}
 		} else if(adfs_catalogue) {
 			// Archimedes options, implicitly: ADFS, non-Hugo.
@@ -249,7 +271,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 	TargetList targets;
 	if(!targetElectron->media.empty() && !targetBBC->media.empty()) {
-		if(prefer_BBC) {
+		if(bbc_hits >= electron_hits) {
 			targets.push_back(std::move(targetBBC));
 		} else {
 			targets.push_back(std::move(targetElectron));
