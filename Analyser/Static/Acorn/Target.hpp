@@ -42,7 +42,7 @@ struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::Str
 
 	bool has_1770dfs = false;
 	bool has_adfs = false;
-	bool has_sideways_ram = false;
+	bool has_sideways_ram = true;
 
 	BBCMicroTarget() : Analyser::Static::Target(Machine::BBCMicro) {}
 
