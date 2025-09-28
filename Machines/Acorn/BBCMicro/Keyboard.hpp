@@ -64,7 +64,8 @@ private:
 		{Key::Backspace, 0x59},
 
 		{Key::LeftShift, 0x00},		{Key::RightShift, 0x00},
-		{Key::LeftControl, 0x01},	{Key::RightControl, 0x01},
+		{Key::LeftControl, 0x01},	{Key::RightControl, 0x01},		{Key::LeftMeta, 0x01},		{Key::RightMeta, 0x01},
+		{Key::LeftOption, 0x40},	{Key::RightOption, 0x40},
 
 		{Key::Space, 0x62},
 	};
