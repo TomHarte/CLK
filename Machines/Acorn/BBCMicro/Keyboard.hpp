@@ -30,7 +30,7 @@ private:
 		{Key::F12, KeyBreak},
 
 		{Key::F10, 0x20},	{Key::F1, 0x71},	{Key::F2, 0x72},	{Key::F3, 0x73},	{Key::F4, 0x14},
-		{Key::F5, 0x75},	{Key::F6, 0x75},	{Key::F7, 0x16},	{Key::F8, 0x76},	{Key::F9, 0x77},
+		{Key::F5, 0x74},	{Key::F6, 0x75},	{Key::F7, 0x16},	{Key::F8, 0x76},	{Key::F9, 0x77},
 
 		{Key::Backslash, 0x78},
 
