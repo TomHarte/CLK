@@ -120,7 +120,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via, const bool run_disk) :
 		audio_(audio), video_base_(video_base), via_(via)
 	{
-		set_key(6, run_disk);
+		set_key_flag(6, run_disk);
 	}
 
 	// CA2: key pressed;
@@ -197,7 +197,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	}
 
 	void set_key(const uint8_t key, const bool pressed) {
-		key_column(key)[key_row(key)] = pressed;
+		set_key_flag(key, pressed);
 		update_ca2();
 	}
 
@@ -247,6 +247,9 @@ private:
 	std::array<KeyRow, 16> key_states_{};
 	int keyboard_scan_column_ = 0;
 
+	void set_key_flag(const uint8_t key, const bool pressed) {
+		key_column(key)[key_row(key)] = pressed;
+	}
 	KeyRow &key_column(const uint8_t key) {
 		return key_states_[key & 0xf];
 	}
@@ -554,7 +557,7 @@ private:
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
 	Motorola::CRTC::Personality::HD6845S,
-	Motorola::CRTC::CursorType::MDA>;
+	Motorola::CRTC::CursorType::Native>;
 }
 
 template <bool has_1770>
