@@ -23,7 +23,7 @@ template <typename T> void MOS6522<T>::access(const int address) {
 			}
 		break;
 
-		case 0xf:
+//		case 0xf:
 		case 0x1:
 			// In both handshake and pulse modes, CA2 goes low on any read or write of Port A.
 			if(handshake_modes_[0] != HandshakeMode::None) {
@@ -57,14 +57,17 @@ template <typename T> void MOS6522<T>::write(int address, const uint8_t value) {
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			bus_handler_.template set_port_output<Port::A>(value, registers_.data_direction[0]);
 
-			if(handshake_modes_[1] != HandshakeMode::None) {
-				set_control_line_output<Port::A, Line::Two>(LineState::Off);
-			}
+			// Avoid handshaking if this was via address 0xf.
+			if(address == 0x1) {
+				if(handshake_modes_[1] != HandshakeMode::None) {
+					set_control_line_output<Port::A, Line::Two>(LineState::Off);
+				}
 
-			registers_.interrupt_flags &= ~(
-				InterruptFlag::CA1ActiveEdge |
-				((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge)
-			);
+				registers_.interrupt_flags &= ~(
+					InterruptFlag::CA1ActiveEdge |
+					((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge)
+				);
+			}
 			reevaluate_interrupts();
 		break;
 
@@ -196,9 +199,10 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
 			reevaluate_interrupts();
 		return get_port_input<Port::B>(registers_.data_direction[1], registers_.output[1], registers_.auxiliary_control & 0x80);
-		case 0xf:
-		case 0x1:	// Read Port A ('IRA').
+		case 0x1:	// Read Port A ('IRA') [with handshaking].
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
+			[[fallthrough]];
+		case 0xf:	// Read Port A ('IRA') [without handshaking].
 			reevaluate_interrupts();
 		return get_port_input<Port::A>(registers_.data_direction[0], registers_.output[0], 0);
 
