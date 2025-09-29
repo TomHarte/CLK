@@ -63,6 +63,8 @@ enum class Personality {
 enum class CursorType {
 	/// No cursor signal is generated.
 	None,
+	/// Built-in 6845 style: 00 => no blinking; 01 => no cursor; 10 => slow blink; 11 => fast blink
+	Native,
 	/// MDA style: 00 => symmetric blinking; 01 or 10 => no blinking; 11 => short on, long off.
 	MDA,
 };
@@ -435,7 +437,18 @@ public:
 								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
 								case 0b00: is_cursor_line_ &= bus_state_.field_count.bit<3>();	break;
 								case 0b01: is_cursor_line_ = false;								break;
-								case 0b10: is_cursor_line_ = true;								break;
+								case 0b10: break;
+								default: break;
+							}
+						break;
+
+						// Standard built-in 6845 blinking.
+						case CursorType::Native:
+							switch(layout_.cursor_flags) {
+								case 0b00: break;
+								case 0b01: is_cursor_line_ = false;								break;
+								case 0b10: is_cursor_line_ &= bus_state_.field_count.bit<4>();	break;
+								case 0b11: is_cursor_line_ &= bus_state_.field_count.bit<3>();	break;
 								default: break;
 							}
 						break;
