@@ -149,5 +149,5 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 }
 
 bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
-	return key != KeyControl && key != KeyShift && key != KeyFunc;
+	return !is_modifier(Key(key));
 }
