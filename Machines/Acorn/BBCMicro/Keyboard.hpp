@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Machines/KeyboardMachine.hpp"
+#include "Machines/Utility/Typer.hpp"
 
 #include <cstdint>
 #include <unordered_map>
@@ -72,15 +73,17 @@ enum class BBCKey: uint16_t {
 	MouseAdjust = 0x0b,
 };
 
-struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+constexpr bool is_modifier(const BBCKey key) {
+	return key == BBCKey::Shift || key == BBCKey::Control;
+}
 
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(const Inputs::Keyboard::Key key) const override {
 		const auto found = key_map.find(key);
 		return found != key_map.end() ? uint16_t(found->second) : MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 	}
 
 private:
-
 	using Key = Inputs::Keyboard::Key;
 	static inline const std::unordered_map<Key, BBCKey> key_map{
 		{Key::Escape, BBCKey::Escape},
@@ -129,6 +132,63 @@ private:
 		{Key::LeftOption, BBCKey::CapsLock},	{Key::RightOption, BBCKey::CapsLock},
 
 		{Key::Space, BBCKey::Space},
+	};
+};
+
+struct CharacterMapper: public ::Utility::CharacterMapper {
+	const uint16_t *sequence_for_character(const char character) const override {
+		const auto found = sequences.find(character);
+		return found != sequences.end() ? found->second.data() : nullptr;
+	}
+
+	bool needs_pause_after_reset_all_keys() const override	{ return false; }
+	bool needs_pause_after_key(const uint16_t key) const override {
+		return !is_modifier(BBCKey(key));
+	}
+
+private:
+	static constexpr size_t MaxSequenceLength = 4;
+	using Sequence = std::array<uint16_t, MaxSequenceLength>;
+
+	template <size_t n>
+	requires (n < MaxSequenceLength - 1)
+	static constexpr Sequence keys(const BBCKey (&keys)[n]){
+		Sequence sequence;
+		for(size_t c = 0; c < n; c++) {
+			sequence[c] = uint16_t(keys[c]);
+		}
+		sequence[n] = MachineTypes::MappedKeyboardMachine::KeyEndSequence;
+		return sequence;
+	}
+
+	static inline const std::unordered_map<char, Sequence> sequences = {
+		{'Q', keys({BBCKey::Q}) },	{'W', keys({BBCKey::W}) },
+		{'E', keys({BBCKey::E}) },	{'R', keys({BBCKey::R}) },
+		{'T', keys({BBCKey::T}) },	{'Y', keys({BBCKey::Y}) },
+		{'U', keys({BBCKey::U}) },	{'I', keys({BBCKey::I}) },
+		{'O', keys({BBCKey::O}) },	{'P', keys({BBCKey::P}) },
+		{'A', keys({BBCKey::A}) },	{'S', keys({BBCKey::S}) },
+		{'D', keys({BBCKey::D}) },	{'F', keys({BBCKey::F}) },
+		{'G', keys({BBCKey::G}) },	{'H', keys({BBCKey::H}) },
+		{'J', keys({BBCKey::J}) },	{'K', keys({BBCKey::K}) },
+		{'L', keys({BBCKey::L}) },	{'Z', keys({BBCKey::Z}) },
+		{'X', keys({BBCKey::X}) },	{'C', keys({BBCKey::C}) },
+		{'V', keys({BBCKey::V}) },	{'B', keys({BBCKey::B}) },
+		{'N', keys({BBCKey::N}) },	{'M', keys({BBCKey::M}) },
+
+		{'q', keys({BBCKey::Shift, BBCKey::Q}) },	{'w', keys({BBCKey::Shift, BBCKey::W}) },
+		{'e', keys({BBCKey::Shift, BBCKey::E}) },	{'r', keys({BBCKey::Shift, BBCKey::R}) },
+		{'t', keys({BBCKey::Shift, BBCKey::T}) },	{'y', keys({BBCKey::Shift, BBCKey::Y}) },
+		{'u', keys({BBCKey::Shift, BBCKey::U}) },	{'i', keys({BBCKey::Shift, BBCKey::I}) },
+		{'o', keys({BBCKey::Shift, BBCKey::O}) },	{'p', keys({BBCKey::Shift, BBCKey::P}) },
+		{'a', keys({BBCKey::Shift, BBCKey::A}) },	{'s', keys({BBCKey::Shift, BBCKey::S}) },
+		{'d', keys({BBCKey::Shift, BBCKey::D}) },	{'f', keys({BBCKey::Shift, BBCKey::F}) },
+		{'g', keys({BBCKey::Shift, BBCKey::G}) },	{'h', keys({BBCKey::Shift, BBCKey::H}) },
+		{'j', keys({BBCKey::Shift, BBCKey::J}) },	{'k', keys({BBCKey::Shift, BBCKey::K}) },
+		{'l', keys({BBCKey::Shift, BBCKey::L}) },	{'z', keys({BBCKey::Shift, BBCKey::Z}) },
+		{'x', keys({BBCKey::Shift, BBCKey::X}) },	{'c', keys({BBCKey::Shift, BBCKey::C}) },
+		{'v', keys({BBCKey::Shift, BBCKey::V}) },	{'b', keys({BBCKey::Shift, BBCKey::B}) },
+		{'n', keys({BBCKey::Shift, BBCKey::N}) },	{'m', keys({BBCKey::Shift, BBCKey::M}) },
 	};
 };
 
