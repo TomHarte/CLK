@@ -189,6 +189,55 @@ private:
 		{'x', keys({BBCKey::Shift, BBCKey::X}) },	{'c', keys({BBCKey::Shift, BBCKey::C}) },
 		{'v', keys({BBCKey::Shift, BBCKey::V}) },	{'b', keys({BBCKey::Shift, BBCKey::B}) },
 		{'n', keys({BBCKey::Shift, BBCKey::N}) },	{'m', keys({BBCKey::Shift, BBCKey::M}) },
+
+		{'0', keys({BBCKey::k0}) },	{'1', keys({BBCKey::k1}) },
+		{'2', keys({BBCKey::k2}) },	{'3', keys({BBCKey::k3}) },
+		{'4', keys({BBCKey::k4}) },	{'5', keys({BBCKey::k5}) },
+		{'6', keys({BBCKey::k6}) },	{'7', keys({BBCKey::k7}) },
+		{'8', keys({BBCKey::k8}) },	{'9', keys({BBCKey::k9}) },
+
+		{'\n', keys({BBCKey::Return}) },
+		{'\r', keys({BBCKey::Return}) },
+		{'\b', keys({BBCKey::Delete}) },
+		{'\t', keys({BBCKey::Tab}) },
+		{' ', keys({BBCKey::Space}) },
+
+		{'!', keys({BBCKey::Shift, BBCKey::k1}) },
+		{'"', keys({BBCKey::Shift, BBCKey::k2}) },
+		{'#', keys({BBCKey::Shift, BBCKey::k3}) },
+		{'$', keys({BBCKey::Shift, BBCKey::k4}) },
+		{'%', keys({BBCKey::Shift, BBCKey::k5}) },
+		{'&', keys({BBCKey::Shift, BBCKey::k6}) },
+		{'\'', keys({BBCKey::Shift, BBCKey::k7}) },
+		{'(', keys({BBCKey::Shift, BBCKey::k8}) },
+		{')', keys({BBCKey::Shift, BBCKey::k9}) },
+
+		{'-', keys({BBCKey::Hyphen}) },
+		{'^', keys({BBCKey::Caret}) },
+		{'\\', keys({BBCKey::Backslash}) },
+		{'=', keys({BBCKey::Shift, BBCKey::Hyphen}) },
+		{'~', keys({BBCKey::Shift, BBCKey::Caret}) },
+		{'|', keys({BBCKey::Shift, BBCKey::Backslash}) },
+
+		{'@', keys({BBCKey::At}) },
+		{'[', keys({BBCKey::OpenSquareBracket}) },
+		{'_', keys({BBCKey::Underscore}) },
+		{'{', keys({BBCKey::Shift, BBCKey::OpenSquareBracket}) },
+//		{'£', keys({BBCKey::Shift, BBCKey::Underscore}) },
+
+		{';', keys({BBCKey::Semicolon}) },
+		{':', keys({BBCKey::Colon}) },
+		{']', keys({BBCKey::CloseSquareBracket}) },
+		{'+', keys({BBCKey::Shift, BBCKey::Semicolon}) },
+		{'*', keys({BBCKey::Shift, BBCKey::Colon}) },
+		{'}', keys({BBCKey::Shift, BBCKey::CloseSquareBracket}) },
+
+		{',', keys({BBCKey::Comma}) },
+		{'.', keys({BBCKey::FullStop}) },
+		{'/', keys({BBCKey::ForwardSlash}) },
+		{'<', keys({BBCKey::Shift, BBCKey::Comma}) },
+		{'>', keys({BBCKey::Shift, BBCKey::FullStop}) },
+		{'?', keys({BBCKey::Shift, BBCKey::ForwardSlash}) },
 	};
 };
 
