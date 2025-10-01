@@ -49,7 +49,7 @@ enum class BBCKey: uint16_t {
 	//
 	// Break; a key, but not on the keyboard matrix.
 	//
-	Break = 0xfffd,
+	Break = 0xfffc,
 
 	//
 	// Master only keys.

@@ -32,7 +32,7 @@ enum Key: uint16_t {
 	// Virtual keys.
 	KeyF1			= 0xfff0, KeyF2, KeyF3, KeyF4, KeyF5, KeyF6, KeyF7, KeyF8, KeyF9, KeyF0,
 
-	KeyBreak		= 0xfffd,
+	KeyBreak		= 0xfffc,
 };
 
 constexpr bool is_modifier(const Key key) {

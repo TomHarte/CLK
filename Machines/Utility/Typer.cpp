@@ -96,7 +96,7 @@ uint16_t Typer::try_type_next_character() {
 		delegate_->clear_all_keys();
 		if(character_mapper_.needs_pause_after_reset_all_keys() ||
 			(string_pointer_ > 0 && string_[string_pointer_ - 1] == string_[string_pointer_])) {
-			return 0xffff;	// Arbitrarily. Anything non-zero will do.
+			return MachineTypes::MappedKeyboardMachine::DelaySlot;
 		}
 		++phase_;
 	}

@@ -10,7 +10,7 @@
 
 using namespace Electron;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
+uint16_t KeyboardMapper::mapped_key_for_key(const Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return Electron::Key::dest
 	switch(key) {
 		default: break;
@@ -70,7 +70,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+const uint16_t *CharacterMapper::sequence_for_character(const char character) const {
 #define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SHIFT(...)	{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define CTRL(...)	{KeyControl, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
@@ -148,6 +148,6 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 	return table_lookup_sequence_for_character(key_sequences, character);
 }
 
-bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
+bool CharacterMapper::needs_pause_after_key(const uint16_t key) const {
 	return !is_modifier(Key(key));
 }
