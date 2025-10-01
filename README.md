@@ -17,6 +17,7 @@ It currently contains emulations of the:
 * Apple II/II+ and IIe;
 * Atari 2600;
 * Atari ST;
+* BBC Micro;
 * ColecoVision;
 * Commodore Vic-20;
 * Enterprise 64/128;
@@ -133,8 +134,8 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 		<td width=50%><img alt="Amiga James Pond II" src="READMEImages/AmigaJamesPondII.png"></td>
 		<td width=50%><img alt="Atari 2600 Solaris" src="READMEImages/Atari2600Solaris.png"></td>
 	</tr><tr>
-		<td width=50%><img alt="Enterprise HERO" src="READMEImages/EnterpriseHERO.png"></td>
 		<td width=50%><img alt="Microsoft Flight Simulator" src="READMEImages/PCFlightSimulator.png"></td>
+		<td width=50%><img alt="BBC Micro Elite" src="READMEImages/BBCElite.png"></td>
 	</tr><tr>
 		<td width=50%><img alt="ColecoVision Galaxian" src="READMEImages/ColecoVisionGalaxian.png"></td>
 		<td width=50%><img alt="SG1000 Chack'n'Pop" src="READMEImages/SGChackNPop.png"></td>

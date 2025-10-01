@@ -40,7 +40,7 @@ enum class Key: uint16_t {
 	OpenSquareBracket = 0x38,
 	Colon = 0x48,
 	CloseSquareBracket = 0x58,
-	ForwardSlash = 0x58,
+	ForwardSlash = 0x68,
 	Bit1 = 0x08,
 
 	Right = 0x79, 		Left = 0x19, 		Down = 0x29, 		Up = 0x39,
