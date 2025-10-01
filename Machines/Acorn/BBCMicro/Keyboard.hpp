@@ -16,7 +16,7 @@
 
 namespace BBCMicro {
 
-enum class BBCKey: uint16_t {
+enum class Key: uint16_t {
 	Escape = 0x70,		Q = 0x10,			F0 = 0x20,			k1 = 0x30,
 	CapsLock = 0x40,	ShiftLock = 0x50,	Tab = 0x60,			Shift = 0x00,
 	F1 = 0x71,			k3 = 0x11,			W = 0x21,			k2 = 0x31,
@@ -73,8 +73,8 @@ enum class BBCKey: uint16_t {
 	MouseAdjust = 0x0b,
 };
 
-constexpr bool is_modifier(const BBCKey key) {
-	return key == BBCKey::Shift || key == BBCKey::Control;
+constexpr bool is_modifier(const Key key) {
+	return key == Key::Shift || key == Key::Control;
 }
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
@@ -84,54 +84,54 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 	}
 
 private:
-	using Key = Inputs::Keyboard::Key;
-	static inline const std::unordered_map<Key, BBCKey> key_map{
-		{Key::Escape, BBCKey::Escape},
-		{Key::F12, BBCKey::Break},
+	using CLKKey = Inputs::Keyboard::Key;
+	static inline const std::unordered_map<CLKKey, Key> key_map{
+		{CLKKey::Escape, Key::Escape},
+		{CLKKey::F12, Key::Break},
 
 		// These are all wilfully off-by-one to approximate correct layout.
-		{Key::F1, BBCKey::F0},	{Key::F2, BBCKey::F1},	{Key::F3, BBCKey::F2},	{Key::F4, BBCKey::F3},
-		{Key::F5, BBCKey::F4},	{Key::F6, BBCKey::F5},	{Key::F7, BBCKey::F6},	{Key::F8, BBCKey::F7},
-		{Key::F9, BBCKey::F8},	{Key::F10, BBCKey::F9},
+		{CLKKey::F1, Key::F0},	{CLKKey::F2, Key::F1},	{CLKKey::F3, Key::F2},	{CLKKey::F4, Key::F3},
+		{CLKKey::F5, Key::F4},	{CLKKey::F6, Key::F5},	{CLKKey::F7, Key::F6},	{CLKKey::F8, Key::F7},
+		{CLKKey::F9, Key::F8},	{CLKKey::F10, Key::F9},
 
-		{Key::Backslash, BBCKey::Backslash},
+		{CLKKey::Backslash, Key::Backslash},
 
-		{Key::Left, BBCKey::Left},	{Key::Right, BBCKey::Right},	{Key::Up, BBCKey::Up},	{Key::Down, BBCKey::Down},
+		{CLKKey::Left, Key::Left},	{CLKKey::Right, Key::Right},	{CLKKey::Up, Key::Up},	{CLKKey::Down, Key::Down},
 
-		{Key::Q, BBCKey::Q},	{Key::W, BBCKey::W},	{Key::E, BBCKey::E},	{Key::R, BBCKey::R},
-		{Key::T, BBCKey::T},	{Key::Y, BBCKey::Y},	{Key::U, BBCKey::U},	{Key::I, BBCKey::I},
-		{Key::O, BBCKey::O},	{Key::P, BBCKey::P},	{Key::A, BBCKey::A},	{Key::S, BBCKey::S},
-		{Key::D, BBCKey::D},	{Key::F, BBCKey::F},	{Key::G, BBCKey::G},	{Key::H, BBCKey::H},
-		{Key::J, BBCKey::J},	{Key::K, BBCKey::K},	{Key::L, BBCKey::L},	{Key::Z, BBCKey::Z},
-		{Key::X, BBCKey::X},	{Key::C, BBCKey::C},	{Key::V, BBCKey::V},	{Key::B, BBCKey::B},
-		{Key::N, BBCKey::N},	{Key::M, BBCKey::M},
+		{CLKKey::Q, Key::Q},	{CLKKey::W, Key::W},	{CLKKey::E, Key::E},	{CLKKey::R, Key::R},
+		{CLKKey::T, Key::T},	{CLKKey::Y, Key::Y},	{CLKKey::U, Key::U},	{CLKKey::I, Key::I},
+		{CLKKey::O, Key::O},	{CLKKey::P, Key::P},	{CLKKey::A, Key::A},	{CLKKey::S, Key::S},
+		{CLKKey::D, Key::D},	{CLKKey::F, Key::F},	{CLKKey::G, Key::G},	{CLKKey::H, Key::H},
+		{CLKKey::J, Key::J},	{CLKKey::K, Key::K},	{CLKKey::L, Key::L},	{CLKKey::Z, Key::Z},
+		{CLKKey::X, Key::X},	{CLKKey::C, Key::C},	{CLKKey::V, Key::V},	{CLKKey::B, Key::B},
+		{CLKKey::N, Key::N},	{CLKKey::M, Key::M},
 
-		{Key::k0, BBCKey::k0},	{Key::k1, BBCKey::k1},	{Key::k2, BBCKey::k2},	{Key::k3, BBCKey::k3},
-		{Key::k4, BBCKey::k4},	{Key::k5, BBCKey::k5},	{Key::k6, BBCKey::k6},	{Key::k7, BBCKey::k7},
-		{Key::k8, BBCKey::k8},	{Key::k9, BBCKey::k9},
+		{CLKKey::k0, Key::k0},	{CLKKey::k1, Key::k1},	{CLKKey::k2, Key::k2},	{CLKKey::k3, Key::k3},
+		{CLKKey::k4, Key::k4},	{CLKKey::k5, Key::k5},	{CLKKey::k6, Key::k6},	{CLKKey::k7, Key::k7},
+		{CLKKey::k8, Key::k8},	{CLKKey::k9, Key::k9},
 
-		{Key::Comma, BBCKey::Comma},
-		{Key::FullStop, BBCKey::FullStop},
-		{Key::ForwardSlash, BBCKey::ForwardSlash},
+		{CLKKey::Comma, Key::Comma},
+		{CLKKey::FullStop, Key::FullStop},
+		{CLKKey::ForwardSlash, Key::ForwardSlash},
 
-		{Key::Hyphen, BBCKey::Hyphen},
-		{Key::Equals, BBCKey::Caret},
-		{Key::BackTick, BBCKey::Copy},
+		{CLKKey::Hyphen, Key::Hyphen},
+		{CLKKey::Equals, Key::Caret},
+		{CLKKey::BackTick, Key::Copy},
 
-		{Key::OpenSquareBracket, BBCKey::OpenSquareBracket},
-		{Key::CloseSquareBracket, BBCKey::CloseSquareBracket},
+		{CLKKey::OpenSquareBracket, Key::OpenSquareBracket},
+		{CLKKey::CloseSquareBracket, Key::CloseSquareBracket},
 
-		{Key::Semicolon, BBCKey::Semicolon},
-		{Key::Quote, BBCKey::Colon},
+		{CLKKey::Semicolon, Key::Semicolon},
+		{CLKKey::Quote, Key::Colon},
 
-		{Key::Enter, BBCKey::Return},
-		{Key::Backspace, BBCKey::Delete},
+		{CLKKey::Enter, Key::Return},
+		{CLKKey::Backspace, Key::Delete},
 
-		{Key::LeftShift, BBCKey::Shift},		{Key::RightShift, BBCKey::Shift},
-		{Key::LeftControl, BBCKey::Control},	{Key::RightControl, BBCKey::Control},
-		{Key::LeftOption, BBCKey::CapsLock},	{Key::RightOption, BBCKey::CapsLock},
+		{CLKKey::LeftShift, Key::Shift},		{CLKKey::RightShift, Key::Shift},
+		{CLKKey::LeftControl, Key::Control},	{CLKKey::RightControl, Key::Control},
+		{CLKKey::LeftOption, Key::CapsLock},	{CLKKey::RightOption, Key::CapsLock},
 
-		{Key::Space, BBCKey::Space},
+		{CLKKey::Space, Key::Space},
 	};
 };
 
@@ -143,7 +143,7 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 
 	bool needs_pause_after_reset_all_keys() const override	{ return false; }
 	bool needs_pause_after_key(const uint16_t key) const override {
-		return !is_modifier(BBCKey(key));
+		return !is_modifier(Key(key));
 	}
 
 private:
@@ -152,7 +152,7 @@ private:
 
 	template <size_t n>
 	requires (n < MaxSequenceLength - 1)
-	static constexpr Sequence keys(const BBCKey (&keys)[n]){
+	static constexpr Sequence keys(const Key (&keys)[n]){
 		Sequence sequence;
 		for(size_t c = 0; c < n; c++) {
 			sequence[c] = uint16_t(keys[c]);
@@ -162,82 +162,82 @@ private:
 	}
 
 	static inline const std::unordered_map<char, Sequence> sequences = {
-		{'Q', keys({BBCKey::Q}) },	{'W', keys({BBCKey::W}) },
-		{'E', keys({BBCKey::E}) },	{'R', keys({BBCKey::R}) },
-		{'T', keys({BBCKey::T}) },	{'Y', keys({BBCKey::Y}) },
-		{'U', keys({BBCKey::U}) },	{'I', keys({BBCKey::I}) },
-		{'O', keys({BBCKey::O}) },	{'P', keys({BBCKey::P}) },
-		{'A', keys({BBCKey::A}) },	{'S', keys({BBCKey::S}) },
-		{'D', keys({BBCKey::D}) },	{'F', keys({BBCKey::F}) },
-		{'G', keys({BBCKey::G}) },	{'H', keys({BBCKey::H}) },
-		{'J', keys({BBCKey::J}) },	{'K', keys({BBCKey::K}) },
-		{'L', keys({BBCKey::L}) },	{'Z', keys({BBCKey::Z}) },
-		{'X', keys({BBCKey::X}) },	{'C', keys({BBCKey::C}) },
-		{'V', keys({BBCKey::V}) },	{'B', keys({BBCKey::B}) },
-		{'N', keys({BBCKey::N}) },	{'M', keys({BBCKey::M}) },
+		{'Q', keys({Key::Q}) },	{'W', keys({Key::W}) },
+		{'E', keys({Key::E}) },	{'R', keys({Key::R}) },
+		{'T', keys({Key::T}) },	{'Y', keys({Key::Y}) },
+		{'U', keys({Key::U}) },	{'I', keys({Key::I}) },
+		{'O', keys({Key::O}) },	{'P', keys({Key::P}) },
+		{'A', keys({Key::A}) },	{'S', keys({Key::S}) },
+		{'D', keys({Key::D}) },	{'F', keys({Key::F}) },
+		{'G', keys({Key::G}) },	{'H', keys({Key::H}) },
+		{'J', keys({Key::J}) },	{'K', keys({Key::K}) },
+		{'L', keys({Key::L}) },	{'Z', keys({Key::Z}) },
+		{'X', keys({Key::X}) },	{'C', keys({Key::C}) },
+		{'V', keys({Key::V}) },	{'B', keys({Key::B}) },
+		{'N', keys({Key::N}) },	{'M', keys({Key::M}) },
 
-		{'q', keys({BBCKey::Shift, BBCKey::Q}) },	{'w', keys({BBCKey::Shift, BBCKey::W}) },
-		{'e', keys({BBCKey::Shift, BBCKey::E}) },	{'r', keys({BBCKey::Shift, BBCKey::R}) },
-		{'t', keys({BBCKey::Shift, BBCKey::T}) },	{'y', keys({BBCKey::Shift, BBCKey::Y}) },
-		{'u', keys({BBCKey::Shift, BBCKey::U}) },	{'i', keys({BBCKey::Shift, BBCKey::I}) },
-		{'o', keys({BBCKey::Shift, BBCKey::O}) },	{'p', keys({BBCKey::Shift, BBCKey::P}) },
-		{'a', keys({BBCKey::Shift, BBCKey::A}) },	{'s', keys({BBCKey::Shift, BBCKey::S}) },
-		{'d', keys({BBCKey::Shift, BBCKey::D}) },	{'f', keys({BBCKey::Shift, BBCKey::F}) },
-		{'g', keys({BBCKey::Shift, BBCKey::G}) },	{'h', keys({BBCKey::Shift, BBCKey::H}) },
-		{'j', keys({BBCKey::Shift, BBCKey::J}) },	{'k', keys({BBCKey::Shift, BBCKey::K}) },
-		{'l', keys({BBCKey::Shift, BBCKey::L}) },	{'z', keys({BBCKey::Shift, BBCKey::Z}) },
-		{'x', keys({BBCKey::Shift, BBCKey::X}) },	{'c', keys({BBCKey::Shift, BBCKey::C}) },
-		{'v', keys({BBCKey::Shift, BBCKey::V}) },	{'b', keys({BBCKey::Shift, BBCKey::B}) },
-		{'n', keys({BBCKey::Shift, BBCKey::N}) },	{'m', keys({BBCKey::Shift, BBCKey::M}) },
+		{'q', keys({Key::Shift, Key::Q}) },	{'w', keys({Key::Shift, Key::W}) },
+		{'e', keys({Key::Shift, Key::E}) },	{'r', keys({Key::Shift, Key::R}) },
+		{'t', keys({Key::Shift, Key::T}) },	{'y', keys({Key::Shift, Key::Y}) },
+		{'u', keys({Key::Shift, Key::U}) },	{'i', keys({Key::Shift, Key::I}) },
+		{'o', keys({Key::Shift, Key::O}) },	{'p', keys({Key::Shift, Key::P}) },
+		{'a', keys({Key::Shift, Key::A}) },	{'s', keys({Key::Shift, Key::S}) },
+		{'d', keys({Key::Shift, Key::D}) },	{'f', keys({Key::Shift, Key::F}) },
+		{'g', keys({Key::Shift, Key::G}) },	{'h', keys({Key::Shift, Key::H}) },
+		{'j', keys({Key::Shift, Key::J}) },	{'k', keys({Key::Shift, Key::K}) },
+		{'l', keys({Key::Shift, Key::L}) },	{'z', keys({Key::Shift, Key::Z}) },
+		{'x', keys({Key::Shift, Key::X}) },	{'c', keys({Key::Shift, Key::C}) },
+		{'v', keys({Key::Shift, Key::V}) },	{'b', keys({Key::Shift, Key::B}) },
+		{'n', keys({Key::Shift, Key::N}) },	{'m', keys({Key::Shift, Key::M}) },
 
-		{'0', keys({BBCKey::k0}) },	{'1', keys({BBCKey::k1}) },
-		{'2', keys({BBCKey::k2}) },	{'3', keys({BBCKey::k3}) },
-		{'4', keys({BBCKey::k4}) },	{'5', keys({BBCKey::k5}) },
-		{'6', keys({BBCKey::k6}) },	{'7', keys({BBCKey::k7}) },
-		{'8', keys({BBCKey::k8}) },	{'9', keys({BBCKey::k9}) },
+		{'0', keys({Key::k0}) },	{'1', keys({Key::k1}) },
+		{'2', keys({Key::k2}) },	{'3', keys({Key::k3}) },
+		{'4', keys({Key::k4}) },	{'5', keys({Key::k5}) },
+		{'6', keys({Key::k6}) },	{'7', keys({Key::k7}) },
+		{'8', keys({Key::k8}) },	{'9', keys({Key::k9}) },
 
-		{'\n', keys({BBCKey::Return}) },
-		{'\r', keys({BBCKey::Return}) },
-		{'\b', keys({BBCKey::Delete}) },
-		{'\t', keys({BBCKey::Tab}) },
-		{' ', keys({BBCKey::Space}) },
+		{'\n', keys({Key::Return}) },
+		{'\r', keys({Key::Return}) },
+		{'\b', keys({Key::Delete}) },
+		{'\t', keys({Key::Tab}) },
+		{' ', keys({Key::Space}) },
 
-		{'!', keys({BBCKey::Shift, BBCKey::k1}) },
-		{'"', keys({BBCKey::Shift, BBCKey::k2}) },
-		{'#', keys({BBCKey::Shift, BBCKey::k3}) },
-		{'$', keys({BBCKey::Shift, BBCKey::k4}) },
-		{'%', keys({BBCKey::Shift, BBCKey::k5}) },
-		{'&', keys({BBCKey::Shift, BBCKey::k6}) },
-		{'\'', keys({BBCKey::Shift, BBCKey::k7}) },
-		{'(', keys({BBCKey::Shift, BBCKey::k8}) },
-		{')', keys({BBCKey::Shift, BBCKey::k9}) },
+		{'!', keys({Key::Shift, Key::k1}) },
+		{'"', keys({Key::Shift, Key::k2}) },
+		{'#', keys({Key::Shift, Key::k3}) },
+		{'$', keys({Key::Shift, Key::k4}) },
+		{'%', keys({Key::Shift, Key::k5}) },
+		{'&', keys({Key::Shift, Key::k6}) },
+		{'\'', keys({Key::Shift, Key::k7}) },
+		{'(', keys({Key::Shift, Key::k8}) },
+		{')', keys({Key::Shift, Key::k9}) },
 
-		{'-', keys({BBCKey::Hyphen}) },
-		{'^', keys({BBCKey::Caret}) },
-		{'\\', keys({BBCKey::Backslash}) },
-		{'=', keys({BBCKey::Shift, BBCKey::Hyphen}) },
-		{'~', keys({BBCKey::Shift, BBCKey::Caret}) },
-		{'|', keys({BBCKey::Shift, BBCKey::Backslash}) },
+		{'-', keys({Key::Hyphen}) },
+		{'^', keys({Key::Caret}) },
+		{'\\', keys({Key::Backslash}) },
+		{'=', keys({Key::Shift, Key::Hyphen}) },
+		{'~', keys({Key::Shift, Key::Caret}) },
+		{'|', keys({Key::Shift, Key::Backslash}) },
 
-		{'@', keys({BBCKey::At}) },
-		{'[', keys({BBCKey::OpenSquareBracket}) },
-		{'_', keys({BBCKey::Underscore}) },
-		{'{', keys({BBCKey::Shift, BBCKey::OpenSquareBracket}) },
+		{'@', keys({Key::At}) },
+		{'[', keys({Key::OpenSquareBracket}) },
+		{'_', keys({Key::Underscore}) },
+		{'{', keys({Key::Shift, Key::OpenSquareBracket}) },
 //		{'£', keys({BBCKey::Shift, BBCKey::Underscore}) },
 
-		{';', keys({BBCKey::Semicolon}) },
-		{':', keys({BBCKey::Colon}) },
-		{']', keys({BBCKey::CloseSquareBracket}) },
-		{'+', keys({BBCKey::Shift, BBCKey::Semicolon}) },
-		{'*', keys({BBCKey::Shift, BBCKey::Colon}) },
-		{'}', keys({BBCKey::Shift, BBCKey::CloseSquareBracket}) },
+		{';', keys({Key::Semicolon}) },
+		{':', keys({Key::Colon}) },
+		{']', keys({Key::CloseSquareBracket}) },
+		{'+', keys({Key::Shift, Key::Semicolon}) },
+		{'*', keys({Key::Shift, Key::Colon}) },
+		{'}', keys({Key::Shift, Key::CloseSquareBracket}) },
 
-		{',', keys({BBCKey::Comma}) },
-		{'.', keys({BBCKey::FullStop}) },
-		{'/', keys({BBCKey::ForwardSlash}) },
-		{'<', keys({BBCKey::Shift, BBCKey::Comma}) },
-		{'>', keys({BBCKey::Shift, BBCKey::FullStop}) },
-		{'?', keys({BBCKey::Shift, BBCKey::ForwardSlash}) },
+		{',', keys({Key::Comma}) },
+		{'.', keys({Key::FullStop}) },
+		{'/', keys({Key::ForwardSlash}) },
+		{'<', keys({Key::Shift, Key::Comma}) },
+		{'>', keys({Key::Shift, Key::FullStop}) },
+		{'?', keys({Key::Shift, Key::ForwardSlash}) },
 	};
 };
 
