@@ -44,7 +44,7 @@ enum Key: uint16_t {
 	KeyF8		= 0xfff5,
 
 	// Physical keys not within the usual matrix.
-	KeyRestore	= 0xfffd,
+	KeyRestore	= 0xfffc,
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {

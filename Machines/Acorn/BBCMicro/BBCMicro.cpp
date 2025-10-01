@@ -12,6 +12,7 @@
 
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
+#include "Machines/Utility/Typer.hpp"
 
 #include "Processors/6502/6502.hpp"
 
@@ -120,7 +121,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via, const bool run_disk) :
 		audio_(audio), video_base_(video_base), via_(via)
 	{
-		set_key(6, run_disk);
+		set_key_flag(6, run_disk);
 	}
 
 	// CA2: key pressed;
@@ -197,7 +198,12 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	}
 
 	void set_key(const uint8_t key, const bool pressed) {
-		key_column(key)[key_row(key)] = pressed;
+		set_key_flag(key, pressed);
+		update_ca2();
+	}
+
+	void clear_all_keys() {
+		key_states_ = std::array<KeyRow, 16>{};
 		update_ca2();
 	}
 
@@ -247,6 +253,9 @@ private:
 	std::array<KeyRow, 16> key_states_{};
 	int keyboard_scan_column_ = 0;
 
+	void set_key_flag(const uint8_t key, const bool pressed) {
+		key_column(key)[key_row(key)] = pressed;
+	}
 	KeyRow &key_column(const uint8_t key) {
 		return key_states_[key & 0xf];
 	}
@@ -554,7 +563,7 @@ private:
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
 	Motorola::CRTC::Personality::HD6845S,
-	Motorola::CRTC::CursorType::MDA>;
+	Motorola::CRTC::CursorType::Native>;
 }
 
 template <bool has_1770>
@@ -568,6 +577,7 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public NEC::uPD7002::Delegate,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public WD::WD1770::Delegate
 {
 public:
@@ -643,6 +653,9 @@ public:
 		}
 
 		insert_media(target.media);
+		if(!target.loading_command.empty()) {
+			type_string(target.loading_command);
+		}
 	}
 
 	// MARK: - 6502 bus.
@@ -675,6 +688,7 @@ public:
 
 		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty, and update phase.
 		const auto duration = Cycles(is_1mhz(address) ? 2 + (phase_&1) : 1);
+		if(typer_) typer_->run_for(duration);
 		phase_ += duration.as<int>();
 
 
@@ -856,11 +870,41 @@ private:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) override {
-		if(key == BBCMicro::KeyboardMapper::KeyBreak) {
+		if(key == uint16_t(BBCMicro::Key::Break)) {
 			m6502_.set_reset_line(is_pressed);
 		} else {
 			system_via_port_handler_.set_key(uint8_t(key), is_pressed);
 		}
+	}
+
+	void clear_all_keys() final {
+		m6502_.set_reset_line(false);
+		system_via_port_handler_.clear_all_keys();
+	}
+
+	HalfCycles get_typer_delay(const std::string &text) const final {
+		if(!m6502_.get_is_resetting()) {
+			return Cycles(0);
+		}
+
+		// Add a longer delay for a command at reset that involves pressing a modifier;
+		// empirically this seems to be a requirement, in order to avoid a collision with
+		// the system's built-in modifier-at-startup test (e.g. to perform shift+break).
+		CharacterMapper test_mapper;
+		const uint16_t *const sequence = test_mapper.sequence_for_character(text[0]);
+		return is_modifier(Key(sequence[0])) ? Cycles(1'000'000) : Cycles(750'000);
+	}
+
+	HalfCycles get_typer_frequency() const final {
+		return Cycles(60'000);
+	}
+
+	void type_string(const std::string &string) final {
+		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+	}
+
+	bool can_type(char c) const final {
+		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
 	// MARK: - TimedMachine.

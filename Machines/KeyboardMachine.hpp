@@ -138,6 +138,12 @@ public:
 	static constexpr uint16_t KeyNotMapped = 0xfffe;
 
 	/*!
+		Indicates that a key is not mapped (for the keyboard mapper) or that a
+		character cannot be typed (for the character mapper).
+	*/
+	static constexpr uint16_t DelaySlot = 0xfffd;
+
+	/*!
 		Allows individual machines to provide the mapping between host keys
 		as per Inputs::Keyboard and their native scheme.
 	*/

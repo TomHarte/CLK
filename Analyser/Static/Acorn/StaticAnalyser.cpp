@@ -19,6 +19,23 @@
 
 using namespace Analyser::Static::Acorn;
 
+namespace {
+bool is_basic(const File &file) {
+	std::size_t pointer = 0;
+	const uint8_t *const data = file.data.data();
+	const std::size_t data_size = file.data.size();
+	while(true) {
+		if(pointer >= data_size-1 || data[pointer] != 0x0d) {
+			return false;
+		}
+		if((data[pointer+1]&0x7f) == 0x7f) break;
+		pointer += data[pointer+3];
+	}
+	return true;
+}
+
+}
+
 static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> acorn_cartridges;
@@ -85,34 +102,12 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		auto serialiser = tape->serialiser();
 		std::vector<File> files = GetFiles(*serialiser);
 
-		// continue if there are any files
+		// Continue only if there are any files.
 		if(!files.empty()) {
-			bool is_basic = true;
-
-			// If a file is execute-only, that means *RUN.
-			if(files.front().flags & File::Flags::ExecuteOnly) {
-				is_basic = false;
-			}
-
-			// Check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
-			// so that's also justification to *RUN.
-			if(is_basic) {
-				std::size_t pointer = 0;
-				uint8_t *const data = &files.front().data[0];
-				const std::size_t data_size = files.front().data.size();
-				while(true) {
-					if(pointer >= data_size-1 || data[pointer] != 0x0d) {
-						is_basic = false;
-						break;
-					}
-					if((data[pointer+1]&0x7f) == 0x7f) break;
-					pointer += data[pointer+3];
-				}
-			}
-
 			// Inspect first file. If it's protected or doesn't look like BASIC
 			// then the loading command is *RUN. Otherwise it's CHAIN"".
-			targetElectron->loading_command = is_basic ? "CHAIN\"\"\n" : "*RUN\n";
+			targetElectron->loading_command =
+				(files.front().flags & File::Flags::ExecuteOnly) || !is_basic(files.front()) ? "*RUN\n" : "CHAIN\"\"\n";
 			targetElectron->media.tapes = media.tapes;
 
 			// TODO: my BBC Micro doesn't yet support tapes; evaluate here in the future.
@@ -146,7 +141,23 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 			if(bootOption != Catalogue::BootOption::None) {
 				targetBBC->should_shift_restart = targetElectron->should_shift_restart = true;
 			} else {
-				targetBBC->loading_command = targetElectron->loading_command = "*CAT\n";
+				// Otherwise: if there's only one BASIC program then chain it.
+				// Failing that, do a *CAT to be communicative.
+
+				const File *sole_basic_file = nullptr;
+				for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
+					if(is_basic(file)) {
+						if(!sole_basic_file) {
+							sole_basic_file = &file;
+						} else {
+							sole_basic_file = nullptr;
+							break;
+						}
+					}
+				}
+
+				targetBBC->loading_command = targetElectron->loading_command =
+					sole_basic_file ? "CHAIN \"" + sole_basic_file->name + "\"\n" : "*CAT\n";
 			}
 
 			// Add a slight preference for the BBC over the Electron, all else being equal, if this is a DFS floppy.
