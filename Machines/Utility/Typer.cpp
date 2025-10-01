@@ -103,7 +103,7 @@ uint16_t Typer::try_type_next_character() {
 
 	// If the sequence is over, stop.
 	if(sequence[phase_ - 2] == MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
-		return 0;
+		return MachineTypes::MappedKeyboardMachine::KeyEndSequence;
 	}
 
 	// Otherwise, type the key.
@@ -118,13 +118,14 @@ bool Typer::type_next_character() {
 	while(true) {
 		const uint16_t key_pressed = try_type_next_character();
 
-		if(!key_pressed) {
+		if(key_pressed == MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
 			phase_ = 0;
 			++string_pointer_;
 			if(string_pointer_ == string_.size()) return false;
+			continue;
 		}
 
-		if(key_pressed && character_mapper_.needs_pause_after_key(key_pressed)) {
+		if(character_mapper_.needs_pause_after_key(key_pressed)) {
 			break;
 		}
 	}
