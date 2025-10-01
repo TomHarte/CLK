@@ -892,7 +892,7 @@ private:
 		// the system's built-in modifier-at-startup test (e.g. to perform shift+break).
 		CharacterMapper test_mapper;
 		const uint16_t *const sequence = test_mapper.sequence_for_character(text[0]);
-		return is_modifier(BBCKey(sequence[0])) ? Cycles(2'000'000) : Cycles(750'000);
+		return is_modifier(BBCKey(sequence[0])) ? Cycles(1'000'000) : Cycles(750'000);
 	}
 
 	HalfCycles get_typer_frequency() const final {
