@@ -283,7 +283,7 @@ void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
 }
 
 uint16_t SAA5050Serialiser:: pixels(const uint8_t c) {
-	if(flash_ && frame_counter_&32) {
+	if(flash_ && ((frame_counter_&31) > 23)) {	// Complete guess on the blink period here.
 		return 0;
 	}
 
