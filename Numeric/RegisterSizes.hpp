@@ -23,7 +23,9 @@ template <typename Full, typename Half> union alignas(Full) alignas(Half) Regist
 	RegisterPair() = default;
 
 	Full full;
-	auto operator <=>(const RegisterPair &rhs) const = default;
+	auto operator <=>(const RegisterPair &rhs) const {
+		return full <=> rhs.full;
+	}
 #if TARGET_RT_BIG_ENDIAN
 	struct {
 		Half high, low;
