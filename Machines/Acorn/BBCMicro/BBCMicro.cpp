@@ -47,6 +47,37 @@ namespace {
 using Logger = Log::Logger<Log::Source::BBCMicro>;
 
 /*!
+	Provides an analogue joystick with a single fire button.
+*/
+class Joystick: public Inputs::ConcreteJoystick {
+public:
+	Joystick(NEC::uPD7002 &adc, const int first_channel) :
+		ConcreteJoystick({
+			Input(Input::Horizontal),
+			Input(Input::Vertical),
+			Input(Input::Fire)
+		}),
+		adc_(adc),
+		first_channel_(first_channel) {}
+
+	void did_set_input(const Input &input, const float value) final {
+		adc_.set_input(first_channel_ + (input.type == Input::Vertical), value);
+	}
+
+	void did_set_input(const Input &, const bool is_active) final {
+		fire_ = is_active;
+	}
+
+	bool fire() const {
+		return fire_;
+	}
+
+private:
+	NEC::uPD7002 &adc_;
+	const int first_channel_;
+	bool fire_ = false;
+};
+/*!
 	Combines an SN76489 with an appropriate asynchronous queue and filtering speaker.
 */
 struct Audio {
@@ -118,8 +149,14 @@ struct SystemVIAPortHandler;
 using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	SystemVIAPortHandler(Audio &audio, VideoBaseAddress &video_base, SystemVIA &via, const bool run_disk) :
-		audio_(audio), video_base_(video_base), via_(via)
+	SystemVIAPortHandler(
+		Audio &audio,
+		VideoBaseAddress &video_base,
+		SystemVIA &via,
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks,
+		const bool run_disk
+	) :
+		audio_(audio), video_base_(video_base), via_(via), joysticks_(joysticks)
 	{
 		set_key_flag(6, run_disk);
 	}
@@ -183,9 +220,12 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		if(port == MOS::MOS6522::Port::B) {
 			// TODO:
 			//
-			//	b4/5: joystick fire buttons;
-			//	b6/7: speech interrupt/ready inputs.
-			return 0x3f;	// b6 = b7 = 0 => no speech hardware.
+			//	b4/5: joystick fire buttons (0 = pressed);
+			//	b6/7: speech interrupt/ready inputs. (0 expected if no speech hardware)
+			return
+				0xf |
+				(static_cast<Joystick *>(joysticks_[0].get())->fire() ? 0x00 : 0x10) |
+				(static_cast<Joystick *>(joysticks_[1].get())->fire() ? 0x00 : 0x20);
 		}
 
 		if(latch_ & LatchFlags::KeyboardIsScanning) {
@@ -284,6 +324,8 @@ private:
 	bool caps_led_state_ = false;
 	bool shift_led_state_ = false;
 	Activity::Observer *activity_observer_ = nullptr;
+
+	const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks_;
 };
 
 /*!
@@ -571,6 +613,7 @@ class ConcreteMachine:
 	public Activity::Source,
 	public Machine,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
@@ -586,7 +629,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
-		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_, target.should_shift_restart),
+		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_, joysticks_, target.should_shift_restart),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
@@ -595,6 +638,10 @@ public:
 		adc_(HalfCycles(2'000'000))
 	{
 		set_clock_rate(2'000'000);
+
+		// Install two joysticks.
+		joysticks_.emplace_back(new Joystick(adc_, 0));
+		joysticks_.emplace_back(new Joystick(adc_, 2));
 
 		system_via_port_handler_.set_interrupt_delegate(this);
 		user_via_port_handler_.set_interrupt_delegate(this);
@@ -999,6 +1046,12 @@ private:
 	Electron::Plus3 wd1770_;
 	void wd1770_did_change_output(WD::WD1770 &) override {
 		m6502_.set_nmi_line(wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line());
+	}
+
+	// MARK: - Joysticks
+	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		return joysticks_;
 	}
 };
 
