@@ -316,7 +316,7 @@ void SAA5050Serialiser::load_pixels(const uint8_t c) {
 		}
 
 		if(separated_graphics_) {
-			pixels &= 0b0111'1101'1111;
+			pixels &= 0b011'011;
 		}
 
 		output_.load(pixels);
