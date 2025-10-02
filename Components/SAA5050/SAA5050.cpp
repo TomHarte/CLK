@@ -272,7 +272,7 @@ void SAA5050Serialiser::set_reveal(const bool reveal) {
 	reveal_ = reveal;
 }
 
-void SAA5050Serialiser::add(const Numeric::SizedCounter<7> c) {
+void SAA5050Serialiser::add(const Numeric::SizedInt<7> c) {
 	has_output_ = true;
 	if(c.get() < 32) {
 		output_.pixels = hold_graphics_ ? pixels(last_graphic_) : 0;
