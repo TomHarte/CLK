@@ -9,7 +9,7 @@
 #pragma once
 
 #include "ClockReceiver/ClockReceiver.hpp"
-#include "Numeric/SizedCounter.hpp"
+#include "Numeric/SizedInt.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -23,12 +23,12 @@
 
 namespace Motorola::CRTC {
 
-using RefreshAddress = Numeric::SizedCounter<14>;
-using LineAddress = Numeric::SizedCounter<5>;
+using RefreshAddress = Numeric::SizedInt<14>;
+using LineAddress = Numeric::SizedInt<5>;
 
-using SyncCounter = Numeric::SizedCounter<4>;
-using CharacterAddress = Numeric::SizedCounter<8>;
-using RowAddress = Numeric::SizedCounter<7>;
+using SyncCounter = Numeric::SizedInt<4>;
+using CharacterAddress = Numeric::SizedInt<8>;
+using RowAddress = Numeric::SizedInt<7>;
 
 struct BusState {
 	bool display_enable = false;
@@ -40,7 +40,7 @@ struct BusState {
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
-	Numeric::SizedCounter<5> field_count = 0;		// field_counter
+	Numeric::SizedInt<5> field_count = 0;		// field_counter
 };
 
 class BusHandler {
@@ -521,7 +521,7 @@ private:
 	int selected_register_ = 0;
 
 	CharacterAddress character_counter_;		// h_counter
-	Numeric::SizedCounter<3> character_reset_history_;	// sol
+	Numeric::SizedInt<3> character_reset_history_;	// sol
 	RowAddress row_counter_;					// row_counter
 	RowAddress next_row_counter_;				// row_counter_next
 	LineAddress line_;							// line_counter
@@ -556,7 +556,7 @@ private:
 
 	bool reset_ = false;
 
-	Numeric::SizedCounter<3> cursor_history_;	// cursor0, cursor1, cursor2 [TODO]
+	Numeric::SizedInt<3> cursor_history_;	// cursor0, cursor1, cursor2 [TODO]
 	bool line_is_interlaced_ = false;
 };
 

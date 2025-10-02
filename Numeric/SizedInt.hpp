@@ -17,59 +17,59 @@ namespace Numeric {
 	to act like a standard C++ numeric type.
 */
 template <int bits>
-struct SizedCounter {
+struct SizedInt {
 	using IntT = MinIntForValue<1 << bits>::type;
 	inline static constexpr IntT Mask = (1 << bits) - 1;
 
-	constexpr SizedCounter(const IntT start_value) noexcept : counter_(start_value & Mask) {}
-	SizedCounter() = default;
+	constexpr SizedInt(const IntT start_value) noexcept : counter_(start_value & Mask) {}
+	SizedInt() = default;
 
 	IntT get() const {
 		return counter_;
 	}
 
-	SizedCounter operator +(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ + offset.counter_); }
-	SizedCounter operator -(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ - offset.counter_); }
-	SizedCounter operator &(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ & offset.counter_); }
-	SizedCounter operator |(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ | offset.counter_); }
-	SizedCounter operator ^(const SizedCounter offset) const {	return SizedCounter<bits>(counter_ ^ offset.counter_); }
-	SizedCounter operator >>(const int shift) const {	return SizedCounter<bits>(counter_ >> shift);	}
-	SizedCounter operator <<(const int shift) const {	return SizedCounter<bits>(counter_ << shift);	}
+	SizedInt operator +(const SizedInt offset) const {	return SizedInt<bits>(counter_ + offset.counter_); }
+	SizedInt operator -(const SizedInt offset) const {	return SizedInt<bits>(counter_ - offset.counter_); }
+	SizedInt operator &(const SizedInt offset) const {	return SizedInt<bits>(counter_ & offset.counter_); }
+	SizedInt operator |(const SizedInt offset) const {	return SizedInt<bits>(counter_ | offset.counter_); }
+	SizedInt operator ^(const SizedInt offset) const {	return SizedInt<bits>(counter_ ^ offset.counter_); }
+	SizedInt operator >>(const int shift) const {	return SizedInt<bits>(counter_ >> shift);	}
+	SizedInt operator <<(const int shift) const {	return SizedInt<bits>(counter_ << shift);	}
 
-	SizedCounter &operator &=(const SizedCounter offset) {
+	SizedInt &operator &=(const SizedInt offset) {
 		counter_ &= offset.counter_;
 		return *this;
 	}
-	SizedCounter &operator |=(const SizedCounter offset) {
+	SizedInt &operator |=(const SizedInt offset) {
 		counter_ |= offset.counter_;
 		return *this;
 	}
-	SizedCounter &operator ^=(const SizedCounter offset) {
+	SizedInt &operator ^=(const SizedInt offset) {
 		counter_ ^= offset.counter_;
 		return *this;
 	}
 
-	SizedCounter &operator <<=(const int shift) {
+	SizedInt &operator <<=(const int shift) {
 		counter_ = (counter_ << shift) & Mask;
 		return *this;
 	}
 
-	SizedCounter &operator >>=(const int shift) {
+	SizedInt &operator >>=(const int shift) {
 		counter_ >>= shift;
 		return *this;
 	}
 
-	SizedCounter &operator ++(int) {
+	SizedInt &operator ++(int) {
 		++(*this);
 		return *this;
 	}
 
-	SizedCounter &operator ++() {
+	SizedInt &operator ++() {
 		counter_ = (counter_ + 1) & Mask;
 		return *this;
 	}
 
-	SizedCounter &operator +=(const IntT rhs) {
+	SizedInt &operator +=(const IntT rhs) {
 		counter_ = (counter_ + rhs) & Mask;
 		return *this;
 	}
@@ -78,7 +78,7 @@ struct SizedCounter {
 		return !counter_;
 	}
 
-	auto operator <=>(const SizedCounter &) const = default;
+	auto operator <=>(const SizedInt &) const = default;
 
 	/// Replaces the bits in the range [begin, end) with those in the low-order bits of @c vlaue.
 	template <int begin, int end>

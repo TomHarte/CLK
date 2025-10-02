@@ -9,7 +9,7 @@
 #pragma once
 
 #include <cstdint>
-#include "Numeric/SizedCounter.hpp"
+#include "Numeric/SizedInt.hpp"
 
 namespace Mullard {
 
@@ -18,7 +18,7 @@ public:
 	void begin_frame(bool is_odd);
 	void begin_line();
 
-	void add(Numeric::SizedCounter<7>);
+	void add(Numeric::SizedInt<7>);
 
 	struct Output {
 		// The low twelve bits of this word provide 1bpp pixels.
