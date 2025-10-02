@@ -104,15 +104,15 @@ public:
 			case 1: layout_.horizontal.displayed = value;	break;
 			case 2:	layout_.horizontal.start_sync = value;	break;
 			case 3:
-				layout_.horizontal.sync_width = value & 0xf;
+				layout_.horizontal.sync_width = value;
 				layout_.vertical.sync_lines = value >> 4;
 				// TODO: vertical sync lines:
 				// "(0 means 16 on some CRTC. Not present on all CRTCs, fixed to 16 lines on these)"
 			break;
-			case 4:	layout_.vertical.total = value & 0x7f;		break;
-			case 5:	layout_.vertical.adjust = value & 0x1f;		break;
-			case 6:	layout_.vertical.displayed = value & 0x7f;	break;
-			case 7:	layout_.vertical.start_sync = value & 0x7f;	break;
+			case 4:	layout_.vertical.total = value;			break;
+			case 5:	layout_.vertical.adjust = value;		break;
+			case 6:	layout_.vertical.displayed = value;		break;
+			case 7:	layout_.vertical.start_sync = value;	break;
 			case 8:
 				switch(value & 3) {
 					default:	layout_.interlace_mode_ = InterlaceMode::Off;			break;
@@ -129,13 +129,13 @@ public:
 					}
 				}
 			break;
-			case 9:	layout_.vertical.end_line = value & 0x1f;	break;
+			case 9:	layout_.vertical.end_line = value;	break;
 			case 10:
-				layout_.vertical.start_cursor = value & 0x1f;
-				layout_.cursor_flags = (value >> 5) & 3;
+				layout_.vertical.start_cursor = value;
+				layout_.cursor_flags = value >> 5;
 			break;
 			case 11:
-				layout_.vertical.end_cursor = value & 0x1f;
+				layout_.vertical.end_cursor = value;
 			break;
 			case 12:	layout_.start_address.template load<8>(value);	break;
 			case 13:	layout_.start_address.template load<0>(value);	break;
@@ -433,7 +433,7 @@ public:
 						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
 						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
 						case CursorType::MDA:
-							switch(layout_.cursor_flags) {
+							switch(layout_.cursor_flags.get()) {
 								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
 								case 0b00: is_cursor_line_ &= bus_state_.field_count.bit<3>();	break;
 								case 0b01: is_cursor_line_ = false;								break;
@@ -444,7 +444,7 @@ public:
 
 						// Standard built-in 6845 blinking.
 						case CursorType::Native:
-							switch(layout_.cursor_flags) {
+							switch(layout_.cursor_flags.get()) {
 								case 0b00: break;
 								case 0b01: is_cursor_line_ = false;								break;
 								case 0b10: is_cursor_line_ &= bus_state_.field_count.bit<4>();	break;
@@ -513,7 +513,7 @@ private:
 		RefreshAddress start_address;		// r12_start_addr_h + r13_start_addr_l
 		RefreshAddress cursor_address;		// r14_cursor_h + r15_cursor_l
 		RefreshAddress light_pen_address;	// r16_light_pen_h + r17_light_pen_l
-		uint8_t cursor_flags;				// r10_cursor_mode
+		Numeric::SizedInt<2> cursor_flags;	// r10_cursor_mode
 	} layout_;
 
 	uint8_t registers_[18]{};
