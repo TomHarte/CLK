@@ -431,18 +431,31 @@ public:
 			//
 				cursor_history_ <<= 1;
 				if constexpr (cursor_type != CursorType::None) {
-					// Check for cursor enable.
-
-					is_cursor_line_ |= line_ == layout_.vertical.start_cursor;
-					is_cursor_line_ &= !(
-						(line_ == layout_.vertical.end_cursor) ||
-						(
-							character_total_hit &&
-							line_end_hit &&
-							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
-						)
-					);
-					// TODO: the above is clearly a quick-fix hack. Research better.
+					if(character_total_hit) {
+						// This is clearly a nonsense test; there's absolutely no reason a real 6845 would do anything
+						// other than equality comparisons, to maintain internal state.
+						//
+						// ... that said, I have been unable to reconcile:
+						//
+						//	1. the PCjs results on real MC6845Ps that show wraparound cursors
+						//		Cf. https://www.pcjs.org/blog/2018/03/20/ ; and
+						//	2. the expectations of the BBC Micro (which sets an out-of-range stop line for its cursor
+						//		right at initial boot) and various pieces of its software (including but
+						//		not limited to Arcadians, which uses in-range numbers but has start > end and expects
+						//		the cursor correspondingly to be hidden).
+						//
+						// I also note that the two BBC FPGA implementations I glanced at, hoglet's and Mister's, use
+						// fictional range comparisons.
+						//
+						// But, on the other hand, Tom Seddon remarks at https://github.com/tom-seddon/6845-tests that
+						// "Looks like the cursor switches on when cursor is off and raster matches R10, and switches
+						// off when cursor is on and raster matches R11."
+						//
+						// (but also seems to use a range test in his software implementation?)
+						is_cursor_line_ =
+							line_ >= layout_.vertical.start_cursor &&
+							line_ <= layout_.vertical.end_cursor;
+					}
 				}
 
 
