@@ -217,6 +217,8 @@ public:
 			// Addressing.
 			//
 
+				// Start-of-line address: seeded with the programmed display start address upon a new frame;
+				// otherwise copied from the refresh address at the end of each line of characters.
 				const auto initial_line_address = line_address_;
 				if(new_frame) {
 					line_address_ = layout_.start_address;
@@ -224,6 +226,9 @@ public:
 					line_address_ = refresh_;
 				}
 
+				// Refresh address: seeded with the programmed display start address upon a new frame;
+				// otherwise copied from the start-of-line address is a new line is about to start;
+				// otherwise incremented across the line.
 				if(new_frame) {
 					refresh_ = layout_.start_address;
 				} else if(character_total_hit) {
@@ -232,8 +237,11 @@ public:
 					++refresh_;
 				}
 
-				// Follow hoglet's lead in means of avoiding the logic that informs line address b0 varying
-				// within a line if interlace mode is enabled/disabled.
+				//
+				// Per hoglet: b0 does not vary within a line even if you switch in/out of interlaced mode.
+				// He reproduces the same with extra state, which probably doesn't exist on the real device.
+				// This implementation follows his lead.
+				//
 				if(character_total_hit) {
 					line_is_interlaced_ = layout_.interlace_mode_ == InterlaceMode::SyncAndVideo;
 				}
@@ -377,6 +385,8 @@ public:
 					is_first_scanline_ = false;
 				}
 
+				// The extra-line flag holds true for a single line if one is needed to complete
+				// an odd interlaced field.
 				if(
 					character_total_hit &&
 					eof_latched_ &&
@@ -389,12 +399,15 @@ public:
 					extra_line_ = false;
 				}
 
+				// EOF (end of field) marks the end of the regular set of scans, including the adjustment area.
+				// It doesn't include the extra line added during odd interlaced fields.
 				if(new_frame) {
 					eof_latched_ = false;
 				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<2>()) {
 					eof_latched_ = true;
 				}
 
+				// Will-adjust indicates whether an adjustment area is upcoming; if so then it occurs after EOM.
 				if(new_frame) {
 					will_adjust_ = false;
 				} else if(character_reset_history_.bit<1>() && eom_latched_) {
@@ -405,7 +418,8 @@ public:
 					}
 				}
 
-				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
+				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area.
+				// It is set one cycle after the most-recent start of line.
 				if(new_frame) {
 					eom_latched_ = false;
 				} else if(character_reset_history_.bit<0>() && line_end_hit && row_counter_ == layout_.vertical.total) {
@@ -429,7 +443,6 @@ public:
 						)
 					);
 					// TODO: the above is clearly a quick-fix hack. Research better.
-
 				}
 
 
