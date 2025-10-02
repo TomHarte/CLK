@@ -168,7 +168,8 @@ public:
 				if(stick_types_.size() < required_size) {
 					stick_types_.resize(required_size);
 				}
-				stick_types_[size_t(input.info.control.index)] = is_digital_axis ? StickType::Digital : StickType::Analogue;
+				stick_types_[size_t(input.info.control.index)] =
+					is_digital_axis ? StickType::Digital : StickType::Analogue;
 			}
 		}
 	}
@@ -188,11 +189,21 @@ public:
 		// convenient hard-coded values. TODO: make these a function of time.
 		using Type = Joystick::Input::Type;
 		switch(input.type) {
-			default:			did_set_input(input, is_active ? 1.0f : 0.0f);													break;
-			case Type::Left:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.1f : 0.5f);		break;
-			case Type::Right:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.9f : 0.5f);		break;
-			case Type::Up:		did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.1f : 0.5f);		break;
-			case Type::Down:	did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.9f : 0.5f);		break;
+			default:
+				did_set_input(input, is_active ? 1.0f : 0.0f);
+			break;
+			case Type::Left:
+				did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? digital_minimum() : 0.5f);
+			break;
+			case Type::Right:
+				did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? digital_maximum() : 0.5f);
+			break;
+			case Type::Up:
+				did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? digital_minimum() : 0.5f);
+			break;
+			case Type::Down:
+				did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? digital_maximum() : 0.5f);
+			break;
 		}
 	}
 
@@ -206,7 +217,9 @@ public:
 		// Otherwise apply a threshold test to convert to digital, with remapping from axes to digital inputs.
 		using Type = Joystick::Input::Type;
 		switch(input.type) {
-			default:			did_set_input(input, value > 0.5f);											break;
+			default:
+				did_set_input(input, value > 0.5f);
+			break;
 			case Type::Horizontal:
 				did_set_input(Input(Type::Left, input.info.control.index), value <= 0.25f);
 				did_set_input(Input(Type::Right, input.info.control.index), value >= 0.75f);
@@ -221,6 +234,8 @@ public:
 protected:
 	virtual void did_set_input([[maybe_unused]] const Input &input, [[maybe_unused]] float value) {}
 	virtual void did_set_input([[maybe_unused]] const Input &input, [[maybe_unused]] bool value) {}
+	virtual float digital_minimum() const { return 0.1f; }
+	virtual float digital_maximum() const { return 0.9f; }
 
 private:
 	const std::vector<Input> inputs_;

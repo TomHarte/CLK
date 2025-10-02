@@ -61,11 +61,20 @@ public:
 		first_channel_(first_channel) {}
 
 	void did_set_input(const Input &input, const float value) final {
-		adc_.set_input(first_channel_ + (input.type == Input::Vertical), value);
+		switch(input.type) {
+			case Input::Horizontal:
+			case Input::Vertical:
+				adc_.set_input(first_channel_ + (input.type == Input::Vertical), 1.0f - value);
+			break;
+
+			default: break;
+		}
 	}
 
-	void did_set_input(const Input &, const bool is_active) final {
-		fire_ = is_active;
+	void did_set_input(const Input &input, const bool is_active) final {
+		if(input.type == Input::Fire) {
+			fire_ = is_active;
+		}
 	}
 
 	bool fire() const {
@@ -73,6 +82,13 @@ public:
 	}
 
 private:
+	float digital_minimum() const final {
+		return 0.0f;
+	}
+	float digital_maximum() const final {
+		return 1.0f;
+	}
+
 	NEC::uPD7002 &adc_;
 	const int first_channel_;
 	bool fire_ = false;
