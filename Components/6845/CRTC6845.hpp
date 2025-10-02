@@ -560,8 +560,8 @@ private:
 				switch(layout_.cursor_flags.get()) {
 					case 0b00: cursor_mask_ = true;								break;
 					case 0b01: cursor_mask_ = false;							break;
-					case 0b10: cursor_mask_ = bus_state_.field_count.bit<4>();	break;
-					case 0b11: cursor_mask_= bus_state_.field_count.bit<3>();	break;
+					case 0b10: cursor_mask_ = bus_state_.field_count.bit<3>();	break;
+					case 0b11: cursor_mask_= bus_state_.field_count.bit<4>();	break;
 					default: break;
 				}
 			break;
