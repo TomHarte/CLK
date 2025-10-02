@@ -448,7 +448,7 @@ public:
 			if(pixel_data_) {
 				if(active_collation_.is_teletext) {
 					if(has_5050_output_) {
-						uint16_t pixels = saa_50505_output_.pixels;
+						uint16_t pixels = saa_50505_output_.pixels();
 						for(int c = 0; c < 12; c++) {
 							*pixel_pointer_++ =
 								((pixels & 0b1000'0000'0000) ? saa_50505_output_.alpha : saa_50505_output_.background)

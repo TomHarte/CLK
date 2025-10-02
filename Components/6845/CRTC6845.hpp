@@ -133,6 +133,7 @@ public:
 			case 10:
 				layout_.vertical.start_cursor = value;
 				layout_.cursor_flags = value >> 5;
+				update_cursor_mask();
 			break;
 			case 11:
 				layout_.vertical.end_cursor = value;
@@ -186,7 +187,7 @@ public:
 			//
 				bus_state_.line = line_is_interlaced_ ? (line_ & LineAddress::IntT(~1)) | (odd_field_ ? 1 : 0) : line_;
 				bus_state_.display_enable = character_is_visible_ && row_is_visible_;
-				bus_state_.cursor = (is_cursor_line_ && bus_state_.refresh == layout_.cursor_address)
+				bus_state_.cursor = (cursor_mask_ && is_cursor_line_ && bus_state_.refresh == layout_.cursor_address)
 					&& bus_state_.display_enable;
 
 				bus_handler_.perform_bus_cycle(bus_state_);
@@ -216,6 +217,8 @@ public:
 			// Addressing.
 			//
 
+				// Start-of-line address: seeded with the programmed display start address upon a new frame;
+				// otherwise copied from the refresh address at the end of each line of characters.
 				const auto initial_line_address = line_address_;
 				if(new_frame) {
 					line_address_ = layout_.start_address;
@@ -223,6 +226,9 @@ public:
 					line_address_ = refresh_;
 				}
 
+				// Refresh address: seeded with the programmed display start address upon a new frame;
+				// otherwise copied from the start-of-line address is a new line is about to start;
+				// otherwise incremented across the line.
 				if(new_frame) {
 					refresh_ = layout_.start_address;
 				} else if(character_total_hit) {
@@ -231,8 +237,11 @@ public:
 					++refresh_;
 				}
 
-				// Follow hoglet's lead in means of avoiding the logic that informs line address b0 varying
-				// within a line if interlace mode is enabled/disabled.
+				//
+				// Per hoglet: b0 does not vary within a line even if you switch in/out of interlaced mode.
+				// He reproduces the same with extra state, which probably doesn't exist on the real device.
+				// This implementation follows his lead.
+				//
 				if(character_total_hit) {
 					line_is_interlaced_ = layout_.interlace_mode_ == InterlaceMode::SyncAndVideo;
 				}
@@ -356,6 +365,7 @@ public:
 				} else if(row_is_visible_ && row_counter_ == layout_.vertical.displayed) {
 					row_is_visible_ = false;
 					++bus_state_.field_count;
+					update_cursor_mask();
 				}
 
 
@@ -375,6 +385,8 @@ public:
 					is_first_scanline_ = false;
 				}
 
+				// The extra-line flag holds true for a single line if one is needed to complete
+				// an odd interlaced field.
 				if(
 					character_total_hit &&
 					eof_latched_ &&
@@ -387,12 +399,15 @@ public:
 					extra_line_ = false;
 				}
 
+				// EOF (end of field) marks the end of the regular set of scans, including the adjustment area.
+				// It doesn't include the extra line added during odd interlaced fields.
 				if(new_frame) {
 					eof_latched_ = false;
 				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<2>()) {
 					eof_latched_ = true;
 				}
 
+				// Will-adjust indicates whether an adjustment area is upcoming; if so then it occurs after EOM.
 				if(new_frame) {
 					will_adjust_ = false;
 				} else if(character_reset_history_.bit<1>() && eom_latched_) {
@@ -403,7 +418,8 @@ public:
 					}
 				}
 
-				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area. So it
+				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area.
+				// It is set one cycle after the most-recent start of line.
 				if(new_frame) {
 					eom_latched_ = false;
 				} else if(character_reset_history_.bit<0>() && line_end_hit && row_counter_ == layout_.vertical.total) {
@@ -415,43 +431,30 @@ public:
 			//
 				cursor_history_ <<= 1;
 				if constexpr (cursor_type != CursorType::None) {
-					// Check for cursor enable.
-
-					is_cursor_line_ |= line_ == layout_.vertical.start_cursor;
-					is_cursor_line_ &= !(
-						(line_ == layout_.vertical.end_cursor) ||
-						(
-							character_total_hit &&
-							line_end_hit &&
-							layout_.vertical.end_cursor == (lines_per_row + LineAddress(1))
-						)
-					);
-					// TODO: the above is clearly a quick-fix hack. Research better.
-
-					switch(cursor_type) {
-						// MDA-style blinking.
-						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
-						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
-						case CursorType::MDA:
-							switch(layout_.cursor_flags.get()) {
-								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
-								case 0b00: is_cursor_line_ &= bus_state_.field_count.bit<3>();	break;
-								case 0b01: is_cursor_line_ = false;								break;
-								case 0b10: break;
-								default: break;
-							}
-						break;
-
-						// Standard built-in 6845 blinking.
-						case CursorType::Native:
-							switch(layout_.cursor_flags.get()) {
-								case 0b00: break;
-								case 0b01: is_cursor_line_ = false;								break;
-								case 0b10: is_cursor_line_ &= bus_state_.field_count.bit<4>();	break;
-								case 0b11: is_cursor_line_ &= bus_state_.field_count.bit<3>();	break;
-								default: break;
-							}
-						break;
+					if(character_total_hit) {
+						// This is clearly a nonsense test; there's absolutely no reason a real 6845 would do anything
+						// other than equality comparisons, to maintain internal state.
+						//
+						// ... that said, I have been unable to reconcile:
+						//
+						//	1. the PCjs results on real MC6845Ps that show wraparound cursors
+						//		Cf. https://www.pcjs.org/blog/2018/03/20/ ; and
+						//	2. the expectations of the BBC Micro (which sets an out-of-range stop line for its cursor
+						//		right at initial boot) and various pieces of its software (including but
+						//		not limited to Arcadians, which uses in-range numbers but has start > end and expects
+						//		the cursor correspondingly to be hidden).
+						//
+						// I also note that the two BBC FPGA implementations I glanced at, hoglet's and Mister's, use
+						// fictional range comparisons.
+						//
+						// But, on the other hand, Tom Seddon remarks at https://github.com/tom-seddon/6845-tests that
+						// "Looks like the cursor switches on when cursor is off and raster matches R10, and switches
+						// off when cursor is on and raster matches R11."
+						//
+						// (but also seems to use a range test in his software implementation?)
+						is_cursor_line_ =
+							line_ >= layout_.vertical.start_cursor &&
+							line_ <= layout_.vertical.end_cursor;
 					}
 				}
 
@@ -533,6 +536,7 @@ private:
 	bool row_is_visible_ = false;				// v_display
 	bool is_first_scanline_ = false;
 	bool is_cursor_line_ = false;
+	bool cursor_mask_ = false;
 
 	SyncCounter hsync_counter_;					// h_sync_counter
 	SyncCounter vsync_counter_;					// v_sync_counter
@@ -558,6 +562,37 @@ private:
 
 	Numeric::SizedInt<3> cursor_history_;	// cursor0, cursor1, cursor2 [TODO]
 	bool line_is_interlaced_ = false;
+
+	void update_cursor_mask() {
+		switch(cursor_type) {
+			case CursorType::None:
+			break;
+
+			// MDA-style blinking.
+			// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+			// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
+			case CursorType::MDA:
+				switch(layout_.cursor_flags.get()) {
+					case 0b11: cursor_mask_ = (bus_state_.field_count & 8) < 3;	break;
+					case 0b00: cursor_mask_ = bus_state_.field_count.bit<3>();	break;
+					case 0b01: cursor_mask_ = false;							break;
+					case 0b10: cursor_mask_ = true;								break;
+					default: break;
+				}
+			break;
+
+			// Standard built-in 6845 blinking.
+			case CursorType::Native:
+				switch(layout_.cursor_flags.get()) {
+					case 0b00: cursor_mask_ = true;								break;
+					case 0b01: cursor_mask_ = false;							break;
+					case 0b10: cursor_mask_ = bus_state_.field_count.bit<3>();	break;
+					case 0b11: cursor_mask_= bus_state_.field_count.bit<4>();	break;
+					default: break;
+				}
+			break;
+		}
+	}
 };
 
 }

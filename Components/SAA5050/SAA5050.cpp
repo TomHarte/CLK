@@ -113,28 +113,6 @@ constexpr uint8_t font[][10] = {
 	{0x00, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00, 0x00, },
 };
 
-constexpr uint16_t scale(const uint8_t top, const uint8_t bottom) {
-	// Adapted from old ElectrEm source; my original provenance for this being the correct logic is unknown.
-	uint16_t wide =
-		((top & 0b00001) ? 0b0000'0000'0011 : 0) |
-		((top & 0b00010) ? 0b0000'0000'1100 : 0) |
-		((top & 0b00100) ? 0b0000'0011'0000 : 0) |
-		((top & 0b01000) ? 0b0000'1100'0000 : 0) |
-		((top & 0b10000) ? 0b0011'0000'0000 : 0);
-
-	if((top & 0b10000) && (bottom & 0b11000) == 0b01000) wide |= 0b0000'1000'0000;
-	if((top & 0b01000) && (bottom & 0b01100) == 0b00100) wide |= 0b0000'0010'0000;
-	if((top & 0b00100) && (bottom & 0b00110) == 0b00010) wide |= 0b0000'0000'1000;
-	if((top & 0b00010) && (bottom & 0b00011) == 0b00001) wide |= 0b0000'0000'0010;
-
-	if((top & 0b01000) && (bottom & 0b11000) == 0b10000) wide |= 0b0001'0000'0000;
-	if((top & 0b00100) && (bottom & 0b01100) == 0b01000) wide |= 0b0000'0100'0000;
-	if((top & 0b00010) && (bottom & 0b00110) == 0b00100) wide |= 0b0000'0001'0000;
-	if((top & 0b00001) && (bottom & 0b00011) == 0b00010) wide |= 0b0000'0000'0100;
-
-	return wide;
-}
-
 enum ControlCode: uint8_t {
 	RedAlpha = 0x01,
 	GreenAlpha = 0x02,
@@ -195,7 +173,7 @@ void SAA5050Serialiser::begin_line() {
 		row_has_double_height_ = false;
 	}
 
-	output_.pixels = 0;
+	output_.reset();
 	has_output_ = false;
 
 	apply_control(ControlCode::WhiteAlpha);
@@ -275,20 +253,26 @@ void SAA5050Serialiser::set_reveal(const bool reveal) {
 void SAA5050Serialiser::add(const Numeric::SizedInt<7> c) {
 	has_output_ = true;
 	if(c.get() < 32) {
-		output_.pixels = hold_graphics_ ? pixels(last_graphic_) : 0;
+		if(hold_graphics_) {
+			load_pixels(last_graphic_);
+		} else {
+			output_.reset();
+		}
 		apply_control(c.get());
 		return;
 	}
-	output_.pixels = pixels(c.get());
+	load_pixels(c.get());
 }
 
-uint16_t SAA5050Serialiser:: pixels(const uint8_t c) {
+void SAA5050Serialiser::load_pixels(const uint8_t c) {
 	if(flash_ && ((frame_counter_&31) > 23)) {	// Complete guess on the blink period here.
-		return 0;
+		output_.reset();
+		return;
 	}
 
 	if(conceal_ && !reveal_) {
-		return 0;
+		output_.reset();
+		return;
 	}
 
 	// Divert into graphics only if both the mode and the character code allows it.
@@ -312,29 +296,31 @@ uint16_t SAA5050Serialiser:: pixels(const uint8_t c) {
 		//	|----|----|
 
 		if(separated_graphics_ && (line_ == 6 || line_ == 12 || line_ == 18)) {
-			return 0;
+			output_.reset();
+			return;
 		}
 
-		uint16_t pixels;
+		uint8_t pixels;
 		if(line_ < 6) {
 			pixels =
-				((c & 1) ? 0b1111'1100'0000 : 0) |
-				((c & 2) ? 0b0000'0011'1111 : 0);
+				((c & 1) ? 0b111'000 : 0) |
+				((c & 2) ? 0b000'111 : 0);
 		} else if(line_ < 12) {
 			pixels =
-				((c & 4) ? 0b1111'1100'0000 : 0) |
-				((c & 8) ? 0b0000'0011'1111 : 0);
+				((c & 4) ? 0b111'000 : 0) |
+				((c & 8) ? 0b000'111 : 0);
 		} else {
 			pixels =
-				((c & 16) ? 0b1111'1100'0000 : 0) |
-				((c & 64) ? 0b0000'0011'1111 : 0);
+				((c & 16) ? 0b111'000 : 0) |
+				((c & 64) ? 0b000'111 : 0);
 		}
 
 		if(separated_graphics_) {
-			pixels &= 0b0111'1101'1111;
+			pixels &= 0b011'011;
 		}
 
-		return pixels;
+		output_.load(pixels);
+		return;
 	}
 
 	if(double_height_) {
@@ -343,22 +329,22 @@ uint16_t SAA5050Serialiser:: pixels(const uint8_t c) {
 		const uint8_t bottom = font[c - 32][std::min(9, top_address + 1)];
 
 		if(line_ & 2) {
-			return scale(bottom, top);
+			output_.load(bottom, top);
 		} else {
-			return scale(top, bottom);
+			output_.load(top, bottom);
 		}
 	} else {
 		if(double_height_offset_) {
-			return 0;
+			output_.reset();
 		} else {
 			const auto top_address = line_ >> 1;
 			const uint8_t top = font[c - 32][top_address];
 			const uint8_t bottom = font[c - 32][std::min(9, top_address + 1)];
 
 			if(odd_frame_) {
-				return scale(bottom, top);
+				output_.load(bottom, top);
 			} else {
-				return scale(top, bottom);
+				output_.load(top, bottom);
 			}
 		}
 	}
