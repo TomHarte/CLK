@@ -187,6 +187,71 @@ public:
 	forceinline void perform_bus_cycle(const Motorola::CRTC::BusState &state) {
 		// TODO: there's a one-tick delay on pixel output; incorporate that.
 
+		// For the interrupt timer: notify the leading edge of vertical sync and the
+		// trailing edge of horizontal sync.
+		if(previous_state_.vsync != state.vsync) {
+			interrupt_timer_.set_vsync(state.vsync);
+		}
+		if(previous_state_.hsync && !state.hsync) {
+			interrupt_timer_.signal_hsync();
+		}
+
+		// Now, finally, process the previous state so as to incorporate a one-tick delay.
+		output(previous_state_);
+		previous_state_ = state;
+	}
+
+	/// Sets the destination for output.
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
+		crt_.set_scan_target(scan_target);
+	}
+
+	/// @returns The current scan status.
+	Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		return crt_.get_scaled_scan_status() / 4.0f;
+	}
+
+	/// Sets the type of display.
+	void set_display_type(const Outputs::Display::DisplayType display_type) {
+		crt_.set_display_type(display_type);
+	}
+
+	/// Gets the type of display.
+	Outputs::Display::DisplayType get_display_type() const {
+		return crt_.get_display_type();
+	}
+
+	/*!
+		Sets the next video mode. Per the documentation, mode changes take effect only at the end of line,
+		not immediately. So next means "as of the end of this line".
+	*/
+	void set_next_mode(const int mode) {
+		next_mode_ = mode;
+	}
+
+	/// Palette management: selects a pen to modify.
+	void select_pen(const int pen) {
+		pen_ = pen;
+	}
+
+	/// Palette management: sets the colour of the selected pen.
+	void set_colour(const uint8_t colour) {
+		if(pen_ & 16) {
+			// If border is[/was] currently being output, flush what should have been
+			// drawn in the old colour.
+			if(previous_output_mode_ == OutputMode::Border) {
+				output_border(cycles_);
+				cycles_ = 0;
+			}
+			border_ = mapped_palette_value(colour);
+		} else {
+			palette_[pen_] = mapped_palette_value(colour);
+			patch_mode_table(size_t(pen_));
+		}
+	}
+
+private:
+	void output(const Motorola::CRTC::BusState &state) {
 		// The gate array waits 2us to react to the CRTC's vsync signal, and then
 		// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 		// respectively.
@@ -308,71 +373,8 @@ public:
 			}
 			build_mode_table();
 		}
-
-		// For the interrupt timer: notify the leading edge of vertical sync and the
-		// trailing edge of horizontal sync.
-		if(was_vsync_ != state.vsync) {
-			interrupt_timer_.set_vsync(state.vsync);
-		}
-		if(was_hsync_ && !state.hsync) {
-			interrupt_timer_.signal_hsync();
-		}
-
-		// Update current state for edge detection next time around.
-		was_vsync_ = state.vsync;
-		was_hsync_ = state.hsync;
 	}
 
-	/// Sets the destination for output.
-	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
-		crt_.set_scan_target(scan_target);
-	}
-
-	/// @returns The current scan status.
-	Outputs::Display::ScanStatus get_scaled_scan_status() const {
-		return crt_.get_scaled_scan_status() / 4.0f;
-	}
-
-	/// Sets the type of display.
-	void set_display_type(const Outputs::Display::DisplayType display_type) {
-		crt_.set_display_type(display_type);
-	}
-
-	/// Gets the type of display.
-	Outputs::Display::DisplayType get_display_type() const {
-		return crt_.get_display_type();
-	}
-
-	/*!
-		Sets the next video mode. Per the documentation, mode changes take effect only at the end of line,
-		not immediately. So next means "as of the end of this line".
-	*/
-	void set_next_mode(const int mode) {
-		next_mode_ = mode;
-	}
-
-	/// Palette management: selects a pen to modify.
-	void select_pen(const int pen) {
-		pen_ = pen;
-	}
-
-	/// Palette management: sets the colour of the selected pen.
-	void set_colour(const uint8_t colour) {
-		if(pen_ & 16) {
-			// If border is[/was] currently being output, flush what should have been
-			// drawn in the old colour.
-			if(previous_output_mode_ == OutputMode::Border) {
-				output_border(cycles_);
-				cycles_ = 0;
-			}
-			border_ = mapped_palette_value(colour);
-		} else {
-			palette_[pen_] = mapped_palette_value(colour);
-			patch_mode_table(size_t(pen_));
-		}
-	}
-
-private:
 	void output_border(const int length) {
 		assert(length >= 0);
 
@@ -543,7 +545,6 @@ private:
 	} previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
 
-	bool was_hsync_ = false, was_vsync_ = false;
 	int cycles_into_hsync_ = 0;
 
 	Outputs::CRT::CRT crt_;
@@ -568,6 +569,7 @@ private:
 	uint8_t border_ = 0;
 
 	InterruptTimer &interrupt_timer_;
+	Motorola::CRTC::BusState previous_state_;
 };
 using CRTC = Motorola::CRTC::CRTC6845<
 	CRTCBusHandler,
