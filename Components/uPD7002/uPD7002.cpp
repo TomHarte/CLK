@@ -79,3 +79,7 @@ void uPD7002::set_interrupt(const bool value) {
 	interrupt_ = value;
 	if(delegate_) delegate_->did_change_interrupt_status(*this);
 }
+
+void uPD7002::set_input(const int channel, const float value) {
+	inputs_[channel] = value;
+}
