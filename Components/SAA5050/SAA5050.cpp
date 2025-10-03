@@ -305,7 +305,7 @@ void SAA5050Serialiser::load_pixels(const uint8_t c) {
 			pixels =
 				((c & 1) ? 0b111'000 : 0) |
 				((c & 2) ? 0b000'111 : 0);
-		} else if(line_ < 12) {
+		} else if(line_ < 14) {
 			pixels =
 				((c & 4) ? 0b111'000 : 0) |
 				((c & 8) ? 0b000'111 : 0);
