@@ -991,7 +991,7 @@ private:
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const char c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
