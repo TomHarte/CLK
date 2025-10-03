@@ -135,12 +135,14 @@ void WD1770::run_for(const Cycles cycles) {
 
 void WD1770::posit_event(const int new_event_type) {
 #define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
+#define RESUME_WAIT(mask)		interesting_event_mask_ = int(mask); return;
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
 #define WAIT_FOR_BYTES(count)	distance_into_section_ = 0; \
 								WAIT_FOR_EVENT(Event::Token); \
 								if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
+								Logger::info().append("had token, distance is now %d", distance_into_section_);\
 								if(distance_into_section_ < count) { \
-									return;	\
+									RESUME_WAIT(Event::Token);	\
 								}
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	(void)0; }
@@ -487,12 +489,8 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_EVENT(Event::Token);
 		if(get_latest_token().type != Token::Byte) goto type2_read_byte;
 		data_ = get_latest_token().byte_value;
-//		Logger::info().append("Posting %02x", data_);
 		update_status([] (Status &status) {
 			status.lost_data |= status.data_request;
-//			if(status.lost_data) {
-//				Logger::info().append("Lost data");
-//			}
 			status.data_request = true;
 		});
 		distance_into_section_++;
