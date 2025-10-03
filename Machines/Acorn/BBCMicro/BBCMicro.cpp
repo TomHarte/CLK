@@ -391,8 +391,7 @@ public:
 	}
 
 	void set_control(const uint8_t value) {
-		crtc_clock_multiplier_ = (value & 0x10) ? 1 : 2;
-
+		active_collation_.crtc_clock_multiplier = (value & 0x10) ? 1 : 2;
 		active_collation_.pixels_per_clock = 1 << ((value >> 2) & 0x03);
 		active_collation_.is_teletext = value & 0x02;
 		flash_mask_ = value & 0x01 ? 7 : 0;
@@ -440,7 +439,7 @@ public:
 		}
 		previous_vsync_ = state.vsync;
 
-		if(state.display_enable && !previous_display_enabled_) {
+		if(state.display_enable && !previous_display_enabled_ && active_collation_.is_teletext) {
 			saa5050_serialiser_.begin_line();
 		}
 		previous_display_enabled_ = state.display_enable;
@@ -521,7 +520,7 @@ public:
 			previous_collation_ = active_collation_;
 
 			if(!pixel_data_) {
-				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit, 8);
+				pixel_pointer_ = pixel_data_ = crt_.begin_data(PixelAllocationUnit);
 			}
 
 			if(pixel_data_) {
@@ -539,7 +538,7 @@ public:
 						pixel_pointer_ += 12;
 					}
 				} else {
-					switch(crtc_clock_multiplier_ * active_collation_.pixels_per_clock) {
+					switch(active_collation_.crtc_clock_multiplier * active_collation_.pixels_per_clock) {
 						case 1: shift_pixels<1>(cursor_shifter_ & 7);	break;
 						case 2: shift_pixels<2>(cursor_shifter_ & 7);	break;
 						case 4: shift_pixels<4>(cursor_shifter_ & 7);	break;
@@ -552,7 +551,7 @@ public:
 		}
 
 		// Increment cycles since state changed.
-		cycles_ += crtc_clock_multiplier_ << 3;
+		cycles_ += active_collation_.crtc_clock_multiplier << 3;
 	}
 
 	/// Sets the destination for output.
@@ -583,12 +582,21 @@ private:
 		Pixels
 	};
 	struct PixelCollation {
-		int pixels_per_clock;
-		bool is_teletext;
+		int crtc_clock_multiplier = 1;
+		int pixels_per_clock = 4;
+		bool is_teletext = false;
 
 		bool operator !=(const PixelCollation &rhs) {
-			if(is_teletext && rhs.is_teletext) return false;
-			return pixels_per_clock != rhs.pixels_per_clock;
+			// If both are teletext, just inspect the clock multiplier.
+			if(is_teletext && rhs.is_teletext) {
+				return crtc_clock_multiplier != rhs.crtc_clock_multiplier;
+			}
+
+			// If one is teletext but the other isn't, that's a sufficient difference.
+			if(is_teletext != rhs.is_teletext) return true;
+
+			// Compare pixel clock rate.
+			return pixels_per_clock != rhs.pixels_per_clock || crtc_clock_multiplier != rhs.crtc_clock_multiplier;
 		}
 	};
 
@@ -611,7 +619,6 @@ private:
 	std::bitset<16> flash_flags_;
 	uint8_t flash_mask_ = 0;
 
-	int crtc_clock_multiplier_ = 1;
 	PixelCollation active_collation_;
 	uint8_t pixel_shifter_ = 0;
 
