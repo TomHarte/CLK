@@ -939,15 +939,15 @@ private:
 	void set_key_state(const uint16_t key, const bool is_pressed) override {
 		switch(Key(key)) {
 			case Key::SwitchOffCaps:
-				// Store current capslock state for a potential restore; press caps lock
-				// now if there's a need to exit capslock mode.
+				// Store current caps lock state for a potential restore; press caps lock
+				// now if there's a need to exit caps lock mode.
 				was_caps_ = system_via_port_handler_.caps_lock();
 				if(was_caps_) {
 					system_via_port_handler_.set_key(uint8_t(Key::CapsLock), true);
 				}
 			break;
 			case Key::RestoreCaps:
-				// Press capslock again if the machine was originally in the capslock state.
+				// Press caps lock again if the machine was originally in the caps lock state.
 				// If so then SwitchOffCaps switched it off.
 				if(was_caps_) {
 					system_via_port_handler_.set_key(uint8_t(Key::CapsLock), true);
