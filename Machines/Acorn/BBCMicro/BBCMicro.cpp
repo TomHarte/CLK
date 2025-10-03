@@ -165,14 +165,19 @@ struct SystemVIAPortHandler;
 using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
 
 struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
+	struct Delegate {
+		virtual void strobe_lightpen() = 0;
+	};
+
 	SystemVIAPortHandler(
 		Audio &audio,
 		VideoBaseAddress &video_base,
 		SystemVIA &via,
+		Delegate &delegate,
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks,
 		const bool run_disk
 	) :
-		audio_(audio), video_base_(video_base), via_(via), joysticks_(joysticks)
+		audio_(audio), video_base_(video_base), via_(via), joysticks_(joysticks), delegate_(delegate)
 	{
 		set_key_flag(6, run_disk);
 	}
@@ -253,6 +258,16 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		return key_state;
 	}
 
+	template<MOS::MOS6522::Port port, MOS::MOS6522::Line line>
+	void set_control_line_output(const bool value) {
+		if constexpr (port == MOS::MOS6522::Port::B && line == MOS::MOS6522::Line::Two) {
+			if(previous_cb2_ != value && !value) {
+				delegate_.strobe_lightpen();
+			}
+			previous_cb2_ = value;
+		}
+	}
+
 	void set_key(const uint8_t key, const bool pressed) {
 		set_key_flag(key, pressed);
 		update_ca2();
@@ -301,6 +316,7 @@ private:
 	};
 
 	uint8_t port_a_output_ = 0;
+	bool previous_cb2_ = false;
 
 	Audio &audio_;
 	VideoBaseAddress &video_base_;
@@ -346,6 +362,7 @@ private:
 	Activity::Observer *activity_observer_ = nullptr;
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks_;
+	Delegate &delegate_;
 };
 
 /*!
@@ -640,6 +657,7 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public NEC::uPD7002::Delegate,
+	public SystemVIAPortHandler::Delegate,
 	public Utility::TypeRecipient<CharacterMapper>,
 	public WD::WD1770::Delegate
 {
@@ -649,7 +667,7 @@ public:
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) :
 		m6502_(*this),
-		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_, joysticks_, target.should_shift_restart),
+		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_, *this, joysticks_, target.should_shift_restart),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
 		crtc_bus_handler_(ram_.data(), system_via_),
@@ -928,6 +946,12 @@ private:
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
 		return crtc_bus_handler_.get_scaled_scan_status();
+	}
+
+
+	// MARK: - SystemVIAPortHandler::Delegate.
+	void strobe_lightpen() override {
+		crtc_.trigger_light_pen();
 	}
 
 	// MARK: - KeyboardMachine.
