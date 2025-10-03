@@ -165,11 +165,11 @@ public:
 			const bool is_analogue_axis = input.is_analogue_axis();
 			if(is_digital_axis || is_analogue_axis) {
 				const size_t required_size = size_t(input.info.control.index+1);
-				if(stick_types_.size() < required_size) {
-					stick_types_.resize(required_size);
+				if(sticks_.size() < required_size) {
+					sticks_.resize(required_size);
 				}
-				stick_types_[size_t(input.info.control.index)] =
-					is_digital_axis ? StickType::Digital : StickType::Analogue;
+				sticks_[size_t(input.info.control.index)].type =
+					is_digital_axis ? Stick::Type::Digital : Stick::Type::Analogue;
 			}
 		}
 	}
@@ -180,36 +180,50 @@ public:
 
 	void set_input(const Input &input, const bool is_active) final {
 		// If this is a digital setting to a digital property, just pass it along.
-		if(input.is_button() || stick_types_[input.info.control.index] == StickType::Digital) {
+		if(input.is_button() || sticks_[input.info.control.index].type == Stick::Type::Digital) {
 			did_set_input(input, is_active);
 			return;
 		}
 
-		// Otherwise this is logically to an analogue axis; for now just use some
-		// convenient hard-coded values. TODO: make these a function of time.
-		using Type = Joystick::Input::Type;
+		// Otherwise this is logically to an analogue axis; map appropriately.
+		// TODO: make these a function of time.
+		auto &stick = sticks_[input.info.control.index];
+		stick.apply_digital(input, is_active);
+		const auto analogue_value = [&](const int mask) {
+			switch(mask) {
+				default:	return 0.5f;
+				case 0b01:	return digital_maximum();
+				case 0b10:	return digital_minimum();
+			}
+		};
+
 		switch(input.type) {
+			using enum Joystick::Input::Type;
+
 			default:
 				did_set_input(input, is_active ? 1.0f : 0.0f);
 			break;
-			case Type::Left:
-				did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? digital_minimum() : 0.5f);
+
+			case Left:
+			case Right:
+				did_set_input(
+					Input(Horizontal, input.info.control.index),
+					analogue_value(stick.digital_mask(Horizontal))
+				);
 			break;
-			case Type::Right:
-				did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? digital_maximum() : 0.5f);
-			break;
-			case Type::Up:
-				did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? digital_minimum() : 0.5f);
-			break;
-			case Type::Down:
-				did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? digital_maximum() : 0.5f);
+			case Up:
+			case Down:
+				did_set_input(
+					Input(Vertical, input.info.control.index),
+					analogue_value(stick.digital_mask(Vertical))
+				);
 			break;
 		}
 	}
 
 	void set_input(const Input &input, const float value) final {
 		// If this is an analogue setting to an analogue property, just pass it along.
-		if(!input.is_button() && stick_types_[input.info.control.index] == StickType::Analogue) {
+		if(!input.is_button() && sticks_[input.info.control.index].type == Stick::Type::Analogue) {
 			did_set_input(input, value);
 			return;
 		}
@@ -240,11 +254,38 @@ protected:
 private:
 	const std::vector<Input> inputs_;
 
-	enum class StickType {
-		Digital,
-		Analogue
+	struct Stick {
+		enum class Type {
+			Digital,
+			Analogue
+		} type;
+
+		void apply_digital(const Input &input, const bool is_active) {
+			const int mask = [&] {
+				switch(input.type) {
+					default: return 0;
+					case Input::Type::Up:		return 1 << 1;
+					case Input::Type::Down:		return 1 << 2;
+					case Input::Type::Right:	return 1 << 3;
+					case Input::Type::Left:		return 1 << 4;
+				}
+			} ();
+			if(is_active) {
+				digital_inputs_ |= mask;
+			} else {
+				digital_inputs_ &= ~mask;
+			}
+		}
+		int digital_mask(const Input::Type axis) const {
+			switch(axis) {
+				default: return 0;
+				case Input::Type::Horizontal:	return (digital_inputs_ >> 3) & 3;
+				case Input::Type::Vertical:		return (digital_inputs_ >> 1) & 3;
+			}
+		}
+		int digital_inputs_ = 0;
 	};
-	std::vector<StickType> stick_types_;
+	std::vector<Stick> sticks_;
 };
 
 }
