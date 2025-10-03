@@ -250,8 +250,10 @@ uint8_t MOS6522<T>::get_port_input(
 ) {
 	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 	const uint8_t input = bus_handler_.template get_port_input<port>();
-	output = (output & ~timer_mask) | (registers_.timer_port_b_output & timer_mask);
-	return (input & ~output_mask) | (output & output_mask);
+
+	// Force any timer-adjusted PB7 to be visible even if the pin is set as input.
+	output = (input & ~output_mask) | (output & output_mask);
+	return (output & ~timer_mask) | (registers_.timer_port_b_output & timer_mask);
 }
 
 template <typename T> T &MOS6522<T>::bus_handler() {
