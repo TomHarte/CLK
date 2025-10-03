@@ -107,15 +107,12 @@ uint16_t Typer::try_type_next_character() {
 		++phase_;
 	}
 
-	// If the sequence is over, stop.
-	if(sequence[phase_ - 2] == MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
-		return MachineTypes::MappedKeyboardMachine::KeyEndSequence;
+	// Don't forward ::KeyEndSequence.
+	const auto next = sequence[phase_ - 2];
+	if(next != MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
+		delegate_->set_key_state(sequence[phase_ - 2], true);
 	}
-
-	// Otherwise, type the key.
-	delegate_->set_key_state(sequence[phase_ - 2], true);
-
-	return sequence[phase_ - 2];
+	return next;
 }
 
 bool Typer::type_next_character() {

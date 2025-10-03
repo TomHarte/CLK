@@ -36,15 +36,15 @@ enum Key: uint16_t {
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
 
 	// Virtual keys.
-	KeyUp		= 0xfff0,
-	KeyLeft		= 0xfff1,
-	KeyF2		= 0xfff2,
-	KeyF4		= 0xfff3,
-	KeyF6		= 0xfff4,
-	KeyF8		= 0xfff5,
+	KeyUp		= 0xfe00,
+	KeyLeft,
+	KeyF2,
+	KeyF4,
+	KeyF6,
+	KeyF8,
 
 	// Physical keys not within the usual matrix.
-	KeyRestore	= 0xfffc,
+	KeyRestore,
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
