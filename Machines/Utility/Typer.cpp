@@ -10,7 +10,13 @@
 
 using namespace Utility;
 
-Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, CharacterMapper &character_mapper, Delegate *delegate) :
+Typer::Typer(
+	const std::string &string,
+	const HalfCycles delay,
+	const HalfCycles frequency,
+	CharacterMapper &character_mapper,
+	Delegate *const delegate
+) :
 		frequency_(frequency),
 		counter_(-delay),
 		delegate_(delegate),
@@ -70,7 +76,7 @@ void Typer::append(const std::string &string) {
 	}
 }
 
-const uint16_t *Typer::sequence_for_character(char c) const {
+const uint16_t *Typer::sequence_for_character(const char c) const {
 	const uint16_t *const sequence = character_mapper_.sequence_for_character(c);
 	if(!sequence || sequence[0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) {
 		return nullptr;

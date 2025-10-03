@@ -289,6 +289,10 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 	}
 
+	bool caps_lock() const {
+		return caps_led_state_;
+	}
+
 private:
 	uint8_t latch_ = 0;
 	enum LatchFlags: uint8_t {
@@ -933,12 +937,33 @@ private:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) override {
-		if(key == uint16_t(BBCMicro::Key::Break)) {
-			m6502_.set_reset_line(is_pressed);
-		} else {
-			system_via_port_handler_.set_key(uint8_t(key), is_pressed);
+		switch(Key(key)) {
+			case Key::SwitchOffCaps:
+				// Store current capslock state for a potential restore; press caps lock
+				// now if there's a need to exit capslock mode.
+				was_caps_ = system_via_port_handler_.caps_lock();
+				if(was_caps_) {
+					system_via_port_handler_.set_key(uint8_t(Key::CapsLock), true);
+				}
+			break;
+			case Key::RestoreCaps:
+				// Press capslock again if the machine was originally in the capslock state.
+				// If so then SwitchOffCaps switched it off.
+				if(was_caps_) {
+					system_via_port_handler_.set_key(uint8_t(Key::CapsLock), true);
+				}
+			break;
+
+			case Key::Break:
+				m6502_.set_reset_line(is_pressed);
+			break;
+
+			default:
+				system_via_port_handler_.set_key(uint8_t(key), is_pressed);
+			break;
 		}
 	}
+	bool was_caps_ = false;
 
 	void clear_all_keys() final {
 		m6502_.set_reset_line(false);

@@ -82,8 +82,8 @@ public:
 	/// Adds the contents of @c str to the end of the current string.
 	void append(const std::string &str);
 
-	const char BeginString = 0x02;	// i.e. ASCII start of text
-	const char EndString = 0x03;	// i.e. ASCII end of text
+	static constexpr char BeginString = 0x02;	// i.e. ASCII start of text.
+	static constexpr char EndString = 0x03;		// i.e. ASCII end of text.
 
 private:
 	std::string string_;

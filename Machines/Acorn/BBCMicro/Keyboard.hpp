@@ -52,6 +52,12 @@ enum class Key: uint16_t {
 	Break = 0xfffc,
 
 	//
+	// Fictional keys to aid key entry.
+	//
+	SwitchOffCaps = 0xfffb,
+	RestoreCaps = 0xfffa,
+
+	//
 	// Master only keys.
 	//
 	Keypad4 = 0x7a, 		Keypad6 = 0x1a, 		Keypad8 = 0x2a, 	KeypadPlus = 0x3a,
@@ -162,33 +168,36 @@ private:
 	}
 
 	static inline const std::unordered_map<char, Sequence> sequences = {
-		{'Q', keys({Key::Q}) },	{'W', keys({Key::W}) },
-		{'E', keys({Key::E}) },	{'R', keys({Key::R}) },
-		{'T', keys({Key::T}) },	{'Y', keys({Key::Y}) },
-		{'U', keys({Key::U}) },	{'I', keys({Key::I}) },
-		{'O', keys({Key::O}) },	{'P', keys({Key::P}) },
-		{'A', keys({Key::A}) },	{'S', keys({Key::S}) },
-		{'D', keys({Key::D}) },	{'F', keys({Key::F}) },
-		{'G', keys({Key::G}) },	{'H', keys({Key::H}) },
-		{'J', keys({Key::J}) },	{'K', keys({Key::K}) },
-		{'L', keys({Key::L}) },	{'Z', keys({Key::Z}) },
-		{'X', keys({Key::X}) },	{'C', keys({Key::C}) },
-		{'V', keys({Key::V}) },	{'B', keys({Key::B}) },
-		{'N', keys({Key::N}) },	{'M', keys({Key::M}) },
+		{Utility::Typer::BeginString, keys({Key::SwitchOffCaps})},
+		{Utility::Typer::EndString, keys({Key::RestoreCaps})},
 
-		{'q', keys({Key::Shift, Key::Q}) },	{'w', keys({Key::Shift, Key::W}) },
-		{'e', keys({Key::Shift, Key::E}) },	{'r', keys({Key::Shift, Key::R}) },
-		{'t', keys({Key::Shift, Key::T}) },	{'y', keys({Key::Shift, Key::Y}) },
-		{'u', keys({Key::Shift, Key::U}) },	{'i', keys({Key::Shift, Key::I}) },
-		{'o', keys({Key::Shift, Key::O}) },	{'p', keys({Key::Shift, Key::P}) },
-		{'a', keys({Key::Shift, Key::A}) },	{'s', keys({Key::Shift, Key::S}) },
-		{'d', keys({Key::Shift, Key::D}) },	{'f', keys({Key::Shift, Key::F}) },
-		{'g', keys({Key::Shift, Key::G}) },	{'h', keys({Key::Shift, Key::H}) },
-		{'j', keys({Key::Shift, Key::J}) },	{'k', keys({Key::Shift, Key::K}) },
-		{'l', keys({Key::Shift, Key::L}) },	{'z', keys({Key::Shift, Key::Z}) },
-		{'x', keys({Key::Shift, Key::X}) },	{'c', keys({Key::Shift, Key::C}) },
-		{'v', keys({Key::Shift, Key::V}) },	{'b', keys({Key::Shift, Key::B}) },
-		{'n', keys({Key::Shift, Key::N}) },	{'m', keys({Key::Shift, Key::M}) },
+		{'q', keys({Key::Q}) },	{'w', keys({Key::W}) },
+		{'e', keys({Key::E}) },	{'r', keys({Key::R}) },
+		{'t', keys({Key::T}) },	{'y', keys({Key::Y}) },
+		{'u', keys({Key::U}) },	{'i', keys({Key::I}) },
+		{'o', keys({Key::O}) },	{'p', keys({Key::P}) },
+		{'a', keys({Key::A}) },	{'s', keys({Key::S}) },
+		{'d', keys({Key::D}) },	{'f', keys({Key::F}) },
+		{'g', keys({Key::G}) },	{'h', keys({Key::H}) },
+		{'j', keys({Key::J}) },	{'k', keys({Key::K}) },
+		{'l', keys({Key::L}) },	{'z', keys({Key::Z}) },
+		{'x', keys({Key::X}) },	{'c', keys({Key::C}) },
+		{'v', keys({Key::V}) },	{'b', keys({Key::B}) },
+		{'n', keys({Key::N}) },	{'m', keys({Key::M}) },
+
+		{'Q', keys({Key::Shift, Key::Q}) },	{'W', keys({Key::Shift, Key::W}) },
+		{'E', keys({Key::Shift, Key::E}) },	{'R', keys({Key::Shift, Key::R}) },
+		{'T', keys({Key::Shift, Key::T}) },	{'Y', keys({Key::Shift, Key::Y}) },
+		{'U', keys({Key::Shift, Key::U}) },	{'I', keys({Key::Shift, Key::I}) },
+		{'O', keys({Key::Shift, Key::O}) },	{'P', keys({Key::Shift, Key::P}) },
+		{'A', keys({Key::Shift, Key::A}) },	{'S', keys({Key::Shift, Key::S}) },
+		{'D', keys({Key::Shift, Key::D}) },	{'F', keys({Key::Shift, Key::F}) },
+		{'G', keys({Key::Shift, Key::G}) },	{'H', keys({Key::Shift, Key::H}) },
+		{'J', keys({Key::Shift, Key::J}) },	{'K', keys({Key::Shift, Key::K}) },
+		{'L', keys({Key::Shift, Key::L}) },	{'Z', keys({Key::Shift, Key::Z}) },
+		{'X', keys({Key::Shift, Key::X}) },	{'C', keys({Key::Shift, Key::C}) },
+		{'V', keys({Key::Shift, Key::V}) },	{'B', keys({Key::Shift, Key::B}) },
+		{'N', keys({Key::Shift, Key::N}) },	{'M', keys({Key::Shift, Key::M}) },
 
 		{'0', keys({Key::k0}) },	{'1', keys({Key::k1}) },
 		{'2', keys({Key::k2}) },	{'3', keys({Key::k3}) },
