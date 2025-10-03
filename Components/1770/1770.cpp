@@ -140,7 +140,6 @@ void WD1770::posit_event(const int new_event_type) {
 #define WAIT_FOR_BYTES(count)	distance_into_section_ = 0; \
 								WAIT_FOR_EVENT(Event::Token); \
 								if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
-								Logger::info().append("had token, distance is now %d", distance_into_section_);\
 								if(distance_into_section_ < count) { \
 									RESUME_WAIT(Event::Token);	\
 								}
