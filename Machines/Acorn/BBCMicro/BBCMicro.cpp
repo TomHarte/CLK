@@ -439,7 +439,7 @@ public:
 		}
 		previous_vsync_ = state.vsync;
 
-		if(state.display_enable && !previous_display_enabled_) {
+		if(state.display_enable && !previous_display_enabled_ && active_collation_.is_teletext) {
 			saa5050_serialiser_.begin_line();
 		}
 		previous_display_enabled_ = state.display_enable;
