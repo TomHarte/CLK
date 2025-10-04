@@ -160,7 +160,7 @@ private:
 @interface CPCShakerTests : XCTestCase
 @end
 
-@implementation CPCShakerTests {}
+@implementation CPCShakerTests
 
 - (void)testCSLPath:(NSString *)path name:(NSString *)name {
 	using namespace Storage::Automation;
