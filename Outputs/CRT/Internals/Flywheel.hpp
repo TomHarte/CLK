@@ -29,12 +29,14 @@ struct Flywheel {
 		@param retrace_time The amount of time it takes to complete a retrace.
 		@param sync_error_window The permitted deviation of sync timings from the norm.
 	*/
-	Flywheel(int standard_period, int retrace_time, int sync_error_window) :
+	Flywheel(const int standard_period, const int retrace_time, const int sync_error_window) noexcept :
 		standard_period_(standard_period),
 		retrace_time_(retrace_time),
 		sync_error_window_(sync_error_window),
 		counter_before_retrace_(standard_period - retrace_time),
 		expected_next_sync_(standard_period) {}
+
+	Flywheel() = default;
 
 	enum SyncEvent {
 		/// Indicates that no synchronisation events will occur in the queried window.
@@ -58,7 +60,11 @@ struct Flywheel {
 
 		@returns The next synchronisation event.
 	*/
-	inline SyncEvent get_next_event_in_period(bool sync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
+	inline SyncEvent get_next_event_in_period(
+		const bool sync_is_requested,
+		const int cycles_to_run_for,
+		int *const cycles_advanced
+	) {
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
 			const auto last_sync = expected_next_sync_;
@@ -104,7 +110,7 @@ struct Flywheel {
 
 		@param event The synchronisation event to apply after that period.
 	*/
-	inline void apply_event(int cycles_advanced, SyncEvent event) {
+	inline void apply_event(const int cycles_advanced, const SyncEvent event) {
 		// In debug builds, perform a sanity check for counter overflow.
 #ifndef NDEBUG
 		const int old_counter = counter_;
@@ -230,9 +236,9 @@ struct Flywheel {
 	}
 
 private:
-	const int standard_period_;		// The idealised length of time between syncs.
-	const int retrace_time_;		// A constant indicating the amount of time it takes to perform a retrace.
-	const int sync_error_window_;	// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
+	int standard_period_;		// The idealised length of time between syncs.
+	int retrace_time_;			// A constant indicating the amount of time it takes to perform a retrace.
+	int sync_error_window_;		// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
 
 	int counter_ = 0;				// Time since the _start_ of the last sync.
 	int counter_before_retrace_;	// The value of _counter immediately before retrace began.

@@ -62,7 +62,7 @@ private:
 	// Two flywheels regulate scanning; the vertical will have a range much greater than the horizontal;
 	// the output divider is what that'll need to be divided by to reduce it into a 16-bit range as
 	// posted on to the scan target.
-	std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
+	Flywheel horizontal_flywheel_, vertical_flywheel_;
 	int vertical_flywheel_output_divider_ = 1;
 	int cycles_since_horizontal_sync_ = 0;
 	Display::ScanTarget::Scan::EndPoint end_point(uint16_t data_offset);
