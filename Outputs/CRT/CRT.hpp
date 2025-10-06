@@ -81,12 +81,12 @@ public:
 	CRT(int cycles_per_line,
 		int clocks_per_pixel_greatest_common_divisor,
 		int height_of_display,
-		Outputs::Display::ColourSpace colour_space,
+		Outputs::Display::ColourSpace,
 		int colour_cycle_numerator,
 		int colour_cycle_denominator,
 		int vertical_sync_half_lines,
 		bool should_alternate,
-		Outputs::Display::InputDataType data_type);
+		Outputs::Display::InputDataType);
 
 	/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
 		no colour space or colour subcarrier frequency. This monitor will automatically map colour bursts to the black level.
@@ -95,15 +95,15 @@ public:
 		int clocks_per_pixel_greatest_common_divisor,
 		int height_of_display,
 		int vertical_sync_half_lines,
-		Outputs::Display::InputDataType data_type);
+		Outputs::Display::InputDataType);
 
 	/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 		looked up by display type.
 	*/
 	CRT(int cycles_per_line,
 		int minimum_cycles_per_pixel,
-		Outputs::Display::Type display_type,
-		Outputs::Display::InputDataType data_type);
+		Outputs::Display::Type,
+		Outputs::Display::InputDataType);
 
 	/*!	Constructs a CRT with no guaranteed expectations as to input signal other than data type;
 		this allows for callers that intend to rely on @c set_new_timing.
@@ -115,7 +115,7 @@ public:
 	void set_new_timing(
 		int cycles_per_line,
 		int height_of_display,
-		Outputs::Display::ColourSpace colour_space,
+		Outputs::Display::ColourSpace,
 		int colour_cycle_numerator,
 		int colour_cycle_denominator,
 		int vertical_sync_half_lines,
@@ -125,15 +125,15 @@ public:
 		as though the new timing had been provided at construction. */
 	void set_new_display_type(
 		int cycles_per_line,
-		Outputs::Display::Type display_type);
+		Outputs::Display::Type);
 
 	/*!	Changes the type of data being supplied as input.
 	*/
-	void set_new_data_type(Outputs::Display::InputDataType data_type);
+	void set_new_data_type(Outputs::Display::InputDataType);
 
 	/*!	Sets the CRT's intended aspect ratio — 4.0/3.0 by default.
 	*/
-	void set_aspect_ratio(float aspect_ratio);
+	void set_aspect_ratio(float);
 
 	/*!	Output at the sync level.
 
@@ -176,7 +176,7 @@ public:
 	*/
 	void output_data(int number_of_cycles, size_t number_of_samples);
 
-	/*! A shorthand form for output_data that assumes the number of cycles to output for is the same as the number of samples. */
+	/*! A shorthand form for @c output_data that assumes the number of cycles to output for is the same as the number of samples. */
 	void output_data(int number_of_cycles) {
 		output_data(number_of_cycles, size_t(number_of_cycles));
 	}
@@ -191,7 +191,12 @@ public:
 		@param amplitude The amplitude of the colour burst in 1/255ths of the amplitude of the
 		positive portion of the wave.
 	*/
-	void output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line = false, uint8_t amplitude = DefaultAmplitude);
+	void output_colour_burst(
+		int number_of_cycles,
+		uint8_t phase,
+		bool is_alternate_line = false,
+		uint8_t amplitude = DefaultAmplitude
+	);
 
 	/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 
@@ -230,7 +235,7 @@ public:
 	}
 
 	/*!	Sets the gamma exponent for the simulated screen. */
-	void set_input_gamma(float gamma);
+	void set_input_gamma(float);
 
 	enum CompositeSourceType {
 		/// The composite function provides continuous output.
@@ -253,7 +258,7 @@ public:
 	void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
 	/*!	Nominates a section of the display to crop to for output. */
-	void set_visible_area(Outputs::Display::Rect visible_area);
+	void set_visible_area(Outputs::Display::Rect);
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(
