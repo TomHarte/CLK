@@ -333,17 +333,6 @@ private:
 		const Scan::Type,
 		int number_of_samples);
 
-	Flywheel::SyncEvent get_next_vertical_sync_event(
-		bool vsync_is_requested,
-		int cycles_to_run_for,
-		int &cycles_advanced
-	);
-	Flywheel::SyncEvent get_next_horizontal_sync_event(
-		bool hsync_is_requested,
-		int cycles_to_run_for,
-		int &cycles_advanced
-	);
-
 	Delegate *delegate_ = nullptr;
 	int frames_since_last_delegate_call_ = 0;
 
