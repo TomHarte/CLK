@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
+#include <utility>
 
 namespace Outputs::CRT {
 
@@ -39,45 +40,35 @@ struct Flywheel {
 	Flywheel() = default;
 
 	enum SyncEvent {
-		/// Indicates that no synchronisation events will occur in the queried window.
 		None,
-		/// Indicates that the next synchronisation event will be a transition into retrce.
 		StartRetrace,
-		/// Indicates that the next synchronisation event will be a transition out of retrace.
 		EndRetrace
 	};
 	/*!
-		Asks the flywheel for the first synchronisation event that will occur in a given time period,
-		indicating whether a synchronisation request occurred at the start of the query window.
-
 		@param sync_is_requested @c true indicates that the flywheel should act as though having
 		received a synchronisation request now; @c false indicates no such event was detected.
 
-		@param cycles_to_run_for The number of cycles to look ahead.
+		@param cycles_to_run_for The maximum number of cycles to look ahead.
 
-		@param cycles_advanced After this method has completed, contains the amount of time until
-		the returned synchronisation event.
-
-		@returns The next synchronisation event.
+		@returns A pair of the next synchronisation event and number of cycles until it occurs.
 	*/
-	SyncEvent next_event_in_period(
+	std::pair<SyncEvent, int> next_event_in_period(
 		const bool sync_is_requested,
-		const int cycles_to_run_for,
-		int &cycles_advanced
+		const int cycles_to_run_for
 	) {
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
 			const auto last_sync = expected_next_sync_;
 			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
 				const int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
-				expected_next_sync_ = (3*expected_next_sync_ + time_now) >> 2;
+				expected_next_sync_ = (expected_next_sync_ + time_now) >> 1;
 			} else {
 				++number_of_surprises_;
 
 				if(counter_ < retrace_time_ + (expected_next_sync_ >> 1)) {
-					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ + sync_error_window_) >> 2;
+					expected_next_sync_ = (expected_next_sync_ + standard_period_ + sync_error_window_) >> 1;
 				} else {
-					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ - sync_error_window_) >> 2;
+					expected_next_sync_ = (expected_next_sync_ + standard_period_ - sync_error_window_) >> 1;
 				}
 			}
 			last_adjustment_ = expected_next_sync_ - last_sync;
@@ -98,8 +89,7 @@ struct Flywheel {
 			proposed_event = SyncEvent::StartRetrace;
 		}
 
-		cycles_advanced = proposed_sync_time;
-		return proposed_event;
+		return std::make_pair(proposed_event, proposed_sync_time);
 	}
 
 	/*!
@@ -236,16 +226,16 @@ struct Flywheel {
 	}
 
 private:
-	int standard_period_;		// The idealised length of time between syncs.
-	int retrace_time_;			// A constant indicating the amount of time it takes to perform a retrace.
-	int sync_error_window_;		// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
+	int standard_period_;		// Idealised length of time between syncs.
+	int retrace_time_;			// Amount of time it takes to perform a retrace.
+	int sync_error_window_;		// The window either side of the next expected sync in which other syncs are accepted.
 
 	int counter_ = 0;				// Time since the _start_ of the last sync.
-	int counter_before_retrace_;	// The value of _counter immediately before retrace began.
-	int expected_next_sync_;		// Our current expection of when the next sync will be encountered (which implies velocity).
+	int counter_before_retrace_;	// Value of counter_ immediately before retrace began.
+	int expected_next_sync_;		// Current expection of when the next sync will occur (implying velocity).
 
-	int number_of_surprises_ = 0;	// A count of the surprising syncs.
-	int number_of_retraces_ = 0;	// A count of the number of retraces to date.
+	int number_of_surprises_ = 0;	// Count of surprising syncs.
+	int number_of_retraces_ = 0;	// Numer of retraces to date.
 
 	int last_adjustment_ = 0;		// The amount by which expected_next_sync_ was adjusted at the last sync.
 

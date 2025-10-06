@@ -206,18 +206,11 @@ void CRT::advance_cycles(
 
 	while(number_of_cycles) {
 		// Get time until next horizontal and vertical sync generator events.
-		int time_until_vertical_sync_event;
-		const Flywheel::SyncEvent next_vertical_sync_event =
-			vertical_flywheel_.next_event_in_period(
-				vsync_requested, number_of_cycles, time_until_vertical_sync_event);
-
-		int time_until_horizontal_sync_event;
-		const Flywheel::SyncEvent next_horizontal_sync_event =
-			horizontal_flywheel_.next_event_in_period(
-				hsync_requested, time_until_vertical_sync_event, time_until_horizontal_sync_event);
+		const auto vertical_event = vertical_flywheel_.next_event_in_period(vsync_requested, number_of_cycles);
+		const auto horizontal_event = horizontal_flywheel_.next_event_in_period(hsync_requested, vertical_event.second);
 
 		// Whichever event is scheduled to happen first is the one to advance to.
-		const int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
+		const int next_run_length = horizontal_event.second;
 
 		// Request each sync at most once.
 		hsync_requested = false;
@@ -246,11 +239,11 @@ void CRT::advance_cycles(
 		// React to the incoming event.
 		horizontal_flywheel_.apply_event(
 			next_run_length,
-			next_run_length == time_until_horizontal_sync_event ? next_horizontal_sync_event : Flywheel::SyncEvent::None
+			next_run_length == horizontal_event.second ? horizontal_event.first : Flywheel::SyncEvent::None
 		);
 		vertical_flywheel_.apply_event(
 			next_run_length,
-			next_run_length == time_until_vertical_sync_event ? next_vertical_sync_event : Flywheel::SyncEvent::None
+			next_run_length == vertical_event.second ? vertical_event.first : Flywheel::SyncEvent::None
 		);
 
 		// End the scan if necessary.
@@ -262,12 +255,9 @@ void CRT::advance_cycles(
 		using Event = Outputs::Display::ScanTarget::Event;
 
 		// Announce horizontal sync events.
-		if(
-			next_run_length == time_until_horizontal_sync_event &&
-			next_horizontal_sync_event != Flywheel::SyncEvent::None
-		) {
+		if(next_run_length == horizontal_event.second && horizontal_event.first != Flywheel::SyncEvent::None) {
 			// Reset the cycles-since-sync counter if this is the end of retrace.
-			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
+			if(horizontal_event.first == Flywheel::SyncEvent::EndRetrace) {
 				cycles_since_horizontal_sync_ = 0;
 
 				// This is unnecessary, strictly speaking, but seeks to help ScanTargets fit as
@@ -278,7 +268,7 @@ void CRT::advance_cycles(
 
 			// Announce event.
 			const auto event =
-				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+				horizontal_event.first == Flywheel::SyncEvent::StartRetrace
 					? Event::BeginHorizontalRetrace : Event::EndHorizontalRetrace;
 			scan_target_->announce(
 				event,
@@ -287,19 +277,16 @@ void CRT::advance_cycles(
 				colour_burst_amplitude_);
 
 			// If retrace is starting, update phase if required and mark no colour burst spotted yet.
-			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
+			if(horizontal_event.first == Flywheel::SyncEvent::StartRetrace) {
 				should_be_alternate_line_ ^= phase_alternates_;
 				colour_burst_amplitude_ = 0;
 			}
 		}
 
 		// Announce vertical sync events.
-		if(
-			next_run_length == time_until_vertical_sync_event &&
-			next_vertical_sync_event != Flywheel::SyncEvent::None
-		) {
+		if(next_run_length == vertical_event.second && vertical_event.first != Flywheel::SyncEvent::None) {
 			const auto event =
-				(next_vertical_sync_event == Flywheel::SyncEvent::StartRetrace)
+				vertical_event.first == Flywheel::SyncEvent::StartRetrace
 					? Event::BeginVerticalRetrace : Event::EndVerticalRetrace;
 			scan_target_->announce(
 				event,
@@ -309,10 +296,7 @@ void CRT::advance_cycles(
 		}
 
 		// At vertical retrace advance a field.
-		if(
-			next_run_length == time_until_vertical_sync_event &&
-			next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace
-		) {
+		if(next_run_length == vertical_event.second && vertical_event.first == Flywheel::SyncEvent::EndRetrace) {
 			if(delegate_) {
 				++frames_since_last_delegate_call_;
 				if(frames_since_last_delegate_call_ == 20) {
