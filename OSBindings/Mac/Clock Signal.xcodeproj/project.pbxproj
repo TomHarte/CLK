@@ -1780,6 +1780,8 @@
 		4B83348E1F5DBA6E0097E338 /* 6522Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 6522Storage.hpp; path = Implementation/6522Storage.hpp; sourceTree = "<group>"; };
 		4B8334911F5E24FF0097E338 /* C1540Base.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = C1540Base.hpp; path = Implementation/C1540Base.hpp; sourceTree = "<group>"; };
 		4B8334941F5E25B60097E338 /* C1540.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = C1540.cpp; path = Implementation/C1540.cpp; sourceTree = "<group>"; };
+		4B847B9F2E920C7500774B9B /* CubicCurve.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = CubicCurve.hpp; path = /Users/thomasharte/Projects/CLK/Numeric/CubicCurve.hpp; sourceTree = "<absolute>"; };
+		4B847BA42E94320B00774B9B /* MismatchWarner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MismatchWarner.hpp; sourceTree = "<group>"; };
 		4B85322922778E4200F26553 /* Comparative68000.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Comparative68000.hpp; sourceTree = "<group>"; };
 		4B85322E2277ABDD00F26553 /* tos100.trace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = tos100.trace.txt.gz; sourceTree = "<group>"; };
 		4B8671EA2D8B40D8009E1610 /* Descriptors.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Descriptors.hpp; sourceTree = "<group>"; };
@@ -2797,6 +2799,7 @@
 			children = (
 				4B0CCC421C62D0B3001CAC5F /* CRT.cpp */,
 				4B0CCC431C62D0B3001CAC5F /* CRT.hpp */,
+				4B847BA42E94320B00774B9B /* MismatchWarner.hpp */,
 				4BBF99071C8FBA6F0075DAFB /* Internals */,
 			);
 			path = CRT;
@@ -3147,6 +3150,7 @@
 				4BD191D5219113B80042E144 /* OpenGL */,
 				4BB8616B24E22DC500A00E03 /* ScanTargets */,
 				4BD060A41FE49D3C006E14BE /* Speaker */,
+				4B847B9F2E920C7500774B9B /* CubicCurve.hpp */,
 			);
 			name = Outputs;
 			path = ../../Outputs;

@@ -13,6 +13,8 @@
 
 #include "Machines/MachineTypes.hpp"
 
+#include "Outputs/CRT/MismatchWarner.hpp"
+
 #include "Analyser/Static/Atari2600/Target.hpp"
 
 #include "Cartridges/Atari8k.hpp"
