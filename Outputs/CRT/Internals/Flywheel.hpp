@@ -63,7 +63,7 @@ struct Flywheel {
 	inline SyncEvent get_next_event_in_period(
 		const bool sync_is_requested,
 		const int cycles_to_run_for,
-		int *const cycles_advanced
+		int &cycles_advanced
 	) {
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
@@ -98,7 +98,7 @@ struct Flywheel {
 			proposed_event = SyncEvent::StartRetrace;
 		}
 
-		*cycles_advanced = proposed_sync_time;
+		cycles_advanced = proposed_sync_time;
 		return proposed_event;
 	}
 

@@ -75,8 +75,6 @@ public:
 
 		@param vertical_sync_half_lines The expected length of vertical synchronisation (equalisation pulses aside),
 		in multiples of half a line.
-
-		@param data_type The format that the caller will use for input data.
 	*/
 	CRT(int cycles_per_line,
 		int clocks_per_pixel_greatest_common_divisor,
@@ -328,25 +326,53 @@ private:
 	int64_t colour_cycle_numerator_ = 1;
 	bool is_alternate_line_ = false, phase_alternates_ = false, should_be_alternate_line_ = false;
 
-	void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples);
-	Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
-	Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
+	void advance_cycles(
+		int number_of_cycles,
+		bool hsync_requested,
+		bool vsync_requested,
+		const Scan::Type,
+		int number_of_samples);
+
+	Flywheel::SyncEvent get_next_vertical_sync_event(
+		bool vsync_is_requested,
+		int cycles_to_run_for,
+		int &cycles_advanced
+	);
+	Flywheel::SyncEvent get_next_horizontal_sync_event(
+		bool hsync_is_requested,
+		int cycles_to_run_for,
+		int &cycles_advanced
+	);
 
 	Delegate *delegate_ = nullptr;
 	int frames_since_last_delegate_call_ = 0;
 
-	bool is_receiving_sync_ = false;			// @c true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync); @c false otherwise.
-	bool is_accumulating_sync_ = false;			// @c true if a sync level has triggered the suspicion that a vertical sync might be in progress; @c false otherwise.
-	bool is_refusing_sync_ = false;				// @c true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync.
-	int sync_capacitor_charge_threshold_ = 0;	// Charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync.
-	int cycles_of_sync_ = 0;					// The number of cycles since the potential vertical sync began.
-	int cycles_since_sync_ = 0;					// The number of cycles since last in sync, for defeating the possibility of this being a vertical sync.
+	// @c true exactly if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync).
+	bool is_receiving_sync_ = false;
+
+	// @c true exactly if a sync level has triggered the suspicion that a vertical sync might be in progress.
+	bool is_accumulating_sync_ = false;
+
+	// @c true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion
+	// of an ongoing vertical sync. Used to let horizontal sync free-run during vertical
+	bool is_refusing_sync_ = false;
+
+	// Charges up during sync; depletes otherwise. Triggrs vertical sync upon hitting a required threshold.
+	int sync_capacitor_charge_threshold_ = 0;
+
+	// Number of cycles since sync began, while sync lasts.
+	int cycles_of_sync_ = 0;
+
+	// Number of cycles sync last ended. Used to defeat the prospect of vertical sync.
+	int cycles_since_sync_ = 0;
 
 	int cycles_per_line_ = 1;
 
 	Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 	Outputs::Display::ScanTarget::Modals scan_target_modals_;
-	static constexpr uint8_t DefaultAmplitude = 41;	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
+
+	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
+	static constexpr uint8_t DefaultAmplitude = 41;
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

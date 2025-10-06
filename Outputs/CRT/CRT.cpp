@@ -193,11 +193,11 @@ CRT::CRT(Outputs::Display::InputDataType data_type) : CRT(100, 1, 100, 1, data_t
 
 // MARK: - Sync loop
 
-Flywheel::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
+Flywheel::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int &cycles_advanced) {
 	return vertical_flywheel_.get_next_event_in_period(vsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
+Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int &cycles_advanced) {
 	return horizontal_flywheel_.get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
@@ -230,8 +230,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// Get time until next horizontal and vertical sync generator events.
 		int time_until_vertical_sync_event, time_until_horizontal_sync_event;
-		const Flywheel::SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
-		const Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
+		const Flywheel::SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, time_until_vertical_sync_event);
+		const Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		// Whichever event is scheduled to happen first is the one to advance to.
 		const int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
