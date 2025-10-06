@@ -56,19 +56,27 @@ struct Flywheel {
 		const bool sync_is_requested,
 		const int cycles_to_run_for
 	) {
+		// Calculates the next expected value for an event given the current expectation and the actual value.
+		//
+		// In practice this is a weighted mix of the two values, with the exact weighting affecting how
+		// quickly the flywheel adjusts to new input. It's a IIR lowpass filter.
+		constexpr auto mix = [](const int expected, const int actual) {
+			return (expected + actual) >> 1;
+		};
+
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
 			const auto last_sync = expected_next_sync_;
 			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
 				const int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
-				expected_next_sync_ = (expected_next_sync_ + time_now) >> 1;
+				expected_next_sync_ = mix(expected_next_sync_, time_now);
 			} else {
 				++number_of_surprises_;
 
 				if(counter_ < retrace_time_ + (expected_next_sync_ >> 1)) {
-					expected_next_sync_ = (expected_next_sync_ + standard_period_ + sync_error_window_) >> 1;
+					expected_next_sync_ = mix(expected_next_sync_, standard_period_ + sync_error_window_);
 				} else {
-					expected_next_sync_ = (expected_next_sync_ + standard_period_ - sync_error_window_) >> 1;
+					expected_next_sync_ = mix(expected_next_sync_, standard_period_ - sync_error_window_);
 				}
 			}
 			last_adjustment_ = expected_next_sync_ - last_sync;

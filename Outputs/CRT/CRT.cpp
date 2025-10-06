@@ -207,7 +207,10 @@ void CRT::advance_cycles(
 	while(number_of_cycles) {
 		// Get time until next horizontal and vertical sync generator events.
 		const auto vertical_event = vertical_flywheel_.next_event_in_period(vsync_requested, number_of_cycles);
+		assert(vertical_event.second >= 0 && vertical_event.second <= number_of_cycles);
+
 		const auto horizontal_event = horizontal_flywheel_.next_event_in_period(hsync_requested, vertical_event.second);
+		assert(horizontal_event.second >= 0 && horizontal_event.second <= vertical_event.second);
 
 		// Whichever event is scheduled to happen first is the one to advance to.
 		const int next_run_length = horizontal_event.second;
