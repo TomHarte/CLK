@@ -64,6 +64,12 @@ struct Flywheel {
 			return (expected + actual) >> 1;
 		};
 
+		// A debugging helper.
+		constexpr auto require_positive = [](const int value) {
+			assert(value >= 0);
+			return value;
+		};
+
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
 			const auto last_sync = expected_next_sync_;
@@ -87,13 +93,13 @@ struct Flywheel {
 
 		// End an ongoing retrace?
 		if(counter_ < retrace_time_ && counter_ + proposed_sync_time >= retrace_time_) {
-			proposed_sync_time = retrace_time_ - counter_;
+			proposed_sync_time = require_positive(retrace_time_ - counter_);
 			proposed_event = SyncEvent::EndRetrace;
 		}
 
 		// Start a retrace?
 		if(counter_ + proposed_sync_time >= expected_next_sync_) {
-			proposed_sync_time = expected_next_sync_ - counter_;
+			proposed_sync_time = require_positive(expected_next_sync_ - counter_);
 			proposed_event = SyncEvent::StartRetrace;
 		}
 
