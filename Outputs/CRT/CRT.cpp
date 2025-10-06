@@ -504,7 +504,7 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 	int number_of_lines,
 	int first_cycle_after_sync,
 	int number_of_cycles,
-	float aspect_ratio
+	const float aspect_ratio
 ) const {
 	assert(number_of_cycles > 0);
 	assert(number_of_lines > 0);
