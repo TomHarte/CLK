@@ -203,6 +203,9 @@ void CRT::advance_cycles(
 	const bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
 	const auto total_cycles = number_of_cycles;
 	bool did_output = false;
+	const auto end_point = [&] {
+		return this->end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
+	};
 
 	while(number_of_cycles) {
 		// Get time until next horizontal and vertical sync generator events.
@@ -233,9 +236,7 @@ void CRT::advance_cycles(
 
 		// If outputting, store the start location and scan constants.
 		if(next_scan) {
-			next_scan->end_points[0] = end_point(
-				uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)
-			);
+			next_scan->end_points[0] = end_point();
 			next_scan->composite_amplitude = colour_burst_amplitude_;
 		}
 
@@ -256,9 +257,7 @@ void CRT::advance_cycles(
 
 		// End the scan if necessary.
 		if(next_scan) {
-			next_scan->end_points[1] = end_point(
-				uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)
-			);
+			next_scan->end_points[1] = end_point();
 			scan_target_->end_scan();
 		}
 
@@ -286,7 +285,7 @@ void CRT::advance_cycles(
 			scan_target_->announce(
 				event,
 				!(horizontal_flywheel_.is_in_retrace() || vertical_flywheel_.is_in_retrace()),
-				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				end_point(),
 				colour_burst_amplitude_);
 
 			// If retrace is starting, update phase if required and mark no colour burst spotted yet.
@@ -307,7 +306,7 @@ void CRT::advance_cycles(
 			scan_target_->announce(
 				event,
 				!(horizontal_flywheel_.is_in_retrace() || vertical_flywheel_.is_in_retrace()),
-				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				end_point(),
 				colour_burst_amplitude_);
 		}
 
