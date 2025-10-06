@@ -201,7 +201,7 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return horizontal_flywheel_.get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(uint16_t data_offset) {
+Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_offset) {
 	Display::ScanTarget::Scan::EndPoint end_point;
 
 	// Clamp the available range on endpoints. These will almost always be within range, but may go
@@ -325,14 +325,14 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 // MARK: - stream feeding methods
 
-void CRT::output_scan(const Scan *const scan) {
-	assert(scan->number_of_cycles >= 0);
+void CRT::output_scan(const Scan &scan) {
+	assert(scan.number_of_cycles >= 0);
 
 	// Simplified colour burst logic: if it's within the back porch we'll take it.
-	if(scan->type == Scan::Type::ColourBurst) {
+	if(scan.type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_.get_current_time() < (horizontal_flywheel_.get_standard_period() * 12) >> 6) {
 			// Load phase_numerator_ as a fixed-point quantity in the range [0, 255].
-			phase_numerator_ = scan->phase;
+			phase_numerator_ = scan.phase;
 			if(colour_burst_phase_adjustment_ != 0xff)
 				phase_numerator_ = (phase_numerator_ & ~63) + colour_burst_phase_adjustment_;
 
@@ -340,15 +340,15 @@ void CRT::output_scan(const Scan *const scan) {
 			phase_numerator_ = (phase_numerator_ * phase_denominator_) >> 8;
 
 			// Crib the colour burst amplitude.
-			colour_burst_amplitude_ = scan->amplitude;
+			colour_burst_amplitude_ = scan.amplitude;
 		}
 	}
 	// TODO: inspect raw data for potential colour burst if required; the DPLL and some zero crossing logic
 	// will probably be sufficient but some test data would be helpful
 
 	// sync logic: mark whether this is currently sync and check for a leading edge
-	const bool this_is_sync = (scan->type == Scan::Type::Sync);
-	const bool is_leading_edge = (!is_receiving_sync_ && this_is_sync);
+	const bool this_is_sync = scan.type == Scan::Type::Sync;
+	const bool is_leading_edge = !is_receiving_sync_ && this_is_sync;
 	is_receiving_sync_ = this_is_sync;
 
 	// Horizontal sync is recognised on any leading edge that is not 'near' the expected vertical sync;
@@ -363,7 +363,7 @@ void CRT::output_scan(const Scan *const scan) {
 	} else {
 		// If this is not sync then check how long it has been since sync. If it's more than
 		// half a line then end sync accumulation and zero out the accumulating count.
-		cycles_since_sync_ += scan->number_of_cycles;
+		cycles_since_sync_ += scan.number_of_cycles;
 		if(cycles_since_sync_ > (cycles_per_line_ >> 2)) {
 			cycles_of_sync_ = 0;
 			is_accumulating_sync_ = false;
@@ -371,19 +371,19 @@ void CRT::output_scan(const Scan *const scan) {
 		}
 	}
 
-	int number_of_cycles = scan->number_of_cycles;
+	int number_of_cycles = scan.number_of_cycles;
 	bool vsync_requested = false;
 
 	// If sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
 	// divide this line at the crossing point and indicate vertical sync there.
 	if(is_accumulating_sync_ && !is_refusing_sync_) {
-		cycles_of_sync_ += scan->number_of_cycles;
+		cycles_of_sync_ += scan.number_of_cycles;
 
 		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
 			const int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
 			if(overshoot) {
 				number_of_cycles -= overshoot;
-				advance_cycles(number_of_cycles, hsync_requested, false, scan->type, 0);
+				advance_cycles(number_of_cycles, hsync_requested, false, scan.type, 0);
 				hsync_requested = false;
 				number_of_cycles = overshoot;
 			}
@@ -393,7 +393,7 @@ void CRT::output_scan(const Scan *const scan) {
 		}
 	}
 
-	advance_cycles(number_of_cycles, hsync_requested, vsync_requested, scan->type, scan->number_of_samples);
+	advance_cycles(number_of_cycles, hsync_requested, vsync_requested, scan.type, scan.number_of_samples);
 }
 
 /*
@@ -403,14 +403,14 @@ void CRT::output_sync(int number_of_cycles) {
 	Scan scan;
 	scan.type = Scan::Type::Sync;
 	scan.number_of_cycles = number_of_cycles;
-	output_scan(&scan);
+	output_scan(scan);
 }
 
 void CRT::output_blank(int number_of_cycles) {
 	Scan scan;
 	scan.type = Scan::Type::Blank;
 	scan.number_of_cycles = number_of_cycles;
-	output_scan(&scan);
+	output_scan(scan);
 }
 
 void CRT::output_level(int number_of_cycles) {
@@ -419,7 +419,7 @@ void CRT::output_level(int number_of_cycles) {
 	scan.type = Scan::Type::Level;
 	scan.number_of_cycles = number_of_cycles;
 	scan.number_of_samples = 1;
-	output_scan(&scan);
+	output_scan(scan);
 }
 
 void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line, uint8_t amplitude) {
@@ -429,7 +429,7 @@ void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alter
 	scan.phase = phase;
 	scan.amplitude = amplitude >> 1;
 	is_alternate_line_ = is_alternate_line;
-	output_scan(&scan);
+	output_scan(scan);
 }
 
 void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
@@ -453,7 +453,7 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 	scan.type = Scan::Type::Data;
 	scan.number_of_cycles = number_of_cycles;
 	scan.number_of_samples = int(number_of_samples);
-	output_scan(&scan);
+	output_scan(scan);
 }
 
 // MARK: - Getters.
@@ -527,11 +527,11 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 }
 
 Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
-	Outputs::Display::ScanStatus status;
-	status.field_duration = float(vertical_flywheel_.get_locked_period()) / float(time_multiplier_);
-	status.field_duration_gradient = float(vertical_flywheel_.get_last_period_adjustment()) / float(time_multiplier_);
-	status.retrace_duration = float(vertical_flywheel_.get_retrace_period()) / float(time_multiplier_);
-	status.current_position = float(vertical_flywheel_.get_current_phase()) / float(vertical_flywheel_.get_locked_scan_period());
-	status.hsync_count = vertical_flywheel_.get_number_of_retraces();
-	return status;
+	return Outputs::Display::ScanStatus{
+		.field_duration = float(vertical_flywheel_.get_locked_period()) / float(time_multiplier_),
+		.field_duration_gradient = float(vertical_flywheel_.get_last_period_adjustment()) / float(time_multiplier_),
+		.retrace_duration = float(vertical_flywheel_.get_retrace_period()) / float(time_multiplier_),
+		.current_position = float(vertical_flywheel_.get_current_phase()) / float(vertical_flywheel_.get_locked_scan_period()),
+		.hsync_count = vertical_flywheel_.get_number_of_retraces(),
+	};
 }

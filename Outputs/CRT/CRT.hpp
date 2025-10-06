@@ -45,7 +45,7 @@ static constexpr bool AlternatesPhase = false;
 class CRT;
 
 struct Delegate {
-	virtual void crt_did_end_batch_of_frames(CRT &, int number_of_frames, int number_of_unexpected_vertical_syncs) = 0;
+	virtual void crt_did_end_batch_of_frames(CRT &, int frames, int unexpected_vertical_syncs) = 0;
 };
 
 /*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
@@ -55,16 +55,17 @@ struct Delegate {
 */
 class CRT {
 private:
-	// The incoming clock lengths will be multiplied by @c time_multiplier_; this increases
-	// precision across the line.
+	// Incoming clock lengths are multiplied by @c time_multiplier_ to increase precision across the line.
 	int time_multiplier_ = 1;
 
-	// Two flywheels regulate scanning; the vertical will have a range much greater than the horizontal;
-	// the output divider is what that'll need to be divided by to reduce it into a 16-bit range as
-	// posted on to the scan target.
+	// Two flywheels regulate scanning; the vertical with a range much greater than the horizontal.
 	Flywheel horizontal_flywheel_, vertical_flywheel_;
+
+	// A divider to reduce the vertcial flywheel into a 16-bit range.
 	int vertical_flywheel_output_divider_ = 1;
 	int cycles_since_horizontal_sync_ = 0;
+
+	/// Samples the flywheels to generate a raster endpoint, tagging it with the specified @c data_offset.
 	Display::ScanTarget::Scan::EndPoint end_point(uint16_t data_offset);
 
 	struct Scan {
@@ -74,7 +75,7 @@ private:
 		int number_of_cycles = 0, number_of_samples = 0;
 		uint8_t phase = 0, amplitude = 0;
 	};
-	void output_scan(const Scan *scan);
+	void output_scan(const Scan &scan);
 
 	uint8_t colour_burst_amplitude_ = 30;
 	int colour_burst_phase_adjustment_ = 0xff;
@@ -345,51 +346,6 @@ public:
 
 	/*! Sets the output brightness. */
 	void set_brightness(float);
-};
-
-/*!
-	Provides a CRT delegate that will will observe sync mismatches and, when an appropriate threshold is crossed,
-	ask its receiver to try a different display frequency.
-*/
-template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::CRT::Delegate {
-public:
-	CRTFrequencyMismatchWarner(Receiver &receiver) : receiver_(receiver) {}
-
-	void crt_did_end_batch_of_frames(Outputs::CRT::CRT &, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
-		frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_frames = number_of_frames;
-		frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
-		++frame_record_pointer_;
-
-		if(frame_record_pointer_*2 >= frame_records_.size()*3) {
-			int total_number_of_frames = 0;
-			int total_number_of_unexpected_vertical_syncs = 0;
-			for(const auto &record: frame_records_) {
-				total_number_of_frames += record.number_of_frames;
-				total_number_of_unexpected_vertical_syncs += record.number_of_unexpected_vertical_syncs;
-			}
-
-			if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
-				reset();
-				receiver_.register_crt_frequency_mismatch();
-			}
-		}
-	}
-
-	void reset() {
-		for(auto &record: frame_records_) {
-			record.number_of_frames = 0;
-			record.number_of_unexpected_vertical_syncs = 0;
-		}
-	}
-
-private:
-	Receiver &receiver_;
-	struct FrameRecord {
-		int number_of_frames = 0;
-		int number_of_unexpected_vertical_syncs = 0;
-	};
-	std::array<FrameRecord, 4> frame_records_;
-	size_t frame_record_pointer_ = 0;
 };
 
 }

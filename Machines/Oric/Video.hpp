@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Outputs/CRT/CRT.hpp"
+#include "Outputs/CRT/MismatchWarner.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
 
 #include <cstdint>
