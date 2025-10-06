@@ -54,9 +54,6 @@ void CRT::set_new_timing(
 	// the gist for simple debugging.
 	sync_capacitor_charge_threshold_ = ((vertical_sync_half_lines - 2) * cycles_per_line) >> 1;
 
-	// Create the two flywheels:
-	//
-
 	// Horizontal flywheel: has an ideal period of `multiplied_cycles_per_line`, will accept syncs
 	// within 1/32nd of that (i.e. tolerates 3.125% error) and takes HorizontalRetraceMs
 	// to retrace.
@@ -78,12 +75,12 @@ void CRT::set_new_timing(
 		);
 
 	// Figure out the divisor necessary to get the horizontal flywheel into a 16-bit range.
-	const int real_clock_scan_period = vertical_flywheel_.get_scan_period();
+	const int real_clock_scan_period = vertical_flywheel_.scan_period();
 	vertical_flywheel_output_divider_ = (real_clock_scan_period + 65534) / 65535;
 
 	// Communicate relevant fields to the scan target.
 	scan_target_modals_.cycles_per_line = cycles_per_line;
-	scan_target_modals_.output_scale.x = uint16_t(horizontal_flywheel_.get_scan_period());
+	scan_target_modals_.output_scale.x = uint16_t(horizontal_flywheel_.scan_period());
 	scan_target_modals_.output_scale.y = uint16_t(real_clock_scan_period / vertical_flywheel_output_divider_);
 	scan_target_modals_.expected_vertical_lines = height_of_display;
 	scan_target_modals_.composite_colour_space = colour_space;
@@ -200,7 +197,7 @@ void CRT::advance_cycles(
 ) {
 	number_of_cycles *= time_multiplier_;
 
-	const bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
+	const bool is_output_run = (type == Scan::Type::Level) || (type == Scan::Type::Data);
 	const auto total_cycles = number_of_cycles;
 	bool did_output = false;
 	const auto end_point = [&] {
@@ -211,17 +208,18 @@ void CRT::advance_cycles(
 		// Get time until next horizontal and vertical sync generator events.
 		int time_until_vertical_sync_event;
 		const Flywheel::SyncEvent next_vertical_sync_event =
-			vertical_flywheel_.get_next_event_in_period(
+			vertical_flywheel_.next_event_in_period(
 				vsync_requested, number_of_cycles, time_until_vertical_sync_event);
 
 		int time_until_horizontal_sync_event;
 		const Flywheel::SyncEvent next_horizontal_sync_event =
-			horizontal_flywheel_.get_next_event_in_period(
+			horizontal_flywheel_.next_event_in_period(
 				hsync_requested, time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		// Whichever event is scheduled to happen first is the one to advance to.
 		const int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
+		// Request each sync at most once.
 		hsync_requested = false;
 		vsync_requested = false;
 
@@ -240,7 +238,7 @@ void CRT::advance_cycles(
 			next_scan->composite_amplitude = colour_burst_amplitude_;
 		}
 
-		// Advance time: that'll affect both the colour subcarrier position and the number of cycles left to run.
+		// Advance time: that'll affect both the colour subcarrier and the number of cycles left to run.
 		phase_numerator_ += next_run_length * colour_cycle_numerator_;
 		number_of_cycles -= next_run_length;
 		cycles_since_horizontal_sync_ += next_run_length;
@@ -263,7 +261,7 @@ void CRT::advance_cycles(
 
 		using Event = Outputs::Display::ScanTarget::Event;
 
-		// Announce horizontal retrace events.
+		// Announce horizontal sync events.
 		if(
 			next_run_length == time_until_horizontal_sync_event &&
 			next_horizontal_sync_event != Flywheel::SyncEvent::None
@@ -295,7 +293,7 @@ void CRT::advance_cycles(
 			}
 		}
 
-		// Also announce vertical retrace events.
+		// Announce vertical sync events.
 		if(
 			next_run_length == time_until_vertical_sync_event &&
 			next_vertical_sync_event != Flywheel::SyncEvent::None
@@ -310,7 +308,7 @@ void CRT::advance_cycles(
 				colour_burst_amplitude_);
 		}
 
-		// if this is vertical retrace then advance a field
+		// At vertical retrace advance a field.
 		if(
 			next_run_length == time_until_vertical_sync_event &&
 			next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace
@@ -346,9 +344,9 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 	return Display::ScanTarget::Scan::EndPoint{
 		// Clamp the available range on endpoints. These will almost always be within range, but may go
 		// out during times of resync.
-		.x = uint16_t(std::min(horizontal_flywheel_.get_current_output_position(), 65535)),
+		.x = uint16_t(std::min(horizontal_flywheel_.current_output_position(), 65535)),
 		.y = uint16_t(
-			std::min(vertical_flywheel_.get_current_output_position() / vertical_flywheel_output_divider_, 65535)
+			std::min(vertical_flywheel_.current_output_position() / vertical_flywheel_output_divider_, 65535)
 		),
 		.data_offset = data_offset,
 
@@ -364,7 +362,10 @@ void CRT::output_scan(const Scan &scan) {
 
 	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan.type == Scan::Type::ColourBurst) {
-		if(!colour_burst_amplitude_ && horizontal_flywheel_.get_current_time() < (horizontal_flywheel_.get_standard_period() * 12) >> 6) {
+		if(
+			!colour_burst_amplitude_ &&
+			horizontal_flywheel_.current_time() < (horizontal_flywheel_.standard_period() * 12) >> 6
+		) {
 			// Load phase_numerator_ as a fixed-point quantity in the range [0, 255].
 			phase_numerator_ = scan.phase;
 			if(colour_burst_phase_adjustment_ != 0xff)
@@ -518,8 +519,8 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 	number_of_lines += 4;
 
 	// Determine prima facie x extent.
-	const int horizontal_period = horizontal_flywheel_.get_standard_period();
-	const int horizontal_scan_period = horizontal_flywheel_.get_scan_period();
+	const int horizontal_period = horizontal_flywheel_.standard_period();
+	const int horizontal_scan_period = horizontal_flywheel_.scan_period();
 	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// Ensure requested range is within visible region.
@@ -530,8 +531,8 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 	float width = float(number_of_cycles) / float(horizontal_scan_period);
 
 	// Determine prima facie y extent.
-	const int vertical_period = vertical_flywheel_.get_standard_period();
-	const int vertical_scan_period = vertical_flywheel_.get_scan_period();
+	const int vertical_period = vertical_flywheel_.standard_period();
+	const int vertical_scan_period = vertical_flywheel_.scan_period();
 	const int vertical_retrace_period = vertical_period - vertical_scan_period;
 
 	// Ensure range is visible.
@@ -568,11 +569,11 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 
 Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
 	return Outputs::Display::ScanStatus{
-		.field_duration = float(vertical_flywheel_.get_locked_period()) / float(time_multiplier_),
-		.field_duration_gradient = float(vertical_flywheel_.get_last_period_adjustment()) / float(time_multiplier_),
-		.retrace_duration = float(vertical_flywheel_.get_retrace_period()) / float(time_multiplier_),
-		.current_position = float(vertical_flywheel_.get_current_phase()) / float(vertical_flywheel_.get_locked_scan_period()),
-		.hsync_count = vertical_flywheel_.get_number_of_retraces(),
+		.field_duration = float(vertical_flywheel_.locked_period()) / float(time_multiplier_),
+		.field_duration_gradient = float(vertical_flywheel_.last_period_adjustment()) / float(time_multiplier_),
+		.retrace_duration = float(vertical_flywheel_.retrace_period()) / float(time_multiplier_),
+		.current_position = float(vertical_flywheel_.current_phase()) / float(vertical_flywheel_.locked_scan_period()),
+		.hsync_count = vertical_flywheel_.number_of_retraces(),
 	};
 }
 

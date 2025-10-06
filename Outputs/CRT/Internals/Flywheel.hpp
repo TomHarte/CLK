@@ -60,7 +60,7 @@ struct Flywheel {
 
 		@returns The next synchronisation event.
 	*/
-	inline SyncEvent get_next_event_in_period(
+	SyncEvent next_event_in_period(
 		const bool sync_is_requested,
 		const int cycles_to_run_for,
 		int &cycles_advanced
@@ -110,7 +110,7 @@ struct Flywheel {
 
 		@param event The synchronisation event to apply after that period.
 	*/
-	inline void apply_event(const int cycles_advanced, const SyncEvent event) {
+	void apply_event(const int cycles_advanced, const SyncEvent event) {
 		// In debug builds, perform a sanity check for counter overflow.
 #ifndef NDEBUG
 		const int old_counter = counter_;
@@ -133,7 +133,7 @@ struct Flywheel {
 
 		@returns The current output position.
 	*/
-	inline int get_current_output_position() const {
+	int current_output_position() const {
 		if(counter_ < retrace_time_) {
 			const int retrace_distance = int((int64_t(counter_) * int64_t(standard_period_)) / int64_t(retrace_time_));
 			if(retrace_distance > counter_before_retrace_) return 0;
@@ -145,60 +145,60 @@ struct Flywheel {
 
 	/*!
 		Returns the current 'phase' — 0 is the start of the display; a count up to 0 from a negative number represents
-		the retrace period and it will then count up to get_locked_scan_period().
+		the retrace period and it will then count up to @c locked_scan_period().
 
 		@returns The current output position.
 	*/
-	inline int get_current_phase() const {
+	int current_phase() const {
 		return counter_ - retrace_time_;
 	}
 
 	/*!
 		@returns the amount of time since retrace last began. Time then counts monotonically up from zero.
 	*/
-	inline int get_current_time() const {
+	int current_time() const {
 		return counter_;
 	}
 
 	/*!
 		@returns whether the output is currently retracing.
 	*/
-	inline bool is_in_retrace() const {
+	bool is_in_retrace() const {
 		return counter_ < retrace_time_;
 	}
 
 	/*!
 		@returns the expected length of the scan period (excluding retrace).
 	*/
-	inline int get_scan_period() const {
+	int scan_period() const {
 		return standard_period_ - retrace_time_;
 	}
 
 	/*!
 		@returns the actual length of the scan period (excluding retrace).
 	*/
-	inline int get_locked_scan_period() const {
+	int locked_scan_period() const {
 		return expected_next_sync_ - retrace_time_;
 	}
 
 	/*!
 		@returns the expected length of a complete scan and retrace cycle.
 	*/
-	inline int get_standard_period() const {
+	int standard_period() const {
 		return standard_period_;
 	}
 
 	/*!
 		@returns the actual current period for a complete scan (including retrace).
 	*/
-	inline int get_locked_period() const {
+	int locked_period() const {
 		return expected_next_sync_;
 	}
 
 	/*!
 		@returns the amount by which the @c locked_period was adjusted, the last time that an adjustment was applied.
 	*/
-	inline int get_last_period_adjustment() const {
+	int last_period_adjustment() const {
 		return last_adjustment_;
 	}
 
@@ -206,7 +206,7 @@ struct Flywheel {
 		@returns the number of synchronisation events that have seemed surprising since the last time this method was called;
 		a low number indicates good synchronisation.
 	*/
-	inline int get_and_reset_number_of_surprises() {
+	int get_and_reset_number_of_surprises() {
 		const int result = number_of_surprises_;
 		number_of_surprises_ = 0;
 		return result;
@@ -215,21 +215,21 @@ struct Flywheel {
 	/*!
 		@returns A count of the number of retraces so far performed.
 	*/
-	inline int get_number_of_retraces() const {
+	int number_of_retraces() const {
 		return number_of_retraces_;
 	}
 
 	/*!
 		@returns The amount of time this flywheel spends in retrace, as supplied at construction.
 	*/
-	inline int get_retrace_period() const {
+	int retrace_period() const {
 		return retrace_time_;
 	}
 
 	/*!
 		@returns `true` if a sync is expected soon or if the time at which it was expected (or received) was recent.
 	*/
-	inline bool is_near_expected_sync() const {
+	bool is_near_expected_sync() const {
 		return
 			(counter_ < (standard_period_ / 100)) ||
 			(counter_ >= expected_next_sync_ - (standard_period_ / 100));
