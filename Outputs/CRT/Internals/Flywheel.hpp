@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
@@ -61,7 +62,7 @@ struct Flywheel {
 		// In practice this is a weighted mix of the two values, with the exact weighting affecting how
 		// quickly the flywheel adjusts to new input. It's a IIR lowpass filter.
 		constexpr auto mix = [](const int expected, const int actual) {
-			return (expected + actual) >> 1;
+			return (expected + 3*actual) >> 2;
 		};
 
 		// A debugging helper.
@@ -99,7 +100,9 @@ struct Flywheel {
 
 		// Start a retrace?
 		if(counter_ + proposed_sync_time >= expected_next_sync_) {
-			proposed_sync_time = require_positive(expected_next_sync_ - counter_);
+			// A change in expectations above may have moved the expected sync time to before now.
+			// If so, just start sync ASAP.
+			proposed_sync_time = std::max(0, expected_next_sync_ - counter_);
 			proposed_event = SyncEvent::StartRetrace;
 		}
 
