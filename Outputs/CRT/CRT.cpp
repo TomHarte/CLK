@@ -271,8 +271,8 @@ void CRT::advance_cycles(
 
 			if(frame_is_complete_) {
 				active_rect_.expand(
-					next_scan->end_points[0].x, next_scan->end_points[0].y,
-					next_scan->end_points[1].x, next_scan->end_points[1].y
+					next_scan->end_points[0].x, next_scan->end_points[1].x,
+					next_scan->end_points[0].y, next_scan->end_points[1].y
 				);
 			}
 		}
