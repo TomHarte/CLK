@@ -98,6 +98,7 @@ private:
 	bool texture_exists_ = false;
 
 	// Receives scan target modals.
+	std::optional<ScanTarget::Modals> existing_modals_;
 	void setup_pipeline();
 
 	enum class ShaderType {
