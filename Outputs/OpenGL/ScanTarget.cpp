@@ -132,10 +132,18 @@ void ScanTarget::setup_pipeline() {
 
 	// Destroy or create a QAM buffer and shader, if appropriate.
 	if(!existing_modals_ || existing_modals_->display_type != modals.display_type) {
-		const bool needs_qam_buffer = modals.display_type == DisplayType::CompositeColour || modals.display_type == DisplayType::SVideo;
+		const bool needs_qam_buffer =
+			modals.display_type == DisplayType::CompositeColour ||
+			modals.display_type == DisplayType::SVideo;
 		if(needs_qam_buffer) {
 			if(!qam_chroma_texture_) {
-				qam_chroma_texture_ = std::make_unique<TextureTarget>(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false);
+				qam_chroma_texture_ = std::make_unique<TextureTarget>(
+					LineBufferWidth,
+					LineBufferHeight,
+					QAMChromaTextureUnit,
+					GL_NEAREST,
+					false
+				);
 			}
 
 			qam_separation_shader_ = qam_separation_shader();
@@ -155,6 +163,9 @@ void ScanTarget::setup_pipeline() {
 		output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 		output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
 	}
+
+	// Visible area is in terms of proportions of the whole; scale according to the aspect ratio and an assumption
+	// that the output area is 4:3.
 	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
 
