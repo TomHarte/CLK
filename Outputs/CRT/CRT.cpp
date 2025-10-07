@@ -253,7 +253,11 @@ void CRT::advance_cycles(
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
 			// TODO: filter active rectangle.
 			if(frame_is_complete_) {
-				scan_target_modals_.visible_area = active_rect_ / 65536.0f;
+				scan_target_modals_.visible_area = active_rect_;
+				scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
+				scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
+				scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
+				scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
 				scan_target_->set_modals(scan_target_modals_);
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
@@ -265,10 +269,12 @@ void CRT::advance_cycles(
 			next_scan->end_points[1] = end_point();
 			scan_target_->end_scan();
 
-			active_rect_.expand(
-				next_scan->end_points[0].x, next_scan->end_points[0].y,
-				next_scan->end_points[1].x, next_scan->end_points[1].y
-			);
+			if(frame_is_complete_) {
+				active_rect_.expand(
+					next_scan->end_points[0].x, next_scan->end_points[0].y,
+					next_scan->end_points[1].x, next_scan->end_points[1].y
+				);
+			}
 		}
 
 		using Event = Outputs::Display::ScanTarget::Event;
