@@ -80,9 +80,9 @@
 		3)	I also initially didn't want to have a finalied-line texture, but processing costs changed my mind on that.
 			If you accept that output will be fixed precision, anyway. In that case, processing for a typical NTSC frame
 			in its original resolution means applying filtering (i.e. at least 15 samples per pixel) likely between
-			218,400 and 273,000 times per output frame, then upscaling from there at 1 sample per pixel. Count the second
-			sample twice for the original store and you're talking between 16*218,400 = 3,494,400 to 16*273,000 = 4,368,000
-			total pixel accesses. Though that's not a perfect way to measure cost, roll with it.
+			218,400 and 273,000 times per output frame, then upscaling from there at 1 sample per pixel. Count the
+			second sample twice for the original store and you're talking between 16*218,400 = 3,494,400 to
+			16*273,000 = 4,368,000 total pixel accesses. Though that's not a perfect way to measure cost, roll with it.
 
 			On my 4k monitor, doing it at actual output resolution would instead cost 3840*2160*15 = 124,416,000 total
 			accesses. Which doesn't necessarily mean "more than 28 times as much", but does mean "a lot more".
@@ -130,10 +130,12 @@ constexpr size_t NumBufferedLines = 500;
 constexpr size_t NumBufferedScans = NumBufferedLines * 4;
 
 /// The shared resource options this app would most favour; applied as widely as possible.
-constexpr MTLResourceOptions SharedResourceOptionsStandard = MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared;
+constexpr MTLResourceOptions SharedResourceOptionsStandard =
+	MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared;
 
 /// The shared resource options used for the write-area texture; on macOS it can't be MTLResourceStorageModeShared so this is a carve-out.
-constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
+constexpr MTLResourceOptions SharedResourceOptionsTexture =
+	MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
 
 #define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
 
@@ -307,8 +309,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Install all that storage in the buffering scan target.
 		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
-		_scanTarget.set_line_buffer(reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents), _lineMetadataBuffer, NumBufferedLines);
-		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
+		_scanTarget.set_line_buffer(
+			reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents),
+			_lineMetadataBuffer,
+			NumBufferedLines
+		);
+		_scanTarget.set_scan_buffer(
+			reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents),
+			NumBufferedScans
+		);
 
 		// Generate copy and clear pipelines.
 		id<MTLLibrary> library = [_view.device newDefaultLibrary];
@@ -466,12 +475,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLLibrary> library = [_view.device newDefaultLibrary];
 
 	// Ensure finalised line texture is initially clear.
-	id<MTLComputePipelineState> clearPipeline = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"clearKernel"] error:nil];
+	id<MTLComputePipelineState> clearPipeline =
+		[_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"clearKernel"] error:nil];
 	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 	id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
 
 	[computeEncoder setTexture:texture atIndex:0];
-	[self dispatchComputeCommandEncoder:computeEncoder pipelineState:clearPipeline width:texture.width height:texture.height offsetBuffer:[self bufferForOffset:0]];
+	[self
+		dispatchComputeCommandEncoder:computeEncoder
+		pipelineState:clearPipeline
+		width:texture.width
+		height:texture.height
+		offsetBuffer:[self bufferForOffset:0]
+	];
 
 	[computeEncoder endEncoding];
 	[commandBuffer commit];
@@ -513,8 +529,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
 		[self clearTexture:_finalisedLineTexture];
 
-		NSString *const kernelFunction = [self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
-		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
+		NSString *const kernelFunction =
+			[self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
+		_finalisedLineState =
+			[_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
 	}
 
 	// A luma separation texture will exist only for composite colour.
@@ -532,7 +550,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				case 5:		kernelFunction = @"separateLumaKernel5";	break;
 			}
 
-			_separatedLumaState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
+			_separatedLumaState =
+				[_view.device
+					newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction]
+					error:nil];
 		}
 	} else {
 		_separatedLumaTexture = nil;
@@ -647,7 +668,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		textureDescriptor.allowGPUOptimizedContents = NO;
 	}
 
-	// TODO: the call below is the only reason why this project now requires macOS 10.13; is it all that helpful versus just uploading each frame?
+	// TODO: the call below is the only reason why this project now requires macOS 10.13;
+	// is it all that helpful versus just uploading each frame?
 	const NSUInteger bytesPerRow = BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel;
 	_writeAreaTexture = [_writeAreaBuffer
 		newTextureWithDescriptor:textureDescriptor
@@ -663,7 +685,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLLibrary> library = [_view.device newDefaultLibrary];
 	MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 
-	// Occasions when the composition buffer isn't required are slender: the output must be neither RGB nor composite monochrome.
+	// Occasions when the composition buffer isn't required are slender: the output must be neither RGB
+	// nor composite monochrome.
 	const bool isComposition =
 		modals.display_type != Outputs::Display::DisplayType::RGB &&
 		modals.display_type != Outputs::Display::DisplayType::CompositeMonochrome;
