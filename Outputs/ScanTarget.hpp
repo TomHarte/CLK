@@ -34,6 +34,36 @@ struct Rect {
 	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
 	constexpr Rect(float x, float y, float width, float height) :
 		origin({x, y}), size({width, height}) {}
+
+	bool empty() const {
+		return size.width == 0.0f || size.height == 0.0f;
+	}
+
+	void expand(const float min_x, const float max_x, const float min_y, float max_y) {
+		origin.x = std::min(origin.x, min_x);
+		size.width = std::max(size.width, max_x - origin.x);
+
+		origin.y = std::min(origin.x, min_y);
+		size.height = std::max(size.height, max_y - origin.y);
+	}
+
+	Rect operator *(const float multiplier) const {
+		return Rect(
+			origin.x * multiplier,
+			origin.y * multiplier,
+			size.width * multiplier,
+			size.height * multiplier
+		);
+	}
+
+	Rect operator /(const float multiplier) const {
+		return Rect(
+			origin.x / multiplier,
+			origin.y / multiplier,
+			size.width / multiplier,
+			size.height / multiplier
+		);
+	}
 };
 
 enum class ColourSpace {

@@ -363,6 +363,10 @@ private:
 	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
 	static constexpr uint8_t DefaultAmplitude = 41;
 
+	// Accumulator for interesting detail from this frame.
+	Outputs::Display::Rect active_rect_;
+	bool frame_is_complete_ = false;
+
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
 #endif

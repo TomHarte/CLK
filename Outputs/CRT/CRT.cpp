@@ -197,7 +197,7 @@ void CRT::advance_cycles(
 ) {
 	number_of_cycles *= time_multiplier_;
 
-	const bool is_output_run = (type == Scan::Type::Level) || (type == Scan::Type::Data);
+	const bool is_output_run = type == Scan::Type::Level || type == Scan::Type::Data;
 	const auto total_cycles = number_of_cycles;
 	bool did_output = false;
 	const auto end_point = [&] {
@@ -226,6 +226,7 @@ void CRT::advance_cycles(
 			!horizontal_flywheel_.is_in_retrace() &&
 			!vertical_flywheel_.is_in_retrace();
 		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->begin_scan() : nullptr;
+		frame_is_complete_ &= !is_output_segment || bool(next_scan);
 		did_output |= is_output_segment;
 
 		// If outputting, store the start location and scan constants.
@@ -244,15 +245,30 @@ void CRT::advance_cycles(
 			next_run_length,
 			next_run_length == horizontal_event.second ? horizontal_event.first : Flywheel::SyncEvent::None
 		);
-		vertical_flywheel_.apply_event(
-			next_run_length,
-			next_run_length == vertical_event.second ? vertical_event.first : Flywheel::SyncEvent::None
-		);
+
+		const auto active_vertical_event =
+			next_run_length == vertical_event.second ? vertical_event.first : Flywheel::SyncEvent::None;
+		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
+
+		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
+			// TODO: filter active rectangle.
+			if(frame_is_complete_) {
+				scan_target_modals_.visible_area = active_rect_ / 65536.0f;
+				scan_target_->set_modals(scan_target_modals_);
+			}
+			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
+			frame_is_complete_ = true;
+		}
 
 		// End the scan if necessary.
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
 			scan_target_->end_scan();
+
+			active_rect_.expand(
+				next_scan->end_points[0].x, next_scan->end_points[0].y,
+				next_scan->end_points[1].x, next_scan->end_points[1].y
+			);
 		}
 
 		using Event = Outputs::Display::ScanTarget::Event;
@@ -487,71 +503,73 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 // MARK: - Getters.
 
 Outputs::Display::Rect CRT::get_rect_for_area(
-	int first_line_after_sync,
-	int number_of_lines,
-	int first_cycle_after_sync,
-	int number_of_cycles,
-	const float aspect_ratio
+	[[maybe_unused]] int first_line_after_sync,
+	[[maybe_unused]] int number_of_lines,
+	[[maybe_unused]] int first_cycle_after_sync,
+	[[maybe_unused]] int number_of_cycles,
+	[[maybe_unused]] const float aspect_ratio
 ) const {
-	assert(number_of_cycles > 0);
-	assert(number_of_lines > 0);
-	assert(first_line_after_sync >= 0);
-	assert(first_cycle_after_sync >= 0);
+	return Outputs::Display::Rect();
 
-	// Scale up x coordinates and add a little extra leeway to y.
-	first_cycle_after_sync *= time_multiplier_;
-	number_of_cycles *= time_multiplier_;
-
-	first_line_after_sync -= 2;
-	number_of_lines += 4;
-
-	// Determine prima facie x extent.
-	const int horizontal_period = horizontal_flywheel_.standard_period();
-	const int horizontal_scan_period = horizontal_flywheel_.scan_period();
-	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
-
-	// Ensure requested range is within visible region.
-	first_cycle_after_sync = std::max(horizontal_retrace_period, first_cycle_after_sync);
-	number_of_cycles = std::min(horizontal_period - first_cycle_after_sync, number_of_cycles);
-
-	float start_x = float(first_cycle_after_sync - horizontal_retrace_period) / float(horizontal_scan_period);
-	float width = float(number_of_cycles) / float(horizontal_scan_period);
-
-	// Determine prima facie y extent.
-	const int vertical_period = vertical_flywheel_.standard_period();
-	const int vertical_scan_period = vertical_flywheel_.scan_period();
-	const int vertical_retrace_period = vertical_period - vertical_scan_period;
-
-	// Ensure range is visible.
-	first_line_after_sync = std::max(
-		first_line_after_sync * horizontal_period,
-		vertical_retrace_period
-	) / horizontal_period;
-	number_of_lines = std::min(
-		vertical_period - first_line_after_sync * horizontal_period,
-		number_of_lines * horizontal_period
-	) / horizontal_period;
-
-	float start_y =
-		float(first_line_after_sync * horizontal_period - vertical_retrace_period) /
-		float(vertical_scan_period);
-	float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
-
-	// Pick a zoom that includes the entire requested visible area given the aspect ratio constraints.
-	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
-	const float ideal_width = height * adjusted_aspect_ratio;
-	if(ideal_width > width) {
-		start_x -= (ideal_width - width) * 0.5f;
-		width = ideal_width;
-	} else {
-		float ideal_height = width / adjusted_aspect_ratio;
-		start_y -= (ideal_height - height) * 0.5f;
-		height = ideal_height;
-	}
-
-	// TODO: apply absolute clipping constraints now.
-
-	return Outputs::Display::Rect(start_x, start_y, width, height);
+//	assert(number_of_cycles > 0);
+//	assert(number_of_lines > 0);
+//	assert(first_line_after_sync >= 0);
+//	assert(first_cycle_after_sync >= 0);
+//
+//	// Scale up x coordinates and add a little extra leeway to y.
+//	first_cycle_after_sync *= time_multiplier_;
+//	number_of_cycles *= time_multiplier_;
+//
+//	first_line_after_sync -= 2;
+//	number_of_lines += 4;
+//
+//	// Determine prima facie x extent.
+//	const int horizontal_period = horizontal_flywheel_.standard_period();
+//	const int horizontal_scan_period = horizontal_flywheel_.scan_period();
+//	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
+//
+//	// Ensure requested range is within visible region.
+//	first_cycle_after_sync = std::max(horizontal_retrace_period, first_cycle_after_sync);
+//	number_of_cycles = std::min(horizontal_period - first_cycle_after_sync, number_of_cycles);
+//
+//	float start_x = float(first_cycle_after_sync - horizontal_retrace_period) / float(horizontal_scan_period);
+//	float width = float(number_of_cycles) / float(horizontal_scan_period);
+//
+//	// Determine prima facie y extent.
+//	const int vertical_period = vertical_flywheel_.standard_period();
+//	const int vertical_scan_period = vertical_flywheel_.scan_period();
+//	const int vertical_retrace_period = vertical_period - vertical_scan_period;
+//
+//	// Ensure range is visible.
+//	first_line_after_sync = std::max(
+//		first_line_after_sync * horizontal_period,
+//		vertical_retrace_period
+//	) / horizontal_period;
+//	number_of_lines = std::min(
+//		vertical_period - first_line_after_sync * horizontal_period,
+//		number_of_lines * horizontal_period
+//	) / horizontal_period;
+//
+//	float start_y =
+//		float(first_line_after_sync * horizontal_period - vertical_retrace_period) /
+//		float(vertical_scan_period);
+//	float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
+//
+//	// Pick a zoom that includes the entire requested visible area given the aspect ratio constraints.
+//	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
+//	const float ideal_width = height * adjusted_aspect_ratio;
+//	if(ideal_width > width) {
+//		start_x -= (ideal_width - width) * 0.5f;
+//		width = ideal_width;
+//	} else {
+//		float ideal_height = width / adjusted_aspect_ratio;
+//		start_y -= (ideal_height - height) * 0.5f;
+//		height = ideal_height;
+//	}
+//
+//	// TODO: apply absolute clipping constraints now.
+//
+//	return Outputs::Display::Rect(start_x, start_y, width, height);
 }
 
 Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
@@ -582,9 +600,9 @@ void CRT::set_aspect_ratio(const float aspect_ratio) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
-void CRT::set_visible_area(const Outputs::Display::Rect visible_area) {
-	scan_target_modals_.visible_area = visible_area;
-	scan_target_->set_modals(scan_target_modals_);
+void CRT::set_visible_area([[maybe_unused]] const Outputs::Display::Rect visible_area) {
+//	scan_target_modals_.visible_area = visible_area;
+//	scan_target_->set_modals(scan_target_modals_);
 }
 
 void CRT::set_display_type(const Outputs::Display::DisplayType display_type) {
