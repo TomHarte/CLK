@@ -339,7 +339,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			float longitudinal = float((gl_VertexID & 2) >> 1);
 			vec2 centrePoint = mix(startPoint, vec2(endPoint.x, startPoint.y), lateral) / scale;
 			vec2 height = normalize(vec2(endPoint.x, startPoint.y) - startPoint).yx * (longitudinal - 0.5) * rowHeight;
-			vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (((centrePoint + height) - origin) / size);
+			vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * ((centrePoint + height) - origin) * size;
 			gl_Position = vec4(eyePosition, 0.0, 1.0);
 	)glsl";
 

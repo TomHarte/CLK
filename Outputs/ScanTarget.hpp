@@ -10,6 +10,7 @@
 
 #include "ClockReceiver/TimeTypes.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -45,6 +46,12 @@ struct Rect {
 
 		origin.y = std::min(origin.y, min_y);
 		size.height = std::max(size.height, max_y - origin.y);
+	}
+
+	float appropriate_zoom(const float aspect_ratio_stretch) const {
+		const float width_zoom = 1.0f / (size.width * aspect_ratio_stretch);
+		const float height_zoom = 1.0f / size.height;
+		return std::min(width_zoom, height_zoom);
 	}
 
 	Rect operator *(const float multiplier) const {

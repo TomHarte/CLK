@@ -588,9 +588,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Determine correct zoom, combining (i) the necessary horizontal stretch for aspect ratio; and
 	// (ii) the necessary zoom to fit either the visible area width or height.
 	const float aspectRatioStretch = float(modals.aspect_ratio / _viewAspectRatio);
-	const float fitWidthZoom = 1.0f / (float(modals.visible_area.size.width) * aspectRatioStretch);
-	const float fitHeightZoom = 1.0f / float(modals.visible_area.size.height);
-	const float zoom = std::min(fitWidthZoom, fitHeightZoom);
+	const float zoom = modals.visible_area.appropriate_zoom(aspectRatioStretch);
 
 	// Convert from there to the proper aspect ratio by stretching or compressing width.
 	// After this the output is exactly centred, filling the vertical space and being as wide or slender as it likes.
