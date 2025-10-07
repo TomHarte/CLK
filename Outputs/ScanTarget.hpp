@@ -43,7 +43,7 @@ struct Rect {
 		origin.x = std::min(origin.x, min_x);
 		size.width = std::max(size.width, max_x - origin.x);
 
-		origin.y = std::min(origin.x, min_y);
+		origin.y = std::min(origin.y, min_y);
 		size.height = std::max(size.height, max_y - origin.y);
 	}
 
