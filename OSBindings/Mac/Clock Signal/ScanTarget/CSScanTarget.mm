@@ -553,8 +553,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		sourceToDisplay = recentre * sourceToDisplay;
 	}
 
-	// Convert from the internal [0, 1] to centred [-1, 1] (i.e. Metal's eye coordinates, though also appropriate
-	// for the zooming step that follows).
+	// Convert from the internal [0, 1] to centred [-1, 1].
 	{
 		simd::float3x3 convertToEye;
 		convertToEye.columns[0][0] = 2.0f;
@@ -565,9 +564,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		sourceToDisplay = convertToEye * sourceToDisplay;
 	}
 
-	// Determine the correct zoom level. This is a combination of (i) the necessary horizontal stretch to produce a proper
-	// aspect ratio; and (ii) the necessary zoom from there to either fit the visible area width or height as per a decision
-	// on letterboxing or pillarboxing.
+	// Determine correct zoom, combining (i) the necessary horizontal stretch for aspect ratio; and
+	// (ii) the necessary zoom to fit either the visible area width or height.
 	const float aspectRatioStretch = float(modals.aspect_ratio / _viewAspectRatio);
 	const float fitWidthZoom = 1.0f / (float(modals.visible_area.size.width) * aspectRatioStretch);
 	const float fitHeightZoom = 1.0f / float(modals.visible_area.size.height);

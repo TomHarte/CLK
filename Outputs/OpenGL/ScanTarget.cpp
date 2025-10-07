@@ -148,7 +148,6 @@ void ScanTarget::setup_pipeline() {
 
 			qam_separation_shader_ = qam_separation_shader();
 			enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
-			set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
 			qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 		} else {
 			qam_chroma_texture_.reset();
@@ -162,6 +161,10 @@ void ScanTarget::setup_pipeline() {
 
 		output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 		output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
+	}
+
+	if(qam_separation_shader_) {
+		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
 	}
 
 	// Visible area is in terms of proportions of the whole; scale according to the aspect ratio and an assumption
