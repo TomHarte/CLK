@@ -25,7 +25,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 		case ShaderType::Composition: break;
 		default:
 			target.set_uniform("rowHeight", GLfloat(1.05f / modals.expected_vertical_lines));
-			target.set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y) * modals.aspect_ratio * (3.0f / 4.0f));
+			target.set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y));
 			target.set_uniform("phaseOffset", GLfloat(modals.input_data_tweaks.phase_linked_luminance_offset));
 
 			const float clocks_per_angle = float(modals.cycles_per_line) * float(modals.colour_cycle_denominator) / float(modals.colour_cycle_numerator);
@@ -335,7 +335,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"float longitudinal = float((gl_VertexID & 2) >> 1);"
 			"vec2 centrePoint = mix(startPoint, vec2(endPoint.x, startPoint.y), lateral) / scale;"
 			"vec2 height = normalize(vec2(endPoint.x, startPoint.y) - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
-			"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (((centrePoint + height) - origin) / size);"
+			"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (((centrePoint + height) / size) - origin);"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);";
 
 	// For everything other than RGB, calculate the two composite outputs.

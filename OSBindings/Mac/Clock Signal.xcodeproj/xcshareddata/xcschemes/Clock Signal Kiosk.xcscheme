@@ -57,7 +57,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=Electron"
+            argument = "--new=ZXSpectrum"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

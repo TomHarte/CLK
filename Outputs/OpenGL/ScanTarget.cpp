@@ -166,8 +166,9 @@ void ScanTarget::setup_pipeline() {
 
 	// Visible area is in terms of proportions of the whole; scale according to the aspect ratio and an assumption
 	// that the output area is 4:3.
-	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
-	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
+	auto adjusted_rect = modals.visible_area;
+	output_shader_->set_uniform("origin", adjusted_rect.origin.x, adjusted_rect.origin.y);
+	output_shader_->set_uniform("size", adjusted_rect.size.width, adjusted_rect.size.height);
 
 	// Establish an input shader.
 	if(!existing_modals_ || existing_modals_->input_data_type != modals.input_data_type) {
