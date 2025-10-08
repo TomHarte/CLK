@@ -251,7 +251,7 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
-			if(frame_is_complete_) {
+			if(frame_is_complete_ && captures_in_rect_ > 5) {
 				// Zoom out very slightly if there's space; this avoids a cramped tight crop.
 				if(
 					active_rect_.size.width < 0.95 * scan_target_modals_.output_scale.x &&
@@ -260,25 +260,22 @@ void CRT::advance_cycles(
 					active_rect_.scale(1.02f, 1.02f);
 				}
 
-				const auto output_frame = rect_accumulator_.posit(active_rect_);
-				if(output_frame && *output_frame != posted_rect_) {
-
-					// Lock in any partial animation that has yet to end.
-					const auto animation_time = float(animation_step_) / float(AnimationSteps);
-					previous_posted_rect_ =
+				const auto current_rect = [&] {
+					const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
+					return
 						previous_posted_rect_ * (1.0f - animation_time) +
 						posted_rect_ * animation_time;
+				};
 
+				const auto output_frame = rect_accumulator_.posit(active_rect_);
+				if(output_frame && *output_frame != posted_rect_) {
+					previous_posted_rect_ = current_rect();
 					posted_rect_ = *output_frame;
 					animation_step_ = 0;
 				}
 
 				if(animation_step_ <= AnimationSteps) {
-					const auto animation_time = float(animation_step_) / float(AnimationSteps);
-
-					scan_target_modals_.visible_area =
-						previous_posted_rect_ * (1.0f - animation_time) +
-						posted_rect_ * animation_time;
+					scan_target_modals_.visible_area = current_rect();
 					scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
 					scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
 					scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
@@ -293,6 +290,7 @@ void CRT::advance_cycles(
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 			frame_is_complete_ = true;
+			captures_in_rect_ = 0;
 			level_changes_in_frame_ = 0;
 		}
 
@@ -300,6 +298,7 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
 			if(frame_is_complete_ && (levels_are_interesting_ || number_of_samples > 1)) {
+				++captures_in_rect_;
 				active_rect_.expand(
 					next_scan->end_points[0].x, next_scan->end_points[1].x,
 					next_scan->end_points[0].y, next_scan->end_points[1].y

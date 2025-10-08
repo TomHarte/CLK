@@ -21,7 +21,8 @@ struct RectAccumulator {
 	std::optional<Display::Rect> posit(const Display::Rect &rect) {
 		unions_.push_back(rect);
 		candidates_.push_back(unions_.join());
-		if(candidates_.stable()) {
+		candidate_count_ = std::min(candidate_count_ + 1, CandidateHistorySize);
+		if(candidate_count_ == CandidateHistorySize && candidates_.stable()) {
 			return candidates_.any();
 		}
 		return std::nullopt;
@@ -68,7 +69,10 @@ private:
 
 	RectHistory<32> unions_;	// A long record, to try to avoid instability caused by interlaced video, flashing
 								// cursors, etc.
-	RectHistory<28> candidates_;
+
+	static constexpr int CandidateHistorySize = 60;	// Require at least a second in any given state.
+	RectHistory<CandidateHistorySize> candidates_;
+	int candidate_count_ = 0;
 };
 
 }

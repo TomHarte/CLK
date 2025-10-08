@@ -371,6 +371,7 @@ private:
 
 	// Accumulator for interesting detail from this frame.
 	Outputs::Display::Rect active_rect_;
+	int captures_in_rect_ = 0;
 	bool frame_is_complete_ = false;
 
 	// Current state of cropping rectangle as communicated onwards.
