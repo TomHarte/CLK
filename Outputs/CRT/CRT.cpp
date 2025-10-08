@@ -252,6 +252,13 @@ void CRT::advance_cycles(
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
 			if(frame_is_complete_ && captures_in_rect_ > 5) {
+				const auto current_rect = [&] {
+					const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
+					return
+						previous_posted_rect_ * (1.0f - animation_time) +
+						posted_rect_ * animation_time;
+				};
+
 				// Zoom out very slightly if there's space; this avoids a cramped tight crop.
 				if(
 					active_rect_.size.width < 0.95 * scan_target_modals_.output_scale.x &&
@@ -260,18 +267,16 @@ void CRT::advance_cycles(
 					active_rect_.scale(1.02f, 1.02f);
 				}
 
-				const auto current_rect = [&] {
-					const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
-					return
-						previous_posted_rect_ * (1.0f - animation_time) +
-						posted_rect_ * animation_time;
-				};
-
 				const auto output_frame = rect_accumulator_.posit(active_rect_);
 				if(output_frame && *output_frame != posted_rect_) {
 					previous_posted_rect_ = current_rect();
 					posted_rect_ = *output_frame;
 					animation_step_ = 0;
+				} else if(rect_accumulator_.posits_to_date() == 5) {	// Startup condition; accept any reasonable
+																		// frame if the accumulator is just getting
+																		// started.
+					previous_posted_rect_ = posted_rect_ = active_rect_;
+					animation_step_ = AnimationSteps - 1;
 				}
 
 				if(animation_step_ <= AnimationSteps) {

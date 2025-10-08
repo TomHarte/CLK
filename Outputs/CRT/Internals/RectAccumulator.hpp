@@ -28,6 +28,10 @@ struct RectAccumulator {
 		return std::nullopt;
 	}
 
+	int posits_to_date() const {
+		return candidate_count_;
+	}
+
 private:
 	template <size_t n>
 	struct RectHistory {
