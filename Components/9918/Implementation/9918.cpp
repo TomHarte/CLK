@@ -683,13 +683,7 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] const uint32_
 		return;
 	}
 
-	// If the border colour is 0, that can be communicated
-	// more efficiently as an explicit blank.
-	if(border_colour) {
-		crt_.output_level<uint32_t>(cycles, border_colour);
-	} else {
-		crt_.output_blank(cycles);
-	}
+	crt_.output_level<uint32_t>(cycles, border_colour);
 }
 
 // MARK: - External interface.

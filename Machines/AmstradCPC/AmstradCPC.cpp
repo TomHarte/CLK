@@ -377,14 +377,7 @@ private:
 
 	void output_border(const int length) {
 		assert(length >= 0);
-
-		// A black border can be output via crt_.output_blank for a minor performance
-		// win; otherwise paint whatever the border colour really is.
-		if(border_) {
-			crt_.output_level<uint8_t>(length * 16, border_);
-		} else {
-			crt_.output_blank(length * 16);
-		}
+		crt_.output_level<uint8_t>(length * 16, border_);
 	}
 
 	template <typename IntT>

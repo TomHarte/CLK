@@ -192,11 +192,7 @@ private:
 					switch(output_state) {
 						case OutputState::Sync:			crt.output_sync(count * active_clock_divider);							break;
 						case OutputState::Border:
-							if(active_border_colour) {
-								crt.output_blank(count * active_clock_divider);
-							} else {
-								crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
-							}
+							crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
 						break;
 						case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, colour_phase);	break;
 						case OutputState::Pixels:		flush_pixels();															break;

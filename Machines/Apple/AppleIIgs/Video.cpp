@@ -410,15 +410,7 @@ void Video::output_row(int row, int start, int end) {
 		// Output right border as far as currently known.
 		if(start >= start_of_right_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
-
-			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
-			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
-			}
-
+			crt_.output_level<uint16_t>((end_of_period - start) * CyclesPerTick, border_colour_);
 			// There's no point updating start here; just fall
 			// through to the end == FinalColumn test.
 		}
@@ -426,15 +418,7 @@ void Video::output_row(int row, int start, int end) {
 		// This line is all border, all the time.
 		if(start >= start_of_left_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
-
-			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
-			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
-			}
-
+			crt_.output_level<uint16_t>((end_of_period - start) * CyclesPerTick, border_colour_);
 			start = end_of_period;
 			if(start == end) return;
 		}
