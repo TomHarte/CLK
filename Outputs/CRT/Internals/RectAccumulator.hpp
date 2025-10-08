@@ -20,16 +20,19 @@ namespace Outputs::CRT {
 struct RectAccumulator {
 	std::optional<Display::Rect> posit(const Display::Rect &rect) {
 		unions_.push_back(rect);
+
 		candidates_.push_back(unions_.join());
-		candidate_count_ = std::min(candidate_count_ + 1, CandidateHistorySize);
-		if(candidate_count_ == CandidateHistorySize && candidates_.stable()) {
+		if(candidates_.pushes() == CandidateHistorySize && candidates_.stable()) {
 			return candidates_.any();
 		}
 		return std::nullopt;
 	}
 
-	int posits_to_date() const {
-		return candidate_count_;
+	std::optional<Display::Rect> any_union() const {
+		if(unions_.pushes() == UnionHistorySize) {
+			return unions_.join();
+		}
+		return std::nullopt;
 	}
 
 private:
@@ -37,6 +40,7 @@ private:
 	struct RectHistory {
 		void push_back(const Display::Rect &rect) {
 			stream_[stream_pointer_] = rect;
+			pushes_ = std::min(pushes_ + 1, int(n));
 			++stream_pointer_;
 			if(stream_pointer_ == n) stream_pointer_ = 0;
 		}
@@ -66,17 +70,23 @@ private:
 			return stream_[0];
 		}
 
+		const int pushes() const {
+			return pushes_;
+		}
+
 	private:
 		std::array<Display::Rect, n> stream_;
 		size_t stream_pointer_ = 0;
+		int pushes_ = 0;
 	};
 
-	RectHistory<32> unions_;	// A long record, to try to avoid instability caused by interlaced video, flashing
-								// cursors, etc.
+	// A long record, to try to avoid instability caused by interlaced video, flashing cursors, etc.
+	static constexpr int UnionHistorySize = 17;
+	RectHistory<UnionHistorySize> unions_;
 
-	static constexpr int CandidateHistorySize = 60;	// Require at least a second in any given state.
+	// Require at least a second in any given state.
+	static constexpr int CandidateHistorySize = 60;
 	RectHistory<CandidateHistorySize> candidates_;
-	int candidate_count_ = 0;
 };
 
 }

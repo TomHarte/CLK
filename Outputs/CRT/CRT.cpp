@@ -256,7 +256,15 @@ void CRT::advance_cycles(
 					const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
 					return
 						previous_posted_rect_ * (1.0f - animation_time) +
-						posted_rect_ * animation_time;
+						*posted_rect_ * animation_time;
+				};
+				const auto set_rect = [&](const Display::Rect &rect) {
+					scan_target_modals_.visible_area = rect;
+					scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
+					scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
+					scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
+					scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
+					scan_target_->set_modals(scan_target_modals_);
 				};
 
 				// Zoom out very slightly if there's space; this avoids a cramped tight crop.
@@ -268,30 +276,30 @@ void CRT::advance_cycles(
 				}
 
 				const auto output_frame = rect_accumulator_.posit(active_rect_);
-				if(output_frame && *output_frame != posted_rect_) {
-					previous_posted_rect_ = current_rect();
-					posted_rect_ = *output_frame;
-					animation_step_ = 0;
-				} else if(rect_accumulator_.posits_to_date() == 5) {	// Startup condition; accept any reasonable
-																		// frame if the accumulator is just getting
-																		// started.
-					previous_posted_rect_ = posted_rect_ = active_rect_;
-					animation_step_ = AnimationSteps - 1;
+				if(!posted_rect_.has_value()) {
+					// Startup condition; accept any reasonable frame if the accumulator is just getting started.
+					const auto any_frame = rect_accumulator_.any_union();
+					if(any_frame) {
+						posted_rect_ = any_frame;
+						set_rect(*posted_rect_);
+					}
+				} else {
+					if(output_frame && *output_frame != *posted_rect_) {
+						previous_posted_rect_ = current_rect();
+						posted_rect_ = *output_frame;
+						animation_step_ = 0;
+					}
+
+					if(animation_step_ < AnimationSteps) {
+						set_rect(current_rect());
+						++animation_step_;
+					}
+
+					// TODO: probably something more gradated.
+					// E.g. if there is at least one level colour change, zoom out a little bit.
+					// Otherwise zoom in somewhere closer.
+					levels_are_interesting_ = level_changes_in_frame_ >= 5;
 				}
-
-				if(animation_step_ <= AnimationSteps) {
-					scan_target_modals_.visible_area = current_rect();
-					scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
-					scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
-					scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
-					scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
-					scan_target_->set_modals(scan_target_modals_);
-
-					++animation_step_;
-				}
-
-				// TODO: probably something more gradated.
-				levels_are_interesting_ = level_changes_in_frame_ >= 5;
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 			frame_is_complete_ = true;

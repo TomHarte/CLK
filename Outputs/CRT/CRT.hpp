@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 
 #include "Outputs/ScanTarget.hpp"
 #include "Outputs/CRT/Internals/Flywheel.hpp"
@@ -375,11 +376,12 @@ private:
 	bool frame_is_complete_ = false;
 
 	// Current state of cropping rectangle as communicated onwards.
-	Outputs::Display::Rect posted_rect_, previous_posted_rect_;
+	std::optional<Outputs::Display::Rect> posted_rect_;
+	Outputs::Display::Rect previous_posted_rect_;
 	Numeric::CubicCurve animation_curve_;
 
-	int animation_step_ = 0;
 	static constexpr int AnimationSteps = 25;
+	int animation_step_ = AnimationSteps;
 
 	bool levels_are_interesting_ = false;
 	int level_changes_in_frame_ = 0;
