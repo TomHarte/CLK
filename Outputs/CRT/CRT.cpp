@@ -311,11 +311,23 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
 			if(frame_is_complete_ && (levels_are_interesting_ || number_of_samples > 1)) {
-				++captures_in_rect_;
-				active_rect_.expand(
-					next_scan->end_points[0].x, next_scan->end_points[1].x,
-					next_scan->end_points[0].y, next_scan->end_points[1].y
-				);
+				// Omit any scan that's not within the central 95% of the display.
+//				const uint16_t hard_left = scan_target_modals_.output_scale.x * 0.025f;
+//				const uint16_t hard_right = scan_target_modals_.output_scale.x * 0.975f;
+//				const uint16_t hard_top = scan_target_modals_.output_scale.y * 0.025f;
+//				const uint16_t hard_bottom = scan_target_modals_.output_scale.x * 0.975f;
+//				if(
+//					(next_scan->end_points[0].y >= hard_top || next_scan->end_points[1].y >= hard_top) &&
+//					(next_scan->end_points[0].y <= hard_bottom || next_scan->end_points[1].y <= hard_bottom) &&
+//					(next_scan->end_points[0].x >= hard_left || next_scan->end_points[1].y >= hard_left) &&
+//					(next_scan->end_points[0].x <= hard_right || next_scan->end_points[1].y <= hard_right)
+//				) {
+					++captures_in_rect_;
+					active_rect_.expand(
+						next_scan->end_points[0].x, next_scan->end_points[1].x,
+						next_scan->end_points[0].y, next_scan->end_points[1].y
+					);
+//				}
 			}
 
 			scan_target_->end_scan();
