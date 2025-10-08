@@ -32,7 +32,6 @@ private:
 	struct RectHistory {
 		void push_back(const Display::Rect &rect) {
 			stream_[stream_pointer_] = rect;
-
 			++stream_pointer_;
 			if(stream_pointer_ == n) stream_pointer_ = 0;
 		}
@@ -67,8 +66,9 @@ private:
 		size_t stream_pointer_ = 0;
 	};
 
-	RectHistory<8> unions_;
-	RectHistory<8> candidates_;
+	RectHistory<32> unions_;	// A long record, to try to avoid instability caused by interlaced video, flashing
+								// cursors, etc.
+	RectHistory<28> candidates_;
 };
 
 }

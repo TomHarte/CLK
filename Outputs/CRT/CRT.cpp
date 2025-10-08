@@ -257,19 +257,38 @@ void CRT::advance_cycles(
 					active_rect_.size.width < 0.95 * scan_target_modals_.output_scale.x &&
 					active_rect_.size.height < 0.95 * scan_target_modals_.output_scale.y
 				) {
-					active_rect_.scale(1.05f, 1.05f);
+					active_rect_.scale(1.02f, 1.02f);
 				}
 
 				const auto output_frame = rect_accumulator_.posit(active_rect_);
-				if(output_frame) {
-					scan_target_modals_.visible_area = *output_frame;
+				if(output_frame && *output_frame != posted_rect_) {
+
+					// Lock in any partial animation that has yet to end.
+					const auto animation_time = float(animation_step_) / float(AnimationSteps);
+					previous_posted_rect_ =
+						previous_posted_rect_ * (1.0f - animation_time) +
+						posted_rect_ * animation_time;
+
+					posted_rect_ = *output_frame;
+					animation_step_ = 0;
+				}
+
+				if(animation_step_ <= AnimationSteps) {
+					const auto animation_time = float(animation_step_) / float(AnimationSteps);
+
+					scan_target_modals_.visible_area =
+						previous_posted_rect_ * (1.0f - animation_time) +
+						posted_rect_ * animation_time;
 					scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
 					scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
 					scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
 					scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
 					scan_target_->set_modals(scan_target_modals_);
+
+					++animation_step_;
 				}
 
+				// TODO: probably something more gradated.
 				levels_are_interesting_ = level_changes_in_frame_ >= 5;
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);

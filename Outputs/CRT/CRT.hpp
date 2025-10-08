@@ -370,11 +370,15 @@ private:
 	static constexpr uint8_t DefaultAmplitude = 41;
 
 	// Accumulator for interesting detail from this frame.
-	Outputs::Display::Rect active_rect_, posted_rect_;
+	Outputs::Display::Rect active_rect_;
+	bool frame_is_complete_ = false;
+
+	// Current state of cropping rectangle as communicated onwards.
+	Outputs::Display::Rect posted_rect_, previous_posted_rect_;
 	Numeric::CubicCurve animation_curve_;
+
 	int animation_step_ = 0;
 	static constexpr int AnimationSteps = 25;
-	bool frame_is_complete_ = false;
 
 	bool levels_are_interesting_ = false;
 	int level_changes_in_frame_ = 0;

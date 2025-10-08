@@ -79,6 +79,15 @@ struct Rect {
 		);
 	}
 
+	Rect operator +(const Rect &rhs) const {
+		return Rect(
+			origin.x + rhs.origin.x,
+			origin.y + rhs.origin.y,
+			size.width + rhs.size.width,
+			size.height + rhs.size.height
+		);
+	}
+
 	Rect operator /(const float multiplier) const {
 		return Rect(
 			origin.x / multiplier,
