@@ -226,12 +226,16 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 			if(new_caps != caps_led_state_) {
 				caps_led_state_ = new_caps;
-				activity_observer_->set_led_status(caps_led, caps_led_state_);
+				if(activity_observer_) {
+					activity_observer_->set_led_status(caps_led, caps_led_state_);
+				}
 			}
 
 			if(new_shift != shift_led_state_) {
 				shift_led_state_ = new_shift;
-				activity_observer_->set_led_status(shift_led, shift_led_state_);
+				if(activity_observer_) {
+					activity_observer_->set_led_status(shift_led, shift_led_state_);
+				}
 			}
 		}
 	}
@@ -748,6 +752,10 @@ public:
 		if(!target.loading_command.empty()) {
 			type_string(target.loading_command);
 		}
+
+		// Prime the display and then reset.
+//		run_for(Cycles(100'000'000));
+//		m6502_.set_power_on(true);
 	}
 
 	// MARK: - 6502 bus.
