@@ -252,6 +252,14 @@ void CRT::advance_cycles(
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
 			if(frame_is_complete_) {
+				// Zoom out very slightly if there's space; this avoids a cramped tight crop.
+				if(
+					active_rect_.size.width < 0.95 * scan_target_modals_.output_scale.x &&
+					active_rect_.size.height < 0.95 * scan_target_modals_.output_scale.y
+				) {
+					active_rect_.scale(1.05f, 1.05f);
+				}
+
 				const auto output_frame = rect_accumulator_.posit(active_rect_);
 				if(output_frame) {
 					scan_target_modals_.visible_area = *output_frame;
@@ -261,17 +269,18 @@ void CRT::advance_cycles(
 					scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
 					scan_target_->set_modals(scan_target_modals_);
 				}
+
+				levels_are_interesting_ = level_changes_in_frame_ >= 5;
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 			frame_is_complete_ = true;
+			level_changes_in_frame_ = 0;
 		}
 
 		// End the scan if necessary.
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
-
-			// TODO: intelligent decision about whether to include long single-colour runs.
-			if(frame_is_complete_ && number_of_samples > 1) {
+			if(frame_is_complete_ && (levels_are_interesting_ || number_of_samples > 1)) {
 				active_rect_.expand(
 					next_scan->end_points[0].x, next_scan->end_points[1].x,
 					next_scan->end_points[0].y, next_scan->end_points[1].y

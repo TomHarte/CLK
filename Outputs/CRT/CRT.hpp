@@ -158,7 +158,10 @@ public:
 		@param number_of_cycles The number of cycles to repeat the output for.
 	*/
 	template <typename IntT>
-	void output_level(int number_of_cycles, IntT value) {
+	void output_level(const int number_of_cycles, const IntT value) {
+		level_changes_in_frame_ += value != last_level_;
+		last_level_ = value;
+
 		auto colour_pointer = reinterpret_cast<IntT *>(begin_data(1));
 		if(colour_pointer) *colour_pointer = value;
 		output_level(number_of_cycles);
@@ -365,8 +368,13 @@ private:
 	static constexpr uint8_t DefaultAmplitude = 41;
 
 	// Accumulator for interesting detail from this frame.
-	Outputs::Display::Rect active_rect_;
+	Outputs::Display::Rect active_rect_, posted_rect_;
 	bool frame_is_complete_ = false;
+
+	bool levels_are_interesting_ = false;
+	int level_changes_in_frame_ = 0;
+	uint32_t last_level_ = 0;
+
 	RectAccumulator rect_accumulator_;
 
 #ifndef NDEBUG
