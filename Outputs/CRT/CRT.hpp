@@ -17,6 +17,8 @@
 #include "Outputs/CRT/Internals/Flywheel.hpp"
 #include "Outputs/CRT/Internals/RectAccumulator.hpp"
 
+#include "Numeric/CubicCurve.hpp"
+
 namespace Outputs::CRT {
 
 namespace PAL {
@@ -369,6 +371,9 @@ private:
 
 	// Accumulator for interesting detail from this frame.
 	Outputs::Display::Rect active_rect_, posted_rect_;
+	Numeric::CubicCurve animation_curve_;
+	int animation_step_ = 0;
+	static constexpr int AnimationSteps = 25;
 	bool frame_is_complete_ = false;
 
 	bool levels_are_interesting_ = false;

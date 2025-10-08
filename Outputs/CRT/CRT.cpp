@@ -137,7 +137,7 @@ CRT::CRT(
 	const int vertical_sync_half_lines,
 	const bool should_alternate,
 	const Outputs::Display::InputDataType data_type
-) {
+) : animation_curve_(Numeric::CubicCurve::easeInOut()) {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(
@@ -156,7 +156,7 @@ CRT::CRT(
 	const int clocks_per_pixel_greatest_common_divisor,
 	const Outputs::Display::Type display_type,
 	const Outputs::Display::InputDataType data_type
-) {
+) : animation_curve_(Numeric::CubicCurve::easeInOut()) {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_display_type(cycles_per_line, display_type);
@@ -168,7 +168,7 @@ CRT::CRT(
 	const int height_of_display,
 	const int vertical_sync_half_lines,
 	const Outputs::Display::InputDataType data_type
-) {
+) : animation_curve_(Numeric::CubicCurve::easeInOut()) {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(

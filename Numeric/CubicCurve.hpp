@@ -10,6 +10,8 @@
 
 #include <cassert>
 
+namespace Numeric {
+
 /*!
 	Provides a cubic Bezier-based timing function.
 */
@@ -67,3 +69,5 @@ private:
 	float c1[2];
 	float c2[2];
 };
+
+}
