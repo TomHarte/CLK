@@ -269,14 +269,16 @@ void CRT::advance_cycles(
 		// End the scan if necessary.
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
-			scan_target_->end_scan();
 
-			if(frame_is_complete_) {
+			// TODO: intelligent decision about whether to include long single-colour runs.
+			if(frame_is_complete_ && number_of_samples > 1) {
 				active_rect_.expand(
 					next_scan->end_points[0].x, next_scan->end_points[1].x,
 					next_scan->end_points[0].y, next_scan->end_points[1].y
 				);
 			}
+
+			scan_target_->end_scan();
 		}
 
 		using Event = Outputs::Display::ScanTarget::Event;
