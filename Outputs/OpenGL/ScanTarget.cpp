@@ -167,20 +167,21 @@ void ScanTarget::setup_pipeline() {
 		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
 	}
 
-	// Pick a single zoom level to apply to the output, given the intended aspect ratio compared to the 4/3 this
-	// scan target halways uses, and the required output dimensions.
+	// Select whichever of a letterbox or pillarbox avoids cropping.
 	constexpr float output_ratio = 4.0f / 3.0f;
 	const float aspect_ratio_stretch = modals.aspect_ratio / output_ratio;
-	const float zoom = modals.visible_area.appropriate_zoom(aspect_ratio_stretch);
 
-	// TODO: Adjust origin to recentre content, given the zoom.
 	auto adjusted_rect = modals.visible_area;
-//	adjusted_rect.origin.x = (aspect_ratio_stretch * zoom - modals.visible_area.size.width) * 0.5f;
-//	adjusted_rect.origin.y -= (zoom - modals.visible_area.size.height) * 0.5f;
+	const float letterbox_scale = adjusted_rect.size.height / (adjusted_rect.size.width * aspect_ratio_stretch);
+	if(letterbox_scale > 1.0f) {
+		adjusted_rect.scale(letterbox_scale, 1.0f);
+	} else {
+		adjusted_rect.scale(1.0f, 1.0f / letterbox_scale);
+	}
 
 	// Provide to shader.
 	output_shader_->set_uniform("origin", adjusted_rect.origin.x, adjusted_rect.origin.y);
-	output_shader_->set_uniform("size", zoom, zoom / aspect_ratio_stretch);
+	output_shader_->set_uniform("size", 1.0f / adjusted_rect.size.width, 1.0f / adjusted_rect.size.height);
 
 	// Establish an input shader.
 	if(!existing_modals_ || existing_modals_->input_data_type != modals.input_data_type) {

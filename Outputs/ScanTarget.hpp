@@ -40,12 +40,24 @@ struct Rect {
 		return size.width == 0.0f || size.height == 0.0f;
 	}
 
-	void expand(const float min_x, const float max_x, const float min_y, float max_y) {
+	void expand(const float min_x, const float max_x, const float min_y, const float max_y) {
 		origin.x = std::min(origin.x, min_x);
 		size.width = std::max(size.width, max_x - origin.x);
 
 		origin.y = std::min(origin.y, min_y);
 		size.height = std::max(size.height, max_y - origin.y);
+	}
+
+	/// Scales a rectange around its centre.
+	void scale(const float scale_x, const float scale_y) {
+		const float centre[] = {
+			origin.x + size.width * 0.5f,
+			origin.y + size.height * 0.5f,
+		};
+		size.width *= scale_x;
+		size.height *= scale_y;
+		origin.x = centre[0] - size.width * 0.5f;
+		origin.y = centre[1] - size.height * 0.5f;
 	}
 
 	float appropriate_zoom(const float aspect_ratio_stretch) const {
