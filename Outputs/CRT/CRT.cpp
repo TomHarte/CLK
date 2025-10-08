@@ -251,14 +251,16 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
-			// TODO: filter active rectangle.
 			if(frame_is_complete_) {
-				scan_target_modals_.visible_area = active_rect_;
-				scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
-				scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
-				scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
-				scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
-				scan_target_->set_modals(scan_target_modals_);
+				const auto output_frame = rect_accumulator_.posit(active_rect_);
+				if(output_frame) {
+					scan_target_modals_.visible_area = *output_frame;
+					scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
+					scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
+					scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
+					scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
+					scan_target_->set_modals(scan_target_modals_);
+				}
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 			frame_is_complete_ = true;
@@ -443,40 +445,45 @@ void CRT::output_scan(const Scan &scan) {
 /*
 	These all merely channel into advance_cycles, supplying appropriate arguments
 */
-void CRT::output_sync(int number_of_cycles) {
-	Scan scan;
-	scan.type = Scan::Type::Sync;
-	scan.number_of_cycles = number_of_cycles;
-	output_scan(scan);
+void CRT::output_sync(const int number_of_cycles) {
+	output_scan(Scan{
+		.type = Scan::Type::Sync,
+		.number_of_cycles = number_of_cycles,
+	});
 }
 
-void CRT::output_blank(int number_of_cycles) {
-	Scan scan;
-	scan.type = Scan::Type::Blank;
-	scan.number_of_cycles = number_of_cycles;
-	output_scan(scan);
+void CRT::output_blank(const int number_of_cycles) {
+	output_scan(Scan{
+		.type = Scan::Type::Blank,
+		.number_of_cycles = number_of_cycles,
+	});
 }
 
-void CRT::output_level(int number_of_cycles) {
+void CRT::output_level(const int number_of_cycles) {
 	scan_target_->end_data(1);
-	Scan scan;
-	scan.type = Scan::Type::Level;
-	scan.number_of_cycles = number_of_cycles;
-	scan.number_of_samples = 1;
-	output_scan(scan);
+	output_scan(Scan{
+		.type = Scan::Type::Level,
+		.number_of_cycles = number_of_cycles,
+		.number_of_samples = 1,
+	});
 }
 
-void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line, uint8_t amplitude) {
-	Scan scan;
-	scan.type = Scan::Type::ColourBurst;
-	scan.number_of_cycles = number_of_cycles;
-	scan.phase = phase;
-	scan.amplitude = amplitude >> 1;
+void CRT::output_colour_burst(
+	const int number_of_cycles,
+	const uint8_t phase,
+	const bool is_alternate_line,
+	const uint8_t amplitude
+) {
 	is_alternate_line_ = is_alternate_line;
-	output_scan(scan);
+	output_scan(Scan{
+		.type = Scan::Type::ColourBurst,
+		.number_of_cycles = number_of_cycles,
+		.phase = phase,
+		.amplitude = uint8_t(amplitude >> 1),
+	});
 }
 
-void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
+void CRT::output_default_colour_burst(const int number_of_cycles, const uint8_t amplitude) {
 	// TODO: avoid applying a rounding error here?
 	output_colour_burst(
 		number_of_cycles,
@@ -486,23 +493,22 @@ void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
 	);
 }
 
-void CRT::set_immediate_default_phase(float phase) {
-	phase = fmodf(phase, 1.0f);
-	phase_numerator_ = int(phase * float(phase_denominator_));
+void CRT::set_immediate_default_phase(const float phase) {
+	phase_numerator_ = int(std::fmod(phase, 1.0f) * float(phase_denominator_));
 }
 
-void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
+void CRT::output_data(const int number_of_cycles, const size_t number_of_samples) {
 #ifndef NDEBUG
 //	assert(number_of_samples > 0);
 //	assert(number_of_samples <= allocated_data_length_);
 //	allocated_data_length_ = std::numeric_limits<size_t>::min();
 #endif
 	scan_target_->end_data(number_of_samples);
-	Scan scan;
-	scan.type = Scan::Type::Data;
-	scan.number_of_cycles = number_of_cycles;
-	scan.number_of_samples = int(number_of_samples);
-	output_scan(scan);
+	output_scan(Scan{
+		.type = Scan::Type::Data,
+		.number_of_cycles = number_of_cycles,
+		.number_of_samples = int(number_of_samples),
+	});
 }
 
 

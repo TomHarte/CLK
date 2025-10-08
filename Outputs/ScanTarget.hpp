@@ -26,11 +26,15 @@ enum class Type {
 struct Rect {
 	struct Point {
 		float x, y;
+		auto operator <=>(const Point &) const = default;
 	} origin;
 
-	struct {
+	struct Size {
 		float width, height;
+		auto operator <=>(const Size &) const = default;
 	} size;
+
+	auto operator <=>(const Rect &) const = default;
 
 	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
 	constexpr Rect(float x, float y, float width, float height) :
@@ -81,6 +85,18 @@ struct Rect {
 			origin.y / multiplier,
 			size.width / multiplier,
 			size.height / multiplier
+		);
+	}
+
+	Rect operator |(const Rect &rhs) const {
+		const auto left = std::min(origin.x, rhs.origin.x);
+		const auto top = std::min(origin.y, rhs.origin.y);
+
+		return Rect(
+			left,
+			top,
+			std::max(origin.x + size.width - left, rhs.origin.x + rhs.size.width - left),
+			std::max(origin.y + size.height - top, rhs.origin.y + rhs.size.height - top)
 		);
 	}
 };

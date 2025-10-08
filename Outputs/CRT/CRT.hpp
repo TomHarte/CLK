@@ -14,7 +14,8 @@
 #include <memory>
 
 #include "Outputs/ScanTarget.hpp"
-#include "Internals/Flywheel.hpp"
+#include "Outputs/CRT/Internals/Flywheel.hpp"
+#include "Outputs/CRT/Internals/RectAccumulator.hpp"
 
 namespace Outputs::CRT {
 
@@ -366,6 +367,7 @@ private:
 	// Accumulator for interesting detail from this frame.
 	Outputs::Display::Rect active_rect_;
 	bool frame_is_complete_ = false;
+	RectAccumulator rect_accumulator_;
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
