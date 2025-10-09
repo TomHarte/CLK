@@ -47,9 +47,14 @@ static constexpr bool AlternatesPhase = false;
 }
 
 class CRT;
-
 struct Delegate {
 	virtual void crt_did_end_batch_of_frames(CRT &, int frames, int unexpected_vertical_syncs) = 0;
+};
+
+enum class Framing {
+	AutomaticFixed,
+	DynamicInRange,
+	Static,
 };
 
 /*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
@@ -265,6 +270,8 @@ public:
 	/*!	Nominates a section of the display to crop to for output. */
 	void set_visible_area(Outputs::Display::Rect);
 
+	void set_framing(Framing, Outputs::Display::Rect seed, Outputs::Display::Rect maximum);
+
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(
 		int first_line_after_sync,
@@ -303,8 +310,10 @@ public:
 	void set_brightness(float);
 
 private:
+	CRT();
+
 	// Incoming clock lengths are multiplied by @c time_multiplier_ to increase precision across the line.
-	int time_multiplier_ = 1;
+	int time_multiplier_ = 0;
 
 	// Two flywheels regulate scanning; the vertical with a range much greater than the horizontal.
 	Flywheel horizontal_flywheel_, vertical_flywheel_;
@@ -376,7 +385,7 @@ private:
 	bool frame_is_complete_ = false;
 
 	// Current state of cropping rectangle as communicated onwards.
-	std::optional<Outputs::Display::Rect> posted_rect_;
+	Outputs::Display::Rect posted_rect_;
 	Outputs::Display::Rect previous_posted_rect_;
 	Numeric::CubicCurve animation_curve_;
 
@@ -387,7 +396,9 @@ private:
 	int level_changes_in_frame_ = 0;
 	uint32_t last_level_ = 0;
 
+	Framing framing_ = Framing::AutomaticFixed;
 	RectAccumulator rect_accumulator_;
+	void posit(Display::Rect);
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

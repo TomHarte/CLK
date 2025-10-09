@@ -37,6 +37,8 @@ void CRT::set_new_timing(
 		//  in NTSC and PAL TV."
 
 
+	const bool is_first_set = time_multiplier_ == 0;
+
 	// 63475 = 65535 * 31/32, i.e. the same 1/32 error as below is permitted.
 	time_multiplier_ = 63487 / cycles_per_line;
 
@@ -86,6 +88,18 @@ void CRT::set_new_timing(
 	scan_target_modals_.composite_colour_space = colour_space;
 	scan_target_modals_.colour_cycle_numerator = colour_cycle_numerator;
 	scan_target_modals_.colour_cycle_denominator = colour_cycle_denominator;
+
+	// Default crop: middle 90%.
+	if(is_first_set) {
+		posted_rect_ = Display::Rect(
+			0.05f * scan_target_modals_.output_scale.x,
+			0.05f * scan_target_modals_.output_scale.y,
+			0.9f * scan_target_modals_.output_scale.x,
+			0.9f * scan_target_modals_.output_scale.y
+		);
+		scan_target_modals_.visible_area = posted_rect_;
+	}
+
 	scan_target_->set_modals(scan_target_modals_);
 }
 
@@ -128,6 +142,8 @@ void CRT::set_composite_function_type(const CompositeSourceType type, const floa
 
 // MARK: - Constructors.
 
+CRT::CRT() : animation_curve_(Numeric::CubicCurve::easeInOut()) {}
+
 CRT::CRT(
 	const int cycles_per_line,
 	const int clocks_per_pixel_greatest_common_divisor,
@@ -137,7 +153,7 @@ CRT::CRT(
 	const int vertical_sync_half_lines,
 	const bool should_alternate,
 	const Outputs::Display::InputDataType data_type
-) : animation_curve_(Numeric::CubicCurve::easeInOut()) {
+) : CRT() {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(
@@ -156,7 +172,7 @@ CRT::CRT(
 	const int clocks_per_pixel_greatest_common_divisor,
 	const Outputs::Display::Type display_type,
 	const Outputs::Display::InputDataType data_type
-) : animation_curve_(Numeric::CubicCurve::easeInOut()) {
+) : CRT() {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_display_type(cycles_per_line, display_type);
@@ -168,7 +184,7 @@ CRT::CRT(
 	const int height_of_display,
 	const int vertical_sync_half_lines,
 	const Outputs::Display::InputDataType data_type
-) : animation_curve_(Numeric::CubicCurve::easeInOut()) {
+) : CRT() {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(
@@ -251,62 +267,8 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
-			if(frame_is_complete_ && captures_in_rect_ > 5) {
-				const auto current_rect = [&] {
-					const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
-					return
-						previous_posted_rect_ * (1.0f - animation_time) +
-						*posted_rect_ * animation_time;
-				};
-				const auto set_rect = [&](const Display::Rect &rect) {
-					scan_target_modals_.visible_area = rect;
-					scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
-					scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
-					scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
-					scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
-					scan_target_->set_modals(scan_target_modals_);
-				};
-
-				// Zoom out very slightly if there's space; this avoids a cramped tight crop.
-				if(
-					active_rect_.size.width < 0.95 * scan_target_modals_.output_scale.x &&
-					active_rect_.size.height < 0.95 * scan_target_modals_.output_scale.y
-				) {
-					active_rect_.scale(1.02f, 1.02f);
-				}
-
-				// Limit visibility to the central 90% of the display regardless.
-				const auto Middle95 = Display::Rect(
-					0.05f * scan_target_modals_.output_scale.x,
-					0.075f * scan_target_modals_.output_scale.y,
-					0.90f * scan_target_modals_.output_scale.x,
-					0.90f * scan_target_modals_.output_scale.y);
-
-				const auto output_frame = rect_accumulator_.posit(active_rect_ & Middle95);
-//				if(!posted_rect_.has_value()) {
-//					// Startup condition; accept any reasonable frame if the accumulator is just getting started.
-//					const auto any_frame = rect_accumulator_.any_union();
-//					if(any_frame) {
-//						posted_rect_ = any_frame;
-//						set_rect(*posted_rect_);
-//					}
-//				} else {
-					if(output_frame && (!posted_rect_ || *output_frame != *posted_rect_)) {
-						previous_posted_rect_ = posted_rect_ ? current_rect() : *output_frame;
-						posted_rect_ = *output_frame;
-						animation_step_ = 0;
-					}
-
-					if(animation_step_ < AnimationSteps) {
-						set_rect(current_rect());
-						++animation_step_;
-					}
-
-					// TODO: probably something more gradated.
-					// E.g. if there is at least one level colour change, zoom out a little bit.
-					// Otherwise zoom in somewhere closer.
-					levels_are_interesting_ = level_changes_in_frame_ >= 5;
-//				}
+			if(frame_is_complete_ && captures_in_rect_ > 5 && vertical_flywheel_.was_stable()) {
+				posit(active_rect_);
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 			frame_is_complete_ = true;
@@ -425,6 +387,96 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 		.composite_angle = int16_t(composite_angle),
 		.cycles_since_end_of_horizontal_retrace = uint16_t(cycles_since_horizontal_sync_ / time_multiplier_),
 	};
+}
+
+void CRT::posit(Display::Rect rect) {
+	// Static framing: don't evaluate.
+	if(framing_ == Framing::Static) {
+		return;
+	}
+
+	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
+	if(
+		rect.size.width < 0.95 * scan_target_modals_.output_scale.x &&
+		rect.size.height < 0.95 * scan_target_modals_.output_scale.y
+	) {
+		rect.scale(1.02f, 1.02f);
+	}
+
+	// Scale and push a rect.
+	const auto set_rect = [&](const Display::Rect &rect) {
+		scan_target_modals_.visible_area = rect;
+		scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
+		scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
+		scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
+		scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
+		scan_target_->set_modals(scan_target_modals_);
+	};
+
+	// Get current interpolation between previous_posted_rect_ and posted_rect_.
+	const auto current_rect = [&] {
+		const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
+		return
+			previous_posted_rect_ * (1.0f - animation_time) +
+			posted_rect_ * animation_time;
+	};
+
+	// Continue with any ongoing animation.
+	if(animation_step_ < AnimationSteps) {
+		set_rect(current_rect());
+		++animation_step_;
+
+		if(animation_step_ == AnimationSteps) {
+			if(framing_ == Framing::AutomaticFixed) {
+				framing_ = Framing::Static;
+				return;
+			}
+		}
+	}
+
+	// TODO: possibly start with this approach in dynamic land, too?
+	if(framing_ == Framing::AutomaticFixed) {
+		rect_accumulator_.posit(rect);
+
+		if(const auto reading = rect_accumulator_.first_reading(); reading.has_value()) {
+			previous_posted_rect_ = posted_rect_;
+			posted_rect_ = *reading;
+			animation_step_ = 0;
+			return;
+		}
+	}
+
+	// If here: apply dynamic logic.
+
+
+				// Limit visibility to the central 90% of the display regardless.
+/*				const auto Middle95 = Display::Rect(
+					0.05f * scan_target_modals_.output_scale.x,
+					0.075f * scan_target_modals_.output_scale.y,
+					0.90f * scan_target_modals_.output_scale.x,
+					0.90f * scan_target_modals_.output_scale.y);
+
+				const auto output_frame = rect_accumulator_.posit(active_rect_ & Middle95);
+//				if(!posted_rect_.has_value()) {
+//					// Startup condition; accept any reasonable frame if the accumulator is just getting started.
+//					const auto any_frame = rect_accumulator_.any_union();
+//					if(any_frame) {
+//						posted_rect_ = any_frame;
+//						set_rect(*posted_rect_);
+//					}
+//				} else {
+					if(output_frame && (!posted_rect_ || *output_frame != *posted_rect_)) {
+						previous_posted_rect_ = posted_rect_ ? current_rect() : *output_frame;
+						posted_rect_ = *output_frame;
+						animation_step_ = 0;
+					}
+
+
+					// TODO: probably something more gradated.
+					// E.g. if there is at least one level colour change, zoom out a little bit.
+					// Otherwise zoom in somewhere closer.
+					levels_are_interesting_ = level_changes_in_frame_ >= 5;
+//				} */
 }
 
 // MARK: - Stream feeding.

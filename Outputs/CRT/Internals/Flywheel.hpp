@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <cstdint>
 #include <utility>
@@ -107,6 +108,10 @@ struct Flywheel {
 		}
 
 		return std::make_pair(proposed_event, proposed_sync_time);
+	}
+
+	bool was_stable() const {
+		return std::abs(last_adjustment_) < 10;	// TODO: don't hard code this nonsense.
 	}
 
 	/*!

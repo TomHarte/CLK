@@ -26,6 +26,11 @@ struct RectAccumulator {
 		return std::nullopt;
 	}
 
+	std::optional<Display::Rect> first_reading() const {
+		if(candidates_.pushes() != 2) return std::nullopt;
+		return candidates_.join(2);
+	}
+
 private:
 	template <size_t n>
 	struct RectHistory {
@@ -36,10 +41,10 @@ private:
 			if(stream_pointer_ == n) stream_pointer_ = 0;
 		}
 
-		Display::Rect join() const {
+		Display::Rect join(int limit = 0) const {
 			return std::accumulate(
 				stream_.begin() + 1,
-				stream_.end(),
+				limit > 0 ? stream_.begin() + limit : stream_.end(),
 				stream_[0],
 				[](const Display::Rect &lhs, const Display::Rect &rhs) {
 					return lhs | rhs;
