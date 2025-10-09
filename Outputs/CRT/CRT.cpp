@@ -280,7 +280,7 @@ void CRT::advance_cycles(
 					0.01f * scan_target_modals_.output_scale.x,
 					0.01f * scan_target_modals_.output_scale.y,
 					0.98f * scan_target_modals_.output_scale.x,
-					0.98f * scan_target_modals_.output_scale.x);
+					0.98f * scan_target_modals_.output_scale.y);
 
 				const auto output_frame = rect_accumulator_.posit(active_rect_ & Middle95);
 //				if(!posted_rect_.has_value()) {
