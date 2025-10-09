@@ -275,12 +275,12 @@ void CRT::advance_cycles(
 					active_rect_.scale(1.02f, 1.02f);
 				}
 
-				// Limit visibility to the central 98% of the display regardless.
+				// Limit visibility to the central 90% of the display regardless.
 				const auto Middle95 = Display::Rect(
-					0.01f * scan_target_modals_.output_scale.x,
-					0.01f * scan_target_modals_.output_scale.y,
-					0.98f * scan_target_modals_.output_scale.x,
-					0.98f * scan_target_modals_.output_scale.y);
+					0.05f * scan_target_modals_.output_scale.x,
+					0.05f * scan_target_modals_.output_scale.y,
+					0.90f * scan_target_modals_.output_scale.x,
+					0.90f * scan_target_modals_.output_scale.y);
 
 				const auto output_frame = rect_accumulator_.posit(active_rect_ & Middle95);
 //				if(!posted_rect_.has_value()) {
