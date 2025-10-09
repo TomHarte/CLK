@@ -88,6 +88,7 @@ struct Rect {
 		);
 	}
 
+	/// Scale towards the origin.
 	Rect operator /(const float multiplier) const {
 		return Rect(
 			origin.x / multiplier,
@@ -97,6 +98,7 @@ struct Rect {
 		);
 	}
 
+	/// Perform the union.
 	Rect operator |(const Rect &rhs) const {
 		const auto left = std::min(origin.x, rhs.origin.x);
 		const auto top = std::min(origin.y, rhs.origin.y);
@@ -106,6 +108,19 @@ struct Rect {
 			top,
 			std::max(origin.x + size.width - left, rhs.origin.x + rhs.size.width - left),
 			std::max(origin.y + size.height - top, rhs.origin.y + rhs.size.height - top)
+		);
+	}
+
+	/// Perform the intersection.
+	Rect operator &(const Rect &rhs) const {
+		const auto left = std::max(origin.x, rhs.origin.x);
+		const auto top = std::max(origin.y, rhs.origin.y);
+
+		return Rect(
+			left,
+			top,
+			std::min(origin.x + size.width - left, rhs.origin.x + rhs.size.width - left),
+			std::min(origin.y + size.height - top, rhs.origin.y + rhs.size.height - top)
 		);
 	}
 };

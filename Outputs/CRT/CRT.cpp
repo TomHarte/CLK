@@ -275,17 +275,24 @@ void CRT::advance_cycles(
 					active_rect_.scale(1.02f, 1.02f);
 				}
 
-				const auto output_frame = rect_accumulator_.posit(active_rect_);
-				if(!posted_rect_.has_value()) {
-					// Startup condition; accept any reasonable frame if the accumulator is just getting started.
-					const auto any_frame = rect_accumulator_.any_union();
-					if(any_frame) {
-						posted_rect_ = any_frame;
-						set_rect(*posted_rect_);
-					}
-				} else {
-					if(output_frame && *output_frame != *posted_rect_) {
-						previous_posted_rect_ = current_rect();
+				// Limit visibility to the central 98% of the display regardless.
+				const auto Middle95 = Display::Rect(
+					0.01f * scan_target_modals_.output_scale.x,
+					0.01f * scan_target_modals_.output_scale.y,
+					0.98f * scan_target_modals_.output_scale.x,
+					0.98f * scan_target_modals_.output_scale.x);
+
+				const auto output_frame = rect_accumulator_.posit(active_rect_ & Middle95);
+//				if(!posted_rect_.has_value()) {
+//					// Startup condition; accept any reasonable frame if the accumulator is just getting started.
+//					const auto any_frame = rect_accumulator_.any_union();
+//					if(any_frame) {
+//						posted_rect_ = any_frame;
+//						set_rect(*posted_rect_);
+//					}
+//				} else {
+					if(output_frame && (!posted_rect_ || *output_frame != *posted_rect_)) {
+						previous_posted_rect_ = posted_rect_ ? current_rect() : *output_frame;
 						posted_rect_ = *output_frame;
 						animation_step_ = 0;
 					}
@@ -299,7 +306,7 @@ void CRT::advance_cycles(
 					// E.g. if there is at least one level colour change, zoom out a little bit.
 					// Otherwise zoom in somewhere closer.
 					levels_are_interesting_ = level_changes_in_frame_ >= 5;
-				}
+//				}
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 			frame_is_complete_ = true;

@@ -19,18 +19,9 @@ namespace Outputs::CRT {
 
 struct RectAccumulator {
 	std::optional<Display::Rect> posit(const Display::Rect &rect) {
-		unions_.push_back(rect);
-
-		candidates_.push_back(unions_.join());
-		if(candidates_.pushes() == CandidateHistorySize && candidates_.stable()) {
-			return candidates_.any();
-		}
-		return std::nullopt;
-	}
-
-	std::optional<Display::Rect> any_union() const {
-		if(unions_.pushes() == UnionHistorySize) {
-			return unions_.join();
+		candidates_.push_back(rect);
+		if(candidates_.pushes() == CandidateHistorySize) {
+			return candidates_.join();
 		}
 		return std::nullopt;
 	}
@@ -80,12 +71,8 @@ private:
 		int pushes_ = 0;
 	};
 
-	// A long record, to try to avoid instability caused by interlaced video, flashing cursors, etc.
-	static constexpr int UnionHistorySize = 17;
-	RectHistory<UnionHistorySize> unions_;
-
 	// Require at least a second in any given state.
-	static constexpr int CandidateHistorySize = 150;
+	static constexpr int CandidateHistorySize = 250;
 	RectHistory<CandidateHistorySize> candidates_;
 };
 
