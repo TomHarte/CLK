@@ -85,7 +85,7 @@ private:
 	RectHistory<UnionHistorySize> unions_;
 
 	// Require at least a second in any given state.
-	static constexpr int CandidateHistorySize = 60;
+	static constexpr int CandidateHistorySize = 150;
 	RectHistory<CandidateHistorySize> candidates_;
 };
 
