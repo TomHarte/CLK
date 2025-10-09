@@ -278,7 +278,7 @@ void CRT::advance_cycles(
 				// Limit visibility to the central 90% of the display regardless.
 				const auto Middle95 = Display::Rect(
 					0.05f * scan_target_modals_.output_scale.x,
-					0.05f * scan_target_modals_.output_scale.y,
+					0.075f * scan_target_modals_.output_scale.y,
 					0.90f * scan_target_modals_.output_scale.x,
 					0.90f * scan_target_modals_.output_scale.y);
 
