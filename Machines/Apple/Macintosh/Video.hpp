@@ -57,7 +57,7 @@ public:
 		Provides a base address and a mask indicating which parts of the generated video and audio/drive addresses are
 		actually decoded, accessing *word-sized memory*; e.g. for a 128kb Macintosh this should be (1 << 16) - 1 = 0xffff.
 	*/
-	void set_ram(uint16_t *ram, uint32_t mask);
+	void set_ram(const uint16_t *ram, uint32_t mask);
 
 	/*!
 		@returns @c true if the video is currently outputting a vertical sync, @c false otherwise.
@@ -86,7 +86,7 @@ private:
 	DriveSpeedAccumulator &drive_speed_accumulator_;
 
 	Outputs::CRT::CRT crt_;
-	uint16_t *ram_ = nullptr;
+	const uint16_t *ram_ = nullptr;
 	uint32_t ram_mask_ = 0;
 
 	HalfCycles frame_position_;

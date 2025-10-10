@@ -180,7 +180,12 @@ void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use
 	use_alternate_audio_buffer_ = use_alternate_audio_buffer;
 }
 
-void Video::set_ram(uint16_t *ram, uint32_t mask) {
+void Video::set_ram(const uint16_t *const ram, const uint32_t mask) {
 	ram_ = ram;
 	ram_mask_ = mask;
+
+	// Now that RAM is assigned, the CRT cna be warmed.
+	crt_.set_automatic_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
 }
