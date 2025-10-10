@@ -96,7 +96,6 @@ private:
 			// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
 			// consider whether that's worth building into the scan target.
 		{
-			crt.set_visible_area(Outputs::Display::Rect(0.028f, 0.025f, 0.98f, 0.98f));
 			crt.set_display_type(Outputs::Display::DisplayType::RGB);
 		}
 

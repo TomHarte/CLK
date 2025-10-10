@@ -103,7 +103,6 @@ private:
 		CRTCOutputter() :
 			crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 		{
-			crt.set_visible_area(Outputs::Display::Rect(0.095f, 0.095f, 0.82f, 0.82f));
 			crt.set_display_type(Outputs::Display::DisplayType::RGB);
 		}
 
