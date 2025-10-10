@@ -13,6 +13,8 @@
 #include <cmath>
 #include <cstdarg>
 
+// TODO: keep posted_rect_ et al in scaled coordinates.
+
 using namespace Outputs::CRT;
 
 // MARK: - Input timing setup.
@@ -104,6 +106,30 @@ void CRT::set_new_timing(
 	}
 
 	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_framing(const Framing framing, const Outputs::Display::Rect bounds, const float minimum_scale) {
+	scan_target_modals_.visible_area = bounds;
+	rect_bounds_ = posted_rect_ = Outputs::Display::Rect(
+		bounds.origin.x * scan_target_modals_.output_scale.x,
+		bounds.origin.y * scan_target_modals_.output_scale.y,
+		bounds.size.width * scan_target_modals_.output_scale.x,
+		bounds.size.height * scan_target_modals_.output_scale.y
+	);
+	framing_ = framing;
+	minimum_scale_ = minimum_scale;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_automatic_fixed_framing(const std::function<void()> &advance) {
+	set_framing(Framing::AutomaticFixed);
+	while(framing() == Framing::AutomaticFixed) {
+		advance();
+	}
+}
+
+Framing CRT::framing() {
+	return framing_;
 }
 
 void CRT::set_new_display_type(const int cycles_per_line, const Outputs::Display::Type displayType) {
@@ -223,6 +249,9 @@ void CRT::advance_cycles(
 		return this->end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
 	};
 
+	using EndPoint = Outputs::Display::ScanTarget::Scan::EndPoint;
+	EndPoint start_point;
+
 	while(number_of_cycles) {
 		// Get time until next horizontal and vertical sync generator events.
 		const auto vertical_event = vertical_flywheel_.next_event_in_period(vsync_requested, number_of_cycles);
@@ -245,13 +274,14 @@ void CRT::advance_cycles(
 			!horizontal_flywheel_.is_in_retrace() &&
 			!vertical_flywheel_.is_in_retrace();
 		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->begin_scan() : nullptr;
-		frame_is_complete_ &= !is_output_segment || bool(next_scan);
 		did_output |= is_output_segment;
 
 		// If outputting, store the start location and scan constants.
 		if(next_scan) {
 			next_scan->end_points[0] = end_point();
 			next_scan->composite_amplitude = colour_burst_amplitude_;
+		} else if(is_output_segment) {
+			start_point = end_point();
 		}
 
 		// Advance time: that'll affect both the colour subcarrier and the number of cycles left to run.
@@ -270,27 +300,28 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
-			if(frame_is_complete_ && captures_in_rect_ > 5 && vertical_flywheel_.was_stable()) {
+			if(captures_in_rect_ > 5 && vertical_flywheel_.was_stable()) {
 				posit(active_rect_);
 			}
 			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
-			frame_is_complete_ = true;
 			captures_in_rect_ = 0;
 			level_changes_in_frame_ = 0;
 		}
 
 		// End the scan if necessary.
+		const auto posit_scan = [&](const EndPoint &start, const EndPoint &end) {
+			if(levels_are_interesting_ || number_of_samples > 1) {
+				++captures_in_rect_;
+				active_rect_.expand(start.x, end.x, start.y, end.y);
+			}
+		};
+
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
-			if(frame_is_complete_ && (levels_are_interesting_ || number_of_samples > 1)) {
-				++captures_in_rect_;
-				active_rect_.expand(
-					next_scan->end_points[0].x, next_scan->end_points[1].x,
-					next_scan->end_points[0].y, next_scan->end_points[1].y
-				);
-			}
-
+			posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
 			scan_target_->end_scan();
+		} else if(is_output_segment) {
+			posit_scan(start_point, end_point());
 		}
 
 		using Event = Outputs::Display::ScanTarget::Event;

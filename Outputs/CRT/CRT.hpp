@@ -10,6 +10,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -270,7 +271,23 @@ public:
 	/*!	Nominates a section of the display to crop to for output. */
 	void set_visible_area(Outputs::Display::Rect);
 
-	void set_framing(Framing, Outputs::Display::Rect seed, Outputs::Display::Rect maximum);
+	/*!
+		Provides hints that the CRT will use so as best to present its display to the user; in particular:
+
+		*	Framing::AutomaticFixed implies that this machine always uses the same region of the screen for pixels, and
+			the two other parameters are ignored. The CRT will automatically switch to Framing:Static once it has established
+			appropriate screen bounds.
+		*	Framing::DynamicRange means that software is fully in control of which parts of the display may contain content; in that case
+			@c bounds provides the maximal region that a programmer might consider to be visible, and @c minimum_scale provides a limit on
+			the degree to which the CRT should zoom in on content within those bounds;
+		*	Framing::Static means that the CRT will not try to autodetect the meaningful area at all; whatever is supplied for @c bounds will be
+			the permanent display area.
+
+		It is currently intended that this method be used at startup only.
+	*/
+	void set_framing(Framing, Outputs::Display::Rect bounds = {}, float minimum_scale = 0.85f);
+	void set_automatic_fixed_framing(const std::function<void()> &);
+	Framing framing();
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(
@@ -382,9 +399,9 @@ private:
 	// Accumulator for interesting detail from this frame.
 	Outputs::Display::Rect active_rect_;
 	int captures_in_rect_ = 0;
-	bool frame_is_complete_ = false;
 
 	// Current state of cropping rectangle as communicated onwards.
+	Outputs::Display::Rect rect_bounds_;
 	Outputs::Display::Rect posted_rect_;
 	Outputs::Display::Rect previous_posted_rect_;
 	Numeric::CubicCurve animation_curve_;
@@ -397,6 +414,7 @@ private:
 	uint32_t last_level_ = 0;
 
 	Framing framing_ = Framing::AutomaticFixed;
+	float minimum_scale_ = 0.85f;
 	RectAccumulator rect_accumulator_;
 	void posit(Display::Rect);
 
