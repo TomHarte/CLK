@@ -91,13 +91,16 @@ void CRT::set_new_timing(
 
 	// Default crop: middle 90%.
 	if(is_first_set) {
-		posted_rect_ = Display::Rect(
-			0.05f * scan_target_modals_.output_scale.x,
-			0.05f * scan_target_modals_.output_scale.y,
-			0.9f * scan_target_modals_.output_scale.x,
-			0.9f * scan_target_modals_.output_scale.y
+		const auto default_rect = Display::Rect(
+			0.05f, 0.05f, 0.9f, 0.9f
 		);
-		scan_target_modals_.visible_area = posted_rect_;
+		scan_target_modals_.visible_area = default_rect;
+		posted_rect_ = Display::Rect(
+			default_rect.origin.x * scan_target_modals_.output_scale.x,
+			default_rect.origin.y * scan_target_modals_.output_scale.y,
+			default_rect.size.width * scan_target_modals_.output_scale.x,
+			default_rect.size.height * scan_target_modals_.output_scale.y
+		);
 	}
 
 	scan_target_->set_modals(scan_target_modals_);
@@ -280,23 +283,11 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
 			if(frame_is_complete_ && (levels_are_interesting_ || number_of_samples > 1)) {
-				// Omit any scan that's not within the central 95% of the display.
-//				const uint16_t hard_left = scan_target_modals_.output_scale.x * 0.025f;
-//				const uint16_t hard_right = scan_target_modals_.output_scale.x * 0.975f;
-//				const uint16_t hard_top = scan_target_modals_.output_scale.y * 0.025f;
-//				const uint16_t hard_bottom = scan_target_modals_.output_scale.x * 0.975f;
-//				if(
-//					(next_scan->end_points[0].y >= hard_top || next_scan->end_points[1].y >= hard_top) &&
-//					(next_scan->end_points[0].y <= hard_bottom || next_scan->end_points[1].y <= hard_bottom) &&
-//					(next_scan->end_points[0].x >= hard_left || next_scan->end_points[1].y >= hard_left) &&
-//					(next_scan->end_points[0].x <= hard_right || next_scan->end_points[1].y <= hard_right)
-//				) {
-					++captures_in_rect_;
-					active_rect_.expand(
-						next_scan->end_points[0].x, next_scan->end_points[1].x,
-						next_scan->end_points[0].y, next_scan->end_points[1].y
-					);
-//				}
+				++captures_in_rect_;
+				active_rect_.expand(
+					next_scan->end_points[0].x, next_scan->end_points[1].x,
+					next_scan->end_points[0].y, next_scan->end_points[1].y
+				);
 			}
 
 			scan_target_->end_scan();
@@ -400,7 +391,7 @@ void CRT::posit(Display::Rect rect) {
 		rect.size.width < 0.95 * scan_target_modals_.output_scale.x &&
 		rect.size.height < 0.95 * scan_target_modals_.output_scale.y
 	) {
-		rect.scale(1.01f, 1.01f);
+		rect.scale(1.02f, 1.02f);
 	}
 
 	// Scale and push a rect.
