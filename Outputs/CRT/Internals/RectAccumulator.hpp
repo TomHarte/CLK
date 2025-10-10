@@ -30,8 +30,8 @@ struct RectAccumulator {
 		return std::nullopt;
 	}
 
-	std::optional<Display::Rect> first_reading() {
-		if(did_first_read_ || !first_reading_candidates_.stable()) {
+	std::optional<Display::Rect> first_reading(const float threshold) {
+		if(did_first_read_ || !first_reading_candidates_.stable(threshold)) {
 			return std::nullopt;
 		}
 		did_first_read_ = true;
@@ -59,12 +59,12 @@ private:
 			);
 		}
 
-		bool stable() const {
+		bool stable(const float threshold) const {
 			return std::all_of(
 				stream_.begin() + 1,
 				stream_.end(),
 				[&](const Display::Rect &rhs) {
-					return rhs == stream_[0];	// TODO: within tolerance, for interlaced displays.
+					return rhs.equal(stream_[0], threshold);
 				}
 			);
 		}

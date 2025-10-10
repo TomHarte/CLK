@@ -438,7 +438,8 @@ void CRT::posit(Display::Rect rect) {
 	if(framing_ == Framing::AutomaticFixed) {
 		rect_accumulator_.posit(rect);
 
-		if(const auto reading = rect_accumulator_.first_reading(); reading.has_value()) {
+		const float tolerance = scan_target_modals_.output_scale.y / scan_target_modals_.expected_vertical_lines;
+		if(const auto reading = rect_accumulator_.first_reading(tolerance); reading.has_value()) {
 			previous_posted_rect_ = posted_rect_;
 			posted_rect_ = *reading;
 			animation_step_ = 0;

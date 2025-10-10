@@ -36,6 +36,18 @@ struct Rect {
 
 	auto operator <=>(const Rect &) const = default;
 
+	bool equal(const Rect &rhs, const float tolerance) const {
+		const auto compare = [=](const float left, const float right) {
+			if(left < right - tolerance || left > right + tolerance) return false;
+			return true;
+		};
+		return
+			compare(origin.x, rhs.origin.x) &&
+			compare(origin.y, rhs.origin.y) &&
+			compare(size.width, rhs.size.width) &&
+			compare(size.height, rhs.size.height);
+	}
+
 	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
 	constexpr Rect(float x, float y, float width, float height) :
 		origin({x, y}), size({width, height}) {}
