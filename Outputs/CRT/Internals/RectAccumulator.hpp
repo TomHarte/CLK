@@ -19,6 +19,10 @@ namespace Outputs::CRT {
 
 struct RectAccumulator {
 	std::optional<Display::Rect> posit(const Display::Rect &rect) {
+		if(!did_first_read_) {
+			first_reading_candidates_.push_back(rect);
+		}
+
 		candidates_.push_back(rect);
 		if(candidates_.pushes() == CandidateHistorySize) {
 			return candidates_.join();
@@ -26,13 +30,12 @@ struct RectAccumulator {
 		return std::nullopt;
 	}
 
-	std::optional<Display::Rect> first_reading() const {
-		// Wait for two fields and return the union of those; that'll ensure that
-		// interlaced video is boxed correctly.
-		if(candidates_.pushes() == 2) {
-			return candidates_.join(2);
+	std::optional<Display::Rect> first_reading() {
+		if(did_first_read_ || !first_reading_candidates_.stable()) {
+			return std::nullopt;
 		}
-		return std::nullopt;
+		did_first_read_ = true;
+		return first_reading_candidates_.join();
 	}
 
 private:
@@ -45,11 +48,11 @@ private:
 			if(stream_pointer_ == n) stream_pointer_ = 0;
 		}
 
-		Display::Rect join(int limit = 0) const {
+		Display::Rect join() const {
 			return std::accumulate(
 				stream_.begin() + 1,
-				limit > 0 ? stream_.begin() + limit : stream_.end(),
-				stream_[0],
+				stream_.end(),
+				*stream_.begin(),
 				[](const Display::Rect &lhs, const Display::Rect &rhs) {
 					return lhs | rhs;
 				}
@@ -61,7 +64,7 @@ private:
 				stream_.begin() + 1,
 				stream_.end(),
 				[&](const Display::Rect &rhs) {
-					return rhs == stream_[0];
+					return rhs == stream_[0];	// TODO: within tolerance, for interlaced displays.
 				}
 			);
 		}
@@ -80,9 +83,14 @@ private:
 		int pushes_ = 0;
 	};
 
-	// Require at least a second in any given state.
+	// Use the union of "a prolonged period" to figure out what should currently be visible.
 	static constexpr int CandidateHistorySize = 250;
 	RectHistory<CandidateHistorySize> candidates_;
+
+	// At startup, look for a small number of sequential but consistent frames.
+	static constexpr int FirstReadingSize = 4;
+	RectHistory<FirstReadingSize> first_reading_candidates_;
+	bool did_first_read_ = false;
 };
 
 }
