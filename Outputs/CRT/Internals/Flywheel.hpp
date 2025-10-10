@@ -111,7 +111,7 @@ struct Flywheel {
 	}
 
 	bool was_stable() const {
-		return std::abs(last_adjustment_) < 10;	// TODO: don't hard code this nonsense.
+		return std::abs(last_adjustment_) < (sync_error_window_ / 250);
 	}
 
 	/*!

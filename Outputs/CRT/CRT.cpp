@@ -400,7 +400,7 @@ void CRT::posit(Display::Rect rect) {
 		rect.size.width < 0.95 * scan_target_modals_.output_scale.x &&
 		rect.size.height < 0.95 * scan_target_modals_.output_scale.y
 	) {
-		rect.scale(1.02f, 1.02f);
+		rect.scale(1.01f, 1.01f);
 	}
 
 	// Scale and push a rect.

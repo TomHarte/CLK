@@ -27,8 +27,12 @@ struct RectAccumulator {
 	}
 
 	std::optional<Display::Rect> first_reading() const {
-		if(candidates_.pushes() != 2) return std::nullopt;
-		return candidates_.join(2);
+		// Wait for two fields and return the union of those; that'll ensure that
+		// interlaced video is boxed correctly.
+		if(candidates_.pushes() == 2) {
+			return candidates_.join(2);
+		}
+		return std::nullopt;
 	}
 
 private:
