@@ -34,6 +34,11 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_.set_input_data_type(data_type_);
 	crt_.set_delegate(&frequency_mismatch_warner_);
 	update_crt_frequency();
+
+	// Prewarm CRT.
+	crt_.set_automatic_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
 }
 
 void VideoOutput::register_crt_frequency_mismatch() {
