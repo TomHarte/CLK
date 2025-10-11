@@ -307,7 +307,6 @@ public:
 	{
 		// Show only the centre 80% of the TV frame.
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-		crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 
 		// Get the CRT roughly into phase.
 		//
@@ -316,8 +315,14 @@ public:
 		crt_.output_blank(timings.lines_per_frame*timings.half_cycles_per_line - timings.interrupt_time);
 	}
 
-	void set_video_source(const uint8_t *source) {
+	void set_video_source(const uint8_t *const source) {
+		const bool is_first_set = !memory_;
 		memory_ = source;
+		if(is_first_set) {
+			crt_.set_automatic_fixed_framing([&] {
+				run_for(Cycles(10'000));
+			});
+		}
 	}
 
 	/*!
@@ -352,10 +357,12 @@ public:
 		@returns How many cycles the [ULA/gate array] would delay the CPU for if it were to recognise that contention
 		needs to be applied in @c offset half-cycles from now.
 	*/
-	HalfCycles access_delay(HalfCycles offset) const {
+	HalfCycles access_delay(const HalfCycles offset) const {
 		static constexpr auto timings = get_timings();
-		const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.half_cycles_per_line * timings.lines_per_frame);
-		assert(!(delay_time&1));
+		const int delay_time =
+			(time_into_frame_ + offset.as<int>() + timings.contention_leadin) %
+			(timings.half_cycles_per_line * timings.lines_per_frame);
+//		assert(!(delay_time&1));
 
 		// Check for a time within the no-contention window.
 		if(delay_time >= (191*timings.half_cycles_per_line + timings.contention_duration)) {

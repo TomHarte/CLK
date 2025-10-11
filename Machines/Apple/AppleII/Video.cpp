@@ -25,20 +25,8 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 //	crt_.set_immediate_default_phase(0.5f);
 }
 
-void VideoBase::set_use_square_pixels(bool use_square_pixels) {
+void VideoBase::set_use_square_pixels(const bool use_square_pixels) {
 	use_square_pixels_ = use_square_pixels;
-
-	// HYPER-UGLY HACK. See correlated hack in the Macintosh.
-#if defined(__APPLE__) && !defined(IGNORE_APPLE)
-	crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.122f, 0.75f, 0.77f));
-#else
-	if(use_square_pixels) {
-		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.09f, 0.75f, 0.77f));
-	} else {
-		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.12f, 0.75f, 0.77f));
-	}
-#endif
-
 	if(use_square_pixels) {
 		// From what I can make out, many contemporary Apple II monitors were
 		// calibrated slightly to stretch the Apple II's display slightly wider
@@ -55,6 +43,13 @@ void VideoBase::set_use_square_pixels(bool use_square_pixels) {
 		crt_.set_aspect_ratio(4.0f / 3.0f);
 	}
 }
+
+void VideoBase::establish_framing() {
+	crt_.set_automatic_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
+}
+
 bool VideoBase::get_use_square_pixels() const {
 	return use_square_pixels_;
 }

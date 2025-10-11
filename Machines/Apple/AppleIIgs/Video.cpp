@@ -111,11 +111,6 @@ Video::Video() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
-
-	// Reduce the initial bounce by cueing up the part of the frame that initial drawing actually
-	// starts with. More or less.
-	crt_.output_blank(228*63*2);
 
 	// Establish the shift lookup table for NTSC -> RGB output.
 	for(size_t c = 0; c < sizeof(ntsc_delay_lookup_) / sizeof(*ntsc_delay_lookup_); c++) {
@@ -149,8 +144,11 @@ Outputs::Display::DisplayType Video::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-void Video::set_internal_ram(const uint8_t *ram) {
+void Video::set_internal_ram(const uint8_t *const ram) {
 	ram_ = ram;
+//	crt_.set_automatic_fixed_framing([&] {
+//		run_for(Cycles(10'000));
+//	});
 }
 
 void Video::advance(Cycles cycles) {
