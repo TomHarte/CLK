@@ -28,7 +28,7 @@ template <typename Performer> struct TaskQueueStorage {
 
 protected:
 	void update() {
-		auto time_now = Time::nanos_now();
+		const auto time_now = Time::nanos_now();
 		performer.perform(time_now - last_fired_);
 		last_fired_ = time_now;
 	}
@@ -64,7 +64,12 @@ template <> struct TaskQueueStorage<void> {
 	action occupies the asynchronous thread for long enough. So it is not true that @c perform will be
 	called once per action.
 */
-template <bool perform_automatically, bool start_immediately = true, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
+template <
+	bool perform_automatically,
+	bool start_immediately = true,
+	typename Performer = void
+>
+class AsyncTaskQueue: public TaskQueueStorage<Performer> {
 public:
 	template <typename... Args> AsyncTaskQueue(Args&&... args) :
 		TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
@@ -84,7 +89,7 @@ public:
 	/// on the same thread as the performer, after the performer has been updated
 	/// to 'now'.
 	void enqueue(const std::function<void(void)> &post_action) {
-		std::lock_guard guard(condition_mutex_);
+		const std::lock_guard guard(condition_mutex_);
 		actions_.push_back(post_action);
 
 		if constexpr (perform_automatically) {
