@@ -13,8 +13,6 @@
 #include <cmath>
 #include <cstdarg>
 
-// TODO: keep posted_rect_ et al in scaled coordinates.
-
 using namespace Outputs::CRT;
 
 namespace {
@@ -101,15 +99,8 @@ void CRT::set_new_timing(
 
 	// Default crop: middle 90%.
 	if(is_first_set) {
-		const auto default_rect = Display::Rect(
+		scan_target_modals_.visible_area = posted_rect_ = Display::Rect(
 			0.05f, 0.05f, 0.9f, 0.9f
-		);
-		scan_target_modals_.visible_area = default_rect;
-		posted_rect_ = Display::Rect(
-			default_rect.origin.x * scan_target_modals_.output_scale.x,
-			default_rect.origin.y * scan_target_modals_.output_scale.y,
-			default_rect.size.width * scan_target_modals_.output_scale.x,
-			default_rect.size.height * scan_target_modals_.output_scale.y
 		);
 	}
 
@@ -118,19 +109,14 @@ void CRT::set_new_timing(
 
 void CRT::set_framing(const Framing framing, const Outputs::Display::Rect bounds, const float minimum_scale) {
 	scan_target_modals_.visible_area = bounds;
-	rect_bounds_ = posted_rect_ = Outputs::Display::Rect(
-		bounds.origin.x * scan_target_modals_.output_scale.x,
-		bounds.origin.y * scan_target_modals_.output_scale.y,
-		bounds.size.width * scan_target_modals_.output_scale.x,
-		bounds.size.height * scan_target_modals_.output_scale.y
-	);
+	rect_bounds_ = posted_rect_ = bounds;
 	framing_ = framing;
 	minimum_scale_ = minimum_scale;
 	scan_target_->set_modals(scan_target_modals_);
 }
 
 void CRT::set_automatic_fixed_framing(const std::function<void()> &advance) {
-	set_framing(Framing::AutomaticFixed);
+	framing_ = Framing::AutomaticFixed;
 	while(framing() == Framing::AutomaticFixed) {
 		advance();
 	}
@@ -308,6 +294,18 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
+			if(should_calculate_framing(framing_)) {
+				active_rect_.origin.x /= scan_target_modals_.output_scale.x;
+				active_rect_.size.width /= scan_target_modals_.output_scale.x;
+				active_rect_.origin.y /= scan_target_modals_.output_scale.y;
+				active_rect_.size.height /= scan_target_modals_.output_scale.y;
+
+				border_rect_.origin.x /= scan_target_modals_.output_scale.x;
+				border_rect_.size.width /= scan_target_modals_.output_scale.x;
+				border_rect_.origin.y /= scan_target_modals_.output_scale.y;
+				border_rect_.size.height /= scan_target_modals_.output_scale.y;
+			}
+
 			if(captures_in_rect_ > 5 && vertical_flywheel_.was_stable()) {
 				if(!level_changes_in_frame_) {
 					posit(active_rect_);
@@ -320,7 +318,7 @@ void CRT::advance_cycles(
 			level_changes_in_frame_ = 0;
 
 			if(should_calculate_framing(framing_)) {
-				active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
+				border_rect_ = active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 				captures_in_rect_ = 0;
 			}
 		}
@@ -328,10 +326,9 @@ void CRT::advance_cycles(
 		// End the scan if necessary.
 		const auto posit_scan = [&](const EndPoint &start, const EndPoint &end) {
 			++captures_in_rect_;
+			border_rect_.expand(start.x, end.x, start.y, end.y);
 			if(number_of_samples > 1) {
 				active_rect_.expand(start.x, end.x, start.y, end.y);
-			} else {
-				border_rect_.expand(start.x, end.x, start.y, end.y);
 			}
 		};
 
@@ -434,10 +431,6 @@ void CRT::posit(Display::Rect rect) {
 	// Scale and push a rect.
 	const auto set_rect = [&](const Display::Rect &rect) {
 		scan_target_modals_.visible_area = rect;
-		scan_target_modals_.visible_area.origin.x /= scan_target_modals_.output_scale.x;
-		scan_target_modals_.visible_area.size.width /= scan_target_modals_.output_scale.x;
-		scan_target_modals_.visible_area.origin.y /= scan_target_modals_.output_scale.y;
-		scan_target_modals_.visible_area.size.height /= scan_target_modals_.output_scale.y;
 		scan_target_->set_modals(scan_target_modals_);
 	};
 
@@ -450,10 +443,7 @@ void CRT::posit(Display::Rect rect) {
 	};
 
 	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
-	if(
-		rect.size.width < 0.95 * scan_target_modals_.output_scale.x &&
-		rect.size.height < 0.95 * scan_target_modals_.output_scale.y
-	) {
+	if(rect.size.width < 0.95 && rect.size.height < 0.95) {
 		rect.scale(1.02f, 1.02f);
 	}
 
@@ -490,7 +480,7 @@ void CRT::posit(Display::Rect rect) {
 	if(framing_ == Framing::AutomaticFixed) {
 		rect_accumulator_.posit(rect);
 
-		const float tolerance = scan_target_modals_.output_scale.y / scan_target_modals_.expected_vertical_lines;
+		const float tolerance = 1.0f / scan_target_modals_.expected_vertical_lines;
 		if(const auto reading = rect_accumulator_.first_reading(tolerance); reading.has_value()) {
 			previous_posted_rect_ = posted_rect_;
 			posted_rect_ = *reading;
