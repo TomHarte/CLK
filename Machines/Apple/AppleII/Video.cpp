@@ -45,7 +45,7 @@ void VideoBase::set_use_square_pixels(const bool use_square_pixels) {
 }
 
 void VideoBase::establish_framing() {
-	crt_.set_automatic_fixed_framing([&] {
+	crt_.set_fixed_framing([&] {
 		run_for(Cycles(10'000));
 	});
 }

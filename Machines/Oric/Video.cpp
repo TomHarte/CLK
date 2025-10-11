@@ -36,7 +36,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	update_crt_frequency();
 
 	// Prewarm CRT.
-	crt_.set_automatic_fixed_framing([&] {
+	crt_.set_fixed_framing([&] {
 		run_for(Cycles(10'000));
 	});
 }

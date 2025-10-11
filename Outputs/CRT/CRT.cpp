@@ -15,14 +15,6 @@
 
 using namespace Outputs::CRT;
 
-namespace {
-
-constexpr bool should_calculate_framing(const Framing framing) {
-	return framing < Framing::Static;
-}
-
-}
-
 // MARK: - Input timing setup.
 
 void CRT::set_new_timing(
@@ -107,24 +99,24 @@ void CRT::set_new_timing(
 	scan_target_->set_modals(scan_target_modals_);
 }
 
-void CRT::set_framing(const Framing framing, const Outputs::Display::Rect bounds, const float minimum_scale) {
-	scan_target_modals_.visible_area = bounds;
-	rect_bounds_ = posted_rect_ = bounds;
-	framing_ = framing;
-	minimum_scale_ = minimum_scale;
-	scan_target_->set_modals(scan_target_modals_);
-}
+//void CRT::set_framing(const Framing framing, const Outputs::Display::Rect bounds, const float minimum_scale) {
+//	scan_target_modals_.visible_area = bounds;
+//	rect_bounds_ = posted_rect_ = bounds;
+//	framing_ = framing;
+//	minimum_scale_ = minimum_scale;
+//	scan_target_->set_modals(scan_target_modals_);
+//}
 
-void CRT::set_automatic_fixed_framing(const std::function<void()> &advance) {
+void CRT::set_fixed_framing(const std::function<void()> &advance) {
 	framing_ = Framing::AutomaticFixed;
-	while(framing() == Framing::AutomaticFixed) {
+	while(framing_ == Framing::AutomaticFixed) {
 		advance();
 	}
 }
 
-Framing CRT::framing() {
-	return framing_;
-}
+//Framing CRT::framing() {
+//	return framing_;
+//}
 
 void CRT::set_new_display_type(const int cycles_per_line, const Outputs::Display::Type displayType) {
 	switch(displayType) {

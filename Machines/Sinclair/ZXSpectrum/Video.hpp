@@ -319,7 +319,7 @@ public:
 		const bool is_first_set = !memory_;
 		memory_ = source;
 		if(is_first_set) {
-			crt_.set_automatic_fixed_framing([&] {
+			crt_.set_fixed_framing([&] {
 				run_for(Cycles(10'000));
 			});
 		}

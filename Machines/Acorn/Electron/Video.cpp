@@ -22,7 +22,7 @@ VideoOutput::VideoOutput(const uint8_t *memory) :
 		Outputs::Display::InputDataType::Red1Green1Blue1) {
 	// Default construction values leave this out of text mode, and text
 	// mode uses a subregion of pixel modes.
-	crt_.set_automatic_fixed_framing([&] {
+	crt_.set_fixed_framing([&] {
 		run_for(Cycles(10'000));
 	});
 }

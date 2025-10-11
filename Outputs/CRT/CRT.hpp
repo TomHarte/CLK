@@ -52,14 +52,6 @@ struct Delegate {
 	virtual void crt_did_end_batch_of_frames(CRT &, int frames, int unexpected_vertical_syncs) = 0;
 };
 
-enum class Framing {
-	AutomaticFixed,
-	DynamicInRange,
-
-	Static,
-	BorderReactive,
-};
-
 /*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
 	and generating the proper set of output spans. Attempts to act and react exactly as a real
 	TV would have to things like irregular or off-spec sync, and includes logic properly to track
@@ -273,23 +265,8 @@ public:
 	/*!	Nominates a section of the display to crop to for output. */
 	void set_visible_area(Outputs::Display::Rect);
 
-	/*!
-		Provides hints that the CRT will use so as best to present its display to the user; in particular:
-
-		*	Framing::AutomaticFixed implies that this machine always uses the same region of the screen for pixels, and
-			the two other parameters are ignored. The CRT will automatically switch to Framing:Static once it has established
-			appropriate screen bounds.
-		*	Framing::DynamicRange means that software is fully in control of which parts of the display may contain content; in that case
-			@c bounds provides the maximal region that a programmer might consider to be visible, and @c minimum_scale provides a limit on
-			the degree to which the CRT should zoom in on content within those bounds;
-		*	Framing::Static means that the CRT will not try to autodetect the meaningful area at all; whatever is supplied for @c bounds will be
-			the permanent display area.
-
-		It is currently intended that this method be used at startup only.
-	*/
-	void set_framing(Framing, Outputs::Display::Rect bounds = {}, float minimum_scale = 0.85f);
-	void set_automatic_fixed_framing(const std::function<void()> &);
-	Framing framing();
+	void set_dynamic_framing(Outputs::Display::Rect, float minimum_scale = 0.85f);
+	void set_fixed_framing(const std::function<void()> &);
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(
@@ -414,6 +391,17 @@ private:
 	int animation_step_ = AnimationSteps;
 
 	// Configured cropping options.
+	enum class Framing {
+		AutomaticFixed,
+		DynamicInRange,
+
+		Static,
+		BorderReactive,
+	};
+	static constexpr bool should_calculate_framing(const Framing framing) {
+		return framing < Framing::Static;
+	}
+
 	Framing framing_ = Framing::AutomaticFixed;
 	Outputs::Display::Rect rect_bounds_;
 	float minimum_scale_ = 0.85f;
