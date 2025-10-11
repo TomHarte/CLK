@@ -17,6 +17,14 @@
 
 using namespace Outputs::CRT;
 
+namespace {
+
+constexpr bool should_calculate_framing(const Framing framing) {
+	return framing < Framing::Static;
+}
+
+}
+
 // MARK: - Input timing setup.
 
 void CRT::set_new_timing(
@@ -280,7 +288,7 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[0] = end_point();
 			next_scan->composite_amplitude = colour_burst_amplitude_;
-		} else if(is_output_segment) {
+		} else if(is_output_segment && should_calculate_framing(framing_)) {
 			start_point = end_point();
 		}
 
@@ -301,26 +309,37 @@ void CRT::advance_cycles(
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
 			if(captures_in_rect_ > 5 && vertical_flywheel_.was_stable()) {
-				posit(active_rect_);
+				if(!level_changes_in_frame_) {
+					posit(active_rect_);
+				} else if(level_changes_in_frame_ < 20) {
+					posit(active_rect_ * 0.9f + border_rect_ * 0.1f);
+				} else {
+					posit(active_rect_ * 0.3f + border_rect_ * 0.7f);
+				}
 			}
-			active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
-			captures_in_rect_ = 0;
 			level_changes_in_frame_ = 0;
+
+			if(should_calculate_framing(framing_)) {
+				active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
+				captures_in_rect_ = 0;
+			}
 		}
 
 		// End the scan if necessary.
 		const auto posit_scan = [&](const EndPoint &start, const EndPoint &end) {
-			if(levels_are_interesting_ || number_of_samples > 1) {
-				++captures_in_rect_;
+			++captures_in_rect_;
+			if(number_of_samples > 1) {
 				active_rect_.expand(start.x, end.x, start.y, end.y);
+			} else {
+				border_rect_.expand(start.x, end.x, start.y, end.y);
 			}
 		};
 
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
-			posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
+			if(should_calculate_framing(framing_)) posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
 			scan_target_->end_scan();
-		} else if(is_output_segment) {
+		} else if(is_output_segment && should_calculate_framing(framing_)) {
 			posit_scan(start_point, end_point());
 		}
 
@@ -412,19 +431,6 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 }
 
 void CRT::posit(Display::Rect rect) {
-	// Static framing: don't evaluate.
-	if(framing_ == Framing::Static) {
-		return;
-	}
-
-	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
-	if(
-		rect.size.width < 0.95 * scan_target_modals_.output_scale.x &&
-		rect.size.height < 0.95 * scan_target_modals_.output_scale.y
-	) {
-		rect.scale(1.02f, 1.02f);
-	}
-
 	// Scale and push a rect.
 	const auto set_rect = [&](const Display::Rect &rect) {
 		scan_target_modals_.visible_area = rect;
@@ -443,6 +449,28 @@ void CRT::posit(Display::Rect rect) {
 			posted_rect_ * animation_time;
 	};
 
+	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
+	if(
+		rect.size.width < 0.95 * scan_target_modals_.output_scale.x &&
+		rect.size.height < 0.95 * scan_target_modals_.output_scale.y
+	) {
+		rect.scale(1.02f, 1.02f);
+	}
+
+	// Static framing: don't evaluate.
+	if(framing_ == Framing::Static) {
+		return;
+	}
+
+	// Border reactive: take frame as gospel.
+	if(framing_ == Framing::BorderReactive) {
+		if(rect != posted_rect_) {
+			previous_posted_rect_ = current_rect();
+			posted_rect_ = rect;
+			animation_step_ = 0;
+		}
+	}
+
 	// Continue with any ongoing animation.
 	if(animation_step_ < AnimationSteps) {
 		set_rect(current_rect());
@@ -450,7 +478,9 @@ void CRT::posit(Display::Rect rect) {
 
 		if(animation_step_ == AnimationSteps) {
 			if(framing_ == Framing::AutomaticFixed) {
-				framing_ = Framing::Static;
+				framing_ =
+					border_rect_ != active_rect_ ?
+						Framing::BorderReactive : Framing::Static;
 				return;
 			}
 		}
@@ -465,8 +495,8 @@ void CRT::posit(Display::Rect rect) {
 			previous_posted_rect_ = posted_rect_;
 			posted_rect_ = *reading;
 			animation_step_ = 0;
-			return;
 		}
+		return;
 	}
 
 	// If here: apply dynamic logic.

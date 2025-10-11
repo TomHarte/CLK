@@ -55,7 +55,9 @@ struct Delegate {
 enum class Framing {
 	AutomaticFixed,
 	DynamicInRange,
+
 	Static,
+	BorderReactive,
 };
 
 /*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
@@ -398,10 +400,12 @@ private:
 
 	// Accumulator for interesting detail from this frame.
 	Outputs::Display::Rect active_rect_;
+	Outputs::Display::Rect border_rect_;
 	int captures_in_rect_ = 0;
+	int level_changes_in_frame_ = 0;
+	uint32_t last_level_ = 0;
 
-	// Current state of cropping rectangle as communicated onwards.
-	Outputs::Display::Rect rect_bounds_;
+	// Current state of cropping rectangle, including any ongoing animation.
 	Outputs::Display::Rect posted_rect_;
 	Outputs::Display::Rect previous_posted_rect_;
 	Numeric::CubicCurve animation_curve_;
@@ -409,11 +413,9 @@ private:
 	static constexpr int AnimationSteps = 25;
 	int animation_step_ = AnimationSteps;
 
-	bool levels_are_interesting_ = false;
-	int level_changes_in_frame_ = 0;
-	uint32_t last_level_ = 0;
-
+	// Configured cropping options.
 	Framing framing_ = Framing::AutomaticFixed;
+	Outputs::Display::Rect rect_bounds_;
 	float minimum_scale_ = 0.85f;
 	RectAccumulator rect_accumulator_;
 	void posit(Display::Rect);
