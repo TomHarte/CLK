@@ -490,6 +490,7 @@ void CRT::posit(Display::Rect rect) {
 	}
 
 	// If here: apply dynamic logic.
+//	printf("");
 
 
 				// Limit visibility to the central 90% of the display regardless.

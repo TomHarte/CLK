@@ -64,7 +64,12 @@ template <> struct TaskQueueStorage<void> {
 	action occupies the asynchronous thread for long enough. So it is not true that @c perform will be
 	called once per action.
 */
-template <bool perform_automatically, bool start_immediately = true, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
+template <
+	bool perform_automatically,
+	bool start_immediately = true,
+	typename Performer = void
+>
+class AsyncTaskQueue: public TaskQueueStorage<Performer> {
 public:
 	template <typename... Args> AsyncTaskQueue(Args&&... args) :
 		TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
