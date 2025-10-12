@@ -392,17 +392,17 @@ private:
 
 	// Configured cropping options.
 	enum class Framing {
-		AutomaticFixed,
-		DynamicInRange,
+		CalibratingAutomaticFixed,
+		CalibratingDynamicInRange,
 
 		Static,
 		BorderReactive,
 	};
-	static constexpr bool should_calculate_framing(const Framing framing) {
+	static constexpr bool is_calibrating(const Framing framing) {
 		return framing < Framing::Static;
 	}
 
-	Framing framing_ = Framing::AutomaticFixed;
+	Framing framing_ = Framing::CalibratingDynamicInRange;
 	Outputs::Display::Rect rect_bounds_;
 	float minimum_scale_ = 0.85f;
 	RectAccumulator rect_accumulator_;

@@ -108,8 +108,8 @@ void CRT::set_new_timing(
 //}
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
-	framing_ = Framing::AutomaticFixed;
-	while(framing_ == Framing::AutomaticFixed) {
+	framing_ = Framing::CalibratingAutomaticFixed;
+	while(framing_ == Framing::CalibratingAutomaticFixed) {
 		advance();
 	}
 }
@@ -266,7 +266,7 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[0] = end_point();
 			next_scan->composite_amplitude = colour_burst_amplitude_;
-		} else if(is_output_segment && should_calculate_framing(framing_)) {
+		} else if(is_output_segment && is_calibrating(framing_)) {
 			start_point = end_point();
 		}
 
@@ -286,7 +286,7 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
-			if(should_calculate_framing(framing_)) {
+			if(is_calibrating(framing_)) {
 				active_rect_.origin.x /= scan_target_modals_.output_scale.x;
 				active_rect_.size.width /= scan_target_modals_.output_scale.x;
 				active_rect_.origin.y /= scan_target_modals_.output_scale.y;
@@ -309,7 +309,7 @@ void CRT::advance_cycles(
 			}
 			level_changes_in_frame_ = 0;
 
-			if(should_calculate_framing(framing_)) {
+			if(is_calibrating(framing_)) {
 				border_rect_ = active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 				captures_in_rect_ = 0;
 			}
@@ -326,9 +326,9 @@ void CRT::advance_cycles(
 
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
-			if(should_calculate_framing(framing_)) posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
+			if(is_calibrating(framing_)) posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
 			scan_target_->end_scan();
-		} else if(is_output_segment && should_calculate_framing(framing_)) {
+		} else if(is_output_segment && is_calibrating(framing_)) {
 			posit_scan(start_point, end_point());
 		}
 
@@ -459,7 +459,7 @@ void CRT::posit(Display::Rect rect) {
 		++animation_step_;
 
 		if(animation_step_ == AnimationSteps) {
-			if(framing_ == Framing::AutomaticFixed) {
+			if(framing_ == Framing::CalibratingAutomaticFixed) {
 				framing_ =
 					border_rect_ != active_rect_ ?
 						Framing::BorderReactive : Framing::Static;
@@ -469,7 +469,7 @@ void CRT::posit(Display::Rect rect) {
 	}
 
 	// TODO: possibly start with this approach in dynamic land, too?
-	if(framing_ == Framing::AutomaticFixed) {
+	if(framing_ == Framing::CalibratingAutomaticFixed) {
 		rect_accumulator_.posit(rect);
 
 		const float tolerance = 1.0f / scan_target_modals_.expected_vertical_lines;
