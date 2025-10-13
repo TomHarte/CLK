@@ -105,7 +105,11 @@ void CRT::set_dynamic_framing(const Outputs::Display::Rect bounds, const float m
 	framing_bounds_ = bounds;
 	minimum_scale_ = minimum_scale;
 
-	// As a first guess, take 90% of the bounds (?)
+	// As a first guess, take 90% of the bounds.
+	scan_target_modals_.visible_area = bounds;
+	scan_target_modals_.visible_area.scale(0.9f, 0.9f);
+	posted_rect_ = scan_target_modals_.visible_area;
+	scan_target_->set_modals(scan_target_modals_);
 }
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
@@ -114,10 +118,6 @@ void CRT::set_fixed_framing(const std::function<void()> &advance) {
 		advance();
 	}
 }
-
-//Framing CRT::framing() {
-//	return framing_;
-//}
 
 void CRT::set_new_display_type(const int cycles_per_line, const Outputs::Display::Type displayType) {
 	switch(displayType) {
@@ -482,14 +482,15 @@ void CRT::posit(Display::Rect rect) {
 		return;
 	}
 
-//	// Limit visibility to the central 90% of the display regardless.
-//	const auto Middle95 = Display::Rect(
-//		0.05f * scan_target_modals_.output_scale.x,
-//		0.075f * scan_target_modals_.output_scale.y,
-//		0.90f * scan_target_modals_.output_scale.x,
-//		0.90f * scan_target_modals_.output_scale.y);
+	// Constrain to minimum_scale_.
+	rect.scale(
+		rect.size.width > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.width,
+		rect.size.height > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.height
+	);
 
-	// TODO: constrain to framing_bounds_ and minimum_scale_.
+	// Constrain to permitted bounds.
+	framing_bounds_.constrain(rect);
+
 	const auto output_frame = rect_accumulator_.posit(rect);
 	if(output_frame && *output_frame != posted_rect_) {
 		previous_posted_rect_ = current_rect();
@@ -650,70 +651,53 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 	[[maybe_unused]] int first_line_after_sync,
 	[[maybe_unused]] int number_of_lines,
 	[[maybe_unused]] int first_cycle_after_sync,
-	[[maybe_unused]] int number_of_cycles,
-	[[maybe_unused]] const float aspect_ratio
+	[[maybe_unused]] int number_of_cycles
 ) const {
-	return Outputs::Display::Rect();
+	assert(number_of_cycles > 0);
+	assert(number_of_lines > 0);
+	assert(first_line_after_sync >= 0);
+	assert(first_cycle_after_sync >= 0);
 
-//	assert(number_of_cycles > 0);
-//	assert(number_of_lines > 0);
-//	assert(first_line_after_sync >= 0);
-//	assert(first_cycle_after_sync >= 0);
-//
-//	// Scale up x coordinates and add a little extra leeway to y.
-//	first_cycle_after_sync *= time_multiplier_;
-//	number_of_cycles *= time_multiplier_;
-//
-//	first_line_after_sync -= 2;
-//	number_of_lines += 4;
-//
-//	// Determine prima facie x extent.
-//	const int horizontal_period = horizontal_flywheel_.standard_period();
-//	const int horizontal_scan_period = horizontal_flywheel_.scan_period();
-//	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
-//
-//	// Ensure requested range is within visible region.
-//	first_cycle_after_sync = std::max(horizontal_retrace_period, first_cycle_after_sync);
-//	number_of_cycles = std::min(horizontal_period - first_cycle_after_sync, number_of_cycles);
-//
-//	float start_x = float(first_cycle_after_sync - horizontal_retrace_period) / float(horizontal_scan_period);
-//	float width = float(number_of_cycles) / float(horizontal_scan_period);
-//
-//	// Determine prima facie y extent.
-//	const int vertical_period = vertical_flywheel_.standard_period();
-//	const int vertical_scan_period = vertical_flywheel_.scan_period();
-//	const int vertical_retrace_period = vertical_period - vertical_scan_period;
-//
-//	// Ensure range is visible.
-//	first_line_after_sync = std::max(
-//		first_line_after_sync * horizontal_period,
-//		vertical_retrace_period
-//	) / horizontal_period;
-//	number_of_lines = std::min(
-//		vertical_period - first_line_after_sync * horizontal_period,
-//		number_of_lines * horizontal_period
-//	) / horizontal_period;
-//
-//	float start_y =
-//		float(first_line_after_sync * horizontal_period - vertical_retrace_period) /
-//		float(vertical_scan_period);
-//	float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
-//
-//	// Pick a zoom that includes the entire requested visible area given the aspect ratio constraints.
-//	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
-//	const float ideal_width = height * adjusted_aspect_ratio;
-//	if(ideal_width > width) {
-//		start_x -= (ideal_width - width) * 0.5f;
-//		width = ideal_width;
-//	} else {
-//		float ideal_height = width / adjusted_aspect_ratio;
-//		start_y -= (ideal_height - height) * 0.5f;
-//		height = ideal_height;
-//	}
-//
-//	// TODO: apply absolute clipping constraints now.
-//
-//	return Outputs::Display::Rect(start_x, start_y, width, height);
+	// Scale up x coordinates and add a little extra leeway to y.
+	first_cycle_after_sync *= time_multiplier_;
+	number_of_cycles *= time_multiplier_;
+
+	first_line_after_sync -= 2;
+	number_of_lines += 4;
+
+	// Determine prima facie x extent.
+	const int horizontal_period = horizontal_flywheel_.standard_period();
+	const int horizontal_scan_period = horizontal_flywheel_.scan_period();
+	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
+
+	// Ensure requested range is within visible region.
+	first_cycle_after_sync = std::max(horizontal_retrace_period, first_cycle_after_sync);
+	number_of_cycles = std::min(horizontal_period - first_cycle_after_sync, number_of_cycles);
+
+	float start_x = float(first_cycle_after_sync - horizontal_retrace_period) / float(horizontal_scan_period);
+	float width = float(number_of_cycles) / float(horizontal_scan_period);
+
+	// Determine prima facie y extent.
+	const int vertical_period = vertical_flywheel_.standard_period();
+	const int vertical_scan_period = vertical_flywheel_.scan_period();
+	const int vertical_retrace_period = vertical_period - vertical_scan_period;
+
+	// Ensure range is visible.
+	first_line_after_sync = std::max(
+		first_line_after_sync * horizontal_period,
+		vertical_retrace_period
+	) / horizontal_period;
+	number_of_lines = std::min(
+		vertical_period - first_line_after_sync * horizontal_period,
+		number_of_lines * horizontal_period
+	) / horizontal_period;
+
+	const float start_y =
+		float(first_line_after_sync * horizontal_period - vertical_retrace_period) /
+		float(vertical_scan_period);
+	const float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
+
+	return Outputs::Display::Rect(start_x, start_y, width, height);
 }
 
 Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {

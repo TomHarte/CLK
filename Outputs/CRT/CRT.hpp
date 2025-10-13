@@ -265,7 +265,7 @@ public:
 	/*!	Nominates a section of the display to crop to for output. */
 	void set_visible_area(Outputs::Display::Rect);
 
-	void set_dynamic_framing(Outputs::Display::Rect, float minimum_scale = 0.85f);
+	void set_dynamic_framing(Outputs::Display::Rect, float minimum_scale = 0.6f);
 	void set_fixed_framing(const std::function<void()> &);
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
@@ -273,8 +273,7 @@ public:
 		int first_line_after_sync,
 		int number_of_lines,
 		int first_cycle_after_sync,
-		int number_of_cycles,
-		float aspect_ratio) const;
+		int number_of_cycles) const;
 
 	/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 	inline void set_delegate(Delegate *delegate) {

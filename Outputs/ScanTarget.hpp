@@ -135,6 +135,29 @@ struct Rect {
 			std::min(origin.y + size.height - top, rhs.origin.y + rhs.size.height - top)
 		);
 	}
+
+	void constrain(Rect &rhs) const {
+		// Push left and up if out of bounds on the right or bottom.
+		if(rhs.origin.x + rhs.size.width > origin.x + size.width) {
+			rhs.origin.x -= origin.x + size.width - rhs.size.width;
+		}
+		if(rhs.origin.y + rhs.size.height > origin.y + size.height) {
+			rhs.origin.y -= origin.x + size.height - rhs.size.height;
+		}
+
+		// Push down and right if out of bounds on the left or top.
+		rhs.origin.x = std::max(rhs.origin.x, origin.x);
+		rhs.origin.y = std::max(rhs.origin.y, origin.y);
+
+		// If the other rectangle is _still_ too large then it's not solveable by
+		// moving it around; just shrink it.
+		if(rhs.origin.x + rhs.size.width > origin.x + size.width) {
+			rhs.size.width = size.width;
+		}
+		if(rhs.origin.y + rhs.size.height > origin.y + size.height) {
+			rhs.size.height = size.height;
+		}
+	}
 };
 
 enum class ColourSpace {

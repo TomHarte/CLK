@@ -129,8 +129,7 @@ Video::Video() :
 	// usual output height of 200 lines.
 	crt_.set_visible_area(crt_.get_rect_for_area(
 		33, 260,
-		480, 1280,
-		4.0f / 3.0f));
+		480, 1280));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
