@@ -482,14 +482,14 @@ void CRT::posit(Display::Rect rect) {
 		return;
 	}
 
-	// Constrain to minimum_scale_.
+	// Constrain to permitted bounds.
+	framing_bounds_.constrain(rect);
+
+	// Constrain to minimum scale.
 	rect.scale(
 		rect.size.width > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.width,
 		rect.size.height > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.height
 	);
-
-	// Constrain to permitted bounds.
-	framing_bounds_.constrain(rect);
 
 	const auto output_frame = rect_accumulator_.posit(rect);
 	if(output_frame && *output_frame != posted_rect_) {
