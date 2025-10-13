@@ -402,10 +402,12 @@ private:
 		return framing < Framing::Static;
 	}
 
-	Framing framing_ = Framing::CalibratingDynamicInRange;
-	Outputs::Display::Rect rect_bounds_;
-	float minimum_scale_ = 0.85f;
 	RectAccumulator rect_accumulator_;
+
+	Framing framing_ = Framing::CalibratingDynamicInRange;
+	bool has_first_reading_ = false;
+	Outputs::Display::Rect framing_bounds_;
+	float minimum_scale_ = 0.85f;
 	void posit(Display::Rect);
 
 #ifndef NDEBUG

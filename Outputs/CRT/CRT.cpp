@@ -99,13 +99,14 @@ void CRT::set_new_timing(
 	scan_target_->set_modals(scan_target_modals_);
 }
 
-//void CRT::set_framing(const Framing framing, const Outputs::Display::Rect bounds, const float minimum_scale) {
-//	scan_target_modals_.visible_area = bounds;
-//	rect_bounds_ = posted_rect_ = bounds;
-//	framing_ = framing;
-//	minimum_scale_ = minimum_scale;
-//	scan_target_->set_modals(scan_target_modals_);
-//}
+void CRT::set_dynamic_framing(const Outputs::Display::Rect bounds, const float minimum_scale) {
+	framing_ = Framing::CalibratingDynamicInRange;
+
+	framing_bounds_ = bounds;
+	minimum_scale_ = minimum_scale;
+
+	// As a first guess, take 90% of the bounds (?)
+}
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
 	framing_ = Framing::CalibratingAutomaticFixed;
@@ -468,8 +469,7 @@ void CRT::posit(Display::Rect rect) {
 		}
 	}
 
-	// TODO: possibly start with this approach in dynamic land, too?
-	if(framing_ == Framing::CalibratingAutomaticFixed) {
+	if(!has_first_reading_) {
 		rect_accumulator_.posit(rect);
 
 		const float tolerance = 1.0f / scan_target_modals_.expected_vertical_lines;
@@ -477,42 +477,25 @@ void CRT::posit(Display::Rect rect) {
 			previous_posted_rect_ = posted_rect_;
 			posted_rect_ = *reading;
 			animation_step_ = 0;
+			has_first_reading_ = true;
 		}
 		return;
 	}
 
-	// If here: apply dynamic logic.
-//	printf("");
+//	// Limit visibility to the central 90% of the display regardless.
+//	const auto Middle95 = Display::Rect(
+//		0.05f * scan_target_modals_.output_scale.x,
+//		0.075f * scan_target_modals_.output_scale.y,
+//		0.90f * scan_target_modals_.output_scale.x,
+//		0.90f * scan_target_modals_.output_scale.y);
 
-
-				// Limit visibility to the central 90% of the display regardless.
-/*				const auto Middle95 = Display::Rect(
-					0.05f * scan_target_modals_.output_scale.x,
-					0.075f * scan_target_modals_.output_scale.y,
-					0.90f * scan_target_modals_.output_scale.x,
-					0.90f * scan_target_modals_.output_scale.y);
-
-				const auto output_frame = rect_accumulator_.posit(active_rect_ & Middle95);
-//				if(!posted_rect_.has_value()) {
-//					// Startup condition; accept any reasonable frame if the accumulator is just getting started.
-//					const auto any_frame = rect_accumulator_.any_union();
-//					if(any_frame) {
-//						posted_rect_ = any_frame;
-//						set_rect(*posted_rect_);
-//					}
-//				} else {
-					if(output_frame && (!posted_rect_ || *output_frame != *posted_rect_)) {
-						previous_posted_rect_ = posted_rect_ ? current_rect() : *output_frame;
-						posted_rect_ = *output_frame;
-						animation_step_ = 0;
-					}
-
-
-					// TODO: probably something more gradated.
-					// E.g. if there is at least one level colour change, zoom out a little bit.
-					// Otherwise zoom in somewhere closer.
-					levels_are_interesting_ = level_changes_in_frame_ >= 5;
-//				} */
+	// TODO: constrain to framing_bounds_ and minimum_scale_.
+	const auto output_frame = rect_accumulator_.posit(rect);
+	if(output_frame && *output_frame != posted_rect_) {
+		previous_posted_rect_ = current_rect();
+		posted_rect_ = *output_frame;
+		animation_step_ = 0;
+	}
 }
 
 // MARK: - Stream feeding.
