@@ -17,7 +17,7 @@ namespace Numeric {
 */
 struct CubicCurve {
 	CubicCurve(const float c1x, const float c1y, const float c2x, const float c2y) :
-		c1(c1x, c1y), c2(c2x, c2y)
+		c1_(c1x, c1y), c2_(c2x, c2y)
 	{
 		assert(0.0f <= c1x);	assert(c1x <= 1.0f);
 		assert(0.0f <= c1y);	assert(c1y <= 1.0f);
@@ -56,18 +56,18 @@ private:
 
 	/// @returns The value for axis @c index at time @c t.
 	float axis(const float t, int index) const {
-		const float f1 = t * c1[index];
-		const float f2 = t * c2[index] + (1.0f - t) * c1[index];
-		const float f3 = t + (1.0f - t) * c2[index];
+		const float f1 = t * c1_[index];
+		const float f2 = t * c2_[index] + (1.0f - t) * c1_[index];
+		const float f3 = t + (1.0f - t) * c2_[index];
 
-		const float c1 = t * f2 + (1.0f - t) * f1;
-		const float c2 = t * f3 + (1.0f - t) * f2;
+		const float b1 = t * f2 + (1.0f - t) * f1;
+		const float b2 = t * f3 + (1.0f - t) * f2;
 
-		return t * c2 + (1.0f - t) * c1;
+		return t * b2 + (1.0f - t) * b1;
 	}
 
-	float c1[2];
-	float c2[2];
+	float c1_[2];
+	float c2_[2];
 };
 
 }
