@@ -58,15 +58,18 @@ void i8272::run_for(const Cycles cycles) {
 				drives_[c].step_rate_counter %= (8000 * step_rate_time_);
 				while(steps--) {
 					// Perform a step.
-					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					Logger::info().append(
-						"Target %d versus believed %d", drives_[c].target_head_position, drives_[c].head_position);
+					const int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
 					select_drive(c);
 					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
 
+					Logger::info().append(
+						"Drive %d : seeking %d but seemingly at %d", c, drives_[c].target_head_position, drives_[c].head_position);
+
 					// Check for completion.
 					if(seek_is_satisfied(c)) {
+						Logger::info().append(
+							"Drive %d: seek satisfied", c, drives_[c].target_head_position, drives_[c].head_position);
 						drives_[c].phase = Drive::CompletedSeeking;
 						drives_seeking_--;
 						break;
@@ -716,7 +719,6 @@ void i8272::posit_event(const int event_type) {
 
 	// Performs sense interrupt status.
 	sense_interrupt_status:
-			Logger::info().append("Sense interrupt status");
 			{
 				// Find the first drive that is in the CompletedSeeking state.
 				int found_drive = -1;
@@ -735,8 +737,10 @@ void i8272::posit_event(const int event_type) {
 //					status_.set(Status0::SeekEnded);
 
 					result_stack_ = { drives_[found_drive].head_position, status_[0]};
+					Logger::info().append("Sense interrupt status: returning %02x %02x", result_stack_[0], result_stack_[1]);
 				} else {
 					result_stack_ = { 0x80 };
+					Logger::info().append("Sense interrupt status: returning %02x", result_stack_[0]);
 				}
 			}
 			goto post_result;
