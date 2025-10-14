@@ -64,7 +64,7 @@ void i8272::run_for(const Cycles cycles) {
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
 
 					Logger::info().append(
-						"Drive %d : seeking %d but seemingly at %d", c, drives_[c].target_head_position, drives_[c].head_position);
+						"Drive %d: seeking %d but seemingly at %d", c, drives_[c].target_head_position, drives_[c].head_position);
 
 					// Check for completion.
 					if(seek_is_satisfied(c)) {
@@ -733,8 +733,6 @@ void i8272::posit_event(const int event_type) {
 				if(found_drive != -1) {
 					drives_[found_drive].phase = Drive::NotSeeking;
 					status_.set_status0(uint8_t(found_drive | uint8_t(Status0::SeekEnded)));
-//					status_.end_sense_interrupt_status(found_drive, 0);
-//					status_.set(Status0::SeekEnded);
 
 					result_stack_ = { drives_[found_drive].head_position, status_[0]};
 					Logger::info().append("Sense interrupt status: returning %02x %02x", result_stack_[0], result_stack_[1]);
