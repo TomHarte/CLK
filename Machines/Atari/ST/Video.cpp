@@ -127,7 +127,7 @@ Video::Video() :
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(
+	crt_.set_fixed_framing(crt_.get_rect_for_area(
 		33, 260,
 		480, 1280));
 }

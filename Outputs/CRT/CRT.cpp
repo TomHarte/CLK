@@ -99,24 +99,30 @@ void CRT::set_new_timing(
 	scan_target_->set_modals(scan_target_modals_);
 }
 
-void CRT::set_dynamic_framing(const Outputs::Display::Rect bounds, const float minimum_scale) {
-	framing_ = Framing::CalibratingDynamicInRange;
-
-	framing_bounds_ = bounds;
-	minimum_scale_ = minimum_scale;
-
-	// As a first guess, take 90% of the bounds.
-	scan_target_modals_.visible_area = bounds;
-	scan_target_modals_.visible_area.scale(0.9f, 0.9f);
-	posted_rect_ = scan_target_modals_.visible_area;
-	scan_target_->set_modals(scan_target_modals_);
-}
+//void CRT::set_dynamic_framing(const Outputs::Display::Rect bounds, const float minimum_scale) {
+//	framing_ = Framing::CalibratingDynamicInRange;
+//
+//	framing_bounds_ = bounds;
+//	minimum_scale_ = minimum_scale;
+//
+//	// As a first guess, take 90% of the bounds.
+//	scan_target_modals_.visible_area = bounds;
+//	scan_target_modals_.visible_area.scale(0.9f, 0.9f);
+//	posted_rect_ = scan_target_modals_.visible_area;
+//	scan_target_->set_modals(scan_target_modals_);
+//}
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
 	framing_ = Framing::CalibratingAutomaticFixed;
 	while(framing_ == Framing::CalibratingAutomaticFixed) {
 		advance();
 	}
+}
+
+void CRT::set_fixed_framing(const Display::Rect frame) {
+	framing_ = Framing::Static;
+	scan_target_modals_.visible_area = frame;
+	scan_target_->set_modals(scan_target_modals_);
 }
 
 void CRT::set_new_display_type(const int cycles_per_line, const Outputs::Display::Type displayType) {
@@ -726,11 +732,6 @@ void CRT::set_new_data_type(const Outputs::Display::InputDataType data_type) {
 void CRT::set_aspect_ratio(const float aspect_ratio) {
 	scan_target_modals_.aspect_ratio = aspect_ratio;
 	scan_target_->set_modals(scan_target_modals_);
-}
-
-void CRT::set_visible_area([[maybe_unused]] const Outputs::Display::Rect visible_area) {
-//	scan_target_modals_.visible_area = visible_area;
-//	scan_target_->set_modals(scan_target_modals_);
 }
 
 void CRT::set_display_type(const Outputs::Display::DisplayType display_type) {

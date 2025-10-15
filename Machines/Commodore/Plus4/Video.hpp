@@ -36,13 +36,12 @@ public:
 		const auto visible_lines = 33 * 8;
 		const auto centre = eos() - vs_stop() + 104;	// i.e. centre on vertical_counter_ = 104.
 
-//		crt_.set_visible_area(crt_.get_rect_for_area(
-//			centre - (visible_lines / 2),
-//			visible_lines,
-//			int(HorizontalEvent::Begin40Columns) - int(HorizontalEvent::BeginSync) + int(HorizontalEvent::ScheduleCounterReset) + 1 - 8,
-//			int(HorizontalEvent::End40Columns) - int(HorizontalEvent::Begin40Columns) + 16,
-//			4.0f / 3.0f
-//		));
+		crt_.set_fixed_framing(crt_.get_rect_for_area(
+			centre - (visible_lines / 2),
+			visible_lines,
+			int(HorizontalEvent::Begin40Columns) - int(HorizontalEvent::BeginSync) + int(HorizontalEvent::ScheduleCounterReset) + 1 - 8,
+			int(HorizontalEvent::End40Columns) - int(HorizontalEvent::Begin40Columns) + 16
+		));
 	}
 
 	template <uint16_t address>

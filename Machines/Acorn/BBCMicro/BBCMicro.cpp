@@ -379,7 +379,7 @@ public:
 		ram_(ram),
 		system_via_(system_via)
 	{
-		crt_.set_dynamic_framing(crt_.get_rect_for_area(30, 256, 160, 800));	// TODO: make bigger.
+		crt_.set_fixed_framing(crt_.get_rect_for_area(30, 256, 160, 800));	// TODO: make dynamic.
 	}
 
 	void set_palette(const uint8_t value) {

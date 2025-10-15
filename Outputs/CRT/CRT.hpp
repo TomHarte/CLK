@@ -262,11 +262,29 @@ public:
 	*/
 	void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
-	/*!	Nominates a section of the display to crop to for output. */
-	void set_visible_area(Outputs::Display::Rect);
+	/*!
+		Indicates that the CRT should adjust the visible frame dynamically.
 
-	void set_dynamic_framing(Outputs::Display::Rect, float minimum_scale = 0.6f);
-	void set_fixed_framing(const std::function<void()> &);
+		@param initial Indicates the initial view rectangle
+	*/
+	void set_dynamic_framing(
+		Outputs::Display::Rect maximal_bounds,
+		float max_centre_offset_x,
+		float max_centre_offset_y,
+		float minimum_scale = 0.6f,
+		std::optional<Outputs::Display::Rect> initial = {},
+		std::optional<Outputs::Display::Rect> initial_with_border = {}
+	);
+
+	/*!
+		Indicates that the CRT can calculate ideal framing once up front, and then merely scale between differing amounts of border.
+
+		It will use @c advance to request advances in input until it has managed to pick a suitable window.
+	*/
+	void set_fixed_framing(const std::function<void()> &advance);
+
+	/*!	Indicates that the CRT shall use only exactly the bounds specified. */
+	void set_fixed_framing(Outputs::Display::Rect);
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(

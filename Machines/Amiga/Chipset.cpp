@@ -46,7 +46,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 
 	// Very conservatively crop, to roughly the centre 88% of a frame.
 	// This rectange was specifically calibrated around the default Workbench display.
-	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.055f, 0.88f, 0.88f));
+	crt_.set_fixed_framing(Outputs::Display::Rect(0.05f, 0.055f, 0.88f, 0.88f));
 }
 
 #undef DMA_CONSTRUCT
