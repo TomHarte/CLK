@@ -8,12 +8,15 @@
 
 #include "CRT.hpp"
 
+#include "Outputs/Log.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdarg>
 
 using namespace Outputs::CRT;
+using Logger = Log::Logger<Log::Source::CRT>;
 
 // MARK: - Input timing setup.
 
@@ -99,18 +102,25 @@ void CRT::set_new_timing(
 	scan_target_->set_modals(scan_target_modals_);
 }
 
-//void CRT::set_dynamic_framing(const Outputs::Display::Rect bounds, const float minimum_scale) {
-//	framing_ = Framing::CalibratingDynamicInRange;
-//
-//	framing_bounds_ = bounds;
-//	minimum_scale_ = minimum_scale;
-//
-//	// As a first guess, take 90% of the bounds.
-//	scan_target_modals_.visible_area = bounds;
-//	scan_target_modals_.visible_area.scale(0.9f, 0.9f);
-//	posted_rect_ = scan_target_modals_.visible_area;
-//	scan_target_->set_modals(scan_target_modals_);
-//}
+void CRT::set_dynamic_framing(
+	Outputs::Display::Rect initial,
+	float max_centre_offset_x,
+	float max_centre_offset_y,
+	float minimum_scale
+) {
+	framing_ = Framing::Dynamic;
+
+	framing_bounds_ = initial;
+	framing_bounds_.scale(0.95f / initial.size.width, 0.95f / initial.size.height);
+	framing_bounds_ = framing_bounds_ & Display::Rect(0.025f, 0.025f, 0.95f, 0.95f);
+
+	minimum_scale_ = minimum_scale;
+	max_offsets_[0] = max_centre_offset_x;
+	max_offsets_[1] = max_centre_offset_y;
+
+	posted_rect_ = scan_target_modals_.visible_area = initial;
+	has_first_reading_ = true;
+}
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
 	framing_ = Framing::CalibratingAutomaticFixed;
@@ -305,7 +315,12 @@ void CRT::advance_cycles(
 				border_rect_.size.height /= scan_target_modals_.output_scale.y;
 			}
 
-			if(captures_in_rect_ > 5 && vertical_flywheel_.was_stable()) {
+			if(
+				captures_in_rect_ > 5 &&
+				active_rect_.size.width > 0.05f &&
+				active_rect_.size.height > 0.05f &&
+				vertical_flywheel_.was_stable()
+			) {
 				if(!level_changes_in_frame_) {
 					posit(active_rect_);
 				} else if(level_changes_in_frame_ < 20) {
@@ -484,12 +499,15 @@ void CRT::posit(Display::Rect rect) {
 			posted_rect_ = *reading;
 			animation_step_ = 0;
 			has_first_reading_ = true;
+			Logger::info().append("First reading is (%0.5ff, %0.5ff, %0.5ff, %0.5ff)",
+				posted_rect_.origin.x, posted_rect_.origin.y,
+				posted_rect_.size.width, posted_rect_.size.height);
 		}
 		return;
 	}
 
 	// Constrain to permitted bounds.
-	framing_bounds_.constrain(rect);
+	framing_bounds_.constrain(rect, max_offsets_[0], max_offsets_[1]);
 
 	// Constrain to minimum scale.
 	rect.scale(

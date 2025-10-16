@@ -84,7 +84,7 @@ private:
 	};
 
 	// Use the union of "a prolonged period" to figure out what should currently be visible.
-	static constexpr int CandidateHistorySize = 250;
+	static constexpr int CandidateHistorySize = 500;
 	RectHistory<CandidateHistorySize> candidates_;
 
 	// At startup, look for a small number of sequential but consistent frames.

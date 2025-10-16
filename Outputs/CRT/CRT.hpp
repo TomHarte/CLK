@@ -268,12 +268,10 @@ public:
 		@param initial Indicates the initial view rectangle
 	*/
 	void set_dynamic_framing(
-		Outputs::Display::Rect maximal_bounds,
+		Outputs::Display::Rect initial,
 		float max_centre_offset_x,
 		float max_centre_offset_y,
-		float minimum_scale = 0.6f,
-		std::optional<Outputs::Display::Rect> initial = {},
-		std::optional<Outputs::Display::Rect> initial_with_border = {}
+		float minimum_scale = 0.6f
 	);
 
 	/*!
@@ -404,13 +402,13 @@ private:
 	Outputs::Display::Rect previous_posted_rect_;
 	Numeric::CubicCurve animation_curve_;
 
-	static constexpr int AnimationSteps = 25;
+	static constexpr int AnimationSteps = 100;
 	int animation_step_ = AnimationSteps;
 
 	// Configured cropping options.
 	enum class Framing {
 		CalibratingAutomaticFixed,
-		CalibratingDynamicInRange,
+		Dynamic,
 
 		Static,
 		BorderReactive,
@@ -421,11 +419,14 @@ private:
 
 	RectAccumulator rect_accumulator_;
 
-	Framing framing_ = Framing::CalibratingDynamicInRange;
+	Framing framing_ = Framing::CalibratingAutomaticFixed;
 	bool has_first_reading_ = false;
+	void posit(Display::Rect);
+
+	// Affecting dynamic framing.
 	Outputs::Display::Rect framing_bounds_;
 	float minimum_scale_ = 0.85f;
-	void posit(Display::Rect);
+	float max_offsets_[2]{};
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

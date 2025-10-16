@@ -136,7 +136,7 @@ struct Rect {
 		);
 	}
 
-	void constrain(Rect &rhs) const {
+	void constrain(Rect &rhs, const float max_centre_offset_x, const float max_centre_offset_y) const {
 		// Push left and up if out of bounds on the right or bottom.
 		if(rhs.origin.x + rhs.size.width > origin.x + size.width) {
 			rhs.origin.x -= origin.x + size.width - rhs.size.width;
@@ -157,6 +157,21 @@ struct Rect {
 		if(rhs.origin.y + rhs.size.height > origin.y + size.height) {
 			rhs.size.height = size.height;
 		}
+
+		// Expand if necessary to include at least the same visible area but to align centres.
+		const auto apply_centre = [](float &origin, float &size, const float target, const float max) {
+			const auto offset = origin + size*0.5f - target;
+
+			if(offset < -max) {
+				size -= (offset + max) * 2.0f;
+			} else if(offset > max) {
+				const auto adjustment = offset - max;
+				size += adjustment * 2.0f;
+				origin -= adjustment * 2.0f;
+			}
+		};
+		apply_centre(rhs.origin.x, rhs.size.width, origin.x + size.width * 0.5f, max_centre_offset_x);
+		apply_centre(rhs.origin.y, rhs.size.height, origin.y + size.height * 0.5f, max_centre_offset_y);
 	}
 };
 
