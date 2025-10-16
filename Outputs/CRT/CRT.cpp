@@ -490,10 +490,10 @@ void CRT::posit(Display::Rect rect) {
 		}
 	}
 
+	const float tolerance = 1.0f / scan_target_modals_.expected_vertical_lines;
 	if(!has_first_reading_) {
-		rect_accumulator_.posit(rect);
+		rect_accumulator_.posit(rect, tolerance);
 
-		const float tolerance = 1.0f / scan_target_modals_.expected_vertical_lines;
 		if(const auto reading = rect_accumulator_.first_reading(tolerance); reading.has_value()) {
 			previous_posted_rect_ = posted_rect_;
 			posted_rect_ = *reading;
@@ -515,7 +515,7 @@ void CRT::posit(Display::Rect rect) {
 		rect.size.height > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.height
 	);
 
-	const auto output_frame = rect_accumulator_.posit(rect);
+	const auto output_frame = rect_accumulator_.posit(rect, tolerance);
 	if(output_frame && *output_frame != posted_rect_) {
 		previous_posted_rect_ = current_rect();
 		posted_rect_ = *output_frame;

@@ -18,24 +18,30 @@
 namespace Outputs::CRT {
 
 struct RectAccumulator {
-	std::optional<Display::Rect> posit(const Display::Rect &rect) {
-		if(!did_first_read_) {
-			first_reading_candidates_.push_back(rect);
-		}
+	std::optional<Display::Rect> posit(const Display::Rect &rect, const float stability_threshold) {
+		stable_filter_.push_back(rect);
 
-		candidates_.push_back(rect);
-		if(candidates_.pushes() == CandidateHistorySize) {
-			return candidates_.join();
+		if(stable_filter_.full() && stable_filter_.stable(stability_threshold)) {
+			candidates_.push_back(stable_filter_.join());
+			stable_filter_.reset();
+
+			if(candidates_.full()) {
+				return candidates_.join();
+			}
 		}
 		return std::nullopt;
 	}
 
-	std::optional<Display::Rect> first_reading(const float threshold) {
-		if(did_first_read_ || !first_reading_candidates_.stable(threshold)) {
+	std::optional<Display::Rect> first_reading(const float stability_threshold) {
+		if(
+			did_first_read_ ||
+			!stable_filter_.full() ||
+			!stable_filter_.stable(stability_threshold)
+		) {
 			return std::nullopt;
 		}
 		did_first_read_ = true;
-		return first_reading_candidates_.join();
+		return stable_filter_.join();
 	}
 
 private:
@@ -60,6 +66,10 @@ private:
 		}
 
 		bool stable(const float threshold) const {
+			if(!full()) {
+				return false;
+			}
+
 			return std::all_of(
 				stream_.begin() + 1,
 				stream_.end(),
@@ -73,8 +83,12 @@ private:
 			return stream_[0];
 		}
 
-		const int pushes() const {
-			return pushes_;
+		bool full() const {
+			return pushes_ == int(n);
+		}
+
+		void reset() {
+			pushes_ = 0;
 		}
 
 	private:
@@ -84,12 +98,12 @@ private:
 	};
 
 	// Use the union of "a prolonged period" to figure out what should currently be visible.
-	static constexpr int CandidateHistorySize = 500;
+	static constexpr int CandidateHistorySize = 120;
 	RectHistory<CandidateHistorySize> candidates_;
 
 	// At startup, look for a small number of sequential but consistent frames.
-	static constexpr int FirstReadingSize = 4;
-	RectHistory<FirstReadingSize> first_reading_candidates_;
+	static constexpr int StableFilterSize = 4;
+	RectHistory<StableFilterSize> stable_filter_;
 	bool did_first_read_ = false;
 };
 
