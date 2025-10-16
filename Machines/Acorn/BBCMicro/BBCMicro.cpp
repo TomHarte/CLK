@@ -179,7 +179,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	) :
 		audio_(audio), video_base_(video_base), via_(via), joysticks_(joysticks), delegate_(delegate)
 	{
-		set_key_flag(6, run_disk);
+		set_key_flag(uint8_t(Key::Bit3), run_disk);
 	}
 
 	// CA2: key pressed;
@@ -379,7 +379,9 @@ public:
 		ram_(ram),
 		system_via_(system_via)
 	{
-		crt_.set_fixed_framing(crt_.get_rect_for_area(30, 256, 160, 800));	// TODO: make dynamic.
+		crt_.set_dynamic_framing(
+			Outputs::Display::Rect(0.13333f, 0.06507f, 0.71579f, 0.86069f),
+			0.0f, 0.05f);
 	}
 
 	void set_palette(const uint8_t value) {
