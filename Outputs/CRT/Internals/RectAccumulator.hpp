@@ -18,10 +18,10 @@
 namespace Outputs::CRT {
 
 struct RectAccumulator {
-	std::optional<Display::Rect> posit(const Display::Rect &rect, const float stability_threshold) {
+	std::optional<Display::Rect> posit(const Display::Rect &rect) {
 		stable_filter_.push_back(rect);
 
-		if(stable_filter_.full() && stable_filter_.stable(stability_threshold)) {
+		if(stable_filter_.full() && stable_filter_.stable(stability_threshold_)) {
 			candidates_.push_back(stable_filter_.join());
 			stable_filter_.reset();
 
@@ -32,16 +32,20 @@ struct RectAccumulator {
 		return std::nullopt;
 	}
 
-	std::optional<Display::Rect> first_reading(const float stability_threshold) {
+	std::optional<Display::Rect> first_reading() {
 		if(
 			did_first_read_ ||
 			!stable_filter_.full() ||
-			!stable_filter_.stable(stability_threshold)
+			!stable_filter_.stable(stability_threshold_)
 		) {
 			return std::nullopt;
 		}
 		did_first_read_ = true;
 		return stable_filter_.join();
+	}
+
+	void set_stability_threshold(const float stability_threshold) {
+		stability_threshold_ = stability_threshold;
 	}
 
 private:
@@ -98,6 +102,9 @@ private:
 	};
 
 	// Use the union of "a prolonged period" to figure out what should currently be visible.
+	//
+	// Rects graduate to candidates only after exiting the stable filter, so the true number of
+	// frames considered at any given time is the product of the two sizes.
 	static constexpr int CandidateHistorySize = 120;
 	RectHistory<CandidateHistorySize> candidates_;
 
@@ -105,6 +112,8 @@ private:
 	static constexpr int StableFilterSize = 4;
 	RectHistory<StableFilterSize> stable_filter_;
 	bool did_first_read_ = false;
+
+	float stability_threshold_ = 0.0f;
 };
 
 }
