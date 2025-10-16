@@ -177,7 +177,7 @@ public:
 			build_mode_table();
 			crt_.set_dynamic_framing(
 				Outputs::Display::Rect(0.16842f, 0.19909f, 0.71579f, 0.67197f),
-				0.0f, 0.05f);
+				0.0f, 0.1f);
 			crt_.set_brightness(3.0f / 2.0f);	// As only the values 0, 1 and 2 will be used in each channel,
 												// whereas Red2Green2Blue2 defines a range of 0-3.
 		}

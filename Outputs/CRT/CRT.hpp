@@ -271,6 +271,7 @@ public:
 		Outputs::Display::Rect initial,
 		float max_centre_offset_x,
 		float max_centre_offset_y,
+		float maximum_scale = 0.95f,
 		float minimum_scale = 0.6f
 	);
 

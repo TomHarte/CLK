@@ -105,11 +105,11 @@ private:
 	//
 	// Rects graduate to candidates only after exiting the stable filter, so the true number of
 	// frames considered at any given time is the product of the two sizes.
-	static constexpr int CandidateHistorySize = 12;
+	static constexpr int CandidateHistorySize = 150;
 	RectHistory<CandidateHistorySize> candidates_;
 
 	// At startup, look for a small number of sequential but consistent frames.
-	static constexpr int StableFilterSize = 10;
+	static constexpr int StableFilterSize = 4;
 	RectHistory<StableFilterSize> stable_filter_;
 	bool did_first_read_ = false;
 
