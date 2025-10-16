@@ -48,8 +48,8 @@ struct Rect {
 			compare(size.height, rhs.size.height);
 	}
 
-	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
-	constexpr Rect(float x, float y, float width, float height) :
+	constexpr Rect() noexcept : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
+	constexpr Rect(const float x, const float y, const float width, const float height) noexcept :
 		origin({x, y}), size({width, height}) {}
 
 	bool empty() const {

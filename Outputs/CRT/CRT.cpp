@@ -112,10 +112,19 @@ void CRT::set_dynamic_framing(
 	float minimum_scale
 ) {
 	framing_ = Framing::Dynamic;
-
 	framing_bounds_ = initial;
-	framing_bounds_.scale(0.95f / initial.size.width, 0.95f / initial.size.height);
-	framing_bounds_ = framing_bounds_ & Display::Rect(0.025f, 0.025f, 0.95f, 0.95f);
+
+	// As full constraints, pick at most 95% of the visible area, with the same centre.
+	const float centres[] = {
+		initial.origin.x + initial.size.width * 0.5f,
+		initial.origin.y + initial.size.height * 0.5f,
+	};
+	const float width = std::min(1.0f - centres[0], centres[0]) + max_centre_offset_x * 0.5f;
+	const float height = std::min(1.0f - centres[1], centres[1]) + max_centre_offset_y * 0.5f;
+	framing_bounds_ = Display::Rect(
+		centres[0] - width, centres[1] - height,
+		width * 2.0f, height * 2.0f
+	);
 
 	minimum_scale_ = minimum_scale;
 	max_offsets_[0] = max_centre_offset_x;
