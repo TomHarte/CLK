@@ -8,6 +8,7 @@
 
 #include "i8272.hpp"
 
+#include "Numeric/CompileTimeCounter.hpp"
 #include "Outputs/Log.hpp"
 
 namespace {
@@ -144,21 +145,23 @@ uint8_t i8272::read(const int address) {
 }
 
 void i8272::posit_event(const int event_type) {
+	using CounterTag = Numeric::Counter::SeqBase<i8272, IdleResumePoint+1>;
+
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	}
 
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; \
+#define WAIT_FOR_EVENT(mask)	resume_point_ = Numeric::Counter::next<CounterTag>(); \
 								interesting_event_mask_ = int(mask); \
 								return; \
-								case __LINE__:
+								case Numeric::Counter::current<CounterTag>():
 
 #define WAIT_FOR_TIME(ms)		interesting_event_mask_ = int(Event8272::Timer); \
 								delay_time_ = ms_to_cycles(ms); \
 								is_sleeping_ = false;	\
 								update_clocking_observer(); \
-								resume_point_ = __LINE__;	\
+								resume_point_ = Numeric::Counter::next<CounterTag>();	\
 								[[fallthrough]]; \
-								case __LINE__: \
+								case Numeric::Counter::current<CounterTag>(): \
 								if(delay_time_) return;
 
 #define PASTE(x, y) x##y
