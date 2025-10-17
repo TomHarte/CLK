@@ -74,9 +74,9 @@ TMS9918<personality>::TMS9918() {
 	this->crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 
 	if constexpr (is_yamaha_vdp(personality)) {
-		this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.065f, 0.875f, 0.875f));
+		this->crt_.set_fixed_framing(Outputs::Display::Rect(0.07f, 0.065f, 0.875f, 0.875f));
 	} else {
-		this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
+		this->crt_.set_fixed_framing(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
 	}
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
@@ -683,13 +683,7 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] const uint32_
 		return;
 	}
 
-	// If the border colour is 0, that can be communicated
-	// more efficiently as an explicit blank.
-	if(border_colour) {
-		crt_.output_level<uint32_t>(cycles, border_colour);
-	} else {
-		crt_.output_blank(cycles);
-	}
+	crt_.output_level<uint32_t>(cycles, border_colour);
 }
 
 // MARK: - External interface.

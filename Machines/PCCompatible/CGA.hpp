@@ -103,7 +103,6 @@ private:
 		CRTCOutputter() :
 			crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 		{
-			crt.set_visible_area(Outputs::Display::Rect(0.095f, 0.095f, 0.82f, 0.82f));
 			crt.set_display_type(Outputs::Display::DisplayType::RGB);
 		}
 
@@ -192,11 +191,7 @@ private:
 					switch(output_state) {
 						case OutputState::Sync:			crt.output_sync(count * active_clock_divider);							break;
 						case OutputState::Border:
-							if(active_border_colour) {
-								crt.output_blank(count * active_clock_divider);
-							} else {
-								crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
-							}
+							crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
 						break;
 						case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, colour_phase);	break;
 						case OutputState::Pixels:		flush_pixels();															break;

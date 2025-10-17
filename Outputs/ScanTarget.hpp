@@ -10,6 +10,7 @@
 
 #include "ClockReceiver/TimeTypes.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -25,15 +26,153 @@ enum class Type {
 struct Rect {
 	struct Point {
 		float x, y;
+		auto operator <=>(const Point &) const = default;
 	} origin;
 
-	struct {
+	struct Size {
 		float width, height;
+		auto operator <=>(const Size &) const = default;
 	} size;
 
-	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
-	constexpr Rect(float x, float y, float width, float height) :
+	auto operator <=>(const Rect &) const = default;
+
+	bool equal(const Rect &rhs, const float tolerance) const {
+		const auto compare = [=](const float left, const float right) {
+			if(left < right - tolerance || left > right + tolerance) return false;
+			return true;
+		};
+		return
+			compare(origin.x, rhs.origin.x) &&
+			compare(origin.y, rhs.origin.y) &&
+			compare(size.width, rhs.size.width) &&
+			compare(size.height, rhs.size.height);
+	}
+
+	constexpr Rect() noexcept : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
+	constexpr Rect(const float x, const float y, const float width, const float height) noexcept :
 		origin({x, y}), size({width, height}) {}
+
+	bool empty() const {
+		return size.width == 0.0f || size.height == 0.0f;
+	}
+
+	void expand(const float min_x, const float max_x, const float min_y, const float max_y) {
+		origin.x = std::min(origin.x, min_x);
+		size.width = std::max(size.width, max_x - origin.x);
+
+		origin.y = std::min(origin.y, min_y);
+		size.height = std::max(size.height, max_y - origin.y);
+	}
+
+	/// Scales a rectange around its centre.
+	void scale(const float scale_x, const float scale_y) {
+		const float centre[] = {
+			origin.x + size.width * 0.5f,
+			origin.y + size.height * 0.5f,
+		};
+		size.width *= scale_x;
+		size.height *= scale_y;
+		origin.x = centre[0] - size.width * 0.5f;
+		origin.y = centre[1] - size.height * 0.5f;
+	}
+
+	float appropriate_zoom(const float aspect_ratio_stretch) const {
+		const float width_zoom = 1.0f / (size.width * aspect_ratio_stretch);
+		const float height_zoom = 1.0f / size.height;
+		return std::min(width_zoom, height_zoom);
+	}
+
+	Rect operator *(const float multiplier) const {
+		return Rect(
+			origin.x * multiplier,
+			origin.y * multiplier,
+			size.width * multiplier,
+			size.height * multiplier
+		);
+	}
+
+	Rect operator +(const Rect &rhs) const {
+		return Rect(
+			origin.x + rhs.origin.x,
+			origin.y + rhs.origin.y,
+			size.width + rhs.size.width,
+			size.height + rhs.size.height
+		);
+	}
+
+	/// Scale towards the origin.
+	Rect operator /(const float multiplier) const {
+		return Rect(
+			origin.x / multiplier,
+			origin.y / multiplier,
+			size.width / multiplier,
+			size.height / multiplier
+		);
+	}
+
+	/// Perform the union.
+	Rect operator |(const Rect &rhs) const {
+		const auto left = std::min(origin.x, rhs.origin.x);
+		const auto top = std::min(origin.y, rhs.origin.y);
+
+		return Rect(
+			left,
+			top,
+			std::max(origin.x + size.width - left, rhs.origin.x + rhs.size.width - left),
+			std::max(origin.y + size.height - top, rhs.origin.y + rhs.size.height - top)
+		);
+	}
+
+	/// Perform the intersection.
+	Rect operator &(const Rect &rhs) const {
+		const auto left = std::max(origin.x, rhs.origin.x);
+		const auto top = std::max(origin.y, rhs.origin.y);
+
+		return Rect(
+			left,
+			top,
+			std::min(origin.x + size.width - left, rhs.origin.x + rhs.size.width - left),
+			std::min(origin.y + size.height - top, rhs.origin.y + rhs.size.height - top)
+		);
+	}
+
+	void constrain(Rect &rhs, const float max_centre_offset_x, const float max_centre_offset_y) const {
+		// Push left and up if out of bounds on the right or bottom.
+		if(rhs.origin.x + rhs.size.width > origin.x + size.width) {
+			rhs.origin.x -= origin.x + size.width - rhs.size.width;
+		}
+		if(rhs.origin.y + rhs.size.height > origin.y + size.height) {
+			rhs.origin.y -= origin.x + size.height - rhs.size.height;
+		}
+
+		// Push down and right if out of bounds on the left or top.
+		rhs.origin.x = std::max(rhs.origin.x, origin.x);
+		rhs.origin.y = std::max(rhs.origin.y, origin.y);
+
+		// If the other rectangle is _still_ too large then it's not solveable by
+		// moving it around; just shrink it.
+		if(rhs.origin.x + rhs.size.width > origin.x + size.width) {
+			rhs.size.width = size.width;
+		}
+		if(rhs.origin.y + rhs.size.height > origin.y + size.height) {
+			rhs.size.height = size.height;
+		}
+
+		// Expand if necessary to include at least the same visible area but to align centres.
+		const auto apply_centre = [](float &origin, float &size, const float target, const float max) {
+			const auto offset = origin + size*0.5f - target;
+
+			if(offset < -max) {
+				size -= (offset + max) * 2.0f;
+			} else if(offset > max) {
+				const auto adjustment = offset - max;
+				size += adjustment * 2.0f;
+				origin -= adjustment * 2.0f;
+			}
+		};
+		apply_centre(rhs.origin.x, rhs.size.width, origin.x + size.width * 0.5f, max_centre_offset_x);
+		apply_centre(rhs.origin.y, rhs.size.height, origin.y + size.height * 0.5f, max_centre_offset_y);
+	}
 };
 
 enum class ColourSpace {

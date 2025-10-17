@@ -175,7 +175,9 @@ public:
 		interrupt_timer_(interrupt_timer) {
 			establish_palette_hits();
 			build_mode_table();
-			crt_.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+			crt_.set_dynamic_framing(
+				Outputs::Display::Rect(0.16842f, 0.19909f, 0.71579f, 0.67197f),
+				0.0f, 0.1f);
 			crt_.set_brightness(3.0f / 2.0f);	// As only the values 0, 1 and 2 will be used in each channel,
 												// whereas Red2Green2Blue2 defines a range of 0-3.
 		}
@@ -377,14 +379,7 @@ private:
 
 	void output_border(const int length) {
 		assert(length >= 0);
-
-		// A black border can be output via crt_.output_blank for a minor performance
-		// win; otherwise paint whatever the border colour really is.
-		if(border_) {
-			crt_.output_level<uint8_t>(length * 16, border_);
-		} else {
-			crt_.output_blank(length * 16);
-		}
+		crt_.output_level<uint8_t>(length * 16, border_);
 	}
 
 	template <typename IntT>

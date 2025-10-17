@@ -10,11 +10,16 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 
 #include "Outputs/ScanTarget.hpp"
-#include "Internals/Flywheel.hpp"
+#include "Outputs/CRT/Internals/Flywheel.hpp"
+#include "Outputs/CRT/Internals/RectAccumulator.hpp"
+
+#include "Numeric/CubicCurve.hpp"
 
 namespace Outputs::CRT {
 
@@ -43,7 +48,6 @@ static constexpr bool AlternatesPhase = false;
 }
 
 class CRT;
-
 struct Delegate {
 	virtual void crt_did_end_batch_of_frames(CRT &, int frames, int unexpected_vertical_syncs) = 0;
 };
@@ -157,7 +161,10 @@ public:
 		@param number_of_cycles The number of cycles to repeat the output for.
 	*/
 	template <typename IntT>
-	void output_level(int number_of_cycles, IntT value) {
+	void output_level(const int number_of_cycles, const IntT value) {
+		level_changes_in_frame_ += value != last_level_;
+		last_level_ = value;
+
 		auto colour_pointer = reinterpret_cast<IntT *>(begin_data(1));
 		if(colour_pointer) *colour_pointer = value;
 		output_level(number_of_cycles);
@@ -255,16 +262,35 @@ public:
 	*/
 	void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
-	/*!	Nominates a section of the display to crop to for output. */
-	void set_visible_area(Outputs::Display::Rect);
+	/*!
+		Indicates that the CRT should adjust the visible frame dynamically.
+
+		@param initial Indicates the initial view rectangle
+	*/
+	void set_dynamic_framing(
+		Outputs::Display::Rect initial,
+		float max_centre_offset_x,
+		float max_centre_offset_y,
+		float maximum_scale = 0.95f,
+		float minimum_scale = 0.6f
+	);
+
+	/*!
+		Indicates that the CRT can calculate ideal framing once up front, and then merely scale between differing amounts of border.
+
+		It will use @c advance to request advances in input until it has managed to pick a suitable window.
+	*/
+	void set_fixed_framing(const std::function<void()> &advance);
+
+	/*!	Indicates that the CRT shall use only exactly the bounds specified. */
+	void set_fixed_framing(Outputs::Display::Rect);
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(
 		int first_line_after_sync,
 		int number_of_lines,
 		int first_cycle_after_sync,
-		int number_of_cycles,
-		float aspect_ratio) const;
+		int number_of_cycles) const;
 
 	/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 	inline void set_delegate(Delegate *delegate) {
@@ -296,8 +322,10 @@ public:
 	void set_brightness(float);
 
 private:
+	CRT();
+
 	// Incoming clock lengths are multiplied by @c time_multiplier_ to increase precision across the line.
-	int time_multiplier_ = 1;
+	int time_multiplier_ = 0;
 
 	// Two flywheels regulate scanning; the vertical with a range much greater than the horizontal.
 	Flywheel horizontal_flywheel_, vertical_flywheel_;
@@ -362,6 +390,44 @@ private:
 
 	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
 	static constexpr uint8_t DefaultAmplitude = 41;
+
+	// Accumulator for interesting detail from this frame.
+	Outputs::Display::Rect active_rect_;
+	Outputs::Display::Rect border_rect_;
+	int captures_in_rect_ = 0;
+	int level_changes_in_frame_ = 0;
+	uint32_t last_level_ = 0;
+
+	// Current state of cropping rectangle, including any ongoing animation.
+	Outputs::Display::Rect posted_rect_;
+	Outputs::Display::Rect previous_posted_rect_;
+	Numeric::CubicCurve animation_curve_;
+
+	static constexpr int AnimationSteps = 100;
+	int animation_step_ = AnimationSteps;
+
+	// Configured cropping options.
+	enum class Framing {
+		CalibratingAutomaticFixed,
+		Dynamic,
+
+		Static,
+		BorderReactive,
+	};
+	static constexpr bool is_calibrating(const Framing framing) {
+		return framing < Framing::Static;
+	}
+
+	RectAccumulator rect_accumulator_;
+
+	Framing framing_ = Framing::CalibratingAutomaticFixed;
+	bool has_first_reading_ = false;
+	void posit(Display::Rect);
+
+	// Affecting dynamic framing.
+	Outputs::Display::Rect framing_bounds_;
+	float minimum_scale_ = 0.85f;
+	float max_offsets_[2]{};
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

@@ -35,8 +35,10 @@ class VideoBase: public VideoSwitches<Cycles> {
 	public:
 		VideoBase(bool is_iie, std::function<void(Cycles)> &&target);
 
+		void establish_framing();
+
 		/// Sets the scan target.
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+		void set_scan_target(Outputs::Display::ScanTarget *);
 
 		/// Gets the current scan status.
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -119,8 +121,11 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 public:
 	/// Constructs an instance of the video feed; a CRT is also created.
 	Video(BusHandler &bus_handler) :
-		VideoBase(is_iie, [this] (Cycles cycles) { advance(cycles); }),
-		bus_handler_(bus_handler) {}
+		VideoBase(is_iie, [this] (const Cycles cycles) { advance(cycles); }),
+		bus_handler_(bus_handler)
+	{
+		establish_framing();
+	}
 
 	/*!
 		Obtains the last value the video read prior to time now+offset, according to the *current*

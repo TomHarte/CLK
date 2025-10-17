@@ -37,6 +37,7 @@ enum class Source {
 	BBCMicro,
 	CommodoreStaticAnalyser,
 	CMOSRTC,
+	CRT,
 	DirectAccessDevice,
 	Enterprise,
 	Floppy,
@@ -127,6 +128,7 @@ constexpr const char *prefix(const Source source) {
 		case Source::BBCMicro:					return "BBC";
 		case Source::CommodoreStaticAnalyser:	return "Commodore Static Analyser";
 		case Source::CMOSRTC:					return "CMOSRTC";
+		case Source::CRT:						return "CRT";
 		case Source::DirectAccessDevice:		return "Direct Access Device";
 		case Source::Enterprise:				return "Enterprise";
 		case Source::Floppy:					return "Floppy";

@@ -8,12 +8,15 @@
 
 #include "CRT.hpp"
 
+#include "Outputs/Log.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdarg>
 
 using namespace Outputs::CRT;
+using Logger = Log::Logger<Log::Source::CRT>;
 
 // MARK: - Input timing setup.
 
@@ -36,6 +39,8 @@ void CRT::set_new_timing(
 		//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
 		//  in NTSC and PAL TV."
 
+
+	const bool is_first_set = time_multiplier_ == 0;
 
 	// 63475 = 65535 * 31/32, i.e. the same 1/32 error as below is permitted.
 	time_multiplier_ = 63487 / cycles_per_line;
@@ -86,6 +91,51 @@ void CRT::set_new_timing(
 	scan_target_modals_.composite_colour_space = colour_space;
 	scan_target_modals_.colour_cycle_numerator = colour_cycle_numerator;
 	scan_target_modals_.colour_cycle_denominator = colour_cycle_denominator;
+
+	// Default crop: middle 90%.
+	if(is_first_set) {
+		scan_target_modals_.visible_area = posted_rect_ = Display::Rect(
+			0.05f, 0.05f, 0.9f, 0.9f
+		);
+	}
+
+	scan_target_->set_modals(scan_target_modals_);
+
+	const float stability_threshold = 1.0f / scan_target_modals_.expected_vertical_lines;
+	rect_accumulator_.set_stability_threshold(stability_threshold);
+}
+
+void CRT::set_dynamic_framing(
+	Outputs::Display::Rect initial,
+	float max_centre_offset_x,
+	float max_centre_offset_y,
+	float maximum_scale,
+	float minimum_scale
+) {
+	framing_ = Framing::Dynamic;
+	framing_bounds_ = initial;
+
+	framing_bounds_ = initial;
+	framing_bounds_.scale(maximum_scale / framing_bounds_.size.width, maximum_scale / framing_bounds_.size.height);
+
+	minimum_scale_ = minimum_scale;
+	max_offsets_[0] = max_centre_offset_x;
+	max_offsets_[1] = max_centre_offset_y;
+
+	posted_rect_ = scan_target_modals_.visible_area = initial;
+	has_first_reading_ = true;
+}
+
+void CRT::set_fixed_framing(const std::function<void()> &advance) {
+	framing_ = Framing::CalibratingAutomaticFixed;
+	while(framing_ == Framing::CalibratingAutomaticFixed) {
+		advance();
+	}
+}
+
+void CRT::set_fixed_framing(const Display::Rect frame) {
+	framing_ = Framing::Static;
+	scan_target_modals_.visible_area = frame;
 	scan_target_->set_modals(scan_target_modals_);
 }
 
@@ -128,6 +178,8 @@ void CRT::set_composite_function_type(const CompositeSourceType type, const floa
 
 // MARK: - Constructors.
 
+CRT::CRT() : animation_curve_(Numeric::CubicCurve::easeInOut()) {}
+
 CRT::CRT(
 	const int cycles_per_line,
 	const int clocks_per_pixel_greatest_common_divisor,
@@ -137,7 +189,7 @@ CRT::CRT(
 	const int vertical_sync_half_lines,
 	const bool should_alternate,
 	const Outputs::Display::InputDataType data_type
-) {
+) : CRT() {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(
@@ -156,7 +208,7 @@ CRT::CRT(
 	const int clocks_per_pixel_greatest_common_divisor,
 	const Outputs::Display::Type display_type,
 	const Outputs::Display::InputDataType data_type
-) {
+) : CRT() {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_display_type(cycles_per_line, display_type);
@@ -168,7 +220,7 @@ CRT::CRT(
 	const int height_of_display,
 	const int vertical_sync_half_lines,
 	const Outputs::Display::InputDataType data_type
-) {
+) : CRT() {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(
@@ -197,12 +249,15 @@ void CRT::advance_cycles(
 ) {
 	number_of_cycles *= time_multiplier_;
 
-	const bool is_output_run = (type == Scan::Type::Level) || (type == Scan::Type::Data);
+	const bool is_output_run = type == Scan::Type::Level || type == Scan::Type::Data;
 	const auto total_cycles = number_of_cycles;
 	bool did_output = false;
 	const auto end_point = [&] {
 		return this->end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
 	};
+
+	using EndPoint = Outputs::Display::ScanTarget::Scan::EndPoint;
+	EndPoint start_point;
 
 	while(number_of_cycles) {
 		// Get time until next horizontal and vertical sync generator events.
@@ -232,6 +287,8 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[0] = end_point();
 			next_scan->composite_amplitude = colour_burst_amplitude_;
+		} else if(is_output_segment && is_calibrating(framing_)) {
+			start_point = end_point();
 		}
 
 		// Advance time: that'll affect both the colour subcarrier and the number of cycles left to run.
@@ -244,15 +301,61 @@ void CRT::advance_cycles(
 			next_run_length,
 			next_run_length == horizontal_event.second ? horizontal_event.first : Flywheel::SyncEvent::None
 		);
-		vertical_flywheel_.apply_event(
-			next_run_length,
-			next_run_length == vertical_event.second ? vertical_event.first : Flywheel::SyncEvent::None
-		);
+
+		const auto active_vertical_event =
+			next_run_length == vertical_event.second ? vertical_event.first : Flywheel::SyncEvent::None;
+		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
+
+		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
+			if(is_calibrating(framing_)) {
+				active_rect_.origin.x /= scan_target_modals_.output_scale.x;
+				active_rect_.size.width /= scan_target_modals_.output_scale.x;
+				active_rect_.origin.y /= scan_target_modals_.output_scale.y;
+				active_rect_.size.height /= scan_target_modals_.output_scale.y;
+
+				border_rect_.origin.x /= scan_target_modals_.output_scale.x;
+				border_rect_.size.width /= scan_target_modals_.output_scale.x;
+				border_rect_.origin.y /= scan_target_modals_.output_scale.y;
+				border_rect_.size.height /= scan_target_modals_.output_scale.y;
+			}
+
+			if(
+				captures_in_rect_ > 5 &&
+				active_rect_.size.width > 0.05f &&
+				active_rect_.size.height > 0.05f &&
+				vertical_flywheel_.was_stable()
+			) {
+				if(!level_changes_in_frame_) {
+					posit(active_rect_);
+				} else if(level_changes_in_frame_ < 20) {
+					posit(active_rect_ * 0.9f + border_rect_ * 0.1f);
+				} else {
+					posit(active_rect_ * 0.3f + border_rect_ * 0.7f);
+				}
+			}
+			level_changes_in_frame_ = 0;
+
+			if(is_calibrating(framing_)) {
+				border_rect_ = active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
+				captures_in_rect_ = 0;
+			}
+		}
 
 		// End the scan if necessary.
+		const auto posit_scan = [&](const EndPoint &start, const EndPoint &end) {
+			++captures_in_rect_;
+			border_rect_.expand(start.x, end.x, start.y, end.y);
+			if(number_of_samples > 1) {
+				active_rect_.expand(start.x, end.x, start.y, end.y);
+			}
+		};
+
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
+			if(is_calibrating(framing_)) posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
 			scan_target_->end_scan();
+		} else if(is_output_segment && is_calibrating(framing_)) {
+			posit_scan(start_point, end_point());
 		}
 
 		using Event = Outputs::Display::ScanTarget::Event;
@@ -342,6 +445,87 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 	};
 }
 
+void CRT::posit(Display::Rect rect) {
+	// Scale and push a rect.
+	const auto set_rect = [&](const Display::Rect &rect) {
+		scan_target_modals_.visible_area = rect;
+		scan_target_->set_modals(scan_target_modals_);
+	};
+
+	// Get current interpolation between previous_posted_rect_ and posted_rect_.
+	const auto current_rect = [&] {
+		const auto animation_time = animation_curve_.value(float(animation_step_) / float(AnimationSteps));
+		return
+			previous_posted_rect_ * (1.0f - animation_time) +
+			posted_rect_ * animation_time;
+	};
+
+	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
+	if(rect.size.width < 0.95 && rect.size.height < 0.95) {
+		rect.scale(1.02f, 1.02f);
+	}
+
+	// Static framing: don't evaluate.
+	if(framing_ == Framing::Static) {
+		return;
+	}
+
+	// Border reactive: take frame as gospel.
+	if(framing_ == Framing::BorderReactive) {
+		if(rect != posted_rect_) {
+			previous_posted_rect_ = current_rect();
+			posted_rect_ = rect;
+			animation_step_ = 0;
+		}
+	}
+
+	// Continue with any ongoing animation.
+	if(animation_step_ < AnimationSteps) {
+		set_rect(current_rect());
+		++animation_step_;
+
+		if(animation_step_ == AnimationSteps) {
+			if(framing_ == Framing::CalibratingAutomaticFixed) {
+				framing_ =
+					border_rect_ != active_rect_ ?
+						Framing::BorderReactive : Framing::Static;
+				return;
+			}
+		}
+	}
+
+	if(!has_first_reading_) {
+		rect_accumulator_.posit(rect);
+
+		if(const auto reading = rect_accumulator_.first_reading(); reading.has_value()) {
+			previous_posted_rect_ = posted_rect_;
+			posted_rect_ = *reading;
+			animation_step_ = 0;
+			has_first_reading_ = true;
+			Logger::info().append("First reading is (%0.5ff, %0.5ff, %0.5ff, %0.5ff)",
+				posted_rect_.origin.x, posted_rect_.origin.y,
+				posted_rect_.size.width, posted_rect_.size.height);
+		}
+		return;
+	}
+
+	// Constrain to permitted bounds.
+	framing_bounds_.constrain(rect, max_offsets_[0], max_offsets_[1]);
+
+	// Constrain to minimum scale.
+	rect.scale(
+		rect.size.width > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.width,
+		rect.size.height > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.height
+	);
+
+	const auto output_frame = rect_accumulator_.posit(rect);
+	if(output_frame && *output_frame != posted_rect_) {
+		previous_posted_rect_ = current_rect();
+		posted_rect_ = *output_frame;
+		animation_step_ = 0;
+	}
+}
+
 // MARK: - Stream feeding.
 
 void CRT::output_scan(const Scan &scan) {
@@ -421,40 +605,45 @@ void CRT::output_scan(const Scan &scan) {
 /*
 	These all merely channel into advance_cycles, supplying appropriate arguments
 */
-void CRT::output_sync(int number_of_cycles) {
-	Scan scan;
-	scan.type = Scan::Type::Sync;
-	scan.number_of_cycles = number_of_cycles;
-	output_scan(scan);
+void CRT::output_sync(const int number_of_cycles) {
+	output_scan(Scan{
+		.type = Scan::Type::Sync,
+		.number_of_cycles = number_of_cycles,
+	});
 }
 
-void CRT::output_blank(int number_of_cycles) {
-	Scan scan;
-	scan.type = Scan::Type::Blank;
-	scan.number_of_cycles = number_of_cycles;
-	output_scan(scan);
+void CRT::output_blank(const int number_of_cycles) {
+	output_scan(Scan{
+		.type = Scan::Type::Blank,
+		.number_of_cycles = number_of_cycles,
+	});
 }
 
-void CRT::output_level(int number_of_cycles) {
+void CRT::output_level(const int number_of_cycles) {
 	scan_target_->end_data(1);
-	Scan scan;
-	scan.type = Scan::Type::Level;
-	scan.number_of_cycles = number_of_cycles;
-	scan.number_of_samples = 1;
-	output_scan(scan);
+	output_scan(Scan{
+		.type = Scan::Type::Level,
+		.number_of_cycles = number_of_cycles,
+		.number_of_samples = 1,
+	});
 }
 
-void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line, uint8_t amplitude) {
-	Scan scan;
-	scan.type = Scan::Type::ColourBurst;
-	scan.number_of_cycles = number_of_cycles;
-	scan.phase = phase;
-	scan.amplitude = amplitude >> 1;
+void CRT::output_colour_burst(
+	const int number_of_cycles,
+	const uint8_t phase,
+	const bool is_alternate_line,
+	const uint8_t amplitude
+) {
 	is_alternate_line_ = is_alternate_line;
-	output_scan(scan);
+	output_scan(Scan{
+		.type = Scan::Type::ColourBurst,
+		.number_of_cycles = number_of_cycles,
+		.phase = phase,
+		.amplitude = uint8_t(amplitude >> 1),
+	});
 }
 
-void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
+void CRT::output_default_colour_burst(const int number_of_cycles, const uint8_t amplitude) {
 	// TODO: avoid applying a rounding error here?
 	output_colour_burst(
 		number_of_cycles,
@@ -464,34 +653,32 @@ void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
 	);
 }
 
-void CRT::set_immediate_default_phase(float phase) {
-	phase = fmodf(phase, 1.0f);
-	phase_numerator_ = int(phase * float(phase_denominator_));
+void CRT::set_immediate_default_phase(const float phase) {
+	phase_numerator_ = int(std::fmod(phase, 1.0f) * float(phase_denominator_));
 }
 
-void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
+void CRT::output_data(const int number_of_cycles, const size_t number_of_samples) {
 #ifndef NDEBUG
 //	assert(number_of_samples > 0);
 //	assert(number_of_samples <= allocated_data_length_);
 //	allocated_data_length_ = std::numeric_limits<size_t>::min();
 #endif
 	scan_target_->end_data(number_of_samples);
-	Scan scan;
-	scan.type = Scan::Type::Data;
-	scan.number_of_cycles = number_of_cycles;
-	scan.number_of_samples = int(number_of_samples);
-	output_scan(scan);
+	output_scan(Scan{
+		.type = Scan::Type::Data,
+		.number_of_cycles = number_of_cycles,
+		.number_of_samples = int(number_of_samples),
+	});
 }
 
 
 // MARK: - Getters.
 
 Outputs::Display::Rect CRT::get_rect_for_area(
-	int first_line_after_sync,
-	int number_of_lines,
-	int first_cycle_after_sync,
-	int number_of_cycles,
-	const float aspect_ratio
+	[[maybe_unused]] int first_line_after_sync,
+	[[maybe_unused]] int number_of_lines,
+	[[maybe_unused]] int first_cycle_after_sync,
+	[[maybe_unused]] int number_of_cycles
 ) const {
 	assert(number_of_cycles > 0);
 	assert(number_of_lines > 0);
@@ -532,24 +719,10 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 		number_of_lines * horizontal_period
 	) / horizontal_period;
 
-	float start_y =
+	const float start_y =
 		float(first_line_after_sync * horizontal_period - vertical_retrace_period) /
 		float(vertical_scan_period);
-	float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
-
-	// Pick a zoom that includes the entire requested visible area given the aspect ratio constraints.
-	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
-	const float ideal_width = height * adjusted_aspect_ratio;
-	if(ideal_width > width) {
-		start_x -= (ideal_width - width) * 0.5f;
-		width = ideal_width;
-	} else {
-		float ideal_height = width / adjusted_aspect_ratio;
-		start_y -= (ideal_height - height) * 0.5f;
-		height = ideal_height;
-	}
-
-	// TODO: apply absolute clipping constraints now.
+	const float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
 
 	return Outputs::Display::Rect(start_x, start_y, width, height);
 }
@@ -579,11 +752,6 @@ void CRT::set_new_data_type(const Outputs::Display::InputDataType data_type) {
 
 void CRT::set_aspect_ratio(const float aspect_ratio) {
 	scan_target_modals_.aspect_ratio = aspect_ratio;
-	scan_target_->set_modals(scan_target_modals_);
-}
-
-void CRT::set_visible_area(const Outputs::Display::Rect visible_area) {
-	scan_target_modals_.visible_area = visible_area;
 	scan_target_->set_modals(scan_target_modals_);
 }
 

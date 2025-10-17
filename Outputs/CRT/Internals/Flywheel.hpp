@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <cstdint>
 #include <utility>
@@ -62,7 +63,7 @@ struct Flywheel {
 		// In practice this is a weighted mix of the two values, with the exact weighting affecting how
 		// quickly the flywheel adjusts to new input. It's a IIR lowpass filter.
 		constexpr auto mix = [](const int expected, const int actual) {
-			return (expected + 3*actual) >> 2;
+			return (expected + actual) >> 1;
 		};
 
 		// A debugging helper.
@@ -107,6 +108,10 @@ struct Flywheel {
 		}
 
 		return std::make_pair(proposed_event, proposed_sync_time);
+	}
+
+	bool was_stable() const {
+		return std::abs(last_adjustment_) < (sync_error_window_ / 250);
 	}
 
 	/*!

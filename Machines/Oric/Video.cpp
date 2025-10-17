@@ -34,6 +34,11 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_.set_input_data_type(data_type_);
 	crt_.set_delegate(&frequency_mismatch_warner_);
 	update_crt_frequency();
+
+	// Prewarm CRT.
+	crt_.set_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
 }
 
 void VideoOutput::register_crt_frequency_mismatch() {
@@ -42,11 +47,7 @@ void VideoOutput::register_crt_frequency_mismatch() {
 }
 
 void VideoOutput::update_crt_frequency() {
-	// Set the proper frequency...
 	crt_.set_new_display_type(64*6, crt_is_60Hz_ ? Outputs::Display::Type::PAL60 : Outputs::Display::Type::PAL50);
-
-	// ... but also pick an appropriate crop rectangle.
-	crt_.set_visible_area(crt_.get_rect_for_area(crt_is_60Hz_ ? 26 : 54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {

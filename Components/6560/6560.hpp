@@ -161,10 +161,10 @@ public:
 
 		switch(output_mode) {
 			case OutputMode::PAL:
-				crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.07f, 0.9f, 0.9f));
+				crt_.set_fixed_framing(Outputs::Display::Rect(0.1f, 0.07f, 0.9f, 0.9f));
 			break;
 			case OutputMode::NTSC:
-				crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+				crt_.set_fixed_framing(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 			break;
 		}
 

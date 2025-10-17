@@ -114,7 +114,7 @@ private:
 	static constexpr int interrupt_duration = 64;
 
 public:
-	void run_for(HalfCycles duration) {
+	void run_for(const HalfCycles duration) {
 		static constexpr auto timings = get_timings();
 
 		static constexpr int sync_line = (timings.interrupt_time / timings.half_cycles_per_line) + 1;
@@ -307,7 +307,6 @@ public:
 	{
 		// Show only the centre 80% of the TV frame.
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-		crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 
 		// Get the CRT roughly into phase.
 		//
@@ -316,14 +315,20 @@ public:
 		crt_.output_blank(timings.lines_per_frame*timings.half_cycles_per_line - timings.interrupt_time);
 	}
 
-	void set_video_source(const uint8_t *source) {
+	void set_video_source(const uint8_t *const source) {
+		const bool is_first_set = !memory_;
 		memory_ = source;
+		if(is_first_set) {
+			crt_.set_fixed_framing([&] {
+				run_for(Cycles(10'000));
+			});
+		}
 	}
 
 	/*!
 		@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
 	*/
-	HalfCycles next_sequence_point() {
+	HalfCycles next_sequence_point() const {
 		static constexpr auto timings = get_timings();
 
 		// Is the frame still ahead of this interrupt?
@@ -352,10 +357,12 @@ public:
 		@returns How many cycles the [ULA/gate array] would delay the CPU for if it were to recognise that contention
 		needs to be applied in @c offset half-cycles from now.
 	*/
-	HalfCycles access_delay(HalfCycles offset) const {
+	HalfCycles access_delay(const HalfCycles offset) const {
 		static constexpr auto timings = get_timings();
-		const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.half_cycles_per_line * timings.lines_per_frame);
-		assert(!(delay_time&1));
+		const int delay_time =
+			(time_into_frame_ + offset.as<int>() + timings.contention_leadin) %
+			(timings.half_cycles_per_line * timings.lines_per_frame);
+//		assert(!(delay_time&1));
 
 		// Check for a time within the no-contention window.
 		if(delay_time >= (191*timings.half_cycles_per_line + timings.contention_duration)) {
@@ -400,7 +407,7 @@ public:
 		written to contended memory. This is what will be returned if the floating
 		bus is accessed when the gate array isn't currently reading.
 	*/
-	void set_last_contended_area_access([[maybe_unused]] uint8_t value) {
+	void set_last_contended_area_access([[maybe_unused]] const uint8_t value) {
 		if constexpr (timing == Timing::Plus3) {
 			last_contended_access_ = value | 1;
 		}
@@ -409,13 +416,13 @@ public:
 	/*!
 		Sets the current border colour.
 	*/
-	void set_border_colour(uint8_t colour) {
+	void set_border_colour(const uint8_t colour) {
 		border_byte_ = colour;
 		border_colour_ = palette[colour];
 	}
 
 	/// Sets the scan target.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 		crt_.set_scan_target(scan_target);
 	}
 
@@ -425,7 +432,7 @@ public:
 	}
 
 	/*! Sets the type of display the CRT will request. */
-	void set_display_type(Outputs::Display::DisplayType type) {
+	void set_display_type(const Outputs::Display::DisplayType type) {
 		crt_.set_display_type(type);
 	}
 

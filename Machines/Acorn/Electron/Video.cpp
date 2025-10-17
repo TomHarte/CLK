@@ -20,13 +20,11 @@ VideoOutput::VideoOutput(const uint8_t *memory) :
 		1,
 		Outputs::Display::Type::PAL50,
 		Outputs::Display::InputDataType::Red1Green1Blue1) {
-	crt_.set_visible_area(crt_.get_rect_for_area(
-		312 - vsync_end,
-		256,
-		h_total - hsync_start,
-		80 * 8,
-		4.0f / 3.0f
-	));
+	// Default construction values leave this out of text mode, and text
+	// mode uses a subregion of pixel modes.
+	crt_.set_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
 }
 
 void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {

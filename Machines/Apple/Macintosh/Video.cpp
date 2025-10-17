@@ -39,17 +39,6 @@ Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulato
 	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
 
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-
-	// UGLY HACK. UGLY, UGLY HACK. UGLY!
-	// The OpenGL scan target fails properly to place visible areas which are not 4:3.
-	// The [newer] Metal scan target has no such issue. So assume that Apple => Metal,
-	// and set a visible area to work around the OpenGL issue if required.
-	// TODO: eliminate UGLY HACK.
-#if defined(__APPLE__) && !defined(IGNORE_APPLE)
-	crt_.set_visible_area(Outputs::Display::Rect(0.08f, 10.0f / 368.0f, 0.82f, 344.0f / 368.0f));
-#else
-	crt_.set_visible_area(Outputs::Display::Rect(0.08f, -0.025f, 0.82f, 0.82f));
-#endif
 	crt_.set_aspect_ratio(1.73f);	// The Mac uses a non-standard scanning area.
 }
 
@@ -191,7 +180,12 @@ void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use
 	use_alternate_audio_buffer_ = use_alternate_audio_buffer;
 }
 
-void Video::set_ram(uint16_t *ram, uint32_t mask) {
+void Video::set_ram(const uint16_t *const ram, const uint32_t mask) {
 	ram_ = ram;
 	ram_mask_ = mask;
+
+	// Now that RAM is assigned, the CRT cna be warmed.
+	crt_.set_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
 }

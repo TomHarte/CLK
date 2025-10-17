@@ -28,7 +28,7 @@ struct Video {
 		ram_(ram),
 		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
 		set_clock_divider(3);
-		crt_.set_visible_area(Outputs::Display::Rect(0.041f, 0.04f, 0.95f, 0.95f));
+		crt_.set_fixed_framing(Outputs::Display::Rect(0.041f, 0.04f, 0.95f, 0.95f));
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	}
 

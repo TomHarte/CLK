@@ -27,7 +27,7 @@ Video::Video() :
 
 	// Show only the centre 80% of the TV frame.
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
-	crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+	crt_.set_fixed_framing(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 
 void Video::run_for(const HalfCycles half_cycles) {

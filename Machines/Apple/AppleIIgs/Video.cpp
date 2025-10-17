@@ -111,11 +111,6 @@ Video::Video() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
-
-	// Reduce the initial bounce by cueing up the part of the frame that initial drawing actually
-	// starts with. More or less.
-	crt_.output_blank(228*63*2);
 
 	// Establish the shift lookup table for NTSC -> RGB output.
 	for(size_t c = 0; c < sizeof(ntsc_delay_lookup_) / sizeof(*ntsc_delay_lookup_); c++) {
@@ -149,8 +144,11 @@ Outputs::Display::DisplayType Video::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-void Video::set_internal_ram(const uint8_t *ram) {
+void Video::set_internal_ram(const uint8_t *const ram) {
 	ram_ = ram;
+//	crt_.set_automatic_fixed_framing([&] {
+//		run_for(Cycles(10'000));
+//	});
 }
 
 void Video::advance(Cycles cycles) {
@@ -410,15 +408,7 @@ void Video::output_row(int row, int start, int end) {
 		// Output right border as far as currently known.
 		if(start >= start_of_right_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
-
-			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
-			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
-			}
-
+			crt_.output_level<uint16_t>((end_of_period - start) * CyclesPerTick, border_colour_);
 			// There's no point updating start here; just fall
 			// through to the end == FinalColumn test.
 		}
@@ -426,15 +416,7 @@ void Video::output_row(int row, int start, int end) {
 		// This line is all border, all the time.
 		if(start >= start_of_left_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
-
-			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
-			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
-			}
-
+			crt_.output_level<uint16_t>((end_of_period - start) * CyclesPerTick, border_colour_);
 			start = end_of_period;
 			if(start == end) return;
 		}

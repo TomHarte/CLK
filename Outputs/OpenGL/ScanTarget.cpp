@@ -116,12 +116,12 @@ void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
 }
 
 void ScanTarget::setup_pipeline() {
-	auto modals = BufferingScanTarget::modals();
+	const auto modals = BufferingScanTarget::modals();
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
 
 	// Resize the texture only if required.
 	const size_t required_size = WriteAreaWidth*WriteAreaHeight*data_type_size;
-	if(required_size != write_area_data_size()) {
+	if(required_size != write_area_texture_.size()) {
 		write_area_texture_.resize(required_size);
 		set_write_area(write_area_texture_.data());
 	}
@@ -131,37 +131,69 @@ void ScanTarget::setup_pipeline() {
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, line_buffer_name_);
 
 	// Destroy or create a QAM buffer and shader, if appropriate.
-	const bool needs_qam_buffer = (modals.display_type == DisplayType::CompositeColour || modals.display_type == DisplayType::SVideo);
-	if(needs_qam_buffer) {
-		if(!qam_chroma_texture_) {
-			qam_chroma_texture_ = std::make_unique<TextureTarget>(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false);
+	if(!existing_modals_ || existing_modals_->display_type != modals.display_type) {
+		const bool needs_qam_buffer =
+			modals.display_type == DisplayType::CompositeColour ||
+			modals.display_type == DisplayType::SVideo;
+		if(needs_qam_buffer) {
+			if(!qam_chroma_texture_) {
+				qam_chroma_texture_ = std::make_unique<TextureTarget>(
+					LineBufferWidth,
+					LineBufferHeight,
+					QAMChromaTextureUnit,
+					GL_NEAREST,
+					false
+				);
+			}
+
+			qam_separation_shader_ = qam_separation_shader();
+			enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
+			qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+		} else {
+			qam_chroma_texture_.reset();
+			qam_separation_shader_.reset();
 		}
 
-		qam_separation_shader_ = qam_separation_shader();
-		enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
-		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
-		qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
-	} else {
-		qam_chroma_texture_.reset();
-		qam_separation_shader_.reset();
+		// Establish an output shader.
+		output_shader_ = conversion_shader();
+		enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
+		set_uniforms(ShaderType::Conversion, *output_shader_);
+
+		output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+		output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
 	}
 
-	// Establish an output shader.
-	output_shader_ = conversion_shader();
-	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
-	set_uniforms(ShaderType::Conversion, *output_shader_);
-	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
-	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
-	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
-	output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
+	if(qam_separation_shader_) {
+		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
+	}
+
+	// Select whichever of a letterbox or pillarbox avoids cropping.
+	constexpr float output_ratio = 4.0f / 3.0f;
+	const float aspect_ratio_stretch = modals.aspect_ratio / output_ratio;
+
+	auto adjusted_rect = modals.visible_area;
+	const float letterbox_scale = adjusted_rect.size.height / (adjusted_rect.size.width * aspect_ratio_stretch);
+	if(letterbox_scale > 1.0f) {
+		adjusted_rect.scale(letterbox_scale, 1.0f);
+	} else {
+		adjusted_rect.scale(1.0f, 1.0f / letterbox_scale);
+	}
+
+	// Provide to shader.
+	output_shader_->set_uniform("origin", adjusted_rect.origin.x, adjusted_rect.origin.y);
+	output_shader_->set_uniform("size", 1.0f / adjusted_rect.size.width, 1.0f / adjusted_rect.size.height);
 
 	// Establish an input shader.
-	input_shader_ = composition_shader();
-	test_gl(glBindVertexArray, scan_vertex_array_);
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
-	enable_vertex_attributes(ShaderType::Composition, *input_shader_);
-	set_uniforms(ShaderType::Composition, *input_shader_);
-	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
+	if(!existing_modals_ || existing_modals_->input_data_type != modals.input_data_type) {
+		input_shader_ = composition_shader();
+		test_gl(glBindVertexArray, scan_vertex_array_);
+		test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
+		enable_vertex_attributes(ShaderType::Composition, *input_shader_);
+		set_uniforms(ShaderType::Composition, *input_shader_);
+		input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
+	}
+
+	existing_modals_ = modals;
 }
 
 bool ScanTarget::is_soft_display_type() {
