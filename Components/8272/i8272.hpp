@@ -72,8 +72,10 @@ private:
 	};
 	void posit_event(int type) final;
 	int interesting_event_mask_ = int(Event8272::CommandByte);
-	int resume_point_ = 0;
 	bool is_access_command_ = false;
+
+	static constexpr int IdleResumePoint = 0;
+	int resume_point_ = 0;
 
 	// The counter used for ::Timer events.
 	Cycles::IntType delay_time_ = 0;

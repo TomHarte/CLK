@@ -124,8 +124,11 @@ private:
 	};
 	void posit_event(int type);
 	int interesting_event_mask_;
-	int resume_point_ = 0;
 	Cycles::IntType delay_time_ = 0;
+
+	// Current state machine stap pointer.
+	static constexpr int IdleResumePoint = 0;
+	int resume_point_ = IdleResumePoint;
 
 	// ID buffer
 	uint8_t header_[6];

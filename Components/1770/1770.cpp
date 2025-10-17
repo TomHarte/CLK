@@ -8,8 +8,9 @@
 
 #include "1770.hpp"
 
-#include "Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "Numeric/CompileTimeCounter.hpp"
 #include "Outputs/Log.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
 
 namespace {
 using Logger = Log::Logger<Log::Source::WDFDC>;
@@ -133,18 +134,34 @@ void WD1770::run_for(const Cycles cycles) {
 	}
 }
 
+#include <iostream>
+
 void WD1770::posit_event(const int new_event_type) {
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
+	using CounterTag = Numeric::Counter::SeqBase<WD1770, IdleResumePoint+1>;
+
+#define WAIT_FOR_EVENT(mask) \
+	resume_point_ = Numeric::Counter::next<CounterTag>(); \
+	interesting_event_mask_ = int(mask); \
+	return; \
+	case Numeric::Counter::current<CounterTag>():
+
+#define WAIT_FOR_TIME(ms) \
+	resume_point_ = Numeric::Counter::next<CounterTag>(); \
+	delay_time_ = ms * 8000; \
+	WAIT_FOR_EVENT(Event1770::Timer);
+
+#define WAIT_FOR_BYTES(count) \
+	distance_into_section_ = 0; \
+	WAIT_FOR_EVENT(Event::Token); \
+	if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
+	if(distance_into_section_ < count) { \
+		RESUME_WAIT(Event::Token);	\
+	}
+
 #define RESUME_WAIT(mask)		interesting_event_mask_ = int(mask); return;
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
-#define WAIT_FOR_BYTES(count)	distance_into_section_ = 0; \
-								WAIT_FOR_EVENT(Event::Token); \
-								if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
-								if(distance_into_section_ < count) { \
-									RESUME_WAIT(Event::Token);	\
-								}
-#define BEGIN_SECTION()	switch(resume_point_) { default:
-#define END_SECTION()	(void)0; }
+
+#define BEGIN_SECTION()			switch(resume_point_) { default:
+#define END_SECTION()			(void)0; }
 
 	const auto READ_ID = [&] {
 		if(new_event_type == int(Event::Token)) {
@@ -185,7 +202,7 @@ void WD1770::posit_event(const int new_event_type) {
 
 	if(new_event_type == int(Event1770::ForceInterrupt)) {
 		interesting_event_mask_ = 0;
-		resume_point_ = 0;
+		resume_point_ = IdleResumePoint;
 		update_status([] (Status &status) {
 			status.type = Status::One;
 			status.data_request = false;
@@ -216,7 +233,7 @@ void WD1770::posit_event(const int new_event_type) {
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.
-	case 0:
+	case IdleResumePoint:
 	wait_for_command:
 		Logger::info().append("Idle...");
 		set_data_mode(DataMode::Scanning);
