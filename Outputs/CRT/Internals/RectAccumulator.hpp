@@ -22,7 +22,8 @@ struct RectAccumulator {
 		stable_filter_.push_back(rect);
 
 		if(stable_filter_.full() && stable_filter_.stable(stability_threshold_)) {
-			candidates_.push_back(stable_filter_.join());
+			first_reading_ = stable_filter_.join();
+			candidates_.push_back(*first_reading_);
 			stable_filter_.reset();
 
 			if(candidates_.full()) {
@@ -33,15 +34,12 @@ struct RectAccumulator {
 	}
 
 	std::optional<Display::Rect> first_reading() {
-		if(
-			did_first_read_ ||
-			!stable_filter_.full() ||
-			!stable_filter_.stable(stability_threshold_)
-		) {
+		if(did_first_read_) {
 			return std::nullopt;
 		}
-		did_first_read_ = true;
-		return stable_filter_.join();
+
+		did_first_read_ = first_reading_.has_value();
+		return first_reading_;
 	}
 
 	void set_stability_threshold(const float stability_threshold) {
@@ -111,6 +109,8 @@ private:
 	// At startup, look for a small number of sequential but consistent frames.
 	static constexpr int StableFilterSize = 4;
 	RectHistory<StableFilterSize> stable_filter_;
+
+	std::optional<Display::Rect> first_reading_;
 	bool did_first_read_ = false;
 
 	float stability_threshold_ = 0.0f;
