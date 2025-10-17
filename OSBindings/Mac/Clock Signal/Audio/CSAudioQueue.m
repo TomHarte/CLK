@@ -19,8 +19,8 @@ static void OSSGuard(OSGuardable guardable) {
 
 static BOOL IsDry(int x) { return x < 2; }
 
-static const int MaximumBacklog = 4;
-static const int NumBuffers = MaximumBacklog + 1;
+#define MaximumBacklog 4
+#define NumBuffers MaximumBacklog + 1
 
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
