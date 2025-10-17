@@ -19,6 +19,9 @@ namespace Numeric::Counter {
 //
 // Implementation decision: an initial call to next is expected before calls to current. Calling current before
 // any calls to next will result in base - 1.
+//
+// WARNING: this implementation uses compile-time recursion, so the counter can count up to only 512 on Clang,
+// and probably similar limits on other compilers.
 
 template <typename, int> struct CounterImpl {
 private:
