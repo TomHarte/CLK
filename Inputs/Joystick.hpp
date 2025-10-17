@@ -29,7 +29,7 @@ public:
 		/// Defines the broad type of the input.
 		enum Type {
 			// Half-axis inputs.
-			Up, Down, Left, Right,
+			Down, Up, Left, Right,
 			// Full-axis inputs.
 			Horizontal, Vertical,
 			// Fire buttons.
@@ -192,8 +192,8 @@ public:
 		const auto analogue_value = [&](const int mask) {
 			switch(mask) {
 				default:	return 0.5f;
-				case 0b01:	return digital_maximum();
-				case 0b10:	return digital_minimum();
+				case 0b01:	return digital_minimum();
+				case 0b10:	return digital_maximum();
 			}
 		};
 
@@ -264,10 +264,11 @@ private:
 			const int mask = [&] {
 				switch(input.type) {
 					default: return 0;
-					case Input::Type::Up:		return 1 << 1;
-					case Input::Type::Down:		return 1 << 2;
+					case Input::Type::Up:		return 1 << 0;
+					case Input::Type::Down:		return 1 << 1;
+
+					case Input::Type::Left:		return 1 << 2;
 					case Input::Type::Right:	return 1 << 3;
-					case Input::Type::Left:		return 1 << 4;
 				}
 			} ();
 			if(is_active) {
@@ -279,8 +280,8 @@ private:
 		int digital_mask(const Input::Type axis) const {
 			switch(axis) {
 				default: return 0;
-				case Input::Type::Horizontal:	return (digital_inputs_ >> 3) & 3;
-				case Input::Type::Vertical:		return (digital_inputs_ >> 1) & 3;
+				case Input::Type::Horizontal:	return (digital_inputs_ >> 2) & 3;
+				case Input::Type::Vertical:		return (digital_inputs_ >> 0) & 3;
 			}
 		}
 		int digital_inputs_ = 0;
