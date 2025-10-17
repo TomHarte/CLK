@@ -137,7 +137,7 @@ void WD1770::run_for(const Cycles cycles) {
 #include <iostream>
 
 void WD1770::posit_event(const int new_event_type) {
-	using CounterTag = Numeric::Counter::SeqBase<WD1770, 1>;
+	using CounterTag = Numeric::Counter::SeqBase<WD1770, IdleResumePoint+1>;
 
 #define WAIT_FOR_EVENT(mask) \
 	resume_point_ = Numeric::Counter::next<CounterTag>(); \
@@ -202,7 +202,7 @@ void WD1770::posit_event(const int new_event_type) {
 
 	if(new_event_type == int(Event1770::ForceInterrupt)) {
 		interesting_event_mask_ = 0;
-		resume_point_ = 0;
+		resume_point_ = IdleResumePoint;
 		update_status([] (Status &status) {
 			status.type = Status::One;
 			status.data_request = false;
@@ -233,7 +233,7 @@ void WD1770::posit_event(const int new_event_type) {
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.
-	case 0:
+	case IdleResumePoint:
 	wait_for_command:
 		Logger::info().append("Idle...");
 		set_data_mode(DataMode::Scanning);
