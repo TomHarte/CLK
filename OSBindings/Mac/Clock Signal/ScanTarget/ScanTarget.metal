@@ -351,11 +351,11 @@ half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture)
 
 #define DeclareShaders(name, pixelType)	\
 	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		return half4(convert##name(vert, texture), uniforms.outputAlpha);	\
+		return half4(convert##name(vert, texture) * uniforms.outputMultiplier, uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 sample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		return half4(pow(convert##name(vert, texture), uniforms.outputGamma), uniforms.outputAlpha);	\
+		return half4(pow(convert##name(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma), uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
