@@ -445,6 +445,14 @@ const std::vector<Description> &Description::all_roms() {
 			16_kb,
 			0xd3855588u
 		},
+		{
+			BBCMicroAdvancedDiscToolkit140,
+			"BBCMicro",
+			"the Advanced Disc Toolkit 1.40 ROM",
+			"ADT-1.40.rom",
+			16_kb,
+			0x8314fed0u
+		},
 
 	//
 	// ColecoVision.

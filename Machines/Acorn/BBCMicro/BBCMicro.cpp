@@ -730,6 +730,14 @@ public:
 			install_sideways(fs_slot--, roms.find(Name::BBCMicroADFS130)->second, false);
 		}
 
+		// Install the ADT ROM if available, but don't error if it's missing. It's very optional.
+		if(target.has_1770dfs || target.has_adfs) {
+			const auto adt_rom = rom_fetcher(Request(Name::BBCMicroAdvancedDiscToolkit140));
+			if(const auto rom = adt_rom.find(Name::BBCMicroAdvancedDiscToolkit140); rom != adt_rom.end()) {
+				install_sideways(fs_slot--, rom->second, false);
+			}
+		}
+
 		// Throw sideways RAM into all unused slots.
 		if(target.has_sideways_ram) {
 			for(size_t c = 0; c < 16; c++) {
