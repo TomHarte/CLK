@@ -20,7 +20,7 @@ static void OSSGuard(OSGuardable guardable) {
 static BOOL IsDry(int x) { return x < 2; }
 
 #define MaximumBacklog 4
-#define NumBuffers MaximumBacklog + 1
+#define NumBuffers (MaximumBacklog + 1)
 
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
