@@ -10,7 +10,54 @@
 
 namespace CPU::MOS6502Mk2 {
 
-// MARK: - Address resolvers.
+// MARK: - Control bus.
+
+enum class BusOperation {
+	/// 6502: a read was signalled.
+	/// 65816: a read was signalled with VDA.
+	Read,
+	/// 6502: a read was signalled with SYNC.
+	/// 65816: a read was signalled with VDA and VPA.
+	ReadOpcode,
+	/// 6502: never signalled.
+	/// 65816: a read was signalled with VPA.
+	ReadProgram,
+	/// 6502: never signalled.
+	/// 65816: a read was signalled with VPB and VDA.
+	ReadVector,
+	/// 6502: never signalled.
+	/// 65816: a read was signalled, but neither VDA nor VPA were active.
+	InternalOperationRead,
+
+	/// All processors: indicates that the processor is paused due to the RDY input.
+	/// 65C02 and 65816: indicates a WAI is ongoing.
+	Ready,
+
+	/// 65C02 and 65816: indicates a STP condition.
+	None,
+
+	/// 6502: a write was signalled.
+	/// 65816: a write was signalled with VDA.
+	Write,
+	/// 6502: never signalled.
+	/// 65816: a write was signalled, but neither VDA nor VPA were active.
+	InternalOperationWrite,
+};
+
+constexpr bool is_read(const BusOperation op) { return op <= BusOperation::InternalOperationRead; }
+constexpr bool is_write(const BusOperation op) { return op >= BusOperation::Write; }
+constexpr bool is_access(const BusOperation op) { return op <= BusOperation::ReadVector || op == BusOperation::Write; }
+constexpr bool is_dataless(const BusOperation op) { return !is_read(op) && !is_write(op); }
+
+enum class Line {
+	Reset,
+	IRQ,
+	PowerOn,
+	Overflow,
+	NMI,
+};
+
+// MARK: - Address bus.
 
 namespace Address {
 
@@ -56,52 +103,13 @@ private:
 
 }  // namespace Address
 
+// MARK: - Data bus.
+
 namespace Data {
 
 struct NoValue {
 	operator uint8_t() const { return 0xff; }
 };
-
-/*!
-	Bus handlers perform bus transactions, connecting the 6502-esque chip to the rest of the syste.
-	@c BusOperation provides the type of operation.
-*/
-enum class BusOperation {
-	/// 6502: a read was signalled.
-	/// 65816: a read was signalled with VDA.
-	Read,
-	/// 6502: a read was signalled with SYNC.
-	/// 65816: a read was signalled with VDA and VPA.
-	ReadOpcode,
-	/// 6502: never signalled.
-	/// 65816: a read was signalled with VPA.
-	ReadProgram,
-	/// 6502: never signalled.
-	/// 65816: a read was signalled with VPB and VDA.
-	ReadVector,
-	/// 6502: never signalled.
-	/// 65816: a read was signalled, but neither VDA nor VPA were active.
-	InternalOperationRead,
-
-	/// All processors: indicates that the processor is paused due to the RDY input.
-	/// 65C02 and 65816: indicates a WAI is ongoing.
-	Ready,
-
-	/// 65C02 and 65816: indicates a STP condition.
-	None,
-
-	/// 6502: a write was signalled.
-	/// 65816: a write was signalled with VDA.
-	Write,
-	/// 6502: never signalled.
-	/// 65816: a write was signalled, but neither VDA nor VPA were active.
-	InternalOperationWrite,
-};
-
-constexpr bool is_read(const BusOperation op) { return op <= BusOperation::InternalOperationRead; }
-constexpr bool is_write(const BusOperation op) { return op >= BusOperation::Write; }
-constexpr bool is_access(const BusOperation op) { return op <= BusOperation::ReadVector || op == BusOperation::Write; }
-constexpr bool is_dataless(const BusOperation op) { return !is_read(op) && !is_write(op); }
 
 template <BusOperation, typename Enable = void> struct Value;
 template <BusOperation operation> struct Value<operation, std::enable_if_t<is_read(operation)> {
@@ -116,9 +124,8 @@ template <BusOperation operation> struct Value<operation, std::enable_if_t<is_da
 
 } // namespace Data
 
-/*
-	The list of registers that can be accessed via @c value_of(Register) and @c set_value_of(Register, value).
-*/
+// MARK: - Registers and flags.
+
 enum class Register {
 	LastOperationAddress,
 	ProgramCounter,
@@ -158,13 +165,67 @@ enum Flag: uint8_t {
 	IndexSize	= Break,
 };
 
-enum Personality {
-	PNES6502,			// The NES's 6502; like a 6502 but lacking decimal mode (though it retains the decimal flag).
-	P6502,				// NMOS 6502.
-	PSynertek65C02,		// A 6502 extended with BRA, P[H/L][X/Y], STZ, TRB, TSB and the (zp) addressing mode, and more.
-	PRockwell65C02,		// The Synertek extended with BBR, BBS, RMB and SMB.
-	PWDC65C02,			// The Rockwell extended with STP and WAI.
-	P65816,				// The "16-bit" successor to the 6502.
+// MARK: - Type.
+
+enum Model {
+	NES6502,			// The NES's 6502; like a 6502 but lacking decimal mode (though it retains the decimal flag).
+	M6502,				// NMOS 6502.
+	Synertek65C02,		// A 6502 extended with BRA, P[H/L][X/Y], STZ, TRB, TSB and the (zp) addressing mode, and more.
+	Rockwell65C02,		// The Synertek extended with BBR, BBS, RMB and SMB.
+	WDC65C02,			// The Rockwell extended with STP and WAI.
+	M65816,				// The "16-bit" successor to the 6502.
 };
+constexpr bool is_8bit(const Model model) { return model <= Model::WDC65C02; }
+constexpr bool is_16bit(const Model model) { return model == Model::M65816; }
+
+// MARK: - Storage.
+
+/*!
+	An opcode that is guaranteed to cause a 6502 to jam.
+*/
+constexpr uint8_t JamOpcode = 0xf2;
+
+template <Model model, typename Enable = void> class Storage;
+template <Model model> class Storage<model, std::enable_if_v<is_8bit(model)> {
+public:
+	uint16_t value_of(Register) const;
+	void set_value_of(Register, uint16_t);
+
+	template <Line line> bool get() const;
+	template <Line line> inline void set(bool);
+
+	/// Get whether the 6502 would reset at the next opportunity.
+	bool is_resetting() const;
+
+	/*!
+		Queries whether the 6502 is now 'jammed'; i.e. has entered an invalid state
+		such that it will not of itself perform any more meaningful processing.
+
+		@returns @c true if the 6502 is jammed; @c false otherwise.
+	*/
+	bool is_jammed() const;
+};
+
+// MARK: - Base.
+
+template <Model model>
+class Base: public Storage<model> {
+public:
+	/*!
+		**FOR TEST CASES ONLY:** forces the processor into a state where
+		the next thing it intends to do is fetch a new opcode.
+	*/
+	void restart_operation_fetch() {
+		resume_point_ = FetchDecodeExecuteResumePoint;
+	}
+
+private:
+	static constexpr int FetchDecodeExecuteResumePoint = 0;
+	int resume_point_ = FetchDecodeExecuteResumePoint;
+};
+
+template <Model model> class Processor;
+
+// MARK: - Implementations.
 
 }
