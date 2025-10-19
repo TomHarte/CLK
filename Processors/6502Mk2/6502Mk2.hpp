@@ -224,7 +224,8 @@ private:
 	int resume_point_ = FetchDecodeExecuteResumePoint;
 };
 
-template <Model model> class Processor;
+// TODO: concept to explain and verify Traits.
+template <Model model, typename Traits> class Processor;
 
 // MARK: - Implementations.
 
