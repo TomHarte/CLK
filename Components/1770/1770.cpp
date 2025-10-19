@@ -8,7 +8,6 @@
 
 #include "1770.hpp"
 
-#include "Numeric/CompileTimeCounter.hpp"
 #include "Outputs/Log.hpp"
 #include "Storage/Disk/Encodings/MFM/Constants.hpp"
 
@@ -137,25 +136,25 @@ void WD1770::run_for(const Cycles cycles) {
 #include <iostream>
 
 void WD1770::posit_event(const int new_event_type) {
-	using CounterTag = Numeric::Counter::SeqBase<WD1770, IdleResumePoint+1>;
+#define WAIT_FOR_EVENT(mask) {							\
+	interesting_event_mask_ = int(mask); 				\
+	static constexpr int location = __COUNTER__ + 1;	\
+	resume_point_ = location; 							\
+	return; 											\
+	case location:										\
+		(void)0;										\
+}
 
-#define WAIT_FOR_EVENT(mask) \
-	resume_point_ = Numeric::Counter::next<CounterTag>(); \
-	interesting_event_mask_ = int(mask); \
-	return; \
-	case Numeric::Counter::current<CounterTag>():
-
-#define WAIT_FOR_TIME(ms) \
-	resume_point_ = Numeric::Counter::next<CounterTag>(); \
-	delay_time_ = ms * 8000; \
+#define WAIT_FOR_TIME(ms) 				\
+	delay_time_ = ms * 8000; 			\
 	WAIT_FOR_EVENT(Event1770::Timer);
 
-#define WAIT_FOR_BYTES(count) \
-	distance_into_section_ = 0; \
-	WAIT_FOR_EVENT(Event::Token); \
-	if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
-	if(distance_into_section_ < count) { \
-		RESUME_WAIT(Event::Token);	\
+#define WAIT_FOR_BYTES(count) 											\
+	distance_into_section_ = 0; 										\
+	WAIT_FOR_EVENT(Event::Token); 										\
+	distance_into_section_ += get_latest_token().type == Token::Byte;	\
+	if(distance_into_section_ < count) { 								\
+		RESUME_WAIT(Event::Token);										\
 	}
 
 #define RESUME_WAIT(mask)		interesting_event_mask_ = int(mask); return;
