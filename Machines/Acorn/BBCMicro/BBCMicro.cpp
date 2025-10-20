@@ -15,6 +15,7 @@
 #include "Machines/Utility/Typer.hpp"
 
 #include "Processors/6502/6502.hpp"
+#include "Processors/6502Mk2/6502Mk2.hpp"
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"

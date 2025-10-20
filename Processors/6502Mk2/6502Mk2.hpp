@@ -8,6 +8,11 @@
 
 #pragma once
 
+#include "Numeric/RegisterSizes.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
+
+#include <type_traits>
+
 namespace CPU::MOS6502Mk2 {
 
 // MARK: - Control bus.
@@ -62,7 +67,7 @@ enum class Line {
 namespace Address {
 
 struct Literal {
-	constexpr LiteralAddress(const uint16_t address) noexcept : address_(address);
+	constexpr Literal(const uint16_t address) noexcept : address_(address) {}
 	operator uint16_t() const {
 		return address_;
 	}
@@ -72,7 +77,7 @@ private:
 };
 
 struct ZeroPage {
-	constexpr ZeroPage(const uint8_t address) noexcept : address_(address);
+	constexpr ZeroPage(const uint8_t address) noexcept : address_(address) {}
 	operator uint16_t() const {
 		return address_;
 	}
@@ -82,7 +87,7 @@ private:
 };
 
 struct Stack {
-	constexpr ZeroPage(const uint8_t address) noexcept : address_(address);
+	constexpr Stack(const uint8_t address) noexcept : address_(address) {}
 	operator uint16_t() const {
 		return 0x0100 | address_;
 	}
@@ -92,7 +97,7 @@ private:
 };
 
 struct Vector {
-	constexpr ZeroPage(const uint8_t address) noexcept : address_(address);
+	constexpr Vector(const uint8_t address) noexcept : address_(address) {}
 	operator uint16_t() const {
 		return 0xff00 | address_;
 	}
@@ -112,13 +117,13 @@ struct NoValue {
 };
 
 template <BusOperation, typename Enable = void> struct Value;
-template <BusOperation operation> struct Value<operation, std::enable_if_t<is_read(operation)> {
+template <BusOperation operation> struct Value<operation, std::enable_if_t<is_read(operation)>> {
 	using type = uint8_t &;
 };
-template <BusOperation operation> struct Value<operation, std::enable_if_t<is_write(operation)> {
+template <BusOperation operation> struct Value<operation, std::enable_if_t<is_write(operation)>> {
 	using type = const uint8_t;
 };
-template <BusOperation operation> struct Value<operation, std::enable_if_t<is_dataless(operation)> {
+template <BusOperation operation> struct Value<operation, std::enable_if_t<is_dataless(operation)>> {
 	using type = const NoValue;
 };
 
@@ -186,7 +191,7 @@ constexpr bool is_16bit(const Model model) { return model == Model::M65816; }
 constexpr uint8_t JamOpcode = 0xf2;
 
 template <Model model, typename Enable = void> class Storage;
-template <Model model> class Storage<model, std::enable_if_v<is_8bit(model)> {
+template <Model model> class Storage<model, std::enable_if_t<is_8bit(model)>> {
 public:
 	uint16_t value_of(Register) const;
 	void set_value_of(Register, uint16_t);
@@ -204,29 +209,43 @@ public:
 		@returns @c true if the 6502 is jammed; @c false otherwise.
 	*/
 	bool is_jammed() const;
+
+protected:
+	uint8_t opcode_, operand_;
 };
 
 // MARK: - Base.
 
-template <Model model>
-class Base: public Storage<model> {
+enum class PausePrecision {
+	BetweenInstructions,
+	AnyCycle,
+};
+
+// TODO: concept to explain and verify Traits.
+template <Model model, typename Traits>
+class Processor: public Storage<model> {
 public:
 	/*!
 		**FOR TEST CASES ONLY:** forces the processor into a state where
 		the next thing it intends to do is fetch a new opcode.
 	*/
-	void restart_operation_fetch() {
-		resume_point_ = FetchDecodeExecuteResumePoint;
-	}
+	inline void restart_operation_fetch();
+	inline void run_for(Cycles);
 
 private:
-	static constexpr int FetchDecodeExecuteResumePoint = 0;
-	int resume_point_ = FetchDecodeExecuteResumePoint;
+	Cycles cycles_;
+
+	enum ResumePoint {
+		FetchDecodeExecute,
+		Max,
+	};
+	int resume_point_ = ResumePoint::FetchDecodeExecute;
+
+	int return_from_ready_ = 0;
+	uint16_t ready_address_ = 0;
 };
 
-// TODO: concept to explain and verify Traits.
-template <Model model, typename Traits> class Processor;
+}
 
 // MARK: - Implementations.
-
-}
+#include "Implementation/6502.hpp"

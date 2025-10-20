@@ -1802,6 +1802,7 @@
 		4B882F5A2C2F9C7700D84031 /* Shaker */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaker; sourceTree = "<group>"; };
 		4B884C6F2EA28E0F00073840 /* CompileTimeCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompileTimeCounter.hpp; sourceTree = "<group>"; };
 		4B884C722EA47FCC00073840 /* 6502Mk2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Mk2.hpp; sourceTree = "<group>"; };
+		4B884C762EA5D6C300073840 /* 6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502.hpp; sourceTree = "<group>"; };
 		4B88559C2E8185BF00E251DD /* SizedInt.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SizedInt.hpp; sourceTree = "<group>"; };
 		4B8855A22E84D51B00E251DD /* SAA5050.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAA5050.hpp; sourceTree = "<group>"; };
 		4B8855A32E84D51B00E251DD /* SAA5050.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAA5050.cpp; sourceTree = "<group>"; };
@@ -3864,8 +3865,17 @@
 			isa = PBXGroup;
 			children = (
 				4B884C722EA47FCC00073840 /* 6502Mk2.hpp */,
+				4B884C772EA5D6C300073840 /* Implementation */,
 			);
 			path = 6502Mk2;
+			sourceTree = "<group>";
+		};
+		4B884C772EA5D6C300073840 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4B884C762EA5D6C300073840 /* 6502.hpp */,
+			);
+			path = Implementation;
 			sourceTree = "<group>";
 		};
 		4B8855A42E84D51B00E251DD /* SAA5050 */ = {
