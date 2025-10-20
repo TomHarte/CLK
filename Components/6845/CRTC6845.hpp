@@ -94,7 +94,13 @@ public:
 		if(selected_register_ == 16 || selected_register_ == 17) status_ &= ~0x40;
 
 		if(personality == Personality::UM6845R && selected_register_ == 31) return dummy_register_;
-		if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
+
+		// Registers below 12 are write-only; no registers are defined above position 17
+		// (other than the UM6845R-specific test register as per above).
+		//
+		// Per the BBC Wiki, attempting to read such a register results in 0.
+		if(selected_register_ < 12 || selected_register_ > 17) return 0x00;
+
 		return registers_[selected_register_];
 	}
 
@@ -114,6 +120,7 @@ public:
 			case 6:	layout_.vertical.displayed = value;		break;
 			case 7:	layout_.vertical.start_sync = value;	break;
 			case 8:
+				printf("Interlace mode: %d", value & 3);
 				switch(value & 3) {
 					default:	layout_.interlace_mode_ = InterlaceMode::Off;			break;
 					case 0b01:	layout_.interlace_mode_ = InterlaceMode::Sync;			break;
@@ -156,7 +163,7 @@ public:
 
 			0x7f,	// Start horizontal retrace.
 			0x1f, 0x7f, 0x7f,
-			0xff, 0x1f, 0x7f, 0x1f,
+			0xfc, 0x1f, 0x7f, 0x1f,
 			uint8_t(RefreshAddress::Mask >> 8), uint8_t(RefreshAddress::Mask),
 			uint8_t(RefreshAddress::Mask >> 8), uint8_t(RefreshAddress::Mask),
 		};
