@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "6502Mk2.hpp"
+#include "Model.hpp"
 
 #include <type_traits>
 
@@ -87,6 +87,8 @@ enum class AccessProgram {
 
 	// Irregular.
 	BRK,	JSR,	RTI,	RTS,
+
+	Max,
 };
 
 struct Instruction {
@@ -220,7 +222,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 
 			case 0x0d:	return {AbsoluteRead, Operation::ORA};
 			case 0x2d:	return {AbsoluteRead, Operation::AND};
-			case 0x4d:	return {AbsoluteRead, Operation::JMP};
+			case 0x4d:	return {AbsoluteRead, Operation::EOR};
 			case 0x6d:	return {AbsoluteRead, Operation::ADC};
 			case 0x8d:	return {AbsoluteWrite, Operation::STA};
 			case 0xad:	return {AbsoluteRead, Operation::LDA};

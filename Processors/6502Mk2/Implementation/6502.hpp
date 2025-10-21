@@ -24,7 +24,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	Storage::cycles_ += cycles;
 	if(Storage::cycles_ <= Cycles(0)) return;
 
-	#define restore_point()	(__COUNTER__ + ResumePoint::Max)
+	#define restore_point()	(__COUNTER__ + ResumePoint::Max + AccessProgram::Max)
 
 	#define test_cycles(precision) {							\
 		static constexpr int test_location = restore_point();	\
@@ -81,22 +81,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			++Storage::pc_;
 			read(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
 
-			// TODO: decode. Kind of important!
-
-
-		// MARK: - Spin on RDY.
-		spin_ready:
-			Storage::cycles_ -= Storage::bus_handler_.perform<BusOperation::Ready>(
-				Address::Literal{Storage::ready_address_},
-				Data::NoValue{}
-			);
-			test_cycles(PausePrecision::AnyCycle);
-			if(Storage::inputs_.ready) {
-				goto spin_ready;
-			}
-
-			Storage::resume_point_ = Storage::return_from_ready_;
+			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
+			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.access_program);
 			break;
+
+		// TODO: all access programs.
 
 		// MARK: - NMI/IRQ/Reset.
 		interrupt:
@@ -149,6 +138,21 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			read(BusOperation::Read, Address::Vector(0xfd), Storage::pc_.halves.high);
 
 			goto fetch_decode;
+
+		// MARK: - Spin on RDY.
+		spin_ready:
+			Storage::cycles_ -= Storage::bus_handler_.perform<BusOperation::Ready>(
+				Address::Literal{Storage::ready_address_},
+				Data::NoValue{}
+			);
+			test_cycles(PausePrecision::AnyCycle);
+			if(Storage::inputs_.ready) {
+				goto spin_ready;
+			}
+
+			Storage::resume_point_ = Storage::return_from_ready_;
+			break;
+
 	}
 
 	#undef write
