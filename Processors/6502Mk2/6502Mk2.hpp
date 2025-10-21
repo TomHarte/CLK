@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Numeric/RegisterSizes.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Numeric/RegisterSizes.hpp"
 
 #include <type_traits>
 
@@ -247,6 +247,7 @@ enum Model {
 constexpr bool is_8bit(const Model model) { return model <= Model::WDC65C02; }
 constexpr bool is_16bit(const Model model) { return model == Model::M65816; }
 constexpr bool is_65c02(const Model model) { return model >= Model::Synertek65C02; }
+constexpr bool is_6502(const Model model) { return model <= Model::M6502; }
 
 // MARK: - Storage.
 
@@ -255,10 +256,10 @@ constexpr bool is_65c02(const Model model) { return model >= Model::Synertek65C0
 */
 constexpr uint8_t JamOpcode = 0xf2;
 
-//template <Model model, typename Enable = void> class Storage;
-//template <Model model> class Storage<model, std::enable_if_t<true /* is_8bit(model) */>> {
+template <Model model, typename Traits, typename Enable = void> class Storage;
+template <Model model, typename Traits> class Storage<model, Traits, std::enable_if_t<is_8bit(model)>> {
 
-template <Model model, typename Traits> class Storage {
+//template <Model model, typename Traits> class Storage {
 public:
 	Storage(Traits::BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 

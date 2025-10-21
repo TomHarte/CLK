@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "Processors/6502Mk2/Decoder.hpp"
+
 #include <cassert>
 
 namespace CPU::MOS6502Mk2 {
