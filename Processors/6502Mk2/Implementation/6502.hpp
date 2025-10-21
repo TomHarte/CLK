@@ -25,17 +25,17 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	Storage::cycles_ += cycles;
 	if(Storage::cycles_ <= Cycles(0)) return;
 
-	#define restore_point()	(__COUNTER__ + ResumePoint::Max + AccessProgram::Max)
+	#define restore_point()	(__COUNTER__ + int(ResumePoint::Max) + int(AccessProgram::Max))
 
 	#define join(a, b) 			a##b
 	#define attach(a, b) 		join(a, b)
-	#define line_label(name)	attach(name, __LINE__)
+	#define access_label()		attach(repeat, __LINE__)
 
 	// TODO: find a way not to generate a restore point if pause precision and uses_ready_line/model allows it.
 	#define access(type, addr, value)	{																\
 		static constexpr int location = restore_point();												\
 		[[fallthrough]]; case location:																	\
-		line_label(repeat):																				\
+		[[maybe_unused]] access_label():																\
 																										\
 		if constexpr (Traits::pause_precision >= PausePrecision::AnyCycle) {							\
 			if(Storage::cycles_ <= Cycles(0)) {															\
@@ -45,20 +45,20 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		}																								\
 																										\
 		if(Traits::uses_ready_line && (is_read(type) || is_65c02(model)) && Storage::inputs_.ready) {	\
-			Storage::cycles_ -= Storage::bus_handler_.perform<BusOperation::Ready>(						\
+			Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Ready>(			\
 				addr,																					\
 				Data::NoValue{}																			\
 			);																							\
-			goto line_label(repeat);																	\
+			goto access_label();																		\
 		}																								\
 																										\
-		Storage::cycles_ -= Storage::bus_handler_.perform<type>(addr, value);							\
+		Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, value);					\
 	}
 
-	#define access_program(name)	ResumePoint::Max + AccessProgram::name
+	#define access_program(name)	int(ResumePoint::Max) + int(AccessProgram::name)
 
 	using ResumePoint = Storage::ResumePoint;
-	using InterruptRequests = Storage::Inputs::InterruptRequests;
+	using InterruptRequest = Storage::Inputs::InterruptRequest;
 
 	while(true) switch(Storage::resume_point_) {
 		// MARK: - Fetch/decode.
@@ -75,18 +75,18 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
-			access(BusOperation::ReadOpcode, Address::Literal(Storage::pc_), Storage::opcode_);
-			++Storage::registers_.pc;
-			access(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
+			access(BusOperation::ReadOpcode, Address::Literal(Storage::registers_.pc.full), Storage::opcode_);
+			++Storage::registers_.pc.full;
+			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
 
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
-			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.access_program);
+			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.program);
 			break;
 
 		// MARK: - Access patterns.
 
 		case access_program(Immediate):
-			++Storage::registers_.pc;
+			++Storage::registers_.pc.full;
 			[[fallthrough]];
 
 		case access_program(Implied):
@@ -95,53 +95,57 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		// MARK: - NMI/IRQ/Reset.
 		interrupt:
-			read(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
-			read(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
+			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
+			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
 
-			if(Storage::inputs_.interrupt_requests & (InterruptRequests::Reset | InterruptRequests::PowerOn)) {
-				Storage::inputs_.interrupt_requests &= ~InterruptRequests::PowerOn;
+			if(Storage::inputs_.interrupt_requests & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
+				Storage::inputs_.interrupt_requests &= ~InterruptRequest::PowerOn;
 				goto reset;
 			}
-			assert(Storage::inputs_.interrupt_requests & (InterruptRequests::IRQ | InterruptRequests::NMI));
+			assert(Storage::inputs_.interrupt_requests & (InterruptRequest::IRQ | InterruptRequest::NMI));
 
-			--Storage::s_;
-			access(BusOperation::Write, Address::Stack(Storage::s_), Storage::pc_.halves.high);
-			--Storage::s_;
-			access(BusOperation::Write, Address::Stack(Storage::s_), Storage::pc_.halves.low);
-			--Storage::s_;
-			access(BusOperation::Write, Address::Stack(Storage::s_), static_cast<uint8_t>(Storage::flags_) & ~Flag::Break);
+			--Storage::registers_.s;
+			access(BusOperation::Write, Address::Stack(Storage::registers_.s), Storage::registers_.pc.halves.high);
+			--Storage::registers_.s;
+			access(BusOperation::Write, Address::Stack(Storage::registers_.s), Storage::registers_.pc.halves.low);
+			--Storage::registers_.s;
+			access(
+				BusOperation::Write,
+				Address::Stack(Storage::registers_.s),
+				static_cast<uint8_t>(Storage::registers_.flags) & ~Flag::Break
+			);
 
-			Storage::flags_.inverse_interrupt = 0;
+			Storage::registers_.flags.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) {
 				Storage::flags_.decimal = 0;
 			}
 
-			if(Storage::inputs_.interrupt_requests & InterruptRequests::NMI) {
+			if(Storage::inputs_.interrupt_requests & InterruptRequest::NMI) {
 				goto nmi;
 			}
 
-			access(BusOperation::Read, Address::Vector(0xfe), Storage::pc_.halves.low);
-			access(BusOperation::Read, Address::Vector(0xff), Storage::pc_.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfe), Storage::registers_.pc.halves.low);
+			access(BusOperation::Read, Address::Vector(0xff), Storage::registers_.pc.halves.high);
 			goto fetch_decode;
 
 		nmi:
-			access(BusOperation::Read, Address::Vector(0xfa), Storage::pc_.halves.low);
-			access(BusOperation::Read, Address::Vector(0xfb), Storage::pc_.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfa), Storage::registers_.pc.halves.low);
+			access(BusOperation::Read, Address::Vector(0xfb), Storage::registers_.pc.halves.high);
 			goto fetch_decode;
 
 		reset:
-			--Storage::s_;
-			access(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
-			--Storage::s_;
-			access(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
-			--Storage::s_;
-			access(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
+			--Storage::registers_.s;
+			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
+			--Storage::registers_.s;
+			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
+			--Storage::registers_.s;
+			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
 
-			Storage::flags_.inverse_interrupt = 0;
+			Storage::registers_.flags.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) Storage::flags_.decimal = 0;
 
-			read(BusOperation::Read, Address::Vector(0xfc), Storage::pc_.halves.low);
-			read(BusOperation::Read, Address::Vector(0xfd), Storage::pc_.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfc), Storage::registers_.pc.halves.low);
+			access(BusOperation::Read, Address::Vector(0xfd), Storage::registers_.pc.halves.high);
 
 			goto fetch_decode;
 	}

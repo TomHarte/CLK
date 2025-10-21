@@ -92,7 +92,7 @@ enum class AccessProgram {
 };
 
 struct Instruction {
-	AccessProgram mode;
+	AccessProgram program;
 	Operation operation;
 };
 
@@ -382,6 +382,8 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xdf:	return {AbsoluteXModify, Operation::DCP};
 			case 0xff:	return {AbsoluteXModify, Operation::INS};
 		}
+
+		__builtin_unreachable();
 	}
 };
 

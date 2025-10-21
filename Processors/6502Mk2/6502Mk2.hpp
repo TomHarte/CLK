@@ -133,6 +133,8 @@ template <BusOperation operation> struct Value<operation, std::enable_if_t<is_da
 
 } // namespace Data
 
+template <BusOperation operation> using data_t = typename Data::Value<operation>::type;
+
 // MARK: - Storage.
 
 /*!
