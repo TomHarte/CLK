@@ -1150,10 +1150,31 @@ private:
 
 using namespace BBCMicro;
 
+namespace {
+
+struct Handler {
+	uint8_t memory_[65536];
+};
+
+struct Traits {
+	static constexpr bool uses_ready_line = false;
+	using BusHandlerT = Handler;
+};
+
+void test_it() {
+	Handler handler;
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, Traits> processor(handler);
+	processor.run_for(Cycles(10));
+}
+
+}
+
 std::unique_ptr<Machine> Machine::BBCMicro(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
+	test_it();
+
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 	if(acorn_target->has_1770dfs || acorn_target->has_adfs) {

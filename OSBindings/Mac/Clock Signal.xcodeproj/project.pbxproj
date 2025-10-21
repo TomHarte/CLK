@@ -1805,6 +1805,8 @@
 		4B884C762EA5D6C300073840 /* 6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502.hpp; sourceTree = "<group>"; };
 		4B884C792EA6DBAA00073840 /* Decoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
 		4B884C7A2EA72EF300073840 /* Model.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
+		4B884C7B2EA7F4AE00073840 /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
+		4B884C7C2EA7F4F300073840 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4B88559C2E8185BF00E251DD /* SizedInt.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SizedInt.hpp; sourceTree = "<group>"; };
 		4B8855A22E84D51B00E251DD /* SAA5050.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAA5050.hpp; sourceTree = "<group>"; };
 		4B8855A32E84D51B00E251DD /* SAA5050.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAA5050.cpp; sourceTree = "<group>"; };
@@ -3869,6 +3871,8 @@
 				4B884C722EA47FCC00073840 /* 6502Mk2.hpp */,
 				4B884C792EA6DBAA00073840 /* Decoder.hpp */,
 				4B884C7A2EA72EF300073840 /* Model.hpp */,
+				4B884C7C2EA7F4F300073840 /* Perform.hpp */,
+				4B884C7B2EA7F4AE00073840 /* Registers.hpp */,
 				4B884C772EA5D6C300073840 /* Implementation */,
 			);
 			path = 6502Mk2;

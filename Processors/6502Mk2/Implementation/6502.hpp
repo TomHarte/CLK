@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Processors/6502Mk2/Decoder.hpp"
+#include "Processors/6502Mk2/Perform.hpp"
 
 #include <cassert>
 
@@ -54,6 +55,8 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		Storage::cycles_ -= Storage::bus_handler_.perform<type>(addr, value);							\
 	}
 
+	#define access_program(name)	ResumePoint::Max + AccessProgram::name
+
 	using ResumePoint = Storage::ResumePoint;
 	using InterruptRequests = Storage::Inputs::InterruptRequests;
 
@@ -73,14 +76,22 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			access(BusOperation::ReadOpcode, Address::Literal(Storage::pc_), Storage::opcode_);
-			++Storage::pc_;
+			++Storage::registers_.pc;
 			access(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
 
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.access_program);
 			break;
 
-		// TODO: all access programs.
+		// MARK: - Access patterns.
+
+		case access_program(Immediate):
+			++Storage::registers_.pc;
+			[[fallthrough]];
+
+		case access_program(Implied):
+			perform(Storage::decoded_.operation, Storage::registers_, Storage::operand_);
+			goto fetch_decode;
 
 		// MARK: - NMI/IRQ/Reset.
 		interrupt:
@@ -135,6 +146,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 	}
 
+	#undef access_program
 	#undef access
 	#undef restore_point
 	#undef line_label
