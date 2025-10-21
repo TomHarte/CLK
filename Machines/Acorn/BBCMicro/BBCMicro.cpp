@@ -1177,7 +1177,7 @@ struct Traits {
 void test_it() {
 	Handler handler;
 	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, Traits> processor(handler);
-	processor.run_for(Cycles(10));
+	processor.run_for(Cycles(1000));
 }
 
 }

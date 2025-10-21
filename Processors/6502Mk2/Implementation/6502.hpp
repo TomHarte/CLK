@@ -61,6 +61,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	using InterruptRequest = Storage::Inputs::InterruptRequest;
 
 	while(true) switch(Storage::resume_point_) {
+		default:
+			__builtin_unreachable();
+
 		// MARK: - Fetch/decode.
 		fetch_decode:
 		case ResumePoint::FetchDecode:
