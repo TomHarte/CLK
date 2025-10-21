@@ -26,37 +26,32 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 	#define restore_point()	(__COUNTER__ + ResumePoint::Max + AccessProgram::Max)
 
-	#define test_cycles(precision) {							\
-		static constexpr int test_location = restore_point();	\
-		if constexpr (Traits::pause_precision >= precision) {	\
-			if(Storage::cycles_ <= Cycles(0)) {					\
-				Storage::resume_point_ = test_location;			\
-				return;											\
-			}													\
-		}														\
-		[[fallthrough]]; case test_location: (void)0;			\
-	}
+	#define join(a, b) 			a##b
+	#define attach(a, b) 		join(a, b)
+	#define line_label(name)	attach(name, __LINE__)
 
-	// TODO: find a way not to generate a restore point if Traits::uses_ready_line is false.
-	#define read(type, addr, value)	{											\
-		static_assert(is_read(type));											\
-		static constexpr int location = restore_point();						\
-																				\
-		if(Traits::uses_ready_line && Storage::inputs_.ready) {					\
-			Storage::return_from_ready_ = location;								\
-			goto spin_ready;													\
-		}																		\
-																				\
-		[[fallthrough]]; case location:											\
-		Storage::cycles_ -= Storage::bus_handler_.perform<type>(addr, value);	\
-		test_cycles(PausePrecision::AnyCycle)									\
-	}
-
-	// TODO: test RDY if a suitable-advanced 6502.
-	#define write(type, addr, value)	{										\
-		static_assert(is_write(type));											\
-		Storage::cycles_ -= Storage::bus_handler_.perform<type>(addr, value);	\
-		test_cycles(PausePrecision::AnyCycle)									\
+	// TODO: find a way not to generate a restore point if pause precision and uses_ready_line/model allows it.
+	#define access(type, addr, value)	{																\
+		static constexpr int location = restore_point();												\
+		[[fallthrough]]; case location:																	\
+		line_label(repeat):																				\
+																										\
+		if constexpr (Traits::pause_precision >= PausePrecision::AnyCycle) {							\
+			if(Storage::cycles_ <= Cycles(0)) {															\
+				Storage::resume_point_ = location;														\
+				return;																					\
+			}																							\
+		}																								\
+																										\
+		if(Traits::uses_ready_line && (is_read(type) || is_65c02(model)) && Storage::inputs_.ready) {	\
+			Storage::cycles_ -= Storage::bus_handler_.perform<BusOperation::Ready>(						\
+				addr,																					\
+				Data::NoValue{}																			\
+			);																							\
+			goto line_label(repeat);																	\
+		}																								\
+																										\
+		Storage::cycles_ -= Storage::bus_handler_.perform<type>(addr, value);							\
 	}
 
 	using ResumePoint = Storage::ResumePoint;
@@ -77,9 +72,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
-			read(BusOperation::ReadOpcode, Address::Literal(Storage::pc_), Storage::opcode_);
+			access(BusOperation::ReadOpcode, Address::Literal(Storage::pc_), Storage::opcode_);
 			++Storage::pc_;
-			read(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
+			access(BusOperation::Read, Address::Literal(Storage::pc_), Storage::operand_);
 
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.access_program);
@@ -99,11 +94,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			assert(Storage::inputs_.interrupt_requests & (InterruptRequests::IRQ | InterruptRequests::NMI));
 
 			--Storage::s_;
-			read(BusOperation::Write, Address::Stack(Storage::s_), Storage::pc_.halves.high);
+			access(BusOperation::Write, Address::Stack(Storage::s_), Storage::pc_.halves.high);
 			--Storage::s_;
-			read(BusOperation::Write, Address::Stack(Storage::s_), Storage::pc_.halves.low);
+			access(BusOperation::Write, Address::Stack(Storage::s_), Storage::pc_.halves.low);
 			--Storage::s_;
-			read(BusOperation::Write, Address::Stack(Storage::s_), static_cast<uint8_t>(Storage::flags_) & ~Flag::Break);
+			access(BusOperation::Write, Address::Stack(Storage::s_), static_cast<uint8_t>(Storage::flags_) & ~Flag::Break);
 
 			Storage::flags_.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) {
@@ -114,22 +109,22 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto nmi;
 			}
 
-			read(BusOperation::Read, Address::Vector(0xfe), Storage::pc_.halves.low);
-			read(BusOperation::Read, Address::Vector(0xff), Storage::pc_.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfe), Storage::pc_.halves.low);
+			access(BusOperation::Read, Address::Vector(0xff), Storage::pc_.halves.high);
 			goto fetch_decode;
 
 		nmi:
-			read(BusOperation::Read, Address::Vector(0xfa), Storage::pc_.halves.low);
-			read(BusOperation::Read, Address::Vector(0xfb), Storage::pc_.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfa), Storage::pc_.halves.low);
+			access(BusOperation::Read, Address::Vector(0xfb), Storage::pc_.halves.high);
 			goto fetch_decode;
 
 		reset:
 			--Storage::s_;
-			read(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
 			--Storage::s_;
-			read(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
 			--Storage::s_;
-			read(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(Storage::s_), Storage::operand_);
 
 			Storage::flags_.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) Storage::flags_.decimal = 0;
@@ -138,27 +133,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			read(BusOperation::Read, Address::Vector(0xfd), Storage::pc_.halves.high);
 
 			goto fetch_decode;
-
-		// MARK: - Spin on RDY.
-		spin_ready:
-			Storage::cycles_ -= Storage::bus_handler_.perform<BusOperation::Ready>(
-				Address::Literal{Storage::ready_address_},
-				Data::NoValue{}
-			);
-			test_cycles(PausePrecision::AnyCycle);
-			if(Storage::inputs_.ready) {
-				goto spin_ready;
-			}
-
-			Storage::resume_point_ = Storage::return_from_ready_;
-			break;
-
 	}
 
-	#undef write
-	#undef read
-	#undef test_cycles
+	#undef access
 	#undef restore_point
+	#undef line_label
+	#undef attach
+	#undef join
 }
 
 }
