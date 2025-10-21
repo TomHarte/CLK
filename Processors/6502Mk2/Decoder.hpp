@@ -37,22 +37,6 @@ enum class Operation {
 	PHP,	PLP,	JMP,
 };
 
-enum class AddressingMode {
-	Implied,
-	Immediate,
-	Absolute,
-	AbsoluteX,
-	AbsoluteY,
-	Zero,
-	ZeroX,
-	ZeroY,
-	ZeroIndirect,
-	IndexedIndirect,
-	IndirectIndexed,
-
-	BRK,
-};
-
 enum class AccessProgram {
 	Implied,
 	Immediate,
