@@ -116,8 +116,11 @@ private:
 
 namespace Data {
 
+/// A value that can be read from or written to, without effect.
 struct NoValue {
 	operator uint8_t() const { return 0xff; }
+	NoValue() = default;
+	constexpr NoValue(uint8_t) noexcept {}
 };
 
 template <BusOperation, typename Enable = void> struct Value;

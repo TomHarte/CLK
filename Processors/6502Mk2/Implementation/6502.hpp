@@ -93,8 +93,23 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			[[fallthrough]];
 
 		case access_program(Implied):
-			perform(Storage::decoded_.operation, Storage::registers_, Storage::operand_);
+			perform<model>(Storage::decoded_.operation, Storage::registers_, Storage::operand_, Storage::opcode_);
 			goto fetch_decode;
+
+		// MARK: - Stack.
+
+		case access_program(Pull):
+			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
+			++Storage::registers_.s;
+			perform<model>(Storage::decoded_.operation, Storage::registers_, Storage::operand_, Storage::opcode_);
+			goto fetch_decode;
+
+		case access_program(Push):
+			perform<model>(Storage::decoded_.operation, Storage::registers_, Storage::operand_, Storage::opcode_);
+			--Storage::registers_.s;
+			access(BusOperation::Write, Address::Stack(Storage::registers_.s), Storage::operand_);
+			goto fetch_decode;
+
 
 		// MARK: - NMI/IRQ/Reset.
 		interrupt:
