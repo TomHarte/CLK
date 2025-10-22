@@ -14,6 +14,24 @@
 
 namespace CPU::MOS6502Mk2 {
 
+template <typename RegistersT>
+bool test(const Operation operation, RegistersT &registers) {
+	switch(operation) {
+		default:
+			__builtin_unreachable();
+
+		case Operation::BPL: return !(registers.flags.negative_result & 0x80);
+		case Operation::BMI: return registers.flags.negative_result & 0x80;
+		case Operation::BVC: return !registers.flags.overflow;
+		case Operation::BVS: return registers.flags.overflow;
+		case Operation::BCC: return !registers.flags.carry;
+		case Operation::BCS: return registers.flags.carry;
+		case Operation::BNE: return registers.flags.zero_result;
+		case Operation::BEQ: return !registers.flags.zero_result;
+		case Operation::BRA: return true;
+	}
+}
+
 template <Model model, typename RegistersT>
 void perform(const Operation operation, RegistersT &registers, uint8_t &operand, const uint8_t opcode) {
 	(void)opcode;

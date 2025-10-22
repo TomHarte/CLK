@@ -68,7 +68,6 @@ enum class AccessProgram {
 	ZeroXRead,
 	ZeroXModify,
 	ZeroXWrite,
-	ZeroXNOP,
 
 	ZeroYRead,
 	ZeroYModify,
@@ -112,14 +111,14 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xc0:	return {Immediate, Operation::CPY};
 			case 0xe0:	return {Immediate, Operation::CPX};
 
-			case 0x01:	return {IndirectIndexedRead, Operation::ORA};
-			case 0x21:	return {IndirectIndexedRead, Operation::AND};
-			case 0x41:	return {IndirectIndexedRead, Operation::EOR};
-			case 0x61:	return {IndirectIndexedRead, Operation::ADC};
-			case 0x81:	return {IndirectIndexedWrite, Operation::STA};
-			case 0xa1:	return {IndirectIndexedRead, Operation::LDA};
-			case 0xc1:	return {IndirectIndexedRead, Operation::CMP};
-			case 0xe1:	return {IndirectIndexedRead, Operation::SBC};
+			case 0x01:	return {IndexedIndirectRead, Operation::ORA};
+			case 0x21:	return {IndexedIndirectRead, Operation::AND};
+			case 0x41:	return {IndexedIndirectRead, Operation::EOR};
+			case 0x61:	return {IndexedIndirectRead, Operation::ADC};
+			case 0x81:	return {IndexedIndirectWrite, Operation::STA};
+			case 0xa1:	return {IndexedIndirectRead, Operation::LDA};
+			case 0xc1:	return {IndexedIndirectRead, Operation::CMP};
+			case 0xe1:	return {IndexedIndirectRead, Operation::SBC};
 
 			case 0x02:	return {JAM, Operation::JAM};
 			case 0x22:	return {JAM, Operation::JAM};
@@ -130,14 +129,14 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xc2:	return {Implied, Operation::NOP};
 			case 0xe2:	return {Implied, Operation::NOP};
 
-			case 0x03:	return {IndirectIndexedModify, Operation::ASO};
-			case 0x23:	return {IndirectIndexedModify, Operation::RLA};
-			case 0x43:	return {IndirectIndexedModify, Operation::LSE};
-			case 0x63:	return {IndirectIndexedModify, Operation::RRA};
-			case 0x83:	return {IndirectIndexedWrite, Operation::SAX};
-			case 0xa3:	return {IndirectIndexedRead, Operation::LAX};
-			case 0xc3:	return {IndirectIndexedWrite, Operation::DCP};
-			case 0xe3:	return {IndirectIndexedWrite, Operation::INS};
+			case 0x03:	return {IndexedIndirectModify, Operation::ASO};
+			case 0x23:	return {IndexedIndirectModify, Operation::RLA};
+			case 0x43:	return {IndexedIndirectModify, Operation::LSE};
+			case 0x63:	return {IndexedIndirectModify, Operation::RRA};
+			case 0x83:	return {IndexedIndirectWrite, Operation::SAX};
+			case 0xa3:	return {IndexedIndirectRead, Operation::LAX};
+			case 0xc3:	return {IndexedIndirectWrite, Operation::DCP};
+			case 0xe3:	return {IndexedIndirectWrite, Operation::INS};
 
 			case 0x04:	return {ZeroRead, Operation::NOP};
 			case 0x24:	return {ZeroRead, Operation::BIT};
@@ -283,14 +282,14 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xd3:	return {IndirectIndexedModify, Operation::DCP};
 			case 0xf3:	return {IndirectIndexedModify, Operation::INS};
 
-			case 0x14:	return {ZeroXNOP, Operation::NOP};
-			case 0x34:	return {ZeroXNOP, Operation::NOP};
-			case 0x54:	return {ZeroXNOP, Operation::NOP};
-			case 0x74:	return {ZeroXNOP, Operation::NOP};
+			case 0x14:	return {ZeroXRead, Operation::NOP};
+			case 0x34:	return {ZeroXRead, Operation::NOP};
+			case 0x54:	return {ZeroXRead, Operation::NOP};
+			case 0x74:	return {ZeroXRead, Operation::NOP};
 			case 0x94:	return {ZeroXWrite, Operation::STY};
 			case 0xb4:	return {ZeroXRead, Operation::LDY};
-			case 0xd4:	return {ZeroXNOP, Operation::NOP};
-			case 0xf4:	return {ZeroXNOP, Operation::NOP};
+			case 0xd4:	return {ZeroXRead, Operation::NOP};
+			case 0xf4:	return {ZeroXRead, Operation::NOP};
 
 			case 0x15:	return {ZeroXRead, Operation::ORA};
 			case 0x35:	return {ZeroXRead, Operation::AND};

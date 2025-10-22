@@ -78,6 +78,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			__builtin_unreachable();
 
 		// MARK: - Fetch/decode.
+
 		fetch_decode:
 		case ResumePoint::FetchDecode:
 
@@ -112,6 +113,28 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		case access_program(Accumulator):
 			CPU::MOS6502Mk2::perform<model>(Storage::decoded_.operation, registers, registers.a, Storage::opcode_);
+			goto fetch_decode;
+
+		// MARK: - Relative.
+
+		case access_program(Relative):
+			++registers.pc.full;
+
+			if(!test(Storage::decoded_.operation, registers)) {
+				goto fetch_decode;
+			}
+
+			Storage::address_ = registers.pc;
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
+
+			registers.pc.full += int8_t(Storage::operand_);
+			if(registers.pc.halves.high == Storage::address_.halves.high) {
+				goto fetch_decode;
+			}
+
+			Storage::address_.halves.low = registers.pc.halves.low;
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+
 			goto fetch_decode;
 
 		// MARK: - Zero.
@@ -209,7 +232,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		// MARK: - Indexed indirect.
 
-		case access_program(IndirectIndexedRead):
+		case access_program(IndexedIndirectRead):
 			++registers.pc.full;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
 			Storage::operand_ += registers.x;
@@ -221,13 +244,72 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			perform_operation();
 			goto fetch_decode;
 
-		case access_program(IndirectIndexedWrite):
+		case access_program(IndexedIndirectWrite):
 			++registers.pc.full;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
 			Storage::operand_ += registers.x;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			goto fetch_decode;
+
+		case access_program(IndexedIndirectModify):
+			++registers.pc.full;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			goto fetch_decode;
+
+		// MARK: - Indirect indexed.
+		case access_program(IndirectIndexedRead):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+			if(Storage::address_.halves.high == Storage::operand_) {
+				goto skip_indirect_indexed_read_bonus_cycle;
+			}
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+		skip_indirect_indexed_read_bonus_cycle:
+			check_interrupt();
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			perform_operation();
+			goto fetch_decode;
+
+
+		case access_program(IndirectIndexedWrite):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
 			check_interrupt();
 			perform_operation();
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
@@ -235,13 +317,22 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		case access_program(IndirectIndexedModify):
 			++registers.pc.full;
-			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
-			Storage::operand_ += registers.x;
+
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
+
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+		skip_indirect_indexed_modify_bonus_cycle:
 			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
 			check_interrupt();
 			perform_operation();
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
