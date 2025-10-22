@@ -579,7 +579,23 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			);
 			goto jammed;
 
+		// MARK: - Flow control (other than BRK).
+
+		case access_program(JSR):
+			++registers.pc.full;
+			access(BusOperation::Read, Stack(registers.s), throwaway);
+			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
+			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.low);
+
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), registers.pc.halves.high);
+			registers.pc.halves.low = Storage::operand_;
+
+			goto fetch_decode;
+
+
 		// MARK: - NMI/IRQ/Reset, and BRK.
+
 		case access_program(BRK):
 			++registers.pc.full;
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
