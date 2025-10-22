@@ -594,6 +594,27 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		case access_program(RTI):
+			access(BusOperation::Read, Stack(registers.s), Storage::operand_);
+
+			access(BusOperation::Read, Stack(registers.inc_s()), Storage::operand_);
+			registers.flags = Flags(Storage::operand_);
+
+			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.high);
+
+			goto fetch_decode;
+
+		case access_program(RTS):
+			access(BusOperation::Read, Stack(registers.s), Storage::operand_);
+
+			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.high);
+			++registers.pc.full;
+
+			goto fetch_decode;
 
 		// MARK: - NMI/IRQ/Reset, and BRK.
 
