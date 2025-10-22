@@ -55,7 +55,6 @@ enum class AccessProgram {
 	AbsoluteXRead,
 	AbsoluteXModify,
 	AbsoluteXWrite,
-	AbsoluteXNOP,
 
 	AbsoluteYRead,
 	AbsoluteYModify,
@@ -354,14 +353,14 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xdb:	return {AbsoluteYModify, Operation::DCP};
 			case 0xfb:	return {AbsoluteYModify, Operation::INS};
 
-			case 0x1c:	return {AbsoluteXNOP, Operation::NOP};
-			case 0x3c:	return {AbsoluteXNOP, Operation::NOP};
-			case 0x5c:	return {AbsoluteXNOP, Operation::NOP};
-			case 0x7c:	return {AbsoluteXNOP, Operation::NOP};
+			case 0x1c:	return {AbsoluteXRead, Operation::NOP};
+			case 0x3c:	return {AbsoluteXRead, Operation::NOP};
+			case 0x5c:	return {AbsoluteXRead, Operation::NOP};
+			case 0x7c:	return {AbsoluteXRead, Operation::NOP};
 			case 0x9c:	return {AbsoluteXWrite, Operation::SHY};
 			case 0xbc:	return {AbsoluteXRead, Operation::LDY};
-			case 0xdc:	return {AbsoluteXNOP, Operation::NOP};
-			case 0xfc:	return {AbsoluteXNOP, Operation::NOP};
+			case 0xdc:	return {AbsoluteXRead, Operation::NOP};
+			case 0xfc:	return {AbsoluteXRead, Operation::NOP};
 
 			case 0x1d:	return {AbsoluteXRead, Operation::ORA};
 			case 0x3d:	return {AbsoluteXRead, Operation::AND};

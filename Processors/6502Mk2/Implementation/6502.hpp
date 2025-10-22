@@ -301,6 +301,142 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		// MARK: - Absolute indexed.
+
+		case access_program(AbsoluteXRead):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.x;
+			if(Storage::operand_ == Storage::address_.halves.high) {
+				goto skip_absolute_x_read_bonus_cycle;
+			}
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+		skip_absolute_x_read_bonus_cycle:
+			check_interrupt();
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			perform_operation();
+
+			goto fetch_decode;
+
+		case access_program(AbsoluteYRead):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+			if(Storage::operand_ == Storage::address_.halves.high) {
+				goto skip_absolute_y_read_bonus_cycle;
+			}
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+		skip_absolute_y_read_bonus_cycle:
+			check_interrupt();
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			perform_operation();
+
+			goto fetch_decode;
+
+		case access_program(AbsoluteXWrite):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.x;
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			goto fetch_decode;
+
+		case access_program(AbsoluteYWrite):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			goto fetch_decode;
+
+		case access_program(AbsoluteXModify):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.x;
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			goto fetch_decode;
+
+		case access_program(AbsoluteYModify):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			goto fetch_decode;
+
 		// MARK: - Stack.
 
 		case access_program(Pull):
