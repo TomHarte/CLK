@@ -41,6 +41,7 @@ enum class BusOperation {
 	/// All processors: indicates that the processor is paused due to the RDY input.
 	/// 65C02 and 65816: indicates a WAI is ongoing.
 	Ready,
+	// TODO: should ReadyRead be distinguished from ReadyWrite?
 
 	/// 65C02 and 65816: indicates a STP condition.
 	None,

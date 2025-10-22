@@ -100,7 +100,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.program);
 			break;
 
-		// MARK: - Access patterns.
+		// MARK: - Immediate, Implied, Accumulator.
 
 		case access_program(Immediate):
 			++registers.pc.full;
@@ -110,11 +110,42 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			perform_operation();
 			goto fetch_decode;
 
+		case access_program(Accumulator):
+			CPU::MOS6502Mk2::perform<model>(Storage::decoded_.operation, registers, registers.a, Storage::opcode_);
+			goto fetch_decode;
+
+		// MARK: - Zero.
+
+		case access_program(ZeroRead):
+			++registers.pc.full;
+			check_interrupt();
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::operand_);
+			perform_operation();
+			goto fetch_decode;
+
+		case access_program(ZeroWrite):
+			++registers.pc.full;
+			check_interrupt();
+			Storage::address_.halves.low = Storage::operand_;
+			perform_operation();
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			goto fetch_decode;
+
+		case access_program(ZeroModify):
+			++registers.pc.full;
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			goto fetch_decode;
+
 		// MARK: - Stack.
 
 		case access_program(Pull):
-			access(BusOperation::Read, Stack(registers.inc_s()), Storage::operand_);
 			check_interrupt();
+			access(BusOperation::Read, Stack(registers.inc_s()), Storage::operand_);
 			perform_operation();
 			goto fetch_decode;
 
@@ -136,6 +167,32 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			check_interrupt();
 			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
 			perform_operation();
+			goto fetch_decode;
+
+		case access_program(IndirectIndexedWrite):
+			++registers.pc.full;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			goto fetch_decode;
+
+		case access_program(IndirectIndexedModify):
+			++registers.pc.full;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
 			goto fetch_decode;
 
 

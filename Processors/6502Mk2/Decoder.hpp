@@ -40,6 +40,7 @@ enum class Operation {
 enum class AccessProgram {
 	Implied,
 	Immediate,
+	Accumulator,
 	Relative,
 
 	Push,
@@ -63,7 +64,6 @@ enum class AccessProgram {
 	ZeroRead,
 	ZeroModify,
 	ZeroWrite,
-	ZeroNOP,
 
 	ZeroXRead,
 	ZeroXModify,
@@ -139,10 +139,10 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xc3:	return {IndirectIndexedWrite, Operation::DCP};
 			case 0xe3:	return {IndirectIndexedWrite, Operation::INS};
 
-			case 0x04:	return {ZeroNOP, Operation::NOP};
+			case 0x04:	return {ZeroRead, Operation::NOP};
 			case 0x24:	return {ZeroRead, Operation::BIT};
-			case 0x44:	return {ZeroNOP, Operation::NOP};
-			case 0x64:	return {ZeroNOP, Operation::NOP};
+			case 0x44:	return {ZeroRead, Operation::NOP};
+			case 0x64:	return {ZeroRead, Operation::NOP};
 			case 0x84:	return {ZeroWrite, Operation::STY};
 			case 0xa4:	return {ZeroRead, Operation::LDY};
 			case 0xc4:	return {ZeroRead, Operation::CPY};
@@ -193,10 +193,10 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xc9:	return {Immediate, Operation::CMP};
 			case 0xe9:	return {Immediate, Operation::SBC};
 
-			case 0x0a:	return {Implied, Operation::ASL};
-			case 0x2a:	return {Implied, Operation::ROL};
-			case 0x4a:	return {Implied, Operation::LSR};
-			case 0x6a:	return {Implied, Operation::ROR};
+			case 0x0a:	return {Accumulator, Operation::ASL};
+			case 0x2a:	return {Accumulator, Operation::ROL};
+			case 0x4a:	return {Accumulator, Operation::LSR};
+			case 0x6a:	return {Accumulator, Operation::ROR};
 			case 0x8a:	return {Implied, Operation::TXA};
 			case 0xaa:	return {Implied, Operation::TAX};
 			case 0xca:	return {Implied, Operation::DEX};
