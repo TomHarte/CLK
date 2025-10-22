@@ -229,6 +229,15 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xcd:	return {AbsoluteRead, Operation::CMP};
 			case 0xed:	return {AbsoluteRead, Operation::SBC};
 
+			case 0x0e:	return {AbsoluteModify, Operation::ASL};
+			case 0x2e:	return {AbsoluteModify, Operation::ROL};
+			case 0x4e:	return {AbsoluteModify, Operation::LSR};
+			case 0x6e:	return {AbsoluteModify, Operation::ROR};
+			case 0x8e:	return {AbsoluteWrite, Operation::STX};
+			case 0xae:	return {AbsoluteRead, Operation::LDX};
+			case 0xce:	return {AbsoluteModify, Operation::DEC};
+			case 0xee:	return {AbsoluteModify, Operation::INC};
+
 			case 0x0f:	return {AbsoluteModify, Operation::ASO};
 			case 0x2f:	return {AbsoluteModify, Operation::RLA};
 			case 0x4f:	return {AbsoluteModify, Operation::LSE};
