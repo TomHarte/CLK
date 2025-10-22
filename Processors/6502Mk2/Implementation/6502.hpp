@@ -616,6 +616,26 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		case access_program(JMPAbsolute):
+			++registers.pc.full;
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), registers.pc.halves.high);
+			registers.pc.halves.low = Storage::operand_;
+
+			goto fetch_decode;
+
+		case access_program(JMPAbsoluteIndirect):
+			++registers.pc.full;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			Storage::address_.halves.low = Storage::operand_;
+
+			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.low);
+			++Storage::address_.halves.low;
+			check_interrupt();
+			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.high);
+
+			goto fetch_decode;
+
 		// MARK: - NMI/IRQ/Reset, and BRK.
 
 		case access_program(BRK):

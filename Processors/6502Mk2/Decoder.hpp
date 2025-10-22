@@ -49,8 +49,9 @@ enum class AccessProgram {
 	AbsoluteRead,
 	AbsoluteModify,
 	AbsoluteWrite,
-	AbsoluteJMP,
-	AbsoluteIndirectJMP,
+
+	JMPAbsolute,
+	JMPAbsoluteIndirect,
 
 	AbsoluteXRead,
 	AbsoluteXModify,
@@ -211,8 +212,8 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 
 			case 0x0c:	return {AbsoluteRead, Operation::NOP};
 			case 0x2c:	return {AbsoluteRead, Operation::BIT};
-			case 0x4c:	return {AbsoluteJMP, Operation::JMP};
-			case 0x6c:	return {AbsoluteIndirectJMP, Operation::JMP};
+			case 0x4c:	return {JMPAbsolute, Operation::JMP};
+			case 0x6c:	return {JMPAbsoluteIndirect, Operation::JMP};
 			case 0x8c:	return {AbsoluteWrite, Operation::STY};
 			case 0xac:	return {AbsoluteRead, Operation::LDY};
 			case 0xcc:	return {AbsoluteRead, Operation::CPY};
