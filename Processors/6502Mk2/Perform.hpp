@@ -34,8 +34,6 @@ bool test(const Operation operation, RegistersT &registers) {
 
 template <Model model, typename RegistersT>
 void perform(const Operation operation, RegistersT &registers, uint8_t &operand, const uint8_t opcode) {
-	(void)opcode;
-
 	switch(operation) {
 		default:
 			__builtin_unreachable();
@@ -158,6 +156,31 @@ void perform(const Operation operation, RegistersT &registers, uint8_t &operand,
 			registers.flags.carry = operand & 1;
 			operand = temp8;
 		} break;
+
+		// MARK: - Bit logic.
+
+		case Operation::BIT:
+			registers.flags.zero_result = operand & registers.a;
+			registers.flags.negative_result = operand;
+			registers.flags.overflow = operand & Flag::Overflow;
+		break;
+		case Operation::BITNoNV:
+			registers.flags.zero_result = operand & registers.a;
+		break;
+		case Operation::TRB:
+			registers.flags.zero_result = operand & registers.a;
+			operand &= ~registers.a;
+		break;
+		case Operation::TSB:
+			registers.flags.zero_result = operand & registers.a;
+			operand |= registers.a;
+		break;
+		case Operation::RMB:
+			operand &= ~(1 << (opcode >> 4));
+		break;
+		case Operation::SMB:
+			operand |= 1 << ((opcode >> 4)&7);
+		break;
 	}
 }
 
