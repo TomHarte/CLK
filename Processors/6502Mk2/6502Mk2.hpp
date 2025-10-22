@@ -195,6 +195,7 @@ protected:
 
 	Registers registers_;
 	uint16_t operation_pc_;
+	RegisterPair16 address_;
 
 	Cycles cycles_;
 

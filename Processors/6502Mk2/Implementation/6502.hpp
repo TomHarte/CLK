@@ -59,6 +59,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 	using ResumePoint = Storage::ResumePoint;
 	using InterruptRequest = Storage::Inputs::InterruptRequest;
+	auto &registers = Storage::registers_;
+	uint8_t throwaway = 0;
+
+	const auto check_interrupt = [] {
+	};
 
 	while(true) switch(Storage::resume_point_) {
 		default:
@@ -78,9 +83,10 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
-			access(BusOperation::ReadOpcode, Address::Literal(Storage::registers_.pc.full), Storage::opcode_);
-			++Storage::registers_.pc.full;
-			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
+			access(BusOperation::ReadOpcode, Address::Literal(registers.pc.full), Storage::opcode_);
+			++registers.pc.full;
+			check_interrupt();
+			access(BusOperation::Read, Address::Literal(registers.pc.full), Storage::operand_);
 
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.program);
@@ -89,51 +95,65 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Access patterns.
 
 		case access_program(Immediate):
-			++Storage::registers_.pc.full;
+			++registers.pc.full;
 			[[fallthrough]];
 
 		case access_program(Implied):
-			perform<model>(Storage::decoded_.operation, Storage::registers_, Storage::operand_, Storage::opcode_);
+			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
 			goto fetch_decode;
 
 		// MARK: - Stack.
 
 		case access_program(Pull):
-			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
-			++Storage::registers_.s;
-			perform<model>(Storage::decoded_.operation, Storage::registers_, Storage::operand_, Storage::opcode_);
+			access(BusOperation::Read, Address::Stack(registers.inc_s()), Storage::operand_);
+			check_interrupt();
+			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
 			goto fetch_decode;
 
 		case access_program(Push):
-			perform<model>(Storage::decoded_.operation, Storage::registers_, Storage::operand_, Storage::opcode_);
-			--Storage::registers_.s;
-			access(BusOperation::Write, Address::Stack(Storage::registers_.s), Storage::operand_);
+			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+			check_interrupt();
+			access(BusOperation::Write, Address::Stack(registers.dec_s()), Storage::operand_);
 			goto fetch_decode;
 
+		// MARK: - Indexed indirect.
+
+		case access_program(IndirectIndexedRead):
+			++registers.pc.full;
+			access(BusOperation::Read, Address::ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+			access(BusOperation::Read, Address::ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+			access(BusOperation::Read, Address::ZeroPage(Storage::operand_), Storage::address_.halves.high);
+			check_interrupt();
+			access(BusOperation::Read, Address::Literal(Storage::address_.full), Storage::operand_);
+			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+			goto fetch_decode;
 
 		// MARK: - NMI/IRQ/Reset, and BRK.
 		case access_program(BRK):
-			++Storage::registers_.pc.full;
-			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.high);
-			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.low);
+			++registers.pc.full;
+			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.high);
+			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.low);
 			access(
 				BusOperation::Write,
-				Address::Stack(Storage::registers_.dec_s()),
-				static_cast<uint8_t>(Storage::registers_.flags) | Flag::Break
+				Address::Stack(registers.dec_s()),
+				static_cast<uint8_t>(registers.flags) | Flag::Break
 			);
 
-			Storage::registers_.flags.inverse_interrupt = 0;
+			registers.flags.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) {
-				Storage::flags_.decimal = 0;
+				registers.flags.decimal = 0;
 			}
 
-			access(BusOperation::Read, Address::Vector(0xfe), Storage::registers_.pc.halves.low);
-			access(BusOperation::Read, Address::Vector(0xff), Storage::registers_.pc.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfe), registers.pc.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, Address::Vector(0xff), registers.pc.halves.high);
 			goto fetch_decode;
 
 		interrupt:
-			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
-			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
+			access(BusOperation::Read, Address::Literal(registers.pc.full), Storage::operand_);
+			access(BusOperation::Read, Address::Literal(registers.pc.full), Storage::operand_);
 
 			if(Storage::inputs_.interrupt_requests & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
 				Storage::inputs_.interrupt_requests &= ~InterruptRequest::PowerOn;
@@ -141,43 +161,43 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 			assert(Storage::inputs_.interrupt_requests & (InterruptRequest::IRQ | InterruptRequest::NMI));
 
-			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.high);
-			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.low);
+			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.high);
+			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.low);
 			access(
 				BusOperation::Write,
-				Address::Stack(Storage::registers_.dec_s()),
-				static_cast<uint8_t>(Storage::registers_.flags) & ~Flag::Break
+				Address::Stack(registers.dec_s()),
+				static_cast<uint8_t>(registers.flags) & ~Flag::Break
 			);
 
-			Storage::registers_.flags.inverse_interrupt = 0;
-			if constexpr (is_65c02(model)) {
-				Storage::flags_.decimal = 0;
-			}
+			registers.flags.inverse_interrupt = 0;
+			if constexpr (is_65c02(model)) registers.flags.decimal = 0;
 
 			if(Storage::inputs_.interrupt_requests & InterruptRequest::NMI) {
 				goto nmi;
 			}
 
-			access(BusOperation::Read, Address::Vector(0xfe), Storage::registers_.pc.halves.low);
-			access(BusOperation::Read, Address::Vector(0xff), Storage::registers_.pc.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfe), registers.pc.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, Address::Vector(0xff), registers.pc.halves.high);
 			goto fetch_decode;
 
 		nmi:
-			access(BusOperation::Read, Address::Vector(0xfa), Storage::registers_.pc.halves.low);
-			access(BusOperation::Read, Address::Vector(0xfb), Storage::registers_.pc.halves.high);
+			access(BusOperation::Read, Address::Vector(0xfa), registers.pc.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, Address::Vector(0xfb), registers.pc.halves.high);
 			goto fetch_decode;
 
 		reset:
-			access(BusOperation::Read, Address::Stack(Storage::registers_.dec_s()), Storage::operand_);
-			access(BusOperation::Read, Address::Stack(Storage::registers_.dec_s()), Storage::operand_);
-			access(BusOperation::Read, Address::Stack(Storage::registers_.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(registers.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(registers.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(registers.dec_s()), Storage::operand_);
 
-			Storage::registers_.flags.inverse_interrupt = 0;
-			if constexpr (is_65c02(model)) Storage::flags_.decimal = 0;
+			registers.flags.inverse_interrupt = 0;
+			if constexpr (is_65c02(model)) registers.flags.decimal = 0;
 
-			access(BusOperation::Read, Address::Vector(0xfc), Storage::registers_.pc.halves.low);
-			access(BusOperation::Read, Address::Vector(0xfd), Storage::registers_.pc.halves.high);
-
+			access(BusOperation::Read, Address::Vector(0xfc), registers.pc.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, Address::Vector(0xfd), registers.pc.halves.high);
 			goto fetch_decode;
 	}
 
