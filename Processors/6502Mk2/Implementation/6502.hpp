@@ -440,6 +440,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Stack.
 
 		case access_program(Pull):
+			access(BusOperation::Read, Stack(registers.s), Storage::operand_);
 			check_interrupt();
 			access(BusOperation::Read, Stack(registers.inc_s()), Storage::operand_);
 			perform_operation();
