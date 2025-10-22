@@ -94,7 +94,7 @@ struct Traits {
 	handler.accesses.clear();
 
 	try {
-		processor.run_for(Cycles(1000));
+		processor.run_for(Cycles(11));	// To catch the entirety of a JAM as in the JSON.
 	} catch (TestComplete) {}
 
 	NSDictionary *final = test[@"final"];

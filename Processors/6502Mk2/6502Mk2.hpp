@@ -186,7 +186,9 @@ public:
 
 		@returns @c true if the 6502 is jammed; @c false otherwise.
 	*/
-	bool is_jammed() const;
+	bool is_jammed() const {
+		return resume_point_ == ResumePoint::Jam;
+	}
 
 protected:
 	Traits::BusHandlerT &bus_handler_;
@@ -201,6 +203,7 @@ protected:
 
 	enum ResumePoint {
 		FetchDecode,
+		Jam,
 		Max,
 	};
 	int resume_point_ = ResumePoint::FetchDecode;

@@ -125,7 +125,6 @@ struct Registers {
 	uint8_t a, x, y, s;
 	RegisterPair16 pc;
 	Flags flags;
-	bool is_jammed = false;
 
 	auto operator <=> (const Registers &) const = default;
 

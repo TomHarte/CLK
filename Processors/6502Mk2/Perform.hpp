@@ -23,9 +23,8 @@ void perform(const Operation operation, RegistersT &registers, uint8_t &operand,
 			__builtin_unreachable();
 
 		case Operation::BRK:
-		case Operation::NOP:	break;
-
-		case Operation::JAM:	registers.is_jammed = true;		break;
+		case Operation::NOP:
+		case Operation::JAM:	break;
 
 		case Operation::ORA:	registers.flags.set_nz(registers.a |= operand);		break;
 		case Operation::AND:	registers.flags.set_nz(registers.a &= operand);		break;

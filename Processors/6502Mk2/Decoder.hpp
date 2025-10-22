@@ -86,7 +86,7 @@ enum class AccessProgram {
 	IndirectIndexedWrite,
 
 	// Irregular.
-	BRK,	JSR,	RTI,	RTS,
+	BRK,	JSR,	RTI,	RTS,	JAM,
 
 	Max,
 };
@@ -121,10 +121,10 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xc1:	return {IndirectIndexedRead, Operation::CMP};
 			case 0xe1:	return {IndirectIndexedRead, Operation::SBC};
 
-			case 0x02:	return {Implied, Operation::JAM};
-			case 0x22:	return {Implied, Operation::JAM};
-			case 0x42:	return {Implied, Operation::JAM};
-			case 0x62:	return {Implied, Operation::JAM};
+			case 0x02:	return {JAM, Operation::JAM};
+			case 0x22:	return {JAM, Operation::JAM};
+			case 0x42:	return {JAM, Operation::JAM};
+			case 0x62:	return {JAM, Operation::JAM};
 			case 0x82:	return {Immediate, Operation::NOP};
 			case 0xa2:	return {Immediate, Operation::LDX};
 			case 0xc2:	return {Implied, Operation::NOP};
@@ -256,14 +256,14 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0xd1:	return {IndirectIndexedRead, Operation::CMP};
 			case 0xf1:	return {IndirectIndexedRead, Operation::SBC};
 
-			case 0x12:	return {Implied, Operation::JAM};
-			case 0x32:	return {Implied, Operation::JAM};
-			case 0x52:	return {Implied, Operation::JAM};
-			case 0x72:	return {Implied, Operation::JAM};
-			case 0x92:	return {Implied, Operation::JAM};
-			case 0xb2:	return {Implied, Operation::JAM};
-			case 0xd2:	return {Implied, Operation::JAM};
-			case 0xf2:	return {Implied, Operation::JAM};
+			case 0x12:	return {JAM, Operation::JAM};
+			case 0x32:	return {JAM, Operation::JAM};
+			case 0x52:	return {JAM, Operation::JAM};
+			case 0x72:	return {JAM, Operation::JAM};
+			case 0x92:	return {JAM, Operation::JAM};
+			case 0xb2:	return {JAM, Operation::JAM};
+			case 0xd2:	return {JAM, Operation::JAM};
+			case 0xf2:	return {JAM, Operation::JAM};
 
 			case 0x13:	return {IndirectIndexedModify, Operation::ASO};
 			case 0x33:	return {IndirectIndexedModify, Operation::RLA};

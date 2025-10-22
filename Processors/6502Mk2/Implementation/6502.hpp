@@ -130,6 +130,27 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
 			goto fetch_decode;
 
+
+		// MARK: - JAM
+
+		case access_program(JAM):
+			access(BusOperation::Read, Address::Vector(0xff), throwaway);
+			access(BusOperation::Read, Address::Vector(0xfe), throwaway);
+			access(BusOperation::Read, Address::Vector(0xfe), throwaway);
+
+			Storage::resume_point_ = ResumePoint::Jam;
+			[[fallthrough]];
+		case ResumePoint::Jam:
+		jammed:
+			if(Storage::cycles_ <= Cycles(0)) {
+				return;
+			}
+			Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Read>(
+				Address::Vector(0xff),
+				throwaway
+			);
+			goto jammed;
+
 		// MARK: - NMI/IRQ/Reset, and BRK.
 		case access_program(BRK):
 			++registers.pc.full;
