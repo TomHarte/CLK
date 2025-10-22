@@ -64,6 +64,14 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 	const auto check_interrupt = [] {
 	};
+	const auto perform_operation = [&] {
+		CPU::MOS6502Mk2::perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+	};
+
+	using Literal = Address::Literal;
+	using ZeroPage = Address::ZeroPage;
+	using Stack = Address::Stack;
+	using Vector = Address::Vector;
 
 	while(true) switch(Storage::resume_point_) {
 		default:
@@ -83,10 +91,10 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
-			access(BusOperation::ReadOpcode, Address::Literal(registers.pc.full), Storage::opcode_);
+			access(BusOperation::ReadOpcode, Literal(registers.pc.full), Storage::opcode_);
 			++registers.pc.full;
 			check_interrupt();
-			access(BusOperation::Read, Address::Literal(registers.pc.full), Storage::operand_);
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.program);
@@ -99,44 +107,44 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			[[fallthrough]];
 
 		case access_program(Implied):
-			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+			perform_operation();
 			goto fetch_decode;
 
 		// MARK: - Stack.
 
 		case access_program(Pull):
-			access(BusOperation::Read, Address::Stack(registers.inc_s()), Storage::operand_);
+			access(BusOperation::Read, Stack(registers.inc_s()), Storage::operand_);
 			check_interrupt();
-			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+			perform_operation();
 			goto fetch_decode;
 
 		case access_program(Push):
-			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+			perform_operation();
 			check_interrupt();
-			access(BusOperation::Write, Address::Stack(registers.dec_s()), Storage::operand_);
+			access(BusOperation::Write, Stack(registers.dec_s()), Storage::operand_);
 			goto fetch_decode;
 
 		// MARK: - Indexed indirect.
 
 		case access_program(IndirectIndexedRead):
 			++registers.pc.full;
-			access(BusOperation::Read, Address::ZeroPage(Storage::operand_), throwaway);
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
 			Storage::operand_ += registers.x;
-			access(BusOperation::Read, Address::ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
-			access(BusOperation::Read, Address::ZeroPage(Storage::operand_), Storage::address_.halves.high);
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
 			check_interrupt();
-			access(BusOperation::Read, Address::Literal(Storage::address_.full), Storage::operand_);
-			perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			perform_operation();
 			goto fetch_decode;
 
 
 		// MARK: - JAM
 
 		case access_program(JAM):
-			access(BusOperation::Read, Address::Vector(0xff), throwaway);
-			access(BusOperation::Read, Address::Vector(0xfe), throwaway);
-			access(BusOperation::Read, Address::Vector(0xfe), throwaway);
+			access(BusOperation::Read, Vector(0xff), throwaway);
+			access(BusOperation::Read, Vector(0xfe), throwaway);
+			access(BusOperation::Read, Vector(0xfe), throwaway);
 
 			Storage::resume_point_ = ResumePoint::Jam;
 			[[fallthrough]];
@@ -146,7 +154,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				return;
 			}
 			Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Read>(
-				Address::Vector(0xff),
+				Vector(0xff),
 				throwaway
 			);
 			goto jammed;
@@ -154,11 +162,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - NMI/IRQ/Reset, and BRK.
 		case access_program(BRK):
 			++registers.pc.full;
-			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.high);
-			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.low);
+			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
+			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.low);
 			access(
 				BusOperation::Write,
-				Address::Stack(registers.dec_s()),
+				Stack(registers.dec_s()),
 				static_cast<uint8_t>(registers.flags) | Flag::Break
 			);
 
@@ -167,14 +175,14 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				registers.flags.decimal = 0;
 			}
 
-			access(BusOperation::Read, Address::Vector(0xfe), registers.pc.halves.low);
+			access(BusOperation::Read, Vector(0xfe), registers.pc.halves.low);
 			check_interrupt();
-			access(BusOperation::Read, Address::Vector(0xff), registers.pc.halves.high);
+			access(BusOperation::Read, Vector(0xff), registers.pc.halves.high);
 			goto fetch_decode;
 
 		interrupt:
-			access(BusOperation::Read, Address::Literal(registers.pc.full), Storage::operand_);
-			access(BusOperation::Read, Address::Literal(registers.pc.full), Storage::operand_);
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 
 			if(Storage::inputs_.interrupt_requests & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
 				Storage::inputs_.interrupt_requests &= ~InterruptRequest::PowerOn;
@@ -182,11 +190,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 			assert(Storage::inputs_.interrupt_requests & (InterruptRequest::IRQ | InterruptRequest::NMI));
 
-			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.high);
-			access(BusOperation::Write, Address::Stack(registers.dec_s()), registers.pc.halves.low);
+			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
+			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.low);
 			access(
 				BusOperation::Write,
-				Address::Stack(registers.dec_s()),
+				Stack(registers.dec_s()),
 				static_cast<uint8_t>(registers.flags) & ~Flag::Break
 			);
 
@@ -197,31 +205,32 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto nmi;
 			}
 
-			access(BusOperation::Read, Address::Vector(0xfe), registers.pc.halves.low);
+			access(BusOperation::Read, Vector(0xfe), registers.pc.halves.low);
 			check_interrupt();
-			access(BusOperation::Read, Address::Vector(0xff), registers.pc.halves.high);
+			access(BusOperation::Read, Vector(0xff), registers.pc.halves.high);
 			goto fetch_decode;
 
 		nmi:
-			access(BusOperation::Read, Address::Vector(0xfa), registers.pc.halves.low);
+			access(BusOperation::Read, Vector(0xfa), registers.pc.halves.low);
 			check_interrupt();
-			access(BusOperation::Read, Address::Vector(0xfb), registers.pc.halves.high);
+			access(BusOperation::Read, Vector(0xfb), registers.pc.halves.high);
 			goto fetch_decode;
 
 		reset:
-			access(BusOperation::Read, Address::Stack(registers.dec_s()), Storage::operand_);
-			access(BusOperation::Read, Address::Stack(registers.dec_s()), Storage::operand_);
-			access(BusOperation::Read, Address::Stack(registers.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Stack(registers.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Stack(registers.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Stack(registers.dec_s()), Storage::operand_);
 
 			registers.flags.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) registers.flags.decimal = 0;
 
-			access(BusOperation::Read, Address::Vector(0xfc), registers.pc.halves.low);
+			access(BusOperation::Read, Vector(0xfc), registers.pc.halves.low);
 			check_interrupt();
-			access(BusOperation::Read, Address::Vector(0xfd), registers.pc.halves.high);
+			access(BusOperation::Read, Vector(0xfd), registers.pc.halves.high);
 			goto fetch_decode;
 	}
 
+	#undef perform
 	#undef access_program
 	#undef access
 	#undef restore_point
