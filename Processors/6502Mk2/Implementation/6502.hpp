@@ -610,8 +610,10 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, Stack(registers.s), Storage::operand_);
 
 			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.high);
+
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			++registers.pc.full;
 
 			goto fetch_decode;
