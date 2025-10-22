@@ -111,7 +111,26 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 
-		// MARK: - NMI/IRQ/Reset.
+		// MARK: - NMI/IRQ/Reset, and BRK.
+		case access_program(BRK):
+			++Storage::registers_.pc.full;
+			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.high);
+			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.low);
+			access(
+				BusOperation::Write,
+				Address::Stack(Storage::registers_.dec_s()),
+				static_cast<uint8_t>(Storage::registers_.flags) | Flag::Break
+			);
+
+			Storage::registers_.flags.inverse_interrupt = 0;
+			if constexpr (is_65c02(model)) {
+				Storage::flags_.decimal = 0;
+			}
+
+			access(BusOperation::Read, Address::Vector(0xfe), Storage::registers_.pc.halves.low);
+			access(BusOperation::Read, Address::Vector(0xff), Storage::registers_.pc.halves.high);
+			goto fetch_decode;
+
 		interrupt:
 			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
 			access(BusOperation::Read, Address::Literal(Storage::registers_.pc.full), Storage::operand_);
@@ -122,14 +141,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 			assert(Storage::inputs_.interrupt_requests & (InterruptRequest::IRQ | InterruptRequest::NMI));
 
-			--Storage::registers_.s;
-			access(BusOperation::Write, Address::Stack(Storage::registers_.s), Storage::registers_.pc.halves.high);
-			--Storage::registers_.s;
-			access(BusOperation::Write, Address::Stack(Storage::registers_.s), Storage::registers_.pc.halves.low);
-			--Storage::registers_.s;
+			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.high);
+			access(BusOperation::Write, Address::Stack(Storage::registers_.dec_s()), Storage::registers_.pc.halves.low);
 			access(
 				BusOperation::Write,
-				Address::Stack(Storage::registers_.s),
+				Address::Stack(Storage::registers_.dec_s()),
 				static_cast<uint8_t>(Storage::registers_.flags) & ~Flag::Break
 			);
 
@@ -152,12 +168,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		reset:
-			--Storage::registers_.s;
-			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
-			--Storage::registers_.s;
-			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
-			--Storage::registers_.s;
-			access(BusOperation::Read, Address::Stack(Storage::registers_.s), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(Storage::registers_.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(Storage::registers_.dec_s()), Storage::operand_);
+			access(BusOperation::Read, Address::Stack(Storage::registers_.dec_s()), Storage::operand_);
 
 			Storage::registers_.flags.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) Storage::flags_.decimal = 0;

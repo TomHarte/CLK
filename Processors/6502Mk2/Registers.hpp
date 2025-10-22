@@ -8,6 +8,8 @@
 
 #include "Numeric/RegisterSizes.hpp"
 
+#include <compare>
+
 #pragma once
 
 namespace CPU::MOS6502Mk2 {
@@ -113,6 +115,10 @@ struct Flags {
 		inverse_interrupt	= (~flags)	& Flag::Interrupt;
 		decimal				= flags		& Flag::Decimal;
 	}
+
+	auto operator <=> (const Flags &rhs) const {
+		return static_cast<uint8_t>(*this) <=> static_cast<uint8_t>(rhs);
+	}
 };
 
 struct Registers {
@@ -120,6 +126,11 @@ struct Registers {
 	RegisterPair16 pc;
 	Flags flags;
 	bool is_jammed = false;
+
+	auto operator <=> (const Registers &) const = default;
+
+	uint8_t dec_s() {	return s--;		}
+	uint8_t inc_s() {	return ++s;		}
 };
 
 }
