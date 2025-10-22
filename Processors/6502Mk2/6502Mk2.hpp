@@ -150,11 +150,32 @@ template <Model model, typename Traits> class Storage<model, Traits, std::enable
 public:
 	Storage(Traits::BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 
-	uint16_t value_of(Register) const;
-	void set_value_of(Register, uint16_t);
+	const Registers &registers() const { return registers_; }
+	void set_registers(const Registers &registers) {
+		registers_ = registers;
+	}
 
 	template <Line line> bool get() const;
-	template <Line line> inline void set(bool);
+	template <Line line> inline void set(const bool value) {
+		const auto set_interrupt_request = [&](const Inputs::InterruptRequest request) {
+			inputs_.interrupt_requests =
+				(inputs_.interrupt_requests & ~request) |
+				(value ? request : 0);
+		};
+
+		switch(line) {
+			case Line::Reset:		set_interrupt_request(Inputs::InterruptRequest::Reset);		break;
+			case Line::PowerOn:		set_interrupt_request(Inputs::InterruptRequest::PowerOn);	break;
+			case Line::IRQ:			set_interrupt_request(Inputs::InterruptRequest::IRQ);		break;
+
+			// These are both edge triggered, I think?
+//			case Line::Overflow:	set_interrupt_request(Inputs::InterruptRequest::Reset);	break;
+//			case Line::NMI:			set_interrupt_request(Inputs::InterruptRequest::NMI);		break;
+
+			default:
+				__builtin_unreachable();
+		}
+	}
 
 	/// Get whether the 6502 would reset at the next opportunity.
 	bool is_resetting() const;
