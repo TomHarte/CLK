@@ -172,6 +172,91 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		// MARK: - Zero indexed.
+
+		case access_program(ZeroXRead):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+
+			check_interrupt();
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::operand_);
+			perform_operation();
+
+			goto fetch_decode;
+
+		case access_program(ZeroYRead):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.y;
+
+			check_interrupt();
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::operand_);
+			perform_operation();
+
+			goto fetch_decode;
+
+		case access_program(ZeroXWrite):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+
+			check_interrupt();
+			Storage::address_.halves.low = Storage::operand_;
+			perform_operation();
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+
+			goto fetch_decode;
+
+		case access_program(ZeroYWrite):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.y;
+
+			check_interrupt();
+			Storage::address_.halves.low = Storage::operand_;
+			perform_operation();
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+
+			goto fetch_decode;
+
+		case access_program(ZeroXModify):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.x;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+
+			goto fetch_decode;
+
+		case access_program(ZeroYModify):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
+			Storage::operand_ += registers.y;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+
+			goto fetch_decode;
+
+
 		// MARK: - Absolute.
 
 		case access_program(AbsoluteRead):
