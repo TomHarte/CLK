@@ -329,7 +329,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 
-		skip_indirect_indexed_modify_bonus_cycle:
 			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
 
