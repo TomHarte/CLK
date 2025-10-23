@@ -259,7 +259,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x31:	return {IndirectIndexedRead, Operation::AND};
 			case 0x51:	return {IndirectIndexedRead, Operation::EOR};
 			case 0x71:	return {IndirectIndexedRead, Operation::ADC};
-			case 0x91:	return {IndirectIndexedRead, Operation::STA};
+			case 0x91:	return {IndirectIndexedWrite, Operation::STA};
 			case 0xb1:	return {IndirectIndexedRead, Operation::LDA};
 			case 0xd1:	return {IndirectIndexedRead, Operation::CMP};
 			case 0xf1:	return {IndirectIndexedRead, Operation::SBC};

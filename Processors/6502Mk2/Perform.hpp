@@ -91,6 +91,15 @@ void perform(const Operation operation, RegistersT &registers, uint8_t &operand,
 			registers.flags.set_nz(registers.a);
 		break;
 
+		// MARK: - Tranfers.
+
+		case Operation::TXA:	registers.flags.set_nz(registers.a = registers.x);	break;
+		case Operation::TYA:	registers.flags.set_nz(registers.a = registers.y);	break;
+		case Operation::TXS:	registers.s = registers.x;							break;
+		case Operation::TAY:	registers.flags.set_nz(registers.y = registers.a);	break;
+		case Operation::TAX:	registers.flags.set_nz(registers.x = registers.a);	break;
+		case Operation::TSX:	registers.flags.set_nz(registers.x = registers.s);	break;
+
 		// MARK: - Increments and decrements.
 
 		case Operation::INC:	registers.flags.set_nz(++operand);		break;
