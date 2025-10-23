@@ -65,7 +65,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	const auto check_interrupt = [] {
 	};
 	const auto perform_operation = [&] {
-		CPU::MOS6502Mk2::perform<model>(Storage::decoded_.operation, registers, Storage::operand_, Storage::opcode_);
+		CPU::MOS6502Mk2::perform<model>(
+			Storage::decoded_.operation,
+			registers,
+			Storage::operand_,
+			Storage::opcode_,
+			Storage::address_
+		);
 	};
 
 	using Literal = Address::Literal;
@@ -112,7 +118,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		case access_program(Accumulator):
-			CPU::MOS6502Mk2::perform<model>(Storage::decoded_.operation, registers, registers.a, Storage::opcode_);
+			CPU::MOS6502Mk2::perform<model>(
+				Storage::decoded_.operation,
+				registers,
+				registers.a,
+				Storage::opcode_,
+				Storage::address_
+			);
 			goto fetch_decode;
 
 		// MARK: - Relative.

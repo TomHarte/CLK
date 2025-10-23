@@ -35,14 +35,20 @@ bool test(const Operation operation, RegistersT &registers) {
 }
 
 template <Model model, typename RegistersT>
-void perform(const Operation operation, RegistersT &registers, uint8_t &operand, const uint8_t opcode) {
+void perform(
+	const Operation operation,
+	RegistersT &registers,
+	uint8_t &operand,
+	const uint8_t opcode,
+	RegisterPair16 &address
+) {
 	switch(operation) {
 		default:
 			__builtin_unreachable();
 
-		case Operation::BRK:
-		case Operation::NOP:
-		case Operation::JAM:	break;
+		case Operation::NOP:	break;
+
+		// MARK: - Bitwise logic.
 
 		case Operation::ORA:	registers.flags.set_nz(registers.a |= operand);		break;
 		case Operation::AND:	registers.flags.set_nz(registers.a &= operand);		break;
@@ -203,6 +209,9 @@ void perform(const Operation operation, RegistersT &registers, uint8_t &operand,
 		// MARK: - Compare
 
 		// TODO: probably don't need to use 16-bit arithmetic below.
+		case Operation::DCP:
+			--operand;
+			[[fallthrough]];
 		case Operation::CMP: {
 			const uint16_t temp16 = registers.a - operand;
 			registers.flags.set_nz(uint8_t(temp16));
@@ -365,6 +374,39 @@ void perform(const Operation operation, RegistersT &registers, uint8_t &operand,
 			registers.flags.set_nz(registers.x);
 			registers.flags.carry = ((difference >> 8)&1)^1;
 		} break;
+
+		// MARK: - Oddball address dependencies.
+
+		case Operation::SHA:
+//			if(address_.full != next_address_.full) {
+//				address_.halves.high = operand_ = a_ & x_ & address_.halves.high;
+//			} else {
+//				operand_ = a_ & x_ & (address_.halves.high + 1);
+//			}
+		break;
+		case Operation::SHX:
+//			if(address_.full != next_address_.full) {
+//				address_.halves.high = operand_ = x_ & address_.halves.high;
+//			} else {
+//				operand_ = x_ & (address_.halves.high + 1);
+//			}
+		break;
+		case Operation::SHY:
+//			if(address_.full != next_address_.full) {
+//				address_.halves.high = operand_ = y_ & address_.halves.high;
+//			} else {
+//				operand_ = y_ & (address_.halves.high + 1);
+//			}
+		break;
+		case Operation::SHS:
+//			if(address_.full != next_address_.full) {
+//				s_ = a_ & x_;
+//				address_.halves.high = operand_ = s_ & address_.halves.high;
+//			} else {
+//				s_ = a_ & x_;
+//				operand_ = s_ & (address_.halves.high + 1);
+//			}
+		break;
 	}
 }
 

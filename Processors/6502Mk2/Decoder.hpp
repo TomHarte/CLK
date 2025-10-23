@@ -126,8 +126,8 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x62:	return {JAM, Operation::JAM};
 			case 0x82:	return {Immediate, Operation::NOP};
 			case 0xa2:	return {Immediate, Operation::LDX};
-			case 0xc2:	return {Implied, Operation::NOP};
-			case 0xe2:	return {Implied, Operation::NOP};
+			case 0xc2:	return {Immediate, Operation::NOP};
+			case 0xe2:	return {Immediate, Operation::NOP};
 
 			case 0x03:	return {IndexedIndirectModify, Operation::ASO};
 			case 0x23:	return {IndexedIndirectModify, Operation::RLA};
@@ -135,8 +135,8 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x63:	return {IndexedIndirectModify, Operation::RRA};
 			case 0x83:	return {IndexedIndirectWrite, Operation::SAX};
 			case 0xa3:	return {IndexedIndirectRead, Operation::LAX};
-			case 0xc3:	return {IndexedIndirectWrite, Operation::DCP};
-			case 0xe3:	return {IndexedIndirectWrite, Operation::INS};
+			case 0xc3:	return {IndexedIndirectModify, Operation::DCP};
+			case 0xe3:	return {IndexedIndirectModify, Operation::INS};
 
 			case 0x04:	return {ZeroRead, Operation::NOP};
 			case 0x24:	return {ZeroRead, Operation::BIT};
@@ -170,8 +170,8 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x47:	return {ZeroModify, Operation::LSE};
 			case 0x67:	return {ZeroModify, Operation::RRA};
 			case 0x87:	return {ZeroWrite, Operation::SAX};
-			case 0xa7:	return {ZeroRead, Operation::LDX};
-			case 0xc7:	return {ZeroRead, Operation::LAX};
+			case 0xa7:	return {ZeroRead, Operation::LAX};
+			case 0xc7:	return {ZeroModify, Operation::DCP};
 			case 0xe7:	return {ZeroModify, Operation::INS};
 
 			case 0x08:	return {Push, Operation::PHP};
