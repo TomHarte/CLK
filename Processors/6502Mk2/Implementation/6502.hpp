@@ -69,8 +69,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::decoded_.operation,
 			registers,
 			Storage::operand_,
-			Storage::opcode_,
-			Storage::address_
+			Storage::opcode_
 		);
 	};
 
@@ -122,8 +121,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				Storage::decoded_.operation,
 				registers,
 				registers.a,
-				Storage::opcode_,
-				Storage::address_
+				Storage::opcode_
 			);
 			goto fetch_decode;
 
@@ -459,8 +457,8 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		case access_program(Push):
-			perform_operation();
 			check_interrupt();
+			perform_operation();
 			access(BusOperation::Write, Stack(registers.dec_s()), Storage::operand_);
 			goto fetch_decode;
 

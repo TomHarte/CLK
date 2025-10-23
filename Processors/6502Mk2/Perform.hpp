@@ -39,8 +39,7 @@ void perform(
 	const Operation operation,
 	RegistersT &registers,
 	uint8_t &operand,
-	const uint8_t opcode,
-	RegisterPair16 &address
+	const uint8_t opcode
 ) {
 	switch(operation) {
 		default:
