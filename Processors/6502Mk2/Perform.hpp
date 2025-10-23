@@ -33,16 +33,15 @@ void anc(RegistersT &registers, const uint8_t operand) {
 
 template <Model model, typename RegistersT>
 void adc(RegistersT &registers, const uint8_t operand) {
+	uint8_t result = registers.a + operand + registers.flags.carry;
+	registers.flags.carry = result < registers.a + registers.flags.carry;
+
 	if(!has_decimal_mode(model) || !registers.flags.decimal) {
-		const uint8_t result = registers.a + operand + registers.flags.carry;
-		registers.flags.carry = result < registers.a + registers.flags.carry;
 		registers.flags.set_v(result, registers.a, operand);
 		registers.flags.set_nz(registers.a = result);
 		return;
 	}
 
-	uint8_t result = registers.a + operand + registers.flags.carry;
-	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand, result);
 	if constexpr (!is_65c02(model)) {
 		registers.flags.zero_result = result;
 	}
