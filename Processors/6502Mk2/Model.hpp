@@ -18,6 +18,7 @@ enum Model {
 	WDC65C02,			// The Rockwell extended with STP and WAI.
 	M65816,				// The "16-bit" successor to the 6502.
 };
+constexpr bool has_decimal_mode(const Model model) { return model != Model::NES6502; }
 constexpr bool is_8bit(const Model model) { return model <= Model::WDC65C02; }
 constexpr bool is_16bit(const Model model) { return model == Model::M65816; }
 constexpr bool is_65c02(const Model model) { return model >= Model::Synertek65C02; }

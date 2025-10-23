@@ -384,7 +384,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x1f:	return {AbsoluteXModify, Operation::ASO};
 			case 0x3f:	return {AbsoluteXModify, Operation::RLA};
 			case 0x5f:	return {AbsoluteXModify, Operation::LSE};
-			case 0x7f:	return {AbsoluteXModify, Operation::ADC};
+			case 0x7f:	return {AbsoluteXModify, Operation::RRA};
 			case 0x9f:	return {AbsoluteYWrite, Operation::SHA};
 			case 0xbf:	return {AbsoluteYRead, Operation::LAX};
 			case 0xdf:	return {AbsoluteXModify, Operation::DCP};
