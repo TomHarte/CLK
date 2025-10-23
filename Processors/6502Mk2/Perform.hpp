@@ -305,7 +305,7 @@ void perform(
 			registers.flags.set_nz(registers.a);
 		break;
 
-		// MARK: - Tranfers.
+		// MARK: - Transfers.
 
 		case Operation::TXA:	registers.flags.set_nz(registers.a = registers.x);	break;
 		case Operation::TYA:	registers.flags.set_nz(registers.a = registers.y);	break;
