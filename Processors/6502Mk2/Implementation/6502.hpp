@@ -630,6 +630,28 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		case access_program(SHxIndirectIndexed):
+			++registers.pc.full;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
+			++Storage::operand_;
+
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+			Storage::did_adjust_top_ = Storage::address_.halves.high != Storage::operand_;
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+			check_interrupt();
+			assert(Storage::decoded_.operation == Operation::SHA);
+			sha();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			goto fetch_decode;
+
 		// MARK: - JAM
 
 		case access_program(JAM):

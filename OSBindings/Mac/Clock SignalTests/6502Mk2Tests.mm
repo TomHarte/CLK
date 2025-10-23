@@ -139,12 +139,6 @@ struct Traits {
 			error:nil
 		] sortedArrayUsingSelector:@selector(compare:)];
 	for(NSString *file in files) {
-		if(
-			[file isEqualToString:@"93.json"]		// SHA
-		) {
-			continue;
-		}
-
 		[self testFile:[path stringByAppendingPathComponent:file]];
 	}
 }
