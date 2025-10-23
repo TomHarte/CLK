@@ -54,24 +54,6 @@ enum Flag: uint8_t {
 };
 
 struct Flags {
-	/// Bit 7 is set if the negative flag is set; otherwise it is clear.
-	uint8_t negative_result = 0;
-
-	/// Non-zero if the zero flag is clear, zero if it is set.
-	uint8_t zero_result = 0;
-
-	/// Contains Flag::Carry.
-	uint8_t carry = 0;
-
-	/// Contains Flag::Decimal.
-	uint8_t decimal = 0;
-
-	/// Contains Flag::Overflow.
-	uint8_t overflow = 0;
-
-	/// Contains Flag::Interrupt, complemented.
-	uint8_t inverse_interrupt = 0;
-
 	/// Sets N and Z flags per the 8-bit value @c value.
 	void set_nz(const uint8_t value) {
 		zero_result = negative_result = value;
@@ -91,6 +73,11 @@ struct Flags {
 	/// Sets the N flag per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
 	void set_n(const uint16_t value, const int shift) {
 		negative_result = uint8_t(value >> shift);
+	}
+
+	void set_v(const uint8_t result, const uint8_t lhs, const uint8_t rhs) {
+		// TODO: can this be done lazily?
+		overflow = (( (result^lhs) & (result^rhs) ) & 0x80) >> 1;
 	}
 
 	explicit operator uint8_t() const {
@@ -119,6 +106,13 @@ struct Flags {
 	auto operator <=> (const Flags &rhs) const {
 		return static_cast<uint8_t>(*this) <=> static_cast<uint8_t>(rhs);
 	}
+
+	uint8_t negative_result = 0;	/// Bit 7 = the negative flag.
+	uint8_t zero_result = 0;		/// Non-zero if the zero flag is clear, zero if it is set.
+	uint8_t carry = 0;				/// Contains Flag::Carry.
+	uint8_t decimal = 0;			/// Contains Flag::Decimal.
+	uint8_t overflow = 0;			/// Contains Flag::Overflow.
+	uint8_t inverse_interrupt = 0;	/// Contains Flag::Interrupt, complemented.
 };
 
 struct Registers {

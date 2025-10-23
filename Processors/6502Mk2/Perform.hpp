@@ -34,10 +34,10 @@ void anc(RegistersT &registers, const uint8_t operand) {
 template <Model model, typename RegistersT>
 void adc(RegistersT &registers, const uint8_t operand) {
 	if(!has_decimal_mode(model) || !registers.flags.decimal) {
-		const uint16_t result = uint16_t(registers.a) + uint16_t(operand) + uint16_t(registers.flags.carry);
-		registers.flags.overflow = (( (result^registers.a)&(result^operand) )&0x80) >> 1;
-		registers.flags.set_nz(registers.a = uint8_t(result));
-		registers.flags.carry = (result >> 8)&1;
+		const uint8_t result = registers.a + operand + registers.flags.carry;
+		registers.flags.carry = result < registers.a + registers.flags.carry;
+		registers.flags.set_v(result, registers.a, operand);
+		registers.flags.set_nz(registers.a = result);
 		return;
 	}
 
@@ -66,7 +66,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	// 6502 quirk: N and V are set before the full result is computed but
 	// after the low nibble has been corrected.
 	registers.flags.negative_result = result;
-	registers.flags.overflow = (( (result ^ registers.a) & (result ^ operand) ) & 0x80) >> 1;
+	registers.flags.set_v(result, registers.a, operand);
 
 	// i.e. fix high nibble if there was carry out of bit 7 already, or if the
 	// top nibble is too large (in which case there will be carry after the fix-up).
@@ -92,10 +92,9 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	uint8_t result = registers.a + operand_complement + registers.flags.carry;
 
 	// All flags are set based only on the decimal result.
-	registers.flags.zero_result = result;
+	registers.flags.set_nz(result);
 	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand_complement, result);
-	registers.flags.negative_result = result;
-	registers.flags.overflow = (( (result ^ registers.a) & (result ^ operand_complement) ) & 0x80) >> 1;
+	registers.flags.set_v(result, registers.a, operand_complement);
 
 	// General SBC logic:
 	//
