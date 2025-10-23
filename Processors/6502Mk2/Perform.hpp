@@ -42,8 +42,10 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	}
 
 	uint8_t result = registers.a + operand + registers.flags.carry;
-	registers.flags.zero_result = result;
 	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand, result);
+	if constexpr (!is_65c02(model)) {
+		registers.flags.zero_result = result;
+	}
 
 	// General ADC logic:
 	//
@@ -65,7 +67,9 @@ void adc(RegistersT &registers, const uint8_t operand) {
 
 	// 6502 quirk: N and V are set before the full result is computed but
 	// after the low nibble has been corrected.
-	registers.flags.negative_result = result;
+	if constexpr (!is_65c02(model)) {
+		registers.flags.negative_result = result;
+	}
 	registers.flags.set_v(result, registers.a, operand);
 
 	// i.e. fix high nibble if there was carry out of bit 7 already, or if the
@@ -92,7 +96,9 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	uint8_t result = registers.a + operand_complement + registers.flags.carry;
 
 	// All flags are set based only on the decimal result.
-	registers.flags.set_nz(result);
+	if constexpr (!is_65c02(model)) {
+		registers.flags.set_nz(result);
+	}
 	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand_complement, result);
 	registers.flags.set_v(result, registers.a, operand_complement);
 
@@ -129,23 +135,18 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 
 template <Model model, typename RegistersT>
 void arr(RegistersT &registers, const uint8_t operand) {
+	registers.a &= operand;
+	const uint8_t unshifted_a = registers.a;
+	registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
+	registers.flags.set_nz(registers.a);
+	registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
+
 	if(registers.flags.decimal && has_decimal_mode(model)) {
-		registers.a &= operand;
-		const uint8_t unshifted_a = registers.a;
-		registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
-		registers.flags.set_nz(registers.a);
-		registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
-
 		if((unshifted_a&0xf) + (unshifted_a&0x1) > 5) registers.a = ((registers.a + 6)&0xf) | (registers.a & 0xf0);
-
 		registers.flags.carry = ((unshifted_a&0xf0) + (unshifted_a&0x10) > 0x50) ? 1 : 0;
 		if(registers.flags.carry) registers.a += 0x60;
 	} else {
-		registers.a &= operand;
-		registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
-		registers.flags.set_nz(registers.a);
 		registers.flags.carry = (registers.a >> 6)&1;
-		registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
 	}
 }
 
