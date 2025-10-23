@@ -152,10 +152,9 @@ void arr(RegistersT &registers, const uint8_t operand) {
 template <typename RegistersT>
 void sbx(RegistersT &registers, const uint8_t operand) {
 	registers.x &= registers.a;
-	const uint16_t difference = registers.x - operand;
-	registers.x = uint8_t(difference);
+	registers.flags.carry = operand <= registers.x;
+	registers.x -= operand;
 	registers.flags.set_nz(registers.x);
-	registers.flags.carry = ((difference >> 8)&1)^1;
 }
 
 template <typename RegistersT>
