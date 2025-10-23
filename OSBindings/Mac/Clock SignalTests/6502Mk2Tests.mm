@@ -140,9 +140,7 @@ struct Traits {
 		] sortedArrayUsingSelector:@selector(compare:)];
 	for(NSString *file in files) {
 		if(
-			[file isEqualToString:@"93.json"] ||		// SHA
-			[file isEqualToString:@"9c.json"] ||		// SHY
-			[file isEqualToString:@"9b.json"]			// SHS
+			[file isEqualToString:@"93.json"]		// SHA
 		) {
 			continue;
 		}

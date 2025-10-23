@@ -86,9 +86,8 @@ enum class AccessProgram {
 	JMPAbsolute,	JMPAbsoluteIndirect,
 
 	// Irregular unintended, undocumented and unreliable.
-	SHAIndirectIndexed,
-	SHASHXAbsoluteY,
-	SHS, 	SHY,
+	SHxIndirectIndexed,
+	SHxAbsoluteXY,
 
 	// Terminal.
 	JAM,
@@ -283,7 +282,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x33:	return {IndirectIndexedModify, Operation::RLA};
 			case 0x53:	return {IndirectIndexedModify, Operation::LSE};
 			case 0x73:	return {IndirectIndexedModify, Operation::RRA};
-			case 0x93:	return {SHAIndirectIndexed, Operation::SHA};
+			case 0x93:	return {SHxIndirectIndexed, Operation::SHA};
 			case 0xb3:	return {IndirectIndexedRead, Operation::LAX};
 			case 0xd3:	return {IndirectIndexedModify, Operation::DCP};
 			case 0xf3:	return {IndirectIndexedModify, Operation::INS};
@@ -355,7 +354,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x3b:	return {AbsoluteYModify, Operation::RLA};
 			case 0x5b:	return {AbsoluteYModify, Operation::LSE};
 			case 0x7b:	return {AbsoluteYModify, Operation::RRA};
-			case 0x9b:	return {SHS, Operation::SHS};
+			case 0x9b:	return {SHxAbsoluteXY, Operation::SHS};
 			case 0xbb:	return {AbsoluteYRead, Operation::LAS};
 			case 0xdb:	return {AbsoluteYModify, Operation::DCP};
 			case 0xfb:	return {AbsoluteYModify, Operation::INS};
@@ -364,7 +363,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x3c:	return {AbsoluteXRead, Operation::NOP};
 			case 0x5c:	return {AbsoluteXRead, Operation::NOP};
 			case 0x7c:	return {AbsoluteXRead, Operation::NOP};
-			case 0x9c:	return {SHY, Operation::SHY};
+			case 0x9c:	return {SHxAbsoluteXY, Operation::SHY};
 			case 0xbc:	return {AbsoluteXRead, Operation::LDY};
 			case 0xdc:	return {AbsoluteXRead, Operation::NOP};
 			case 0xfc:	return {AbsoluteXRead, Operation::NOP};
@@ -382,7 +381,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x3e:	return {AbsoluteXModify, Operation::ROL};
 			case 0x5e:	return {AbsoluteXModify, Operation::LSR};
 			case 0x7e:	return {AbsoluteXModify, Operation::ROR};
-			case 0x9e:	return {SHASHXAbsoluteY, Operation::SHX};
+			case 0x9e:	return {SHxAbsoluteXY, Operation::SHX};
 			case 0xbe:	return {AbsoluteYRead, Operation::LDX};
 			case 0xde:	return {AbsoluteXModify, Operation::DEC};
 			case 0xfe:	return {AbsoluteXModify, Operation::INC};
@@ -391,7 +390,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x3f:	return {AbsoluteXModify, Operation::RLA};
 			case 0x5f:	return {AbsoluteXModify, Operation::LSE};
 			case 0x7f:	return {AbsoluteXModify, Operation::RRA};
-			case 0x9f:	return {SHASHXAbsoluteY, Operation::SHA};
+			case 0x9f:	return {SHxAbsoluteXY, Operation::SHA};
 			case 0xbf:	return {AbsoluteYRead, Operation::LAX};
 			case 0xdf:	return {AbsoluteXModify, Operation::DCP};
 			case 0xff:	return {AbsoluteXModify, Operation::INS};

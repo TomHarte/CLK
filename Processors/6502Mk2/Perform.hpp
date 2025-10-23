@@ -373,32 +373,6 @@ void perform(
 			registers.flags.set_nz(registers.x);
 			registers.flags.carry = ((difference >> 8)&1)^1;
 		} break;
-
-		// MARK: - Oddball address dependencies.
-
-		case Operation::SHA:
-//			if(address_.full != next_address_.full) {
-//				address_.halves.high = operand_ = a_ & x_ & address_.halves.high;
-//			} else {
-//				operand_ = a_ & x_ & (address_.halves.high + 1);
-//			}
-		break;
-		case Operation::SHY:
-//			if(address_.full != next_address_.full) {
-//				address_.halves.high = operand_ = y_ & address_.halves.high;
-//			} else {
-//				operand_ = y_ & (address_.halves.high + 1);
-//			}
-		break;
-		case Operation::SHS:
-//			if(address_.full != next_address_.full) {
-//				s_ = a_ & x_;
-//				address_.halves.high = operand_ = s_ & address_.halves.high;
-//			} else {
-//				s_ = a_ & x_;
-//				operand_ = s_ & (address_.halves.high + 1);
-//			}
-		break;
 	}
 }
 
