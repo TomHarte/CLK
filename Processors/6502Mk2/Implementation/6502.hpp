@@ -569,6 +569,42 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
 			goto fetch_decode;
 
+		// MARK: - Potentially-faulty addressing of SHA/SHX/SHY/SHS.
+
+		case access_program(SHASHXAbsoluteY):
+			++registers.pc.full;
+
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			++registers.pc.full;
+
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += registers.y;
+			Storage::did_adjust_top_ = Storage::address_.halves.high != Storage::operand_;
+
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+			std::swap(Storage::address_.halves.high, Storage::operand_);
+
+			if(Storage::decoded_.operation == Operation::SHA) {
+				if(Storage::did_adjust_top_) {
+					Storage::address_.halves.high = Storage::operand_ =
+						registers.a & registers.x & Storage::address_.halves.high;
+				} else {
+					Storage::operand_ = registers.a & registers.x & (Storage::address_.halves.high + 1);
+				}
+			} else {
+				if(Storage::did_adjust_top_) {
+					Storage::address_.halves.high = Storage::operand_ = registers.x & Storage::address_.halves.high;
+				} else {
+					Storage::operand_ = registers.x & (Storage::address_.halves.high + 1);
+				}
+			}
+
+			check_interrupt();
+			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+
+			goto fetch_decode;
 
 		// MARK: - JAM
 

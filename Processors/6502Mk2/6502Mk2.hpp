@@ -199,6 +199,7 @@ protected:
 	Registers registers_;
 	uint16_t operation_pc_;
 	RegisterPair16 address_;
+	bool did_adjust_top_;
 
 	Cycles cycles_;
 

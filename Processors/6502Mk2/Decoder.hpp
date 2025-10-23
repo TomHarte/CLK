@@ -87,8 +87,8 @@ enum class AccessProgram {
 
 	// Irregular unintended, undocumented and unreliable.
 	SHAIndirectIndexed,
-	SHAAbsoluteY,
-	SHX,	SHS, 	SHY,
+	SHASHXAbsoluteY,
+	SHS, 	SHY,
 
 	// Terminal.
 	JAM,
@@ -382,7 +382,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x3e:	return {AbsoluteXModify, Operation::ROL};
 			case 0x5e:	return {AbsoluteXModify, Operation::LSR};
 			case 0x7e:	return {AbsoluteXModify, Operation::ROR};
-			case 0x9e:	return {SHX, Operation::SHX};
+			case 0x9e:	return {SHASHXAbsoluteY, Operation::SHX};
 			case 0xbe:	return {AbsoluteYRead, Operation::LDX};
 			case 0xde:	return {AbsoluteXModify, Operation::DEC};
 			case 0xfe:	return {AbsoluteXModify, Operation::INC};
@@ -391,7 +391,7 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 			case 0x3f:	return {AbsoluteXModify, Operation::RLA};
 			case 0x5f:	return {AbsoluteXModify, Operation::LSE};
 			case 0x7f:	return {AbsoluteXModify, Operation::RRA};
-			case 0x9f:	return {SHAAbsoluteY, Operation::SHA};
+			case 0x9f:	return {SHASHXAbsoluteY, Operation::SHA};
 			case 0xbf:	return {AbsoluteYRead, Operation::LAX};
 			case 0xdf:	return {AbsoluteXModify, Operation::DCP};
 			case 0xff:	return {AbsoluteXModify, Operation::INS};

@@ -383,13 +383,6 @@ void perform(
 //				operand_ = a_ & x_ & (address_.halves.high + 1);
 //			}
 		break;
-		case Operation::SHX:
-//			if(address_.full != next_address_.full) {
-//				address_.halves.high = operand_ = x_ & address_.halves.high;
-//			} else {
-//				operand_ = x_ & (address_.halves.high + 1);
-//			}
-		break;
 		case Operation::SHY:
 //			if(address_.full != next_address_.full) {
 //				address_.halves.high = operand_ = y_ & address_.halves.high;
