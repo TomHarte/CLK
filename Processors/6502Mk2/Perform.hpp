@@ -128,6 +128,106 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	}
 }
 
+template <Model model, typename RegistersT>
+void arr(RegistersT &registers, const uint8_t operand) {
+	if(registers.flags.decimal && has_decimal_mode(model)) {
+		registers.a &= operand;
+		const uint8_t unshifted_a = registers.a;
+		registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
+		registers.flags.set_nz(registers.a);
+		registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
+
+		if((unshifted_a&0xf) + (unshifted_a&0x1) > 5) registers.a = ((registers.a + 6)&0xf) | (registers.a & 0xf0);
+
+		registers.flags.carry = ((unshifted_a&0xf0) + (unshifted_a&0x10) > 0x50) ? 1 : 0;
+		if(registers.flags.carry) registers.a += 0x60;
+	} else {
+		registers.a &= operand;
+		registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
+		registers.flags.set_nz(registers.a);
+		registers.flags.carry = (registers.a >> 6)&1;
+		registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
+	}
+}
+
+template <typename RegistersT>
+void sbx(RegistersT &registers, const uint8_t operand) {
+	registers.x &= registers.a;
+	const uint16_t difference = registers.x - operand;
+	registers.x = uint8_t(difference);
+	registers.flags.set_nz(registers.x);
+	registers.flags.carry = ((difference >> 8)&1)^1;
+}
+
+template <typename RegistersT>
+void asl(RegistersT &registers, uint8_t &operand) {
+	registers.flags.carry = operand >> 7;
+	operand <<= 1;
+	registers.flags.set_nz(operand);
+}
+
+template <typename RegistersT>
+void aso(RegistersT &registers, uint8_t &operand) {
+	registers.flags.carry = operand >> 7;
+	operand <<= 1;
+	registers.a |= operand;
+	registers.flags.set_nz(registers.a);
+}
+
+template <typename RegistersT>
+void rol(RegistersT &registers, uint8_t &operand) {
+	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
+	registers.flags.carry = operand >> 7;
+	registers.flags.set_nz(operand = temp8);
+}
+
+template <typename RegistersT>
+void rla(RegistersT &registers, uint8_t &operand) {
+	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
+	registers.flags.carry = operand >> 7;
+	operand = temp8;
+	registers.a &= operand;
+	registers.flags.set_nz(registers.a);
+}
+
+template <typename RegistersT>
+void lsr(RegistersT &registers, uint8_t &operand) {
+	registers.flags.carry = operand & 1;
+	operand >>= 1;
+	registers.flags.set_nz(operand);
+}
+
+template <typename RegistersT>
+void lse(RegistersT &registers, uint8_t &operand) {
+	registers.flags.carry = operand & 1;
+	operand >>= 1;
+	registers.a ^= operand;
+	registers.flags.set_nz(registers.a);
+}
+
+template <typename RegistersT>
+void asr(RegistersT &registers, uint8_t &operand) {
+	registers.a &= operand;
+	registers.flags.carry = registers.a & 1;
+	registers.a >>= 1;
+	registers.flags.set_nz(registers.a);
+}
+
+template <typename RegistersT>
+void ror(RegistersT &registers, uint8_t &operand) {
+	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
+	registers.flags.carry = operand & 1;
+	registers.flags.set_nz(operand = temp8);
+}
+
+template <Model model, typename RegistersT>
+void rra(RegistersT &registers, uint8_t &operand) {
+	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
+	registers.flags.carry = operand & 1;
+	Operations::adc<model>(registers, temp8);
+	operand = temp8;
+}
+
 }
 
 template <typename RegistersT>
@@ -223,65 +323,15 @@ void perform(
 
 		// MARK: - Shifts and rolls.
 
-		case Operation::ASL:
-			registers.flags.carry = operand >> 7;
-			operand <<= 1;
-			registers.flags.set_nz(operand);
-		break;
-
-		case Operation::ASO:
-			registers.flags.carry = operand >> 7;
-			operand <<= 1;
-			registers.a |= operand;
-			registers.flags.set_nz(registers.a);
-		break;
-
-		case Operation::ROL: {
-			const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
-			registers.flags.carry = operand >> 7;
-			registers.flags.set_nz(operand = temp8);
-		} break;
-
-		case Operation::RLA: {
-			const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
-			registers.flags.carry = operand >> 7;
-			operand = temp8;
-			registers.a &= operand;
-			registers.flags.set_nz(registers.a);
-		} break;
-
-		case Operation::LSR:
-			registers.flags.carry = operand & 1;
-			operand >>= 1;
-			registers.flags.set_nz(operand);
-		break;
-
-		case Operation::LSE:
-			registers.flags.carry = operand & 1;
-			operand >>= 1;
-			registers.a ^= operand;
-			registers.flags.set_nz(registers.a);
-		break;
-
-		case Operation::ASR:
-			registers.a &= operand;
-			registers.flags.carry = registers.a & 1;
-			registers.a >>= 1;
-			registers.flags.set_nz(registers.a);
-		break;
-
-		case Operation::ROR: {
-			const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
-			registers.flags.carry = operand & 1;
-			registers.flags.set_nz(operand = temp8);
-		} break;
-
-		case Operation::RRA: {
-			const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
-			registers.flags.carry = operand & 1;
-			Operations::adc<model>(registers, temp8);
-			operand = temp8;
-		} break;
+		case Operation::ASL:	Operations::asl(registers, operand);		break;
+		case Operation::ASO:	Operations::aso(registers, operand);		break;
+		case Operation::ROL:	Operations::rol(registers, operand);		break;
+		case Operation::RLA: 	Operations::rla(registers, operand);		break;
+		case Operation::LSR:	Operations::lsr(registers, operand);		break;
+		case Operation::LSE:	Operations::lse(registers, operand);		break;
+		case Operation::ASR:	Operations::asr(registers, operand);		break;
+		case Operation::ROR:	Operations::ror(registers, operand);		break;
+		case Operation::RRA:	Operations::rra<model>(registers, operand);	break;
 
 		// MARK: - Bit logic.
 
@@ -341,35 +391,8 @@ void perform(
 
 		case Operation::SBC:	Operations::sbc<model>(registers, operand);		break;
 		case Operation::ADC:	Operations::adc<model>(registers, operand);		break;
-
-		case Operation::ARR:
-			if(registers.flags.decimal && has_decimal_mode(model)) {
-				registers.a &= operand;
-				const uint8_t unshifted_a = registers.a;
-				registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
-				registers.flags.set_nz(registers.a);
-				registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
-
-				if((unshifted_a&0xf) + (unshifted_a&0x1) > 5) registers.a = ((registers.a + 6)&0xf) | (registers.a & 0xf0);
-
-				registers.flags.carry = ((unshifted_a&0xf0) + (unshifted_a&0x10) > 0x50) ? 1 : 0;
-				if(registers.flags.carry) registers.a += 0x60;
-			} else {
-				registers.a &= operand;
-				registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
-				registers.flags.set_nz(registers.a);
-				registers.flags.carry = (registers.a >> 6)&1;
-				registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
-			}
-		break;
-
-		case Operation::SBX: {
-			registers.x &= registers.a;
-			const uint16_t difference = registers.x - operand;
-			registers.x = uint8_t(difference);
-			registers.flags.set_nz(registers.x);
-			registers.flags.carry = ((difference >> 8)&1)^1;
-		} break;
+		case Operation::ARR:	Operations::arr<model>(registers, operand);		break;
+		case Operation::SBX: 	Operations::sbx(registers, operand);			break;
 	}
 }
 
