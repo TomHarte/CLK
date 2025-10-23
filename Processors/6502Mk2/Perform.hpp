@@ -16,6 +16,120 @@
 
 namespace CPU::MOS6502Mk2 {
 
+namespace Operations {
+
+template <typename RegistersT>
+void ane(RegistersT &registers, const uint8_t operand) {
+	registers.a = (registers.a | 0xee) & operand & registers.x;
+	registers.flags.set_nz(registers.a);
+}
+
+template <typename RegistersT>
+void anc(RegistersT &registers, const uint8_t operand) {
+	registers.a &= operand;
+	registers.flags.set_nz(registers.a);
+	registers.flags.carry = registers.a >> 7;
+}
+
+template <Model model, typename RegistersT>
+void adc(RegistersT &registers, const uint8_t operand) {
+	if(!has_decimal_mode(model) || !registers.flags.decimal) {
+		const uint16_t result = uint16_t(registers.a) + uint16_t(operand) + uint16_t(registers.flags.carry);
+		registers.flags.overflow = (( (result^registers.a)&(result^operand) )&0x80) >> 1;
+		registers.flags.set_nz(registers.a = uint8_t(result));
+		registers.flags.carry = (result >> 8)&1;
+		return;
+	}
+
+	uint8_t result = registers.a + operand + registers.flags.carry;
+	registers.flags.zero_result = result;
+	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand, result);
+
+	// General ADC logic:
+	//
+	// Detecting decimal carry means finding occasions when two digits added together totalled
+	// more than 9. Within each four-bit window that means testing the digit itself and also
+	// testing for carry — e.g. 5 + 5 = 0xA, which is detectable only by the value of the final
+	// digit, but 9 + 9 = 0x18, which is detectable only by spotting the carry.
+
+	// Only a single bit of carry can flow from the bottom nibble to the top.
+	//
+	// So if that carry already happened, fix up the bottom without permitting another;
+	// otherwise permit the carry to happen (and check whether carry then rippled out of bit 7).
+	if(Numeric::carried_in<4>(registers.a, operand, result)) {
+		result = (result & 0xf0) | ((result + 0x06) & 0x0f);
+	} else if((result & 0xf) > 0x9) {
+		registers.flags.carry |= result >= 0x100 - 0x6;
+		result += 0x06;
+	}
+
+	// 6502 quirk: N and V are set before the full result is computed but
+	// after the low nibble has been corrected.
+	registers.flags.negative_result = result;
+	registers.flags.overflow = (( (result ^ registers.a) & (result ^ operand) ) & 0x80) >> 1;
+
+	// i.e. fix high nibble if there was carry out of bit 7 already, or if the
+	// top nibble is too large (in which case there will be carry after the fix-up).
+	registers.flags.carry |= result >= 0xa0;
+	if(registers.flags.carry) {
+		result += 0x60;
+	}
+
+	registers.a = result;
+	if constexpr (is_65c02(model)) {
+		registers.flags.set_nz(registers.a);
+	}
+}
+
+template <Model model, typename RegistersT>
+void sbc(RegistersT &registers, const uint8_t operand) {
+	if(!has_decimal_mode(model) || !registers.flags.decimal) {
+		adc<Model::NES6502>(registers, ~operand);	// Lie about the model to carry forward the fact of not-decimal.
+		return;
+	}
+
+	const uint8_t operand_complement = ~operand;
+	uint8_t result = registers.a + operand_complement + registers.flags.carry;
+
+	// All flags are set based only on the decimal result.
+	registers.flags.zero_result = result;
+	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand_complement, result);
+	registers.flags.negative_result = result;
+	registers.flags.overflow = (( (result ^ registers.a) & (result ^ operand_complement) ) & 0x80) >> 1;
+
+	// General SBC logic:
+	//
+	// Because the range of valid numbers starts at 0, any subtraction that should have
+	// caused decimal carry and which requires a digit fix up will definitely have caused
+	// binary carry: the subtraction will have crossed zero and gone into negative numbers.
+	//
+	// So just test for carry (well, actually borrow, which is !carry).
+
+	// The bottom nibble is adjusted if there was borrow into the top nibble;
+	// on a 6502 additional borrow isn't propagated but on a 65C02 it is.
+	// This difference affects invalid BCD numbers only — valid numbers will
+	// never be less than -9 so adding 10 will always generate carry.
+	if(!Numeric::carried_in<4>(registers.a, operand_complement, result)) {
+		if constexpr (is_65c02(model)) {
+			result += 0xfa;
+		} else {
+			result = (result & 0xf0) | ((result + 0xfa) & 0xf);
+		}
+	}
+
+	// The top nibble is adjusted only if there was borrow out of the whole byte.
+	if(!registers.flags.carry) {
+		result += 0xa0;
+	}
+
+	registers.a = result;
+	if constexpr (is_65c02(model)) {
+		registers.flags.set_nz(registers.a);
+	}
+}
+
+}
+
 template <typename RegistersT>
 bool test(const Operation operation, RegistersT &registers) {
 	switch(operation) {
@@ -80,17 +194,8 @@ void perform(
 		case Operation::SEI:	registers.flags.inverse_interrupt = 0;					break;
 		case Operation::SED:	registers.flags.decimal = Flag::Decimal;				break;
 
-		case Operation::ANE:
-			registers.a = (registers.a | 0xee) & operand & registers.x;
-			registers.flags.set_nz(registers.a);
-		break;
-
-		case Operation::ANC:
-			registers.a &= operand;
-			registers.flags.set_nz(registers.a);
-			registers.flags.carry = registers.a >> 7;
-		break;
-
+		case Operation::ANE:	Operations::ane(registers, operand);	break;
+		case Operation::ANC:	Operations::anc(registers, operand);	break;
 		case Operation::LAS:
 			registers.a = registers.x = registers.s = registers.s & operand;
 			registers.flags.set_nz(registers.a);
@@ -174,10 +279,8 @@ void perform(
 		case Operation::RRA: {
 			const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
 			registers.flags.carry = operand & 1;
+			Operations::adc<model>(registers, temp8);
 			operand = temp8;
-
-			// TODO: can this goto be eliminated?
-			goto adc;
 		} break;
 
 		// MARK: - Bit logic.
@@ -233,117 +336,11 @@ void perform(
 
 		case Operation::INS:
 			++operand;
-			[[fallthrough]];
-		case Operation::SBC:
-			operand = ~operand;
-
-			if(registers.flags.decimal && has_decimal_mode(model)) {
-				uint8_t result = registers.a + operand + registers.flags.carry;
-
-				// All flags are set based only on the decimal result.
-				registers.flags.zero_result = result;
-				registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand, result);
-				registers.flags.negative_result = result;
-				registers.flags.overflow = (( (result ^ registers.a) & (result ^ operand) ) & 0x80) >> 1;
-
-				// General SBC logic:
-				//
-				// Because the range of valid numbers starts at 0, any subtraction that should have
-				// caused decimal carry and which requires a digit fix up will definitely have caused
-				// binary carry: the subtraction will have crossed zero and gone into negative numbers.
-				//
-				// So just test for carry (well, actually borrow, which is !carry).
-
-				// The bottom nibble is adjusted if there was borrow into the top nibble;
-				// on a 6502 additional borrow isn't propagated but on a 65C02 it is.
-				// This difference affects invalid BCD numbers only — valid numbers will
-				// never be less than -9 so adding 10 will always generate carry.
-				if(!Numeric::carried_in<4>(registers.a, operand, result)) {
-					if constexpr (is_65c02(model)) {
-						result += 0xfa;
-					} else {
-						result = (result & 0xf0) | ((result + 0xfa) & 0xf);
-					}
-				}
-
-				// The top nibble is adjusted only if there was borrow out of the whole byte.
-				if(!registers.flags.carry) {
-					result += 0xa0;
-				}
-
-				registers.a = result;
-
-				// fix up in case this was INS.
-				if(operation == Operation::INS) operand = ~operand;
-
-				if constexpr (is_65c02(model)) {
-					// 65C02 fix: set the N and Z flags based on the final, decimal result.
-					// Read into `operation_` for the sake of reading somewhere; the value isn't
-					// used and INS will write `operand_` back to memory.
-					registers.flags.set_nz(registers.a);
-//					read_mem(operation_, address_.full);
-					break;
-				}
-				break;
-			}
-			[[fallthrough]];
-
-		case Operation::ADC:
-			adc:
-			if(registers.flags.decimal && has_decimal_mode(model)) {
-				uint8_t result = registers.a + operand + registers.flags.carry;
-				registers.flags.zero_result = result;
-				registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand, result);
-
-				// General ADC logic:
-				//
-				// Detecting decimal carry means finding occasions when two digits added together totalled
-				// more than 9. Within each four-bit window that means testing the digit itself and also
-				// testing for carry — e.g. 5 + 5 = 0xA, which is detectable only by the value of the final
-				// digit, but 9 + 9 = 0x18, which is detectable only by spotting the carry.
-
-				// Only a single bit of carry can flow from the bottom nibble to the top.
-				//
-				// So if that carry already happened, fix up the bottom without permitting another;
-				// otherwise permit the carry to happen (and check whether carry then rippled out of bit 7).
-				if(Numeric::carried_in<4>(registers.a, operand, result)) {
-					result = (result & 0xf0) | ((result + 0x06) & 0x0f);
-				} else if((result & 0xf) > 0x9) {
-					registers.flags.carry |= result >= 0x100 - 0x6;
-					result += 0x06;
-				}
-
-				// 6502 quirk: N and V are set before the full result is computed but
-				// after the low nibble has been corrected.
-				registers.flags.negative_result = result;
-				registers.flags.overflow = (( (result ^ registers.a) & (result ^ operand) ) & 0x80) >> 1;
-
-				// i.e. fix high nibble if there was carry out of bit 7 already, or if the
-				// top nibble is too large (in which case there will be carry after the fix-up).
-				registers.flags.carry |= result >= 0xa0;
-				if(registers.flags.carry) {
-					result += 0x60;
-				}
-
-				registers.a = result;
-
-				if constexpr (is_65c02(model)) {
-					// 65C02 fix: N and Z are set correctly based on the final BCD result, at the cost of
-					// an extra cycle.
-					registers.flags.set_nz(registers.a);
-//					read_mem(operand_, address_.full);
-					break;
-				}
-			} else {
-				const uint16_t result = uint16_t(registers.a) + uint16_t(operand) + uint16_t(registers.flags.carry);
-				registers.flags.overflow = (( (result^registers.a)&(result^operand) )&0x80) >> 1;
-				registers.flags.set_nz(registers.a = uint8_t(result));
-				registers.flags.carry = (result >> 8)&1;
-			}
-
-			// fix up in case this was INS.
-			if(operation == Operation::INS) operand = ~operand;
+			Operations::sbc<model>(registers, operand);
 		break;
+
+		case Operation::SBC:	Operations::sbc<model>(registers, operand);		break;
+		case Operation::ADC:	Operations::adc<model>(registers, operand);		break;
 
 		case Operation::ARR:
 			if(registers.flags.decimal && has_decimal_mode(model)) {
