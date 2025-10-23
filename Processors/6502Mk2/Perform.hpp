@@ -228,6 +228,12 @@ void rra(RegistersT &registers, uint8_t &operand) {
 	operand = temp8;
 }
 
+template <typename RegistersT>
+void compare(RegistersT &registers, const uint8_t lhs, const uint8_t rhs) {
+	registers.flags.carry = rhs <= lhs;
+	registers.flags.set_nz(lhs - rhs);
+}
+
 }
 
 template <typename RegistersT>
@@ -360,27 +366,13 @@ void perform(
 
 		// MARK: - Compare
 
-		// TODO: probably don't need to use 16-bit arithmetic below.
 		case Operation::DCP:
 			--operand;
-			[[fallthrough]];
-		case Operation::CMP: {
-			const uint16_t temp16 = registers.a - operand;
-			registers.flags.set_nz(uint8_t(temp16));
-			registers.flags.carry = ((~temp16) >> 8)&1;
-		} break;
-
-		case Operation::CPX: {
-			const uint16_t temp16 = registers.x - operand;
-			registers.flags.set_nz(uint8_t(temp16));
-			registers.flags.carry = ((~temp16) >> 8)&1;
-		} break;
-
-		case Operation::CPY: {
-			const uint16_t temp16 = registers.y - operand;
-			registers.flags.set_nz(uint8_t(temp16));
-			registers.flags.carry = ((~temp16) >> 8)&1;
-		} break;
+			Operations::compare(registers, registers.a, operand);
+		break;
+		case Operation::CMP:	Operations::compare(registers, registers.a, operand);	break;
+		case Operation::CPX:	Operations::compare(registers, registers.x, operand);	break;
+		case Operation::CPY:	Operations::compare(registers, registers.y, operand);	break;
 
 		// MARK: - Arithmetic.
 
