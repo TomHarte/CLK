@@ -62,36 +62,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	auto &registers = Storage::registers_;
 	uint8_t throwaway = 0;
 
-	const auto sha = [&] {
-		if(Storage::did_adjust_top_) {
-			Storage::address_.halves.high = Storage::operand_ =
-				registers.a & registers.x & Storage::address_.halves.high;
-		} else {
-			Storage::operand_ = registers.a & registers.x & (Storage::address_.halves.high + 1);
-		}
-	};
-	const auto shx = [&] {
-		if(Storage::did_adjust_top_) {
-			Storage::address_.halves.high = Storage::operand_ = registers.x & Storage::address_.halves.high;
-		} else {
-			Storage::operand_ = registers.x & (Storage::address_.halves.high + 1);
-		}
-	};
-	const auto shy = [&] {
-		if(Storage::did_adjust_top_) {
-			Storage::address_.halves.high = Storage::operand_ = registers.y & Storage::address_.halves.high;
-		} else {
-			Storage::operand_ = registers.y & (Storage::address_.halves.high + 1);
-		}
-	};
-	const auto shs = [&] {
-		registers.s = registers.a & registers.x;
-		if(Storage::did_adjust_top_) {
-			Storage::address_.halves.high = Storage::operand_ = registers.s & Storage::address_.halves.high;
-		} else {
-			Storage::operand_ = registers.s & (Storage::address_.halves.high + 1);
-		}
-	};
 	const auto index = [&] {
 		return Storage::decoded_.index == Index::X ? registers.x : registers.y;
 	};
@@ -350,10 +320,18 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			switch(Storage::decoded_.operation) {
 				default: __builtin_unreachable();
-				case Operation::SHA: sha();	break;
-				case Operation::SHX: shx();	break;
-				case Operation::SHY: shy();	break;
-				case Operation::SHS: shs();	break;
+				case Operation::SHA:
+					Operations::sha(registers, Storage::address_, Storage::operand_, Storage::did_adjust_top_);
+				break;
+				case Operation::SHX:
+					Operations::shx(registers, Storage::address_, Storage::operand_, Storage::did_adjust_top_);
+				break;
+				case Operation::SHY:
+					Operations::shy(registers, Storage::address_, Storage::operand_, Storage::did_adjust_top_);
+				break;
+				case Operation::SHS:
+					Operations::shs(registers, Storage::address_, Storage::operand_, Storage::did_adjust_top_);
+				break;
 			}
 
 			check_interrupt();
@@ -379,7 +357,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			check_interrupt();
 			assert(Storage::decoded_.operation == Operation::SHA);
-			sha();
+			Operations::sha(registers, Storage::address_, Storage::operand_, Storage::did_adjust_top_);
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
 			goto fetch_decode;
 

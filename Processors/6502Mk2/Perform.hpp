@@ -264,6 +264,43 @@ inline void smb(uint8_t &operand, const uint8_t opcode) {
 	operand |= 1 << ((opcode >> 4)&7);
 }
 
+template <typename RegistersT>
+void sha(RegistersT &registers, RegisterPair16 &address, uint8_t &operand, const bool did_adjust_top) {
+	if(did_adjust_top) {
+		address.halves.high = operand = registers.a & registers.x & address.halves.high;
+	} else {
+		operand = registers.a & registers.x & (address.halves.high + 1);
+	}
+}
+
+template <typename RegistersT>
+void shx(RegistersT &registers, RegisterPair16 &address, uint8_t &operand, const bool did_adjust_top) {
+	if(did_adjust_top) {
+		address.halves.high = operand = registers.x & address.halves.high;
+	} else {
+		operand = registers.x & (address.halves.high + 1);
+	}
+}
+
+template <typename RegistersT>
+void shy(RegistersT &registers, RegisterPair16 &address, uint8_t &operand, const bool did_adjust_top) {
+	if(did_adjust_top) {
+		address.halves.high = operand = registers.y & address.halves.high;
+	} else {
+		operand = registers.y & (address.halves.high + 1);
+	}
+}
+
+template <typename RegistersT>
+void shs(RegistersT &registers, RegisterPair16 &address, uint8_t &operand, const bool did_adjust_top) {
+	registers.s = registers.a & registers.x;
+	if(did_adjust_top) {
+		address.halves.high = operand = registers.s & address.halves.high;
+	} else {
+		operand = registers.s & (address.halves.high + 1);
+	}
+}
+
 }
 
 template <typename RegistersT>
