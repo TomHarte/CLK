@@ -95,10 +95,10 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	uint8_t result = registers.a + operand_complement + registers.flags.carry;
 
 	// All flags are set based only on the decimal result.
+	registers.flags.carry = result < registers.a + registers.flags.carry;
 	if constexpr (!is_65c02(model)) {
 		registers.flags.set_nz(result);
 	}
-	registers.flags.carry = Numeric::carried_out<Numeric::Operation::Add, 7>(registers.a, operand_complement, result);
 	registers.flags.set_v(result, registers.a, operand_complement);
 
 	// General SBC logic:
