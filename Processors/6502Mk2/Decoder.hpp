@@ -115,7 +115,7 @@ constexpr Type type_of(const Operation operation) {
 		case Operation::LDY:	case Operation::LAX:
 		case Operation::ARR:	case Operation::SBX:	case Operation::LXA:
 		case Operation::ANE:	case Operation::ANC:	case Operation::LAS:
-		case Operation::NOP:
+		case Operation::NOP:	case Operation::FastNOP:
 			return Type::Read;
 
 		case Operation::STA:	case Operation::STX:	case Operation::STY:
@@ -470,11 +470,11 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0xc3:	return {Implied, Operation::FastNOP};
 			case 0xe3:	return {Implied, Operation::FastNOP};
 
-			case 0x89:	return {Immediate, Operation::BITNoNV};
-
 			case 0x04:	return {Zero, Operation::TSB};
 			case 0x64:	return {Zero, Operation::STZ};
 			case 0x9e:	return {AbsoluteIndexed, Operation::STZ};
+
+			case 0x89:	return {Immediate, Operation::BITNoNV};
 
 			case 0x0b:	return {Implied, Operation::FastNOP};
 			case 0x2b:	return {Implied, Operation::FastNOP};

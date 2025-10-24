@@ -102,7 +102,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			// Modify stall.
-			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			access(
+				is_65c02(model) ? BusOperation::Read : BusOperation::Write,
+				ZeroPage(Storage::address_.halves.low),
+				Storage::operand_
+			);
 
 			// Write.
 		access_zero_write:
@@ -126,7 +130,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			// Modify stall.
-			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
+			access(
+				is_65c02(model) ? BusOperation::Read : BusOperation::Write,
+				Literal(Storage::address_.full),
+				Storage::operand_
+			);
 
 			// Write.
 		access_absolute_write:
