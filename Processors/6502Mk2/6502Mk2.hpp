@@ -81,35 +81,20 @@ private:
 	uint16_t address_;
 };
 
-struct ZeroPage {
-	constexpr ZeroPage(const uint8_t address) noexcept : address_(address) {}
+template <uint8_t Page>
+struct FixedPage {
+	FixedPage(const uint8_t address) noexcept : address_(address) {}
 	operator uint16_t() const {
-		return address_;
+		return (Page << 8) | address_;
 	}
 
 private:
 	uint8_t address_;
 };
 
-struct Stack {
-	constexpr Stack(const uint8_t address) noexcept : address_(address) {}
-	operator uint16_t() const {
-		return 0x0100 | address_;
-	}
-
-private:
-	uint8_t address_;
-};
-
-struct Vector {
-	constexpr Vector(const uint8_t address) noexcept : address_(address) {}
-	operator uint16_t() const {
-		return 0xff00 | address_;
-	}
-
-private:
-	uint8_t address_;
-};
+using ZeroPage = FixedPage<0x00>;
+using Stack = FixedPage<0x01>;
+using Vector = FixedPage<0xff>;
 
 }  // namespace Address
 
