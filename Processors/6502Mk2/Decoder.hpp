@@ -446,4 +446,16 @@ struct Decoder<model, std::enable_if_t<is_6502(model)>> {
 	}
 };
 
+template <Model model>
+struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
+	static constexpr Instruction decode(const uint8_t opcode) {
+		using enum AddressingMode;
+		switch(opcode) {
+			default: return Decoder<Model::M6502>::decode(opcode);
+
+			// TODO: many, many overrides.
+		}
+	}
+};
+
 }

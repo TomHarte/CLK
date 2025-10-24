@@ -120,7 +120,7 @@ void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler 
 		default: __builtin_unreachable();
 		case CPU::MOS6502Mk2::Model::NES6502:	testExecution<CPU::MOS6502Mk2::Model::NES6502>(test, handler);	break;
 		case CPU::MOS6502Mk2::Model::M6502:	testExecution<CPU::MOS6502Mk2::Model::M6502>(test, handler);	break;
-//		case CPU::MOS6502Mk2::Model::Synertek65C02:	testExecution<CPU::MOS6502Mk2::Model::Synertek65C02>(test, handler);	break;
+		case CPU::MOS6502Mk2::Model::Synertek65C02:	testExecution<CPU::MOS6502Mk2::Model::Synertek65C02>(test, handler);	break;
 //		case CPU::MOS6502Mk2::Model::Rockwell65C02:	testExecution<CPU::MOS6502Mk2::Model::Rockwell65C02>(test, handler);	break;
 //		case CPU::MOS6502Mk2::Model::WDC65C02:	testExecution<CPU::MOS6502Mk2::Model::WDC65C02>(test, handler);	break;
 	}
@@ -161,8 +161,21 @@ void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler 
 - (void)testAll {
 	NSString *const path = [NSString stringWithUTF8String:TestSuiteHome];
 
-	[self testPath:[path stringByAppendingPathComponent:@"nes6502/v1"] model:CPU::MOS6502Mk2::Model::NES6502];
-	[self testPath:[path stringByAppendingPathComponent:@"6502/v1"] model:CPU::MOS6502Mk2::Model::M6502];
+//	[self
+//		testPath:[path stringByAppendingPathComponent:@"nes6502/v1"]
+//		model:CPU::MOS6502Mk2::Model::NES6502];
+//	[self
+//		testPath:[path stringByAppendingPathComponent:@"6502/v1"]
+//		model:CPU::MOS6502Mk2::Model::M6502];
+	[self
+		testPath:[path stringByAppendingPathComponent:@"synertek65c02/v1"]
+		model:CPU::MOS6502Mk2::Model::Synertek65C02];
+//	[self
+//		testPath:[path stringByAppendingPathComponent:@"rockwell65c02/v1"]
+//		model:CPU::MOS6502Mk2::Model::Rockwell65C02];
+//	[self
+//		testPath:[path stringByAppendingPathComponent:@"wdc65c02/v1"]
+//		model:CPU::MOS6502Mk2::Model::WDC65C02];
 }
 
 @end
