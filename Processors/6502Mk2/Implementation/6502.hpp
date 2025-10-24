@@ -311,11 +311,16 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			if constexpr (is_65c02(model)) {
-				check_interrupt();
+				goto absolute_indexed_65c02_tail;
 			}
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 			std::swap(Storage::address_.halves.high, Storage::operand_);
+			goto access_absolute;
+
+		absolute_indexed_65c02_tail:
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
 		// MARK: - Indexed indirect.
@@ -361,9 +366,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		indirect_indexed_65c02_tail:
 			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
-
 			goto access_absolute;
-
 
 		// MARK: - Potentially-faulty addressing of SHA/SHX/SHY/SHS.
 
