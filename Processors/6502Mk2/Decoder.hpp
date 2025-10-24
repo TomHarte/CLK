@@ -543,14 +543,14 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0xda:	return {Push, Operation::STX};
 			case 0xfa:	return {Push, Operation::LDX};
 
-			case 0x1b:	return {Implied, Operation::NOP};
-			case 0x3b:	return {Implied, Operation::NOP};
-			case 0x5b:	return {Implied, Operation::NOP};
-			case 0x7b:	return {Implied, Operation::NOP};
-			case 0x9b:	return {Implied, Operation::NOP};
-			case 0xbb:	return {Implied, Operation::NOP};
+			case 0x1b:	return {Implied, Operation::FastNOP};
+			case 0x3b:	return {Implied, Operation::FastNOP};
+			case 0x5b:	return {Implied, Operation::FastNOP};
+			case 0x7b:	return {Implied, Operation::FastNOP};
+			case 0x9b:	return {Implied, Operation::FastNOP};
+			case 0xbb:	return {Implied, Operation::FastNOP};
 			case 0xdb:	return {ZeroIndexed, Operation::NOP};
-			case 0xfb:	return {Implied, Operation::NOP};
+			case 0xfb:	return {Implied, Operation::FastNOP};
 
 			case 0x1c:	return {Absolute, Operation::TRB};
 			case 0x3c:	return {AbsoluteIndexed, Operation::BIT};
