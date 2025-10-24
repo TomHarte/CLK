@@ -491,19 +491,19 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0x6b:	return {Implied, Operation::FastNOP};
 			case 0x8b:	return {Implied, Operation::FastNOP};
 			case 0xab:	return {Implied, Operation::FastNOP};
-//			case 0xcb:	return {Implied, Operation::NOP};
+			case 0xcb:	return {Implied, Operation::FastNOP};
 			case 0xeb:	return {Implied, Operation::FastNOP};
 
 			case 0x0c:	return {Absolute, Operation::TSB};
 
-			case 0x0f:	return {Absolute, Operation::NOP};
-			case 0x2f:	return {Absolute, Operation::NOP};
-			case 0x4f:	return {Absolute, Operation::NOP};
-			case 0x6f:	return {Absolute, Operation::NOP};
-			case 0x8f:	return {Absolute, Operation::NOP};
-			case 0xaf:	return {Absolute, Operation::NOP};
-			case 0xcf:	return {Absolute, Operation::NOP};
-			case 0xef:	return {Absolute, Operation::NOP};
+			case 0x0f:	return {Absolute, Operation::FastNOP};
+			case 0x2f:	return {Absolute, Operation::FastNOP};
+			case 0x4f:	return {Absolute, Operation::FastNOP};
+			case 0x6f:	return {Absolute, Operation::FastNOP};
+			case 0x8f:	return {Absolute, Operation::FastNOP};
+			case 0xaf:	return {Absolute, Operation::FastNOP};
+			case 0xcf:	return {Absolute, Operation::FastNOP};
+			case 0xef:	return {Absolute, Operation::FastNOP};
 
 			case 0x12:	return {Immediate, Operation::NOP};
 			case 0x32:	return {Immediate, Operation::NOP};
@@ -544,7 +544,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0x7b:	return {Implied, Operation::NOP};
 			case 0x9b:	return {Implied, Operation::NOP};
 			case 0xbb:	return {Implied, Operation::NOP};
-//			case 0xdb:	return {Implied, Operation::NOP};
+			case 0xdb:	return {ZeroIndexed, Operation::NOP};
 			case 0xfb:	return {Implied, Operation::NOP};
 
 			case 0x1c:	return {Absolute, Operation::TRB};

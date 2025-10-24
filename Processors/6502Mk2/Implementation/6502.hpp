@@ -89,6 +89,12 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Read, write or modify accesses.
 
 		access_zero:
+			if constexpr (is_65c02(model)) {
+				if(Storage::decoded_.operation == Operation::FastNOP) {
+					goto fetch_decode;
+				}
+			}
+
 			if(Storage::decoded_.type == Type::Write) {
 				goto access_zero_write;
 			}
@@ -117,6 +123,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		access_absolute:
+			if constexpr (is_65c02(model)) {
+				if(Storage::decoded_.operation == Operation::FastNOP) {
+					goto fetch_decode;
+				}
+			}
 			if(Storage::decoded_.type == Type::Write) {
 				goto access_absolute_write;
 			}
@@ -159,14 +170,19 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
-			check_interrupt();
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			access(BusOperation::ReadOpcode, Literal(registers.pc.full), Storage::opcode_);
 			++registers.pc.full;
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 
 			// 65c02 special case: support single-cycle NOPs.
 			if constexpr (is_65c02(model)) {
-				if(Storage::decoded_.operation == Operation::FastNOP) {
+				if(
+					Storage::decoded_.mode == AddressingMode::Implied &&
+					Storage::decoded_.operation == Operation::FastNOP
+				) {
 					goto fetch_decode;
 				}
 			}
@@ -245,6 +261,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		case access_program(ZeroIndexed):
 			++registers.pc.full;
 
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
 			Storage::address_.halves.low += index();
@@ -257,6 +276,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		case access_program(Absolute):
 			++registers.pc.full;
 
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
 			++registers.pc.full;
@@ -269,6 +291,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			++registers.pc.full;
 
 			// Read top half of address.
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
 			++registers.pc.full;
@@ -280,6 +305,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto access_absolute;
 			}
 
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 			std::swap(Storage::address_.halves.high, Storage::operand_);
@@ -294,6 +322,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::operand_ += registers.x;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
 			goto access_absolute;
 
@@ -305,6 +336,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
 
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
 
 			Storage::operand_ = Storage::address_.halves.high;
@@ -313,6 +347,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto access_absolute;
 			}
 
+			if constexpr (is_65c02(model)) {
+				check_interrupt();
+			}
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 			std::swap(Storage::address_.halves.high, Storage::operand_);
