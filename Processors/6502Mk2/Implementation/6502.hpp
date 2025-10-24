@@ -151,12 +151,21 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
+			check_interrupt();
 			access(BusOperation::ReadOpcode, Literal(registers.pc.full), Storage::opcode_);
 			++registers.pc.full;
+			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
+
+			// 65c02 special case: support single-cycle NOPs.
+			if constexpr (is_65c02(model)) {
+				if(Storage::decoded_.operation == Operation::FastNOP) {
+					goto fetch_decode;
+				}
+			}
+
 			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 
-			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.mode);
 			break;
 
