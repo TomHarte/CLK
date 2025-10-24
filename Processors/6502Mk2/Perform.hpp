@@ -232,6 +232,38 @@ void compare(RegistersT &registers, const uint8_t lhs, const uint8_t rhs) {
 	registers.flags.set_nz(lhs - rhs);
 }
 
+template <typename RegistersT>
+void bit(RegistersT &registers, const uint8_t operand) {
+	registers.flags.zero_result = operand & registers.a;
+	registers.flags.negative_result = operand;
+	registers.flags.overflow = operand & Flag::Overflow;
+}
+
+template <typename RegistersT>
+void bit_no_nv(RegistersT &registers, const uint8_t operand) {
+	registers.flags.zero_result = operand & registers.a;
+}
+
+template <typename RegistersT>
+void trb(RegistersT &registers, uint8_t &operand) {
+	registers.flags.zero_result = operand & registers.a;
+	operand &= ~registers.a;
+}
+
+template <typename RegistersT>
+void tsb(RegistersT &registers, uint8_t &operand) {
+	registers.flags.zero_result = operand & registers.a;
+	operand |= registers.a;
+}
+
+inline void rmb(uint8_t &operand, const uint8_t opcode) {
+	operand &= ~(1 << (opcode >> 4));
+}
+
+inline void smb(uint8_t &operand, const uint8_t opcode) {
+	operand |= 1 << ((opcode >> 4)&7);
+}
+
 }
 
 template <typename RegistersT>
@@ -339,28 +371,12 @@ void perform(
 
 		// MARK: - Bit logic.
 
-		case Operation::BIT:
-			registers.flags.zero_result = operand & registers.a;
-			registers.flags.negative_result = operand;
-			registers.flags.overflow = operand & Flag::Overflow;
-		break;
-		case Operation::BITNoNV:
-			registers.flags.zero_result = operand & registers.a;
-		break;
-		case Operation::TRB:
-			registers.flags.zero_result = operand & registers.a;
-			operand &= ~registers.a;
-		break;
-		case Operation::TSB:
-			registers.flags.zero_result = operand & registers.a;
-			operand |= registers.a;
-		break;
-		case Operation::RMB:
-			operand &= ~(1 << (opcode >> 4));
-		break;
-		case Operation::SMB:
-			operand |= 1 << ((opcode >> 4)&7);
-		break;
+		case Operation::BIT:		Operations::bit(registers, operand);			break;
+		case Operation::BITNoNV:	Operations::bit_no_nv(registers, operand);		break;
+		case Operation::TRB:		Operations::trb(registers, operand);			break;
+		case Operation::TSB:		Operations::tsb(registers, operand);			break;
+		case Operation::RMB:		Operations::rmb(operand, opcode);				break;
+		case Operation::SMB:		Operations::smb(operand, opcode);				break;
 
 		// MARK: - Compare
 
@@ -378,7 +394,6 @@ void perform(
 			++operand;
 			Operations::sbc<model>(registers, operand);
 		break;
-
 		case Operation::SBC:	Operations::sbc<model>(registers, operand);		break;
 		case Operation::ADC:	Operations::adc<model>(registers, operand);		break;
 		case Operation::ARR:	Operations::arr<model>(registers, operand);		break;
