@@ -106,6 +106,7 @@ constexpr Type type_of(const Operation operation) {
 		case Operation::JSR:	case Operation::RTI:	case Operation::RTS:
 		case Operation::PHP:	case Operation::PLP:	case Operation::JMP:
 		case Operation::BBRBBS:
+		case Operation::FastNOP:
 			return Type::Modify;
 
 		case Operation::ORA:	case Operation::AND:	case Operation::EOR:
@@ -116,7 +117,7 @@ constexpr Type type_of(const Operation operation) {
 		case Operation::LDY:	case Operation::LAX:
 		case Operation::ARR:	case Operation::SBX:	case Operation::LXA:
 		case Operation::ANE:	case Operation::ANC:	case Operation::LAS:
-		case Operation::NOP:	case Operation::FastNOP:
+		case Operation::NOP:
 			return Type::Read;
 
 		case Operation::STA:	case Operation::STX:	case Operation::STY:
@@ -555,6 +556,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 
 			case 0x1c:	return {Absolute, Operation::TRB};
 			case 0x3c:	return {AbsoluteIndexed, Operation::BIT};
+			case 0x5c:	return {AbsoluteIndexed, Operation::FastNOP};
 			case 0x9c:	return {Absolute, Operation::STZ};
 
 			case 0x1e: return {FastAbsoluteIndexedModify, Operation::ASL};
