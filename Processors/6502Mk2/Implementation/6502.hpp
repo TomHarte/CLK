@@ -89,6 +89,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Read, write or modify accesses.
 
 		access_zero:
+			++registers.pc.full;
 			if constexpr (is_65c02(model)) {
 				if(Storage::decoded_.operation == Operation::FastNOP) {
 					goto fetch_decode;
@@ -123,6 +124,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		access_absolute:
+			++registers.pc.full;
 			if constexpr (is_65c02(model)) {
 				if(Storage::decoded_.operation == Operation::FastNOP) {
 					goto fetch_decode;
@@ -252,15 +254,12 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Zero.
 
 		case access_program(Zero):
-			++registers.pc.full;
 			Storage::address_.halves.low = Storage::operand_;
 			goto access_zero;
 
 		// MARK: - Zero indexed.
 
 		case access_program(ZeroIndexed):
-			++registers.pc.full;
-
 			if constexpr (is_65c02(model)) {
 				check_interrupt();
 			}
@@ -281,7 +280,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
-			++registers.pc.full;
 
 			goto access_absolute;
 
@@ -296,7 +294,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
-			++registers.pc.full;
 
 			// If this is a read and the top byte doesn't need adjusting, skip that cycle.
 			Storage::operand_ = Storage::address_.halves.high;
@@ -316,8 +313,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Indexed indirect.
 
 		case access_program(IndexedIndirect):
-			++registers.pc.full;
-
 			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
 			Storage::operand_ += registers.x;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
@@ -331,8 +326,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Indirect indexed.
 
 		case access_program(IndirectIndexed):
-			++registers.pc.full;
-
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
 
@@ -348,12 +341,21 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			if constexpr (is_65c02(model)) {
-				check_interrupt();
+				goto indirect_indexed_65c02_tail;
 			}
+
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 			std::swap(Storage::address_.halves.high, Storage::operand_);
+
 			goto access_absolute;
+
+		indirect_indexed_65c02_tail:
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
+
+			goto access_absolute;
+
 
 		// MARK: - Potentially-faulty addressing of SHA/SHX/SHY/SHS.
 
