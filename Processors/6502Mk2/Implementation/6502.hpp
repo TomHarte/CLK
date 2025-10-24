@@ -92,6 +92,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::operand_ = registers.s & (Storage::address_.halves.high + 1);
 		}
 	};
+	const auto index = [&] {
+		return Storage::decoded_.index == Index::X ? registers.x : registers.y;
+	};
 	const auto check_interrupt = [] {
 		// TODO.
 	};
@@ -257,7 +260,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
-			Storage::address_.halves.low += Storage::decoded_.index == Index::X ? registers.x : registers.y;
+			Storage::address_.halves.low += index();
 
 			goto access_zero;
 
@@ -285,7 +288,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			// If this is a read and the top byte doesn't need adjusting, skip that cycle.
 			Storage::operand_ = Storage::address_.halves.high;
-			Storage::address_.full += Storage::decoded_.index == Index::X ? registers.x : registers.y;
+			Storage::address_.full += index();
 			if(Storage::decoded_.type == Type::Read && Storage::operand_ == Storage::address_.halves.high) {
 				goto access_absolute;
 			}
@@ -308,6 +311,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto access_absolute;
 
 		// MARK: - Indirect indexed.
+
 		case access_program(IndirectIndexed):
 			++registers.pc.full;
 
