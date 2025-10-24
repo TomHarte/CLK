@@ -269,6 +269,14 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto access_zero;
 
+		// MARK: - Zero indirect (which is exclusive to the 65c02).
+
+		case access_program(ZeroIndirect):
+			access(BusOperation::Read, ZeroPage(Storage::operand_++), Storage::address_.halves.low);
+			check_interrupt();
+			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
+
+			goto access_absolute;
 
 		// MARK: - Absolute.
 

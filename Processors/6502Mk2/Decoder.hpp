@@ -505,9 +505,14 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0xcf:	return {Absolute, Operation::FastNOP};
 			case 0xef:	return {Absolute, Operation::FastNOP};
 
-			case 0x12:	return {Immediate, Operation::NOP};
-			case 0x32:	return {Immediate, Operation::NOP};
-			case 0x52:	return {Immediate, Operation::NOP};
+			case 0x12:	return {ZeroIndirect, Operation::ORA};
+			case 0x32:	return {ZeroIndirect, Operation::AND};
+			case 0x52:	return {ZeroIndirect, Operation::EOR};
+			case 0x72:	return {ZeroIndirect, Operation::ADC};
+			case 0x92:	return {ZeroIndirect, Operation::STA};
+			case 0xb2:	return {ZeroIndirect, Operation::LDA};
+			case 0xd2:	return {ZeroIndirect, Operation::CMP};
+			case 0xf2:	return {ZeroIndirect, Operation::SBC};
 
 			case 0x13:	return {Implied, Operation::FastNOP};
 			case 0x33:	return {Implied, Operation::FastNOP};
