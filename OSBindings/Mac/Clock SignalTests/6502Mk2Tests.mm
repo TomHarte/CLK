@@ -15,9 +15,11 @@
 // MARK: - Test paths
 
 // The tests themselves are not duplicated in this repository; provide their real paths here.
-constexpr char TestSuiteHome[] = "/Users/thomasharte/Downloads/65x02-main/6502/v1";
+constexpr char TestSuiteHome[] = "/Users/thomasharte/Downloads/65x02-main/";
 
 // MARK: - BusHandler
+
+namespace {
 
 struct TestComplete {};
 
@@ -58,17 +60,7 @@ struct Traits {
 	using BusHandlerT = BusHandler;
 };
 
-
-// MARK: - XCTestCase
-
-@interface m6502Mk2Tests : XCTestCase
-@end
-
-@implementation m6502Mk2Tests {
-	BusHandler handler;
-}
-
-- (CPU::MOS6502Mk2::Registers)registersFrom:(NSDictionary *)dictionary {
+CPU::MOS6502Mk2::Registers registersFrom(NSDictionary *dictionary) {
 	CPU::MOS6502Mk2::Registers result;
 	result.a = [dictionary[@"a"] intValue];
 	result.x = [dictionary[@"x"] intValue];
@@ -79,17 +71,18 @@ struct Traits {
 	return result;
 }
 
-- (void)testExecution:(NSDictionary *)test {
-	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, Traits> processor(handler);
+template <CPU::MOS6502Mk2::Model model>
+void testExecution(NSDictionary *test, BusHandler &handler) {
+	CPU::MOS6502Mk2::Processor<model, Traits> processor(handler);
 
 	NSDictionary *initial = test[@"initial"];
-	const auto initial_registers = [self registersFrom:initial];
+	const auto initial_registers = registersFrom(initial);
 	processor.set_registers(initial_registers);
 	for(NSArray *value in initial[@"ram"]) {
 		handler.memory[[value[0] intValue]] = [value[1] intValue];
 	}
 
-	processor.set<CPU::MOS6502Mk2::Line::PowerOn>(false);
+	processor.template set<CPU::MOS6502Mk2::Line::PowerOn>(false);
 	handler.opcode_reads = 0;
 	handler.accesses.clear();
 
@@ -98,7 +91,7 @@ struct Traits {
 	} catch (TestComplete) {}
 
 	NSDictionary *final = test[@"final"];
-	const auto final_registers = [self registersFrom:final];
+	const auto final_registers = registersFrom(final);
 	XCTAssertEqual(final_registers.a, processor.registers().a);
 	XCTAssertEqual(final_registers.x, processor.registers().x);
 	XCTAssertEqual(final_registers.y, processor.registers().y);
@@ -122,25 +115,54 @@ struct Traits {
 	XCTAssertEqual(found_cycle, handler.accesses.end());
 }
 
-- (void)testFile:(NSString *)file {
+void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler &handler) {
+	switch(model) {
+		default: __builtin_unreachable();
+		case CPU::MOS6502Mk2::Model::NES6502:	testExecution<CPU::MOS6502Mk2::Model::NES6502>(test, handler);	break;
+		case CPU::MOS6502Mk2::Model::M6502:	testExecution<CPU::MOS6502Mk2::Model::M6502>(test, handler);	break;
+//		case CPU::MOS6502Mk2::Model::Synertek65C02:	testExecution<CPU::MOS6502Mk2::Model::Synertek65C02>(test, handler);	break;
+//		case CPU::MOS6502Mk2::Model::Rockwell65C02:	testExecution<CPU::MOS6502Mk2::Model::Rockwell65C02>(test, handler);	break;
+//		case CPU::MOS6502Mk2::Model::WDC65C02:	testExecution<CPU::MOS6502Mk2::Model::WDC65C02>(test, handler);	break;
+	}
+}
+
+}
+
+// MARK: - XCTestCase
+
+@interface m6502Mk2Tests : XCTestCase
+@end
+
+@implementation m6502Mk2Tests {
+	BusHandler handler;
+}
+
+- (void)testFile:(NSString *)file model:(CPU::MOS6502Mk2::Model)model {
 	NSLog(@"Starting %@", file);
 	NSArray *tests =
 		[NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:file] options:0 error:nil];
 	for(NSDictionary *test in tests) {
-		[self testExecution:test];
+		testExecution(model, test, handler);
 	}
 }
 
-- (void)testAll {
-	NSString *const path = [NSString stringWithUTF8String:TestSuiteHome];
+- (void)testPath:(NSString *)path model:(CPU::MOS6502Mk2::Model)model {
+	NSLog(@"Into %@", path);
 	NSArray<NSString *> *const files =
 		[[[NSFileManager defaultManager]
 			contentsOfDirectoryAtPath:path
 			error:nil
 		] sortedArrayUsingSelector:@selector(compare:)];
 	for(NSString *file in files) {
-		[self testFile:[path stringByAppendingPathComponent:file]];
+		[self testFile:[path stringByAppendingPathComponent:file] model:model];
 	}
+}
+
+- (void)testAll {
+	NSString *const path = [NSString stringWithUTF8String:TestSuiteHome];
+
+	[self testPath:[path stringByAppendingPathComponent:@"nes6502/v1"] model:CPU::MOS6502Mk2::Model::NES6502];
+	[self testPath:[path stringByAppendingPathComponent:@"6502/v1"] model:CPU::MOS6502Mk2::Model::M6502];
 }
 
 @end
