@@ -49,6 +49,7 @@ enum class AddressingMode {
 
 	Absolute,
 	AbsoluteIndexed,
+	FastAbsoluteIndexedModify,
 	Zero,
 	ZeroIndexed,
 	ZeroIndirect,
@@ -556,14 +557,19 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0x3c:	return {AbsoluteIndexed, Operation::BIT};
 			case 0x9c:	return {Absolute, Operation::STZ};
 
-			case 0x1f:	return {AbsoluteIndexed, Operation::NOP};
-			case 0x3f:	return {AbsoluteIndexed, Operation::NOP};
-			case 0x5f:	return {AbsoluteIndexed, Operation::NOP};
-			case 0x7f:	return {AbsoluteIndexed, Operation::NOP};
-			case 0x9f:	return {AbsoluteIndexed, Operation::NOP};
-			case 0xbf:	return {AbsoluteIndexed, Operation::NOP};
-			case 0xdf:	return {AbsoluteIndexed, Operation::NOP};
-			case 0xff:	return {AbsoluteIndexed, Operation::NOP};
+			case 0x1e: return {FastAbsoluteIndexedModify, Operation::ASL};
+			case 0x3e: return {FastAbsoluteIndexedModify, Operation::ROL};
+			case 0x5e: return {FastAbsoluteIndexedModify, Operation::LSR};
+			case 0x7e: return {FastAbsoluteIndexedModify, Operation::ROR};
+
+			case 0x1f:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0x3f:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0x5f:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0x7f:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0x9f:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0xbf:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0xdf:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0xff:	return {AbsoluteIndexed, Operation::FastNOP};
 		}
 	}
 };

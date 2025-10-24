@@ -323,6 +323,27 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
+		// MARK: - Fast absolute indexed modify, which is a 65c02 improvement but not applied universally.
+
+		case access_program(FastAbsoluteIndexedModify):
+			++registers.pc.full;
+
+			// Read top half of address.
+			Storage::address_.halves.low = Storage::operand_;
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+
+			// If this is a read and the top byte doesn't need adjusting, skip that cycle.
+			Storage::operand_ = Storage::address_.halves.high;
+			Storage::address_.full += index();
+			if(Storage::address_.halves.high == Storage::operand_) {
+				goto access_absolute;
+			}
+
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
+			goto access_absolute;
+
 		// MARK: - Indexed indirect.
 
 		case access_program(IndexedIndirect):
