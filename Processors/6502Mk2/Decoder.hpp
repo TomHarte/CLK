@@ -472,6 +472,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 
 			case 0x89:	return {Immediate, Operation::BITNoNV};
 
+			case 0x04:	return {Zero, Operation::TSB};
 			case 0x64:	return {Zero, Operation::STZ};
 			case 0x9e:	return {AbsoluteIndexed, Operation::STZ};
 
@@ -483,6 +484,8 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0xab:	return {Implied, Operation::FastNOP};
 //			case 0xcb:	return {Implied, Operation::NOP};
 			case 0xeb:	return {Implied, Operation::FastNOP};
+
+			case 0x0c:	return {Absolute, Operation::TSB};
 
 			case 0x12:	return {Immediate, Operation::NOP};
 			case 0x32:	return {Immediate, Operation::NOP};
@@ -497,6 +500,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0xd3:	return {Implied, Operation::FastNOP};
 			case 0xf3:	return {Implied, Operation::FastNOP};
 
+			case 0x14:	return {Zero, Operation::TRB};
 			case 0x34:	return {ZeroIndexed, Operation::BIT};
 			case 0x74:	return {ZeroIndexed, Operation::STZ};
 
@@ -516,6 +520,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 //			case 0xdb:	return {Implied, Operation::NOP};
 			case 0xfb:	return {Implied, Operation::NOP};
 
+			case 0x1c:	return {Absolute, Operation::TRB};
 			case 0x3c:	return {AbsoluteIndexed, Operation::BIT};
 			case 0x9c:	return {Absolute, Operation::STZ};
 		}
