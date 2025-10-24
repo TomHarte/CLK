@@ -511,13 +511,12 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 	}
 
-	#undef perform
 	#undef access_program
 	#undef access
-	#undef restore_point
-	#undef line_label
+	#undef access_label
 	#undef attach
 	#undef join
+	#undef restore_point
 }
 
 }
