@@ -271,7 +271,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Write, Stack(registers.dec_s()), Storage::operand_);
 			goto fetch_decode;
 
-		// MARK: - Relative.
+		// MARK: - Relative, and BBR/BBS (for the 65c02).
 
 		case access_program(Relative):
 			++registers.pc.full;
@@ -289,6 +289,32 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			Storage::address_.halves.low = registers.pc.halves.low;
+			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
+
+			goto fetch_decode;
+
+		case access_program(BBRBBS):
+			// Cf. https://github.com/CompuSAR/sar6502/blob/master/sar6502.srcs/sim_1/new/test_plan.mem
+			++registers.pc.full;
+			Storage::address_.halves.low = Storage::operand_;
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.low);
+
+			++registers.pc.full;
+			if(!test_bbr_bbs(Storage::opcode_, Storage::operand_)) {
+				goto fetch_decode;
+			}
+
+			Storage::operand_ = Storage::address_.halves.low;
+			Storage::address_ = registers.pc;
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
+
+			registers.pc.full += int8_t(Storage::operand_);
+			if(registers.pc.halves.high == Storage::address_.halves.high) {
+				goto fetch_decode;
+			}
+
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 
 			goto fetch_decode;

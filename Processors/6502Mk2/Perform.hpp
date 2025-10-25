@@ -321,6 +321,12 @@ bool test(const Operation operation, RegistersT &registers) {
 	}
 }
 
+inline bool test_bbr_bbs(const uint8_t opcode, const uint8_t test_byte) {
+	const auto mask = uint8_t(1 << ((opcode >> 4)&7));	// Get bit.
+	const auto required = (opcode & 0x80) ? mask : 0;	// Check for BBR or BBS.
+	return (test_byte & mask) == required;				// Compare.
+}
+
 template <Model model, typename RegistersT>
 void perform(
 	const Operation operation,

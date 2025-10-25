@@ -58,6 +58,7 @@ enum class AddressingMode {
 
 	// Irregular flow control.
 	BRK,	JSR,	RTI,	RTS,
+	BBRBBS,
 	JMPAbsolute,
 	JMPAbsoluteIndirect,
 	JMPAbsoluteIndexedIndirect,
@@ -575,6 +576,34 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0xbf:	return {AbsoluteIndexed, Operation::FastNOP};
 			case 0xdf:	return {AbsoluteIndexed, Operation::FastNOP};
 			case 0xff:	return {AbsoluteIndexed, Operation::FastNOP};
+		}
+	}
+};
+
+template <Model model>
+struct Decoder<model, std::enable_if_t<model == Model::Rockwell65C02>> {
+	static constexpr Instruction decode(const uint8_t opcode) {
+		using enum AddressingMode;
+		switch(opcode) {
+			default: return Decoder<Model::Synertek65C02>::decode(opcode);
+
+			case 0x0f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x2f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x4f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x6f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x8f:	return {BBRBBS, Operation::BBRBBS};
+			case 0xaf:	return {BBRBBS, Operation::BBRBBS};
+			case 0xcf:	return {BBRBBS, Operation::BBRBBS};
+			case 0xef:	return {BBRBBS, Operation::BBRBBS};
+
+			case 0x1f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x3f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x5f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x7f:	return {BBRBBS, Operation::BBRBBS};
+			case 0x9f:	return {BBRBBS, Operation::BBRBBS};
+			case 0xbf:	return {BBRBBS, Operation::BBRBBS};
+			case 0xdf:	return {BBRBBS, Operation::BBRBBS};
+			case 0xff:	return {BBRBBS, Operation::BBRBBS};
 		}
 	}
 };
