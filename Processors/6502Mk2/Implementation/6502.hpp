@@ -689,6 +689,28 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			check_interrupt();
 			access(BusOperation::Read, Vector(0xfd), registers.pc.halves.high);
 			goto fetch_decode;
+
+		// MARK: - STP and WAI.
+		case access_program(STP):
+		stopped:
+			if(Storage::cycles_ <= Cycles(0)) {
+				Storage::resume_point_ = access_program(STP);
+				return;
+			}
+			access(BusOperation::None, Vector(0xff), Data::NoValue{});
+			goto stopped;
+
+		case access_program(WAI):
+		waiting:
+			if(Storage::cycles_ <= Cycles(0)) {
+				Storage::resume_point_ = access_program(WAI);
+				return;
+			}
+			access(BusOperation::Ready, Vector(0xff), Data::NoValue{});
+			if(Storage::inputs_.interrupt_requests) {
+				goto fetch_decode;
+			}
+			goto waiting;
 	}
 
 	#undef access_program
