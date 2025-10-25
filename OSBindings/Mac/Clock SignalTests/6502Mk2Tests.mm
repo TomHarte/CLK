@@ -149,11 +149,21 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler &handler) {
 	switch(model) {
 		default: __builtin_unreachable();
-		case CPU::MOS6502Mk2::Model::NES6502:	testExecution<CPU::MOS6502Mk2::Model::NES6502>(test, handler);	break;
-		case CPU::MOS6502Mk2::Model::M6502:	testExecution<CPU::MOS6502Mk2::Model::M6502>(test, handler);	break;
-		case CPU::MOS6502Mk2::Model::Synertek65C02:	testExecution<CPU::MOS6502Mk2::Model::Synertek65C02>(test, handler);	break;
-		case CPU::MOS6502Mk2::Model::Rockwell65C02:	testExecution<CPU::MOS6502Mk2::Model::Rockwell65C02>(test, handler);	break;
-//		case CPU::MOS6502Mk2::Model::WDC65C02:	testExecution<CPU::MOS6502Mk2::Model::WDC65C02>(test, handler);	break;
+		case CPU::MOS6502Mk2::Model::NES6502:
+			testExecution<CPU::MOS6502Mk2::Model::NES6502>(test, handler);
+		break;
+		case CPU::MOS6502Mk2::Model::M6502:
+			testExecution<CPU::MOS6502Mk2::Model::M6502>(test, handler);
+		break;
+		case CPU::MOS6502Mk2::Model::Synertek65C02:
+			testExecution<CPU::MOS6502Mk2::Model::Synertek65C02>(test, handler);
+		break;
+		case CPU::MOS6502Mk2::Model::Rockwell65C02:
+			testExecution<CPU::MOS6502Mk2::Model::Rockwell65C02>(test, handler);
+		break;
+		case CPU::MOS6502Mk2::Model::WDC65C02:
+			testExecution<CPU::MOS6502Mk2::Model::WDC65C02>(test, handler);
+		break;
 	}
 }
 
