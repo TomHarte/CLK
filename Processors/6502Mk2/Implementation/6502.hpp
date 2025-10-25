@@ -577,6 +577,19 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		case access_program(JMPAbsoluteIndexedIndirect):
+			++registers.pc.full;
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
+			Storage::address_.halves.low = Storage::operand_;
+
+			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
+
+			Storage::address_.full += registers.x;
+			access(BusOperation::Read, Literal(Storage::address_.full++), registers.pc.halves.low);
+			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.high);
+
+			goto fetch_decode;
+
 		// MARK: - NMI/IRQ/Reset, and BRK.
 
 		case access_program(BRK):

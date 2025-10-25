@@ -10,6 +10,7 @@
 
 #include "6502Mk2.hpp"
 
+#include <bitset>
 #include <vector>
 
 // MARK: - Test paths
@@ -101,29 +102,31 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 	XCTAssert(final_registers.pc == processor.registers().pc);
 	XCTAssert(final_registers.flags <=> processor.registers().flags == std::strong_ordering::equal);
 
-	// Exceptions: on the 65c02 I suspect the test NOPs are mistimed, and
-	// am confident that the extra accessed address following an immediate decimal
-	// arithmetic is incorrect.
+	// 65c02 exceptions:
+	//
+	//	* I suspect the NOPs are mistimed;
+	//	* I am confident that the extra accessed address following an immediate decimal arithmetic is incorrect; and
+	//	* I am certain that the extra address in JMP (abs,X) is wrong, being a regression.
+	std::bitset<16> ignore_addresses;
 	bool ignore_third_address = false;
 	if(is_65c02(model)) {
 		const auto instruction = CPU::MOS6502Mk2::Decoder<model>::decode(opcode);
-		ignore_third_address =
+
+		ignore_addresses[2] =
 			(
 				instruction.operation == CPU::MOS6502Mk2::Operation::ADC ||
 				instruction.operation == CPU::MOS6502Mk2::Operation::SBC
 			) &&
 			instruction.mode == CPU::MOS6502Mk2::AddressingMode::Immediate &&
 			initial_registers.flags.decimal;
+		ignore_addresses[3] = instruction.mode == CPU::MOS6502Mk2::AddressingMode::JMPAbsoluteIndexedIndirect;
 	}
 
 	auto found_cycle = handler.accesses.begin();
 	for(NSArray *cycle in test[@"cycles"]) {
 		XCTAssertNotEqual(found_cycle, handler.accesses.end());
 
-		if(
-			std::distance(handler.accesses.begin(), found_cycle) != 2 ||
-			!ignore_third_address
-		) {
+		if(!ignore_addresses[std::distance(handler.accesses.begin(), found_cycle)]) {
 			XCTAssertEqual(found_cycle->address, [cycle[0] intValue]);
 			XCTAssertEqual(found_cycle->value, [cycle[1] intValue]);
 		}

@@ -58,7 +58,9 @@ enum class AddressingMode {
 
 	// Irregular flow control.
 	BRK,	JSR,	RTI,	RTS,
-	JMPAbsolute,	JMPAbsoluteIndirect,
+	JMPAbsolute,
+	JMPAbsoluteIndirect,
+	JMPAbsoluteIndexedIndirect,
 
 	// Irregular unintended, undocumented and unreliable.
 	SHxIndirectIndexed,
@@ -557,6 +559,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0x1c:	return {Absolute, Operation::TRB};
 			case 0x3c:	return {AbsoluteIndexed, Operation::BIT};
 			case 0x5c:	return {AbsoluteIndexed, Operation::FastNOP};
+			case 0x7c:	return {JMPAbsoluteIndexedIndirect, Operation::JMP};
 			case 0x9c:	return {Absolute, Operation::STZ};
 
 			case 0x1e: return {FastAbsoluteIndexedModify, Operation::ASL};
