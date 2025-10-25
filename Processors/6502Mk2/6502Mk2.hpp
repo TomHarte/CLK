@@ -171,7 +171,9 @@ public:
 	}
 
 	/// Get whether the 6502 would reset at the next opportunity.
-	bool is_resetting() const;
+	bool is_resetting() const {
+		return inputs_.interrupt_requests & (Inputs::InterruptRequest::PowerOn | Inputs::InterruptRequest::Reset);
+	}
 
 	/*!
 		Queries whether the 6502 is now 'jammed'; i.e. has entered an invalid state
