@@ -108,9 +108,15 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 	//	* I am confident that the extra accessed address following an immediate decimal arithmetic is incorrect; and
 	//	* I am certain that the extra address in JMP (abs,X) is wrong, being a regression.
 	std::bitset<16> ignore_addresses;
-	bool ignore_third_address = false;
 	if(is_65c02(model)) {
 		const auto instruction = CPU::MOS6502Mk2::Decoder<model>::decode(opcode);
+
+		if(
+			instruction.operation == CPU::MOS6502Mk2::Operation::NOP ||
+			instruction.operation == CPU::MOS6502Mk2::Operation::FastNOP
+		) {
+			return;
+		}
 
 		ignore_addresses[2] =
 			(
