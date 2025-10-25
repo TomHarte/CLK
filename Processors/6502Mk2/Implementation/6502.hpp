@@ -76,6 +76,14 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::opcode_
 		);
 	};
+	const auto needs_65c02_extra_arithmetic_cycle = [&] {
+		return
+			is_65c02(model) &&
+			(
+				Storage::decoded_.operation == Operation::ADC ||
+				Storage::decoded_.operation == Operation::SBC
+			) && registers.flags.decimal;
+	};
 
 	using Literal = Address::Literal;
 	using ZeroPage = Address::ZeroPage;
@@ -101,15 +109,8 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			// ADC and SBC decimal take an extra cycle on the 65c02.
-			if constexpr (is_65c02(model)) {
-				if(
-					(
-						Storage::decoded_.operation == Operation::ADC ||
-						Storage::decoded_.operation == Operation::SBC
-					) && registers.flags.decimal
-				) {
-					goto access_zero_65c02_decimal;
-				}
+			if(needs_65c02_extra_arithmetic_cycle()) {
+				goto access_zero_65c02_decimal;
 			}
 
 			// Read.
@@ -156,15 +157,8 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			// ADC and SBC decimal take an extra cycle on the 65c02.
-			if constexpr (is_65c02(model)) {
-				if(
-					(
-						Storage::decoded_.operation == Operation::ADC ||
-						Storage::decoded_.operation == Operation::SBC
-					) && registers.flags.decimal
-				) {
-					goto access_absolute_65c02_decimal;
-				}
+			if(needs_65c02_extra_arithmetic_cycle()) {
+				goto access_absolute_65c02_decimal;
 			}
 
 			// Read.
@@ -235,10 +229,21 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Immediate, Implied, Accumulator.
 
 		case access_program(Immediate):
+			if(needs_65c02_extra_arithmetic_cycle()) {
+				goto immediate_65c02_decimal;
+			}
 			++registers.pc.full;
 			[[fallthrough]];
 
 		case access_program(Implied):
+			perform_operation();
+			goto fetch_decode;
+
+		immediate_65c02_decimal:
+			check_interrupt();
+			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
+
+			++registers.pc.full;
 			perform_operation();
 			goto fetch_decode;
 
