@@ -86,7 +86,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		default:
 			__builtin_unreachable();
 
-		// MARK: - Read, write or modify accesses.
+		// MARK: - Read, write or modify a zero-page address.
 
 		access_zero:
 			++registers.pc.full;
@@ -98,6 +98,18 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			if(Storage::decoded_.type == Type::Write) {
 				goto access_zero_write;
+			}
+
+			// ADC and SBC decimal take an extra cycle on the 65c02.
+			if constexpr (is_65c02(model)) {
+				if(
+					(
+						Storage::decoded_.operation == Operation::ADC ||
+						Storage::decoded_.operation == Operation::SBC
+					) && registers.flags.decimal
+				) {
+					goto access_zero_65c02_decimal;
+				}
 			}
 
 			// Read.
@@ -123,6 +135,15 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		access_zero_65c02_decimal:
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			check_interrupt();
+			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
+			perform_operation();
+			goto fetch_decode;
+
+		// MARK: - Read, write or modify an arbitrary address.
+
 		access_absolute:
 			++registers.pc.full;
 			if constexpr (is_65c02(model)) {
@@ -132,6 +153,18 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 			if(Storage::decoded_.type == Type::Write) {
 				goto access_absolute_write;
+			}
+
+			// ADC and SBC decimal take an extra cycle on the 65c02.
+			if constexpr (is_65c02(model)) {
+				if(
+					(
+						Storage::decoded_.operation == Operation::ADC ||
+						Storage::decoded_.operation == Operation::SBC
+					) && registers.flags.decimal
+				) {
+					goto access_absolute_65c02_decimal;
+				}
 			}
 
 			// Read.
@@ -157,6 +190,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto fetch_decode;
 
+		access_absolute_65c02_decimal:
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			check_interrupt();
+			perform_operation();
+			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
+			goto fetch_decode;
+
 		// MARK: - Fetch/decode.
 
 		fetch_decode:
@@ -172,9 +212,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
-			if constexpr (is_65c02(model)) {
-				check_interrupt();
-			}
 			access(BusOperation::ReadOpcode, Literal(registers.pc.full), Storage::opcode_);
 			++registers.pc.full;
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
