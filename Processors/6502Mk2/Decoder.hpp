@@ -111,6 +111,7 @@ constexpr Type type_of(const Operation operation) {
 		case Operation::JSR:	case Operation::RTI:	case Operation::RTS:
 		case Operation::PHP:	case Operation::PLP:	case Operation::JMP:
 		case Operation::BBRBBS:
+		case Operation::STP:	case Operation::WAI:
 		case Operation::FastNOP:
 			return Type::Modify;
 
