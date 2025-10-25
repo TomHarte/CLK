@@ -641,6 +641,7 @@
 		4B882F5B2C2F9C7700D84031 /* Shaker in Resources */ = {isa = PBXBuildFile; fileRef = 4B882F5A2C2F9C7700D84031 /* Shaker */; };
 		4B882F5C2C32199400D84031 /* MachineForTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */; };
 		4B882F5D2C3219A400D84031 /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
+		4B884C7E2EA8640700073840 /* 6502Mk2Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B884C7D2EA8640700073840 /* 6502Mk2Tests.mm */; };
 		4B8855A52E84D51B00E251DD /* SAA5050.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8855A32E84D51B00E251DD /* SAA5050.cpp */; };
 		4B8855A62E84D51B00E251DD /* SAA5050.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8855A32E84D51B00E251DD /* SAA5050.cpp */; };
 		4B8855A72E84D51B00E251DD /* SAA5050.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8855A32E84D51B00E251DD /* SAA5050.cpp */; };
@@ -1801,6 +1802,13 @@
 		4B882F582C2F9C6900D84031 /* CPCShakerTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CPCShakerTests.mm; sourceTree = "<group>"; };
 		4B882F5A2C2F9C7700D84031 /* Shaker */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaker; sourceTree = "<group>"; };
 		4B884C6F2EA28E0F00073840 /* CompileTimeCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompileTimeCounter.hpp; sourceTree = "<group>"; };
+		4B884C722EA47FCC00073840 /* 6502Mk2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Mk2.hpp; sourceTree = "<group>"; };
+		4B884C762EA5D6C300073840 /* 6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502.hpp; sourceTree = "<group>"; };
+		4B884C792EA6DBAA00073840 /* Decoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
+		4B884C7A2EA72EF300073840 /* Model.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
+		4B884C7B2EA7F4AE00073840 /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
+		4B884C7C2EA7F4F300073840 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
+		4B884C7D2EA8640700073840 /* 6502Mk2Tests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 6502Mk2Tests.mm; sourceTree = "<group>"; };
 		4B88559C2E8185BF00E251DD /* SizedInt.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SizedInt.hpp; sourceTree = "<group>"; };
 		4B8855A22E84D51B00E251DD /* SAA5050.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAA5050.hpp; sourceTree = "<group>"; };
 		4B8855A32E84D51B00E251DD /* SAA5050.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAA5050.cpp; sourceTree = "<group>"; };
@@ -3859,6 +3867,27 @@
 			path = Data;
 			sourceTree = "<group>";
 		};
+		4B884C732EA47FCC00073840 /* 6502Mk2 */ = {
+			isa = PBXGroup;
+			children = (
+				4B884C722EA47FCC00073840 /* 6502Mk2.hpp */,
+				4B884C792EA6DBAA00073840 /* Decoder.hpp */,
+				4B884C7A2EA72EF300073840 /* Model.hpp */,
+				4B884C7C2EA7F4F300073840 /* Perform.hpp */,
+				4B884C7B2EA7F4AE00073840 /* Registers.hpp */,
+				4B884C772EA5D6C300073840 /* Implementation */,
+			);
+			path = 6502Mk2;
+			sourceTree = "<group>";
+		};
+		4B884C772EA5D6C300073840 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4B884C762EA5D6C300073840 /* 6502.hpp */,
+			);
+			path = Implementation;
+			sourceTree = "<group>";
+		};
 		4B8855A42E84D51B00E251DD /* SAA5050 */ = {
 			isa = PBXGroup;
 			children = (
@@ -4779,6 +4808,7 @@
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
 				4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */,
+				4B884C7D2EA8640700073840 /* 6502Mk2Tests.mm */,
 				4BDA7F8229C4EA28007A10A5 /* 6809OperationMapperTests.mm */,
 				423BDC492AB24699008E37B6 /* 8088Tests.mm */,
 				4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */,
@@ -4900,6 +4930,7 @@
 				4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */,
 				4B1414561B58879D00E04248 /* 6502 */,
 				4B4DEC15252BFA9C004583AC /* 6502Esque */,
+				4B884C732EA47FCC00073840 /* 6502Mk2 */,
 				4BF8D4CC251C0C9C00BBE21B /* 65816 */,
 				42AD552D2A0C4D5000ACE410 /* 68000 */,
 				4B77069E1EC9045B0053B588 /* Z80 */,
@@ -6809,6 +6840,7 @@
 				4B4DEC07252BFA56004583AC /* 65816Base.cpp in Sources */,
 				4B7752A628217DF80073E2C5 /* Dave.cpp in Sources */,
 				4B778F2323A5EDE40000D260 /* Tape.cpp in Sources */,
+				4B884C7E2EA8640700073840 /* 6502Mk2Tests.mm in Sources */,
 				4B7752A728217E060073E2C5 /* Blitter.cpp in Sources */,
 				4B06AAD22C645F190034D014 /* I2C.cpp in Sources */,
 				4B778F4F23A5F21C0000D260 /* StaticAnalyser.cpp in Sources */,
