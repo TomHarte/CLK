@@ -567,6 +567,14 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			check_interrupt();
 			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.high);
 
+			if constexpr (!is_65c02(model)) {
+				goto fetch_decode;
+			}
+
+			Storage::address_.halves.high += !Storage::address_.halves.low;
+			check_interrupt();
+			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.high);
+
 			goto fetch_decode;
 
 		// MARK: - NMI/IRQ/Reset, and BRK.
