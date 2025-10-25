@@ -192,12 +192,12 @@ void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler 
 - (void)testAll {
 	NSString *const path = [NSString stringWithUTF8String:TestSuiteHome];
 
-//	[self
-//		testPath:[path stringByAppendingPathComponent:@"nes6502/v1"]
-//		model:CPU::MOS6502Mk2::Model::NES6502];
-//	[self
-//		testPath:[path stringByAppendingPathComponent:@"6502/v1"]
-//		model:CPU::MOS6502Mk2::Model::M6502];
+	[self
+		testPath:[path stringByAppendingPathComponent:@"nes6502/v1"]
+		model:CPU::MOS6502Mk2::Model::NES6502];
+	[self
+		testPath:[path stringByAppendingPathComponent:@"6502/v1"]
+		model:CPU::MOS6502Mk2::Model::M6502];
 	[self
 		testPath:[path stringByAppendingPathComponent:@"synertek65c02/v1"]
 		model:CPU::MOS6502Mk2::Model::Synertek65C02];

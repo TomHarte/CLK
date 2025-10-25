@@ -545,7 +545,7 @@ struct Decoder<model, std::enable_if_t<model == Model::Synertek65C02>> {
 			case 0x5a:	return {Push, Operation::STY};
 			case 0x7a:	return {Pull, Operation::LDY};
 			case 0xda:	return {Push, Operation::STX};
-			case 0xfa:	return {Push, Operation::LDX};
+			case 0xfa:	return {Pull, Operation::LDX};
 
 			case 0x1b:	return {Implied, Operation::FastNOP};
 			case 0x3b:	return {Implied, Operation::FastNOP};
