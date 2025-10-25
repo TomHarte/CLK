@@ -35,7 +35,7 @@ enum class Operation {
 	JSR,	RTI,	RTS,
 
 	PHP,	PLP,	JMP,
-	JAM,
+	JAM,	STP,	WAI,
 };
 
 enum class AddressingMode {
@@ -67,7 +67,9 @@ enum class AddressingMode {
 	SHxIndirectIndexed,
 	SHxAbsoluteXY,
 
-	// Terminal.
+	// Terminal or semi-terminal.
+	STP,
+	WAI,
 	JAM,
 
 	Max,
@@ -604,6 +606,18 @@ struct Decoder<model, std::enable_if_t<model == Model::Rockwell65C02>> {
 			case 0xbf:	return {BBRBBS, Operation::BBRBBS};
 			case 0xdf:	return {BBRBBS, Operation::BBRBBS};
 			case 0xff:	return {BBRBBS, Operation::BBRBBS};
+		}
+	}
+};
+
+template <Model model>
+struct Decoder<model, std::enable_if_t<model == Model::WDC65C02>> {
+	static constexpr Instruction decode(const uint8_t opcode) {
+		using enum AddressingMode;
+		switch(opcode) {
+			default: return Decoder<Model::Rockwell65C02>::decode(opcode);
+			case 0xdb:	return {STP, Operation::STP};
+			case 0xcb:	return {WAI, Operation::WAI};
 		}
 	}
 };

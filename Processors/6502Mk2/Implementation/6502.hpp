@@ -13,6 +13,10 @@
 
 #include <cassert>
 
+// On the 65c02: http://www.6502.org/tutorials/65c02opcodes.html
+// Some bus captures to substantiate 65c02 timing:
+//		https://github.com/CompuSAR/sar6502/blob/master/sar6502.srcs/sim_1/new/test_plan.mem
+
 namespace CPU::MOS6502Mk2 {
 
 template <Model model, typename Traits>
@@ -294,7 +298,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		case access_program(BBRBBS):
-			// Cf. https://github.com/CompuSAR/sar6502/blob/master/sar6502.srcs/sim_1/new/test_plan.mem
 			++registers.pc.full;
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);

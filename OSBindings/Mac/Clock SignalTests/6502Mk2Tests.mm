@@ -204,9 +204,9 @@ void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler 
 	[self
 		testPath:[path stringByAppendingPathComponent:@"rockwell65c02/v1"]
 		model:CPU::MOS6502Mk2::Model::Rockwell65C02];
-//	[self
-//		testPath:[path stringByAppendingPathComponent:@"wdc65c02/v1"]
-//		model:CPU::MOS6502Mk2::Model::WDC65C02];
+	[self
+		testPath:[path stringByAppendingPathComponent:@"wdc65c02/v1"]
+		model:CPU::MOS6502Mk2::Model::WDC65C02];
 }
 
 @end
