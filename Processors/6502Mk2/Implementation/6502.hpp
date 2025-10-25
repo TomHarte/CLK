@@ -70,7 +70,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		return Storage::decoded_.index == Index::X ? registers.x : registers.y;
 	};
 	const auto check_interrupt = [&] {
-		Storage::captured_interrupt_requests_ = Storage::inputs_.interrupt_requests;
+		Storage::captured_interrupt_requests_ =
+			Storage::inputs_.interrupt_requests & (Storage::registers_.flags.
+			inverse_interrupt | ~InterruptRequest::IRQ);
 	};
 	const auto perform_operation = [&] {
 		CPU::MOS6502Mk2::perform<model>(
