@@ -143,20 +143,27 @@ public:
 
 	template <Line line> bool get() const;
 	template <Line line> inline void set(const bool value) {
-		const auto set_interrupt_request = [&](const Inputs::InterruptRequest request) {
+		const auto level_sample = [&](const Inputs::InterruptRequest request) {
 			inputs_.interrupt_requests =
 				(inputs_.interrupt_requests & ~request) |
 				(value ? request : 0);
 		};
+		const auto edge_sample = [&](const Inputs::InterruptRequest request, bool &previous) {
+			inputs_.interrupt_requests |= (previous != value && value) ? request : 0;
+			previous = value;
+		};
 
 		switch(line) {
-			case Line::Reset:		set_interrupt_request(Inputs::InterruptRequest::Reset);		break;
-			case Line::PowerOn:		set_interrupt_request(Inputs::InterruptRequest::PowerOn);	break;
-			case Line::IRQ:			set_interrupt_request(Inputs::InterruptRequest::IRQ);		break;
+			// Fictitious.
+			case Line::PowerOn:		level_sample(Inputs::InterruptRequest::PowerOn);					break;
 
-			// These are both edge triggered, I think?
-//			case Line::Overflow:	set_interrupt_request(Inputs::InterruptRequest::Reset);	break;
-//			case Line::NMI:			set_interrupt_request(Inputs::InterruptRequest::NMI);		break;
+			// Level triggered.
+			case Line::Reset:		level_sample(Inputs::InterruptRequest::Reset);						break;
+			case Line::IRQ:			level_sample(Inputs::InterruptRequest::IRQ);						break;
+
+			// Edge triggered.
+			case Line::Overflow:	edge_sample(Inputs::InterruptRequest::Reset, inputs_.overflow);		break;
+			case Line::NMI:			edge_sample(Inputs::InterruptRequest::NMI, inputs_.nmi);			break;
 
 			default:
 				__builtin_unreachable();
@@ -197,6 +204,8 @@ protected:
 
 	struct Inputs {
 		bool ready = false;
+		bool nmi = false;
+		bool overflow = false;
 
 		enum InterruptRequest: uint8_t {
 			Reset		= 0x80,
@@ -207,6 +216,7 @@ protected:
 		};
 		uint8_t interrupt_requests = InterruptRequest::PowerOn;
 	} inputs_;
+	uint8_t captured_interrupt_requests_ = 0;
 };
 
 // MARK: - Base.

@@ -69,8 +69,8 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	const auto index = [&] {
 		return Storage::decoded_.index == Index::X ? registers.x : registers.y;
 	};
-	const auto check_interrupt = [] {
-		// TODO.
+	const auto check_interrupt = [&] {
+		Storage::captured_interrupt_requests_ = Storage::inputs_.interrupt_requests;
 	};
 	const auto perform_operation = [&] {
 		CPU::MOS6502Mk2::perform<model>(
@@ -206,7 +206,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				return;
 			}
 
-			if(Storage::inputs_.interrupt_requests) {
+			if(Storage::captured_interrupt_requests_) {
 				goto interrupt;
 			}
 
@@ -645,11 +645,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 
-			if(Storage::inputs_.interrupt_requests & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
+			if(Storage::captured_interrupt_requests_ & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
 				Storage::inputs_.interrupt_requests &= ~InterruptRequest::PowerOn;
 				goto reset;
 			}
-			assert(Storage::inputs_.interrupt_requests & (InterruptRequest::IRQ | InterruptRequest::NMI));
+			assert(Storage::captured_interrupt_requests_ & (InterruptRequest::IRQ | InterruptRequest::NMI));
 
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.low);
@@ -662,7 +662,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			registers.flags.inverse_interrupt = 0;
 			if constexpr (is_65c02(model)) registers.flags.decimal = 0;
 
-			if(Storage::inputs_.interrupt_requests & InterruptRequest::NMI) {
+			if(Storage::captured_interrupt_requests_ & InterruptRequest::NMI) {
 				goto nmi;
 			}
 
@@ -697,7 +697,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				Storage::resume_point_ = access_program(STP);
 				return;
 			}
+			check_interrupt();
 			access(BusOperation::None, Vector(0xff), Data::NoValue{});
+			if(Storage::captured_interrupt_requests_ & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
+				goto fetch_decode;
+			}
 			goto stopped;
 
 		case access_program(WAI):
@@ -706,8 +710,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				Storage::resume_point_ = access_program(WAI);
 				return;
 			}
+			check_interrupt();
 			access(BusOperation::Ready, Vector(0xff), Data::NoValue{});
-			if(Storage::inputs_.interrupt_requests) {
+			if(Storage::captured_interrupt_requests_) {
 				goto fetch_decode;
 			}
 			goto waiting;
