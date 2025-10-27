@@ -114,7 +114,7 @@ struct NoValue {
 class Writeable {
 public:
 	uint8_t operator=(const uint8_t value) {
-		if constexpr (requires{did_write_;}) {
+		if constexpr (requires{this->did_write_;}) {
 			did_write_ = true;
 		}
 		return result_ = value;
