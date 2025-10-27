@@ -665,6 +665,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			if constexpr (is_65c02(model)) registers.flags.decimal = 0;
 
 			if(Storage::captured_interrupt_requests_ & InterruptRequest::NMI) {
+				Storage::inputs_.interrupt_requests &= ~InterruptRequest::NMI;
 				goto nmi;
 			}
 
