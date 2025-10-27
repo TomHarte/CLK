@@ -126,18 +126,10 @@ public:
 
 private:
 	uint8_t result_;
-	friend struct WriteableReader;
 
 	#ifndef NDEBUG
 	bool did_write_ = false;
 	#endif
-};
-
-struct WriteableReader {
-	static void assign(uint8_t &lhs, const Writeable rhs) {
-		lhs = rhs;
-	}
-	static void assign(const uint8_t &, const Writeable) {}
 };
 
 template <BusOperation, typename Enable = void> struct Value;

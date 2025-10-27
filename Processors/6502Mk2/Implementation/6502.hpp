@@ -29,6 +29,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	Storage::cycles_ += cycles;
 	if(Storage::cycles_ <= Cycles(0)) return;
 
+	struct WriteableReader {
+		static void assign(uint8_t &lhs, const Data::Writeable rhs) {
+			lhs = rhs;
+		}
+		static void assign(const uint8_t &, const Data::Writeable) {}
+	};
+
 	#define restore_point()	(__COUNTER__ + int(ResumePoint::Max) + int(AddressingMode::Max))
 
 	#define join(a, b) 			a##b
@@ -62,7 +69,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			} else {																					\
 				Data::Writeable target;																	\
 				Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, target);			\
-				Data::WriteableReader::assign(value, target);											\
+				WriteableReader::assign(value, target);											\
 			}																							\
 		} else {																						\
 			Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, value);				\
