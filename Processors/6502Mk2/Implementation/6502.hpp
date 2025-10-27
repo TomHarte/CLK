@@ -56,7 +56,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto access_label();																		\
 		}																								\
 																										\
-		Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, value);					\
+		if constexpr (is_read(type)) {																	\
+			Data::Writeable target;																		\
+			Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, target);				\
+			Data::WriteableReader::assign(value, target);												\
+		} else {																						\
+			Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, value);				\
+		}																								\
 	}
 
 	#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
@@ -536,10 +542,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			if(Storage::cycles_ <= Cycles(0)) {
 				return;
 			}
-			Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Read>(
-				Vector(0xff),
-				throwaway
-			);
+			{
+				Data::Writeable empty;
+				Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Read>(
+					Vector(0xff),
+					empty
+				);
+			}
 			goto jammed;
 
 		// MARK: - Flow control (other than BRK).
