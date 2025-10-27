@@ -57,9 +57,13 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		}																								\
 																										\
 		if constexpr (is_read(type)) {																	\
-			Data::Writeable target;																		\
-			Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, target);				\
-			Data::WriteableReader::assign(value, target);												\
+			if constexpr (std::is_same_v<decltype(value), Data::Writeable>) {							\
+				Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, value);			\
+			} else {																					\
+				Data::Writeable target;																	\
+				Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, target);			\
+				Data::WriteableReader::assign(value, target);											\
+			}																							\
 		} else {																						\
 			Storage::cycles_ -= Storage::bus_handler_.template perform<type>(addr, value);				\
 		}																								\
@@ -70,7 +74,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	using ResumePoint = Storage::ResumePoint;
 	using InterruptRequest = Storage::Inputs::InterruptRequest;
 	auto &registers = Storage::registers_;
-	uint8_t throwaway = 0;
+	Data::Writeable throwaway;
 
 	const auto index = [&] {
 		return Storage::decoded_.index == Index::X ? registers.x : registers.y;
@@ -542,13 +546,10 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			if(Storage::cycles_ <= Cycles(0)) {
 				return;
 			}
-			{
-				Data::Writeable empty;
-				Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Read>(
-					Vector(0xff),
-					empty
-				);
-			}
+			Storage::cycles_ -= Storage::bus_handler_.template perform<BusOperation::Read>(
+				Vector(0xff),
+				throwaway
+			);
 			goto jammed;
 
 		// MARK: - Flow control (other than BRK).
