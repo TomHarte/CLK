@@ -906,6 +906,8 @@ public:
 					case 0xfe80:
 						if constexpr (!is_read(operation)) {
 							wd1770_.set_control_register(value);
+						} else {
+							value = 0xff;
 						}
 					break;
 					default:
@@ -916,11 +918,14 @@ public:
 						}
 					break;
 				}
-			}
-			else {
+			} else {
 				Logger::error()
 					.append("Unhandled IO %s at %04x", is_read(operation) ? "read" : "write", address)
 					.append_if(!is_read(operation), ": %02x", value);
+
+				if constexpr (is_read(operation)) {
+					value = 0xff;
+				}
 			}
 			return duration;
 		}
