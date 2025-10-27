@@ -15,6 +15,7 @@
 
 #include "ClockReceiver/ClockReceiver.hpp"
 
+#include <cassert>
 #include <type_traits>
 
 namespace CPU::MOS6502Mk2 {
@@ -109,9 +110,38 @@ struct NoValue {
 	constexpr NoValue(uint8_t) noexcept {}
 };
 
+/// A value that can be written only, not read. With a DEBUG build test that it is written before it is read.
+class Writeable {
+public:
+	uint8_t operator=(const uint8_t value) {
+		if constexpr (requires{did_write_;}) {
+			did_write_ = true;
+		}
+		return result_ = value;
+	}
+	operator uint8_t() const {
+		assert(did_write_);
+		return result_;
+	}
+
+private:
+	uint8_t result_;
+	friend struct WriteableReader;
+#ifndef NDEBUG
+	bool did_write_ = false;
+#endif
+};
+
+struct WriteableReader {
+	static void assign(uint8_t &lhs, const Writeable rhs) {
+		lhs = rhs;
+	}
+	static void assign(const uint8_t &, const Writeable) {}
+};
+
 template <BusOperation, typename Enable = void> struct Value;
 template <BusOperation operation> struct Value<operation, std::enable_if_t<is_read(operation)>> {
-	using type = uint8_t &;
+	using type = Writeable &;
 };
 template <BusOperation operation> struct Value<operation, std::enable_if_t<is_write(operation)>> {
 	using type = const uint8_t;
