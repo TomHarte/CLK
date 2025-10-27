@@ -114,9 +114,9 @@ struct NoValue {
 class Writeable {
 public:
 	uint8_t operator=(const uint8_t value) {
-		if constexpr (requires{this->did_write_;}) {
-			did_write_ = true;
-		}
+		#ifndef NDEBUG
+		did_write_ = true;
+		#endif
 		return result_ = value;
 	}
 	operator uint8_t() const {
@@ -127,9 +127,10 @@ public:
 private:
 	uint8_t result_;
 	friend struct WriteableReader;
-#ifndef NDEBUG
+
+	#ifndef NDEBUG
 	bool did_write_ = false;
-#endif
+	#endif
 };
 
 struct WriteableReader {
