@@ -35,6 +35,11 @@ struct BusHandler {
 	};
 	std::vector<Access> accesses;
 
+	void clear() {
+		opcode_reads = 0;
+		accesses.clear();
+	}
+
 	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
 	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> data) {
 		// Check for end of tests.
@@ -73,7 +78,7 @@ CPU::MOS6502Mk2::Registers registersFrom(NSDictionary *dictionary) {
 }
 
 template <CPU::MOS6502Mk2::Model model>
-void testExecution(NSDictionary *test, BusHandler &handler) {
+CPU::MOS6502Mk2::Processor<model, Traits> make_processor(NSDictionary *test, BusHandler &handler) {
 	CPU::MOS6502Mk2::Processor<model, Traits> processor(handler);
 
 	NSDictionary *initial = test[@"initial"];
@@ -84,33 +89,24 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 	}
 
 	processor.template set<CPU::MOS6502Mk2::Line::PowerOn>(false);
-	handler.opcode_reads = 0;
-	handler.accesses.clear();
+	handler.clear();
+	return processor;
+}
 
-	const uint8_t opcode = handler.memory[initial_registers.pc.full];
+template <CPU::MOS6502Mk2::Model model>
+void testExecution(NSDictionary *test, BusHandler &handler) {
+	auto processor = make_processor<model>(test, handler);
 
-	try {
-		processor.run_for(Cycles(11));	// To catch the entirety of a JAM as in the JSON.
-	} catch (TestComplete) {}
-
-	NSDictionary *final = test[@"final"];
-	const auto final_registers = registersFrom(final);
-	XCTAssertEqual(final_registers.a, processor.registers().a);
-	XCTAssertEqual(final_registers.x, processor.registers().x);
-	XCTAssertEqual(final_registers.y, processor.registers().y);
-	XCTAssertEqual(final_registers.s, processor.registers().s);
-	XCTAssert(final_registers.pc == processor.registers().pc);
-	XCTAssert(final_registers.flags <=> processor.registers().flags == std::strong_ordering::equal);
+	const uint8_t opcode = handler.memory[processor.registers().pc.full];
+	std::bitset<16> ignore_addresses;
+	const auto instruction = CPU::MOS6502Mk2::Decoder<model>::decode(opcode);
 
 	// 65c02 exceptions:
 	//
 	//	* I suspect the NOPs are mistimed;
 	//	* I am confident that the extra accessed address following an immediate decimal arithmetic is incorrect; and
 	//	* I am certain that the extra address in JMP (abs,X) is wrong, being a regression.
-	std::bitset<16> ignore_addresses;
 	if(is_65c02(model)) {
-		const auto instruction = CPU::MOS6502Mk2::Decoder<model>::decode(opcode);
-
 		if(
 			instruction.operation == CPU::MOS6502Mk2::Operation::NOP ||
 			instruction.operation == CPU::MOS6502Mk2::Operation::FastNOP
@@ -124,9 +120,22 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 				instruction.operation == CPU::MOS6502Mk2::Operation::SBC
 			) &&
 			instruction.mode == CPU::MOS6502Mk2::AddressingMode::Immediate &&
-			initial_registers.flags.decimal;
+			processor.registers().flags.decimal;
 		ignore_addresses[3] = instruction.mode == CPU::MOS6502Mk2::AddressingMode::JMPAbsoluteIndexedIndirect;
 	}
+
+	try {
+		processor.run_for(Cycles(11));	// To catch the entirety of a JAM as in the JSON.
+	} catch (TestComplete) {}
+
+	NSDictionary *final = test[@"final"];
+	const auto final_registers = registersFrom(final);
+	XCTAssertEqual(final_registers.a, processor.registers().a);
+	XCTAssertEqual(final_registers.x, processor.registers().x);
+	XCTAssertEqual(final_registers.y, processor.registers().y);
+	XCTAssertEqual(final_registers.s, processor.registers().s);
+	XCTAssert(final_registers.pc == processor.registers().pc);
+	XCTAssert(final_registers.flags <=> processor.registers().flags == std::strong_ordering::equal);
 
 	auto found_cycle = handler.accesses.begin();
 	for(NSArray *cycle in test[@"cycles"]) {
@@ -144,6 +153,34 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 		++found_cycle;
 	}
 	XCTAssertEqual(found_cycle, handler.accesses.end());
+
+	// JAM won't segue into an interrupt; for RTI I'd need better to test unstacked flags.
+	if(
+		instruction.operation == CPU::MOS6502Mk2::Operation::JAM ||
+		instruction.operation == CPU::MOS6502Mk2::Operation::RTI
+	) {
+		return;
+	}
+
+	// Now try again, setting IRQ one before the previous end and not before,
+	// and resetting it straight afterwards. Make sure that causes an interrupt to be taken.
+	const auto last_length = handler.accesses.size();
+	{
+		auto repeat_processor = make_processor<model>(test, handler);
+		const bool should_interrupt =
+			instruction.operation != CPU::MOS6502Mk2::Operation::BRK &&
+			repeat_processor.registers().flags.inverse_interrupt;
+
+		try {
+			repeat_processor.run_for(Cycles(last_length - 1));
+			repeat_processor.template set<CPU::MOS6502Mk2::Line::IRQ>(true);
+			repeat_processor.run_for(Cycles(1));
+			repeat_processor.template set<CPU::MOS6502Mk2::Line::IRQ>(false);
+			repeat_processor.run_for(Cycles(10));
+		} catch (TestComplete) {}
+
+		XCTAssertEqual(handler.accesses.size(), last_length + (should_interrupt ? 7 : 0));
+	}
 }
 
 void testExecution(CPU::MOS6502Mk2::Model model, NSDictionary *test, BusHandler &handler) {

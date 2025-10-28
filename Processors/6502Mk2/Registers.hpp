@@ -121,9 +121,6 @@ struct Registers {
 	Flags flags;
 
 	auto operator <=> (const Registers &) const = default;
-
-	uint8_t dec_s() {	return s--;		}
-	uint8_t inc_s() {	return ++s;		}
 };
 
 }
