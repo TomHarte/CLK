@@ -168,9 +168,9 @@ struct Flags {
 	uint8_t negative_result = 0;	/// Bit 7 = the negative flag.
 	uint8_t zero_result = 0;		/// Non-zero if the zero flag is clear, zero if it is set.
 	uint8_t carry = 0;				/// Contains Flag::Carry.
-	uint8_t decimal = 0;			/// Contains Flag::Decimal.
 	uint8_t overflow = 0;			/// Contains Flag::Overflow.
 private:
+	uint8_t decimal = 0;			/// Contains Flag::Decimal.
 	uint8_t inverse_interrupt = 0;	/// Contains Flag::Interrupt, complemented.
 };
 

@@ -36,7 +36,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	uint8_t result = registers.a + operand + registers.flags.carry;
 	registers.flags.carry = result < registers.a + registers.flags.carry;
 
-	if(!has_decimal_mode(model) || !registers.flags.decimal) {
+	if(!has_decimal_mode(model) || !registers.flags.template get<Flag::Decimal>()) {
 		registers.flags.set_overflow(result, registers.a, operand);
 		registers.flags.template set_per<Flag::NegativeZero>(registers.a = result);
 		return;
@@ -86,7 +86,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 
 template <Model model, typename RegistersT>
 void sbc(RegistersT &registers, const uint8_t operand) {
-	if(!has_decimal_mode(model) || !registers.flags.decimal) {
+	if(!has_decimal_mode(model) || !registers.flags.template get<Flag::Decimal>()) {
 		adc<Model::NES6502>(registers, ~operand);	// Lie about the model to carry forward the fact of not-decimal.
 		return;
 	}
@@ -140,7 +140,7 @@ void arr(RegistersT &registers, const uint8_t operand) {
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
 	registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
 
-	if(registers.flags.decimal && has_decimal_mode(model)) {
+	if(registers.flags.template get<Flag::Decimal>() && has_decimal_mode(model)) {
 		if((unshifted_a&0xf) + (unshifted_a&0x1) > 5) registers.a = ((registers.a + 6)&0xf) | (registers.a & 0xf0);
 		registers.flags.carry = ((unshifted_a&0xf0) + (unshifted_a&0x10) > 0x50) ? 1 : 0;
 		if(registers.flags.carry) registers.a += 0x60;
@@ -368,10 +368,10 @@ void perform(
 		case Operation::CLC:	registers.flags.carry = 0;											break;
 		case Operation::CLI:	registers.flags.template set_per<Flag::Interrupt>(0);				break;
 		case Operation::CLV:	registers.flags.overflow = 0;										break;
-		case Operation::CLD:	registers.flags.decimal = 0;										break;
+		case Operation::CLD:	registers.flags.template set_per<Flag::Decimal>(0);					break;
 		case Operation::SEC:	registers.flags.carry = Flag::Carry;								break;
 		case Operation::SEI:	registers.flags.template set_per<Flag::Interrupt>(Flag::Interrupt);	break;
-		case Operation::SED:	registers.flags.decimal = Flag::Decimal;							break;
+		case Operation::SED:	registers.flags.template set_per<Flag::Decimal>(Flag::Decimal);		break;
 
 		case Operation::ANE:	Operations::ane(registers, operand);	break;
 		case Operation::ANC:	Operations::anc(registers, operand);	break;
