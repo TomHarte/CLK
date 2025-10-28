@@ -37,7 +37,7 @@ enum class Register {
 	the corresponding set.
 */
 enum Flag: uint8_t {
-	Sign		= 0b1000'0000,
+	Negative	= 0b1000'0000,
 	Overflow	= 0b0100'0000,
 	Always		= 0b0010'0000,
 	Break		= 0b0001'0000,
@@ -47,42 +47,92 @@ enum Flag: uint8_t {
 	Carry		= 0b0000'0001,
 
 	//
+	// Psuedo-flags, for convenience setting and getting.
+	//
+	NegativeZero		= 0b00,
+	InverseInterrupt	= 0b11,
+
+	//
 	// 65816 only.
 	//
 	MemorySize	= Always,
 	IndexSize	= Break,
 };
 
+constexpr bool is_stored(const Flag flag) {
+	switch(flag) {
+		case Flag::Negative:
+		case Flag::Overflow:
+		case Flag::Decimal:
+		case Flag::Interrupt:
+		case Flag::InverseInterrupt:
+		case Flag::Zero:
+		case Flag::Carry:
+			return true;
+
+		default:
+			return false;
+	}
+}
+
+constexpr bool is_settable(const Flag flag) {
+	switch(flag) {
+		case Flag::NegativeZero:	return true;
+		default:					return is_stored(flag);
+	}
+}
+
 struct Flags {
-	/// Sets N and Z flags per the 8-bit value @c value.
-	void set_nz(const uint8_t value) {
-		zero_result = negative_result = value;
+	template <Flag flag>
+	requires(is_stored(flag))
+	bool get() const {
+		switch(flag) {
+			default:						__builtin_unreachable();
+			case Flag::Negative:			return negative_result & Flag::Negative;
+			case Flag::Overflow:			return overflow;
+			case Flag::Decimal:				return decimal;
+			case Flag::Interrupt:			return !(inverse_interrupt & Flag::Interrupt);
+			case Flag::InverseInterrupt:	return inverse_interrupt & Flag::Interrupt;
+			case Flag::Zero:				return !zero_result;
+			case Flag::Carry:				return carry & Flag::Carry;
+		}
+		return false;
 	}
 
-	/// Sets N and Z flags per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
-	void set_nz(const uint16_t value, const int shift) {
-		negative_result = uint8_t(value >> shift);
-		zero_result = uint8_t(value | (value >> shift));
+	/// Sets a flag based on an 8-bit ALU result.
+	template <Flag flag>
+	requires(is_settable(flag))
+	void set(const uint8_t result) {
+		switch(flag) {
+			default:	__builtin_unreachable();
+
+			case Flag::Negative:			negative_result = result;											break;
+			case Flag::Overflow:			overflow = result & Flag::Overflow;									break;
+			case Flag::Decimal:				decimal = result & Flag::Decimal;									break;
+			case Flag::Interrupt:			inverse_interrupt = uint8_t(~Flag::Interrupt) | uint8_t(~result);	break;
+			case Flag::InverseInterrupt:	inverse_interrupt = uint8_t(~Flag::Interrupt) | result;				break;
+			case Flag::Zero:				zero_result = result;												break;
+			case Flag::Carry:				carry = result & Flag::Carry;										break;
+			case Flag::NegativeZero:		zero_result = negative_result = result;								break;
+		}
 	}
 
-	/// Sets the Z flag per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
-	void set_z(const uint16_t value, const int shift) {
-		zero_result = uint8_t(value | (value >> shift));
+	uint8_t carry_value() const {
+		return carry;
 	}
 
-	/// Sets the N flag per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
-	void set_n(const uint16_t value, const int shift) {
-		negative_result = uint8_t(value >> shift);
+	uint8_t interrupt_mask() const {
+		return inverse_interrupt;
 	}
 
-	void set_v(const uint8_t result, const uint8_t lhs, const uint8_t rhs) {
+	void set_overflow(const uint8_t result, const uint8_t lhs, const uint8_t rhs) {
 		// TODO: can this be done lazily?
 		overflow = (( (result^lhs) & (result^rhs) ) & 0x80) >> 1;
 	}
 
 	explicit operator uint8_t() const {
 		return
-			carry | overflow | (inverse_interrupt ^ Flag::Interrupt) | (negative_result & 0x80) |
+			carry | overflow | ((~inverse_interrupt) & Flag::Interrupt) | (negative_result & 0x80) |
 			(zero_result ? 0 : Flag::Zero) | Flag::Always | Flag::Break | decimal;
 	}
 
@@ -95,12 +145,14 @@ struct Flags {
 	}
 
 	Flags(const uint8_t flags) {
-		carry				= flags		& Flag::Carry;
-		negative_result		= flags		& Flag::Sign;
-		zero_result			= (~flags)	& Flag::Zero;
-		overflow			= flags		& Flag::Overflow;
-		inverse_interrupt	= (~flags)	& Flag::Interrupt;
-		decimal				= flags		& Flag::Decimal;
+		set<Flag::Carry>(flags);
+		set<Flag::Negative>(flags);
+		set<Flag::Zero>((~flags) & Flag::Zero);
+		set<Flag::Overflow>(flags);
+		set<Flag::Interrupt>(flags);
+		set<Flag::Decimal>(flags);
+
+		assert((flags | Flag::Always | Flag::Break) == static_cast<uint8_t>(*this));
 	}
 
 	auto operator <=> (const Flags &rhs) const {

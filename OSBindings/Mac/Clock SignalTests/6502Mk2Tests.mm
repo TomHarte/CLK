@@ -169,7 +169,7 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 		auto repeat_processor = make_processor<model>(test, handler);
 		const bool should_interrupt =
 			instruction.operation != CPU::MOS6502Mk2::Operation::BRK &&
-			repeat_processor.registers().flags.inverse_interrupt;
+			!repeat_processor.registers().flags.template get<CPU::MOS6502Mk2::Flag::Interrupt>();
 
 		try {
 			repeat_processor.run_for(Cycles(last_length - 1));

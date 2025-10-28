@@ -21,13 +21,13 @@ namespace Operations {
 template <typename RegistersT>
 void ane(RegistersT &registers, const uint8_t operand) {
 	registers.a = (registers.a | 0xee) & operand & registers.x;
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 }
 
 template <typename RegistersT>
 void anc(RegistersT &registers, const uint8_t operand) {
 	registers.a &= operand;
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 	registers.flags.carry = registers.a >> 7;
 }
 
@@ -37,8 +37,8 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	registers.flags.carry = result < registers.a + registers.flags.carry;
 
 	if(!has_decimal_mode(model) || !registers.flags.decimal) {
-		registers.flags.set_v(result, registers.a, operand);
-		registers.flags.set_nz(registers.a = result);
+		registers.flags.set_overflow(result, registers.a, operand);
+		registers.flags.template set<Flag::NegativeZero>(registers.a = result);
 		return;
 	}
 
@@ -69,7 +69,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	if constexpr (!is_65c02(model)) {
 		registers.flags.negative_result = result;
 	}
-	registers.flags.set_v(result, registers.a, operand);
+	registers.flags.set_overflow(result, registers.a, operand);
 
 	// i.e. fix high nibble if there was carry out of bit 7 already, or if the
 	// top nibble is too large (in which case there will be carry after the fix-up).
@@ -80,7 +80,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 
 	registers.a = result;
 	if constexpr (is_65c02(model)) {
-		registers.flags.set_nz(registers.a);
+		registers.flags.template set<Flag::NegativeZero>(registers.a);
 	}
 }
 
@@ -97,9 +97,9 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	// All flags are set based only on the decimal result.
 	registers.flags.carry = result < registers.a + registers.flags.carry;
 	if constexpr (!is_65c02(model)) {
-		registers.flags.set_nz(result);
+		registers.flags.template set<Flag::NegativeZero>(result);
 	}
-	registers.flags.set_v(result, registers.a, operand_complement);
+	registers.flags.set_overflow(result, registers.a, operand_complement);
 
 	// General SBC logic:
 	//
@@ -128,7 +128,7 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 
 	registers.a = result;
 	if constexpr (is_65c02(model)) {
-		registers.flags.set_nz(registers.a);
+		registers.flags.template set<Flag::NegativeZero>(registers.a);
 	}
 }
 
@@ -137,7 +137,7 @@ void arr(RegistersT &registers, const uint8_t operand) {
 	registers.a &= operand;
 	const uint8_t unshifted_a = registers.a;
 	registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 	registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
 
 	if(registers.flags.decimal && has_decimal_mode(model)) {
@@ -154,14 +154,14 @@ void sbx(RegistersT &registers, const uint8_t operand) {
 	registers.x &= registers.a;
 	registers.flags.carry = operand <= registers.x;
 	registers.x -= operand;
-	registers.flags.set_nz(registers.x);
+	registers.flags.template set<Flag::NegativeZero>(registers.x);
 }
 
 template <typename RegistersT>
 void asl(RegistersT &registers, uint8_t &operand) {
 	registers.flags.carry = operand >> 7;
 	operand <<= 1;
-	registers.flags.set_nz(operand);
+	registers.flags.template set<Flag::NegativeZero>(operand);
 }
 
 template <typename RegistersT>
@@ -169,14 +169,14 @@ void aso(RegistersT &registers, uint8_t &operand) {
 	registers.flags.carry = operand >> 7;
 	operand <<= 1;
 	registers.a |= operand;
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 }
 
 template <typename RegistersT>
 void rol(RegistersT &registers, uint8_t &operand) {
 	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
 	registers.flags.carry = operand >> 7;
-	registers.flags.set_nz(operand = temp8);
+	registers.flags.template set<Flag::NegativeZero>(operand = temp8);
 }
 
 template <typename RegistersT>
@@ -185,14 +185,14 @@ void rla(RegistersT &registers, uint8_t &operand) {
 	registers.flags.carry = operand >> 7;
 	operand = temp8;
 	registers.a &= operand;
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 }
 
 template <typename RegistersT>
 void lsr(RegistersT &registers, uint8_t &operand) {
 	registers.flags.carry = operand & 1;
 	operand >>= 1;
-	registers.flags.set_nz(operand);
+	registers.flags.template set<Flag::NegativeZero>(operand);
 }
 
 template <typename RegistersT>
@@ -200,7 +200,7 @@ void lse(RegistersT &registers, uint8_t &operand) {
 	registers.flags.carry = operand & 1;
 	operand >>= 1;
 	registers.a ^= operand;
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 }
 
 template <typename RegistersT>
@@ -208,14 +208,14 @@ void asr(RegistersT &registers, uint8_t &operand) {
 	registers.a &= operand;
 	registers.flags.carry = registers.a & 1;
 	registers.a >>= 1;
-	registers.flags.set_nz(registers.a);
+	registers.flags.template set<Flag::NegativeZero>(registers.a);
 }
 
 template <typename RegistersT>
 void ror(RegistersT &registers, uint8_t &operand) {
 	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
 	registers.flags.carry = operand & 1;
-	registers.flags.set_nz(operand = temp8);
+	registers.flags.template set<Flag::NegativeZero>(operand = temp8);
 }
 
 template <Model model, typename RegistersT>
@@ -229,7 +229,7 @@ void rra(RegistersT &registers, uint8_t &operand) {
 template <typename RegistersT>
 void compare(RegistersT &registers, const uint8_t lhs, const uint8_t rhs) {
 	registers.flags.carry = rhs <= lhs;
-	registers.flags.set_nz(lhs - rhs);
+	registers.flags.template set<Flag::NegativeZero>(lhs - rhs);
 }
 
 template <typename RegistersT>
@@ -342,19 +342,19 @@ void perform(
 
 		// MARK: - Bitwise logic.
 
-		case Operation::ORA:	registers.flags.set_nz(registers.a |= operand);		break;
-		case Operation::AND:	registers.flags.set_nz(registers.a &= operand);		break;
-		case Operation::EOR:	registers.flags.set_nz(registers.a ^= operand);		break;
+		case Operation::ORA:	registers.flags.template set<Flag::NegativeZero>(registers.a |= operand);		break;
+		case Operation::AND:	registers.flags.template set<Flag::NegativeZero>(registers.a &= operand);		break;
+		case Operation::EOR:	registers.flags.template set<Flag::NegativeZero>(registers.a ^= operand);		break;
 
 		// MARK: - Loads and stores.
 
-		case Operation::LDA:	registers.flags.set_nz(registers.a = operand);					break;
-		case Operation::LDX:	registers.flags.set_nz(registers.x = operand);					break;
-		case Operation::LDY:	registers.flags.set_nz(registers.y = operand);					break;
-		case Operation::LAX:	registers.flags.set_nz(registers.a = registers.x = operand);	break;
+		case Operation::LDA:	registers.flags.template set<Flag::NegativeZero>(registers.a = operand);					break;
+		case Operation::LDX:	registers.flags.template set<Flag::NegativeZero>(registers.x = operand);					break;
+		case Operation::LDY:	registers.flags.template set<Flag::NegativeZero>(registers.y = operand);					break;
+		case Operation::LAX:	registers.flags.template set<Flag::NegativeZero>(registers.a = registers.x = operand);	break;
 		case Operation::LXA:
 			registers.a = registers.x = (registers.a | 0xee) & operand;
-			registers.flags.set_nz(registers.a);
+			registers.flags.template set<Flag::NegativeZero>(registers.a);
 		break;
 		case Operation::PLP:	registers.flags = Flags(operand);								break;
 
@@ -377,28 +377,28 @@ void perform(
 		case Operation::ANC:	Operations::anc(registers, operand);	break;
 		case Operation::LAS:
 			registers.a = registers.x = registers.s = registers.s & operand;
-			registers.flags.set_nz(registers.a);
+			registers.flags.template set<Flag::NegativeZero>(registers.a);
 		break;
 
 		// MARK: - Transfers.
 
-		case Operation::TXA:	registers.flags.set_nz(registers.a = registers.x);	break;
-		case Operation::TYA:	registers.flags.set_nz(registers.a = registers.y);	break;
+		case Operation::TXA:	registers.flags.template set<Flag::NegativeZero>(registers.a = registers.x);	break;
+		case Operation::TYA:	registers.flags.template set<Flag::NegativeZero>(registers.a = registers.y);	break;
 		case Operation::TXS:	registers.s = registers.x;							break;
-		case Operation::TAY:	registers.flags.set_nz(registers.y = registers.a);	break;
-		case Operation::TAX:	registers.flags.set_nz(registers.x = registers.a);	break;
-		case Operation::TSX:	registers.flags.set_nz(registers.x = registers.s);	break;
+		case Operation::TAY:	registers.flags.template set<Flag::NegativeZero>(registers.y = registers.a);	break;
+		case Operation::TAX:	registers.flags.template set<Flag::NegativeZero>(registers.x = registers.a);	break;
+		case Operation::TSX:	registers.flags.template set<Flag::NegativeZero>(registers.x = registers.s);	break;
 
 		// MARK: - Increments and decrements.
 
-		case Operation::INC:	registers.flags.set_nz(++operand);		break;
-		case Operation::DEC:	registers.flags.set_nz(--operand);		break;
-		case Operation::INA:	registers.flags.set_nz(++registers.a);	break;
-		case Operation::DEA:	registers.flags.set_nz(--registers.a);	break;
-		case Operation::INX:	registers.flags.set_nz(++registers.x);	break;
-		case Operation::DEX:	registers.flags.set_nz(--registers.x);	break;
-		case Operation::INY:	registers.flags.set_nz(++registers.y);	break;
-		case Operation::DEY:	registers.flags.set_nz(--registers.y);	break;
+		case Operation::INC:	registers.flags.template set<Flag::NegativeZero>(++operand);		break;
+		case Operation::DEC:	registers.flags.template set<Flag::NegativeZero>(--operand);		break;
+		case Operation::INA:	registers.flags.template set<Flag::NegativeZero>(++registers.a);	break;
+		case Operation::DEA:	registers.flags.template set<Flag::NegativeZero>(--registers.a);	break;
+		case Operation::INX:	registers.flags.template set<Flag::NegativeZero>(++registers.x);	break;
+		case Operation::DEX:	registers.flags.template set<Flag::NegativeZero>(--registers.x);	break;
+		case Operation::INY:	registers.flags.template set<Flag::NegativeZero>(++registers.y);	break;
+		case Operation::DEY:	registers.flags.template set<Flag::NegativeZero>(--registers.y);	break;
 
 		// MARK: - Shifts and rolls.
 

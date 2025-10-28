@@ -42,8 +42,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	};
 	const auto check_interrupt = [&] {
 		Storage::captured_interrupt_requests_ =
-			Storage::inputs_.interrupt_requests &
-				(Storage::registers_.flags.inverse_interrupt | ~InterruptRequest::IRQ);
+			Storage::inputs_.interrupt_requests & Storage::registers_.flags.interrupt_mask();
 	};
 
 	#define restore_point()	(__COUNTER__ + int(ResumePoint::Max) + int(AddressingMode::Max))
