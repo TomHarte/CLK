@@ -102,7 +102,7 @@ struct Flags {
 	/// Sets a flag based on an 8-bit ALU result.
 	template <Flag flag>
 	requires(is_settable(flag))
-	void set(const uint8_t result) {
+	void set_per(const uint8_t result) {
 		switch(flag) {
 			default:	__builtin_unreachable();
 
@@ -115,6 +115,12 @@ struct Flags {
 			case Flag::Carry:				carry = result & Flag::Carry;										break;
 			case Flag::NegativeZero:		zero_result = negative_result = result;								break;
 		}
+	}
+
+	template <Flag flag>
+	requires(is_settable(flag))
+	void set(const bool result) {
+		set_per<flag>(result ? 0xff : 0x00);
 	}
 
 	uint8_t carry_value() const {
@@ -145,12 +151,12 @@ struct Flags {
 	}
 
 	Flags(const uint8_t flags) {
-		set<Flag::Carry>(flags);
-		set<Flag::Negative>(flags);
-		set<Flag::Zero>((~flags) & Flag::Zero);
-		set<Flag::Overflow>(flags);
-		set<Flag::Interrupt>(flags);
-		set<Flag::Decimal>(flags);
+		set_per<Flag::Carry>(flags);
+		set_per<Flag::Negative>(flags);
+		set_per<Flag::Zero>((~flags) & Flag::Zero);
+		set_per<Flag::Overflow>(flags);
+		set_per<Flag::Interrupt>(flags);
+		set_per<Flag::Decimal>(flags);
 
 		assert((flags | Flag::Always | Flag::Break) == static_cast<uint8_t>(*this));
 	}
@@ -164,6 +170,7 @@ struct Flags {
 	uint8_t carry = 0;				/// Contains Flag::Carry.
 	uint8_t decimal = 0;			/// Contains Flag::Decimal.
 	uint8_t overflow = 0;			/// Contains Flag::Overflow.
+private:
 	uint8_t inverse_interrupt = 0;	/// Contains Flag::Interrupt, complemented.
 };
 
