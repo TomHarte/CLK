@@ -120,7 +120,7 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 				instruction.operation == CPU::MOS6502Mk2::Operation::SBC
 			) &&
 			instruction.mode == CPU::MOS6502Mk2::AddressingMode::Immediate &&
-			processor.registers().flags.decimal;
+			processor.registers().flags.template get<CPU::MOS6502Mk2::Flag::Decimal>();
 		ignore_addresses[3] = instruction.mode == CPU::MOS6502Mk2::AddressingMode::JMPAbsoluteIndexedIndirect;
 	}
 

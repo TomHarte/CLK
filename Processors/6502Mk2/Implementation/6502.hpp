@@ -113,7 +113,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 	const auto set_interrupt_flag = [&] {
 		registers.flags.template set_per<Flag::InverseInterrupt>(0);
 		if constexpr (is_65c02(model)) {
-			registers.flags.decimal = 0;
+			registers.flags.template set_per<Flag::Decimal>(0);
 		}
 	};
 

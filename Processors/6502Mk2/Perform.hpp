@@ -43,7 +43,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	}
 
 	if constexpr (!is_65c02(model)) {
-		registers.flags.zero_result = result;
+		registers.flags.template set_per<Flag::Zero>(result);
 	}
 
 	// General ADC logic:
@@ -67,7 +67,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	// 6502 quirk: N and V are set before the full result is computed but
 	// after the low nibble has been corrected.
 	if constexpr (!is_65c02(model)) {
-		registers.flags.negative_result = result;
+		registers.flags.template set_per<Flag::Negative>(result);
 	}
 	registers.flags.set_overflow(result, registers.a, operand);
 
@@ -234,25 +234,25 @@ void compare(RegistersT &registers, const uint8_t lhs, const uint8_t rhs) {
 
 template <typename RegistersT>
 void bit(RegistersT &registers, const uint8_t operand) {
-	registers.flags.zero_result = operand & registers.a;
-	registers.flags.negative_result = operand;
+	registers.flags.template set_per<Flag::Zero>(operand & registers.a);
+	registers.flags.template set_per<Flag::Negative>(operand);
 	registers.flags.overflow = operand & Flag::Overflow;
 }
 
 template <typename RegistersT>
 void bit_no_nv(RegistersT &registers, const uint8_t operand) {
-	registers.flags.zero_result = operand & registers.a;
+	registers.flags.template set_per<Flag::Zero>(operand & registers.a);
 }
 
 template <typename RegistersT>
 void trb(RegistersT &registers, uint8_t &operand) {
-	registers.flags.zero_result = operand & registers.a;
+	registers.flags.template set_per<Flag::Zero>(operand & registers.a);
 	operand &= ~registers.a;
 }
 
 template <typename RegistersT>
 void tsb(RegistersT &registers, uint8_t &operand) {
-	registers.flags.zero_result = operand & registers.a;
+	registers.flags.template set_per<Flag::Zero>(operand & registers.a);
 	operand |= registers.a;
 }
 
@@ -309,14 +309,14 @@ bool test(const Operation operation, RegistersT &registers) {
 		default:
 			__builtin_unreachable();
 
-		case Operation::BPL: return !(registers.flags.negative_result & 0x80);
-		case Operation::BMI: return registers.flags.negative_result & 0x80;
+		case Operation::BPL: return !registers.flags.template get<Flag::Negative>();
+		case Operation::BMI: return registers.flags.template get<Flag::Negative>();
 		case Operation::BVC: return !registers.flags.overflow;
 		case Operation::BVS: return registers.flags.overflow;
 		case Operation::BCC: return !registers.flags.carry;
 		case Operation::BCS: return registers.flags.carry;
-		case Operation::BNE: return registers.flags.zero_result;
-		case Operation::BEQ: return !registers.flags.zero_result;
+		case Operation::BNE: return !registers.flags.template get<Flag::Zero>();
+		case Operation::BEQ: return registers.flags.template get<Flag::Zero>();
 		case Operation::BRA: return true;
 	}
 }
