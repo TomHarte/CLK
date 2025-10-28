@@ -22,10 +22,15 @@ namespace CPU::MOS6502Mk2 {
 template <Model model, typename Traits>
 void Processor<model, Traits>::restart_operation_fetch() {
 	Storage::resume_point_ = Storage::ResumePoint::FetchDecode;
+	Storage::cycles_ = Cycles(0);
 }
 
 template <Model model, typename Traits>
 void Processor<model, Traits>::run_for(const Cycles cycles) {
+	using ResumePoint = Storage::ResumePoint;
+	using InterruptRequest = Storage::Inputs::InterruptRequest;
+	auto &registers = Storage::registers_;
+
 	Storage::cycles_ += cycles;
 	if(Storage::cycles_ <= Cycles(0)) return;
 
@@ -34,6 +39,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			lhs = rhs;
 		}
 		static void assign(const uint8_t &, const Data::Writeable) {}
+	};
+	const auto check_interrupt = [&] {
+		Storage::captured_interrupt_requests_ =
+			Storage::inputs_.interrupt_requests &
+				(Storage::registers_.flags.inverse_interrupt | ~InterruptRequest::IRQ);
 	};
 
 	#define restore_point()	(__COUNTER__ + int(ResumePoint::Max) + int(AddressingMode::Max))
@@ -47,6 +57,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		static constexpr int location = restore_point();												\
 		[[fallthrough]]; case location:																	\
 		[[maybe_unused]] access_label():																\
+		check_interrupt();																				\
 																										\
 		if constexpr (Traits::pause_precision >= PausePrecision::AnyCycle) {							\
 			if(Storage::cycles_ <= Cycles(0)) {															\
@@ -78,18 +89,10 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 	#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
 
-	using ResumePoint = Storage::ResumePoint;
-	using InterruptRequest = Storage::Inputs::InterruptRequest;
-	auto &registers = Storage::registers_;
 	Data::Writeable throwaway;
 
 	const auto index = [&] {
 		return Storage::decoded_.index == Index::X ? registers.x : registers.y;
-	};
-	const auto check_interrupt = [&] {
-		Storage::captured_interrupt_requests_ =
-			Storage::inputs_.interrupt_requests & (Storage::registers_.flags.
-			inverse_interrupt | ~InterruptRequest::IRQ);
 	};
 	const auto perform_operation = [&] {
 		CPU::MOS6502Mk2::perform<model>(
@@ -137,7 +140,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			// Read.
-			check_interrupt();
 			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
 			if(Storage::decoded_.type == Type::Read) {
 				perform_operation();
@@ -153,7 +155,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			// Write.
 		access_zero_write:
-			check_interrupt();
 			perform_operation();
 			access(BusOperation::Write, ZeroPage(Storage::address_.halves.low), Storage::operand_);
 
@@ -161,7 +162,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		access_zero_65c02_decimal:
 			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
-			check_interrupt();
 			access(BusOperation::Read, ZeroPage(Storage::address_.halves.low), Storage::operand_);
 			perform_operation();
 			goto fetch_decode;
@@ -185,7 +185,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			// Read.
-			check_interrupt();
 			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
 			if(Storage::decoded_.type == Type::Read) {
 				perform_operation();
@@ -201,7 +200,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			// Write.
 		access_absolute_write:
-			check_interrupt();
 			perform_operation();
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
 
@@ -209,7 +207,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		access_absolute_65c02_decimal:
 			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
-			check_interrupt();
 			perform_operation();
 			access(BusOperation::Read, Literal(Storage::address_.full), Storage::operand_);
 			goto fetch_decode;
@@ -243,7 +240,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				}
 			}
 
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 
 			Storage::resume_point_ = ResumePoint::Max + int(Storage::decoded_.mode);
@@ -263,7 +259,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto fetch_decode;
 
 		immediate_65c02_decimal:
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::operand_);
 
 			++registers.pc.full;
@@ -283,13 +278,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		case access_program(Pull):
 			access(BusOperation::Read, Stack(registers.s), Storage::operand_);
-			check_interrupt();
 			access(BusOperation::Read, Stack(registers.inc_s()), Storage::operand_);
 			perform_operation();
 			goto fetch_decode;
 
 		case access_program(Push):
-			check_interrupt();
 			perform_operation();
 			access(BusOperation::Write, Stack(registers.dec_s()), Storage::operand_);
 			goto fetch_decode;
@@ -350,9 +343,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 		// MARK: - Zero indexed.
 
 		case access_program(ZeroIndexed):
-			if constexpr (is_65c02(model)) {
-				check_interrupt();
-			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), throwaway);
 			Storage::address_.halves.low += index();
@@ -363,7 +353,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		case access_program(ZeroIndirect):
 			access(BusOperation::Read, ZeroPage(Storage::operand_++), Storage::address_.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
 
 			goto access_absolute;
@@ -372,10 +361,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		case access_program(Absolute):
 			++registers.pc.full;
-
-			if constexpr (is_65c02(model)) {
-				check_interrupt();
-			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
 
@@ -387,9 +372,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			++registers.pc.full;
 
 			// Read top half of address.
-			if constexpr (is_65c02(model)) {
-				check_interrupt();
-			}
 			Storage::address_.halves.low = Storage::operand_;
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
 
@@ -409,7 +391,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto access_absolute;
 
 		absolute_indexed_65c02_tail:
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
@@ -420,7 +401,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			// Read top half of address.
 			Storage::address_.halves.low = Storage::operand_;
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), Storage::address_.halves.high);
 
 			// If this is a read and the top byte doesn't need adjusting, skip that cycle.
@@ -430,7 +410,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto access_absolute;
 			}
 
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
@@ -441,9 +420,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::operand_ += registers.x;
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
-			if constexpr (is_65c02(model)) {
-				check_interrupt();
-			}
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
 			goto access_absolute;
 
@@ -453,9 +429,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.low);
 			++Storage::operand_;
 
-			if constexpr (is_65c02(model)) {
-				check_interrupt();
-			}
 			access(BusOperation::Read, ZeroPage(Storage::operand_), Storage::address_.halves.high);
 
 			Storage::operand_ = Storage::address_.halves.high;
@@ -475,7 +448,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			goto access_absolute;
 
 		indirect_indexed_65c02_tail:
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
@@ -512,7 +484,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				break;
 			}
 
-			check_interrupt();
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
 
 			goto fetch_decode;
@@ -533,7 +504,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, Literal(Storage::address_.full), throwaway);
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 
-			check_interrupt();
 			assert(Storage::decoded_.operation == Operation::SHA);
 			Operations::sha(registers, Storage::address_, Storage::operand_, Storage::did_adjust_top_);
 			access(BusOperation::Write, Literal(Storage::address_.full), Storage::operand_);
@@ -566,8 +536,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			access(BusOperation::Read, Stack(registers.s), throwaway);
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.low);
-
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), registers.pc.halves.high);
 			registers.pc.halves.low = Storage::operand_;
 
@@ -580,7 +548,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			registers.flags = Flags(Storage::operand_);
 
 			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.high);
 
 			goto fetch_decode;
@@ -590,8 +557,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.low);
 			access(BusOperation::Read, Stack(registers.inc_s()), registers.pc.halves.high);
-
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			++registers.pc.full;
 
@@ -599,7 +564,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 		case access_program(JMPAbsolute):
 			++registers.pc.full;
-			check_interrupt();
 			access(BusOperation::Read, Literal(registers.pc.full), registers.pc.halves.high);
 			registers.pc.halves.low = Storage::operand_;
 
@@ -612,7 +576,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.low);
 			++Storage::address_.halves.low;
-			check_interrupt();
 			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.high);
 
 			if constexpr (!is_65c02(model)) {
@@ -620,7 +583,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			Storage::address_.halves.high += !Storage::address_.halves.low;
-			check_interrupt();
 			access(BusOperation::Read, Literal(Storage::address_.full), registers.pc.halves.high);
 
 			goto fetch_decode;
@@ -656,7 +618,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			access(BusOperation::Read, Vector(0xfe), registers.pc.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, Vector(0xff), registers.pc.halves.high);
 			goto fetch_decode;
 
@@ -668,7 +629,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				Storage::inputs_.interrupt_requests &= ~InterruptRequest::PowerOn;
 				goto reset;
 			}
-			assert(Storage::captured_interrupt_requests_ & (InterruptRequest::IRQ | InterruptRequest::NMI));
 
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.high);
 			access(BusOperation::Write, Stack(registers.dec_s()), registers.pc.halves.low);
@@ -687,13 +647,11 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			}
 
 			access(BusOperation::Read, Vector(0xfe), registers.pc.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, Vector(0xff), registers.pc.halves.high);
 			goto fetch_decode;
 
 		nmi:
 			access(BusOperation::Read, Vector(0xfa), registers.pc.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, Vector(0xfb), registers.pc.halves.high);
 			goto fetch_decode;
 
@@ -706,7 +664,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			if constexpr (is_65c02(model)) registers.flags.decimal = 0;
 
 			access(BusOperation::Read, Vector(0xfc), registers.pc.halves.low);
-			check_interrupt();
 			access(BusOperation::Read, Vector(0xfd), registers.pc.halves.high);
 			goto fetch_decode;
 
@@ -717,7 +674,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				Storage::resume_point_ = access_program(STP);
 				return;
 			}
-			check_interrupt();
 			access(BusOperation::None, Vector(0xff), Data::NoValue{});
 			if(Storage::captured_interrupt_requests_ & (InterruptRequest::Reset | InterruptRequest::PowerOn)) {
 				goto fetch_decode;
@@ -730,7 +686,6 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				Storage::resume_point_ = access_program(WAI);
 				return;
 			}
-			check_interrupt();
 			access(BusOperation::Ready, Vector(0xff), Data::NoValue{});
 			if(Storage::captured_interrupt_requests_) {
 				goto fetch_decode;
