@@ -266,9 +266,6 @@ struct Processor: public Storage<model, Traits> {
 		the next thing it intends to do is fetch a new opcode.
 	*/
 	inline void restart_operation_fetch();
-
-private:
-	using Storage = Storage<model, Traits>;
 };
 
 }

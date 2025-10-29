@@ -21,12 +21,14 @@ namespace CPU::MOS6502Mk2 {
 
 template <Model model, typename Traits>
 void Processor<model, Traits>::restart_operation_fetch() {
+	using Storage = Storage<model, Traits>;
 	Storage::resume_point_ = Storage::ResumePoint::FetchDecode;
 	Storage::cycles_ = Cycles(0);
 }
 
 template <Model model, typename Traits>
 void Processor<model, Traits>::run_for(const Cycles cycles) {
+	using Storage = Storage<model, Traits>;
 	using ResumePoint = Storage::ResumePoint;
 	using InterruptRequest = Storage::Inputs::InterruptRequest;
 	auto &registers = Storage::registers_;
@@ -395,7 +397,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			std::swap(Storage::address_.halves.high, Storage::operand_);
 			goto access_absolute;
 
-		absolute_indexed_65c02_tail:
+		[[maybe_unused]] absolute_indexed_65c02_tail:
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
@@ -449,7 +451,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 
 			goto access_absolute;
 
-		indirect_indexed_65c02_tail:
+		[[maybe_unused]] indirect_indexed_65c02_tail:
 			access(BusOperation::Read, Literal(registers.pc.full), throwaway);
 			goto access_absolute;
 
