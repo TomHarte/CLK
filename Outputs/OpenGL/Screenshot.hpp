@@ -10,6 +10,8 @@
 
 #include "OpenGL.hpp"
 
+#include <vector>
+
 namespace Outputs::Display::OpenGL {
 
 /*!
@@ -37,13 +39,13 @@ struct Screenshot {
 
 		// Flip the contents into raster order.
 		const size_t line_size = size_t(width * 4);
+		std::vector temp(line_size, 0);
 		for(size_t y = 0; y < size_t(height) / 2; ++y) {
 			const size_t flipped_y = size_t(height - 1) - y;
 
-			uint8_t temp[line_size];
-			memcpy(temp, &pixel_data[flipped_y * line_size], line_size);
+			memcpy(temp.data(), &pixel_data[flipped_y * line_size], line_size);
 			memcpy(&pixel_data[flipped_y * line_size], &pixel_data[y * line_size], line_size);
-			memcpy(&pixel_data[y * line_size], temp, line_size);
+			memcpy(&pixel_data[y * line_size], temp.data(), line_size);
 		}
 	}
 
