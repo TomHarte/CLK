@@ -15,6 +15,7 @@
 #include "Machines/Utility/Typer.hpp"
 
 #include "Processors/6502/6502.hpp"
+#include "Processors/6502Mk2/6502Mk2.hpp"
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
@@ -1149,10 +1150,44 @@ private:
 
 using namespace BBCMicro;
 
+namespace {
+
+struct Handler {
+	uint8_t memory_[65536];
+
+	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> data) {
+		if constexpr (!is_dataless(operation)) {
+			if constexpr (is_read(operation)) {
+				data = memory_[address];
+			} else {
+				memory_[address] = data;
+			}
+		}
+		return Cycles(1);
+	}
+};
+
+struct Traits {
+	static constexpr auto uses_ready_line = false;
+	static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::AnyCycle;
+	using BusHandlerT = Handler;
+};
+
+void test_it() {
+	Handler handler;
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, Traits> processor(handler);
+	processor.run_for(Cycles(1000));
+}
+
+}
+
 std::unique_ptr<Machine> Machine::BBCMicro(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
+	test_it();
+
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 	if(acorn_target->has_1770dfs || acorn_target->has_adfs) {
