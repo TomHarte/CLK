@@ -299,10 +299,10 @@ void sal(
 			} else {
 				const auto mask = (Numeric::top_bit<IntT>() >> (count - 1));
 				context.flags.template set_from<Flag::Carry>(
-					 destination & mask
+					destination & mask
 				);
 				context.flags.template set_from<Flag::Overflow>(IntT(
-					 (destination ^ (destination << 1)) & mask
+					(destination ^ (destination << 1)) & mask
 				));
 				destination <<= count;
 			}

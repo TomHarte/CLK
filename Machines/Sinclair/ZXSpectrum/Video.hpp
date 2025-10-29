@@ -90,7 +90,7 @@ private:
 				delays[6] * 2,
 				delays[7] * 2
 			}
-		 {}
+		{}
 	};
 
 	static constexpr Timings get_timings() {

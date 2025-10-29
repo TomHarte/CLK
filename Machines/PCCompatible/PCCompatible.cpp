@@ -540,14 +540,14 @@ private:
 			case 0x0086:	return dma_.pages.template page<6>();
 			case 0x0087:	return dma_.pages.template page<7>();
 
-			case 0x0088:	if(require_at(port)) return dma_.pages.template page<0x8>(); 	break;
-			case 0x0089:	if(require_at(port)) return dma_.pages.template page<0x9>(); 	break;
-			case 0x008a:	if(require_at(port)) return dma_.pages.template page<0xa>(); 	break;
-			case 0x008b:	if(require_at(port)) return dma_.pages.template page<0xb>(); 	break;
-			case 0x008c:	if(require_at(port)) return dma_.pages.template page<0xc>(); 	break;
-			case 0x008d:	if(require_at(port)) return dma_.pages.template page<0xd>(); 	break;
-			case 0x008e:	if(require_at(port)) return dma_.pages.template page<0xe>(); 	break;
-			case 0x008f:	if(require_at(port)) return dma_.pages.template page<0xf>(); 	break;
+			case 0x0088:	if(require_at(port)) return dma_.pages.template page<0x8>();	break;
+			case 0x0089:	if(require_at(port)) return dma_.pages.template page<0x9>();	break;
+			case 0x008a:	if(require_at(port)) return dma_.pages.template page<0xa>();	break;
+			case 0x008b:	if(require_at(port)) return dma_.pages.template page<0xb>();	break;
+			case 0x008c:	if(require_at(port)) return dma_.pages.template page<0xc>();	break;
+			case 0x008d:	if(require_at(port)) return dma_.pages.template page<0xd>();	break;
+			case 0x008e:	if(require_at(port)) return dma_.pages.template page<0xe>();	break;
+			case 0x008f:	if(require_at(port)) return dma_.pages.template page<0xf>();	break;
 
 			case 0x03f4:	return fdc_.status();
 			case 0x03f5:	return fdc_.read();

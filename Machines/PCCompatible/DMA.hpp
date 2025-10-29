@@ -104,9 +104,9 @@ public:
 						return channels_[channel].address.halves.low;
 					}
 				}
-			 }
-			 case 0x8:	return status();
-			 case 0xd:	return temporary_register();
+			}
+			case 0x8:	return status();
+			case 0xd:	return temporary_register();
 		}
 	}
 

@@ -290,7 +290,7 @@ void idiv(
 					FI;
 				ELSE (* quadword/doubleword operation *)
 					temp ← EDX:EAX / SRC; (* signed division *)
-					IF (temp > 7FFFFFFFH) OR (temp < 80000000H) 	(* if a positive result is greater than 7FFFFFFFH
+					IF (temp > 7FFFFFFFH) OR (temp < 80000000H)		(* if a positive result is greater than 7FFFFFFFH
 																	or a negative result is less than 80000000H *)
 						THEN #DE; (* divide error *) ;
 						ELSE

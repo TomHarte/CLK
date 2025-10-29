@@ -413,7 +413,7 @@ void perform(
 		case ASL:	Operations::asl(registers, operand);		break;
 		case ASO:	Operations::aso(registers, operand);		break;
 		case ROL:	Operations::rol(registers, operand);		break;
-		case RLA: 	Operations::rla(registers, operand);		break;
+		case RLA:	Operations::rla(registers, operand);		break;
 		case LSR:	Operations::lsr(registers, operand);		break;
 		case LSE:	Operations::lse(registers, operand);		break;
 		case ASR:	Operations::asr(registers, operand);		break;
@@ -448,7 +448,7 @@ void perform(
 		case SBC:	Operations::sbc<model>(registers, operand);		break;
 		case ADC:	Operations::adc<model>(registers, operand);		break;
 		case ARR:	Operations::arr<model>(registers, operand);		break;
-		case SBX: 	Operations::sbx(registers, operand);			break;
+		case SBX:	Operations::sbx(registers, operand);			break;
 	}
 }
 

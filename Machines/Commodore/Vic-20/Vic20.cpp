@@ -253,7 +253,7 @@ public:
 	void did_set_input(const Input &digital_input, const bool is_active) final {
 		if(const auto mapped_input = [&]() -> std::optional<JoystickInput> {
 				switch(digital_input.type) {
-					default: 			return std::nullopt;
+					default:			return std::nullopt;
 					case Input::Up:		return Up;
 					case Input::Down:	return Down;
 					case Input::Left:	return Left;

@@ -43,8 +43,8 @@ enum class Key: uint16_t {
 	ForwardSlash = 0x68,
 	Bit1 = 0x08,
 
-	Right = 0x79, 		Left = 0x19, 		Down = 0x29, 		Up = 0x39,
-	Return = 0x49, 		Delete = 0x59, 		Copy = 0x69, 		Bit0 = 0x09,
+	Right = 0x79,		Left = 0x19,		Down = 0x29,		Up = 0x39,
+	Return = 0x49,		Delete = 0x59,		Copy = 0x69,		Bit0 = 0x09,
 
 	//
 	// Break; a key, but not on the keyboard matrix.
@@ -60,12 +60,12 @@ enum class Key: uint16_t {
 	//
 	// Master only keys.
 	//
-	Keypad4 = 0x7a, 		Keypad6 = 0x1a, 		Keypad8 = 0x2a, 	KeypadPlus = 0x3a,
-	KeypadDivide = 0x4a, 	KeypadHash = 0x5a,		Keypad0 = 0x6a,
-	Keypad5 = 0x7b, 		Keypad7 = 0x1b, 		Keypad9 = 0x2b, 	KeypadMinus = 0x3b,
-	KeypadDeleted = 0x4b, 	KeypadMultiply = 0x5b,	Keypad1 = 0x6b,
-	Keypad2 = 0x7c, 		F11 = 0x1c, 			PauseBreak = 0x2c, 	KeypadReturn = 0x3c,
-	KeypadDot = 0x4c, 		KeypadComma = 0x5c,		Keypad3 = 0x6c,
+	Keypad4 = 0x7a,			Keypad6 = 0x1a,			Keypad8 = 0x2a,		KeypadPlus = 0x3a,
+	KeypadDivide = 0x4a,	KeypadHash = 0x5a,		Keypad0 = 0x6a,
+	Keypad5 = 0x7b,			Keypad7 = 0x1b,			Keypad9 = 0x2b,		KeypadMinus = 0x3b,
+	KeypadDeleted = 0x4b,	KeypadMultiply = 0x5b,	Keypad1 = 0x6b,
+	Keypad2 = 0x7c,			F11 = 0x1c,				PauseBreak = 0x2c,	KeypadReturn = 0x3c,
+	KeypadDot = 0x4c,		KeypadComma = 0x5c,		Keypad3 = 0x6c,
 
 	Alt = 0x02,
 	LeftShift = 0x03,

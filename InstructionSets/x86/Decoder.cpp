@@ -909,7 +909,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				destination_ = source_ = memreg;
 
 				switch(reg) {
-					default: 	return undefined();
+					default:	return undefined();
 
 					case 0:		set(Operation::SLDT);	break;
 					case 1:		set(Operation::STR);	break;
@@ -924,7 +924,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(
 				destination_ = source_ = memreg;
 
 				switch(reg) {
-					default: 	return undefined();
+					default:	return undefined();
 
 					case 0:		set(Operation::SGDT);	break;
 					case 1:		set(Operation::SIDT);	break;

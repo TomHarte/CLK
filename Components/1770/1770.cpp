@@ -137,23 +137,23 @@ void WD1770::run_for(const Cycles cycles) {
 
 void WD1770::posit_event(const int new_event_type) {
 #define WAIT_FOR_EVENT(mask) {							\
-	interesting_event_mask_ = int(mask); 				\
+	interesting_event_mask_ = int(mask);				\
 	static constexpr int location = __COUNTER__ + 1;	\
-	resume_point_ = location; 							\
-	return; 											\
+	resume_point_ = location;							\
+	return;												\
 	case location:										\
 		(void)0;										\
 }
 
-#define WAIT_FOR_TIME(ms) 				\
-	delay_time_ = ms * 8000; 			\
+#define WAIT_FOR_TIME(ms)				\
+	delay_time_ = ms * 8000;			\
 	WAIT_FOR_EVENT(Event1770::Timer);
 
-#define WAIT_FOR_BYTES(count) 											\
-	distance_into_section_ = 0; 										\
-	WAIT_FOR_EVENT(Event::Token); 										\
+#define WAIT_FOR_BYTES(count)											\
+	distance_into_section_ = 0;											\
+	WAIT_FOR_EVENT(Event::Token);										\
 	distance_into_section_ += get_latest_token().type == Token::Byte;	\
-	if(distance_into_section_ < count) { 								\
+	if(distance_into_section_ < count) {								\
 		RESUME_WAIT(Event::Token);										\
 	}
 
