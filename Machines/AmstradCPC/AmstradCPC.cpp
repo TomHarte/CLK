@@ -1191,14 +1191,14 @@ public:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quickload = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_hack_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) {
 		const auto options = dynamic_cast<Options *>(str.get());
 		set_video_signal_configurable(options->output);
-		allow_fast_tape_hack_ = options->quickload;
+		allow_fast_tape_hack_ = options->quick_load;
 		set_use_fast_tape_hack();
 	}
 

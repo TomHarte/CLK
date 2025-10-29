@@ -32,19 +32,19 @@ struct Machine {
 	/// Defines the runtime options available for an Amstrad CPC.
 	class Options:
 		public Reflection::StructImpl<Options>,
-		public Configurable::DisplayOption<Options>,
-		public Configurable::QuickloadOption<Options>
+		public Configurable::Options::Display<Options>,
+		public Configurable::Options::QuickLoad<Options>
 	{
 	public:
 		Options(const Configurable::OptionsType type) :
-			Configurable::DisplayOption<Options>(Configurable::Display::RGB),
-			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
+			Configurable::Options::Display<Options>(Configurable::Display::RGB),
+			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
-		friend Configurable::DisplayOption<Options>;
-		friend Configurable::QuickloadOption<Options>;
+		friend Configurable::Options::Display<Options>;
+		friend Configurable::Options::QuickLoad<Options>;
 
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

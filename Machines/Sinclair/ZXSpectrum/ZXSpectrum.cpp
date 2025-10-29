@@ -731,7 +731,7 @@ public:
 	std::unique_ptr<Reflection::Struct> get_options() const override {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
 		options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
-		options->quickload = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_hack_;
 		options->output = get_video_signal_configurable();
 		return options;
 	}
@@ -740,7 +740,7 @@ public:
 		const auto options = dynamic_cast<Options *>(str.get());
 		set_video_signal_configurable(options->output);
 		set_use_automatic_tape_motor_control(options->automatic_tape_motor_control);
-		allow_fast_tape_hack_ = options->quickload;
+		allow_fast_tape_hack_ = options->quick_load;
 		set_use_fast_tape();
 	}
 

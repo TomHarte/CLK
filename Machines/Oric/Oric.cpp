@@ -679,14 +679,14 @@ public:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quickload = use_fast_tape_hack_;
+		options->quick_load = use_fast_tape_hack_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
 		set_video_signal_configurable(options->output);
-		set_use_fast_tape_hack(options->quickload);
+		set_use_fast_tape_hack(options->quick_load);
 	}
 
 	void set_activity_observer(Activity::Observer *observer) final {

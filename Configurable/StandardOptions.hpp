@@ -25,10 +25,12 @@ ReflectableEnum(Display,
 // ensure unified property naming.
 //===
 
-template <typename Owner> class DisplayOption {
+namespace Options {
+
+template <typename Owner> class Display {
 public:
 	Configurable::Display output;
-	DisplayOption(Configurable::Display output) : output(output) {}
+	Display(const Configurable::Display output) noexcept : output(output) {}
 
 protected:
 	void declare_display_option() {
@@ -37,26 +39,38 @@ protected:
 	}
 };
 
-template <typename Owner> class QuickloadOption {
+template <typename Owner> class QuickLoad {
 public:
-	bool quickload;
-	QuickloadOption(bool quickload) : quickload(quickload) {}
+	bool quick_load;
+	QuickLoad(const bool quick_load) noexcept : quick_load(quick_load) {}
 
 protected:
 	void declare_quickload_option() {
-		static_cast<Owner *>(this)->declare(&quickload, "quickload");
+		static_cast<Owner *>(this)->declare(&quick_load, "quickload");
 	}
 };
 
-template <typename Owner> class QuickbootOption {
+template <typename Owner> class QuickBoot {
 public:
-	bool quickboot;
-	QuickbootOption(bool quickboot) : quickboot(quickboot) {}
+	bool quick_boot;
+	QuickBoot(const bool quick_boot) noexcept : quick_boot(quick_boot) {}
 
 protected:
 	void declare_quickboot_option() {
-		static_cast<Owner *>(this)->declare(&quickboot, "quickboot");
+		static_cast<Owner *>(this)->declare(&quick_boot, "quickboot");
 	}
 };
 
+template <typename Owner> class DynamicCrop {
+public:
+	bool dynamic_crop;
+	DynamicCrop(const bool dynamic_crop) noexcept : dynamic_crop(dynamic_crop) {}
+
+protected:
+	void declare_quickboot_option() {
+		static_cast<Owner *>(this)->declare(&dynamic_crop, "dynamiccrop");
+	}
+};
+
+}
 }

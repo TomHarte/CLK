@@ -30,15 +30,15 @@ struct Machine {
 	/// Defines the runtime options [sometimes] available for a PC.
 	class Options:
 		public Reflection::StructImpl<Options>,
-		public Configurable::DisplayOption<Options>
+		public Configurable::Options::Display<Options>
 	{
-		friend Configurable::DisplayOption<Options>;
+		friend Configurable::Options::Display<Options>;
 	public:
-		Options(Configurable::OptionsType) :
-			Configurable::DisplayOption<Options>(Configurable::Display::RGB) {}
+		Options(const Configurable::OptionsType) :
+			Configurable::Options::Display<Options>(Configurable::Display::RGB) {}
 
 	private:
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

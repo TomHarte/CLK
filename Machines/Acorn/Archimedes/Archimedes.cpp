@@ -509,13 +509,13 @@ private:
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
-		options->quickload = accelerate_loading_;
+		options->quick_load = accelerate_loading_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
-		accelerate_loading_ = options->quickload;
+		accelerate_loading_ = options->quick_load;
 	}
 
 	// MARK: - AudioProducer

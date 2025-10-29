@@ -21,11 +21,11 @@ struct Machine {
 	/// Creates and returns a Macintosh.
 	static std::unique_ptr<Machine> Macintosh(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
-	class Options: public Reflection::StructImpl<Options>, public Configurable::QuickbootOption<Options> {
-		friend Configurable::QuickbootOption<Options>;
+	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::QuickBoot<Options> {
+		friend Configurable::Options::QuickBoot<Options>;
 	public:
-		Options(Configurable::OptionsType type) :
-			Configurable::QuickbootOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
+		Options(const Configurable::OptionsType type) :
+			Configurable::Options::QuickBoot<Options>(type == Configurable::OptionsType::UserFriendly) {}
 	private:
 		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
